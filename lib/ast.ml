@@ -8,13 +8,18 @@ module Loc = struct
   [@@deriving show { with_path = false }]
 end
 
+type loc = Loc.t [@@deriving show]
+
 type bop = Plus | Mult | Less | Equal [@@deriving show { with_path = false }]
 
 type expr =
-  | Var of Loc.t * string
-  | Int of Loc.t * int
-  | Bool of Loc.t * bool
-  | Bop of Loc.t * bop * expr * expr
-  | If of Loc.t * expr * expr * expr
-  | Let of Loc.t * string * expr * expr
+  | Var of loc * string
+  | Int of loc * int
+  | Bool of loc * bool
+  | Bop of loc * bop * expr * expr
+  | If of loc * expr * expr * expr
+  | Let of loc * string * expr * expr
+  | Abs of loc * string * expr
+  | App of loc * expr * expr
+
 [@@deriving show { with_path = false }]

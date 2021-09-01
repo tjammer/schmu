@@ -37,5 +37,9 @@ rule read =
   | '+'      { Plus }
   | '*'      { Mult }
   | '<'      { Less }
+  | '.'      { Dot }
+  | '('      { Lpar }
+  | ')'      { Rpar }
+  | '\\'     { Backslash }
   | eof      { Eof }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
