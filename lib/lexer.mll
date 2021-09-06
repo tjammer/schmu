@@ -33,6 +33,8 @@ rule read =
   | ','      { Comma }
   | ':'      { Colon }
   | "if"     { If }
+  | "then"   { Then }
+  | "else"   { Else }
   | id       { Identifier (Lexing.lexeme lexbuf) }
   | '+'      { Plus }
   | '*'      { Mult }
@@ -40,6 +42,8 @@ rule read =
   | '.'      { Dot }
   | '('      { Lpar }
   | ')'      { Rpar }
+  | '{'      { Lbrac }
+  | '}'      { Rbrac }
   | '\\'     { Backslash }
   | eof      { Eof }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

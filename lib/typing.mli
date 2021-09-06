@@ -1,31 +1,9 @@
-type typ = TInt | TBool | TFun of typ * typ | TVar of string [@@deriving show]
+type typ = TInt | TBool | TVar of tv ref | QVar of string | TFun of typ * typ
+
+and tv = Unbound of string * int | Link of typ
 
 exception Error of Ast.loc * string
 
-type scheme
-
-module Subst : sig
-  type t
-
-  val empty : t
-
-  val compose : t -> t -> t
-end
-
-module Context : sig
-  type t
-
-  val empty : t
-
-  val lookup : string -> t -> scheme option
-
-  val extend : string -> scheme -> t -> t
-
-  val generalize : t -> typ -> scheme
-end
-
-val instantiate : scheme -> typ
-
-
+val string_of_type : typ -> string
 
 val typecheck : Ast.expr -> typ

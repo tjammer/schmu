@@ -21,14 +21,14 @@ let run_file filename =
   let s = really_input_string ch (in_channel_length ch) in
   close_in ch;
   match run s with
-  | Ok typ -> Typing.show_typ typ |> print_endline
+  | Ok typ -> Typing.string_of_type typ |> print_endline
   | Error msg -> prerr_endline msg
 
 let rec run_prompt () =
   try
     print_string "> ";
     (match run (read_line ()) with
-    | Ok typ -> Schmulang.Typing.show_typ typ |> print_endline
+    | Ok typ -> Typing.string_of_type typ |> print_endline
     | Error msg -> prerr_endline msg);
     run_prompt ()
   with End_of_file -> ()

@@ -1,169 +1,178 @@
-type typ = TInt | TBool | TFun of typ * typ | TVar of string [@@deriving show { with_path = false }]
+type typ = TInt | TBool | TVar of tv ref | QVar of string | TFun of typ * typ
+
+and tv = Unbound of string * int | Link of typ
 
 exception Error of Ast.loc * string
 
-module Strmap = Map.Make (String)
+exception Unify
 
+module Strmap = Map.Make (String)
 module Strset = Set.Make (String)
 
-type scheme = Strset.t * typ
+let rec string_of_type = function
+  | TInt -> "int"
+  | TBool -> "bool"
+  | TFun (ty1, ty2) ->
+      "("
+      ^ String.concat " -> " [ string_of_type ty1; string_of_type ty2 ]
+      ^ ")"
+  | TVar { contents = Unbound (str, _) } ->
+      Char.chr (int_of_string str + Char.code 'a') |> String.make 1
+  | TVar { contents = Link t } -> string_of_type t
+  | QVar str -> str ^ "12"
 
-module Varname = struct
-  let state = ref 0
+let gensym_state = ref 0
 
-  let new_var () =
-    let i = !state in
-    incr state;
-    TVar (string_of_int i)
+let reset_gensym () = gensym_state := 0
 
-  let reset () = state := 0
-end
+let gensym () =
+  let n = !gensym_state in
+  incr gensym_state;
+  string_of_int n
 
+let current_level = ref 1
 
+let reset_level () = current_level := 1
 
-let rec subst_typ subst = function
-  | TVar id -> (match Strmap.find_opt id subst with
-      | None -> TVar id
-      | Some typ -> typ  )
-  | TFun (t1, t2) -> TFun (subst_typ subst t1, subst_typ subst t2)
-  | typ -> typ
+let reset_type_vars () =
+  reset_gensym ();
+  reset_level ()
 
-let subst_scheme subst (set, typ) = set, subst_typ (Strset.fold (Strmap.remove) set subst) typ
+let enter_level () = incr current_level
 
+let leave_level () = decr current_level
 
-module Subst = struct
-  type t = typ Strmap.t
+let newvar () = TVar (ref (Unbound (gensym (), !current_level)))
 
-  let empty = Strmap.empty
-
-  let compose s1 s2 =
-    Strmap.map (subst_typ s2) s1 |> Strmap.union ( fun _ typ _ -> Some typ ) s2
-end
-
-let rec free_type_var_typ = function
-  | TVar id -> Strset.singleton id
-  | TInt | TBool -> Strset.empty
-  | TFun (t1, t2) ->  Strset.union (free_type_var_typ t1) (free_type_var_typ t2)
-
-let free_type_var_scheme (set, typ) = Strset.diff (free_type_var_typ typ) set
-
-module Context = struct
-  type t = scheme Strmap.t
-
-  let empty = Strmap.empty
-
-  let lookup : string -> t -> scheme option = Strmap.find_opt
-
-  let extend : string -> scheme -> t -> t = Strmap.add
-
-  let free_type_var c =
-    Strmap.fold (fun _ scheme acc -> Strset.union acc @@ free_type_var_scheme scheme)  c
-    Strset.empty
-
-  let generalize c typ =
-    Strset.diff (free_type_var_typ typ) (free_type_var c), typ
-
-      let subst c subst = Strmap.map (fun scheme -> subst_scheme subst scheme) c
-end
-
-let instantiate ((set, typ) : scheme) =
-  let rec zip a b () =
-    let open Seq in
-    match a(), b() with
-    | Nil, Nil -> Nil
-  | Nil, _
-  | _, Nil -> failwith "Internal error: Not same length"
-  | Cons (x, a'), Cons (y, b') -> Cons ((x,y), zip a' b') in
-
-  let nset = Strset.to_seq set |> Seq.map (fun _ -> Varname.new_var ())  in
-  (* print_endline @@ "vars: " ^ String.concat ", " (Strset.to_seq set |> List.of_seq) ;
-   * print_endline @@ "nvars: " ^ String.concat ", " ( List.of_seq nset |> List.map show_typ) ; *)
-  zip (Strset.to_seq set) nset |> Strmap.of_seq |> fun map -> subst_typ map typ
-
-let bind id = function
-  | TVar id' when String.equal id id' -> Subst.empty
-  | typ when Strset.mem id (free_type_var_typ typ) -> failwith (Printf.sprintf "Internal error: occur check failed: %s vs %s"
-                                                                  id (show_typ typ))
-  | typ -> Strmap.singleton id typ
-
+let rec occurs tvr = function
+  | TVar tvr' when tvr == tvr' -> failwith "Internal error: Occurs check failed"
+  | TVar ({ contents = Unbound (id, lvl') } as tv) ->
+      let min_lvl =
+        match !tvr with Unbound (_, lvl) -> min lvl lvl' | _ -> lvl'
+      in
+      tv := Unbound (id, min_lvl)
+  | TVar { contents = Link ty } -> occurs tvr ty
+  | TFun (t1, t2) ->
+      occurs tvr t1;
+      occurs tvr t2
+  | _ -> ()
 
 let rec unify t1 t2 =
-  match t1, t2 with
-  | TFun (l, r), TFun (l', r') -> let s1 = unify l l' in let s2 = unify (subst_typ s1 r) (subst_typ s1 r') in
-    Subst.compose s1 s2
-  | TVar id, t | t, TVar id -> bind id t
-  | TInt, TInt | TBool, TBool -> Subst.empty
-  | t, t' -> failwith (Format.sprintf "Internal error: Types do not unify %s vs %s" (show_typ t) (show_typ t'))
+  if t1 == t2 then ()
+  else
+    match (t1, t2) with
+    | TVar { contents = Link t1 }, t2 | t2, TVar { contents = Link t1 } ->
+        unify t1 t2
+    | TVar ({ contents = Unbound _ } as tv), t
+    | t, TVar ({ contents = Unbound _ } as tv) ->
+        occurs tv t;
+        tv := Link t
+    | TFun (l1, l2), TFun (r1, r2) ->
+        unify l1 r1;
+        unify l2 r2
+    | _ -> raise Unify
 
+let rec generalize = function
+  | TVar { contents = Unbound (id, l) } when l > !current_level -> QVar id
+  | TVar { contents = Link t } -> generalize t
+  | TFun (t1, t2) -> TFun (generalize t1, generalize t2)
+  | t -> t
 
-(* let rec infer expr ctx =
- *   match expr with
- *   |  *)
+let instantiate t =
+  let rec aux subst = function
+    | QVar id -> (
+        match Strmap.find_opt id subst with
+        | Some t -> (t, subst)
+        | None ->
+            let tv = newvar () in
+            (tv, Strmap.add id tv subst))
+    | TVar { contents = Link t } -> aux subst t
+    | TFun (t1, t2) ->
+        let t1, subst = aux subst t1 in
+        let t2, subst = aux subst t2 in
+        (TFun (t1, t2), subst)
+    | t -> (t, subst)
+  in
+  aux Strmap.empty t |> fst
 
-(* old without inference *)
-open Context
+let rec typeof env = function
+  | Ast.Var (loc, v) -> typeof_var loc env v
+  | Int (_, _) -> TInt
+  | Bool (_, _) -> TBool
+  | Let (_, x, e1, e2) -> typeof_let env x e1 e2
+  | Abs (_, id, e) -> typeof_abs env id e
+  | App (_, e1, e2) -> typeof_app env e1 e2
+  | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
+  | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
 
-let rec typeof ctx = function
-  | Ast.Var (loc, id) -> typeof_var ctx loc id
-  | Int (_, _) -> Subst.empty,  TInt
-  | Bool (_, _) -> Subst.empty, TBool
-  (* | Bop (loc, op, left, right) -> typeof_bop ctx loc op left right *)
-  (* | If (loc, pred, thn, els) -> typeof_if ctx loc pred thn els *)
-  | Let (_, id, expr, next) -> typeof_let ctx id expr next
-  | App (_, func, expr) -> typeof_app ctx func expr
-  | Abs (_, id, expr) -> typeof_abs ctx id expr
-  | _ -> failwith "TODO"
+and typeof_var loc env v =
+  match Strmap.find_opt v env with
+  | Some t -> instantiate t
+  | None -> raise (Error (loc, "No var named " ^ v))
 
-and typeof_var ctx loc id =
-  match lookup id ctx with
-  | Some scheme -> Subst.empty, instantiate scheme
-  | None -> raise (Error (loc, "Could not find var " ^ id))
+and typeof_let env id e1 e2 =
+  enter_level ();
+  let type_e = typeof env e1 in
+  leave_level ();
+  typeof (Strmap.add id (generalize type_e) env) e2
 
-(* and typeof_bop ctx loc bop left right =
- *   let tl, tr = (typeof ctx left, typeof ctx right) in
- *   match (bop, tl, tr) with
- *   | Ast.Plus, TInt, TInt | Mult, TInt, TInt -> TInt
- *   | Less, TInt, TInt -> TBool
- *   | Equal, TInt, TInt -> TBool
- *   | _ -> raise (Error (loc, "Wrong types in binary op"))
- *
- * and typeof_if ctx loc pred thn els =
- *   match typeof ctx pred with
- *   | TBool ->
- *       let thn, els = (typeof ctx thn, typeof ctx els) in
- *       if equal_typ thn els then thn
- *       else raise (Error (loc, "Branches in if expr must have same type"))
- *   | _ -> raise (Error (loc, "If predicate must evaluate to bool")) *)
+and typeof_abs env id e =
+  let type_id = newvar () in
+  let type_e = typeof (Strmap.add id type_id env) e in
+  TFun (type_id, type_e)
 
-and typeof_let ctx id expr next =
-  let s1, t1 = typeof ctx expr in
-  let ctx1 = Strmap.remove id ctx in (* why? *)
-  let t' = generalize (Context.subst ctx1 s1) t1 in (* or ctx1? *)
-  let ctx2 = Context.extend id t' ctx1 in
-  let s2, t2 = typeof (Context.subst ctx2 s1) next in
-    Subst.compose s1 s2, t2
-  (* let t = typeof ctx expr in
-   * let ctx = extend id t ctx in
-   * typeof ctx next *)
+and typeof_app env e1 e2 =
+  let type_fun = typeof env e1 in
+  let type_arg = typeof env e2 in
+  let type_res = newvar () in
+  unify type_fun (TFun (type_arg, type_res));
+  type_res
 
-and typeof_app ctx  func expr =
-  let tv = Varname.new_var () in
-  let s1, t1 = typeof ctx func in
-  let s2, t2 = typeof (Context.subst ctx s1) expr in
-  let s3 = unify (subst_typ s2 t1) (TFun (t2, tv)) in
-  Subst.(compose s3 (compose s2 s1)), subst_typ s3 tv
+and typeof_if env loc cond e1 e2 =
+  (* We can assume pred evaluates to bool and both
+     branches need to evaluate to the some type *)
+  let type_cond = typeof env cond in
+  unify type_cond TBool;
+  (* TODO catch *)
+  let type_e1 = typeof env e1 in
+  let type_e2 = typeof env e2 in
+  let type_res = newvar () in
+  (try unify type_e1 type_e2
+   with Unify ->
+     raise
+       (Error
+          ( loc,
+            "Branches in if: " ^ string_of_type type_e1 ^ " vs "
+            ^ string_of_type type_e2 )));
+  unify type_res type_e2;
+  type_res
 
-and typeof_abs ctx id expr =
-  let tv = Varname.new_var () in
-  let ctx1 = Strmap.remove id ctx in
-  let ctx2 = Strmap.add  id (Strset.empty, tv) ctx1 in (* union seems strange *)
-  let s1, t1 =  typeof ctx2 expr in
-  s1, TFun ((subst_typ  s1 tv), t1)
-
-
-(* let typecheck expr = typeof empty expr *)
+and typeof_bop env loc bop e1 e2 =
+  let check () =
+    (* both exprs must be Int, not Bool *)
+    let t1 = typeof env e1 in
+    let t2 = typeof env e2 in
+    try
+      unify t1 TInt;
+      unify t2 TInt
+    with Unify ->
+      let op =
+        match bop with Plus -> "+" | Mult -> "*" | Less -> "<" | Equal -> "=="
+      in
+      raise
+        (Error
+           ( loc,
+             "Expressions in binary op '" ^ op ^ "' must be both int " ^ "not: "
+             ^ string_of_type t1 ^ " vs " ^ string_of_type t2 ))
+  in
+  match bop with
+  | Plus | Mult ->
+      check ();
+      TInt
+  | Less | Equal ->
+      check ();
+      TBool
 
 let typecheck expr =
-  Varname.reset () ;
-  let s, typ = typeof empty expr in
-  subst_typ s typ
+  reset_type_vars ();
+  typeof Strmap.empty expr

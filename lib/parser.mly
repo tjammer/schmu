@@ -17,8 +17,16 @@
 %token Bin_equal
 %token Lpar
 %token Rpar
+%token Lbrac
+%token Rbrac
 %token If
+%token Then
+%token Else
 %token Eof
+
+%nonassoc Less
+%left Plus
+%left Mult
 
 %start <Ast.expr> prog
 
@@ -31,16 +39,16 @@ expr:
   | Int { Int($startpos, $1) }
   | bool { Bool($startpos, $1) }
   | expr; binop; expr { Bop($startpos, $2, $1, $3) }
-  | If; expr; expr; expr { If($startpos, $2, $3, $4)}
+  | If; expr; Then; expr; Else; expr { If($startpos, $2, $4, $6)}
   | Identifier; Equal; expr; expr { Let($startpos, $1, $3, $4) }
-  | Backslash; Identifier; Dot; expr { Abs($startpos, $2, $4) }
+  | Lbrac; Identifier; Dot; expr; Rbrac { Abs($startpos, $2, $4) }
   | expr; Lpar; expr; Rpar { App($startpos, $1, $3) }
 
 bool:
   | True { true }
   | False { false }
 
-binop:
+%inline binop:
   | Plus { Plus }
   | Mult { Mult }
   | Less { Less }
