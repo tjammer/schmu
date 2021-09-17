@@ -1,7 +1,8 @@
 (library
  (name schmulang)
  (preprocess
-  (pps ppx_deriving.show ppx_deriving.eq)))
+  (pps ppx_deriving.show ppx_deriving.eq))
+ (libraries llvm llvm.analysis))
 
 (menhir
  (modules parser)

@@ -9,7 +9,13 @@ let print_position _ lexbuf =
 let run src =
   let lexbuf = Lexing.from_string src in
   Schmulang.(
-    try Ok (Parser.prog Lexer.read lexbuf |> Schmulang.Typing.typecheck) with
+    let ast = Parser.prog Lexer.read lexbuf in
+    try
+      Ok
+        (let typ = Typing.to_typed ast in
+         Codegen.generate typ |> Llvm.dump_value |> print_newline;
+         typ.typ)
+    with
     | Lexer.SyntaxError msg ->
         Error (Printf.sprintf "%a: %s" print_position lexbuf msg)
     | Parser.Error ->

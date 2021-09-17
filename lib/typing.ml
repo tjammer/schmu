@@ -2,6 +2,18 @@ type typ = TInt | TBool | TVar of tv ref | QVar of string | TFun of typ * typ
 
 and tv = Unbound of string * int | Link of typ
 
+type expr =
+  | Var of string
+  | Int of int
+  | Bool of bool
+  | Bop of Ast.bop * typed_expr * typed_expr
+  | If of typed_expr * typed_expr * typed_expr
+  | Let of string * typed_expr * typed_expr
+  | Abs of string * typ * typed_expr
+  | App of typed_expr * typed_expr
+
+and typed_expr = { typ : typ; expr : expr }
+
 exception Error of Ast.loc * string
 
 exception Unify
@@ -95,6 +107,16 @@ let instantiate t =
   in
   aux Strmap.empty t |> fst
 
+let bop_error loc bop t1 t2 =
+  let op =
+    match bop with Ast.Plus -> "+" | Mult -> "*" | Less -> "<" | Equal -> "=="
+  in
+  raise
+    (Error
+       ( loc,
+         "Expressions in binary op '" ^ op ^ "' must be both int " ^ "not: "
+         ^ string_of_type t1 ^ " vs " ^ string_of_type t2 ))
+
 let rec typeof env = function
   | Ast.Var (loc, v) -> typeof_var loc env v
   | Int (_, _) -> TInt
@@ -155,15 +177,7 @@ and typeof_bop env loc bop e1 e2 =
     try
       unify t1 TInt;
       unify t2 TInt
-    with Unify ->
-      let op =
-        match bop with Plus -> "+" | Mult -> "*" | Less -> "<" | Equal -> "=="
-      in
-      raise
-        (Error
-           ( loc,
-             "Expressions in binary op '" ^ op ^ "' must be both int " ^ "not: "
-             ^ string_of_type t1 ^ " vs " ^ string_of_type t2 ))
+    with Unify -> bop_error loc bop t1 t2
   in
   match bop with
   | Plus | Mult ->
@@ -176,3 +190,62 @@ and typeof_bop env loc bop e1 e2 =
 let typecheck expr =
   reset_type_vars ();
   typeof Strmap.empty expr
+
+let rec convert env = function
+  | Ast.Var (loc, id) -> convert_var loc env id
+  | Int (_, i) -> { typ = TInt; expr = Int i }
+  | Bool (_, b) -> { typ = TBool; expr = Bool b }
+  | Let (_, x, e1, e2) -> convert_let env x e1 e2
+  | Abs (_, id, e) -> convert_abs env id e
+  | App (_, e1, e2) -> convert_app env e1 e2
+  | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
+  | If _ -> failwith "TODO"
+
+and convert_var loc env id =
+  match Strmap.find_opt id env with
+  | Some t ->
+      let typ = instantiate t in
+      { typ; expr = Var id }
+  | None -> raise (Error (loc, "No var named " ^ id))
+
+and convert_let env id e1 e2 =
+  enter_level ();
+  let typ1 = convert env e1 in
+  leave_level ();
+  let typ1 = { typ1 with typ = generalize typ1.typ } in
+  let typ2 = convert (Strmap.add id typ1.typ env) e2 in
+  { typ = typ2.typ; expr = Let (id, typ1, typ2) }
+
+and convert_abs env id e =
+  let type_id = newvar () in
+  let type_e = convert (Strmap.add id type_id env) e in
+  { typ = TFun (type_id, type_e.typ); expr = Abs (id, type_id, type_e) }
+
+and convert_app env e1 e2 =
+  let type_fun = convert env e1 in
+  let type_arg = convert env e2 in
+  let type_res = newvar () in
+  unify type_fun.typ (TFun (type_arg.typ, type_res));
+  { typ = type_res; expr = App (type_fun, type_arg) }
+
+and convert_bop env loc bop e1 e2 =
+  let check () =
+    let t1 = convert env e1 in
+    let t2 = convert env e2 in
+    try
+      unify t1.typ TInt;
+      unify t2.typ TInt;
+      (t1, t2)
+    with Unify -> bop_error loc bop t1.typ t2.typ
+  in
+  match bop with
+  | Ast.Plus | Mult ->
+      let t1, t2 = check () in
+      { typ = TInt; expr = Bop (bop, t1, t2) }
+  | Less | Equal ->
+      let t1, t2 = check () in
+      { typ = TBool; expr = Bop (bop, t1, t2) }
+
+let to_typed expr =
+  reset_type_vars ();
+  convert Strmap.empty expr
