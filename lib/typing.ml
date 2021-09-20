@@ -199,7 +199,7 @@ let rec convert env = function
   | Abs (_, id, e) -> convert_abs env id e
   | App (_, e1, e2) -> convert_app env e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
-  | If _ -> failwith "TODO"
+  | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
 
 and convert_var loc env id =
   match Strmap.find_opt id env with
@@ -245,6 +245,30 @@ and convert_bop env loc bop e1 e2 =
   | Less | Equal ->
       let t1, t2 = check () in
       { typ = TBool; expr = Bop (bop, t1, t2) }
+
+and convert_if env loc cond e1 e2 =
+  (* We can assume pred evaluates to bool and both
+     branches need to evaluate to the some type *)
+  let type_cond = convert env cond in
+  (try unify type_cond.typ TBool
+   with Unify ->
+     raise
+       (Error
+          ( loc,
+            "Condition in if must evaluate to bool, not: "
+            ^ string_of_type type_cond.typ )));
+  let type_e1 = convert env e1 in
+  let type_e2 = convert env e2 in
+  let typ = newvar () in
+  (try unify type_e1.typ type_e2.typ
+   with Unify ->
+     raise
+       (Error
+          ( loc,
+            "Branches in if: " ^ string_of_type type_e1.typ ^ " vs "
+            ^ string_of_type type_e2.typ )));
+  unify typ type_e2.typ;
+  { typ; expr = If (type_cond, type_e1, type_e2) }
 
 let to_typed expr =
   reset_type_vars ();

@@ -22,8 +22,7 @@ let rec get_lltype = function
   | TBool -> bool_type
   | TVar { contents = Link t } -> get_lltype t
   | t ->
-      print_string (Typing.string_of_type t);
-      failwith "Wrong return type TODO"
+      failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
 let rec gen_expr vars typed_expr =
   match Typing.(typed_expr.expr) with
@@ -42,12 +41,11 @@ let rec gen_expr vars typed_expr =
       let expr_val = gen_expr vars equals_ty in
       gen_expr (Vars.add id expr_val vars) let_ty
   | Abs (arg_name, arg_type, body) ->
-      gen_named_function vars "lambdax" arg_name arg_type body
+      gen_named_function vars "lambdaTODO" arg_name arg_type body
   | App (callee, arg) ->
       (* Let's first of all not care about anonymous functions *)
       gen_app vars callee arg
-  (* | If (_, cond, e1, e2) -> gen_if vars cond e1 e2 *)
-  | _ -> failwith "TODO"
+  | If (cond, e1, e2) -> gen_if vars cond e1 e2
 
 and gen_bop e1 e2 = function
   | Plus -> Llvm.build_add e1 e2 "addtmp" builder
@@ -55,7 +53,7 @@ and gen_bop e1 e2 = function
   | Less -> Llvm.(build_icmp Icmp.Slt) e1 e2 "lesstmp" builder
   | Equal -> Llvm.(build_icmp Icmp.Eq) e1 e2 "eqtmp" builder
 
-and gen_named_function _ id arg_name arg_type body =
+and gen_named_function vars id arg_name arg_type body =
   (* We only support one function arguments so far *)
   let return_t = get_lltype body.typ in
   let arg_t = Array.make 1 (get_lltype arg_type) in
@@ -67,7 +65,8 @@ and gen_named_function _ id arg_name arg_type body =
   (* gen function body *)
   let bb = Llvm.append_block context "entry" func in
   Llvm.position_at_end bb builder;
-  let ret = gen_expr (Vars.add arg_name param Vars.empty) body in
+  (* TODO not all vars can be accessed here *)
+  let ret = gen_expr (Vars.add arg_name param vars) body in
   (* we don't support closures yet *)
   ignore (Llvm.build_ret ret builder);
   Llvm_analysis.assert_valid_function func;
@@ -79,43 +78,38 @@ and gen_app vars callee arg =
   Llvm.build_call callee [| arg |] "calltmp" builder
 
 and gen_if vars cond e1 e2 =
-  ignore vars;
-  ignore cond;
-  ignore e1;
-  ignore e2;
-  failwith "TODO"
-(* let cond = gen_expr vars cond in
- *
- * print_endline "before insertion";
- * let start_bb = Llvm.insertion_block builder in
- * print_endline "before";
- * let parent = Llvm.block_parent start_bb in
- * print_endline "after";
- * let then_bb = Llvm.append_block context "then" parent in
- * Llvm.position_at_end then_bb builder;
- * let e1 = gen_expr vars e1 in
- * (\* Codegen can change the current block *\)
- * let e1_bb = Llvm.insertion_block builder in
- *
- * let else_bb = Llvm.append_block context "else" parent in
- * Llvm.position_at_end else_bb builder;
- * let e2 = gen_expr vars e2 in
- *
- * let e2_bb = Llvm.insertion_block builder in
- * let merge_bb = Llvm.append_block context "ifcont" parent in
- *
- * Llvm.position_at_end merge_bb builder;
- * let incoming = [ (e1, e1_bb); (e2, e2_bb) ] in
- * let phi = Llvm.build_phi incoming "iftmp" builder in
- * Llvm.position_at_end start_bb builder;
- * Llvm.build_cond_br cond then_bb else_bb builder |> ignore;
- *
- * Llvm.position_at_end e1_bb builder;
- * ignore (Llvm.build_br merge_bb builder);
- * Llvm.position_at_end e2_bb builder;
- * ignore (Llvm.build_br merge_bb builder);
- *
- * Llvm.position_at_end merge_bb builder;
- * phi *)
+  let cond = gen_expr vars cond in
+
+  print_endline "before insertion";
+  let start_bb = Llvm.insertion_block builder in
+  print_endline "before";
+  let parent = Llvm.block_parent start_bb in
+  print_endline "after";
+  let then_bb = Llvm.append_block context "then" parent in
+  Llvm.position_at_end then_bb builder;
+  let e1 = gen_expr vars e1 in
+  (* Codegen can change the current bb *)
+  let e1_bb = Llvm.insertion_block builder in
+
+  let else_bb = Llvm.append_block context "else" parent in
+  Llvm.position_at_end else_bb builder;
+  let e2 = gen_expr vars e2 in
+
+  let e2_bb = Llvm.insertion_block builder in
+  let merge_bb = Llvm.append_block context "ifcont" parent in
+
+  Llvm.position_at_end merge_bb builder;
+  let incoming = [ (e1, e1_bb); (e2, e2_bb) ] in
+  let phi = Llvm.build_phi incoming "iftmp" builder in
+  Llvm.position_at_end start_bb builder;
+  Llvm.build_cond_br cond then_bb else_bb builder |> ignore;
+
+  Llvm.position_at_end e1_bb builder;
+  ignore (Llvm.build_br merge_bb builder);
+  Llvm.position_at_end e2_bb builder;
+  ignore (Llvm.build_br merge_bb builder);
+
+  Llvm.position_at_end merge_bb builder;
+  phi
 
 let generate = gen_expr Vars.empty
