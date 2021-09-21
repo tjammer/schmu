@@ -6,14 +6,16 @@ exception Error of Ast.loc * string
 
 val string_of_type : typ -> string
 
-type expr =
+type abstraction = string * typ * typed_expr
+
+and expr =
   | Var of string
   | Int of int
   | Bool of bool
   | Bop of Ast.bop * typed_expr * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
-  | Abs of string * typ * typed_expr
+  | Abs of abstraction
   | App of typed_expr * typed_expr
 
 and typed_expr = { typ : typ; expr : expr }

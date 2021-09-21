@@ -10,12 +10,41 @@ let bool_type = Llvm.i1_type context
 
 module Vars = Map.Make (String)
 
-let fun_state = ref 0
+(* Used to generate lambdas *)
+let fun_gen_state = ref 0
 
-let genfun () =
-  let n = !fun_state in
-  incr fun_state;
-  "fun" ^ string_of_int n
+(* Used to query lambdas *)
+let fun_get_state = ref 0
+
+let genfun state =
+  let n = !state in
+  incr state;
+  "__fun" ^ string_of_int n
+
+let reset state = state := 0
+
+let extract expr =
+  let rec inner acc = function
+    | Typing.Var _ | Int _ | Bool _ -> acc
+    | Bop (_, e1, e2) -> inner (inner acc e1.expr) e2.expr
+    | If (cond, e1, e2) ->
+        let acc = inner acc cond.expr in
+        let acc = inner acc e1.expr in
+        inner acc e2.expr
+    | Let (id, { typ = _; expr = Abs ((_, _, body) as abs) }, e2) ->
+        let acc = inner acc body.expr in
+        inner ((id, abs) :: acc) e2.expr
+    | Let (_, e1, e2) ->
+        let acc = inner acc e1.expr in
+        inner acc e2.expr
+    | Abs ((_, _, expr) as abs) ->
+        let acc = inner acc expr.expr in
+        (genfun fun_gen_state, abs) :: acc
+    | App (e1, e2) ->
+        let acc = inner acc e1.expr in
+        inner acc e2.expr
+  in
+  inner [] expr |> List.rev
 
 let rec get_lltype = function
   | Typing.TInt -> int_type
@@ -24,7 +53,27 @@ let rec get_lltype = function
   | t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
-let rec gen_expr vars typed_expr =
+let rec gen_function funcs fun_name (arg_name, arg_type, body) =
+  (* We only support one function arguments so far *)
+  let return_t = get_lltype Typing.(body.typ) in
+  let arg_t = Array.make 1 (get_lltype arg_type) in
+  let ft = Llvm.function_type return_t arg_t in
+  let func = Llvm.declare_function fun_name ft the_module in
+  (* let vars = Vars.add id func vars in *)
+  let param = (Llvm.params func).(0) in
+  Llvm.set_value_name arg_name param;
+
+  (* gen function body *)
+  let bb = Llvm.append_block context "entry" func in
+  Llvm.position_at_end bb builder;
+  (* TODO not all vars can be accessed here *)
+  let ret = gen_expr (Vars.add arg_name param funcs) body in
+  (* we don't support closures yet *)
+  ignore (Llvm.build_ret ret builder);
+  Llvm_analysis.assert_valid_function func;
+  Vars.add fun_name func funcs
+
+and gen_expr vars typed_expr =
   match Typing.(typed_expr.expr) with
   | Typing.Int i -> Llvm.const_int int_type i
   | Bool b -> Llvm.const_int bool_type (Bool.to_int b)
@@ -34,14 +83,14 @@ let rec gen_expr vars typed_expr =
       gen_bop e1 e2 bop
   | Var id -> Vars.find id vars
   (* If the variable isn't bound, something went wrong before *)
-  | Let (id, { typ = _; expr = Abs (arg_name, arg_type, body) }, let_ty) ->
-      let func = gen_named_function vars id arg_name arg_type body in
-      gen_expr (Vars.add id func vars) let_ty
+  | Let (id, { typ = _; expr = Abs _ }, let_ty) ->
+      (* The functions are already generated *)
+      ignore (get_generated_func vars id);
+      gen_expr vars let_ty
   | Let (id, equals_ty, let_ty) ->
       let expr_val = gen_expr vars equals_ty in
       gen_expr (Vars.add id expr_val vars) let_ty
-  | Abs (arg_name, arg_type, body) ->
-      gen_named_function vars "lambdaTODO" arg_name arg_type body
+  | Abs _ -> get_generated_func vars (genfun fun_get_state)
   | App (callee, arg) ->
       (* Let's first of all not care about anonymous functions *)
       gen_app vars callee arg
@@ -54,25 +103,10 @@ and gen_bop e1 e2 = function
   | Equal -> Llvm.(build_icmp Icmp.Eq) e1 e2 "eqtmp" builder
   | Minus -> Llvm.build_sub e1 e2 "subtmp" builder
 
-and gen_named_function _ id arg_name arg_type body =
-  (* We only support one function arguments so far *)
-  let return_t = get_lltype body.typ in
-  let arg_t = Array.make 1 (get_lltype arg_type) in
-  let ft = Llvm.function_type return_t arg_t in
-  let func = Llvm.declare_function id ft the_module in
-  (* let vars = Vars.add id func vars in *)
-  let param = (Llvm.params func).(0) in
-  Llvm.set_value_name arg_name param;
-
-  (* gen function body *)
-  let bb = Llvm.append_block context "entry" func in
-  Llvm.position_at_end bb builder;
-  (* TODO not all vars can be accessed here *)
-  let ret = gen_expr (Vars.add arg_name param Vars.empty) body in
-  (* we don't support closures yet *)
-  ignore (Llvm.build_ret ret builder);
-  Llvm_analysis.assert_valid_function func;
-  func
+and get_generated_func vars name =
+  print_endline ("get function " ^ name);
+  Vars.iter (fun key _ -> print_endline ("in: " ^ key)) vars;
+  Vars.find name vars
 
 and gen_app vars callee arg =
   let callee = gen_expr vars callee in
@@ -82,11 +116,8 @@ and gen_app vars callee arg =
 and gen_if vars cond e1 e2 =
   let cond = gen_expr vars cond in
 
-  print_endline "before insertion";
   let start_bb = Llvm.insertion_block builder in
-  print_endline "before";
   let parent = Llvm.block_parent start_bb in
-  print_endline "after";
   let then_bb = Llvm.append_block context "then" parent in
   Llvm.position_at_end then_bb builder;
   let e1 = gen_expr vars e1 in
@@ -114,4 +145,14 @@ and gen_if vars cond e1 e2 =
   Llvm.position_at_end merge_bb builder;
   phi
 
-let generate = gen_expr Vars.empty
+let generate typed_expr =
+  let open Typing in
+  let funcs =
+    extract typed_expr.expr
+    |> List.fold_left
+         (fun acc (name, abs) -> gen_function acc name abs)
+         Vars.empty
+  in
+  (* Reset lambda counter *)
+  reset fun_get_state;
+  gen_expr funcs typed_expr
