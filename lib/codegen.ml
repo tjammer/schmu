@@ -52,13 +52,15 @@ and gen_bop e1 e2 = function
   | Mult -> Llvm.build_mul e1 e2 "multmp" builder
   | Less -> Llvm.(build_icmp Icmp.Slt) e1 e2 "lesstmp" builder
   | Equal -> Llvm.(build_icmp Icmp.Eq) e1 e2 "eqtmp" builder
+  | Minus -> Llvm.build_sub e1 e2 "subtmp" builder
 
-and gen_named_function vars id arg_name arg_type body =
+and gen_named_function _ id arg_name arg_type body =
   (* We only support one function arguments so far *)
   let return_t = get_lltype body.typ in
   let arg_t = Array.make 1 (get_lltype arg_type) in
   let ft = Llvm.function_type return_t arg_t in
   let func = Llvm.declare_function id ft the_module in
+  (* let vars = Vars.add id func vars in *)
   let param = (Llvm.params func).(0) in
   Llvm.set_value_name arg_name param;
 
@@ -66,7 +68,7 @@ and gen_named_function vars id arg_name arg_type body =
   let bb = Llvm.append_block context "entry" func in
   Llvm.position_at_end bb builder;
   (* TODO not all vars can be accessed here *)
-  let ret = gen_expr (Vars.add arg_name param vars) body in
+  let ret = gen_expr (Vars.add arg_name param Vars.empty) body in
   (* we don't support closures yet *)
   ignore (Llvm.build_ret ret builder);
   Llvm_analysis.assert_valid_function func;

@@ -10,7 +10,8 @@ end
 
 type loc = Loc.t [@@deriving show]
 
-type bop = Plus | Mult | Less | Equal [@@deriving show { with_path = false }]
+type bop = Plus | Mult | Less | Equal | Minus
+[@@deriving show { with_path = false }]
 
 type expr =
   | Var of loc * string

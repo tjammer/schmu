@@ -1,4 +1,4 @@
-type bop = Plus | Mult | Less | Equal [@@deriving show]
+type bop = Plus | Mult | Less | Equal | Minus [@@deriving show]
 
 type loc = Lexing.position
 

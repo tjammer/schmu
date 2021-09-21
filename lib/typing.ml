@@ -109,7 +109,12 @@ let instantiate t =
 
 let bop_error loc bop t1 t2 =
   let op =
-    match bop with Ast.Plus -> "+" | Mult -> "*" | Less -> "<" | Equal -> "=="
+    match bop with
+    | Ast.Plus -> "+"
+    | Mult -> "*"
+    | Less -> "<"
+    | Equal -> "=="
+    | Minus -> "-"
   in
   raise
     (Error
@@ -180,7 +185,7 @@ and typeof_bop env loc bop e1 e2 =
     with Unify -> bop_error loc bop t1 t2
   in
   match bop with
-  | Plus | Mult ->
+  | Plus | Mult | Minus ->
       check ();
       TInt
   | Less | Equal ->
@@ -239,7 +244,7 @@ and convert_bop env loc bop e1 e2 =
     with Unify -> bop_error loc bop t1.typ t2.typ
   in
   match bop with
-  | Ast.Plus | Mult ->
+  | Ast.Plus | Mult | Minus ->
       let t1, t2 = check () in
       { typ = TInt; expr = Bop (bop, t1, t2) }
   | Less | Equal ->

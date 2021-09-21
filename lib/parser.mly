@@ -12,6 +12,7 @@
 %token True
 %token False
 %token Plus
+%token Minus
 %token Mult
 %token Less
 %token Bin_equal
@@ -49,7 +50,8 @@ bool:
   | False { false }
 
 %inline binop:
-  | Plus { Plus }
-  | Mult { Mult }
-  | Less { Less }
+  | Plus  { Plus }
+  | Minus { Minus }
+  | Mult  { Mult }
+  | Less  { Less }
   | Bin_equal { Equal }
