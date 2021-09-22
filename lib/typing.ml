@@ -132,8 +132,8 @@ let typeof_annot loc annot =
         raise (Error (loc, "Unknown type: " ^ t ^ ". Expected 'int' or 'bool'"))
   in
   match annot with
-  | Ast.Atom_annot t -> atom_type t
-  | Fun_annot (t1, t2) -> TFun (atom_type t1, atom_type t2)
+  | Ast.Atom_type t -> atom_type t
+  | Fun_type (t1, t2) -> TFun (atom_type t1, atom_type t2)
 
 let rec typeof env = function
   | Ast.Var (loc, v) -> typeof_var env loc v

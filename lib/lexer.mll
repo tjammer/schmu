@@ -35,6 +35,7 @@ rule read =
   | "if"     { If }
   | "then"   { Then }
   | "else"   { Else }
+  | "external" { External }
   | id       { Identifier (Lexing.lexeme lexbuf) }
   | '+'      { Plus }
   | '-'      { Minus }

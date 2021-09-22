@@ -13,10 +13,9 @@ type loc = Loc.t [@@deriving show]
 type bop = Plus | Mult | Less | Equal | Minus
 [@@deriving show { with_path = false }]
 
-type annot = Atom_annot of string | Fun_annot of string * string
+type type_expr = Atom_type of string | Fun_type of string * string
 
-and decl = string * annot option
-[@@deriving show]
+and decl = string * type_expr option [@@deriving show]
 
 type expr =
   | Var of loc * string
@@ -28,3 +27,8 @@ type expr =
   | Abs of loc * decl * expr
   | App of loc * expr * expr
 [@@deriving show { with_path = false }]
+
+(* Hopefully temporary *)
+type external_decl = string * type_expr
+
+type prog = external_decl * expr

@@ -9,8 +9,8 @@ let print_position _ lexbuf =
 let run src =
   let lexbuf = Lexing.from_string src in
   Schmulang.(
-    let ast = Parser.prog Lexer.read lexbuf in
     try
+      let _, ast = Parser.prog Lexer.read lexbuf in
       Ok
         (let typ = Typing.to_typed ast in
          ignore (Codegen.generate typ);
@@ -21,7 +21,7 @@ let run src =
         Error (Printf.sprintf "%a: %s" print_position lexbuf msg)
     | Parser.Error ->
         Error (Printf.sprintf "%a: syntax error" print_position lexbuf)
-    | Schmulang.Typing.Error (_, msg) -> Error msg)
+    | Typing.Error (_, msg) -> Error msg)
 
 let run_file filename =
   let ch = open_in filename in

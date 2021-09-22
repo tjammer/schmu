@@ -25,16 +25,20 @@
 %token Then
 %token Else
 %token Eof
+%token External
 
 %nonassoc Less
 %left Plus
 %left Mult
 
-%start <Ast.expr> prog
+%start <Ast.prog> prog
 
 %%
 
-prog: expr; Eof { $1 }
+prog: external_decl; expr; Eof { $1, $2 }
+
+%inline external_decl:
+  | External; Identifier; type_expr { $2, $3 }
 
 expr:
   | Identifier { Var($startpos, $1) }
@@ -58,6 +62,8 @@ bool:
   | Bin_equal { Equal }
 
 %inline decl:
-  | Identifier { $1, None }
-  | Identifier; Colon; Identifier { $1, Some (Atom_annot $3) }
-  | Identifier; Colon; Identifier; Arrow; Identifier { $1, Some (Fun_annot ($3, $5)) }
+  | Identifier; option(type_expr) { $1, $2 }
+
+%inline type_expr:
+  | Colon; Identifier { Atom_type $2 }
+  | Colon; Identifier; Arrow; Identifier { Fun_type ($2, $4) }
