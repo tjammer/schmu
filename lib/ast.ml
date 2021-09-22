@@ -29,6 +29,6 @@ type expr =
 [@@deriving show { with_path = false }]
 
 (* Hopefully temporary *)
-type external_decl = string * type_expr
+type external_decl = loc * string * type_expr
 
-type prog = external_decl * expr
+type prog = external_decl list * expr

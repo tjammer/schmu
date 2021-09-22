@@ -10,10 +10,10 @@ let run src =
   let lexbuf = Lexing.from_string src in
   Schmulang.(
     try
-      let _, ast = Parser.prog Lexer.read lexbuf in
+      let externals, ast = Parser.prog Lexer.read lexbuf in
       Ok
-        (let typ = Typing.to_typed ast in
-         ignore (Codegen.generate typ);
+        (let externals, typ = Typing.to_typed externals ast in
+         ignore (Codegen.generate externals typ);
          Llvm.dump_module Codegen.the_module;
          typ.typ)
     with

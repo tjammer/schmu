@@ -35,10 +35,10 @@
 
 %%
 
-prog: external_decl; expr; Eof { $1, $2 }
+prog: list(external_decl); expr; Eof { $1, $2 }
 
 %inline external_decl:
-  | External; Identifier; type_expr { $2, $3 }
+  | External; Identifier; type_expr { $startpos, $2, $3 }
 
 expr:
   | Identifier { Var($startpos, $1) }

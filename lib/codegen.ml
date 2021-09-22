@@ -148,13 +148,27 @@ and gen_if vars cond e1 e2 =
   Llvm.position_at_end merge_bb builder;
   phi
 
-let generate typed_expr =
+let decl_external (name, typ) =
+  match typ with
+  | Typing.TFun (t1, t2) ->
+      let return_t = get_lltype t2 in
+      let arg_t = Array.make 1 @@ get_lltype t1 in
+      let ft = Llvm.function_type return_t arg_t in
+      Llvm.declare_function name ft the_module
+  | _ -> failwith "TODO external symbols"
+
+let generate externals typed_expr =
+  ignore externals;
   let open Typing in
+  let vars =
+    List.fold_left
+      (fun vars (name, typ) -> Vars.add name (decl_external (name, typ)) vars)
+      Vars.empty externals
+  in
+
   let funcs =
     extract typed_expr.expr
-    |> List.fold_left
-         (fun acc (name, abs) -> gen_function acc name abs)
-         Vars.empty
+    |> List.fold_left (fun acc (name, abs) -> gen_function acc name abs) vars
   in
   (* Reset lambda counter *)
   reset fun_get_state;

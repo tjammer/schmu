@@ -19,6 +19,6 @@ type expr =
   | App of loc * expr * expr
 [@@deriving show { with_path = false }]
 
-type external_decl = string * type_expr
+type external_decl = loc * string * type_expr
 
-type prog = external_decl * expr
+type prog = external_decl list * expr

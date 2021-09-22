@@ -16,6 +16,8 @@ and expr =
 
 and typed_expr = { typ : typ; expr : expr }
 
+type external_decl = string * typ
+
 exception Error of Ast.loc * string
 
 exception Unify
@@ -319,6 +321,17 @@ and convert_if env loc cond e1 e2 =
   unify typ type_e2.typ;
   { typ; expr = If (type_cond, type_e1, type_e2) }
 
-let to_typed expr =
+let to_typed external_decls expr =
   reset_type_vars ();
-  convert Strmap.empty expr
+  let externals =
+    List.map
+      (fun (loc, name, typ) -> (name, typeof_annot loc typ))
+      external_decls
+  in
+
+  let vars =
+    List.fold_left
+      (fun vars (name, typ) -> Strmap.add name typ vars)
+      Strmap.empty externals
+  in
+  (externals, convert vars expr)
