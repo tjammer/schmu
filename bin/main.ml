@@ -13,7 +13,8 @@ let run src =
     try
       Ok
         (let typ = Typing.to_typed ast in
-         ignore (Codegen.generate typ); Llvm.dump_module Codegen.the_module ;
+         ignore (Codegen.generate typ);
+         Llvm.dump_module Codegen.the_module;
          typ.typ)
     with
     | Lexer.SyntaxError msg ->

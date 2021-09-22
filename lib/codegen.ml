@@ -104,9 +104,12 @@ and gen_bop e1 e2 = function
   | Minus -> Llvm.build_sub e1 e2 "subtmp" builder
 
 and get_generated_func vars name =
-  print_endline ("get function " ^ name);
-  Vars.iter (fun key _ -> print_endline ("in: " ^ key)) vars;
-  Vars.find name vars
+  match Vars.find_opt name vars with
+  | Some v -> v
+  | None ->
+      prerr_endline ("Could not find function : " ^ name);
+      Vars.iter (fun key _ -> prerr_endline ("in: " ^ key)) vars;
+      failwith "Internal error"
 
 and gen_app vars callee arg =
   let callee = gen_expr vars callee in
@@ -155,4 +158,5 @@ let generate typed_expr =
   in
   (* Reset lambda counter *)
   reset fun_get_state;
-  gen_expr funcs typed_expr
+  (* Add main *)
+  gen_function funcs "main" ("", typed_expr.typ, typed_expr)

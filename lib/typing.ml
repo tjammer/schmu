@@ -124,29 +124,50 @@ let bop_error loc bop t1 t2 =
          "Expressions in binary op '" ^ op ^ "' must be both int " ^ "not: "
          ^ string_of_type t1 ^ " vs " ^ string_of_type t2 ))
 
+let typeof_annot loc = function
+  | "int" -> TInt
+  | "bool" -> TBool
+  | t ->
+      raise (Error (loc, "Unknown type: " ^ t ^ ". Expected 'int' or 'bool'"))
+
 let rec typeof env = function
-  | Ast.Var (loc, v) -> typeof_var loc env v
+  | Ast.Var (loc, v) -> typeof_var env loc v
   | Int (_, _) -> TInt
   | Bool (_, _) -> TBool
-  | Let (_, x, e1, e2) -> typeof_let env x e1 e2
-  | Abs (_, id, e) -> typeof_abs env id e
+  | Let (loc, x, e1, e2) -> typeof_let env loc x e1 e2
+  | Abs (loc, id, e) -> typeof_abs env loc id e
   | App (_, e1, e2) -> typeof_app env e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
 
-and typeof_var loc env v =
+and typeof_var env loc v =
   match Strmap.find_opt v env with
   | Some t -> instantiate t
   | None -> raise (Error (loc, "No var named " ^ v))
 
-and typeof_let env id e1 e2 =
+and typeof_let env loc (id, type_annot) e1 e2 =
   enter_level ();
-  let type_e = typeof env e1 in
-  leave_level ();
-  typeof (Strmap.add id (generalize type_e) env) e2
+  let type_e =
+    match type_annot with
+    | None ->
+        let type_e = typeof env e1 in
+        leave_level ();
+        generalize type_e
+    | Some annot ->
+        let type_annot = typeof_annot loc annot in
+        let type_e = typeof env e1 in
+        leave_level ();
+        unify type_annot type_e;
+        type_annot
+  in
+  typeof (Strmap.add id type_e env) e2
 
-and typeof_abs env id e =
-  let type_id = newvar () in
+and typeof_abs env loc (id, type_annot) e =
+  let type_id =
+    match type_annot with
+    | None -> newvar ()
+    | Some annot -> typeof_annot loc annot
+  in
   let type_e = typeof (Strmap.add id type_id env) e in
   TFun (type_id, type_e)
 
@@ -199,32 +220,48 @@ let typecheck expr =
   typeof Strmap.empty expr
 
 let rec convert env = function
-  | Ast.Var (loc, id) -> convert_var loc env id
+  | Ast.Var (loc, id) -> convert_var env loc id
   | Int (_, i) -> { typ = TInt; expr = Int i }
   | Bool (_, b) -> { typ = TBool; expr = Bool b }
-  | Let (_, x, e1, e2) -> convert_let env x e1 e2
-  | Abs (_, id, e) -> convert_abs env id e
+  | Let (loc, x, e1, e2) -> convert_let env loc x e1 e2
+  | Abs (loc, id, e) -> convert_abs env loc id e
   | App (_, e1, e2) -> convert_app env e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
 
-and convert_var loc env id =
+and convert_var env loc id =
   match Strmap.find_opt id env with
   | Some t ->
       let typ = instantiate t in
       { typ; expr = Var id }
   | None -> raise (Error (loc, "No var named " ^ id))
 
-and convert_let env id e1 e2 =
+and convert_let env loc (id, type_annot) e1 e2 =
   enter_level ();
-  let typ1 = convert env e1 in
-  leave_level ();
-  let typ1 = { typ1 with typ = generalize typ1.typ } in
+  let typ1 =
+    match type_annot with
+    | None ->
+        let t = convert env e1 in
+        leave_level ();
+        { t with typ = generalize t.typ }
+    | Some annot ->
+        let t_annot = typeof_annot loc annot in
+        let t = convert env e1 in
+        leave_level ();
+        unify t_annot t.typ;
+        { t with typ = t_annot }
+  in
+
+  (* let typ1 = { typ1 with typ = generalize typ1.typ } in *)
   let typ2 = convert (Strmap.add id typ1.typ env) e2 in
   { typ = typ2.typ; expr = Let (id, typ1, typ2) }
 
-and convert_abs env id e =
-  let type_id = newvar () in
+and convert_abs env loc (id, type_annot) e =
+  let type_id =
+    match type_annot with
+    | None -> newvar ()
+    | Some annot -> typeof_annot loc annot
+  in
   let type_e = convert (Strmap.add id type_id env) e in
   { typ = TFun (type_id, type_e.typ); expr = Abs (id, type_id, type_e) }
 

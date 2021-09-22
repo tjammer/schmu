@@ -41,8 +41,8 @@ expr:
   | bool { Bool($startpos, $1) }
   | expr; binop; expr { Bop($startpos, $2, $1, $3) }
   | If; expr; Then; expr; Else; expr { If($startpos, $2, $4, $6)}
-  | Identifier; Equal; expr; expr { Let($startpos, $1, $3, $4) }
-  | Lbrac; Identifier; Dot; expr; Rbrac { Abs($startpos, $2, $4) }
+  | identifier; Equal; expr; expr { Let($startpos, $1, $3, $4) }
+  | Lbrac; identifier; Dot; expr; Rbrac { Abs($startpos, $2, $4) }
   | expr; Lpar; expr; Rpar { App($startpos, $1, $3) }
 
 bool:
@@ -55,3 +55,7 @@ bool:
   | Mult  { Mult }
   | Less  { Less }
   | Bin_equal { Equal }
+
+%inline identifier:
+  | Identifier { $1, None }
+  | Identifier; Colon; Identifier { $1, Some $3 }
