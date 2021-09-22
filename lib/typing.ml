@@ -1,4 +1,10 @@
-type typ = TInt | TBool | TVar of tv ref | QVar of string | TFun of typ * typ
+type typ =
+  | TInt
+  | TBool
+  | TUnit
+  | TVar of tv ref
+  | QVar of string
+  | TFun of typ * typ
 
 and tv = Unbound of string * int | Link of typ
 
@@ -28,6 +34,7 @@ module Strset = Set.Make (String)
 let rec string_of_type = function
   | TInt -> "int"
   | TBool -> "bool"
+  | TUnit -> "unit"
   | TFun (ty1, ty2) ->
       "("
       ^ String.concat " -> " [ string_of_type ty1; string_of_type ty2 ]
@@ -130,6 +137,7 @@ let typeof_annot loc annot =
   let atom_type = function
     | "int" -> TInt
     | "bool" -> TBool
+    | "unit" -> TUnit
     | t ->
         raise (Error (loc, "Unknown type: " ^ t ^ ". Expected 'int' or 'bool'"))
   in

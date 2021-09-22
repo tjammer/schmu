@@ -1,4 +1,10 @@
-type typ = TInt | TBool | TVar of tv ref | QVar of string | TFun of typ * typ
+type typ =
+  | TInt
+  | TBool
+  | TUnit
+  | TVar of tv ref
+  | QVar of string
+  | TFun of typ * typ
 
 and tv = Unbound of string * int | Link of typ
 

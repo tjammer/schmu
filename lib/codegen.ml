@@ -8,6 +8,8 @@ let int_type = Llvm.i32_type context
 
 let bool_type = Llvm.i1_type context
 
+let unit_type = Llvm.void_type context
+
 module Vars = Map.Make (String)
 
 (* Used to generate lambdas *)
@@ -50,7 +52,8 @@ let rec get_lltype = function
   | Typing.TInt -> int_type
   | TBool -> bool_type
   | TVar { contents = Link t } -> get_lltype t
-  | t ->
+  | TUnit -> unit_type
+  | (TVar _ | QVar _ | TFun _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
 let rec gen_function funcs fun_name (arg_name, arg_type, body) =
@@ -68,8 +71,14 @@ let rec gen_function funcs fun_name (arg_name, arg_type, body) =
   Llvm.position_at_end bb builder;
   (* TODO not all vars can be accessed here *)
   let ret = gen_expr (Vars.add arg_name param funcs) body in
+
   (* we don't support closures yet *)
-  ignore (Llvm.build_ret ret builder);
+
+  (* Don't return a void type *)
+  ignore
+    (match Llvm.(type_of ret |> classify_type) with
+    | Void -> Llvm.build_ret_void builder
+    | _ -> Llvm.build_ret ret builder);
   Llvm_analysis.assert_valid_function func;
   Vars.add fun_name func funcs
 
@@ -114,7 +123,8 @@ and get_generated_func vars name =
 and gen_app vars callee arg =
   let callee = gen_expr vars callee in
   let arg = gen_expr vars arg in
-  Llvm.build_call callee [| arg |] "calltmp" builder
+  (* No names here, might be void/unit *)
+  Llvm.build_call callee [| arg |] "" builder
 
 and gen_if vars cond e1 e2 =
   let cond = gen_expr vars cond in
@@ -160,12 +170,13 @@ let decl_external (name, typ) =
 let generate externals typed_expr =
   ignore externals;
   let open Typing in
+  (* External declarations *)
   let vars =
     List.fold_left
       (fun vars (name, typ) -> Vars.add name (decl_external (name, typ)) vars)
       Vars.empty externals
   in
-
+  (* Factor out functions for llvm *)
   let funcs =
     extract typed_expr.expr
     |> List.fold_left (fun acc (name, abs) -> gen_function acc name abs) vars
@@ -173,4 +184,4 @@ let generate externals typed_expr =
   (* Reset lambda counter *)
   reset fun_get_state;
   (* Add main *)
-  gen_function funcs "main" ("", typed_expr.typ, typed_expr)
+  gen_function funcs "main" ("", TInt, typed_expr)
