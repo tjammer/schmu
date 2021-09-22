@@ -46,6 +46,7 @@ rule read =
   | '{'      { Lbrac }
   | '}'      { Rbrac }
   | '\\'     { Backslash }
+  | "->"     { Arrow }
   | "--"     { line_comment lexbuf }
   | eof      { Eof }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

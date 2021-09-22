@@ -5,6 +5,7 @@
 %token Equal
 %token Comma
 %token Colon
+%token Arrow
 %token Dot
 %token Backslash
 %token <string> Identifier
@@ -41,8 +42,8 @@ expr:
   | bool { Bool($startpos, $1) }
   | expr; binop; expr { Bop($startpos, $2, $1, $3) }
   | If; expr; Then; expr; Else; expr { If($startpos, $2, $4, $6)}
-  | identifier; Equal; expr; expr { Let($startpos, $1, $3, $4) }
-  | Lbrac; identifier; Dot; expr; Rbrac { Abs($startpos, $2, $4) }
+  | decl; Equal; expr; expr { Let($startpos, $1, $3, $4) }
+  | Lbrac; decl; Dot; expr; Rbrac { Abs($startpos, $2, $4) }
   | expr; Lpar; expr; Rpar { App($startpos, $1, $3) }
 
 bool:
@@ -56,6 +57,7 @@ bool:
   | Less  { Less }
   | Bin_equal { Equal }
 
-%inline identifier:
+%inline decl:
   | Identifier { $1, None }
-  | Identifier; Colon; Identifier { $1, Some $3 }
+  | Identifier; Colon; Identifier { $1, Some (Atom_annot $3) }
+  | Identifier; Colon; Identifier; Arrow; Identifier { $1, Some (Fun_annot ($3, $5)) }

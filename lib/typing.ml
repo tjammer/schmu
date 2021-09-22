@@ -124,11 +124,16 @@ let bop_error loc bop t1 t2 =
          "Expressions in binary op '" ^ op ^ "' must be both int " ^ "not: "
          ^ string_of_type t1 ^ " vs " ^ string_of_type t2 ))
 
-let typeof_annot loc = function
-  | "int" -> TInt
-  | "bool" -> TBool
-  | t ->
-      raise (Error (loc, "Unknown type: " ^ t ^ ". Expected 'int' or 'bool'"))
+let typeof_annot loc annot =
+  let atom_type = function
+    | "int" -> TInt
+    | "bool" -> TBool
+    | t ->
+        raise (Error (loc, "Unknown type: " ^ t ^ ". Expected 'int' or 'bool'"))
+  in
+  match annot with
+  | Ast.Atom_annot t -> atom_type t
+  | Fun_annot (t1, t2) -> TFun (atom_type t1, atom_type t2)
 
 let rec typeof env = function
   | Ast.Var (loc, v) -> typeof_var env loc v

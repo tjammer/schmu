@@ -13,7 +13,10 @@ type loc = Loc.t [@@deriving show]
 type bop = Plus | Mult | Less | Equal | Minus
 [@@deriving show { with_path = false }]
 
-type decl = string * string option [@@deriving show]
+type annot = Atom_annot of string | Fun_annot of string * string
+
+and decl = string * annot option
+[@@deriving show]
 
 type expr =
   | Var of loc * string

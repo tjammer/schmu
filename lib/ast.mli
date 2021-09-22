@@ -3,8 +3,10 @@ type bop = Plus | Mult | Less | Equal | Minus [@@deriving show]
 type loc = Lexing.position
 
 (* optional type identifier
-   So far only bool and ints, so string is fine *)
-type decl = string * string option
+   So far only bool and ints and functions with arity 1 *)
+type annot = Atom_annot of string | Fun_annot of string * string
+
+type decl = string * annot option
 
 type expr =
   | Var of loc * string
