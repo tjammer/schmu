@@ -8,14 +8,17 @@ type type_expr = Atom_type of string | Fun_type of string * string
 
 type decl = string * type_expr option
 
-type expr =
+type func = { name : decl; param : decl; body : expr; cont : expr }
+
+and expr =
   | Var of loc * string
   | Int of loc * int
   | Bool of loc * bool
   | Bop of loc * bop * expr * expr
   | If of loc * expr * expr * expr
   | Let of loc * decl * expr * expr
-  | Abs of loc * decl * expr
+  | Lambda of loc * decl * expr
+  | Function of loc * func
   | App of loc * expr * expr
 [@@deriving show { with_path = false }]
 

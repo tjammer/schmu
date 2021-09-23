@@ -17,7 +17,8 @@ and expr =
   | Bop of Ast.bop * typed_expr * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
-  | Abs of abstraction
+  | Lambda of abstraction
+  | Function of string * abstraction * typed_expr
   | App of typed_expr * typed_expr
 
 and typed_expr = { typ : typ; expr : expr }
@@ -150,7 +151,9 @@ let rec typeof env = function
   | Int (_, _) -> TInt
   | Bool (_, _) -> TBool
   | Let (loc, x, e1, e2) -> typeof_let env loc x e1 e2
-  | Abs (loc, id, e) -> typeof_abs env loc id e
+  | Lambda (loc, id, e) -> typeof_abs env loc id e
+  | Function (loc, { name; param; body; cont }) ->
+      typeof_function env loc name param body cont
   | App (_, e1, e2) -> typeof_app env e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
@@ -185,6 +188,10 @@ and typeof_abs env loc (id, type_annot) e =
   in
   let type_e = typeof (Strmap.add id type_id env) e in
   TFun (type_id, type_e)
+
+and typeof_function env loc name param body cont =
+  (* this loc might not be correct *)
+  typeof_let env loc name (Lambda (loc, param, body)) cont
 
 and typeof_app env e1 e2 =
   let type_fun = typeof env e1 in
@@ -239,7 +246,8 @@ let rec convert env = function
   | Int (_, i) -> { typ = TInt; expr = Int i }
   | Bool (_, b) -> { typ = TBool; expr = Bool b }
   | Let (loc, x, e1, e2) -> convert_let env loc x e1 e2
-  | Abs (loc, id, e) -> convert_abs env loc id e
+  | Lambda (loc, id, e) -> convert_lambda env loc id e
+  | Function (loc, func) -> convert_function env loc func
   | App (_, e1, e2) -> convert_app env e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
@@ -251,34 +259,55 @@ and convert_var env loc id =
       { typ; expr = Var id }
   | None -> raise (Error (loc, "No var named " ^ id))
 
-and convert_let env loc (id, type_annot) e1 e2 =
+and typeof_annot_decl env loc annot expr =
   enter_level ();
-  let typ1 =
-    match type_annot with
-    | None ->
-        let t = convert env e1 in
-        leave_level ();
-        { t with typ = generalize t.typ }
-    | Some annot ->
-        let t_annot = typeof_annot loc annot in
-        let t = convert env e1 in
-        leave_level ();
-        unify t_annot t.typ;
-        { t with typ = t_annot }
-  in
+  match annot with
+  | None ->
+      let t = convert env expr in
+      leave_level ();
+      { t with typ = generalize t.typ }
+  | Some annot ->
+      let t_annot = typeof_annot loc annot in
+      let t = convert env expr in
+      leave_level ();
+      unify t_annot t.typ;
+      { t with typ = t_annot }
 
-  (* let typ1 = { typ1 with typ = generalize typ1.typ } in *)
+and convert_let env loc (id, type_annot) e1 e2 =
+  let typ1 = typeof_annot_decl env loc type_annot e1 in
+
   let typ2 = convert (Strmap.add id typ1.typ env) e2 in
   { typ = typ2.typ; expr = Let (id, typ1, typ2) }
 
-and convert_abs env loc (id, type_annot) e =
+and convert_lambda env loc (id, type_annot) e =
   let type_id =
     match type_annot with
     | None -> newvar ()
     | Some annot -> typeof_annot loc annot
   in
   let type_e = convert (Strmap.add id type_id env) e in
-  { typ = TFun (type_id, type_e.typ); expr = Abs (id, type_id, type_e) }
+  { typ = TFun (type_id, type_e.typ); expr = Lambda (id, type_id, type_e) }
+
+and convert_function env loc { name; param; body; cont } =
+  (* Create a fresh type var for the function name
+     and use it in the function body *)
+  let env =
+    match snd name with
+    | None -> Strmap.add (fst name) (newvar ()) env
+    | Some t -> Strmap.add (fst name) (typeof_annot loc t) env
+  in
+  let typ1 = typeof_annot_decl env loc (snd name) (Lambda (loc, param, body)) in
+  let lambda =
+    match typ1.expr with
+    | Lambda l -> l
+    | _ -> failwith "Internal Error: How is this not a lambda?"
+  in
+
+  (* Make sure the types match *)
+  unify (Strmap.find (fst name) env) typ1.typ;
+  (* Continue, see let *)
+  let typ2 = convert env cont in
+  { typ = typ2.typ; expr = Function (fst name, lambda, typ2) }
 
 and convert_app env e1 e2 =
   let type_fun = convert env e1 in

@@ -25,6 +25,8 @@ let genfun state =
 
 let reset state = state := 0
 
+type func = { name : string; abs : Typing.abstraction; named : bool }
+
 let extract expr =
   let rec inner acc = function
     | Typing.Var _ | Int _ | Bool _ -> acc
@@ -33,15 +35,15 @@ let extract expr =
         let acc = inner acc cond.expr in
         let acc = inner acc e1.expr in
         inner acc e2.expr
-    | Let (id, { typ = _; expr = Abs ((_, _, body) as abs) }, e2) ->
+    | Function (name, ((_, _, body) as abs), cont) ->
         let acc = inner acc body.expr in
-        inner ((id, abs) :: acc) e2.expr
+        inner ({ name; abs; named = true } :: acc) cont.expr
     | Let (_, e1, e2) ->
         let acc = inner acc e1.expr in
         inner acc e2.expr
-    | Abs ((_, _, expr) as abs) ->
+    | Lambda ((_, _, expr) as abs) ->
         let acc = inner acc expr.expr in
-        (genfun fun_gen_state, abs) :: acc
+        { name = genfun fun_gen_state; abs; named = false } :: acc
     | App (e1, e2) ->
         let acc = inner acc e1.expr in
         inner acc e2.expr
@@ -56,7 +58,7 @@ let rec get_lltype = function
   | (TVar _ | QVar _ | TFun _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
-let rec gen_function funcs fun_name ?(linkage = Llvm.Linkage.Private)
+let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
     (arg_name, arg_type, body) =
   (* We only support one function arguments so far *)
   let return_t = get_lltype Typing.(body.typ) in
@@ -68,11 +70,14 @@ let rec gen_function funcs fun_name ?(linkage = Llvm.Linkage.Private)
   let param = (Llvm.params func).(0) in
   Llvm.set_value_name arg_name param;
 
+  (* If the function is named, we allow recursion *)
+  let temp_funcs = if named then Vars.add fun_name func funcs else funcs in
+
   (* gen function body *)
   let bb = Llvm.append_block context "entry" func in
   Llvm.position_at_end bb builder;
   (* TODO not all vars can be accessed here *)
-  let ret = gen_expr (Vars.add arg_name param funcs) body in
+  let ret = gen_expr (Vars.add arg_name param temp_funcs) body in
 
   (* we don't support closures yet *)
 
@@ -94,14 +99,14 @@ and gen_expr vars typed_expr =
       gen_bop e1 e2 bop
   | Var id -> Vars.find id vars
   (* If the variable isn't bound, something went wrong before *)
-  | Let (id, { typ = _; expr = Abs _ }, let_ty) ->
+  | Function (name, _, cont) ->
       (* The functions are already generated *)
-      ignore (get_generated_func vars id);
-      gen_expr vars let_ty
+      ignore (get_generated_func vars name);
+      gen_expr vars cont
   | Let (id, equals_ty, let_ty) ->
       let expr_val = gen_expr vars equals_ty in
       gen_expr (Vars.add id expr_val vars) let_ty
-  | Abs _ -> get_generated_func vars (genfun fun_get_state)
+  | Lambda _ -> get_generated_func vars (genfun fun_get_state)
   | App (callee, arg) ->
       (* Let's first of all not care about anonymous functions *)
       gen_app vars callee arg
@@ -181,13 +186,16 @@ let generate externals typed_expr =
   (* Factor out functions for llvm *)
   let funcs =
     extract typed_expr.expr
-    |> List.fold_left (fun acc (name, abs) -> gen_function acc name abs) vars
+    |> List.fold_left
+         (fun acc { name; abs; named } -> gen_function ~named acc name abs)
+         vars
   in
   (* Reset lambda counter *)
   reset fun_get_state;
   (* Add main *)
   let linkage = Llvm.Linkage.External in
-  ignore @@ gen_function funcs ~linkage "main" ("", TInt, typed_expr);
+  ignore
+  @@ gen_function funcs ~linkage ~named:false "main" ("", TInt, typed_expr);
 
   (* Emit code to file *)
   Llvm_all_backends.initialize ();

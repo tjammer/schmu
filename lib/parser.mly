@@ -26,6 +26,7 @@
 %token Else
 %token Eof
 %token External
+%token Function
 
 %nonassoc Less
 %left Plus
@@ -47,7 +48,8 @@ expr:
   | expr; binop; expr { Bop($startpos, $2, $1, $3) }
   | If; expr; Then; expr; Else; expr { If($startpos, $2, $4, $6)}
   | decl; Equal; expr; expr { Let($startpos, $1, $3, $4) }
-  | Lbrac; decl; Dot; expr; Rbrac { Abs($startpos, $2, $4) }
+  | Function; Lpar; decl; Rpar; expr  { Lambda($startpos, $3, $5) }
+  | Function; decl; Lpar; decl; Rpar; expr; expr { Function ($startpos, {name = $2; param = $4; body = $6; cont = $7}) }
   | expr; Lpar; expr; Rpar { App($startpos, $1, $3) }
 
 bool:

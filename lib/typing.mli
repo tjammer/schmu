@@ -21,7 +21,8 @@ and expr =
   | Bop of Ast.bop * typed_expr * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
-  | Abs of abstraction
+  | Lambda of abstraction
+  | Function of string * abstraction * typed_expr
   | App of typed_expr * typed_expr
 
 and typed_expr = { typ : typ; expr : expr }
