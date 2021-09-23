@@ -56,12 +56,14 @@ let rec get_lltype = function
   | (TVar _ | QVar _ | TFun _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
-let rec gen_function funcs fun_name (arg_name, arg_type, body) =
+let rec gen_function funcs fun_name ?(linkage = Llvm.Linkage.Private)
+    (arg_name, arg_type, body) =
   (* We only support one function arguments so far *)
   let return_t = get_lltype Typing.(body.typ) in
   let arg_t = Array.make 1 (get_lltype arg_type) in
   let ft = Llvm.function_type return_t arg_t in
   let func = Llvm.declare_function fun_name ft the_module in
+  Llvm.set_linkage linkage func;
   (* let vars = Vars.add id func vars in *)
   let param = (Llvm.params func).(0) in
   Llvm.set_value_name arg_name param;
@@ -184,4 +186,14 @@ let generate externals typed_expr =
   (* Reset lambda counter *)
   reset fun_get_state;
   (* Add main *)
-  gen_function funcs "main" ("", TInt, typed_expr)
+  let linkage = Llvm.Linkage.External in
+  ignore @@ gen_function funcs ~linkage "main" ("", TInt, typed_expr);
+
+  (* Emit code to file *)
+  Llvm_all_backends.initialize ();
+  let open Llvm_target in
+  let triple = Target.default_triple () in
+  print_endline triple;
+  let machine = TargetMachine.create ~triple (Target.by_triple triple) in
+  TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile "out.o"
+    machine
