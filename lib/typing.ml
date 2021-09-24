@@ -46,7 +46,9 @@ let func_tbl = Functbl.create 1
 
 let next_func name tbl =
   match Functbl.find_opt tbl name with
-  | None -> None
+  | None ->
+      Functbl.add tbl name 1;
+      None
   | Some n ->
       Functbl.replace tbl name (n + 1);
       Some (n + 1)
