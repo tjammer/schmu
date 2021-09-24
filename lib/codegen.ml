@@ -58,13 +58,16 @@ let rec get_lltype = function
   | (TVar _ | QVar _ | TFun _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
-let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
-    (arg_name, arg_type, body) =
+let declare_function fun_name arg_type body =
   (* We only support one function arguments so far *)
   let return_t = get_lltype Typing.(body.typ) in
   let arg_t = Array.make 1 (get_lltype arg_type) in
   let ft = Llvm.function_type return_t arg_t in
-  let func = Llvm.declare_function fun_name ft the_module in
+  Llvm.declare_function fun_name ft the_module
+
+let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
+    (arg_name, arg_type, body) =
+  let func = declare_function fun_name arg_type body in
   Llvm.set_linkage linkage func;
   (* let vars = Vars.add id func vars in *)
   let param = (Llvm.params func).(0) in
@@ -97,8 +100,12 @@ and gen_expr vars typed_expr =
       let e1 = gen_expr vars e1 in
       let e2 = gen_expr vars e2 in
       gen_bop e1 e2 bop
-  | Var id -> Vars.find id vars
-  (* If the variable isn't bound, something went wrong before *)
+  | Var id -> (
+      match Vars.find_opt id vars with
+      | Some v -> v
+      | None ->
+          (* If the variable isn't bound, something went wrong before *)
+          failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
   | Function (name, _, cont) ->
       (* The functions are already generated *)
       ignore (get_generated_func vars name);
@@ -175,7 +182,6 @@ let decl_external (name, typ) =
   | _ -> failwith "TODO external symbols"
 
 let generate externals typed_expr =
-  ignore externals;
   let open Typing in
   (* External declarations *)
   let vars =
@@ -185,10 +191,16 @@ let generate externals typed_expr =
   in
   (* Factor out functions for llvm *)
   let funcs =
-    extract typed_expr.expr
-    |> List.fold_left
-         (fun acc { name; abs; named } -> gen_function ~named acc name abs)
-         vars
+    let lst = extract typed_expr.expr in
+    let vars =
+      List.fold_left
+        (fun acc { name; abs = _, arg_type, body; named = _ } ->
+          Vars.add name (declare_function name arg_type body) acc)
+        vars lst
+    in
+    List.fold_left
+      (fun acc { name; abs; named } -> gen_function ~named acc name abs)
+      vars lst
   in
   (* Reset lambda counter *)
   reset fun_get_state;
