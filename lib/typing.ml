@@ -8,7 +8,7 @@ type typ =
 
 and tv = Unbound of string * int | Link of typ
 
-type abstraction = string * typ * typed_expr
+type abstraction = { name : string; a_typ : typ; body : typed_expr }
 
 and expr =
   | Var of string
@@ -18,7 +18,7 @@ and expr =
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
   | Lambda of abstraction
-  | Function of string * abstraction * typed_expr
+  | Function of string * int option * abstraction * typed_expr
   | App of typed_expr * typed_expr
 
 and typed_expr = { typ : typ; expr : expr }
@@ -31,6 +31,25 @@ exception Unify
 
 module Strmap = Map.Make (String)
 module Strset = Set.Make (String)
+
+module Str = struct
+  type t = string
+
+  let hash = Hashtbl.hash
+
+  let equal = String.equal
+end
+
+module Functbl = Hashtbl.Make (Str)
+
+let func_tbl = Functbl.create 1
+
+let next_func name tbl =
+  match Functbl.find_opt tbl name with
+  | None -> None
+  | Some n ->
+      Functbl.replace tbl name (n + 1);
+      Some (n + 1)
 
 let rec string_of_type = function
   | TInt -> "int"
@@ -279,35 +298,40 @@ and convert_let env loc (id, type_annot) e1 e2 =
   let typ2 = convert (Strmap.add id typ1.typ env) e2 in
   { typ = typ2.typ; expr = Let (id, typ1, typ2) }
 
-and convert_lambda env loc (id, type_annot) e =
-  let type_id =
+and convert_lambda env loc (name, type_annot) e =
+  let a_typ =
     match type_annot with
     | None -> newvar ()
     | Some annot -> typeof_annot loc annot
   in
-  let type_e = convert (Strmap.add id type_id env) e in
-  { typ = TFun (type_id, type_e.typ); expr = Lambda (id, type_id, type_e) }
+  let body = convert (Strmap.add name a_typ env) e in
+  let expr = Lambda { name; a_typ; body } in
+  { typ = TFun (a_typ, body.typ); expr }
 
 and convert_function env loc { name; param; body; cont } =
   (* Create a fresh type var for the function name
      and use it in the function body *)
+  let unique = next_func (fst name) func_tbl in
   let env =
     match snd name with
     | None -> Strmap.add (fst name) (newvar ()) env
     | Some t -> Strmap.add (fst name) (typeof_annot loc t) env
   in
-  let typ1 = typeof_annot_decl env loc (snd name) (Lambda (loc, param, body)) in
-  let lambda =
-    match typ1.expr with
-    | Lambda l -> l
-    | _ -> failwith "Internal Error: How is this not a lambda?"
+  (* We duplicate some lambda code due to naming *)
+  let a_typ =
+    match snd param with
+    | None -> newvar ()
+    | Some annot -> typeof_annot loc annot
   in
+  let body = convert (Strmap.add (fst param) a_typ env) body in
+  let lambda = { name = fst param; a_typ; body } in
+  let lambda_typ = TFun (a_typ, body.typ) in
 
   (* Make sure the types match *)
-  unify (Strmap.find (fst name) env) typ1.typ;
+  unify (Strmap.find (fst name) env) lambda_typ;
   (* Continue, see let *)
   let typ2 = convert env cont in
-  { typ = typ2.typ; expr = Function (fst name, lambda, typ2) }
+  { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
 
 and convert_app env e1 e2 =
   let type_fun = convert env e1 in

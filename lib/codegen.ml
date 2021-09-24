@@ -18,15 +18,31 @@ let fun_gen_state = ref 0
 (* Used to query lambdas *)
 let fun_get_state = ref 0
 
-let genfun state =
+let lambda_name state =
   let n = !state in
   incr state;
   "__fun" ^ string_of_int n
 
+(* for named functions *)
+let unique_name = function
+  | name, None -> name
+  | name, Some n -> name ^ "__" ^ string_of_int n
+
 let reset state = state := 0
 
-type func = { name : string; abs : Typing.abstraction; named : bool }
+(* let unique_name ~name vars =
+ *   match Vars.find_opt name vars with
+ *   | None -> name
+ *   | Some _ -> gen_unique ~name fun_gen_state *)
 
+type func = { name : string * bool * int option; abs : Typing.abstraction }
+
+(* Functions must be unique, so we add a number to each function if
+   it already exists in the global scope.
+   In local scope, our Map.t will resolve to the correct function.
+   E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
+   if the global function exists. Note that the counter is global among all
+   functions *)
 let extract expr =
   let rec inner acc = function
     | Typing.Var _ | Int _ | Bool _ -> acc
@@ -35,20 +51,21 @@ let extract expr =
         let acc = inner acc cond.expr in
         let acc = inner acc e1.expr in
         inner acc e2.expr
-    | Function (name, ((_, _, body) as abs), cont) ->
-        let acc = inner acc body.expr in
-        inner ({ name; abs; named = true } :: acc) cont.expr
+    | Function (name, uniq, abs, cont) ->
+        let acc = inner acc abs.body.expr in
+        let name = (name, true, uniq) in
+        inner ({ name; abs } :: acc) cont.expr
     | Let (_, e1, e2) ->
         let acc = inner acc e1.expr in
         inner acc e2.expr
-    | Lambda ((_, _, expr) as abs) ->
-        let acc = inner acc expr.expr in
-        { name = genfun fun_gen_state; abs; named = false } :: acc
+    | Lambda abs ->
+        let acc = inner acc abs.body.expr in
+        { name = (lambda_name fun_gen_state, false, None); abs } :: acc
     | App (e1, e2) ->
         let acc = inner acc e1.expr in
         inner acc e2.expr
   in
-  inner [] expr |> List.rev
+  inner [] expr
 
 let rec get_lltype = function
   | Typing.TInt -> int_type
@@ -65,13 +82,21 @@ let declare_function fun_name arg_type body =
   let ft = Llvm.function_type return_t arg_t in
   Llvm.declare_function fun_name ft the_module
 
+let get_generated_func vars name =
+  match Vars.find_opt name vars with
+  | Some v -> v
+  | None ->
+      prerr_endline ("Could not find function : " ^ name);
+      Vars.iter (fun key _ -> prerr_endline ("in: " ^ key)) vars;
+      failwith "Internal error"
+
 let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
-    (arg_name, arg_type, body) =
-  let func = declare_function fun_name arg_type body in
+    Typing.{ name = a_name; a_typ; body } =
+  let func = declare_function fun_name a_typ body in
   Llvm.set_linkage linkage func;
   (* let vars = Vars.add id func vars in *)
   let param = (Llvm.params func).(0) in
-  Llvm.set_value_name arg_name param;
+  Llvm.set_value_name a_name param;
 
   (* If the function is named, we allow recursion *)
   let temp_funcs = if named then Vars.add fun_name func funcs else funcs in
@@ -79,9 +104,7 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
   (* gen function body *)
   let bb = Llvm.append_block context "entry" func in
   Llvm.position_at_end bb builder;
-  (* TODO not all vars can be accessed here *)
-  let ret = gen_expr (Vars.add arg_name param temp_funcs) body in
-
+  let ret = gen_expr (Vars.add a_name param temp_funcs) body in
   (* we don't support closures yet *)
 
   (* Don't return a void type *)
@@ -106,14 +129,14 @@ and gen_expr vars typed_expr =
       | None ->
           (* If the variable isn't bound, something went wrong before *)
           failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
-  | Function (name, _, cont) ->
+  | Function (name, uniq, _, cont) ->
       (* The functions are already generated *)
-      ignore (get_generated_func vars name);
-      gen_expr vars cont
+      let func = get_generated_func vars (unique_name (name, uniq)) in
+      gen_expr (Vars.add name func vars) cont
   | Let (id, equals_ty, let_ty) ->
       let expr_val = gen_expr vars equals_ty in
       gen_expr (Vars.add id expr_val vars) let_ty
-  | Lambda _ -> get_generated_func vars (genfun fun_get_state)
+  | Lambda _ -> get_generated_func vars (lambda_name fun_get_state)
   | App (callee, arg) ->
       (* Let's first of all not care about anonymous functions *)
       gen_app vars callee arg
@@ -125,14 +148,6 @@ and gen_bop e1 e2 = function
   | Less -> Llvm.(build_icmp Icmp.Slt) e1 e2 "lesstmp" builder
   | Equal -> Llvm.(build_icmp Icmp.Eq) e1 e2 "eqtmp" builder
   | Minus -> Llvm.build_sub e1 e2 "subtmp" builder
-
-and get_generated_func vars name =
-  match Vars.find_opt name vars with
-  | Some v -> v
-  | None ->
-      prerr_endline ("Could not find function : " ^ name);
-      Vars.iter (fun key _ -> prerr_endline ("in: " ^ key)) vars;
-      failwith "Internal error"
 
 and gen_app vars callee arg =
   let callee = gen_expr vars callee in
@@ -194,12 +209,15 @@ let generate externals typed_expr =
     let lst = extract typed_expr.expr in
     let vars =
       List.fold_left
-        (fun acc { name; abs = _, arg_type, body; named = _ } ->
-          Vars.add name (declare_function name arg_type body) acc)
+        (fun acc { name = name, named, uniq; abs } ->
+          let name = if named then unique_name (name, uniq) else name in
+          Vars.add name (declare_function name abs.a_typ abs.body) acc)
         vars lst
     in
     List.fold_left
-      (fun acc { name; abs; named } -> gen_function ~named acc name abs)
+      (fun acc { name = name, named, uniq; abs } ->
+        let name = if named then unique_name (name, uniq) else name in
+        gen_function ~named acc name abs)
       vars lst
   in
   (* Reset lambda counter *)
@@ -207,7 +225,8 @@ let generate externals typed_expr =
   (* Add main *)
   let linkage = Llvm.Linkage.External in
   ignore
-  @@ gen_function funcs ~linkage ~named:false "main" ("", TInt, typed_expr);
+  @@ gen_function funcs ~linkage ~named:false "main"
+       { name = ""; a_typ = TInt; body = typed_expr };
 
   (* Emit code to file *)
   Llvm_all_backends.initialize ();
