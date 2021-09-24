@@ -1,0 +1,23 @@
+external printi : int -> unit
+
+-- fib = { n .
+--     { x : int .
+--         { x . x + 1 }
+--         (x) + 1
+--     }
+--     (1) + n
+-- }
+
+function fib(n)
+    if n < 2 then n
+    else
+        -- local function
+        function fibn2(n)
+            fib(n - 2)
+        -- anonymous function
+        -- shadow fib. Since the function is anonymous, the inner fib call still calls the outer fib
+        fib = function (n)
+            fib(n - 1)
+        fibn2(n) + fib(n)
+
+printi(fib(30))
