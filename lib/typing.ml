@@ -4,11 +4,11 @@ type typ =
   | TUnit
   | TVar of tv ref
   | QVar of string
-  | TFun of typ * typ
+  | TFun of typ list * typ
 
 and tv = Unbound of string * int | Link of typ
 
-type abstraction = { name : string; a_typ : typ; body : typed_expr }
+type abstraction = { params : (string * typ) list; body : typed_expr }
 
 and expr =
   | Var of string
@@ -19,7 +19,7 @@ and expr =
   | Let of string * typed_expr * typed_expr
   | Lambda of abstraction
   | Function of string * int option * abstraction * typed_expr
-  | App of typed_expr * typed_expr
+  | App of typed_expr * typed_expr list
 
 and typed_expr = { typ : typ; expr : expr }
 
@@ -57,9 +57,9 @@ let rec string_of_type = function
   | TInt -> "int"
   | TBool -> "bool"
   | TUnit -> "unit"
-  | TFun (ty1, ty2) ->
+  | TFun (ts, t) ->
       "("
-      ^ String.concat " -> " [ string_of_type ty1; string_of_type ty2 ]
+      ^ String.concat " -> " (List.map string_of_type ts @ [ string_of_type t ])
       ^ ")"
   | TVar { contents = Unbound (str, _) } ->
       Char.chr (int_of_string str + Char.code 'a') |> String.make 1
@@ -97,9 +97,9 @@ let rec occurs tvr = function
       in
       tv := Unbound (id, min_lvl)
   | TVar { contents = Link ty } -> occurs tvr ty
-  | TFun (t1, t2) ->
-      occurs tvr t1;
-      occurs tvr t2
+  | TFun (param_ts, t) ->
+      List.iter (occurs tvr) param_ts;
+      occurs tvr t
   | _ -> ()
 
 let rec unify t1 t2 =
@@ -112,15 +112,16 @@ let rec unify t1 t2 =
     | t, TVar ({ contents = Unbound _ } as tv) ->
         occurs tv t;
         tv := Link t
-    | TFun (l1, l2), TFun (r1, r2) ->
-        unify l1 r1;
-        unify l2 r2
+    | TFun (params_l, l), TFun (params_r, r) ->
+        (* TODO deal with different lengths *)
+        List.iter2 (fun left right -> unify left right) params_l params_r;
+        unify l r
     | _ -> raise Unify
 
 let rec generalize = function
   | TVar { contents = Unbound (id, l) } when l > !current_level -> QVar id
   | TVar { contents = Link t } -> generalize t
-  | TFun (t1, t2) -> TFun (generalize t1, generalize t2)
+  | TFun (t1, t2) -> TFun (List.map generalize t1, generalize t2)
   | t -> t
 
 let instantiate t =
@@ -132,10 +133,16 @@ let instantiate t =
             let tv = newvar () in
             (tv, Strmap.add id tv subst))
     | TVar { contents = Link t } -> aux subst t
-    | TFun (t1, t2) ->
-        let t1, subst = aux subst t1 in
-        let t2, subst = aux subst t2 in
-        (TFun (t1, t2), subst)
+    | TFun (params_t, t) ->
+        let subst, params_t =
+          List.fold_left_map
+            (fun subst param ->
+              let t, subst = aux subst param in
+              (subst, t))
+            subst params_t
+        in
+        let t, subst = aux subst t in
+        (TFun (params_t, t), subst)
     | t -> (t, subst)
   in
   aux Strmap.empty t |> fst
@@ -164,8 +171,25 @@ let typeof_annot loc annot =
         raise (Error (loc, "Unknown type: " ^ t ^ ". Expected 'int' or 'bool'"))
   in
   match annot with
-  | Ast.Atom_type t -> atom_type t
-  | Fun_type (t1, t2) -> TFun (atom_type t1, atom_type t2)
+  | [] -> failwith "Internal Error: Type annot list should not be empty"
+  | [ t ] -> atom_type t
+  | l -> (
+      (* We reverse the list times :( *)
+      match List.rev l with
+      | last :: head -> TFun (List.map atom_type (List.rev head), atom_type last)
+      | [] -> failwith ":)")
+
+let handle_params env loc params =
+  (* return updated env with bindings for parameters and types of parameters *)
+  List.fold_left_map
+    (fun env (id, type_annot) ->
+      let type_id =
+        match type_annot with
+        | None -> newvar ()
+        | Some annot -> typeof_annot loc annot
+      in
+      (Strmap.add id type_id env, type_id))
+    env params
 
 let rec typeof env = function
   | Ast.Var (loc, v) -> typeof_var env loc v
@@ -173,8 +197,8 @@ let rec typeof env = function
   | Bool (_, _) -> TBool
   | Let (loc, x, e1, e2) -> typeof_let env loc x e1 e2
   | Lambda (loc, id, e) -> typeof_abs env loc id e
-  | Function (loc, { name; param; body; cont }) ->
-      typeof_function env loc name param body cont
+  | Function (loc, { name; params; body; cont }) ->
+      typeof_function env loc name params body cont
   | App (_, e1, e2) -> typeof_app env e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
@@ -201,24 +225,20 @@ and typeof_let env loc (id, type_annot) e1 e2 =
   in
   typeof (Strmap.add id type_e env) e2
 
-and typeof_abs env loc (id, type_annot) e =
-  let type_id =
-    match type_annot with
-    | None -> newvar ()
-    | Some annot -> typeof_annot loc annot
-  in
-  let type_e = typeof (Strmap.add id type_id env) e in
-  TFun (type_id, type_e)
+and typeof_abs env loc params e =
+  let env, params_t = handle_params env loc params in
+  let type_e = typeof env e in
+  TFun (params_t, type_e)
 
 and typeof_function env loc name param body cont =
   (* this loc might not be correct *)
   typeof_let env loc name (Lambda (loc, param, body)) cont
 
-and typeof_app env e1 e2 =
+and typeof_app env e1 args =
   let type_fun = typeof env e1 in
-  let type_arg = typeof env e2 in
+  let type_args = List.map (typeof env) args in
   let type_res = newvar () in
-  unify type_fun (TFun (type_arg, type_res));
+  unify type_fun (TFun (type_args, type_res));
   type_res
 
 and typeof_if env loc cond e1 e2 =
@@ -300,17 +320,14 @@ and convert_let env loc (id, type_annot) e1 e2 =
   let typ2 = convert (Strmap.add id typ1.typ env) e2 in
   { typ = typ2.typ; expr = Let (id, typ1, typ2) }
 
-and convert_lambda env loc (name, type_annot) e =
-  let a_typ =
-    match type_annot with
-    | None -> newvar ()
-    | Some annot -> typeof_annot loc annot
-  in
-  let body = convert (Strmap.add name a_typ env) e in
-  let expr = Lambda { name; a_typ; body } in
-  { typ = TFun (a_typ, body.typ); expr }
+and convert_lambda env loc params e =
+  let env, params_t = handle_params env loc params in
+  let body = convert env e in
+  let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
+  let expr = Lambda { params; body } in
+  { typ = TFun (params_t, body.typ); expr }
 
-and convert_function env loc { name; param; body; cont } =
+and convert_function env loc { name; params; body; cont } =
   (* Create a fresh type var for the function name
      and use it in the function body *)
   let unique = next_func (fst name) func_tbl in
@@ -320,14 +337,11 @@ and convert_function env loc { name; param; body; cont } =
     | Some t -> Strmap.add (fst name) (typeof_annot loc t) env
   in
   (* We duplicate some lambda code due to naming *)
-  let a_typ =
-    match snd param with
-    | None -> newvar ()
-    | Some annot -> typeof_annot loc annot
-  in
-  let body = convert (Strmap.add (fst param) a_typ env) body in
-  let lambda = { name = fst param; a_typ; body } in
-  let lambda_typ = TFun (a_typ, body.typ) in
+  let env, params_t = handle_params env loc params in
+  let body = convert env body in
+  let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
+  let lambda = { params; body } in
+  let lambda_typ = TFun (params_t, body.typ) in
 
   (* Make sure the types match *)
   unify (Strmap.find (fst name) env) lambda_typ;
@@ -335,12 +349,13 @@ and convert_function env loc { name; param; body; cont } =
   let typ2 = convert env cont in
   { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
 
-and convert_app env e1 e2 =
+and convert_app env e1 args =
   let type_fun = convert env e1 in
-  let type_arg = convert env e2 in
-  let type_res = newvar () in
-  unify type_fun.typ (TFun (type_arg.typ, type_res));
-  { typ = type_res; expr = App (type_fun, type_arg) }
+  let typed_expr_args = List.map (convert env) args in
+  let args_t = List.map (fun a -> a.typ) typed_expr_args in
+  let res_t = newvar () in
+  unify type_fun.typ (TFun (args_t, res_t));
+  { typ = res_t; expr = App (type_fun, typed_expr_args) }
 
 and convert_bop env loc bop e1 e2 =
   let check () =

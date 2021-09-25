@@ -61,9 +61,9 @@ let extract expr =
     | Lambda abs ->
         let acc = inner acc abs.body.expr in
         { name = (lambda_name fun_gen_state, false, None); abs } :: acc
-    | App (e1, e2) ->
+    | App (e1, args) ->
         let acc = inner acc e1.expr in
-        inner acc e2.expr
+        List.fold_left (fun acc arg -> inner acc Typing.(arg.expr)) acc args
   in
   inner [] expr
 
@@ -75,11 +75,13 @@ let rec get_lltype = function
   | (TVar _ | QVar _ | TFun _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
-let declare_function fun_name arg_type body =
+let declare_function fun_name args_t body =
   (* We only support one function arguments so far *)
   let return_t = get_lltype Typing.(body.typ) in
-  let arg_t = Array.make 1 (get_lltype arg_type) in
-  let ft = Llvm.function_type return_t arg_t in
+  let ll_args_t =
+    List.map (fun (_, arg) -> get_lltype arg) args_t |> Array.of_list
+  in
+  let ft = Llvm.function_type return_t ll_args_t in
   Llvm.declare_function fun_name ft the_module
 
 let get_generated_func vars name =
@@ -91,12 +93,15 @@ let get_generated_func vars name =
       failwith "Internal error"
 
 let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
-    Typing.{ name = a_name; a_typ; body } =
-  let func = declare_function fun_name a_typ body in
+    Typing.{ params; body } =
+  let func = declare_function fun_name params body in
   Llvm.set_linkage linkage func;
-  (* let vars = Vars.add id func vars in *)
-  let param = (Llvm.params func).(0) in
-  Llvm.set_value_name a_name param;
+  (* TODO set params here *)
+  List.iter
+    (fun (name, _) ->
+      let param = (Llvm.params func).(0) in
+      Llvm.set_value_name name param)
+    params;
 
   (* If the function is named, we allow recursion *)
   let temp_funcs = if named then Vars.add fun_name func funcs else funcs in
@@ -104,7 +109,15 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
   (* gen function body *)
   let bb = Llvm.append_block context "entry" func in
   Llvm.position_at_end bb builder;
-  let ret = gen_expr (Vars.add a_name param temp_funcs) body in
+  (* TODO set this in the above loop *)
+  let temp_funcs, _ =
+    List.fold_left
+      (fun (env, i) (name, _) ->
+        let param = (Llvm.params func).(i) in
+        (Vars.add name param env, i + 1))
+      (temp_funcs, 0) params
+  in
+  let ret = gen_expr temp_funcs body in
 
   (* we don't support closures yet *)
   (* Don't return a void type *)
@@ -153,11 +166,11 @@ and gen_bop e1 e2 = function
   | Equal -> Llvm.(build_icmp Icmp.Eq) e1 e2 "eqtmp" builder
   | Minus -> Llvm.build_sub e1 e2 "subtmp" builder
 
-and gen_app vars callee arg =
+and gen_app vars callee args =
   let callee = gen_expr vars callee in
-  let arg = gen_expr vars arg in
+  let args = List.map (gen_expr vars) args |> Array.of_list in
   (* No names here, might be void/unit *)
-  Llvm.build_call callee [| arg |] "" builder
+  Llvm.build_call callee args "" builder
 
 and gen_if vars cond e1 e2 =
   let cond = gen_expr vars cond in
@@ -193,9 +206,9 @@ and gen_if vars cond e1 e2 =
 
 let decl_external (name, typ) =
   match typ with
-  | Typing.TFun (t1, t2) ->
-      let return_t = get_lltype t2 in
-      let arg_t = Array.make 1 @@ get_lltype t1 in
+  | Typing.TFun (ts, t) ->
+      let return_t = get_lltype t in
+      let arg_t = List.map get_lltype ts |> Array.of_list in
       let ft = Llvm.function_type return_t arg_t in
       Llvm.declare_function name ft the_module
   | _ -> failwith "TODO external symbols"
@@ -215,7 +228,7 @@ let generate externals typed_expr =
       List.fold_left
         (fun acc { name = name, named, uniq; abs } ->
           let name = if named then unique_name (name, uniq) else name in
-          Vars.add name (declare_function name abs.a_typ abs.body) acc)
+          Vars.add name (declare_function name abs.params abs.body) acc)
         vars lst
     in
     List.fold_left
@@ -230,7 +243,7 @@ let generate externals typed_expr =
   let linkage = Llvm.Linkage.External in
   ignore
   @@ gen_function funcs ~linkage ~named:false "main"
-       { name = ""; a_typ = TInt; body = { typed_expr with typ = Typing.TInt } };
+       { params = [ ("", TInt) ]; body = { typed_expr with typ = Typing.TInt } };
 
   (* Emit code to file *)
   Llvm_all_backends.initialize ();

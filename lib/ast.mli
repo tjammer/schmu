@@ -4,11 +4,11 @@ type loc = Lexing.position
 
 (* optional type identifier
    So far only bool and ints and functions with arity 1 *)
-type type_expr = Atom_type of string | Fun_type of string * string
+type type_expr = string list
 
 type decl = string * type_expr option
 
-type func = { name : decl; param : decl; body : expr; cont : expr }
+type func = { name : decl; params : decl list; body : expr; cont : expr }
 
 and expr =
   | Var of loc * string
@@ -17,9 +17,9 @@ and expr =
   | Bop of loc * bop * expr * expr
   | If of loc * expr * expr * expr
   | Let of loc * decl * expr * expr
-  | Lambda of loc * decl * expr
+  | Lambda of loc * decl list * expr
   | Function of loc * func
-  | App of loc * expr * expr
+  | App of loc * expr * expr list
 [@@deriving show { with_path = false }]
 
 type external_decl = loc * string * type_expr

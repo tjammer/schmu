@@ -48,9 +48,11 @@ expr:
   | expr; binop; expr { Bop($startpos, $2, $1, $3) }
   | If; expr; Then; expr; Else; expr { If($startpos, $2, $4, $6)}
   | decl; Equal; expr; expr { Let($startpos, $1, $3, $4) }
-  | Function; Lpar; decl; Rpar; expr  { Lambda($startpos, $3, $5) }
-  | Function; decl; Lpar; decl; Rpar; expr; expr { Function ($startpos, {name = $2; param = $4; body = $6; cont = $7}) }
-  | expr; Lpar; expr; Rpar { App($startpos, $1, $3) }
+  | Function; Lpar; separated_list(Comma, decl); Rpar; expr
+    { Lambda($startpos, $3, $5) }
+  | Function; decl; Lpar; separated_list(Comma, decl); Rpar; expr; expr
+    { Function ($startpos, {name = $2; params = $4; body = $6; cont = $7}) }
+  | expr; Lpar; separated_list(Comma, expr); Rpar { App($startpos, $1, $3) }
 
 bool:
   | True { true }
@@ -67,5 +69,4 @@ bool:
   | Identifier; option(type_expr) { $1, $2 }
 
 %inline type_expr:
-  | Colon; Identifier { Atom_type $2 }
-  | Colon; Identifier; Arrow; Identifier { Fun_type ($2, $4) }
+  | Colon; separated_nonempty_list(Arrow, Identifier);  { $2 }
