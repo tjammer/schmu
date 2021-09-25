@@ -105,12 +105,16 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
   let bb = Llvm.append_block context "entry" func in
   Llvm.position_at_end bb builder;
   let ret = gen_expr (Vars.add a_name param temp_funcs) body in
-  (* we don't support closures yet *)
 
+  (* we don't support closures yet *)
   (* Don't return a void type *)
   ignore
     (match Llvm.(type_of ret |> classify_type) with
-    | Void -> Llvm.build_ret_void builder
+    | Void ->
+        (* Bit of a hack, but whatever *)
+        if String.equal fun_name "main" then
+          Llvm.(build_ret (const_int int_type 0)) builder
+        else Llvm.build_ret_void builder
     | _ -> Llvm.build_ret ret builder);
   Llvm_analysis.assert_valid_function func;
   Vars.add fun_name func funcs
@@ -226,7 +230,7 @@ let generate externals typed_expr =
   let linkage = Llvm.Linkage.External in
   ignore
   @@ gen_function funcs ~linkage ~named:false "main"
-       { name = ""; a_typ = TInt; body = typed_expr };
+       { name = ""; a_typ = TInt; body = { typed_expr with typ = Typing.TInt } };
 
   (* Emit code to file *)
   Llvm_all_backends.initialize ();

@@ -1,3 +1,6 @@
+Compile stubs
+  $ cc -c stub.c
+
 Test name resolution and IR creation of functions
   $ dune exec -- schmu functions.smu
   x86_64-unknown-linux-gnu
@@ -37,10 +40,17 @@ Test name resolution and IR creation of functions
     ret i32 %0
   }
   
-  define void @main(i32 %0) {
+  define i32 @main(i32 %0) {
   entry:
     %1 = call i32 @fib(i32 30)
     call void @printi(i32 %1)
-    ret void
+    ret i32 0
   }
   unit
+
+Build main
+  $ cc out.o stub.o
+
+Run
+  $ ./a.out
+  832040
