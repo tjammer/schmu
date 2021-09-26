@@ -16,7 +16,7 @@ let digit = ['0'-'9']
 let alpha = ['a'-'z' 'A'-'Z']
 
 let int = digit+
-let id = alpha (alpha|digit)*
+let id = alpha (alpha|digit|'_')*
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"

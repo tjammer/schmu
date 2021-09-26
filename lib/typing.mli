@@ -5,7 +5,6 @@ type typ =
   | TVar of tv ref
   | QVar of string
   | TFun of typ list * typ
-(* TODO this list could be array *)
 
 and tv = Unbound of string * int | Link of typ
 
@@ -13,7 +12,6 @@ exception Error of Ast.loc * string
 
 val string_of_type : typ -> string
 
-(* TODO should this be an array? *)
 type abstraction = { params : (string * typ) list; body : typed_expr }
 
 and const = Int of int | Bool of bool | Unit

@@ -1,2 +1,6 @@
 (cram
  (deps %{bin:schmu}))
+
+(tests
+ (names typing)
+ (libraries alcotest schmulang))
