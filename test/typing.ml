@@ -4,8 +4,7 @@ open Schmulang
 let get_type src =
   let open Lexing in
   let lexbuf = from_string src in
-  let _, ast = Parser.prog Lexer.read lexbuf in
-  Typing.typecheck ast |> Typing.string_of_type
+  Parser.prog Lexer.read lexbuf |> Typing.typecheck |> Typing.string_of_type
 
 let test a src = (check string) "" a (get_type src)
 
@@ -24,7 +23,7 @@ let test_func_int () = test "(int -> int)" "function (a) a + 1"
 let test_func_bool () = test "(bool -> int)" "function (a) if a then 1 else 1"
 
 let test_func_external () =
-  test "int -> unit" "external func : int -> unit func"
+  test "(int -> unit)" "external func : int -> unit func"
 
 let test_func_1st_class () =
   test "((int -> b) -> int -> b)" "function (func, arg : int) func(arg)"
@@ -46,7 +45,7 @@ let () =
           case "id_hint" test_func_id_hint;
           case "int" test_func_int;
           case "bool" test_func_bool;
-          (* case "ext" test_func_external; *)
+          case "ext" test_func_external;
           case "1st-class" test_func_1st_class;
           case "1st-hint" test_func_1st_hint;
         ] );

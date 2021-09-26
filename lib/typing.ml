@@ -282,10 +282,19 @@ and typeof_bop env loc bop e1 e2 =
       check ();
       TBool
 
-let typecheck expr =
-  reset_type_vars ();
-  typeof Strmap.empty expr
+let extern_vars decls =
+  let externals =
+    List.map (fun (loc, name, typ) -> (name, typeof_annot loc typ)) decls
+  in
+  List.fold_left
+    (fun vars (name, typ) -> Strmap.add name typ vars)
+    Strmap.empty externals
 
+let typecheck (external_decls, expr) =
+  reset_type_vars ();
+  typeof (extern_vars external_decls) expr
+
+(* Conversion to Typing.exr below *)
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
   | Int (_, i) -> { typ = TInt; expr = Const (Int i) }
