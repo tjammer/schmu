@@ -10,10 +10,11 @@ and tv = Unbound of string * int | Link of typ
 
 type abstraction = { params : (string * typ) list; body : typed_expr }
 
+and const = Int of int | Bool of bool | Unit
+
 and expr =
   | Var of string
-  | Int of int
-  | Bool of bool
+  | Const of const
   | Bop of Ast.bop * typed_expr * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
@@ -284,8 +285,8 @@ let typecheck expr =
 
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
-  | Int (_, i) -> { typ = TInt; expr = Int i }
-  | Bool (_, b) -> { typ = TBool; expr = Bool b }
+  | Int (_, i) -> { typ = TInt; expr = Const (Int i) }
+  | Bool (_, b) -> { typ = TBool; expr = Const (Bool b) }
   | Let (loc, x, e1, e2) -> convert_let env loc x e1 e2
   | Lambda (loc, id, e) -> convert_lambda env loc id e
   | Function (loc, func) -> convert_function env loc func

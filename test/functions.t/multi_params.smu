@@ -1,0 +1,14 @@
+-- TODO check type hint
+function one ()
+  1
+
+function add : int -> int -> int (a : int, b : int)
+  a + b
+
+function doiflesselse(a : int, b : int, greater : int, less : int)
+  if a < b then
+    less
+  else
+    greater
+
+doiflesselse(add(one(), 1), 0, 1, 2)

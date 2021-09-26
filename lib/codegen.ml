@@ -45,7 +45,7 @@ type func = { name : string * bool * int option; abs : Typing.abstraction }
    functions *)
 let extract expr =
   let rec inner acc = function
-    | Typing.Var _ | Int _ | Bool _ -> acc
+    | Typing.Var _ | Const _ -> acc
     | Bop (_, e1, e2) -> inner (inner acc e1.expr) e2.expr
     | If (cond, e1, e2) ->
         let acc = inner acc cond.expr in
@@ -134,8 +134,9 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
 
 and gen_expr vars typed_expr =
   match Typing.(typed_expr.expr) with
-  | Typing.Int i -> Llvm.const_int int_type i
-  | Bool b -> Llvm.const_int bool_type (Bool.to_int b)
+  | Typing.Const (Int i) -> Llvm.const_int int_type i
+  | Const (Bool b) -> Llvm.const_int bool_type (Bool.to_int b)
+  | Const Unit -> failwith "TODO"
   | Bop (bop, e1, e2) ->
       let e1 = gen_expr vars e1 in
       let e2 = gen_expr vars e2 in

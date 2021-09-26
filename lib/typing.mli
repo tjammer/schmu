@@ -16,10 +16,11 @@ val string_of_type : typ -> string
 (* TODO should this be an array? *)
 type abstraction = { params : (string * typ) list; body : typed_expr }
 
+and const = Int of int | Bool of bool | Unit
+
 and expr =
   | Var of string
-  | Int of int
-  | Bool of bool
+  | Const of const
   | Bop of Ast.bop * typed_expr * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
