@@ -174,6 +174,9 @@ let typeof_annot loc annot =
   match annot with
   | [] -> failwith "Internal Error: Type annot list should not be empty"
   | [ t ] -> atom_type t
+  | [ "unit"; t ] -> TFun ([], atom_type t)
+  (* For function definiton and application, 'unit' means an empty list.
+     It's easier for typing and codegen to treat unit as a special case here *)
   | l -> (
       (* We reverse the list times :( *)
       match List.rev l with

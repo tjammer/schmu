@@ -96,30 +96,27 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
     Typing.{ params; body } =
   let func = declare_function fun_name params body in
   Llvm.set_linkage linkage func;
-  (* TODO set params here *)
-  List.iter
-    (fun (name, _) ->
-      let param = (Llvm.params func).(0) in
-      Llvm.set_value_name name param)
-    params;
-
-  (* If the function is named, we allow recursion *)
-  let temp_funcs = if named then Vars.add fun_name func funcs else funcs in
-
-  (* gen function body *)
-  let bb = Llvm.append_block context "entry" func in
-  Llvm.position_at_end bb builder;
-  (* TODO set this in the above loop *)
   let temp_funcs, _ =
     List.fold_left
       (fun (env, i) (name, _) ->
         let param = (Llvm.params func).(i) in
+        Llvm.set_value_name name param;
         (Vars.add name param env, i + 1))
-      (temp_funcs, 0) params
+      (funcs, 0) params
   in
+
+  (* If the function is named, we allow recursion *)
+  let temp_funcs =
+    if named then Vars.add fun_name func temp_funcs else temp_funcs
+  in
+
+  (* gen function body *)
+  let bb = Llvm.append_block context "entry" func in
+  Llvm.position_at_end bb builder;
+  (* No closures yet, so it might be dangerous to just pass in the whole env.
+     We have to separate functions (which are global) and variables *)
   let ret = gen_expr temp_funcs body in
 
-  (* we don't support closures yet *)
   (* Don't return a void type *)
   ignore
     (match Llvm.(type_of ret |> classify_type) with

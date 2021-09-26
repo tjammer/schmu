@@ -1,5 +1,4 @@
--- TODO check type hint
-function one ()
+function one : unit -> int ()
   1
 
 function add : int -> int -> int (a : int, b : int)
