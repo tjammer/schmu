@@ -54,18 +54,26 @@ let next_func name tbl =
       Functbl.replace tbl name (n + 1);
       Some (n + 1)
 
-let rec string_of_type = function
-  | TInt -> "int"
-  | TBool -> "bool"
-  | TUnit -> "unit"
-  | TFun (ts, t) ->
-      "("
-      ^ String.concat " -> " (List.map string_of_type ts @ [ string_of_type t ])
-      ^ ")"
-  | TVar { contents = Unbound (str, _) } ->
-      Char.chr (int_of_string str + Char.code 'a') |> String.make 1
-  | TVar { contents = Link t } -> string_of_type t
-  | QVar str -> str ^ "12"
+let string_of_type typ =
+  let lvl = ref 0 in
+  let rec string_of_type = function
+    | TInt -> "int"
+    | TBool -> "bool"
+    | TUnit -> "unit"
+    | TFun (ts, t) ->
+        let lvl_cpy = !lvl in
+        incr lvl;
+        let func =
+          String.concat " -> "
+            (List.map string_of_type ts @ [ string_of_type t ])
+        in
+        if lvl_cpy = 0 then func else "(" ^ func ^ ")"
+    | TVar { contents = Unbound (str, _) } ->
+        Char.chr (int_of_string str + Char.code 'a') |> String.make 1
+    | TVar { contents = Link t } -> string_of_type t
+    | QVar str -> str ^ "12"
+  in
+  string_of_type typ
 
 let gensym_state = ref 0
 

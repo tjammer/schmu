@@ -14,22 +14,22 @@ let test_const_bool () = test "bool" "a = true a"
 
 let test_hint_int () = test "int" "a : int = 1 a"
 
-let test_func_id () = test "(a -> a)" "function (a) a"
+let test_func_id () = test "a -> a" "function (a) a"
 
-let test_func_id_hint () = test "(int -> int)" "function (a : int) a"
+let test_func_id_hint () = test "int -> int" "function (a : int) a"
 
-let test_func_int () = test "(int -> int)" "function (a) a + 1"
+let test_func_int () = test "int -> int" "function (a) a + 1"
 
-let test_func_bool () = test "(bool -> int)" "function (a) if a then 1 else 1"
+let test_func_bool () = test "bool -> int" "function (a) if a then 1 else 1"
 
 let test_func_external () =
-  test "(int -> unit)" "external func : int -> unit func"
+  test "int -> unit" "external func : int -> unit func"
 
 let test_func_1st_class () =
-  test "((int -> b) -> int -> b)" "function (func, arg : int) func(arg)"
+  test "(int -> b) -> int -> b" "function (func, arg : int) func(arg)"
 
 let test_func_1st_hint () =
-  test "((int -> unit) -> int -> unit)" "function (f : int -> unit, arg) f(arg)"
+  test "(int -> unit) -> int -> unit" "function (f : int -> unit, arg) f(arg)"
 
 let case str test = test_case str `Quick test
 
