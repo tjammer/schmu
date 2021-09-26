@@ -1,4 +1,4 @@
 (executable
  (public_name schmu)
- (name main)
+ (name schmu)
  (libraries schmulang))
