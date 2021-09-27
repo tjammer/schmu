@@ -1,0 +1,11 @@
+external printi : int -> unit
+
+function apply(x, f)
+  f(x)
+
+function add1(x)
+  x + 1
+
+-- We have to create a dummy variable to chain right now
+a = printi(apply(1, add1))
+printi(apply(1, function (x) x + 2))

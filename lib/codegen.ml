@@ -72,7 +72,11 @@ let rec get_lltype = function
   | TBool -> bool_type
   | TVar { contents = Link t } -> get_lltype t
   | TUnit -> unit_type
-  | (TVar _ | QVar _ | TFun _) as t ->
+  | TFun (params, t) ->
+      let ret_t = get_lltype t in
+      let params_t = List.map get_lltype params |> Array.of_list in
+      Llvm.function_type ret_t params_t |> Llvm.pointer_type
+  | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
 let declare_function fun_name args_t body =
@@ -143,7 +147,9 @@ and gen_expr vars typed_expr =
       | Some v -> v
       | None ->
           (* If the variable isn't bound, something went wrong before *)
-          failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
+          failwith
+            ("Internal Error: Could not find " ^ id
+           ^ " in codegen. No closures yet"))
   | Function (name, uniq, _, cont) ->
       (* The functions are already generated *)
       let func = get_generated_func vars (unique_name (name, uniq)) in
