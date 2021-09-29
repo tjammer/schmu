@@ -253,7 +253,10 @@ let generate externals typed_expr =
   Llvm_all_backends.initialize ();
   let open Llvm_target in
   let triple = Target.default_triple () in
+  let reloc_mode = RelocMode.PIC in
   print_endline triple;
-  let machine = TargetMachine.create ~triple (Target.by_triple triple) in
+  let machine =
+    TargetMachine.create ~triple (Target.by_triple triple) ~reloc_mode
+  in
   TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile "out.o"
     machine

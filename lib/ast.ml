@@ -5,13 +5,11 @@ module Loc = struct
     pos_bol : int;
     pos_cnum : int;
   }
-  [@@deriving show { with_path = false }]
 end
 
-type loc = Loc.t [@@deriving show]
+type loc = Loc.t
 
 type bop = Plus | Mult | Less | Equal | Minus
-[@@deriving show { with_path = false }]
 
 type type_expr = string list
 
