@@ -10,6 +10,10 @@ let bool_type = Llvm.i1_type context
 
 let unit_type = Llvm.void_type context
 
+let voidptr_type = Llvm.(i8_type context |> pointer_type)
+
+(* let closure_type fn_t = Llvm.(struct_type context [| fn_t; voidptr_type |]) *)
+
 module Vars = Map.Make (String)
 
 (* Used to generate lambdas *)
@@ -74,17 +78,25 @@ let rec get_lltype = function
   | TUnit -> unit_type
   | TFun (params, t) ->
       let ret_t = get_lltype t in
-      let params_t = List.map get_lltype params |> Array.of_list in
+      let params_t = closure_params params in
       Llvm.function_type ret_t params_t |> Llvm.pointer_type
   | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
+and closure_params params =
+  List.map get_lltype params |> fun params ->
+  (* pointer to closure env *)
+  params @ [ voidptr_type ] |> Array.of_list
+
+let closure_args fn args =
+  List.map fn args |> fun args ->
+  (* pointer to closure env *)
+  args @ [ voidptr_type ] |> Array.of_list
+
 let declare_function fun_name args_t body =
   (* We only support one function arguments so far *)
   let return_t = get_lltype Typing.(body.typ) in
-  let ll_args_t =
-    List.map (fun (_, arg) -> get_lltype arg) args_t |> Array.of_list
-  in
+  let ll_args_t = closure_args (fun arg -> snd arg |> get_lltype) args_t in
   let ft = Llvm.function_type return_t ll_args_t in
   Llvm.declare_function fun_name ft the_module
 
@@ -172,7 +184,12 @@ and gen_bop e1 e2 = function
 
 and gen_app vars callee args =
   let callee = gen_expr vars callee in
-  let args = List.map (gen_expr vars) args |> Array.of_list in
+  (* Additional ptr to closure env *)
+  let args =
+    List.map (gen_expr vars) args |> fun lst ->
+    lst @ [ Llvm.const_pointer_null voidptr_type ] |> Array.of_list
+  in
+
   (* No names here, might be void/unit *)
   Llvm.build_call callee args "" builder
 
@@ -212,7 +229,7 @@ let decl_external (name, typ) =
   match typ with
   | Typing.TFun (ts, t) ->
       let return_t = get_lltype t in
-      let arg_t = List.map get_lltype ts |> Array.of_list in
+      let arg_t = closure_params ts in
       let ft = Llvm.function_type return_t arg_t in
       Llvm.declare_function name ft the_module
   | _ -> failwith "TODO external symbols"
