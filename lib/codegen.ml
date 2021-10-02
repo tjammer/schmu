@@ -10,6 +10,8 @@ let bool_type = Llvm.i1_type context
 
 let unit_type = Llvm.void_type context
 
+let voidptr_type = Llvm.(i8_type context |> pointer_type)
+
 module Vars = Map.Make (String)
 
 (* Used to generate lambdas *)
@@ -67,15 +69,20 @@ let extract expr =
   in
   inner [] expr
 
-let rec get_lltype = function
+let rec get_lltype ?(param = true) = function
+  (* For functions, when passed as parameter, we convert it to a voidptr
+     to later cast to the correct closure. At the application, we need to
+     get the correct type though to cast it back. All this is handled by [param]. *)
   | Typing.TInt -> int_type
   | TBool -> bool_type
-  | TVar { contents = Link t } -> get_lltype t
+  | TVar { contents = Link t } -> get_lltype ~param t
   | TUnit -> unit_type
   | TFun (params, t) ->
-      let ret_t = get_lltype t in
-      let params_t = List.map get_lltype params |> Array.of_list in
-      Llvm.function_type ret_t params_t |> Llvm.pointer_type
+      if param then voidptr_type
+      else
+        let ret_t = get_lltype t in
+        let params_t = List.map get_lltype params |> Array.of_list in
+        Llvm.function_type ret_t params_t |> Llvm.pointer_type
   | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
@@ -171,10 +178,26 @@ and gen_bop e1 e2 = function
   | Minus -> Llvm.build_sub e1 e2 "subtmp" builder
 
 and gen_app vars callee args =
-  let callee = gen_expr vars callee in
-  let args = List.map (gen_expr vars) args |> Array.of_list in
+  let func = gen_expr vars callee in
+  let funcs_to_ptr v =
+    match Llvm.classify_value v with
+    | Function -> Llvm.build_bitcast v voidptr_type "casttmp" builder
+    | _ -> v
+  in
+  let args =
+    List.map (fun e -> gen_expr vars e |> funcs_to_ptr) args |> Array.of_list
+  in
+
   (* No names here, might be void/unit *)
-  Llvm.build_call callee args "" builder
+  let func =
+    if Llvm.type_of func = voidptr_type then
+      (* Callee as voidptr means closure-like. Bitcast to actual func *)
+      let typ = get_lltype ~param:false callee.typ in
+      Llvm.build_bitcast func typ "casttmp" builder
+    else func
+  in
+
+  Llvm.build_call func args "" builder
 
 and gen_if vars cond e1 e2 =
   let cond = gen_expr vars cond in

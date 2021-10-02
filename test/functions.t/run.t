@@ -115,17 +115,18 @@ First class functions
     ret i32 %addtmp
   }
   
-  define private i32 @apply(i32 %x, i32 (i32)* %f) {
+  define private i32 @apply(i32 %x, i8* %f) {
   entry:
-    %0 = call i32 %f(i32 %x)
+    %casttmp = bitcast i8* %f to i32 (i32)*
+    %0 = call i32 %casttmp(i32 %x)
     ret i32 %0
   }
   
   define i32 @main(i32 %0) {
   entry:
-    %1 = call i32 @apply(i32 1, i32 (i32)* @add1)
+    %1 = call i32 @apply(i32 1, i8* bitcast (i32 (i32)* @add1 to i8*))
     call void @printi(i32 %1)
-    %2 = call i32 @apply(i32 1, i32 (i32)* @__fun0)
+    %2 = call i32 @apply(i32 1, i8* bitcast (i32 (i32)* @__fun0 to i8*))
     call void @printi(i32 %2)
     ret i32 0
   }
