@@ -117,8 +117,8 @@ First class functions
   
   define private i32 @apply(i32 %x, i8* %f) {
   entry:
-    %casttmp = bitcast i8* %f to i32 (i32)*
-    %0 = call i32 %casttmp(i32 %x)
+    %casttmp = bitcast i8* %f to i32 (i32, i8*)*
+    %0 = call i32 %casttmp(i32 %x, i8* null)
     ret i32 %0
   }
   

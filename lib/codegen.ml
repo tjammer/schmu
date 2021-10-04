@@ -81,7 +81,10 @@ let rec get_lltype ?(param = true) = function
       if param then voidptr_type
       else
         let ret_t = get_lltype t in
-        let params_t = List.map get_lltype params |> Array.of_list in
+        let params_t =
+          List.map get_lltype params |> fun lst ->
+          lst @ [ voidptr_type ] |> Array.of_list
+        in
         Llvm.function_type ret_t params_t |> Llvm.pointer_type
   | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
@@ -184,20 +187,22 @@ and gen_app vars callee args =
     | Function -> Llvm.build_bitcast v voidptr_type "casttmp" builder
     | _ -> v
   in
-  let args =
-    List.map (fun e -> gen_expr vars e |> funcs_to_ptr) args |> Array.of_list
-  in
+  let args = List.map (fun e -> gen_expr vars e |> funcs_to_ptr) args in
 
   (* No names here, might be void/unit *)
-  let func =
+  let func, args =
     if Llvm.type_of func = voidptr_type then
       (* Callee as voidptr means closure-like. Bitcast to actual func *)
+      (* Add parameter for closure. We treat every every function as if
+         it had a closure at the last argument. Apparently, the C calling
+         convention allows this [citation needed] *)
+      let nullptr = Llvm.const_pointer_null voidptr_type in
       let typ = get_lltype ~param:false callee.typ in
-      Llvm.build_bitcast func typ "casttmp" builder
-    else func
+      (Llvm.build_bitcast func typ "casttmp" builder, args @ [ nullptr ])
+    else (func, args)
   in
 
-  Llvm.build_call func args "" builder
+  Llvm.build_call func (Array.of_list args) "" builder
 
 and gen_if vars cond e1 e2 =
   let cond = gen_expr vars cond in
