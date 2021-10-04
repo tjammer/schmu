@@ -30,7 +30,7 @@ exception Error of Ast.loc * string
 
 exception Unify
 
-module Strmap = Map.Make (String)
+module Env = Typing_env.Env
 module Strset = Set.Make (String)
 
 module Str = struct
@@ -136,11 +136,11 @@ let rec generalize = function
 let instantiate t =
   let rec aux subst = function
     | QVar id -> (
-        match Strmap.find_opt id subst with
+        match Env.find_opt id subst with
         | Some t -> (t, subst)
         | None ->
             let tv = newvar () in
-            (tv, Strmap.add id tv subst))
+            (tv, Env.add id tv subst))
     | TVar { contents = Link t } -> aux subst t
     | TFun (params_t, t) ->
         let subst, params_t =
@@ -154,7 +154,7 @@ let instantiate t =
         (TFun (params_t, t), subst)
     | t -> (t, subst)
   in
-  aux Strmap.empty t |> fst
+  aux Env.empty t |> fst
 
 let bop_error loc bop t1 t2 =
   let op =
@@ -200,7 +200,7 @@ let handle_params env loc params =
         | None -> newvar ()
         | Some annot -> typeof_annot loc annot
       in
-      (Strmap.add id type_id env, type_id))
+      (Env.add id type_id env, type_id))
     env params
 
 let rec typeof env = function
@@ -216,7 +216,7 @@ let rec typeof env = function
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
 
 and typeof_var env loc v =
-  match Strmap.find_opt v env with
+  match Env.find_opt v env with
   | Some t -> instantiate t
   | None -> raise (Error (loc, "No var named " ^ v))
 
@@ -235,7 +235,7 @@ and typeof_let env loc (id, type_annot) e1 e2 =
         unify type_annot type_e;
         type_annot
   in
-  typeof (Strmap.add id type_e env) e2
+  typeof (Env.add id type_e env) e2
 
 and typeof_abs env loc params e =
   let env, params_t = handle_params env loc params in
@@ -295,14 +295,15 @@ let extern_vars decls =
     List.map (fun (loc, name, typ) -> (name, typeof_annot loc typ)) decls
   in
   List.fold_left
-    (fun vars (name, typ) -> Strmap.add name typ vars)
-    Strmap.empty externals
+    (fun vars (name, typ) -> Env.add name typ vars)
+    Env.empty externals
 
 let typecheck (external_decls, expr) =
   reset_type_vars ();
   typeof (extern_vars external_decls) expr
 
 (* Conversion to Typing.exr below *)
+
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
   | Int (_, i) -> { typ = TInt; expr = Const (Int i) }
@@ -315,7 +316,7 @@ let rec convert env = function
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
 
 and convert_var env loc id =
-  match Strmap.find_opt id env with
+  match Env.find_opt id env with
   | Some t ->
       let typ = instantiate t in
       { typ; expr = Var id }
@@ -338,12 +339,21 @@ and typeof_annot_decl env loc annot expr =
 and convert_let env loc (id, type_annot) e1 e2 =
   let typ1 = typeof_annot_decl env loc type_annot e1 in
 
-  let typ2 = convert (Strmap.add id typ1.typ env) e2 in
+  let typ2 = convert (Env.add id typ1.typ env) e2 in
   { typ = typ2.typ; expr = Let (id, typ1, typ2) }
 
 and convert_lambda env loc params e =
+  let env = Env.new_scope env in
   let env, params_t = handle_params env loc params in
+
   let body = convert env e in
+  let _, closed_vars = Env.close_scope env in
+  (match closed_vars with
+  | [] -> ()
+  | closed_vars ->
+      (* TODO, Named function should not be captured *)
+      String.concat ", " closed_vars |> print_endline);
+
   let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
   let expr = Lambda { params; body } in
   { typ = TFun (params_t, body.typ); expr }
@@ -354,8 +364,8 @@ and convert_function env loc { name; params; body; cont } =
   let unique = next_func (fst name) func_tbl in
   let env =
     match snd name with
-    | None -> Strmap.add (fst name) (newvar ()) env
-    | Some t -> Strmap.add (fst name) (typeof_annot loc t) env
+    | None -> Env.add (fst name) (newvar ()) env
+    | Some t -> Env.add (fst name) (typeof_annot loc t) env
   in
   (* We duplicate some lambda code due to naming *)
   let env, params_t = handle_params env loc params in
@@ -365,7 +375,7 @@ and convert_function env loc { name; params; body; cont } =
   let lambda_typ = TFun (params_t, body.typ) in
 
   (* Make sure the types match *)
-  unify (Strmap.find (fst name) env) lambda_typ;
+  unify (Env.find (fst name) env) lambda_typ;
   (* Continue, see let *)
   let typ2 = convert env cont in
   { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
@@ -430,7 +440,7 @@ let to_typed external_decls expr =
 
   let vars =
     List.fold_left
-      (fun vars (name, typ) -> Strmap.add name typ vars)
-      Strmap.empty externals
+      (fun vars (name, typ) -> Env.add name typ vars)
+      Env.empty externals
   in
   (externals, convert vars expr)
