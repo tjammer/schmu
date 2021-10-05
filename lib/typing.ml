@@ -368,8 +368,8 @@ and convert_function env loc { name; params; body; cont } =
     | Some t -> Env.add (fst name) (typeof_annot loc t) env
   in
   (* We duplicate some lambda code due to naming *)
-  let env, params_t = handle_params env loc params in
-  let body = convert env body in
+  let body_env, params_t = handle_params env loc params in
+  let body = convert body_env body in
   let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
   let lambda = { params; body } in
   let lambda_typ = TFun (params_t, body.typ) in
