@@ -42,9 +42,9 @@ end = struct
       | (hd, _) :: tl -> (
           match Map.find_opt key hd with
           | None -> aux (closed + 1) tl
-          | Some vl ->
+          | Some value ->
               (match closed with 0 -> () | _ -> add key);
-              Some vl)
+              Some value)
     in
     aux 0 env
 

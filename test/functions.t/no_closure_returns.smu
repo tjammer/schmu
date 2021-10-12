@@ -1,0 +1,6 @@
+a = 1
+
+function ()
+  a = function ()
+    a
+  a

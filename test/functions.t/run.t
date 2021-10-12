@@ -115,21 +115,37 @@ First class functions
     ret i32 %addtmp
   }
   
-  define private i32 @apply(i32 %x, i8* %f) {
+  define private i32 @apply(i32 %x, { i8*, i8* }* %f) {
   entry:
-    %casttmp = bitcast i8* %f to i32 (i32, i8*)*
+    %funcptr1 = bitcast { i8*, i8* }* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr1, align 8
+    %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
     %0 = call i32 %casttmp(i32 %x, i8* null)
     ret i32 %0
   }
   
   define i32 @main(i32 %0) {
   entry:
-    %1 = call i32 @apply(i32 1, i8* bitcast (i32 (i32)* @add1 to i8*))
+    %clstmp = alloca { i8*, i8* }, align 8
+    %funptr4 = bitcast { i8*, i8* }* %clstmp to i8**
+    store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr4, align 8
+    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp, i32 0, i32 1
+    store i8* null, i8** %envptr, align 8
+    %1 = call i32 @apply(i32 1, { i8*, i8* }* %clstmp)
     call void @printi(i32 %1)
-    %2 = call i32 @apply(i32 1, i8* bitcast (i32 (i32)* @__fun0 to i8*))
+    %clstmp1 = alloca { i8*, i8* }, align 8
+    %funptr25 = bitcast { i8*, i8* }* %clstmp1 to i8**
+    store i8* bitcast (i32 (i32)* @__fun0 to i8*), i8** %funptr25, align 8
+    %envptr3 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp1, i32 0, i32 1
+    store i8* null, i8** %envptr3, align 8
+    %2 = call i32 @apply(i32 1, { i8*, i8* }* %clstmp1)
     call void @printi(i32 %2)
     ret i32 0
   }
   unit
   2
   3
+
+We don't allow returning closures
+  $ dune exec -- schmu no_closure_returns.smu
+  Cannot (yet) return a closure

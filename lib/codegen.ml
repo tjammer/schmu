@@ -12,6 +12,8 @@ let unit_type = Llvm.void_type context
 
 let voidptr_type = Llvm.(i8_type context |> pointer_type)
 
+let closure_type = Llvm.(struct_type context [| voidptr_type; voidptr_type |])
+
 module Vars = Map.Make (String)
 
 (* Used to generate lambdas *)
@@ -77,8 +79,8 @@ let rec get_lltype ?(param = true) = function
   | TBool -> bool_type
   | TVar { contents = Link t } -> get_lltype ~param t
   | TUnit -> unit_type
-  | TFun (params, t) ->
-      if param then voidptr_type
+  | TFun (params, t, _) ->
+      if param then closure_type |> Llvm.pointer_type (* voidptr_type *)
       else
         let ret_t = get_lltype t in
         let params_t =
@@ -107,7 +109,7 @@ let get_generated_func vars name =
       failwith "Internal error"
 
 let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
-    Typing.{ params; body } =
+    Typing.{ params; body; kind = _ } =
   let func = declare_function fun_name params body in
   Llvm.set_linkage linkage func;
   let temp_funcs, _ =
@@ -184,7 +186,17 @@ and gen_app vars callee args =
   let func = gen_expr vars callee in
   let funcs_to_ptr v =
     match Llvm.classify_value v with
-    | Function -> Llvm.build_bitcast v voidptr_type "casttmp" builder
+    | Function ->
+        let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
+        let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
+        let ptr = Llvm.build_bitcast v voidptr_type "" builder in
+        ignore (Llvm.build_store ptr fp builder);
+
+        let envptr = Llvm.build_struct_gep closure_struct 1 "envptr" builder in
+        let nullptr = Llvm.const_pointer_null voidptr_type in
+        ignore (Llvm.build_store nullptr envptr builder);
+        closure_struct
+        (* Llvm.build_bitcast v voidptr_type "casttmp" builder *)
     | _ -> v
   in
   let args = List.map (fun e -> gen_expr vars e |> funcs_to_ptr) args in
@@ -198,10 +210,17 @@ and gen_app vars callee args =
          convention allows this [citation needed] *)
       let nullptr = Llvm.const_pointer_null voidptr_type in
       let typ = get_lltype ~param:false callee.typ in
+      (* This is dead code TODO delete *)
       (Llvm.build_bitcast func typ "casttmp" builder, args @ [ nullptr ])
+    else if Llvm.type_of func = (closure_type |> Llvm.pointer_type) then
+      let nullptr = Llvm.const_pointer_null voidptr_type in
+      let func = Llvm.build_struct_gep func 0 "funcptr" builder in
+      let func = Llvm.build_load func "loadtmp" builder in
+      let typ = get_lltype ~param:false callee.typ in
+      let func = Llvm.build_bitcast func typ "casttmp" builder in
+      (func, args @ [ nullptr ])
     else (func, args)
   in
-
   Llvm.build_call func (Array.of_list args) "" builder
 
 and gen_if vars cond e1 e2 =
@@ -238,7 +257,7 @@ and gen_if vars cond e1 e2 =
 
 let decl_external (name, typ) =
   match typ with
-  | Typing.TFun (ts, t) ->
+  | Typing.TFun (ts, t, _) ->
       let return_t = get_lltype t in
       let arg_t = List.map get_lltype ts |> Array.of_list in
       let ft = Llvm.function_type return_t arg_t in
@@ -275,7 +294,11 @@ let generate externals typed_expr =
   let linkage = Llvm.Linkage.External in
   ignore
   @@ gen_function funcs ~linkage ~named:false "main"
-       { params = [ ("", TInt) ]; body = { typed_expr with typ = Typing.TInt } };
+       {
+         params = [ ("", TInt) ];
+         body = { typed_expr with typ = Typing.TInt };
+         kind = Simple;
+       };
 
   (* Emit code to file *)
   Llvm_all_backends.initialize ();

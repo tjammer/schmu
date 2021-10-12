@@ -4,7 +4,9 @@ type typ =
   | TUnit
   | TVar of tv ref
   | QVar of string
-  | TFun of typ list * typ
+  | TFun of typ list * typ * fun_kind
+
+and fun_kind = Simple | Anon | Closure of (string * typ) list
 
 and tv = Unbound of string * int | Link of typ
 
@@ -12,7 +14,11 @@ exception Error of Ast.loc * string
 
 val string_of_type : typ -> string
 
-type abstraction = { params : (string * typ) list; body : typed_expr }
+type abstraction = {
+  params : (string * typ) list;
+  body : typed_expr;
+  kind : fun_kind;
+}
 
 and const = Int of int | Bool of bool | Unit
 

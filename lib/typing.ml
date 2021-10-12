@@ -4,11 +4,17 @@ type typ =
   | TUnit
   | TVar of tv ref
   | QVar of string
-  | TFun of typ list * typ
+  | TFun of typ list * typ * fun_kind
+
+and fun_kind = Simple | Anon | Closure of (string * typ) list
 
 and tv = Unbound of string * int | Link of typ
 
-type abstraction = { params : (string * typ) list; body : typed_expr }
+type abstraction = {
+  params : (string * typ) list;
+  body : typed_expr;
+  kind : fun_kind;
+}
 
 and const = Int of int | Bool of bool | Unit
 
@@ -60,7 +66,7 @@ let string_of_type typ =
     | TInt -> "int"
     | TBool -> "bool"
     | TUnit -> "unit"
-    | TFun (ts, t) ->
+    | TFun (ts, t, _) ->
         let lvl_cpy = !lvl in
         incr lvl;
         let func =
@@ -106,7 +112,7 @@ let rec occurs tvr = function
       in
       tv := Unbound (id, min_lvl)
   | TVar { contents = Link ty } -> occurs tvr ty
-  | TFun (param_ts, t) ->
+  | TFun (param_ts, t, _) ->
       List.iter (occurs tvr) param_ts;
       occurs tvr t
   | _ -> ()
@@ -121,7 +127,7 @@ let rec unify t1 t2 =
     | t, TVar ({ contents = Unbound _ } as tv) ->
         occurs tv t;
         tv := Link t
-    | TFun (params_l, l), TFun (params_r, r) ->
+    | TFun (params_l, l, _), TFun (params_r, r, _) ->
         (* TODO deal with different lengths *)
         List.iter2 (fun left right -> unify left right) params_l params_r;
         unify l r
@@ -130,7 +136,7 @@ let rec unify t1 t2 =
 let rec generalize = function
   | TVar { contents = Unbound (id, l) } when l > !current_level -> QVar id
   | TVar { contents = Link t } -> generalize t
-  | TFun (t1, t2) -> TFun (List.map generalize t1, generalize t2)
+  | TFun (t1, t2, k) -> TFun (List.map generalize t1, generalize t2, k)
   | t -> t
 
 let instantiate t =
@@ -142,7 +148,7 @@ let instantiate t =
             let tv = newvar () in
             (tv, Env.add id tv subst))
     | TVar { contents = Link t } -> aux subst t
-    | TFun (params_t, t) ->
+    | TFun (params_t, t, k) ->
         let subst, params_t =
           List.fold_left_map
             (fun subst param ->
@@ -151,7 +157,7 @@ let instantiate t =
             subst params_t
         in
         let t, subst = aux subst t in
-        (TFun (params_t, t), subst)
+        (TFun (params_t, t, k), subst)
     | t -> (t, subst)
   in
   aux Env.empty t |> fst
@@ -182,13 +188,14 @@ let typeof_annot loc annot =
   match annot with
   | [] -> failwith "Internal Error: Type annot list should not be empty"
   | [ t ] -> atom_type t
-  | [ "unit"; t ] -> TFun ([], atom_type t)
+  | [ "unit"; t ] -> TFun ([], atom_type t, Simple)
   (* For function definiton and application, 'unit' means an empty list.
      It's easier for typing and codegen to treat unit as a special case here *)
   | l -> (
       (* We reverse the list times :( *)
       match List.rev l with
-      | last :: head -> TFun (List.map atom_type (List.rev head), atom_type last)
+      | last :: head ->
+          TFun (List.map atom_type (List.rev head), atom_type last, Simple)
       | [] -> failwith ":)")
 
 let handle_params env loc params =
@@ -240,7 +247,7 @@ and typeof_let env loc (id, type_annot) e1 e2 =
 and typeof_abs env loc params e =
   let env, params_t = handle_params env loc params in
   let type_e = typeof env e in
-  TFun (params_t, type_e)
+  TFun (params_t, type_e, Anon)
 
 and typeof_function env loc name param body cont =
   (* this loc might not be correct *)
@@ -250,7 +257,7 @@ and typeof_app env e1 args =
   let type_fun = typeof env e1 in
   let type_args = List.map (typeof env) args in
   let type_res = newvar () in
-  unify type_fun (TFun (type_args, type_res));
+  unify type_fun (TFun (type_args, type_res, Simple));
   type_res
 
 and typeof_if env loc cond e1 e2 =
@@ -304,6 +311,24 @@ let typecheck (external_decls, expr) =
 
 (* Conversion to Typing.exr below *)
 
+(* TODO Error handling sucks right now *)
+let dont_allow_closure_return loc fn =
+  let rec error_on_closure = function
+    | TFun (_, _, Closure _) ->
+        raise (Error (loc, "Cannot (yet) return a closure"))
+    | TVar { contents = Link typ } -> error_on_closure typ
+    | _ -> ()
+  in
+  error_on_closure fn
+
+let needs_capture env var =
+  let rec aux = function
+    | TFun (_, _, Simple) -> None
+    | TVar { contents = Link typ } -> aux typ
+    | t -> Some (var, t)
+  in
+  aux (Env.find var env)
+
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
   | Int (_, i) -> { typ = TInt; expr = Const (Int i) }
@@ -347,16 +372,19 @@ and convert_lambda env loc params e =
   let env, params_t = handle_params env loc params in
 
   let body = convert env e in
-  let _, closed_vars = Env.close_scope env in
-  (match closed_vars with
-  | [] -> ()
-  | closed_vars ->
-      (* TODO, Named function should not be captured *)
-      String.concat ", " closed_vars |> print_endline);
+  let env, closed_vars = Env.close_scope env in
+  let kind =
+    match List.filter_map (needs_capture env) closed_vars with
+    | [] -> Anon
+    | lst ->
+        (* List.map fst lst |> String.concat ", " |> print_endline; *)
+        Closure lst
+  in
+  dont_allow_closure_return loc body.typ;
 
   let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
-  let expr = Lambda { params; body } in
-  { typ = TFun (params_t, body.typ); expr }
+  let expr = Lambda { params; body; kind } in
+  { typ = TFun (params_t, body.typ, kind); expr }
 
 and convert_function env loc { name; params; body; cont } =
   (* Create a fresh type var for the function name
@@ -368,11 +396,22 @@ and convert_function env loc { name; params; body; cont } =
     | Some t -> Env.add (fst name) (typeof_annot loc t) env
   in
   (* We duplicate some lambda code due to naming *)
+  let env = Env.new_scope env in
   let body_env, params_t = handle_params env loc params in
   let body = convert body_env body in
+  let env, closed_vars = Env.close_scope env in
+  let kind =
+    match List.filter_map (needs_capture env) closed_vars with
+    | [] -> Simple
+    | lst ->
+        (* List.map fst lst |> String.concat ", " |> print_endline; *)
+        Closure lst
+  in
+  dont_allow_closure_return loc body.typ;
+
   let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
-  let lambda = { params; body } in
-  let lambda_typ = TFun (params_t, body.typ) in
+  let lambda = { params; body; kind } in
+  let lambda_typ = TFun (params_t, body.typ, kind) in
 
   (* Make sure the types match *)
   unify (Env.find (fst name) env) lambda_typ;
@@ -385,7 +424,7 @@ and convert_app env e1 args =
   let typed_expr_args = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_expr_args in
   let res_t = newvar () in
-  unify type_fun.typ (TFun (args_t, res_t));
+  unify type_fun.typ (TFun (args_t, res_t, Simple));
   { typ = res_t; expr = App (type_fun, typed_expr_args) }
 
 and convert_bop env loc bop e1 e2 =
