@@ -87,7 +87,7 @@ let rec get_lltype ?(param = true) = function
 
 (* LLVM type of closure struct *)
 (* TODO merge with record code *)
-let closure_struct closure =
+let closure_struct_t closure =
   List.map (fun (_, typ) -> get_lltype typ) closure
   |> Array.of_list |> Llvm.struct_type context
 
@@ -113,6 +113,33 @@ let get_generated_func vars name =
       Vars.iter (fun key _ -> prerr_endline ("in: " ^ key)) vars;
       failwith "Internal error"
 
+let gen_closure_obj assoc func vars name =
+  let clsr_struct = Llvm.build_alloca closure_type name builder in
+
+  (* Add function ptr *)
+  let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
+  let fun_casted = Llvm.build_bitcast func voidptr_type "func" builder in
+  ignore (Llvm.build_store fun_casted fun_ptr builder);
+
+  (* Add closed over vars *)
+  let clsr_ptr =
+    Llvm.build_alloca (closure_struct_t assoc) ("clsr_" ^ name) builder
+  in
+  ignore
+    (List.fold_left
+       (fun i (name, _) ->
+         let var = Vars.find name vars in
+         let ptr = Llvm.build_struct_gep clsr_ptr i name builder in
+         ignore (Llvm.build_store var ptr builder);
+         i + 1)
+       0 assoc);
+
+  (* Add closure env to struct *)
+  let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
+  let clsr_casted = Llvm.build_bitcast clsr_ptr voidptr_type "env" builder in
+  ignore (Llvm.build_store clsr_casted env_ptr builder);
+  clsr_struct
+
 let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
     abstraction =
   let func = declare_function fun_name abstraction in
@@ -135,9 +162,6 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
   let bb = Llvm.append_block context "entry" func in
   Llvm.position_at_end bb builder;
 
-  (* No closures yet, so it might be dangerous to just pass in the whole env.
-     We have to separate functions (which are global) and variables *)
-
   (* Add params from closure *)
   (* We both generate the code for extracting the closure and add the vars to the environment *)
   let temp_funcs =
@@ -145,7 +169,7 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
     | Simple | Anon -> temp_funcs
     | Closure assoc ->
         let clsr_param = (Llvm.params func).(closure_index) in
-        let clsr_type = closure_struct assoc |> Llvm.pointer_type in
+        let clsr_type = closure_struct_t assoc |> Llvm.pointer_type in
         let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
 
         let env, _ =
@@ -187,18 +211,28 @@ and gen_expr vars typed_expr =
       | Some v -> v
       | None ->
           (* If the variable isn't bound, something went wrong before *)
-          failwith
-            ("Internal Error: Could not find " ^ id
-           ^ " in codegen. No closures yet"))
-  | Function (name, uniq, _, cont) ->
+          failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
+  | Function (name, uniq, abs, cont) ->
       (* The functions are already generated *)
-      (* TODO create closure *)
-      let func = get_generated_func vars (unique_name (name, uniq)) in
+      let name = unique_name (name, uniq) in
+      let func = get_generated_func vars name in
+      let func =
+        match abs.kind with
+        | Simple -> func
+        | Anon -> failwith "Internal Error: Anonymous named function"
+        | Closure assoc -> gen_closure_obj assoc func vars name
+      in
       gen_expr (Vars.add name func vars) cont
   | Let (id, equals_ty, let_ty) ->
       let expr_val = gen_expr vars equals_ty in
       gen_expr (Vars.add id expr_val vars) let_ty
-  | Lambda _ -> get_generated_func vars (lambda_name fun_get_state)
+  | Lambda abs -> (
+      let name = lambda_name fun_get_state in
+      let func = get_generated_func vars name in
+      match abs.kind with
+      | Simple -> failwith "Internal Error: Named anonymous function"
+      | Anon -> func
+      | Closure assoc -> gen_closure_obj assoc func vars name)
   | App (callee, arg) ->
       (* Let's first of all not care about anonymous functions *)
       gen_app vars callee arg
@@ -232,22 +266,18 @@ and gen_app vars callee args =
 
   (* No names here, might be void/unit *)
   let func, args =
-    if Llvm.type_of func = voidptr_type then
-      (* Callee as voidptr means closure-like. Bitcast to actual func *)
-      (* Add parameter for closure. We treat every every function as if
-         it had a closure at the last argument. Apparently, the C calling
-         convention allows this [citation needed] *)
-      let nullptr = Llvm.const_pointer_null voidptr_type in
+    if Llvm.type_of func = (closure_type |> Llvm.pointer_type) then
+      (* Function to call is a closure (or a function passed into another one).
+         We get the funptr from the first field, cast to the correct type,
+         then get env ptr (as voidptr) from the second field and pass it as last argument *)
+      let funcp = Llvm.build_struct_gep func 0 "funcptr" builder in
+      let funcp = Llvm.build_load funcp "loadtmp" builder in
       let typ = get_lltype ~param:false callee.typ in
-      (* This is dead code TODO delete *)
-      (Llvm.build_bitcast func typ "casttmp" builder, args @ [ nullptr ])
-    else if Llvm.type_of func = (closure_type |> Llvm.pointer_type) then
-      let nullptr = Llvm.const_pointer_null voidptr_type in
-      let func = Llvm.build_struct_gep func 0 "funcptr" builder in
-      let func = Llvm.build_load func "loadtmp" builder in
-      let typ = get_lltype ~param:false callee.typ in
-      let func = Llvm.build_bitcast func typ "casttmp" builder in
-      (func, args @ [ nullptr ])
+      let funcp = Llvm.build_bitcast funcp typ "casttmp" builder in
+
+      let env_ptr = Llvm.build_struct_gep func 1 "envptr" builder in
+      let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
+      (funcp, args @ [ env_ptr ])
     else (func, args)
   in
   Llvm.build_call func (Array.of_list args) "" builder
@@ -303,11 +333,6 @@ let generate externals typed_expr =
   in
 
   (* Factor out functions for llvm *)
-  (* let create_name { name = name, _, uniq; abs  } =
-   *   match abs.kind with
-   *   | Simple -> unique_name (name, uniq)
-   *   | Anon -> name
-   *   | Closure *)
   let funcs =
     let lst = extract typed_expr.expr in
     let vars =

@@ -92,8 +92,40 @@ Multiple parameters
 
 We don't have closures yet
   $ dune exec -- schmu no_closures.smu
-  Fatal error: exception Failure("Internal Error: Could not find a in codegen. No closures yet")
-  [2]
+  x86_64-unknown-linux-gnu
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  define private i32 @capture_a(i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { i32 }*
+    %a2 = bitcast { i32 }* %clsr to i32*
+    %a1 = load i32, i32* %a2, align 4
+    %addtmp = add i32 %a1, 2
+    ret i32 %addtmp
+  }
+  
+  define i32 @main(i32 %0) {
+  entry:
+    %capture_a = alloca { i8*, i8* }, align 8
+    %funptr3 = bitcast { i8*, i8* }* %capture_a to i8**
+    store i8* bitcast (i32 (i8*)* @capture_a to i8*), i8** %funptr3, align 8
+    %clsr_capture_a = alloca { i32 }, align 8
+    %a4 = bitcast { i32 }* %clsr_capture_a to i32*
+    store i32 10, i32* %a4, align 4
+    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %capture_a, i32 0, i32 1
+    %env = bitcast { i32 }* %clsr_capture_a to i8*
+    store i8* %env, i8** %envptr, align 8
+    %funcptr5 = bitcast { i8*, i8* }* %capture_a to i8**
+    %loadtmp = load i8*, i8** %funcptr5, align 8
+    %casttmp = bitcast i8* %loadtmp to i32 (i8*)*
+    %envptr1 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %capture_a, i32 0, i32 1
+    %loadtmp2 = load i8*, i8** %envptr1, align 8
+    %1 = call i32 %casttmp(i8* %loadtmp2)
+    ret i32 %1
+  }
+  int
 
 First class functions
   $ dune exec -- schmu first_class.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
@@ -117,10 +149,12 @@ First class functions
   
   define private i32 @apply(i32 %x, { i8*, i8* }* %f) {
   entry:
-    %funcptr1 = bitcast { i8*, i8* }* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr1, align 8
+    %funcptr2 = bitcast { i8*, i8* }* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr2, align 8
     %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
-    %0 = call i32 %casttmp(i32 %x, i8* null)
+    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %f, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %0 = call i32 %casttmp(i32 %x, i8* %loadtmp1)
     ret i32 %0
   }
   
