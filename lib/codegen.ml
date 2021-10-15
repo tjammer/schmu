@@ -34,19 +34,13 @@ let unique_name = function
 
 let reset state = state := 0
 
-(* let unique_name ~name vars =
- *   match Vars.find_opt name vars with
- *   | None -> name
- *   | Some _ -> gen_unique ~name fun_gen_state *)
-
 type func = { name : string * bool * int option; abs : Typing.abstraction }
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
    In local scope, our Map.t will resolve to the correct function.
    E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
-   if the global function exists. Note that the counter is global among all
-   functions *)
+   if the global function exists. *)
 let extract expr =
   let rec inner acc = function
     | Typing.Var _ | Const _ -> acc
@@ -72,15 +66,15 @@ let extract expr =
   inner [] expr
 
 let rec get_lltype ?(param = true) = function
-  (* For functions, when passed as parameter, we convert it to a voidptr
-     to later cast to the correct closure. At the application, we need to
+  (* For functions, when passed as parameter, we convert it to a closure ptr
+     to later cast to the correct types. At the application, we need to
      get the correct type though to cast it back. All this is handled by [param]. *)
   | Typing.TInt -> int_type
   | TBool -> bool_type
   | TVar { contents = Link t } -> get_lltype ~param t
   | TUnit -> unit_type
   | TFun (params, t, _) ->
-      if param then closure_type |> Llvm.pointer_type (* voidptr_type *)
+      if param then closure_type |> Llvm.pointer_type
       else
         let ret_t = get_lltype t in
         let params_t =
@@ -91,13 +85,24 @@ let rec get_lltype ?(param = true) = function
   | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
-let declare_function fun_name args_t body =
-  (* We only support one function arguments so far *)
-  let return_t = get_lltype Typing.(body.typ) in
-  let ll_args_t =
-    List.map (fun (_, arg) -> get_lltype arg) args_t |> Array.of_list
+(* LLVM type of closure struct *)
+(* TODO merge with record code *)
+let closure_struct closure =
+  List.map (fun (_, typ) -> get_lltype typ) closure
+  |> Array.of_list |> Llvm.struct_type context
+
+let declare_function fun_name abs =
+  let return_t = get_lltype Typing.(abs.body.typ) in
+  let ll_params_t =
+    let param_lst = List.map (fun (_, arg) -> get_lltype arg) abs.params in
+    (match abs.kind with
+    | Simple | Anon -> param_lst
+    | Closure _ ->
+        (* In the closure case, we add a voidptr for the closure *)
+        param_lst @ [ voidptr_type ])
+    |> Array.of_list
   in
-  let ft = Llvm.function_type return_t ll_args_t in
+  let ft = Llvm.function_type return_t ll_params_t in
   Llvm.declare_function fun_name ft the_module
 
 let get_generated_func vars name =
@@ -109,16 +114,16 @@ let get_generated_func vars name =
       failwith "Internal error"
 
 let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
-    Typing.{ params; body; kind = _ } =
-  let func = declare_function fun_name params body in
+    abstraction =
+  let func = declare_function fun_name abstraction in
   Llvm.set_linkage linkage func;
-  let temp_funcs, _ =
+  let temp_funcs, closure_index =
     List.fold_left
       (fun (env, i) (name, _) ->
         let param = (Llvm.params func).(i) in
         Llvm.set_value_name name param;
         (Vars.add name param env, i + 1))
-      (funcs, 0) params
+      (funcs, 0) abstraction.params
   in
 
   (* If the function is named, we allow recursion *)
@@ -129,9 +134,32 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
   (* gen function body *)
   let bb = Llvm.append_block context "entry" func in
   Llvm.position_at_end bb builder;
+
   (* No closures yet, so it might be dangerous to just pass in the whole env.
      We have to separate functions (which are global) and variables *)
-  let ret = gen_expr temp_funcs body in
+
+  (* Add params from closure *)
+  (* We both generate the code for extracting the closure and add the vars to the environment *)
+  let temp_funcs =
+    match abstraction.kind with
+    | Simple | Anon -> temp_funcs
+    | Closure assoc ->
+        let clsr_param = (Llvm.params func).(closure_index) in
+        let clsr_type = closure_struct assoc |> Llvm.pointer_type in
+        let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
+
+        let env, _ =
+          List.fold_left
+            (fun (env, i) (name, _) ->
+              let item_ptr = Llvm.build_struct_gep clsr_ptr i name builder in
+              let item = Llvm.build_load item_ptr name builder in
+              (Vars.add name item env, i + 1))
+            (temp_funcs, 0) assoc
+        in
+        env
+  in
+
+  let ret = gen_expr temp_funcs abstraction.body in
 
   (* Don't return a void type *)
   ignore
@@ -164,6 +192,7 @@ and gen_expr vars typed_expr =
            ^ " in codegen. No closures yet"))
   | Function (name, uniq, _, cont) ->
       (* The functions are already generated *)
+      (* TODO create closure *)
       let func = get_generated_func vars (unique_name (name, uniq)) in
       gen_expr (Vars.add name func vars) cont
   | Let (id, equals_ty, let_ty) ->
@@ -272,14 +301,20 @@ let generate externals typed_expr =
       (fun vars (name, typ) -> Vars.add name (decl_external (name, typ)) vars)
       Vars.empty externals
   in
+
   (* Factor out functions for llvm *)
+  (* let create_name { name = name, _, uniq; abs  } =
+   *   match abs.kind with
+   *   | Simple -> unique_name (name, uniq)
+   *   | Anon -> name
+   *   | Closure *)
   let funcs =
     let lst = extract typed_expr.expr in
     let vars =
       List.fold_left
         (fun acc { name = name, named, uniq; abs } ->
           let name = if named then unique_name (name, uniq) else name in
-          Vars.add name (declare_function name abs.params abs.body) acc)
+          Vars.add name (declare_function name abs) acc)
         vars lst
     in
     List.fold_left

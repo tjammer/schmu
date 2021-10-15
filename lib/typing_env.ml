@@ -31,7 +31,7 @@ end = struct
 
   let close_scope = function
     | [] -> failwith "Internal error: Env empty"
-    | (_, cls) :: tl -> (tl, !cls)
+    | (_, cls) :: tl -> (tl, !cls |> List.rev)
 
   let find_opt key env =
     let cls = List.hd env |> snd in
