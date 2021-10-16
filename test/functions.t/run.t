@@ -90,9 +90,8 @@ Multiple parameters
   int
   [1]
 
-We don't have closures yet
-  $ dune exec -- schmu no_closures.smu
-  x86_64-unknown-linux-gnu
+We have downwards closures
+  $ dune exec -- schmu closure.smu | grep -v x86_64 && cc out.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -126,6 +125,7 @@ We don't have closures yet
     ret i32 %1
   }
   int
+  [12]
 
 First class functions
   $ dune exec -- schmu first_class.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
