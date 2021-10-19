@@ -36,7 +36,6 @@ and typed_expr = { typ : typ; expr : expr }
 
 type external_decl = string * typ
 
-val typecheck : Ast.external_decl list * Ast.expr -> typ
+val typecheck : Ast.prog -> typ
 
-val to_typed :
-  Ast.external_decl list -> Ast.expr -> external_decl list * typed_expr
+val to_typed : Ast.prog -> external_decl list * typed_expr

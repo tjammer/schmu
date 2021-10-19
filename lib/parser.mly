@@ -36,7 +36,7 @@
 
 %%
 
-prog: list(external_decl); expr; Eof { $1, $2 }
+prog: list(external_decl); expr; Eof { {external_decls = $1; typedefs = []; expr = $2} }
 
 %inline external_decl:
   | External; Identifier; type_expr { $startpos, $2, $3 }

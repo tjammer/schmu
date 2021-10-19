@@ -146,7 +146,7 @@ let instantiate t =
         | Some t -> (t, subst)
         | None ->
             let tv = newvar () in
-            (tv, Env.add id tv subst))
+            (tv, Env.add_value id tv subst))
     | TVar { contents = Link t } -> aux subst t
     | TFun (params_t, t, k) ->
         let subst, params_t =
@@ -207,7 +207,7 @@ let handle_params env loc params =
         | None -> newvar ()
         | Some annot -> typeof_annot loc annot
       in
-      (Env.add id type_id env, type_id))
+      (Env.add_value id type_id env, type_id))
     env params
 
 let rec typeof env = function
@@ -223,7 +223,8 @@ let rec typeof env = function
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
 
 and typeof_var env loc v =
-  match Env.find_opt v env with
+  (* find_opt would work here, but we use query for consistency with convert_var *)
+  match Env.query_opt v env with
   | Some t -> instantiate t
   | None -> raise (Error (loc, "No var named " ^ v))
 
@@ -242,7 +243,7 @@ and typeof_let env loc (id, type_annot) e1 e2 =
         unify type_annot type_e;
         type_annot
   in
-  typeof (Env.add id type_e env) e2
+  typeof (Env.add_value id type_e env) e2
 
 and typeof_abs env loc params e =
   let env, params_t = handle_params env loc params in
@@ -302,12 +303,12 @@ let extern_vars decls =
     List.map (fun (loc, name, typ) -> (name, typeof_annot loc typ)) decls
   in
   List.fold_left
-    (fun vars (name, typ) -> Env.add name typ vars)
+    (fun vars (name, typ) -> Env.add_value name typ vars)
     Env.empty externals
 
-let typecheck (external_decls, expr) =
+let typecheck (prog : Ast.prog) =
   reset_type_vars ();
-  typeof (extern_vars external_decls) expr
+  typeof (extern_vars prog.external_decls) prog.expr
 
 (* Conversion to Typing.exr below *)
 
@@ -341,7 +342,7 @@ let rec convert env = function
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
 
 and convert_var env loc id =
-  match Env.find_opt id env with
+  match Env.query_opt id env with
   | Some t ->
       let typ = instantiate t in
       { typ; expr = Var id }
@@ -364,7 +365,7 @@ and typeof_annot_decl env loc annot expr =
 and convert_let env loc (id, type_annot) e1 e2 =
   let typ1 = typeof_annot_decl env loc type_annot e1 in
 
-  let typ2 = convert (Env.add id typ1.typ env) e2 in
+  let typ2 = convert (Env.add_value id typ1.typ env) e2 in
   { typ = typ2.typ; expr = Let (id, typ1, typ2) }
 
 and convert_lambda env loc params e =
@@ -392,8 +393,8 @@ and convert_function env loc { name; params; body; cont } =
   let unique = next_func (fst name) func_tbl in
   let env =
     match snd name with
-    | None -> Env.add (fst name) (newvar ()) env
-    | Some t -> Env.add (fst name) (typeof_annot loc t) env
+    | None -> Env.add_value (fst name) (newvar ()) env
+    | Some t -> Env.add_value (fst name) (typeof_annot loc t) env
   in
   (* We duplicate some lambda code due to naming *)
   let env = Env.new_scope env in
@@ -469,17 +470,17 @@ and convert_if env loc cond e1 e2 =
   unify typ type_e2.typ;
   { typ; expr = If (type_cond, type_e1, type_e2) }
 
-let to_typed external_decls expr =
+let to_typed (prog : Ast.prog) =
   reset_type_vars ();
   let externals =
     List.map
       (fun (loc, name, typ) -> (name, typeof_annot loc typ))
-      external_decls
+      prog.external_decls
   in
 
   let vars =
     List.fold_left
-      (fun vars (name, typ) -> Env.add name typ vars)
+      (fun vars (name, typ) -> Env.add_value name typ vars)
       Env.empty externals
   in
-  (externals, convert vars expr)
+  (externals, convert vars prog.expr)

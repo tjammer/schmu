@@ -3,7 +3,7 @@ type bop = Plus | Mult | Less | Equal | Minus
 type loc = Lexing.position
 
 (* optional type identifier
-   So far only bool and ints and functions with arity 1 *)
+   So far only bool and ints and functions *)
 type type_expr = string list
 
 type decl = string * type_expr option
@@ -24,4 +24,11 @@ and expr =
 
 type external_decl = loc * string * type_expr
 
-type prog = external_decl list * expr
+(* Only records *)
+type typedef = { name : string; labels : (string * type_expr) list }
+
+type prog = {
+  external_decls : external_decl list;
+  typedefs : typedef list;
+  expr : expr;
+}
