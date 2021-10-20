@@ -27,6 +27,7 @@
 %token Eof
 %token External
 %token Function
+%token Type
 
 %nonassoc Less
 %left Plus
@@ -36,10 +37,18 @@
 
 %%
 
-prog: list(external_decl); expr; Eof { {external_decls = $1; typedefs = []; expr = $2} }
+prog: list(external_decl); list(typedef); expr; Eof
+    { { external_decls = $1; typedefs = []; expr = $3 } }
 
 %inline external_decl:
   | External; Identifier; type_expr { $startpos, $2, $3 }
+
+%inline typedef:
+  | Type; Identifier; Equal; Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
+    { { name = $2; labels = $5 } }
+
+%inline type_decl:
+  | Identifier; type_expr { $1, $2 }
 
 expr:
   | Identifier { Var($startpos, $1) }
@@ -53,6 +62,11 @@ expr:
   | Function; decl; Lpar; separated_list(Comma, decl); Rpar; expr; expr
     { Function ($startpos, {name = $2; params = $4; body = $6; cont = $7}) }
   | expr; Lpar; separated_list(Comma, expr); Rpar { App($startpos, $1, $3) }
+  | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($startpos, $2) }
+  | expr; Dot; Identifier { Field ($startpos, ($1, $3)) }
+
+%inline record_item:
+  | Identifier; Equal; expr { $1, $3 }
 
 bool:
   | True { true }

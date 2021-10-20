@@ -1,14 +1,4 @@
-type typ =
-  | TInt
-  | TBool
-  | TUnit
-  | TVar of tv ref
-  | QVar of string
-  | TFun of typ list * typ * fun_kind
-
-and fun_kind = Simple | Anon | Closure of (string * typ) list
-
-and tv = Unbound of string * int | Link of typ
+open Types
 
 type abstraction = {
   params : (string * typ) list;
@@ -36,7 +26,6 @@ exception Error of Ast.loc * string
 
 exception Unify
 
-module Env = Typing_env.Env
 module Strset = Set.Make (String)
 
 module Str = struct
@@ -221,6 +210,8 @@ let rec typeof env = function
   | App (_, e1, e2) -> typeof_app env e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
+  | Record _ -> failwith "TODO"
+  | Field _ -> failwith "TODO"
 
 and typeof_var env loc v =
   (* find_opt would work here, but we use query for consistency with convert_var *)
@@ -340,6 +331,8 @@ let rec convert env = function
   | App (_, e1, e2) -> convert_app env e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
+  | Record _ -> failwith "TODO"
+  | Field _ -> failwith "TODO"
 
 and convert_var env loc id =
   match Env.query_opt id env with

@@ -1,3 +1,5 @@
+open Types
+
 let context = Llvm.global_context ()
 
 let the_module = Llvm.create_module context "context"
@@ -69,7 +71,7 @@ let rec get_lltype ?(param = true) = function
   (* For functions, when passed as parameter, we convert it to a closure ptr
      to later cast to the correct types. At the application, we need to
      get the correct type though to cast it back. All this is handled by [param]. *)
-  | Typing.TInt -> int_type
+  | TInt -> int_type
   | TBool -> bool_type
   | TVar { contents = Link t } -> get_lltype ~param t
   | TUnit -> unit_type
@@ -316,7 +318,7 @@ and gen_if vars cond e1 e2 =
 
 let decl_external (name, typ) =
   match typ with
-  | Typing.TFun (ts, t, _) ->
+  | TFun (ts, t, _) ->
       let return_t = get_lltype t in
       let arg_t = List.map get_lltype ts |> Array.of_list in
       let ft = Llvm.function_type return_t arg_t in
@@ -356,7 +358,7 @@ let generate externals typed_expr =
   @@ gen_function funcs ~linkage ~named:false "main"
        {
          params = [ ("", TInt) ];
-         body = { typed_expr with typ = Typing.TInt };
+         body = { typed_expr with typ = TInt };
          kind = Simple;
        };
 
