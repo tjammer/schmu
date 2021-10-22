@@ -38,14 +38,14 @@
 %%
 
 prog: list(external_decl); list(typedef); expr; Eof
-    { { external_decls = $1; typedefs = []; expr = $3 } }
+    { { external_decls = $1; typedefs = $2; expr = $3 } }
 
 %inline external_decl:
   | External; Identifier; type_expr { $startpos, $2, $3 }
 
 %inline typedef:
   | Type; Identifier; Equal; Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
-    { { name = $2; labels = $5 } }
+    { { name = $2; labels = $5; loc = $startpos } }
 
 %inline type_decl:
   | Identifier; type_expr { $1, $2 }

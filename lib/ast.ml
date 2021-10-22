@@ -34,7 +34,7 @@ and expr =
 (* Hopefully temporary *)
 type external_decl = loc * string * type_expr
 
-type typedef = { name : string; labels : (string * type_expr) list }
+type typedef = { name : string; labels : (string * type_expr) list; loc : loc }
 
 type prog = {
   external_decls : external_decl list;

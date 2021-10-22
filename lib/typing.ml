@@ -67,6 +67,7 @@ let string_of_type typ =
         Char.chr (int_of_string str + Char.code 'a') |> String.make 1
     | TVar { contents = Link t } -> string_of_type t
     | QVar str -> str ^ "12"
+    | TRecord (str, _) -> str
   in
   string_of_type typ
 
@@ -166,25 +167,29 @@ let bop_error loc bop t1 t2 =
          "Expressions in binary op '" ^ op ^ "' must be both int " ^ "not: "
          ^ string_of_type t1 ^ " vs " ^ string_of_type t2 ))
 
-let typeof_annot loc annot =
-  let atom_type = function
+let typeof_annot env loc annot =
+  let concrete_type = function
     | "int" -> TInt
     | "bool" -> TBool
     | "unit" -> TUnit
-    | t ->
-        raise (Error (loc, "Unknown type: " ^ t ^ ". Expected 'int' or 'bool'"))
+    | t -> (
+        match Env.find_type_opt t env with
+        | Some t -> t
+        | None -> raise (Error (loc, "Unknown type: " ^ t ^ ".")))
   in
+
   match annot with
   | [] -> failwith "Internal Error: Type annot list should not be empty"
-  | [ t ] -> atom_type t
-  | [ "unit"; t ] -> TFun ([], atom_type t, Simple)
+  | [ t ] -> concrete_type t
+  | [ "unit"; t ] -> TFun ([], concrete_type t, Simple)
   (* For function definiton and application, 'unit' means an empty list.
      It's easier for typing and codegen to treat unit as a special case here *)
   | l -> (
       (* We reverse the list times :( *)
       match List.rev l with
       | last :: head ->
-          TFun (List.map atom_type (List.rev head), atom_type last, Simple)
+          TFun
+            (List.map concrete_type (List.rev head), concrete_type last, Simple)
       | [] -> failwith ":)")
 
 let handle_params env loc params =
@@ -194,7 +199,7 @@ let handle_params env loc params =
       let type_id =
         match type_annot with
         | None -> newvar ()
-        | Some annot -> typeof_annot loc annot
+        | Some annot -> typeof_annot env loc annot
       in
       (Env.add_value id type_id env, type_id))
     env params
@@ -210,7 +215,7 @@ let rec typeof env = function
   | App (_, e1, e2) -> typeof_app env e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
-  | Record _ -> failwith "TODO"
+  | Record (loc, labels) -> typeof_record env loc labels
   | Field _ -> failwith "TODO"
 
 and typeof_var env loc v =
@@ -228,7 +233,7 @@ and typeof_let env loc (id, type_annot) e1 e2 =
         leave_level ();
         generalize type_e
     | Some annot ->
-        let type_annot = typeof_annot loc annot in
+        let type_annot = typeof_annot env loc annot in
         let type_e = typeof env e1 in
         leave_level ();
         unify type_annot type_e;
@@ -289,17 +294,67 @@ and typeof_bop env loc bop e1 e2 =
       check ();
       TBool
 
+and typeof_record env loc labels =
+  (* TODO pass in expected type? *)
+  (* We build a list of possible records by label and type.
+     If we're lucky, there's only one left *)
+  let typed_labels =
+    List.map (fun (label, expr) -> (label, typeof env expr)) labels
+  in
+  let possible_records =
+    List.fold_left
+      (fun set (label, typ) ->
+        match Env.find_label_opt label env with
+        | Some lbl -> if lbl.typ = typ then Strset.add lbl.record set else set
+        | None -> raise (Error (loc, "Unbound record field " ^ label)))
+      Strset.empty typed_labels
+  in
+  match Strset.elements possible_records with
+  | [] -> failwith "Internal Error not a record"
+  | [ record ] -> Env.find_type record env
+  | lst ->
+      (* We choose the correct one by finding the first record where all labels fit  *)
+      (* There must be better ways to do this *)
+      List.fold_left
+        (fun chosen record ->
+          let record = Env.find_type_opt record env in
+          let all_match =
+            match Option.get record with
+            | TRecord (_, labels) ->
+                List.fold_left
+                  (fun mtch label -> mtch && List.mem label typed_labels)
+                  true labels
+            | _ -> failwith "Internal Error in typeof_record"
+          in
+          if all_match then record else chosen)
+        None lst
+      |> Option.get
+
 let extern_vars decls =
   let externals =
-    List.map (fun (loc, name, typ) -> (name, typeof_annot loc typ)) decls
+    List.map
+      (fun (loc, name, typ) -> (name, typeof_annot Env.empty loc typ))
+      decls
   in
   List.fold_left
     (fun vars (name, typ) -> Env.add_value name typ vars)
     Env.empty externals
 
+let typedefs typedefs env =
+  List.fold_left
+    (fun env Ast.{ name; labels; loc } ->
+      let labels =
+        List.map
+          (fun (lbl, type_expr) -> (lbl, typeof_annot env loc type_expr))
+          labels
+      in
+      Env.add_type name ~labels env)
+    env typedefs
+
 let typecheck (prog : Ast.prog) =
   reset_type_vars ();
-  typeof (extern_vars prog.external_decls) prog.expr
+  let env = extern_vars prog.external_decls |> typedefs prog.typedefs in
+  typeof env prog.expr
 
 (* Conversion to Typing.exr below *)
 
@@ -349,7 +404,7 @@ and typeof_annot_decl env loc annot expr =
       leave_level ();
       { t with typ = generalize t.typ }
   | Some annot ->
-      let t_annot = typeof_annot loc annot in
+      let t_annot = typeof_annot env loc annot in
       let t = convert env expr in
       leave_level ();
       unify t_annot t.typ;
@@ -387,7 +442,7 @@ and convert_function env loc { name; params; body; cont } =
   let env =
     match snd name with
     | None -> Env.add_value (fst name) (newvar ()) env
-    | Some t -> Env.add_value (fst name) (typeof_annot loc t) env
+    | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
   in
   (* We duplicate some lambda code due to naming *)
   let env = Env.new_scope env in
@@ -466,8 +521,9 @@ and convert_if env loc cond e1 e2 =
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();
   let externals =
+    let empty = Env.empty in
     List.map
-      (fun (loc, name, typ) -> (name, typeof_annot loc typ))
+      (fun (loc, name, typ) -> (name, typeof_annot empty loc typ))
       prog.external_decls
   in
 
@@ -475,5 +531,7 @@ let to_typed (prog : Ast.prog) =
     List.fold_left
       (fun vars (name, typ) -> Env.add_value name typ vars)
       Env.empty externals
+    |> typedefs prog.typedefs
   in
+
   (externals, convert vars prog.expr)

@@ -86,6 +86,7 @@ let rec get_lltype ?(param = true) = function
         Llvm.function_type ret_t params_t |> Llvm.pointer_type
   | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
+  | TRecord _ -> failwith "TODO"
 
 (* LLVM type of closure struct *)
 (* TODO merge with record code *)

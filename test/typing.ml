@@ -8,6 +8,9 @@ let get_type src =
 
 let test a src = (check string) "" a (get_type src)
 
+let test_exn msg src =
+  (check string) "" msg (try get_type src with Typing.Error (_, msg) -> msg)
+
 let test_const_int () = test "int" "a = 1 a"
 
 let test_const_bool () = test "bool" "a = true a"
@@ -31,6 +34,20 @@ let test_func_1st_class () =
 let test_func_1st_hint () =
   test "(int -> unit) -> int -> unit" "function (f : int -> unit, arg) f(arg)"
 
+let test_record_clear () =
+  test "t" "type t = { x : int, y : int } { x = 2, y = 2 }"
+
+let test_record_false () =
+  test_exn "Unbound record field z"
+    "type t = { x : int, y : int } { x = 2, z = 2 }"
+
+let test_record_choose () =
+  test "t1"
+    "type t1 = {x : int, y : int} type t2 = {x : int, z : int} {x = 2, y = 2}"
+
+let test_record_reorder () =
+  test "t" "type t = {x : int, y : int} { y = 10, x = 2 }"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -48,5 +65,12 @@ let () =
           case "ext" test_func_external;
           case "1st-class" test_func_1st_class;
           case "1st-hint" test_func_1st_hint;
+        ] );
+      ( "records",
+        [
+          case "clear" test_record_clear;
+          case "false" test_record_false;
+          case "choose" test_record_choose;
+          case "reorder" test_record_reorder;
         ] );
     ]
