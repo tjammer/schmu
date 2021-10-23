@@ -17,6 +17,7 @@ and expr =
   | Lambda of abstraction
   | Function of string * int option * abstraction * typed_expr
   | App of typed_expr * typed_expr list
+  | Record of (string * typed_expr) list
 
 and typed_expr = { typ : typ; expr : expr }
 
@@ -204,6 +205,61 @@ let handle_params env loc params =
       (Env.add_value id type_id env, type_id))
     env params
 
+let get_record_type env loc typed_labels =
+  let possible_records =
+    List.fold_left
+      (fun set (label, _) ->
+        match Env.find_label_opt label env with
+        | Some lbl ->
+            (* We try to unify later, not here *)
+            Strset.add lbl.record set
+        | None -> raise (Error (loc, "Unbound record field " ^ label)))
+      Strset.empty typed_labels
+  in
+
+  let unify_labels labels =
+    List.iter
+      (fun (rlabel, rtype) ->
+        let ltype = List.assoc rlabel typed_labels in
+        unify ltype rtype)
+      labels
+  in
+  let get_labels = function
+    | TRecord (_, labels) -> labels
+    | _ -> failwith "Internal Error not a record"
+  in
+  match Strset.elements possible_records with
+  | [] -> failwith "Internal Error not a record"
+  | [ record ] ->
+      let record = Env.find_type record env in
+      unify_labels (get_labels record);
+      record
+  | lst ->
+      (* We choose the correct one by finding the first record where all labels fit  *)
+      (* There must be better ways to do this *)
+      let record =
+        List.fold_left
+          (fun chosen record ->
+            let record = Env.find_type_opt record env in
+            let all_match =
+              match Option.get record with
+              | TRecord (_, labels) ->
+                  List.fold_left
+                    (fun mtch (lname, _) ->
+                      mtch
+                      && List.exists
+                           (fun (tlname, _) -> String.equal lname tlname)
+                           typed_labels)
+                    true labels
+              | _ -> failwith "Internal Error in typeof_record"
+            in
+            if all_match then record else chosen)
+          None lst
+        |> Option.get
+      in
+      unify_labels (get_labels record);
+      record
+
 let rec typeof env = function
   | Ast.Var (loc, v) -> typeof_var env loc v
   | Int (_, _) -> TInt
@@ -301,34 +357,7 @@ and typeof_record env loc labels =
   let typed_labels =
     List.map (fun (label, expr) -> (label, typeof env expr)) labels
   in
-  let possible_records =
-    List.fold_left
-      (fun set (label, typ) ->
-        match Env.find_label_opt label env with
-        | Some lbl -> if lbl.typ = typ then Strset.add lbl.record set else set
-        | None -> raise (Error (loc, "Unbound record field " ^ label)))
-      Strset.empty typed_labels
-  in
-  match Strset.elements possible_records with
-  | [] -> failwith "Internal Error not a record"
-  | [ record ] -> Env.find_type record env
-  | lst ->
-      (* We choose the correct one by finding the first record where all labels fit  *)
-      (* There must be better ways to do this *)
-      List.fold_left
-        (fun chosen record ->
-          let record = Env.find_type_opt record env in
-          let all_match =
-            match Option.get record with
-            | TRecord (_, labels) ->
-                List.fold_left
-                  (fun mtch label -> mtch && List.mem label typed_labels)
-                  true labels
-            | _ -> failwith "Internal Error in typeof_record"
-          in
-          if all_match then record else chosen)
-        None lst
-      |> Option.get
+  get_record_type env loc typed_labels
 
 let extern_vars decls =
   let externals =
@@ -386,7 +415,7 @@ let rec convert env = function
   | App (_, e1, e2) -> convert_app env e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
-  | Record _ -> failwith "TODO"
+  | Record (loc, labels) -> convert_record env loc labels
   | Field _ -> failwith "TODO"
 
 and convert_var env loc id =
@@ -517,6 +546,16 @@ and convert_if env loc cond e1 e2 =
             ^ string_of_type type_e2.typ )));
   unify typ type_e2.typ;
   { typ; expr = If (type_cond, type_e1, type_e2) }
+
+and convert_record env loc labels =
+  let typed_expr_labels =
+    List.map (fun (label, expr) -> (label, convert env expr)) labels
+  in
+  let typed_labels =
+    List.map (fun (label, texp) -> (label, texp.typ)) typed_expr_labels
+  in
+  let typ = get_record_type env loc typed_labels in
+  { typ; expr = Record typed_expr_labels }
 
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();

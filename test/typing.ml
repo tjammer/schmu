@@ -11,6 +11,9 @@ let test a src = (check string) "" a (get_type src)
 let test_exn msg src =
   (check string) "" msg (try get_type src with Typing.Error (_, msg) -> msg)
 
+let test_exn_unify src =
+  check_raises "" Typing.Unify (fun () -> ignore @@ get_type src)
+
 let test_const_int () = test "int" "a = 1 a"
 
 let test_const_bool () = test "bool" "a = true a"
@@ -48,11 +51,24 @@ let test_record_choose () =
 let test_record_reorder () =
   test "t" "type t = {x : int, y : int} { y = 10, x = 2 }"
 
+let test_record_field_if () =
+  test "t" "type t = {x : int} { x = if true then 1 else 0 }"
+
+let test_record_field_return () =
+  test "t" "type t = {x : int} function a () 10 { x = a() }"
+
+let test_record_wrong_type () = test_exn_unify "type t = {x : int} {x = true}"
+
+let test_record_wrong_choose () =
+  test_exn_unify
+    "type t1 = {x : int, y : int} type t2 = {x : int, z : int} {x = 2, y = \
+     true}"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
 let () =
-  run "Utils"
+  run "Typing"
     [
       ("consts", [ case "int" test_const_int; case "bool" test_const_bool ]);
       ("hints", [ case "int" test_hint_int ]);
@@ -72,5 +88,9 @@ let () =
           case "false" test_record_false;
           case "choose" test_record_choose;
           case "reorder" test_record_reorder;
+          case "field_if" test_record_field_if;
+          case "field_return" test_record_field_return;
+          case "wrong_type" test_record_wrong_type;
+          case "wrong_choose" test_record_wrong_choose;
         ] );
     ]

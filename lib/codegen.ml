@@ -64,6 +64,8 @@ let extract expr =
     | App (e1, args) ->
         let acc = inner acc e1.expr in
         List.fold_left (fun acc arg -> inner acc Typing.(arg.expr)) acc args
+    | Record labels ->
+        List.fold_left (fun acc (_, e) -> inner acc Typing.(e.expr)) acc labels
   in
   inner [] expr
 
@@ -86,7 +88,7 @@ let rec get_lltype ?(param = true) = function
         Llvm.function_type ret_t params_t |> Llvm.pointer_type
   | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
-  | TRecord _ -> failwith "TODO"
+  | TRecord _ -> failwith "TODO get type"
 
 (* LLVM type of closure struct *)
 (* TODO merge with record code *)
@@ -236,10 +238,9 @@ and gen_expr vars typed_expr =
       | Simple -> failwith "Internal Error: Named anonymous function"
       | Anon -> func
       | Closure assoc -> gen_closure_obj assoc func vars name)
-  | App (callee, arg) ->
-      (* Let's first of all not care about anonymous functions *)
-      gen_app vars callee arg
+  | App (callee, arg) -> gen_app vars callee arg
   | If (cond, e1, e2) -> gen_if vars cond e1 e2
+  | Record _ -> failwith "TODO codegen"
 
 and gen_bop e1 e2 = function
   | Plus -> Llvm.build_add e1 e2 "addtmp" builder

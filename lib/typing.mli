@@ -2,6 +2,8 @@ open Types
 
 exception Error of Ast.loc * string
 
+exception Unify (* TODO Should throw Error as well *)
+
 val string_of_type : typ -> string
 
 type abstraction = {
@@ -21,6 +23,7 @@ and expr =
   | Lambda of abstraction
   | Function of string * int option * abstraction * typed_expr
   | App of typed_expr * typed_expr list
+  | Record of (string * typed_expr) list
 
 and typed_expr = { typ : typ; expr : expr }
 
