@@ -18,6 +18,7 @@ and expr =
   | Function of string * int option * abstraction * typed_expr
   | App of typed_expr * typed_expr list
   | Record of (string * typed_expr) list
+  | Field of (typed_expr * string)
 
 and typed_expr = { typ : typ; expr : expr }
 
@@ -260,6 +261,11 @@ let get_record_type env loc typed_labels =
       unify_labels (get_labels record);
       record
 
+let rec follow_type = function
+  | TVar { contents = Link t } -> follow_type t
+  | QVar _ -> failwith "TODO think about this"
+  | t -> t
+
 let rec typeof env = function
   | Ast.Var (loc, v) -> typeof_var env loc v
   | Int (_, _) -> TInt
@@ -272,7 +278,7 @@ let rec typeof env = function
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
   | Record (loc, labels) -> typeof_record env loc labels
-  | Field _ -> failwith "TODO"
+  | Field (loc, expr, id) -> typeof_field env loc expr id
 
 and typeof_var env loc v =
   (* find_opt would work here, but we use query for consistency with convert_var *)
@@ -359,6 +365,23 @@ and typeof_record env loc labels =
   in
   get_record_type env loc typed_labels
 
+and typeof_field env loc expr id =
+  let typ = typeof env expr in
+  (* This expr could be a fresh var, in which case we take the record type from the label,
+     or it could be a specific record type in which case we have to get that certain record *)
+  match follow_type typ with
+  | TRecord (name, labels) -> (
+      match List.assoc_opt id labels with
+      | Some t -> t
+      | None ->
+          raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
+  | t -> (
+      match Env.find_label_opt id env with
+      | Some { typ; record } ->
+          unify t (Env.find_type record env);
+          typ
+      | None -> raise (Error (loc, "Unbound field " ^ id)))
+
 let extern_vars decls =
   let externals =
     List.map
@@ -416,7 +439,7 @@ let rec convert env = function
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
   | Record (loc, labels) -> convert_record env loc labels
-  | Field _ -> failwith "TODO"
+  | Field (loc, expr, id) -> convert_field env loc expr id
 
 and convert_var env loc id =
   match Env.query_opt id env with
@@ -556,6 +579,21 @@ and convert_record env loc labels =
   in
   let typ = get_record_type env loc typed_labels in
   { typ; expr = Record typed_expr_labels }
+
+and convert_field env loc expr id =
+  let expr = convert env expr in
+  match follow_type expr.typ with
+  | TRecord (name, labels) -> (
+      match List.assoc_opt id labels with
+      | Some typ -> { typ; expr = Field (expr, id) }
+      | None ->
+          raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
+  | t -> (
+      match Env.find_label_opt id env with
+      | Some { typ; record } ->
+          unify t (Env.find_type record env);
+          { typ; expr = Field (expr, id) }
+      | None -> raise (Error (loc, "Unbound field " ^ id)))
 
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();

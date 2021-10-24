@@ -51,10 +51,10 @@ let test_record_choose () =
 let test_record_reorder () =
   test "t" "type t = {x : int, y : int} { y = 10, x = 2 }"
 
-let test_record_field_if () =
+let test_record_create_if () =
   test "t" "type t = {x : int} { x = if true then 1 else 0 }"
 
-let test_record_field_return () =
+let test_record_create_return () =
   test "t" "type t = {x : int} function a () 10 { x = a() }"
 
 let test_record_wrong_type () = test_exn_unify "type t = {x : int} {x = true}"
@@ -63,6 +63,20 @@ let test_record_wrong_choose () =
   test_exn_unify
     "type t1 = {x : int, y : int} type t2 = {x : int, z : int} {x = 2, y = \
      true}"
+
+let test_record_field_simple () =
+  test "int" "type t = {x : int} a = {x = 10} a.x"
+
+let test_record_field_infer () =
+  test "t -> int" "type t = {x : int} function (a) a.x"
+
+let test_record_field_no_record () =
+  test_exn_unify "type t = {x : int} a = 10 a.x"
+
+let test_record_field_wrong_record () =
+  test_exn_unify
+    "type t1 = {x : int} type t2 = {y:int} function foo(a) a.x b = {y = 10} \
+     foo(b)"
 
 let case str test = test_case str `Quick test
 
@@ -88,9 +102,13 @@ let () =
           case "false" test_record_false;
           case "choose" test_record_choose;
           case "reorder" test_record_reorder;
-          case "field_if" test_record_field_if;
-          case "field_return" test_record_field_return;
+          case "create_if" test_record_create_if;
+          case "create_return" test_record_create_return;
           case "wrong_type" test_record_wrong_type;
           case "wrong_choose" test_record_wrong_choose;
+          case "field_simple" test_record_field_simple;
+          case "field_infer" test_record_field_infer;
+          case "field_no_record" test_record_field_no_record;
+          case "field_wrong_record" test_record_field_wrong_record;
         ] );
     ]

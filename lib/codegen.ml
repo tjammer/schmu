@@ -66,6 +66,7 @@ let extract expr =
         List.fold_left (fun acc arg -> inner acc Typing.(arg.expr)) acc args
     | Record labels ->
         List.fold_left (fun acc (_, e) -> inner acc Typing.(e.expr)) acc labels
+    | Field (expr, _) -> inner acc expr.expr
   in
   inner [] expr
 
@@ -241,6 +242,7 @@ and gen_expr vars typed_expr =
   | App (callee, arg) -> gen_app vars callee arg
   | If (cond, e1, e2) -> gen_if vars cond e1 e2
   | Record _ -> failwith "TODO codegen"
+  | Field _ -> failwith "TODO codegen"
 
 and gen_bop e1 e2 = function
   | Plus -> Llvm.build_add e1 e2 "addtmp" builder

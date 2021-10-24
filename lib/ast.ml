@@ -28,7 +28,7 @@ and expr =
   | Function of loc * func
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list
-  | Field of loc * (expr * string)
+  | Field of loc * expr * string
 [@@deriving show { with_path = false }]
 
 (* Hopefully temporary *)

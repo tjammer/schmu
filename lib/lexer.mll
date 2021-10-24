@@ -48,7 +48,6 @@ rule read =
   | ')'      { Rpar }
   | '{'      { Lbrac }
   | '}'      { Rbrac }
-  | '\\'     { Backslash }
   | "->"     { Arrow }
   | "--"     { line_comment lexbuf }
   | eof      { Eof }
