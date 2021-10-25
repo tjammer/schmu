@@ -120,9 +120,15 @@ let rec unify t1 t2 =
         occurs tv t;
         tv := Link t
     | TFun (params_l, l, _), TFun (params_r, r, _) ->
-        (* TODO deal with different lengths *)
-        List.iter2 (fun left right -> unify left right) params_l params_r;
+        (try List.iter2 (fun left right -> unify left right) params_l params_r
+         with Invalid_argument _ -> raise Unify);
         unify l r
+    | TRecord (n1, labels1), TRecord (n2, labels2) ->
+        if String.equal n1 n2 then
+          (* We ignore the label names for now *)
+          try List.iter2 (fun a b -> unify (snd a) (snd b)) labels1 labels2
+          with Invalid_argument _ -> raise Unify
+        else raise Unify
     | _ -> raise Unify
 
 let rec generalize = function
@@ -400,7 +406,7 @@ and typeof_field env loc expr id =
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
   | t -> (
       match Env.find_label_opt id env with
-      | Some { typ; record } ->
+      | Some { typ; record; index = _ } ->
           unify t (Env.find_type record env);
           typ
       | None -> raise (Error (loc, "Unbound field " ^ id)))
@@ -617,13 +623,12 @@ and convert_field env loc expr id =
       | Some (index, typ) -> { typ; expr = Field (expr, index) }
       | None ->
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
-  | _ (* t *) ->
-      (* match Env.find_label_opt id env with
-       * | Some { typ; record } ->
-       *     unify t (Env.find_type record env);
-       *     { typ; expr = Field (expr, id) }
-       * | None -> raise (Error (loc, "Unbound field " ^ id)) *)
-      failwith "Not a record? What else"
+  | t -> (
+      match Env.find_label_opt id env with
+      | Some { typ; index; record } ->
+          unify t (Env.find_type record env);
+          { typ; expr = Field (expr, index) }
+      | None -> raise (Error (loc, "Unbound field " ^ id)))
 
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();

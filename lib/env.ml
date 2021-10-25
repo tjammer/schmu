@@ -3,7 +3,7 @@ module Map = Map.Make (String)
 
 type key = string
 
-type label = { typ : typ; record : string }
+type label = { typ : typ; index : int; record : string }
 
 type t = {
   values : (typ Map.t * string list ref) list;
@@ -21,10 +21,11 @@ let add_value key vl env =
 
 let add_type record ~labels env =
   let typ = TRecord (record, labels) in
-  let labels =
+  let _, labels =
     List.fold_left
-      (fun labels (lname, typ) -> Map.add lname { typ; record } labels)
-      env.labels labels
+      (fun (index, labels) (lname, typ) ->
+        (index + 1, Map.add lname { typ; index; record } labels))
+      (0, env.labels) labels
   in
   let records = Map.add record typ env.records in
   { env with labels; records }

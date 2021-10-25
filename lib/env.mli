@@ -2,7 +2,7 @@ open Types
 
 type key = string
 
-type label = { typ : typ; record : string }
+type label = { typ : typ; index : int; record : string }
 
 type t
 
