@@ -18,6 +18,23 @@ let closure_type = Llvm.(struct_type context [| voidptr_type; voidptr_type |])
 
 module Vars = Map.Make (String)
 
+module RecordKey = struct
+  type t = (string * typ) list
+
+  let hash key = Hashtbl.hash key
+
+  let equal a b =
+    List.equal
+      (fun (n1, t1) (n2, t2) ->
+        String.equal n1 n2
+        && String.equal (Typing.string_of_type t1) (Typing.string_of_type t2))
+      a b
+end
+
+module Typetbl = Hashtbl.Make (RecordKey)
+
+let typetbl = Typetbl.create 64
+
 (* Used to generate lambdas *)
 let fun_gen_state = ref 0
 
@@ -87,9 +104,18 @@ let rec get_lltype ?(param = true) = function
           lst @ [ voidptr_type ] |> Array.of_list
         in
         Llvm.function_type ret_t params_t |> Llvm.pointer_type
+  | TRecord (_, labels) -> (
+      match Typetbl.find_opt typetbl labels with
+      | Some t -> t
+      | None ->
+          let t =
+            Llvm.struct_type context
+              (List.map (fun (_, typ) -> get_lltype typ) labels |> Array.of_list)
+          in
+          Typetbl.add typetbl labels t;
+          t)
   | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
-  | TRecord _ -> failwith "TODO get type"
 
 (* LLVM type of closure struct *)
 (* TODO merge with record code *)
@@ -243,8 +269,8 @@ and gen_expr vars typed_expr =
       | Closure assoc -> gen_closure_obj assoc func vars name)
   | App (callee, arg) -> gen_app vars callee arg
   | If (cond, e1, e2) -> gen_if vars cond e1 e2
-  | Record _ -> failwith "TODO codegen"
-  | Field _ -> failwith "TODO codegen"
+  | Record labels -> codegen_record vars typed_expr.typ labels
+  | Field (expr, index) -> codegen_field vars expr index
 
 and gen_bop e1 e2 = function
   | Plus -> Llvm.build_add e1 e2 "addtmp" builder
@@ -327,6 +353,22 @@ and gen_if vars cond e1 e2 =
 
   Llvm.position_at_end merge_bb builder;
   phi
+
+and codegen_record vars typ labels =
+  let typ = get_lltype typ in
+  let record = Llvm.build_alloca typ "" builder in
+  List.iteri
+    (fun i (name, expr) ->
+      let ptr = Llvm.build_struct_gep record i name builder in
+      let value = gen_expr vars expr in
+      ignore (Llvm.build_store value ptr builder))
+    labels;
+  record
+
+and codegen_field vars expr index =
+  let value = gen_expr vars expr in
+  let ptr = Llvm.build_struct_gep value index "" builder in
+  Llvm.build_load ptr "" builder
 
 let decl_external (name, typ) =
   match typ with

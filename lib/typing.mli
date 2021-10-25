@@ -24,7 +24,7 @@ and expr =
   | Function of string * int option * abstraction * typed_expr
   | App of typed_expr * typed_expr list
   | Record of (string * typed_expr) list
-  | Field of (typed_expr * string)
+  | Field of (typed_expr * int)
 
 and typed_expr = { typ : typ; expr : expr }
 

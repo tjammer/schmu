@@ -18,7 +18,7 @@ and expr =
   | Function of string * int option * abstraction * typed_expr
   | App of typed_expr * typed_expr list
   | Record of (string * typed_expr) list
-  | Field of (typed_expr * string)
+  | Field of (typed_expr * int)
 
 and typed_expr = { typ : typ; expr : expr }
 
@@ -225,16 +225,17 @@ let get_record_type env loc typed_labels =
         unify ltype rtype)
       labels
   in
-  let get_labels = function
-    | TRecord (_, labels) -> labels
+  let get_name_labels = function
+    | TRecord (name, labels) -> (name, labels)
     | _ -> failwith "Internal Error not a record"
   in
   match Strset.elements possible_records with
   | [] -> failwith "Internal Error not a record"
   | [ record ] ->
       let record = Env.find_type record env in
-      unify_labels (get_labels record);
-      record
+      let name, labels = get_name_labels record in
+      unify_labels labels;
+      (name, labels)
   | lst ->
       (* We choose the correct one by finding the first record where all labels fit  *)
       (* There must be better ways to do this *)
@@ -258,13 +259,22 @@ let get_record_type env loc typed_labels =
           None lst
         |> Option.get
       in
-      unify_labels (get_labels record);
-      record
+      let name, labels = get_name_labels record in
+      unify_labels labels;
+      (name, labels)
 
 let rec follow_type = function
   | TVar { contents = Link t } -> follow_type t
   | QVar _ -> failwith "TODO think about this"
   | t -> t
+
+let assoc_opti qkey =
+  let rec aux i = function
+    | (key, v) :: _ when String.equal qkey key -> Some (i, v)
+    | _ :: tl -> aux (i + 1) tl
+    | [] -> None
+  in
+  aux 0
 
 let rec typeof env = function
   | Ast.Var (loc, v) -> typeof_var env loc v
@@ -375,7 +385,8 @@ and typeof_record env loc labels =
   let typed_labels =
     List.map (fun (label, expr) -> (label, typeof env expr)) labels
   in
-  get_record_type env loc typed_labels
+  let name, labels = get_record_type env loc typed_labels in
+  TRecord (name, labels)
 
 and typeof_field env loc expr id =
   let typ = typeof env expr in
@@ -591,23 +602,28 @@ and convert_record env loc labels =
   let typed_labels =
     List.map (fun (label, texp) -> (label, texp.typ)) typed_expr_labels
   in
-  let typ = get_record_type env loc typed_labels in
-  { typ; expr = Record typed_expr_labels }
+  let name, labels = get_record_type env loc typed_labels in
+  (* We sort the labels to appear in the defined order *)
+  let sorted_labels =
+    List.map (fun (name, _) -> (name, List.assoc name typed_expr_labels)) labels
+  in
+  { typ = TRecord (name, labels); expr = Record sorted_labels }
 
 and convert_field env loc expr id =
   let expr = convert env expr in
   match follow_type expr.typ with
   | TRecord (name, labels) -> (
-      match List.assoc_opt id labels with
-      | Some typ -> { typ; expr = Field (expr, id) }
+      match assoc_opti id labels with
+      | Some (index, typ) -> { typ; expr = Field (expr, index) }
       | None ->
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
-  | t -> (
-      match Env.find_label_opt id env with
-      | Some { typ; record } ->
-          unify t (Env.find_type record env);
-          { typ; expr = Field (expr, id) }
-      | None -> raise (Error (loc, "Unbound field " ^ id)))
+  | _ (* t *) ->
+      (* match Env.find_label_opt id env with
+       * | Some { typ; record } ->
+       *     unify t (Env.find_type record env);
+       *     { typ; expr = Field (expr, id) }
+       * | None -> raise (Error (loc, "Unbound field " ^ id)) *)
+      failwith "Not a record? What else"
 
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();
