@@ -7,4 +7,4 @@ function foo(i)
     else printi(i + 1)
     foo(i-1)
 
-foo(20)
+foo(4)

@@ -18,23 +18,6 @@ let closure_type = Llvm.(struct_type context [| voidptr_type; voidptr_type |])
 
 module Vars = Map.Make (String)
 
-module RecordKey = struct
-  type t = (string * typ) list
-
-  let hash key = Hashtbl.hash key
-
-  let equal a b =
-    List.equal
-      (fun (n1, t1) (n2, t2) ->
-        String.equal n1 n2
-        && String.equal (Typing.string_of_type t1) (Typing.string_of_type t2))
-      a b
-end
-
-module Typetbl = Hashtbl.Make (RecordKey)
-
-let typetbl = Typetbl.create 64
-
 (* Used to generate lambdas *)
 let fun_gen_state = ref 0
 
@@ -104,29 +87,28 @@ let rec get_lltype ?(param = true) = function
           lst @ [ voidptr_type ] |> Array.of_list
         in
         Llvm.function_type ret_t params_t |> Llvm.pointer_type
-  | TRecord (_, labels) -> (
-      match Typetbl.find_opt typetbl labels with
-      | Some t -> t
-      | None ->
-          let t =
-            Llvm.struct_type context
-              (List.map (fun (_, typ) -> get_lltype typ) labels |> Array.of_list)
-          in
-          Typetbl.add typetbl labels t;
-          t)
+  | TRecord (_, labels) -> typeof_aggregate labels
   | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
-(* LLVM type of closure struct *)
-(* TODO merge with record code *)
-let closure_struct_t closure =
-  List.map (fun (_, typ) -> get_lltype typ) closure
+(* LLVM type of closure struct and records *)
+and typeof_aggregate agg =
+  List.map (fun (_, typ) -> get_lltype typ) agg
   |> Array.of_list |> Llvm.struct_type context
 
 let declare_function fun_name abs =
   let return_t = get_lltype Typing.(abs.body.typ) in
   let ll_params_t =
-    let param_lst = List.map (fun (_, arg) -> get_lltype arg) abs.params in
+    let param_lst =
+      List.map
+        (fun (_, arg) ->
+          let arg = get_lltype arg in
+          (* records as parameters must be ptr type. This code should not be here *)
+          match Llvm.classify_type arg with
+          | Llvm.TypeKind.Struct -> Llvm.pointer_type arg
+          | _ -> arg)
+        abs.params
+    in
     (match abs.kind with
     | Simple | Anon -> param_lst
     | Closure _ ->
@@ -158,7 +140,7 @@ let gen_closure_obj assoc func vars name =
 
   (* Add closed over vars *)
   let clsr_ptr =
-    Llvm.build_alloca (closure_struct_t assoc) ("clsr_" ^ name) builder
+    Llvm.build_alloca (typeof_aggregate assoc) ("clsr_" ^ name) builder
   in
   ignore
     (List.fold_left
@@ -204,7 +186,7 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
     | Simple | Anon -> temp_funcs
     | Closure assoc ->
         let clsr_param = (Llvm.params func).(closure_index) in
-        let clsr_type = closure_struct_t assoc |> Llvm.pointer_type in
+        let clsr_type = typeof_aggregate assoc |> Llvm.pointer_type in
         let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
 
         let env, _ =

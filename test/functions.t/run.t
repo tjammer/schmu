@@ -185,8 +185,7 @@ We don't allow returning closures
   Cannot (yet) return a closure
 
 Don't try to create 'void' value in if
-  $ dune exec -- schmu if_return_void.smu
-  x86_64-pc-linux-gnu
+  $ dune exec -- schmu if_return_void.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -227,7 +226,11 @@ Don't try to create 'void' value in if
   
   define i32 @main(i32 %0) {
   entry:
-    call void @foo(i32 20)
+    call void @foo(i32 4)
     ret i32 0
   }
   unit
+  4
+  3
+  2
+  0
