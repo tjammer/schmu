@@ -308,9 +308,21 @@ and typeof_abs env loc params e =
   let type_e = typeof env e in
   TFun (params_t, type_e, Anon)
 
-and typeof_function env loc name param body cont =
+and typeof_function env loc name params body cont =
   (* this loc might not be correct *)
-  typeof_let env loc name (Lambda (loc, param, body)) cont
+  (* typeof_let env loc name (Lambda (loc, param, body)) cont *)
+  let env, params_t = handle_params env loc params in
+  (* Recursion allowed for named funcs *)
+  let env =
+    match snd name with
+    (* Check type annotations *)
+    | None -> Env.add_value (fst name) (newvar ()) env
+    | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
+  in
+  let bodytype = typeof env body in
+  let funtype = TFun (params_t, bodytype, Simple) in
+  unify (Env.find (fst name) env) funtype;
+  typeof env cont
 
 and typeof_app env e1 args =
   let type_fun = typeof env e1 in
@@ -492,7 +504,9 @@ and convert_function env loc { name; params; body; cont } =
      and use it in the function body *)
   let unique = next_func (fst name) func_tbl in
   let env =
+    (* Recursion allowed for named funcs *)
     match snd name with
+    (* We check if there are type annotations *)
     | None -> Env.add_value (fst name) (newvar ()) env
     | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
   in

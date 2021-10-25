@@ -37,6 +37,11 @@ let test_func_1st_class () =
 let test_func_1st_hint () =
   test "(int -> unit) -> int -> unit" "function (f : int -> unit, arg) f(arg)"
 
+let test_func_recursive_if () =
+  test "int -> unit"
+    "external ext : unit -> unit function foo(i) if i < 2 then ext() else \
+     foo(i-1) foo"
+
 let test_record_clear () =
   test "t" "type t = { x : int, y : int } { x = 2, y = 2 }"
 
@@ -95,6 +100,7 @@ let () =
           case "ext" test_func_external;
           case "1st-class" test_func_1st_class;
           case "1st-hint" test_func_1st_hint;
+          case "recursive_if" test_func_recursive_if;
         ] );
       ( "records",
         [
