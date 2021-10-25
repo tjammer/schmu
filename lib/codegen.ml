@@ -119,6 +119,9 @@ let get_generated_func vars name =
       Vars.iter (fun key _ -> prerr_endline ("in: " ^ key)) vars;
       failwith "Internal error"
 
+let is_void value =
+  match Llvm.(type_of value |> classify_type) with Void -> true | _ -> false
+
 let gen_closure_obj assoc func vars name =
   let clsr_struct = Llvm.build_alloca closure_type name builder in
 
@@ -191,15 +194,14 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
 
   let ret = gen_expr temp_funcs abstraction.body in
 
-  (* Don't return a void type *)
+  (* Don't return void type *)
   ignore
-    (match Llvm.(type_of ret |> classify_type) with
-    | Void ->
-        (* Bit of a hack, but whatever *)
-        if String.equal fun_name "main" then
-          Llvm.(build_ret (const_int int_type 0)) builder
-        else Llvm.build_ret_void builder
-    | _ -> Llvm.build_ret ret builder);
+    (if is_void ret then
+     (* Bit of a hack, but whatever *)
+     if String.equal fun_name "main" then
+       Llvm.(build_ret (const_int int_type 0)) builder
+     else Llvm.build_ret_void builder
+    else Llvm.build_ret ret builder);
   Llvm_analysis.assert_valid_function func;
   Vars.add fun_name func funcs
 
@@ -307,8 +309,14 @@ and gen_if vars cond e1 e2 =
   let merge_bb = Llvm.append_block context "ifcont" parent in
 
   Llvm.position_at_end merge_bb builder;
-  let incoming = [ (e1, e1_bb); (e2, e2_bb) ] in
-  let phi = Llvm.build_phi incoming "iftmp" builder in
+  let phi =
+    (* If the else evaluates to void, we don't do anything.
+       Void will be added eventually *)
+    if is_void e1 then e1
+    else
+      let incoming = [ (e1, e1_bb); (e2, e2_bb) ] in
+      Llvm.build_phi incoming "iftmp" builder
+  in
   Llvm.position_at_end start_bb builder;
   Llvm.build_cond_br cond then_bb else_bb builder |> ignore;
 

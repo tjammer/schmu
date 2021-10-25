@@ -183,3 +183,51 @@ First class functions
 We don't allow returning closures
   $ dune exec -- schmu no_closure_returns.smu
   Cannot (yet) return a closure
+
+Don't try to create 'void' value in if
+  $ dune exec -- schmu if_return_void.smu
+  x86_64-pc-linux-gnu
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  declare void @printi(i32 %0)
+  
+  define private void @foo(i32 %i) {
+  entry:
+    %lesstmp = icmp slt i32 %i, 2
+    br i1 %lesstmp, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %subtmp = sub i32 %i, 1
+    call void @printi(i32 %subtmp)
+    br label %ifcont5
+  
+  else:                                             ; preds = %entry
+    %lesstmp1 = icmp slt i32 %i, 400
+    br i1 %lesstmp1, label %then2, label %else3
+  
+  then2:                                            ; preds = %else
+    call void @printi(i32 %i)
+    br label %ifcont
+  
+  else3:                                            ; preds = %else
+    %addtmp = add i32 %i, 1
+    call void @printi(i32 %addtmp)
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else3, %then2
+    %subtmp4 = sub i32 %i, 1
+    call void @foo(i32 %subtmp4)
+    br label %ifcont5
+  
+  ifcont5:                                          ; preds = %ifcont, %then
+    ret void
+  }
+  
+  define i32 @main(i32 %0) {
+  entry:
+    call void @foo(i32 20)
+    ret i32 0
+  }
+  unit
