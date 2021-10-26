@@ -1,0 +1,6 @@
+external printi : int -> unit
+
+type foo = { x : bool, y : int }
+
+a = { y = 10, x = true }
+printi(a.y)
