@@ -65,20 +65,18 @@ Create record
   define private void @create_record({ i32, i32 }* %0, i32 %x, i32 %y) {
   entry:
     %1 = alloca { i32, i32 }, align 8
-    %x16 = bitcast { i32, i32 }* %1 to i32*
-    store i32 %x, i32* %x16, align 4
+    %x13 = bitcast { i32, i32 }* %1 to i32*
+    store i32 %x, i32* %x13, align 4
     %y2 = getelementptr inbounds { i32, i32 }, { i32, i32 }* %1, i32 0, i32 1
     store i32 %y, i32* %y2, align 4
-    %src7 = bitcast { i32, i32 }* %1 to i32*
-    %dst8 = bitcast { i32, i32 }* %0 to i32*
-    %srcval = load i32, i32* %src7, align 4
-    store i32 %srcval, i32* %dst8, align 4
-    %src3 = getelementptr inbounds { i32, i32 }, { i32, i32 }* %1, i32 0, i32 1
-    %dst4 = getelementptr inbounds { i32, i32 }, { i32, i32 }* %0, i32 0, i32 1
-    %srcval5 = load i32, i32* %src3, align 4
-    store i32 %srcval5, i32* %dst4, align 4
+    %2 = bitcast { i32, i32 }* %0 to i8*
+    %3 = bitcast { i32, i32 }* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 mul nuw (i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 2), i1 false)
     ret void
   }
+  
+  ; Function Attrs: argmemonly nofree nosync nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i32 @main(i32 %0) {
   entry:
@@ -89,5 +87,7 @@ Create record
     call void @printi(i32 %2)
     ret i32 0
   }
+  
+  attributes #0 = { argmemonly nofree nosync nounwind willreturn }
   unit
   8

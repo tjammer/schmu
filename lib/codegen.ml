@@ -8,6 +8,8 @@ let builder = Llvm.builder context
 
 let int_type = Llvm.i32_type context
 
+let num_type = Llvm.i64_type context
+
 let bool_type = Llvm.i1_type context
 
 let unit_type = Llvm.void_type context
@@ -15,6 +17,16 @@ let unit_type = Llvm.void_type context
 let voidptr_type = Llvm.(i8_type context |> pointer_type)
 
 let closure_type = Llvm.(struct_type context [| voidptr_type; voidptr_type |])
+
+let memcpy_decl =
+  lazy
+    (let open Llvm in
+    (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
+    let ft =
+      function_type unit_type
+        [| voidptr_type; voidptr_type; num_type; bool_type |]
+    in
+    declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
 
 module Vars = Map.Make (String)
 
@@ -246,21 +258,14 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private) typ
          else Llvm.build_ret_void builder
         else Llvm.build_ret ret.value builder)
   | _ :: _ ->
-      (* TODO memcpy *)
-      (* Use this return struct for creation in the first place *)
-      let fields =
-        match abstraction.body.typ with
-        | TRecord (_, labels) -> labels
-        | _ -> failwith "Internal Error in fun codegen, returning record"
-      in
+      (* TODO Use this return struct for creation in the first place *)
+      (* Since we only have POD records, we can safely memcpy here *)
       let dst = Llvm.(params func.value).(0) in
-      List.iteri
-        (fun i _ ->
-          let src = Llvm.build_struct_gep ret.value i "src" builder in
-          let dst = Llvm.build_struct_gep dst i "dst" builder in
-          let srcval = Llvm.build_load src "srcval" builder in
-          ignore (Llvm.build_store srcval dst builder))
-        fields;
+      let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
+      let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
+      let size = Llvm.size_of (get_lltype ret.typ) in
+      let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
+      ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
       ignore (Llvm.build_ret_void builder));
 
   Llvm_analysis.assert_valid_function func.value;
