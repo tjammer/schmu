@@ -269,11 +269,6 @@ let get_record_type env loc typed_labels =
       unify_labels labels;
       (name, labels)
 
-let rec follow_type = function
-  | TVar { contents = Link t } -> follow_type t
-  | QVar _ -> failwith "TODO think about this"
-  | t -> t
-
 let assoc_opti qkey =
   let rec aux i = function
     | (key, v) :: _ when String.equal qkey key -> Some (i, v)
@@ -398,7 +393,7 @@ and typeof_field env loc expr id =
   let typ = typeof env expr in
   (* This expr could be a fresh var, in which case we take the record type from the label,
      or it could be a specific record type in which case we have to get that certain record *)
-  match follow_type typ with
+  match clean typ with
   | TRecord (name, labels) -> (
       match List.assoc_opt id labels with
       | Some t -> t
@@ -617,7 +612,7 @@ and convert_record env loc labels =
 
 and convert_field env loc expr id =
   let expr = convert env expr in
-  match follow_type expr.typ with
+  match clean expr.typ with
   | TRecord (name, labels) -> (
       match assoc_opti id labels with
       | Some (index, typ) -> { typ; expr = Field (expr, index) }

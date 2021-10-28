@@ -18,6 +18,8 @@ let closure_type = Llvm.(struct_type context [| voidptr_type; voidptr_type |])
 
 module Vars = Map.Make (String)
 
+type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
+
 (* Used to generate lambdas *)
 let fun_gen_state = ref 0
 
@@ -36,7 +38,15 @@ let unique_name = function
 
 let reset state = state := 0
 
-type func = { name : string * bool * int option; abs : Typing.abstraction }
+type func = {
+  name : string * bool * int option;
+  abs : Typing.abstraction;
+  typ : typ;
+}
+
+let fun_of_abs abs =
+  let params = List.map (fun (_, typ) -> clean typ) Typing.(abs.params) in
+  TFun (params, clean abs.body.typ, abs.kind)
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
@@ -54,13 +64,18 @@ let extract expr =
     | Function (name, uniq, abs, cont) ->
         let acc = inner acc abs.body.expr in
         let name = (name, true, uniq) in
-        inner ({ name; abs } :: acc) cont.expr
+        inner ({ name; abs; typ = fun_of_abs abs } :: acc) cont.expr
     | Let (_, e1, e2) ->
         let acc = inner acc e1.expr in
         inner acc e2.expr
     | Lambda abs ->
         let acc = inner acc abs.body.expr in
-        { name = (lambda_name fun_gen_state, false, None); abs } :: acc
+        {
+          name = (lambda_name fun_gen_state, false, None);
+          abs;
+          typ = fun_of_abs abs;
+        }
+        :: acc
     | App (e1, args) ->
         let acc = inner acc e1.expr in
         List.fold_left (fun acc arg -> inner acc Typing.(arg.expr)) acc args
@@ -99,7 +114,7 @@ and typeof_aggregate agg =
 let is_struct typ =
   Llvm.(match classify_type typ with TypeKind.Struct -> true | _ -> false)
 
-let declare_function fun_name abs =
+let declare_function fun_name typ abs =
   let return_t = get_lltype Typing.(abs.body.typ) in
   (* If a record is returned, we allocate it at the caller site and
      pass it as first argument to the function *)
@@ -126,7 +141,10 @@ let declare_function fun_name abs =
     |> Array.of_list
   in
   let ft = Llvm.function_type return_t ll_params_t in
-  (prefix, Llvm.declare_function fun_name ft the_module)
+  let llvar =
+    { value = Llvm.declare_function fun_name ft the_module; typ; lltyp = ft }
+  in
+  (prefix, llvar)
 
 let get_generated_func vars name =
   match Vars.find_opt name vars with
@@ -141,7 +159,7 @@ let gen_closure_obj assoc func vars name =
 
   (* Add function ptr *)
   let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
-  let fun_casted = Llvm.build_bitcast func voidptr_type "func" builder in
+  let fun_casted = Llvm.build_bitcast func.value voidptr_type "func" builder in
   ignore (Llvm.build_store fun_casted fun_ptr builder);
 
   (* Add closed over vars *)
@@ -153,7 +171,7 @@ let gen_closure_obj assoc func vars name =
        (fun i (name, _) ->
          let var = Vars.find name vars in
          let ptr = Llvm.build_struct_gep clsr_ptr i name builder in
-         ignore (Llvm.build_store var ptr builder);
+         ignore (Llvm.build_store var.value ptr builder);
          i + 1)
        0 assoc);
 
@@ -161,21 +179,23 @@ let gen_closure_obj assoc func vars name =
   let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
   let clsr_casted = Llvm.build_bitcast clsr_ptr voidptr_type "env" builder in
   ignore (Llvm.build_store clsr_casted env_ptr builder);
-  clsr_struct
 
-let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
+  { value = clsr_struct; typ = func.typ; lltyp = func.lltyp }
+
+let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private) typ
     abstraction =
-  let struct_ret, func = declare_function fun_name abstraction in
-  Llvm.set_linkage linkage func;
+  let struct_ret, func = declare_function fun_name typ abstraction in
+  Llvm.set_linkage linkage func.value;
 
   (* If we return a struct, the first parameter is the ptr to it *)
   let start_index = match struct_ret with [] -> 0 | _ -> 1 in
 
   let temp_funcs, closure_index =
     List.fold_left
-      (fun (env, i) (name, _) ->
-        let param = (Llvm.params func).(i) in
-        Llvm.set_value_name name param;
+      (fun (env, i) (name, typ) ->
+        let value = (Llvm.params func.value).(i) in
+        let param = { value; typ = clean typ; lltyp = Llvm.type_of value } in
+        Llvm.set_value_name name value;
         (Vars.add name param env, i + 1))
       (funcs, start_index) abstraction.params
   in
@@ -186,7 +206,7 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
   in
 
   (* gen function body *)
-  let bb = Llvm.append_block context "entry" func in
+  let bb = Llvm.append_block context "entry" func.value in
   Llvm.position_at_end bb builder;
 
   (* Add params from closure *)
@@ -195,15 +215,16 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
     match abstraction.kind with
     | Simple | Anon -> temp_funcs
     | Closure assoc ->
-        let clsr_param = (Llvm.params func).(closure_index) in
+        let clsr_param = (Llvm.params func.value).(closure_index) in
         let clsr_type = typeof_aggregate assoc |> Llvm.pointer_type in
         let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
 
         let env, _ =
           List.fold_left
-            (fun (env, i) (name, _) ->
+            (fun (env, i) (name, typ) ->
               let item_ptr = Llvm.build_struct_gep clsr_ptr i name builder in
-              let item = Llvm.build_load item_ptr name builder in
+              let value = Llvm.build_load item_ptr name builder in
+              let item = { value; typ; lltyp = Llvm.type_of value } in
               (Vars.add name item env, i + 1))
             (temp_funcs, 0) assoc
         in
@@ -218,12 +239,12 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
   | [] ->
       (* Don't return void type *)
       ignore
-        (if is_void ret then
+        (if is_void ret.value then
          (* Bit of a hack, but whatever *)
          if String.equal fun_name "main" then
            Llvm.(build_ret (const_int int_type 0)) builder
          else Llvm.build_ret_void builder
-        else Llvm.build_ret ret builder)
+        else Llvm.build_ret ret.value builder)
   | _ :: _ ->
       (* TODO memcpy *)
       (* Use this return struct for creation in the first place *)
@@ -232,24 +253,30 @@ let rec gen_function funcs fun_name ~named ?(linkage = Llvm.Linkage.Private)
         | TRecord (_, labels) -> labels
         | _ -> failwith "Internal Error in fun codegen, returning record"
       in
-      let dst = Llvm.(params func).(0) in
+      let dst = Llvm.(params func.value).(0) in
       List.iteri
         (fun i _ ->
-          let src = Llvm.build_struct_gep ret i "src" builder in
+          let src = Llvm.build_struct_gep ret.value i "src" builder in
           let dst = Llvm.build_struct_gep dst i "dst" builder in
           let srcval = Llvm.build_load src "srcval" builder in
           ignore (Llvm.build_store srcval dst builder))
         fields;
       ignore (Llvm.build_ret_void builder));
 
-  Llvm_analysis.assert_valid_function func;
+  Llvm_analysis.assert_valid_function func.value;
 
   Vars.add fun_name func funcs
 
-and gen_expr vars typed_expr =
+and gen_expr (vars : llvar Vars.t) typed_expr : llvar =
   match Typing.(typed_expr.expr) with
-  | Typing.Const (Int i) -> Llvm.const_int int_type i
-  | Const (Bool b) -> Llvm.const_int bool_type (Bool.to_int b)
+  | Typing.Const (Int i) ->
+      { value = Llvm.const_int int_type i; typ = TInt; lltyp = int_type }
+  | Const (Bool b) ->
+      {
+        value = Llvm.const_int bool_type (Bool.to_int b);
+        typ = TBool;
+        lltyp = bool_type;
+      }
   | Const Unit -> failwith "TODO"
   | Bop (bop, e1, e2) ->
       let e1 = gen_expr vars e1 in
@@ -284,66 +311,82 @@ and gen_expr vars typed_expr =
       | Closure assoc -> gen_closure_obj assoc func vars name)
   | App (callee, arg) -> gen_app vars callee arg
   | If (cond, e1, e2) -> gen_if vars cond e1 e2
-  | Record labels -> codegen_record vars typed_expr.typ labels
+  | Record labels -> codegen_record vars (clean typed_expr.typ) labels
   | Field (expr, index) -> codegen_field vars expr index
 
 and gen_bop e1 e2 = function
-  | Plus -> Llvm.build_add e1 e2 "addtmp" builder
-  | Mult -> Llvm.build_mul e1 e2 "multmp" builder
-  | Less -> Llvm.(build_icmp Icmp.Slt) e1 e2 "lesstmp" builder
-  | Equal -> Llvm.(build_icmp Icmp.Eq) e1 e2 "eqtmp" builder
-  | Minus -> Llvm.build_sub e1 e2 "subtmp" builder
+  | Plus ->
+      let value = Llvm.build_add e1.value e2.value "addtmp" builder in
+      { value; typ = TInt; lltyp = int_type }
+  | Mult ->
+      let value = Llvm.build_mul e1.value e2.value "multmp" builder in
+      { value; typ = TInt; lltyp = int_type }
+  | Less ->
+      let value =
+        Llvm.(build_icmp Icmp.Slt) e1.value e2.value "lesstmp" builder
+      in
+      { value; typ = TBool; lltyp = bool_type }
+  | Equal ->
+      let value = Llvm.(build_icmp Icmp.Eq) e1.value e2.value "eqtmp" builder in
+      { value; typ = TBool; lltyp = bool_type }
+  | Minus ->
+      let value = Llvm.build_sub e1.value e2.value "subtmp" builder in
+      { value; typ = TInt; lltyp = int_type }
 
 and gen_app vars callee args =
   let func = gen_expr vars callee in
 
   let funcs_to_ptr v =
-    match Llvm.classify_value v with
+    match Llvm.classify_value v.value with
     | Function ->
         (* If a function is passed into [func] we convert it to a closure
            closures are already closures with an env *)
         let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
         let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
-        let ptr = Llvm.build_bitcast v voidptr_type "" builder in
+        let ptr = Llvm.build_bitcast v.value voidptr_type "" builder in
         ignore (Llvm.build_store ptr fp builder);
 
         let envptr = Llvm.build_struct_gep closure_struct 1 "envptr" builder in
         let nullptr = Llvm.const_pointer_null voidptr_type in
         ignore (Llvm.build_store nullptr envptr builder);
         closure_struct
-    | _ -> v
+    | _ -> v.value
   in
   let args = List.map (fun e -> gen_expr vars e |> funcs_to_ptr) args in
 
   (* No names here, might be void/unit *)
-  let func, args =
-    if Llvm.type_of func = (closure_type |> Llvm.pointer_type) then
+  let funcval, args =
+    if Llvm.type_of func.value = (closure_type |> Llvm.pointer_type) then
       (* Function to call is a closure (or a function passed into another one).
          We get the funptr from the first field, cast to the correct type,
          then get env ptr (as voidptr) from the second field and pass it as last argument *)
-      let funcp = Llvm.build_struct_gep func 0 "funcptr" builder in
+      let funcp = Llvm.build_struct_gep func.value 0 "funcptr" builder in
       let funcp = Llvm.build_load funcp "loadtmp" builder in
-      let typ = get_lltype ~param:false callee.typ in
+      let typ = get_lltype ~param:false func.typ in
       let funcp = Llvm.build_bitcast funcp typ "casttmp" builder in
 
-      let env_ptr = Llvm.build_struct_gep func 1 "envptr" builder in
+      let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
       let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
       (funcp, args @ [ env_ptr ])
-    else (func, args)
+    else (func.value, args)
   in
 
-  let struct_ret =
-    match callee.typ with
-    | TFun (_, (TRecord _ as rtyp), _) -> Some (get_lltype rtyp)
-    | _ -> None
+  let value, typ, lltyp =
+    match func.typ with
+    | TFun (_, (TRecord _ as typ), _) ->
+        let lltyp = get_lltype typ in
+        let ret = Llvm.build_alloca lltyp "ret" builder in
+        ignore
+          (Llvm.build_call funcval (Array.of_list ([ ret ] @ args)) "" builder);
+        (ret, typ, lltyp)
+    | TFun (_, t, _) ->
+        ( Llvm.build_call funcval (Array.of_list args) "" builder,
+          t,
+          func.lltyp |> Llvm.return_type )
+    | _ -> failwith "Internal Error not a fun in gen_app"
   in
 
-  match struct_ret with
-  | Some record ->
-      let ret = Llvm.build_alloca record "ret" builder in
-      ignore (Llvm.build_call func (Array.of_list ([ ret ] @ args)) "" builder);
-      ret
-  | None -> Llvm.build_call func (Array.of_list args) "" builder
+  { value; typ; lltyp }
 
 and gen_if vars cond e1 e2 =
   let cond = gen_expr vars cond in
@@ -367,13 +410,13 @@ and gen_if vars cond e1 e2 =
   let phi =
     (* If the else evaluates to void, we don't do anything.
        Void will be added eventually *)
-    if is_void e1 then e1
+    if is_void e1.value then e1.value
     else
-      let incoming = [ (e1, e1_bb); (e2, e2_bb) ] in
+      let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
       Llvm.build_phi incoming "iftmp" builder
   in
   Llvm.position_at_end start_bb builder;
-  Llvm.build_cond_br cond then_bb else_bb builder |> ignore;
+  Llvm.build_cond_br cond.value then_bb else_bb builder |> ignore;
 
   Llvm.position_at_end e1_bb builder;
   ignore (Llvm.build_br merge_bb builder);
@@ -381,31 +424,38 @@ and gen_if vars cond e1 e2 =
   ignore (Llvm.build_br merge_bb builder);
 
   Llvm.position_at_end merge_bb builder;
-  phi
+  { value = phi; typ = e1.typ; lltyp = e1.lltyp }
 
 and codegen_record vars typ labels =
-  let typ = get_lltype typ in
-  let record = Llvm.build_alloca typ "" builder in
+  let lltyp = get_lltype typ in
+  let record = Llvm.build_alloca lltyp "" builder in
   List.iteri
     (fun i (name, expr) ->
       let ptr = Llvm.build_struct_gep record i name builder in
       let value = gen_expr vars expr in
-      ignore (Llvm.build_store value ptr builder))
+      ignore (Llvm.build_store value.value ptr builder))
     labels;
-  record
+  { value = record; typ; lltyp }
 
 and codegen_field vars expr index =
   let value = gen_expr vars expr in
-  let ptr = Llvm.build_struct_gep value index "" builder in
-  Llvm.build_load ptr "" builder
+  let ptr = Llvm.build_struct_gep value.value index "" builder in
+
+  let typ =
+    match value.typ with
+    | TRecord (_, fields) -> List.nth fields index |> snd
+    | _ -> failwith "Internal Error: No record in fields"
+  in
+  let value = Llvm.build_load ptr "" builder in
+  { value; typ; lltyp = Llvm.type_of value }
 
 let decl_external (name, typ) =
   match typ with
-  | TFun (ts, t, _) ->
+  | TFun (ts, t, _) as typ ->
       let return_t = get_lltype t in
       let arg_t = List.map get_lltype ts |> Array.of_list in
       let ft = Llvm.function_type return_t arg_t in
-      Llvm.declare_function name ft the_module
+      { value = Llvm.declare_function name ft the_module; typ; lltyp = ft }
   | _ -> failwith "TODO external symbols"
 
 let generate externals typed_expr =
@@ -422,15 +472,15 @@ let generate externals typed_expr =
     let lst = extract typed_expr.expr in
     let vars =
       List.fold_left
-        (fun acc { name = name, named, uniq; abs } ->
+        (fun acc { name = name, named, uniq; abs; typ } ->
           let name = if named then unique_name (name, uniq) else name in
-          Vars.add name (declare_function name abs |> snd) acc)
+          Vars.add name (declare_function name typ abs |> snd) acc)
         vars lst
     in
     List.fold_left
-      (fun acc { name = name, named, uniq; abs } ->
+      (fun acc { name = name, named, uniq; abs; typ } ->
         let name = if named then unique_name (name, uniq) else name in
-        gen_function ~named acc name abs)
+        gen_function ~named acc name typ abs)
       vars lst
   in
   (* Reset lambda counter *)
@@ -438,7 +488,7 @@ let generate externals typed_expr =
   (* Add main *)
   let linkage = Llvm.Linkage.External in
   ignore
-  @@ gen_function funcs ~linkage ~named:false "main"
+  @@ gen_function funcs ~linkage ~named:false "main" TInt
        {
          params = [ ("", TInt) ];
          body = { typed_expr with typ = TInt };
