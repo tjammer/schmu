@@ -1,4 +1,7 @@
 open Types
+module Vars = Map.Make (String)
+
+type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
 
 let context = Llvm.global_context ()
 
@@ -28,9 +31,39 @@ let memcpy_decl =
     in
     declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
 
-module Vars = Map.Make (String)
+let rec get_lltype ?(param = true) = function
+  (* For functions, when passed as parameter, we convert it to a closure ptr
+     to later cast to the correct types. At the application, we need to
+     get the correct type though to cast it back. All this is handled by [param]. *)
+  | TInt -> int_type
+  | TBool -> bool_type
+  | TVar { contents = Link t } -> get_lltype ~param t
+  | TUnit -> unit_type
+  | TFun (params, t, _) ->
+      if param then closure_type |> Llvm.pointer_type
+      else
+        let ret_t = get_lltype t in
+        let params_t =
+          List.map get_lltype params |> fun lst ->
+          lst @ [ voidptr_type ] |> Array.of_list
+        in
+        Llvm.function_type ret_t params_t |> Llvm.pointer_type
+  | TRecord (_, labels) -> typeof_aggregate labels
+  | (TVar _ | QVar _) as t ->
+      failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
-type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
+(* LLVM type of closure struct and records *)
+and typeof_aggregate agg =
+  List.map (fun (_, typ) -> get_lltype typ) agg
+  |> Array.of_list |> Llvm.struct_type context
+
+let memcpy ~dst ~src =
+  (* let dst = Llvm.(params func.value).(0) in *)
+  let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
+  let retptr = Llvm.build_bitcast src.value voidptr_type "" builder in
+  let size = Llvm.size_of (get_lltype src.typ) in
+  let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
+  ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
 
 (* Used to generate lambdas *)
 let fun_gen_state = ref 0
@@ -96,32 +129,6 @@ let extract expr =
     | Field (expr, _) -> inner acc expr.expr
   in
   inner [] expr
-
-let rec get_lltype ?(param = true) = function
-  (* For functions, when passed as parameter, we convert it to a closure ptr
-     to later cast to the correct types. At the application, we need to
-     get the correct type though to cast it back. All this is handled by [param]. *)
-  | TInt -> int_type
-  | TBool -> bool_type
-  | TVar { contents = Link t } -> get_lltype ~param t
-  | TUnit -> unit_type
-  | TFun (params, t, _) ->
-      if param then closure_type |> Llvm.pointer_type
-      else
-        let ret_t = get_lltype t in
-        let params_t =
-          List.map get_lltype params |> fun lst ->
-          lst @ [ voidptr_type ] |> Array.of_list
-        in
-        Llvm.function_type ret_t params_t |> Llvm.pointer_type
-  | TRecord (_, labels) -> typeof_aggregate labels
-  | (TVar _ | QVar _) as t ->
-      failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
-
-(* LLVM type of closure struct and records *)
-and typeof_aggregate agg =
-  List.map (fun (_, typ) -> get_lltype typ) agg
-  |> Array.of_list |> Llvm.struct_type context
 
 let is_struct typ =
   Llvm.(match classify_type typ with TypeKind.Struct -> true | _ -> false)
@@ -438,7 +445,9 @@ and codegen_record vars typ labels =
     (fun i (name, expr) ->
       let ptr = Llvm.build_struct_gep record i name builder in
       let value = gen_expr vars expr in
-      ignore (Llvm.build_store value.value ptr builder))
+      match value.typ with
+      | TRecord _ -> memcpy ~dst:ptr ~src:value
+      | _ -> ignore (Llvm.build_store value.value ptr builder))
     labels;
   { value = record; typ; lltyp }
 
@@ -451,7 +460,13 @@ and codegen_field vars expr index =
     | TRecord (_, fields) -> List.nth fields index |> snd
     | _ -> failwith "Internal Error: No record in fields"
   in
-  let value = Llvm.build_load ptr "" builder in
+  (* In case we return a record, we don't load, but return the pointer.
+     The idea is that this will be used either as a return value for a function (where it is copied),
+     or for another field, where the pointer is needed.
+     We should distinguish between structs and pointern somehow *)
+  let value =
+    match typ with TRecord _ -> ptr | _ -> Llvm.build_load ptr "" builder
+  in
   { value; typ; lltyp = Llvm.type_of value }
 
 let decl_external (name, typ) =

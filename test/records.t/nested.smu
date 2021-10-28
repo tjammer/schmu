@@ -1,0 +1,12 @@
+external printi : int -> unit
+
+type inner = { z : int }
+
+type foo = { x : int, y : inner }
+
+function inner()
+  { z = 3 }
+
+a = { x = 0, y = inner() }
+
+printi(a.y.z)
