@@ -182,7 +182,7 @@ First class functions
 
 We don't allow returning closures
   $ dune exec -- schmu no_closure_returns.smu
-  Cannot (yet) return a closure
+  no_closure_returns.smu:3:1: error: Cannot (yet) return a closure
 
 Don't try to create 'void' value in if
   $ dune exec -- schmu if_return_void.smu | grep -v x86_64 && cc out.o stub.o && ./a.out

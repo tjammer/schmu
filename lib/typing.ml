@@ -26,8 +26,6 @@ type external_decl = string * typ
 
 exception Error of Ast.loc * string
 
-exception Unify
-
 module Strset = Set.Make (String)
 
 module Str = struct
@@ -109,27 +107,49 @@ let rec occurs tvr = function
       occurs tvr t
   | _ -> ()
 
-let rec unify t1 t2 =
+let arity (loc, pre) thing a b =
+  let msg =
+    Printf.sprintf "%s Arity in %s: Expected %i but got %i" pre thing
+      (List.length a) (List.length b)
+  in
+  raise (Error (loc, msg))
+
+let rec unify info t1 t2 =
   if t1 == t2 then ()
   else
     match (t1, t2) with
     | TVar { contents = Link t1 }, t2 | t2, TVar { contents = Link t1 } ->
-        unify t1 t2
+        unify info t1 t2
     | TVar ({ contents = Unbound _ } as tv), t
     | t, TVar ({ contents = Unbound _ } as tv) ->
         occurs tv t;
         tv := Link t
     | TFun (params_l, l, _), TFun (params_r, r, _) ->
-        (try List.iter2 (fun left right -> unify left right) params_l params_r
-         with Invalid_argument _ -> raise Unify);
-        unify l r
+        (try
+           List.iter2
+             (fun left right -> unify info left right)
+             params_l params_r
+         with Invalid_argument _ -> arity info "function" params_l params_r);
+        unify info l r
     | TRecord (n1, labels1), TRecord (n2, labels2) ->
         if String.equal n1 n2 then
           (* We ignore the label names for now *)
-          try List.iter2 (fun a b -> unify (snd a) (snd b)) labels1 labels2
-          with Invalid_argument _ -> raise Unify
-        else raise Unify
-    | _ -> raise Unify
+          try List.iter2 (fun a b -> unify info (snd a) (snd b)) labels1 labels2
+          with Invalid_argument _ -> arity info "record" labels1 labels2
+        else
+          let loc, pre = info in
+          let msg =
+            Printf.sprintf "%s Expected %s but got %s" pre (string_of_type t1)
+              (string_of_type t2)
+          in
+          raise (Error (loc, msg))
+    | _ ->
+        let loc, pre = info in
+        let msg =
+          Printf.sprintf "%s Expected %s but got %s" pre (string_of_type t1)
+            (string_of_type t2)
+        in
+        raise (Error (loc, msg))
 
 let rec generalize = function
   | TVar { contents = Unbound (id, l) } when l > !current_level -> QVar id
@@ -160,20 +180,12 @@ let instantiate t =
   in
   aux Env.empty t |> fst
 
-let bop_error loc bop t1 t2 =
-  let op =
-    match bop with
-    | Ast.Plus -> "+"
-    | Mult -> "*"
-    | Less -> "<"
-    | Equal -> "=="
-    | Minus -> "-"
-  in
-  raise
-    (Error
-       ( loc,
-         "Expressions in binary op '" ^ op ^ "' must be both int " ^ "not: "
-         ^ string_of_type t1 ^ " vs " ^ string_of_type t2 ))
+let string_of_bop = function
+  | Ast.Plus -> "+"
+  | Mult -> "*"
+  | Less -> "<"
+  | Equal -> "=="
+  | Minus -> "-"
 
 let typeof_annot env loc annot =
   let concrete_type = function
@@ -228,7 +240,7 @@ let get_record_type env loc typed_labels =
     List.iter
       (fun (rlabel, rtype) ->
         let ltype = List.assoc rlabel typed_labels in
-        unify ltype rtype)
+        unify (loc, "") rtype ltype)
       labels
   in
   let get_name_labels = function
@@ -285,7 +297,7 @@ let rec typeof env = function
   | Lambda (loc, id, e) -> typeof_abs env loc id e
   | Function (loc, { name; params; body; cont }) ->
       typeof_function env loc name params body cont
-  | App (_, e1, e2) -> typeof_app env e1 e2
+  | App (loc, e1, e2) -> typeof_app env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
   | Record (loc, labels) -> typeof_record env loc labels
@@ -309,7 +321,7 @@ and typeof_let env loc (id, type_annot) e1 e2 =
         let type_annot = typeof_annot env loc annot in
         let type_e = typeof env e1 in
         leave_level ();
-        unify type_annot type_e;
+        unify (loc, "") type_annot type_e;
         type_annot
   in
   typeof (Env.add_value id type_e env) e2
@@ -332,33 +344,28 @@ and typeof_function env loc name params body cont =
   in
   let bodytype = typeof env body in
   let funtype = TFun (params_t, bodytype, Simple) in
-  unify (Env.find (fst name) env) funtype;
+  unify (loc, "") (Env.find (fst name) env) funtype;
   typeof env cont
 
-and typeof_app env e1 args =
+and typeof_app env loc e1 args =
   let type_fun = typeof env e1 in
   let type_args = List.map (typeof env) args in
   let type_res = newvar () in
-  unify type_fun (TFun (type_args, type_res, Simple));
+  unify (loc, "") type_fun (TFun (type_args, type_res, Simple));
   type_res
 
 and typeof_if env loc cond e1 e2 =
   (* We can assume pred evaluates to bool and both
      branches need to evaluate to the some type *)
   let type_cond = typeof env cond in
-  unify type_cond TBool;
+  unify (loc, "In condition") type_cond TBool;
   (* TODO catch *)
   let type_e1 = typeof env e1 in
   let type_e2 = typeof env e2 in
   let type_res = newvar () in
-  (try unify type_e1 type_e2
-   with Unify ->
-     raise
-       (Error
-          ( loc,
-            "Branches in if: " ^ string_of_type type_e1 ^ " vs "
-            ^ string_of_type type_e2 )));
-  unify type_res type_e2;
+
+  unify (loc, "Branches have different type") type_e1 type_e2;
+  unify (loc, "") type_res type_e2;
   type_res
 
 and typeof_bop env loc bop e1 e2 =
@@ -366,11 +373,10 @@ and typeof_bop env loc bop e1 e2 =
     (* both exprs must be Int, not Bool *)
     let t1 = typeof env e1 in
     let t2 = typeof env e2 in
-    try
-      unify t1 TInt;
-      unify t2 TInt
-    with Unify -> bop_error loc bop t1 t2
+    unify (loc, "Binary " ^ string_of_bop bop) t1 TInt;
+    unify (loc, "Binary " ^ string_of_bop bop) t2 TInt
   in
+
   match bop with
   | Plus | Mult | Minus ->
       check ();
@@ -402,7 +408,9 @@ and typeof_field env loc expr id =
   | t -> (
       match Env.find_label_opt id env with
       | Some { typ; record; index = _ } ->
-          unify t (Env.find_type record env);
+          unify
+            (loc, "Field access of " ^ string_of_type typ)
+            (Env.find_type record env) t;
           typ
       | None -> raise (Error (loc, "Unbound field " ^ id)))
 
@@ -459,7 +467,7 @@ let rec convert env = function
   | Let (loc, x, e1, e2) -> convert_let env loc x e1 e2
   | Lambda (loc, id, e) -> convert_lambda env loc id e
   | Function (loc, func) -> convert_function env loc func
-  | App (_, e1, e2) -> convert_app env e1 e2
+  | App (loc, e1, e2) -> convert_app env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
   | Record (loc, labels) -> convert_record env loc labels
@@ -483,7 +491,7 @@ and typeof_annot_decl env loc annot expr =
       let t_annot = typeof_annot env loc annot in
       let t = convert env expr in
       leave_level ();
-      unify t_annot t.typ;
+      unify (loc, "") t_annot t.typ;
       { t with typ = t_annot }
 
 and convert_let env loc (id, type_annot) e1 e2 =
@@ -541,29 +549,29 @@ and convert_function env loc { name; params; body; cont } =
   let lambda_typ = TFun (params_t, body.typ, kind) in
 
   (* Make sure the types match *)
-  unify (Env.find (fst name) env) lambda_typ;
+  unify (loc, "Function") (Env.find (fst name) env) lambda_typ;
   (* Continue, see let *)
   let typ2 = convert env cont in
   { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
 
-and convert_app env e1 args =
+and convert_app env loc e1 args =
   let type_fun = convert env e1 in
   let typed_expr_args = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_expr_args in
   let res_t = newvar () in
-  unify type_fun.typ (TFun (args_t, res_t, Simple));
+  unify (loc, "Application") type_fun.typ (TFun (args_t, res_t, Simple));
   { typ = res_t; expr = App (type_fun, typed_expr_args) }
 
 and convert_bop env loc bop e1 e2 =
   let check () =
     let t1 = convert env e1 in
     let t2 = convert env e2 in
-    try
-      unify t1.typ TInt;
-      unify t2.typ TInt;
-      (t1, t2)
-    with Unify -> bop_error loc bop t1.typ t2.typ
+
+    unify (loc, "Binary " ^ string_of_bop bop) t1.typ TInt;
+    unify (loc, "Binary " ^ string_of_bop bop) t2.typ TInt;
+    (t1, t2)
   in
+
   match bop with
   | Ast.Plus | Mult | Minus ->
       let t1, t2 = check () in
@@ -576,24 +584,12 @@ and convert_if env loc cond e1 e2 =
   (* We can assume pred evaluates to bool and both
      branches need to evaluate to the some type *)
   let type_cond = convert env cond in
-  (try unify type_cond.typ TBool
-   with Unify ->
-     raise
-       (Error
-          ( loc,
-            "Condition in if must evaluate to bool, not: "
-            ^ string_of_type type_cond.typ )));
+  unify (loc, "In condition") type_cond.typ TBool;
   let type_e1 = convert env e1 in
   let type_e2 = convert env e2 in
   let typ = newvar () in
-  (try unify type_e1.typ type_e2.typ
-   with Unify ->
-     raise
-       (Error
-          ( loc,
-            "Branches in if: " ^ string_of_type type_e1.typ ^ " vs "
-            ^ string_of_type type_e2.typ )));
-  unify typ type_e2.typ;
+  unify (loc, "Branches have different type") type_e1.typ type_e2.typ;
+  unify (loc, "") typ type_e2.typ;
   { typ; expr = If (type_cond, type_e1, type_e2) }
 
 and convert_record env loc labels =
@@ -621,7 +617,9 @@ and convert_field env loc expr id =
   | t -> (
       match Env.find_label_opt id env with
       | Some { typ; index; record } ->
-          unify t (Env.find_type record env);
+          unify
+            (loc, "Field access of " ^ string_of_type typ)
+            (Env.find_type record env) t;
           { typ; expr = Field (expr, index) }
       | None -> raise (Error (loc, "Unbound field " ^ id)))
 

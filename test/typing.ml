@@ -11,9 +11,6 @@ let test a src = (check string) "" a (get_type src)
 let test_exn msg src =
   (check string) "" msg (try get_type src with Typing.Error (_, msg) -> msg)
 
-let test_exn_unify src =
-  check_raises "" Typing.Unify (fun () -> ignore @@ get_type src)
-
 let test_const_int () = test "int" "a = 1 a"
 
 let test_const_bool () = test "bool" "a = true a"
@@ -62,10 +59,11 @@ let test_record_create_if () =
 let test_record_create_return () =
   test "t" "type t = {x : int} function a () 10 { x = a() }"
 
-let test_record_wrong_type () = test_exn_unify "type t = {x : int} {x = true}"
+let test_record_wrong_type () =
+  test_exn " Expected int but got bool" "type t = {x : int} {x = true}"
 
 let test_record_wrong_choose () =
-  test_exn_unify
+  test_exn " Expected int but got bool"
     "type t1 = {x : int, y : int} type t2 = {x : int, z : int} {x = 2, y = \
      true}"
 
@@ -76,10 +74,11 @@ let test_record_field_infer () =
   test "t -> int" "type t = {x : int} function (a) a.x"
 
 let test_record_field_no_record () =
-  test_exn_unify "type t = {x : int} a = 10 a.x"
+  test_exn "Field access of int Expected t but got int"
+    "type t = {x : int} a = 10 a.x"
 
 let test_record_field_wrong_record () =
-  test_exn_unify
+  test_exn " Expected t1 but got t2"
     "type t1 = {x : int} type t2 = {y:int} function foo(a) a.x b = {y = 10} \
      foo(b)"
 

@@ -2,8 +2,6 @@ open Types
 
 exception Error of Ast.loc * string
 
-exception Unify (* TODO Should throw Error as well *)
-
 val string_of_type : typ -> string
 
 type abstraction = {

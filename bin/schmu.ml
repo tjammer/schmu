@@ -3,10 +3,9 @@ open Schmulang
 
 let print_position _ lexbuf =
   let pos = lexbuf.lex_curr_p in
-  Printf.sprintf "%s:%d:%d" pos.pos_fname pos.pos_lnum
-    (pos.pos_cnum - pos.pos_bol + 1)
+  Printf.sprintf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-let run src =
+let run file src =
   let lexbuf = Lexing.from_string src in
   Schmulang.(
     try
@@ -18,23 +17,27 @@ let run src =
          typ.typ)
     with
     | Lexer.SyntaxError msg ->
-        Error (Printf.sprintf "%a: %s" print_position lexbuf msg)
+        Error (Printf.sprintf "%s:%a: %s" file print_position lexbuf msg)
     | Parser.Error ->
-        Error (Printf.sprintf "%a: syntax error" print_position lexbuf)
-    | Typing.Error (_, msg) -> Error msg)
+        Error (Printf.sprintf "%s:%a: syntax error" file print_position lexbuf)
+    | Typing.Error (loc, msg) ->
+        Error
+          (Printf.sprintf "%s:%d:%d: error: %s" file loc.pos_lnum
+             (loc.pos_cnum - loc.pos_bol + 1)
+             msg))
 
 let run_file filename =
   let ch = open_in filename in
   let s = really_input_string ch (in_channel_length ch) in
   close_in ch;
-  match run s with
+  match run filename s with
   | Ok typ -> Typing.string_of_type typ |> print_endline
   | Error msg -> prerr_endline msg
 
 let rec run_prompt () =
   try
     print_string "> ";
-    (match run (read_line ()) with
+    (match run "" (read_line ()) with
     | Ok typ -> Typing.string_of_type typ |> print_endline
     | Error msg -> prerr_endline msg);
     run_prompt ()
