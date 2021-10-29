@@ -31,7 +31,8 @@ let add_type record ~labels env =
   { env with labels; records }
 
 let new_scope env =
-  let empty = empty.values in
+  (* Due to the ref, we have to create a new object every time *)
+  let empty = [ (Map.empty, ref []) ] in
   { env with values = empty @ env.values }
 
 let close_scope env =

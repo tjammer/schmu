@@ -234,3 +234,65 @@ Don't try to create 'void' value in if
   3
   2
   0
+
+Captured values should not overwrite function params
+  $ dune exec -- schmu overwrite_params.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  declare void @printi(i32 %0)
+  
+  define private i32 @add({ i8*, i8* }* %a, { i8*, i8* }* %b) {
+  entry:
+    %funcptr7 = bitcast { i8*, i8* }* %a to i8**
+    %loadtmp = load i8*, i8** %funcptr7, align 8
+    %casttmp = bitcast i8* %loadtmp to i32 (i8*)*
+    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %a, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %0 = call i32 %casttmp(i8* %loadtmp1)
+    %funcptr28 = bitcast { i8*, i8* }* %b to i8**
+    %loadtmp3 = load i8*, i8** %funcptr28, align 8
+    %casttmp4 = bitcast i8* %loadtmp3 to i32 (i8*)*
+    %envptr5 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %b, i32 0, i32 1
+    %loadtmp6 = load i8*, i8** %envptr5, align 8
+    %1 = call i32 %casttmp4(i8* %loadtmp6)
+    %addtmp = add i32 %0, %1
+    ret i32 %addtmp
+  }
+  
+  define private i32 @two(i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { i32 }*
+    %b2 = bitcast { i32 }* %clsr to i32*
+    %b1 = load i32, i32* %b2, align 4
+    ret i32 %b1
+  }
+  
+  define private i32 @one() {
+  entry:
+    ret i32 1
+  }
+  
+  define i32 @main(i32 %0) {
+  entry:
+    %two = alloca { i8*, i8* }, align 8
+    %funptr3 = bitcast { i8*, i8* }* %two to i8**
+    store i8* bitcast (i32 (i8*)* @two to i8*), i8** %funptr3, align 8
+    %clsr_two = alloca { i32 }, align 8
+    %b4 = bitcast { i32 }* %clsr_two to i32*
+    store i32 2, i32* %b4, align 4
+    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %two, i32 0, i32 1
+    %env = bitcast { i32 }* %clsr_two to i8*
+    store i8* %env, i8** %envptr, align 8
+    %clstmp = alloca { i8*, i8* }, align 8
+    %funptr15 = bitcast { i8*, i8* }* %clstmp to i8**
+    store i8* bitcast (i32 ()* @one to i8*), i8** %funptr15, align 8
+    %envptr2 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp, i32 0, i32 1
+    store i8* null, i8** %envptr2, align 8
+    %1 = call i32 @add({ i8*, i8* }* %clstmp, { i8*, i8* }* %two)
+    call void @printi(i32 %1)
+    ret i32 0
+  }
+  unit
+  3

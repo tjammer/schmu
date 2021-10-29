@@ -212,22 +212,9 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
       (* If we return a struct, the first parameter is the ptr to it *)
       let start_index = match ret_t with TRecord _ -> 1 | _ -> 0 in
 
-      let temp_funcs, closure_index =
-        List.fold_left2
-          (fun (env, i) name typ ->
-            let value = (Llvm.params func.value).(i) in
-            let param =
-              { value; typ = clean typ; lltyp = Llvm.type_of value }
-            in
-            Llvm.set_value_name name value;
-            (Vars.add name param env, i + 1))
-          (funcs, start_index) params tparams
-      in
-
-      (* If the function is named, we allow recursion *)
-      let temp_funcs =
-        if named then Vars.add fun_name func temp_funcs else temp_funcs
-      in
+      (* We traverse the list once here and another time at the bottom. We do this because we need
+         the closure index for the closure vars, but want function params to have higher precedence *)
+      let closure_index = List.length params + start_index in
 
       (* gen function body *)
       let bb = Llvm.append_block context "entry" func.value in
@@ -237,7 +224,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
       (* We both generate the code for extracting the closure and add the vars to the environment *)
       let temp_funcs =
         match kind with
-        | Simple | Anon -> temp_funcs
+        | Simple | Anon -> funcs
         | Closure assoc ->
             let clsr_param = (Llvm.params func.value).(closure_index) in
             let clsr_type = typeof_aggregate assoc |> Llvm.pointer_type in
@@ -254,9 +241,26 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
                   let value = Llvm.build_load item_ptr name builder in
                   let item = { value; typ; lltyp = Llvm.type_of value } in
                   (Vars.add name item env, i + 1))
-                (temp_funcs, 0) assoc
+                (funcs, 0) assoc
             in
             env
+      in
+
+      let temp_funcs, _ =
+        List.fold_left2
+          (fun (env, i) name typ ->
+            let value = (Llvm.params func.value).(i) in
+            let param =
+              { value; typ = clean typ; lltyp = Llvm.type_of value }
+            in
+            Llvm.set_value_name name value;
+            (Vars.add name param env, i + 1))
+          (temp_funcs, start_index) params tparams
+      in
+
+      (* If the function is named, we allow recursion *)
+      let temp_funcs =
+        if named then Vars.add fun_name func temp_funcs else temp_funcs
       in
 
       let ret = gen_expr temp_funcs body in
@@ -361,11 +365,14 @@ and gen_bop e1 e2 = function
 and gen_app vars callee args =
   let func = gen_expr vars callee in
 
-  let funcs_to_ptr v =
-    match Llvm.classify_value v.value with
-    | Function ->
+  let funcs_to_ptr (v : llvar) =
+    match v.typ with
+    | TFun (_, _, Closure _) ->
+        (* This closure is a struct and has an env *)
+        v.value
+    | TFun _ ->
         (* If a function is passed into [func] we convert it to a closure
-           closures are already closures with an env *)
+           and pass nullptr to env*)
         let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
         let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
         let ptr = Llvm.build_bitcast v.value voidptr_type "" builder in
