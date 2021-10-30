@@ -29,10 +29,14 @@ let test_func_external () =
   test "int -> unit" "external func : int -> unit func"
 
 let test_func_1st_class () =
-  test "(int -> b) -> int -> b" "function (func, arg : int) func(arg)"
+  test "(int -> a) -> int -> a" "function (func, arg : int) func(arg)"
 
 let test_func_1st_hint () =
   test "(int -> unit) -> int -> unit" "function (f : int -> unit, arg) f(arg)"
+
+let test_func_1st_stay_general () =
+  test "a -> (a -> b) -> b"
+    "function foo(x, f) f(x) function add1(x) x + 1 a = foo(x, add1) foo"
 
 let test_func_recursive_if () =
   test "int -> unit"
@@ -97,8 +101,9 @@ let () =
           case "int" test_func_int;
           case "bool" test_func_bool;
           case "ext" test_func_external;
-          case "1st-class" test_func_1st_class;
-          case "1st-hint" test_func_1st_hint;
+          case "1st_class" test_func_1st_class;
+          case "1st_hint" test_func_1st_hint;
+          case "1st_stay_gen" test_func_1st_stay_general;
           case "recursive_if" test_func_recursive_if;
         ] );
       ( "records",

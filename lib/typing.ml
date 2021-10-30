@@ -50,7 +50,20 @@ let next_func name tbl =
       Some (n + 1)
 
 let string_of_type typ =
+  (* To deal with brackets for functions *)
   let lvl = ref 0 in
+  (* To have type variables staring from 'a' *)
+  let tname = ref 0 in
+  let names = ref [] in
+  let get_name str =
+    match List.assoc_opt str !names with
+    | Some name -> name
+    | None ->
+        let name = Char.chr (!tname + Char.code 'a') |> String.make 1 in
+        incr tname;
+        names := (str, name) :: !names;
+        name
+  in
   let rec string_of_type = function
     | TInt -> "int"
     | TBool -> "bool"
@@ -60,13 +73,14 @@ let string_of_type typ =
         incr lvl;
         let func =
           String.concat " -> "
-            (List.map string_of_type ts @ [ string_of_type t ])
+            (* Make sure parameters are evaluated first *)
+            (let l = List.map string_of_type ts in
+             l @ [ string_of_type t ])
         in
         if lvl_cpy = 0 then func else "(" ^ func ^ ")"
-    | TVar { contents = Unbound (str, _) } ->
-        Char.chr (int_of_string str + Char.code 'a') |> String.make 1
+    | TVar { contents = Unbound (str, _) } -> get_name str
     | TVar { contents = Link t } -> string_of_type t
-    | QVar str -> str ^ "12"
+    | QVar str -> get_name str
     | TRecord (str, _) -> str
   in
   string_of_type typ
@@ -327,13 +341,17 @@ and typeof_let env loc (id, type_annot) e1 e2 =
   typeof (Env.add_value id type_e env) e2
 
 and typeof_abs env loc params e =
+  enter_level ();
   let env, params_t = handle_params env loc params in
   let type_e = typeof env e in
-  TFun (params_t, type_e, Anon)
+  leave_level ();
+
+  TFun (params_t, type_e, Anon) |> generalize
 
 and typeof_function env loc name params body cont =
   (* this loc might not be correct *)
   (* typeof_let env loc name (Lambda (loc, param, body)) cont *)
+  enter_level ();
   let env, params_t = handle_params env loc params in
   (* Recursion allowed for named funcs *)
   let env =
@@ -343,7 +361,8 @@ and typeof_function env loc name params body cont =
     | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
   in
   let bodytype = typeof env body in
-  let funtype = TFun (params_t, bodytype, Simple) in
+  leave_level ();
+  let funtype = TFun (params_t, bodytype, Simple) |> generalize in
   unify (loc, "") (Env.find (fst name) env) funtype;
   typeof env cont
 
