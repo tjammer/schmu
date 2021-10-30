@@ -14,12 +14,12 @@ The goal is to start with the simply typed lambda calculus and go from there. Ev
 * LLVM IR codegen and object file creation
 * Declaration of external C functions
 * Downward closures
-
-### WIP
 * Records
 
+### WIP
+* Polymorphism
+
 ### TODO
-* Helpful error messages
-* Algebraic data types
+* Algebraic data types + pattern matching
 * Some kind of memory management (RC?)
 * Anything else
