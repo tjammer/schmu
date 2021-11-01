@@ -42,19 +42,22 @@ let rec get_lltype ?(param = true) = function
   | TFun (params, t, _) ->
       if param then closure_type |> Llvm.pointer_type
       else
-        let ret_t = get_lltype t in
+        let ret_t = get_lltype ~param t in
         let params_t =
-          List.map get_lltype params |> fun lst ->
+          (* For the params, we want to produce the param type, hence ~param:true *)
+          List.map (get_lltype ~param:true) params |> fun lst ->
           lst @ [ voidptr_type ] |> Array.of_list
         in
         Llvm.function_type ret_t params_t |> Llvm.pointer_type
-  | TRecord (_, labels) -> typeof_aggregate labels
+  | TRecord (_, labels) ->
+      let t = typeof_aggregate ~param labels in
+      if param then t |> Llvm.pointer_type else t
   | (TVar _ | QVar _) as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
 
 (* LLVM type of closure struct and records *)
-and typeof_aggregate agg =
-  List.map (fun (_, typ) -> get_lltype typ) agg
+and typeof_aggregate ?(param = true) agg =
+  List.map (fun (_, typ) -> get_lltype ~param typ) agg
   |> Array.of_list |> Llvm.struct_type context
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
@@ -62,7 +65,7 @@ let memcpy ~dst ~src =
   (* let dst = Llvm.(params func.value).(0) in *)
   let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
   let retptr = Llvm.build_bitcast src.value voidptr_type "" builder in
-  let size = Llvm.size_of (get_lltype src.typ) in
+  let size = Llvm.size_of (get_lltype ~param:false src.typ) in
   let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
   ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
 
@@ -140,7 +143,7 @@ let declare_function fun_name = function
       (* TODO Do a pass for all these special cases? *)
       let prefix, return_t =
         match ret with
-        | TRecord _ -> ([ Llvm.pointer_type return_t ], unit_type)
+        | TRecord _ -> ([ return_t ], unit_type)
         | _ -> ([], return_t)
       in
 
@@ -148,8 +151,7 @@ let declare_function fun_name = function
         let param_lst =
           List.map
             (function
-              | TRecord _ as arg -> get_lltype arg |> Llvm.pointer_type
-              | arg -> get_lltype arg)
+              | TRecord _ as arg -> get_lltype arg | arg -> get_lltype arg)
             params
           |> fun l -> prefix @ l
         in
@@ -274,7 +276,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
           let dst = Llvm.(params func.value).(0) in
           let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
-          let size = Llvm.size_of (get_lltype ret.typ) in
+          let size = Llvm.size_of (get_lltype ~param:false ret.typ) in
           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           ignore (Llvm.build_ret_void builder)
@@ -406,7 +408,7 @@ and gen_app vars callee args =
   let value, typ, lltyp =
     match func.typ with
     | TFun (_, (TRecord _ as typ), _) ->
-        let lltyp = get_lltype typ in
+        let lltyp = get_lltype ~param:false typ in
         let ret = Llvm.build_alloca lltyp "ret" builder in
         ignore
           (Llvm.build_call funcval (Array.of_list ([ ret ] @ args)) "" builder);
@@ -460,7 +462,7 @@ and gen_if vars cond e1 e2 =
   { value = phi; typ = e1.typ; lltyp = e1.lltyp }
 
 and codegen_record vars typ labels =
-  let lltyp = get_lltype typ in
+  let lltyp = get_lltype ~param:false typ in
   let record = Llvm.build_alloca lltyp "" builder in
   List.iteri
     (fun i (name, expr) ->
