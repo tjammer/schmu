@@ -479,6 +479,13 @@ let needs_capture env var =
   in
   aux (Env.find var env)
 
+let rec param_funcs_as_closures = function
+  | TVar { contents = Link t } ->
+      (* This shouldn't break type inference *) param_funcs_as_closures t
+  | TFun (_, _, Closure _) as t -> t
+  | TFun (params, ret, _) -> TFun (params, ret, Closure [])
+  | t -> t
+
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
   | Int (_, i) -> { typ = TInt; expr = Const (Int i) }
@@ -534,6 +541,9 @@ and convert_lambda env loc params e =
   in
   dont_allow_closure_return loc body.typ;
 
+  (* For codegen: Mark functions in parameters closures *)
+  let params_t = List.map param_funcs_as_closures params_t in
+
   let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
   let expr = Lambda { params; body; kind } in
   { typ = TFun (params_t, body.typ, kind); expr }
@@ -562,6 +572,9 @@ and convert_function env loc { name; params; body; cont } =
         Closure lst
   in
   dont_allow_closure_return loc body.typ;
+
+  (* For codegen: Mark functions in parameters closures *)
+  let params_t = List.map param_funcs_as_closures params_t in
 
   let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
   let lambda = { params; body; kind } in

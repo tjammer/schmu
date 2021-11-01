@@ -1,0 +1,16 @@
+external printi : int -> unit
+
+type t = { x : int }
+
+function apply(x : t, f , env)
+  f(x, env)
+
+function add1 : int -> int (x)
+  x + 1
+
+function boxed2int_int(t : t, env)
+  a = env(t.x)
+  { x = a }
+
+a = apply({x = 15}, boxed2int_int, add1).x
+printi(a)
