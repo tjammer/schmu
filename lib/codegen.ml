@@ -39,16 +39,8 @@ let rec get_lltype ?(param = true) = function
   | TBool -> bool_type
   | TVar { contents = Link t } -> get_lltype ~param t
   | TUnit -> unit_type
-  | TFun (params, t, _) ->
-      if param then closure_type |> Llvm.pointer_type
-      else
-        let ret_t = get_lltype ~param t in
-        let params_t =
-          (* For the params, we want to produce the param type, hence ~param:true *)
-          List.map (get_lltype ~param:true) params |> fun lst ->
-          lst @ [ voidptr_type ] |> Array.of_list
-        in
-        Llvm.function_type ret_t params_t |> Llvm.pointer_type
+  | TFun (params, ret, kind) ->
+      typeof_func ~param ~decl:false (params, ret, kind)
   | TRecord (_, labels) ->
       let t = typeof_aggregate ~param labels in
       if param then t |> Llvm.pointer_type else t
@@ -59,6 +51,32 @@ let rec get_lltype ?(param = true) = function
 and typeof_aggregate ?(param = true) agg =
   List.map (fun (_, typ) -> get_lltype ~param typ) agg
   |> Array.of_list |> Llvm.struct_type context
+
+and typeof_func ~param ~decl (params, t, kind) =
+  if param then closure_type |> Llvm.pointer_type
+  else
+    (* There is code duplication here with [declare_function], but the use cases
+       are a bit different. When [get_lltype] is called on a function, we handle
+       the dynamic case wher a function or closure is being passed to another function *)
+    (* If a record is returned, we allocate it at the caller site and
+       pass it as first argument to the function *)
+    let prefix, ret_t =
+      match t with
+      | TRecord _ as t -> ([ get_lltype ~param:true t ], unit_type)
+      | t -> ([], get_lltype ~param t)
+    in
+    let suffix =
+      (* A closure needs an extra parameter for the environment  *)
+      if decl then match kind with Closure _ -> [ voidptr_type ] | _ -> []
+      else [ voidptr_type ]
+    in
+    let params_t =
+      (* For the params, we want to produce the param type, hence ~param:true *)
+      List.map (get_lltype ~param:true) params |> fun lst ->
+      prefix @ lst @ suffix |> Array.of_list
+    in
+    let ft = Llvm.function_type ret_t params_t in
+    ft
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src =
@@ -137,32 +155,7 @@ let extract expr =
 
 let declare_function fun_name = function
   | TFun (params, ret, kind) as typ ->
-      let return_t = get_lltype ret in
-      (* If a record is returned, we allocate it at the caller site and
-         pass it as first argument to the function *)
-      (* TODO Do a pass for all these special cases? *)
-      let prefix, return_t =
-        match ret with
-        | TRecord _ -> ([ return_t ], unit_type)
-        | _ -> ([], return_t)
-      in
-
-      let ll_params_t =
-        let param_lst =
-          List.map
-            (function
-              | TRecord _ as arg -> get_lltype arg | arg -> get_lltype arg)
-            params
-          |> fun l -> prefix @ l
-        in
-        (match kind with
-        | Simple | Anon -> param_lst
-        | Closure _ ->
-            (* In the closure case, we add a voidptr for the closure *)
-            param_lst @ [ voidptr_type ])
-        |> Array.of_list
-      in
-      let ft = Llvm.function_type return_t ll_params_t in
+      let ft = typeof_func ~param:false ~decl:true (params, ret, kind) in
       let llvar =
         {
           value = Llvm.declare_function fun_name ft the_module;
@@ -396,7 +389,7 @@ and gen_app vars callee args =
          then get env ptr (as voidptr) from the second field and pass it as last argument *)
       let funcp = Llvm.build_struct_gep func.value 0 "funcptr" builder in
       let funcp = Llvm.build_load funcp "loadtmp" builder in
-      let typ = get_lltype ~param:false func.typ in
+      let typ = get_lltype ~param:false func.typ |> Llvm.pointer_type in
       let funcp = Llvm.build_bitcast funcp typ "casttmp" builder in
 
       let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
@@ -405,6 +398,7 @@ and gen_app vars callee args =
     else (func.value, args)
   in
 
+  (* Llvm.dump_module the_module; *)
   let value, typ, lltyp =
     match func.typ with
     | TFun (_, (TRecord _ as typ), _) ->
