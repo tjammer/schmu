@@ -36,7 +36,8 @@ let test_func_1st_hint () =
 
 let test_func_1st_stay_general () =
   test "a -> (a -> b) -> b"
-    "function foo(x, f) f(x) function add1(x) x + 1 a = foo(x, add1) foo"
+    "function foo(x, f) f(x) function add1(x) x + 1 a = foo(1, add1) function \
+     boolean(x) if x then true else false b = foo(true, boolean) foo"
 
 let test_func_recursive_if () =
   test "int -> unit"

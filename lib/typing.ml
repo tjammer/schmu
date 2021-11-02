@@ -352,7 +352,7 @@ and typeof_function env loc name params body cont =
   (* this loc might not be correct *)
   (* typeof_let env loc name (Lambda (loc, param, body)) cont *)
   enter_level ();
-  let env, params_t = handle_params env loc params in
+
   (* Recursion allowed for named funcs *)
   let env =
     match snd name with
@@ -360,7 +360,8 @@ and typeof_function env loc name params body cont =
     | None -> Env.add_value (fst name) (newvar ()) env
     | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
   in
-  let bodytype = typeof env body in
+  let body_env, params_t = handle_params env loc params in
+  let bodytype = typeof body_env body in
   leave_level ();
   let funtype = TFun (params_t, bodytype, Simple) |> generalize in
   unify (loc, "") (Env.find (fst name) env) funtype;
