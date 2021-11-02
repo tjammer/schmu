@@ -346,7 +346,7 @@ and typeof_abs env loc params e =
   let type_e = typeof env e in
   leave_level ();
 
-  TFun (params_t, type_e, Anon) |> generalize
+  TFun (params_t, type_e, Simple) |> generalize
 
 and typeof_function env loc name params body cont =
   (* this loc might not be correct *)
@@ -535,7 +535,7 @@ and convert_lambda env loc params e =
   let env, closed_vars = Env.close_scope env in
   let kind =
     match List.filter_map (needs_capture env) closed_vars with
-    | [] -> Anon
+    | [] -> Simple
     | lst ->
         (* List.map fst lst |> String.concat ", " |> print_endline; *)
         Closure lst

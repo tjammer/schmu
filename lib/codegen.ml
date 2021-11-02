@@ -219,7 +219,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
       (* We both generate the code for extracting the closure and add the vars to the environment *)
       let temp_funcs =
         match kind with
-        | Simple | Anon -> funcs
+        | Simple -> funcs
         | Closure assoc ->
             let clsr_param = (Llvm.params func.value).(closure_index) in
             let clsr_type = typeof_aggregate assoc |> Llvm.pointer_type in
@@ -319,7 +319,6 @@ and gen_expr (vars : llvar Vars.t) typed_expr : llvar =
       let func =
         match abs.kind with
         | Simple -> func
-        | Anon -> failwith "Internal Error: Anonymous named function"
         | Closure assoc -> gen_closure_obj assoc func vars name
       in
       gen_expr (Vars.add name func vars) cont
@@ -330,8 +329,7 @@ and gen_expr (vars : llvar Vars.t) typed_expr : llvar =
       let name = lambda_name fun_get_state in
       let func = Vars.find name vars in
       match abs.kind with
-      | Simple -> failwith "Internal Error: Named anonymous function"
-      | Anon -> func
+      | Simple -> func
       | Closure assoc -> gen_closure_obj assoc func vars name)
   | App (callee, arg) -> gen_app vars callee arg
   | If (cond, e1, e2) -> gen_if vars cond e1 e2
