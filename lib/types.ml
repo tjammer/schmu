@@ -13,7 +13,6 @@ and tv = Unbound of string * int | Link of typ
 
 let rec clean = function
   | TVar { contents = Link t } -> clean t
-  | QVar _ -> failwith "TODO think about this"
   | TFun (params, ret, Closure vals) ->
       let vals = List.map (fun (name, typ) -> (name, clean typ)) vals in
       TFun (List.map clean params, clean ret, Closure vals)

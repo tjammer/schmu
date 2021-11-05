@@ -529,9 +529,11 @@ and convert_let env loc (id, type_annot) e1 e2 =
 
 and convert_lambda env loc params e =
   let env = Env.new_scope env in
+  enter_level ();
   let env, params_t = handle_params env loc params in
 
   let body = convert env e in
+  leave_level ();
   let env, closed_vars = Env.close_scope env in
   let kind =
     match List.filter_map (needs_capture env) closed_vars with
@@ -545,14 +547,21 @@ and convert_lambda env loc params e =
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
 
-  let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
-  let expr = Lambda { params; body; kind } in
-  { typ = TFun (params_t, body.typ, kind); expr }
+  let named_params (name, _) typ = (name, typ) in
+  let typ = TFun (params_t, body.typ, kind) |> generalize in
+  match typ with
+  | TFun (tparams, ret, kind) ->
+      let params = List.map2 named_params params tparams in
+      let expr = Lambda { params; body = { body with typ = ret }; kind } in
+      { typ; expr }
+  | _ -> failwith "Internal Error: generalize produces a new type?"
 
 and convert_function env loc { name; params; body; cont } =
   (* Create a fresh type var for the function name
      and use it in the function body *)
   let unique = next_func (fst name) func_tbl in
+
+  enter_level ();
   let env =
     (* Recursion allowed for named funcs *)
     match snd name with
@@ -560,10 +569,13 @@ and convert_function env loc { name; params; body; cont } =
     | None -> Env.add_value (fst name) (newvar ()) env
     | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
   in
+
   (* We duplicate some lambda code due to naming *)
   let env = Env.new_scope env in
   let body_env, params_t = handle_params env loc params in
   let body = convert body_env body in
+  leave_level ();
+
   let env, closed_vars = Env.close_scope env in
   let kind =
     match List.filter_map (needs_capture env) closed_vars with
@@ -577,15 +589,20 @@ and convert_function env loc { name; params; body; cont } =
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
 
-  let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
-  let lambda = { params; body; kind } in
-  let lambda_typ = TFun (params_t, body.typ, kind) in
+  let named_params (name, _) typ = (name, typ) in
+  let typ = TFun (params_t, body.typ, kind) |> generalize in
 
-  (* Make sure the types match *)
-  unify (loc, "Function") (Env.find (fst name) env) lambda_typ;
-  (* Continue, see let *)
-  let typ2 = convert env cont in
-  { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
+  match typ with
+  | TFun (tparams, ret, kind) ->
+      (* Make sure the types match *)
+      unify (loc, "Function") (Env.find (fst name) env) typ;
+
+      let params = List.map2 named_params params tparams in
+      let lambda = { params; body = { body with typ = ret }; kind } in
+      (* Continue, see let *)
+      let typ2 = convert env cont in
+      { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
+  | _ -> failwith "Internal Error: generalize produces a new type?"
 
 and convert_app env loc e1 args =
   let type_fun = convert env e1 in
@@ -593,7 +610,10 @@ and convert_app env loc e1 args =
   let args_t = List.map (fun a -> a.typ) typed_expr_args in
   let res_t = newvar () in
   unify (loc, "Application") type_fun.typ (TFun (args_t, res_t, Simple));
-  { typ = res_t; expr = App (type_fun, typed_expr_args) }
+  let targs =
+    List.map2 (fun typ texpr -> { texpr with typ }) args_t typed_expr_args
+  in
+  { typ = res_t; expr = App (type_fun, targs) }
 
 and convert_bop env loc bop e1 e2 =
   let check () =
