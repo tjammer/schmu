@@ -446,9 +446,6 @@ and gen_app vars callee args =
     match (param, arg) with
     | TVar _, _ -> failwith "Should not happen"
     | TFun (params1, ret1, _), TFun (params2, ret2, _) ->
-        Printf.printf "funs: %s, %s\n%!"
-          (Typing.string_of_type param)
-          (Typing.string_of_type arg);
         List.iter2 aux params1 params2;
         aux ret1 ret2;
         ()
@@ -457,8 +454,7 @@ and gen_app vars callee args =
           (Typing.string_of_type param)
           (Typing.string_of_type t);
         ()
-    | QVar id, QVar id2 | QVar id, TVar { contents = Unbound (id2, _) } -> (
-        Printf.printf "Param: %s, %s\n%!" id id2;
+    | QVar id, QVar _ | QVar id, TVar { contents = Unbound (_, _) } -> (
         match List.assoc_opt id !qvars with
         | Some (Param _) -> ()
         | Some (Local _) -> failwith "Unexpected local and param"
@@ -466,7 +462,6 @@ and gen_app vars callee args =
             let qvar = (Vars.find (name_of_qvar id) vars).value in
             qvars := (id, Param qvar) :: !qvars)
     | QVar id, t -> (
-        Printf.printf "Local: %s, %s\n%!" id (Typing.string_of_type t);
         match List.assoc_opt id !qvars with
         | Some (Param _) -> failwith "Unexpected local and param"
         | Some (Local _) -> ()
@@ -474,16 +469,16 @@ and gen_app vars callee args =
             let typ = t in
             qvars := (id, Local typ) :: !qvars)
     | t1, t2 ->
-        Printf.printf "Other: %s, %s\n%!" (Typing.string_of_type t1)
-          (Typing.string_of_type t2)
+        ignore t1;
+        ignore t2;
+        ()
   in
 
   let params =
     match func.typ with
-    | TFun (params, ret, _) ->
+    | TFun (params, _, _) ->
         List.iter2 aux params
           (List.map (fun (arg : Typing.typed_expr) -> arg.typ) args);
-        print_endline ("ret " ^ Typing.string_of_type ret);
         params
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
@@ -572,12 +567,12 @@ and gen_app vars callee args =
     | Some (Param value) -> value
     | Some (Local typ) -> get_lltype ~param:false typ |> Llvm.size_of
     | None ->
-        print_endline "don't know qvar";
+        (* print_endline "don't know qvar"; *)
         (Vars.find (name_of_qvar id) vars).value
   in
 
   (* Llvm.dump_module the_module; *)
-  Printf.printf "In gen app: %s\n%!" (Typing.string_of_type func.typ);
+  (* Printf.printf "In gen app: %s\n%!" (Typing.string_of_type func.typ); *)
   let value, typ, lltyp =
     match func.typ with
     | TFun (_, (TRecord _ as typ), _) ->
@@ -590,10 +585,7 @@ and gen_app vars callee args =
         (* Conceptually, this works like the record case. The only difference is that we need to get
            the size of variable from somewhere. We can look up the size in the type parameter *)
         let qargs =
-          qvars_of_func params typ
-          |> List.map (fun id ->
-                 print_endline @@ name_of_qvar id;
-                 get_qval id)
+          qvars_of_func params typ |> List.map (fun id -> get_qval id)
         in
         let size = get_qval id in
 
