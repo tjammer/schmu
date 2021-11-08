@@ -86,7 +86,6 @@ and typeof_func ~param ~decl (params, t, kind) =
     ft
 
 and qvars_of_func params ret =
-  (* TODO return the offset to the first qvar *)
   let qvars = match ret with QVar id -> [ id ] | _ -> [] in
   List.fold_left
     (fun qvars param ->
@@ -100,42 +99,32 @@ let name_of_qvar qvar = "__" ^ qvar
 
 type qvar_kind = Param of Llvm.llvalue | Local of typ
 
-(* type fun_pieces = { parameters : typ list; ret : typ }
- *
- * type generic_aux_fun = {
- *   concrete : fun_pieces;
- *   generic : fun_pieces;
- *   func : Llvm.llvalue;
- * }
- *
- * let gen_generic { concrete; generic; func } =
- *   (\* Simplest solution, no closures or something *\)
- *
- *   (\* For params, extract out the correct type *\)
- *
- *   (\* Bring params into env *\)
- *   (\* get offset into return *\)
- *   let i = ref 0 in
- *
- *   let args = List.map2 (fun concrete generic ->
- *       let value = match (generic, concrete) with
- *         | QVar _, (TBool as typ) | QVar _, (TInt as typ) ->
- *           let typ = get_lltype typ |> Llvm.pointer_type in
- *           let ptr =
- *             Llvm.build_bitcast
- *               (Llvm.params func).(!i)
- *               (typ)
- *               "" builder
- *           in
- *           Llvm.build_load ptr "" builder
- *
- *       | QVar _, (TRecord _ as typ) ->
- *         let typ = get_lltype typ in
- *         Llvm.build_bitcast (Llvm.params func).(!i) typ "" builder
- *       | _, _ -> (Llvm.params func).(!i)
- *                   in
- *                   incr i; value
- *     ) concrete.parameters generic.parameters |> Array.of_list in *)
+type fun_pieces = { parameters : typ list; ret : typ; kind : Types.fun_kind }
+
+type generic_fun = { concrete : fun_pieces; generic : fun_pieces }
+
+let name_of_generic { concrete; generic } =
+  let rec str_of_typ = function
+    | TInt -> "i"
+    | TBool -> "b"
+    | TUnit -> "u"
+    | TVar { contents = Unbound _ } -> "g"
+    | TVar { contents = Link t } -> str_of_typ t
+    | QVar _ -> "g"
+    | TFun (params, ret, _) ->
+        "."
+        ^ String.concat "" (List.map str_of_typ params)
+        ^ "." ^ str_of_typ ret ^ "."
+    | TRecord (name, _) -> name
+  in
+
+  (str_of_typ concrete.ret ^ str_of_typ generic.ret)
+  :: List.map2
+       (fun concrete generic -> str_of_typ concrete ^ str_of_typ generic)
+       concrete.parameters generic.parameters
+  |> String.concat "_" |> ( ^ ) "__"
+
+let needs_generic_wrap _ _ = None
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src =
@@ -206,9 +195,27 @@ let extract expr =
     | App (e1, args) ->
         let acc = inner acc e1.expr in
         List.fold_left (fun acc arg -> inner acc Typing.(arg.expr)) acc args
+        |> generic_parameters e1 args
     | Record labels ->
         List.fold_left (fun acc (_, e) -> inner acc Typing.(e.expr)) acc labels
     | Field (expr, _) -> inner acc expr.expr
+  and generic_parameters fn args acc =
+    match fn.typ with
+    | TFun (params, _, _) ->
+        List.fold_left2
+          (fun acc param (arg : Typing.typed_expr) ->
+            match (param, arg.typ) with
+            | TFun (ps1, ret1, kind1), TFun (ps2, ret2, kind2) -> (
+                let generic = { parameters = ps1; ret = ret1; kind = kind1 } in
+                let concrete = { parameters = ps2; ret = ret2; kind = kind2 } in
+                match needs_generic_wrap generic concrete with
+                | Some name ->
+                    ignore name;
+                    acc
+                | None -> acc)
+            | _ -> acc)
+          acc params args
+    | _ -> acc
   in
   inner [] expr
 
@@ -255,6 +262,7 @@ let gen_closure_obj assoc func vars name =
 
   { value = clsr_struct; typ = func.typ; lltyp = func.lltyp }
 
+(* TODO put below gen_expr *)
 let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
     { name = name, named, uniq; params; typ; body } =
   (* Llvm.dump_module the_module; *)
@@ -355,6 +363,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           ignore (Llvm.build_ret_void builder)
       | _ ->
+          (* TODO pattern match on unit *)
           (* Don't return void type *)
           ignore
             (match ret.typ with
@@ -417,26 +426,136 @@ and gen_expr (vars : llvar Vars.t) typed_expr : llvar =
   | Record labels -> codegen_record vars (clean typed_expr.typ) labels
   | Field (expr, index) -> codegen_field vars expr index
 
-and gen_bop e1 e2 = function
-  | Plus ->
-      let value = Llvm.build_add e1.value e2.value "addtmp" builder in
-      { value; typ = TInt; lltyp = int_type }
-  | Mult ->
-      let value = Llvm.build_mul e1.value e2.value "multmp" builder in
-      { value; typ = TInt; lltyp = int_type }
-  | Less ->
-      let value =
-        Llvm.(build_icmp Icmp.Slt) e1.value e2.value "lesstmp" builder
+and gen_generic funcs ({ concrete; generic } as gen) =
+  (* Lots copied from gen_function. See comments there *)
+  (* Simplest solution, no closures or something *)
+  let name = name_of_generic gen in
+  match Vars.find_opt name funcs with
+  | Some _ -> funcs
+  | None ->
+      (* If the function does not yet exist, we generate it *)
+
+      (* For params, extract out the correct type *)
+      let func_typ = TFun (generic.parameters, generic.ret, Closure []) in
+      let gen_func = declare_function name func_typ in
+
+      let bb = Llvm.append_block context "entry" gen_func.value in
+      Llvm.position_at_end bb builder;
+
+      let start_index =
+        match generic.ret with TRecord _ | QVar _ -> 1 | _ -> 0
       in
+      let closure_index = List.length generic.parameters + start_index in
+
+      (* Get wrapped function *)
+      let func =
+        let typ = TFun (concrete.parameters, concrete.ret, concrete.kind) in
+        let lltyp = typ |> get_lltype ~param:false in
+        let func_type = lltyp |> Llvm.pointer_type in
+
+        let clsr_param = (Llvm.params gen_func.value).(closure_index) in
+        print_endline "before cast";
+        (* The env is not an env here, but a whole closure *)
+        let clsr_ptr =
+          Llvm.build_bitcast clsr_param
+            (closure_type |> Llvm.pointer_type)
+            "" builder
+        in
+        print_endline "after cast";
+        let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in
+        let funcp = Llvm.build_load funcp "loadtmp" builder in
+        let funcp = Llvm.build_bitcast funcp func_type "casttmp" builder in
+
+        (* TODO there is a bug here for non-closure funcs (or closure funcs) *)
+        (* let env_ptr = Llvm.build_struct_gep clsr_ptr 1 "envptr" builder in *)
+        (* let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in *)
+        { value = funcp; typ; lltyp }
+      in
+
+      let i = ref start_index in
+
+      let args_llvars =
+        List.map2
+          (fun concrete generic ->
+            let value =
+              match (generic, concrete) with
+              | QVar _, (TBool as typ) | QVar _, (TInt as typ) ->
+                  let lltyp = get_lltype typ |> Llvm.pointer_type in
+                  let ptr =
+                    Llvm.build_bitcast
+                      (Llvm.params func.value).(!i)
+                      lltyp "" builder
+                  in
+                  { value = Llvm.build_load ptr "" builder; typ; lltyp }
+              | QVar _, (TRecord _ as typ) ->
+                  let lltyp = get_lltype typ in
+                  let value =
+                    Llvm.build_bitcast
+                      (Llvm.params func.value).(!i)
+                      lltyp "" builder
+                  in
+                  { value; typ; lltyp }
+              | _, typ ->
+                  let lltyp = get_lltype typ in
+                  { value = (Llvm.params func.value).(!i); typ; lltyp }
+            in
+            incr i;
+            value
+            (* TODO what about function params here? *))
+          concrete.parameters generic.parameters
+      in
+
+      let (vars, _), exprs =
+        List.fold_left_map
+          (fun (vars, i) (llvar : llvar) ->
+            (* We introduce some unique names for the vars and make them available through Var name *)
+            let name = "___" ^ string_of_int i in
+            ( (Vars.add name llvar vars, i + 1),
+              { Typing.typ = llvar.typ; expr = Var name } ))
+          (funcs, 0) args_llvars
+      in
+
+      let typed_expr = { Typing.typ = TUnit; expr = Var name } in
+      let ret = gen_app (Vars.add name func vars) typed_expr exprs in
+
+      let () =
+        ignore
+          (match (generic.ret, concrete.ret) with
+          | QVar _, (TBool as typ) | QVar _, (TInt as typ) ->
+              let lltyp = get_lltype typ |> Llvm.pointer_type in
+              let ptr = Llvm.build_bitcast ret.value lltyp "" builder in
+              let ret = Llvm.build_load ptr "" builder in
+              Llvm.build_ret ret builder
+          | QVar _, (TRecord _ as typ) ->
+              let lltyp = get_lltype typ in
+              Llvm.build_bitcast ret.value lltyp "" builder
+          | QVar _, QVar _
+          | QVar _, TVar { contents = Unbound _ }
+          | TUnit, TUnit
+          | _, TRecord _ ->
+              (* void return *)
+              Llvm.build_ret_void builder
+          | _, _ -> (* normal return *) Llvm.build_ret ret.value builder)
+      in
+
+      Vars.add name gen_func funcs
+
+and gen_bop e1 e2 bop =
+  let bld f str = f e1.value e2.value str builder in
+  let open Llvm in
+  match bop with
+  | Plus -> { value = bld build_add "addtmp"; typ = TInt; lltyp = int_type }
+  | Mult -> { value = bld build_mul "multmp"; typ = TInt; lltyp = int_type }
+  | Less ->
+      let value = bld (build_icmp Icmp.Slt) "lesstmp" in
       { value; typ = TBool; lltyp = bool_type }
   | Equal ->
-      let value = Llvm.(build_icmp Icmp.Eq) e1.value e2.value "eqtmp" builder in
+      let value = bld (build_icmp Icmp.Eq) "eqtmp" in
       { value; typ = TBool; lltyp = bool_type }
-  | Minus ->
-      let value = Llvm.build_sub e1.value e2.value "subtmp" builder in
-      { value; typ = TInt; lltyp = int_type }
+  | Minus -> { value = bld build_sub "subtmp"; typ = TInt; lltyp = int_type }
 
 and gen_app vars callee args =
+  ignore gen_generic;
   let func = gen_expr vars callee in
 
   (* We need to extract the qvars in the form of Param of llvalue | Local of typ *)
@@ -446,6 +565,9 @@ and gen_app vars callee args =
     match (param, arg) with
     | TVar _, _ -> failwith "Should not happen"
     | TFun (params1, ret1, _), TFun (params2, ret2, _) ->
+        Printf.printf "funs: %s, %s\n%!"
+          (Typing.string_of_type param)
+          (Typing.string_of_type arg);
         List.iter2 aux params1 params2;
         aux ret1 ret2;
         ()
@@ -454,7 +576,8 @@ and gen_app vars callee args =
           (Typing.string_of_type param)
           (Typing.string_of_type t);
         ()
-    | QVar id, QVar _ | QVar id, TVar { contents = Unbound (_, _) } -> (
+    | QVar id, QVar id2 | QVar id, TVar { contents = Unbound (id2, _) } -> (
+        Printf.printf "Param: %s, %s\n%!" id id2;
         match List.assoc_opt id !qvars with
         | Some (Param _) -> ()
         | Some (Local _) -> failwith "Unexpected local and param"
