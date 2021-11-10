@@ -1,6 +1,21 @@
 open Types
 module Vars = Map.Make (String)
 
+(* TODO This can be merged with TFun record *)
+type user_func = {
+  name : string * bool * int option;
+  params : string list;
+  typ : typ;
+  body : Typing.typed_expr;
+}
+
+(* Still the same kind of type*)
+type fun_pieces = { parameters : typ list; ret : typ; kind : Types.fun_kind }
+
+type generic_fun = { concrete : fun_pieces; generic : fun_pieces }
+
+type func = User of user_func | Generic of generic_fun * string
+
 type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
 
 let context = Llvm.global_context ()
@@ -99,10 +114,6 @@ let name_of_qvar qvar = "__" ^ qvar
 
 type qvar_kind = Param of Llvm.llvalue | Local of typ
 
-type fun_pieces = { parameters : typ list; ret : typ; kind : Types.fun_kind }
-
-type generic_fun = { concrete : fun_pieces; generic : fun_pieces }
-
 let name_of_generic { concrete; generic } =
   let rec str_of_typ = function
     | TInt -> "i"
@@ -124,7 +135,29 @@ let name_of_generic { concrete; generic } =
        concrete.parameters generic.parameters
   |> String.concat "_" |> ( ^ ) "__"
 
-let needs_generic_wrap _ _ = None
+let needs_generic_wrap acc { generic; concrete } =
+  let rec aux gen con =
+    match (gen, con) with
+    | QVar _, QVar _ | QVar _, TVar { contents = Unbound _ } -> false
+    | TVar { contents = Link gen }, con -> aux gen con
+    | gen, TVar { contents = Link con } -> aux gen con
+    | QVar _, _ -> true
+    | _, _ -> false
+  in
+  List.fold_left2
+    (fun acc gen con -> if aux gen con then true else acc)
+    (aux generic.ret concrete.ret)
+    generic.parameters concrete.parameters
+  |> function
+  | true ->
+      let name = name_of_generic { concrete; generic } in
+      if
+        List.exists
+          (function Generic (_, n) -> String.equal name n | User _ -> false)
+          acc
+      then None
+      else Some name
+  | false -> None
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src =
@@ -153,13 +186,6 @@ let unique_name = function
 
 let reset state = state := 0
 
-type func = {
-  name : string * bool * int option;
-  params : string list;
-  typ : typ;
-  body : Typing.typed_expr;
-}
-
 (* Transforms abs into a TFun and cleans all types (resolves links) *)
 let split_abs abs =
   let nparams, tparams = List.split Typing.(abs.params) in
@@ -183,7 +209,7 @@ let extract expr =
         let acc = inner acc abs.body.expr in
         let name = (name, true, uniq) in
         let typ, params = split_abs abs in
-        inner ({ name; params; typ; body = abs.body } :: acc) cont.expr
+        inner (User { name; params; typ; body = abs.body } :: acc) cont.expr
     | Let (_, e1, e2) ->
         let acc = inner acc e1.expr in
         inner acc e2.expr
@@ -191,7 +217,7 @@ let extract expr =
         let acc = inner acc abs.body.expr in
         let name = (lambda_name fun_gen_state, false, None) in
         let typ, params = split_abs abs in
-        { name; params; typ; body = abs.body } :: acc
+        User { name; params; typ; body = abs.body } :: acc
     | App (e1, args) ->
         let acc = inner acc e1.expr in
         List.fold_left (fun acc arg -> inner acc Typing.(arg.expr)) acc args
@@ -208,10 +234,8 @@ let extract expr =
             | TFun (ps1, ret1, kind1), TFun (ps2, ret2, kind2) -> (
                 let generic = { parameters = ps1; ret = ret1; kind = kind1 } in
                 let concrete = { parameters = ps2; ret = ret2; kind = kind2 } in
-                match needs_generic_wrap generic concrete with
-                | Some name ->
-                    ignore name;
-                    acc
+                match needs_generic_wrap acc { generic; concrete } with
+                | Some name -> Generic ({ concrete; generic }, name) :: acc
                 | None -> acc)
             | _ -> acc)
           acc params args
@@ -381,7 +405,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
       prerr_endline fun_name;
       failwith "Interal Error: generating non-function"
 
-and gen_expr (vars : llvar Vars.t) typed_expr : llvar =
+and gen_expr vars typed_expr =
   match Typing.(typed_expr.expr) with
   | Typing.Const (Int i) ->
       { value = Llvm.const_int int_type i; typ = TInt; lltyp = int_type }
@@ -429,116 +453,118 @@ and gen_expr (vars : llvar Vars.t) typed_expr : llvar =
 and gen_generic funcs ({ concrete; generic } as gen) =
   (* Lots copied from gen_function. See comments there *)
   (* Simplest solution, no closures or something *)
+
+  (* We make sure it [extract] that only the functions are unique *)
+
+  (* If the function does not yet exist, we generate it *)
+
+  (* For params, extract out the correct type *)
   let name = name_of_generic gen in
-  match Vars.find_opt name funcs with
-  | Some _ -> funcs
-  | None ->
-      (* If the function does not yet exist, we generate it *)
+  let func_typ = TFun (generic.parameters, generic.ret, Closure []) in
+  let gen_func = declare_function name func_typ in
 
-      (* For params, extract out the correct type *)
-      let func_typ = TFun (generic.parameters, generic.ret, Closure []) in
-      let gen_func = declare_function name func_typ in
+  let bb = Llvm.append_block context "entry" gen_func.value in
+  Llvm.position_at_end bb builder;
 
-      let bb = Llvm.append_block context "entry" gen_func.value in
-      Llvm.position_at_end bb builder;
+  let start_index = match generic.ret with TRecord _ | QVar _ -> 1 | _ -> 0 in
+  let closure_index = List.length generic.parameters + start_index in
 
-      let start_index =
-        match generic.ret with TRecord _ | QVar _ -> 1 | _ -> 0
-      in
-      let closure_index = List.length generic.parameters + start_index in
+  (* Get wrapped function *)
+  let func =
+    let typ = TFun (concrete.parameters, concrete.ret, concrete.kind) in
+    let lltyp = typ |> get_lltype ~param:false in
+    let func_type = lltyp |> Llvm.pointer_type in
 
-      (* Get wrapped function *)
-      let func =
-        let typ = TFun (concrete.parameters, concrete.ret, concrete.kind) in
-        let lltyp = typ |> get_lltype ~param:false in
-        let func_type = lltyp |> Llvm.pointer_type in
+    let clsr_param = (Llvm.params gen_func.value).(closure_index) in
 
-        let clsr_param = (Llvm.params gen_func.value).(closure_index) in
-        print_endline "before cast";
-        (* The env is not an env here, but a whole closure *)
-        let clsr_ptr =
-          Llvm.build_bitcast clsr_param
-            (closure_type |> Llvm.pointer_type)
-            "" builder
-        in
-        print_endline "after cast";
-        let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in
-        let funcp = Llvm.build_load funcp "loadtmp" builder in
-        let funcp = Llvm.build_bitcast funcp func_type "casttmp" builder in
+    (* The env is not an env here, but a whole closure *)
+    let clsr_ptr =
+      Llvm.build_bitcast clsr_param
+        (closure_type |> Llvm.pointer_type)
+        "" builder
+    in
+    print_endline "after cast";
+    let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in
+    let funcp = Llvm.build_load funcp "loadtmp" builder in
+    let funcp = Llvm.build_bitcast funcp func_type "casttmp" builder in
+    print_endline "after after cast";
 
-        (* TODO there is a bug here for non-closure funcs (or closure funcs) *)
-        (* let env_ptr = Llvm.build_struct_gep clsr_ptr 1 "envptr" builder in *)
-        (* let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in *)
-        { value = funcp; typ; lltyp }
-      in
+    (* TODO there is a bug here for non-closure funcs (or closure funcs) *)
+    (* let env_ptr = Llvm.build_struct_gep clsr_ptr 1 "envptr" builder in *)
+    (* let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in *)
+    { value = funcp; typ; lltyp }
+  in
 
-      let i = ref start_index in
+  let i = ref start_index in
 
-      let args_llvars =
-        List.map2
-          (fun concrete generic ->
-            let value =
-              match (generic, concrete) with
-              | QVar _, (TBool as typ) | QVar _, (TInt as typ) ->
-                  let lltyp = get_lltype typ |> Llvm.pointer_type in
-                  let ptr =
-                    Llvm.build_bitcast
-                      (Llvm.params func.value).(!i)
-                      lltyp "" builder
-                  in
-                  { value = Llvm.build_load ptr "" builder; typ; lltyp }
-              | QVar _, (TRecord _ as typ) ->
-                  let lltyp = get_lltype typ in
-                  let value =
-                    Llvm.build_bitcast
-                      (Llvm.params func.value).(!i)
-                      lltyp "" builder
-                  in
-                  { value; typ; lltyp }
-              | _, typ ->
-                  let lltyp = get_lltype typ in
-                  { value = (Llvm.params func.value).(!i); typ; lltyp }
-            in
-            incr i;
-            value
-            (* TODO what about function params here? *))
-          concrete.parameters generic.parameters
-      in
-
-      let (vars, _), exprs =
-        List.fold_left_map
-          (fun (vars, i) (llvar : llvar) ->
-            (* We introduce some unique names for the vars and make them available through Var name *)
-            let name = "___" ^ string_of_int i in
-            ( (Vars.add name llvar vars, i + 1),
-              { Typing.typ = llvar.typ; expr = Var name } ))
-          (funcs, 0) args_llvars
-      in
-
-      let typed_expr = { Typing.typ = TUnit; expr = Var name } in
-      let ret = gen_app (Vars.add name func vars) typed_expr exprs in
-
-      let () =
-        ignore
-          (match (generic.ret, concrete.ret) with
+  let args_llvars =
+    List.map2
+      (fun concrete generic ->
+        let value =
+          match (generic, concrete) with
           | QVar _, (TBool as typ) | QVar _, (TInt as typ) ->
+              print_endline "in this case";
               let lltyp = get_lltype typ |> Llvm.pointer_type in
-              let ptr = Llvm.build_bitcast ret.value lltyp "" builder in
-              let ret = Llvm.build_load ptr "" builder in
-              Llvm.build_ret ret builder
+              let ptr =
+                Llvm.build_bitcast
+                  (Llvm.params func.value).(!i)
+                  lltyp "" builder
+              in
+              print_endline "after cast";
+              { value = Llvm.build_load ptr "" builder; typ; lltyp }
           | QVar _, (TRecord _ as typ) ->
               let lltyp = get_lltype typ in
-              Llvm.build_bitcast ret.value lltyp "" builder
-          | QVar _, QVar _
-          | QVar _, TVar { contents = Unbound _ }
-          | TUnit, TUnit
-          | _, TRecord _ ->
-              (* void return *)
-              Llvm.build_ret_void builder
-          | _, _ -> (* normal return *) Llvm.build_ret ret.value builder)
-      in
+              let value =
+                Llvm.build_bitcast
+                  (Llvm.params func.value).(!i)
+                  lltyp "" builder
+              in
+              { value; typ; lltyp }
+          | _, typ ->
+              let lltyp = get_lltype typ in
+              print_endline "in other case";
+              { value = (Llvm.params func.value).(!i); typ; lltyp }
+        in
+        incr i;
+        value
+        (* TODO what about function params here? *))
+      concrete.parameters generic.parameters
+  in
 
-      Vars.add name gen_func funcs
+  let (vars, _), exprs =
+    List.fold_left_map
+      (fun (vars, i) llvar ->
+        (* We introduce some unique names for the vars and make them available through Var name *)
+        let name = "___" ^ string_of_int i in
+        ( (Vars.add name llvar vars, i + 1),
+          { Typing.typ = llvar.typ; expr = Var name } ))
+      (funcs, 0) args_llvars
+  in
+
+  let typed_expr = { Typing.typ = TUnit; expr = Var name } in
+  let ret = gen_app (Vars.add name func vars) typed_expr exprs in
+
+  let () =
+    ignore
+      (match (generic.ret, concrete.ret) with
+      | QVar _, (TBool as typ) | QVar _, (TInt as typ) ->
+          let lltyp = get_lltype typ |> Llvm.pointer_type in
+          let ptr = Llvm.build_bitcast ret.value lltyp "" builder in
+          let ret = Llvm.build_load ptr "" builder in
+          Llvm.build_ret ret builder
+      | QVar _, (TRecord _ as typ) ->
+          let lltyp = get_lltype typ in
+          Llvm.build_bitcast ret.value lltyp "" builder
+      | QVar _, QVar _
+      | QVar _, TVar { contents = Unbound _ }
+      | TUnit, TUnit
+      | _, TRecord _ ->
+          (* void return *)
+          Llvm.build_ret_void builder
+      | _, _ -> (* normal return *) Llvm.build_ret ret.value builder)
+  in
+
+  Vars.add name gen_func funcs
 
 and gen_bop e1 e2 bop =
   let bld f str = f e1.value e2.value str builder in
@@ -606,7 +632,7 @@ and gen_app vars callee args =
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
-  let funcs_to_ptr param (v : llvar) =
+  let funcs_to_ptr param v =
     match v.typ with
     | TFun _ when false -> (* TODO of the function has qvars *) failwith "TODO"
     | TFun (_, _, Closure _) ->
@@ -842,12 +868,27 @@ let generate externals typed_expr =
     let lst = extract typed_expr.expr in
     let vars =
       List.fold_left
-        (fun acc { name = name, named, uniq; params = _; typ; body = _ } ->
-          let name = if named then unique_name (name, uniq) else name in
-          Vars.add name (declare_function name typ) acc)
+        (fun acc func ->
+          match func with
+          | User { name = name, named, uniq; params = _; typ; body = _ } ->
+              let name = if named then unique_name (name, uniq) else name in
+              Vars.add name (declare_function name typ) acc
+          | Generic (gen, name) ->
+              (* type_of_generic?? *)
+              let typ =
+                TFun (gen.generic.parameters, gen.generic.ret, Closure [])
+              in
+              Printf.printf "ret is %s, not %s\n"
+                (string_of_type gen.generic.ret)
+                (string_of_type gen.concrete.ret);
+              Vars.add name (declare_function name typ) acc)
         vars lst
     in
-    List.fold_left (fun acc func -> gen_function acc func) vars lst
+    List.fold_left
+      (fun acc func ->
+        match func with User func -> gen_function acc func | Generic _ -> acc)
+      (* gen_generic acc gen) *)
+      vars lst
   in
   (* Reset lambda counter *)
   reset fun_get_state;

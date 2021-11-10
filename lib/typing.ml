@@ -606,6 +606,7 @@ and convert_function env loc { name; params; body; cont } =
 
 and convert_app env loc e1 args =
   let type_fun = convert env e1 in
+  (* let saved = freeze type_fun.typ in *)
   let typed_expr_args = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_expr_args in
   let res_t = newvar () in

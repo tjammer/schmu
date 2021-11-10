@@ -20,3 +20,12 @@ let rec clean = function
   | TRecord (name, fields) ->
       TRecord (name, List.map (fun (name, typ) -> (name, clean typ)) fields)
   | t -> t
+
+let rec freeze = function
+  | TVar { contents = Unbound (str, _) } -> QVar str
+  | TVar { contents = Link t } -> freeze t
+  | TFun (params, ret, kind) -> TFun (List.map freeze params, freeze ret, kind)
+  | TRecord (name, fields) ->
+      let fields = List.map (fun (name, typ) -> (name, freeze typ)) fields in
+      TRecord (name, fields)
+  | t -> t
