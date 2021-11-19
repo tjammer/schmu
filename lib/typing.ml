@@ -1,14 +1,6 @@
 open Types
 
-type abstraction = {
-  params : (string * typ) list;
-  body : typed_expr;
-  kind : fun_kind;
-}
-
-and const = Int of int | Bool of bool | Unit
-
-and expr =
+type expr =
   | Var of string
   | Const of const
   | Bop of Ast.bop * typed_expr * typed_expr
@@ -16,11 +8,19 @@ and expr =
   | Let of string * typed_expr * typed_expr
   | Lambda of abstraction
   | Function of string * int option * abstraction * typed_expr
-  | App of typed_expr * typed_expr list
+  | App of typed_expr * typed_expr list * (string * generic_fun) list
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
 
 and typed_expr = { typ : typ; expr : expr }
+
+and const = Int of int | Bool of bool | Unit
+
+and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
+
+and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
+
+and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
 
 type external_decl = string * typ
 
@@ -487,6 +487,63 @@ let rec param_funcs_as_closures = function
   | TFun (params, ret, _) -> TFun (params, ret, Closure [])
   | t -> t
 
+let name_of_generic { concrete; generic } =
+  let rec str_of_typ = function
+    | TInt -> "i"
+    | TBool -> "b"
+    | TUnit -> "u"
+    | TVar { contents = Unbound _ } -> "g"
+    | TVar { contents = Link t } -> str_of_typ t
+    | QVar _ -> "g"
+    | TFun (params, ret, _) ->
+        "."
+        ^ String.concat "" (List.map str_of_typ params)
+        ^ "." ^ str_of_typ ret ^ "."
+    | TRecord (name, _) -> name
+  in
+
+  (str_of_typ concrete.ret ^ str_of_typ generic.ret)
+  :: List.map2
+       (fun concrete generic -> str_of_typ concrete ^ str_of_typ generic)
+       concrete.tparams generic.tparams
+  |> String.concat "_" |> ( ^ ) "__"
+
+let needs_generic_wrap { generic; concrete } =
+  let rec aux gen con =
+    match (gen, con) with
+    | QVar _, QVar _ | QVar _, TVar { contents = Unbound _ } -> false
+    | TVar { contents = Link gen }, con -> aux gen con
+    | gen, TVar { contents = Link con } -> aux gen con
+    | QVar _, _ -> true
+    | _, _ -> false
+  in
+  List.fold_left2
+    (fun acc gen con -> if aux gen con then true else acc)
+    (aux generic.ret concrete.ret)
+    generic.tparams concrete.tparams
+  |> function
+  | true ->
+      let name = name_of_generic { concrete; generic } in
+      Some name
+  | false -> None
+
+let find_generic_parameters acc ~generic concrete_args =
+  match generic with
+  | TFun (params, _, _) ->
+      List.fold_left2
+        (fun acc param arg ->
+          match (param, arg) with
+          | TFun (ps1, ret1, kind1), TFun (ps2, ret2, kind2) -> (
+              let generic = { tparams = ps1; ret = ret1; kind = kind1 } in
+              let concrete = { tparams = ps2; ret = ret2; kind = kind2 } in
+              let fun_piece = { generic; concrete } in
+              match needs_generic_wrap fun_piece with
+              | Some name -> (name, fun_piece) :: acc
+              | None -> acc)
+          | _ -> acc)
+        acc params concrete_args
+  | _ -> acc
+
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
   | Int (_, i) -> { typ = TInt; expr = Const (Int i) }
@@ -547,12 +604,12 @@ and convert_lambda env loc params e =
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
 
-  let named_params (name, _) typ = (name, typ) in
   let typ = TFun (params_t, body.typ, kind) |> generalize in
   match typ with
   | TFun (tparams, ret, kind) ->
-      let params = List.map2 named_params params tparams in
-      let expr = Lambda { params; body = { body with typ = ret }; kind } in
+      let nparams = List.map fst params in
+      let tp = { tparams; ret; kind } in
+      let expr = Lambda { nparams; body = { body with typ = ret }; tp } in
       { typ; expr }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
@@ -589,7 +646,6 @@ and convert_function env loc { name; params; body; cont } =
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
 
-  let named_params (name, _) typ = (name, typ) in
   let typ = TFun (params_t, body.typ, kind) |> generalize in
 
   match typ with
@@ -597,8 +653,9 @@ and convert_function env loc { name; params; body; cont } =
       (* Make sure the types match *)
       unify (loc, "Function") (Env.find (fst name) env) typ;
 
-      let params = List.map2 named_params params tparams in
-      let lambda = { params; body = { body with typ = ret }; kind } in
+      let nparams = List.map fst params in
+      let tp = { tparams; ret; kind } in
+      let lambda = { nparams; body = { body with typ = ret }; tp } in
       (* Continue, see let *)
       let typ2 = convert env cont in
       { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
@@ -606,7 +663,7 @@ and convert_function env loc { name; params; body; cont } =
 
 and convert_app env loc e1 args =
   let type_fun = convert env e1 in
-  (* let saved = freeze type_fun.typ in *)
+  let generic = freeze type_fun.typ in
   let typed_expr_args = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_expr_args in
   let res_t = newvar () in
@@ -614,7 +671,8 @@ and convert_app env loc e1 args =
   let targs =
     List.map2 (fun typ texpr -> { texpr with typ }) args_t typed_expr_args
   in
-  { typ = res_t; expr = App (type_fun, targs) }
+  let generic_args = find_generic_parameters [] ~generic args_t in
+  { typ = res_t; expr = App (type_fun, targs, generic_args) }
 
 and convert_bop env loc bop e1 e2 =
   let check () =
