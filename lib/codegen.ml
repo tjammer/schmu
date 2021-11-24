@@ -167,42 +167,24 @@ let extract expr =
         let name = (lambda_name fun_gen_state, false, None) in
         let typ, params = split_abs abs in
         User { name; params; typ; body = abs.body } :: acc
-    | App (e1, args, gens) ->
+    | App (e1, args) ->
         let acc = inner acc e1.expr in
-        List.fold_left (fun acc arg -> inner acc Typing.(arg.expr)) acc args
-        |> generic_parameters gens
+        List.fold_left
+          (fun acc (arg, gen) ->
+            let acc = inner acc Typing.(arg.expr) in
+            match gen with
+            | Some (name, gen) -> generic_parameter name gen acc
+            | None -> acc)
+          acc args
     | Record labels ->
         List.fold_left (fun acc (_, e) -> inner acc Typing.(e.expr)) acc labels
     | Field (expr, _) -> inner acc expr.expr
-  and generic_parameters gens acc =
-    List.fold_left
-      (fun acc (name, f) ->
-        let exists = function
-          | Generic (n, _) -> String.equal name n
-          | User _ -> false
-        in
-        if List.exists exists acc then acc else Generic (name, f) :: acc)
-      acc gens
-    (* match fn.typ with
-     * | TFun (params, _, _) ->
-     *     List.fold_left2
-     *       (fun acc param (arg : Typing.typed_expr) ->
-     *         match (param, arg.typ) with
-     *         | TFun (ps1, ret1, kind1), TFun (ps2, ret2, kind2) -> (
-     *             let generic =
-     *               { Typing.tparams = ps1; ret = ret1; kind = kind1 }
-     *             in
-     *             let concrete =
-     *               { Typing.tparams = ps2; ret = ret2; kind = kind2 }
-     *             in
-     *             match needs_generic_wrap acc { generic; concrete } with
-     *             | Some name -> Generic ({ concrete; generic }, name) :: acc
-     *             | None -> acc)
-     *         | _ -> acc)
-     *       acc params args
-     * | _ ->
-     *     acc ignore gens;
-     *     acc *)
+  and generic_parameter name gen acc =
+    let exists = function
+      | Generic (n, _) -> String.equal name n
+      | User _ -> false
+    in
+    if List.exists exists acc then acc else Generic (name, gen) :: acc
   in
   inner [] expr
 
@@ -408,7 +390,7 @@ and gen_expr vars typed_expr =
       match abs.tp.kind with
       | Simple -> func
       | Closure assoc -> gen_closure_obj assoc func vars name)
-  | App (callee, arg, _) -> gen_app vars callee arg
+  | App (callee, arg) -> gen_app vars callee arg
   | If (cond, e1, e2) -> gen_if vars cond e1 e2
   | Record labels -> codegen_record vars (clean typed_expr.typ) labels
   | Field (expr, index) -> codegen_field vars expr index
@@ -444,16 +426,21 @@ and gen_generic funcs name { Typing.concrete; generic } =
     let clsr_param = (Llvm.params gen_func.value).(closure_index) in
 
     (* The env is not an env here, but a whole closure *)
-    let clsr_ptr =
-      Llvm.build_bitcast clsr_param
-        (closure_type |> Llvm.pointer_type)
-        "" builder
-    in
+    (* TODO right now we only stuff in the function *)
+    (* let clsr_ptr =
+     *   Llvm.build_bitcast clsr_param
+     *     (closure_type |> Llvm.pointer_type)
+     *     "" builder
+     * in *)
+
+    (* let clsr_ptr = Llvm.build_bitcast clsr_param (voidptr_type) "" builder in *)
+
+
     (* TODO we should return the closure *)
     print_endline "after cast";
-    let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in
-    let funcp = Llvm.build_load funcp "loadtmp" builder in
-    let funcp = Llvm.build_bitcast funcp func_type "casttmp" builder in
+    (* let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in *)
+    (* let funcp = Llvm.build_load funcp "loadtmp" builder in *)
+    let funcp = Llvm.build_bitcast clsr_param func_type "casttmp" builder in
     print_endline "after after cast";
 
     (* TODO there is a bug here for non-closure funcs (or closure funcs) *)
@@ -513,7 +500,8 @@ and gen_generic funcs name { Typing.concrete; generic } =
         (* We introduce some unique names for the vars and make them available through Var name *)
         let name = "___" ^ string_of_int i in
         ( (Vars.add name llvar vars, i + 1),
-          { Typing.typ = llvar.typ; expr = Var name } ))
+          (* We assume the generic fun itself has no generic fun param *)
+          ({ Typing.typ = llvar.typ; expr = Var name }, None) ))
       (funcs, 0) args_llvars
   in
 
@@ -614,18 +602,38 @@ and gen_app vars callee args =
     match func.typ with
     | TFun (params, _, _) ->
         List.iter2 aux params
-          (List.map (fun (arg : Typing.typed_expr) -> arg.typ) args);
+          (List.map
+             (fun ((arg : Typing.typed_expr), gen) ->
+               (match gen with
+               | Some (name, _) -> print_endline @@ "generic arg: " ^ name
+               | None -> ());
+
+               arg.typ)
+             args);
         params
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
-  let funcs_to_ptr param v =
-    match v.typ with
-    | TFun _ when false -> (* TODO of the function has qvars *) failwith "TODO"
-    | TFun (_, _, Closure _) ->
+  let funcs_to_ptr param generic v =
+    match (v.typ, generic) with
+    | TFun _, Some (name, _) ->
+        (* TODO also do this case for closures, passed funcs and simple ones *)
+      let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
+      let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
+        let gen_fp = Vars.find name vars in
+        let ptr = Llvm.build_bitcast gen_fp.value voidptr_type "" builder in
+        ignore (Llvm.build_store ptr fp builder);
+
+        (* Store the actual function in the env *)
+        let envptr = Llvm.build_struct_gep closure_struct 1 "envptr" builder in
+        let fp = Llvm.build_bitcast v.value voidptr_type "" builder in
+        (* let nullptr = Llvm.const_pointer_null voidptr_type in *)
+        ignore (Llvm.build_store fp envptr builder);
+        closure_struct
+    | TFun (_, _, Closure _), _ ->
         (* This closure is a struct and has an env *)
         v.value
-    | TFun _ ->
+    | TFun _, _ ->
         (* If a function is passed into [func] we convert it to a closure
            and pass nullptr to env*)
         let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
@@ -637,7 +645,7 @@ and gen_app vars callee args =
         let nullptr = Llvm.const_pointer_null voidptr_type in
         ignore (Llvm.build_store nullptr envptr builder);
         closure_struct
-    | QVar id | TVar { contents = Unbound (id, _) } -> (
+    | QVar id, _ | TVar { contents = Unbound (id, _) }, _ -> (
         match List.assoc_opt id !qvars with
         | Some (Param _) ->
             (* the value already exists?? *)
@@ -678,7 +686,7 @@ and gen_app vars callee args =
   in
 
   let args =
-    List.map2 (fun p e -> gen_expr vars e |> funcs_to_ptr p) params args
+    List.map2 (fun p (e, g) -> gen_expr vars e |> funcs_to_ptr p g) params args
   in
 
   (* No names here, might be void/unit *)

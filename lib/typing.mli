@@ -12,7 +12,7 @@ type expr =
   | Let of string * typed_expr * typed_expr
   | Lambda of abstraction
   | Function of string * int option * abstraction * typed_expr
-  | App of typed_expr * typed_expr list * (string * generic_fun) list
+  | App of typed_expr * (typed_expr * (string * generic_fun) option) list
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
 

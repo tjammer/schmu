@@ -8,7 +8,7 @@ type expr =
   | Let of string * typed_expr * typed_expr
   | Lambda of abstraction
   | Function of string * int option * abstraction * typed_expr
-  | App of typed_expr * typed_expr list * (string * generic_fun) list
+  | App of typed_expr * (typed_expr * (string * generic_fun) option) list
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
 
@@ -527,22 +527,28 @@ let needs_generic_wrap { generic; concrete } =
       Some name
   | false -> None
 
-let find_generic_parameters acc ~generic concrete_args =
-  match generic with
-  | TFun (params, _, _) ->
-      List.fold_left2
-        (fun acc param arg ->
-          match (param, arg) with
-          | TFun (ps1, ret1, kind1), TFun (ps2, ret2, kind2) -> (
-              let generic = { tparams = ps1; ret = ret1; kind = kind1 } in
-              let concrete = { tparams = ps2; ret = ret2; kind = kind2 } in
-              let fun_piece = { generic; concrete } in
-              match needs_generic_wrap fun_piece with
-              | Some name -> (name, fun_piece) :: acc
-              | None -> acc)
-          | _ -> acc)
-        acc params concrete_args
-  | _ -> acc
+let mark_generic_fun texpr gen_param =
+  let generic_arg =
+    match (gen_param, texpr.typ) with
+    | TFun (ps1, ret1, kind1), TFun (ps2, ret2, kind2) -> (
+        let generic = { tparams = ps1; ret = ret1; kind = kind1 } in
+        let concrete = { tparams = ps2; ret = ret2; kind = kind2 } in
+        let fun_piece = { generic; concrete } in
+        match needs_generic_wrap fun_piece with
+        | Some name -> Some (name, fun_piece)
+        | None -> None)
+    | _ -> None
+  in
+  (texpr, generic_arg)
+
+let extend_generic_funs texprs = function
+  (* At this point unification succeeded and we know the lengths match *)
+  | TFun (params, _, _) -> List.map2 mark_generic_fun texprs params
+  | _ ->
+      (* Another generic case hm *)
+      List.map (fun t -> (t, None)) texprs
+(* failwith @@ "Internal Error: Application not a function after unification: " ^
+ * (string_of_type t) *)
 
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
@@ -664,15 +670,22 @@ and convert_function env loc { name; params; body; cont } =
 and convert_app env loc e1 args =
   let type_fun = convert env e1 in
   let generic = freeze type_fun.typ in
-  let typed_expr_args = List.map (convert env) args in
-  let args_t = List.map (fun a -> a.typ) typed_expr_args in
+  print_endline (string_of_type type_fun.typ);
+  (* TODO list.map2 here with generic params to figure out gen option *)
+  let typed_exprs = List.map (convert env) args in
+  let args_t = List.map (fun a -> a.typ) typed_exprs in
   let res_t = newvar () in
   unify (loc, "Application") type_fun.typ (TFun (args_t, res_t, Simple));
-  let targs =
-    List.map2 (fun typ texpr -> { texpr with typ }) args_t typed_expr_args
-  in
-  let generic_args = find_generic_parameters [] ~generic args_t in
-  { typ = res_t; expr = App (type_fun, targs, generic_args) }
+  Printf.printf "%s\t%s\t%s\n"
+    (string_of_type type_fun.typ)
+    (string_of_type generic)
+    (string_of_type @@ TFun (args_t, res_t, Simple));
+  (* Apply the 'result' of the unification the the typed_expr *)
+  let apply typ texpr = { texpr with typ } in
+  let targs = List.map2 apply args_t typed_exprs in
+  let targs = extend_generic_funs targs generic in
+
+  { typ = res_t; expr = App (type_fun, targs) }
 
 and convert_bop env loc bop e1 e2 =
   let check () =
