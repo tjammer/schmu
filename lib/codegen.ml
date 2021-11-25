@@ -433,11 +433,9 @@ and gen_generic funcs name { Typing.concrete; generic } =
         "" builder
     in
 
-    print_endline "after cast";
     let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in
     let funcp = Llvm.build_load funcp "loadtmp" builder in
     let funcp = Llvm.build_bitcast funcp func_type "casttmp" builder in
-    print_endline "after after cast";
 
     (* TODO there is a bug here for closure funcs *)
     (* TODO check if we have a closure and thread it out if this is the case *)
@@ -447,7 +445,6 @@ and gen_generic funcs name { Typing.concrete; generic } =
   in
 
   let i = ref start_index in
-  print_endline @@ "start index " ^ string_of_int start_index;
 
   let args_llvars =
     List.map2
@@ -455,7 +452,6 @@ and gen_generic funcs name { Typing.concrete; generic } =
         let value =
           match (generic, concrete) with
           | QVar _, (TBool as typ) | QVar _, (TInt as typ) ->
-              print_endline "in this case";
               let lltyp = get_lltype typ |> Llvm.pointer_type in
               (* let ptr = Llvm.build_alloca lltyp "" builder in
                * ignore (Llvm.build_store (Llvm.params gen_func.value).(!i) ptr builder); *)
@@ -464,7 +460,6 @@ and gen_generic funcs name { Typing.concrete; generic } =
                   (Llvm.params gen_func.value).(!i)
                   lltyp "" builder
               in
-              print_endline "after cast";
               { value = Llvm.build_load ptr "" builder; typ; lltyp }
           | QVar _, (TRecord _ as typ) ->
               let lltyp = get_lltype typ in
@@ -474,13 +469,8 @@ and gen_generic funcs name { Typing.concrete; generic } =
                   lltyp "" builder
               in
               { value; typ; lltyp }
-          | gentyp, typ ->
+          | _, typ ->
               let lltyp = get_lltype typ in
-              print_endline "in other case";
-              Printf.printf "gen: %s, concrete: %s, index: %i\n"
-                (Typing.string_of_type gentyp)
-                (Typing.string_of_type typ)
-                !i;
               (* Llvm.dump_module the_module; *)
               (* TODO what's going on here? *)
               { value = (Llvm.params gen_func.value).(!i); typ; lltyp }
@@ -552,30 +542,20 @@ and gen_app vars callee args =
   ignore gen_generic;
   let func = gen_expr vars callee in
 
-  Printf.printf "callee: %s\nfunc: %s\n\n"
-    (Typing.string_of_type callee.typ)
-    (Typing.string_of_type func.typ);
-
   (* We need to extract the qvars in the form of Param of llvalue | Local of typ *)
   let qvars = ref [] in
 
+  (* NOTE This is pretty heavy only to get out the qvars used in this application *)
   let rec aux param arg =
     match (param, arg) with
     | TVar _, _ -> failwith "Should not happen"
     | TFun (params1, ret1, _), TFun (params2, ret2, _) ->
-        Printf.printf "funs: %s, %s\n%!"
-          (Typing.string_of_type param)
-          (Typing.string_of_type arg);
         List.iter2 aux params1 params2;
         aux ret1 ret2;
         ()
-    | TFun _, t ->
-        Printf.printf "fun left: %s, %s\n%!"
-          (Typing.string_of_type param)
-          (Typing.string_of_type t);
+    | TFun _, _ ->
         ()
-    | QVar id, QVar id2 | QVar id, TVar { contents = Unbound (id2, _) } -> (
-        Printf.printf "Param: %s, %s\n%!" id id2;
+    | QVar id, QVar _ | QVar id, TVar { contents = Unbound (_, _) } -> (
         match List.assoc_opt id !qvars with
         | Some (Param _) -> ()
         | Some (Local _) -> failwith "Unexpected local and param"
@@ -600,11 +580,8 @@ and gen_app vars callee args =
     | TFun (params, _, _) ->
         List.iter2 aux params
           (List.map
-             (fun ((arg : Typing.typed_expr), gen) ->
-               (match gen with
-               | Some (name, _) -> print_endline @@ "generic arg: " ^ name
-               | None -> ());
-
+             (* TODO can we get the qvars here? *)
+             (fun ((arg : Typing.typed_expr), _) ->
                arg.typ)
              args);
         params
@@ -629,18 +606,18 @@ and gen_app vars callee args =
         (* TODO reuse [gen_closure_obj] code *)
         let clsr_struct = Llvm.build_alloca closure_type "wrapped" builder in
         let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
-        let fun_casted = Llvm.build_bitcast v.value voidptr_type "func" builder in
+        let fun_casted =
+          Llvm.build_bitcast v.value voidptr_type "func" builder
+        in
         ignore (Llvm.build_store fun_casted fun_ptr builder);
 
         let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
         let nullptr = Llvm.const_pointer_null voidptr_type in
         ignore (Llvm.build_store nullptr env_ptr builder);
 
-        (* let fp = Llvm.build_bitcast v.value voidptr_type "" builder in *)
-        (* let nullptr = Llvm.const_pointer_null voidptr_type in *)
-        print_endline "before clsr cast";
-        let clsr_casted = Llvm.build_bitcast clsr_struct voidptr_type "" builder in
-        print_endline "after clsr cast";
+        let clsr_casted =
+          Llvm.build_bitcast clsr_struct voidptr_type "" builder
+        in
         ignore (Llvm.build_store clsr_casted envptr builder);
         closure_struct
     | TFun (_, _, Closure _), _ ->
@@ -672,8 +649,7 @@ and gen_app vars callee args =
             Llvm.build_bitcast ptr generic_type "" builder
         | Some (Local (TRecord _)) ->
             Llvm.build_bitcast v.value generic_type "" builder
-        | Some (Local t) ->
-            print_endline @@ "local " ^ Typing.string_of_type t;
+        | Some (Local _) ->
             v.value
         | None -> v.value)
     | _ -> (
@@ -691,8 +667,7 @@ and gen_app vars callee args =
                 Llvm.build_bitcast ptr gen_ptr "" builder
             | Some (Local (TRecord _)) ->
                 Llvm.build_bitcast v.value gen_ptr "" builder
-            | Some (Local t) ->
-                print_endline @@ "local " ^ Typing.string_of_type t;
+            | Some (Local _) ->
                 v.value
             | None | Some (Param _) -> v.value)
         | _ -> v.value)
@@ -705,7 +680,6 @@ and gen_app vars callee args =
   (* No names here, might be void/unit *)
   let funcval, args =
     if Llvm.type_of func.value = (closure_type |> Llvm.pointer_type) then
-      let () = print_endline "is a closure" in
       (* Function to call is a closure (or a function passed into another one).
          We get the funptr from the first field, cast to the correct type,
          then get env ptr (as voidptr) from the second field and pass it as last argument *)
@@ -718,7 +692,6 @@ and gen_app vars callee args =
       let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
       (funcp, args @ [ env_ptr ])
     else
-      let () = print_endline "is not a closure" in
       (func.value, args)
   in
 
@@ -727,12 +700,9 @@ and gen_app vars callee args =
     | Some (Param value) -> value
     | Some (Local typ) -> get_lltype ~param:false typ |> Llvm.size_of
     | None ->
-        (* print_endline "don't know qvar"; *)
         (Vars.find (name_of_qvar id) vars).value
   in
 
-  (* Llvm.dump_module the_module; *)
-  (* Printf.printf "In gen app: %s\n%!" (Typing.string_of_type func.typ); *)
   let value, typ, lltyp =
     match func.typ with
     | TFun (_, (TRecord _ as typ), _) ->
@@ -889,9 +859,6 @@ let generate externals typed_expr =
               let typ =
                 TFun (gen.generic.tparams, gen.generic.ret, Closure [])
               in
-              Printf.printf "ret is %s, not %s\n"
-                (string_of_type gen.generic.ret)
-                (string_of_type gen.concrete.ret);
               Vars.add name (declare_function name typ) acc)
         vars lst
     in

@@ -670,16 +670,12 @@ and convert_function env loc { name; params; body; cont } =
 and convert_app env loc e1 args =
   let type_fun = convert env e1 in
   let generic = freeze type_fun.typ in
-  print_endline (string_of_type type_fun.typ);
-  (* TODO list.map2 here with generic params to figure out gen option *)
+
   let typed_exprs = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_exprs in
   let res_t = newvar () in
   unify (loc, "Application") type_fun.typ (TFun (args_t, res_t, Simple));
-  Printf.printf "%s\t%s\t%s\n"
-    (string_of_type type_fun.typ)
-    (string_of_type generic)
-    (string_of_type @@ TFun (args_t, res_t, Simple));
+
   (* Apply the 'result' of the unification the the typed_expr *)
   let apply typ texpr = { texpr with typ } in
   let targs = List.map2 apply args_t typed_exprs in
