@@ -96,6 +96,8 @@ We have downwards closures
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %closure = type { i8*, i8* }
+  
   define private i32 @capture_a(i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i32 }*
@@ -107,19 +109,19 @@ We have downwards closures
   
   define i32 @main(i32 %0) {
   entry:
-    %capture_a = alloca { i8*, i8* }, align 8
-    %funptr3 = bitcast { i8*, i8* }* %capture_a to i8**
+    %capture_a = alloca %closure, align 8
+    %funptr3 = bitcast %closure* %capture_a to i8**
     store i8* bitcast (i32 (i8*)* @capture_a to i8*), i8** %funptr3, align 8
     %clsr_capture_a = alloca { i32 }, align 8
     %a4 = bitcast { i32 }* %clsr_capture_a to i32*
     store i32 10, i32* %a4, align 4
-    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %capture_a, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %capture_a, i32 0, i32 1
     %env = bitcast { i32 }* %clsr_capture_a to i8*
     store i8* %env, i8** %envptr, align 8
-    %funcptr5 = bitcast { i8*, i8* }* %capture_a to i8**
+    %funcptr5 = bitcast %closure* %capture_a to i8**
     %loadtmp = load i8*, i8** %funcptr5, align 8
     %casttmp = bitcast i8* %loadtmp to i32 (i8*)*
-    %envptr1 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %capture_a, i32 0, i32 1
+    %envptr1 = getelementptr inbounds %closure, %closure* %capture_a, i32 0, i32 1
     %loadtmp2 = load i8*, i8** %envptr1, align 8
     %1 = call i32 %casttmp(i8* %loadtmp2)
     ret i32 %1
@@ -133,6 +135,7 @@ First class functions
   source_filename = "context"
   
   %generic = type opaque
+  %closure = type { i8*, i8* }
   
   declare void @printi(i32 %0)
   
@@ -144,8 +147,8 @@ First class functions
   
   define void @__ig_ig(%generic* %0, %generic* %1, i8* %2, i64 %3, i64 %4) {
   entry:
-    %5 = bitcast i8* %2 to { i8*, i8* }*
-    %funcptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %5, i32 0, i32 0
+    %5 = bitcast i8* %2 to %closure*
+    %funcptr = getelementptr inbounds %closure, %closure* %5, i32 0, i32 0
     %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i32 (i32)*
     %6 = bitcast %generic* %1 to i32*
@@ -158,12 +161,13 @@ First class functions
   
   declare i32 @add1(i32 %0)
   
-  declare void @apply(%generic* %0, %generic* %1, { i8*, i8* }* %2, i64 %3, i64 %4)
+  declare void @apply(%generic* %0, %generic* %1, %closure* %2, i64 %3, i64 %4)
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %generic = type opaque
+  %closure = type { i8*, i8* }
   
   declare void @printi(i32 %0)
   
@@ -175,8 +179,8 @@ First class functions
   
   define void @__ig_ig(%generic* %0, %generic* %1, i8* %2, i64 %3, i64 %4) {
   entry:
-    %5 = bitcast i8* %2 to { i8*, i8* }*
-    %funcptr1 = bitcast { i8*, i8* }* %5 to i8**
+    %5 = bitcast i8* %2 to %closure*
+    %funcptr1 = bitcast %closure* %5 to i8**
     %loadtmp = load i8*, i8** %funcptr1, align 8
     %casttmp = bitcast i8* %loadtmp to i32 (i32)*
     %6 = bitcast %generic* %1 to i32*
@@ -193,12 +197,12 @@ First class functions
     ret i32 %addtmp
   }
   
-  define private void @apply(%generic* %0, %generic* %x, { i8*, i8* }* %f, i64 %__3, i64 %__1) {
+  define private void @apply(%generic* %0, %generic* %x, %closure* %f, i64 %__3, i64 %__1) {
   entry:
-    %funcptr3 = bitcast { i8*, i8* }* %f to i8**
+    %funcptr3 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr3, align 8
     %casttmp = bitcast i8* %loadtmp to void (%generic*, %generic*, i8*, i64, i64)*
-    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %ret = alloca i8, i64 %__3, align 16
     %ret2 = bitcast i8* %ret to %generic*
@@ -217,40 +221,40 @@ First class functions
     %gen = alloca i32, align 4
     store i32 1, i32* %gen, align 4
     %1 = bitcast i32* %gen to %generic*
-    %clstmp = alloca { i8*, i8* }, align 8
-    %funptr14 = bitcast { i8*, i8* }* %clstmp to i8**
+    %clstmp = alloca %closure, align 8
+    %funptr14 = bitcast %closure* %clstmp to i8**
     store i8* bitcast (void (%generic*, %generic*, i8*, i64, i64)* @__ig_ig to i8*), i8** %funptr14, align 8
-    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp, i32 0, i32 1
-    %wrapped = alloca { i8*, i8* }, align 8
-    %funptr115 = bitcast { i8*, i8* }* %wrapped to i8**
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %wrapped = alloca %closure, align 8
+    %funptr115 = bitcast %closure* %wrapped to i8**
     store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr115, align 8
-    %envptr2 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %wrapped, i32 0, i32 1
+    %envptr2 = getelementptr inbounds %closure, %closure* %wrapped, i32 0, i32 1
     store i8* null, i8** %envptr2, align 8
-    %2 = bitcast { i8*, i8* }* %wrapped to i8*
+    %2 = bitcast %closure* %wrapped to i8*
     store i8* %2, i8** %envptr, align 8
     %ret = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
     %ret3 = bitcast i8* %ret to %generic*
-    call void @apply(%generic* %ret3, %generic* %1, { i8*, i8* }* %clstmp, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    call void @apply(%generic* %ret3, %generic* %1, %closure* %clstmp, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
     %3 = bitcast %generic* %ret3 to i32*
     %realret = load i32, i32* %3, align 4
     call void @printi(i32 %realret)
     %gen4 = alloca i32, align 4
     store i32 1, i32* %gen4, align 4
     %4 = bitcast i32* %gen4 to %generic*
-    %clstmp5 = alloca { i8*, i8* }, align 8
-    %funptr616 = bitcast { i8*, i8* }* %clstmp5 to i8**
+    %clstmp5 = alloca %closure, align 8
+    %funptr616 = bitcast %closure* %clstmp5 to i8**
     store i8* bitcast (void (%generic*, %generic*, i8*, i64, i64)* @__ig_ig to i8*), i8** %funptr616, align 8
-    %envptr7 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp5, i32 0, i32 1
-    %wrapped8 = alloca { i8*, i8* }, align 8
-    %funptr917 = bitcast { i8*, i8* }* %wrapped8 to i8**
+    %envptr7 = getelementptr inbounds %closure, %closure* %clstmp5, i32 0, i32 1
+    %wrapped8 = alloca %closure, align 8
+    %funptr917 = bitcast %closure* %wrapped8 to i8**
     store i8* bitcast (i32 (i32)* @__fun0 to i8*), i8** %funptr917, align 8
-    %envptr10 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %wrapped8, i32 0, i32 1
+    %envptr10 = getelementptr inbounds %closure, %closure* %wrapped8, i32 0, i32 1
     store i8* null, i8** %envptr10, align 8
-    %5 = bitcast { i8*, i8* }* %wrapped8 to i8*
+    %5 = bitcast %closure* %wrapped8 to i8*
     store i8* %5, i8** %envptr7, align 8
     %ret11 = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
     %ret12 = bitcast i8* %ret11 to %generic*
-    call void @apply(%generic* %ret12, %generic* %4, { i8*, i8* }* %clstmp5, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    call void @apply(%generic* %ret12, %generic* %4, %closure* %clstmp5, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
     %6 = bitcast %generic* %ret12 to i32*
     %realret13 = load i32, i32* %6, align 4
     call void @printi(i32 %realret13)
@@ -323,20 +327,22 @@ Captured values should not overwrite function params
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %closure = type { i8*, i8* }
+  
   declare void @printi(i32 %0)
   
-  define private i32 @add({ i8*, i8* }* %a, { i8*, i8* }* %b) {
+  define private i32 @add(%closure* %a, %closure* %b) {
   entry:
-    %funcptr7 = bitcast { i8*, i8* }* %a to i8**
+    %funcptr7 = bitcast %closure* %a to i8**
     %loadtmp = load i8*, i8** %funcptr7, align 8
     %casttmp = bitcast i8* %loadtmp to i32 (i8*)*
-    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %a, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %a, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %0 = call i32 %casttmp(i8* %loadtmp1)
-    %funcptr28 = bitcast { i8*, i8* }* %b to i8**
+    %funcptr28 = bitcast %closure* %b to i8**
     %loadtmp3 = load i8*, i8** %funcptr28, align 8
     %casttmp4 = bitcast i8* %loadtmp3 to i32 (i8*)*
-    %envptr5 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %b, i32 0, i32 1
+    %envptr5 = getelementptr inbounds %closure, %closure* %b, i32 0, i32 1
     %loadtmp6 = load i8*, i8** %envptr5, align 8
     %1 = call i32 %casttmp4(i8* %loadtmp6)
     %addtmp = add i32 %0, %1
@@ -358,21 +364,21 @@ Captured values should not overwrite function params
   
   define i32 @main(i32 %0) {
   entry:
-    %two = alloca { i8*, i8* }, align 8
-    %funptr3 = bitcast { i8*, i8* }* %two to i8**
+    %two = alloca %closure, align 8
+    %funptr3 = bitcast %closure* %two to i8**
     store i8* bitcast (i32 (i8*)* @two to i8*), i8** %funptr3, align 8
     %clsr_two = alloca { i32 }, align 8
     %b4 = bitcast { i32 }* %clsr_two to i32*
     store i32 2, i32* %b4, align 4
-    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %two, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %two, i32 0, i32 1
     %env = bitcast { i32 }* %clsr_two to i8*
     store i8* %env, i8** %envptr, align 8
-    %clstmp = alloca { i8*, i8* }, align 8
-    %funptr15 = bitcast { i8*, i8* }* %clstmp to i8**
+    %clstmp = alloca %closure, align 8
+    %funptr15 = bitcast %closure* %clstmp to i8**
     store i8* bitcast (i32 ()* @one to i8*), i8** %funptr15, align 8
-    %envptr2 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp, i32 0, i32 1
+    %envptr2 = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr2, align 8
-    %1 = call i32 @add({ i8*, i8* }* %clstmp, { i8*, i8* }* %two)
+    %1 = call i32 @add(%closure* %clstmp, %closure* %two)
     call void @printi(i32 %1)
     ret i32 0
   }

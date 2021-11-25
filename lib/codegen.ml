@@ -29,7 +29,11 @@ let unit_type = Llvm.void_type context
 
 let voidptr_type = Llvm.(i8_type context |> pointer_type)
 
-let closure_type = Llvm.(struct_type context [| voidptr_type; voidptr_type |])
+let closure_type =
+  let t = Llvm.named_struct_type context "closure" in
+  let typ = [| voidptr_type; voidptr_type |] in
+  Llvm.struct_set_body t typ false;
+  t
 
 let generic_type = Llvm.named_struct_type context "generic"
 
@@ -553,8 +557,7 @@ and gen_app vars callee args =
         List.iter2 aux params1 params2;
         aux ret1 ret2;
         ()
-    | TFun _, _ ->
-        ()
+    | TFun _, _ -> ()
     | QVar id, QVar _ | QVar id, TVar { contents = Unbound (_, _) } -> (
         match List.assoc_opt id !qvars with
         | Some (Param _) -> ()
@@ -581,8 +584,7 @@ and gen_app vars callee args =
         List.iter2 aux params
           (List.map
              (* TODO can we get the qvars here? *)
-             (fun ((arg : Typing.typed_expr), _) ->
-               arg.typ)
+               (fun ((arg : Typing.typed_expr), _) -> arg.typ)
              args);
         params
     | _ -> failwith "Internal Error: Not a func in gen app"
@@ -649,8 +651,7 @@ and gen_app vars callee args =
             Llvm.build_bitcast ptr generic_type "" builder
         | Some (Local (TRecord _)) ->
             Llvm.build_bitcast v.value generic_type "" builder
-        | Some (Local _) ->
-            v.value
+        | Some (Local _) -> v.value
         | None -> v.value)
     | _ -> (
         match param with
@@ -667,8 +668,7 @@ and gen_app vars callee args =
                 Llvm.build_bitcast ptr gen_ptr "" builder
             | Some (Local (TRecord _)) ->
                 Llvm.build_bitcast v.value gen_ptr "" builder
-            | Some (Local _) ->
-                v.value
+            | Some (Local _) -> v.value
             | None | Some (Param _) -> v.value)
         | _ -> v.value)
   in
@@ -691,16 +691,14 @@ and gen_app vars callee args =
       let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
       let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
       (funcp, args @ [ env_ptr ])
-    else
-      (func.value, args)
+    else (func.value, args)
   in
 
   let get_qval id =
     match List.assoc_opt id !qvars with
     | Some (Param value) -> value
     | Some (Local typ) -> get_lltype ~param:false typ |> Llvm.size_of
-    | None ->
-        (Vars.find (name_of_qvar id) vars).value
+    | None -> (Vars.find (name_of_qvar id) vars).value
   in
 
   let value, typ, lltyp =
