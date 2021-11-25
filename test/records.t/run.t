@@ -71,11 +71,11 @@ Create record
     store i32 %y, i32* %y2, align 4
     %2 = bitcast { i32, i32 }* %0 to i8*
     %3 = bitcast { i32, i32 }* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 mul nuw (i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 2), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 ptrtoint ({ i32, i32 }* getelementptr ({ i32, i32 }, { i32, i32 }* null, i32 1) to i64), i1 false)
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nosync nounwind willreturn
+  ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i32 @main(i32 %0) {
@@ -88,7 +88,7 @@ Create record
     ret i32 0
   }
   
-  attributes #0 = { argmemonly nofree nosync nounwind willreturn }
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   8
 
@@ -107,11 +107,11 @@ Nested records
     store i32 3, i32* %z1, align 4
     %2 = bitcast { i32 }* %0 to i8*
     %3 = bitcast { i32 }* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i64), i1 false)
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nosync nounwind willreturn
+  ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i32 @main(i32 %0) {
@@ -124,7 +124,7 @@ Nested records
     call void @inner({ i32 }* %ret)
     %2 = bitcast { i32 }* %y to i8*
     %3 = bitcast { i32 }* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i64), i1 false)
     %4 = getelementptr inbounds { i32, { i32 } }, { i32, { i32 } }* %1, i32 0, i32 1
     %5 = bitcast { i32 }* %4 to i32*
     %6 = load i32, i32* %5, align 4
@@ -132,6 +132,6 @@ Nested records
     ret i32 0
   }
   
-  attributes #0 = { argmemonly nofree nosync nounwind willreturn }
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   3

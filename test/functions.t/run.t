@@ -131,7 +131,8 @@ First class functions
   $ dune exec -- schmu first_class.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %generic = type opaque
   
   declare void @printi(i32 %0)
   
@@ -141,41 +142,122 @@ First class functions
     ret i32 %addtmp
   }
   
+  define void @__ig_ig(%generic* %0, %generic* %1, i8* %2, i64 %3, i64 %4) {
+  entry:
+    %5 = bitcast i8* %2 to { i8*, i8* }*
+    %funcptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %5, i32 0, i32 0
+    %loadtmp = load i8*, i8** %funcptr, align 8
+    %casttmp = bitcast i8* %loadtmp to i32 (i32)*
+    %6 = bitcast %generic* %1 to i32*
+    %7 = load i32, i32* %6, align 4
+    %8 = call i32 %casttmp(i32 %7)
+    %9 = bitcast %generic* %0 to i32*
+    store i32 %8, i32* %9, align 4
+    ret void
+  }
+  
+  declare i32 @add1(i32 %0)
+  
+  declare void @apply(%generic* %0, %generic* %1, { i8*, i8* }* %2, i64 %3, i64 %4)
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %generic = type opaque
+  
+  declare void @printi(i32 %0)
+  
+  define private i32 @__fun0(i32 %x) {
+  entry:
+    %addtmp = add i32 %x, 2
+    ret i32 %addtmp
+  }
+  
+  define void @__ig_ig(%generic* %0, %generic* %1, i8* %2, i64 %3, i64 %4) {
+  entry:
+    %5 = bitcast i8* %2 to { i8*, i8* }*
+    %funcptr1 = bitcast { i8*, i8* }* %5 to i8**
+    %loadtmp = load i8*, i8** %funcptr1, align 8
+    %casttmp = bitcast i8* %loadtmp to i32 (i32)*
+    %6 = bitcast %generic* %1 to i32*
+    %7 = load i32, i32* %6, align 4
+    %8 = call i32 %casttmp(i32 %7)
+    %9 = bitcast %generic* %0 to i32*
+    store i32 %8, i32* %9, align 4
+    ret void
+  }
+  
   define private i32 @add1(i32 %x) {
   entry:
     %addtmp = add i32 %x, 1
     ret i32 %addtmp
   }
   
-  define private i32 @apply(i32 %x, { i8*, i8* }* %f) {
+  define private void @apply(%generic* %0, %generic* %x, { i8*, i8* }* %f, i64 %__3, i64 %__1) {
   entry:
-    %funcptr2 = bitcast { i8*, i8* }* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
-    %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
+    %funcptr3 = bitcast { i8*, i8* }* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr3, align 8
+    %casttmp = bitcast i8* %loadtmp to void (%generic*, %generic*, i8*, i64, i64)*
     %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %f, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %0 = call i32 %casttmp(i32 %x, i8* %loadtmp1)
-    ret i32 %0
+    %ret = alloca i8, i64 %__3, align 16
+    %ret2 = bitcast i8* %ret to %generic*
+    call void %casttmp(%generic* %ret2, %generic* %x, i8* %loadtmp1, i64 %__3, i64 %__1)
+    %1 = bitcast %generic* %0 to i8*
+    %2 = bitcast %generic* %ret2 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 %__3, i1 false)
+    ret void
   }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i32 @main(i32 %0) {
   entry:
+    %gen = alloca i32, align 4
+    store i32 1, i32* %gen, align 4
+    %1 = bitcast i32* %gen to %generic*
     %clstmp = alloca { i8*, i8* }, align 8
-    %funptr4 = bitcast { i8*, i8* }* %clstmp to i8**
-    store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr4, align 8
+    %funptr14 = bitcast { i8*, i8* }* %clstmp to i8**
+    store i8* bitcast (void (%generic*, %generic*, i8*, i64, i64)* @__ig_ig to i8*), i8** %funptr14, align 8
     %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp, i32 0, i32 1
-    store i8* null, i8** %envptr, align 8
-    %1 = call i32 @apply(i32 1, { i8*, i8* }* %clstmp)
-    call void @printi(i32 %1)
-    %clstmp1 = alloca { i8*, i8* }, align 8
-    %funptr25 = bitcast { i8*, i8* }* %clstmp1 to i8**
-    store i8* bitcast (i32 (i32)* @__fun0 to i8*), i8** %funptr25, align 8
-    %envptr3 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp1, i32 0, i32 1
-    store i8* null, i8** %envptr3, align 8
-    %2 = call i32 @apply(i32 1, { i8*, i8* }* %clstmp1)
-    call void @printi(i32 %2)
+    %wrapped = alloca { i8*, i8* }, align 8
+    %funptr115 = bitcast { i8*, i8* }* %wrapped to i8**
+    store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr115, align 8
+    %envptr2 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %wrapped, i32 0, i32 1
+    store i8* null, i8** %envptr2, align 8
+    %2 = bitcast { i8*, i8* }* %wrapped to i8*
+    store i8* %2, i8** %envptr, align 8
+    %ret = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret3 = bitcast i8* %ret to %generic*
+    call void @apply(%generic* %ret3, %generic* %1, { i8*, i8* }* %clstmp, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    %3 = bitcast %generic* %ret3 to i32*
+    %realret = load i32, i32* %3, align 4
+    call void @printi(i32 %realret)
+    %gen4 = alloca i32, align 4
+    store i32 1, i32* %gen4, align 4
+    %4 = bitcast i32* %gen4 to %generic*
+    %clstmp5 = alloca { i8*, i8* }, align 8
+    %funptr616 = bitcast { i8*, i8* }* %clstmp5 to i8**
+    store i8* bitcast (void (%generic*, %generic*, i8*, i64, i64)* @__ig_ig to i8*), i8** %funptr616, align 8
+    %envptr7 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp5, i32 0, i32 1
+    %wrapped8 = alloca { i8*, i8* }, align 8
+    %funptr917 = bitcast { i8*, i8* }* %wrapped8 to i8**
+    store i8* bitcast (i32 (i32)* @__fun0 to i8*), i8** %funptr917, align 8
+    %envptr10 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %wrapped8, i32 0, i32 1
+    store i8* null, i8** %envptr10, align 8
+    %5 = bitcast { i8*, i8* }* %wrapped8 to i8*
+    store i8* %5, i8** %envptr7, align 8
+    %ret11 = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret12 = bitcast i8* %ret11 to %generic*
+    call void @apply(%generic* %ret12, %generic* %4, { i8*, i8* }* %clstmp5, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    %6 = bitcast %generic* %ret12 to i32*
+    %realret13 = load i32, i32* %6, align 4
+    call void @printi(i32 %realret13)
     ret i32 0
   }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   2
   3
@@ -303,9 +385,9 @@ a second function. Instead, the closure struct was being created again and the c
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-  
+
   declare void @printi(i32 %0)
-  
+
   define private void @boxed2int_int({ i32 }* %0, { i32 }* %t, { i8*, i8* }* %env) {
   entry:
     %1 = bitcast { i32 }* %t to i32*
@@ -324,13 +406,13 @@ a second function. Instead, the closure struct was being created again and the c
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i1 false)
     ret void
   }
-  
+
   define private i32 @add1(i32 %x) {
   entry:
     %addtmp = add i32 %x, 1
     ret i32 %addtmp
   }
-  
+
   define private void @apply({ i32 }* %0, { i32 }* %x, { i8*, i8* }* %f, { i8*, i8* }* %env) {
   entry:
     %funcptr2 = bitcast { i8*, i8* }* %f to i8**
@@ -345,10 +427,10 @@ a second function. Instead, the closure struct was being created again and the c
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i1 false)
     ret void
   }
-  
+
   ; Function Attrs: argmemonly nofree nosync nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
+
   define i32 @main(i32 %0) {
   entry:
     %1 = alloca { i32 }, align 8
@@ -371,7 +453,7 @@ a second function. Instead, the closure struct was being created again and the c
     call void @printi(i32 %3)
     ret i32 0
   }
-  
+
   attributes #0 = { argmemonly nofree nosync nounwind willreturn }
   unit
   16
