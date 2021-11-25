@@ -226,6 +226,7 @@ let gen_closure_obj assoc func vars name =
 
   (* Add closure env to struct *)
   let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
+  (* Is this bitcast even needed? *)
   let clsr_casted = Llvm.build_bitcast clsr_ptr voidptr_type "env" builder in
   ignore (Llvm.build_store clsr_casted env_ptr builder);
 
@@ -426,24 +427,20 @@ and gen_generic funcs name { Typing.concrete; generic } =
     let clsr_param = (Llvm.params gen_func.value).(closure_index) in
 
     (* The env is not an env here, but a whole closure *)
-    (* TODO right now we only stuff in the function *)
-    (* let clsr_ptr =
-     *   Llvm.build_bitcast clsr_param
-     *     (closure_type |> Llvm.pointer_type)
-     *     "" builder
-     * in *)
+    let clsr_ptr =
+      Llvm.build_bitcast clsr_param
+        (closure_type |> Llvm.pointer_type)
+        "" builder
+    in
 
-    (* let clsr_ptr = Llvm.build_bitcast clsr_param (voidptr_type) "" builder in *)
-
-
-    (* TODO we should return the closure *)
     print_endline "after cast";
-    (* let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in *)
-    (* let funcp = Llvm.build_load funcp "loadtmp" builder in *)
-    let funcp = Llvm.build_bitcast clsr_param func_type "casttmp" builder in
+    let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in
+    let funcp = Llvm.build_load funcp "loadtmp" builder in
+    let funcp = Llvm.build_bitcast funcp func_type "casttmp" builder in
     print_endline "after after cast";
 
-    (* TODO there is a bug here for non-closure funcs (or closure funcs) *)
+    (* TODO there is a bug here for closure funcs *)
+    (* TODO check if we have a closure and thread it out if this is the case *)
     (* let env_ptr = Llvm.build_struct_gep clsr_ptr 1 "envptr" builder in *)
     (* let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in *)
     { value = funcp; typ; lltyp }
@@ -617,18 +614,34 @@ and gen_app vars callee args =
   let funcs_to_ptr param generic v =
     match (v.typ, generic) with
     | TFun _, Some (name, _) ->
+        (* TODO do we even need the generic fun piece here? *)
         (* TODO also do this case for closures, passed funcs and simple ones *)
-      let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
-      let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
+        let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
+        let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
         let gen_fp = Vars.find name vars in
         let ptr = Llvm.build_bitcast gen_fp.value voidptr_type "" builder in
         ignore (Llvm.build_store ptr fp builder);
 
         (* Store the actual function in the env *)
+        (* The env here is a complete closure again *)
         let envptr = Llvm.build_struct_gep closure_struct 1 "envptr" builder in
-        let fp = Llvm.build_bitcast v.value voidptr_type "" builder in
+
+        (* TODO reuse [gen_closure_obj] code *)
+        let clsr_struct = Llvm.build_alloca closure_type "wrapped" builder in
+        let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
+        let fun_casted = Llvm.build_bitcast v.value voidptr_type "func" builder in
+        ignore (Llvm.build_store fun_casted fun_ptr builder);
+
+        let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
+        let nullptr = Llvm.const_pointer_null voidptr_type in
+        ignore (Llvm.build_store nullptr env_ptr builder);
+
+        (* let fp = Llvm.build_bitcast v.value voidptr_type "" builder in *)
         (* let nullptr = Llvm.const_pointer_null voidptr_type in *)
-        ignore (Llvm.build_store fp envptr builder);
+        print_endline "before clsr cast";
+        let clsr_casted = Llvm.build_bitcast clsr_struct voidptr_type "" builder in
+        print_endline "after clsr cast";
+        ignore (Llvm.build_store clsr_casted envptr builder);
         closure_struct
     | TFun (_, _, Closure _), _ ->
         (* This closure is a struct and has an env *)
