@@ -264,7 +264,6 @@ let add_closure vars func ~closure_index = function
 (* TODO put below gen_expr *)
 let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
     { name = name, named, uniq; params; typ; body } =
-
   let fun_name = if named then unique_name (name, uniq) else name in
   match typ with
   | TFun (tparams, ret_t, kind) as typ ->
@@ -422,43 +421,25 @@ and gen_generic funcs name { Typing.concrete; generic } =
   let closure_index = List.length generic.tparams + start_index in
 
   (* Get wrapped function *)
-  let wrapped_func, funcs =
+  let wrapped_func =
     let typ = TFun (concrete.tparams, concrete.ret, concrete.kind) in
     let lltyp =
       typeof_func ~param:false ~decl:true
         (concrete.tparams, concrete.ret, concrete.kind)
     in
-    let func_type = lltyp |> Llvm.pointer_type in
 
-    match concrete.kind with
-    | Simple ->
-        let clsr_param = (Llvm.params gen_func.value).(closure_index) in
+    (* We always pass the function as closures, even when they are not.
+       The C calling convention apparently allows this and this makes it
+       easier for us to reuse the generic function. If we ever need to
+       optimize hard, we can make the generic function closure-aware *)
+    let clsr_param = (Llvm.params gen_func.value).(closure_index) in
 
-        (* The env is not an env here, but a whole closure *)
-        let clsr_ptr =
-          Llvm.build_bitcast clsr_param
-            (closure_type |> Llvm.pointer_type)
-            "" builder
-        in
-
-        let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in
-        let funcp = Llvm.build_load funcp "loadtmp" builder in
-        let funcp = Llvm.build_bitcast funcp func_type "casttmp" builder in
-
-        (* TODO there is a bug here for closure funcs *)
-        (* TODO check if we have a closure and thread it out if this is the case *)
-        (* let env_ptr = Llvm.build_struct_gep clsr_ptr 1 "envptr" builder in *)
-        (* let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in *)
-        ({ value = funcp; typ; lltyp }, funcs)
-    | Closure _ ->
-        let clsr_param = (Llvm.params gen_func.value).(closure_index) in
-
-        let clsr_ptr =
-          Llvm.build_bitcast clsr_param
-            (closure_type |> Llvm.pointer_type)
-            "" builder
-        in
-        ({ value = clsr_ptr; typ; lltyp }, funcs)
+    let clsr_ptr =
+      Llvm.build_bitcast clsr_param
+        (closure_type |> Llvm.pointer_type)
+        "" builder
+    in
+    { value = clsr_ptr; typ; lltyp }
   in
 
   let i = ref start_index in
