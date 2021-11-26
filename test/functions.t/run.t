@@ -115,8 +115,8 @@ We have downwards closures
     %clsr_capture_a = alloca { i32 }, align 8
     %a4 = bitcast { i32 }* %clsr_capture_a to i32*
     store i32 10, i32* %a4, align 4
-    %envptr = getelementptr inbounds %closure, %closure* %capture_a, i32 0, i32 1
     %env = bitcast { i32 }* %clsr_capture_a to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %capture_a, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     %funcptr5 = bitcast %closure* %capture_a to i8**
     %loadtmp = load i8*, i8** %funcptr5, align 8
@@ -131,37 +131,6 @@ We have downwards closures
 
 First class functions
   $ dune exec -- schmu first_class.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
-  ; ModuleID = 'context'
-  source_filename = "context"
-  
-  %generic = type opaque
-  %closure = type { i8*, i8* }
-  
-  declare void @printi(i32 %0)
-  
-  define private i32 @__fun0(i32 %x) {
-  entry:
-    %addtmp = add i32 %x, 2
-    ret i32 %addtmp
-  }
-  
-  define void @__ig_ig(%generic* %0, %generic* %1, i8* %2, i64 %3, i64 %4) {
-  entry:
-    %5 = bitcast i8* %2 to %closure*
-    %funcptr = getelementptr inbounds %closure, %closure* %5, i32 0, i32 0
-    %loadtmp = load i8*, i8** %funcptr, align 8
-    %casttmp = bitcast i8* %loadtmp to i32 (i32)*
-    %6 = bitcast %generic* %1 to i32*
-    %7 = load i32, i32* %6, align 4
-    %8 = call i32 %casttmp(i32 %7)
-    %9 = bitcast %generic* %0 to i32*
-    store i32 %8, i32* %9, align 4
-    ret void
-  }
-  
-  declare i32 @add1(i32 %0)
-  
-  declare void @apply(%generic* %0, %generic* %1, %closure* %2, i64 %3, i64 %4)
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -180,12 +149,14 @@ First class functions
   define void @__ig_ig(%generic* %0, %generic* %1, i8* %2, i64 %3, i64 %4) {
   entry:
     %5 = bitcast i8* %2 to %closure*
-    %funcptr1 = bitcast %closure* %5 to i8**
-    %loadtmp = load i8*, i8** %funcptr1, align 8
-    %casttmp = bitcast i8* %loadtmp to i32 (i32)*
     %6 = bitcast %generic* %1 to i32*
     %7 = load i32, i32* %6, align 4
-    %8 = call i32 %casttmp(i32 %7)
+    %funcptr2 = bitcast %closure* %5 to i8**
+    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %5, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %8 = call i32 %casttmp(i32 %7, i8* %loadtmp1)
     %9 = bitcast %generic* %0 to i32*
     store i32 %8, i32* %9, align 4
     ret void
@@ -370,8 +341,8 @@ Captured values should not overwrite function params
     %clsr_two = alloca { i32 }, align 8
     %b4 = bitcast { i32 }* %clsr_two to i32*
     store i32 2, i32* %b4, align 4
-    %envptr = getelementptr inbounds %closure, %closure* %two, i32 0, i32 1
     %env = bitcast { i32 }* %clsr_two to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %two, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     %clstmp = alloca %closure, align 8
     %funptr15 = bitcast %closure* %clstmp to i8**
