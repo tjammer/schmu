@@ -393,6 +393,181 @@ Captured values should not overwrite function params
   unit
   3
 
+Functions can be generic. In this test, we generate 'apply' only once and use it with
+3 different functions with different types
+  $ dune exec -- schmu generic_fun_arg.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %generic = type opaque
+  %closure = type { i8*, i8* }
+  
+  declare void @printi(i32 %0)
+  
+  define void @__bg_bg(%generic* %0, %generic* %1, i8* %2, i64 %3, i64 %4) {
+  entry:
+    %5 = bitcast i8* %2 to %closure*
+    %6 = bitcast %generic* %1 to i1*
+    %7 = load i1, i1* %6, align 1
+    %funcptr2 = bitcast %closure* %5 to i8**
+    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %casttmp = bitcast i8* %loadtmp to i1 (i1, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %5, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %8 = call i1 %casttmp(i1 %7, i8* %loadtmp1)
+    %9 = bitcast %generic* %0 to i1*
+    store i1 %8, i1* %9, align 1
+    ret void
+  }
+  
+  define void @__ig_ig(%generic* %0, %generic* %1, i8* %2, i64 %3, i64 %4) {
+  entry:
+    %5 = bitcast i8* %2 to %closure*
+    %6 = bitcast %generic* %1 to i32*
+    %7 = load i32, i32* %6, align 4
+    %funcptr2 = bitcast %closure* %5 to i8**
+    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %5, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %8 = call i32 %casttmp(i32 %7, i8* %loadtmp1)
+    %9 = bitcast %generic* %0 to i32*
+    store i32 %8, i32* %9, align 4
+    ret void
+  }
+  
+  define private i1 @makefalse(i1 %b) {
+  entry:
+    br i1 %b, label %ifcont, label %else
+  
+  else:                                             ; preds = %entry
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %else
+    %iftmp = phi i1 [ %b, %else ], [ false, %entry ]
+    ret i1 %iftmp
+  }
+  
+  define private i32 @add1(i32 %x) {
+  entry:
+    %addtmp = add i32 %x, 1
+    ret i32 %addtmp
+  }
+  
+  define private i32 @add_closed(i32 %x, i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { i32 }*
+    %a2 = bitcast { i32 }* %clsr to i32*
+    %a1 = load i32, i32* %a2, align 4
+    %addtmp = add i32 %x, %a1
+    ret i32 %addtmp
+  }
+  
+  define private void @apply(%generic* %0, %generic* %x, %closure* %f, i64 %__3, i64 %__1) {
+  entry:
+    %funcptr3 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr3, align 8
+    %casttmp = bitcast i8* %loadtmp to void (%generic*, %generic*, i8*, i64, i64)*
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %ret = alloca i8, i64 %__3, align 16
+    %ret2 = bitcast i8* %ret to %generic*
+    call void %casttmp(%generic* %ret2, %generic* %x, i8* %loadtmp1, i64 %__3, i64 %__1)
+    %1 = bitcast %generic* %0 to i8*
+    %2 = bitcast %generic* %ret2 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 %__3, i1 false)
+    ret void
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define i32 @main(i32 %0) {
+  entry:
+    %add_closed = alloca %closure, align 8
+    %funptr23 = bitcast %closure* %add_closed to i8**
+    store i8* bitcast (i32 (i32, i8*)* @add_closed to i8*), i8** %funptr23, align 8
+    %clsr_add_closed = alloca { i32 }, align 8
+    %a24 = bitcast { i32 }* %clsr_add_closed to i32*
+    store i32 2, i32* %a24, align 4
+    %env = bitcast { i32 }* %clsr_add_closed to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %add_closed, i32 0, i32 1
+    store i8* %env, i8** %envptr, align 8
+    %gen = alloca i32, align 4
+    store i32 20, i32* %gen, align 4
+    %1 = bitcast i32* %gen to %generic*
+    %clstmp = alloca %closure, align 8
+    %funptr125 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (void (%generic*, %generic*, i8*, i64, i64)* @__ig_ig to i8*), i8** %funptr125, align 8
+    %envptr2 = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %wrapped = alloca %closure, align 8
+    %funptr326 = bitcast %closure* %wrapped to i8**
+    store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr326, align 8
+    %envptr4 = getelementptr inbounds %closure, %closure* %wrapped, i32 0, i32 1
+    store i8* null, i8** %envptr4, align 8
+    %2 = bitcast %closure* %wrapped to i8*
+    store i8* %2, i8** %envptr2, align 8
+    %ret = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret5 = bitcast i8* %ret to %generic*
+    call void @apply(%generic* %ret5, %generic* %1, %closure* %clstmp, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    %3 = bitcast %generic* %ret5 to i32*
+    %realret = load i32, i32* %3, align 4
+    call void @printi(i32 %realret)
+    %gen6 = alloca i32, align 4
+    store i32 20, i32* %gen6, align 4
+    %4 = bitcast i32* %gen6 to %generic*
+    %clstmp7 = alloca %closure, align 8
+    %funptr827 = bitcast %closure* %clstmp7 to i8**
+    store i8* bitcast (void (%generic*, %generic*, i8*, i64, i64)* @__ig_ig to i8*), i8** %funptr827, align 8
+    %envptr9 = getelementptr inbounds %closure, %closure* %clstmp7, i32 0, i32 1
+    %5 = bitcast %closure* %add_closed to i8*
+    store i8* %5, i8** %envptr9, align 8
+    %ret10 = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret11 = bitcast i8* %ret10 to %generic*
+    call void @apply(%generic* %ret11, %generic* %4, %closure* %clstmp7, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    %6 = bitcast %generic* %ret11 to i32*
+    %realret12 = load i32, i32* %6, align 4
+    call void @printi(i32 %realret12)
+    %gen13 = alloca i1, align 1
+    store i1 true, i1* %gen13, align 1
+    %7 = bitcast i1* %gen13 to %generic*
+    %clstmp14 = alloca %closure, align 8
+    %funptr1528 = bitcast %closure* %clstmp14 to i8**
+    store i8* bitcast (void (%generic*, %generic*, i8*, i64, i64)* @__bg_bg to i8*), i8** %funptr1528, align 8
+    %envptr16 = getelementptr inbounds %closure, %closure* %clstmp14, i32 0, i32 1
+    %wrapped17 = alloca %closure, align 8
+    %funptr1829 = bitcast %closure* %wrapped17 to i8**
+    store i8* bitcast (i1 (i1)* @makefalse to i8*), i8** %funptr1829, align 8
+    %envptr19 = getelementptr inbounds %closure, %closure* %wrapped17, i32 0, i32 1
+    store i8* null, i8** %envptr19, align 8
+    %8 = bitcast %closure* %wrapped17 to i8*
+    store i8* %8, i8** %envptr16, align 8
+    %ret20 = alloca i8, i64 ptrtoint (i1* getelementptr (i1, i1* null, i32 1) to i64), align 16
+    %ret21 = bitcast i8* %ret20 to %generic*
+    call void @apply(%generic* %ret21, %generic* %7, %closure* %clstmp14, i64 ptrtoint (i1* getelementptr (i1, i1* null, i32 1) to i64), i64 ptrtoint (i1* getelementptr (i1, i1* null, i32 1) to i64))
+    %9 = bitcast %generic* %ret21 to i1*
+    %realret22 = load i1, i1* %9, align 1
+    br i1 %realret22, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    call void @printi(i32 1)
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    call void @printi(i32 0)
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    ret i32 0
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  unit
+  21
+  22
+  0
+
 This is a regression test. The 'add1' function was not marked as a closure when being called from
 a second function. Instead, the closure struct was being created again and the code segfaulted
   $ dune exec -- schmu indirect_closure.smu | grep -v x86_64 && cc out.o stub.o && ./a.out

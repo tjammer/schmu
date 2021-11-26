@@ -1,0 +1,28 @@
+external printi : int -> unit
+
+-- This function is generic, i.e. only generated once
+-- and used for different functions
+function apply(x, f)
+  f(x)
+
+a = 2
+
+function add_closed(x)
+  -- we close over a
+  x + a
+
+-- simple int -> int
+function add1(x)
+  x + 1
+
+-- simple bool -> bool
+function makefalse(b)
+  if b then false
+  else b
+
+-- Missing: Record
+
+a = printi(apply(20, add1))
+a = printi(apply(20, add_closed))
+if apply(true, makefalse) then printi(1)
+else printi(0)
