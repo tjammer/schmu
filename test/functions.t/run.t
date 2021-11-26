@@ -4,7 +4,44 @@ Compile stubs
 Test name resolution and IR creation of functions
 We discard the triple, b/c it varies from distro to distro
 e.g. x86_64-unknown-linux-gnu on Fedora vs x86_64-pc-linux-gnu on gentoo
+
+Simple fibonacci
   $ dune exec -- schmu fib.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  declare void @printi(i32 %0)
+  
+  define private i32 @fib(i32 %n) {
+  entry:
+    %lesstmp = icmp slt i32 %n, 2
+    br i1 %lesstmp, label %ifcont, label %else
+  
+  else:                                             ; preds = %entry
+    %subtmp = sub i32 %n, 1
+    %0 = call i32 @fib(i32 %subtmp)
+    %subtmp1 = sub i32 %n, 2
+    %1 = call i32 @fib(i32 %subtmp1)
+    %addtmp = add i32 %0, %1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %else
+    %iftmp = phi i32 [ %addtmp, %else ], [ %n, %entry ]
+    ret i32 %iftmp
+  }
+  
+  define i32 @main(i32 %0) {
+  entry:
+    %1 = call i32 @fib(i32 30)
+    call void @printi(i32 %1)
+    ret i32 0
+  }
+  unit
+  832040
+
+Fibonacci, but we shadow a bunch
+  $ dune exec -- schmu shadowing.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
