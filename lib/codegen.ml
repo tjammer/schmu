@@ -215,31 +215,56 @@ let gen_closure_obj assoc func vars name =
   let fun_casted = Llvm.build_bitcast func.value voidptr_type "func" builder in
   ignore (Llvm.build_store fun_casted fun_ptr builder);
 
-  (* Add closed over vars *)
-  let clsr_ptr =
-    Llvm.build_alloca (typeof_aggregate assoc) ("clsr_" ^ name) builder
+  let store_closed_var clsr_ptr i (name, _) =
+    let var = Vars.find name vars in
+    let ptr = Llvm.build_struct_gep clsr_ptr i name builder in
+    ignore (Llvm.build_store var.value ptr builder);
+    i + 1
   in
-  ignore
-    (List.fold_left
-       (fun i (name, _) ->
-         let var = Vars.find name vars in
-         let ptr = Llvm.build_struct_gep clsr_ptr i name builder in
-         ignore (Llvm.build_store var.value ptr builder);
-         i + 1)
-       0 assoc);
+
+  (* Add closed over vars. If the environment is empty, we pass nullptr *)
+  let clsr_ptr =
+    match assoc with
+    | [] -> Llvm.const_pointer_null voidptr_type
+    | assoc ->
+        let assoc_type = typeof_aggregate assoc in
+        let clsr_ptr = Llvm.build_alloca assoc_type ("clsr_" ^ name) builder in
+        ignore (List.fold_left (store_closed_var clsr_ptr) 0 assoc);
+
+        let clsr_casted =
+          Llvm.build_bitcast clsr_ptr voidptr_type "env" builder
+        in
+        clsr_casted
+  in
 
   (* Add closure env to struct *)
   let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
-  (* Is this bitcast even needed? *)
-  let clsr_casted = Llvm.build_bitcast clsr_ptr voidptr_type "env" builder in
-  ignore (Llvm.build_store clsr_casted env_ptr builder);
+  ignore (Llvm.build_store clsr_ptr env_ptr builder);
 
   { value = clsr_struct; typ = func.typ; lltyp = func.lltyp }
+
+let add_closure vars func ~closure_index = function
+  | Simple -> vars
+  | Closure assoc ->
+      let clsr_param = (Llvm.params func.value).(closure_index) in
+      let clsr_type = typeof_aggregate assoc |> Llvm.pointer_type in
+      let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
+
+      let env, _ =
+        List.fold_left
+          (fun (env, i) (name, typ) ->
+            let item_ptr = Llvm.build_struct_gep clsr_ptr i name builder in
+            let value = Llvm.build_load item_ptr name builder in
+            let item = { value; typ; lltyp = Llvm.type_of value } in
+            (Vars.add name item env, i + 1))
+          (vars, 0) assoc
+      in
+      env
 
 (* TODO put below gen_expr *)
 let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
     { name = name, named, uniq; params; typ; body } =
-  (* Llvm.dump_module the_module; *)
+
   let fun_name = if named then unique_name (name, uniq) else name in
   match typ with
   | TFun (tparams, ret_t, kind) as typ ->
@@ -259,29 +284,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
 
       (* Add params from closure *)
       (* We both generate the code for extracting the closure and add the vars to the environment *)
-      let temp_funcs =
-        match kind with
-        | Simple -> funcs
-        | Closure assoc ->
-            let clsr_param = (Llvm.params func.value).(closure_index) in
-            let clsr_type = typeof_aggregate assoc |> Llvm.pointer_type in
-            let clsr_ptr =
-              Llvm.build_bitcast clsr_param clsr_type "clsr" builder
-            in
-
-            let env, _ =
-              List.fold_left
-                (fun (env, i) (name, typ) ->
-                  let item_ptr =
-                    Llvm.build_struct_gep clsr_ptr i name builder
-                  in
-                  let value = Llvm.build_load item_ptr name builder in
-                  let item = { value; typ; lltyp = Llvm.type_of value } in
-                  (Vars.add name item env, i + 1))
-                (funcs, 0) assoc
-            in
-            env
-      in
+      let temp_funcs = add_closure funcs func ~closure_index kind in
 
       let temp_funcs, qvar_index =
         List.fold_left2
@@ -419,33 +422,43 @@ and gen_generic funcs name { Typing.concrete; generic } =
   let closure_index = List.length generic.tparams + start_index in
 
   (* Get wrapped function *)
-  let wrapped_func =
+  let wrapped_func, funcs =
     let typ = TFun (concrete.tparams, concrete.ret, concrete.kind) in
-    (* let lltyp = typ |> get_lltype ~param:false in *)
     let lltyp =
       typeof_func ~param:false ~decl:true
         (concrete.tparams, concrete.ret, concrete.kind)
     in
     let func_type = lltyp |> Llvm.pointer_type in
 
-    let clsr_param = (Llvm.params gen_func.value).(closure_index) in
+    match concrete.kind with
+    | Simple ->
+        let clsr_param = (Llvm.params gen_func.value).(closure_index) in
 
-    (* The env is not an env here, but a whole closure *)
-    let clsr_ptr =
-      Llvm.build_bitcast clsr_param
-        (closure_type |> Llvm.pointer_type)
-        "" builder
-    in
+        (* The env is not an env here, but a whole closure *)
+        let clsr_ptr =
+          Llvm.build_bitcast clsr_param
+            (closure_type |> Llvm.pointer_type)
+            "" builder
+        in
 
-    let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in
-    let funcp = Llvm.build_load funcp "loadtmp" builder in
-    let funcp = Llvm.build_bitcast funcp func_type "casttmp" builder in
+        let funcp = Llvm.build_struct_gep clsr_ptr 0 "funcptr" builder in
+        let funcp = Llvm.build_load funcp "loadtmp" builder in
+        let funcp = Llvm.build_bitcast funcp func_type "casttmp" builder in
 
-    (* TODO there is a bug here for closure funcs *)
-    (* TODO check if we have a closure and thread it out if this is the case *)
-    (* let env_ptr = Llvm.build_struct_gep clsr_ptr 1 "envptr" builder in *)
-    (* let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in *)
-    { value = funcp; typ; lltyp }
+        (* TODO there is a bug here for closure funcs *)
+        (* TODO check if we have a closure and thread it out if this is the case *)
+        (* let env_ptr = Llvm.build_struct_gep clsr_ptr 1 "envptr" builder in *)
+        (* let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in *)
+        ({ value = funcp; typ; lltyp }, funcs)
+    | Closure _ ->
+        let clsr_param = (Llvm.params gen_func.value).(closure_index) in
+
+        let clsr_ptr =
+          Llvm.build_bitcast clsr_param
+            (closure_type |> Llvm.pointer_type)
+            "" builder
+        in
+        ({ value = clsr_ptr; typ; lltyp }, funcs)
   in
 
   let i = ref start_index in
@@ -524,7 +537,6 @@ and gen_generic funcs name { Typing.concrete; generic } =
       | _, _ -> (* normal return *) Llvm.build_ret ret.value builder)
   in
 
-  Llvm.dump_module the_module;
   Llvm_analysis.assert_valid_function gen_func.value;
   Vars.add name gen_func funcs
 
@@ -592,7 +604,7 @@ and gen_app vars callee args =
 
   let funcs_to_ptr param generic v =
     match (v.typ, generic) with
-    | TFun _, Some (name, _) ->
+    | TFun (_, _, kind), Some (name, _) ->
         (* TODO do we even need the generic fun piece here? *)
         (* TODO also do this case for closures, passed funcs and simple ones *)
         let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
@@ -605,21 +617,16 @@ and gen_app vars callee args =
         (* The env here is a complete closure again *)
         let envptr = Llvm.build_struct_gep closure_struct 1 "envptr" builder in
 
-        (* TODO reuse [gen_closure_obj] code *)
-        let clsr_struct = Llvm.build_alloca closure_type "wrapped" builder in
-        let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
-        let fun_casted =
-          Llvm.build_bitcast v.value voidptr_type "func" builder
+        (* The closure can be stored as is. Far a simple function we have to wrap *)
+        let clsr_obj =
+          match kind with
+          | Simple ->
+              let clsr_obj = (gen_closure_obj [] v vars "wrapped").value in
+              clsr_obj
+          | Closure _ -> v.value
         in
-        ignore (Llvm.build_store fun_casted fun_ptr builder);
+        let clsr_casted = Llvm.build_bitcast clsr_obj voidptr_type "" builder in
 
-        let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
-        let nullptr = Llvm.const_pointer_null voidptr_type in
-        ignore (Llvm.build_store nullptr env_ptr builder);
-
-        let clsr_casted =
-          Llvm.build_bitcast clsr_struct voidptr_type "" builder
-        in
         ignore (Llvm.build_store clsr_casted envptr builder);
         closure_struct
     | TFun (_, _, Closure _), _ ->
@@ -628,15 +635,7 @@ and gen_app vars callee args =
     | TFun _, _ ->
         (* If a function is passed into [func] we convert it to a closure
            and pass nullptr to env*)
-        let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
-        let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
-        let ptr = Llvm.build_bitcast v.value voidptr_type "" builder in
-        ignore (Llvm.build_store ptr fp builder);
-
-        let envptr = Llvm.build_struct_gep closure_struct 1 "envptr" builder in
-        let nullptr = Llvm.const_pointer_null voidptr_type in
-        ignore (Llvm.build_store nullptr envptr builder);
-        closure_struct
+        (gen_closure_obj [] v vars "clstmp").value
     | QVar id, _ | TVar { contents = Unbound (id, _) }, _ -> (
         match List.assoc_opt id !qvars with
         | Some (Param _) ->
@@ -723,7 +722,7 @@ and gen_app vars callee args =
 
         let gen_ptr_t = generic_type |> Llvm.pointer_type in
         let ret = Llvm.build_bitcast ret gen_ptr_t "ret" builder in
-        (* Llvm.dump_module the_module; *)
+
         ignore
           (Llvm.build_call funcval
              (Array.of_list ((ret :: args) @ qargs))
