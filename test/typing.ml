@@ -36,12 +36,16 @@ let test_func_1st_hint () =
 
 let test_func_1st_stay_general () =
   test "a -> (a -> b) -> b"
-    "function foo(x, f) f(x) function add1(x) x + 1 a = foo(x, add1) foo"
+    "function foo(x, f) f(x) function add1(x) x + 1 a = foo(1, add1) function \
+     boolean(x) if x then true else false b = foo(true, boolean) foo"
 
 let test_func_recursive_if () =
   test "int -> unit"
     "external ext : unit -> unit function foo(i) if i < 2 then ext() else \
      foo(i-1) foo"
+
+let test_func_generic_return () =
+  test "int" "function apply(f, x) f(x) function add1(x) x + 1 apply(add1, 1)"
 
 let test_record_clear () =
   test "t" "type t = { x : int, y : int } { x = 2, y = 2 }"
@@ -105,6 +109,7 @@ let () =
           case "1st_hint" test_func_1st_hint;
           case "1st_stay_gen" test_func_1st_stay_general;
           case "recursive_if" test_func_recursive_if;
+          case "generic_return" test_func_generic_return;
         ] );
       ( "records",
         [

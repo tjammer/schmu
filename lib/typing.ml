@@ -1,14 +1,6 @@
 open Types
 
-type abstraction = {
-  params : (string * typ) list;
-  body : typed_expr;
-  kind : fun_kind;
-}
-
-and const = Int of int | Bool of bool | Unit
-
-and expr =
+type expr =
   | Var of string
   | Const of const
   | Bop of Ast.bop * typed_expr * typed_expr
@@ -16,11 +8,19 @@ and expr =
   | Let of string * typed_expr * typed_expr
   | Lambda of abstraction
   | Function of string * int option * abstraction * typed_expr
-  | App of typed_expr * typed_expr list
+  | App of typed_expr * (typed_expr * (string * generic_fun) option) list
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
 
 and typed_expr = { typ : typ; expr : expr }
+
+and const = Int of int | Bool of bool | Unit
+
+and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
+
+and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
+
+and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
 
 type external_decl = string * typ
 
@@ -346,13 +346,13 @@ and typeof_abs env loc params e =
   let type_e = typeof env e in
   leave_level ();
 
-  TFun (params_t, type_e, Anon) |> generalize
+  TFun (params_t, type_e, Simple) |> generalize
 
 and typeof_function env loc name params body cont =
   (* this loc might not be correct *)
   (* typeof_let env loc name (Lambda (loc, param, body)) cont *)
   enter_level ();
-  let env, params_t = handle_params env loc params in
+
   (* Recursion allowed for named funcs *)
   let env =
     match snd name with
@@ -360,7 +360,8 @@ and typeof_function env loc name params body cont =
     | None -> Env.add_value (fst name) (newvar ()) env
     | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
   in
-  let bodytype = typeof env body in
+  let body_env, params_t = handle_params env loc params in
+  let bodytype = typeof body_env body in
   leave_level ();
   let funtype = TFun (params_t, bodytype, Simple) |> generalize in
   unify (loc, "") (Env.find (fst name) env) funtype;
@@ -486,6 +487,69 @@ let rec param_funcs_as_closures = function
   | TFun (params, ret, _) -> TFun (params, ret, Closure [])
   | t -> t
 
+let name_of_generic { concrete; generic } =
+  let rec str_of_typ = function
+    | TInt -> "i"
+    | TBool -> "b"
+    | TUnit -> "u"
+    | TVar { contents = Unbound _ } -> "g"
+    | TVar { contents = Link t } -> str_of_typ t
+    | QVar _ -> "g"
+    | TFun (params, ret, _) ->
+        "."
+        ^ String.concat "" (List.map str_of_typ params)
+        ^ "." ^ str_of_typ ret ^ "."
+    | TRecord (name, _) -> name
+  in
+
+  (str_of_typ concrete.ret ^ str_of_typ generic.ret)
+  :: List.map2
+       (fun concrete generic -> str_of_typ concrete ^ str_of_typ generic)
+       concrete.tparams generic.tparams
+  |> String.concat "_" |> ( ^ ) "__"
+
+let needs_generic_wrap { generic; concrete } =
+  let rec aux gen con =
+    match (gen, con) with
+    | QVar _, QVar _ | QVar _, TVar { contents = Unbound _ } -> false
+    | TVar { contents = Link gen }, con -> aux gen con
+    | gen, TVar { contents = Link con } -> aux gen con
+    | QVar _, _ -> true
+    | _, _ -> false
+  in
+  List.fold_left2
+    (fun acc gen con -> if aux gen con then true else acc)
+    (aux generic.ret concrete.ret)
+    generic.tparams concrete.tparams
+  |> function
+  | true ->
+      let name = name_of_generic { concrete; generic } in
+      Some name
+  | false -> None
+
+let mark_generic_fun texpr gen_param =
+  let generic_arg =
+    match (gen_param, texpr.typ) with
+    | TFun (ps1, ret1, kind1), TFun (ps2, ret2, kind2) -> (
+        let generic = { tparams = ps1; ret = ret1; kind = kind1 } in
+        let concrete = { tparams = ps2; ret = ret2; kind = kind2 } in
+        let fun_piece = { generic; concrete } in
+        match needs_generic_wrap fun_piece with
+        | Some name -> Some (name, fun_piece)
+        | None -> None)
+    | _ -> None
+  in
+  (texpr, generic_arg)
+
+let extend_generic_funs texprs = function
+  (* At this point unification succeeded and we know the lengths match *)
+  | TFun (params, _, _) -> List.map2 mark_generic_fun texprs params
+  | _ ->
+      (* Another generic case hm *)
+      List.map (fun t -> (t, None)) texprs
+(* failwith @@ "Internal Error: Application not a function after unification: " ^
+ * (string_of_type t) *)
+
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
   | Int (_, i) -> { typ = TInt; expr = Const (Int i) }
@@ -528,41 +592,11 @@ and convert_let env loc (id, type_annot) e1 e2 =
 
 and convert_lambda env loc params e =
   let env = Env.new_scope env in
+  enter_level ();
   let env, params_t = handle_params env loc params in
 
   let body = convert env e in
-  let env, closed_vars = Env.close_scope env in
-  let kind =
-    match List.filter_map (needs_capture env) closed_vars with
-    | [] -> Anon
-    | lst ->
-        (* List.map fst lst |> String.concat ", " |> print_endline; *)
-        Closure lst
-  in
-  dont_allow_closure_return loc body.typ;
-
-  (* For codegen: Mark functions in parameters closures *)
-  let params_t = List.map param_funcs_as_closures params_t in
-
-  let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
-  let expr = Lambda { params; body; kind } in
-  { typ = TFun (params_t, body.typ, kind); expr }
-
-and convert_function env loc { name; params; body; cont } =
-  (* Create a fresh type var for the function name
-     and use it in the function body *)
-  let unique = next_func (fst name) func_tbl in
-  let env =
-    (* Recursion allowed for named funcs *)
-    match snd name with
-    (* We check if there are type annotations *)
-    | None -> Env.add_value (fst name) (newvar ()) env
-    | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
-  in
-  (* We duplicate some lambda code due to naming *)
-  let env = Env.new_scope env in
-  let body_env, params_t = handle_params env loc params in
-  let body = convert body_env body in
+  leave_level ();
   let env, closed_vars = Env.close_scope env in
   let kind =
     match List.filter_map (needs_capture env) closed_vars with
@@ -576,23 +610,78 @@ and convert_function env loc { name; params; body; cont } =
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
 
-  let params = List.map2 (fun (name, _) typ -> (name, typ)) params params_t in
-  let lambda = { params; body; kind } in
-  let lambda_typ = TFun (params_t, body.typ, kind) in
+  let typ = TFun (params_t, body.typ, kind) |> generalize in
+  match typ with
+  | TFun (tparams, ret, kind) ->
+      let nparams = List.map fst params in
+      let tp = { tparams; ret; kind } in
+      let expr = Lambda { nparams; body = { body with typ = ret }; tp } in
+      { typ; expr }
+  | _ -> failwith "Internal Error: generalize produces a new type?"
 
-  (* Make sure the types match *)
-  unify (loc, "Function") (Env.find (fst name) env) lambda_typ;
-  (* Continue, see let *)
-  let typ2 = convert env cont in
-  { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
+and convert_function env loc { name; params; body; cont } =
+  (* Create a fresh type var for the function name
+     and use it in the function body *)
+  let unique = next_func (fst name) func_tbl in
+
+  enter_level ();
+  let env =
+    (* Recursion allowed for named funcs *)
+    match snd name with
+    (* We check if there are type annotations *)
+    | None -> Env.add_value (fst name) (newvar ()) env
+    | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
+  in
+
+  (* We duplicate some lambda code due to naming *)
+  let env = Env.new_scope env in
+  let body_env, params_t = handle_params env loc params in
+  let body = convert body_env body in
+  leave_level ();
+
+  let env, closed_vars = Env.close_scope env in
+  let kind =
+    match List.filter_map (needs_capture env) closed_vars with
+    | [] -> Simple
+    | lst ->
+        (* List.map fst lst |> String.concat ", " |> print_endline; *)
+        Closure lst
+  in
+  dont_allow_closure_return loc body.typ;
+
+  (* For codegen: Mark functions in parameters closures *)
+  let params_t = List.map param_funcs_as_closures params_t in
+
+  let typ = TFun (params_t, body.typ, kind) |> generalize in
+
+  match typ with
+  | TFun (tparams, ret, kind) ->
+      (* Make sure the types match *)
+      unify (loc, "Function") (Env.find (fst name) env) typ;
+
+      let nparams = List.map fst params in
+      let tp = { tparams; ret; kind } in
+      let lambda = { nparams; body = { body with typ = ret }; tp } in
+      (* Continue, see let *)
+      let typ2 = convert env cont in
+      { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
+  | _ -> failwith "Internal Error: generalize produces a new type?"
 
 and convert_app env loc e1 args =
   let type_fun = convert env e1 in
-  let typed_expr_args = List.map (convert env) args in
-  let args_t = List.map (fun a -> a.typ) typed_expr_args in
+  let generic = freeze type_fun.typ in
+
+  let typed_exprs = List.map (convert env) args in
+  let args_t = List.map (fun a -> a.typ) typed_exprs in
   let res_t = newvar () in
   unify (loc, "Application") type_fun.typ (TFun (args_t, res_t, Simple));
-  { typ = res_t; expr = App (type_fun, typed_expr_args) }
+
+  (* Apply the 'result' of the unification the the typed_expr *)
+  let apply typ texpr = { texpr with typ } in
+  let targs = List.map2 apply args_t typed_exprs in
+  let targs = extend_generic_funs targs generic in
+
+  { typ = res_t; expr = App (type_fun, targs) }
 
 and convert_bop env loc bop e1 e2 =
   let check () =
