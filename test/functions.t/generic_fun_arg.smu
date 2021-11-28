@@ -1,5 +1,7 @@
 external printi : int -> unit
 
+type t = { x : int }
+
 -- This function is generic, i.e. only generated once
 -- and used for different functions
 function apply(x, f)
@@ -20,9 +22,12 @@ function makefalse(b)
   if b then false
   else b
 
--- Missing: Record
+-- simple t -> t
+function add1_rec(t)
+  { x = t.x + 3 }
 
 a = printi(apply(20, add1))
 a = printi(apply(20, add_closed))
+a = printi(apply({ x = 20 }, add1_rec).x)
 if apply(true, makefalse) then printi(1)
 else printi(0)

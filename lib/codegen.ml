@@ -469,7 +469,6 @@ and gen_generic funcs name { Typing.concrete; generic } =
               { value; typ; lltyp }
           | _, typ ->
               let lltyp = get_lltype typ in
-              (* Llvm.dump_module the_module; *)
               (* TODO what's going on here? *)
               { value = (Llvm.params gen_func.value).(!i); typ; lltyp }
         in
@@ -506,13 +505,28 @@ and gen_generic funcs name { Typing.concrete; generic } =
           (* let ret = Llvm.build_load ptr "" builder in *)
           (* Llvm.build_ret ret builder *)
           Llvm.build_ret_void builder
-      | QVar _, (TRecord _ as typ) ->
-          let lltyp = get_lltype typ in
-          Llvm.build_bitcast ret.value lltyp "" builder
-      | QVar _, QVar _
-      | QVar _, TVar { contents = Unbound _ }
-      | TUnit, TUnit
-      | _, TRecord _ ->
+      | QVar _, TRecord _ | _, TRecord _ ->
+          (* memcpy record and return void *)
+          let lltyp = get_lltype ~param:false concrete.ret in
+          let dst = Llvm.(params gen_func.value).(0) in
+          let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
+          let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
+
+          let size = Llvm.size_of lltyp in
+          let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
+          ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
+          Llvm.build_ret_void builder
+      | QVar _, QVar id | QVar _, TVar { contents = Unbound (id, _) } ->
+          print_endline @@ "generic return in gen with id: " ^ id;
+          let dst = Llvm.(params gen_func.value).(0) in
+          let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
+          let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
+
+          let size = (Vars.find (name_of_qvar id) funcs).value in
+          let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
+          ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
+          Llvm.build_ret_void builder
+      | TUnit, TUnit ->
           (* void return *)
           Llvm.build_ret_void builder
       | _, _ -> (* normal return *) Llvm.build_ret ret.value builder)
