@@ -282,7 +282,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
       Llvm.position_at_end bb builder;
 
       (* Add params from closure *)
-      (* We both generate the code for extracting the closure and add the vars to the environment *)
+      (* We generate both the code for extracting the closure and add the vars to the environment *)
       let temp_funcs = add_closure funcs func ~closure_index kind in
 
       let temp_funcs, qvar_index =
@@ -593,15 +593,15 @@ and gen_app vars callee args =
         ()
   in
 
-  let params =
+  let params, ret, kind =
     match func.typ with
-    | TFun (params, _, _) ->
+    | TFun (params, ret, kind) ->
         List.iter2 aux params
           (List.map
              (* TODO can we get the qvars here? *)
                (fun ((arg : Typing.typed_expr), _) -> arg.typ)
              args);
-        params
+        (params, ret, kind)
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
@@ -700,7 +700,25 @@ and gen_app vars callee args =
       let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
       let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
       (funcp, args @ [ env_ptr ])
-    else (func.value, args)
+    else
+      match kind with
+      | Simple -> (func.value, args)
+      | Closure _ -> (
+          (* In this case we are in a recursive closure function.
+             We get the closure env and add it to the arguments we pass *)
+          match Vars.find_opt (Llvm.value_name func.value) vars with
+          | Some func ->
+              (* We do this to make sure it's a recursive function.
+                 If we cannot find something. there is an error somewhere *)
+              let closure_index =
+                List.length params
+                + match ret with TRecord _ | QVar _ -> 1 | _ -> 0
+              in
+
+              let env_ptr = (Llvm.params func.value).(closure_index) in
+              (func.value, args @ [ env_ptr ])
+          | None ->
+              failwith "Internal Error: Not a recursive closure application")
   in
 
   let get_qval id =
