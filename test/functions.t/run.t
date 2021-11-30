@@ -628,17 +628,37 @@ a second function. Instead, the closure struct was being created again and the c
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-
+  
+  %generic = type opaque
+  %closure = type { i8*, i8* }
+  
   declare void @printi(i32 %0)
-
-  define private void @boxed2int_int({ i32 }* %0, { i32 }* %t, { i8*, i8* }* %env) {
+  
+  define void @__tg_tt_.i.i.g(%generic* %0, { i32 }* %1, %generic* %2, i8* %3, i64 %4, i64 %5) {
+  entry:
+    %6 = bitcast i8* %3 to %closure*
+    %7 = bitcast %generic* %2 to %closure*
+    %funcptr2 = bitcast %closure* %6 to i8**
+    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %casttmp = bitcast i8* %loadtmp to void ({ i32 }*, { i32 }*, %closure*, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %6, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %ret = alloca { i32 }, align 8
+    call void %casttmp({ i32 }* %ret, { i32 }* %1, %closure* %7, i8* %loadtmp1)
+    %8 = bitcast %generic* %0 to i8*
+    %9 = bitcast { i32 }* %ret to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i64), i1 false)
+    ret void
+  }
+  
+  define private void @boxed2int_int({ i32 }* %0, { i32 }* %t, %closure* %env) {
   entry:
     %1 = bitcast { i32 }* %t to i32*
     %2 = load i32, i32* %1, align 4
-    %funcptr2 = bitcast { i8*, i8* }* %env to i8**
+    %funcptr2 = bitcast %closure* %env to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
     %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
-    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %env, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %env, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %3 = call i32 %casttmp(i32 %2, i8* %loadtmp1)
     %4 = alloca { i32 }, align 8
@@ -646,57 +666,67 @@ a second function. Instead, the closure struct was being created again and the c
     store i32 %3, i32* %x3, align 4
     %5 = bitcast { i32 }* %0 to i8*
     %6 = bitcast { i32 }* %4 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i64), i1 false)
     ret void
   }
-
+  
   define private i32 @add1(i32 %x) {
   entry:
     %addtmp = add i32 %x, 1
     ret i32 %addtmp
   }
-
-  define private void @apply({ i32 }* %0, { i32 }* %x, { i8*, i8* }* %f, { i8*, i8* }* %env) {
+  
+  define private void @apply(%generic* %0, { i32 }* %x, %closure* %f, %generic* %env, i64 %__3, i64 %__2) {
   entry:
-    %funcptr2 = bitcast { i8*, i8* }* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
-    %casttmp = bitcast i8* %loadtmp to void ({ i32 }*, { i32 }*, { i8*, i8* }*, i8*)*
-    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %f, i32 0, i32 1
+    %funcptr3 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr3, align 8
+    %casttmp = bitcast i8* %loadtmp to void (%generic*, { i32 }*, %generic*, i8*, i64, i64)*
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %ret = alloca { i32 }, align 8
-    call void %casttmp({ i32 }* %ret, { i32 }* %x, { i8*, i8* }* %env, i8* %loadtmp1)
-    %1 = bitcast { i32 }* %0 to i8*
-    %2 = bitcast { i32 }* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i1 false)
+    %ret = alloca i8, i64 %__3, align 16
+    %ret2 = bitcast i8* %ret to %generic*
+    call void %casttmp(%generic* %ret2, { i32 }* %x, %generic* %env, i8* %loadtmp1, i64 %__3, i64 %__2)
+    %1 = bitcast %generic* %0 to i8*
+    %2 = bitcast %generic* %ret2 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 %__3, i1 false)
     ret void
   }
-
-  ; Function Attrs: argmemonly nofree nosync nounwind willreturn
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-
+  
   define i32 @main(i32 %0) {
   entry:
     %1 = alloca { i32 }, align 8
-    %x4 = bitcast { i32 }* %1 to i32*
-    store i32 15, i32* %x4, align 4
-    %clstmp = alloca { i8*, i8* }, align 8
-    %funptr5 = bitcast { i8*, i8* }* %clstmp to i8**
-    store i8* bitcast (void ({ i32 }*, { i32 }*, { i8*, i8* }*)* @boxed2int_int to i8*), i8** %funptr5, align 8
-    %envptr = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp, i32 0, i32 1
-    store i8* null, i8** %envptr, align 8
-    %clstmp1 = alloca { i8*, i8* }, align 8
-    %funptr26 = bitcast { i8*, i8* }* %clstmp1 to i8**
-    store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr26, align 8
-    %envptr3 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %clstmp1, i32 0, i32 1
-    store i8* null, i8** %envptr3, align 8
-    %ret = alloca { i32 }, align 8
-    call void @apply({ i32 }* %ret, { i32 }* %1, { i8*, i8* }* %clstmp, { i8*, i8* }* %clstmp1)
-    %2 = bitcast { i32 }* %ret to i32*
-    %3 = load i32, i32* %2, align 4
-    call void @printi(i32 %3)
+    %x7 = bitcast { i32 }* %1 to i32*
+    store i32 15, i32* %x7, align 4
+    %clstmp = alloca %closure, align 8
+    %funptr8 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (void (%generic*, { i32 }*, %generic*, i8*, i64, i64)* @__tg_tt_.i.i.g to i8*), i8** %funptr8, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %wrapped = alloca %closure, align 8
+    %funptr19 = bitcast %closure* %wrapped to i8**
+    store i8* bitcast (void ({ i32 }*, { i32 }*, %closure*)* @boxed2int_int to i8*), i8** %funptr19, align 8
+    %envptr2 = getelementptr inbounds %closure, %closure* %wrapped, i32 0, i32 1
+    store i8* null, i8** %envptr2, align 8
+    %2 = bitcast %closure* %wrapped to i8*
+    store i8* %2, i8** %envptr, align 8
+    %clstmp3 = alloca %closure, align 8
+    %funptr410 = bitcast %closure* %clstmp3 to i8**
+    store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr410, align 8
+    %envptr5 = getelementptr inbounds %closure, %closure* %clstmp3, i32 0, i32 1
+    store i8* null, i8** %envptr5, align 8
+    %3 = bitcast %closure* %clstmp3 to %generic*
+    %ret = alloca i8, i64 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i64), align 16
+    %ret6 = bitcast i8* %ret to %generic*
+    call void @apply(%generic* %ret6, { i32 }* %1, %closure* %clstmp, %generic* %3, i64 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i64), i64 ptrtoint (i32 (i32, i8*)* getelementptr (i32 (i32, i8*), i32 (i32, i8*)* null, i32 1) to i64))
+    %4 = bitcast %generic* %ret6 to { i32 }*
+    %5 = bitcast { i32 }* %4 to i32*
+    %6 = load i32, i32* %5, align 4
+    call void @printi(i32 %6)
     ret i32 0
   }
-
-  attributes #0 = { argmemonly nofree nosync nounwind willreturn }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   16

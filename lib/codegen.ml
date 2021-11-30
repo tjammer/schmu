@@ -467,14 +467,22 @@ and gen_generic funcs name { Typing.concrete; generic } =
                   lltyp "" builder
               in
               { value; typ; lltyp }
+          | QVar _, (TFun _ as typ) ->
+              (* If the closure was passed as a generic param, we need to cast to closure *)
+              let lltyp = closure_type |> Llvm.pointer_type in
+              let value =
+                Llvm.build_bitcast
+                  (Llvm.params gen_func.value).(!i)
+                  lltyp "" builder
+              in
+              { value; typ; lltyp }
           | _, typ ->
               let lltyp = get_lltype typ in
               (* TODO what's going on here? *)
               { value = (Llvm.params gen_func.value).(!i); typ; lltyp }
         in
         incr i;
-        value
-        (* TODO what about function params here? *))
+        value)
       concrete.tparams generic.tparams
   in
 
@@ -601,7 +609,6 @@ and gen_app vars callee args =
     match (v.typ, generic) with
     | TFun (_, _, kind), Some (name, _) ->
         (* TODO do we even need the generic fun piece here? *)
-        (* TODO also do this case for closures, passed funcs and simple ones *)
         let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
         let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
         let gen_fp = Vars.find name vars in
@@ -624,13 +631,21 @@ and gen_app vars callee args =
 
         ignore (Llvm.build_store clsr_casted envptr builder);
         closure_struct
-    | TFun (_, _, Closure _), _ ->
-        (* This closure is a struct and has an env *)
-        v.value
-    | TFun _, _ ->
-        (* If a function is passed into [func] we convert it to a closure
-           and pass nullptr to env*)
-        (gen_closure_obj [] v vars "clstmp").value
+    | TFun (_, _, kind), _ -> (
+        let value =
+          match kind with
+          | Simple ->
+              (* If a function is passed into [func] we convert it to a closure
+                 and pass nullptr to env*)
+              (gen_closure_obj [] v vars "clstmp").value
+          | Closure _ ->
+              (* This closure is a struct and has an env *)
+              v.value
+        in
+        (* If the value is being passed to a QVar, we have to cast *)
+        match param with
+        | QVar _ -> Llvm.build_bitcast value (get_lltype param) "" builder
+        | _ -> value)
     | QVar id, _ | TVar { contents = Unbound (id, _) }, _ -> (
         match List.assoc_opt id !qvars with
         | Some (Param _) ->
@@ -640,7 +655,7 @@ and gen_app vars callee args =
             let typ = get_lltype ~param:false typ |> Llvm.pointer_type in
             (* TODO differentiate between records and  *)
             let ptr = Llvm.build_alloca typ "gen" builder in
-            (* let ptr = Llvm.build_struct_gep ptr 0 "" builder in *)
+
             ignore (Llvm.build_store v.value ptr builder);
             Llvm.build_bitcast ptr generic_type "" builder
         | Some (Local (TRecord _)) ->
