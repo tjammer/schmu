@@ -719,3 +719,62 @@ a second function. Instead, the closure struct was being created again and the c
   attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   16
+
+Closures can recurse too
+  $ dune exec -- schmu recursive_closure.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %closure = type { i8*, i8* }
+  
+  declare void @printi(i32 %0)
+  
+  define private void @loop(i32 %i, i8* %0) {
+  entry:
+    br label %tailrecurse
+  
+  tailrecurse:                                      ; preds = %then, %entry
+    %i.tr = phi i32 [ %i, %entry ], [ %addtmp, %then ]
+    %clsr = bitcast i8* %0 to { i32 }*
+    %outer2 = bitcast { i32 }* %clsr to i32*
+    %outer1 = load i32, i32* %outer2, align 4
+    %lesstmp = icmp slt i32 %i.tr, %outer1
+    br i1 %lesstmp, label %then, label %else
+  
+  then:                                             ; preds = %tailrecurse
+    tail call void @printi(i32 %i.tr)
+    %addtmp = add i32 %i.tr, 1
+    br label %tailrecurse
+  
+  else:                                             ; preds = %tailrecurse
+    tail call void @printi(i32 %i.tr)
+    ret void
+  }
+  
+  define i32 @main(i32 %0) {
+  entry:
+    %loop = alloca %closure, align 8
+    %funptr3 = bitcast %closure* %loop to i8**
+    store i8* bitcast (void (i32, i8*)* @loop to i8*), i8** %funptr3, align 8
+    %clsr_loop = alloca { i32 }, align 8
+    %outer4 = bitcast { i32 }* %clsr_loop to i32*
+    store i32 10, i32* %outer4, align 4
+    %env = bitcast { i32 }* %clsr_loop to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %loop, i32 0, i32 1
+    store i8* %env, i8** %envptr, align 8
+    call void @loop(i32 0, i8* %env)
+    ret i32 0
+  }
+  unit
+  0
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+  10
