@@ -17,6 +17,22 @@ let context = Llvm.global_context ()
 
 let the_module = Llvm.create_module context "context"
 
+let fpm = Llvm.PassManager.create_function the_module
+
+let _ = Llvm.PassManager.initialize fpm
+
+(* Segfaults on my fedora box!? *)
+(* let () = Llvm_scalar_opts.add_instruction_combination fpm *)
+
+(* let () = Llvm_scalar_opts.add_reassociation fpm *)
+
+(* Is somehow needed to make tail call optimization work *)
+let () = Llvm_scalar_opts.add_gvn fpm
+
+(* let () = Llvm_scalar_opts.add_cfg_simplification fpm *)
+
+let () = Llvm_scalar_opts.add_tail_call_elimination fpm
+
 let builder = Llvm.builder context
 
 let int_type = Llvm.i32_type context
@@ -351,7 +367,9 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
             | _ -> Llvm.build_ret ret.value builder));
 
       Llvm_analysis.assert_valid_function func.value;
+      let _ = Llvm.PassManager.run_function func.value fpm in
 
+      (* Printf.printf "Modified: %b\n" modified; *)
       Vars.add fun_name func funcs
   | _ ->
       prerr_endline fun_name;

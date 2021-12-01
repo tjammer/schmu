@@ -1,6 +1,6 @@
 (library
  (name schmulang)
- (libraries llvm llvm.analysis llvm.target llvm.all_backends))
+ (libraries llvm llvm.analysis llvm.target llvm.all_backends llvm.scalar_opts))
 
 (menhir
  (modules parser)

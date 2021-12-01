@@ -16,9 +16,7 @@ Simple record creation (out of order)
     store i1 true, i1* %x1, align 1
     %y = getelementptr inbounds { i1, i32 }, { i1, i32 }* %1, i32 0, i32 1
     store i32 10, i32* %y, align 4
-    %2 = getelementptr inbounds { i1, i32 }, { i1, i32 }* %1, i32 0, i32 1
-    %3 = load i32, i32* %2, align 4
-    call void @printi(i32 %3)
+    tail call void @printi(i32 10)
     ret i32 0
   }
   unit
@@ -36,7 +34,7 @@ Pass record to function
   entry:
     %0 = getelementptr inbounds { i32, i32 }, { i32, i32 }* %a, i32 0, i32 1
     %1 = load i32, i32* %0, align 4
-    call void @printi(i32 %1)
+    tail call void @printi(i32 %1)
     ret void
   }
   
@@ -125,10 +123,9 @@ Nested records
     %2 = bitcast { i32 }* %y to i8*
     %3 = bitcast { i32 }* %ret to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i64), i1 false)
-    %4 = getelementptr inbounds { i32, { i32 } }, { i32, { i32 } }* %1, i32 0, i32 1
-    %5 = bitcast { i32 }* %4 to i32*
-    %6 = load i32, i32* %5, align 4
-    call void @printi(i32 %6)
+    %4 = bitcast { i32 }* %y to i32*
+    %5 = load i32, i32* %4, align 4
+    call void @printi(i32 %5)
     ret i32 0
   }
   

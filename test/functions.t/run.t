@@ -15,26 +15,30 @@ Simple fibonacci
   
   define private i32 @fib(i32 %n) {
   entry:
-    %lesstmp = icmp slt i32 %n, 2
-    br i1 %lesstmp, label %ifcont, label %else
+    br label %tailrecurse
   
-  else:                                             ; preds = %entry
-    %subtmp = sub i32 %n, 1
-    %0 = call i32 @fib(i32 %subtmp)
-    %subtmp1 = sub i32 %n, 2
-    %1 = call i32 @fib(i32 %subtmp1)
-    %addtmp = add i32 %0, %1
-    br label %ifcont
+  tailrecurse:                                      ; preds = %else, %entry
+    %accumulator.tr = phi i32 [ 0, %entry ], [ %addtmp, %else ]
+    %n.tr = phi i32 [ %n, %entry ], [ %2, %else ]
+    %lesstmp = icmp slt i32 %n.tr, 2
+    br i1 %lesstmp, label %then, label %else
   
-  ifcont:                                           ; preds = %entry, %else
-    %iftmp = phi i32 [ %addtmp, %else ], [ %n, %entry ]
-    ret i32 %iftmp
+  then:                                             ; preds = %tailrecurse
+    %accumulator.ret.tr = add i32 %n.tr, %accumulator.tr
+    ret i32 %accumulator.ret.tr
+  
+  else:                                             ; preds = %tailrecurse
+    %0 = add i32 %n.tr, -1
+    %1 = tail call i32 @fib(i32 %0)
+    %addtmp = add i32 %1, %accumulator.tr
+    %2 = add i32 %0, -1
+    br label %tailrecurse
   }
   
   define i32 @main(i32 %0) {
   entry:
-    %1 = call i32 @fib(i32 30)
-    call void @printi(i32 %1)
+    %1 = tail call i32 @fib(i32 30)
+    tail call void @printi(i32 %1)
     ret i32 0
   }
   unit
@@ -54,8 +58,8 @@ Fibonacci, but we shadow a bunch
     br i1 %lesstmp, label %ifcont, label %else
   
   else:                                             ; preds = %entry
-    %0 = call i32 @fibn2(i32 %n)
-    %1 = call i32 @__fun0(i32 %n)
+    %0 = tail call i32 @fibn2(i32 %n)
+    %1 = tail call i32 @__fun0(i32 %n)
     %addtmp = add i32 %0, %1
     br label %ifcont
   
@@ -67,21 +71,21 @@ Fibonacci, but we shadow a bunch
   define private i32 @__fun0(i32 %n) {
   entry:
     %subtmp = sub i32 %n, 1
-    %0 = call i32 @fib(i32 %subtmp)
+    %0 = tail call i32 @fib(i32 %subtmp)
     ret i32 %0
   }
   
   define private i32 @fibn2(i32 %n) {
   entry:
     %subtmp = sub i32 %n, 2
-    %0 = call i32 @fib(i32 %subtmp)
+    %0 = tail call i32 @fib(i32 %subtmp)
     ret i32 %0
   }
   
   define i32 @main(i32 %0) {
   entry:
-    %1 = call i32 @fib(i32 30)
-    call void @printi(i32 %1)
+    %1 = tail call i32 @fib(i32 30)
+    tail call void @printi(i32 %1)
     ret i32 0
   }
   unit
@@ -119,9 +123,9 @@ Multiple parameters
   
   define i32 @main(i32 %0) {
   entry:
-    %1 = call i32 @one()
-    %2 = call i32 @add(i32 %1, i32 1)
-    %3 = call i32 @doiflesselse(i32 %2, i32 0, i32 1, i32 2)
+    %1 = tail call i32 @one()
+    %2 = tail call i32 @add(i32 %1, i32 1)
+    %3 = tail call i32 @doiflesselse(i32 %2, i32 0, i32 1, i32 2)
     ret i32 %3
   }
   int
@@ -155,12 +159,7 @@ We have downwards closures
     %env = bitcast { i32 }* %clsr_capture_a to i8*
     %envptr = getelementptr inbounds %closure, %closure* %capture_a, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    %funcptr5 = bitcast %closure* %capture_a to i8**
-    %loadtmp = load i8*, i8** %funcptr5, align 8
-    %casttmp = bitcast i8* %loadtmp to i32 (i8*)*
-    %envptr1 = getelementptr inbounds %closure, %closure* %capture_a, i32 0, i32 1
-    %loadtmp2 = load i8*, i8** %envptr1, align 8
-    %1 = call i32 %casttmp(i8* %loadtmp2)
+    %1 = call i32 @capture_a(i8* %env)
     ret i32 %1
   }
   int
@@ -216,8 +215,7 @@ First class functions
     %ret2 = bitcast i8* %ret to %generic*
     call void %casttmp(%generic* %ret2, %generic* %x, i8* %loadtmp1, i64 %__3, i64 %__1)
     %1 = bitcast %generic* %0 to i8*
-    %2 = bitcast %generic* %ret2 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 %__3, i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %ret, i64 %__3, i1 false)
     ret void
   }
   
@@ -288,39 +286,39 @@ Don't try to create 'void' value in if
   
   define private void @foo(i32 %i) {
   entry:
-    %lesstmp = icmp slt i32 %i, 2
+    br label %tailrecurse
+  
+  tailrecurse:                                      ; preds = %ifcont, %entry
+    %i.tr = phi i32 [ %i, %entry ], [ %subtmp4, %ifcont ]
+    %lesstmp = icmp slt i32 %i.tr, 2
     br i1 %lesstmp, label %then, label %else
   
-  then:                                             ; preds = %entry
-    %subtmp = sub i32 %i, 1
-    call void @printi(i32 %subtmp)
-    br label %ifcont5
+  then:                                             ; preds = %tailrecurse
+    %0 = add i32 %i.tr, -1
+    tail call void @printi(i32 %0)
+    ret void
   
-  else:                                             ; preds = %entry
-    %lesstmp1 = icmp slt i32 %i, 400
+  else:                                             ; preds = %tailrecurse
+    %lesstmp1 = icmp slt i32 %i.tr, 400
     br i1 %lesstmp1, label %then2, label %else3
   
   then2:                                            ; preds = %else
-    call void @printi(i32 %i)
+    tail call void @printi(i32 %i.tr)
     br label %ifcont
   
   else3:                                            ; preds = %else
-    %addtmp = add i32 %i, 1
-    call void @printi(i32 %addtmp)
+    %addtmp = add i32 %i.tr, 1
+    tail call void @printi(i32 %addtmp)
     br label %ifcont
   
   ifcont:                                           ; preds = %else3, %then2
-    %subtmp4 = sub i32 %i, 1
-    call void @foo(i32 %subtmp4)
-    br label %ifcont5
-  
-  ifcont5:                                          ; preds = %ifcont, %then
-    ret void
+    %subtmp4 = sub i32 %i.tr, 1
+    br label %tailrecurse
   }
   
   define i32 @main(i32 %0) {
   entry:
-    call void @foo(i32 4)
+    tail call void @foo(i32 4)
     ret i32 0
   }
   unit
@@ -346,13 +344,13 @@ Captured values should not overwrite function params
     %casttmp = bitcast i8* %loadtmp to i32 (i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %a, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %0 = call i32 %casttmp(i8* %loadtmp1)
+    %0 = tail call i32 %casttmp(i8* %loadtmp1)
     %funcptr28 = bitcast %closure* %b to i8**
     %loadtmp3 = load i8*, i8** %funcptr28, align 8
     %casttmp4 = bitcast i8* %loadtmp3 to i32 (i8*)*
     %envptr5 = getelementptr inbounds %closure, %closure* %b, i32 0, i32 1
     %loadtmp6 = load i8*, i8** %envptr5, align 8
-    %1 = call i32 %casttmp4(i8* %loadtmp6)
+    %1 = tail call i32 %casttmp4(i8* %loadtmp6)
     %addtmp = add i32 %0, %1
     ret i32 %addtmp
   }
@@ -470,14 +468,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   
   define private i1 @makefalse(i1 %b) {
   entry:
-    br i1 %b, label %ifcont, label %else
-  
-  else:                                             ; preds = %entry
-    br label %ifcont
-  
-  ifcont:                                           ; preds = %entry, %else
-    %iftmp = phi i1 [ %b, %else ], [ false, %entry ]
-    ret i1 %iftmp
+    ret i1 false
   }
   
   define private i32 @add1(i32 %x) {
@@ -506,8 +497,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %ret2 = bitcast i8* %ret to %generic*
     call void %casttmp(%generic* %ret2, %generic* %x, i8* %loadtmp1, i64 %__3, i64 %__1)
     %1 = bitcast %generic* %0 to i8*
-    %2 = bitcast %generic* %ret2 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 %__3, i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %ret, i64 %__3, i1 false)
     ret void
   }
   
@@ -660,7 +650,7 @@ a second function. Instead, the closure struct was being created again and the c
     %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %env, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %3 = call i32 %casttmp(i32 %2, i8* %loadtmp1)
+    %3 = tail call i32 %casttmp(i32 %2, i8* %loadtmp1)
     %4 = alloca { i32 }, align 8
     %x3 = bitcast { i32 }* %4 to i32*
     store i32 %3, i32* %x3, align 4
@@ -687,8 +677,7 @@ a second function. Instead, the closure struct was being created again and the c
     %ret2 = bitcast i8* %ret to %generic*
     call void %casttmp(%generic* %ret2, { i32 }* %x, %generic* %env, i8* %loadtmp1, i64 %__3, i64 %__2)
     %1 = bitcast %generic* %0 to i8*
-    %2 = bitcast %generic* %ret2 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 %__3, i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %ret, i64 %__3, i1 false)
     ret void
   }
   
