@@ -612,6 +612,86 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   23
   0
 
+A generic pass function. This example is not 100% correct, but works due to calling convertion.
+  $ dune exec -- schmu generic_pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %closure = type { i8*, i8* }
+  %generic = type opaque
+  
+  declare void @printi(i32 %0)
+  
+  define private void @apply(%generic* %0, %closure* %f, %generic* %x, i64 %__5, i64 %__4) {
+  entry:
+    %funcptr3 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr3, align 8
+    %casttmp = bitcast i8* %loadtmp to void (%generic*, %generic*, i64, i64, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %ret = alloca i8, i64 %__5, align 16
+    %ret2 = bitcast i8* %ret to %generic*
+    call void %casttmp(%generic* %ret2, %generic* %x, i64 %__5, i64 %__4, i8* %loadtmp1)
+    %1 = bitcast %generic* %0 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %ret, i64 %__5, i1 false)
+    ret void
+  }
+  
+  define private void @pass(%generic* %0, %generic* %x, i64 %__1) {
+  entry:
+    %1 = bitcast %generic* %0 to i8*
+    %2 = bitcast %generic* %x to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 %__1, i1 false)
+    ret void
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define i32 @main(i32 %0) {
+  entry:
+    %clstmp = alloca %closure, align 8
+    %funptr7 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (void (%generic*, %generic*, i64)* @pass to i8*), i8** %funptr7, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* null, i8** %envptr, align 8
+    %gen = alloca i32, align 4
+    store i32 20, i32* %gen, align 4
+    %1 = bitcast i32* %gen to %generic*
+    %ret = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret1 = bitcast i8* %ret to %generic*
+    call void @apply(%generic* %ret1, %closure* %clstmp, %generic* %1, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    %2 = bitcast %generic* %ret1 to i32*
+    %realret = load i32, i32* %2, align 4
+    call void @printi(i32 %realret)
+    %clstmp2 = alloca %closure, align 8
+    %funptr38 = bitcast %closure* %clstmp2 to i8**
+    store i8* bitcast (void (%generic*, %generic*, i64)* @pass to i8*), i8** %funptr38, align 8
+    %envptr4 = getelementptr inbounds %closure, %closure* %clstmp2, i32 0, i32 1
+    store i8* null, i8** %envptr4, align 8
+    %3 = alloca { i32, i1 }, align 8
+    %i9 = bitcast { i32, i1 }* %3 to i32*
+    store i32 700, i32* %i9, align 4
+    %b = getelementptr inbounds { i32, i1 }, { i32, i1 }* %3, i32 0, i32 1
+    store i1 false, i1* %b, align 1
+    %4 = bitcast { i32, i1 }* %3 to %generic*
+    %ret5 = alloca i8, i64 ptrtoint ({ i32, i1 }* getelementptr ({ i32, i1 }, { i32, i1 }* null, i32 1) to i64), align 16
+    %ret6 = bitcast i8* %ret5 to %generic*
+    call void @apply(%generic* %ret6, %closure* %clstmp2, %generic* %4, i64 ptrtoint ({ i32, i1 }* getelementptr ({ i32, i1 }, { i32, i1 }* null, i32 1) to i64), i64 ptrtoint ({ i32, i1 }* getelementptr ({ i32, i1 }, { i32, i1 }* null, i32 1) to i64))
+    %5 = bitcast %generic* %ret6 to { i32, i1 }*
+    %6 = bitcast { i32, i1 }* %5 to i32*
+    %7 = load i32, i32* %6, align 4
+    call void @printi(i32 %7)
+    ret i32 0
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  unit
+  20
+  700
+
+
 This is a regression test. The 'add1' function was not marked as a closure when being called from
 a second function. Instead, the closure struct was being created again and the code segfaulted
   $ dune exec -- schmu indirect_closure.smu | grep -v x86_64 && cc out.o stub.o && ./a.out

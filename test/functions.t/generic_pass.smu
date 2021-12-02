@@ -1,0 +1,12 @@
+external printi : int -> unit
+
+type t = { i : int, b : bool }
+
+function pass(x)
+  x
+
+function apply(f, x)
+  f(x)
+
+a = printi(apply(pass, 20))
+printi(apply(pass, { i = 700, b = false }).i)
