@@ -104,8 +104,8 @@ and typeof_func ~param ~decl (params, t, kind) =
     let suffix =
       (* A closure needs an extra parameter for the environment  *)
       if decl then
-        match kind with Closure _ -> voidptr_type :: qvars | _ -> qvars
-      else voidptr_type :: qvars
+        match kind with Closure _ -> qvars @ [ voidptr_type ] | _ -> qvars
+      else qvars @ [ voidptr_type ]
     in
     let params_t =
       (* For the params, we want to produce the param type, hence ~param:true *)
@@ -223,6 +223,10 @@ let declare_function fun_name = function
       prerr_endline fun_name;
       failwith "Internal Error: declaring non-function"
 
+let calc_closure_index ~params ~qvars ret =
+  List.length params + List.length qvars
+  + match ret with TRecord _ | QVar _ -> 1 | _ -> 0
+
 let gen_closure_obj assoc func vars name =
   let clsr_struct = Llvm.build_alloca closure_type name builder in
 
@@ -286,12 +290,12 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
       let func = declare_function fun_name typ in
       Llvm.set_linkage linkage func.value;
 
-      (* If we return a struct, the first parameter is the ptr to it *)
       let start_index = match ret_t with TRecord _ | QVar _ -> 1 | _ -> 0 in
 
+      let qvars = qvars_of_func tparams ret_t in
       (* We traverse the list once here and another time at the bottom. We do this because we need
          the closure index for the closure vars, but want function params to have higher precedence *)
-      let closure_index = List.length params + start_index in
+      let closure_index = calc_closure_index ~params ~qvars ret_t in
 
       (* gen function body *)
       let bb = Llvm.append_block context "entry" func.value in
@@ -313,7 +317,6 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
           (temp_funcs, start_index) params tparams
       in
 
-      let qvars = qvars_of_func tparams ret_t in
       let temp_funcs, _ =
         List.fold_left
           (fun (env, i) qvar ->
@@ -439,7 +442,10 @@ and gen_generic funcs name { Typing.concrete; generic } =
   Llvm.position_at_end bb builder;
 
   let start_index = match generic.ret with TRecord _ | QVar _ -> 1 | _ -> 0 in
-  let closure_index = List.length generic.tparams + start_index in
+  let qvars = qvars_of_func generic.tparams generic.ret in
+  let closure_index =
+    calc_closure_index ~params:generic.tparams ~qvars generic.ret
+  in
 
   (* Get wrapped function *)
   let wrapped_func =
@@ -708,7 +714,7 @@ and gen_app vars callee args =
   in
 
   (* No names here, might be void/unit *)
-  let funcval, args =
+  let funcval, args, envarg =
     if Llvm.type_of func.value = (closure_type |> Llvm.pointer_type) then
       (* Function to call is a closure (or a function passed into another one).
          We get the funptr from the first field, cast to the correct type,
@@ -720,10 +726,10 @@ and gen_app vars callee args =
 
       let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
       let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
-      (funcp, args @ [ env_ptr ])
+      (funcp, args, [ env_ptr ])
     else
       match kind with
-      | Simple -> (func.value, args)
+      | Simple -> (func.value, args, [])
       | Closure _ -> (
           (* In this case we are in a recursive closure function.
              We get the closure env and add it to the arguments we pass *)
@@ -732,12 +738,11 @@ and gen_app vars callee args =
               (* We do this to make sure it's a recursive function.
                  If we cannot find something. there is an error somewhere *)
               let closure_index =
-                List.length params
-                + match ret with TRecord _ | QVar _ -> 1 | _ -> 0
+                calc_closure_index ~params ~qvars:!qvars ret
               in
 
               let env_ptr = (Llvm.params func.value).(closure_index) in
-              (func.value, args @ [ env_ptr ])
+              (func.value, args, [ env_ptr ])
           | None ->
               failwith "Internal Error: Not a recursive closure application")
   in
@@ -754,8 +759,8 @@ and gen_app vars callee args =
     | TFun (_, (TRecord _ as typ), _) ->
         let lltyp = get_lltype ~param:false typ in
         let ret = Llvm.build_alloca lltyp "ret" builder in
-        ignore
-          (Llvm.build_call funcval (Array.of_list ([ ret ] @ args)) "" builder);
+        let args = Array.of_list ([ ret ] @ args @ envarg) in
+        ignore (Llvm.build_call funcval args "" builder);
         (ret, typ, lltyp)
     | TFun (params, (QVar id as typ), _) ->
         (* Conceptually, this works like the record case. The only difference is that we need to get
@@ -774,7 +779,7 @@ and gen_app vars callee args =
 
         ignore
           (Llvm.build_call funcval
-             (Array.of_list ((ret :: args) @ qargs))
+             (Array.of_list ((ret :: args) @ qargs @ envarg))
              "" builder);
 
         (* If it's a local type, we reconstruct it *)
@@ -794,7 +799,7 @@ and gen_app vars callee args =
         in
         (ret, typ, generic_type)
     | TFun (_, t, _) ->
-        ( Llvm.build_call funcval (Array.of_list args) "" builder,
+        ( Llvm.build_call funcval (Array.of_list (args @ envarg)) "" builder,
           t,
           func.lltyp |> Llvm.return_type )
     | _ -> failwith "Internal Error not a fun in gen_app"
