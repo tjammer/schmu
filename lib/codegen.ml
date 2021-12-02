@@ -366,6 +366,9 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
                 else Llvm.build_ret_void builder
             | _ -> Llvm.build_ret ret.value builder));
 
+      if Llvm_analysis.verify_function func.value |> not then
+        Llvm.dump_module the_module;
+
       Llvm_analysis.assert_valid_function func.value;
       let _ = Llvm.PassManager.run_function func.value fpm in
 
@@ -603,7 +606,7 @@ and gen_app vars callee args =
         | Some (Param _) -> failwith "Unexpected local and param"
         | Some (Local _) -> ()
         | None ->
-            let typ = t in
+            let typ = clean t in
             qvars := (id, Local typ) :: !qvars)
     | t1, t2 ->
         ignore t1;
@@ -924,6 +927,10 @@ let generate externals typed_expr =
          typ = TFun ([ TInt ], TInt, Simple);
          body = { typed_expr with typ = TInt };
        };
+
+  (match Llvm_analysis.verify_module the_module with
+  | Some output -> print_endline output
+  | None -> ());
 
   (* Emit code to file *)
   Llvm_all_backends.initialize ();

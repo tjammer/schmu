@@ -673,13 +673,18 @@ and convert_app env loc e1 args =
 
   let typed_exprs = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_exprs in
+  let args_frozen = List.map freeze args_t in
   let res_t = newvar () in
   unify (loc, "Application") type_fun.typ (TFun (args_t, res_t, Simple));
 
   (* Apply the 'result' of the unification the the typed_expr *)
   let apply typ texpr = { texpr with typ } in
-  let targs = List.map2 apply args_t typed_exprs in
+  let targs = List.map2 apply args_frozen typed_exprs in
   let targs = extend_generic_funs targs generic in
+
+  (* Change back to unify types. Otherwise we don't know the generic's size *)
+  let apply typ (texpr, b) = { texpr with typ }, b in
+  let targs = List.map2 apply args_t targs in
 
   { typ = res_t; expr = App (type_fun, targs) }
 
