@@ -11,7 +11,9 @@ type loc = Loc.t
 
 type bop = Plus | Mult | Less | Equal | Minus
 
-type type_expr = string list
+type type_spec = Ty_id of string | Ty_var of string
+
+type type_expr = type_spec list
 
 and decl = string * type_expr option [@@deriving show]
 

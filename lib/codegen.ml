@@ -353,7 +353,12 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
           let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
 
-          let size = (Vars.find (name_of_qvar id) temp_funcs).value in
+          let size =
+            match Vars.find_opt (name_of_qvar id) temp_funcs with
+            | Some v -> v.value
+            | None ->
+                failwith "TODO Internal Error: Unknown size of generic type"
+          in
           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           ignore (Llvm.build_ret_void builder)
@@ -557,7 +562,12 @@ and gen_generic funcs name { Typing.concrete; generic } =
           let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
 
-          let size = (Vars.find (name_of_qvar id) funcs).value in
+          let size =
+            match Vars.find_opt (name_of_qvar id) funcs with
+            | Some v -> v.value
+            | None ->
+                failwith "TODO Internal Error: Unknown size of generic type"
+          in
           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           Llvm.build_ret_void builder
