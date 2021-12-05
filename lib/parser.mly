@@ -27,6 +27,7 @@
 %token External
 %token Function
 %token Type
+%token Quote
 
 %nonassoc Less
 %left Plus
@@ -82,4 +83,8 @@ bool:
   | Identifier; option(type_expr) { $1, $2 }
 
 %inline type_expr:
-  | Colon; separated_nonempty_list(Arrow, Identifier);  { $2 }
+  | Colon; separated_nonempty_list(Arrow, type_spec);  { $2 }
+
+%inline type_spec:
+  | Identifier { Ty_id $1 }
+  | Quote; Identifier { Ty_var $2 }

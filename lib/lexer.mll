@@ -32,6 +32,7 @@ rule read =
   | "=="     { Bin_equal }
   | ','      { Comma }
   | ':'      { Colon }
+  | "'"      { Quote }
   | "if"     { If }
   | "then"   { Then }
   | "else"   { Else }

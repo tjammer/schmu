@@ -15,7 +15,7 @@ type type_spec = Ty_id of string | Ty_var of string
 
 type type_expr = type_spec list
 
-and decl = string * type_expr option [@@deriving show]
+and decl = string * type_expr option
 
 type func = { name : decl; params : decl list; body : expr; cont : expr }
 
@@ -31,7 +31,6 @@ and expr =
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list
   | Field of loc * expr * string
-[@@deriving show { with_path = false }]
 
 (* Hopefully temporary *)
 type external_decl = loc * string * type_expr

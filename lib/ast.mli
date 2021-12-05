@@ -24,7 +24,6 @@ and expr =
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list
   | Field of loc * expr * string
-[@@deriving show { with_path = false }]
 
 type external_decl = loc * string * type_expr
 
