@@ -194,7 +194,8 @@ let unify info t1 t2 =
     let loc, pre = info in
     let msg =
       Printf.sprintf "%s Expected type %s but got type %s" pre
-        (string_of_type (canonize t1)) (string_of_type (canonize t2))
+        (string_of_type (canonize t1))
+        (string_of_type (canonize t2))
     in
     raise (Error (loc, msg))
 

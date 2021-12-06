@@ -91,54 +91,25 @@ let test_record_field_wrong_record () =
     "type t1 = {x : int} type t2 = {y:int} function foo(a) a.x b = {y = 10} \
      foo(b)"
 
-let dummy_info = (Lexing.dummy_pos, "")
+let test_annot_concrete () =
+  test "int -> bool" "function foo : int -> bool (x) x < 3 foo"
 
-let get_type src =
-  let open Lexing in
-  let lexbuf = from_string src in
-  Parser.prog Lexer.read lexbuf |> Typing.typecheck |> Typing.string_of_type
+let test_annot_concrete_fail () =
+  test_exn " Expected type bool -> int but got type int -> bool"
+    "function foo : bool -> int (x) x < 3 foo"
 
-let test a src = (check string) "" a (get_type src)
+let test_annot_mix () = test "'a -> 'a" "function pass : 'b -> 'b (x) x pass"
 
-let test_exn msg src =
-  (check string) "" msg (try get_type src with Typing.Error (_, msg) -> msg)
+let test_annot_mix_fail () =
+  test_exn " Expected type 'a -> int but got type 'a -> 'a"
+    "function pass : 'b -> int (x) x pass"
 
-let test_unify msg t1 t2 =
-  (check string) "" msg
-    (try
-       let () = Typing.unify dummy_info t1 t2 in
-       ""
-     with Typing.Error (_, msg) -> msg)
+let test_annot_generic () =
+  test "'a -> 'a" "function pass : 'b -> 'b (x) x pass"
 
-let test_unify_trivial () =
-  test_unify " Expected type int but got type bool" TInt TBool
-
-let test_unify_poly_fun_match () =
-  test_unify ""
-    (TFun ([ QVar "a" ], TBool, Simple))
-    (TFun ([ QVar "a" ], TBool, Simple))
-
-let test_unify_poly_fun_fail_not () =
-  test_unify " Expected type 'a -> bool but got type 'b -> bool"
-    (TFun ([ QVar "a" ], TBool, Simple))
-    (TFun ([ QVar "b" ], TBool, Simple))
-
-let test_unify_poly_fun_unify () =
-  test_unify ""
-    (TFun ([ TVar (ref (Types.Unbound ("a", 1))) ], TBool, Simple))
-    (TFun ([ QVar "b" ], TBool, Simple))
-
-let test_unify_poly_fun_unify2 () =
-  test_unify ""
-    (TFun ([ TVar (ref (Types.Unbound ("1", 1))) ], TBool, Simple))
-    (TFun ([ TInt ], TBool, Simple))
-
-let test_unify_poly_fun_fail () =
-  test_unify " Expected type 'a -> 'b -> 'a but got type 'a -> 'b -> 'c"
-    (Types.TFun
-       ([ QVar "a"; QVar "b" ], TVar (ref (Types.Link (QVar "a"))), Simple)
-    |> Typing.canonize)
-    (Types.TFun ([ QVar "e"; QVar "f" ], QVar "a", Simple) |> Typing.canonize)
+let test_annot_generic_fail () =
+  test_exn " Expected type 'a -> 'b but got type 'a -> 'a"
+    "function pass : 'a -> 'b (x) x pass"
 
 let case str test = test_case str `Quick test
 
@@ -176,13 +147,13 @@ let () =
           case "field_no_record" test_record_field_no_record;
           case "field_wrong_record" test_record_field_wrong_record;
         ] );
-      ( "unification",
+      ( "annotations",
         [
-          case "trivial" test_unify_trivial;
-          case "poly_fun_match" test_unify_poly_fun_match;
-          (* case "poly_fun_fail" test_unify_poly_fun_fail_not; *)
-          case "poly_fun_unify" test_unify_poly_fun_unify;
-          case "poly_fun_unify2" test_unify_poly_fun_unify2;
-          case "poly_fun_unify_fail" test_unify_poly_fun_fail;
+          case "concrete" test_annot_concrete;
+          case "concrete_fail" test_annot_concrete_fail;
+          case "mix" test_annot_mix;
+          case "mix_fail" test_annot_mix_fail;
+          case "generic" test_annot_generic;
+          case "generic_fail" test_annot_generic_fail;
         ] );
     ]
