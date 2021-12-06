@@ -36,17 +36,17 @@ module Str = struct
   let equal = String.equal
 end
 
-module Functbl = Hashtbl.Make (Str)
+module Strtbl = Hashtbl.Make (Str)
 
-let func_tbl = Functbl.create 1
+let func_tbl = Strtbl.create 1
 
 let next_func name tbl =
-  match Functbl.find_opt tbl name with
+  match Strtbl.find_opt tbl name with
   | None ->
-      Functbl.add tbl name 1;
+      Strtbl.add tbl name 1;
       None
   | Some n ->
-      Functbl.replace tbl name (n + 1);
+      Strtbl.replace tbl name (n + 1);
       Some (n + 1)
 
 (* Bring type vars into canonical form so the first one is "'a" etc.
@@ -99,6 +99,7 @@ let string_of_type typ =
         if lvl_cpy = 0 then func else "(" ^ func ^ ")"
     | TVar { contents = Unbound (str, _) } -> to_name str
     | TVar { contents = Link t } -> string_of_type t
+    | TVar { contents = Qannot id } -> Printf.sprintf "'%s" id
     | QVar str -> to_name str
     | TRecord (str, _) -> str
   in
@@ -150,6 +151,7 @@ let arity (loc, pre) thing a b =
 exception Unify
 
 let unify info t1 t2 =
+  let annot_tbl = Strtbl.create 1 in
   let rec unify t1 t2 =
     if t1 == t2 then ()
     else
@@ -171,6 +173,20 @@ let unify info t1 t2 =
             try List.iter2 (fun a b -> unify (snd a) (snd b)) labels1 labels2
             with Invalid_argument _ -> arity info "record" labels1 labels2
           else raise Unify
+      | (QVar id as t), TVar ({ contents = Qannot a_id } as tv)
+      | TVar ({ contents = Qannot a_id } as tv), (QVar id as t) -> (
+          match Strtbl.find_opt annot_tbl id with
+          | Some annot_id ->
+              (* [QVar id] has already been part of annotating. We make sure the annotation was the same *)
+              if String.equal annot_id a_id then (
+                occurs tv t;
+                tv := Link t)
+              else raise Unify
+          | None ->
+              (* We see [QVar id] for the first time and link our [a_id] to it *)
+              Strtbl.add annot_tbl id a_id;
+              occurs tv t;
+              tv := Link t)
       | _ -> raise Unify
   in
   try unify t1 t2
@@ -178,7 +194,7 @@ let unify info t1 t2 =
     let loc, pre = info in
     let msg =
       Printf.sprintf "%s Expected type %s but got type %s" pre
-        (string_of_type t1) (string_of_type t2)
+        (string_of_type (canonize t1)) (string_of_type (canonize t2))
     in
     raise (Error (loc, msg))
 
@@ -227,7 +243,7 @@ let typeof_annot env loc annot =
         match Env.find_type_opt t env with
         | Some t -> t
         | None -> raise (Error (loc, "Unknown type: " ^ t ^ ".")))
-    | Ty_var id -> QVar id
+    | Ty_var id -> TVar (ref (Qannot id))
   in
 
   match annot with
@@ -513,6 +529,8 @@ let name_of_generic { concrete; generic } =
     | TUnit -> "u"
     | TVar { contents = Unbound _ } -> "g"
     | TVar { contents = Link t } -> str_of_typ t
+    | TVar { contents = Qannot _ } ->
+        failwith "Internal Error: We should never need a generic name here"
     | QVar _ -> "g"
     | TFun (params, ret, _) ->
         "."

@@ -87,8 +87,7 @@ let test_record_field_no_record () =
     "type t = {x : int} a = 10 a.x"
 
 let test_record_field_wrong_record () =
-  (* 'c should somehow be 'a here, TODO *)
-  test_exn " Expected type t1 -> int but got type t2 -> 'c"
+  test_exn " Expected type t1 -> int but got type t2 -> 'a"
     "type t1 = {x : int} type t2 = {y:int} function foo(a) a.x b = {y = 10} \
      foo(b)"
 

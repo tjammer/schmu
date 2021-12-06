@@ -6,10 +6,11 @@ type typ =
   | QVar of string
   | TFun of typ list * typ * fun_kind
   | TRecord of string * (string * typ) list
+(* [@@deriving show { with_path = false }] *)
 
 and fun_kind = Simple | Closure of (string * typ) list
 
-and tv = Unbound of string * int | Link of typ
+and tv = Unbound of string * int | Link of typ | Qannot of string
 
 let rec clean = function
   | TVar { contents = Link t } -> clean t
