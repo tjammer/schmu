@@ -30,4 +30,9 @@ type external_decl = string * typ
 
 val typecheck : Ast.prog -> typ
 
+(* TODO return named records for codegen *)
 val to_typed : Ast.prog -> external_decl list * typed_expr
+
+val unify : Lexing.position * string -> typ -> typ -> unit
+
+val canonize : typ -> typ

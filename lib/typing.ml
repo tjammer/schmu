@@ -49,24 +49,25 @@ let next_func name tbl =
       Functbl.replace tbl name (n + 1);
       Some (n + 1)
 
-(* Bring type vars into canonical form so the first one is "'a" etc *)
+(* Bring type vars into canonical form so the first one is "'a" etc.
+   Only used for printing purposes *)
 let canonize typ =
   (* To have type variables staring from 'a' *)
   let tname = ref 0 in
   let names = ref [] in
+  (* TODO hashtbl *)
   let get_name str =
     match List.assoc_opt str !names with
-    | Some name -> name
+    | Some name -> string_of_int name
     | None ->
-        let name = Char.chr (!tname + Char.code 'a') |> String.make 1 in
+        let name = !tname in
         incr tname;
         names := (str, name) :: !names;
-        name
+        string_of_int name
   in
   let rec inner = function
     | QVar str -> QVar (get_name str)
-    | TVar { contents = Unbound (str, lvl) } ->
-        TVar { contents = Unbound (get_name str, lvl) }
+    | TVar { contents = Unbound (str, _) } -> QVar (get_name str)
     | TVar { contents = Link t } -> TVar { contents = Link (inner t) }
     | TFun (ts, t, kind) ->
         (* Evaluate parameters first *)
@@ -79,6 +80,9 @@ let canonize typ =
 let string_of_type typ =
   (* To deal with brackets for functions *)
   let lvl = ref 0 in
+  let to_name name =
+    "'" ^ (Char.chr (int_of_string name + Char.code 'a') |> String.make 1)
+  in
   let rec string_of_type = function
     | TInt -> "int"
     | TBool -> "bool"
@@ -93,12 +97,12 @@ let string_of_type typ =
              l @ [ string_of_type t ])
         in
         if lvl_cpy = 0 then func else "(" ^ func ^ ")"
-    | TVar { contents = Unbound (str, _) } -> "'" ^ str
+    | TVar { contents = Unbound (str, _) } -> to_name str
     | TVar { contents = Link t } -> string_of_type t
-    | QVar str -> "'" ^ str
+    | QVar str -> to_name str
     | TRecord (str, _) -> str
   in
-  string_of_type (canonize typ)
+  string_of_type typ
 
 let gensym_state = ref 0
 
@@ -107,7 +111,7 @@ let reset_gensym () = gensym_state := 0
 let gensym () =
   let n = !gensym_state in
   incr gensym_state;
-  Char.chr (n + Char.code 'a') |> String.make 1
+  string_of_int n
 
 let current_level = ref 1
 
@@ -143,53 +147,40 @@ let arity (loc, pre) thing a b =
   in
   raise (Error (loc, msg))
 
-let rec unify info t1 t2 =
-  if t1 == t2 then ()
-  else
-    match (t1, t2) with
-    | TVar { contents = Link t1 }, t2 | t2, TVar { contents = Link t1 } ->
-        unify info t1 t2
-    | TVar ({ contents = Unbound _ } as tv), t
-    | t, TVar ({ contents = Unbound _ } as tv) ->
-        occurs tv t;
-        tv := Link t
-    | TFun (params_l, l, _), TFun (params_r, r, _) ->
-        (try
-           List.iter2
-             (fun left right -> unify info left right)
-             params_l params_r
-         with
-        | Error (_, _) ->
-            let loc, pre = info in
-            let msg =
-              Printf.sprintf "%s Expected type %s but got type %s" pre
-                (string_of_type t1) (string_of_type t2)
-            in
-            raise (Error (loc, msg))
-        | Invalid_argument _ -> arity info "function" params_l params_r);
-        unify info l r
-    | TRecord (n1, labels1), TRecord (n2, labels2) ->
-        if String.equal n1 n2 then
-          (* We ignore the label names for now *)
-          try List.iter2 (fun a b -> unify info (snd a) (snd b)) labels1 labels2
-          with Invalid_argument _ -> arity info "record" labels1 labels2
-        else
-          let loc, pre = info in
-          let msg =
-            Printf.sprintf "%s Expected type %s but got type %s" pre
-              (string_of_type t1) (string_of_type t2)
-          in
-          raise (Error (loc, msg))
-    | QVar a, QVar b ->
-        let msg = Printf.sprintf "new %s, %s\n" a b in
-        raise (Error (fst info, msg))
-    | _ ->
-        let loc, pre = info in
-        let msg =
-          Printf.sprintf "%s Expected type %s but got type %s" pre
-            (string_of_type t1) (string_of_type t2)
-        in
-        raise (Error (loc, msg))
+exception Unify
+
+let unify info t1 t2 =
+  let rec unify t1 t2 =
+    if t1 == t2 then ()
+    else
+      match (t1, t2) with
+      | TVar { contents = Link t1 }, t2 | t2, TVar { contents = Link t1 } ->
+          unify t1 t2
+      | TVar ({ contents = Unbound _ } as tv), t
+      | t, TVar ({ contents = Unbound _ } as tv) ->
+          occurs tv t;
+          tv := Link t
+      | TFun (params_l, l, _), TFun (params_r, r, _) -> (
+          try
+            List.iter2 (fun left right -> unify left right) params_l params_r;
+            unify l r
+          with Invalid_argument _ -> arity info "function" params_l params_r)
+      | TRecord (n1, labels1), TRecord (n2, labels2) ->
+          if String.equal n1 n2 then
+            (* We ignore the label names for now *)
+            try List.iter2 (fun a b -> unify (snd a) (snd b)) labels1 labels2
+            with Invalid_argument _ -> arity info "record" labels1 labels2
+          else raise Unify
+      | _ -> raise Unify
+  in
+  try unify t1 t2
+  with Unify ->
+    let loc, pre = info in
+    let msg =
+      Printf.sprintf "%s Expected type %s but got type %s" pre
+        (string_of_type t1) (string_of_type t2)
+    in
+    raise (Error (loc, msg))
 
 let rec generalize = function
   | TVar { contents = Unbound (id, l) } when l > !current_level -> QVar id
@@ -243,6 +234,7 @@ let typeof_annot env loc annot =
   | [] -> failwith "Internal Error: Type annot list should not be empty"
   | [ t ] -> concrete_type t
   | [ Ast.Ty_id "unit"; t ] -> TFun ([], concrete_type t, Simple)
+  (* TODO 'Simple' here is not always true *)
   (* For function definiton and application, 'unit' means an empty list.
      It's easier for typing and codegen to treat unit as a special case here *)
   | l -> (
@@ -373,7 +365,7 @@ and typeof_abs env loc params e =
   let type_e = typeof env e in
   leave_level ();
 
-  TFun (params_t, type_e, Simple) |> generalize |> canonize
+  TFun (params_t, type_e, Simple) |> generalize
 
 and typeof_function env loc name params body cont =
   (* this loc might not be correct *)
@@ -390,7 +382,7 @@ and typeof_function env loc name params body cont =
   let body_env, params_t = handle_params env loc params in
   let bodytype = typeof body_env body in
   leave_level ();
-  let funtype = TFun (params_t, bodytype, Simple) |> generalize |> canonize in
+  let funtype = TFun (params_t, bodytype, Simple) |> generalize in
   unify (loc, "") (Env.find (fst name) env) funtype;
   typeof env cont
 
@@ -406,7 +398,7 @@ and typeof_if env loc cond e1 e2 =
      branches need to evaluate to the some type *)
   let type_cond = typeof env cond in
   unify (loc, "In condition") type_cond TBool;
-  (* TODO catch *)
+
   let type_e1 = typeof env e1 in
   let type_e2 = typeof env e2 in
   let type_res = newvar () in
@@ -485,7 +477,7 @@ let typedefs typedefs env =
 let typecheck (prog : Ast.prog) =
   reset_type_vars ();
   let env = extern_vars prog.external_decls |> typedefs prog.typedefs in
-  typeof env prog.expr
+  typeof env prog.expr |> canonize
 
 (* Conversion to Typing.exr below *)
 
@@ -710,7 +702,7 @@ and convert_app env loc e1 args =
   let targs = extend_generic_funs targs generic in
 
   (* Change back to unify types. Otherwise we don't know the generic's size *)
-  let apply typ (texpr, b) = { texpr with typ }, b in
+  let apply typ (texpr, b) = ({ texpr with typ }, b) in
   let targs = List.map2 apply args_t targs in
 
   { typ = res_t; expr = App (type_fun, targs) }
