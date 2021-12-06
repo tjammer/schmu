@@ -54,15 +54,14 @@ let next_func name tbl =
 let canonize typ =
   (* To have type variables staring from 'a' *)
   let tname = ref 0 in
-  let names = ref [] in
-  (* TODO hashtbl *)
+  let names = Strtbl.create 4 in
   let get_name str =
-    match List.assoc_opt str !names with
+    match Strtbl.find_opt names str with
     | Some name -> string_of_int name
     | None ->
         let name = !tname in
         incr tname;
-        names := (str, name) :: !names;
+        Strtbl.add names str name;
         string_of_int name
   in
   let rec inner = function
