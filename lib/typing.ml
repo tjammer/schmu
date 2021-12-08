@@ -161,6 +161,11 @@ let unify info t1 t2 =
       | t, TVar ({ contents = Unbound _ } as tv) ->
           occurs tv t;
           tv := Link t
+      (* | ( TVar ({ contents = Qannot _ } as tv),
+       *     (TVar { contents = Qannot _ } as t) ) ->
+       *     (\* Does the order motter here? *\)
+       *     (\* occurs tv t; *\)
+       *     tv := Link t *)
       | TFun (params_l, l, _), TFun (params_r, r, _) -> (
           try
             List.iter2 (fun left right -> unify left right) params_l params_r;
@@ -235,7 +240,7 @@ let string_of_bop = function
   | Minus -> "-"
 
 let typeof_annot env loc annot =
-  let concrete_type = function
+  let rec concrete_type = function
     | Ast.Ty_id "int" -> TInt
     | Ty_id "bool" -> TBool
     | Ty_id "unit" -> TUnit
@@ -244,22 +249,25 @@ let typeof_annot env loc annot =
         | Some t -> t
         | None -> raise (Error (loc, "Unknown type: " ^ t ^ ".")))
     | Ty_var id -> TVar (ref (Qannot id))
+    | Ty_expr l -> handle_annot l
+  and handle_annot = function
+    | [] -> failwith "Internal Error: Type annot list should not be empty"
+    | [ t ] -> concrete_type t
+    | [ Ast.Ty_id "unit"; t ] -> TFun ([], concrete_type t, Simple)
+    (* TODO 'Simple' here is not always true *)
+    (* For function definiton and application, 'unit' means an empty list.
+       It's easier for typing and codegen to treat unit as a special case here *)
+    | l -> (
+        (* We reverse the list times :( *)
+        match List.rev l with
+        | last :: head ->
+            TFun
+              ( List.map concrete_type (List.rev head),
+                concrete_type last,
+                Simple )
+        | [] -> failwith ":)")
   in
-
-  match annot with
-  | [] -> failwith "Internal Error: Type annot list should not be empty"
-  | [ t ] -> concrete_type t
-  | [ Ast.Ty_id "unit"; t ] -> TFun ([], concrete_type t, Simple)
-  (* TODO 'Simple' here is not always true *)
-  (* For function definiton and application, 'unit' means an empty list.
-     It's easier for typing and codegen to treat unit as a special case here *)
-  | l -> (
-      (* We reverse the list times :( *)
-      match List.rev l with
-      | last :: head ->
-          TFun
-            (List.map concrete_type (List.rev head), concrete_type last, Simple)
-      | [] -> failwith ":)")
+  handle_annot annot
 
 let handle_params env loc params =
   (* return updated env with bindings for parameters and types of parameters *)

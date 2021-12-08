@@ -83,7 +83,14 @@ bool:
   | Identifier; option(type_expr) { $1, $2 }
 
 %inline type_expr:
-  | Colon; separated_nonempty_list(Arrow, type_spec);  { $2 }
+  | Colon; type_spec; Arrow; type_spec  { [$2; $4] }
+  | Colon; Lpar; separated_nonempty_list(Comma, type_func); Rpar; Arrow; type_spec  { $3 @ [$6] }
+  | Colon; type_spec { [$2] }
+
+%inline type_func:
+  | type_spec; Arrow; type_spec  { Ty_expr [$1; $3] }
+  | Lpar; separated_nonempty_list(Comma, type_spec); Rpar; Arrow; type_spec  { Ty_expr ($2 @ [$5]) }
+  | type_spec { $1 }
 
 %inline type_spec:
   | Identifier { Ty_id $1 }

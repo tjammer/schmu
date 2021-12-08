@@ -4,7 +4,7 @@ type loc = Lexing.position
 
 (* optional type identifier
    So far only bool and ints and functions *)
-type type_spec = Ty_id of string | Ty_var of string
+type type_spec = Ty_id of string | Ty_var of string | Ty_expr of type_spec list
 
 type type_expr = type_spec list
 

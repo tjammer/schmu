@@ -1,7 +1,7 @@
 function one : unit -> int ()
   1
 
-function add : int -> int -> int (a : int, b : int)
+function add : (int, int) -> int (a : int, b : int)
   a + b
 
 function doiflesselse(a : int, b : int, greater : int, less : int)
