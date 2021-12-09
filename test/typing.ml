@@ -104,8 +104,7 @@ let test_annot_mix_fail () =
   test_exn " Expected type 'b -> int but got type 'b -> 'b"
     "pass : 'b -> int = function(x) x pass"
 
-let test_annot_generic () =
-  test "'a -> 'a" "function pass(x : 'b) -> 'b x pass"
+let test_annot_generic () = test "'a -> 'a" "function pass(x : 'b) -> 'b x pass"
 
 let test_annot_generic_fail () =
   test_exn " Expected type 'a -> 'b but got type 'a -> 'a"

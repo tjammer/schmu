@@ -8,18 +8,22 @@ type label = { typ : typ; index : int; record : string }
 type t = {
   values : (typ Map.t * string list ref) list;
   labels : label Map.t;
-  records : typ Map.t;
+  types : typ Map.t;
 }
 
 let empty =
-  { values = [ (Map.empty, ref []) ]; labels = Map.empty; records = Map.empty }
+  { values = [ (Map.empty, ref []) ]; labels = Map.empty; types = Map.empty }
 
 let add_value key vl env =
   match env.values with
   | [] -> failwith "Internal error: Env empty"
   | (hd, cls) :: tl -> { env with values = (Map.add key vl hd, cls) :: tl }
 
-let add_type record ~labels env =
+let add_type key t env =
+  let types = Map.add key t env.types in
+  { env with types }
+
+let add_record record ~labels env =
   let typ = TRecord (record, labels) in
   let _, labels =
     List.fold_left
@@ -27,8 +31,8 @@ let add_type record ~labels env =
         (index + 1, Map.add lname { typ; index; record } labels))
       (0, env.labels) labels
   in
-  let records = Map.add record typ env.records in
-  { env with labels; records }
+  let types = Map.add record typ env.types in
+  { env with labels; types }
 
 let new_scope env =
   (* Due to the ref, we have to create a new object every time *)
@@ -71,8 +75,8 @@ let find key env =
   in
   aux env.values
 
-let find_type_opt key env = Map.find_opt key env.records
+let find_type_opt key env = Map.find_opt key env.types
 
-let find_type key env = Map.find key env.records
+let find_type key env = Map.find key env.types
 
 let find_label_opt key env = Map.find_opt key env.labels

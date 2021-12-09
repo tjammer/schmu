@@ -260,15 +260,19 @@ let string_of_bop = function
   | Equal -> "=="
   | Minus -> "-"
 
-let typeof_annot env loc annot =
+let typeof_annot ?(typedef = false) env loc annot =
+  let find t tick =
+    match Env.find_type_opt t env with
+    | Some t -> t
+    | None -> raise (Error (loc, "Unbound type " ^ tick ^ t ^ "."))
+  in
+
   let rec concrete_type = function
     | Ast.Ty_id "int" -> TInt
     | Ty_id "bool" -> TBool
     | Ty_id "unit" -> TUnit
-    | Ty_id t -> (
-        match Env.find_type_opt t env with
-        | Some t -> t
-        | None -> raise (Error (loc, "Unknown type: " ^ t ^ ".")))
+    | Ty_id t -> find t ""
+    | Ty_var id when typedef -> find id "'"
     | Ty_var id ->
         (* I'm not sure what this should be. For the whole function annotations,
            Qannot worked, but does not for param ones *)
@@ -321,6 +325,7 @@ let handle_params env loc params ret =
   (env, ids, qparams, ret)
 
 let get_record_type env loc typed_labels =
+  (* TODO rewrite this whole thing to make it more workable *)
   let possible_records =
     List.fold_left
       (fun set (label, _) ->
@@ -332,10 +337,18 @@ let get_record_type env loc typed_labels =
       Strset.empty typed_labels
   in
 
-  let unify_labels labels =
+  let unify_labels labels name =
     List.iter
       (fun (rlabel, rtype) ->
-        let ltype = List.assoc rlabel typed_labels in
+        let ltype =
+          let msg =
+            Printf.sprintf "Missing field %s on record %s" rlabel name
+          in
+          match List.assoc_opt rlabel typed_labels with
+          | Some thing -> thing
+          | None -> raise (Error (loc, msg))
+        in
+
         unify (loc, "") rtype ltype)
       labels
   in
@@ -348,7 +361,7 @@ let get_record_type env loc typed_labels =
   | [ record ] ->
       let record = Env.find_type record env in
       let name, labels = get_name_labels record in
-      unify_labels labels;
+      unify_labels labels name;
       (name, labels)
   | lst ->
       (* We choose the correct one by finding the first record where all labels fit  *)
@@ -374,7 +387,7 @@ let get_record_type env loc typed_labels =
         |> Option.get
       in
       let name, labels = get_name_labels record in
-      unify_labels labels;
+      unify_labels labels name;
       (name, labels)
 
 let assoc_opti qkey =
@@ -444,9 +457,7 @@ and typeof_function env loc name params ret_annot body cont =
   enter_level ();
 
   (* Recursion allowed for named funcs *)
-  let env =
-     Env.add_value (name) (newvar ()) env
-  in
+  let env = Env.add_value name (newvar ()) env in
   ignore ret_annot;
   let body_env, params_t, qparams, ret_annot =
     handle_params env loc params ret_annot
@@ -455,7 +466,7 @@ and typeof_function env loc name params ret_annot body cont =
   leave_level ();
   TFun (params_t, bodytype, Simple) |> generalize |> function
   | TFun (_, ret, kind) as typ ->
-      unify (loc, "") (Env.find (name) env) typ;
+      unify (loc, "") (Env.find name env) typ;
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = TFun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
@@ -541,13 +552,19 @@ let extern_vars decls =
 
 let typedefs typedefs env =
   List.fold_left
-    (fun env Ast.{ name; labels; loc } ->
+    (fun env Ast.{ poly_param; name; labels; loc } ->
       let labels =
+        let env =
+          match poly_param with
+          | Some name -> Env.add_type name (newvar () |> generalize) env
+          | None -> env
+        in
         List.map
-          (fun (lbl, type_expr) -> (lbl, typeof_annot env loc type_expr))
+          (fun (lbl, type_expr) ->
+            (lbl, typeof_annot ~typedef:true env loc type_expr))
           labels
       in
-      Env.add_type name ~labels env)
+      Env.add_record name ~labels env)
     env typedefs
 
 let typecheck (prog : Ast.prog) =
@@ -722,12 +739,12 @@ and convert_lambda env loc params ret_annot e =
 and convert_function env loc { name; params; return_annot; body; cont } =
   (* Create a fresh type var for the function name
      and use it in the function body *)
-  let unique = next_func (name) func_tbl in
+  let unique = next_func name func_tbl in
 
   enter_level ();
   let env =
     (* Recursion allowed for named funcs *)
- Env.add_value ( name) (newvar ()) env
+    Env.add_value name (newvar ()) env
   in
 
   (* We duplicate some lambda code due to naming *)
@@ -757,7 +774,7 @@ and convert_function env loc { name; params; return_annot; body; cont } =
   match typ with
   | TFun (tparams, ret, kind) ->
       (* Make sure the types match *)
-      unify (loc, "Function") (Env.find ( name) env) typ;
+      unify (loc, "Function") (Env.find name env) typ;
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = TFun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
@@ -767,7 +784,7 @@ and convert_function env loc { name; params; return_annot; body; cont } =
       let lambda = { nparams; body = { body with typ = ret }; tp } in
       (* Continue, see let *)
       let typ2 = convert env cont in
-      { typ = typ2.typ; expr = Function ( name, unique, lambda, typ2) }
+      { typ = typ2.typ; expr = Function (name, unique, lambda, typ2) }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
 and convert_app env loc e1 args =
@@ -831,7 +848,17 @@ and convert_record env loc labels =
   let name, labels = get_record_type env loc typed_labels in
   (* We sort the labels to appear in the defined order *)
   let sorted_labels =
-    List.map (fun (name, _) -> (name, List.assoc name typed_expr_labels)) labels
+    List.map
+      (fun (lname, _) ->
+        ( lname,
+          match List.assoc_opt lname typed_expr_labels with
+          | Some thing -> thing
+          | None ->
+              let msg =
+                Printf.sprintf "Missing field %s on record %s" lname name
+              in
+              raise (Error (loc, msg)) ))
+      labels
   in
   { typ = TRecord (name, labels); expr = Record sorted_labels }
 

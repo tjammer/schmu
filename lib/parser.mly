@@ -1,5 +1,10 @@
 %{
     open Ast
+
+    let string_of_ty_var = function
+      | None -> None
+      | Some (Ty_var s) -> Some s
+      | _ -> failwith "Internal Error: Should have been a type var"
 %}
 
 %token Equal
@@ -44,8 +49,8 @@ prog: list(external_decl); list(typedef); expr; Eof
   | External; Identifier; type_expr { $startpos, $2, $3 }
 
 %inline typedef:
-  | Type; Identifier; Equal; Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
-    { { name = $2; labels = $5; loc = $startpos } }
+  | Type; option(poly_id); Identifier; Equal; Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
+    { { poly_param = string_of_ty_var $2; name = $3; labels = $6; loc = $startpos } }
 
 %inline type_decl:
   | Identifier; type_expr { $1, $2 }
@@ -97,4 +102,7 @@ bool:
 
 %inline type_spec:
   | Identifier { Ty_id $1 }
+  | poly_id { $1 }
+
+%inline poly_id:
   | Quote; Identifier { Ty_var $2 }

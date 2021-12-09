@@ -37,7 +37,12 @@ and expr =
 type external_decl = loc * string * type_expr
 
 (* Only records *)
-type typedef = { name : string; labels : (string * type_expr) list; loc : loc }
+type typedef = {
+  poly_param : string option;
+  name : string;
+  labels : (string * type_expr) list;
+  loc : loc;
+}
 
 type prog = {
   external_decls : external_decl list;

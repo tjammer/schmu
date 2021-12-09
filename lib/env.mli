@@ -10,7 +10,9 @@ val empty : t
 
 val add_value : key -> typ -> t -> t
 
-val add_type : key -> labels:(string * typ) list -> t -> t
+val add_type : key -> typ -> t -> t
+
+val add_record : key -> labels:(string * typ) list -> t -> t
 
 val new_scope : t -> t
 
