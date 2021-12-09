@@ -11,7 +11,10 @@ type loc = Loc.t
 
 type bop = Plus | Mult | Less | Equal | Minus
 
-type type_spec = Ty_id of string | Ty_var of string | Ty_expr of type_spec list
+type type_spec =
+  | Ty_id of string
+  | Ty_var of string
+  | Ty_expr of type_spec list
 
 type type_expr = type_spec list
 

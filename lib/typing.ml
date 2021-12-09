@@ -51,23 +51,41 @@ let next_func name tbl =
 
 (* Bring type vars into canonical form so the first one is "'a" etc.
    Only used for printing purposes *)
-let canonize typ =
+let canonize tbl typ =
   (* To have type variables staring from 'a' *)
-  let tname = ref 0 in
+  let max_in_tbl =
+    Strtbl.fold (fun _ v acc -> String.get v 0 |> Char.code |> max acc) tbl 0
+  in
+  let tname = ref max_in_tbl in
   let names = Strtbl.create 4 in
   let get_name str =
     match Strtbl.find_opt names str with
-    | Some name -> string_of_int name
+    | Some name -> Char.chr (name + Char.code 'a') |> String.make 1
     | None ->
         let name = !tname in
+        Printf.printf "Add %s for %s\n" (string_of_int name) str;
         incr tname;
         Strtbl.add names str name;
-        string_of_int name
+        Char.chr (name + Char.code 'a') |> String.make 1
   in
   let rec inner = function
-    | QVar str -> QVar (get_name str)
-    | TVar { contents = Unbound (str, _) } -> QVar (get_name str)
+    | QVar str -> (
+        match Strtbl.find_opt tbl str with
+        | Some id -> QVar id
+        | None -> QVar (get_name str))
+    | TVar { contents = Unbound (str, lvl) } ->
+        TVar { contents = Unbound (get_name str, lvl) }
     | TVar { contents = Link t } -> TVar { contents = Link (inner t) }
+    | TVar { contents = Qannot id } -> (
+        (* We see if there exists a QVar linked to our annotation *)
+        let qid =
+          Strtbl.fold
+            (fun key v acc -> if String.equal v id then Some key else acc)
+            tbl None
+        in
+        match qid with
+        | Some t -> inner (QVar t)
+        | None -> TVar { contents = Qannot id })
     | TFun (ts, t, kind) ->
         (* Evaluate parameters first *)
         let ts = List.map inner ts in
@@ -79,9 +97,7 @@ let canonize typ =
 let string_of_type typ =
   (* To deal with brackets for functions *)
   let lvl = ref 0 in
-  let to_name name =
-    "'" ^ (Char.chr (int_of_string name + Char.code 'a') |> String.make 1)
-  in
+  let to_name name = "'" ^ name in
   let rec string_of_type = function
     | TInt -> "int"
     | TBool -> "bool"
@@ -140,17 +156,18 @@ let rec occurs tvr = function
       occurs tvr t
   | _ -> ()
 
-let arity (loc, pre) thing a b =
+let arity (loc, pre) thing la lb =
   let msg =
     Printf.sprintf "%s Arity in %s: Expected type %i but got type %i" pre thing
-      (List.length a) (List.length b)
+      la lb
   in
   raise (Error (loc, msg))
 
 exception Unify
 
-let unify info t1 t2 =
-  let annot_tbl = Strtbl.create 1 in
+exception Arity of string * int * int
+
+let unify_raw tbl t1 t2 =
   let rec unify t1 t2 =
     if t1 == t2 then ()
     else
@@ -161,25 +178,23 @@ let unify info t1 t2 =
       | t, TVar ({ contents = Unbound _ } as tv) ->
           occurs tv t;
           tv := Link t
-      (* | ( TVar ({ contents = Qannot _ } as tv),
-       *     (TVar { contents = Qannot _ } as t) ) ->
-       *     (\* Does the order motter here? *\)
-       *     (\* occurs tv t; *\)
-       *     tv := Link t *)
       | TFun (params_l, l, _), TFun (params_r, r, _) -> (
           try
             List.iter2 (fun left right -> unify left right) params_l params_r;
             unify l r
-          with Invalid_argument _ -> arity info "function" params_l params_r)
+          with Invalid_argument _ ->
+            raise
+              (Arity ("function", List.length params_l, List.length params_r)))
       | TRecord (n1, labels1), TRecord (n2, labels2) ->
           if String.equal n1 n2 then
             (* We ignore the label names for now *)
             try List.iter2 (fun a b -> unify (snd a) (snd b)) labels1 labels2
-            with Invalid_argument _ -> arity info "record" labels1 labels2
+            with Invalid_argument _ ->
+              raise (Arity ("record", List.length labels1, List.length labels2))
           else raise Unify
       | (QVar id as t), TVar ({ contents = Qannot a_id } as tv)
       | TVar ({ contents = Qannot a_id } as tv), (QVar id as t) -> (
-          match Strtbl.find_opt annot_tbl id with
+          match Strtbl.find_opt tbl id with
           | Some annot_id ->
               (* [QVar id] has already been part of annotating. We make sure the annotation was the same *)
               if String.equal annot_id a_id then (
@@ -188,20 +203,31 @@ let unify info t1 t2 =
               else raise Unify
           | None ->
               (* We see [QVar id] for the first time and link our [a_id] to it *)
-              Strtbl.add annot_tbl id a_id;
+              Strtbl.add tbl id a_id;
               occurs tv t;
               tv := Link t)
+      | QVar id1, QVar id2 when String.equal id1 id2 ->
+          (* We need this for annotation unification *)
+          ()
       | _ -> raise Unify
   in
-  try unify t1 t2
-  with Unify ->
-    let loc, pre = info in
-    let msg =
-      Printf.sprintf "%s Expected type %s but got type %s" pre
-        (string_of_type (canonize t1))
-        (string_of_type (canonize t2))
-    in
-    raise (Error (loc, msg))
+  unify t1 t2
+
+let unify info t1 t2 =
+  let annot_tbl = Strtbl.create 1 in
+  try unify_raw annot_tbl t1 t2 with
+  | Unify ->
+      (* print_endline (show_typ t1);
+       * print_endline (show_typ t2);
+       * print_newline (); *)
+      let loc, pre = info in
+      let msg =
+        Printf.sprintf "%s Expected type %s but got type %s" pre
+          (string_of_type (canonize annot_tbl t1))
+          (string_of_type (canonize annot_tbl t2))
+      in
+      raise (Error (loc, msg))
+  | Arity (thing, l1, l2) -> arity info thing l1 l2
 
 let rec generalize = function
   | TVar { contents = Unbound (id, l) } when l > !current_level -> QVar id
@@ -240,6 +266,7 @@ let string_of_bop = function
   | Minus -> "-"
 
 let typeof_annot env loc annot =
+  (* TODO return type *)
   let rec concrete_type = function
     | Ast.Ty_id "int" -> TInt
     | Ty_id "bool" -> TBool
@@ -248,7 +275,10 @@ let typeof_annot env loc annot =
         match Env.find_type_opt t env with
         | Some t -> t
         | None -> raise (Error (loc, "Unknown type: " ^ t ^ ".")))
-    | Ty_var id -> TVar (ref (Qannot id))
+    | Ty_var id ->
+        (* I'm not sure what this should be. For the whole function annotations,
+           Qannot worked, but does not for param ones *)
+        TVar (ref (Qannot id))
     | Ty_expr l -> handle_annot l
   and handle_annot = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
@@ -271,15 +301,29 @@ let typeof_annot env loc annot =
 
 let handle_params env loc params =
   (* return updated env with bindings for parameters and types of parameters *)
+  let rec handle = function
+    | TVar { contents = Qannot _ } as t -> (newvar (), t)
+    | TFun (params, ret, kind) ->
+        let params, qparams = List.map handle params |> List.split in
+        let ret, qret = handle ret in
+        (TFun (params, ret, kind), TFun (qparams, qret, kind))
+    | t -> (t, t)
+  in
+
   List.fold_left_map
     (fun env (id, type_annot) ->
-      let type_id =
+      let type_id, qparams =
         match type_annot with
-        | None -> newvar ()
-        | Some annot -> typeof_annot env loc annot
+        | None ->
+            let t = newvar () in
+            (t, t)
+        | Some annot -> handle (typeof_annot env loc annot)
       in
-      (Env.add_value id type_id env, type_id))
+      (Env.add_value id type_id env, (type_id, qparams)))
     env params
+  |> fun (env, lst) ->
+  let ids, qparams = List.split lst in
+  (env, ids, qparams)
 
 let get_record_type env loc typed_labels =
   let possible_records =
@@ -385,11 +429,16 @@ and typeof_let env loc (id, type_annot) e1 e2 =
 
 and typeof_abs env loc params e =
   enter_level ();
-  let env, params_t = handle_params env loc params in
+  let env, params_t, qparams = handle_params env loc params in
   let type_e = typeof env e in
   leave_level ();
 
-  TFun (params_t, type_e, Simple) |> generalize
+  match TFun (params_t, type_e, Simple) |> generalize with
+  | TFun (_, ret, kind) as typ ->
+      let qtyp = TFun (qparams, ret, kind) |> generalize in
+      unify (loc, "Function annot") typ qtyp;
+      typ
+  | _ -> failwith "Internal Error Tfun not TFun"
 
 and typeof_function env loc name params body cont =
   (* this loc might not be correct *)
@@ -403,12 +452,16 @@ and typeof_function env loc name params body cont =
     | None -> Env.add_value (fst name) (newvar ()) env
     | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
   in
-  let body_env, params_t = handle_params env loc params in
+  let body_env, params_t, qparams = handle_params env loc params in
   let bodytype = typeof body_env body in
   leave_level ();
-  let funtype = TFun (params_t, bodytype, Simple) |> generalize in
-  unify (loc, "") (Env.find (fst name) env) funtype;
-  typeof env cont
+  TFun (params_t, bodytype, Simple) |> generalize |> function
+  | TFun (_, ret, kind) as typ ->
+      unify (loc, "") (Env.find (fst name) env) typ;
+      let qtyp = TFun (qparams, ret, kind) |> generalize in
+      unify (loc, "Function annot") typ qtyp;
+      typeof env cont
+  | _ -> failwith "Internal Error: TFun not TFun"
 
 and typeof_app env loc e1 args =
   let type_fun = typeof env e1 in
@@ -501,7 +554,7 @@ let typedefs typedefs env =
 let typecheck (prog : Ast.prog) =
   reset_type_vars ();
   let env = extern_vars prog.external_decls |> typedefs prog.typedefs in
-  typeof env prog.expr |> canonize
+  typeof env prog.expr |> canonize (Strtbl.create 1)
 
 (* Conversion to Typing.exr below *)
 
@@ -638,7 +691,7 @@ and convert_let env loc (id, type_annot) e1 e2 =
 and convert_lambda env loc params e =
   let env = Env.new_scope env in
   enter_level ();
-  let env, params_t = handle_params env loc params in
+  let env, params_t, qparams = handle_params env loc params in
 
   let body = convert env e in
   leave_level ();
@@ -658,6 +711,9 @@ and convert_lambda env loc params e =
   let typ = TFun (params_t, body.typ, kind) |> generalize in
   match typ with
   | TFun (tparams, ret, kind) ->
+      let qtyp = TFun (qparams, ret, kind) |> generalize in
+      unify (loc, "Function annot") typ qtyp;
+
       let nparams = List.map fst params in
       let tp = { tparams; ret; kind } in
       let expr = Lambda { nparams; body = { body with typ = ret }; tp } in
@@ -680,7 +736,7 @@ and convert_function env loc { name; params; body; cont } =
 
   (* We duplicate some lambda code due to naming *)
   let env = Env.new_scope env in
-  let body_env, params_t = handle_params env loc params in
+  let body_env, params_t, qparams = handle_params env loc params in
   let body = convert body_env body in
   leave_level ();
 
@@ -703,6 +759,8 @@ and convert_function env loc { name; params; body; cont } =
   | TFun (tparams, ret, kind) ->
       (* Make sure the types match *)
       unify (loc, "Function") (Env.find (fst name) env) typ;
+      let qtyp = TFun (qparams, ret, kind) |> generalize in
+      unify (loc, "Function annot") typ qtyp;
 
       let nparams = List.map fst params in
       let tp = { tparams; ret; kind } in

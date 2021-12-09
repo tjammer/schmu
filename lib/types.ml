@@ -6,7 +6,7 @@ type typ =
   | QVar of string
   | TFun of typ list * typ * fun_kind
   | TRecord of string * (string * typ) list
-(* [@@deriving show { with_path = false }] *)
+[@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
 

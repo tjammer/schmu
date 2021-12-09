@@ -101,7 +101,7 @@ let test_annot_concrete_fail () =
 let test_annot_mix () = test "'a -> 'a" "function pass : 'b -> 'b (x) x pass"
 
 let test_annot_mix_fail () =
-  test_exn " Expected type 'a -> int but got type 'a -> 'a"
+  test_exn " Expected type 'b -> int but got type 'b -> 'b"
     "function pass : 'b -> int (x) x pass"
 
 let test_annot_generic () =

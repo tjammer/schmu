@@ -1,5 +1,7 @@
 (library
  (name schmulang)
+ (preprocess
+  (pps ppx_deriving.show))
  (libraries
   llvm
   llvm.analysis
