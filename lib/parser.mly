@@ -57,10 +57,10 @@ expr:
   | expr; binop; expr { Bop($startpos, $2, $1, $3) }
   | If; expr; Then; expr; Else; expr { If($startpos, $2, $4, $6)}
   | decl; Equal; expr; expr { Let($startpos, $1, $3, $4) }
-  | Function; Lpar; separated_list(Comma, decl); Rpar; expr
-    { Lambda($startpos, $3, $5) }
-  | Function; decl; Lpar; separated_list(Comma, decl); Rpar; expr; expr
-    { Function ($startpos, {name = $2; params = $4; body = $6; cont = $7}) }
+  | Function; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr
+    { Lambda($startpos, $3, $5, $6) }
+  | Function; decl; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr; expr
+    { Function ($startpos, {name = $2; params = $4; return_annot = $6; body = $7; cont = $8}) }
   | expr; Lpar; separated_list(Comma, expr); Rpar { App($startpos, $1, $3) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($startpos, $2) }
   | expr; Dot; Identifier { Field ($startpos, $1, $3) }
@@ -81,6 +81,9 @@ bool:
 
 %inline decl:
   | Identifier; option(type_expr) { $1, $2 }
+
+%inline return_annot:
+  | Arrow; type_spec { $2 }
 
 %inline type_expr:
   | Colon; type_spec; Arrow; type_spec  { [$2; $4] }

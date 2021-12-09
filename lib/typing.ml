@@ -261,7 +261,6 @@ let string_of_bop = function
   | Minus -> "-"
 
 let typeof_annot env loc annot =
-  (* TODO return type *)
   let rec concrete_type = function
     | Ast.Ty_id "int" -> TInt
     | Ty_id "bool" -> TBool
@@ -294,7 +293,7 @@ let typeof_annot env loc annot =
   in
   handle_annot annot
 
-let handle_params env loc params =
+let handle_params env loc params ret =
   (* return updated env with bindings for parameters and types of parameters *)
   let rec handle = function
     | TVar { contents = Qannot _ } as t -> (newvar (), t)
@@ -318,7 +317,8 @@ let handle_params env loc params =
     env params
   |> fun (env, lst) ->
   let ids, qparams = List.split lst in
-  (env, ids, qparams)
+  let ret = Option.bind ret (fun t -> Some (typeof_annot env loc [ t ])) in
+  (env, ids, qparams, ret)
 
 let get_record_type env loc typed_labels =
   let possible_records =
@@ -390,9 +390,9 @@ let rec typeof env = function
   | Int (_, _) -> TInt
   | Bool (_, _) -> TBool
   | Let (loc, x, e1, e2) -> typeof_let env loc x e1 e2
-  | Lambda (loc, id, e) -> typeof_abs env loc id e
-  | Function (loc, { name; params; body; cont }) ->
-      typeof_function env loc name params body cont
+  | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
+  | Function (loc, { name; params; return_annot; body; cont }) ->
+      typeof_function env loc name params return_annot body cont
   | App (loc, e1, e2) -> typeof_app env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
@@ -422,20 +422,23 @@ and typeof_let env loc (id, type_annot) e1 e2 =
   in
   typeof (Env.add_value id type_e env) e2
 
-and typeof_abs env loc params e =
+and typeof_abs env loc params ret_annot e =
   enter_level ();
-  let env, params_t, qparams = handle_params env loc params in
+  let env, params_t, qparams, ret_annot =
+    handle_params env loc params ret_annot
+  in
   let type_e = typeof env e in
   leave_level ();
 
   match TFun (params_t, type_e, Simple) |> generalize with
   | TFun (_, ret, kind) as typ ->
+      let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = TFun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
       typ
   | _ -> failwith "Internal Error Tfun not TFun"
 
-and typeof_function env loc name params body cont =
+and typeof_function env loc name params ret_annot body cont =
   (* this loc might not be correct *)
   (* typeof_let env loc name (Lambda (loc, param, body)) cont *)
   enter_level ();
@@ -447,12 +450,16 @@ and typeof_function env loc name params body cont =
     | None -> Env.add_value (fst name) (newvar ()) env
     | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
   in
-  let body_env, params_t, qparams = handle_params env loc params in
+  ignore ret_annot;
+  let body_env, params_t, qparams, ret_annot =
+    handle_params env loc params ret_annot
+  in
   let bodytype = typeof body_env body in
   leave_level ();
   TFun (params_t, bodytype, Simple) |> generalize |> function
   | TFun (_, ret, kind) as typ ->
       unify (loc, "") (Env.find (fst name) env) typ;
+      let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = TFun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
       typeof env cont
@@ -646,7 +653,7 @@ let rec convert env = function
   | Int (_, i) -> { typ = TInt; expr = Const (Int i) }
   | Bool (_, b) -> { typ = TBool; expr = Const (Bool b) }
   | Let (loc, x, e1, e2) -> convert_let env loc x e1 e2
-  | Lambda (loc, id, e) -> convert_lambda env loc id e
+  | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | Function (loc, func) -> convert_function env loc func
   | App (loc, e1, e2) -> convert_app env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
@@ -681,10 +688,13 @@ and convert_let env loc (id, type_annot) e1 e2 =
   let typ2 = convert (Env.add_value id typ1.typ env) e2 in
   { typ = typ2.typ; expr = Let (id, typ1, typ2) }
 
-and convert_lambda env loc params e =
+and convert_lambda env loc params ret_annot e =
   let env = Env.new_scope env in
   enter_level ();
-  let env, params_t, qparams = handle_params env loc params in
+  ignore ret_annot;
+  let env, params_t, qparams, ret_annot =
+    handle_params env loc params ret_annot
+  in
 
   let body = convert env e in
   leave_level ();
@@ -702,6 +712,7 @@ and convert_lambda env loc params e =
   let typ = TFun (params_t, body.typ, kind) |> generalize in
   match typ with
   | TFun (tparams, ret, kind) ->
+      let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = TFun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
 
@@ -711,7 +722,7 @@ and convert_lambda env loc params e =
       { typ; expr }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
-and convert_function env loc { name; params; body; cont } =
+and convert_function env loc { name; params; return_annot; body; cont } =
   (* Create a fresh type var for the function name
      and use it in the function body *)
   let unique = next_func (fst name) func_tbl in
@@ -727,7 +738,10 @@ and convert_function env loc { name; params; body; cont } =
 
   (* We duplicate some lambda code due to naming *)
   let env = Env.new_scope env in
-  let body_env, params_t, qparams = handle_params env loc params in
+  ignore return_annot;
+  let body_env, params_t, qparams, ret_annot =
+    handle_params env loc params return_annot
+  in
   let body = convert body_env body in
   leave_level ();
 
@@ -750,6 +764,7 @@ and convert_function env loc { name; params; body; cont } =
   | TFun (tparams, ret, kind) ->
       (* Make sure the types match *)
       unify (loc, "Function") (Env.find (fst name) env) typ;
+      let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = TFun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
 

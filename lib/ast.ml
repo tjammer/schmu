@@ -20,7 +20,13 @@ type type_expr = type_spec list
 
 and decl = string * type_expr option
 
-type func = { name : decl; params : decl list; body : expr; cont : expr }
+type func = {
+  name : decl;
+  params : decl list;
+  return_annot : type_spec option;
+  body : expr;
+  cont : expr;
+}
 
 and expr =
   | Var of loc * string
@@ -29,7 +35,7 @@ and expr =
   | Bop of loc * bop * expr * expr
   | If of loc * expr * expr * expr
   | Let of loc * decl * expr * expr
-  | Lambda of loc * decl list * expr
+  | Lambda of loc * decl list * type_spec option * expr
   | Function of loc * func
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list
