@@ -63,7 +63,6 @@ let canonize tbl typ =
     | Some name -> Char.chr (name + Char.code 'a') |> String.make 1
     | None ->
         let name = !tname in
-        Printf.printf "Add %s for %s\n" (string_of_int name) str;
         incr tname;
         Strtbl.add names str name;
         Char.chr (name + Char.code 'a') |> String.make 1
@@ -96,22 +95,18 @@ let canonize tbl typ =
 
 let string_of_type typ =
   (* To deal with brackets for functions *)
-  let lvl = ref 0 in
   let to_name name = "'" ^ name in
   let rec string_of_type = function
     | TInt -> "int"
     | TBool -> "bool"
     | TUnit -> "unit"
-    | TFun (ts, t, _) ->
-        let lvl_cpy = !lvl in
-        incr lvl;
-        let func =
-          String.concat " -> "
-            (* Make sure parameters are evaluated first *)
-            (let l = List.map string_of_type ts in
-             l @ [ string_of_type t ])
-        in
-        if lvl_cpy = 0 then func else "(" ^ func ^ ")"
+    | TFun (ts, t, _) -> (
+        match ts with
+        | [ p ] ->
+            Printf.sprintf "%s -> %s" (string_of_type p) (string_of_type t)
+        | ts ->
+            let ts = String.concat ", " (List.map string_of_type ts) in
+            Printf.sprintf "(%s) -> %s" ts (string_of_type t))
     | TVar { contents = Unbound (str, _) } -> to_name str
     | TVar { contents = Link t } -> string_of_type t
     | TVar { contents = Qannot id } -> Printf.sprintf "'%s" id
@@ -645,8 +640,6 @@ let extend_generic_funs texprs = function
   | _ ->
       (* Another generic case hm *)
       List.map (fun t -> (t, None)) texprs
-(* failwith @@ "Internal Error: Application not a function after unification: " ^
- * (string_of_type t) *)
 
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
@@ -699,9 +692,7 @@ and convert_lambda env loc params e =
   let kind =
     match List.filter_map (needs_capture env) closed_vars with
     | [] -> Simple
-    | lst ->
-        (* List.map fst lst |> String.concat ", " |> print_endline; *)
-        Closure lst
+    | lst -> Closure lst
   in
   dont_allow_closure_return loc body.typ;
 

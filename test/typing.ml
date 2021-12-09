@@ -29,13 +29,13 @@ let test_func_external () =
   test "int -> unit" "external func : int -> unit func"
 
 let test_func_1st_class () =
-  test "(int -> 'a) -> int -> 'a" "function (func, arg : int) func(arg)"
+  test "(int -> 'a, int) -> 'a" "function (func, arg : int) func(arg)"
 
 let test_func_1st_hint () =
-  test "(int -> unit) -> int -> unit" "function (f : int -> unit, arg) f(arg)"
+  test "(int -> unit, int) -> unit" "function (f : int -> unit, arg) f(arg)"
 
 let test_func_1st_stay_general () =
-  test "'a -> ('a -> 'b) -> 'b"
+  test "('a, 'a -> 'b) -> 'b"
     "function foo(x, f) f(x) function add1(x) x + 1 a = foo(1, add1) function \
      boolean(x : bool) x b = foo(true, boolean) foo"
 
