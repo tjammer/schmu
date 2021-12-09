@@ -445,10 +445,7 @@ and typeof_function env loc name params ret_annot body cont =
 
   (* Recursion allowed for named funcs *)
   let env =
-    match snd name with
-    (* Check type annotations *)
-    | None -> Env.add_value (fst name) (newvar ()) env
-    | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
+     Env.add_value (name) (newvar ()) env
   in
   ignore ret_annot;
   let body_env, params_t, qparams, ret_annot =
@@ -458,7 +455,7 @@ and typeof_function env loc name params ret_annot body cont =
   leave_level ();
   TFun (params_t, bodytype, Simple) |> generalize |> function
   | TFun (_, ret, kind) as typ ->
-      unify (loc, "") (Env.find (fst name) env) typ;
+      unify (loc, "") (Env.find (name) env) typ;
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = TFun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
@@ -725,15 +722,12 @@ and convert_lambda env loc params ret_annot e =
 and convert_function env loc { name; params; return_annot; body; cont } =
   (* Create a fresh type var for the function name
      and use it in the function body *)
-  let unique = next_func (fst name) func_tbl in
+  let unique = next_func (name) func_tbl in
 
   enter_level ();
   let env =
     (* Recursion allowed for named funcs *)
-    match snd name with
-    (* We check if there are type annotations *)
-    | None -> Env.add_value (fst name) (newvar ()) env
-    | Some t -> Env.add_value (fst name) (typeof_annot env loc t) env
+ Env.add_value ( name) (newvar ()) env
   in
 
   (* We duplicate some lambda code due to naming *)
@@ -763,7 +757,7 @@ and convert_function env loc { name; params; return_annot; body; cont } =
   match typ with
   | TFun (tparams, ret, kind) ->
       (* Make sure the types match *)
-      unify (loc, "Function") (Env.find (fst name) env) typ;
+      unify (loc, "Function") (Env.find ( name) env) typ;
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = TFun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
@@ -773,7 +767,7 @@ and convert_function env loc { name; params; return_annot; body; cont } =
       let lambda = { nparams; body = { body with typ = ret }; tp } in
       (* Continue, see let *)
       let typ2 = convert env cont in
-      { typ = typ2.typ; expr = Function (fst name, unique, lambda, typ2) }
+      { typ = typ2.typ; expr = Function ( name, unique, lambda, typ2) }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
 and convert_app env loc e1 args =

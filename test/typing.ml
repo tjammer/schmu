@@ -92,24 +92,24 @@ let test_record_field_wrong_record () =
      foo(b)"
 
 let test_annot_concrete () =
-  test "int -> bool" "function foo : int -> bool (x) x < 3 foo"
+  test "int -> bool" "function foo(x) -> bool x < 3 foo"
 
 let test_annot_concrete_fail () =
   test_exn " Expected type bool -> int but got type int -> bool"
-    "function foo : bool -> int (x) x < 3 foo"
+    "foo : bool -> int = function(x) x < 3 foo"
 
-let test_annot_mix () = test "'a -> 'a" "function pass : 'b -> 'b (x) x pass"
+let test_annot_mix () = test "'a -> 'a" "function pass(x : 'b) -> 'b x pass"
 
 let test_annot_mix_fail () =
   test_exn " Expected type 'b -> int but got type 'b -> 'b"
-    "function pass : 'b -> int (x) x pass"
+    "pass : 'b -> int = function(x) x pass"
 
 let test_annot_generic () =
-  test "'a -> 'a" "function pass : 'b -> 'b (x) x pass"
+  test "'a -> 'a" "function pass(x : 'b) -> 'b x pass"
 
 let test_annot_generic_fail () =
   test_exn " Expected type 'a -> 'b but got type 'a -> 'a"
-    "function pass : 'a -> 'b (x) x pass"
+    "pass : 'a -> 'b = function(x) x pass"
 
 let case str test = test_case str `Quick test
 

@@ -14,7 +14,7 @@ type type_expr = type_spec list
 type decl = string * type_expr option
 
 type func = {
-  name : decl;
+  name : string;
   params : decl list;
   return_annot : type_spec option;
   body : expr;

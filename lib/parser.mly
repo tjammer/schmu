@@ -59,7 +59,7 @@ expr:
   | decl; Equal; expr; expr { Let($startpos, $1, $3, $4) }
   | Function; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr
     { Lambda($startpos, $3, $5, $6) }
-  | Function; decl; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr; expr
+  | Function; Identifier; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr; expr
     { Function ($startpos, {name = $2; params = $4; return_annot = $6; body = $7; cont = $8}) }
   | expr; Lpar; separated_list(Comma, expr); Rpar { App($startpos, $1, $3) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($startpos, $2) }
