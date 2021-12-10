@@ -31,5 +31,10 @@ type external_decl = string * typ
 
 val typecheck : Ast.prog -> typ
 
-(* TODO return named records for codegen *)
-val to_typed : Ast.prog -> external_decl list * typed_expr
+type codegen_tree = {
+  externals : external_decl list;
+  records : typ list;
+  tree : typed_expr;
+}
+
+val to_typed : Ast.prog -> codegen_tree

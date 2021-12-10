@@ -11,10 +11,10 @@ let run file src =
     try
       let prog = Parser.prog Lexer.read lexbuf in
       Ok
-        (let externals, typ = Typing.to_typed prog in
-         ignore (Codegen.generate externals typ);
+        (let codegen_tree = Typing.to_typed prog in
+         ignore (Codegen.generate codegen_tree);
          Llvm.dump_module Codegen.the_module;
-         typ.typ)
+         codegen_tree.tree.typ)
     with
     | Lexer.SyntaxError msg ->
         Error (Printf.sprintf "%s:%a: %s" file print_position lexbuf msg)

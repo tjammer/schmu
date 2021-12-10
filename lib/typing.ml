@@ -25,6 +25,12 @@ and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
 
 type external_decl = string * typ
 
+type codegen_tree = {
+  externals : external_decl list;
+  records : typ list;
+  tree : typed_expr;
+}
+
 exception Error of Ast.loc * string
 
 module Strset = Set.Make (String)
@@ -768,9 +774,7 @@ and convert_function env loc { name; params; return_annot; body; cont } =
   let kind =
     match List.filter_map (needs_capture env) closed_vars with
     | [] -> Simple
-    | lst ->
-        (* List.map fst lst |> String.concat ", " |> print_endline; *)
-        Closure lst
+    | lst -> Closure lst
   in
   dont_allow_closure_return loc body.typ;
 
@@ -909,4 +913,6 @@ let to_typed (prog : Ast.prog) =
     |> typedefs prog.typedefs
   in
 
-  (externals, convert vars prog.expr)
+  let records = Env.records vars in
+  let tree = convert vars prog.expr in
+  { externals; records; tree }

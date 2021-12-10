@@ -80,3 +80,11 @@ let find_type_opt key env = Map.find_opt key env.types
 let find_type key env = Map.find key env.types
 
 let find_label_opt key env = Map.find_opt key env.labels
+
+let records env =
+  Map.filter
+    (fun _ typ -> match typ with TRecord _ -> true | _ -> false)
+    env.types
+  |> Map.bindings |> List.split |> snd
+  |> (* We reverse to preserve the declaration order *)
+  List.rev

@@ -1,6 +1,18 @@
 open Types
 module Vars = Map.Make (String)
 
+module Str = struct
+  type t = string
+
+  let hash = Hashtbl.hash
+
+  let equal = String.equal
+end
+
+module Strtbl = Hashtbl.Make (Str)
+
+let record_tbl = Strtbl.create 1
+
 (* TODO This can be merged with TFun record *)
 type user_func = {
   name : string * bool * int option;
@@ -75,9 +87,11 @@ let rec get_lltype ?(param = true) = function
   | TUnit -> unit_type
   | TFun (params, ret, kind) ->
       typeof_func ~param ~decl:false (params, ret, kind)
-  | TRecord (_, labels) ->
-      let t = typeof_aggregate labels in
-      if param then t |> Llvm.pointer_type else t
+  | TRecord (name, _) -> (
+      match Strtbl.find_opt record_tbl name with
+      | Some t -> if param then t |> Llvm.pointer_type else t
+      | None ->
+          failwith (Printf.sprintf "Record struct not found for type %s" name))
   | QVar _ -> generic_type |> Llvm.pointer_type
   | TVar _ as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
@@ -128,6 +142,18 @@ and qvars_of_func params ret =
 let name_of_qvar qvar = "__" ^ qvar
 
 type qvar_kind = Param of Llvm.llvalue | Local of typ
+
+(* Named structs for records *)
+let to_named_records = function
+  | TRecord (name, labels) ->
+      let t = Llvm.named_struct_type context name in
+      let lltyp = typeof_aggregate labels |> Llvm.struct_element_types in
+      Llvm.struct_set_body t lltyp false;
+
+      if Strtbl.mem record_tbl name then
+        failwith "Internal Error: Type shadowing not supported in codegen TODO";
+      Strtbl.add record_tbl name t
+  | _ -> failwith "Internal Error: Only records should be here"
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src =
@@ -904,7 +930,7 @@ let decl_external (name, typ) =
       { value = Llvm.declare_function name ft the_module; typ; lltyp = ft }
   | _ -> failwith "TODO external symbols"
 
-let generate externals typed_expr =
+let generate { Typing.externals; records; tree } =
   let open Typing in
   (* External declarations *)
   let vars =
@@ -913,9 +939,12 @@ let generate externals typed_expr =
       Vars.empty externals
   in
 
+  (* Add record types *)
+  List.iter to_named_records records;
+
   (* Factor out functions for llvm *)
   let funcs =
-    let lst = extract typed_expr.expr in
+    let lst = extract tree.expr in
     let vars =
       List.fold_left
         (fun acc func ->
@@ -931,6 +960,8 @@ let generate externals typed_expr =
               Vars.add name (declare_function name typ) acc)
         vars lst
     in
+
+    (* Generate functions *)
     List.fold_left
       (fun acc func ->
         match func with
@@ -938,6 +969,7 @@ let generate externals typed_expr =
         | Generic (name, gen) -> gen_generic acc name gen)
       vars lst
   in
+
   (* Reset lambda counter *)
   reset fun_get_state;
   (* Add main *)
@@ -948,7 +980,7 @@ let generate externals typed_expr =
          name = ("main", false, None);
          params = [ "" ];
          typ = TFun ([ TInt ], TInt, Simple);
-         body = { typed_expr with typ = TInt };
+         body = { tree with typ = TInt };
        };
 
   (match Llvm_analysis.verify_module the_module with

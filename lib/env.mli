@@ -32,3 +32,6 @@ val find_type_opt : key -> t -> typ option
 val find_type : key -> t -> typ
 
 val find_label_opt : key -> t -> label option
+
+val records : t -> typ list
+(** [records env] returns a list of all named records for codegen *)
