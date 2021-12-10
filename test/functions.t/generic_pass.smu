@@ -8,5 +8,5 @@ function pass(x)
 function apply(f, x)
   f(x)
 
-a = printi(apply(pass, 20))
+printi(apply(pass, 20)) >>
 printi(apply(pass, { i = 700, b = false }).i)

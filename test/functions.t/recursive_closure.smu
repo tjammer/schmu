@@ -4,7 +4,7 @@ outer = 10
 
 function loop(i)
   -- We capture outer here
-  if i < outer then a = printi(i) loop(i+1) -- and recurse here
+  if i < outer then printi(i) >> loop(i+1) -- and recurse here
   else printi(i)
 
 loop(0)

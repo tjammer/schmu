@@ -110,6 +110,15 @@ let test_annot_generic_fail () =
   test_exn " Expected type 'a -> 'b but got type 'a -> 'a"
     "pass : 'a -> 'b = function(x) x pass"
 
+let test_sequence () =
+  test "int" "external printi : int -> unit printi(20) >> 1 + 1"
+
+let test_sequence_fail () =
+  test_exn
+    "Left expression in sequence must be type unit: Expected type unit but got \
+     type int"
+    "function add1(x) x + 1 add1(20) >> 1 + 1"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -154,5 +163,9 @@ let () =
           case "mix_fail" test_annot_mix_fail;
           case "generic" test_annot_generic;
           case "generic_fail" test_annot_generic_fail;
+        ] );
+      ( "function sequencing",
+        [
+          case "sequence" test_sequence; case "sequence_fail" test_sequence_fail;
         ] );
     ]

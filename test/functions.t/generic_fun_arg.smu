@@ -26,8 +26,8 @@ function makefalse(b)
 function add1_rec(t)
   { x = t.x + 3 }
 
-a = printi(apply(20, add1))
-a = printi(apply(20, add_closed))
-a = printi(apply({ x = 20 }, add1_rec).x)
+printi(apply(20, add1)) >>
+printi(apply(20, add_closed)) >>
+printi(apply({ x = 20 }, add1_rec).x) >>
 if apply(true, makefalse) then printi(1)
 else printi(0)
