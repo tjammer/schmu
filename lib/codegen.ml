@@ -199,6 +199,9 @@ let extract expr =
     | Record labels ->
         List.fold_left (fun acc (_, e) -> inner acc Typing.(e.expr)) acc labels
     | Field (expr, _) -> inner acc expr.expr
+    | Sequence (expr, cont) ->
+        let acc = inner acc expr.expr in
+        inner acc cont.expr
   and generic_parameter name gen acc =
     let exists = function
       | Generic (n, _) -> String.equal name n
@@ -430,6 +433,7 @@ and gen_expr vars typed_expr =
   | If (cond, e1, e2) -> gen_if vars cond e1 e2
   | Record labels -> codegen_record vars (clean typed_expr.typ) labels
   | Field (expr, index) -> codegen_field vars expr index
+  | Sequence (expr, cont) -> codegen_chain vars expr cont
 
 and gen_generic funcs name { Typing.concrete; generic } =
   (* Lots copied from gen_function. See comments there *)
@@ -886,6 +890,10 @@ and codegen_field vars expr index =
     match typ with TRecord _ -> ptr | _ -> Llvm.build_load ptr "" builder
   in
   { value; typ; lltyp = Llvm.type_of value }
+
+and codegen_chain vars expr cont =
+  ignore (gen_expr vars expr);
+  gen_expr vars cont
 
 let decl_external (name, typ) =
   match typ with

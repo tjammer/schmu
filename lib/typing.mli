@@ -15,6 +15,7 @@ type expr =
   | App of typed_expr * (typed_expr * (string * generic_fun) option) list
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
+  | Sequence of (typed_expr * typed_expr)
 
 and typed_expr = { typ : typ; expr : expr }
 

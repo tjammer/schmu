@@ -40,6 +40,7 @@ and expr =
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list
   | Field of loc * expr * string
+  | Sequence of loc * expr * expr
 
 (* Hopefully temporary *)
 type external_decl = loc * string * type_expr

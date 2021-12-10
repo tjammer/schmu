@@ -11,6 +11,7 @@ type expr =
   | App of typed_expr * (typed_expr * (string * generic_fun) option) list
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
+  | Sequence of (typed_expr * typed_expr)
 
 and typed_expr = { typ : typ; expr : expr }
 
@@ -411,6 +412,7 @@ let rec typeof env = function
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
   | Record (loc, labels) -> typeof_record env loc labels
   | Field (loc, expr, id) -> typeof_field env loc expr id
+  | Sequence (loc, expr, cont) -> typeof_sequence env loc expr cont
 
 and typeof_var env loc v =
   (* find_opt would work here, but we use query for consistency with convert_var *)
@@ -539,6 +541,11 @@ and typeof_field env loc expr id =
             (Env.find_type record env) t;
           typ
       | None -> raise (Error (loc, "Unbound field " ^ id)))
+
+and typeof_sequence env loc expr cont =
+  let t1 = typeof env expr in
+  unify (loc, "Left expression in sequence must be type unit:") TUnit t1;
+  typeof env cont
 
 let extern_vars decls =
   let externals =
@@ -674,6 +681,7 @@ let rec convert env = function
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
   | Record (loc, labels) -> convert_record env loc labels
   | Field (loc, expr, id) -> convert_field env loc expr id
+  | Sequence (loc, expr, cont) -> convert_sequence env loc expr cont
 
 and convert_var env loc id =
   match Env.query_opt id env with
@@ -878,6 +886,12 @@ and convert_field env loc expr id =
             (Env.find_type record env) t;
           { typ; expr = Field (expr, index) }
       | None -> raise (Error (loc, "Unbound field " ^ id)))
+
+and convert_sequence env loc expr cont =
+  let expr = convert env expr in
+  unify (loc, "Left expression in sequence must be type unit:") TUnit expr.typ;
+  let cont = convert env cont in
+  { typ = cont.typ; expr = Sequence (expr, cont) }
 
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();

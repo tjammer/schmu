@@ -33,6 +33,7 @@
 %token Function
 %token Type
 %token Quote
+%token MuchGreater
 
 %nonassoc Less
 %left Plus
@@ -69,6 +70,7 @@ expr:
   | expr; Lpar; separated_list(Comma, expr); Rpar { App($startpos, $1, $3) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($startpos, $2) }
   | expr; Dot; Identifier { Field ($startpos, $1, $3) }
+  | expr; MuchGreater; expr { Sequence ($startpos, $1, $3) }
 
 %inline record_item:
   | Identifier; Equal; expr { $1, $3 }
