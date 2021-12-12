@@ -27,7 +27,7 @@ let add_record record ~param ~labels env =
   let typ = TRecord (param, record, labels) in
   Printf.printf "To Add: %s\n" (show_typ typ);
   let _, labels =
-    List.fold_left
+    Array.fold_left
       (fun (index, labels) (lname, typ) ->
         (index + 1, Map.add lname { typ; index; record } labels))
       (0, env.labels) labels

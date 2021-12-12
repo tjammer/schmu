@@ -99,8 +99,8 @@ let rec get_lltype ?(param = true) = function
 
 (* LLVM type of closure struct and records *)
 and typeof_aggregate agg =
-  List.map (fun (_, typ) -> get_lltype ~param:false typ) agg
-  |> Array.of_list |> Llvm.struct_type context
+  Array.map (fun (_, typ) -> get_lltype ~param:false typ) agg
+  |> Llvm.struct_type context
 
 and typeof_func ~param ~decl (params, t, kind) =
   if param then closure_type |> Llvm.pointer_type
@@ -282,7 +282,7 @@ let gen_closure_obj assoc func vars name =
     match assoc with
     | [] -> Llvm.const_pointer_null voidptr_type
     | assoc ->
-        let assoc_type = typeof_aggregate assoc in
+        let assoc_type = typeof_aggregate (Array.of_list assoc) in
         let clsr_ptr = Llvm.build_alloca assoc_type ("clsr_" ^ name) builder in
         ignore (List.fold_left (store_closed_var clsr_ptr) 0 assoc);
 
@@ -302,7 +302,9 @@ let add_closure vars func ~closure_index = function
   | Simple -> vars
   | Closure assoc ->
       let clsr_param = (Llvm.params func.value).(closure_index) in
-      let clsr_type = typeof_aggregate assoc |> Llvm.pointer_type in
+      let clsr_type =
+        typeof_aggregate (Array.of_list assoc) |> Llvm.pointer_type
+      in
       let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
 
       let env, _ =
@@ -911,7 +913,7 @@ and codegen_field vars expr index =
 
   let typ =
     match value.typ with
-    | TRecord (_, _, fields) -> List.nth fields index |> snd
+    | TRecord (_, _, fields) -> fields.(index) |> snd
     | _ -> failwith "Internal Error: No record in fields"
   in
   (* In case we return a record, we don't load, but return the pointer.

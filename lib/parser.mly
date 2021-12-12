@@ -51,7 +51,7 @@ prog: list(external_decl); list(typedef); expr; Eof
 
 %inline typedef:
   | Type; option(poly_id); Identifier; Equal; Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
-    { { poly_param = string_of_ty_var $2; name = $3; labels = $6; loc = $startpos } }
+    { { poly_param = string_of_ty_var $2; name = $3; labels = Array.of_list $6; loc = $startpos } }
 
 %inline type_decl:
   | Identifier; type_expr { $1, $2 }

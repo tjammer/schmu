@@ -207,9 +207,10 @@ let unify_raw tbl t1 t2 =
             in
 
             (* We ignore the label names for now *)
-            try List.iter2 (fun a b -> unify (snd a) (snd b)) labels1 labels2
+            try Array.iter2 (fun a b -> unify (snd a) (snd b)) labels1 labels2
             with Invalid_argument _ ->
-              raise (Arity ("record", List.length labels1, List.length labels2))
+              raise
+                (Arity ("record", Array.length labels1, Array.length labels2))
           else raise Unify
       | (QVar id as t), TVar ({ contents = Qannot a_id } as tv)
       | TVar ({ contents = Qannot a_id } as tv), (QVar id as t) -> (
@@ -367,7 +368,7 @@ let get_record_type env loc typed_labels =
 
   (* And get specialized type out if it exists *)
   let unify_labels labels name =
-    List.iter
+    Array.iter
       (fun (rlabel, rtype) ->
         let ltype =
           let msg =
@@ -406,7 +407,7 @@ let get_record_type env loc typed_labels =
             let all_match =
               match record with
               | TRecord (_, _, labels) ->
-                  List.fold_left
+                  Array.fold_left
                     (fun mtch (lname, _) ->
                       mtch
                       && List.exists
@@ -423,11 +424,12 @@ let get_record_type env loc typed_labels =
       unify_labels labels name;
       (param, name, labels)
 
-let assoc_opti qkey =
-  let rec aux i = function
-    | (key, v) :: _ when String.equal qkey key -> Some (i, v)
-    | _ :: tl -> aux (i + 1) tl
-    | [] -> None
+let assoc_opti qkey arr =
+  let rec aux i =
+    if i < Array.length arr then
+      let key, value = arr.(i) in
+      if String.equal qkey key then Some (i, value) else aux (i + 1)
+    else None
   in
   aux 0
 
@@ -561,7 +563,11 @@ and typeof_field env loc expr id =
      or it could be a specific record type in which case we have to get that certain record *)
   match clean typ with
   | TRecord (_, name, labels) -> (
-      match List.assoc_opt id labels with
+      (* This is a poor replacement for List.assoc_opt *)
+      let find_id acc (name, t) =
+        if String.equal id name then Some t else acc
+      in
+      match Array.fold_left find_id None labels with
       | Some t -> t
       | None ->
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
@@ -601,7 +607,7 @@ let typedefs typedefs env =
               (Env.add_type name t env, Some t)
           | None -> (env, None)
         in
-        ( List.map
+        ( Array.map
             (fun (lbl, type_expr) ->
               (lbl, typeof_annot ~typedef:true env loc type_expr))
             labels,
@@ -901,7 +907,7 @@ and convert_record env loc labels =
                 Printf.sprintf "Missing field %s on record %s" lname name
               in
               raise (Error (loc, msg)) ))
-      labels
+      (labels |> Array.to_list)
   in
   { typ = TRecord (param, name, labels); expr = Record sorted_labels }
 

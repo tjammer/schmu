@@ -41,7 +41,7 @@ type external_decl = loc * string * type_expr
 type typedef = {
   poly_param : string option;
   name : string;
-  labels : (string * type_expr) list;
+  labels : (string * type_expr) array;
   loc : loc;
 }
 
