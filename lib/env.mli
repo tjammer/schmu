@@ -12,7 +12,7 @@ val add_value : key -> typ -> t -> t
 
 val add_type : key -> typ -> t -> t
 
-val add_record : key -> labels:(string * typ) list -> t -> t
+val add_record : key -> param:typ option -> labels:(string * typ) list -> t -> t
 
 val new_scope : t -> t
 
@@ -30,6 +30,9 @@ val find : key -> t -> typ
 val find_type_opt : key -> t -> typ option
 
 val find_type : key -> t -> typ
+
+val query_type : newvar:(unit -> typ) -> key -> t -> typ
+(** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)
 
 val find_label_opt : key -> t -> label option
 

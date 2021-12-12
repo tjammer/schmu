@@ -87,7 +87,8 @@ let rec get_lltype ?(param = true) = function
   | TUnit -> unit_type
   | TFun (params, ret, kind) ->
       typeof_func ~param ~decl:false (params, ret, kind)
-  | TRecord (name, _) -> (
+  | TRecord (_, name, _) -> (
+      (* TODO use param *)
       match Strtbl.find_opt record_tbl name with
       | Some t -> if param then t |> Llvm.pointer_type else t
       | None ->
@@ -144,9 +145,14 @@ let name_of_qvar qvar = "__" ^ qvar
 type qvar_kind = Param of Llvm.llvalue | Local of typ
 
 (* Named structs for records *)
+
+let record_name param name =
+  let some p = Typing.string_of_type p ^ "_" in
+  Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
+
 let to_named_records = function
-  | TRecord (name, labels) ->
-      let t = Llvm.named_struct_type context name in
+  | TRecord (param, name, labels) ->
+      let t = Llvm.named_struct_type context (record_name param name) in
       let lltyp = typeof_aggregate labels |> Llvm.struct_element_types in
       Llvm.struct_set_body t lltyp false;
 
@@ -905,7 +911,7 @@ and codegen_field vars expr index =
 
   let typ =
     match value.typ with
-    | TRecord (_, fields) -> List.nth fields index |> snd
+    | TRecord (_, _, fields) -> List.nth fields index |> snd
     | _ -> failwith "Internal Error: No record in fields"
   in
   (* In case we return a record, we don't load, but return the pointer.

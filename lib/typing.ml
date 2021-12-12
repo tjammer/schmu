@@ -118,7 +118,11 @@ let string_of_type typ =
     | TVar { contents = Link t } -> string_of_type t
     | TVar { contents = Qannot id } -> Printf.sprintf "'%s" id
     | QVar str -> to_name str
-    | TRecord (str, _) -> str
+    | TRecord (param, str, _) ->
+        Option.fold ~none:""
+          ~some:(fun t -> Printf.sprintf "%s " (string_of_type t))
+          param
+        ^ str
   in
   string_of_type typ
 
@@ -187,8 +191,21 @@ let unify_raw tbl t1 t2 =
           with Invalid_argument _ ->
             raise
               (Arity ("function", List.length params_l, List.length params_r)))
-      | TRecord (n1, labels1), TRecord (n2, labels2) ->
+      | TRecord (param1, n1, labels1), TRecord (param2, n2, labels2) ->
           if String.equal n1 n2 then
+            let () =
+              match (param1, param2) with
+              | Some param1, Some param2 ->
+                  Printf.printf "%s\n%s\n\n" (show_typ param1) (show_typ param2);
+                  (* We don't have to unify here, the types will get unified below.
+                     We just make sure both are parametrized *)
+                  ()
+              | None, None -> ()
+              | None, Some p2 | Some p2, None ->
+                  Printf.printf "none, some: %s\n\n" (show_typ p2)
+              (* raise Unify *)
+            in
+
             (* We ignore the label names for now *)
             try List.iter2 (fun a b -> unify (snd a) (snd b)) labels1 labels2
             with Invalid_argument _ ->
@@ -328,10 +345,14 @@ let handle_params env loc params ret =
     env params
   |> fun (env, lst) ->
   let ids, qparams = List.split lst in
-  let ret = Option.bind ret (fun t -> Some (typeof_annot env loc [ t ])) in
+  let ret = Option.map (fun t -> typeof_annot env loc [ t ]) ret in
   (env, ids, qparams, ret)
 
 let get_record_type env loc typed_labels =
+  List.iter
+    (fun (name, t) -> Printf.printf "%s: %s\n" name (show_typ t))
+    typed_labels;
+  print_newline ();
   (* TODO rewrite this whole thing to make it more workable *)
   let possible_records =
     List.fold_left
@@ -344,6 +365,7 @@ let get_record_type env loc typed_labels =
       Strset.empty typed_labels
   in
 
+  (* And get specialized type out if it exists *)
   let unify_labels labels name =
     List.iter
       (fun (rlabel, rtype) ->
@@ -359,27 +381,31 @@ let get_record_type env loc typed_labels =
         unify (loc, "") rtype ltype)
       labels
   in
-  let get_name_labels = function
-    | TRecord (name, labels) -> (name, labels)
+  let get_record_content = function
+    | TRecord (param, name, labels) -> (param, name, labels)
     | _ -> failwith "Internal Error not a record"
   in
+
   match Strset.elements possible_records with
   | [] -> failwith "Internal Error not a record"
   | [ record ] ->
-      let record = Env.find_type record env in
-      let name, labels = get_name_labels record in
+      let record = Env.query_type ~newvar record env in
+      let param, name, labels = get_record_content record in
+      (match param with
+      | Some t -> print_endline (show_typ t)
+      | None -> print_endline "None");
       unify_labels labels name;
-      (name, labels)
+      (param, name, labels)
   | lst ->
       (* We choose the correct one by finding the first record where all labels fit  *)
       (* There must be better ways to do this *)
       let record =
         List.fold_left
           (fun chosen record ->
-            let record = Env.find_type_opt record env in
+            let record = Env.query_type ~newvar record env in
             let all_match =
-              match Option.get record with
-              | TRecord (_, labels) ->
+              match record with
+              | TRecord (_, _, labels) ->
                   List.fold_left
                     (fun mtch (lname, _) ->
                       mtch
@@ -389,13 +415,13 @@ let get_record_type env loc typed_labels =
                     true labels
               | _ -> failwith "Internal Error in typeof_record"
             in
-            if all_match then record else chosen)
+            if all_match then Some record else chosen)
           None lst
         |> Option.get
       in
-      let name, labels = get_name_labels record in
+      let param, name, labels = get_record_content record in
       unify_labels labels name;
-      (name, labels)
+      (param, name, labels)
 
 let assoc_opti qkey =
   let rec aux i = function
@@ -526,15 +552,15 @@ and typeof_record env loc labels =
   let typed_labels =
     List.map (fun (label, expr) -> (label, typeof env expr)) labels
   in
-  let name, labels = get_record_type env loc typed_labels in
-  TRecord (name, labels)
+  let param, name, labels = get_record_type env loc typed_labels in
+  TRecord (param, name, labels)
 
 and typeof_field env loc expr id =
   let typ = typeof env expr in
   (* This expr could be a fresh var, in which case we take the record type from the label,
      or it could be a specific record type in which case we have to get that certain record *)
   match clean typ with
-  | TRecord (name, labels) -> (
+  | TRecord (_, name, labels) -> (
       match List.assoc_opt id labels with
       | Some t -> t
       | None ->
@@ -566,18 +592,22 @@ let extern_vars decls =
 let typedefs typedefs env =
   List.fold_left
     (fun env Ast.{ poly_param; name; labels; loc } ->
-      let labels =
-        let env =
+      let labels, param =
+        let env, param =
           match poly_param with
-          | Some name -> Env.add_type name (newvar () |> generalize) env
-          | None -> env
+          | Some name ->
+              (* TODO get rid off this and move to add_record *)
+              let t = newvar () in
+              (Env.add_type name t env, Some t)
+          | None -> (env, None)
         in
-        List.map
-          (fun (lbl, type_expr) ->
-            (lbl, typeof_annot ~typedef:true env loc type_expr))
-          labels
+        ( List.map
+            (fun (lbl, type_expr) ->
+              (lbl, typeof_annot ~typedef:true env loc type_expr))
+            labels,
+          param )
       in
-      Env.add_record name ~labels env)
+      Env.add_record name ~param ~labels env)
     env typedefs
 
 let typecheck (prog : Ast.prog) =
@@ -626,7 +656,8 @@ let name_of_generic { concrete; generic } =
         "."
         ^ String.concat "" (List.map str_of_typ params)
         ^ "." ^ str_of_typ ret ^ "."
-    | TRecord (name, _) -> name
+    | TRecord (param, name, _) ->
+        Printf.sprintf "%s%s" (Option.fold ~none:"" ~some:str_of_typ param) name
   in
 
   (str_of_typ concrete.ret ^ str_of_typ generic.ret)
@@ -857,7 +888,7 @@ and convert_record env loc labels =
   let typed_labels =
     List.map (fun (label, texp) -> (label, texp.typ)) typed_expr_labels
   in
-  let name, labels = get_record_type env loc typed_labels in
+  let param, name, labels = get_record_type env loc typed_labels in
   (* We sort the labels to appear in the defined order *)
   let sorted_labels =
     List.map
@@ -872,12 +903,12 @@ and convert_record env loc labels =
               raise (Error (loc, msg)) ))
       labels
   in
-  { typ = TRecord (name, labels); expr = Record sorted_labels }
+  { typ = TRecord (param, name, labels); expr = Record sorted_labels }
 
 and convert_field env loc expr id =
   let expr = convert env expr in
   match clean expr.typ with
-  | TRecord (name, labels) -> (
+  | TRecord (_, name, labels) -> (
       match assoc_opti id labels with
       | Some (index, typ) -> { typ; expr = Field (expr, index) }
       | None ->

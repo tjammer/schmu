@@ -23,8 +23,9 @@ let add_type key t env =
   let types = Map.add key t env.types in
   { env with types }
 
-let add_record record ~labels env =
-  let typ = TRecord (record, labels) in
+let add_record record ~param ~labels env =
+  let typ = TRecord (param, record, labels) in
+  Printf.printf "To Add: %s\n" (show_typ typ);
   let _, labels =
     List.fold_left
       (fun (index, labels) (lname, typ) ->
@@ -78,6 +79,11 @@ let find key env =
 let find_type_opt key env = Map.find_opt key env.types
 
 let find_type key env = Map.find key env.types
+
+let query_type ~newvar key env =
+  match Map.find key env.types with
+  | TRecord (Some _, name, labels) -> TRecord (Some (newvar ()), name, labels)
+  | t -> t
 
 let find_label_opt key env = Map.find_opt key env.labels
 
