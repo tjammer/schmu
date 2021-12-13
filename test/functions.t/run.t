@@ -791,7 +791,7 @@ a second function. Instead, the closure struct was being created again and the c
     %3 = bitcast %closure* %clstmp3 to %generic*
     %ret = alloca i8, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), align 16
     %ret6 = bitcast i8* %ret to %generic*
-    call void @apply(%generic* %ret6, %t* %1, %closure* %clstmp, %generic* %3, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), i64 ptrtoint (i32 (i32, i8*)* getelementptr (i32 (i32, i8*), i32 (i32, i8*)* null, i32 1) to i64))
+    call void @apply(%generic* %ret6, %t* %1, %closure* %clstmp, %generic* %3, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), i64 ptrtoint (i32 (i32, i8*)** getelementptr (i32 (i32, i8*)*, i32 (i32, i8*)** null, i32 1) to i64))
     %4 = bitcast %generic* %ret6 to %t*
     %5 = bitcast %t* %4 to i32*
     %6 = load i32, i32* %5, align 4

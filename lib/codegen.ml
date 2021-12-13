@@ -582,9 +582,6 @@ and gen_generic funcs name { Typing.concrete; generic } =
           let ret_param = (Llvm.params gen_func.value).(0) in
           let ptr = Llvm.build_bitcast ret_param lltyp "" builder in
           ignore (Llvm.build_store ret.value ptr builder);
-          (* let ptr = Llvm.build_bitcast ret.value lltyp "" builder in *)
-          (* let ret = Llvm.build_load ptr "" builder in *)
-          (* Llvm.build_ret ret builder *)
           Llvm.build_ret_void builder
       | QVar _, TRecord _ | _, TRecord _ ->
           (* memcpy record and return void *)
@@ -801,7 +798,12 @@ and gen_app vars callee args =
   let get_qval id =
     match List.assoc_opt id !qvars with
     | Some (Param value) -> value
-    | Some (Local typ) -> get_lltype ~param:false typ |> Llvm.size_of
+    | Some (Local typ) -> (
+        match typ with
+        | TFun _ ->
+            (* A function does not have a size on its own. We need the ptr to it here *)
+            get_lltype ~param:false typ |> Llvm.pointer_type |> Llvm.size_of
+        | _ -> get_lltype ~param:false typ |> Llvm.size_of)
     | None -> (Vars.find (name_of_qvar id) vars).value
   in
 
