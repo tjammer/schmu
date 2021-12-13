@@ -118,9 +118,10 @@ let string_of_type typ =
     | TVar { contents = Link t } -> string_of_type t
     | TVar { contents = Qannot id } -> Printf.sprintf "'%s" id
     | QVar str -> to_name str
-    | TRecord (param, str, _) ->
+    | TRecord (param, str, labels) ->
         Option.fold ~none:""
-          ~some:(fun t -> Printf.sprintf "%s " (string_of_type t))
+          ~some:(fun i ->
+            Printf.sprintf "%s " (string_of_type (snd labels.(i))))
           param
         ^ str
   in
@@ -196,14 +197,19 @@ let unify_raw tbl t1 t2 =
             let () =
               match (param1, param2) with
               | Some param1, Some param2 ->
-                  Printf.printf "%s\n%s\n\n" (show_typ param1) (show_typ param2);
+                  ignore param1;
+                  ignore param2;
+                  (* Printf.printf "%s\n%s\n\n" *)
+                  (* (labels1.(param1) |> snd |> show_typ) *)
+                  (* (labels2.(param2) |> snd |> show_typ); *)
                   (* We don't have to unify here, the types will get unified below.
                      We just make sure both are parametrized *)
                   ()
               | None, None -> ()
               | None, Some p2 | Some p2, None ->
-                  Printf.printf "none, some: %s\n\n" (show_typ p2)
-              (* raise Unify *)
+                  ignore p2;
+                  (* Printf.printf "none, some: %i\n\n" p2 *)
+                  raise Unify
             in
 
             (* We ignore the label names for now *)
@@ -253,6 +259,11 @@ let rec generalize = function
   | TVar { contents = Unbound (id, l) } when l > !current_level -> QVar id
   | TVar { contents = Link t } -> generalize t
   | TFun (t1, t2, k) -> TFun (List.map generalize t1, generalize t2, k)
+  | TRecord (Some i, name, labels) ->
+      let lname, t = labels.(i) in
+      let t = generalize t in
+      labels.(i) <- (lname, t);
+      TRecord (Some i, name, labels)
   | t -> t
 
 let instantiate t =
@@ -350,10 +361,6 @@ let handle_params env loc params ret =
   (env, ids, qparams, ret)
 
 let get_record_type env loc typed_labels =
-  List.iter
-    (fun (name, t) -> Printf.printf "%s: %s\n" name (show_typ t))
-    typed_labels;
-  print_newline ();
   (* TODO rewrite this whole thing to make it more workable *)
   let possible_records =
     List.fold_left
@@ -392,9 +399,6 @@ let get_record_type env loc typed_labels =
   | [ record ] ->
       let record = Env.query_type ~newvar record env in
       let param, name, labels = get_record_content record in
-      (match param with
-      | Some t -> print_endline (show_typ t)
-      | None -> print_endline "None");
       unify_labels labels name;
       (param, name, labels)
   | lst ->
@@ -555,7 +559,7 @@ and typeof_record env loc labels =
     List.map (fun (label, expr) -> (label, typeof env expr)) labels
   in
   let param, name, labels = get_record_type env loc typed_labels in
-  TRecord (param, name, labels)
+  TRecord (param, name, labels) |> generalize
 
 and typeof_field env loc expr id =
   let typ = typeof env expr in
@@ -599,7 +603,7 @@ let typedefs typedefs env =
   List.fold_left
     (fun env Ast.{ poly_param; name; labels; loc } ->
       let labels, param =
-        let env, param =
+        let env, param_opt =
           match poly_param with
           | Some name ->
               (* TODO get rid off this and move to add_record *)
@@ -607,12 +611,19 @@ let typedefs typedefs env =
               (Env.add_type name t env, Some t)
           | None -> (env, None)
         in
-        ( Array.map
-            (fun (lbl, type_expr) ->
-              (lbl, typeof_annot ~typedef:true env loc type_expr))
+        let param = ref None in
+        ( Array.mapi
+            (fun i (lbl, type_expr) ->
+              let t = typeof_annot ~typedef:true env loc type_expr in
+              (* Does this work? *)
+              (if Some t = param_opt then
+               let () = Printf.printf "found at %i" i in
+               param := Some i);
+              (lbl, t))
             labels,
           param )
       in
+      let param = !param in
       Env.add_record name ~param ~labels env)
     env typedefs
 
@@ -662,8 +673,9 @@ let name_of_generic { concrete; generic } =
         "."
         ^ String.concat "" (List.map str_of_typ params)
         ^ "." ^ str_of_typ ret ^ "."
-    | TRecord (param, name, _) ->
-        Printf.sprintf "%s%s" (Option.fold ~none:"" ~some:str_of_typ param) name
+    | TRecord (param, name, labels) ->
+        let some i = labels.(i) |> snd |> string_of_type in
+        Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
   in
 
   (str_of_typ concrete.ret ^ str_of_typ generic.ret)
@@ -909,7 +921,11 @@ and convert_record env loc labels =
               raise (Error (loc, msg)) ))
       (labels |> Array.to_list)
   in
-  { typ = TRecord (param, name, labels); expr = Record sorted_labels }
+  (* print_endline (show_typ @@ (TRecord (param, name, labels) |> generalize)); *)
+  {
+    typ = TRecord (param, name, labels) |> generalize;
+    expr = Record sorted_labels;
+  }
 
 and convert_field env loc expr id =
   let expr = convert env expr in

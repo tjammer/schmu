@@ -146,13 +146,16 @@ type qvar_kind = Param of Llvm.llvalue | Local of typ
 
 (* Named structs for records *)
 
-let record_name param name =
-  let some p = Typing.string_of_type p ^ "_" in
+let record_name param name labels =
+  let some p =
+    let p = labels.(p) |> snd in
+    Typing.string_of_type p ^ "_"
+  in
   Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
 
 let to_named_records = function
   | TRecord (param, name, labels) ->
-      let t = Llvm.named_struct_type context (record_name param name) in
+      let t = Llvm.named_struct_type context (record_name param name labels) in
       let lltyp = typeof_aggregate labels |> Llvm.struct_element_types in
       Llvm.struct_set_body t lltyp false;
 
