@@ -9,10 +9,19 @@ type t = {
   values : (typ Map.t * string list ref) list;
   labels : label Map.t;
   types : typ Map.t;
+  (* The record types are saved in their most general form.
+     For codegen, we also save the instances of generics. This
+     probably should go into another pass once we add it *)
+  instances : typ Map.t ref;
 }
 
 let empty =
-  { values = [ (Map.empty, ref []) ]; labels = Map.empty; types = Map.empty }
+  {
+    values = [ (Map.empty, ref []) ];
+    labels = Map.empty;
+    types = Map.empty;
+    instances = ref Map.empty;
+  }
 
 let add_value key vl env =
   match env.values with
@@ -33,6 +42,12 @@ let add_record record ~param ~labels env =
   in
   let types = Map.add record typ env.types in
   { env with labels; types }
+
+let maybe_add_record_instance key ~(param : int option) typ env =
+  match (Map.find_opt key !(env.instances), param) with
+  | Some _, _ | None, None -> ()
+  | None, Some _ ->
+      env.instances := Map.add key typ !(env.instances)
 
 let new_scope env =
   (* Due to the ref, we have to create a new object every time *)
@@ -95,5 +110,9 @@ let records env =
     (fun _ typ -> match typ with TRecord _ -> true | _ -> false)
     env.types
   |> Map.bindings |> List.split |> snd
-  |> (* We reverse to preserve the declaration order *)
-  List.rev
+  |> (* Add instances *)
+  fun generics ->
+  Map.fold
+    (fun _ t acc -> t :: acc)
+    !(env.instances)
+    (* We reverse to preserve the declaration order *) (List.rev generics)

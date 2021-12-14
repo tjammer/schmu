@@ -199,16 +199,10 @@ let unify_raw tbl t1 t2 =
               | Some param1, Some param2 ->
                   ignore param1;
                   ignore param2;
-                  (* Printf.printf "%s\n%s\n\n" *)
-                  (* (labels1.(param1) |> snd |> show_typ) *)
-                  (* (labels2.(param2) |> snd |> show_typ); *)
-                  (* We don't have to unify here, the types will get unified below.
-                     We just make sure both are parametrized *)
                   ()
               | None, None -> ()
               | None, Some p2 | Some p2, None ->
                   ignore p2;
-                  (* Printf.printf "none, some: %i\n\n" p2 *)
                   raise Unify
             in
 
@@ -243,9 +237,6 @@ let unify info t1 t2 =
   let annot_tbl = Strtbl.create 1 in
   try unify_raw annot_tbl t1 t2 with
   | Unify ->
-      (* print_endline (show_typ t1);
-       * print_endline (show_typ t2);
-       * print_newline (); *)
       let loc, pre = info in
       let msg =
         Printf.sprintf "%s Expected type %s but got type %s" pre
@@ -607,7 +598,7 @@ let typedefs typedefs env =
           match poly_param with
           | Some name ->
               (* TODO get rid off this and move to add_record *)
-              let t = newvar () in
+              let t = QVar (gensym ()) in
               (Env.add_type name t env, Some t)
           | None -> (env, None)
         in
@@ -617,7 +608,6 @@ let typedefs typedefs env =
               let t = typeof_annot ~typedef:true env loc type_expr in
               (* Does this work? *)
               (if Some t = param_opt then
-               let () = Printf.printf "found at %i" i in
                param := Some i);
               (lbl, t))
             labels,
@@ -921,11 +911,9 @@ and convert_record env loc labels =
               raise (Error (loc, msg)) ))
       (labels |> Array.to_list)
   in
-  (* print_endline (show_typ @@ (TRecord (param, name, labels) |> generalize)); *)
-  {
-    typ = TRecord (param, name, labels) |> generalize;
-    expr = Record sorted_labels;
-  }
+  let typ = TRecord (param, name, labels) |> generalize in
+  Env.maybe_add_record_instance (string_of_type typ) ~param typ env;
+  { typ; expr = Record sorted_labels }
 
 and convert_field env loc expr id =
   let expr = convert env expr in
@@ -966,6 +954,7 @@ let to_typed (prog : Ast.prog) =
     |> typedefs prog.typedefs
   in
 
-  let records = Env.records vars in
   let tree = convert vars prog.expr in
+  let records = Env.records vars in
+
   { externals; records; tree }

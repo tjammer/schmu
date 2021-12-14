@@ -77,6 +77,24 @@ let memcpy_decl =
     in
     declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
 
+(* Named structs for records *)
+
+let is_generic_record = function
+  | TRecord (Some i, _, labels) -> (
+      match labels.(i) |> snd with QVar _ -> true | _ -> false)
+  | TRecord _ -> false
+  | _ -> failwith "Internal Error: Not a record"
+
+let rec record_name = function
+  (* We match on each type here to allow for nested parametrization like [int foo bar] *)
+  | TRecord (param, name, labels) ->
+      let some p =
+        let p = labels.(p) |> snd in
+        (match p with QVar _ -> "generic" | t -> record_name t) ^ "_"
+      in
+      Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
+  | t -> Typing.string_of_type t
+
 let rec get_lltype ?(param = true) = function
   (* For functions, when passed as parameter, we convert it to a closure ptr
      to later cast to the correct types. At the application, we need to
@@ -87,8 +105,9 @@ let rec get_lltype ?(param = true) = function
   | TUnit -> unit_type
   | TFun (params, ret, kind) ->
       typeof_func ~param ~decl:false (params, ret, kind)
-  | TRecord (_, name, _) -> (
+  | TRecord _ as t -> (
       (* TODO use param *)
+      let name = record_name t in
       match Strtbl.find_opt record_tbl name with
       | Some t -> if param then t |> Llvm.pointer_type else t
       | None ->
@@ -144,18 +163,16 @@ let name_of_qvar qvar = "__" ^ qvar
 
 type qvar_kind = Param of Llvm.llvalue | Local of typ
 
-(* Named structs for records *)
-
-let record_name param name labels =
-  let some p =
-    let p = labels.(p) |> snd in
-    Typing.string_of_type p ^ "_"
-  in
-  Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
-
 let to_named_records = function
-  | TRecord (param, name, labels) ->
-      let t = Llvm.named_struct_type context (record_name param name labels) in
+  | TRecord (_, name, _) as r when is_generic_record r ->
+      let name = Printf.sprintf "generic_%s" name in
+      let t = Llvm.named_struct_type context name in
+      if Strtbl.mem record_tbl name then
+        failwith ("Internal Error: Type shadowing for generic" ^ name);
+      Strtbl.add record_tbl name t
+  | TRecord (_, _, labels) as t ->
+      let name = record_name t in
+      let t = Llvm.named_struct_type context name in
       let lltyp = typeof_aggregate labels |> Llvm.struct_element_types in
       Llvm.struct_set_body t lltyp false;
 
