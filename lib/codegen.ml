@@ -185,12 +185,32 @@ let to_named_records = function
       Strtbl.add record_tbl name t
   | _ -> failwith "Internal Error: Only records should be here"
 
+let sizeof_typ typ =
+  let rec inner ~size = function
+    | TInt -> alignup ~size ~upto:4 + 4
+    | TBool -> alignup ~size ~upto:1 + 1
+    | TUnit -> failwith "Does this make sense?"
+    | TVar { contents = Link t } -> inner ~size t
+    | TFun _ -> (* Just a ptr? Assume 64bit *) alignup ~size ~upto:8 + 8
+    | TRecord _ as t when is_generic_record t -> failwith "TODO gen rec size"
+    | TRecord (_, _, labels) ->
+        Array.fold_left (fun size (_, t) -> inner ~size t) size labels
+    | QVar _ | TVar _ -> failwith "too generic for a size"
+  and alignup ~size ~upto =
+    let modulo = size mod upto in
+    if Int.equal modulo 0 then (* We are aligned *)
+      size
+    else size + (upto - modulo)
+  in
+  inner ~size:0 typ
+
+(* let offset_of *)
+
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src =
-  (* let dst = Llvm.(params func.value).(0) in *)
   let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
   let retptr = Llvm.build_bitcast src.value voidptr_type "" builder in
-  let size = Llvm.size_of (get_lltype ~param:false src.typ) in
+  let size = Llvm.const_int num_type (sizeof_typ src.typ) in
   let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
   ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
 
@@ -405,7 +425,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
           let dst = Llvm.(params func.value).(0) in
           let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
-          let size = Llvm.size_of (get_lltype ~param:false ret.typ) in
+          let size = Llvm.const_int num_type (sizeof_typ ret.typ) in
           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           ignore (Llvm.build_ret_void builder)
@@ -606,12 +626,11 @@ and gen_generic funcs name { Typing.concrete; generic } =
           Llvm.build_ret_void builder
       | QVar _, TRecord _ | _, TRecord _ ->
           (* memcpy record and return void *)
-          let lltyp = get_lltype ~param:false concrete.ret in
           let dst = Llvm.(params gen_func.value).(0) in
           let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
 
-          let size = Llvm.size_of lltyp in
+          let size = Llvm.const_int num_type (sizeof_typ concrete.ret) in
           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           Llvm.build_ret_void builder
@@ -819,12 +838,7 @@ and gen_app vars callee args =
   let get_qval id =
     match List.assoc_opt id !qvars with
     | Some (Param value) -> value
-    | Some (Local typ) -> (
-        match typ with
-        | TFun _ ->
-            (* A function does not have a size on its own. We need the ptr to it here *)
-            get_lltype ~param:false typ |> Llvm.pointer_type |> Llvm.size_of
-        | _ -> get_lltype ~param:false typ |> Llvm.size_of)
+    | Some (Local typ) -> Llvm.const_int num_type (sizeof_typ typ)
     | None -> (Vars.find (name_of_qvar id) vars).value
   in
 
@@ -945,7 +959,7 @@ and codegen_field vars expr index =
   (* In case we return a record, we don't load, but return the pointer.
      The idea is that this will be used either as a return value for a function (where it is copied),
      or for another field, where the pointer is needed.
-     We should distinguish between structs and pointern somehow *)
+     We should distinguish between structs and pointers somehow *)
   let value =
     match typ with TRecord _ -> ptr | _ -> Llvm.build_load ptr "" builder
   in

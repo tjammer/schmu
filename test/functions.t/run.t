@@ -238,9 +238,9 @@ First class functions
     store i8* null, i8** %envptr2, align 8
     %2 = bitcast %closure* %wrapped to i8*
     store i8* %2, i8** %envptr, align 8
-    %ret = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret = alloca i8, i64 4, align 16
     %ret3 = bitcast i8* %ret to %generic*
-    call void @apply(%generic* %ret3, %generic* %1, %closure* %clstmp, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    call void @apply(%generic* %ret3, %generic* %1, %closure* %clstmp, i64 4, i64 4)
     %3 = bitcast %generic* %ret3 to i32*
     %realret = load i32, i32* %3, align 4
     call void @printi(i32 %realret)
@@ -258,9 +258,9 @@ First class functions
     store i8* null, i8** %envptr10, align 8
     %5 = bitcast %closure* %wrapped8 to i8*
     store i8* %5, i8** %envptr7, align 8
-    %ret11 = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret11 = alloca i8, i64 4, align 16
     %ret12 = bitcast i8* %ret11 to %generic*
-    call void @apply(%generic* %ret12, %generic* %4, %closure* %clstmp5, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    call void @apply(%generic* %ret12, %generic* %4, %closure* %clstmp5, i64 4, i64 4)
     %6 = bitcast %generic* %ret12 to i32*
     %realret13 = load i32, i32* %6, align 4
     call void @printi(i32 %realret13)
@@ -433,7 +433,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     call void %casttmp(%t* %ret, %t* %6, i8* %loadtmp1)
     %7 = bitcast %generic* %0 to i8*
     %8 = bitcast %t* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 4, i1 false)
     ret void
   }
   
@@ -463,7 +463,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     store i32 %addtmp, i32* %x1, align 4
     %4 = bitcast %t* %0 to i8*
     %5 = bitcast %t* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 4, i1 false)
     ret void
   }
   
@@ -530,9 +530,9 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     store i8* null, i8** %envptr4, align 8
     %2 = bitcast %closure* %wrapped to i8*
     store i8* %2, i8** %envptr2, align 8
-    %ret = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret = alloca i8, i64 4, align 16
     %ret5 = bitcast i8* %ret to %generic*
-    call void @apply(%generic* %ret5, %generic* %1, %closure* %clstmp, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    call void @apply(%generic* %ret5, %generic* %1, %closure* %clstmp, i64 4, i64 4)
     %3 = bitcast %generic* %ret5 to i32*
     %realret = load i32, i32* %3, align 4
     call void @printi(i32 %realret)
@@ -545,9 +545,9 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %envptr9 = getelementptr inbounds %closure, %closure* %clstmp7, i32 0, i32 1
     %5 = bitcast %closure* %add_closed to i8*
     store i8* %5, i8** %envptr9, align 8
-    %ret10 = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret10 = alloca i8, i64 4, align 16
     %ret11 = bitcast i8* %ret10 to %generic*
-    call void @apply(%generic* %ret11, %generic* %4, %closure* %clstmp7, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    call void @apply(%generic* %ret11, %generic* %4, %closure* %clstmp7, i64 4, i64 4)
     %6 = bitcast %generic* %ret11 to i32*
     %realret12 = load i32, i32* %6, align 4
     call void @printi(i32 %realret12)
@@ -566,9 +566,9 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     store i8* null, i8** %envptr18, align 8
     %9 = bitcast %closure* %wrapped16 to i8*
     store i8* %9, i8** %envptr15, align 8
-    %ret19 = alloca i8, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), align 16
+    %ret19 = alloca i8, i64 4, align 16
     %ret20 = bitcast i8* %ret19 to %generic*
-    call void @apply(%generic* %ret20, %generic* %8, %closure* %clstmp13, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64))
+    call void @apply(%generic* %ret20, %generic* %8, %closure* %clstmp13, i64 4, i64 4)
     %10 = bitcast %generic* %ret20 to %t*
     %11 = bitcast %t* %10 to i32*
     %12 = load i32, i32* %11, align 4
@@ -587,9 +587,9 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     store i8* null, i8** %envptr27, align 8
     %14 = bitcast %closure* %wrapped25 to i8*
     store i8* %14, i8** %envptr24, align 8
-    %ret28 = alloca i8, i64 ptrtoint (i1* getelementptr (i1, i1* null, i32 1) to i64), align 16
+    %ret28 = alloca i8, i64 1, align 16
     %ret29 = bitcast i8* %ret28 to %generic*
-    call void @apply(%generic* %ret29, %generic* %13, %closure* %clstmp22, i64 ptrtoint (i1* getelementptr (i1, i1* null, i32 1) to i64), i64 ptrtoint (i1* getelementptr (i1, i1* null, i32 1) to i64))
+    call void @apply(%generic* %ret29, %generic* %13, %closure* %clstmp22, i64 1, i64 1)
     %15 = bitcast %generic* %ret29 to i1*
     %realret30 = load i1, i1* %15, align 1
     br i1 %realret30, label %then, label %else
@@ -661,9 +661,9 @@ A generic pass function. This example is not 100% correct, but works due to call
     %gen = alloca i32, align 4
     store i32 20, i32* %gen, align 4
     %1 = bitcast i32* %gen to %generic*
-    %ret = alloca i8, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), align 16
+    %ret = alloca i8, i64 4, align 16
     %ret1 = bitcast i8* %ret to %generic*
-    call void @apply(%generic* %ret1, %closure* %clstmp, %generic* %1, i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64))
+    call void @apply(%generic* %ret1, %closure* %clstmp, %generic* %1, i64 4, i64 4)
     %2 = bitcast %generic* %ret1 to i32*
     %realret = load i32, i32* %2, align 4
     call void @printi(i32 %realret)
@@ -678,9 +678,9 @@ A generic pass function. This example is not 100% correct, but works due to call
     %b = getelementptr inbounds %t, %t* %3, i32 0, i32 1
     store i1 false, i1* %b, align 1
     %4 = bitcast %t* %3 to %generic*
-    %ret5 = alloca i8, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), align 16
+    %ret5 = alloca i8, i64 5, align 16
     %ret6 = bitcast i8* %ret5 to %generic*
-    call void @apply(%generic* %ret6, %closure* %clstmp2, %generic* %4, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64))
+    call void @apply(%generic* %ret6, %closure* %clstmp2, %generic* %4, i64 5, i64 5)
     %5 = bitcast %generic* %ret6 to %t*
     %6 = bitcast %t* %5 to i32*
     %7 = load i32, i32* %6, align 4
@@ -720,7 +720,7 @@ a second function. Instead, the closure struct was being created again and the c
     call void %casttmp(%t* %ret, %t* %1, %closure* %7, i8* %loadtmp1)
     %8 = bitcast %generic* %0 to i8*
     %9 = bitcast %t* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 4, i1 false)
     ret void
   }
   
@@ -739,7 +739,7 @@ a second function. Instead, the closure struct was being created again and the c
     store i32 %3, i32* %x3, align 4
     %5 = bitcast %t* %0 to i8*
     %6 = bitcast %t* %4 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 4, i1 false)
     ret void
   }
   
@@ -789,9 +789,9 @@ a second function. Instead, the closure struct was being created again and the c
     %envptr5 = getelementptr inbounds %closure, %closure* %clstmp3, i32 0, i32 1
     store i8* null, i8** %envptr5, align 8
     %3 = bitcast %closure* %clstmp3 to %generic*
-    %ret = alloca i8, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), align 16
+    %ret = alloca i8, i64 4, align 16
     %ret6 = bitcast i8* %ret to %generic*
-    call void @apply(%generic* %ret6, %t* %1, %closure* %clstmp, %generic* %3, i64 ptrtoint (%t* getelementptr (%t, %t* null, i32 1) to i64), i64 ptrtoint (i32 (i32, i8*)** getelementptr (i32 (i32, i8*)*, i32 (i32, i8*)** null, i32 1) to i64))
+    call void @apply(%generic* %ret6, %t* %1, %closure* %clstmp, %generic* %3, i64 4, i64 8)
     %4 = bitcast %generic* %ret6 to %t*
     %5 = bitcast %t* %4 to i32*
     %6 = load i32, i32* %5, align 4

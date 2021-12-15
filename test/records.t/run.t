@@ -75,7 +75,7 @@ Create record
     store i32 %y, i32* %y2, align 4
     %2 = bitcast %foo* %0 to i8*
     %3 = bitcast %foo* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 ptrtoint (%foo* getelementptr (%foo, %foo* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     ret void
   }
   
@@ -114,7 +114,7 @@ Nested records
     store i32 3, i32* %z1, align 4
     %2 = bitcast %inner* %0 to i8*
     %3 = bitcast %inner* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 ptrtoint (%inner* getelementptr (%inner, %inner* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 4, i1 false)
     ret void
   }
   
@@ -131,7 +131,7 @@ Nested records
     call void @inner(%inner* %ret)
     %2 = bitcast %inner* %y to i8*
     %3 = bitcast %inner* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 ptrtoint (%inner* getelementptr (%inner, %inner* null, i32 1) to i64), i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 4, i1 false)
     %4 = bitcast %inner* %y to i32*
     %5 = load i32, i32* %4, align 4
     call void @printi(i32 %5)
