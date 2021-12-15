@@ -155,6 +155,10 @@ and qvars_of_func params ret =
     (fun qvars param ->
       match param with
       | QVar id when List.mem id qvars |> not -> id :: qvars
+      | TRecord (Some i, _, labels) -> (
+          match labels.(i) |> snd with
+          | QVar id -> if List.mem id qvars |> not then id :: qvars else qvars
+          | _ -> qvars)
       | _ -> qvars)
     qvars params
   |> List.rev
