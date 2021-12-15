@@ -46,8 +46,7 @@ let add_record record ~param ~labels env =
 let maybe_add_record_instance key ~(param : int option) typ env =
   match (Map.find_opt key !(env.instances), param) with
   | Some _, _ | None, None -> ()
-  | None, Some _ ->
-      env.instances := Map.add key typ !(env.instances)
+  | None, Some _ -> env.instances := Map.add key typ !(env.instances)
 
 let new_scope env =
   (* Due to the ref, we have to create a new object every time *)

@@ -276,6 +276,17 @@ let instantiate t =
         in
         let t, subst = aux subst t in
         (TFun (params_t, t, k), subst)
+    | TRecord (Some i, name, labels) ->
+        let subst = ref subst in
+        let labels =
+          Array.map
+            (fun (name, t) ->
+              let t, subst' = aux !subst t in
+              subst := subst';
+              (name, t))
+            labels
+        in
+        (TRecord (Some i, name, labels), !subst)
     | t -> (t, subst)
   in
   aux Env.empty t |> fst
@@ -607,8 +618,7 @@ let typedefs typedefs env =
             (fun i (lbl, type_expr) ->
               let t = typeof_annot ~typedef:true env loc type_expr in
               (* Does this work? *)
-              (if Some t = param_opt then
-               param := Some i);
+              if Some t = param_opt then param := Some i;
               (lbl, t))
             labels,
           param )
