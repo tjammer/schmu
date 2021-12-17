@@ -1,6 +1,6 @@
 type bop = Plus | Mult | Less | Equal | Minus
 
-type loc = Lexing.position
+type loc = Lexing.position * Lexing.position
 
 (* optional type identifier
    So far only bool and ints and functions *)

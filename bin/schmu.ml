@@ -1,9 +1,13 @@
 open Lexing
 open Schmulang
 
-let print_position _ lexbuf =
+let pp_position lexbuf file =
+  let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
   let pos = lexbuf.lex_curr_p in
-  Printf.sprintf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+  let pos =
+    Printf.sprintf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+  in
+  (pp, pos)
 
 let run file src =
   let lexbuf = Lexing.from_string src in
@@ -17,14 +21,21 @@ let run file src =
          codegen_tree.tree.typ)
     with
     | Lexer.SyntaxError msg ->
-        Error (Printf.sprintf "%s:%a: %s" file print_position lexbuf msg)
+        let loc = (lexbuf.lex_start_p, lexbuf.lex_curr_p) in
+        let pp, pos = pp_position lexbuf file in
+        Error (Format.asprintf "%s:%s %s\n%a" file pos msg pp [ loc ])
     | Parser.Error ->
-        Error (Printf.sprintf "%s:%a: syntax error" file print_position lexbuf)
-    | Typing.Error (loc, msg) ->
+        let loc = (lexbuf.lex_start_p, lexbuf.lex_curr_p) in
+        let pp, pos = pp_position lexbuf file in
         Error
-          (Printf.sprintf "%s:%d:%d: error: %s" file loc.pos_lnum
-             (loc.pos_cnum - loc.pos_bol + 1)
-             msg))
+          (Format.asprintf "%s:%s %s\n%a" file pos "syntax error" pp [ loc ])
+    | Typing.Error (loc, msg) ->
+        let errloc = fst loc in
+        let pp, _ = pp_position lexbuf file in
+        Error
+          (Format.asprintf "%s:%d:%d: error: %s\n%a" file errloc.pos_lnum
+             (errloc.pos_cnum - errloc.pos_bol + 1)
+             msg pp [ loc ]))
 
 let run_file filename =
   let ch = open_in filename in

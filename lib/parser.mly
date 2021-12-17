@@ -47,30 +47,30 @@ prog: list(external_decl); list(typedef); expr; Eof
     { { external_decls = $1; typedefs = $2; expr = $3 } }
 
 %inline external_decl:
-  | External; Identifier; type_expr { $startpos, $2, $3 }
+  | External; Identifier; type_expr { ($startpos, $endpos), $2, $3 }
 
 %inline typedef:
   | Type; option(poly_id); Identifier; Equal; Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
-    { { poly_param = string_of_ty_var $2; name = $3; labels = Array.of_list $6; loc = $startpos } }
+    { { poly_param = string_of_ty_var $2; name = $3; labels = Array.of_list $6; loc = ($startpos, $endpos) } }
 
 %inline type_decl:
   | Identifier; type_expr { $1, $2 }
 
 expr:
-  | Identifier { Var($startpos, $1) }
-  | Int { Int($startpos, $1) }
-  | bool { Bool($startpos, $1) }
-  | expr; binop; expr { Bop($startpos, $2, $1, $3) }
-  | If; expr; Then; expr; Else; expr { If($startpos, $2, $4, $6)}
-  | decl; Equal; expr; expr { Let($startpos, $1, $3, $4) }
+  | Identifier { Var(($startpos, $endpos), $1) }
+  | Int { Int(($startpos, $endpos), $1) }
+  | bool { Bool(($startpos, $endpos), $1) }
+  | expr; binop; expr { Bop(($startpos, $endpos), $2, $1, $3) }
+  | If; expr; Then; expr; Else; expr { If(($startpos, $endpos), $2, $4, $6)}
+  | decl; Equal; expr; expr { Let(($startpos, $endpos), $1, $3, $4) }
   | Function; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr
-    { Lambda($startpos, $3, $5, $6) }
+    { Lambda(($startpos, $endpos), $3, $5, $6) }
   | Function; Identifier; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr; expr
-    { Function ($startpos, {name = $2; params = $4; return_annot = $6; body = $7; cont = $8}) }
-  | expr; Lpar; separated_list(Comma, expr); Rpar { App($startpos, $1, $3) }
-  | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($startpos, $2) }
-  | expr; Dot; Identifier { Field ($startpos, $1, $3) }
-  | expr; MuchGreater; expr { Sequence ($startpos, $1, $3) }
+    { Function (($startpos, $endpos), {name = $2; params = $4; return_annot = $6; body = $7; cont = $8}) }
+  | expr; Lpar; separated_list(Comma, expr); Rpar { App(($startpos, $endpos), $1, $3) }
+  | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record (($startpos, $endpos), $2) }
+  | expr; Dot; Identifier { Field (($startpos, $endpos), $1, $3) }
+  | expr; MuchGreater; expr { Sequence (($startpos, $endpos), $1, $3) }
 
 %inline record_item:
   | Identifier; Equal; expr { $1, $3 }

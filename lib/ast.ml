@@ -1,13 +1,4 @@
-module Loc = struct
-  type t = Lexing.position = {
-    pos_fname : string;
-    pos_lnum : int;
-    pos_bol : int;
-    pos_cnum : int;
-  }
-end
-
-type loc = Loc.t
+type loc = Lexing.position * Lexing.position
 
 type bop = Plus | Mult | Less | Equal | Minus
 
