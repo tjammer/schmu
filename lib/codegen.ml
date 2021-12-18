@@ -106,7 +106,6 @@ let rec get_lltype ?(param = true) = function
   | TFun (params, ret, kind) ->
       typeof_func ~param ~decl:false (params, ret, kind)
   | TRecord _ as t -> (
-      (* TODO use param *)
       let name = record_name t in
       match Strtbl.find_opt record_tbl name with
       | Some t -> if param then t |> Llvm.pointer_type else t
@@ -134,12 +133,12 @@ and typeof_func ~param ~decl (params, t, kind) =
           ([ get_lltype ~param:true t ], unit_type)
       | t -> ([], get_lltype ~param t)
     in
-    let qvars = qvars_of_func params t |> List.map (Fun.const num_type) in
+    let pvars = poly_vars_of_func params t |> List.map (Fun.const num_type) in
     let suffix =
       (* A closure needs an extra parameter for the environment  *)
       if decl then
-        match kind with Closure _ -> qvars @ [ voidptr_type ] | _ -> qvars
-      else qvars @ [ voidptr_type ]
+        match kind with Closure _ -> pvars @ [ voidptr_type ] | _ -> pvars
+      else pvars @ [ voidptr_type ]
     in
     let params_t =
       (* For the params, we want to produce the param type, hence ~param:true *)
@@ -149,22 +148,22 @@ and typeof_func ~param ~decl (params, t, kind) =
     let ft = Llvm.function_type ret_t params_t in
     ft
 
-and qvars_of_func params ret =
-  let qvars = match ret with QVar id -> [ id ] | _ -> [] in
+(* TODO of type *)
+and poly_vars_of_func params ret =
+  let pvars = match ret with QVar id -> [ id ] | _ -> [] in
   List.fold_left
-    (fun qvars param ->
+    (fun pvars param ->
       match param with
-      | QVar id when List.mem id qvars |> not -> id :: qvars
+      | QVar id when List.mem id pvars |> not -> id :: pvars
       | TRecord (Some i, _, labels) -> (
           match labels.(i) |> snd with
-          | QVar id -> if List.mem id qvars |> not then id :: qvars else qvars
-          | _ -> qvars)
-      | _ -> qvars)
-    qvars params
+          | QVar id -> if List.mem id pvars |> not then id :: pvars else pvars
+          | _ -> pvars)
+      | _ -> pvars)
+    pvars params
   |> List.rev
 
-let name_of_qvar qvar = "__" ^ qvar
-
+(* TODO delete this *)
 type qvar_kind = Param of Llvm.llvalue | Local of typ
 
 let to_named_records = function
@@ -185,6 +184,11 @@ let to_named_records = function
       Strtbl.add record_tbl name t
   | _ -> failwith "Internal Error: Only records should be here"
 
+let alignup ~size ~upto =
+  let modulo = size mod upto in
+  if Int.equal modulo 0 then (* We are aligned *)
+    size else size + (upto - modulo)
+
 let sizeof_typ typ =
   let rec inner ~size = function
     | TInt -> alignup ~size ~upto:4 + 4
@@ -196,15 +200,19 @@ let sizeof_typ typ =
     | TRecord (_, _, labels) ->
         Array.fold_left (fun size (_, t) -> inner ~size t) size labels
     | QVar _ | TVar _ -> failwith "too generic for a size"
-  and alignup ~size ~upto =
-    let modulo = size mod upto in
-    if Int.equal modulo 0 then (* We are aligned *)
-      size
-    else size + (upto - modulo)
   in
   inner ~size:0 typ
 
-(* let offset_of *)
+(* Returns offset to [label] at [index] in byte *)
+let offset_of ~labels index =
+  let rec inner i ~size =
+    if i < index then
+      let labelsize = sizeof_typ (labels.(i) |> snd) in
+      let size = alignup ~size ~upto:labelsize + labelsize in
+      inner (i + 1) ~size
+    else size
+  in
+  inner 0 ~size:0
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src =
@@ -213,6 +221,10 @@ let memcpy ~dst ~src =
   let size = Llvm.const_int num_type (sizeof_typ src.typ) in
   let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
   ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
+
+(*
+   module state
+*)
 
 (* Used to generate lambdas *)
 let fun_gen_state = ref 0
@@ -302,10 +314,6 @@ let declare_function fun_name = function
       prerr_endline fun_name;
       failwith "Internal Error: declaring non-function"
 
-let calc_closure_index ~params ~qvars ret =
-  List.length params + List.length qvars
-  + match ret with TRecord _ | QVar _ -> 1 | _ -> 0
-
 let gen_closure_obj assoc func vars name =
   let clsr_struct = Llvm.build_alloca closure_type name builder in
 
@@ -342,9 +350,10 @@ let gen_closure_obj assoc func vars name =
 
   { value = clsr_struct; typ = func.typ; lltyp = func.lltyp }
 
-let add_closure vars func ~closure_index = function
+let add_closure vars func = function
   | Simple -> vars
   | Closure assoc ->
+      let closure_index = (Llvm.params func.value |> Array.length) - 1 in
       let clsr_param = (Llvm.params func.value).(closure_index) in
       let clsr_type =
         typeof_aggregate (Array.of_list assoc) |> Llvm.pointer_type
@@ -362,6 +371,178 @@ let add_closure vars func ~closure_index = function
       in
       env
 
+(*
+   Polymorphism util functions
+*)
+
+let poly_name poly = "__" ^ poly
+
+let is_polymorphic = function
+  | QVar _ | TVar { contents = Unbound (_, _) } -> true
+  | _ -> false
+
+let get_poly_id = function
+  | QVar id | TVar { contents = Unbound (id, _) } -> id
+  | t -> failwith ("Internal Error: No id for " ^ Typing.string_of_type t)
+
+let pass_generic_wrap vars llvar kind name =
+  let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
+  let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
+  let gen_fp = Vars.find name vars in
+  let ptr = Llvm.build_bitcast gen_fp.value voidptr_type "" builder in
+  ignore (Llvm.build_store ptr fp builder);
+
+  (* Store the actual function in the env *)
+  (* The env here is a complete closure again *)
+  let envptr = Llvm.build_struct_gep closure_struct 1 "envptr" builder in
+
+  (* The closure can be stored as is. Far a simple function we have to wrap *)
+  let clsr_obj =
+    match kind with
+    | Simple ->
+        let clsr_obj = (gen_closure_obj [] llvar vars "wrapped").value in
+        clsr_obj
+    | Closure _ -> llvar.value
+  in
+  let clsr_casted = Llvm.build_bitcast clsr_obj voidptr_type "" builder in
+
+  ignore (Llvm.build_store clsr_casted envptr builder);
+  closure_struct
+
+let pass_function vars llvar kind =
+  match kind with
+  | Simple ->
+      (* If a function is passed into [func] we convert it to a closure
+         and pass nullptr to env*)
+      gen_closure_obj [] llvar vars "clstmp"
+  | Closure _ ->
+      (* This closure is a struct and has an env *)
+      llvar
+
+let func_to_closure vars llvar =
+  match llvar.typ with
+  | TFun (_, _, kind) -> pass_function vars llvar kind
+  | _ -> llvar
+
+(* Make polymorphic argument ouf of [var] to be passed at its location.
+   This does not create a poly_var! *)
+let make_poly_arg_local var =
+  let gen_ptr = generic_type |> Llvm.pointer_type in
+  match var.typ with
+  | TInt | TBool ->
+      let ptr = Llvm.build_alloca var.lltyp "gen" builder in
+      ignore (Llvm.build_store var.value ptr builder);
+      Llvm.build_bitcast ptr gen_ptr "" builder
+  | TRecord _ | TFun _ -> Llvm.build_bitcast var.value gen_ptr "" builder
+  | _ ->
+      failwith
+        ("Internal Error: Cannot make poly var out of "
+        ^ Typing.string_of_type var.typ)
+
+let add_poly_var vars name mkvar =
+  (* Add a poly var to the list if it is not already present.
+     This list is used to pass poly vars as arguments, so it is important that its impl
+     stays in sync with [poly_vars_of_type] *)
+  match List.assoc_opt name vars with
+  | Some _ -> vars
+  | None ->
+      (* This will get more complicated once we have containers of polymorphic variables *)
+      (* let poly_var =  Llvm.const_int num_type (sizeof_typ var.typ) in *)
+      (name, mkvar ()) :: vars
+
+(* TODO factor out poly_vars of type.. But does this even make sense?
+   In any case, we need to make sure it works correctly in function gen/decl and here*)
+let handle_generic_arg vars poly_vars param (arg, generic_func) =
+  (* Generic func is only needed in the case of both param ond arg not being
+     fully polymorphic *)
+  match (param, arg.typ) with
+  | param, arg' when is_polymorphic param && is_polymorphic arg' ->
+      (* If the argument is already polymorphic, we can get the poly_var from the environment *)
+      let name = poly_name (get_poly_id param) in
+      let mkvar () =
+        match Vars.find_opt name vars with
+        | Some v -> v.value
+        | None -> failwith "Internal Error: poly var should be in env"
+      in
+      let poly_vars = add_poly_var poly_vars name mkvar in
+      (* We don't have to do anything else, as the poly var is already present *)
+      (poly_vars, arg.value)
+  | param, arg' when is_polymorphic param ->
+      (* The argument is generic and does not exist yet.
+         We have to convert a local value to a generic one *)
+      let value_to_pass = func_to_closure vars arg |> make_poly_arg_local in
+      let mkvar () = sizeof_typ arg' |> Llvm.const_int num_type in
+      let name = get_poly_id param |> poly_name in
+      let poly_vars = add_poly_var poly_vars name mkvar in
+      (poly_vars, value_to_pass)
+  | TFun _, TFun (_, _, kind) when Option.is_some generic_func ->
+      (* There might be poly vars in the param function, but how can we access them?
+         Do we even have to? *)
+      (poly_vars, pass_generic_wrap vars arg kind (Option.get generic_func))
+  | _, _ ->
+      (* No polymorphism involved *)
+      let arg = func_to_closure vars arg in
+      (poly_vars, arg.value)
+
+let handle_generic_ret flltyp poly_vars funcval args envarg ret concrete_ret
+    params =
+  (* TODO use poly_vars directly *)
+  let poly_args =
+    poly_vars_of_func params ret
+    |> List.map (fun id -> List.assoc (poly_name id) poly_vars)
+  in
+  (* Mostly copied from the [gen_app] inline code before  *)
+  match ret with
+  | TRecord _ ->
+      let lltyp = get_lltype ~param:false ret in
+      let retval = Llvm.build_alloca lltyp "ret" builder in
+      (* TODO pass poly args? *)
+      let args = Array.of_list ([ retval ] @ args @ envarg) in
+      ignore (Llvm.build_call funcval args "" builder);
+      (retval, ret, lltyp)
+  | QVar id ->
+      (* Conceptually, this works like the record case. The only difference is that we need to get
+            the size of variable from somewhere. We can look up the size in the type parameter *)
+      let size = List.assoc (poly_name id) poly_vars in
+
+      (* What about alignment? *)
+      let ret = Llvm.build_array_alloca byte_type size "ret" builder in
+      Llvm.set_alignment 16 ret;
+
+      let gen_ptr_t = generic_type |> Llvm.pointer_type in
+      let ret = Llvm.build_bitcast ret gen_ptr_t "ret" builder in
+
+      ignore
+        (Llvm.build_call funcval
+           (Array.of_list ((ret :: args) @ poly_args @ envarg))
+           "" builder);
+
+      (* If it's a local type, we reconstruct it *)
+      let retval =
+        match concrete_ret with
+        | TBool | TInt ->
+            let cast =
+              Llvm.build_bitcast ret
+                (get_lltype ~param:false concrete_ret |> Llvm.pointer_type)
+                "" builder
+            in
+            Llvm.build_load cast "realret" builder
+        | TRecord _ ->
+            Llvm.build_bitcast ret
+              (get_lltype ~param:true concrete_ret)
+              "" builder
+        | _ ->
+            Printf.printf "In other return: %s\n"
+              (Typing.string_of_type concrete_ret);
+            ret
+      in
+      (retval, concrete_ret, gen_ptr_t)
+  | t ->
+      let retval =
+        Llvm.build_call funcval (Array.of_list (args @ envarg)) "" builder
+      in
+      (retval, t, flltyp |> Llvm.return_type)
+
 (* TODO put below gen_expr *)
 let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
     { name = name, named, uniq; params; typ; body } =
@@ -373,10 +554,10 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
 
       let start_index = match ret_t with TRecord _ | QVar _ -> 1 | _ -> 0 in
 
-      let qvars = qvars_of_func tparams ret_t in
+      let pvars = poly_vars_of_func tparams ret_t in
+
       (* We traverse the list once here and another time at the bottom. We do this because we need
          the closure index for the closure vars, but want function params to have higher precedence *)
-      let closure_index = calc_closure_index ~params ~qvars ret_t in
 
       (* gen function body *)
       let bb = Llvm.append_block context "entry" func.value in
@@ -384,9 +565,9 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
 
       (* Add params from closure *)
       (* We generate both the code for extracting the closure and add the vars to the environment *)
-      let temp_funcs = add_closure funcs func ~closure_index kind in
+      let temp_funcs = add_closure funcs func kind in
 
-      let temp_funcs, qvar_index =
+      let temp_funcs, pvar_index =
         List.fold_left2
           (fun (env, i) name typ ->
             let value = (Llvm.params func.value).(i) in
@@ -400,13 +581,13 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
 
       let temp_funcs, _ =
         List.fold_left
-          (fun (env, i) qvar ->
+          (fun (env, i) pvar ->
             let value = (Llvm.params func.value).(i) in
-            let param = { value; typ = QVar qvar; lltyp = num_type } in
-            let name = name_of_qvar qvar in
+            let param = { value; typ = QVar pvar; lltyp = num_type } in
+            let name = poly_name pvar in
             Llvm.set_value_name name value;
             (Vars.add name param env, i + 1))
-          (temp_funcs, qvar_index) qvars
+          (temp_funcs, pvar_index) pvars
       in
 
       (* If the function is named, we allow recursion *)
@@ -435,7 +616,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
 
           let size =
-            match Vars.find_opt (name_of_qvar id) temp_funcs with
+            match Vars.find_opt (poly_name id) temp_funcs with
             | Some v -> v.value
             | None ->
                 failwith "TODO Internal Error: Unknown size of generic type"
@@ -529,10 +710,7 @@ and gen_generic funcs name { Typing.concrete; generic } =
   Llvm.position_at_end bb builder;
 
   let start_index = match generic.ret with TRecord _ | QVar _ -> 1 | _ -> 0 in
-  let qvars = qvars_of_func generic.tparams generic.ret in
-  let closure_index =
-    calc_closure_index ~params:generic.tparams ~qvars generic.ret
-  in
+  let closure_index = (Llvm.params gen_func.value |> Array.length) - 1 in
 
   (* Get wrapped function *)
   let wrapped_func =
@@ -641,7 +819,7 @@ and gen_generic funcs name { Typing.concrete; generic } =
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
 
           let size =
-            match Vars.find_opt (name_of_qvar id) funcs with
+            match Vars.find_opt (poly_name id) funcs with
             | Some v -> v.value
             | None ->
                 failwith "TODO Internal Error: Unknown size of generic type"
@@ -673,7 +851,6 @@ and gen_bop e1 e2 bop =
   | Minus -> { value = bld build_sub "subtmp"; typ = TInt; lltyp = int_type }
 
 and gen_app vars callee args =
-  ignore gen_generic;
   let func = gen_expr vars callee in
 
   (* We need to extract the qvars in the form of Param of llvalue | Local of typ *)
@@ -693,7 +870,7 @@ and gen_app vars callee args =
         | Some (Param _) -> ()
         | Some (Local _) -> failwith "Unexpected local and param"
         | None ->
-            let qvar = (Vars.find (name_of_qvar id) vars).value in
+            let qvar = (Vars.find (poly_name id) vars).value in
             qvars := (id, Param qvar) :: !qvars)
     | QVar id, t -> (
         match List.assoc_opt id !qvars with
@@ -708,22 +885,22 @@ and gen_app vars callee args =
         ()
   in
 
-  let params, ret, kind =
+  let params, kind =
     match func.typ with
-    | TFun (params, ret, kind) ->
+    | TFun (params, _, kind) ->
         List.iter2 aux params
           (List.map
              (* TODO can we get the qvars here? *)
                (fun ((arg : Typing.typed_expr), _) -> arg.typ)
              args);
-        (params, ret, kind)
+        (params, kind)
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
   let funcs_to_ptr param generic v =
-    match (v.typ, generic) with
-    | TFun (_, _, kind), Some (name, _) ->
-        (* TODO do we even need the generic fun piece here? *)
+    match v.typ with
+    | TFun (_, _, kind) when Option.is_some generic ->
+        let name, _ = Option.get generic in
         let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
         let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
         let gen_fp = Vars.find name vars in
@@ -746,7 +923,7 @@ and gen_app vars callee args =
 
         ignore (Llvm.build_store clsr_casted envptr builder);
         closure_struct
-    | TFun (_, _, kind), _ -> (
+    | TFun (_, _, kind) -> (
         let value =
           match kind with
           | Simple ->
@@ -761,7 +938,7 @@ and gen_app vars callee args =
         match param with
         | QVar _ -> Llvm.build_bitcast value (get_lltype param) "" builder
         | _ -> value)
-    | QVar id, _ | TVar { contents = Unbound (id, _) }, _ -> (
+    | QVar id | TVar { contents = Unbound (id, _) } -> (
         match List.assoc_opt id !qvars with
         | Some (Param _) ->
             (* the value already exists?? *)
@@ -773,6 +950,7 @@ and gen_app vars callee args =
 
             ignore (Llvm.build_store v.value ptr builder);
             Llvm.build_bitcast ptr generic_type "" builder
+            (* TODO this branch will never be reached, if the type is generic, it can never be local *)
         | Some (Local (TRecord _)) ->
             Llvm.build_bitcast v.value generic_type "" builder
         | Some (Local _) -> v.value
@@ -826,7 +1004,7 @@ and gen_app vars callee args =
               (* We do this to make sure it's a recursive function.
                  If we cannot find something. there is an error somewhere *)
               let closure_index =
-                calc_closure_index ~params ~qvars:!qvars ret
+                (Llvm.params func.value |> Array.length) - 1
               in
 
               let env_ptr = (Llvm.params func.value).(closure_index) in
@@ -839,7 +1017,7 @@ and gen_app vars callee args =
     match List.assoc_opt id !qvars with
     | Some (Param value) -> value
     | Some (Local typ) -> Llvm.const_int num_type (sizeof_typ typ)
-    | None -> (Vars.find (name_of_qvar id) vars).value
+    | None -> (Vars.find (poly_name id) vars).value
   in
 
   let value, typ, lltyp =
@@ -854,7 +1032,7 @@ and gen_app vars callee args =
         (* Conceptually, this works like the record case. The only difference is that we need to get
            the size of variable from somewhere. We can look up the size in the type parameter *)
         let qargs =
-          qvars_of_func params typ |> List.map (fun id -> get_qval id)
+          poly_vars_of_func params typ |> List.map (fun id -> get_qval id)
         in
         let size = get_qval id in
 
@@ -885,7 +1063,7 @@ and gen_app vars callee args =
                 typ )
           | _ -> (ret, typ)
         in
-        (ret, typ, generic_type)
+        (ret, typ, gen_ptr_t)
     | TFun (_, t, _) ->
         ( Llvm.build_call funcval (Array.of_list (args @ envarg)) "" builder,
           t,
@@ -935,6 +1113,8 @@ and gen_if vars cond e1 e2 =
   { value = phi; typ = e1.typ; lltyp = e1.lltyp }
 
 and codegen_record vars typ labels =
+  (* print_endline (show_typ typ); *)
+  (* Strtbl.iter (fun key _ -> Printf.printf "%s\n" key) record_tbl; *)
   let lltyp = get_lltype ~param:false typ in
   let record = Llvm.build_alloca lltyp "" builder in
   List.iteri
@@ -949,13 +1129,47 @@ and codegen_record vars typ labels =
 
 and codegen_field vars expr index =
   let value = gen_expr vars expr in
-  let ptr = Llvm.build_struct_gep value.value index "" builder in
 
+  (* print_endline "in field";
+   * Printf.printf "%b\n" (value.lltyp = (generic_type |> Llvm.pointer_type));
+   * Printf.printf "%s\n%!" (show_typ value.typ); *)
+  (* Llvm.dump_module the_module; *)
   let typ =
     match value.typ with
     | TRecord (_, _, fields) -> fields.(index) |> snd
     | _ -> failwith "Internal Error: No record in fields"
   in
+
+  let ptr =
+    if is_generic_record value.typ then (
+      (* We treat the whole structure as a byte array and then calculate the offset by hand *)
+      (* TODO we can't yet know the generic size, so we just assume some bogus size for testing *)
+      (* let size = Llvm.const_int num_type 200 in *)
+      let byte_array =
+        Llvm.build_bitcast value.value
+          (byte_type |> Llvm.pointer_type)
+          "" builder
+      in
+      let offset =
+        match value.typ with
+        | TRecord (_, _, labels) -> offset_of ~labels index
+        | _ -> failwith "Internal Error: No record for offset"
+      in
+      let const i = Llvm.const_int num_type i in
+      let gep_indices = [| const offset |] in
+      print_endline "before gep";
+      Llvm.dump_module the_module;
+      let ptr = Llvm.build_gep byte_array gep_indices "" builder in
+      print_endline "after gep";
+
+      Llvm.build_bitcast ptr
+        (get_lltype ~param:false typ |> Llvm.pointer_type)
+        "" builder
+      (* let byte_ptr = Llvm.build_bitcast value.value *)
+      (* failwith "TODO generic indexing" *))
+    else Llvm.build_struct_gep value.value index "" builder
+  in
+
   (* In case we return a record, we don't load, but return the pointer.
      The idea is that this will be used either as a return value for a function (where it is copied),
      or for another field, where the pointer is needed.
