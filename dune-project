@@ -14,6 +14,7 @@
  (description
   "A functional programming language focused on a simple and practical core")
  (depends
+  (pp_loc (>= 1.0.0))
   (alcotest (and (>= 1.5.0) :with-test))
   (ppx_deriving (>= 5.2.1))
   (llvm (>= 13.0.0))))
