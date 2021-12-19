@@ -869,10 +869,10 @@ and convert_app env loc e1 args =
   let targs = extend_generic_funs targs generic in
 
   (* Change back to unify types. Otherwise we don't know the generic's size *)
-  let apply typ (texpr, b) = ({ arg = { texpr with typ }; gen_fun = b}) in
+  let apply typ (texpr, b) = { arg = { texpr with typ }; gen_fun = b } in
   let targs = List.map2 apply args_t targs in
 
-  { typ = res_t; expr = App {callee ; args =  targs }}
+  { typ = res_t; expr = App { callee; args = targs } }
 
 and convert_bop env loc bop e1 e2 =
   let check () =

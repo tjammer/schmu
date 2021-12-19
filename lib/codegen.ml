@@ -1007,11 +1007,8 @@ and codegen_field vars expr index =
       (* We treat the whole structure as a byte array and then calculate the offset by hand *)
       (* TODO we can't yet know the generic size, so we just assume some bogus size for testing *)
       (* let size = Llvm.const_int num_type 200 in *)
-      let byte_array =
-        Llvm.build_bitcast value.value
-          (byte_type |> Llvm.pointer_type)
-          "" builder
-      in
+      let byte_ptr = byte_type |> Llvm.pointer_type in
+      let byte_array = Llvm.build_bitcast value.value byte_ptr "" builder in
       let offset =
         match value.typ with
         | TRecord (_, _, labels) -> offset_of ~labels index
