@@ -12,7 +12,7 @@ type expr =
   | Let of string * typed_expr * typed_expr
   | Lambda of abstraction
   | Function of string * int option * abstraction * typed_expr
-  | App of typed_expr * (typed_expr * (string * generic_fun) option) list
+  | App of { callee : typed_expr; args :  argument list}
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
   | Sequence of (typed_expr * typed_expr)
@@ -26,6 +26,8 @@ and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
 
 and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
+
+and argument = { arg : typed_expr; gen_fun : (string * generic_fun) option }
 
 type external_decl = string * typ
 

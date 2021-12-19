@@ -8,7 +8,7 @@ type expr =
   | Let of string * typed_expr * typed_expr
   | Lambda of abstraction
   | Function of string * int option * abstraction * typed_expr
-  | App of typed_expr * (typed_expr * (string * generic_fun) option) list
+  | App of { callee : typed_expr; args : argument list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
   | Sequence of (typed_expr * typed_expr)
@@ -22,6 +22,8 @@ and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
 
 and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
+
+and argument = { arg : typed_expr; gen_fun : (string * generic_fun) option }
 
 type external_decl = string * typ
 
@@ -234,6 +236,9 @@ let unify_raw tbl t1 t2 =
   unify t1 t2
 
 let unify info t1 t2 =
+  (* print_endline (show_typ t1); *)
+  (* print_endline (show_typ t2); *)
+  (* print_newline (); *)
   let annot_tbl = Strtbl.create 1 in
   try unify_raw annot_tbl t1 t2 with
   | Unify ->
@@ -849,14 +854,14 @@ and convert_function env loc { name; params; return_annot; body; cont } =
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
 and convert_app env loc e1 args =
-  let type_fun = convert env e1 in
-  let generic = freeze type_fun.typ in
+  let callee = convert env e1 in
+  let generic = freeze callee.typ in
 
   let typed_exprs = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_exprs in
   let args_frozen = List.map freeze args_t in
   let res_t = newvar () in
-  unify (loc, "Application") type_fun.typ (TFun (args_t, res_t, Simple));
+  unify (loc, "Application") callee.typ (TFun (args_t, res_t, Simple));
 
   (* Apply the 'result' of the unification the the typed_expr *)
   let apply typ texpr = { texpr with typ } in
@@ -864,10 +869,10 @@ and convert_app env loc e1 args =
   let targs = extend_generic_funs targs generic in
 
   (* Change back to unify types. Otherwise we don't know the generic's size *)
-  let apply typ (texpr, b) = ({ texpr with typ }, b) in
+  let apply typ (texpr, b) = ({ arg = { texpr with typ }; gen_fun = b}) in
   let targs = List.map2 apply args_t targs in
 
-  { typ = res_t; expr = App (type_fun, targs) }
+  { typ = res_t; expr = App {callee ; args =  targs }}
 
 and convert_bop env loc bop e1 e2 =
   let check () =
