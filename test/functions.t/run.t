@@ -6,7 +6,7 @@ We discard the triple, b/c it varies from distro to distro
 e.g. x86_64-unknown-linux-gnu on Fedora vs x86_64-pc-linux-gnu on gentoo
 
 Simple fibonacci
-  $ dune exec -- schmu fib.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu fib.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -45,7 +45,7 @@ Simple fibonacci
   832040
 
 Fibonacci, but we shadow a bunch
-  $ dune exec -- schmu shadowing.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu shadowing.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -92,7 +92,7 @@ Fibonacci, but we shadow a bunch
   832040
 
 Multiple parameters
-  $ dune exec -- schmu multi_params.smu | grep -v x86_64 && cc out.o && ./a.out
+  $ schmu multi_params.smu | grep -v x86_64 && cc out.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -132,7 +132,7 @@ Multiple parameters
   [1]
 
 We have downwards closures
-  $ dune exec -- schmu closure.smu | grep -v x86_64 && cc out.o && ./a.out
+  $ schmu closure.smu | grep -v x86_64 && cc out.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -166,7 +166,7 @@ We have downwards closures
   [12]
 
 First class functions
-  $ dune exec -- schmu first_class.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu first_class.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -273,7 +273,7 @@ First class functions
   3
 
 We don't allow returning closures
-  $ dune exec -- schmu no_closure_returns.smu
+  $ schmu no_closure_returns.smu
   no_closure_returns.smu:3:1: error: Cannot (yet) return a closure
   3 | function ()
                                                                    4 |   a = function ()
@@ -282,7 +282,7 @@ We don't allow returning closures
                                                                    
 
 Don't try to create 'void' value in if
-  $ dune exec -- schmu if_return_void.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu if_return_void.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -333,7 +333,7 @@ Don't try to create 'void' value in if
   0
 
 Captured values should not overwrite function params
-  $ dune exec -- schmu overwrite_params.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu overwrite_params.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -398,7 +398,7 @@ Captured values should not overwrite function params
 
 Functions can be generic. In this test, we generate 'apply' only once and use it with
 3 different functions with different types
-  $ dune exec -- schmu generic_fun_arg.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu generic_fun_arg.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -619,7 +619,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   0
 
 A generic pass function. This example is not 100% correct, but works due to calling convertion.
-  $ dune exec -- schmu generic_pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu generic_pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -701,7 +701,7 @@ A generic pass function. This example is not 100% correct, but works due to call
 
 This is a regression test. The 'add1' function was not marked as a closure when being called from
 a second function. Instead, the closure struct was being created again and the code segfaulted
-  $ dune exec -- schmu indirect_closure.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu indirect_closure.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -809,7 +809,7 @@ a second function. Instead, the closure struct was being created again and the c
   16
 
 Closures can recurse too
-  $ dune exec -- schmu recursive_closure.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu recursive_closure.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

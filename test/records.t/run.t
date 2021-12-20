@@ -2,7 +2,7 @@ Compile stubs
   $ cc -c stub.c
 
 Simple record creation (out of order)
-  $ dune exec -- schmu simple.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu simple.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -25,7 +25,7 @@ Simple record creation (out of order)
   10
 
 Pass record to function
-  $ dune exec -- schmu pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -57,7 +57,7 @@ Pass record to function
 
 
 Create record
-  $ dune exec -- schmu create.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu create.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -97,7 +97,7 @@ Create record
   8
 
 Nested records
-  $ dune exec -- schmu nested.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu nested.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
