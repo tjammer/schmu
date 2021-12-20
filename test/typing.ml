@@ -119,6 +119,22 @@ let test_sequence_fail () =
      type int"
     "function add1(x) x + 1 add1(20) >> 1 + 1"
 
+let test_para_instantiate () =
+  test "int foo"
+    "type 'a foo = { first : int, gen : 'a } foo = { first = 10, gen = 20 } foo"
+
+let test_para_gen_fun () =
+  test "'a foo -> int"
+    "type 'a foo = { gen : 'a, second : int } function get(foo) foo.second get"
+
+let test_para_gen_return () =
+  test "'a foo -> 'a" "type 'a foo = { gen : 'a } function get(foo) foo.gen get"
+
+let test_para_multiple () =
+  test "bool"
+    "type 'a foo = { gen : 'a } function get(foo) foo.gen a = { gen = 12 } b : \
+     int = get(a) c = { gen = false } get(c)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -167,5 +183,12 @@ let () =
       ( "function sequencing",
         [
           case "sequence" test_sequence; case "sequence_fail" test_sequence_fail;
+        ] );
+      ( "parametric record",
+        [
+          case "para_instantiate" test_para_instantiate;
+          case "para_gen_fun" test_para_gen_fun;
+          case "para_gen_return" test_para_gen_return;
+          case "para_multiple" test_para_multiple;
         ] );
     ]
