@@ -204,7 +204,7 @@ First class functions
     ret i32 %addtmp
   }
   
-  define private void @apply(%generic* %0, %generic* %x, %closure* %f, i64 %__3, i64 %__1) {
+  define private void @apply(%generic* %0, %generic* %x, %closure* %f, i64 %__1, i64 %__3) {
   entry:
     %funcptr3 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr3, align 8
@@ -213,7 +213,7 @@ First class functions
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %ret = alloca i8, i64 %__3, align 16
     %ret2 = bitcast i8* %ret to %generic*
-    call void %casttmp(%generic* %ret2, %generic* %x, i64 %__3, i64 %__1, i8* %loadtmp1)
+    call void %casttmp(%generic* %ret2, %generic* %x, i64 %__1, i64 %__3, i8* %loadtmp1)
     %1 = bitcast %generic* %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %ret, i64 %__3, i1 false)
     ret void
@@ -492,7 +492,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i32 %addtmp
   }
   
-  define private void @apply(%generic* %0, %generic* %x, %closure* %f, i64 %__3, i64 %__1) {
+  define private void @apply(%generic* %0, %generic* %x, %closure* %f, i64 %__1, i64 %__3) {
   entry:
     %funcptr3 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr3, align 8
@@ -501,7 +501,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %ret = alloca i8, i64 %__3, align 16
     %ret2 = bitcast i8* %ret to %generic*
-    call void %casttmp(%generic* %ret2, %generic* %x, i64 %__3, i64 %__1, i8* %loadtmp1)
+    call void %casttmp(%generic* %ret2, %generic* %x, i64 %__1, i64 %__3, i8* %loadtmp1)
     %1 = bitcast %generic* %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %ret, i64 %__3, i1 false)
     ret void
@@ -630,7 +630,7 @@ A generic pass function. This example is not 100% correct, but works due to call
   
   declare void @printi(i32 %0)
   
-  define private void @apply(%generic* %0, %closure* %f, %generic* %x, i64 %__5, i64 %__4) {
+  define private void @apply(%generic* %0, %closure* %f, %generic* %x, i64 %__4, i64 %__5) {
   entry:
     %funcptr3 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr3, align 8
@@ -639,7 +639,7 @@ A generic pass function. This example is not 100% correct, but works due to call
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %ret = alloca i8, i64 %__5, align 16
     %ret2 = bitcast i8* %ret to %generic*
-    call void %casttmp(%generic* %ret2, %generic* %x, i64 %__5, i64 %__4, i8* %loadtmp1)
+    call void %casttmp(%generic* %ret2, %generic* %x, i64 %__4, i64 %__5, i8* %loadtmp1)
     %1 = bitcast %generic* %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %ret, i64 %__5, i1 false)
     ret void
@@ -754,7 +754,7 @@ a second function. Instead, the closure struct was being created again and the c
     ret i32 %addtmp
   }
   
-  define private void @apply(%generic* %0, %t* %x, %closure* %f, %generic* %env, i64 %__3, i64 %__2) {
+  define private void @apply(%generic* %0, %t* %x, %closure* %f, %generic* %env, i64 %__2, i64 %__3) {
   entry:
     %funcptr3 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr3, align 8
@@ -763,7 +763,7 @@ a second function. Instead, the closure struct was being created again and the c
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %ret = alloca i8, i64 %__3, align 16
     %ret2 = bitcast i8* %ret to %generic*
-    call void %casttmp(%generic* %ret2, %t* %x, %generic* %env, i64 %__3, i64 %__2, i8* %loadtmp1)
+    call void %casttmp(%generic* %ret2, %t* %x, %generic* %env, i64 %__2, i64 %__3, i8* %loadtmp1)
     %1 = bitcast %generic* %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %ret, i64 %__3, i1 false)
     ret void
@@ -796,7 +796,7 @@ a second function. Instead, the closure struct was being created again and the c
     %3 = bitcast %closure* %clstmp3 to %generic*
     %ret = alloca i8, i64 4, align 16
     %ret6 = bitcast i8* %ret to %generic*
-    call void @apply(%generic* %ret6, %t* %1, %closure* %clstmp, %generic* %3, i64 4, i64 8)
+    call void @apply(%generic* %ret6, %t* %1, %closure* %clstmp, %generic* %3, i64 8, i64 4)
     %4 = bitcast %generic* %ret6 to %t*
     %5 = bitcast %t* %4 to i32*
     %6 = load i32, i32* %5, align 4

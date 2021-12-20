@@ -1,5 +1,6 @@
 open Types
 module Vars = Map.Make (String)
+module PVars = Set.Make (String)
 
 module Str = struct
   type t = string
@@ -12,6 +13,8 @@ end
 module Strtbl = Hashtbl.Make (Str)
 
 let record_tbl = Strtbl.create 1
+
+let ( ++ ) = Seq.append
 
 (* TODO This can be merged with TFun record *)
 type user_func = {
@@ -102,9 +105,9 @@ let rec record_name = function
 let poly_name poly = "__" ^ poly
 
 let rec add_poly_vars poly_vars = function
-  | QVar id when List.mem id poly_vars |> not ->
+  | QVar id when PVars.mem id poly_vars |> not ->
       (* Later, this will be poly_name. I don't want to change everything now *)
-      id :: poly_vars
+      PVars.add id poly_vars
   | TFun (ps, r, _) ->
       let poly_vars = List.fold_left add_poly_vars poly_vars ps in
       add_poly_vars poly_vars r
@@ -146,21 +149,27 @@ and typeof_func ~param ~decl (params, ret, kind) =
     let prefix, ret_t =
       match ret with
       | (TRecord _ as t) | (QVar _ as t) ->
-          ([ get_lltype ~param:true t ], unit_type)
-      | t -> ([], get_lltype ~param t)
+          (Seq.return (get_lltype ~param:true t), unit_type)
+      | t -> (Seq.empty, get_lltype ~param t)
     in
     let t = TFun (params, ret, kind) in
-    let pvars = add_poly_vars [] t |> List.map (Fun.const num_type) in
+    let pvars =
+      add_poly_vars PVars.empty t
+      |> PVars.to_seq
+      |> Seq.map (Fun.const num_type)
+    in
     let suffix =
       (* A closure needs an extra parameter for the environment  *)
       if decl then
-        match kind with Closure _ -> pvars @ [ voidptr_type ] | _ -> pvars
-      else pvars @ [ voidptr_type ]
+        match kind with
+        | Closure _ -> pvars ++ Seq.return voidptr_type
+        | _ -> pvars
+      else pvars ++ Seq.return voidptr_type
     in
     let params_t =
       (* For the params, we want to produce the param type, hence ~param:true *)
-      List.map (get_lltype ~param:true) params |> fun lst ->
-      prefix @ lst @ suffix |> Array.of_list
+      List.to_seq params |> Seq.map (get_lltype ~param:true) |> fun seq ->
+      prefix ++ seq ++ suffix |> Array.of_seq
     in
     let ft = Llvm.function_type ret_t params_t in
     ft
@@ -438,12 +447,12 @@ let add_poly_arg vars name mkvar =
   (* Add a poly var to the list if it is not already present.
      This list is used to pass poly vars as arguments, so it is important that its impl
      stays in sync with [add_poly_vars] *)
-  match List.assoc_opt name vars with
+  match Vars.find_opt name vars with
   | Some _ -> vars
   | None ->
       (* This will get more complicated once we have containers of polymorphic variables *)
       (* let poly_var =  Llvm.const_int num_type (sizeof_typ var.typ) in *)
-      (name, mkvar ()) :: vars
+      Vars.add name (mkvar ()) vars
 
 let rec add_poly_args vars poly_args param arg =
   match (param, arg) with
@@ -499,10 +508,11 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
     =
   let t = TFun (params, ret, Simple) in
   let poly_args =
-    add_poly_vars [] t
-    |> List.map (fun id ->
+    add_poly_vars PVars.empty t
+    |> PVars.to_seq
+    |> Seq.map (fun id ->
            let name = poly_name id in
-           (match List.assoc_opt name poly_vars with
+           (match Vars.find_opt name poly_vars with
            | Some s -> s
            | None ->
                let v =
@@ -521,7 +531,7 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
       let lltyp = get_lltype ~param:false ret in
       let retval = Llvm.build_alloca lltyp "ret" builder in
       (* TODO pass poly args? *)
-      let args = Array.of_list ([ retval ] @ args @ envarg) in
+      let args = Seq.return retval ++ args ++ envarg |> Array.of_seq in
       ignore (Llvm.build_call funcval args "" builder);
       (retval, ret, lltyp)
   | QVar id as t ->
@@ -529,7 +539,7 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
             the size of variable from somewhere. We can look up the size in the type parameter *)
       (* This is a bit messy, can we clean this up somehow? *)
       let name = poly_name id in
-      let size = List.assoc name poly_vars |> fst in
+      let size = Vars.find name poly_vars |> fst in
 
       (* What about alignment? *)
       let ret = Llvm.build_array_alloca byte_type size "ret" builder in
@@ -538,14 +548,14 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
       let gen_ptr_t = generic_type |> Llvm.pointer_type in
       let ret = Llvm.build_bitcast ret gen_ptr_t "ret" builder in
 
-      ignore
-        (Llvm.build_call funcval
-           (Array.of_list ((ret :: args) @ poly_args @ envarg))
-           "" builder);
+      let args =
+        Seq.return ret ++ args ++ poly_args ++ envarg |> Array.of_seq
+      in
+      ignore (Llvm.build_call funcval args "" builder);
 
       (* If it's a local type, we reconstruct it *)
       let retval, typ =
-        match List.assoc name poly_vars |> snd with
+        match Vars.find name poly_vars |> snd with
         | Local (TBool as t) | Local (TInt as t) ->
             let ptr_t = get_lltype ~param:false t |> Llvm.pointer_type in
             let cast = Llvm.build_bitcast ret ptr_t "" builder in
@@ -556,9 +566,8 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
       in
       (retval, typ, gen_ptr_t)
   | t ->
-      let retval =
-        Llvm.build_call funcval (Array.of_list (args @ envarg)) "" builder
-      in
+      let args = args ++ envarg |> Array.of_seq in
+      let retval = Llvm.build_call funcval args "" builder in
       (* TODO use concrete return type *)
       (retval, t, flltyp |> Llvm.return_type)
 
@@ -573,7 +582,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
 
       let start_index = match ret_t with TRecord _ | QVar _ -> 1 | _ -> 0 in
 
-      let pvars = add_poly_vars [] typ in
+      let pvars = add_poly_vars PVars.empty typ in
 
       (* gen function body *)
       let bb = Llvm.append_block context "entry" func.value in
@@ -596,14 +605,14 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
       in
 
       let temp_funcs, _ =
-        List.fold_left
-          (fun (env, i) pvar ->
+        PVars.fold
+          (fun pvar (env, i) ->
             let value = (Llvm.params func.value).(i) in
             let param = { value; typ = QVar pvar; lltyp = num_type } in
             let name = poly_name pvar in
             Llvm.set_value_name name value;
             (Vars.add name param env, i + 1))
-          (temp_funcs, pvar_index) pvars
+          pvars (temp_funcs, pvar_index)
       in
 
       (* If the function is named, we allow recursion *)
@@ -876,7 +885,6 @@ and gen_app vars callee args =
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
-  (* TODO args not vars *)
   let poly_args, args =
     List.fold_left_map
       (fun poly_vars (param, { Typing.arg; gen_fun }) ->
@@ -889,8 +897,9 @@ and gen_app vars callee args =
         (* let after_t = (fst argtup).typ in *)
         (* Printf.printf "before: %s\nafter: %s\n%!" (show_typ before_t) (show_typ after_t); *)
         handle_generic_arg vars poly_vars param argtup)
-      [] (List.combine params args)
+      Vars.empty (List.combine params args)
   in
+  let args = List.to_seq args in
 
   (* Add return poly var *)
   let poly_args = add_poly_args vars poly_args ret ret in
@@ -908,10 +917,10 @@ and gen_app vars callee args =
 
       let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
       let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
-      (funcp, args, [ env_ptr ])
+      (funcp, args, Seq.return env_ptr)
     else
       match kind with
-      | Simple -> (func.value, args, [])
+      | Simple -> (func.value, args, Seq.empty)
       | Closure _ -> (
           (* In this case we are in a recursive closure function.
              We get the closure env and add it to the arguments we pass *)
@@ -924,7 +933,7 @@ and gen_app vars callee args =
               in
 
               let env_ptr = (Llvm.params func.value).(closure_index) in
-              (func.value, args, [ env_ptr ])
+              (func.value, args, Seq.return env_ptr)
           | None ->
               failwith "Internal Error: Not a recursive closure application")
   in
