@@ -61,12 +61,16 @@ let next_func name tbl =
 (* Bring type vars into canonical form so the first one is "'a" etc.
    Only used for printing purposes *)
 let canonize tbl typ =
-  (* To have type variables staring from 'a' *)
+  (* To have type variables starting from 'a' *)
   let max_in_tbl =
-    Strtbl.fold (fun _ v acc -> String.get v 0 |> Char.code |> max acc) tbl 0
+    Strtbl.fold (fun _ v acc -> v |> int_of_string |> max acc) tbl 0
   in
   let tname = ref max_in_tbl in
   let names = Strtbl.create 4 in
+  let num_to_char num =
+    let id = int_of_string num in
+    id + Char.code 'a' |> Char.chr |> String.make 1
+  in
   let get_name str =
     match Strtbl.find_opt names str with
     | Some name -> Char.chr (name + Char.code 'a') |> String.make 1
@@ -76,10 +80,11 @@ let canonize tbl typ =
         Strtbl.add names str name;
         Char.chr (name + Char.code 'a') |> String.make 1
   in
+
   let rec inner = function
     | QVar str -> (
         match Strtbl.find_opt tbl str with
-        | Some id -> QVar id
+        | Some id -> QVar (num_to_char id)
         | None -> QVar (get_name str))
     | TVar { contents = Unbound (str, lvl) } ->
         TVar { contents = Unbound (get_name str, lvl) }
@@ -93,11 +98,16 @@ let canonize tbl typ =
         in
         match qid with
         | Some t -> inner (QVar t)
-        | None -> TVar { contents = Qannot id })
+        | None -> TVar { contents = Qannot (num_to_char id) })
     | TFun (ts, t, kind) ->
         (* Evaluate parameters first *)
         let ts = List.map inner ts in
         TFun (ts, inner t, kind)
+    | TRecord (p, name, labels) ->
+        let labels =
+          Array.map (fun (label, typ) -> (label, inner typ)) labels
+        in
+        TRecord (p, name, labels)
     | t -> t
   in
   inner typ
@@ -309,6 +319,10 @@ let typeof_annot ?(typedef = false) env loc annot =
     | Some t -> t
     | None -> raise (Error (loc, "Unbound type " ^ tick ^ t ^ "."))
   in
+  let str_id_to_int str =
+    let id = str.[0] |> Char.code in
+    id - Char.code 'a' |> string_of_int
+  in
 
   let rec concrete_type = function
     | Ast.Ty_id "int" -> TInt
@@ -319,7 +333,7 @@ let typeof_annot ?(typedef = false) env loc annot =
     | Ty_var id ->
         (* I'm not sure what this should be. For the whole function annotations,
            Qannot worked, but does not for param ones *)
-        TVar (ref (Qannot id))
+        TVar (ref (Qannot (str_id_to_int id)))
     | Ty_expr l -> handle_annot l
   and handle_annot = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
