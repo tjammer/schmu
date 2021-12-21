@@ -683,9 +683,9 @@ A generic pass function. This example is not 100% correct, but works due to call
     %b = getelementptr inbounds %t, %t* %3, i32 0, i32 1
     store i1 false, i1* %b, align 1
     %4 = bitcast %t* %3 to %generic*
-    %ret5 = alloca i8, i64 5, align 16
+    %ret5 = alloca i8, i64 8, align 16
     %ret6 = bitcast i8* %ret5 to %generic*
-    call void @apply(%generic* %ret6, %closure* %clstmp2, %generic* %4, i64 5, i64 5)
+    call void @apply(%generic* %ret6, %closure* %clstmp2, %generic* %4, i64 8, i64 8)
     %5 = bitcast %generic* %ret6 to %t*
     %6 = bitcast %t* %5 to i32*
     %7 = load i32, i32* %6, align 4

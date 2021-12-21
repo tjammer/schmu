@@ -200,18 +200,22 @@ let alignup ~size ~upto =
     size else size + (upto - modulo)
 
 let sizeof_typ typ =
-  let rec inner ~size = function
-    | TInt -> alignup ~size ~upto:4 + 4
-    | TBool -> alignup ~size ~upto:1 + 1
+  let rec inner ~size ~align = function
+    | TInt -> (alignup ~size ~upto:4 + 4, max align 4)
+    | TBool -> (alignup ~size ~upto:1 + 1, max align 1)
     | TUnit -> failwith "Does this make sense?"
-    | TVar { contents = Link t } -> inner ~size t
-    | TFun _ -> (* Just a ptr? Assume 64bit *) alignup ~size ~upto:8 + 8
+    | TVar { contents = Link t } -> inner ~size ~align t
+    | TFun _ ->
+        (* Just a ptr? Assume 64bit *) (alignup ~size ~upto:8 + 8, max align 8)
     | TRecord _ as t when is_generic_record t -> failwith "TODO gen rec size"
     | TRecord (_, _, labels) ->
-        Array.fold_left (fun size (_, t) -> inner ~size t) size labels
+        Array.fold_left
+          (fun (size, align) (_, t) -> inner ~size ~align t)
+          (size, align) labels
     | QVar _ | TVar _ -> failwith "too generic for a size"
   in
-  inner ~size:0 typ
+  let size, upto = inner ~size:0 ~align:1 typ in
+  alignup ~size ~upto
 
 (* Returns offset to [label] at [index] in byte *)
 let offset_of ~labels index =
