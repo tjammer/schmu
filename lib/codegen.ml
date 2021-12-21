@@ -99,7 +99,7 @@ let rec record_name = function
   | t -> Typing.string_of_type t
 
 (*
-   Some other polymorphic utils
+   Polymorphism util functions
 *)
 
 let poly_name poly = "__" ^ poly
@@ -112,7 +112,9 @@ let rec add_poly_vars poly_vars = function
       let poly_vars = List.fold_left add_poly_vars poly_vars ps in
       add_poly_vars poly_vars r
   | TVar { contents = Link t } -> add_poly_vars poly_vars t
-  | _ -> (* We don't care about records for now *) poly_vars
+  | TRecord (Some i, _, labels) as t when is_generic_record t ->
+      add_poly_vars poly_vars (labels.(i) |> snd)
+  | _ -> poly_vars
 
 let rec get_lltype ?(param = true) = function
   (* For functions, when passed as parameter, we convert it to a closure ptr
@@ -386,7 +388,7 @@ let add_closure vars func = function
       env
 
 (*
-   Polymorphism util functions
+   More polymorphism util functions
 *)
 
 let is_polymorphic = function
@@ -447,6 +449,10 @@ let make_poly_arg_local var =
         ("Internal Error: Cannot make poly var out of "
         ^ Typing.string_of_type var.typ)
 
+let make_generic_record ~generic arg =
+  let lltyp = get_lltype ~param:true generic in
+  Llvm.build_bitcast arg.value lltyp "gencast" builder
+
 let add_poly_arg vars name mkvar =
   (* Add a poly var to the list if it is not already present.
      This list is used to pass poly vars as arguments, so it is important that its impl
@@ -483,6 +489,9 @@ let rec add_poly_args vars poly_args param arg =
       let poly_args = List.fold_left2 f poly_args p1 p2 in
       add_poly_args vars poly_args r1 r2
   | TVar _, _ -> failwith "Internal Error: How is this not generalized?"
+  | TRecord (Some i1, _, l1), TRecord (Some i2, _, l2)
+    when is_generic_record param ->
+      add_poly_args vars poly_args (l1.(i1) |> snd) (l2.(i2) |> snd)
   | _, _ -> poly_args
 
 let handle_generic_arg vars poly_args param (arg, gen_fun) =
@@ -503,6 +512,12 @@ let handle_generic_arg vars poly_args param (arg, gen_fun) =
          Do we even have to? *)
       let name, _ = Option.get gen_fun in
       (poly_args, pass_generic_wrap vars arg kind name)
+  | (TRecord _ as generic), TRecord _ when is_generic_record param ->
+      if is_generic_record arg.typ then (* Nothing to do *)
+        (poly_args, arg.value)
+      else
+        let arg = make_generic_record ~generic arg in
+        (poly_args, arg)
   | _, _ ->
       (* No polymorphism involved *)
       let arg = func_to_closure vars arg in
@@ -535,7 +550,8 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
       let lltyp = get_lltype ~param:false ret in
       let retval = Llvm.build_alloca lltyp "ret" builder in
       (* TODO pass poly args? *)
-      let args = Seq.return retval ++ args ++ envarg |> Array.of_seq in
+      let ret' = Seq.return retval in
+      let args = ret' ++ args ++ poly_args ++ envarg |> Array.of_seq in
       ignore (Llvm.build_call funcval args "" builder);
       (retval, ret, lltyp)
   | QVar id as t ->
@@ -570,7 +586,7 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
       in
       (retval, typ, gen_ptr_t)
   | t ->
-      let args = args ++ envarg |> Array.of_seq in
+      let args = args ++ poly_args ++ envarg |> Array.of_seq in
       let retval = Llvm.build_call funcval args "" builder in
       (* TODO use concrete return type *)
       (retval, t, flltyp |> Llvm.return_type)
@@ -1016,7 +1032,7 @@ and codegen_field vars expr index =
   in
 
   let ptr =
-    if is_generic_record value.typ then (
+    if is_generic_record value.typ then
       (* We treat the whole structure as a byte array and then calculate the offset by hand *)
       (* TODO we can't yet know the generic size, so we just assume some bogus size for testing *)
       (* let size = Llvm.const_int num_type 200 in *)
@@ -1027,18 +1043,15 @@ and codegen_field vars expr index =
         | TRecord (_, _, labels) -> offset_of ~labels index
         | _ -> failwith "Internal Error: No record for offset"
       in
-      let const i = Llvm.const_int num_type i in
+      let const i = Llvm.const_int int_type i in
       let gep_indices = [| const offset |] in
-      print_endline "before gep";
-      Llvm.dump_module the_module;
-      let ptr = Llvm.build_gep byte_array gep_indices "" builder in
-      print_endline "after gep";
+      let ptr = Llvm.build_in_bounds_gep byte_array gep_indices "" builder in
 
       Llvm.build_bitcast ptr
         (get_lltype ~param:false typ |> Llvm.pointer_type)
         "" builder
       (* let byte_ptr = Llvm.build_bitcast value.value *)
-      (* failwith "TODO generic indexing" *))
+      (* failwith "TODO generic indexing" *)
     else Llvm.build_struct_gep value.value index "" builder
   in
 
@@ -1047,7 +1060,9 @@ and codegen_field vars expr index =
      or for another field, where the pointer is needed.
      We should distinguish between structs and pointers somehow *)
   let value =
-    match typ with TRecord _ -> ptr | _ -> Llvm.build_load ptr "" builder
+    match typ with
+    | TRecord _ | QVar _ -> ptr
+    | _ -> Llvm.build_load ptr "" builder
   in
   { value; typ; lltyp = Llvm.type_of value }
 
