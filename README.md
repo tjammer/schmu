@@ -8,6 +8,9 @@ Fibonacci example
 -- No print function yet, so we use a C stub to print integers
 external printi : int -> unit
 
+-- Variable binding
+number = 35
+
 -- Calculate fibonacci number
 function fib(n)
     -- The function simply returns the expression, no 'return' statement
@@ -16,7 +19,7 @@ function fib(n)
         fib(n - 1) + fib(n - 2)
 
 -- and print it
-printi(fib(35))
+printi(fib(number))
 ```
 
 <!-- ``` lua -->
