@@ -1,0 +1,14 @@
+external printi : int -> unit
+
+type 'a t = { first : int, gen : 'a, third : bool }
+
+function apply(f : 'b -> 'a, x : 'b) -> 'a
+  f(x)
+
+function pass(x)
+  x
+
+int_t = { first = 700, gen = 20, third = false }
+
+printi(apply(pass, int_t).first) >>
+printi(apply(pass, { first = 234, gen = false, third = true }).first)

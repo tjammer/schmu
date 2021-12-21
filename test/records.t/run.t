@@ -141,3 +141,92 @@ Nested records
   attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   3
+
+Pass generic record
+  $ schmu parametrized_pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %generic = type opaque
+  %closure = type { i8*, i8* }
+  %int_t = type { i32, i32, i1 }
+  %bool_t = type { i32, i1, i1 }
+  
+  declare void @printi(i32 %0)
+  
+  define private void @pass(%generic* %0, %generic* %x, i64 %__7) {
+  entry:
+    %1 = bitcast %generic* %0 to i8*
+    %2 = bitcast %generic* %x to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 %__7, i1 false)
+    ret void
+  }
+  
+  define private void @apply(%generic* %0, %closure* %f, %generic* %x, i64 %__4, i64 %__5) {
+  entry:
+    %funcptr3 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr3, align 8
+    %casttmp = bitcast i8* %loadtmp to void (%generic*, %generic*, i64, i64, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %ret = alloca i8, i64 %__5, align 16
+    %ret2 = bitcast i8* %ret to %generic*
+    call void %casttmp(%generic* %ret2, %generic* %x, i64 %__4, i64 %__5, i8* %loadtmp1)
+    %1 = bitcast %generic* %0 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %ret, i64 %__5, i1 false)
+    ret void
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define i32 @main(i32 %0) {
+  entry:
+    %1 = alloca %int_t, align 8
+    %first10 = bitcast %int_t* %1 to i32*
+    store i32 700, i32* %first10, align 4
+    %gen = getelementptr inbounds %int_t, %int_t* %1, i32 0, i32 1
+    store i32 20, i32* %gen, align 4
+    %third = getelementptr inbounds %int_t, %int_t* %1, i32 0, i32 2
+    store i1 false, i1* %third, align 1
+    %clstmp = alloca %closure, align 8
+    %funptr11 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (void (%generic*, %generic*, i64)* @pass to i8*), i8** %funptr11, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* null, i8** %envptr, align 8
+    %2 = bitcast %int_t* %1 to %generic*
+    %ret = alloca i8, i64 12, align 16
+    %ret1 = bitcast i8* %ret to %generic*
+    call void @apply(%generic* %ret1, %closure* %clstmp, %generic* %2, i64 12, i64 12)
+    %3 = bitcast %generic* %ret1 to %int_t*
+    %4 = bitcast %int_t* %3 to i32*
+    %5 = load i32, i32* %4, align 4
+    call void @printi(i32 %5)
+    %clstmp2 = alloca %closure, align 8
+    %funptr312 = bitcast %closure* %clstmp2 to i8**
+    store i8* bitcast (void (%generic*, %generic*, i64)* @pass to i8*), i8** %funptr312, align 8
+    %envptr4 = getelementptr inbounds %closure, %closure* %clstmp2, i32 0, i32 1
+    store i8* null, i8** %envptr4, align 8
+    %6 = alloca %bool_t, align 8
+    %first513 = bitcast %bool_t* %6 to i32*
+    store i32 234, i32* %first513, align 4
+    %gen6 = getelementptr inbounds %bool_t, %bool_t* %6, i32 0, i32 1
+    store i1 false, i1* %gen6, align 1
+    %third7 = getelementptr inbounds %bool_t, %bool_t* %6, i32 0, i32 2
+    store i1 true, i1* %third7, align 1
+    %7 = bitcast %bool_t* %6 to %generic*
+    %ret8 = alloca i8, i64 8, align 16
+    %ret9 = bitcast i8* %ret8 to %generic*
+    call void @apply(%generic* %ret9, %closure* %clstmp2, %generic* %7, i64 8, i64 8)
+    %8 = bitcast %generic* %ret9 to %bool_t*
+    %9 = bitcast %bool_t* %8 to i32*
+    %10 = load i32, i32* %9, align 4
+    call void @printi(i32 %10)
+    ret i32 0
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  unit
+  700
+  234
