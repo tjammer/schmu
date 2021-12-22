@@ -82,32 +82,32 @@ let canonize tbl typ =
   in
 
   let rec inner = function
-    | QVar str -> (
+    | Qvar str -> (
         match Strtbl.find_opt tbl str with
-        | Some id -> QVar (num_to_char id)
-        | None -> QVar (get_name str))
-    | TVar { contents = Unbound (str, lvl) } ->
-        TVar { contents = Unbound (get_name str, lvl) }
-    | TVar { contents = Link t } -> TVar { contents = Link (inner t) }
-    | TVar { contents = Qannot id } -> (
-        (* We see if there exists a QVar linked to our annotation *)
+        | Some id -> Qvar (num_to_char id)
+        | None -> Qvar (get_name str))
+    | Tvar { contents = Unbound (str, lvl) } ->
+        Tvar { contents = Unbound (get_name str, lvl) }
+    | Tvar { contents = Link t } -> Tvar { contents = Link (inner t) }
+    | Tvar { contents = Qannot id } -> (
+        (* We see if there exists a Qvar linked to our annotation *)
         let qid =
           Strtbl.fold
             (fun key v acc -> if String.equal v id then Some key else acc)
             tbl None
         in
         match qid with
-        | Some t -> inner (QVar t)
-        | None -> TVar { contents = Qannot (num_to_char id) })
-    | TFun (ts, t, kind) ->
+        | Some t -> inner (Qvar t)
+        | None -> Tvar { contents = Qannot (num_to_char id) })
+    | Tfun (ts, t, kind) ->
         (* Evaluate parameters first *)
         let ts = List.map inner ts in
-        TFun (ts, inner t, kind)
-    | TRecord (p, name, labels) ->
+        Tfun (ts, inner t, kind)
+    | Trecord (p, name, labels) ->
         let labels =
           Array.map (fun (label, typ) -> (label, inner typ)) labels
         in
-        TRecord (p, name, labels)
+        Trecord (p, name, labels)
     | t -> t
   in
   inner typ
@@ -116,21 +116,21 @@ let string_of_type typ =
   (* To deal with brackets for functions *)
   let to_name name = "'" ^ name in
   let rec string_of_type = function
-    | TInt -> "int"
-    | TBool -> "bool"
-    | TUnit -> "unit"
-    | TFun (ts, t, _) -> (
+    | Tint -> "int"
+    | Tbool -> "bool"
+    | Tunit -> "unit"
+    | Tfun (ts, t, _) -> (
         match ts with
         | [ p ] ->
             Printf.sprintf "%s -> %s" (string_of_type p) (string_of_type t)
         | ts ->
             let ts = String.concat ", " (List.map string_of_type ts) in
             Printf.sprintf "(%s) -> %s" ts (string_of_type t))
-    | TVar { contents = Unbound (str, _) } -> to_name str
-    | TVar { contents = Link t } -> string_of_type t
-    | TVar { contents = Qannot id } -> Printf.sprintf "'%s" id
-    | QVar str -> to_name str
-    | TRecord (param, str, labels) ->
+    | Tvar { contents = Unbound (str, _) } -> to_name str
+    | Tvar { contents = Link t } -> string_of_type t
+    | Tvar { contents = Qannot id } -> Printf.sprintf "'%s" id
+    | Qvar str -> to_name str
+    | Trecord (param, str, labels) ->
         Option.fold ~none:""
           ~some:(fun i ->
             Printf.sprintf "%s " (string_of_type (snd labels.(i))))
@@ -160,17 +160,17 @@ let enter_level () = incr current_level
 
 let leave_level () = decr current_level
 
-let newvar () = TVar (ref (Unbound (gensym (), !current_level)))
+let newvar () = Tvar (ref (Unbound (gensym (), !current_level)))
 
 let rec occurs tvr = function
-  | TVar tvr' when tvr == tvr' -> failwith "Internal error: Occurs check failed"
-  | TVar ({ contents = Unbound (id, lvl') } as tv) ->
+  | Tvar tvr' when tvr == tvr' -> failwith "Internal error: Occurs check failed"
+  | Tvar ({ contents = Unbound (id, lvl') } as tv) ->
       let min_lvl =
         match !tvr with Unbound (_, lvl) -> min lvl lvl' | _ -> lvl'
       in
       tv := Unbound (id, min_lvl)
-  | TVar { contents = Link ty } -> occurs tvr ty
-  | TFun (param_ts, t, _) ->
+  | Tvar { contents = Link ty } -> occurs tvr ty
+  | Tfun (param_ts, t, _) ->
       List.iter (occurs tvr) param_ts;
       occurs tvr t
   | _ -> ()
@@ -191,20 +191,20 @@ let unify_raw tbl t1 t2 =
     if t1 == t2 then ()
     else
       match (t1, t2) with
-      | TVar { contents = Link t1 }, t2 | t2, TVar { contents = Link t1 } ->
+      | Tvar { contents = Link t1 }, t2 | t2, Tvar { contents = Link t1 } ->
           unify t1 t2
-      | TVar ({ contents = Unbound _ } as tv), t
-      | t, TVar ({ contents = Unbound _ } as tv) ->
+      | Tvar ({ contents = Unbound _ } as tv), t
+      | t, Tvar ({ contents = Unbound _ } as tv) ->
           occurs tv t;
           tv := Link t
-      | TFun (params_l, l, _), TFun (params_r, r, _) -> (
+      | Tfun (params_l, l, _), Tfun (params_r, r, _) -> (
           try
             List.iter2 (fun left right -> unify left right) params_l params_r;
             unify l r
           with Invalid_argument _ ->
             raise
               (Arity ("function", List.length params_l, List.length params_r)))
-      | TRecord (param1, n1, labels1), TRecord (param2, n2, labels2) ->
+      | Trecord (param1, n1, labels1), Trecord (param2, n2, labels2) ->
           if String.equal n1 n2 then
             let () =
               match (param1, param2) with
@@ -224,21 +224,21 @@ let unify_raw tbl t1 t2 =
               raise
                 (Arity ("record", Array.length labels1, Array.length labels2))
           else raise Unify
-      | (QVar id as t), TVar ({ contents = Qannot a_id } as tv)
-      | TVar ({ contents = Qannot a_id } as tv), (QVar id as t) -> (
+      | (Qvar id as t), Tvar ({ contents = Qannot a_id } as tv)
+      | Tvar ({ contents = Qannot a_id } as tv), (Qvar id as t) -> (
           match Strtbl.find_opt tbl id with
           | Some annot_id ->
-              (* [QVar id] has already been part of annotating. We make sure the annotation was the same *)
+              (* [Qvar id] has already been part of annotating. We make sure the annotation was the same *)
               if String.equal annot_id a_id then (
                 occurs tv t;
                 tv := Link t)
               else raise Unify
           | None ->
-              (* We see [QVar id] for the first time and link our [a_id] to it *)
+              (* We see [Qvar id] for the first time and link our [a_id] to it *)
               Strtbl.add tbl id a_id;
               occurs tv t;
               tv := Link t)
-      | QVar id1, QVar id2 when String.equal id1 id2 ->
+      | Qvar id1, Qvar id2 when String.equal id1 id2 ->
           (* We need this for annotation unification *)
           ()
       | _ -> raise Unify
@@ -262,26 +262,26 @@ let unify info t1 t2 =
   | Arity (thing, l1, l2) -> arity info thing l1 l2
 
 let rec generalize = function
-  | TVar { contents = Unbound (id, l) } when l > !current_level -> QVar id
-  | TVar { contents = Link t } -> generalize t
-  | TFun (t1, t2, k) -> TFun (List.map generalize t1, generalize t2, k)
-  | TRecord (Some i, name, labels) ->
+  | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
+  | Tvar { contents = Link t } -> generalize t
+  | Tfun (t1, t2, k) -> Tfun (List.map generalize t1, generalize t2, k)
+  | Trecord (Some i, name, labels) ->
       let lname, t = labels.(i) in
       let t = generalize t in
       labels.(i) <- (lname, t);
-      TRecord (Some i, name, labels)
+      Trecord (Some i, name, labels)
   | t -> t
 
 let instantiate t =
   let rec aux subst = function
-    | QVar id -> (
+    | Qvar id -> (
         match Env.find_opt id subst with
         | Some t -> (t, subst)
         | None ->
             let tv = newvar () in
             (tv, Env.add_value id tv subst))
-    | TVar { contents = Link t } -> aux subst t
-    | TFun (params_t, t, k) ->
+    | Tvar { contents = Link t } -> aux subst t
+    | Tfun (params_t, t, k) ->
         let subst, params_t =
           List.fold_left_map
             (fun subst param ->
@@ -290,8 +290,8 @@ let instantiate t =
             subst params_t
         in
         let t, subst = aux subst t in
-        (TFun (params_t, t, k), subst)
-    | TRecord (Some i, name, labels) ->
+        (Tfun (params_t, t, k), subst)
+    | Trecord (Some i, name, labels) ->
         let subst = ref subst in
         let labels =
           Array.map
@@ -301,7 +301,7 @@ let instantiate t =
               (name, t))
             labels
         in
-        (TRecord (Some i, name, labels), !subst)
+        (Trecord (Some i, name, labels), !subst)
     | t -> (t, subst)
   in
   aux Env.empty t |> fst
@@ -325,20 +325,20 @@ let typeof_annot ?(typedef = false) env loc annot =
   in
 
   let rec concrete_type = function
-    | Ast.Ty_id "int" -> TInt
-    | Ty_id "bool" -> TBool
-    | Ty_id "unit" -> TUnit
+    | Ast.Ty_id "int" -> Tint
+    | Ty_id "bool" -> Tbool
+    | Ty_id "unit" -> Tunit
     | Ty_id t -> find t ""
     | Ty_var id when typedef -> find id "'"
     | Ty_var id ->
         (* I'm not sure what this should be. For the whole function annotations,
            Qannot worked, but does not for param ones *)
-        TVar (ref (Qannot (str_id_to_int id)))
+        Tvar (ref (Qannot (str_id_to_int id)))
     | Ty_expr l -> handle_annot l
   and handle_annot = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ t ] -> concrete_type t
-    | [ Ast.Ty_id "unit"; t ] -> TFun ([], concrete_type t, Simple)
+    | [ Ast.Ty_id "unit"; t ] -> Tfun ([], concrete_type t, Simple)
     (* TODO 'Simple' here is not always true *)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)
@@ -346,7 +346,7 @@ let typeof_annot ?(typedef = false) env loc annot =
         (* We reverse the list times :( *)
         match List.rev l with
         | last :: head ->
-            TFun
+            Tfun
               ( List.map concrete_type (List.rev head),
                 concrete_type last,
                 Simple )
@@ -357,11 +357,11 @@ let typeof_annot ?(typedef = false) env loc annot =
 let handle_params env loc params ret =
   (* return updated env with bindings for parameters and types of parameters *)
   let rec handle = function
-    | TVar { contents = Qannot _ } as t -> (newvar (), t)
-    | TFun (params, ret, kind) ->
+    | Tvar { contents = Qannot _ } as t -> (newvar (), t)
+    | Tfun (params, ret, kind) ->
         let params, qparams = List.map handle params |> List.split in
         let ret, qret = handle ret in
-        (TFun (params, ret, kind), TFun (qparams, qret, kind))
+        (Tfun (params, ret, kind), Tfun (qparams, qret, kind))
     | t -> (t, t)
   in
 
@@ -411,7 +411,7 @@ let get_record_type env loc typed_labels =
       labels
   in
   let get_record_content = function
-    | TRecord (param, name, labels) -> (param, name, labels)
+    | Trecord (param, name, labels) -> (param, name, labels)
     | _ -> failwith "Internal Error not a record"
   in
 
@@ -431,7 +431,7 @@ let get_record_type env loc typed_labels =
             let record = Env.query_type ~newvar record env in
             let all_match =
               match record with
-              | TRecord (_, _, labels) ->
+              | Trecord (_, _, labels) ->
                   Array.fold_left
                     (fun mtch (lname, _) ->
                       mtch
@@ -460,8 +460,8 @@ let assoc_opti qkey arr =
 
 let rec typeof env = function
   | Ast.Var (loc, v) -> typeof_var env loc v
-  | Int (_, _) -> TInt
-  | Bool (_, _) -> TBool
+  | Int (_, _) -> Tint
+  | Bool (_, _) -> Tbool
   | Let (loc, x, e1, e2) -> typeof_let env loc x e1 e2
   | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
   | Function (loc, { name; params; return_annot; body; cont }) ->
@@ -504,13 +504,13 @@ and typeof_abs env loc params ret_annot e =
   let type_e = typeof env e in
   leave_level ();
 
-  match TFun (params_t, type_e, Simple) |> generalize with
-  | TFun (_, ret, kind) as typ ->
+  match Tfun (params_t, type_e, Simple) |> generalize with
+  | Tfun (_, ret, kind) as typ ->
       let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = TFun (qparams, ret, kind) |> generalize in
+      let qtyp = Tfun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
       typ
-  | _ -> failwith "Internal Error Tfun not TFun"
+  | _ -> failwith "Internal Error Tfun not Tfun"
 
 and typeof_function env loc name params ret_annot body cont =
   (* this loc might not be correct *)
@@ -525,27 +525,27 @@ and typeof_function env loc name params ret_annot body cont =
   in
   let bodytype = typeof body_env body in
   leave_level ();
-  TFun (params_t, bodytype, Simple) |> generalize |> function
-  | TFun (_, ret, kind) as typ ->
+  Tfun (params_t, bodytype, Simple) |> generalize |> function
+  | Tfun (_, ret, kind) as typ ->
       unify (loc, "") (Env.find name env) typ;
       let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = TFun (qparams, ret, kind) |> generalize in
+      let qtyp = Tfun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
       typeof env cont
-  | _ -> failwith "Internal Error: TFun not TFun"
+  | _ -> failwith "Internal Error: Tfun not Tfun"
 
 and typeof_app env loc e1 args =
   let type_fun = typeof env e1 in
   let type_args = List.map (typeof env) args in
   let type_res = newvar () in
-  unify (loc, "") type_fun (TFun (type_args, type_res, Simple));
+  unify (loc, "") type_fun (Tfun (type_args, type_res, Simple));
   type_res
 
 and typeof_if env loc cond e1 e2 =
   (* We can assume pred evaluates to bool and both
      branches need to evaluate to the some type *)
   let type_cond = typeof env cond in
-  unify (loc, "In condition") type_cond TBool;
+  unify (loc, "In condition") type_cond Tbool;
 
   let type_e1 = typeof env e1 in
   let type_e2 = typeof env e2 in
@@ -560,17 +560,17 @@ and typeof_bop env loc bop e1 e2 =
     (* both exprs must be Int, not Bool *)
     let t1 = typeof env e1 in
     let t2 = typeof env e2 in
-    unify (loc, "Binary " ^ string_of_bop bop) t1 TInt;
-    unify (loc, "Binary " ^ string_of_bop bop) t2 TInt
+    unify (loc, "Binary " ^ string_of_bop bop) t1 Tint;
+    unify (loc, "Binary " ^ string_of_bop bop) t2 Tint
   in
 
   match bop with
   | Plus | Mult | Minus ->
       check ();
-      TInt
+      Tint
   | Less | Equal ->
       check ();
-      TBool
+      Tbool
 
 and typeof_record env loc labels =
   (* TODO pass in expected type? *)
@@ -580,14 +580,14 @@ and typeof_record env loc labels =
     List.map (fun (label, expr) -> (label, typeof env expr)) labels
   in
   let param, name, labels = get_record_type env loc typed_labels in
-  TRecord (param, name, labels) |> generalize
+  Trecord (param, name, labels) |> generalize
 
 and typeof_field env loc expr id =
   let typ = typeof env expr in
   (* This expr could be a fresh var, in which case we take the record type from the label,
      or it could be a specific record type in which case we have to get that certain record *)
   match clean typ with
-  | TRecord (_, name, labels) -> (
+  | Trecord (_, name, labels) -> (
       (* This is a poor replacement for List.assoc_opt *)
       let find_id acc (name, t) =
         if String.equal id name then Some t else acc
@@ -607,7 +607,7 @@ and typeof_field env loc expr id =
 
 and typeof_sequence env loc expr cont =
   let t1 = typeof env expr in
-  unify (loc, "Left expression in sequence must be type unit:") TUnit t1;
+  unify (loc, "Left expression in sequence must be type unit:") Tunit t1;
   typeof env cont
 
 let extern_vars decls =
@@ -628,7 +628,7 @@ let typedefs typedefs env =
           match poly_param with
           | Some name ->
               (* TODO get rid off this and move to add_record *)
-              let t = QVar (gensym ()) in
+              let t = Qvar (gensym ()) in
               (Env.add_type name t env, Some t)
           | None -> (env, None)
         in
@@ -656,43 +656,43 @@ let typecheck (prog : Ast.prog) =
 (* TODO Error handling sucks right now *)
 let dont_allow_closure_return loc fn =
   let rec error_on_closure = function
-    | TFun (_, _, Closure _) ->
+    | Tfun (_, _, Closure _) ->
         raise (Error (loc, "Cannot (yet) return a closure"))
-    | TVar { contents = Link typ } -> error_on_closure typ
+    | Tvar { contents = Link typ } -> error_on_closure typ
     | _ -> ()
   in
   error_on_closure fn
 
 let needs_capture env var =
   let rec aux = function
-    | TFun (_, _, Simple) -> None
-    | TVar { contents = Link typ } -> aux typ
+    | Tfun (_, _, Simple) -> None
+    | Tvar { contents = Link typ } -> aux typ
     | t -> Some (var, t)
   in
   aux (Env.find var env)
 
 let rec param_funcs_as_closures = function
-  | TVar { contents = Link t } ->
+  | Tvar { contents = Link t } ->
       (* This shouldn't break type inference *) param_funcs_as_closures t
-  | TFun (_, _, Closure _) as t -> t
-  | TFun (params, ret, _) -> TFun (params, ret, Closure [])
+  | Tfun (_, _, Closure _) as t -> t
+  | Tfun (params, ret, _) -> Tfun (params, ret, Closure [])
   | t -> t
 
 let name_of_generic { concrete; generic } =
   let rec str_of_typ = function
-    | TInt -> "i"
-    | TBool -> "b"
-    | TUnit -> "u"
-    | TVar { contents = Unbound _ } -> "g"
-    | TVar { contents = Link t } -> str_of_typ t
-    | TVar { contents = Qannot _ } ->
+    | Tint -> "i"
+    | Tbool -> "b"
+    | Tunit -> "u"
+    | Tvar { contents = Unbound _ } -> "g"
+    | Tvar { contents = Link t } -> str_of_typ t
+    | Tvar { contents = Qannot _ } ->
         failwith "Internal Error: We should never need a generic name here"
-    | QVar _ -> "g"
-    | TFun (params, ret, _) ->
+    | Qvar _ -> "g"
+    | Tfun (params, ret, _) ->
         "."
         ^ String.concat "" (List.map str_of_typ params)
         ^ "." ^ str_of_typ ret ^ "."
-    | TRecord (param, name, labels) ->
+    | Trecord (param, name, labels) ->
         let some i = labels.(i) |> snd |> string_of_type in
         Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
   in
@@ -706,10 +706,10 @@ let name_of_generic { concrete; generic } =
 let needs_generic_wrap { generic; concrete } =
   let rec aux gen con =
     match (gen, con) with
-    | QVar _, QVar _ | QVar _, TVar { contents = Unbound _ } -> false
-    | TVar { contents = Link gen }, con -> aux gen con
-    | gen, TVar { contents = Link con } -> aux gen con
-    | QVar _, _ -> true
+    | Qvar _, Qvar _ | Qvar _, Tvar { contents = Unbound _ } -> false
+    | Tvar { contents = Link gen }, con -> aux gen con
+    | gen, Tvar { contents = Link con } -> aux gen con
+    | Qvar _, _ -> true
     | _, _ -> false
   in
   List.fold_left2
@@ -725,7 +725,7 @@ let needs_generic_wrap { generic; concrete } =
 let mark_generic_fun texpr gen_param =
   let generic_arg =
     match (gen_param, texpr.typ) with
-    | TFun (ps1, ret1, kind1), TFun (ps2, ret2, kind2) -> (
+    | Tfun (ps1, ret1, kind1), Tfun (ps2, ret2, kind2) -> (
         let generic = { tparams = ps1; ret = ret1; kind = kind1 } in
         let concrete = { tparams = ps2; ret = ret2; kind = kind2 } in
         let fun_piece = { generic; concrete } in
@@ -738,15 +738,15 @@ let mark_generic_fun texpr gen_param =
 
 let extend_generic_funs texprs = function
   (* At this point unification succeeded and we know the lengths match *)
-  | TFun (params, _, _) -> List.map2 mark_generic_fun texprs params
+  | Tfun (params, _, _) -> List.map2 mark_generic_fun texprs params
   | _ ->
       (* Another generic case hm *)
       List.map (fun t -> (t, None)) texprs
 
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
-  | Int (_, i) -> { typ = TInt; expr = Const (Int i) }
-  | Bool (_, b) -> { typ = TBool; expr = Const (Bool b) }
+  | Int (_, i) -> { typ = Tint; expr = Const (Int i) }
+  | Bool (_, b) -> { typ = Tbool; expr = Const (Bool b) }
   | Let (loc, x, e1, e2) -> convert_let env loc x e1 e2
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | Function (loc, func) -> convert_function env loc func
@@ -805,11 +805,11 @@ and convert_lambda env loc params ret_annot e =
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
 
-  let typ = TFun (params_t, body.typ, kind) |> generalize in
+  let typ = Tfun (params_t, body.typ, kind) |> generalize in
   match typ with
-  | TFun (tparams, ret, kind) ->
+  | Tfun (tparams, ret, kind) ->
       let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = TFun (qparams, ret, kind) |> generalize in
+      let qtyp = Tfun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
 
       let nparams = List.map fst params in
@@ -849,14 +849,14 @@ and convert_function env loc { name; params; return_annot; body; cont } =
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
 
-  let typ = TFun (params_t, body.typ, kind) |> generalize in
+  let typ = Tfun (params_t, body.typ, kind) |> generalize in
 
   match typ with
-  | TFun (tparams, ret, kind) ->
+  | Tfun (tparams, ret, kind) ->
       (* Make sure the types match *)
       unify (loc, "Function") (Env.find name env) typ;
       let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = TFun (qparams, ret, kind) |> generalize in
+      let qtyp = Tfun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
 
       let nparams = List.map fst params in
@@ -875,7 +875,7 @@ and convert_app env loc e1 args =
   let args_t = List.map (fun a -> a.typ) typed_exprs in
   let args_frozen = List.map freeze args_t in
   let res_t = newvar () in
-  unify (loc, "Application") callee.typ (TFun (args_t, res_t, Simple));
+  unify (loc, "Application") callee.typ (Tfun (args_t, res_t, Simple));
 
   (* Apply the 'result' of the unification the the typed_expr *)
   let apply typ texpr = { texpr with typ } in
@@ -893,24 +893,24 @@ and convert_bop env loc bop e1 e2 =
     let t1 = convert env e1 in
     let t2 = convert env e2 in
 
-    unify (loc, "Binary " ^ string_of_bop bop) t1.typ TInt;
-    unify (loc, "Binary " ^ string_of_bop bop) t2.typ TInt;
+    unify (loc, "Binary " ^ string_of_bop bop) t1.typ Tint;
+    unify (loc, "Binary " ^ string_of_bop bop) t2.typ Tint;
     (t1, t2)
   in
 
   match bop with
   | Ast.Plus | Mult | Minus ->
       let t1, t2 = check () in
-      { typ = TInt; expr = Bop (bop, t1, t2) }
+      { typ = Tint; expr = Bop (bop, t1, t2) }
   | Less | Equal ->
       let t1, t2 = check () in
-      { typ = TBool; expr = Bop (bop, t1, t2) }
+      { typ = Tbool; expr = Bop (bop, t1, t2) }
 
 and convert_if env loc cond e1 e2 =
   (* We can assume pred evaluates to bool and both
      branches need to evaluate to the some type *)
   let type_cond = convert env cond in
-  unify (loc, "In condition") type_cond.typ TBool;
+  unify (loc, "In condition") type_cond.typ Tbool;
   let type_e1 = convert env e1 in
   let type_e2 = convert env e2 in
   let typ = newvar () in
@@ -940,14 +940,14 @@ and convert_record env loc labels =
               raise (Error (loc, msg)) ))
       (labels |> Array.to_list)
   in
-  let typ = TRecord (param, name, labels) |> generalize in
+  let typ = Trecord (param, name, labels) |> generalize in
   Env.maybe_add_record_instance (string_of_type typ) ~param typ env;
   { typ; expr = Record sorted_labels }
 
 and convert_field env loc expr id =
   let expr = convert env expr in
   match clean expr.typ with
-  | TRecord (_, name, labels) -> (
+  | Trecord (_, name, labels) -> (
       match assoc_opti id labels with
       | Some (index, typ) -> { typ; expr = Field (expr, index) }
       | None ->
@@ -963,7 +963,7 @@ and convert_field env loc expr id =
 
 and convert_sequence env loc expr cont =
   let expr = convert env expr in
-  unify (loc, "Left expression in sequence must be type unit:") TUnit expr.typ;
+  unify (loc, "Left expression in sequence must be type unit:") Tunit expr.typ;
   let cont = convert env cont in
   { typ = cont.typ; expr = Sequence (expr, cont) }
 

@@ -1,11 +1,11 @@
 type typ =
-  | TInt
-  | TBool
-  | TUnit
-  | TVar of tv ref
-  | QVar of string
-  | TFun of typ list * typ * fun_kind
-  | TRecord of int option * string * (string * typ) array
+  | Tint
+  | Tbool
+  | Tunit
+  | Tvar of tv ref
+  | Qvar of string
+  | Tfun of typ list * typ * fun_kind
+  | Trecord of int option * string * (string * typ) array
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
@@ -13,21 +13,21 @@ and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ | Qannot of string
 
 let rec clean = function
-  | TVar { contents = Link t } -> clean t
-  | TFun (params, ret, Closure vals) ->
+  | Tvar { contents = Link t } -> clean t
+  | Tfun (params, ret, Closure vals) ->
       let vals = List.map (fun (name, typ) -> (name, clean typ)) vals in
-      TFun (List.map clean params, clean ret, Closure vals)
-  | TFun (params, ret, kind) -> TFun (List.map clean params, clean ret, kind)
-  | TRecord (param, name, fields) ->
-      TRecord
+      Tfun (List.map clean params, clean ret, Closure vals)
+  | Tfun (params, ret, kind) -> Tfun (List.map clean params, clean ret, kind)
+  | Trecord (param, name, fields) ->
+      Trecord
         (param, name, Array.map (fun (name, typ) -> (name, clean typ)) fields)
   | t -> t
 
 let rec freeze = function
-  | TVar { contents = Unbound (str, _) } -> QVar str
-  | TVar { contents = Link t } -> freeze t
-  | TFun (params, ret, kind) -> TFun (List.map freeze params, freeze ret, kind)
-  | TRecord (param, name, fields) ->
+  | Tvar { contents = Unbound (str, _) } -> Qvar str
+  | Tvar { contents = Link t } -> freeze t
+  | Tfun (params, ret, kind) -> Tfun (List.map freeze params, freeze ret, kind)
+  | Trecord (param, name, fields) ->
       let fields = Array.map (fun (name, typ) -> (name, freeze typ)) fields in
-      TRecord (param, name, fields)
+      Trecord (param, name, fields)
   | t -> t

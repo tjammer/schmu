@@ -33,7 +33,7 @@ let add_type key t env =
   { env with types }
 
 let add_record record ~param ~labels env =
-  let typ = TRecord (param, record, labels) in
+  let typ = Trecord (param, record, labels) in
   let _, labels =
     Array.fold_left
       (fun (index, labels) (lname, typ) ->
@@ -95,18 +95,18 @@ let find_type key env = Map.find key env.types
 
 let query_type ~newvar key env =
   match Map.find key env.types with
-  | TRecord (Some i, name, labels) ->
+  | Trecord (Some i, name, labels) ->
       let labels = Array.copy labels in
       let lname, _ = labels.(i) in
       labels.(i) <- (lname, newvar ());
-      TRecord (Some i, name, labels)
+      Trecord (Some i, name, labels)
   | t -> t
 
 let find_label_opt key env = Map.find_opt key env.labels
 
 let records env =
   Map.filter
-    (fun _ typ -> match typ with TRecord _ -> true | _ -> false)
+    (fun _ typ -> match typ with Trecord _ -> true | _ -> false)
     env.types
   |> Map.bindings |> List.split |> snd
   |> (* Add instances *)
