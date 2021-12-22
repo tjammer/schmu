@@ -1,0 +1,9 @@
+external printi : int -> unit
+
+type 'a misaligned = { fst : bool, gen : 'a }
+
+function gen(any)
+  any.gen
+
+m = { fst = true, gen = 30 }
+printi(gen(m))

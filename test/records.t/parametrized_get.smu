@@ -12,7 +12,7 @@ function third(any)
   if any.third then printi(1)
   else printi(0)
 
-int_t = { null = 0, first = 700, gen = 20, third = false }
+int_t = { null = 0, first = 700, gen = 20, third = true }
 
 first(int_t) >>
 third(int_t) >>

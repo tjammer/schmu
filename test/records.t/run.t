@@ -230,3 +230,171 @@ Pass generic record
   unit
   700
   234
+
+Access parametrized record fields
+  $ schmu parametrized_get.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %generic_t = type opaque
+  %generic = type opaque
+  %int_t = type { i32, i32, i32, i1 }
+  
+  declare void @printi(i32 %0)
+  
+  define private void @third(%generic_t* %any, i64 %__0) {
+  entry:
+    %0 = bitcast %generic_t* %any to i8*
+    %sub = sub i64 %__0, 1
+    %div = udiv i64 %sub, %__0
+    %alignup = mul i64 %div, %__0
+    %size = add i64 %__0, %alignup
+    %cmp = icmp slt i64 1, %__0
+    %align = select i1 %cmp, i64 %__0, i64 1
+    %sum1 = add i64 %size, %align
+    %sub2 = sub i64 %sum1, 1
+    %div3 = udiv i64 %sub2, %align
+    %alignup4 = mul i64 %div3, %align
+    %sum5 = add i64 8, %alignup4
+    %sub6 = sub i64 %sum5, 1
+    %div7 = udiv i64 %sub6, %alignup4
+    %alignup8 = mul i64 %div7, %alignup4
+    %size9 = add i64 %alignup4, %alignup8
+    %cmp10 = icmp slt i64 1, %alignup4
+    %align11 = select i1 %cmp10, i64 %alignup4, i64 1
+    %sum12 = add i64 %size9, 1
+    %1 = getelementptr inbounds i8, i8* %0, i64 %size9
+    %2 = bitcast i8* %1 to i1*
+    %3 = load i1, i1* %2, align 1
+    br i1 %3, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    tail call void @printi(i32 1)
+    ret void
+  
+  else:                                             ; preds = %entry
+    tail call void @printi(i32 0)
+    ret void
+  }
+  
+  define private void @gen(%generic* %0, %generic_t* %any, i64 %__0) {
+  entry:
+    %1 = bitcast %generic_t* %any to i8*
+    %sub = sub i64 %__0, 1
+    %div = udiv i64 %sub, %__0
+    %alignup = mul i64 %div, %__0
+    %size = add i64 %__0, %alignup
+    %cmp = icmp slt i64 1, %__0
+    %align = select i1 %cmp, i64 %__0, i64 1
+    %sum1 = add i64 %size, %align
+    %sub2 = sub i64 %sum1, 1
+    %div3 = udiv i64 %sub2, %align
+    %alignup4 = mul i64 %div3, %align
+    %sum5 = add i64 8, %alignup4
+    %sub6 = sub i64 %sum5, 1
+    %div7 = udiv i64 %sub6, %alignup4
+    %alignup8 = mul i64 %div7, %alignup4
+    %2 = getelementptr inbounds i8, i8* %1, i64 %alignup8
+    %3 = bitcast %generic* %0 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %2, i64 %__0, i1 false)
+    ret void
+  }
+  
+  define private void @first(%generic_t* %any, i64 %__0) {
+  entry:
+    %0 = bitcast %generic_t* %any to i8*
+    %1 = getelementptr inbounds i8, i8* %0, i64 4
+    %2 = bitcast i8* %1 to i32*
+    %3 = load i32, i32* %2, align 4
+    tail call void @printi(i32 %3)
+    ret void
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define i32 @main(i32 %0) {
+  entry:
+    %1 = alloca %int_t, align 8
+    %null4 = bitcast %int_t* %1 to i32*
+    store i32 0, i32* %null4, align 4
+    %first = getelementptr inbounds %int_t, %int_t* %1, i32 0, i32 1
+    store i32 700, i32* %first, align 4
+    %gen = getelementptr inbounds %int_t, %int_t* %1, i32 0, i32 2
+    store i32 20, i32* %gen, align 4
+    %third = getelementptr inbounds %int_t, %int_t* %1, i32 0, i32 3
+    store i1 true, i1* %third, align 1
+    %gencast = bitcast %int_t* %1 to %generic_t*
+    call void @first(%generic_t* %gencast, i64 4)
+    call void @third(%generic_t* %gencast, i64 4)
+    %ret = alloca i8, i64 4, align 16
+    %ret3 = bitcast i8* %ret to %generic*
+    call void @gen(%generic* %ret3, %generic_t* %gencast, i64 4)
+    %2 = bitcast %generic* %ret3 to i32*
+    %realret = load i32, i32* %2, align 4
+    call void @printi(i32 %realret)
+    ret i32 0
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  unit
+  700
+  1
+  20
+
+Make sure alignment of generic param works
+  $ schmu misaligned_get.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %generic = type opaque
+  %generic_misaligned = type opaque
+  %int_misaligned = type { i1, i32 }
+  
+  declare void @printi(i32 %0)
+  
+  define private void @gen(%generic* %0, %generic_misaligned* %any, i64 %__0) {
+  entry:
+    %1 = bitcast %generic_misaligned* %any to i8*
+    %sub = sub i64 %__0, 1
+    %div = udiv i64 %sub, %__0
+    %alignup = mul i64 %div, %__0
+    %size = add i64 %__0, %alignup
+    %cmp = icmp slt i64 1, %__0
+    %align = select i1 %cmp, i64 %__0, i64 1
+    %sum1 = add i64 %size, %align
+    %sub2 = sub i64 %sum1, 1
+    %div3 = udiv i64 %sub2, %align
+    %alignup4 = mul i64 %div3, %align
+    %sum5 = add i64 1, %alignup4
+    %2 = getelementptr inbounds i8, i8* %1, i64 %alignup4
+    %3 = bitcast %generic* %0 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %2, i64 %__0, i1 false)
+    ret void
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define i32 @main(i32 %0) {
+  entry:
+    %1 = alloca %int_misaligned, align 8
+    %fst2 = bitcast %int_misaligned* %1 to i1*
+    store i1 true, i1* %fst2, align 1
+    %gen = getelementptr inbounds %int_misaligned, %int_misaligned* %1, i32 0, i32 1
+    store i32 30, i32* %gen, align 4
+    %gencast = bitcast %int_misaligned* %1 to %generic_misaligned*
+    %ret = alloca i8, i64 4, align 16
+    %ret1 = bitcast i8* %ret to %generic*
+    call void @gen(%generic* %ret1, %generic_misaligned* %gencast, i64 4)
+    %2 = bitcast %generic* %ret1 to i32*
+    %realret = load i32, i32* %2, align 4
+    call void @printi(i32 %realret)
+    ret i32 0
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  unit
+  30
