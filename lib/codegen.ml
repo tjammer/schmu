@@ -196,28 +196,74 @@ let to_named_records = function
       Strtbl.add record_tbl name t
   | _ -> failwith "Internal Error: Only records should be here"
 
-let alignup ~size ~upto =
+let alignup_static ~size ~upto =
   let modulo = size mod upto in
   if Int.equal modulo 0 then (* We are aligned *)
     size else size + (upto - modulo)
 
-let sizeof_typ typ =
-  let rec inner ~size ~align = function
-    | Tint -> (alignup ~size ~upto:4 + 4, max align 4)
-    | Tbool -> (alignup ~size ~upto:1 + 1, max align 1)
+type 'a size_pr = { size : 'a; align : 'a }
+
+type size = Static of int size_pr | Dynamic of Llvm.llvalue size_pr
+
+let build_dynamic_alignup ~size ~upto =
+  let sum = Llvm.build_add size upto "sum" builder in
+  let sub = Llvm.build_sub sum (Llvm.const_int num_type 1) "sub" builder in
+  let div = Llvm.build_udiv sub upto "div" builder in
+  Llvm.build_mul div upto "alignup" builder
+
+let build_dynamic_size_align { size; align } ~upto =
+  let alignedup = build_dynamic_alignup ~size ~upto in
+  let size = Llvm.build_add alignedup size "size" builder in
+
+  let cmp = Llvm.(build_icmp Icmp.Slt align upto "cmp") builder in
+  let align = Llvm.build_select cmp upto align "align" builder in
+  { size; align }
+
+let calc_size_align ~upto = function
+  | Static { size; align } ->
+      let size = alignup_static ~size ~upto + upto in
+      let align = max align upto in
+      Static { size; align }
+  | Dynamic pair ->
+      let upto = Llvm.const_int num_type upto in
+      Dynamic (build_dynamic_size_align ~upto pair)
+
+let sizeof_typ vars typ =
+  let rec inner size_pr typ =
+    match typ with
+    | Tint -> calc_size_align ~upto:4 size_pr
+    | Tbool -> (
+        (* No need to align one byte *)
+        match size_pr with
+        | Static { size; align } -> Static { size = size + 1; align }
+        | Dynamic { size; align } ->
+            let byte_size = Llvm.const_int num_type 1 in
+            let size = Llvm.build_add size byte_size "add" builder in
+            Dynamic { size; align })
     | Tunit -> failwith "Does this make sense?"
-    | Tvar { contents = Link t } -> inner ~size ~align t
+    | Tvar { contents = Link t } -> inner size_pr t
     | Tfun _ ->
-        (* Just a ptr? Assume 64bit *) (alignup ~size ~upto:8 + 8, max align 8)
-    | Trecord _ as t when is_generic_record t -> failwith "TODO gen rec size"
+        (* Just a ptr? Assume 64bit *)
+        calc_size_align ~upto:8 size_pr
     | Trecord (_, _, labels) ->
-        Array.fold_left
-          (fun (size, align) (_, t) -> inner ~size ~align t)
-          (size, align) labels
-    | Qvar _ | Tvar _ -> failwith "too generic for a size"
+        Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
+    | Qvar id -> (
+        match (Vars.find_opt (poly_name id) vars, size_pr) with
+        | Some upto, Static { size; align } ->
+            (* We need to change size and align to llvalues, then continue dynamically *)
+            let size = Llvm.const_int num_type size in
+            let align = Llvm.const_int num_type align in
+            calc_size_align ~upto (Dynamic { size; align })
+        | Some upto, Dynamic _ ->
+            (* Carry on *)
+            calc_size_align ~upto size_pr
+        | None, _ -> failwith ("Cannot find Qvar id: " ^ id))
+    | Tvar _ -> failwith "too generic for a size"
   in
-  let size, upto = inner ~size:0 ~align:1 typ in
-  alignup ~size ~upto
+  match inner (Static { size = 0; align = 1 }) typ with
+  | Static { size; align = upto } ->
+      alignup_static ~size ~upto |> Llvm.const_int num_type
+  | Dynamic { size; align = upto } -> build_dynamic_alignup ~size ~upto
 
 (* Returns offset to [label] at [index] in byte *)
 let offset_of ~labels index =
