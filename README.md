@@ -65,7 +65,7 @@ This means all the basic features one might expect from a functional language ar
 + **Simple**
 schmu is a small and simple language.
 Apart from parametric polymorphism (and hopefully a robust module system in the future), there are no advanced features like GADTs or type classes, not even operator overloading.
-The goal is to strike a balance between keeping the user focused on writing clean abstractions without getting bogged down in type level trickery, while at the same time providing an expressive type system that doesn't feel like it's holding them back from being productive.
+The goal is to strike a balance between keeping the user focused on writing clean abstractions without overwhelming them with many competing options, while at the same time providing an expressive type system that doesn't feel like it's holding them back from being productive.
 
 
 + **Practical**
