@@ -277,11 +277,16 @@ let sizeof_typ vars typ =
     | Qvar id -> (
         match (Vars.find_opt (poly_name id) vars, size_pr) with
         | Some upto, Static { size; align } ->
-            (* TODO add size 0 shortcut *)
             (* We need to change size and align to llvalues, then continue dynamically *)
-            let size = Llvm.const_int num_type size in
-            let align = Llvm.const_int num_type align in
-            add_size_align ~upto:(Dynamic' upto.value) (Dynamic { size; align })
+            if size = 0 then
+              (* If we are at the beginning of a structure, we are already aligned *)
+              Dynamic { size = upto.value; align = upto.value }
+            else
+              let size = Llvm.const_int num_type size in
+              let align = Llvm.const_int num_type align in
+
+              add_size_align ~upto:(Dynamic' upto.value)
+                (Dynamic { size; align })
         | Some upto, Dynamic _ ->
             (* Carry on *)
             add_size_align ~upto:(Dynamic' upto.value) size_pr
@@ -291,7 +296,9 @@ let sizeof_typ vars typ =
   match inner (Static { size = 0; align = 1 }) typ with
   | Static { size; align = upto } -> Static' (alignup_static ~size ~upto)
   | Dynamic { size; align = upto } ->
-      Dynamic' (build_dynamic_alignup ~size ~upto)
+      (* If there is only one (dynamic) item, we are already aligned *)
+      if size <> upto then Dynamic' (build_dynamic_alignup ~size ~upto)
+      else Dynamic' size
 
 let llval_of_upto = function
   | Static' size -> Llvm.const_int num_type size
@@ -645,7 +652,6 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
   | Trecord _ ->
       let lltyp = get_lltype ~param:false ret in
       let retval = Llvm.build_alloca lltyp "ret" builder in
-      (* TODO pass poly args? *)
       let ret' = Seq.return retval in
       let args = ret' ++ args ++ poly_args ++ envarg |> Array.of_seq in
       ignore (Llvm.build_call funcval args "" builder);

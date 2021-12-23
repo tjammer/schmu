@@ -246,25 +246,15 @@ Access parametrized record fields
   define private void @third(%generic_t* %any, i64 %__0) {
   entry:
     %0 = bitcast %generic_t* %any to i8*
-    %sub = sub i64 %__0, 1
+    %sum = add i64 8, %__0
+    %sub = sub i64 %sum, 1
     %div = udiv i64 %sub, %__0
     %alignup = mul i64 %div, %__0
     %size = add i64 %__0, %alignup
     %cmp = icmp slt i64 1, %__0
     %align = select i1 %cmp, i64 %__0, i64 1
-    %sum1 = add i64 %size, %align
-    %sub2 = sub i64 %sum1, 1
-    %div3 = udiv i64 %sub2, %align
-    %alignup4 = mul i64 %div3, %align
-    %sum5 = add i64 8, %alignup4
-    %sub6 = sub i64 %sum5, 1
-    %div7 = udiv i64 %sub6, %alignup4
-    %alignup8 = mul i64 %div7, %alignup4
-    %size9 = add i64 %alignup4, %alignup8
-    %cmp10 = icmp slt i64 1, %alignup4
-    %align11 = select i1 %cmp10, i64 %alignup4, i64 1
-    %sum12 = add i64 %size9, 1
-    %1 = getelementptr inbounds i8, i8* %0, i64 %size9
+    %sum1 = add i64 %size, 1
+    %1 = getelementptr inbounds i8, i8* %0, i64 %size
     %2 = bitcast i8* %1 to i1*
     %3 = load i1, i1* %2, align 1
     br i1 %3, label %then, label %else
@@ -281,21 +271,11 @@ Access parametrized record fields
   define private void @gen(%generic* %0, %generic_t* %any, i64 %__0) {
   entry:
     %1 = bitcast %generic_t* %any to i8*
-    %sub = sub i64 %__0, 1
+    %sum = add i64 8, %__0
+    %sub = sub i64 %sum, 1
     %div = udiv i64 %sub, %__0
     %alignup = mul i64 %div, %__0
-    %size = add i64 %__0, %alignup
-    %cmp = icmp slt i64 1, %__0
-    %align = select i1 %cmp, i64 %__0, i64 1
-    %sum1 = add i64 %size, %align
-    %sub2 = sub i64 %sum1, 1
-    %div3 = udiv i64 %sub2, %align
-    %alignup4 = mul i64 %div3, %align
-    %sum5 = add i64 8, %alignup4
-    %sub6 = sub i64 %sum5, 1
-    %div7 = udiv i64 %sub6, %alignup4
-    %alignup8 = mul i64 %div7, %alignup4
-    %2 = getelementptr inbounds i8, i8* %1, i64 %alignup8
+    %2 = getelementptr inbounds i8, i8* %1, i64 %alignup
     %3 = bitcast %generic* %0 to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %2, i64 %__0, i1 false)
     ret void
@@ -358,18 +338,8 @@ Make sure alignment of generic param works
   define private void @gen(%generic* %0, %generic_misaligned* %any, i64 %__0) {
   entry:
     %1 = bitcast %generic_misaligned* %any to i8*
-    %sub = sub i64 %__0, 1
-    %div = udiv i64 %sub, %__0
-    %alignup = mul i64 %div, %__0
-    %size = add i64 %__0, %alignup
-    %cmp = icmp slt i64 1, %__0
-    %align = select i1 %cmp, i64 %__0, i64 1
-    %sum1 = add i64 %size, %align
-    %sub2 = sub i64 %sum1, 1
-    %div3 = udiv i64 %sub2, %align
-    %alignup4 = mul i64 %div3, %align
-    %sum5 = add i64 1, %alignup4
-    %2 = getelementptr inbounds i8, i8* %1, i64 %alignup4
+    %sum = add i64 1, %__0
+    %2 = getelementptr inbounds i8, i8* %1, i64 %__0
     %3 = bitcast %generic* %0 to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %2, i64 %__0, i1 false)
     ret void
