@@ -237,11 +237,38 @@ Access parametrized record fields
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %generic_t = type opaque
+  %generic_gen_first = type opaque
   %generic = type opaque
+  %generic_t = type opaque
   %int_t = type { i32, i32, i32, i1 }
+  %int_gen_first = type { i32, i1 }
   
   declare void @printi(i32 %0)
+  
+  define private void @is(%generic_gen_first* %any, i64 %__1) {
+  entry:
+    %0 = bitcast %generic_gen_first* %any to i8*
+    %sub = sub i64 %__1, 1
+    %div = udiv i64 %sub, %__1
+    %alignup = mul i64 %div, %__1
+    %size = add i64 %__1, %alignup
+    %cmp = icmp slt i64 1, %__1
+    %align = select i1 %cmp, i64 %__1, i64 1
+    %sum1 = add i64 %size, 1
+    %1 = getelementptr inbounds i8, i8* %0, i64 %size
+    %2 = bitcast i8* %1 to i1*
+    %3 = load i1, i1* %2, align 1
+    tail call void @print_bool(i1 %3)
+    ret void
+  }
+  
+  define private void @only(%generic* %0, %generic_gen_first* %any, i64 %__1) {
+  entry:
+    %1 = bitcast %generic_gen_first* %any to i8*
+    %2 = bitcast %generic* %0 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %1, i64 %__1, i1 false)
+    ret void
+  }
   
   define private void @third(%generic_t* %any, i64 %__0) {
   entry:
@@ -257,14 +284,7 @@ Access parametrized record fields
     %1 = getelementptr inbounds i8, i8* %0, i64 %size
     %2 = bitcast i8* %1 to i1*
     %3 = load i1, i1* %2, align 1
-    br i1 %3, label %then, label %else
-  
-  then:                                             ; preds = %entry
-    tail call void @printi(i32 1)
-    ret void
-  
-  else:                                             ; preds = %entry
-    tail call void @printi(i32 0)
+    tail call void @print_bool(i1 %3)
     ret void
   }
   
@@ -291,29 +311,55 @@ Access parametrized record fields
     ret void
   }
   
+  define private void @print_bool(i1 %b) {
+  entry:
+    br i1 %b, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    tail call void @printi(i32 1)
+    ret void
+  
+  else:                                             ; preds = %entry
+    tail call void @printi(i32 0)
+    ret void
+  }
+  
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i32 @main(i32 %0) {
   entry:
     %1 = alloca %int_t, align 8
-    %null4 = bitcast %int_t* %1 to i32*
-    store i32 0, i32* %null4, align 4
+    %null9 = bitcast %int_t* %1 to i32*
+    store i32 0, i32* %null9, align 4
     %first = getelementptr inbounds %int_t, %int_t* %1, i32 0, i32 1
     store i32 700, i32* %first, align 4
     %gen = getelementptr inbounds %int_t, %int_t* %1, i32 0, i32 2
     store i32 20, i32* %gen, align 4
     %third = getelementptr inbounds %int_t, %int_t* %1, i32 0, i32 3
     store i1 true, i1* %third, align 1
+    %2 = alloca %int_gen_first, align 8
+    %only10 = bitcast %int_gen_first* %2 to i32*
+    store i32 420, i32* %only10, align 4
+    %is = getelementptr inbounds %int_gen_first, %int_gen_first* %2, i32 0, i32 1
+    store i1 false, i1* %is, align 1
     %gencast = bitcast %int_t* %1 to %generic_t*
     call void @first(%generic_t* %gencast, i64 4)
     call void @third(%generic_t* %gencast, i64 4)
     %ret = alloca i8, i64 4, align 16
     %ret3 = bitcast i8* %ret to %generic*
     call void @gen(%generic* %ret3, %generic_t* %gencast, i64 4)
-    %2 = bitcast %generic* %ret3 to i32*
-    %realret = load i32, i32* %2, align 4
+    %3 = bitcast %generic* %ret3 to i32*
+    %realret = load i32, i32* %3, align 4
     call void @printi(i32 %realret)
+    %gencast4 = bitcast %int_gen_first* %2 to %generic_gen_first*
+    %ret5 = alloca i8, i64 4, align 16
+    %ret6 = bitcast i8* %ret5 to %generic*
+    call void @only(%generic* %ret6, %generic_gen_first* %gencast4, i64 4)
+    %4 = bitcast %generic* %ret6 to i32*
+    %realret7 = load i32, i32* %4, align 4
+    call void @printi(i32 %realret7)
+    call void @is(%generic_gen_first* %gencast4, i64 4)
     ret i32 0
   }
   
@@ -322,6 +368,8 @@ Access parametrized record fields
   700
   1
   20
+  420
+  0
 
 Make sure alignment of generic param works
   $ schmu misaligned_get.smu | grep -v x86_64 && cc out.o stub.o && ./a.out

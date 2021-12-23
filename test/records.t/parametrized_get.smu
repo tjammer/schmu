@@ -2,6 +2,12 @@ external printi : int -> unit
 
 type 'a t = { null : int, first : int, gen : 'a, third : bool }
 
+type 'a gen_first = { only : 'a, is : bool }
+
+function print_bool(b)
+  if b then printi(1)
+  else printi(0)
+
 function first(any)
   printi(any.first)
 
@@ -9,11 +15,19 @@ function gen(any)
   any.gen
 
 function third(any)
-  if any.third then printi(1)
-  else printi(0)
+  print_bool(any.third)
+
+function only(any)
+  any.only
+
+function is(any)
+  print_bool(any.is)
 
 int_t = { null = 0, first = 700, gen = 20, third = true }
+f = { only = 420, is = false }
 
 first(int_t) >>
 third(int_t) >>
-printi(gen(int_t))
+printi(gen(int_t)) >>
+printi(only(f)) >>
+is(f)
