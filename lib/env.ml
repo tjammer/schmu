@@ -43,10 +43,18 @@ let add_record record ~param ~labels env =
   let types = Map.add record typ env.types in
   { env with labels; types }
 
-let maybe_add_record_instance key ~(param : int option) typ env =
-  match (Map.find_opt key !(env.instances), param) with
-  | Some _, _ | None, None -> ()
-  | None, Some _ -> env.instances := Map.add key typ !(env.instances)
+let maybe_add_record_instance key typ env =
+  (* We reject generic records with unbound variables *)
+  let is_unbound i labels =
+    match labels.(i) |> snd with
+    | Tvar { contents = Unbound _ } -> true
+    | _ -> false
+  in
+  match (Map.find_opt key !(env.instances), typ) with
+  | None, Trecord (Some i, _, labels) when is_unbound i labels -> ()
+  | None, Trecord (Some _, _, _) ->
+      env.instances := Map.add key typ !(env.instances)
+  | Some _, _ | None, _ -> ()
 
 let new_scope env =
   (* Due to the ref, we have to create a new object every time *)

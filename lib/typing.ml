@@ -679,6 +679,7 @@ let rec param_funcs_as_closures = function
   | t -> t
 
 let name_of_generic { concrete; generic } =
+  (* TODO indicate different Qvars, like for printing *)
   let rec str_of_typ = function
     | Tint -> "i"
     | Tbool -> "b"
@@ -693,7 +694,7 @@ let name_of_generic { concrete; generic } =
         ^ String.concat "" (List.map str_of_typ params)
         ^ "." ^ str_of_typ ret ^ "."
     | Trecord (param, name, labels) ->
-        let some i = labels.(i) |> snd |> string_of_type in
+        let some i = labels.(i) |> snd |> str_of_typ in
         Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
   in
 
@@ -941,7 +942,7 @@ and convert_record env loc labels =
       (labels |> Array.to_list)
   in
   let typ = Trecord (param, name, labels) |> generalize in
-  Env.maybe_add_record_instance (string_of_type typ) ~param typ env;
+  Env.maybe_add_record_instance (string_of_type typ) typ env;
   { typ; expr = Record sorted_labels }
 
 and convert_field env loc expr id =

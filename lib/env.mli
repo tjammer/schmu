@@ -17,7 +17,7 @@ val add_record :
 (** [add record record_name ~param ~labels env] returns an env with anadded record named [record_name]
      optionally parametrized by [param] with typed [labels] *)
 
-val maybe_add_record_instance : key -> param:int option -> typ -> t -> unit
+val maybe_add_record_instance : key -> typ -> t -> unit
 (** [maybe_add_record_instance record_name ~param typ] mutably adds a concrete parametrization
          of a record if [param] is Some type and the same instance has not already been added  *)
 
