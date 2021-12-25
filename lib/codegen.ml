@@ -226,6 +226,10 @@ type size = Static of int size_pr | Dynamic of Llvm.llvalue size_pr
 
 type upto = Static' of int | Dynamic' of Llvm.llvalue
 
+(* TODO size and alignment calculations are broken
+   1. A function passed as a closure is not 8 bytes, but 16 (2 * 8 bytes)
+   2. The alignment is different from the size. We have to keep align and size separate in [upto] *)
+
 let build_dynamic_alignup ~size ~upto =
   let sum = Llvm.build_add size upto "sum" builder in
   let sub = Llvm.build_sub sum (Llvm.const_int num_type 1) "sub" builder in
@@ -295,19 +299,22 @@ let sizeof_typ vars typ =
     | Qvar id -> (
         match (Vars.find_opt (poly_name id) vars, size_pr) with
         | Some upto, Static { size; align } ->
+            (* upto is a pointer, so we need to load the size first *)
+            (* TODO is there a case where we have a local variable here? *)
+            let upto = get_poly_size 0 upto.value in
             (* We need to change size and align to llvalues, then continue dynamically *)
             if size = 0 then
               (* If we are at the beginning of a structure, we are already aligned *)
-              Dynamic { size = upto.value; align = upto.value }
+              Dynamic { size = upto; align = upto }
             else
               let size = Llvm.const_int num_type size in
               let align = Llvm.const_int num_type align in
 
-              add_size_align ~upto:(Dynamic' upto.value)
-                (Dynamic { size; align })
+              add_size_align ~upto:(Dynamic' upto) (Dynamic { size; align })
         | Some upto, Dynamic _ ->
             (* Carry on *)
-            add_size_align ~upto:(Dynamic' upto.value) size_pr
+            let upto = get_poly_size 0 upto.value in
+            add_size_align ~upto:(Dynamic' upto) size_pr
         | None, _ -> failwith ("Cannot find Qvar id: " ^ id))
     | Tvar _ -> failwith "too generic for a size"
   in
@@ -605,6 +612,8 @@ let rec add_poly_args vars poly_args param arg =
       (* Local poly var *)
       let name = poly_name id in
       let mkvar () =
+        (* TODO Check if an arg with the same type exists and reuse the ptr.
+           This should save a couple of redundant alloctations. *)
         (sizeof_typ vars t |> llval_of_upto |> poly_arg_of_size, Local t)
       in
       add_poly_arg poly_args name mkvar
@@ -1150,7 +1159,7 @@ and codegen_record vars typ labels =
   let record = Llvm.build_alloca lltyp "" builder in
   List.iteri
     (fun i (name, expr) ->
-       let ptr = Llvm.build_struct_gep record i name builder in
+      let ptr = Llvm.build_struct_gep record i name builder in
       let value = gen_expr vars expr in
       match value.typ with
       | Trecord _ -> memcpy vars ~dst:ptr ~src:value
