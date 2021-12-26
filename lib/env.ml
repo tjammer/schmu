@@ -1,4 +1,22 @@
 open Types
+
+module TypeKey = struct
+  (* We have to remember the order of type declaration *)
+  let state = ref 0
+
+  type t = { key : string; ord : int }
+
+  let compare a b = String.compare a.key b.key
+
+  let cmp_sort (a, _) (b, _) = Int.compare a.ord b.ord
+
+  let create key =
+    let ord = !state in
+    incr state;
+    { key; ord }
+end
+
+module TMap = Map.Make (TypeKey)
 module Map = Map.Make (String)
 
 type key = string
@@ -8,7 +26,7 @@ type label = { typ : typ; index : int; record : string }
 type t = {
   values : (typ Map.t * string list ref) list;
   labels : label Map.t;
-  types : typ Map.t;
+  types : typ TMap.t;
   (* The record types are saved in their most general form.
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
@@ -19,7 +37,7 @@ let empty =
   {
     values = [ (Map.empty, ref []) ];
     labels = Map.empty;
-    types = Map.empty;
+    types = TMap.empty;
     instances = ref Map.empty;
   }
 
@@ -29,7 +47,8 @@ let add_value key vl env =
   | (hd, cls) :: tl -> { env with values = (Map.add key vl hd, cls) :: tl }
 
 let add_type key t env =
-  let types = Map.add key t env.types in
+  let key = TypeKey.create key in
+  let types = TMap.add key t env.types in
   { env with types }
 
 let add_record record ~param ~labels env =
@@ -40,7 +59,8 @@ let add_record record ~param ~labels env =
         (index + 1, Map.add lname { typ; index; record } labels))
       (0, env.labels) labels
   in
-  let types = Map.add record typ env.types in
+  let record = TypeKey.create record in
+  let types = TMap.add record typ env.types in
   { env with labels; types }
 
 let maybe_add_record_instance key typ env =
@@ -97,12 +117,12 @@ let find key env =
   in
   aux env.values
 
-let find_type_opt key env = Map.find_opt key env.types
+let find_type_opt key env = TMap.find_opt (TypeKey.create key) env.types
 
-let find_type key env = Map.find key env.types
+let find_type key env = TMap.find (TypeKey.create key) env.types
 
 let query_type ~newvar key env =
-  match Map.find key env.types with
+  match TMap.find (TypeKey.create key) env.types with
   | Trecord (Some i, name, labels) ->
       let labels = Array.copy labels in
       let lname, _ = labels.(i) in
@@ -113,13 +133,13 @@ let query_type ~newvar key env =
 let find_label_opt key env = Map.find_opt key env.labels
 
 let records env =
-  Map.filter
+  TMap.filter
     (fun _ typ -> match typ with Trecord _ -> true | _ -> false)
     env.types
-  |> Map.bindings |> List.split |> snd
+  |> TMap.bindings |> List.sort TypeKey.cmp_sort
+  |> List.map (fun ({ TypeKey.key; ord = _ }, v) -> (key, v))
+  |> List.split |> snd
   |> (* Add instances *)
   fun generics ->
-  Map.fold
-    (fun _ t acc -> t :: acc)
-    !(env.instances)
-    (* We reverse to preserve the declaration order *) (List.rev generics)
+  let instances = Map.fold (fun _ t acc -> t :: acc) !(env.instances) [] in
+  generics @ instances
