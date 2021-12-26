@@ -125,6 +125,9 @@ let rec add_poly_vars poly_vars = function
       add_poly_vars poly_vars r
   | Tvar { contents = Link t } -> add_poly_vars poly_vars t
   | Trecord (Some i, _, labels) as t when is_generic_record t ->
+      (* For generic records, we add both the size of the generic record as a whole,
+         as well as the poly var it contains *)
+      let poly_vars = PVars.add (record_name t) poly_vars in
       add_poly_vars poly_vars (labels.(i) |> snd)
   | _ -> poly_vars
 
@@ -276,6 +279,27 @@ let alignup ~upto size =
 (* Returns the size pair, so we can continue statically below in [offset_of] *)
 let sizeof_typ vars typ =
   let rec inner size_pr typ =
+    let size_from_vars name =
+      match (Vars.find_opt name vars, size_pr) with
+      | Some upto, Static { size; align } ->
+          (* upto is a pointer, so we need to load the size first *)
+          let upto = get_poly_size 0 upto.value in
+          (* We need to change size and align to llvalues, then continue dynamically *)
+          if size = 0 then
+            (* If we are at the beginning of a structure, we are already aligned *)
+            Dynamic { size = upto; align = upto }
+          else
+            let size = Llvm.const_int num_type size in
+            let align = Llvm.const_int num_type align in
+
+            add_size_align ~upto:(Dynamic' upto) (Dynamic { size; align })
+      | Some upto, Dynamic _ ->
+          (* Carry on *)
+          let upto = get_poly_size 0 upto.value in
+          add_size_align ~upto:(Dynamic' upto) size_pr
+      | None, _ -> failwith ("Cannot find Qvar id: " ^ name)
+    in
+
     match typ with
     | Tint ->
         let upto = make_upto 4 size_pr in
@@ -294,28 +318,11 @@ let sizeof_typ vars typ =
         (* Just a ptr? Assume 64bit *)
         let upto = make_upto 8 size_pr in
         add_size_align ~upto size_pr
+    | Trecord _ as t when is_generic_record t ->
+        size_from_vars (record_name t |> poly_name)
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
-    | Qvar id -> (
-        match (Vars.find_opt (poly_name id) vars, size_pr) with
-        | Some upto, Static { size; align } ->
-            (* upto is a pointer, so we need to load the size first *)
-            (* TODO is there a case where we have a local variable here? *)
-            let upto = get_poly_size 0 upto.value in
-            (* We need to change size and align to llvalues, then continue dynamically *)
-            if size = 0 then
-              (* If we are at the beginning of a structure, we are already aligned *)
-              Dynamic { size = upto; align = upto }
-            else
-              let size = Llvm.const_int num_type size in
-              let align = Llvm.const_int num_type align in
-
-              add_size_align ~upto:(Dynamic' upto) (Dynamic { size; align })
-        | Some upto, Dynamic _ ->
-            (* Carry on *)
-            let upto = get_poly_size 0 upto.value in
-            add_size_align ~upto:(Dynamic' upto) size_pr
-        | None, _ -> failwith ("Cannot find Qvar id: " ^ id))
+    | Qvar id -> size_from_vars (poly_name id)
     | Tvar _ -> failwith "too generic for a size"
   in
   match inner (Static { size = 0; align = 1 }) typ with
@@ -593,21 +600,21 @@ let add_poly_arg vars name mkvar =
       Vars.add name (mkvar ()) vars
 
 let rec add_poly_args vars poly_args param arg =
+  let mkvar_param name () =
+    match Vars.find_opt name vars with
+    | Some v -> (v.value, Param)
+    | None ->
+        Llvm.dump_module the_module;
+        failwith
+          (Printf.sprintf "Internal Error: poly var should be in env: %s" name)
+  in
+
   match (param, arg) with
   | t, Tvar { contents = Link link } -> add_poly_args vars poly_args t link
   | Qvar id, Qvar _ | Qvar id, Tvar { contents = Unbound (_, _) } ->
       (* Param poly var *)
       let name = poly_name id in
-      let mkvar () =
-        match Vars.find_opt name vars with
-        | Some v -> (v.value, Param)
-        | None ->
-            Llvm.dump_module the_module;
-            failwith
-              (Printf.sprintf "Internal Error: poly var should be in env: %s"
-                 name)
-      in
-      add_poly_arg poly_args name mkvar
+      add_poly_arg poly_args name (mkvar_param name)
   | Qvar id, t ->
       (* Local poly var *)
       let name = poly_name id in
@@ -624,7 +631,20 @@ let rec add_poly_args vars poly_args param arg =
   | Tvar _, _ -> failwith "Internal Error: How is this not generalized?"
   | Trecord (Some i1, _, l1), Trecord (Some i2, _, l2)
     when is_generic_record param ->
-      add_poly_args vars poly_args (l1.(i1) |> snd) (l2.(i2) |> snd)
+      let name = record_name param |> poly_name in
+      let ps =
+        if is_generic_record arg then
+          (* We can add the generic_t from params *)
+          add_poly_arg poly_args name (mkvar_param name)
+        else
+          (* We construct a generic arg from concrete typ *)
+          let mkvar () =
+            (sizeof_typ vars arg |> llval_of_upto |> poly_arg_of_size, Local arg)
+          in
+          add_poly_arg poly_args name mkvar
+      in
+      (* We add containing poly args *)
+      add_poly_args vars ps (l1.(i1) |> snd) (l2.(i2) |> snd)
   | _, _ -> poly_args
 
 let handle_generic_arg vars poly_args param (arg, gen_fun) =

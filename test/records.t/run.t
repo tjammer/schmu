@@ -256,7 +256,7 @@ Access parametrized record fields
   
   declare void @printi(i32 %0)
   
-  define private void @is(%generic_gen_first* %any, i64* %__1) {
+  define private void @is(%generic_gen_first* %any, i64* %__1, i64* %__generic_gen_first) {
   entry:
     %0 = bitcast %generic_gen_first* %any to i8*
     %1 = load i64, i64* %__1, align 4
@@ -274,7 +274,7 @@ Access parametrized record fields
     ret void
   }
   
-  define private void @only(%generic* %0, %generic_gen_first* %any, i64* %__1) {
+  define private void @only(%generic* %0, %generic_gen_first* %any, i64* %__1, i64* %__generic_gen_first) {
   entry:
     %1 = bitcast %generic_gen_first* %any to i8*
     %2 = bitcast %generic* %0 to i8*
@@ -283,7 +283,7 @@ Access parametrized record fields
     ret void
   }
   
-  define private void @third(%generic_t* %any, i64* %__0) {
+  define private void @third(%generic_t* %any, i64* %__0, i64* %__generic_t) {
   entry:
     %0 = bitcast %generic_t* %any to i8*
     %1 = load i64, i64* %__0, align 4
@@ -302,7 +302,7 @@ Access parametrized record fields
     ret void
   }
   
-  define private void @gen(%generic* %0, %generic_t* %any, i64* %__0) {
+  define private void @gen(%generic* %0, %generic_t* %any, i64* %__0, i64* %__generic_t) {
   entry:
     %1 = bitcast %generic_t* %any to i8*
     %2 = load i64, i64* %__0, align 4
@@ -316,7 +316,7 @@ Access parametrized record fields
     ret void
   }
   
-  define private void @first(%generic_t* %any, i64* %__0) {
+  define private void @first(%generic_t* %any, i64* %__0, i64* %__generic_t) {
   entry:
     %0 = bitcast %generic_t* %any to i8*
     %1 = getelementptr inbounds i8, i8* %0, i64 4
@@ -359,32 +359,42 @@ Access parametrized record fields
     %is = getelementptr inbounds %int_gen_first, %int_gen_first* %2, i32 0, i32 1
     store i1 false, i1* %is, align 1
     %3 = alloca i64, align 8
-    store i64 4, i64* %3, align 4
-    %gencast = bitcast %int_t* %1 to %generic_t*
-    call void @first(%generic_t* %gencast, i64* %3)
+    store i64 16, i64* %3, align 4
     %4 = alloca i64, align 8
     store i64 4, i64* %4, align 4
-    call void @third(%generic_t* %gencast, i64* %4)
+    %gencast = bitcast %int_t* %1 to %generic_t*
+    call void @first(%generic_t* %gencast, i64* %4, i64* %3)
     %5 = alloca i64, align 8
-    store i64 4, i64* %5, align 4
+    store i64 16, i64* %5, align 4
+    %6 = alloca i64, align 8
+    store i64 4, i64* %6, align 4
+    call void @third(%generic_t* %gencast, i64* %6, i64* %5)
+    %7 = alloca i64, align 8
+    store i64 16, i64* %7, align 4
+    %8 = alloca i64, align 8
+    store i64 4, i64* %8, align 4
     %ret = alloca i8, i64 4, align 16
     %ret3 = bitcast i8* %ret to %generic*
-    call void @gen(%generic* %ret3, %generic_t* %gencast, i64* %5)
-    %6 = bitcast %generic* %ret3 to i32*
-    %realret = load i32, i32* %6, align 4
+    call void @gen(%generic* %ret3, %generic_t* %gencast, i64* %8, i64* %7)
+    %9 = bitcast %generic* %ret3 to i32*
+    %realret = load i32, i32* %9, align 4
     call void @printi(i32 %realret)
-    %7 = alloca i64, align 8
-    store i64 4, i64* %7, align 4
+    %10 = alloca i64, align 8
+    store i64 8, i64* %10, align 4
+    %11 = alloca i64, align 8
+    store i64 4, i64* %11, align 4
     %gencast4 = bitcast %int_gen_first* %2 to %generic_gen_first*
     %ret5 = alloca i8, i64 4, align 16
     %ret6 = bitcast i8* %ret5 to %generic*
-    call void @only(%generic* %ret6, %generic_gen_first* %gencast4, i64* %7)
-    %8 = bitcast %generic* %ret6 to i32*
-    %realret7 = load i32, i32* %8, align 4
+    call void @only(%generic* %ret6, %generic_gen_first* %gencast4, i64* %11, i64* %10)
+    %12 = bitcast %generic* %ret6 to i32*
+    %realret7 = load i32, i32* %12, align 4
     call void @printi(i32 %realret7)
-    %9 = alloca i64, align 8
-    store i64 4, i64* %9, align 4
-    call void @is(%generic_gen_first* %gencast4, i64* %9)
+    %13 = alloca i64, align 8
+    store i64 8, i64* %13, align 4
+    %14 = alloca i64, align 8
+    store i64 4, i64* %14, align 4
+    call void @is(%generic_gen_first* %gencast4, i64* %14, i64* %13)
     ret i32 0
   }
   
@@ -408,7 +418,7 @@ Make sure alignment of generic param works
   
   declare void @printi(i32 %0)
   
-  define private void @gen(%generic* %0, %generic_misaligned* %any, i64* %__0) {
+  define private void @gen(%generic* %0, %generic_misaligned* %any, i64* %__0, i64* %__generic_misaligned) {
   entry:
     %1 = bitcast %generic_misaligned* %any to i8*
     %2 = load i64, i64* %__0, align 4
@@ -430,13 +440,15 @@ Make sure alignment of generic param works
     %gen = getelementptr inbounds %int_misaligned, %int_misaligned* %1, i32 0, i32 1
     store i32 30, i32* %gen, align 4
     %2 = alloca i64, align 8
-    store i64 4, i64* %2, align 4
+    store i64 8, i64* %2, align 4
+    %3 = alloca i64, align 8
+    store i64 4, i64* %3, align 4
     %gencast = bitcast %int_misaligned* %1 to %generic_misaligned*
     %ret = alloca i8, i64 4, align 16
     %ret1 = bitcast i8* %ret to %generic*
-    call void @gen(%generic* %ret1, %generic_misaligned* %gencast, i64* %2)
-    %3 = bitcast %generic* %ret1 to i32*
-    %realret = load i32, i32* %3, align 4
+    call void @gen(%generic* %ret1, %generic_misaligned* %gencast, i64* %3, i64* %2)
+    %4 = bitcast %generic* %ret1 to i32*
+    %realret = load i32, i32* %4, align 4
     call void @printi(i32 %realret)
     ret i32 0
   }
