@@ -1,6 +1,7 @@
 open Types
 module Vars = Map.Make (String)
-module PVars = Set.Make (String)
+module PMap = Polyvars.PolyMap
+module PVars = Polyvars.PolyLvls
 
 module Str = struct
   type t = string
@@ -85,26 +86,42 @@ let memcpy_decl =
 (* Named structs for records *)
 
 let is_generic_record = function
+  (* TODO recurse *)
   | Trecord (Some i, _, labels) -> (
       match labels.(i) |> snd with Qvar _ -> true | _ -> false)
   | Trecord _ -> false
   | _ -> failwith "Internal Error: Not a record"
 
-let rec record_name = function
-  (* We match on each type here to allow for nested parametrization like [int foo bar] *)
+let rec record_name ?(poly = false) = function
+  (* We match on each type here to allow for nested parametrization like [int foo bar].
+     [poly] argument will create a name used for a poly var, ie spell out the generic name *)
   | Trecord (param, name, labels) ->
       let some p =
         let p = labels.(p) |> snd in
-        (match p with Qvar _ -> "generic" | t -> record_name t) ^ "_"
+        (match p with
+        | Qvar id -> if poly then id else "generic"
+        | t -> record_name t)
+        ^ "_"
       in
       Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
   | t -> Typing.string_of_type t
+
+let record_poly_ids typ =
+  let rec inner acc = function
+    | Trecord (Some i, _, labels) as t ->
+        inner (record_name ~poly:true t :: acc) (labels.(i) |> snd)
+    | Qvar id -> id :: acc
+    | _ -> acc
+  in
+  inner [] typ |> List.rev
 
 (*
    Polymorphism util functions
 *)
 
 let poly_name poly = "__" ^ poly
+
+let poly_param_name name = "__p_" ^ name
 
 let get_poly_size index var =
   let ptr = Llvm.(build_gep var [| const_int int_type index |]) "" builder in
@@ -117,18 +134,19 @@ let poly_arg_of_size sz =
   arg
 
 let rec add_poly_vars poly_vars = function
-  | Qvar id when PVars.mem id poly_vars |> not ->
+  | Qvar id ->
       (* Later, this will be poly_name. I don't want to change everything now *)
-      PVars.add id poly_vars
+      (* Will only be added if the level is lower *)
+      PVars.add_single id poly_vars
   | Tfun (ps, r, _) ->
       let poly_vars = List.fold_left add_poly_vars poly_vars ps in
       add_poly_vars poly_vars r
   | Tvar { contents = Link t } -> add_poly_vars poly_vars t
-  | Trecord (Some i, _, labels) as t when is_generic_record t ->
+  | Trecord (Some _, _, _) as t when is_generic_record t ->
       (* For generic records, we add both the size of the generic record as a whole,
-         as well as the poly var it contains *)
-      let poly_vars = PVars.add (record_name t) poly_vars in
-      add_poly_vars poly_vars (labels.(i) |> snd)
+         as wenll as the poly var it contains *)
+      let ids = record_poly_ids t in
+      PVars.add_container ids poly_vars
   | _ -> poly_vars
 
 let rec get_lltype ?(param = true) = function
@@ -172,7 +190,7 @@ and typeof_func ~param ~decl (params, ret, kind) =
     let t = Tfun (params, ret, kind) in
     let pvars =
       add_poly_vars PVars.empty t
-      |> PVars.to_seq
+      |> PVars.to_params
       |> Seq.map (Fun.const poly_var_type)
     in
     let suffix =
@@ -282,8 +300,7 @@ let sizeof_typ vars typ =
     let size_from_vars name =
       match (Vars.find_opt name vars, size_pr) with
       | Some upto, Static { size; align } ->
-          (* upto is a pointer, so we need to load the size first *)
-          let upto = get_poly_size 0 upto.value in
+          let upto = upto.value in
           (* We need to change size and align to llvalues, then continue dynamically *)
           if size = 0 then
             (* If we are at the beginning of a structure, we are already aligned *)
@@ -295,7 +312,7 @@ let sizeof_typ vars typ =
             add_size_align ~upto:(Dynamic' upto) (Dynamic { size; align })
       | Some upto, Dynamic _ ->
           (* Carry on *)
-          let upto = get_poly_size 0 upto.value in
+          let upto = upto.value in
           add_size_align ~upto:(Dynamic' upto) size_pr
       | None, _ -> failwith ("Cannot find Qvar id: " ^ name)
     in
@@ -319,7 +336,7 @@ let sizeof_typ vars typ =
         let upto = make_upto 8 size_pr in
         add_size_align ~upto size_pr
     | Trecord _ as t when is_generic_record t ->
-        size_from_vars (record_name t |> poly_name)
+        size_from_vars (record_name ~poly:true t |> poly_name)
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
     | Qvar id -> size_from_vars (poly_name id)
@@ -588,25 +605,41 @@ let make_generic_record ~generic arg =
   let lltyp = get_lltype ~param:true generic in
   Llvm.build_bitcast arg.value lltyp "gencast" builder
 
-let add_poly_arg vars name mkvar =
-  (* Add a poly var to the list if it is not already present.
-     This list is used to pass poly vars as arguments, so it is important that its impl
-     stays in sync with [add_poly_vars] *)
-  match Vars.find_opt name vars with
-  | Some _ -> vars
-  | None ->
-      (* This will get more complicated once we have containers of polymorphic variables *)
-      (* let poly_var =  Llvm.const_int num_type (sizeof_typ var.typ) in *)
-      Vars.add name (mkvar ()) vars
+(* let add_poly_arg vars name mkvar =
+ *   (\* Add a poly var to the list if it is not already present.
+ *      This list is used to pass poly vars as arguments, so it is important that its impl
+ *      stays in sync with [add_poly_vars] *\)
+ *   match Vars.find_opt name vars with
+ *   | Some _ -> vars
+ *   | None ->
+ *       (\* This will get more complicated once we have containers of polymorphic variables *\)
+ *       (\* let poly_var =  Llvm.const_int num_type (sizeof_typ var.typ) in *\)
+ *       Vars.add name (mkvar ()) vars *)
 
 let rec add_poly_args vars poly_args param arg =
   let mkvar_param name () =
     match Vars.find_opt name vars with
     | Some v -> (v.value, Param)
     | None ->
+        print_endline
+          (String.concat ", "
+             (List.map (fun a -> "'" ^ fst a ^ "'") (Vars.bindings vars)));
         Llvm.dump_module the_module;
         failwith
           (Printf.sprintf "Internal Error: poly var should be in env: %s" name)
+  in
+  let mkvar_generic_record index labels () =
+    (* TODO recurse correctly *)
+    let arr =
+      Llvm.(build_array_alloca num_type (const_int int_type 2) "") builder
+    in
+    let p0 = Llvm.build_gep arr [| Llvm.const_int int_type 0 |] "p0" builder in
+    let rec_size = sizeof_typ vars arg |> llval_of_upto in
+    ignore (Llvm.build_store rec_size p0 builder);
+    let p1 = Llvm.build_gep arr [| Llvm.const_int int_type 1 |] "p1" builder in
+    let inner_size = sizeof_typ vars (labels.(index) |> snd) |> llval_of_upto in
+    ignore (Llvm.build_store inner_size p1 builder);
+    (arr, Local arg)
   in
 
   match (param, arg) with
@@ -614,7 +647,7 @@ let rec add_poly_args vars poly_args param arg =
   | Qvar id, Qvar _ | Qvar id, Tvar { contents = Unbound (_, _) } ->
       (* Param poly var *)
       let name = poly_name id in
-      add_poly_arg poly_args name (mkvar_param name)
+      PMap.add_single name (mkvar_param name) poly_args
   | Qvar id, t ->
       (* Local poly var *)
       let name = poly_name id in
@@ -623,28 +656,24 @@ let rec add_poly_args vars poly_args param arg =
            This should save a couple of redundant alloctations. *)
         (sizeof_typ vars t |> llval_of_upto |> poly_arg_of_size, Local t)
       in
-      add_poly_arg poly_args name mkvar
+      PMap.add_single name mkvar poly_args
   | Tfun (p1, r1, _), Tfun (p2, r2, _) ->
       let f = add_poly_args vars in
       let poly_args = List.fold_left2 f poly_args p1 p2 in
       add_poly_args vars poly_args r1 r2
   | Tvar _, _ -> failwith "Internal Error: How is this not generalized?"
-  | Trecord (Some i1, _, l1), Trecord (Some i2, _, l2)
+  | Trecord (Some _, _, _), Trecord (Some i2, _, l2)
     when is_generic_record param ->
-      let name = record_name param |> poly_name in
-      let ps =
-        if is_generic_record arg then
-          (* We can add the generic_t from params *)
-          add_poly_arg poly_args name (mkvar_param name)
-        else
-          (* We construct a generic arg from concrete typ *)
-          let mkvar () =
-            (sizeof_typ vars arg |> llval_of_upto |> poly_arg_of_size, Local arg)
-          in
-          add_poly_arg poly_args name mkvar
-      in
-      (* We add containing poly args *)
-      add_poly_args vars ps (l1.(i1) |> snd) (l2.(i2) |> snd)
+      let name = record_name ~poly:true param |> poly_param_name in
+      (* We use the param to get the poly vars *)
+      let ids = record_poly_ids param in
+      if is_generic_record arg then
+        (* We can add the generic_t from params *)
+        PMap.add_container ids (mkvar_param name) poly_args
+      else
+        (* We construct a generic arg from concrete typ *)
+        (* TODO recurse correctly here *)
+        PMap.add_container ids (mkvar_generic_record i2 l2) poly_args
   | _, _ -> poly_args
 
 let handle_generic_arg vars poly_args param (arg, gen_fun) =
@@ -678,13 +707,19 @@ let handle_generic_arg vars poly_args param (arg, gen_fun) =
 
 let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
     =
-  let t = Tfun (params, ret, Simple) in
+    let t = Tfun (params, ret, Simple) in
+
+    print_string "eu ";
+    add_poly_vars PVars.empty t |> PVars.to_params |> List.of_seq |> String.concat " -> " |> print_endline;
+    print_string "args ";
+    poly_vars |> PMap.to_args |> List.of_seq |> String.concat " -> " |> print_endline;
+
   let poly_args =
     add_poly_vars PVars.empty t
-    |> PVars.to_seq
+    |> PVars.to_params
     |> Seq.map (fun id ->
            let name = poly_name id in
-           (match Vars.find_opt name poly_vars with
+           (match PMap.find_opt name poly_vars with
            | Some s -> s
            | None ->
                let v =
@@ -693,8 +728,9 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
                  | None ->
                      Printf.sprintf "Could not find %s in var" name |> failwith
                in
-               (v, Param))
+               (lazy ( v, Param)), {PMap.name = ""; lvl = 0})
            |> fst)
+  |> Seq.map Lazy.force |> Seq.map fst
   in
 
   (* Mostly copied from the [gen_app] inline code before  *)
@@ -711,7 +747,7 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
             the size of variable from somewhere. We can look up the size in the type parameter *)
       (* This is a bit messy, can we clean this up somehow? *)
       let name = poly_name id in
-      let poly_var = Vars.find name poly_vars in
+      let poly_var = PMap.find_opt name poly_vars |> Option.get  |> fst |> Lazy.force in
       (* If we are a local poly var, we don't use the poly var for the size
          b/c we can easily calculate it and thus save one (two) loads *)
       let size =
@@ -722,7 +758,7 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
             | Dynamic' _ ->
                 failwith
                   "Internal Error: Assumption about locality does not hold")
-        | value, Param -> value |> get_poly_size 0
+        | value, Param -> value
       in
 
       (* What about alignment? *)
@@ -790,12 +826,33 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
 
       let temp_funcs, _ =
         PVars.fold
-          (fun pvar (env, i) ->
-            let value = (Llvm.params func.value).(i) in
-            let param = { value; typ = Qvar pvar; lltyp = num_type } in
-            let name = poly_name pvar in
-            Llvm.set_value_name name value;
-            (Vars.add name param env, i + 1))
+          (fun pvar locs (env, i) ->
+            let var = (Llvm.params func.value).(i) in
+            let pname = poly_param_name pvar in
+            Llvm.set_value_name pname var;
+            (* TODO use extra convention for param value and add to env *)
+            let env =
+              List.fold_left
+                (fun vars { PVars.name; lvl } ->
+                  Printf.printf "Getting %s from %s at %i\n%!" (poly_name name)
+                    pname lvl;
+                  let value = get_poly_size lvl var in
+                  let param = { value; typ = Qvar name; lltyp = num_type } in
+                  let name = poly_name name in
+                  Vars.add name param vars)
+                env locs
+            in
+            (* Also add the parameter value for passing to other functions *)
+            let var =
+              {
+                value = var;
+                typ = Qvar pname;
+                lltyp = num_type |> Llvm.pointer_type;
+              }
+            in
+            let env = Vars.add pname var env in
+
+            (env, i + 1))
           pvars (temp_funcs, pvar_index)
       in
 
@@ -826,7 +883,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
 
           let size =
             match Vars.find_opt (poly_name id) temp_funcs with
-            | Some v -> v.value |> get_poly_size 0
+            | Some v -> v.value
             | None ->
                 failwith "TODO Internal Error: Unknown size of generic type"
           in
@@ -1086,7 +1143,7 @@ and gen_app vars callee args =
         (* let after_t = (fst argtup).typ in *)
         (* Printf.printf "before: %s\nafter: %s\n%!" (show_typ before_t) (show_typ after_t); *)
         handle_generic_arg vars poly_vars param argtup)
-      Vars.empty (List.combine params args)
+      PMap.empty (List.combine params args)
   in
   let args = List.to_seq args in
 
