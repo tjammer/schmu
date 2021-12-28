@@ -1,5 +1,6 @@
 external printi : int -> unit
 
+-- TODO big inner thing
 type 'a misaligned = { fst : bool, gen : 'a }
 
 function gen(any)

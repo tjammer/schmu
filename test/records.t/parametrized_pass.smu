@@ -1,5 +1,6 @@
 external printi : int -> unit
 
+-- TODO pass without apply, pass as record
 type 'a t = { first : int, gen : 'a, third : bool }
 
 function apply(f : 'b -> 'a, x : 'b) -> 'a

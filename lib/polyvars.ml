@@ -9,7 +9,9 @@ module PolyMap : sig
 
   val add_container : string list -> (unit -> 'a) -> 'a t -> 'a t
 
-  val to_args : 'a t -> string Seq.t
+  val to_args_print : 'a t -> (string * string * int) Seq.t
+
+  val to_args : 'a t -> 'a Seq.t
 
   val empty : 'a t
 end = struct
@@ -26,30 +28,38 @@ end = struct
     | Some { value; name; lvl } -> Some (value, { name; lvl })
     | None -> None
 
-  let add_single_lvl name container fvalue lvl m =
+  let add_single_lvl name container value lvl m =
     match M.find_opt name m with
     | Some { value = _; lvl = l; name = _ } when l > lvl ->
         (* Smaller level -> In some hierarchy *)
         m
     | None | Some _ ->
-        let value = Lazy.from_fun fvalue in
         M.add name { value; name = container; lvl } m
 
-  let add_single key value m = add_single_lvl key key value 0 m
+  let add_single key value m = add_single_lvl key key (Lazy.from_fun value) 0 m
 
   let add_container keys value m =
+    let value = Lazy.from_fun value in
     let container = List.hd keys in
     List.fold_left
       (fun (m, lvl) key -> (add_single_lvl key container value lvl m, lvl + 1))
       (m, 0) keys
     |> fst
 
+  let to_args_print m =
+    M.to_seq m
+    |> Seq.filter_map (fun (key, { value = _; name; lvl }) ->
+           if lvl = 0 then (
+             assert (String.equal name key);
+             Some (key, name, lvl))
+           else None)
+
   let to_args m =
       M.to_seq m
-      |> Seq.filter_map (fun (key, { value = _ ;name; lvl }) ->
+      |> Seq.filter_map (fun (key, { value ;name; lvl }) ->
              if lvl = 0 then (
                assert (String.equal name key);
-               Some key)
+               Some (Lazy.force value))
              else None)
 
   let empty = M.empty
@@ -97,16 +107,12 @@ end = struct
     |> fst
 
   let to_params m =
-    let s =
-      M.to_seq m
-      |> Seq.filter_map (fun (key, { name; lvl }) ->
-             if lvl = 0 then (
-               assert (String.equal name key);
-               Some key)
-             else None)
-    in
-    print_endline (String.concat " -> " (List.of_seq s));
-    s
+    M.to_seq m
+    |> Seq.filter_map (fun (key, { name; lvl }) ->
+           if lvl = 0 then (
+             assert (String.equal name key);
+             Some key)
+           else None)
 
   let sort_into_params m =
     let f key { name; lvl } m =
@@ -120,8 +126,6 @@ end = struct
 
   let fold f m init =
     let m = sort_into_params m in
-    M.fold (fun pvar _ acc -> pvar :: acc) m []
-    |> List.rev |> String.concat " -> " |> print_endline;
     M.fold f m init
 
   let empty = M.empty

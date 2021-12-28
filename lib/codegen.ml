@@ -362,7 +362,6 @@ let match_size ~upto size =
       (upto, Dynamic { size; align })
   | Static' upto, Dynamic _ -> (Dynamic' (Llvm.const_int num_type upto), size)
 
-(* TODO use offset table instead of all these runtime calculations? *)
 (* Returns offset to [label] at [index] in byte *)
 let offset_of vars ~labels index =
   let rec inner i ~size =
@@ -605,22 +604,13 @@ let make_generic_record ~generic arg =
   let lltyp = get_lltype ~param:true generic in
   Llvm.build_bitcast arg.value lltyp "gencast" builder
 
-(* let add_poly_arg vars name mkvar =
- *   (\* Add a poly var to the list if it is not already present.
- *      This list is used to pass poly vars as arguments, so it is important that its impl
- *      stays in sync with [add_poly_vars] *\)
- *   match Vars.find_opt name vars with
- *   | Some _ -> vars
- *   | None ->
- *       (\* This will get more complicated once we have containers of polymorphic variables *\)
- *       (\* let poly_var =  Llvm.const_int num_type (sizeof_typ var.typ) in *\)
- *       Vars.add name (mkvar ()) vars *)
-
 let rec add_poly_args vars poly_args param arg =
   let mkvar_param name () =
+    let name = poly_param_name name in
     match Vars.find_opt name vars with
     | Some v -> (v.value, Param)
     | None ->
+        print_string "env: ";
         print_endline
           (String.concat ", "
              (List.map (fun a -> "'" ^ fst a ^ "'") (Vars.bindings vars)));
@@ -628,10 +618,10 @@ let rec add_poly_args vars poly_args param arg =
         failwith
           (Printf.sprintf "Internal Error: poly var should be in env: %s" name)
   in
-  let mkvar_generic_record index labels () =
+  let mkvar_generic_record name index labels () =
     (* TODO recurse correctly *)
     let arr =
-      Llvm.(build_array_alloca num_type (const_int int_type 2) "") builder
+      Llvm.(build_array_alloca num_type (const_int int_type 2) name) builder
     in
     let p0 = Llvm.build_gep arr [| Llvm.const_int int_type 0 |] "p0" builder in
     let rec_size = sizeof_typ vars arg |> llval_of_upto in
@@ -646,11 +636,13 @@ let rec add_poly_args vars poly_args param arg =
   | t, Tvar { contents = Link link } -> add_poly_args vars poly_args t link
   | Qvar id, Qvar _ | Qvar id, Tvar { contents = Unbound (_, _) } ->
       (* Param poly var *)
-      let name = poly_name id in
+      (* let name = poly_name id in *)
+      let name = id in
       PMap.add_single name (mkvar_param name) poly_args
   | Qvar id, t ->
       (* Local poly var *)
-      let name = poly_name id in
+      (* let name = poly_name id in *)
+      let name = id in
       let mkvar () =
         (* TODO Check if an arg with the same type exists and reuse the ptr.
            This should save a couple of redundant alloctations. *)
@@ -673,7 +665,7 @@ let rec add_poly_args vars poly_args param arg =
       else
         (* We construct a generic arg from concrete typ *)
         (* TODO recurse correctly here *)
-        PMap.add_container ids (mkvar_generic_record i2 l2) poly_args
+        PMap.add_container ids (mkvar_generic_record name i2 l2) poly_args
   | _, _ -> poly_args
 
 let handle_generic_arg vars poly_args param (arg, gen_fun) =
@@ -705,33 +697,12 @@ let handle_generic_arg vars poly_args param (arg, gen_fun) =
       let arg = func_to_closure vars arg in
       (poly_args, arg.value)
 
-let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
-    =
-    let t = Tfun (params, ret, Simple) in
+let handle_generic_ret vars poly_vars (funcval, args, envarg) ret params =
+  let t = Tfun (params, ret, Simple) in
+  ignore t;
 
-    print_string "eu ";
-    add_poly_vars PVars.empty t |> PVars.to_params |> List.of_seq |> String.concat " -> " |> print_endline;
-    print_string "args ";
-    poly_vars |> PMap.to_args |> List.of_seq |> String.concat " -> " |> print_endline;
-
-  let poly_args =
-    add_poly_vars PVars.empty t
-    |> PVars.to_params
-    |> Seq.map (fun id ->
-           let name = poly_name id in
-           (match PMap.find_opt name poly_vars with
-           | Some s -> s
-           | None ->
-               let v =
-                 match Vars.find_opt name vars with
-                 | Some v -> v.value
-                 | None ->
-                     Printf.sprintf "Could not find %s in var" name |> failwith
-               in
-               (lazy ( v, Param)), {PMap.name = ""; lvl = 0})
-           |> fst)
-  |> Seq.map Lazy.force |> Seq.map fst
-  in
+  (* TODO verify args *)
+  let poly_args = poly_vars |> PMap.to_args |> Seq.map fst in
 
   (* Mostly copied from the [gen_app] inline code before  *)
   match ret with
@@ -746,19 +717,30 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
       (* Conceptually, this works like the record case. The only difference is that we need to get
             the size of variable from somewhere. We can look up the size in the type parameter *)
       (* This is a bit messy, can we clean this up somehow? *)
-      let name = poly_name id in
-      let poly_var = PMap.find_opt name poly_vars |> Option.get  |> fst |> Lazy.force in
+      (* let name = poly_name id in *)
+      let name = id in
+
+      let poly_var = PMap.find_opt name poly_vars |> Option.get in
       (* If we are a local poly var, we don't use the poly var for the size
          b/c we can easily calculate it and thus save one (two) loads *)
-      let size =
+      let poly_var, size =
+        let extract_static t =
+          match sizeof_typ vars t with
+          | Static' _ as upto -> llval_of_upto upto
+          | Dynamic' _ ->
+              failwith "Internal Error: Assumption about locality does not hold"
+        in
         match poly_var with
-        | _, Local t -> (
-            match sizeof_typ vars t with
-            | Static' _ as upto -> llval_of_upto upto
-            | Dynamic' _ ->
-                failwith
-                  "Internal Error: Assumption about locality does not hold")
-        | value, Param -> value
+        | ( (lazy (_, Local (Trecord (Some i, _, labels)))),
+            { PMap.name = _; lvl } )
+          when lvl > 0 ->
+            (* The type is not t, but the qvar inside the type. *)
+            (* TODO how does this nest? Factor out *)
+            let t = labels.(i) |> snd in
+            (Local t, extract_static t)
+        | (lazy (_, Local t)), _ -> (Local t, extract_static t)
+        | (lazy (value, Param)), { name = _; lvl } ->
+            (Param, get_poly_size lvl value)
       in
 
       (* What about alignment? *)
@@ -775,7 +757,7 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
 
       (* If it's a local type, we reconstruct it *)
       let retval, typ =
-        match poly_var |> snd with
+        match poly_var with
         | Local (Tbool as t) | Local (Tint as t) ->
             let ptr_t = get_lltype ~param:false t |> Llvm.pointer_type in
             let cast = Llvm.build_bitcast ret ptr_t "" builder in
@@ -789,7 +771,7 @@ let handle_generic_ret vars flltyp poly_vars (funcval, args, envarg) ret params
       let args = args ++ poly_args ++ envarg |> Array.of_seq in
       let retval = Llvm.build_call funcval args "" builder in
       (* TODO use concrete return type *)
-      (retval, t, flltyp |> Llvm.return_type)
+      (retval, t, get_lltype t)
 
 (* TODO put below gen_expr *)
 let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
@@ -834,8 +816,6 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
             let env =
               List.fold_left
                 (fun vars { PVars.name; lvl } ->
-                  Printf.printf "Getting %s from %s at %i\n%!" (poly_name name)
-                    pname lvl;
                   let value = get_poly_size lvl var in
                   let param = { value; typ = Qvar name; lltyp = num_type } in
                   let name = poly_name name in
@@ -955,7 +935,7 @@ and gen_expr vars typed_expr =
       match abs.tp.kind with
       | Simple -> func
       | Closure assoc -> gen_closure_obj assoc func vars name)
-  | App { callee; args } -> gen_app vars callee args
+  | App { callee; args } -> gen_app vars callee args typed_expr.typ
   | If (cond, e1, e2) -> gen_if vars cond e1 e2
   | Record labels -> codegen_record vars (clean typed_expr.typ) labels
   | Field (expr, index) -> codegen_field vars expr index
@@ -1058,7 +1038,9 @@ and gen_generic funcs name { Typing.concrete; generic } =
   in
 
   let typed_expr = { Typing.typ = Tunit; expr = Var name } in
-  let ret = gen_app (Vars.add name wrapped_func vars) typed_expr exprs in
+  let ret =
+    gen_app (Vars.add name wrapped_func vars) typed_expr exprs concrete.ret
+  in
 
   let () =
     ignore
@@ -1122,7 +1104,7 @@ and gen_bop e1 e2 bop =
       { value; typ = Tbool; lltyp = bool_type }
   | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_type }
 
-and gen_app vars callee args =
+and gen_app vars callee args ret_t =
   let func = gen_expr vars callee in
 
   let params, ret, kind =
@@ -1148,7 +1130,7 @@ and gen_app vars callee args =
   let args = List.to_seq args in
 
   (* Add return poly var *)
-  let poly_args = add_poly_args vars poly_args ret ret in
+  let poly_args = add_poly_args vars poly_args ret ret_t in
 
   (* No names here, might be void/unit *)
   let callee =
@@ -1184,9 +1166,7 @@ and gen_app vars callee args =
               failwith "Internal Error: Not a recursive closure application")
   in
 
-  let value, typ, lltyp =
-    handle_generic_ret vars func.lltyp poly_args callee ret params
-  in
+  let value, typ, lltyp = handle_generic_ret vars poly_args callee ret params in
 
   { value; typ; lltyp }
 
