@@ -33,8 +33,7 @@ end = struct
     | Some { value = _; lvl = l; name = _ } when l > lvl ->
         (* Smaller level -> In some hierarchy *)
         m
-    | None | Some _ ->
-        M.add name { value; name = container; lvl } m
+    | None | Some _ -> M.add name { value; name = container; lvl } m
 
   let add_single key value m = add_single_lvl key key (Lazy.from_fun value) 0 m
 
@@ -55,12 +54,12 @@ end = struct
            else None)
 
   let to_args m =
-      M.to_seq m
-      |> Seq.filter_map (fun (key, { value ;name; lvl }) ->
-             if lvl = 0 then (
-               assert (String.equal name key);
-               Some (Lazy.force value))
-             else None)
+    M.to_seq m
+    |> Seq.filter_map (fun (key, { value; name; lvl }) ->
+           if lvl = 0 then (
+             assert (String.equal name key);
+             Some (Lazy.force value))
+           else None)
 
   let empty = M.empty
 end

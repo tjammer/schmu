@@ -123,9 +123,9 @@ let poly_name poly = "__" ^ poly
 
 let poly_param_name name = "__p_" ^ name
 
-let get_poly_size index var =
+let get_poly_size name index var =
   let ptr = Llvm.(build_gep var [| const_int int_type index |]) "" builder in
-  Llvm.build_load ptr "" builder
+  Llvm.build_load ptr ("_" ^ name) builder
 
 let poly_arg_of_size sz =
   let arg = Llvm.build_alloca num_type "" builder in
@@ -286,13 +286,20 @@ let make_upto upto = function
 
 let alignup ~upto size =
   match (size, upto) with
-  | Static { size; align }, Static' upto ->
+  | Static' size, Static' upto ->
       let size = alignup_static ~size ~upto in
-      Static { size; align }
-  | Dynamic { size; align }, Dynamic' upto ->
-      Dynamic { size = build_dynamic_alignup ~size ~upto; align }
-  | Static _, Dynamic' _ | Dynamic _, Static' _ ->
+      Static' size
+  | Dynamic' size, Dynamic' upto -> Dynamic' (build_dynamic_alignup ~size ~upto)
+  | Static' _, Dynamic' _ | Dynamic' _, Static' _ ->
       failwith "Internal Error: Mismatch in align calculation"
+
+let add_uptos ~upto size =
+  match (size, upto) with
+  | Static' size, Static' upto -> Static' (size + upto)
+  | Dynamic' size, Dynamic' upto ->
+      Dynamic' (Llvm.build_add size upto "addtmp" builder)
+  | Static' _, Dynamic' _ | Dynamic' _, Static' _ ->
+      failwith "Internal Error: Mismatch in size addition"
 
 (* Returns the size pair, so we can continue statically below in [offset_of] *)
 let sizeof_typ vars typ =
@@ -314,7 +321,14 @@ let sizeof_typ vars typ =
           (* Carry on *)
           let upto = upto.value in
           add_size_align ~upto:(Dynamic' upto) size_pr
-      | None, _ -> failwith ("Cannot find Qvar id: " ^ name)
+      | None, _ ->
+          print_string "env: ";
+          print_endline
+            (String.concat ", "
+               (List.map (fun a -> "'" ^ fst a ^ "'") (Vars.bindings vars)));
+          Llvm.dump_module the_module;
+
+          failwith ("Cannot find Qvar id: " ^ name)
     in
 
     match typ with
@@ -340,7 +354,9 @@ let sizeof_typ vars typ =
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
     | Qvar id -> size_from_vars (poly_name id)
-    | Tvar _ -> failwith "too generic for a size"
+    | Tvar _ ->
+        Llvm.dump_module the_module;
+        failwith "too generic for a size"
   in
   match inner (Static { size = 0; align = 1 }) typ with
   | Static { size; align = upto } -> Static' (alignup_static ~size ~upto)
@@ -355,20 +371,21 @@ let llval_of_upto = function
 
 let match_size ~upto size =
   match (upto, size) with
-  | Dynamic' _, Dynamic _ | Static' _, Static _ -> (upto, size)
-  | Dynamic' _, Static { size; align = _ } ->
+  | Dynamic' _, Dynamic' _ | Static' _, Static' _ -> (upto, size)
+  | Dynamic' _, Static' size ->
       let size = Llvm.const_int num_type size in
-      let align = Llvm.const_int num_type 1 in
-      (upto, Dynamic { size; align })
-  | Static' upto, Dynamic _ -> (Dynamic' (Llvm.const_int num_type upto), size)
+      (upto, Dynamic' size)
+  | Static' upto, Dynamic' _ -> (Dynamic' (Llvm.const_int num_type upto), size)
 
 (* Returns offset to [label] at [index] in byte *)
-let offset_of vars ~labels index =
+(* TODO we don't neccessarily need to carry the alignment with us *)
+let offset_of ?(start = (0, Static' 0)) vars ~labels index =
   let rec inner i ~size =
     if i < index then
       let upto = sizeof_typ vars (labels.(i) |> snd) in
       let upto, size = match_size ~upto size in
-      let size = add_size_align ~upto size in
+      let align = alignup ~upto size in
+      let size = add_uptos ~upto align in
       inner (i + 1) ~size
     else if i = 0 then (* We are aligned *) size
     else
@@ -377,17 +394,24 @@ let offset_of vars ~labels index =
       let upto, size = match_size ~upto size in
       alignup ~upto size
   in
-  match inner 0 ~size:(Static { size = 0; align = 1 }) with
-  | Static { size; align = _ } -> Llvm.const_int num_type size
-  | Dynamic { size; align = _ } -> size
+  let start, size = start in
+  match inner start ~size with
+  | Static' size -> Llvm.const_int num_type size
+  | Dynamic' size -> size
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
-let memcpy vars ~dst ~src =
+let memcpy ~dst ~src ~size =
   let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
   let retptr = Llvm.build_bitcast src.value voidptr_type "" builder in
-  let size = sizeof_typ vars src.typ |> llval_of_upto in
   let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
   ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
+
+let set_record_field vars value ptr =
+  match value.typ with
+  | Trecord _ ->
+      let size = sizeof_typ vars value.typ |> llval_of_upto in
+      memcpy ~dst:ptr ~src:value ~size
+  | _ -> ignore (Llvm.build_store value.value ptr builder)
 
 (*
    Module state
@@ -697,27 +721,36 @@ let handle_generic_arg vars poly_args param (arg, gen_fun) =
       let arg = func_to_closure vars arg in
       (poly_args, arg.value)
 
-let handle_generic_ret vars poly_vars (funcval, args, envarg) ret params =
-  let t = Tfun (params, ret, Simple) in
-  ignore t;
-
+let handle_generic_ret vars poly_vars (funcval, args, envarg) ret concrete_ret =
   (* TODO verify args *)
   let poly_args = poly_vars |> PMap.to_args |> Seq.map fst in
 
   (* Mostly copied from the [gen_app] inline code before  *)
-  match ret with
-  | Trecord _ ->
-      let lltyp = get_lltype ~param:false ret in
+  match (ret, concrete_ret) with
+  | Trecord _, Trecord _ ->
+      let lltyp = get_lltype ~param:false concrete_ret in
       let retval = Llvm.build_alloca lltyp "ret" builder in
+      let retval =
+        if is_generic_record ret then
+          let lltyp = get_lltype ~param:true ret in
+          Llvm.build_bitcast retval lltyp "" builder
+        else retval
+      in
       let ret' = Seq.return retval in
       let args = ret' ++ args ++ poly_args ++ envarg |> Array.of_seq in
       ignore (Llvm.build_call funcval args "" builder);
-      (retval, ret, lltyp)
-  | Qvar id as t ->
-      (* Conceptually, this works like the record case. The only difference is that we need to get
-            the size of variable from somewhere. We can look up the size in the type parameter *)
+      let retval =
+        if is_generic_record ret then
+          Llvm.build_bitcast retval (lltyp |> Llvm.pointer_type) "" builder
+        else retval
+      in
+
+      (retval, concrete_ret, lltyp)
+  | (Qvar id as t), _ ->
+      (* Conceptually, this works like the record case.
+          The only difference is that we need to get the size of variable
+          from somewhere. We can look up the size in the type parameter *)
       (* This is a bit messy, can we clean this up somehow? *)
-      (* let name = poly_name id in *)
       let name = id in
 
       let poly_var = PMap.find_opt name poly_vars |> Option.get in
@@ -739,8 +772,8 @@ let handle_generic_ret vars poly_vars (funcval, args, envarg) ret params =
             let t = labels.(i) |> snd in
             (Local t, extract_static t)
         | (lazy (_, Local t)), _ -> (Local t, extract_static t)
-        | (lazy (value, Param)), { name = _; lvl } ->
-            (Param, get_poly_size lvl value)
+        | (lazy (value, Param)), { name; lvl } ->
+            (Param, get_poly_size name lvl value)
       in
 
       (* What about alignment? *)
@@ -767,7 +800,7 @@ let handle_generic_ret vars poly_vars (funcval, args, envarg) ret params =
         | _ -> (ret, t)
       in
       (retval, typ, gen_ptr_t)
-  | t ->
+  | t, _ ->
       let args = args ++ poly_args ++ envarg |> Array.of_seq in
       let retval = Llvm.build_call funcval args "" builder in
       (* TODO use concrete return type *)
@@ -812,11 +845,10 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
             let var = (Llvm.params func.value).(i) in
             let pname = poly_param_name pvar in
             Llvm.set_value_name pname var;
-            (* TODO use extra convention for param value and add to env *)
             let env =
               List.fold_left
                 (fun vars { PVars.name; lvl } ->
-                  let value = get_poly_size lvl var in
+                  let value = get_poly_size name lvl var in
                   let param = { value; typ = Qvar name; lltyp = num_type } in
                   let name = poly_name name in
                   Vars.add name param vars)
@@ -935,7 +967,7 @@ and gen_expr vars typed_expr =
       match abs.tp.kind with
       | Simple -> func
       | Closure assoc -> gen_closure_obj assoc func vars name)
-  | App { callee; args } -> gen_app vars callee args typed_expr.typ
+  | App { callee; args } -> gen_app vars callee args (clean typed_expr.typ)
   | If (cond, e1, e2) -> gen_if vars cond e1 e2
   | Record labels -> codegen_record vars (clean typed_expr.typ) labels
   | Field (expr, index) -> codegen_field vars expr index
@@ -1166,9 +1198,9 @@ and gen_app vars callee args ret_t =
               failwith "Internal Error: Not a recursive closure application")
   in
 
-  let value, typ, lltyp = handle_generic_ret vars poly_args callee ret params in
+  let value, _, lltyp = handle_generic_ret vars poly_args callee ret ret_t in
 
-  { value; typ; lltyp }
+  { value; typ = ret_t; lltyp }
 
 and gen_if vars cond e1 e2 =
   let cond = gen_expr vars cond in
@@ -1210,27 +1242,65 @@ and gen_if vars cond e1 e2 =
   { value = phi; typ = e1.typ; lltyp = e1.lltyp }
 
 and codegen_record vars typ labels =
-  (* print_endline (show_typ typ); *)
-  (* Strtbl.iter (fun key _ -> Printf.printf "%s\n" key) record_tbl; *)
+  print_endline (show_typ typ);
+  Strtbl.iter (fun key _ -> Printf.printf "%s\n" key) record_tbl;
   let lltyp = get_lltype ~param:false typ in
-  let record = Llvm.build_alloca lltyp "" builder in
-  List.iteri
-    (fun i (name, expr) ->
-      let ptr = Llvm.build_struct_gep record i name builder in
-      let value = gen_expr vars expr in
-      match value.typ with
-      | Trecord _ -> memcpy vars ~dst:ptr ~src:value
-      | _ -> ignore (Llvm.build_store value.value ptr builder))
-    labels;
-  { value = record; typ; lltyp }
+  if is_generic_record typ then (
+    let lbls =
+      match typ with
+      | Trecord (_, _, labels) -> labels
+      | _ -> failwith "Not a record lol"
+    in
+    (* The size of the record has to come from the environment *)
+    let pname = record_name ~poly:true typ |> poly_name in
+    let size = (Vars.find pname vars).value in
+    let record = Llvm.build_array_alloca byte_type size "record" builder in
+    (* What about alignment? *)
+    ignore
+      (List.fold_left
+         (fun (index, size) (_, expr) ->
+           let typ = lbls.(index) |> snd in
+
+           print_string "inn ";
+           print_endline (show_typ typ);
+           let upto = sizeof_typ vars typ in
+           let upto, size = match_size ~upto size in
+           let offset = alignup ~upto size in
+           let ofs = llval_of_upto offset in
+           let value = gen_expr vars expr in
+           let dst = Llvm.build_in_bounds_gep record [| ofs |] "ptr" builder in
+           (* copy *)
+           ignore
+             (match typ with
+             | Trecord _ | Qvar _ ->
+                 memcpy ~dst ~src:value ~size:(llval_of_upto upto)
+             | _ ->
+                 let ptr =
+                   Llvm.build_bitcast dst
+                     (value.lltyp |> Llvm.pointer_type)
+                     "" builder
+                 in
+                 ignore (Llvm.build_store value.value ptr builder));
+
+           (index + 1, add_uptos ~upto offset))
+         (0, Static' 0) labels);
+    let value =
+      Llvm.build_bitcast record (lltyp |> Llvm.pointer_type) "record" builder
+    in
+    { value; typ; lltyp })
+  else
+    let record = Llvm.build_alloca lltyp "" builder in
+    List.iteri
+      (fun i (name, expr) ->
+        let ptr = Llvm.build_struct_gep record i name builder in
+        let value = gen_expr vars expr in
+        set_record_field vars value ptr)
+      labels;
+    { value = record; typ; lltyp }
 
 and codegen_field vars expr index =
   let value = gen_expr vars expr in
 
-  (* print_endline "in field";
-   * Printf.printf "%b\n" (value.lltyp = (generic_type |> Llvm.pointer_type));
-   * Printf.printf "%s\n%!" (show_typ value.typ); *)
-  (* Llvm.dump_module the_module; *)
   let typ =
     match value.typ with
     | Trecord (_, _, fields) -> fields.(index) |> snd

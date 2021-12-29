@@ -961,9 +961,7 @@ and convert_field env loc expr id =
       match Env.find_label_opt id env with
       | Some { typ = _; index; record } -> (
           let record_t = Env.find_type record env |> instantiate in
-          unify
-            (loc, "Field access of " ^ string_of_type record_t)
-            record_t t;
+          unify (loc, "Field access of " ^ string_of_type record_t) record_t t;
           match record_t with
           | Trecord (_, _, labels) ->
               let typ = labels.(index) |> snd in
