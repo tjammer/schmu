@@ -586,7 +586,7 @@ and typeof_field env loc expr id =
   let typ = typeof env expr in
   (* This expr could be a fresh var, in which case we take the record type from the label,
      or it could be a specific record type in which case we have to get that certain record *)
-  match clean typ with
+  match typ with
   | Trecord (_, name, labels) -> (
       (* This is a poor replacement for List.assoc_opt *)
       let find_id acc (name, t) =
@@ -598,11 +598,15 @@ and typeof_field env loc expr id =
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
   | t -> (
       match Env.find_label_opt id env with
-      | Some { typ; record; index = _ } ->
-          unify
-            (loc, "Field access of record " ^ record ^ ":")
-            (Env.find_type record env) t;
-          typ
+      | Some { typ = _; record; index } -> (
+          (* TODO typ above could link straight to the record label? *)
+          let record_t = Env.find_type record env |> instantiate in
+          unify (loc, "Field access of record " ^ record ^ ":") record_t t;
+          match record_t with
+          | Trecord (_, _, labels) ->
+              let ret = labels.(index) |> snd in
+              ret
+          | _ -> failwith "nope")
       | None -> raise (Error (loc, "Unbound field " ^ id)))
 
 and typeof_sequence env loc expr cont =
@@ -947,7 +951,7 @@ and convert_record env loc labels =
 
 and convert_field env loc expr id =
   let expr = convert env expr in
-  match clean expr.typ with
+  match expr.typ with
   | Trecord (_, name, labels) -> (
       match assoc_opti id labels with
       | Some (index, typ) -> { typ; expr = Field (expr, index) }
@@ -955,11 +959,17 @@ and convert_field env loc expr id =
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
   | t -> (
       match Env.find_label_opt id env with
-      | Some { typ; index; record } ->
+      | Some { typ = _; index; record } -> (
+          let record_t = Env.find_type record env |> instantiate in
           unify
-            (loc, "Field access of " ^ string_of_type typ)
-            (Env.find_type record env) t;
-          { typ; expr = Field (expr, index) }
+            (loc, "Field access of " ^ string_of_type record_t)
+            record_t t;
+          match record_t with
+          | Trecord (_, _, labels) ->
+              let typ = labels.(index) |> snd in
+
+              { typ; expr = Field (expr, index) }
+          | _ -> failwith "nope")
       | None -> raise (Error (loc, "Unbound field " ^ id)))
 
 and convert_sequence env loc expr cont =

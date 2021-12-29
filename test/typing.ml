@@ -135,6 +135,16 @@ let test_para_multiple () =
     "type 'a foo = { gen : 'a } function get(foo) foo.gen a = { gen = 12 } b : \
      int = get(a) c = { gen = false } get(c)"
 
+let test_para_instance_func () =
+  test "int foo -> int"
+    "type 'a foo = { gen : 'a } function use(foo) foo.gen + 17 foo = { gen = \
+     17 } use"
+
+let test_para_instance_wrong_func () =
+  test_exn " Expected type int foo -> int but got type bool foo -> 'a"
+    "type 'a foo = { gen : 'a } function use(foo) foo.gen + 17 foo = { gen = \
+     17 } use( { gen = true } )"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -186,9 +196,11 @@ let () =
         ] );
       ( "parametric record",
         [
-          case "para_instantiate" test_para_instantiate;
-          case "para_gen_fun" test_para_gen_fun;
-          case "para_gen_return" test_para_gen_return;
-          case "para_multiple" test_para_multiple;
+          case "instantiate" test_para_instantiate;
+          case "gen_fun" test_para_gen_fun;
+          case "gen_return" test_para_gen_return;
+          case "multiple" test_para_multiple;
+          case "instance_func" test_para_instance_func;
+          case "instance_wrong_func" test_para_instance_wrong_func;
         ] );
     ]
