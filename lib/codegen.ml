@@ -577,9 +577,7 @@ let extract expr =
             | `None -> (acc, monos))
         in
         let param = inner (bound, monos, acc) callee.expr in
-        List.fold_left
-          (fun acc { Typing.arg; gen_fun = _ } -> inner acc Typing.(arg.expr))
-          param args
+        List.fold_left (fun acc arg -> inner acc Typing.(arg.expr)) param args
     | Record labels ->
         List.fold_left
           (fun acc (_, e) -> inner acc Typing.(e.expr))
@@ -781,7 +779,7 @@ let rec add_poly_args vars poly_args param arg =
         PMap.add_container ids (mkvar_generic_record name i2 l2) poly_args
   | _, _ -> poly_args
 
-let handle_generic_arg vars poly_args param (arg, _) =
+let handle_generic_arg vars poly_args param arg =
   (* Generic func is only needed in the case of both param ond arg not being
      fully polymorphic *)
   let poly_args = add_poly_args vars poly_args param arg.typ in
@@ -1047,7 +1045,7 @@ and gen_expr vars typed_expr =
             in
             let len = Vars.fold (fun _ _ i -> i + 1) monos 0 in
             if len = 1 then Vars.min_binding monos |> snd
-            else "Could not find generated function: " ^ name |> failwith
+            else "Multiple generated functions for: " ^ name |> failwith
       in
 
       let func =
@@ -1096,16 +1094,12 @@ and gen_app vars callee args ret_t =
 
   let poly_args, args =
     List.fold_left_map
-      (fun poly_vars (param, { Typing.arg; gen_fun }) ->
-        (* let before_t = arg.typ in *)
-        let typ = arg.typ in
+      (fun poly_vars (param, arg) ->
+        let typ = Typing.(arg.typ) in
         (* We have to preserve the concrete type. Otherwise we get the generalized one *)
         let arg = gen_expr vars arg in
         let arg = { arg with typ } in
-        let argtup = (arg, gen_fun) in
-        (* let after_t = (fst argtup).typ in *)
-        (* Printf.printf "before: %s\nafter: %s\n%!" (show_typ before_t) (show_typ after_t); *)
-        handle_generic_arg vars poly_vars param argtup)
+        handle_generic_arg vars poly_vars param arg)
       PMap.empty (List.combine params args)
   in
   let args = List.to_seq args in

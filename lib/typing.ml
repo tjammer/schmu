@@ -8,7 +8,7 @@ type expr =
   | Let of string * typed_expr * typed_expr
   | Lambda of int * abstraction
   | Function of string * int option * abstraction * typed_expr
-  | App of { callee : typed_expr; args : argument list }
+  | App of { callee : typed_expr; args : typed_expr list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
   | Sequence of (typed_expr * typed_expr)
@@ -23,8 +23,6 @@ and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
 
 and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
-
-and argument = { arg : typed_expr; gen_fun : (string * generic_fun) option }
 
 type external_decl = string * typ
 
@@ -699,72 +697,6 @@ let rec param_funcs_as_closures = function
   | Tfun (params, ret, _) -> Tfun (params, ret, Closure [])
   | t -> t
 
-let name_of_generic { concrete; generic } =
-  (* TODO indicate different Qvars, like for printing *)
-  let rec str_of_typ = function
-    | Tint -> "i"
-    | Tbool -> "b"
-    | Tunit -> "u"
-    | Tvar { contents = Unbound _ } -> "g"
-    | Tvar { contents = Link t } -> str_of_typ t
-    | Tvar { contents = Qannot _ } ->
-        failwith "Internal Error: We should never need a generic name here"
-    | Qvar _ -> "g"
-    | Tfun (params, ret, _) ->
-        "."
-        ^ String.concat "" (List.map str_of_typ params)
-        ^ "." ^ str_of_typ ret ^ "."
-    | Trecord (param, name, labels) ->
-        let some i = labels.(i) |> snd |> str_of_typ in
-        Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
-  in
-
-  (str_of_typ concrete.ret ^ str_of_typ generic.ret)
-  :: List.map2
-       (fun concrete generic -> str_of_typ concrete ^ str_of_typ generic)
-       concrete.tparams generic.tparams
-  |> String.concat "_" |> ( ^ ) "__"
-
-let needs_generic_wrap { generic; concrete } =
-  let rec aux gen con =
-    match (gen, con) with
-    | Qvar _, Qvar _ | Qvar _, Tvar { contents = Unbound _ } -> false
-    | Tvar { contents = Link gen }, con -> aux gen con
-    | gen, Tvar { contents = Link con } -> aux gen con
-    | Qvar _, _ -> true
-    | _, _ -> false
-  in
-  List.fold_left2
-    (fun acc gen con -> if aux gen con then true else acc)
-    (aux generic.ret concrete.ret)
-    generic.tparams concrete.tparams
-  |> function
-  | true ->
-      let name = name_of_generic { concrete; generic } in
-      Some name
-  | false -> None
-
-let mark_generic_fun texpr gen_param =
-  let generic_arg =
-    match (gen_param, texpr.typ) with
-    | Tfun (ps1, ret1, kind1), Tfun (ps2, ret2, kind2) -> (
-        let generic = { tparams = ps1; ret = ret1; kind = kind1 } in
-        let concrete = { tparams = ps2; ret = ret2; kind = kind2 } in
-        let fun_piece = { generic; concrete } in
-        match needs_generic_wrap fun_piece with
-        | Some name -> Some (name, fun_piece)
-        | None -> None)
-    | _ -> None
-  in
-  (texpr, generic_arg)
-
-let extend_generic_funs texprs = function
-  (* At this point unification succeeded and we know the lengths match *)
-  | Tfun (params, _, _) -> List.map2 mark_generic_fun texprs params
-  | _ ->
-      (* Another generic case hm *)
-      List.map (fun t -> (t, None)) texprs
-
 let rec convert env = function
   | Ast.Var (loc, id) -> convert_var env loc id
   | Int (_, i) -> { typ = Tint; expr = Const (Int i) }
@@ -892,10 +824,9 @@ and convert_function env loc { name; params; return_annot; body; cont } =
 
 and convert_app env loc e1 args =
   let callee = convert env e1 in
-  print_endline "callee";
-  print_endline (show_expr callee.expr);
-  let generic = freeze callee.typ in
 
+  (* print_endline "callee"; *)
+  (* print_endline (show_expr callee.expr); *)
   let typed_exprs = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_exprs in
   let args_frozen = List.map freeze args_t in
@@ -905,19 +836,18 @@ and convert_app env loc e1 args =
   (* Apply the 'result' of the unification the the typed_expr *)
   let apply typ texpr = { texpr with typ } in
   let targs = List.map2 apply args_frozen typed_exprs in
-  let targs = extend_generic_funs targs generic in
 
   (* Printf.printf "generic:\n%s\npassed:\n%s\nother:\n%s\n\n%!" (show_typ generic)
    *   (show_typ (Tfun (args_frozen, res_t, Simple)))
    *   (show_typ (Tfun (args_t, res_t, Simple))); *)
-  Printf.printf "other:\n%s\n\n"
-    (clean (Tfun (args_t, res_t, Simple)) |> show_typ);
-  print_endline "args";
-  List.iter (fun expr -> print_endline (show_expr expr.expr)) typed_exprs;
-  print_endline "args";
+  (* Printf.printf "other:\n%s\n\n" *)
+  (* (clean (Tfun (args_t, res_t, Simple)) |> show_typ); *)
+  (* print_endline "args"; *)
+  (* List.iter (fun expr -> print_endline (show_expr expr.expr)) typed_exprs; *)
+  (* print_endline "args"; *)
 
   (* Change back to unify types. Otherwise we don't know the generic's size *)
-  let apply typ (texpr, b) = { arg = { texpr with typ }; gen_fun = b } in
+  let apply typ texpr = { texpr with typ } in
   let targs = List.map2 apply args_t targs in
 
   { typ = res_t; expr = App { callee; args = targs } }

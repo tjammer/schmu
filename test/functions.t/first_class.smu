@@ -6,5 +6,18 @@ function apply(x, f)
 function add1(x)
   x + 1
 
+-- We also pass polymorphic functions
+function pass(x)
+  x
+
+function makefalse(b)
+  if b then false
+  else b
+
+function int_of_bool(b)
+  if b then 1 else 0
+
 printi(apply(1, add1)) >>
-printi(apply(1, function (x) x + 2))
+printi(apply(1, function (x) x + 2)) >>
+-- printi(int_of_bool(apply(true, makefalse)))
+printi(apply(4, pass))
