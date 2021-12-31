@@ -10,12 +10,13 @@ type expr =
   | Bop of Ast.bop * typed_expr * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
-  | Lambda of abstraction
+  | Lambda of int * abstraction (* strictly increasing lambda id *)
   | Function of string * int option * abstraction * typed_expr
   | App of { callee : typed_expr; args : argument list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
   | Sequence of (typed_expr * typed_expr)
+[@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr }
 

@@ -6,12 +6,13 @@ type expr =
   | Bop of Ast.bop * typed_expr * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
-  | Lambda of abstraction
+  | Lambda of int * abstraction
   | Function of string * int option * abstraction * typed_expr
   | App of { callee : typed_expr; args : argument list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
   | Sequence of (typed_expr * typed_expr)
+[@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr }
 
@@ -47,6 +48,10 @@ end
 
 module Strtbl = Hashtbl.Make (Str)
 
+(*
+   Module state
+ *)
+
 let func_tbl = Strtbl.create 1
 
 let next_func name tbl =
@@ -57,6 +62,41 @@ let next_func name tbl =
   | Some n ->
       Strtbl.replace tbl name (n + 1);
       Some (n + 1)
+
+let gensym_state = ref 0
+
+let lambda_id_state = ref 0
+
+let reset state = state := 0
+
+let gensym () =
+  let n = !gensym_state in
+  incr gensym_state;
+  string_of_int n
+
+let lambda_id () =
+  let id = !lambda_id_state in
+  incr lambda_id_state;
+  id
+
+let current_level = ref 1
+
+let reset_level () = current_level := 1
+
+let reset_type_vars () =
+  reset gensym_state;
+  reset_level ();
+  reset lambda_id_state
+
+let enter_level () = incr current_level
+
+let leave_level () = decr current_level
+
+let newvar () = Tvar (ref (Unbound (gensym (), !current_level)))
+
+(*
+  Helper functions
+*)
 
 (* Bring type vars into canonical form so the first one is "'a" etc.
    Only used for printing purposes *)
@@ -138,29 +178,6 @@ let string_of_type typ =
         ^ str
   in
   string_of_type typ
-
-let gensym_state = ref 0
-
-let reset_gensym () = gensym_state := 0
-
-let gensym () =
-  let n = !gensym_state in
-  incr gensym_state;
-  string_of_int n
-
-let current_level = ref 1
-
-let reset_level () = current_level := 1
-
-let reset_type_vars () =
-  reset_gensym ();
-  reset_level ()
-
-let enter_level () = incr current_level
-
-let leave_level () = decr current_level
-
-let newvar () = Tvar (ref (Unbound (gensym (), !current_level)))
 
 let rec occurs tvr = function
   | Tvar tvr' when tvr == tvr' -> failwith "Internal error: Occurs check failed"
@@ -504,10 +521,10 @@ and typeof_abs env loc params ret_annot e =
   let type_e = typeof env e in
   leave_level ();
 
-  match Tfun (params_t, type_e, Simple) |> generalize with
+  match Tfun (params_t, type_e, Simple) with
   | Tfun (_, ret, kind) as typ ->
       let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = Tfun (qparams, ret, kind) |> generalize in
+      let qtyp = Tfun (qparams, ret, kind) in
       unify (loc, "Function annot") typ qtyp;
       typ
   | _ -> failwith "Internal Error Tfun not Tfun"
@@ -810,16 +827,17 @@ and convert_lambda env loc params ret_annot e =
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
 
-  let typ = Tfun (params_t, body.typ, kind) |> generalize in
+  let typ = Tfun (params_t, body.typ, kind) in
   match typ with
   | Tfun (tparams, ret, kind) ->
       let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = Tfun (qparams, ret, kind) |> generalize in
+      let qtyp = Tfun (qparams, ret, kind) in
       unify (loc, "Function annot") typ qtyp;
 
       let nparams = List.map fst params in
       let tp = { tparams; ret; kind } in
-      let expr = Lambda { nparams; body = { body with typ = ret }; tp } in
+      let abs = { nparams; body = { body with typ = ret }; tp } in
+      let expr = Lambda (lambda_id (), abs) in
       { typ; expr }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
@@ -874,6 +892,8 @@ and convert_function env loc { name; params; return_annot; body; cont } =
 
 and convert_app env loc e1 args =
   let callee = convert env e1 in
+  print_endline "callee";
+  print_endline (show_expr callee.expr);
   let generic = freeze callee.typ in
 
   let typed_exprs = List.map (convert env) args in
@@ -886,6 +906,15 @@ and convert_app env loc e1 args =
   let apply typ texpr = { texpr with typ } in
   let targs = List.map2 apply args_frozen typed_exprs in
   let targs = extend_generic_funs targs generic in
+
+  (* Printf.printf "generic:\n%s\npassed:\n%s\nother:\n%s\n\n%!" (show_typ generic)
+   *   (show_typ (Tfun (args_frozen, res_t, Simple)))
+   *   (show_typ (Tfun (args_t, res_t, Simple))); *)
+  Printf.printf "other:\n%s\n\n"
+    (clean (Tfun (args_t, res_t, Simple)) |> show_typ);
+  print_endline "args";
+  List.iter (fun expr -> print_endline (show_expr expr.expr)) typed_exprs;
+  print_endline "args";
 
   (* Change back to unify types. Otherwise we don't know the generic's size *)
   let apply typ (texpr, b) = { arg = { texpr with typ }; gen_fun = b } in

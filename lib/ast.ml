@@ -1,6 +1,6 @@
 type loc = Lexing.position * Lexing.position
 
-type bop = Plus | Mult | Less | Equal | Minus
+type bop = Plus | Mult | Less | Equal | Minus [@@deriving show]
 
 type type_spec =
   | Ty_id of string

@@ -2,6 +2,7 @@ open Types
 module Vars = Map.Make (String)
 module PMap = Polyvars.PolyMap
 module PVars = Polyvars.PolyLvls
+module Set = Set.Make (String)
 
 module Str = struct
   type t = string
@@ -13,21 +14,24 @@ end
 
 module Strtbl = Hashtbl.Make (Str)
 
-let record_tbl = Strtbl.create 1
-
-let ( ++ ) = Seq.append
+type monomorphized = { subst : typ Vars.t; func_uname : string }
 
 (* TODO This can be merged with Tfun record *)
 type user_func = {
-  name : string * bool * int option;
+  name : string * bool;
   params : string list;
   typ : typ;
   body : Typing.typed_expr;
+  mono : monomorphized option;
 }
 
-type func = User of user_func | Generic of string * Typing.generic_fun
-
 type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
+
+let ( ++ ) = Seq.append
+
+let record_tbl = Strtbl.create 32
+
+let mono_tbl = Strtbl.create 32
 
 let context = Llvm.global_context ()
 
@@ -417,78 +421,185 @@ let set_record_field vars value ptr =
    Module state
 *)
 
-(* Used to generate lambdas *)
-let fun_gen_state = ref 0
-
-(* Used to query lambdas *)
-let fun_get_state = ref 0
-
-let lambda_name state =
-  let n = !state in
-  incr state;
-  "__fun" ^ string_of_int n
+let lambda_name id = "__fun" ^ string_of_int id
 
 (* for named functions *)
 let unique_name = function
   | name, None -> name
   | name, Some n -> name ^ "__" ^ string_of_int n
 
-let reset state = state := 0
-
 (* Transforms abs into a Tfun and cleans all types (resolves links) *)
 let split_abs (abs : Typing.abstraction) =
   let params = List.map clean abs.tp.tparams in
   (Tfun (params, clean abs.body.typ, abs.tp.kind), abs.nparams)
+
+let is_type_generic typ =
+  let rec inner acc = function
+    | Qvar _ | Tvar { contents = Unbound _ } -> true
+    | Tvar { contents = Link t } -> inner acc t
+    | Tvar _ -> failwith "annot should not be here"
+    | Trecord (Some i, _, labels) -> inner acc (labels.(i) |> snd)
+    | Tfun (params, ret, _) ->
+        let acc = List.fold_left inner acc params in
+        inner acc ret
+    | Tbool | Tunit | Tint | Trecord _ -> acc
+  in
+  inner false typ
+
+let get_mono_name (name, is_named) ~poly concrete =
+  let rec str = function
+    | Tint -> "i"
+    | Tbool -> "b"
+    | Tunit -> "u"
+    | Tvar { contents = Link t } -> str t
+    | Tfun (ps, r, _) ->
+        Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
+    | Trecord (Some i, name, labels) ->
+        Printf.sprintf "%s%s" name (labels.(i) |> snd |> str)
+    | Trecord (_, name, _) -> name
+    | Qvar _ | Tvar _ -> "g"
+  in
+  (Printf.sprintf "__%s_%s_%s" (str poly) name (str concrete), is_named)
+
+let subst_type ~poly concrete =
+  (* let subst = Strtbl.create 16 in *)
+  let rec inner subst = function
+    | l, Tvar { contents = Link r } -> inner subst (l, r)
+    | Qvar id, t -> (
+        match Vars.find_opt id subst with
+        | Some _ -> (* Already in tbl*) (subst, t)
+        | None -> (Vars.add id t subst, t))
+    | Tfun (ps1, r1, kind), Tfun (ps2, r2, _) ->
+        let subst, ps =
+          List.fold_left_map
+            (fun subst (l, r) -> inner subst (l, r))
+            subst (List.combine ps1 ps2)
+        in
+        let subst, r = inner subst (r1, r2) in
+        (subst, Tfun (ps, r, kind))
+    | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
+      when is_generic_record l ->
+        assert (i = j);
+        (* No Array.fold_left_map for pre 4.13? *)
+        let labels = Array.copy l1 in
+        let f (subst, i) (ls, lt) =
+          let _, r = l2.(i) in
+          let subst, t = inner subst (lt, r) in
+          labels.(i) <- (ls, t);
+          (subst, i + 1)
+        in
+        let subst, _ = Array.fold_left f (subst, 0) l1 in
+        (subst, Trecord (Some i, record, labels))
+    | t, _ -> (subst, t)
+  in
+  inner Vars.empty (poly, concrete)
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
    In local scope, our Map.t will resolve to the correct function.
    E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
    if the global function exists. *)
+(* TODO make a whole AST pass out of this. This also makes gen_app
+   easier with less code duplication *)
 let extract expr =
-  let rec inner acc = function
-    | Typing.Var _ | Const _ -> acc
-    | Bop (_, e1, e2) -> inner (inner acc e1.expr) e2.expr
+  let rec inner param = function
+    | Typing.Var _ | Const _ -> param
+    | Bop (_, e1, e2) -> inner (inner param e1.expr) e2.expr
     | If (cond, e1, e2) ->
-        let acc = inner acc cond.expr in
-        let acc = inner acc e1.expr in
-        inner acc e2.expr
-    | Function (name, uniq, abs, cont) ->
-        let acc = inner acc abs.body.expr in
-        let name = (name, true, uniq) in
+        let param = inner param cond.expr in
+        let param = inner param e1.expr in
+        inner param e2.expr
+    | Function (name', uniq, abs, cont) ->
+        (* If the function is concretely typed, we add it to the function list and
+           add the usercode name to the bound variables. In the polymorphic case,
+           we add the function to the bound variables *)
+        let name = (unique_name (name', uniq), true) in
         let typ, params = split_abs abs in
-        inner (User { name; params; typ; body = abs.body } :: acc) cont.expr
+        let func = { name; params; typ; body = abs.body; mono = None } in
+
+        let bound, monos, acc = param in
+        (* We do not add functions passed as parameters. They will get their correct type at the outer
+           function application *)
+        let param =
+          if is_type_generic typ then (
+            Printf.printf "Polymoric function: %s\n%!"
+              (unique_name (name', uniq));
+            let bound = Vars.add name' (`Poly func) bound in
+            (bound, monos, acc))
+          else (
+            Printf.printf "Normal function: %s\n%!" (unique_name (name', uniq));
+            let bound = Vars.add name' (`Concrete func) bound in
+            (bound, monos, func :: acc))
+        in
+
+        let param = inner param abs.body.expr in
+
+        inner param cont.expr
     | Let (_, e1, e2) ->
-        let acc = inner acc e1.expr in
-        inner acc e2.expr
-    | Lambda abs ->
-        let acc = inner acc abs.body.expr in
-        let name = (lambda_name fun_gen_state, false, None) in
+        let param = inner param e1.expr in
+        inner param e2.expr
+    | Lambda (id, abs) ->
+        let bound, monos, acc = inner param abs.body.expr in
+        let name = (lambda_name id, false) in
         let typ, params = split_abs abs in
-        User { name; params; typ; body = abs.body } :: acc
+        ( bound,
+          monos,
+          { name; params; typ; body = abs.body; mono = None } :: acc )
     | App { callee; args } ->
-        let acc = inner acc callee.expr in
+        let bound, monos, acc = param in
+        let acc, monos =
+          if is_type_generic callee.typ then (acc, monos)
+          else (
+            Printf.printf "callee: %s\n" (show_typ (clean callee.typ));
+
+            match find_function bound callee.expr with
+            | `Concrete _ -> (* All good *) (acc, monos)
+            | `Poly func ->
+                let name = get_mono_name func.name ~poly:func.typ callee.typ in
+
+                if Set.mem (fst name) monos then
+                  (* The function exists, we don't do anything right now *)
+                  (acc, monos)
+                else
+                  (* We generate the function *)
+                  let () = Printf.printf "mono name: %s\n" (fst name) in
+
+                  let subst, typ = subst_type ~poly:func.typ callee.typ in
+                  ( {
+                      name;
+                      params = func.params;
+                      typ;
+                      body = func.body;
+                      mono = Some { subst; func_uname = func.name |> fst };
+                    }
+                    :: acc,
+                    Set.add (fst name) monos )
+            | `None -> (acc, monos))
+        in
+        let param = inner (bound, monos, acc) callee.expr in
         List.fold_left
-          (fun acc { Typing.arg; gen_fun } ->
-            let acc = inner acc Typing.(arg.expr) in
-            match gen_fun with
-            | Some (name, gen) -> generic_parameter name gen acc
-            | None -> acc)
-          acc args
+          (fun acc { Typing.arg; gen_fun = _ } -> inner acc Typing.(arg.expr))
+          param args
     | Record labels ->
-        List.fold_left (fun acc (_, e) -> inner acc Typing.(e.expr)) acc labels
-    | Field (expr, _) -> inner acc expr.expr
+        List.fold_left
+          (fun acc (_, e) -> inner acc Typing.(e.expr))
+          param labels
+    | Field (expr, _) -> inner param expr.expr
     | Sequence (expr, cont) ->
-        let acc = inner acc expr.expr in
-        inner acc cont.expr
-  and generic_parameter name gen acc =
-    let exists = function
-      | Generic (n, _) -> String.equal name n
-      | User _ -> false
-    in
-    if List.exists exists acc then acc else Generic (name, gen) :: acc
+        let param = inner param expr.expr in
+        inner param cont.expr
+  and find_function vars = function
+    | Typing.Var id -> (
+        match Vars.find_opt id vars with
+        | Some thing -> thing
+        | None ->
+            print_endline ("Probably a parameter: " ^ id);
+            `None)
+    | e -> "not supported: " ^ Typing.show_expr e |> failwith
   in
-  inner [] expr
+
+  let _, _, funs = inner (Vars.empty, Set.empty, []) expr in
+  funs
 
 let declare_function fun_name = function
   | Tfun (params, ret, kind) as typ ->
@@ -514,7 +625,9 @@ let gen_closure_obj assoc func vars name =
   ignore (Llvm.build_store fun_casted fun_ptr builder);
 
   let store_closed_var clsr_ptr i (name, _) =
+    print_endline "before clsr";
     let var = Vars.find name vars in
+    print_endline "after clsr";
     let ptr = Llvm.build_struct_gep clsr_ptr i name builder in
     ignore (Llvm.build_store var.value ptr builder);
     i + 1
@@ -569,30 +682,6 @@ let add_closure vars func = function
 let is_polymorphic = function
   | Qvar _ | Tvar { contents = Unbound (_, _) } -> true
   | _ -> false
-
-let pass_generic_wrap vars llvar kind name =
-  let closure_struct = Llvm.build_alloca closure_type "clstmp" builder in
-  let fp = Llvm.build_struct_gep closure_struct 0 "funptr" builder in
-  let gen_fp = Vars.find name vars in
-  let ptr = Llvm.build_bitcast gen_fp.value voidptr_type "" builder in
-  ignore (Llvm.build_store ptr fp builder);
-
-  (* Store the actual function in the env *)
-  (* The env here is a complete closure again *)
-  let envptr = Llvm.build_struct_gep closure_struct 1 "envptr" builder in
-
-  (* The closure can be stored as is. Far a simple function we have to wrap *)
-  let clsr_obj =
-    match kind with
-    | Simple ->
-        let clsr_obj = (gen_closure_obj [] llvar vars "wrapped").value in
-        clsr_obj
-    | Closure _ -> llvar.value
-  in
-  let clsr_casted = Llvm.build_bitcast clsr_obj voidptr_type "" builder in
-
-  ignore (Llvm.build_store clsr_casted envptr builder);
-  closure_struct
 
 let pass_function vars llvar kind =
   match kind with
@@ -692,7 +781,7 @@ let rec add_poly_args vars poly_args param arg =
         PMap.add_container ids (mkvar_generic_record name i2 l2) poly_args
   | _, _ -> poly_args
 
-let handle_generic_arg vars poly_args param (arg, gen_fun) =
+let handle_generic_arg vars poly_args param (arg, _) =
   (* Generic func is only needed in the case of both param ond arg not being
      fully polymorphic *)
   let poly_args = add_poly_args vars poly_args param arg.typ in
@@ -705,11 +794,6 @@ let handle_generic_arg vars poly_args param (arg, gen_fun) =
          We have to convert a local value to a generic one *)
       let value_to_pass = func_to_closure vars arg |> make_poly_arg_local in
       (poly_args, value_to_pass)
-  | Tfun _, Tfun (_, _, kind) when Option.is_some gen_fun ->
-      (* There might be poly vars in the param function, but how can we access them?
-         Do we even have to? *)
-      let name, _ = Option.get gen_fun in
-      (poly_args, pass_generic_wrap vars arg kind name)
   | (Trecord _ as generic), Trecord _ when is_generic_record param ->
       if is_generic_record arg.typ then (* Nothing to do *)
         (poly_args, arg.value)
@@ -808,8 +892,7 @@ let handle_generic_ret vars poly_vars (funcval, args, envarg) ret concrete_ret =
 
 (* TODO put below gen_expr *)
 let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
-    { name = name, named, uniq; params; typ; body } =
-  let fun_name = if named then unique_name (name, uniq) else name in
+    { name = fun_name, named; params; typ; body; mono = _ } =
   match typ with
   | Tfun (tparams, ret_t, kind) as typ ->
       let func = declare_function fun_name typ in
@@ -951,7 +1034,22 @@ and gen_expr vars typed_expr =
   | Function (name, uniq, abs, cont) ->
       (* The functions are already generated *)
       let name = unique_name (name, uniq) in
-      let func = Vars.find name vars in
+      let func =
+        match Vars.find_opt name vars with
+        | Some func -> func
+        | None ->
+            (* The function is polymorphic and monomorphized versions are generated. *)
+            (* TODO remove hack: If there is only one item, we replace it, otherwise fail *)
+            let monos =
+              match Strtbl.find_opt mono_tbl name with
+              | Some m -> m
+              | None -> "Could not find monos for: " ^ name |> failwith
+            in
+            let len = Vars.fold (fun _ _ i -> i + 1) monos 0 in
+            if len = 1 then Vars.min_binding monos |> snd
+            else "Could not find generated function: " ^ name |> failwith
+      in
+
       let func =
         match abs.tp.kind with
         | Simple -> func
@@ -961,8 +1059,8 @@ and gen_expr vars typed_expr =
   | Let (id, equals_ty, let_ty) ->
       let expr_val = gen_expr vars equals_ty in
       gen_expr (Vars.add id expr_val vars) let_ty
-  | Lambda abs -> (
-      let name = lambda_name fun_get_state in
+  | Lambda (id, abs) -> (
+      let name = lambda_name id in
       let func = Vars.find name vars in
       match abs.tp.kind with
       | Simple -> func
@@ -972,155 +1070,6 @@ and gen_expr vars typed_expr =
   | Record labels -> codegen_record vars (clean typed_expr.typ) labels
   | Field (expr, index) -> codegen_field vars expr index
   | Sequence (expr, cont) -> codegen_chain vars expr cont
-
-and gen_generic funcs name { Typing.concrete; generic } =
-  (* Lots copied from gen_function. See comments there *)
-  (* Simplest solution, no closures or something *)
-
-  (* We make sure in [extract] that only the functions are unique *)
-
-  (* If the function does not yet exist, we generate it *)
-
-  (* For params, extract out the correct type *)
-  let func_typ = Tfun (generic.tparams, generic.ret, Closure []) in
-  Printf.printf "func_typ: %s\n" (show_typ func_typ);
-  let gen_func = declare_function name func_typ in
-
-  let bb = Llvm.append_block context "entry" gen_func.value in
-  Llvm.position_at_end bb builder;
-
-  let start_index = match generic.ret with Trecord _ | Qvar _ -> 1 | _ -> 0 in
-  let closure_index = (Llvm.params gen_func.value |> Array.length) - 1 in
-
-  (* Get wrapped function *)
-  let wrapped_func =
-    let typ = Tfun (concrete.tparams, concrete.ret, concrete.kind) in
-    Printf.printf "wrapped_typ: %s\n" (show_typ typ);
-    let lltyp =
-      typeof_func ~param:false ~decl:true
-        (concrete.tparams, concrete.ret, concrete.kind)
-    in
-
-    (* We always pass the function as closures, even when they are not.
-       The C calling convention apparently allows this and this makes it
-       easier for us to reuse the generic function. If we ever need to
-       optimize hard, we can make the generic function closure-aware *)
-    let clsr_param = (Llvm.params gen_func.value).(closure_index) in
-
-    let clsr_ptr =
-      Llvm.build_bitcast clsr_param
-        (closure_type |> Llvm.pointer_type)
-        "" builder
-    in
-    { value = clsr_ptr; typ; lltyp }
-  in
-
-  let i = ref start_index in
-
-  let args_llvars =
-    List.map2
-      (fun concrete generic ->
-        let value =
-          match (generic, concrete) with
-          | Qvar _, (Tbool as typ) | Qvar _, (Tint as typ) ->
-              let lltyp = get_lltype typ |> Llvm.pointer_type in
-              let ptr =
-                Llvm.build_bitcast
-                  (Llvm.params gen_func.value).(!i)
-                  lltyp "" builder
-              in
-              { value = Llvm.build_load ptr "" builder; typ; lltyp }
-          | Qvar _, (Trecord _ as typ) ->
-              let lltyp = get_lltype typ in
-              let value =
-                Llvm.build_bitcast
-                  (Llvm.params gen_func.value).(!i)
-                  lltyp "" builder
-              in
-              { value; typ; lltyp }
-          | Qvar _, (Tfun _ as typ) ->
-              (* If the closure was passed as a generic param, we need to cast to closure *)
-              let lltyp = closure_type |> Llvm.pointer_type in
-              let value =
-                Llvm.build_bitcast
-                  (Llvm.params gen_func.value).(!i)
-                  lltyp "" builder
-              in
-              { value; typ; lltyp }
-          | _, typ ->
-              let lltyp = get_lltype typ in
-              (* TODO what's going on here? *)
-              { value = (Llvm.params gen_func.value).(!i); typ; lltyp }
-        in
-        incr i;
-        value)
-      concrete.tparams generic.tparams
-  in
-
-  let (vars, _), exprs =
-    List.fold_left_map
-      (fun (vars, i) llvar ->
-        (* We introduce some unique names for the vars and make them available through Var name *)
-        let name = "___" ^ string_of_int i in
-        ( (Vars.add name llvar vars, i + 1),
-          (* We assume the generic fun itself has no generic fun param *)
-          let arg = { Typing.typ = llvar.typ; expr = Var name } in
-          { Typing.arg; gen_fun = None } ))
-      (funcs, 0) args_llvars
-  in
-
-  let typed_expr = { Typing.typ = Tunit; expr = Var name } in
-  let ret =
-    gen_app (Vars.add name wrapped_func vars) typed_expr exprs concrete.ret
-  in
-
-  let () =
-    ignore
-      (match (generic.ret, concrete.ret) with
-      | Qvar _, (Tbool as typ) | Qvar _, (Tint as typ) ->
-          let lltyp = get_lltype typ |> Llvm.pointer_type in
-          (* Store int in return param *)
-          let ret_param = (Llvm.params gen_func.value).(0) in
-          let ptr = Llvm.build_bitcast ret_param lltyp "" builder in
-          ignore (Llvm.build_store ret.value ptr builder);
-          Llvm.build_ret_void builder
-      | Qvar _, Trecord _ | _, Trecord _ ->
-          (* memcpy record and return void *)
-          let dst = Llvm.(params gen_func.value).(0) in
-          let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
-          let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
-
-          let size = sizeof_typ vars concrete.ret |> llval_of_upto in
-          let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
-          ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
-          Llvm.build_ret_void builder
-      | Qvar _, Qvar id | Qvar _, Tvar { contents = Unbound (id, _) } ->
-          print_endline @@ "generic return in gen with id: " ^ id;
-          let dst = Llvm.(params gen_func.value).(0) in
-          let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
-          let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
-
-          let size =
-            match Vars.find_opt (poly_name id) funcs with
-            | Some v -> v.value
-            | None ->
-                failwith "TODO Internal Error: Unknown size of generic type"
-          in
-          let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
-          ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
-          Llvm.build_ret_void builder
-      | Tunit, Tunit ->
-          (* void return *)
-          Llvm.build_ret_void builder
-      | _, _ -> (* normal return *) Llvm.build_ret ret.value builder)
-  in
-
-  if Llvm_analysis.verify_function gen_func.value |> not then (
-    Llvm.dump_module the_module;
-    (* To generate the report *)
-    Llvm_analysis.assert_valid_function gen_func.value);
-
-  Vars.add name gen_func funcs
 
 and gen_bop e1 e2 bop =
   let bld f str = f e1.value e2.value str builder in
@@ -1372,39 +1321,38 @@ let generate { Typing.externals; records; tree } =
     let vars =
       List.fold_left
         (fun acc func ->
-          match func with
-          | User { name = name, named, uniq; params = _; typ; body = _ } ->
-              let name = if named then unique_name (name, uniq) else name in
-              Vars.add name (declare_function name typ) acc
-          | Generic (name, gen) ->
-              (* type_of_generic?? *)
-              let typ =
-                Tfun (gen.generic.tparams, gen.generic.ret, Closure [])
-              in
-              Vars.add name (declare_function name typ) acc)
+          let name = func.name |> fst in
+          let fnc = declare_function name func.typ in
+
+          (* Add to the monomorphization table for func's parent *)
+          (match func.mono with
+          | Some { subst = _; func_uname } -> (
+              match Strtbl.find_opt mono_tbl func_uname with
+              | Some map ->
+                  Strtbl.replace mono_tbl func_uname (Vars.add name fnc map)
+              | None ->
+                  Strtbl.add mono_tbl func_uname (Vars.add name fnc Vars.empty))
+          | None -> ());
+
+          (* Add to the normal variable environment *)
+          Vars.add name (declare_function name func.typ) acc)
         vars lst
     in
 
     (* Generate functions *)
-    List.fold_left
-      (fun acc func ->
-        match func with
-        | User func -> gen_function acc func
-        | Generic (name, gen) -> gen_generic acc name gen)
-      vars lst
+    List.fold_left (fun acc func -> gen_function acc func) vars lst
   in
 
-  (* Reset lambda counter *)
-  reset fun_get_state;
   (* Add main *)
   let linkage = Llvm.Linkage.External in
   ignore
   @@ gen_function funcs ~linkage
        {
-         name = ("main", false, None);
+         name = ("main", false);
          params = [ "" ];
          typ = Tfun ([ Tint ], Tint, Simple);
          body = { tree with typ = Tint };
+         mono = None;
        };
 
   (match Llvm_analysis.verify_module the_module with
