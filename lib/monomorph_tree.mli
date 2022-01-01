@@ -27,12 +27,11 @@ and monod_expr = monod_tree * string option
 
 and monod_tree = { typ : typ; expr : expr }
 
-(* type subst = typ Vars.t *)
-
 type to_gen_func = {
   abs : abstraction;
   name : string;
-  recursive : bool; (* subst : subst option; *)
+  recursive : bool;
+  subst : (typ -> typ) option;
 }
 
 type monomorphized_tree = {
@@ -41,5 +40,7 @@ type monomorphized_tree = {
   tree : monod_tree;
   funcs : to_gen_func list;
 }
+
+val typ_of_abs : abstraction -> typ
 
 val monomorphize : Typing.codegen_tree -> monomorphized_tree

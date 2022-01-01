@@ -10,6 +10,9 @@ function add1(x)
 function pass(x)
   x
 
+-- ...and a lambda
+pass2 = function (x) x
+
 function makefalse(b)
   if b then false
   else b
@@ -17,7 +20,9 @@ function makefalse(b)
 function int_of_bool(b)
   if b then 1 else 0
 
-printi(apply(1, add1)) >>
-printi(apply(1, function (x) x + 2)) >>
--- printi(int_of_bool(apply(true, makefalse)))
-printi(apply(4, pass))
+printi(apply(0, add1)) >>
+printi(apply(1, function (x) x + 1)) >>
+printi(int_of_bool(apply(true, makefalse))) >>
+printi(apply(3, function (x) x)) -- Should be inferred with concrete type
+-- printi(apply(4, pass)) >>
+-- printi(apply(5, pass2))

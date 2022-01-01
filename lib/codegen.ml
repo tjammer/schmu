@@ -20,8 +20,6 @@ let ( ++ ) = Seq.append
 
 let record_tbl = Strtbl.create 32
 
-let mono_tbl = Strtbl.create 32
-
 let context = Llvm.global_context ()
 
 let the_module = Llvm.create_module context "context"
@@ -458,9 +456,6 @@ let set_record_field vars value ptr =
  *   in
  *   inner Vars.empty (poly, concrete) *)
 
-let type_of_abs abs =
-  Monomorph_tree.(Tfun (abs.func.params, abs.func.ret, abs.func.kind))
-
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
    In local scope, our Map.t will resolve to the correct function.
@@ -756,16 +751,20 @@ let handle_generic_ret vars poly_vars (funcval, args, envarg) ret concrete_ret =
       (* TODO use concrete return type *)
       (retval, t, get_lltype t)
 
-(* TODO put below gen_expr *)
 let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
-    { Monomorph_tree.abs; name; recursive } =
-  let typ = type_of_abs abs in
+    { Monomorph_tree.abs; name; recursive; subst = _ } =
+  let typ = Monomorph_tree.typ_of_abs abs in
   match typ with
   | Tfun (tparams, ret_t, kind) as typ ->
       let func = declare_function name typ in
       Llvm.set_linkage linkage func.value;
 
-      let start_index = match ret_t with Trecord _ | Qvar _ -> 1 | _ -> 0 in
+      let start_index =
+        match ret_t with
+        | Trecord _ -> 1
+        | Qvar _ -> failwith "qvar should not be returned"
+        | _ -> 0
+      in
 
       let pvars = add_poly_vars PVars.empty typ in
 
@@ -905,15 +904,9 @@ and gen_expr vars typed_expr =
         | Some func -> func
         | None ->
             (* The function is polymorphic and monomorphized versions are generated. *)
-            (* TODO remove hack: If there is only one item, we replace it, otherwise fail *)
-            let monos =
-              match Strtbl.find_opt mono_tbl name with
-              | Some m -> m
-              | None -> "Could not find monos for: " ^ name |> failwith
-            in
-            let len = Vars.fold (fun _ _ i -> i + 1) monos 0 in
-            if len = 1 then Vars.min_binding monos |> snd
-            else "Multiple generated functions for: " ^ name |> failwith
+            (* We just return some bogus value, it will never be applied anyway
+               (and if it will, LLVM will fail) *)
+            { typ = Tunit; value = Llvm.const_int int_type 0; lltyp = int_type }
       in
 
       let func =
@@ -926,7 +919,19 @@ and gen_expr vars typed_expr =
       let expr_val = gen_expr vars equals_ty in
       gen_expr (Vars.add id expr_val vars) let_ty
   | Mlambda (name, abs) -> (
-      let func = Vars.find name vars in
+      let func =
+        match Vars.find_opt name vars with
+        | Some func -> func
+        | None ->
+            (* The function is polymorphic and monomorphized versions are generated. *)
+            (* We just return some bogus value, it will never be applied anyway
+               (and if it will, LLVM will fail) *)
+            {
+              typ = Tunit;
+              value = Llvm.const_int int_type (-1);
+              lltyp = int_type;
+            }
+      in
       match abs.func.kind with
       | Simple -> func
       | Closure assoc -> gen_closure_obj assoc func vars name)
@@ -952,6 +957,10 @@ and gen_bop e1 e2 bop =
 
 and gen_app vars callee args ret_t =
   let func = gen_expr vars (callee |> fst) in
+  (* Get monomorphized function *)
+  let func =
+    match callee |> snd with Some name -> Vars.find name vars | None -> func
+  in
 
   let params, ret, kind =
     match func.typ with
@@ -1219,6 +1228,7 @@ let generate { Monomorph_tree.externals; records; tree; funcs } =
              pnames = [ "arg" ];
              body = { tree with typ = Tint };
            };
+         subst = None;
        };
 
   (match Llvm_analysis.verify_module the_module with
