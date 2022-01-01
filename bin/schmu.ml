@@ -15,10 +15,10 @@ let run file src =
     try
       let prog = Parser.prog Lexer.read lexbuf in
       Ok
-        (let codegen_tree = Typing.to_typed prog in
-         ignore (Codegen.generate codegen_tree);
+        (let tree = Typing.to_typed prog |> Monomorph_tree.monomorphize in
+         ignore (Codegen.generate tree);
          Llvm.dump_module Codegen.the_module;
-         codegen_tree.tree.typ)
+         tree.tree.typ)
     with
     | Lexer.SyntaxError msg ->
         let loc = (lexbuf.lex_start_p, lexbuf.lex_curr_p) in

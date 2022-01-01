@@ -54,6 +54,12 @@ type morph_param = {
 
 let recursion_stack = ref []
 
+(* Functions must be unique, so we add a number to each function if
+   it already exists in the global scope.
+   In local scope, our Map.t will resolve to the correct function.
+   E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
+   if the global function exists. *)
+
 (* For named functions *)
 let unique_name = function
   | name, None -> name

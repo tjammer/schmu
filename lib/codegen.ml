@@ -14,17 +14,6 @@ end
 
 module Strtbl = Hashtbl.Make (Str)
 
-type monomorphized = { subst : typ Vars.t; func_uname : string }
-
-(* TODO This can be merged with Tfun record *)
-type user_func = {
-  name : string * bool;
-  params : string list;
-  typ : typ;
-  body : Typing.typed_expr;
-  mono : monomorphized option;
-}
-
 type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
 
 let ( ++ ) = Seq.append
@@ -421,180 +410,62 @@ let set_record_field vars value ptr =
    Module state
 *)
 
-let lambda_name id = "__fun" ^ string_of_int id
+(* let get_mono_name (name, is_named) ~poly concrete =
+ *   let rec str = function
+ *     | Tint -> "i"
+ *     | Tbool -> "b"
+ *     | Tunit -> "u"
+ *     | Tvar { contents = Link t } -> str t
+ *     | Tfun (ps, r, _) ->
+ *         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
+ *     | Trecord (Some i, name, labels) ->
+ *         Printf.sprintf "%s%s" name (labels.(i) |> snd |> str)
+ *     | Trecord (_, name, _) -> name
+ *     | Qvar _ | Tvar _ -> "g"
+ *   in
+ *   (Printf.sprintf "__%s_%s_%s" (str poly) name (str concrete), is_named)
+ *
+ * let subst_type ~poly concrete =
+ *   (\* let subst = Strtbl.create 16 in *\)
+ *   let rec inner subst = function
+ *     | l, Tvar { contents = Link r } -> inner subst (l, r)
+ *     | Qvar id, t -> (
+ *         match Vars.find_opt id subst with
+ *         | Some _ -> (\* Already in tbl*\) (subst, t)
+ *         | None -> (Vars.add id t subst, t))
+ *     | Tfun (ps1, r1, kind), Tfun (ps2, r2, _) ->
+ *         let subst, ps =
+ *           List.fold_left_map
+ *             (fun subst (l, r) -> inner subst (l, r))
+ *             subst (List.combine ps1 ps2)
+ *         in
+ *         let subst, r = inner subst (r1, r2) in
+ *         (subst, Tfun (ps, r, kind))
+ *     | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
+ *       when is_generic_record l ->
+ *         assert (i = j);
+ *         (\* No Array.fold_left_map for pre 4.13? *\)
+ *         let labels = Array.copy l1 in
+ *         let f (subst, i) (ls, lt) =
+ *           let _, r = l2.(i) in
+ *           let subst, t = inner subst (lt, r) in
+ *           labels.(i) <- (ls, t);
+ *           (subst, i + 1)
+ *         in
+ *         let subst, _ = Array.fold_left f (subst, 0) l1 in
+ *         (subst, Trecord (Some i, record, labels))
+ *     | t, _ -> (subst, t)
+ *   in
+ *   inner Vars.empty (poly, concrete) *)
 
-(* for named functions *)
-let unique_name = function
-  | name, None -> name
-  | name, Some n -> name ^ "__" ^ string_of_int n
-
-(* Transforms abs into a Tfun and cleans all types (resolves links) *)
-let split_abs (abs : Typing.abstraction) =
-  let params = List.map clean abs.tp.tparams in
-  (Tfun (params, clean abs.body.typ, abs.tp.kind), abs.nparams)
-
-let is_type_generic typ =
-  let rec inner acc = function
-    | Qvar _ | Tvar { contents = Unbound _ } -> true
-    | Tvar { contents = Link t } -> inner acc t
-    | Tvar _ -> failwith "annot should not be here"
-    | Trecord (Some i, _, labels) -> inner acc (labels.(i) |> snd)
-    | Tfun (params, ret, _) ->
-        let acc = List.fold_left inner acc params in
-        inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ -> acc
-  in
-  inner false typ
-
-let get_mono_name (name, is_named) ~poly concrete =
-  let rec str = function
-    | Tint -> "i"
-    | Tbool -> "b"
-    | Tunit -> "u"
-    | Tvar { contents = Link t } -> str t
-    | Tfun (ps, r, _) ->
-        Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
-    | Trecord (Some i, name, labels) ->
-        Printf.sprintf "%s%s" name (labels.(i) |> snd |> str)
-    | Trecord (_, name, _) -> name
-    | Qvar _ | Tvar _ -> "g"
-  in
-  (Printf.sprintf "__%s_%s_%s" (str poly) name (str concrete), is_named)
-
-let subst_type ~poly concrete =
-  (* let subst = Strtbl.create 16 in *)
-  let rec inner subst = function
-    | l, Tvar { contents = Link r } -> inner subst (l, r)
-    | Qvar id, t -> (
-        match Vars.find_opt id subst with
-        | Some _ -> (* Already in tbl*) (subst, t)
-        | None -> (Vars.add id t subst, t))
-    | Tfun (ps1, r1, kind), Tfun (ps2, r2, _) ->
-        let subst, ps =
-          List.fold_left_map
-            (fun subst (l, r) -> inner subst (l, r))
-            subst (List.combine ps1 ps2)
-        in
-        let subst, r = inner subst (r1, r2) in
-        (subst, Tfun (ps, r, kind))
-    | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
-      when is_generic_record l ->
-        assert (i = j);
-        (* No Array.fold_left_map for pre 4.13? *)
-        let labels = Array.copy l1 in
-        let f (subst, i) (ls, lt) =
-          let _, r = l2.(i) in
-          let subst, t = inner subst (lt, r) in
-          labels.(i) <- (ls, t);
-          (subst, i + 1)
-        in
-        let subst, _ = Array.fold_left f (subst, 0) l1 in
-        (subst, Trecord (Some i, record, labels))
-    | t, _ -> (subst, t)
-  in
-  inner Vars.empty (poly, concrete)
+let type_of_abs abs =
+  Monomorph_tree.(Tfun (abs.func.params, abs.func.ret, abs.func.kind))
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
    In local scope, our Map.t will resolve to the correct function.
    E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
    if the global function exists. *)
-(* TODO make a whole AST pass out of this. This also makes gen_app
-   easier with less code duplication *)
-let extract expr =
-  let rec inner param = function
-    | Typing.Var _ | Const _ -> param
-    | Bop (_, e1, e2) -> inner (inner param e1.expr) e2.expr
-    | If (cond, e1, e2) ->
-        let param = inner param cond.expr in
-        let param = inner param e1.expr in
-        inner param e2.expr
-    | Function (name', uniq, abs, cont) ->
-        let name = (unique_name (name', uniq), true) in
-        let typ, params = split_abs abs in
-        let func = { name; params; typ; body = abs.body; mono = None } in
-
-        let bound, monos, acc = param in
-        (* We do not add functions passed as parameters. They will get their correct type at the outer
-           function application *)
-        let param =
-          if is_type_generic typ then (
-            Printf.printf "Polymoric function: %s\n%!"
-              (unique_name (name', uniq));
-            let bound = Vars.add name' (`Poly func) bound in
-            (bound, monos, acc))
-          else (
-            Printf.printf "Normal function: %s\n%!" (unique_name (name', uniq));
-            let bound = Vars.add name' (`Concrete func) bound in
-            (bound, monos, func :: acc))
-        in
-
-        let param = inner param abs.body.expr in
-
-        inner param cont.expr
-    | Let (_, e1, e2) ->
-        let param = inner param e1.expr in
-        inner param e2.expr
-    | Lambda (id, abs) ->
-        let bound, monos, acc = inner param abs.body.expr in
-        let name = (lambda_name id, false) in
-        let typ, params = split_abs abs in
-        ( bound,
-          monos,
-          { name; params; typ; body = abs.body; mono = None } :: acc )
-    | App { callee; args } ->
-        let bound, monos, acc = param in
-        let acc, monos =
-          if is_type_generic callee.typ then (acc, monos)
-          else (
-            Printf.printf "callee: %s\n" (show_typ (clean callee.typ));
-
-            match find_function bound callee.expr with
-            | `Concrete _ -> (* All good *) (acc, monos)
-            | `Poly func ->
-                let name = get_mono_name func.name ~poly:func.typ callee.typ in
-
-                if Set.mem (fst name) monos then
-                  (* The function exists, we don't do anything right now *)
-                  (acc, monos)
-                else
-                  (* We generate the function *)
-                  let () = Printf.printf "mono name: %s\n" (fst name) in
-
-                  let subst, typ = subst_type ~poly:func.typ callee.typ in
-                  ( {
-                      name;
-                      params = func.params;
-                      typ;
-                      body = func.body;
-                      mono = Some { subst; func_uname = func.name |> fst };
-                    }
-                    :: acc,
-                    Set.add (fst name) monos )
-            | `None -> (acc, monos))
-        in
-        let param = inner (bound, monos, acc) callee.expr in
-        List.fold_left (fun acc arg -> inner acc Typing.(arg.expr)) param args
-    | Record labels ->
-        List.fold_left
-          (fun acc (_, e) -> inner acc Typing.(e.expr))
-          param labels
-    | Field (expr, _) -> inner param expr.expr
-    | Sequence (expr, cont) ->
-        let param = inner param expr.expr in
-        inner param cont.expr
-  and find_function vars = function
-    | Typing.Var id -> (
-        match Vars.find_opt id vars with
-        | Some thing -> thing
-        | None ->
-            print_endline ("Probably a parameter: " ^ id);
-            `None)
-    | e -> "not supported: " ^ Typing.show_expr e |> failwith
-  in
-
-  let _, _, funs = inner (Vars.empty, Set.empty, []) expr in
-  funs
 
 let declare_function fun_name = function
   | Tfun (params, ret, kind) as typ ->
@@ -886,11 +757,12 @@ let handle_generic_ret vars poly_vars (funcval, args, envarg) ret concrete_ret =
       (retval, t, get_lltype t)
 
 (* TODO put below gen_expr *)
-let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
-    { name = fun_name, named; params; typ; body; mono = _ } =
+let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
+    { Monomorph_tree.abs; name; recursive } =
+  let typ = type_of_abs abs in
   match typ with
   | Tfun (tparams, ret_t, kind) as typ ->
-      let func = declare_function fun_name typ in
+      let func = declare_function name typ in
       Llvm.set_linkage linkage func.value;
 
       let start_index = match ret_t with Trecord _ | Qvar _ -> 1 | _ -> 0 in
@@ -903,9 +775,9 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
 
       (* Add params from closure *)
       (* We generate both the code for extracting the closure and add the vars to the environment *)
-      let temp_funcs = add_closure funcs func kind in
+      let temp_vars = add_closure vars func kind in
 
-      let temp_funcs, pvar_index =
+      let temp_vars, pvar_index =
         List.fold_left2
           (fun (env, i) name typ ->
             let value = (Llvm.params func.value).(i) in
@@ -914,10 +786,10 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
             in
             Llvm.set_value_name name value;
             (Vars.add name param env, i + 1))
-          (temp_funcs, start_index) params tparams
+          (temp_vars, start_index) abs.pnames tparams
       in
 
-      let temp_funcs, _ =
+      let temp_vars, _ =
         PVars.fold
           (fun pvar locs (env, i) ->
             let var = (Llvm.params func.value).(i) in
@@ -943,15 +815,15 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
             let env = Vars.add pname var env in
 
             (env, i + 1))
-          pvars (temp_funcs, pvar_index)
+          pvars (temp_vars, pvar_index)
       in
 
       (* If the function is named, we allow recursion *)
-      let temp_funcs =
-        if named then Vars.add fun_name func temp_funcs else temp_funcs
+      let temp_vars =
+        if recursive then Vars.add name func temp_vars else temp_vars
       in
 
-      let ret = gen_expr temp_funcs body in
+      let ret = gen_expr temp_vars abs.body in
 
       (* If we want to return a struct, we copy the struct to
           its ptr (1st parameter) and return void *)
@@ -962,7 +834,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
           let dst = Llvm.(params func.value).(0) in
           let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
-          let size = sizeof_typ temp_funcs ret.typ |> llval_of_upto in
+          let size = sizeof_typ temp_vars ret.typ |> llval_of_upto in
           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           ignore (Llvm.build_ret_void builder)
@@ -972,7 +844,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
 
           let size =
-            match Vars.find_opt (poly_name id) temp_funcs with
+            match Vars.find_opt (poly_name id) temp_vars with
             | Some v -> v.value
             | None ->
                 failwith "TODO Internal Error: Unknown size of generic type"
@@ -987,7 +859,7 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
             (match ret.typ with
             | Tunit ->
                 (* If we are in main, we return 0. Bit of a hack, but whatever *)
-                if String.equal fun_name "main" then
+                if String.equal name "main" then
                   Llvm.(build_ret (const_int int_type 0)) builder
                 else Llvm.build_ret_void builder
             | _ -> Llvm.build_ret ret.value builder));
@@ -1000,35 +872,34 @@ let rec gen_function funcs ?(linkage = Llvm.Linkage.Private)
       let _ = Llvm.PassManager.run_function func.value fpm in
 
       (* Printf.printf "Modified: %b\n" modified; *)
-      Vars.add fun_name func funcs
+      Vars.add name func vars
   | _ ->
-      prerr_endline fun_name;
+      prerr_endline name;
       failwith "Interal Error: generating non-function"
 
 and gen_expr vars typed_expr =
-  match Typing.(typed_expr.expr) with
-  | Typing.Const (Int i) ->
+  match typed_expr.expr with
+  | Monomorph_tree.Mconst (Int i) ->
       { value = Llvm.const_int int_type i; typ = Tint; lltyp = int_type }
-  | Const (Bool b) ->
+  | Mconst (Bool b) ->
       {
         value = Llvm.const_int bool_type (Bool.to_int b);
         typ = Tbool;
         lltyp = bool_type;
       }
-  | Const Unit -> failwith "TODO"
-  | Bop (bop, e1, e2) ->
+  | Mconst Unit -> failwith "TODO"
+  | Mbop (bop, e1, e2) ->
       let e1 = gen_expr vars e1 in
       let e2 = gen_expr vars e2 in
       gen_bop e1 e2 bop
-  | Var id -> (
+  | Mvar id -> (
       match Vars.find_opt id vars with
       | Some v -> v
       | None ->
           (* If the variable isn't bound, something went wrong before *)
           failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
-  | Function (name, uniq, abs, cont) ->
+  | Mfunction (name, abs, cont) ->
       (* The functions are already generated *)
-      let name = unique_name (name, uniq) in
       let func =
         match Vars.find_opt name vars with
         | Some func -> func
@@ -1046,25 +917,24 @@ and gen_expr vars typed_expr =
       in
 
       let func =
-        match abs.tp.kind with
+        match abs.func.kind with
         | Simple -> func
         | Closure assoc -> gen_closure_obj assoc func vars name
       in
       gen_expr (Vars.add name func vars) cont
-  | Let (id, equals_ty, let_ty) ->
+  | Mlet (id, equals_ty, let_ty) ->
       let expr_val = gen_expr vars equals_ty in
       gen_expr (Vars.add id expr_val vars) let_ty
-  | Lambda (id, abs) -> (
-      let name = lambda_name id in
+  | Mlambda (name, abs) -> (
       let func = Vars.find name vars in
-      match abs.tp.kind with
+      match abs.func.kind with
       | Simple -> func
       | Closure assoc -> gen_closure_obj assoc func vars name)
-  | App { callee; args } -> gen_app vars callee args (clean typed_expr.typ)
-  | If (cond, e1, e2) -> gen_if vars cond e1 e2
-  | Record labels -> codegen_record vars (clean typed_expr.typ) labels
-  | Field (expr, index) -> codegen_field vars expr index
-  | Sequence (expr, cont) -> codegen_chain vars expr cont
+  | Mapp { callee; args } -> gen_app vars callee args (clean typed_expr.typ)
+  | Mif (cond, e1, e2) -> gen_if vars cond e1 e2
+  | Mrecord labels -> codegen_record vars (clean typed_expr.typ) labels
+  | Mfield (expr, index) -> codegen_field vars expr index
+  | Mseq (expr, cont) -> codegen_chain vars expr cont
 
 and gen_bop e1 e2 bop =
   let bld f str = f e1.value e2.value str builder in
@@ -1081,7 +951,7 @@ and gen_bop e1 e2 bop =
   | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_type }
 
 and gen_app vars callee args ret_t =
-  let func = gen_expr vars callee in
+  let func = gen_expr vars (callee |> fst) in
 
   let params, ret, kind =
     match func.typ with
@@ -1092,7 +962,8 @@ and gen_app vars callee args ret_t =
   let poly_args, args =
     List.fold_left_map
       (fun poly_vars (param, arg) ->
-        let typ = Typing.(arg.typ) in
+        let arg = fst arg in
+        let typ = Monomorph_tree.(arg.typ) in
         (* We have to preserve the concrete type. Otherwise we get the generalized one *)
         let arg = gen_expr vars arg in
         let arg = { arg with typ } in
@@ -1294,8 +1165,7 @@ let decl_external (name, typ) =
       { value = Llvm.declare_function name ft the_module; typ; lltyp = ft }
   | _ -> failwith "TODO external symbols"
 
-let generate { Typing.externals; records; tree } =
-  let open Typing in
+let generate { Monomorph_tree.externals; records; tree; funcs } =
   (* External declarations *)
   let vars =
     List.fold_left
@@ -1308,42 +1178,47 @@ let generate { Typing.externals; records; tree } =
 
   (* Factor out functions for llvm *)
   let funcs =
-    let lst = extract tree.expr in
     let vars =
       List.fold_left
-        (fun acc func ->
-          let name = func.name |> fst in
-          let fnc = declare_function name func.typ in
+        (fun acc (func : Monomorph_tree.to_gen_func) ->
+          let typ =
+            Tfun (func.abs.func.params, func.abs.func.ret, func.abs.func.kind)
+          in
+          let fnc = declare_function func.name typ in
 
           (* Add to the monomorphization table for func's parent *)
-          (match func.mono with
-          | Some { subst = _; func_uname } -> (
-              match Strtbl.find_opt mono_tbl func_uname with
-              | Some map ->
-                  Strtbl.replace mono_tbl func_uname (Vars.add name fnc map)
-              | None ->
-                  Strtbl.add mono_tbl func_uname (Vars.add name fnc Vars.empty))
-          | None -> ());
+          (* (match func.mono with
+           * | Some { subst = _; func_uname } -> (
+           *     match Strtbl.find_opt mono_tbl func_uname with
+           *     | Some map ->
+           *         Strtbl.replace mono_tbl func_uname (Vars.add name fnc map)
+           *     | None ->
+           *         Strtbl.add mono_tbl func_uname (Vars.add name fnc Vars.empty))
+           * | None -> ()); *)
 
           (* Add to the normal variable environment *)
-          Vars.add name (declare_function name func.typ) acc)
-        vars lst
+          Vars.add func.name fnc acc)
+        vars funcs
     in
 
     (* Generate functions *)
-    List.fold_left (fun acc func -> gen_function acc func) vars lst
+    List.fold_left (fun acc func -> gen_function acc func) vars funcs
   in
 
   (* Add main *)
   let linkage = Llvm.Linkage.External in
+
   ignore
   @@ gen_function funcs ~linkage
        {
-         name = ("main", false);
-         params = [ "" ];
-         typ = Tfun ([ Tint ], Tint, Simple);
-         body = { tree with typ = Tint };
-         mono = None;
+         name = "main";
+         recursive = false;
+         abs =
+           {
+             func = { params = [ Tint ]; ret = Tint; kind = Simple };
+             pnames = [ "arg" ];
+             body = { tree with typ = Tint };
+           };
        };
 
   (match Llvm_analysis.verify_module the_module with
