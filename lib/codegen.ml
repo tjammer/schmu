@@ -510,9 +510,6 @@ let extract expr =
         let param = inner param e1.expr in
         inner param e2.expr
     | Function (name', uniq, abs, cont) ->
-        (* If the function is concretely typed, we add it to the function list and
-           add the usercode name to the bound variables. In the polymorphic case,
-           we add the function to the bound variables *)
         let name = (unique_name (name', uniq), true) in
         let typ, params = split_abs abs in
         let func = { name; params; typ; body = abs.body; mono = None } in
