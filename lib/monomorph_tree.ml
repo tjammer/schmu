@@ -95,7 +95,7 @@ let find_function_expr vars = function
       | None ->
           print_endline ("Probably a parameter: " ^ id);
           No_function)
-  | Mconst _ | Mapp _ | Mrecord _ | Mfield _ -> No_function
+  | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ -> No_function
   | Mlambda _ -> (* Concrete type is already inferred *) No_function
   | e ->
       print_endline (show_expr e);
@@ -181,7 +181,10 @@ let monomorphize_call p expr =
           let monomorphized = Set.add name p.monomorphized in
           ({ p with funcs; monomorphized }, Some name)
     | No_function -> (p, None)
-    | Forward_decl _ -> failwith "TODO forward decl mono")
+    | Forward_decl _ ->
+        (* We don't have to do anything, because the correct function will be called in the first place.
+           Except when it is called with different types recursively. We'll see *)
+        (p, None))
 
 let rec morph_expr param (texpr : Typing.typed_expr) =
   let make expr = { typ = texpr.typ; expr } in

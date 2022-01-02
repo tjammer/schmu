@@ -404,64 +404,6 @@ let set_record_field vars value ptr =
       memcpy ~dst:ptr ~src:value ~size
   | _ -> ignore (Llvm.build_store value.value ptr builder)
 
-(*
-   Module state
-*)
-
-(* let get_mono_name (name, is_named) ~poly concrete =
- *   let rec str = function
- *     | Tint -> "i"
- *     | Tbool -> "b"
- *     | Tunit -> "u"
- *     | Tvar { contents = Link t } -> str t
- *     | Tfun (ps, r, _) ->
- *         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
- *     | Trecord (Some i, name, labels) ->
- *         Printf.sprintf "%s%s" name (labels.(i) |> snd |> str)
- *     | Trecord (_, name, _) -> name
- *     | Qvar _ | Tvar _ -> "g"
- *   in
- *   (Printf.sprintf "__%s_%s_%s" (str poly) name (str concrete), is_named)
- *
- * let subst_type ~poly concrete =
- *   (\* let subst = Strtbl.create 16 in *\)
- *   let rec inner subst = function
- *     | l, Tvar { contents = Link r } -> inner subst (l, r)
- *     | Qvar id, t -> (
- *         match Vars.find_opt id subst with
- *         | Some _ -> (\* Already in tbl*\) (subst, t)
- *         | None -> (Vars.add id t subst, t))
- *     | Tfun (ps1, r1, kind), Tfun (ps2, r2, _) ->
- *         let subst, ps =
- *           List.fold_left_map
- *             (fun subst (l, r) -> inner subst (l, r))
- *             subst (List.combine ps1 ps2)
- *         in
- *         let subst, r = inner subst (r1, r2) in
- *         (subst, Tfun (ps, r, kind))
- *     | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
- *       when is_generic_record l ->
- *         assert (i = j);
- *         (\* No Array.fold_left_map for pre 4.13? *\)
- *         let labels = Array.copy l1 in
- *         let f (subst, i) (ls, lt) =
- *           let _, r = l2.(i) in
- *           let subst, t = inner subst (lt, r) in
- *           labels.(i) <- (ls, t);
- *           (subst, i + 1)
- *         in
- *         let subst, _ = Array.fold_left f (subst, 0) l1 in
- *         (subst, Trecord (Some i, record, labels))
- *     | t, _ -> (subst, t)
- *   in
- *   inner Vars.empty (poly, concrete) *)
-
-(* Functions must be unique, so we add a number to each function if
-   it already exists in the global scope.
-   In local scope, our Map.t will resolve to the correct function.
-   E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
-   if the global function exists. *)
-
 let declare_function fun_name = function
   | Tfun (params, ret, kind) as typ ->
       let ft = typeof_func ~param:false ~decl:true (params, ret, kind) in
@@ -607,6 +549,7 @@ let rec add_poly_args vars poly_args param arg =
   in
 
   match (param, arg) with
+  | Tvar { contents = Link link }, t -> add_poly_args vars poly_args link t
   | t, Tvar { contents = Link link } -> add_poly_args vars poly_args t link
   | Qvar id, Qvar _ | Qvar id, Tvar { contents = Unbound (_, _) } ->
       (* Param poly var *)
@@ -870,7 +813,6 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
 
       let _ = Llvm.PassManager.run_function func.value fpm in
 
-      (* Printf.printf "Modified: %b\n" modified; *)
       Vars.add name func vars
   | _ ->
       prerr_endline name;
@@ -901,7 +843,10 @@ and gen_expr vars typed_expr =
       (* The functions are already generated *)
       let func =
         match Vars.find_opt name vars with
-        | Some func -> func
+        | Some func -> (
+            match abs.func.kind with
+            | Simple -> func
+            | Closure assoc -> gen_closure_obj assoc func vars name)
         | None ->
             (* The function is polymorphic and monomorphized versions are generated. *)
             (* We just return some bogus value, it will never be applied anyway
@@ -913,20 +858,17 @@ and gen_expr vars typed_expr =
             }
       in
 
-      (* TODO move into codegen? *)
-      let func =
-        match abs.func.kind with
-        | Simple -> func
-        | Closure assoc -> gen_closure_obj assoc func vars name
-      in
       gen_expr (Vars.add name func vars) cont
   | Mlet (id, equals_ty, let_ty) ->
       let expr_val = gen_expr vars equals_ty in
       gen_expr (Vars.add id expr_val vars) let_ty
-  | Mlambda (name, abs) -> (
+  | Mlambda (name, abs) ->
       let func =
         match Vars.find_opt name vars with
-        | Some func -> func
+        | Some func -> (
+            match abs.func.kind with
+            | Simple -> func
+            | Closure assoc -> gen_closure_obj assoc func vars name)
         | None ->
             (* The function is polymorphic and monomorphized versions are generated. *)
             (* We just return some bogus value, it will never be applied anyway
@@ -937,9 +879,7 @@ and gen_expr vars typed_expr =
               lltyp = int_type;
             }
       in
-      match abs.func.kind with
-      | Simple -> func
-      | Closure assoc -> gen_closure_obj assoc func vars name)
+      func
   | Mapp { callee; args } -> gen_app vars callee args (clean typed_expr.typ)
   | Mif (cond, e1, e2) -> gen_if vars cond e1 e2
   | Mrecord labels -> codegen_record vars (clean typed_expr.typ) labels
