@@ -20,9 +20,11 @@ function makefalse(b)
 function int_of_bool(b)
   if b then 1 else 0
 
+-- TODO polymorphic recursion example
+
 printi(apply(0, add1)) >>
 printi(apply(1, function (x) x + 1)) >>
 printi(int_of_bool(apply(true, makefalse))) >>
 printi(apply(3, function (x) x)) -- Should be inferred with concrete type
--- printi(apply(4, pass)) >>
--- printi(apply(5, pass2))
+>> printi(apply(4, pass))
+-- >> printi(apply(5, pass2))

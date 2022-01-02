@@ -906,9 +906,14 @@ and gen_expr vars typed_expr =
             (* The function is polymorphic and monomorphized versions are generated. *)
             (* We just return some bogus value, it will never be applied anyway
                (and if it will, LLVM will fail) *)
-            { typ = Tunit; value = Llvm.const_int int_type 0; lltyp = int_type }
+            {
+              typ = Tunit;
+              value = Llvm.const_int int_type (-1);
+              lltyp = int_type;
+            }
       in
 
+      (* TODO move into codegen? *)
       let func =
         match abs.func.kind with
         | Simple -> func
@@ -971,10 +976,15 @@ and gen_app vars callee args ret_t =
   let poly_args, args =
     List.fold_left_map
       (fun poly_vars (param, arg) ->
-        let arg = fst arg in
-        let typ = Monomorph_tree.(arg.typ) in
+        let arg' = fst arg in
+        let typ = Monomorph_tree.(arg'.typ) in
         (* We have to preserve the concrete type. Otherwise we get the generalized one *)
-        let arg = gen_expr vars arg in
+        let arg' = gen_expr vars arg' in
+        let arg =
+          match arg |> snd with
+          | Some name -> Vars.find name vars
+          | None -> arg'
+        in
         let arg = { arg with typ } in
         handle_generic_arg vars poly_vars param arg)
       PMap.empty (List.combine params args)

@@ -95,7 +95,11 @@ let find_function_expr vars = function
       | None ->
           print_endline ("Probably a parameter: " ^ id);
           No_function)
-  | e -> "Not supported: " ^ show_expr e |> failwith
+  | Mconst _ | Mapp _ | Mrecord _ | Mfield _ -> No_function
+  | Mlambda _ -> (* Concrete type is already inferred *) No_function
+  | e ->
+      print_endline (show_expr e);
+      "Not supported: " ^ show_expr e |> failwith
 
 let get_mono_name name ~poly concrete =
   let rec str = function
@@ -127,23 +131,57 @@ let subst_type ~concrete poly =
         in
         let subst, r = inner subst (r1, r2) in
         (subst, Tfun (ps, r, kind))
-    (* | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
-     *   when is_generic_record l ->
-     *     assert (i = j);
-     *     (\* No Array.fold_left_map for pre 4.13? *\)
-     *     let labels = Array.copy l1 in
-     *     let f (subst, i) (ls, lt) =
-     *       let _, r = l2.(i) in
-     *       let subst, t = inner subst (lt, r) in
-     *       labels.(i) <- (ls, t);
-     *       (subst, i + 1)
-     *     in
-     *     let subst, _ = Array.fold_left f (subst, 0) l1 in
-     *     (subst, Trecord (Some i, record, labels)) *)
+    | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
+      when is_type_polymorphic l ->
+        assert (i = j);
+        (* No Array.fold_left_map for pre 4.13? *)
+        let labels = Array.copy l1 in
+        let f (subst, i) (ls, lt) =
+          let _, r = l2.(i) in
+          let subst, t = inner subst (lt, r) in
+          labels.(i) <- (ls, t);
+          (subst, i + 1)
+        in
+        let subst, _ = Array.fold_left f (subst, 0) l1 in
+        (subst, Trecord (Some i, record, labels))
     | t, _ -> (subst, t)
   in
   ( (fun poly -> inner Vars.empty (poly, concrete) |> snd),
     inner Vars.empty (poly, concrete) |> snd )
+
+let monomorphize_call p expr =
+  if is_type_polymorphic expr.typ then (p, None)
+  else (
+    Printf.printf "callee: %s\n" (show_typ (clean expr.typ));
+
+    match find_function_expr p.vars expr.expr with
+    | Concrete _ -> (* All good *) (p, None)
+    | Polymorphic func ->
+        let typ = typ_of_abs func.abs in
+        let name = get_mono_name func.name ~poly:typ expr.typ in
+
+        if Set.mem name p.monomorphized then
+          (* The function exists, we don't do anything right now *)
+          (p, Some name)
+        else
+          (* We generate the function *)
+          let () = Printf.printf "mono name: %s\n" name in
+
+          let subst, typ = subst_type ~concrete:expr.typ typ in
+          let fnc = func_of_typ typ in
+          let funcs =
+            {
+              func with
+              abs = { func.abs with func = fnc };
+              name;
+              subst = Some subst;
+            }
+            :: p.funcs
+          in
+          let monomorphized = Set.add name p.monomorphized in
+          ({ p with funcs; monomorphized }, Some name)
+    | No_function -> (p, None)
+    | Forward_decl _ -> failwith "TODO forward decl mono")
 
 let rec morph_expr param (texpr : Typing.typed_expr) =
   let make expr = { typ = texpr.typ; expr } in
@@ -195,8 +233,8 @@ and morph_seq mk p expr cont =
 
 and morph_func p (username, uniq, abs, cont) =
   (* If the function is concretely typed, we add it to the function list and
-           add the usercode name to the bound variables. In the polymorphic case,
-           we add the function to the bound variables, but not to the function list.
+     add the usercode name to the bound variables. In the polymorphic case,
+     we add the function to the bound variables, but not to the function list.
      Instead, the monomorphized instance will be added later *)
   let ftyp = Typing.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)) in
 
@@ -208,7 +246,7 @@ and morph_func p (username, uniq, abs, cont) =
   let pnames = abs.nparams in
 
   (* Make sure recursion works and the current function can be used in its body *)
-  let p =
+  let temp_p =
     if recursive then (
       recursion_stack := Vars.empty :: !recursion_stack;
       let vars = Vars.add username (Forward_decl name) p.vars in
@@ -216,11 +254,14 @@ and morph_func p (username, uniq, abs, cont) =
     else p
   in
 
-  let p, body = morph_expr p abs.body in
+  let temp_p, body = morph_expr temp_p abs.body in
 
   let abs = { func; pnames; body } in
   let gen_func = { abs; name; recursive; subst = None } in
 
+  let p =
+    { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
+  in
   let p =
     if is_type_polymorphic ftyp then (
       Printf.printf "Polymoric function: %s\n%!" name;
@@ -242,7 +283,6 @@ and morph_func p (username, uniq, abs, cont) =
   (p, { typ = cont.typ; expr = Mfunction (name, abs, cont) })
 
 and morph_lambda typ p id abs =
-  (* TODO *)
   let name = lambda_name id in
   let recursive = false in
   let func =
@@ -250,11 +290,13 @@ and morph_lambda typ p id abs =
   in
   let pnames = abs.nparams in
 
+  let vars = p.vars in
   let p, body = morph_expr p abs.body in
 
   let abs = { func; pnames; body } in
   let gen_func = { abs; name; recursive; subst = None } in
 
+  let p = { p with vars } in
   let p =
     if is_type_polymorphic typ then (
       Printf.printf "Polymorphic lambda: %s\n%!" name;
@@ -270,44 +312,12 @@ and morph_app mk p callee args =
   let p, callee = morph_expr p callee in
   Printf.printf "In App: callee typ: %s\n%!" (show_typ callee.typ);
 
-  let p, mono_name =
-    if is_type_polymorphic callee.typ then (p, None)
-    else (
-      Printf.printf "callee: %s\n" (show_typ (clean callee.typ));
-
-      match find_function_expr p.vars callee.expr with
-      | Concrete _ -> (* All good *) (p, None)
-      | Polymorphic func ->
-          let typ = typ_of_abs func.abs in
-          let name = get_mono_name func.name ~poly:typ callee.typ in
-
-          if Set.mem name p.monomorphized then
-            (* The function exists, we don't do anything right now *)
-            (p, Some name)
-          else
-            (* We generate the function *)
-            let () = Printf.printf "mono name: %s\n" name in
-
-            let subst, typ = subst_type ~concrete:callee.typ typ in
-            let fnc = func_of_typ typ in
-            let funcs =
-              {
-                func with
-                abs = { func.abs with func = fnc };
-                name;
-                subst = Some subst;
-              }
-              :: p.funcs
-            in
-            let monomorphized = Set.add name p.monomorphized in
-            ({ p with funcs; monomorphized }, Some name)
-      | No_function -> (p, None)
-      | Forward_decl _ -> failwith "TODO forward decl mono")
-  in
+  let p, mono_name = monomorphize_call p callee in
 
   let f p arg =
     let p, a = morph_expr p arg in
-    (p, (a, None))
+    let p, mono_name = monomorphize_call p a in
+    (p, (a, mono_name))
   in
   let p, args = List.fold_left_map f p args in
   (p, mk (Mapp { callee = (callee, mono_name); args }))
