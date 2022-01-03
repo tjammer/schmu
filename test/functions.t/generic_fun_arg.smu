@@ -1,6 +1,6 @@
 external printi : int -> unit
 
-type t = { x : int }
+type 'a t = { x : 'a }
 
 -- This function is generic
 function apply(x: 'a, f : 'a -> 'b)
@@ -16,10 +16,19 @@ function add_closed(x)
 function add1(x)
   x + 1
 
+function print_bool(b)
+  if b then printi(1)
+  else printi(0)
+
 -- simple bool -> bool
 function makefalse(b)
   if b then false
   else b
+
+-- bool t -> bool t
+function make_rec_false(r)
+  if r.x then { x = false }
+  else r
 
 -- simple t -> t
 function add3_rec(t)
@@ -28,5 +37,5 @@ function add3_rec(t)
 printi(apply(20, add1)) >>
 printi(apply(20, add_closed)) >>
 printi(apply({ x = 20 }, add3_rec).x) >>
-if apply(true, makefalse) then printi(1)
-else printi(0)
+print_bool(apply({ x = true }, make_rec_false).x) >>
+print_bool(apply(true, makefalse))
