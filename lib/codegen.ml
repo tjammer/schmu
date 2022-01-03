@@ -60,8 +60,6 @@ let closure_type =
 
 let generic_type = Llvm.named_struct_type context "generic"
 
-let byte_type = Llvm.i8_type context
-
 let memcpy_decl =
   lazy
     (let open Llvm in
@@ -186,18 +184,6 @@ and typeof_func ~param ~decl (params, ret, kind) =
     ft
 
 let to_named_records = function
-  | Trecord (_, name, _) as r when is_generic_record r ->
-      let name = Printf.sprintf "generic_%s" name in
-      let t = Llvm.named_struct_type context name in
-      (if Strtbl.mem record_tbl name then
-       let records =
-         Strtbl.fold (fun key _ acc -> key :: acc) record_tbl []
-         |> String.concat ", "
-       in
-       let () = print_endline records in
-
-       failwith ("Internal Error: Type shadowing for generic " ^ name));
-      Strtbl.add record_tbl name t
   | Trecord (_, _, labels) as t ->
       let name = record_name t in
       let t = Llvm.named_struct_type context name in
@@ -215,163 +201,45 @@ let to_named_records = function
    For now, it's fine, but this should be improved somewhere in the future
 *)
 
-type 'a size_pr = { size : 'a; align : 'a }
-
-type size = Static of int size_pr | Dynamic of Llvm.llvalue size_pr
-
-type upto = Static' of int | Dynamic' of Llvm.llvalue
+type size_pr = { size : int; align : int }
 
 (* TODO size and alignment calculations are broken
    1. A function passed as a closure is not 8 bytes, but 16 (2 * 8 bytes)
    2. The alignment is different from the size. We have to keep align and size separate in [upto] *)
 
-let build_dynamic_alignup ~size ~upto =
-  let sum = Llvm.build_add size upto "sum" builder in
-  let sub = Llvm.build_sub sum (Llvm.const_int num_type 1) "sub" builder in
-  let div = Llvm.build_udiv sub upto "div" builder in
-  Llvm.build_mul div upto "alignup" builder
-
-let build_dynamic_size_align { size; align } ~upto =
-  let alignedup = build_dynamic_alignup ~size ~upto in
-  let size = Llvm.build_add upto alignedup "size" builder in
-
-  let cmp = Llvm.(build_icmp Icmp.Slt align upto "cmp") builder in
-  let align = Llvm.build_select cmp upto align "align" builder in
-  { size; align }
-
-let alignup_static ~size ~upto =
+let alignup ~size ~upto =
   let modulo = size mod upto in
   if Int.equal modulo 0 then (* We are aligned *)
     size else size + (upto - modulo)
 
-let add_size_align ~upto size =
-  match (size, upto) with
-  | Static { size; align }, Static' upto ->
-      let size = alignup_static ~size ~upto + upto in
-      let align = max align upto in
-      Static { size; align }
-  | Dynamic pair, Dynamic' upto -> Dynamic (build_dynamic_size_align ~upto pair)
-  | Static _, Dynamic' _ | Dynamic _, Static' _ ->
-      failwith "Internal Error: Mismatch in size calculation"
+let add_size_align ~upto { size; align } =
+  let size = alignup ~size ~upto + upto in
+  let align = max align upto in
+  { size; align }
 
-let make_upto upto = function
-  | Static _ -> Static' upto
-  | Dynamic _ -> Dynamic' (Llvm.const_int num_type upto)
-
-let alignup ~upto size =
-  match (size, upto) with
-  | Static' size, Static' upto ->
-      let size = alignup_static ~size ~upto in
-      Static' size
-  | Dynamic' size, Dynamic' upto -> Dynamic' (build_dynamic_alignup ~size ~upto)
-  | Static' _, Dynamic' _ | Dynamic' _, Static' _ ->
-      failwith "Internal Error: Mismatch in align calculation"
-
-let add_uptos ~upto size =
-  match (size, upto) with
-  | Static' size, Static' upto -> Static' (size + upto)
-  | Dynamic' size, Dynamic' upto ->
-      Dynamic' (Llvm.build_add size upto "addtmp" builder)
-  | Static' _, Dynamic' _ | Dynamic' _, Static' _ ->
-      failwith "Internal Error: Mismatch in size addition"
-
-(* Returns the size pair, so we can continue statically below in [offset_of] *)
-let sizeof_typ vars typ =
+(* Returns the size in bytes *)
+let sizeof_typ typ =
   let rec inner size_pr typ =
-    let size_from_vars name =
-      match (Vars.find_opt name vars, size_pr) with
-      | Some upto, Static { size; align } ->
-          let upto = upto.value in
-          (* We need to change size and align to llvalues, then continue dynamically *)
-          if size = 0 then
-            (* If we are at the beginning of a structure, we are already aligned *)
-            Dynamic { size = upto; align = upto }
-          else
-            let size = Llvm.const_int num_type size in
-            let align = Llvm.const_int num_type align in
-
-            add_size_align ~upto:(Dynamic' upto) (Dynamic { size; align })
-      | Some upto, Dynamic _ ->
-          (* Carry on *)
-          let upto = upto.value in
-          add_size_align ~upto:(Dynamic' upto) size_pr
-      | None, _ ->
-          print_string "env: ";
-          print_endline
-            (String.concat ", "
-               (List.map (fun a -> "'" ^ fst a ^ "'") (Vars.bindings vars)));
-          Llvm.dump_module the_module;
-
-          failwith ("Cannot find Qvar id: " ^ name)
-    in
-
     match typ with
-    | Tint ->
-        let upto = make_upto 4 size_pr in
-        add_size_align ~upto size_pr
-    | Tbool -> (
+    | Tint -> add_size_align ~upto:4 size_pr
+    | Tbool ->
         (* No need to align one byte *)
-        match size_pr with
-        | Static { size; align } -> Static { size = size + 1; align }
-        | Dynamic { size; align } ->
-            let byte_size = Llvm.const_int num_type 1 in
-            let size = Llvm.build_add size byte_size "add" builder in
-            Dynamic { size; align })
+        { size_pr with size = size_pr.size + 1 }
     | Tunit -> failwith "Does this make sense?"
     | Tvar { contents = Link t } -> inner size_pr t
     | Tfun _ ->
         (* Just a ptr? Assume 64bit *)
-        let upto = make_upto 8 size_pr in
-        add_size_align ~upto size_pr
-    | Trecord _ as t when is_generic_record t ->
-        size_from_vars (record_name ~poly:true t |> poly_name)
+        add_size_align ~upto:8 size_pr
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
-    | Qvar id -> size_from_vars (poly_name id)
-    | Tvar _ ->
+    | Qvar _ | Tvar _ ->
         Llvm.dump_module the_module;
         failwith "too generic for a size"
   in
-  match inner (Static { size = 0; align = 1 }) typ with
-  | Static { size; align = upto } -> Static' (alignup_static ~size ~upto)
-  | Dynamic { size; align = upto } ->
-      (* If there is only one (dynamic) item, we are already aligned *)
-      if size <> upto then Dynamic' (build_dynamic_alignup ~size ~upto)
-      else Dynamic' size
+  let { size; align = upto } = inner { size = 0; align = 1 } typ in
+  alignup ~size ~upto
 
-let llval_of_upto = function
-  | Static' size -> Llvm.const_int num_type size
-  | Dynamic' size -> size
-
-let match_size ~upto size =
-  match (upto, size) with
-  | Dynamic' _, Dynamic' _ | Static' _, Static' _ -> (upto, size)
-  | Dynamic' _, Static' size ->
-      let size = Llvm.const_int num_type size in
-      (upto, Dynamic' size)
-  | Static' upto, Dynamic' _ -> (Dynamic' (Llvm.const_int num_type upto), size)
-
-(* Returns offset to [label] at [index] in byte *)
-(* TODO we don't neccessarily need to carry the alignment with us *)
-let offset_of ?(start = (0, Static' 0)) vars ~labels index =
-  let rec inner i ~size =
-    if i < index then
-      let upto = sizeof_typ vars (labels.(i) |> snd) in
-      let upto, size = match_size ~upto size in
-      let align = alignup ~upto size in
-      let size = add_uptos ~upto align in
-      inner (i + 1) ~size
-    else if i = 0 then (* We are aligned *) size
-    else
-      (* We have to align from current size *)
-      let upto = sizeof_typ vars (labels.(i) |> snd) in
-      let upto, size = match_size ~upto size in
-      alignup ~upto size
-  in
-  let start, size = start in
-  match inner start ~size with
-  | Static' size -> Llvm.const_int num_type size
-  | Dynamic' size -> size
+let llval_of_size size = Llvm.const_int num_type size
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src ~size =
@@ -380,10 +248,10 @@ let memcpy ~dst ~src ~size =
   let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
   ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
 
-let set_record_field vars value ptr =
+let set_record_field value ptr =
   match value.typ with
   | Trecord _ ->
-      let size = sizeof_typ vars value.typ |> llval_of_upto in
+      let size = sizeof_typ value.typ |> llval_of_size in
       memcpy ~dst:ptr ~src:value ~size
   | _ -> ignore (Llvm.build_store value.value ptr builder)
 
@@ -562,7 +430,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
           let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
           (* Should better be ret.typ here instead of ret_t *)
-          let size = sizeof_typ temp_vars ret_t |> llval_of_upto in
+          let size = sizeof_typ ret_t |> llval_of_size in
           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           ignore (Llvm.build_ret_void builder)
@@ -828,56 +696,15 @@ and gen_if vars cond e1 e2 =
 
 and codegen_record vars typ labels =
   let lltyp = get_lltype ~param:false typ in
-  if is_generic_record typ then (
-    let lbls =
-      match typ with
-      | Trecord (_, _, labels) -> labels
-      | _ -> failwith "Not a record lol"
-    in
-    (* The size of the record has to come from the environment *)
-    let pname = record_name ~poly:true typ |> poly_name in
-    let size = (Vars.find pname vars).value in
-    let record = Llvm.build_array_alloca byte_type size "record" builder in
-    (* What about alignment? *)
-    ignore
-      (List.fold_left
-         (fun (index, size) (_, expr) ->
-           let typ = lbls.(index) |> snd in
 
-           let upto = sizeof_typ vars typ in
-           let upto, size = match_size ~upto size in
-           let offset = alignup ~upto size in
-           let ofs = llval_of_upto offset in
-           let value = gen_expr vars expr in
-           let dst = Llvm.build_in_bounds_gep record [| ofs |] "ptr" builder in
-           (* copy *)
-           ignore
-             (match typ with
-             | Trecord _ | Qvar _ ->
-                 memcpy ~dst ~src:value ~size:(llval_of_upto upto)
-             | _ ->
-                 let ptr =
-                   Llvm.build_bitcast dst
-                     (value.lltyp |> Llvm.pointer_type)
-                     "" builder
-                 in
-                 ignore (Llvm.build_store value.value ptr builder));
-
-           (index + 1, add_uptos ~upto offset))
-         (0, Static' 0) labels);
-    let value =
-      Llvm.build_bitcast record (lltyp |> Llvm.pointer_type) "record" builder
-    in
-    { value; typ; lltyp })
-  else
-    let record = Llvm.build_alloca lltyp "" builder in
-    List.iteri
-      (fun i (name, expr) ->
-        let ptr = Llvm.build_struct_gep record i name builder in
-        let value = gen_expr vars expr in
-        set_record_field vars value ptr)
-      labels;
-    { value = record; typ; lltyp }
+  let record = Llvm.build_alloca lltyp "" builder in
+  List.iteri
+    (fun i (name, expr) ->
+      let ptr = Llvm.build_struct_gep record i name builder in
+      let value = gen_expr vars expr in
+      set_record_field value ptr)
+    labels;
+  { value = record; typ; lltyp }
 
 and codegen_field vars expr index =
   let value = gen_expr vars expr in
@@ -888,28 +715,7 @@ and codegen_field vars expr index =
     | _ -> failwith "Internal Error: No record in fields"
   in
 
-  let ptr =
-    if is_generic_record value.typ then
-      (* We treat the whole structure as a byte array and then calculate the offset by hand *)
-      (* TODO we can't yet know the generic size, so we just assume some bogus size for testing *)
-      (* let size = Llvm.const_int num_type 200 in *)
-      let byte_ptr = byte_type |> Llvm.pointer_type in
-      let byte_array = Llvm.build_bitcast value.value byte_ptr "" builder in
-      let offset =
-        match value.typ with
-        | Trecord (_, _, labels) -> offset_of vars ~labels index
-        | _ -> failwith "Internal Error: No record for offset"
-      in
-      let gep_indices = [| offset |] in
-      let ptr = Llvm.build_in_bounds_gep byte_array gep_indices "" builder in
-
-      Llvm.build_bitcast ptr
-        (get_lltype ~param:false typ |> Llvm.pointer_type)
-        "" builder
-      (* let byte_ptr = Llvm.build_bitcast value.value *)
-      (* failwith "TODO generic indexing" *)
-    else Llvm.build_struct_gep value.value index "" builder
-  in
+  let ptr = Llvm.build_struct_gep value.value index "" builder in
 
   (* In case we return a record, we don't load, but return the pointer.
      The idea is that this will be used either as a return value for a function (where it is copied),
