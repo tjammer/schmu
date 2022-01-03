@@ -89,7 +89,7 @@ let find_function_expr vars = function
       match Vars.find_opt id vars with
       | Some thing -> thing
       | None ->
-          print_endline ("Probably a parameter: " ^ id);
+          (* print_endline ("Probably a parameter: " ^ id); *)
           No_function)
   | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ -> No_function
   | Mlambda _ -> (* Concrete type is already inferred *) No_function
@@ -144,12 +144,7 @@ let subst_type ~concrete poly =
     | t, _ -> (subst, t)
   in
   let vars, typ = inner Vars.empty (poly, concrete) in
-  print_string "vars: ";
-  print_endline
-    (String.concat ", "
-       (List.map
-          (fun (key, typ) -> Printf.sprintf "%s: %s" key (show_typ typ))
-          (Vars.bindings vars)));
+
   let rec subst = function
     | Tvar { contents = Link l } -> subst l
     | (Qvar id as old) | (Tvar { contents = Unbound (id, _) } as old) -> (
@@ -204,23 +199,15 @@ let subst_body subst tree =
         let cont = { (inner cont) with typ = subst cont.typ } in
         { typ = cont.typ; expr = Mfunction (name, abs, cont) }
     | Mapp { callee; args } ->
-        print_endline "before cale";
-        print_endline (show_expr (fst callee).expr);
-        print_endline (show_typ (fst callee).typ);
-        print_endline (show_typ ((fst callee).typ |> subst));
         let callee = (sub (fst callee), snd callee) in
-        print_endline "after cale";
+
         let args = List.map (fun (a, mono) -> (sub a, mono)) args in
         let func = func_of_typ (fst callee).typ in
         { typ = func.ret; expr = Mapp { callee; args } }
     | Mrecord labels ->
-        Printf.printf "record: %s, %s\n%!" (show_typ tree.typ)
-          (show_typ (subst tree.typ));
         let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
         { typ = subst tree.typ; expr = Mrecord labels }
     | Mfield (expr, index) ->
-        Printf.printf "field: %s, %s\n%!" (show_typ tree.typ)
-          (show_typ (subst tree.typ));
         { typ = subst tree.typ; expr = Mfield (sub expr, index) }
     | Mseq (expr, cont) ->
         let expr = sub expr in
@@ -231,9 +218,7 @@ let subst_body subst tree =
 
 let monomorphize_call p expr =
   if is_type_polymorphic expr.typ then (p, None)
-  else (
-    Printf.printf "callee: %s\n" (show_typ (clean expr.typ));
-
+  else
     match find_function_expr p.vars expr.expr with
     | Concrete _ -> (* All good *) (p, None)
     | Polymorphic func ->
@@ -245,20 +230,9 @@ let monomorphize_call p expr =
           (p, Some name)
         else
           (* We generate the function *)
-          let () = Printf.printf "mono name: %s\n" name in
-
-          Printf.printf "typ before: %s\n%!" (show_typ typ);
           let subst, typ = subst_type ~concrete:expr.typ typ in
-          Printf.printf "typ after: %s\n%!" (show_typ @@ subst typ);
           let body = subst_body subst func.abs.body in
-          print_endline "body before";
-          print_endline (show_expr func.abs.body.expr);
-          print_endline "body after";
-          print_endline (show_expr body.expr);
-          Printf.printf "test subst:\nbefore: %s\nafter: %s\n%s\n\n%!"
-            (show_typ func.abs.body.typ)
-            (show_typ body.typ)
-            (show_typ (subst body.typ));
+
           let fnc = func_of_typ typ in
           let funcs =
             { func with abs = { func.abs with func = fnc; body }; name }
@@ -270,7 +244,7 @@ let monomorphize_call p expr =
     | Forward_decl _ ->
         (* We don't have to do anything, because the correct function will be called in the first place.
            Except when it is called with different types recursively. We'll see *)
-        (p, None))
+        (p, None)
 
 let rec morph_expr param (texpr : Typing.typed_expr) =
   let make expr = { typ = texpr.typ; expr } in
@@ -352,15 +326,13 @@ and morph_func p (username, uniq, abs, cont) =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
   let p =
-    if is_type_polymorphic ftyp then (
-      Printf.printf "Polymoric function: %s\n%!" name;
+    if is_type_polymorphic ftyp then
       let vars = Vars.add username (Polymorphic gen_func) p.vars in
-      { p with vars })
-    else (
-      Printf.printf "Concrete function: %s\n%!" name;
+      { p with vars }
+    else
       let vars = Vars.add username (Concrete gen_func) p.vars in
       let funcs = gen_func :: p.funcs in
-      { p with vars; funcs })
+      { p with vars; funcs }
   in
 
   (* TODO handle recursion stack *)
@@ -387,20 +359,15 @@ and morph_lambda typ p id abs =
 
   let p = { p with vars } in
   let p =
-    if is_type_polymorphic typ then (
-      Printf.printf "Polymorphic lambda: %s\n%!" name;
-      p)
-    else (
-      Printf.printf "Concrete lambda: %s\n%!" name;
+    if is_type_polymorphic typ then p
+    else
       let funcs = gen_func :: p.funcs in
-      { p with funcs })
+      { p with funcs }
   in
   (p, { typ; expr = Mlambda (name, abs) })
 
 and morph_app mk p callee args =
   let p, callee = morph_expr p callee in
-  Printf.printf "In App: callee typ: %s\n%!" (show_typ callee.typ);
-
   let p, mono_name = monomorphize_call p callee in
 
   let f p arg =

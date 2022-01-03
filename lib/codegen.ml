@@ -324,7 +324,6 @@ let sizeof_typ vars typ =
         let upto = make_upto 8 size_pr in
         add_size_align ~upto size_pr
     | Trecord _ as t when is_generic_record t ->
-        print_endline (show_typ t);
         size_from_vars (record_name ~poly:true t |> poly_name)
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
@@ -412,9 +411,7 @@ let gen_closure_obj assoc func vars name =
   ignore (Llvm.build_store fun_casted fun_ptr builder);
 
   let store_closed_var clsr_ptr i (name, _) =
-    print_endline "before clsr";
     let var = Vars.find name vars in
-    print_endline "after clsr";
     let ptr = Llvm.build_struct_gep clsr_ptr i name builder in
     ignore (Llvm.build_store var.value ptr builder);
     i + 1
@@ -483,12 +480,8 @@ let func_to_closure vars llvar =
 
 let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
     { Monomorph_tree.abs; name; recursive } =
-  print_endline ("generating: " ^ name);
   let typ = Monomorph_tree.typ_of_abs abs in
-  print_endline "in func:";
-  print_endline (show_typ typ);
 
-  print_newline ();
   match typ with
   | Tfun (tparams, ret_t, kind) as typ ->
       let func = declare_function name typ in
@@ -697,26 +690,20 @@ and gen_app vars callee args ret_t =
   let callee' = fst callee in
   let func = gen_expr vars callee' in
 
-  print_endline "in gen app :";
-  print_endline (show_typ callee'.typ);
-
   (* Get monomorphized function *)
   let func =
     match callee |> snd with
     | Some name ->
-        print_endline name;
-        let arg = Vars.find name vars in
+        let func = Vars.find name vars in
         (* Monomorphized functions are not yet converted to closures *)
-        print_endline "monod";
-        print_endline (show_typ arg.typ);
-        let arg =
-          match arg.typ with
+        let func =
+          match func.typ with
           | Tfun (_, _, Closure assoc) ->
-              gen_closure_obj assoc arg vars "monoclstmp"
-          | Tfun (_, _, Simple) -> arg
+              gen_closure_obj assoc func vars "monoclstmp"
+          | Tfun (_, _, Simple) -> func
           | _ -> failwith "Internal Error: What are we applying?"
         in
-        arg
+        func
     | None -> func
   in
 
@@ -724,7 +711,9 @@ and gen_app vars callee args ret_t =
     match func.typ with
     (* TODO we pattern match on the same thing above *)
     | Tfun (_, _, kind) -> kind
-    | _ -> failwith "Internal Error: Not a func in gen app"
+    | _ ->
+        print_endline (show_typ func.typ);
+        failwith "Internal Error: Not a func in gen app"
   in
 
   let handle_arg arg =
@@ -781,8 +770,6 @@ and gen_app vars callee args ret_t =
               failwith "Internal Error: Not a recursive closure application")
   in
 
-  print_endline "ret: ";
-  print_endline (ret_t |> show_typ);
   let value, lltyp =
     match ret_t with
     | Trecord _ ->
@@ -840,9 +827,6 @@ and gen_if vars cond e1 e2 =
   { value = phi; typ = e1.typ; lltyp = e1.lltyp }
 
 and codegen_record vars typ labels =
-  print_endline "in rec:";
-  print_endline (show_typ typ);
-  Strtbl.iter (fun key _ -> Printf.printf "%s\n" key) record_tbl;
   let lltyp = get_lltype ~param:false typ in
   if is_generic_record typ then (
     let lbls =
@@ -860,8 +844,6 @@ and codegen_record vars typ labels =
          (fun (index, size) (_, expr) ->
            let typ = lbls.(index) |> snd in
 
-           print_string "inn ";
-           print_endline (show_typ typ);
            let upto = sizeof_typ vars typ in
            let upto, size = match_size ~upto size in
            let offset = alignup ~upto size in
@@ -899,7 +881,6 @@ and codegen_record vars typ labels =
 
 and codegen_field vars expr index =
   let value = gen_expr vars expr in
-  print_endline "in field";
 
   let typ =
     match value.typ with
