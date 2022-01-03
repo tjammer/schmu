@@ -5,6 +5,10 @@ type t = { x : int }
 function apply(x : t, f , env)
   f(x, env)
 
+function apply2(x : 'a, f : ('a, 'a -> 'b) -> 'b, env : 'a -> 'b)
+  f(x, env)
+
+
 function add1(x : int) -> int
   x + 1
 
@@ -13,4 +17,6 @@ function boxed2int_int(t : t, env)
   { x = a }
 
 a = apply({x = 15}, boxed2int_int, add1).x
-printi(a)
+printi(a) >>
+b = apply2({x = 15}, boxed2int_int, add1).x
+printi(b)

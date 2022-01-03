@@ -2,9 +2,8 @@ external printi : int -> unit
 
 type t = { x : int }
 
--- This function is generic, i.e. only generated once
--- and used for different functions
-function apply(x, f)
+-- This function is generic
+function apply(x: 'a, f : 'a -> 'b)
   f(x)
 
 a = 2
@@ -23,11 +22,11 @@ function makefalse(b)
   else b
 
 -- simple t -> t
-function add1_rec(t)
+function add3_rec(t)
   { x = t.x + 3 }
 
 printi(apply(20, add1)) >>
 printi(apply(20, add_closed)) >>
-printi(apply({ x = 20 }, add1_rec).x) >>
+printi(apply({ x = 20 }, add3_rec).x) >>
 if apply(true, makefalse) then printi(1)
 else printi(0)

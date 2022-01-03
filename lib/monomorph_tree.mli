@@ -27,12 +27,7 @@ and monod_expr = monod_tree * string option
 
 and monod_tree = { typ : typ; expr : expr }
 
-type to_gen_func = {
-  abs : abstraction;
-  name : string;
-  recursive : bool;
-  subst : (typ -> typ) option;
-}
+type to_gen_func = { abs : abstraction; name : string; recursive : bool }
 
 type monomorphized_tree = {
   externals : Typing.external_decl list;

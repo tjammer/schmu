@@ -28,12 +28,7 @@ and monod_expr = monod_tree * string option
 
 and monod_tree = { typ : typ; expr : expr }
 
-type to_gen_func = {
-  abs : abstraction;
-  name : string;
-  recursive : bool;
-  subst : (typ -> typ) option;
-}
+type to_gen_func = { abs : abstraction; name : string; recursive : bool }
 
 type monomorphized_tree = {
   externals : Typing.external_decl list;
@@ -58,9 +53,10 @@ let recursion_stack = ref []
 
 let typ_of_abs abs = Tfun (abs.func.params, abs.func.ret, abs.func.kind)
 
-let func_of_typ = function
+let rec func_of_typ = function
+  | Tvar { contents = Link t } -> func_of_typ t
   | Tfun (params, ret, kind) -> { params; ret; kind }
-  | _ -> failwith "Interal Error: Not a function type"
+  | _ -> failwith "Internal Error: Not a function type"
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
@@ -119,7 +115,8 @@ let get_mono_name name ~poly concrete =
 let subst_type ~concrete poly =
   let rec inner subst = function
     | l, Tvar { contents = Link r } -> inner subst (l, r)
-    | Qvar id, t -> (
+    | Tvar { contents = Link l }, r -> inner subst (l, r)
+    | Qvar id, t | Tvar { contents = Unbound (id, _) }, t -> (
         match Vars.find_opt id subst with
         | Some _ -> (* Already in tbl*) (subst, t)
         | None -> (Vars.add id t subst, t))
@@ -146,8 +143,91 @@ let subst_type ~concrete poly =
         (subst, Trecord (Some i, record, labels))
     | t, _ -> (subst, t)
   in
-  ( (fun poly -> inner Vars.empty (poly, concrete) |> snd),
-    inner Vars.empty (poly, concrete) |> snd )
+  let vars, typ = inner Vars.empty (poly, concrete) in
+  print_string "vars: ";
+  print_endline
+    (String.concat ", "
+       (List.map
+          (fun (key, typ) -> Printf.sprintf "%s: %s" key (show_typ typ))
+          (Vars.bindings vars)));
+  let rec subst = function
+    | Tvar { contents = Link l } -> subst l
+    | (Qvar id as old) | (Tvar { contents = Unbound (id, _) } as old) -> (
+        match Vars.find_opt id vars with Some t -> t | None -> old)
+    | Tfun (ps, r, kind) ->
+        let ps = List.map subst ps in
+
+        Tfun (ps, subst r, kind)
+    | Trecord (Some i, record, l1) as t when is_type_polymorphic t ->
+        let labels = Array.copy l1 in
+        let name, typ = l1.(i) in
+        labels.(i) <- (name, subst typ);
+
+        Trecord (Some i, record, labels)
+    | t -> t
+  in
+
+  (subst, typ)
+
+let subst_body subst tree =
+  let subst_func { params; ret; kind } =
+    let params = List.map subst params in
+    let ret = subst ret in
+    { params; ret; kind }
+  in
+
+  let rec inner tree =
+    let sub t = { (inner t) with typ = subst t.typ } in
+    match tree.expr with
+    | Mvar _ -> { tree with typ = subst tree.typ }
+    | Mconst _ -> tree
+    | Mbop _ -> tree
+    | Mif (cond, e1, e2) ->
+        let cond = inner cond in
+        let e1 = sub e1 in
+        let e2 = sub e2 in
+        { typ = e1.typ; expr = Mif (cond, e1, e2) }
+    | Mlet (id, expr, cont) ->
+        let expr = sub expr in
+        let cont = sub cont in
+        { typ = cont.typ; expr = Mlet (id, expr, cont) }
+    | Mlambda (name, abs) ->
+        let abs =
+          { abs with func = subst_func abs.func; body = sub abs.body }
+        in
+        let typ = typ_of_abs abs in
+        { typ; expr = Mlambda (name, abs) }
+    | Mfunction (name, abs, cont) ->
+        let abs =
+          { abs with func = subst_func abs.func; body = sub abs.body }
+        in
+        let cont = { (inner cont) with typ = subst cont.typ } in
+        { typ = cont.typ; expr = Mfunction (name, abs, cont) }
+    | Mapp { callee; args } ->
+        print_endline "before cale";
+        print_endline (show_expr (fst callee).expr);
+        print_endline (show_typ (fst callee).typ);
+        print_endline (show_typ ((fst callee).typ |> subst));
+        let callee = (sub (fst callee), snd callee) in
+        print_endline "after cale";
+        let args = List.map (fun (a, mono) -> (sub a, mono)) args in
+        let func = func_of_typ (fst callee).typ in
+        { typ = func.ret; expr = Mapp { callee; args } }
+    | Mrecord labels ->
+        Printf.printf "record: %s, %s\n%!" (show_typ tree.typ)
+          (show_typ (subst tree.typ));
+        let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
+        { typ = subst tree.typ; expr = Mrecord labels }
+    | Mfield (expr, index) ->
+        Printf.printf "field: %s, %s\n%!" (show_typ tree.typ)
+          (show_typ (subst tree.typ));
+        { typ = subst tree.typ; expr = Mfield (sub expr, index) }
+    | Mseq (expr, cont) ->
+        let expr = sub expr in
+        let cont = sub cont in
+        { typ = cont.typ; expr = Mseq (expr, cont) }
+  in
+  inner tree
 
 let monomorphize_call p expr =
   if is_type_polymorphic expr.typ then (p, None)
@@ -167,15 +247,21 @@ let monomorphize_call p expr =
           (* We generate the function *)
           let () = Printf.printf "mono name: %s\n" name in
 
+          Printf.printf "typ before: %s\n%!" (show_typ typ);
           let subst, typ = subst_type ~concrete:expr.typ typ in
+          Printf.printf "typ after: %s\n%!" (show_typ @@ subst typ);
+          let body = subst_body subst func.abs.body in
+          print_endline "body before";
+          print_endline (show_expr func.abs.body.expr);
+          print_endline "body after";
+          print_endline (show_expr body.expr);
+          Printf.printf "test subst:\nbefore: %s\nafter: %s\n%s\n\n%!"
+            (show_typ func.abs.body.typ)
+            (show_typ body.typ)
+            (show_typ (subst body.typ));
           let fnc = func_of_typ typ in
           let funcs =
-            {
-              func with
-              abs = { func.abs with func = fnc };
-              name;
-              subst = Some subst;
-            }
+            { func with abs = { func.abs with func = fnc; body }; name }
             :: p.funcs
           in
           let monomorphized = Set.add name p.monomorphized in
@@ -260,7 +346,7 @@ and morph_func p (username, uniq, abs, cont) =
   let temp_p, body = morph_expr temp_p abs.body in
 
   let abs = { func; pnames; body } in
-  let gen_func = { abs; name; recursive; subst = None } in
+  let gen_func = { abs; name; recursive } in
 
   let p =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
@@ -297,7 +383,7 @@ and morph_lambda typ p id abs =
   let p, body = morph_expr p abs.body in
 
   let abs = { func; pnames; body } in
-  let gen_func = { abs; name; recursive; subst = None } in
+  let gen_func = { abs; name; recursive } in
 
   let p = { p with vars } in
   let p =
