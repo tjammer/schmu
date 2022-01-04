@@ -825,30 +825,13 @@ and convert_function env loc { name; params; return_annot; body; cont } =
 and convert_app env loc e1 args =
   let callee = convert env e1 in
 
-  (* print_endline "callee"; *)
-  (* print_endline (show_expr callee.expr); *)
   let typed_exprs = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_exprs in
-  let args_frozen = List.map freeze args_t in
   let res_t = newvar () in
   unify (loc, "Application") callee.typ (Tfun (args_t, res_t, Simple));
 
-  (* Apply the 'result' of the unification the the typed_expr *)
   let apply typ texpr = { texpr with typ } in
-  let targs = List.map2 apply args_frozen typed_exprs in
-
-  (* Printf.printf "generic:\n%s\npassed:\n%s\nother:\n%s\n\n%!" (show_typ generic)
-   *   (show_typ (Tfun (args_frozen, res_t, Simple)))
-   *   (show_typ (Tfun (args_t, res_t, Simple))); *)
-  (* Printf.printf "other:\n%s\n\n" *)
-  (* (clean (Tfun (args_t, res_t, Simple)) |> show_typ); *)
-  (* print_endline "args"; *)
-  (* List.iter (fun expr -> print_endline (show_expr expr.expr)) typed_exprs; *)
-  (* print_endline "args"; *)
-
-  (* Change back to unify types. Otherwise we don't know the generic's size *)
-  let apply typ texpr = { texpr with typ } in
-  let targs = List.map2 apply args_t targs in
+  let targs = List.map2 apply args_t typed_exprs in
 
   { typ = res_t; expr = App { callee; args = targs } }
 
