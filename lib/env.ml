@@ -142,4 +142,4 @@ let records env =
   |> (* Add instances *)
   fun generics ->
   let instances = Map.fold (fun _ t acc -> t :: acc) !(env.instances) [] in
-  generics @ instances
+  generics @ List.rev instances

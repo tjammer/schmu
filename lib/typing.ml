@@ -182,12 +182,13 @@ let string_of_type typ =
     | Tvar { contents = Qannot id } -> Printf.sprintf "'%s" id
     | Qvar str -> to_name str
     | Trecord (param, str, labels) ->
-        Option.fold ~none:""
-          ~some:(fun i ->
-            Printf.sprintf "%s " (string_of_type (snd labels.(i))))
-          param
-        ^ str
+        str
+        ^ Option.fold ~none:""
+            ~some:(fun i ->
+              Printf.sprintf " %s" (string_of_type (snd labels.(i))))
+            param
   in
+
   string_of_type typ
 
 let rec occurs tvr = function

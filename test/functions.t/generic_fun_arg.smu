@@ -1,6 +1,6 @@
 external printi : int -> unit
 
-type 'a t = { x : 'a }
+type t 'a = { x : 'a }
 
 -- This function is generic
 function apply(x: 'a, f : 'a -> 'b)

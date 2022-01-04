@@ -414,9 +414,9 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %int_t = type { i32 }
+  %t_int = type { i32 }
   %closure = type { i8*, i8* }
-  %bool_t = type { i1 }
+  %t_bool = type { i1 }
   
   declare void @printi(i32 %0)
   
@@ -425,10 +425,10 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i32 %x
   }
   
-  define private void @__g.g___fun0_ti.ti(%int_t* %0, %int_t* %x) {
+  define private void @__g.g___fun0_it.it(%t_int* %0, %t_int* %x) {
   entry:
-    %1 = bitcast %int_t* %0 to i8*
-    %2 = bitcast %int_t* %x to i8*
+    %1 = bitcast %t_int* %0 to i8*
+    %2 = bitcast %t_int* %x to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 4, i1 false)
     ret void
   }
@@ -444,32 +444,32 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i1 %0
   }
   
-  define private void @__gg.g.g_apply_tbtb.tb.tb(%bool_t* %0, %bool_t* %x, %closure* %f) {
+  define private void @__gg.g.g_apply_btbt.bt.bt(%t_bool* %0, %t_bool* %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
-    %casttmp = bitcast i8* %loadtmp to void (%bool_t*, %bool_t*, i8*)*
+    %casttmp = bitcast i8* %loadtmp to void (%t_bool*, %t_bool*, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %ret = alloca %bool_t, align 8
-    call void %casttmp(%bool_t* %ret, %bool_t* %x, i8* %loadtmp1)
-    %1 = bitcast %bool_t* %0 to i8*
-    %2 = bitcast %bool_t* %ret to i8*
+    %ret = alloca %t_bool, align 8
+    call void %casttmp(%t_bool* %ret, %t_bool* %x, i8* %loadtmp1)
+    %1 = bitcast %t_bool* %0 to i8*
+    %2 = bitcast %t_bool* %ret to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 1, i1 false)
     ret void
   }
   
-  define private void @__gg.g.g_apply_titi.ti.ti(%int_t* %0, %int_t* %x, %closure* %f) {
+  define private void @__gg.g.g_apply_itit.it.it(%t_int* %0, %t_int* %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
-    %casttmp = bitcast i8* %loadtmp to void (%int_t*, %int_t*, i8*)*
+    %casttmp = bitcast i8* %loadtmp to void (%t_int*, %t_int*, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %ret = alloca %int_t, align 8
-    call void %casttmp(%int_t* %ret, %int_t* %x, i8* %loadtmp1)
-    %1 = bitcast %int_t* %0 to i8*
-    %2 = bitcast %int_t* %ret to i8*
+    %ret = alloca %t_int, align 8
+    call void %casttmp(%t_int* %ret, %t_int* %x, i8* %loadtmp1)
+    %1 = bitcast %t_int* %0 to i8*
+    %2 = bitcast %t_int* %ret to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 4, i1 false)
     ret void
   }
@@ -485,36 +485,36 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i32 %0
   }
   
-  define private void @add3_rec(%int_t* %0, %int_t* %t) {
+  define private void @add3_rec(%t_int* %0, %t_int* %t) {
   entry:
-    %1 = alloca %int_t, align 8
-    %x1 = bitcast %int_t* %1 to i32*
-    %2 = bitcast %int_t* %t to i32*
+    %1 = alloca %t_int, align 8
+    %x1 = bitcast %t_int* %1 to i32*
+    %2 = bitcast %t_int* %t to i32*
     %3 = load i32, i32* %2, align 4
     %addtmp = add i32 %3, 3
     store i32 %addtmp, i32* %x1, align 4
-    %4 = bitcast %int_t* %0 to i8*
-    %5 = bitcast %int_t* %1 to i8*
+    %4 = bitcast %t_int* %0 to i8*
+    %5 = bitcast %t_int* %1 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 4, i1 false)
     ret void
   }
   
-  define private void @make_rec_false(%bool_t* %0, %bool_t* %r) {
+  define private void @make_rec_false(%t_bool* %0, %t_bool* %r) {
   entry:
-    %1 = bitcast %bool_t* %r to i1*
+    %1 = bitcast %t_bool* %r to i1*
     %2 = load i1, i1* %1, align 1
     br i1 %2, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %3 = alloca %bool_t, align 8
-    %x1 = bitcast %bool_t* %3 to i1*
+    %3 = alloca %t_bool, align 8
+    %x1 = bitcast %t_bool* %3 to i1*
     store i1 false, i1* %x1, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
-    %iftmp = phi %bool_t* [ %3, %then ], [ %r, %entry ]
-    %4 = bitcast %bool_t* %0 to i8*
-    %5 = bitcast %bool_t* %iftmp to i8*
+    %iftmp = phi %t_bool* [ %3, %then ], [ %r, %entry ]
+    %4 = bitcast %t_bool* %0 to i8*
+    %5 = bitcast %t_bool* %iftmp to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 1, i1 false)
     ret void
   }
@@ -575,30 +575,30 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     call void @printi(i32 %0)
     %1 = call i32 @__gg.g.g_apply_ii.i.i(i32 20, %closure* %add_closed)
     call void @printi(i32 %1)
-    %2 = alloca %int_t, align 8
-    %x19 = bitcast %int_t* %2 to i32*
+    %2 = alloca %t_int, align 8
+    %x19 = bitcast %t_int* %2 to i32*
     store i32 20, i32* %x19, align 4
     %clstmp3 = alloca %closure, align 8
     %funptr420 = bitcast %closure* %clstmp3 to i8**
-    store i8* bitcast (void (%int_t*, %int_t*)* @add3_rec to i8*), i8** %funptr420, align 8
+    store i8* bitcast (void (%t_int*, %t_int*)* @add3_rec to i8*), i8** %funptr420, align 8
     %envptr5 = getelementptr inbounds %closure, %closure* %clstmp3, i32 0, i32 1
     store i8* null, i8** %envptr5, align 8
-    %ret = alloca %int_t, align 8
-    call void @__gg.g.g_apply_titi.ti.ti(%int_t* %ret, %int_t* %2, %closure* %clstmp3)
-    %3 = bitcast %int_t* %ret to i32*
+    %ret = alloca %t_int, align 8
+    call void @__gg.g.g_apply_itit.it.it(%t_int* %ret, %t_int* %2, %closure* %clstmp3)
+    %3 = bitcast %t_int* %ret to i32*
     %4 = load i32, i32* %3, align 4
     call void @printi(i32 %4)
-    %5 = alloca %bool_t, align 8
-    %x621 = bitcast %bool_t* %5 to i1*
+    %5 = alloca %t_bool, align 8
+    %x621 = bitcast %t_bool* %5 to i1*
     store i1 true, i1* %x621, align 1
     %clstmp7 = alloca %closure, align 8
     %funptr822 = bitcast %closure* %clstmp7 to i8**
-    store i8* bitcast (void (%bool_t*, %bool_t*)* @make_rec_false to i8*), i8** %funptr822, align 8
+    store i8* bitcast (void (%t_bool*, %t_bool*)* @make_rec_false to i8*), i8** %funptr822, align 8
     %envptr9 = getelementptr inbounds %closure, %closure* %clstmp7, i32 0, i32 1
     store i8* null, i8** %envptr9, align 8
-    %ret10 = alloca %bool_t, align 8
-    call void @__gg.g.g_apply_tbtb.tb.tb(%bool_t* %ret10, %bool_t* %5, %closure* %clstmp7)
-    %6 = bitcast %bool_t* %ret10 to i1*
+    %ret10 = alloca %t_bool, align 8
+    call void @__gg.g.g_apply_btbt.bt.bt(%t_bool* %ret10, %t_bool* %5, %closure* %clstmp7)
+    %6 = bitcast %t_bool* %ret10 to i1*
     %7 = load i1, i1* %6, align 1
     call void @print_bool(i1 %7)
     %clstmp11 = alloca %closure, align 8
@@ -608,12 +608,12 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     store i8* null, i8** %envptr13, align 8
     %8 = call i1 @__gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp11)
     call void @print_bool(i1 %8)
-    %9 = alloca %int_t, align 8
-    %x1424 = bitcast %int_t* %9 to i32*
+    %9 = alloca %t_int, align 8
+    %x1424 = bitcast %t_int* %9 to i32*
     store i32 17, i32* %x1424, align 4
-    %ret15 = alloca %int_t, align 8
-    call void @__g.g___fun0_ti.ti(%int_t* %ret15, %int_t* %9)
-    %10 = bitcast %int_t* %ret15 to i32*
+    %ret15 = alloca %t_int, align 8
+    call void @__g.g___fun0_it.it(%t_int* %ret15, %t_int* %9)
+    %10 = bitcast %t_int* %ret15 to i32*
     %11 = load i32, i32* %10, align 4
     call void @printi(i32 %11)
     %12 = call i32 @__fun1(i32 18)
@@ -724,29 +724,29 @@ a second function. Instead, the closure struct was being created again and the c
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %int_t = type { i32 }
+  %t_int = type { i32 }
   %closure = type { i8*, i8* }
   
   declare void @printi(i32 %0)
   
-  define private void @__ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(%int_t* %0, %int_t* %x, %closure* %f, %closure* %env) {
+  define private void @__ggg.g.gg.g.g_apply2_ititi.i.iti.i.it(%t_int* %0, %t_int* %x, %closure* %f, %closure* %env) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
-    %casttmp = bitcast i8* %loadtmp to void (%int_t*, %int_t*, %closure*, i8*)*
+    %casttmp = bitcast i8* %loadtmp to void (%t_int*, %t_int*, %closure*, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %ret = alloca %int_t, align 8
-    call void %casttmp(%int_t* %ret, %int_t* %x, %closure* %env, i8* %loadtmp1)
-    %1 = bitcast %int_t* %0 to i8*
-    %2 = bitcast %int_t* %ret to i8*
+    %ret = alloca %t_int, align 8
+    call void %casttmp(%t_int* %ret, %t_int* %x, %closure* %env, i8* %loadtmp1)
+    %1 = bitcast %t_int* %0 to i8*
+    %2 = bitcast %t_int* %ret to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 4, i1 false)
     ret void
   }
   
-  define private void @__tgg.g.tg_boxed2int_int_tii.i.ti(%int_t* %0, %int_t* %t, %closure* %env) {
+  define private void @__gtg.g.gt_boxed2int_int_iti.i.it(%t_int* %0, %t_int* %t, %closure* %env) {
   entry:
-    %1 = bitcast %int_t* %t to i32*
+    %1 = bitcast %t_int* %t to i32*
     %2 = load i32, i32* %1, align 4
     %funcptr2 = bitcast %closure* %env to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -754,26 +754,26 @@ a second function. Instead, the closure struct was being created again and the c
     %envptr = getelementptr inbounds %closure, %closure* %env, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %3 = tail call i32 %casttmp(i32 %2, i8* %loadtmp1)
-    %4 = alloca %int_t, align 8
-    %x3 = bitcast %int_t* %4 to i32*
+    %4 = alloca %t_int, align 8
+    %x3 = bitcast %t_int* %4 to i32*
     store i32 %3, i32* %x3, align 4
-    %5 = bitcast %int_t* %0 to i8*
-    %6 = bitcast %int_t* %4 to i8*
+    %5 = bitcast %t_int* %0 to i8*
+    %6 = bitcast %t_int* %4 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 4, i1 false)
     ret void
   }
   
-  define private void @__ggg.gg.g_apply_titii.i.tii.i.ti(%int_t* %0, %int_t* %x, %closure* %f, %closure* %env) {
+  define private void @__ggg.gg.g_apply_ititi.i.iti.i.it(%t_int* %0, %t_int* %x, %closure* %f, %closure* %env) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
-    %casttmp = bitcast i8* %loadtmp to void (%int_t*, %int_t*, %closure*, i8*)*
+    %casttmp = bitcast i8* %loadtmp to void (%t_int*, %t_int*, %closure*, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %ret = alloca %int_t, align 8
-    call void %casttmp(%int_t* %ret, %int_t* %x, %closure* %env, i8* %loadtmp1)
-    %1 = bitcast %int_t* %0 to i8*
-    %2 = bitcast %int_t* %ret to i8*
+    %ret = alloca %t_int, align 8
+    call void %casttmp(%t_int* %ret, %t_int* %x, %closure* %env, i8* %loadtmp1)
+    %1 = bitcast %t_int* %0 to i8*
+    %2 = bitcast %t_int* %ret to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 4, i1 false)
     ret void
   }
@@ -789,12 +789,12 @@ a second function. Instead, the closure struct was being created again and the c
   
   define i32 @main(i32 %arg) {
   entry:
-    %0 = alloca %int_t, align 8
-    %x12 = bitcast %int_t* %0 to i32*
+    %0 = alloca %t_int, align 8
+    %x12 = bitcast %t_int* %0 to i32*
     store i32 15, i32* %x12, align 4
     %clstmp = alloca %closure, align 8
     %funptr13 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (void (%int_t*, %int_t*, %closure*)* @__tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr13, align 8
+    store i8* bitcast (void (%t_int*, %t_int*, %closure*)* @__gtg.g.gt_boxed2int_int_iti.i.it to i8*), i8** %funptr13, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
     %clstmp1 = alloca %closure, align 8
@@ -802,17 +802,17 @@ a second function. Instead, the closure struct was being created again and the c
     store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr214, align 8
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
-    %ret = alloca %int_t, align 8
-    call void @__ggg.gg.g_apply_titii.i.tii.i.ti(%int_t* %ret, %int_t* %0, %closure* %clstmp, %closure* %clstmp1)
-    %1 = bitcast %int_t* %ret to i32*
+    %ret = alloca %t_int, align 8
+    call void @__ggg.gg.g_apply_ititi.i.iti.i.it(%t_int* %ret, %t_int* %0, %closure* %clstmp, %closure* %clstmp1)
+    %1 = bitcast %t_int* %ret to i32*
     %2 = load i32, i32* %1, align 4
     call void @printi(i32 %2)
-    %3 = alloca %int_t, align 8
-    %x415 = bitcast %int_t* %3 to i32*
+    %3 = alloca %t_int, align 8
+    %x415 = bitcast %t_int* %3 to i32*
     store i32 15, i32* %x415, align 4
     %clstmp5 = alloca %closure, align 8
     %funptr616 = bitcast %closure* %clstmp5 to i8**
-    store i8* bitcast (void (%int_t*, %int_t*, %closure*)* @__tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr616, align 8
+    store i8* bitcast (void (%t_int*, %t_int*, %closure*)* @__gtg.g.gt_boxed2int_int_iti.i.it to i8*), i8** %funptr616, align 8
     %envptr7 = getelementptr inbounds %closure, %closure* %clstmp5, i32 0, i32 1
     store i8* null, i8** %envptr7, align 8
     %clstmp8 = alloca %closure, align 8
@@ -820,9 +820,9 @@ a second function. Instead, the closure struct was being created again and the c
     store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr917, align 8
     %envptr10 = getelementptr inbounds %closure, %closure* %clstmp8, i32 0, i32 1
     store i8* null, i8** %envptr10, align 8
-    %ret11 = alloca %int_t, align 8
-    call void @__ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(%int_t* %ret11, %int_t* %3, %closure* %clstmp5, %closure* %clstmp8)
-    %4 = bitcast %int_t* %ret11 to i32*
+    %ret11 = alloca %t_int, align 8
+    call void @__ggg.g.gg.g.g_apply2_ititi.i.iti.i.it(%t_int* %ret11, %t_int* %3, %closure* %clstmp5, %closure* %clstmp8)
+    %4 = bitcast %t_int* %ret11 to i32*
     %5 = load i32, i32* %4, align 4
     call void @printi(i32 %5)
     ret i32 0

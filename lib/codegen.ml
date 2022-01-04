@@ -85,12 +85,13 @@ let rec record_name ?(poly = false) = function
   | Trecord (param, name, labels) ->
       let some p =
         let p = labels.(p) |> snd in
-        (match p with
+        "_"
+        ^
+        match p with
         | Qvar id -> if poly then id else "generic"
-        | t -> record_name t)
-        ^ "_"
+        | t -> record_name t
       in
-      Printf.sprintf "%s%s" (Option.fold ~none:"" ~some param) name
+      Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)
   | t -> Typing.string_of_type t
 
 let record_poly_ids typ =
