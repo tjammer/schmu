@@ -34,8 +34,12 @@ function make_rec_false(r)
 function add3_rec(t)
   { x = t.x + 3 }
 
+-- A polymorphic function which will get monomorphized
+f = function (x) x
+
 printi(apply(20, add1)) >>
 printi(apply(20, add_closed)) >>
 printi(apply({ x = 20 }, add3_rec).x) >>
 print_bool(apply({ x = true }, make_rec_false).x) >>
-print_bool(apply(true, makefalse))
+print_bool(apply(true, makefalse)) >>
+printi(f({ x = 17 }).x)

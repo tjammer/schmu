@@ -49,8 +49,6 @@ type morph_param = {
   funcs : to_gen_func list; (* to generate in codegen *)
 }
 
-let recursion_stack = ref []
-
 let typ_of_abs abs = Tfun (abs.func.params, abs.func.ret, abs.func.kind)
 
 let rec func_of_typ = function
@@ -131,7 +129,6 @@ let subst_type ~concrete poly =
     | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
       when is_type_polymorphic l ->
         assert (i = j);
-        (* No Array.fold_left_map for pre 4.13? *)
         let labels = Array.copy l1 in
         let f (subst, i) (ls, lt) =
           let _, r = l2.(i) in
@@ -249,8 +246,8 @@ let monomorphize_call p expr =
 let rec morph_expr param (texpr : Typing.typed_expr) =
   let make expr = { typ = texpr.typ; expr } in
   match texpr.expr with
-  | Typing.Var v -> (param, make (Mvar v))
-  | Const c -> (param, make (Mconst c))
+  | Typing.Var v -> (param, make (Mvar v), No_function)
+  | Const c -> (param, make (Mconst c), No_function)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let (id, e1, e2) -> morph_let make param id e1 e2
@@ -262,37 +259,38 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   | App { callee; args } -> morph_app make param callee args
 
 and morph_bop mk p bop e1 e2 =
-  let p, e1 = morph_expr p e1 in
-  let p, e2 = morph_expr p e2 in
-  (p, mk (Mbop (bop, e1, e2)))
+  let p, e1, _ = morph_expr p e1 in
+  let p, e2, _ = morph_expr p e2 in
+  (p, mk (Mbop (bop, e1, e2)), No_function)
 
 and morph_if mk p cond e1 e2 =
-  let p, cond = morph_expr p cond in
-  let p, e1 = morph_expr p e1 in
-  let p, e2 = morph_expr p e2 in
-  (p, mk (Mif (cond, e1, e2)))
+  let p, cond, _ = morph_expr p cond in
+  let p, e1, _ = morph_expr p e1 in
+  let p, e2, _ = morph_expr p e2 in
+  (p, mk (Mif (cond, e1, e2)), No_function)
 
 and morph_let mk p id e1 e2 =
-  let p, e1 = morph_expr p e1 in
-  let p, e2 = morph_expr p e2 in
-  (p, mk (Mlet (id, e1, e2)))
+  let p, e1, func = morph_expr p e1 in
+  let p = { p with vars = Vars.add id func p.vars } in
+  let p, e2, func = morph_expr p e2 in
+  (p, mk (Mlet (id, e1, e2)), func)
 
 and morph_record mk p labels =
   let f param (id, e) =
-    let p, e = morph_expr param e in
+    let p, e, _ = morph_expr param e in
     (p, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
-  (p, mk (Mrecord labels))
+  (p, mk (Mrecord labels), No_function)
 
 and morph_field mk p expr index =
-  let p, e = morph_expr p expr in
-  (p, mk (Mfield (e, index)))
+  let p, e, func = morph_expr p expr in
+  (p, mk (Mfield (e, index)), func)
 
 and morph_seq mk p expr cont =
-  let p, expr = morph_expr p expr in
-  let p, cont = morph_expr p cont in
-  (p, mk (Mseq (expr, cont)))
+  let p, expr, _ = morph_expr p expr in
+  let p, cont, func = morph_expr p cont in
+  (p, mk (Mseq (expr, cont)), func)
 
 and morph_func p (username, uniq, abs, cont) =
   (* If the function is concretely typed, we add it to the function list and
@@ -310,14 +308,13 @@ and morph_func p (username, uniq, abs, cont) =
 
   (* Make sure recursion works and the current function can be used in its body *)
   let temp_p =
-    if recursive then (
-      recursion_stack := Vars.empty :: !recursion_stack;
+    if recursive then
       let vars = Vars.add username (Forward_decl name) p.vars in
-      { p with vars })
+      { p with vars }
     else p
   in
 
-  let temp_p, body = morph_expr temp_p abs.body in
+  let temp_p, body, _ = morph_expr temp_p abs.body in
 
   let abs = { func; pnames; body } in
   let gen_func = { abs; name; recursive } in
@@ -335,13 +332,8 @@ and morph_func p (username, uniq, abs, cont) =
       { p with vars; funcs }
   in
 
-  (* TODO handle recursion stack *)
-  (match !recursion_stack with
-  | _ :: stack -> recursion_stack := stack
-  | [] -> failwith "Internal Error: Stack in monomorphization");
-
-  let p, cont = morph_expr p cont in
-  (p, { typ = cont.typ; expr = Mfunction (name, abs, cont) })
+  let p, cont, func = morph_expr p cont in
+  (p, { typ = cont.typ; expr = Mfunction (name, abs, cont) }, func)
 
 and morph_lambda typ p id abs =
   let name = lambda_name id in
@@ -352,33 +344,33 @@ and morph_lambda typ p id abs =
   let pnames = abs.nparams in
 
   let vars = p.vars in
-  let p, body = morph_expr p abs.body in
+  let p, body, _ = morph_expr p abs.body in
 
   let abs = { func; pnames; body } in
   let gen_func = { abs; name; recursive } in
 
   let p = { p with vars } in
-  let p =
-    if is_type_polymorphic typ then p
+  let p, func =
+    if is_type_polymorphic typ then (p, Polymorphic gen_func)
     else
       let funcs = gen_func :: p.funcs in
-      { p with funcs }
+      ({ p with funcs }, Concrete gen_func)
   in
-  (p, { typ; expr = Mlambda (name, abs) })
+  (p, { typ; expr = Mlambda (name, abs) }, func)
 
 and morph_app mk p callee args =
-  let p, callee = morph_expr p callee in
+  let p, callee, _ = morph_expr p callee in
   let p, mono_name = monomorphize_call p callee in
 
   let f p arg =
-    let p, a = morph_expr p arg in
+    let p, a, _ = morph_expr p arg in
     let p, mono_name = monomorphize_call p a in
     (p, (a, mono_name))
   in
   let p, args = List.fold_left_map f p args in
-  (p, mk (Mapp { callee = (callee, mono_name); args }))
+  (p, mk (Mapp { callee = (callee, mono_name); args }), No_function)
 
 let monomorphize { Typing.externals; records; tree } =
   let param = { vars = Vars.empty; monomorphized = Set.empty; funcs = [] } in
-  let p, tree = morph_expr param tree in
+  let p, tree, _ = morph_expr param tree in
   { externals; records; tree; funcs = p.funcs }

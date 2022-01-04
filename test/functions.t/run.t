@@ -414,11 +414,19 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %int_t = type { i32 }
   %closure = type { i8*, i8* }
   %bool_t = type { i1 }
-  %int_t = type { i32 }
   
   declare void @printi(i32 %0)
+  
+  define private void @__g.g___fun0_ti.ti(%int_t* %0, %int_t* %x) {
+  entry:
+    %1 = bitcast %int_t* %0 to i8*
+    %2 = bitcast %int_t* %x to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 4, i1 false)
+    ret void
+  }
   
   define private i1 @__gg.g.g_apply_bb.b.b(i1 %x, %closure* %f) {
   entry:
@@ -545,17 +553,17 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   define i32 @main(i32 %arg) {
   entry:
     %add_closed = alloca %closure, align 8
-    %funptr14 = bitcast %closure* %add_closed to i8**
-    store i8* bitcast (i32 (i32, i8*)* @add_closed to i8*), i8** %funptr14, align 8
+    %funptr16 = bitcast %closure* %add_closed to i8**
+    store i8* bitcast (i32 (i32, i8*)* @add_closed to i8*), i8** %funptr16, align 8
     %clsr_add_closed = alloca { i32 }, align 8
-    %a15 = bitcast { i32 }* %clsr_add_closed to i32*
-    store i32 2, i32* %a15, align 4
+    %a17 = bitcast { i32 }* %clsr_add_closed to i32*
+    store i32 2, i32* %a17, align 4
     %env = bitcast { i32 }* %clsr_add_closed to i8*
     %envptr = getelementptr inbounds %closure, %closure* %add_closed, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     %clstmp = alloca %closure, align 8
-    %funptr116 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr116, align 8
+    %funptr118 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (i32 (i32)* @add1 to i8*), i8** %funptr118, align 8
     %envptr2 = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr2, align 8
     %0 = call i32 @__gg.g.g_apply_ii.i.i(i32 20, %closure* %clstmp)
@@ -563,11 +571,11 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %1 = call i32 @__gg.g.g_apply_ii.i.i(i32 20, %closure* %add_closed)
     call void @printi(i32 %1)
     %2 = alloca %int_t, align 8
-    %x17 = bitcast %int_t* %2 to i32*
-    store i32 20, i32* %x17, align 4
+    %x19 = bitcast %int_t* %2 to i32*
+    store i32 20, i32* %x19, align 4
     %clstmp3 = alloca %closure, align 8
-    %funptr418 = bitcast %closure* %clstmp3 to i8**
-    store i8* bitcast (void (%int_t*, %int_t*)* @add3_rec to i8*), i8** %funptr418, align 8
+    %funptr420 = bitcast %closure* %clstmp3 to i8**
+    store i8* bitcast (void (%int_t*, %int_t*)* @add3_rec to i8*), i8** %funptr420, align 8
     %envptr5 = getelementptr inbounds %closure, %closure* %clstmp3, i32 0, i32 1
     store i8* null, i8** %envptr5, align 8
     %ret = alloca %int_t, align 8
@@ -576,11 +584,11 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %4 = load i32, i32* %3, align 4
     call void @printi(i32 %4)
     %5 = alloca %bool_t, align 8
-    %x619 = bitcast %bool_t* %5 to i1*
-    store i1 true, i1* %x619, align 1
+    %x621 = bitcast %bool_t* %5 to i1*
+    store i1 true, i1* %x621, align 1
     %clstmp7 = alloca %closure, align 8
-    %funptr820 = bitcast %closure* %clstmp7 to i8**
-    store i8* bitcast (void (%bool_t*, %bool_t*)* @make_rec_false to i8*), i8** %funptr820, align 8
+    %funptr822 = bitcast %closure* %clstmp7 to i8**
+    store i8* bitcast (void (%bool_t*, %bool_t*)* @make_rec_false to i8*), i8** %funptr822, align 8
     %envptr9 = getelementptr inbounds %closure, %closure* %clstmp7, i32 0, i32 1
     store i8* null, i8** %envptr9, align 8
     %ret10 = alloca %bool_t, align 8
@@ -589,12 +597,20 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %7 = load i1, i1* %6, align 1
     call void @print_bool(i1 %7)
     %clstmp11 = alloca %closure, align 8
-    %funptr1221 = bitcast %closure* %clstmp11 to i8**
-    store i8* bitcast (i1 (i1)* @makefalse to i8*), i8** %funptr1221, align 8
+    %funptr1223 = bitcast %closure* %clstmp11 to i8**
+    store i8* bitcast (i1 (i1)* @makefalse to i8*), i8** %funptr1223, align 8
     %envptr13 = getelementptr inbounds %closure, %closure* %clstmp11, i32 0, i32 1
     store i8* null, i8** %envptr13, align 8
     %8 = call i1 @__gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp11)
     call void @print_bool(i1 %8)
+    %9 = alloca %int_t, align 8
+    %x1424 = bitcast %int_t* %9 to i32*
+    store i32 17, i32* %x1424, align 4
+    %ret15 = alloca %int_t, align 8
+    call void @__g.g___fun0_ti.ti(%int_t* %ret15, %int_t* %9)
+    %10 = bitcast %int_t* %ret15 to i32*
+    %11 = load i32, i32* %10, align 4
+    call void @printi(i32 %11)
     ret i32 0
   }
   
@@ -605,6 +621,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   23
   0
   0
+  17
 
 A generic pass function. This example is not 100% correct, but works due to calling convertion.
   $ schmu generic_pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out

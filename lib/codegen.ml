@@ -579,9 +579,9 @@ and gen_app vars callee args ret_t =
     match func.typ with
     (* TODO we pattern match on the same thing above *)
     | Tfun (_, _, kind) -> kind
-    | _ ->
-        print_endline (show_typ func.typ);
-        failwith "Internal Error: Not a func in gen app"
+    | Tunit ->
+        failwith "Internal Error: Probably cannot find monomorphized function"
+    | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
   let handle_arg arg =
