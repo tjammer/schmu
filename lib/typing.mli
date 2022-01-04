@@ -40,3 +40,5 @@ type codegen_tree = {
 }
 
 val to_typed : Ast.prog -> codegen_tree
+
+val is_type_polymorphic : typ -> bool

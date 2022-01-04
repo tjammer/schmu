@@ -883,3 +883,11 @@ Closures can recurse too
   8
   9
   10
+
+Print error when returning a polymorphic lambda in an if expression
+  $ schmu no_lambda_let_poly_monomorph.smu
+  no_lambda_let_poly_monomorph.smu:6:5: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though.
+  
+  6 | f = if true then function (x) x else function (x) x
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  

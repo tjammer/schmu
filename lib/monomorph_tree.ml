@@ -69,19 +69,6 @@ let unique_name = function
 
 let lambda_name id = "__fun" ^ string_of_int id
 
-let is_type_polymorphic typ =
-  let rec inner acc = function
-    | Qvar _ | Tvar { contents = Unbound _ } -> true
-    | Tvar { contents = Link t } -> inner acc t
-    | Tvar _ -> failwith "annot should not be here"
-    | Trecord (Some i, _, labels) -> inner acc (labels.(i) |> snd)
-    | Tfun (params, ret, _) ->
-        let acc = List.fold_left inner acc params in
-        inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ -> acc
-  in
-  inner false typ
-
 let find_function_expr vars = function
   | Mvar id -> (
       match Vars.find_opt id vars with
@@ -127,7 +114,7 @@ let subst_type ~concrete poly =
         let subst, r = inner subst (r1, r2) in
         (subst, Tfun (ps, r, kind))
     | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
-      when is_type_polymorphic l ->
+      when Typing.is_type_polymorphic l ->
         assert (i = j);
         let labels = Array.copy l1 in
         let f (subst, i) (ls, lt) =
@@ -150,7 +137,7 @@ let subst_type ~concrete poly =
         let ps = List.map subst ps in
 
         Tfun (ps, subst r, kind)
-    | Trecord (Some i, record, l1) as t when is_type_polymorphic t ->
+    | Trecord (Some i, record, l1) as t when Typing.is_type_polymorphic t ->
         let labels = Array.copy l1 in
         let name, typ = l1.(i) in
         labels.(i) <- (name, subst typ);
@@ -214,7 +201,7 @@ let subst_body subst tree =
   inner tree
 
 let monomorphize_call p expr =
-  if is_type_polymorphic expr.typ then (p, None)
+  if Typing.is_type_polymorphic expr.typ then (p, None)
   else
     match find_function_expr p.vars expr.expr with
     | Concrete _ -> (* All good *) (p, None)
@@ -323,7 +310,7 @@ and morph_func p (username, uniq, abs, cont) =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
   let p =
-    if is_type_polymorphic ftyp then
+    if Typing.is_type_polymorphic ftyp then
       let vars = Vars.add username (Polymorphic gen_func) p.vars in
       { p with vars }
     else
@@ -351,7 +338,7 @@ and morph_lambda typ p id abs =
 
   let p = { p with vars } in
   let p, func =
-    if is_type_polymorphic typ then (p, Polymorphic gen_func)
+    if Typing.is_type_polymorphic typ then (p, Polymorphic gen_func)
     else
       let funcs = gen_func :: p.funcs in
       ({ p with funcs }, Concrete gen_func)

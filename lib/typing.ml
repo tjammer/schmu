@@ -96,6 +96,19 @@ let newvar () = Tvar (ref (Unbound (gensym (), !current_level)))
   Helper functions
 *)
 
+let is_type_polymorphic typ =
+  let rec inner acc = function
+    | Qvar _ | Tvar { contents = Unbound _ } -> true
+    | Tvar { contents = Link t } -> inner acc t
+    | Tvar _ -> failwith "annot should not be here"
+    | Trecord (Some i, _, labels) -> inner acc (labels.(i) |> snd)
+    | Tfun (params, ret, _) ->
+        let acc = List.fold_left inner acc params in
+        inner acc ret
+    | Tbool | Tunit | Tint | Trecord _ -> acc
+  in
+  inner false typ
+
 (* Bring type vars into canonical form so the first one is "'a" etc.
    Only used for printing purposes *)
 let canonize tbl typ =
@@ -863,6 +876,18 @@ and convert_if env loc cond e1 e2 =
   let typ = newvar () in
   unify (loc, "Branches have different type") type_e1.typ type_e2.typ;
   unify (loc, "") typ type_e2.typ;
+
+  (* We don't support polymorphic lambdas in if-exprs in the monomorph backend yet *)
+  (match type_e2.typ with
+  | Tfun (_, _, _) as t when is_type_polymorphic t ->
+      raise
+        (Error
+           ( loc,
+             "Returning polymorphic anonymous function in if expressions is \
+              not supported (yet). Sorry. You can type the function concretely \
+              though." ))
+  | _ -> ());
+
   { typ; expr = If (type_cond, type_e1, type_e2) }
 
 and convert_record env loc labels =
