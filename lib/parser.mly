@@ -34,6 +34,7 @@
 %token Type
 %token Quote
 %token MuchGreater
+%token End
 
 %nonassoc Less
 %left Plus
@@ -61,12 +62,12 @@ expr:
   | Int { Int(($startpos, $endpos), $1) }
   | bool { Bool(($startpos, $endpos), $1) }
   | expr; binop; expr { Bop(($startpos, $endpos), $2, $1, $3) }
-  | If; expr; Then; expr; Else; expr { If(($startpos, $endpos), $2, $4, $6)}
+  | If; expr; Then; expr; Else; expr; option(End) { If(($startpos, $endpos), $2, $4, $6)}
   | decl; Equal; expr; expr { Let(($startpos, $endpos), $1, $3, $4) }
-  | Function; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr
+  | Function; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr; option(End)
     { Lambda(($startpos, $endpos), $3, $5, $6) }
-  | Function; Identifier; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr; expr
-    { Function (($startpos, $endpos), {name = $2; params = $4; return_annot = $6; body = $7; cont = $8}) }
+  | Function; Identifier; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr; option(End); expr
+    { Function (($startpos, $endpos), {name = $2; params = $4; return_annot = $6; body = $7; cont = $9}) }
   | expr; Lpar; separated_list(Comma, expr); Rpar { App(($startpos, $endpos), $1, $3) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record (($startpos, $endpos), $2) }
   | expr; Dot; Identifier { Field (($startpos, $endpos), $1, $3) }

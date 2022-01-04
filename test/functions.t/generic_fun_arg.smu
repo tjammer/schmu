@@ -42,4 +42,6 @@ printi(apply(20, add_closed)) >>
 printi(apply({ x = 20 }, add3_rec).x) >>
 print_bool(apply({ x = true }, make_rec_false).x) >>
 print_bool(apply(true, makefalse)) >>
-printi(f({ x = 17 }).x)
+printi(f({ x = 17 }).x) >>
+-- inline polymorphic function
+printi(function (x) x end(18))

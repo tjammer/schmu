@@ -420,6 +420,11 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   
   declare void @printi(i32 %0)
   
+  define private i32 @__fun1(i32 %x) {
+  entry:
+    ret i32 %x
+  }
+  
   define private void @__g.g___fun0_ti.ti(%int_t* %0, %int_t* %x) {
   entry:
     %1 = bitcast %int_t* %0 to i8*
@@ -611,6 +616,8 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %10 = bitcast %int_t* %ret15 to i32*
     %11 = load i32, i32* %10, align 4
     call void @printi(i32 %11)
+    %12 = call i32 @__fun1(i32 18)
+    call void @printi(i32 %12)
     ret i32 0
   }
   
@@ -622,6 +629,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   0
   0
   17
+  18
 
 A generic pass function. This example is not 100% correct, but works due to calling convertion.
   $ schmu generic_pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out

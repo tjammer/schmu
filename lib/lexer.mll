@@ -39,6 +39,7 @@ rule read =
   | "external" { External }
   | "function" { Function }
   | "type"   { Type }
+  | "end"    { End }
   | ">>"     { MuchGreater }
   | id       { Identifier (Lexing.lexeme lexbuf) }
   | '+'      { Plus }
