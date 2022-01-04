@@ -154,11 +154,24 @@ Pass generic record
   
   declare void @printi(i32 %0)
   
-  define private void @__g.g_pass_bt.bt(%t_bool* %0, %t_bool* %x) {
+  define private void @__gt.gt_pass_bt.bt(%t_bool* %0, %t_bool* %x) {
   entry:
-    %1 = bitcast %t_bool* %0 to i8*
-    %2 = bitcast %t_bool* %x to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 8, i1 false)
+    %1 = alloca %t_bool, align 8
+    %first1 = bitcast %t_bool* %1 to i32*
+    %2 = bitcast %t_bool* %x to i32*
+    %3 = load i32, i32* %2, align 4
+    store i32 %3, i32* %first1, align 4
+    %gen = getelementptr inbounds %t_bool, %t_bool* %1, i32 0, i32 1
+    %4 = getelementptr inbounds %t_bool, %t_bool* %x, i32 0, i32 1
+    %5 = load i1, i1* %4, align 1
+    store i1 %5, i1* %gen, align 1
+    %third = getelementptr inbounds %t_bool, %t_bool* %1, i32 0, i32 2
+    %6 = getelementptr inbounds %t_bool, %t_bool* %x, i32 0, i32 2
+    %7 = load i1, i1* %6, align 1
+    store i1 %7, i1* %third, align 1
+    %8 = bitcast %t_bool* %0 to i8*
+    %9 = bitcast %t_bool* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 8, i1 false)
     ret void
   }
   
@@ -177,11 +190,24 @@ Pass generic record
     ret void
   }
   
-  define private void @__g.g_pass_it.it(%t_int* %0, %t_int* %x) {
+  define private void @__gt.gt_pass_it.it(%t_int* %0, %t_int* %x) {
   entry:
-    %1 = bitcast %t_int* %0 to i8*
-    %2 = bitcast %t_int* %x to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 12, i1 false)
+    %1 = alloca %t_int, align 8
+    %first1 = bitcast %t_int* %1 to i32*
+    %2 = bitcast %t_int* %x to i32*
+    %3 = load i32, i32* %2, align 4
+    store i32 %3, i32* %first1, align 4
+    %gen = getelementptr inbounds %t_int, %t_int* %1, i32 0, i32 1
+    %4 = getelementptr inbounds %t_int, %t_int* %x, i32 0, i32 1
+    %5 = load i32, i32* %4, align 4
+    store i32 %5, i32* %gen, align 4
+    %third = getelementptr inbounds %t_int, %t_int* %1, i32 0, i32 2
+    %6 = getelementptr inbounds %t_int, %t_int* %x, i32 0, i32 2
+    %7 = load i1, i1* %6, align 1
+    store i1 %7, i1* %third, align 1
+    %8 = bitcast %t_int* %0 to i8*
+    %9 = bitcast %t_int* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 12, i1 false)
     ret void
   }
   
@@ -214,7 +240,7 @@ Pass generic record
     store i1 false, i1* %third, align 1
     %clstmp = alloca %closure, align 8
     %funptr9 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (void (%t_int*, %t_int*)* @__g.g_pass_it.it to i8*), i8** %funptr9, align 8
+    store i8* bitcast (void (%t_int*, %t_int*)* @__gt.gt_pass_it.it to i8*), i8** %funptr9, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
@@ -224,7 +250,7 @@ Pass generic record
     call void @printi(i32 %2)
     %clstmp1 = alloca %closure, align 8
     %funptr210 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast (void (%t_bool*, %t_bool*)* @__g.g_pass_bt.bt to i8*), i8** %funptr210, align 8
+    store i8* bitcast (void (%t_bool*, %t_bool*)* @__gt.gt_pass_bt.bt to i8*), i8** %funptr210, align 8
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
     %3 = alloca %t_bool, align 8

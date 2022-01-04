@@ -1,6 +1,5 @@
 external printi : int -> unit
 
--- TODO pass without apply, pass as record
 type t 'a = { first : int, gen : 'a, third : bool }
 
 function apply(f : 'b -> 'a, x : 'b) -> 'a
@@ -9,8 +8,7 @@ function apply(f : 'b -> 'a, x : 'b) -> 'a
 function pass(x)
   -- We have to use the record somehow, otherwise it's passed
   -- as a generic variable and then copied trivially
-  -- { first = x.first, gen = x.gen, third = x.third }
-  x
+  { first = x.first, gen = x.gen, third = x.third }
 
 int_t = { first = 700, gen = 20, third = false }
 
