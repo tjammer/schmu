@@ -120,29 +120,31 @@ let test_sequence_fail () =
     "function add1(x) x + 1 add1(20) >> 1 + 1"
 
 let test_para_instantiate () =
-  test "foo int"
-    "type foo 'a = { first : int, gen : 'a } foo = { first = 10, gen = 20 } foo"
+  test "foo(int)"
+    "type foo('a) = { first : int, gen : 'a } foo = { first = 10, gen = 20 } \
+     foo"
 
 let test_para_gen_fun () =
-  test "foo 'a -> int"
-    "type foo 'a = { gen : 'a, second : int } function get(foo) foo.second get"
+  test "foo('a) -> int"
+    "type foo('a) = { gen : 'a, second : int } function get(foo) foo.second get"
 
 let test_para_gen_return () =
-  test "foo 'a -> 'a" "type foo 'a = { gen : 'a } function get(foo) foo.gen get"
+  test "foo('a) -> 'a"
+    "type foo('a) = { gen : 'a } function get(foo) foo.gen get"
 
 let test_para_multiple () =
   test "bool"
-    "type foo 'a = { gen : 'a } function get(foo) foo.gen a = { gen = 12 } b : \
-     int = get(a) c = { gen = false } get(c)"
+    "type foo('a) = { gen : 'a } function get(foo) foo.gen a = { gen = 12 } b \
+     : int = get(a) c = { gen = false } get(c)"
 
 let test_para_instance_func () =
-  test "foo int -> int"
-    "type foo 'a = { gen : 'a } function use(foo) foo.gen + 17 foo = { gen = \
+  test "foo(int) -> int"
+    "type foo('a) = { gen : 'a } function use(foo) foo.gen + 17 foo = { gen = \
      17 } use"
 
 let test_para_instance_wrong_func () =
-  test_exn " Expected type foo int -> int but got type foo bool -> 'a"
-    "type foo 'a = { gen : 'a } function use(foo) foo.gen + 17 foo = { gen = \
+  test_exn " Expected type foo(int) -> int but got type foo(bool) -> 'a"
+    "type foo('a) = { gen : 'a } function use(foo) foo.gen + 17 foo = { gen = \
      17 } use( { gen = true } )"
 
 let case str test = test_case str `Quick test

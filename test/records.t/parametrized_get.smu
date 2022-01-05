@@ -1,8 +1,8 @@
 external printi : int -> unit
 
-type t 'a = { null : int, first : int, gen : 'a, third : bool }
+type t('a) = { null : int, first : int, gen : 'a, third : bool }
 
-type gen_first 'a = { only : 'a, is : bool }
+type gen_first('a) = { only : 'a, is : bool }
 
 function print_bool(b)
   if b then printi(1)

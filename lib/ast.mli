@@ -7,7 +7,8 @@ type loc = Lexing.position * Lexing.position
 type type_spec =
   | Ty_id of string
   | Ty_var of string
-  | Ty_expr of type_spec list
+  | Ty_list of type_spec list
+  | Ty_func of type_spec list
 
 type type_expr = type_spec list
 

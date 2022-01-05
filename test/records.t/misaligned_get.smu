@@ -1,7 +1,7 @@
 external printi : int -> unit
 
 -- TODO big inner thing
-type misaligned 'a = { fst : bool, gen : 'a }
+type misaligned('a) = { fst : bool, gen : 'a }
 
 function gen(any)
   any.gen

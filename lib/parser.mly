@@ -51,7 +51,8 @@ prog: list(external_decl); list(typedef); expr; Eof
   | External; Identifier; type_expr { ($startpos, $endpos), $2, $3 }
 
 %inline typedef:
-  | Type; Identifier; option(poly_id); Equal; Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
+  | Type; Identifier; option(typedef_poly_id); Equal;
+       Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
     { { poly_param = string_of_ty_var $3; name = $2; labels = Array.of_list $6; loc = ($startpos, $endpos) } }
 
 %inline type_decl:
@@ -91,17 +92,27 @@ bool:
   | Identifier; option(type_expr) { $1, $2 }
 
 %inline return_annot:
-  | Arrow; type_spec { $2 }
+  | Arrow; type_list { $2 }
+
+%inline typedef_poly_id:
+  | Lpar; poly_id; Rpar { $2 }
 
 %inline type_expr:
-  | Colon; type_spec; Arrow; type_spec  { [$2; $4] }
-  | Colon; Lpar; separated_nonempty_list(Comma, type_func); Rpar; Arrow; type_spec  { $3 @ [$6] }
-  | Colon; type_spec { [$2] }
+  | Colon; type_list; Arrow; type_list { [$2; $4] }
+  | Colon; Lpar; separated_nonempty_list(Comma, type_func); Rpar; Arrow; type_list  { $3 @ [$6] }
+  | Colon; type_list { [$2] }
 
 %inline type_func:
-  | type_spec; Arrow; type_spec  { Ty_expr [$1; $3] }
-  | Lpar; separated_nonempty_list(Comma, type_spec); Rpar; Arrow; type_spec  { Ty_expr ($2 @ [$5]) }
-  | type_spec { $1 }
+  | type_list; Arrow; type_list { Ty_func [$1; $3] }
+  | Lpar; separated_nonempty_list(Comma, type_list); Rpar; Arrow; type_list  { Ty_func ($2 @ [$5]) }
+  | type_list { $1 }
+
+%inline type_list:
+  | build_type_list { Ty_list $1 }
+
+build_type_list:
+  | type_spec; Lpar; build_type_list; Rpar { $1 :: $3 }
+  | type_spec { [$1] }
 
 %inline type_spec:
   | Identifier { Ty_id $1 }

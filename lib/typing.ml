@@ -185,7 +185,7 @@ let string_of_type typ =
         str
         ^ Option.fold ~none:""
             ~some:(fun i ->
-              Printf.sprintf " %s" (string_of_type (snd labels.(i))))
+              Printf.sprintf "(%s)" (string_of_type (snd labels.(i))))
             param
   in
 
@@ -363,11 +363,34 @@ let typeof_annot ?(typedef = false) env loc annot =
         (* I'm not sure what this should be. For the whole function annotations,
            Qannot worked, but does not for param ones *)
         Tvar (ref (Qannot (str_id_to_int id)))
-    | Ty_expr l -> handle_annot l
+    | Ty_func l -> handle_annot l
+    | Ty_list l -> type_list l
+  and type_list = function
+    | [] -> failwith "Internal Error: Type param list should not be empty"
+    | [ t ] -> concrete_type t
+    | lst -> nested_record lst
+  and nested_record lst =
+    match lst with
+    | [] -> failwith "Internal Error: Type record list should not be empty"
+    | [ t ] -> concrete_type t
+    | hd :: tl -> (
+        match concrete_type hd with
+        | Trecord (Some i, record, labels) ->
+            (* TODO test if we need to copy really *)
+            let labels = Array.copy labels in
+            let name, _ = labels.(i) in
+            labels.(i) <- (name, nested_record tl);
+            Trecord (Some i, record, labels)
+        | t ->
+            raise
+              (Error
+                 (loc, "Expected a parametrized type, not " ^ string_of_type t))
+        )
   and handle_annot = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ t ] -> concrete_type t
     | [ Ast.Ty_id "unit"; t ] -> Tfun ([], concrete_type t, Simple)
+    | [ Ast.Ty_list [Ast.Ty_id "unit"]; t ] -> Tfun ([], concrete_type t, Simple)
     (* TODO 'Simple' here is not always true *)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)
@@ -963,4 +986,5 @@ let to_typed (prog : Ast.prog) =
   let tree = convert vars prog.expr in
   let records = Env.records vars in
 
+  (* print_endline (String.concat ", " (List.map string_of_type records)); *)
   { externals; records; tree }
