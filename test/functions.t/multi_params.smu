@@ -1,10 +1,10 @@
-function one() -> int
+fn one() -> int
   1
 
-function add(a : int, b : int) -> int
+fn add(a : int, b : int) -> int
   a + b
 
-function doiflesselse(a : int, b : int, greater : int, less : int)
+fn doiflesselse(a : int, b : int, greater : int, less : int)
   if a < b then
     less
   else

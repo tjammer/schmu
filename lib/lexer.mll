@@ -37,7 +37,7 @@ rule read =
   | "then"   { Then }
   | "else"   { Else }
   | "external" { External }
-  | "function" { Function }
+  | "fn" { Function }
   | "type"   { Type }
   | "end"    { End }
   | ">>"     { MuchGreater }

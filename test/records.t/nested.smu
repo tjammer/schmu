@@ -4,7 +4,7 @@ type inner = { z : int }
 
 type foo = { x : int, y : inner }
 
-function inner()
+fn inner()
   { z = 3 }
 
 a = { x = 0, y = inner() }

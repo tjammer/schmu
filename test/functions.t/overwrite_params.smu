@@ -3,13 +3,13 @@ external printi : int -> unit
 -- b is captured by two()
 b = 2
 
-function one()
+fn one()
   1
 
-function two()
+fn two()
   b
 
-function add(a, b)
+fn add(a, b)
   -- b should be a function here, not captured value
   a() + b()
 

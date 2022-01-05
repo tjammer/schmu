@@ -2,16 +2,16 @@ external printi : int -> unit
 
 type t('a) = { x : 'a }
 
-function apply(x, f , env)
+fn apply(x, f , env)
   f(x, env)
 
-function apply2(x : 'a, f : ('a, 'a -> 'b) -> 'b, env : 'a -> 'b)
+fn apply2(x : 'a, f : ('a, 'a -> 'b) -> 'b, env : 'a -> 'b)
   f(x, env)
 
-function add1(x : int) -> int
+fn add1(x : int) -> int
   x + 1
 
-function boxed2int_int(t, env)
+fn boxed2int_int(t, env)
   a = env(t.x)
   { x = a }
 

@@ -1,6 +1,6 @@
 a = 1
 
-function ()
-  a = function ()
+fn ()
+  a = fn ()
     a
   a

@@ -4,23 +4,23 @@ type t('a) = { null : int, first : int, gen : 'a, third : bool }
 
 type gen_first('a) = { only : 'a, is : bool }
 
-function print_bool(b)
+fn print_bool(b)
   if b then printi(1)
   else printi(0)
 
-function first(any)
+fn first(any)
   printi(any.first)
 
-function gen(any)
+fn gen(any)
   any.gen
 
-function third(any)
+fn third(any)
   print_bool(any.third)
 
-function only(any)
+fn only(any)
   any.only
 
-function is(any)
+fn is(any)
   print_bool(any.is)
 
 int_t = { null = 0, first = 700, gen = 20, third = true }

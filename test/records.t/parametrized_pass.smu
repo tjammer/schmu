@@ -2,10 +2,10 @@ external printi : int -> unit
 
 type t('a) = { first : int, gen : 'a, third : bool }
 
-function apply(f : 'b -> 'a, x : 'b) -> 'a
+fn apply(f : 'b -> 'a, x : 'b) -> 'a
   f(x)
 
-function pass(x)
+fn pass(x)
   -- We have to use the record somehow, otherwise it's passed
   -- as a generic variable and then copied trivially
   { first = x.first, gen = x.gen, third = x.third }

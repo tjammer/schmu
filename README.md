@@ -12,7 +12,7 @@ external printi : int -> unit
 number = 35
 
 -- Calculate fibonacci number
-function fib(n)
+fn fib(n)
     -- The function simply returns the expression, no 'return' statement
     if n < 2 then n
     else
@@ -29,13 +29,13 @@ printi(fib(number))
 <!-- type age = { years : int, months :int, days : int } -->
 
 <!-- -- Through type inference, the generic type ('a -> 'b, 'a) -> 'b is inferred -->
-<!-- function apply(f, x) -->
+<!-- fn apply(f, x) -->
 <!--   f(x) -->
 
 <!-- -- We bind the variable a -->
 <!-- a = 2 -->
 <!-- -- and add a to some int -->
-<!-- function add_a(x) -->
+<!-- fn add_a(x) -->
 <!--   -- We capture a and return the sum -->
 <!--   x + a -->
 
@@ -46,7 +46,7 @@ printi(fib(number))
 
 <!-- -- Use an anonymous closure to add b to the passed age's days -->
 <!-- -- and print the days -->
-<!-- printi(apply(function(age) { years = age.years, -->
+<!-- printi(apply(fn(age) { years = age.years, -->
 <!--                              months = age.months, -->
 <!--                              days = age.days + b }, -->
 <!--              start_age).days) -- prints 19 -->

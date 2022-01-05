@@ -2,7 +2,7 @@ external printi : int -> unit
 
 type foo = { x : int, y : int }
 
-function pass_to_func(a)
+fn pass_to_func(a)
   printi(a.y)
 
 a = { y = 20, x = 10 }

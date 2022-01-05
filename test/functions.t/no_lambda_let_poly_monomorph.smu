@@ -3,6 +3,6 @@ external printi : int -> unit
 type t = { x : int }
 
 -- A polymorphic anonymous function which can not be resolved in the backend (yet)
-f = if true then function (x) x else function (x) x
+f = if true then fn (x) x else fn (x) x
 
 printi(f({ x = 17 }).x)
