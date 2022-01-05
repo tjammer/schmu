@@ -1,7 +1,5 @@
 open Types
 module Vars = Map.Make (String)
-module PMap = Polyvars.PolyMap
-module PVars = Polyvars.PolyLvls
 module Set = Set.Make (String)
 
 module Str = struct
@@ -72,14 +70,7 @@ let memcpy_decl =
 
 (* Named structs for records *)
 
-let is_generic_record = function
-  (* TODO recurse *)
-  | Trecord (Some i, _, labels) -> (
-      match labels.(i) |> snd with Qvar _ -> true | _ -> false)
-  | Trecord _ -> false
-  | _ -> failwith "Internal Error: Not a record"
-
-let rec record_name ?(poly = false) = function
+let rec record_name = function
   (* We match on each type here to allow for nested parametrization like [int foo bar].
      [poly] argument will create a name used for a poly var, ie spell out the generic name *)
   | Trecord (param, name, labels) ->
@@ -88,48 +79,11 @@ let rec record_name ?(poly = false) = function
         "_"
         ^
         match p with
-        | Qvar id -> if poly then id else "generic"
+        | Qvar _ -> "generic"
         | t -> record_name t
       in
       Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)
   | t -> Typing.string_of_type t
-
-let record_poly_ids typ =
-  let rec inner acc = function
-    | Trecord (Some i, _, labels) as t ->
-        inner (record_name ~poly:true t :: acc) (labels.(i) |> snd)
-    | Qvar id -> id :: acc
-    | _ -> acc
-  in
-  inner [] typ |> List.rev
-
-(*
-   Polymorphism util functions
-*)
-
-let poly_name poly = "__" ^ poly
-
-let poly_param_name name = "__p_" ^ name
-
-let get_poly_size name index var =
-  let ptr = Llvm.(build_gep var [| const_int int_type index |]) "" builder in
-  Llvm.build_load ptr ("_" ^ name) builder
-
-let rec add_poly_vars poly_vars = function
-  | Qvar id ->
-      (* Later, this will be poly_name. I don't want to change everything now *)
-      (* Will only be added if the level is lower *)
-      PVars.add_single id poly_vars
-  | Tfun (ps, r, _) ->
-      let poly_vars = List.fold_left add_poly_vars poly_vars ps in
-      add_poly_vars poly_vars r
-  | Tvar { contents = Link t } -> add_poly_vars poly_vars t
-  | Trecord (Some _, _, _) as t when is_generic_record t ->
-      (* For generic records, we add both the size of the generic record as a whole,
-         as wenll as the poly var it contains *)
-      let ids = record_poly_ids t in
-      PVars.add_container ids poly_vars
-  | _ -> poly_vars
 
 let rec get_lltype ?(param = true) = function
   (* For functions, when passed as parameter, we convert it to a closure ptr
@@ -328,10 +282,6 @@ let add_closure vars func = function
       in
       env
 
-(*
-   More polymorphism util functions
-*)
-
 let pass_function vars llvar kind =
   match kind with
   | Simple ->
@@ -363,8 +313,6 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         | _ -> 0
       in
 
-      let pvars = add_poly_vars PVars.empty typ in
-
       (* gen function body *)
       let bb = Llvm.append_block context "entry" func.value in
       Llvm.position_at_end bb builder;
@@ -373,7 +321,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
       (* We generate both the code for extracting the closure and add the vars to the environment *)
       let temp_vars = add_closure vars func kind in
 
-      let temp_vars, pvar_index =
+      let temp_vars, _ =
         List.fold_left2
           (fun (env, i) name typ ->
             let value = (Llvm.params func.value).(i) in
@@ -383,35 +331,6 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
             Llvm.set_value_name name value;
             (Vars.add name param env, i + 1))
           (temp_vars, start_index) abs.pnames tparams
-      in
-
-      let temp_vars, _ =
-        PVars.fold
-          (fun pvar locs (env, i) ->
-            let var = (Llvm.params func.value).(i) in
-            let pname = poly_param_name pvar in
-            Llvm.set_value_name pname var;
-            let env =
-              List.fold_left
-                (fun vars { PVars.name; lvl } ->
-                  let value = get_poly_size name lvl var in
-                  let param = { value; typ = Qvar name; lltyp = num_type } in
-                  let name = poly_name name in
-                  Vars.add name param vars)
-                env locs
-            in
-            (* Also add the parameter value for passing to other functions *)
-            let var =
-              {
-                value = var;
-                typ = Qvar pname;
-                lltyp = num_type |> Llvm.pointer_type;
-              }
-            in
-            let env = Vars.add pname var env in
-
-            (env, i + 1))
-          pvars (temp_vars, pvar_index)
       in
 
       (* If the function is named, we allow recursion *)
@@ -435,20 +354,8 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           ignore (Llvm.build_ret_void builder)
-      | Qvar id ->
-          let dst = Llvm.(params func.value).(0) in
-          let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
-          let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
-
-          let size =
-            match Vars.find_opt (poly_name id) temp_vars with
-            | Some v -> v.value
-            | None ->
-                failwith "TODO Internal Error: Unknown size of generic type"
-          in
-          let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
-          ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
-          ignore (Llvm.build_ret_void builder)
+      | Qvar _ ->
+          failwith "Internal Error: Generic return"
       | _ ->
           (* TODO pattern match on unit *)
           (* Don't return void type *)
