@@ -21,11 +21,8 @@ type expr =
 [@@deriving show]
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
-
 and abstraction = { func : func; pnames : string list; body : monod_tree }
-
 and monod_expr = monod_tree * string option
-
 and monod_tree = { typ : typ; expr : expr }
 
 type to_gen_func = { abs : abstraction; name : string; recursive : bool }

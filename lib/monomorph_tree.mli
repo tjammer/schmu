@@ -20,11 +20,8 @@ type expr =
   | Mseq of (monod_tree * monod_tree)
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
-
 and abstraction = { func : func; pnames : string list; body : monod_tree }
-
 and monod_expr = monod_tree * string option
-
 and monod_tree = { typ : typ; expr : expr }
 
 type to_gen_func = { abs : abstraction; name : string; recursive : bool }
@@ -37,5 +34,4 @@ type monomorphized_tree = {
 }
 
 val typ_of_abs : abstraction -> typ
-
 val monomorphize : Typing.codegen_tree -> monomorphized_tree

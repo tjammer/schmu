@@ -19,14 +19,11 @@ type expr =
 [@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr }
-
 and const = Int of int | Bool of bool | Unit
 
 (* TODO use some type as in monomorphization *)
 and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
-
 and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
-
 and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
 
 type external_decl = string * typ
@@ -40,5 +37,4 @@ type codegen_tree = {
 }
 
 val to_typed : Ast.prog -> codegen_tree
-
 val is_type_polymorphic : typ -> bool

@@ -6,7 +6,6 @@ module Str = struct
   type t = string
 
   let hash = Hashtbl.hash
-
   let equal = String.equal
 end
 
@@ -15,15 +14,10 @@ module Strtbl = Hashtbl.Make (Str)
 type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
 
 let ( ++ ) = Seq.append
-
 let record_tbl = Strtbl.create 32
-
 let context = Llvm.global_context ()
-
 let the_module = Llvm.create_module context "context"
-
 let fpm = Llvm.PassManager.create_function the_module
-
 let _ = Llvm.PassManager.initialize fpm
 
 (* Segfaults on my fedora box!? *)
@@ -37,17 +31,11 @@ let () = Llvm_scalar_opts.add_gvn fpm
 (* let () = Llvm_scalar_opts.add_cfg_simplification fpm *)
 
 let () = Llvm_scalar_opts.add_tail_call_elimination fpm
-
 let builder = Llvm.builder context
-
 let int_type = Llvm.i32_type context
-
 let num_type = Llvm.i64_type context
-
 let bool_type = Llvm.i1_type context
-
 let unit_type = Llvm.void_type context
-
 let voidptr_type = Llvm.(i8_type context |> pointer_type)
 
 let closure_type =
@@ -76,11 +64,7 @@ let rec record_name = function
   | Trecord (param, name, labels) ->
       let some p =
         let p = labels.(p) |> snd in
-        "_"
-        ^
-        match p with
-        | Qvar _ -> "generic"
-        | t -> record_name t
+        "_" ^ match p with Qvar _ -> "generic" | t -> record_name t
       in
       Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)
   | t -> Typing.string_of_type t
@@ -354,8 +338,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
           ignore (Llvm.build_ret_void builder)
-      | Qvar _ ->
-          failwith "Internal Error: Generic return"
+      | Qvar _ -> failwith "Internal Error: Generic return"
       | _ ->
           (* TODO pattern match on unit *)
           (* Don't return void type *)

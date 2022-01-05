@@ -1,5 +1,4 @@
 type loc = Lexing.position * Lexing.position
-
 type bop = Plus | Mult | Less | Equal | Minus [@@deriving show]
 
 type type_spec =
@@ -9,7 +8,6 @@ type type_spec =
   | Ty_func of type_spec list
 
 type type_expr = type_spec list
-
 and decl = string * type_expr option
 
 type func = {

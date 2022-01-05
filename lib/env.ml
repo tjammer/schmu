@@ -7,7 +7,6 @@ module TypeKey = struct
   type t = { key : string; ord : int }
 
   let compare a b = String.compare a.key b.key
-
   let cmp_sort (a, _) (b, _) = Int.compare a.ord b.ord
 
   let create key =
@@ -20,7 +19,6 @@ module TMap = Map.Make (TypeKey)
 module Map = Map.Make (String)
 
 type key = string
-
 type label = { typ : typ; index : int; record : string }
 
 type t = {
@@ -118,7 +116,6 @@ let find key env =
   aux env.values
 
 let find_type_opt key env = TMap.find_opt (TypeKey.create key) env.types
-
 let find_type key env = TMap.find (TypeKey.create key) env.types
 
 let query_type ~newvar key env =

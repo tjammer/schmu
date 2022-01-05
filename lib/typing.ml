@@ -15,13 +15,9 @@ type expr =
 [@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr }
-
 and const = Int of int | Bool of bool | Unit
-
 and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
-
 and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
-
 and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
 
 type external_decl = string * typ
@@ -40,7 +36,6 @@ module Str = struct
   type t = string
 
   let hash = Hashtbl.hash
-
   let equal = String.equal
 end
 
@@ -62,9 +57,7 @@ let next_func name tbl =
       Some (n + 1)
 
 let gensym_state = ref 0
-
 let lambda_id_state = ref 0
-
 let reset state = state := 0
 
 let gensym () =
@@ -78,7 +71,6 @@ let lambda_id () =
   id
 
 let current_level = ref 1
-
 let reset_level () = current_level := 1
 
 let reset_type_vars () =
@@ -87,9 +79,7 @@ let reset_type_vars () =
   reset lambda_id_state
 
 let enter_level () = incr current_level
-
 let leave_level () = decr current_level
-
 let newvar () = Tvar (ref (Unbound (gensym (), !current_level)))
 
 (*
@@ -212,7 +202,6 @@ let arity (loc, pre) thing la lb =
   raise (Error (loc, msg))
 
 exception Unify
-
 exception Arity of string * int * int
 
 let unify_raw tbl t1 t2 =
@@ -390,7 +379,8 @@ let typeof_annot ?(typedef = false) env loc annot =
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ t ] -> concrete_type t
     | [ Ast.Ty_id "unit"; t ] -> Tfun ([], concrete_type t, Simple)
-    | [ Ast.Ty_list [Ast.Ty_id "unit"]; t ] -> Tfun ([], concrete_type t, Simple)
+    | [ Ast.Ty_list [ Ast.Ty_id "unit" ]; t ] ->
+        Tfun ([], concrete_type t, Simple)
     (* TODO 'Simple' here is not always true *)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)
