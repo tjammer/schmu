@@ -126,7 +126,13 @@ let find_label_opt key env = Map.find_opt key env.labels
 
 let records env =
   TMap.filter
-    (fun _ typ -> match typ with Trecord _ -> true | _ -> false)
+    (fun _ typ ->
+      match typ with
+      | Trecord (Some (Qvar _), _, _) ->
+          (* We don't want to add generic records *)
+          false
+      | Trecord _ -> true
+      | _ -> false)
     env.types
   |> TMap.bindings |> List.sort TypeKey.cmp_sort
   |> List.map (fun ({ TypeKey.key; ord = _ }, v) -> (key, v))
