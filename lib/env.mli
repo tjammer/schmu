@@ -9,7 +9,7 @@ val add_value : key -> typ -> t -> t
 val add_type : key -> typ -> t -> t
 
 val add_record :
-  key -> param:int option -> labels:(string * typ) array -> t -> t
+  key -> param:typ option -> labels:(string * typ) array -> t -> t
 (** [add record record_name ~param ~labels env] returns an env with anadded record named [record_name]
      optionally parametrized by [param] with typed [labels] *)
 
@@ -32,7 +32,7 @@ val find : key -> t -> typ
 val find_type_opt : key -> t -> typ option
 val find_type : key -> t -> typ
 
-val query_type : newvar:(unit -> typ) -> key -> t -> typ
+val query_type : instantiate:(typ -> typ) -> key -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)
 
 val find_label_opt : key -> t -> label option

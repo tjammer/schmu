@@ -61,9 +61,8 @@ let memcpy_decl =
 let rec record_name = function
   (* We match on each type here to allow for nested parametrization like [int foo bar].
      [poly] argument will create a name used for a poly var, ie spell out the generic name *)
-  | Trecord (param, name, labels) ->
+  | Trecord (param, name, _) ->
       let some p =
-        let p = labels.(p) |> snd in
         "_" ^ match p with Qvar _ -> "generic" | t -> record_name t
       in
       Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)

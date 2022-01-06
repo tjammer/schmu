@@ -5,7 +5,7 @@ type typ =
   | Tvar of tv ref
   | Qvar of string
   | Tfun of typ list * typ * fun_kind
-  | Trecord of int option * string * (string * typ) array
+  | Trecord of typ option * string * (string * typ) array
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list

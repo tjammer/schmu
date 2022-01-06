@@ -91,7 +91,7 @@ let is_type_polymorphic typ =
     | Qvar _ | Tvar { contents = Unbound _ } -> true
     | Tvar { contents = Link t } -> inner acc t
     | Tvar _ -> failwith "annot should not be here"
-    | Trecord (Some i, _, labels) -> inner acc (labels.(i) |> snd)
+    | Trecord (Some t, _, _) -> inner acc t
     | Tfun (params, ret, _) ->
         let acc = List.fold_left inner acc params in
         inner acc ret
@@ -144,11 +144,11 @@ let canonize tbl typ =
         (* Evaluate parameters first *)
         let ts = List.map inner ts in
         Tfun (ts, inner t, kind)
-    | Trecord (p, name, labels) ->
+    | Trecord (Some p, name, labels) ->
         let labels =
           Array.map (fun (label, typ) -> (label, inner typ)) labels
         in
-        Trecord (p, name, labels)
+        Trecord (Some (inner p), name, labels)
     | t -> t
   in
   inner typ
@@ -171,11 +171,10 @@ let string_of_type typ =
     | Tvar { contents = Link t } -> string_of_type t
     | Tvar { contents = Qannot id } -> Printf.sprintf "'%s" id
     | Qvar str -> to_name str
-    | Trecord (param, str, labels) ->
+    | Trecord (param, str, _) ->
         str
         ^ Option.fold ~none:""
-            ~some:(fun i ->
-              Printf.sprintf "(%s)" (string_of_type (snd labels.(i))))
+            ~some:(fun param -> Printf.sprintf "(%s)" (string_of_type param))
             param
   in
 
@@ -283,11 +282,12 @@ let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
   | Tvar { contents = Link t } -> generalize t
   | Tfun (t1, t2, k) -> Tfun (List.map generalize t1, generalize t2, k)
-  | Trecord (Some i, name, labels) ->
-      let lname, t = labels.(i) in
-      let t = generalize t in
-      labels.(i) <- (lname, t);
-      Trecord (Some i, name, labels)
+  | Trecord (Some t, name, labels) ->
+      (* Hopefully the param type is the same reference throughout the record *)
+      let param = Some (generalize t) in
+      let f (name, typ) = (name, generalize typ) in
+      let labels = Array.map f labels in
+      Trecord (param, name, labels)
   | t -> t
 
 let instantiate t =
@@ -309,7 +309,7 @@ let instantiate t =
         in
         let t, subst = aux subst t in
         (Tfun (params_t, t, k), subst)
-    | Trecord (Some i, name, labels) ->
+    | Trecord (Some param, name, labels) ->
         let subst = ref subst in
         let labels =
           Array.map
@@ -319,7 +319,8 @@ let instantiate t =
               (name, t))
             labels
         in
-        (Trecord (Some i, name, labels), !subst)
+        let param, subst = aux !subst param in
+        (Trecord (Some param, name, labels), subst)
     | t -> (t, subst)
   in
   aux Env.empty t |> fst
@@ -340,6 +341,22 @@ let typeof_annot ?(typedef = false) env loc annot =
   let str_id_to_int str =
     let id = str.[0] |> Char.code in
     id - Char.code 'a' |> string_of_int
+  in
+
+  let rec subst ~id typ = function
+    | Tvar { contents = Link t } -> subst ~id typ t
+    | (Qvar id' | Tvar { contents = Unbound (id', _) }) when String.equal id id'
+      ->
+        typ
+    | Tfun (ps, ret, kind) ->
+        let ps = List.map (subst ~id typ) ps in
+        let ret = subst ~id typ ret in
+        Tfun (ps, ret, kind)
+    | Trecord (Some p, name, labels) ->
+        let f (name, t) = (name, subst ~id typ t) in
+        let labels = Array.map f labels in
+        Trecord (Some (subst ~id typ p), name, labels)
+    | t -> t
   in
 
   let rec concrete_type = function
@@ -364,12 +381,10 @@ let typeof_annot ?(typedef = false) env loc annot =
     | [ t ] -> concrete_type t
     | hd :: tl -> (
         match concrete_type hd with
-        | Trecord (Some i, record, labels) ->
-            (* TODO test if we need to copy really *)
-            let labels = Array.copy labels in
-            let name, _ = labels.(i) in
-            labels.(i) <- (name, nested_record tl);
-            Trecord (Some i, record, labels)
+        | (Trecord (Some (Qvar id), _, _) as t)
+        | (Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _) as t) ->
+            let nested = nested_record tl in
+            subst ~id nested t
         | t ->
             raise
               (Error
@@ -460,7 +475,7 @@ let get_record_type env loc typed_labels =
   match Strset.elements possible_records with
   | [] -> failwith "Internal Error not a record"
   | [ record ] ->
-      let record = Env.query_type ~newvar record env in
+      let record = Env.query_type ~instantiate record env in
       let param, name, labels = get_record_content record in
       unify_labels labels name;
       (param, name, labels)
@@ -470,7 +485,7 @@ let get_record_type env loc typed_labels =
       let record =
         List.fold_left
           (fun chosen record ->
-            let record = Env.query_type ~newvar record env in
+            let record = Env.query_type ~instantiate record env in
             let all_match =
               match record with
               | Trecord (_, _, labels) ->
@@ -670,7 +685,7 @@ let typedefs typedefs env =
   List.fold_left
     (fun env Ast.{ poly_param; name; labels; loc } ->
       let labels, param =
-        let env, param_opt =
+        let env, param =
           match poly_param with
           | Some name ->
               (* TODO get rid off this and move to add_record *)
@@ -678,17 +693,17 @@ let typedefs typedefs env =
               (Env.add_type name t env, Some t)
           | None -> (env, None)
         in
-        let param = ref None in
-        ( Array.mapi
-            (fun i (lbl, type_expr) ->
+        (* TODO we need to make sure all parametrized vars are the same as the parent's *)
+        let labels =
+          Array.map
+            (fun (lbl, type_expr) ->
               let t = typeof_annot ~typedef:true env loc type_expr in
               (* Does this work? *)
-              if Some t = param_opt then param := Some i;
               (lbl, t))
-            labels,
-          param )
+            labels
+        in
+        (labels, param)
       in
-      let param = !param in
       Env.add_record name ~param ~labels env)
     env typedefs
 

@@ -87,8 +87,7 @@ let get_mono_name name ~poly concrete =
     | Tvar { contents = Link t } -> str t
     | Tfun (ps, r, _) ->
         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
-    | Trecord (Some i, name, labels) ->
-        Printf.sprintf "%s%s" (labels.(i) |> snd |> str) name
+    | Trecord (Some t, name, _) -> Printf.sprintf "%s%s" (str t) name
     | Trecord (_, name, _) -> name
     | Qvar _ | Tvar _ -> "g"
   in
@@ -112,7 +111,6 @@ let subst_type ~concrete poly =
         (subst, Tfun (ps, r, kind))
     | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
       when Typing.is_type_polymorphic l ->
-        assert (i = j);
         let labels = Array.copy l1 in
         let f (subst, i) (ls, lt) =
           let _, r = l2.(i) in
@@ -121,7 +119,8 @@ let subst_type ~concrete poly =
           (subst, i + 1)
         in
         let subst, _ = Array.fold_left f (subst, 0) l1 in
-        (subst, Trecord (Some i, record, labels))
+        let subst, param = inner subst (i, j) in
+        (subst, Trecord (Some param, record, labels))
     | t, _ -> (subst, t)
   in
   let vars, typ = inner Vars.empty (poly, concrete) in
@@ -132,14 +131,11 @@ let subst_type ~concrete poly =
         match Vars.find_opt id vars with Some t -> t | None -> old)
     | Tfun (ps, r, kind) ->
         let ps = List.map subst ps in
-
         Tfun (ps, subst r, kind)
-    | Trecord (Some i, record, l1) as t when Typing.is_type_polymorphic t ->
-        let labels = Array.copy l1 in
-        let name, typ = l1.(i) in
-        labels.(i) <- (name, subst typ);
-
-        Trecord (Some i, record, labels)
+    | Trecord (Some p, record, labels) as t when Typing.is_type_polymorphic t ->
+        let f (name, t) = (name, subst t) in
+        let labels = Array.map f labels in
+        Trecord (Some (subst p), record, labels)
     | t -> t
   in
 

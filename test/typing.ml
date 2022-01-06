@@ -30,13 +30,13 @@ let test_func_1st_hint () =
 
 let test_func_1st_stay_general () =
   test "('a, 'a -> 'b) -> 'b"
-    "fn foo(x, f) f(x) fn add1(x) x + 1 a = foo(1, add1) fn \
-     boolean(x : bool) x b = foo(true, boolean) foo"
+    "fn foo(x, f) f(x) fn add1(x) x + 1 a = foo(1, add1) fn boolean(x : bool) \
+     x b = foo(true, boolean) foo"
 
 let test_func_recursive_if () =
   test "int -> unit"
-    "external ext : unit -> unit fn foo(i) if i < 2 then ext() else \
-     foo(i-1) foo"
+    "external ext : unit -> unit fn foo(i) if i < 2 then ext() else foo(i-1) \
+     foo"
 
 let test_func_generic_return () =
   test "int" "fn apply(f, x) f(x) fn add1(x) x + 1 apply(add1, 1)"
@@ -73,8 +73,7 @@ let test_record_wrong_choose () =
 let test_record_field_simple () =
   test "int" "type t = {x : int} a = {x = 10} a.x"
 
-let test_record_field_infer () =
-  test "t -> int" "type t = {x : int} fn (a) a.x"
+let test_record_field_infer () = test "t -> int" "type t = {x : int} fn (a) a.x"
 
 let test_record_field_no_record () =
   test_exn "Field access of record t: Expected type t but got type int"
@@ -82,11 +81,9 @@ let test_record_field_no_record () =
 
 let test_record_field_wrong_record () =
   test_exn " Expected type t1 -> int but got type t2 -> 'a"
-    "type t1 = {x : int} type t2 = {y:int} fn foo(a) a.x b = {y = 10} \
-     foo(b)"
+    "type t1 = {x : int} type t2 = {y:int} fn foo(a) a.x b = {y = 10} foo(b)"
 
-let test_annot_concrete () =
-  test "int -> bool" "fn foo(x) -> bool x < 3 foo"
+let test_annot_concrete () = test "int -> bool" "fn foo(x) -> bool x < 3 foo"
 
 let test_annot_concrete_fail () =
   test_exn " Expected type bool -> int but got type int -> bool"
@@ -123,23 +120,22 @@ let test_para_gen_fun () =
     "type foo('a) = { gen : 'a, second : int } fn get(foo) foo.second get"
 
 let test_para_gen_return () =
-  test "foo('a) -> 'a"
-    "type foo('a) = { gen : 'a } fn get(foo) foo.gen get"
+  test "foo('a) -> 'a" "type foo('a) = { gen : 'a } fn get(foo) foo.gen get"
 
 let test_para_multiple () =
   test "bool"
-    "type foo('a) = { gen : 'a } fn get(foo) foo.gen a = { gen = 12 } b \
-     : int = get(a) c = { gen = false } get(c)"
+    "type foo('a) = { gen : 'a } fn get(foo) foo.gen a = { gen = 12 } b : int \
+     = get(a) c = { gen = false } get(c)"
 
 let test_para_instance_func () =
   test "foo(int) -> int"
-    "type foo('a) = { gen : 'a } fn use(foo) foo.gen + 17 foo = { gen = \
-     17 } use"
+    "type foo('a) = { gen : 'a } fn use(foo) foo.gen + 17 foo = { gen = 17 } \
+     use"
 
 let test_para_instance_wrong_func () =
   test_exn " Expected type foo(int) -> int but got type foo(bool) -> 'a"
-    "type foo('a) = { gen : 'a } fn use(foo) foo.gen + 17 foo = { gen = \
-     17 } use( { gen = true } )"
+    "type foo('a) = { gen : 'a } fn use(foo) foo.gen + 17 foo = { gen = 17 } \
+     use( { gen = true } )"
 
 let case str test = test_case str `Quick test
 

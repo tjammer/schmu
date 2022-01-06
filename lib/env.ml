@@ -63,13 +63,12 @@ let add_record record ~param ~labels env =
 
 let maybe_add_record_instance key typ env =
   (* We reject generic records with unbound variables *)
-  let is_unbound i labels =
-    match labels.(i) |> snd with
-    | Tvar { contents = Unbound _ } -> true
+  let is_unbound = function
+    | Qvar _ | Tvar { contents = Unbound _ } -> true
     | _ -> false
   in
   match (Map.find_opt key !(env.instances), typ) with
-  | None, Trecord (Some i, _, labels) when is_unbound i labels -> ()
+  | None, Trecord (Some t, _, _) when is_unbound t -> ()
   | None, Trecord (Some _, _, _) ->
       env.instances := Map.add key typ !(env.instances)
   | Some _, _ | None, _ -> ()
@@ -118,13 +117,9 @@ let find key env =
 let find_type_opt key env = TMap.find_opt (TypeKey.create key) env.types
 let find_type key env = TMap.find (TypeKey.create key) env.types
 
-let query_type ~newvar key env =
+let query_type ~instantiate key env =
   match TMap.find (TypeKey.create key) env.types with
-  | Trecord (Some i, name, labels) ->
-      let labels = Array.copy labels in
-      let lname, _ = labels.(i) in
-      labels.(i) <- (lname, newvar ());
-      Trecord (Some i, name, labels)
+  | Trecord _ as t -> instantiate t
   | t -> t
 
 let find_label_opt key env = Map.find_opt key env.labels
