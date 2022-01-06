@@ -102,16 +102,27 @@ Nested records
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %t_int = type { i32, %p_inner_innerst_int }
+  %p_inner_innerst_int = type { %innerst_int }
+  %innerst_int = type { i32 }
   %inner = type { i32 }
   %foo = type { i32, %inner }
   
   declare void @printi(i32 %0)
   
+  define private void @__g.g___fun0_it.it(%t_int* %0, %t_int* %x) {
+  entry:
+    %1 = bitcast %t_int* %0 to i8*
+    %2 = bitcast %t_int* %x to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 8, i1 false)
+    ret void
+  }
+  
   define private void @inner(%inner* %0) {
   entry:
     %1 = alloca %inner, align 8
-    %z1 = bitcast %inner* %1 to i32*
-    store i32 3, i32* %z1, align 4
+    %c1 = bitcast %inner* %1 to i32*
+    store i32 3, i32* %c1, align 4
     %2 = bitcast %inner* %0 to i8*
     %3 = bitcast %inner* %1 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 4, i1 false)
@@ -124,23 +135,46 @@ Nested records
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %foo, align 8
-    %x1 = bitcast %foo* %0 to i32*
-    store i32 0, i32* %x1, align 4
-    %y = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
+    %a2 = bitcast %foo* %0 to i32*
+    store i32 0, i32* %a2, align 4
+    %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     %ret = alloca %inner, align 8
     call void @inner(%inner* %ret)
-    %1 = bitcast %inner* %y to i8*
+    %1 = bitcast %inner* %b to i8*
     %2 = bitcast %inner* %ret to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 4, i1 false)
-    %3 = bitcast %inner* %y to i32*
+    %3 = bitcast %inner* %b to i32*
     %4 = load i32, i32* %3, align 4
     call void @printi(i32 %4)
+    %5 = alloca %t_int, align 8
+    %x3 = bitcast %t_int* %5 to i32*
+    store i32 17, i32* %x3, align 4
+    %inner = getelementptr inbounds %t_int, %t_int* %5, i32 0, i32 1
+    %6 = alloca %p_inner_innerst_int, align 8
+    %y4 = bitcast %p_inner_innerst_int* %6 to %innerst_int*
+    %7 = alloca %innerst_int, align 8
+    %z5 = bitcast %innerst_int* %7 to i32*
+    store i32 124, i32* %z5, align 4
+    %8 = bitcast %innerst_int* %y4 to i8*
+    %9 = bitcast %innerst_int* %7 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 4, i1 false)
+    %10 = bitcast %p_inner_innerst_int* %inner to i8*
+    %11 = bitcast %p_inner_innerst_int* %6 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %10, i8* %11, i64 4, i1 false)
+    %ret1 = alloca %t_int, align 8
+    call void @__g.g___fun0_it.it(%t_int* %ret1, %t_int* %5)
+    %12 = getelementptr inbounds %t_int, %t_int* %ret1, i32 0, i32 1
+    %13 = bitcast %p_inner_innerst_int* %12 to %innerst_int*
+    %14 = bitcast %innerst_int* %13 to i32*
+    %15 = load i32, i32* %14, align 4
+    call void @printi(i32 %15)
     ret i32 0
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   3
+  124
 
 Pass generic record
   $ schmu parametrized_pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out

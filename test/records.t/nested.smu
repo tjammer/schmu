@@ -1,12 +1,19 @@
 external printi : int -> unit
 
-type inner = { z : int }
+-- TODO good example for passing record info
+type innerst('b) = { z : 'b }
+type p_inner('a) = { y : 'a }
+type t('a) = { x : int, inner : p_inner(innerst('a)) }
 
-type foo = { x : int, y : inner }
+type inner = { c : int }
+
+type foo = { a : int, b : inner }
 
 fn inner()
-  { z = 3 }
+  { c = 3 }
 
-a = { x = 0, y = inner() }
+f = fn(x) x
 
-printi(a.y.z)
+a = { a = 0, b = inner() }
+printi(a.b.c) >>
+printi(f({ x = 17, inner = { y = { z = 124 } } }).inner.y.z)
