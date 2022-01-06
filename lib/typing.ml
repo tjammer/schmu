@@ -887,9 +887,7 @@ and convert_if env loc cond e1 e2 =
   unify (loc, "In condition") type_cond.typ Tbool;
   let type_e1 = convert env e1 in
   let type_e2 = convert env e2 in
-  let typ = newvar () in
   unify (loc, "Branches have different type") type_e1.typ type_e2.typ;
-  unify (loc, "") typ type_e2.typ;
 
   (* We don't support polymorphic lambdas in if-exprs in the monomorph backend yet *)
   (match type_e2.typ with
@@ -902,7 +900,7 @@ and convert_if env loc cond e1 e2 =
               though." ))
   | _ -> ());
 
-  { typ; expr = If (type_cond, type_e1, type_e2) }
+  { typ = type_e2.typ; expr = If (type_cond, type_e1, type_e2) }
 
 and convert_record env loc labels =
   let typed_expr_labels =

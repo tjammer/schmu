@@ -450,8 +450,7 @@ and gen_app vars callee args ret_t =
   let func = gen_expr vars callee' in
 
   (* Get monomorphized function *)
-  let func =
-    match callee |> snd with
+  let get_mono_func func = function
     | Some name ->
         let func = Vars.find name vars in
         (* Monomorphized functions are not yet converted to closures *)
@@ -466,6 +465,8 @@ and gen_app vars callee args ret_t =
     | None -> func
   in
 
+  let func = get_mono_func func (snd callee) in
+
   let kind =
     match func.typ with
     (* TODO we pattern match on the same thing above *)
@@ -477,20 +478,7 @@ and gen_app vars callee args ret_t =
 
   let handle_arg arg =
     let arg' = gen_expr vars (fst arg) in
-    let arg =
-      match snd arg with
-      | Some name ->
-          let arg = Vars.find name vars in
-          (* Monomorphized functions are not yet converted to closures *)
-          let arg =
-            match arg.typ with
-            | Tfun (_, _, Closure assoc) ->
-                gen_closure_obj assoc arg vars "monoclstmp"
-            | _ -> arg
-          in
-          arg
-      | None -> arg'
-    in
+    let arg = get_mono_func arg' (snd arg) in
     (func_to_closure vars arg).value
   in
   let args = List.map handle_arg args in
