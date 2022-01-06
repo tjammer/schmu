@@ -28,7 +28,7 @@ type t = {
   (* The record types are saved in their most general form.
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
-  instances : typ Map.t ref;
+  instances : typ TMap.t ref;
 }
 
 let empty =
@@ -36,7 +36,7 @@ let empty =
     values = [ (Map.empty, ref []) ];
     labels = Map.empty;
     types = TMap.empty;
-    instances = ref Map.empty;
+    instances = ref TMap.empty;
   }
 
 let add_value key vl env =
@@ -67,10 +67,11 @@ let maybe_add_record_instance key typ env =
     | Qvar _ | Tvar { contents = Unbound _ } -> true
     | _ -> false
   in
-  match (Map.find_opt key !(env.instances), typ) with
+  let key = TypeKey.create key in
+  match (TMap.find_opt key !(env.instances), typ) with
   | None, Trecord (Some t, _, _) when is_unbound t -> ()
   | None, Trecord (Some _, _, _) ->
-      env.instances := Map.add key typ !(env.instances)
+      env.instances := TMap.add key typ !(env.instances)
   | Some _, _ | None, _ -> ()
 
 let new_scope env =
@@ -125,6 +126,7 @@ let query_type ~instantiate key env =
 let find_label_opt key env = Map.find_opt key env.labels
 
 let records env =
+  let values ({ TypeKey.key = _; ord = _ }, v) = v in
   TMap.filter
     (fun _ typ ->
       match typ with
@@ -134,10 +136,9 @@ let records env =
       | Trecord _ -> true
       | _ -> false)
     env.types
-  |> TMap.bindings |> List.sort TypeKey.cmp_sort
-  |> List.map (fun ({ TypeKey.key; ord = _ }, v) -> (key, v))
-  |> List.split |> snd
+  |> TMap.bindings |> List.sort TypeKey.cmp_sort |> List.map values
   |> (* Add instances *)
-  fun generics ->
-  let instances = Map.fold (fun _ t acc -> t :: acc) !(env.instances) [] in
-  generics @ List.rev instances
+  fun simple_records ->
+  simple_records
+  @ (TMap.bindings !(env.instances)
+    |> List.sort TypeKey.cmp_sort |> List.map values)
