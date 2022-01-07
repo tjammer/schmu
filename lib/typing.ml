@@ -442,6 +442,15 @@ let handle_params env loc params ret =
   let ret = Option.map (fun t -> typeof_annot env loc [ t ]) ret in
   (env, ids, qparams, ret)
 
+let array_assoc_opt name arr =
+  let rec inner i =
+    if i = Array.length arr then None
+    else
+      let nm, value = arr.(i) in
+      if String.equal nm name then Some value else inner (i + 1)
+  in
+  inner 0
+
 let get_record_type env loc typed_labels =
   (* TODO rewrite this whole thing to make it more workable *)
   let possible_records =
@@ -519,7 +528,9 @@ let assoc_opti qkey arr =
   in
   aux 0
 
-let rec typeof env = function
+let rec typeof env expr = typeof_annotated env None expr
+
+and typeof_annotated env annot = function
   | Ast.Var (loc, v) -> typeof_var env loc v
   | Int (_, _) -> Tint
   | Bool (_, _) -> Tbool
@@ -530,7 +541,7 @@ let rec typeof env = function
   | App (loc, e1, e2) -> typeof_app env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
-  | Record (loc, labels) -> typeof_record env loc labels
+  | Record (loc, labels) -> typeof_record env loc annot labels
   | Field (loc, expr, id) -> typeof_field env loc expr id
   | Sequence (loc, expr, cont) -> typeof_sequence env loc expr cont
 
@@ -550,7 +561,7 @@ and typeof_let env loc (id, type_annot) e1 e2 =
         generalize type_e
     | Some annot ->
         let type_annot = typeof_annot env loc annot in
-        let type_e = typeof env e1 in
+        let type_e = typeof_annotated env (Some type_annot) e1 in
         leave_level ();
         unify (loc, "") type_annot type_e;
         type_annot
@@ -633,15 +644,36 @@ and typeof_bop env loc bop e1 e2 =
       check ();
       Tbool
 
-and typeof_record env loc labels =
-  (* TODO pass in expected type? *)
-  (* We build a list of possible records by label and type.
-     If we're lucky, there's only one left *)
-  let typed_labels =
-    List.map (fun (label, expr) -> (label, typeof env expr)) labels
+and typeof_record env loc annot labels =
+  let raise_ msg lname rname =
+    let msg = Printf.sprintf "%s field %s on record %s" msg lname rname in
+    raise (Error (loc, msg))
   in
-  let param, name, labels = get_record_type env loc typed_labels in
-  Trecord (param, name, labels) |> generalize
+
+  let typ =
+    match annot with
+    | Some (Trecord (param, name, ls)) ->
+        let f (lname, expr) =
+          match array_assoc_opt lname ls with
+          | Some typ ->
+              let t = typeof_annotated env (Some typ) expr in
+              unify (loc, "In record expression:") typ t;
+              t
+          | None -> raise_ "Unbound" lname name
+        in
+        let _ = List.map f labels in
+        Trecord (param, name, ls)
+    | Some t ->
+        "Internal Error: Expected a record type, not " ^ string_of_type t
+        |> failwith
+    | None ->
+        let typed_labels =
+          List.map (fun (label, expr) -> (label, typeof env expr)) labels
+        in
+        let param, name, labels = get_record_type env loc typed_labels in
+        Trecord (param, name, labels)
+  in
+  typ |> generalize
 
 and typeof_field env loc expr id =
   let typ = typeof env expr in
@@ -743,7 +775,9 @@ let rec param_funcs_as_closures = function
   | Tfun (params, ret, _) -> Tfun (params, ret, Closure [])
   | t -> t
 
-let rec convert env = function
+let rec convert env expr = convert_annot env None expr
+
+and convert_annot env annot = function
   | Ast.Var (loc, id) -> convert_var env loc id
   | Int (_, i) -> { typ = Tint; expr = Const (Int i) }
   | Bool (_, b) -> { typ = Tbool; expr = Const (Bool b) }
@@ -753,7 +787,7 @@ let rec convert env = function
   | App (loc, e1, e2) -> convert_app env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
-  | Record (loc, labels) -> convert_record env loc labels
+  | Record (loc, labels) -> convert_record env loc annot labels
   | Field (loc, expr, id) -> convert_field env loc expr id
   | Sequence (loc, expr, cont) -> convert_sequence env loc expr cont
 
@@ -773,9 +807,9 @@ and typeof_annot_decl env loc annot expr =
       { t with typ = generalize t.typ }
   | Some annot ->
       let t_annot = typeof_annot env loc annot in
-      let t = convert env expr in
+      let t = convert_annot env (Some t_annot) expr in
       leave_level ();
-      unify (loc, "") t_annot t.typ;
+      unify (loc, "In let binding:") t_annot t.typ;
       { t with typ = t_annot }
 
 and convert_let env loc (id, type_annot) e1 e2 =
@@ -921,26 +955,52 @@ and convert_if env loc cond e1 e2 =
 
   { typ = type_e2.typ; expr = If (type_cond, type_e1, type_e2) }
 
-and convert_record env loc labels =
-  let typed_expr_labels =
-    List.map (fun (label, expr) -> (label, convert env expr)) labels
+and convert_record env loc annot labels =
+  (* let labelnames = (\* TODO here *\) *)
+  let raise_ msg lname rname =
+    let msg = Printf.sprintf "%s field %s on record %s" msg lname rname in
+    raise (Error (loc, msg))
   in
-  let typed_labels =
-    List.map (fun (label, texp) -> (label, texp.typ)) typed_expr_labels
+
+  let (param, name, labels), labels_expr =
+    match annot with
+    | Some (Trecord (param, name, ls)) ->
+        let f (lname, expr) =
+          let expr =
+            match array_assoc_opt lname ls with
+            | Some typ ->
+                let expr = convert_annot env (Some typ) expr in
+                unify (loc, "In record expression:") typ expr.typ;
+                expr
+            | None -> raise_ "Unbound" lname name
+          in
+
+          (lname, expr)
+        in
+        let labels_expr = List.map f labels in
+        ((param, name, ls), labels_expr)
+    | Some t ->
+        "Internal Error: Expected a record type, not " ^ string_of_type t
+        |> failwith
+    | None ->
+        let typed_expr_labels =
+          List.map (fun (label, expr) -> (label, convert env expr)) labels
+        in
+        let typed_labels =
+          List.map (fun (label, texp) -> (label, texp.typ)) typed_expr_labels
+        in
+        let rec_content = get_record_type env loc typed_labels in
+        (rec_content, typed_expr_labels)
   in
-  let param, name, labels = get_record_type env loc typed_labels in
+
   (* We sort the labels to appear in the defined order *)
   let sorted_labels =
     List.map
       (fun (lname, _) ->
         ( lname,
-          match List.assoc_opt lname typed_expr_labels with
+          match List.assoc_opt lname labels_expr with
           | Some thing -> thing
-          | None ->
-              let msg =
-                Printf.sprintf "Missing field %s on record %s" lname name
-              in
-              raise (Error (loc, msg)) ))
+          | None -> raise_ "Missing" lname name ))
       (labels |> Array.to_list)
   in
   let typ = Trecord (param, name, labels) |> generalize in

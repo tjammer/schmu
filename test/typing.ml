@@ -101,6 +101,13 @@ let test_annot_generic_fail () =
   test_exn " Expected type 'a -> 'b but got type 'a -> 'a"
     "pass : 'a -> 'b = fn(x) x pass"
 
+let test_annot_record_simple () =
+  test "a" "type a = { x : int } type b = { x : int } a : a = { x = 12 } a"
+
+let test_annot_record_generic () =
+  test "a(bool)"
+    "type a('a) = { x : 'a } type b = { x : int } a : a(bool) = { x = true } a"
+
 let test_sequence () =
   test "int" "external printi : int -> unit printi(20) >> 1 + 1"
 
@@ -181,6 +188,8 @@ let () =
           case "mix_fail" test_annot_mix_fail;
           case "generic" test_annot_generic;
           case "generic_fail" test_annot_generic_fail;
+          case "record_let" test_annot_record_simple;
+          case "record_let_gen" test_annot_record_generic;
         ] );
       ( "function sequencing",
         [
