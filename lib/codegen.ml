@@ -68,7 +68,7 @@ let rec record_name = function
       Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)
   | t -> Typing.string_of_type t
 
-let rec get_lltype ?(param = true) = function
+let rec get_lltype ?(param = true) ?(field = false) = function
   (* For functions, when passed as parameter, we convert it to a closure ptr
      to later cast to the correct types. At the application, we need to
      get the correct type though to cast it back. All this is handled by [param]. *)
@@ -77,7 +77,7 @@ let rec get_lltype ?(param = true) = function
   | Tvar { contents = Link t } -> get_lltype ~param t
   | Tunit -> unit_type
   | Tfun (params, ret, kind) ->
-      typeof_func ~param ~decl:false (params, ret, kind)
+      typeof_func ~param ~field ~decl:false (params, ret, kind)
   | Trecord _ as t -> (
       let name = record_name t in
       match Strtbl.find_opt record_tbl name with
@@ -90,11 +90,11 @@ let rec get_lltype ?(param = true) = function
 
 (* LLVM type of closure struct and records *)
 and typeof_aggregate agg =
-  Array.map (fun (_, typ) -> get_lltype ~param:false typ) agg
+  Array.map (fun (_, typ) -> get_lltype ~param:false ~field:true typ) agg
   |> Llvm.struct_type context
 
-and typeof_func ~param ~decl (params, ret, kind) =
-  if param then closure_type |> Llvm.pointer_type
+and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
+  if param || field then closure_type |> Llvm.pointer_type
   else
     (* When [get_lltype] is called on a function, we handle the dynamic case where
        a function or closure is being passed to another function.
@@ -166,8 +166,8 @@ let sizeof_typ typ =
     | Tunit -> failwith "Does this make sense?"
     | Tvar { contents = Link t } -> inner size_pr t
     | Tfun _ ->
-        (* Just a ptr? Assume 64bit *)
-        add_size_align ~upto:8 size_pr
+        (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
+        add_size_align ~upto:16 size_pr
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
     | Qvar _ | Tvar _ ->
@@ -208,6 +208,11 @@ let declare_function fun_name = function
       prerr_endline fun_name;
       failwith "Internal Error: declaring non-function"
 
+(* [func_to_closure] but for function types *)
+let tfun_to_closure = function
+  | Tfun (ps, ret, Simple) -> Tfun (ps, ret, Closure [])
+  | t -> t
+
 let gen_closure_obj assoc func vars name =
   let clsr_struct = Llvm.build_alloca closure_type name builder in
 
@@ -242,7 +247,11 @@ let gen_closure_obj assoc func vars name =
   let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
   ignore (Llvm.build_store clsr_ptr env_ptr builder);
 
-  { value = clsr_struct; typ = func.typ; lltyp = func.lltyp }
+  (* Turn simple functions into empty closures, so they are handled correctly
+     when passed *)
+  let typ = tfun_to_closure func.typ in
+
+  { value = clsr_struct; typ; lltyp = func.lltyp }
 
 let add_closure vars func = function
   | Simple -> vars
@@ -276,9 +285,12 @@ let pass_function vars llvar kind =
       llvar
 
 let func_to_closure vars llvar =
-  match llvar.typ with
-  | Tfun (_, _, kind) -> pass_function vars llvar kind
-  | _ -> llvar
+  (* TODO somewhere we don't convert into closure correctly *)
+  if Llvm.type_of llvar.value = (closure_type |> Llvm.pointer_type) then llvar
+  else
+    match llvar.typ with
+    | Tfun (_, _, kind) -> pass_function vars llvar kind
+    | _ -> llvar
 
 let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
     { Monomorph_tree.abs; name; recursive } =
@@ -573,15 +585,16 @@ and gen_if vars cond e1 e2 =
   { value = phi; typ = e1.typ; lltyp = e1.lltyp }
 
 and codegen_record vars typ labels =
-  let lltyp = get_lltype ~param:false typ in
+  let lltyp = get_lltype ~param:false ~field:true typ in
 
   let record = Llvm.build_alloca lltyp "" builder in
   List.iteri
     (fun i (name, expr) ->
       let ptr = Llvm.build_struct_gep record i name builder in
-      let value = gen_expr vars expr in
+      let value = gen_expr vars expr |> func_to_closure vars in
       set_record_field value ptr)
     labels;
+
   { value = record; typ; lltyp }
 
 and codegen_field vars expr index =

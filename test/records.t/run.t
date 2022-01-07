@@ -439,3 +439,6 @@ Parametrization needs to be given, if a type is generic
                                                                   7 |   t.t
                                                                   
   [1]
+
+Support function/closure fields
+  $ schmu function_fields.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
