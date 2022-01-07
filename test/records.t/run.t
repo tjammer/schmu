@@ -431,3 +431,11 @@ Make sure alignment of generic param works
   }
   unit
   30
+
+Parametrization needs to be given, if a type is generic
+  $ schmu missing_parameter.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  missing_parameter.smu:6:1: error: Type t needs a type parameter
+  6 | fn (t : t)
+                                                                  7 |   t.t
+                                                                  
+  [1]

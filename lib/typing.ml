@@ -373,7 +373,11 @@ let typeof_annot ?(typedef = false) env loc annot =
     | Ty_list l -> type_list l
   and type_list = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
-    | [ t ] -> concrete_type t
+    | [ t ] -> (
+        match concrete_type t with
+        | Trecord (Some (Qvar _), name, _) ->
+            raise (Error (loc, "Type " ^ name ^ " needs a type parameter"))
+        | t -> t)
     | lst -> nested_record lst
   and nested_record lst =
     match lst with
