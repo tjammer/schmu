@@ -1,7 +1,7 @@
 open Types
 
 type key = string
-type label = { typ : typ; index : int; record : string }
+type label = { index : int; record : string }
 type t
 
 val empty : t
@@ -36,6 +36,10 @@ val query_type : instantiate:(typ -> typ) -> key -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)
 
 val find_label_opt : key -> t -> label option
+(** [find_label_opt labelname env] returns the name of first record with a matching label *)
+
+val find_labelset_opt : string list -> t -> typ option
+(** [find_labelset_opt labelnames env] returns the first record type with a matching labelset *)
 
 val records : t -> typ list
 (** [records env] returns a list of all named records for codegen *)

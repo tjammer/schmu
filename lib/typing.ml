@@ -451,74 +451,6 @@ let array_assoc_opt name arr =
   in
   inner 0
 
-let get_record_type env loc typed_labels =
-  (* TODO rewrite this whole thing to make it more workable *)
-  let possible_records =
-    List.fold_left
-      (fun set (label, _) ->
-        match Env.find_label_opt label env with
-        | Some lbl ->
-            (* We try to unify later, not here *)
-            Strset.add lbl.record set
-        | None -> raise (Error (loc, "Unbound record field " ^ label)))
-      Strset.empty typed_labels
-  in
-
-  (* And get specialized type out if it exists *)
-  let unify_labels labels name =
-    Array.iter
-      (fun (rlabel, rtype) ->
-        let ltype =
-          let msg =
-            Printf.sprintf "Missing field %s on record %s" rlabel name
-          in
-          match List.assoc_opt rlabel typed_labels with
-          | Some thing -> thing
-          | None -> raise (Error (loc, msg))
-        in
-
-        unify (loc, "") rtype ltype)
-      labels
-  in
-  let get_record_content = function
-    | Trecord (param, name, labels) -> (param, name, labels)
-    | _ -> failwith "Internal Error not a record"
-  in
-
-  match Strset.elements possible_records with
-  | [] -> failwith "Internal Error not a record"
-  | [ record ] ->
-      let record = Env.query_type ~instantiate record env in
-      let param, name, labels = get_record_content record in
-      unify_labels labels name;
-      (param, name, labels)
-  | lst ->
-      (* We choose the correct one by finding the first record where all labels fit  *)
-      (* There must be better ways to do this *)
-      let record =
-        List.fold_left
-          (fun chosen record ->
-            let record = Env.query_type ~instantiate record env in
-            let all_match =
-              match record with
-              | Trecord (_, _, labels) ->
-                  Array.fold_left
-                    (fun mtch (lname, _) ->
-                      mtch
-                      && List.exists
-                           (fun (tlname, _) -> String.equal lname tlname)
-                           typed_labels)
-                    true labels
-              | _ -> failwith "Internal Error in typeof_record"
-            in
-            if all_match then Some record else chosen)
-          None lst
-        |> Option.get
-      in
-      let param, name, labels = get_record_content record in
-      unify_labels labels name;
-      (param, name, labels)
-
 let assoc_opti qkey arr =
   let rec aux i =
     if i < Array.length arr then
@@ -527,6 +459,23 @@ let assoc_opti qkey arr =
     else None
   in
   aux 0
+
+let get_record_type env labels annot =
+  match annot with
+  | Some t -> t
+  | None -> (
+      let labelset = List.map fst labels in
+      match Env.find_labelset_opt labelset env with
+      | Some t -> instantiate t
+      | None -> (
+          (* There is a wrong label somewhere. We get the type of the first label and let
+             it fail below.
+             The list can never be empty due to the grammar *)
+          match Env.find_label_opt (List.hd labels |> fst) env with
+          | Some t -> Env.query_type ~instantiate t.record env
+          | None ->
+              "Internal Error: Something went very wrong in record creation"
+              |> failwith))
 
 let rec typeof env expr = typeof_annotated env None expr
 
@@ -650,28 +599,31 @@ and typeof_record env loc annot labels =
     raise (Error (loc, msg))
   in
 
+  let t = get_record_type env labels annot in
+
   let typ =
-    match annot with
-    | Some (Trecord (param, name, ls)) ->
+    (* NOTE this is copied from convert_record below. We don't find out missing fields here *)
+    match t with
+    | Trecord (param, name, ls) ->
         let f (lname, expr) =
-          match array_assoc_opt lname ls with
-          | Some typ ->
-              let t = typeof_annotated env (Some typ) expr in
-              unify (loc, "In record expression:") typ t;
-              t
-          | None -> raise_ "Unbound" lname name
+          let typ, expr =
+            match array_assoc_opt lname ls with
+            | None -> raise_ "Unbound" lname name
+            | Some (Tvar { contents = Unbound _ } as typ) ->
+                (* If the variable is generic, we figure the type out normally and the
+                   unify for the later fields *)
+                (typ, typeof_annotated env None expr)
+            | Some (Tvar { contents = Link typ }) | Some typ ->
+                (typ, typeof_annotated env (Some typ) expr)
+          in
+          unify (loc, "In record expression:") typ expr;
+          (lname, expr)
         in
-        let _ = List.map f labels in
+        ignore (List.map f labels);
         Trecord (param, name, ls)
-    | Some t ->
+    | t ->
         "Internal Error: Expected a record type, not " ^ string_of_type t
         |> failwith
-    | None ->
-        let typed_labels =
-          List.map (fun (label, expr) -> (label, typeof env expr)) labels
-        in
-        let param, name, labels = get_record_type env loc typed_labels in
-        Trecord (param, name, labels)
   in
   typ |> generalize
 
@@ -691,8 +643,7 @@ and typeof_field env loc expr id =
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
   | t -> (
       match Env.find_label_opt id env with
-      | Some { typ = _; record; index } -> (
-          (* TODO typ above could link straight to the record label? *)
+      | Some { record; index } -> (
           let record_t = Env.find_type record env |> instantiate in
           unify (loc, "Field access of record " ^ record ^ ":") record_t t;
           match record_t with
@@ -956,41 +907,35 @@ and convert_if env loc cond e1 e2 =
   { typ = type_e2.typ; expr = If (type_cond, type_e1, type_e2) }
 
 and convert_record env loc annot labels =
-  (* let labelnames = (\* TODO here *\) *)
   let raise_ msg lname rname =
     let msg = Printf.sprintf "%s field %s on record %s" msg lname rname in
     raise (Error (loc, msg))
   in
 
-  let (param, name, labels), labels_expr =
-    match annot with
-    | Some (Trecord (param, name, ls)) ->
-        let f (lname, expr) =
-          let expr =
-            match array_assoc_opt lname ls with
-            | Some typ ->
-                let expr = convert_annot env (Some typ) expr in
-                unify (loc, "In record expression:") typ expr.typ;
-                expr
-            | None -> raise_ "Unbound" lname name
-          in
+  let t = get_record_type env labels annot in
 
+  let (param, name, labels), labels_expr =
+    match t with
+    | Trecord (param, name, ls) ->
+        let f (lname, expr) =
+          let typ, expr =
+            match array_assoc_opt lname ls with
+            | None -> raise_ "Unbound" lname name
+            | Some (Tvar { contents = Unbound _ } as typ) ->
+                (* If the variable is generic, we figure the type out normally and the
+                   unify for the later fields *)
+                (typ, convert_annot env None expr)
+            | Some (Tvar { contents = Link typ }) | Some typ ->
+                (typ, convert_annot env (Some typ) expr)
+          in
+          unify (loc, "In record expression:") typ expr.typ;
           (lname, expr)
         in
         let labels_expr = List.map f labels in
         ((param, name, ls), labels_expr)
-    | Some t ->
+    | t ->
         "Internal Error: Expected a record type, not " ^ string_of_type t
         |> failwith
-    | None ->
-        let typed_expr_labels =
-          List.map (fun (label, expr) -> (label, convert env expr)) labels
-        in
-        let typed_labels =
-          List.map (fun (label, texp) -> (label, texp.typ)) typed_expr_labels
-        in
-        let rec_content = get_record_type env loc typed_labels in
-        (rec_content, typed_expr_labels)
   in
 
   (* We sort the labels to appear in the defined order *)
@@ -1017,7 +962,7 @@ and convert_field env loc expr id =
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
   | t -> (
       match Env.find_label_opt id env with
-      | Some { typ = _; index; record } -> (
+      | Some { index; record } -> (
           let record_t = Env.find_type record env |> instantiate in
           unify (loc, "Field access of " ^ string_of_type record_t) record_t t;
           match record_t with

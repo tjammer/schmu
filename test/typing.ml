@@ -45,7 +45,7 @@ let test_record_clear () =
   test "t" "type t = { x : int, y : int } { x = 2, y = 2 }"
 
 let test_record_false () =
-  test_exn "Unbound record field z"
+  test_exn "Unbound field z on record t"
     "type t = { x : int, y : int } { x = 2, z = 2 }"
 
 let test_record_choose () =
@@ -62,11 +62,11 @@ let test_record_create_return () =
   test "t" "type t = {x : int} fn a () 10 { x = a() }"
 
 let test_record_wrong_type () =
-  test_exn " Expected type int but got type bool"
+  test_exn "In record expression: Expected type int but got type bool"
     "type t = {x : int} {x = true}"
 
 let test_record_wrong_choose () =
-  test_exn " Expected type int but got type bool"
+  test_exn "In record expression: Expected type int but got type bool"
     "type t1 = {x : int, y : int} type t2 = {x : int, z : int} {x = 2, y = \
      true}"
 
@@ -74,6 +74,19 @@ let test_record_field_simple () =
   test "int" "type t = {x : int} a = {x = 10} a.x"
 
 let test_record_field_infer () = test "t -> int" "type t = {x : int} fn (a) a.x"
+
+let test_record_same_field_infer () =
+  test "a" "type a = { x : int } type b = { x : int, y : int } { x = 12 }"
+
+let test_record_nested_field_infer () =
+  test "c"
+    "type a = { x : int } type b = { x : int } type c = { x : int, y : a } { x \
+     = 12, y = { x = 12 } }"
+
+let test_record_nested_field_generic () =
+  test "c(b)"
+    "type a = { x : int } type b = { x : int } type c('a) = { x : int, y : 'a \
+     } { x = 12, y = { x = 12 } }"
 
 let test_record_field_no_record () =
   test_exn "Field access of record t: Expected type t but got type int"
@@ -177,6 +190,9 @@ let () =
           case "wrong_choose" test_record_wrong_choose;
           case "field_simple" test_record_field_simple;
           case "field_infer" test_record_field_infer;
+          case "same_field_infer" test_record_same_field_infer;
+          case "nested_field_infer" test_record_nested_field_infer;
+          case "nested_field_infer_generic" test_record_nested_field_generic;
           case "field_no_record" test_record_field_no_record;
           case "field_wrong_record" test_record_field_wrong_record;
         ] );
