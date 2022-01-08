@@ -110,7 +110,7 @@ Nested records
   
   declare void @printi(i32 %0)
   
-  define private void @__g.g___fun0_it.it(%t_int* %0, %t_int* %x) {
+  define private void @__g.g___fun0_ti.ti(%t_int* %0, %t_int* %x) {
   entry:
     %1 = bitcast %t_int* %0 to i8*
     %2 = bitcast %t_int* %x to i8*
@@ -162,7 +162,7 @@ Nested records
     %11 = bitcast %p_inner_innerst_int* %6 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %10, i8* %11, i64 4, i1 false)
     %ret1 = alloca %t_int, align 8
-    call void @__g.g___fun0_it.it(%t_int* %ret1, %t_int* %5)
+    call void @__g.g___fun0_ti.ti(%t_int* %ret1, %t_int* %5)
     %12 = getelementptr inbounds %t_int, %t_int* %ret1, i32 0, i32 1
     %13 = bitcast %p_inner_innerst_int* %12 to %innerst_int*
     %14 = bitcast %innerst_int* %13 to i32*
@@ -188,7 +188,7 @@ Pass generic record
   
   declare void @printi(i32 %0)
   
-  define private void @__gt.gt_pass_bt.bt(%t_bool* %0, %t_bool* %x) {
+  define private void @__tg.tg_pass_tb.tb(%t_bool* %0, %t_bool* %x) {
   entry:
     %1 = alloca %t_bool, align 8
     %first1 = bitcast %t_bool* %1 to i32*
@@ -209,7 +209,7 @@ Pass generic record
     ret void
   }
   
-  define private void @__g.gg.g_apply_bt.btbt.bt(%t_bool* %0, %closure* %f, %t_bool* %x) {
+  define private void @__g.gg.g_apply_tb.tbtb.tb(%t_bool* %0, %closure* %f, %t_bool* %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -224,7 +224,7 @@ Pass generic record
     ret void
   }
   
-  define private void @__gt.gt_pass_it.it(%t_int* %0, %t_int* %x) {
+  define private void @__tg.tg_pass_ti.ti(%t_int* %0, %t_int* %x) {
   entry:
     %1 = alloca %t_int, align 8
     %first1 = bitcast %t_int* %1 to i32*
@@ -245,7 +245,7 @@ Pass generic record
     ret void
   }
   
-  define private void @__g.gg.g_apply_it.itit.it(%t_int* %0, %closure* %f, %t_int* %x) {
+  define private void @__g.gg.g_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -274,17 +274,17 @@ Pass generic record
     store i1 false, i1* %third, align 1
     %clstmp = alloca %closure, align 8
     %funptr9 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (void (%t_int*, %t_int*)* @__gt.gt_pass_it.it to i8*), i8** %funptr9, align 8
+    store i8* bitcast (void (%t_int*, %t_int*)* @__tg.tg_pass_ti.ti to i8*), i8** %funptr9, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
-    call void @__g.gg.g_apply_it.itit.it(%t_int* %ret, %closure* %clstmp, %t_int* %0)
+    call void @__g.gg.g_apply_ti.titi.ti(%t_int* %ret, %closure* %clstmp, %t_int* %0)
     %1 = bitcast %t_int* %ret to i32*
     %2 = load i32, i32* %1, align 4
     call void @printi(i32 %2)
     %clstmp1 = alloca %closure, align 8
     %funptr210 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast (void (%t_bool*, %t_bool*)* @__gt.gt_pass_bt.bt to i8*), i8** %funptr210, align 8
+    store i8* bitcast (void (%t_bool*, %t_bool*)* @__tg.tg_pass_tb.tb to i8*), i8** %funptr210, align 8
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
     %3 = alloca %t_bool, align 8
@@ -295,7 +295,7 @@ Pass generic record
     %third6 = getelementptr inbounds %t_bool, %t_bool* %3, i32 0, i32 2
     store i1 true, i1* %third6, align 1
     %ret7 = alloca %t_bool, align 8
-    call void @__g.gg.g_apply_bt.btbt.bt(%t_bool* %ret7, %closure* %clstmp1, %t_bool* %3)
+    call void @__g.gg.g_apply_tb.tbtb.tb(%t_bool* %ret7, %closure* %clstmp1, %t_bool* %3)
     %4 = bitcast %t_bool* %ret7 to i32*
     %5 = load i32, i32* %4, align 4
     call void @printi(i32 %5)
@@ -318,7 +318,7 @@ Access parametrized record fields
   
   declare void @printi(i32 %0)
   
-  define private void @__ggen_first.u_is_igen_first.u(%gen_first_int* %any) {
+  define private void @__gen_firstg.u_is_gen_firsti.u(%gen_first_int* %any) {
   entry:
     %0 = getelementptr inbounds %gen_first_int, %gen_first_int* %any, i32 0, i32 1
     %1 = load i1, i1* %0, align 1
@@ -326,21 +326,21 @@ Access parametrized record fields
     ret void
   }
   
-  define private i32 @__ggen_first.g_only_igen_first.i(%gen_first_int* %any) {
+  define private i32 @__gen_firstg.g_only_gen_firsti.i(%gen_first_int* %any) {
   entry:
     %0 = bitcast %gen_first_int* %any to i32*
     %1 = load i32, i32* %0, align 4
     ret i32 %1
   }
   
-  define private i32 @__gt.g_gen_it.i(%t_int* %any) {
+  define private i32 @__tg.g_gen_ti.i(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 2
     %1 = load i32, i32* %0, align 4
     ret i32 %1
   }
   
-  define private void @__gt.u_third_it.u(%t_int* %any) {
+  define private void @__tg.u_third_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 3
     %1 = load i1, i1* %0, align 1
@@ -348,7 +348,7 @@ Access parametrized record fields
     ret void
   }
   
-  define private void @__gt.u_first_it.u(%t_int* %any) {
+  define private void @__tg.u_first_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 1
     %1 = load i32, i32* %0, align 4
@@ -385,13 +385,13 @@ Access parametrized record fields
     store i32 420, i32* %only2, align 4
     %is = getelementptr inbounds %gen_first_int, %gen_first_int* %1, i32 0, i32 1
     store i1 false, i1* %is, align 1
-    call void @__gt.u_first_it.u(%t_int* %0)
-    call void @__gt.u_third_it.u(%t_int* %0)
-    %2 = call i32 @__gt.g_gen_it.i(%t_int* %0)
+    call void @__tg.u_first_ti.u(%t_int* %0)
+    call void @__tg.u_third_ti.u(%t_int* %0)
+    %2 = call i32 @__tg.g_gen_ti.i(%t_int* %0)
     call void @printi(i32 %2)
-    %3 = call i32 @__ggen_first.g_only_igen_first.i(%gen_first_int* %1)
+    %3 = call i32 @__gen_firstg.g_only_gen_firsti.i(%gen_first_int* %1)
     call void @printi(i32 %3)
-    call void @__ggen_first.u_is_igen_first.u(%gen_first_int* %1)
+    call void @__gen_firstg.u_is_gen_firsti.u(%gen_first_int* %1)
     ret i32 0
   }
   unit
@@ -411,7 +411,7 @@ Make sure alignment of generic param works
   
   declare void @printi(i32 %0)
   
-  define private i32 @__gmisaligned.g_gen_imisaligned.i(%misaligned_int* %any) {
+  define private i32 @__misalignedg.g_gen_misalignedi.i(%misaligned_int* %any) {
   entry:
     %0 = getelementptr inbounds %misaligned_int, %misaligned_int* %any, i32 0, i32 1
     %1 = load i32, i32* %0, align 4
@@ -425,7 +425,7 @@ Make sure alignment of generic param works
     store i1 true, i1* %fst1, align 1
     %gen = getelementptr inbounds %misaligned_int, %misaligned_int* %0, i32 0, i32 1
     store i32 30, i32* %gen, align 4
-    %1 = call i32 @__gmisaligned.g_gen_imisaligned.i(%misaligned_int* %0)
+    %1 = call i32 @__misalignedg.g_gen_misalignedi.i(%misaligned_int* %0)
     call void @printi(i32 %1)
     ret i32 0
   }

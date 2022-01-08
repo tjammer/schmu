@@ -87,7 +87,7 @@ let get_mono_name name ~poly concrete =
     | Tvar { contents = Link t } -> str t
     | Tfun (ps, r, _) ->
         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
-    | Trecord (Some t, name, _) -> Printf.sprintf "%s%s" (str t) name
+    | Trecord (Some t, name, _) -> Printf.sprintf "%s%s" name (str t)
     | Trecord (_, name, _) -> name
     | Qvar _ | Tvar _ -> "g"
   in
