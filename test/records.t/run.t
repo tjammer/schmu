@@ -442,3 +442,93 @@ Parametrization needs to be given, if a type is generic
 
 Support function/closure fields
   $ schmu function_fields.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %state = type { i32, %closure* }
+  %closure = type { i8*, i8* }
+  
+  declare void @printi(i32 %0)
+  
+  define private void @ten_times(%state* %state) {
+  entry:
+    %0 = bitcast %state* %state to i32*
+    %1 = load i32, i32* %0, align 4
+    %lesstmp = icmp slt i32 %1, 10
+    br i1 %lesstmp, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    tail call void @printi(i32 %1)
+    %ret = alloca %state, align 8
+    call void @advance(%state* %ret, %state* %state)
+    call void @ten_times(%state* %ret)
+    ret void
+  
+  else:                                             ; preds = %entry
+    tail call void @printi(i32 100)
+    ret void
+  }
+  
+  define private void @advance(%state* %0, %state* %state) {
+  entry:
+    %1 = alloca %state, align 8
+    %cnt2 = bitcast %state* %1 to i32*
+    %2 = getelementptr inbounds %state, %state* %state, i32 0, i32 1
+    %3 = load %closure*, %closure** %2, align 8
+    %4 = bitcast %state* %state to i32*
+    %5 = load i32, i32* %4, align 4
+    %funcptr3 = bitcast %closure* %3 to i8**
+    %loadtmp = load i8*, i8** %funcptr3, align 8
+    %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %3, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %6 = tail call i32 %casttmp(i32 %5, i8* %loadtmp1)
+    store i32 %6, i32* %cnt2, align 4
+    %next = getelementptr inbounds %state, %state* %1, i32 0, i32 1
+    %7 = load %closure*, %closure** %2, align 8
+    store %closure* %7, %closure** %next, align 8
+    %8 = bitcast %state* %0 to i8*
+    %9 = bitcast %state* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 32, i1 false)
+    ret void
+  }
+  
+  define private i32 @__fun0(i32 %x) {
+  entry:
+    %addtmp = add i32 %x, 1
+    ret i32 %addtmp
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define i32 @main(i32 %arg) {
+  entry:
+    %0 = alloca %state, align 8
+    %cnt1 = bitcast %state* %0 to i32*
+    store i32 0, i32* %cnt1, align 4
+    %next = getelementptr inbounds %state, %state* %0, i32 0, i32 1
+    %clstmp = alloca %closure, align 8
+    %funptr2 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (i32 (i32)* @__fun0 to i8*), i8** %funptr2, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* null, i8** %envptr, align 8
+    store %closure* %clstmp, %closure** %next, align 8
+    call void @ten_times(%state* %0)
+    ret i32 0
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  unit
+  0
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+  100
