@@ -46,6 +46,11 @@ let closure_type =
 
 let generic_type = Llvm.named_struct_type context "generic"
 
+let dummy_fn_value =
+  (* When we need something in the env for a function which will only be called
+     in a monomorphized version *)
+  { typ = Tunit; value = Llvm.const_int int_type (-1); lltyp = int_type }
+
 let memcpy_decl =
   lazy
     (let open Llvm in
@@ -392,9 +397,17 @@ and gen_expr vars typed_expr =
   | Mvar id -> (
       match Vars.find_opt id vars with
       | Some v -> v
-      | None ->
-          (* If the variable isn't bound, something went wrong before *)
-          failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
+      | None -> (
+          match typed_expr.typ with
+          | Tfun _ ->
+              (* If a function is polymorphic then its original value might not be bound
+                 when we generate other function. In this case, we can just return a
+                 dummy value *)
+              dummy_fn_value
+          | _ ->
+              (* If the variable isn't bound, something went wrong before *)
+              failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
+      )
   | Mfunction (name, abs, cont) ->
       (* The functions are already generated *)
       let func =
@@ -407,11 +420,7 @@ and gen_expr vars typed_expr =
             (* The function is polymorphic and monomorphized versions are generated. *)
             (* We just return some bogus value, it will never be applied anyway
                (and if it will, LLVM will fail) *)
-            {
-              typ = Tunit;
-              value = Llvm.const_int int_type (-1);
-              lltyp = int_type;
-            }
+            dummy_fn_value
       in
 
       gen_expr (Vars.add name func vars) cont
@@ -429,11 +438,7 @@ and gen_expr vars typed_expr =
             (* The function is polymorphic and monomorphized versions are generated. *)
             (* We just return some bogus value, it will never be applied anyway
                (and if it will, LLVM will fail) *)
-            {
-              typ = Tunit;
-              value = Llvm.const_int int_type (-1);
-              lltyp = int_type;
-            }
+            dummy_fn_value
       in
       func
   | Mapp { callee; args } -> gen_app vars callee args (clean typed_expr.typ)
