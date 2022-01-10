@@ -143,8 +143,6 @@ let to_named_records = function
 
 (*
    Size and alignment.
-   For generic records, we calculate a lot of stuff at runtime, which might be slow.
-   For now, it's fine, but this should be improved somewhere in the future
 *)
 
 type size_pr = { size : int; align : int }
@@ -353,12 +351,8 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
           (* Since we only have POD records, we can safely memcpy here *)
           let dst = Llvm.(params func.value).(0) in
           (if ret.value <> dst then
-           let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
-           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
-           (* Should better be ret.typ here instead of ret_t *)
            let size = sizeof_typ ret_t |> llval_of_size in
-           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
-           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder));
+           memcpy ~dst ~src:ret ~size);
           ignore (Llvm.build_ret_void builder)
       | Qvar _ -> failwith "Internal Error: Generic return"
       | _ ->
