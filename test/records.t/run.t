@@ -66,21 +66,14 @@ Create record
   
   declare void @printi(i32 %0)
   
-  define private void @create_record(%foo* %0, i32 %x, i32 %y) {
+  define private void @create_record(%foo* sret %0, i32 %x, i32 %y) {
   entry:
-    %1 = alloca %foo, align 8
-    %x13 = bitcast %foo* %1 to i32*
+    %x13 = bitcast %foo* %0 to i32*
     store i32 %x, i32* %x13, align 4
-    %y2 = getelementptr inbounds %foo, %foo* %1, i32 0, i32 1
+    %y2 = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     store i32 %y, i32* %y2, align 4
-    %2 = bitcast %foo* %0 to i8*
-    %3 = bitcast %foo* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     ret void
   }
-  
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i32 @main(i32 %arg) {
   entry:
@@ -91,8 +84,6 @@ Create record
     call void @printi(i32 %1)
     ret i32 0
   }
-  
-  attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   8
 
@@ -110,7 +101,7 @@ Nested records
   
   declare void @printi(i32 %0)
   
-  define private void @__g.g___fun0_ti.ti(%t_int* %0, %t_int* %x) {
+  define private void @__g.g___fun0_ti.ti(%t_int* sret %0, %t_int* %x) {
   entry:
     %1 = bitcast %t_int* %0 to i8*
     %2 = bitcast %t_int* %x to i8*
@@ -118,14 +109,10 @@ Nested records
     ret void
   }
   
-  define private void @inner(%inner* %0) {
+  define private void @inner(%inner* sret %0) {
   entry:
-    %1 = alloca %inner, align 8
-    %c1 = bitcast %inner* %1 to i32*
+    %c1 = bitcast %inner* %0 to i32*
     store i32 3, i32* %c1, align 4
-    %2 = bitcast %inner* %0 to i8*
-    %3 = bitcast %inner* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 4, i1 false)
     ret void
   }
   
@@ -135,39 +122,37 @@ Nested records
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %foo, align 8
-    %a2 = bitcast %foo* %0 to i32*
-    store i32 0, i32* %a2, align 4
+    %a1 = bitcast %foo* %0 to i32*
+    store i32 0, i32* %a1, align 4
     %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
-    %ret = alloca %inner, align 8
-    call void @inner(%inner* %ret)
+    call void @inner(%inner* %b)
     %1 = bitcast %inner* %b to i8*
-    %2 = bitcast %inner* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 4, i1 false)
-    %3 = bitcast %inner* %b to i32*
-    %4 = load i32, i32* %3, align 4
-    call void @printi(i32 %4)
-    %5 = alloca %t_int, align 8
-    %x3 = bitcast %t_int* %5 to i32*
-    store i32 17, i32* %x3, align 4
-    %inner = getelementptr inbounds %t_int, %t_int* %5, i32 0, i32 1
-    %6 = alloca %p_inner_innerst_int, align 8
-    %y4 = bitcast %p_inner_innerst_int* %6 to %innerst_int*
-    %7 = alloca %innerst_int, align 8
-    %z5 = bitcast %innerst_int* %7 to i32*
-    store i32 124, i32* %z5, align 4
-    %8 = bitcast %innerst_int* %y4 to i8*
-    %9 = bitcast %innerst_int* %7 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 4, i1 false)
-    %10 = bitcast %p_inner_innerst_int* %inner to i8*
-    %11 = bitcast %p_inner_innerst_int* %6 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %10, i8* %11, i64 4, i1 false)
-    %ret1 = alloca %t_int, align 8
-    call void @__g.g___fun0_ti.ti(%t_int* %ret1, %t_int* %5)
-    %12 = getelementptr inbounds %t_int, %t_int* %ret1, i32 0, i32 1
-    %13 = bitcast %p_inner_innerst_int* %12 to %innerst_int*
-    %14 = bitcast %innerst_int* %13 to i32*
-    %15 = load i32, i32* %14, align 4
-    call void @printi(i32 %15)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %1, i64 4, i1 false)
+    %2 = bitcast %inner* %b to i32*
+    %3 = load i32, i32* %2, align 4
+    call void @printi(i32 %3)
+    %4 = alloca %t_int, align 8
+    %x2 = bitcast %t_int* %4 to i32*
+    store i32 17, i32* %x2, align 4
+    %inner = getelementptr inbounds %t_int, %t_int* %4, i32 0, i32 1
+    %5 = alloca %p_inner_innerst_int, align 8
+    %y3 = bitcast %p_inner_innerst_int* %5 to %innerst_int*
+    %6 = alloca %innerst_int, align 8
+    %z4 = bitcast %innerst_int* %6 to i32*
+    store i32 124, i32* %z4, align 4
+    %7 = bitcast %innerst_int* %y3 to i8*
+    %8 = bitcast %innerst_int* %6 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 4, i1 false)
+    %9 = bitcast %p_inner_innerst_int* %inner to i8*
+    %10 = bitcast %p_inner_innerst_int* %5 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* %10, i64 4, i1 false)
+    %ret = alloca %t_int, align 8
+    call void @__g.g___fun0_ti.ti(%t_int* %ret, %t_int* %4)
+    %11 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
+    %12 = bitcast %p_inner_innerst_int* %11 to %innerst_int*
+    %13 = bitcast %innerst_int* %12 to i32*
+    %14 = load i32, i32* %13, align 4
+    call void @printi(i32 %14)
     ret i32 0
   }
   
@@ -188,28 +173,24 @@ Pass generic record
   
   declare void @printi(i32 %0)
   
-  define private void @__tg.tg_pass_tb.tb(%t_bool* %0, %t_bool* %x) {
+  define private void @__tg.tg_pass_tb.tb(%t_bool* sret %0, %t_bool* %x) {
   entry:
-    %1 = alloca %t_bool, align 8
-    %first1 = bitcast %t_bool* %1 to i32*
-    %2 = bitcast %t_bool* %x to i32*
-    %3 = load i32, i32* %2, align 4
-    store i32 %3, i32* %first1, align 4
-    %gen = getelementptr inbounds %t_bool, %t_bool* %1, i32 0, i32 1
-    %4 = getelementptr inbounds %t_bool, %t_bool* %x, i32 0, i32 1
-    %5 = load i1, i1* %4, align 1
-    store i1 %5, i1* %gen, align 1
-    %third = getelementptr inbounds %t_bool, %t_bool* %1, i32 0, i32 2
-    %6 = getelementptr inbounds %t_bool, %t_bool* %x, i32 0, i32 2
-    %7 = load i1, i1* %6, align 1
-    store i1 %7, i1* %third, align 1
-    %8 = bitcast %t_bool* %0 to i8*
-    %9 = bitcast %t_bool* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 8, i1 false)
+    %first1 = bitcast %t_bool* %0 to i32*
+    %1 = bitcast %t_bool* %x to i32*
+    %2 = load i32, i32* %1, align 4
+    store i32 %2, i32* %first1, align 4
+    %gen = getelementptr inbounds %t_bool, %t_bool* %0, i32 0, i32 1
+    %3 = getelementptr inbounds %t_bool, %t_bool* %x, i32 0, i32 1
+    %4 = load i1, i1* %3, align 1
+    store i1 %4, i1* %gen, align 1
+    %third = getelementptr inbounds %t_bool, %t_bool* %0, i32 0, i32 2
+    %5 = getelementptr inbounds %t_bool, %t_bool* %x, i32 0, i32 2
+    %6 = load i1, i1* %5, align 1
+    store i1 %6, i1* %third, align 1
     ret void
   }
   
-  define private void @__g.gg.g_apply_tb.tbtb.tb(%t_bool* %0, %closure* %f, %t_bool* %x) {
+  define private void @__g.gg.g_apply_tb.tbtb.tb(%t_bool* sret %0, %closure* %f, %t_bool* %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -224,28 +205,24 @@ Pass generic record
     ret void
   }
   
-  define private void @__tg.tg_pass_ti.ti(%t_int* %0, %t_int* %x) {
+  define private void @__tg.tg_pass_ti.ti(%t_int* sret %0, %t_int* %x) {
   entry:
-    %1 = alloca %t_int, align 8
-    %first1 = bitcast %t_int* %1 to i32*
-    %2 = bitcast %t_int* %x to i32*
-    %3 = load i32, i32* %2, align 4
-    store i32 %3, i32* %first1, align 4
-    %gen = getelementptr inbounds %t_int, %t_int* %1, i32 0, i32 1
-    %4 = getelementptr inbounds %t_int, %t_int* %x, i32 0, i32 1
-    %5 = load i32, i32* %4, align 4
-    store i32 %5, i32* %gen, align 4
-    %third = getelementptr inbounds %t_int, %t_int* %1, i32 0, i32 2
-    %6 = getelementptr inbounds %t_int, %t_int* %x, i32 0, i32 2
-    %7 = load i1, i1* %6, align 1
-    store i1 %7, i1* %third, align 1
-    %8 = bitcast %t_int* %0 to i8*
-    %9 = bitcast %t_int* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 12, i1 false)
+    %first1 = bitcast %t_int* %0 to i32*
+    %1 = bitcast %t_int* %x to i32*
+    %2 = load i32, i32* %1, align 4
+    store i32 %2, i32* %first1, align 4
+    %gen = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 1
+    %3 = getelementptr inbounds %t_int, %t_int* %x, i32 0, i32 1
+    %4 = load i32, i32* %3, align 4
+    store i32 %4, i32* %gen, align 4
+    %third = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 2
+    %5 = getelementptr inbounds %t_int, %t_int* %x, i32 0, i32 2
+    %6 = load i1, i1* %5, align 1
+    store i1 %6, i1* %third, align 1
     ret void
   }
   
-  define private void @__g.gg.g_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
+  define private void @__g.gg.g_apply_ti.titi.ti(%t_int* sret %0, %closure* %f, %t_int* %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -470,27 +447,23 @@ Support function/closure fields
     ret void
   }
   
-  define private void @advance(%state* %0, %state* %state) {
+  define private void @advance(%state* sret %0, %state* %state) {
   entry:
-    %1 = alloca %state, align 8
-    %cnt2 = bitcast %state* %1 to i32*
-    %2 = getelementptr inbounds %state, %state* %state, i32 0, i32 1
-    %3 = load %closure*, %closure** %2, align 8
-    %4 = bitcast %state* %state to i32*
-    %5 = load i32, i32* %4, align 4
-    %funcptr3 = bitcast %closure* %3 to i8**
+    %cnt2 = bitcast %state* %0 to i32*
+    %1 = getelementptr inbounds %state, %state* %state, i32 0, i32 1
+    %2 = load %closure*, %closure** %1, align 8
+    %3 = bitcast %state* %state to i32*
+    %4 = load i32, i32* %3, align 4
+    %funcptr3 = bitcast %closure* %2 to i8**
     %loadtmp = load i8*, i8** %funcptr3, align 8
     %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %3, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %2, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %6 = tail call i32 %casttmp(i32 %5, i8* %loadtmp1)
-    store i32 %6, i32* %cnt2, align 4
-    %next = getelementptr inbounds %state, %state* %1, i32 0, i32 1
-    %7 = load %closure*, %closure** %2, align 8
-    store %closure* %7, %closure** %next, align 8
-    %8 = bitcast %state* %0 to i8*
-    %9 = bitcast %state* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 32, i1 false)
+    %5 = tail call i32 %casttmp(i32 %4, i8* %loadtmp1)
+    store i32 %5, i32* %cnt2, align 4
+    %next = getelementptr inbounds %state, %state* %0, i32 0, i32 1
+    %6 = load %closure*, %closure** %1, align 8
+    store %closure* %6, %closure** %next, align 8
     ret void
   }
   
@@ -499,9 +472,6 @@ Support function/closure fields
     %addtmp = add i32 %x, 1
     ret i32 %addtmp
   }
-  
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i32 @main(i32 %arg) {
   entry:
@@ -518,8 +488,6 @@ Support function/closure fields
     call void @ten_times(%state* %0)
     ret i32 0
   }
-  
-  attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   0
   1

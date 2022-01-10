@@ -314,11 +314,12 @@ and morph_func p (username, uniq, abs, cont) =
 
   (* Make sure recursion works and the current function can be used in its body *)
   let temp_p =
-    if recursive then
-      (* TODO we should add some allocation here if we return a function  *)
-      let vars = Vars.add username (Forward_decl name, No_value) p.vars in
-      { p with vars }
-    else p
+    match (recursive, abs.tp.ret) with
+    | true, Trecord _ ->
+        let value = (Forward_decl name, Value (ref false)) in
+        let vars = Vars.add username value p.vars in
+        { p with vars }
+    | _ -> p
   in
 
   let temp_p, body, (_, alloca) = morph_expr temp_p abs.body in
@@ -383,7 +384,7 @@ and morph_app mk p callee args =
   let p, args = List.fold_left_map f p args in
 
   let ret_value, alloc_ref =
-    match ex.typ with
+    match clean ex.typ with
     | Tfun (_, Trecord _, _) -> (
         ( alloca,
           match extract_alloca alloca with

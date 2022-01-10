@@ -12,6 +12,7 @@ end
 module Strtbl = Hashtbl.Make (Str)
 
 type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
+type param = { vars : llvar Vars.t; alloca : Llvm.llvalue option }
 
 let ( ++ ) = Seq.append
 let record_tbl = Strtbl.create 32
@@ -296,7 +297,7 @@ let func_to_closure vars llvar =
   if Llvm.type_of llvar.value = (closure_type |> Llvm.pointer_type) then llvar
   else
     match llvar.typ with
-    | Tfun (_, _, kind) -> pass_function vars llvar kind
+    | Tfun (_, _, kind) -> pass_function vars.vars llvar kind
     | _ -> llvar
 
 let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
@@ -308,13 +309,13 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
       let func = declare_function name typ in
       Llvm.set_linkage linkage func.value;
 
-      let start_index =
+      let start_index, alloca =
         match ret_t with
         | Trecord _ ->
             Llvm.(add_function_attr func.value sret_attrib (AttrIndex.Param 0));
-            1
+            (1, Some (Llvm.params func.value).(0))
         | Qvar _ -> failwith "qvar should not be returned"
-        | _ -> 0
+        | _ -> (0, None)
       in
 
       (* gen function body *)
@@ -323,7 +324,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
 
       (* Add params from closure *)
       (* We generate both the code for extracting the closure and add the vars to the environment *)
-      let temp_vars = add_closure vars func kind in
+      let temp_vars = add_closure vars.vars func kind in
 
       let temp_vars, _ =
         List.fold_left2
@@ -342,7 +343,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         if recursive then Vars.add name func temp_vars else temp_vars
       in
 
-      let ret = gen_expr temp_vars abs.body in
+      let ret = gen_expr { vars = temp_vars; alloca } abs.body in
 
       (* If we want to return a struct, we copy the struct to
           its ptr (1st parameter) and return void *)
@@ -351,13 +352,13 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
           (* TODO Use this return struct for creation in the first place *)
           (* Since we only have POD records, we can safely memcpy here *)
           let dst = Llvm.(params func.value).(0) in
-          if ret.value <> dst then (
-            let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
-            let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
-            (* Should better be ret.typ here instead of ret_t *)
-            let size = sizeof_typ ret_t |> llval_of_size in
-            let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
-            ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder));
+          (if ret.value <> dst then
+           let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
+           let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
+           (* Should better be ret.typ here instead of ret_t *)
+           let size = sizeof_typ ret_t |> llval_of_size in
+           let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
+           ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder));
           ignore (Llvm.build_ret_void builder)
       | Qvar _ -> failwith "Internal Error: Generic return"
       | _ ->
@@ -378,13 +379,12 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         Llvm_analysis.assert_valid_function func.value);
 
       let _ = Llvm.PassManager.run_function func.value fpm in
-
-      Vars.add name func vars
+      { vars with vars = Vars.add name func vars.vars }
   | _ ->
       prerr_endline name;
       failwith "Interal Error: generating non-function"
 
-and gen_expr vars typed_expr =
+and gen_expr param typed_expr =
   match typed_expr.expr with
   | Monomorph_tree.Mconst (Int i) ->
       { value = Llvm.const_int int_type i; typ = Tint; lltyp = int_type }
@@ -396,11 +396,11 @@ and gen_expr vars typed_expr =
       }
   | Mconst Unit -> failwith "TODO"
   | Mbop (bop, e1, e2) ->
-      let e1 = gen_expr vars e1 in
-      let e2 = gen_expr vars e2 in
+      let e1 = gen_expr param e1 in
+      let e2 = gen_expr param e2 in
       gen_bop e1 e2 bop
   | Mvar id -> (
-      match Vars.find_opt id vars with
+      match Vars.find_opt id param.vars with
       | Some v -> v
       | None -> (
           match typed_expr.typ with
@@ -416,11 +416,11 @@ and gen_expr vars typed_expr =
   | Mfunction (name, abs, cont) ->
       (* The functions are already generated *)
       let func =
-        match Vars.find_opt name vars with
+        match Vars.find_opt name param.vars with
         | Some func -> (
             match abs.func.kind with
             | Simple -> func
-            | Closure assoc -> gen_closure_obj assoc func vars name)
+            | Closure assoc -> gen_closure_obj assoc func param.vars name)
         | None ->
             (* The function is polymorphic and monomorphized versions are generated. *)
             (* We just return some bogus value, it will never be applied anyway
@@ -428,17 +428,17 @@ and gen_expr vars typed_expr =
             dummy_fn_value
       in
 
-      gen_expr (Vars.add name func vars) cont
+      gen_expr { param with vars = Vars.add name func param.vars } cont
   | Mlet (id, equals_ty, let_ty) ->
-      let expr_val = gen_expr vars equals_ty in
-      gen_expr (Vars.add id expr_val vars) let_ty
+      let expr_val = gen_expr param equals_ty in
+      gen_expr { param with vars = Vars.add id expr_val param.vars } let_ty
   | Mlambda (name, abs) ->
       let func =
-        match Vars.find_opt name vars with
+        match Vars.find_opt name param.vars with
         | Some func -> (
             match abs.func.kind with
             | Simple -> func
-            | Closure assoc -> gen_closure_obj assoc func vars name)
+            | Closure assoc -> gen_closure_obj assoc func param.vars name)
         | None ->
             (* The function is polymorphic and monomorphized versions are generated. *)
             (* We just return some bogus value, it will never be applied anyway
@@ -447,12 +447,12 @@ and gen_expr vars typed_expr =
       in
       func
   | Mapp { callee; args; alloca } ->
-      gen_app vars callee args alloca (clean typed_expr.typ)
-  | Mif (cond, e1, e2) -> gen_if vars cond e1 e2
-  | Mrecord (labels, alloca) ->
-      codegen_record vars (clean typed_expr.typ) labels alloca
-  | Mfield (expr, index) -> codegen_field vars expr index
-  | Mseq (expr, cont) -> codegen_chain vars expr cont
+      gen_app param callee args alloca (clean typed_expr.typ)
+  | Mif (cond, e1, e2) -> gen_if param cond e1 e2
+  | Mrecord (labels, allocref) ->
+      codegen_record param (clean typed_expr.typ) labels allocref
+  | Mfield (expr, index) -> codegen_field param expr index
+  | Mseq (expr, cont) -> codegen_chain param expr cont
 
 and gen_bop e1 e2 bop =
   let bld f str = f e1.value e2.value str builder in
@@ -468,18 +468,18 @@ and gen_bop e1 e2 bop =
       { value; typ = Tbool; lltyp = bool_type }
   | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_type }
 
-and gen_app vars callee args alloca ret_t =
-  let func = gen_expr vars callee.ex in
+and gen_app param callee args allocref ret_t =
+  let func = gen_expr param callee.ex in
 
   (* Get monomorphized function *)
   let get_mono_func func = function
     | Some name ->
-        let func = Vars.find name vars in
+        let func = Vars.find name param.vars in
         (* Monomorphized functions are not yet converted to closures *)
         let func =
           match func.typ with
           | Tfun (_, _, Closure assoc) ->
-              gen_closure_obj assoc func vars "monoclstmp"
+              gen_closure_obj assoc func param.vars "monoclstmp"
           | Tfun (_, _, Simple) -> func
           | _ -> failwith "Internal Error: What are we applying?"
         in
@@ -499,9 +499,9 @@ and gen_app vars callee args alloca ret_t =
   in
 
   let handle_arg arg =
-    let arg' = gen_expr vars Monomorph_tree.(arg.ex) in
+    let arg' = gen_expr param Monomorph_tree.(arg.ex) in
     let arg = get_mono_func arg' arg.monomorph in
-    (func_to_closure vars arg).value
+    (func_to_closure param arg).value
   in
   let args = List.map handle_arg args in
 
@@ -525,7 +525,7 @@ and gen_app vars callee args alloca ret_t =
       | Closure _ -> (
           (* In this case we are in a recursive closure function.
              We get the closure env and add it to the arguments we pass *)
-          match Vars.find_opt (Llvm.value_name func.value) vars with
+          match Vars.find_opt (Llvm.value_name func.value) param.vars with
           | Some func ->
               (* We do this to make sure it's a recursive function.
                  If we cannot find something. there is an error somewhere *)
@@ -543,7 +543,12 @@ and gen_app vars callee args alloca ret_t =
     match ret_t with
     | Trecord _ ->
         let lltyp = get_lltype ~param:false ret_t in
-        let retval = Llvm.build_alloca lltyp "ret" builder in
+        let retval =
+          match (!allocref, param.alloca) with
+          | true, Some value -> value
+          | true, None -> Llvm.build_alloca lltyp "ret" builder
+          | false, _ -> Llvm.build_alloca lltyp "ret" builder
+        in
         let ret' = Seq.return retval in
         let args = ret' ++ args ++ envarg |> Array.of_seq in
         let call = Llvm.build_call funcval args "" builder in
@@ -556,26 +561,27 @@ and gen_app vars callee args alloca ret_t =
 
   ignore call;
 
-  if !alloca then print_endline ("alloca in app! " ^ show_typ ret_t);
-
   (* if callee.tailrec then *)
   (* Llvm.set_tail_call true call; *)
   { value; typ = ret_t; lltyp }
 
-and gen_if vars cond e1 e2 =
-  let cond = gen_expr vars cond in
+and gen_if param cond e1 e2 =
+  (* If a function ends in a if expression (and returns a struct),
+     we pass in the finalize step. This allows us to handle the branches
+     differently and enables tail call elimination *)
+  let cond = gen_expr param cond in
 
   let start_bb = Llvm.insertion_block builder in
   let parent = Llvm.block_parent start_bb in
   let then_bb = Llvm.append_block context "then" parent in
   Llvm.position_at_end then_bb builder;
-  let e1 = gen_expr vars e1 in
+  let e1 = gen_expr param e1 in
   (* Codegen can change the current bb *)
   let e1_bb = Llvm.insertion_block builder in
 
   let else_bb = Llvm.append_block context "else" parent in
   Llvm.position_at_end else_bb builder;
-  let e2 = gen_expr vars e2 in
+  let e2 = gen_expr param e2 in
 
   let e2_bb = Llvm.insertion_block builder in
   let merge_bb = Llvm.append_block context "ifcont" parent in
@@ -603,23 +609,29 @@ and gen_if vars cond e1 e2 =
   Llvm.position_at_end merge_bb builder;
   { value = phi; typ = e1.typ; lltyp = e1.lltyp }
 
-and codegen_record vars typ labels alloca =
-  if !alloca then print_endline "alloca in record!";
-
+and codegen_record param typ labels allocref =
   let lltyp = get_lltype ~param:false ~field:true typ in
 
-  let record = Llvm.build_alloca lltyp "" builder in
+  let record =
+    match (!allocref, param.alloca) with
+    | true, Some value -> value
+    | true, None -> Llvm.build_alloca lltyp "" builder
+    | false, _ -> Llvm.build_alloca lltyp "" builder
+  in
+
   List.iteri
     (fun i (name, expr) ->
       let ptr = Llvm.build_struct_gep record i name builder in
-      let value = gen_expr vars expr |> func_to_closure vars in
+      let value =
+        gen_expr { param with alloca = Some ptr } expr |> func_to_closure param
+      in
       set_record_field value ptr)
     labels;
 
   { value = record; typ; lltyp }
 
-and codegen_field vars expr index =
-  let value = gen_expr vars expr in
+and codegen_field param expr index =
+  let value = gen_expr param expr in
 
   let typ =
     match value.typ with
@@ -640,9 +652,9 @@ and codegen_field vars expr index =
   in
   { value; typ; lltyp = Llvm.type_of value }
 
-and codegen_chain vars expr cont =
-  ignore (gen_expr vars expr);
-  gen_expr vars cont
+and codegen_chain param expr cont =
+  ignore (gen_expr param expr);
+  gen_expr param cont
 
 let decl_external (name, typ) =
   match typ with
@@ -680,7 +692,9 @@ let generate { Monomorph_tree.externals; records; tree; funcs } =
     in
 
     (* Generate functions *)
-    List.fold_left (fun acc func -> gen_function acc func) vars funcs
+    List.fold_left
+      (fun acc func -> gen_function acc func)
+      { vars; alloca = None } funcs
   in
 
   (* Add main *)
