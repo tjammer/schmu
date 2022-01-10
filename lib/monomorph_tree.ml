@@ -22,7 +22,7 @@ type expr =
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
-and monod_expr = { ex : monod_tree; monomorph : string option; tailrec : bool }
+and monod_expr = { ex : monod_tree; monomorph : string option }
 and monod_tree = { typ : typ; expr : expr }
 and alloca = bool ref
 
@@ -204,17 +204,17 @@ let subst_body subst tree =
   inner tree
 
 let monomorphize_call p expr =
-  if Typing.is_type_polymorphic expr.typ then (p, None, false)
+  if Typing.is_type_polymorphic expr.typ then (p, None)
   else
     match find_function_expr p.vars expr.expr with
-    | Concrete _ -> (* All good *) (p, None, false)
+    | Concrete _ -> (* All good *) (p, None)
     | Polymorphic func ->
         let typ = typ_of_abs func.abs in
         let name = get_mono_name func.name ~poly:typ expr.typ in
 
         if Set.mem name p.monomorphized then
           (* The function exists, we don't do anything right now *)
-          (p, Some name, false)
+          (p, Some name)
         else
           (* We generate the function *)
           let subst, typ = subst_type ~concrete:expr.typ typ in
@@ -226,12 +226,12 @@ let monomorphize_call p expr =
             :: p.funcs
           in
           let monomorphized = Set.add name p.monomorphized in
-          ({ p with funcs; monomorphized }, Some name, false)
-    | No_function -> (p, None, false)
+          ({ p with funcs; monomorphized }, Some name)
+    | No_function -> (p, None)
     | Forward_decl _ ->
         (* We don't have to do anything, because the correct function will be called in the first place.
            Except when it is called with different types recursively. We'll see *)
-        (p, None, true)
+        (p, None)
 
 let rec set_alloca = function
   | Value a -> a := true
@@ -374,12 +374,12 @@ and morph_lambda typ p id abs =
 and morph_app mk p callee args =
   let p, ex, (_, alloca) = morph_expr p callee in
   (* print_endline (show_to_gen_func_kind test); *)
-  let p, monomorph, tailrec = monomorphize_call p ex in
+  let p, monomorph = monomorphize_call p ex in
 
   let f p arg =
     let p, ex, _ = morph_expr p arg in
-    let p, monomorph, tailrec = monomorphize_call p ex in
-    (p, { ex; monomorph; tailrec })
+    let p, monomorph = monomorphize_call p ex in
+    (p, { ex; monomorph })
   in
   let p, args = List.fold_left_map f p args in
 
@@ -394,7 +394,7 @@ and morph_app mk p callee args =
   in
 
   ( p,
-    mk (Mapp { callee = { ex; monomorph; tailrec }; args; alloca = alloc_ref }),
+    mk (Mapp { callee = { ex; monomorph }; args; alloca = alloc_ref }),
     (No_function, ret_value) )
 
 let monomorphize { Typing.externals; records; tree } =
