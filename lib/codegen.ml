@@ -347,12 +347,13 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
           (* TODO Use this return struct for creation in the first place *)
           (* Since we only have POD records, we can safely memcpy here *)
           let dst = Llvm.(params func.value).(0) in
-          let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
-          let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
-          (* Should better be ret.typ here instead of ret_t *)
-          let size = sizeof_typ ret_t |> llval_of_size in
-          let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
-          ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder);
+          if ret.value <> dst then (
+            let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
+            let retptr = Llvm.build_bitcast ret.value voidptr_type "" builder in
+            (* Should better be ret.typ here instead of ret_t *)
+            let size = sizeof_typ ret_t |> llval_of_size in
+            let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
+            ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder));
           ignore (Llvm.build_ret_void builder)
       | Qvar _ -> failwith "Internal Error: Generic return"
       | _ ->
@@ -579,14 +580,16 @@ and gen_if vars cond e1 e2 =
   let phi =
     (* If the else evaluates to void, we don't do anything.
        Void will be added eventually *)
-    match e1.typ with
+    match e2.typ with
     | Tunit -> e1.value
     | _ ->
-        let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
-        Llvm.build_phi incoming "iftmp" builder
+        if e1.value <> e2.value then
+          let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
+          Llvm.build_phi incoming "iftmp" builder
+        else e1.value
   in
   Llvm.position_at_end start_bb builder;
-  Llvm.build_cond_br cond.value then_bb else_bb builder |> ignore;
+  ignore (Llvm.build_cond_br cond.value then_bb else_bb builder);
 
   Llvm.position_at_end e1_bb builder;
   ignore (Llvm.build_br merge_bb builder);
