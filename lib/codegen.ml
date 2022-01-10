@@ -51,6 +51,8 @@ let dummy_fn_value =
      in a monomorphized version *)
   { typ = Tunit; value = Llvm.const_int int_type (-1); lltyp = int_type }
 
+let sret_attrib = Llvm.create_enum_attr context "sret" Int64.zero
+
 let memcpy_decl =
   lazy
     (let open Llvm in
@@ -308,7 +310,9 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
 
       let start_index =
         match ret_t with
-        | Trecord _ -> 1
+        | Trecord _ ->
+            Llvm.(add_function_attr func.value sret_attrib (AttrIndex.Param 0));
+            1
         | Qvar _ -> failwith "qvar should not be returned"
         | _ -> 0
       in
