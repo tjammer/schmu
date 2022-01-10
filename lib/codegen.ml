@@ -441,9 +441,11 @@ and gen_expr vars typed_expr =
             dummy_fn_value
       in
       func
-  | Mapp { callee; args } -> gen_app vars callee args (clean typed_expr.typ)
+  | Mapp { callee; args; alloca } ->
+      gen_app vars callee args alloca (clean typed_expr.typ)
   | Mif (cond, e1, e2) -> gen_if vars cond e1 e2
-  | Mrecord labels -> codegen_record vars (clean typed_expr.typ) labels
+  | Mrecord (labels, alloca) ->
+      codegen_record vars (clean typed_expr.typ) labels alloca
   | Mfield (expr, index) -> codegen_field vars expr index
   | Mseq (expr, cont) -> codegen_chain vars expr cont
 
@@ -461,9 +463,8 @@ and gen_bop e1 e2 bop =
       { value; typ = Tbool; lltyp = bool_type }
   | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_type }
 
-and gen_app vars callee args ret_t =
-  let callee' = fst callee in
-  let func = gen_expr vars callee' in
+and gen_app vars callee args alloca ret_t =
+  let func = gen_expr vars callee.ex in
 
   (* Get monomorphized function *)
   let get_mono_func func = function
@@ -481,7 +482,7 @@ and gen_app vars callee args ret_t =
     | None -> func
   in
 
-  let func = get_mono_func func (snd callee) in
+  let func = get_mono_func func callee.monomorph in
 
   let kind =
     match func.typ with
@@ -493,8 +494,8 @@ and gen_app vars callee args ret_t =
   in
 
   let handle_arg arg =
-    let arg' = gen_expr vars (fst arg) in
-    let arg = get_mono_func arg' (snd arg) in
+    let arg' = gen_expr vars Monomorph_tree.(arg.ex) in
+    let arg = get_mono_func arg' arg.monomorph in
     (func_to_closure vars arg).value
   in
   let args = List.map handle_arg args in
@@ -533,21 +534,27 @@ and gen_app vars callee args ret_t =
               failwith "Internal Error: Not a recursive closure application")
   in
 
-  let value, lltyp =
+  let value, lltyp, call =
     match ret_t with
     | Trecord _ ->
         let lltyp = get_lltype ~param:false ret_t in
         let retval = Llvm.build_alloca lltyp "ret" builder in
         let ret' = Seq.return retval in
         let args = ret' ++ args ++ envarg |> Array.of_seq in
-        ignore (Llvm.build_call funcval args "" builder);
-        (retval, lltyp)
+        let call = Llvm.build_call funcval args "" builder in
+        (retval, lltyp, call)
     | t ->
         let args = args ++ envarg |> Array.of_seq in
         let retval = Llvm.build_call funcval args "" builder in
-        (retval, get_lltype t)
+        (retval, get_lltype t, retval)
   in
 
+  ignore call;
+
+  if !alloca then print_endline ("alloca in app! " ^ show_typ ret_t);
+
+  (* if callee.tailrec then *)
+  (* Llvm.set_tail_call true call; *)
   { value; typ = ret_t; lltyp }
 
 and gen_if vars cond e1 e2 =
@@ -589,7 +596,9 @@ and gen_if vars cond e1 e2 =
   Llvm.position_at_end merge_bb builder;
   { value = phi; typ = e1.typ; lltyp = e1.lltyp }
 
-and codegen_record vars typ labels =
+and codegen_record vars typ labels alloca =
+  if !alloca then print_endline "alloca in record!";
+
   let lltyp = get_lltype ~param:false ~field:true typ in
 
   let record = Llvm.build_alloca lltyp "" builder in
