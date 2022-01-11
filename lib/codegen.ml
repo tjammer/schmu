@@ -467,7 +467,7 @@ and gen_app param callee args allocref ret_t =
 
   (* Get monomorphized function *)
   let get_mono_func func = function
-    | Some name ->
+    | Monomorph_tree.Mono name ->
         let func = Vars.find name param.vars in
         (* Monomorphized functions are not yet converted to closures *)
         let func =
@@ -478,7 +478,8 @@ and gen_app param callee args allocref ret_t =
           | _ -> failwith "Internal Error: What are we applying?"
         in
         func
-    | None -> func
+    | Concrete name -> Vars.find name param.vars
+    | Default -> func
   in
 
   let func = get_mono_func func callee.monomorph in

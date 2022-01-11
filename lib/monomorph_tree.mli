@@ -21,7 +21,8 @@ type expr =
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
-and monod_expr = { ex : monod_tree; monomorph : string option }
+and call_name = Mono of string | Concrete of string | Default
+and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr }
 and alloca = bool ref
 

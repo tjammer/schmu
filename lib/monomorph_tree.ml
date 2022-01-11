@@ -22,7 +22,8 @@ type expr =
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
-and monod_expr = { ex : monod_tree; monomorph : string option }
+and call_name = Mono of string | Concrete of string | Default
+and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr }
 and alloca = bool ref
 
@@ -37,7 +38,7 @@ type monomorphized_tree = {
 }
 
 type to_gen_func_kind =
-  | Concrete of to_gen_func
+  | Concrete of to_gen_func * string
   | Polymorphic of to_gen_func
   | Forward_decl of string
   | No_function
@@ -204,17 +205,20 @@ let subst_body subst tree =
   inner tree
 
 let monomorphize_call p expr =
-  if Typing.is_type_polymorphic expr.typ then (p, None)
+  if Typing.is_type_polymorphic expr.typ then (p, Default)
   else
     match find_function_expr p.vars expr.expr with
-    | Concrete _ -> (* All good *) (p, None)
+    | Concrete (func, username) ->
+        (* If a named function gets a generated name, the call site has to be made aware *)
+        if not (String.equal func.name username) then (p, Concrete func.name)
+        else (p, Default)
     | Polymorphic func ->
         let typ = typ_of_abs func.abs in
         let name = get_mono_name func.name ~poly:typ expr.typ in
 
         if Set.mem name p.monomorphized then
           (* The function exists, we don't do anything right now *)
-          (p, Some name)
+          (p, Mono name)
         else
           (* We generate the function *)
           let subst, typ = subst_type ~concrete:expr.typ typ in
@@ -226,12 +230,12 @@ let monomorphize_call p expr =
             :: p.funcs
           in
           let monomorphized = Set.add name p.monomorphized in
-          ({ p with funcs; monomorphized }, Some name)
-    | No_function -> (p, None)
+          ({ p with funcs; monomorphized }, Mono name)
+    | No_function -> (p, Default)
     | Forward_decl _ ->
         (* We don't have to do anything, because the correct function will be called in the first place.
            Except when it is called with different types recursively. We'll see *)
-        (p, None)
+        (p, Default)
 
 let rec set_alloca = function
   | Value a -> a := true
@@ -338,7 +342,9 @@ and morph_func p (username, uniq, abs, cont) =
       let vars = Vars.add username (Polymorphic gen_func, alloca) p.vars in
       { p with vars }
     else
-      let vars = Vars.add username (Concrete gen_func, alloca) p.vars in
+      let vars =
+        Vars.add username (Concrete (gen_func, username), alloca) p.vars
+      in
       let funcs = gen_func :: p.funcs in
       { p with vars; funcs }
   in
@@ -367,7 +373,7 @@ and morph_lambda typ p id abs =
     if Typing.is_type_polymorphic typ then (p, Polymorphic gen_func)
     else
       let funcs = gen_func :: p.funcs in
-      ({ p with funcs }, Concrete gen_func)
+      ({ p with funcs }, Concrete (gen_func, name))
   in
   (p, { typ; expr = Mlambda (name, abs) }, (func, alloca))
 
