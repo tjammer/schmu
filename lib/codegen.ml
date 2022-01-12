@@ -12,7 +12,11 @@ end
 module Strtbl = Hashtbl.Make (Str)
 
 type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
-type param = { vars : llvar Vars.t; alloca : Llvm.llvalue option }
+
+type param = {
+  vars : llvar Vars.t;
+  alloca : Llvm.llvalue option; (* finalize : (llvar -> unit) option; *)
+}
 
 let ( ++ ) = Seq.append
 let record_tbl = Strtbl.create 32
@@ -298,6 +302,16 @@ let func_to_closure vars llvar =
     | Tfun (_, _, kind) -> pass_function vars.vars llvar kind
     | _ -> llvar
 
+let fun_return name ret =
+  match ret.typ with
+  | Trecord _ -> Llvm.build_ret_void builder
+  | Qvar _ -> failwith "Internal Error: Generic return"
+  | Tunit ->
+      if String.equal name "main" then
+        Llvm.(build_ret (const_int int_type 0)) builder
+      else Llvm.build_ret_void builder
+  | _ -> Llvm.build_ret ret.value builder
+
 let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
     { Monomorph_tree.abs; name; recursive } =
   let typ = Monomorph_tree.typ_of_abs abs in
@@ -324,6 +338,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
       (* We generate both the code for extracting the closure and add the vars to the environment *)
       let temp_vars = add_closure vars.vars func kind in
 
+      (* Add parameters to env *)
       let temp_vars, _ =
         List.fold_left2
           (fun (env, i) name typ ->
@@ -341,31 +356,24 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         if recursive then Vars.add name func temp_vars else temp_vars
       in
 
+      let fun_finalize ret =
+        (* If we want to return a struct, we copy the struct to
+            its ptr (1st parameter) and return void *)
+        match ret.typ with
+        | Trecord _ ->
+            (* Since we only have POD records, we can safely memcpy here *)
+            let dst = Llvm.(params func.value).(0) in
+            if ret.value <> dst then
+              let size = sizeof_typ ret_t |> llval_of_size in
+              memcpy ~dst ~src:ret ~size
+        | _ -> ()
+      in
+
+      (* let finalize = Some finalize_fun in *)
       let ret = gen_expr { vars = temp_vars; alloca } abs.body in
 
-      (* If we want to return a struct, we copy the struct to
-          its ptr (1st parameter) and return void *)
-      (match ret_t with
-      | Trecord _ ->
-          (* TODO Use this return struct for creation in the first place *)
-          (* Since we only have POD records, we can safely memcpy here *)
-          let dst = Llvm.(params func.value).(0) in
-          (if ret.value <> dst then
-           let size = sizeof_typ ret_t |> llval_of_size in
-           memcpy ~dst ~src:ret ~size);
-          ignore (Llvm.build_ret_void builder)
-      | Qvar _ -> failwith "Internal Error: Generic return"
-      | _ ->
-          (* TODO pattern match on unit *)
-          (* Don't return void type *)
-          ignore
-            (match ret.typ with
-            | Tunit ->
-                (* If we are in main, we return 0. Bit of a hack, but whatever *)
-                if String.equal name "main" then
-                  Llvm.(build_ret (const_int int_type 0)) builder
-                else Llvm.build_ret_void builder
-            | _ -> Llvm.build_ret ret.value builder));
+      fun_finalize ret;
+      ignore (fun_return name ret);
 
       if Llvm_analysis.verify_function func.value |> not then (
         Llvm.dump_module the_module;
@@ -442,7 +450,7 @@ and gen_expr param typed_expr =
       func
   | Mapp { callee; args; alloca } ->
       gen_app param callee args alloca (clean typed_expr.typ)
-  | Mif (cond, e1, e2) -> gen_if param cond e1 e2
+  | Mif expr -> gen_if param expr
   | Mrecord (labels, allocref) ->
       codegen_record param (clean typed_expr.typ) labels allocref
   | Mfield (expr, index) -> codegen_field param expr index
@@ -560,23 +568,23 @@ and gen_app param callee args allocref ret_t =
   (* Llvm.set_tail_call true call; *)
   { value; typ = ret_t; lltyp }
 
-and gen_if param cond e1 e2 =
+and gen_if param expr =
   (* If a function ends in a if expression (and returns a struct),
      we pass in the finalize step. This allows us to handle the branches
      differently and enables tail call elimination *)
-  let cond = gen_expr param cond in
+  let cond = gen_expr param expr.cond in
 
   let start_bb = Llvm.insertion_block builder in
   let parent = Llvm.block_parent start_bb in
   let then_bb = Llvm.append_block context "then" parent in
   Llvm.position_at_end then_bb builder;
-  let e1 = gen_expr param e1 in
+  let e1 = gen_expr param expr.e1 in
   (* Codegen can change the current bb *)
   let e1_bb = Llvm.insertion_block builder in
 
   let else_bb = Llvm.append_block context "else" parent in
   Llvm.position_at_end else_bb builder;
-  let e2 = gen_expr param e2 in
+  let e2 = gen_expr param expr.e2 in
 
   let e2_bb = Llvm.insertion_block builder in
   let merge_bb = Llvm.append_block context "ifcont" parent in

@@ -10,7 +10,7 @@ type expr =
   | Mvar of string
   | Mconst of const
   | Mbop of Ast.bop * monod_tree * monod_tree
-  | Mif of monod_tree * monod_tree * monod_tree
+  | Mif of ifexpr
   | Mlet of string * monod_tree * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
@@ -23,8 +23,9 @@ and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
 and call_name = Mono of string | Concrete of string | Default
 and monod_expr = { ex : monod_tree; monomorph : call_name }
-and monod_tree = { typ : typ; expr : expr }
+and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = bool ref
+and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
 type to_gen_func = { abs : abstraction; name : string; recursive : bool }
 

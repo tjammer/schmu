@@ -10,7 +10,7 @@ type expr =
   | Mvar of string
   | Mconst of const
   | Mbop of Ast.bop * monod_tree * monod_tree
-  | Mif of monod_tree * monod_tree * monod_tree
+  | Mif of ifexpr
   | Mlet of string * monod_tree * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
@@ -24,8 +24,9 @@ and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
 and call_name = Mono of string | Concrete of string | Default
 and monod_expr = { ex : monod_tree; monomorph : call_name }
-and monod_tree = { typ : typ; expr : expr }
+and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = bool ref
+and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
 type to_gen_func = { abs : abstraction; name : string; recursive : bool }
 (* [@@deriving show] *)
@@ -45,12 +46,18 @@ type to_gen_func_kind =
 (* [@@deriving show] *)
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
+type var = { fn : to_gen_func_kind; alloc : alloc }
 
 type morph_param = {
-  vars : (to_gen_func_kind * alloc) Vars.t;
+  vars : var Vars.t;
   monomorphized : Set.t;
   funcs : to_gen_func list; (* to generate in codegen *)
+  ret : bool;
+      (* Marks an expression where an if is the last piece which returns a record.
+         Needed for tail call elim *)
 }
+
+let no_var = { fn = No_function; alloc = No_value }
 
 let rec extract_alloca = function
   | Value a -> Some a
@@ -80,10 +87,8 @@ let lambda_name id = "__fun" ^ string_of_int id
 let find_function_expr vars = function
   | Mvar id -> (
       match Vars.find_opt id vars with
-      | Some thing -> fst thing
-      | None ->
-          (* print_endline ("Probably a parameter: " ^ id); *)
-          No_function)
+      | Some thing -> thing.fn
+      | None -> No_function)
   | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ -> No_function
   | Mlambda _ -> (* Concrete type is already inferred *) No_function
   | e ->
@@ -165,42 +170,42 @@ let subst_body subst tree =
     | Mvar _ -> { tree with typ = subst tree.typ }
     | Mconst _ -> tree
     | Mbop _ -> tree
-    | Mif (cond, e1, e2) ->
-        let cond = inner cond in
-        let e1 = sub e1 in
-        let e2 = sub e2 in
-        { typ = e1.typ; expr = Mif (cond, e1, e2) }
+    | Mif expr ->
+        let cond = inner expr.cond in
+        let e1 = sub expr.e1 in
+        let e2 = sub expr.e2 in
+        { tree with typ = e1.typ; expr = Mif { cond; e1; e2 } }
     | Mlet (id, expr, cont) ->
         let expr = sub expr in
         let cont = sub cont in
-        { typ = cont.typ; expr = Mlet (id, expr, cont) }
+        { tree with typ = cont.typ; expr = Mlet (id, expr, cont) }
     | Mlambda (name, abs) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
         in
         let typ = typ_of_abs abs in
-        { typ; expr = Mlambda (name, abs) }
+        { tree with typ; expr = Mlambda (name, abs) }
     | Mfunction (name, abs, cont) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
         in
         let cont = { (inner cont) with typ = subst cont.typ } in
-        { typ = cont.typ; expr = Mfunction (name, abs, cont) }
+        { tree with typ = cont.typ; expr = Mfunction (name, abs, cont) }
     | Mapp { callee; args; alloca } ->
         let callee = { callee with ex = sub callee.ex } in
 
         let args = List.map (fun arg -> { arg with ex = sub arg.ex }) args in
         let func = func_of_typ callee.ex.typ in
-        { typ = func.ret; expr = Mapp { callee; args; alloca } }
+        { tree with typ = func.ret; expr = Mapp { callee; args; alloca } }
     | Mrecord (labels, alloca) ->
         let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
-        { typ = subst tree.typ; expr = Mrecord (labels, alloca) }
+        { tree with typ = subst tree.typ; expr = Mrecord (labels, alloca) }
     | Mfield (expr, index) ->
-        { typ = subst tree.typ; expr = Mfield (sub expr, index) }
+        { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
     | Mseq (expr, cont) ->
         let expr = sub expr in
         let cont = sub cont in
-        { typ = cont.typ; expr = Mseq (expr, cont) }
+        { tree with typ = cont.typ; expr = Mseq (expr, cont) }
   in
   inner tree
 
@@ -245,10 +250,10 @@ let rec set_alloca = function
   | No_value -> ()
 
 let rec morph_expr param (texpr : Typing.typed_expr) =
-  let make expr = { typ = texpr.typ; expr } in
+  let make expr return = { typ = texpr.typ; expr; return } in
   match texpr.expr with
   | Typing.Var v -> morph_var make param v
-  | Const c -> (param, make (Mconst c), (No_function, No_value))
+  | Const c -> (param, make (Mconst c) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let (id, e1, e2) -> morph_let make param id e1 e2
@@ -261,46 +266,57 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
 
 and morph_var mk p v =
   let alloca =
-    match Vars.find_opt v p.vars with
-    | Some thing -> thing
-    | None -> (No_function, No_value)
+    match Vars.find_opt v p.vars with Some thing -> thing | None -> no_var
   in
-  (p, mk (Mvar v), alloca)
+  (p, mk (Mvar v) p.ret, alloca)
 
 and morph_bop mk p bop e1 e2 =
-  let p, e1, _ = morph_expr p e1 in
-  let p, e2, _ = morph_expr p e2 in
-  (p, mk (Mbop (bop, e1, e2)), (No_function, No_value))
+  let ret = p.ret in
+  (* The returning expr is bop, not one of the operands *)
+  let p, e1, _ = morph_expr { p with ret = false } e1 in
+  let p, e2, _ = morph_expr { p with ret = false } e2 in
+  ({ p with ret }, mk (Mbop (bop, e1, e2)) ret, no_var)
 
 and morph_if mk p cond e1 e2 =
-  let p, cond, _ = morph_expr p cond in
-  let p, e1, a = morph_expr p e1 in
-  let p, e2, b = morph_expr p e2 in
-  (p, mk (Mif (cond, e1, e2)), (fst a, Two_values (snd a, snd b)))
+  let ret = p.ret in
+  let p, cond, _ = morph_expr { p with ret = false } cond in
+  let p, e1, a = morph_expr { p with ret } e1 in
+  let p, e2, b = morph_expr { p with ret } e2 in
+  ( p,
+    mk (Mif { cond; e1; e2 }) ret,
+    { a with alloc = Two_values (a.alloc, b.alloc) } )
 
 and morph_let mk p id e1 e2 =
-  let p, e1, func = morph_expr p e1 in
+  let ret = p.ret in
+  let p, e1, func = morph_expr { p with ret = false } e1 in
   let p = { p with vars = Vars.add id func p.vars } in
-  let p, e2, func = morph_expr p e2 in
-  (p, mk (Mlet (id, e1, e2)), func)
+  let p, e2, func = morph_expr { p with ret } e2 in
+  (p, mk (Mlet (id, e1, e2)) ret, func)
 
 and morph_record mk p labels =
+  let ret = p.ret in
+  let p = { p with ret = false } in
+  (* ret = false is threaded through p *)
   let f param (id, e) =
     let p, e, _ = morph_expr param e in
     (p, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
   let alloca = ref false in
-  (p, mk (Mrecord (labels, alloca)), (No_function, Value alloca))
+  ( { p with ret },
+    mk (Mrecord (labels, alloca)) ret,
+    { fn = No_function; alloc = Value alloca } )
 
 and morph_field mk p expr index =
-  let p, e, func = morph_expr p expr in
-  (p, mk (Mfield (e, index)), func)
+  let ret = p.ret in
+  let p, e, func = morph_expr { p with ret = false } expr in
+  ({ p with ret }, mk (Mfield (e, index)) ret, func)
 
 and morph_seq mk p expr cont =
-  let p, expr, _ = morph_expr p expr in
-  let p, cont, func = morph_expr p cont in
-  (p, mk (Mseq (expr, cont)), func)
+  let ret = p.ret in
+  let p, expr, _ = morph_expr { p with ret = false } expr in
+  let p, cont, func = morph_expr { p with ret } cont in
+  (p, mk (Mseq (expr, cont)) ret, func)
 
 and morph_func p (username, uniq, abs, cont) =
   (* If the function is concretely typed, we add it to the function list and
@@ -316,41 +332,46 @@ and morph_func p (username, uniq, abs, cont) =
   in
   let pnames = abs.nparams in
 
+  let ret = p.ret in
   (* Make sure recursion works and the current function can be used in its body *)
   let temp_p =
-    match (recursive, abs.tp.ret) with
-    | true, Trecord _ ->
-        let value = (Forward_decl name, Value (ref false)) in
+    match abs.tp.ret with
+    | Trecord _ ->
+        let value = { fn = Forward_decl name; alloc = Value (ref false) } in
         let vars = Vars.add username value p.vars in
-        { p with vars }
-    | _ -> p
+        { p with vars; ret = true }
+        (* ret = true because this is used in the body of a new function *)
+    | _ -> { p with ret = true }
   in
 
-  let temp_p, body, (_, alloca) = morph_expr temp_p abs.body in
+  let temp_p, body, { fn = _; alloc } = morph_expr temp_p abs.body in
 
   (* print_endline (show_expr body.expr); *)
-  (match body.typ with Trecord _ -> set_alloca alloca | _ -> ());
+  (match body.typ with Trecord _ -> set_alloca alloc | _ -> ());
 
   let abs = { func; pnames; body } in
   let gen_func = { abs; name; recursive } in
 
+  (* Collect functions from body *)
   let p =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
   let p =
     if Typing.is_type_polymorphic ftyp then
-      let vars = Vars.add username (Polymorphic gen_func, alloca) p.vars in
+      let vars =
+        Vars.add username { fn = Polymorphic gen_func; alloc } p.vars
+      in
       { p with vars }
     else
       let vars =
-        Vars.add username (Concrete (gen_func, username), alloca) p.vars
+        Vars.add username { fn = Concrete (gen_func, username); alloc } p.vars
       in
       let funcs = gen_func :: p.funcs in
       { p with vars; funcs }
   in
 
-  let p, cont, func = morph_expr p cont in
-  (p, { typ = cont.typ; expr = Mfunction (name, abs, cont) }, func)
+  let p, cont, func = morph_expr { p with ret } cont in
+  (p, { typ = cont.typ; expr = Mfunction (name, abs, cont); return = ret }, func)
 
 and morph_lambda typ p id abs =
   let name = lambda_name id in
@@ -360,26 +381,34 @@ and morph_lambda typ p id abs =
   in
   let pnames = abs.nparams in
 
+  let ret = p.ret in
   let vars = p.vars in
-  let p, body, (_, alloca) = morph_expr p abs.body in
+  let tmp, body, { fn = _; alloc } =
+    morph_expr { p with ret = true } abs.body
+  in
 
-  (match abs.tp.ret with Trecord _ -> set_alloca alloca | _ -> ());
+  (* Collect functions from body *)
+  let p = { p with monomorphized = tmp.monomorphized; funcs = tmp.funcs } in
+
+  (match abs.tp.ret with Trecord _ -> set_alloca alloc | _ -> ());
 
   let abs = { func; pnames; body } in
   let gen_func = { abs; name; recursive } in
 
   let p = { p with vars } in
-  let p, func =
+  let p, fn =
     if Typing.is_type_polymorphic typ then (p, Polymorphic gen_func)
     else
       let funcs = gen_func :: p.funcs in
       ({ p with funcs }, Concrete (gen_func, name))
   in
-  (p, { typ; expr = Mlambda (name, abs) }, (func, alloca))
+  ( { p with ret },
+    { typ; expr = Mlambda (name, abs); return = ret },
+    { fn; alloc } )
 
 and morph_app mk p callee args =
-  let p, ex, (_, alloca) = morph_expr p callee in
-  (* print_endline (show_to_gen_func_kind test); *)
+  let ret = p.ret in
+  let p, ex, { fn = _; alloc } = morph_expr { p with ret = false } callee in
   let p, monomorph = monomorphize_call p ex in
 
   let f p arg =
@@ -389,21 +418,23 @@ and morph_app mk p callee args =
   in
   let p, args = List.fold_left_map f p args in
 
-  let ret_value, alloc_ref =
+  let alloc, alloc_ref =
     match clean ex.typ with
     | Tfun (_, Trecord _, _) -> (
-        ( alloca,
-          match extract_alloca alloca with
+        ( alloc,
+          match extract_alloca alloc with
           | Some alloca -> alloca
           | None -> ref false ))
     | _ -> (No_value, ref false)
   in
 
-  ( p,
-    mk (Mapp { callee = { ex; monomorph }; args; alloca = alloc_ref }),
-    (No_function, ret_value) )
+  ( { p with ret },
+    mk (Mapp { callee = { ex; monomorph }; args; alloca = alloc_ref }) ret,
+    { no_var with alloc } )
 
 let monomorphize { Typing.externals; records; tree } =
-  let param = { vars = Vars.empty; monomorphized = Set.empty; funcs = [] } in
+  let param =
+    { vars = Vars.empty; monomorphized = Set.empty; funcs = []; ret = false }
+  in
   let p, tree, _ = morph_expr param tree in
   { externals; records; tree; funcs = p.funcs }
