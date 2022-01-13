@@ -126,33 +126,23 @@ Nested records
     store i32 0, i32* %a1, align 4
     %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     call void @inner(%inner* %b)
-    %1 = bitcast %inner* %b to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %1, i64 4, i1 false)
-    %2 = bitcast %inner* %b to i32*
-    %3 = load i32, i32* %2, align 4
-    call void @printi(i32 %3)
-    %4 = alloca %t_int, align 8
-    %x2 = bitcast %t_int* %4 to i32*
+    %1 = bitcast %inner* %b to i32*
+    %2 = load i32, i32* %1, align 4
+    call void @printi(i32 %2)
+    %3 = alloca %t_int, align 8
+    %x2 = bitcast %t_int* %3 to i32*
     store i32 17, i32* %x2, align 4
-    %inner = getelementptr inbounds %t_int, %t_int* %4, i32 0, i32 1
-    %5 = alloca %p_inner_innerst_int, align 8
-    %y3 = bitcast %p_inner_innerst_int* %5 to %innerst_int*
-    %6 = alloca %innerst_int, align 8
-    %z4 = bitcast %innerst_int* %6 to i32*
+    %inner = getelementptr inbounds %t_int, %t_int* %3, i32 0, i32 1
+    %y3 = bitcast %p_inner_innerst_int* %inner to %innerst_int*
+    %z4 = bitcast %innerst_int* %y3 to i32*
     store i32 124, i32* %z4, align 4
-    %7 = bitcast %innerst_int* %y3 to i8*
-    %8 = bitcast %innerst_int* %6 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 4, i1 false)
-    %9 = bitcast %p_inner_innerst_int* %inner to i8*
-    %10 = bitcast %p_inner_innerst_int* %5 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* %10, i64 4, i1 false)
     %ret = alloca %t_int, align 8
-    call void @__g.g___fun0_ti.ti(%t_int* %ret, %t_int* %4)
-    %11 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
-    %12 = bitcast %p_inner_innerst_int* %11 to %innerst_int*
-    %13 = bitcast %innerst_int* %12 to i32*
-    %14 = load i32, i32* %13, align 4
-    call void @printi(i32 %14)
+    call void @__g.g___fun0_ti.ti(%t_int* %ret, %t_int* %3)
+    %4 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
+    %5 = bitcast %p_inner_innerst_int* %4 to %innerst_int*
+    %6 = bitcast %innerst_int* %5 to i32*
+    %7 = load i32, i32* %6, align 4
+    call void @printi(i32 %7)
     ret i32 0
   }
   
