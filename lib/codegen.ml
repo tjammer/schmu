@@ -15,7 +15,8 @@ type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
 
 type param = {
   vars : llvar Vars.t;
-  alloca : Llvm.llvalue option; (* finalize : (llvar -> unit) option; *)
+  alloca : Llvm.llvalue option;
+  finalize : (llvar -> unit) option;
 }
 
 let ( ++ ) = Seq.append
@@ -366,13 +367,13 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
             if ret.value <> dst then
               let size = sizeof_typ ret_t |> llval_of_size in
               memcpy ~dst ~src:ret ~size
+            else ()
         | _ -> ()
       in
 
-      (* let finalize = Some finalize_fun in *)
-      let ret = gen_expr { vars = temp_vars; alloca } abs.body in
+      let finalize = Some fun_finalize in
+      let ret = gen_expr { vars = temp_vars; alloca; finalize } abs.body in
 
-      fun_finalize ret;
       ignore (fun_return name ret);
 
       if Llvm_analysis.verify_function func.value |> not then (
@@ -387,34 +388,30 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
       failwith "Interal Error: generating non-function"
 
 and gen_expr param typed_expr =
+  let fin e =
+    match (typed_expr.return, param.finalize) with
+    | true, Some f ->
+        f e;
+        e
+    | true, None | false, _ -> e
+  in
+
   match typed_expr.expr with
   | Monomorph_tree.Mconst (Int i) ->
-      { value = Llvm.const_int int_type i; typ = Tint; lltyp = int_type }
+      { value = Llvm.const_int int_type i; typ = Tint; lltyp = int_type } |> fin
   | Mconst (Bool b) ->
       {
         value = Llvm.const_int bool_type (Bool.to_int b);
         typ = Tbool;
         lltyp = bool_type;
       }
+      |> fin
   | Mconst Unit -> failwith "TODO"
   | Mbop (bop, e1, e2) ->
       let e1 = gen_expr param e1 in
       let e2 = gen_expr param e2 in
-      gen_bop e1 e2 bop
-  | Mvar id -> (
-      match Vars.find_opt id param.vars with
-      | Some v -> v
-      | None -> (
-          match typed_expr.typ with
-          | Tfun _ ->
-              (* If a function is polymorphic then its original value might not be bound
-                 when we generate other function. In this case, we can just return a
-                 dummy value *)
-              dummy_fn_value
-          | _ ->
-              (* If the variable isn't bound, something went wrong before *)
-              failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
-      )
+      gen_bop e1 e2 bop |> fin
+  | Mvar id -> gen_var param.vars typed_expr.typ id |> fin
   | Mfunction (name, abs, cont) ->
       (* The functions are already generated *)
       let func =
@@ -449,12 +446,26 @@ and gen_expr param typed_expr =
       in
       func
   | Mapp { callee; args; alloca } ->
-      gen_app param callee args alloca (clean typed_expr.typ)
-  | Mif expr -> gen_if param expr
+      gen_app param callee args alloca (clean typed_expr.typ) |> fin
+  | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref) ->
-      codegen_record param (clean typed_expr.typ) labels allocref
-  | Mfield (expr, index) -> codegen_field param expr index
+      codegen_record param (clean typed_expr.typ) labels allocref |> fin
+  | Mfield (expr, index) -> codegen_field param expr index |> fin
   | Mseq (expr, cont) -> codegen_chain param expr cont
+
+and gen_var vars typ id =
+  match Vars.find_opt id vars with
+  | Some v -> v
+  | None -> (
+      match typ with
+      | Tfun _ ->
+          (* If a function is polymorphic then its original value might not be bound
+             when we generate other function. In this case, we can just return a
+             dummy value *)
+          dummy_fn_value
+      | _ ->
+          (* If the variable isn't bound, something went wrong before *)
+          failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
 
 and gen_bop e1 e2 bop =
   let bld f str = f e1.value e2.value str builder in
@@ -568,10 +579,11 @@ and gen_app param callee args allocref ret_t =
   (* Llvm.set_tail_call true call; *)
   { value; typ = ret_t; lltyp }
 
-and gen_if param expr =
+and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),
      we pass in the finalize step. This allows us to handle the branches
      differently and enables tail call elimination *)
+  let rec_return = match expr.e1.typ with Trecord _ -> return | _ -> false in
   let cond = gen_expr param expr.cond in
 
   let start_bb = Llvm.insertion_block builder in
@@ -579,6 +591,7 @@ and gen_if param expr =
   let then_bb = Llvm.append_block context "then" parent in
   Llvm.position_at_end then_bb builder;
   let e1 = gen_expr param expr.e1 in
+
   (* Codegen can change the current bb *)
   let e1_bb = Llvm.insertion_block builder in
 
@@ -596,7 +609,9 @@ and gen_if param expr =
     match e2.typ with
     | Tunit -> e1.value
     | _ ->
-        if e1.value <> e2.value then
+        (* Small optimization: If we happen to end up with the same value,
+           we don't generate a phi node (can happen in recursion) *)
+        if e1.value <> e2.value || rec_return then
           let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
           Llvm.build_phi incoming "iftmp" builder
         else e1.value
@@ -697,7 +712,8 @@ let generate { Monomorph_tree.externals; records; tree; funcs } =
     (* Generate functions *)
     List.fold_left
       (fun acc func -> gen_function acc func)
-      { vars; alloca = None } funcs
+      { vars; alloca = None; finalize = None }
+      funcs
   in
 
   (* Add main *)

@@ -499,17 +499,16 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   entry:
     %1 = bitcast %t_bool* %r to i1*
     %2 = load i1, i1* %1, align 1
-    br i1 %2, label %then, label %ifcont
+    br i1 %2, label %then, label %else
   
   then:                                             ; preds = %entry
     %x1 = bitcast %t_bool* %0 to i1*
     store i1 false, i1* %x1, align 1
-    br label %ifcont
+    ret void
   
-  ifcont:                                           ; preds = %entry, %then
-    %iftmp = phi %t_bool* [ %0, %then ], [ %r, %entry ]
+  else:                                             ; preds = %entry
     %3 = bitcast %t_bool* %0 to i8*
-    %4 = bitcast %t_bool* %iftmp to i8*
+    %4 = bitcast %t_bool* %r to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 1, i1 false)
     ret void
   }
