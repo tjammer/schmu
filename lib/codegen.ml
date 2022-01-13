@@ -200,8 +200,9 @@ let memcpy ~dst ~src ~size =
 let set_record_field value ptr =
   match value.typ with
   | Trecord _ ->
-      let size = sizeof_typ value.typ |> llval_of_size in
-      memcpy ~dst:ptr ~src:value ~size
+      if value.value <> ptr then
+        let size = sizeof_typ value.typ |> llval_of_size in
+        memcpy ~dst:ptr ~src:value ~size
   | _ -> ignore (Llvm.build_store value.value ptr builder)
 
 let declare_function fun_name = function
@@ -633,8 +634,7 @@ and codegen_record param typ labels allocref =
   let record =
     match (!allocref, param.alloca) with
     | true, Some value -> value
-    | true, None -> Llvm.build_alloca lltyp "" builder
-    | false, _ -> Llvm.build_alloca lltyp "" builder
+    | true, None | false, _ -> Llvm.build_alloca lltyp "" builder
   in
 
   List.iteri

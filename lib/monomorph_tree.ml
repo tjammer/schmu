@@ -298,7 +298,8 @@ and morph_record mk p labels =
   let p = { p with ret = false } in
   (* ret = false is threaded through p *)
   let f param (id, e) =
-    let p, e, _ = morph_expr param e in
+    let p, e, { fn = _; alloc } = morph_expr param e in
+    (match e.typ with Trecord _ -> set_alloca alloc | _ -> ());
     (p, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
@@ -346,7 +347,6 @@ and morph_func p (username, uniq, abs, cont) =
 
   let temp_p, body, { fn = _; alloc } = morph_expr temp_p abs.body in
 
-  (* print_endline (show_expr body.expr); *)
   (match body.typ with Trecord _ -> set_alloca alloc | _ -> ());
 
   let abs = { func; pnames; body } in
@@ -358,14 +358,12 @@ and morph_func p (username, uniq, abs, cont) =
   in
   let p =
     if Typing.is_type_polymorphic ftyp then
-      let vars =
-        Vars.add username { fn = Polymorphic gen_func; alloc } p.vars
-      in
+      let fn = Polymorphic gen_func in
+      let vars = Vars.add username { fn; alloc } p.vars in
       { p with vars }
     else
-      let vars =
-        Vars.add username { fn = Concrete (gen_func, username); alloc } p.vars
-      in
+      let fn = Concrete (gen_func, username) in
+      let vars = Vars.add username { fn; alloc } p.vars in
       let funcs = gen_func :: p.funcs in
       { p with vars; funcs }
   in
