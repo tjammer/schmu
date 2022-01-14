@@ -24,7 +24,8 @@ fn int_of_bool(b)
 
 printi(apply(0, add1)) >>
 printi(apply(1, fn (x) x + 1)) >>
-printi(int_of_bool(apply(true, makefalse))) >>
+-- printi(int_of_bool(apply(true, makefalse))) >>
+true->apply(makefalse)->int_of_bool->printi >>
 printi(apply(3, fn (x) x)) -- Should be inferred with concrete type
 >> printi(apply(4, pass))
 -- >> printi(apply(5, pass2))

@@ -35,8 +35,11 @@
 %token Quote
 %token MuchGreater
 %token End
+%token Pipe_tail
 
 %nonassoc Less
+%left MuchGreater
+%left Arrow Pipe_tail Dot
 %left Plus
 %left Mult
 
@@ -73,6 +76,8 @@ expr:
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
   | expr; Dot; Identifier { Field ($loc, $1, $3) }
   | expr; MuchGreater; expr { Sequence ($loc, $1, $3) }
+  | expr; Arrow; expr { Pipe_head ($loc, $1, $3) }
+  | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
 
 %inline record_item:
   | Identifier; Equal; expr { $1, $3 }

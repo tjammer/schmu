@@ -157,6 +157,30 @@ let test_para_instance_wrong_func () =
     "type foo('a) = { gen : 'a } fn use(foo) foo.gen + 17 foo = { gen = 17 } \
      use( { gen = true } )"
 
+let test_pipe_head_single () = test "int" "fn add1(a) a + 1 10->add1"
+let test_pipe_head_single_call () = test "int" "fn add1(a) a + 1 10->add1()"
+
+let test_pipe_head_single_wrong_type () =
+  test_exn " Expected type int -> 'a but got type int" "add1 = 1 10->add1"
+
+let test_pipe_head_mult () = test "int" "fn add(a, b) a + b 10->add(12)"
+
+let test_pipe_head_mult_wrong_type () =
+  test_exn " Arity in function: Expected type 2 but got type 1"
+    "fn add1(a) a + 1 10->add1(12)"
+
+let test_pipe_tail_single () = test "int" "fn add1(a) a + 1 10->>add1"
+let test_pipe_tail_single_call () = test "int" "fn add1(a) a + 1 10->>add1()"
+
+let test_pipe_tail_single_wrong_type () =
+  test_exn " Expected type int -> 'a but got type int" "add1 = 1 10->>add1"
+
+let test_pipe_tail_mult () = test "int" "fn add(a, b) a + b 10->>add(12)"
+
+let test_pipe_tail_mult_wrong_type () =
+  test_exn " Arity in function: Expected type 2 but got type 1"
+    "fn add1(a) a + 1 10->>add1(12)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -219,5 +243,18 @@ let () =
           case "multiple" test_para_multiple;
           case "instance_func" test_para_instance_func;
           case "instance_wrong_func" test_para_instance_wrong_func;
+        ] );
+      ( "piping",
+        [
+          case "head_single" test_pipe_head_single;
+          case "head_single_call" test_pipe_head_single_call;
+          case "head_single_wrong_type" test_pipe_head_single_wrong_type;
+          case "head_mult" test_pipe_head_mult;
+          case "head_mult_wrong_type" test_pipe_head_mult_wrong_type;
+          case "tail_single" test_pipe_tail_single;
+          case "tail_single_call" test_pipe_tail_single_call;
+          case "tail_single_wrong_type" test_pipe_tail_single_wrong_type;
+          case "tail_mult" test_pipe_tail_mult;
+          case "tail_mult_wrong_type" test_pipe_tail_mult_wrong_type;
         ] );
     ]

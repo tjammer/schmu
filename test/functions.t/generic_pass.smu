@@ -8,5 +8,7 @@ fn pass(x)
 fn apply(f, x)
   f(x)
 
-printi(apply(pass, 20)) >>
-printi(apply(pass, { i = 700, b = false }).i)
+-- printi(apply(pass, 20)) >>
+20->>apply(pass)->printi >>
+-- printi(apply(pass, { i = 700, b = false }).i)
+{ i = 700, b = false }->>apply(pass).i->printi

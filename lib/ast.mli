@@ -33,6 +33,8 @@ and expr =
   | Record of loc * (string * expr) list
   | Field of loc * expr * string
   | Sequence of loc * expr * expr
+  | Pipe_head of loc * expr * expr
+  | Pipe_tail of loc * expr * expr
 
 type external_decl = loc * string * type_expr
 

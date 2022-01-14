@@ -487,12 +487,14 @@ and typeof_annotated env annot = function
   | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
   | Function (loc, { name; params; return_annot; body; cont }) ->
       typeof_function env loc name params return_annot body cont
-  | App (loc, e1, e2) -> typeof_app env loc e1 e2
+  | App (loc, e1, e2) -> typeof_app ~switch_uni:false env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
   | Record (loc, labels) -> typeof_record env loc annot labels
   | Field (loc, expr, id) -> typeof_field env loc expr id
   | Sequence (loc, expr, cont) -> typeof_sequence env loc expr cont
+  | Pipe_head (loc, e1, e2) -> typeof_pipe_head env loc e1 e2
+  | Pipe_tail (loc, e1, e2) -> typeof_pipe_tail env loc e1 e2
 
 and typeof_var env loc v =
   (* find_opt would work here, but we use query for consistency with convert_var *)
@@ -555,11 +557,13 @@ and typeof_function env loc name params ret_annot body cont =
       typeof env cont
   | _ -> failwith "Internal Error: Tfun not Tfun"
 
-and typeof_app env loc e1 args =
+and typeof_app ~switch_uni env loc e1 args =
   let type_fun = typeof env e1 in
   let type_args = List.map (typeof env) args in
   let type_res = newvar () in
-  unify (loc, "") type_fun (Tfun (type_args, type_res, Simple));
+  if switch_uni then
+    unify (loc, "") (Tfun (type_args, type_res, Simple)) type_fun
+  else unify (loc, "") type_fun (Tfun (type_args, type_res, Simple));
   type_res
 
 and typeof_if env loc cond e1 e2 =
@@ -658,6 +662,26 @@ and typeof_sequence env loc expr cont =
   unify (loc, "Left expression in sequence must be type unit:") Tunit t1;
   typeof env cont
 
+and typeof_pipe_head env loc e1 e2 =
+  let switch_uni = true in
+  match e2 with
+  | App (_, callee, args) ->
+      (* Add e1 to beginnig of args *)
+      typeof_app ~switch_uni env loc callee (e1 :: args)
+  | _ ->
+      (* Should be a lone id, if not we let it fail in _app *)
+      typeof_app ~switch_uni env loc e2 [ e1 ]
+
+and typeof_pipe_tail env loc e1 e2 =
+  let switch_uni = true in
+  match e2 with
+  | App (_, callee, args) ->
+      (* Add e1 to beginnig of args *)
+      typeof_app ~switch_uni env loc callee (args @ [ e1 ])
+  | _ ->
+      (* Should be a lone id, if not we let it fail in _app *)
+      typeof_app ~switch_uni env loc e2 [ e1 ]
+
 let extern_vars decls =
   let externals =
     List.map
@@ -735,12 +759,14 @@ and convert_annot env annot = function
   | Let (loc, x, e1, e2) -> convert_let env loc x e1 e2
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | Function (loc, func) -> convert_function env loc func
-  | App (loc, e1, e2) -> convert_app env loc e1 e2
+  | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
   | Record (loc, labels) -> convert_record env loc annot labels
   | Field (loc, expr, id) -> convert_field env loc expr id
   | Sequence (loc, expr, cont) -> convert_sequence env loc expr cont
+  | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
+  | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
 
 and convert_var env loc id =
   match Env.query_opt id env with
@@ -853,13 +879,15 @@ and convert_function env loc { name; params; return_annot; body; cont } =
       { typ = typ2.typ; expr = Function (name, unique, lambda, typ2) }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
-and convert_app env loc e1 args =
+and convert_app ~switch_uni env loc e1 args =
   let callee = convert env e1 in
 
   let typed_exprs = List.map (convert env) args in
   let args_t = List.map (fun a -> a.typ) typed_exprs in
   let res_t = newvar () in
-  unify (loc, "Application") callee.typ (Tfun (args_t, res_t, Simple));
+  if switch_uni then
+    unify (loc, "Application") callee.typ (Tfun (args_t, res_t, Simple))
+  else unify (loc, "Application") (Tfun (args_t, res_t, Simple)) callee.typ;
 
   let apply typ texpr = { texpr with typ } in
   let targs = List.map2 apply args_t typed_exprs in
@@ -978,6 +1006,26 @@ and convert_sequence env loc expr cont =
   unify (loc, "Left expression in sequence must be type unit:") Tunit expr.typ;
   let cont = convert env cont in
   { typ = cont.typ; expr = Sequence (expr, cont) }
+
+and convert_pipe_head env loc e1 e2 =
+  let switch_uni = true in
+  match e2 with
+  | App (_, callee, args) ->
+      (* Add e1 to beginnig of args *)
+      convert_app ~switch_uni env loc callee (e1 :: args)
+  | _ ->
+      (* Should be a lone id, if not we let it fail in _app *)
+      convert_app ~switch_uni env loc e2 [ e1 ]
+
+and convert_pipe_tail env loc e1 e2 =
+  let switch_uni = true in
+  match e2 with
+  | App (_, callee, args) ->
+      (* Add e1 to beginnig of args *)
+      convert_app ~switch_uni env loc callee (args @ [ e1 ])
+  | _ ->
+      (* Should be a lone id, if not we let it fail in _app *)
+      convert_app ~switch_uni env loc e2 [ e1 ]
 
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();
