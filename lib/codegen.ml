@@ -517,10 +517,10 @@ and gen_app param callee args allocref ret_t =
 
   let func = get_mono_func func callee.monomorph in
 
-  let kind =
+  let ret, kind =
     match func.typ with
     (* TODO we pattern match on the same thing above *)
-    | Tfun (_, _, kind) -> kind
+    | Tfun (_, ret, kind) -> ret, kind
     | Tunit ->
         failwith "Internal Error: Probably cannot find monomorphized function"
     | _ -> failwith "Internal Error: Not a func in gen app"
@@ -589,9 +589,7 @@ and gen_app param callee args allocref ret_t =
 
   ignore call;
 
-  (* if callee.tailrec then *)
-  (* Llvm.set_tail_call true call; *)
-  { value; typ = ret_t; lltyp }
+  { value; typ = ret; lltyp }
 
 and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),
