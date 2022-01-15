@@ -22,8 +22,7 @@ type func = {
 
 and expr =
   | Var of loc * string
-  | Int of loc * int
-  | Bool of loc * bool
+  | Lit of loc * literal
   | Bop of loc * bop * expr * expr
   | If of loc * expr * expr * expr
   | Let of loc * decl * expr * expr
@@ -35,6 +34,8 @@ and expr =
   | Sequence of loc * expr * expr
   | Pipe_head of loc * expr * expr
   | Pipe_tail of loc * expr * expr
+
+and literal = Int of int | Bool of bool | Char of char | String of string
 
 type external_decl = loc * string * type_expr
 

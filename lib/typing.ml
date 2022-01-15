@@ -15,7 +15,7 @@ type expr =
 [@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr }
-and const = Int of int | Bool of bool | Unit
+and const = Int of int | Bool of bool | Unit | Char of char | String of string
 and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
 and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
@@ -95,7 +95,8 @@ let is_type_polymorphic typ =
     | Tfun (params, ret, _) ->
         let acc = List.fold_left inner acc params in
         inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ -> acc
+    | Tbool | Tunit | Tint | Trecord _ | Tchar -> acc
+    | Tptr t -> inner acc t
   in
   inner false typ
 
@@ -160,6 +161,7 @@ let string_of_type typ =
     | Tint -> "int"
     | Tbool -> "bool"
     | Tunit -> "unit"
+    | Tchar -> "char"
     | Tfun (ts, t, _) -> (
         match ts with
         | [ p ] ->
@@ -176,6 +178,7 @@ let string_of_type typ =
         ^ Option.fold ~none:""
             ~some:(fun param -> Printf.sprintf "(%s)" (string_of_type param))
             param
+    | Tptr t -> Printf.sprintf "ptr(%s)" (string_of_type t)
   in
 
   string_of_type typ
@@ -378,16 +381,19 @@ let typeof_annot ?(typedef = false) env loc annot =
         | Trecord (Some (Qvar _), name, _) ->
             raise (Error (loc, "Type " ^ name ^ " needs a type parameter"))
         | t -> t)
-    | lst -> nested_record lst
-  and nested_record lst =
+    | lst -> container_t lst
+  and container_t lst =
     match lst with
     | [] -> failwith "Internal Error: Type record list should not be empty"
     | [ t ] -> concrete_type t
+    | Ty_id "ptr" :: tl ->
+        let nested = container_t tl in
+        Tptr nested
     | hd :: tl -> (
         match concrete_type hd with
         | (Trecord (Some (Qvar id), _, _) as t)
         | (Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _) as t) ->
-            let nested = nested_record tl in
+            let nested = container_t tl in
             subst ~id nested t
         | t ->
             raise
@@ -481,8 +487,10 @@ let rec typeof env expr = typeof_annotated env None expr
 
 and typeof_annotated env annot = function
   | Ast.Var (loc, v) -> typeof_var env loc v
-  | Int (_, _) -> Tint
-  | Bool (_, _) -> Tbool
+  | Lit (_, Int _) -> Tint
+  | Lit (_, Bool _) -> Tbool
+  | Lit (_, Char _) -> Tchar
+  | Lit (_, String _) -> Tptr Tchar
   | Let (loc, x, e1, e2) -> typeof_let env loc x e1 e2
   | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
   | Function (loc, { name; params; return_annot; body; cont }) ->
@@ -754,8 +762,10 @@ let rec convert env expr = convert_annot env None expr
 
 and convert_annot env annot = function
   | Ast.Var (loc, id) -> convert_var env loc id
-  | Int (_, i) -> { typ = Tint; expr = Const (Int i) }
-  | Bool (_, b) -> { typ = Tbool; expr = Const (Bool b) }
+  | Lit (_, Int i) -> { typ = Tint; expr = Const (Int i) }
+  | Lit (_, Bool b) -> { typ = Tbool; expr = Const (Bool b) }
+  | Lit (_, Char c) -> { typ = Tchar; expr = Const (Char c) }
+  | Lit (_, String s) -> { typ = Tptr Tchar; expr = Const (String s) }
   | Let (loc, x, e1, e2) -> convert_let env loc x e1 e2
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | Function (loc, func) -> convert_function env loc func

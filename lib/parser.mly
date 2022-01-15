@@ -63,8 +63,8 @@ prog: list(external_decl); list(typedef); expr; Eof
 
 expr:
   | Identifier { Var($loc, $1) }
-  | Int { Int($loc, $1) }
-  | bool { Bool($loc, $1) }
+  | Int { Lit($loc, Int $1) }
+  | bool { Lit($loc, Bool  $1) }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
   | If; expr; Then; expr; Else; expr; option(End) { If($loc, $2, $4, $6)}
   | decl; Equal; expr; expr { Let($loc, $1, $3, $4) }

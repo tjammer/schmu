@@ -2,10 +2,12 @@ type typ =
   | Tint
   | Tbool
   | Tunit
+  | Tchar
   | Tvar of tv ref
   | Qvar of string
   | Tfun of typ list * typ * fun_kind
   | Trecord of typ option * string * (string * typ) array
+  | Tptr of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list

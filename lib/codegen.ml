@@ -41,6 +41,7 @@ let builder = Llvm.builder context
 let int_type = Llvm.i32_type context
 let num_type = Llvm.i64_type context
 let bool_type = Llvm.i1_type context
+let char_type = Llvm.i8_type context
 let unit_type = Llvm.void_type context
 let voidptr_type = Llvm.(i8_type context |> pointer_type)
 
@@ -87,6 +88,7 @@ let rec get_lltype ?(param = true) ?(field = false) = function
      get the correct type though to cast it back. All this is handled by [param]. *)
   | Tint -> int_type
   | Tbool -> bool_type
+  | Tchar -> char_type
   | Tvar { contents = Link t } -> get_lltype ~param t
   | Tunit -> unit_type
   | Tfun (params, ret, kind) ->
@@ -100,6 +102,7 @@ let rec get_lltype ?(param = true) ?(field = false) = function
   | Qvar _ -> generic_type |> Llvm.pointer_type
   | Tvar _ as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
+  | Tptr t -> get_lltype ~param:false ~field t |> Llvm.pointer_type
 
 (* LLVM type of closure struct and records *)
 and typeof_aggregate agg =
@@ -171,7 +174,7 @@ let sizeof_typ typ =
   let rec inner size_pr typ =
     match typ with
     | Tint -> add_size_align ~upto:4 size_pr
-    | Tbool ->
+    | Tbool | Tchar ->
         (* No need to align one byte *)
         { size_pr with size = size_pr.size + 1 }
     | Tunit -> failwith "Does this make sense?"
@@ -184,6 +187,9 @@ let sizeof_typ typ =
     | Qvar _ | Tvar _ ->
         Llvm.dump_module the_module;
         failwith "too generic for a size"
+    | Tptr _ ->
+        (* TODO pass in triple. Until then, assume 64bit *)
+        add_size_align ~upto:8 size_pr
   in
   let { size; align = upto } = inner { size = 0; align = 1 } typ in
   alignup ~size ~upto
@@ -407,6 +413,13 @@ and gen_expr param typed_expr =
         lltyp = bool_type;
       }
       |> fin
+  | Mconst (Char c) ->
+      {
+        value = Llvm.const_int char_type (Char.code c);
+        typ = Tchar;
+        lltyp = char_type;
+      }
+  | Mconst (String _) -> failwith "TODO string"
   | Mconst Unit -> failwith "TODO"
   | Mbop (bop, e1, e2) ->
       let e1 = gen_expr param e1 in
