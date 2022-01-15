@@ -261,6 +261,7 @@ let unify_raw tbl t1 t2 =
       | Qvar id1, Qvar id2 when String.equal id1 id2 ->
           (* We need this for annotation unification *)
           ()
+      | Tptr l, Tptr r -> unify l r
       | _ -> raise Unify
   in
   unify t1 t2
@@ -366,6 +367,7 @@ let typeof_annot ?(typedef = false) env loc annot =
     | Ast.Ty_id "int" -> Tint
     | Ty_id "bool" -> Tbool
     | Ty_id "unit" -> Tunit
+    | Ty_id "char" -> Tchar
     | Ty_id t -> find t ""
     | Ty_var id when typedef -> find id "'"
     | Ty_var id ->
@@ -896,8 +898,8 @@ and convert_app ~switch_uni env loc e1 args =
   let args_t = List.map (fun a -> a.typ) typed_exprs in
   let res_t = newvar () in
   if switch_uni then
-    unify (loc, "Application") callee.typ (Tfun (args_t, res_t, Simple))
-  else unify (loc, "Application") (Tfun (args_t, res_t, Simple)) callee.typ;
+    unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple))
+  else unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ;
 
   let apply typ texpr = { texpr with typ } in
   let targs = List.map2 apply args_t typed_exprs in

@@ -14,6 +14,7 @@
 %token Dot
 %token <string> Identifier
 %token <int> Int
+%token <string> String_lit
 %token True
 %token False
 %token Plus
@@ -65,6 +66,7 @@ expr:
   | Identifier { Var($loc, $1) }
   | Int { Lit($loc, Int $1) }
   | bool { Lit($loc, Bool  $1) }
+  | String_lit { Lit($loc, String $1) }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
   | If; expr; Then; expr; Else; expr; option(End) { If($loc, $2, $4, $6)}
   | decl; Equal; expr; expr { Let($loc, $1, $3, $4) }

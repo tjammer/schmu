@@ -419,7 +419,7 @@ and gen_expr param typed_expr =
         typ = Tchar;
         lltyp = char_type;
       }
-  | Mconst (String _) -> failwith "TODO string"
+  | Mconst (String s) -> codegen_string_lit s
   | Mconst Unit -> failwith "TODO"
   | Mbop (bop, e1, e2) ->
       let e1 = gen_expr param e1 in
@@ -520,7 +520,7 @@ and gen_app param callee args allocref ret_t =
   let ret, kind =
     match func.typ with
     (* TODO we pattern match on the same thing above *)
-    | Tfun (_, ret, kind) -> ret, kind
+    | Tfun (_, ret, kind) -> (ret, kind)
     | Tunit ->
         failwith "Internal Error: Probably cannot find monomorphized function"
     | _ -> failwith "Internal Error: Not a func in gen app"
@@ -684,6 +684,15 @@ and codegen_field param expr index =
 and codegen_chain param expr cont =
   ignore (gen_expr param expr);
   gen_expr param cont
+
+and codegen_string_lit s =
+  let lltyp = get_lltype (Tptr Tchar) in
+  let typ = Llvm.array_type char_type (String.length s + 1) in
+  let arr = Llvm.build_alloca typ "" builder in
+  let string = Llvm.const_stringz context s in
+  ignore (Llvm.build_store string arr builder);
+  let value = Llvm.build_bitcast arr lltyp "" builder in
+  { value; typ = Tptr Tchar; lltyp }
 
 let decl_external (name, typ) =
   match typ with
