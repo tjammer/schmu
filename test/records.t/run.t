@@ -401,9 +401,10 @@ Make sure alignment of generic param works
 
 Parametrization needs to be given, if a type is generic
   $ schmu missing_parameter.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
-  missing_parameter.smu:6:1: error: Type t needs a type parameter
-  6 | fn (t : t)
-                                                                  7 |   t.t
+  missing_parameter.smu:7:1: error: Type t needs a type parameter
+  7 | fn (t : t)
+                                                                  8 |   t.t
+                                                                  9 | end
                                                                   
   [1]
 

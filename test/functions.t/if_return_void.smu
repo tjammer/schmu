@@ -1,10 +1,12 @@
 external printi : int -> unit
 
-fn foo(i)
+function foo(i)
   if i < 2 then printi(i-1)
   else
     if i < 400 then printi(i)
-    else printi(i + 1) end >>
+    else printi(i + 1) end
     foo(i-1)
+  end
+end
 
 foo(4)

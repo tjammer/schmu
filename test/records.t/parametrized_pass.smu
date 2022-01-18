@@ -2,15 +2,17 @@ external printi : int -> unit
 
 type t('a) = { first : int, gen : 'a, third : bool }
 
-fn apply(f : 'b -> 'a, x : 'b) -> 'a
+function apply(f : 'b -> 'a, x : 'b) -> 'a
   f(x)
+end
 
-fn pass(x)
+function pass(x)
   -- We have to use the record somehow, otherwise it's passed
   -- as a generic variable and then copied trivially
   { first = x.first, gen = x.gen, third = x.third }
+end
 
 int_t = { first = 700, gen = 20, third = false }
 
-printi(apply(pass, int_t).first) >>
+printi(apply(pass, int_t).first)
 printi(apply(pass, { first = 234, gen = false, third = true }).first)

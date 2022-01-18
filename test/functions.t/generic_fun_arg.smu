@@ -3,45 +3,52 @@ external printi : int -> unit
 type t('a) = { x : 'a }
 
 -- This fn is generic
-fn apply(x: 'a, f : 'a -> 'b)
+function apply(x: 'a, f : 'a -> 'b)
   f(x)
+end
 
 a = 2
 
-fn add_closed(x)
+function add_closed(x)
   -- we close over a
   x + a
+end
 
 -- simple int -> int
-fn add1(x)
+function add1(x)
   x + 1
+end
 
-fn print_bool(b)
+function print_bool(b)
   if b then printi(1)
-  else printi(0)
+  else printi(0) end
+end
 
 -- simple bool -> bool
-fn makefalse(b)
+function makefalse(b)
   if b then false
-  else b
+  else b end
+end
 
 -- bool t -> bool t
-fn make_rec_false(r)
+function make_rec_false(r)
   if r.x then { x = false }
-  else r
+  else r end
+end
 
 -- simple t -> t
-fn add3_rec(t)
+function add3_rec(t)
   { x = t.x + 3 }
+end
 
 -- A polymorphic function which will get monomorphized
-f = fn (x) x
+f = fn (x) x end
 
-printi(apply(20, add1)) >>
-printi(apply(20, add_closed)) >>
-printi(apply({ x = 20 }, add3_rec).x) >>
-print_bool(apply({ x = true }, make_rec_false).x) >>
-print_bool(apply(true, makefalse)) >>
-printi(f({ x = 17 }).x) >>
+printi(apply(20, add1))
+printi(apply(20, add_closed))
+printi(apply({ x = 20 }, add3_rec).x)
+print_bool(apply({ x = true }, make_rec_false).x)
+print_bool(apply(true, makefalse))
+printi(f({ x = 17 }).x)
 -- inline polymorphic function
 printi(fn (x) x end(18))

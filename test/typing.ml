@@ -17,7 +17,7 @@ let test_hint_int () = test "int" "a : int = 1 a"
 let test_func_id () = test "'a -> 'a" "fn (a) a"
 let test_func_id_hint () = test "int -> int" "fn (a : int) a"
 let test_func_int () = test "int -> int" "fn (a) a + 1"
-let test_func_bool () = test "bool -> int" "fn (a) if a then 1 else 1"
+let test_func_bool () = test "bool -> int" "fn (a) if a then 1 else 1 end"
 
 let test_func_external () =
   test "int -> unit" "external func : int -> unit func"
@@ -30,16 +30,17 @@ let test_func_1st_hint () =
 
 let test_func_1st_stay_general () =
   test "('a, 'a -> 'b) -> 'b"
-    "fn foo(x, f) f(x) fn add1(x) x + 1 a = foo(1, add1) fn boolean(x : bool) \
-     x b = foo(true, boolean) foo"
+    "function foo(x, f) f(x) end function add1(x) x + 1 end a = foo(1, add1) \
+     function boolean(x : bool) x end b = foo(true, boolean) foo"
 
 let test_func_recursive_if () =
   test "int -> unit"
-    "external ext : unit -> unit fn foo(i) if i < 2 then ext() else foo(i-1) \
-     foo"
+    "external ext : unit -> unit function foo(i) if i < 2 then ext() else \
+     foo(i-1) end end foo"
 
 let test_func_generic_return () =
-  test "int" "fn apply(f, x) f(x) fn add1(x) x + 1 apply(add1, 1)"
+  test "int"
+    "function apply(f, x) f(x) end function add1(x) x + 1 end apply(add1, 1)"
 
 let test_record_clear () =
   test "t" "type t = { x : int, y : int } { x = 2, y = 2 }"
@@ -56,10 +57,10 @@ let test_record_reorder () =
   test "t" "type t = {x : int, y : int} { y = 10, x = 2 }"
 
 let test_record_create_if () =
-  test "t" "type t = {x : int} { x = if true then 1 else 0 }"
+  test "t" "type t = {x : int} { x = if true then 1 else 0 end }"
 
 let test_record_create_return () =
-  test "t" "type t = {x : int} fn a () 10 { x = a() }"
+  test "t" "type t = {x : int} function a () 10 end { x = a() }"
 
 let test_record_wrong_type () =
   test_exn "In record expression: Expected type int but got type bool"
@@ -94,25 +95,28 @@ let test_record_field_no_record () =
 
 let test_record_field_wrong_record () =
   test_exn " Expected type t1 -> int but got type t2 -> 'a"
-    "type t1 = {x : int} type t2 = {y:int} fn foo(a) a.x b = {y = 10} foo(b)"
+    "type t1 = {x : int} type t2 = {y:int} function foo(a) a.x end b = {y = \
+     10} foo(b)"
 
-let test_annot_concrete () = test "int -> bool" "fn foo(x) -> bool x < 3 foo"
+let test_annot_concrete () =
+  test "int -> bool" "function foo(x) -> bool x < 3 end foo"
 
 let test_annot_concrete_fail () =
   test_exn " Expected type bool -> int but got type int -> bool"
-    "foo : bool -> int = fn(x) x < 3 foo"
+    "foo : bool -> int = fn(x) x < 3 end foo"
 
-let test_annot_mix () = test "'a -> 'a" "fn pass(x : 'b) -> 'b x pass"
+let test_annot_mix () = test "'a -> 'a" "function pass(x : 'b) -> 'b x end pass"
 
 let test_annot_mix_fail () =
   test_exn " Expected type 'b -> int but got type 'b -> 'b"
-    "pass : 'b -> int = fn(x) x pass"
+    "pass : 'b -> int = fn(x) x end pass"
 
-let test_annot_generic () = test "'a -> 'a" "fn pass(x : 'b) -> 'b x pass"
+let test_annot_generic () =
+  test "'a -> 'a" "function pass(x : 'b) -> 'b x end pass"
 
 let test_annot_generic_fail () =
   test_exn " Expected type 'a -> 'b but got type 'a -> 'a"
-    "pass : 'a -> 'b = fn(x) x pass"
+    "pass : 'a -> 'b = fn(x) x end pass"
 
 let test_annot_record_simple () =
   test "a" "type a = { x : int } type b = { x : int } a : a = { x = 12 } a"
@@ -122,13 +126,13 @@ let test_annot_record_generic () =
     "type a('a) = { x : 'a } type b = { x : int } a : a(bool) = { x = true } a"
 
 let test_sequence () =
-  test "int" "external printi : int -> unit printi(20) >> 1 + 1"
+  test "int" "external printi : int -> unit printi(20) 1 + 1"
 
 let test_sequence_fail () =
   test_exn
-    "Left expression in sequence must be type unit: Expected type unit but got \
+    "Left expression in sequence must be of type unit: Expected type unit but got \
      type int"
-    "fn add1(x) x + 1 add1(20) >> 1 + 1"
+    "function add1(x) x + 1 end add1(20) 1 + 1"
 
 let test_para_instantiate () =
   test "foo(int)"
@@ -137,49 +141,60 @@ let test_para_instantiate () =
 
 let test_para_gen_fun () =
   test "foo('a) -> int"
-    "type foo('a) = { gen : 'a, second : int } fn get(foo) foo.second get"
+    "type foo('a) = { gen : 'a, second : int } function get(foo) foo.second \
+     end get"
 
 let test_para_gen_return () =
-  test "foo('a) -> 'a" "type foo('a) = { gen : 'a } fn get(foo) foo.gen get"
+  test "foo('a) -> 'a"
+    "type foo('a) = { gen : 'a } function get(foo) foo.gen end get"
 
 let test_para_multiple () =
   test "bool"
-    "type foo('a) = { gen : 'a } fn get(foo) foo.gen a = { gen = 12 } b : int \
-     = get(a) c = { gen = false } get(c)"
+    "type foo('a) = { gen : 'a } function get(foo) foo.gen end a = { gen = 12 \
+     } b : int = get(a) c = { gen = false } get(c)"
 
 let test_para_instance_func () =
   test "foo(int) -> int"
-    "type foo('a) = { gen : 'a } fn use(foo) foo.gen + 17 foo = { gen = 17 } \
-     use"
+    "type foo('a) = { gen : 'a } function use(foo) foo.gen + 17 end foo = { \
+     gen = 17 } use"
 
 let test_para_instance_wrong_func () =
   test_exn " Expected type foo(int) -> int but got type foo(bool) -> 'a"
-    "type foo('a) = { gen : 'a } fn use(foo) foo.gen + 17 foo = { gen = 17 } \
-     use( { gen = true } )"
+    "type foo('a) = { gen : 'a } function use(foo) foo.gen + 17 end foo = { \
+     gen = 17 } use( { gen = true } )"
 
-let test_pipe_head_single () = test "int" "fn add1(a) a + 1 10->add1"
-let test_pipe_head_single_call () = test "int" "fn add1(a) a + 1 10->add1()"
+let test_pipe_head_single () = test "int" "function add1(a) a + 1 end 10->add1"
+
+let test_pipe_head_single_call () =
+  test "int" "function add1(a) a + 1 end 10->add1()"
+
+let test_pipe_head_multi_call () =
+  test "int" "function add1(a) a + 1 end 10->add1->add1()"
 
 let test_pipe_head_single_wrong_type () =
   test_exn " Expected type int -> 'a but got type int" "add1 = 1 10->add1"
 
-let test_pipe_head_mult () = test "int" "fn add(a, b) a + b 10->add(12)"
+let test_pipe_head_mult () =
+  test "int" "function add(a, b) a + b end 10->add(12)"
 
 let test_pipe_head_mult_wrong_type () =
   test_exn " Arity in function: Expected type 2 but got type 1"
-    "fn add1(a) a + 1 10->add1(12)"
+    "function add1(a) a + 1 end 10->add1(12)"
 
-let test_pipe_tail_single () = test "int" "fn add1(a) a + 1 10->>add1"
-let test_pipe_tail_single_call () = test "int" "fn add1(a) a + 1 10->>add1()"
+let test_pipe_tail_single () = test "int" "function add1(a) a + 1 end 10->>add1"
+
+let test_pipe_tail_single_call () =
+  test "int" "function add1(a) a + 1 end 10->>add1()"
 
 let test_pipe_tail_single_wrong_type () =
   test_exn " Expected type int -> 'a but got type int" "add1 = 1 10->>add1"
 
-let test_pipe_tail_mult () = test "int" "fn add(a, b) a + b 10->>add(12)"
+let test_pipe_tail_mult () =
+  test "int" "function add(a, b) a + b end 10->>add(12)"
 
 let test_pipe_tail_mult_wrong_type () =
   test_exn " Arity in function: Expected type 2 but got type 1"
-    "fn add1(a) a + 1 10->>add1(12)"
+    "function add1(a) a + 1 end 10->>add1(12)"
 
 let case str test = test_case str `Quick test
 
@@ -248,6 +263,7 @@ let () =
         [
           case "head_single" test_pipe_head_single;
           case "head_single_call" test_pipe_head_single_call;
+          case "head_multi_call" test_pipe_head_multi_call;
           case "head_single_wrong_type" test_pipe_head_single_wrong_type;
           case "head_mult" test_pipe_head_mult;
           case "head_mult_wrong_type" test_pipe_head_mult_wrong_type;

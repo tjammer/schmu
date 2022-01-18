@@ -1,6 +1,7 @@
 a = 10
 
-fn capture_a()
+function capture_a()
   a + 2
+end
 
 capture_a()

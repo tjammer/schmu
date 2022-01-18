@@ -9,11 +9,12 @@ type inner = { c : int }
 
 type foo = { a : int, b : inner }
 
-fn inner()
+function inner()
   { c = 3 }
+end
 
-f = fn(x) x
+f = fn(x) x end
 
 a = { a = 0, b = inner() }
-printi(a.b.c) >>
+printi(a.b.c)
 printi(f({ x = 17, inner = { y = { z = 124 } } }).inner.y.z)

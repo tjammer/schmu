@@ -3,8 +3,9 @@ external printi : int -> unit
 -- TODO big inner thing
 type misaligned('a) = { fst : bool, gen : 'a }
 
-fn gen(any)
+function gen(any)
   any.gen
+end
 
 m = { fst = true, gen = 30 }
 printi(gen(m))

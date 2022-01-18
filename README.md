@@ -12,11 +12,13 @@ external printi : int -> unit
 number = 35
 
 -- Calculate fibonacci number
-fn fib(n)
-    -- The function simply returns the expression, no 'return' statement
-    if n < 2 then n
-    else
-        fib(n - 1) + fib(n - 2)
+function fib(n)
+  -- The function simply returns the expression, no 'return' statement
+  if n < 2 then n
+  else
+    fib(n - 1) + fib(n - 2)
+  end
+end
 
 -- and print it
 printi(fib(number))
@@ -29,13 +31,13 @@ printi(fib(number))
 <!-- type age = { years : int, months :int, days : int } -->
 
 <!-- -- Through type inference, the generic type ('a -> 'b, 'a) -> 'b is inferred -->
-<!-- fn apply(f, x) -->
+<!-- function apply(f, x) -->
 <!--   f(x) -->
 
 <!-- -- We bind the variable a -->
 <!-- a = 2 -->
 <!-- -- and add a to some int -->
-<!-- fn add_a(x) -->
+<!-- function add_a(x) -->
 <!--   -- We capture a and return the sum -->
 <!--   x + a -->
 

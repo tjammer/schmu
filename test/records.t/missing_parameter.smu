@@ -1,7 +1,9 @@
 type t('a) = { t : 'a }
 
-fn correct(t : t(int))
+function correct(t : t(int))
   t.t
+end
 
 fn (t : t)
   t.t
+end

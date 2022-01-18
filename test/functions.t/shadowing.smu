@@ -1,15 +1,17 @@
 external printi : int -> unit
 
-fn fib(n)
-    if n < 2 then n
-    else
-        -- local function
-        fn fibn2(n)
-            fib(n - 2)
-        -- anonymous function
-        -- shadow fib. Since the function is anonymous, the inner fib call still calls the outer fib
-        fib = fn (n)
-            fib(n - 1)
-        fibn2(n) + fib(n)
+function fib(n)
+  if n < 2 then n
+  else
+    -- local function
+    function fibn2(n)
+      fib(n - 2)
+    end
+    -- anonymous function
+    -- shadow fib. Since the function is anonymous, the inner fib call still calls the outer fib
+    fib = fn (n) fib(n - 1) end
+    fibn2(n) + fib(n)
+  end
+end
 
 printi(fib(30))

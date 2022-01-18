@@ -4,30 +4,37 @@ type t('a) = { null : int, first : int, gen : 'a, third : bool }
 
 type gen_first('a) = { only : 'a, is : bool }
 
-fn print_bool(b)
+function print_bool(b)
   if b then printi(1)
   else printi(0)
+  end
+end
 
-fn first(any)
+function first(any)
   printi(any.first)
+end
 
-fn gen(any)
+function gen(any)
   any.gen
+end
 
-fn third(any)
+function third(any)
   print_bool(any.third)
+end
 
-fn only(any)
+function only(any)
   any.only
+end
 
-fn is(any)
+function is(any)
   print_bool(any.is)
+end
 
 int_t = { null = 0, first = 700, gen = 20, third = true }
 f = { only = 420, is = false }
 
-first(int_t) >>
-third(int_t) >>
-printi(gen(int_t)) >>
-printi(only(f)) >>
+first(int_t)
+third(int_t)
+printi(gen(int_t))
+printi(only(f))
 is(f)

@@ -287,9 +287,9 @@ We don't allow returning closures
   $ schmu no_closure_returns.smu
   no_closure_returns.smu:3:1: error: Cannot (yet) return a closure
   3 | fn ()
-                                                                   4 |   a = fn ()
-                                                                   5 |     a
-                                                                   6 |   a
+                                                                   4 |   a = fn () a end
+                                                                   5 |   a
+                                                                   6 | end
                                                                    
 
 Don't try to create 'void' value in if
@@ -886,6 +886,6 @@ Print error when returning a polymorphic lambda in an if expression
   $ schmu no_lambda_let_poly_monomorph.smu
   no_lambda_let_poly_monomorph.smu:6:5: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though.
   
-  6 | f = if true then fn (x) x else fn (x) x
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | f = if true then fn (x) x end else fn (x) x end end
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
