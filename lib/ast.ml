@@ -14,30 +14,28 @@ type func = {
   name : string;
   params : decl list;
   return_annot : type_spec option;
-  body : expr;
-  cont : expr;
+  body : block;
 }
 
 and expr =
   | Var of loc * string
   | Lit of loc * literal
   | Bop of loc * bop * expr * expr
-  | If of loc * expr * expr * expr
-  | Let of loc * decl * expr * expr
-  | Lambda of loc * decl list * type_spec option * expr
-  | Function of loc * func
+  | If of loc * expr * block * block
+  | Lambda of loc * decl list * type_spec option * block
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list
   | Field of loc * expr * string
-  | Sequence of loc * expr * expr
   | Pipe_head of loc * expr * expr
   | Pipe_tail of loc * expr * expr
 
 and literal = Int of int | Bool of bool | Char of char | String of string
+and stmt = Let of loc * decl * expr | Function of loc * func | Expr of expr
+and block = stmt list
 
-(* Hopefully temporary *)
 type external_decl = loc * string * type_expr
 
+(* Only records *)
 type typedef = {
   poly_param : string option;
   name : string;
@@ -48,5 +46,5 @@ type typedef = {
 type prog = {
   external_decls : external_decl list;
   typedefs : typedef list;
-  expr : expr;
+  block : block;
 }

@@ -37,10 +37,10 @@ rule read =
   | "then"   { Then }
   | "else"   { Else }
   | "external" { External }
-  | "fn" { Function }
+  | "fn"       { Function_small }
+  | "function" { Function_long }
   | "type"   { Type }
   | "end"    { End }
-  | ">>"     { MuchGreater }
   | id       { Identifier (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | '+'      { Plus }

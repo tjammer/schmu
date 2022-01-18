@@ -31,15 +31,14 @@
 %token Else
 %token Eof
 %token External
-%token Function
+%token Function_small
+%token Function_long
 %token Type
 %token Quote
-%token MuchGreater
 %token End
 %token Pipe_tail
 
 %nonassoc Less
-%left MuchGreater
 %left Arrow Pipe_tail Dot
 %left Plus
 %left Mult
@@ -48,8 +47,8 @@
 
 %%
 
-prog: list(external_decl); list(typedef); expr; Eof
-    { { external_decls = $1; typedefs = $2; expr = $3 } }
+prog: list(external_decl); list(typedef); block; Eof
+    { { external_decls = $1; typedefs = $2; block = $3} }
 
 %inline external_decl:
   | External; Identifier; type_expr { $loc, $2, $3 }
@@ -62,22 +61,27 @@ prog: list(external_decl); list(typedef); expr; Eof
 %inline type_decl:
   | Identifier; type_expr { $1, $2 }
 
+block:
+  | list(stmt) { $1 }
+
+stmt:
+  | decl; Equal; expr { Let($loc, $1, $3) }
+  | Function_long; Identifier; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); block; End
+    { Function ($loc, {name = $2; params = $4; return_annot = $6; body = $7}) }
+  | expr { Expr $1 }
+
 expr:
   | Identifier { Var($loc, $1) }
   | Int { Lit($loc, Int $1) }
   | bool { Lit($loc, Bool  $1) }
   | String_lit { Lit($loc, String $1) }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
-  | If; expr; Then; expr; Else; expr; option(End) { If($loc, $2, $4, $6)}
-  | decl; Equal; expr; expr { Let($loc, $1, $3, $4) }
-  | Function; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr; option(End)
+  | If; expr; Then; block; Else; block; End { If($loc, $2, $4, $6)}
+  | Function_small; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); block; option(End)
     { Lambda($loc, $3, $5, $6) }
-  | Function; Identifier; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); expr; option(End); expr
-    { Function ($loc, {name = $2; params = $4; return_annot = $6; body = $7; cont = $9}) }
   | expr; Lpar; separated_list(Comma, expr); Rpar { App($loc, $1, $3) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
   | expr; Dot; Identifier { Field ($loc, $1, $3) }
-  | expr; MuchGreater; expr { Sequence ($loc, $1, $3) }
   | expr; Arrow; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
 
