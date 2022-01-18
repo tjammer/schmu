@@ -493,16 +493,12 @@ and typeof_annotated env annot = function
   | Lit (_, Bool _) -> Tbool
   | Lit (_, Char _) -> Tchar
   | Lit (_, String _) -> Tptr Tchar
-  | Let (loc, x, e1, e2) -> typeof_let env loc x e1 e2
   | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
-  | Function (loc, { name; params; return_annot; body; cont }) ->
-      typeof_function env loc name params return_annot body cont
   | App (loc, e1, e2) -> typeof_app ~switch_uni:false env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
   | Record (loc, labels) -> typeof_record env loc annot labels
   | Field (loc, expr, id) -> typeof_field env loc expr id
-  | Sequence (loc, expr, cont) -> typeof_sequence env loc expr cont
   | Pipe_head (loc, e1, e2) -> typeof_pipe_head env loc e1 e2
   | Pipe_tail (loc, e1, e2) -> typeof_pipe_tail env loc e1 e2
 
@@ -512,7 +508,7 @@ and typeof_var env loc v =
   | Some t -> instantiate t
   | None -> raise (Error (loc, "No var named " ^ v))
 
-and typeof_let env loc (id, type_annot) e1 e2 =
+and typeof_let env loc (id, type_annot) e1 =
   enter_level ();
   let type_e =
     match type_annot with
@@ -527,14 +523,14 @@ and typeof_let env loc (id, type_annot) e1 e2 =
         unify (loc, "") type_annot type_e;
         type_annot
   in
-  typeof (Env.add_value id type_e env) e2
+  Env.add_value id type_e env
 
-and typeof_abs env loc params ret_annot e =
+and typeof_abs env loc params ret_annot body =
   enter_level ();
   let env, params_t, qparams, ret_annot =
     handle_params env loc params ret_annot
   in
-  let type_e = typeof env e in
+  let type_e = typeof_block env body in
   leave_level ();
 
   match Tfun (params_t, type_e, Simple) with
@@ -545,18 +541,17 @@ and typeof_abs env loc params ret_annot e =
       typ
   | _ -> failwith "Internal Error Tfun not Tfun"
 
-and typeof_function env loc name params ret_annot body cont =
+and typeof_function env loc Ast.{ name; params; return_annot; body } =
   (* this loc might not be correct *)
   (* typeof_let env loc name (Lambda (loc, param, body)) cont *)
   enter_level ();
 
   (* Recursion allowed for named funcs *)
   let env = Env.add_value name (newvar ()) env in
-  ignore ret_annot;
   let body_env, params_t, qparams, ret_annot =
-    handle_params env loc params ret_annot
+    handle_params env loc params return_annot
   in
-  let bodytype = typeof body_env body in
+  let bodytype = typeof_block body_env body in
   leave_level ();
   Tfun (params_t, bodytype, Simple) |> generalize |> function
   | Tfun (_, ret, kind) as typ ->
@@ -564,7 +559,7 @@ and typeof_function env loc name params ret_annot body cont =
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = Tfun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
-      typeof env cont
+      env
   | _ -> failwith "Internal Error: Tfun not Tfun"
 
 and typeof_app ~switch_uni env loc e1 args =
@@ -582,8 +577,8 @@ and typeof_if env loc cond e1 e2 =
   let type_cond = typeof env cond in
   unify (loc, "In condition") type_cond Tbool;
 
-  let type_e1 = typeof env e1 in
-  let type_e2 = typeof env e2 in
+  let type_e1 = typeof_block env e1 in
+  let type_e2 = typeof_block env e2 in
   let type_res = newvar () in
 
   unify (loc, "Branches have different type") type_e1 type_e2;
@@ -667,11 +662,6 @@ and typeof_field env loc expr id =
           | _ -> failwith "nope")
       | None -> raise (Error (loc, "Unbound field " ^ id)))
 
-and typeof_sequence env loc expr cont =
-  let t1 = typeof env expr in
-  unify (loc, "Left expression in sequence must be type unit:") Tunit t1;
-  typeof env cont
-
 and typeof_pipe_head env loc e1 e2 =
   let switch_uni = true in
   match e2 with
@@ -691,6 +681,30 @@ and typeof_pipe_tail env loc e1 e2 =
   | _ ->
       (* Should be a lone id, if not we let it fail in _app *)
       typeof_app ~switch_uni env loc e2 [ e1 ]
+
+and typeof_block env (loc, stmts) =
+  let check (loc, typ) =
+    unify (loc, "Left expression in sequence must be of type unit:") Tunit typ
+  in
+
+  let rec to_expr env old_type = function
+    | [ Ast.Let (loc, _, _) ] | [ Function (loc, _) ] ->
+        raise (Error (loc, "Block must end with an expression"))
+    | Let (loc, decl, expr) :: tl ->
+        let env = typeof_let env loc decl expr in
+        to_expr env old_type tl
+    | Function (loc, func) :: tl ->
+        let env = typeof_function env loc func in
+        to_expr env old_type tl
+    | [ Expr (_, e) ] ->
+        check old_type;
+        typeof env e
+    | Expr (loc, e) :: tl ->
+        check old_type;
+        to_expr env (loc, typeof env e) tl
+    | [] -> raise (Error (loc, "Block cannot be empty"))
+  in
+  to_expr env (loc, Tunit) stmts
 
 let extern_vars decls =
   let externals =
@@ -731,7 +745,7 @@ let typedefs typedefs env =
 let typecheck (prog : Ast.prog) =
   reset_type_vars ();
   let env = extern_vars prog.external_decls |> typedefs prog.typedefs in
-  typeof env prog.expr |> canonize (Strtbl.create 1)
+  typeof_block env prog.block |> canonize (Strtbl.create 16)
 
 (* Conversion to Typing.exr below *)
 
@@ -768,15 +782,12 @@ and convert_annot env annot = function
   | Lit (_, Bool b) -> { typ = Tbool; expr = Const (Bool b) }
   | Lit (_, Char c) -> { typ = Tchar; expr = Const (Char c) }
   | Lit (_, String s) -> { typ = Tptr Tchar; expr = Const (String s) }
-  | Let (loc, x, e1, e2) -> convert_let env loc x e1 e2
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
-  | Function (loc, func) -> convert_function env loc func
   | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
   | Record (loc, labels) -> convert_record env loc annot labels
   | Field (loc, expr, id) -> convert_field env loc expr id
-  | Sequence (loc, expr, cont) -> convert_sequence env loc expr cont
   | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
   | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
 
@@ -801,13 +812,11 @@ and typeof_annot_decl env loc annot expr =
       unify (loc, "In let binding:") t_annot t.typ;
       { t with typ = t_annot }
 
-and convert_let env loc (id, type_annot) e1 e2 =
-  let typ1 = typeof_annot_decl env loc type_annot e1 in
+and convert_let env loc (id, type_annot) e1 =
+  let e1 = typeof_annot_decl env loc type_annot e1 in
+  (Env.add_value id e1.typ env, e1)
 
-  let typ2 = convert (Env.add_value id typ1.typ env) e2 in
-  { typ = typ2.typ; expr = Let (id, typ1, typ2) }
-
-and convert_lambda env loc params ret_annot e =
+and convert_lambda env loc params ret_annot body =
   let env = Env.new_scope env in
   enter_level ();
   ignore ret_annot;
@@ -815,7 +824,7 @@ and convert_lambda env loc params ret_annot e =
     handle_params env loc params ret_annot
   in
 
-  let body = convert env e in
+  let body = convert_block env body in
   leave_level ();
   let env, closed_vars = Env.close_scope env in
   let kind =
@@ -842,7 +851,7 @@ and convert_lambda env loc params ret_annot e =
       { typ; expr }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
-and convert_function env loc { name; params; return_annot; body; cont } =
+and convert_function env loc Ast.{ name; params; return_annot; body } =
   (* Create a fresh type var for the function name
      and use it in the function body *)
   let unique = next_func name func_tbl in
@@ -859,7 +868,7 @@ and convert_function env loc { name; params; return_annot; body; cont } =
   let body_env, params_t, qparams, ret_annot =
     handle_params env loc params return_annot
   in
-  let body = convert body_env body in
+  let body = convert_block body_env body in
   leave_level ();
 
   let env, closed_vars = Env.close_scope env in
@@ -886,9 +895,8 @@ and convert_function env loc { name; params; return_annot; body; cont } =
       let nparams = List.map fst params in
       let tp = { tparams; ret; kind } in
       let lambda = { nparams; body = { body with typ = ret }; tp } in
-      (* Continue, see let *)
-      let typ2 = convert env cont in
-      { typ = typ2.typ; expr = Function (name, unique, lambda, typ2) }
+
+      (env, (name, unique, lambda))
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
 and convert_app ~switch_uni env loc e1 args =
@@ -929,8 +937,8 @@ and convert_if env loc cond e1 e2 =
      branches need to evaluate to the some type *)
   let type_cond = convert env cond in
   unify (loc, "In condition") type_cond.typ Tbool;
-  let type_e1 = convert env e1 in
-  let type_e2 = convert env e2 in
+  let type_e1 = convert_block env e1 in
+  let type_e2 = convert_block env e2 in
   unify (loc, "Branches have different type") type_e1.typ type_e2.typ;
 
   (* We don't support polymorphic lambdas in if-exprs in the monomorph backend yet *)
@@ -1013,12 +1021,6 @@ and convert_field env loc expr id =
           | _ -> failwith "nope")
       | None -> raise (Error (loc, "Unbound field " ^ id)))
 
-and convert_sequence env loc expr cont =
-  let expr = convert env expr in
-  unify (loc, "Left expression in sequence must be type unit:") Tunit expr.typ;
-  let cont = convert env cont in
-  { typ = cont.typ; expr = Sequence (expr, cont) }
-
 and convert_pipe_head env loc e1 e2 =
   let switch_uni = true in
   match e2 with
@@ -1039,6 +1041,34 @@ and convert_pipe_tail env loc e1 e2 =
       (* Should be a lone id, if not we let it fail in _app *)
       convert_app ~switch_uni env loc e2 [ e1 ]
 
+and convert_block env (loc, stmts) =
+  let check (loc, typ) =
+    unify (loc, "Left expression in sequence must be of type unit:") Tunit typ
+  in
+
+  let rec to_expr env old_type = function
+    | [ Ast.Let (loc, _, _) ] | [ Function (loc, _) ] ->
+        raise (Error (loc, "Block must end with an expression"))
+    | Let (loc, decl, expr) :: tl ->
+        let env, texpr = convert_let env loc decl expr in
+        let cont = to_expr env old_type tl in
+        { typ = cont.typ; expr = Let (fst decl, texpr, cont) }
+    | Function (loc, func) :: tl ->
+        let env, (name, unique, lambda) = convert_function env loc func in
+        let cont = to_expr env old_type tl in
+        { typ = cont.typ; expr = Function (name, unique, lambda, cont) }
+    | [ Expr (_, e) ] ->
+        check old_type;
+        convert env e
+    | Expr (l1, e1) :: tl ->
+        check old_type;
+        let expr = convert env e1 in
+        let cont = to_expr env (l1, expr.typ) tl in
+        { typ = cont.typ; expr = Sequence (expr, cont) }
+    | [] -> raise (Error (loc, "Block cannot be empty"))
+  in
+  to_expr env (loc, Tunit) stmts
+
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();
   let externals =
@@ -1055,7 +1085,7 @@ let to_typed (prog : Ast.prog) =
     |> typedefs prog.typedefs
   in
 
-  let tree = convert vars prog.expr in
+  let tree = convert_block vars prog.block in
   let records = Env.records vars in
 
   (* print_endline (String.concat ", " (List.map string_of_type records)); *)

@@ -62,13 +62,13 @@ prog: list(external_decl); list(typedef); block; Eof
   | Identifier; type_expr { $1, $2 }
 
 block:
-  | list(stmt) { $1 }
+  | list(stmt) { ($loc, $1) }
 
 stmt:
   | decl; Equal; expr { Let($loc, $1, $3) }
   | Function_long; Identifier; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); block; End
     { Function ($loc, {name = $2; params = $4; return_annot = $6; body = $7}) }
-  | expr { Expr $1 }
+  | expr { Expr ($loc, $1) }
 
 expr:
   | Identifier { Var($loc, $1) }

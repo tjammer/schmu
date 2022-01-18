@@ -30,8 +30,8 @@ and expr =
   | Pipe_tail of loc * expr * expr
 
 and literal = Int of int | Bool of bool | Char of char | String of string
-and stmt = Let of loc * decl * expr | Function of loc * func | Expr of expr
-and block = stmt list
+and stmt = Let of loc * decl * expr | Function of loc * func | Expr of (loc * expr)
+and block = loc * stmt list
 
 type external_decl = loc * string * type_expr
 
