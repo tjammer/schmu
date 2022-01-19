@@ -130,8 +130,8 @@ let test_sequence () =
 
 let test_sequence_fail () =
   test_exn
-    "Left expression in sequence must be of type unit: Expected type unit but got \
-     type int"
+    "Left expression in sequence must be of type unit: Expected type unit but \
+     got type int"
     "function add1(x) x + 1 end add1(20) 1 + 1"
 
 let test_para_instantiate () =
