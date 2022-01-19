@@ -178,7 +178,7 @@ let test_pipe_head_mult () =
   test "int" "function add(a, b) a + b end 10->add(12)"
 
 let test_pipe_head_mult_wrong_type () =
-  test_exn " Arity in function: Expected type 2 but got type 1"
+  test_exn " Wrong arity for function: Expected 1 but got type 2"
     "function add1(a) a + 1 end 10->add1(12)"
 
 let test_pipe_tail_single () = test "int" "function add1(a) a + 1 end 10->>add1"
@@ -193,7 +193,7 @@ let test_pipe_tail_mult () =
   test "int" "function add(a, b) a + b end 10->>add(12)"
 
 let test_pipe_tail_mult_wrong_type () =
-  test_exn " Arity in function: Expected type 2 but got type 1"
+  test_exn " Wrong arity for function: Expected 1 but got type 2"
     "function add1(a) a + 1 end 10->>add1(12)"
 
 let case str test = test_case str `Quick test

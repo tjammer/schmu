@@ -198,8 +198,8 @@ let rec occurs tvr = function
 
 let arity (loc, pre) thing la lb =
   let msg =
-    Printf.sprintf "%s Arity in %s: Expected type %i but got type %i" pre thing
-      la lb
+    Printf.sprintf "%s Wrong arity for %s: Expected %i but got type %i" pre
+      thing lb la
   in
   raise (Error (loc, msg))
 
