@@ -21,13 +21,14 @@ type expr =
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
-and call_name = Mono of string | Concrete of string | Default
+and call_name = Mono of string | Concrete of string | Default | Recursive
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = bool ref
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
-type to_gen_func = { abs : abstraction; name : string; recursive : bool }
+type recurs = Rnormal | Rtail | Rnone
+type to_gen_func = { abs : abstraction; name : string; recursive : recurs }
 
 type monomorphized_tree = {
   externals : Typing.external_decl list;

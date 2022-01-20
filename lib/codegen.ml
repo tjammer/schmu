@@ -361,7 +361,10 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
 
       (* If the function is named, we allow recursion *)
       let temp_vars =
-        if recursive then Vars.add name func temp_vars else temp_vars
+        match recursive with
+        | Rnormal -> Vars.add name func temp_vars
+        | Rnone -> temp_vars
+        | Rtail -> failwith "not yet"
       in
 
       let fun_finalize ret =
@@ -460,7 +463,9 @@ and gen_expr param typed_expr =
       in
       func
   | Mapp { callee; args; alloca } ->
-      gen_app param callee args alloca (clean typed_expr.typ) |> fin
+      (* TODO recursive call *)
+      gen_app param callee args alloca typed_expr.return (clean typed_expr.typ)
+      |> fin
   | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref) ->
       codegen_record param (clean typed_expr.typ) labels allocref |> fin
@@ -495,7 +500,7 @@ and gen_bop e1 e2 bop =
       { value; typ = Tbool; lltyp = bool_type }
   | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_type }
 
-and gen_app param callee args allocref ret_t =
+and gen_app param callee args allocref tail ret_t =
   let func = gen_expr param callee.ex in
 
   (* Get monomorphized function *)
@@ -513,6 +518,9 @@ and gen_app param callee args allocref ret_t =
         func
     | Concrete name -> Vars.find name param.vars
     | Default -> func
+    | Recursive ->
+        if tail then print_endline "tailrec in call";
+        func
   in
 
   let func = get_mono_func func callee.monomorph in
@@ -743,7 +751,7 @@ let generate { Monomorph_tree.externals; records; tree; funcs } =
   @@ gen_function funcs ~linkage
        {
          name = "main";
-         recursive = false;
+         recursive = Rnone;
          abs =
            {
              func = { params = [ Tint ]; ret = Tint; kind = Simple };

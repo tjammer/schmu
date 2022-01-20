@@ -22,13 +22,14 @@ type expr =
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
-and call_name = Mono of string | Concrete of string | Default
+and call_name = Mono of string | Concrete of string | Default | Recursive
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = bool ref
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
-type to_gen_func = { abs : abstraction; name : string; recursive : bool }
+type recurs = Rnormal | Rtail | Rnone
+type to_gen_func = { abs : abstraction; name : string; recursive : recurs }
 (* [@@deriving show] *)
 
 type monomorphized_tree = {
@@ -242,7 +243,7 @@ let monomorphize_call p expr =
     | Forward_decl _ ->
         (* We don't have to do anything, because the correct function will be called in the first place.
            Except when it is called with different types recursively. We'll see *)
-        (p, Default)
+        (p, Recursive)
 
 let rec set_alloca = function
   | Value a -> a := true
@@ -250,6 +251,20 @@ let rec set_alloca = function
       set_alloca a;
       set_alloca b
   | No_value -> ()
+
+let recursion_stack = ref []
+
+let pop_recursion_stack () =
+  match !recursion_stack with
+  | hd :: tl ->
+      recursion_stack := tl;
+      hd
+  | [] -> failwith "Internal Error: Recursion stack empty (pop)"
+
+let set_tailrec () =
+  match !recursion_stack with
+  | _ :: tl -> recursion_stack := Rtail :: tl
+  | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
 let rec morph_expr param (texpr : Typing.typed_expr) =
   let make expr return = { typ = texpr.typ; expr; return } in
@@ -329,7 +344,7 @@ and morph_func p (username, uniq, abs, cont) =
   let ftyp = Typing.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)) in
 
   let name = unique_name (username, uniq) in
-  let recursive = true in
+  let recursive = Rnormal in
   let func =
     { params = abs.tp.tparams; ret = abs.tp.ret; kind = abs.tp.kind }
   in
@@ -338,18 +353,20 @@ and morph_func p (username, uniq, abs, cont) =
   let ret = p.ret in
   (* Make sure recursion works and the current function can be used in its body *)
   let temp_p =
-    match abs.tp.ret with
-    | Trecord _ ->
-        let value = { fn = Forward_decl name; alloc = Value (ref false) } in
-        let vars = Vars.add username value p.vars in
-        { p with vars; ret = true }
-        (* ret = true because this is used in the body of a new function *)
-    | _ -> { p with ret = true }
+    recursion_stack := recursive :: !recursion_stack;
+    let alloc =
+      match abs.tp.ret with Trecord _ -> Value (ref false) | _ -> No_value
+    in
+    let value = { fn = Forward_decl name; alloc } in
+    let vars = Vars.add username value p.vars in
+    { p with vars; ret = true }
   in
 
   let temp_p, body, { fn = _; alloc } = morph_expr temp_p abs.body in
 
   (match body.typ with Trecord _ -> set_alloca alloc | _ -> ());
+
+  let recursive = pop_recursion_stack () in
 
   let abs = { func; pnames; body } in
   let gen_func = { abs; name; recursive } in
@@ -375,7 +392,7 @@ and morph_func p (username, uniq, abs, cont) =
 
 and morph_lambda typ p id abs =
   let name = lambda_name id in
-  let recursive = false in
+  let recursive = Rnone in
   let func =
     { params = Typing.(abs.tp.tparams); ret = abs.tp.ret; kind = abs.tp.kind }
   in
@@ -383,6 +400,7 @@ and morph_lambda typ p id abs =
 
   let ret = p.ret in
   let vars = p.vars in
+  recursion_stack := recursive :: !recursion_stack;
   let tmp, body, { fn = _; alloc } =
     morph_expr { p with ret = true } abs.body
   in
@@ -391,6 +409,8 @@ and morph_lambda typ p id abs =
   let p = { p with monomorphized = tmp.monomorphized; funcs = tmp.funcs } in
 
   (match abs.tp.ret with Trecord _ -> set_alloca alloc | _ -> ());
+
+  let recursive = pop_recursion_stack () in
 
   let abs = { func; pnames; body } in
   let gen_func = { abs; name; recursive } in
@@ -410,6 +430,8 @@ and morph_app mk p callee args =
   let ret = p.ret in
   let p, ex, { fn = _; alloc } = morph_expr { p with ret = false } callee in
   let p, monomorph = monomorphize_call p ex in
+
+  (if ret then match monomorph with Recursive -> set_tailrec () | _ -> ());
 
   let f p arg =
     let p, ex, _ = morph_expr p arg in
