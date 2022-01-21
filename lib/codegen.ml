@@ -155,17 +155,13 @@ let to_named_records = function
 
 type size_pr = { size : int; align : int }
 
-(* TODO size and alignment calculations are broken
-   1. A function passed as a closure is not 8 bytes, but 16 (2 * 8 bytes)
-   2. The alignment is different from the size. We have to keep align and size separate in [upto] *)
-
 let alignup ~size ~upto =
   let modulo = size mod upto in
   if Int.equal modulo 0 then (* We are aligned *)
     size else size + (upto - modulo)
 
-let add_size_align ~upto { size; align } =
-  let size = alignup ~size ~upto + upto in
+let add_size_align ~upto ~sz { size; align } =
+  let size = alignup ~size ~upto + sz in
   let align = max align upto in
   { size; align }
 
@@ -173,7 +169,7 @@ let add_size_align ~upto { size; align } =
 let sizeof_typ typ =
   let rec inner size_pr typ =
     match typ with
-    | Tint -> add_size_align ~upto:4 size_pr
+    | Tint -> add_size_align ~upto:4 ~sz:4 size_pr
     | Tbool | Tchar ->
         (* No need to align one byte *)
         { size_pr with size = size_pr.size + 1 }
@@ -181,7 +177,7 @@ let sizeof_typ typ =
     | Tvar { contents = Link t } -> inner size_pr t
     | Tfun _ ->
         (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
-        add_size_align ~upto:16 size_pr
+        add_size_align ~upto:8 ~sz:8 size_pr
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
     | Qvar _ | Tvar _ ->
@@ -189,7 +185,7 @@ let sizeof_typ typ =
         failwith "too generic for a size"
     | Tptr _ ->
         (* TODO pass in triple. Until then, assume 64bit *)
-        add_size_align ~upto:8 size_pr
+        add_size_align ~upto:8 ~sz:8 size_pr
   in
   let { size; align = upto } = inner { size = 0; align = 1 } typ in
   alignup ~size ~upto
