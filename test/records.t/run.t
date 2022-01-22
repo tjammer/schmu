@@ -421,20 +421,29 @@ Support function/closure fields
   
   define private void @ten_times(%state* %state) {
   entry:
-    %0 = bitcast %state* %state to i32*
-    %1 = load i32, i32* %0, align 4
-    %lesstmp = icmp slt i32 %1, 10
+    %0 = alloca %state, align 8
+    %1 = bitcast %state* %0 to i8*
+    %2 = bitcast %state* %state to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 16, i1 false)
+    %ret = alloca %state, align 8
+    br label %rec
+  
+  rec:                                              ; preds = %then, %entry
+    %3 = bitcast %state* %0 to i32*
+    %4 = load i32, i32* %3, align 4
+    %lesstmp = icmp slt i32 %4, 10
     br i1 %lesstmp, label %then, label %else
   
-  then:                                             ; preds = %entry
-    tail call void @printi(i32 %1)
-    %ret = alloca %state, align 8
-    call void @advance(%state* %ret, %state* %state)
-    call void @ten_times(%state* %ret)
-    ret void
+  then:                                             ; preds = %rec
+    %5 = bitcast %state* %0 to i8*
+    call void @printi(i32 %4)
+    call void @advance(%state* %ret, %state* %0)
+    %6 = bitcast %state* %ret to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 16, i1 false)
+    br label %rec
   
-  else:                                             ; preds = %entry
-    tail call void @printi(i32 100)
+  else:                                             ; preds = %rec
+    call void @printi(i32 100)
     ret void
   }
   
@@ -464,6 +473,9 @@ Support function/closure fields
     ret i32 %addtmp
   }
   
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %state, align 8
@@ -479,6 +491,8 @@ Support function/closure fields
     call void @ten_times(%state* %0)
     ret i32 0
   }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   unit
   0
   1

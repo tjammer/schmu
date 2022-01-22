@@ -302,34 +302,38 @@ Don't try to create 'void' value in if
   
   define private void @foo(i32 %i) {
   entry:
-    br label %tailrecurse
+    %0 = alloca i32, align 4
+    store i32 %i, i32* %0, align 4
+    br label %rec
   
-  tailrecurse:                                      ; preds = %ifcont, %entry
-    %i.tr = phi i32 [ %i, %entry ], [ %subtmp4, %ifcont ]
-    %lesstmp = icmp slt i32 %i.tr, 2
+  rec:                                              ; preds = %ifcont, %entry
+    %i1 = phi i32 [ %subtmp5, %ifcont ], [ %i, %entry ]
+    %lesstmp = icmp slt i32 %i1, 2
     br i1 %lesstmp, label %then, label %else
   
-  then:                                             ; preds = %tailrecurse
-    %0 = add i32 %i.tr, -1
-    tail call void @printi(i32 %0)
+  then:                                             ; preds = %rec
+    %1 = add i32 %i1, -1
+    tail call void @printi(i32 %1)
     ret void
   
-  else:                                             ; preds = %tailrecurse
-    %lesstmp1 = icmp slt i32 %i.tr, 400
-    br i1 %lesstmp1, label %then2, label %else3
+  else:                                             ; preds = %rec
+    %lesstmp2 = icmp slt i32 %i1, 400
+    br i1 %lesstmp2, label %then3, label %else4
   
-  then2:                                            ; preds = %else
-    tail call void @printi(i32 %i.tr)
+  then3:                                            ; preds = %else
+    tail call void @printi(i32 %i1)
     br label %ifcont
   
-  else3:                                            ; preds = %else
-    %addtmp = add i32 %i.tr, 1
+  else4:                                            ; preds = %else
+    %addtmp = add i32 %i1, 1
     tail call void @printi(i32 %addtmp)
     br label %ifcont
   
-  ifcont:                                           ; preds = %else3, %then2
-    %subtmp4 = sub i32 %i.tr, 1
-    br label %tailrecurse
+  ifcont:                                           ; preds = %else4, %then3
+    %subtmp5 = sub i32 %i1, 1
+    %2 = add i32 %i1, -1
+    store i32 %2, i32* %0, align 4
+    br label %rec
   }
   
   define i32 @main(i32 %arg) {
@@ -835,23 +839,26 @@ Closures can recurse too
   
   define private void @loop(i32 %i, i8* %0) {
   entry:
-    br label %tailrecurse
-  
-  tailrecurse:                                      ; preds = %then, %entry
-    %i.tr = phi i32 [ %i, %entry ], [ %addtmp, %then ]
     %clsr = bitcast i8* %0 to { i32 }*
-    %outer2 = bitcast { i32 }* %clsr to i32*
-    %outer1 = load i32, i32* %outer2, align 4
-    %lesstmp = icmp slt i32 %i.tr, %outer1
+    %outer4 = bitcast { i32 }* %clsr to i32*
+    %outer1 = load i32, i32* %outer4, align 4
+    %1 = alloca i32, align 4
+    store i32 %i, i32* %1, align 4
+    br label %rec
+  
+  rec:                                              ; preds = %then, %entry
+    %i2 = phi i32 [ %addtmp, %then ], [ %i, %entry ]
+    %lesstmp = icmp slt i32 %i2, %outer1
     br i1 %lesstmp, label %then, label %else
   
-  then:                                             ; preds = %tailrecurse
-    tail call void @printi(i32 %i.tr)
-    %addtmp = add i32 %i.tr, 1
-    br label %tailrecurse
+  then:                                             ; preds = %rec
+    tail call void @printi(i32 %i2)
+    %addtmp = add i32 %i2, 1
+    store i32 %addtmp, i32* %1, align 4
+    br label %rec
   
-  else:                                             ; preds = %tailrecurse
-    tail call void @printi(i32 %i.tr)
+  else:                                             ; preds = %rec
+    tail call void @printi(i32 %i2)
     ret void
   }
   

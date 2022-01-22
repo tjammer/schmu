@@ -12,12 +12,13 @@ end
 module Strtbl = Hashtbl.Make (Str)
 
 type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
+type rec_block = { rec_ : Llvm.llbasicblock; entry : Llvm.llbuilder }
 
 type param = {
   vars : llvar Vars.t;
   alloca : Llvm.llvalue option;
   finalize : (llvar -> unit) option;
-  rec_block : Llvm.llbasicblock option;
+  rec_block : rec_block option;
 }
 
 let ( ++ ) = Seq.append
@@ -298,6 +299,10 @@ let store_alloca ~src ~dst =
       (* Simple type *)
       ignore (Llvm.build_store src.value dst builder)
 
+let alloca param typ str =
+  let builder = match param.rec_block with Some r -> r.entry | _ -> builder in
+  Llvm.build_alloca typ str builder
+
 let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
 
 (* This adds the function parameters to the env.
@@ -369,9 +374,10 @@ let add_params vars f fname names types start_index recursive =
         |> fst
       in
       (* Recursion block*)
-      let bb = Llvm.append_block context "rec" f.value in
-      ignore (Llvm.build_br bb builder);
-      Llvm.position_at_end bb builder;
+      let rec_ = Llvm.append_block context "rec" f.value in
+      let entry = Llvm.build_br rec_ builder in
+      let entry = Llvm.builder_before context entry in
+      Llvm.position_at_end rec_ builder;
 
       let vars, _ =
         List.fold_left
@@ -381,7 +387,7 @@ let add_params vars f fname names types start_index recursive =
             (Vars.add name { llvar with value } env, i + 1))
           (vars, start_index) names
       in
-      (vars, Some bb)
+      (vars, Some { rec_; entry })
 
 let pass_function vars llvar kind =
   match kind with
@@ -518,7 +524,7 @@ and gen_expr param typed_expr =
         typ = Tchar;
         lltyp = char_type;
       }
-  | Mconst (String s) -> codegen_string_lit s
+  | Mconst (String s) -> codegen_string_lit param s
   | Mconst Unit -> failwith "TODO"
   | Mbop (bop, e1, e2) ->
       let e1 = gen_expr param e1 in
@@ -658,8 +664,8 @@ and gen_app param callee args allocref ret_t =
         let retval =
           match (!allocref, param.alloca) with
           | true, Some value -> value
-          | true, None -> Llvm.build_alloca lltyp "ret" builder
-          | false, _ -> Llvm.build_alloca lltyp "ret" builder
+          | true, None -> alloca param lltyp "ret"
+          | false, _ -> alloca param lltyp "ret"
         in
         let ret' = Seq.return retval in
         let args = ret' ++ args ++ envarg |> Array.of_seq in
@@ -709,7 +715,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
     | t -> get_lltype t
   in
 
-  let value = Llvm.build_br rec_block builder in
+  let value = Llvm.build_br rec_block.rec_ builder in
   { value; typ = Qvar "tail"; lltyp }
 
 and gen_if param expr return =
@@ -783,7 +789,7 @@ and codegen_record param typ labels allocref =
   let record =
     match (!allocref, param.alloca) with
     | true, Some value -> value
-    | true, None | false, _ -> Llvm.build_alloca lltyp "" builder
+    | true, None | false, _ -> alloca param lltyp ""
   in
 
   List.iteri
@@ -823,10 +829,10 @@ and codegen_chain param expr cont =
   ignore (gen_expr param expr);
   gen_expr param cont
 
-and codegen_string_lit s =
+and codegen_string_lit param s =
   let lltyp = get_lltype (Tptr Tchar) in
   let typ = Llvm.array_type char_type (String.length s + 1) in
-  let arr = Llvm.build_alloca typ "" builder in
+  let arr = alloca param typ "" in
   let string = Llvm.const_stringz context s in
   ignore (Llvm.build_store string arr builder);
   let value = Llvm.build_bitcast arr lltyp "" builder in
