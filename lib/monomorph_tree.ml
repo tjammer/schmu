@@ -22,7 +22,13 @@ type expr =
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
-and call_name = Mono of string | Concrete of string | Default | Recursive
+
+and call_name =
+  | Mono of string
+  | Concrete of string
+  | Default
+  | Recursive of string
+
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = bool ref
@@ -240,10 +246,10 @@ let monomorphize_call p expr =
           let monomorphized = Set.add name p.monomorphized in
           ({ p with funcs; monomorphized }, Mono name)
     | No_function -> (p, Default)
-    | Forward_decl _ ->
+    | Forward_decl name ->
         (* We don't have to do anything, because the correct function will be called in the first place.
            Except when it is called with different types recursively. We'll see *)
-        (p, Recursive)
+        (p, Recursive name)
 
 let rec set_alloca = function
   | Value a -> a := true
@@ -258,12 +264,16 @@ let pop_recursion_stack () =
   match !recursion_stack with
   | hd :: tl ->
       recursion_stack := tl;
-      hd
+      snd hd
   | [] -> failwith "Internal Error: Recursion stack empty (pop)"
 
-let set_tailrec () =
+let set_tailrec name =
   match !recursion_stack with
-  | _ :: tl -> recursion_stack := Rtail :: tl
+  (* We have to check the name (of the function) here, because
+     a nested function could call recursively its parent *)
+  | (nm, _) :: tl when String.equal name nm ->
+      recursion_stack := (nm, Rtail) :: tl
+  | _ :: _ -> ()
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
 let rec morph_expr param (texpr : Typing.typed_expr) =
@@ -353,7 +363,7 @@ and morph_func p (username, uniq, abs, cont) =
   let ret = p.ret in
   (* Make sure recursion works and the current function can be used in its body *)
   let temp_p =
-    recursion_stack := recursive :: !recursion_stack;
+    recursion_stack := (name, recursive) :: !recursion_stack;
     let alloc =
       match abs.tp.ret with Trecord _ -> Value (ref false) | _ -> No_value
     in
@@ -400,7 +410,7 @@ and morph_lambda typ p id abs =
 
   let ret = p.ret in
   let vars = p.vars in
-  recursion_stack := recursive :: !recursion_stack;
+  recursion_stack := (name, recursive) :: !recursion_stack;
   let tmp, body, { fn = _; alloc } =
     morph_expr { p with ret = true } abs.body
   in
@@ -410,7 +420,7 @@ and morph_lambda typ p id abs =
 
   (match abs.tp.ret with Trecord _ -> set_alloca alloc | _ -> ());
 
-  let recursive = pop_recursion_stack () in
+  ignore (pop_recursion_stack ());
 
   let abs = { func; pnames; body } in
   let gen_func = { abs; name; recursive } in
@@ -431,7 +441,8 @@ and morph_app mk p callee args =
   let p, ex, { fn = _; alloc } = morph_expr { p with ret = false } callee in
   let p, monomorph = monomorphize_call p ex in
 
-  (if ret then match monomorph with Recursive -> set_tailrec () | _ -> ());
+  (if ret then
+   match monomorph with Recursive name -> set_tailrec name | _ -> ());
 
   let f p arg =
     let p, ex, _ = morph_expr p arg in

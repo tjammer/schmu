@@ -17,6 +17,7 @@ type param = {
   vars : llvar Vars.t;
   alloca : Llvm.llvalue option;
   finalize : (llvar -> unit) option;
+  rec_block : Llvm.llbasicblock option;
 }
 
 let ( ++ ) = Seq.append
@@ -288,6 +289,100 @@ let add_closure vars func = function
       in
       env
 
+let store_alloca ~src ~dst =
+  match src.typ with
+  | Trecord _ as r -> memcpy ~dst ~src ~size:(sizeof_typ r |> llval_of_size)
+  | Tfun _ as f -> memcpy ~dst ~src ~size:(sizeof_typ f |> llval_of_size)
+  | Tptr _ -> failwith "TODO"
+  | _ ->
+      (* Simple type *)
+      ignore (Llvm.build_store src.value dst builder)
+
+let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
+
+(* This adds the function parameters to the env.
+   In case the function is tailrecursive, it allocas each parameter in
+   the entry block and creates a recursion block which starts off by loading
+   each parameter. *)
+let add_params vars f fname names types start_index recursive =
+  let add_simple () =
+    (* We simply add to env, no special handling due to tailrecursion *)
+    List.fold_left2
+      (fun (env, i) name typ ->
+        let value = (Llvm.params f.value).(i) in
+        let param = { value; typ = clean typ; lltyp = Llvm.type_of value } in
+        Llvm.set_value_name name value;
+        (Vars.add name param env, i + 1))
+      (vars, start_index) names types
+    |> fst
+  in
+
+  let alloca_copy src =
+    match src.typ with
+    | Trecord _ as r ->
+        let typ = get_lltype ~param:false r in
+        let dst = Llvm.build_alloca typ "" builder in
+        store_alloca ~src ~dst;
+        dst
+    | Tfun _ ->
+        let typ = closure_type in
+        let dst = Llvm.build_alloca typ "" builder in
+        store_alloca ~src ~dst;
+        dst
+    | Tptr _ -> failwith "TODO"
+    | t ->
+        (* Simple type *)
+        let typ = get_lltype ~param:false t in
+        let dst = Llvm.build_alloca typ "" builder in
+        store_alloca ~src ~dst;
+        dst
+  in
+
+  let load value name =
+    match value.typ with
+    | Trecord _ -> value.value
+    | Tfun _ -> value.value
+    | Tptr _ -> failwith "TODO"
+    | _ -> Llvm.build_load value.value name builder
+  in
+
+  (* If the function is named, we allow recursion *)
+  match recursive with
+  | Monomorph_tree.Rnone -> (add_simple (), None)
+  | Rnormal -> (add_simple () |> Vars.add fname f, None)
+  | Rtail ->
+      (* In the entry block, we create a alloca for each parameter.
+         These can be set later in tail recursion scenarios.
+         Then in a new block, we load from those alloca and set the
+         real parameters *)
+      let vars =
+        List.fold_left2
+          (fun (env, i) name typ ->
+            let value = (Llvm.params f.value).(i) in
+            Llvm.set_value_name name value;
+            let value =
+              { value; typ = clean typ; lltyp = Llvm.type_of value }
+            in
+            let alloc = { value with value = alloca_copy value } in
+            (Vars.add (name_of_alloc_param i) alloc env, i + 1))
+          (vars, start_index) names types
+        |> fst
+      in
+      (* Recursion block*)
+      let bb = Llvm.append_block context "rec" f.value in
+      ignore (Llvm.build_br bb builder);
+      Llvm.position_at_end bb builder;
+
+      let vars, _ =
+        List.fold_left
+          (fun (env, i) name ->
+            let llvar = Vars.find (name_of_alloc_param i) env in
+            let value = load llvar name in
+            (Vars.add name { llvar with value } env, i + 1))
+          (vars, start_index) names
+      in
+      (vars, Some bb)
+
 let pass_function vars llvar kind =
   match kind with
   | Simple ->
@@ -306,9 +401,28 @@ let func_to_closure vars llvar =
     | Tfun (_, _, kind) -> pass_function vars.vars llvar kind
     | _ -> llvar
 
+(* Get monomorphized function *)
+let get_mono_func func param = function
+  | Monomorph_tree.Mono name ->
+      let func = Vars.find name param.vars in
+      (* Monomorphized functions are not yet converted to closures *)
+      let func =
+        match func.typ with
+        | Tfun (_, _, Closure assoc) ->
+            gen_closure_obj assoc func param.vars "monoclstmp"
+        | Tfun (_, _, Simple) -> func
+        | _ -> failwith "Internal Error: What are we applying?"
+      in
+      func
+  | Concrete name -> Vars.find name param.vars
+  | Default | Recursive _ -> func
+
 let fun_return name ret =
   match ret.typ with
   | Trecord _ -> Llvm.build_ret_void builder
+  | Qvar id when String.equal id "tail" ->
+      (* This magic id is used to mark a tailrecursive call *)
+      Llvm.build_ret_void builder
   | Qvar _ -> failwith "Internal Error: Generic return"
   | Tunit ->
       if String.equal name "main" then
@@ -340,27 +454,11 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
 
       (* Add params from closure *)
       (* We generate both the code for extracting the closure and add the vars to the environment *)
-      let temp_vars = add_closure vars.vars func kind in
+      let tvars = add_closure vars.vars func kind in
 
       (* Add parameters to env *)
-      let temp_vars, _ =
-        List.fold_left2
-          (fun (env, i) name typ ->
-            let value = (Llvm.params func.value).(i) in
-            let param =
-              { value; typ = clean typ; lltyp = Llvm.type_of value }
-            in
-            Llvm.set_value_name name value;
-            (Vars.add name param env, i + 1))
-          (temp_vars, start_index) abs.pnames tparams
-      in
-
-      (* If the function is named, we allow recursion *)
-      let temp_vars =
-        match recursive with
-        | Rnormal -> Vars.add name func temp_vars
-        | Rnone -> temp_vars
-        | Rtail -> failwith "not yet"
+      let tvars, rec_block =
+        add_params tvars func name abs.pnames tparams start_index recursive
       in
 
       let fun_finalize ret =
@@ -378,7 +476,9 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
       in
 
       let finalize = Some fun_finalize in
-      let ret = gen_expr { vars = temp_vars; alloca; finalize } abs.body in
+      let ret =
+        gen_expr { vars = tvars; alloca; finalize; rec_block } abs.body
+      in
 
       ignore (fun_return name ret);
 
@@ -458,10 +558,11 @@ and gen_expr param typed_expr =
             dummy_fn_value
       in
       func
-  | Mapp { callee; args; alloca } ->
-      (* TODO recursive call *)
-      gen_app param callee args alloca typed_expr.return (clean typed_expr.typ)
-      |> fin
+  | Mapp { callee; args; alloca } -> (
+      match (typed_expr.return, callee.monomorph, param.rec_block) with
+      | true, Recursive _, Some block ->
+          gen_app_tailrec param callee args block (clean typed_expr.typ)
+      | _ -> gen_app param callee args alloca (clean typed_expr.typ) |> fin)
   | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref) ->
       codegen_record param (clean typed_expr.typ) labels allocref |> fin
@@ -496,34 +597,13 @@ and gen_bop e1 e2 bop =
       { value; typ = Tbool; lltyp = bool_type }
   | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_type }
 
-and gen_app param callee args allocref tail ret_t =
+and gen_app param callee args allocref ret_t =
   let func = gen_expr param callee.ex in
 
-  (* Get monomorphized function *)
-  let get_mono_func func = function
-    | Monomorph_tree.Mono name ->
-        let func = Vars.find name param.vars in
-        (* Monomorphized functions are not yet converted to closures *)
-        let func =
-          match func.typ with
-          | Tfun (_, _, Closure assoc) ->
-              gen_closure_obj assoc func param.vars "monoclstmp"
-          | Tfun (_, _, Simple) -> func
-          | _ -> failwith "Internal Error: What are we applying?"
-        in
-        func
-    | Concrete name -> Vars.find name param.vars
-    | Default -> func
-    | Recursive ->
-        if tail then print_endline "tailrec in call";
-        func
-  in
-
-  let func = get_mono_func func callee.monomorph in
+  let func = get_mono_func func param callee.monomorph in
 
   let ret, kind =
     match func.typ with
-    (* TODO we pattern match on the same thing above *)
     | Tfun (_, ret, kind) -> (ret, kind)
     | Tunit ->
         failwith "Internal Error: Probably cannot find monomorphized function"
@@ -532,7 +612,7 @@ and gen_app param callee args allocref tail ret_t =
 
   let handle_arg arg =
     let arg' = gen_expr param Monomorph_tree.(arg.ex) in
-    let arg = get_mono_func arg' arg.monomorph in
+    let arg = get_mono_func arg' param arg.monomorph in
     (func_to_closure param arg).value
   in
   let args = List.map handle_arg args in
@@ -595,11 +675,53 @@ and gen_app param callee args allocref tail ret_t =
 
   { value; typ = ret; lltyp }
 
+and gen_app_tailrec param callee args rec_block ret_t =
+  (* We evaluate, there might be side-effects *)
+  let func = gen_expr param callee.ex in
+  ignore func;
+
+  let start_index, ret =
+    match func.typ with
+    | Tfun (_, (Trecord _ as r), _) -> (1, r)
+    | Tfun (_, ret, _) -> (0, ret)
+    | Tunit ->
+        failwith "Internal Error: Probably cannot find monomorphized function"
+    | _ -> failwith "Internal Error: Not a func in gen app"
+  in
+
+  let handle_arg i arg =
+    let arg' = gen_expr param Monomorph_tree.(arg.ex) in
+    let arg = get_mono_func arg' param arg.monomorph in
+    let llvar = func_to_closure param arg in
+
+    let alloca = Vars.find (name_of_alloc_param i) param.vars in
+
+    if llvar.value <> alloca.value then
+      store_alloca ~src:llvar ~dst:alloca.value;
+    i + 1
+  in
+
+  ignore (List.fold_left handle_arg start_index args);
+
+  let lltyp =
+    match ret with
+    | Trecord _ -> get_lltype ~param:false ret_t
+    | t -> get_lltype t
+  in
+
+  let value = Llvm.build_br rec_block builder in
+  { value; typ = Qvar "tail"; lltyp }
+
 and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),
      we pass in the finalize step. This allows us to handle the branches
      differently and enables tail call elimination *)
-  let rec_return = match expr.e1.typ with Trecord _ -> return | _ -> false in
+  ignore return;
+
+  let is_tailcall e =
+    match e.typ with Qvar id when String.equal "tail" id -> true | _ -> false
+  in
+
   let cond = gen_expr param expr.cond in
 
   let start_bb = Llvm.insertion_block builder in
@@ -617,31 +739,43 @@ and gen_if param expr return =
 
   let e2_bb = Llvm.insertion_block builder in
   let merge_bb = Llvm.append_block context "ifcont" parent in
-
   Llvm.position_at_end merge_bb builder;
+
   let phi =
     (* If the else evaluates to void, we don't do anything.
        Void will be added eventually *)
     match e2.typ with
     | Tunit -> e1.value
-    | _ ->
+    | _ -> (
         (* Small optimization: If we happen to end up with the same value,
            we don't generate a phi node (can happen in recursion) *)
-        if e1.value <> e2.value || rec_return then
-          let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
-          Llvm.build_phi incoming "iftmp" builder
-        else e1.value
+        match (is_tailcall e1, is_tailcall e2) with
+        | true, true ->
+            (* No need for the whole block, we just return some value *)
+            print_endline "we are here";
+            e1.value
+        | true, false -> e2.value
+        | false, true -> e1.value
+        | false, false ->
+            if e1.value <> e2.value then
+              let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
+              Llvm.build_phi incoming "iftmp" builder
+            else e1.value)
   in
+
   Llvm.position_at_end start_bb builder;
   ignore (Llvm.build_cond_br cond.value then_bb else_bb builder);
 
-  Llvm.position_at_end e1_bb builder;
-  ignore (Llvm.build_br merge_bb builder);
-  Llvm.position_at_end e2_bb builder;
-  ignore (Llvm.build_br merge_bb builder);
+  if not (is_tailcall e1) then (
+    Llvm.position_at_end e1_bb builder;
+    ignore (Llvm.build_br merge_bb builder));
+  if not (is_tailcall e2) then (
+    Llvm.position_at_end e2_bb builder;
+    ignore (Llvm.build_br merge_bb builder));
 
   Llvm.position_at_end merge_bb builder;
-  { value = phi; typ = e1.typ; lltyp = e1.lltyp }
+  (* TODO The return type here must be checked for tailrecs? *)
+  { value = phi; typ = e2.typ; lltyp = e2.lltyp }
 
 and codegen_record param typ labels allocref =
   let lltyp = get_lltype ~param:false ~field:true typ in
@@ -736,7 +870,7 @@ let generate { Monomorph_tree.externals; records; tree; funcs } =
     (* Generate functions *)
     List.fold_left
       (fun acc func -> gen_function acc func)
-      { vars; alloca = None; finalize = None }
+      { vars; alloca = None; finalize = None; rec_block = None }
       funcs
   in
 

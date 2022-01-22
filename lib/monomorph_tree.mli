@@ -21,7 +21,15 @@ type expr =
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
-and call_name = Mono of string | Concrete of string | Default | Recursive
+
+and call_name =
+  | Mono of string (* Monomorphized fun call *)
+  | Concrete of string (* Normal function call with unique name *)
+  | Default (* std *)
+  | Recursive of string
+(* Recursive function call.
+   The function name is only for housekeeping *)
+
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = bool ref
