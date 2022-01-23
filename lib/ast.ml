@@ -48,8 +48,5 @@ type typedef = {
   loc : loc;
 }
 
-type prog = {
-  external_decls : external_decl list;
-  typedefs : typedef list;
-  block : block;
-}
+type preface = Ext_decl of external_decl | Typedef of typedef
+type prog = { preface : preface list; block : block }

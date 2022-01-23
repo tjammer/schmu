@@ -1,0 +1,6 @@
+type first = { a :int }
+external dummy_call : unit -> first
+type second = { a : int }
+external print_2nd : second -> unit
+
+0

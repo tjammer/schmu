@@ -47,16 +47,20 @@
 
 %%
 
-prog: list(external_decl); list(typedef); block; Eof
-    { { external_decls = $1; typedefs = $2; block = $3} }
+prog: list(preface_item); block; Eof
+    { { preface = $1; block = $2} }
+
+%inline preface_item:
+  | external_decl { $1 }
+  | typedef { $1 }
 
 %inline external_decl:
-  | External; Identifier; type_expr { $loc, $2, $3 }
+  | External; Identifier; type_expr { Ext_decl ($loc, $2, $3) }
 
 %inline typedef:
   | Type; Identifier; option(typedef_poly_id); Equal;
        Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
-    { { poly_param = string_of_ty_var $3; name = $2; labels = Array.of_list $6; loc = $loc } }
+    { Typedef { poly_param = string_of_ty_var $3; name = $2; labels = Array.of_list $6; loc = $loc } }
 
 %inline type_decl:
   | Identifier; type_expr { $1, $2 }

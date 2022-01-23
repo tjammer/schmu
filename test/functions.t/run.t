@@ -896,3 +896,21 @@ Print error when returning a polymorphic lambda in an if expression
   6 | f = if true then fn (x) x end else fn (x) x end end
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
+Allow mixing of typedefs and external decls in the preface
+  $ schmu mix_preface.smu | grep -v x86_64
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %first = type { i32 }
+  %second = type { i32 }
+  
+  declare %first* @dummy_call()
+  
+  declare void @print_2nd(%second* %0)
+  
+  define i32 @main(i32 %arg) {
+  entry:
+    ret i32 0
+  }
+  int

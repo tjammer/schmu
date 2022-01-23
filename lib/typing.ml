@@ -706,45 +706,40 @@ and typeof_block env (loc, stmts) =
   in
   to_expr env (loc, Tunit) stmts
 
-let extern_vars decls =
-  let externals =
-    List.map
-      (fun (loc, name, typ) -> (name, typeof_annot Env.empty loc typ))
-      decls
+let typedef env Ast.{ poly_param; name; labels; loc } =
+  let labels, param =
+    let env, param =
+      match poly_param with
+      | Some name ->
+          (* TODO get rid off this and move to add_record *)
+          let t = Qvar (gensym ()) in
+          (Env.add_type name t env, Some t)
+      | None -> (env, None)
+    in
+    (* TODO we need to make sure all parametrized vars are the same as the parent's *)
+    let labels =
+      Array.map
+        (fun (lbl, type_expr) ->
+          let t = typeof_annot ~typedef:true env loc type_expr in
+          (* Does this work? *)
+          (lbl, t))
+        labels
+    in
+    (labels, param)
   in
-  List.fold_left
-    (fun vars (name, typ) -> Env.add_value name typ vars)
-    Env.empty externals
-
-let typedefs typedefs env =
-  List.fold_left
-    (fun env Ast.{ poly_param; name; labels; loc } ->
-      let labels, param =
-        let env, param =
-          match poly_param with
-          | Some name ->
-              (* TODO get rid off this and move to add_record *)
-              let t = Qvar (gensym ()) in
-              (Env.add_type name t env, Some t)
-          | None -> (env, None)
-        in
-        (* TODO we need to make sure all parametrized vars are the same as the parent's *)
-        let labels =
-          Array.map
-            (fun (lbl, type_expr) ->
-              let t = typeof_annot ~typedef:true env loc type_expr in
-              (* Does this work? *)
-              (lbl, t))
-            labels
-        in
-        (labels, param)
-      in
-      Env.add_record name ~param ~labels env)
-    env typedefs
+  Env.add_record name ~param ~labels env
 
 let typecheck (prog : Ast.prog) =
   reset_type_vars ();
-  let env = extern_vars prog.external_decls |> typedefs prog.typedefs in
+  let env =
+    List.fold_left
+      (fun env item ->
+        match item with
+        | Ast.Ext_decl (loc, name, typ) ->
+            Env.add_value name (typeof_annot env loc typ) env
+        | Typedef t -> typedef env t)
+      Env.empty prog.preface
+  in
   typeof_block env prog.block |> canonize (Strtbl.create 16)
 
 (* Conversion to Typing.exr below *)
@@ -1071,22 +1066,23 @@ and convert_block env (loc, stmts) =
 
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();
-  let externals =
-    let empty = Env.empty in
-    List.map
-      (fun (loc, name, typ) -> (name, typeof_annot empty loc typ))
-      prog.external_decls
+
+  let env, externals =
+    List.fold_left_map
+      (fun env item ->
+        match item with
+        | Ast.Ext_decl (loc, name, typ) ->
+            let typ = typeof_annot env loc typ in
+            (Env.add_value name typ env, Some (name, typ))
+        | Typedef t ->
+            let env = typedef env t in
+            (env, None))
+      Env.empty prog.preface
   in
 
-  let vars =
-    List.fold_left
-      (fun vars (name, typ) -> Env.add_value name typ vars)
-      Env.empty externals
-    |> typedefs prog.typedefs
-  in
-
-  let tree = convert_block vars prog.block in
-  let records = Env.records vars in
+  let tree = convert_block env prog.block in
+  let records = Env.records env in
+  let externals = List.filter_map Fun.id externals in
 
   (* print_endline (String.concat ", " (List.map string_of_type records)); *)
   { externals; records; tree }

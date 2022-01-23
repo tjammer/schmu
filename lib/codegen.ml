@@ -848,15 +848,17 @@ let decl_external (name, typ) =
   | _ -> failwith "TODO external symbols"
 
 let generate { Monomorph_tree.externals; records; tree; funcs } =
+  (* Add record types.
+     We do this first to ensure that all record definitons
+     are available for external decls *)
+  List.iter to_named_records records;
+
   (* External declarations *)
   let vars =
     List.fold_left
       (fun vars (name, typ) -> Vars.add name (decl_external (name, typ)) vars)
       Vars.empty externals
   in
-
-  (* Add record types *)
-  List.iter to_named_records records;
 
   (* Factor out functions for llvm *)
   let funcs =
