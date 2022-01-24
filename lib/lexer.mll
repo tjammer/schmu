@@ -35,6 +35,7 @@ rule read =
   | "'"      { Quote }
   | "if"     { If }
   | "then"   { Then }
+  | "elseif" { Elseif }
   | "else"   { Else }
   | "external" { External }
   | "fn"       { Function_small }

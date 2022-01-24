@@ -1,0 +1,18 @@
+external assert : bool -> unit
+
+function test(n)
+  if n == 10 then
+    1
+  elseif n < 1 then
+    2
+  elseif n < 10 then
+    3
+  else
+    4
+  end
+end
+
+assert(test(10) == 1)
+assert(test(0)  == 2)
+assert(test(1)  == 3)
+assert(test(11) == 4)

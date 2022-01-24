@@ -5,6 +5,17 @@
       | None -> None
       | Some (Ty_var s) -> Some s
       | _ -> failwith "Internal Error: Should have been a type var"
+
+    let parse_elseifs loc cond then_ elseifs else_ =
+      let rec aux = function
+        | [ (loc, cond, blk) ] ->
+            (loc, [ Ast.Expr (loc, Ast.If (loc, cond, blk, else_)) ])
+        | (loc, cond, blk) :: tl ->
+            (loc, [ Ast.Expr (loc, If (loc, cond, blk, aux tl)) ])
+        | [] -> else_
+      in
+      Ast.If (loc, cond, then_, aux elseifs)
+
 %}
 
 %token Equal
@@ -28,6 +39,7 @@
 %token Rbrac
 %token If
 %token Then
+%token Elseif
 %token Else
 %token Eof
 %token External
@@ -80,7 +92,7 @@ expr:
   | bool { Lit($loc, Bool  $1) }
   | String_lit { Lit($loc, String $1) }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
-  | If; expr; Then; block; Else; block; End { If($loc, $2, $4, $6)}
+  | If; expr; Then; block; list(elif); Else; block; End { parse_elseifs $loc $2 $4 $5 $7 }
   | Function_small; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); block; option(End)
     { Lambda($loc, $3, $5, $6) }
   | expr; Lpar; separated_list(Comma, expr); Rpar { App($loc, $1, $3) }
@@ -88,6 +100,9 @@ expr:
   | expr; Dot; Identifier { Field ($loc, $1, $3) }
   | expr; Arrow; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
+
+%inline elif:
+  | Elseif; expr; Then; block { ($loc, $2, $4) }
 
 %inline record_item:
   | Identifier; Equal; expr { $1, $3 }
