@@ -829,13 +829,10 @@ and codegen_chain param expr cont =
   ignore (gen_expr param expr);
   gen_expr param cont
 
-and codegen_string_lit param s =
+and codegen_string_lit _ s =
   let lltyp = get_lltype (Tptr Tchar) in
-  let typ = Llvm.array_type char_type (String.length s + 1) in
-  let arr = alloca param typ "" in
-  let string = Llvm.const_stringz context s in
-  ignore (Llvm.build_store string arr builder);
-  let value = Llvm.build_bitcast arr lltyp "" builder in
+  let ptr = Llvm.build_global_stringptr s s builder in
+  let value = Llvm.build_bitcast ptr lltyp "" builder in
   { value; typ = Tptr Tchar; lltyp }
 
 let decl_external (name, typ) =
