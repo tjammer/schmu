@@ -15,7 +15,7 @@ type expr =
 [@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr }
-and const = Int of int | Bool of bool | Unit | Char of char | String of string
+and const = Int of int | Bool of bool | Unit | U8 of char | String of string
 and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
 and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
@@ -95,7 +95,7 @@ let is_type_polymorphic typ =
     | Tfun (params, ret, _) ->
         let acc = List.fold_left inner acc params in
         inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ | Tchar -> acc
+    | Tbool | Tunit | Tint | Trecord _ | Tu8 -> acc
     | Tptr t -> inner acc t
   in
   inner false typ
@@ -161,7 +161,7 @@ let string_of_type typ =
     | Tint -> "int"
     | Tbool -> "bool"
     | Tunit -> "unit"
-    | Tchar -> "char"
+    | Tu8 -> "u8"
     | Tfun (ts, t, _) -> (
         match ts with
         | [ p ] ->
@@ -367,7 +367,7 @@ let typeof_annot ?(typedef = false) env loc annot =
     | Ast.Ty_id "int" -> Tint
     | Ty_id "bool" -> Tbool
     | Ty_id "unit" -> Tunit
-    | Ty_id "char" -> Tchar
+    | Ty_id "u8" -> Tu8
     | Ty_id t -> find t ""
     | Ty_var id when typedef -> find id "'"
     | Ty_var id ->
@@ -491,8 +491,8 @@ and typeof_annotated env annot = function
   | Ast.Var (loc, v) -> typeof_var env loc v
   | Lit (_, Int _) -> Tint
   | Lit (_, Bool _) -> Tbool
-  | Lit (_, Char _) -> Tchar
-  | Lit (_, String _) -> Tptr Tchar
+  | Lit (_, U8 _) -> Tu8
+  | Lit (_, String _) -> Tptr Tu8
   | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
   | App (loc, e1, e2) -> typeof_app ~switch_uni:false env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
@@ -775,8 +775,8 @@ and convert_annot env annot = function
   | Ast.Var (loc, id) -> convert_var env loc id
   | Lit (_, Int i) -> { typ = Tint; expr = Const (Int i) }
   | Lit (_, Bool b) -> { typ = Tbool; expr = Const (Bool b) }
-  | Lit (_, Char c) -> { typ = Tchar; expr = Const (Char c) }
-  | Lit (_, String s) -> { typ = Tptr Tchar; expr = Const (String s) }
+  | Lit (_, U8 c) -> { typ = Tu8; expr = Const (U8 c) }
+  | Lit (_, String s) -> { typ = Tptr Tu8; expr = Const (String s) }
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2

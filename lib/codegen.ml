@@ -43,7 +43,7 @@ let builder = Llvm.builder context
 let int_type = Llvm.i32_type context
 let num_type = Llvm.i64_type context
 let bool_type = Llvm.i1_type context
-let char_type = Llvm.i8_type context
+let u8_type = Llvm.i8_type context
 let unit_type = Llvm.void_type context
 let voidptr_type = Llvm.(i8_type context |> pointer_type)
 
@@ -90,7 +90,7 @@ let rec get_lltype ?(param = true) ?(field = false) = function
      get the correct type though to cast it back. All this is handled by [param]. *)
   | Tint -> int_type
   | Tbool -> bool_type
-  | Tchar -> char_type
+  | Tu8 -> u8_type
   | Tvar { contents = Link t } -> get_lltype ~param t
   | Tunit -> unit_type
   | Tfun (params, ret, kind) ->
@@ -172,7 +172,7 @@ let sizeof_typ typ =
   let rec inner size_pr typ =
     match typ with
     | Tint -> add_size_align ~upto:4 ~sz:4 size_pr
-    | Tbool | Tchar ->
+    | Tbool | Tu8 ->
         (* No need to align one byte *)
         { size_pr with size = size_pr.size + 1 }
     | Tunit -> failwith "Does this make sense?"
@@ -518,11 +518,11 @@ and gen_expr param typed_expr =
         lltyp = bool_type;
       }
       |> fin
-  | Mconst (Char c) ->
+  | Mconst (U8 c) ->
       {
-        value = Llvm.const_int char_type (Char.code c);
-        typ = Tchar;
-        lltyp = char_type;
+        value = Llvm.const_int u8_type (Char.code c);
+        typ = Tu8;
+        lltyp = u8_type;
       }
   | Mconst (String s) -> codegen_string_lit param s
   | Mconst Unit -> failwith "TODO"
@@ -830,10 +830,10 @@ and codegen_chain param expr cont =
   gen_expr param cont
 
 and codegen_string_lit _ s =
-  let lltyp = get_lltype (Tptr Tchar) in
+  let lltyp = get_lltype (Tptr Tu8) in
   let ptr = Llvm.build_global_stringptr s s builder in
   let value = Llvm.build_bitcast ptr lltyp "" builder in
-  { value; typ = Tptr Tchar; lltyp }
+  { value; typ = Tptr Tu8; lltyp }
 
 let decl_external (name, typ) =
   match typ with

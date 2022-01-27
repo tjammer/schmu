@@ -2,7 +2,7 @@ type typ =
   | Tint
   | Tbool
   | Tunit
-  | Tchar
+  | Tu8
   | Tvar of tv ref
   | Qvar of string
   | Tfun of typ list * typ * fun_kind

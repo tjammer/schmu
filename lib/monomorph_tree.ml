@@ -107,7 +107,7 @@ let get_mono_name name ~poly concrete =
     | Tint -> "i"
     | Tbool -> "b"
     | Tunit -> "u"
-    | Tchar -> "c"
+    | Tu8 -> "c"
     | Tvar { contents = Link t } -> str t
     | Tfun (ps, r, _) ->
         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
