@@ -747,26 +747,26 @@ and gen_if param expr return =
   let merge_bb = Llvm.append_block context "ifcont" parent in
   Llvm.position_at_end merge_bb builder;
 
-  let phi =
+  let llvar =
     (* If the else evaluates to void, we don't do anything.
        Void will be added eventually *)
     match e2.typ with
-    | Tunit -> e1.value
+    | Tunit -> e1
     | _ -> (
         (* Small optimization: If we happen to end up with the same value,
            we don't generate a phi node (can happen in recursion) *)
         match (is_tailcall e1, is_tailcall e2) with
         | true, true ->
             (* No need for the whole block, we just return some value *)
-            print_endline "we are here";
-            e1.value
-        | true, false -> e2.value
-        | false, true -> e1.value
+            e1
+        | true, false -> e2
+        | false, true -> e1
         | false, false ->
             if e1.value <> e2.value then
               let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
-              Llvm.build_phi incoming "iftmp" builder
-            else e1.value)
+              let value = Llvm.build_phi incoming "iftmp" builder in
+              { value; typ = e1.typ; lltyp = e2.lltyp }
+            else e1)
   in
 
   Llvm.position_at_end start_bb builder;
@@ -780,8 +780,7 @@ and gen_if param expr return =
     ignore (Llvm.build_br merge_bb builder));
 
   Llvm.position_at_end merge_bb builder;
-  (* TODO The return type here must be checked for tailrecs? *)
-  { value = phi; typ = e2.typ; lltyp = e2.lltyp }
+  llvar
 
 and codegen_record param typ labels allocref =
   let lltyp = get_lltype ~param:false ~field:true typ in
