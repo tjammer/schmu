@@ -91,7 +91,7 @@ let rec get_lltype ?(param = true) ?(field = false) = function
   | Tint -> int_type
   | Tbool -> bool_type
   | Tu8 -> u8_type
-  | Tvar { contents = Link t } -> get_lltype ~param t
+  | Tvar { contents = Link t } | Talias (_, t) -> get_lltype ~param t
   | Tunit -> unit_type
   | Tfun (params, ret, kind) ->
       typeof_func ~param ~field ~decl:false (params, ret, kind)
@@ -176,7 +176,7 @@ let sizeof_typ typ =
         (* No need to align one byte *)
         { size_pr with size = size_pr.size + 1 }
     | Tunit -> failwith "Does this make sense?"
-    | Tvar { contents = Link t } -> inner size_pr t
+    | Tvar { contents = Link t } | Talias (_, t) -> inner size_pr t
     | Tfun _ ->
         (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
         add_size_align ~upto:8 ~sz:8 size_pr

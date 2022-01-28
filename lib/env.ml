@@ -82,9 +82,9 @@ let maybe_add_record_instance key typ env =
       env.instances := Tmap.add key typ !(env.instances)
   | Some _, _ | None, _ -> ()
 
-let add_alias key typ env =
-  let key = Type_key.create key in
-  let types = Tmap.add key typ env.types in
+let add_alias name typ env =
+  let key = Type_key.create name in
+  let types = Tmap.add key (Talias (name, typ)) env.types in
   { env with types }
 
 let new_scope env =

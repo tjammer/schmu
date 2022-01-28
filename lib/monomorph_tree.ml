@@ -108,7 +108,7 @@ let get_mono_name name ~poly concrete =
     | Tbool -> "b"
     | Tunit -> "u"
     | Tu8 -> "c"
-    | Tvar { contents = Link t } -> str t
+    | Tvar { contents = Link t } | Talias (_, t) -> str t
     | Tfun (ps, r, _) ->
         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
     | Trecord (Some t, name, _) -> Printf.sprintf "%s%s" name (str t)

@@ -196,6 +196,25 @@ let test_pipe_tail_mult_wrong_type () =
   test_exn " Wrong arity for function: Expected 1 but got type 2"
     "function add1(a) a + 1 end 10->>add1(12)"
 
+let test_alias_simple () =
+  test "foo = int -> unit" "type foo = int external f : foo -> unit f"
+
+let test_alias_param_concrete () =
+  test "foo = ptr(u8) -> unit" "type foo = ptr(u8) external f : foo -> unit f"
+
+let test_alias_param_quant () =
+  (* TODO this should say = ptr('a) *)
+  test "foo = ptr('0) -> unit"
+    "type foo('a) = ptr('a) external f : foo('a) -> unit f"
+
+let test_alias_param_missing () =
+  test_exn "Type foo needs a type parameter"
+    "type foo('a) = ptr('a) external f : foo -> unit f"
+
+let test_alias_of_alias () =
+  test "bar = int -> foo = int"
+    "type foo = int type bar = foo external f : bar -> foo f"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -272,5 +291,13 @@ let () =
           case "tail_single_wrong_type" test_pipe_tail_single_wrong_type;
           case "tail_mult" test_pipe_tail_mult;
           case "tail_mult_wrong_type" test_pipe_tail_mult_wrong_type;
+        ] );
+      ( "aliasing",
+        [
+          case "simple" test_alias_simple;
+          case "param_concrete" test_alias_param_concrete;
+          case "param_quant" test_alias_param_quant;
+          case "param_missing" test_alias_param_missing;
+          case "of_alias" test_alias_of_alias;
         ] );
     ]

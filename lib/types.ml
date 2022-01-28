@@ -4,6 +4,7 @@ type typ =
   | Tunit
   | Tu8
   | Tvar of tv ref
+  | Talias of string * typ
   | Qvar of string
   | Tfun of typ list * typ * fun_kind
   | Trecord of typ option * string * (string * typ) array
@@ -13,6 +14,7 @@ type typ =
 and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ | Qannot of string
 
+(* Follow links and aliases *)
 let rec clean = function
   | Tvar { contents = Link t } -> clean t
   | Tfun (params, ret, Closure vals) ->
@@ -22,13 +24,5 @@ let rec clean = function
   | Trecord (param, name, fields) ->
       Trecord
         (param, name, Array.map (fun (name, typ) -> (name, clean typ)) fields)
-  | t -> t
-
-let rec freeze = function
-  | Tvar { contents = Unbound (str, _) } -> Qvar str
-  | Tvar { contents = Link t } -> freeze t
-  | Tfun (params, ret, kind) -> Tfun (List.map freeze params, freeze ret, kind)
-  | Trecord (param, name, fields) ->
-      let fields = Array.map (fun (name, typ) -> (name, freeze typ)) fields in
-      Trecord (param, name, fields)
+  | Talias (_, t) -> clean t
   | t -> t

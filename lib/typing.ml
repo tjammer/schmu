@@ -89,7 +89,7 @@ let newvar () = Tvar (ref (Unbound (gensym (), !current_level)))
 let is_type_polymorphic typ =
   let rec inner acc = function
     | Qvar _ | Tvar { contents = Unbound _ } -> true
-    | Tvar { contents = Link t } -> inner acc t
+    | Tvar { contents = Link t } | Talias (_, t) -> inner acc t
     | Tvar _ -> failwith "annot should not be here"
     | Trecord (Some t, _, _) -> inner acc t
     | Tfun (params, ret, _) ->
@@ -131,6 +131,7 @@ let canonize tbl typ =
     | Tvar { contents = Unbound (str, lvl) } ->
         Tvar { contents = Unbound (get_name str, lvl) }
     | Tvar { contents = Link t } -> Tvar { contents = Link (inner t) }
+    | Talias (name, t) -> Talias (name, inner t)
     | Tvar { contents = Qannot id } -> (
         (* We see if there exists a Qvar linked to our annotation *)
         let qid =
@@ -172,6 +173,8 @@ let string_of_type typ =
     | Tvar { contents = Unbound (str, _) } -> to_name str
     | Tvar { contents = Link t } -> string_of_type t
     | Tvar { contents = Qannot id } -> Printf.sprintf "'%s" id
+    | Talias (name, t) ->
+        Printf.sprintf "%s = %s" name (clean t |> string_of_type)
     | Qvar str -> to_name str
     | Trecord (param, str, _) ->
         str
@@ -190,7 +193,7 @@ let rec occurs tvr = function
         match !tvr with Unbound (_, lvl) -> min lvl lvl' | _ -> lvl'
       in
       tv := Unbound (id, min_lvl)
-  | Tvar { contents = Link ty } -> occurs tvr ty
+  | Tvar { contents = Link ty } | Talias (_, ty) -> occurs tvr ty
   | Tfun (param_ts, t, _) ->
       List.iter (occurs tvr) param_ts;
       occurs tvr t
@@ -211,7 +214,10 @@ let unify_raw tbl t1 t2 =
     if t1 == t2 then ()
     else
       match (t1, t2) with
-      | Tvar { contents = Link t1 }, t2 | t2, Tvar { contents = Link t1 } ->
+      | Tvar { contents = Link t1 }, t2
+      | t2, Tvar { contents = Link t1 }
+      | Talias (_, t1), t2
+      | t2, Talias (_, t1) ->
           unify t1 t2
       | Tvar ({ contents = Unbound _ } as tv), t
       | t, Tvar ({ contents = Unbound _ } as tv) ->
@@ -281,7 +287,7 @@ let unify info t1 t2 =
 
 let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
-  | Tvar { contents = Link t } -> generalize t
+  | Tvar { contents = Link t } | Talias (_, t) -> generalize t
   | Tfun (t1, t2, k) -> Tfun (List.map generalize t1, generalize t2, k)
   | Trecord (Some t, name, labels) ->
       (* Hopefully the param type is the same reference throughout the record *)
@@ -300,6 +306,9 @@ let instantiate t =
             let tv = newvar () in
             (tv, Env.add_value id tv subst))
     | Tvar { contents = Link t } -> aux subst t
+    | Talias (name, t) ->
+        let t, subst = aux subst t in
+        (Talias (name, t), subst)
     | Tfun (params_t, t, k) ->
         let subst, params_t =
           List.fold_left_map
@@ -347,8 +356,20 @@ let typeof_annot ?(typedef = false) env loc annot =
     id - Char.code 'a' |> string_of_int
   in
 
+  let rec is_quantified = function
+    | Trecord (Some _, name, _) -> Some name
+    | Tptr _ -> Some "ptr"
+    | Talias (name, t) -> (
+        let cleaned = clean t in
+        match is_quantified cleaned with
+        | Some _ when is_type_polymorphic cleaned -> Some name
+        | Some _ | None -> (* When can alias a concrete type *) None)
+    | Tvar { contents = Link t } -> is_quantified t
+    | _ -> None
+  in
+
   let rec subst ~id typ = function
-    | Tvar { contents = Link t } -> subst ~id typ t
+    | Tvar { contents = Link t } | Talias (_, t) -> subst ~id typ t
     | (Qvar id' | Tvar { contents = Unbound (id', _) }) when String.equal id id'
       ->
         typ
@@ -379,11 +400,13 @@ let typeof_annot ?(typedef = false) env loc annot =
     | Ty_list l -> type_list l
   and type_list = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
+    | [ Ty_id "ptr" ] -> raise (Error (loc, "Type ptr needs a type parameter"))
     | [ t ] -> (
-        match concrete_type t with
-        | Trecord (Some (Qvar _), name, _) ->
+        let t = concrete_type t in
+        match is_quantified t with
+        | Some name ->
             raise (Error (loc, "Type " ^ name ^ " needs a type parameter"))
-        | t -> t)
+        | None -> t)
     | lst -> container_t lst
   and container_t lst =
     match lst with
@@ -392,20 +415,23 @@ let typeof_annot ?(typedef = false) env loc annot =
     | Ty_id "ptr" :: tl ->
         let nested = container_t tl in
         Tptr nested
-    | hd :: tl -> (
+    | hd :: tl ->
         let t = concrete_type hd in
-        match t with
-        | Trecord (Some (Qvar id), _, _)
-        | Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _)
-        | Tptr (Qvar id)
-        | Tptr (Tvar { contents = Unbound (id, _) }) ->
-            let nested = container_t tl in
-            subst ~id nested t
-        | t ->
-            raise
-              (Error
-                 (loc, "Expected a parametrized type, not " ^ string_of_type t))
-        )
+        let rec finish = function
+          | Tvar { contents = Link t } -> finish t
+          | Trecord (Some (Qvar id), _, _)
+          | Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _)
+          | Tptr (Qvar id)
+          | Tptr (Tvar { contents = Unbound (id, _) }) ->
+              let nested = container_t tl in
+              subst ~id nested t
+          | Talias (name, t) -> Talias (name, finish t)
+          | t ->
+              raise
+                (Error
+                   (loc, "Expected a parametrized type, not " ^ string_of_type t))
+        in
+        finish t
   and handle_annot = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ t ] -> concrete_type t
@@ -626,7 +652,9 @@ and typeof_record env loc annot labels =
                 (* If the variable is generic, we figure the type out normally and the
                    unify for the later fields *)
                 (typ, typeof_annotated env None expr)
-            | Some (Tvar { contents = Link typ }) | Some typ ->
+            | Some (Tvar { contents = Link typ })
+            | Some (Talias (_, typ))
+            | Some typ ->
                 (typ, typeof_annotated env (Some typ) expr)
           in
           unify (loc, "In record expression:") typ expr;
@@ -757,10 +785,13 @@ let typecheck (prog : Ast.prog) =
         | Ast.Ext_decl (loc, name, typ) ->
             Env.add_value name (typeof_annot env loc typ) env
         | Typedef (loc, Trecord t) -> typedef env loc t
-        | Typedef (_, Talias _) -> failwith "TODO")
+        | Typedef (loc, Talias (name, type_spec)) ->
+            type_alias env loc name type_spec)
       Env.empty prog.preface
   in
-  typeof_block env prog.block |> canonize (Strtbl.create 16)
+  let t = typeof_block env prog.block in
+  print_endline (show_typ t);
+  t |> canonize (Strtbl.create 16)
 
 (* Conversion to Typing.exr below *)
 
@@ -769,7 +800,7 @@ let dont_allow_closure_return loc fn =
   let rec error_on_closure = function
     | Tfun (_, _, Closure _) ->
         raise (Error (loc, "Cannot (yet) return a closure"))
-    | Tvar { contents = Link typ } -> error_on_closure typ
+    | Tvar { contents = Link typ } | Talias (_, typ) -> error_on_closure typ
     | _ -> ()
   in
   error_on_closure fn
@@ -777,13 +808,13 @@ let dont_allow_closure_return loc fn =
 let needs_capture env var =
   let rec aux = function
     | Tfun (_, _, Simple) -> None
-    | Tvar { contents = Link typ } -> aux typ
+    | Tvar { contents = Link typ } | Talias (_, typ) -> aux typ
     | t -> Some (var, t)
   in
   aux (Env.find_val var env)
 
 let rec param_funcs_as_closures = function
-  | Tvar { contents = Link t } ->
+  | Tvar { contents = Link t } | Talias (_, t) ->
       (* This shouldn't break type inference *) param_funcs_as_closures t
   | Tfun (_, _, Closure _) as t -> t
   | Tfun (params, ret, _) -> Tfun (params, ret, Closure [])
@@ -988,7 +1019,9 @@ and convert_record env loc annot labels =
                 (* If the variable is generic, we figure the type out normally and the
                    unify for the later fields *)
                 (typ, convert_annot env None expr)
-            | Some (Tvar { contents = Link typ }) | Some typ ->
+            | Some (Tvar { contents = Link typ })
+            | Some (Talias (_, typ))
+            | Some typ ->
                 (typ, convert_annot env (Some typ) expr)
           in
           unify (loc, "In record expression:") typ expr.typ;
