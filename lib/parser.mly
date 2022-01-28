@@ -70,9 +70,14 @@ prog: list(preface_item); block; Eof
   | External; Identifier; type_expr { Ext_decl ($loc, $2, $3) }
 
 %inline typedef:
+  | typdef { Typedef ($loc, $1) }
+
+%inline typdef:
   | Type; Identifier; option(typedef_poly_id); Equal;
        Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
-    { Typedef { poly_param = string_of_ty_var $3; name = $2; labels = Array.of_list $6; loc = $loc } }
+    { Trecord { poly_param = string_of_ty_var $3; name = $2; labels = Array.of_list $6 } }
+  | Type; Identifier; option(typedef_poly_id); Equal; type_list
+    { Talias ($2, $5) }
 
 %inline type_decl:
   | Identifier; type_expr { $1, $2 }

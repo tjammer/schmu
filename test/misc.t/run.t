@@ -47,3 +47,17 @@ Test elif
     ret i32 0
   }
   unit
+
+Test simple typedef
+  $ schmu simple_typealias.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  declare void @puts(i8* %0)
+  
+  define i32 @main(i32 %arg) {
+  entry:
+    ret i32 0
+  }
+  int

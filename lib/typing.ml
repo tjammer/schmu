@@ -706,7 +706,7 @@ and typeof_block env (loc, stmts) =
   in
   to_expr env (loc, Tunit) stmts
 
-let typedef env Ast.{ poly_param; name; labels; loc } =
+let typedef env loc Ast.{ poly_param; name; labels } =
   let labels, param =
     let env, param =
       match poly_param with
@@ -727,6 +727,18 @@ let typedef env Ast.{ poly_param; name; labels; loc } =
   in
   Env.add_record name ~param ~labels env
 
+let type_alias env loc name type_spec =
+  match Env.find_type_opt name env with
+  | Some _ ->
+      let msg =
+        Printf.sprintf
+          "Type names in a module must be unique. %s exists already" name
+      in
+      raise (Error (loc, msg))
+  | None ->
+      let typ = typeof_annot ~typedef:true env loc [ type_spec ] in
+      Env.add_alias name typ env
+
 let typecheck (prog : Ast.prog) =
   reset_type_vars ();
   let env =
@@ -735,7 +747,8 @@ let typecheck (prog : Ast.prog) =
         match item with
         | Ast.Ext_decl (loc, name, typ) ->
             Env.add_value name (typeof_annot env loc typ) env
-        | Typedef t -> typedef env t)
+        | Typedef (loc, Trecord t) -> typedef env loc t
+        | Typedef (_, Talias _) -> failwith "TODO")
       Env.empty prog.preface
   in
   typeof_block env prog.block |> canonize (Strtbl.create 16)
@@ -1072,8 +1085,11 @@ let to_typed (prog : Ast.prog) =
         | Ast.Ext_decl (loc, name, typ) ->
             let typ = typeof_annot env loc typ in
             (Env.add_value name typ env, Some (name, typ))
-        | Typedef t ->
-            let env = typedef env t in
+        | Typedef (loc, Trecord t) ->
+            let env = typedef env loc t in
+            (env, None)
+        | Typedef (loc, Talias (name, type_spec)) ->
+            let env = type_alias env loc name type_spec in
             (env, None))
       Env.empty prog.preface
   in

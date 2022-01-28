@@ -17,6 +17,8 @@ val maybe_add_record_instance : key -> typ -> t -> unit
 (** [maybe_add_record_instance record_name ~param typ] mutably adds a concrete parametrization
          of a record if [param] is Some type and the same instance has not already been added  *)
 
+val add_alias : key -> typ -> t -> t
+
 val new_scope : t -> t
 
 val close_scope : t -> t * string list

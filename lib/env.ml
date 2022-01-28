@@ -82,6 +82,11 @@ let maybe_add_record_instance key typ env =
       env.instances := TMap.add key typ !(env.instances)
   | Some _, _ | None, _ -> ()
 
+let add_alias key typ env =
+  let key = TypeKey.create key in
+  let types = TMap.add key typ env.types in
+  { env with types }
+
 let new_scope env =
   (* Due to the ref, we have to create a new object every time *)
   let empty = [ (Map.empty, ref []) ] in
