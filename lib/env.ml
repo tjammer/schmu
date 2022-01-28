@@ -92,7 +92,15 @@ let close_scope env =
   | [] -> failwith "Internal error: Env empty"
   | (_, cls) :: tl -> ({ env with values = tl }, !cls |> List.rev)
 
-let find_opt key env =
+let find_val key env =
+  let rec aux = function
+    | [] -> raise Not_found
+    | (hd, _) :: tl -> (
+        match Map.find_opt key hd with None -> aux tl | Some vl -> vl)
+  in
+  aux env.values
+
+let find_val_opt key env =
   let rec aux = function
     | [] -> None
     | (hd, _) :: tl -> (
@@ -100,7 +108,7 @@ let find_opt key env =
   in
   aux env.values
 
-let query_opt key env =
+let query_val_opt key env =
   let cls = List.hd env.values |> snd in
   let add str = cls := str :: !cls in
 
@@ -114,14 +122,6 @@ let query_opt key env =
             Some value)
   in
   aux 0 env.values
-
-let find key env =
-  let rec aux = function
-    | [] -> raise Not_found
-    | (hd, _) :: tl -> (
-        match Map.find_opt key hd with None -> aux tl | Some vl -> vl)
-  in
-  aux env.values
 
 let find_type_opt key env = TMap.find_opt (TypeKey.create key) env.types
 let find_type key env = TMap.find (TypeKey.create key) env.types

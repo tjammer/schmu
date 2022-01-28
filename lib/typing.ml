@@ -297,7 +297,7 @@ let rec generalize = function
 let instantiate t =
   let rec aux subst = function
     | Qvar id -> (
-        match Env.find_opt id subst with
+        match Env.find_val_opt id subst with
         | Some t -> (t, subst)
         | None ->
             let tv = newvar () in
@@ -504,7 +504,7 @@ and typeof_annotated env annot = function
 
 and typeof_var env loc v =
   (* find_opt would work here, but we use query for consistency with convert_var *)
-  match Env.query_opt v env with
+  match Env.query_val_opt v env with
   | Some t -> instantiate t
   | None -> raise (Error (loc, "No var named " ^ v))
 
@@ -555,7 +555,7 @@ and typeof_function env loc Ast.{ name; params; return_annot; body } =
   leave_level ();
   Tfun (params_t, bodytype, Simple) |> generalize |> function
   | Tfun (_, ret, kind) as typ ->
-      unify (loc, "") (Env.find name env) typ;
+      unify (loc, "") (Env.find_val name env) typ;
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = Tfun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;
@@ -760,7 +760,7 @@ let needs_capture env var =
     | Tvar { contents = Link typ } -> aux typ
     | t -> Some (var, t)
   in
-  aux (Env.find var env)
+  aux (Env.find_val var env)
 
 let rec param_funcs_as_closures = function
   | Tvar { contents = Link t } ->
@@ -787,7 +787,7 @@ and convert_annot env annot = function
   | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
 
 and convert_var env loc id =
-  match Env.query_opt id env with
+  match Env.query_val_opt id env with
   | Some t ->
       let typ = instantiate t in
       { typ; expr = Var id }
@@ -882,7 +882,7 @@ and convert_function env loc Ast.{ name; params; return_annot; body } =
   match typ with
   | Tfun (tparams, ret, kind) ->
       (* Make sure the types match *)
-      unify (loc, "Function") (Env.find name env) typ;
+      unify (loc, "Function") (Env.find_val name env) typ;
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = Tfun (qparams, ret, kind) |> generalize in
       unify (loc, "Function annot") typ qtyp;

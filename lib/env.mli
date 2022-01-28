@@ -22,13 +22,13 @@ val new_scope : t -> t
 val close_scope : t -> t * string list
 (** Returns the variables captured in the closed scope  *)
 
-val find_opt : key -> t -> typ option
+val find_val : key -> t -> typ
+val find_val_opt : key -> t -> typ option
 
-val query_opt : key -> t -> typ option
-(** [query_opt key env] is like find_opt, but marks [key] as
+val query_val_opt : key -> t -> typ option
+(** [query_opt key env] is like find_val_opt, but marks [key] as
      being used in the current scope (e.g. a closure) *)
 
-val find : key -> t -> typ
 val find_type_opt : key -> t -> typ option
 val find_type : key -> t -> typ
 
