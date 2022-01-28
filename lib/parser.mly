@@ -75,9 +75,9 @@ prog: list(preface_item); block; Eof
 %inline typdef:
   | Type; Identifier; option(typedef_poly_id); Equal;
        Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
-    { Trecord { poly_param = string_of_ty_var $3; name = $2; labels = Array.of_list $6 } }
+    { Trecord { name = {name = $2; poly_param = string_of_ty_var $3}; labels = Array.of_list $6 } }
   | Type; Identifier; option(typedef_poly_id); Equal; type_list
-    { Talias ($2, $5) }
+    { Talias ({name = $2; poly_param = string_of_ty_var $3}, $5) }
 
 %inline type_decl:
   | Identifier; type_expr { $1, $2 }

@@ -39,13 +39,8 @@ and stmt =
 and block = loc * stmt list
 
 type external_decl = loc * string * type_expr
-
-type record = {
-  poly_param : string option;
-  name : string;
-  labels : (string * type_expr) array;
-}
-
-type typedef = Trecord of record | Talias of string * type_spec
+type typename = { name : string; poly_param : string option }
+type record = { name : typename; labels : (string * type_expr) array }
+type typedef = Trecord of record | Talias of typename * type_spec
 type preface = Ext_decl of external_decl | Typedef of loc * typedef
 type prog = { preface : preface list; block : block }

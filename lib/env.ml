@@ -132,9 +132,7 @@ let find_type_opt key env = Tmap.find_opt (Type_key.create key) env.types
 let find_type key env = Tmap.find (Type_key.create key) env.types
 
 let query_type ~instantiate key env =
-  match Tmap.find (Type_key.create key) env.types with
-  | Trecord _ as t -> instantiate t
-  | t -> t
+  Tmap.find (Type_key.create key) env.types |> instantiate
 
 let find_label_opt key env = Map.find_opt key env.labels
 

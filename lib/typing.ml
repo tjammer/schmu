@@ -228,10 +228,7 @@ let unify_raw tbl t1 t2 =
           if String.equal n1 n2 then
             let () =
               match (param1, param2) with
-              | Some param1, Some param2 ->
-                  ignore param1;
-                  ignore param2;
-                  ()
+              | Some param1, Some param2 -> unify param1 param2
               | None, None -> ()
               | None, Some p2 | Some p2, None ->
                   ignore p2;
@@ -325,6 +322,9 @@ let instantiate t =
         in
         let param, subst = aux !subst param in
         (Trecord (Some param, name, labels), subst)
+    | Tptr t ->
+        let t, subst = aux subst t in
+        (Tptr t, subst)
     | t -> (t, subst)
   in
   aux Env.empty t |> fst
@@ -360,6 +360,7 @@ let typeof_annot ?(typedef = false) env loc annot =
         let f (name, t) = (name, subst ~id typ t) in
         let labels = Array.map f labels in
         Trecord (Some (subst ~id typ p), name, labels)
+    | Tptr t -> Tptr (subst ~id typ t)
     | t -> t
   in
 
@@ -392,9 +393,12 @@ let typeof_annot ?(typedef = false) env loc annot =
         let nested = container_t tl in
         Tptr nested
     | hd :: tl -> (
-        match concrete_type hd with
-        | (Trecord (Some (Qvar id), _, _) as t)
-        | (Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _) as t) ->
+        let t = concrete_type hd in
+        match t with
+        | Trecord (Some (Qvar id), _, _)
+        | Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _)
+        | Tptr (Qvar id)
+        | Tptr (Tvar { contents = Unbound (id, _) }) ->
             let nested = container_t tl in
             subst ~id nested t
         | t ->
@@ -706,16 +710,27 @@ and typeof_block env (loc, stmts) =
   in
   to_expr env (loc, Tunit) stmts
 
-let typedef env loc Ast.{ poly_param; name; labels } =
+let check_type_unique env loc name =
+  match Env.find_type_opt name env with
+  | Some _ ->
+      let msg =
+        Printf.sprintf
+          "Type names in a module must be unique. %s exists already" name
+      in
+      raise (Error (loc, msg))
+  | None -> ()
+
+let add_type_param env = function
+  | Some name ->
+      (* TODO get rid off this and move to add_record *)
+      let t = Qvar (gensym ()) in
+      (Env.add_type name t env, Some t)
+  | None -> (env, None)
+
+let typedef env loc Ast.{ name = { poly_param; name }; labels } =
+  check_type_unique env loc name;
   let labels, param =
-    let env, param =
-      match poly_param with
-      | Some name ->
-          (* TODO get rid off this and move to add_record *)
-          let t = Qvar (gensym ()) in
-          (Env.add_type name t env, Some t)
-      | None -> (env, None)
-    in
+    let env, param = add_type_param env poly_param in
     let labels =
       Array.map
         (fun (lbl, type_expr) ->
@@ -727,17 +742,11 @@ let typedef env loc Ast.{ poly_param; name; labels } =
   in
   Env.add_record name ~param ~labels env
 
-let type_alias env loc name type_spec =
-  match Env.find_type_opt name env with
-  | Some _ ->
-      let msg =
-        Printf.sprintf
-          "Type names in a module must be unique. %s exists already" name
-      in
-      raise (Error (loc, msg))
-  | None ->
-      let typ = typeof_annot ~typedef:true env loc [ type_spec ] in
-      Env.add_alias name typ env
+let type_alias env loc { Ast.poly_param; name } type_spec =
+  check_type_unique env loc name;
+  let temp_env, _ = add_type_param env poly_param in
+  let typ = typeof_annot ~typedef:true temp_env loc [ type_spec ] in
+  Env.add_alias name typ env
 
 let typecheck (prog : Ast.prog) =
   reset_type_vars ();
