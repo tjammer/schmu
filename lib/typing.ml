@@ -716,12 +716,10 @@ let typedef env Ast.{ poly_param; name; labels; loc } =
           (Env.add_type name t env, Some t)
       | None -> (env, None)
     in
-    (* TODO we need to make sure all parametrized vars are the same as the parent's *)
     let labels =
       Array.map
         (fun (lbl, type_expr) ->
           let t = typeof_annot ~typedef:true env loc type_expr in
-          (* Does this work? *)
           (lbl, t))
         labels
     in

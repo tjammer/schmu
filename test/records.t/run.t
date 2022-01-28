@@ -111,8 +111,8 @@ Nested records
   
   define private void @inner(%inner* sret %0) {
   entry:
-    %c1 = bitcast %inner* %0 to i32*
-    store i32 3, i32* %c1, align 4
+    %a1 = bitcast %inner* %0 to i32*
+    store i32 3, i32* %a1, align 4
     ret void
   }
   
@@ -122,20 +122,20 @@ Nested records
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %foo, align 8
-    %a1 = bitcast %foo* %0 to i32*
-    store i32 0, i32* %a1, align 4
+    %a3 = bitcast %foo* %0 to i32*
+    store i32 0, i32* %a3, align 4
     %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     call void @inner(%inner* %b)
     %1 = bitcast %inner* %b to i32*
     %2 = load i32, i32* %1, align 4
     call void @printi(i32 %2)
     %3 = alloca %t_int, align 8
-    %x2 = bitcast %t_int* %3 to i32*
-    store i32 17, i32* %x2, align 4
+    %x4 = bitcast %t_int* %3 to i32*
+    store i32 17, i32* %x4, align 4
     %inner = getelementptr inbounds %t_int, %t_int* %3, i32 0, i32 1
-    %y3 = bitcast %p_inner_innerst_int* %inner to %innerst_int*
-    %z4 = bitcast %innerst_int* %y3 to i32*
-    store i32 124, i32* %z4, align 4
+    %a15 = bitcast %p_inner_innerst_int* %inner to %innerst_int*
+    %a26 = bitcast %innerst_int* %a15 to i32*
+    store i32 124, i32* %a26, align 4
     %ret = alloca %t_int, align 8
     call void @__g.g___fun0_ti.ti(%t_int* %ret, %t_int* %3)
     %4 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
@@ -374,7 +374,8 @@ Make sure alignment of generic param works
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %misaligned_int = type { i1, i32 }
+  %misaligned_int = type { %inner, i32 }
+  %inner = type { i32, i32 }
   
   declare void @printi(i32 %0)
   
@@ -388,8 +389,11 @@ Make sure alignment of generic param works
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %misaligned_int, align 8
-    %fst1 = bitcast %misaligned_int* %0 to i1*
-    store i1 true, i1* %fst1, align 1
+    %fst2 = bitcast %misaligned_int* %0 to %inner*
+    %fst13 = bitcast %inner* %fst2 to i32*
+    store i32 50, i32* %fst13, align 4
+    %snd = getelementptr inbounds %inner, %inner* %fst2, i32 0, i32 1
+    store i32 40, i32* %snd, align 4
     %gen = getelementptr inbounds %misaligned_int, %misaligned_int* %0, i32 0, i32 1
     store i32 30, i32* %gen, align 4
     %1 = call i32 @__misalignedg.g_gen_misalignedi.i(%misaligned_int* %0)
