@@ -1050,7 +1050,7 @@ and convert_record env loc annot labels =
 
 and convert_field env loc expr id =
   let expr = convert env expr in
-  match expr.typ with
+  match clean expr.typ with
   | Trecord (_, name, labels) -> (
       match assoc_opti id labels with
       | Some (index, typ) -> { typ; expr = Field (expr, index) }
