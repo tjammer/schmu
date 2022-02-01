@@ -12,7 +12,7 @@ type typ =
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
-and tv = Unbound of string * int | Link of typ | Qannot of string
+and tv = Unbound of string * int | Link of typ
 
 (* Follow links and aliases *)
 let rec clean = function

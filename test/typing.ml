@@ -102,20 +102,20 @@ let test_annot_concrete () =
   test "int -> bool" "function foo(x) -> bool x < 3 end foo"
 
 let test_annot_concrete_fail () =
-  test_exn " Expected type bool -> int but got type int -> bool"
+  test_exn "Function annot: Expected type bool -> int but got type int -> bool"
     "foo : bool -> int = fn(x) x < 3 end foo"
 
 let test_annot_mix () = test "'a -> 'a" "function pass(x : 'b) -> 'b x end pass"
 
 let test_annot_mix_fail () =
-  test_exn " Expected type 'b -> int but got type 'b -> 'b"
+  test_exn "Function annot: Expected type 'b -> int but got type 'b -> 'b"
     "pass : 'b -> int = fn(x) x end pass"
 
 let test_annot_generic () =
   test "'a -> 'a" "function pass(x : 'b) -> 'b x end pass"
 
 let test_annot_generic_fail () =
-  test_exn " Expected type 'a -> 'b but got type 'a -> 'a"
+  test_exn "Function annot: Expected type 'a -> 'b but got type 'a -> 'a"
     "pass : 'a -> 'b = fn(x) x end pass"
 
 let test_annot_record_simple () =
@@ -203,8 +203,7 @@ let test_alias_param_concrete () =
   test "foo = ptr(u8) -> unit" "type foo = ptr(u8) external f : foo -> unit f"
 
 let test_alias_param_quant () =
-  (* TODO this should say = ptr('a) *)
-  test "foo = ptr('0) -> unit"
+  test "foo = ptr('a) -> unit"
     "type foo('a) = ptr('a) external f : foo('a) -> unit f"
 
 let test_alias_param_missing () =
