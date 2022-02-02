@@ -529,7 +529,9 @@ and typeof_annotated env annot = function
   | Lit (_, Int _) -> Tint
   | Lit (_, Bool _) -> Tbool
   | Lit (_, U8 _) -> Tu8
-  | Lit (_, String _) -> Tptr Tu8
+  | Lit (_, String _) ->
+      (* We assume our string type is in the env *)
+      Env.find_type "string" env
   | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
   | App (loc, e1, e2) -> typeof_app ~switch_uni:false env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
@@ -834,7 +836,10 @@ and convert_annot env annot = function
   | Lit (_, Int i) -> { typ = Tint; expr = Const (Int i) }
   | Lit (_, Bool b) -> { typ = Tbool; expr = Const (Bool b) }
   | Lit (_, U8 c) -> { typ = Tu8; expr = Const (U8 c) }
-  | Lit (_, String s) -> { typ = Tptr Tu8; expr = Const (String s) }
+  | Lit (_, String s) ->
+      (* We assume our string type is in the env *)
+      let typ = Env.find_type "string" env in
+      { typ; expr = Const (String s) }
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
@@ -1139,6 +1144,7 @@ let to_typed (prog : Ast.prog) =
             let typ = typeof_annot env loc typ in
             (Env.add_value name typ env, Some (name, typ))
         | Typedef (loc, Trecord t) ->
+            (* TODO add concrete records *)
             let env = typedef env loc t in
             (env, None)
         | Typedef (loc, Talias (name, type_spec)) ->

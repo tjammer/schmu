@@ -95,7 +95,7 @@ let rec get_lltype ?(param = true) ?(field = false) = function
   | Trecord _ as t -> (
       let name = record_name t in
       match Strtbl.find_opt record_tbl name with
-      | Some t -> if param then t |> Llvm.pointer_type else t
+      | Some (_, t) -> if param then t |> Llvm.pointer_type else t
       | None ->
           failwith (Printf.sprintf "Record struct not found for type %s" name))
   | Qvar _ -> generic_t |> Llvm.pointer_type
@@ -139,13 +139,13 @@ and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
 let to_named_records = function
   | Trecord (_, _, labels) as t ->
       let name = record_name t in
-      let t = Llvm.named_struct_type context name in
+      let lt = Llvm.named_struct_type context name in
       let lltyp = typeof_aggregate labels |> Llvm.struct_element_types in
-      Llvm.struct_set_body t lltyp false;
+      Llvm.struct_set_body lt lltyp false;
 
       if Strtbl.mem record_tbl name then
         failwith "Internal Error: Type shadowing not supported in codegen TODO";
-      Strtbl.add record_tbl name t
+      Strtbl.add record_tbl name (t, lt)
   | _ -> failwith "Internal Error: Only records should be here"
 
 (*
@@ -515,7 +515,7 @@ and gen_expr param typed_expr =
       |> fin
   | Mconst (U8 c) ->
       { value = Llvm.const_int u8_t (Char.code c); typ = Tu8; lltyp = u8_t }
-  | Mconst (String s) -> codegen_string_lit param s
+  | Mconst (String (s, allocref)) -> codegen_string_lit param s allocref
   | Mconst Unit -> failwith "TODO"
   | Mbop (bop, e1, e2) ->
       let e1 = gen_expr param e1 in
@@ -799,7 +799,9 @@ and codegen_field param expr index =
   let typ =
     match value.typ with
     | Trecord (_, _, fields) -> fields.(index) |> snd
-    | _ -> failwith "Internal Error: No record in fields"
+    | _ ->
+        print_endline (show_typ value.typ);
+        failwith "Internal Error: No record in fields"
   in
 
   let ptr = Llvm.build_struct_gep value.value index "" builder in
@@ -819,11 +821,23 @@ and codegen_chain param expr cont =
   ignore (gen_expr param expr);
   gen_expr param cont
 
-and codegen_string_lit _ s =
-  let lltyp = get_lltype (Tptr Tu8) in
-  let ptr = Llvm.build_global_stringptr s s builder in
-  let value = Llvm.build_bitcast ptr lltyp "" builder in
-  { value; typ = Tptr Tu8; lltyp }
+and codegen_string_lit param s allocref =
+  let typ, lltyp = Strtbl.find record_tbl "string" in
+  let ptr = Llvm.build_global_stringptr s "" builder in
+
+  (* Check for preallocs *)
+  let string =
+    match (!allocref, param.alloca) with
+    | true, Some value -> value
+    | true, None | false, _ -> alloca param lltyp "str"
+  in
+
+  let cstr = Llvm.build_struct_gep string 0 "cstr" builder in
+  ignore (Llvm.build_store ptr cstr builder);
+  let len = Llvm.build_struct_gep string 1 "length" builder in
+  ignore (Llvm.build_store (Llvm.const_int int_t (String.length s)) len builder);
+
+  { value = string; typ; lltyp }
 
 let generate { Monomorph_tree.externals; records; tree; funcs } =
   (* Add record types.

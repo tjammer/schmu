@@ -2,10 +2,6 @@ open Types
 module Vars = Map.Make (String)
 module Set = Set.Make (String)
 
-type const = Typing.const
-
-let pp_const = Typing.pp_const
-
 type expr =
   | Mvar of string
   | Mconst of const
@@ -19,6 +15,13 @@ type expr =
   | Mfield of (monod_tree * int)
   | Mseq of (monod_tree * monod_tree)
 [@@deriving show]
+
+and const =
+  | Int of int
+  | Bool of bool
+  | Unit
+  | U8 of char
+  | String of string * alloca
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
@@ -280,7 +283,8 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   let make expr return = { typ = texpr.typ; expr; return } in
   match texpr.expr with
   | Typing.Var v -> morph_var make param v
-  | Const c -> (param, make (Mconst c) false, no_var)
+  | Const (String s) -> morph_string make param s
+  | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let (id, e1, e2) -> morph_let make param id e1 e2
@@ -296,6 +300,19 @@ and morph_var mk p v =
     match Vars.find_opt v p.vars with Some thing -> thing | None -> no_var
   in
   (p, mk (Mvar v) p.ret, alloca)
+
+and morph_string mk p s =
+  let alloca = ref false in
+  ( p,
+    mk (Mconst (String (s, alloca))) p.ret,
+    { fn = No_function; alloc = Value alloca } )
+
+and morph_const = function
+  | String _ -> failwith "Internal Error: String const should be extra case"
+  | Int i -> Int i
+  | Bool b -> Bool b
+  | Unit -> Unit
+  | U8 c -> U8 c
 
 and morph_bop mk p bop e1 e2 =
   let ret = p.ret in

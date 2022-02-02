@@ -4,8 +4,6 @@
 
 open Types
 
-type const = Typing.const
-
 type expr =
   | Mvar of string
   | Mconst of const
@@ -18,6 +16,13 @@ type expr =
   | Mrecord of (string * monod_tree) list * alloca
   | Mfield of (monod_tree * int)
   | Mseq of (monod_tree * monod_tree)
+
+and const =
+  | Int of int
+  | Bool of bool
+  | Unit
+  | U8 of char
+  | String of string * alloca
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
