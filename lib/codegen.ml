@@ -40,25 +40,25 @@ let () = Llvm_scalar_opts.add_gvn fpm
 
 let () = Llvm_scalar_opts.add_tail_call_elimination fpm
 let builder = Llvm.builder context
-let int_type = Llvm.i32_type context
-let num_type = Llvm.i64_type context
-let bool_type = Llvm.i1_type context
-let u8_type = Llvm.i8_type context
-let unit_type = Llvm.void_type context
-let voidptr_type = Llvm.(i8_type context |> pointer_type)
+let int_t = Llvm.i32_type context
+let num_t = Llvm.i64_type context
+let bool_t = Llvm.i1_type context
+let u8_t = Llvm.i8_type context
+let unit_t = Llvm.void_type context
+let voidptr_t = Llvm.(i8_type context |> pointer_type)
 
-let closure_type =
+let closure_t =
   let t = Llvm.named_struct_type context "closure" in
-  let typ = [| voidptr_type; voidptr_type |] in
+  let typ = [| voidptr_t; voidptr_t |] in
   Llvm.struct_set_body t typ false;
   t
 
-let generic_type = Llvm.named_struct_type context "generic"
+let generic_t = Llvm.named_struct_type context "generic"
 
 let dummy_fn_value =
   (* When we need something in the env for a function which will only be called
      in a monomorphized version *)
-  { typ = Tunit; value = Llvm.const_int int_type (-1); lltyp = int_type }
+  { typ = Tunit; value = Llvm.const_int int_t (-1); lltyp = int_t }
 
 let sret_attrib = Llvm.create_enum_attr context "sret" Int64.zero
 
@@ -66,10 +66,7 @@ let memcpy_decl =
   lazy
     (let open Llvm in
     (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
-    let ft =
-      function_type unit_type
-        [| voidptr_type; voidptr_type; num_type; bool_type |]
-    in
+    let ft = function_type unit_t [| voidptr_t; voidptr_t; num_t; bool_t |] in
     declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
 
 (* Named structs for records *)
@@ -88,11 +85,11 @@ let rec get_lltype ?(param = true) ?(field = false) = function
   (* For functions, when passed as parameter, we convert it to a closure ptr
      to later cast to the correct types. At the application, we need to
      get the correct type though to cast it back. All this is handled by [param]. *)
-  | Tint -> int_type
-  | Tbool -> bool_type
-  | Tu8 -> u8_type
+  | Tint -> int_t
+  | Tbool -> bool_t
+  | Tu8 -> u8_t
   | Tvar { contents = Link t } | Talias (_, t) -> get_lltype ~param t
-  | Tunit -> unit_type
+  | Tunit -> unit_t
   | Tfun (params, ret, kind) ->
       typeof_func ~param ~field ~decl:false (params, ret, kind)
   | Trecord _ as t -> (
@@ -101,7 +98,7 @@ let rec get_lltype ?(param = true) ?(field = false) = function
       | Some t -> if param then t |> Llvm.pointer_type else t
       | None ->
           failwith (Printf.sprintf "Record struct not found for type %s" name))
-  | Qvar _ -> generic_type |> Llvm.pointer_type
+  | Qvar _ -> generic_t |> Llvm.pointer_type
   | Tvar _ as t ->
       failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
   | Tptr t -> get_lltype ~param:false ~field t |> Llvm.pointer_type
@@ -112,7 +109,7 @@ and typeof_aggregate agg =
   |> Llvm.struct_type context
 
 and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
-  if param || field then closure_type |> Llvm.pointer_type
+  if param || field then closure_t |> Llvm.pointer_type
   else
     (* When [get_lltype] is called on a function, we handle the dynamic case where
        a function or closure is being passed to another function.
@@ -121,15 +118,15 @@ and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
     let prefix, ret_t =
       match ret with
       | (Trecord _ as t) | (Qvar _ as t) ->
-          (Seq.return (get_lltype ~param:true t), unit_type)
+          (Seq.return (get_lltype ~param:true t), unit_t)
       | t -> (Seq.empty, get_lltype ~param t)
     in
 
     let suffix =
       (* A closure needs an extra parameter for the environment  *)
       if decl then
-        match kind with Closure _ -> Seq.return voidptr_type | _ -> Seq.empty
-      else Seq.return voidptr_type
+        match kind with Closure _ -> Seq.return voidptr_t | _ -> Seq.empty
+      else Seq.return voidptr_t
     in
     let params_t =
       (* For the params, we want to produce the param type, hence ~param:true *)
@@ -192,13 +189,13 @@ let sizeof_typ typ =
   let { size; align = upto } = inner { size = 0; align = 1 } typ in
   alignup ~size ~upto
 
-let llval_of_size size = Llvm.const_int num_type size
+let llval_of_size size = Llvm.const_int num_t size
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src ~size =
-  let dstptr = Llvm.build_bitcast dst voidptr_type "" builder in
-  let retptr = Llvm.build_bitcast src.value voidptr_type "" builder in
-  let args = [| dstptr; retptr; size; Llvm.const_int bool_type 0 |] in
+  let dstptr = Llvm.build_bitcast dst voidptr_t "" builder in
+  let retptr = Llvm.build_bitcast src.value voidptr_t "" builder in
+  let args = [| dstptr; retptr; size; Llvm.const_int bool_t 0 |] in
   ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
 
 let set_record_field value ptr =
@@ -230,11 +227,11 @@ let tfun_to_closure = function
   | t -> t
 
 let gen_closure_obj assoc func vars name =
-  let clsr_struct = Llvm.build_alloca closure_type name builder in
+  let clsr_struct = Llvm.build_alloca closure_t name builder in
 
   (* Add function ptr *)
   let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
-  let fun_casted = Llvm.build_bitcast func.value voidptr_type "func" builder in
+  let fun_casted = Llvm.build_bitcast func.value voidptr_t "func" builder in
   ignore (Llvm.build_store fun_casted fun_ptr builder);
 
   let store_closed_var clsr_ptr i (name, _) =
@@ -247,15 +244,13 @@ let gen_closure_obj assoc func vars name =
   (* Add closed over vars. If the environment is empty, we pass nullptr *)
   let clsr_ptr =
     match assoc with
-    | [] -> Llvm.const_pointer_null voidptr_type
+    | [] -> Llvm.const_pointer_null voidptr_t
     | assoc ->
         let assoc_type = typeof_aggregate (Array.of_list assoc) in
         let clsr_ptr = Llvm.build_alloca assoc_type ("clsr_" ^ name) builder in
         ignore (List.fold_left (store_closed_var clsr_ptr) 0 assoc);
 
-        let clsr_casted =
-          Llvm.build_bitcast clsr_ptr voidptr_type "env" builder
-        in
+        let clsr_casted = Llvm.build_bitcast clsr_ptr voidptr_t "env" builder in
         clsr_casted
   in
 
@@ -330,7 +325,7 @@ let add_params vars f fname names types start_index recursive =
         store_alloca ~src ~dst;
         dst
     | Tfun _ ->
-        let typ = closure_type in
+        let typ = closure_t in
         let dst = Llvm.build_alloca typ "" builder in
         store_alloca ~src ~dst;
         dst
@@ -401,7 +396,7 @@ let pass_function vars llvar kind =
 
 let func_to_closure vars llvar =
   (* TODO somewhere we don't convert into closure correctly *)
-  if Llvm.type_of llvar.value = (closure_type |> Llvm.pointer_type) then llvar
+  if Llvm.type_of llvar.value = (closure_t |> Llvm.pointer_type) then llvar
   else
     match llvar.typ with
     | Tfun (_, _, kind) -> pass_function vars.vars llvar kind
@@ -432,7 +427,7 @@ let fun_return name ret =
   | Qvar _ -> failwith "Internal Error: Generic return"
   | Tunit ->
       if String.equal name "main" then
-        Llvm.(build_ret (const_int int_type 0)) builder
+        Llvm.(build_ret (const_int int_t 0)) builder
       else Llvm.build_ret_void builder
   | _ -> Llvm.build_ret ret.value builder
 
@@ -510,20 +505,16 @@ and gen_expr param typed_expr =
 
   match typed_expr.expr with
   | Monomorph_tree.Mconst (Int i) ->
-      { value = Llvm.const_int int_type i; typ = Tint; lltyp = int_type } |> fin
+      { value = Llvm.const_int int_t i; typ = Tint; lltyp = int_t } |> fin
   | Mconst (Bool b) ->
       {
-        value = Llvm.const_int bool_type (Bool.to_int b);
+        value = Llvm.const_int bool_t (Bool.to_int b);
         typ = Tbool;
-        lltyp = bool_type;
+        lltyp = bool_t;
       }
       |> fin
   | Mconst (U8 c) ->
-      {
-        value = Llvm.const_int u8_type (Char.code c);
-        typ = Tu8;
-        lltyp = u8_type;
-      }
+      { value = Llvm.const_int u8_t (Char.code c); typ = Tu8; lltyp = u8_t }
   | Mconst (String s) -> codegen_string_lit param s
   | Mconst Unit -> failwith "TODO"
   | Mbop (bop, e1, e2) ->
@@ -593,15 +584,15 @@ and gen_bop e1 e2 bop =
   let bld f str = f e1.value e2.value str builder in
   let open Llvm in
   match bop with
-  | Plus -> { value = bld build_add "addtmp"; typ = Tint; lltyp = int_type }
-  | Mult -> { value = bld build_mul "multmp"; typ = Tint; lltyp = int_type }
+  | Plus -> { value = bld build_add "addtmp"; typ = Tint; lltyp = int_t }
+  | Mult -> { value = bld build_mul "multmp"; typ = Tint; lltyp = int_t }
   | Less ->
       let value = bld (build_icmp Icmp.Slt) "lesstmp" in
-      { value; typ = Tbool; lltyp = bool_type }
+      { value; typ = Tbool; lltyp = bool_t }
   | Equal ->
       let value = bld (build_icmp Icmp.Eq) "eqtmp" in
-      { value; typ = Tbool; lltyp = bool_type }
-  | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_type }
+      { value; typ = Tbool; lltyp = bool_t }
+  | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_t }
 
 and gen_app param callee args allocref ret_t =
   let func = gen_expr param callee.ex in
@@ -625,7 +616,7 @@ and gen_app param callee args allocref ret_t =
 
   (* No names here, might be void/unit *)
   let funcval, args, envarg =
-    if Llvm.type_of func.value = (closure_type |> Llvm.pointer_type) then
+    if Llvm.type_of func.value = (closure_t |> Llvm.pointer_type) then
       (* Function to call is a closure (or a function passed into another one).
          We get the funptr from the first field, cast to the correct type,
          then get env ptr (as voidptr) from the second field and pass it as last argument *)
@@ -834,15 +825,6 @@ and codegen_string_lit _ s =
   let value = Llvm.build_bitcast ptr lltyp "" builder in
   { value; typ = Tptr Tu8; lltyp }
 
-let decl_external (name, typ) =
-  match typ with
-  | Tfun (ts, t, _) as typ ->
-      let return_t = get_lltype t in
-      let arg_t = List.map get_lltype ts |> Array.of_list in
-      let ft = Llvm.function_type return_t arg_t in
-      { value = Llvm.declare_function name ft the_module; typ; lltyp = ft }
-  | _ -> failwith "TODO external symbols"
-
 let generate { Monomorph_tree.externals; records; tree; funcs } =
   (* Add record types.
      We do this first to ensure that all record definitons
@@ -852,7 +834,7 @@ let generate { Monomorph_tree.externals; records; tree; funcs } =
   (* External declarations *)
   let vars =
     List.fold_left
-      (fun vars (name, typ) -> Vars.add name (decl_external (name, typ)) vars)
+      (fun vars (name, typ) -> Vars.add name (declare_function name typ) vars)
       Vars.empty externals
   in
 

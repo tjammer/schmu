@@ -905,7 +905,7 @@ Allow mixing of typedefs and external decls in the preface
   %first = type { i32 }
   %second = type { i32 }
   
-  declare %first* @dummy_call()
+  declare void @dummy_call(%first* %0)
   
   declare void @print_2nd(%second* %0)
   
