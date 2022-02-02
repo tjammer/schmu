@@ -529,9 +529,14 @@ and typeof_annotated env annot = function
   | Lit (_, Int _) -> Tint
   | Lit (_, Bool _) -> Tbool
   | Lit (_, U8 _) -> Tu8
-  | Lit (_, String _) ->
-      (* We assume our string type is in the env *)
-      Env.find_type "string" env
+  | Lit (loc, String _) ->
+      let typ =
+        match Env.find_type_opt "string" env with
+        | Some t -> t
+        | None ->
+            raise (Error (loc, "Cannot find type string. Prelude is missing"))
+      in
+      typ
   | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
   | App (loc, e1, e2) -> typeof_app ~switch_uni:false env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
@@ -836,9 +841,13 @@ and convert_annot env annot = function
   | Lit (_, Int i) -> { typ = Tint; expr = Const (Int i) }
   | Lit (_, Bool b) -> { typ = Tbool; expr = Const (Bool b) }
   | Lit (_, U8 c) -> { typ = Tu8; expr = Const (U8 c) }
-  | Lit (_, String s) ->
-      (* We assume our string type is in the env *)
-      let typ = Env.find_type "string" env in
+  | Lit (loc, String s) ->
+      let typ =
+        match Env.find_type_opt "string" env with
+        | Some t -> t
+        | None ->
+            raise (Error (loc, "Cannot find type string. Prelude is missing"))
+      in
       { typ; expr = Const (String s) }
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
