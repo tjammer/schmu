@@ -839,7 +839,7 @@ and codegen_string_lit param s allocref =
 
   { value = string; typ; lltyp }
 
-let generate { Monomorph_tree.externals; records; tree; funcs } =
+let generate ~target { Monomorph_tree.externals; records; tree; funcs } =
   (* Add record types.
      We do this first to ensure that all record definitons
      are available for external decls *)
@@ -897,11 +897,12 @@ let generate { Monomorph_tree.externals; records; tree; funcs } =
   (* Emit code to file *)
   Llvm_all_backends.initialize ();
   let open Llvm_target in
-  let triple = Target.default_triple () in
-  let reloc_mode = RelocMode.PIC in
-  print_endline triple;
-  let machine =
-    TargetMachine.create ~triple (Target.by_triple triple) ~reloc_mode
+  let triple =
+    match target with Some target -> target | None -> Target.default_triple ()
   in
+  let reloc_mode = RelocMode.PIC in
+  let target = Target.by_triple triple in
+
+  let machine = TargetMachine.create ~triple target ~reloc_mode in
   TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile "out.o"
     machine
