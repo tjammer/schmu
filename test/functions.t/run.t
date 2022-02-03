@@ -6,7 +6,7 @@ We discard the triple, b/c it varies from distro to distro
 e.g. x86_64-unknown-linux-gnu on Fedora vs x86_64-pc-linux-gnu on gentoo
 
 Simple fibonacci
-  $ schmu fib.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm fib.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -41,11 +41,10 @@ Simple fibonacci
     tail call void @printi(i32 %0)
     ret i32 0
   }
-  unit
   832040
 
 Fibonacci, but we shadow a bunch
-  $ schmu shadowing.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm shadowing.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -88,11 +87,10 @@ Fibonacci, but we shadow a bunch
     tail call void @printi(i32 %0)
     ret i32 0
   }
-  unit
   832040
 
 Multiple parameters
-  $ schmu multi_params.smu | grep -v x86_64 && cc out.o && ./a.out
+  $ schmu -dump-llvm multi_params.smu && cc out.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -128,11 +126,10 @@ Multiple parameters
     %2 = tail call i32 @doiflesselse(i32 %1, i32 0, i32 1, i32 2)
     ret i32 %2
   }
-  int
   [1]
 
 We have downwards closures
-  $ schmu closure.smu | grep -v x86_64 && cc out.o && ./a.out
+  $ schmu -dump-llvm closure.smu && cc out.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -162,11 +159,10 @@ We have downwards closures
     %0 = call i32 @capture_a(i8* %env)
     ret i32 %0
   }
-  int
   [12]
 
 First class functions
-  $ schmu first_class.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm first_class.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -276,7 +272,6 @@ First class functions
     call void @printi(i32 %5)
     ret i32 0
   }
-  unit
   1
   2
   0
@@ -284,16 +279,17 @@ First class functions
   4
 
 We don't allow returning closures
-  $ schmu no_closure_returns.smu
+  $ schmu -dump-llvm no_closure_returns.smu
   no_closure_returns.smu:3:1: error: Cannot (yet) return a closure
   3 | fn ()
                                                                    4 |   a = fn () a end
                                                                    5 |   a
                                                                    6 | end
                                                                    
+  [1]
 
 Don't try to create 'void' value in if
-  $ schmu if_return_void.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm if_return_void.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -341,14 +337,13 @@ Don't try to create 'void' value in if
     tail call void @foo(i32 4)
     ret i32 0
   }
-  unit
   4
   3
   2
   0
 
 Captured values should not overwrite function params
-  $ schmu overwrite_params.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm overwrite_params.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -408,12 +403,11 @@ Captured values should not overwrite function params
     call void @printi(i32 %0)
     ret i32 0
   }
-  unit
   3
 
 Functions can be generic. In this test, we generate 'apply' only once and use it with
 3 different functions with different types
-  $ schmu generic_fun_arg.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm generic_fun_arg.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -620,7 +614,6 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
-  unit
   21
   22
   23
@@ -630,7 +623,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   18
 
 A generic pass function. This example is not 100% correct, but works due to calling convertion.
-  $ schmu generic_pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm generic_pass.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -710,14 +703,13 @@ A generic pass function. This example is not 100% correct, but works due to call
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
-  unit
   20
   700
 
 
 This is a regression test. The 'add1' function was not marked as a closure when being called from
 a second function. Instead, the closure struct was being created again and the code segfaulted
-  $ schmu indirect_closure.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm indirect_closure.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -823,12 +815,11 @@ a second function. Instead, the closure struct was being created again and the c
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
-  unit
   16
   16
 
 Closures can recurse too
-  $ schmu recursive_closure.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm recursive_closure.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -876,7 +867,6 @@ Closures can recurse too
     call void @loop(i32 0, i8* %env)
     ret i32 0
   }
-  unit
   0
   1
   2
@@ -890,14 +880,15 @@ Closures can recurse too
   10
 
 Print error when returning a polymorphic lambda in an if expression
-  $ schmu no_lambda_let_poly_monomorph.smu
+  $ schmu -dump-llvm no_lambda_let_poly_monomorph.smu
   no_lambda_let_poly_monomorph.smu:6:5: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though.
   
   6 | f = if true then fn (x) x end else fn (x) x end end
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
+  [1]
 Allow mixing of typedefs and external decls in the preface
-  $ schmu mix_preface.smu | grep -v x86_64
+  $ schmu -dump-llvm mix_preface.smu
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -913,4 +904,3 @@ Allow mixing of typedefs and external decls in the preface
   entry:
     ret i32 0
   }
-  int

@@ -2,7 +2,7 @@ Compile stubs
   $ cc -c stub.c
 
 Simple record creation (out of order)
-  $ schmu simple.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm simple.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -21,11 +21,10 @@ Simple record creation (out of order)
     tail call void @printi(i32 10)
     ret i32 0
   }
-  unit
   10
 
 Pass record to function
-  $ schmu pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm pass.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -52,12 +51,11 @@ Pass record to function
     call void @pass_to_func(%foo* %0)
     ret i32 0
   }
-  unit
   20
 
 
 Create record
-  $ schmu create.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm create.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -84,11 +82,10 @@ Create record
     call void @printi(i32 %1)
     ret i32 0
   }
-  unit
   8
 
 Nested records
-  $ schmu nested.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm nested.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -147,12 +144,11 @@ Nested records
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
-  unit
   3
   124
 
 Pass generic record
-  $ schmu parametrized_pass.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm parametrized_pass.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -270,12 +266,11 @@ Pass generic record
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
-  unit
   700
   234
 
 Access parametrized record fields
-  $ schmu parametrized_get.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm parametrized_get.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -361,7 +356,6 @@ Access parametrized record fields
     call void @__gen_firstg.u_is_gen_firsti.u(%gen_first_int* %1)
     ret i32 0
   }
-  unit
   700
   1
   20
@@ -369,7 +363,7 @@ Access parametrized record fields
   0
 
 Make sure alignment of generic param works
-  $ schmu misaligned_get.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm misaligned_get.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -400,11 +394,10 @@ Make sure alignment of generic param works
     call void @printi(i32 %1)
     ret i32 0
   }
-  unit
   30
 
 Parametrization needs to be given, if a type is generic
-  $ schmu missing_parameter.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm missing_parameter.smu && cc out.o stub.o && ./a.out
   missing_parameter.smu:7:1: error: Type t needs a type parameter
   7 | fn (t : t)
                                                                   8 |   t.t
@@ -413,7 +406,7 @@ Parametrization needs to be given, if a type is generic
   [1]
 
 Support function/closure fields
-  $ schmu function_fields.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm function_fields.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -497,7 +490,6 @@ Support function/closure fields
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
-  unit
   0
   1
   2

@@ -2,7 +2,7 @@ Compile stubs
   $ cc -c stub.c
 
 Test elif
-  $ schmu elseif.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm elseif.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -46,10 +46,9 @@ Test elif
     tail call void @assert(i1 %eqtmp3)
     ret i32 0
   }
-  unit
 
 Test simple typedef
-  $ schmu simple_typealias.smu | grep -v x86_64 && cc out.o stub.o && ./a.out
+  $ schmu -dump-llvm simple_typealias.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -60,4 +59,3 @@ Test simple typedef
   entry:
     ret i32 0
   }
-  int
