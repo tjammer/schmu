@@ -21,8 +21,8 @@
 
 (defconst schmu-keywords-regexp
   (rx symbol-start
-      (or "fn" "function" "type" "if" "then" "else"
-          "elseif" "for" "external" "end")
+      (or "fn" "fun" "type" "if" "then" "else"
+          "do" "in" "external" "end")
       symbol-end)
   "Schmu language keywords.")
 

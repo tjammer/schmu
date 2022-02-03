@@ -1,29 +1,21 @@
 external printi : int -> unit
 
-function apply(x, f)
-  f(x)
-end
+fun apply(x, f) = f(x)
 
-function add1(x)
-  x + 1
-end
+fun add1(x) = x + 1
 
 -- We also pass polymorphic functions
-function pass(x)
-  x
-end
+fun pass(x) = x
 
 -- ...and a lambda
-pass2 = fn (x) x end
+pass2 = fn (x) x
 
-function makefalse(b)
+fun makefalse(b) =
   if b then false
-  else b end
-end
+  else b
 
-function int_of_bool(b)
-  if b then 1 else 0 end
-end
+fun int_of_bool(b) =
+  if b then 1 else 0
 
 -- TODO polymorphic recursion example
 

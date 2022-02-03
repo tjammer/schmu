@@ -12,13 +12,11 @@ external printi : int -> unit
 number = 35
 
 -- Calculate fibonacci number
-function fib(n)
+fun fib(n) =
   -- The function simply returns the expression, no 'return' statement
   if n < 2 then n
   else
     fib(n - 1) + fib(n - 2)
-  end
-end
 
 -- and print it
 printi(fib(number))

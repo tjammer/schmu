@@ -35,13 +35,13 @@ rule read =
   | "'"      { Quote }
   | "if"     { If }
   | "then"   { Then }
-  | "elseif" { Elseif }
   | "else"   { Else }
   | "external" { External }
-  | "fn"       { Function_small }
-  | "function" { Function_long }
+  | "fn"     { Fn }
+  | "fun"    { Fun }
   | "type"   { Type }
-  | "end"    { End }
+  | "do"     { Do }
+  | "in"     { In }
   | id       { Identifier (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | '+'      { Plus }

@@ -3,17 +3,12 @@ external printi : int -> unit
 -- b is captured by two()
 b = 2
 
-function one()
-  1
-end
+fun one() = 1
 
-function two()
-  b
-end
+fun two() = b
 
-function add(a, b)
+fun add(a, b) =
   -- b should be a function here, not captured value
   a() + b()
-end
 
 printi(add(one, two))

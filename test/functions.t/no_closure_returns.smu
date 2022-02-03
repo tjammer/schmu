@@ -1,6 +1,5 @@
 a = 1
 
-fn ()
-  a = fn () a end
-  a
-end
+fn () do
+  a = fn () a
+  in a

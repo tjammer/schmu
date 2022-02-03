@@ -32,7 +32,7 @@ and expr =
 and literal = Int of int | Bool of bool | U8 of char | String of string
 
 and stmt =
-  | Let of loc * decl * expr
+  | Let of loc * decl * block
   | Function of loc * func
   | Expr of (loc * expr)
 

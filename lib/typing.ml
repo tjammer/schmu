@@ -179,8 +179,8 @@ let rec occurs tvr = function
 
 let arity (loc, pre) thing la lb =
   let msg =
-    Printf.sprintf "%s Wrong arity for %s: Expected %i but got type %i" pre
-      thing lb la
+    Printf.sprintf "%s Wrong arity for %s: Expected %i but got %i" pre thing lb
+      la
   in
   raise (Error (loc, msg))
 
@@ -552,17 +552,17 @@ and typeof_var env loc v =
   | Some t -> instantiate t
   | None -> raise (Error (loc, "No var named " ^ v))
 
-and typeof_let env loc (id, type_annot) e1 =
+and typeof_let env loc (id, type_annot) block =
   enter_level ();
   let type_e =
     match type_annot with
     | None ->
-        let type_e = typeof env e1 in
+        let type_e = typeof_block env block in
         leave_level ();
         generalize type_e
     | Some annot ->
         let type_annot = typeof_annot env loc annot in
-        let type_e = typeof_annotated env (Some type_annot) e1 in
+        let type_e = typeof_block_annot env (Some type_annot) block in
         leave_level ();
         check_annot loc type_e type_annot;
         type_annot
@@ -728,7 +728,7 @@ and typeof_pipe_tail env loc e1 e2 =
       (* Should be a lone id, if not we let it fail in _app *)
       typeof_app ~switch_uni env loc e2 [ e1 ]
 
-and typeof_block env (loc, stmts) =
+and typeof_block_annot env annot (loc, stmts) =
   let check (loc, typ) =
     unify (loc, "Left expression in sequence must be of type unit:") Tunit typ
   in
@@ -736,21 +736,23 @@ and typeof_block env (loc, stmts) =
   let rec to_expr env old_type = function
     | [ Ast.Let (loc, _, _) ] | [ Function (loc, _) ] ->
         raise (Error (loc, "Block must end with an expression"))
-    | Let (loc, decl, expr) :: tl ->
-        let env = typeof_let env loc decl expr in
+    | Let (loc, decl, block) :: tl ->
+        let env = typeof_let env loc decl block in
         to_expr env old_type tl
     | Function (loc, func) :: tl ->
         let env = typeof_function env loc func in
         to_expr env old_type tl
     | [ Expr (_, e) ] ->
         check old_type;
-        typeof env e
+        typeof_annotated env annot e
     | Expr (loc, e) :: tl ->
         check old_type;
         to_expr env (loc, typeof env e) tl
     | [] -> raise (Error (loc, "Block cannot be empty"))
   in
   to_expr env (loc, Tunit) stmts
+
+and typeof_block env stmts = typeof_block_annot env None stmts
 
 let check_type_unique env loc name =
   match Env.find_type_opt name env with
@@ -865,23 +867,23 @@ and convert_var env loc id =
       { typ; expr = Var id }
   | None -> raise (Error (loc, "No var named " ^ id))
 
-and typeof_annot_decl env loc annot expr =
+and typeof_annot_decl env loc annot block =
   enter_level ();
   match annot with
   | None ->
-      let t = convert env expr in
+      let t = convert_block env block in
       leave_level ();
       { t with typ = generalize t.typ }
   | Some annot ->
       let t_annot = typeof_annot env loc annot in
-      let t = convert_annot env (Some t_annot) expr in
+      let t = convert_block_annot env (Some t_annot) block in
       leave_level ();
       (* TODO 'In let binding' *)
       check_annot loc t.typ t_annot;
       { t with typ = t_annot }
 
-and convert_let env loc (id, type_annot) e1 =
-  let e1 = typeof_annot_decl env loc type_annot e1 in
+and convert_let env loc (id, type_annot) block =
+  let e1 = typeof_annot_decl env loc type_annot block in
   (Env.add_value id e1.typ env, e1)
 
 and convert_lambda env loc params ret_annot body =
@@ -1114,7 +1116,7 @@ and convert_pipe_tail env loc e1 e2 =
       (* Should be a lone id, if not we let it fail in _app *)
       convert_app ~switch_uni env loc e2 [ e1 ]
 
-and convert_block env (loc, stmts) =
+and convert_block_annot env annot (loc, stmts) =
   let check (loc, typ) =
     unify (loc, "Left expression in sequence must be of type unit:") Tunit typ
   in
@@ -1122,8 +1124,8 @@ and convert_block env (loc, stmts) =
   let rec to_expr env old_type = function
     | [ Ast.Let (loc, _, _) ] | [ Function (loc, _) ] ->
         raise (Error (loc, "Block must end with an expression"))
-    | Let (loc, decl, expr) :: tl ->
-        let env, texpr = convert_let env loc decl expr in
+    | Let (loc, decl, block) :: tl ->
+        let env, texpr = convert_let env loc decl block in
         let cont = to_expr env old_type tl in
         { typ = cont.typ; expr = Let (fst decl, texpr, cont) }
     | Function (loc, func) :: tl ->
@@ -1132,7 +1134,7 @@ and convert_block env (loc, stmts) =
         { typ = cont.typ; expr = Function (name, unique, lambda, cont) }
     | [ Expr (_, e) ] ->
         check old_type;
-        convert env e
+        convert_annot env annot e
     | Expr (l1, e1) :: tl ->
         check old_type;
         let expr = convert env e1 in
@@ -1141,6 +1143,8 @@ and convert_block env (loc, stmts) =
     | [] -> raise (Error (loc, "Block cannot be empty"))
   in
   to_expr env (loc, Tunit) stmts
+
+and convert_block env stmts = convert_block_annot env None stmts
 
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();
