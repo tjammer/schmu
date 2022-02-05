@@ -247,6 +247,7 @@ let rec generalize = function
       let f (name, typ) = (name, generalize typ) in
       let labels = Array.map f labels in
       Trecord (param, name, labels)
+  | Tptr t -> Tptr (generalize t)
   | t -> t
 
 (* TODO sibling functions *)
@@ -291,11 +292,15 @@ let instantiate t =
   in
   aux Env.empty t |> fst
 
-(* TODO types_match *)
-let rec types_match subst l r =
+(* Checks if types match. [~strict] means Unbound vars will not match everything.
+   This is true for functions where we want to be as general as possible.
+   We need to match everything for weak vars though *)
+let rec types_match ?(strict = false) subst l r =
   if l == r then (subst, true)
   else
     match (l, r) with
+    | Tvar { contents = Unbound _ }, _ when not strict ->
+        (* Unbound vars match every type *) (subst, true)
     | Qvar l, Qvar r | Tvar { contents = Unbound (l, _) }, Qvar r -> (
         (* We always map from left to right *)
         match Map.find_opt l subst with
@@ -308,7 +313,7 @@ let rec types_match subst l r =
     | l, Tvar { contents = Link r }
     | Talias (_, l), r
     | l, Talias (_, r) ->
-        types_match subst l r
+        types_match ~strict subst l r
     | _, Tvar { contents = Unbound _ } ->
         failwith "Internal Error: Type comparison for non-generalized types"
     | Tfun (ps_l, l, _), Tfun (ps_r, r, _) -> (
@@ -316,12 +321,12 @@ let rec types_match subst l r =
           let subst, acc =
             List.fold_left2
               (fun (s, acc) l r ->
-                let subst, b = types_match s l r in
+                let subst, b = types_match ~strict:true s l r in
                 (subst, acc && b))
               (subst, true) ps_l ps_r
           in
           (* We don't shortcut here to match the annotations for the error message *)
-          let subst, b = types_match subst l r in
+          let subst, b = types_match ~strict:true subst l r in
           (subst, acc && b)
         with Invalid_argument _ -> (subst, false))
     | Trecord (pl, nl, _), Trecord (pr, nr, _) ->
@@ -329,11 +334,11 @@ let rec types_match subst l r =
            and the param type *)
         if String.equal nl nr then
           match (pl, pr) with
-          | Some pl, Some pr -> types_match subst pl pr
+          | Some pl, Some pr -> types_match ~strict subst pl pr
           | None, None -> (subst, true)
           | None, Some _ | Some _, None -> (subst, false)
         else (subst, false)
-    | Tptr l, Tptr r -> types_match subst l r
+    | Tptr l, Tptr r -> types_match ~strict subst l r
     | _ -> (subst, false)
 
 let check_annot loc l r =
@@ -341,13 +346,11 @@ let check_annot loc l r =
   if b then ()
   else
     let msg =
-      Printf.sprintf "Function annot: Expected type %s but got type %s"
+      Printf.sprintf "Var annotation: Expected type %s but got type %s"
         (string_of_type_lit r)
         (string_of_type_subst subst l)
     in
     raise (Error (loc, msg))
-
-let () = ignore types_match
 
 (* TODO add missing bops *)
 let string_of_bop = function
@@ -556,10 +559,11 @@ and typeof_let env loc (id, type_annot) block =
   enter_level ();
   let type_e =
     match type_annot with
-    | None ->
+    | None -> (
         let type_e = typeof_block env block in
         leave_level ();
-        generalize type_e
+        (* We generalize functions, but allow weak variables for value types *)
+        match clean type_e with Tfun _ -> generalize type_e | _ -> type_e)
     | Some annot ->
         let type_annot = typeof_annot env loc annot in
         let type_e = typeof_block_annot env (Some type_annot) block in
@@ -581,7 +585,7 @@ and typeof_abs env loc params ret_annot body =
   | Tfun (_, ret, kind) as typ ->
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = Tfun (qparams, ret, kind) in
-      (* unify (loc, "Function annot") typ qtyp; *)
+
       check_annot loc typ qtyp;
       typ
   | _ -> failwith "Internal Error Tfun not Tfun"
@@ -873,7 +877,11 @@ and typeof_annot_decl env loc annot block =
   | None ->
       let t = convert_block env block in
       leave_level ();
-      { t with typ = generalize t.typ }
+      (* We generalize functions, but allow weak variables for value types *)
+      let typ =
+        match clean t.typ with Tfun _ -> generalize t.typ | _ -> t.typ
+      in
+      { t with typ }
   | Some annot ->
       let t_annot = typeof_annot env loc annot in
       let t = convert_block_annot env (Some t_annot) block in
