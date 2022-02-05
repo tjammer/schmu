@@ -27,6 +27,8 @@
 %token Rpar
 %token Lbrac
 %token Rbrac
+%token Lbrack
+%token Rbrack
 %token If
 %token Then
 %token Else
@@ -90,6 +92,7 @@ expr:
   | Int { Lit($loc, Int $1) }
   | bool { Lit($loc, Bool  $1) }
   | String_lit { Lit($loc, String $1) }
+  | vector_lit { Lit($loc, Vector $1) }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
   | If; expr; Then; block; Else; exprblock { If($loc, $2, $4, $6) }
   | Fn; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); exprblock
@@ -116,6 +119,9 @@ bool:
 
 %inline decl:
   | Identifier; option(type_expr) { $1, $2 }
+
+vector_lit:
+  | Lbrack; separated_list(Comma, expr); Rbrack { $2 }
 
 %inline return_annot:
   | Arrow; type_list { $2 }

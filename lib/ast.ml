@@ -29,7 +29,12 @@ and expr =
   | Pipe_head of loc * expr * expr
   | Pipe_tail of loc * expr * expr
 
-and literal = Int of int | Bool of bool | U8 of char | String of string
+and literal =
+  | Int of int
+  | Bool of bool
+  | U8 of char
+  | String of string
+  | Vector of expr list
 
 and stmt =
   | Let of loc * decl * block

@@ -99,19 +99,19 @@ let test_record_field_wrong_record () =
 let test_annot_concrete () = test "int -> bool" "fun foo(x) -> bool = x < 3 foo"
 
 let test_annot_concrete_fail () =
-  test_exn "Function annot: Expected type bool -> int but got type int -> bool"
+  test_exn "Var annotation: Expected type bool -> int but got type int -> bool"
     "foo : bool -> int = fn(x) x < 3 foo"
 
 let test_annot_mix () = test "'a -> 'a" "fun pass(x : 'b) -> 'b = x pass"
 
 let test_annot_mix_fail () =
-  test_exn "Function annot: Expected type 'b -> int but got type 'b -> 'b"
+  test_exn "Var annotation: Expected type 'b -> int but got type 'b -> 'b"
     "pass : 'b -> int = fn(x) x pass"
 
 let test_annot_generic () = test "'a -> 'a" "fun pass(x : 'b) -> 'b = x pass"
 
 let test_annot_generic_fail () =
-  test_exn "Function annot: Expected type 'a -> 'b but got type 'a -> 'a"
+  test_exn "Var annotation: Expected type 'a -> 'b but got type 'a -> 'a"
     "pass : 'a -> 'b = fn(x) x pass"
 
 let test_annot_record_simple () =
@@ -202,6 +202,55 @@ let test_alias_of_alias () =
   test "bar = int -> foo = int"
     "type foo = int type bar = foo external f : bar -> foo f"
 
+let test_vector_lit () =
+  test "vector(int)"
+    {|type vector('a) = { data : ptr('a), length : int }
+    [0,1]|}
+
+let test_vector_var () =
+  test "vector(int)"
+    {|type vector('a) = { data : ptr('a), length : int }
+    a = [0,1]
+    a|}
+
+let test_vector_weak () =
+  test "vector(int)"
+    {|type vector('a) = { data : ptr('a), length : int }
+    external set : (vector('a), 'a) -> unit
+    a = []
+    set(a, 2)
+    a|}
+
+let test_vector_different_types () =
+  test_exn "In vector literal: Expected type int but got type bool"
+    {|type vector('a) = { data : ptr('a), length : int }
+    [0,true]|}
+
+let test_vector_different_annot () =
+  test_exn "Var annotation: Expected type vector(bool) but got type vector(int)"
+    {|type vector('a) = { data : ptr('a), length : int }
+    a : vector(bool) = [0,1]
+    a|}
+
+let test_vector_different_annot_weak () =
+  test_exn
+    " Expected type (vector(bool), bool) -> unit but got type (vector(bool), \
+     int) -> 'a"
+    {|type vector('a) = { data : ptr('a), length : int }
+    external set : (vector('a), 'a) -> unit
+    a : vector(bool) = []
+    set(a, 2)|}
+
+let test_vector_different_weak () =
+  test_exn
+    " Expected type (vector(int), int) -> unit but got type (vector(int), \
+     bool) -> 'a"
+    {|type vector('a) = { data : ptr('a), length : int }
+    external set : (vector('a), 'a) -> unit
+    a =[]
+    set(a, 2)
+    set(a, true)|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -286,5 +335,15 @@ let () =
           case "param_quant" test_alias_param_quant;
           case "param_missing" test_alias_param_missing;
           case "of_alias" test_alias_of_alias;
+        ] );
+      ( "vector",
+        [
+          case "literal" test_vector_lit;
+          case "var" test_vector_var;
+          case "weak" test_vector_weak;
+          case "different_types" test_vector_different_types;
+          case "different_annot" test_vector_different_annot;
+          case "different_annot_weak" test_vector_different_annot_weak;
+          case "different_weak" test_vector_different_weak;
         ] );
     ]

@@ -360,6 +360,34 @@ let string_of_bop = function
   | Equal -> "=="
   | Minus -> "-"
 
+let rec subst_generic ~id typ = function
+  | Tvar { contents = Link t } -> subst_generic ~id typ t
+  | (Qvar id' | Tvar { contents = Unbound (id', _) }) when String.equal id id'
+    ->
+      typ
+  | Tfun (ps, ret, kind) ->
+      let ps = List.map (subst_generic ~id typ) ps in
+      let ret = subst_generic ~id typ ret in
+      Tfun (ps, ret, kind)
+  | Trecord (Some p, name, labels) ->
+      let f (name, t) = (name, subst_generic ~id typ t) in
+      let labels = Array.map f labels in
+      Trecord (Some (subst_generic ~id typ p), name, labels)
+  | Tptr t -> Tptr (subst_generic ~id typ t)
+  | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
+  | t -> t
+
+and get_generic_id loc = function
+  | Tvar { contents = Link t } | Talias (_, t) -> get_generic_id loc t
+  | Trecord (Some (Qvar id), _, _)
+  | Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _)
+  | Tptr (Qvar id)
+  | Tptr (Tvar { contents = Unbound (id, _) }) ->
+      id
+  | t ->
+      raise
+        (Error (loc, "Expected a parametrized type, not " ^ string_of_type t))
+
 let typeof_annot ?(typedef = false) env loc annot =
   let find t tick =
     match Env.find_type_opt t env with
@@ -377,23 +405,6 @@ let typeof_annot ?(typedef = false) env loc annot =
         | Some _ | None -> (* When can alias a concrete type *) None)
     | Tvar { contents = Link t } -> is_quantified t
     | _ -> None
-  in
-
-  let rec subst ~id typ = function
-    | Tvar { contents = Link t } | Talias (_, t) -> subst ~id typ t
-    | (Qvar id' | Tvar { contents = Unbound (id', _) }) when String.equal id id'
-      ->
-        typ
-    | Tfun (ps, ret, kind) ->
-        let ps = List.map (subst ~id typ) ps in
-        let ret = subst ~id typ ret in
-        Tfun (ps, ret, kind)
-    | Trecord (Some p, name, labels) ->
-        let f (name, t) = (name, subst ~id typ t) in
-        let labels = Array.map f labels in
-        Trecord (Some (subst ~id typ p), name, labels)
-    | Tptr t -> Tptr (subst ~id typ t)
-    | t -> t
   in
 
   let rec concrete_type = function
@@ -427,21 +438,8 @@ let typeof_annot ?(typedef = false) env loc annot =
         Tptr nested
     | hd :: tl ->
         let t = concrete_type hd in
-        let rec finish = function
-          | Tvar { contents = Link t } -> finish t
-          | Trecord (Some (Qvar id), _, _)
-          | Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _)
-          | Tptr (Qvar id)
-          | Tptr (Tvar { contents = Unbound (id, _) }) ->
-              let nested = container_t tl in
-              subst ~id nested t
-          | Talias (name, t) -> Talias (name, finish t)
-          | t ->
-              raise
-                (Error
-                   (loc, "Expected a parametrized type, not " ^ string_of_type t))
-        in
-        finish t
+        let nested = container_t tl in
+        subst_generic ~id:(get_generic_id loc t) nested t
   and handle_annot = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ t ] -> concrete_type t
@@ -525,6 +523,14 @@ let get_record_type env labels annot =
               "Internal Error: Something went very wrong in record creation"
               |> failwith))
 
+let get_prelude env loc name =
+  let typ =
+    match Env.find_type_opt name env with
+    | Some t -> t
+    | None -> raise (Error (loc, "Cannot find type string. Prelude is missing"))
+  in
+  typ
+
 let rec typeof env expr = typeof_annotated env None expr
 
 and typeof_annotated env annot = function
@@ -532,14 +538,8 @@ and typeof_annotated env annot = function
   | Lit (_, Int _) -> Tint
   | Lit (_, Bool _) -> Tbool
   | Lit (_, U8 _) -> Tu8
-  | Lit (loc, String _) ->
-      let typ =
-        match Env.find_type_opt "string" env with
-        | Some t -> t
-        | None ->
-            raise (Error (loc, "Cannot find type string. Prelude is missing"))
-      in
-      typ
+  | Lit (loc, String _) -> get_prelude env loc "string"
+  | Lit (loc, Vector vec) -> typeof_vector_lit env loc vec
   | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
   | App (loc, e1, e2) -> typeof_app ~switch_uni:false env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
@@ -554,6 +554,19 @@ and typeof_var env loc v =
   match Env.query_val_opt v env with
   | Some t -> instantiate t
   | None -> raise (Error (loc, "No var named " ^ v))
+
+and typeof_vector_lit env loc vec =
+  let inner_typ =
+    List.fold_left
+      (fun typ expr ->
+        let t = typeof env expr in
+        unify (loc, "In vector literal:") typ t;
+        t)
+      (newvar ()) vec
+  in
+
+  let vector = get_prelude env loc "vector" in
+  subst_generic ~id:(get_generic_id loc vector) inner_typ vector
 
 and typeof_let env loc (id, type_annot) block =
   enter_level ();
@@ -848,13 +861,9 @@ and convert_annot env annot = function
   | Lit (_, Bool b) -> { typ = Tbool; expr = Const (Bool b) }
   | Lit (_, U8 c) -> { typ = Tu8; expr = Const (U8 c) }
   | Lit (loc, String s) ->
-      let typ =
-        match Env.find_type_opt "string" env with
-        | Some t -> t
-        | None ->
-            raise (Error (loc, "Cannot find type string. Prelude is missing"))
-      in
+      let typ = get_prelude env loc "string" in
       { typ; expr = Const (String s) }
+  | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
@@ -870,6 +879,12 @@ and convert_var env loc id =
       let typ = instantiate t in
       { typ; expr = Var id }
   | None -> raise (Error (loc, "No var named " ^ id))
+
+and convert_vector_lit env loc vec =
+  ignore env;
+  ignore loc;
+  ignore vec;
+  failwith "TODO"
 
 and typeof_annot_decl env loc annot block =
   enter_level ();

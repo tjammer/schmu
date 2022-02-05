@@ -53,6 +53,8 @@ rule read =
   | ')'      { Rpar }
   | '{'      { Lbrac }
   | '}'      { Rbrac }
+  | '['      { Lbrack }
+  | ']'      { Rbrack }
   | "->"     { Arrow }
   | "->>"    { Pipe_tail }
   | "--"     { line_comment lexbuf }
