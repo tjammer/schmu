@@ -22,6 +22,7 @@ and const =
   | Unit
   | U8 of char
   | String of string * alloca
+  | Vector of monod_tree list * alloca
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
@@ -284,6 +285,7 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   match texpr.expr with
   | Typing.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
+  | Const (Vector v) -> morph_vector make param v
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
@@ -307,8 +309,23 @@ and morph_string mk p s =
     mk (Mconst (String (s, alloca))) p.ret,
     { fn = No_function; alloc = Value alloca } )
 
+and morph_vector mk p v =
+  let ret = p.ret in
+  let p = { p with ret = false } in
+  (* ret = false is threaded through p *)
+  let f param e =
+    let p, e, _ = morph_expr param e in
+    (p, e)
+  in
+  let p, v = List.fold_left_map f p v in
+  let alloca = ref false in
+
+  ( { p with ret },
+    mk (Mconst (Vector (v, alloca))) p.ret,
+    { fn = No_function; alloc = Value alloca } )
+
 and morph_const = function
-  | String _ -> failwith "Internal Error: String const should be extra case"
+  | String _ | Vector _ -> failwith "Internal Error: Const should be extra case"
   | Int i -> Int i
   | Bool b -> Bool b
   | Unit -> Unit

@@ -88,7 +88,7 @@ let rec get_lltype ?(param = true) ?(field = false) = function
   | Trecord _ as t -> (
       let name = record_name t in
       match Strtbl.find_opt record_tbl name with
-      | Some (_, t) -> if param then t |> Llvm.pointer_type else t
+      | Some t -> if param then t |> Llvm.pointer_type else t
       | None ->
           failwith (Printf.sprintf "Record struct not found for type %s" name))
   | Qvar _ -> generic_t |> Llvm.pointer_type
@@ -132,13 +132,13 @@ and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
 let to_named_records = function
   | Trecord (_, _, labels) as t ->
       let name = record_name t in
-      let lt = Llvm.named_struct_type context name in
+      let t = Llvm.named_struct_type context name in
       let lltyp = typeof_aggregate labels |> Llvm.struct_element_types in
-      Llvm.struct_set_body lt lltyp false;
+      Llvm.struct_set_body t lltyp false;
 
       if Strtbl.mem record_tbl name then
         failwith "Internal Error: Type shadowing not supported in codegen TODO";
-      Strtbl.add record_tbl name (t, lt)
+      Strtbl.add record_tbl name t
   | _ -> failwith "Internal Error: Only records should be here"
 
 (*
@@ -526,7 +526,10 @@ and gen_expr param typed_expr =
       |> fin
   | Mconst (U8 c) ->
       { value = Llvm.const_int u8_t (Char.code c); typ = Tu8; lltyp = u8_t }
-  | Mconst (String (s, allocref)) -> codegen_string_lit param s allocref
+  | Mconst (String (s, allocref)) ->
+      codegen_string_lit param s typed_expr.typ allocref
+  | Mconst (Vector (es, allocref)) ->
+      codegen_vector_lit param es typed_expr.typ allocref
   | Mconst Unit -> failwith "TODO"
   | Mbop (bop, e1, e2) ->
       let e1 = gen_expr param e1 in
@@ -832,8 +835,8 @@ and codegen_chain param expr cont =
   ignore (gen_expr param expr);
   gen_expr param cont
 
-and codegen_string_lit param s allocref =
-  let typ, lltyp = Strtbl.find record_tbl "string" in
+and codegen_string_lit param s typ allocref =
+  let lltyp = Strtbl.find record_tbl "string" in
   let ptr = Llvm.build_global_stringptr s "" builder in
 
   (* Check for preallocs *)
@@ -849,6 +852,63 @@ and codegen_string_lit param s allocref =
   ignore (Llvm.build_store (Llvm.const_int int_t (String.length s)) len builder);
 
   { value = string; typ; lltyp }
+
+and codegen_vector_lit param es typ allocref =
+  let lltyp = Strtbl.find record_tbl (record_name typ) in
+  let item_typ =
+    match clean typ with
+    | Trecord (Some t, _, _) -> t
+    | _ ->
+        print_endline (show_typ typ);
+        failwith "Internal Error: No record in vector"
+  in
+  let item_size = sizeof_typ item_typ in
+  let cap =
+    match es with
+    | [] ->
+        (* Empty list so far. We allocate 1 item to get an address *)
+        1
+    | es -> List.length es
+  in
+  let ptr_typ = get_lltype ~param:false item_typ |> Llvm.pointer_type in
+  let ptr =
+    malloc ~size:(cap * item_size |> Llvm.const_int int_t) |> fun ptr ->
+    Llvm.build_bitcast ptr ptr_typ "" builder
+  in
+
+  (* Check for preallocs *)
+  let vec =
+    match (!allocref, param.alloca) with
+    | true, Some value -> value
+    | true, None | false, _ -> alloca param lltyp "vec"
+  in
+
+  (* Add ptr to vector struct *)
+  let data = Llvm.build_struct_gep vec 0 "data" builder in
+  ignore (Llvm.build_store ptr data builder);
+
+  (* Initialize *)
+  let len =
+    List.fold_left
+      (fun i expr ->
+        let src = gen_expr param expr in
+        let index = [| Llvm.const_int int_t i |] in
+        let dst = Llvm.build_gep ptr index "" builder in
+        (* TODO allocate in data directly? *)
+        (match src.typ with
+        | Trecord _ -> memcpy ~dst ~src ~size:(Llvm.const_int num_t item_size)
+        | _ -> ignore (Llvm.build_store src.value ptr builder));
+        i + 1)
+      0 es
+  in
+
+  let lenptr = Llvm.build_struct_gep vec 1 "len" builder in
+  ignore (Llvm.(build_store (const_int int_t len) lenptr) builder);
+
+  let capptr = Llvm.build_struct_gep vec 2 "cap" builder in
+  ignore (Llvm.(build_store (const_int int_t cap) capptr) builder);
+
+  { value = vec; typ; lltyp }
 
 let generate ~target { Monomorph_tree.externals; records; tree; funcs } =
   (* Add record types.

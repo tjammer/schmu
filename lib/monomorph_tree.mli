@@ -23,6 +23,7 @@ and const =
   | Unit
   | U8 of char
   | String of string * alloca
+  | Vector of monod_tree list * alloca
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }

@@ -15,7 +15,15 @@ type expr =
 [@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr }
-and const = Int of int | Bool of bool | Unit | U8 of char | String of string
+
+and const =
+  | Int of int
+  | Bool of bool
+  | Unit
+  | U8 of char
+  | String of string
+  | Vector of typed_expr list
+
 and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
 and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
@@ -881,10 +889,17 @@ and convert_var env loc id =
   | None -> raise (Error (loc, "No var named " ^ id))
 
 and convert_vector_lit env loc vec =
-  ignore env;
-  ignore loc;
-  ignore vec;
-  failwith "TODO"
+  let f typ expr =
+    let expr = convert env expr in
+    unify (loc, "In vector literal:") typ expr.typ;
+    (typ, expr)
+  in
+  let typ, exprs = List.fold_left_map f (newvar ()) vec in
+
+  let vector = get_prelude env loc "vector" in
+  let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
+  Env.maybe_add_record_instance (string_of_type typ) typ env;
+  { typ; expr = Const (Vector exprs) }
 
 and typeof_annot_decl env loc annot block =
   enter_level ();
