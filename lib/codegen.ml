@@ -62,13 +62,6 @@ let dummy_fn_value =
 
 let sret_attrib = Llvm.create_enum_attr context "sret" Int64.zero
 
-let memcpy_decl =
-  lazy
-    (let open Llvm in
-    (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
-    let ft = function_type unit_t [| voidptr_t; voidptr_t; num_t; bool_t |] in
-    declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
-
 (* Named structs for records *)
 
 let rec record_name = function
@@ -193,10 +186,28 @@ let llval_of_size size = Llvm.const_int num_t size
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src ~size =
+  let memcpy_decl =
+    lazy
+      Llvm.(
+        (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
+        let ft =
+          function_type unit_t [| voidptr_t; voidptr_t; num_t; bool_t |]
+        in
+        declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
+  in
   let dstptr = Llvm.build_bitcast dst voidptr_t "" builder in
   let retptr = Llvm.build_bitcast src.value voidptr_t "" builder in
   let args = [| dstptr; retptr; size; Llvm.const_int bool_t 0 |] in
   ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
+
+let malloc ~size =
+  let malloc_decl =
+    lazy
+      Llvm.(
+        let ft = function_type voidptr_t [| int_t |] in
+        declare_function "malloc" ft the_module)
+  in
+  Llvm.build_call (Lazy.force malloc_decl) [| size |] "" builder
 
 let set_record_field value ptr =
   match value.typ with
