@@ -352,6 +352,9 @@ and morph_if mk p cond e1 e2 =
 and morph_let mk p id e1 e2 =
   let ret = p.ret in
   let p, e1, func = morph_expr { p with ret = false } e1 in
+  (* If we propagate here, it can lead to situations where an allocation is
+     used that's available later. So we don't :) *)
+  let func = { func with alloc = No_value } in
   let p = { p with vars = Vars.add id func p.vars } in
   let p, e2, func = morph_expr { p with ret } e2 in
   (p, mk (Mlet (id, e1, e2)) ret, func)
