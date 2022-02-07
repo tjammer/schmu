@@ -891,12 +891,16 @@ and codegen_vector_lit param es typ allocref =
   let len =
     List.fold_left
       (fun i expr ->
-        let src = gen_expr param expr in
         let index = [| Llvm.const_int int_t i |] in
         let dst = Llvm.build_gep ptr index "" builder in
+        let src = gen_expr { param with alloca = Some dst } expr in
+
         (* TODO allocate in data directly? *)
         (match src.typ with
-        | Trecord _ -> memcpy ~dst ~src ~size:(Llvm.const_int num_t item_size)
+        | Trecord _ ->
+            if dst <> src.value then
+              memcpy ~dst ~src ~size:(Llvm.const_int num_t item_size)
+            else (* The record was constructed inplace *) ()
         | _ -> ignore (Llvm.build_store src.value ptr builder));
         i + 1)
       0 es

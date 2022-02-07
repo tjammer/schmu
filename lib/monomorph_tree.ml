@@ -314,7 +314,9 @@ and morph_vector mk p v =
   let p = { p with ret = false } in
   (* ret = false is threaded through p *)
   let f param e =
-    let p, e, _ = morph_expr param e in
+    let p, e, { fn = _; alloc } = morph_expr param e in
+    (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
+    set_alloca alloc;
     (p, e)
   in
   let p, v = List.fold_left_map f p v in
