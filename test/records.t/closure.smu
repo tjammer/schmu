@@ -1,0 +1,12 @@
+external printi : int -> unit
+
+type foo = { x : int, y : int }
+
+foo = { x = 12, y = 14 }
+
+fun print_foo() = do
+  -- we close over foo
+  printi(foo.x)
+  in printi(foo.y)
+
+print_foo()

@@ -1,0 +1,12 @@
+type foo = { x : int }
+type ys = { y : foo, z : int }
+external printi : int -> unit
+
+fun record_with_laters() = do
+  x = { x = 12 }
+  in { y = x, z = 15 }
+
+ys = record_with_laters()
+printi(ys.z)
+printi(ys.y.x)
+0

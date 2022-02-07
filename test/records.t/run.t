@@ -500,3 +500,106 @@ Support function/closure fields
   8
   9
   100
+
+Regression test: Closures for records used to use store/load like for register values
+  $ schmu -dump-llvm closure.smu && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %foo = type { i32, i32 }
+  %closure = type { i8*, i8* }
+  
+  declare void @printi(i32 %0)
+  
+  define private void @print_foo(i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { %foo, %foo }*
+    %foo1 = getelementptr inbounds { %foo, %foo }, { %foo, %foo }* %clsr, i32 0, i32 1
+    %1 = bitcast %foo* %foo1 to i32*
+    %2 = load i32, i32* %1, align 4
+    tail call void @printi(i32 %2)
+    %3 = getelementptr inbounds %foo, %foo* %foo1, i32 0, i32 1
+    %4 = load i32, i32* %3, align 4
+    tail call void @printi(i32 %4)
+    ret void
+  }
+  
+  define i32 @main(i32 %arg) {
+  entry:
+    %0 = alloca %foo, align 8
+    %x4 = bitcast %foo* %0 to i32*
+    store i32 12, i32* %x4, align 4
+    %y = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
+    store i32 14, i32* %y, align 4
+    %print_foo = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %print_foo to i8**
+    store i8* bitcast (void (i8*)* @print_foo to i8*), i8** %funptr5, align 8
+    %clsr_print_foo = alloca { %foo, %foo }, align 8
+    %foo6 = bitcast { %foo, %foo }* %clsr_print_foo to %foo*
+    %1 = bitcast %foo* %foo6 to i8*
+    %2 = bitcast %foo* %0 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 8, i1 false)
+    %foo1 = getelementptr inbounds { %foo, %foo }, { %foo, %foo }* %clsr_print_foo, i32 0, i32 1
+    %3 = bitcast %foo* %foo1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %2, i64 8, i1 false)
+    %env = bitcast { %foo, %foo }* %clsr_print_foo to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %print_foo, i32 0, i32 1
+    store i8* %env, i8** %envptr, align 8
+    call void @print_foo(i8* %env)
+    ret i32 0
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  12
+  14
+
+Regression test: Return allocas were propagated by lets to values earlier in a function.
+This caused stores to a wrong pointer type in LLVM
+  $ schmu -dump-llvm nested_init_let.smu && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %ys = type { %foo, i32 }
+  %foo = type { i32 }
+  
+  declare void @printi(i32 %0)
+  
+  define private void @record_with_laters(%ys* sret %0) {
+  entry:
+    %1 = alloca %foo, align 8
+    %x1 = bitcast %foo* %1 to i32*
+    store i32 12, i32* %x1, align 4
+    %y2 = bitcast %ys* %0 to %foo*
+    %2 = bitcast %foo* %y2 to i8*
+    %3 = bitcast %foo* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 4, i1 false)
+    %z = getelementptr inbounds %ys, %ys* %0, i32 0, i32 1
+    store i32 15, i32* %z, align 4
+    ret void
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define i32 @main(i32 %arg) {
+  entry:
+    %ret = alloca %ys, align 8
+    call void @record_with_laters(%ys* %ret)
+    %0 = getelementptr inbounds %ys, %ys* %ret, i32 0, i32 1
+    %1 = load i32, i32* %0, align 4
+    call void @printi(i32 %1)
+    %2 = bitcast %ys* %ret to %foo*
+    %3 = bitcast %foo* %2 to i32*
+    %4 = load i32, i32* %3, align 4
+    call void @printi(i32 %4)
+    ret i32 0
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  15
+  12
