@@ -245,10 +245,16 @@ let gen_closure_obj assoc func vars name =
   let fun_casted = Llvm.build_bitcast func.value voidptr_t "func" builder in
   ignore (Llvm.build_store fun_casted fun_ptr builder);
 
-  let store_closed_var clsr_ptr i (name, _) =
-    let var = Vars.find name vars in
-    let ptr = Llvm.build_struct_gep clsr_ptr i name builder in
-    ignore (Llvm.build_store var.value ptr builder);
+  let store_closed_var clsr_ptr i (name, typ) =
+    let src = Vars.find name vars in
+    let dst = Llvm.build_struct_gep clsr_ptr i name builder in
+    (match clean typ with
+    | Trecord _ ->
+        (* For records, we just memcpy
+           TODO don't use types here, but type kinds*)
+        let size = sizeof_typ typ |> Llvm.const_int num_t in
+        memcpy ~src ~dst ~size
+    | _ -> ignore (Llvm.build_store src.value dst builder));
     i + 1
   in
 
@@ -289,8 +295,16 @@ let add_closure vars func = function
         List.fold_left
           (fun (env, i) (name, typ) ->
             let item_ptr = Llvm.build_struct_gep clsr_ptr i name builder in
-            let value = Llvm.build_load item_ptr name builder in
-            let item = { value; typ; lltyp = Llvm.type_of value } in
+            let value, lltyp =
+              match typ with
+              | Trecord _ ->
+                  (* For records we want a ptr so that gep and memcpy work *)
+                  (item_ptr, get_lltype typ)
+              | _ ->
+                  let value = Llvm.build_load item_ptr name builder in
+                  (value, Llvm.type_of value)
+            in
+            let item = { value; typ; lltyp } in
             (Vars.add name item env, i + 1))
           (vars, 0) assoc
       in
@@ -825,9 +839,7 @@ and codegen_field param expr index =
      or for another field, where the pointer is needed.
      We should distinguish between structs and pointers somehow *)
   let value =
-    match typ with
-    | Trecord _ | Qvar _ -> ptr
-    | _ -> Llvm.build_load ptr "" builder
+    match typ with Trecord _ -> ptr | _ -> Llvm.build_load ptr "" builder
   in
   { value; typ; lltyp = Llvm.type_of value }
 
