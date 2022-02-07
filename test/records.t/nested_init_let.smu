@@ -6,6 +6,11 @@ fun record_with_laters() = do
   x = { x = 12 }
   in { y = x, z = 15 }
 
+fun ctrl() = do
+  -- control case. Here everything can be created inplace
+  ret = { y = { x = 17 }, z = 9 }
+  in ret
+
 ys = record_with_laters()
 printi(ys.z)
 printi(ys.y.x)

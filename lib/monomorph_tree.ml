@@ -35,7 +35,8 @@ and call_name =
 
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }
-and alloca = bool ref
+and alloca = allocas ref
+and allocas = Preallocated | Request of int
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
 type recurs = Rnormal | Rtail | Rnone
@@ -255,12 +256,19 @@ let monomorphize_call p expr =
            Except when it is called with different types recursively. We'll see *)
         (p, Recursive name)
 
+let alloc_lvl = ref 1
+let reset_level () = alloc_lvl := 1
+let enter_level () = incr alloc_lvl
+let leave_level () = decr alloc_lvl
+let request () = Request !alloc_lvl
+
 let rec set_alloca = function
-  | Value a -> a := true
+  | Value ({ contents = Request lvl } as a) when lvl >= !alloc_lvl ->
+      a := Preallocated
   | Two_values (a, b) ->
       set_alloca a;
       set_alloca b
-  | No_value -> ()
+  | Value _ | No_value -> ()
 
 let recursion_stack = ref []
 
@@ -304,7 +312,7 @@ and morph_var mk p v =
   (p, mk (Mvar v) p.ret, alloca)
 
 and morph_string mk p s =
-  let alloca = ref false in
+  let alloca = ref (request ()) in
   ( p,
     mk (Mconst (String (s, alloca))) p.ret,
     { fn = No_function; alloc = Value alloca } )
@@ -312,7 +320,9 @@ and morph_string mk p s =
 and morph_vector mk p v =
   let ret = p.ret in
   let p = { p with ret = false } in
+
   (* ret = false is threaded through p *)
+  enter_level ();
   let f param e =
     let p, e, { fn = _; alloc } = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
@@ -320,7 +330,8 @@ and morph_vector mk p v =
     (p, e)
   in
   let p, v = List.fold_left_map f p v in
-  let alloca = ref false in
+  leave_level ();
+  let alloca = ref (request ()) in
 
   ( { p with ret },
     mk (Mconst (Vector (v, alloca))) p.ret,
@@ -352,9 +363,6 @@ and morph_if mk p cond e1 e2 =
 and morph_let mk p id e1 e2 =
   let ret = p.ret in
   let p, e1, func = morph_expr { p with ret = false } e1 in
-  (* If we propagate here, it can lead to situations where an allocation is
-     used that's available later. So we don't :) *)
-  let func = { func with alloc = No_value } in
   let p = { p with vars = Vars.add id func p.vars } in
   let p, e2, func = morph_expr { p with ret } e2 in
   (p, mk (Mlet (id, e1, e2)) ret, func)
@@ -362,14 +370,18 @@ and morph_let mk p id e1 e2 =
 and morph_record mk p labels =
   let ret = p.ret in
   let p = { p with ret = false } in
+
   (* ret = false is threaded through p *)
+  enter_level ();
   let f param (id, e) =
     let p, e, { fn = _; alloc } = morph_expr param e in
     (match e.typ with Trecord _ -> set_alloca alloc | _ -> ());
     (p, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
-  let alloca = ref false in
+  leave_level ();
+
+  let alloca = ref (request ()) in
   ( { p with ret },
     mk (Mrecord (labels, alloca)) ret,
     { fn = No_function; alloc = Value alloca } )
@@ -404,14 +416,18 @@ and morph_func p (username, uniq, abs, cont) =
   let temp_p =
     recursion_stack := (name, recursive) :: !recursion_stack;
     let alloc =
-      match abs.tp.ret with Trecord _ -> Value (ref false) | _ -> No_value
+      match abs.tp.ret with
+      | Trecord _ -> Value (ref (request ()))
+      | _ -> No_value
     in
     let value = { fn = Forward_decl name; alloc } in
     let vars = Vars.add username value p.vars in
     { p with vars; ret = true }
   in
 
+  enter_level ();
   let temp_p, body, { fn = _; alloc } = morph_expr temp_p abs.body in
+  leave_level ();
 
   (match body.typ with Trecord _ -> set_alloca alloc | _ -> ());
 
@@ -455,7 +471,9 @@ and morph_lambda typ p id abs =
   in
 
   (* Collect functions from body *)
+  enter_level ();
   let p = { p with monomorphized = tmp.monomorphized; funcs = tmp.funcs } in
+  leave_level ();
 
   (match abs.tp.ret with Trecord _ -> set_alloca alloc | _ -> ());
 
@@ -496,8 +514,8 @@ and morph_app mk p callee args =
         ( alloc,
           match extract_alloca alloc with
           | Some alloca -> alloca
-          | None -> ref false ))
-    | _ -> (No_value, ref false)
+          | None -> ref (request ()) ))
+    | _ -> (No_value, ref (request ()))
   in
 
   ( { p with ret },
@@ -505,6 +523,7 @@ and morph_app mk p callee args =
     { no_var with alloc } )
 
 let monomorphize { Typing.externals; records; tree } =
+  reset_level ();
   let param =
     { vars = Vars.empty; monomorphized = Set.empty; funcs = []; ret = false }
   in

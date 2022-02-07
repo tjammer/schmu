@@ -325,6 +325,11 @@ let alloca param typ str =
 
 let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
 
+let get_prealloc allocref param lltyp str =
+  match (allocref, param.alloca) with
+  | Monomorph_tree.Preallocated, Some value -> value
+  | _ -> alloca param lltyp str
+
 (* This adds the function parameters to the env.
    In case the function is tailrecursive, it allocas each parameter in
    the entry block and creates a recursion block which starts off by loading
@@ -680,12 +685,7 @@ and gen_app param callee args allocref ret_t =
     match ret_t with
     | Trecord _ ->
         let lltyp = get_lltype ~param:false ret_t in
-        let retval =
-          match (!allocref, param.alloca) with
-          | true, Some value -> value
-          | true, None -> alloca param lltyp "ret"
-          | false, _ -> alloca param lltyp "ret"
-        in
+        let retval = get_prealloc !allocref param lltyp "ret" in
         let ret' = Seq.return retval in
         let args = ret' ++ args ++ envarg |> Array.of_seq in
         let call = Llvm.build_call funcval args "" builder in
@@ -804,11 +804,7 @@ and gen_if param expr return =
 and codegen_record param typ labels allocref =
   let lltyp = get_lltype ~param:false ~field:true typ in
 
-  let record =
-    match (!allocref, param.alloca) with
-    | true, Some value -> value
-    | true, None | false, _ -> alloca param lltyp ""
-  in
+  let record = get_prealloc !allocref param lltyp "" in
 
   List.iteri
     (fun i (name, expr) ->
@@ -852,11 +848,7 @@ and codegen_string_lit param s typ allocref =
   let ptr = Llvm.build_global_stringptr s "" builder in
 
   (* Check for preallocs *)
-  let string =
-    match (!allocref, param.alloca) with
-    | true, Some value -> value
-    | true, None | false, _ -> alloca param lltyp "str"
-  in
+  let string = get_prealloc !allocref param lltyp "str" in
 
   let cstr = Llvm.build_struct_gep string 0 "cstr" builder in
   ignore (Llvm.build_store ptr cstr builder);
@@ -889,11 +881,7 @@ and codegen_vector_lit param es typ allocref =
   in
 
   (* Check for preallocs *)
-  let vec =
-    match (!allocref, param.alloca) with
-    | true, Some value -> value
-    | true, None | false, _ -> alloca param lltyp "vec"
-  in
+  let vec = get_prealloc !allocref param lltyp "vec" in
 
   (* Add ptr to vector struct *)
   let data = Llvm.build_struct_gep vec 0 "data" builder in

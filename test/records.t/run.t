@@ -569,6 +569,16 @@ This caused stores to a wrong pointer type in LLVM
   
   declare void @printi(i32 %0)
   
+  define private void @ctrl(%ys* sret %0) {
+  entry:
+    %y1 = bitcast %ys* %0 to %foo*
+    %x2 = bitcast %foo* %y1 to i32*
+    store i32 17, i32* %x2, align 4
+    %z = getelementptr inbounds %ys, %ys* %0, i32 0, i32 1
+    store i32 9, i32* %z, align 4
+    ret void
+  }
+  
   define private void @record_with_laters(%ys* sret %0) {
   entry:
     %1 = alloca %foo, align 8
