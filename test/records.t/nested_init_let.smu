@@ -9,9 +9,14 @@ fun record_with_laters() = do
 fun ctrl() = do
   -- control case. Here everything can be created inplace
   ret = { y = { x = 17 }, z = 9 }
+  a = { y = { x = 1 }, z = 2 }
   in ret
 
 ys = record_with_laters()
 printi(ys.z)
 printi(ys.y.x)
+-- should print 17 and 9
+ctrl = ctrl()
+printi(ctrl.y.x)
+printi(ctrl.z)
 0

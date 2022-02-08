@@ -571,11 +571,17 @@ This caused stores to a wrong pointer type in LLVM
   
   define private void @ctrl(%ys* sret %0) {
   entry:
-    %y1 = bitcast %ys* %0 to %foo*
-    %x2 = bitcast %foo* %y1 to i32*
-    store i32 17, i32* %x2, align 4
+    %y4 = bitcast %ys* %0 to %foo*
+    %x5 = bitcast %foo* %y4 to i32*
+    store i32 17, i32* %x5, align 4
     %z = getelementptr inbounds %ys, %ys* %0, i32 0, i32 1
     store i32 9, i32* %z, align 4
+    %1 = alloca %ys, align 8
+    %y16 = bitcast %ys* %1 to %foo*
+    %x27 = bitcast %foo* %y16 to i32*
+    store i32 1, i32* %x27, align 4
+    %z3 = getelementptr inbounds %ys, %ys* %1, i32 0, i32 1
+    store i32 2, i32* %z3, align 4
     ret void
   }
   
@@ -607,9 +613,20 @@ This caused stores to a wrong pointer type in LLVM
     %3 = bitcast %foo* %2 to i32*
     %4 = load i32, i32* %3, align 4
     call void @printi(i32 %4)
+    %ret1 = alloca %ys, align 8
+    call void @ctrl(%ys* %ret1)
+    %5 = bitcast %ys* %ret1 to %foo*
+    %6 = bitcast %foo* %5 to i32*
+    %7 = load i32, i32* %6, align 4
+    call void @printi(i32 %7)
+    %8 = getelementptr inbounds %ys, %ys* %ret1, i32 0, i32 1
+    %9 = load i32, i32* %8, align 4
+    call void @printi(i32 %9)
     ret i32 0
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
   15
   12
+  17
+  9
