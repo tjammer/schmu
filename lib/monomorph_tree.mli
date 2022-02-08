@@ -16,6 +16,7 @@ type expr =
   | Mrecord of (string * monod_tree) list * alloca
   | Mfield of (monod_tree * int)
   | Mseq of (monod_tree * monod_tree)
+  | Mfree_after of monod_tree * int
 
 and const =
   | Int of int

@@ -598,6 +598,7 @@ and gen_expr param typed_expr =
       codegen_record param (clean typed_expr.typ) labels allocref |> fin
   | Mfield (expr, index) -> codegen_field param expr index |> fin
   | Mseq (expr, cont) -> codegen_chain param expr cont
+  | Mfree_after (expr, _) -> print_endline "free something"; gen_expr param expr
 
 and gen_var vars typ id =
   match Vars.find_opt id vars with

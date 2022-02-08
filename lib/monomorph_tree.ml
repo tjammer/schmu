@@ -14,6 +14,7 @@ type expr =
   | Mrecord of (string * monod_tree) list * alloca
   | Mfield of (monod_tree * int)
   | Mseq of (monod_tree * monod_tree)
+  | Mfree_after of monod_tree * int
 [@@deriving show]
 
 and const =
@@ -58,18 +59,24 @@ type to_gen_func_kind =
 (* [@@deriving show] *)
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
-type var = { fn : to_gen_func_kind; alloc : alloc }
+type malloc_kind = Return_value | Local
+type malloc = { id : int; kind : malloc_kind ref }
+type var = { fn : to_gen_func_kind; alloc : alloc; malloc : malloc option }
 
 type morph_param = {
   vars : var Vars.t;
   monomorphized : Set.t;
   funcs : to_gen_func list; (* to generate in codegen *)
   ret : bool;
-      (* Marks an expression where an if is the last piece which returns a record.
-         Needed for tail call elim *)
+  (* Marks an expression where an if is the last piece which returns a record.
+     Needed for tail call elim *)
+  mallocs : malloc list;
+      (* Tracks all heap allocations in a scope.
+         If a value with allocation is returned, they are marked for the parent scope.
+         Otherwise freed *)
 }
 
-let no_var = { fn = No_function; alloc = No_value }
+let no_var = { fn = No_function; alloc = No_value; malloc = None }
 
 let rec extract_alloca = function
   | Value a -> Some a
@@ -220,6 +227,9 @@ let subst_body subst tree =
         let expr = sub expr in
         let cont = sub cont in
         { tree with typ = cont.typ; expr = Mseq (expr, cont) }
+    | Mfree_after (expr, id) ->
+        let expr = sub expr in
+        { tree with typ = expr.typ; expr = Mfree_after (expr, id) }
   in
   inner tree
 
@@ -257,10 +267,19 @@ let monomorphize_call p expr =
         (p, Recursive name)
 
 let alloc_lvl = ref 1
-let reset_level () = alloc_lvl := 1
 let enter_level () = incr alloc_lvl
 let leave_level () = decr alloc_lvl
 let request () = Request !alloc_lvl
+let malloc_id = ref 1
+
+let new_id () =
+  let id = !malloc_id in
+  incr malloc_id;
+  id
+
+let reset () =
+  alloc_lvl := 1;
+  malloc_id := 1
 
 let rec set_alloca = function
   | Value ({ contents = Request lvl } as a) when lvl >= !alloc_lvl ->
@@ -269,6 +288,33 @@ let rec set_alloca = function
       set_alloca a;
       set_alloca b
   | Value _ | No_value -> ()
+
+let propagate_malloc = function
+  | Some { id = _; kind } -> kind := Return_value
+  | None -> ()
+
+let free_mallocs body mallocs =
+  (* Filter out the returned alloc (if it exists), free the rest
+     then mark returned one local for next scope *)
+  let f body { id; kind } =
+    match kind with
+    | { contents = Local } ->
+        (* The tree should behave the same to the outer world, so we copy type and return field *)
+        { body with expr = Mfree_after (body, id) }
+    | { contents = Return_value } -> body
+  in
+
+  let body = List.fold_left f body mallocs in
+  let mallocs =
+    List.filter
+      (function
+        | { id = _; kind = { contents = Return_value } } as malloc ->
+            malloc.kind := Local;
+            true
+        | _ -> false)
+      mallocs
+  in
+  (body, mallocs)
 
 let recursion_stack = ref []
 
@@ -315,7 +361,7 @@ and morph_string mk p s =
   let alloca = ref (request ()) in
   ( p,
     mk (Mconst (String (s, alloca))) p.ret,
-    { fn = No_function; alloc = Value alloca } )
+    { no_var with fn = No_function; alloc = Value alloca } )
 
 and morph_vector mk p v =
   let ret = p.ret in
@@ -324,18 +370,21 @@ and morph_vector mk p v =
   (* ret = false is threaded through p *)
   enter_level ();
   let f param e =
-    let p, e, { fn = _; alloc } = morph_expr param e in
+    let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
-    set_alloca alloc;
+    set_alloca var.alloc;
     (p, e)
   in
   let p, v = List.fold_left_map f p v in
   leave_level ();
   let alloca = ref (request ()) in
 
-  ( { p with ret },
+  let malloc = { id = new_id (); kind = ref Local } in
+  let mallocs = malloc :: p.mallocs in
+
+  ( { p with ret; mallocs },
     mk (Mconst (Vector (v, alloca))) p.ret,
-    { fn = No_function; alloc = Value alloca } )
+    { fn = No_function; alloc = Value alloca; malloc = Some malloc } )
 
 and morph_const = function
   | String _ | Vector _ -> failwith "Internal Error: Const should be extra case"
@@ -374,8 +423,8 @@ and morph_record mk p labels =
   (* ret = false is threaded through p *)
   enter_level ();
   let f param (id, e) =
-    let p, e, { fn = _; alloc } = morph_expr param e in
-    (match e.typ with Trecord _ -> set_alloca alloc | _ -> ());
+    let p, e, var = morph_expr param e in
+    (match e.typ with Trecord _ -> set_alloca var.alloc | _ -> ());
     (p, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
@@ -384,7 +433,7 @@ and morph_record mk p labels =
   let alloca = ref (request ()) in
   ( { p with ret },
     mk (Mrecord (labels, alloca)) ret,
-    { fn = No_function; alloc = Value alloca } )
+    { no_var with fn = No_function; alloc = Value alloca } )
 
 and morph_field mk p expr index =
   let ret = p.ret in
@@ -420,16 +469,22 @@ and morph_func p (username, uniq, abs, cont) =
       | Trecord _ -> Value (ref (request ()))
       | _ -> No_value
     in
-    let value = { fn = Forward_decl name; alloc } in
+    let value = { no_var with fn = Forward_decl name; alloc } in
     let vars = Vars.add username value p.vars in
     { p with vars; ret = true }
   in
 
   enter_level ();
-  let temp_p, body, { fn = _; alloc } = morph_expr temp_p abs.body in
+  let temp_p, body, var = morph_expr temp_p abs.body in
   leave_level ();
 
-  (match body.typ with Trecord _ -> set_alloca alloc | _ -> ());
+  (match body.typ with
+  | Trecord _ ->
+      set_alloca var.alloc;
+      propagate_malloc var.malloc
+  | _ -> ());
+
+  let body, mallocs = free_mallocs body temp_p.mallocs in
 
   let recursive = pop_recursion_stack () in
 
@@ -438,16 +493,21 @@ and morph_func p (username, uniq, abs, cont) =
 
   (* Collect functions from body *)
   let p =
-    { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
+    {
+      p with
+      monomorphized = temp_p.monomorphized;
+      funcs = temp_p.funcs;
+      mallocs;
+    }
   in
   let p =
     if Typing.is_type_polymorphic ftyp then
       let fn = Polymorphic gen_func in
-      let vars = Vars.add username { fn; alloc } p.vars in
+      let vars = Vars.add username { var with fn } p.vars in
       { p with vars }
     else
       let fn = Concrete (gen_func, username) in
-      let vars = Vars.add username { fn; alloc } p.vars in
+      let vars = Vars.add username { var with fn } p.vars in
       let funcs = gen_func :: p.funcs in
       { p with vars; funcs }
   in
@@ -466,17 +526,16 @@ and morph_lambda typ p id abs =
   let ret = p.ret in
   let vars = p.vars in
   recursion_stack := (name, recursive) :: !recursion_stack;
-  let tmp, body, { fn = _; alloc } =
-    morph_expr { p with ret = true } abs.body
-  in
+  let tmp, body, var = morph_expr { p with ret = true } abs.body in
 
   (* Collect functions from body *)
   enter_level ();
   let p = { p with monomorphized = tmp.monomorphized; funcs = tmp.funcs } in
   leave_level ();
 
-  (match abs.tp.ret with Trecord _ -> set_alloca alloc | _ -> ());
+  (match abs.tp.ret with Trecord _ -> set_alloca var.alloc | _ -> ());
 
+  (* Why do we need this again in lambda? They can't recurse. TODO answer *)
   ignore (pop_recursion_stack ());
 
   let abs = { func; pnames; body } in
@@ -491,11 +550,11 @@ and morph_lambda typ p id abs =
   in
   ( { p with ret },
     { typ; expr = Mlambda (name, abs); return = ret },
-    { fn; alloc } )
+    { var with fn } )
 
 and morph_app mk p callee args =
   let ret = p.ret in
-  let p, ex, { fn = _; alloc } = morph_expr { p with ret = false } callee in
+  let p, ex, var = morph_expr { p with ret = false } callee in
   let p, monomorph = monomorphize_call p ex in
 
   (if ret then
@@ -511,8 +570,8 @@ and morph_app mk p callee args =
   let alloc, alloc_ref =
     match clean ex.typ with
     | Tfun (_, Trecord _, _) -> (
-        ( alloc,
-          match extract_alloca alloc with
+        ( var.alloc,
+          match extract_alloca var.alloc with
           | Some alloca -> alloca
           | None -> ref (request ()) ))
     | _ -> (No_value, ref (request ()))
@@ -523,9 +582,21 @@ and morph_app mk p callee args =
     { no_var with alloc } )
 
 let monomorphize { Typing.externals; records; tree } =
-  reset_level ();
+  reset ();
   let param =
-    { vars = Vars.empty; monomorphized = Set.empty; funcs = []; ret = false }
+    {
+      vars = Vars.empty;
+      monomorphized = Set.empty;
+      funcs = [];
+      ret = false;
+      mallocs = [];
+    }
   in
   let p, tree, _ = morph_expr param tree in
+
+  let tree, mallocs = free_mallocs tree p.mallocs in
+  (match mallocs with
+  | [] -> ()
+  | _ -> failwith "Internal Error: There are memory leaks");
+
   { externals; records; tree; funcs = p.funcs }
