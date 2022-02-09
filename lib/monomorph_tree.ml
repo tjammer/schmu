@@ -10,7 +10,12 @@ type expr =
   | Mlet of string * monod_tree * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
-  | Mapp of { callee : monod_expr; args : monod_expr list; alloca : alloca }
+  | Mapp of {
+      callee : monod_expr;
+      args : monod_expr list;
+      alloca : alloca;
+      malloc : int option;
+    }
   | Mrecord of (string * monod_tree) list * alloca
   | Mfield of (monod_tree * int)
   | Mseq of (monod_tree * monod_tree)
@@ -23,7 +28,7 @@ and const =
   | Unit
   | U8 of char
   | String of string * alloca
-  | Vector of monod_tree list * alloca
+  | Vector of int * monod_tree list * alloca
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
@@ -212,12 +217,16 @@ let subst_body subst tree =
         in
         let cont = { (inner cont) with typ = subst cont.typ } in
         { tree with typ = cont.typ; expr = Mfunction (name, abs, cont) }
-    | Mapp { callee; args; alloca } ->
+    | Mapp { callee; args; alloca; malloc } ->
         let callee = { callee with ex = sub callee.ex } in
 
         let args = List.map (fun arg -> { arg with ex = sub arg.ex }) args in
         let func = func_of_typ callee.ex.typ in
-        { tree with typ = func.ret; expr = Mapp { callee; args; alloca } }
+        {
+          tree with
+          typ = func.ret;
+          expr = Mapp { callee; args; alloca; malloc };
+        }
     | Mrecord (labels, alloca) ->
         let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
         { tree with typ = subst tree.typ; expr = Mrecord (labels, alloca) }
@@ -304,17 +313,7 @@ let free_mallocs body mallocs =
     | { contents = Return_value } -> body
   in
 
-  let body = List.fold_left f body mallocs in
-  let mallocs =
-    List.filter
-      (function
-        | { id = _; kind = { contents = Return_value } } as malloc ->
-            malloc.kind := Local;
-            true
-        | _ -> false)
-      mallocs
-  in
-  (body, mallocs)
+  List.fold_left f body mallocs
 
 let recursion_stack = ref []
 
@@ -379,11 +378,12 @@ and morph_vector mk p v =
   leave_level ();
   let alloca = ref (request ()) in
 
-  let malloc = { id = new_id (); kind = ref Local } in
+  let id = new_id () in
+  let malloc = { id; kind = ref Local } in
   let mallocs = malloc :: p.mallocs in
 
   ( { p with ret; mallocs },
-    mk (Mconst (Vector (v, alloca))) p.ret,
+    mk (Mconst (Vector (id, v, alloca))) p.ret,
     { fn = No_function; alloc = Value alloca; malloc = Some malloc } )
 
 and morph_const = function
@@ -471,7 +471,7 @@ and morph_func p (username, uniq, abs, cont) =
     in
     let value = { no_var with fn = Forward_decl name; alloc } in
     let vars = Vars.add username value p.vars in
-    { p with vars; ret = true }
+    { p with vars; ret = true; mallocs = [] }
   in
 
   enter_level ();
@@ -484,7 +484,7 @@ and morph_func p (username, uniq, abs, cont) =
       propagate_malloc var.malloc
   | _ -> ());
 
-  let body, mallocs = free_mallocs body temp_p.mallocs in
+  let body = free_mallocs body temp_p.mallocs in
 
   let recursive = pop_recursion_stack () in
 
@@ -493,12 +493,7 @@ and morph_func p (username, uniq, abs, cont) =
 
   (* Collect functions from body *)
   let p =
-    {
-      p with
-      monomorphized = temp_p.monomorphized;
-      funcs = temp_p.funcs;
-      mallocs;
-    }
+    { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
   let p =
     if Typing.is_type_polymorphic ftyp then
@@ -557,6 +552,14 @@ and morph_app mk p callee args =
   let p, ex, var = morph_expr { p with ret = false } callee in
   let p, monomorph = monomorphize_call p ex in
 
+  let malloc, p =
+    match var.malloc with
+    | Some _ ->
+        let malloc = { id = new_id (); kind = ref Local } in
+        (Some malloc, { p with mallocs = malloc :: p.mallocs })
+    | None -> (None, p)
+  in
+
   (if ret then
    match monomorph with Recursive name -> set_tailrec name | _ -> ());
 
@@ -577,9 +580,12 @@ and morph_app mk p callee args =
     | _ -> (No_value, ref (request ()))
   in
 
+  let callee = { ex; monomorph } in
+  let id = Option.map (fun m -> m.id) malloc in
+
   ( { p with ret },
-    mk (Mapp { callee = { ex; monomorph }; args; alloca = alloc_ref }) ret,
-    { no_var with alloc } )
+    mk (Mapp { callee; args; alloca = alloc_ref; malloc = id }) ret,
+    { no_var with alloc; malloc } )
 
 let monomorphize { Typing.externals; records; tree } =
   reset ();
@@ -594,9 +600,7 @@ let monomorphize { Typing.externals; records; tree } =
   in
   let p, tree, _ = morph_expr param tree in
 
-  let tree, mallocs = free_mallocs tree p.mallocs in
-  (match mallocs with
-  | [] -> ()
-  | _ -> failwith "Internal Error: There are memory leaks");
+  let tree = free_mallocs tree p.mallocs in
 
+  (* TODO maybe try to catch memory leaks? *)
   { externals; records; tree; funcs = p.funcs }

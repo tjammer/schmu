@@ -9,7 +9,14 @@ module Str = struct
   let equal = String.equal
 end
 
+module Int = struct
+  include Int
+
+  let hash i = i
+end
+
 module Strtbl = Hashtbl.Make (Str)
+module Ptrtbl = Hashtbl.Make (Int)
 
 type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
 type rec_block = { rec_ : Llvm.llbasicblock; entry : Llvm.llbuilder }
@@ -23,6 +30,7 @@ type param = {
 
 let ( ++ ) = Seq.append
 let record_tbl = Strtbl.create 32
+let ptr_tbl = Ptrtbl.create 32
 let context = Llvm.global_context ()
 let the_module = Llvm.create_module context "context"
 let fpm = Llvm.PassManager.create_function the_module
@@ -208,6 +216,29 @@ let malloc ~size =
         declare_function "malloc" ft the_module)
   in
   Llvm.build_call (Lazy.force malloc_decl) [| size |] "" builder
+
+let free id =
+  let free_decl =
+    lazy
+      Llvm.(
+        let ft = function_type unit_t [| voidptr_t |] in
+        declare_function "free" ft the_module)
+  in
+  let ptr =
+    match Ptrtbl.find_opt ptr_tbl id with
+    | Some (`Ptr ptr) -> Llvm.build_bitcast ptr voidptr_t "" builder
+    | Some (`Record value) ->
+        (* For propagated mallocs, we don't get the ptr directly but get the struct instead.
+           Here, we hardcode for vector, b/c it's the only thing allocating right now.
+           That said, a vector of a vector would not work TODO *)
+        let ptr = Llvm.build_struct_gep value 0 "" builder in
+        let ptr = Llvm.build_load ptr "" builder in
+        Llvm.build_bitcast ptr voidptr_t "" builder
+    | None ->
+        "Internal Error: Cannot find ptr for id " ^ string_of_int id |> failwith
+  in
+  Ptrtbl.remove ptr_tbl id;
+  Llvm.build_call (Lazy.force free_decl) [| ptr |] "" builder
 
 let set_record_field value ptr =
   match value.typ with
@@ -547,8 +578,8 @@ and gen_expr param typed_expr =
       { value = Llvm.const_int u8_t (Char.code c); typ = Tu8; lltyp = u8_t }
   | Mconst (String (s, allocref)) ->
       codegen_string_lit param s typed_expr.typ allocref
-  | Mconst (Vector (es, allocref)) ->
-      codegen_vector_lit param es typed_expr.typ allocref
+  | Mconst (Vector (id, es, allocref)) ->
+      codegen_vector_lit param id es typed_expr.typ allocref
   | Mconst Unit -> failwith "TODO"
   | Mbop (bop, e1, e2) ->
       let e1 = gen_expr param e1 in
@@ -588,17 +619,18 @@ and gen_expr param typed_expr =
             dummy_fn_value
       in
       func
-  | Mapp { callee; args; alloca } -> (
+  | Mapp { callee; args; alloca; malloc } -> (
       match (typed_expr.return, callee.monomorph, param.rec_block) with
       | true, Recursive _, Some block ->
           gen_app_tailrec param callee args block (clean typed_expr.typ)
-      | _ -> gen_app param callee args alloca (clean typed_expr.typ) |> fin)
+      | _ ->
+          gen_app param callee args alloca (clean typed_expr.typ) malloc |> fin)
   | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref) ->
       codegen_record param (clean typed_expr.typ) labels allocref |> fin
   | Mfield (expr, index) -> codegen_field param expr index |> fin
   | Mseq (expr, cont) -> codegen_chain param expr cont
-  | Mfree_after (expr, _) -> print_endline "free something"; gen_expr param expr
+  | Mfree_after (expr, id) -> gen_free param expr id
 
 and gen_var vars typ id =
   match Vars.find_opt id vars with
@@ -628,7 +660,7 @@ and gen_bop e1 e2 bop =
       { value; typ = Tbool; lltyp = bool_t }
   | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_t }
 
-and gen_app param callee args allocref ret_t =
+and gen_app param callee args allocref ret_t malloc =
   let func = gen_expr param callee.ex in
 
   let func = get_mono_func func param callee.monomorph in
@@ -698,6 +730,11 @@ and gen_app param callee args allocref ret_t =
   in
 
   ignore call;
+
+  (* For freeing propagated mallocs *)
+  (match malloc with
+  | Some id -> Ptrtbl.add ptr_tbl id (`Record value)
+  | None -> ());
 
   { value; typ = ret; lltyp }
 
@@ -858,7 +895,7 @@ and codegen_string_lit param s typ allocref =
 
   { value = string; typ; lltyp }
 
-and codegen_vector_lit param es typ allocref =
+and codegen_vector_lit param id es typ allocref =
   let lltyp = Strtbl.find record_tbl (record_name typ) in
   let item_typ =
     match clean typ with
@@ -880,6 +917,7 @@ and codegen_vector_lit param es typ allocref =
     malloc ~size:(cap * item_size |> Llvm.const_int int_t) |> fun ptr ->
     Llvm.build_bitcast ptr ptr_typ "" builder
   in
+  Ptrtbl.add ptr_tbl id (`Ptr ptr);
 
   (* Check for preallocs *)
   let vec = get_prealloc !allocref param lltyp "vec" in
@@ -914,6 +952,11 @@ and codegen_vector_lit param es typ allocref =
   ignore (Llvm.(build_store (const_int int_t cap) capptr) builder);
 
   { value = vec; typ; lltyp }
+
+and gen_free param expr id =
+  let ret = gen_expr param expr in
+  ignore (free id);
+  ret
 
 let generate ~target { Monomorph_tree.externals; records; tree; funcs } =
   (* Add record types.

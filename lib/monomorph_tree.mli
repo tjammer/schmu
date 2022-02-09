@@ -12,7 +12,13 @@ type expr =
   | Mlet of string * monod_tree * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
-  | Mapp of { callee : monod_expr; args : monod_expr list; alloca : alloca }
+  | Mapp of {
+      callee : monod_expr;
+      args : monod_expr list;
+      alloca : alloca;
+      malloc : int option;
+          (* Mallocs have to go through a call to get propagated *)
+    }
   | Mrecord of (string * monod_tree) list * alloca
   | Mfield of (monod_tree * int)
   | Mseq of (monod_tree * monod_tree)
@@ -24,7 +30,8 @@ and const =
   | Unit
   | U8 of char
   | String of string * alloca
-  | Vector of monod_tree list * alloca
+  | Vector of int * monod_tree list * alloca
+(* The int is the malloc id used for freeing later *)
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
