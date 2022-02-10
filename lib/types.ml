@@ -22,7 +22,9 @@ let rec clean = function
       Tfun (List.map clean params, clean ret, Closure vals)
   | Tfun (params, ret, kind) -> Tfun (List.map clean params, clean ret, kind)
   | Trecord (param, name, fields) ->
+      let param = Option.map clean param in
       Trecord
         (param, name, Array.map (fun (name, typ) -> (name, clean typ)) fields)
   | Talias (_, t) -> clean t
+  | Tptr t -> Tptr (clean t)
   | t -> t

@@ -1,4 +1,4 @@
-open Types
+open Cleaned_types
 module Vars = Map.Make (String)
 module Set = Set.Make (String)
 
@@ -77,10 +77,10 @@ let rec record_name = function
      [poly] argument will create a name used for a poly var, ie spell out the generic name *)
   | Trecord (param, name, _) ->
       let some p =
-        "_" ^ match p with Qvar _ -> "generic" | t -> record_name t
+        "_" ^ match p with Tpoly _ -> "generic" | t -> record_name t
       in
       Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)
-  | t -> Typing.string_of_type t
+  | t -> string_of_type t
 
 let rec get_lltype ?(param = true) ?(field = false) = function
   (* For functions, when passed as parameter, we convert it to a closure ptr
@@ -89,7 +89,6 @@ let rec get_lltype ?(param = true) ?(field = false) = function
   | Tint -> int_t
   | Tbool -> bool_t
   | Tu8 -> u8_t
-  | Tvar { contents = Link t } | Talias (_, t) -> get_lltype ~param t
   | Tunit -> unit_t
   | Tfun (params, ret, kind) ->
       typeof_func ~param ~field ~decl:false (params, ret, kind)
@@ -99,9 +98,7 @@ let rec get_lltype ?(param = true) ?(field = false) = function
       | Some t -> if param then t |> Llvm.pointer_type else t
       | None ->
           failwith (Printf.sprintf "Record struct not found for type %s" name))
-  | Qvar _ -> generic_t |> Llvm.pointer_type
-  | Tvar _ as t ->
-      failwith (Printf.sprintf "Wrong type TODO: %s" (Typing.string_of_type t))
+  | Tpoly _ -> generic_t |> Llvm.pointer_type
   | Tptr t -> get_lltype ~param:false ~field t |> Llvm.pointer_type
 
 (* LLVM type of closure struct and records *)
@@ -118,7 +115,7 @@ and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
        pass it as first argument to the function *)
     let prefix, ret_t =
       match ret with
-      | (Trecord _ as t) | (Qvar _ as t) ->
+      | (Trecord _ as t) | (Tpoly _ as t) ->
           (Seq.return (get_lltype ~param:true t), unit_t)
       | t -> (Seq.empty, get_lltype ~param t)
     in
@@ -174,13 +171,12 @@ let sizeof_typ typ =
         (* No need to align one byte *)
         { size_pr with size = size_pr.size + 1 }
     | Tunit -> failwith "Does this make sense?"
-    | Tvar { contents = Link t } | Talias (_, t) -> inner size_pr t
     | Tfun _ ->
         (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
         add_size_align ~upto:8 ~sz:8 size_pr
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
-    | Qvar _ | Tvar _ ->
+    | Tpoly _ ->
         Llvm.dump_module the_module;
         failwith "too generic for a size"
     | Tptr _ ->
@@ -279,7 +275,7 @@ let gen_closure_obj assoc func vars name =
   let store_closed_var clsr_ptr i (name, typ) =
     let src = Vars.find name vars in
     let dst = Llvm.build_struct_gep clsr_ptr i name builder in
-    (match clean typ with
+    (match typ with
     | Trecord _ ->
         (* For records, we just memcpy
            TODO don't use types here, but type kinds*)
@@ -371,7 +367,7 @@ let add_params vars f fname names types start_index recursive =
     List.fold_left2
       (fun (env, i) name typ ->
         let value = (Llvm.params f.value).(i) in
-        let param = { value; typ = clean typ; lltyp = Llvm.type_of value } in
+        let param = { value; typ; lltyp = Llvm.type_of value } in
         Llvm.set_value_name name value;
         (Vars.add name param env, i + 1))
       (vars, start_index) names types
@@ -421,9 +417,7 @@ let add_params vars f fname names types start_index recursive =
           (fun (env, i) name typ ->
             let value = (Llvm.params f.value).(i) in
             Llvm.set_value_name name value;
-            let value =
-              { value; typ = clean typ; lltyp = Llvm.type_of value }
-            in
+            let value = { value; typ; lltyp = Llvm.type_of value } in
             let alloc = { value with value = alloca_copy value } in
             (Vars.add (name_of_alloc_param i) alloc env, i + 1))
           (vars, start_index) names types
@@ -482,10 +476,10 @@ let get_mono_func func param = function
 let fun_return name ret =
   match ret.typ with
   | Trecord _ -> Llvm.build_ret_void builder
-  | Qvar id when String.equal id "tail" ->
+  | Tpoly id when String.equal id "tail" ->
       (* This magic id is used to mark a tailrecursive call *)
       Llvm.build_ret_void builder
-  | Qvar _ -> failwith "Internal Error: Generic return"
+  | Tpoly _ -> failwith "Internal Error: Generic return"
   | Tunit ->
       if String.equal name "main" then
         Llvm.(build_ret (const_int int_t 0)) builder
@@ -506,7 +500,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         | Trecord _ ->
             Llvm.(add_function_attr func.value sret_attrib (AttrIndex.Param 0));
             (1, Some (Llvm.params func.value).(0))
-        | Qvar _ -> failwith "qvar should not be returned"
+        | Tpoly _ -> failwith "poly var should not be returned"
         | _ -> (0, None)
       in
 
@@ -622,12 +616,11 @@ and gen_expr param typed_expr =
   | Mapp { callee; args; alloca; malloc } -> (
       match (typed_expr.return, callee.monomorph, param.rec_block) with
       | true, Recursive _, Some block ->
-          gen_app_tailrec param callee args block (clean typed_expr.typ)
-      | _ ->
-          gen_app param callee args alloca (clean typed_expr.typ) malloc |> fin)
+          gen_app_tailrec param callee args block typed_expr.typ
+      | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
   | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref) ->
-      codegen_record param (clean typed_expr.typ) labels allocref |> fin
+      codegen_record param typed_expr.typ labels allocref |> fin
   | Mfield (expr, index) -> codegen_field param expr index |> fin
   | Mseq (expr, cont) -> codegen_chain param expr cont
   | Mfree_after (expr, id) -> gen_free param expr id
@@ -773,7 +766,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
   in
 
   let value = Llvm.build_br rec_block.rec_ builder in
-  { value; typ = Qvar "tail"; lltyp }
+  { value; typ = Tpoly "tail"; lltyp }
 
 and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),
@@ -782,7 +775,7 @@ and gen_if param expr return =
   ignore return;
 
   let is_tailcall e =
-    match e.typ with Qvar id when String.equal "tail" id -> true | _ -> false
+    match e.typ with Tpoly id when String.equal "tail" id -> true | _ -> false
   in
 
   let cond = gen_expr param expr.cond in
@@ -898,7 +891,7 @@ and codegen_string_lit param s typ allocref =
 and codegen_vector_lit param id es typ allocref =
   let lltyp = Strtbl.find record_tbl (record_name typ) in
   let item_typ =
-    match clean typ with
+    match typ with
     | Trecord (Some t, _, _) -> t
     | _ ->
         print_endline (show_typ typ);

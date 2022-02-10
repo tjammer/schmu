@@ -2,7 +2,7 @@
    application carry info on which monomorphized instance to use.
    Also, the extraction of functions for code generation has already taken place *)
 
-open Types
+open Cleaned_types
 
 type expr =
   | Mvar of string
@@ -52,9 +52,10 @@ and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
 type recurs = Rnormal | Rtail | Rnone
 type to_gen_func = { abs : abstraction; name : string; recursive : recurs }
+type external_decl = string * typ
 
 type monomorphized_tree = {
-  externals : Typing.external_decl list;
+  externals : external_decl list;
   records : typ list;
   tree : monod_tree;
   funcs : to_gen_func list;

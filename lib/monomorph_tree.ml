@@ -1,4 +1,4 @@
-open Types
+open Cleaned_types
 module Vars = Map.Make (String)
 module Set = Set.Make (String)
 
@@ -47,10 +47,10 @@ and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
 type recurs = Rnormal | Rtail | Rnone
 type to_gen_func = { abs : abstraction; name : string; recursive : recurs }
-(* [@@deriving show] *)
+type external_decl = string * typ
 
 type monomorphized_tree = {
-  externals : Typing.external_decl list;
+  externals : external_decl list;
   records : typ list;
   tree : monod_tree;
   funcs : to_gen_func list;
@@ -61,7 +61,6 @@ type to_gen_func_kind =
   | Polymorphic of to_gen_func
   | Forward_decl of string
   | No_function
-(* [@@deriving show] *)
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 type malloc_kind = Return_value | Local
@@ -88,10 +87,30 @@ let rec extract_alloca = function
   | Two_values (a, _) -> extract_alloca a
   | No_value -> None
 
+let rec cln = function
+  | Types.Tvar { contents = Link t } | Talias (_, t) -> cln t
+  | Tint -> Tint
+  | Tbool -> Tbool
+  | Tunit -> Tunit
+  | Tu8 -> Tu8
+  | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
+  | Tfun (params, ret, kind) ->
+      Tfun (List.map cln params, cln ret, cln_kind kind)
+  | Trecord (param, name, fields) ->
+      let param = Option.map cln param in
+      let fields = Array.map (fun (name, typ) -> (name, cln typ)) fields in
+      Trecord (param, name, fields)
+  | Tptr t -> Tptr (cln t)
+
+and cln_kind = function
+  | Simple -> Simple
+  | Closure vals ->
+      let vals = List.map (fun (name, typ) -> (name, cln typ)) vals in
+      Closure vals
+
 let typ_of_abs abs = Tfun (abs.func.params, abs.func.ret, abs.func.kind)
 
-let rec func_of_typ = function
-  | Tvar { contents = Link t } -> func_of_typ t
+let func_of_typ = function
   | Tfun (params, ret, kind) -> { params; ret; kind }
   | _ -> failwith "Internal Error: Not a function type"
 
@@ -125,21 +144,18 @@ let get_mono_name name ~poly concrete =
     | Tbool -> "b"
     | Tunit -> "u"
     | Tu8 -> "c"
-    | Tvar { contents = Link t } | Talias (_, t) -> str t
     | Tfun (ps, r, _) ->
         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
     | Trecord (Some t, name, _) -> Printf.sprintf "%s%s" name (str t)
     | Trecord (_, name, _) -> name
-    | Qvar _ | Tvar _ -> "g"
+    | Tpoly _ -> "g"
     | Tptr t -> Printf.sprintf "p%s" (str t)
   in
   Printf.sprintf "__%s_%s_%s" (str poly) name (str concrete)
 
 let subst_type ~concrete poly =
   let rec inner subst = function
-    | l, Tvar { contents = Link r } -> inner subst (l, r)
-    | Tvar { contents = Link l }, r -> inner subst (l, r)
-    | Qvar id, t | Tvar { contents = Unbound (id, _) }, t -> (
+    | Tpoly id, t -> (
         match Vars.find_opt id subst with
         | Some _ -> (* Already in tbl*) (subst, t)
         | None -> (Vars.add id t subst, t))
@@ -152,7 +168,7 @@ let subst_type ~concrete poly =
         let subst, r = inner subst (r1, r2) in
         (subst, Tfun (ps, r, kind))
     | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
-      when Typing.is_type_polymorphic l ->
+      when is_type_polymorphic l ->
         let labels = Array.copy l1 in
         let f (subst, i) (ls, lt) =
           let _, r = l2.(i) in
@@ -168,13 +184,12 @@ let subst_type ~concrete poly =
   let vars, typ = inner Vars.empty (poly, concrete) in
 
   let rec subst = function
-    | Tvar { contents = Link l } -> subst l
-    | (Qvar id as old) | (Tvar { contents = Unbound (id, _) } as old) -> (
+    | Tpoly id as old -> (
         match Vars.find_opt id vars with Some t -> t | None -> old)
     | Tfun (ps, r, kind) ->
         let ps = List.map subst ps in
         Tfun (ps, subst r, kind)
-    | Trecord (Some p, record, labels) as t when Typing.is_type_polymorphic t ->
+    | Trecord (Some p, record, labels) as t when is_type_polymorphic t ->
         let f (name, t) = (name, subst t) in
         let labels = Array.map f labels in
         Trecord (Some (subst p), record, labels)
@@ -243,7 +258,7 @@ let subst_body subst tree =
   inner tree
 
 let monomorphize_call p expr =
-  if Typing.is_type_polymorphic expr.typ then (p, Default)
+  if is_type_polymorphic expr.typ then (p, Default)
   else
     match find_function_expr p.vars expr.expr with
     | Concrete (func, username) ->
@@ -334,7 +349,7 @@ let set_tailrec name =
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
 let rec morph_expr param (texpr : Typing.typed_expr) =
-  let make expr return = { typ = texpr.typ; expr; return } in
+  let make expr return = { typ = cln texpr.typ; expr; return } in
   match texpr.expr with
   | Typing.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
@@ -451,12 +466,17 @@ and morph_func p (username, uniq, abs, cont) =
      add the usercode name to the bound variables. In the polymorphic case,
      we add the function to the bound variables, but not to the function list.
      Instead, the monomorphized instance will be added later *)
-  let ftyp = Typing.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)) in
+  let ftyp = Typing.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)) |> cln in
 
   let name = unique_name (username, uniq) in
   let recursive = Rnormal in
+
   let func =
-    { params = abs.tp.tparams; ret = abs.tp.ret; kind = abs.tp.kind }
+    {
+      params = List.map cln abs.tp.tparams;
+      ret = cln abs.tp.ret;
+      kind = cln_kind abs.tp.kind;
+    }
   in
   let pnames = abs.nparams in
 
@@ -496,7 +516,7 @@ and morph_func p (username, uniq, abs, cont) =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
   let p =
-    if Typing.is_type_polymorphic ftyp then
+    if is_type_polymorphic ftyp then
       let fn = Polymorphic gen_func in
       let vars = Vars.add username { var with fn } p.vars in
       { p with vars }
@@ -511,10 +531,16 @@ and morph_func p (username, uniq, abs, cont) =
   (p, { typ = cont.typ; expr = Mfunction (name, abs, cont); return = ret }, func)
 
 and morph_lambda typ p id abs =
+  let typ = cln typ in
+
   let name = lambda_name id in
   let recursive = Rnone in
   let func =
-    { params = Typing.(abs.tp.tparams); ret = abs.tp.ret; kind = abs.tp.kind }
+    {
+      params = List.map cln abs.tp.tparams;
+      ret = cln abs.tp.ret;
+      kind = cln_kind abs.tp.kind;
+    }
   in
   let pnames = abs.nparams in
 
@@ -538,7 +564,7 @@ and morph_lambda typ p id abs =
 
   let p = { p with vars } in
   let p, fn =
-    if Typing.is_type_polymorphic typ then (p, Polymorphic gen_func)
+    if is_type_polymorphic typ then (p, Polymorphic gen_func)
     else
       let funcs = gen_func :: p.funcs in
       ({ p with funcs }, Concrete (gen_func, name))
@@ -571,7 +597,7 @@ and morph_app mk p callee args =
   let p, args = List.fold_left_map f p args in
 
   let alloc, alloc_ref =
-    match clean ex.typ with
+    match ex.typ with
     | Tfun (_, Trecord _, _) -> (
         ( var.alloc,
           match extract_alloca var.alloc with
@@ -601,6 +627,9 @@ let monomorphize { Typing.externals; records; tree } =
   let p, tree, _ = morph_expr param tree in
 
   let tree = free_mallocs tree p.mallocs in
+
+  let externals = List.map (fun (n, t) -> (n, cln t)) externals in
+  let records = List.map cln records in
 
   (* TODO maybe try to catch memory leaks? *)
   { externals; records; tree; funcs = p.funcs }
