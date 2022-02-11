@@ -17,7 +17,8 @@ type expr =
       args : monod_expr list;
       alloca : alloca;
       malloc : int option;
-          (* Mallocs have to go through a call to get propagated *)
+          (* Mallocs have to go through a call to get propagated.
+             Codegen must check if there are nested allocations *)
     }
   | Mrecord of (string * monod_tree) list * alloca
   | Mfield of (monod_tree * int)

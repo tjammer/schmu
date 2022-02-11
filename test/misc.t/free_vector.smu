@@ -1,0 +1,52 @@
+type cstr = ptr(u8)
+type string = { cstr : cstr, length : int }
+type vector('a) = { data : ptr('a), len : int, cap : int }
+type foo = { x : int }
+
+x = { x = 1 }
+
+-- These are freed at the end of the program
+vec = ["hey", "young", "world"]
+vec = [x, {x = 2}, {x = 3}]
+
+
+-- Vec is only alive inside the function and should be freed there
+fun vec_inside() = do
+  vec = [x, {x = 2}, {x = 3}]
+  in 0
+
+-- Vec is returned and should be freed in its parent scope
+fun make_vec() = do
+  x = { x = 23 }
+  in [x, {x = 2}, {x = 3}]
+
+fun inner_parent_scope() = do
+  vec = make_vec()
+  in 0
+
+-- Vec can be propagated out through multiple function calls
+fun nest_fns() =
+  make_vec()
+
+fun make_nested_vec() = do
+  nested = [[0, 1], [2, 3]]
+  in nested
+
+fun nest_allocs() =
+  make_nested_vec()
+
+-- Should be freed locally
+fun nest_local() = do
+  nested = [[0, 1], [2, 3]]
+  in 0
+
+vec = make_vec()
+normal = vec_inside()
+normal = inner_parent_scope()
+normal = nest_fns()
+
+nested = [[0, 1], [2, 3]]
+nested = make_nested_vec()
+nested = nest_allocs()
+nested = nest_local()
+0

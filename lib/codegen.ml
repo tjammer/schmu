@@ -213,28 +213,91 @@ let malloc ~size =
   in
   Llvm.build_call (Lazy.force malloc_decl) [| size |] "" builder
 
-let free id =
+let free ptr =
   let free_decl =
     lazy
       Llvm.(
         let ft = function_type unit_t [| voidptr_t |] in
         declare_function "free" ft the_module)
   in
-  let ptr =
-    match Ptrtbl.find_opt ptr_tbl id with
-    | Some (`Ptr ptr) -> Llvm.build_bitcast ptr voidptr_t "" builder
-    | Some (`Record value) ->
-        (* For propagated mallocs, we don't get the ptr directly but get the struct instead.
-           Here, we hardcode for vector, b/c it's the only thing allocating right now.
-           That said, a vector of a vector would not work TODO *)
-        let ptr = Llvm.build_struct_gep value 0 "" builder in
-        let ptr = Llvm.build_load ptr "" builder in
-        Llvm.build_bitcast ptr voidptr_t "" builder
-    | None ->
-        "Internal Error: Cannot find ptr for id " ^ string_of_int id |> failwith
-  in
-  Ptrtbl.remove ptr_tbl id;
+
+  let ptr = Llvm.build_bitcast ptr voidptr_t "" builder in
+
   Llvm.build_call (Lazy.force free_decl) [| ptr |] "" builder
+
+let rec free_value value = function
+  | Trecord (Some t, name, _) when String.equal name "vector" ->
+      (* Free nested vectors *)
+      let ptr = Llvm.build_struct_gep value 0 "" builder in
+      let ptr = Llvm.build_load ptr "" builder in
+
+      (if contains_vector t then
+       let len_ptr = Llvm.build_struct_gep value 1 "lenptr" builder in
+       (* This should be num_t also, at some point *)
+       let len = Llvm.build_load len_ptr "leni" builder in
+       let len = Llvm.build_intcast len num_t "len" builder in
+       free_vector_children ptr len t);
+      ignore (free ptr)
+  | Trecord (_, name, _) when String.equal name "vector" ->
+      failwith "Internal Error: vector has no type"
+  | t ->
+      print_endline (show_typ t);
+      failwith "freeing records other than vector TODO"
+
+and contains_vector = function
+  | Trecord (_, name, _) when String.equal name "vector" -> true
+  | Trecord (_, _, fields) ->
+      Array.fold_left (fun b a -> snd a |> contains_vector && b) false fields
+  | _ -> false
+
+and free_vector_children value len = function
+  | Trecord (Some _, name, _) as typ when String.equal name "vector" ->
+      let start_bb = Llvm.insertion_block builder in
+      let parent = Llvm.block_parent start_bb in
+
+      (* Simple loop, start at 0 *)
+      let cnt = Llvm.build_alloca num_t "cnt" builder in
+      ignore (Llvm.build_store (Llvm.const_int num_t 0) cnt builder);
+
+      let rec_bb = Llvm.append_block context "rec" parent in
+      let free_bb = Llvm.append_block context "free" parent in
+      let cont_bb = Llvm.append_block context "cont" parent in
+
+      ignore (Llvm.build_br rec_bb builder);
+      Llvm.position_at_end rec_bb builder;
+
+      (* Check if we are done *)
+      let cnt_loaded = Llvm.build_load cnt "" builder in
+      let cmp = Llvm.(build_icmp Icmp.Slt) cnt_loaded len "" builder in
+      ignore (Llvm.build_cond_br cmp free_bb cont_bb builder);
+
+      Llvm.position_at_end free_bb builder;
+      (* The ptr has the correct type, no need to multiply size *)
+      let ptr = Llvm.build_gep value [| cnt_loaded |] "" builder in
+
+      free_value ptr typ;
+      let one = Llvm.const_int num_t 1 in
+      let next = Llvm.build_add cnt_loaded one "" builder in
+      ignore (Llvm.build_store next cnt builder);
+      ignore (Llvm.build_br rec_bb builder);
+
+      Llvm.position_at_end cont_bb builder
+  | Trecord (_, name, _) when String.equal name "vector" ->
+      failwith "Internal Error: vector has no type"
+  | _ -> failwith "TODO vectors in records are not yet supported"
+
+let free_id id =
+  (match Ptrtbl.find_opt ptr_tbl id with
+  | Some (`Ptr ptr) -> ignore (free ptr)
+  | Some (`Record (value, typ)) ->
+      (* For propagated mallocs, we don't get the ptr directly but get the struct instead.
+         Here, we hardcode for vector, b/c it's the only thing allocating right now. *)
+
+      (* Free nested vectors *)
+      free_value value typ
+  | None ->
+      "Internal Error: Cannot find ptr for id " ^ string_of_int id |> failwith);
+  Ptrtbl.remove ptr_tbl id
 
 let set_record_field value ptr =
   match value.typ with
@@ -726,7 +789,7 @@ and gen_app param callee args allocref ret_t malloc =
 
   (* For freeing propagated mallocs *)
   (match malloc with
-  | Some id -> Ptrtbl.add ptr_tbl id (`Record value)
+  | Some id -> Ptrtbl.add ptr_tbl id (`Record (value, ret))
   | None -> ());
 
   { value; typ = ret; lltyp }
@@ -948,7 +1011,7 @@ and codegen_vector_lit param id es typ allocref =
 
 and gen_free param expr id =
   let ret = gen_expr param expr in
-  ignore (free id);
+  ignore (free_id id);
   ret
 
 let generate ~target { Monomorph_tree.externals; records; tree; funcs } =

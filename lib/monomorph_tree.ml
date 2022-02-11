@@ -65,7 +65,7 @@ type to_gen_func_kind =
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 type malloc_kind = Return_value | Local
 type malloc = { id : int; kind : malloc_kind ref }
-type var = { fn : to_gen_func_kind; alloc : alloc; malloc : malloc option }
+type var = { fn : to_gen_func_kind; alloc : alloc; malloc : malloc list }
 
 type morph_param = {
   vars : var Vars.t;
@@ -80,7 +80,7 @@ type morph_param = {
          Otherwise freed *)
 }
 
-let no_var = { fn = No_function; alloc = No_value; malloc = None }
+let no_var = { fn = No_function; alloc = No_value; malloc = [] }
 
 let rec extract_alloca = function
   | Value a -> Some a
@@ -313,9 +313,11 @@ let rec set_alloca = function
       set_alloca b
   | Value _ | No_value -> ()
 
-let propagate_malloc = function
-  | Some { id = _; kind } -> kind := Return_value
-  | None -> ()
+let rec propagate_malloc = function
+  | { id = _; kind } :: tl ->
+      kind := Return_value;
+      propagate_malloc tl
+  | [] -> ()
 
 let free_mallocs body mallocs =
   (* Filter out the returned alloc (if it exists), free the rest
@@ -383,13 +385,13 @@ and morph_vector mk p v =
 
   (* ret = false is threaded through p *)
   enter_level ();
-  let f param e =
+  let f (param, malloc) e =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
     set_alloca var.alloc;
-    (p, e)
+    ((p, var.malloc @ malloc), e)
   in
-  let p, v = List.fold_left_map f p v in
+  let (p, inner_mallocs), v = List.fold_left_map f (p, []) v in
   leave_level ();
   let alloca = ref (request ()) in
 
@@ -399,7 +401,8 @@ and morph_vector mk p v =
 
   ( { p with ret; mallocs },
     mk (Mconst (Vector (id, v, alloca))) p.ret,
-    { fn = No_function; alloc = Value alloca; malloc = Some malloc } )
+    { fn = No_function; alloc = Value alloca; malloc = malloc :: inner_mallocs }
+  )
 
 and morph_const = function
   | String _ | Vector _ -> failwith "Internal Error: Const should be extra case"
@@ -466,7 +469,7 @@ and morph_func p (username, uniq, abs, cont) =
      add the usercode name to the bound variables. In the polymorphic case,
      we add the function to the bound variables, but not to the function list.
      Instead, the monomorphized instance will be added later *)
-  let ftyp = Typing.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)) |> cln in
+  let ftyp = Types.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)) |> cln in
 
   let name = unique_name (username, uniq) in
   let recursive = Rnormal in
@@ -580,10 +583,10 @@ and morph_app mk p callee args =
 
   let malloc, p =
     match var.malloc with
-    | Some _ ->
+    | _ :: _ ->
         let malloc = { id = new_id (); kind = ref Local } in
-        (Some malloc, { p with mallocs = malloc :: p.mallocs })
-    | None -> (None, p)
+        ([ malloc ], { p with mallocs = malloc :: p.mallocs })
+    | [] -> ([], p)
   in
 
   (if ret then
@@ -607,7 +610,13 @@ and morph_app mk p callee args =
   in
 
   let callee = { ex; monomorph } in
-  let id = Option.map (fun m -> m.id) malloc in
+  let id =
+    (function
+      | [ m ] -> Some m.id
+      | [] -> None
+      | _ -> failwith "Internal Error: Multiple mallocs in app")
+      malloc
+  in
 
   ( { p with ret },
     mk (Mapp { callee; args; alloca = alloc_ref; malloc = id }) ret,
