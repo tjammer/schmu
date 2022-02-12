@@ -447,7 +447,16 @@ let typeof_annot ?(typedef = false) env loc annot =
     | hd :: tl ->
         let t = concrete_type hd in
         let nested = container_t tl in
-        subst_generic ~id:(get_generic_id loc t) nested t
+        let subst = subst_generic ~id:(get_generic_id loc t) nested t in
+
+        (* Add record instance.
+           A new instance could be introduced here, we have to make sure it's added b/c
+           codegen struct generation depends on order *)
+        (match t with
+        | Trecord (Some _, _, _) ->
+            Env.maybe_add_record_instance (string_of_type subst) subst env
+        | _ -> ());
+        subst
   and handle_annot = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ t ] -> concrete_type t
@@ -1195,7 +1204,6 @@ let to_typed (prog : Ast.prog) =
             let typ = typeof_annot env loc typ in
             (Env.add_value name typ env, Some (name, typ))
         | Typedef (loc, Trecord t) ->
-            (* TODO add concrete records *)
             let env = typedef env loc t in
             (env, None)
         | Typedef (loc, Talias (name, type_spec)) ->

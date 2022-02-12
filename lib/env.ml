@@ -153,11 +153,8 @@ let records env =
       | _ -> false)
     env.types
   |> Tmap.bindings
-  |> List.sort Type_key.cmp_sort
-  |> List.map values
   |> (* Add instances *)
   fun simple_records ->
-  simple_records
-  @ (Tmap.bindings !(env.instances)
-    |> List.sort Type_key.cmp_sort
-    |> List.map values)
+  simple_records @ Tmap.bindings !(env.instances)
+  |> List.sort Type_key.cmp_sort
+  |> List.map values
