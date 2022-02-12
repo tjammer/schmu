@@ -322,7 +322,7 @@ let rec propagate_malloc = function
 let free_mallocs body mallocs =
   (* Filter out the returned alloc (if it exists), free the rest
      then mark returned one local for next scope *)
-  let f body { id; kind } =
+  let f { id; kind } body =
     match kind with
     | { contents = Local } ->
         (* The tree should behave the same to the outer world, so we copy type and return field *)
@@ -330,7 +330,7 @@ let free_mallocs body mallocs =
     | { contents = Return_value } -> body
   in
 
-  List.fold_left f body mallocs
+  List.fold_right f mallocs body
 
 let recursion_stack = ref []
 
@@ -385,6 +385,7 @@ and morph_vector mk p v =
 
   (* ret = false is threaded through p *)
   enter_level ();
+  (* Collect mallocs in initializer *)
   let f (param, malloc) e =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
@@ -440,18 +441,19 @@ and morph_record mk p labels =
 
   (* ret = false is threaded through p *)
   enter_level ();
-  let f param (id, e) =
+  (* Collect mallocs in initializer *)
+  let f (param, malloc) (id, e) =
     let p, e, var = morph_expr param e in
     (match e.typ with Trecord _ -> set_alloca var.alloc | _ -> ());
-    (p, (id, e))
+    ((p, var.malloc @ malloc), (id, e))
   in
-  let p, labels = List.fold_left_map f p labels in
+  let (p, malloc), labels = List.fold_left_map f (p, []) labels in
   leave_level ();
 
   let alloca = ref (request ()) in
   ( { p with ret },
     mk (Mrecord (labels, alloca)) ret,
-    { no_var with fn = No_function; alloc = Value alloca } )
+    { fn = No_function; alloc = Value alloca; malloc } )
 
 and morph_field mk p expr index =
   let ret = p.ret in
