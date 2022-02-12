@@ -240,6 +240,13 @@ let rec free_value value = function
       ignore (free ptr)
   | Trecord (_, name, _) when String.equal name "vector" ->
       failwith "Internal Error: vector has no type"
+  | Trecord (_, _, fields) ->
+      Array.iteri
+        (fun i (_, t) ->
+          if contains_vector t then
+            let ptr = Llvm.build_struct_gep value i "" builder in
+            free_value ptr t)
+        fields
   | t ->
       print_endline (show_typ t);
       failwith "freeing records other than vector TODO"
@@ -247,11 +254,11 @@ let rec free_value value = function
 and contains_vector = function
   | Trecord (_, name, _) when String.equal name "vector" -> true
   | Trecord (_, _, fields) ->
-      Array.fold_left (fun b a -> snd a |> contains_vector && b) false fields
+      Array.fold_left (fun b a -> snd a |> contains_vector || b) false fields
   | _ -> false
 
 and free_vector_children value len = function
-  | Trecord (Some _, name, _) as typ when String.equal name "vector" ->
+  | Trecord _ as typ ->
       let start_bb = Llvm.insertion_block builder in
       let parent = Llvm.block_parent start_bb in
 
@@ -282,9 +289,9 @@ and free_vector_children value len = function
       ignore (Llvm.build_br rec_bb builder);
 
       Llvm.position_at_end cont_bb builder
-  | Trecord (_, name, _) when String.equal name "vector" ->
-      failwith "Internal Error: vector has no type"
-  | _ -> failwith "TODO vectors in records are not yet supported"
+  | t ->
+      print_endline (show_typ t);
+      failwith "Internal Error: Freeing this type is not supported"
 
 let free_id id =
   (match Ptrtbl.find_opt ptr_tbl id with
