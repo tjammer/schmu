@@ -42,8 +42,10 @@ and call_name =
   | Concrete of string (* Normal function call with unique name *)
   | Default (* std *)
   | Recursive of string
-(* Recursive function call.
-   The function name is only for housekeeping *)
+  (* Recursive function call.
+     The function name is only for housekeeping *)
+  | Builtin of Builtin.t * func
+(* Builtin function with special codegen *)
 
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }

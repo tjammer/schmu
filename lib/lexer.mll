@@ -17,6 +17,7 @@ let alpha = ['a'-'z' 'A'-'Z']
 
 let int = digit+
 let id = alpha (alpha|digit|'_')*
+let builtin_id = "__" id
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -43,6 +44,7 @@ rule read =
   | "do"     { Do }
   | "in"     { In }
   | id       { Identifier (Lexing.lexeme lexbuf) }
+  | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | '+'      { Plus }
   | '-'      { Minus }

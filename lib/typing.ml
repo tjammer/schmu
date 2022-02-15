@@ -1196,6 +1196,12 @@ and convert_block env stmts = convert_block_annot env None stmts
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();
 
+  (* Add builtins to env *)
+  let env =
+    Builtin.(fold (fun env b -> Env.add_value (to_string b) (to_type b) env))
+      Env.empty
+  in
+
   let env, externals =
     List.fold_left_map
       (fun env item ->
@@ -1209,7 +1215,7 @@ let to_typed (prog : Ast.prog) =
         | Typedef (loc, Talias (name, type_spec)) ->
             let env = type_alias env loc name type_spec in
             (env, None))
-      Env.empty prog.preface
+      (Env.new_scope env) prog.preface
   in
 
   let tree = convert_block env prog.block in

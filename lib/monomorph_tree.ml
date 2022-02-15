@@ -38,6 +38,7 @@ and call_name =
   | Concrete of string
   | Default
   | Recursive of string
+  | Builtin of Builtin.t * func
 
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }
@@ -60,6 +61,7 @@ type to_gen_func_kind =
   | Concrete of to_gen_func * string
   | Polymorphic of to_gen_func
   | Forward_decl of string
+  | Builtin of Builtin.t
   | No_function
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
@@ -131,7 +133,10 @@ let find_function_expr vars = function
   | Mvar id -> (
       match Vars.find_opt id vars with
       | Some thing -> thing.fn
-      | None -> No_function)
+      | None -> (
+          match Builtin.of_string id with
+          | Some b -> Builtin b
+          | None -> No_function))
   | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ -> No_function
   | Mlambda _ -> (* Concrete type is already inferred *) No_function
   | e ->
@@ -285,6 +290,7 @@ let monomorphize_call p expr =
           let monomorphized = Set.add name p.monomorphized in
           ({ p with funcs; monomorphized }, Mono name)
     | No_function -> (p, Default)
+    | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
     | Forward_decl name ->
         (* We don't have to do anything, because the correct function will be called in the first place.
            Except when it is called with different types recursively. We'll see *)

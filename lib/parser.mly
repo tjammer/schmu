@@ -16,6 +16,7 @@
 %token <string> Identifier
 %token <int> Int
 %token <string> String_lit
+%token <string> Builtin_id
 %token True
 %token False
 %token Plus
@@ -97,7 +98,7 @@ expr:
   | If; expr; Then; block; Else; exprblock { If($loc, $2, $4, $6) }
   | Fn; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); exprblock
     { Lambda($loc, $3, $5, $6) }
-  | expr; Lpar; separated_list(Comma, expr); Rpar { App($loc, $1, $3) }
+  | callable; Lpar; separated_list(Comma, expr); Rpar { App($loc, $1, $3) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
   | expr; Dot; Identifier { Field ($loc, $1, $3) }
   | expr; Arrow; expr { Pipe_head ($loc, $1, $3) }
@@ -119,6 +120,10 @@ bool:
 
 %inline decl:
   | Identifier; option(type_expr) { $1, $2 }
+
+%inline callable:
+  | expr { $1 }
+  | Builtin_id { Var($loc, $1) }
 
 vector_lit:
   | Lbrack; separated_list(Comma, expr); Rbrack { $2 }

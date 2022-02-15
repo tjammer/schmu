@@ -213,6 +213,19 @@ let malloc ~size =
   in
   Llvm.build_call (Lazy.force malloc_decl) [| size |] "" builder
 
+let realloc ptr ~size =
+  let realloc_decl =
+    lazy
+      Llvm.(
+        let ft = function_type voidptr_t [| voidptr_t; int_t |] in
+        declare_function "realloc" ft the_module)
+  in
+  let voidptr = Llvm.build_bitcast ptr voidptr_t "" builder in
+  let ret =
+    Llvm.build_call (Lazy.force realloc_decl) [| voidptr; size |] "" builder
+  in
+  Llvm.build_bitcast ret (Llvm.type_of ptr) "" builder
+
 let free ptr =
   let free_decl =
     lazy
@@ -420,6 +433,7 @@ let alloca param typ str =
   let builder = match param.rec_block with Some r -> r.entry | _ -> builder in
   Llvm.build_alloca typ str builder
 
+let load ptr = function Trecord _ -> ptr | _ -> Llvm.build_load ptr "" builder
 let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
 
 let get_prealloc allocref param lltyp str =
@@ -542,6 +556,7 @@ let get_mono_func func param = function
       func
   | Concrete name -> Vars.find name param.vars
   | Default | Recursive _ -> func
+  | Builtin _ -> failwith "Internal Error: Normally calling a builtin"
 
 let fun_return name ret =
   match ret.typ with
@@ -687,6 +702,7 @@ and gen_expr param typed_expr =
       match (typed_expr.return, callee.monomorph, param.rec_block) with
       | true, Recursive _, Some block ->
           gen_app_tailrec param callee args block typed_expr.typ
+      | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args |> fin
       | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
   | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref) ->
@@ -741,10 +757,10 @@ and gen_app param callee args allocref ret_t malloc =
     let arg = get_mono_func arg' param arg.monomorph in
     (func_to_closure param arg).value
   in
-  let args = List.map handle_arg args in
+  let args = List.map handle_arg args |> List.to_seq in
 
   (* No names here, might be void/unit *)
-  let funcval, args, envarg =
+  let funcval, envarg =
     if Llvm.type_of func.value = (closure_t |> Llvm.pointer_type) then
       (* Function to call is a closure (or a function passed into another one).
          We get the funptr from the first field, cast to the correct type,
@@ -756,10 +772,10 @@ and gen_app param callee args allocref ret_t malloc =
 
       let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
       let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
-      (funcp, List.to_seq args, Seq.return env_ptr)
+      (funcp, Seq.return env_ptr)
     else
       match kind with
-      | Simple -> (func.value, List.to_seq args, Seq.empty)
+      | Simple -> (func.value, Seq.empty)
       | Closure _ -> (
           (* In this case we are in a recursive closure function.
              We get the closure env and add it to the arguments we pass *)
@@ -772,7 +788,7 @@ and gen_app param callee args allocref ret_t malloc =
               in
 
               let env_ptr = (Llvm.params func.value).(closure_index) in
-              (func.value, List.to_seq args, Seq.return env_ptr)
+              (func.value, Seq.return env_ptr)
           | None ->
               failwith "Internal Error: Not a recursive closure application")
   in
@@ -837,6 +853,48 @@ and gen_app_tailrec param callee args rec_block ret_t =
 
   let value = Llvm.build_br rec_block.rec_ builder in
   { value; typ = Tpoly "tail"; lltyp }
+
+and gen_app_builtin param (b, fnc) args =
+  let handle_arg arg =
+    let arg' = gen_expr param Monomorph_tree.(arg.ex) in
+    let arg = get_mono_func arg' param arg.monomorph in
+    (func_to_closure param arg).value
+  in
+  let args = List.map handle_arg args in
+
+  match b with
+  | Builtin.Unsafe_ptr_get ->
+      let ptr, index =
+        match args with
+        | [ ptr; index ] -> (ptr, index)
+        | _ -> failwith "Internal Error: Arity mismatch in builtin"
+      in
+      let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
+      let value = load ptr fnc.ret in
+      { value; typ = fnc.ret; lltyp = Llvm.type_of value }
+  | Unsafe_ptr_set ->
+      let ptr, index, value =
+        match args with
+        | [ ptr; index; value ] -> (ptr, index, value)
+        | _ -> failwith "Internal Error: Arity mismatch in builtin"
+      in
+      let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
+      let value =
+        { value; typ = List.nth fnc.params 2; lltyp = Llvm.type_of value }
+      in
+      set_record_field value ptr;
+      { dummy_fn_value with lltyp = unit_t }
+  | Realloc ->
+      let ptr, size =
+        match args with
+        | [ ptr; size ] -> (ptr, size)
+        | _ -> failwith "Internal Error: Arity mismatch in builtin"
+      in
+      let value = realloc ptr ~size in
+      (* TODO this is broken right now. We need mutable fields?*)
+      ignore (Llvm.build_store value ptr builder);
+
+      { value; typ = fnc.ret; lltyp = Llvm.type_of value }
 
 and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),
@@ -935,9 +993,7 @@ and codegen_field param expr index =
      The idea is that this will be used either as a return value for a function (where it is copied),
      or for another field, where the pointer is needed.
      We should distinguish between structs and pointers somehow *)
-  let value =
-    match typ with Trecord _ -> ptr | _ -> Llvm.build_load ptr "" builder
-  in
+  let value = load ptr typ in
   { value; typ; lltyp = Llvm.type_of value }
 
 and codegen_chain param expr cont =
