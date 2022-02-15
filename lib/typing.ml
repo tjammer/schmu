@@ -227,7 +227,7 @@ let rec unify t1 t2 =
           in
 
           (* We ignore the label names for now *)
-          try Array.iter2 (fun a b -> unify (snd a) (snd b)) labels1 labels2
+          try Array.iter2 (fun a b -> Types.(unify a.typ b.typ)) labels1 labels2
           with Invalid_argument _ ->
             raise (Arity ("record", Array.length labels1, Array.length labels2))
         else raise Unify
@@ -252,7 +252,7 @@ let rec generalize = function
   | Trecord (Some t, name, labels) ->
       (* Hopefully the param type is the same reference throughout the record *)
       let param = Some (generalize t) in
-      let f (name, typ) = (name, generalize typ) in
+      let f f = Types.{ f with typ = generalize f.typ } in
       let labels = Array.map f labels in
       Trecord (param, name, labels)
   | Tptr t -> Tptr (generalize t)
@@ -285,10 +285,10 @@ let instantiate t =
         let subst = ref subst in
         let labels =
           Array.map
-            (fun (name, t) ->
-              let t, subst' = aux !subst t in
+            (fun f ->
+              let t, subst' = aux !subst Types.(f.typ) in
               subst := subst';
-              (name, t))
+              { f with typ = t })
             labels
         in
         let param, subst = aux !subst param in
@@ -378,7 +378,7 @@ let rec subst_generic ~id typ = function
       let ret = subst_generic ~id typ ret in
       Tfun (ps, ret, kind)
   | Trecord (Some p, name, labels) ->
-      let f (name, t) = (name, subst_generic ~id typ t) in
+      let f f = Types.{ f with typ = subst_generic ~id typ f.typ } in
       let labels = Array.map f labels in
       Trecord (Some (subst_generic ~id typ p), name, labels)
   | Tptr t -> Tptr (subst_generic ~id typ t)
@@ -509,16 +509,16 @@ let array_assoc_opt name arr =
   let rec inner i =
     if i = Array.length arr then None
     else
-      let nm, value = arr.(i) in
-      if String.equal nm name then Some value else inner (i + 1)
+      let field = arr.(i) in
+      if String.equal field.name name then Some field.typ else inner (i + 1)
   in
   inner 0
 
 let assoc_opti qkey arr =
   let rec aux i =
     if i < Array.length arr then
-      let key, value = arr.(i) in
-      if String.equal qkey key then Some (i, value) else aux (i + 1)
+      let field = arr.(i) in
+      if String.equal qkey field.name then Some (i, field.typ) else aux (i + 1)
     else None
   in
   aux 0
@@ -723,8 +723,8 @@ and typeof_field env loc expr id =
   match typ with
   | Trecord (_, name, labels) -> (
       (* This is a poor replacement for List.assoc_opt *)
-      let find_id acc (name, t) =
-        if String.equal id name then Some t else acc
+      let find_id acc field =
+        if String.equal id field.name then Some field.typ else acc
       in
       match Array.fold_left find_id None labels with
       | Some t -> t
@@ -737,7 +737,7 @@ and typeof_field env loc expr id =
           unify (loc, "Field access of record " ^ record ^ ":") record_t t;
           match record_t with
           | Trecord (_, _, labels) ->
-              let ret = labels.(index) |> snd in
+              let ret = labels.(index).typ in
               ret
           | _ -> failwith "nope")
       | None -> raise (Error (loc, "Unbound field " ^ id)))
@@ -811,9 +811,9 @@ let typedef env loc Ast.{ name = { poly_param; name }; labels } =
     let env, param = add_type_param env poly_param in
     let labels =
       Array.map
-        (fun (lbl, type_expr) ->
-          let t = typeof_annot ~typedef:true env loc type_expr in
-          (lbl, t))
+        (fun (name, type_expr) ->
+          let typ = typeof_annot ~typedef:true env loc type_expr in
+          { name; typ; mut = false })
         labels
     in
     (labels, param)
@@ -1111,11 +1111,11 @@ and convert_record env loc annot labels =
   (* We sort the labels to appear in the defined order *)
   let sorted_labels =
     List.map
-      (fun (lname, _) ->
-        ( lname,
-          match List.assoc_opt lname labels_expr with
+      (fun field ->
+        ( field.name,
+          match List.assoc_opt field.name labels_expr with
           | Some thing -> thing
-          | None -> raise_ "Missing" lname name ))
+          | None -> raise_ "Missing" field.name name ))
       (labels |> Array.to_list)
   in
   let typ = Trecord (param, name, labels) |> generalize in
@@ -1137,7 +1137,7 @@ and convert_field env loc expr id =
           unify (loc, "Field access of " ^ string_of_type record_t) record_t t;
           match record_t with
           | Trecord (_, _, labels) ->
-              let typ = labels.(index) |> snd in
+              let typ = labels.(index).typ in
 
               { typ; expr = Field (expr, index) }
           | _ -> failwith "nope")

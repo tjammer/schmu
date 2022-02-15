@@ -8,8 +8,7 @@ val empty : t
 val add_value : key -> typ -> t -> t
 val add_type : key -> typ -> t -> t
 
-val add_record :
-  key -> param:typ option -> labels:(string * typ) array -> t -> t
+val add_record : key -> param:typ option -> labels:field array -> t -> t
 (** [add record record_name ~param ~labels env] returns an env with anadded record named [record_name]
      optionally parametrized by [param] with typed [labels] *)
 

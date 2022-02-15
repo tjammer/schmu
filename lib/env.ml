@@ -56,13 +56,15 @@ let add_type key t env =
 let add_record record ~param ~labels env =
   let typ = Trecord (param, record, labels) in
 
-  let labelset = Array.to_seq labels |> Seq.map fst |> Labelset.of_seq in
+  let labelset =
+    Array.to_seq labels |> Seq.map (fun f -> f.name) |> Labelset.of_seq
+  in
   let labelsets = Lmap.add labelset record env.labelsets in
 
   let _, labels =
     Array.fold_left
-      (fun (index, labels) (lname, _) ->
-        (index + 1, Map.add lname { index; record } labels))
+      (fun (index, labels) field ->
+        (index + 1, Map.add field.name { index; record } labels))
       (0, env.labels) labels
   in
   let record = Type_key.create record in

@@ -7,12 +7,13 @@ type typ =
   | Talias of string * typ
   | Qvar of string
   | Tfun of typ list * typ * fun_kind
-  | Trecord of typ option * string * (string * typ) array
+  | Trecord of typ option * string * field array
   | Tptr of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ
+and field = { name : string; typ : typ; mut : bool }
 
 (* Follow links and aliases *)
 let rec clean = function
@@ -24,7 +25,10 @@ let rec clean = function
   | Trecord (param, name, fields) ->
       let param = Option.map clean param in
       Trecord
-        (param, name, Array.map (fun (name, typ) -> (name, clean typ)) fields)
+        ( param,
+          name,
+          Array.map (fun field -> { field with typ = clean field.typ }) fields
+        )
   | Talias (_, t) -> clean t
   | Tptr t -> Tptr (clean t)
   | t -> t

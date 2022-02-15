@@ -5,11 +5,12 @@ type typ =
   | Tu8
   | Tpoly of string
   | Tfun of typ list * typ * fun_kind
-  | Trecord of typ option * string * (string * typ) array
+  | Trecord of typ option * string * field array
   | Tptr of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
+and field = { name : string; typ : typ; mut : bool }
 
 let is_type_polymorphic typ =
   let rec inner acc = function

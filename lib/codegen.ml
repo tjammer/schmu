@@ -138,7 +138,10 @@ let to_named_records = function
   | Trecord (_, _, labels) as t ->
       let name = record_name t in
       let t = Llvm.named_struct_type context name in
-      let lltyp = typeof_aggregate labels |> Llvm.struct_element_types in
+      let lltyp =
+        Array.map (fun (f : field) -> (f.name, f.typ)) labels
+        |> typeof_aggregate |> Llvm.struct_element_types
+      in
       Llvm.struct_set_body t lltyp false;
 
       if Strtbl.mem record_tbl name then
@@ -175,7 +178,7 @@ let sizeof_typ typ =
         (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
         add_size_align ~upto:8 ~sz:8 size_pr
     | Trecord (_, _, labels) ->
-        Array.fold_left (fun pr (_, t) -> inner pr t) size_pr labels
+        Array.fold_left (fun pr (f : field) -> inner pr f.typ) size_pr labels
     | Tpoly _ ->
         Llvm.dump_module the_module;
         failwith "too generic for a size"
@@ -255,10 +258,10 @@ let rec free_value value = function
       failwith "Internal Error: vector has no type"
   | Trecord (_, _, fields) ->
       Array.iteri
-        (fun i (_, t) ->
-          if contains_vector t then
+        (fun i (f : field) ->
+          if contains_vector f.typ then
             let ptr = Llvm.build_struct_gep value i "" builder in
-            free_value ptr t)
+            free_value ptr f.typ)
         fields
   | t ->
       print_endline (show_typ t);
@@ -267,7 +270,9 @@ let rec free_value value = function
 and contains_vector = function
   | Trecord (_, name, _) when String.equal name "vector" -> true
   | Trecord (_, _, fields) ->
-      Array.fold_left (fun b a -> snd a |> contains_vector || b) false fields
+      Array.fold_left
+        (fun b (f : field) -> f.typ |> contains_vector || b)
+        false fields
   | _ -> false
 
 and free_vector_children value len = function
@@ -981,7 +986,7 @@ and codegen_field param expr index =
 
   let typ =
     match value.typ with
-    | Trecord (_, _, fields) -> fields.(index) |> snd
+    | Trecord (_, _, fields) -> fields.(index).typ
     | _ ->
         print_endline (show_typ value.typ);
         failwith "Internal Error: No record in fields"

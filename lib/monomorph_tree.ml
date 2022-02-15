@@ -100,7 +100,12 @@ let rec cln = function
       Tfun (List.map cln params, cln ret, cln_kind kind)
   | Trecord (param, name, fields) ->
       let param = Option.map cln param in
-      let fields = Array.map (fun (name, typ) -> (name, cln typ)) fields in
+      let fields =
+        Array.map
+          (fun field ->
+            { name = Types.(field.name); typ = cln field.typ; mut = field.mut })
+          fields
+      in
       Trecord (param, name, fields)
   | Tptr t -> Tptr (cln t)
 
@@ -175,10 +180,9 @@ let subst_type ~concrete poly =
     | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
       when is_type_polymorphic l ->
         let labels = Array.copy l1 in
-        let f (subst, i) (ls, lt) =
-          let _, r = l2.(i) in
-          let subst, t = inner subst (lt, r) in
-          labels.(i) <- (ls, t);
+        let f (subst, i) (label : Cleaned_types.field) =
+          let subst, t = inner subst (label.typ, l2.(i).typ) in
+          labels.(i) <- Cleaned_types.{ (labels.(i)) with typ = t };
           (subst, i + 1)
         in
         let subst, _ = Array.fold_left f (subst, 0) l1 in
@@ -195,7 +199,7 @@ let subst_type ~concrete poly =
         let ps = List.map subst ps in
         Tfun (ps, subst r, kind)
     | Trecord (Some p, record, labels) as t when is_type_polymorphic t ->
-        let f (name, t) = (name, subst t) in
+        let f field = Cleaned_types.{ field with typ = subst field.typ } in
         let labels = Array.map f labels in
         Trecord (Some (subst p), record, labels)
     | t -> t
