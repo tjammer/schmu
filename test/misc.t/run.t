@@ -105,7 +105,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i32* %2, i32** %data2, align 8
     store i32 1, i32* %2, align 4
     %3 = getelementptr i32, i32* %2, i32 1
-    store i32 2, i32* %2, align 4
+    store i32 2, i32* %3, align 4
     %len = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
     store i32 2, i32* %len, align 4
     %cap = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 2
@@ -132,7 +132,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i32* %3, i32** %data18, align 8
     store i32 0, i32* %3, align 4
     %4 = getelementptr i32, i32* %3, i32 1
-    store i32 1, i32* %3, align 4
+    store i32 1, i32* %4, align 4
     %len = getelementptr inbounds %vector_int, %vector_int* %1, i32 0, i32 1
     store i32 2, i32* %len, align 4
     %cap = getelementptr inbounds %vector_int, %vector_int* %1, i32 0, i32 2
@@ -144,7 +144,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i32* %7, i32** %data29, align 8
     store i32 2, i32* %7, align 4
     %8 = getelementptr i32, i32* %7, i32 1
-    store i32 3, i32* %7, align 4
+    store i32 3, i32* %8, align 4
     %len3 = getelementptr inbounds %vector_int, %vector_int* %5, i32 0, i32 1
     store i32 2, i32* %len3, align 4
     %cap4 = getelementptr inbounds %vector_int, %vector_int* %5, i32 0, i32 2
@@ -177,7 +177,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i32* %4, i32** %data18, align 8
     store i32 0, i32* %4, align 4
     %5 = getelementptr i32, i32* %4, i32 1
-    store i32 1, i32* %4, align 4
+    store i32 1, i32* %5, align 4
     %len = getelementptr inbounds %vector_int, %vector_int* %2, i32 0, i32 1
     store i32 2, i32* %len, align 4
     %cap = getelementptr inbounds %vector_int, %vector_int* %2, i32 0, i32 2
@@ -189,7 +189,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i32* %8, i32** %data29, align 8
     store i32 2, i32* %8, align 4
     %9 = getelementptr i32, i32* %8, i32 1
-    store i32 3, i32* %8, align 4
+    store i32 3, i32* %9, align 4
     %len3 = getelementptr inbounds %vector_int, %vector_int* %6, i32 0, i32 1
     store i32 2, i32* %len3, align 4
     %cap4 = getelementptr inbounds %vector_int, %vector_int* %6, i32 0, i32 2
@@ -346,7 +346,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i32* %16, i32** %data1772, align 8
     store i32 0, i32* %16, align 4
     %17 = getelementptr i32, i32* %16, i32 1
-    store i32 1, i32* %16, align 4
+    store i32 1, i32* %17, align 4
     %len18 = getelementptr inbounds %vector_int, %vector_int* %14, i32 0, i32 1
     store i32 2, i32* %len18, align 4
     %cap19 = getelementptr inbounds %vector_int, %vector_int* %14, i32 0, i32 2
@@ -358,7 +358,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i32* %20, i32** %data2073, align 8
     store i32 2, i32* %20, align 4
     %21 = getelementptr i32, i32* %20, i32 1
-    store i32 3, i32* %20, align 4
+    store i32 3, i32* %21, align 4
     %len21 = getelementptr inbounds %vector_int, %vector_int* %18, i32 0, i32 1
     store i32 2, i32* %len21, align 4
     %cap22 = getelementptr inbounds %vector_int, %vector_int* %18, i32 0, i32 2
@@ -382,7 +382,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i32* %25, i32** %data2875, align 8
     store i32 1, i32* %25, align 4
     %26 = getelementptr i32, i32* %25, i32 1
-    store i32 2, i32* %25, align 4
+    store i32 2, i32* %26, align 4
     %len29 = getelementptr inbounds %vector_int, %vector_int* %vec27, i32 0, i32 1
     store i32 2, i32* %len29, align 4
     %cap30 = getelementptr inbounds %vector_int, %vector_int* %vec27, i32 0, i32 2
