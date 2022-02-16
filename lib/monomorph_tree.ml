@@ -483,6 +483,10 @@ and morph_field_set mk p expr index value =
   let ret = p.ret in
   let p, e, _ = morph_expr { p with ret = false } expr in
   let p, v, func = morph_expr p value in
+
+  (* TODO handle this in morph_call, where realloc drops the old ptr and adds the new one to the free list *)
+  (* If we mutate a ptr with realloced ptr, the old one is already freed and we drop it from
+     the free list *)
   ({ p with ret }, mk (Mfield_set (e, index, v)) ret, func)
 
 and morph_seq mk p expr cont =
@@ -607,17 +611,22 @@ and morph_app mk p callee args =
   let ret = p.ret in
   let p, ex, var = morph_expr { p with ret = false } callee in
   let p, monomorph = monomorphize_call p ex in
+  match monomorph with
+  | Builtin (Realloc, _) -> morph_app_realloc mk p args ret { ex; monomorph }
+  | _ -> morph_app_default mk p args ret var { ex; monomorph }
 
+and morph_app_default mk p args ret var callee =
   let malloc, p =
     match var.malloc with
     | _ :: _ ->
+        (* Mallocs are transferred to returning scope *)
         let malloc = { id = new_id (); kind = ref Local } in
         ([ malloc ], { p with mallocs = malloc :: p.mallocs })
     | [] -> ([], p)
   in
 
   (if ret then
-   match monomorph with Recursive name -> set_tailrec name | _ -> ());
+   match callee.monomorph with Recursive name -> set_tailrec name | _ -> ());
 
   let f p arg =
     let p, ex, _ = morph_expr p arg in
@@ -627,7 +636,7 @@ and morph_app mk p callee args =
   let p, args = List.fold_left_map f p args in
 
   let alloc, alloc_ref =
-    match ex.typ with
+    match callee.ex.typ with
     | Tfun (_, Trecord _, _) -> (
         ( var.alloc,
           match extract_alloca var.alloc with
@@ -636,7 +645,6 @@ and morph_app mk p callee args =
     | _ -> (No_value, ref (request ()))
   in
 
-  let callee = { ex; monomorph } in
   let id =
     (function
       | [ m ] -> Some m.id
@@ -648,6 +656,44 @@ and morph_app mk p callee args =
   ( { p with ret },
     mk (Mapp { callee; args; alloca = alloc_ref; malloc = id }) ret,
     { no_var with alloc; malloc } )
+
+and morph_app_realloc mk p args ret callee =
+  (* We only have to handle realloc. So we can skip from above:
+     - propagating mallocs / allocas
+     - tailrecursion.
+     However, we have to drop the realloced ptr from the free list and add the return ptr *)
+  let p, args, arg_malloc =
+    match args with
+    | [ ptr; size ] ->
+        (* ptr *)
+        let p, ex, var = morph_expr p ptr in
+        let p, monomorph = monomorphize_call p ex in
+        let ptr = { ex; monomorph } in
+        (* size *)
+        let p, ex, _ = morph_expr p size in
+        let p, monomorph = monomorphize_call p ex in
+        let size = { ex; monomorph } in
+        (p, [ ptr; size ], var.malloc)
+    | _ -> failwith "Internal Error: Arity mismatch in realloc"
+  in
+
+  (* Register new allocation *)
+  let p, malloc, del_id =
+    match arg_malloc with
+    | { id; kind = _ } :: tl ->
+        let malloc = { id = new_id (); kind = ref Local } in
+        ({ p with mallocs = malloc :: p.mallocs }, malloc :: tl, id)
+    | _ -> failwith "Internal Error: No allocated ptr in realloc"
+  in
+
+  (* Delete old ptr from free list *)
+  let mallocs = List.filter (fun m -> m.id <> del_id) p.mallocs in
+
+  let id = Some (List.hd malloc).id in
+
+  ( { p with ret; mallocs },
+    mk (Mapp { callee; args; alloca = ref (request ()); malloc = id }) ret,
+    { no_var with malloc } )
 
 let monomorphize { Typing.externals; records; tree } =
   reset ();

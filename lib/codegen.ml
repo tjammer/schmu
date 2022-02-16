@@ -707,7 +707,8 @@ and gen_expr param typed_expr =
       match (typed_expr.return, callee.monomorph, param.rec_block) with
       | true, Recursive _, Some block ->
           gen_app_tailrec param callee args block typed_expr.typ
-      | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args |> fin
+      | _, Builtin (b, bfn), _ ->
+          gen_app_builtin param (b, bfn) args malloc |> fin
       | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
   | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref) ->
@@ -861,7 +862,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
   let value = Llvm.build_br rec_block.rec_ builder in
   { value; typ = Tpoly "tail"; lltyp }
 
-and gen_app_builtin param (b, fnc) args =
+and gen_app_builtin param (b, fnc) args malloc =
   let handle_arg arg =
     let arg' = gen_expr param Monomorph_tree.(arg.ex) in
     let arg = get_mono_func arg' param arg.monomorph in
@@ -892,12 +893,26 @@ and gen_app_builtin param (b, fnc) args =
       set_record_field value ptr;
       { dummy_fn_value with lltyp = unit_t }
   | Realloc ->
+      let item_size =
+        match fnc.ret with
+        | Tptr t -> sizeof_typ t |> Llvm.const_int int_t
+        | _ -> failwith "Internal Error: Nonptr return of alloc"
+      in
+
       let ptr, size =
         match args with
-        | [ ptr; size ] -> (ptr, size)
+        | [ ptr; size ] ->
+            let size = Llvm.build_mul size item_size "" builder in
+            (ptr, size)
         | _ -> failwith "Internal Error: Arity mismatch in builtin"
       in
       let value = realloc ptr ~size in
+      let id =
+        match malloc with
+        | Some id -> id
+        | None -> failwith "Internal Error: Missing id in realloc"
+      in
+      Ptrtbl.add ptr_tbl id (`Ptr value);
 
       { value; typ = fnc.ret; lltyp = Llvm.type_of value }
 
