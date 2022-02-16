@@ -11,7 +11,8 @@
 %token Equal
 %token Comma
 %token Colon
-%token Arrow
+%token Arrow_right
+%token Arrow_left
 %token Dot
 %token <string> Identifier
 %token <int> Int
@@ -42,9 +43,10 @@
 %token Pipe_tail
 %token Do
 %token In
+%token Mutable
 
 %nonassoc Less
-%left Arrow Pipe_tail Dot
+%left Arrow_right Pipe_tail Dot
 %left Plus
 %left Mult
 
@@ -72,8 +74,9 @@ prog: list(preface_item); block; Eof
   | Type; Identifier; option(typedef_poly_id); Equal; type_list
     { Talias ({name = $2; poly_param = string_of_ty_var $3}, $5) }
 
+/* Only used for records */
 %inline type_decl:
-  | Identifier; type_expr { $1, $2 }
+  | boption(Mutable); Identifier; type_expr { $1, $2, $3 }
 
 block:
   | list(stmt) { ($loc, $1) }
@@ -100,8 +103,9 @@ expr:
     { Lambda($loc, $3, $5, $6) }
   | callable; Lpar; separated_list(Comma, expr); Rpar { App($loc, $1, $3) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
+  | expr; Dot; Identifier; Arrow_left; expr { Field_set ($loc, $1, $3, $5) } /* Copying the first part makes checking for mutability easier */
   | expr; Dot; Identifier { Field ($loc, $1, $3) }
-  | expr; Arrow; expr { Pipe_head ($loc, $1, $3) }
+  | expr; Arrow_right; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
 
 %inline record_item:
@@ -129,19 +133,19 @@ vector_lit:
   | Lbrack; separated_list(Comma, expr); Rbrack { $2 }
 
 %inline return_annot:
-  | Arrow; type_list { $2 }
+  | Arrow_right; type_list { $2 }
 
 %inline typedef_poly_id:
   | Lpar; poly_id; Rpar { $2 }
 
 %inline type_expr:
-  | Colon; type_list; Arrow; type_list { [$2; $4] }
-  | Colon; Lpar; separated_nonempty_list(Comma, type_func); Rpar; Arrow; type_list  { $3 @ [$6] }
+  | Colon; type_list; Arrow_right; type_list { [$2; $4] }
+  | Colon; Lpar; separated_nonempty_list(Comma, type_func); Rpar; Arrow_right; type_list  { $3 @ [$6] }
   | Colon; type_list { [$2] }
 
 %inline type_func:
-  | type_list; Arrow; type_list { Ty_func [$1; $3] }
-  | Lpar; separated_nonempty_list(Comma, type_list); Rpar; Arrow; type_list  { Ty_func ($2 @ [$5]) }
+  | type_list; Arrow_right; type_list { Ty_func [$1; $3] }
+  | Lpar; separated_nonempty_list(Comma, type_list); Rpar; Arrow_right; type_list  { Ty_func ($2 @ [$5]) }
   | type_list { $1 }
 
 %inline type_list:

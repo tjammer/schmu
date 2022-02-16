@@ -18,6 +18,7 @@ type expr =
     }
   | Mrecord of (string * monod_tree) list * alloca
   | Mfield of (monod_tree * int)
+  | Mfield_set of (monod_tree * int * monod_tree)
   | Mseq of (monod_tree * monod_tree)
   | Mfree_after of monod_tree * int
 [@@deriving show]
@@ -256,6 +257,12 @@ let subst_body subst tree =
         { tree with typ = subst tree.typ; expr = Mrecord (labels, alloca) }
     | Mfield (expr, index) ->
         { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
+    | Mfield_set (expr, index, value) ->
+        {
+          tree with
+          typ = subst tree.typ;
+          expr = Mfield_set (sub expr, index, sub value);
+        }
     | Mseq (expr, cont) ->
         let expr = sub expr in
         let cont = sub cont in
@@ -372,6 +379,8 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   | Let (id, e1, e2) -> morph_let make param id e1 e2
   | Record labels -> morph_record make param labels
   | Field (expr, index) -> morph_field make param expr index
+  | Field_set (expr, index, value) ->
+      morph_field_set make param expr index value
   | Sequence (expr, cont) -> morph_seq make param expr cont
   | Function (name, uniq, abs, cont) -> morph_func param (name, uniq, abs, cont)
   | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
@@ -469,6 +478,12 @@ and morph_field mk p expr index =
   let ret = p.ret in
   let p, e, func = morph_expr { p with ret = false } expr in
   ({ p with ret }, mk (Mfield (e, index)) ret, func)
+
+and morph_field_set mk p expr index value =
+  let ret = p.ret in
+  let p, e, _ = morph_expr { p with ret = false } expr in
+  let p, v, func = morph_expr p value in
+  ({ p with ret }, mk (Mfield_set (e, index, v)) ret, func)
 
 and morph_seq mk p expr cont =
   let ret = p.ret in

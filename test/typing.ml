@@ -251,6 +251,19 @@ let test_vector_different_weak () =
     set(a, 2)
     set(a, true)|}
 
+let test_mutable_declare () = test "int" "type foo = { mutable x : int } 0"
+
+let test_mutable_set () =
+  test "unit" "type foo = { mutable x : int } foo = { x = 12 } foo.x <- 13"
+
+let test_mutable_set_wrong_type () =
+  test_exn "Mutate field x: Expected type int but got type bool"
+    "type foo = { mutable x : int } foo = { x = 12 } foo.x <- true"
+
+let test_mutable_set_non_mut () =
+  test_exn "Cannot mutate non-mutable field x"
+    "type foo = { x : int } foo = { x = 12} foo.x <- 13"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -345,5 +358,12 @@ let () =
           case "different_annot" test_vector_different_annot;
           case "different_annot_weak" test_vector_different_annot_weak;
           case "different_weak" test_vector_different_weak;
+        ] );
+      ( "mutable",
+        [
+          case "declare" test_mutable_declare;
+          case "set" test_mutable_set;
+          case "set_wrong_type" test_mutable_set_wrong_type;
+          case "set_non_mut" test_mutable_set_non_mut;
         ] );
     ]

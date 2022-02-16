@@ -11,6 +11,7 @@ type expr =
   | App of { callee : typed_expr; args : typed_expr list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
+  | Field_set of (typed_expr * int * typed_expr)
   | Sequence of (typed_expr * typed_expr)
 [@@deriving show]
 
@@ -518,7 +519,7 @@ let assoc_opti qkey arr =
   let rec aux i =
     if i < Array.length arr then
       let field = arr.(i) in
-      if String.equal qkey field.name then Some (i, field.typ) else aux (i + 1)
+      if String.equal qkey field.name then Some (i, field) else aux (i + 1)
     else None
   in
   aux 0
@@ -563,6 +564,7 @@ and typeof_annotated env annot = function
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
   | Record (loc, labels) -> typeof_record env loc annot labels
   | Field (loc, expr, id) -> typeof_field env loc expr id
+  | Field_set (loc, expr, id, value) -> typeof_field_set env loc expr id value
   | Pipe_head (loc, e1, e2) -> typeof_pipe_head env loc e1 e2
   | Pipe_tail (loc, e1, e2) -> typeof_pipe_tail env loc e1 e2
 
@@ -716,7 +718,7 @@ and typeof_record env loc annot labels =
   in
   typ |> generalize
 
-and typeof_field env loc expr id =
+and get_field env loc expr id =
   let typ = typeof env expr in
   (* This expr could be a fresh var, in which case we take the record type from the label,
      or it could be a specific record type in which case we have to get that certain record *)
@@ -724,7 +726,7 @@ and typeof_field env loc expr id =
   | Trecord (_, name, labels) -> (
       (* This is a poor replacement for List.assoc_opt *)
       let find_id acc field =
-        if String.equal id field.name then Some field.typ else acc
+        if String.equal id field.name then Some field else acc
       in
       match Array.fold_left find_id None labels with
       | Some t -> t
@@ -736,11 +738,21 @@ and typeof_field env loc expr id =
           let record_t = Env.find_type record env |> instantiate in
           unify (loc, "Field access of record " ^ record ^ ":") record_t t;
           match record_t with
-          | Trecord (_, _, labels) ->
-              let ret = labels.(index).typ in
-              ret
+          | Trecord (_, _, labels) -> labels.(index)
           | _ -> failwith "nope")
       | None -> raise (Error (loc, "Unbound field " ^ id)))
+
+and typeof_field env loc expr id = (get_field env loc expr id).typ
+
+and typeof_field_set env loc expr id value =
+  let field = get_field env loc expr id in
+  let value = typeof env value in
+
+  (if not field.mut then
+   let msg = Printf.sprintf "Cannot mutate non-mutable field %s" field.name in
+   raise (Error (loc, msg)));
+  unify (loc, "Mutate field " ^ field.name ^ ":") field.typ value;
+  Tunit
 
 and typeof_pipe_head env loc e1 e2 =
   let switch_uni = true in
@@ -811,9 +823,9 @@ let typedef env loc Ast.{ name = { poly_param; name }; labels } =
     let env, param = add_type_param env poly_param in
     let labels =
       Array.map
-        (fun (name, type_expr) ->
+        (fun (mut, name, type_expr) ->
           let typ = typeof_annot ~typedef:true env loc type_expr in
-          { name; typ; mut = false })
+          { name; typ; mut })
         labels
     in
     (labels, param)
@@ -887,6 +899,7 @@ and convert_annot env annot = function
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
   | Record (loc, labels) -> convert_record env loc annot labels
   | Field (loc, expr, id) -> convert_field env loc expr id
+  | Field_set (loc, expr, id, value) -> convert_field_set env loc expr id value
   | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
   | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
 
@@ -1122,12 +1135,12 @@ and convert_record env loc annot labels =
   Env.maybe_add_record_instance (string_of_type typ) typ env;
   { typ; expr = Record sorted_labels }
 
-and convert_field env loc expr id =
+and get_field env loc expr id =
   let expr = convert env expr in
   match clean expr.typ with
   | Trecord (_, name, labels) -> (
       match assoc_opti id labels with
-      | Some (index, typ) -> { typ; expr = Field (expr, index) }
+      | Some (index, field) -> (field, expr, index)
       | None ->
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
   | t -> (
@@ -1136,12 +1149,23 @@ and convert_field env loc expr id =
           let record_t = Env.find_type record env |> instantiate in
           unify (loc, "Field access of " ^ string_of_type record_t) record_t t;
           match record_t with
-          | Trecord (_, _, labels) ->
-              let typ = labels.(index).typ in
-
-              { typ; expr = Field (expr, index) }
+          | Trecord (_, _, labels) -> (labels.(index), expr, index)
           | _ -> failwith "nope")
       | None -> raise (Error (loc, "Unbound field " ^ id)))
+
+and convert_field env loc expr id =
+  let field, expr, index = get_field env loc expr id in
+  { typ = field.typ; expr = Field (expr, index) }
+
+and convert_field_set env loc expr id value =
+  let field, expr, index = get_field env loc expr id in
+  let valexpr = convert env value in
+
+  (if not field.mut then
+   let msg = Printf.sprintf "Cannot mutate non-mutable field %s" field.name in
+   raise (Error (loc, msg)));
+  unify (loc, "Mutate field " ^ field.name ^ ":") field.typ valexpr.typ;
+  { typ = Tunit; expr = Field_set (expr, index, valexpr) }
 
 and convert_pipe_head env loc e1 e2 =
   let switch_uni = true in

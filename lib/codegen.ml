@@ -713,6 +713,8 @@ and gen_expr param typed_expr =
   | Mrecord (labels, allocref) ->
       codegen_record param typed_expr.typ labels allocref |> fin
   | Mfield (expr, index) -> codegen_field param expr index |> fin
+  | Mfield_set (expr, index, value) ->
+      codegen_field_set param expr index value |> fin
   | Mseq (expr, cont) -> codegen_chain param expr cont
   | Mfree_after (expr, id) -> gen_free param expr id
 
@@ -896,8 +898,6 @@ and gen_app_builtin param (b, fnc) args =
         | _ -> failwith "Internal Error: Arity mismatch in builtin"
       in
       let value = realloc ptr ~size in
-      (* TODO this is broken right now. We need mutable fields?*)
-      ignore (Llvm.build_store value ptr builder);
 
       { value; typ = fnc.ret; lltyp = Llvm.type_of value }
 
@@ -981,7 +981,7 @@ and codegen_record param typ labels allocref =
 
   { value = record; typ; lltyp }
 
-and codegen_field param expr index =
+and get_field param expr index =
   let value = gen_expr param expr in
 
   let typ =
@@ -993,13 +993,22 @@ and codegen_field param expr index =
   in
 
   let ptr = Llvm.build_struct_gep value.value index "" builder in
+  (ptr, typ)
 
+and codegen_field param expr index =
+  let ptr, typ = get_field param expr index in
   (* In case we return a record, we don't load, but return the pointer.
      The idea is that this will be used either as a return value for a function (where it is copied),
      or for another field, where the pointer is needed.
      We should distinguish between structs and pointers somehow *)
   let value = load ptr typ in
   { value; typ; lltyp = Llvm.type_of value }
+
+and codegen_field_set param expr index value =
+  let ptr, _ = get_field param expr index in
+  let value = gen_expr param value in
+  set_record_field value ptr;
+  { dummy_fn_value with lltyp = unit_t }
 
 and codegen_chain param expr cont =
   ignore (gen_expr param expr);

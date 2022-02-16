@@ -26,6 +26,7 @@ and expr =
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list
   | Field of loc * expr * string
+  | Field_set of loc * expr * string * expr
   | Pipe_head of loc * expr * expr
   | Pipe_tail of loc * expr * expr
 
@@ -45,7 +46,7 @@ and block = loc * stmt list
 
 type external_decl = loc * string * type_expr
 type typename = { name : string; poly_param : string option }
-type record = { name : typename; labels : (string * type_expr) array }
+type record = { name : typename; labels : (bool * string * type_expr) array }
 type typedef = Trecord of record | Talias of typename * type_spec
 type preface = Ext_decl of external_decl | Typedef of loc * typedef
 type prog = { preface : preface list; block : block }

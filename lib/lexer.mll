@@ -43,6 +43,7 @@ rule read =
   | "type"   { Type }
   | "do"     { Do }
   | "in"     { In }
+  | "mutable" { Mutable }
   | id       { Identifier (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
@@ -57,7 +58,8 @@ rule read =
   | '}'      { Rbrac }
   | '['      { Lbrack }
   | ']'      { Rbrack }
-  | "->"     { Arrow }
+  | "->"     { Arrow_right }
+  | "<-"     { Arrow_left }
   | "->>"    { Pipe_tail }
   | "--"     { line_comment lexbuf }
   | eof      { Eof }

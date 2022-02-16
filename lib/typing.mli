@@ -15,6 +15,7 @@ type expr =
   | App of { callee : typed_expr; args : typed_expr list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
+  | Field_set of (typed_expr * int * typed_expr)
   | Sequence of (typed_expr * typed_expr)
 [@@deriving show]
 
