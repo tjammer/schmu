@@ -1222,7 +1222,12 @@ let to_typed (prog : Ast.prog) =
 
   (* Add builtins to env *)
   let env =
-    Builtin.(fold (fun env b -> Env.add_value (to_string b) (to_type b) env))
+    Builtin.(
+      fold (fun env b ->
+          enter_level ();
+          let typ = to_type b |> instantiate in
+          leave_level ();
+          Env.add_value (to_string b) (generalize typ) env))
       Env.empty
   in
 
