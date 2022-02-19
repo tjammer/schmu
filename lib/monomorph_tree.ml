@@ -189,6 +189,7 @@ let subst_type ~concrete poly =
         let subst, _ = Array.fold_left f (subst, 0) l1 in
         let subst, param = inner subst (i, j) in
         (subst, Trecord (Some param, record, labels))
+    | Tptr l, r -> inner subst (l, r)
     | t, _ -> (subst, t)
   in
   let vars, typ = inner Vars.empty (poly, concrete) in
@@ -203,6 +204,7 @@ let subst_type ~concrete poly =
         let f field = Cleaned_types.{ field with typ = subst field.typ } in
         let labels = Array.map f labels in
         Trecord (Some (subst p), record, labels)
+    | Tptr t -> Tptr (subst t)
     | t -> t
   in
 
@@ -213,6 +215,12 @@ let subst_body subst tree =
     let params = List.map subst params in
     let ret = subst ret in
     { params; ret; kind }
+  in
+
+  let subst_monomorph = function
+    | Default -> Default
+    | Builtin (b, func) -> Builtin (b, subst_func func)
+    | c -> c
   in
 
   let rec inner tree =
@@ -243,7 +251,9 @@ let subst_body subst tree =
         let cont = { (inner cont) with typ = subst cont.typ } in
         { tree with typ = cont.typ; expr = Mfunction (name, abs, cont) }
     | Mapp { callee; args; alloca; malloc } ->
-        let callee = { callee with ex = sub callee.ex } in
+        let callee =
+          { ex = sub callee.ex; monomorph = subst_monomorph callee.monomorph }
+        in
 
         let args = List.map (fun arg -> { arg with ex = sub arg.ex }) args in
         let func = func_of_typ callee.ex.typ in
@@ -273,39 +283,38 @@ let subst_body subst tree =
   in
   inner tree
 
-let monomorphize_call p expr =
-  if is_type_polymorphic expr.typ then (p, Default)
-  else
-    match find_function_expr p.vars expr.expr with
-    | Concrete (func, username) ->
-        (* If a named function gets a generated name, the call site has to be made aware *)
-        if not (String.equal func.name username) then (p, Concrete func.name)
-        else (p, Default)
-    | Polymorphic func ->
-        let typ = typ_of_abs func.abs in
-        let name = get_mono_name func.name ~poly:typ expr.typ in
+let monomorphize_call p expr : morph_param * call_name =
+  match find_function_expr p.vars expr.expr with
+  | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
+  | _ when is_type_polymorphic expr.typ -> (p, Default)
+  | Concrete (func, username) ->
+      (* If a named function gets a generated name, the call site has to be made aware *)
+      if not (String.equal func.name username) then (p, Concrete func.name)
+      else (p, Default)
+  | Polymorphic func ->
+      let typ = typ_of_abs func.abs in
+      let name = get_mono_name func.name ~poly:typ expr.typ in
 
-        if Set.mem name p.monomorphized then
-          (* The function exists, we don't do anything right now *)
-          (p, Mono name)
-        else
-          (* We generate the function *)
-          let subst, typ = subst_type ~concrete:expr.typ typ in
-          let body = subst_body subst func.abs.body in
+      if Set.mem name p.monomorphized then
+        (* The function exists, we don't do anything right now *)
+        (p, Mono name)
+      else
+        (* We generate the function *)
+        let subst, typ = subst_type ~concrete:expr.typ typ in
+        let body = subst_body subst func.abs.body in
 
-          let fnc = func_of_typ typ in
-          let funcs =
-            { func with abs = { func.abs with func = fnc; body }; name }
-            :: p.funcs
-          in
-          let monomorphized = Set.add name p.monomorphized in
-          ({ p with funcs; monomorphized }, Mono name)
-    | No_function -> (p, Default)
-    | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
-    | Forward_decl name ->
-        (* We don't have to do anything, because the correct function will be called in the first place.
-           Except when it is called with different types recursively. We'll see *)
-        (p, Recursive name)
+        let fnc = func_of_typ typ in
+        let funcs =
+          { func with abs = { func.abs with func = fnc; body }; name }
+          :: p.funcs
+        in
+        let monomorphized = Set.add name p.monomorphized in
+        ({ p with funcs; monomorphized }, Mono name)
+  | No_function -> (p, Default)
+  | Forward_decl name ->
+      (* We don't have to do anything, because the correct function will be called in the first place.
+         Except when it is called with different types recursively. We'll see *)
+      (p, Recursive name)
 
 let alloc_lvl = ref 1
 let enter_level () = incr alloc_lvl
