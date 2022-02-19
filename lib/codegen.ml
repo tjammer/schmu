@@ -707,8 +707,7 @@ and gen_expr param typed_expr =
       match (typed_expr.return, callee.monomorph, param.rec_block) with
       | true, Recursive _, Some block ->
           gen_app_tailrec param callee args block typed_expr.typ
-      | _, Builtin (b, bfn), _ ->
-          gen_app_builtin param (b, bfn) args malloc |> fin
+      | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args |> fin
       | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
   | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref) ->
@@ -862,7 +861,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
   let value = Llvm.build_br rec_block.rec_ builder in
   { value; typ = Tpoly "tail"; lltyp }
 
-and gen_app_builtin param (b, fnc) args malloc =
+and gen_app_builtin param (b, fnc) args =
   let handle_arg arg =
     let arg' = gen_expr param Monomorph_tree.(arg.ex) in
     let arg = get_mono_func arg' param arg.monomorph in
@@ -907,12 +906,6 @@ and gen_app_builtin param (b, fnc) args malloc =
         | _ -> failwith "Internal Error: Arity mismatch in builtin"
       in
       let value = realloc ptr ~size in
-      let id =
-        match malloc with
-        | Some id -> id
-        | None -> failwith "Internal Error: Missing id in realloc"
-      in
-      Ptrtbl.add ptr_tbl id (`Ptr value);
 
       { value; typ = fnc.ret; lltyp = Llvm.type_of value }
 
@@ -1065,7 +1058,6 @@ and codegen_vector_lit param id es typ allocref =
     malloc ~size:(cap * item_size |> Llvm.const_int int_t) |> fun ptr ->
     Llvm.build_bitcast ptr ptr_typ "" builder
   in
-  Ptrtbl.add ptr_tbl id (`Ptr ptr);
 
   (* Check for preallocs *)
   let vec = get_prealloc !allocref param lltyp "vec" in
@@ -1097,6 +1089,8 @@ and codegen_vector_lit param id es typ allocref =
 
   let capptr = Llvm.build_struct_gep vec 2 "cap" builder in
   ignore (Llvm.(build_store (const_int int_t cap) capptr) builder);
+
+  Ptrtbl.add ptr_tbl id (`Record (vec, typ));
 
   { value = vec; typ; lltyp }
 

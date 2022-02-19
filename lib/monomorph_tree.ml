@@ -68,7 +68,7 @@ type to_gen_func_kind =
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 type malloc_kind = Return_value | Local
 type malloc = { id : int; kind : malloc_kind ref }
-type var = { fn : to_gen_func_kind; alloc : alloc; malloc : malloc list }
+type var = { fn : to_gen_func_kind; alloc : alloc; malloc : malloc option }
 
 type morph_param = {
   vars : var Vars.t;
@@ -83,7 +83,7 @@ type morph_param = {
          Otherwise freed *)
 }
 
-let no_var = { fn = No_function; alloc = No_value; malloc = [] }
+let no_var = { fn = No_function; alloc = No_value; malloc = None }
 
 let rec extract_alloca = function
   | Value a -> Some a
@@ -339,11 +339,9 @@ let rec set_alloca = function
       set_alloca b
   | Value _ | No_value -> ()
 
-let rec propagate_malloc = function
-  | { id = _; kind } :: tl ->
-      kind := Return_value;
-      propagate_malloc tl
-  | [] -> ()
+let propagate_malloc = function
+  | Some { id = _; kind } -> kind := Return_value
+  | None -> ()
 
 let free_mallocs body mallocs =
   (* Filter out the returned alloc (if it exists), free the rest
@@ -409,29 +407,31 @@ and morph_string mk p s =
 
 and morph_vector mk p v =
   let ret = p.ret in
+  (* We want to discard any inner mallocs.
+     They will be cleaned up when this vector is freed at runtime *)
+  let old_mallocs = p.mallocs in
   let p = { p with ret = false } in
 
   (* ret = false is threaded through p *)
   enter_level ();
-  (* Collect mallocs in initializer *)
-  let f (param, malloc) e =
+  (* vectors are free recursively, we don't need to track the items here *)
+  let f param e =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
     set_alloca var.alloc;
-    ((p, var.malloc @ malloc), e)
+    (p, e)
   in
-  let (p, inner_mallocs), v = List.fold_left_map f (p, []) v in
+  let p, v = List.fold_left_map f p v in
   leave_level ();
   let alloca = ref (request ()) in
 
   let id = new_id () in
   let malloc = { id; kind = ref Local } in
-  let mallocs = malloc :: p.mallocs in
+  let mallocs = malloc :: old_mallocs in
 
   ( { p with ret; mallocs },
     mk (Mconst (Vector (id, v, alloca))) p.ret,
-    { fn = No_function; alloc = Value alloca; malloc = malloc :: inner_mallocs }
-  )
+    { fn = No_function; alloc = Value alloca; malloc = Some malloc } )
 
 and morph_const = function
   | String _ | Vector _ -> failwith "Internal Error: Const should be extra case"
@@ -469,13 +469,17 @@ and morph_record mk p labels =
 
   (* ret = false is threaded through p *)
   enter_level ();
+
+  (* We only need to track if there are some mallocs, not each one individually *)
+  let fst_malloc other = function Some m -> Some m | None -> other in
+
   (* Collect mallocs in initializer *)
   let f (param, malloc) (id, e) =
     let p, e, var = morph_expr param e in
     (match e.typ with Trecord _ -> set_alloca var.alloc | _ -> ());
-    ((p, var.malloc @ malloc), (id, e))
+    ((p, fst_malloc var.malloc malloc), (id, e))
   in
-  let (p, malloc), labels = List.fold_left_map f (p, []) labels in
+  let (p, malloc), labels = List.fold_left_map f (p, None) labels in
   leave_level ();
 
   let alloca = ref (request ()) in
@@ -620,18 +624,14 @@ and morph_app mk p callee args =
   let ret = p.ret in
   let p, ex, var = morph_expr { p with ret = false } callee in
   let p, monomorph = monomorphize_call p ex in
-  match monomorph with
-  | Builtin (Realloc, _) -> morph_app_realloc mk p args ret { ex; monomorph }
-  | _ -> morph_app_default mk p args ret var { ex; monomorph }
+  let callee = { ex; monomorph } in
 
-and morph_app_default mk p args ret var callee =
   let malloc, p =
     match var.malloc with
-    | _ :: _ ->
-        (* Mallocs are transferred to returning scope *)
+    | Some _ ->
         let malloc = { id = new_id (); kind = ref Local } in
-        ([ malloc ], { p with mallocs = malloc :: p.mallocs })
-    | [] -> ([], p)
+        (Some malloc, { p with mallocs = malloc :: p.mallocs })
+    | None -> (None, p)
   in
 
   (if ret then
@@ -654,55 +654,11 @@ and morph_app_default mk p args ret var callee =
     | _ -> (No_value, ref (request ()))
   in
 
-  let id =
-    (function
-      | [ m ] -> Some m.id
-      | [] -> None
-      | _ -> failwith "Internal Error: Multiple mallocs in app")
-      malloc
-  in
+  let id = Option.map (fun m -> m.id) malloc in
 
   ( { p with ret },
     mk (Mapp { callee; args; alloca = alloc_ref; malloc = id }) ret,
     { no_var with alloc; malloc } )
-
-and morph_app_realloc mk p args ret callee =
-  (* We only have to handle realloc. So we can skip from above:
-     - propagating mallocs / allocas
-     - tailrecursion.
-     However, we have to drop the realloced ptr from the free list and add the return ptr *)
-  let p, args, arg_malloc =
-    match args with
-    | [ ptr; size ] ->
-        (* ptr *)
-        let p, ex, var = morph_expr p ptr in
-        let p, monomorph = monomorphize_call p ex in
-        let ptr = { ex; monomorph } in
-        (* size *)
-        let p, ex, _ = morph_expr p size in
-        let p, monomorph = monomorphize_call p ex in
-        let size = { ex; monomorph } in
-        (p, [ ptr; size ], var.malloc)
-    | _ -> failwith "Internal Error: Arity mismatch in realloc"
-  in
-
-  (* Register new allocation *)
-  let p, malloc, del_id =
-    match arg_malloc with
-    | { id; kind = _ } :: tl ->
-        let malloc = { id = new_id (); kind = ref Local } in
-        ({ p with mallocs = malloc :: p.mallocs }, malloc :: tl, id)
-    | _ -> failwith "Internal Error: No allocated ptr in realloc"
-  in
-
-  (* Delete old ptr from free list *)
-  let mallocs = List.filter (fun m -> m.id <> del_id) p.mallocs in
-
-  let id = Some (List.hd malloc).id in
-
-  ( { p with ret; mallocs },
-    mk (Mapp { callee; args; alloca = ref (request ()); malloc = id }) ret,
-    { no_var with malloc } )
 
 let monomorphize { Typing.externals; records; tree } =
   reset ();
