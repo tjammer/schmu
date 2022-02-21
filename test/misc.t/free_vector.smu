@@ -1,6 +1,6 @@
 type cstr = ptr(u8)
 type string = { cstr : cstr, length : int }
-type vector('a) = { data : ptr('a), len : int, cap : int }
+type vector('a) = { mutable data : ptr('a), len : int, cap : int }
 type foo = { x : int }
 type container = { index : int, vec : vector(int) }
 
@@ -14,6 +14,8 @@ vec = [x, {x = 2}, {x = 3}]
 -- Vec is only alive inside the function and should be freed there
 fun vec_inside() = do
   vec = [x, {x = 2}, {x = 3}]
+  -- Make sure we can call realloc
+  vec.data <- __realloc(vec.data, 9)
   in ()
 
 -- Vec is returned and should be freed in its parent scope
@@ -58,6 +60,7 @@ inner_parent_scope()
 normal = nest_fns()
 
 nested = [[0, 1], [2, 3]]
+nested.data <- __realloc(nested.data, 9)
 nested = make_nested_vec()
 nested = nest_allocs()
 nest_local()
