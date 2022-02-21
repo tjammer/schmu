@@ -119,7 +119,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     ret void
   }
   
-  define private i32 @nest_local() {
+  define private void @nest_local() {
   entry:
     %0 = tail call i8* @malloc(i32 32)
     %1 = bitcast i8* %0 to %vector_int*
@@ -175,7 +175,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
   
   cont:                                             ; preds = %rec
     tail call void @free(i8* %0)
-    ret i32 0
+    ret void
   }
   
   define private void @nest_allocs(%vector_vector_int* sret %0) {
@@ -226,7 +226,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     ret void
   }
   
-  define private i32 @inner_parent_scope() {
+  define private void @inner_parent_scope() {
   entry:
     %ret = alloca %vector_foo, align 8
     call void @make_vec(%vector_foo* %ret)
@@ -234,7 +234,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     %1 = load %foo*, %foo** %0, align 8
     %2 = bitcast %foo* %1 to i8*
     call void @free(i8* %2)
-    ret i32 0
+    ret void
   }
   
   define private void @make_vec(%vector_foo* sret %0) {
@@ -261,7 +261,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     ret void
   }
   
-  define private i32 @vec_inside(i8* %0) {
+  define private void @vec_inside(i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %foo }*
     %x3 = bitcast { %foo }* %clsr to %foo*
@@ -283,7 +283,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     %cap = getelementptr inbounds %vector_foo, %vector_foo* %vec, i32 0, i32 2
     store i32 3, i32* %cap, align 4
     tail call void @free(i8* %1)
-    ret i32 0
+    ret void
   }
   
   declare i8* @malloc(i32 %0)
@@ -340,7 +340,7 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i32 3, i32* %cap10, align 4
     %vec_inside = alloca %closure, align 8
     %funptr90 = bitcast %closure* %vec_inside to i8**
-    store i8* bitcast (i32 (i8*)* @vec_inside to i8*), i8** %funptr90, align 8
+    store i8* bitcast (void (i8*)* @vec_inside to i8*), i8** %funptr90, align 8
     %clsr_vec_inside = alloca { %foo }, align 8
     %x1191 = bitcast { %foo }* %clsr_vec_inside to %foo*
     %10 = bitcast %foo* %x1191 to i8*
@@ -350,37 +350,37 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     store i8* %env, i8** %envptr, align 8
     %ret = alloca %vector_foo, align 8
     call void @make_vec(%vector_foo* %ret)
-    %11 = call i32 @vec_inside(i8* %env)
-    %12 = call i32 @inner_parent_scope()
+    call void @vec_inside(i8* %env)
+    call void @inner_parent_scope()
     %ret14 = alloca %vector_foo, align 8
     call void @nest_fns(%vector_foo* %ret14)
-    %13 = call i8* @malloc(i32 32)
-    %14 = bitcast i8* %13 to %vector_int*
+    %11 = call i8* @malloc(i32 32)
+    %12 = bitcast i8* %11 to %vector_int*
     %vec15 = alloca %vector_vector_int, align 8
     %data1692 = bitcast %vector_vector_int* %vec15 to %vector_int**
-    store %vector_int* %14, %vector_int** %data1692, align 8
-    %15 = call i8* @malloc(i32 8)
-    %16 = bitcast i8* %15 to i32*
-    %data1793 = bitcast %vector_int* %14 to i32**
-    store i32* %16, i32** %data1793, align 8
-    store i32 0, i32* %16, align 4
-    %17 = getelementptr i32, i32* %16, i32 1
-    store i32 1, i32* %17, align 4
-    %len18 = getelementptr inbounds %vector_int, %vector_int* %14, i32 0, i32 1
+    store %vector_int* %12, %vector_int** %data1692, align 8
+    %13 = call i8* @malloc(i32 8)
+    %14 = bitcast i8* %13 to i32*
+    %data1793 = bitcast %vector_int* %12 to i32**
+    store i32* %14, i32** %data1793, align 8
+    store i32 0, i32* %14, align 4
+    %15 = getelementptr i32, i32* %14, i32 1
+    store i32 1, i32* %15, align 4
+    %len18 = getelementptr inbounds %vector_int, %vector_int* %12, i32 0, i32 1
     store i32 2, i32* %len18, align 4
-    %cap19 = getelementptr inbounds %vector_int, %vector_int* %14, i32 0, i32 2
+    %cap19 = getelementptr inbounds %vector_int, %vector_int* %12, i32 0, i32 2
     store i32 2, i32* %cap19, align 4
-    %18 = getelementptr %vector_int, %vector_int* %14, i32 1
-    %19 = call i8* @malloc(i32 8)
-    %20 = bitcast i8* %19 to i32*
-    %data2094 = bitcast %vector_int* %18 to i32**
-    store i32* %20, i32** %data2094, align 8
-    store i32 2, i32* %20, align 4
-    %21 = getelementptr i32, i32* %20, i32 1
-    store i32 3, i32* %21, align 4
-    %len21 = getelementptr inbounds %vector_int, %vector_int* %18, i32 0, i32 1
+    %16 = getelementptr %vector_int, %vector_int* %12, i32 1
+    %17 = call i8* @malloc(i32 8)
+    %18 = bitcast i8* %17 to i32*
+    %data2094 = bitcast %vector_int* %16 to i32**
+    store i32* %18, i32** %data2094, align 8
+    store i32 2, i32* %18, align 4
+    %19 = getelementptr i32, i32* %18, i32 1
+    store i32 3, i32* %19, align 4
+    %len21 = getelementptr inbounds %vector_int, %vector_int* %16, i32 0, i32 1
     store i32 2, i32* %len21, align 4
-    %cap22 = getelementptr inbounds %vector_int, %vector_int* %18, i32 0, i32 2
+    %cap22 = getelementptr inbounds %vector_int, %vector_int* %16, i32 0, i32 2
     store i32 2, i32* %cap22, align 4
     %len23 = getelementptr inbounds %vector_vector_int, %vector_vector_int* %vec15, i32 0, i32 1
     store i32 2, i32* %len23, align 4
@@ -390,76 +390,76 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     call void @make_nested_vec(%vector_vector_int* %ret25)
     %ret26 = alloca %vector_vector_int, align 8
     call void @nest_allocs(%vector_vector_int* %ret26)
-    %22 = call i32 @nest_local()
-    %23 = alloca %container, align 8
-    %index95 = bitcast %container* %23 to i32*
+    call void @nest_local()
+    %20 = alloca %container, align 8
+    %index95 = bitcast %container* %20 to i32*
     store i32 12, i32* %index95, align 4
-    %vec27 = getelementptr inbounds %container, %container* %23, i32 0, i32 1
-    %24 = call i8* @malloc(i32 8)
-    %25 = bitcast i8* %24 to i32*
+    %vec27 = getelementptr inbounds %container, %container* %20, i32 0, i32 1
+    %21 = call i8* @malloc(i32 8)
+    %22 = bitcast i8* %21 to i32*
     %data2896 = bitcast %vector_int* %vec27 to i32**
-    store i32* %25, i32** %data2896, align 8
-    store i32 1, i32* %25, align 4
-    %26 = getelementptr i32, i32* %25, i32 1
-    store i32 2, i32* %26, align 4
+    store i32* %22, i32** %data2896, align 8
+    store i32 1, i32* %22, align 4
+    %23 = getelementptr i32, i32* %22, i32 1
+    store i32 2, i32* %23, align 4
     %len29 = getelementptr inbounds %vector_int, %vector_int* %vec27, i32 0, i32 1
     store i32 2, i32* %len29, align 4
     %cap30 = getelementptr inbounds %vector_int, %vector_int* %vec27, i32 0, i32 2
     store i32 2, i32* %cap30, align 4
     %ret31 = alloca %container, align 8
     call void @record_of_vecs(%container* %ret31)
-    %27 = call i8* @malloc(i32 48)
-    %28 = bitcast i8* %27 to %container*
+    %24 = call i8* @malloc(i32 48)
+    %25 = bitcast i8* %24 to %container*
     %vec32 = alloca %vector_container, align 8
     %data3397 = bitcast %vector_container* %vec32 to %container**
-    store %container* %28, %container** %data3397, align 8
-    call void @record_of_vecs(%container* %28)
-    %29 = getelementptr %container, %container* %28, i32 1
-    call void @record_of_vecs(%container* %29)
+    store %container* %25, %container** %data3397, align 8
+    call void @record_of_vecs(%container* %25)
+    %26 = getelementptr %container, %container* %25, i32 1
+    call void @record_of_vecs(%container* %26)
     %len34 = getelementptr inbounds %vector_container, %vector_container* %vec32, i32 0, i32 1
     store i32 2, i32* %len34, align 4
     %cap35 = getelementptr inbounds %vector_container, %vector_container* %vec32, i32 0, i32 2
     store i32 2, i32* %cap35, align 4
     %ret36 = alloca %vector_container, align 8
     call void @vec_of_records(%vector_container* %ret36)
-    %30 = load %string*, %string** %data83, align 8
-    %31 = bitcast %string* %30 to i8*
-    call void @free(i8* %31)
-    %32 = load %foo*, %foo** %data687, align 8
+    %27 = load %string*, %string** %data83, align 8
+    %28 = bitcast %string* %27 to i8*
+    call void @free(i8* %28)
+    %29 = load %foo*, %foo** %data687, align 8
+    %30 = bitcast %foo* %29 to i8*
+    call void @free(i8* %30)
+    %31 = bitcast %vector_foo* %ret to %foo**
+    %32 = load %foo*, %foo** %31, align 8
     %33 = bitcast %foo* %32 to i8*
     call void @free(i8* %33)
-    %34 = bitcast %vector_foo* %ret to %foo**
+    %34 = bitcast %vector_foo* %ret14 to %foo**
     %35 = load %foo*, %foo** %34, align 8
     %36 = bitcast %foo* %35 to i8*
     call void @free(i8* %36)
-    %37 = bitcast %vector_foo* %ret14 to %foo**
-    %38 = load %foo*, %foo** %37, align 8
-    %39 = bitcast %foo* %38 to i8*
-    call void @free(i8* %39)
     %cnt = alloca i64, align 8
     store i64 0, i64* %cnt, align 4
     br label %rec
   
   rec:                                              ; preds = %free, %entry
-    %lsr.iv79 = phi i8* [ %scevgep80, %free ], [ %13, %entry ]
-    %40 = phi i64 [ %45, %free ], [ 0, %entry ]
-    %41 = icmp slt i64 %40, 2
-    br i1 %41, label %free, label %cont
+    %lsr.iv79 = phi i8* [ %scevgep80, %free ], [ %11, %entry ]
+    %37 = phi i64 [ %42, %free ], [ 0, %entry ]
+    %38 = icmp slt i64 %37, 2
+    br i1 %38, label %free, label %cont
   
   free:                                             ; preds = %rec
-    %42 = bitcast i8* %lsr.iv79 to i32**
-    %43 = load i32*, i32** %42, align 8
-    %44 = bitcast i32* %43 to i8*
-    call void @free(i8* %44)
-    %45 = add i64 %40, 1
-    store i64 %45, i64* %cnt, align 4
+    %39 = bitcast i8* %lsr.iv79 to i32**
+    %40 = load i32*, i32** %39, align 8
+    %41 = bitcast i32* %40 to i8*
+    call void @free(i8* %41)
+    %42 = add i64 %37, 1
+    store i64 %42, i64* %cnt, align 4
     %scevgep80 = getelementptr i8, i8* %lsr.iv79, i64 16
     br label %rec
   
   cont:                                             ; preds = %rec
-    call void @free(i8* %13)
-    %46 = bitcast %vector_vector_int* %ret25 to %vector_int**
-    %47 = load %vector_int*, %vector_int** %46, align 8
+    call void @free(i8* %11)
+    %43 = bitcast %vector_vector_int* %ret25 to %vector_int**
+    %44 = load %vector_int*, %vector_int** %43, align 8
     %lenptr38 = getelementptr inbounds %vector_vector_int, %vector_vector_int* %ret25, i32 0, i32 1
     %leni39 = load i32, i32* %lenptr38, align 4
     %len40 = sext i32 %leni39 to i64
@@ -468,26 +468,26 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     br label %rec42
   
   rec42:                                            ; preds = %free43, %cont
-    %lsr.iv76 = phi %vector_int* [ %scevgep77, %free43 ], [ %47, %cont ]
-    %48 = phi i64 [ %53, %free43 ], [ 0, %cont ]
-    %49 = icmp slt i64 %48, %len40
-    br i1 %49, label %free43, label %cont44
+    %lsr.iv76 = phi %vector_int* [ %scevgep77, %free43 ], [ %44, %cont ]
+    %45 = phi i64 [ %50, %free43 ], [ 0, %cont ]
+    %46 = icmp slt i64 %45, %len40
+    br i1 %46, label %free43, label %cont44
   
   free43:                                           ; preds = %rec42
-    %50 = bitcast %vector_int* %lsr.iv76 to i32**
-    %51 = load i32*, i32** %50, align 8
-    %52 = bitcast i32* %51 to i8*
-    call void @free(i8* %52)
-    %53 = add i64 %48, 1
-    store i64 %53, i64* %cnt41, align 4
+    %47 = bitcast %vector_int* %lsr.iv76 to i32**
+    %48 = load i32*, i32** %47, align 8
+    %49 = bitcast i32* %48 to i8*
+    call void @free(i8* %49)
+    %50 = add i64 %45, 1
+    store i64 %50, i64* %cnt41, align 4
     %scevgep77 = getelementptr %vector_int, %vector_int* %lsr.iv76, i64 1
     br label %rec42
   
   cont44:                                           ; preds = %rec42
-    %54 = bitcast %vector_int* %47 to i8*
-    call void @free(i8* %54)
-    %55 = bitcast %vector_vector_int* %ret26 to %vector_int**
-    %56 = load %vector_int*, %vector_int** %55, align 8
+    %51 = bitcast %vector_int* %44 to i8*
+    call void @free(i8* %51)
+    %52 = bitcast %vector_vector_int* %ret26 to %vector_int**
+    %53 = load %vector_int*, %vector_int** %52, align 8
     %lenptr45 = getelementptr inbounds %vector_vector_int, %vector_vector_int* %ret26, i32 0, i32 1
     %leni46 = load i32, i32* %lenptr45, align 4
     %len47 = sext i32 %leni46 to i64
@@ -496,83 +496,83 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
     br label %rec49
   
   rec49:                                            ; preds = %free50, %cont44
-    %lsr.iv73 = phi %vector_int* [ %scevgep74, %free50 ], [ %56, %cont44 ]
-    %57 = phi i64 [ %62, %free50 ], [ 0, %cont44 ]
-    %58 = icmp slt i64 %57, %len47
-    br i1 %58, label %free50, label %cont51
+    %lsr.iv73 = phi %vector_int* [ %scevgep74, %free50 ], [ %53, %cont44 ]
+    %54 = phi i64 [ %59, %free50 ], [ 0, %cont44 ]
+    %55 = icmp slt i64 %54, %len47
+    br i1 %55, label %free50, label %cont51
   
   free50:                                           ; preds = %rec49
-    %59 = bitcast %vector_int* %lsr.iv73 to i32**
-    %60 = load i32*, i32** %59, align 8
-    %61 = bitcast i32* %60 to i8*
-    call void @free(i8* %61)
-    %62 = add i64 %57, 1
-    store i64 %62, i64* %cnt48, align 4
+    %56 = bitcast %vector_int* %lsr.iv73 to i32**
+    %57 = load i32*, i32** %56, align 8
+    %58 = bitcast i32* %57 to i8*
+    call void @free(i8* %58)
+    %59 = add i64 %54, 1
+    store i64 %59, i64* %cnt48, align 4
     %scevgep74 = getelementptr %vector_int, %vector_int* %lsr.iv73, i64 1
     br label %rec49
   
   cont51:                                           ; preds = %rec49
-    %63 = bitcast %vector_int* %56 to i8*
-    call void @free(i8* %63)
-    call void @free(i8* %24)
-    %64 = getelementptr inbounds %container, %container* %ret31, i32 0, i32 1
-    %65 = bitcast %vector_int* %64 to i32**
-    %66 = load i32*, i32** %65, align 8
-    %67 = bitcast i32* %66 to i8*
-    call void @free(i8* %67)
+    %60 = bitcast %vector_int* %53 to i8*
+    call void @free(i8* %60)
+    call void @free(i8* %21)
+    %61 = getelementptr inbounds %container, %container* %ret31, i32 0, i32 1
+    %62 = bitcast %vector_int* %61 to i32**
+    %63 = load i32*, i32** %62, align 8
+    %64 = bitcast i32* %63 to i8*
+    call void @free(i8* %64)
     %cnt55 = alloca i64, align 8
     store i64 0, i64* %cnt55, align 4
-    %scevgep69 = getelementptr i8, i8* %27, i64 8
+    %scevgep69 = getelementptr i8, i8* %24, i64 8
     br label %rec56
   
   rec56:                                            ; preds = %free57, %cont51
     %lsr.iv70 = phi i8* [ %scevgep71, %free57 ], [ %scevgep69, %cont51 ]
-    %68 = phi i64 [ %73, %free57 ], [ 0, %cont51 ]
-    %69 = icmp slt i64 %68, 2
-    br i1 %69, label %free57, label %cont58
+    %65 = phi i64 [ %70, %free57 ], [ 0, %cont51 ]
+    %66 = icmp slt i64 %65, 2
+    br i1 %66, label %free57, label %cont58
   
   free57:                                           ; preds = %rec56
-    %70 = bitcast i8* %lsr.iv70 to i32**
-    %71 = load i32*, i32** %70, align 8
-    %72 = bitcast i32* %71 to i8*
-    call void @free(i8* %72)
-    %73 = add i64 %68, 1
-    store i64 %73, i64* %cnt55, align 4
+    %67 = bitcast i8* %lsr.iv70 to i32**
+    %68 = load i32*, i32** %67, align 8
+    %69 = bitcast i32* %68 to i8*
+    call void @free(i8* %69)
+    %70 = add i64 %65, 1
+    store i64 %70, i64* %cnt55, align 4
     %scevgep71 = getelementptr i8, i8* %lsr.iv70, i64 24
     br label %rec56
   
   cont58:                                           ; preds = %rec56
-    call void @free(i8* %27)
-    %74 = bitcast %vector_container* %ret36 to %container**
-    %75 = load %container*, %container** %74, align 8
+    call void @free(i8* %24)
+    %71 = bitcast %vector_container* %ret36 to %container**
+    %72 = load %container*, %container** %71, align 8
     %lenptr59 = getelementptr inbounds %vector_container, %vector_container* %ret36, i32 0, i32 1
     %leni60 = load i32, i32* %lenptr59, align 4
     %len61 = sext i32 %leni60 to i64
     %cnt62 = alloca i64, align 8
     store i64 0, i64* %cnt62, align 4
-    %scevgep = getelementptr %container, %container* %75, i64 0, i32 1, i32 0
+    %scevgep = getelementptr %container, %container* %72, i64 0, i32 1, i32 0
     %scevgep66 = bitcast i32** %scevgep to %container*
     br label %rec63
   
   rec63:                                            ; preds = %free64, %cont58
     %lsr.iv = phi %container* [ %scevgep67, %free64 ], [ %scevgep66, %cont58 ]
-    %76 = phi i64 [ %81, %free64 ], [ 0, %cont58 ]
-    %77 = icmp slt i64 %76, %len61
-    br i1 %77, label %free64, label %cont65
+    %73 = phi i64 [ %78, %free64 ], [ 0, %cont58 ]
+    %74 = icmp slt i64 %73, %len61
+    br i1 %74, label %free64, label %cont65
   
   free64:                                           ; preds = %rec63
-    %78 = bitcast %container* %lsr.iv to i32**
-    %79 = load i32*, i32** %78, align 8
-    %80 = bitcast i32* %79 to i8*
-    call void @free(i8* %80)
-    %81 = add i64 %76, 1
-    store i64 %81, i64* %cnt62, align 4
+    %75 = bitcast %container* %lsr.iv to i32**
+    %76 = load i32*, i32** %75, align 8
+    %77 = bitcast i32* %76 to i8*
+    call void @free(i8* %77)
+    %78 = add i64 %73, 1
+    store i64 %78, i64* %cnt62, align 4
     %scevgep67 = getelementptr %container, %container* %lsr.iv, i64 1
     br label %rec63
   
   cont65:                                           ; preds = %rec63
-    %82 = bitcast %container* %75 to i8*
-    call void @free(i8* %82)
+    %79 = bitcast %container* %72 to i8*
+    call void @free(i8* %79)
     ret i32 0
   }
   

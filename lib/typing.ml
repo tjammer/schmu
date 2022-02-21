@@ -558,6 +558,7 @@ and typeof_annotated env annot = function
   | Lit (_, U8 _) -> Tu8
   | Lit (loc, String _) -> get_prelude env loc "string"
   | Lit (loc, Vector vec) -> typeof_vector_lit env loc vec
+  | Lit (_, Unit) -> Tunit
   | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
   | App (loc, e1, e2) -> typeof_app ~switch_uni:false env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
@@ -893,6 +894,7 @@ and convert_annot env annot = function
       let typ = get_prelude env loc "string" in
       { typ; expr = Const (String s) }
   | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
+  | Lit (_, Unit) -> { typ = Tunit; expr = Const Unit }
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2

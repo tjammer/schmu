@@ -14,7 +14,7 @@ vec = [x, {x = 2}, {x = 3}]
 -- Vec is only alive inside the function and should be freed there
 fun vec_inside() = do
   vec = [x, {x = 2}, {x = 3}]
-  in 0
+  in ()
 
 -- Vec is returned and should be freed in its parent scope
 fun make_vec() = do
@@ -23,7 +23,7 @@ fun make_vec() = do
 
 fun inner_parent_scope() = do
   vec = make_vec()
-  in 0
+  in ()
 
 -- Vec can be propagated out through multiple function calls
 fun nest_fns() =
@@ -39,7 +39,7 @@ fun nest_allocs() =
 -- Should be freed locally
 fun nest_local() = do
   nested = [[0, 1], [2, 3]]
-  in 0
+  in ()
 
 -- Records of vectors
 fun record_of_vecs() = do
@@ -53,14 +53,14 @@ fun vec_of_records() =
 
 
 vec = make_vec()
-normal = vec_inside()
-normal = inner_parent_scope()
+vec_inside()
+inner_parent_scope()
 normal = nest_fns()
 
 nested = [[0, 1], [2, 3]]
 nested = make_nested_vec()
 nested = nest_allocs()
-nested = nest_local()
+nest_local()
 
 rec_of_vec = { index = 12, vec = [1, 2]}
 rec_of_vec = record_of_vecs()

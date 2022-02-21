@@ -46,9 +46,9 @@
 %token Mutable
 
 %nonassoc Less
-%left Arrow_right Pipe_tail Dot
 %left Plus
 %left Mult
+%left Arrow_right Pipe_tail Dot
 
 %start <Ast.prog> prog
 
@@ -97,6 +97,7 @@ expr:
   | bool { Lit($loc, Bool  $1) }
   | String_lit { Lit($loc, String $1) }
   | vector_lit { Lit($loc, Vector $1) }
+  | Lpar; Rpar { Lit($loc, Unit) }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
   | If; expr; Then; block; Else; exprblock { If($loc, $2, $4, $6) }
   | Fn; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); exprblock

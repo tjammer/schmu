@@ -36,6 +36,7 @@ and literal =
   | U8 of char
   | String of string
   | Vector of expr list
+  | Unit
 
 and stmt =
   | Let of loc * decl * block

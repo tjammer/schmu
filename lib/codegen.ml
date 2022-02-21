@@ -664,7 +664,7 @@ and gen_expr param typed_expr =
       codegen_string_lit param s typed_expr.typ allocref
   | Mconst (Vector (id, es, allocref)) ->
       codegen_vector_lit param id es typed_expr.typ allocref
-  | Mconst Unit -> failwith "TODO"
+  | Mconst Unit -> dummy_fn_value
   | Mbop (bop, e1, e2) ->
       let e1 = gen_expr param e1 in
       let e2 = gen_expr param e2 in
