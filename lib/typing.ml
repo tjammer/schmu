@@ -263,11 +263,11 @@ let rec generalize = function
 let instantiate t =
   let rec aux subst = function
     | Qvar id -> (
-        match Env.find_val_opt id subst with
+        match Map.find_opt id subst with
         | Some t -> (t, subst)
         | None ->
             let tv = newvar () in
-            (tv, Env.add_value id tv subst))
+            (tv, Map.add id tv subst))
     | Tvar { contents = Link t } -> aux subst t
     | Talias (name, t) ->
         let t, subst = aux subst t in
@@ -299,7 +299,7 @@ let instantiate t =
         (Tptr t, subst)
     | t -> (t, subst)
   in
-  aux Env.empty t |> fst
+  aux Map.empty t |> fst
 
 (* Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
@@ -850,7 +850,7 @@ let typecheck (prog : Ast.prog) =
         | Typedef (loc, Trecord t) -> typedef env loc t
         | Typedef (loc, Talias (name, type_spec)) ->
             type_alias env loc name type_spec)
-      Env.empty prog.preface
+      (Env.empty string_of_type) prog.preface
   in
   let t = typeof_block env prog.block in
   print_endline (show_typ t);
@@ -996,12 +996,10 @@ and convert_function env loc Ast.{ name; params; return_annot; body } =
 
   (* We duplicate some lambda code due to naming *)
   let env = Env.new_scope env in
-  ignore return_annot;
   let body_env, params_t, qparams, ret_annot =
     handle_params env loc params return_annot
   in
-  ignore qparams;
-  ignore ret_annot;
+
   let body = convert_block body_env body in
   leave_level ();
 
@@ -1230,7 +1228,7 @@ let to_typed (prog : Ast.prog) =
           let typ = to_type b |> instantiate in
           leave_level ();
           Env.add_value (to_string b) (generalize typ) env))
-      Env.empty
+      (Env.empty string_of_type)
   in
 
   let env, externals =

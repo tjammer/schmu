@@ -32,15 +32,17 @@ type t = {
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
   instances : typ Tmap.t ref;
+  print_fn : typ -> string;
 }
 
-let empty =
+let empty print_fn =
   {
     values = [ (Map.empty, ref []) ];
     labels = Map.empty;
     labelsets = Lmap.empty;
     types = Tmap.empty;
     instances = ref Tmap.empty;
+    print_fn;
   }
 
 let add_value key vl env =
@@ -71,18 +73,20 @@ let add_record record ~param ~labels env =
   let types = Tmap.add record typ env.types in
   { env with labels; types; labelsets }
 
+let is_unbound = function
+  | Qvar _ | Tvar { contents = Unbound _ } -> true
+  | _ -> false
+
 let maybe_add_record_instance key typ env =
   (* We reject generic records with unbound variables *)
-  let is_unbound = function
-    | Qvar _ | Tvar { contents = Unbound _ } -> true
-    | _ -> false
-  in
   let key = Type_key.create key in
-  match (Tmap.find_opt key !(env.instances), typ) with
-  | None, Trecord (Some t, _, _) when is_unbound t -> ()
-  | None, Trecord (Some _, _, _) ->
-      env.instances := Tmap.add key typ !(env.instances)
-  | Some _, _ | None, _ -> ()
+
+  match typ with
+  | Trecord (Some t, _, _) when not (is_unbound t) -> (
+      match Tmap.find_opt key !(env.instances) with
+      | None -> env.instances := Tmap.add key typ !(env.instances)
+      | Some _ -> ())
+  | _ -> ()
 
 let add_alias name typ env =
   let key = Type_key.create name in
@@ -117,6 +121,7 @@ let find_val_opt key env =
 
 let query_val_opt key env =
   let cls = List.hd env.values |> snd in
+  (* Add str to closure *)
   let add str = cls := str :: !cls in
 
   let rec aux closed = function
@@ -126,6 +131,9 @@ let query_val_opt key env =
         | None -> aux (closed + 1) tl
         | Some value ->
             (match closed with 0 -> () | _ -> add key);
+            (* It might be expensive to call this on each query, but we need to make sure we
+               pick up every used record instance *)
+            maybe_add_record_instance (env.print_fn value) value env;
             Some value)
   in
   aux 0 env.values

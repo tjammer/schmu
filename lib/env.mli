@@ -4,7 +4,7 @@ type key = string
 type label = { index : int; record : string }
 type t
 
-val empty : t
+val empty : (typ -> string) -> t
 val add_value : key -> typ -> t -> t
 val add_type : key -> typ -> t -> t
 
