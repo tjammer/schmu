@@ -17,8 +17,9 @@ type expr =
       args : monod_expr list;
       alloca : alloca;
       malloc : int option;
-          (* Mallocs have to go through a call to get propagated.
-             Codegen must check if there are nested allocations *)
+      (* Mallocs have to go through a call to get propagated.
+         Codegen must check if there are nested allocations *)
+      id : int; (* Internal id for nested monomorphization *)
     }
   | Mrecord of (string * monod_tree) list * alloca
   | Mfield of (monod_tree * int)

@@ -703,7 +703,7 @@ and gen_expr param typed_expr =
             dummy_fn_value
       in
       func
-  | Mapp { callee; args; alloca; malloc } -> (
+  | Mapp { callee; args; alloca; malloc; id = _ } -> (
       match (typed_expr.return, callee.monomorph, param.rec_block) with
       | true, Recursive _, Some block ->
           gen_app_tailrec param callee args block typed_expr.typ

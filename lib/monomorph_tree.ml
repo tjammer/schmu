@@ -2,6 +2,15 @@ open Cleaned_types
 module Vars = Map.Make (String)
 module Set = Set.Make (String)
 
+module Hint = struct
+  type t = int
+
+  let equal = Int.equal
+  let hash x = x
+end
+
+module Apptbl = Hashtbl.Make (Hint)
+
 type expr =
   | Mvar of string
   | Mconst of const
@@ -15,6 +24,7 @@ type expr =
       args : monod_expr list;
       alloca : alloca;
       malloc : int option;
+      id : int;
     }
   | Mrecord of (string * monod_tree) list * alloca
   | Mfield of (monod_tree * int)
@@ -84,6 +94,7 @@ type morph_param = {
 }
 
 let no_var = { fn = No_function; alloc = No_value; malloc = None }
+let apptbl = Apptbl.create 64
 
 let rec extract_alloca = function
   | Value a -> Some a
@@ -210,17 +221,13 @@ let subst_type ~concrete poly =
 
   (subst, typ)
 
-let subst_body subst tree =
+let rec subst_body p subst tree =
+  let p = ref p in
+
   let subst_func { params; ret; kind } =
     let params = List.map subst params in
     let ret = subst ret in
     { params; ret; kind }
-  in
-
-  let subst_monomorph = function
-    | Default -> Default
-    | Builtin (b, func) -> Builtin (b, subst_func func)
-    | c -> c
   in
 
   let rec inner tree =
@@ -250,17 +257,27 @@ let subst_body subst tree =
         in
         let cont = { (inner cont) with typ = subst cont.typ } in
         { tree with typ = cont.typ; expr = Mfunction (name, abs, cont) }
-    | Mapp { callee; args; alloca; malloc } ->
-        let callee =
-          { ex = sub callee.ex; monomorph = subst_monomorph callee.monomorph }
+    | Mapp { callee; args; alloca; malloc; id } ->
+        let ex = sub callee.ex in
+
+        let old_p =
+          match Apptbl.find_opt apptbl id with
+          | Some old ->
+              { old with funcs = !p.funcs; monomorphized = !p.monomorphized }
+          | None -> failwith "Internal Error: No old param"
         in
+
+        let p2, monomorph = monomorphize_call old_p ex in
+
+        let callee = { ex; monomorph } in
+        p := { !p with funcs = p2.funcs; monomorphized = p2.monomorphized };
 
         let args = List.map (fun arg -> { arg with ex = sub arg.ex }) args in
         let func = func_of_typ callee.ex.typ in
         {
           tree with
           typ = func.ret;
-          expr = Mapp { callee; args; alloca; malloc };
+          expr = Mapp { callee; args; alloca; malloc; id };
         }
     | Mrecord (labels, alloca) ->
         let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
@@ -281,9 +298,9 @@ let subst_body subst tree =
         let expr = sub expr in
         { tree with typ = expr.typ; expr = Mfree_after (expr, id) }
   in
-  inner tree
+  (!p, inner tree)
 
-let monomorphize_call p expr : morph_param * call_name =
+and monomorphize_call p expr : morph_param * call_name =
   match find_function_expr p.vars expr.expr with
   | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
   | _ when is_type_polymorphic expr.typ -> (p, Default)
@@ -301,7 +318,7 @@ let monomorphize_call p expr : morph_param * call_name =
       else
         (* We generate the function *)
         let subst, typ = subst_type ~concrete:expr.typ typ in
-        let body = subst_body subst func.abs.body in
+        let p, body = subst_body p subst func.abs.body in
 
         let fnc = func_of_typ typ in
         let funcs =
@@ -315,6 +332,8 @@ let monomorphize_call p expr : morph_param * call_name =
       (* We don't have to do anything, because the correct function will be called in the first place.
          Except when it is called with different types recursively. We'll see *)
       (p, Recursive name)
+
+(* State *)
 
 let alloc_lvl = ref 1
 let enter_level () = incr alloc_lvl
@@ -621,6 +640,10 @@ and morph_lambda typ p id abs =
     { var with fn } )
 
 and morph_app mk p callee args =
+  (* Save env for later monomorphization *)
+  let id = new_id () in
+  Apptbl.add apptbl id p;
+
   let ret = p.ret in
   let p, ex, var = morph_expr { p with ret = false } callee in
   let p, monomorph = monomorphize_call p ex in
@@ -654,11 +677,11 @@ and morph_app mk p callee args =
     | _ -> (No_value, ref (request ()))
   in
 
-  let id = Option.map (fun m -> m.id) malloc in
-
-  ( { p with ret },
-    mk (Mapp { callee; args; alloca = alloc_ref; malloc = id }) ret,
-    { no_var with alloc; malloc } )
+  let app =
+    let malloc = Option.map (fun m -> m.id) malloc in
+    Mapp { callee; args; alloca = alloc_ref; malloc; id }
+  in
+  ({ p with ret }, mk app ret, { no_var with alloc; malloc })
 
 let monomorphize { Typing.externals; records; tree } =
   reset ();
