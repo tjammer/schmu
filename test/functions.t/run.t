@@ -903,3 +903,76 @@ Allow mixing of typedefs and external decls in the preface
   entry:
     ret i32 0
   }
+
+Support monomorphization of nested functions
+  $ schmu -dump-llvm monomorph_nested.smu && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %rec = type { i32 }
+  
+  declare void @printi(i32 %0)
+  
+  define private void @__g.g_wrapped_rec.rec(%rec* sret %0, %rec* %x) {
+  entry:
+    %ret = alloca %rec, align 8
+    call void @__g.g_id_rec.rec(%rec* %ret, %rec* %x)
+    %1 = bitcast %rec* %0 to i8*
+    %2 = bitcast %rec* %ret to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 4, i1 false)
+    ret void
+  }
+  
+  define private void @__g.g_id_rec.rec(%rec* sret %0, %rec* %x) {
+  entry:
+    %1 = bitcast %rec* %0 to i8*
+    %2 = bitcast %rec* %x to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 4, i1 false)
+    ret void
+  }
+  
+  define private i1 @__g.g_wrapped_b.b(i1 %x) {
+  entry:
+    %0 = tail call i1 @__g.g_id_b.b(i1 %x)
+    ret i1 %0
+  }
+  
+  define private i1 @__g.g_id_b.b(i1 %x) {
+  entry:
+    ret i1 %x
+  }
+  
+  define private i32 @__g.g_wrapped_i.i(i32 %x) {
+  entry:
+    %0 = tail call i32 @__g.g_id_i.i(i32 %x)
+    ret i32 %0
+  }
+  
+  define private i32 @__g.g_id_i.i(i32 %x) {
+  entry:
+    ret i32 %x
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define i32 @main(i32 %arg) {
+  entry:
+    %0 = tail call i32 @__g.g_wrapped_i.i(i32 12)
+    tail call void @printi(i32 %0)
+    %1 = tail call i1 @__g.g_wrapped_b.b(i1 false)
+    %2 = alloca %rec, align 8
+    %x1 = bitcast %rec* %2 to i32*
+    store i32 24, i32* %x1, align 4
+    %ret = alloca %rec, align 8
+    call void @__g.g_wrapped_rec.rec(%rec* %ret, %rec* %2)
+    %3 = bitcast %rec* %ret to i32*
+    %4 = load i32, i32* %3, align 4
+    call void @printi(i32 %4)
+    ret i32 0
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  12
+  24

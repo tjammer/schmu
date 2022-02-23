@@ -1,0 +1,11 @@
+external printi : int -> unit
+
+type rec = { x : int }
+
+fun wrapped(x) = do
+  fun id(x) = x
+  in id(x)
+
+12 -> wrapped -> printi
+false -> wrapped -> ignore
+{ x = 24 } -> wrapped .x -> printi
