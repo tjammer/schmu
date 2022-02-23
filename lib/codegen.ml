@@ -908,6 +908,7 @@ and gen_app_builtin param (b, fnc) args =
       let value = realloc ptr ~size in
 
       { value; typ = fnc.ret; lltyp = Llvm.type_of value }
+  | Ignore -> dummy_fn_value
 
 and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),
