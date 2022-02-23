@@ -7,24 +7,28 @@ module Type_key = struct
   type t = { key : string; ord : int }
 
   let compare a b = String.compare a.key b.key
-  let cmp_sort (a, _) (b, _) = Int.compare a.ord b.ord
+  let cmp_map_sort (a, _) (b, _) = Int.compare a.ord b.ord
+  let cmp_sort a b = Int.compare a.ord b.ord
 
   let create key =
     let ord = !state in
     incr state;
     { key; ord }
+
+  let key { key; ord = _ } = key
 end
 
 module Labelset = Set.Make (String)
 module Lmap = Map.Make (Labelset)
 module Tmap = Map.Make (Type_key)
 module Map = Map.Make (String)
+module Set = Set.Make (Type_key)
 
 type key = string
 type label = { index : int; record : string }
 
 type t = {
-  values : (typ Map.t * string list ref) list;
+  values : (typ Map.t * Set.t ref) list;
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : string Lmap.t; (* For finding the type of a record expression *)
   types : typ Tmap.t;
@@ -37,7 +41,7 @@ type t = {
 
 let empty print_fn =
   {
-    values = [ (Map.empty, ref []) ];
+    values = [ (Map.empty, ref Set.empty) ];
     labels = Map.empty;
     labelsets = Lmap.empty;
     types = Tmap.empty;
@@ -95,13 +99,17 @@ let add_alias name typ env =
 
 let new_scope env =
   (* Due to the ref, we have to create a new object every time *)
-  let empty = [ (Map.empty, ref []) ] in
+  let empty = [ (Map.empty, ref Set.empty) ] in
   { env with values = empty @ env.values }
 
 let close_scope env =
   match env.values with
   | [] -> failwith "Internal error: Env empty"
-  | (_, cls) :: tl -> ({ env with values = tl }, !cls |> List.rev)
+  | (_, cls) :: tl ->
+      ( { env with values = tl },
+        !cls |> Set.to_seq |> List.of_seq
+        |> List.sort Type_key.cmp_sort
+        |> List.map Type_key.key )
 
 let find_val key env =
   let rec aux = function
@@ -122,7 +130,7 @@ let find_val_opt key env =
 let query_val_opt key env =
   let cls = List.hd env.values |> snd in
   (* Add str to closure *)
-  let add str = cls := str :: !cls in
+  let add str = cls := Set.add str !cls in
 
   let rec aux closed = function
     | [] -> None
@@ -130,7 +138,7 @@ let query_val_opt key env =
         match Map.find_opt key hd with
         | None -> aux (closed + 1) tl
         | Some value ->
-            (match closed with 0 -> () | _ -> add key);
+            (match closed with 0 -> () | _ -> add (Type_key.create key));
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
             maybe_add_record_instance (env.print_fn value) value env;
@@ -166,5 +174,5 @@ let records env =
   |> (* Add instances *)
   fun simple_records ->
   simple_records @ Tmap.bindings !(env.instances)
-  |> List.sort Type_key.cmp_sort
+  |> List.sort Type_key.cmp_map_sort
   |> List.map values

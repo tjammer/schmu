@@ -514,8 +514,8 @@ Regression test: Closures for records used to use store/load like for register v
   
   define private void @print_foo(i8* %0) {
   entry:
-    %clsr = bitcast i8* %0 to { %foo, %foo }*
-    %foo1 = getelementptr inbounds { %foo, %foo }, { %foo, %foo }* %clsr, i32 0, i32 1
+    %clsr = bitcast i8* %0 to { %foo }*
+    %foo1 = bitcast { %foo }* %clsr to %foo*
     %1 = bitcast %foo* %foo1 to i32*
     %2 = load i32, i32* %1, align 4
     tail call void @printi(i32 %2)
@@ -528,22 +528,19 @@ Regression test: Closures for records used to use store/load like for register v
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %foo, align 8
-    %x4 = bitcast %foo* %0 to i32*
-    store i32 12, i32* %x4, align 4
+    %x3 = bitcast %foo* %0 to i32*
+    store i32 12, i32* %x3, align 4
     %y = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     store i32 14, i32* %y, align 4
     %print_foo = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %print_foo to i8**
-    store i8* bitcast (void (i8*)* @print_foo to i8*), i8** %funptr5, align 8
-    %clsr_print_foo = alloca { %foo, %foo }, align 8
-    %foo6 = bitcast { %foo, %foo }* %clsr_print_foo to %foo*
-    %1 = bitcast %foo* %foo6 to i8*
+    %funptr4 = bitcast %closure* %print_foo to i8**
+    store i8* bitcast (void (i8*)* @print_foo to i8*), i8** %funptr4, align 8
+    %clsr_print_foo = alloca { %foo }, align 8
+    %foo5 = bitcast { %foo }* %clsr_print_foo to %foo*
+    %1 = bitcast %foo* %foo5 to i8*
     %2 = bitcast %foo* %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 8, i1 false)
-    %foo1 = getelementptr inbounds { %foo, %foo }, { %foo, %foo }* %clsr_print_foo, i32 0, i32 1
-    %3 = bitcast %foo* %foo1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %2, i64 8, i1 false)
-    %env = bitcast { %foo, %foo }* %clsr_print_foo to i8*
+    %env = bitcast { %foo }* %clsr_print_foo to i8*
     %envptr = getelementptr inbounds %closure, %closure* %print_foo, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     call void @print_foo(i8* %env)
