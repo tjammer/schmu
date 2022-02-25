@@ -233,7 +233,11 @@ let rec unify t1 t2 =
             raise (Arity ("record", Array.length labels1, Array.length labels2))
         else raise Unify
     | Tptr l, Tptr r -> unify l r
-    | _ -> raise Unify
+    | Qvar a, Qvar b when String.equal a b ->
+        (* We should not need this. Record instantiation? *) ()
+    | _ ->
+        Printf.printf "not: %s vs %s\n%!" (show_typ t1) (show_typ t2);
+        raise Unify
 
 let unify info t1 t2 =
   try unify t1 t2 with

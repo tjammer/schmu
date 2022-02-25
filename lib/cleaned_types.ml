@@ -16,8 +16,14 @@ let is_type_polymorphic typ =
   let rec inner acc = function
     | Tpoly _ -> true
     | Trecord (Some t, _, _) -> inner acc t
-    | Tfun (params, ret, _) ->
+    | Tfun (params, ret, kind) ->
         let acc = List.fold_left inner acc params in
+        let acc =
+          match kind with
+          | Simple -> acc
+          | Closure cls ->
+              List.fold_left (fun acc (_, t) -> inner acc t) acc cls
+        in
         inner acc ret
     | Tbool | Tunit | Tint | Trecord _ | Tu8 -> acc
     | Tptr t -> inner acc t

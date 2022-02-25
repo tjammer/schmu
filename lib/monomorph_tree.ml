@@ -93,6 +93,8 @@ type morph_param = {
          Otherwise freed *)
 }
 
+type recursive_subst = { orig : string; current : string }
+
 let no_var = { fn = No_function; alloc = No_value; malloc = None }
 let apptbl = Apptbl.create 64
 
@@ -200,7 +202,9 @@ let subst_type ~concrete poly =
         let subst, _ = Array.fold_left f (subst, 0) l1 in
         let subst, param = inner subst (i, j) in
         (subst, Trecord (Some param, record, labels))
-    | Tptr l, r -> inner subst (l, r)
+    | Tptr l, Tptr r ->
+        let subst, t = inner subst (l, r) in
+        (subst, Tptr t)
     | t, _ -> (subst, t)
   in
   let vars, typ = inner Vars.empty (poly, concrete) in
@@ -210,6 +214,11 @@ let subst_type ~concrete poly =
         match Vars.find_opt id vars with Some t -> t | None -> old)
     | Tfun (ps, r, kind) ->
         let ps = List.map subst ps in
+        let kind =
+          match kind with
+          | Simple -> Simple
+          | Closure cls -> Closure (List.map (fun (nm, t) -> (nm, subst t)) cls)
+        in
         Tfun (ps, subst r, kind)
     | Trecord (Some p, record, labels) as t when is_type_polymorphic t ->
         let f field = Cleaned_types.{ field with typ = subst field.typ } in
@@ -221,12 +230,17 @@ let subst_type ~concrete poly =
 
   (subst, typ)
 
-let rec subst_body p subst tree =
+let rec subst_body p subst tree recsubst =
   let p = ref p in
 
   let subst_func { params; ret; kind } =
     let params = List.map subst params in
     let ret = subst ret in
+    let kind =
+      match kind with
+      | Simple -> Simple
+      | Closure cls -> Closure (List.map (fun (nm, typ) -> (nm, subst typ)) cls)
+    in
     { params; ret; kind }
   in
 
@@ -235,9 +249,9 @@ let rec subst_body p subst tree =
     match tree.expr with
     | Mvar _ -> { tree with typ = subst tree.typ }
     | Mconst _ -> tree
-    | Mbop _ -> tree
+    | Mbop (bop, l, r) -> { tree with expr = Mbop (bop, sub l, sub r) }
     | Mif expr ->
-        let cond = inner expr.cond in
+        let cond = sub expr.cond in
         let e1 = sub expr.e1 in
         let e2 = sub expr.e2 in
         { tree with typ = e1.typ; expr = Mif { cond; e1; e2 } }
@@ -268,6 +282,14 @@ let rec subst_body p subst tree =
         in
 
         let p2, monomorph = monomorphize_call old_p ex in
+
+        (* A recursive call of a monomorphized function *)
+        let monomorph =
+          match monomorph with
+          | Recursive name when String.equal name recsubst.orig ->
+              Mono recsubst.current
+          | m -> m
+        in
 
         let callee = { ex; monomorph } in
         p := { !p with funcs = p2.funcs; monomorphized = p2.monomorphized };
@@ -318,7 +340,9 @@ and monomorphize_call p expr : morph_param * call_name =
       else
         (* We generate the function *)
         let subst, typ = subst_type ~concrete:expr.typ typ in
-        let p, body = subst_body p subst func.abs.body in
+
+        let recsubst = { orig = func.name; current = name } in
+        let p, body = subst_body p subst func.abs.body recsubst in
 
         let fnc = func_of_typ typ in
         let funcs =
