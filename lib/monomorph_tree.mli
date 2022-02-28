@@ -56,7 +56,8 @@ and allocas = Preallocated | Request of int
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
 type recurs = Rnormal | Rtail | Rnone
-type to_gen_func = { abs : abstraction; name : string; recursive : recurs }
+type func_name = { user : string; call : string }
+type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
 type external_decl = string * typ
 
 type monomorphized_tree = {

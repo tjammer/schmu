@@ -495,7 +495,14 @@ let add_params vars f fname names types start_index recursive =
   (* If the function is named, we allow recursion *)
   match recursive with
   | Monomorph_tree.Rnone -> (add_simple (), None)
-  | Rnormal -> (add_simple () |> Vars.add fname f, None)
+  | Rnormal ->
+      ( add_simple ()
+        |> Vars.add Monomorph_tree.(fname.call) f
+        |> (* We also add the user name. This is needed for polymorphic nested functions.
+              At the monomorphization stage, the codegen isn't rewritten to it's call name.
+           *)
+        Vars.add Monomorph_tree.(fname.user) f,
+        None )
   | Rtail ->
       (* In the entry block, we create a alloca for each parameter.
          These can be set later in tail recursion scenarios.
@@ -582,7 +589,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
 
   match typ with
   | Tfun (tparams, ret_t, kind) as typ ->
-      let func = declare_function name typ in
+      let func = declare_function name.call typ in
       Llvm.set_linkage linkage func.value;
 
       let start_index, alloca =
@@ -626,7 +633,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         gen_expr { vars = tvars; alloca; finalize; rec_block } abs.body
       in
 
-      ignore (fun_return name ret);
+      ignore (fun_return name.call ret);
 
       if Llvm_analysis.verify_function func.value |> not then (
         Llvm.dump_module the_module;
@@ -634,9 +641,9 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         Llvm_analysis.assert_valid_function func.value);
 
       let _ = Llvm.PassManager.run_function func.value fpm in
-      { vars with vars = Vars.add name func vars.vars }
+      { vars with vars = Vars.add name.call func vars.vars }
   | _ ->
-      prerr_endline name;
+      prerr_endline name.call;
       failwith "Interal Error: generating non-function"
 
 and gen_expr param typed_expr =
@@ -1121,10 +1128,10 @@ let generate ~target { Monomorph_tree.externals; records; tree; funcs } =
           let typ =
             Tfun (func.abs.func.params, func.abs.func.ret, func.abs.func.kind)
           in
-          let fnc = declare_function func.name typ in
+          let fnc = declare_function func.name.call typ in
 
           (* Add to the normal variable environment *)
-          Vars.add func.name fnc acc)
+          Vars.add func.name.call fnc acc)
         vars funcs
     in
 
@@ -1141,7 +1148,7 @@ let generate ~target { Monomorph_tree.externals; records; tree; funcs } =
   ignore
   @@ gen_function funcs ~linkage
        {
-         name = "main";
+         name = { Monomorph_tree.user = "main"; call = "main" };
          recursive = Rnone;
          abs =
            {

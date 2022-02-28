@@ -58,7 +58,8 @@ and allocas = Preallocated | Request of int
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
 type recurs = Rnormal | Rtail | Rnone
-type to_gen_func = { abs : abstraction; name : string; recursive : recurs }
+type func_name = { user : string; call : string }
+type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
 type external_decl = string * typ
 
 type monomorphized_tree = {
@@ -92,8 +93,6 @@ type morph_param = {
          If a value with allocation is returned, they are marked for the parent scope.
          Otherwise freed *)
 }
-
-type recursive_subst = { orig : string; current : string }
 
 let no_var = { fn = No_function; alloc = No_value; malloc = None }
 let apptbl = Apptbl.create 64
@@ -230,7 +229,7 @@ let subst_type ~concrete poly =
 
   (subst, typ)
 
-let rec subst_body p subst tree recsubst =
+let rec subst_body p subst tree =
   let p = ref p in
 
   let subst_func { params; ret; kind } =
@@ -274,6 +273,7 @@ let rec subst_body p subst tree recsubst =
     | Mapp { callee; args; alloca; malloc; id } ->
         let ex = sub callee.ex in
 
+        (* We use the parametrs at function creation time to deal with scope *)
         let old_p =
           match Apptbl.find_opt apptbl id with
           | Some old ->
@@ -282,14 +282,6 @@ let rec subst_body p subst tree recsubst =
         in
 
         let p2, monomorph = monomorphize_call old_p ex in
-
-        (* A recursive call of a monomorphized function *)
-        let monomorph =
-          match monomorph with
-          | Recursive name when String.equal name recsubst.orig ->
-              Mono recsubst.current
-          | m -> m
-        in
 
         let callee = { ex; monomorph } in
         p := { !p with funcs = p2.funcs; monomorphized = p2.monomorphized };
@@ -328,29 +320,30 @@ and monomorphize_call p expr : morph_param * call_name =
   | _ when is_type_polymorphic expr.typ -> (p, Default)
   | Concrete (func, username) ->
       (* If a named function gets a generated name, the call site has to be made aware *)
-      if not (String.equal func.name username) then (p, Concrete func.name)
+      if not (String.equal func.name.call username) then
+        (p, Concrete func.name.call)
       else (p, Default)
   | Polymorphic func ->
       let typ = typ_of_abs func.abs in
-      let name = get_mono_name func.name ~poly:typ expr.typ in
+      let call = get_mono_name func.name.call ~poly:typ expr.typ in
 
-      if Set.mem name p.monomorphized then
+      if Set.mem call p.monomorphized then
         (* The function exists, we don't do anything right now *)
-        (p, Mono name)
+        (p, Mono call)
       else
         (* We generate the function *)
         let subst, typ = subst_type ~concrete:expr.typ typ in
 
-        let recsubst = { orig = func.name; current = name } in
-        let p, body = subst_body p subst func.abs.body recsubst in
+        let p, body = subst_body p subst func.abs.body in
 
         let fnc = func_of_typ typ in
+        let name = { func.name with call } in
         let funcs =
           { func with abs = { func.abs with func = fnc; body }; name }
           :: p.funcs
         in
-        let monomorphized = Set.add name p.monomorphized in
-        ({ p with funcs; monomorphized }, Mono name)
+        let monomorphized = Set.add call p.monomorphized in
+        ({ p with funcs; monomorphized }, Mono call)
   | No_function -> (p, Default)
   | Forward_decl name ->
       (* We don't have to do anything, because the correct function will be called in the first place.
@@ -558,7 +551,7 @@ and morph_func p (username, uniq, abs, cont) =
      Instead, the monomorphized instance will be added later *)
   let ftyp = Types.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)) |> cln in
 
-  let name = unique_name (username, uniq) in
+  let call = unique_name (username, uniq) in
   let recursive = Rnormal in
 
   let func =
@@ -573,13 +566,13 @@ and morph_func p (username, uniq, abs, cont) =
   let ret = p.ret in
   (* Make sure recursion works and the current function can be used in its body *)
   let temp_p =
-    recursion_stack := (name, recursive) :: !recursion_stack;
+    recursion_stack := (call, recursive) :: !recursion_stack;
     let alloc =
       match abs.tp.ret with
       | Trecord _ -> Value (ref (request ()))
       | _ -> No_value
     in
-    let value = { no_var with fn = Forward_decl name; alloc } in
+    let value = { no_var with fn = Forward_decl call; alloc } in
     let vars = Vars.add username value p.vars in
     { p with vars; ret = true; mallocs = [] }
   in
@@ -599,6 +592,7 @@ and morph_func p (username, uniq, abs, cont) =
   let recursive = pop_recursion_stack () in
 
   let abs = { func; pnames; body } in
+  let name = { user = username; call } in
   let gen_func = { abs; name; recursive } in
 
   (* Collect functions from body *)
@@ -618,7 +612,7 @@ and morph_func p (username, uniq, abs, cont) =
   in
 
   let p, cont, func = morph_expr { p with ret } cont in
-  (p, { typ = cont.typ; expr = Mfunction (name, abs, cont); return = ret }, func)
+  (p, { typ = cont.typ; expr = Mfunction (call, abs, cont); return = ret }, func)
 
 and morph_lambda typ p id abs =
   let typ = cln typ in
@@ -650,7 +644,9 @@ and morph_lambda typ p id abs =
   ignore (pop_recursion_stack ());
 
   let abs = { func; pnames; body } in
-  let gen_func = { abs; name; recursive } in
+  (* lambdas have no username, so we just repeat the call name *)
+  let names = { call = name; user = name } in
+  let gen_func = { abs; name = names; recursive } in
 
   let p = { p with vars } in
   let p, fn =
