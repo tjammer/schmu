@@ -176,7 +176,7 @@ let get_mono_name name ~poly concrete =
   in
   Printf.sprintf "__%s_%s_%s" (str poly) name (str concrete)
 
-let subst_type ~concrete poly =
+let subst_type ~concrete poly parent =
   let rec inner subst = function
     | Tpoly id, t -> (
         match Vars.find_opt id subst with
@@ -225,6 +225,13 @@ let subst_type ~concrete poly =
         Trecord (Some (subst p), record, labels)
     | Tptr t -> Tptr (subst t)
     | t -> t
+  in
+
+  (* We might have to substitute other types (in closures) from an outer scope *)
+  let subst, typ =
+    match parent with
+    | Some sub -> ((fun t -> subst t |> sub), sub typ)
+    | None -> (subst, typ)
   in
 
   (subst, typ)
@@ -281,7 +288,7 @@ let rec subst_body p subst tree =
           | None -> failwith "Internal Error: No old param"
         in
 
-        let p2, monomorph = monomorphize_call old_p ex in
+        let p2, monomorph = monomorphize_call old_p ex (Some subst) in
 
         let callee = { ex; monomorph } in
         p := { !p with funcs = p2.funcs; monomorphized = p2.monomorphized };
@@ -314,7 +321,7 @@ let rec subst_body p subst tree =
   in
   (!p, inner tree)
 
-and monomorphize_call p expr : morph_param * call_name =
+and monomorphize_call p expr parent_sub : morph_param * call_name =
   match find_function_expr p.vars expr.expr with
   | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
   | _ when is_type_polymorphic expr.typ -> (p, Default)
@@ -332,18 +339,26 @@ and monomorphize_call p expr : morph_param * call_name =
         (p, Mono call)
       else
         (* We generate the function *)
-        let subst, typ = subst_type ~concrete:expr.typ typ in
 
-        let p, body = subst_body p subst func.abs.body in
+        (* The parent substitution is threaded through to its children.
+           This deals with nested closures *)
+        let subst, typ = subst_type ~concrete:expr.typ typ parent_sub in
 
-        let fnc = func_of_typ typ in
-        let name = { func.name with call } in
-        let funcs =
-          { func with abs = { func.abs with func = fnc; body }; name }
-          :: p.funcs
-        in
-        let monomorphized = Set.add call p.monomorphized in
-        ({ p with funcs; monomorphized }, Mono call)
+        (* If the type is still polymorphic, we cannot generate it *)
+        if is_type_polymorphic typ then
+          let () = print_endline "Warning: type still polymorphic" in
+          (p, Default)
+        else
+          let p, body = subst_body p subst func.abs.body in
+
+          let fnc = func_of_typ typ in
+          let name = { func.name with call } in
+          let funcs =
+            { func with abs = { func.abs with func = fnc; body }; name }
+            :: p.funcs
+          in
+          let monomorphized = Set.add call p.monomorphized in
+          ({ p with funcs; monomorphized }, Mono call)
   | No_function -> (p, Default)
   | Forward_decl name ->
       (* We don't have to do anything, because the correct function will be called in the first place.
@@ -666,7 +681,7 @@ and morph_app mk p callee args =
 
   let ret = p.ret in
   let p, ex, var = morph_expr { p with ret = false } callee in
-  let p, monomorph = monomorphize_call p ex in
+  let p, monomorph = monomorphize_call p ex None in
   let callee = { ex; monomorph } in
 
   let malloc, p =
@@ -682,7 +697,7 @@ and morph_app mk p callee args =
 
   let f p arg =
     let p, ex, _ = morph_expr p arg in
-    let p, monomorph = monomorphize_call p ex in
+    let p, monomorph = monomorphize_call p ex None in
     (p, { ex; monomorph })
   in
   let p, args = List.fold_left_map f p args in
