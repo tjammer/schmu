@@ -8,7 +8,6 @@ module Type_key = struct
 
   let compare a b = String.compare a.key b.key
   let cmp_map_sort (a, _) (b, _) = Int.compare a.ord b.ord
-  let cmp_sort a b = Int.compare a.ord b.ord
 
   let create key =
     let ord = !state in
@@ -107,9 +106,7 @@ let close_scope env =
   | [] -> failwith "Internal error: Env empty"
   | (_, cls) :: tl ->
       ( { env with values = tl },
-        !cls |> Set.to_seq |> List.of_seq
-        |> List.sort Type_key.cmp_sort
-        |> List.map Type_key.key )
+        !cls |> Set.to_seq |> List.of_seq |> List.map Type_key.key )
 
 let find_val key env =
   let rec aux = function
