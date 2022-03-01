@@ -25,9 +25,10 @@ module Set = Set.Make (Type_key)
 
 type key = string
 type label = { index : int; record : string }
+type value = { typ : typ; is_param : bool }
 
 type t = {
-  values : (typ Map.t * Set.t ref) list;
+  values : (value Map.t * Set.t ref) list;
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : string Lmap.t; (* For finding the type of a record expression *)
   types : typ Tmap.t;
@@ -48,10 +49,11 @@ let empty print_fn =
     print_fn;
   }
 
-let add_value key vl env =
+let add_value key typ ?(is_param = false) env =
   match env.values with
   | [] -> failwith "Internal error: Env empty"
-  | (hd, cls) :: tl -> { env with values = (Map.add key vl hd, cls) :: tl }
+  | (hd, cls) :: tl ->
+      { env with values = (Map.add key { typ; is_param } hd, cls) :: tl }
 
 let add_type key t env =
   let key = Type_key.create key in
@@ -96,6 +98,14 @@ let add_alias name typ env =
   let types = Tmap.add key (Talias (name, typ)) env.types in
   { env with types }
 
+let find_val_raw key env =
+  let rec aux = function
+    | [] -> raise Not_found
+    | (hd, _) :: tl -> (
+        match Map.find_opt key hd with None -> aux tl | Some vl -> vl)
+  in
+  aux env.values
+
 let new_scope env =
   (* Due to the ref, we have to create a new object every time *)
   let empty = [ (Map.empty, ref Set.empty) ] in
@@ -106,13 +116,20 @@ let close_scope env =
   | [] -> failwith "Internal error: Env empty"
   | (_, cls) :: tl ->
       ( { env with values = tl },
-        !cls |> Set.to_seq |> List.of_seq |> List.map Type_key.key )
+        !cls |> Set.to_seq |> List.of_seq
+        |> List.filter_map (fun k ->
+               (* We only add functions to the closure if they are params *)
+               let k = Type_key.key k in
+               let { typ; is_param } = find_val_raw k env in
+               match clean typ with
+               | Tfun _ when not is_param -> None
+               | _ -> Some (k, typ)) )
 
 let find_val key env =
   let rec aux = function
     | [] -> raise Not_found
     | (hd, _) :: tl -> (
-        match Map.find_opt key hd with None -> aux tl | Some vl -> vl)
+        match Map.find_opt key hd with None -> aux tl | Some vl -> vl.typ)
   in
   aux env.values
 
@@ -120,7 +137,7 @@ let find_val_opt key env =
   let rec aux = function
     | [] -> None
     | (hd, _) :: tl -> (
-        match Map.find_opt key hd with None -> aux tl | Some vl -> Some vl)
+        match Map.find_opt key hd with None -> aux tl | Some vl -> Some vl.typ)
   in
   aux env.values
 
@@ -134,12 +151,12 @@ let query_val_opt key env =
     | (hd, _) :: tl -> (
         match Map.find_opt key hd with
         | None -> aux (closed + 1) tl
-        | Some value ->
+        | Some { typ; is_param = _ } ->
             (match closed with 0 -> () | _ -> add (Type_key.create key));
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
-            maybe_add_record_instance (env.print_fn value) value env;
-            Some value)
+            maybe_add_record_instance (env.print_fn typ) typ env;
+            Some typ)
   in
   aux 0 env.values
 

@@ -401,7 +401,9 @@ and get_generic_id loc = function
       raise
         (Error (loc, "Expected a parametrized type, not " ^ string_of_type t))
 
-let typeof_annot ?(typedef = false) env loc annot =
+let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
+  let fn_kind = if param then Closure [] else Simple in
+
   let find t tick =
     match Env.find_type_opt t env with
     | Some t -> t
@@ -465,10 +467,9 @@ let typeof_annot ?(typedef = false) env loc annot =
   and handle_annot = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ t ] -> concrete_type t
-    | [ Ast.Ty_id "unit"; t ] -> Tfun ([], concrete_type t, Simple)
+    | [ Ast.Ty_id "unit"; t ] -> Tfun ([], concrete_type t, fn_kind)
     | [ Ast.Ty_list [ Ast.Ty_id "unit" ]; t ] ->
-        Tfun ([], concrete_type t, Simple)
-    (* TODO 'Simple' here is not always true *)
+        Tfun ([], concrete_type t, fn_kind)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)
     | l -> (
@@ -478,7 +479,7 @@ let typeof_annot ?(typedef = false) env loc annot =
             Tfun
               ( List.map concrete_type (List.rev head),
                 concrete_type last,
-                Simple )
+                fn_kind )
         | [] -> failwith ":)")
   in
   handle_annot annot
@@ -501,9 +502,9 @@ let handle_params env loc params ret =
         | None ->
             let t = newvar () in
             (t, t)
-        | Some annot -> handle (typeof_annot env loc annot)
+        | Some annot -> handle (typeof_annot ~param:true env loc annot)
       in
-      (Env.add_value id type_id env, (type_id, qparams)))
+      (Env.add_value id type_id ~is_param:true env, (type_id, qparams)))
     env params
   |> fun (env, lst) ->
   let ids, qparams = List.split lst in
@@ -615,17 +616,15 @@ and typeof_abs env loc params ret_annot body =
   let env, params_t, qparams, ret_annot =
     handle_params env loc params ret_annot
   in
-  let type_e = typeof_block env body in
+  let ret = typeof_block env body in
   leave_level ();
 
-  match Tfun (params_t, type_e, Simple) with
-  | Tfun (_, ret, kind) as typ ->
-      let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = Tfun (qparams, ret, kind) in
+  let typ = Tfun (params_t, ret, Simple) in
+  let ret = match ret_annot with Some ret -> ret | None -> ret in
+  let qtyp = Tfun (qparams, ret, Simple) in
 
-      check_annot loc typ qtyp;
-      typ
-  | _ -> failwith "Internal Error Tfun not Tfun"
+  check_annot loc typ qtyp;
+  typ
 
 and typeof_function env loc Ast.{ name; params; return_annot; body } =
   enter_level ();
@@ -872,15 +871,9 @@ let dont_allow_closure_return loc fn =
   in
   error_on_closure fn
 
-let needs_capture env var =
-  let rec aux = function
-    | Tfun (_, _, Simple) -> None
-    | Tvar { contents = Link typ } | Talias (_, typ) -> aux typ
-    | t -> Some (var, t)
-  in
-  aux (Env.find_val var env)
-
 let rec param_funcs_as_closures = function
+  (* Functions passed as parameters need to have an empty closure, otherwise they cannot
+     be captured (see above). Kind of sucks *)
   | Tvar { contents = Link t } | Talias (_, t) ->
       (* This shouldn't break type inference *) param_funcs_as_closures t
   | Tfun (_, _, Closure _) as t -> t
@@ -962,12 +955,8 @@ and convert_lambda env loc params ret_annot body =
 
   let body = convert_block env body in
   leave_level ();
-  let env, closed_vars = Env.close_scope env in
-  let kind =
-    match List.filter_map (needs_capture env) closed_vars with
-    | [] -> Simple
-    | lst -> Closure lst
-  in
+  let _, closed_vars = Env.close_scope env in
+  let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
   dont_allow_closure_return loc body.typ;
 
   (* For codegen: Mark functions in parameters closures *)
@@ -1008,11 +997,7 @@ and convert_function env loc Ast.{ name; params; return_annot; body } =
   leave_level ();
 
   let env, closed_vars = Env.close_scope env in
-  let kind =
-    match List.filter_map (needs_capture env) closed_vars with
-    | [] -> Simple
-    | lst -> Closure lst
-  in
+  let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
   dont_allow_closure_return loc body.typ;
 
   (* For codegen: Mark functions in parameters closures *)

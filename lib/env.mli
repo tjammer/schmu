@@ -5,7 +5,10 @@ type label = { index : int; record : string }
 type t
 
 val empty : (typ -> string) -> t
-val add_value : key -> typ -> t -> t
+
+val add_value : key -> typ -> ?is_param:bool -> t -> t
+(** [add_value key typ ~is_param] add type [typ] to env with key [key]. [is_param] defaults to false *)
+
 val add_type : key -> typ -> t -> t
 
 val add_record : key -> param:typ option -> labels:field array -> t -> t
@@ -19,7 +22,7 @@ val maybe_add_record_instance : key -> typ -> t -> unit
 val add_alias : key -> typ -> t -> t
 val new_scope : t -> t
 
-val close_scope : t -> t * string list
+val close_scope : t -> t * (string * typ) list
 (** Returns the variables captured in the closed scope  *)
 
 val find_val : key -> t -> typ
