@@ -345,9 +345,7 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
         let subst, typ = subst_type ~concrete:expr.typ typ parent_sub in
 
         (* If the type is still polymorphic, we cannot generate it *)
-        if is_type_polymorphic typ then
-          let () = print_endline "Warning: type still polymorphic" in
-          (p, Default)
+        if is_type_polymorphic typ then (p, Default)
         else
           let p, body = subst_body p subst func.abs.body in
 

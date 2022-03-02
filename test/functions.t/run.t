@@ -976,3 +976,265 @@ Support monomorphization of nested functions
   attributes #0 = { argmemonly nofree nounwind willreturn }
   12
   24
+
+Nested polymorphic closures. Does not quite work for another nesting level
+  $ schmu -dump-llvm nested_polymorphic_closures.smu && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %vector_int = type { i32*, i32, i32 }
+  %closure = type { i8*, i8* }
+  
+  declare void @printi(i32 %0)
+  
+  define private void @__fun0(i32 %x) {
+  entry:
+    %multmp = mul i32 %x, 2
+    tail call void @printi(i32 %multmp)
+    ret void
+  }
+  
+  define private void @__vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* %vec, %closure* %f) {
+  entry:
+    %monoclstmp = alloca %closure, align 8
+    %funptr27 = bitcast %closure* %monoclstmp to i8**
+    store i8* bitcast (void (i32, i8*)* @__i.u_inner_cls_both_i.u to i8*), i8** %funptr27, align 8
+    %clsr_monoclstmp = alloca { %closure*, %vector_int }, align 8
+    %f128 = bitcast { %closure*, %vector_int }* %clsr_monoclstmp to %closure**
+    store %closure* %f, %closure** %f128, align 8
+    %vec2 = getelementptr inbounds { %closure*, %vector_int }, { %closure*, %vector_int }* %clsr_monoclstmp, i32 0, i32 1
+    %0 = bitcast %vector_int* %vec2 to i8*
+    %1 = bitcast %vector_int* %vec to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
+    %env = bitcast { %closure*, %vector_int }* %clsr_monoclstmp to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    store i8* %env, i8** %envptr, align 8
+    call void @__i.u_inner_cls_both_i.u(i32 0, i8* %env)
+    %monoclstmp5 = alloca %closure, align 8
+    %funptr629 = bitcast %closure* %monoclstmp5 to i8**
+    store i8* bitcast (void (i32, %closure*, i8*)* @__ig.u.u_inner_cls_vec_ii.u.u to i8*), i8** %funptr629, align 8
+    %clsr_monoclstmp7 = alloca { %vector_int }, align 8
+    %vec830 = bitcast { %vector_int }* %clsr_monoclstmp7 to %vector_int*
+    %2 = bitcast %vector_int* %vec830 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %1, i64 16, i1 false)
+    %env9 = bitcast { %vector_int }* %clsr_monoclstmp7 to i8*
+    %envptr10 = getelementptr inbounds %closure, %closure* %monoclstmp5, i32 0, i32 1
+    store i8* %env9, i8** %envptr10, align 8
+    call void @__ig.u.u_inner_cls_vec_ii.u.u(i32 0, %closure* %f, i8* %env9)
+    %monoclstmp16 = alloca %closure, align 8
+    %funptr1731 = bitcast %closure* %monoclstmp16 to i8**
+    store i8* bitcast (void (i32, %vector_int*, i8*)* @__ivectorg.u_inner_cls_f_ivectori.u to i8*), i8** %funptr1731, align 8
+    %clsr_monoclstmp18 = alloca { %closure* }, align 8
+    %f1932 = bitcast { %closure* }* %clsr_monoclstmp18 to %closure**
+    store %closure* %f, %closure** %f1932, align 8
+    %env20 = bitcast { %closure* }* %clsr_monoclstmp18 to i8*
+    %envptr21 = getelementptr inbounds %closure, %closure* %monoclstmp16, i32 0, i32 1
+    store i8* %env20, i8** %envptr21, align 8
+    call void @__ivectorg.u_inner_cls_f_ivectori.u(i32 0, %vector_int* %vec, i8* %env20)
+    ret void
+  }
+  
+  define private void @__ivectorg.u_inner_cls_f_ivectori.u(i32 %i, %vector_int* %vec, i8* %0) {
+  entry:
+    br label %tailrecurse
+  
+  tailrecurse:                                      ; preds = %else, %entry
+    %i.tr = phi i32 [ %i, %entry ], [ %addtmp, %else ]
+    %clsr = bitcast i8* %0 to { %closure* }*
+    %f3 = bitcast { %closure* }* %clsr to %closure**
+    %f1 = load %closure*, %closure** %f3, align 8
+    %1 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
+    %2 = load i32, i32* %1, align 4
+    %eqtmp = icmp eq i32 %i.tr, %2
+    br i1 %eqtmp, label %then, label %else
+  
+  then:                                             ; preds = %tailrecurse
+    ret void
+  
+  else:                                             ; preds = %tailrecurse
+    %3 = bitcast %vector_int* %vec to i32**
+    %4 = load i32*, i32** %3, align 8
+    %5 = getelementptr inbounds i32, i32* %4, i32 %i.tr
+    %6 = load i32, i32* %5, align 4
+    %funcptr4 = bitcast %closure* %f1 to i8**
+    %loadtmp = load i8*, i8** %funcptr4, align 8
+    %casttmp = bitcast i8* %loadtmp to void (i32, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
+    %loadtmp2 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i32 %6, i8* %loadtmp2)
+    %addtmp = add i32 %i.tr, 1
+    br label %tailrecurse
+  }
+  
+  define private void @__ig.u.u_inner_cls_vec_ii.u.u(i32 %i, %closure* %f, i8* %0) {
+  entry:
+    br label %tailrecurse
+  
+  tailrecurse:                                      ; preds = %else, %entry
+    %i.tr = phi i32 [ %i, %entry ], [ %addtmp, %else ]
+    %clsr = bitcast i8* %0 to { %vector_int }*
+    %vec2 = bitcast { %vector_int }* %clsr to %vector_int*
+    %1 = getelementptr inbounds %vector_int, %vector_int* %vec2, i32 0, i32 1
+    %2 = load i32, i32* %1, align 4
+    %eqtmp = icmp eq i32 %i.tr, %2
+    br i1 %eqtmp, label %then, label %else
+  
+  then:                                             ; preds = %tailrecurse
+    ret void
+  
+  else:                                             ; preds = %tailrecurse
+    %3 = bitcast i8* %0 to i32**
+    %4 = load i32*, i32** %3, align 8
+    %5 = getelementptr inbounds i32, i32* %4, i32 %i.tr
+    %6 = load i32, i32* %5, align 4
+    %funcptr3 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr3, align 8
+    %casttmp = bitcast i8* %loadtmp to void (i32, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i32 %6, i8* %loadtmp1)
+    %addtmp = add i32 %i.tr, 1
+    br label %tailrecurse
+  }
+  
+  define private void @__i.u_inner_cls_both_i.u(i32 %i, i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { %closure*, %vector_int }*
+    %f5 = bitcast { %closure*, %vector_int }* %clsr to %closure**
+    %f1 = load %closure*, %closure** %f5, align 8
+    %1 = alloca i32, align 4
+    store i32 %i, i32* %1, align 4
+    br label %rec
+  
+  rec:                                              ; preds = %else, %entry
+    %i2 = phi i32 [ %addtmp, %else ], [ %i, %entry ]
+    %sunkaddr = getelementptr inbounds i8, i8* %0, i64 16
+    %2 = bitcast i8* %sunkaddr to i32*
+    %3 = load i32, i32* %2, align 4
+    %eqtmp = icmp eq i32 %i2, %3
+    br i1 %eqtmp, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    ret void
+  
+  else:                                             ; preds = %rec
+    %sunkaddr6 = getelementptr inbounds i8, i8* %0, i64 8
+    %4 = bitcast i8* %sunkaddr6 to i32**
+    %5 = load i32*, i32** %4, align 8
+    %6 = getelementptr inbounds i32, i32* %5, i32 %i2
+    %7 = load i32, i32* %6, align 4
+    %funcptr7 = bitcast %closure* %f1 to i8**
+    %loadtmp = load i8*, i8** %funcptr7, align 8
+    %casttmp = bitcast i8* %loadtmp to void (i32, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
+    %loadtmp3 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i32 %7, i8* %loadtmp3)
+    %addtmp = add i32 %i2, 1
+    store i32 %addtmp, i32* %1, align 4
+    br label %rec
+  }
+  
+  define private void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i32 %val) {
+  entry:
+    %0 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
+    %1 = load i32, i32* %0, align 4
+    %2 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 2
+    %3 = load i32, i32* %2, align 4
+    %lesstmp = icmp slt i32 %1, %3
+    br i1 %lesstmp, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %4 = bitcast %vector_int* %vec to i32**
+    %5 = load i32*, i32** %4, align 8
+    %6 = getelementptr inbounds i32, i32* %5, i32 %1
+    store i32 %val, i32* %6, align 4
+    %7 = bitcast %vector_int* %vec to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %7, i64 8
+    %8 = bitcast i8* %sunkaddr to i32*
+    %9 = load i32, i32* %8, align 4
+    %addtmp = add i32 %9, 1
+    store i32 %addtmp, i32* %8, align 4
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    %multmp = mul i32 %3, 2
+    %10 = bitcast %vector_int* %vec to i32**
+    %11 = load i32*, i32** %10, align 8
+    %12 = mul i32 %multmp, 4
+    %13 = bitcast i32* %11 to i8*
+    %14 = tail call i8* @realloc(i8* %13, i32 %12)
+    %15 = bitcast i8* %14 to i32*
+    store i32* %15, i32** %10, align 8
+    %16 = bitcast %vector_int* %vec to i8*
+    %sunkaddr2 = getelementptr inbounds i8, i8* %16, i64 12
+    %17 = bitcast i8* %sunkaddr2 to i32*
+    store i32 %multmp, i32* %17, align 4
+    %18 = bitcast %vector_int* %vec to i8*
+    %sunkaddr3 = getelementptr inbounds i8, i8* %18, i64 8
+    %19 = bitcast i8* %sunkaddr3 to i32*
+    %20 = load i32, i32* %19, align 4
+    %21 = getelementptr inbounds i32, i32* %15, i32 %20
+    store i32 %val, i32* %21, align 4
+    %22 = load i32, i32* %19, align 4
+    %addtmp1 = add i32 %22, 1
+    store i32 %addtmp1, i32* %19, align 4
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    ret void
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  declare i8* @realloc(i8* %0, i32 %1)
+  
+  define i32 @main(i32 %arg) {
+  entry:
+    %0 = tail call i8* @malloc(i32 4)
+    %1 = bitcast i8* %0 to i32*
+    %vec = alloca %vector_int, align 8
+    %data1 = bitcast %vector_int* %vec to i32**
+    store i32* %1, i32** %data1, align 8
+    %len = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
+    store i32 0, i32* %len, align 4
+    %cap = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 2
+    store i32 1, i32* %cap, align 4
+    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i32 1)
+    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i32 2)
+    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i32 3)
+    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i32 4)
+    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i32 5)
+    %clstmp = alloca %closure, align 8
+    %funptr2 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (void (i32)* @__fun0 to i8*), i8** %funptr2, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* null, i8** %envptr, align 8
+    call void @__vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* %vec, %closure* %clstmp)
+    %2 = load i32*, i32** %data1, align 8
+    %3 = bitcast i32* %2 to i8*
+    call void @free(i8* %3)
+    ret i32 0
+  }
+  
+  declare i8* @malloc(i32 %0)
+  
+  declare void @free(i8* %0)
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  2
+  4
+  6
+  8
+  10
+  2
+  4
+  6
+  8
+  10
+  2
+  4
+  6
+  8
+  10

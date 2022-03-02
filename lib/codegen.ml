@@ -533,6 +533,10 @@ let add_params vars f fname names types start_index recursive =
             (Vars.add name { llvar with value } env, i + 1))
           (vars, start_index) names
       in
+
+      (* Add the function itself to env with username *)
+      let vars = Vars.add Monomorph_tree.(fname.user) f vars in
+
       (vars, Some { rec_; entry })
 
 let pass_function vars llvar kind =
@@ -762,7 +766,9 @@ and gen_app param callee args allocref ret_t malloc =
     match func.typ with
     | Tfun (_, ret, kind) -> (ret, kind)
     | Tunit ->
-        failwith "Internal Error: Probably cannot find monomorphized function"
+        failwith
+          "Internal Error: Probably cannot find monomorphized function in \
+           tailrec"
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
@@ -834,7 +840,6 @@ and gen_app param callee args allocref ret_t malloc =
 and gen_app_tailrec param callee args rec_block ret_t =
   (* We evaluate, there might be side-effects *)
   let func = gen_expr param callee.ex in
-  ignore func;
 
   let start_index, ret =
     match func.typ with
