@@ -6,6 +6,16 @@
       | Some (Ty_var s) -> Some s
       | _ -> failwith "Internal Error: Should have been a type var"
 
+    let parse_elseifs loc cond then_ elseifs else_ =
+      let rec aux = function
+        | [ (loc, cond, blk) ] ->
+            (loc, [ Ast.Expr (loc, Ast.If (loc, cond, blk, else_)) ])
+        | (loc, cond, blk) :: tl ->
+            (loc, [ Ast.Expr (loc, If (loc, cond, blk, aux tl)) ])
+        | [] -> else_
+      in
+      Ast.If (loc, cond, then_, aux elseifs)
+
 %}
 
 %token Equal
@@ -33,18 +43,20 @@
 %token Rbrack
 %token If
 %token Then
+%token Elseif
 %token Else
+%token End
 %token Eof
 %token External
 %token Fun
-%token Fn
 %token Type
 %token Quote
 %token Pipe_tail
 %token Do
-%token In
 %token Mutable
 
+%nonassoc Unit
+%nonassoc Parens
 %nonassoc Less
 %left Plus
 %left Mult
@@ -79,38 +91,47 @@ prog: list(preface_item); block; Eof
   | boption(Mutable); Identifier; type_expr { $1, $2, $3 }
 
 block:
-  | list(stmt) { ($loc, $1) }
+  | list(stmt); /*loption(In; expr)*/ { ($loc, $1) }
 
 exprblock:
   | expr { $loc, [Expr ($sloc, $1)] }
-  | Do; list(stmt); In; expr { $loc, $2 @ [Expr ($sloc, $4)] }
+  | Do; list(stmt); End { $loc, $2 }
 
 stmt:
   | decl; Equal; exprblock { Let($loc, $1, $3) }
-  | Fun; Identifier; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); Equal; exprblock
-    { Function ($loc, {name = $2; params = $4; return_annot = $6; body = $8}) }
+  | Fun; Identifier; parens(decl); option(return_annot); block; End
+    { Function ($loc, {name = $2; params = $3; return_annot = $4; body = $5}) }
   | expr { Expr ($loc, $1) }
 
 expr:
   | Identifier { Var($loc, $1) }
-  | Int { Lit($loc, Int $1) }
-  | bool { Lit($loc, Bool  $1) }
-  | String_lit { Lit($loc, String $1) }
-  | vector_lit { Lit($loc, Vector $1) }
-  | Lpar; Rpar { Lit($loc, Unit) }
+  | lit { $1 }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
-  | If; expr; Then; block; Else; exprblock { If($loc, $2, $4, $6) }
-  | Fn; Lpar; separated_list(Comma, decl); Rpar; option(return_annot); exprblock
-    { Lambda($loc, $3, $5, $6) }
-  | callable; Lpar; separated_list(Comma, expr); Rpar { App($loc, $1, $3) }
+  | If; expr; Then; block; list(elif); Else; block; End { parse_elseifs $loc $2 $4 $5 $7 }
+  | Fun; parens(decl); option(return_annot); block; End
+    { Lambda($loc, $2, $3, $4) }
+  | callable; parens(expr) { App($loc, $1, $2) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
   | expr; Dot; Identifier; Arrow_left; expr { Field_set ($loc, $1, $3, $5) } /* Copying the first part makes checking for mutability easier */
   | expr; Dot; Identifier { Field ($loc, $1, $3) }
   | expr; Arrow_right; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
 
+%inline lit:
+  | Int { Lit($loc, Int $1) }
+  | bool { Lit($loc, Bool  $1) }
+  | String_lit { Lit($loc, String $1) }
+  | vector_lit { Lit($loc, Vector $1) }
+  | Lpar; Rpar { Lit($loc, Unit) }
+
+%inline elif:
+  | Elseif; expr; Then; block { ($loc, $2, $4) }
+
 %inline record_item:
   | Identifier; Equal; expr { $1, $3 }
+
+let parens(x) :=
+  | Lpar; lst = separated_list(Comma, x); Rpar; { lst }
 
 bool:
   | True { true }

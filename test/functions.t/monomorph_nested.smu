@@ -2,9 +2,10 @@ external printi : int -> unit
 
 type rec = { x : int }
 
-fun wrapped(x) = do
-  fun id(x) = x
-  in id(x)
+fun wrapped(x)
+  fun id(x) x end
+  id(x)
+end
 
 12 -> wrapped -> printi
 false -> wrapped -> ignore

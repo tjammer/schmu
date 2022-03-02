@@ -1,5 +1,5 @@
 a = 10
 
-fun capture_a() = a + 2
+fun capture_a() a + 2 end
 
 capture_a()

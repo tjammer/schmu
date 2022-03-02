@@ -9,9 +9,9 @@ type inner = { a : int }
 
 type foo = { a : int, b : inner }
 
-fun inner() = { a = 3 }
+fun inner() { a = 3 } end
 
-f = fn(x) x
+f = fun(x) x end
 
 a = { a = 0, b = inner() }
 printi(a.b.a)

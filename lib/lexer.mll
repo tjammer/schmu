@@ -37,13 +37,13 @@ rule read =
   | "if"     { If }
   | "then"   { Then }
   | "else"   { Else }
+  | "elseif" { Elseif }
   | "external" { External }
-  | "fn"     { Fn }
   | "fun"    { Fun }
   | "type"   { Type }
   | "do"     { Do }
-  | "in"     { In }
   | "mutable" { Mutable }
+  | "end"    { End }
   | id       { Identifier (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }

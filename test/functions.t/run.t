@@ -281,9 +281,10 @@ First class functions
 We don't allow returning closures
   $ schmu -dump-llvm no_closure_returns.smu
   no_closure_returns.smu:3:1: error: Cannot (yet) return a closure
-  3 | fn () do
-                                                                   4 |   a = fn () a
-                                                                   5 |   in a
+  3 | fun()
+                                                                   4 |   a = fun() a end
+                                                                   5 |   a
+                                                                   6 | end
                                                                    
   [1]
 
@@ -882,8 +883,8 @@ Print error when returning a polymorphic lambda in an if expression
   $ schmu -dump-llvm no_lambda_let_poly_monomorph.smu
   no_lambda_let_poly_monomorph.smu:6:5: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though.
   
-  6 | f = if true then fn (x) x else fn (x) x
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | f = if true then fun(x) x end else fun(x) x end end
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
   [1]
 Allow mixing of typedefs and external decls in the preface

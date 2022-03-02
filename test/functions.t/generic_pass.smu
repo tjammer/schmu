@@ -2,9 +2,9 @@ external printi : int -> unit
 
 type t = { i : int, b : bool }
 
-fun pass(x) = x
+fun pass(x) x end
 
-fun apply(f, x) = f(x)
+fun apply(f, x) f(x) end
 
 -- printi(apply(pass, 20))
 20->>apply(pass) -> printi

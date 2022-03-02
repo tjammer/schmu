@@ -2,11 +2,12 @@ external printi : int -> unit
 
 outer = 10
 
-fun loop(i) =
+fun loop(i)
   -- We capture outer here
   if i < outer then
     printi(i)
     loop(i+1) -- and recurse here
-  else printi(i)
+  else printi(i) end
+end
 
 loop(0)

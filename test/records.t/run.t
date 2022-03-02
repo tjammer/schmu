@@ -399,8 +399,8 @@ Make sure alignment of generic param works
 Parametrization needs to be given, if a type is generic
   $ schmu -dump-llvm missing_parameter.smu && cc out.o stub.o && ./a.out
   missing_parameter.smu:5:1: error: Type t needs a type parameter
-  5 | fn (t : t) t.t
-                                                                      ^^^^^^^^^^^^^^
+  5 | fun (t : t) t.t end
+                                                                      ^^^^^^^^^^^^^^^^^^^
                                                                   
   [1]
 

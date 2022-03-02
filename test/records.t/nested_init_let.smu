@@ -2,15 +2,17 @@ type foo = { x : int }
 type ys = { y : foo, z : int }
 external printi : int -> unit
 
-fun record_with_laters() = do
+fun record_with_laters()
   x = { x = 12 }
-  in { y = x, z = 15 }
+  { y = x, z = 15 }
+end
 
-fun ctrl() = do
+fun ctrl()
   -- control case. Here everything can be created inplace
   ret = { y = { x = 17 }, z = 9 }
   a = { y = { x = 1 }, z = 2 }
-  in ret
+  ret
+end
 
 ys = record_with_laters()
 printi(ys.z)

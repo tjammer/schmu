@@ -1,27 +1,29 @@
 external printi : int -> unit
 
-fun apply(x, f) = f(x)
+fun apply(x, f) f(x) end
 
-fun add1(x) = x + 1
+fun add1(x) x + 1 end
 
 -- We also pass polymorphic functions
-fun pass(x) = x
+fun pass(x) x end
 
 -- ...and a lambda
-pass2 = fn (x) x
+pass2 = fun(x) x end
 
-fun makefalse(b) =
+fun makefalse(b)
   if b then false
-  else b
+  else b end
+end
 
-fun int_of_bool(b) =
-  if b then 1 else 0
+fun int_of_bool(b)
+  if b then 1 else 0 end
+end
 
 -- TODO polymorphic recursion example
 
 apply(0, add1) -> printi
-apply(1, fn (x) x + 1) -> printi
+apply(1, fun(x) x + 1 end) -> printi
 true -> apply(makefalse) -> int_of_bool -> printi
-printi(apply(3, fn (x) x)) -- Should be inferred with concrete type
+printi(apply(3, fun(x) x end)) -- Should be inferred with concrete type
 printi(apply(4, pass))
 -- printi(apply(5, pass2))

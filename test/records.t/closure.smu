@@ -4,9 +4,10 @@ type foo = { x : int, y : int }
 
 foo = { x = 12, y = 14 }
 
-fun print_foo() = do
+fun print_foo()
   -- we close over foo
   printi(foo.x)
-  in printi(foo.y)
+  printi(foo.y)
+end
 
 print_foo()

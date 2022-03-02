@@ -2,42 +2,51 @@ type cstr = ptr(u8)
 type vector('a) = { mutable data : ptr('a), mutable length : int, mutable capacity : int }
 external printi : int -> unit
 
-fun vector_push(vec, val) =
+fun vector_push(vec, val)
   if vec.length < vec.capacity then
     __unsafe_ptr_set(vec.data, vec.length, val)
     vec.length <- vec.length + 1
-  else do
+  else
     cap = vec.capacity * 2
     vec.data <- __realloc(vec.data, cap)
     vec.capacity <- cap
     __unsafe_ptr_set(vec.data, vec.length, val)
-    in vec.length <- vec.length + 1
+    vec.length <- vec.length + 1
+  end
+end
 
-fun vector_iter(vec, f) = do
-  fun inner_cls_both(i) =
+fun vector_iter(vec, f)
+  fun inner_cls_both(i)
     if i == vec.length then
       ()
-    else do
+    else
       f(__unsafe_ptr_get(vec.data, i))
-      in inner_cls_both(i+1)
+      inner_cls_both(i+1)
+    end
+  end
 
-  fun inner_cls_vec(i, f) =
+  fun inner_cls_vec(i, f)
     if i == vec.length then
       ()
-    else do
+    else
       f(__unsafe_ptr_get(vec.data, i))
-      in inner_cls_vec(i+1, f)
+      inner_cls_vec(i+1, f)
+    end
+  end
 
-  fun inner_cls_f(i, vec) =
+  fun inner_cls_f(i, vec)
     if i == vec.length then
       ()
-    else do
+    else
       f(__unsafe_ptr_get(vec.data, i))
-      in inner_cls_f(i+1, vec)
+      inner_cls_f(i+1, vec)
+    end
+  end
 
   inner_cls_both(0)
   inner_cls_vec(0, f)
-  in inner_cls_f(0, vec)
+  inner_cls_f(0, vec)
+end
 
 
 vec = []
@@ -50,4 +59,4 @@ vector_push(vec, 5)
 -- vec.data -> __unsafe_ptr_get(4) -> printi
 
 
-vector_iter(vec, fn(x) printi(x*2))
+vector_iter(vec, fun(x) printi(x*2) end)
