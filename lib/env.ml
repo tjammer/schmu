@@ -142,9 +142,14 @@ let find_val_opt key env =
   aux env.values
 
 let query_val_opt key env =
-  let cls = List.hd env.values |> snd in
-  (* Add str to closure *)
-  let add str = cls := Set.add str !cls in
+  (* Add str to closures, up to the level where the value originates from *)
+  let rec add lvl str values =
+    match values with
+    | (_, closed_vars) :: tl when lvl > 0 ->
+        closed_vars := Set.add str !closed_vars;
+        add (lvl - 1) str tl
+    | _ -> ()
+  in
 
   let rec aux closed = function
     | [] -> None
@@ -152,7 +157,10 @@ let query_val_opt key env =
         match Map.find_opt key hd with
         | None -> aux (closed + 1) tl
         | Some { typ; is_param = _ } ->
-            (match closed with 0 -> () | _ -> add (Type_key.create key));
+            (* If something is closed over, add to all env above (if closed > 0) *)
+            (match closed with
+            | 0 -> ()
+            | _ -> add closed (Type_key.create key) env.values);
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
             maybe_add_record_instance (env.print_fn typ) typ env;
