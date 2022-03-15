@@ -653,7 +653,8 @@ and morph_lambda typ p id abs =
 
   (match abs.tp.ret with Trecord _ -> set_alloca var.alloc | _ -> ());
 
-  (* Why do we need this again in lambda? They can't recurse. TODO answer *)
+  (* Why do we need this again in lambda? They can't recurse. *)
+  (* But functions on the lambda body might *)
   ignore (pop_recursion_stack ());
 
   let abs = { func; pnames; body } in

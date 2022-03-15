@@ -768,7 +768,7 @@ and gen_app param callee args allocref ret_t malloc =
     | Tunit ->
         failwith
           "Internal Error: Probably cannot find monomorphized function in \
-           tailrec"
+           gen_app"
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
