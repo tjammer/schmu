@@ -136,6 +136,51 @@ We have downwards closures
   
   %closure = type { i8*, i8* }
   
+  define private i32 @capture_a_wrapped(i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { i32 }*
+    %a5 = bitcast { i32 }* %clsr to i32*
+    %a1 = load i32, i32* %a5, align 4
+    %wrap = alloca %closure, align 8
+    %funptr6 = bitcast %closure* %wrap to i8**
+    store i8* bitcast (i32 (i8*)* @wrap to i8*), i8** %funptr6, align 8
+    %clsr_wrap = alloca { i32 }, align 8
+    %a27 = bitcast { i32 }* %clsr_wrap to i32*
+    store i32 %a1, i32* %a27, align 4
+    %env = bitcast { i32 }* %clsr_wrap to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %wrap, i32 0, i32 1
+    store i8* %env, i8** %envptr, align 8
+    %1 = call i32 @wrap(i8* %env)
+    ret i32 %1
+  }
+  
+  define private i32 @wrap(i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { i32 }*
+    %a5 = bitcast { i32 }* %clsr to i32*
+    %a1 = load i32, i32* %a5, align 4
+    %inner = alloca %closure, align 8
+    %funptr6 = bitcast %closure* %inner to i8**
+    store i8* bitcast (i32 (i8*)* @inner to i8*), i8** %funptr6, align 8
+    %clsr_inner = alloca { i32 }, align 8
+    %a27 = bitcast { i32 }* %clsr_inner to i32*
+    store i32 %a1, i32* %a27, align 4
+    %env = bitcast { i32 }* %clsr_inner to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %inner, i32 0, i32 1
+    store i8* %env, i8** %envptr, align 8
+    %1 = call i32 @inner(i8* %env)
+    ret i32 %1
+  }
+  
+  define private i32 @inner(i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { i32 }*
+    %a2 = bitcast { i32 }* %clsr to i32*
+    %a1 = load i32, i32* %a2, align 4
+    %addtmp = add i32 %a1, 2
+    ret i32 %addtmp
+  }
+  
   define private i32 @capture_a(i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i32 }*
@@ -148,16 +193,26 @@ We have downwards closures
   define i32 @main(i32 %arg) {
   entry:
     %capture_a = alloca %closure, align 8
-    %funptr3 = bitcast %closure* %capture_a to i8**
-    store i8* bitcast (i32 (i8*)* @capture_a to i8*), i8** %funptr3, align 8
+    %funptr12 = bitcast %closure* %capture_a to i8**
+    store i8* bitcast (i32 (i8*)* @capture_a to i8*), i8** %funptr12, align 8
     %clsr_capture_a = alloca { i32 }, align 8
-    %a4 = bitcast { i32 }* %clsr_capture_a to i32*
-    store i32 10, i32* %a4, align 4
+    %a13 = bitcast { i32 }* %clsr_capture_a to i32*
+    store i32 10, i32* %a13, align 4
     %env = bitcast { i32 }* %clsr_capture_a to i8*
     %envptr = getelementptr inbounds %closure, %closure* %capture_a, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
+    %capture_a_wrapped = alloca %closure, align 8
+    %funptr114 = bitcast %closure* %capture_a_wrapped to i8**
+    store i8* bitcast (i32 (i8*)* @capture_a_wrapped to i8*), i8** %funptr114, align 8
+    %clsr_capture_a_wrapped = alloca { i32 }, align 8
+    %a215 = bitcast { i32 }* %clsr_capture_a_wrapped to i32*
+    store i32 10, i32* %a215, align 4
+    %env3 = bitcast { i32 }* %clsr_capture_a_wrapped to i8*
+    %envptr4 = getelementptr inbounds %closure, %closure* %capture_a_wrapped, i32 0, i32 1
+    store i8* %env3, i8** %envptr4, align 8
     %0 = call i32 @capture_a(i8* %env)
-    ret i32 %0
+    %1 = call i32 @capture_a_wrapped(i8* %env3)
+    ret i32 %1
   }
   [12]
 
