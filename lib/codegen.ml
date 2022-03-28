@@ -229,6 +229,7 @@ let realloc ptr ~size =
   in
   Llvm.build_bitcast ret (Llvm.type_of ptr) "" builder
 
+(* Frees a single pointer *)
 let free ptr =
   let free_decl =
     lazy
@@ -241,6 +242,7 @@ let free ptr =
 
   Llvm.build_call (Lazy.force free_decl) [| ptr |] "" builder
 
+(* Recursively frees a record (which can contain vector and other records) *)
 let rec free_value value = function
   | Trecord (Some t, name, _) when String.equal name "vector" ->
       (* Free nested vectors *)
