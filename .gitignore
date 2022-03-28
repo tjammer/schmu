@@ -3,3 +3,6 @@ _build
 *.install
 *.o
 a.out
+_opam
+.envrc
+shell.nix
