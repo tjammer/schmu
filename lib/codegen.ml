@@ -82,28 +82,48 @@ let rec record_name = function
       Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)
   | t -> string_of_type t
 
-let rec get_lltype ?(param = true) ?(field = false) = function
-  (* For functions, when passed as parameter, we convert it to a closure ptr
-     to later cast to the correct types. At the application, we need to
-     get the correct type though to cast it back. All this is handled by [param]. *)
+(* For functions, when passed as parameter, we convert it to a closure ptr
+   to later cast to the correct types. At the application, we need to
+   get the correct type though to cast it back. *)
+
+let rec get_lltype_def = function
   | Tint -> int_t
   | Tbool -> bool_t
   | Tu8 -> u8_t
   | Tunit -> unit_t
-  | Tfun (params, ret, kind) ->
-      typeof_func ~param ~field ~decl:false (params, ret, kind)
+  | Tpoly _ -> generic_t |> Llvm.pointer_type
   | Trecord _ as t -> (
       let name = record_name t in
       match Strtbl.find_opt record_tbl name with
-      | Some t -> if param then t |> Llvm.pointer_type else t
+      | Some t -> t
       | None ->
-          failwith (Printf.sprintf "Record struct not found for type %s" name))
-  | Tpoly _ -> generic_t |> Llvm.pointer_type
-  | Tptr t -> get_lltype ~param:false ~field t |> Llvm.pointer_type
+          failwith
+            (Printf.sprintf "Record struct not found for type %s (def)" name))
+  | Tfun (params, ret, kind) ->
+      typeof_func ~param:false ~field:false ~decl:false (params, ret, kind)
+  | Tptr t -> get_lltype_def t |> Llvm.pointer_type
+
+and get_lltype_param = function
+  | (Tint | Tbool | Tu8 | Tunit | Tpoly _ | Tptr _) as t -> get_lltype_def t
+  | Tfun (params, ret, kind) ->
+      typeof_func ~param:true ~decl:false (params, ret, kind)
+  | Trecord _ as t -> (
+      let name = record_name t in
+      match Strtbl.find_opt record_tbl name with
+      | Some t -> t |> Llvm.pointer_type
+      | None ->
+          failwith
+            (Printf.sprintf "Record struct not found for type %s (param)" name))
+
+and get_lltype_field = function
+  | (Tint | Tbool | Tu8 | Tunit | Tpoly _ | Tptr _ | Trecord _) as t ->
+      get_lltype_def t
+  | Tfun (params, ret, kind) ->
+      typeof_func ~param:false ~field:true ~decl:false (params, ret, kind)
 
 (* LLVM type of closure struct and records *)
 and typeof_aggregate agg =
-  Array.map (fun (_, typ) -> get_lltype ~param:false ~field:true typ) agg
+  Array.map (fun (_, typ) -> get_lltype_field typ) agg
   |> Llvm.struct_type context
 
 and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
@@ -116,8 +136,8 @@ and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
     let prefix, ret_t =
       match ret with
       | (Trecord _ as t) | (Tpoly _ as t) ->
-          (Seq.return (get_lltype ~param:true t), unit_t)
-      | t -> (Seq.empty, get_lltype ~param t)
+          (Seq.return (get_lltype_param t), unit_t)
+      | t -> (Seq.empty, get_lltype_param t)
     in
 
     let suffix =
@@ -128,7 +148,7 @@ and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
     in
     let params_t =
       (* For the params, we want to produce the param type, hence ~param:true *)
-      List.to_seq params |> Seq.map (get_lltype ~param:true) |> fun seq ->
+      List.to_seq params |> Seq.map get_lltype_param |> fun seq ->
       prefix ++ seq ++ suffix |> Array.of_seq
     in
     let ft = Llvm.function_type ret_t params_t in
@@ -416,7 +436,7 @@ let add_closure vars func = function
               match typ with
               | Trecord _ ->
                   (* For records we want a ptr so that gep and memcpy work *)
-                  (item_ptr, get_lltype typ)
+                  (item_ptr, get_lltype_param typ)
               | _ ->
                   let value = Llvm.build_load item_ptr name builder in
                   (value, Llvm.type_of value)
@@ -468,7 +488,7 @@ let add_params vars f fname names types start_index recursive =
   let alloca_copy src =
     match src.typ with
     | Trecord _ as r ->
-        let typ = get_lltype ~param:false r in
+        let typ = get_lltype_def r in
         let dst = Llvm.build_alloca typ "" builder in
         store_alloca ~src ~dst;
         dst
@@ -480,7 +500,7 @@ let add_params vars f fname names types start_index recursive =
     | Tptr _ -> failwith "TODO"
     | t ->
         (* Simple type *)
-        let typ = get_lltype ~param:false t in
+        let typ = get_lltype_def t in
         let dst = Llvm.build_alloca typ "" builder in
         store_alloca ~src ~dst;
         dst
@@ -789,7 +809,7 @@ and gen_app param callee args allocref ret_t malloc =
          then get env ptr (as voidptr) from the second field and pass it as last argument *)
       let funcp = Llvm.build_struct_gep func.value 0 "funcptr" builder in
       let funcp = Llvm.build_load funcp "loadtmp" builder in
-      let typ = get_lltype ~param:false func.typ |> Llvm.pointer_type in
+      let typ = get_lltype_def func.typ |> Llvm.pointer_type in
       let funcp = Llvm.build_bitcast funcp typ "casttmp" builder in
 
       let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
@@ -818,7 +838,7 @@ and gen_app param callee args allocref ret_t malloc =
   let value, lltyp, call =
     match ret_t with
     | Trecord _ ->
-        let lltyp = get_lltype ~param:false ret_t in
+        let lltyp = get_lltype_def ret_t in
         let retval = get_prealloc !allocref param lltyp "ret" in
         let ret' = Seq.return retval in
         let args = ret' ++ args ++ envarg |> Array.of_seq in
@@ -827,7 +847,7 @@ and gen_app param callee args allocref ret_t malloc =
     | t ->
         let args = args ++ envarg |> Array.of_seq in
         let retval = Llvm.build_call funcval args "" builder in
-        (retval, get_lltype t, retval)
+        (retval, get_lltype_param t, retval)
   in
 
   ignore call;
@@ -867,9 +887,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
   ignore (List.fold_left handle_arg start_index args);
 
   let lltyp =
-    match ret with
-    | Trecord _ -> get_lltype ~param:false ret_t
-    | t -> get_lltype t
+    match ret with Trecord _ -> get_lltype_def ret_t | t -> get_lltype_param t
   in
 
   let value = Llvm.build_br rec_block.rec_ builder in
@@ -989,7 +1007,7 @@ and gen_if param expr return =
   llvar
 
 and codegen_record param typ labels allocref =
-  let lltyp = get_lltype ~param:false ~field:true typ in
+  let lltyp = get_lltype_field typ in
 
   let record = get_prealloc !allocref param lltyp "" in
 
@@ -1068,7 +1086,7 @@ and codegen_vector_lit param id es typ allocref =
         1
     | es -> List.length es
   in
-  let ptr_typ = get_lltype ~param:false item_typ |> Llvm.pointer_type in
+  let ptr_typ = get_lltype_def item_typ |> Llvm.pointer_type in
   let ptr =
     malloc ~size:(cap * item_size |> Llvm.const_int int_t) |> fun ptr ->
     Llvm.build_bitcast ptr ptr_typ "" builder
