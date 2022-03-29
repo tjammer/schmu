@@ -101,7 +101,7 @@ let rec get_lltype_def = function
           failwith
             (Printf.sprintf "Record struct not found for type %s (def)" name))
   | Tfun (params, ret, kind) ->
-      typeof_func ~param:false ~field:false ~decl:false (params, ret, kind)
+      typeof_func ~param:false ~decl:false (params, ret, kind)
   | Tptr t -> get_lltype_def t |> Llvm.pointer_type
 
 and get_lltype_param = function
@@ -120,15 +120,16 @@ and get_lltype_field = function
   | (Tint | Tbool | Tu8 | Tunit | Tpoly _ | Tptr _ | Trecord _) as t ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
-      typeof_func ~param:false ~field:true ~decl:false (params, ret, kind)
+      (* Not really a paramater, but is treated equally (ptr to closure struct) *)
+      typeof_func ~param:true ~decl:false (params, ret, kind)
 
 (* LLVM type of closure struct and records *)
 and typeof_aggregate agg =
   Array.map (fun (_, typ) -> get_lltype_field typ) agg
   |> Llvm.struct_type context
 
-and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
-  if param || field then closure_t |> Llvm.pointer_type
+and typeof_func ~param ~decl (params, ret, kind) =
+  if param then closure_t |> Llvm.pointer_type
   else
     (* When [get_lltype] is called on a function, we handle the dynamic case where
        a function or closure is being passed to another function.
@@ -136,6 +137,7 @@ and typeof_func ~param ?(field = false) ~decl (params, ret, kind) =
        pass it as first argument to the function *)
     let prefix, ret_t =
       match ret with
+      (* TODO record *)
       | (Trecord _ as t) | (Tpoly _ as t) ->
           (Seq.return (get_lltype_param t), unit_t)
       | t -> (Seq.empty, get_lltype_param t)
@@ -167,6 +169,7 @@ let to_named_records = function
 
       if Strtbl.mem record_tbl name then
         failwith "Internal Error: Type shadowing not supported in codegen TODO";
+
       Strtbl.add record_tbl name t
   | _ -> failwith "Internal Error: Only records should be here"
 
@@ -347,6 +350,7 @@ let gen_closure_obj assoc func vars name =
     let src = Vars.find name vars in
     let dst = Llvm.build_struct_gep clsr_ptr i name builder in
     (match typ with
+    (* TODO record need to make a record out of ints? *)
     | Trecord _ ->
         (* For records, we just memcpy
            TODO don't use types here, but type kinds*)
@@ -395,6 +399,7 @@ let add_closure vars func = function
             let item_ptr = Llvm.build_struct_gep clsr_ptr i name builder in
             let value, lltyp =
               match typ with
+              (* No need for C interop with closures *)
               | Trecord _ ->
                   (* For records we want a ptr so that gep and memcpy work *)
                   (item_ptr, get_lltype_param typ)
@@ -434,6 +439,7 @@ let get_prealloc allocref param lltyp str =
    In case the function is tailrecursive, it allocas each parameter in
    the entry block and creates a recursion block which starts off by loading
    each parameter. *)
+(* TODO record case needs to be considered here *)
 let add_params vars f fname names types start_index recursive =
   let add_simple () =
     (* We simply add to env, no special handling due to tailrecursion *)
@@ -534,7 +540,9 @@ let pass_function vars llvar kind =
       llvar
 
 let func_to_closure vars llvar =
-  (* TODO somewhere we don't convert into closure correctly *)
+  (* TODO somewhere we don't convert into closure correctly.
+     It happens at function that are annotated. There, every function comes
+     out as 'Simple' *)
   if Llvm.type_of llvar.value = (closure_t |> Llvm.pointer_type) then llvar
   else
     match llvar.typ with
@@ -560,6 +568,7 @@ let get_mono_func func param = function
 
 let fun_return name ret =
   match ret.typ with
+  (* TODO record *)
   | Trecord _ -> Llvm.build_ret_void builder
   | Tpoly id when String.equal id "tail" ->
       (* This magic id is used to mark a tailrecursive call *)
@@ -582,6 +591,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
 
       let start_index, alloca =
         match ret_t with
+        (* TODO record *)
         | Trecord _ ->
             Llvm.(add_function_attr func.value sret_attrib (AttrIndex.Param 0));
             (1, Some (Llvm.params func.value).(0))
@@ -606,6 +616,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         (* If we want to return a struct, we copy the struct to
             its ptr (1st parameter) and return void *)
         match ret.typ with
+        (* TODO record *)
         | Trecord _ ->
             (* Since we only have POD records, we can safely memcpy here *)
             let dst = Llvm.(params func.value).(0) in
@@ -799,6 +810,7 @@ and gen_app param callee args allocref ret_t malloc =
 
   let value, lltyp, call =
     match ret_t with
+    (* TODO record *)
     | Trecord _ ->
         let lltyp = get_lltype_def ret_t in
         let retval = get_prealloc !allocref param lltyp "ret" in
@@ -827,6 +839,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
 
   let start_index, ret =
     match func.typ with
+    (* TODO record *)
     | Tfun (_, (Trecord _ as r), _) -> (1, r)
     | Tfun (_, ret, _) -> (0, ret)
     | Tunit ->
@@ -849,6 +862,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
   ignore (List.fold_left handle_arg start_index args);
 
   let lltyp =
+    (* TODO record *)
     match ret with Trecord _ -> get_lltype_def ret_t | t -> get_lltype_param t
   in
 
