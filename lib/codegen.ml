@@ -28,6 +28,8 @@ type param = {
   rec_block : rec_block option;
 }
 
+type aggregate_param_kind = Boxed | Unboxed
+
 let ( ++ ) = Seq.append
 let record_tbl = Strtbl.create 32
 let ptr_tbl = Ptrtbl.create 32
@@ -82,10 +84,80 @@ let rec record_name = function
       Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)
   | t -> string_of_type t
 
-(* For functions, when passed as parameter, we convert it to a closure ptr
+(*
+   Size and alignment.
+*)
+
+type size_pr = { size : int; align : int }
+
+let alignup ~size ~upto =
+  let modulo = size mod upto in
+  if Int.equal modulo 0 then (* We are aligned *)
+    size else size + (upto - modulo)
+
+let add_size_align ~upto ~sz { size; align } =
+  let size = alignup ~size ~upto + sz in
+  let align = max align upto in
+  { size; align }
+
+(* Returns the size in bytes *)
+let sizeof_typ typ =
+  let rec inner size_pr typ =
+    match typ with
+    | Tint -> add_size_align ~upto:4 ~sz:4 size_pr
+    | Tbool | Tu8 ->
+        (* No need to align one byte *)
+        { size_pr with size = size_pr.size + 1 }
+    | Tunit -> failwith "Does this make sense?"
+    | Tfun _ ->
+        (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
+        add_size_align ~upto:8 ~sz:8 size_pr
+    | Trecord (_, _, labels) ->
+        Array.fold_left (fun pr (f : field) -> inner pr f.typ) size_pr labels
+    | Tpoly _ ->
+        Llvm.dump_module the_module;
+        failwith "too generic for a size"
+    | Tptr _ ->
+        (* TODO pass in triple. Until then, assume 64bit *)
+        add_size_align ~upto:8 ~sz:8 size_pr
+  in
+  let { size; align = upto } = inner { size = 0; align = 1 } typ in
+  alignup ~size ~upto
+
+let llval_of_size size = Llvm.const_int num_t size
+
+(*
+   ABI handling
+*)
+
+let rec is_mutable = function
+  | Trecord (_, _, fields) ->
+      Array.fold_left
+        (fun acc field -> field.mut || is_mutable field.typ || acc)
+        false fields
+  | _ -> false
+
+let kind_of_size = function
+  | 1 | 2 | 3 | 4 -> Boxed (* First of all easy case *)
+  | 700030 -> Unboxed
+  | _ -> Boxed
+
+let pkind_of_typ typ =
+  (* TODO maybe cache this? *)
+  let size = sizeof_typ typ in
+  match typ with
+  | Trecord _ when not (is_mutable typ) -> kind_of_size size
+  | _ -> Boxed
+
+let box_record _ value = value
+(* From int to record *)
+
+let unbox_record _ value = value
+(* From record to int *)
+
+(** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to
    get the correct type though to cast it back. *)
-
 let rec get_lltype_def = function
   | Tint -> int_t
   | Tbool -> bool_t
@@ -136,9 +208,11 @@ and typeof_func ~param ~decl (params, ret, kind) =
        pass it as first argument to the function *)
     let prefix, ret_t =
       match ret with
-      (* TODO record *)
-      | (Trecord _ as t) | (Tpoly _ as t) ->
-          (Seq.return (get_lltype_param t), unit_t)
+      | Trecord _ as t -> (
+          match pkind_of_typ t with
+          | Boxed -> (Seq.return (get_lltype_param t), unit_t)
+          | Unboxed -> failwith "TODO ret unboxing")
+      | Tpoly _ as t -> (Seq.return (get_lltype_param t), unit_t)
       | t -> (Seq.empty, get_lltype_param t)
     in
 
@@ -171,48 +245,6 @@ let to_named_records = function
 
       Strtbl.add record_tbl name t
   | _ -> failwith "Internal Error: Only records should be here"
-
-(*
-   Size and alignment.
-*)
-
-type size_pr = { size : int; align : int }
-
-let alignup ~size ~upto =
-  let modulo = size mod upto in
-  if Int.equal modulo 0 then (* We are aligned *)
-    size else size + (upto - modulo)
-
-let add_size_align ~upto ~sz { size; align } =
-  let size = alignup ~size ~upto + sz in
-  let align = max align upto in
-  { size; align }
-
-(* Returns the size in bytes *)
-let sizeof_typ typ =
-  let rec inner size_pr typ =
-    match typ with
-    | Tint -> add_size_align ~upto:4 ~sz:4 size_pr
-    | Tbool | Tu8 ->
-        (* No need to align one byte *)
-        { size_pr with size = size_pr.size + 1 }
-    | Tunit -> failwith "Does this make sense?"
-    | Tfun _ ->
-        (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
-        add_size_align ~upto:8 ~sz:8 size_pr
-    | Trecord (_, _, labels) ->
-        Array.fold_left (fun pr (f : field) -> inner pr f.typ) size_pr labels
-    | Tpoly _ ->
-        Llvm.dump_module the_module;
-        failwith "too generic for a size"
-    | Tptr _ ->
-        (* TODO pass in triple. Until then, assume 64bit *)
-        add_size_align ~upto:8 ~sz:8 size_pr
-  in
-  let { size; align = upto } = inner { size = 0; align = 1 } typ in
-  alignup ~size ~upto
-
-let llval_of_size size = Llvm.const_int num_t size
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src ~size =
@@ -389,7 +421,6 @@ let gen_closure_obj assoc func vars name =
     let src = Vars.find name vars in
     let dst = Llvm.build_struct_gep clsr_ptr i name builder in
     (match typ with
-    (* TODO record need to make a record out of ints? *)
     | Trecord _ ->
         (* For records, we just memcpy
            TODO don't use types here, but type kinds*)
@@ -477,13 +508,12 @@ let get_prealloc allocref param lltyp str =
    In case the function is tailrecursive, it allocas each parameter in
    the entry block and creates a recursion block which starts off by loading
    each parameter. *)
-(* TODO record case needs to be considered here *)
 let add_params vars f fname names types start_index recursive =
   let add_simple () =
     (* We simply add to env, no special handling due to tailrecursion *)
     List.fold_left2
       (fun (env, i) name typ ->
-        let value = (Llvm.params f.value).(i) in
+        let value = (Llvm.params f.value).(i) |> box_record typ in
         let param = { value; typ; lltyp = Llvm.type_of value } in
         Llvm.set_value_name name value;
         (Vars.add name param env, i + 1))
@@ -539,7 +569,7 @@ let add_params vars f fname names types start_index recursive =
       let vars =
         List.fold_left2
           (fun (env, i) name typ ->
-            let value = (Llvm.params f.value).(i) in
+            let value = (Llvm.params f.value).(i) |> box_record typ in
             Llvm.set_value_name name value;
             let value = { value; typ; lltyp = Llvm.type_of value } in
             let alloc = { value with value = alloca_copy value } in
@@ -606,8 +636,10 @@ let get_mono_func func param = function
 
 let fun_return name ret =
   match ret.typ with
-  (* TODO record *)
-  | Trecord _ -> Llvm.build_ret_void builder
+  | Trecord _ as t -> (
+      match pkind_of_typ t with
+      | Boxed -> (* Default record case *) Llvm.build_ret_void builder
+      | Unboxed -> unbox_record t ret.value)
   | Tpoly id when String.equal id "tail" ->
       (* This magic id is used to mark a tailrecursive call *)
       Llvm.build_ret_void builder
@@ -629,10 +661,13 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
 
       let start_index, alloca =
         match ret_t with
-        (* TODO record *)
-        | Trecord _ ->
-            Llvm.(add_function_attr func.value sret_attrib (AttrIndex.Param 0));
-            (1, Some (Llvm.params func.value).(0))
+        | Trecord _ as t -> (
+            match pkind_of_typ t with
+            | Boxed ->
+                Llvm.(
+                  add_function_attr func.value sret_attrib (AttrIndex.Param 0));
+                (1, Some (Llvm.params func.value).(0))
+            | Unboxed -> (* Record is returned as int *) (0, None))
         | Tpoly _ -> failwith "poly var should not be returned"
         | _ -> (0, None)
       in
@@ -654,14 +689,16 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         (* If we want to return a struct, we copy the struct to
             its ptr (1st parameter) and return void *)
         match ret.typ with
-        (* TODO record *)
-        | Trecord _ ->
-            (* Since we only have POD records, we can safely memcpy here *)
-            let dst = Llvm.(params func.value).(0) in
-            if ret.value <> dst then
-              let size = sizeof_typ ret_t |> llval_of_size in
-              memcpy ~dst ~src:ret ~size
-            else ()
+        | Trecord _ as t -> (
+            match pkind_of_typ t with
+            | Boxed ->
+                (* Since we only have POD records, we can safely memcpy here *)
+                let dst = Llvm.(params func.value).(0) in
+                if ret.value <> dst then
+                  let size = sizeof_typ ret_t |> llval_of_size in
+                  memcpy ~dst ~src:ret ~size
+                else ()
+            | Unboxed -> (* Is returned as int not preallocated *) ())
         | _ -> ()
       in
 
@@ -846,23 +883,32 @@ and gen_app param callee args allocref ret_t malloc =
               failwith "Internal Error: Not a recursive closure application")
   in
 
-  let value, lltyp, call =
+  let value, lltyp =
     match ret_t with
-    (* TODO record *)
-    | Trecord _ ->
+    | Trecord _ as t -> (
         let lltyp = get_lltype_def ret_t in
-        let retval = get_prealloc !allocref param lltyp "ret" in
-        let ret' = Seq.return retval in
-        let args = ret' ++ args ++ envarg |> Array.of_seq in
-        let call = Llvm.build_call funcval args "" builder in
-        (retval, lltyp, call)
+        match pkind_of_typ t with
+        | Boxed ->
+            let retval = get_prealloc !allocref param lltyp "ret" in
+            let ret' = Seq.return retval in
+            let args = ret' ++ args ++ envarg |> Array.of_seq in
+            ignore (Llvm.build_call funcval args "" builder);
+            (retval, lltyp)
+        | Unboxed ->
+            (* Boxed representation *)
+            let retval = get_prealloc !allocref param lltyp "ret" in
+            let args = args ++ envarg |> Array.of_seq in
+            (* Unboxed representation *)
+            let tempval = Llvm.build_call funcval args "" builder in
+            let ret = box_record t tempval in
+            ignore retval;
+            (* TODO use prealloc *)
+            (ret, lltyp))
     | t ->
         let args = args ++ envarg |> Array.of_seq in
         let retval = Llvm.build_call funcval args "" builder in
-        (retval, get_lltype_param t, retval)
+        (retval, get_lltype_param t)
   in
-
-  ignore call;
 
   (* For freeing propagated mallocs *)
   (match malloc with
@@ -877,8 +923,8 @@ and gen_app_tailrec param callee args rec_block ret_t =
 
   let start_index, ret =
     match func.typ with
-    (* TODO record *)
-    | Tfun (_, (Trecord _ as r), _) -> (1, r)
+    | Tfun (_, (Trecord _ as r), _) ->
+        ((match pkind_of_typ r with Boxed -> 1 | Unboxed -> 0), r)
     | Tfun (_, ret, _) -> (0, ret)
     | Tunit ->
         failwith "Internal Error: Probably cannot find monomorphized function"
