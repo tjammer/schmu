@@ -1,5 +1,4 @@
 open Cleaned_types
-module Utils = Codegen_utils
 module Vars = Map.Make (String)
 module Set = Set.Make (String)
 
@@ -173,6 +172,46 @@ let to_named_records = function
       Strtbl.add record_tbl name t
   | _ -> failwith "Internal Error: Only records should be here"
 
+(*
+   Size and alignment.
+*)
+
+type size_pr = { size : int; align : int }
+
+let alignup ~size ~upto =
+  let modulo = size mod upto in
+  if Int.equal modulo 0 then (* We are aligned *)
+    size else size + (upto - modulo)
+
+let add_size_align ~upto ~sz { size; align } =
+  let size = alignup ~size ~upto + sz in
+  let align = max align upto in
+  { size; align }
+
+(* Returns the size in bytes *)
+let sizeof_typ typ =
+  let rec inner size_pr typ =
+    match typ with
+    | Tint -> add_size_align ~upto:4 ~sz:4 size_pr
+    | Tbool | Tu8 ->
+        (* No need to align one byte *)
+        { size_pr with size = size_pr.size + 1 }
+    | Tunit -> failwith "Does this make sense?"
+    | Tfun _ ->
+        (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
+        add_size_align ~upto:8 ~sz:8 size_pr
+    | Trecord (_, _, labels) ->
+        Array.fold_left (fun pr (f : field) -> inner pr f.typ) size_pr labels
+    | Tpoly _ ->
+        Llvm.dump_module the_module;
+        failwith "too generic for a size"
+    | Tptr _ ->
+        (* TODO pass in triple. Until then, assume 64bit *)
+        add_size_align ~upto:8 ~sz:8 size_pr
+  in
+  let { size; align = upto } = inner { size = 0; align = 1 } typ in
+  alignup ~size ~upto
+
 let llval_of_size size = Llvm.const_int num_t size
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
@@ -314,7 +353,7 @@ let set_record_field value ptr =
   match value.typ with
   | Trecord _ ->
       if value.value <> ptr then
-        let size = Utils.sizeof_typ value.typ |> llval_of_size in
+        let size = sizeof_typ value.typ |> llval_of_size in
         memcpy ~dst:ptr ~src:value ~size
   | _ -> ignore (Llvm.build_store value.value ptr builder)
 
@@ -354,7 +393,7 @@ let gen_closure_obj assoc func vars name =
     | Trecord _ ->
         (* For records, we just memcpy
            TODO don't use types here, but type kinds*)
-        let size = Utils.sizeof_typ typ |> Llvm.const_int num_t in
+        let size = sizeof_typ typ |> Llvm.const_int num_t in
         memcpy ~src ~dst ~size
     | _ -> ignore (Llvm.build_store src.value dst builder));
     i + 1
@@ -415,9 +454,8 @@ let add_closure vars func = function
 
 let store_alloca ~src ~dst =
   match src.typ with
-  | Trecord _ as r ->
-      memcpy ~dst ~src ~size:(Utils.sizeof_typ r |> llval_of_size)
-  | Tfun _ as f -> memcpy ~dst ~src ~size:(Utils.sizeof_typ f |> llval_of_size)
+  | Trecord _ as r -> memcpy ~dst ~src ~size:(sizeof_typ r |> llval_of_size)
+  | Tfun _ as f -> memcpy ~dst ~src ~size:(sizeof_typ f |> llval_of_size)
   | Tptr _ -> failwith "TODO"
   | _ ->
       (* Simple type *)
@@ -621,7 +659,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
             (* Since we only have POD records, we can safely memcpy here *)
             let dst = Llvm.(params func.value).(0) in
             if ret.value <> dst then
-              let size = Utils.sizeof_typ ret_t |> llval_of_size in
+              let size = sizeof_typ ret_t |> llval_of_size in
               memcpy ~dst ~src:ret ~size
             else ()
         | _ -> ()
@@ -902,7 +940,7 @@ and gen_app_builtin param (b, fnc) args =
   | Realloc ->
       let item_size =
         match fnc.ret with
-        | Tptr t -> Utils.sizeof_typ t |> Llvm.const_int int_t
+        | Tptr t -> sizeof_typ t |> Llvm.const_int int_t
         | _ -> failwith "Internal Error: Nonptr return of alloc"
       in
 
@@ -1054,7 +1092,7 @@ and codegen_vector_lit param id es typ allocref =
         print_endline (show_typ typ);
         failwith "Internal Error: No record in vector"
   in
-  let item_size = Utils.sizeof_typ item_typ in
+  let item_size = sizeof_typ item_typ in
   let cap =
     match es with
     | [] ->
