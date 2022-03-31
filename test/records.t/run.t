@@ -124,29 +124,27 @@ Nested records
     store i32 0, i32* %a4, align 4
     %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     %1 = tail call i32 @inner()
-    %box = alloca i32, align 4
+    %box = bitcast %inner* %b to i32*
     store i32 %1, i32* %box, align 4
-    %box1 = bitcast i32* %box to %inner*
     %2 = bitcast %inner* %b to i8*
-    %3 = bitcast %inner* %box1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 4, i1 false)
-    %4 = bitcast %inner* %b to i32*
-    %5 = load i32, i32* %4, align 4
-    tail call void @printi(i32 %5)
-    %6 = alloca %t_int, align 8
-    %x5 = bitcast %t_int* %6 to i32*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %2, i64 4, i1 false)
+    %3 = bitcast %inner* %b to i32*
+    %4 = load i32, i32* %3, align 4
+    tail call void @printi(i32 %4)
+    %5 = alloca %t_int, align 8
+    %x5 = bitcast %t_int* %5 to i32*
     store i32 17, i32* %x5, align 4
-    %inner = getelementptr inbounds %t_int, %t_int* %6, i32 0, i32 1
+    %inner = getelementptr inbounds %t_int, %t_int* %5, i32 0, i32 1
     %a26 = bitcast %p_inner_innerst_int* %inner to %innerst_int*
     %a37 = bitcast %innerst_int* %a26 to i32*
     store i32 124, i32* %a37, align 4
     %ret = alloca %t_int, align 8
-    call void @__g.g___fun0_ti.ti(%t_int* %ret, %t_int* %6)
-    %7 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
-    %8 = bitcast %p_inner_innerst_int* %7 to %innerst_int*
-    %9 = bitcast %innerst_int* %8 to i32*
-    %10 = load i32, i32* %9, align 4
-    call void @printi(i32 %10)
+    call void @__g.g___fun0_ti.ti(%t_int* %ret, %t_int* %5)
+    %6 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
+    %7 = bitcast %p_inner_innerst_int* %6 to %innerst_int*
+    %8 = bitcast %innerst_int* %7 to i32*
+    %9 = load i32, i32* %8, align 4
+    call void @printi(i32 %9)
     ret i32 0
   }
   

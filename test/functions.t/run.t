@@ -507,7 +507,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_bool, align 8
     %1 = tail call i32 %casttmp(i32 %0, i8* %loadtmp3)
-    %box4 = alloca i32, align 4
+    %box4 = bitcast %t_bool* %ret to i32*
     store i32 %1, i32* %box4, align 4
     ret i32 %1
   }
@@ -523,7 +523,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
     %1 = tail call i32 %casttmp(i32 %0, i8* %loadtmp3)
-    %box4 = alloca i32, align 4
+    %box4 = bitcast %t_int* %ret to i32*
     store i32 %1, i32* %box4, align 4
     ret i32 %1
   }
@@ -635,7 +635,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     store i8* null, i8** %envptr6, align 8
     %ret = alloca %t_int, align 8
     %3 = call i32 @__gg.g.g_apply_titi.ti.ti(i32 20, %closure* %clstmp4)
-    %box = alloca i32, align 4
+    %box = bitcast %t_int* %ret to i32*
     store i32 %3, i32* %box, align 4
     call void @printi(i32 %3)
     %4 = alloca %t_bool, align 8
@@ -650,7 +650,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     store i8* null, i8** %envptr13, align 8
     %ret14 = alloca %t_bool, align 8
     %5 = call i32 @__gg.g.g_apply_tbtb.tb.tb(i32 %unbox10, %closure* %clstmp11)
-    %box15 = alloca i32, align 4
+    %box15 = bitcast %t_bool* %ret14 to i32*
     store i32 %5, i32* %box15, align 4
     %6 = trunc i32 %5 to i8
     %7 = trunc i8 %6 to i1
@@ -667,7 +667,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     store i32 17, i32* %x2034, align 4
     %ret23 = alloca %t_int, align 8
     %10 = call i32 @__g.g___fun0_ti.ti(i32 17)
-    %box24 = alloca i32, align 4
+    %box24 = bitcast %t_int* %ret23 to i32*
     store i32 %10, i32* %box24, align 4
     call void @printi(i32 %10)
     %11 = call i32 @__fun1(i32 18)
@@ -790,7 +790,7 @@ a second function. Instead, the closure struct was being created again and the c
     %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
     %1 = tail call i32 %casttmp(i32 %0, %closure* %env, i8* %loadtmp3)
-    %box4 = alloca i32, align 4
+    %box4 = bitcast %t_int* %ret to i32*
     store i32 %1, i32* %box4, align 4
     ret i32 %1
   }
@@ -822,7 +822,7 @@ a second function. Instead, the closure struct was being created again and the c
     %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
     %1 = tail call i32 %casttmp(i32 %0, %closure* %env, i8* %loadtmp3)
-    %box4 = alloca i32, align 4
+    %box4 = bitcast %t_int* %ret to i32*
     store i32 %1, i32* %box4, align 4
     ret i32 %1
   }
@@ -850,7 +850,7 @@ a second function. Instead, the closure struct was being created again and the c
     store i8* null, i8** %envptr4, align 8
     %ret = alloca %t_int, align 8
     %1 = call i32 @__ggg.gg.g_apply_titii.i.tii.i.ti(i32 15, %closure* %clstmp, %closure* %clstmp2)
-    %box = alloca i32, align 4
+    %box = bitcast %t_int* %ret to i32*
     store i32 %1, i32* %box, align 4
     call void @printi(i32 %1)
     %2 = alloca %t_int, align 8
@@ -868,7 +868,7 @@ a second function. Instead, the closure struct was being created again and the c
     store i8* null, i8** %envptr14, align 8
     %ret15 = alloca %t_int, align 8
     %3 = call i32 @__ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(i32 15, %closure* %clstmp9, %closure* %clstmp12)
-    %box16 = alloca i32, align 4
+    %box16 = bitcast %t_int* %ret15 to i32*
     store i32 %3, i32* %box16, align 4
     call void @printi(i32 %3)
     ret i32 0
@@ -976,7 +976,7 @@ Support monomorphization of nested functions
     store i32 %0, i32* %box, align 4
     %ret = alloca %rec, align 8
     %1 = tail call i32 @__g.g_id_rec.rec(i32 %0)
-    %box3 = alloca i32, align 4
+    %box3 = bitcast %rec* %ret to i32*
     store i32 %1, i32* %box3, align 4
     ret i32 %1
   }
@@ -1020,7 +1020,7 @@ Support monomorphization of nested functions
     store i32 24, i32* %x3, align 4
     %ret = alloca %rec, align 8
     %3 = tail call i32 @__g.g_wrapped_rec.rec(i32 24)
-    %box = alloca i32, align 4
+    %box = bitcast %rec* %ret to i32*
     store i32 %3, i32* %box, align 4
     tail call void @printi(i32 %3)
     ret i32 0

@@ -227,11 +227,16 @@ and typeof_func ~param ~decl (params, ret, kind) =
     let ft = Llvm.function_type ret_t params_t in
     ft
 
-let box_record typ value =
+let box_record typ ?(alloc = None) value =
   (* From int to record *)
   match pkind_of_typ typ with
   | Unboxed ->
-      let intptr = Llvm.build_alloca int_t "box" builder in
+      let intptr =
+        match alloc with
+        | None -> Llvm.build_alloca int_t "box" builder
+        | Some alloc ->
+            Llvm.build_bitcast alloc (Llvm.pointer_type int_t) "box" builder
+      in
       ignore (Llvm.build_store value intptr builder);
       Llvm.build_bitcast intptr
         (get_lltype_def typ |> Llvm.pointer_type)
@@ -921,7 +926,7 @@ and gen_app param callee args allocref ret_t malloc =
             let args = args ++ envarg |> Array.of_seq in
             (* Unboxed representation *)
             let tempval = Llvm.build_call funcval args "" builder in
-            let ret = box_record t tempval in
+            let ret = box_record ~alloc:(Some retval) t tempval in
             ignore retval;
             (* TODO use prealloc *)
             (ret, lltyp))
