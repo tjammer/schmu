@@ -10,12 +10,21 @@ let next_line lexbuf =
     { pos with pos_bol = pos.pos_cnum;
                pos_lnum = pos.pos_lnum + 1
     }
+
+let u8_of_string str =
+  (* TODO handle exceptions *)
+  String.sub str 0 (String.length str - 2)
+    |> int_of_string
+    |> Char.chr
+
 }
 
 let digit = ['0'-'9']
 let alpha = ['a'-'z' 'A'-'Z']
 
+
 let int = digit+
+let u8 = digit+ "u8"
 let id = alpha (alpha|digit|'_')*
 let builtin_id = "__" id
 
@@ -27,6 +36,7 @@ rule read =
   | white    { read lexbuf }
   | newline  { next_line lexbuf; read lexbuf }
   | int      { Int (int_of_string (Lexing.lexeme lexbuf)) }
+  | u8       { U8 (u8_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { True }
   | "false"  { False }
   | '='      { Equal }

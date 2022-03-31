@@ -13,6 +13,7 @@ let test_exn msg src =
 
 let test_const_int () = test "int" "a = 1 a"
 let test_const_bool () = test "bool" "a = true a"
+let test_const_u8 () = test "u8" "a = 123u8 a"
 let test_hint_int () = test "int" "a : int = 1 a"
 let test_func_id () = test "'a -> 'a" "fun(a) a end"
 let test_func_id_hint () = test "int -> int" "fun(a : int) a end"
@@ -278,7 +279,12 @@ let case str test = test_case str `Quick test
 let () =
   run "Typing"
     [
-      ("consts", [ case "int" test_const_int; case "bool" test_const_bool ]);
+      ( "consts",
+        [
+          case "int" test_const_int;
+          case "bool" test_const_bool;
+          case "u8" test_const_u8;
+        ] );
       ("hints", [ case "int" test_hint_int ]);
       ( "funcs",
         [

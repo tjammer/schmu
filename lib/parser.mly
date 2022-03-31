@@ -26,6 +26,7 @@
 %token Dot
 %token <string> Identifier
 %token <int> Int
+%token <char> U8
 %token <string> String_lit
 %token <string> Builtin_id
 %token True
@@ -55,8 +56,6 @@
 %token Do
 %token Mutable
 
-%nonassoc Unit
-%nonassoc Parens
 %nonassoc Less
 %left Plus
 %left Mult
@@ -119,6 +118,7 @@ expr:
 
 %inline lit:
   | Int { Lit($loc, Int $1) }
+  | U8  { Lit($loc, U8 $1) }
   | bool { Lit($loc, Bool  $1) }
   | String_lit { Lit($loc, String $1) }
   | vector_lit { Lit($loc, Vector $1) }
