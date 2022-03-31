@@ -229,29 +229,34 @@ and typeof_func ~param ~decl (params, ret, kind) =
 
 let box_record typ ?(alloc = None) value =
   (* From int to record *)
+  let intptr =
+    match alloc with
+    | None -> Llvm.build_alloca int_t "box" builder
+    | Some alloc ->
+        Llvm.build_bitcast alloc (Llvm.pointer_type int_t) "box" builder
+  in
+  ignore (Llvm.build_store value intptr builder);
+  Llvm.build_bitcast intptr
+    (get_lltype_def typ |> Llvm.pointer_type)
+    "box" builder
+
+(* Checks the param kind before calling [box_record] *)
+let maybe_box_record typ ?(alloc = None) value =
+  (* From int to record *)
   match pkind_of_typ typ with
-  | Unboxed ->
-      let intptr =
-        match alloc with
-        | None -> Llvm.build_alloca int_t "box" builder
-        | Some alloc ->
-            Llvm.build_bitcast alloc (Llvm.pointer_type int_t) "box" builder
-      in
-      ignore (Llvm.build_store value intptr builder);
-      Llvm.build_bitcast intptr
-        (get_lltype_def typ |> Llvm.pointer_type)
-        "box" builder
+  | Unboxed -> box_record typ ~alloc value
   | Boxed -> value
 
-let unbox_record typ value =
+let unbox_record value =
+  let ptr =
+    Llvm.build_bitcast value (Llvm.pointer_type int_t) "unbox" builder
+  in
+  Llvm.build_load ptr "unbox" builder
+
+(* Checks the param kind before calling [unbox_record] *)
+let maybe_unbox_record typ value =
   (* From record to int *)
-  match pkind_of_typ typ with
-  | Unboxed ->
-      let ptr =
-        Llvm.build_bitcast value (Llvm.pointer_type int_t) "unbox" builder
-      in
-      Llvm.build_load ptr "unbox" builder
-  | Boxed -> value
+  match pkind_of_typ typ with Unboxed -> unbox_record value | Boxed -> value
 
 let to_named_records = function
   | Trecord (_, _, labels) as t ->
@@ -536,7 +541,7 @@ let add_params vars f fname names types start_index recursive =
     (* We simply add to env, no special handling due to tailrecursion *)
     List.fold_left2
       (fun (env, i) name typ ->
-        let value = (Llvm.params f.value).(i) |> box_record typ in
+        let value = (Llvm.params f.value).(i) |> maybe_box_record typ in
         let param = { value; typ; lltyp = Llvm.type_of value } in
         Llvm.set_value_name name value;
         (Vars.add name param env, i + 1))
@@ -592,7 +597,7 @@ let add_params vars f fname names types start_index recursive =
       let vars =
         List.fold_left2
           (fun (env, i) name typ ->
-            let value = (Llvm.params f.value).(i) |> box_record typ in
+            let value = (Llvm.params f.value).(i) |> maybe_box_record typ in
             Llvm.set_value_name name value;
             let value = { value; typ; lltyp = Llvm.type_of value } in
             let alloc = { value with value = alloca_copy value } in
@@ -663,7 +668,7 @@ let fun_return name ret =
       match pkind_of_typ t with
       | Boxed -> (* Default record case *) Llvm.build_ret_void builder
       | Unboxed ->
-          let unboxed = unbox_record t ret.value in
+          let unboxed = unbox_record ret.value in
           Llvm.build_ret unboxed builder)
   | Tpoly id when String.equal id "tail" ->
       (* This magic id is used to mark a tailrecursive call *)
@@ -870,7 +875,7 @@ and gen_app param callee args allocref ret_t malloc =
   let handle_arg arg =
     let arg' = gen_expr param Monomorph_tree.(arg.ex) in
     let arg = get_mono_func arg' param arg.monomorph in
-    let arg = { arg with value = unbox_record arg.typ arg.value } in
+    let arg = { arg with value = maybe_unbox_record arg.typ arg.value } in
     (func_to_closure param arg).value
   in
   let args = List.map handle_arg args |> List.to_seq in
