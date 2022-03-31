@@ -106,11 +106,12 @@ Nested records
     ret void
   }
   
-  define private void @inner(%inner* sret %0) {
+  define private i32 @inner() {
   entry:
-    %a1 = bitcast %inner* %0 to i32*
-    store i32 3, i32* %a1, align 4
-    ret void
+    %0 = alloca %inner, align 8
+    %a2 = bitcast %inner* %0 to i32*
+    store i32 3, i32* %a2, align 4
+    ret i32 3
   }
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
@@ -119,27 +120,33 @@ Nested records
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %foo, align 8
-    %a3 = bitcast %foo* %0 to i32*
-    store i32 0, i32* %a3, align 4
+    %a4 = bitcast %foo* %0 to i32*
+    store i32 0, i32* %a4, align 4
     %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
-    call void @inner(%inner* %b)
-    %1 = bitcast %inner* %b to i32*
-    %2 = load i32, i32* %1, align 4
-    call void @printi(i32 %2)
-    %3 = alloca %t_int, align 8
-    %x4 = bitcast %t_int* %3 to i32*
-    store i32 17, i32* %x4, align 4
-    %inner = getelementptr inbounds %t_int, %t_int* %3, i32 0, i32 1
-    %a15 = bitcast %p_inner_innerst_int* %inner to %innerst_int*
-    %a26 = bitcast %innerst_int* %a15 to i32*
-    store i32 124, i32* %a26, align 4
+    %1 = tail call i32 @inner()
+    %box = alloca i32, align 4
+    store i32 %1, i32* %box, align 4
+    %box1 = bitcast i32* %box to %inner*
+    %2 = bitcast %inner* %b to i8*
+    %3 = bitcast %inner* %box1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 4, i1 false)
+    %4 = bitcast %inner* %b to i32*
+    %5 = load i32, i32* %4, align 4
+    tail call void @printi(i32 %5)
+    %6 = alloca %t_int, align 8
+    %x5 = bitcast %t_int* %6 to i32*
+    store i32 17, i32* %x5, align 4
+    %inner = getelementptr inbounds %t_int, %t_int* %6, i32 0, i32 1
+    %a26 = bitcast %p_inner_innerst_int* %inner to %innerst_int*
+    %a37 = bitcast %innerst_int* %a26 to i32*
+    store i32 124, i32* %a37, align 4
     %ret = alloca %t_int, align 8
-    call void @__g.g___fun0_ti.ti(%t_int* %ret, %t_int* %3)
-    %4 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
-    %5 = bitcast %p_inner_innerst_int* %4 to %innerst_int*
-    %6 = bitcast %innerst_int* %5 to i32*
-    %7 = load i32, i32* %6, align 4
-    call void @printi(i32 %7)
+    call void @__g.g___fun0_ti.ti(%t_int* %ret, %t_int* %6)
+    %7 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
+    %8 = bitcast %p_inner_innerst_int* %7 to %innerst_int*
+    %9 = bitcast %innerst_int* %8 to i32*
+    %10 = load i32, i32* %9, align 4
+    call void @printi(i32 %10)
     ret i32 0
   }
   

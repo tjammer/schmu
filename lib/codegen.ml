@@ -138,7 +138,7 @@ let rec is_mutable = function
   | _ -> false
 
 let kind_of_size = function
-  | 1 | 2 | 3 | 4 -> Boxed (* First of all easy case *)
+  | 1 | 2 | 3 | 4 -> Unboxed (* First of all easy case *)
   | 700030 -> Unboxed
   | _ -> Boxed
 
@@ -148,12 +148,6 @@ let pkind_of_typ typ =
   match typ with
   | Trecord _ when not (is_mutable typ) -> kind_of_size size
   | _ -> Boxed
-
-let box_record _ value = value
-(* From int to record *)
-
-let unbox_record _ value = value
-(* From record to int *)
 
 (** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to
@@ -179,10 +173,13 @@ and get_lltype_param = function
   | (Tint | Tbool | Tu8 | Tunit | Tpoly _ | Tptr _) as t -> get_lltype_def t
   | Tfun (params, ret, kind) ->
       typeof_func ~param:true ~decl:false (params, ret, kind)
-  | Trecord _ as t -> (
-      let name = record_name t in
+  | Trecord _ as typ -> (
+      let name = record_name typ in
       match Strtbl.find_opt record_tbl name with
-      | Some t -> t |> Llvm.pointer_type
+      | Some t -> (
+          match pkind_of_typ typ with
+          | Boxed -> t |> Llvm.pointer_type
+          | Unboxed -> int_t)
       | None ->
           failwith
             (Printf.sprintf "Record struct not found for type %s (param)" name))
@@ -211,7 +208,7 @@ and typeof_func ~param ~decl (params, ret, kind) =
       | Trecord _ as t -> (
           match pkind_of_typ t with
           | Boxed -> (Seq.return (get_lltype_param t), unit_t)
-          | Unboxed -> failwith "TODO ret unboxing")
+          | Unboxed -> (Seq.empty, int_t))
       | Tpoly _ as t -> (Seq.return (get_lltype_param t), unit_t)
       | t -> (Seq.empty, get_lltype_param t)
     in
@@ -229,6 +226,27 @@ and typeof_func ~param ~decl (params, ret, kind) =
     in
     let ft = Llvm.function_type ret_t params_t in
     ft
+
+let box_record typ value =
+  (* From int to record *)
+  match pkind_of_typ typ with
+  | Unboxed ->
+      let intptr = Llvm.build_alloca int_t "box" builder in
+      ignore (Llvm.build_store value intptr builder);
+      Llvm.build_bitcast intptr
+        (get_lltype_def typ |> Llvm.pointer_type)
+        "box" builder
+  | Boxed -> value
+
+let unbox_record typ value =
+  (* From record to int *)
+  match pkind_of_typ typ with
+  | Unboxed ->
+      let ptr =
+        Llvm.build_bitcast value (Llvm.pointer_type int_t) "unbox" builder
+      in
+      Llvm.build_load ptr "unbox" builder
+  | Boxed -> value
 
 let to_named_records = function
   | Trecord (_, _, labels) as t ->
@@ -639,7 +657,9 @@ let fun_return name ret =
   | Trecord _ as t -> (
       match pkind_of_typ t with
       | Boxed -> (* Default record case *) Llvm.build_ret_void builder
-      | Unboxed -> unbox_record t ret.value)
+      | Unboxed ->
+          let unboxed = unbox_record t ret.value in
+          Llvm.build_ret unboxed builder)
   | Tpoly id when String.equal id "tail" ->
       (* This magic id is used to mark a tailrecursive call *)
       Llvm.build_ret_void builder
@@ -845,6 +865,7 @@ and gen_app param callee args allocref ret_t malloc =
   let handle_arg arg =
     let arg' = gen_expr param Monomorph_tree.(arg.ex) in
     let arg = get_mono_func arg' param arg.monomorph in
+    let arg = { arg with value = unbox_record arg.typ arg.value } in
     (func_to_closure param arg).value
   in
   let args = List.map handle_arg args |> List.to_seq in
@@ -923,8 +944,8 @@ and gen_app_tailrec param callee args rec_block ret_t =
 
   let start_index, ret =
     match func.typ with
-    | Tfun (_, (Trecord _ as r), _) ->
-        ((match pkind_of_typ r with Boxed -> 1 | Unboxed -> 0), r)
+    | Tfun (_, (Trecord _ as r), _) -> (
+        match pkind_of_typ r with Boxed -> (1, r) | Unboxed -> (0, Tint))
     | Tfun (_, ret, _) -> (0, ret)
     | Tunit ->
         failwith "Internal Error: Probably cannot find monomorphized function"
@@ -957,6 +978,7 @@ and gen_app_builtin param (b, fnc) args =
   let handle_arg arg =
     let arg' = gen_expr param Monomorph_tree.(arg.ex) in
     let arg = get_mono_func arg' param arg.monomorph in
+    (* let arg = { arg with value = unbox_record arg.typ arg.value } in *)
     (func_to_closure param arg).value
   in
   let args = List.map handle_arg args in
