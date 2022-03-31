@@ -594,6 +594,8 @@ let add_params vars f fname names types start_index recursive =
          These can be set later in tail recursion scenarios.
          Then in a new block, we load from those alloca and set the
          real parameters *)
+      (* Apparently, I was smart and also prealloc non-parameters.
+         Not too sure how though anymore :( *)
       let vars =
         List.fold_left2
           (fun (env, i) name typ ->
@@ -969,6 +971,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
 
     let alloca = Vars.find (name_of_alloc_param i) param.vars in
 
+    (* We store the params in pre-allocated variables *)
     if llvar.value <> alloca.value then
       store_alloca ~src:llvar ~dst:alloca.value;
     i + 1
