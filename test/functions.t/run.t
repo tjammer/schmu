@@ -496,20 +496,20 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i1 %0
   }
   
-  define private i32 @__gg.g.g_apply_tbtb.tb.tb(i32 %0, %closure* %f) {
+  define private i8 @__gg.g.g_apply_tbtb.tb.tb(i8 %0, %closure* %f) {
   entry:
-    %box = alloca i32, align 4
-    store i32 %0, i32* %box, align 4
+    %box = alloca i8, align 1
+    store i8 %0, i8* %box, align 1
     %funcptr8 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr8, align 8
-    %casttmp = bitcast i8* %loadtmp to i32 (i32, i8*)*
+    %casttmp = bitcast i8* %loadtmp to i8 (i8, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_bool, align 8
-    %1 = tail call i32 %casttmp(i32 %0, i8* %loadtmp3)
-    %box4 = bitcast %t_bool* %ret to i32*
-    store i32 %1, i32* %box4, align 4
-    ret i32 %1
+    %1 = tail call i8 %casttmp(i8 %0, i8* %loadtmp3)
+    %box4 = bitcast %t_bool* %ret to i8*
+    store i8 %1, i8* %box4, align 1
+    ret i8 %1
   }
   
   define private i32 @__gg.g.g_apply_titi.ti.ti(i32 %0, %closure* %f) {
@@ -550,26 +550,25 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i32 %addtmp
   }
   
-  define private i32 @make_rec_false(i32 %0) {
+  define private i8 @make_rec_false(i8 %0) {
   entry:
-    %box = alloca i32, align 4
-    store i32 %0, i32* %box, align 4
-    %r = bitcast i32* %box to %t_bool*
-    %1 = trunc i32 %0 to i8
-    %2 = trunc i8 %1 to i1
-    br i1 %2, label %then, label %ifcont
+    %box = alloca i8, align 1
+    store i8 %0, i8* %box, align 1
+    %r = bitcast i8* %box to %t_bool*
+    %1 = trunc i8 %0 to i1
+    br i1 %1, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %3 = alloca %t_bool, align 8
-    %x3 = bitcast %t_bool* %3 to i1*
+    %2 = alloca %t_bool, align 8
+    %x3 = bitcast %t_bool* %2 to i1*
     store i1 false, i1* %x3, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
-    %iftmp = phi %t_bool* [ %3, %then ], [ %r, %entry ]
-    %unbox = bitcast %t_bool* %iftmp to i32*
-    %unbox2 = load i32, i32* %unbox, align 4
-    ret i32 %unbox2
+    %iftmp = phi %t_bool* [ %2, %then ], [ %r, %entry ]
+    %unbox = bitcast %t_bool* %iftmp to i8*
+    %unbox2 = load i8, i8* %unbox, align 1
+    ret i8 %unbox2
   }
   
   define private i1 @makefalse(i1 %b) {
@@ -641,37 +640,36 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %4 = alloca %t_bool, align 8
     %x831 = bitcast %t_bool* %4 to i1*
     store i1 true, i1* %x831, align 1
-    %unbox9 = bitcast %t_bool* %4 to i32*
-    %unbox10 = load i32, i32* %unbox9, align 4
+    %unbox9 = bitcast %t_bool* %4 to i8*
+    %unbox10 = load i8, i8* %unbox9, align 1
     %clstmp11 = alloca %closure, align 8
     %funptr1232 = bitcast %closure* %clstmp11 to i8**
-    store i8* bitcast (i32 (i32)* @make_rec_false to i8*), i8** %funptr1232, align 8
+    store i8* bitcast (i8 (i8)* @make_rec_false to i8*), i8** %funptr1232, align 8
     %envptr13 = getelementptr inbounds %closure, %closure* %clstmp11, i32 0, i32 1
     store i8* null, i8** %envptr13, align 8
     %ret14 = alloca %t_bool, align 8
-    %5 = call i32 @__gg.g.g_apply_tbtb.tb.tb(i32 %unbox10, %closure* %clstmp11)
-    %box15 = bitcast %t_bool* %ret14 to i32*
-    store i32 %5, i32* %box15, align 4
-    %6 = trunc i32 %5 to i8
-    %7 = trunc i8 %6 to i1
-    call void @print_bool(i1 %7)
+    %5 = call i8 @__gg.g.g_apply_tbtb.tb.tb(i8 %unbox10, %closure* %clstmp11)
+    %box15 = bitcast %t_bool* %ret14 to i8*
+    store i8 %5, i8* %box15, align 1
+    %6 = trunc i8 %5 to i1
+    call void @print_bool(i1 %6)
     %clstmp17 = alloca %closure, align 8
     %funptr1833 = bitcast %closure* %clstmp17 to i8**
     store i8* bitcast (i1 (i1)* @makefalse to i8*), i8** %funptr1833, align 8
     %envptr19 = getelementptr inbounds %closure, %closure* %clstmp17, i32 0, i32 1
     store i8* null, i8** %envptr19, align 8
-    %8 = call i1 @__gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp17)
-    call void @print_bool(i1 %8)
-    %9 = alloca %t_int, align 8
-    %x2034 = bitcast %t_int* %9 to i32*
+    %7 = call i1 @__gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp17)
+    call void @print_bool(i1 %7)
+    %8 = alloca %t_int, align 8
+    %x2034 = bitcast %t_int* %8 to i32*
     store i32 17, i32* %x2034, align 4
     %ret23 = alloca %t_int, align 8
-    %10 = call i32 @__g.g___fun0_ti.ti(i32 17)
+    %9 = call i32 @__g.g___fun0_ti.ti(i32 17)
     %box24 = bitcast %t_int* %ret23 to i32*
-    store i32 %10, i32* %box24, align 4
+    store i32 %9, i32* %box24, align 4
+    call void @printi(i32 %9)
+    %10 = call i32 @__fun1(i32 18)
     call void @printi(i32 %10)
-    %11 = call i32 @__fun1(i32 18)
-    call void @printi(i32 %11)
     ret i32 0
   }
   21

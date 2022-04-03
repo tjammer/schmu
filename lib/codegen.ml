@@ -28,7 +28,7 @@ type param = {
   rec_block : rec_block option;
 }
 
-type aggregate_param_kind = Boxed | Unboxed
+type aggregate_param_kind = Boxed | Unboxed of int
 
 let ( ++ ) = Seq.append
 let record_tbl = Strtbl.create 32
@@ -137,10 +137,7 @@ let rec is_mutable = function
         false fields
   | _ -> false
 
-let kind_of_size = function
-  | 1 | 2 | 3 | 4 -> Unboxed (* First of all easy case *)
-  | 700030 -> Unboxed
-  | _ -> Boxed
+let kind_of_size = function (1 | 2 | 3 | 4) as i -> Unboxed i | _ -> Boxed
 
 let pkind_of_typ typ =
   (* TODO maybe cache this? *)
@@ -148,6 +145,18 @@ let pkind_of_typ typ =
   match typ with
   | Trecord _ when not (is_mutable typ) -> kind_of_size size
   | _ -> Boxed
+
+let lltype_unboxed = function
+  | 1 -> u8_t
+  | 4 -> int_t
+  | 8 -> num_t
+  | i -> "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
+
+let type_unboxed = function
+  | 1 -> Tu8
+  | 4 -> Tint
+  | 8 -> Tint (* TODO not really. Introduce i32 type *)
+  | i -> "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
 
 (** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to
@@ -179,7 +188,7 @@ and get_lltype_param = function
       | Some t -> (
           match pkind_of_typ typ with
           | Boxed -> t |> Llvm.pointer_type
-          | Unboxed -> int_t)
+          | Unboxed size -> lltype_unboxed size)
       | None ->
           failwith
             (Printf.sprintf "Record struct not found for type %s (param)" name))
@@ -208,7 +217,7 @@ and typeof_func ~param ~decl (params, ret, kind) =
       | Trecord _ as t -> (
           match pkind_of_typ t with
           | Boxed -> (Seq.return (get_lltype_param t), unit_t)
-          | Unboxed -> (Seq.empty, int_t))
+          | Unboxed size -> (Seq.empty, lltype_unboxed size))
       | Tpoly _ as t -> (Seq.return (get_lltype_param t), unit_t)
       | t -> (Seq.empty, get_lltype_param t)
     in
@@ -227,13 +236,15 @@ and typeof_func ~param ~decl (params, ret, kind) =
     let ft = Llvm.function_type ret_t params_t in
     ft
 
-let box_record typ ?(alloc = None) value =
+let box_record typ ~size ?(alloc = None) value =
   (* From int to record *)
   let intptr =
     match alloc with
-    | None -> Llvm.build_alloca int_t "box" builder
+    | None -> Llvm.build_alloca (lltype_unboxed size) "box" builder
     | Some alloc ->
-        Llvm.build_bitcast alloc (Llvm.pointer_type int_t) "box" builder
+        Llvm.build_bitcast alloc
+          (Llvm.pointer_type (lltype_unboxed size))
+          "box" builder
   in
   ignore (Llvm.build_store value intptr builder);
   Llvm.build_bitcast intptr
@@ -244,19 +255,23 @@ let box_record typ ?(alloc = None) value =
 let maybe_box_record typ ?(alloc = None) value =
   (* From int to record *)
   match pkind_of_typ typ with
-  | Unboxed -> box_record typ ~alloc value
+  | Unboxed size -> box_record typ ~size ~alloc value
   | Boxed -> value
 
-let unbox_record value =
+let unbox_record ~size value =
   let ptr =
-    Llvm.build_bitcast value (Llvm.pointer_type int_t) "unbox" builder
+    Llvm.build_bitcast value
+      (Llvm.pointer_type (lltype_unboxed size))
+      "unbox" builder
   in
   Llvm.build_load ptr "unbox" builder
 
 (* Checks the param kind before calling [unbox_record] *)
 let maybe_unbox_record typ value =
   (* From record to int *)
-  match pkind_of_typ typ with Unboxed -> unbox_record value | Boxed -> value
+  match pkind_of_typ typ with
+  | Unboxed size -> unbox_record ~size value
+  | Boxed -> value
 
 let to_named_records = function
   | Trecord (_, _, labels) as t ->
@@ -669,8 +684,8 @@ let fun_return name ret =
   | Trecord _ as t -> (
       match pkind_of_typ t with
       | Boxed -> (* Default record case *) Llvm.build_ret_void builder
-      | Unboxed ->
-          let unboxed = unbox_record ret.value in
+      | Unboxed size ->
+          let unboxed = unbox_record ~size ret.value in
           Llvm.build_ret unboxed builder)
   | Tpoly id when String.equal id "tail" ->
       (* This magic id is used to mark a tailrecursive call *)
@@ -699,7 +714,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
                 Llvm.(
                   add_function_attr func.value sret_attrib (AttrIndex.Param 0));
                 (1, Some (Llvm.params func.value).(0))
-            | Unboxed -> (* Record is returned as int *) (0, None))
+            | Unboxed _ -> (* Record is returned as int *) (0, None))
         | Tpoly _ -> failwith "poly var should not be returned"
         | _ -> (0, None)
       in
@@ -730,7 +745,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
                   let size = sizeof_typ ret_t |> llval_of_size in
                   memcpy ~dst ~src:ret ~size
                 else ()
-            | Unboxed -> (* Is returned as int not preallocated *) ())
+            | Unboxed _ -> (* Is returned as int not preallocated *) ())
         | _ -> ()
       in
 
@@ -927,13 +942,13 @@ and gen_app param callee args allocref ret_t malloc =
             let args = ret' ++ args ++ envarg |> Array.of_seq in
             ignore (Llvm.build_call funcval args "" builder);
             (retval, lltyp)
-        | Unboxed ->
+        | Unboxed size ->
             (* Boxed representation *)
             let retval = get_prealloc !allocref param lltyp "ret" in
             let args = args ++ envarg |> Array.of_seq in
             (* Unboxed representation *)
             let tempval = Llvm.build_call funcval args "" builder in
-            let ret = box_record ~alloc:(Some retval) t tempval in
+            let ret = box_record ~size ~alloc:(Some retval) t tempval in
             ignore retval;
             (* TODO use prealloc *)
             (ret, lltyp))
@@ -957,7 +972,9 @@ and gen_app_tailrec param callee args rec_block ret_t =
   let start_index, ret =
     match func.typ with
     | Tfun (_, (Trecord _ as r), _) -> (
-        match pkind_of_typ r with Boxed -> (1, r) | Unboxed -> (0, Tint))
+        match pkind_of_typ r with
+        | Boxed -> (1, r)
+        | Unboxed size -> (0, type_unboxed size))
     | Tfun (_, ret, _) -> (0, ret)
     | Tunit ->
         failwith "Internal Error: Probably cannot find monomorphized function"
