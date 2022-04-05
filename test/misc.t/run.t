@@ -586,3 +586,63 @@ Also mutable fields and 'realloc' builtin
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
+
+Test x86_64-linux-gnu ABI (parts of it, anyway)
+  $ schmu -dump-llvm abi.smu
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %v2 = type { float, float }
+  %i2 = type { i32, i32 }
+  %v1 = type { float }
+  %i1 = type { i32 }
+  
+  declare <2 x float> @subv2(<2 x float> %0)
+  
+  declare i64 @subi2(i64 %0)
+  
+  declare float @subv1(float %0)
+  
+  declare i32 @subi1(i32 %0)
+  
+  define i32 @main(i32 %arg) {
+  entry:
+    %0 = alloca %v2, align 8
+    %z21 = bitcast %v2* %0 to float*
+    store float 1.000000e+00, float* %z21, align 4
+    %y = getelementptr inbounds %v2, %v2* %0, i32 0, i32 1
+    store float 1.000000e+01, float* %y, align 4
+    %unbox = bitcast %v2* %0 to <2 x float>*
+    %unbox1 = load <2 x float>, <2 x float>* %unbox, align 8
+    %ret = alloca %v2, align 8
+    %1 = tail call <2 x float> @subv2(<2 x float> %unbox1)
+    %box = bitcast %v2* %ret to <2 x float>*
+    store <2 x float> %1, <2 x float>* %box, align 8
+    %2 = alloca %i2, align 8
+    %x22 = bitcast %i2* %2 to i32*
+    store i32 1, i32* %x22, align 4
+    %y3 = getelementptr inbounds %i2, %i2* %2, i32 0, i32 1
+    store i32 10, i32* %y3, align 4
+    %unbox4 = bitcast %i2* %2 to i64*
+    %unbox5 = load i64, i64* %unbox4, align 4
+    %ret6 = alloca %i2, align 8
+    %3 = tail call i64 @subi2(i64 %unbox5)
+    %box7 = bitcast %i2* %ret6 to i64*
+    store i64 %3, i64* %box7, align 4
+    %4 = alloca %v1, align 8
+    %z923 = bitcast %v1* %4 to float*
+    store float 1.000000e+00, float* %z923, align 4
+    %ret12 = alloca %v1, align 8
+    %5 = tail call float @subv1(float 1.000000e+00)
+    %box13 = bitcast %v1* %ret12 to float*
+    store float %5, float* %box13, align 4
+    %6 = alloca %i1, align 8
+    %x1524 = bitcast %i1* %6 to i32*
+    store i32 1, i32* %x1524, align 4
+    %ret18 = alloca %i1, align 8
+    %7 = tail call i32 @subi1(i32 1)
+    %box19 = bitcast %i1* %ret18 to i32*
+    store i32 %7, i32* %box19, align 4
+    ret i32 0
+  }

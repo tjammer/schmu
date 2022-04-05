@@ -1,0 +1,14 @@
+type v2 = { z : float, y : float }
+type i2 = { x : int, y : int }
+type i1 = { x : int }
+type v1 = { z : float }
+
+external subv2 : v2 -> v2
+external subi2 : i2 -> i2
+external subv1 : v1 -> v1
+external subi1 : i1 -> i1
+
+subv2({ z = 1.0, y = 10.0 }) -> ignore
+subi2({ x = 1, y = 10 }) -> ignore
+subv1({ z = 1.0 }) -> ignore
+subi1({ x = 1 }) -> ignore
