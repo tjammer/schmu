@@ -28,7 +28,11 @@ type param = {
   rec_block : rec_block option;
 }
 
-type aggregate_param_kind = Boxed | Unboxed of int
+type unboxed = Ints of int | Float | Float_vec
+
+(* We only support up to 8 byte right now *)
+(* type unboxed = Atom of unboxed | Mixed of unboxed_atoms * unboxed_atoms *)
+type aggregate_param_kind = Boxed | Unboxed of unboxed
 
 let ( ++ ) = Seq.append
 let record_tbl = Strtbl.create 32
@@ -138,26 +142,47 @@ let rec is_mutable = function
         false fields
   | _ -> false
 
-let kind_of_size = function (1 | 2 | 3 | 4) as i -> Unboxed i | _ -> Boxed
+let rec is_only_floats = function
+  | Trecord (_, _, fields) ->
+      Array.fold_left
+        (fun acc field ->
+          match Cleaned_types.(field.typ) with
+          | Tfloat -> acc
+          | Trecord _ as t -> is_only_floats t && acc
+          | _ -> false)
+        true fields
+  | _ -> false
 
 let pkind_of_typ typ =
   (* TODO maybe cache this? *)
   let size = sizeof_typ typ in
   match typ with
-  | Trecord _ when not (is_mutable typ) -> kind_of_size size
+  | Trecord _ when not (is_mutable typ) -> (
+      match (size, is_only_floats typ) with
+      | 4, true -> Unboxed Float
+      | 8, true -> Unboxed Float_vec
+      | size, _ when size <= 8 -> Unboxed (Ints size)
+      | _ -> Boxed)
   | _ -> Boxed
 
 let lltype_unboxed = function
-  | 1 -> u8_t
-  | 4 -> int_t
-  | 8 -> num_t
-  | i -> "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
+  | Ints 1 -> u8_t
+  | Ints 4 -> int_t
+  | Ints 8 -> num_t
+  | Float -> float_t
+  | Float_vec -> Llvm.vector_type float_t 2
+  | Ints i ->
+      "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
 
 let type_unboxed = function
-  | 1 -> Tu8
-  | 4 -> Tint
-  | 8 -> Tint (* TODO not really. Introduce i32 type *)
-  | i -> "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
+  | Ints 1 -> Tu8
+  | Ints 4 -> Tint
+  | Ints 8 ->
+      Tint (* TODO not really. Introduce i32 type. Don't hardcode for float *)
+  | Float -> Tfloat
+  | Float_vec -> Tfloat (* vector of floats, really *)
+  | Ints i ->
+      "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
 
 (** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to
@@ -261,10 +286,10 @@ let maybe_box_record typ ?(alloc = None) value =
   | Unboxed size -> box_record typ ~size ~alloc value
   | Boxed -> value
 
-let unbox_record ~size value =
+let unbox_record ~kind value =
   let ptr =
     Llvm.build_bitcast value
-      (Llvm.pointer_type (lltype_unboxed size))
+      (Llvm.pointer_type (lltype_unboxed kind))
       "unbox" builder
   in
   Llvm.build_load ptr "unbox" builder
@@ -273,7 +298,7 @@ let unbox_record ~size value =
 let maybe_unbox_record typ value =
   (* From record to int *)
   match pkind_of_typ typ with
-  | Unboxed size -> unbox_record ~size value
+  | Unboxed kind -> unbox_record ~kind value
   | Boxed -> value
 
 let to_named_records = function
@@ -687,8 +712,8 @@ let fun_return name ret =
   | Trecord _ as t -> (
       match pkind_of_typ t with
       | Boxed -> (* Default record case *) Llvm.build_ret_void builder
-      | Unboxed size ->
-          let unboxed = unbox_record ~size ret.value in
+      | Unboxed kind ->
+          let unboxed = unbox_record ~kind ret.value in
           Llvm.build_ret unboxed builder)
   | Tpoly id when String.equal id "tail" ->
       (* This magic id is used to mark a tailrecursive call *)

@@ -11,16 +11,16 @@ Test elif
   
   define private i32 @test(i32 %n) {
   entry:
-    %eqtmp = icmp eq i32 %n, 10
-    br i1 %eqtmp, label %ifcont8, label %else
+    %eq = icmp eq i32 %n, 10
+    br i1 %eq, label %ifcont8, label %else
   
   else:                                             ; preds = %entry
-    %lesstmp = icmp slt i32 %n, 1
-    br i1 %lesstmp, label %ifcont8, label %else2
+    %lt = icmp slt i32 %n, 1
+    br i1 %lt, label %ifcont8, label %else2
   
   else2:                                            ; preds = %else
-    %lesstmp3 = icmp slt i32 %n, 10
-    br i1 %lesstmp3, label %ifcont8, label %else5
+    %lt3 = icmp slt i32 %n, 10
+    br i1 %lt3, label %ifcont8, label %else5
   
   else5:                                            ; preds = %else2
     br label %ifcont8
@@ -33,17 +33,17 @@ Test elif
   define i32 @main(i32 %arg) {
   entry:
     %0 = tail call i32 @test(i32 10)
-    %eqtmp = icmp eq i32 %0, 1
-    tail call void @assert(i1 %eqtmp)
+    %eq = icmp eq i32 %0, 1
+    tail call void @assert(i1 %eq)
     %1 = tail call i32 @test(i32 0)
-    %eqtmp1 = icmp eq i32 %1, 2
-    tail call void @assert(i1 %eqtmp1)
+    %eq1 = icmp eq i32 %1, 2
+    tail call void @assert(i1 %eq1)
     %2 = tail call i32 @test(i32 1)
-    %eqtmp2 = icmp eq i32 %2, 3
-    tail call void @assert(i1 %eqtmp2)
+    %eq2 = icmp eq i32 %2, 3
+    tail call void @assert(i1 %eq2)
     %3 = tail call i32 @test(i32 11)
-    %eqtmp3 = icmp eq i32 %3, 4
-    tail call void @assert(i1 %eqtmp3)
+    %eq3 = icmp eq i32 %3, 4
+    tail call void @assert(i1 %eq3)
     ret i32 0
   }
 

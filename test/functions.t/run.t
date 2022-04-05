@@ -18,10 +18,10 @@ Simple fibonacci
     br label %tailrecurse
   
   tailrecurse:                                      ; preds = %else, %entry
-    %accumulator.tr = phi i32 [ 0, %entry ], [ %addtmp, %else ]
+    %accumulator.tr = phi i32 [ 0, %entry ], [ %add, %else ]
     %n.tr = phi i32 [ %n, %entry ], [ %2, %else ]
-    %lesstmp = icmp slt i32 %n.tr, 2
-    br i1 %lesstmp, label %then, label %else
+    %lt = icmp slt i32 %n.tr, 2
+    br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %tailrecurse
     %accumulator.ret.tr = add i32 %n.tr, %accumulator.tr
@@ -30,7 +30,7 @@ Simple fibonacci
   else:                                             ; preds = %tailrecurse
     %0 = add i32 %n.tr, -1
     %1 = tail call i32 @fib(i32 %0)
-    %addtmp = add i32 %1, %accumulator.tr
+    %add = add i32 %1, %accumulator.tr
     %2 = add i32 %0, -1
     br label %tailrecurse
   }
@@ -53,31 +53,31 @@ Fibonacci, but we shadow a bunch
   
   define private i32 @fib(i32 %n) {
   entry:
-    %lesstmp = icmp slt i32 %n, 2
-    br i1 %lesstmp, label %ifcont, label %else
+    %lt = icmp slt i32 %n, 2
+    br i1 %lt, label %ifcont, label %else
   
   else:                                             ; preds = %entry
     %0 = tail call i32 @fibn2(i32 %n)
     %1 = tail call i32 @__fun0(i32 %n)
-    %addtmp = add i32 %0, %1
+    %add = add i32 %0, %1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %else
-    %iftmp = phi i32 [ %addtmp, %else ], [ %n, %entry ]
+    %iftmp = phi i32 [ %add, %else ], [ %n, %entry ]
     ret i32 %iftmp
   }
   
   define private i32 @__fun0(i32 %n) {
   entry:
-    %subtmp = sub i32 %n, 1
-    %0 = tail call i32 @fib(i32 %subtmp)
+    %sub = sub i32 %n, 1
+    %0 = tail call i32 @fib(i32 %sub)
     ret i32 %0
   }
   
   define private i32 @fibn2(i32 %n) {
   entry:
-    %subtmp = sub i32 %n, 2
-    %0 = tail call i32 @fib(i32 %subtmp)
+    %sub = sub i32 %n, 2
+    %0 = tail call i32 @fib(i32 %sub)
     ret i32 %0
   }
   
@@ -97,8 +97,8 @@ Multiple parameters
   
   define private i32 @doiflesselse(i32 %a, i32 %b, i32 %greater, i32 %less) {
   entry:
-    %lesstmp = icmp slt i32 %a, %b
-    br i1 %lesstmp, label %ifcont, label %else
+    %lt = icmp slt i32 %a, %b
+    br i1 %lt, label %ifcont, label %else
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -110,8 +110,8 @@ Multiple parameters
   
   define private i32 @add(i32 %a, i32 %b) {
   entry:
-    %addtmp = add i32 %a, %b
-    ret i32 %addtmp
+    %add = add i32 %a, %b
+    ret i32 %add
   }
   
   define private i32 @one() {
@@ -177,8 +177,8 @@ We have downwards closures
     %clsr = bitcast i8* %0 to { i32 }*
     %a2 = bitcast { i32 }* %clsr to i32*
     %a1 = load i32, i32* %a2, align 4
-    %addtmp = add i32 %a1, 2
-    ret i32 %addtmp
+    %add = add i32 %a1, 2
+    ret i32 %add
   }
   
   define private i32 @capture_a(i8* %0) {
@@ -186,8 +186,8 @@ We have downwards closures
     %clsr = bitcast i8* %0 to { i32 }*
     %a2 = bitcast { i32 }* %clsr to i32*
     %a1 = load i32, i32* %a2, align 4
-    %addtmp = add i32 %a1, 2
-    ret i32 %addtmp
+    %add = add i32 %a1, 2
+    ret i32 %add
   }
   
   define i32 @main(i32 %arg) {
@@ -249,8 +249,8 @@ First class functions
   
   define private i32 @__fun1(i32 %x) {
   entry:
-    %addtmp = add i32 %x, 1
-    ret i32 %addtmp
+    %add = add i32 %x, 1
+    ret i32 %add
   }
   
   define private i32 @__gg.g.g_apply_ii.i.i(i32 %x, %closure* %f) {
@@ -283,8 +283,8 @@ First class functions
   
   define private i32 @add1(i32 %x) {
   entry:
-    %addtmp = add i32 %x, 1
-    ret i32 %addtmp
+    %add = add i32 %x, 1
+    ret i32 %add
   }
   
   define i32 @main(i32 %arg) {
@@ -358,9 +358,9 @@ Don't try to create 'void' value in if
     br label %rec
   
   rec:                                              ; preds = %ifcont, %entry
-    %i1 = phi i32 [ %subtmp5, %ifcont ], [ %i, %entry ]
-    %lesstmp = icmp slt i32 %i1, 2
-    br i1 %lesstmp, label %then, label %else
+    %i1 = phi i32 [ %sub5, %ifcont ], [ %i, %entry ]
+    %lt = icmp slt i32 %i1, 2
+    br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %rec
     %1 = add i32 %i1, -1
@@ -368,20 +368,20 @@ Don't try to create 'void' value in if
     ret void
   
   else:                                             ; preds = %rec
-    %lesstmp2 = icmp slt i32 %i1, 400
-    br i1 %lesstmp2, label %then3, label %else4
+    %lt2 = icmp slt i32 %i1, 400
+    br i1 %lt2, label %then3, label %else4
   
   then3:                                            ; preds = %else
     tail call void @printi(i32 %i1)
     br label %ifcont
   
   else4:                                            ; preds = %else
-    %addtmp = add i32 %i1, 1
-    tail call void @printi(i32 %addtmp)
+    %add = add i32 %i1, 1
+    tail call void @printi(i32 %add)
     br label %ifcont
   
   ifcont:                                           ; preds = %else4, %then3
-    %subtmp5 = sub i32 %i1, 1
+    %sub5 = sub i32 %i1, 1
     %2 = add i32 %i1, -1
     store i32 %2, i32* %0, align 4
     br label %rec
@@ -421,8 +421,8 @@ Captured values should not overwrite function params
     %envptr5 = getelementptr inbounds %closure, %closure* %b, i32 0, i32 1
     %loadtmp6 = load i8*, i8** %envptr5, align 8
     %1 = tail call i32 %casttmp4(i8* %loadtmp6)
-    %addtmp = add i32 %0, %1
-    ret i32 %addtmp
+    %add = add i32 %0, %1
+    ret i32 %add
   }
   
   define private i32 @two(i8* %0) {
@@ -545,9 +545,9 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     store i32 %0, i32* %box, align 4
     %1 = alloca %t_int, align 8
     %x3 = bitcast %t_int* %1 to i32*
-    %addtmp = add i32 %0, 3
-    store i32 %addtmp, i32* %x3, align 4
-    ret i32 %addtmp
+    %add = add i32 %0, 3
+    store i32 %add, i32* %x3, align 4
+    ret i32 %add
   }
   
   define private i8 @make_rec_false(i8 %0) {
@@ -591,8 +591,8 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   
   define private i32 @add1(i32 %x) {
   entry:
-    %addtmp = add i32 %x, 1
-    ret i32 %addtmp
+    %add = add i32 %x, 1
+    ret i32 %add
   }
   
   define private i32 @add_closed(i32 %x, i8* %0) {
@@ -600,8 +600,8 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %clsr = bitcast i8* %0 to { i32 }*
     %a2 = bitcast { i32 }* %clsr to i32*
     %a1 = load i32, i32* %a2, align 4
-    %addtmp = add i32 %x, %a1
-    ret i32 %addtmp
+    %add = add i32 %x, %a1
+    ret i32 %add
   }
   
   define i32 @main(i32 %arg) {
@@ -686,32 +686,32 @@ A generic pass function. This example is not 100% correct, but works due to call
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %t = type { i32, i1 }
   %closure = type { i8*, i8* }
+  %t = type { i32, i1 }
   
   declare void @printi(i32 %0)
   
-  define private void @__g.g_pass_t.t(%t* sret %0, %t* %x) {
+  define private i64 @__g.g_pass_t.t(i64 %0) {
   entry:
-    %1 = bitcast %t* %0 to i8*
-    %2 = bitcast %t* %x to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 8, i1 false)
-    ret void
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 4
+    ret i64 %0
   }
   
-  define private void @__g.gg.g_apply_t.tt.t(%t* sret %0, %closure* %f, %t* %x) {
+  define private i64 @__g.gg.g_apply_t.tt.t(%closure* %f, i64 %0) {
   entry:
-    %funcptr2 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
-    %casttmp = bitcast i8* %loadtmp to void (%t*, %t*, i8*)*
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 4
+    %funcptr8 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr8, align 8
+    %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
-    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t, align 8
-    call void %casttmp(%t* %ret, %t* %x, i8* %loadtmp1)
-    %1 = bitcast %t* %0 to i8*
-    %2 = bitcast %t* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 8, i1 false)
-    ret void
+    %1 = tail call i64 %casttmp(i64 %0, i8* %loadtmp3)
+    %box4 = bitcast %t* %ret to i64*
+    store i64 %1, i64* %box4, align 4
+    ret i64 %1
   }
   
   define private i32 @__g.g_pass_i.i(i32 %x) {
@@ -730,37 +730,35 @@ A generic pass function. This example is not 100% correct, but works due to call
     ret i32 %0
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
   define i32 @main(i32 %arg) {
   entry:
     %clstmp = alloca %closure, align 8
-    %funptr4 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i32 (i32)* @__g.g_pass_i.i to i8*), i8** %funptr4, align 8
+    %funptr6 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (i32 (i32)* @__g.g_pass_i.i to i8*), i8** %funptr6, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
     %0 = call i32 @__g.gg.g_apply_i.ii.i(%closure* %clstmp, i32 20)
     call void @printi(i32 %0)
     %clstmp1 = alloca %closure, align 8
-    %funptr25 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast (void (%t*, %t*)* @__g.g_pass_t.t to i8*), i8** %funptr25, align 8
+    %funptr27 = bitcast %closure* %clstmp1 to i8**
+    store i8* bitcast (i64 (i64)* @__g.g_pass_t.t to i8*), i8** %funptr27, align 8
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
     %1 = alloca %t, align 8
-    %i6 = bitcast %t* %1 to i32*
-    store i32 700, i32* %i6, align 4
+    %i8 = bitcast %t* %1 to i32*
+    store i32 700, i32* %i8, align 4
     %b = getelementptr inbounds %t, %t* %1, i32 0, i32 1
     store i1 false, i1* %b, align 1
+    %unbox = bitcast %t* %1 to i64*
+    %unbox4 = load i64, i64* %unbox, align 4
     %ret = alloca %t, align 8
-    call void @__g.gg.g_apply_t.tt.t(%t* %ret, %closure* %clstmp1, %t* %1)
-    %2 = bitcast %t* %ret to i32*
-    %3 = load i32, i32* %2, align 4
+    %2 = call i64 @__g.gg.g_apply_t.tt.t(%closure* %clstmp1, i64 %unbox4)
+    %box = bitcast %t* %ret to i64*
+    store i64 %2, i64* %box, align 4
+    %3 = trunc i64 %2 to i32
     call void @printi(i32 %3)
     ret i32 0
   }
-  
-  attributes #0 = { argmemonly nofree nounwind willreturn }
   20
   700
 
@@ -827,8 +825,8 @@ a second function. Instead, the closure struct was being created again and the c
   
   define private i32 @add1(i32 %x) {
   entry:
-    %addtmp = add i32 %x, 1
-    ret i32 %addtmp
+    %add = add i32 %x, 1
+    ret i32 %add
   }
   
   define i32 @main(i32 %arg) {
@@ -894,14 +892,14 @@ Closures can recurse too
     br label %rec
   
   rec:                                              ; preds = %then, %entry
-    %i2 = phi i32 [ %addtmp, %then ], [ %i, %entry ]
-    %lesstmp = icmp slt i32 %i2, %outer1
-    br i1 %lesstmp, label %then, label %else
+    %i2 = phi i32 [ %add, %then ], [ %i, %entry ]
+    %lt = icmp slt i32 %i2, %outer1
+    br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %rec
     tail call void @printi(i32 %i2)
-    %addtmp = add i32 %i2, 1
-    store i32 %addtmp, i32* %1, align 4
+    %add = add i32 %i2, 1
+    store i32 %add, i32* %1, align 4
     br label %rec
   
   else:                                             ; preds = %rec
@@ -1039,8 +1037,8 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   define private void @__fun0(i32 %x) {
   entry:
-    %multmp = mul i32 %x, 2
-    tail call void @printi(i32 %multmp)
+    %mul = mul i32 %x, 2
+    tail call void @printi(i32 %mul)
     ret void
   }
   
@@ -1089,14 +1087,14 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %tailrecurse
   
   tailrecurse:                                      ; preds = %else, %entry
-    %i.tr = phi i32 [ %i, %entry ], [ %addtmp, %else ]
+    %i.tr = phi i32 [ %i, %entry ], [ %add, %else ]
     %clsr = bitcast i8* %0 to { %closure* }*
     %f3 = bitcast { %closure* }* %clsr to %closure**
     %f1 = load %closure*, %closure** %f3, align 8
     %1 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
     %2 = load i32, i32* %1, align 4
-    %eqtmp = icmp eq i32 %i.tr, %2
-    br i1 %eqtmp, label %then, label %else
+    %eq = icmp eq i32 %i.tr, %2
+    br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %tailrecurse
     ret void
@@ -1112,7 +1110,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
     %loadtmp2 = load i8*, i8** %envptr, align 8
     tail call void %casttmp(i32 %6, i8* %loadtmp2)
-    %addtmp = add i32 %i.tr, 1
+    %add = add i32 %i.tr, 1
     br label %tailrecurse
   }
   
@@ -1121,13 +1119,13 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %tailrecurse
   
   tailrecurse:                                      ; preds = %else, %entry
-    %i.tr = phi i32 [ %i, %entry ], [ %addtmp, %else ]
+    %i.tr = phi i32 [ %i, %entry ], [ %add, %else ]
     %clsr = bitcast i8* %0 to { %vector_int }*
     %vec2 = bitcast { %vector_int }* %clsr to %vector_int*
     %1 = getelementptr inbounds %vector_int, %vector_int* %vec2, i32 0, i32 1
     %2 = load i32, i32* %1, align 4
-    %eqtmp = icmp eq i32 %i.tr, %2
-    br i1 %eqtmp, label %then, label %else
+    %eq = icmp eq i32 %i.tr, %2
+    br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %tailrecurse
     ret void
@@ -1143,7 +1141,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
     tail call void %casttmp(i32 %6, i8* %loadtmp1)
-    %addtmp = add i32 %i.tr, 1
+    %add = add i32 %i.tr, 1
     br label %tailrecurse
   }
   
@@ -1157,12 +1155,12 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %i2 = phi i32 [ %addtmp, %else ], [ %i, %entry ]
+    %i2 = phi i32 [ %add, %else ], [ %i, %entry ]
     %sunkaddr = getelementptr inbounds i8, i8* %0, i64 16
     %2 = bitcast i8* %sunkaddr to i32*
     %3 = load i32, i32* %2, align 4
-    %eqtmp = icmp eq i32 %i2, %3
-    br i1 %eqtmp, label %then, label %else
+    %eq = icmp eq i32 %i2, %3
+    br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
@@ -1179,8 +1177,8 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
     %loadtmp3 = load i8*, i8** %envptr, align 8
     tail call void %casttmp(i32 %7, i8* %loadtmp3)
-    %addtmp = add i32 %i2, 1
-    store i32 %addtmp, i32* %1, align 4
+    %add = add i32 %i2, 1
+    store i32 %add, i32* %1, align 4
     br label %rec
   }
   
@@ -1190,8 +1188,8 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %1 = load i32, i32* %0, align 4
     %2 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 2
     %3 = load i32, i32* %2, align 4
-    %lesstmp = icmp slt i32 %1, %3
-    br i1 %lesstmp, label %then, label %else
+    %lt = icmp slt i32 %1, %3
+    br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %entry
     %4 = bitcast %vector_int* %vec to i32**
@@ -1202,15 +1200,15 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %sunkaddr = getelementptr inbounds i8, i8* %7, i64 8
     %8 = bitcast i8* %sunkaddr to i32*
     %9 = load i32, i32* %8, align 4
-    %addtmp = add i32 %9, 1
-    store i32 %addtmp, i32* %8, align 4
+    %add = add i32 %9, 1
+    store i32 %add, i32* %8, align 4
     br label %ifcont
   
   else:                                             ; preds = %entry
-    %multmp = mul i32 %3, 2
+    %mul = mul i32 %3, 2
     %10 = bitcast %vector_int* %vec to i32**
     %11 = load i32*, i32** %10, align 8
-    %12 = mul i32 %multmp, 4
+    %12 = mul i32 %mul, 4
     %13 = bitcast i32* %11 to i8*
     %14 = tail call i8* @realloc(i8* %13, i32 %12)
     %15 = bitcast i8* %14 to i32*
@@ -1218,7 +1216,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %16 = bitcast %vector_int* %vec to i8*
     %sunkaddr2 = getelementptr inbounds i8, i8* %16, i64 12
     %17 = bitcast i8* %sunkaddr2 to i32*
-    store i32 %multmp, i32* %17, align 4
+    store i32 %mul, i32* %17, align 4
     %18 = bitcast %vector_int* %vec to i8*
     %sunkaddr3 = getelementptr inbounds i8, i8* %18, i64 8
     %19 = bitcast i8* %sunkaddr3 to i32*
@@ -1226,8 +1224,8 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %21 = getelementptr inbounds i32, i32* %15, i32 %20
     store i32 %val, i32* %21, align 4
     %22 = load i32, i32* %19, align 4
-    %addtmp1 = add i32 %22, 1
-    store i32 %addtmp1, i32* %19, align 4
+    %add1 = add i32 %22, 1
+    store i32 %add1, i32* %19, align 4
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then

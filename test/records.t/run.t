@@ -33,22 +33,28 @@ Pass record to function
   
   declare void @printi(i32 %0)
   
-  define private void @pass_to_func(%foo* %a) {
+  define private void @pass_to_func(i64 %0) {
   entry:
-    %0 = getelementptr inbounds %foo, %foo* %a, i32 0, i32 1
-    %1 = load i32, i32* %0, align 4
-    tail call void @printi(i32 %1)
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 4
+    %a = bitcast i64* %box to %foo*
+    %1 = getelementptr inbounds %foo, %foo* %a, i32 0, i32 1
+    %2 = lshr i64 %0, 32
+    %3 = trunc i64 %2 to i32
+    tail call void @printi(i32 %3)
     ret void
   }
   
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %foo, align 8
-    %x1 = bitcast %foo* %0 to i32*
-    store i32 10, i32* %x1, align 4
+    %x2 = bitcast %foo* %0 to i32*
+    store i32 10, i32* %x2, align 4
     %y = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     store i32 20, i32* %y, align 4
-    call void @pass_to_func(%foo* %0)
+    %unbox = bitcast %foo* %0 to i64*
+    %unbox1 = load i64, i64* %unbox, align 4
+    tail call void @pass_to_func(i64 %unbox1)
     ret i32 0
   }
   20
@@ -64,22 +70,26 @@ Create record
   
   declare void @printi(i32 %0)
   
-  define private void @create_record(%foo* sret %0, i32 %x, i32 %y) {
+  define private i64 @create_record(i32 %x, i32 %y) {
   entry:
-    %x13 = bitcast %foo* %0 to i32*
-    store i32 %x, i32* %x13, align 4
+    %0 = alloca %foo, align 8
+    %x14 = bitcast %foo* %0 to i32*
+    store i32 %x, i32* %x14, align 4
     %y2 = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     store i32 %y, i32* %y2, align 4
-    ret void
+    %unbox = bitcast %foo* %0 to i64*
+    %unbox3 = load i64, i64* %unbox, align 4
+    ret i64 %unbox3
   }
   
   define i32 @main(i32 %arg) {
   entry:
     %ret = alloca %foo, align 8
-    call void @create_record(%foo* %ret, i32 8, i32 0)
-    %0 = bitcast %foo* %ret to i32*
-    %1 = load i32, i32* %0, align 4
-    call void @printi(i32 %1)
+    %0 = tail call i64 @create_record(i32 8, i32 0)
+    %box = bitcast %foo* %ret to i64*
+    store i64 %0, i64* %box, align 4
+    %1 = trunc i64 %0 to i32
+    tail call void @printi(i32 %1)
     ret i32 0
   }
   8
@@ -90,20 +100,19 @@ Nested records
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %inner = type { i32 }
+  %foo = type { i32, %inner }
   %t_int = type { i32, %p_inner_innerst_int }
   %p_inner_innerst_int = type { %innerst_int }
   %innerst_int = type { i32 }
-  %inner = type { i32 }
-  %foo = type { i32, %inner }
   
   declare void @printi(i32 %0)
   
-  define private void @__g.g___fun0_ti.ti(%t_int* sret %0, %t_int* %x) {
+  define private i64 @__g.g___fun0_ti.ti(i64 %0) {
   entry:
-    %1 = bitcast %t_int* %0 to i8*
-    %2 = bitcast %t_int* %x to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 8, i1 false)
-    ret void
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 4
+    ret i64 %0
   }
   
   define private i32 @inner() {
@@ -114,14 +123,11 @@ Nested records
     ret i32 3
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %foo, align 8
-    %a4 = bitcast %foo* %0 to i32*
-    store i32 0, i32* %a4, align 4
+    %a7 = bitcast %foo* %0 to i32*
+    store i32 0, i32* %a7, align 4
     %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     %1 = tail call i32 @inner()
     %box = bitcast %inner* %b to i32*
@@ -132,21 +138,27 @@ Nested records
     %4 = load i32, i32* %3, align 4
     tail call void @printi(i32 %4)
     %5 = alloca %t_int, align 8
-    %x5 = bitcast %t_int* %5 to i32*
-    store i32 17, i32* %x5, align 4
+    %x8 = bitcast %t_int* %5 to i32*
+    store i32 17, i32* %x8, align 4
     %inner = getelementptr inbounds %t_int, %t_int* %5, i32 0, i32 1
-    %a26 = bitcast %p_inner_innerst_int* %inner to %innerst_int*
-    %a37 = bitcast %innerst_int* %a26 to i32*
-    store i32 124, i32* %a37, align 4
+    %a29 = bitcast %p_inner_innerst_int* %inner to %innerst_int*
+    %a310 = bitcast %innerst_int* %a29 to i32*
+    store i32 124, i32* %a310, align 4
+    %unbox = bitcast %t_int* %5 to i64*
+    %unbox4 = load i64, i64* %unbox, align 4
     %ret = alloca %t_int, align 8
-    call void @__g.g___fun0_ti.ti(%t_int* %ret, %t_int* %5)
-    %6 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
-    %7 = bitcast %p_inner_innerst_int* %6 to %innerst_int*
-    %8 = bitcast %innerst_int* %7 to i32*
-    %9 = load i32, i32* %8, align 4
-    call void @printi(i32 %9)
+    %6 = tail call i64 @__g.g___fun0_ti.ti(i64 %unbox4)
+    %box5 = bitcast %t_int* %ret to i64*
+    store i64 %6, i64* %box5, align 4
+    %7 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
+    %8 = lshr i64 %6, 32
+    %9 = trunc i64 %8 to i32
+    tail call void @printi(i32 %9)
     ret i32 0
   }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
   3
@@ -164,36 +176,42 @@ Pass generic record
   
   declare void @printi(i32 %0)
   
-  define private void @__tg.tg_pass_tb.tb(%t_bool* sret %0, %t_bool* %x) {
+  define private i64 @__tg.tg_pass_tb.tb(i64 %0) {
   entry:
-    %first1 = bitcast %t_bool* %0 to i32*
-    %1 = bitcast %t_bool* %x to i32*
-    %2 = load i32, i32* %1, align 4
-    store i32 %2, i32* %first1, align 4
-    %gen = getelementptr inbounds %t_bool, %t_bool* %0, i32 0, i32 1
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 4
+    %x = bitcast i64* %box to %t_bool*
+    %1 = alloca %t_bool, align 8
+    %first3 = bitcast %t_bool* %1 to i32*
+    %2 = trunc i64 %0 to i32
+    store i32 %2, i32* %first3, align 4
+    %gen = getelementptr inbounds %t_bool, %t_bool* %1, i32 0, i32 1
     %3 = getelementptr inbounds %t_bool, %t_bool* %x, i32 0, i32 1
     %4 = load i1, i1* %3, align 1
     store i1 %4, i1* %gen, align 1
-    %third = getelementptr inbounds %t_bool, %t_bool* %0, i32 0, i32 2
+    %third = getelementptr inbounds %t_bool, %t_bool* %1, i32 0, i32 2
     %5 = getelementptr inbounds %t_bool, %t_bool* %x, i32 0, i32 2
     %6 = load i1, i1* %5, align 1
     store i1 %6, i1* %third, align 1
-    ret void
+    %unbox = bitcast %t_bool* %1 to i64*
+    %unbox2 = load i64, i64* %unbox, align 4
+    ret i64 %unbox2
   }
   
-  define private void @__g.gg.g_apply_tb.tbtb.tb(%t_bool* sret %0, %closure* %f, %t_bool* %x) {
+  define private i64 @__g.gg.g_apply_tb.tbtb.tb(%closure* %f, i64 %0) {
   entry:
-    %funcptr2 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
-    %casttmp = bitcast i8* %loadtmp to void (%t_bool*, %t_bool*, i8*)*
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 4
+    %funcptr8 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr8, align 8
+    %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
-    %loadtmp1 = load i8*, i8** %envptr, align 8
+    %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_bool, align 8
-    call void %casttmp(%t_bool* %ret, %t_bool* %x, i8* %loadtmp1)
-    %1 = bitcast %t_bool* %0 to i8*
-    %2 = bitcast %t_bool* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 8, i1 false)
-    ret void
+    %1 = tail call i64 %casttmp(i64 %0, i8* %loadtmp3)
+    %box4 = bitcast %t_bool* %ret to i64*
+    store i64 %1, i64* %box4, align 4
+    ret i64 %1
   }
   
   define private void @__tg.tg_pass_ti.ti(%t_int* sret %0, %t_int* %x) {
@@ -234,15 +252,15 @@ Pass generic record
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %t_int, align 8
-    %first8 = bitcast %t_int* %0 to i32*
-    store i32 700, i32* %first8, align 4
+    %first10 = bitcast %t_int* %0 to i32*
+    store i32 700, i32* %first10, align 4
     %gen = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 1
     store i32 20, i32* %gen, align 4
     %third = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 2
     store i1 false, i1* %third, align 1
     %clstmp = alloca %closure, align 8
-    %funptr9 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (void (%t_int*, %t_int*)* @__tg.tg_pass_ti.ti to i8*), i8** %funptr9, align 8
+    %funptr11 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (void (%t_int*, %t_int*)* @__tg.tg_pass_ti.ti to i8*), i8** %funptr11, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
@@ -251,21 +269,24 @@ Pass generic record
     %2 = load i32, i32* %1, align 4
     call void @printi(i32 %2)
     %clstmp1 = alloca %closure, align 8
-    %funptr210 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast (void (%t_bool*, %t_bool*)* @__tg.tg_pass_tb.tb to i8*), i8** %funptr210, align 8
+    %funptr212 = bitcast %closure* %clstmp1 to i8**
+    store i8* bitcast (i64 (i64)* @__tg.tg_pass_tb.tb to i8*), i8** %funptr212, align 8
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
     %3 = alloca %t_bool, align 8
-    %first411 = bitcast %t_bool* %3 to i32*
-    store i32 234, i32* %first411, align 4
+    %first413 = bitcast %t_bool* %3 to i32*
+    store i32 234, i32* %first413, align 4
     %gen5 = getelementptr inbounds %t_bool, %t_bool* %3, i32 0, i32 1
     store i1 false, i1* %gen5, align 1
     %third6 = getelementptr inbounds %t_bool, %t_bool* %3, i32 0, i32 2
     store i1 true, i1* %third6, align 1
-    %ret7 = alloca %t_bool, align 8
-    call void @__g.gg.g_apply_tb.tbtb.tb(%t_bool* %ret7, %closure* %clstmp1, %t_bool* %3)
-    %4 = bitcast %t_bool* %ret7 to i32*
-    %5 = load i32, i32* %4, align 4
+    %unbox = bitcast %t_bool* %3 to i64*
+    %unbox7 = load i64, i64* %unbox, align 4
+    %ret8 = alloca %t_bool, align 8
+    %4 = call i64 @__g.gg.g_apply_tb.tbtb.tb(%closure* %clstmp1, i64 %unbox7)
+    %box = bitcast %t_bool* %ret8 to i64*
+    store i64 %4, i64* %box, align 4
+    %5 = trunc i64 %4 to i32
     call void @printi(i32 %5)
     ret i32 0
   }
@@ -285,18 +306,22 @@ Access parametrized record fields
   
   declare void @printi(i32 %0)
   
-  define private void @__gen_firstg.u_is_gen_firsti.u(%gen_first_int* %any) {
+  define private void @__gen_firstg.u_is_gen_firsti.u(i64 %0) {
   entry:
-    %0 = getelementptr inbounds %gen_first_int, %gen_first_int* %any, i32 0, i32 1
-    %1 = load i1, i1* %0, align 1
-    tail call void @print_bool(i1 %1)
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 4
+    %any = bitcast i64* %box to %gen_first_int*
+    %1 = getelementptr inbounds %gen_first_int, %gen_first_int* %any, i32 0, i32 1
+    %2 = load i1, i1* %1, align 1
+    tail call void @print_bool(i1 %2)
     ret void
   }
   
-  define private i32 @__gen_firstg.g_only_gen_firsti.i(%gen_first_int* %any) {
+  define private i32 @__gen_firstg.g_only_gen_firsti.i(i64 %0) {
   entry:
-    %0 = bitcast %gen_first_int* %any to i32*
-    %1 = load i32, i32* %0, align 4
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 4
+    %1 = trunc i64 %0 to i32
     ret i32 %1
   }
   
@@ -339,8 +364,8 @@ Access parametrized record fields
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %t_int, align 8
-    %null1 = bitcast %t_int* %0 to i32*
-    store i32 0, i32* %null1, align 4
+    %null4 = bitcast %t_int* %0 to i32*
+    store i32 0, i32* %null4, align 4
     %first = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 1
     store i32 700, i32* %first, align 4
     %gen = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 2
@@ -348,17 +373,19 @@ Access parametrized record fields
     %third = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 3
     store i1 true, i1* %third, align 1
     %1 = alloca %gen_first_int, align 8
-    %only2 = bitcast %gen_first_int* %1 to i32*
-    store i32 420, i32* %only2, align 4
+    %only5 = bitcast %gen_first_int* %1 to i32*
+    store i32 420, i32* %only5, align 4
     %is = getelementptr inbounds %gen_first_int, %gen_first_int* %1, i32 0, i32 1
     store i1 false, i1* %is, align 1
     call void @__tg.u_first_ti.u(%t_int* %0)
     call void @__tg.u_third_ti.u(%t_int* %0)
     %2 = call i32 @__tg.g_gen_ti.i(%t_int* %0)
     call void @printi(i32 %2)
-    %3 = call i32 @__gen_firstg.g_only_gen_firsti.i(%gen_first_int* %1)
+    %unbox = bitcast %gen_first_int* %1 to i64*
+    %unbox1 = load i64, i64* %unbox, align 4
+    %3 = call i32 @__gen_firstg.g_only_gen_firsti.i(i64 %unbox1)
     call void @printi(i32 %3)
-    call void @__gen_firstg.u_is_gen_firsti.u(%gen_first_int* %1)
+    call void @__gen_firstg.u_is_gen_firsti.u(i64 %unbox1)
     ret i32 0
   }
   700
@@ -432,8 +459,8 @@ Support function/closure fields
   rec:                                              ; preds = %then, %entry
     %3 = bitcast %state* %0 to i32*
     %4 = load i32, i32* %3, align 4
-    %lesstmp = icmp slt i32 %4, 10
-    br i1 %lesstmp, label %then, label %else
+    %lt = icmp slt i32 %4, 10
+    br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %rec
     %5 = bitcast %state* %0 to i8*
@@ -470,8 +497,8 @@ Support function/closure fields
   
   define private i32 @__fun0(i32 %x) {
   entry:
-    %addtmp = add i32 %x, 1
-    ret i32 %addtmp
+    %add = add i32 %x, 1
+    ret i32 %add
   }
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
@@ -571,34 +598,40 @@ This caused stores to a wrong pointer type in LLVM
   
   declare void @printi(i32 %0)
   
-  define private void @ctrl(%ys* sret %0) {
+  define private i64 @ctrl() {
   entry:
-    %y4 = bitcast %ys* %0 to %foo*
-    %x5 = bitcast %foo* %y4 to i32*
-    store i32 17, i32* %x5, align 4
+    %0 = alloca %ys, align 8
+    %y5 = bitcast %ys* %0 to %foo*
+    %x6 = bitcast %foo* %y5 to i32*
+    store i32 17, i32* %x6, align 4
     %z = getelementptr inbounds %ys, %ys* %0, i32 0, i32 1
     store i32 9, i32* %z, align 4
     %1 = alloca %ys, align 8
-    %y16 = bitcast %ys* %1 to %foo*
-    %x27 = bitcast %foo* %y16 to i32*
-    store i32 1, i32* %x27, align 4
+    %y17 = bitcast %ys* %1 to %foo*
+    %x28 = bitcast %foo* %y17 to i32*
+    store i32 1, i32* %x28, align 4
     %z3 = getelementptr inbounds %ys, %ys* %1, i32 0, i32 1
     store i32 2, i32* %z3, align 4
-    ret void
+    %unbox = bitcast %ys* %0 to i64*
+    %unbox4 = load i64, i64* %unbox, align 4
+    ret i64 %unbox4
   }
   
-  define private void @record_with_laters(%ys* sret %0) {
+  define private i64 @record_with_laters() {
   entry:
-    %1 = alloca %foo, align 8
-    %x1 = bitcast %foo* %1 to i32*
-    store i32 12, i32* %x1, align 4
-    %y2 = bitcast %ys* %0 to %foo*
-    %2 = bitcast %foo* %y2 to i8*
-    %3 = bitcast %foo* %1 to i8*
+    %0 = alloca %foo, align 8
+    %x2 = bitcast %foo* %0 to i32*
+    store i32 12, i32* %x2, align 4
+    %1 = alloca %ys, align 8
+    %y3 = bitcast %ys* %1 to %foo*
+    %2 = bitcast %foo* %y3 to i8*
+    %3 = bitcast %foo* %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 4, i1 false)
-    %z = getelementptr inbounds %ys, %ys* %0, i32 0, i32 1
+    %z = getelementptr inbounds %ys, %ys* %1, i32 0, i32 1
     store i32 15, i32* %z, align 4
-    ret void
+    %unbox = bitcast %ys* %1 to i64*
+    %unbox1 = load i64, i64* %unbox, align 4
+    ret i64 %unbox1
   }
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
@@ -607,23 +640,25 @@ This caused stores to a wrong pointer type in LLVM
   define i32 @main(i32 %arg) {
   entry:
     %ret = alloca %ys, align 8
-    call void @record_with_laters(%ys* %ret)
-    %0 = getelementptr inbounds %ys, %ys* %ret, i32 0, i32 1
-    %1 = load i32, i32* %0, align 4
-    call void @printi(i32 %1)
-    %2 = bitcast %ys* %ret to %foo*
-    %3 = bitcast %foo* %2 to i32*
-    %4 = load i32, i32* %3, align 4
-    call void @printi(i32 %4)
-    %ret1 = alloca %ys, align 8
-    call void @ctrl(%ys* %ret1)
-    %5 = bitcast %ys* %ret1 to %foo*
-    %6 = bitcast %foo* %5 to i32*
-    %7 = load i32, i32* %6, align 4
-    call void @printi(i32 %7)
-    %8 = getelementptr inbounds %ys, %ys* %ret1, i32 0, i32 1
-    %9 = load i32, i32* %8, align 4
-    call void @printi(i32 %9)
+    %0 = tail call i64 @record_with_laters()
+    %box = bitcast %ys* %ret to i64*
+    store i64 %0, i64* %box, align 4
+    %1 = getelementptr inbounds %ys, %ys* %ret, i32 0, i32 1
+    %2 = lshr i64 %0, 32
+    %3 = trunc i64 %2 to i32
+    tail call void @printi(i32 %3)
+    %4 = trunc i64 %0 to i32
+    tail call void @printi(i32 %4)
+    %ret2 = alloca %ys, align 8
+    %5 = tail call i64 @ctrl()
+    %box3 = bitcast %ys* %ret2 to i64*
+    store i64 %5, i64* %box3, align 4
+    %6 = trunc i64 %5 to i32
+    tail call void @printi(i32 %6)
+    %7 = getelementptr inbounds %ys, %ys* %ret2, i32 0, i32 1
+    %8 = lshr i64 %5, 32
+    %9 = trunc i64 %8 to i32
+    tail call void @printi(i32 %9)
     ret i32 0
   }
   
