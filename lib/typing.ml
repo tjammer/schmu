@@ -684,7 +684,7 @@ and typeof_bop env loc bop e1 e2 =
     let t1 = typeof env e1 in
     let t2 = typeof env e2 in
     unify (loc, "Binary " ^ string_of_bop bop) t1 t2;
-    unify (loc, "Binary " ^ string_of_bop bop) t1 typ
+    unify (loc, "Binary " ^ string_of_bop bop) typ t1
   in
 
   match bop with
@@ -1058,7 +1058,7 @@ and convert_bop env loc bop e1 e2 =
     let t2 = convert env e2 in
 
     unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ;
-    unify (loc, "Binary " ^ string_of_bop bop) t1.typ typ;
+    unify (loc, "Binary " ^ string_of_bop bop) typ t1.typ;
     (t1, t2)
   in
 
