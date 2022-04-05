@@ -24,10 +24,11 @@ and typed_expr = { typ : typ; expr : expr }
 and const =
   | Int of int
   | Bool of bool
-  | Unit
   | U8 of char
+  | Float of float
   | String of string
   | Vector of typed_expr list
+  | Unit
 
 (* TODO use some type as in monomorphization *)
 and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }

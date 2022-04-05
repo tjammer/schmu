@@ -54,6 +54,7 @@ let int_t = Llvm.i32_type context
 let num_t = Llvm.i64_type context
 let bool_t = Llvm.i1_type context
 let u8_t = Llvm.i8_type context
+let float_t = Llvm.float_type context
 let unit_t = Llvm.void_type context
 let voidptr_t = Llvm.(i8_type context |> pointer_type)
 
@@ -104,7 +105,7 @@ let add_size_align ~upto ~sz { size; align } =
 let sizeof_typ typ =
   let rec inner size_pr typ =
     match typ with
-    | Tint -> add_size_align ~upto:4 ~sz:4 size_pr
+    | Tint | Tfloat -> add_size_align ~upto:4 ~sz:4 size_pr
     | Tbool | Tu8 ->
         (* No need to align one byte *)
         { size_pr with size = size_pr.size + 1 }
@@ -165,6 +166,7 @@ let rec get_lltype_def = function
   | Tint -> int_t
   | Tbool -> bool_t
   | Tu8 -> u8_t
+  | Tfloat -> float_t
   | Tunit -> unit_t
   | Tpoly _ -> generic_t |> Llvm.pointer_type
   | Trecord _ as t -> (
@@ -179,7 +181,8 @@ let rec get_lltype_def = function
   | Tptr t -> get_lltype_def t |> Llvm.pointer_type
 
 and get_lltype_param = function
-  | (Tint | Tbool | Tu8 | Tunit | Tpoly _ | Tptr _) as t -> get_lltype_def t
+  | (Tint | Tbool | Tu8 | Tfloat | Tunit | Tpoly _ | Tptr _) as t ->
+      get_lltype_def t
   | Tfun (params, ret, kind) ->
       typeof_func ~param:true ~decl:false (params, ret, kind)
   | Trecord _ as typ -> (
@@ -194,7 +197,7 @@ and get_lltype_param = function
             (Printf.sprintf "Record struct not found for type %s (param)" name))
 
 and get_lltype_field = function
-  | (Tint | Tbool | Tu8 | Tunit | Tpoly _ | Tptr _ | Trecord _) as t ->
+  | (Tint | Tbool | Tu8 | Tfloat | Tunit | Tpoly _ | Tptr _ | Trecord _) as t ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
       (* Not really a paramater, but is treated equally (ptr to closure struct) *)
@@ -788,6 +791,8 @@ and gen_expr param typed_expr =
       |> fin
   | Mconst (U8 c) ->
       { value = Llvm.const_int u8_t (Char.code c); typ = Tu8; lltyp = u8_t }
+  | Mconst (Float f) ->
+      { value = Llvm.const_float float_t f; typ = Tfloat; lltyp = float_t }
   | Mconst (String (s, allocref)) ->
       codegen_string_lit param s typed_expr.typ allocref
   | Mconst (Vector (id, es, allocref)) ->
@@ -864,15 +869,22 @@ and gen_bop e1 e2 bop =
   let bld f str = f e1.value e2.value str builder in
   let open Llvm in
   match bop with
-  | Plus -> { value = bld build_add "addtmp"; typ = Tint; lltyp = int_t }
-  | Mult -> { value = bld build_mul "multmp"; typ = Tint; lltyp = int_t }
-  | Less ->
-      let value = bld (build_icmp Icmp.Slt) "lesstmp" in
+  | Plus_i -> { value = bld build_add "add"; typ = Tint; lltyp = int_t }
+  | Minus_i -> { value = bld build_sub "sub"; typ = Tint; lltyp = int_t }
+  | Mult_i -> { value = bld build_mul "mul"; typ = Tint; lltyp = int_t }
+  | Less_i ->
+      let value = bld (build_icmp Icmp.Slt) "lt" in
       { value; typ = Tbool; lltyp = bool_t }
-  | Equal ->
-      let value = bld (build_icmp Icmp.Eq) "eqtmp" in
+  | Equal_i ->
+      let value = bld (build_icmp Icmp.Eq) "eq" in
       { value; typ = Tbool; lltyp = bool_t }
-  | Minus -> { value = bld build_sub "subtmp"; typ = Tint; lltyp = int_t }
+  | Plus_f -> { value = bld build_fadd "add"; typ = Tfloat; lltyp = float_t }
+  | Minus_f -> { value = bld build_fsub "sub"; typ = Tfloat; lltyp = float_t }
+  | Mult_f -> { value = bld build_fmul "mul"; typ = Tfloat; lltyp = float_t }
+  | Less_f ->
+      { value = bld (build_fcmp Fcmp.Olt) "lt"; typ = Tbool; lltyp = bool_t }
+  | Equal_f ->
+      { value = bld (build_fcmp Fcmp.Oeq) "eq"; typ = Tbool; lltyp = bool_t }
 
 and gen_app param callee args allocref ret_t malloc =
   let func = gen_expr param callee.ex in

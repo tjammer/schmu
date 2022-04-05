@@ -3,6 +3,7 @@ type typ =
   | Tbool
   | Tunit
   | Tu8
+  | Tfloat
   | Tvar of tv ref
   | Talias of string * typ
   | Qvar of string

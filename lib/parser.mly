@@ -27,6 +27,7 @@
 %token <string> Identifier
 %token <int> Int
 %token <char> U8
+%token <float> Float
 %token <string> String_lit
 %token <string> Builtin_id
 %token True
@@ -120,6 +121,7 @@ expr:
   | Int { Lit($loc, Int $1) }
   | U8  { Lit($loc, U8 $1) }
   | bool { Lit($loc, Bool  $1) }
+  | Float { Lit($loc, Float $1) }
   | String_lit { Lit($loc, String $1) }
   | vector_lit { Lit($loc, Vector $1) }
   | Lpar; Rpar { Lit($loc, Unit) }
@@ -138,11 +140,11 @@ bool:
   | False { false }
 
 %inline binop:
-  | Plus  { Plus }
-  | Minus { Minus }
-  | Mult  { Mult }
-  | Less  { Less }
-  | Bin_equal { Equal }
+  | Plus  { Plus_i }
+  | Minus { Minus_i }
+  | Mult  { Mult_i }
+  | Less  { Less_i }
+  | Bin_equal { Equal_i }
 
 %inline decl:
   | Identifier; option(type_expr) { $1, $2 }

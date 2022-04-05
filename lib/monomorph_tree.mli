@@ -30,10 +30,11 @@ type expr =
 and const =
   | Int of int
   | Bool of bool
-  | Unit
   | U8 of char
+  | Float of float
   | String of string * alloca
   | Vector of int * monod_tree list * alloca
+  | Unit
 (* The int is the malloc id used for freeing later *)
 
 and func = { params : typ list; ret : typ; kind : fun_kind }

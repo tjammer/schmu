@@ -25,6 +25,7 @@ let alpha = ['a'-'z' 'A'-'Z']
 
 let int = digit+
 let u8 = digit+ "u8"
+let float = digit+ '.' digit+
 let id = alpha (alpha|digit|'_')*
 let builtin_id = "__" id
 
@@ -36,6 +37,7 @@ rule read =
   | white    { read lexbuf }
   | newline  { next_line lexbuf; read lexbuf }
   | int      { Int (int_of_string (Lexing.lexeme lexbuf)) }
+  | float    { Float (float_of_string (Lexing.lexeme lexbuf)) }
   | u8       { U8 (u8_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { True }
   | "false"  { False }

@@ -1,5 +1,18 @@
 type loc = Lexing.position * Lexing.position
-type bop = Plus | Mult | Less | Equal | Minus [@@deriving show]
+
+type bop =
+  | Plus_i
+  | Mult_i
+  | Less_i
+  | Equal_i
+  | Minus_i
+  | Plus_f
+  | Mult_f
+  | Less_f
+  | Equal_f
+  | Minus_f
+[@@deriving show]
+(* Eventually, this will be handled differently, hopefully not as hardcoded *)
 
 type type_spec =
   | Ty_id of string
@@ -34,6 +47,7 @@ and literal =
   | Int of int
   | Bool of bool
   | U8 of char
+  | Float of float
   | String of string
   | Vector of expr list
   | Unit

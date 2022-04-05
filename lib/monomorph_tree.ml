@@ -36,10 +36,11 @@ type expr =
 and const =
   | Int of int
   | Bool of bool
-  | Unit
   | U8 of char
+  | Float of float
   | String of string * alloca
   | Vector of int * monod_tree list * alloca
+  | Unit
 
 and func = { params : typ list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
@@ -108,6 +109,7 @@ let rec cln = function
   | Tbool -> Tbool
   | Tunit -> Tunit
   | Tu8 -> Tu8
+  | Tfloat -> Tfloat
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
       Tfun (List.map cln params, cln ret, cln_kind kind)
@@ -167,6 +169,7 @@ let get_mono_name name ~poly concrete =
     | Tbool -> "b"
     | Tunit -> "u"
     | Tu8 -> "c"
+    | Tfloat -> "f"
     | Tfun (ps, r, _) ->
         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
     | Trecord (Some t, name, _) -> Printf.sprintf "%s%s" name (str t)
@@ -486,6 +489,7 @@ and morph_const = function
   | String _ | Vector _ -> failwith "Internal Error: Const should be extra case"
   | Int i -> Int i
   | Bool b -> Bool b
+  | Float f -> Float f
   | Unit -> Unit
   | U8 c -> U8 c
 

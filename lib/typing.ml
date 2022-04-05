@@ -20,10 +20,11 @@ and typed_expr = { typ : typ; expr : expr }
 and const =
   | Int of int
   | Bool of bool
-  | Unit
   | U8 of char
+  | Float of float
   | String of string
   | Vector of typed_expr list
+  | Unit
 
 and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
@@ -104,7 +105,7 @@ let is_type_polymorphic typ =
     | Tfun (params, ret, _) ->
         let acc = List.fold_left inner acc params in
         inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ | Tu8 -> acc
+    | Tbool | Tunit | Tint | Trecord _ | Tu8 | Tfloat -> acc
     | Tptr t -> inner acc t
   in
   inner false typ
@@ -116,6 +117,7 @@ let string_of_type_raw get_name typ =
     | Tint -> "int"
     | Tbool -> "bool"
     | Tunit -> "unit"
+    | Tfloat -> "float"
     | Tu8 -> "u8"
     | Tfun (ts, t, _) -> (
         match ts with
@@ -367,11 +369,16 @@ let check_annot loc l r =
 
 (* TODO add missing bops *)
 let string_of_bop = function
-  | Ast.Plus -> "+"
-  | Mult -> "*"
-  | Less -> "<"
-  | Equal -> "=="
-  | Minus -> "-"
+  | Ast.Plus_i -> "+"
+  | Mult_i -> "*"
+  | Less_i -> "<"
+  | Equal_i -> "=="
+  | Minus_i -> "-"
+  | Ast.Plus_f -> "+."
+  | Mult_f -> "*."
+  | Less_f -> "<."
+  | Equal_f -> "==."
+  | Minus_f -> "-."
 
 let rec subst_generic ~id typ = function
   | Tvar { contents = Link t } -> subst_generic ~id typ t
@@ -427,6 +434,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_id "bool" -> Tbool
     | Ty_id "unit" -> Tunit
     | Ty_id "u8" -> Tu8
+    | Ty_id "float" -> Tfloat
     | Ty_id t -> find t ""
     | Ty_var id when typedef -> find id "'"
     | Ty_var id ->
@@ -561,6 +569,7 @@ and typeof_annotated env annot = function
   | Lit (_, Int _) -> Tint
   | Lit (_, Bool _) -> Tbool
   | Lit (_, U8 _) -> Tu8
+  | Lit (_, Float _) -> Tfloat
   | Lit (loc, String _) -> get_prelude env loc "string"
   | Lit (loc, Vector vec) -> typeof_vector_lit env loc vec
   | Lit (_, Unit) -> Tunit
@@ -670,20 +679,26 @@ and typeof_if env loc cond e1 e2 =
   type_res
 
 and typeof_bop env loc bop e1 e2 =
-  let check () =
+  let check typ =
     (* both exprs must be Int, not Bool *)
     let t1 = typeof env e1 in
     let t2 = typeof env e2 in
-    unify (loc, "Binary " ^ string_of_bop bop) t1 Tint;
-    unify (loc, "Binary " ^ string_of_bop bop) t2 Tint
+    unify (loc, "Binary " ^ string_of_bop bop) t1 t2;
+    unify (loc, "Binary " ^ string_of_bop bop) t1 typ
   in
 
   match bop with
-  | Plus | Mult | Minus ->
-      check ();
+  | Plus_i | Mult_i | Minus_i ->
+      check Tint;
       Tint
-  | Less | Equal ->
-      check ();
+  | Less_i | Equal_i ->
+      check Tint;
+      Tbool
+  | Plus_f | Mult_f | Minus_f ->
+      check Tfloat;
+      Tfloat
+  | Less_f | Equal_f ->
+      check Tfloat;
       Tbool
 
 and typeof_record env loc annot labels =
@@ -887,6 +902,7 @@ and convert_annot env annot = function
   | Lit (_, Int i) -> { typ = Tint; expr = Const (Int i) }
   | Lit (_, Bool b) -> { typ = Tbool; expr = Const (Bool b) }
   | Lit (_, U8 c) -> { typ = Tu8; expr = Const (U8 c) }
+  | Lit (_, Float f) -> { typ = Tfloat; expr = Const (Float f) }
   | Lit (loc, String s) ->
       let typ = get_prelude env loc "string" in
       { typ; expr = Const (String s) }
@@ -1037,21 +1053,27 @@ and convert_app ~switch_uni env loc e1 args =
   { typ = res_t; expr = App { callee; args = targs } }
 
 and convert_bop env loc bop e1 e2 =
-  let check () =
+  let check typ =
     let t1 = convert env e1 in
     let t2 = convert env e2 in
 
-    unify (loc, "Binary " ^ string_of_bop bop) t1.typ Tint;
-    unify (loc, "Binary " ^ string_of_bop bop) t2.typ Tint;
+    unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ;
+    unify (loc, "Binary " ^ string_of_bop bop) t1.typ typ;
     (t1, t2)
   in
 
   match bop with
-  | Ast.Plus | Mult | Minus ->
-      let t1, t2 = check () in
+  | Ast.Plus_i | Mult_i | Minus_i ->
+      let t1, t2 = check Tint in
       { typ = Tint; expr = Bop (bop, t1, t2) }
-  | Less | Equal ->
-      let t1, t2 = check () in
+  | Less_i | Equal_i ->
+      let t1, t2 = check Tint in
+      { typ = Tbool; expr = Bop (bop, t1, t2) }
+  | Plus_f | Mult_f | Minus_f ->
+      let t1, t2 = check Tfloat in
+      { typ = Tfloat; expr = Bop (bop, t1, t2) }
+  | Less_f | Equal_f ->
+      let t1, t2 = check Tfloat in
       { typ = Tbool; expr = Bop (bop, t1, t2) }
 
 and convert_if env loc cond e1 e2 =
