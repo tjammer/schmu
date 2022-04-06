@@ -29,7 +29,11 @@ type param = {
 }
 
 type unboxed_atom = Ints of int | Float | Float_vec
-type unboxed = Atom of unboxed_atom | Mixed of unboxed_atom * unboxed_atom
+
+type unboxed =
+  | One_param of unboxed_atom
+  | Two_params of unboxed_atom * unboxed_atom
+
 type aggregate_param_kind = Boxed | Unboxed of unboxed
 
 let ( ++ ) = Seq.append
@@ -140,38 +144,53 @@ let rec is_mutable = function
         false fields
   | _ -> false
 
-(* let rec is_only_floats = function *)
-(*   | Trecord (_, _, fields) -> *)
-(*       Array.fold_left *)
-(*         (fun acc field -> *)
-(*           match Cleaned_types.(field.typ) with *)
-(*           | Tfloat -> acc *)
-(*           | Trecord _ as t -> is_only_floats t && acc *)
-(*           | _ -> false) *)
-(*         true fields *)
-(*   | _ -> false *)
+let rec get_word ~size items = function
+  | [] -> (List.rev items, [], size)
+  | typ :: tl ->
+      let typ_size = sizeof_typ typ in
+      let size = alignup ~size ~upto:typ_size + typ_size in
+      if size > 8 then
+        (* Straddles the 8 byte boundary.
+           Will be boxed in [pkind_of_typ] *)
+        ([], [], 0)
+      else if size = 8 then
+        (* We are at a word boundary. Return what we have so far *)
+        (List.rev (typ :: items), tl, size)
+      else get_word ~size (typ :: items) tl
 
-let pkind_of_typ typ =
-  (* TODO maybe cache this? *)
-  let size = sizeof_typ typ in
-  match typ with
-  | Trecord (_, _, fields) when not (is_mutable typ) -> (
+and extract_word ~size = function
+  | [ Tfloat; Tfloat ] -> Some Float_vec
+  | [ Tfloat ] -> Some Float
+  | [] -> None
+  | _ ->
+      let size = match size with 1 -> 1 | 2 -> 2 | 3 | 4 -> 4 | _ -> 8 in
+      Some (Ints size)
+
+and pkind_of_typ = function
+  (* We destruct the type into words of 8 byte.
+     A word is then either a double, an int (containing different types)
+     or a vector of float (for x86_64-linux-gnu). If a type straddles
+     the 8 byte boundary, we have to box it.
+     Depending on the size, we end up with one ([One_param]) or
+     two ([Two_params]) parameters.
+     Still missing: A 'short' type to unbox e.g. 2 bools.
+     And obviously all of this is hardcoded for x86_64-linux-gnu *)
+  | Trecord (_, _, fields) as typ when not (is_mutable typ) -> (
       let types =
         Array.map (fun (field : Cleaned_types.field) -> field.typ) fields
         |> Array.to_list
       in
-      match (size, types) with
-      | 4, [ Tfloat ] -> Unboxed (Atom Float)
-      | 8, [ Tfloat; Tfloat ] -> Unboxed (Atom Float_vec)
-      | size, _ when size <= 8 -> Unboxed (Atom (Ints size))
-      | 16, [ Tfloat; Tfloat; Tfloat; Tfloat ] ->
-          Unboxed (Mixed (Float_vec, Float_vec))
-      | 12, [ Tfloat; Tfloat; Tfloat ] -> Unboxed (Mixed (Float_vec, Float))
-      | size, Tfloat :: Tfloat :: _ when size <= 16 ->
-          Unboxed (Mixed (Float_vec, Ints (size - 8)))
-      | size, [ _; _; Tfloat; Tfloat ] | size, [ _; Tfloat; Tfloat ] ->
-          Unboxed (Mixed (Ints (size - 8), Float_vec))
-      | _ -> Boxed)
+      let size = sizeof_typ typ in
+      if size > 16 then Boxed
+      else
+        let fst, tail, size = get_word ~size:0 [] types in
+        let fst = extract_word ~size fst in
+        let snd, _, size = get_word ~size:0 [] tail in
+        let snd = extract_word ~size snd in
+        match (fst, snd) with
+        | Some a, Some b -> Unboxed (Two_params (a, b))
+        | Some atom, None -> Unboxed (One_param atom)
+        | None, _ -> Boxed)
   | _ -> Boxed
 
 let lltype_unboxed kind =
@@ -185,8 +204,8 @@ let lltype_unboxed kind =
         "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
   in
   match kind with
-  | Atom a -> helper a
-  | Mixed (a, b) -> Llvm.struct_type context [| helper a; helper b |]
+  | One_param a -> helper a
+  | Two_params (a, b) -> Llvm.struct_type context [| helper a; helper b |]
 
 let type_unboxed kind =
   let helper = function
@@ -203,8 +222,8 @@ let type_unboxed kind =
   let anon_field_of_typ typ = { mut = false; name = "tup"; typ = helper typ } in
 
   match kind with
-  | Atom a -> helper a
-  | Mixed (a, b) ->
+  | One_param a -> helper a
+  | Two_params (a, b) ->
       (* We need a tuple here *)
       Trecord (None, "tup", [| anon_field_of_typ a; anon_field_of_typ b |])
 
