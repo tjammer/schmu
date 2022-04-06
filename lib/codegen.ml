@@ -28,10 +28,8 @@ type param = {
   rec_block : rec_block option;
 }
 
-type unboxed = Ints of int | Float | Float_vec
-
-(* We only support up to 8 byte right now *)
-(* type unboxed = Atom of unboxed | Mixed of unboxed_atoms * unboxed_atoms *)
+type unboxed_atom = Ints of int | Float | Float_vec
+type unboxed = Atom of unboxed_atom | Mixed of unboxed_atom * unboxed_atom
 type aggregate_param_kind = Boxed | Unboxed of unboxed
 
 let ( ++ ) = Seq.append
@@ -142,47 +140,73 @@ let rec is_mutable = function
         false fields
   | _ -> false
 
-let rec is_only_floats = function
-  | Trecord (_, _, fields) ->
-      Array.fold_left
-        (fun acc field ->
-          match Cleaned_types.(field.typ) with
-          | Tfloat -> acc
-          | Trecord _ as t -> is_only_floats t && acc
-          | _ -> false)
-        true fields
-  | _ -> false
+(* let rec is_only_floats = function *)
+(*   | Trecord (_, _, fields) -> *)
+(*       Array.fold_left *)
+(*         (fun acc field -> *)
+(*           match Cleaned_types.(field.typ) with *)
+(*           | Tfloat -> acc *)
+(*           | Trecord _ as t -> is_only_floats t && acc *)
+(*           | _ -> false) *)
+(*         true fields *)
+(*   | _ -> false *)
 
 let pkind_of_typ typ =
   (* TODO maybe cache this? *)
   let size = sizeof_typ typ in
   match typ with
-  | Trecord _ when not (is_mutable typ) -> (
-      match (size, is_only_floats typ) with
-      | 4, true -> Unboxed Float
-      | 8, true -> Unboxed Float_vec
-      | size, _ when size <= 8 -> Unboxed (Ints size)
+  | Trecord (_, _, fields) when not (is_mutable typ) -> (
+      let types =
+        Array.map (fun (field : Cleaned_types.field) -> field.typ) fields
+        |> Array.to_list
+      in
+      match (size, types) with
+      | 4, [ Tfloat ] -> Unboxed (Atom Float)
+      | 8, [ Tfloat; Tfloat ] -> Unboxed (Atom Float_vec)
+      | size, _ when size <= 8 -> Unboxed (Atom (Ints size))
+      | 16, [ Tfloat; Tfloat; Tfloat; Tfloat ] ->
+          Unboxed (Mixed (Float_vec, Float_vec))
+      | 12, [ Tfloat; Tfloat; Tfloat ] -> Unboxed (Mixed (Float_vec, Float))
+      | size, Tfloat :: Tfloat :: _ when size <= 16 ->
+          Unboxed (Mixed (Float_vec, Ints (size - 8)))
+      | size, [ _; _; Tfloat; Tfloat ] | size, [ _; Tfloat; Tfloat ] ->
+          Unboxed (Mixed (Ints (size - 8), Float_vec))
       | _ -> Boxed)
   | _ -> Boxed
 
-let lltype_unboxed = function
-  | Ints 1 -> u8_t
-  | Ints 4 -> int_t
-  | Ints 8 -> num_t
-  | Float -> float_t
-  | Float_vec -> Llvm.vector_type float_t 2
-  | Ints i ->
-      "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
+let lltype_unboxed kind =
+  let helper = function
+    | Ints 1 -> u8_t
+    | Ints 4 -> int_t
+    | Ints 8 -> num_t
+    | Float -> float_t
+    | Float_vec -> Llvm.vector_type float_t 2
+    | Ints i ->
+        "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
+  in
+  match kind with
+  | Atom a -> helper a
+  | Mixed (a, b) -> Llvm.struct_type context [| helper a; helper b |]
 
-let type_unboxed = function
-  | Ints 1 -> Tu8
-  | Ints 4 -> Tint
-  | Ints 8 ->
-      Tint (* TODO not really. Introduce i32 type. Don't hardcode for float *)
-  | Float -> Tfloat
-  | Float_vec -> Tfloat (* vector of floats, really *)
-  | Ints i ->
-      "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
+let type_unboxed kind =
+  let helper = function
+    | Ints 1 -> Tu8
+    | Ints 4 -> Tint
+    | Ints 8 ->
+        Tint
+        (* TODO) not really. Introduce i32 type. Don't hardcode for float *)
+    | Float -> Tfloat
+    | Float_vec -> Tfloat (* vector of floats, really *)
+    | Ints i ->
+        "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
+  in
+  let anon_field_of_typ typ = { mut = false; name = "tup"; typ = helper typ } in
+
+  match kind with
+  | Atom a -> helper a
+  | Mixed (a, b) ->
+      (* We need a tuple here *)
+      Trecord (None, "tup", [| anon_field_of_typ a; anon_field_of_typ b |])
 
 (** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to

@@ -593,10 +593,15 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %i3 = type { i32, i32, i32 }
   %v2 = type { float, float }
   %i2 = type { i32, i32 }
   %v1 = type { float }
   %i1 = type { i32 }
+  %v3 = type { float, float, float }
+  %v4 = type { float, float, float, float }
+  %mixed4 = type { float, float, float, i32 }
+  %trailv2 = type { i32, i32, float, float }
   
   declare <2 x float> @subv2(<2 x float> %0)
   
@@ -606,11 +611,21 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   
   declare i32 @subi1(i32 %0)
   
+  declare { <2 x float>, float } @subv3({ <2 x float>, float } %0)
+  
+  declare void @subi3(%i3* %0, %i3* %1)
+  
+  declare { <2 x float>, <2 x float> } @subv4({ <2 x float>, <2 x float> } %0)
+  
+  declare { <2 x float>, i64 } @submixed4({ <2 x float>, i64 } %0)
+  
+  declare { i64, <2 x float> } @subtrailv2({ i64, <2 x float> } %0)
+  
   define i32 @main(i32 %arg) {
   entry:
     %0 = alloca %v2, align 8
-    %z21 = bitcast %v2* %0 to float*
-    store float 1.000000e+00, float* %z21, align 4
+    %z54 = bitcast %v2* %0 to float*
+    store float 1.000000e+00, float* %z54, align 4
     %y = getelementptr inbounds %v2, %v2* %0, i32 0, i32 1
     store float 1.000000e+01, float* %y, align 4
     %unbox = bitcast %v2* %0 to <2 x float>*
@@ -620,8 +635,8 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %box = bitcast %v2* %ret to <2 x float>*
     store <2 x float> %1, <2 x float>* %box, align 8
     %2 = alloca %i2, align 8
-    %x22 = bitcast %i2* %2 to i32*
-    store i32 1, i32* %x22, align 4
+    %x55 = bitcast %i2* %2 to i32*
+    store i32 1, i32* %x55, align 4
     %y3 = getelementptr inbounds %i2, %i2* %2, i32 0, i32 1
     store i32 10, i32* %y3, align 4
     %unbox4 = bitcast %i2* %2 to i64*
@@ -631,18 +646,85 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %box7 = bitcast %i2* %ret6 to i64*
     store i64 %3, i64* %box7, align 4
     %4 = alloca %v1, align 8
-    %z923 = bitcast %v1* %4 to float*
-    store float 1.000000e+00, float* %z923, align 4
+    %z956 = bitcast %v1* %4 to float*
+    store float 1.000000e+00, float* %z956, align 4
     %ret12 = alloca %v1, align 8
     %5 = tail call float @subv1(float 1.000000e+00)
     %box13 = bitcast %v1* %ret12 to float*
     store float %5, float* %box13, align 4
     %6 = alloca %i1, align 8
-    %x1524 = bitcast %i1* %6 to i32*
-    store i32 1, i32* %x1524, align 4
+    %x1557 = bitcast %i1* %6 to i32*
+    store i32 1, i32* %x1557, align 4
     %ret18 = alloca %i1, align 8
     %7 = tail call i32 @subi1(i32 1)
     %box19 = bitcast %i1* %ret18 to i32*
     store i32 %7, i32* %box19, align 4
+    %8 = alloca %v3, align 8
+    %x2158 = bitcast %v3* %8 to float*
+    store float 1.000000e+00, float* %x2158, align 4
+    %y22 = getelementptr inbounds %v3, %v3* %8, i32 0, i32 1
+    store float 1.000000e+01, float* %y22, align 4
+    %z23 = getelementptr inbounds %v3, %v3* %8, i32 0, i32 2
+    store float 1.000000e+02, float* %z23, align 4
+    %unbox24 = bitcast %v3* %8 to { <2 x float>, float }*
+    %unbox25 = load { <2 x float>, float }, { <2 x float>, float }* %unbox24, align 8
+    %ret26 = alloca %v3, align 8
+    %9 = tail call { <2 x float>, float } @subv3({ <2 x float>, float } %unbox25)
+    %box27 = bitcast %v3* %ret26 to { <2 x float>, float }*
+    store { <2 x float>, float } %9, { <2 x float>, float }* %box27, align 8
+    %10 = alloca %i3, align 8
+    %w59 = bitcast %i3* %10 to i32*
+    store i32 1, i32* %w59, align 4
+    %y29 = getelementptr inbounds %i3, %i3* %10, i32 0, i32 1
+    store i32 10, i32* %y29, align 4
+    %z30 = getelementptr inbounds %i3, %i3* %10, i32 0, i32 2
+    store i32 100, i32* %z30, align 4
+    %ret31 = alloca %i3, align 8
+    call void @subi3(%i3* %ret31, %i3* %10)
+    %11 = alloca %v4, align 8
+    %x3260 = bitcast %v4* %11 to float*
+    store float 1.000000e+00, float* %x3260, align 4
+    %y33 = getelementptr inbounds %v4, %v4* %11, i32 0, i32 1
+    store float 1.000000e+01, float* %y33, align 4
+    %z34 = getelementptr inbounds %v4, %v4* %11, i32 0, i32 2
+    store float 1.000000e+02, float* %z34, align 4
+    %w35 = getelementptr inbounds %v4, %v4* %11, i32 0, i32 3
+    store float 1.000000e+03, float* %w35, align 4
+    %unbox36 = bitcast %v4* %11 to { <2 x float>, <2 x float> }*
+    %unbox37 = load { <2 x float>, <2 x float> }, { <2 x float>, <2 x float> }* %unbox36, align 8
+    %ret38 = alloca %v4, align 8
+    %12 = call { <2 x float>, <2 x float> } @subv4({ <2 x float>, <2 x float> } %unbox37)
+    %box39 = bitcast %v4* %ret38 to { <2 x float>, <2 x float> }*
+    store { <2 x float>, <2 x float> } %12, { <2 x float>, <2 x float> }* %box39, align 8
+    %13 = alloca %mixed4, align 8
+    %x4161 = bitcast %mixed4* %13 to float*
+    store float 1.000000e+00, float* %x4161, align 4
+    %y42 = getelementptr inbounds %mixed4, %mixed4* %13, i32 0, i32 1
+    store float 1.000000e+01, float* %y42, align 4
+    %z43 = getelementptr inbounds %mixed4, %mixed4* %13, i32 0, i32 2
+    store float 1.000000e+02, float* %z43, align 4
+    %k = getelementptr inbounds %mixed4, %mixed4* %13, i32 0, i32 3
+    store i32 1, i32* %k, align 4
+    %unbox44 = bitcast %mixed4* %13 to { <2 x float>, i64 }*
+    %unbox45 = load { <2 x float>, i64 }, { <2 x float>, i64 }* %unbox44, align 8
+    %ret46 = alloca %mixed4, align 8
+    %14 = call { <2 x float>, i64 } @submixed4({ <2 x float>, i64 } %unbox45)
+    %box47 = bitcast %mixed4* %ret46 to { <2 x float>, i64 }*
+    store { <2 x float>, i64 } %14, { <2 x float>, i64 }* %box47, align 8
+    %15 = alloca %trailv2, align 8
+    %a62 = bitcast %trailv2* %15 to i32*
+    store i32 1, i32* %a62, align 4
+    %b = getelementptr inbounds %trailv2, %trailv2* %15, i32 0, i32 1
+    store i32 2, i32* %b, align 4
+    %c = getelementptr inbounds %trailv2, %trailv2* %15, i32 0, i32 2
+    store float 1.000000e+00, float* %c, align 4
+    %d = getelementptr inbounds %trailv2, %trailv2* %15, i32 0, i32 3
+    store float 2.000000e+00, float* %d, align 4
+    %unbox49 = bitcast %trailv2* %15 to { i64, <2 x float> }*
+    %unbox50 = load { i64, <2 x float> }, { i64, <2 x float> }* %unbox49, align 8
+    %ret51 = alloca %trailv2, align 8
+    %16 = call { i64, <2 x float> } @subtrailv2({ i64, <2 x float> } %unbox50)
+    %box52 = bitcast %trailv2* %ret51 to { i64, <2 x float> }*
+    store { i64, <2 x float> } %16, { i64, <2 x float> }* %box52, align 8
     ret i32 0
   }
