@@ -42,7 +42,8 @@ rule read =
   | "true"   { True }
   | "false"  { False }
   | '='      { Equal }
-  | "=="     { Bin_equal }
+  | "=="     { Bin_equal_i }
+  | "==."     { Bin_equal_f }
   | ','      { Comma }
   | ':'      { Colon }
   | "'"      { Quote }
@@ -59,10 +60,14 @@ rule read =
   | id       { Identifier (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
-  | '+'      { Plus }
-  | '-'      { Minus }
-  | '*'      { Mult }
-  | '<'      { Less }
+  | '+'      { Plus_i }
+  | '-'      { Minus_i }
+  | '*'      { Mult_i }
+  | "+."     { Plus_f }
+  | "-."     { Minus_f }
+  | "*."     { Mult_f }
+  | '<'      { Less_i }
+  | "<."     { Less_f }
   | '.'      { Dot }
   | '('      { Lpar }
   | ')'      { Rpar }

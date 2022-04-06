@@ -32,11 +32,16 @@
 %token <string> Builtin_id
 %token True
 %token False
-%token Plus
-%token Minus
-%token Mult
-%token Less
-%token Bin_equal
+%token Plus_i
+%token Minus_i
+%token Mult_i
+%token Plus_f
+%token Minus_f
+%token Mult_f
+%token Less_i
+%token Less_f
+%token Bin_equal_i
+%token Bin_equal_f
 %token Lpar
 %token Rpar
 %token Lbrac
@@ -57,9 +62,11 @@
 %token Do
 %token Mutable
 
-%nonassoc Less
-%left Plus
-%left Mult
+%nonassoc Less_i Less_f
+%left Minus_i Minus_f
+%left Plus_i Plus_f
+%left Mult_i Mult_f
+%left Bin_equal_i Bin_equal_f
 %left Arrow_right Pipe_tail Dot
 
 %start <Ast.prog> prog
@@ -140,11 +147,16 @@ bool:
   | False { false }
 
 %inline binop:
-  | Plus  { Plus_i }
-  | Minus { Minus_i }
-  | Mult  { Mult_i }
-  | Less  { Less_i }
-  | Bin_equal { Equal_i }
+  | Plus_i  { Plus_i }
+  | Minus_i { Minus_i }
+  | Mult_i  { Mult_i }
+  | Less_i  { Less_i }
+  | Bin_equal_i { Equal_i }
+  | Plus_f  { Plus_f }
+  | Minus_f { Minus_f }
+  | Mult_f  { Mult_f }
+  | Less_f  { Less_f }
+  | Bin_equal_f { Equal_f }
 
 %inline decl:
   | Identifier; option(type_expr) { $1, $2 }
