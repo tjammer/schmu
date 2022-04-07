@@ -63,11 +63,15 @@ rule read =
   | '+'      { Plus_i }
   | '-'      { Minus_i }
   | '*'      { Mult_i }
+  | '/'      { Div_i }
   | "+."     { Plus_f }
   | "-."     { Minus_f }
   | "*."     { Mult_f }
+  | "/."     { Div_f }
   | '<'      { Less_i }
   | "<."     { Less_f }
+  | '>'      { Greater_i }
+  | ">."     { Greater_f }
   | '.'      { Dot }
   | '('      { Lpar }
   | ')'      { Rpar }

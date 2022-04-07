@@ -977,8 +977,12 @@ and gen_bop e1 e2 bop =
   | Plus_i -> { value = bld build_add "add"; typ = Tint; lltyp = int_t }
   | Minus_i -> { value = bld build_sub "sub"; typ = Tint; lltyp = int_t }
   | Mult_i -> { value = bld build_mul "mul"; typ = Tint; lltyp = int_t }
+  | Div_i -> { value = bld build_sdiv "div"; typ = Tint; lltyp = int_t }
   | Less_i ->
       let value = bld (build_icmp Icmp.Slt) "lt" in
+      { value; typ = Tbool; lltyp = bool_t }
+  | Greater_i ->
+      let value = bld (build_icmp Icmp.Sgt) "gt" in
       { value; typ = Tbool; lltyp = bool_t }
   | Equal_i ->
       let value = bld (build_icmp Icmp.Eq) "eq" in
@@ -986,8 +990,11 @@ and gen_bop e1 e2 bop =
   | Plus_f -> { value = bld build_fadd "add"; typ = Tfloat; lltyp = float_t }
   | Minus_f -> { value = bld build_fsub "sub"; typ = Tfloat; lltyp = float_t }
   | Mult_f -> { value = bld build_fmul "mul"; typ = Tfloat; lltyp = float_t }
+  | Div_f -> { value = bld build_fdiv "div"; typ = Tfloat; lltyp = float_t }
   | Less_f ->
       { value = bld (build_fcmp Fcmp.Olt) "lt"; typ = Tbool; lltyp = bool_t }
+  | Greater_f ->
+      { value = bld (build_fcmp Fcmp.Ogt) "gt"; typ = Tbool; lltyp = bool_t }
   | Equal_f ->
       { value = bld (build_fcmp Fcmp.Oeq) "eq"; typ = Tbool; lltyp = bool_t }
 

@@ -371,12 +371,16 @@ let check_annot loc l r =
 let string_of_bop = function
   | Ast.Plus_i -> "+"
   | Mult_i -> "*"
+  | Div_i -> "/"
   | Less_i -> "<"
+  | Greater_i -> ">"
   | Equal_i -> "=="
   | Minus_i -> "-"
   | Ast.Plus_f -> "+."
   | Mult_f -> "*."
+  | Div_f -> ">."
   | Less_f -> "<."
+  | Greater_f -> ">."
   | Equal_f -> "==."
   | Minus_f -> "-."
 
@@ -688,16 +692,16 @@ and typeof_bop env loc bop e1 e2 =
   in
 
   match bop with
-  | Plus_i | Mult_i | Minus_i ->
+  | Plus_i | Mult_i | Minus_i | Div_i ->
       check Tint;
       Tint
-  | Less_i | Equal_i ->
+  | Less_i | Equal_i | Greater_i ->
       check Tint;
       Tbool
-  | Plus_f | Mult_f | Minus_f ->
+  | Plus_f | Mult_f | Minus_f | Div_f ->
       check Tfloat;
       Tfloat
-  | Less_f | Equal_f ->
+  | Less_f | Equal_f | Greater_f ->
       check Tfloat;
       Tbool
 
@@ -1063,16 +1067,16 @@ and convert_bop env loc bop e1 e2 =
   in
 
   match bop with
-  | Ast.Plus_i | Mult_i | Minus_i ->
+  | Ast.Plus_i | Mult_i | Minus_i | Div_i ->
       let t1, t2 = check Tint in
       { typ = Tint; expr = Bop (bop, t1, t2) }
-  | Less_i | Equal_i ->
+  | Less_i | Equal_i | Greater_i ->
       let t1, t2 = check Tint in
       { typ = Tbool; expr = Bop (bop, t1, t2) }
-  | Plus_f | Mult_f | Minus_f ->
+  | Plus_f | Mult_f | Minus_f | Div_f ->
       let t1, t2 = check Tfloat in
       { typ = Tfloat; expr = Bop (bop, t1, t2) }
-  | Less_f | Equal_f ->
+  | Less_f | Equal_f | Greater_f ->
       let t1, t2 = check Tfloat in
       { typ = Tbool; expr = Bop (bop, t1, t2) }
 

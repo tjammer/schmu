@@ -35,11 +35,15 @@
 %token Plus_i
 %token Minus_i
 %token Mult_i
+%token Div_i
 %token Plus_f
 %token Minus_f
 %token Mult_f
+%token Div_f
 %token Less_i
 %token Less_f
+%token Greater_i
+%token Greater_f
 %token Bin_equal_i
 %token Bin_equal_f
 %token Lpar
@@ -62,10 +66,9 @@
 %token Do
 %token Mutable
 
-%nonassoc Less_i Less_f
-%left Minus_i Minus_f
-%left Plus_i Plus_f
-%left Mult_i Mult_f
+%nonassoc Less_i Less_f Greater_i Greater_f
+%left Plus_i Plus_f Minus_i Minus_f
+%left Mult_i Mult_f Div_i Div_f
 %left Bin_equal_i Bin_equal_f
 %left Arrow_right Pipe_tail Dot
 
@@ -150,12 +153,16 @@ bool:
   | Plus_i  { Plus_i }
   | Minus_i { Minus_i }
   | Mult_i  { Mult_i }
+  | Div_i   { Div_i }
   | Less_i  { Less_i }
+  | Greater_i { Greater_i }
   | Bin_equal_i { Equal_i }
   | Plus_f  { Plus_f }
   | Minus_f { Minus_f }
   | Mult_f  { Mult_f }
+  | Div_f   { Div_f }
   | Less_f  { Less_f }
+  | Greater_f { Greater_f }
   | Bin_equal_f { Equal_f }
 
 %inline decl:

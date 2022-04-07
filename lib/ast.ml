@@ -3,12 +3,16 @@ type loc = Lexing.position * Lexing.position
 type bop =
   | Plus_i
   | Mult_i
+  | Div_i
   | Less_i
+  | Greater_i
   | Equal_i
   | Minus_i
   | Plus_f
   | Mult_f
+  | Div_f
   | Less_f
+  | Greater_f
   | Equal_f
   | Minus_f
 [@@deriving show]
