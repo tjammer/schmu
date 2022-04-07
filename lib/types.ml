@@ -4,6 +4,8 @@ type typ =
   | Tunit
   | Tu8
   | Tfloat
+  | Ti32
+  | Tf32
   | Tvar of tv ref
   | Talias of string * typ
   | Qvar of string

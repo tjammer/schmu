@@ -26,6 +26,8 @@ and const =
   | Bool of bool
   | U8 of char
   | Float of float
+  | I32 of int
+  | F32 of float
   | String of string
   | Vector of typed_expr list
   | Unit

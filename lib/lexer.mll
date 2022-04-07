@@ -17,6 +17,9 @@ let u8_of_string str =
     |> int_of_string
     |> Char.chr
 
+let f_of_string f str =
+  String.sub str 0 (String.length str - 3)
+  |> f
 }
 
 let digit = ['0'-'9']
@@ -26,6 +29,8 @@ let alpha = ['a'-'z' 'A'-'Z']
 let int = digit+
 let u8 = digit+ "u8"
 let float = digit+ '.' digit+
+let i32 = digit+ "i32"
+let f32 = float 'f'
 let id = alpha (alpha|digit|'_')*
 let builtin_id = "__" id
 
@@ -39,6 +44,8 @@ rule read =
   | int      { Int (int_of_string (Lexing.lexeme lexbuf)) }
   | float    { Float (float_of_string (Lexing.lexeme lexbuf)) }
   | u8       { U8 (u8_of_string (Lexing.lexeme lexbuf)) }
+  | i32      { I32 (f_of_string int_of_string (Lexing.lexeme lexbuf)) }
+  | f32      { F32 (f_of_string float_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { True }
   | "false"  { False }
   | '='      { Equal }

@@ -61,6 +61,8 @@ let num_t = Llvm.i64_type context
 let bool_t = Llvm.i1_type context
 let u8_t = Llvm.i8_type context
 let float_t = Llvm.float_type context
+let i32_t = Llvm.i32_type context
+let f32_t = Llvm.float_type context
 let unit_t = Llvm.void_type context
 let voidptr_t = Llvm.(i8_type context |> pointer_type)
 
@@ -112,6 +114,7 @@ let sizeof_typ typ =
   let rec inner size_pr typ =
     match typ with
     | Tint | Tfloat -> add_size_align ~upto:4 ~sz:4 size_pr
+    | Ti32 | Tf32 -> add_size_align ~upto:4 ~sz:4 size_pr
     | Tbool | Tu8 ->
         (* No need to align one byte *)
         { size_pr with size = size_pr.size + 1 }
@@ -236,6 +239,8 @@ let rec get_lltype_def = function
   | Tbool -> bool_t
   | Tu8 -> u8_t
   | Tfloat -> float_t
+  | Ti32 -> i32_t
+  | Tf32 -> f32_t
   | Tunit -> unit_t
   | Tpoly _ -> generic_t |> Llvm.pointer_type
   | Trecord _ as t -> (
@@ -250,7 +255,8 @@ let rec get_lltype_def = function
   | Tptr t -> get_lltype_def t |> Llvm.pointer_type
 
 and get_lltype_param = function
-  | (Tint | Tbool | Tu8 | Tfloat | Tunit | Tpoly _ | Tptr _) as t ->
+  | (Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Tptr _) as t
+    ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
       typeof_func ~param:true ~decl:false (params, ret, kind)
@@ -266,7 +272,8 @@ and get_lltype_param = function
             (Printf.sprintf "Record struct not found for type %s (param)" name))
 
 and get_lltype_field = function
-  | (Tint | Tbool | Tu8 | Tfloat | Tunit | Tpoly _ | Tptr _ | Trecord _) as t ->
+  | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Tptr _
+    | Trecord _ ) as t ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
       (* Not really a paramater, but is treated equally (ptr to closure struct) *)
@@ -898,6 +905,10 @@ and gen_expr param typed_expr =
       { value = Llvm.const_int u8_t (Char.code c); typ = Tu8; lltyp = u8_t }
   | Mconst (Float f) ->
       { value = Llvm.const_float float_t f; typ = Tfloat; lltyp = float_t }
+  | Mconst (I32 i) ->
+      { value = Llvm.const_int i32_t i; typ = Ti32; lltyp = i32_t } |> fin
+  | Mconst (F32 f) ->
+      { value = Llvm.const_float f32_t f; typ = Tf32; lltyp = f32_t }
   | Mconst (String (s, allocref)) ->
       codegen_string_lit param s typed_expr.typ allocref
   | Mconst (Vector (id, es, allocref)) ->

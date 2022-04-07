@@ -28,6 +28,8 @@
 %token <int> Int
 %token <char> U8
 %token <float> Float
+%token <int> I32
+%token <float> F32
 %token <string> String_lit
 %token <string> Builtin_id
 %token True
@@ -132,6 +134,8 @@ expr:
   | U8  { Lit($loc, U8 $1) }
   | bool { Lit($loc, Bool  $1) }
   | Float { Lit($loc, Float $1) }
+  | I32 { Lit($loc, I32 $1) }
+  | F32 { Lit($loc, F32 $1) }
   | String_lit { Lit($loc, String $1) }
   | vector_lit { Lit($loc, Vector $1) }
   | Lpar; Rpar { Lit($loc, Unit) }

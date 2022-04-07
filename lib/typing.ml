@@ -22,6 +22,8 @@ and const =
   | Bool of bool
   | U8 of char
   | Float of float
+  | I32 of int
+  | F32 of float
   | String of string
   | Vector of typed_expr list
   | Unit
@@ -105,7 +107,7 @@ let is_type_polymorphic typ =
     | Tfun (params, ret, _) ->
         let acc = List.fold_left inner acc params in
         inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ | Tu8 | Tfloat -> acc
+    | Tbool | Tunit | Tint | Trecord _ | Tu8 | Tfloat | Ti32 | Tf32 -> acc
     | Tptr t -> inner acc t
   in
   inner false typ
@@ -119,6 +121,8 @@ let string_of_type_raw get_name typ =
     | Tunit -> "unit"
     | Tfloat -> "float"
     | Tu8 -> "u8"
+    | Ti32 -> "i32"
+    | Tf32 -> "f32"
     | Tfun (ts, t, _) -> (
         match ts with
         | [ p ] ->
@@ -439,6 +443,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_id "unit" -> Tunit
     | Ty_id "u8" -> Tu8
     | Ty_id "float" -> Tfloat
+    | Ty_id "i32" -> Ti32
+    | Ty_id "f32" -> Tf32
     | Ty_id t -> find t ""
     | Ty_var id when typedef -> find id "'"
     | Ty_var id ->
@@ -574,6 +580,8 @@ and typeof_annotated env annot = function
   | Lit (_, Bool _) -> Tbool
   | Lit (_, U8 _) -> Tu8
   | Lit (_, Float _) -> Tfloat
+  | Lit (_, I32 _) -> Ti32
+  | Lit (_, F32 _) -> Tf32
   | Lit (loc, String _) -> get_prelude env loc "string"
   | Lit (loc, Vector vec) -> typeof_vector_lit env loc vec
   | Lit (_, Unit) -> Tunit
@@ -907,6 +915,8 @@ and convert_annot env annot = function
   | Lit (_, Bool b) -> { typ = Tbool; expr = Const (Bool b) }
   | Lit (_, U8 c) -> { typ = Tu8; expr = Const (U8 c) }
   | Lit (_, Float f) -> { typ = Tfloat; expr = Const (Float f) }
+  | Lit (_, I32 i) -> { typ = Ti32; expr = Const (I32 i) }
+  | Lit (_, F32 i) -> { typ = Tf32; expr = Const (F32 i) }
   | Lit (loc, String s) ->
       let typ = get_prelude env loc "string" in
       { typ; expr = Const (String s) }

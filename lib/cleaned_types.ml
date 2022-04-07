@@ -4,6 +4,8 @@ type typ =
   | Tunit
   | Tu8
   | Tfloat
+  | Ti32
+  | Tf32
   | Tpoly of string
   | Tfun of typ list * typ * fun_kind
   | Trecord of typ option * string * field array
@@ -26,7 +28,7 @@ let is_type_polymorphic typ =
               List.fold_left (fun acc (_, t) -> inner acc t) acc cls
         in
         inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ | Tu8 | Tfloat -> acc
+    | Tbool | Tunit | Tint | Trecord _ | Tu8 | Tfloat | Ti32 | Tf32 -> acc
     | Tptr t -> inner acc t
   in
   inner false typ
@@ -37,6 +39,8 @@ let rec string_of_type = function
   | Tunit -> "unit"
   | Tu8 -> "u8"
   | Tfloat -> "float"
+  | Ti32 -> "i32"
+  | Tf32 -> "f32"
   | Tfun (ts, t, _) -> (
       match ts with
       | [ p ] -> Printf.sprintf "%s -> %s" (string_of_type p) (string_of_type t)
