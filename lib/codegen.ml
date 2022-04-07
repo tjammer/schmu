@@ -193,19 +193,20 @@ and pkind_of_typ = function
         | None, _ -> Boxed)
   | _ -> Boxed
 
+let lltype_unbox = function
+  | Ints 1 -> u8_t
+  | Ints 4 -> int_t
+  | Ints 8 -> num_t
+  | Float -> float_t
+  | Float_vec -> Llvm.vector_type float_t 2
+  | Ints i ->
+      "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
+
 let lltype_unboxed kind =
-  let helper = function
-    | Ints 1 -> u8_t
-    | Ints 4 -> int_t
-    | Ints 8 -> num_t
-    | Float -> float_t
-    | Float_vec -> Llvm.vector_type float_t 2
-    | Ints i ->
-        "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
-  in
   match kind with
-  | One_param a -> helper a
-  | Two_params (a, b) -> Llvm.struct_type context [| helper a; helper b |]
+  | One_param a -> lltype_unbox a
+  | Two_params (a, b) ->
+      Llvm.struct_type context [| lltype_unbox a; lltype_unbox b |]
 
 let type_unboxed kind =
   let helper = function
@@ -225,7 +226,7 @@ let type_unboxed kind =
   | One_param a -> helper a
   | Two_params (a, b) ->
       (* We need a tuple here *)
-      Trecord (None, "tup", [| anon_field_of_typ a; anon_field_of_typ b |])
+      Trecord (None, "param_tup", [| anon_field_of_typ a; anon_field_of_typ b |])
 
 (** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to
@@ -300,15 +301,26 @@ and typeof_func ~param ~decl (params, ret, kind) =
       else Seq.return voidptr_t
     in
     let params_t =
-      (* For the params, we want to produce the param type, hence ~param:true *)
-      List.to_seq params |> Seq.map get_lltype_param |> fun seq ->
-      prefix ++ seq ++ suffix |> Array.of_seq
+      (* For the params, we want to produce the param type.
+         There is a special case for records which are splint into two words. *)
+      List.fold_left
+        (fun ps typ ->
+          match pkind_of_typ typ with
+          | Unboxed (Two_params (fst, snd)) ->
+              (* snd before fst b/c we rev later *)
+              lltype_unbox snd :: lltype_unbox fst :: ps
+          | _ -> get_lltype_param typ :: ps)
+        [] params
+      |> List.rev |> List.to_seq
+      |> fun seq -> prefix ++ seq ++ suffix |> Array.of_seq
     in
     let ft = Llvm.function_type ret_t params_t in
     ft
 
-let box_record typ ~size ?(alloc = None) value =
+let box_record typ ~size ?(alloc = None) ~snd_val value =
   (* From int to record *)
+  (* If [snd_val] is present, the value was passed as two params
+     and we construct the struct from both *)
   let intptr =
     match alloc with
     | None -> Llvm.build_alloca (lltype_unboxed size) "box" builder
@@ -317,32 +329,49 @@ let box_record typ ~size ?(alloc = None) value =
           (Llvm.pointer_type (lltype_unboxed size))
           "box" builder
   in
-  ignore (Llvm.build_store value intptr builder);
+
+  (match snd_val with
+  | None -> ignore (Llvm.build_store value intptr builder)
+  | Some v2 ->
+      let ptr = Llvm.build_struct_gep intptr 0 "fst" builder in
+      ignore (Llvm.build_store value ptr builder);
+      let ptr = Llvm.build_struct_gep intptr 1 "snd" builder in
+      ignore (Llvm.build_store v2 ptr builder));
+
   Llvm.build_bitcast intptr
     (get_lltype_def typ |> Llvm.pointer_type)
     "box" builder
 
 (* Checks the param kind before calling [box_record] *)
-let maybe_box_record typ ?(alloc = None) value =
+let maybe_box_record typ ?(alloc = None) ?(snd_val = None) value =
   (* From int to record *)
   match pkind_of_typ typ with
-  | Unboxed size -> box_record typ ~size ~alloc value
+  | Unboxed size -> box_record typ ~size ~alloc ~snd_val value
   | Boxed -> value
 
-let unbox_record ~kind value =
-  let ptr =
+let unbox_record ~kind ~ret value =
+  let structptr =
     Llvm.build_bitcast value
       (Llvm.pointer_type (lltype_unboxed kind))
       "unbox" builder
   in
-  Llvm.build_load ptr "unbox" builder
+  (* If this is a return value, we unbox it as a struct every time *)
+  match (ret, kind) with
+  | true, _ | _, One_param _ -> (Llvm.build_load structptr "unbox" builder, None)
+  | _, Two_params _ ->
+      (* We load the two arguments from the struct type *)
+      let ptr = Llvm.build_struct_gep structptr 0 "fst" builder in
+      let v1 = Llvm.build_load ptr "fst" builder in
+      let ptr = Llvm.build_struct_gep structptr 1 "snd" builder in
+      let v2 = Llvm.build_load ptr "snd" builder in
+      (v1, Some v2)
 
 (* Checks the param kind before calling [unbox_record] *)
 let maybe_unbox_record typ value =
   (* From record to int *)
   match pkind_of_typ typ with
-  | Unboxed kind -> unbox_record ~kind value
-  | Boxed -> value
+  | Unboxed kind -> unbox_record ~kind ~ret:false value
+  | Boxed -> (value, None)
 
 let to_named_records = function
   | Trecord (_, _, labels) as t ->
@@ -586,7 +615,7 @@ let add_closure vars func = function
               (* No need for C interop with closures *)
               | Trecord _ ->
                   (* For records we want a ptr so that gep and memcpy work *)
-                  (item_ptr, get_lltype_param typ)
+                  (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
               | _ ->
                   let value = Llvm.build_load item_ptr name builder in
                   (value, Llvm.type_of value)
@@ -623,11 +652,21 @@ let get_prealloc allocref param lltyp str =
    the entry block and creates a recursion block which starts off by loading
    each parameter. *)
 let add_params vars f fname names types start_index recursive =
+  (* We specially treat the case where a record is passed as two params *)
+  let get_value i typ =
+    match pkind_of_typ typ with
+    | Unboxed (Two_params _) ->
+        let v1 = (Llvm.params f.value).(i) in
+        let v2 = (Llvm.params f.value).(i + 1) in
+        (maybe_box_record ~snd_val:(Some v2) typ v1, i + 1)
+    | _ -> ((Llvm.params f.value).(i) |> maybe_box_record typ, i)
+  in
+
   let add_simple () =
     (* We simply add to env, no special handling due to tailrecursion *)
     List.fold_left2
       (fun (env, i) name typ ->
-        let value = (Llvm.params f.value).(i) |> maybe_box_record typ in
+        let value, i = get_value i typ in
         let param = { value; typ; lltyp = Llvm.type_of value } in
         Llvm.set_value_name name value;
         (Vars.add name param env, i + 1))
@@ -680,12 +719,10 @@ let add_params vars f fname names types start_index recursive =
          These can be set later in tail recursion scenarios.
          Then in a new block, we load from those alloca and set the
          real parameters *)
-      (* Apparently, I was smart and also prealloc non-parameters.
-         Not too sure how though anymore :( *)
       let vars =
         List.fold_left2
           (fun (env, i) name typ ->
-            let value = (Llvm.params f.value).(i) |> maybe_box_record typ in
+            let value, i = get_value i typ in
             Llvm.set_value_name name value;
             let value = { value; typ; lltyp = Llvm.type_of value } in
             let alloc = { value with value = alloca_copy value } in
@@ -756,7 +793,7 @@ let fun_return name ret =
       match pkind_of_typ t with
       | Boxed -> (* Default record case *) Llvm.build_ret_void builder
       | Unboxed kind ->
-          let unboxed = unbox_record ~kind ret.value in
+          let unboxed, _ = unbox_record ~kind ~ret:true ret.value in
           Llvm.build_ret unboxed builder)
   | Tpoly id when String.equal id "tail" ->
       (* This magic id is used to mark a tailrecursive call *)
@@ -969,13 +1006,29 @@ and gen_app param callee args allocref ret_t malloc =
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
-  let handle_arg arg =
-    let arg' = gen_expr param Monomorph_tree.(arg.ex) in
-    let arg = get_mono_func arg' param arg.monomorph in
-    let arg = { arg with value = maybe_unbox_record arg.typ arg.value } in
-    (func_to_closure param arg).value
+  (* let handle_arg arg = *)
+  (*   let arg' = gen_expr param Monomorph_tree.(arg.ex) in *)
+  (*   let arg = get_mono_func arg' param arg.monomorph in *)
+  (*   let arg = { arg with value = maybe_unbox_record arg.typ arg.value } in *)
+  (*   (func_to_closure param arg).value *)
+  (* in *)
+  let args =
+    List.fold_left
+      (fun args arg ->
+        let arg' = gen_expr param Monomorph_tree.(arg.ex) in
+        let arg = get_mono_func arg' param arg.monomorph in
+
+        match maybe_unbox_record arg.typ arg.value with
+        | fst, Some snd ->
+            (* We can skip [func_to_closure] in this case *)
+            (* snd before fst, b/c we rev at the end *)
+            snd :: fst :: args
+        | value, None ->
+            let arg = { arg with value } in
+            (func_to_closure param arg).value :: args)
+      [] args
+    |> List.rev |> List.to_seq
   in
-  let args = List.map handle_arg args |> List.to_seq in
 
   (* No names here, might be void/unit *)
   let funcval, envarg =
@@ -1028,9 +1081,9 @@ and gen_app param callee args allocref ret_t malloc =
             let args = args ++ envarg |> Array.of_seq in
             (* Unboxed representation *)
             let tempval = Llvm.build_call funcval args "" builder in
-            let ret = box_record ~size ~alloc:(Some retval) t tempval in
-            ignore retval;
-            (* TODO use prealloc *)
+            let ret =
+              box_record ~size ~alloc:(Some retval) ~snd_val:None t tempval
+            in
             (ret, lltyp))
     | t ->
         let args = args ++ envarg |> Array.of_seq in
