@@ -28,7 +28,7 @@ type param = {
   rec_block : rec_block option;
 }
 
-type unboxed_atom = Ints of int | Float | Float_vec
+type unboxed_atom = Ints of int | F32 | F32_vec | Float
 
 type unboxed =
   | One_param of unboxed_atom
@@ -56,12 +56,12 @@ let () = Llvm_scalar_opts.add_gvn fpm
 
 let () = Llvm_scalar_opts.add_tail_call_elimination fpm
 let builder = Llvm.builder context
-let int_t = Llvm.i32_type context
-let num_t = Llvm.i64_type context
+let int_t = Llvm.i64_type context
 let bool_t = Llvm.i1_type context
 let u8_t = Llvm.i8_type context
-let float_t = Llvm.float_type context
+let i16_t = Llvm.i16_type context
 let i32_t = Llvm.i32_type context
+let float_t = Llvm.double_type context
 let f32_t = Llvm.float_type context
 let unit_t = Llvm.void_type context
 let voidptr_t = Llvm.(i8_type context |> pointer_type)
@@ -77,7 +77,7 @@ let generic_t = Llvm.named_struct_type context "generic"
 let dummy_fn_value =
   (* When we need something in the env for a function which will only be called
      in a monomorphized version *)
-  { typ = Tunit; value = Llvm.const_int int_t (-1); lltyp = int_t }
+  { typ = Tunit; value = Llvm.const_int i32_t (-1); lltyp = i32_t }
 
 let sret_attrib = Llvm.create_enum_attr context "sret" Int64.zero
 
@@ -113,7 +113,7 @@ let add_size_align ~upto ~sz { size; align } =
 let sizeof_typ typ =
   let rec inner size_pr typ =
     match typ with
-    | Tint | Tfloat -> add_size_align ~upto:4 ~sz:4 size_pr
+    | Tint | Tfloat -> add_size_align ~upto:8 ~sz:8 size_pr
     | Ti32 | Tf32 -> add_size_align ~upto:4 ~sz:4 size_pr
     | Tbool | Tu8 ->
         (* No need to align one byte *)
@@ -134,7 +134,7 @@ let sizeof_typ typ =
   let { size; align = upto } = inner { size = 0; align = 1 } typ in
   alignup ~size ~upto
 
-let llval_of_size size = Llvm.const_int num_t size
+let llval_of_size size = Llvm.const_int int_t size
 
 (*
    ABI handling
@@ -162,7 +162,8 @@ let rec get_word ~size items = function
       else get_word ~size (typ :: items) tl
 
 and extract_word ~size = function
-  | [ Tfloat; Tfloat ] -> Some Float_vec
+  | [ Tf32; Tf32 ] -> Some F32_vec
+  | [ Tf32 ] -> Some F32
   | [ Tfloat ] -> Some Float
   | [] -> None
   | _ ->
@@ -198,10 +199,12 @@ and pkind_of_typ = function
 
 let lltype_unbox = function
   | Ints 1 -> u8_t
-  | Ints 4 -> int_t
-  | Ints 8 -> num_t
+  | Ints 2 -> i16_t
+  | Ints 4 -> i32_t
+  | Ints 8 -> int_t
+  | F32 -> f32_t
+  | F32_vec -> Llvm.vector_type f32_t 2
   | Float -> float_t
-  | Float_vec -> Llvm.vector_type float_t 2
   | Ints i ->
       "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
 
@@ -214,12 +217,12 @@ let lltype_unboxed kind =
 let type_unboxed kind =
   let helper = function
     | Ints 1 -> Tu8
-    | Ints 4 -> Tint
-    | Ints 8 ->
-        Tint
-        (* TODO) not really. Introduce i32 type. Don't hardcode for float *)
+    | Ints 2 -> Tu8 (* Not really, but there is no i16 type yet *)
+    | Ints 4 -> Ti32
+    | Ints 8 -> Tint
+    | F32 -> Tf32
+    | F32_vec -> Tfloat
     | Float -> Tfloat
-    | Float_vec -> Tfloat (* vector of floats, really *)
     | Ints i ->
         "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
   in
@@ -403,7 +406,7 @@ let memcpy ~dst ~src ~size =
       Llvm.(
         (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
         let ft =
-          function_type unit_t [| voidptr_t; voidptr_t; num_t; bool_t |]
+          function_type unit_t [| voidptr_t; voidptr_t; int_t; bool_t |]
         in
         declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
   in
@@ -458,7 +461,7 @@ let rec free_value value = function
        let len_ptr = Llvm.build_struct_gep value 1 "lenptr" builder in
        (* This should be num_t also, at some point *)
        let len = Llvm.build_load len_ptr "leni" builder in
-       let len = Llvm.build_intcast len num_t "len" builder in
+       let len = Llvm.build_intcast len int_t "len" builder in
        free_vector_children ptr len t);
       ignore (free ptr)
   | Trecord (_, name, _) when String.equal name "vector" ->
@@ -488,8 +491,8 @@ and free_vector_children value len = function
       let parent = Llvm.block_parent start_bb in
 
       (* Simple loop, start at 0 *)
-      let cnt = Llvm.build_alloca num_t "cnt" builder in
-      ignore (Llvm.build_store (Llvm.const_int num_t 0) cnt builder);
+      let cnt = Llvm.build_alloca int_t "cnt" builder in
+      ignore (Llvm.build_store (Llvm.const_int int_t 0) cnt builder);
 
       let rec_bb = Llvm.append_block context "rec" parent in
       let free_bb = Llvm.append_block context "free" parent in
@@ -508,7 +511,7 @@ and free_vector_children value len = function
       let ptr = Llvm.build_gep value [| cnt_loaded |] "" builder in
 
       free_value ptr typ;
-      let one = Llvm.const_int num_t 1 in
+      let one = Llvm.const_int int_t 1 in
       let next = Llvm.build_add cnt_loaded one "" builder in
       ignore (Llvm.build_store next cnt builder);
       ignore (Llvm.build_br rec_bb builder);
@@ -574,7 +577,7 @@ let gen_closure_obj assoc func vars name =
     | Trecord _ ->
         (* For records, we just memcpy
            TODO don't use types here, but type kinds*)
-        let size = sizeof_typ typ |> Llvm.const_int num_t in
+        let size = sizeof_typ typ |> Llvm.const_int int_t in
         memcpy ~src ~dst ~size
     | _ -> ignore (Llvm.build_store src.value dst builder));
     i + 1
@@ -653,6 +656,10 @@ let get_prealloc allocref param lltyp str =
   match (allocref, param.alloca) with
   | Monomorph_tree.Preallocated, Some value -> value
   | _ -> alloca param lltyp str
+
+(* We need to handle the index the same way as [get_value] below *)
+let get_index i typ =
+  match pkind_of_typ typ with Unboxed (Two_params _) -> i + 1 | _ -> i
 
 (* This adds the function parameters to the env.
    In case the function is tailrecursive, it allocas each parameter in
@@ -744,12 +751,13 @@ let add_params vars f fname names types start_index recursive =
       Llvm.position_at_end rec_ builder;
 
       let vars, _ =
-        List.fold_left
-          (fun (env, i) name ->
+        List.fold_left2
+          (fun (env, i) name typ ->
+            let i = get_index i typ in
             let llvar = Vars.find (name_of_alloc_param i) env in
             let value = load llvar name in
             (Vars.add name { llvar with value } env, i + 1))
-          (vars, start_index) names
+          (vars, start_index) names types
       in
 
       (* Add the function itself to env with username *)
@@ -1024,12 +1032,6 @@ and gen_app param callee args allocref ret_t malloc =
     | _ -> failwith "Internal Error: Not a func in gen app"
   in
 
-  (* let handle_arg arg = *)
-  (*   let arg' = gen_expr param Monomorph_tree.(arg.ex) in *)
-  (*   let arg = get_mono_func arg' param arg.monomorph in *)
-  (*   let arg = { arg with value = maybe_unbox_record arg.typ arg.value } in *)
-  (*   (func_to_closure param arg).value *)
-  (* in *)
   let args =
     List.fold_left
       (fun args arg ->
@@ -1137,6 +1139,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
     let arg = get_mono_func arg' param arg.monomorph in
     let llvar = func_to_closure param arg in
 
+    let i = get_index i arg.typ in
     let alloca = Vars.find (name_of_alloc_param i) param.vars in
 
     (* We store the params in pre-allocated variables *)
@@ -1373,7 +1376,7 @@ and codegen_vector_lit param id es typ allocref =
         (match src.typ with
         | Trecord _ ->
             if dst <> src.value then
-              memcpy ~dst ~src ~size:(Llvm.const_int num_t item_size)
+              memcpy ~dst ~src ~size:(Llvm.const_int int_t item_size)
             else (* The record was constructed inplace *) ()
         | _ -> ignore (Llvm.build_store src.value dst builder));
         i + 1)
