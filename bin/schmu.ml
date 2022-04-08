@@ -23,17 +23,17 @@ let run file src { target; dump_llvm } =
     | Lexer.SyntaxError msg ->
         let loc = (lexbuf.lex_start_p, lexbuf.lex_curr_p) in
         let pp, pos = pp_position lexbuf file in
-        Error (Format.asprintf "%s:%s %s\n%a" file pos msg pp [ loc ])
+        Error (Format.asprintf "%s:%s %s\n%!%a" file pos msg pp [ loc ])
     | Parser.Error ->
         let loc = (lexbuf.lex_start_p, lexbuf.lex_curr_p) in
         let pp, pos = pp_position lexbuf file in
         Error
-          (Format.asprintf "%s:%s %s\n%a" file pos "syntax error" pp [ loc ])
+          (Format.asprintf "%s:%s %s\n%!%a" file pos "syntax error" pp [ loc ])
     | Typing.Error (loc, msg) ->
         let errloc = fst loc in
         let pp, _ = pp_position lexbuf file in
         Error
-          (Format.asprintf "%s:%d:%d: error: %s\n%a" file errloc.pos_lnum
+          (Format.asprintf "%s:%d:%d: error: %s\n%!%a" file errloc.pos_lnum
              (errloc.pos_cnum - errloc.pos_bol + 1)
              msg pp [ loc ]))
 
@@ -50,6 +50,8 @@ let run_file filename opts =
 let usage = "Usage: schmu [options] filename"
 
 let () =
+  (* Leave this in for debugging *)
+  (* let () = Printexc.record_backtrace true in *)
   let target = ref "" in
   let dump_llvm = ref false in
   let filename = ref [] in
