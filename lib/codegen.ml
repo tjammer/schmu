@@ -1167,6 +1167,14 @@ and gen_app_builtin param (b, fnc) args =
   in
   let args = List.map handle_arg args in
 
+  let cast f dst =
+    match args with
+    | [ value ] ->
+        let value = f value dst "" builder in
+        { value; typ = Tint; lltyp = int_t }
+    | _ -> failwith "Internal Error: Arity mismatch in builtin"
+  in
+
   match b with
   | Builtin.Unsafe_ptr_get ->
       let ptr, index =
@@ -1207,6 +1215,12 @@ and gen_app_builtin param (b, fnc) args =
 
       { value; typ = fnc.ret; lltyp = Llvm.type_of value }
   | Ignore -> dummy_fn_value
+  | Int_of_float -> cast Llvm.build_fptosi int_t
+  | Float_of_int -> cast Llvm.build_sitofp float_t
+  | I32_of_int -> cast Llvm.build_intcast i32_t
+  | I32_to_int -> cast Llvm.build_intcast int_t
+  | U8_of_int -> cast Llvm.build_intcast u8_t
+  | U8_to_int -> cast Llvm.build_intcast int_t
 
 and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),
