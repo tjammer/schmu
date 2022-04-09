@@ -731,14 +731,14 @@ and morph_app mk p callee args =
 
 let monomorphize { Typing.externals; records; tree } =
   reset ();
+
+  (* Register malloc builtin, so freeing automatically works *)
+  let malloc = { id = new_id (); kind = ref Local } in
+  let var = { fn = Builtin Malloc; alloc = No_value; malloc = Some malloc } in
+  let vars = Vars.add "__malloc" var Vars.empty in
+
   let param =
-    {
-      vars = Vars.empty;
-      monomorphized = Set.empty;
-      funcs = [];
-      ret = false;
-      mallocs = [];
-    }
+    { vars; monomorphized = Set.empty; funcs = []; ret = false; mallocs = [] }
   in
   let p, tree, _ = morph_expr param tree in
 

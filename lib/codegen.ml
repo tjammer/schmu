@@ -1213,6 +1213,23 @@ and gen_app_builtin param (b, fnc) args =
       let value = realloc ptr ~size in
 
       { value; typ = fnc.ret; lltyp = Llvm.type_of value }
+  | Malloc ->
+      let item_size =
+        match fnc.ret with
+        | Tptr t -> sizeof_typ t |> Llvm.const_int int_t
+        | _ -> failwith "Internal Error: Nonptr return of alloc"
+      in
+
+      let size =
+        match args with
+        | [ size ] -> Llvm.build_mul size item_size "" builder
+        | _ -> failwith "Internal Error: Arity mismatch in builder"
+      in
+      let ptr_typ = get_lltype_def fnc.ret in
+      let value = malloc ~size in
+      let value = Llvm.build_bitcast value ptr_typ "" builder in
+
+      { value; typ = fnc.ret; lltyp = Llvm.type_of value }
   | Ignore -> dummy_fn_value
   | Int_of_float -> cast Llvm.build_fptosi int_t
   | Float_of_int -> cast Llvm.build_sitofp float_t
