@@ -523,8 +523,7 @@ and free_vector_children value len = function
 
 let free_id id =
   (match Ptrtbl.find_opt ptr_tbl id with
-  | Some (`Ptr ptr) -> ignore (free ptr)
-  | Some (`Record (value, typ)) ->
+  | Some (value, typ) ->
       (* For propagated mallocs, we don't get the ptr directly but get the struct instead.
          Here, we hardcode for vector, b/c it's the only thing allocating right now. *)
 
@@ -1113,7 +1112,7 @@ and gen_app param callee args allocref ret_t malloc =
 
   (* For freeing propagated mallocs *)
   (match malloc with
-  | Some id -> Ptrtbl.add ptr_tbl id (`Record (value, ret))
+  | Some id -> Ptrtbl.add ptr_tbl id (value, ret)
   | None -> ());
 
   { value; typ = ret; lltyp }
@@ -1403,7 +1402,7 @@ and codegen_vector_lit param id es typ allocref =
   let capptr = Llvm.build_struct_gep vec 2 "cap" builder in
   ignore (Llvm.(build_store (const_int int_t cap) capptr) builder);
 
-  Ptrtbl.add ptr_tbl id (`Record (vec, typ));
+  Ptrtbl.add ptr_tbl id (vec, typ);
 
   { value = vec; typ; lltyp }
 
