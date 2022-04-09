@@ -86,7 +86,7 @@ let maybe_add_record_instance key typ env =
   (* We reject generic records with unbound variables *)
   let key = Type_key.create key in
 
-  match typ with
+  match clean typ with
   | Trecord (Some t, _, _) when not (is_unbound t) -> (
       match Tmap.find_opt key !(env.instances) with
       | None -> env.instances := Tmap.add key typ !(env.instances)
