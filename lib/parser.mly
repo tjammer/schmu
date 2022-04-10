@@ -128,6 +128,7 @@ expr:
   | expr; Dot; Identifier { Field ($loc, $1, $3) }
   | expr; Arrow_right; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
+  | Lpar; expr; Rpar { $2 }
 
 %inline lit:
   | Int { Lit($loc, Int $1) }
