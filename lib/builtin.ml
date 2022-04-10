@@ -10,6 +10,7 @@ type t =
   | I32_to_int
   | U8_of_int
   | U8_to_int
+  | Not
 [@@deriving show]
 
 let of_string = function
@@ -24,6 +25,7 @@ let of_string = function
   | "i32_to_int" -> Some I32_to_int
   | "u8_of_int" -> Some U8_of_int
   | "u8_to_int" -> Some U8_to_int
+  | "not" -> Some Not
   | _ -> None
 
 let to_string = function
@@ -38,6 +40,7 @@ let to_string = function
   | I32_to_int -> "i32_to_int"
   | U8_of_int -> "u8_of_int"
   | U8_to_int -> "u8_to_int"
+  | Not -> "not"
 
 let to_type = function
   | Unsafe_ptr_get -> Types.Tfun ([ Tptr (Qvar "0"); Tint ], Qvar "0", Simple)
@@ -51,6 +54,7 @@ let to_type = function
   | I32_to_int -> Tfun ([ Ti32 ], Tint, Simple)
   | U8_of_int -> Tfun ([ Tint ], Tu8, Simple)
   | U8_to_int -> Tfun ([ Tu8 ], Tint, Simple)
+  | Not -> Tfun ([ Tbool ], Tbool, Simple)
 
 let fold f init =
   List.fold_left f init
@@ -66,4 +70,5 @@ let fold f init =
       I32_to_int;
       U8_of_int;
       U8_to_int;
+      Not;
     ]

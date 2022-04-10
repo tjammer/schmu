@@ -1021,7 +1021,7 @@ and gen_bop param e1 e2 bop =
       { value = bld (build_fcmp Fcmp.Ogt) "gt"; typ = Tbool; lltyp = bool_t }
   | Equal_f ->
       { value = bld (build_fcmp Fcmp.Oeq) "eq"; typ = Tbool; lltyp = bool_t }
-  | And  ->
+  | And ->
       let cond1 = gen e1 in
 
       (* Current block *)
@@ -1066,7 +1066,7 @@ and gen_bop param e1 e2 bop =
       let false2_bb = append_block context "false2" parent in
       let continue_bb = append_block context "cont" parent in
 
-      ignore (build_cond_br cond1.value  continue_bb false1_bb bldr);
+      ignore (build_cond_br cond1.value continue_bb false1_bb bldr);
 
       position_at_end false1_bb bldr;
       let cond2 = gen e2 in
@@ -1311,6 +1311,16 @@ and gen_app_builtin param (b, fnc) args =
   | I32_to_int -> cast Llvm.build_intcast int_t
   | U8_of_int -> cast Llvm.build_intcast u8_t
   | U8_to_int -> cast Llvm.build_intcast int_t
+  | Not ->
+      let value =
+        match args with
+        | [ value ] -> value
+        | _ -> failwith "Interal Error: Arity mismatch in builder"
+      in
+
+      let true_value = Llvm.const_int bool_t (Bool.to_int true) in
+      let value = Llvm.build_xor value true_value "" builder in
+      { value; typ = Tbool; lltyp = bool_t }
 
 and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),

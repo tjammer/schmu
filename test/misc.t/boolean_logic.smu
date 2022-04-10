@@ -43,3 +43,11 @@ else ps("no") end
 
 if false_() or false_() then ps("yes")
 else ps("no") end
+
+ps("test 'not':")
+
+if true_() -> not then ps("yes")
+else ps("no") end
+
+if false_() -> not then ps("yes")
+else ps("no") end
