@@ -709,3 +709,88 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     call void @subtrailv2(%trailv2* %ret41, %trailv2* %12)
     ret i64 0
   }
+
+Regression test for issue #19
+  $ schmu -dump-llvm regression_issue_19.smu && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %v3 = type { double, double, double }
+  
+  define private void @wrap(%v3* sret %0) {
+  entry:
+    %1 = alloca %v3, align 8
+    %x5 = bitcast %v3* %1 to double*
+    store double 1.000000e+00, double* %x5, align 8
+    %y = getelementptr inbounds %v3, %v3* %1, i32 0, i32 1
+    store double 1.000000e+01, double* %y, align 8
+    %z = getelementptr inbounds %v3, %v3* %1, i32 0, i32 2
+    store double 1.000000e+02, double* %z, align 8
+    %ret = alloca %v3, align 8
+    call void @v3_scale(%v3* %ret, %v3* %1, double 1.500000e+00)
+    %2 = alloca %v3, align 8
+    %x16 = bitcast %v3* %2 to double*
+    store double 1.000000e+00, double* %x16, align 8
+    %y2 = getelementptr inbounds %v3, %v3* %2, i32 0, i32 1
+    store double 2.000000e+00, double* %y2, align 8
+    %z3 = getelementptr inbounds %v3, %v3* %2, i32 0, i32 2
+    store double 3.000000e+00, double* %z3, align 8
+    %ret4 = alloca %v3, align 8
+    call void @v3_scale(%v3* %ret4, %v3* %2, double 1.500000e+00)
+    call void @v3_add(%v3* %0, %v3* %ret, %v3* %ret4)
+    ret void
+  }
+  
+  define private void @v3_scale(%v3* sret %0, %v3* %v3, double %factor) {
+  entry:
+    %x3 = bitcast %v3* %0 to double*
+    %1 = bitcast %v3* %v3 to double*
+    %2 = load double, double* %1, align 8
+    %mul = fmul double %2, %factor
+    store double %mul, double* %x3, align 8
+    %y = getelementptr inbounds %v3, %v3* %0, i32 0, i32 1
+    %3 = getelementptr inbounds %v3, %v3* %v3, i32 0, i32 1
+    %4 = load double, double* %3, align 8
+    %mul1 = fmul double %4, %factor
+    store double %mul1, double* %y, align 8
+    %z = getelementptr inbounds %v3, %v3* %0, i32 0, i32 2
+    %5 = getelementptr inbounds %v3, %v3* %v3, i32 0, i32 2
+    %6 = load double, double* %5, align 8
+    %mul2 = fmul double %6, %factor
+    store double %mul2, double* %z, align 8
+    ret void
+  }
+  
+  define private void @v3_add(%v3* sret %0, %v3* %lhs, %v3* %rhs) {
+  entry:
+    %x3 = bitcast %v3* %0 to double*
+    %1 = bitcast %v3* %lhs to double*
+    %2 = load double, double* %1, align 8
+    %3 = bitcast %v3* %rhs to double*
+    %4 = load double, double* %3, align 8
+    %add = fadd double %2, %4
+    store double %add, double* %x3, align 8
+    %y = getelementptr inbounds %v3, %v3* %0, i32 0, i32 1
+    %5 = getelementptr inbounds %v3, %v3* %lhs, i32 0, i32 1
+    %6 = load double, double* %5, align 8
+    %7 = getelementptr inbounds %v3, %v3* %rhs, i32 0, i32 1
+    %8 = load double, double* %7, align 8
+    %add1 = fadd double %6, %8
+    store double %add1, double* %y, align 8
+    %z = getelementptr inbounds %v3, %v3* %0, i32 0, i32 2
+    %9 = getelementptr inbounds %v3, %v3* %lhs, i32 0, i32 2
+    %10 = load double, double* %9, align 8
+    %11 = getelementptr inbounds %v3, %v3* %rhs, i32 0, i32 2
+    %12 = load double, double* %11, align 8
+    %add2 = fadd double %10, %12
+    store double %add2, double* %z, align 8
+    ret void
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %ret = alloca %v3, align 8
+    call void @wrap(%v3* %ret)
+    ret i64 0
+  }
