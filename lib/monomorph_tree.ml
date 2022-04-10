@@ -57,7 +57,8 @@ and call_name =
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = allocas ref
-and allocas = Preallocated | Request of int
+and request = { id : int; lvl : int }
+and allocas = Preallocated | Request of request
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
 type recurs = Rnormal | Rtail | Rnone
@@ -99,11 +100,6 @@ type morph_param = {
 
 let no_var = { fn = No_function; alloc = No_value; malloc = None }
 let apptbl = Apptbl.create 64
-
-let rec extract_alloca = function
-  | Value a -> Some a
-  | Two_values (a, _) -> extract_alloca a
-  | No_value -> None
 
 let rec cln = function
   | Types.Tvar { contents = Link t } | Talias (_, t) -> cln t
@@ -375,22 +371,25 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
 (* State *)
 
 let alloc_lvl = ref 1
-let enter_level () = incr alloc_lvl
-let leave_level () = decr alloc_lvl
-let request () = Request !alloc_lvl
+let alloc_id = ref 1
 let malloc_id = ref 1
 
-let new_id () =
-  let id = !malloc_id in
-  incr malloc_id;
-  id
+let new_id id =
+  let ret_id = !id in
+  incr id;
+  ret_id
+
+let enter_level () = incr alloc_lvl
+let leave_level () = decr alloc_lvl
+let request () = Request { id = new_id alloc_id; lvl = !alloc_lvl }
 
 let reset () =
   alloc_lvl := 1;
+  alloc_id := 1;
   malloc_id := 1
 
 let rec set_alloca = function
-  | Value ({ contents = Request lvl } as a) when lvl >= !alloc_lvl ->
+  | Value ({ contents = Request req } as a) when req.lvl >= !alloc_lvl ->
       a := Preallocated
   | Two_values (a, b) ->
       set_alloca a;
@@ -472,7 +471,7 @@ and morph_vector mk p v =
 
   (* ret = false is threaded through p *)
   enter_level ();
-  (* vectors are free recursively, we don't need to track the items here *)
+  (* vectors are freed recursively, we don't need to track the items here *)
   let f param e =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
@@ -483,7 +482,7 @@ and morph_vector mk p v =
   leave_level ();
   let alloca = ref (request ()) in
 
-  let id = new_id () in
+  let id = new_id malloc_id in
   let malloc = { id; kind = ref Local } in
   let mallocs = malloc :: old_mallocs in
 
@@ -687,7 +686,7 @@ and morph_lambda typ p id abs =
 
 and morph_app mk p callee args =
   (* Save env for later monomorphization *)
-  let id = new_id () in
+  let id = new_id malloc_id in
   Apptbl.add apptbl id p;
 
   let ret = p.ret in
@@ -698,7 +697,7 @@ and morph_app mk p callee args =
   let malloc, p =
     match var.malloc with
     | Some _ ->
-        let malloc = { id = new_id (); kind = ref Local } in
+        let malloc = { id = new_id malloc_id; kind = ref Local } in
         (Some malloc, { p with mallocs = malloc :: p.mallocs })
     | None -> (None, p)
   in
@@ -715,11 +714,12 @@ and morph_app mk p callee args =
 
   let alloc, alloc_ref =
     match callee.ex.typ with
-    | Tfun (_, Trecord _, _) -> (
-        ( var.alloc,
-          match extract_alloca var.alloc with
-          | Some alloca -> alloca
-          | None -> ref (request ()) ))
+    | Tfun (_, Trecord _, _) ->
+        (* For every call, we make a new request. If the call is the return
+           value of a function, the request will be change to [Preallocated]
+           in [morph_func] or [morph_lambda] above. *)
+        let req = ref (request ()) in
+        (Value req, req)
     | _ -> (No_value, ref (request ()))
   in
 
@@ -733,7 +733,7 @@ let monomorphize { Typing.externals; records; tree } =
   reset ();
 
   (* Register malloc builtin, so freeing automatically works *)
-  let malloc = { id = new_id (); kind = ref Local } in
+  let malloc = { id = new_id malloc_id; kind = ref Local } in
   let var = { fn = Builtin Malloc; alloc = No_value; malloc = Some malloc } in
   let vars = Vars.add "__malloc" var Vars.empty in
 

@@ -676,7 +676,7 @@ let add_params vars f fname names types start_index recursive =
   in
 
   let add_simple () =
-    (* We simply add to env, no special handling due to tailrecursion *)
+    (* We simply add to env, no special handling for tailrecursion *)
     List.fold_left2
       (fun (env, i) name typ ->
         let value, i = get_value i typ in
@@ -833,8 +833,11 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         | Trecord _ as t -> (
             match pkind_of_typ t with
             | Boxed ->
+                (* Not too sure what this attribute does tbh *)
                 Llvm.(
                   add_function_attr func.value sret_attrib (AttrIndex.Param 0));
+                (* Whenever the return type is boxed, we add the prealloc to the environment *)
+                (* The call site has to decide if the prealloc is used or not *)
                 (1, Some (Llvm.params func.value).(0))
             | Unboxed _ -> (* Record is returned as int *) (0, None))
         | Tpoly _ -> failwith "poly var should not be returned"

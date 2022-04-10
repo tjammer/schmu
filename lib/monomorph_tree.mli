@@ -55,7 +55,8 @@ and call_name =
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = allocas ref
-and allocas = Preallocated | Request of int
+and request = { id : int; lvl : int }
+and allocas = Preallocated | Request of request
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 
 type recurs = Rnormal | Rtail | Rnone
