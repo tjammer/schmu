@@ -22,7 +22,7 @@
 (defconst schmu-keywords-regexp
   (rx symbol-start
       (or "fn" "fun" "type" "if" "then" "else"
-          "do" "in" "external" "end")
+          "elseif" "and" "or" "external" "end")
       symbol-end)
   "Schmu language keywords.")
 

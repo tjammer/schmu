@@ -1,0 +1,45 @@
+type cstr = ptr(u8)
+external puts : cstr -> unit
+type string = { cstr : cstr, length : int }
+
+fun ps(str)
+  puts(str.cstr)
+end
+
+fun true_()
+  ps("true")
+  true
+end
+
+fun false_()
+  ps("false")
+  false
+end
+
+ps("test 'and':")
+
+if true_() and true_() then ps("yes")
+else ps("no") end
+
+if true_() and false_() then ps("yes")
+else ps("no") end
+
+if false_() and true_() then ps("yes")
+else ps("no") end
+
+if false_() and false_() then ps("yes")
+else ps("no") end
+
+ps("test 'or':")
+
+if true_() or true_() then ps("yes")
+else ps("no") end
+
+if true_() or false_() then ps("yes")
+else ps("no") end
+
+if false_() or true_() then ps("yes")
+else ps("no") end
+
+if false_() or false_() then ps("yes")
+else ps("no") end

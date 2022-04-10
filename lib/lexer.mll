@@ -48,6 +48,8 @@ rule read =
   | f32      { F32 (f_of_string float_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { True }
   | "false"  { False }
+  | "and"    { And }
+  | "or"     { Or }
   | '='      { Equal }
   | "=="     { Bin_equal_i }
   | "==."     { Bin_equal_f }

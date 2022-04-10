@@ -371,7 +371,6 @@ let check_annot loc l r =
     in
     raise (Error (loc, msg))
 
-(* TODO add missing bops *)
 let string_of_bop = function
   | Ast.Plus_i -> "+"
   | Mult_i -> "*"
@@ -387,6 +386,8 @@ let string_of_bop = function
   | Greater_f -> ">."
   | Equal_f -> "==."
   | Minus_f -> "-."
+  | And -> "and"
+  | Or -> "or"
 
 let rec subst_generic ~id typ = function
   | Tvar { contents = Link t } -> subst_generic ~id typ t
@@ -561,7 +562,9 @@ let get_record_type env labels annot =
           match Env.find_label_opt (List.hd labels |> fst) env with
           | Some t -> Env.query_type ~instantiate t.record env
           | None ->
-              "Internal Error: Something went very wrong in record creation"
+              "Internal Error: Something went very wrong in record creation:"
+              ^ "label not found: "
+              ^ (List.hd labels |> fst)
               |> failwith))
 
 let get_prelude env loc name =
@@ -711,6 +714,9 @@ and typeof_bop env loc bop e1 e2 =
       Tfloat
   | Less_f | Equal_f | Greater_f ->
       check Tfloat;
+      Tbool
+  | And | Or ->
+      check Tbool;
       Tbool
 
 and typeof_record env loc annot labels =
@@ -1076,19 +1082,25 @@ and convert_bop env loc bop e1 e2 =
     (t1, t2)
   in
 
-  match bop with
-  | Ast.Plus_i | Mult_i | Minus_i | Div_i ->
-      let t1, t2 = check Tint in
-      { typ = Tint; expr = Bop (bop, t1, t2) }
-  | Less_i | Equal_i | Greater_i ->
-      let t1, t2 = check Tint in
-      { typ = Tbool; expr = Bop (bop, t1, t2) }
-  | Plus_f | Mult_f | Minus_f | Div_f ->
-      let t1, t2 = check Tfloat in
-      { typ = Tfloat; expr = Bop (bop, t1, t2) }
-  | Less_f | Equal_f | Greater_f ->
-      let t1, t2 = check Tfloat in
-      { typ = Tbool; expr = Bop (bop, t1, t2) }
+  let typ, t1, t2 =
+    match bop with
+    | Ast.Plus_i | Mult_i | Minus_i | Div_i ->
+        let t1, t2 = check Tint in
+        (Tint, t1, t2)
+    | Less_i | Equal_i | Greater_i ->
+        let t1, t2 = check Tint in
+        (Tbool, t1, t2)
+    | Plus_f | Mult_f | Minus_f | Div_f ->
+        let t1, t2 = check Tfloat in
+        (Tfloat, t1, t2)
+    | Less_f | Equal_f | Greater_f ->
+        let t1, t2 = check Tfloat in
+        (Tbool, t1, t2)
+    | And | Or ->
+        let t1, t2 = check Tbool in
+        (Tbool, t1, t2)
+  in
+  { typ; expr = Bop (bop, t1, t2) }
 
 and convert_if env loc cond e1 e2 =
   (* We can assume pred evaluates to bool and both

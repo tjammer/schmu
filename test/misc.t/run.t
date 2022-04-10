@@ -794,3 +794,411 @@ Regression test for issue #19
     call void @wrap(%v3* %ret)
     ret i64 0
   }
+
+Test 'and', 'or' and 'not'
+  $ schmu -dump-llvm boolean_logic.smu && cc out.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %string = type { i8*, i64 }
+  
+  @0 = private unnamed_addr constant [6 x i8] c"false\00", align 1
+  @1 = private unnamed_addr constant [5 x i8] c"true\00", align 1
+  @2 = private unnamed_addr constant [12 x i8] c"test 'and':\00", align 1
+  @3 = private unnamed_addr constant [4 x i8] c"yes\00", align 1
+  @4 = private unnamed_addr constant [3 x i8] c"no\00", align 1
+  @5 = private unnamed_addr constant [4 x i8] c"yes\00", align 1
+  @6 = private unnamed_addr constant [3 x i8] c"no\00", align 1
+  @7 = private unnamed_addr constant [4 x i8] c"yes\00", align 1
+  @8 = private unnamed_addr constant [3 x i8] c"no\00", align 1
+  @9 = private unnamed_addr constant [4 x i8] c"yes\00", align 1
+  @10 = private unnamed_addr constant [3 x i8] c"no\00", align 1
+  @11 = private unnamed_addr constant [11 x i8] c"test 'or':\00", align 1
+  @12 = private unnamed_addr constant [4 x i8] c"yes\00", align 1
+  @13 = private unnamed_addr constant [3 x i8] c"no\00", align 1
+  @14 = private unnamed_addr constant [4 x i8] c"yes\00", align 1
+  @15 = private unnamed_addr constant [3 x i8] c"no\00", align 1
+  @16 = private unnamed_addr constant [4 x i8] c"yes\00", align 1
+  @17 = private unnamed_addr constant [3 x i8] c"no\00", align 1
+  @18 = private unnamed_addr constant [4 x i8] c"yes\00", align 1
+  @19 = private unnamed_addr constant [3 x i8] c"no\00", align 1
+  
+  declare void @puts(i8* %0)
+  
+  define private i1 @false_() {
+  entry:
+    %str = alloca %string, align 8
+    %cstr3 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0), i8** %cstr3, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 5, i64* %length, align 4
+    %unbox = bitcast %string* %str to { i64, i64 }*
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([6 x i8]* @0 to i64), i64 5)
+    ret i1 false
+  }
+  
+  define private i1 @true_() {
+  entry:
+    %str = alloca %string, align 8
+    %cstr3 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([5 x i8], [5 x i8]* @1, i32 0, i32 0), i8** %cstr3, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 4, i64* %length, align 4
+    %unbox = bitcast %string* %str to { i64, i64 }*
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([5 x i8]* @1 to i64), i64 4)
+    ret i1 true
+  }
+  
+  define private void @ps(i64 %0, i64 %1) {
+  entry:
+    %box = alloca { i64, i64 }, align 8
+    %fst2 = bitcast { i64, i64 }* %box to i64*
+    store i64 %0, i64* %fst2, align 4
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
+    store i64 %1, i64* %snd, align 4
+    %2 = inttoptr i64 %0 to i8*
+    tail call void @puts(i8* %2)
+    ret void
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %str = alloca %string, align 8
+    %cstr186 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([12 x i8], [12 x i8]* @2, i32 0, i32 0), i8** %cstr186, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 11, i64* %length, align 4
+    %unbox = bitcast %string* %str to { i64, i64 }*
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([12 x i8]* @2 to i64), i64 11)
+    %0 = tail call i1 @true_()
+    br i1 %0, label %true1, label %cont
+  
+  true1:                                            ; preds = %entry
+    %1 = tail call i1 @true_()
+    br i1 %1, label %true2, label %cont
+  
+  true2:                                            ; preds = %true1
+    br label %cont
+  
+  cont:                                             ; preds = %true2, %true1, %entry
+    %andtmp = phi i1 [ false, %entry ], [ false, %true1 ], [ true, %true2 ]
+    br i1 %andtmp, label %then, label %else
+  
+  then:                                             ; preds = %cont
+    %str3 = alloca %string, align 8
+    %cstr4188 = bitcast %string* %str3 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i8** %cstr4188, align 8
+    %length5 = getelementptr inbounds %string, %string* %str3, i32 0, i32 1
+    store i64 3, i64* %length5, align 4
+    %unbox6 = bitcast %string* %str3 to { i64, i64 }*
+    %snd9 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox6, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([4 x i8]* @3 to i64), i64 3)
+    br label %ifcont
+  
+  else:                                             ; preds = %cont
+    %str11 = alloca %string, align 8
+    %cstr12190 = bitcast %string* %str11 to i8**
+    store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @4, i32 0, i32 0), i8** %cstr12190, align 8
+    %length13 = getelementptr inbounds %string, %string* %str11, i32 0, i32 1
+    store i64 2, i64* %length13, align 4
+    %unbox14 = bitcast %string* %str11 to { i64, i64 }*
+    %snd17 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox14, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([3 x i8]* @4 to i64), i64 2)
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    %2 = tail call i1 @true_()
+    br i1 %2, label %true119, label %cont21
+  
+  true119:                                          ; preds = %ifcont
+    %3 = tail call i1 @false_()
+    br i1 %3, label %true220, label %cont21
+  
+  true220:                                          ; preds = %true119
+    br label %cont21
+  
+  cont21:                                           ; preds = %true220, %true119, %ifcont
+    %andtmp22 = phi i1 [ false, %ifcont ], [ false, %true119 ], [ true, %true220 ]
+    br i1 %andtmp22, label %then23, label %else32
+  
+  then23:                                           ; preds = %cont21
+    %str24 = alloca %string, align 8
+    %cstr25192 = bitcast %string* %str24 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @5, i32 0, i32 0), i8** %cstr25192, align 8
+    %length26 = getelementptr inbounds %string, %string* %str24, i32 0, i32 1
+    store i64 3, i64* %length26, align 4
+    %unbox27 = bitcast %string* %str24 to { i64, i64 }*
+    %snd30 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox27, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([4 x i8]* @5 to i64), i64 3)
+    br label %ifcont41
+  
+  else32:                                           ; preds = %cont21
+    %str33 = alloca %string, align 8
+    %cstr34194 = bitcast %string* %str33 to i8**
+    store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @6, i32 0, i32 0), i8** %cstr34194, align 8
+    %length35 = getelementptr inbounds %string, %string* %str33, i32 0, i32 1
+    store i64 2, i64* %length35, align 4
+    %unbox36 = bitcast %string* %str33 to { i64, i64 }*
+    %snd39 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox36, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([3 x i8]* @6 to i64), i64 2)
+    br label %ifcont41
+  
+  ifcont41:                                         ; preds = %else32, %then23
+    %4 = tail call i1 @false_()
+    br i1 %4, label %true142, label %cont44
+  
+  true142:                                          ; preds = %ifcont41
+    %5 = tail call i1 @true_()
+    br i1 %5, label %true243, label %cont44
+  
+  true243:                                          ; preds = %true142
+    br label %cont44
+  
+  cont44:                                           ; preds = %true243, %true142, %ifcont41
+    %andtmp45 = phi i1 [ false, %ifcont41 ], [ false, %true142 ], [ true, %true243 ]
+    br i1 %andtmp45, label %then46, label %else55
+  
+  then46:                                           ; preds = %cont44
+    %str47 = alloca %string, align 8
+    %cstr48196 = bitcast %string* %str47 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @7, i32 0, i32 0), i8** %cstr48196, align 8
+    %length49 = getelementptr inbounds %string, %string* %str47, i32 0, i32 1
+    store i64 3, i64* %length49, align 4
+    %unbox50 = bitcast %string* %str47 to { i64, i64 }*
+    %snd53 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox50, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([4 x i8]* @7 to i64), i64 3)
+    br label %ifcont64
+  
+  else55:                                           ; preds = %cont44
+    %str56 = alloca %string, align 8
+    %cstr57198 = bitcast %string* %str56 to i8**
+    store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @8, i32 0, i32 0), i8** %cstr57198, align 8
+    %length58 = getelementptr inbounds %string, %string* %str56, i32 0, i32 1
+    store i64 2, i64* %length58, align 4
+    %unbox59 = bitcast %string* %str56 to { i64, i64 }*
+    %snd62 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox59, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([3 x i8]* @8 to i64), i64 2)
+    br label %ifcont64
+  
+  ifcont64:                                         ; preds = %else55, %then46
+    %6 = tail call i1 @false_()
+    br i1 %6, label %true165, label %cont67
+  
+  true165:                                          ; preds = %ifcont64
+    %7 = tail call i1 @false_()
+    br i1 %7, label %true266, label %cont67
+  
+  true266:                                          ; preds = %true165
+    br label %cont67
+  
+  cont67:                                           ; preds = %true266, %true165, %ifcont64
+    %andtmp68 = phi i1 [ false, %ifcont64 ], [ false, %true165 ], [ true, %true266 ]
+    br i1 %andtmp68, label %then69, label %else78
+  
+  then69:                                           ; preds = %cont67
+    %str70 = alloca %string, align 8
+    %cstr71200 = bitcast %string* %str70 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @9, i32 0, i32 0), i8** %cstr71200, align 8
+    %length72 = getelementptr inbounds %string, %string* %str70, i32 0, i32 1
+    store i64 3, i64* %length72, align 4
+    %unbox73 = bitcast %string* %str70 to { i64, i64 }*
+    %snd76 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox73, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([4 x i8]* @9 to i64), i64 3)
+    br label %ifcont87
+  
+  else78:                                           ; preds = %cont67
+    %str79 = alloca %string, align 8
+    %cstr80202 = bitcast %string* %str79 to i8**
+    store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @10, i32 0, i32 0), i8** %cstr80202, align 8
+    %length81 = getelementptr inbounds %string, %string* %str79, i32 0, i32 1
+    store i64 2, i64* %length81, align 4
+    %unbox82 = bitcast %string* %str79 to { i64, i64 }*
+    %snd85 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox82, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([3 x i8]* @10 to i64), i64 2)
+    br label %ifcont87
+  
+  ifcont87:                                         ; preds = %else78, %then69
+    %str88 = alloca %string, align 8
+    %cstr89204 = bitcast %string* %str88 to i8**
+    store i8* getelementptr inbounds ([11 x i8], [11 x i8]* @11, i32 0, i32 0), i8** %cstr89204, align 8
+    %length90 = getelementptr inbounds %string, %string* %str88, i32 0, i32 1
+    store i64 10, i64* %length90, align 4
+    %unbox91 = bitcast %string* %str88 to { i64, i64 }*
+    %snd94 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox91, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([11 x i8]* @11 to i64), i64 10)
+    %8 = tail call i1 @true_()
+    br i1 %8, label %cont96, label %false1
+  
+  false1:                                           ; preds = %ifcont87
+    %9 = tail call i1 @true_()
+    br i1 %9, label %cont96, label %false2
+  
+  false2:                                           ; preds = %false1
+    br label %cont96
+  
+  cont96:                                           ; preds = %false2, %false1, %ifcont87
+    %andtmp97 = phi i1 [ true, %ifcont87 ], [ true, %false1 ], [ false, %false2 ]
+    br i1 %andtmp97, label %then98, label %else107
+  
+  then98:                                           ; preds = %cont96
+    %str99 = alloca %string, align 8
+    %cstr100206 = bitcast %string* %str99 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @12, i32 0, i32 0), i8** %cstr100206, align 8
+    %length101 = getelementptr inbounds %string, %string* %str99, i32 0, i32 1
+    store i64 3, i64* %length101, align 4
+    %unbox102 = bitcast %string* %str99 to { i64, i64 }*
+    %snd105 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox102, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([4 x i8]* @12 to i64), i64 3)
+    br label %ifcont116
+  
+  else107:                                          ; preds = %cont96
+    %str108 = alloca %string, align 8
+    %cstr109208 = bitcast %string* %str108 to i8**
+    store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @13, i32 0, i32 0), i8** %cstr109208, align 8
+    %length110 = getelementptr inbounds %string, %string* %str108, i32 0, i32 1
+    store i64 2, i64* %length110, align 4
+    %unbox111 = bitcast %string* %str108 to { i64, i64 }*
+    %snd114 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox111, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([3 x i8]* @13 to i64), i64 2)
+    br label %ifcont116
+  
+  ifcont116:                                        ; preds = %else107, %then98
+    %10 = tail call i1 @true_()
+    br i1 %10, label %cont119, label %false1117
+  
+  false1117:                                        ; preds = %ifcont116
+    %11 = tail call i1 @false_()
+    br i1 %11, label %cont119, label %false2118
+  
+  false2118:                                        ; preds = %false1117
+    br label %cont119
+  
+  cont119:                                          ; preds = %false2118, %false1117, %ifcont116
+    %andtmp120 = phi i1 [ true, %ifcont116 ], [ true, %false1117 ], [ false, %false2118 ]
+    br i1 %andtmp120, label %then121, label %else130
+  
+  then121:                                          ; preds = %cont119
+    %str122 = alloca %string, align 8
+    %cstr123210 = bitcast %string* %str122 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @14, i32 0, i32 0), i8** %cstr123210, align 8
+    %length124 = getelementptr inbounds %string, %string* %str122, i32 0, i32 1
+    store i64 3, i64* %length124, align 4
+    %unbox125 = bitcast %string* %str122 to { i64, i64 }*
+    %snd128 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox125, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([4 x i8]* @14 to i64), i64 3)
+    br label %ifcont139
+  
+  else130:                                          ; preds = %cont119
+    %str131 = alloca %string, align 8
+    %cstr132212 = bitcast %string* %str131 to i8**
+    store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @15, i32 0, i32 0), i8** %cstr132212, align 8
+    %length133 = getelementptr inbounds %string, %string* %str131, i32 0, i32 1
+    store i64 2, i64* %length133, align 4
+    %unbox134 = bitcast %string* %str131 to { i64, i64 }*
+    %snd137 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox134, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([3 x i8]* @15 to i64), i64 2)
+    br label %ifcont139
+  
+  ifcont139:                                        ; preds = %else130, %then121
+    %12 = tail call i1 @false_()
+    br i1 %12, label %cont142, label %false1140
+  
+  false1140:                                        ; preds = %ifcont139
+    %13 = tail call i1 @true_()
+    br i1 %13, label %cont142, label %false2141
+  
+  false2141:                                        ; preds = %false1140
+    br label %cont142
+  
+  cont142:                                          ; preds = %false2141, %false1140, %ifcont139
+    %andtmp143 = phi i1 [ true, %ifcont139 ], [ true, %false1140 ], [ false, %false2141 ]
+    br i1 %andtmp143, label %then144, label %else153
+  
+  then144:                                          ; preds = %cont142
+    %str145 = alloca %string, align 8
+    %cstr146214 = bitcast %string* %str145 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @16, i32 0, i32 0), i8** %cstr146214, align 8
+    %length147 = getelementptr inbounds %string, %string* %str145, i32 0, i32 1
+    store i64 3, i64* %length147, align 4
+    %unbox148 = bitcast %string* %str145 to { i64, i64 }*
+    %snd151 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox148, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([4 x i8]* @16 to i64), i64 3)
+    br label %ifcont162
+  
+  else153:                                          ; preds = %cont142
+    %str154 = alloca %string, align 8
+    %cstr155216 = bitcast %string* %str154 to i8**
+    store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @17, i32 0, i32 0), i8** %cstr155216, align 8
+    %length156 = getelementptr inbounds %string, %string* %str154, i32 0, i32 1
+    store i64 2, i64* %length156, align 4
+    %unbox157 = bitcast %string* %str154 to { i64, i64 }*
+    %snd160 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox157, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([3 x i8]* @17 to i64), i64 2)
+    br label %ifcont162
+  
+  ifcont162:                                        ; preds = %else153, %then144
+    %14 = tail call i1 @false_()
+    br i1 %14, label %cont165, label %false1163
+  
+  false1163:                                        ; preds = %ifcont162
+    %15 = tail call i1 @false_()
+    br i1 %15, label %cont165, label %false2164
+  
+  false2164:                                        ; preds = %false1163
+    br label %cont165
+  
+  cont165:                                          ; preds = %false2164, %false1163, %ifcont162
+    %andtmp166 = phi i1 [ true, %ifcont162 ], [ true, %false1163 ], [ false, %false2164 ]
+    br i1 %andtmp166, label %then167, label %else176
+  
+  then167:                                          ; preds = %cont165
+    %str168 = alloca %string, align 8
+    %cstr169218 = bitcast %string* %str168 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @18, i32 0, i32 0), i8** %cstr169218, align 8
+    %length170 = getelementptr inbounds %string, %string* %str168, i32 0, i32 1
+    store i64 3, i64* %length170, align 4
+    %unbox171 = bitcast %string* %str168 to { i64, i64 }*
+    %snd174 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox171, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([4 x i8]* @18 to i64), i64 3)
+    br label %ifcont185
+  
+  else176:                                          ; preds = %cont165
+    %str177 = alloca %string, align 8
+    %cstr178220 = bitcast %string* %str177 to i8**
+    store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @19, i32 0, i32 0), i8** %cstr178220, align 8
+    %length179 = getelementptr inbounds %string, %string* %str177, i32 0, i32 1
+    store i64 2, i64* %length179, align 4
+    %unbox180 = bitcast %string* %str177 to { i64, i64 }*
+    %snd183 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox180, i32 0, i32 1
+    tail call void @ps(i64 ptrtoint ([3 x i8]* @19 to i64), i64 2)
+    br label %ifcont185
+  
+  ifcont185:                                        ; preds = %else176, %then167
+    ret i64 0
+  }
+  test 'and':
+  true
+  true
+  yes
+  true
+  false
+  no
+  false
+  no
+  false
+  no
+  test 'or':
+  true
+  yes
+  true
+  yes
+  false
+  true
+  yes
+  false
+  false
+  no

@@ -48,6 +48,8 @@
 %token Greater_f
 %token Bin_equal_i
 %token Bin_equal_f
+%token And
+%token Or
 %token Lpar
 %token Rpar
 %token Lbrac
@@ -69,6 +71,7 @@
 %token Mutable
 
 %nonassoc Less_i Less_f Greater_i Greater_f
+%left And Or
 %left Plus_i Plus_f Minus_i Minus_f
 %left Mult_i Mult_f Div_i Div_f
 %left Bin_equal_i Bin_equal_f
@@ -169,6 +172,8 @@ bool:
   | Less_f  { Less_f }
   | Greater_f { Greater_f }
   | Bin_equal_f { Equal_f }
+  | And     { And }
+  | Or      { Or }
 
 %inline decl:
   | Identifier; option(type_expr) { $1, $2 }

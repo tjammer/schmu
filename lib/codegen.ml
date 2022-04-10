@@ -924,10 +924,7 @@ and gen_expr param typed_expr =
   | Mconst (Vector (id, es, allocref)) ->
       codegen_vector_lit param id es typed_expr.typ allocref
   | Mconst Unit -> dummy_fn_value
-  | Mbop (bop, e1, e2) ->
-      let e1 = gen_expr param e1 in
-      let e2 = gen_expr param e2 in
-      gen_bop e1 e2 bop |> fin
+  | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
   | Mvar id -> gen_var param.vars typed_expr.typ id |> fin
   | Mfunction (name, abs, cont) ->
       (* The functions are already generated *)
@@ -991,8 +988,14 @@ and gen_var vars typ id =
           (* If the variable isn't bound, something went wrong before *)
           failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
 
-and gen_bop e1 e2 bop =
-  let bld f str = f e1.value e2.value str builder in
+and gen_bop param e1 e2 bop =
+  let gen = gen_expr param in
+  let bldr = builder in
+  let bld f str =
+    let e1 = gen e1 in
+    let e2 = gen e2 in
+    f e1.value e2.value str builder
+  in
   let open Llvm in
   match bop with
   | Plus_i -> { value = bld build_add "add"; typ = Tint; lltyp = int_t }
@@ -1018,6 +1021,74 @@ and gen_bop e1 e2 bop =
       { value = bld (build_fcmp Fcmp.Ogt) "gt"; typ = Tbool; lltyp = bool_t }
   | Equal_f ->
       { value = bld (build_fcmp Fcmp.Oeq) "eq"; typ = Tbool; lltyp = bool_t }
+  | And  ->
+      let cond1 = gen e1 in
+
+      (* Current block *)
+      let start_bb = insertion_block bldr in
+      let parent = block_parent start_bb in
+
+      let true1_bb = append_block context "true1" parent in
+      let true2_bb = append_block context "true2" parent in
+      let continue_bb = append_block context "cont" parent in
+
+      ignore (build_cond_br cond1.value true1_bb continue_bb bldr);
+
+      position_at_end true1_bb bldr;
+      let cond2 = gen e2 in
+      (* Codegen can change the current bb *)
+      let t1_bb = insertion_block bldr in
+      ignore (build_cond_br cond2.value true2_bb continue_bb bldr);
+
+      position_at_end true2_bb bldr;
+      ignore (build_br continue_bb bldr);
+
+      position_at_end continue_bb bldr;
+
+      let true_value = Llvm.const_int bool_t (Bool.to_int true) in
+      let false_value = const_int bool_t (Bool.to_int false) in
+
+      let incoming =
+        [
+          (false_value, start_bb); (false_value, t1_bb); (true_value, true2_bb);
+        ]
+      in
+      let value = build_phi incoming "andtmp" bldr in
+      { value; typ = Tbool; lltyp = bool_t }
+  | Or ->
+      let cond1 = gen e1 in
+
+      (* Current block *)
+      let start_bb = insertion_block bldr in
+      let parent = block_parent start_bb in
+
+      let false1_bb = append_block context "false1" parent in
+      let false2_bb = append_block context "false2" parent in
+      let continue_bb = append_block context "cont" parent in
+
+      ignore (build_cond_br cond1.value  continue_bb false1_bb bldr);
+
+      position_at_end false1_bb bldr;
+      let cond2 = gen e2 in
+      (* Codegen can change the current bb *)
+      let f1_bb = insertion_block bldr in
+      ignore (build_cond_br cond2.value continue_bb false2_bb bldr);
+
+      position_at_end false2_bb bldr;
+      ignore (build_br continue_bb bldr);
+
+      position_at_end continue_bb bldr;
+
+      let true_value = Llvm.const_int bool_t (Bool.to_int true) in
+      let false_value = const_int bool_t (Bool.to_int false) in
+
+      let incoming =
+        [
+          (true_value, start_bb); (true_value, f1_bb); (false_value, false2_bb);
+        ]
+      in
+      let value = build_phi incoming "andtmp" bldr in
+      { value; typ = Tbool; lltyp = bool_t }
 
 and gen_app param callee args allocref ret_t malloc =
   let func = gen_expr param callee.ex in
@@ -1253,8 +1324,10 @@ and gen_if param expr return =
 
   let cond = gen_expr param expr.cond in
 
+  (* Get current block *)
   let start_bb = Llvm.insertion_block builder in
   let parent = Llvm.block_parent start_bb in
+
   let then_bb = Llvm.append_block context "then" parent in
   Llvm.position_at_end then_bb builder;
   let e1 = gen_expr param expr.e1 in

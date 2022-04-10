@@ -15,6 +15,8 @@ type bop =
   | Greater_f
   | Equal_f
   | Minus_f
+  | And
+  | Or
 [@@deriving show]
 (* Eventually, this will be handled differently, hopefully not as hardcoded *)
 
