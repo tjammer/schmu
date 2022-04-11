@@ -1,0 +1,14 @@
+type string = { cstr : ptr(u8), length : int }
+external printf : (ptr(u8), int) -> unit
+
+a = 20
+
+fun close_over_a()
+  a
+end
+
+fun use_above()
+  printf("%i\n".cstr, close_over_a())
+end
+
+use_above()

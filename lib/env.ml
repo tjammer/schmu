@@ -118,10 +118,12 @@ let close_scope env =
       ( { env with values = tl },
         !cls |> Set.to_seq |> List.of_seq
         |> List.filter_map (fun k ->
-               (* We only add functions to the closure if they are params *)
+               (* We only add functions to the closure if they are params
+                  Or: if they are closures *)
                let k = Type_key.key k in
                let { typ; is_param } = find_val_raw k env in
                match clean typ with
+               | Tfun (_, _, Closure _) -> Some (k, typ)
                | Tfun _ when not is_param -> None
                | _ -> Some (k, typ)) )
 

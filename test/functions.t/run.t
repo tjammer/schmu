@@ -1293,3 +1293,69 @@ Nested polymorphic closures. Does not quite work for another nesting level
   6
   8
   10
+
+Closures have to be added to the env of other closures, so they can be called correctly
+  $ schmu -dump-llvm closures_to_env.smu && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %closure = type { i8*, i8* }
+  %string = type { i8*, i64 }
+  
+  @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
+  
+  declare void @printf(i8* %0, i64 %1)
+  
+  define private void @use_above(i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { %closure* }*
+    %close_over_a3 = bitcast { %closure* }* %clsr to %closure**
+    %close_over_a1 = load %closure*, %closure** %close_over_a3, align 8
+    %str = alloca %string, align 8
+    %cstr4 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr4, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 3, i64* %length, align 4
+    %funcptr5 = bitcast %closure* %close_over_a1 to i8**
+    %loadtmp = load i8*, i8** %funcptr5, align 8
+    %casttmp = bitcast i8* %loadtmp to i64 (i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %close_over_a1, i32 0, i32 1
+    %loadtmp2 = load i8*, i8** %envptr, align 8
+    %1 = tail call i64 %casttmp(i8* %loadtmp2)
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %1)
+    ret void
+  }
+  
+  define private i64 @close_over_a(i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { i64 }*
+    %a2 = bitcast { i64 }* %clsr to i64*
+    %a1 = load i64, i64* %a2, align 4
+    ret i64 %a1
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %close_over_a = alloca %closure, align 8
+    %funptr7 = bitcast %closure* %close_over_a to i8**
+    store i8* bitcast (i64 (i8*)* @close_over_a to i8*), i8** %funptr7, align 8
+    %clsr_close_over_a = alloca { i64 }, align 8
+    %a8 = bitcast { i64 }* %clsr_close_over_a to i64*
+    store i64 20, i64* %a8, align 4
+    %env = bitcast { i64 }* %clsr_close_over_a to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %close_over_a, i32 0, i32 1
+    store i8* %env, i8** %envptr, align 8
+    %use_above = alloca %closure, align 8
+    %funptr19 = bitcast %closure* %use_above to i8**
+    store i8* bitcast (void (i8*)* @use_above to i8*), i8** %funptr19, align 8
+    %clsr_use_above = alloca { %closure* }, align 8
+    %close_over_a210 = bitcast { %closure* }* %clsr_use_above to %closure**
+    store %closure* %close_over_a, %closure** %close_over_a210, align 8
+    %env3 = bitcast { %closure* }* %clsr_use_above to i8*
+    %envptr4 = getelementptr inbounds %closure, %closure* %use_above, i32 0, i32 1
+    store i8* %env3, i8** %envptr4, align 8
+    call void @use_above(i8* %env3)
+    ret i64 0
+  }
+  20
