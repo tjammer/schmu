@@ -554,13 +554,19 @@ let declare_function fun_name = function
       prerr_endline fun_name;
       failwith "Internal Error: declaring non-function"
 
+let alloca param typ str =
+  (* If a builder is present, the alloca will be moved out of a loop,
+     so we don't blow up the stack *)
+  let builder = match param.rec_block with Some r -> r.entry | _ -> builder in
+  Llvm.build_alloca typ str builder
+
 (* [func_to_closure] but for function types *)
 let tfun_to_closure = function
   | Tfun (ps, ret, Simple) -> Tfun (ps, ret, Closure [])
   | t -> t
 
-let gen_closure_obj assoc func vars name =
-  let clsr_struct = Llvm.build_alloca closure_t name builder in
+let gen_closure_obj param assoc func name =
+  let clsr_struct = alloca param closure_t name in
 
   (* Add function ptr *)
   let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
@@ -568,7 +574,7 @@ let gen_closure_obj assoc func vars name =
   ignore (Llvm.build_store fun_casted fun_ptr builder);
 
   let store_closed_var clsr_ptr i (name, typ) =
-    let src = Vars.find name vars in
+    let src = Vars.find name param.vars in
     let dst = Llvm.build_struct_gep clsr_ptr i name builder in
     (match typ with
     | Trecord _ ->
@@ -586,7 +592,7 @@ let gen_closure_obj assoc func vars name =
     | [] -> Llvm.const_pointer_null voidptr_t
     | assoc ->
         let assoc_type = typeof_aggregate (Array.of_list assoc) in
-        let clsr_ptr = Llvm.build_alloca assoc_type ("clsr_" ^ name) builder in
+        let clsr_ptr = alloca param assoc_type ("clsr_" ^ name) in
         ignore (List.fold_left (store_closed_var clsr_ptr) 0 assoc);
 
         let clsr_casted = Llvm.build_bitcast clsr_ptr voidptr_t "env" builder in
@@ -641,10 +647,6 @@ let store_alloca ~src ~dst =
   | _ ->
       (* Simple type *)
       ignore (Llvm.build_store src.value dst builder)
-
-let alloca param typ str =
-  let builder = match param.rec_block with Some r -> r.entry | _ -> builder in
-  Llvm.build_alloca typ str builder
 
 let load ptr = function Trecord _ -> ptr | _ -> Llvm.build_load ptr "" builder
 let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
@@ -762,12 +764,12 @@ let add_params vars f fname names types start_index recursive =
 
       (vars, Some { rec_; entry })
 
-let pass_function vars llvar kind =
+let pass_function param llvar kind =
   match kind with
   | Simple ->
       (* If a function is passed into [func] we convert it to a closure
          and pass nullptr to env*)
-      gen_closure_obj [] llvar vars "clstmp"
+      gen_closure_obj param [] llvar "clstmp"
   | Closure _ ->
       (* This closure is a struct and has an env *)
       llvar
@@ -779,7 +781,7 @@ let func_to_closure vars llvar =
   if Llvm.type_of llvar.value = (closure_t |> Llvm.pointer_type) then llvar
   else
     match llvar.typ with
-    | Tfun (_, _, kind) -> pass_function vars.vars llvar kind
+    | Tfun (_, _, kind) -> pass_function vars llvar kind
     | _ -> llvar
 
 (* Get monomorphized function *)
@@ -790,7 +792,7 @@ let get_mono_func func param = function
       let func =
         match func.typ with
         | Tfun (_, _, Closure assoc) ->
-            gen_closure_obj assoc func param.vars "monoclstmp"
+            gen_closure_obj param assoc func "monoclstmp"
         | Tfun (_, _, Simple) -> func
         | _ -> failwith "Internal Error: What are we applying?"
       in
@@ -928,7 +930,7 @@ and gen_expr param typed_expr =
         | Some func -> (
             match abs.func.kind with
             | Simple -> func
-            | Closure assoc -> gen_closure_obj assoc func param.vars name)
+            | Closure assoc -> gen_closure_obj param assoc func name)
         | None ->
             (* The function is polymorphic and monomorphized versions are generated. *)
             (* We just return some bogus value, it will never be applied anyway
@@ -946,7 +948,7 @@ and gen_expr param typed_expr =
         | Some func -> (
             match abs.func.kind with
             | Simple -> func
-            | Closure assoc -> gen_closure_obj assoc func param.vars name)
+            | Closure assoc -> gen_closure_obj param assoc func name)
         | None ->
             (* The function is polymorphic and monomorphized versions are generated. *)
             (* We just return some bogus value, it will never be applied anyway
@@ -1199,7 +1201,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
     | Tfun (_, ret, _) -> (0, ret)
     | Tunit ->
         failwith "Internal Error: Probably cannot find monomorphized function"
-    | _ -> failwith "Internal Error: Not a func in gen app"
+    | _ -> failwith "Internal Error: Not a func in gen app tailrec"
   in
 
   let handle_arg i arg =
