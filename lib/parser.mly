@@ -70,8 +70,8 @@
 %token Do
 %token Mutable
 
-%nonassoc Less_i Less_f Greater_i Greater_f
 %left And Or
+%nonassoc Less_i Less_f Greater_i Greater_f
 %left Plus_i Plus_f Minus_i Minus_f
 %left Mult_i Mult_f Div_i Div_f
 %left Bin_equal_i Bin_equal_f
