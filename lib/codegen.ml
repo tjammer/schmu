@@ -79,8 +79,6 @@ let dummy_fn_value =
      in a monomorphized version *)
   { typ = Tunit; value = Llvm.const_int i32_t (-1); lltyp = i32_t }
 
-let sret_attrib = Llvm.create_enum_attr context "sret" Int64.zero
-
 (* Named structs for records *)
 
 let rec record_name = function
@@ -833,9 +831,6 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         | Trecord _ as t -> (
             match pkind_of_typ t with
             | Boxed ->
-                (* Not too sure what this attribute does tbh *)
-                Llvm.(
-                  add_function_attr func.value sret_attrib (AttrIndex.Param 0));
                 (* Whenever the return type is boxed, we add the prealloc to the environment *)
                 (* The call site has to decide if the prealloc is used or not *)
                 (1, Some (Llvm.params func.value).(0))

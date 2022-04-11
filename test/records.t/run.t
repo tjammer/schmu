@@ -227,7 +227,7 @@ Pass generic record
     ret { i64, i16 } %2
   }
   
-  define private void @__tg.tg_pass_ti.ti(%t_int* sret %0, %t_int* %x) {
+  define private void @__tg.tg_pass_ti.ti(%t_int* %0, %t_int* %x) {
   entry:
     %first1 = bitcast %t_int* %0 to i64*
     %1 = bitcast %t_int* %x to i64*
@@ -244,7 +244,7 @@ Pass generic record
     ret void
   }
   
-  define private void @__g.gg.g_apply_ti.titi.ti(%t_int* sret %0, %closure* %f, %t_int* %x) {
+  define private void @__g.gg.g_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8

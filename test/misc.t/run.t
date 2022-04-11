@@ -81,7 +81,7 @@ Also mutable fields and 'realloc' builtin
   @1 = private unnamed_addr constant [6 x i8] c"young\00", align 1
   @2 = private unnamed_addr constant [6 x i8] c"world\00", align 1
   
-  define private void @vec_of_records(%vector_container* sret %0) {
+  define private void @vec_of_records(%vector_container* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 64)
     %2 = bitcast i8* %1 to %container*
@@ -97,7 +97,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @record_of_vecs(%container* sret %0) {
+  define private void @record_of_vecs(%container* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 16)
     %2 = bitcast i8* %1 to i64*
@@ -179,13 +179,13 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @nest_allocs(%vector_vector_int* sret %0) {
+  define private void @nest_allocs(%vector_vector_int* %0) {
   entry:
     tail call void @make_nested_vec(%vector_vector_int* %0)
     ret void
   }
   
-  define private void @make_nested_vec(%vector_vector_int* sret %0) {
+  define private void @make_nested_vec(%vector_vector_int* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 48)
     %2 = bitcast i8* %1 to %vector_int*
@@ -221,7 +221,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @nest_fns(%vector_foo* sret %0) {
+  define private void @nest_fns(%vector_foo* %0) {
   entry:
     tail call void @make_vec(%vector_foo* %0)
     ret void
@@ -238,7 +238,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @make_vec(%vector_foo* sret %0) {
+  define private void @make_vec(%vector_foo* %0) {
   entry:
     %1 = alloca %foo, align 8
     %x3 = bitcast %foo* %1 to i64*
@@ -718,7 +718,7 @@ Regression test for issue #19
   
   %v3 = type { double, double, double }
   
-  define private void @wrap(%v3* sret %0) {
+  define private void @wrap(%v3* %0) {
   entry:
     %1 = alloca %v3, align 8
     %x5 = bitcast %v3* %1 to double*
@@ -742,7 +742,7 @@ Regression test for issue #19
     ret void
   }
   
-  define private void @v3_scale(%v3* sret %0, %v3* %v3, double %factor) {
+  define private void @v3_scale(%v3* %0, %v3* %v3, double %factor) {
   entry:
     %x3 = bitcast %v3* %0 to double*
     %1 = bitcast %v3* %v3 to double*
@@ -762,7 +762,7 @@ Regression test for issue #19
     ret void
   }
   
-  define private void @v3_add(%v3* sret %0, %v3* %lhs, %v3* %rhs) {
+  define private void @v3_add(%v3* %0, %v3* %lhs, %v3* %rhs) {
   entry:
     %x3 = bitcast %v3* %0 to double*
     %1 = bitcast %v3* %lhs to double*
