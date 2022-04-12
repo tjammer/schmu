@@ -15,6 +15,7 @@ type expr =
   | Mvar of string
   | Mconst of const
   | Mbop of Ast.bop * monod_tree * monod_tree
+  | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
   | Mlet of string * monod_tree * monod_tree
   | Mlambda of string * abstraction
@@ -157,7 +158,7 @@ let find_function_expr vars = function
           match Builtin.of_string id with
           | Some b -> Builtin b
           | None -> No_function))
-  | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ -> No_function
+  | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ | Munop _ -> No_function
   | Mlambda _ -> (* Concrete type is already inferred *) No_function
   | e ->
       print_endline (show_expr e);
@@ -261,6 +262,7 @@ let rec subst_body p subst tree =
     | Mvar _ -> { tree with typ = subst tree.typ }
     | Mconst _ -> tree
     | Mbop (bop, l, r) -> { tree with expr = Mbop (bop, sub l, sub r) }
+    | Munop (unop, e) -> { tree with expr = Munop (unop, sub e) }
     | Mif expr ->
         let cond = sub expr.cond in
         let e1 = sub expr.e1 in
@@ -439,6 +441,7 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   | Const (Vector v) -> morph_vector make param v
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
+  | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let (id, e1, e2) -> morph_let make param id e1 e2
   | Record labels -> morph_record make param labels
@@ -506,6 +509,11 @@ and morph_bop mk p bop e1 e2 =
   let p, e1, _ = morph_expr { p with ret = false } e1 in
   let p, e2, _ = morph_expr { p with ret = false } e2 in
   ({ p with ret }, mk (Mbop (bop, e1, e2)) ret, no_var)
+
+and morph_unop mk p unop expr =
+  let ret = p.ret in
+  let p, e, _ = morph_expr { p with ret = false } expr in
+  ({ p with ret }, mk (Munop (unop, e)) ret, no_var)
 
 and morph_if mk p cond e1 e2 =
   let ret = p.ret in

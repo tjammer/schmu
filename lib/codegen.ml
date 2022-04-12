@@ -922,6 +922,7 @@ and gen_expr param typed_expr =
       codegen_vector_lit param id es typed_expr.typ allocref
   | Mconst Unit -> dummy_fn_value
   | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
+  | Munop (_, e) -> gen_unop param e |> fin
   | Mvar id -> gen_var param.vars typed_expr.typ id |> fin
   | Mfunction (name, abs, cont) ->
       (* The functions are already generated *)
@@ -1086,6 +1087,16 @@ and gen_bop param e1 e2 bop =
       in
       let value = build_phi incoming "andtmp" bldr in
       { value; typ = Tbool; lltyp = bool_t }
+
+and gen_unop param e =
+  let expr = gen_expr param e in
+  let value =
+    match expr.typ with
+    | Tint -> Llvm.build_neg expr.value "neg" builder
+    | Tfloat -> Llvm.build_fneg expr.value "neg" builder
+    | _ -> failwith "Internal Error: Unsupported unary op"
+  in
+  { expr with value }
 
 and gen_app param callee args allocref ret_t malloc =
   let func = gen_expr param callee.ex in

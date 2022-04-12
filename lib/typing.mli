@@ -8,6 +8,7 @@ type expr =
   | Var of string
   | Const of const
   | Bop of Ast.bop * typed_expr * typed_expr
+  | Unop of Ast.unop * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
   | Lambda of int * abstraction (* strictly increasing lambda id *)

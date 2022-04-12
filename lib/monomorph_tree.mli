@@ -8,6 +8,7 @@ type expr =
   | Mvar of string
   | Mconst of const
   | Mbop of Ast.bop * monod_tree * monod_tree
+  | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
   | Mlet of string * monod_tree * monod_tree
   | Mlambda of string * abstraction

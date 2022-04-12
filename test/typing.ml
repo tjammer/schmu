@@ -12,8 +12,26 @@ let test_exn msg src =
   (check string) "" msg (try get_type src with Typing.Error (_, msg) -> msg)
 
 let test_const_int () = test "int" "a = 1 a"
+let test_const_neg_int () = test "int" "a = -1 a"
+
+let test_const_neg_int_wrong () =
+  test_exn "Unary -: Expected types int or float but got type bool"
+    "a = -true a"
+
+let test_const_neg_int2 () = test "int" "a = - 1 a"
+let test_const_float () = test "float" "a = 1.0 a"
+let test_const_neg_float () = test "float" "a = -1.0 a"
+
+let test_const_neg_float_wrong () =
+  test_exn "Unary -.: Expected type float but got type bool" "a = -.true a"
+
+let test_const_neg_float2 () = test "float" "a = -.1.0 a"
 let test_const_bool () = test "bool" "a = true a"
 let test_const_u8 () = test "u8" "a = 123u8 a"
+let test_const_i32 () = test "i32" "a = 123i32 a"
+let test_const_neg_i32 () = test "i32" "a = -123i32 a"
+let test_const_f32 () = test "f32" "a = 1.0f32 a"
+let test_const_neg_f32 () = test "f32" "a = -1.0f32 a"
 let test_hint_int () = test "int" "a : int = 1 a"
 let test_func_id () = test "'a -> 'a" "fun(a) a end"
 let test_func_id_hint () = test "int -> int" "fun(a : int) a end"
@@ -282,8 +300,19 @@ let () =
       ( "consts",
         [
           case "int" test_const_int;
+          case "neg_int" test_const_neg_int;
+          case "neg_int2" test_const_neg_int2;
+          case "neg_int_wrong" test_const_neg_int_wrong;
+          case "float" test_const_float;
+          case "-float" test_const_neg_float;
+          case "-.float" test_const_neg_float2;
+          case "-.float_wrong" test_const_neg_float_wrong;
           case "bool" test_const_bool;
           case "u8" test_const_u8;
+          case "i32" test_const_i32;
+          case "-i32" test_const_neg_i32;
+          case "f32" test_const_f32;
+          case "-f32" test_const_neg_f32;
         ] );
       ("hints", [ case "int" test_hint_int ]);
       ( "funcs",

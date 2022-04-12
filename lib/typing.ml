@@ -4,6 +4,7 @@ type expr =
   | Var of string
   | Const of const
   | Bop of Ast.bop * typed_expr * typed_expr
+  | Unop of Ast.unop * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of string * typed_expr * typed_expr
   | Lambda of int * abstraction
@@ -592,6 +593,7 @@ and typeof_annotated env annot = function
   | App (loc, e1, e2) -> typeof_app ~switch_uni:false env loc e1 e2
   | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
   | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
+  | Unop (loc, unop, expr) -> typeof_unop env loc unop expr
   | Record (loc, labels) -> typeof_record env loc annot labels
   | Field (loc, expr, id) -> typeof_field env loc expr id
   | Field_set (loc, expr, id, value) -> typeof_field_set env loc expr id value
@@ -718,6 +720,29 @@ and typeof_bop env loc bop e1 e2 =
   | And | Or ->
       check Tbool;
       Tbool
+
+and typeof_unop env loc unop expr =
+  match unop with
+  | Uminus_f ->
+      let typ = typeof env expr in
+      unify (loc, "Unary -.:") Tfloat typ;
+      Tfloat
+  | Uminus_i -> (
+      let typ = typeof env expr in
+      let msg = "Unary -:" in
+
+      try
+        (* We allow '-' to also work on float expressions *)
+        unify (loc, msg) Tfloat typ;
+        Tfloat
+      with Error _ -> (
+        try
+          unify (loc, msg) Tint typ;
+          Tint
+        with Error (loc, errmsg) ->
+          let pos = String.length msg + String.length ": Expected type int" in
+          let post = String.sub errmsg pos (String.length errmsg - pos) in
+          raise (Error (loc, "Unary -: Expected types int or float " ^ post))))
 
 and typeof_record env loc annot labels =
   let raise_ msg lname rname =
@@ -931,6 +956,7 @@ and convert_annot env annot = function
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
+  | Unop (loc, unop, expr) -> convert_unop env loc unop expr
   | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
   | Record (loc, labels) -> convert_record env loc annot labels
   | Field (loc, expr, id) -> convert_field env loc expr id
@@ -1046,6 +1072,9 @@ and convert_function env loc Ast.{ name; params; return_annot; body } =
       (* Make sure the types match *)
       unify (loc, "Function") (Env.find_val name env) typ;
 
+      (* Add the generalized type to the env to keep the closure there *)
+      let env = Env.add_value name typ env in
+
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = Tfun (qparams, ret, kind) |> generalize in
       check_annot loc typ qtyp;
@@ -1101,6 +1130,30 @@ and convert_bop env loc bop e1 e2 =
         (Tbool, t1, t2)
   in
   { typ; expr = Bop (bop, t1, t2) }
+
+and convert_unop env loc unop expr =
+  match unop with
+  | Uminus_f ->
+      let e = convert env expr in
+      unify (loc, "Unary -.:") Tfloat e.typ;
+      { typ = Tfloat; expr = Unop (unop, e) }
+  | Uminus_i -> (
+      let e = convert env expr in
+      let msg = "Unary -:" in
+      let expr = Unop (unop, e) in
+
+      try
+        (* We allow '-' to also work on float expressions *)
+        unify (loc, msg) Tfloat e.typ;
+        { typ = Tfloat; expr }
+      with Error _ -> (
+        try
+          unify (loc, msg) Tint e.typ;
+          { typ = Tint; expr }
+        with Error (loc, errmsg) ->
+          let pos = String.length msg + String.length ": Expected type int" in
+          let post = String.sub errmsg pos (String.length errmsg - pos) in
+          raise (Error (loc, "Unary -: Expected types int or float " ^ post))))
 
 and convert_if env loc cond e1 e2 =
   (* We can assume pred evaluates to bool and both

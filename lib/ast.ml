@@ -20,6 +20,8 @@ type bop =
 [@@deriving show]
 (* Eventually, this will be handled differently, hopefully not as hardcoded *)
 
+type unop = Uminus_i | Uminus_f [@@deriving show]
+
 type type_spec =
   | Ty_id of string
   | Ty_var of string
@@ -40,6 +42,7 @@ and expr =
   | Var of loc * string
   | Lit of loc * literal
   | Bop of loc * bop * expr * expr
+  | Unop of loc * unop * expr
   | If of loc * expr * block * block
   | Lambda of loc * decl list * type_spec option * block
   | App of loc * expr * expr list

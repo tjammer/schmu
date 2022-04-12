@@ -24,13 +24,15 @@ let f_of_string f str =
 
 let digit = ['0'-'9']
 let alpha = ['a'-'z' 'A'-'Z']
-
+let min = '-'
 
 let int = digit+
 let u8 = digit+ "u8"
 let float = digit+ '.' digit+
 let i32 = digit+ "i32"
-let f32 = float 'f'
+let neg_i32 = min i32
+let f32 = float "f32"
+let neg_f32 = min f32
 let id = alpha (alpha|digit|'_')*
 let builtin_id = "__" id
 
@@ -45,7 +47,9 @@ rule read =
   | float    { Float (float_of_string (Lexing.lexeme lexbuf)) }
   | u8       { U8 (u8_of_string (Lexing.lexeme lexbuf)) }
   | i32      { I32 (f_of_string int_of_string (Lexing.lexeme lexbuf)) }
+  | neg_i32  { I32 (-f_of_string int_of_string (Lexing.lexeme lexbuf)) }
   | f32      { F32 (f_of_string float_of_string (Lexing.lexeme lexbuf)) }
+  | neg_f32  { F32 (-.f_of_string float_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { True }
   | "false"  { False }
   | "and"    { And }
@@ -70,7 +74,7 @@ rule read =
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | '+'      { Plus_i }
-  | '-'      { Minus_i }
+  | min      { Minus_i }
   | '*'      { Mult_i }
   | '/'      { Div_i }
   | "+."     { Plus_f }

@@ -122,6 +122,7 @@ expr:
   | Identifier { Var($loc, $1) }
   | lit { $1 }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
+  | unop; expr { Unop ($loc, $1, $2) }
   | If; expr; Then; block; list(elif); Else; block; End { parse_elseifs $loc $2 $4 $5 $7 }
   | Fun; parens(decl); option(return_annot); block; End
     { Lambda($loc, $2, $3, $4) }
@@ -174,6 +175,10 @@ bool:
   | Bin_equal_f { Equal_f }
   | And     { And }
   | Or      { Or }
+
+%inline unop:
+  | Minus_i { Uminus_i }
+  | Minus_f { Uminus_f }
 
 %inline decl:
   | Identifier; option(type_expr) { $1, $2 }
