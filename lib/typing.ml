@@ -243,7 +243,6 @@ let rec unify t1 t2 =
     | Qvar a, Qvar b when String.equal a b ->
         (* We should not need this. Record instantiation? *) ()
     | _ ->
-        Printf.printf "not: %s vs %s\n%!" (show_typ t1) (show_typ t2);
         raise Unify
 
 let unify info t1 t2 =
