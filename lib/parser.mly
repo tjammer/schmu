@@ -150,6 +150,7 @@ expr:
 
 %inline record_item:
   | Identifier; Equal; expr { $1, $3 }
+  | Identifier { $1, Var($loc, $1) }
 
 let parens(x) :=
   | Lpar; lst = separated_list(Comma, x); Rpar; { lst }
