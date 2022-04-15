@@ -1,5 +1,9 @@
 # schmu
-A WIP functional programming language focused on a simple and practical core, compiled to native code through LLVM.
+A WIP small, mostly functional programming language which compiles to native code.
+
+**Disclaimer** schmu is a passion project which I develop for fun. Please don't use it for anything too serious.
+
+schmu is the language I'd like to program in: A strongly typed, type-inferred compiled language that can be programmed in a functional way (see below). It prefers stack- over heap allocations, and can easily interface with C code.
 
 Here's what it looks like:
 
@@ -52,7 +56,7 @@ printi(fib(number))
 <!--              start_age).days) -- prints 19 -->
 <!-- ``` -->
 
-More examples can be found in the `test` directory.
+More examples can be found in the `test` directory. It is still WIP, see the roadmap below.
 
 ## Features
 + **Functional**
@@ -73,13 +77,13 @@ schmu aims to be a practical language.
 It allows impure functions and the use of immutable data types such as arrays (and vectors, their growable cousins) for their simplicity and performance.
 Data types are unboxed (as long as they are non-recursive, anyway) to make interop with C code straightforward. 
 It doesn't try to compete with the fastest languages out there, but should be reasonably fast thanks to LLVM.
-The memory management story is not fully fleshed out yet, but will most likely use automatic reference counting.
+The memory management story is not fully fleshed out yet, right now there is a builtin malloc which gets freed at the end of scope automatically, RAII style, but that's all.
 
 ## Roadmap
 + [x] Higher order functions and (downward) closures
-+ [x] Polymorphic functions
++ [x] Polymorphic functions and monomorphization
 + [x] Type-parametrized records
 + [ ] Algebraic data types and pattern matching
-+ [ ] Automatic reference counting
++ [ ] Module system
 + [ ] Recursive data types
-+ [ ] C ABI compatibilty
++ [ ] C ABI compatibilty. WIP, the machinery is in place and it's mostly done for x86_64-linux-gnu. Other targets will be added in the future.
