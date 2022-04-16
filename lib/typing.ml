@@ -242,8 +242,7 @@ let rec unify t1 t2 =
     | Tptr l, Tptr r -> unify l r
     | Qvar a, Qvar b when String.equal a b ->
         (* We should not need this. Record instantiation? *) ()
-    | _ ->
-        raise Unify
+    | _ -> raise Unify
 
 let unify info t1 t2 =
   try unify t1 t2 with
@@ -548,7 +547,7 @@ let assoc_opti qkey arr =
   in
   aux 0
 
-let get_record_type env labels annot =
+let get_record_type env loc labels annot =
   match annot with
   | Some t -> t
   | None -> (
@@ -562,10 +561,11 @@ let get_record_type env labels annot =
           match Env.find_label_opt (List.hd labels |> fst) env with
           | Some t -> Env.query_type ~instantiate t.record env
           | None ->
-              "Internal Error: Something went very wrong in record creation:"
-              ^ "label not found: "
-              ^ (List.hd labels |> fst)
-              |> failwith))
+              let msg =
+                Printf.sprintf "Cannot find record with label %s"
+                  (List.hd labels |> fst)
+              in
+              raise (Error (loc, msg))))
 
 let get_prelude env loc name =
   let typ =
@@ -749,7 +749,7 @@ and typeof_record env loc annot labels =
     raise (Error (loc, msg))
   in
 
-  let t = get_record_type env labels annot in
+  let t = get_record_type env loc labels annot in
 
   let typ =
     (* NOTE this is copied from convert_record below. We don't find out missing fields here *)
@@ -1182,7 +1182,7 @@ and convert_record env loc annot labels =
     raise (Error (loc, msg))
   in
 
-  let t = get_record_type env labels annot in
+  let t = get_record_type env loc labels annot in
 
   let (param, name, labels), labels_expr =
     match t with
@@ -1206,8 +1206,8 @@ and convert_record env loc annot labels =
         let labels_expr = List.map f labels in
         ((param, name, ls), labels_expr)
     | t ->
-        "Internal Error: Expected a record type, not " ^ string_of_type t
-        |> failwith
+        let msg = "Expected a record type, not " ^ string_of_type t in
+        raise (Error (loc, msg))
   in
 
   (* We sort the labels to appear in the defined order *)
