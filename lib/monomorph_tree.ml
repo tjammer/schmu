@@ -558,7 +558,9 @@ and morph_record mk p labels =
 and morph_field mk p expr index =
   let ret = p.ret in
   let p, e, func = morph_expr { p with ret = false } expr in
-  ({ p with ret }, mk (Mfield (e, index)) ret, func)
+  (* Field should not inherit alloca of its parent.
+     Otherwise codegen might use a nested type as its parent *)
+  ({ p with ret }, mk (Mfield (e, index)) ret, { func with alloc = No_value })
 
 and morph_field_set mk p expr index value =
   let ret = p.ret in
