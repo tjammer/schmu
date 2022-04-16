@@ -285,6 +285,16 @@ and typeof_aggregate agg =
   Array.map (fun (_, typ) -> get_lltype_field typ) agg
   |> Llvm.struct_type context
 
+and typeof_closure agg =
+  Array.map
+    (fun (_, typ) ->
+      match typ with
+      | Trecord _ when is_mutable typ ->
+          get_lltype_field typ |> Llvm.pointer_type
+      | typ -> get_lltype_field typ)
+    agg
+  |> Llvm.struct_type context
+
 and typeof_func ~param ~decl (params, ret, kind) =
   if param then closure_t |> Llvm.pointer_type
   else
@@ -577,6 +587,8 @@ let gen_closure_obj param assoc func name =
     let src = Vars.find name param.vars in
     let dst = Llvm.build_struct_gep clsr_ptr i name builder in
     (match typ with
+    | Trecord _ when is_mutable typ ->
+        ignore (Llvm.build_store src.value dst builder)
     | Trecord _ ->
         (* For records, we just memcpy
            TODO don't use types here, but type kinds*)
@@ -591,7 +603,7 @@ let gen_closure_obj param assoc func name =
     match assoc with
     | [] -> Llvm.const_pointer_null voidptr_t
     | assoc ->
-        let assoc_type = typeof_aggregate (Array.of_list assoc) in
+        let assoc_type = typeof_closure (Array.of_list assoc) in
         let clsr_ptr = alloca param assoc_type ("clsr_" ^ name) in
         ignore (List.fold_left (store_closed_var clsr_ptr) 0 assoc);
 
@@ -615,7 +627,7 @@ let add_closure vars func = function
       let closure_index = (Llvm.params func.value |> Array.length) - 1 in
       let clsr_param = (Llvm.params func.value).(closure_index) in
       let clsr_type =
-        typeof_aggregate (Array.of_list assoc) |> Llvm.pointer_type
+        typeof_closure (Array.of_list assoc) |> Llvm.pointer_type
       in
       let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
 
@@ -626,6 +638,11 @@ let add_closure vars func = function
             let value, lltyp =
               match typ with
               (* No need for C interop with closures *)
+              | Trecord _ when is_mutable typ ->
+                  (* Mutable records are passed as pointers into the env *)
+                  let value = Llvm.build_load item_ptr name builder in
+
+                  (value, get_lltype_def typ |> Llvm.pointer_type)
               | Trecord _ ->
                   (* For records we want a ptr so that gep and memcpy work *)
                   (item_ptr, get_lltype_def typ |> Llvm.pointer_type)

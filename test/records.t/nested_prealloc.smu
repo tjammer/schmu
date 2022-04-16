@@ -1,5 +1,8 @@
+external printi : int -> unit
 type int_wrap = { dat: int, b: int, c: int }
 type test('a)  = { int_wrap: 'a }
+
+type mut('a) = { mutable wrapped: 'a }
 
 fun test_thing()
   test = { int_wrap = { dat = 2, b = 0, c = 0 } }
@@ -13,4 +16,19 @@ fun test_thing()
   vector_loop(0)
 end
 
-test_thing() .dat
+fun test_thing_mut()
+  test = { wrapped = { dat = 2, b = 0, c = 0 } }
+  fun vector_loop(i)
+    if i == 10 then
+      ()
+    else
+      test.wrapped <- { dat = test.wrapped.dat + 1, b = 0, c = 0 }
+      vector_loop(i+1)
+    end
+  end
+  vector_loop(0)
+  test.wrapped
+end
+
+test_thing() .dat -> printi
+test_thing_mut() .dat -> printi

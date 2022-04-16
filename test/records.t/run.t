@@ -718,8 +718,75 @@ A return of a field should not be preallocated
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %int_wrap = type { i64, i64, i64 }
-  %test_int_wrap = type { %int_wrap }
+  %mut_int_wrap = type { %int_wrap }
   %closure = type { i8*, i8* }
+  %test_int_wrap = type { %int_wrap }
+  
+  declare void @printi(i64 %0)
+  
+  define private void @test_thing_mut(%int_wrap* %0) {
+  entry:
+    %1 = alloca %mut_int_wrap, align 8
+    %wrapped3 = bitcast %mut_int_wrap* %1 to %int_wrap*
+    %dat4 = bitcast %int_wrap* %wrapped3 to i64*
+    store i64 2, i64* %dat4, align 4
+    %b = getelementptr inbounds %int_wrap, %int_wrap* %wrapped3, i32 0, i32 1
+    store i64 0, i64* %b, align 4
+    %c = getelementptr inbounds %int_wrap, %int_wrap* %wrapped3, i32 0, i32 2
+    store i64 0, i64* %c, align 4
+    %vector_loop__2 = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %vector_loop__2 to i8**
+    store i8* bitcast (void (i64, i8*)* @vector_loop__2 to i8*), i8** %funptr5, align 8
+    %clsr_vector_loop__2 = alloca { %mut_int_wrap* }, align 8
+    %test6 = bitcast { %mut_int_wrap* }* %clsr_vector_loop__2 to %mut_int_wrap**
+    store %mut_int_wrap* %1, %mut_int_wrap** %test6, align 8
+    %env = bitcast { %mut_int_wrap* }* %clsr_vector_loop__2 to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %vector_loop__2, i32 0, i32 1
+    store i8* %env, i8** %envptr, align 8
+    call void @vector_loop__2(i64 0, i8* %env)
+    %2 = bitcast %int_wrap* %0 to i8*
+    %3 = bitcast %int_wrap* %wrapped3 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 24, i1 false)
+    ret void
+  }
+  
+  define private void @vector_loop__2(i64 %i, i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { %mut_int_wrap* }*
+    %test5 = bitcast { %mut_int_wrap* }* %clsr to %mut_int_wrap**
+    %test1 = load %mut_int_wrap*, %mut_int_wrap** %test5, align 8
+    %1 = alloca i64, align 8
+    store i64 %i, i64* %1, align 4
+    %2 = alloca %int_wrap, align 8
+    %3 = add i64 %i, 1
+    br label %rec
+  
+  rec:                                              ; preds = %else, %entry
+    %lsr.iv = phi i64 [ %lsr.iv.next, %else ], [ %3, %entry ]
+    %eq = icmp eq i64 %lsr.iv, 11
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    ret void
+  
+  else:                                             ; preds = %rec
+    %4 = bitcast %mut_int_wrap* %test1 to %int_wrap*
+    %dat6 = bitcast %int_wrap* %2 to i64*
+    %5 = bitcast %int_wrap* %4 to i64*
+    %6 = load i64, i64* %5, align 4
+    %add = add i64 %6, 1
+    store i64 %add, i64* %dat6, align 4
+    %b = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 1
+    store i64 0, i64* %b, align 4
+    %c = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 2
+    store i64 0, i64* %c, align 4
+    %7 = bitcast %int_wrap* %4 to i8*
+    %8 = bitcast %int_wrap* %2 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 24, i1 false)
+    store i64 %lsr.iv, i64* %1, align 4
+    %lsr.iv.next = add i64 %lsr.iv, 1
+    br label %rec
+  }
   
   define private void @test_thing(%int_wrap* %0) {
   entry:
@@ -782,8 +849,15 @@ A return of a field should not be preallocated
     call void @test_thing(%int_wrap* %ret)
     %0 = bitcast %int_wrap* %ret to i64*
     %1 = load i64, i64* %0, align 4
-    ret i64 %1
+    call void @printi(i64 %1)
+    %ret1 = alloca %int_wrap, align 8
+    call void @test_thing_mut(%int_wrap* %ret1)
+    %2 = bitcast %int_wrap* %ret1 to i64*
+    %3 = load i64, i64* %2, align 4
+    call void @printi(i64 %3)
+    ret i64 0
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
-  [2]
+  2
+  12
