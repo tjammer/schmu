@@ -1539,7 +1539,8 @@ and gen_free param expr id =
   ignore (free_id id);
   ret
 
-let generate ~target { Monomorph_tree.externals; records; tree; funcs } =
+let generate ~target ~outname { Monomorph_tree.externals; records; tree; funcs }
+    =
   (* Add record types.
      We do this first to ensure that all record definitons
      are available for external decls *)
@@ -1604,5 +1605,5 @@ let generate ~target { Monomorph_tree.externals; records; tree; funcs } =
   let target = Target.by_triple triple in
 
   let machine = TargetMachine.create ~triple target ~reloc_mode in
-  TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile "out.o"
+  TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile outname
     machine

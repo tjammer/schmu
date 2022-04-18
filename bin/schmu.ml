@@ -1,6 +1,6 @@
 open Lexing
 
-type opts = { target : string option; dump_llvm : bool }
+type opts = { target : string option; outname : string; dump_llvm : bool }
 
 let pp_position lexbuf file =
   let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
@@ -10,14 +10,14 @@ let pp_position lexbuf file =
   in
   (pp, pos)
 
-let run file src { target; dump_llvm } =
+let run file src { target; outname; dump_llvm } =
   let lexbuf = Lexing.from_string src in
   Schmulang.(
     try
       let prog = Parser.prog Lexer.read lexbuf in
       Ok
         (let tree = Typing.to_typed prog |> Monomorph_tree.monomorphize in
-         ignore (Codegen.generate ~target tree);
+         ignore (Codegen.generate ~target ~outname tree);
          if dump_llvm then Llvm.dump_module Codegen.the_module)
     with
     | Lexer.SyntaxError msg ->
@@ -54,6 +54,7 @@ let () =
   (* let () = Printexc.record_backtrace true in *)
   let target = ref "" in
   let dump_llvm = ref false in
+  let outname = ref "" in
   let filename = ref [] in
   let anon_fun fn =
     match !filename with
@@ -65,6 +66,7 @@ let () =
   in
   let speclist =
     [
+      ("-o", Arg.Set_string outname, "Place the output into given file");
       ( "-target",
         Arg.Set_string target,
         {|triple
@@ -84,4 +86,5 @@ let () =
     print_endline usage;
     exit 64);
   let target = match !target with "" -> None | s -> Some s in
-  run_file (List.hd !filename) { target; dump_llvm = !dump_llvm }
+  let outname = match !outname with "" -> "out.o" | s -> s in
+  run_file (List.hd !filename) { target; outname; dump_llvm = !dump_llvm }
