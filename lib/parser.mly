@@ -182,7 +182,7 @@ bool:
   | Minus_f { Uminus_f }
 
 %inline decl:
-  | Identifier; option(type_expr) { $1, $2 }
+  | Identifier; option(type_expr) {$loc, $1, $2 }
 
 %inline callable:
   | expr { $1 }

@@ -25,7 +25,7 @@ module Set = Set.Make (Type_key)
 
 type key = string
 type label = { index : int; record : string }
-type value = { typ : typ; is_param : bool }
+type value = { typ : typ; is_param : bool; loc : Ast.loc; used : bool ref }
 
 type t = {
   values : (value Map.t * Set.t ref) list;
@@ -49,11 +49,15 @@ let empty print_fn =
     print_fn;
   }
 
-let add_value key typ ?(is_param = false) env =
+let add_value key typ loc ?(is_param = false) env =
   match env.values with
   | [] -> failwith "Internal error: Env empty"
   | (hd, cls) :: tl ->
-      { env with values = (Map.add key { typ; is_param } hd, cls) :: tl }
+      let used = ref false in
+      {
+        env with
+        values = (Map.add key { typ; is_param; loc; used } hd, cls) :: tl;
+      }
 
 let add_type key t env =
   let key = Type_key.create key in
@@ -121,7 +125,7 @@ let close_scope env =
                (* We only add functions to the closure if they are params
                   Or: if they are closures *)
                let k = Type_key.key k in
-               let { typ; is_param } = find_val_raw k env in
+               let { typ; is_param; loc = _; used = _ } = find_val_raw k env in
                match clean typ with
                | Tfun (_, _, Closure _) -> Some (k, typ)
                | Tfun _ when not is_param -> None
@@ -153,16 +157,18 @@ let query_val_opt key env =
     | _ -> ()
   in
 
-  let rec aux closed = function
+  let rec aux scope_lvl = function
     | [] -> None
     | (hd, _) :: tl -> (
         match Map.find_opt key hd with
-        | None -> aux (closed + 1) tl
-        | Some { typ; is_param = _ } ->
-            (* If something is closed over, add to all env above (if closed > 0) *)
-            (match closed with
+        | None -> aux (scope_lvl + 1) tl
+        | Some { typ; is_param = _; loc = _; used } ->
+            (* If something is closed over, add to all env above (if scope_lvl > 0) *)
+            (match scope_lvl with
             | 0 -> ()
-            | _ -> add closed (Type_key.create key) env.values);
+            | _ -> add scope_lvl (Type_key.create key) env.values);
+            (* Mark the value as used *)
+            used := true;
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
             maybe_add_record_instance (env.print_fn typ) typ env;

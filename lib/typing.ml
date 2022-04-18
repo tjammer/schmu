@@ -514,7 +514,7 @@ let handle_params env loc params ret =
   in
 
   List.fold_left_map
-    (fun env (id, type_annot) ->
+    (fun env (loc, id, type_annot) ->
       let type_id, qparams =
         match type_annot with
         | None ->
@@ -522,7 +522,7 @@ let handle_params env loc params ret =
             (t, t)
         | Some annot -> handle (typeof_annot ~param:true env loc annot)
       in
-      (Env.add_value id type_id ~is_param:true env, (type_id, qparams)))
+      (Env.add_value id type_id ~is_param:true loc env, (type_id, qparams)))
     env params
   |> fun (env, lst) ->
   let ids, qparams = List.split lst in
@@ -618,7 +618,7 @@ and typeof_vector_lit env loc vec =
   let vector = get_prelude env loc "vector" in
   subst_generic ~id:(get_generic_id loc vector) inner_typ vector
 
-and typeof_let env loc (id, type_annot) block =
+and typeof_let env loc (_, id, type_annot) block =
   enter_level ();
   let type_e =
     match type_annot with
@@ -634,7 +634,7 @@ and typeof_let env loc (id, type_annot) block =
         check_annot loc type_e type_annot;
         type_annot
   in
-  Env.add_value id type_e env
+  Env.add_value id type_e loc env
 
 and typeof_abs env loc params ret_annot body =
   enter_level ();
@@ -655,7 +655,7 @@ and typeof_function env loc Ast.{ name; params; return_annot; body } =
   enter_level ();
 
   (* Recursion allowed for named funcs *)
-  let env = Env.add_value name (newvar ()) env in
+  let env = Env.add_value name (newvar ()) loc env in
   let body_env, params_t, qparams, ret_annot =
     handle_params env loc params return_annot
   in
@@ -906,7 +906,7 @@ let typecheck (prog : Ast.prog) =
       (fun env item ->
         match item with
         | Ast.Ext_decl (loc, name, typ) ->
-            Env.add_value name (typeof_annot env loc typ) env
+            Env.add_value name (typeof_annot env loc typ) loc env
         | Typedef (loc, Trecord t) -> typedef env loc t
         | Typedef (loc, Talias (name, type_spec)) ->
             type_alias env loc name type_spec)
@@ -1002,9 +1002,9 @@ and typeof_annot_decl env loc annot block =
       check_annot loc t.typ t_annot;
       { t with typ = t_annot }
 
-and convert_let env loc (id, type_annot) block =
+and convert_let env loc (_, id, type_annot) block =
   let e1 = typeof_annot_decl env loc type_annot block in
-  (Env.add_value id e1.typ env, e1)
+  (Env.add_value id e1.typ loc env, e1)
 
 and convert_lambda env loc params ret_annot body =
   let env = Env.new_scope env in
@@ -1030,7 +1030,7 @@ and convert_lambda env loc params ret_annot body =
       let qtyp = Tfun (qparams, ret, kind) in
       check_annot loc typ qtyp;
 
-      let nparams = List.map fst params in
+      let nparams = List.map (fun (_, name, _) -> name) params in
       let tp = { tparams; ret; kind } in
       let abs = { nparams; body = { body with typ = ret }; tp } in
       let expr = Lambda (lambda_id (), abs) in
@@ -1045,7 +1045,7 @@ and convert_function env loc Ast.{ name; params; return_annot; body } =
   enter_level ();
   let env =
     (* Recursion allowed for named funcs *)
-    Env.add_value name (newvar ()) env
+    Env.add_value name (newvar ()) loc env
   in
 
   (* We duplicate some lambda code due to naming *)
@@ -1072,13 +1072,13 @@ and convert_function env loc Ast.{ name; params; return_annot; body } =
       unify (loc, "Function") (Env.find_val name env) typ;
 
       (* Add the generalized type to the env to keep the closure there *)
-      let env = Env.add_value name typ env in
+      let env = Env.add_value name typ loc env in
 
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = Tfun (qparams, ret, kind) |> generalize in
       check_annot loc typ qtyp;
 
-      let nparams = List.map fst params in
+      let nparams = List.map (fun (_, name, _) -> name) params in
       let tp = { tparams; ret; kind } in
       let lambda = { nparams; body = { body with typ = ret }; tp } in
 
@@ -1287,6 +1287,7 @@ and convert_block_annot env annot (loc, stmts) =
     | Let (loc, decl, block) :: tl ->
         let env, texpr = convert_let env loc decl block in
         let cont = to_expr env old_type tl in
+        let decl = (fun (_, a, b) -> (a, b)) decl in
         { typ = cont.typ; expr = Let (fst decl, texpr, cont) }
     | Function (loc, func) :: tl ->
         let env, (name, unique, lambda) = convert_function env loc func in
@@ -1309,6 +1310,7 @@ and convert_block env stmts = convert_block_annot env None stmts
 let to_typed (prog : Ast.prog) =
   reset_type_vars ();
 
+  let loc = Lexing.(dummy_pos, dummy_pos) in
   (* Add builtins to env *)
   let env =
     Builtin.(
@@ -1316,7 +1318,7 @@ let to_typed (prog : Ast.prog) =
           enter_level ();
           let typ = to_type b |> instantiate in
           leave_level ();
-          Env.add_value (to_string b) (generalize typ) env))
+          Env.add_value (to_string b) (generalize typ) loc env))
       (Env.empty string_of_type)
   in
 
@@ -1326,7 +1328,7 @@ let to_typed (prog : Ast.prog) =
         match item with
         | Ast.Ext_decl (loc, name, typ) ->
             let typ = typeof_annot env loc typ in
-            (Env.add_value name typ env, Some (name, typ))
+            (Env.add_value name typ loc env, Some (name, typ))
         | Typedef (loc, Trecord t) ->
             let env = typedef env loc t in
             (env, None)

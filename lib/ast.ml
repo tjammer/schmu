@@ -29,7 +29,7 @@ type type_spec =
   | Ty_func of type_spec list
 
 type type_expr = type_spec list
-and decl = string * type_expr option
+and decl = loc * string * type_expr option
 
 type func = {
   name : string;

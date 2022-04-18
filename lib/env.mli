@@ -1,3 +1,4 @@
+(* TODO check_unused fn *)
 open Types
 
 type key = string
@@ -6,8 +7,9 @@ type t
 
 val empty : (typ -> string) -> t
 
-val add_value : key -> typ -> ?is_param:bool -> t -> t
-(** [add_value key typ ~is_param] add type [typ] to env with key [key]. [is_param] defaults to false *)
+val add_value : key -> typ -> Ast.loc -> ?is_param:bool -> t -> t
+(** [add_value key typ loc ~is_param] add value [key] defined at [loc] with type [typ] to env.
+    [is_param] defaults to false *)
 
 val add_type : key -> typ -> t -> t
 
