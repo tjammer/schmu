@@ -25,10 +25,19 @@ module Set = Set.Make (Type_key)
 
 type key = string
 type label = { index : int; record : string }
-type value = { typ : typ; is_param : bool; loc : Ast.loc; used : bool ref }
+type value = { typ : typ; is_param : bool }
+type usage = { loc : Ast.loc; used : bool ref }
+
+(* function scope *)
+type scope = {
+  valmap : value Map.t;
+  closed : Set.t ref;
+  used : (string, usage) Hashtbl.t list ref;
+      (* Another list for local scopes (like in if) *)
+}
 
 type t = {
-  values : (value Map.t * Set.t ref) list;
+  values : scope list;
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : string Lmap.t; (* For finding the type of a record expression *)
   types : typ Tmap.t;
@@ -39,9 +48,18 @@ type t = {
   print_fn : typ -> string;
 }
 
+type unused = (unit, string * Ast.loc) result
+
 let empty print_fn =
   {
-    values = [ (Map.empty, ref Set.empty) ];
+    values =
+      [
+        {
+          valmap = Map.empty;
+          closed = ref Set.empty;
+          used = ref [ Hashtbl.create 64 ];
+        };
+      ];
     labels = Map.empty;
     labelsets = Lmap.empty;
     types = Tmap.empty;
@@ -51,13 +69,32 @@ let empty print_fn =
 
 let add_value key typ loc ?(is_param = false) env =
   match env.values with
-  | [] -> failwith "Internal error: Env empty"
-  | (hd, cls) :: tl ->
-      let used = ref false in
-      {
-        env with
-        values = (Map.add key { typ; is_param; loc; used } hd, cls) :: tl;
-      }
+  | [] -> failwith "Internal Error: Env empty"
+  | scope :: tl ->
+      let valmap = Map.add key { typ; is_param } scope.valmap in
+
+      (* TODO shadow unused *)
+      let tbl = !(scope.used) |> List.hd in
+      Hashtbl.add tbl key { loc; used = ref false };
+
+      (* let add_used = *)
+      (*   match Hashtbl.find_opt tbl key with *)
+      (*   | Some used -> if !(used.used) then Ok () else Error (key, used.loc) *)
+      (*   | None -> *)
+      (*       Hashtbl.add tbl key { loc; used = ref false }; *)
+      (*       Ok () *)
+      (* in *)
+      { env with values = { scope with valmap } :: tl }
+
+let change_type key typ env =
+  match env.values with
+  | [] -> failwith "Internal Error: Env empty"
+  | scope :: tl -> (
+      match Map.find_opt key scope.valmap with
+      | Some value ->
+          let valmap = Map.add key { value with typ } scope.valmap in
+          { env with values = { scope with valmap } :: tl }
+      | None -> "Internal Error: Missing key for changing " ^ key |> failwith)
 
 let add_type key t env =
   let key = Type_key.create key in
@@ -105,70 +142,113 @@ let add_alias name typ env =
 let find_val_raw key env =
   let rec aux = function
     | [] -> raise Not_found
-    | (hd, _) :: tl -> (
-        match Map.find_opt key hd with None -> aux tl | Some vl -> vl)
+    | scope :: tl -> (
+        match Map.find_opt key scope.valmap with
+        | None -> aux tl
+        | Some vl -> vl)
   in
   aux env.values
 
-let new_scope env =
+let open_function env =
   (* Due to the ref, we have to create a new object every time *)
-  let empty = [ (Map.empty, ref Set.empty) ] in
+  let empty =
+    [
+      {
+        valmap = Map.empty;
+        closed = ref Set.empty;
+        used = ref [ Hashtbl.create 64 ];
+      };
+    ]
+  in
   { env with values = empty @ env.values }
 
-let close_scope env =
+let rec find_unused = function
+  | hd :: tl -> (
+      let found =
+        Hashtbl.fold
+          (fun name (used : usage) acc ->
+            if (not !(used.used)) && Option.is_none acc then
+              Some (name, used.loc)
+            else acc)
+          hd None
+      in
+      match found with Some thing -> Error thing | None -> find_unused tl)
+  | [] -> Ok ()
+
+let close_function env =
   match env.values with
-  | [] -> failwith "Internal error: Env empty"
-  | (_, cls) :: tl ->
-      ( { env with values = tl },
-        !cls |> Set.to_seq |> List.of_seq
+  | [] -> failwith "Internal Error: Env empty"
+  | scope :: tl ->
+      let closed =
+        !(scope.closed) |> Set.to_seq |> List.of_seq
         |> List.filter_map (fun k ->
                (* We only add functions to the closure if they are params
                   Or: if they are closures *)
                let k = Type_key.key k in
-               let { typ; is_param; loc = _; used = _ } = find_val_raw k env in
+               let { typ; is_param } = find_val_raw k env in
                match clean typ with
                | Tfun (_, _, Closure _) -> Some (k, typ)
                | Tfun _ when not is_param -> None
-               | _ -> Some (k, typ)) )
+               | _ -> Some (k, typ))
+      in
 
-let find_val key env =
-  let rec aux = function
-    | [] -> raise Not_found
-    | (hd, _) :: tl -> (
-        match Map.find_opt key hd with None -> aux tl | Some vl -> vl.typ)
-  in
-  aux env.values
+      let unused = find_unused !(scope.used) in
+      ({ env with values = tl }, closed, unused)
+
+let open_scope env =
+  match env.values with
+  | [] -> failwith "Internal Error: Env empty"
+  | scope :: _ ->
+      let local_scopes = scope.used in
+      local_scopes := Hashtbl.create 64 :: !local_scopes
+
+let close_scope env =
+  match env.values with
+  | [] -> failwith "Internal Error: Env empty"
+  | scope :: _ -> find_unused !(scope.used)
 
 let find_val_opt key env =
   let rec aux = function
     | [] -> None
-    | (hd, _) :: tl -> (
-        match Map.find_opt key hd with None -> aux tl | Some vl -> Some vl.typ)
+    | scope :: tl -> (
+        match Map.find_opt key scope.valmap with
+        | None -> aux tl
+        | Some vl -> Some vl.typ)
   in
   aux env.values
+
+let find_val key env =
+  match find_val_opt key env with Some vl -> vl | None -> raise Not_found
+
+let rec mark_used name = function
+  | hd :: tl -> (
+      match Hashtbl.find_opt hd name with
+      | Some (used : usage) -> used.used := true
+      | None -> mark_used name tl)
+  | [] -> failwith "Internal Error: value not in used list"
 
 let query_val_opt key env =
   (* Add str to closures, up to the level where the value originates from *)
   let rec add lvl str values =
     match values with
-    | (_, closed_vars) :: tl when lvl > 0 ->
-        closed_vars := Set.add str !closed_vars;
+    | scope :: tl when lvl > 0 ->
+        scope.closed := Set.add str !(scope.closed);
         add (lvl - 1) str tl
     | _ -> ()
   in
 
   let rec aux scope_lvl = function
     | [] -> None
-    | (hd, _) :: tl -> (
-        match Map.find_opt key hd with
+    | scope :: tl -> (
+        match Map.find_opt key scope.valmap with
         | None -> aux (scope_lvl + 1) tl
-        | Some { typ; is_param = _; loc = _; used } ->
+        | Some { typ; is_param = _ } ->
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
             (match scope_lvl with
             | 0 -> ()
             | _ -> add scope_lvl (Type_key.create key) env.values);
-            (* Mark the value as used *)
-            used := true;
+            (* Mark value used *)
+            mark_used key !(scope.used);
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
             maybe_add_record_instance (env.print_fn typ) typ env;

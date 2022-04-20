@@ -32,7 +32,7 @@ type type_expr = type_spec list
 and decl = loc * string * type_expr option
 
 type func = {
-  name : string;
+  name : loc * string;
   params : decl list;
   return_annot : type_spec option;
   body : block;

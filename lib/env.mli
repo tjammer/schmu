@@ -4,12 +4,16 @@ open Types
 type key = string
 type label = { index : int; record : string }
 type t
+type unused = (unit, string * Ast.loc) result
 
 val empty : (typ -> string) -> t
 
 val add_value : key -> typ -> Ast.loc -> ?is_param:bool -> t -> t
 (** [add_value key typ loc ~is_param] add value [key] defined at [loc] with type [typ] to env.
     [is_param] defaults to false *)
+
+val change_type : key -> typ -> t -> t
+(** To give the generalized type with closure for functions *)
 
 val add_type : key -> typ -> t -> t
 
@@ -22,10 +26,16 @@ val maybe_add_record_instance : key -> typ -> t -> unit
          of a record if [param] is Some type and the same instance has not already been added  *)
 
 val add_alias : key -> typ -> t -> t
-val new_scope : t -> t
+val open_function : t -> t
 
-val close_scope : t -> t * (string * typ) list
-(** Returns the variables captured in the closed scope  *)
+val close_function : t -> t * (string * typ) list * unused
+(** Returns the variables captured in the closed function scope, and first unused var  *)
+
+val open_scope : t -> unit
+(** Open local scope (with function scope) *)
+
+val close_scope : t -> unused
+(** Close local scope and return (first) unused var if there is any *)
 
 val find_val : key -> t -> typ
 val find_val_opt : key -> t -> typ option

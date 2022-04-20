@@ -114,7 +114,7 @@ exprblock:
 
 stmt:
   | decl; Equal; exprblock { Let($loc, $1, $3) }
-  | Fun; Identifier; parens(decl); option(return_annot); block; End
+  | Fun; ident; parens(decl); option(return_annot); block; End
     { Function ($loc, {name = $2; params = $3; return_annot = $4; body = $5}) }
   | expr { Expr ($loc, $1) }
 
@@ -151,6 +151,9 @@ expr:
 %inline record_item:
   | Identifier; Equal; expr { $1, $3 }
   | Identifier { $1, Var($loc, $1) }
+
+ident:
+  | Identifier { ($loc, $1) }
 
 let parens(x) :=
   | Lpar; lst = separated_list(Comma, x); Rpar; { lst }

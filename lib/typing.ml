@@ -41,6 +41,8 @@ type codegen_tree = {
   tree : typed_expr;
 }
 
+type msg_fn = string -> Ast.loc -> string -> string
+
 exception Error of Ast.loc * string
 
 module Strset = Set.Make (String)
@@ -59,6 +61,7 @@ module Map = Map.Make (String)
    Module state
  *)
 
+let fmt_msg_fn : msg_fn option ref = ref None
 let func_tbl = Strtbl.create 1
 
 let next_func name tbl =
@@ -370,6 +373,12 @@ let check_annot loc l r =
     in
     raise (Error (loc, msg))
 
+let check_unused = function
+  | Ok () -> ()
+  | Error (name, loc) ->
+      (Option.get !fmt_msg_fn) "warning" loc ("Unused variable " ^ name)
+      |> print_endline
+
 let string_of_bop = function
   | Ast.Plus_i -> "+"
   | Mult_i -> "*"
@@ -389,6 +398,7 @@ let string_of_bop = function
   | Or -> "or"
 
 let rec subst_generic ~id typ = function
+  (* Substitute generic var [id] with [typ] *)
   | Tvar { contents = Link t } -> subst_generic ~id typ t
   | (Qvar id' | Tvar { contents = Unbound (id', _) }) when String.equal id id'
     ->
@@ -651,11 +661,12 @@ and typeof_abs env loc params ret_annot body =
   check_annot loc typ qtyp;
   typ
 
-and typeof_function env loc Ast.{ name; params; return_annot; body } =
+and typeof_function env loc
+    Ast.{ name = nameloc, name; params; return_annot; body } =
   enter_level ();
 
   (* Recursion allowed for named funcs *)
-  let env = Env.add_value name (newvar ()) loc env in
+  let env = Env.add_value name (newvar ()) nameloc env in
   let body_env, params_t, qparams, ret_annot =
     handle_params env loc params return_annot
   in
@@ -1007,7 +1018,7 @@ and convert_let env loc (_, id, type_annot) block =
   (Env.add_value id e1.typ loc env, e1)
 
 and convert_lambda env loc params ret_annot body =
-  let env = Env.new_scope env in
+  let env = Env.open_function env in
   enter_level ();
   ignore ret_annot;
   let env, params_t, qparams, ret_annot =
@@ -1016,7 +1027,7 @@ and convert_lambda env loc params ret_annot body =
 
   let body = convert_block env body in
   leave_level ();
-  let _, closed_vars = Env.close_scope env in
+  let _, closed_vars, _ = Env.close_function env in
   let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
   dont_allow_closure_return loc body.typ;
 
@@ -1037,7 +1048,8 @@ and convert_lambda env loc params ret_annot body =
       { typ; expr }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
-and convert_function env loc Ast.{ name; params; return_annot; body } =
+and convert_function env loc
+    Ast.{ name = nameloc, name; params; return_annot; body } =
   (* Create a fresh type var for the function name
      and use it in the function body *)
   let unique = next_func name func_tbl in
@@ -1045,11 +1057,11 @@ and convert_function env loc Ast.{ name; params; return_annot; body } =
   enter_level ();
   let env =
     (* Recursion allowed for named funcs *)
-    Env.add_value name (newvar ()) loc env
+    Env.add_value name (newvar ()) nameloc env
   in
 
   (* We duplicate some lambda code due to naming *)
-  let env = Env.new_scope env in
+  let env = Env.open_function env in
   let body_env, params_t, qparams, ret_annot =
     handle_params env loc params return_annot
   in
@@ -1057,9 +1069,11 @@ and convert_function env loc Ast.{ name; params; return_annot; body } =
   let body = convert_block body_env body in
   leave_level ();
 
-  let env, closed_vars = Env.close_scope env in
+  let env, closed_vars, unused = Env.close_function env in
+
   let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
   dont_allow_closure_return loc body.typ;
+  check_unused unused;
 
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
@@ -1072,7 +1086,7 @@ and convert_function env loc Ast.{ name; params; return_annot; body } =
       unify (loc, "Function") (Env.find_val name env) typ;
 
       (* Add the generalized type to the env to keep the closure there *)
-      let env = Env.add_value name typ loc env in
+      let env = Env.change_type name typ env in
 
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = Tfun (qparams, ret, kind) |> generalize in
@@ -1307,7 +1321,8 @@ and convert_block_annot env annot (loc, stmts) =
 
 and convert_block env stmts = convert_block_annot env None stmts
 
-let to_typed (prog : Ast.prog) =
+let to_typed msg_fn (prog : Ast.prog) =
+  fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 
   let loc = Lexing.(dummy_pos, dummy_pos) in
@@ -1335,12 +1350,15 @@ let to_typed (prog : Ast.prog) =
         | Typedef (loc, Talias (name, type_spec)) ->
             let env = type_alias env loc name type_spec in
             (env, None))
-      (Env.new_scope env) prog.preface
+      (Env.open_function env) prog.preface
   in
 
   let tree = convert_block env prog.block in
   let records = Env.records env in
   let externals = List.filter_map Fun.id externals in
+
+  let _, _, unused = Env.close_function env in
+  check_unused unused;
 
   (* print_endline (String.concat ", " (List.map string_of_type records)); *)
   { externals; records; tree }

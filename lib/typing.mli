@@ -48,4 +48,6 @@ type codegen_tree = {
   tree : typed_expr;
 }
 
-val to_typed : Ast.prog -> codegen_tree
+type msg_fn = string -> Ast.loc -> string -> string
+
+val to_typed : msg_fn -> Ast.prog -> codegen_tree

@@ -11,12 +11,22 @@ let pp_position lexbuf file =
   (pp, pos)
 
 let run file src { target; outname; dump_llvm } =
+  let fmt_msg_fn kind loc msg =
+    let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
+    let errloc = fst loc in
+    Format.asprintf "%s:%d:%d: %s: %s\n%!%a" file errloc.pos_lnum
+      (errloc.pos_cnum - errloc.pos_bol + 1)
+      kind msg pp [ loc ]
+  in
+
   let lexbuf = Lexing.from_string src in
   Schmulang.(
     try
       let prog = Parser.prog Lexer.read lexbuf in
       Ok
-        (let tree = Typing.to_typed prog |> Monomorph_tree.monomorphize in
+        (let tree =
+           Typing.to_typed fmt_msg_fn prog |> Monomorph_tree.monomorphize
+         in
          ignore (Codegen.generate ~target ~outname tree);
          if dump_llvm then Llvm.dump_module Codegen.the_module)
     with
@@ -29,13 +39,7 @@ let run file src { target; outname; dump_llvm } =
         let pp, pos = pp_position lexbuf file in
         Error
           (Format.asprintf "%s:%s %s\n%!%a" file pos "syntax error" pp [ loc ])
-    | Typing.Error (loc, msg) ->
-        let errloc = fst loc in
-        let pp, _ = pp_position lexbuf file in
-        Error
-          (Format.asprintf "%s:%d:%d: error: %s\n%!%a" file errloc.pos_lnum
-             (errloc.pos_cnum - errloc.pos_bol + 1)
-             msg pp [ loc ]))
+    | Typing.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg))
 
 let run_file filename opts =
   let ch = open_in filename in
