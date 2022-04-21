@@ -29,7 +29,7 @@ type type_spec =
   | Ty_func of type_spec list
 
 type type_expr = type_spec list
-and decl = loc * string * type_expr option
+and decl = loc * (loc * string) * type_expr option
 
 type func = {
   name : loc * string;
@@ -70,7 +70,7 @@ and stmt =
 
 and block = loc * stmt list
 
-type external_decl = loc * string * type_expr
+type external_decl = loc * (loc * string) * type_expr
 type typename = { name : string; poly_param : string option }
 type record = { name : typename; labels : (bool * string * type_expr) array }
 type typedef = Trecord of record | Talias of typename * type_spec

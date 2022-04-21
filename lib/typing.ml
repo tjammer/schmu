@@ -527,7 +527,7 @@ let handle_params env loc params ret =
   in
 
   List.fold_left_map
-    (fun env (loc, id, type_annot) ->
+    (fun env (loc, (idloc, id), type_annot) ->
       let type_id, qparams =
         match type_annot with
         | None ->
@@ -535,7 +535,7 @@ let handle_params env loc params ret =
             (t, t)
         | Some annot -> handle (typeof_annot ~param:true env loc annot)
       in
-      (Env.add_value id type_id ~is_param:true loc env, (type_id, qparams)))
+      (Env.add_value id type_id ~is_param:true idloc env, (type_id, qparams)))
     env params
   |> fun (env, lst) ->
   let ids, qparams = List.split lst in
@@ -631,7 +631,7 @@ and typeof_vector_lit env loc vec =
   let vector = get_prelude env loc "vector" in
   subst_generic ~id:(get_generic_id loc vector) inner_typ vector
 
-and typeof_let env loc (_, id, type_annot) block =
+and typeof_let env loc (_, (idloc, id), type_annot) block =
   enter_level ();
   let type_e =
     match type_annot with
@@ -647,7 +647,7 @@ and typeof_let env loc (_, id, type_annot) block =
         check_annot loc type_e type_annot;
         type_annot
   in
-  Env.add_value id type_e loc env
+  Env.add_value id type_e idloc env
 
 and typeof_abs env loc params ret_annot body =
   enter_level ();
@@ -919,8 +919,8 @@ let typecheck (prog : Ast.prog) =
     List.fold_left
       (fun env item ->
         match item with
-        | Ast.Ext_decl (loc, name, typ) ->
-            Env.add_value name (typeof_annot env loc typ) loc env
+        | Ast.Ext_decl (loc, (idloc, id), typ) ->
+            Env.add_value id (typeof_annot env loc typ) idloc env
         | Typedef (loc, Trecord t) -> typedef env loc t
         | Typedef (loc, Talias (name, type_spec)) ->
             type_alias env loc name type_spec)
@@ -1016,9 +1016,9 @@ and typeof_annot_decl env loc annot block =
       check_annot loc t.typ t_annot;
       { t with typ = t_annot }
 
-and convert_let env loc (_, id, type_annot) block =
+and convert_let env loc (_, (idloc, id), type_annot) block =
   let e1 = typeof_annot_decl env loc type_annot block in
-  (Env.add_value id e1.typ loc env, e1)
+  (Env.add_value id e1.typ idloc env, e1)
 
 and convert_lambda env loc params ret_annot body =
   let env = Env.open_function env in
@@ -1044,7 +1044,7 @@ and convert_lambda env loc params ret_annot body =
       let qtyp = Tfun (qparams, ret, kind) in
       check_annot loc typ qtyp;
 
-      let nparams = List.map (fun (_, name, _) -> name) params in
+      let nparams = List.map (fun (_, name, _) -> snd name) params in
       let tp = { tparams; ret; kind } in
       let abs = { nparams; body = { body with typ = ret }; tp } in
       let expr = Lambda (lambda_id (), abs) in
@@ -1095,7 +1095,7 @@ and convert_function env loc
       let qtyp = Tfun (qparams, ret, kind) |> generalize in
       check_annot loc typ qtyp;
 
-      let nparams = List.map (fun (_, name, _) -> name) params in
+      let nparams = List.map (fun (_, name, _) -> snd name) params in
       let tp = { tparams; ret; kind } in
       let lambda = { nparams; body = { body with typ = ret }; tp } in
 
@@ -1304,7 +1304,7 @@ and convert_block_annot env annot (loc, stmts) =
     | Let (loc, decl, block) :: tl ->
         let env, texpr = convert_let env loc decl block in
         let cont = to_expr env old_type tl in
-        let decl = (fun (_, a, b) -> (a, b)) decl in
+        let decl = (fun (_, a, b) -> (snd a, b)) decl in
         { typ = cont.typ; expr = Let (fst decl, texpr, cont) }
     | Function (loc, func) :: tl ->
         let env, (name, unique, lambda) = convert_function env loc func in
@@ -1344,9 +1344,9 @@ let to_typed msg_fn (prog : Ast.prog) =
     List.fold_left_map
       (fun env item ->
         match item with
-        | Ast.Ext_decl (loc, name, typ) ->
+        | Ast.Ext_decl (loc, (idloc, id), typ) ->
             let typ = typeof_annot env loc typ in
-            (Env.add_value name typ loc env, Some (name, typ))
+            (Env.add_value id typ idloc env, Some (id, typ))
         | Typedef (loc, Trecord t) ->
             let env = typedef env loc t in
             (env, None)

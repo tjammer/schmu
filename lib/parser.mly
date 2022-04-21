@@ -89,7 +89,7 @@ prog: list(preface_item); block; Eof
   | typedef { $1 }
 
 %inline external_decl:
-  | External; Identifier; type_expr { Ext_decl ($loc, $2, $3) }
+  | External; ident; type_expr { Ext_decl ($loc, $2, $3) }
 
 %inline typedef:
   | typdef { Typedef ($loc, $1) }
@@ -185,7 +185,7 @@ bool:
   | Minus_f { Uminus_f }
 
 %inline decl:
-  | Identifier; option(type_expr) {$loc, $1, $2 }
+  | ident; option(type_expr) {$loc, $1, $2 }
 
 %inline callable:
   | expr { $1 }
