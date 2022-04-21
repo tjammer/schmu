@@ -159,6 +159,10 @@ let find_function_expr vars = function
           | Some b -> Builtin b
           | None -> No_function))
   | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ | Munop _ -> No_function
+  | Mif _ ->
+      (* We are not allowing to return functions in ifs,
+         b/c we cannot codegen anyway *)
+      No_function
   | Mlambda _ -> (* Concrete type is already inferred *) No_function
   | e ->
       print_endline (show_expr e);

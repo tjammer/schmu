@@ -4,7 +4,7 @@ open Types
 type key = string
 type label = { index : int; record : string }
 type t
-type unused = (unit, string * Ast.loc) result
+type unused = (unit, (string * Ast.loc) list) result
 
 val empty : (typ -> string) -> t
 
@@ -30,12 +30,6 @@ val open_function : t -> t
 
 val close_function : t -> t * (string * typ) list * unused
 (** Returns the variables captured in the closed function scope, and first unused var  *)
-
-val open_scope : t -> unit
-(** Open local scope (with function scope) *)
-
-val close_scope : t -> unused
-(** Close local scope and return (first) unused var if there is any *)
 
 val find_val : key -> t -> typ
 val find_val_opt : key -> t -> typ option

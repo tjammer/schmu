@@ -32,7 +32,7 @@ type usage = { loc : Ast.loc; used : bool ref }
 type scope = {
   valmap : value Map.t;
   closed : Set.t ref;
-  used : (string, usage) Hashtbl.t list ref;
+  used : (string, usage) Hashtbl.t;
       (* Another list for local scopes (like in if) *)
 }
 
@@ -48,17 +48,13 @@ type t = {
   print_fn : typ -> string;
 }
 
-type unused = (unit, string * Ast.loc) result
+type unused = (unit, (string * Ast.loc) list) result
 
 let empty print_fn =
   {
     values =
       [
-        {
-          valmap = Map.empty;
-          closed = ref Set.empty;
-          used = ref [ Hashtbl.create 64 ];
-        };
+        { valmap = Map.empty; closed = ref Set.empty; used = Hashtbl.create 64 };
       ];
     labels = Map.empty;
     labelsets = Lmap.empty;
@@ -73,17 +69,11 @@ let add_value key typ loc ?(is_param = false) env =
   | scope :: tl ->
       let valmap = Map.add key { typ; is_param } scope.valmap in
 
-      (* TODO shadow unused *)
-      let tbl = !(scope.used) |> List.hd in
+      (* Shadowed bindings stay in the Hashtbl, but are not reachable (I think).
+         Thus, warning for unused shadowed bindings works *)
+      let tbl = scope.used in
       Hashtbl.add tbl key { loc; used = ref false };
 
-      (* let add_used = *)
-      (*   match Hashtbl.find_opt tbl key with *)
-      (*   | Some used -> if !(used.used) then Ok () else Error (key, used.loc) *)
-      (*   | None -> *)
-      (*       Hashtbl.add tbl key { loc; used = ref false }; *)
-      (*       Ok () *)
-      (* in *)
       { env with values = { scope with valmap } :: tl }
 
 let change_type key typ env =
@@ -152,28 +142,30 @@ let find_val_raw key env =
 let open_function env =
   (* Due to the ref, we have to create a new object every time *)
   let empty =
-    [
-      {
-        valmap = Map.empty;
-        closed = ref Set.empty;
-        used = ref [ Hashtbl.create 64 ];
-      };
-    ]
+    [ { valmap = Map.empty; closed = ref Set.empty; used = Hashtbl.create 64 } ]
   in
   { env with values = empty @ env.values }
 
-let rec find_unused = function
-  | hd :: tl -> (
-      let found =
-        Hashtbl.fold
-          (fun name (used : usage) acc ->
-            if (not !(used.used)) && Option.is_none acc then
-              Some (name, used.loc)
-            else acc)
-          hd None
-      in
-      match found with Some thing -> Error thing | None -> find_unused tl)
+let find_unused ret tbl =
+  let ret =
+    Hashtbl.fold
+      (fun name (used : usage) acc ->
+        if not !(used.used) then (name, used.loc) :: acc else acc)
+      tbl ret
+  in
+  match ret with
   | [] -> Ok ()
+  | some ->
+      (* Sort the warnings so the ones form the start of file are printed first *)
+      let some =
+        List.sort
+          (fun (_, ((lhs : Lexing.position), _)) (_, (rhs, _)) ->
+            if lhs.pos_lnum <> rhs.pos_lnum then
+              Int.compare lhs.pos_lnum rhs.pos_lnum
+            else Int.compare lhs.pos_cnum rhs.pos_cnum)
+          some
+      in
+      Error some
 
 let close_function env =
   match env.values with
@@ -192,20 +184,8 @@ let close_function env =
                | _ -> Some (k, typ))
       in
 
-      let unused = find_unused !(scope.used) in
+      let unused = find_unused [] scope.used in
       ({ env with values = tl }, closed, unused)
-
-let open_scope env =
-  match env.values with
-  | [] -> failwith "Internal Error: Env empty"
-  | scope :: _ ->
-      let local_scopes = scope.used in
-      local_scopes := Hashtbl.create 64 :: !local_scopes
-
-let close_scope env =
-  match env.values with
-  | [] -> failwith "Internal Error: Env empty"
-  | scope :: _ -> find_unused !(scope.used)
 
 let find_val_opt key env =
   let rec aux = function
@@ -220,12 +200,10 @@ let find_val_opt key env =
 let find_val key env =
   match find_val_opt key env with Some vl -> vl | None -> raise Not_found
 
-let rec mark_used name = function
-  | hd :: tl -> (
-      match Hashtbl.find_opt hd name with
-      | Some (used : usage) -> used.used := true
-      | None -> mark_used name tl)
-  | [] -> failwith "Internal Error: value not in used list"
+let mark_used name tbl =
+  match Hashtbl.find_opt tbl name with
+  | Some (used : usage) -> used.used := true
+  | None -> ()
 
 let query_val_opt key env =
   (* Add str to closures, up to the level where the value originates from *)
@@ -248,7 +226,7 @@ let query_val_opt key env =
             | 0 -> ()
             | _ -> add scope_lvl (Type_key.create key) env.values);
             (* Mark value used *)
-            mark_used key !(scope.used);
+            mark_used key scope.used;
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
             maybe_add_record_instance (env.print_fn typ) typ env;

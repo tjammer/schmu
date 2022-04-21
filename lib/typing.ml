@@ -375,9 +375,12 @@ let check_annot loc l r =
 
 let check_unused = function
   | Ok () -> ()
-  | Error (name, loc) ->
-      (Option.get !fmt_msg_fn) "warning" loc ("Unused variable " ^ name)
-      |> print_endline
+  | Error errors ->
+      let err (name, loc) =
+        (Option.get !fmt_msg_fn) "warning" loc ("Unused binding " ^ name)
+        |> print_endline
+      in
+      List.iter err errors
 
 let string_of_bop = function
   | Ast.Plus_i -> "+"
