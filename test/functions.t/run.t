@@ -218,6 +218,10 @@ We have downwards closures
 
 First class functions
   $ schmu -dump-llvm first_class.smu && cc out.o stub.o && ./a.out
+  first_class.smu:11:1: warning: Unused binding pass2
+  11 | pass2 = fun(x) x end
+       ^^^^^
+  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -951,6 +955,14 @@ Print error when returning a polymorphic lambda in an if expression
   [1]
 Allow mixing of typedefs and external decls in the preface
   $ schmu -dump-llvm mix_preface.smu
+  mix_preface.smu:2:10: warning: Unused binding dummy_call
+  2 | external dummy_call : unit -> first
+               ^^^^^^^^^^
+  
+  mix_preface.smu:4:10: warning: Unused binding print_2nd
+  4 | external print_2nd : second -> unit
+               ^^^^^^^^^
+  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

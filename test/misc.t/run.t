@@ -49,6 +49,10 @@ Test elif
 
 Test simple typedef
   $ schmu -dump-llvm simple_typealias.smu && cc out.o stub.o && ./a.out
+  simple_typealias.smu:2:10: warning: Unused binding puts
+  2 | external puts : foo -> unit
+               ^^^^
+  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -63,6 +67,46 @@ Test simple typedef
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
   $ schmu -dump-llvm free_vector.smu && cc out.o stub.o && ./a.out
+  free_vector.smu:10:1: warning: Unused binding vec
+  10 | vec = ["hey", "young", "world"]
+       ^^^
+  
+  free_vector.smu:11:1: warning: Unused binding vec
+  11 | vec = [x, {x = 2}, {x = 3}]
+       ^^^
+  
+  free_vector.smu:61:1: warning: Unused binding vec
+  61 | vec = make_vec()
+       ^^^
+  
+  free_vector.smu:64:1: warning: Unused binding normal
+  64 | normal = nest_fns()
+       ^^^^^^
+  
+  free_vector.smu:68:1: warning: Unused binding nested
+  68 | nested = make_nested_vec()
+       ^^^^^^
+  
+  free_vector.smu:69:1: warning: Unused binding nested
+  69 | nested = nest_allocs()
+       ^^^^^^
+  
+  free_vector.smu:72:1: warning: Unused binding rec_of_vec
+  72 | rec_of_vec = { index = 12, vec = [1, 2]}
+       ^^^^^^^^^^
+  
+  free_vector.smu:73:1: warning: Unused binding rec_of_vec
+  73 | rec_of_vec = record_of_vecs()
+       ^^^^^^^^^^
+  
+  free_vector.smu:75:1: warning: Unused binding vec_of_rec
+  75 | vec_of_rec = [record_of_vecs(), record_of_vecs()]
+       ^^^^^^^^^^
+  
+  free_vector.smu:76:1: warning: Unused binding vec_of_rec
+  76 | vec_of_rec = vec_of_records()
+       ^^^^^^^^^^
+  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1277,6 +1321,22 @@ Test 'and', 'or' and 'not'
 
 
   $ schmu -dump-llvm unary_minus.smu && cc out.o stub.o && ./a.out
+  unary_minus.smu:1:1: warning: Unused binding a
+  1 | a = -1.0
+      ^
+  
+  unary_minus.smu:2:1: warning: Unused binding a
+  2 | a = -.1.0
+      ^
+  
+  unary_minus.smu:3:1: warning: Unused binding a
+  3 | a = - 1.0
+      ^
+  
+  unary_minus.smu:4:1: warning: Unused binding a
+  4 | a = -. 1.0
+      ^
+  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1286,3 +1346,34 @@ Test 'and', 'or' and 'not'
     ret i64 -2
   }
   [254]
+
+Test unused binding warning
+  $ schmu unused.smu
+  unused.smu:2:1: warning: Unused binding unused1
+  2 | unused1 = 0
+      ^^^^^^^
+  
+  unused.smu:5:1: warning: Unused binding unused2
+  5 | unused2 = 0
+      ^^^^^^^
+  
+  unused.smu:12:5: warning: Unused binding use_unused3
+  12 | fun use_unused3()
+           ^^^^^^^^^^^
+  
+  unused.smu:18:3: warning: Unused binding unused4
+  18 |   unused4 = 0
+         ^^^^^^^
+  
+  unused.smu:21:3: warning: Unused binding unused5
+  21 |   unused5 = 0
+         ^^^^^^^
+  
+  unused.smu:35:3: warning: Unused binding usedlater
+  35 |   usedlater = 0
+         ^^^^^^^^^
+  
+  unused.smu:49:3: warning: Unused binding usedlater
+  49 |   usedlater = 0
+         ^^^^^^^^^
+  
