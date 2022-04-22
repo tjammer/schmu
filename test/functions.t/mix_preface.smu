@@ -4,7 +4,7 @@ type second = { a : int }
 external print_2nd : second -> unit
 
 -- TODO this should not generate a closure
--- ignore(dummy_call)
--- ignore(print_2nd)
+ignore(dummy_call)
+ignore(print_2nd)
 
 0

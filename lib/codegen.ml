@@ -1261,7 +1261,8 @@ and gen_app_builtin param (b, fnc) args =
     let arg' = gen_expr param Monomorph_tree.(arg.ex) in
     let arg = get_mono_func arg' param arg.monomorph in
     (* let arg = { arg with value = unbox_record arg.typ arg.value } in *)
-    (func_to_closure param arg).value
+    (* For [ignore], we don't really need to generate the closure objects here *)
+    match b with Ignore -> arg.value | _ -> (func_to_closure param arg).value
   in
   let args = List.map handle_arg args in
 
