@@ -16,7 +16,7 @@ type expr =
   | Sequence of (typed_expr * typed_expr)
 [@@deriving show]
 
-and typed_expr = { typ : typ; expr : expr }
+and typed_expr = { typ : typ; expr : expr; is_const : bool }
 
 and const =
   | Int of int
@@ -535,7 +535,9 @@ let handle_params env loc params ret =
             (t, t)
         | Some annot -> handle (typeof_annot ~param:true env loc annot)
       in
-      (Env.add_value id type_id ~is_param:true idloc env, (type_id, qparams)))
+      (* Might be const, but not important here *)
+      ( Env.add_value id type_id ~is_const:false ~is_param:true idloc env,
+        (type_id, qparams) ))
     env params
   |> fun (env, lst) ->
   let ids, qparams = List.split lst in
@@ -615,7 +617,7 @@ and typeof_annotated env annot = function
 and typeof_var env loc v =
   (* find_opt would work here, but we use query for consistency with convert_var *)
   match Env.query_val_opt v env with
-  | Some t -> instantiate t
+  | Some t -> instantiate t.typ
   | None -> raise (Error (loc, "No var named " ^ v))
 
 and typeof_vector_lit env loc vec =
@@ -669,7 +671,7 @@ and typeof_function env loc
   enter_level ();
 
   (* Recursion allowed for named funcs *)
-  let env = Env.add_value name (newvar ()) nameloc env in
+  let env = Env.add_value name ~is_const:false (newvar ()) nameloc env in
   let body_env, params_t, qparams, ret_annot =
     handle_params env loc params return_annot
   in
@@ -678,7 +680,7 @@ and typeof_function env loc
   leave_level ();
   Tfun (params_t, bodytype, Simple) |> generalize |> function
   | Tfun (_, ret, kind) as typ ->
-      unify (loc, "") (Env.find_val name env) typ;
+      unify (loc, "") (Env.find_val name env).typ typ;
       let ret = match ret_annot with Some ret -> ret | None -> ret in
       let qtyp = Tfun (qparams, ret, kind) |> generalize in
       check_annot loc typ qtyp;
@@ -951,21 +953,24 @@ let rec param_funcs_as_closures = function
   | Tfun (params, ret, _) -> Tfun (params, ret, Closure [])
   | t -> t
 
+let convert_simple_lit typ expr = { typ; expr = Const expr; is_const = true }
+
 let rec convert env expr = convert_annot env None expr
 
 and convert_annot env annot = function
   | Ast.Var (loc, id) -> convert_var env loc id
-  | Lit (_, Int i) -> { typ = Tint; expr = Const (Int i) }
-  | Lit (_, Bool b) -> { typ = Tbool; expr = Const (Bool b) }
-  | Lit (_, U8 c) -> { typ = Tu8; expr = Const (U8 c) }
-  | Lit (_, Float f) -> { typ = Tfloat; expr = Const (Float f) }
-  | Lit (_, I32 i) -> { typ = Ti32; expr = Const (I32 i) }
-  | Lit (_, F32 i) -> { typ = Tf32; expr = Const (F32 i) }
+  | Lit (_, Int i) -> convert_simple_lit Tint (Int i)
+  | Lit (_, Bool b) -> convert_simple_lit Tbool (Bool b)
+  | Lit (_, U8 c) -> convert_simple_lit Tu8 (U8 c)
+  | Lit (_, Float f) -> convert_simple_lit Tfloat (Float f)
+  | Lit (_, I32 i) -> convert_simple_lit Ti32 (I32 i)
+  | Lit (_, F32 i) -> convert_simple_lit Tf32 (F32 i)
   | Lit (loc, String s) ->
       let typ = get_prelude env loc "string" in
-      { typ; expr = Const (String s) }
+      (* TODO is const, but handled differently right now *)
+      { typ; expr = Const (String s); is_const = false }
   | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
-  | Lit (_, Unit) -> { typ = Tunit; expr = Const Unit }
+  | Lit (_, Unit) -> { typ = Tunit; expr = Const Unit; is_const = true }
   | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
   | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
@@ -980,8 +985,8 @@ and convert_annot env annot = function
 and convert_var env loc id =
   match Env.query_val_opt id env with
   | Some t ->
-      let typ = instantiate t in
-      { typ; expr = Var id }
+      let typ = instantiate t.typ in
+      { typ; expr = Var id; is_const = t.is_const }
   | None -> raise (Error (loc, "No var named " ^ id))
 
 and convert_vector_lit env loc vec =
@@ -995,7 +1000,7 @@ and convert_vector_lit env loc vec =
   let vector = get_prelude env loc "vector" in
   let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
   Env.maybe_add_record_instance (string_of_type typ) typ env;
-  { typ; expr = Const (Vector exprs) }
+  { typ; expr = Const (Vector exprs); is_const = false }
 
 and typeof_annot_decl env loc annot block =
   enter_level ();
@@ -1018,7 +1023,7 @@ and typeof_annot_decl env loc annot block =
 
 and convert_let env loc (_, (idloc, id), type_annot) block =
   let e1 = typeof_annot_decl env loc type_annot block in
-  (Env.add_value id e1.typ idloc env, e1)
+  (Env.add_value id e1.typ ~is_const:e1.is_const idloc env, e1)
 
 and convert_lambda env loc params ret_annot body =
   let env = Env.open_function env in
@@ -1030,9 +1035,10 @@ and convert_lambda env loc params ret_annot body =
 
   let body = convert_block env body in
   leave_level ();
-  let _, closed_vars, _ = Env.close_function env in
+  let _, closed_vars, unused = Env.close_function env in
   let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
   dont_allow_closure_return loc body.typ;
+  check_unused unused;
 
   (* For codegen: Mark functions in parameters closures *)
   let params_t = List.map param_funcs_as_closures params_t in
@@ -1048,7 +1054,7 @@ and convert_lambda env loc params ret_annot body =
       let tp = { tparams; ret; kind } in
       let abs = { nparams; body = { body with typ = ret }; tp } in
       let expr = Lambda (lambda_id (), abs) in
-      { typ; expr }
+      { typ; expr; is_const = false }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
 and convert_function env loc
@@ -1086,7 +1092,7 @@ and convert_function env loc
   match typ with
   | Tfun (tparams, ret, kind) ->
       (* Make sure the types match *)
-      unify (loc, "Function") (Env.find_val name env) typ;
+      unify (loc, "Function") (Env.find_val name env).typ typ;
 
       (* Add the generalized type to the env to keep the closure there *)
       let env = Env.change_type name typ env in
@@ -1115,7 +1121,8 @@ and convert_app ~switch_uni env loc e1 args =
   let apply typ texpr = { texpr with typ } in
   let targs = List.map2 apply args_t typed_exprs in
 
-  { typ = res_t; expr = App { callee; args = targs } }
+  (* For now, we don't support const functions *)
+  { typ = res_t; expr = App { callee; args = targs }; is_const = false }
 
 and convert_bop env loc bop e1 e2 =
   let check typ =
@@ -1124,35 +1131,25 @@ and convert_bop env loc bop e1 e2 =
 
     unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ;
     unify (loc, "Binary " ^ string_of_bop bop) typ t1.typ;
-    (t1, t2)
+    (t1, t2, t1.is_const && t2.is_const)
   in
 
-  let typ, t1, t2 =
+  let typ, (t1, t2, is_const) =
     match bop with
-    | Ast.Plus_i | Mult_i | Minus_i | Div_i ->
-        let t1, t2 = check Tint in
-        (Tint, t1, t2)
-    | Less_i | Equal_i | Greater_i ->
-        let t1, t2 = check Tint in
-        (Tbool, t1, t2)
-    | Plus_f | Mult_f | Minus_f | Div_f ->
-        let t1, t2 = check Tfloat in
-        (Tfloat, t1, t2)
-    | Less_f | Equal_f | Greater_f ->
-        let t1, t2 = check Tfloat in
-        (Tbool, t1, t2)
-    | And | Or ->
-        let t1, t2 = check Tbool in
-        (Tbool, t1, t2)
+    | Ast.Plus_i | Mult_i | Minus_i | Div_i -> (Tint, check Tint)
+    | Less_i | Equal_i | Greater_i -> (Tbool, check Tint)
+    | Plus_f | Mult_f | Minus_f | Div_f -> (Tfloat, check Tfloat)
+    | Less_f | Equal_f | Greater_f -> (Tbool, check Tfloat)
+    | And | Or -> (Tbool, check Tbool)
   in
-  { typ; expr = Bop (bop, t1, t2) }
+  { typ; expr = Bop (bop, t1, t2); is_const }
 
 and convert_unop env loc unop expr =
   match unop with
   | Uminus_f ->
       let e = convert env expr in
       unify (loc, "Unary -.:") Tfloat e.typ;
-      { typ = Tfloat; expr = Unop (unop, e) }
+      { typ = Tfloat; expr = Unop (unop, e); is_const = e.is_const }
   | Uminus_i -> (
       let e = convert env expr in
       let msg = "Unary -:" in
@@ -1161,11 +1158,11 @@ and convert_unop env loc unop expr =
       try
         (* We allow '-' to also work on float expressions *)
         unify (loc, msg) Tfloat e.typ;
-        { typ = Tfloat; expr }
+        { typ = Tfloat; expr; is_const = e.is_const }
       with Error _ -> (
         try
           unify (loc, msg) Tint e.typ;
-          { typ = Tint; expr }
+          { typ = Tint; expr; is_const = e.is_const }
         with Error (loc, errmsg) ->
           let pos = String.length msg + String.length ": Expected type int" in
           let post = String.sub errmsg pos (String.length errmsg - pos) in
@@ -1191,7 +1188,13 @@ and convert_if env loc cond e1 e2 =
               though." ))
   | _ -> ());
 
-  { typ = type_e2.typ; expr = If (type_cond, type_e1, type_e2) }
+  (* Would be interesting to evaluate this at compile time,
+     but I think it's not that important right now *)
+  {
+    typ = type_e2.typ;
+    expr = If (type_cond, type_e1, type_e2);
+    is_const = false;
+  }
 
 and convert_record env loc annot labels =
   let raise_ msg lname rname =
@@ -1209,8 +1212,8 @@ and convert_record env loc annot labels =
             match array_assoc_opt lname ls with
             | None -> raise_ "Unbound" lname name
             | Some (Tvar { contents = Unbound _ } as typ) ->
-                (* If the variable is generic, we figure the type out normally and the
-                   unify for the later fields *)
+                (* If the variable is generic, we figure the type out normally
+                   and then unify for the later fields *)
                 (typ, convert_annot env None expr)
             | Some (Tvar { contents = Link typ })
             | Some (Talias (_, typ))
@@ -1228,18 +1231,21 @@ and convert_record env loc annot labels =
   in
 
   (* We sort the labels to appear in the defined order *)
-  let sorted_labels =
-    List.map
-      (fun field ->
-        ( field.name,
+  let is_const, sorted_labels =
+    List.fold_left_map
+      (fun is_const field ->
+        let expr =
           match List.assoc_opt field.name labels_expr with
           | Some thing -> thing
-          | None -> raise_ "Missing" field.name name ))
-      (labels |> Array.to_list)
+          | None -> raise_ "Missing" field.name name
+        in
+        (* Records with mutable fields cannot be const *)
+        (is_const && (not field.mut) && expr.is_const, (field.name, expr)))
+      true (labels |> Array.to_list)
   in
   let typ = Trecord (param, name, labels) |> generalize in
   Env.maybe_add_record_instance (string_of_type typ) typ env;
-  { typ; expr = Record sorted_labels }
+  { typ; expr = Record sorted_labels; is_const }
 
 and get_field env loc expr id =
   let expr = convert env expr in
@@ -1261,7 +1267,7 @@ and get_field env loc expr id =
 
 and convert_field env loc expr id =
   let field, expr, index = get_field env loc expr id in
-  { typ = field.typ; expr = Field (expr, index) }
+  { typ = field.typ; expr = Field (expr, index); is_const = expr.is_const }
 
 and convert_field_set env loc expr id value =
   let field, expr, index = get_field env loc expr id in
@@ -1271,7 +1277,7 @@ and convert_field_set env loc expr id value =
    let msg = Printf.sprintf "Cannot mutate non-mutable field %s" field.name in
    raise (Error (loc, msg)));
   unify (loc, "Mutate field " ^ field.name ^ ":") field.typ valexpr.typ;
-  { typ = Tunit; expr = Field_set (expr, index, valexpr) }
+  { typ = Tunit; expr = Field_set (expr, index, valexpr); is_const = false }
 
 and convert_pipe_head env loc e1 e2 =
   let switch_uni = true in
@@ -1305,11 +1311,19 @@ and convert_block_annot env annot (loc, stmts) =
         let env, texpr = convert_let env loc decl block in
         let cont = to_expr env old_type tl in
         let decl = (fun (_, a, b) -> (snd a, b)) decl in
-        { typ = cont.typ; expr = Let (fst decl, texpr, cont) }
+        {
+          typ = cont.typ;
+          expr = Let (fst decl, texpr, cont);
+          is_const = cont.is_const;
+        }
     | Function (loc, func) :: tl ->
         let env, (name, unique, lambda) = convert_function env loc func in
         let cont = to_expr env old_type tl in
-        { typ = cont.typ; expr = Function (name, unique, lambda, cont) }
+        {
+          typ = cont.typ;
+          expr = Function (name, unique, lambda, cont);
+          is_const = false;
+        }
     | [ Expr (_, e) ] ->
         check old_type;
         convert_annot env annot e
@@ -1317,7 +1331,11 @@ and convert_block_annot env annot (loc, stmts) =
         check old_type;
         let expr = convert env e1 in
         let cont = to_expr env (l1, expr.typ) tl in
-        { typ = cont.typ; expr = Sequence (expr, cont) }
+        {
+          typ = cont.typ;
+          expr = Sequence (expr, cont);
+          is_const = cont.is_const;
+        }
     | [] -> raise (Error (loc, "Block cannot be empty"))
   in
   to_expr env (loc, Tunit) stmts

@@ -12,7 +12,7 @@ end
 module Apptbl = Hashtbl.Make (Hint)
 
 type expr =
-  | Mvar of string
+  | Mvar of string * var_kind
   | Mconst of const
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
@@ -56,11 +56,12 @@ and call_name =
   | Builtin of Builtin.t * func
 
 and monod_expr = { ex : monod_tree; monomorph : call_name }
-and monod_tree = { typ : typ; expr : expr; return : bool }
+and monod_tree = { typ : typ; expr : expr; return : bool; is_const : bool }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
+and var_kind = Var_norm | Var_const
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -68,6 +69,7 @@ type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
 type external_decl = string * typ
 
 type monomorphized_tree = {
+  constants : (string * monod_tree) list;
   externals : external_decl list;
   records : typ list;
   tree : monod_tree;
@@ -84,7 +86,15 @@ type to_gen_func_kind =
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 type malloc_kind = Return_value | Local
 type malloc = { id : int; kind : malloc_kind ref }
-type var = { fn : to_gen_func_kind; alloc : alloc; malloc : malloc option }
+
+type var_normal = {
+  fn : to_gen_func_kind;
+  alloc : alloc;
+  malloc : malloc option;
+}
+
+(* TODO could be used for Builtin as well *)
+type var = Normal of var_normal | Const of string
 
 type morph_param = {
   vars : var Vars.t;
@@ -151,9 +161,10 @@ let unique_name = function
 let lambda_name id = "__fun" ^ string_of_int id
 
 let find_function_expr vars = function
-  | Mvar id -> (
+  | Mvar (id, _) -> (
       match Vars.find_opt id vars with
-      | Some thing -> thing.fn
+      | Some (Normal thing) -> thing.fn
+      | Some (Const _) -> No_function
       | None -> (
           match Builtin.of_string id with
           | Some b -> Builtin b
@@ -420,6 +431,8 @@ let free_mallocs body mallocs =
   List.fold_right f mallocs body
 
 let recursion_stack = ref []
+let constant_uniq_state = ref 1
+let constant_tbl = Hashtbl.create 64
 
 let pop_recursion_stack () =
   match !recursion_stack with
@@ -438,7 +451,9 @@ let set_tailrec name =
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
 let rec morph_expr param (texpr : Typing.typed_expr) =
-  let make expr return = { typ = cln texpr.typ; expr; return } in
+  let make expr return =
+    { typ = cln texpr.typ; expr; return; is_const = texpr.is_const }
+  in
   match texpr.expr with
   | Typing.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
@@ -458,10 +473,13 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   | App { callee; args } -> morph_app make param callee args
 
 and morph_var mk p v =
-  let alloca =
-    match Vars.find_opt v p.vars with Some thing -> thing | None -> no_var
+  let (v, kind), alloca =
+    match Vars.find_opt v p.vars with
+    | Some (Normal thing) -> ((v, Var_norm), thing)
+    | Some (Const thing) -> ((thing, Var_const), no_var)
+    | None -> ((v, Var_norm), no_var)
   in
-  (p, mk (Mvar v) p.ret, alloca)
+  (p, mk (Mvar (v, kind)) p.ret, alloca)
 
 and morph_string mk p s =
   let alloca = ref (request ()) in
@@ -531,7 +549,24 @@ and morph_if mk p cond e1 e2 =
 and morph_let mk p id e1 e2 =
   let ret = p.ret in
   let p, e1, func = morph_expr { p with ret = false } e1 in
-  let p = { p with vars = Vars.add id func p.vars } in
+  (* We add constants to the constant table, not the current env *)
+  let p =
+    if e1.is_const then
+      (* Maybe we have to generate a new name here *)
+      let cnt = new_id constant_uniq_state in
+      let cid =
+        match Hashtbl.find_opt constant_tbl id with
+        | Some _ ->
+            let id = Printf.sprintf "__%i%s" cnt id in
+            Hashtbl.add constant_tbl id (cnt, e1);
+            id
+        | None ->
+            Hashtbl.add constant_tbl id (cnt, e1);
+            id
+      in
+      { p with vars = Vars.add id (Const cid) p.vars }
+    else { p with vars = Vars.add id (Normal func) p.vars }
+  in
   let p, e2, func = morph_expr { p with ret } e2 in
   (p, mk (Mlet (id, e1, e2)) ret, func)
 
@@ -611,7 +646,7 @@ and morph_func p (username, uniq, abs, cont) =
       | _ -> No_value
     in
     let value = { no_var with fn = Forward_decl call; alloc } in
-    let vars = Vars.add username value p.vars in
+    let vars = Vars.add username (Normal value) p.vars in
     { p with vars; ret = true; mallocs = [] }
   in
 
@@ -640,17 +675,24 @@ and morph_func p (username, uniq, abs, cont) =
   let p =
     if is_type_polymorphic ftyp then
       let fn = Polymorphic gen_func in
-      let vars = Vars.add username { var with fn } p.vars in
+      let vars = Vars.add username (Normal { var with fn }) p.vars in
       { p with vars }
     else
       let fn = Concrete (gen_func, username) in
-      let vars = Vars.add username { var with fn } p.vars in
+      let vars = Vars.add username (Normal { var with fn }) p.vars in
       let funcs = gen_func :: p.funcs in
       { p with vars; funcs }
   in
 
   let p, cont, func = morph_expr { p with ret } cont in
-  (p, { typ = cont.typ; expr = Mfunction (call, abs, cont); return = ret }, func)
+  ( p,
+    {
+      typ = cont.typ;
+      expr = Mfunction (call, abs, cont);
+      return = ret;
+      is_const = false;
+    },
+    func )
 
 and morph_lambda typ p id abs =
   let typ = cln typ in
@@ -695,7 +737,7 @@ and morph_lambda typ p id abs =
       ({ p with funcs }, Concrete (gen_func, name))
   in
   ( { p with ret },
-    { typ; expr = Mlambda (name, abs); return = ret },
+    { typ; expr = Mlambda (name, abs); return = ret; is_const = false },
     { var with fn } )
 
 and morph_app mk p callee args =
@@ -749,7 +791,7 @@ let monomorphize { Typing.externals; records; tree } =
   (* Register malloc builtin, so freeing automatically works *)
   let malloc = { id = new_id malloc_id; kind = ref Local } in
   let var = { fn = Builtin Malloc; alloc = No_value; malloc = Some malloc } in
-  let vars = Vars.add "__malloc" var Vars.empty in
+  let vars = Vars.add "__malloc" (Normal var) Vars.empty in
 
   let param =
     { vars; monomorphized = Set.empty; funcs = []; ret = false; mallocs = [] }
@@ -761,5 +803,14 @@ let monomorphize { Typing.externals; records; tree } =
   let externals = List.map (fun (n, t) -> (n, cln t)) externals in
   let records = List.map cln records in
 
+  let sort_const (_, (lid, _)) (_, (rid, _)) = Int.compare lid rid in
+  let constants =
+    Hashtbl.to_seq constant_tbl
+    |> List.of_seq |> List.sort sort_const
+    |> List.map (fun (name, (id, tree)) ->
+           ignore id;
+           (name, tree))
+  in
+
   (* TODO maybe try to catch memory leaks? *)
-  { externals; records; tree; funcs = p.funcs }
+  { constants; externals; records; tree; funcs = p.funcs }

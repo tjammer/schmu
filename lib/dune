@@ -7,6 +7,7 @@
   llvm.analysis
   llvm.target
   llvm.all_backends
+  llvm.passmgr_builder
   llvm.scalar_opts))
 
 (menhir

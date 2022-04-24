@@ -25,8 +25,9 @@ module Set = Set.Make (Type_key)
 
 type key = string
 type label = { index : int; record : string }
-type value = { typ : typ; is_param : bool }
+type value = { typ : typ; is_param : bool; is_const : bool }
 type usage = { loc : Ast.loc; used : bool ref }
+type return = { typ : typ; is_const : bool }
 
 (* function scope *)
 type scope = {
@@ -63,11 +64,11 @@ let empty print_fn =
     print_fn;
   }
 
-let add_value key typ loc ?(is_param = false) env =
+let add_value key typ loc ?(is_const = false) ?(is_param = false) env =
   match env.values with
   | [] -> failwith "Internal Error: Env empty"
   | scope :: tl ->
-      let valmap = Map.add key { typ; is_param } scope.valmap in
+      let valmap = Map.add key { typ; is_param; is_const } scope.valmap in
 
       (* Shadowed bindings stay in the Hashtbl, but are not reachable (I think).
          Thus, warning for unused shadowed bindings works *)
@@ -177,11 +178,14 @@ let close_function env =
                (* We only add functions to the closure if they are params
                   Or: if they are closures *)
                let k = Type_key.key k in
-               let { typ; is_param } = find_val_raw k env in
-               match clean typ with
-               | Tfun (_, _, Closure _) -> Some (k, typ)
-               | Tfun _ when not is_param -> None
-               | _ -> Some (k, typ))
+               let { typ; is_param; is_const } = find_val_raw k env in
+               (* Const values are not closed over, they exist module-wide *)
+               if is_const then None
+               else
+                 match clean typ with
+                 | Tfun (_, _, Closure _) -> Some (k, typ)
+                 | Tfun _ when not is_param -> None
+                 | _ -> Some (k, typ))
       in
 
       let unused = find_unused [] scope.used in
@@ -193,7 +197,7 @@ let find_val_opt key env =
     | scope :: tl -> (
         match Map.find_opt key scope.valmap with
         | None -> aux tl
-        | Some vl -> Some vl.typ)
+        | Some vl -> Some { typ = vl.typ; is_const = vl.is_const })
   in
   aux env.values
 
@@ -220,7 +224,7 @@ let query_val_opt key env =
     | scope :: tl -> (
         match Map.find_opt key scope.valmap with
         | None -> aux (scope_lvl + 1) tl
-        | Some { typ; is_param = _ } ->
+        | Some { typ; is_param = _; is_const } ->
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
             (match scope_lvl with
             | 0 -> ()
@@ -230,7 +234,7 @@ let query_val_opt key env =
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
             maybe_add_record_instance (env.print_fn typ) typ env;
-            Some typ)
+            Some { typ; is_const })
   in
   aux 0 env.values
 

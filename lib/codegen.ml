@@ -39,6 +39,8 @@ type aggregate_param_kind = Boxed | Unboxed of unboxed
 let ( ++ ) = Seq.append
 let record_tbl = Strtbl.create 32
 let ptr_tbl = Ptrtbl.create 32
+let const_tbl = Strtbl.create 64
+let const_pass = ref true
 let context = Llvm.global_context ()
 let the_module = Llvm.create_module context "context"
 let fpm = Llvm.PassManager.create_function the_module
@@ -368,21 +370,25 @@ let maybe_box_record typ ?(alloc = None) ?(snd_val = None) value =
   | Boxed -> value
 
 let unbox_record ~kind ~ret value =
-  let structptr =
-    Llvm.build_bitcast value
-      (Llvm.pointer_type (lltype_unboxed kind))
-      "unbox" builder
-  in
-  (* If this is a return value, we unbox it as a struct every time *)
-  match (ret, kind) with
-  | true, _ | _, One_param _ -> (Llvm.build_load structptr "unbox" builder, None)
-  | _, Two_params _ ->
-      (* We load the two arguments from the struct type *)
-      let ptr = Llvm.build_struct_gep structptr 0 "fst" builder in
-      let v1 = Llvm.build_load ptr "fst" builder in
-      let ptr = Llvm.build_struct_gep structptr 1 "snd" builder in
-      let v2 = Llvm.build_load ptr "snd" builder in
-      (v1, Some v2)
+  if ret && Llvm.is_constant value then
+    (Llvm.build_bitcast value (lltype_unboxed kind) "unboxcast" builder, None)
+  else
+    let structptr =
+      Llvm.build_bitcast value
+        (Llvm.pointer_type (lltype_unboxed kind))
+        "unbox" builder
+    in
+    (* If this is a return value, we unbox it as a struct every time *)
+    match (ret, kind) with
+    | true, _ | _, One_param _ ->
+        (Llvm.build_load structptr "unbox" builder, None)
+    | _, Two_params _ ->
+        (* We load the two arguments from the struct type *)
+        let ptr = Llvm.build_struct_gep structptr 0 "fst" builder in
+        let v1 = Llvm.build_load ptr "fst" builder in
+        let ptr = Llvm.build_struct_gep structptr 1 "snd" builder in
+        let v2 = Llvm.build_load ptr "snd" builder in
+        (v1, Some v2)
 
 (* Checks the param kind before calling [unbox_record] *)
 let maybe_unbox_record typ value =
@@ -409,19 +415,22 @@ let to_named_records = function
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src ~size =
-  let memcpy_decl =
-    lazy
-      Llvm.(
-        (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
-        let ft =
-          function_type unit_t [| voidptr_t; voidptr_t; int_t; bool_t |]
-        in
-        declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
-  in
-  let dstptr = Llvm.build_bitcast dst voidptr_t "" builder in
-  let retptr = Llvm.build_bitcast src.value voidptr_t "" builder in
-  let args = [| dstptr; retptr; size; Llvm.const_int bool_t 0 |] in
-  ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
+  if Llvm.is_constant src.value then
+    ignore (Llvm.build_store src.value dst builder)
+  else
+    let memcpy_decl =
+      lazy
+        Llvm.(
+          (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
+          let ft =
+            function_type unit_t [| voidptr_t; voidptr_t; int_t; bool_t |]
+          in
+          declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
+    in
+    let dstptr = Llvm.build_bitcast dst voidptr_t "" builder in
+    let retptr = Llvm.build_bitcast src.value voidptr_t "" builder in
+    let args = [| dstptr; retptr; size; Llvm.const_int bool_t 0 |] in
+    ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
 
 let malloc ~size =
   let malloc_decl =
@@ -569,6 +578,11 @@ let alloca param typ str =
      so we don't blow up the stack *)
   let builder = match param.rec_block with Some r -> r.entry | _ -> builder in
   Llvm.build_alloca typ str builder
+
+let box_const param var =
+  let value = alloca param (get_lltype_def var.typ) "boxconst" in
+  ignore (Llvm.build_store var.value value builder);
+  { var with value }
 
 (* [func_to_closure] but for function types *)
 let tfun_to_closure = function
@@ -940,7 +954,7 @@ and gen_expr param typed_expr =
   | Mconst Unit -> dummy_fn_value
   | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
   | Munop (_, e) -> gen_unop param e |> fin
-  | Mvar id -> gen_var param.vars typed_expr.typ id |> fin
+  | Mvar (id, kind) -> gen_var param.vars typed_expr.typ id kind |> fin
   | Mfunction (name, abs, cont) ->
       (* The functions are already generated *)
       let func =
@@ -982,26 +996,31 @@ and gen_expr param typed_expr =
       | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
   | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref) ->
-      codegen_record param typed_expr.typ labels allocref |> fin
+      codegen_record param typed_expr.typ labels allocref typed_expr.is_const
+      |> fin
   | Mfield (expr, index) -> codegen_field param expr index |> fin
   | Mfield_set (expr, index, value) ->
       codegen_field_set param expr index value |> fin
   | Mseq (expr, cont) -> codegen_chain param expr cont
   | Mfree_after (expr, id) -> gen_free param expr id
 
-and gen_var vars typ id =
-  match Vars.find_opt id vars with
-  | Some v -> v
-  | None -> (
-      match typ with
-      | Tfun _ ->
-          (* If a function is polymorphic then its original value might not be bound
-             when we generate other function. In this case, we can just return a
-             dummy value *)
-          dummy_fn_value
-      | _ ->
-          (* If the variable isn't bound, something went wrong before *)
-          failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
+and gen_var vars typ id kind =
+  match kind with
+  | Var_norm -> (
+      match Vars.find_opt id vars with
+      | Some v -> v
+      | None -> (
+          match typ with
+          | Tfun _ ->
+              (* If a function is polymorphic then its original value might not be bound
+                 when we generate other function. In this case, we can just return a
+                 dummy value *)
+              dummy_fn_value
+          | _ ->
+              (* If the variable isn't bound, something went wrong before *)
+              failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
+      )
+  | Var_const -> Strtbl.find const_tbl id
 
 and gen_bop param e1 e2 bop =
   let gen = gen_expr param in
@@ -1134,7 +1153,15 @@ and gen_app param callee args allocref ret_t malloc =
     List.fold_left
       (fun args arg ->
         let arg' = gen_expr param Monomorph_tree.(arg.ex) in
-        let arg = get_mono_func arg' param arg.monomorph in
+
+        (* In case the record passed is constant, we allocate it here to pass a pointer.
+           This isn't pretty, but will do for now *)
+        (* TODO cache this *)
+        let arg =
+          match (arg'.typ, pkind_of_typ arg'.typ) with
+          | Trecord _, Boxed when arg.ex.is_const -> box_const param arg'
+          | _ -> get_mono_func arg' param arg.monomorph
+        in
 
         match maybe_unbox_record arg.typ arg.value with
         | fst, Some snd ->
@@ -1260,7 +1287,7 @@ and gen_app_builtin param (b, fnc) args =
   let handle_arg arg =
     let arg' = gen_expr param Monomorph_tree.(arg.ex) in
     let arg = get_mono_func arg' param arg.monomorph in
-    (* let arg = { arg with value = unbox_record arg.typ arg.value } in *)
+
     (* For [ignore], we don't really need to generate the closure objects here *)
     match b with Ignore -> arg.value | _ -> (func_to_closure param arg).value
   in
@@ -1375,6 +1402,15 @@ and gen_if param expr return =
   Llvm.position_at_end else_bb builder;
   let e2 = gen_expr param expr.e2 in
 
+  let e1, e2 =
+    match
+      ((e1.typ, Llvm.is_constant e1.value), (e2.typ, Llvm.is_constant e2.value))
+    with
+    | (Trecord _, true), (_, false) -> (box_const param e1, e2)
+    | (_, false), (_Trecord_, true) -> (e1, box_const param e2)
+    | _ -> (e1, e2)
+  in
+
   let e2_bb = Llvm.insertion_block builder in
   let merge_bb = Llvm.append_block context "ifcont" parent in
   Llvm.position_at_end merge_bb builder;
@@ -1414,48 +1450,65 @@ and gen_if param expr return =
   Llvm.position_at_end merge_bb builder;
   llvar
 
-and codegen_record param typ labels allocref =
+and codegen_record param typ labels allocref is_const =
   let lltyp = get_lltype_field typ in
 
-  let record = get_prealloc !allocref param lltyp "" in
+  let value =
+    if not is_const then (
+      let record = get_prealloc !allocref param lltyp "" in
 
-  List.iteri
-    (fun i (name, expr) ->
-      let ptr = Llvm.build_struct_gep record i name builder in
-      let value =
-        gen_expr { param with alloca = Some ptr } expr |> func_to_closure param
+      List.iteri
+        (fun i (name, expr) ->
+          let ptr = Llvm.build_struct_gep record i name builder in
+          let value =
+            gen_expr { param with alloca = Some ptr } expr
+            |> func_to_closure param
+          in
+          set_record_field value ptr)
+        labels;
+      record)
+    else
+      let () = ignore const_pass in
+      let values =
+        List.map (fun (_, expr) -> (gen_expr param expr).value) labels
+        |> Array.of_list
       in
-      set_record_field value ptr)
-    labels;
+      Llvm.const_named_struct lltyp values
+  in
 
-  { value = record; typ; lltyp }
+  { value; typ; lltyp }
 
 and get_field param expr index =
   let value = gen_expr param expr in
 
+  Llvm.build_struct_gep value.value index "" builder
+
+and codegen_field param expr index =
   let typ =
-    match value.typ with
+    match expr.typ with
     | Trecord (_, _, fields) -> fields.(index).typ
     | _ ->
-        print_endline (show_typ value.typ);
+        print_endline (show_typ expr.typ);
         failwith "Internal Error: No record in fields"
   in
 
-  let ptr = Llvm.build_struct_gep value.value index "" builder in
-  (ptr, typ)
+  if not expr.is_const then
+    let ptr = get_field param expr index in
+    (* In case we return a record, we don't load, but return the pointer.
+       The idea is that this will be used either as a return value for a function (where it is copied),
+       or for another field, where the pointer is needed.
+       We should distinguish between structs and pointers somehow *)
+    let value = load ptr typ in
+    { value; typ; lltyp = Llvm.type_of value }
+  else
+    let value = gen_expr param expr in
+    let value = Llvm.const_extractvalue value.value [| index |] in
+    { value; typ; lltyp = Llvm.type_of value }
 
-and codegen_field param expr index =
-  let ptr, typ = get_field param expr index in
-  (* In case we return a record, we don't load, but return the pointer.
-     The idea is that this will be used either as a return value for a function (where it is copied),
-     or for another field, where the pointer is needed.
-     We should distinguish between structs and pointers somehow *)
-  let value = load ptr typ in
-  { value; typ; lltyp = Llvm.type_of value }
-
-and codegen_field_set param expr index value =
-  let ptr, _ = get_field param expr index in
-  let value = gen_expr param value in
+and codegen_field_set param expr index valexpr =
+  let ptr = get_field param expr index in
+  let value = gen_expr param valexpr in
+  (* We know that ptr cannot be a constant record, but value might *)
   set_record_field value ptr;
   { dummy_fn_value with lltyp = unit_t }
 
@@ -1540,12 +1593,25 @@ and gen_free param expr id =
   ignore (free_id id);
   ret
 
-let generate ~target ~outname { Monomorph_tree.externals; records; tree; funcs }
-    =
+let fill_constants constants =
+  let f (name, tree) =
+    let param =
+      { vars = Vars.empty; alloca = None; finalize = None; rec_block = None }
+    in
+    let value = gen_expr param tree in
+    Strtbl.add const_tbl name value
+  in
+  List.iter f constants
+
+let generate ~target ~outname
+    { Monomorph_tree.constants; externals; records; tree; funcs } =
   (* Add record types.
      We do this first to ensure that all record definitons
      are available for external decls *)
   List.iter to_named_records records;
+
+  (* Fill const_tbl *)
+  fill_constants constants;
 
   (* External declarations *)
   let vars =
@@ -1595,6 +1661,12 @@ let generate ~target ~outname { Monomorph_tree.externals; records; tree; funcs }
   (match Llvm_analysis.verify_module the_module with
   | Some output -> print_endline output
   | None -> ());
+
+  (* let pm = Llvm.PassManager.create () in *)
+  (* let bldr = Llvm_passmgr_builder.create () in *)
+  (* Llvm_passmgr_builder.set_opt_level 2 bldr; *)
+  (* Llvm_passmgr_builder.populate_module_pass_manager pm bldr; *)
+  (* Llvm.PassManager.run_module the_module pm |> ignore; *)
 
   (* Emit code to file *)
   Llvm_all_backends.initialize ();

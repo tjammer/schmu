@@ -20,7 +20,7 @@ type expr =
   | Sequence of (typed_expr * typed_expr)
 [@@deriving show]
 
-and typed_expr = { typ : typ; expr : expr }
+and typed_expr = { typ : typ; expr : expr; is_const : bool }
 
 and const =
   | Int of int

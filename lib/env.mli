@@ -5,10 +5,12 @@ type key = string
 type label = { index : int; record : string }
 type t
 type unused = (unit, (string * Ast.loc) list) result
+type return = { typ : typ; is_const : bool } (* return type for values *)
 
 val empty : (typ -> string) -> t
 
-val add_value : key -> typ -> Ast.loc -> ?is_param:bool -> t -> t
+val add_value :
+  key -> typ -> Ast.loc -> ?is_const:bool -> ?is_param:bool -> t -> t
 (** [add_value key typ loc ~is_param] add value [key] defined at [loc] with type [typ] to env.
     [is_param] defaults to false *)
 
@@ -31,10 +33,10 @@ val open_function : t -> t
 val close_function : t -> t * (string * typ) list * unused
 (** Returns the variables captured in the closed function scope, and first unused var  *)
 
-val find_val : key -> t -> typ
-val find_val_opt : key -> t -> typ option
+val find_val : key -> t -> return
+val find_val_opt : key -> t -> return option
 
-val query_val_opt : key -> t -> typ option
+val query_val_opt : key -> t -> return option
 (** [query_opt key env] is like find_val_opt, but marks [key] as
      being used in the current scope (e.g. a closure) *)
 
