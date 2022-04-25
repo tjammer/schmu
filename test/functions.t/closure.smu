@@ -1,12 +1,13 @@
-a = 10
+type capturable = { mutable a : int }
+a = { a = 10 }
 
-fun capture_a() a + 2 end
+fun capture_a() a.a + 2 end
 
 fun capture_a_wrapped()
   -- empty function. In order for this to work, the closure
   -- needs to be propagated in env
   fun wrap()
-    fun inner() a + 2 end
+    fun inner() a.a + 2 end
     inner()
   end
   wrap()

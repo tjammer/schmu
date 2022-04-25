@@ -134,20 +134,21 @@ We have downwards closures
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %capturable = type { i64 }
   %closure = type { i8*, i8* }
   
   define private i64 @capture_a_wrapped(i8* %0) {
   entry:
-    %clsr = bitcast i8* %0 to { i64 }*
-    %a5 = bitcast { i64 }* %clsr to i64*
-    %a1 = load i64, i64* %a5, align 4
+    %clsr = bitcast i8* %0 to { %capturable* }*
+    %a5 = bitcast { %capturable* }* %clsr to %capturable**
+    %a1 = load %capturable*, %capturable** %a5, align 8
     %wrap = alloca %closure, align 8
     %funptr6 = bitcast %closure* %wrap to i8**
     store i8* bitcast (i64 (i8*)* @wrap to i8*), i8** %funptr6, align 8
-    %clsr_wrap = alloca { i64 }, align 8
-    %a27 = bitcast { i64 }* %clsr_wrap to i64*
-    store i64 %a1, i64* %a27, align 4
-    %env = bitcast { i64 }* %clsr_wrap to i8*
+    %clsr_wrap = alloca { %capturable* }, align 8
+    %a27 = bitcast { %capturable* }* %clsr_wrap to %capturable**
+    store %capturable* %a1, %capturable** %a27, align 8
+    %env = bitcast { %capturable* }* %clsr_wrap to i8*
     %envptr = getelementptr inbounds %closure, %closure* %wrap, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     %1 = call i64 @wrap(i8* %env)
@@ -156,16 +157,16 @@ We have downwards closures
   
   define private i64 @wrap(i8* %0) {
   entry:
-    %clsr = bitcast i8* %0 to { i64 }*
-    %a5 = bitcast { i64 }* %clsr to i64*
-    %a1 = load i64, i64* %a5, align 4
+    %clsr = bitcast i8* %0 to { %capturable* }*
+    %a5 = bitcast { %capturable* }* %clsr to %capturable**
+    %a1 = load %capturable*, %capturable** %a5, align 8
     %inner = alloca %closure, align 8
     %funptr6 = bitcast %closure* %inner to i8**
     store i8* bitcast (i64 (i8*)* @inner to i8*), i8** %funptr6, align 8
-    %clsr_inner = alloca { i64 }, align 8
-    %a27 = bitcast { i64 }* %clsr_inner to i64*
-    store i64 %a1, i64* %a27, align 4
-    %env = bitcast { i64 }* %clsr_inner to i8*
+    %clsr_inner = alloca { %capturable* }, align 8
+    %a27 = bitcast { %capturable* }* %clsr_inner to %capturable**
+    store %capturable* %a1, %capturable** %a27, align 8
+    %env = bitcast { %capturable* }* %clsr_inner to i8*
     %envptr = getelementptr inbounds %closure, %closure* %inner, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     %1 = call i64 @inner(i8* %env)
@@ -174,45 +175,52 @@ We have downwards closures
   
   define private i64 @inner(i8* %0) {
   entry:
-    %clsr = bitcast i8* %0 to { i64 }*
-    %a2 = bitcast { i64 }* %clsr to i64*
-    %a1 = load i64, i64* %a2, align 4
-    %add = add i64 %a1, 2
+    %clsr = bitcast i8* %0 to { %capturable* }*
+    %a2 = bitcast { %capturable* }* %clsr to %capturable**
+    %a1 = load %capturable*, %capturable** %a2, align 8
+    %1 = bitcast %capturable* %a1 to i64*
+    %2 = load i64, i64* %1, align 4
+    %add = add i64 %2, 2
     ret i64 %add
   }
   
   define private i64 @capture_a(i8* %0) {
   entry:
-    %clsr = bitcast i8* %0 to { i64 }*
-    %a2 = bitcast { i64 }* %clsr to i64*
-    %a1 = load i64, i64* %a2, align 4
-    %add = add i64 %a1, 2
+    %clsr = bitcast i8* %0 to { %capturable* }*
+    %a2 = bitcast { %capturable* }* %clsr to %capturable**
+    %a1 = load %capturable*, %capturable** %a2, align 8
+    %1 = bitcast %capturable* %a1 to i64*
+    %2 = load i64, i64* %1, align 4
+    %add = add i64 %2, 2
     ret i64 %add
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %capture_a = alloca %closure, align 8
-    %funptr12 = bitcast %closure* %capture_a to i8**
-    store i8* bitcast (i64 (i8*)* @capture_a to i8*), i8** %funptr12, align 8
-    %clsr_capture_a = alloca { i64 }, align 8
-    %a13 = bitcast { i64 }* %clsr_capture_a to i64*
+    %0 = alloca %capturable, align 8
+    %a13 = bitcast %capturable* %0 to i64*
     store i64 10, i64* %a13, align 4
-    %env = bitcast { i64 }* %clsr_capture_a to i8*
+    %capture_a = alloca %closure, align 8
+    %funptr14 = bitcast %closure* %capture_a to i8**
+    store i8* bitcast (i64 (i8*)* @capture_a to i8*), i8** %funptr14, align 8
+    %clsr_capture_a = alloca { %capturable* }, align 8
+    %a115 = bitcast { %capturable* }* %clsr_capture_a to %capturable**
+    store %capturable* %0, %capturable** %a115, align 8
+    %env = bitcast { %capturable* }* %clsr_capture_a to i8*
     %envptr = getelementptr inbounds %closure, %closure* %capture_a, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     %capture_a_wrapped = alloca %closure, align 8
-    %funptr114 = bitcast %closure* %capture_a_wrapped to i8**
-    store i8* bitcast (i64 (i8*)* @capture_a_wrapped to i8*), i8** %funptr114, align 8
-    %clsr_capture_a_wrapped = alloca { i64 }, align 8
-    %a215 = bitcast { i64 }* %clsr_capture_a_wrapped to i64*
-    store i64 10, i64* %a215, align 4
-    %env3 = bitcast { i64 }* %clsr_capture_a_wrapped to i8*
-    %envptr4 = getelementptr inbounds %closure, %closure* %capture_a_wrapped, i32 0, i32 1
-    store i8* %env3, i8** %envptr4, align 8
-    %0 = call i64 @capture_a(i8* %env)
-    %1 = call i64 @capture_a_wrapped(i8* %env3)
-    ret i64 %1
+    %funptr216 = bitcast %closure* %capture_a_wrapped to i8**
+    store i8* bitcast (i64 (i8*)* @capture_a_wrapped to i8*), i8** %funptr216, align 8
+    %clsr_capture_a_wrapped = alloca { %capturable* }, align 8
+    %a317 = bitcast { %capturable* }* %clsr_capture_a_wrapped to %capturable**
+    store %capturable* %0, %capturable** %a317, align 8
+    %env4 = bitcast { %capturable* }* %clsr_capture_a_wrapped to i8*
+    %envptr5 = getelementptr inbounds %closure, %closure* %capture_a_wrapped, i32 0, i32 1
+    store i8* %env4, i8** %envptr5, align 8
+    %1 = call i64 @capture_a(i8* %env)
+    %2 = call i64 @capture_a_wrapped(i8* %env4)
+    ret i64 %2
   }
   [12]
 
@@ -339,11 +347,11 @@ First class functions
 
 We don't allow returning closures
   $ schmu -dump-llvm no_closure_returns.smu
-  no_closure_returns.smu:3:1: error: Cannot (yet) return a closure
-  3 | fun()
-  4 |   a = fun() a end
-  5 |   a
-  6 | end
+  no_closure_returns.smu:5:1: error: Cannot (yet) return a closure
+  5 | fun()
+  6 |   a = fun() a end
+  7 |   a
+  8 | end
   
   [1]
 
@@ -429,12 +437,9 @@ Captured values should not overwrite function params
     ret i64 %add
   }
   
-  define private i64 @two(i8* %0) {
+  define private i64 @two() {
   entry:
-    %clsr = bitcast i8* %0 to { i64 }*
-    %b2 = bitcast { i64 }* %clsr to i64*
-    %b1 = load i64, i64* %b2, align 4
-    ret i64 %b1
+    ret i64 2
   }
   
   define private i64 @one() {
@@ -444,21 +449,17 @@ Captured values should not overwrite function params
   
   define i64 @main(i64 %arg) {
   entry:
-    %two = alloca %closure, align 8
-    %funptr3 = bitcast %closure* %two to i8**
-    store i8* bitcast (i64 (i8*)* @two to i8*), i8** %funptr3, align 8
-    %clsr_two = alloca { i64 }, align 8
-    %b4 = bitcast { i64 }* %clsr_two to i64*
-    store i64 2, i64* %b4, align 4
-    %env = bitcast { i64 }* %clsr_two to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %two, i32 0, i32 1
-    store i8* %env, i8** %envptr, align 8
     %clstmp = alloca %closure, align 8
-    %funptr15 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 ()* @one to i8*), i8** %funptr15, align 8
-    %envptr2 = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
-    store i8* null, i8** %envptr2, align 8
-    %0 = call i64 @add(%closure* %clstmp, %closure* %two)
+    %funptr4 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (i64 ()* @one to i8*), i8** %funptr4, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* null, i8** %envptr, align 8
+    %clstmp1 = alloca %closure, align 8
+    %funptr25 = bitcast %closure* %clstmp1 to i8**
+    store i8* bitcast (i64 ()* @two to i8*), i8** %funptr25, align 8
+    %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
+    store i8* null, i8** %envptr3, align 8
+    %0 = call i64 @add(%closure* %clstmp, %closure* %clstmp1)
     call void @printi(i64 %0)
     ret i64 0
   }
@@ -564,8 +565,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   
   then:                                             ; preds = %entry
     %2 = alloca %t_bool, align 8
-    %x3 = bitcast %t_bool* %2 to i1*
-    store i1 false, i1* %x3, align 1
+    store %t_bool zeroinitializer, %t_bool* %2, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -599,81 +599,63 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i64 %add
   }
   
-  define private i64 @add_closed(i64 %x, i8* %0) {
+  define private i64 @add_closed(i64 %x) {
   entry:
-    %clsr = bitcast i8* %0 to { i64 }*
-    %a2 = bitcast { i64 }* %clsr to i64*
-    %a1 = load i64, i64* %a2, align 4
-    %add = add i64 %x, %a1
+    %add = add i64 %x, 2
     ret i64 %add
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %add_closed = alloca %closure, align 8
-    %funptr26 = bitcast %closure* %add_closed to i8**
-    store i8* bitcast (i64 (i64, i8*)* @add_closed to i8*), i8** %funptr26, align 8
-    %clsr_add_closed = alloca { i64 }, align 8
-    %a27 = bitcast { i64 }* %clsr_add_closed to i64*
-    store i64 2, i64* %a27, align 4
-    %env = bitcast { i64 }* %clsr_add_closed to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %add_closed, i32 0, i32 1
-    store i8* %env, i8** %envptr, align 8
     %clstmp = alloca %closure, align 8
-    %funptr128 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 (i64)* @add1 to i8*), i8** %funptr128, align 8
-    %envptr2 = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
-    store i8* null, i8** %envptr2, align 8
+    %funptr20 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (i64 (i64)* @add1 to i8*), i8** %funptr20, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* null, i8** %envptr, align 8
     %0 = call i64 @__gg.g.g_apply_ii.i.i(i64 20, %closure* %clstmp)
     call void @printi(i64 %0)
-    %1 = call i64 @__gg.g.g_apply_ii.i.i(i64 20, %closure* %add_closed)
+    %clstmp1 = alloca %closure, align 8
+    %funptr221 = bitcast %closure* %clstmp1 to i8**
+    store i8* bitcast (i64 (i64)* @add_closed to i8*), i8** %funptr221, align 8
+    %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
+    store i8* null, i8** %envptr3, align 8
+    %1 = call i64 @__gg.g.g_apply_ii.i.i(i64 20, %closure* %clstmp1)
     call void @printi(i64 %1)
-    %2 = alloca %t_int, align 8
-    %x29 = bitcast %t_int* %2 to i64*
-    store i64 20, i64* %x29, align 4
     %clstmp4 = alloca %closure, align 8
-    %funptr530 = bitcast %closure* %clstmp4 to i8**
-    store i8* bitcast (i64 (i64)* @add3_rec to i8*), i8** %funptr530, align 8
+    %funptr522 = bitcast %closure* %clstmp4 to i8**
+    store i8* bitcast (i64 (i64)* @add3_rec to i8*), i8** %funptr522, align 8
     %envptr6 = getelementptr inbounds %closure, %closure* %clstmp4, i32 0, i32 1
     store i8* null, i8** %envptr6, align 8
     %ret = alloca %t_int, align 8
-    %3 = call i64 @__gg.g.g_apply_titi.ti.ti(i64 20, %closure* %clstmp4)
+    %2 = call i64 @__gg.g.g_apply_titi.ti.ti(i64 bitcast (%t_int { i64 20 } to i64), %closure* %clstmp4)
     %box = bitcast %t_int* %ret to i64*
-    store i64 %3, i64* %box, align 4
-    call void @printi(i64 %3)
-    %4 = alloca %t_bool, align 8
-    %x831 = bitcast %t_bool* %4 to i1*
-    store i1 true, i1* %x831, align 1
-    %unbox9 = bitcast %t_bool* %4 to i8*
-    %unbox10 = load i8, i8* %unbox9, align 1
-    %clstmp11 = alloca %closure, align 8
-    %funptr1232 = bitcast %closure* %clstmp11 to i8**
-    store i8* bitcast (i8 (i8)* @make_rec_false to i8*), i8** %funptr1232, align 8
-    %envptr13 = getelementptr inbounds %closure, %closure* %clstmp11, i32 0, i32 1
-    store i8* null, i8** %envptr13, align 8
-    %ret14 = alloca %t_bool, align 8
-    %5 = call i8 @__gg.g.g_apply_tbtb.tb.tb(i8 %unbox10, %closure* %clstmp11)
-    %box15 = bitcast %t_bool* %ret14 to i8*
-    store i8 %5, i8* %box15, align 1
-    %6 = trunc i8 %5 to i1
-    call void @print_bool(i1 %6)
-    %clstmp17 = alloca %closure, align 8
-    %funptr1833 = bitcast %closure* %clstmp17 to i8**
-    store i8* bitcast (i1 (i1)* @makefalse to i8*), i8** %funptr1833, align 8
-    %envptr19 = getelementptr inbounds %closure, %closure* %clstmp17, i32 0, i32 1
-    store i8* null, i8** %envptr19, align 8
-    %7 = call i1 @__gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp17)
-    call void @print_bool(i1 %7)
-    %8 = alloca %t_int, align 8
-    %x2034 = bitcast %t_int* %8 to i64*
-    store i64 17, i64* %x2034, align 4
-    %ret23 = alloca %t_int, align 8
-    %9 = call i64 @__g.g___fun0_ti.ti(i64 17)
-    %box24 = bitcast %t_int* %ret23 to i64*
-    store i64 %9, i64* %box24, align 4
-    call void @printi(i64 %9)
-    %10 = call i64 @__fun1(i64 18)
-    call void @printi(i64 %10)
+    store i64 %2, i64* %box, align 4
+    call void @printi(i64 %2)
+    %clstmp8 = alloca %closure, align 8
+    %funptr923 = bitcast %closure* %clstmp8 to i8**
+    store i8* bitcast (i8 (i8)* @make_rec_false to i8*), i8** %funptr923, align 8
+    %envptr10 = getelementptr inbounds %closure, %closure* %clstmp8, i32 0, i32 1
+    store i8* null, i8** %envptr10, align 8
+    %ret11 = alloca %t_bool, align 8
+    %3 = call i8 @__gg.g.g_apply_tbtb.tb.tb(i8 bitcast (%t_bool { i1 true } to i8), %closure* %clstmp8)
+    %box12 = bitcast %t_bool* %ret11 to i8*
+    store i8 %3, i8* %box12, align 1
+    %4 = trunc i8 %3 to i1
+    call void @print_bool(i1 %4)
+    %clstmp14 = alloca %closure, align 8
+    %funptr1524 = bitcast %closure* %clstmp14 to i8**
+    store i8* bitcast (i1 (i1)* @makefalse to i8*), i8** %funptr1524, align 8
+    %envptr16 = getelementptr inbounds %closure, %closure* %clstmp14, i32 0, i32 1
+    store i8* null, i8** %envptr16, align 8
+    %5 = call i1 @__gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp14)
+    call void @print_bool(i1 %5)
+    %ret17 = alloca %t_int, align 8
+    %6 = call i64 @__g.g___fun0_ti.ti(i64 bitcast (%t_int { i64 17 } to i64))
+    %box18 = bitcast %t_int* %ret17 to i64*
+    store i64 %6, i64* %box18, align 4
+    call void @printi(i64 %6)
+    %7 = call i64 @__fun1(i64 18)
+    call void @printi(i64 %7)
     ret i64 0
   }
   21
@@ -755,21 +737,20 @@ A generic pass function. This example is not 100% correct, but works due to call
     store i8* bitcast ({ i64, i8 } (i64, i8)* @__g.g_pass_t.t to i8*), i8** %funptr28, align 8
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
-    %1 = alloca %t, align 8
-    %i9 = bitcast %t* %1 to i64*
-    store i64 700, i64* %i9, align 4
-    %b = getelementptr inbounds %t, %t* %1, i32 0, i32 1
-    store i1 false, i1* %b, align 1
-    %unbox = bitcast %t* %1 to { i64, i8 }*
+    %boxconst = alloca %t, align 8
+    store %t { i64 700, i1 false }, %t* %boxconst, align 4
+    %unbox = bitcast %t* %boxconst to { i64, i8 }*
+    %fst9 = bitcast { i64, i8 }* %unbox to i64*
+    %fst4 = load i64, i64* %fst9, align 4
     %snd = getelementptr inbounds { i64, i8 }, { i64, i8 }* %unbox, i32 0, i32 1
     %snd5 = load i8, i8* %snd, align 1
     %ret = alloca %t, align 8
-    %2 = call { i64, i8 } @__g.gg.g_apply_t.tt.t(%closure* %clstmp1, i64 700, i8 %snd5)
+    %1 = call { i64, i8 } @__g.gg.g_apply_t.tt.t(%closure* %clstmp1, i64 %fst4, i8 %snd5)
     %box = bitcast %t* %ret to { i64, i8 }*
-    store { i64, i8 } %2, { i64, i8 }* %box, align 4
-    %3 = bitcast %t* %ret to i64*
-    %4 = load i64, i64* %3, align 4
-    call void @printi(i64 %4)
+    store { i64, i8 } %1, { i64, i8 }* %box, align 4
+    %2 = bitcast %t* %ret to i64*
+    %3 = load i64, i64* %2, align 4
+    call void @printi(i64 %3)
     ret i64 0
   }
   20
@@ -844,42 +825,36 @@ a second function. Instead, the closure struct was being created again and the c
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %t_int, align 8
-    %x18 = bitcast %t_int* %0 to i64*
-    store i64 15, i64* %x18, align 4
     %clstmp = alloca %closure, align 8
-    %funptr19 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 (i64, %closure*)* @__tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr19, align 8
+    %funptr14 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (i64 (i64, %closure*)* @__tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr14, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    %clstmp2 = alloca %closure, align 8
-    %funptr320 = bitcast %closure* %clstmp2 to i8**
-    store i8* bitcast (i64 (i64)* @add1 to i8*), i8** %funptr320, align 8
-    %envptr4 = getelementptr inbounds %closure, %closure* %clstmp2, i32 0, i32 1
-    store i8* null, i8** %envptr4, align 8
+    %clstmp1 = alloca %closure, align 8
+    %funptr215 = bitcast %closure* %clstmp1 to i8**
+    store i8* bitcast (i64 (i64)* @add1 to i8*), i8** %funptr215, align 8
+    %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
+    store i8* null, i8** %envptr3, align 8
     %ret = alloca %t_int, align 8
-    %1 = call i64 @__ggg.gg.g_apply_titii.i.tii.i.ti(i64 15, %closure* %clstmp, %closure* %clstmp2)
+    %0 = call i64 @__ggg.gg.g_apply_titii.i.tii.i.ti(i64 bitcast (%t_int { i64 15 } to i64), %closure* %clstmp, %closure* %clstmp1)
     %box = bitcast %t_int* %ret to i64*
-    store i64 %1, i64* %box, align 4
+    store i64 %0, i64* %box, align 4
+    call void @printi(i64 %0)
+    %clstmp5 = alloca %closure, align 8
+    %funptr616 = bitcast %closure* %clstmp5 to i8**
+    store i8* bitcast (i64 (i64, %closure*)* @__tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr616, align 8
+    %envptr7 = getelementptr inbounds %closure, %closure* %clstmp5, i32 0, i32 1
+    store i8* null, i8** %envptr7, align 8
+    %clstmp8 = alloca %closure, align 8
+    %funptr917 = bitcast %closure* %clstmp8 to i8**
+    store i8* bitcast (i64 (i64)* @add1 to i8*), i8** %funptr917, align 8
+    %envptr10 = getelementptr inbounds %closure, %closure* %clstmp8, i32 0, i32 1
+    store i8* null, i8** %envptr10, align 8
+    %ret11 = alloca %t_int, align 8
+    %1 = call i64 @__ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(i64 bitcast (%t_int { i64 15 } to i64), %closure* %clstmp5, %closure* %clstmp8)
+    %box12 = bitcast %t_int* %ret11 to i64*
+    store i64 %1, i64* %box12, align 4
     call void @printi(i64 %1)
-    %2 = alloca %t_int, align 8
-    %x621 = bitcast %t_int* %2 to i64*
-    store i64 15, i64* %x621, align 4
-    %clstmp9 = alloca %closure, align 8
-    %funptr1022 = bitcast %closure* %clstmp9 to i8**
-    store i8* bitcast (i64 (i64, %closure*)* @__tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr1022, align 8
-    %envptr11 = getelementptr inbounds %closure, %closure* %clstmp9, i32 0, i32 1
-    store i8* null, i8** %envptr11, align 8
-    %clstmp12 = alloca %closure, align 8
-    %funptr1323 = bitcast %closure* %clstmp12 to i8**
-    store i8* bitcast (i64 (i64)* @add1 to i8*), i8** %funptr1323, align 8
-    %envptr14 = getelementptr inbounds %closure, %closure* %clstmp12, i32 0, i32 1
-    store i8* null, i8** %envptr14, align 8
-    %ret15 = alloca %t_int, align 8
-    %3 = call i64 @__ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(i64 15, %closure* %clstmp9, %closure* %clstmp12)
-    %box16 = bitcast %t_int* %ret15 to i64*
-    store i64 %3, i64* %box16, align 4
-    call void @printi(i64 %3)
     ret i64 0
   }
   16
@@ -891,47 +866,33 @@ Closures can recurse too
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
-  
   declare void @printi(i64 %0)
   
-  define private void @loop(i64 %i, i8* %0) {
+  define private void @loop(i64 %i) {
   entry:
-    %clsr = bitcast i8* %0 to { i64 }*
-    %outer4 = bitcast { i64 }* %clsr to i64*
-    %outer1 = load i64, i64* %outer4, align 4
-    %1 = alloca i64, align 8
-    store i64 %i, i64* %1, align 4
+    %0 = alloca i64, align 8
+    store i64 %i, i64* %0, align 4
     br label %rec
   
   rec:                                              ; preds = %then, %entry
-    %i2 = phi i64 [ %add, %then ], [ %i, %entry ]
-    %lt = icmp slt i64 %i2, %outer1
+    %i1 = phi i64 [ %add, %then ], [ %i, %entry ]
+    %lt = icmp slt i64 %i1, 10
     br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %rec
-    tail call void @printi(i64 %i2)
-    %add = add i64 %i2, 1
-    store i64 %add, i64* %1, align 4
+    tail call void @printi(i64 %i1)
+    %add = add i64 %i1, 1
+    store i64 %add, i64* %0, align 4
     br label %rec
   
   else:                                             ; preds = %rec
-    tail call void @printi(i64 %i2)
+    tail call void @printi(i64 %i1)
     ret void
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %loop = alloca %closure, align 8
-    %funptr3 = bitcast %closure* %loop to i8**
-    store i8* bitcast (void (i64, i8*)* @loop to i8*), i8** %funptr3, align 8
-    %clsr_loop = alloca { i64 }, align 8
-    %outer4 = bitcast { i64 }* %clsr_loop to i64*
-    store i64 10, i64* %outer4, align 4
-    %env = bitcast { i64 }* %clsr_loop to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %loop, i32 0, i32 1
-    store i8* %env, i8** %envptr, align 8
-    call void @loop(i64 0, i8* %env)
+    tail call void @loop(i64 0)
     ret i64 0
   }
   0
@@ -1023,14 +984,11 @@ Support monomorphization of nested functions
     %0 = tail call i64 @__g.g_wrapped_i.i(i64 12)
     tail call void @printi(i64 %0)
     %1 = tail call i1 @__g.g_wrapped_b.b(i1 false)
-    %2 = alloca %rec, align 8
-    %x3 = bitcast %rec* %2 to i64*
-    store i64 24, i64* %x3, align 4
     %ret = alloca %rec, align 8
-    %3 = tail call i64 @__g.g_wrapped_rec.rec(i64 24)
+    %2 = tail call i64 @__g.g_wrapped_rec.rec(i64 bitcast (%rec { i64 24 } to i64))
     %box = bitcast %rec* %ret to i64*
-    store i64 %3, i64* %box, align 4
-    tail call void @printi(i64 %3)
+    store i64 %2, i64* %box, align 4
+    tail call void @printi(i64 %2)
     ret i64 0
   }
   12
@@ -1297,62 +1255,32 @@ Closures have to be added to the env of other closures, so they can be called co
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
   %string = type { i8*, i64 }
   
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
   
   declare void @printf(i8* %0, i64 %1)
   
-  define private void @use_above(i8* %0) {
+  define private void @use_above() {
   entry:
-    %clsr = bitcast i8* %0 to { %closure* }*
-    %close_over_a3 = bitcast { %closure* }* %clsr to %closure**
-    %close_over_a1 = load %closure*, %closure** %close_over_a3, align 8
     %str = alloca %string, align 8
-    %cstr4 = bitcast %string* %str to i8**
-    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr4, align 8
+    %cstr1 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr1, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 3, i64* %length, align 4
-    %funcptr5 = bitcast %closure* %close_over_a1 to i8**
-    %loadtmp = load i8*, i8** %funcptr5, align 8
-    %casttmp = bitcast i8* %loadtmp to i64 (i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %close_over_a1, i32 0, i32 1
-    %loadtmp2 = load i8*, i8** %envptr, align 8
-    %1 = tail call i64 %casttmp(i8* %loadtmp2)
-    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %1)
+    %0 = tail call i64 @close_over_a()
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %0)
     ret void
   }
   
-  define private i64 @close_over_a(i8* %0) {
+  define private i64 @close_over_a() {
   entry:
-    %clsr = bitcast i8* %0 to { i64 }*
-    %a2 = bitcast { i64 }* %clsr to i64*
-    %a1 = load i64, i64* %a2, align 4
-    ret i64 %a1
+    ret i64 20
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %close_over_a = alloca %closure, align 8
-    %funptr7 = bitcast %closure* %close_over_a to i8**
-    store i8* bitcast (i64 (i8*)* @close_over_a to i8*), i8** %funptr7, align 8
-    %clsr_close_over_a = alloca { i64 }, align 8
-    %a8 = bitcast { i64 }* %clsr_close_over_a to i64*
-    store i64 20, i64* %a8, align 4
-    %env = bitcast { i64 }* %clsr_close_over_a to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %close_over_a, i32 0, i32 1
-    store i8* %env, i8** %envptr, align 8
-    %use_above = alloca %closure, align 8
-    %funptr19 = bitcast %closure* %use_above to i8**
-    store i8* bitcast (void (i8*)* @use_above to i8*), i8** %funptr19, align 8
-    %clsr_use_above = alloca { %closure* }, align 8
-    %close_over_a210 = bitcast { %closure* }* %clsr_use_above to %closure**
-    store %closure* %close_over_a, %closure** %close_over_a210, align 8
-    %env3 = bitcast { %closure* }* %clsr_use_above to i8*
-    %envptr4 = getelementptr inbounds %closure, %closure* %use_above, i32 0, i32 1
-    store i8* %env3, i8** %envptr4, align 8
-    call void @use_above(i8* %env3)
+    tail call void @use_above()
     ret i64 0
   }
   20

@@ -9,15 +9,12 @@ Simple record creation (out of order)
   
   %foo = type { i1, i64 }
   
+  @a = constant %foo { i1 true, i64 10 }
+  
   declare void @printi(i64 %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %foo, align 8
-    %x1 = bitcast %foo* %0 to i1*
-    store i1 true, i1* %x1, align 1
-    %y = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
-    store i64 10, i64* %y, align 4
     tail call void @printi(i64 10)
     ret i64 0
   }
@@ -30,6 +27,8 @@ Pass record to function
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %foo = type { i64, i64 }
+  
+  @a = constant %foo { i64 10, i64 20 }
   
   declare void @printi(i64 %0)
   
@@ -48,13 +47,6 @@ Pass record to function
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %foo, align 8
-    %x3 = bitcast %foo* %0 to i64*
-    store i64 10, i64* %x3, align 4
-    %y = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
-    store i64 20, i64* %y, align 4
-    %unbox = bitcast %foo* %0 to { i64, i64 }*
-    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
     tail call void @pass_to_func(i64 10, i64 20)
     ret i64 0
   }
@@ -124,16 +116,17 @@ Nested records
   define private i64 @inner() {
   entry:
     %0 = alloca %inner, align 8
-    %a2 = bitcast %inner* %0 to i64*
-    store i64 3, i64* %a2, align 4
-    ret i64 3
+    store %inner { i64 3 }, %inner* %0, align 4
+    %unbox = bitcast %inner* %0 to i64*
+    %unbox1 = load i64, i64* %unbox, align 4
+    ret i64 %unbox1
   }
   
   define i64 @main(i64 %arg) {
   entry:
     %0 = alloca %foo, align 8
-    %a8 = bitcast %foo* %0 to i64*
-    store i64 0, i64* %a8, align 4
+    %a6 = bitcast %foo* %0 to i64*
+    store i64 0, i64* %a6, align 4
     %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
     %1 = tail call i64 @inner()
     %box = bitcast %inner* %b to i64*
@@ -143,24 +136,22 @@ Nested records
     %3 = bitcast %inner* %b to i64*
     %4 = load i64, i64* %3, align 4
     tail call void @printi(i64 %4)
-    %5 = alloca %t_int, align 8
-    %x9 = bitcast %t_int* %5 to i64*
-    store i64 17, i64* %x9, align 4
-    %inner = getelementptr inbounds %t_int, %t_int* %5, i32 0, i32 1
-    %a210 = bitcast %p_inner_innerst_int* %inner to %innerst_int*
-    %a311 = bitcast %innerst_int* %a210 to i64*
-    store i64 124, i64* %a311, align 4
-    %unbox = bitcast %t_int* %5 to { i64, i64 }*
+    %boxconst = alloca %t_int, align 8
+    store %t_int { i64 17, %p_inner_innerst_int { %innerst_int { i64 124 } } }, %t_int* %boxconst, align 4
+    %unbox = bitcast %t_int* %boxconst to { i64, i64 }*
+    %fst7 = bitcast { i64, i64 }* %unbox to i64*
+    %fst2 = load i64, i64* %fst7, align 4
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
+    %snd3 = load i64, i64* %snd, align 4
     %ret = alloca %t_int, align 8
-    %6 = tail call { i64, i64 } @__g.g___fun0_ti.ti(i64 17, i64 124)
-    %box6 = bitcast %t_int* %ret to { i64, i64 }*
-    store { i64, i64 } %6, { i64, i64 }* %box6, align 4
-    %7 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
-    %8 = bitcast %p_inner_innerst_int* %7 to %innerst_int*
-    %9 = bitcast %innerst_int* %8 to i64*
-    %10 = load i64, i64* %9, align 4
-    tail call void @printi(i64 %10)
+    %5 = tail call { i64, i64 } @__g.g___fun0_ti.ti(i64 %fst2, i64 %snd3)
+    %box4 = bitcast %t_int* %ret to { i64, i64 }*
+    store { i64, i64 } %5, { i64, i64 }* %box4, align 4
+    %6 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
+    %7 = bitcast %p_inner_innerst_int* %6 to %innerst_int*
+    %8 = bitcast %innerst_int* %7 to i64*
+    %9 = load i64, i64* %8, align 4
+    tail call void @printi(i64 %9)
     ret i64 0
   }
   
@@ -177,9 +168,11 @@ Pass generic record
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %t_int = type { i64, i64, i1 }
   %t_bool = type { i64, i1, i1 }
   %closure = type { i8*, i8* }
-  %t_int = type { i64, i64, i1 }
+  
+  @int_t = constant %t_int { i64 700, i64 20, i1 false }
   
   declare void @printi(i64 %0)
   
@@ -264,45 +257,35 @@ Pass generic record
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %t_int, align 8
-    %first11 = bitcast %t_int* %0 to i64*
-    store i64 700, i64* %first11, align 4
-    %gen = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 1
-    store i64 20, i64* %gen, align 4
-    %third = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 2
-    store i1 false, i1* %third, align 1
     %clstmp = alloca %closure, align 8
-    %funptr12 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (void (%t_int*, %t_int*)* @__tg.tg_pass_ti.ti to i8*), i8** %funptr12, align 8
+    %funptr8 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (void (%t_int*, %t_int*)* @__tg.tg_pass_ti.ti to i8*), i8** %funptr8, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
-    call void @__g.gg.g_apply_ti.titi.ti(%t_int* %ret, %closure* %clstmp, %t_int* %0)
-    %1 = bitcast %t_int* %ret to i64*
-    %2 = load i64, i64* %1, align 4
-    call void @printi(i64 %2)
+    call void @__g.gg.g_apply_ti.titi.ti(%t_int* %ret, %closure* %clstmp, %t_int* @int_t)
+    %0 = bitcast %t_int* %ret to i64*
+    %1 = load i64, i64* %0, align 4
+    call void @printi(i64 %1)
     %clstmp1 = alloca %closure, align 8
-    %funptr213 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast ({ i64, i16 } (i64, i16)* @__tg.tg_pass_tb.tb to i8*), i8** %funptr213, align 8
+    %funptr29 = bitcast %closure* %clstmp1 to i8**
+    store i8* bitcast ({ i64, i16 } (i64, i16)* @__tg.tg_pass_tb.tb to i8*), i8** %funptr29, align 8
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
-    %3 = alloca %t_bool, align 8
-    %first414 = bitcast %t_bool* %3 to i64*
-    store i64 234, i64* %first414, align 4
-    %gen5 = getelementptr inbounds %t_bool, %t_bool* %3, i32 0, i32 1
-    store i1 false, i1* %gen5, align 1
-    %third6 = getelementptr inbounds %t_bool, %t_bool* %3, i32 0, i32 2
-    store i1 true, i1* %third6, align 1
-    %unbox = bitcast %t_bool* %3 to { i64, i16 }*
+    %boxconst = alloca %t_bool, align 8
+    store %t_bool { i64 234, i1 false, i1 true }, %t_bool* %boxconst, align 4
+    %unbox = bitcast %t_bool* %boxconst to { i64, i16 }*
+    %fst10 = bitcast { i64, i16 }* %unbox to i64*
+    %fst4 = load i64, i64* %fst10, align 4
     %snd = getelementptr inbounds { i64, i16 }, { i64, i16 }* %unbox, i32 0, i32 1
-    %snd8 = load i16, i16* %snd, align 2
-    %ret9 = alloca %t_bool, align 8
-    %4 = call { i64, i16 } @__g.gg.g_apply_tb.tbtb.tb(%closure* %clstmp1, i64 234, i16 %snd8)
-    %box = bitcast %t_bool* %ret9 to { i64, i16 }*
-    store { i64, i16 } %4, { i64, i16 }* %box, align 4
-    %5 = bitcast %t_bool* %ret9 to i64*
-    %6 = load i64, i64* %5, align 4
-    call void @printi(i64 %6)
+    %snd5 = load i16, i16* %snd, align 2
+    %ret6 = alloca %t_bool, align 8
+    %2 = call { i64, i16 } @__g.gg.g_apply_tb.tbtb.tb(%closure* %clstmp1, i64 %fst4, i16 %snd5)
+    %box = bitcast %t_bool* %ret6 to { i64, i16 }*
+    store { i64, i16 } %2, { i64, i16 }* %box, align 4
+    %3 = bitcast %t_bool* %ret6 to i64*
+    %4 = load i64, i64* %3, align 4
+    call void @printi(i64 %4)
     ret i64 0
   }
   
@@ -316,8 +299,11 @@ Access parametrized record fields
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %gen_first_int = type { i64, i1 }
   %t_int = type { i64, i64, i64, i1 }
+  %gen_first_int = type { i64, i1 }
+  
+  @int_t = constant %t_int { i64 0, i64 700, i64 20, i1 true }
+  @f = constant %gen_first_int { i64 420, i1 false }
   
   declare void @printi(i64 %0)
   
@@ -383,30 +369,14 @@ Access parametrized record fields
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %t_int, align 8
-    %null8 = bitcast %t_int* %0 to i64*
-    store i64 0, i64* %null8, align 4
-    %first = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 1
-    store i64 700, i64* %first, align 4
-    %gen = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 2
-    store i64 20, i64* %gen, align 4
-    %third = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 3
-    store i1 true, i1* %third, align 1
-    %1 = alloca %gen_first_int, align 8
-    %only9 = bitcast %gen_first_int* %1 to i64*
-    store i64 420, i64* %only9, align 4
-    %is = getelementptr inbounds %gen_first_int, %gen_first_int* %1, i32 0, i32 1
-    store i1 false, i1* %is, align 1
-    call void @__tg.u_first_ti.u(%t_int* %0)
-    call void @__tg.u_third_ti.u(%t_int* %0)
-    %2 = call i64 @__tg.g_gen_ti.i(%t_int* %0)
-    call void @printi(i64 %2)
-    %unbox = bitcast %gen_first_int* %1 to { i64, i8 }*
-    %snd = getelementptr inbounds { i64, i8 }, { i64, i8 }* %unbox, i32 0, i32 1
-    %snd2 = load i8, i8* %snd, align 1
-    %3 = call i64 @__gen_firstg.g_only_gen_firsti.i(i64 420, i8 %snd2)
-    call void @printi(i64 %3)
-    call void @__gen_firstg.u_is_gen_firsti.u(i64 420, i8 %snd2)
+    tail call void @__tg.u_first_ti.u(%t_int* @int_t)
+    tail call void @__tg.u_third_ti.u(%t_int* @int_t)
+    %0 = tail call i64 @__tg.g_gen_ti.i(%t_int* @int_t)
+    tail call void @printi(i64 %0)
+    %snd = load i8, i8* getelementptr inbounds ({ i64, i8 }, { i64, i8 }* bitcast (%gen_first_int* @f to { i64, i8 }*), i32 0, i32 1), align 1
+    %1 = tail call i64 @__gen_firstg.g_only_gen_firsti.i(i64 420, i8 %snd)
+    tail call void @printi(i64 %1)
+    tail call void @__gen_firstg.u_is_gen_firsti.u(i64 420, i8 %snd)
     ret i64 0
   }
   700
@@ -424,6 +394,8 @@ Make sure alignment of generic param works
   %misaligned_int = type { %inner, i64 }
   %inner = type { i64, i64 }
   
+  @m = constant %misaligned_int { %inner { i64 50, i64 40 }, i64 30 }
+  
   declare void @printi(i64 %0)
   
   define private i64 @__misalignedg.g_gen_misalignedi.i(%misaligned_int* %any) {
@@ -435,16 +407,8 @@ Make sure alignment of generic param works
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %misaligned_int, align 8
-    %fst2 = bitcast %misaligned_int* %0 to %inner*
-    %fst13 = bitcast %inner* %fst2 to i64*
-    store i64 50, i64* %fst13, align 4
-    %snd = getelementptr inbounds %inner, %inner* %fst2, i32 0, i32 1
-    store i64 40, i64* %snd, align 4
-    %gen = getelementptr inbounds %misaligned_int, %misaligned_int* %0, i32 0, i32 1
-    store i64 30, i64* %gen, align 4
-    %1 = call i64 @__misalignedg.g_gen_misalignedi.i(%misaligned_int* %0)
-    call void @printi(i64 %1)
+    %0 = tail call i64 @__misalignedg.g_gen_misalignedi.i(%misaligned_int* @m)
+    tail call void @printi(i64 %0)
     ret i64 0
   }
   30
@@ -581,49 +545,23 @@ Regression test: Closures for records used to use store/load like for register v
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %foo = type { i64, i64 }
-  %closure = type { i8*, i8* }
+  
+  @foo = constant %foo { i64 12, i64 14 }
   
   declare void @printi(i64 %0)
   
-  define private void @print_foo(i8* %0) {
+  define private void @print_foo() {
   entry:
-    %clsr = bitcast i8* %0 to { %foo }*
-    %foo1 = bitcast { %foo }* %clsr to %foo*
-    %1 = bitcast %foo* %foo1 to i64*
-    %2 = load i64, i64* %1, align 4
-    tail call void @printi(i64 %2)
-    %3 = getelementptr inbounds %foo, %foo* %foo1, i32 0, i32 1
-    %4 = load i64, i64* %3, align 4
-    tail call void @printi(i64 %4)
+    tail call void @printi(i64 12)
+    tail call void @printi(i64 14)
     ret void
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %foo, align 8
-    %x3 = bitcast %foo* %0 to i64*
-    store i64 12, i64* %x3, align 4
-    %y = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
-    store i64 14, i64* %y, align 4
-    %print_foo = alloca %closure, align 8
-    %funptr4 = bitcast %closure* %print_foo to i8**
-    store i8* bitcast (void (i8*)* @print_foo to i8*), i8** %funptr4, align 8
-    %clsr_print_foo = alloca { %foo }, align 8
-    %foo5 = bitcast { %foo }* %clsr_print_foo to %foo*
-    %1 = bitcast %foo* %foo5 to i8*
-    %2 = bitcast %foo* %0 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 16, i1 false)
-    %env = bitcast { %foo }* %clsr_print_foo to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %print_foo, i32 0, i32 1
-    store i8* %env, i8** %envptr, align 8
-    call void @print_foo(i8* %env)
+    tail call void @print_foo()
     ret i64 0
   }
-  
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
-  attributes #0 = { argmemonly nofree nounwind willreturn }
   12
   14
 
@@ -638,49 +576,29 @@ This caused stores to a wrong pointer type in LLVM
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %ys = type { %foo, i64 }
   %foo = type { i64 }
+  %ys = type { %foo, i64 }
+  
+  @x = constant %foo { i64 12 }
+  @ret = constant %ys { %foo { i64 17 }, i64 9 }
+  @a = constant %ys { %foo { i64 1 }, i64 2 }
   
   declare void @printi(i64 %0)
   
   define private { i64, i64 } @ctrl() {
   entry:
-    %0 = alloca %ys, align 8
-    %y5 = bitcast %ys* %0 to %foo*
-    %x6 = bitcast %foo* %y5 to i64*
-    store i64 17, i64* %x6, align 4
-    %z = getelementptr inbounds %ys, %ys* %0, i32 0, i32 1
-    store i64 9, i64* %z, align 4
-    %1 = alloca %ys, align 8
-    %y17 = bitcast %ys* %1 to %foo*
-    %x28 = bitcast %foo* %y17 to i64*
-    store i64 1, i64* %x28, align 4
-    %z3 = getelementptr inbounds %ys, %ys* %1, i32 0, i32 1
-    store i64 2, i64* %z3, align 4
-    %unbox = bitcast %ys* %0 to { i64, i64 }*
-    %unbox4 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
-    ret { i64, i64 } %unbox4
+    %unbox = load { i64, i64 }, { i64, i64 }* bitcast (%ys* @ret to { i64, i64 }*), align 4
+    ret { i64, i64 } %unbox
   }
   
   define private { i64, i64 } @record_with_laters() {
   entry:
-    %0 = alloca %foo, align 8
-    %x2 = bitcast %foo* %0 to i64*
-    store i64 12, i64* %x2, align 4
-    %1 = alloca %ys, align 8
-    %y3 = bitcast %ys* %1 to %foo*
-    %2 = bitcast %foo* %y3 to i8*
-    %3 = bitcast %foo* %0 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
-    %z = getelementptr inbounds %ys, %ys* %1, i32 0, i32 1
-    store i64 15, i64* %z, align 4
-    %unbox = bitcast %ys* %1 to { i64, i64 }*
+    %0 = alloca %ys, align 8
+    store %ys { %foo { i64 12 }, i64 15 }, %ys* %0, align 4
+    %unbox = bitcast %ys* %0 to { i64, i64 }*
     %unbox1 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
     ret { i64, i64 } %unbox1
   }
-  
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i64 @main(i64 %arg) {
   entry:
@@ -708,8 +626,6 @@ This caused stores to a wrong pointer type in LLVM
     tail call void @printi(i64 %11)
     ret i64 0
   }
-  
-  attributes #0 = { argmemonly nofree nounwind willreturn }
   15
   12
   17
@@ -721,10 +637,12 @@ A return of a field should not be preallocated
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %test_int_wrap = type { %int_wrap }
   %int_wrap = type { i64, i64, i64 }
   %mut_int_wrap = type { %int_wrap }
   %closure = type { i8*, i8* }
-  %test_int_wrap = type { %int_wrap }
+  
+  @test = constant %test_int_wrap { %int_wrap { i64 2, i64 0, i64 0 } }
   
   declare void @printi(i64 %0)
   
@@ -732,18 +650,13 @@ A return of a field should not be preallocated
   entry:
     %1 = alloca %mut_int_wrap, align 8
     %wrapped3 = bitcast %mut_int_wrap* %1 to %int_wrap*
-    %dat4 = bitcast %int_wrap* %wrapped3 to i64*
-    store i64 2, i64* %dat4, align 4
-    %b = getelementptr inbounds %int_wrap, %int_wrap* %wrapped3, i32 0, i32 1
-    store i64 0, i64* %b, align 4
-    %c = getelementptr inbounds %int_wrap, %int_wrap* %wrapped3, i32 0, i32 2
-    store i64 0, i64* %c, align 4
+    store %int_wrap { i64 2, i64 0, i64 0 }, %int_wrap* %wrapped3, align 4
     %vector_loop__2 = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %vector_loop__2 to i8**
-    store i8* bitcast (void (i64, i8*)* @vector_loop__2 to i8*), i8** %funptr5, align 8
+    %funptr4 = bitcast %closure* %vector_loop__2 to i8**
+    store i8* bitcast (void (i64, i8*)* @vector_loop__2 to i8*), i8** %funptr4, align 8
     %clsr_vector_loop__2 = alloca { %mut_int_wrap* }, align 8
-    %test6 = bitcast { %mut_int_wrap* }* %clsr_vector_loop__2 to %mut_int_wrap**
-    store %mut_int_wrap* %1, %mut_int_wrap** %test6, align 8
+    %test5 = bitcast { %mut_int_wrap* }* %clsr_vector_loop__2 to %mut_int_wrap**
+    store %mut_int_wrap* %1, %mut_int_wrap** %test5, align 8
     %env = bitcast { %mut_int_wrap* }* %clsr_vector_loop__2 to i8*
     %envptr = getelementptr inbounds %closure, %closure* %vector_loop__2, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
@@ -794,52 +707,29 @@ A return of a field should not be preallocated
   
   define private void @test_thing(%int_wrap* %0) {
   entry:
-    %1 = alloca %test_int_wrap, align 8
-    %int_wrap3 = bitcast %test_int_wrap* %1 to %int_wrap*
-    %dat4 = bitcast %int_wrap* %int_wrap3 to i64*
-    store i64 2, i64* %dat4, align 4
-    %b = getelementptr inbounds %int_wrap, %int_wrap* %int_wrap3, i32 0, i32 1
-    store i64 0, i64* %b, align 4
-    %c = getelementptr inbounds %int_wrap, %int_wrap* %int_wrap3, i32 0, i32 2
-    store i64 0, i64* %c, align 4
-    %vector_loop = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %vector_loop to i8**
-    store i8* bitcast (void (%int_wrap*, i64, i8*)* @vector_loop to i8*), i8** %funptr5, align 8
-    %clsr_vector_loop = alloca { %test_int_wrap }, align 8
-    %test6 = bitcast { %test_int_wrap }* %clsr_vector_loop to %test_int_wrap*
-    %2 = bitcast %test_int_wrap* %test6 to i8*
-    %3 = bitcast %test_int_wrap* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 24, i1 false)
-    %env = bitcast { %test_int_wrap }* %clsr_vector_loop to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %vector_loop, i32 0, i32 1
-    store i8* %env, i8** %envptr, align 8
-    call void @vector_loop(%int_wrap* %0, i64 0, i8* %env)
+    tail call void @vector_loop(%int_wrap* %0, i64 0)
     ret void
   }
   
-  define private void @vector_loop(%int_wrap* %0, i64 %i, i8* %1) {
+  define private void @vector_loop(%int_wrap* %0, i64 %i) {
   entry:
-    %2 = alloca i64, align 8
-    store i64 %i, i64* %2, align 4
-    %3 = add i64 %i, 1
+    %1 = alloca i64, align 8
+    store i64 %i, i64* %1, align 4
+    %2 = add i64 %i, 1
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %lsr.iv = phi i64 [ %lsr.iv.next, %else ], [ %3, %entry ]
+    %lsr.iv = phi i64 [ %lsr.iv.next, %else ], [ %2, %entry ]
     %eq = icmp eq i64 %lsr.iv, 11
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
-    %4 = bitcast i8* %1 to { %test_int_wrap }*
-    %5 = bitcast { %test_int_wrap }* %4 to %test_int_wrap*
-    %6 = bitcast %test_int_wrap* %5 to %int_wrap*
-    %7 = bitcast %int_wrap* %0 to i8*
-    %8 = bitcast %int_wrap* %6 to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 24, i1 false)
+    %3 = bitcast %int_wrap* %0 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* bitcast (%test_int_wrap* @test to i8*), i64 24, i1 false)
     ret void
   
   else:                                             ; preds = %rec
-    store i64 %lsr.iv, i64* %2, align 4
+    store i64 %lsr.iv, i64* %1, align 4
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
   }
