@@ -1,6 +1,11 @@
 open Lexing
 
-type opts = { target : string option; outname : string; dump_llvm : bool }
+type opts = {
+  target : string option;
+  outname : string;
+  dump_llvm : bool;
+  release : bool;
+}
 
 let pp_position lexbuf file =
   let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
@@ -10,7 +15,7 @@ let pp_position lexbuf file =
   in
   (pp, pos)
 
-let run file src { target; outname; dump_llvm } =
+let run file src { target; outname; dump_llvm; release } =
   let fmt_msg_fn kind loc msg =
     let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
     let errloc = fst loc in
@@ -27,7 +32,7 @@ let run file src { target; outname; dump_llvm } =
         (let tree =
            Typing.to_typed fmt_msg_fn prog |> Monomorph_tree.monomorphize
          in
-         ignore (Codegen.generate ~target ~outname tree);
+         ignore (Codegen.generate ~target ~outname ~release tree);
          if dump_llvm then Llvm.dump_module Codegen.the_module)
     with
     | Lexer.SyntaxError msg ->
@@ -65,6 +70,7 @@ let () =
   let dump_llvm = ref false in
   let outname = ref "" in
   let filename = ref [] in
+  let release = ref false in
   let anon_fun fn =
     match !filename with
     | [] -> filename := [ fn ]
@@ -76,7 +82,7 @@ let () =
   let speclist =
     [
       ("-o", Arg.Set_string outname, "Place the output into given file");
-      ( "-target",
+      ( "--target",
         Arg.Set_string target,
         {|triple
     The triple has the general format <arch><sub>-<vendor>-<sys>-<abi>, where:
@@ -86,7 +92,8 @@ let () =
             sys = none, linux, win32, darwin, cuda, etc.
             abi = eabi, gnu, android, macho, elf, etc.|}
       );
-      ("-dump-llvm", Arg.Set dump_llvm, "Dump LLLVM IR");
+      ("--dump-llvm", Arg.Set dump_llvm, "Dump LLLVM IR");
+      ("--release", Arg.Set release, "Optimize");
     ]
   in
   let () = Arg.parse speclist anon_fun usage in
@@ -98,4 +105,5 @@ let () =
   let outname =
     match !outname with "" -> default_outname (List.hd !filename) | s -> s
   in
-  run_file (List.hd !filename) { target; outname; dump_llvm = !dump_llvm }
+  run_file (List.hd !filename)
+    { target; outname; dump_llvm = !dump_llvm; release = !release }

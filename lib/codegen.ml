@@ -1718,7 +1718,7 @@ let fill_constants constants =
   in
   List.iter f constants
 
-let generate ~target ~outname
+let generate ~target ~outname ~release
     { Monomorph_tree.constants; externals; records; tree; funcs } =
   (* Add record types.
      We do this first to ensure that all record definitons
@@ -1778,12 +1778,13 @@ let generate ~target ~outname
   | Some output -> print_endline output
   | None -> ());
 
-  (* let pm = Llvm.PassManager.create () in *)
-  (* let bldr = Llvm_passmgr_builder.create () in *)
-  (* Llvm_passmgr_builder.set_opt_level 2 bldr; *)
-  (* Llvm_passmgr_builder.populate_lto_pass_manager ~internalize:true *)
-  (*   ~run_inliner:true pm bldr; *)
-  (* Llvm.PassManager.run_module the_module pm |> ignore; *)
+  if release then (
+    let pm = Llvm.PassManager.create () in
+    let bldr = Llvm_passmgr_builder.create () in
+    Llvm_passmgr_builder.set_opt_level 2 bldr;
+    Llvm_passmgr_builder.populate_lto_pass_manager ~internalize:true
+      ~run_inliner:true pm bldr;
+    Llvm.PassManager.run_module the_module pm |> ignore);
 
   (* Emit code to file *)
   Llvm_all_backends.initialize ();
