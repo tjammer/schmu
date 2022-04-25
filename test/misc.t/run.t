@@ -2,7 +2,7 @@ Compile stubs
   $ cc -c stub.c
 
 Test elif
-  $ schmu -dump-llvm elseif.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm elseif.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -48,7 +48,7 @@ Test elif
   }
 
 Test simple typedef
-  $ schmu -dump-llvm simple_typealias.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm simple_typealias.smu && cc out.o stub.o && ./a.out
   simple_typealias.smu:2:10: warning: Unused binding puts
   2 | external puts : foo -> unit
                ^^^^
@@ -66,7 +66,7 @@ Test simple typedef
 
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
-  $ schmu -dump-llvm free_vector.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm free_vector.smu && cc out.o stub.o && ./a.out
   free_vector.smu:10:1: warning: Unused binding vec
   10 | vec = ["hey", "young", "world"]
        ^^^
@@ -601,7 +601,7 @@ Also mutable fields and 'realloc' builtin
   attributes #0 = { argmemonly nofree nounwind willreturn }
 
 Test x86_64-linux-gnu ABI (parts of it, anyway)
-  $ schmu -dump-llvm abi.smu
+  $ schmu -o out.o -dump-llvm abi.smu
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -690,7 +690,7 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   }
 
 Regression test for issue #19
-  $ schmu -dump-llvm regression_issue_19.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm regression_issue_19.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -765,7 +765,7 @@ Regression test for issue #19
   }
 
 Test 'and', 'or' and 'not'
-  $ schmu -dump-llvm boolean_logic.smu && cc out.o && ./a.out
+  $ schmu -o out.o -dump-llvm boolean_logic.smu && cc out.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1245,7 +1245,7 @@ Test 'and', 'or' and 'not'
   yes
 
 
-  $ schmu -dump-llvm unary_minus.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm unary_minus.smu && cc out.o stub.o && ./a.out
   unary_minus.smu:1:1: warning: Unused binding a
   1 | a = -1.0
       ^
@@ -1273,7 +1273,7 @@ Test 'and', 'or' and 'not'
   [254]
 
 Test unused binding warning
-  $ schmu unused.smu
+  $ schmu -o out.o unused.smu
   unused.smu:2:1: warning: Unused binding unused1
   2 | unused1 = 0
       ^^^^^^^

@@ -51,6 +51,11 @@ let run_file filename opts =
       prerr_endline msg;
       exit 1
 
+let default_outname filename =
+  if String.ends_with ~suffix:".smu" filename then
+    String.sub filename 0 (String.length filename - 4) ^ ".o"
+  else filename ^ ".o"
+
 let usage = "Usage: schmu [options] filename"
 
 let () =
@@ -90,5 +95,7 @@ let () =
     print_endline usage;
     exit 64);
   let target = match !target with "" -> None | s -> Some s in
-  let outname = match !outname with "" -> "out.o" | s -> s in
+  let outname =
+    match !outname with "" -> default_outname (List.hd !filename) | s -> s
+  in
   run_file (List.hd !filename) { target; outname; dump_llvm = !dump_llvm }

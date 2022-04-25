@@ -2,7 +2,7 @@ Compile stubs
   $ cc -c stub.c
 
 Simple record creation (out of order)
-  $ schmu -dump-llvm simple.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm simple.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -21,7 +21,7 @@ Simple record creation (out of order)
   10
 
 Pass record to function
-  $ schmu -dump-llvm pass.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm pass.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -54,7 +54,7 @@ Pass record to function
 
 
 Create record
-  $ schmu -dump-llvm create.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm create.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -89,7 +89,7 @@ Create record
   8
 
 Nested records
-  $ schmu -dump-llvm nested.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm nested.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -163,7 +163,7 @@ Nested records
   124
 
 Pass generic record
-  $ schmu -dump-llvm parametrized_pass.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm parametrized_pass.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -294,7 +294,7 @@ Pass generic record
   234
 
 Access parametrized record fields
-  $ schmu -dump-llvm parametrized_get.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm parametrized_get.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -386,7 +386,7 @@ Access parametrized record fields
   0
 
 Make sure alignment of generic param works
-  $ schmu -dump-llvm misaligned_get.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm misaligned_get.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -414,7 +414,7 @@ Make sure alignment of generic param works
   30
 
 Parametrization needs to be given, if a type is generic
-  $ schmu -dump-llvm missing_parameter.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm missing_parameter.smu && cc out.o stub.o && ./a.out
   missing_parameter.smu:5:6: error: Type t needs a type parameter
   5 | fun (t : t) t.t end
            ^^^^^
@@ -422,7 +422,7 @@ Parametrization needs to be given, if a type is generic
   [1]
 
 Support function/closure fields
-  $ schmu -dump-llvm function_fields.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm function_fields.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -539,7 +539,7 @@ Support function/closure fields
   100
 
 Regression test: Closures for records used to use store/load like for register values
-  $ schmu -dump-llvm closure.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm closure.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -567,7 +567,7 @@ Regression test: Closures for records used to use store/load like for register v
 
 Regression test: Return allocas were propagated by lets to values earlier in a function.
 This caused stores to a wrong pointer type in LLVM
-  $ schmu -dump-llvm nested_init_let.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm nested_init_let.smu && cc out.o stub.o && ./a.out
   nested_init_let.smu:13:3: warning: Unused binding a
   13 |   a = { y = { x = 1 }, z = 2 }
          ^
@@ -632,7 +632,7 @@ This caused stores to a wrong pointer type in LLVM
   9
 
 A return of a field should not be preallocated
-  $ schmu -dump-llvm nested_prealloc.smu && cc out.o stub.o && ./a.out
+  $ schmu -o out.o -dump-llvm nested_prealloc.smu && cc out.o stub.o && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
