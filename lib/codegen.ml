@@ -379,18 +379,27 @@ let maybe_box_record typ ?(alloc = None) ?(snd_val = None) value =
 
 let unbox_record ~kind ~ret value =
   let structptr =
-    Llvm.build_bitcast value
-      (Llvm.pointer_type (lltype_unboxed kind))
-      "unbox" builder
+    lazy
+      (Llvm.build_bitcast value.value
+         (Llvm.pointer_type (lltype_unboxed kind))
+         "unbox" builder)
   in
+
+  let is_const =
+    match value.const with Const -> true | Not | Const_ptr -> false
+  in
+
   (* If this is a return value, we unbox it as a struct every time *)
   match (ret, kind) with
-  | true, _ | _, One_param _ -> (Llvm.build_load structptr "unbox" builder, None)
+  | (true, _ | _, One_param _) when is_const ->
+      (Llvm.const_bitcast value.value (lltype_unboxed kind), None)
+  | true, _ | _, One_param _ ->
+      (Llvm.build_load (Lazy.force structptr) "unbox" builder, None)
   | _, Two_params _ ->
       (* We load the two arguments from the struct type *)
-      let ptr = Llvm.build_struct_gep structptr 0 "fst" builder in
+      let ptr = Llvm.build_struct_gep (Lazy.force structptr) 0 "fst" builder in
       let v1 = Llvm.build_load ptr "fst" builder in
-      let ptr = Llvm.build_struct_gep structptr 1 "snd" builder in
+      let ptr = Llvm.build_struct_gep (Lazy.force structptr) 1 "snd" builder in
       let v2 = Llvm.build_load ptr "snd" builder in
       (v1, Some v2)
 
@@ -399,7 +408,7 @@ let maybe_unbox_record typ value =
   (* From record to int *)
   match pkind_of_typ typ with
   | Unboxed kind -> unbox_record ~kind ~ret:false value
-  | Boxed -> (value, None)
+  | Boxed -> (value.value, None)
 
 let to_named_records = function
   | Trecord (_, _, labels) as t ->
@@ -845,7 +854,7 @@ let fun_return name ret =
       match pkind_of_typ t with
       | Boxed -> (* Default record case *) Llvm.build_ret_void builder
       | Unboxed kind ->
-          let unboxed, _ = unbox_record ~kind ~ret:true ret.value in
+          let unboxed, _ = unbox_record ~kind ~ret:true ret in
           Llvm.build_ret unboxed builder)
   | Tpoly id when String.equal id "tail" ->
       (* This magic id is used to mark a tailrecursive call *)
@@ -1233,15 +1242,20 @@ and gen_app param callee args allocref ret_t malloc =
       (fun args arg ->
         let arg' = gen_expr param Monomorph_tree.(arg.ex) in
 
-        (* In case the record passed is constant, we allocate it here to pass a pointer.
-           This isn't pretty, but will do for now *)
+        (* In case the record passed is constant, we allocate it here to pass
+           a pointer. This isn't pretty, but will do for now. For the single
+           param, unboxed case we can skip boxing *)
         let arg =
           match (arg'.typ, pkind_of_typ arg'.typ, arg'.const) with
-          | Trecord _, _, Const -> box_const param arg'
+          (* The [Two_params] case is tricky to do using only consts,
+             so we box and use the standard runtime version *)
+          | Trecord _, Boxed, Const | Trecord _, Unboxed (Two_params _), Const
+            ->
+              box_const param arg'
           | _ -> get_mono_func arg' param arg.monomorph
         in
 
-        match maybe_unbox_record arg.typ arg.value with
+        match maybe_unbox_record arg.typ arg with
         | fst, Some snd ->
             (* We can skip [func_to_closure] in this case *)
             (* snd before fst, b/c we rev at the end *)
@@ -1767,7 +1781,8 @@ let generate ~target ~outname
   (* let pm = Llvm.PassManager.create () in *)
   (* let bldr = Llvm_passmgr_builder.create () in *)
   (* Llvm_passmgr_builder.set_opt_level 2 bldr; *)
-  (* Llvm_passmgr_builder.populate_module_pass_manager pm bldr; *)
+  (* Llvm_passmgr_builder.populate_lto_pass_manager ~internalize:true *)
+  (*   ~run_inliner:true pm bldr; *)
   (* Llvm.PassManager.run_module the_module pm |> ignore; *)
 
   (* Emit code to file *)
