@@ -27,7 +27,7 @@ type expr =
       malloc : int option;
       id : int;
     }
-  | Mrecord of (string * monod_tree) list * alloca
+  | Mrecord of (string * monod_tree) list * alloca * bool
   | Mfield of (monod_tree * int)
   | Mfield_set of (monod_tree * int * monod_tree)
   | Mseq of (monod_tree * monod_tree)
@@ -56,7 +56,7 @@ and call_name =
   | Builtin of Builtin.t * func
 
 and monod_expr = { ex : monod_tree; monomorph : call_name }
-and monod_tree = { typ : typ; expr : expr; return : bool; is_const : bool }
+and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
@@ -322,9 +322,13 @@ let rec subst_body p subst tree =
           typ = func.ret;
           expr = Mapp { callee; args; alloca; malloc; id };
         }
-    | Mrecord (labels, alloca) ->
+    | Mrecord (labels, alloca, const) ->
         let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
-        { tree with typ = subst tree.typ; expr = Mrecord (labels, alloca) }
+        {
+          tree with
+          typ = subst tree.typ;
+          expr = Mrecord (labels, alloca, const);
+        }
     | Mfield (expr, index) ->
         { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
     | Mfield_set (expr, index, value) ->
@@ -451,9 +455,7 @@ let set_tailrec name =
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
 let rec morph_expr param (texpr : Typing.typed_expr) =
-  let make expr return =
-    { typ = cln texpr.typ; expr; return; is_const = texpr.is_const }
-  in
+  let make expr return = { typ = cln texpr.typ; expr; return } in
   match texpr.expr with
   | Typing.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
@@ -463,7 +465,7 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let (id, e1, e2) -> morph_let make param id e1 e2
-  | Record labels -> morph_record make param labels
+  | Record labels -> morph_record make param labels texpr.is_const
   | Field (expr, index) -> morph_field make param expr index
   | Field_set (expr, index, value) ->
       morph_field_set make param expr index value
@@ -546,12 +548,12 @@ and morph_if mk p cond e1 e2 =
     mk (Mif { cond; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc) } )
 
-and morph_let mk p id e1 e2 =
+and morph_let mk p id e1' e2 =
   let ret = p.ret in
-  let p, e1, func = morph_expr { p with ret = false } e1 in
+  let p, e1, func = morph_expr { p with ret = false } e1' in
   (* We add constants to the constant table, not the current env *)
   let p =
-    if e1.is_const then
+    if e1'.is_const then
       (* Maybe we have to generate a new name here *)
       let cnt = new_id constant_uniq_state in
       let cid =
@@ -570,7 +572,7 @@ and morph_let mk p id e1 e2 =
   let p, e2, func = morph_expr { p with ret } e2 in
   (p, mk (Mlet (id, e1, e2)) ret, func)
 
-and morph_record mk p labels =
+and morph_record mk p labels is_const =
   let ret = p.ret in
   let p = { p with ret = false } in
 
@@ -591,7 +593,7 @@ and morph_record mk p labels =
 
   let alloca = ref (request ()) in
   ( { p with ret },
-    mk (Mrecord (labels, alloca)) ret,
+    mk (Mrecord (labels, alloca, is_const)) ret,
     { fn = No_function; alloc = Value alloca; malloc } )
 
 and morph_field mk p expr index =
@@ -647,6 +649,15 @@ and morph_func p (username, uniq, abs, cont) =
     in
     let value = { no_var with fn = Forward_decl call; alloc } in
     let vars = Vars.add username (Normal value) p.vars in
+
+    (* Add parameters to env as normal values.
+       The existing values might not be 'normal' *)
+    let vars =
+      List.fold_left
+        (fun vars name -> Vars.add name (Normal no_var) vars)
+        vars pnames
+    in
+
     { p with vars; ret = true; mallocs = [] }
   in
 
@@ -685,14 +696,7 @@ and morph_func p (username, uniq, abs, cont) =
   in
 
   let p, cont, func = morph_expr { p with ret } cont in
-  ( p,
-    {
-      typ = cont.typ;
-      expr = Mfunction (call, abs, cont);
-      return = ret;
-      is_const = false;
-    },
-    func )
+  (p, { typ = cont.typ; expr = Mfunction (call, abs, cont); return = ret }, func)
 
 and morph_lambda typ p id abs =
   let typ = cln typ in
@@ -737,7 +741,7 @@ and morph_lambda typ p id abs =
       ({ p with funcs }, Concrete (gen_func, name))
   in
   ( { p with ret },
-    { typ; expr = Mlambda (name, abs); return = ret; is_const = false },
+    { typ; expr = Mlambda (name, abs); return = ret },
     { var with fn } )
 
 and morph_app mk p callee args =

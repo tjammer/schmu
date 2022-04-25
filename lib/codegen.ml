@@ -18,7 +18,15 @@ end
 module Strtbl = Hashtbl.Make (Str)
 module Ptrtbl = Hashtbl.Make (Int)
 
-type llvar = { value : Llvm.llvalue; typ : typ; lltyp : Llvm.lltype }
+type const_kind = Not | Const | Const_ptr
+
+type llvar = {
+  value : Llvm.llvalue;
+  typ : typ;
+  lltyp : Llvm.lltype;
+  const : const_kind;
+}
+
 type rec_block = { rec_ : Llvm.llbasicblock; entry : Llvm.llbuilder }
 
 type param = {
@@ -79,7 +87,7 @@ let generic_t = Llvm.named_struct_type context "generic"
 let dummy_fn_value =
   (* When we need something in the env for a function which will only be called
      in a monomorphized version *)
-  { typ = Tunit; value = Llvm.const_int i32_t (-1); lltyp = i32_t }
+  { typ = Tunit; value = Llvm.const_int i32_t (-1); lltyp = i32_t; const = Not }
 
 (* Named structs for records *)
 
@@ -370,25 +378,21 @@ let maybe_box_record typ ?(alloc = None) ?(snd_val = None) value =
   | Boxed -> value
 
 let unbox_record ~kind ~ret value =
-  if ret && Llvm.is_constant value then
-    (Llvm.build_bitcast value (lltype_unboxed kind) "unboxcast" builder, None)
-  else
-    let structptr =
-      Llvm.build_bitcast value
-        (Llvm.pointer_type (lltype_unboxed kind))
-        "unbox" builder
-    in
-    (* If this is a return value, we unbox it as a struct every time *)
-    match (ret, kind) with
-    | true, _ | _, One_param _ ->
-        (Llvm.build_load structptr "unbox" builder, None)
-    | _, Two_params _ ->
-        (* We load the two arguments from the struct type *)
-        let ptr = Llvm.build_struct_gep structptr 0 "fst" builder in
-        let v1 = Llvm.build_load ptr "fst" builder in
-        let ptr = Llvm.build_struct_gep structptr 1 "snd" builder in
-        let v2 = Llvm.build_load ptr "snd" builder in
-        (v1, Some v2)
+  let structptr =
+    Llvm.build_bitcast value
+      (Llvm.pointer_type (lltype_unboxed kind))
+      "unbox" builder
+  in
+  (* If this is a return value, we unbox it as a struct every time *)
+  match (ret, kind) with
+  | true, _ | _, One_param _ -> (Llvm.build_load structptr "unbox" builder, None)
+  | _, Two_params _ ->
+      (* We load the two arguments from the struct type *)
+      let ptr = Llvm.build_struct_gep structptr 0 "fst" builder in
+      let v1 = Llvm.build_load ptr "fst" builder in
+      let ptr = Llvm.build_struct_gep structptr 1 "snd" builder in
+      let v2 = Llvm.build_load ptr "snd" builder in
+      (v1, Some v2)
 
 (* Checks the param kind before calling [unbox_record] *)
 let maybe_unbox_record typ value =
@@ -415,22 +419,22 @@ let to_named_records = function
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src ~size =
-  if Llvm.is_constant src.value then
-    ignore (Llvm.build_store src.value dst builder)
-  else
-    let memcpy_decl =
-      lazy
-        Llvm.(
-          (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
-          let ft =
-            function_type unit_t [| voidptr_t; voidptr_t; int_t; bool_t |]
-          in
-          declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
-    in
-    let dstptr = Llvm.build_bitcast dst voidptr_t "" builder in
-    let retptr = Llvm.build_bitcast src.value voidptr_t "" builder in
-    let args = [| dstptr; retptr; size; Llvm.const_int bool_t 0 |] in
-    ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
+  match src.const with
+  | Const -> ignore (Llvm.build_store src.value dst builder)
+  | Not | Const_ptr ->
+      let memcpy_decl =
+        lazy
+          Llvm.(
+            (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
+            let ft =
+              function_type unit_t [| voidptr_t; voidptr_t; int_t; bool_t |]
+            in
+            declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
+      in
+      let dstptr = Llvm.build_bitcast dst voidptr_t "" builder in
+      let retptr = Llvm.build_bitcast src.value voidptr_t "" builder in
+      let args = [| dstptr; retptr; size; Llvm.const_int bool_t 0 |] in
+      ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
 
 let malloc ~size =
   let malloc_decl =
@@ -566,6 +570,7 @@ let declare_function fun_name = function
           value = Llvm.declare_function fun_name ft the_module;
           typ;
           lltyp = ft;
+          const = Not;
         }
       in
       llvar
@@ -633,7 +638,7 @@ let gen_closure_obj param assoc func name =
      when passed *)
   let typ = tfun_to_closure func.typ in
 
-  { value = clsr_struct; typ; lltyp = func.lltyp }
+  { value = clsr_struct; typ; lltyp = func.lltyp; const = Not }
 
 let add_closure vars func = function
   | Simple -> vars
@@ -664,7 +669,7 @@ let add_closure vars func = function
                   let value = Llvm.build_load item_ptr name builder in
                   (value, Llvm.type_of value)
             in
-            let item = { value; typ; lltyp } in
+            let item = { value; typ; lltyp; const = Not } in
             (Vars.add name item env, i + 1))
           (vars, 0) assoc
       in
@@ -711,7 +716,7 @@ let add_params vars f fname names types start_index recursive =
     List.fold_left2
       (fun (env, i) name typ ->
         let value, i = get_value i typ in
-        let param = { value; typ; lltyp = Llvm.type_of value } in
+        let param = { value; typ; lltyp = Llvm.type_of value; const = Not } in
         Llvm.set_value_name name value;
         (Vars.add name param env, i + 1))
       (vars, start_index) names types
@@ -768,7 +773,9 @@ let add_params vars f fname names types start_index recursive =
           (fun (env, i) name typ ->
             let value, i = get_value i typ in
             Llvm.set_value_name name value;
-            let value = { value; typ; lltyp = Llvm.type_of value } in
+            let value =
+              { value; typ; lltyp = Llvm.type_of value; const = Not }
+            in
             let alloc = { value with value = alloca_copy value } in
             (Vars.add (name_of_alloc_param i) alloc env, i + 1))
           (vars, start_index) names types
@@ -931,22 +938,50 @@ and gen_expr param typed_expr =
 
   match typed_expr.expr with
   | Monomorph_tree.Mconst (Int i) ->
-      { value = Llvm.const_int int_t i; typ = Tint; lltyp = int_t } |> fin
+      {
+        value = Llvm.const_int int_t i;
+        typ = Tint;
+        lltyp = int_t;
+        const = Const;
+      }
+      |> fin
   | Mconst (Bool b) ->
       {
         value = Llvm.const_int bool_t (Bool.to_int b);
         typ = Tbool;
         lltyp = bool_t;
+        const = Const;
       }
       |> fin
   | Mconst (U8 c) ->
-      { value = Llvm.const_int u8_t (Char.code c); typ = Tu8; lltyp = u8_t }
+      {
+        value = Llvm.const_int u8_t (Char.code c);
+        typ = Tu8;
+        lltyp = u8_t;
+        const = Const;
+      }
   | Mconst (Float f) ->
-      { value = Llvm.const_float float_t f; typ = Tfloat; lltyp = float_t }
+      {
+        value = Llvm.const_float float_t f;
+        typ = Tfloat;
+        lltyp = float_t;
+        const = Const;
+      }
   | Mconst (I32 i) ->
-      { value = Llvm.const_int i32_t i; typ = Ti32; lltyp = i32_t } |> fin
+      {
+        value = Llvm.const_int i32_t i;
+        typ = Ti32;
+        lltyp = i32_t;
+        const = Const;
+      }
+      |> fin
   | Mconst (F32 f) ->
-      { value = Llvm.const_float f32_t f; typ = Tf32; lltyp = f32_t }
+      {
+        value = Llvm.const_float f32_t f;
+        typ = Tf32;
+        lltyp = f32_t;
+        const = Const;
+      }
   | Mconst (String (s, allocref)) ->
       codegen_string_lit param s typed_expr.typ allocref
   | Mconst (Vector (id, es, allocref)) ->
@@ -995,8 +1030,9 @@ and gen_expr param typed_expr =
       | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args |> fin
       | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
   | Mif expr -> gen_if param expr typed_expr.return
-  | Mrecord (labels, allocref) ->
-      codegen_record param typed_expr.typ labels allocref typed_expr.is_const
+  | Mrecord (labels, allocref, const) ->
+      codegen_record param typed_expr.typ labels allocref const
+        typed_expr.return
       |> fin
   | Mfield (expr, index) -> codegen_field param expr index |> fin
   | Mfield_set (expr, index, value) ->
@@ -1032,29 +1068,72 @@ and gen_bop param e1 e2 bop =
   in
   let open Llvm in
   match bop with
-  | Plus_i -> { value = bld build_add "add"; typ = Tint; lltyp = int_t }
-  | Minus_i -> { value = bld build_sub "sub"; typ = Tint; lltyp = int_t }
-  | Mult_i -> { value = bld build_mul "mul"; typ = Tint; lltyp = int_t }
-  | Div_i -> { value = bld build_sdiv "div"; typ = Tint; lltyp = int_t }
+  | Plus_i ->
+      { value = bld build_add "add"; typ = Tint; lltyp = int_t; const = Not }
+  | Minus_i ->
+      { value = bld build_sub "sub"; typ = Tint; lltyp = int_t; const = Not }
+  | Mult_i ->
+      { value = bld build_mul "mul"; typ = Tint; lltyp = int_t; const = Not }
+  | Div_i ->
+      { value = bld build_sdiv "div"; typ = Tint; lltyp = int_t; const = Not }
   | Less_i ->
       let value = bld (build_icmp Icmp.Slt) "lt" in
-      { value; typ = Tbool; lltyp = bool_t }
+      { value; typ = Tbool; lltyp = bool_t; const = Not }
   | Greater_i ->
       let value = bld (build_icmp Icmp.Sgt) "gt" in
-      { value; typ = Tbool; lltyp = bool_t }
+      { value; typ = Tbool; lltyp = bool_t; const = Not }
   | Equal_i ->
       let value = bld (build_icmp Icmp.Eq) "eq" in
-      { value; typ = Tbool; lltyp = bool_t }
-  | Plus_f -> { value = bld build_fadd "add"; typ = Tfloat; lltyp = float_t }
-  | Minus_f -> { value = bld build_fsub "sub"; typ = Tfloat; lltyp = float_t }
-  | Mult_f -> { value = bld build_fmul "mul"; typ = Tfloat; lltyp = float_t }
-  | Div_f -> { value = bld build_fdiv "div"; typ = Tfloat; lltyp = float_t }
+      { value; typ = Tbool; lltyp = bool_t; const = Not }
+  | Plus_f ->
+      {
+        value = bld build_fadd "add";
+        typ = Tfloat;
+        lltyp = float_t;
+        const = Not;
+      }
+  | Minus_f ->
+      {
+        value = bld build_fsub "sub";
+        typ = Tfloat;
+        lltyp = float_t;
+        const = Not;
+      }
+  | Mult_f ->
+      {
+        value = bld build_fmul "mul";
+        typ = Tfloat;
+        lltyp = float_t;
+        const = Not;
+      }
+  | Div_f ->
+      {
+        value = bld build_fdiv "div";
+        typ = Tfloat;
+        lltyp = float_t;
+        const = Not;
+      }
   | Less_f ->
-      { value = bld (build_fcmp Fcmp.Olt) "lt"; typ = Tbool; lltyp = bool_t }
+      {
+        value = bld (build_fcmp Fcmp.Olt) "lt";
+        typ = Tbool;
+        lltyp = bool_t;
+        const = Not;
+      }
   | Greater_f ->
-      { value = bld (build_fcmp Fcmp.Ogt) "gt"; typ = Tbool; lltyp = bool_t }
+      {
+        value = bld (build_fcmp Fcmp.Ogt) "gt";
+        typ = Tbool;
+        lltyp = bool_t;
+        const = Not;
+      }
   | Equal_f ->
-      { value = bld (build_fcmp Fcmp.Oeq) "eq"; typ = Tbool; lltyp = bool_t }
+      {
+        value = bld (build_fcmp Fcmp.Oeq) "eq";
+        typ = Tbool;
+        lltyp = bool_t;
+        const = Not;
+      }
   | And ->
       let cond1 = gen e1 in
 
@@ -1088,7 +1167,7 @@ and gen_bop param e1 e2 bop =
         ]
       in
       let value = build_phi incoming "andtmp" bldr in
-      { value; typ = Tbool; lltyp = bool_t }
+      { value; typ = Tbool; lltyp = bool_t; const = Not }
   | Or ->
       let cond1 = gen e1 in
 
@@ -1122,7 +1201,7 @@ and gen_bop param e1 e2 bop =
         ]
       in
       let value = build_phi incoming "andtmp" bldr in
-      { value; typ = Tbool; lltyp = bool_t }
+      { value; typ = Tbool; lltyp = bool_t; const = Not }
 
 and gen_unop param e =
   let expr = gen_expr param e in
@@ -1156,10 +1235,9 @@ and gen_app param callee args allocref ret_t malloc =
 
         (* In case the record passed is constant, we allocate it here to pass a pointer.
            This isn't pretty, but will do for now *)
-        (* TODO cache this *)
         let arg =
-          match (arg'.typ, pkind_of_typ arg'.typ) with
-          | Trecord _, Boxed when arg.ex.is_const -> box_const param arg'
+          match (arg'.typ, pkind_of_typ arg'.typ, arg'.const) with
+          | Trecord _, _, Const -> box_const param arg'
           | _ -> get_mono_func arg' param arg.monomorph
         in
 
@@ -1241,7 +1319,7 @@ and gen_app param callee args allocref ret_t malloc =
   | Some id -> Ptrtbl.add ptr_tbl id (value, ret)
   | None -> ());
 
-  { value; typ = ret; lltyp }
+  { value; typ = ret; lltyp; const = Not }
 
 and gen_app_tailrec param callee args rec_block ret_t =
   (* We evaluate, there might be side-effects *)
@@ -1281,7 +1359,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
   in
 
   let value = Llvm.build_br rec_block.rec_ builder in
-  { value; typ = Tpoly "tail"; lltyp }
+  { value; typ = Tpoly "tail"; lltyp; const = Not }
 
 and gen_app_builtin param (b, fnc) args =
   let handle_arg arg =
@@ -1297,7 +1375,8 @@ and gen_app_builtin param (b, fnc) args =
     match args with
     | [ value ] ->
         let value = f value dst "" builder in
-        { value; typ = Tint; lltyp = int_t }
+        (* TODO Not always int. That's a bug *)
+        { value; typ = Tint; lltyp = int_t; const = Not }
     | _ -> failwith "Internal Error: Arity mismatch in builtin"
   in
 
@@ -1310,7 +1389,7 @@ and gen_app_builtin param (b, fnc) args =
       in
       let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
       let value = load ptr fnc.ret in
-      { value; typ = fnc.ret; lltyp = Llvm.type_of value }
+      { value; typ = fnc.ret; lltyp = Llvm.type_of value; const = Not }
   | Unsafe_ptr_set ->
       let ptr, index, value =
         match args with
@@ -1319,7 +1398,12 @@ and gen_app_builtin param (b, fnc) args =
       in
       let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
       let value =
-        { value; typ = List.nth fnc.params 2; lltyp = Llvm.type_of value }
+        {
+          value;
+          typ = List.nth fnc.params 2;
+          lltyp = Llvm.type_of value;
+          const = Not;
+        }
       in
       set_record_field value ptr;
       { dummy_fn_value with lltyp = unit_t }
@@ -1339,7 +1423,7 @@ and gen_app_builtin param (b, fnc) args =
       in
       let value = realloc ptr ~size in
 
-      { value; typ = fnc.ret; lltyp = Llvm.type_of value }
+      { value; typ = fnc.ret; lltyp = Llvm.type_of value; const = Not }
   | Malloc ->
       let item_size =
         match fnc.ret with
@@ -1356,7 +1440,7 @@ and gen_app_builtin param (b, fnc) args =
       let value = malloc ~size in
       let value = Llvm.build_bitcast value ptr_typ "" builder in
 
-      { value; typ = fnc.ret; lltyp = Llvm.type_of value }
+      { value; typ = fnc.ret; lltyp = Llvm.type_of value; const = Not }
   | Ignore -> dummy_fn_value
   | Int_of_float -> cast Llvm.build_fptosi int_t
   | Float_of_int -> cast Llvm.build_sitofp float_t
@@ -1373,7 +1457,7 @@ and gen_app_builtin param (b, fnc) args =
 
       let true_value = Llvm.const_int bool_t (Bool.to_int true) in
       let value = Llvm.build_xor value true_value "" builder in
-      { value; typ = Tbool; lltyp = bool_t }
+      { value; typ = Tbool; lltyp = bool_t; const = Not }
 
 and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),
@@ -1402,15 +1486,6 @@ and gen_if param expr return =
   Llvm.position_at_end else_bb builder;
   let e2 = gen_expr param expr.e2 in
 
-  let e1, e2 =
-    match
-      ((e1.typ, Llvm.is_constant e1.value), (e2.typ, Llvm.is_constant e2.value))
-    with
-    | (Trecord _, true), (_, false) -> (box_const param e1, e2)
-    | (_, false), (_Trecord_, true) -> (e1, box_const param e2)
-    | _ -> (e1, e2)
-  in
-
   let e2_bb = Llvm.insertion_block builder in
   let merge_bb = Llvm.append_block context "ifcont" parent in
   Llvm.position_at_end merge_bb builder;
@@ -1433,7 +1508,7 @@ and gen_if param expr return =
             if e1.value <> e2.value then
               let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
               let value = Llvm.build_phi incoming "iftmp" builder in
-              { value; typ = e1.typ; lltyp = e2.lltyp }
+              { value; typ = e1.typ; lltyp = e2.lltyp; const = Not }
             else e1)
   in
 
@@ -1450,38 +1525,56 @@ and gen_if param expr return =
   Llvm.position_at_end merge_bb builder;
   llvar
 
-and codegen_record param typ labels allocref is_const =
+and codegen_record param typ labels allocref const return =
   let lltyp = get_lltype_field typ in
 
-  let value =
-    if not is_const then (
-      let record = get_prealloc !allocref param lltyp "" in
+  let value, const =
+    match const with
+    | false ->
+        let record = get_prealloc !allocref param lltyp "" in
 
-      List.iteri
-        (fun i (name, expr) ->
-          let ptr = Llvm.build_struct_gep record i name builder in
-          let value =
-            gen_expr { param with alloca = Some ptr } expr
-            |> func_to_closure param
+        List.iteri
+          (fun i (name, expr) ->
+            let ptr = Llvm.build_struct_gep record i name builder in
+            let value =
+              gen_expr { param with alloca = Some ptr } expr
+              |> func_to_closure param
+            in
+            set_record_field value ptr)
+          labels;
+        (record, Not)
+    | true when not !const_pass ->
+        (* We generate the const for runtime use. An addition to
+           re-generating the constants, there are immediate literals.
+           We have to take care that some global constants are pointers now *)
+        let value =
+          let f (_, expr) =
+            let e = gen_expr param expr in
+            match (e.typ, e.const) with
+            | Trecord _, Const_ptr ->
+                (* The global value is a ptr, we need to 'deref' it *)
+                Llvm.global_initializer e.value |> Option.get
+            | _ -> e.value
           in
-          set_record_field value ptr)
-        labels;
-      record)
-    else
-      let () = ignore const_pass in
-      let values =
-        List.map (fun (_, expr) -> (gen_expr param expr).value) labels
-        |> Array.of_list
-      in
-      Llvm.const_named_struct lltyp values
+          let values = List.map f labels |> Array.of_list in
+          Llvm.const_named_struct lltyp values
+        in
+        (* The value might be returned, thus boxed, so we wrap it in an automatic var *)
+        if return then (
+          let record = get_prealloc !allocref param lltyp "" in
+          ignore (Llvm.build_store value record builder);
+          (record, Const_ptr))
+        else (value, Const)
+    | true ->
+        let values =
+          List.map (fun (_, expr) -> (gen_expr param expr).value) labels
+          |> Array.of_list
+        in
+        let ret = Llvm.const_named_struct lltyp values in
+        (ret, Const)
   in
 
-  { value; typ; lltyp }
-
-and get_field param expr index =
-  let value = gen_expr param expr in
-
-  Llvm.build_struct_gep value.value index "" builder
+  { value; typ; lltyp = Llvm.type_of value; const }
 
 and codegen_field param expr index =
   let typ =
@@ -1492,21 +1585,22 @@ and codegen_field param expr index =
         failwith "Internal Error: No record in fields"
   in
 
-  if not expr.is_const then
-    let ptr = get_field param expr index in
-    (* In case we return a record, we don't load, but return the pointer.
-       The idea is that this will be used either as a return value for a function (where it is copied),
-       or for another field, where the pointer is needed.
-       We should distinguish between structs and pointers somehow *)
-    let value = load ptr typ in
-    { value; typ; lltyp = Llvm.type_of value }
-  else
-    let value = gen_expr param expr in
-    let value = Llvm.const_extractvalue value.value [| index |] in
-    { value; typ; lltyp = Llvm.type_of value }
+  let value = gen_expr param expr in
+
+  (* NOTE I feel like there should be a condition here matching on Const or Const_ptr,
+     and to use either a const_extractvalue or runtime struct gep.
+     In practice, it does not seem to be needed *)
+  let ptr = Llvm.build_struct_gep value.value index "" builder in
+  (* In case we return a record, we don't load, but return the pointer.
+     The idea is that this will be used either as a return value for a function (where it is copied),
+     or for another field, where the pointer is needed.
+     We should distinguish between structs and pointers somehow *)
+  let value = load ptr typ in
+  { value; typ; lltyp = Llvm.type_of value; const = Not }
 
 and codegen_field_set param expr index valexpr =
-  let ptr = get_field param expr index in
+  let value = gen_expr param expr in
+  let ptr = Llvm.build_struct_gep value.value index "" builder in
   let value = gen_expr param valexpr in
   (* We know that ptr cannot be a constant record, but value might *)
   set_record_field value ptr;
@@ -1528,7 +1622,7 @@ and codegen_string_lit param s typ allocref =
   let len = Llvm.build_struct_gep string 1 "length" builder in
   ignore (Llvm.build_store (Llvm.const_int int_t (String.length s)) len builder);
 
-  { value = string; typ; lltyp }
+  { value = string; typ; lltyp; const = Const_ptr }
 
 and codegen_vector_lit param id es typ allocref =
   let lltyp = Strtbl.find record_tbl (record_name typ) in
@@ -1586,7 +1680,7 @@ and codegen_vector_lit param id es typ allocref =
 
   Ptrtbl.add ptr_tbl id (vec, typ);
 
-  { value = vec; typ; lltyp }
+  { value = vec; typ; lltyp; const = Not }
 
 and gen_free param expr id =
   let ret = gen_expr param expr in
@@ -1598,8 +1692,15 @@ let fill_constants constants =
     let param =
       { vars = Vars.empty; alloca = None; finalize = None; rec_block = None }
     in
-    let value = gen_expr param tree in
-    Strtbl.add const_tbl name value
+    let init = gen_expr param tree in
+    (* We only add records to the global table, because they are expected as ptrs.
+       For ints or floats, we just return the immediate value *)
+    match init.typ with
+    | Trecord _ ->
+        let value = Llvm.define_global name init.value the_module in
+        Llvm.set_global_constant true value;
+        Strtbl.add const_tbl name { init with value; const = Const_ptr }
+    | _ -> Strtbl.add const_tbl name init
   in
   List.iter f constants
 
@@ -1612,6 +1713,7 @@ let generate ~target ~outname
 
   (* Fill const_tbl *)
   fill_constants constants;
+  const_pass := false;
 
   (* External declarations *)
   let vars =

@@ -1,4 +1,6 @@
-a = 1
+-- We need a nonconst value to capture
+type to_capture = { mutable field : int }
+a = { field = 1 }
 
 fun()
   a = fun() a end

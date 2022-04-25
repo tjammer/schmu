@@ -22,7 +22,7 @@ type expr =
          Codegen must check if there are nested allocations *)
       id : int; (* Internal id for nested monomorphization *)
     }
-  | Mrecord of (string * monod_tree) list * alloca
+  | Mrecord of (string * monod_tree) list * alloca * bool (* bool: is_const *)
   | Mfield of (monod_tree * int)
   | Mfield_set of (monod_tree * int * monod_tree)
   | Mseq of (monod_tree * monod_tree)
@@ -54,7 +54,7 @@ and call_name =
 (* Builtin function with special codegen *)
 
 and monod_expr = { ex : monod_tree; monomorph : call_name }
-and monod_tree = { typ : typ; expr : expr; return : bool; is_const : bool }
+and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
