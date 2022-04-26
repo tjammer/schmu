@@ -590,293 +590,6 @@ let get_prelude env loc name =
   in
   typ
 
-let rec typeof env expr = typeof_annotated env None expr
-
-and typeof_annotated env annot = function
-  | Ast.Var (loc, v) -> typeof_var env loc v
-  | Lit (_, Int _) -> Tint
-  | Lit (_, Bool _) -> Tbool
-  | Lit (_, U8 _) -> Tu8
-  | Lit (_, Float _) -> Tfloat
-  | Lit (_, I32 _) -> Ti32
-  | Lit (_, F32 _) -> Tf32
-  | Lit (loc, String _) -> get_prelude env loc "string"
-  | Lit (loc, Vector vec) -> typeof_vector_lit env loc vec
-  | Lit (_, Unit) -> Tunit
-  | Lambda (loc, id, ret_annot, e) -> typeof_abs env loc id ret_annot e
-  | App (loc, e1, e2) -> typeof_app ~switch_uni:false env loc e1 e2
-  | If (loc, cond, e1, e2) -> typeof_if env loc cond e1 e2
-  | Bop (loc, bop, e1, e2) -> typeof_bop env loc bop e1 e2
-  | Unop (loc, unop, expr) -> typeof_unop env loc unop expr
-  | Record (loc, labels) -> typeof_record env loc annot labels
-  | Field (loc, expr, id) -> typeof_field env loc expr id
-  | Field_set (loc, expr, id, value) -> typeof_field_set env loc expr id value
-  | Pipe_head (loc, e1, e2) -> typeof_pipe_head env loc e1 e2
-  | Pipe_tail (loc, e1, e2) -> typeof_pipe_tail env loc e1 e2
-
-and typeof_var env loc v =
-  (* find_opt would work here, but we use query for consistency with convert_var *)
-  match Env.query_val_opt v env with
-  | Some t -> instantiate t.typ
-  | None -> raise (Error (loc, "No var named " ^ v))
-
-and typeof_vector_lit env loc vec =
-  let inner_typ =
-    List.fold_left
-      (fun typ expr ->
-        let t = typeof env expr in
-        unify (loc, "In vector literal:") typ t;
-        t)
-      (newvar ()) vec
-  in
-
-  let vector = get_prelude env loc "vector" in
-  subst_generic ~id:(get_generic_id loc vector) inner_typ vector
-
-and typeof_let env loc (_, (idloc, id), type_annot) block =
-  enter_level ();
-  let type_e =
-    match type_annot with
-    | None -> (
-        let type_e = typeof_block env block in
-        leave_level ();
-        (* We generalize functions, but allow weak variables for value types *)
-        match clean type_e with Tfun _ -> generalize type_e | _ -> type_e)
-    | Some annot ->
-        let type_annot = typeof_annot env loc annot in
-        let type_e = typeof_block_annot env (Some type_annot) block in
-        leave_level ();
-        check_annot loc type_e type_annot;
-        type_annot
-  in
-  Env.add_value id type_e idloc env
-
-and typeof_abs env loc params ret_annot body =
-  enter_level ();
-  let env, params_t, qparams, ret_annot =
-    handle_params env loc params ret_annot
-  in
-  let ret = typeof_block env body in
-  leave_level ();
-
-  let typ = Tfun (params_t, ret, Simple) in
-  let ret = match ret_annot with Some ret -> ret | None -> ret in
-  let qtyp = Tfun (qparams, ret, Simple) in
-
-  check_annot loc typ qtyp;
-  typ
-
-and typeof_function env loc
-    Ast.{ name = nameloc, name; params; return_annot; body } =
-  enter_level ();
-
-  (* Recursion allowed for named funcs *)
-  let env = Env.add_value name ~is_const:false (newvar ()) nameloc env in
-  let body_env, params_t, qparams, ret_annot =
-    handle_params env loc params return_annot
-  in
-
-  let bodytype = typeof_block body_env body in
-  leave_level ();
-  Tfun (params_t, bodytype, Simple) |> generalize |> function
-  | Tfun (_, ret, kind) as typ ->
-      unify (loc, "") (Env.find_val name env).typ typ;
-      let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = Tfun (qparams, ret, kind) |> generalize in
-      check_annot loc typ qtyp;
-      env
-  | _ -> failwith "Internal Error: Tfun not Tfun"
-
-and typeof_app ~switch_uni env loc e1 args =
-  let type_fun = typeof env e1 in
-  let type_args = List.map (typeof env) args in
-  let type_res = newvar () in
-  if switch_uni then
-    unify (loc, "") (Tfun (type_args, type_res, Simple)) type_fun
-  else unify (loc, "") type_fun (Tfun (type_args, type_res, Simple));
-  type_res
-
-and typeof_if env loc cond e1 e2 =
-  (* We can assume pred evaluates to bool and both
-     branches need to evaluate to the some type *)
-  let type_cond = typeof env cond in
-  unify (loc, "In condition") type_cond Tbool;
-
-  let type_e1 = typeof_block env e1 in
-  let type_e2 = typeof_block env e2 in
-  let type_res = newvar () in
-
-  unify (loc, "Branches have different type") type_e1 type_e2;
-  unify (loc, "") type_res type_e2;
-  type_res
-
-and typeof_bop env loc bop e1 e2 =
-  let check typ =
-    (* both exprs must be Int, not Bool *)
-    let t1 = typeof env e1 in
-    let t2 = typeof env e2 in
-    unify (loc, "Binary " ^ string_of_bop bop) t1 t2;
-    unify (loc, "Binary " ^ string_of_bop bop) typ t1
-  in
-
-  match bop with
-  | Plus_i | Mult_i | Minus_i | Div_i ->
-      check Tint;
-      Tint
-  | Less_i | Equal_i | Greater_i ->
-      check Tint;
-      Tbool
-  | Plus_f | Mult_f | Minus_f | Div_f ->
-      check Tfloat;
-      Tfloat
-  | Less_f | Equal_f | Greater_f ->
-      check Tfloat;
-      Tbool
-  | And | Or ->
-      check Tbool;
-      Tbool
-
-and typeof_unop env loc unop expr =
-  match unop with
-  | Uminus_f ->
-      let typ = typeof env expr in
-      unify (loc, "Unary -.:") Tfloat typ;
-      Tfloat
-  | Uminus_i -> (
-      let typ = typeof env expr in
-      let msg = "Unary -:" in
-
-      try
-        (* We allow '-' to also work on float expressions *)
-        unify (loc, msg) Tfloat typ;
-        Tfloat
-      with Error _ -> (
-        try
-          unify (loc, msg) Tint typ;
-          Tint
-        with Error (loc, errmsg) ->
-          let pos = String.length msg + String.length ": Expected type int" in
-          let post = String.sub errmsg pos (String.length errmsg - pos) in
-          raise (Error (loc, "Unary -: Expected types int or float " ^ post))))
-
-and typeof_record env loc annot labels =
-  let raise_ msg lname rname =
-    let msg = Printf.sprintf "%s field %s on record %s" msg lname rname in
-    raise (Error (loc, msg))
-  in
-
-  let t = get_record_type env loc labels annot in
-
-  let typ =
-    (* NOTE this is copied from convert_record below. We don't find out missing fields here *)
-    match t with
-    | Trecord (param, name, ls) ->
-        let f (lname, expr) =
-          let typ, expr =
-            match array_assoc_opt lname ls with
-            | None -> raise_ "Unbound" lname name
-            | Some (Tvar { contents = Unbound _ } as typ) ->
-                (* If the variable is generic, we figure the type out normally and the
-                   unify for the later fields *)
-                (typ, typeof_annotated env None expr)
-            | Some (Tvar { contents = Link typ })
-            | Some (Talias (_, typ))
-            | Some typ ->
-                (typ, typeof_annotated env (Some typ) expr)
-          in
-          unify (loc, "In record expression:") typ expr;
-          (lname, expr)
-        in
-        ignore (List.map f labels);
-        Trecord (param, name, ls)
-    | t ->
-        "Internal Error: Expected a record type, not " ^ string_of_type t
-        |> failwith
-  in
-  typ |> generalize
-
-and get_field env loc expr id =
-  let typ = typeof env expr in
-  (* This expr could be a fresh var, in which case we take the record type from the label,
-     or it could be a specific record type in which case we have to get that certain record *)
-  match typ with
-  | Trecord (_, name, labels) -> (
-      (* This is a poor replacement for List.assoc_opt *)
-      let find_id acc field =
-        if String.equal id field.name then Some field else acc
-      in
-      match Array.fold_left find_id None labels with
-      | Some t -> t
-      | None ->
-          raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
-  | t -> (
-      match Env.find_label_opt id env with
-      | Some { record; index } -> (
-          let record_t = Env.find_type record env |> instantiate in
-          unify (loc, "Field access of record " ^ record ^ ":") record_t t;
-          match record_t with
-          | Trecord (_, _, labels) -> labels.(index)
-          | _ -> failwith "nope")
-      | None -> raise (Error (loc, "Unbound field " ^ id)))
-
-and typeof_field env loc expr id = (get_field env loc expr id).typ
-
-and typeof_field_set env loc expr id value =
-  let field = get_field env loc expr id in
-  let value = typeof env value in
-
-  (if not field.mut then
-   let msg = Printf.sprintf "Cannot mutate non-mutable field %s" field.name in
-   raise (Error (loc, msg)));
-  unify (loc, "Mutate field " ^ field.name ^ ":") field.typ value;
-  Tunit
-
-and typeof_pipe_head env loc e1 e2 =
-  let switch_uni = true in
-  match e2 with
-  | App (_, callee, args) ->
-      (* Add e1 to beginnig of args *)
-      typeof_app ~switch_uni env loc callee (e1 :: args)
-  | _ ->
-      (* Should be a lone id, if not we let it fail in _app *)
-      typeof_app ~switch_uni env loc e2 [ e1 ]
-
-and typeof_pipe_tail env loc e1 e2 =
-  let switch_uni = true in
-  match e2 with
-  | App (_, callee, args) ->
-      (* Add e1 to beginnig of args *)
-      typeof_app ~switch_uni env loc callee (args @ [ e1 ])
-  | _ ->
-      (* Should be a lone id, if not we let it fail in _app *)
-      typeof_app ~switch_uni env loc e2 [ e1 ]
-
-and typeof_block_annot env annot (loc, stmts) =
-  let check (loc, typ) =
-    unify (loc, "Left expression in sequence must be of type unit:") Tunit typ
-  in
-
-  let rec to_expr env old_type = function
-    | [ Ast.Let (loc, _, _) ] | [ Function (loc, _) ] ->
-        raise (Error (loc, "Block must end with an expression"))
-    | Let (loc, decl, block) :: tl ->
-        let env = typeof_let env loc decl block in
-        to_expr env old_type tl
-    | Function (loc, func) :: tl ->
-        let env = typeof_function env loc func in
-        to_expr env old_type tl
-    | [ Expr (_, e) ] ->
-        check old_type;
-        typeof_annotated env annot e
-    | Expr (loc, e) :: tl ->
-        check old_type;
-        to_expr env (loc, typeof env e) tl
-    | [] -> raise (Error (loc, "Block cannot be empty"))
-  in
-  to_expr env (loc, Tunit) stmts
-
-and typeof_block env stmts = typeof_block_annot env None stmts
-
 let check_type_unique env loc name =
   match Env.find_type_opt name env with
   | Some _ ->
@@ -914,25 +627,6 @@ let type_alias env loc { Ast.poly_param; name } type_spec =
   let temp_env, _ = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc [ type_spec ] in
   Env.add_alias name typ env
-
-let typecheck (prog : Ast.prog) =
-  reset_type_vars ();
-  let env =
-    List.fold_left
-      (fun env item ->
-        match item with
-        | Ast.Ext_decl (loc, (idloc, id), typ) ->
-            Env.add_value id (typeof_annot env loc typ) idloc env
-        | Typedef (loc, Trecord t) -> typedef env loc t
-        | Typedef (loc, Talias (name, type_spec)) ->
-            type_alias env loc name type_spec)
-      (Env.empty string_of_type) prog.preface
-  in
-  let t = typeof_block env prog.block in
-  print_endline (show_typ t);
-  t
-
-(* Conversion to Typing.exr below *)
 
 (* TODO Error handling sucks right now *)
 let dont_allow_closure_return loc fn =
@@ -1115,8 +809,8 @@ and convert_app ~switch_uni env loc e1 args =
   let args_t = List.map (fun a -> a.typ) typed_exprs in
   let res_t = newvar () in
   if switch_uni then
-    unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple))
-  else unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ;
+    unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ
+  else unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple));
 
   let apply typ texpr = { texpr with typ } in
   let targs = List.map2 apply args_t typed_exprs in
@@ -1259,7 +953,9 @@ and get_field env loc expr id =
       match Env.find_label_opt id env with
       | Some { index; record } -> (
           let record_t = Env.find_type record env |> instantiate in
-          unify (loc, "Field access of " ^ string_of_type record_t) record_t t;
+          unify
+            (loc, "Field access of record " ^ string_of_type record_t ^ ":")
+            record_t t;
           match record_t with
           | Trecord (_, _, labels) -> (labels.(index), expr, index)
           | _ -> failwith "nope")
@@ -1342,6 +1038,7 @@ and convert_block_annot env annot (loc, stmts) =
 
 and convert_block env stmts = convert_block_annot env None stmts
 
+(* Conversion to Typing.exr below *)
 let to_typed msg_fn (prog : Ast.prog) =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
@@ -1383,3 +1080,10 @@ let to_typed msg_fn (prog : Ast.prog) =
 
   (* print_endline (String.concat ", " (List.map string_of_type records)); *)
   { externals; records; tree }
+
+let typecheck (prog : Ast.prog) =
+  (* Ignore unused binding warnings *)
+  let msg_fn _ _ _ = "" in
+  let tree = to_typed msg_fn prog in
+  print_endline (show_typ tree.tree.typ);
+  tree.tree.typ

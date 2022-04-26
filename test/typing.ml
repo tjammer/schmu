@@ -113,7 +113,7 @@ let test_record_field_no_record () =
     "type t = {x : int} a = 10 a.x"
 
 let test_record_field_wrong_record () =
-  test_exn " Expected type t1 -> int but got type t2 -> 'a"
+  test_exn "Application: Expected type t1 -> int but got type t2 -> 'a"
     "type t1 = {x : int} type t2 = {y:int} fun foo(a) a.x end b = {y = 10} \
      foo(b)"
 
@@ -176,7 +176,8 @@ let test_para_instance_func () =
      17 } use"
 
 let test_para_instance_wrong_func () =
-  test_exn " Expected type foo(int) -> int but got type foo(bool) -> 'a"
+  test_exn
+    "Application: Expected type foo(int) -> int but got type foo(bool) -> 'a"
     "type foo('a) = { gen : 'a } fun use(foo) foo.gen + 17 end foo = { gen = \
      17 } use( { gen = true } )"
 
@@ -189,12 +190,13 @@ let test_pipe_head_multi_call () =
   test "int" "fun add1(a) a + 1 end 10->add1->add1"
 
 let test_pipe_head_single_wrong_type () =
-  test_exn " Expected type int -> 'a but got type int" "add1 = 1 10->add1"
+  test_exn "Application: Expected type int -> 'a but got type int"
+    "add1 = 1 10->add1"
 
 let test_pipe_head_mult () = test "int" "fun add(a, b) a + b end 10->add(12)"
 
 let test_pipe_head_mult_wrong_type () =
-  test_exn " Wrong arity for function: Expected 1 but got 2"
+  test_exn "Application: Wrong arity for function: Expected 1 but got 2"
     "fun add1(a) a + 1 end 10->add1(12)"
 
 let test_pipe_tail_single () = test "int" "fun add1(a) a + 1 end 10->>add1"
@@ -203,12 +205,13 @@ let test_pipe_tail_single_call () =
   test "int" "fun add1(a) a + 1 end 10->>add1()"
 
 let test_pipe_tail_single_wrong_type () =
-  test_exn " Expected type int -> 'a but got type int" "add1 = 1 10->>add1"
+  test_exn "Application: Expected type int -> 'a but got type int"
+    "add1 = 1 10->>add1"
 
 let test_pipe_tail_mult () = test "int" "fun add(a, b) a + b end 10->>add(12)"
 
 let test_pipe_tail_mult_wrong_type () =
-  test_exn " Wrong arity for function: Expected 1 but got 2"
+  test_exn "Application: Wrong arity for function: Expected 1 but got 2"
     "fun add1(a) a + 1 end 10->>add1(12)"
 
 let test_alias_simple () =
@@ -261,8 +264,8 @@ let test_vector_different_annot () =
 
 let test_vector_different_annot_weak () =
   test_exn
-    " Expected type (vector(bool), bool) -> unit but got type (vector(bool), \
-     int) -> 'a"
+    "Application: Expected type (vector(bool), bool) -> unit but got type \
+     (vector(bool), int) -> 'a"
     {|type vector('a) = { data : ptr('a), length : int }
     external set : (vector('a), 'a) -> unit
     a : vector(bool) = []
@@ -270,8 +273,8 @@ let test_vector_different_annot_weak () =
 
 let test_vector_different_weak () =
   test_exn
-    " Expected type (vector(int), int) -> unit but got type (vector(int), \
-     bool) -> 'a"
+    "Application: Expected type (vector(int), int) -> unit but got type \
+     (vector(int), bool) -> 'a"
     {|type vector('a) = { data : ptr('a), length : int }
     external set : (vector('a), 'a) -> unit
     a =[]
