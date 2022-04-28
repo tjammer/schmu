@@ -46,6 +46,7 @@ type t = {
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
   instances : typ Tmap.t ref;
+  externals : typ Tmap.t;
   print_fn : typ -> string;
 }
 
@@ -61,6 +62,7 @@ let empty print_fn =
     labelsets = Lmap.empty;
     types = Tmap.empty;
     instances = ref Tmap.empty;
+    externals = Tmap.empty;
     print_fn;
   }
 
@@ -76,6 +78,12 @@ let add_value key typ loc ?(is_const = false) ?(is_param = false) env =
       Hashtbl.add tbl key { loc; used = ref false };
 
       { env with values = { scope with valmap } :: tl }
+
+let add_external key typ loc env =
+  let env = add_value key typ loc env in
+  let key = Type_key.create key in
+  let externals = Tmap.add key typ env.externals in
+  { env with externals }
 
 let change_type key typ env =
   match env.values with
@@ -268,3 +276,8 @@ let records env =
   simple_records @ Tmap.bindings !(env.instances)
   |> List.sort Type_key.cmp_map_sort
   |> List.map values
+
+let externals env =
+  Tmap.bindings env.externals
+  |> List.sort Type_key.cmp_map_sort
+  |> List.map (fun (key, typ) -> (Type_key.key key, typ))

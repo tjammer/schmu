@@ -33,8 +33,6 @@ and const =
   | Vector of typed_expr list
   | Unit
 
-
-
 and func = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : func }
 and generic_fun = { concrete : func; generic : func }

@@ -700,7 +700,7 @@ and typeof_annot_decl env loc annot block =
   enter_level ();
   match annot with
   | None ->
-      let t = convert_block env block in
+      let t = convert_block env block |> fst in
       leave_level ();
       (* We generalize functions, but allow weak variables for value types *)
       let typ =
@@ -709,7 +709,7 @@ and typeof_annot_decl env loc annot block =
       { t with typ }
   | Some annot ->
       let t_annot = typeof_annot env loc annot in
-      let t = convert_block_annot env (Some t_annot) block in
+      let t = convert_block_annot ~main:true env (Some t_annot) block |> fst in
       leave_level ();
       (* TODO 'In let binding' *)
       check_annot loc t.typ t_annot;
@@ -727,7 +727,7 @@ and convert_lambda env loc params ret_annot body =
     handle_params env loc params ret_annot
   in
 
-  let body = convert_block env body in
+  let body = convert_block env body |> fst in
   leave_level ();
   let _, closed_vars, unused = Env.close_function env in
   let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
@@ -769,7 +769,7 @@ and convert_function env loc
     handle_params env loc params return_annot
   in
 
-  let body = convert_block body_env body in
+  let body = convert_block body_env body |> fst in
   leave_level ();
 
   let env, closed_vars, unused = Env.close_function env in
@@ -867,8 +867,8 @@ and convert_if env loc cond e1 e2 =
      branches need to evaluate to the some type *)
   let type_cond = convert env cond in
   unify (loc, "In condition") type_cond.typ Tbool;
-  let type_e1 = convert_block env e1 in
-  let type_e2 = convert_block env e2 in
+  let type_e1 = convert_block env e1 |> fst in
+  let type_e2 = convert_block env e2 |> fst in
   unify (loc, "Branches have different type") type_e1.typ type_e2.typ;
 
   (* We don't support polymorphic lambdas in if-exprs in the monomorph backend yet *)
@@ -995,48 +995,80 @@ and convert_pipe_tail env loc e1 e2 =
       (* Should be a lone id, if not we let it fail in _app *)
       convert_app ~switch_uni env loc e2 [ e1 ]
 
-and convert_block_annot env annot (loc, stmts) =
+and convert_block_annot ~main env annot stmts =
+  let loc = Lexing.(dummy_pos, dummy_pos) in
+
   let check (loc, typ) =
     unify (loc, "Left expression in sequence must be of type unit:") Tunit typ
   in
 
   let rec to_expr env old_type = function
-    | [ Ast.Let (loc, _, _) ] | [ Function (loc, _) ] ->
+    | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ]) when main ->
         raise (Error (loc, "Block must end with an expression"))
+    | [] when main -> raise (Error (loc, "Block cannot be empty"))
+    | [] -> ({ typ = Tunit; expr = Const Unit; is_const = false }, env)
     | Let (loc, decl, block) :: tl ->
         let env, texpr = convert_let env loc decl block in
-        let cont = to_expr env old_type tl in
+        let cont, env = to_expr env old_type tl in
         let decl = (fun (_, a, b) -> (snd a, b)) decl in
-        {
-          typ = cont.typ;
-          expr = Let (fst decl, texpr, cont);
-          is_const = cont.is_const;
-        }
+        let expr = Let (fst decl, texpr, cont) in
+        ({ typ = cont.typ; expr; is_const = cont.is_const }, env)
     | Function (loc, func) :: tl ->
         let env, (name, unique, lambda) = convert_function env loc func in
-        let cont = to_expr env old_type tl in
-        {
-          typ = cont.typ;
-          expr = Function (name, unique, lambda, cont);
-          is_const = false;
-        }
+        let cont, env = to_expr env old_type tl in
+        let expr = Function (name, unique, lambda, cont) in
+        ({ typ = cont.typ; expr; is_const = false }, env)
     | [ Expr (_, e) ] ->
         check old_type;
-        convert_annot env annot e
+        (convert_annot env annot e, env)
     | Expr (l1, e1) :: tl ->
         check old_type;
         let expr = convert env e1 in
-        let cont = to_expr env (l1, expr.typ) tl in
-        {
-          typ = cont.typ;
-          expr = Sequence (expr, cont);
-          is_const = cont.is_const;
-        }
-    | [] -> raise (Error (loc, "Block cannot be empty"))
+        let cont, env = to_expr env (l1, expr.typ) tl in
+        ( {
+            typ = cont.typ;
+            expr = Sequence (expr, cont);
+            is_const = cont.is_const;
+          },
+          env )
   in
   to_expr env (loc, Tunit) stmts
 
-and convert_block env stmts = convert_block_annot env None stmts
+and convert_block ?(main = false) env stmts =
+  convert_block_annot ~main env None stmts
+
+let convert_prog ~main prev_exprs env items =
+  List.fold_left
+    (fun (expr, env) item ->
+      match item with
+      | Ast.Block block -> (
+          let cont, env = convert_block ~main env block in
+          match expr with
+          | None -> (Some cont, env)
+          | Some expr ->
+              ( Some
+                  {
+                    typ = cont.typ;
+                    expr = Sequence (expr, cont);
+                    is_const = cont.is_const;
+                  },
+                env ))
+      | Ext_decl (loc, (idloc, id), typ) ->
+          let typ = typeof_annot env loc typ in
+          (expr, Env.add_external id typ idloc env)
+      | Typedef (loc, Trecord t) ->
+          let env = typedef env loc t in
+          (expr, env)
+      | Typedef (loc, Talias (name, type_spec)) ->
+          let env = type_alias env loc name type_spec in
+          (expr, env))
+    (prev_exprs, env) items
+  |> fun (expr, env) ->
+  match expr with
+  | None when main ->
+      (* If there is nothing in the program, should we error or not? *)
+      (Some { typ = Tunit; expr = Const Unit; is_const = false }, env)
+  | rest -> (rest, env)
 
 (* Conversion to Typing.exr below *)
 let to_typed msg_fn (prog : Ast.prog) =
@@ -1055,31 +1087,17 @@ let to_typed msg_fn (prog : Ast.prog) =
       (Env.empty string_of_type)
   in
 
-  let env, externals =
-    List.fold_left_map
-      (fun env item ->
-        match item with
-        | Ast.Ext_decl (loc, (idloc, id), typ) ->
-            let typ = typeof_annot env loc typ in
-            (Env.add_value id typ idloc env, Some (id, typ))
-        | Typedef (loc, Trecord t) ->
-            let env = typedef env loc t in
-            (env, None)
-        | Typedef (loc, Talias (name, type_spec)) ->
-            let env = type_alias env loc name type_spec in
-            (env, None))
-      (Env.open_function env) prog.preface
-  in
+  (* We create a new scope so we don't warn on unused imports *)
+  let env = Env.open_function env in
 
-  let tree = convert_block env prog.block in
-  let records = Env.records env in
-  let externals = List.filter_map Fun.id externals in
+  let tree, env = convert_prog ~main:true None env prog in
+  let records = Env.records env and externals = Env.externals env in
 
   let _, _, unused = Env.close_function env in
   check_unused unused;
 
   (* print_endline (String.concat ", " (List.map string_of_type records)); *)
-  { externals; records; tree }
+  { externals; records; tree = Option.get tree }
 
 let typecheck (prog : Ast.prog) =
   (* Ignore unused binding warnings *)
