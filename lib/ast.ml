@@ -68,11 +68,16 @@ and stmt =
   | Function of loc * func
   | Expr of (loc * expr)
 
-and block = loc * stmt list
+and block = stmt list
 
 type external_decl = loc * (loc * string) * type_expr
 type typename = { name : string; poly_param : string option }
 type record = { name : typename; labels : (bool * string * type_expr) array }
 type typedef = Trecord of record | Talias of typename * type_spec
-type preface = Ext_decl of external_decl | Typedef of loc * typedef
-type prog = { preface : preface list; block : block }
+
+type top_item =
+  | Block of block
+  | Ext_decl of external_decl
+  | Typedef of loc * typedef
+
+type prog = top_item list

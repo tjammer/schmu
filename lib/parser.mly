@@ -9,9 +9,9 @@
     let parse_elseifs loc cond then_ elseifs else_ =
       let rec aux = function
         | [ (loc, cond, blk) ] ->
-            (loc, [ Ast.Expr (loc, Ast.If (loc, cond, blk, else_)) ])
+            [ Ast.Expr (loc, Ast.If (loc, cond, blk, else_)) ]
         | (loc, cond, blk) :: tl ->
-            (loc, [ Ast.Expr (loc, If (loc, cond, blk, aux tl)) ])
+            [ Ast.Expr (loc, If (loc, cond, blk, aux tl)) ]
         | [] -> else_
       in
       Ast.If (loc, cond, then_, aux elseifs)
@@ -81,20 +81,17 @@
 
 %%
 
-prog: list(preface_item); block; Eof
-    { { preface = $1; block = $2} }
+prog: list(top_item); Eof { $1 }
 
-%inline preface_item:
-  | external_decl { $1 }
-  | typedef { $1 }
+top_item:
+  | block { Block $1 }
+  | external_decl { Ext_decl $1 }
+  | typedef { Typedef ($loc, $1) }
 
 %inline external_decl:
-  | External; ident; type_expr { Ext_decl ($loc, $2, $3) }
+  | External; ident; type_expr { $loc, $2, $3 }
 
 %inline typedef:
-  | typdef { Typedef ($loc, $1) }
-
-%inline typdef:
   | Type; Identifier; option(typedef_poly_id); Equal;
        Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
     { Trecord { name = {name = $2; poly_param = string_of_ty_var $3}; labels = Array.of_list $6 } }
@@ -105,12 +102,12 @@ prog: list(preface_item); block; Eof
 %inline type_decl:
   | boption(Mutable); Identifier; type_expr { $1, $2, $3 }
 
-block:
-  | list(stmt); /*loption(In; expr)*/ { ($loc, $1) }
+%inline block:
+  | nonempty_list(stmt) { $1 }
 
 exprblock:
-  | expr { $loc, [Expr ($sloc, $1)] }
-  | Do; list(stmt); End { $loc, $2 }
+  | expr { [Expr ($sloc, $1)] }
+  | Do; list(stmt); End { $2 }
 
 stmt:
   | decl; Equal; exprblock { Let($loc, $1, $3) }

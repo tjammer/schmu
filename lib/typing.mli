@@ -33,10 +33,11 @@ and const =
   | Vector of typed_expr list
   | Unit
 
-(* TODO use some type as in monomorphization *)
-and fun_pieces = { tparams : typ list; ret : typ; kind : fun_kind }
-and abstraction = { nparams : string list; body : typed_expr; tp : fun_pieces }
-and generic_fun = { concrete : fun_pieces; generic : fun_pieces }
+
+
+and func = { tparams : typ list; ret : typ; kind : fun_kind }
+and abstraction = { nparams : string list; body : typed_expr; tp : func }
+and generic_fun = { concrete : func; generic : func }
 
 type external_decl = string * typ
 
