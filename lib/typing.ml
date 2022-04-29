@@ -1078,7 +1078,7 @@ let convert_prog ~ret prev_exprs env items =
   | rest -> (rest, env)
 
 (* Conversion to Typing.exr below *)
-let to_typed msg_fn (prog : Ast.prog) =
+let to_typed msg_fn ~prelude (prog : Ast.prog) =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 
@@ -1094,10 +1094,13 @@ let to_typed msg_fn (prog : Ast.prog) =
       (Env.empty string_of_type)
   in
 
+  (* Add prelude *)
+  let prelude, env = convert_prog ~ret:false None env prelude in
+
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
-  let tree, env = convert_prog ~ret:true None env prog in
+  let tree, env = convert_prog ~ret:true prelude env prog in
   let records = Env.records env and externals = Env.externals env in
 
   let _, _, unused = Env.close_function env in
@@ -1109,6 +1112,6 @@ let to_typed msg_fn (prog : Ast.prog) =
 let typecheck (prog : Ast.prog) =
   (* Ignore unused binding warnings *)
   let msg_fn _ _ _ = "" in
-  let tree = to_typed msg_fn prog in
+  let tree = to_typed msg_fn ~prelude:[] prog in
   print_endline (show_typ tree.tree.typ);
   tree.tree.typ

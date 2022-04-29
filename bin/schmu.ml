@@ -7,6 +7,24 @@ type opts = {
   release : bool;
 }
 
+let ( >>= ) = Result.bind
+
+let read_prelude () =
+  let ( // ) = Filename.concat in
+  let file =
+    match Schmu_std.Sites.std with
+    | file :: _ -> file // "prelude.smu"
+    | [] ->
+        (Sys.argv.(0) |> Filename.dirname)
+        // ".." // "lib" // "schmu" // "std" // "prelude.smu"
+  in
+  if Sys.file_exists file then (
+    let ch = open_in file in
+    let pls = really_input_string ch (in_channel_length ch) in
+    close_in ch;
+    Ok (Filename.basename file, pls))
+  else Error ("Could not open prelude at " ^ file)
+
 let pp_position lexbuf file =
   let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
   let pos = lexbuf.lex_curr_p in
@@ -15,31 +33,12 @@ let pp_position lexbuf file =
   in
   (pp, pos)
 
-let run file src { target; outname; dump_llvm; release } =
-  let fmt_msg_fn kind loc msg =
-    let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
-    let errloc = fst loc in
-    let loc = Pp_loc.Position.(of_lexing (fst loc), of_lexing (snd loc)) in
-    Format.asprintf "%s:%d:%d: %s: %s\n%!%a" file errloc.pos_lnum
-      (errloc.pos_cnum - errloc.pos_bol + 1)
-      kind msg pp [ loc ]
-  in
-
+let parse file lexbuf =
   let loc_of_lexing lexbuf =
     Pp_loc.Position.(of_lexing lexbuf.lex_start_p, of_lexing lexbuf.lex_curr_p)
   in
-
-  let lexbuf = Lexing.from_string src in
   Schmulang.(
-    try
-      let prog = Parser.prog Lexer.read lexbuf in
-      Ok
-        (let tree =
-           Typing.to_typed fmt_msg_fn prog |> Monomorph_tree.monomorphize
-         in
-         ignore (Codegen.generate ~target ~outname ~release tree);
-         if dump_llvm then Llvm.dump_module Codegen.the_module)
-    with
+    try Ok (Parser.prog Lexer.read lexbuf) with
     | Lexer.SyntaxError msg ->
         let loc = loc_of_lexing lexbuf in
         let pp, pos = pp_position lexbuf file in
@@ -48,29 +47,53 @@ let run file src { target; outname; dump_llvm; release } =
         let loc = loc_of_lexing lexbuf in
         let pp, pos = pp_position lexbuf file in
         Error
-          (Format.asprintf "%s:%s %s\n%!%a" file pos "syntax error" pp [ loc ])
-    | Typing.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg))
+          (Format.asprintf "%s:%s %s\n%!%a" file pos "syntax error" pp [ loc ]))
+
+let run file src prelude pls { target; outname; dump_llvm; release } =
+  let fmt_msg_fn kind loc msg =
+    let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
+    let errloc = fst loc in
+    let loc = Pp_loc.Position.(of_lexing (fst loc), of_lexing (snd loc)) in
+
+    Format.asprintf "%s:%d:%d: %s: %s\n%!%a" file errloc.pos_lnum
+      (errloc.pos_cnum - errloc.pos_bol + 1)
+      kind msg pp [ loc ]
+  in
+
+  let open Schmulang in
+  let lexbuf = Lexing.from_string src in
+  try
+    parse prelude (Lexing.from_string pls) >>= fun prelude ->
+    parse file lexbuf >>= fun prog ->
+    Ok
+      (let tree =
+         Typing.to_typed ~prelude fmt_msg_fn prog |> Monomorph_tree.monomorphize
+       in
+       ignore (Codegen.generate ~target ~outname ~release tree);
+       if dump_llvm then Llvm.dump_module Codegen.the_module)
+  with Typing.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
+  (* Open the file to compile *)
   let ch = open_in filename in
   let s = really_input_string ch (in_channel_length ch) in
   close_in ch;
-  match run filename s opts with
+
+  (* Open the prelude *)
+  ( read_prelude () >>= fun (pl_file, pl_src) ->
+    run filename s pl_file pl_src opts )
+  |> function
   | Ok () -> ()
   | Error msg ->
       prerr_endline msg;
       exit 1
 
-let default_outname filename =
-  if String.ends_with ~suffix:".smu" filename then
-    String.sub filename 0 (String.length filename - 4) ^ ".o"
-  else filename ^ ".o"
-
+let default_outname filename = Filename.remove_extension filename ^ ".o"
 let usage = "Usage: schmu [options] filename"
 
 let () =
   (* Leave this in for debugging *)
-  (* let () = Printexc.record_backtrace true in *)
+  let () = Printexc.record_backtrace true in
   let target = ref "" in
   let dump_llvm = ref false in
   let outname = ref "" in

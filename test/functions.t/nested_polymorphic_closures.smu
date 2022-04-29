@@ -1,5 +1,3 @@
-type cstr = ptr(u8)
-type vector('a) = { mutable data : ptr('a), mutable length : int, mutable capacity : int }
 external printi : int -> unit
 
 fun vector_push(vec, val)

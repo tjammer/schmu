@@ -49,4 +49,4 @@ type codegen_tree = {
 
 type msg_fn = string -> Ast.loc -> string -> string
 
-val to_typed : msg_fn -> Ast.prog -> codegen_tree
+val to_typed : msg_fn -> prelude:Ast.prog -> Ast.prog -> codegen_tree

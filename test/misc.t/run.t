@@ -67,44 +67,44 @@ Test simple typedef
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
   $ schmu -o out.o --dump-llvm free_vector.smu && cc out.o stub.o && ./a.out
-  free_vector.smu:10:1: warning: Unused binding vec
-  10 | vec = ["hey", "young", "world"]
+  free_vector.smu:7:1: warning: Unused binding vec
+  7 | vec = ["hey", "young", "world"]
+      ^^^
+  
+  free_vector.smu:8:1: warning: Unused binding vec
+  8 | vec = [x, {x = 2}, {x = 3}]
+      ^^^
+  
+  free_vector.smu:58:1: warning: Unused binding vec
+  58 | vec = make_vec()
        ^^^
   
-  free_vector.smu:11:1: warning: Unused binding vec
-  11 | vec = [x, {x = 2}, {x = 3}]
-       ^^^
-  
-  free_vector.smu:61:1: warning: Unused binding vec
-  61 | vec = make_vec()
-       ^^^
-  
-  free_vector.smu:64:1: warning: Unused binding normal
-  64 | normal = nest_fns()
+  free_vector.smu:61:1: warning: Unused binding normal
+  61 | normal = nest_fns()
        ^^^^^^
   
-  free_vector.smu:68:1: warning: Unused binding nested
-  68 | nested = make_nested_vec()
+  free_vector.smu:65:1: warning: Unused binding nested
+  65 | nested = make_nested_vec()
        ^^^^^^
   
-  free_vector.smu:69:1: warning: Unused binding nested
-  69 | nested = nest_allocs()
+  free_vector.smu:66:1: warning: Unused binding nested
+  66 | nested = nest_allocs()
        ^^^^^^
   
-  free_vector.smu:72:1: warning: Unused binding rec_of_vec
-  72 | rec_of_vec = { index = 12, vec = [1, 2]}
+  free_vector.smu:69:1: warning: Unused binding rec_of_vec
+  69 | rec_of_vec = { index = 12, vec = [1, 2]}
        ^^^^^^^^^^
   
-  free_vector.smu:73:1: warning: Unused binding rec_of_vec
-  73 | rec_of_vec = record_of_vecs()
+  free_vector.smu:70:1: warning: Unused binding rec_of_vec
+  70 | rec_of_vec = record_of_vecs()
        ^^^^^^^^^^
   
-  free_vector.smu:75:1: warning: Unused binding vec_of_rec
-  75 | vec_of_rec = [record_of_vecs(), record_of_vecs()]
+  free_vector.smu:72:1: warning: Unused binding vec_of_rec
+  72 | vec_of_rec = [record_of_vecs(), record_of_vecs()]
        ^^^^^^^^^^
   
-  free_vector.smu:76:1: warning: Unused binding vec_of_rec
-  76 | vec_of_rec = vec_of_records()
+  free_vector.smu:73:1: warning: Unused binding vec_of_rec
+  73 | vec_of_rec = vec_of_records()
        ^^^^^^^^^^
   
   ; ModuleID = 'context'

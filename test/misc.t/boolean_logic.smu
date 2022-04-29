@@ -1,6 +1,4 @@
-type cstr = ptr(u8)
 external puts : cstr -> unit
-type string = { cstr : cstr, length : int }
 
 fun ps(str)
   puts(str.cstr)

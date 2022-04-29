@@ -1,0 +1,5 @@
+(install
+ (section
+  (site
+   (schmu std)))
+ (files prelude.smu))

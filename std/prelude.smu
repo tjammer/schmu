@@ -1,0 +1,50 @@
+type cstr = ptr(u8)
+type string = { cstr : cstr, length : int }
+
+type vector('a) = {
+  mutable data : ptr('a),
+  mutable length : int,
+  mutable capacity : int
+}
+
+-- vector functions
+fun vector_init(capacity)
+  -- __malloc is a builtin, the compiler will free once the ptr
+  -- drops out of scope.
+  ptr = __malloc(capacity)
+  { data = ptr, length = 0, capacity }
+end
+
+fun vector_push(vec, val)
+  if vec.length == vec.capacity then
+    cap = vec.capacity * 2
+    vec.data <- __realloc(vec.data, cap)
+    vec.capacity <- cap
+  else () end
+  __unsafe_ptr_set(vec.data, vec.length, val)
+  vec.length <- vec.length + 1
+end
+
+fun vector_iter(vec, f)
+  fun inner(i)
+    if i == vec.length then
+      ()
+    else
+      f(__unsafe_ptr_get(vec.data, i))
+      inner(i+1)
+    end
+  end
+  inner(0)
+end
+
+fun vector_fold(vec, f, init)
+  fun inner(i, acc)
+    if i == vec.length then
+      acc
+    else
+      acc = f(acc, __unsafe_ptr_get(vec.data, i))
+      inner(i+1, acc)
+    end
+  end
+  inner(0, init)
+end
