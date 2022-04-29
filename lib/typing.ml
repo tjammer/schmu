@@ -709,7 +709,7 @@ and typeof_annot_decl env loc annot block =
       { t with typ }
   | Some annot ->
       let t_annot = typeof_annot env loc annot in
-      let t = convert_block_annot ~main:true env (Some t_annot) block |> fst in
+      let t = convert_block_annot ~ret:true env (Some t_annot) block |> fst in
       leave_level ();
       (* TODO 'In let binding' *)
       check_annot loc t.typ t_annot;
@@ -995,7 +995,7 @@ and convert_pipe_tail env loc e1 e2 =
       (* Should be a lone id, if not we let it fail in _app *)
       convert_app ~switch_uni env loc e2 [ e1 ]
 
-and convert_block_annot ~main env annot stmts =
+and convert_block_annot ~ret env annot stmts =
   let loc = Lexing.(dummy_pos, dummy_pos) in
 
   let check (loc, typ) =
@@ -1003,9 +1003,9 @@ and convert_block_annot ~main env annot stmts =
   in
 
   let rec to_expr env old_type = function
-    | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ]) when main ->
+    | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ]) when ret ->
         raise (Error (loc, "Block must end with an expression"))
-    | [] when main -> raise (Error (loc, "Block cannot be empty"))
+    | [] when ret -> raise (Error (loc, "Block cannot be empty"))
     | [] -> ({ typ = Tunit; expr = Const Unit; is_const = false }, env)
     | Let (loc, decl, block) :: tl ->
         let env, texpr = convert_let env loc decl block in
@@ -1034,38 +1034,45 @@ and convert_block_annot ~main env annot stmts =
   in
   to_expr env (loc, Tunit) stmts
 
-and convert_block ?(main = false) env stmts =
-  convert_block_annot ~main env None stmts
+and convert_block ?(ret = true) env stmts =
+  convert_block_annot ~ret env None stmts
 
-let convert_prog ~main prev_exprs env items =
-  List.fold_left
-    (fun (expr, env) item ->
-      match item with
-      | Ast.Block block -> (
-          let cont, env = convert_block ~main env block in
-          match expr with
-          | None -> (Some cont, env)
-          | Some expr ->
-              ( Some
-                  {
-                    typ = cont.typ;
-                    expr = Sequence (expr, cont);
-                    is_const = cont.is_const;
-                  },
-                env ))
-      | Ext_decl (loc, (idloc, id), typ) ->
-          let typ = typeof_annot env loc typ in
-          (expr, Env.add_external id typ idloc env)
-      | Typedef (loc, Trecord t) ->
-          let env = typedef env loc t in
-          (expr, env)
-      | Typedef (loc, Talias (name, type_spec)) ->
-          let env = type_alias env loc name type_spec in
-          (expr, env))
-    (prev_exprs, env) items
-  |> fun (expr, env) ->
+let convert_prog ~ret prev_exprs env items =
+  let rec aux expr env = function
+    | [] -> (expr, env)
+    | [ Ast.Block block ] -> aux_block expr env block [] ret
+    | Ast.Block block :: tl -> aux_block expr env block tl false
+    | Ext_decl (loc, (idloc, id), typ) :: tl ->
+        let typ = typeof_annot env loc typ in
+        aux expr (Env.add_external id typ idloc env) tl
+    | Typedef (loc, Trecord t) :: tl ->
+        let env = typedef env loc t in
+        aux expr env tl
+    | Typedef (loc, Talias (name, type_spec)) :: tl ->
+        let env = type_alias env loc name type_spec in
+        aux expr env tl
+  and aux_block expr env block tl ret =
+    (* If we are in main, we want to return a value so the outer [ret] is true.
+       However, blocks before the last block cannot return so we set it to
+       false temporarily *)
+    let cont, env = convert_block ~ret env block in
+    let expr =
+      match expr with
+      | None -> Some cont
+      | Some expr ->
+          Some
+            {
+              typ = cont.typ;
+              expr = Sequence (expr, cont);
+              is_const = cont.is_const;
+            }
+    in
+    aux expr env tl
+  in
+
+  aux prev_exprs env items |> fun (expr, env) ->
   match expr with
-  | None when main ->
+  | None when ret ->
       (* If there is nothing in the program, should we error or not? *)
       (Some { typ = Tunit; expr = Const Unit; is_const = false }, env)
   | rest -> (rest, env)
@@ -1090,7 +1097,7 @@ let to_typed msg_fn (prog : Ast.prog) =
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
-  let tree, env = convert_prog ~main:true None env prog in
+  let tree, env = convert_prog ~ret:true None env prog in
   let records = Env.records env and externals = Env.externals env in
 
   let _, _, unused = Env.close_function env in
