@@ -19,9 +19,14 @@ let run file src { target; outname; dump_llvm; release } =
   let fmt_msg_fn kind loc msg =
     let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
     let errloc = fst loc in
+    let loc = Pp_loc.Position.(of_lexing (fst loc), of_lexing (snd loc)) in
     Format.asprintf "%s:%d:%d: %s: %s\n%!%a" file errloc.pos_lnum
       (errloc.pos_cnum - errloc.pos_bol + 1)
       kind msg pp [ loc ]
+  in
+
+  let loc_of_lexing lexbuf =
+    Pp_loc.Position.(of_lexing lexbuf.lex_start_p, of_lexing lexbuf.lex_curr_p)
   in
 
   let lexbuf = Lexing.from_string src in
@@ -36,11 +41,11 @@ let run file src { target; outname; dump_llvm; release } =
          if dump_llvm then Llvm.dump_module Codegen.the_module)
     with
     | Lexer.SyntaxError msg ->
-        let loc = (lexbuf.lex_start_p, lexbuf.lex_curr_p) in
+        let loc = loc_of_lexing lexbuf in
         let pp, pos = pp_position lexbuf file in
         Error (Format.asprintf "%s:%s %s\n%!%a" file pos msg pp [ loc ])
     | Parser.Error ->
-        let loc = (lexbuf.lex_start_p, lexbuf.lex_curr_p) in
+        let loc = loc_of_lexing lexbuf in
         let pp, pos = pp_position lexbuf file in
         Error
           (Format.asprintf "%s:%s %s\n%!%a" file pos "syntax error" pp [ loc ])
