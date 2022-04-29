@@ -160,20 +160,20 @@ We have downwards closures
     %clsr = bitcast i8* %0 to { %capturable* }*
     %a5 = bitcast { %capturable* }* %clsr to %capturable**
     %a1 = load %capturable*, %capturable** %a5, align 8
-    %inner = alloca %closure, align 8
-    %funptr6 = bitcast %closure* %inner to i8**
-    store i8* bitcast (i64 (i8*)* @inner to i8*), i8** %funptr6, align 8
-    %clsr_inner = alloca { %capturable* }, align 8
-    %a27 = bitcast { %capturable* }* %clsr_inner to %capturable**
+    %inner__3 = alloca %closure, align 8
+    %funptr6 = bitcast %closure* %inner__3 to i8**
+    store i8* bitcast (i64 (i8*)* @inner__3 to i8*), i8** %funptr6, align 8
+    %clsr_inner__3 = alloca { %capturable* }, align 8
+    %a27 = bitcast { %capturable* }* %clsr_inner__3 to %capturable**
     store %capturable* %a1, %capturable** %a27, align 8
-    %env = bitcast { %capturable* }* %clsr_inner to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %inner, i32 0, i32 1
+    %env = bitcast { %capturable* }* %clsr_inner__3 to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %inner__3, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    %1 = call i64 @inner(i8* %env)
+    %1 = call i64 @inner__3(i8* %env)
     ret i64 %1
   }
   
-  define private i64 @inner(i8* %0) {
+  define private i64 @inner__3(i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %capturable* }*
     %a2 = bitcast { %capturable* }* %clsr to %capturable**
@@ -1012,7 +1012,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define private void @__vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* %vec, %closure* %f) {
+  define private void @__vectorgg.u.u_vector_iter__2_vectorii.u.u(%vector_int* %vec, %closure* %f) {
   entry:
     %monoclstmp = alloca %closure, align 8
     %funptr27 = bitcast %closure* %monoclstmp to i8**
@@ -1150,7 +1150,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   }
   
-  define private void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i64 %val) {
+  define private void @__vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 %val) {
   entry:
     %0 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
     %1 = load i64, i64* %0, align 4
@@ -1213,17 +1213,17 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i64 0, i64* %len, align 4
     %cap = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 2
     store i64 1, i64* %cap, align 4
-    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i64 1)
-    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i64 2)
-    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i64 3)
-    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i64 4)
-    call void @__vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i64 5)
+    call void @__vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 1)
+    call void @__vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 2)
+    call void @__vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 3)
+    call void @__vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 4)
+    call void @__vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 5)
     %clstmp = alloca %closure, align 8
     %funptr2 = bitcast %closure* %clstmp to i8**
     store i8* bitcast (void (i64)* @__fun0 to i8*), i8** %funptr2, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    call void @__vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* %vec, %closure* %clstmp)
+    call void @__vectorgg.u.u_vector_iter__2_vectorii.u.u(%vector_int* %vec, %closure* %clstmp)
     %2 = load i64*, i64** %data1, align 8
     %3 = bitcast i64* %2 to i8*
     call void @free(i8* %3)

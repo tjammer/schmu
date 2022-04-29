@@ -113,7 +113,7 @@ Nested records
     ret { i64, i64 } %unbox2
   }
   
-  define private i64 @inner() {
+  define private i64 @inner__3() {
   entry:
     %0 = alloca %inner, align 8
     store %inner { i64 3 }, %inner* %0, align 4
@@ -128,7 +128,7 @@ Nested records
     %a6 = bitcast %foo* %0 to i64*
     store i64 0, i64* %a6, align 4
     %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
-    %1 = tail call i64 @inner()
+    %1 = tail call i64 @inner__3()
     %box = bitcast %inner* %b to i64*
     store i64 %1, i64* %box, align 4
     %2 = bitcast %inner* %b to i8*
