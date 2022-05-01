@@ -14,7 +14,7 @@ val add_value :
 (** [add_value key typ loc ~is_param] add value [key] defined at [loc] with type [typ] to env.
     [is_param] defaults to false *)
 
-val add_external : key -> typ -> Ast.loc -> t -> t
+val add_external : key -> cname:string option -> typ -> Ast.loc -> t -> t
 (** like [add_value], but keeps track of external declarations *)
 
 val change_type : key -> typ -> t -> t
@@ -58,5 +58,5 @@ val find_labelset_opt : string list -> t -> typ option
 val records : t -> typ list
 (** [records env] returns a list of all named records for codegen *)
 
-val externals : t -> (string * typ) list
+val externals : t -> (string * typ * string option) list
 (** [externals env] returns a list of all external function declarations *)

@@ -1302,3 +1302,7 @@ Test unused binding warning
   49 |   usedlater = 0
          ^^^^^^^^^
   
+Allow declaring a c function with a different name
+  $ schmu -o out.o cname_decl.smu && cc out.o stub.o && ./a.out
+  
+  42

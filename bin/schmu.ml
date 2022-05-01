@@ -93,7 +93,7 @@ let usage = "Usage: schmu [options] filename"
 
 let () =
   (* Leave this in for debugging *)
-  let () = Printexc.record_backtrace true in
+  (* let () = Printexc.record_backtrace true in *)
   let target = ref "" in
   let dump_llvm = ref false in
   let outname = ref "" in

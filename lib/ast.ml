@@ -70,7 +70,7 @@ and stmt =
 
 and block = stmt list
 
-type external_decl = loc * (loc * string) * type_expr
+type external_decl = loc * (loc * string) * type_expr * string option
 type typename = { name : string; poly_param : string option }
 type record = { name : typename; labels : (bool * string * type_expr) array }
 type typedef = Trecord of record | Talias of typename * type_spec

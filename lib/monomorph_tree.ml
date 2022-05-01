@@ -66,7 +66,7 @@ and var_kind = Var_norm | Var_const
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
 type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
-type external_decl = string * typ
+type external_decl = string * typ * string
 
 type monomorphized_tree = {
   constants : (string * monod_tree) list;
@@ -804,7 +804,13 @@ let monomorphize { Typing.externals; records; tree } =
 
   let tree = free_mallocs tree p.mallocs in
 
-  let externals = List.map (fun (n, t) -> (n, cln t)) externals in
+  let externals =
+    List.map
+      (fun (n, t, cname) ->
+        let cname = match cname with None -> n | Some cname -> cname in
+        (n, cln t, cname))
+      externals
+  in
   let records = List.map cln records in
 
   let sort_const (_, (lid, _)) (_, (rid, _)) = Int.compare lid rid in

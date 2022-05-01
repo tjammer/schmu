@@ -37,7 +37,8 @@ and func = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : func }
 and generic_fun = { concrete : func; generic : func }
 
-type external_decl = string * typ
+type external_decl = string * typ * string option
+(* The option is the real c name if the value was renamed for schmu usage *)
 
 val typecheck : Ast.prog -> typ
 

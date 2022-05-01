@@ -64,7 +64,7 @@ and var_kind = Var_norm | Var_const
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
 type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
-type external_decl = string * typ
+type external_decl = string * typ * string
 
 type monomorphized_tree = {
   constants : (string * monod_tree) list;

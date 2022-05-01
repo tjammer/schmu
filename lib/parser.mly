@@ -89,7 +89,10 @@ top_item:
   | typedef { Typedef ($loc, $1) }
 
 %inline external_decl:
-  | External; ident; type_expr { $loc, $2, $3 }
+  | External; ident; type_expr; option(external_cname) { $loc, $2, $3, $4 }
+
+%inline external_cname:
+  | Equal; String_lit { $2 }
 
 %inline typedef:
   | Type; Identifier; option(typedef_poly_id); Equal;

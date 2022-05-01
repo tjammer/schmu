@@ -1732,7 +1732,8 @@ let generate ~target ~outname ~release
   (* External declarations *)
   let vars =
     List.fold_left
-      (fun vars (name, typ) -> Vars.add name (declare_function name typ) vars)
+      (fun vars (name, typ, cname) ->
+        Vars.add name (declare_function cname typ) vars)
       Vars.empty externals
   in
 

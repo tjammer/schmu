@@ -33,7 +33,7 @@ and func = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : func }
 and generic_fun = { concrete : func; generic : func }
 
-type external_decl = string * typ
+type external_decl = string * typ * string option
 
 type codegen_tree = {
   externals : external_decl list;
@@ -1042,9 +1042,9 @@ let convert_prog ~ret prev_exprs env items =
     | [] -> (expr, env)
     | [ Ast.Block block ] -> aux_block expr env block [] ret
     | Ast.Block block :: tl -> aux_block expr env block tl false
-    | Ext_decl (loc, (idloc, id), typ) :: tl ->
+    | Ext_decl (loc, (idloc, id), typ, cname) :: tl ->
         let typ = typeof_annot env loc typ in
-        aux expr (Env.add_external id typ idloc env) tl
+        aux expr (Env.add_external id ~cname typ idloc env) tl
     | Typedef (loc, Trecord t) :: tl ->
         let env = typedef env loc t in
         aux expr env tl
