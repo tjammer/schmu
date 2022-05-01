@@ -23,7 +23,8 @@ let f_of_string f str =
 }
 
 let digit = ['0'-'9']
-let alpha = ['a'-'z' 'A'-'Z']
+let lowercase_alpha = ['a'-'z']
+let uppercase_alpha = ['A'-'Z']
 let min = '-'
 
 let int = digit+
@@ -34,8 +35,9 @@ let neg_i32 = min i32
 let f32 = float "f32"
 let neg_f32 = min f32
 
-let id = alpha (alpha|digit|'_')*
-let builtin_id = "__" id
+let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
+let uppercase_id = uppercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
+let builtin_id = "__" lowercase_id
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -71,7 +73,8 @@ rule read =
   | "do"     { Do }
   | "mutable" { Mutable }
   | "end"    { End }
-  | id       { Identifier (Lexing.lexeme lexbuf) }
+  | lowercase_id       { Lowercase_id (Lexing.lexeme lexbuf) }
+  | uppercase_id       { Uppercase_id (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | '+'      { Plus_i }

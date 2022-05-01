@@ -24,7 +24,8 @@
 %token Arrow_right
 %token Arrow_left
 %token Dot
-%token <string> Identifier
+%token <string> Lowercase_id
+%token <string> Uppercase_id
 %token <int> Int
 %token <char> U8
 %token <float> Float
@@ -95,15 +96,15 @@ top_item:
   | Equal; String_lit { $2 }
 
 %inline typedef:
-  | Type; Identifier; option(typedef_poly_id); Equal;
+  | Type; Lowercase_id; option(typedef_poly_id); Equal;
        Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
     { Trecord { name = {name = $2; poly_param = string_of_ty_var $3}; labels = Array.of_list $6 } }
-  | Type; Identifier; option(typedef_poly_id); Equal; type_list
+  | Type; Lowercase_id; option(typedef_poly_id); Equal; type_list
     { Talias ({name = $2; poly_param = string_of_ty_var $3}, $5) }
 
 /* Only used for records */
 %inline type_decl:
-  | boption(Mutable); Identifier; type_expr { $1, $2, $3 }
+  | boption(Mutable); Lowercase_id; type_expr { $1, $2, $3 }
 
 %inline block:
   | nonempty_list(stmt) { $1 }
@@ -119,7 +120,7 @@ stmt:
   | expr { Expr ($loc, $1) }
 
 expr:
-  | Identifier { Var($loc, $1) }
+  | Lowercase_id { Var($loc, $1) }
   | lit { $1 }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
   | unop; expr { Unop ($loc, $1, $2) }
@@ -128,8 +129,8 @@ expr:
     { Lambda($loc, $2, $3, $4) }
   | callable; parens(expr) { App($loc, $1, $2) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
-  | expr; Dot; Identifier; Arrow_left; expr { Field_set ($loc, $1, $3, $5) } /* Copying the first part makes checking for mutability easier */
-  | expr; Dot; Identifier { Field ($loc, $1, $3) }
+  | expr; Dot; Lowercase_id; Arrow_left; expr { Field_set ($loc, $1, $3, $5) } /* Copying the first part makes checking for mutability easier */
+  | expr; Dot; Lowercase_id { Field ($loc, $1, $3) }
   | expr; Arrow_right; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
   | Lpar; expr; Rpar { $2 }
@@ -149,11 +150,11 @@ expr:
   | Elseif; expr; Then; block { ($loc, $2, $4) }
 
 %inline record_item:
-  | Identifier; Equal; expr { $1, $3 }
-  | Identifier { $1, Var($loc, $1) }
+  | Lowercase_id; Equal; expr { $1, $3 }
+  | Lowercase_id { $1, Var($loc, $1) }
 
 ident:
-  | Identifier { ($loc, $1) }
+  | Lowercase_id { ($loc, $1) }
 
 let parens(x) :=
   | Lpar; lst = separated_list(Comma, x); Rpar; { lst }
@@ -218,8 +219,8 @@ build_type_list:
   | type_spec { [$1] }
 
 %inline type_spec:
-  | Identifier { Ty_id $1 }
+  | Lowercase_id { Ty_id $1 }
   | poly_id { $1 }
 
 %inline poly_id:
-  | Quote; Identifier { Ty_var $2 }
+  | Quote; Lowercase_id { Ty_var $2 }
