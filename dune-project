@@ -18,6 +18,7 @@
   (pp_loc (>= 2.0.0))
   (alcotest (and (>= 1.5.0) :with-test))
   (menhir (>= 20211230))
+  (menhirLib (>= 20211230))
   (ppx_deriving (>= 5.2.1))
   (llvm (>= 13.0.0)))
  (sites (lib std)))
