@@ -607,7 +607,7 @@ let add_type_param env = function
       (Env.add_type name t env, Some t)
   | None -> (env, None)
 
-let typedef env loc Ast.{ name = { poly_param; name }; labels } =
+let type_record env loc Ast.{ name = { poly_param; name }; labels } =
   check_type_unique env loc name;
   let labels, param =
     let env, param = add_type_param env poly_param in
@@ -627,6 +627,13 @@ let type_alias env loc { Ast.poly_param; name } type_spec =
   let temp_env, _ = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc [ type_spec ] in
   Env.add_alias name typ env
+
+let type_variant env loc { Ast.name; ctors } =
+  ignore env;
+  ignore loc;
+  ignore name;
+  ignore ctors;
+  failwith "TODO"
 
 (* TODO Error handling sucks right now *)
 let dont_allow_closure_return loc fn =
@@ -675,6 +682,7 @@ and convert_annot env annot = function
   | Field_set (loc, expr, id, value) -> convert_field_set env loc expr id value
   | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
   | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
+  | Ctor (loc, name, args) -> convert_ctor env loc name args
 
 and convert_var env loc id =
   match Env.query_val_opt id env with
@@ -995,6 +1003,13 @@ and convert_pipe_tail env loc e1 e2 =
       (* Should be a lone id, if not we let it fail in _app *)
       convert_app ~switch_uni env loc e2 [ e1 ]
 
+and convert_ctor env loc name args =
+  ignore env;
+  ignore loc;
+  ignore name;
+  ignore args;
+  failwith "TODO"
+
 and convert_block_annot ~ret env annot stmts =
   let loc = Lexing.(dummy_pos, dummy_pos) in
 
@@ -1046,10 +1061,13 @@ let convert_prog ~ret prev_exprs env items =
         let typ = typeof_annot env loc typ in
         aux expr (Env.add_external id ~cname typ idloc env) tl
     | Typedef (loc, Trecord t) :: tl ->
-        let env = typedef env loc t in
+        let env = type_record env loc t in
         aux expr env tl
     | Typedef (loc, Talias (name, type_spec)) :: tl ->
         let env = type_alias env loc name type_spec in
+        aux expr env tl
+    | Typedef (loc, Tvariant v) :: tl ->
+        let env = type_variant env loc v in
         aux expr env tl
   and aux_block expr env block tl ret =
     (* If we are in main, we want to return a value so the outer [ret] is true.

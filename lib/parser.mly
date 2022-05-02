@@ -96,11 +96,18 @@ top_item:
   | Equal; String_lit { $2 }
 
 %inline typedef:
-  | Type; Lowercase_id; option(typedef_poly_id); Equal;
-       Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
-    { Trecord { name = {name = $2; poly_param = string_of_ty_var $3}; labels = Array.of_list $6 } }
-  | Type; Lowercase_id; option(typedef_poly_id); Equal; type_list
-    { Talias ({name = $2; poly_param = string_of_ty_var $3}, $5) }
+  | Type; typename; Equal; Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
+    { Trecord { name = $2; labels = Array.of_list $5 } }
+  | Type; typename; Equal; type_list
+    { Talias ($2, $4) }
+  | Type; typename; Equal; separated_nonempty_list(Comma, ctordef)
+    { Tvariant { name = $2; ctors = $4 } }
+
+%inline ctordef:
+  | ctor; option(typedef_poly_id) { { name = $1; typ = $2 } }
+
+%inline typename:
+  | Lowercase_id; option(typedef_poly_id) { { name = $1; poly_param = string_of_ty_var $2 } }
 
 /* Only used for records */
 %inline type_decl:
@@ -134,6 +141,7 @@ expr:
   | expr; Arrow_right; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
   | Lpar; expr; Rpar { $2 }
+  | ctor; loption(parens(expr)) { Ctor($loc, $1, $2) }
 
 %inline lit:
   | Int { Lit($loc, Int $1) }
@@ -155,6 +163,9 @@ expr:
 
 ident:
   | Lowercase_id { ($loc, $1) }
+
+ctor:
+  | Uppercase_id { $loc, $1 }
 
 let parens(x) :=
   | Lpar; lst = separated_list(Comma, x); Rpar; { lst }

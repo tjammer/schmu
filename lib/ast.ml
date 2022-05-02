@@ -51,6 +51,7 @@ and expr =
   | Field_set of loc * expr * string * expr
   | Pipe_head of loc * expr * expr
   | Pipe_tail of loc * expr * expr
+  | Ctor of loc * (loc * string) * expr list
 
 and literal =
   | Int of int
@@ -73,7 +74,13 @@ and block = stmt list
 type external_decl = loc * (loc * string) * type_expr * string option
 type typename = { name : string; poly_param : string option }
 type record = { name : typename; labels : (bool * string * type_expr) array }
-type typedef = Trecord of record | Talias of typename * type_spec
+type ctor = { name : loc * string; typ : type_spec option }
+type variant = { name : typename; ctors : ctor list }
+
+type typedef =
+  | Trecord of record
+  | Talias of typename * type_spec
+  | Tvariant of variant
 
 type top_item =
   | Block of block
