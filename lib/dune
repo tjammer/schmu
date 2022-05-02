@@ -15,6 +15,9 @@
  (modules parser)
  (flags --explain))
 
+(ocamllex
+ (modules lexer))
+
 ;; The following two rules create a copy of the file parser.mly named
 ;; unitActionsParser.mly. This is a copy of the grammar where the semantic
 ;; actions have been removed and replaced with unit values. It is compiled
@@ -34,5 +37,43 @@
  (modules unitActionsParser)
  (flags --table --external-tokens Parser))
 
-(ocamllex
- (modules lexer))
+;; This section deals with the .messages file.
+
+;; The following rule generates "syntax_errors.ml" based on the source file
+;; "syntax_errors.messages". It requires the completeness check to have been
+;; performed first. (If desired, this check could be disabled.)
+
+(rule
+ (deps syntax_errors.check)
+ (action
+  (with-stdout-to
+   syntax_errors.ml
+   (run
+    menhir
+    %{dep:parser.mly}
+    --compile-errors
+    %{dep:syntax_errors.messages}))))
+
+;; This rule generates a file "syntax_errors.auto.messages" that contains a
+;; list of all error states. It is used by the completeness check.
+
+(rule
+ (with-stdout-to
+  syntax_errors.auto.messages
+  (run menhir %{dep:parser.mly} --list-errors)))
+
+;; This rule implements the completeness check. It checks that every error
+;; state listed in the auto-generated file "syntax_errors.auto.messages"
+;; is also listed in the file "syntax_errors.messages" that is maintained
+;; by the programmer.
+
+(rule
+ (with-stdout-to
+  syntax_errors.check
+  (run
+   menhir
+   %{dep:parser.mly}
+   --compare-errors
+   %{dep:syntax_errors.auto.messages}
+   --compare-errors
+   %{dep:syntax_errors.messages})))

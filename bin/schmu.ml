@@ -16,14 +16,10 @@ let read_prelude () =
         (Sys.argv.(0) |> Filename.dirname)
         // ".." // "lib" // "schmu" // "std" // "prelude.smu"
   in
-  if Sys.file_exists file then (
-    let ch = open_in file in
-    let pls = really_input_string ch (in_channel_length ch) in
-    close_in ch;
-    Ok (Filename.basename file, pls))
+  if Sys.file_exists file then Ok file
   else Error ("Could not open prelude at " ^ file)
 
-let run file src prelude pls { target; outname; dump_llvm; release } =
+let run file prelude { target; outname; dump_llvm; release } =
   let fmt_msg_fn kind loc msg =
     let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
     let errloc = fst loc in
@@ -35,10 +31,9 @@ let run file src prelude pls { target; outname; dump_llvm; release } =
   in
 
   let open Schmulang in
-  let lexbuf = Lexing.from_string src in
   try
-    Parse.parse prelude (Lexing.from_string pls) >>= fun prelude ->
-    Parse.parse file lexbuf >>= fun prog ->
+    Parse.parse prelude >>= fun prelude ->
+    Parse.parse file >>= fun prog ->
     Ok
       (let tree =
          Typing.to_typed ~prelude fmt_msg_fn prog |> Monomorph_tree.monomorphize
@@ -48,15 +43,8 @@ let run file src prelude pls { target; outname; dump_llvm; release } =
   with Typing.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
-  (* Open the file to compile *)
-  let ch = open_in filename in
-  let s = really_input_string ch (in_channel_length ch) in
-  close_in ch;
-
   (* Open the prelude *)
-  ( read_prelude () >>= fun (pl_file, pl_src) ->
-    run filename s pl_file pl_src opts )
-  |> function
+  (read_prelude () >>= fun prelude -> run filename prelude opts) |> function
   | Ok () -> ()
   | Error msg ->
       prerr_endline msg;
