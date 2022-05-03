@@ -7,16 +7,18 @@ type typ =
   | Ti32
   | Tf32
   | Tvar of tv ref
-  | Talias of string * typ
   | Qvar of string
   | Tfun of typ list * typ * fun_kind
+  | Talias of string * typ
   | Trecord of typ option * string * field array
+  | Tvariant of typ option * string * ctor array
   | Tptr of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ
 and field = { name : string; typ : typ; mut : bool }
+and ctor = { ctorname : string; ctortyp : typ option }
 
 (* Follow links and aliases *)
 let rec clean = function

@@ -9,16 +9,18 @@ type typ =
   | Tpoly of string
   | Tfun of typ list * typ * fun_kind
   | Trecord of typ option * string * field array
+  | Tvariant of typ option * string * ctor array
   | Tptr of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
 and field = { name : string; typ : typ; mut : bool }
+and ctor = { ctorname : string; ctortyp : typ option }
 
 let is_type_polymorphic typ =
   let rec inner acc = function
     | Tpoly _ -> true
-    | Trecord (Some t, _, _) -> inner acc t
+    | Trecord (Some t, _, _) | Tvariant (Some t, _, _) -> inner acc t
     | Tfun (params, ret, kind) ->
         let acc = List.fold_left inner acc params in
         let acc =
@@ -28,7 +30,9 @@ let is_type_polymorphic typ =
               List.fold_left (fun acc (_, t) -> inner acc t) acc cls
         in
         inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ | Tu8 | Tfloat | Ti32 | Tf32 -> acc
+    | Tbool | Tunit | Tint | Trecord _ | Tvariant _ | Tu8 | Tfloat | Ti32 | Tf32
+      ->
+        acc
     | Tptr t -> inner acc t
   in
   inner false typ
@@ -48,7 +52,7 @@ let rec string_of_type = function
           let ts = String.concat ", " (List.map string_of_type ts) in
           Printf.sprintf "(%s) -> %s" ts (string_of_type t))
   | Tpoly str -> str
-  | Trecord (param, str, _) ->
+  | Trecord (param, str, _) | Tvariant (param, str, _) ->
       str
       ^ Option.fold ~none:""
           ~some:(fun param -> Printf.sprintf "(%s)" (string_of_type param))

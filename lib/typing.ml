@@ -107,11 +107,13 @@ let is_type_polymorphic typ =
   let rec inner acc = function
     | Qvar _ | Tvar { contents = Unbound _ } -> true
     | Tvar { contents = Link t } | Talias (_, t) -> inner acc t
-    | Trecord (Some t, _, _) -> inner acc t
+    | Trecord (Some t, _, _) | Tvariant (Some t, _, _) -> inner acc t
     | Tfun (params, ret, _) ->
         let acc = List.fold_left inner acc params in
         inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ | Tu8 | Tfloat | Ti32 | Tf32 -> acc
+    | Tbool | Tunit | Tint | Trecord _ | Tvariant _ | Tu8 | Tfloat | Ti32 | Tf32
+      ->
+        acc
     | Tptr t -> inner acc t
   in
   inner false typ
@@ -138,7 +140,7 @@ let string_of_type_raw get_name typ =
     | Talias (name, t) ->
         Printf.sprintf "%s = %s" name (clean t |> string_of_type)
     | Qvar str | Tvar { contents = Unbound (str, _) } -> get_name str
-    | Trecord (param, str, _) ->
+    | Trecord (param, str, _) | Tvariant (param, str, _) ->
         str
         ^ Option.fold ~none:""
             ~some:(fun param -> Printf.sprintf "(%s)" (string_of_type param))

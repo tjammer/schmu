@@ -132,6 +132,7 @@ let sizeof_typ typ =
         add_size_align ~upto:8 ~sz:8 size_pr
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (f : field) -> inner pr f.typ) size_pr labels
+    | Tvariant _ -> failwith "TODO"
     | Tpoly _ ->
         Llvm.dump_module the_module;
         failwith "too generic for a size"
@@ -254,8 +255,9 @@ let rec get_lltype_def = function
   | Tf32 -> f32_t
   | Tunit -> unit_t
   | Tpoly _ -> generic_t |> Llvm.pointer_type
-  | Trecord _ as t -> (
+  | (Trecord _ as t) | (Tvariant _ as t) -> (
       let name = record_name t in
+      (* TODO rename [record] here to something *)
       match Strtbl.find_opt record_tbl name with
       | Some t -> t
       | None ->
@@ -271,7 +273,7 @@ and get_lltype_param = function
       get_lltype_def t
   | Tfun (params, ret, kind) ->
       typeof_func ~param:true ~decl:false (params, ret, kind)
-  | Trecord _ as typ -> (
+  | (Trecord _ as typ) | (Tvariant _ as typ) -> (
       let name = record_name typ in
       match Strtbl.find_opt record_tbl name with
       | Some t -> (
@@ -284,7 +286,7 @@ and get_lltype_param = function
 
 and get_lltype_field = function
   | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Tptr _
-    | Trecord _ ) as t ->
+    | Trecord _ | Tvariant _ ) as t ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
       (* Not really a paramater, but is treated equally (ptr to closure struct) *)

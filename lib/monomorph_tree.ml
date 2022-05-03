@@ -133,6 +133,18 @@ let rec cln = function
           fields
       in
       Trecord (param, name, fields)
+  | Tvariant (param, name, ctors) ->
+      let param = Option.map cln param in
+      let ctors =
+        Array.map
+          (fun ctor ->
+            {
+              ctorname = Types.(ctor.ctorname);
+              ctortyp = Option.map cln ctor.ctortyp;
+            })
+          ctors
+      in
+      Tvariant (param, name, ctors)
   | Tptr t -> Tptr (cln t)
 
 and cln_kind = function
@@ -190,8 +202,9 @@ let get_mono_name name ~poly concrete =
     | Tf32 -> "f32"
     | Tfun (ps, r, _) ->
         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
-    | Trecord (Some t, name, _) -> Printf.sprintf "%s%s" name (str t)
-    | Trecord (_, name, _) -> name
+    | Trecord (Some t, name, _) | Tvariant (Some t, name, _) ->
+        Printf.sprintf "%s%s" name (str t)
+    | Trecord (_, name, _) | Tvariant (_, name, _) -> name
     | Tpoly _ -> "g"
     | Tptr t -> Printf.sprintf "p%s" (str t)
   in

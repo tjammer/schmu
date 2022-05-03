@@ -74,7 +74,7 @@ and block = stmt list
 type external_decl = loc * (loc * string) * type_expr * string option
 type typename = { name : string; poly_param : string option }
 type record = { name : typename; labels : (bool * string * type_expr) array }
-type ctor = { name : loc * string; typ : type_spec option }
+type ctor = { name : loc * string; typ_annot : type_spec option }
 type variant = { name : typename; ctors : ctor list }
 
 type typedef =
