@@ -2,7 +2,7 @@
 open Types
 
 type key = string
-type label = { index : int; record : string }
+type label = { index : int; typename : string }
 type t
 type unused = (unit, (string * Ast.loc) list) result
 type return = { typ : typ; is_const : bool } (* return type for values *)
@@ -26,8 +26,12 @@ val add_record : key -> param:typ option -> labels:field array -> t -> t
 (** [add record record_name ~param ~labels env] returns an env with an added record named [record_name]
      optionally parametrized by [param] with typed [labels] *)
 
-val maybe_add_record_instance : key -> typ -> t -> unit
-(** [maybe_add_record_instance record_name ~param typ] mutably adds a concrete parametrization
+val add_variant : key -> param:typ option -> ctors:ctor array -> t -> t
+(** [add_variant variant_name ~param ~ctors env] returns an env with an added variant named [variant_name]
+    optionally parametrized by [param] with [ctors] *)
+
+val maybe_add_type_instance : key -> typ -> t -> unit
+(** [maybe_add_type_instance record_name ~param typ] mutably adds a concrete parametrization
          of a record if [param] is Some type and the same instance has not already been added  *)
 
 val add_alias : key -> typ -> t -> t
@@ -55,8 +59,12 @@ val find_label_opt : key -> t -> label option
 val find_labelset_opt : string list -> t -> typ option
 (** [find_labelset_opt labelnames env] returns the first record type with a matching labelset *)
 
-val records : t -> typ list
-(** [records env] returns a list of all named records for codegen *)
+val find_ctor_opt : key -> t -> label option
+(** [find_ctor_opt ctorname env] returns the variant of which the ctor is part of
+    as well as the type of the ctor if it has data *)
+
+val typedefs : t -> typ list
+(** [typedefs env] returns a list of all named typedefs for codegen *)
 
 val externals : t -> (string * typ * string option) list
 (** [externals env] returns a list of all external function declarations *)

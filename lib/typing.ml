@@ -576,7 +576,7 @@ let get_record_type env loc labels annot =
              it fail below.
              The list can never be empty due to the grammar *)
           match Env.find_label_opt (List.hd labels |> fst) env with
-          | Some t -> Env.query_type ~instantiate t.record env
+          | Some t -> Env.query_type ~instantiate t.typename env
           | None ->
               let msg =
                 Printf.sprintf "Cannot find record with label %s"
@@ -633,12 +633,25 @@ let type_alias env loc { Ast.poly_param; name } type_spec =
   let typ = typeof_annot ~typedef:true temp_env loc [ type_spec ] in
   Env.add_alias name typ env
 
-let type_variant env loc { Ast.name; ctors } =
-  ignore env;
-  ignore loc;
-  ignore name;
-  ignore ctors;
-  failwith "TODO"
+let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
+  (* Make sure that each type name only appears once per module *)
+  check_type_unique env loc name;
+  (* Temporarily add polymorphic type name to env *)
+  let temp_env, param = add_type_param env poly_param in
+  let ctors =
+    List.map
+      (fun { Ast.name = _, ctorname; typ_annot } ->
+        match typ_annot with
+        | None ->
+            (* Just a ctor, without data *)
+            { ctorname; ctortyp = None }
+        | Some annot ->
+            let typ = typeof_annot ~typedef:true temp_env loc [ annot ] in
+            { ctorname; ctortyp = Some typ })
+      ctors
+    |> Array.of_list
+  in
+  Env.add_variant name ~param ~ctors env
 
 (* TODO Error handling sucks right now *)
 let dont_allow_closure_return loc fn =
@@ -964,8 +977,8 @@ and get_field env loc expr id =
           raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
   | t -> (
       match Env.find_label_opt id env with
-      | Some { index; record } -> (
-          let record_t = Env.find_type record env |> instantiate in
+      | Some { index; typename } -> (
+          let record_t = Env.find_type typename env |> instantiate in
           unify
             (loc, "Field access of record " ^ string_of_type record_t ^ ":")
             record_t t;

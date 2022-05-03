@@ -24,7 +24,12 @@ module Map = Map.Make (String)
 module Set = Set.Make (Type_key)
 
 type key = string
-type label = { index : int; record : string }
+
+type label = {
+  index : int; (* index of laber in record labels array *)
+  typename : string;
+}
+
 type value = { typ : typ; is_param : bool; is_const : bool }
 type usage = { loc : Ast.loc; used : bool ref }
 type return = { typ : typ; is_const : bool }
@@ -41,11 +46,13 @@ type t = {
   values : scope list;
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : string Lmap.t; (* For finding the type of a record expression *)
+  ctors : label Map.t; (* Variant constructors *)
   types : typ Tmap.t;
   (* The record types are saved in their most general form.
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
   instances : typ Tmap.t ref;
+  (* Instantiations for both records and variants *)
   externals : (typ * string option) Tmap.t;
   print_fn : typ -> string;
 }
@@ -60,6 +67,7 @@ let empty print_fn =
       ];
     labels = Map.empty;
     labelsets = Lmap.empty;
+    ctors = Map.empty;
     types = Tmap.empty;
     instances = ref Tmap.empty;
     externals = Tmap.empty;
@@ -111,18 +119,31 @@ let add_record record ~param ~labels env =
   let _, labels =
     Array.fold_left
       (fun (index, labels) field ->
-        (index + 1, Map.add field.name { index; record } labels))
+        (index + 1, Map.add field.name { index; typename = record } labels))
       (0, env.labels) labels
   in
   let record = Type_key.create record in
   let types = Tmap.add record typ env.types in
   { env with labels; types; labelsets }
 
+let add_variant variant ~param ~ctors env =
+  let typ = Tvariant (param, variant, ctors) in
+
+  let _, ctors =
+    Array.fold_left
+      (fun (index, ctors) ctor ->
+        (index + 1, Map.add ctor.ctorname { index; typename = variant } ctors))
+      (0, env.ctors) ctors
+  in
+  let variant = Type_key.create variant in
+  let types = Tmap.add variant typ env.types in
+  { env with ctors; types }
+
 let is_unbound = function
   | Qvar _ | Tvar { contents = Unbound _ } -> true
   | _ -> false
 
-let maybe_add_record_instance key typ env =
+let maybe_add_type_instance key typ env =
   (* We reject generic records with unbound variables *)
   let key = Type_key.create key in
 
@@ -241,7 +262,7 @@ let query_val_opt key env =
             mark_used key scope.used;
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
-            maybe_add_record_instance (env.print_fn typ) typ env;
+            maybe_add_type_instance (env.print_fn typ) typ env;
             Some { typ; is_const })
   in
   aux 0 env.values
@@ -259,7 +280,9 @@ let find_labelset_opt labels env =
   | Some name -> Some (find_type name env)
   | None -> None
 
-let records env =
+let find_ctor_opt name env = Map.find_opt name env.ctors
+
+let typedefs env =
   let values ({ Type_key.key = _; ord = _ }, v) = v in
   Tmap.filter
     (fun _ typ ->
@@ -267,7 +290,7 @@ let records env =
       | Trecord (Some (Qvar _), _, _) ->
           (* We don't want to add generic records *)
           false
-      | Trecord _ -> true
+      | Trecord _ | Tvariant _ -> true
       | _ -> false)
     env.types
   |> Tmap.bindings

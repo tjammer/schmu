@@ -51,7 +51,7 @@ and expr =
   | Field_set of loc * expr * string * expr
   | Pipe_head of loc * expr * expr
   | Pipe_tail of loc * expr * expr
-  | Ctor of loc * (loc * string) * expr list
+  | Ctor of loc * (loc * string) * expr option
 
 and literal =
   | Int of int

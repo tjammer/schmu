@@ -22,7 +22,7 @@ prog: Type Uppercase_id
 ## Type
 ##
 
-Type names must be lowercase
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Type Lowercase_id Uppercase_id
 ##
@@ -728,7 +728,7 @@ prog: If Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If Fun Uppercase_id
+prog: Uppercase_id Fun Uppercase_id
 ##
 ## Ends in an error in state: 78.
 ##
@@ -1002,7 +1002,7 @@ prog: Builtin_id Uppercase_id
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Uppercase_id Lpar Type
+prog: False Lpar Type
 ##
 ## Ends in an error in state: 110.
 ##
@@ -1014,7 +1014,7 @@ prog: Uppercase_id Lpar Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Uppercase_id Lpar False Rbrack
+prog: False Lpar False Rbrack
 ##
 ## Ends in an error in state: 113.
 ##
@@ -1161,7 +1161,7 @@ prog: Uppercase_id Quote
 ##
 ## Ends in an error in state: 121.
 ##
-## expr -> ctor . option(parens(expr)) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> ctor . option(expr) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
 ## The known suffix of the stack is as follows:
 ## ctor
@@ -1169,9 +1169,87 @@ prog: Uppercase_id Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Mult_i Type
+prog: Uppercase_id False Quote
+##
+## Ends in an error in state: 123.
+##
+## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Mult_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Div_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Less_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Greater_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Bin_equal_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Plus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Minus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Mult_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Div_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Less_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Greater_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Bin_equal_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . And expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Or expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . parens(expr) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Dot Lowercase_id Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Dot Lowercase_id [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Arrow_right expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Pipe_tail expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## option(expr) -> expr . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+##
+## The known suffix of the stack is as follows:
+## expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Plus_f Type
+##
+## Ends in an error in state: 124.
+##
+## expr -> expr Plus_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+##
+## The known suffix of the stack is as follows:
+## expr Plus_f
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Plus_f False Quote
 ##
 ## Ends in an error in state: 125.
+##
+## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Mult_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Div_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Less_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Greater_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Bin_equal_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Plus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr Plus_f expr . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Minus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Mult_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Div_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Less_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Greater_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Bin_equal_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . And expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Or expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . parens(expr) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Dot Lowercase_id Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Dot Lowercase_id [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Arrow_right expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Pipe_tail expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+##
+## The known suffix of the stack is as follows:
+## expr Plus_f expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Mult_i Type
+##
+## Ends in an error in state: 126.
 ##
 ## expr -> expr Mult_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1183,7 +1261,7 @@ prog: False Mult_i Type
 
 prog: False Mult_i False Quote
 ##
-## Ends in an error in state: 126.
+## Ends in an error in state: 127.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1216,7 +1294,7 @@ prog: False Mult_i False Quote
 
 prog: False Dot Uppercase_id
 ##
-## Ends in an error in state: 127.
+## Ends in an error in state: 128.
 ##
 ## expr -> expr Dot . Lowercase_id Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr Dot . Lowercase_id [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1229,7 +1307,7 @@ prog: False Dot Uppercase_id
 
 prog: False Dot Lowercase_id Quote
 ##
-## Ends in an error in state: 128.
+## Ends in an error in state: 129.
 ##
 ## expr -> expr Dot Lowercase_id . Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr Dot Lowercase_id . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1242,7 +1320,7 @@ prog: False Dot Lowercase_id Quote
 
 prog: False Dot Lowercase_id Arrow_left Type
 ##
-## Ends in an error in state: 129.
+## Ends in an error in state: 130.
 ##
 ## expr -> expr Dot Lowercase_id Arrow_left . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1254,7 +1332,7 @@ prog: False Dot Lowercase_id Arrow_left Type
 
 prog: False Dot Lowercase_id Arrow_left False Quote
 ##
-## Ends in an error in state: 130.
+## Ends in an error in state: 131.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1285,21 +1363,21 @@ prog: False Dot Lowercase_id Arrow_left False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Plus_f Type
+prog: False Or Type
 ##
-## Ends in an error in state: 131.
+## Ends in an error in state: 132.
 ##
-## expr -> expr Plus_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr Or . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
 ## The known suffix of the stack is as follows:
-## expr Plus_f
+## expr Or
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Plus_f False Quote
+prog: False Or False Quote
 ##
-## Ends in an error in state: 132.
+## Ends in an error in state: 133.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1309,7 +1387,6 @@ prog: False Plus_f False Quote
 ## expr -> expr . Greater_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Bin_equal_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Plus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr Plus_f expr . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Mult_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Div_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1318,6 +1395,7 @@ prog: False Plus_f False Quote
 ## expr -> expr . Bin_equal_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . And expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Or expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr Or expr . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . parens(expr) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Dot Lowercase_id Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Dot Lowercase_id [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1325,14 +1403,14 @@ prog: False Plus_f False Quote
 ## expr -> expr . Pipe_tail expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
 ## The known suffix of the stack is as follows:
-## expr Plus_f expr
+## expr Or expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Mult_f Type
 ##
-## Ends in an error in state: 133.
+## Ends in an error in state: 134.
 ##
 ## expr -> expr Mult_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1344,7 +1422,7 @@ prog: False Mult_f Type
 
 prog: False Mult_f False Quote
 ##
-## Ends in an error in state: 134.
+## Ends in an error in state: 135.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1377,7 +1455,7 @@ prog: False Mult_f False Quote
 
 prog: False Bin_equal_i Type
 ##
-## Ends in an error in state: 135.
+## Ends in an error in state: 136.
 ##
 ## expr -> expr Bin_equal_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1389,7 +1467,7 @@ prog: False Bin_equal_i Type
 
 prog: False Bin_equal_i False Quote
 ##
-## Ends in an error in state: 136.
+## Ends in an error in state: 137.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1422,7 +1500,7 @@ prog: False Bin_equal_i False Quote
 
 prog: False Arrow_right Type
 ##
-## Ends in an error in state: 137.
+## Ends in an error in state: 138.
 ##
 ## expr -> expr Arrow_right . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1434,7 +1512,7 @@ prog: False Arrow_right Type
 
 prog: False Arrow_right False Quote
 ##
-## Ends in an error in state: 138.
+## Ends in an error in state: 139.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1467,7 +1545,7 @@ prog: False Arrow_right False Quote
 
 prog: False Bin_equal_f Type
 ##
-## Ends in an error in state: 139.
+## Ends in an error in state: 141.
 ##
 ## expr -> expr Bin_equal_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1479,7 +1557,7 @@ prog: False Bin_equal_f Type
 
 prog: False Bin_equal_f False Quote
 ##
-## Ends in an error in state: 140.
+## Ends in an error in state: 142.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1510,9 +1588,54 @@ prog: False Bin_equal_f False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: False Minus_i Type
+##
+## Ends in an error in state: 143.
+##
+## expr -> expr Minus_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+##
+## The known suffix of the stack is as follows:
+## expr Minus_i
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Minus_i False Quote
+##
+## Ends in an error in state: 144.
+##
+## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr Minus_i expr . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Mult_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Div_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Less_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Greater_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Bin_equal_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Plus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Minus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Mult_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Div_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Less_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Greater_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Bin_equal_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . And expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Or expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . parens(expr) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Dot Lowercase_id Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Dot Lowercase_id [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Arrow_right expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Pipe_tail expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+##
+## The known suffix of the stack is as follows:
+## expr Minus_i expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: False Div_i Type
 ##
-## Ends in an error in state: 141.
+## Ends in an error in state: 145.
 ##
 ## expr -> expr Div_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1524,7 +1647,7 @@ prog: False Div_i Type
 
 prog: False Div_i False Quote
 ##
-## Ends in an error in state: 142.
+## Ends in an error in state: 146.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1557,7 +1680,7 @@ prog: False Div_i False Quote
 
 prog: False Div_f Type
 ##
-## Ends in an error in state: 143.
+## Ends in an error in state: 147.
 ##
 ## expr -> expr Div_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1569,7 +1692,7 @@ prog: False Div_f Type
 
 prog: False Div_f False Quote
 ##
-## Ends in an error in state: 144.
+## Ends in an error in state: 148.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1596,96 +1719,6 @@ prog: False Div_f False Quote
 ##
 ## The known suffix of the stack is as follows:
 ## expr Div_f expr
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Or Type
-##
-## Ends in an error in state: 145.
-##
-## expr -> expr Or . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-##
-## The known suffix of the stack is as follows:
-## expr Or
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Or False Quote
-##
-## Ends in an error in state: 146.
-##
-## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Mult_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Div_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Less_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Greater_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Bin_equal_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Plus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Minus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Mult_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Div_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Less_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Greater_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Bin_equal_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . And expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Or expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr Or expr . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . parens(expr) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Dot Lowercase_id Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Dot Lowercase_id [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Arrow_right expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Pipe_tail expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-##
-## The known suffix of the stack is as follows:
-## expr Or expr
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Minus_i Type
-##
-## Ends in an error in state: 147.
-##
-## expr -> expr Minus_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-##
-## The known suffix of the stack is as follows:
-## expr Minus_i
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Minus_i False Quote
-##
-## Ends in an error in state: 148.
-##
-## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr Minus_i expr . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Mult_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Div_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Less_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Greater_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Bin_equal_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Plus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Minus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Mult_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Div_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Less_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Greater_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Bin_equal_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . And expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Or expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . parens(expr) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Dot Lowercase_id Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Dot Lowercase_id [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Arrow_right expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Pipe_tail expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-##
-## The known suffix of the stack is as follows:
-## expr Minus_i expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
