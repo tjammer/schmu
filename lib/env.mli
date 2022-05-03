@@ -23,7 +23,7 @@ val change_type : key -> typ -> t -> t
 val add_type : key -> typ -> t -> t
 
 val add_record : key -> param:typ option -> labels:field array -> t -> t
-(** [add record record_name ~param ~labels env] returns an env with anadded record named [record_name]
+(** [add record record_name ~param ~labels env] returns an env with an added record named [record_name]
      optionally parametrized by [param] with typed [labels] *)
 
 val maybe_add_record_instance : key -> typ -> t -> unit

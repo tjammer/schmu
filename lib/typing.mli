@@ -44,7 +44,7 @@ val typecheck : Ast.prog -> typ
 
 type codegen_tree = {
   externals : external_decl list;
-  records : typ list;
+  typedefs : typ list;
   tree : typed_expr;
 }
 

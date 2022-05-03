@@ -71,7 +71,7 @@ type external_decl = string * typ * string
 type monomorphized_tree = {
   constants : (string * monod_tree) list;
   externals : external_decl list;
-  records : typ list;
+  typedefs : typ list;
   tree : monod_tree;
   funcs : to_gen_func list;
 }
@@ -802,7 +802,7 @@ and morph_app mk p callee args =
   in
   ({ p with ret }, mk app ret, { no_var with alloc; malloc })
 
-let monomorphize { Typing.externals; records; tree } =
+let monomorphize { Typing.externals; typedefs; tree } =
   reset ();
 
   (* Register malloc builtin, so freeing automatically works *)
@@ -824,7 +824,7 @@ let monomorphize { Typing.externals; records; tree } =
         (n, cln t, cname))
       externals
   in
-  let records = List.map cln records in
+  let typedefs = List.map cln typedefs in
 
   let sort_const (_, (lid, _)) (_, (rid, _)) = Int.compare lid rid in
   let constants =
@@ -836,4 +836,4 @@ let monomorphize { Typing.externals; records; tree } =
   in
 
   (* TODO maybe try to catch memory leaks? *)
-  { constants; externals; records; tree; funcs = p.funcs }
+  { constants; externals; typedefs; tree; funcs = p.funcs }

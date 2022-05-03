@@ -37,7 +37,7 @@ type external_decl = string * typ * string option
 
 type codegen_tree = {
   externals : external_decl list;
-  records : typ list;
+  typedefs : typ list;
   tree : typed_expr;
 }
 
@@ -493,8 +493,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
            A new instance could be introduced here, we have to make sure it's added b/c
            codegen struct generation depends on order *)
         (match t with
-        | Trecord (Some _, _, _) ->
-            Env.maybe_add_record_instance (string_of_type subst) subst env
+        | Trecord (Some _, _, _) | Tvariant (Some _, _, _) ->
+            Env.maybe_add_type_instance (string_of_type subst) subst env
         | _ -> ());
         subst
   and handle_annot = function
@@ -604,14 +604,15 @@ let check_type_unique env loc name =
 
 let add_type_param env = function
   | Some name ->
-      (* TODO get rid off this and move to add_record *)
       let t = Qvar (gensym ()) in
       (Env.add_type name t env, Some t)
   | None -> (env, None)
 
 let type_record env loc Ast.{ name = { poly_param; name }; labels } =
+  (* Make sure that each type name only appears once per module *)
   check_type_unique env loc name;
   let labels, param =
+    (* Temporarily add polymorphic type name to env *)
     let env, param = add_type_param env poly_param in
     let labels =
       Array.map
@@ -625,7 +626,9 @@ let type_record env loc Ast.{ name = { poly_param; name }; labels } =
   Env.add_record name ~param ~labels env
 
 let type_alias env loc { Ast.poly_param; name } type_spec =
+  (* Make sure that each type name only appears once per module *)
   check_type_unique env loc name;
+  (* Temporarily add polymorphic type name to env *)
   let temp_env, _ = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc [ type_spec ] in
   Env.add_alias name typ env
@@ -703,7 +706,7 @@ and convert_vector_lit env loc vec =
 
   let vector = get_prelude env loc "vector" in
   let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
-  Env.maybe_add_record_instance (string_of_type typ) typ env;
+  Env.maybe_add_type_instance (string_of_type typ) typ env;
   { typ; expr = Const (Vector exprs); is_const = false }
 
 and typeof_annot_decl env loc annot block =
@@ -948,7 +951,7 @@ and convert_record env loc annot labels =
       true (labels |> Array.to_list)
   in
   let typ = Trecord (param, name, labels) |> generalize in
-  Env.maybe_add_record_instance (string_of_type typ) typ env;
+  Env.maybe_add_type_instance (string_of_type typ) typ env;
   { typ; expr = Record sorted_labels; is_const }
 
 and get_field env loc expr id =
@@ -1121,13 +1124,13 @@ let to_typed msg_fn ~prelude (prog : Ast.prog) =
   let env = Env.open_function env in
 
   let tree, env = convert_prog ~ret:true prelude env prog in
-  let records = Env.records env and externals = Env.externals env in
+  let typedefs = Env.typedefs env and externals = Env.externals env in
 
   let _, _, unused = Env.close_function env in
   check_unused unused;
 
-  (* print_endline (String.concat ", " (List.map string_of_type records)); *)
-  { externals; records; tree = Option.get tree }
+  (* print_endline (String.concat ", " (List.map string_of_type typedefs)); *)
+  { externals; typedefs; tree = Option.get tree }
 
 let typecheck (prog : Ast.prog) =
   (* Ignore unused binding warnings *)

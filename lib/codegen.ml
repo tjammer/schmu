@@ -89,7 +89,7 @@ let dummy_fn_value =
      in a monomorphized version *)
   { typ = Tunit; value = Llvm.const_int i32_t (-1); lltyp = i32_t; const = Not }
 
-(* Named structs for records *)
+(* Named structs for typedefs *)
 
 let rec record_name = function
   (* We match on each type here to allow for nested parametrization like [int foo bar].
@@ -412,7 +412,7 @@ let maybe_unbox_record typ value =
   | Unboxed kind -> unbox_record ~kind ~ret:false value
   | Boxed -> (value.value, None)
 
-let to_named_records = function
+let to_named_typedefs = function
   | Trecord (_, _, labels) as t ->
       let name = record_name t in
       let t = Llvm.named_struct_type context name in
@@ -426,7 +426,8 @@ let to_named_records = function
         failwith "Internal Error: Type shadowing not supported in codegen TODO";
 
       Strtbl.add record_tbl name t
-  | _ -> failwith "Internal Error: Only records should be here"
+  | Tvariant _ -> failwith "TODO"
+  | _ -> failwith "Internal Error: Only records and variants should be here"
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src ~size =
@@ -1721,11 +1722,11 @@ let fill_constants constants =
   List.iter f constants
 
 let generate ~target ~outname ~release
-    { Monomorph_tree.constants; externals; records; tree; funcs } =
+    { Monomorph_tree.constants; externals; typedefs; tree; funcs } =
   (* Add record types.
      We do this first to ensure that all record definitons
      are available for external decls *)
-  List.iter to_named_records records;
+  List.iter to_named_typedefs typedefs;
 
   (* Fill const_tbl *)
   fill_constants constants;
