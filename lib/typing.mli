@@ -18,6 +18,7 @@ type expr =
   | Field of (typed_expr * int)
   | Field_set of (typed_expr * int * typed_expr)
   | Sequence of (typed_expr * typed_expr)
+  | Ctor of (string * int * typed_expr option)
 [@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr; is_const : bool }

@@ -728,7 +728,7 @@ prog: If Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Uppercase_id Fun Uppercase_id
+prog: If Fun Uppercase_id
 ##
 ## Ends in an error in state: 78.
 ##
@@ -1014,7 +1014,7 @@ prog: False Lpar Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Lpar False Rbrack
+prog: False Lpar Uppercase_id Rbrack
 ##
 ## Ends in an error in state: 113.
 ##
@@ -1027,13 +1027,15 @@ prog: False Lpar False Rbrack
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
 ## In state 115, spurious reduction of production separated_nonempty_list(Comma,expr) -> expr
 ## In state 112, spurious reduction of production loption(separated_nonempty_list(Comma,expr)) -> separated_nonempty_list(Comma,expr)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrack False Uppercase_id
+prog: Lbrack Uppercase_id Uppercase_id
 ##
 ## Ends in an error in state: 115.
 ##
@@ -1064,10 +1066,17 @@ prog: Lbrack False Uppercase_id
 ## The known suffix of the stack is as follows:
 ## expr
 ##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Plus_i Type
+prog: Uppercase_id Plus_i Type
 ##
 ## Ends in an error in state: 116.
 ##
@@ -1079,7 +1088,7 @@ prog: False Plus_i Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Plus_i False Quote
+prog: Uppercase_id Plus_i False Quote
 ##
 ## Ends in an error in state: 117.
 ##
@@ -1112,7 +1121,7 @@ prog: False Plus_i False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Pipe_tail Type
+prog: Uppercase_id Pipe_tail Type
 ##
 ## Ends in an error in state: 118.
 ##
@@ -1124,7 +1133,7 @@ prog: False Pipe_tail Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Pipe_tail False Quote
+prog: Uppercase_id Pipe_tail False Quote
 ##
 ## Ends in an error in state: 119.
 ##
@@ -1161,7 +1170,7 @@ prog: Uppercase_id Quote
 ##
 ## Ends in an error in state: 121.
 ##
-## expr -> ctor . option(expr) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> ctor . option(parens_single(expr)) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
 ## The known suffix of the stack is as follows:
 ## ctor
@@ -1169,42 +1178,61 @@ prog: Uppercase_id Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Uppercase_id False Quote
+prog: Uppercase_id Lpar Type
 ##
-## Ends in an error in state: 123.
+## Ends in an error in state: 122.
 ##
-## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Mult_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Div_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Less_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Greater_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Bin_equal_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Plus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Minus_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Mult_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Div_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Less_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Greater_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Bin_equal_f expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . And expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Or expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . parens(expr) [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Dot Lowercase_id Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Dot Lowercase_id [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Arrow_right expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## expr -> expr . Pipe_tail expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
-## option(expr) -> expr . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+## parens_single(expr) -> Lpar . expr Rpar [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
 ## The known suffix of the stack is as follows:
-## expr
+## Lpar
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Plus_f Type
+prog: Uppercase_id Lpar Uppercase_id Uppercase_id
 ##
-## Ends in an error in state: 124.
+## Ends in an error in state: 123.
+##
+## expr -> expr . Plus_i expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Minus_i expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Mult_i expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Div_i expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Less_i expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Greater_i expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Bin_equal_i expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Plus_f expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Minus_f expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Mult_f expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Div_f expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Less_f expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Greater_f expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Bin_equal_f expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . And expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Or expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . parens(expr) [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Dot Lowercase_id Arrow_left expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Dot Lowercase_id [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Arrow_right expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## expr -> expr . Pipe_tail expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
+## parens_single(expr) -> Lpar expr . Rpar [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
+##
+## The known suffix of the stack is as follows:
+## Lpar expr
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Uppercase_id Plus_f Type
+##
+## Ends in an error in state: 125.
 ##
 ## expr -> expr Plus_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1214,9 +1242,9 @@ prog: False Plus_f Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Plus_f False Quote
+prog: Uppercase_id Plus_f False Quote
 ##
-## Ends in an error in state: 125.
+## Ends in an error in state: 126.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1247,9 +1275,9 @@ prog: False Plus_f False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Mult_i Type
+prog: Uppercase_id Mult_i Type
 ##
-## Ends in an error in state: 126.
+## Ends in an error in state: 127.
 ##
 ## expr -> expr Mult_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1259,9 +1287,9 @@ prog: False Mult_i Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Mult_i False Quote
+prog: Uppercase_id Mult_i False Quote
 ##
-## Ends in an error in state: 127.
+## Ends in an error in state: 128.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1292,9 +1320,9 @@ prog: False Mult_i False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Dot Uppercase_id
+prog: Uppercase_id Dot Uppercase_id
 ##
-## Ends in an error in state: 128.
+## Ends in an error in state: 129.
 ##
 ## expr -> expr Dot . Lowercase_id Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr Dot . Lowercase_id [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1305,9 +1333,9 @@ prog: False Dot Uppercase_id
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Dot Lowercase_id Quote
+prog: Uppercase_id Dot Lowercase_id Quote
 ##
-## Ends in an error in state: 129.
+## Ends in an error in state: 130.
 ##
 ## expr -> expr Dot Lowercase_id . Arrow_left expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr Dot Lowercase_id . [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1318,9 +1346,9 @@ prog: False Dot Lowercase_id Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Dot Lowercase_id Arrow_left Type
+prog: Uppercase_id Dot Lowercase_id Arrow_left Type
 ##
-## Ends in an error in state: 130.
+## Ends in an error in state: 131.
 ##
 ## expr -> expr Dot Lowercase_id Arrow_left . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1330,9 +1358,9 @@ prog: False Dot Lowercase_id Arrow_left Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Dot Lowercase_id Arrow_left False Quote
+prog: Uppercase_id Dot Lowercase_id Arrow_left False Quote
 ##
-## Ends in an error in state: 131.
+## Ends in an error in state: 132.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1363,9 +1391,9 @@ prog: False Dot Lowercase_id Arrow_left False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Or Type
+prog: Uppercase_id Or Type
 ##
-## Ends in an error in state: 132.
+## Ends in an error in state: 133.
 ##
 ## expr -> expr Or . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1375,9 +1403,9 @@ prog: False Or Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Or False Quote
+prog: Uppercase_id Or False Quote
 ##
-## Ends in an error in state: 133.
+## Ends in an error in state: 134.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1408,9 +1436,9 @@ prog: False Or False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Mult_f Type
+prog: Uppercase_id Mult_f Type
 ##
-## Ends in an error in state: 134.
+## Ends in an error in state: 135.
 ##
 ## expr -> expr Mult_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1420,9 +1448,9 @@ prog: False Mult_f Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Mult_f False Quote
+prog: Uppercase_id Mult_f False Quote
 ##
-## Ends in an error in state: 135.
+## Ends in an error in state: 136.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1453,9 +1481,9 @@ prog: False Mult_f False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Bin_equal_i Type
+prog: Uppercase_id Bin_equal_i Type
 ##
-## Ends in an error in state: 136.
+## Ends in an error in state: 137.
 ##
 ## expr -> expr Bin_equal_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1465,9 +1493,9 @@ prog: False Bin_equal_i Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Bin_equal_i False Quote
+prog: Uppercase_id Bin_equal_i False Quote
 ##
-## Ends in an error in state: 137.
+## Ends in an error in state: 138.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1498,9 +1526,9 @@ prog: False Bin_equal_i False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Arrow_right Type
+prog: Uppercase_id Arrow_right Type
 ##
-## Ends in an error in state: 138.
+## Ends in an error in state: 139.
 ##
 ## expr -> expr Arrow_right . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1510,9 +1538,9 @@ prog: False Arrow_right Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Arrow_right False Quote
+prog: Uppercase_id Arrow_right False Quote
 ##
-## Ends in an error in state: 139.
+## Ends in an error in state: 140.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1543,9 +1571,9 @@ prog: False Arrow_right False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Bin_equal_f Type
+prog: Uppercase_id Bin_equal_f Type
 ##
-## Ends in an error in state: 141.
+## Ends in an error in state: 142.
 ##
 ## expr -> expr Bin_equal_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1555,9 +1583,9 @@ prog: False Bin_equal_f Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Bin_equal_f False Quote
+prog: Uppercase_id Bin_equal_f False Quote
 ##
-## Ends in an error in state: 142.
+## Ends in an error in state: 143.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1588,9 +1616,9 @@ prog: False Bin_equal_f False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Minus_i Type
+prog: Uppercase_id Minus_i Type
 ##
-## Ends in an error in state: 143.
+## Ends in an error in state: 144.
 ##
 ## expr -> expr Minus_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1600,9 +1628,9 @@ prog: False Minus_i Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Minus_i False Quote
+prog: Uppercase_id Minus_i False Quote
 ##
-## Ends in an error in state: 144.
+## Ends in an error in state: 145.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1633,9 +1661,9 @@ prog: False Minus_i False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Div_i Type
+prog: Uppercase_id Div_i Type
 ##
-## Ends in an error in state: 145.
+## Ends in an error in state: 146.
 ##
 ## expr -> expr Div_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1645,9 +1673,9 @@ prog: False Div_i Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Div_i False Quote
+prog: Uppercase_id Div_i False Quote
 ##
-## Ends in an error in state: 146.
+## Ends in an error in state: 147.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1678,9 +1706,9 @@ prog: False Div_i False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Div_f Type
+prog: Uppercase_id Div_f Type
 ##
-## Ends in an error in state: 147.
+## Ends in an error in state: 148.
 ##
 ## expr -> expr Div_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1690,9 +1718,9 @@ prog: False Div_f Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Div_f False Quote
+prog: Uppercase_id Div_f False Quote
 ##
-## Ends in an error in state: 148.
+## Ends in an error in state: 149.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1723,9 +1751,9 @@ prog: False Div_f False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Minus_f Type
+prog: Uppercase_id Minus_f Type
 ##
-## Ends in an error in state: 149.
+## Ends in an error in state: 150.
 ##
 ## expr -> expr Minus_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1735,9 +1763,9 @@ prog: False Minus_f Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Minus_f False Quote
+prog: Uppercase_id Minus_f False Quote
 ##
-## Ends in an error in state: 150.
+## Ends in an error in state: 151.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1768,9 +1796,9 @@ prog: False Minus_f False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Less_i Type
+prog: Uppercase_id Less_i Type
 ##
-## Ends in an error in state: 151.
+## Ends in an error in state: 152.
 ##
 ## expr -> expr Less_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1780,9 +1808,9 @@ prog: False Less_i Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Less_i False Quote
+prog: Uppercase_id Less_i False Quote
 ##
-## Ends in an error in state: 152.
+## Ends in an error in state: 153.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1813,9 +1841,9 @@ prog: False Less_i False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Less_f Type
+prog: Uppercase_id Less_f Type
 ##
-## Ends in an error in state: 153.
+## Ends in an error in state: 154.
 ##
 ## expr -> expr Less_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1825,9 +1853,9 @@ prog: False Less_f Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Less_f False Quote
+prog: Uppercase_id Less_f False Quote
 ##
-## Ends in an error in state: 154.
+## Ends in an error in state: 155.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1858,9 +1886,9 @@ prog: False Less_f False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Greater_i Type
+prog: Uppercase_id Greater_i Type
 ##
-## Ends in an error in state: 155.
+## Ends in an error in state: 156.
 ##
 ## expr -> expr Greater_i . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1870,9 +1898,9 @@ prog: False Greater_i Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Greater_i False Quote
+prog: Uppercase_id Greater_i False Quote
 ##
-## Ends in an error in state: 156.
+## Ends in an error in state: 157.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1903,9 +1931,9 @@ prog: False Greater_i False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Greater_f Type
+prog: Uppercase_id Greater_f Type
 ##
-## Ends in an error in state: 157.
+## Ends in an error in state: 158.
 ##
 ## expr -> expr Greater_f . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1915,9 +1943,9 @@ prog: False Greater_f Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Greater_f False Quote
+prog: Uppercase_id Greater_f False Quote
 ##
-## Ends in an error in state: 158.
+## Ends in an error in state: 159.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1948,9 +1976,9 @@ prog: False Greater_f False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False And Type
+prog: Uppercase_id And Type
 ##
-## Ends in an error in state: 159.
+## Ends in an error in state: 160.
 ##
 ## expr -> expr And . expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -1960,9 +1988,9 @@ prog: False And Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False And False Quote
+prog: Uppercase_id And False Quote
 ##
-## Ends in an error in state: 160.
+## Ends in an error in state: 161.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -1993,9 +2021,9 @@ prog: False And False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrack False Comma Type
+prog: Lbrack Uppercase_id Comma Type
 ##
-## Ends in an error in state: 161.
+## Ends in an error in state: 164.
 ##
 ## separated_nonempty_list(Comma,expr) -> expr Comma . separated_nonempty_list(Comma,expr) [ Rpar Rbrack ]
 ##
@@ -2007,7 +2035,7 @@ prog: Lbrack False Comma Type
 
 prog: Lowercase_id Equal Do End Then
 ##
-## Ends in an error in state: 164.
+## Ends in an error in state: 167.
 ##
 ## nonempty_list(stmt) -> stmt . [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Elseif Else Builtin_id ]
 ## nonempty_list(stmt) -> stmt . nonempty_list(stmt) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Elseif Else Builtin_id ]
@@ -2020,7 +2048,7 @@ prog: Lowercase_id Equal Do End Then
 
 prog: Lowercase_id Colon Lowercase_id Rpar
 ##
-## Ends in an error in state: 167.
+## Ends in an error in state: 170.
 ##
 ## stmt -> ident option(type_expr) . Equal exprblock [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Elseif Else Builtin_id ]
 ##
@@ -2039,7 +2067,7 @@ prog: Lowercase_id Colon Lowercase_id Rpar
 
 prog: Lowercase_id Equal Type
 ##
-## Ends in an error in state: 168.
+## Ends in an error in state: 171.
 ##
 ## stmt -> ident option(type_expr) Equal . exprblock [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Elseif Else Builtin_id ]
 ##
@@ -2051,7 +2079,7 @@ prog: Lowercase_id Equal Type
 
 prog: Lowercase_id Equal Do Type
 ##
-## Ends in an error in state: 169.
+## Ends in an error in state: 172.
 ##
 ## exprblock -> Do . list(stmt) End [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Elseif Else Builtin_id ]
 ##
@@ -2061,9 +2089,9 @@ prog: Lowercase_id Equal Do Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lowercase_id Equal Do False Type
+prog: Lowercase_id Equal Do Uppercase_id Type
 ##
-## Ends in an error in state: 170.
+## Ends in an error in state: 173.
 ##
 ## list(stmt) -> stmt . list(stmt) [ End ]
 ##
@@ -2074,14 +2102,16 @@ prog: Lowercase_id Equal Do False Type
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 172, spurious reduction of production stmt -> expr
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 175, spurious reduction of production stmt -> expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Then
+prog: Uppercase_id Then
 ##
-## Ends in an error in state: 172.
+## Ends in an error in state: 175.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -2109,12 +2139,19 @@ prog: False Then
 ## The known suffix of the stack is as follows:
 ## expr
 ##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lowercase_id Equal False Then
+prog: Lowercase_id Equal Uppercase_id Then
 ##
-## Ends in an error in state: 176.
+## Ends in an error in state: 179.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -2142,12 +2179,19 @@ prog: Lowercase_id Equal False Then
 ## The known suffix of the stack is as follows:
 ## expr
 ##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lowercase_id Lpar Rpar False Type
+prog: Fun Lowercase_id Lpar Rpar Uppercase_id Type
 ##
-## Ends in an error in state: 177.
+## Ends in an error in state: 180.
 ##
 ## stmt -> Fun ident parens(decl) option(return_annot) nonempty_list(stmt) . End [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Elseif Else Builtin_id ]
 ##
@@ -2158,15 +2202,17 @@ prog: Fun Lowercase_id Lpar Rpar False Type
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 172, spurious reduction of production stmt -> expr
-## In state 164, spurious reduction of production nonempty_list(stmt) -> stmt
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 175, spurious reduction of production stmt -> expr
+## In state 167, spurious reduction of production nonempty_list(stmt) -> stmt
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Rpar False Type
+prog: Fun Lpar Rpar Uppercase_id Type
 ##
-## Ends in an error in state: 179.
+## Ends in an error in state: 182.
 ##
 ## expr -> Fun parens(decl) option(return_annot) nonempty_list(stmt) . End [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -2177,15 +2223,17 @@ prog: Fun Lpar Rpar False Type
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 172, spurious reduction of production stmt -> expr
-## In state 164, spurious reduction of production nonempty_list(stmt) -> stmt
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 175, spurious reduction of production stmt -> expr
+## In state 167, spurious reduction of production nonempty_list(stmt) -> stmt
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Uppercase_id
+prog: If Uppercase_id Uppercase_id
 ##
-## Ends in an error in state: 181.
+## Ends in an error in state: 184.
 ##
 ## expr -> expr . Plus_i expr [ Then Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Then Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -2213,12 +2261,19 @@ prog: If False Uppercase_id
 ## The known suffix of the stack is as follows:
 ## If expr
 ##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Then Type
+prog: If Uppercase_id Then Type
 ##
-## Ends in an error in state: 182.
+## Ends in an error in state: 185.
 ##
 ## expr -> If expr Then . nonempty_list(stmt) list(elif) Else nonempty_list(stmt) End [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -2228,9 +2283,9 @@ prog: If False Then Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Then False Type
+prog: If Uppercase_id Then Uppercase_id Type
 ##
-## Ends in an error in state: 183.
+## Ends in an error in state: 186.
 ##
 ## expr -> If expr Then nonempty_list(stmt) . list(elif) Else nonempty_list(stmt) End [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -2241,15 +2296,17 @@ prog: If False Then False Type
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 172, spurious reduction of production stmt -> expr
-## In state 164, spurious reduction of production nonempty_list(stmt) -> stmt
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 175, spurious reduction of production stmt -> expr
+## In state 167, spurious reduction of production nonempty_list(stmt) -> stmt
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Then False Elseif Type
+prog: If Uppercase_id Then Uppercase_id Elseif Type
 ##
-## Ends in an error in state: 184.
+## Ends in an error in state: 187.
 ##
 ## list(elif) -> Elseif . expr Then nonempty_list(stmt) list(elif) [ Else ]
 ##
@@ -2259,9 +2316,9 @@ prog: If False Then False Elseif Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Then False Elseif False Uppercase_id
+prog: If Uppercase_id Then Uppercase_id Elseif Uppercase_id Uppercase_id
 ##
-## Ends in an error in state: 185.
+## Ends in an error in state: 188.
 ##
 ## expr -> expr . Plus_i expr [ Then Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Then Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -2289,12 +2346,19 @@ prog: If False Then False Elseif False Uppercase_id
 ## The known suffix of the stack is as follows:
 ## Elseif expr
 ##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Then False Elseif False Then Type
+prog: If Uppercase_id Then Uppercase_id Elseif Uppercase_id Then Type
 ##
-## Ends in an error in state: 186.
+## Ends in an error in state: 189.
 ##
 ## list(elif) -> Elseif expr Then . nonempty_list(stmt) list(elif) [ Else ]
 ##
@@ -2304,9 +2368,9 @@ prog: If False Then False Elseif False Then Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Then False Elseif False Then False Type
+prog: If Uppercase_id Then Uppercase_id Elseif Uppercase_id Then Uppercase_id Type
 ##
-## Ends in an error in state: 187.
+## Ends in an error in state: 190.
 ##
 ## list(elif) -> Elseif expr Then nonempty_list(stmt) . list(elif) [ Else ]
 ##
@@ -2317,15 +2381,17 @@ prog: If False Then False Elseif False Then False Type
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 172, spurious reduction of production stmt -> expr
-## In state 164, spurious reduction of production nonempty_list(stmt) -> stmt
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 175, spurious reduction of production stmt -> expr
+## In state 167, spurious reduction of production nonempty_list(stmt) -> stmt
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Then False Else Type
+prog: If Uppercase_id Then Uppercase_id Else Type
 ##
-## Ends in an error in state: 190.
+## Ends in an error in state: 193.
 ##
 ## expr -> If expr Then nonempty_list(stmt) list(elif) Else . nonempty_list(stmt) End [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -2335,9 +2401,9 @@ prog: If False Then False Else Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Then False Else False Type
+prog: If Uppercase_id Then Uppercase_id Else Uppercase_id Type
 ##
-## Ends in an error in state: 191.
+## Ends in an error in state: 194.
 ##
 ## expr -> If expr Then nonempty_list(stmt) list(elif) Else nonempty_list(stmt) . End [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -2348,15 +2414,17 @@ prog: If False Then False Else False Type
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 172, spurious reduction of production stmt -> expr
-## In state 164, spurious reduction of production nonempty_list(stmt) -> stmt
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 175, spurious reduction of production stmt -> expr
+## In state 167, spurious reduction of production nonempty_list(stmt) -> stmt
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Lowercase_id Equal False Uppercase_id
+prog: Lbrac Lowercase_id Equal Uppercase_id Uppercase_id
 ##
-## Ends in an error in state: 193.
+## Ends in an error in state: 196.
 ##
 ## expr -> expr . Plus_i expr [ Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -2385,12 +2453,19 @@ prog: Lbrac Lowercase_id Equal False Uppercase_id
 ## The known suffix of the stack is as follows:
 ## Lowercase_id Equal expr
 ##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Lowercase_id Equal False Comma Uppercase_id
+prog: Lbrac Lowercase_id Equal Uppercase_id Comma Uppercase_id
 ##
-## Ends in an error in state: 194.
+## Ends in an error in state: 197.
 ##
 ## separated_nonempty_list(Comma,record_item) -> Lowercase_id Equal expr Comma . separated_nonempty_list(Comma,record_item) [ Rbrac ]
 ##
@@ -2402,7 +2477,7 @@ prog: Lbrac Lowercase_id Equal False Comma Uppercase_id
 
 prog: Lbrac Lowercase_id Comma Uppercase_id
 ##
-## Ends in an error in state: 196.
+## Ends in an error in state: 199.
 ##
 ## separated_nonempty_list(Comma,record_item) -> Lowercase_id Comma . separated_nonempty_list(Comma,record_item) [ Rbrac ]
 ##
@@ -2412,9 +2487,9 @@ prog: Lbrac Lowercase_id Comma Uppercase_id
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrack False Rpar
+prog: Lbrack Uppercase_id Rpar
 ##
-## Ends in an error in state: 200.
+## Ends in an error in state: 203.
 ##
 ## vector_lit -> Lbrack loption(separated_nonempty_list(Comma,expr)) . Rbrack [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ##
@@ -2425,15 +2500,17 @@ prog: Lbrack False Rpar
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
 ## In state 115, spurious reduction of production separated_nonempty_list(Comma,expr) -> expr
 ## In state 112, spurious reduction of production loption(separated_nonempty_list(Comma,expr)) -> separated_nonempty_list(Comma,expr)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar False Uppercase_id
+prog: Lpar Uppercase_id Uppercase_id
 ##
-## Ends in an error in state: 202.
+## Ends in an error in state: 205.
 ##
 ## expr -> expr . Plus_i expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Rpar Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -2461,12 +2538,19 @@ prog: Lpar False Uppercase_id
 ## The known suffix of the stack is as follows:
 ## Lpar expr
 ##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Minus_f False Quote
 ##
-## Ends in an error in state: 204.
+## Ends in an error in state: 207.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -2499,7 +2583,7 @@ prog: Minus_f False Quote
 
 prog: Minus_i False Quote
 ##
-## Ends in an error in state: 205.
+## Ends in an error in state: 208.
 ##
 ## expr -> expr . Plus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
 ## expr -> expr . Minus_i expr [ Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Or Mult_i Mult_f Minus_i Minus_f Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f Arrow_right And ]
@@ -2532,7 +2616,7 @@ prog: Minus_i False Quote
 
 prog: External Uppercase_id
 ##
-## Ends in an error in state: 206.
+## Ends in an error in state: 209.
 ##
 ## top_item -> External . ident Colon build_type_list Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External . ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -2546,7 +2630,7 @@ Functions must have lowercase names. Use the following form: 'external schmu_nam
 
 prog: External Lowercase_id Uppercase_id
 ##
-## Ends in an error in state: 207.
+## Ends in an error in state: 210.
 ##
 ## top_item -> External ident . Colon build_type_list Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External ident . Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -2560,7 +2644,7 @@ prog: External Lowercase_id Uppercase_id
 
 prog: External Lowercase_id Colon Uppercase_id
 ##
-## Ends in an error in state: 208.
+## Ends in an error in state: 211.
 ##
 ## top_item -> External ident Colon . build_type_list Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External ident Colon . Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -2574,7 +2658,7 @@ prog: External Lowercase_id Colon Uppercase_id
 
 prog: External Lowercase_id Colon Lpar Uppercase_id
 ##
-## Ends in an error in state: 209.
+## Ends in an error in state: 212.
 ##
 ## top_item -> External ident Colon Lpar . separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2586,7 +2670,7 @@ prog: External Lowercase_id Colon Lpar Uppercase_id
 
 prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Uppercase_id
 ##
-## Ends in an error in state: 211.
+## Ends in an error in state: 214.
 ##
 ## top_item -> External ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar . Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2598,7 +2682,7 @@ prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Uppercase_id
 
 prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Uppercase_id
 ##
-## Ends in an error in state: 212.
+## Ends in an error in state: 215.
 ##
 ## top_item -> External ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right . build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2610,7 +2694,7 @@ prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Uppercase_i
 
 prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Lowercase_id Rpar
 ##
-## Ends in an error in state: 213.
+## Ends in an error in state: 216.
 ##
 ## top_item -> External ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list . option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2628,7 +2712,7 @@ prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Lowercase_i
 
 prog: External Lowercase_id Colon Lowercase_id Equal Uppercase_id
 ##
-## Ends in an error in state: 214.
+## Ends in an error in state: 217.
 ##
 ## option(external_cname) -> Equal . String_lit [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2640,7 +2724,7 @@ prog: External Lowercase_id Colon Lowercase_id Equal Uppercase_id
 
 prog: External Lowercase_id Colon Lowercase_id Rpar
 ##
-## Ends in an error in state: 217.
+## Ends in an error in state: 220.
 ##
 ## top_item -> External ident Colon build_type_list . Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External ident Colon build_type_list . option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -2659,7 +2743,7 @@ prog: External Lowercase_id Colon Lowercase_id Rpar
 
 prog: External Lowercase_id Colon Lowercase_id Arrow_right Uppercase_id
 ##
-## Ends in an error in state: 218.
+## Ends in an error in state: 221.
 ##
 ## top_item -> External ident Colon build_type_list Arrow_right . build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2671,7 +2755,7 @@ prog: External Lowercase_id Colon Lowercase_id Arrow_right Uppercase_id
 
 prog: External Lowercase_id Colon Lowercase_id Arrow_right Lowercase_id Rpar
 ##
-## Ends in an error in state: 219.
+## Ends in an error in state: 222.
 ##
 ## top_item -> External ident Colon build_type_list Arrow_right build_type_list . option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2687,9 +2771,9 @@ prog: External Lowercase_id Colon Lowercase_id Arrow_right Lowercase_id Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False End
+prog: Uppercase_id End
 ##
-## Ends in an error in state: 222.
+## Ends in an error in state: 225.
 ##
 ## list(top_item) -> top_item . list(top_item) [ Eof ]
 ##
@@ -2700,9 +2784,11 @@ prog: False End
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 172, spurious reduction of production stmt -> expr
-## In state 164, spurious reduction of production nonempty_list(stmt) -> stmt
-## In state 223, spurious reduction of production top_item -> nonempty_list(stmt)
+## In state 121, spurious reduction of production option(parens_single(expr)) ->
+## In state 163, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 175, spurious reduction of production stmt -> expr
+## In state 167, spurious reduction of production nonempty_list(stmt) -> stmt
+## In state 226, spurious reduction of production top_item -> nonempty_list(stmt)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>

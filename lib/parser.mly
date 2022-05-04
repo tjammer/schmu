@@ -141,7 +141,7 @@ expr:
   | expr; Arrow_right; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
   | Lpar; expr; Rpar { $2 }
-  | ctor; option(expr) { Ctor($loc, $1, $2) }
+  | ctor; option(parens_single(expr)) { Ctor($loc, $1, $2) }
 
 %inline lit:
   | Int { Lit($loc, Int $1) }
@@ -169,6 +169,9 @@ ctor:
 
 let parens(x) :=
   | Lpar; lst = separated_list(Comma, x); Rpar; { lst }
+
+let parens_single(x) :=
+  | Lpar; item = x; Rpar; { item }
 
 bool:
   | True { true }

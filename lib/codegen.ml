@@ -1051,6 +1051,7 @@ and gen_expr param typed_expr =
       codegen_field_set param expr index value |> fin
   | Mseq (expr, cont) -> codegen_chain param expr cont
   | Mfree_after (expr, id) -> gen_free param expr id
+  | Mctor _ -> failwith "TODO"
 
 and gen_var vars typ id kind =
   match kind with

@@ -14,6 +14,7 @@ type expr =
   | Field of (typed_expr * int)
   | Field_set of (typed_expr * int * typed_expr)
   | Sequence of (typed_expr * typed_expr)
+  | Ctor of (string * int * typed_expr option)
 [@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr; is_const : bool }
@@ -244,6 +245,29 @@ let rec unify t1 t2 =
           with Invalid_argument _ ->
             raise (Arity ("record", Array.length labels1, Array.length labels2))
         else raise Unify
+    | Tvariant (p1, n1, ctors1), Tvariant (p2, n2, ctors2) ->
+        if String.equal n1 n2 then
+          let () =
+            match (p1, p2) with
+            | Some param1, Some param2 -> unify param1 param2
+            | None, None -> ()
+            | None, Some p2 | Some p2, None ->
+                ignore p2;
+                raise Unify
+          in
+
+          (* We ignore the label names for now *)
+          try
+            Array.iter2
+              (fun a b ->
+                match (a.ctortyp, b.ctortyp) with
+                | Some a, Some b -> unify a b
+                | None, None -> ()
+                | Some _, None | None, Some _ -> raise Unify)
+              ctors1 ctors2
+          with Invalid_argument _ ->
+            raise (Arity ("variant", Array.length ctors1, Array.length ctors2))
+        else raise Unify
     | Tptr l, Tptr r -> unify l r
     | Qvar a, Qvar b when String.equal a b ->
         (* We should not need this. Record instantiation? *) ()
@@ -308,6 +332,24 @@ let instantiate t =
         in
         let param, subst = aux !subst param in
         (Trecord (Some param, name, labels), subst)
+    | Tvariant (Some param, name, ctors) ->
+        let subst = ref subst in
+        let ctors =
+          Array.map
+            (fun ctor ->
+              let ctortyp =
+                Option.map
+                  (fun typ ->
+                    let t, subst' = aux !subst typ in
+                    subst := subst';
+                    t)
+                  ctor.ctortyp
+              in
+              { ctor with ctortyp })
+            ctors
+        in
+        let param, subst = aux !subst param in
+        (Tvariant (Some param, name, ctors), subst)
     | Tptr t ->
         let t, subst = aux subst t in
         (Tptr t, subst)
@@ -352,7 +394,8 @@ let rec types_match ?(strict = false) subst l r =
           let subst, b = types_match ~strict:true subst l r in
           (subst, acc && b)
         with Invalid_argument _ -> (subst, false))
-    | Trecord (pl, nl, _), Trecord (pr, nr, _) ->
+    | Trecord (pl, nl, _), Trecord (pr, nr, _)
+    | Tvariant (pl, nl, _), Tvariant (pr, nr, _) ->
         (* It should be enough to compare the name (rather, the name's repr)
            and the param type *)
         if String.equal nl nr then
@@ -416,6 +459,12 @@ let rec subst_generic ~id typ = function
       let f f = Types.{ f with typ = subst_generic ~id typ f.typ } in
       let labels = Array.map f labels in
       Trecord (Some (subst_generic ~id typ p), name, labels)
+  | Tvariant (Some p, name, ctors) ->
+      let f c =
+        Types.{ c with ctortyp = Option.map (subst_generic ~id typ) c.ctortyp }
+      in
+      let ctors = Array.map f ctors in
+      Tvariant (Some (subst_generic ~id typ p), name, ctors)
   | Tptr t -> Tptr (subst_generic ~id typ t)
   | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
   | t -> t
@@ -424,6 +473,8 @@ and get_generic_id loc = function
   | Tvar { contents = Link t } | Talias (_, t) -> get_generic_id loc t
   | Trecord (Some (Qvar id), _, _)
   | Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _)
+  | Tvariant (Some (Qvar id), _, _)
+  | Tvariant (Some (Tvar { contents = Unbound (id, _) }), _, _)
   | Tptr (Qvar id)
   | Tptr (Tvar { contents = Unbound (id, _) }) ->
       id
@@ -653,7 +704,6 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
   in
   Env.add_variant name ~param ~ctors env
 
-(* TODO Error handling sucks right now *)
 let dont_allow_closure_return loc fn =
   let rec error_on_closure = function
     | Tfun (_, _, Closure _) ->
@@ -700,7 +750,7 @@ and convert_annot env annot = function
   | Field_set (loc, expr, id, value) -> convert_field_set env loc expr id value
   | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
   | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
-  | Ctor (loc, name, args) -> convert_ctor env loc name args
+  | Ctor (loc, name, args) -> convert_ctor env loc name args annot
 
 and convert_var env loc id =
   match Env.query_val_opt id env with
@@ -1021,12 +1071,50 @@ and convert_pipe_tail env loc e1 e2 =
       (* Should be a lone id, if not we let it fail in _app *)
       convert_app ~switch_uni env loc e2 [ e1 ]
 
-and convert_ctor env loc name args =
-  ignore env;
-  ignore loc;
-  ignore name;
-  ignore args;
-  failwith "TODO"
+and convert_ctor env loc name arg annot =
+  (* This doesn't handle annotations like the record function does,
+     but it's also much simpler, so we maybe don't need to. *)
+  match Env.find_ctor_opt (snd name) env with
+  | Some { index; typename } -> (
+      (* We get the ctor type from the variant *)
+      let ctor, variant =
+        match Env.query_type ~instantiate typename env with
+        | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
+        | _ -> failwith "Internal Error: Not a variant"
+      in
+
+      (match annot with
+      | Some t -> unify (loc, "In constructor " ^ snd name ^ ":") t variant
+      | None -> ());
+
+      match (ctor.ctortyp, arg) with
+      | Some typ, Some expr ->
+          let texpr = convert env expr in
+          unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
+          let expr = Ctor (typename, index, Some texpr) in
+
+          { typ = variant; expr; is_const = texpr.is_const }
+      | None, None ->
+          let expr = Ctor (typename, index, None) in
+          { typ = variant; expr; is_const = true }
+      | None, Some _ ->
+          let msg =
+            Printf.sprintf
+              "The constructor %s expects 0 arguments, but an argument is \
+               provided"
+              (snd name)
+          in
+          raise (Error (fst name, msg))
+      | Some _, None ->
+          let msg =
+            Printf.sprintf
+              "The constructor %s expects arguments, but none are provided"
+              (snd name)
+          in
+          raise (Error (fst name, msg)))
+  | None ->
+      let msg = "Unbound constructor " ^ snd name in
+      raise (Error (loc, msg))
 
 and convert_block_annot ~ret env annot stmts =
   let loc = Lexing.(dummy_pos, dummy_pos) in

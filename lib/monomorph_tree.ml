@@ -32,6 +32,7 @@ type expr =
   | Mfield_set of (monod_tree * int * monod_tree)
   | Mseq of (monod_tree * monod_tree)
   | Mfree_after of monod_tree * int
+  | Mctor of (string * int * monod_tree option) * alloca * bool
 [@@deriving show]
 
 and const =
@@ -342,6 +343,9 @@ let rec subst_body p subst tree =
           typ = subst tree.typ;
           expr = Mrecord (labels, alloca, const);
         }
+    | Mctor ((var, index, expr), alloca, const) ->
+        let expr = Mctor ((var, index, Option.map sub expr), alloca, const) in
+        { tree with typ = subst tree.typ; expr }
     | Mfield (expr, index) ->
         { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
     | Mfield_set (expr, index, value) ->
@@ -486,6 +490,8 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   | Function (name, uniq, abs, cont) -> morph_func param (name, uniq, abs, cont)
   | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
   | App { callee; args } -> morph_app make param callee args
+  | Ctor (variant, index, dataexpr) ->
+      morph_ctor make param variant index dataexpr texpr.is_const
 
 and morph_var mk p v =
   let (v, kind), alloca =
@@ -801,6 +807,35 @@ and morph_app mk p callee args =
     Mapp { callee; args; alloca = alloc_ref; malloc; id }
   in
   ({ p with ret }, mk app ret, { no_var with alloc; malloc })
+
+and morph_ctor mk p variant index expr is_const =
+  let ret = p.ret in
+  let p = { p with ret = false } in
+
+  enter_level ();
+
+  let p, malloc, ctor =
+    match expr with
+    | Some expr ->
+        (* We only need to track if there are some mallocs, not each one individually *)
+        let fst_malloc other = function Some m -> Some m | None -> other in
+
+        (* Similar to [morph_record], collect mallocs in data *)
+        let p, e, var = morph_expr p expr in
+        (* TODO We should now handle not only records, but all types which are
+           automatically allocated: Variants *)
+        (match e.typ with Trecord _ -> set_alloca var.alloc | _ -> ());
+        let malloc = fst_malloc var.malloc None in
+        (p, malloc, (variant, index, Some e))
+    | None -> (p, None, (variant, index, None))
+  in
+
+  leave_level ();
+
+  let alloca = ref (request ()) in
+  ( { p with ret },
+    mk (Mctor (ctor, alloca, is_const)) ret,
+    { fn = No_function; alloc = Value alloca; malloc } )
 
 let monomorphize { Typing.externals; typedefs; tree } =
   reset ();
