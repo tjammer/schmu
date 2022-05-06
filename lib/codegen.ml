@@ -1007,56 +1007,11 @@ and gen_expr param typed_expr =
   in
 
   match typed_expr.expr with
-  | Monomorph_tree.Mconst (Int i) ->
-      {
-        value = Llvm.const_int int_t i;
-        typ = Tint;
-        lltyp = int_t;
-        const = Const;
-      }
-      |> fin
-  | Mconst (Bool b) ->
-      {
-        value = Llvm.const_int bool_t (Bool.to_int b);
-        typ = Tbool;
-        lltyp = bool_t;
-        const = Const;
-      }
-      |> fin
-  | Mconst (U8 c) ->
-      {
-        value = Llvm.const_int u8_t (Char.code c);
-        typ = Tu8;
-        lltyp = u8_t;
-        const = Const;
-      }
-  | Mconst (Float f) ->
-      {
-        value = Llvm.const_float float_t f;
-        typ = Tfloat;
-        lltyp = float_t;
-        const = Const;
-      }
-  | Mconst (I32 i) ->
-      {
-        value = Llvm.const_int i32_t i;
-        typ = Ti32;
-        lltyp = i32_t;
-        const = Const;
-      }
-      |> fin
-  | Mconst (F32 f) ->
-      {
-        value = Llvm.const_float f32_t f;
-        typ = Tf32;
-        lltyp = f32_t;
-        const = Const;
-      }
   | Mconst (String (s, allocref)) ->
       codegen_string_lit param s typed_expr.typ allocref
   | Mconst (Vector (id, es, allocref)) ->
       codegen_vector_lit param id es typed_expr.typ allocref
-  | Mconst Unit -> dummy_fn_value
+  | Mconst c -> gen_const c |> fin
   | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
   | Munop (_, e) -> gen_unop param e |> fin
   | Mvar (id, kind) -> gen_var param.vars typed_expr.typ id kind |> fin
@@ -1111,6 +1066,28 @@ and gen_expr param typed_expr =
   | Mfree_after (expr, id) -> gen_free param expr id
   | Mctor (ctor, allocref, const) ->
       gen_ctor param ctor typed_expr.typ allocref const
+
+and gen_const = function
+  | Int i ->
+      let value = Llvm.const_int int_t i in
+      { value; typ = Tint; lltyp = int_t; const = Const }
+  | Bool b ->
+      let value = Llvm.const_int bool_t (Bool.to_int b) in
+      { value; typ = Tbool; lltyp = bool_t; const = Const }
+  | U8 c ->
+      let value = Llvm.const_int u8_t (Char.code c) in
+      { value; typ = Tu8; lltyp = u8_t; const = Const }
+  | Float f ->
+      let value = Llvm.const_float float_t f in
+      { value; typ = Tfloat; lltyp = float_t; const = Const }
+  | I32 i ->
+      let value = Llvm.const_int i32_t i in
+      { value; typ = Ti32; lltyp = i32_t; const = Const }
+  | F32 f ->
+      let value = Llvm.const_float f32_t f in
+      { value; typ = Tf32; lltyp = f32_t; const = Const }
+  | Unit -> dummy_fn_value
+  | String _ | Vector _ -> failwith "In other branch"
 
 and gen_var vars typ id kind =
   match kind with
