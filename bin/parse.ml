@@ -65,7 +65,8 @@ let fail src file lexbuf (checkpoint : _ I.checkpoint) =
   let loc = loc_of_lexing lexbuf in
   let pp, pos = pp_position lexbuf file in
 
-  let message = Syntax_errors.message (state checkpoint) in
+  (* let message = Syntax_errors.message (state checkpoint) in *)
+  let message = "nope" in
   (* Expand away the $i keywords that might appear in the message. *)
   let message = E.expand (get src checkpoint) message in
 

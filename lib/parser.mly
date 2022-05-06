@@ -104,7 +104,10 @@ top_item:
     { Tvariant { name = $2; ctors = $4 } }
 
 %inline ctordef:
-  | ctor; option(typedef_poly_id) { { name = $1; typ_annot = $2 } }
+  | ctor; option(ctortyp) { { name = $1; typ_annot = $2 } }
+
+%inline ctortyp:
+  | Lpar; type_func; Rpar { $2 }
 
 %inline typename:
   | Lowercase_id; option(typedef_poly_id) { { name = $1; poly_param = string_of_ty_var $2 } }

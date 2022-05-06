@@ -1093,6 +1093,7 @@ and convert_ctor env loc name arg annot =
           unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
           let expr = Ctor (typename, index, Some texpr) in
 
+          Env.maybe_add_type_instance (string_of_type variant) variant env;
           { typ = variant; expr; is_const = texpr.is_const }
       | None, None ->
           let expr = Ctor (typename, index, None) in

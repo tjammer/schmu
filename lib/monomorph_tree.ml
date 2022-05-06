@@ -182,7 +182,8 @@ let find_function_expr vars = function
           match Builtin.of_string id with
           | Some b -> Builtin b
           | None -> No_function))
-  | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ | Munop _ -> No_function
+  | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ | Munop _ | Mctor _ ->
+      No_function
   | Mif _ ->
       (* We are not allowing to return functions in ifs,
          b/c we cannot codegen anyway *)

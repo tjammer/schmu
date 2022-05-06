@@ -91,12 +91,12 @@ let dummy_fn_value =
 
 (* Named structs for typedefs *)
 
-let rec record_name = function
+let rec struct_name = function
   (* We match on each type here to allow for nested parametrization like [int foo bar].
      [poly] argument will create a name used for a poly var, ie spell out the generic name *)
-  | Trecord (param, name, _) ->
+  | Trecord (param, name, _) | Tvariant (param, name, _) ->
       let some p =
-        "_" ^ match p with Tpoly _ -> "generic" | t -> record_name t
+        "_" ^ match p with Tpoly _ -> "generic" | t -> struct_name t
       in
       Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)
   | t -> string_of_type t
@@ -132,7 +132,21 @@ let sizeof_typ typ =
         add_size_align ~upto:8 ~sz:8 size_pr
     | Trecord (_, _, labels) ->
         Array.fold_left (fun pr (f : field) -> inner pr f.typ) size_pr labels
-    | Tvariant _ -> failwith "TODO"
+    | Tvariant (_, _, ctors) ->
+        (* For simplicity, we use i32 for the tag. If the variant contains no data
+           i.e. is a C enum, we want to use i32 anyway, since that's what C uses.
+           And then we don't have to worry about the size *)
+        (* I'm not sure if this makes the variant correctly aligned in a struct.
+           Maybe we should first get the size assuming 0 alignment and then
+           alignup from the current size_pr? *)
+        let init = inner { size = 0; align = 0 } Ti32 in
+        let final =
+          Array.fold_left
+            (fun pr ctor ->
+              match ctor.ctortyp with Some typ -> inner pr typ | None -> pr)
+            init ctors
+        in
+        add_size_align ~upto:final.align ~sz:final.size size_pr
     | Tpoly _ ->
         Llvm.dump_module the_module;
         failwith "too generic for a size"
@@ -256,7 +270,7 @@ let rec get_lltype_def = function
   | Tunit -> unit_t
   | Tpoly _ -> generic_t |> Llvm.pointer_type
   | (Trecord _ as t) | (Tvariant _ as t) -> (
-      let name = record_name t in
+      let name = struct_name t in
       (* TODO rename [record] here to something *)
       match Strtbl.find_opt record_tbl name with
       | Some t -> t
@@ -274,7 +288,7 @@ and get_lltype_param = function
   | Tfun (params, ret, kind) ->
       typeof_func ~param:true ~decl:false (params, ret, kind)
   | (Trecord _ as typ) | (Tvariant _ as typ) -> (
-      let name = record_name typ in
+      let name = struct_name typ in
       match Strtbl.find_opt record_tbl name with
       | Some t -> (
           match pkind_of_typ typ with
@@ -412,9 +426,15 @@ let maybe_unbox_record typ value =
   | Unboxed kind -> unbox_record ~kind ~ret:false value
   | Boxed -> (value.value, None)
 
+let add_exn name t =
+  if Strtbl.mem record_tbl name then
+    failwith "Internal Error: Type shadowing not supported in codegen TODO";
+
+  Strtbl.add record_tbl name t
+
 let to_named_typedefs = function
   | Trecord (_, _, labels) as t ->
-      let name = record_name t in
+      let name = struct_name t in
       let t = Llvm.named_struct_type context name in
       let lltyp =
         Array.map (fun (f : field) -> (f.name, f.typ)) labels
@@ -422,11 +442,32 @@ let to_named_typedefs = function
       in
       Llvm.struct_set_body t lltyp false;
 
-      if Strtbl.mem record_tbl name then
-        failwith "Internal Error: Type shadowing not supported in codegen TODO";
-
-      Strtbl.add record_tbl name t
-  | Tvariant _ -> failwith "TODO"
+      add_exn name t
+  | Tvariant (_, _, ctors) as t -> (
+      (* We loop throug each ctor and then we use the largest one as a
+         typedef for the whole type *)
+      let name = struct_name t in
+      let tag = i32_t in
+      let largest, _ =
+        Array.fold_left
+          (fun (largest, size) ctor ->
+            match ctor.ctortyp with
+            | None -> (largest, size)
+            | Some typ ->
+                let sz = sizeof_typ typ in
+                let typ = get_lltype_def typ in
+                if sz > size then (Some typ, sz) else (largest, size))
+          (None, 0) ctors
+      in
+      let t = Llvm.named_struct_type context name in
+      match largest with
+      | Some lltyp ->
+          Llvm.struct_set_body t [| tag; lltyp |] false;
+          add_exn name t
+      | None ->
+          (* C style enum, no data, just tag *)
+          Llvm.struct_set_body t [| tag |] false;
+          add_exn name t)
   | _ -> failwith "Internal Error: Only records and variants should be here"
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
@@ -1051,7 +1092,8 @@ and gen_expr param typed_expr =
       codegen_field_set param expr index value |> fin
   | Mseq (expr, cont) -> codegen_chain param expr cont
   | Mfree_after (expr, id) -> gen_free param expr id
-  | Mctor _ -> failwith "TODO"
+  | Mctor (ctor, allocref, const) ->
+      gen_ctor param ctor typed_expr.typ allocref const
 
 and gen_var vars typ id kind =
   match kind with
@@ -1643,7 +1685,7 @@ and codegen_string_lit param s typ allocref =
   { value = string; typ; lltyp; const = Const_ptr }
 
 and codegen_vector_lit param id es typ allocref =
-  let lltyp = Strtbl.find record_tbl (record_name typ) in
+  let lltyp = Strtbl.find record_tbl (struct_name typ) in
   let item_typ =
     match typ with
     | Trecord (Some t, _, _) -> t
@@ -1704,6 +1746,33 @@ and gen_free param expr id =
   let ret = gen_expr param expr in
   ignore (free_id id);
   ret
+
+and gen_ctor param (variant, tag, expr) typ allocref const =
+  ignore allocref;
+  ignore const;
+  ignore variant;
+
+  (* TODO handle preallocs *)
+  let lltyp = Strtbl.find record_tbl (struct_name typ) in
+  let var = alloca param lltyp "todo" in
+
+  (* Set tag *)
+  let tagptr = Llvm.build_struct_gep var 0 "tag" builder in
+  ignore (Llvm.build_store (Llvm.const_int i32_t tag) tagptr builder);
+
+  (match expr with
+  | Some expr ->
+      let data = gen_expr param expr
+      and dataptr = Llvm.build_struct_gep var 1 "data" builder in
+
+      let dataptr =
+        Llvm.build_bitcast dataptr
+          (data.lltyp |> Llvm.pointer_type)
+          "data" builder
+      in
+      ignore (Llvm.build_store data.value dataptr builder)
+  | None -> ());
+  { value = var; typ; lltyp; const = Not }
 
 let fill_constants constants =
   let f (name, tree) =

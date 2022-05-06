@@ -148,7 +148,8 @@ let maybe_add_type_instance key typ env =
   let key = Type_key.create key in
 
   match clean typ with
-  | Trecord (Some t, _, _) when not (is_unbound t) -> (
+  | (Trecord (Some t, _, _) | Tvariant (Some t, _, _)) when not (is_unbound t)
+    -> (
       match Tmap.find_opt key !(env.instances) with
       | None -> env.instances := Tmap.add key typ !(env.instances)
       | Some _ -> ())
@@ -287,7 +288,7 @@ let typedefs env =
   Tmap.filter
     (fun _ typ ->
       match typ with
-      | Trecord (Some (Qvar _), _, _) ->
+      | Trecord (Some (Qvar _), _, _) | Tvariant (Some (Qvar _), _, _) ->
           (* We don't want to add generic records *)
           false
       | Trecord _ | Tvariant _ -> true
