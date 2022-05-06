@@ -1769,21 +1769,28 @@ and gen_free param expr id =
 and gen_ctor param (variant, tag, expr) typ allocref const =
   ignore const;
 
+  (* This approach means we alloca every time, even if the enum
+     ends up being a clike constant. There's room for improvement here *)
   let lltyp = Strtbl.find record_tbl (struct_name typ) in
   let var = get_prealloc !allocref param lltyp variant in
 
   (* Set tag *)
   let tagptr = Llvm.build_struct_gep var 0 "tag" builder in
   let tag =
-    { value = Llvm.const_int i32_t tag; typ = Ti32; lltyp = i32_t; const = Not }
+    {
+      value = Llvm.const_int i32_t tag;
+      typ = Ti32;
+      lltyp = i32_t;
+      const = Const;
+    }
   in
   set_struct_field tag tagptr;
 
   (* Set data *)
   (match expr with
   | Some expr ->
-      let data = gen_expr param expr
-      and dataptr = Llvm.build_struct_gep var 1 "data" builder in
+      let dataptr = Llvm.build_struct_gep var 1 "data" builder in
+      let data = gen_expr { param with alloca = Some dataptr } expr in
 
       let dataptr =
         Llvm.build_bitcast dataptr

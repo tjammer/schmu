@@ -12,18 +12,24 @@ Basic variant ctors
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %option_float = type { i32, double }
+  %option_string = type { i32, %string }
+  %string = type { i8*, i64 }
   %clike = type { i32 }
   %option_int = type { i32, i64 }
   %larger = type { i32, %foo }
   %foo = type { double, double }
   
-  define private void @wrap_option(%option_float* %0) {
+  @0 = private unnamed_addr constant [6 x i8] c"hello\00", align 1
+  
+  define private void @wrap_option(%option_string* %0) {
   entry:
-    %tag1 = bitcast %option_float* %0 to i32*
+    %tag1 = bitcast %option_string* %0 to i32*
     store i32 1, i32* %tag1, align 4
-    %data = getelementptr inbounds %option_float, %option_float* %0, i32 0, i32 1
-    store double 3.140000e+00, double* %data, align 8
+    %data = getelementptr inbounds %option_string, %option_string* %0, i32 0, i32 1
+    %cstr2 = bitcast %string* %data to i8**
+    store i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0), i8** %cstr2, align 8
+    %length = getelementptr inbounds %string, %string* %data, i32 0, i32 1
+    store i64 5, i64* %length, align 4
     ret void
   }
   
