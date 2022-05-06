@@ -605,7 +605,7 @@ and morph_record mk p labels is_const =
   (* Collect mallocs in initializer *)
   let f (param, malloc) (id, e) =
     let p, e, var = morph_expr param e in
-    (match e.typ with Trecord _ -> set_alloca var.alloc | _ -> ());
+    if is_struct e.typ then set_alloca var.alloc;
     ((p, fst_malloc var.malloc malloc), (id, e))
   in
   let (p, malloc), labels = List.fold_left_map f (p, None) labels in
@@ -663,9 +663,7 @@ and morph_func p (username, uniq, abs, cont) =
   let temp_p =
     recursion_stack := (call, recursive) :: !recursion_stack;
     let alloc =
-      match abs.tp.ret with
-      | Trecord _ -> Value (ref (request ()))
-      | _ -> No_value
+      if Types.is_struct abs.tp.ret then Value (ref (request ())) else No_value
     in
     let value = { no_var with fn = Forward_decl call; alloc } in
     let vars = Vars.add username (Normal value) p.vars in
@@ -685,11 +683,9 @@ and morph_func p (username, uniq, abs, cont) =
   let temp_p, body, var = morph_expr temp_p abs.body in
   leave_level ();
 
-  (match body.typ with
-  | Trecord _ ->
-      set_alloca var.alloc;
-      propagate_malloc var.malloc
-  | _ -> ());
+  if is_struct body.typ then (
+    set_alloca var.alloc;
+    propagate_malloc var.malloc);
 
   let body = free_mallocs body temp_p.mallocs in
 
@@ -742,7 +738,7 @@ and morph_lambda typ p id abs =
   let p = { p with monomorphized = tmp.monomorphized; funcs = tmp.funcs } in
   leave_level ();
 
-  (match abs.tp.ret with Trecord _ -> set_alloca var.alloc | _ -> ());
+  if Types.is_struct abs.tp.ret then set_alloca var.alloc;
 
   (* Why do we need this again in lambda? They can't recurse. *)
   (* But functions on the lambda body might *)
@@ -793,14 +789,13 @@ and morph_app mk p callee args =
   let p, args = List.fold_left_map f p args in
 
   let alloc, alloc_ref =
-    match callee.ex.typ with
-    | Tfun (_, Trecord _, _) ->
-        (* For every call, we make a new request. If the call is the return
-           value of a function, the request will be change to [Preallocated]
-           in [morph_func] or [morph_lambda] above. *)
-        let req = ref (request ()) in
-        (Value req, req)
-    | _ -> (No_value, ref (request ()))
+    if is_struct callee.ex.typ then
+      (* For every call, we make a new request. If the call is the return
+         value of a function, the request will be change to [Preallocated]
+         in [morph_func] or [morph_lambda] above. *)
+      let req = ref (request ()) in
+      (Value req, req)
+    else (No_value, ref (request ()))
   in
 
   let app =
@@ -825,7 +820,7 @@ and morph_ctor mk p variant index expr is_const =
         let p, e, var = morph_expr p expr in
         (* TODO We should now handle not only records, but all types which are
            automatically allocated: Variants *)
-        (match e.typ with Trecord _ -> set_alloca var.alloc | _ -> ());
+        if is_struct e.typ then set_alloca var.alloc;
         let malloc = fst_malloc var.malloc None in
         (p, malloc, (variant, index, Some e))
     | None -> (p, None, (variant, index, None))

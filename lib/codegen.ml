@@ -118,7 +118,7 @@ let add_size_align ~upto ~sz { size; align } =
   { size; align }
 
 (* Returns the size in bytes *)
-let sizeof_typ typ =
+let rec sizeof_typ typ =
   let rec inner size_pr typ =
     match typ with
     | Tint | Tfloat -> add_size_align ~upto:8 ~sz:8 size_pr
@@ -141,10 +141,9 @@ let sizeof_typ typ =
            alignup from the current size_pr? *)
         let init = inner { size = 0; align = 0 } Ti32 in
         let final =
-          Array.fold_left
-            (fun pr ctor ->
-              match ctor.ctortyp with Some typ -> inner pr typ | None -> pr)
-            init ctors
+          match variant_get_largest ctors with
+          | Some typ -> inner init typ
+          | None -> init
         in
         add_size_align ~upto:final.align ~sz:final.size size_pr
     | Tpoly _ ->
@@ -157,6 +156,19 @@ let sizeof_typ typ =
   let { size; align = upto } = inner { size = 0; align = 1 } typ in
   alignup ~size ~upto
 
+and variant_get_largest ctors =
+  let largest, _ =
+    Array.fold_left
+      (fun (largest, size) ctor ->
+        match ctor.ctortyp with
+        | None -> (largest, size)
+        | Some typ ->
+            let sz = sizeof_typ typ in
+            if sz > size then (Some typ, sz) else (largest, size))
+      (None, 0) ctors
+  in
+  largest
+
 let llval_of_size size = Llvm.const_int int_t size
 
 (*
@@ -168,6 +180,12 @@ let rec is_mutable = function
       Array.fold_left
         (fun acc field -> field.mut || is_mutable field.typ || acc)
         false fields
+  | Tvariant (_, _, ctors) ->
+      Array.fold_left
+        (fun acc ctor ->
+          let some typ = is_mutable typ || acc in
+          Option.fold ~none:acc ~some ctor.ctortyp)
+        false ctors
   | _ -> false
 
 let rec get_word ~size items = function
@@ -193,7 +211,7 @@ and extract_word ~size = function
       let size = match size with 1 -> 1 | 2 -> 2 | 3 | 4 -> 4 | _ -> 8 in
       Some (Ints size)
 
-and pkind_of_typ = function
+and pkind_of_typ typ =
   (* We destruct the type into words of 8 byte.
      A word is then either a double, an int (containing different types)
      or a vector of float (for x86_64-linux-gnu). If a type straddles
@@ -202,22 +220,33 @@ and pkind_of_typ = function
      two ([Two_params]) parameters.
      Still missing: A 'short' type to unbox e.g. 2 bools.
      And obviously all of this is hardcoded for x86_64-linux-gnu *)
-  | Trecord (_, _, fields) as typ when not (is_mutable typ) -> (
+  let aux typ types =
+    let size = sizeof_typ typ in
+    if size > 16 then Boxed
+    else
+      let fst, tail, size = get_word ~size:0 [] types in
+      let fst = extract_word ~size fst in
+      let snd, _, size = get_word ~size:0 [] tail in
+      let snd = extract_word ~size snd in
+      match (fst, snd) with
+      | Some a, Some b -> Unboxed (Two_params (a, b))
+      | Some atom, None -> Unboxed (One_param atom)
+      | None, _ -> Boxed
+  in
+  match typ with
+  | Trecord (_, _, fields) when not (is_mutable typ) ->
       let types =
         Array.map (fun (field : Cleaned_types.field) -> field.typ) fields
         |> Array.to_list
       in
-      let size = sizeof_typ typ in
-      if size > 16 then Boxed
-      else
-        let fst, tail, size = get_word ~size:0 [] types in
-        let fst = extract_word ~size fst in
-        let snd, _, size = get_word ~size:0 [] tail in
-        let snd = extract_word ~size snd in
-        match (fst, snd) with
-        | Some a, Some b -> Unboxed (Two_params (a, b))
-        | Some atom, None -> Unboxed (One_param atom)
-        | None, _ -> Boxed)
+      aux typ types
+  | Tvariant (_, _, ctors) when not (is_mutable typ) ->
+      let types =
+        match variant_get_largest ctors with
+        | Some typ -> [ Ti32; typ ]
+        | None -> [ Ti32 ]
+      in
+      aux typ types
   | _ -> Boxed
 
 let lltype_unbox = function
@@ -315,7 +344,7 @@ and typeof_closure agg =
   Array.map
     (fun (_, typ) ->
       match typ with
-      | Trecord _ when is_mutable typ ->
+      | (Trecord _ | Tvariant _) when is_mutable typ ->
           get_lltype_field typ |> Llvm.pointer_type
       | typ -> get_lltype_field typ)
     agg
@@ -329,13 +358,11 @@ and typeof_func ~param ~decl (params, ret, kind) =
        If a record is returned, we allocate it at the caller site and
        pass it as first argument to the function *)
     let prefix, ret_t =
-      match ret with
-      | Trecord _ as t -> (
-          match pkind_of_typ t with
-          | Boxed -> (Seq.return (get_lltype_param t), unit_t)
-          | Unboxed size -> (Seq.empty, lltype_unboxed size))
-      | Tpoly _ as t -> (Seq.return (get_lltype_param t), unit_t)
-      | t -> (Seq.empty, get_lltype_param t)
+      if is_struct ret then
+        match pkind_of_typ ret with
+        | Boxed -> (Seq.return (get_lltype_param ret), unit_t)
+        | Unboxed size -> (Seq.empty, lltype_unboxed size)
+      else (Seq.empty, get_lltype_param ret)
     in
 
     let suffix =
@@ -448,17 +475,7 @@ let to_named_typedefs = function
          typedef for the whole type *)
       let name = struct_name t in
       let tag = i32_t in
-      let largest, _ =
-        Array.fold_left
-          (fun (largest, size) ctor ->
-            match ctor.ctortyp with
-            | None -> (largest, size)
-            | Some typ ->
-                let sz = sizeof_typ typ in
-                let typ = get_lltype_def typ in
-                if sz > size then (Some typ, sz) else (largest, size))
-          (None, 0) ctors
-      in
+      let largest = variant_get_largest ctors |> Option.map get_lltype_def in
       let t = Llvm.named_struct_type context name in
       match largest with
       | Some lltyp ->
@@ -607,9 +624,9 @@ let free_id id =
       "Internal Error: Cannot find ptr for id " ^ string_of_int id |> failwith);
   Ptrtbl.remove ptr_tbl id
 
-let set_record_field value ptr =
+let set_struct_field value ptr =
   match value.typ with
-  | Trecord _ ->
+  | Trecord _ | Tvariant _ ->
       if value.value <> ptr then
         let size = sizeof_typ value.typ |> llval_of_size in
         memcpy ~dst:ptr ~src:value ~size
@@ -659,9 +676,9 @@ let gen_closure_obj param assoc func name =
     let src = Vars.find name param.vars in
     let dst = Llvm.build_struct_gep clsr_ptr i name builder in
     (match typ with
-    | Trecord _ when is_mutable typ ->
+    | (Trecord _ | Tvariant _) when is_mutable typ ->
         ignore (Llvm.build_store src.value dst builder)
-    | Trecord _ ->
+    | Trecord _ | Tvariant _ ->
         (* For records, we just memcpy
            TODO don't use types here, but type kinds*)
         let size = sizeof_typ typ |> Llvm.const_int int_t in
@@ -710,12 +727,12 @@ let add_closure vars func = function
             let value, lltyp =
               match typ with
               (* No need for C interop with closures *)
-              | Trecord _ when is_mutable typ ->
+              | (Trecord _ | Tvariant _) when is_mutable typ ->
                   (* Mutable records are passed as pointers into the env *)
                   let value = Llvm.build_load item_ptr name builder in
 
                   (value, get_lltype_def typ |> Llvm.pointer_type)
-              | Trecord _ ->
+              | Trecord _ | Tvariant _ ->
                   (* For records we want a ptr so that gep and memcpy work *)
                   (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
               | _ ->
@@ -729,15 +746,15 @@ let add_closure vars func = function
       env
 
 let store_alloca ~src ~dst =
-  match src.typ with
-  | Trecord _ as r -> memcpy ~dst ~src ~size:(sizeof_typ r |> llval_of_size)
-  | Tfun _ as f -> memcpy ~dst ~src ~size:(sizeof_typ f |> llval_of_size)
-  | Tptr _ -> failwith "TODO"
-  | _ ->
-      (* Simple type *)
-      ignore (Llvm.build_store src.value dst builder)
+  if is_struct src.typ then
+    memcpy ~dst ~src ~size:(sizeof_typ src.typ |> llval_of_size)
+  else (* Simple type *)
+    ignore (Llvm.build_store src.value dst builder)
 
-let load ptr = function Trecord _ -> ptr | _ -> Llvm.build_load ptr "" builder
+let load ptr = function
+  | Trecord _ | Tvariant _ -> ptr
+  | _ -> Llvm.build_load ptr "" builder
+
 let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
 
 let get_prealloc allocref param lltyp str =
@@ -778,7 +795,7 @@ let add_params vars f fname names types start_index recursive =
 
   let alloca_copy src =
     match src.typ with
-    | Trecord _ as r ->
+    | (Trecord _ | Tvariant _) as r ->
         let typ = get_lltype_def r in
         let dst = Llvm.build_alloca typ "" builder in
         store_alloca ~src ~dst;
@@ -799,7 +816,7 @@ let add_params vars f fname names types start_index recursive =
 
   let load value name =
     match value.typ with
-    | Trecord _ -> value.value
+    | Trecord _ | Tvariant _ -> value.value
     | Tfun _ -> value.value
     | Tptr _ -> failwith "TODO"
     | _ -> Llvm.build_load value.value name builder
@@ -894,7 +911,7 @@ let get_mono_func func param = function
 
 let fun_return name ret =
   match ret.typ with
-  | Trecord _ as t -> (
+  | (Trecord _ | Tvariant _) as t -> (
       match pkind_of_typ t with
       | Boxed -> (* Default record case *) Llvm.build_ret_void builder
       | Unboxed kind ->
@@ -921,7 +938,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
 
       let start_index, alloca =
         match ret_t with
-        | Trecord _ as t -> (
+        | (Trecord _ | Tvariant _) as t -> (
             match pkind_of_typ t with
             | Boxed ->
                 (* Whenever the return type is boxed, we add the prealloc to the environment *)
@@ -949,7 +966,7 @@ let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
         (* If we want to return a struct, we copy the struct to
             its ptr (1st parameter) and return void *)
         match ret.typ with
-        | Trecord _ as t -> (
+        | (Trecord _ | Tvariant _) as t -> (
             match pkind_of_typ t with
             | Boxed ->
                 (* Since we only have POD records, we can safely memcpy here *)
@@ -1295,8 +1312,8 @@ and gen_app param callee args allocref ret_t malloc =
           match (arg'.typ, pkind_of_typ arg'.typ, arg'.const) with
           (* The [Two_params] case is tricky to do using only consts,
              so we box and use the standard runtime version *)
-          | Trecord _, Boxed, Const | Trecord _, Unboxed (Two_params _), Const
-            ->
+          | (Trecord _ | Tvariant _), Boxed, Const
+          | (Trecord _ | Tvariant _), Unboxed (Two_params _), Const ->
               box_const param arg'
           | _ -> get_mono_func arg' param arg.monomorph
         in
@@ -1349,7 +1366,7 @@ and gen_app param callee args allocref ret_t malloc =
 
   let value, lltyp =
     match ret_t with
-    | Trecord _ as t -> (
+    | (Trecord _ | Tvariant _) as t -> (
         let lltyp = get_lltype_def ret_t in
         match pkind_of_typ t with
         | Boxed ->
@@ -1387,7 +1404,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
 
   let start_index, ret =
     match func.typ with
-    | Tfun (_, (Trecord _ as r), _) -> (
+    | Tfun (_, (Trecord _ as r), _) | Tfun (_, (Tvariant _ as r), _) -> (
         match pkind_of_typ r with
         | Boxed -> (1, r)
         | Unboxed size -> (0, type_unboxed size))
@@ -1415,7 +1432,9 @@ and gen_app_tailrec param callee args rec_block ret_t =
 
   let lltyp =
     (* TODO record *)
-    match ret with Trecord _ -> get_lltype_def ret_t | t -> get_lltype_param t
+    match ret with
+    | Trecord _ | Tvariant _ -> get_lltype_def ret_t
+    | t -> get_lltype_param t
   in
 
   let value = Llvm.build_br rec_block.rec_ builder in
@@ -1465,7 +1484,7 @@ and gen_app_builtin param (b, fnc) args =
           const = Not;
         }
       in
-      set_record_field value ptr;
+      set_struct_field value ptr;
       { dummy_fn_value with lltyp = unit_t }
   | Realloc ->
       let item_size =
@@ -1600,7 +1619,7 @@ and codegen_record param typ labels allocref const return =
               gen_expr { param with alloca = Some ptr } expr
               |> func_to_closure param
             in
-            set_record_field value ptr)
+            set_struct_field value ptr)
           labels;
         (record, Not)
     | true when not !const_pass ->
@@ -1663,7 +1682,7 @@ and codegen_field_set param expr index valexpr =
   let ptr = Llvm.build_struct_gep value.value index "" builder in
   let value = gen_expr param valexpr in
   (* We know that ptr cannot be a constant record, but value might *)
-  set_record_field value ptr;
+  set_struct_field value ptr;
   { dummy_fn_value with lltyp = unit_t }
 
 and codegen_chain param expr cont =
@@ -1723,7 +1742,7 @@ and codegen_vector_lit param id es typ allocref =
         let src = gen_expr { param with alloca = Some dst } expr in
 
         (match src.typ with
-        | Trecord _ ->
+        | Trecord _ | Tvariant _ ->
             if dst <> src.value then
               memcpy ~dst ~src ~size:(Llvm.const_int int_t item_size)
             else (* The record was constructed inplace *) ()
@@ -1748,18 +1767,19 @@ and gen_free param expr id =
   ret
 
 and gen_ctor param (variant, tag, expr) typ allocref const =
-  ignore allocref;
   ignore const;
-  ignore variant;
 
-  (* TODO handle preallocs *)
   let lltyp = Strtbl.find record_tbl (struct_name typ) in
-  let var = alloca param lltyp "todo" in
+  let var = get_prealloc !allocref param lltyp variant in
 
   (* Set tag *)
   let tagptr = Llvm.build_struct_gep var 0 "tag" builder in
-  ignore (Llvm.build_store (Llvm.const_int i32_t tag) tagptr builder);
+  let tag =
+    { value = Llvm.const_int i32_t tag; typ = Ti32; lltyp = i32_t; const = Not }
+  in
+  set_struct_field tag tagptr;
 
+  (* Set data *)
   (match expr with
   | Some expr ->
       let data = gen_expr param expr
@@ -1770,7 +1790,7 @@ and gen_ctor param (variant, tag, expr) typ allocref const =
           (data.lltyp |> Llvm.pointer_type)
           "data" builder
       in
-      ignore (Llvm.build_store data.value dataptr builder)
+      set_struct_field data dataptr
   | None -> ());
   { value = var; typ; lltyp; const = Not }
 

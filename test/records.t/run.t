@@ -244,16 +244,9 @@ Pass generic record
     %casttmp = bitcast i8* %loadtmp to void (%t_int*, %t_int*, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
-    %ret = alloca %t_int, align 8
-    call void %casttmp(%t_int* %ret, %t_int* %x, i8* %loadtmp1)
-    %1 = bitcast %t_int* %0 to i8*
-    %2 = bitcast %t_int* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 24, i1 false)
+    tail call void %casttmp(%t_int* %0, %t_int* %x, i8* %loadtmp1)
     ret void
   }
-  
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i64 @main(i64 %arg) {
   entry:
@@ -288,8 +281,6 @@ Pass generic record
     call void @printi(i64 %4)
     ret i64 0
   }
-  
-  attributes #0 = { argmemonly nofree nounwind willreturn }
   700
   234
 
