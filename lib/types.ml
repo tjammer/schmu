@@ -37,3 +37,10 @@ let rec clean = function
   | Talias (_, t) -> clean t
   | Tptr t -> Tptr (clean t)
   | t -> t
+
+(* Same as [Cleaned_types.is_struct] *)
+let rec is_struct = function
+  | Tvar { contents = Link t } | Talias (_, t) -> is_struct t
+  | Trecord _ | Tvariant _ | Tfun _ | Qvar _ | Tvar { contents = Unbound _ } ->
+      true
+  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Tptr _ -> false

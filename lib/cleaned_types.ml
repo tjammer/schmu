@@ -58,3 +58,7 @@ let rec string_of_type = function
           ~some:(fun param -> Printf.sprintf "(%s)" (string_of_type param))
           param
   | Tptr t -> Printf.sprintf "ptr(%s)" (string_of_type t)
+
+let is_struct = function
+  | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ -> true
+  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Tptr _ -> false
