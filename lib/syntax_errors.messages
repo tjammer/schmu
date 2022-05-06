@@ -166,7 +166,39 @@ prog: Type Lowercase_id Equal Uppercase_id Then
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Type Lowercase_id Equal Uppercase_id Lpar Quote Lowercase_id Rpar Then
+prog: Type Lowercase_id Equal Uppercase_id Lpar Uppercase_id
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Uppercase_id
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar Uppercase_id
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar Arrow_right Uppercase_id
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar Arrow_right Lowercase_id Uppercase_id
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Uppercase_id
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Arrow_right Uppercase_id
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Arrow_right Lowercase_id Uppercase_id
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Rpar Then
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
