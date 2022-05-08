@@ -43,7 +43,7 @@ and expr =
   | Lit of loc * literal
   | Bop of loc * bop * expr * expr
   | Unop of loc * unop * expr
-  | If of loc * expr * block * block
+  | If of loc * expr * block * block option
   | Lambda of loc * decl list * block
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list

@@ -9,9 +9,9 @@
     let parse_elseifs loc cond then_ elseifs else_ =
       let rec aux = function
         | [ (loc, cond, blk) ] ->
-            [ Ast.Expr (loc, Ast.If (loc, cond, blk, else_)) ]
+            Some [ Ast.Expr (loc, Ast.If (loc, cond, blk, else_)) ]
         | (loc, cond, blk) :: tl ->
-            [ Ast.Expr (loc, If (loc, cond, blk, aux tl)) ]
+            Some [ Ast.Expr (loc, If (loc, cond, blk, aux tl)) ]
         | [] -> else_
       in
       Ast.If (loc, cond, then_, aux elseifs)
@@ -131,7 +131,7 @@ expr:
   | lit { $1 }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
   | unop; expr { Unop ($loc, $1, $2) }
-  | If; expr; Then; block; list(elif); Else; block { parse_elseifs $loc $2 $4 $5 $7 }
+  | If; expr; Then; block; list(elif); option(elseblk) { parse_elseifs $loc $2 $4 $5 $6 }
   | Fun; parens(decl); Arrow_right; block
     { Lambda($loc, $2, $4) }
   | callable; parens(expr) { App($loc, $1, $2) }
@@ -153,6 +153,9 @@ expr:
   | String_lit { Lit($loc, String $1) }
   | vector_lit { Lit($loc, Vector $1) }
   | Lpar; Rpar { Lit($loc, Unit) }
+
+%inline elseblk:
+  | Else; block { $2 }
 
 %inline elif:
   | Elseif; expr; Then; block { ($loc, $2, $4) }

@@ -19,7 +19,6 @@ fun vector_push(vec, val) =
     cap = vec.capacity * 2
     vec.data <- __realloc(vec.data, cap)
     vec.capacity <- cap
-  else ()
   __unsafe_ptr_set(vec.data, vec.length, val)
   vec.length <- vec.length + 1
 

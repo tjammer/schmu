@@ -1315,3 +1315,11 @@ Print error when using uppercase names for externals
                ^^^^^^
   
   [1]
+
+We can have if without else
+  $ schmu -o out.o if_no_else.smu
+  if_no_else.smu:3:1: error: A conditional without else branch should evaluato to type unit. Expected type unit but got type int
+  3 | if true then 2
+      ^^^^^^^^^^^^^^
+  
+  [1]

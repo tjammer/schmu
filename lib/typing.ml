@@ -941,8 +941,22 @@ and convert_if env loc cond e1 e2 =
   let type_cond = convert env cond in
   unify (loc, "In condition") type_cond.typ Tbool;
   let type_e1 = convert_block env e1 |> fst in
-  let type_e2 = convert_block env e2 |> fst in
-  unify (loc, "Branches have different type") type_e1.typ type_e2.typ;
+  let type_e2 =
+    (* We unify in the pattern match to have different messages and unification order *)
+    match e2 with
+    | Some e2 ->
+        let msg = "Branches have different type:" in
+        let e2 = convert_block env e2 |> fst in
+        unify (loc, msg) type_e1.typ e2.typ;
+        e2
+    | None ->
+        let msg =
+          "A conditional without else branch should evaluato to type unit."
+        in
+        let e2 = { typ = Tunit; expr = Const Unit; is_const = true } in
+        unify (loc, msg) e2.typ type_e1.typ;
+        e2
+  in
 
   (* We don't support polymorphic lambdas in if-exprs in the monomorph backend yet *)
   (match type_e2.typ with
