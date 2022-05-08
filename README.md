@@ -8,7 +8,7 @@ schmu is the language I'd like to program in: A strongly typed, type-inferred co
 Here's what it looks like:
 
 Fibonacci example
-``` lua
+``` haskell
 -- No print function yet, so we use a C stub to print integers
 external printi : int -> unit
 
@@ -16,11 +16,10 @@ external printi : int -> unit
 number = 35
 
 -- Calculate fibonacci number
-fun fib(n)
+fun fib(n) =
   -- The function simply returns the expression, no 'return' statement
   if n < 2 then n
-  else fib(n - 1) + fib(n - 2) end
-end
+  else fib(n - 1) + fib(n - 2)
 
 -- and print it
 printi(fib(number))
