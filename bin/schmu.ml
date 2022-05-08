@@ -21,6 +21,7 @@ let read_prelude () =
 
 let run file prelude { target; outname; dump_llvm; release } =
   let fmt_msg_fn kind loc msg =
+    let file = Lexing.((fst loc).pos_fname) in
     let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
     let errloc = fst loc in
     let loc = Pp_loc.Position.(of_lexing (fst loc), of_lexing (snd loc)) in
