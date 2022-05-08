@@ -1,51 +1,48 @@
 external puts : cstr -> unit
 
-fun ps(str)
+fun ps(str) =
   puts(str.cstr)
-end
 
-fun true_()
+fun true_() =
   ps("true")
   true
-end
 
-fun false_()
+fun false_() =
   ps("false")
   false
-end
 
 ps("test 'and':")
 
 if true_() and true_() then ps("yes")
-else ps("no") end
+else ps("no")
 
 if true_() and false_() then ps("yes")
-else ps("no") end
+else ps("no")
 
 if false_() and true_() then ps("yes")
-else ps("no") end
+else ps("no")
 
 if false_() and false_() then ps("yes")
-else ps("no") end
+else ps("no")
 
 ps("test 'or':")
 
 if true_() or true_() then ps("yes")
-else ps("no") end
+else ps("no")
 
 if true_() or false_() then ps("yes")
-else ps("no") end
+else ps("no")
 
 if false_() or true_() then ps("yes")
-else ps("no") end
+else ps("no")
 
 if false_() or false_() then ps("yes")
-else ps("no") end
+else ps("no")
 
 ps("test 'not':")
 
 if true_() -> not then ps("yes")
-else ps("no") end
+else ps("no")
 
 if false_() -> not then ps("yes")
-else ps("no") end
+else ps("no")

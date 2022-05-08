@@ -1,6 +1,6 @@
 external assert : bool -> unit
 
-fun test(n)
+fun test(n) =
   if n == 10 then
     1
   elseif n < 1 then
@@ -9,8 +9,6 @@ fun test(n)
     3
   else
     4
-  end
-end
 
 assert(test(10) == 1)
 assert(test(0)  == 2)

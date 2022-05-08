@@ -2,12 +2,10 @@ external printf : (ptr(u8), int) -> unit
 
 a = 20
 
-fun close_over_a()
+fun close_over_a() =
   a
-end
 
-fun use_above()
+fun use_above() =
   printf("%i\n".cstr, close_over_a())
-end
 
 use_above()

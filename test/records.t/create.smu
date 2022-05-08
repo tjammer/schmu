@@ -2,8 +2,6 @@ external printi : int -> unit
 
 type foo = { x : int, y : int }
 
-fun create_record(x, y)
-  { x = x, y = y }
-end
+fun create_record(x, y) = { x = x, y = y }
 
 printi(create_record(8, 0).x)

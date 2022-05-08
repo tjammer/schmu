@@ -2,17 +2,15 @@ external printi : int -> unit
 
 type state = { cnt : int, next : int -> int }
 
-state = { cnt = 0, next = fun(x) x + 1 end }
+state = { cnt = 0, next = fun(x) -> x + 1 }
 
-fun advance(state)
+fun advance(state) =
   { cnt = state.next(state.cnt), next = state.next }
-end
 
-fun ten_times (state)
+fun ten_times (state) =
   if state.cnt < 10 then
     printi(state.cnt)
     ten_times(advance(state))
-  else printi(100) end
-end
+  else printi(100)
 
 ten_times(state)

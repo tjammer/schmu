@@ -1,63 +1,6 @@
 open Schmulang
 
-module Temp = struct
-  type mytokens = Parser.token =
-    | Uppercase_id of string
-    | U8 of char
-    | Type
-    | True
-    | Then
-    | String_lit of string
-    | Rpar
-    | Rbrack
-    | Rbrac
-    | Quote
-    | Plus_i
-    | Plus_f
-    | Pipe_tail
-    | Or
-    | Mutable
-    | Mult_i
-    | Mult_f
-    | Minus_i
-    | Minus_f
-    | Lpar
-    | Lowercase_id of string
-    | Less_i
-    | Less_f
-    | Lbrack
-    | Lbrac
-    | Int of int
-    | If
-    | I32 of int
-    | Greater_i
-    | Greater_f
-    | Fun
-    | Float of float
-    | False
-    | F32 of float
-    | External
-    | Equal
-    | Eof
-    | End
-    | Elseif
-    | Else
-    | Dot
-    | Div_i
-    | Div_f
-    | Comma
-    | Colon
-    | Builtin_id of string
-    | Bin_equal_i
-    | Bin_equal_f
-    | Begin
-    | Arrow_right
-    | Arrow_left
-    | And
-  [@@deriving show]
-end
-
-exception Indent_error
+exception Error of string
 
 type state =
   | Default
@@ -78,7 +21,7 @@ let get_cnum lexbuf =
 
 let emit lexbuf (token : Parser.token) =
   match token with
-  | Equal | Arrow_right | Then | Else as token ->
+  | (Equal | Arrow_right | Then | Else) as token ->
       state := Marked Lexing.(lexbuf.lex_curr_p.pos_lnum);
       token
   | token -> token
@@ -86,7 +29,7 @@ let emit lexbuf (token : Parser.token) =
 let dedent lexbuf cnum =
   (* We emit [End] until we found the matching indentation *)
   match !indents with
-  | [] -> raise Indent_error
+  | [] -> raise (Error "Inconsintent indentation")
   | column :: tl ->
       if cnum < column then (
         (* Still dedenting *)
@@ -97,19 +40,17 @@ let dedent lexbuf cnum =
         (* We have reached the correct indent *)
         match !cached_token with
         | Some token -> emit lexbuf token
-        | None ->
-            failwith "Internal indent error")
+        | None -> failwith "Internal indent error")
       else
-        (* We have missing our column  *)
-        raise Indent_error
+        (* We have missed our column  *)
+        raise (Error "Inconsintent indentation")
 
 let indent lexbuf =
   (* The indentation happens in [read_marked], we just emit the cached token *)
   state := Default;
   match !cached_token with
   | Some token -> emit lexbuf token
-  | None ->
-      failwith "Internal indent error"
+  | None -> failwith "Internal indent error"
 
 let read_default lexbuf =
   let token = Lexer.read lexbuf in
@@ -141,7 +82,7 @@ let read_marked lexbuf lnum =
     Parser.(Begin))
   else
     (* We are on a new line after [Equal], but not indented *)
-    raise Indent_error
+    raise (Error "Expected an indented line")
 
 let string_of_state = function
   | Default -> "default"

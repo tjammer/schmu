@@ -1,7 +1,6 @@
 (executable
  (public_name schmu)
  (name schmu)
- (preprocess (pps ppx_deriving.show))
  (libraries schmulang pp_loc dune-site))
 
 (generate_sites_module

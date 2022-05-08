@@ -1,4 +1,3 @@
-
 type option('a) = None, Some('a)
 
 Some(1) -> ignore
@@ -12,12 +11,8 @@ type clike = A, B, C, D, E
 
 C -> ignore
 
-fun wrap_clike()
-  C
-end
+fun wrap_clike() = C
 
-fun wrap_option()
-  Some("hello")
-end
+fun wrap_option() = Some("hello")
 
 0

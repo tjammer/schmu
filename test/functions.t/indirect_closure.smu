@@ -2,20 +2,17 @@ external printi : int -> unit
 
 type t('a) = { x : 'a }
 
-fun apply(x, f , env) f(x, env) end
+fun apply(x, f , env) =  f(x, env)
 
-fun apply2(x : 'a, f : ('a, 'a -> 'b) -> 'b, env : 'a -> 'b)
+fun apply2(x : 'a, f : ('a, 'a -> 'b) -> 'b, env : 'a -> 'b) =
   f(x, env)
-end
 
-fun add1(x : int) -> int
+fun add1(x : int) -> int =
   x + 1
-end
 
-fun boxed2int_int(t, env)
+fun boxed2int_int(t, env) =
   a = env(t.x)
   { x = a }
-end
 
 a = apply({x = 15}, boxed2int_int, add1).x
 printi(a)

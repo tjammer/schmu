@@ -71,7 +71,6 @@ rule read =
   | "fun"    { Fun }
   | "type"   { Type }
   | "mutable" { Mutable }
-  | "end"    { End }
   | lowercase_id       { Lowercase_id (Lexing.lexeme lexbuf) }
   | uppercase_id       { Uppercase_id (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }

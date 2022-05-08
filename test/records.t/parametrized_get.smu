@@ -4,20 +4,19 @@ type t('a) = { null : int, first : int, gen : 'a, third : bool }
 
 type gen_first('a) = { only : 'a, is : bool }
 
-fun print_bool(b)
+fun print_bool(b) =
   if b then printi(1)
-  else printi(0) end
-end
+  else printi(0)
 
-fun first(any) printi(any.first) end
+fun first(any) = printi(any.first)
 
-fun gen(any) any.gen end
+fun gen(any) = any.gen
 
-fun third(any) print_bool(any.third) end
+fun third(any) = print_bool(any.third)
 
-fun only(any) any.only end
+fun only(any) = any.only
 
-fun is(any) print_bool(any.is) end
+fun is(any) = print_bool(any.is)
 
 int_t = { null = 0, first = 700, gen = 20, third = true }
 f = { only = 420, is = false }

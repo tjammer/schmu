@@ -75,36 +75,36 @@ Also mutable fields and 'realloc' builtin
   8 | vec = [x, {x = 2}, {x = 3}]
       ^^^
   
-  free_vector.smu:58:1: warning: Unused binding vec
-  58 | vec = make_vec()
+  free_vector.smu:48:1: warning: Unused binding vec
+  48 | vec = make_vec()
        ^^^
   
-  free_vector.smu:61:1: warning: Unused binding normal
-  61 | normal = nest_fns()
+  free_vector.smu:51:1: warning: Unused binding normal
+  51 | normal = nest_fns()
        ^^^^^^
   
-  free_vector.smu:65:1: warning: Unused binding nested
-  65 | nested = make_nested_vec()
+  free_vector.smu:55:1: warning: Unused binding nested
+  55 | nested = make_nested_vec()
        ^^^^^^
   
-  free_vector.smu:66:1: warning: Unused binding nested
-  66 | nested = nest_allocs()
+  free_vector.smu:56:1: warning: Unused binding nested
+  56 | nested = nest_allocs()
        ^^^^^^
   
-  free_vector.smu:69:1: warning: Unused binding rec_of_vec
-  69 | rec_of_vec = { index = 12, vec = [1, 2]}
+  free_vector.smu:59:1: warning: Unused binding rec_of_vec
+  59 | rec_of_vec = { index = 12, vec = [1, 2]}
        ^^^^^^^^^^
   
-  free_vector.smu:70:1: warning: Unused binding rec_of_vec
-  70 | rec_of_vec = record_of_vecs()
+  free_vector.smu:60:1: warning: Unused binding rec_of_vec
+  60 | rec_of_vec = record_of_vecs()
        ^^^^^^^^^^
   
-  free_vector.smu:72:1: warning: Unused binding vec_of_rec
-  72 | vec_of_rec = [record_of_vecs(), record_of_vecs()]
+  free_vector.smu:62:1: warning: Unused binding vec_of_rec
+  62 | vec_of_rec = [record_of_vecs(), record_of_vecs()]
        ^^^^^^^^^^
   
-  free_vector.smu:73:1: warning: Unused binding vec_of_rec
-  73 | vec_of_rec = vec_of_records()
+  free_vector.smu:63:1: warning: Unused binding vec_of_rec
+  63 | vec_of_rec = vec_of_records()
        ^^^^^^^^^^
   
   ; ModuleID = 'context'
@@ -1283,23 +1283,23 @@ Test unused binding warning
       ^^^^^^^
   
   unused.smu:12:5: warning: Unused binding use_unused3
-  12 | fun use_unused3()
+  12 | fun use_unused3() =
            ^^^^^^^^^^^
   
-  unused.smu:18:3: warning: Unused binding unused4
-  18 |   unused4 = 0
+  unused.smu:17:3: warning: Unused binding unused4
+  17 |   unused4 = 0
          ^^^^^^^
   
-  unused.smu:21:3: warning: Unused binding unused5
-  21 |   unused5 = 0
+  unused.smu:20:3: warning: Unused binding unused5
+  20 |   unused5 = 0
          ^^^^^^^
   
-  unused.smu:35:3: warning: Unused binding usedlater
-  35 |   usedlater = 0
+  unused.smu:33:3: warning: Unused binding usedlater
+  33 |   usedlater = 0
          ^^^^^^^^^
   
-  unused.smu:49:3: warning: Unused binding usedlater
-  49 |   usedlater = 0
+  unused.smu:47:3: warning: Unused binding usedlater
+  47 |   usedlater = 0
          ^^^^^^^^^
   
 Allow declaring a c function with a different name

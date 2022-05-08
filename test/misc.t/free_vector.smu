@@ -8,52 +8,42 @@ vec = ["hey", "young", "world"]
 vec = [x, {x = 2}, {x = 3}]
 
 -- Vec is only alive inside the function and should be freed there
-fun vec_inside()
+fun vec_inside() =
   vec = [x, {x = 2}, {x = 3}]
   -- Make sure wu can call realloc
   vec.data <- __realloc(vec.data, 9)
-end
 
 -- Vec is returned and should be freed in its parent scope
-fun make_vec()
+fun make_vec() =
   x = { x = 23 }
   [x, {x = 2}, {x = 3}]
-end
 
-fun inner_parent_scope()
+fun inner_parent_scope() =
   ignore(make_vec())
-end
 
 -- Vec can be propagated out through multiple function calls
-fun nest_fns()
+fun nest_fns() =
   make_vec()
-end
 
-fun make_nested_vec()
+fun make_nested_vec() =
   nested = [[0, 1], [2, 3]]
   nested
-end
 
-fun nest_allocs()
+fun nest_allocs() =
   make_nested_vec()
-end
 
 -- Should be freed locally
-fun nest_local()
+fun nest_local() =
   ignore([[0, 1], [2, 3]])
-end
 
 -- Records of vectors
-fun record_of_vecs()
+fun record_of_vecs() =
   vec = [1, 2]
   { index = 1, vec = vec }
-end
 
 -- Vectors of records (of vectors)
-fun vec_of_records()
+fun vec_of_records() =
   [record_of_vecs(), record_of_vecs()]
-end
-
 
 vec = make_vec()
 vec_inside()

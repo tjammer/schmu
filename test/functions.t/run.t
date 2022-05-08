@@ -227,7 +227,7 @@ We have downwards closures
 First class functions
   $ schmu -o out.o --dump-llvm first_class.smu && cc out.o stub.o && ./a.out
   first_class.smu:11:1: warning: Unused binding pass2
-  11 | pass2 = fun(x) x end
+  11 | pass2 = fun(x) -> x
        ^^^^^
   
   ; ModuleID = 'context'
@@ -348,10 +348,9 @@ First class functions
 We don't allow returning closures
   $ schmu -o out.o --dump-llvm no_closure_returns.smu
   no_closure_returns.smu:5:1: error: Cannot (yet) return a closure
-  5 | fun()
-  6 |   a = fun() a end
+  5 | fun() ->
+  6 |   a = fun() -> a
   7 |   a
-  8 | end
   
   [1]
 
@@ -910,8 +909,8 @@ Closures can recurse too
 Print error when returning a polymorphic lambda in an if expression
   $ schmu -o out.o --dump-llvm no_lambda_let_poly_monomorph.smu
   no_lambda_let_poly_monomorph.smu:6:5: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though.
-  6 | f = if true then fun(x) x end else fun(x) x end end
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | f = if true then fun(x) -> x else fun(x) -> x
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
   [1]
 Allow mixing of typedefs and external decls in the preface

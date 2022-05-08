@@ -19,7 +19,7 @@ let parse_fast file =
   let src, lexbuf = L.read file in
 
   try Ok (Parser.prog Indent.insert_ends lexbuf) with
-  | Lexer.SyntaxError msg ->
+  | Lexer.SyntaxError msg | Indent.Error msg ->
       let loc = loc_of_lexing lexbuf in
       let pp, pos = pp_position lexbuf file in
       Error (`Lex (Format.asprintf "%s:%s %s\n%!%a" file pos msg pp [ loc ]))
@@ -65,8 +65,7 @@ let fail src file lexbuf (checkpoint : _ I.checkpoint) =
   let loc = loc_of_lexing lexbuf in
   let pp, pos = pp_position lexbuf file in
 
-  (* let message = Syntax_errors.message (state checkpoint) in *)
-  let message = "nope" in
+  let message = Syntax_errors.message (state checkpoint) in
   (* Expand away the $i keywords that might appear in the message. *)
   let message = E.expand (get src checkpoint) message in
 

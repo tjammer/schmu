@@ -1,12 +1,10 @@
-fun one() -> int 1 end
+fun one() -> int = 1
 
-fun add(a : int, b : int) -> int
+fun add(a : int, b : int) -> int =
   a + b
-end
 
-fun doiflesselse(a : int, b : int, greater : int, less : int)
+fun doiflesselse(a : int, b : int, greater : int, less : int) =
   if a < b then less
-  else greater end
-end
+  else greater
 
 doiflesselse(add(one(), 1), 0, 1, 2)

@@ -2,7 +2,6 @@
 type to_capture = { mutable field : int }
 a = { field = 1 }
 
-fun()
-  a = fun() a end
+fun() ->
+  a = fun() -> a
   a
-end
