@@ -70,7 +70,6 @@ rule read =
   | "external" { External }
   | "fun"    { Fun }
   | "type"   { Type }
-  | "do"     { Do }
   | "mutable" { Mutable }
   | "end"    { End }
   | lowercase_id       { Lowercase_id (Lexing.lexeme lexbuf) }

@@ -61,6 +61,7 @@
 %token Then
 %token Elseif
 %token Else
+%token Begin
 %token End
 %token Eof
 %token External
@@ -68,7 +69,6 @@
 %token Type
 %token Quote
 %token Pipe_tail
-%token Do
 %token Mutable
 
 %left And Or
@@ -85,7 +85,7 @@
 prog: list(top_item); Eof { $1 }
 
 top_item:
-  | block { Block $1 }
+  | nonempty_list(stmt) { Block $1 }
   | external_decl { Ext_decl $1 }
   | typedef { Typedef ($loc, $1) }
 
@@ -116,17 +116,14 @@ top_item:
 %inline type_decl:
   | boption(Mutable); Lowercase_id; type_expr { $1, $2, $3 }
 
-%inline block:
-  | nonempty_list(stmt) { $1 }
-
-exprblock:
+block:
   | expr { [Expr ($sloc, $1)] }
-  | Do; list(stmt); End { $2 }
+  | Begin; nonempty_list(stmt); End { $2 }
 
 stmt:
-  | decl; Equal; exprblock { Let($loc, $1, $3) }
-  | Fun; ident; parens(decl); option(return_annot); block; End
-    { Function ($loc, {name = $2; params = $3; return_annot = $4; body = $5}) }
+  | decl; Equal; block { Let($loc, $1, $3) }
+  | Fun; ident; parens(decl); option(return_annot); Equal; block
+    { Function ($loc, {name = $2; params = $3; return_annot = $4; body = $6}) }
   | expr { Expr ($loc, $1) }
 
 expr:
@@ -134,9 +131,9 @@ expr:
   | lit { $1 }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
   | unop; expr { Unop ($loc, $1, $2) }
-  | If; expr; Then; block; list(elif); Else; block; End { parse_elseifs $loc $2 $4 $5 $7 }
-  | Fun; parens(decl); option(return_annot); block; End
-    { Lambda($loc, $2, $3, $4) }
+  | If; expr; Then; block; list(elif); Else; block { parse_elseifs $loc $2 $4 $5 $7 }
+  | Fun; parens(decl); Arrow_right; block
+    { Lambda($loc, $2, $4) }
   | callable; parens(expr) { App($loc, $1, $2) }
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
   | expr; Dot; Lowercase_id; Arrow_left; expr { Field_set ($loc, $1, $3, $5) } /* Copying the first part makes checking for mutability easier */

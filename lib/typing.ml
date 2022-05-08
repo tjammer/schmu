@@ -740,7 +740,7 @@ and convert_annot env annot = function
       { typ; expr = Const (String s); is_const = false }
   | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
   | Lit (_, Unit) -> { typ = Tunit; expr = Const Unit; is_const = true }
-  | Lambda (loc, id, ret_annot, e) -> convert_lambda env loc id ret_annot e
+  | Lambda (loc, id, e) -> convert_lambda env loc id e
   | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
   | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
   | Unop (loc, unop, expr) -> convert_unop env loc unop expr
@@ -795,13 +795,10 @@ and convert_let env loc (_, (idloc, id), type_annot) block =
   let e1 = typeof_annot_decl env loc type_annot block in
   (Env.add_value id e1.typ ~is_const:e1.is_const idloc env, e1)
 
-and convert_lambda env loc params ret_annot body =
+and convert_lambda env loc params body =
   let env = Env.open_function env in
   enter_level ();
-  ignore ret_annot;
-  let env, params_t, qparams, ret_annot =
-    handle_params env loc params ret_annot
-  in
+  let env, params_t, qparams, ret_annot = handle_params env loc params None in
 
   let body = convert_block env body |> fst in
   leave_level ();
