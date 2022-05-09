@@ -15,6 +15,11 @@ let indents = ref [ 0 ]
 let cached_token = ref None
 let mark pos = state := Marked Lexing.(pos.pos_lnum)
 
+let reset () =
+  state := Default;
+  indents := [ 0 ];
+  cached_token := None
+
 let get_cnum lexbuf =
   let pos = Lexing.(lexbuf.lex_start_p) in
   pos.pos_cnum - pos.pos_bol
@@ -91,8 +96,6 @@ let string_of_state = function
   | Dedent cnum -> Printf.sprintf "dedent %i" cnum
 
 let insert_ends lexbuf =
-  (* print_endline (string_of_state !state); *)
-  (* print_endline (Lexing.lexeme lexbuf); *)
   match !state with
   | Default -> read_default lexbuf
   | Marked lnum -> read_marked lexbuf lnum

@@ -1005,7 +1005,7 @@ prog: Fun Lpar Rpar Uppercase_id
 ## Fun parens(decl)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting '->'
 
 prog: Fun Lpar Rpar Arrow_right Type
 ##
