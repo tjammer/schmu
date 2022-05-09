@@ -18,12 +18,12 @@ external subv4 : v4 -> v4
 external submixed4 : mixed4 -> mixed4
 external subtrailv2 : trailv2 -> trailv2
 
-subv2({ z = 1.0, y = 10.0 }) -> ignore
-subi2({ x = 1, y = 10 }) -> ignore
-subv1({ z = 1.0 }) -> ignore
-subi1({ x = 1 }) -> ignore
-subv3({ x = 1.0, y = 10.0, z = 100.0 }) -> ignore
-subi3({ w = 1, y = 10, z = 100 }) -> ignore
-subv4({ x = 1.0, y = 10.0, z = 100.0, w = 1000.0 }) -> ignore
-submixed4({ x = 1.0, y = 10.0, z = 100.0, k = 1 }) -> ignore
-subtrailv2({ a = 1, b = 2, c = 1.0, d = 2.0 }) -> ignore
+subv2({ z = 1.0, y = 10.0 }) |> ignore
+subi2({ x = 1, y = 10 }) |> ignore
+subv1({ z = 1.0 }) |> ignore
+subi1({ x = 1 }) |> ignore
+subv3({ x = 1.0, y = 10.0, z = 100.0 }) |> ignore
+subi3({ w = 1, y = 10, z = 100 }) |> ignore
+subv4({ x = 1.0, y = 10.0, z = 100.0, w = 1000.0 }) |> ignore
+submixed4({ x = 1.0, y = 10.0, z = 100.0, k = 1 }) |> ignore
+subtrailv2({ a = 1, b = 2, c = 1.0, d = 2.0 }) |> ignore

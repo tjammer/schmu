@@ -6,6 +6,6 @@ fun wrapped(x) =
   fun id(x) = x
   id(x)
 
-12 -> wrapped -> printi
-false -> wrapped -> ignore
-{ x = 24 } -> wrapped .x -> printi
+12 |> wrapped |> printi
+false |> wrapped |> ignore
+{ x = 24 } |> wrapped .x |> printi

@@ -68,6 +68,7 @@
 %token Fun
 %token Type
 %token Quote
+%token Pipe_head
 %token Pipe_tail
 %token Mutable
 
@@ -76,7 +77,7 @@
 %left Plus_i Plus_f Minus_i Minus_f
 %left Mult_i Mult_f Div_i Div_f
 %left Bin_equal_i Bin_equal_f
-%left Arrow_right Pipe_tail Dot
+%left Pipe_head Pipe_tail Dot
 
 %start <Ast.prog> prog
 
@@ -138,7 +139,7 @@ expr:
   | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
   | expr; Dot; Lowercase_id; Arrow_left; expr { Field_set ($loc, $1, $3, $5) } /* Copying the first part makes checking for mutability easier */
   | expr; Dot; Lowercase_id { Field ($loc, $1, $3) }
-  | expr; Arrow_right; expr { Pipe_head ($loc, $1, $3) }
+  | expr; Pipe_head; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
   | Lpar; expr; Rpar { $2 }
   | ctor; option(parens_single(expr)) { Ctor($loc, $1, $2) }

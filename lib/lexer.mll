@@ -96,7 +96,8 @@ rule read =
   | ']'      { Rbrack }
   | "->"     { Arrow_right }
   | "<-"     { Arrow_left }
-  | "->>"    { Pipe_tail }
+  | "|>"     { Pipe_head }
+  | "|>>"    { Pipe_tail }
   | "--"     { line_comment lexbuf }
   | eof      { Eof }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
