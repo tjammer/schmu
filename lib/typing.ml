@@ -1222,11 +1222,11 @@ let to_typed msg_fn ~prelude (prog : Ast.prog) =
   (* Add builtins to env *)
   let env =
     Builtin.(
-      fold (fun env b ->
+      fold (fun env (_, typ, str) ->
           enter_level ();
-          let typ = to_type b |> instantiate in
+          let typ = instantiate typ in
           leave_level ();
-          Env.add_value (to_string b) (generalize typ) loc env))
+          Env.add_value str (generalize typ) loc env))
       (Env.empty string_of_type)
   in
 
