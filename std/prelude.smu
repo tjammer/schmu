@@ -41,3 +41,5 @@ fun vector_fold(vec, f, init) =
       inner(i+1, acc)
 
   inner(0, init)
+
+type option('a) = Some('a), None
