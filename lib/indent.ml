@@ -1,5 +1,3 @@
-open Schmulang
-
 exception Error of string
 
 type state =
@@ -26,7 +24,7 @@ let get_cnum lexbuf =
 
 let emit lexbuf (token : Parser.token) =
   match token with
-  | (Equal | Arrow_right | Then | Else) as token ->
+  | (Equal | Arrow_right | Then | Else | With ) as token ->
       state := Marked Lexing.(lexbuf.lex_curr_p.pos_lnum);
       token
   | token -> token

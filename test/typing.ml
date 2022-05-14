@@ -4,7 +4,7 @@ open Schmulang
 let get_type src =
   let open Lexing in
   let lexbuf = from_string src in
-  Parser.prog Lexer.read lexbuf |> Typing.typecheck |> Typing.string_of_type
+  Parser.prog Indent.insert_ends lexbuf |> Typing.typecheck |> Typing.string_of_type
 
 let test a src = (check string) "" a (get_type src)
 
