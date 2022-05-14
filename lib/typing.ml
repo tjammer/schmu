@@ -896,8 +896,8 @@ and convert_bop env loc bop e1 e2 =
     let t1 = convert env e1 in
     let t2 = convert env e2 in
 
-    unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ;
     unify (loc, "Binary " ^ string_of_bop bop) typ t1.typ;
+    unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ;
     (t1, t2, t1.is_const && t2.is_const)
   in
 
