@@ -19,6 +19,8 @@ type expr =
   | Field_set of (typed_expr * int * typed_expr)
   | Sequence of (typed_expr * typed_expr)
   | Ctor of (string * int * typed_expr option)
+  | Variant_index of typed_expr
+  | Variant_data of typed_expr
 [@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr; is_const : bool }

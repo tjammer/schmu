@@ -71,6 +71,9 @@
 %token Pipe_head
 %token Pipe_tail
 %token Mutable
+%token Match
+%token With
+%token Wildcard
 
 %left And Or
 %nonassoc Less_i Less_f Greater_i Greater_f
@@ -142,7 +145,8 @@ expr:
   | expr; Pipe_head; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
   | Lpar; expr; Rpar { $2 }
-  | ctor; option(parens_single(expr)) { Ctor($loc, $1, $2) }
+  | ctor; option(parens_single(expr)) { Ctor ($loc, $1, $2) }
+  | Match; expr; With; Begin; nonempty_list(clause); End { Match ($loc, $2, $5) }
 
 %inline lit:
   | Int { Lit($loc, Int $1) }
@@ -164,6 +168,13 @@ expr:
 %inline record_item:
   | Lowercase_id; Equal; expr { $1, $3 }
   | Lowercase_id { $1, Var($loc, $1) }
+
+%inline clause:
+  | pattern; Arrow_right; block { $1, $3 }
+
+%inline pattern:
+  | ctor; option(parens_single(pattern)) { Pctor($loc, $1, $2) }
+  | Lowercase_id { Pvar($loc, $1) }
 
 ident:
   | Lowercase_id { ($loc, $1) }

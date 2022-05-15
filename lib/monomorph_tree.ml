@@ -493,6 +493,7 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   | App { callee; args } -> morph_app make param callee args
   | Ctor (variant, index, dataexpr) ->
       morph_ctor make param variant index dataexpr texpr.is_const
+  | Variant_index _ | Variant_data _ -> failwith "TODO"
 
 and morph_var mk p v =
   let (v, kind), alloca =

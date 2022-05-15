@@ -15,6 +15,8 @@ type expr =
   | Field_set of (typed_expr * int * typed_expr)
   | Sequence of (typed_expr * typed_expr)
   | Ctor of (string * int * typed_expr option)
+  | Variant_index of typed_expr
+  | Variant_data of typed_expr
 [@@deriving show]
 
 and typed_expr = { typ : typ; expr : expr; is_const : bool }
@@ -635,6 +637,24 @@ let get_record_type env loc labels annot =
               in
               raise (Error (loc, msg))))
 
+let get_variant env loc name annot =
+  match Env.find_ctor_opt (snd name) env with
+  | Some { index; typename } ->
+      (* We get the ctor type from the variant *)
+      let ctor, variant =
+        match Env.query_type ~instantiate typename env with
+        | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
+        | _ -> failwith "Internal Error: Not a variant"
+      in
+
+      (match annot with
+      | Some t -> unify (loc, "In constructor " ^ snd name ^ ":") t variant
+      | None -> ());
+      (Env.{ index; typename }, ctor, variant)
+  | None ->
+      let msg = "Unbound constructor " ^ snd name in
+      raise (Error (loc, msg))
+
 let get_prelude env loc name =
   let typ =
     match Env.find_type_opt name env with
@@ -751,6 +771,7 @@ and convert_annot env annot = function
   | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
   | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
   | Ctor (loc, name, args) -> convert_ctor env loc name args annot
+  | Match (loc, expr, cases) -> convert_match env loc expr cases
 
 and convert_var env loc id =
   match Env.query_val_opt id env with
@@ -1083,50 +1104,118 @@ and convert_pipe_tail env loc e1 e2 =
       convert_app ~switch_uni env loc e2 [ e1 ]
 
 and convert_ctor env loc name arg annot =
-  (* This doesn't handle annotations like the record function does,
-     but it's also much simpler, so we maybe don't need to. *)
-  match Env.find_ctor_opt (snd name) env with
-  | Some { index; typename } -> (
-      (* We get the ctor type from the variant *)
-      let ctor, variant =
-        match Env.query_type ~instantiate typename env with
-        | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
-        | _ -> failwith "Internal Error: Not a variant"
+  let Env.{ index; typename }, ctor, variant = get_variant env loc name annot in
+  match (ctor.ctortyp, arg) with
+  | Some typ, Some expr ->
+      let texpr = convert env expr in
+      unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
+      let expr = Ctor (typename, index, Some texpr) in
+
+      Env.maybe_add_type_instance (string_of_type variant) variant env;
+      { typ = variant; expr; is_const = texpr.is_const }
+  | None, None ->
+      let expr = Ctor (typename, index, None) in
+      { typ = variant; expr; is_const = true }
+  | None, Some _ ->
+      let msg =
+        Printf.sprintf
+          "The constructor %s expects 0 arguments, but an argument is provided"
+          (snd name)
       in
+      raise (Error (fst name, msg))
+  | Some _, None ->
+      let msg =
+        Printf.sprintf
+          "The constructor %s expects arguments, but none are provided"
+          (snd name)
+      in
+      raise (Error (fst name, msg))
 
-      (match annot with
-      | Some t -> unify (loc, "In constructor " ^ snd name ^ ":") t variant
-      | None -> ());
+and convert_match env loc expr cases =
+  ignore expr;
 
-      match (ctor.ctortyp, arg) with
-      | Some typ, Some expr ->
-          let texpr = convert env expr in
-          unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
-          let expr = Ctor (typename, index, Some texpr) in
+  (* Must unify: - expr and each pattern and each case.
+     We also must enter a level before the case expr *)
+  let expr = convert env expr in
+  (* TODO Should we enter a level here? *)
+  let ret = newvar () in
 
-          Env.maybe_add_type_instance (string_of_type variant) variant env;
-          { typ = variant; expr; is_const = texpr.is_const }
-      | None, None ->
-          let expr = Ctor (typename, index, None) in
-          { typ = variant; expr; is_const = true }
-      | None, Some _ ->
-          let msg =
-            Printf.sprintf
-              "The constructor %s expects 0 arguments, but an argument is \
-               provided"
-              (snd name)
-          in
-          raise (Error (fst name, msg))
-      | Some _, None ->
-          let msg =
-            Printf.sprintf
-              "The constructor %s expects arguments, but none are provided"
-              (snd name)
-          in
-          raise (Error (fst name, msg)))
-  | None ->
-      let msg = "Unbound constructor " ^ snd name in
-      raise (Error (loc, msg))
+  let some_cases = List.map (fun (p, expr) -> (Some p, expr)) cases in
+  let matchexpr = select_ctor env loc expr some_cases ret in
+  (* TODO use correct type *)
+  { typ = matchexpr.typ; expr = Const Unit; is_const = false }
+
+and select_ctor env loc expr cases ret_typ =
+  (* TODO use some heuristic to minimize duplication *)
+  (* TODO typecheck patterns and returning expr *)
+  let ctorexpr ctor =
+    match ctor.ctortyp with
+    (* TODO is this instantiated? *)
+    | Some typ -> { typ; expr = Variant_data expr; is_const = false }
+    | None -> expr
+  in
+
+  match cases with
+  | [ (Some (Ast.Pctor (_, name, arg)), ret_expr) ] ->
+      (* Selecting the last case like this only works if we are sure
+         that we have exhausted all cases *)
+      let _, ctor, variant = get_variant env loc name None in
+      unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
+      let argexpr = ctorexpr ctor in
+
+      select_ctor env loc argexpr [ (arg, ret_expr) ] ret_typ
+  | (Some (Ast.Pctor (_, name, _)), _) :: _ ->
+      let a, b = match_cases (snd name) cases [] [] in
+
+      let l, ctor, variant = get_variant env loc name None in
+      unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
+
+      let index = { typ = Ti32; expr = Variant_index expr; is_const = false } in
+      let cind = { typ = Ti32; expr = Const (I32 l.index); is_const = true } in
+      let cmpexpr = Bop (Ast.Equal_i, index, cind) in
+      let cmp = { typ = Tbool; expr = cmpexpr; is_const = false } in
+
+      let data = ctorexpr ctor in
+
+      let if_ = select_ctor env loc data a ret_typ in
+      let else_ = select_ctor env loc expr b ret_typ in
+
+      { typ = ret_typ; expr = If (cmp, if_, else_); is_const = false }
+  | (Some (Pvar (loc, name)), ret_expr) :: tl ->
+      (match tl with
+      | [] -> (* No redundancy *) ()
+      | (Some (Pvar (loc, _)), _) :: _ | (Some (Pctor (_, (loc, _), _)), _) :: _
+        ->
+          (* TODO this is super ugly and matches only the var, not the whole pattern *)
+          raise (Error (loc, "Pattern match case is redundant"))
+      | (None, _) :: _ -> failwith "Internal Error: How is this none");
+
+      (* Bind the variable *)
+      let env = Env.add_value name expr.typ ~is_const:false loc env in
+      let ret, _ = convert_block env ret_expr in
+      unify (loc, "Match expression does not match:") ret_typ ret.typ;
+      { typ = ret.typ; expr = Let (name, expr, ret); is_const = ret.is_const }
+  | (None, ret_expr) :: _ ->
+      let ret, _ = convert_block env ret_expr in
+      unify (loc, "Match expression does not match:") ret_typ ret.typ;
+      (* TODO better location here *)
+      ret
+  | [] -> raise (Error (loc, "Pattern match failed"))
+
+and match_cases case cases if_ else_ =
+  match cases with
+  | (Some (Ast.Pctor (_, (_, name), arg)), expr) :: tl
+    when String.equal case name ->
+      match_cases case tl ((arg, expr) :: if_) else_
+  | ((Some (Pctor _), _) as thing) :: tl ->
+      match_cases case tl if_ (thing :: else_)
+  | ((Some (Pvar _), _) as thing) :: tl ->
+      match_cases case tl (thing :: if_) (thing :: else_)
+  | (None, _) :: tl ->
+      (* TODO correctly handle this case *)
+      print_endline "this strange case";
+      match_cases case tl if_ else_
+  | [] -> (List.rev if_, List.rev else_)
 
 and convert_block_annot ~ret env annot stmts =
   let loc = Lexing.(dummy_pos, dummy_pos) in

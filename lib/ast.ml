@@ -52,6 +52,11 @@ and expr =
   | Pipe_head of loc * expr * expr
   | Pipe_tail of loc * expr * expr
   | Ctor of loc * (loc * string) * expr option
+  | Match of loc * expr * (pattern * block) list
+
+and pattern =
+  | Pctor of loc * (loc * string) * pattern option
+  | Pvar of loc * string
 
 and literal =
   | Int of int

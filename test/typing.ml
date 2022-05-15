@@ -4,7 +4,8 @@ open Schmulang
 let get_type src =
   let open Lexing in
   let lexbuf = from_string src in
-  Parser.prog Indent.insert_ends lexbuf |> Typing.typecheck |> Typing.string_of_type
+  Parser.prog Indent.insert_ends lexbuf
+  |> Typing.typecheck |> Typing.string_of_type
 
 let test a src = (check string) "" a (get_type src)
 
@@ -310,6 +311,18 @@ let test_variants_option_some_arg () =
   test_exn "The constructor Some expects arguments, but none are provided"
     "type option('a) = None, Some('a) Some"
 
+let test_match_all () =
+  test "int"
+    "type option('a) = Some('a), None match Some(1) with\n\
+    \  Some(a) -> a\n\
+    \  None -> -1\n"
+
+let test_match_redundant () =
+  test_exn "Pattern match case is redundant"
+    "type option('a) = Some('a), None match Some(1) with\n\
+    \  a -> a\n\
+    \  None -> -1\n"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -437,4 +450,6 @@ let () =
           case "option_none_arg" test_variants_option_none_arg;
           case "option_some_arg" test_variants_option_some_arg;
         ] );
+      ( "match",
+        [ case "all" test_match_all; case "redundant" test_match_redundant ] );
     ]
