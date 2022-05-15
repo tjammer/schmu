@@ -1066,6 +1066,8 @@ and gen_expr param typed_expr =
   | Mfree_after (expr, id) -> gen_free param expr id
   | Mctor (ctor, allocref, const) ->
       gen_ctor param ctor typed_expr.typ allocref const
+  | Mvar_index expr -> gen_var_index param expr |> fin
+  | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
 
 and gen_const = function
   | Int i ->
@@ -1767,7 +1769,9 @@ and gen_ctor param (variant, tag, expr) typ allocref const =
   (match expr with
   | Some expr ->
       let dataptr = Llvm.build_struct_gep var 1 "data" builder in
-      let data = gen_expr { param with alloca = Some dataptr } expr in
+      let ptr_t = get_lltype_def expr.typ |> Llvm.pointer_type in
+      let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
+      let data = gen_expr { param with alloca = Some ptr } expr in
 
       let dataptr =
         Llvm.build_bitcast dataptr
@@ -1777,6 +1781,20 @@ and gen_ctor param (variant, tag, expr) typ allocref const =
       set_struct_field data dataptr
   | None -> ());
   { value = var; typ; lltyp; const = Not }
+
+and gen_var_index param expr =
+  let var = gen_expr param expr in
+  let tagptr = Llvm.build_struct_gep var.value 0 "tag" builder in
+  let value = Llvm.build_load tagptr "index" builder in
+  { value; typ = Ti32; lltyp = i32_t; const = Not }
+
+and gen_var_data param expr typ =
+  let var = gen_expr param expr in
+  let dataptr = Llvm.build_struct_gep var.value 1 "data" builder in
+  let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
+  let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
+  let value = load ptr typ in
+  { value; typ; lltyp = Llvm.type_of value; const = Not }
 
 let fill_constants constants =
   let f (name, tree) =

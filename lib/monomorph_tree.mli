@@ -28,6 +28,8 @@ type expr =
   | Mseq of (monod_tree * monod_tree)
   | Mfree_after of monod_tree * int
   | Mctor of (string * int * monod_tree option) * alloca * bool
+  | Mvar_index of monod_tree
+  | Mvar_data of monod_tree
 
 and const =
   | Int of int

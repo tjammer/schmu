@@ -1132,22 +1132,28 @@ and convert_ctor env loc name arg annot =
       raise (Error (fst name, msg))
 
 and convert_match env loc expr cases =
-  ignore expr;
+  (* Magical identifier to read pattern expr.
+     There must be a better solution, but my brain doesn't seem to work *)
+  let expr_name = "__expr" in
 
-  (* Must unify: - expr and each pattern and each case.
-     We also must enter a level before the case expr *)
   let expr = convert env expr in
+  (* Make the expr available in the patternmatch *)
+  let env = Env.add_value expr_name expr.typ loc env in
+
   (* TODO Should we enter a level here? *)
   let ret = newvar () in
 
   let some_cases = List.map (fun (p, expr) -> (Some p, expr)) cases in
-  let matchexpr = select_ctor env loc expr some_cases ret in
-  (* TODO use correct type *)
-  { typ = matchexpr.typ; expr = Const Unit; is_const = false }
+  let matchexpr = select_ctor env loc some_cases ret in
+  { matchexpr with expr = Let (expr_name, expr, matchexpr) }
 
-and select_ctor env loc expr cases ret_typ =
-  (* TODO use some heuristic to minimize duplication *)
-  (* TODO typecheck patterns and returning expr *)
+and select_ctor env loc cases ret_typ =
+  (* We build the decision tree here *)
+
+  (* Magic value, see above *)
+  let expr_name = "__expr" in
+  let expr = convert_var env loc expr_name in
+
   let ctorexpr ctor =
     match ctor.ctortyp with
     (* TODO is this instantiated? *)
@@ -1162,8 +1168,9 @@ and select_ctor env loc expr cases ret_typ =
       let _, ctor, variant = get_variant env loc name None in
       unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
       let argexpr = ctorexpr ctor in
-
-      select_ctor env loc argexpr [ (arg, ret_expr) ] ret_typ
+      let env = Env.add_value expr_name argexpr.typ loc env in
+      let cont = select_ctor env loc [ (arg, ret_expr) ] ret_typ in
+      { cont with expr = Let (expr_name, argexpr, cont) }
   | (Some (Ast.Pctor (_, name, _)), _) :: _ ->
       let a, b = match_cases (snd name) cases [] [] in
 
@@ -1176,9 +1183,11 @@ and select_ctor env loc expr cases ret_typ =
       let cmp = { typ = Tbool; expr = cmpexpr; is_const = false } in
 
       let data = ctorexpr ctor in
+      let ifenv = Env.add_value expr_name data.typ loc env in
 
-      let if_ = select_ctor env loc data a ret_typ in
-      let else_ = select_ctor env loc expr b ret_typ in
+      let cont = select_ctor ifenv loc a ret_typ in
+      let if_ = { cont with expr = Let (expr_name, data, cont) } in
+      let else_ = select_ctor env loc b ret_typ in
 
       { typ = ret_typ; expr = If (cmp, if_, else_); is_const = false }
   | (Some (Pvar (loc, name)), ret_expr) :: tl ->

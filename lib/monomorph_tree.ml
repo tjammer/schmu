@@ -33,6 +33,8 @@ type expr =
   | Mseq of (monod_tree * monod_tree)
   | Mfree_after of monod_tree * int
   | Mctor of (string * int * monod_tree option) * alloca * bool
+  | Mvar_index of monod_tree
+  | Mvar_data of monod_tree
 [@@deriving show]
 
 and const =
@@ -189,6 +191,7 @@ let find_function_expr vars = function
          b/c we cannot codegen anyway *)
       No_function
   | Mlambda _ -> (* Concrete type is already inferred *) No_function
+  | Mlet _ -> No_function
   | e ->
       print_endline (show_expr e);
       "Not supported: " ^ show_expr e |> failwith
@@ -349,6 +352,10 @@ let rec subst_body p subst tree =
         { tree with typ = subst tree.typ; expr }
     | Mfield (expr, index) ->
         { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
+    | Mvar_index expr ->
+        { tree with typ = subst tree.typ; expr = Mvar_index (sub expr) }
+    | Mvar_data expr ->
+        { tree with typ = subst tree.typ; expr = Mvar_data (sub expr) }
     | Mfield_set (expr, index, value) ->
         {
           tree with
@@ -493,7 +500,8 @@ let rec morph_expr param (texpr : Typing.typed_expr) =
   | App { callee; args } -> morph_app make param callee args
   | Ctor (variant, index, dataexpr) ->
       morph_ctor make param variant index dataexpr texpr.is_const
-  | Variant_index _ | Variant_data _ -> failwith "TODO"
+  | Variant_index expr -> morph_var_index make param expr
+  | Variant_data expr -> morph_var_data make param expr
 
 and morph_var mk p v =
   let (v, kind), alloca =
@@ -833,6 +841,20 @@ and morph_ctor mk p variant index expr is_const =
   ( { p with ret },
     mk (Mctor (ctor, alloca, is_const)) ret,
     { fn = No_function; alloc = Value alloca; malloc } )
+
+(* Both variant exprs are as default as possible.
+   We handle everything in codegen *)
+and morph_var_index mk p expr =
+  let ret = p.ret in
+  (* False because we only use it interally in if expr? *)
+  let p, e, func = morph_expr { p with ret = false } expr in
+  ({ p with ret }, mk (Mvar_index e) ret, { func with alloc = No_value })
+
+and morph_var_data mk p expr =
+  let ret = p.ret in
+  (* False because we only use it interally in if expr? *)
+  let p, e, func = morph_expr { p with ret = false } expr in
+  ({ p with ret }, mk (Mvar_data e) ret, func)
 
 let monomorphize { Typing.externals; typedefs; tree } =
   reset ();
