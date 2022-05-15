@@ -1,11 +1,11 @@
 Basic variant ctors
   $ schmu basic.smu --dump-llvm
-  basic.smu:14:5: warning: Unused binding wrap_clike
-  14 | fun wrap_clike() = C
+  basic.smu:12:5: warning: Unused binding wrap_clike
+  12 | fun wrap_clike() = C
            ^^^^^^^^^^
   
-  basic.smu:16:5: warning: Unused binding wrap_option
-  16 | fun wrap_option() = Some("hello")
+  basic.smu:14:5: warning: Unused binding wrap_option
+  14 | fun wrap_option() = Some("hello")
            ^^^^^^^^^^^
   
   ; ModuleID = 'context'
@@ -24,7 +24,7 @@ Basic variant ctors
   define private void @wrap_option(%option_string* %0) {
   entry:
     %tag1 = bitcast %option_string* %0 to i32*
-    store i32 1, i32* %tag1, align 4
+    store i32 0, i32* %tag1, align 4
     %data = getelementptr inbounds %option_string, %option_string* %0, i32 0, i32 1
     %cstr2 = bitcast %string* %data to i8**
     store i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0), i8** %cstr2, align 8
@@ -45,15 +45,15 @@ Basic variant ctors
   entry:
     %option = alloca %option_int, align 8
     %tag5 = bitcast %option_int* %option to i32*
-    store i32 1, i32* %tag5, align 4
+    store i32 0, i32* %tag5, align 4
     %data = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
     store i64 1, i64* %data, align 4
     %larger = alloca %larger, align 8
     %tag16 = bitcast %larger* %larger to i32*
     store i32 2, i32* %tag16, align 4
     %data2 = getelementptr inbounds %larger, %larger* %larger, i32 0, i32 1
-    %data3 = bitcast %foo* %data2 to i64*
-    store i64 3, i64* %data3, align 4
+    %0 = bitcast %foo* %data2 to i64*
+    store i64 3, i64* %0, align 4
     %clike = alloca %clike, align 8
     %tag47 = bitcast %clike* %clike to i32*
     store i32 2, i32* %tag47, align 4

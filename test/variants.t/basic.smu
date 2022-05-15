@@ -1,5 +1,3 @@
-type option('a) = None, Some('a)
-
 Some(1) |> ignore
 
 type foo = { x : float, y : float }
