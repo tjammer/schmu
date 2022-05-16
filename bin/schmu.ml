@@ -41,7 +41,7 @@ let run file prelude { target; outname; dump_llvm; release } =
        in
        ignore (Codegen.generate ~target ~outname ~release tree);
        if dump_llvm then Llvm.dump_module Codegen.the_module)
-  with Typing.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
+  with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
   (* Open the prelude *)

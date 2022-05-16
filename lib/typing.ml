@@ -1,52 +1,15 @@
 open Types
+open Typed_tree
 
-type expr =
-  | Var of string
-  | Const of const
-  | Bop of Ast.bop * typed_expr * typed_expr
-  | Unop of Ast.unop * typed_expr
-  | If of typed_expr * typed_expr * typed_expr
-  | Let of string * typed_expr * typed_expr
-  | Lambda of int * abstraction
-  | Function of string * int option * abstraction * typed_expr
-  | App of { callee : typed_expr; args : typed_expr list }
-  | Record of (string * typed_expr) list
-  | Field of (typed_expr * int)
-  | Field_set of (typed_expr * int * typed_expr)
-  | Sequence of (typed_expr * typed_expr)
-  | Ctor of (string * int * typed_expr option)
-  | Variant_index of typed_expr
-  | Variant_data of typed_expr
-[@@deriving show]
-
-and typed_expr = { typ : typ; expr : expr; is_const : bool }
-
-and const =
-  | Int of int
-  | Bool of bool
-  | U8 of char
-  | Float of float
-  | I32 of int
-  | F32 of float
-  | String of string
-  | Vector of typed_expr list
-  | Unit
-
-and func = { tparams : typ list; ret : typ; kind : fun_kind }
-and abstraction = { nparams : string list; body : typed_expr; tp : func }
-and generic_fun = { concrete : func; generic : func }
-
-type external_decl = string * typ * string option
+type external_decl = string * Types.typ * string option
 
 type codegen_tree = {
   externals : external_decl list;
-  typedefs : typ list;
-  tree : typed_expr;
+  typedefs : Types.typ list;
+  tree : Typed_tree.typed_expr;
 }
 
 type msg_fn = string -> Ast.loc -> string -> string
-
-exception Error of Ast.loc * string
 
 module Strset = Set.Make (String)
 
@@ -1149,7 +1112,13 @@ and convert_match env loc expr cases =
   { matchexpr with expr = Let (expr_name, expr, matchexpr) }
 
 and select_ctor env loc cases ret_typ =
-  (* We build the decision tree here *)
+  (* We build the decision tree here.
+     [match_cases] splits cases into ones that match and ones that don't.
+     [select_ctor] then generates the tree for the cases.
+     This boils down to a chain of if-then-else exprs. A heuristic for
+     choosing the ctor to check first in a case is not needed right now,
+     since we have neither tuples nor literals in matches, but it will
+     be part of [select_ctor] eventually *)
 
   (* Magic value, see above *)
   let expr_name = "__expr" in

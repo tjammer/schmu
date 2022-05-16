@@ -10,7 +10,8 @@ let get_type src =
 let test a src = (check string) "" a (get_type src)
 
 let test_exn msg src =
-  (check string) "" msg (try get_type src with Typing.Error (_, msg) -> msg)
+  (check string) "" msg
+    (try get_type src with Typed_tree.Error (_, msg) -> msg)
 
 let test_const_int () = test "int" "a = 1 a"
 let test_const_neg_int () = test "int" "a = -1 a"

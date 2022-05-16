@@ -479,10 +479,10 @@ let set_tailrec name =
   | _ :: _ -> ()
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
-let rec morph_expr param (texpr : Typing.typed_expr) =
+let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return = { typ = cln texpr.typ; expr; return } in
   match texpr.expr with
-  | Typing.Var v -> morph_var make param v
+  | Typed_tree.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
   | Const (Vector v) -> morph_vector make param v
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
