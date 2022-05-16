@@ -1112,9 +1112,10 @@ and convert_ctor env loc name arg annot =
       let expr = Ctor (typename, index, Some texpr) in
 
       Env.maybe_add_type_instance (string_of_type variant) variant env;
-      { typ = variant; expr; is_const = texpr.is_const }
+      { typ = variant; expr; is_const = false }
   | None, None ->
       let expr = Ctor (typename, index, None) in
+      (* NOTE: Const handling for ctors is disabled, see #23 *)
       { typ = variant; expr; is_const = true }
   | None, Some _ ->
       let msg =
