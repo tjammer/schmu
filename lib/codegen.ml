@@ -454,10 +454,9 @@ let maybe_unbox_record typ value =
   | Boxed -> (value.value, None)
 
 let add_exn name t =
-  if Strtbl.mem record_tbl name then
-    failwith "Internal Error: Type shadowing not supported in codegen TODO";
-
-  Strtbl.add record_tbl name t
+  (* Type shadowing is tracked in the typing phase.
+     If a type exists already, we just don't add it another time *)
+  if Strtbl.mem record_tbl name then () else Strtbl.add record_tbl name t
 
 let to_named_typedefs = function
   | Trecord (_, _, labels) as t ->
