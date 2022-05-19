@@ -170,10 +170,10 @@ expr:
   | Lowercase_id { $1, Var($loc, $1) }
 
 %inline clause:
-  | pattern; Arrow_right; block { $1, $3 }
+  | pattern; Arrow_right; block { $loc($1), $1, $3 }
 
 %inline pattern:
-  | ctor; option(parens_single(pattern)) { Pctor($loc, $1, $2) }
+  | ctor; option(parens_single(pattern)) { Pctor($1, $2) }
   | Lowercase_id { Pvar($loc, $1) }
 
 ident:

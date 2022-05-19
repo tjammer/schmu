@@ -1177,7 +1177,7 @@ and select_ctor env loc cases ret_typ =
   in
 
   match cases with
-  | [ (Some (Ast.Pctor (_, name, arg)), ret_expr) ] ->
+  | [ (loc, Some (Ast.Pctor (name, arg)), ret_expr) ] ->
       (* Selecting the last case like this only works if we are sure
          that we have exhausted all cases *)
       let _, ctor, variant = get_variant env loc name None in
@@ -1187,10 +1187,12 @@ and select_ctor env loc cases ret_typ =
 
       let argexpr = ctorexpr ctor in
       let env = Env.add_value expr_name argexpr.typ loc env in
-      let cont, matches = select_ctor env loc [ (arg, ret_expr) ] ret_typ in
+      let cont, matches =
+        select_ctor env loc [ (loc, arg, ret_expr) ] ret_typ
+      in
       ( { cont with expr = Let (expr_name, argexpr, cont) },
         Match.Partial (names, Map.add (snd name) matches Map.empty) )
-  | (Some (Ast.Pctor (_, name, _)), _) :: _ ->
+  | (loc, Some (Ast.Pctor (name, _)), _) :: _ ->
       let a, b = match_cases (snd name) cases [] [] in
 
       let l, ctor, variant = get_variant env loc name None in
@@ -1226,7 +1228,7 @@ and select_ctor env loc cases ret_typ =
       let matches = Match.merge elsematch mtch in
 
       ({ typ = ret_typ; expr = If (cmp, if_, else_); is_const = false }, matches)
-  | (Some (Pvar (loc, name)), ret_expr) :: tl ->
+  | (loc, Some (Pvar (_, name)), ret_expr) :: tl ->
       (* Bind the variable *)
       let env = Env.add_value name expr.typ ~is_const:false loc env in
       let ret, _ = convert_block env ret_expr in
@@ -1240,37 +1242,38 @@ and select_ctor env loc cases ret_typ =
       unify (loc, "Match expression does not match:") ret_typ ret.typ;
       ( { typ = ret.typ; expr = Let (name, expr, ret); is_const = ret.is_const },
         Exhaustive )
-  | (None, ret_expr) :: _ ->
+  | (loc, None, ret_expr) :: _ ->
       let ret, _ = convert_block env ret_expr in
       unify (loc, "Match expression does not match:") ret_typ ret.typ;
-      (* TODO better location here *)
       (ret, Exhaustive)
-  | [] -> raise (Error (loc, "Pattern match failed"))
+  | [] -> raise (Error (all_loc, "Pattern match failed"))
 
 and match_cases case cases if_ else_ =
   match cases with
-  | (Some (Ast.Pctor (_, (_, name), arg)), expr) :: tl
+  | (loc, Some (Ast.Pctor ((_, name), arg)), expr) :: tl
     when String.equal case name ->
-      match_cases case tl ((arg, expr) :: if_) else_
-  | ((Some (Pctor _), _) as thing) :: tl ->
+      match_cases case tl ((loc, arg, expr) :: if_) else_
+  | ((_, Some (Pctor _), _) as thing) :: tl ->
       match_cases case tl if_ (thing :: else_)
-  | ((Some (Pvar _), _) as thing) :: tl ->
+  | ((_, Some (Pvar _), _) as thing) :: tl ->
       match_cases case tl (thing :: if_) (thing :: else_)
-  | (None, _) :: tl ->
+  | (_, None, _) :: tl ->
       (* TODO correctly handle this case *)
       print_endline "this strange case";
       match_cases case tl if_ else_
   | [] -> (List.rev if_, List.rev else_)
 
 and fill_matches env = function
-  | Some (Ast.Pctor (loc, name, arg)), expr ->
+  | loc, Some (Ast.Pctor (name, arg)), expr ->
       let _, _, variant = get_variant env loc name None in
       let names = ctornames_of_variant variant in
 
-      let map = Map.add (snd name) (fill_matches env (arg, expr)) Map.empty in
+      let map =
+        Map.add (snd name) (fill_matches env (loc, arg, expr)) Map.empty
+      in
       Match.Partial (names, map)
-  | Some (Pvar _), _ -> Exhaustive
-  | None, _ -> Exhaustive
+  | _, Some (Pvar _), _ -> Exhaustive
+  | _, None, _ -> Exhaustive
 
 and convert_block_annot ~ret env annot stmts =
   let loc = Lexing.(dummy_pos, dummy_pos) in
