@@ -22,6 +22,44 @@ end
 
 module Strtbl = Hashtbl.Make (Str)
 module Map = Map.Make (String)
+module Set = Set.Make (String)
+
+module Match = struct
+  type t = Exhaustive | Partial of string list * t Map.t
+
+  (* Merge partial matches if they share the ctor  *)
+  let rec merge other this =
+    match (other, this) with
+    | _, Exhaustive ->
+        (* We are already exhaustive, everything else
+           is redundant *)
+        failwith "redundant"
+    | Exhaustive, _ ->
+        (* If it's exhaustive, we are done *)
+        Exhaustive
+    | Partial (_, other), Partial (this_list, this) ->
+        let f _ other this =
+          match (other, this) with
+          | None, Some a | Some a, None -> Some a
+          | None, None -> failwith "lol"
+          | Some other, Some this -> Some (merge other this)
+        in
+        let this = Map.merge f other this in
+        Partial (this_list, this)
+
+  let rec is_exhaustive = function
+    | Exhaustive -> true
+    | Partial (cases, map) ->
+        (* Add missing cases *)
+        let set = ref (Set.add_seq (List.to_seq cases) Set.empty) in
+
+        Map.iter
+          (fun key t ->
+            if is_exhaustive t then set := Set.remove key !set else ())
+          map;
+        (* Only missing cases remain *)
+        Set.is_empty !set
+end
 
 (*
    Module state
@@ -1108,8 +1146,15 @@ and convert_match env loc expr cases =
   let ret = newvar () in
 
   let some_cases = List.map (fun (p, expr) -> (Some p, expr)) cases in
-  let matchexpr = select_ctor env loc some_cases ret in
+  let matchexpr, mtch = select_ctor env loc some_cases ret in
+  if not (Match.is_exhaustive mtch) then failwith "missing cases";
+
   { matchexpr with expr = Let (expr_name, expr, matchexpr) }
+
+and ctornames_of_variant = function
+  | Tvariant (_, _, ctors) ->
+      Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname)
+  | _ -> failwith "Internal Error: Not a variant"
 
 and select_ctor env loc cases ret_typ =
   (* We build the decision tree here.
@@ -1137,15 +1182,21 @@ and select_ctor env loc cases ret_typ =
          that we have exhausted all cases *)
       let _, ctor, variant = get_variant env loc name None in
       unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
+
+      let names = ctornames_of_variant variant in
+
       let argexpr = ctorexpr ctor in
       let env = Env.add_value expr_name argexpr.typ loc env in
-      let cont = select_ctor env loc [ (arg, ret_expr) ] ret_typ in
-      { cont with expr = Let (expr_name, argexpr, cont) }
+      let cont, matches = select_ctor env loc [ (arg, ret_expr) ] ret_typ in
+      ( { cont with expr = Let (expr_name, argexpr, cont) },
+        Match.Partial (names, Map.add (snd name) matches Map.empty) )
   | (Some (Ast.Pctor (_, name, _)), _) :: _ ->
       let a, b = match_cases (snd name) cases [] [] in
 
       let l, ctor, variant = get_variant env loc name None in
       unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
+
+      let names = ctornames_of_variant variant in
 
       let index = { typ = Ti32; expr = Variant_index expr; is_const = false } in
       let cind = { typ = Ti32; expr = Const (I32 l.index); is_const = true } in
@@ -1155,30 +1206,45 @@ and select_ctor env loc cases ret_typ =
       let data = ctorexpr ctor in
       let ifenv = Env.add_value expr_name data.typ loc env in
 
-      let cont = select_ctor ifenv loc a ret_typ in
+      let cont, ifmatch = select_ctor ifenv loc a ret_typ in
+
       let if_ = { cont with expr = Let (expr_name, data, cont) } in
-      let else_ = select_ctor env loc b ret_typ in
+      let else_, elsematch = select_ctor env loc b ret_typ in
 
-      { typ = ret_typ; expr = If (cmp, if_, else_); is_const = false }
+      let mtch = Match.Partial (names, Map.add (snd name) ifmatch Map.empty) in
+      (* The tail isn't used in the decision tree,
+         but is needed for case analysis *)
+      (* Discard first item as it's processes in select_ctor *)
+      let mtch =
+        match a with
+        | [] -> mtch
+        | _ :: tl ->
+            List.fold_left
+              (fun mtch item -> Match.merge (fill_matches env item) mtch)
+              mtch tl
+      in
+      let matches = Match.merge elsematch mtch in
+
+      ({ typ = ret_typ; expr = If (cmp, if_, else_); is_const = false }, matches)
   | (Some (Pvar (loc, name)), ret_expr) :: tl ->
-      (match tl with
-      | [] -> (* No redundancy *) ()
-      | (Some (Pvar (loc, _)), _) :: _ | (Some (Pctor (_, (loc, _), _)), _) :: _
-        ->
-          (* TODO this is super ugly and matches only the var, not the whole pattern *)
-          raise (Error (loc, "Pattern match case is redundant"))
-      | (None, _) :: _ -> failwith "Internal Error: How is this none");
-
       (* Bind the variable *)
       let env = Env.add_value name expr.typ ~is_const:false loc env in
       let ret, _ = convert_block env ret_expr in
+
+      (* This is already exhaustive but we do the tail here as well for errors *)
+      List.fold_left
+        (fun mtch item -> Match.merge (fill_matches env item) mtch)
+        Exhaustive tl
+      |> ignore;
+
       unify (loc, "Match expression does not match:") ret_typ ret.typ;
-      { typ = ret.typ; expr = Let (name, expr, ret); is_const = ret.is_const }
+      ( { typ = ret.typ; expr = Let (name, expr, ret); is_const = ret.is_const },
+        Exhaustive )
   | (None, ret_expr) :: _ ->
       let ret, _ = convert_block env ret_expr in
       unify (loc, "Match expression does not match:") ret_typ ret.typ;
       (* TODO better location here *)
-      ret
+      (ret, Exhaustive)
   | [] -> raise (Error (loc, "Pattern match failed"))
 
 and match_cases case cases if_ else_ =
@@ -1195,6 +1261,16 @@ and match_cases case cases if_ else_ =
       print_endline "this strange case";
       match_cases case tl if_ else_
   | [] -> (List.rev if_, List.rev else_)
+
+and fill_matches env = function
+  | Some (Ast.Pctor (loc, name, arg)), expr ->
+      let _, _, variant = get_variant env loc name None in
+      let names = ctornames_of_variant variant in
+
+      let map = Map.add (snd name) (fill_matches env (arg, expr)) Map.empty in
+      Match.Partial (names, map)
+  | Some (Pvar _), _ -> Exhaustive
+  | None, _ -> Exhaustive
 
 and convert_block_annot ~ret env annot stmts =
   let loc = Lexing.(dummy_pos, dummy_pos) in
