@@ -26,6 +26,9 @@ module Set = Set.Make (String)
 
 module Match = struct
   type t = Exhaustive | Partial of string list * t Map.t
+  type err = Redundant
+
+  exception Err of err
 
   (* Merge partial matches if they share the ctor  *)
   let rec merge other this =
@@ -33,7 +36,7 @@ module Match = struct
     | _, Exhaustive ->
         (* We are already exhaustive, everything else
            is redundant *)
-        failwith "redundant"
+        raise (Err Redundant)
     | Exhaustive, _ ->
         (* If it's exhaustive, we are done *)
         Exhaustive
@@ -1145,7 +1148,7 @@ and convert_match env loc expr cases =
   (* TODO Should we enter a level here? *)
   let ret = newvar () in
 
-  let some_cases = List.map (fun (p, expr) -> (Some p, expr)) cases in
+  let some_cases = List.map (fun (loc, p, expr) -> (loc, Some p, expr)) cases in
   let matchexpr, mtch = select_ctor env loc some_cases ret in
   if not (Match.is_exhaustive mtch) then failwith "missing cases";
 
@@ -1156,7 +1159,7 @@ and ctornames_of_variant = function
       Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname)
   | _ -> failwith "Internal Error: Not a variant"
 
-and select_ctor env loc cases ret_typ =
+and select_ctor env all_loc cases ret_typ =
   (* We build the decision tree here.
      [match_cases] splits cases into ones that match and ones that don't.
      [select_ctor] then generates the tree for the cases.
@@ -1167,7 +1170,10 @@ and select_ctor env loc cases ret_typ =
 
   (* Magic value, see above *)
   let expr_name = "__expr" in
-  let expr = convert_var env loc expr_name in
+  let expr = convert_var env all_loc expr_name in
+
+  (* For errors *)
+  let errloc = ref all_loc in
 
   let ctorexpr ctor =
     match ctor.ctortyp with
@@ -1220,10 +1226,15 @@ and select_ctor env loc cases ret_typ =
       let mtch =
         match a with
         | [] -> mtch
-        | _ :: tl ->
-            List.fold_left
-              (fun mtch item -> Match.merge (fill_matches env item) mtch)
-              mtch tl
+        | _ :: tl -> (
+            try
+              List.fold_left
+                (fun mtch ((loc, _, _) as item) ->
+                  errloc := loc;
+                  Match.merge (fill_matches env item) mtch)
+                mtch tl
+            with Match.Err Redundant ->
+              raise (Error (!errloc, "Pattern match case is redundant")))
       in
       let matches = Match.merge elsematch mtch in
 
@@ -1234,10 +1245,15 @@ and select_ctor env loc cases ret_typ =
       let ret, _ = convert_block env ret_expr in
 
       (* This is already exhaustive but we do the tail here as well for errors *)
-      List.fold_left
-        (fun mtch item -> Match.merge (fill_matches env item) mtch)
-        Exhaustive tl
-      |> ignore;
+      (try
+         List.fold_left
+           (fun mtch ((loc, _, _) as item) ->
+             errloc := loc;
+             Match.merge (fill_matches env item) mtch)
+           Exhaustive tl
+         |> ignore
+       with Match.Err Redundant ->
+         raise (Error (!errloc, "Pattern match case is redundant")));
 
       unify (loc, "Match expression does not match:") ret_typ ret.typ;
       ( { typ = ret.typ; expr = Let (name, expr, ret); is_const = ret.is_const },
