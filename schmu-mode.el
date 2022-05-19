@@ -21,8 +21,8 @@
 
 (defconst schmu-keywords-regexp
   (rx symbol-start
-      (or "fun" "type" "if" "then" "else"
-          "elseif" "and" "or" "external")
+      (or "fun" "type" "if" "then" "else" "elseif" "and" "or" "external"
+          "match" "with")
       symbol-end)
   "Schmu language keywords.")
 
@@ -34,7 +34,7 @@
 
 (defconst schmu-builtin-regexp
   (rx symbol-start
-      (or "int" "unit" "bool")
+      (or "int" "unit" "bool" "float")
       symbol-end)
   "Schmu language builtin types.")
 
