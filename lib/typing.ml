@@ -1172,8 +1172,14 @@ and select_ctor env all_loc cases ret_typ =
   let expr_name = "__expr" in
   let expr = convert_var env all_loc expr_name in
 
-  (* For errors *)
-  let errloc = ref all_loc in
+  let check_redundant init lst =
+    List.fold_left
+      (fun mtch ((loc, _, _) as item) ->
+        try Match.merge (fill_matches env item) mtch
+        with Match.Err Redundant ->
+          raise (Error (loc, "Pattern match case is redundant")))
+      init lst
+  in
 
   let ctorexpr ctor =
     match ctor.ctortyp with
@@ -1216,44 +1222,36 @@ and select_ctor env all_loc cases ret_typ =
 
       let cont, ifmatch = select_ctor ifenv loc a ret_typ in
 
-      let if_ = { cont with expr = Let (expr_name, data, cont) } in
-      let else_, elsematch = select_ctor env loc b ret_typ in
+      let ifexpr = Let (expr_name, data, cont) in
 
       let mtch = Match.Partial (names, Map.add (snd name) ifmatch Map.empty) in
       (* The tail isn't used in the decision tree,
          but is needed for case analysis *)
       (* Discard first item as it's processes in select_ctor *)
       let mtch =
-        match a with
-        | [] -> mtch
-        | _ :: tl -> (
-            try
-              List.fold_left
-                (fun mtch ((loc, _, _) as item) ->
-                  errloc := loc;
-                  Match.merge (fill_matches env item) mtch)
-                mtch tl
-            with Match.Err Redundant ->
-              raise (Error (!errloc, "Pattern match case is redundant")))
+        match a with [] -> mtch | _ :: tl -> check_redundant mtch tl
       in
-      let matches = Match.merge elsematch mtch in
 
-      ({ typ = ret_typ; expr = If (cmp, if_, else_); is_const = false }, matches)
+      (* This is either an if-then-else or just an if with one ctor,
+         depending on whether [b] is empty *)
+      let expr, matches =
+        match b with
+        | [] -> (ifexpr, mtch)
+        | b ->
+            let if_ = { cont with expr = ifexpr } in
+            let else_, elsematch = select_ctor env loc b ret_typ in
+            let matches = Match.merge elsematch mtch in
+            (If (cmp, if_, else_), matches)
+      in
+
+      ({ typ = ret_typ; expr; is_const = false }, matches)
   | (loc, Some (Pvar (_, name)), ret_expr) :: tl ->
       (* Bind the variable *)
       let env = Env.add_value name expr.typ ~is_const:false loc env in
       let ret, _ = convert_block env ret_expr in
 
       (* This is already exhaustive but we do the tail here as well for errors *)
-      (try
-         List.fold_left
-           (fun mtch ((loc, _, _) as item) ->
-             errloc := loc;
-             Match.merge (fill_matches env item) mtch)
-           Exhaustive tl
-         |> ignore
-       with Match.Err Redundant ->
-         raise (Error (!errloc, "Pattern match case is redundant")));
+      check_redundant Exhaustive tl |> ignore;
 
       unify (loc, "Match expression does not match:") ret_typ ret.typ;
       ( { typ = ret.typ; expr = Let (name, expr, ret); is_const = ret.is_const },
@@ -1262,7 +1260,7 @@ and select_ctor env all_loc cases ret_typ =
       let ret, _ = convert_block env ret_expr in
       unify (loc, "Match expression does not match:") ret_typ ret.typ;
       (ret, Exhaustive)
-  | [] -> raise (Error (all_loc, "Pattern match failed"))
+  | [] -> failwith "Internal Error: Pattern match failed"
 
 and match_cases case cases if_ else_ =
   match cases with
