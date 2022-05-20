@@ -130,6 +130,7 @@ let reset_type_vars () =
 let enter_level () = incr current_level
 let leave_level () = decr current_level
 let newvar () = Tvar (ref (Unbound (gensym (), !current_level)))
+let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
 (*
   Helper functions
@@ -1347,7 +1348,8 @@ and convert_block_annot ~ret env annot stmts =
         let cont, env = to_expr env old_type tl in
         let expr = Function (name, unique, lambda, cont) in
         ({ typ = cont.typ; expr; is_const = false }, env)
-    | [ Expr (_, e) ] ->
+    | [ Expr (loc, e) ] ->
+        last_loc := loc;
         check old_type;
         (convert_annot env annot e, env)
     | Expr (l1, e1) :: tl ->
@@ -1410,7 +1412,7 @@ let convert_prog ~ret prev_exprs env items =
   | rest -> (rest, env)
 
 (* Conversion to Typing.exr below *)
-let to_typed msg_fn ~prelude (prog : Ast.prog) =
+let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 
@@ -1438,12 +1440,22 @@ let to_typed msg_fn ~prelude (prog : Ast.prog) =
   let _, _, unused = Env.close_function env in
   check_unused unused;
 
+  (* Program must evaluate to either int or unit *)
+  (if check_ret then
+   match (Option.get tree).typ |> clean with
+   | Tunit | Tint -> ()
+   | t ->
+       let msg =
+         "Program must return type int or unit, not " ^ string_of_type t
+       in
+       raise (Error (!last_loc, msg)));
+
   (* print_endline (String.concat ", " (List.map string_of_type typedefs)); *)
   { externals; typedefs; tree = Option.get tree }
 
 let typecheck (prog : Ast.prog) =
   (* Ignore unused binding warnings *)
   let msg_fn _ _ _ = "" in
-  let tree = to_typed msg_fn ~prelude:[] prog in
+  let tree = to_typed ~check_ret:false msg_fn ~prelude:[] prog in
   print_endline (show_typ tree.tree.typ);
   tree.tree.typ

@@ -10,4 +10,6 @@ type msg_fn = string -> Ast.loc -> string -> string
 
 val string_of_type : Types.typ -> string
 val typecheck : Ast.prog -> Types.typ
-val to_typed : msg_fn -> prelude:Ast.prog -> Ast.prog -> codegen_tree
+
+val to_typed :
+  ?check_ret:bool -> msg_fn -> prelude:Ast.prog -> Ast.prog -> codegen_tree
