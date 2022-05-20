@@ -51,17 +51,42 @@ module Match = struct
         Partial (this_list, this)
 
   let rec is_exhaustive = function
-    | Exhaustive -> true
+    | Exhaustive -> Ok ()
     | Partial (cases, map) ->
         (* Add missing cases *)
-        let set = ref (Set.add_seq (List.to_seq cases) Set.empty) in
+        let cmap =
+          List.fold_left (fun map case -> Map.add case [] map) Map.empty cases
+          |> ref
+        in
 
         Map.iter
           (fun key t ->
-            if is_exhaustive t then set := Set.remove key !set else ())
+            match is_exhaustive t with
+            | Ok () -> cmap := Map.remove key !cmap
+            | Error lst -> cmap := Map.add key lst !cmap)
           map;
+
         (* Only missing cases remain *)
-        Set.is_empty !set
+        if not (Map.is_empty !cmap) then
+          let lst =
+            Map.to_seq !cmap |> List.of_seq
+            |> List.fold_left
+                 (* We add for each missing case the current ctor *)
+                   (fun acc (a, lst) ->
+                   match lst with
+                   | [] -> [ a ] :: acc
+                   | lst ->
+                       List.fold_left (fun acc lst -> (a :: lst) :: acc) acc lst)
+                 []
+          in
+
+          Error lst
+        else Ok ()
+
+  let rec cases_to_string = function
+    | [] -> ""
+    | [ case ] -> case
+    | case :: tail -> Printf.sprintf "%s(%s)" case (cases_to_string tail)
 end
 
 (*
@@ -1150,7 +1175,17 @@ and convert_match env loc expr cases =
 
   let some_cases = List.map (fun (loc, p, expr) -> (loc, Some p, expr)) cases in
   let matchexpr, mtch = select_ctor env loc some_cases ret in
-  if not (Match.is_exhaustive mtch) then failwith "missing cases";
+
+  (* Check for exhaustiveness *)
+  (match Match.is_exhaustive mtch with
+  | Ok () -> ()
+  | Error cases ->
+      let cases = String.concat ", " (List.map Match.cases_to_string cases) in
+      let msg =
+        Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
+          cases
+      in
+      raise (Error (loc, msg)));
 
   { matchexpr with expr = Let (expr_name, expr, matchexpr) }
 
