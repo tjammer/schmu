@@ -324,6 +324,10 @@ let test_match_redundant () =
     \  a -> a\n\
     \  None -> -1\n"
 
+let test_match_missing () =
+  test_exn "Pattern match is not exhaustive. Missing cases: Some"
+    "type option('a) = Some('a), None match Some(1) with\n  None -> -1\n"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -452,5 +456,9 @@ let () =
           case "option_some_arg" test_variants_option_some_arg;
         ] );
       ( "match",
-        [ case "all" test_match_all; case "redundant" test_match_redundant ] );
+        [
+          case "all" test_match_all;
+          case "redundant" test_match_redundant;
+          case "missing" test_match_missing;
+        ] );
     ]
