@@ -125,7 +125,9 @@ let reset_level () = current_level := 1
 let reset_type_vars () =
   reset gensym_state;
   reset_level ();
-  reset lambda_id_state
+  reset lambda_id_state;
+  (* Not a type var, but needs resetting as well *)
+  Strtbl.clear func_tbl
 
 let enter_level () = incr current_level
 let leave_level () = decr current_level
@@ -1368,6 +1370,26 @@ and convert_block_annot ~ret env annot stmts =
 and convert_block ?(ret = true) env stmts =
   convert_block_annot ~ret env None stmts
 
+let block_external_name loc ~cname id =
+  (* We have to deal with shadowing:
+     If there is no function with the same name, we make sure
+     all future function use different names internally (via [func_tbl]).
+     If there already is a function, there is nothing we can do right now,
+     so we error *)
+  let name = match cname with Some name -> name | None -> id in
+  match Strtbl.find_opt func_tbl name with
+  | None ->
+      (* Good, block this name. NOTE see [next_func] *)
+      Strtbl.add func_tbl name 1
+  | Some _ ->
+      let msg =
+        Printf.sprintf
+          "External function name %s already in use. This is not supported \
+           yet, make sure to define the external function first"
+          name
+      in
+      raise (Error (loc, msg))
+
 let convert_prog ~ret prev_exprs env items =
   let rec aux expr env = function
     | [] -> (expr, env)
@@ -1375,6 +1397,7 @@ let convert_prog ~ret prev_exprs env items =
     | Ast.Block block :: tl -> aux_block expr env block tl false
     | Ext_decl (loc, (idloc, id), typ, cname) :: tl ->
         let typ = typeof_annot env loc typ in
+        block_external_name loc ~cname id;
         aux expr (Env.add_external id ~cname typ idloc env) tl
     | Typedef (loc, Trecord t) :: tl ->
         let env = type_record env loc t in
