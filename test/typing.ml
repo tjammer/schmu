@@ -290,43 +290,43 @@ let test_mutable_set_non_mut () =
     "type foo = { x : int } foo = { x = 12} foo.x <- 13"
 
 let test_variants_option_none () =
-  test "option('a)" "type option('a) = None, Some('a) None"
+  test "option('a)" "type option('a) = None | Some('a) None"
 
 let test_variants_option_some () =
-  test "option(int)" "type option('a) = None, Some('a) Some(1)"
+  test "option(int)" "type option('a) = None | Some('a) Some(1)"
 
 let test_variants_option_some_some () =
   test "option(option(float))"
-    "type option('a) = None, Some('a) a = Some(1.0) Some(a)"
+    "type option('a) = None | Some('a) a = Some(1.0) Some(a)"
 
 let test_variants_option_annot () =
   test "option(option(float))"
-    "type option('a) = None, Some('a) a : option(float) = None Some(a)"
+    "type option('a) = None | Some('a) a : option(float) = None Some(a)"
 
 let test_variants_option_none_arg () =
   test_exn
     "The constructor None expects 0 arguments, but an argument is provided"
-    "type option('a) = None, Some('a) None(1)"
+    "type option('a) = None | Some('a) None(1)"
 
 let test_variants_option_some_arg () =
   test_exn "The constructor Some expects arguments, but none are provided"
-    "type option('a) = None, Some('a) Some"
+    "type option('a) = None | Some('a) Some"
 
 let test_match_all () =
   test "int"
-    "type option('a) = Some('a), None match Some(1) with\n\
+    "type option('a) = Some('a) | None match Some(1) with\n\
     \  Some(a) -> a\n\
     \  None -> -1\n"
 
 let test_match_redundant () =
   test_exn "Pattern match case is redundant"
-    "type option('a) = Some('a), None match Some(1) with\n\
+    "type option('a) = Some('a) | None match Some(1) with\n\
     \  a -> a\n\
     \  None -> -1\n"
 
 let test_match_missing () =
   test_exn "Pattern match is not exhaustive. Missing cases: Some"
-    "type option('a) = Some('a), None match Some(1) with\n  None -> -1\n"
+    "type option('a) = Some('a) | None match Some(1) with\n  None -> -1\n"
 
 let case str test = test_case str `Quick test
 

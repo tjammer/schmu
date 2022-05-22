@@ -1,11 +1,11 @@
 Some(1) |> ignore
 
 type foo = { x : float, y : float }
-type larger = One, Two(foo), Three(int)
+type larger = One | Two(foo) | Three(int)
 
 Three(3) |> ignore
 
-type clike = A, B, C, D, E
+type clike = A | B | C | D | E
 
 C |> ignore
 

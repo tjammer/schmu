@@ -16,7 +16,7 @@ prog: Type With
 ##
 ## top_item -> Type . Lowercase_id option(typedef_poly_id) Equal Lbrac separated_nonempty_list(Comma,type_decl) Rbrac [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> Type . Lowercase_id option(typedef_poly_id) Equal build_type_list [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
-## top_item -> Type . Lowercase_id option(typedef_poly_id) Equal separated_nonempty_list(Comma,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
+## top_item -> Type . Lowercase_id option(typedef_poly_id) Equal separated_nonempty_list(Bar,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Type
@@ -30,7 +30,7 @@ prog: Type Lowercase_id With
 ##
 ## top_item -> Type Lowercase_id . option(typedef_poly_id) Equal Lbrac separated_nonempty_list(Comma,type_decl) Rbrac [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> Type Lowercase_id . option(typedef_poly_id) Equal build_type_list [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
-## top_item -> Type Lowercase_id . option(typedef_poly_id) Equal separated_nonempty_list(Comma,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
+## top_item -> Type Lowercase_id . option(typedef_poly_id) Equal separated_nonempty_list(Bar,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Type Lowercase_id
@@ -80,7 +80,7 @@ prog: Type Lowercase_id Lpar Quote Lowercase_id Rpar With
 ##
 ## top_item -> Type Lowercase_id option(typedef_poly_id) . Equal Lbrac separated_nonempty_list(Comma,type_decl) Rbrac [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> Type Lowercase_id option(typedef_poly_id) . Equal build_type_list [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
-## top_item -> Type Lowercase_id option(typedef_poly_id) . Equal separated_nonempty_list(Comma,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
+## top_item -> Type Lowercase_id option(typedef_poly_id) . Equal separated_nonempty_list(Bar,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Type Lowercase_id option(typedef_poly_id)
@@ -94,7 +94,7 @@ prog: Type Lowercase_id Equal With
 ##
 ## top_item -> Type Lowercase_id option(typedef_poly_id) Equal . Lbrac separated_nonempty_list(Comma,type_decl) Rbrac [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> Type Lowercase_id option(typedef_poly_id) Equal . build_type_list [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
-## top_item -> Type Lowercase_id option(typedef_poly_id) Equal . separated_nonempty_list(Comma,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
+## top_item -> Type Lowercase_id option(typedef_poly_id) Equal . separated_nonempty_list(Bar,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Type Lowercase_id option(typedef_poly_id) Equal
@@ -593,8 +593,8 @@ prog: Type Lowercase_id Equal Uppercase_id With
 ##
 ## Ends in an error in state: 59.
 ##
-## separated_nonempty_list(Comma,ctordef) -> ctor . option(ctortyp) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
-## separated_nonempty_list(Comma,ctordef) -> ctor . option(ctortyp) Comma separated_nonempty_list(Comma,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
+## separated_nonempty_list(Bar,ctordef) -> ctor . option(ctortyp) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
+## separated_nonempty_list(Bar,ctordef) -> ctor . option(ctortyp) Bar separated_nonempty_list(Bar,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## ctor
@@ -606,9 +606,9 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar With
 ##
 ## Ends in an error in state: 60.
 ##
-## option(ctortyp) -> Lpar . build_type_list Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
-## option(ctortyp) -> Lpar . Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
-## option(ctortyp) -> Lpar . build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
+## option(ctortyp) -> Lpar . build_type_list Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
+## option(ctortyp) -> Lpar . Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
+## option(ctortyp) -> Lpar . build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar
@@ -620,7 +620,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar With
 ##
 ## Ends in an error in state: 61.
 ##
-## option(ctortyp) -> Lpar Lpar . separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
+## option(ctortyp) -> Lpar Lpar . separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Lpar
@@ -632,7 +632,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar With
 ##
 ## Ends in an error in state: 63.
 ##
-## option(ctortyp) -> Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar . Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
+## option(ctortyp) -> Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar . Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar
@@ -644,7 +644,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar Arrow_rig
 ##
 ## Ends in an error in state: 64.
 ##
-## option(ctortyp) -> Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right . build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
+## option(ctortyp) -> Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right . build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right
@@ -656,7 +656,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar Arrow_rig
 ##
 ## Ends in an error in state: 65.
 ##
-## option(ctortyp) -> Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list . Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
+## option(ctortyp) -> Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list . Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list
@@ -674,8 +674,8 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Uppercase_id
 ##
 ## Ends in an error in state: 67.
 ##
-## option(ctortyp) -> Lpar build_type_list . Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
-## option(ctortyp) -> Lpar build_type_list . Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
+## option(ctortyp) -> Lpar build_type_list . Arrow_right build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
+## option(ctortyp) -> Lpar build_type_list . Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar build_type_list
@@ -693,7 +693,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Arrow_right With
 ##
 ## Ends in an error in state: 69.
 ##
-## option(ctortyp) -> Lpar build_type_list Arrow_right . build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
+## option(ctortyp) -> Lpar build_type_list Arrow_right . build_type_list Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar build_type_list Arrow_right
@@ -705,7 +705,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Arrow_right Lowerca
 ##
 ## Ends in an error in state: 70.
 ##
-## option(ctortyp) -> Lpar build_type_list Arrow_right build_type_list . Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Comma Builtin_id ]
+## option(ctortyp) -> Lpar build_type_list Arrow_right build_type_list . Rpar [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar build_type_list Arrow_right build_type_list
@@ -723,8 +723,8 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Rpar With
 ##
 ## Ends in an error in state: 72.
 ##
-## separated_nonempty_list(Comma,ctordef) -> ctor option(ctortyp) . [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
-## separated_nonempty_list(Comma,ctordef) -> ctor option(ctortyp) . Comma separated_nonempty_list(Comma,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
+## separated_nonempty_list(Bar,ctordef) -> ctor option(ctortyp) . [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
+## separated_nonempty_list(Bar,ctordef) -> ctor option(ctortyp) . Bar separated_nonempty_list(Bar,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## ctor option(ctortyp)
@@ -732,14 +732,14 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Type Lowercase_id Equal Uppercase_id Comma With
+prog: Type Lowercase_id Equal Uppercase_id Bar With
 ##
 ## Ends in an error in state: 73.
 ##
-## separated_nonempty_list(Comma,ctordef) -> ctor option(ctortyp) Comma . separated_nonempty_list(Comma,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
+## separated_nonempty_list(Bar,ctordef) -> ctor option(ctortyp) Bar . separated_nonempty_list(Bar,ctordef) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
-## ctor option(ctortyp) Comma
+## ctor option(ctortyp) Bar
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>

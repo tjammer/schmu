@@ -21,6 +21,7 @@
 %token Equal
 %token Comma
 %token Colon
+%token Bar
 %token Arrow_right
 %token Arrow_left
 %token Dot
@@ -104,7 +105,7 @@ top_item:
     { Trecord { name = $2; labels = Array.of_list $5 } }
   | Type; typename; Equal; type_list
     { Talias ($2, $4) }
-  | Type; typename; Equal; separated_nonempty_list(Comma, ctordef)
+  | Type; typename; Equal; separated_nonempty_list(Bar, ctordef)
     { Tvariant { name = $2; ctors = $4 } }
 
 %inline ctordef:

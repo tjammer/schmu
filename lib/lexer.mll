@@ -62,6 +62,7 @@ rule read =
   | "==."     { Bin_equal_f }
   | ','      { Comma }
   | ':'      { Colon }
+  | '|'      { Bar }
   | "'"      { Quote }
   | "if"     { If }
   | "then"   { Then }
