@@ -131,8 +131,7 @@ let rec cln = function
       let param = Option.map cln param in
       let fields =
         Array.map
-          (fun field ->
-            { name = Types.(field.name); typ = cln field.typ; mut = field.mut })
+          (fun field -> { typ = cln Types.(field.typ); mut = field.mut })
           fields
       in
       Trecord (param, name, fields)

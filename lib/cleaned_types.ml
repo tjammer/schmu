@@ -14,7 +14,7 @@ type typ =
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
-and field = { name : string; typ : typ; mut : bool }
+and field = { typ : typ; mut : bool }
 and ctor = { ctorname : string; ctortyp : typ option }
 
 let is_type_polymorphic typ =

@@ -278,7 +278,7 @@ let type_unboxed kind =
     | Ints i ->
         "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
   in
-  let anon_field_of_typ typ = { mut = false; name = "tup"; typ = helper typ } in
+  let anon_field_of_typ typ = { mut = false; typ = helper typ } in
 
   match kind with
   | One_param a -> helper a
@@ -337,8 +337,7 @@ and get_lltype_field = function
 
 (* LLVM type of closure struct and records *)
 and typeof_aggregate agg =
-  Array.map (fun (_, typ) -> get_lltype_field typ) agg
-  |> Llvm.struct_type context
+  Array.map get_lltype_field agg |> Llvm.struct_type context
 
 and typeof_closure agg =
   Array.map
@@ -463,7 +462,7 @@ let to_named_typedefs = function
       let name = struct_name t in
       let t = Llvm.named_struct_type context name in
       let lltyp =
-        Array.map (fun (f : field) -> (f.name, f.typ)) labels
+        Array.map (fun (f : field) -> f.typ) labels
         |> typeof_aggregate |> Llvm.struct_element_types
       in
       Llvm.struct_set_body t lltyp false;
