@@ -1294,6 +1294,7 @@ and select_ctor env all_loc cases ret_typ =
       unify (loc, "Match expression does not match:") ret_typ ret.typ;
       ( { typ = ret.typ; expr = Let (name, expr, ret); is_const = ret.is_const },
         Exhaustive )
+  | (_, Some (Ptup _), _) :: _ -> failwith "TODO"
   | (loc, None, ret_expr) :: _ ->
       let ret, _ = convert_block env ret_expr in
       unify (loc, "Match expression does not match:") ret_typ ret.typ;
@@ -1313,6 +1314,7 @@ and match_cases case cases if_ else_ =
       (* TODO correctly handle this case *)
       print_endline "this strange case";
       match_cases case tl if_ else_
+  | (_, Some (Ptup _), _) :: _ -> failwith "TODO"
   | [] -> (List.rev if_, List.rev else_)
 
 and fill_matches env = function
@@ -1324,6 +1326,7 @@ and fill_matches env = function
         Map.add (snd name) (fill_matches env (loc, arg, expr)) Map.empty
       in
       Match.Partial (names, map)
+  | _, Some (Ptup _), _ -> failwith "TODO"
   | _, Some (Pvar _), _ -> Exhaustive
   | _, None, _ -> Exhaustive
 

@@ -174,8 +174,16 @@ expr:
   | pattern; Arrow_right; block { $loc($1), $1, $3 }
 
 %inline pattern:
+  | pattern_item { $1 }
+  | pattern_tuple { $1 }
+
+%inline pattern_item:
   | ctor; option(parens_single(pattern)) { Pctor($1, $2) }
   | Lowercase_id { Pvar($loc, $1) }
+
+%inline pattern_tuple:
+  | pattern_item; Comma; separated_nonempty_list(Comma, pattern_item) { Ptup($loc, $1 :: $3) }
+
 
 ident:
   | Lowercase_id { ($loc, $1) }

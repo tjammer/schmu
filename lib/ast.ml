@@ -54,7 +54,10 @@ and expr =
   | Ctor of loc * (loc * string) * expr option
   | Match of loc * expr * (loc * pattern * block) list
 
-and pattern = Pctor of (loc * string) * pattern option | Pvar of loc * string
+and pattern =
+  | Pctor of (loc * string) * pattern option
+  | Pvar of loc * string
+  | Ptup of loc * pattern list
 
 and literal =
   | Int of int

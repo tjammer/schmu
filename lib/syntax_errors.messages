@@ -2672,7 +2672,9 @@ prog: Match Uppercase_id With Begin Lowercase_id With
 ## Ends in an error in state: 220.
 ##
 ## nonempty_list(clause) -> Lowercase_id . Arrow_right block [ End ]
+## nonempty_list(clause) -> Lowercase_id . Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
 ## nonempty_list(clause) -> Lowercase_id . Arrow_right block nonempty_list(clause) [ End ]
+## nonempty_list(clause) -> Lowercase_id . Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block nonempty_list(clause) [ End ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lowercase_id
@@ -2680,28 +2682,240 @@ prog: Match Uppercase_id With Begin Lowercase_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Uppercase_id With Begin Lowercase_id Arrow_right With
+prog: Match Uppercase_id With Begin Lowercase_id Comma With
 ##
 ## Ends in an error in state: 221.
 ##
-## nonempty_list(clause) -> Lowercase_id Arrow_right . block [ End ]
-## nonempty_list(clause) -> Lowercase_id Arrow_right . block nonempty_list(clause) [ End ]
+## nonempty_list(clause) -> Lowercase_id Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
+## nonempty_list(clause) -> Lowercase_id Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block nonempty_list(clause) [ End ]
 ##
 ## The known suffix of the stack is as follows:
-## Lowercase_id Arrow_right
+## Lowercase_id Comma
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Uppercase_id With Begin Lowercase_id Arrow_right Uppercase_id With
+prog: Match Uppercase_id With Begin Lowercase_id Comma Lowercase_id With
 ##
 ## Ends in an error in state: 222.
 ##
-## nonempty_list(clause) -> Lowercase_id Arrow_right block . [ End ]
-## nonempty_list(clause) -> Lowercase_id Arrow_right block . nonempty_list(clause) [ End ]
+## separated_nonempty_list(Comma,pattern_item) -> Lowercase_id . [ Rpar Arrow_right ]
+## separated_nonempty_list(Comma,pattern_item) -> Lowercase_id . Comma separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
 ##
 ## The known suffix of the stack is as follows:
-## Lowercase_id Arrow_right block
+## Lowercase_id
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Lowercase_id Comma Lowercase_id Comma With
+##
+## Ends in an error in state: 223.
+##
+## separated_nonempty_list(Comma,pattern_item) -> Lowercase_id Comma . separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## Lowercase_id Comma
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id With
+##
+## Ends in an error in state: 225.
+##
+## separated_nonempty_list(Comma,pattern_item) -> ctor . option(parens_single(pattern)) [ Rpar Arrow_right ]
+## separated_nonempty_list(Comma,pattern_item) -> ctor . option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## ctor
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Lpar With
+##
+## Ends in an error in state: 226.
+##
+## parens_single(pattern) -> Lpar . ctor option(parens_single(pattern)) Rpar [ Rpar Comma Arrow_right ]
+## parens_single(pattern) -> Lpar . Lowercase_id Rpar [ Rpar Comma Arrow_right ]
+## parens_single(pattern) -> Lpar . ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
+## parens_single(pattern) -> Lpar . Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## Lpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id With
+##
+## Ends in an error in state: 227.
+##
+## parens_single(pattern) -> Lpar Lowercase_id . Rpar [ Rpar Comma Arrow_right ]
+## parens_single(pattern) -> Lpar Lowercase_id . Comma separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Lowercase_id
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id Comma With
+##
+## Ends in an error in state: 229.
+##
+## parens_single(pattern) -> Lpar Lowercase_id Comma . separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Lowercase_id Comma
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id Comma Uppercase_id Arrow_right
+##
+## Ends in an error in state: 230.
+##
+## parens_single(pattern) -> Lpar Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) . Rpar [ Rpar Comma Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Lowercase_id Comma separated_nonempty_list(Comma,pattern_item)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 225, spurious reduction of production option(parens_single(pattern)) ->
+## In state 239, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id With
+##
+## Ends in an error in state: 232.
+##
+## parens_single(pattern) -> Lpar ctor . option(parens_single(pattern)) Rpar [ Rpar Comma Arrow_right ]
+## parens_single(pattern) -> Lpar ctor . option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## Lpar ctor
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Lpar Uppercase_id Rpar With
+##
+## Ends in an error in state: 234.
+##
+## parens_single(pattern) -> Lpar ctor option(parens_single(pattern)) . Rpar [ Rpar Comma Arrow_right ]
+## parens_single(pattern) -> Lpar ctor option(parens_single(pattern)) . Comma separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## Lpar ctor option(parens_single(pattern))
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Comma With
+##
+## Ends in an error in state: 236.
+##
+## parens_single(pattern) -> Lpar ctor option(parens_single(pattern)) Comma . separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## Lpar ctor option(parens_single(pattern)) Comma
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Comma Uppercase_id Arrow_right
+##
+## Ends in an error in state: 237.
+##
+## parens_single(pattern) -> Lpar ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) . Rpar [ Rpar Comma Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## Lpar ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 225, spurious reduction of production option(parens_single(pattern)) ->
+## In state 239, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Lpar Uppercase_id Rpar With
+##
+## Ends in an error in state: 239.
+##
+## separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern)) . [ Rpar Arrow_right ]
+## separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern)) . Comma separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## ctor option(parens_single(pattern))
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Comma With
+##
+## Ends in an error in state: 240.
+##
+## separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern)) Comma . separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
+##
+## The known suffix of the stack is as follows:
+## ctor option(parens_single(pattern)) Comma
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Rpar
+##
+## Ends in an error in state: 242.
+##
+## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block [ End ]
+## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block nonempty_list(clause) [ End ]
+##
+## The known suffix of the stack is as follows:
+## Lowercase_id Comma separated_nonempty_list(Comma,pattern_item)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 225, spurious reduction of production option(parens_single(pattern)) ->
+## In state 239, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Arrow_right With
+##
+## Ends in an error in state: 243.
+##
+## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block [ End ]
+## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block nonempty_list(clause) [ End ]
+##
+## The known suffix of the stack is as follows:
+## Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Arrow_right Uppercase_id With
+##
+## Ends in an error in state: 244.
+##
+## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . [ End ]
+## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . nonempty_list(clause) [ End ]
+##
+## The known suffix of the stack is as follows:
+## Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block
 ##
 ## WARNING: This example involves spurious reductions.
 ## This implies that, although the LR(1) items shown above provide an
@@ -2716,10 +2930,12 @@ prog: Match Uppercase_id With Begin Lowercase_id Arrow_right Uppercase_id With
 
 prog: Match Uppercase_id With Begin Uppercase_id With
 ##
-## Ends in an error in state: 224.
+## Ends in an error in state: 246.
 ##
 ## nonempty_list(clause) -> ctor . option(parens_single(pattern)) Arrow_right block [ End ]
+## nonempty_list(clause) -> ctor . option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
 ## nonempty_list(clause) -> ctor . option(parens_single(pattern)) Arrow_right block nonempty_list(clause) [ End ]
+## nonempty_list(clause) -> ctor . option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block nonempty_list(clause) [ End ]
 ##
 ## The known suffix of the stack is as follows:
 ## ctor
@@ -2727,61 +2943,14 @@ prog: Match Uppercase_id With Begin Uppercase_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Uppercase_id With Begin Uppercase_id Lpar With
-##
-## Ends in an error in state: 225.
-##
-## parens_single(pattern) -> Lpar . ctor option(parens_single(pattern)) Rpar [ Rpar Arrow_right ]
-## parens_single(pattern) -> Lpar . Lowercase_id Rpar [ Rpar Arrow_right ]
-##
-## The known suffix of the stack is as follows:
-## Lpar
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id With
-##
-## Ends in an error in state: 226.
-##
-## parens_single(pattern) -> Lpar Lowercase_id . Rpar [ Rpar Arrow_right ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Lowercase_id
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id With
-##
-## Ends in an error in state: 228.
-##
-## parens_single(pattern) -> Lpar ctor . option(parens_single(pattern)) Rpar [ Rpar Arrow_right ]
-##
-## The known suffix of the stack is as follows:
-## Lpar ctor
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Lpar Uppercase_id Rpar With
-##
-## Ends in an error in state: 230.
-##
-## parens_single(pattern) -> Lpar ctor option(parens_single(pattern)) . Rpar [ Rpar Arrow_right ]
-##
-## The known suffix of the stack is as follows:
-## Lpar ctor option(parens_single(pattern))
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Rpar With
 ##
-## Ends in an error in state: 232.
+## Ends in an error in state: 247.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) . Arrow_right block [ End ]
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) . Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) . Arrow_right block nonempty_list(clause) [ End ]
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) . Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block nonempty_list(clause) [ End ]
 ##
 ## The known suffix of the stack is as follows:
 ## ctor option(parens_single(pattern))
@@ -2789,9 +2958,76 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Match Uppercase_id With Begin Uppercase_id Comma With
+##
+## Ends in an error in state: 248.
+##
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block nonempty_list(clause) [ End ]
+##
+## The known suffix of the stack is as follows:
+## ctor option(parens_single(pattern)) Comma
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Comma Uppercase_id Rpar
+##
+## Ends in an error in state: 249.
+##
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block [ End ]
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block nonempty_list(clause) [ End ]
+##
+## The known suffix of the stack is as follows:
+## ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 225, spurious reduction of production option(parens_single(pattern)) ->
+## In state 239, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Comma Uppercase_id Arrow_right With
+##
+## Ends in an error in state: 250.
+##
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block [ End ]
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block nonempty_list(clause) [ End ]
+##
+## The known suffix of the stack is as follows:
+## ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Uppercase_id Comma Uppercase_id Arrow_right Uppercase_id With
+##
+## Ends in an error in state: 251.
+##
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . [ End ]
+## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . nonempty_list(clause) [ End ]
+##
+## The known suffix of the stack is as follows:
+## ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 127, spurious reduction of production option(parens_single(expr)) ->
+## In state 169, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 182, spurious reduction of production block -> expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Match Uppercase_id With Begin Uppercase_id Arrow_right With
 ##
-## Ends in an error in state: 233.
+## Ends in an error in state: 253.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Arrow_right . block [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Arrow_right . block nonempty_list(clause) [ End ]
@@ -2804,7 +3040,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Arrow_right With
 
 prog: Match Uppercase_id With Begin Uppercase_id Arrow_right Uppercase_id With
 ##
-## Ends in an error in state: 234.
+## Ends in an error in state: 254.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Arrow_right block . [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Arrow_right block . nonempty_list(clause) [ End ]
@@ -2823,9 +3059,43 @@ prog: Match Uppercase_id With Begin Uppercase_id Arrow_right Uppercase_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Match Uppercase_id With Begin Lowercase_id Arrow_right With
+##
+## Ends in an error in state: 256.
+##
+## nonempty_list(clause) -> Lowercase_id Arrow_right . block [ End ]
+## nonempty_list(clause) -> Lowercase_id Arrow_right . block nonempty_list(clause) [ End ]
+##
+## The known suffix of the stack is as follows:
+## Lowercase_id Arrow_right
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Uppercase_id With Begin Lowercase_id Arrow_right Uppercase_id With
+##
+## Ends in an error in state: 257.
+##
+## nonempty_list(clause) -> Lowercase_id Arrow_right block . [ End ]
+## nonempty_list(clause) -> Lowercase_id Arrow_right block . nonempty_list(clause) [ End ]
+##
+## The known suffix of the stack is as follows:
+## Lowercase_id Arrow_right block
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 127, spurious reduction of production option(parens_single(expr)) ->
+## In state 169, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 182, spurious reduction of production block -> expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Minus_f False Wildcard
 ##
-## Ends in an error in state: 238.
+## Ends in an error in state: 261.
 ##
 ## expr -> expr . Plus_i expr [ With Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
@@ -2858,7 +3128,7 @@ prog: Minus_f False Wildcard
 
 prog: Minus_i False Wildcard
 ##
-## Ends in an error in state: 239.
+## Ends in an error in state: 262.
 ##
 ## expr -> expr . Plus_i expr [ With Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
@@ -2891,7 +3161,7 @@ prog: Minus_i False Wildcard
 
 prog: External With
 ##
-## Ends in an error in state: 240.
+## Ends in an error in state: 263.
 ##
 ## top_item -> External . ident Colon build_type_list Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External . ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -2905,7 +3175,7 @@ Functions must have lowercase names. Use the following form: 'external schmu_nam
 
 prog: External Lowercase_id With
 ##
-## Ends in an error in state: 241.
+## Ends in an error in state: 264.
 ##
 ## top_item -> External ident . Colon build_type_list Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External ident . Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -2919,7 +3189,7 @@ prog: External Lowercase_id With
 
 prog: External Lowercase_id Colon With
 ##
-## Ends in an error in state: 242.
+## Ends in an error in state: 265.
 ##
 ## top_item -> External ident Colon . build_type_list Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External ident Colon . Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -2933,7 +3203,7 @@ prog: External Lowercase_id Colon With
 
 prog: External Lowercase_id Colon Lpar With
 ##
-## Ends in an error in state: 243.
+## Ends in an error in state: 266.
 ##
 ## top_item -> External ident Colon Lpar . separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2945,7 +3215,7 @@ prog: External Lowercase_id Colon Lpar With
 
 prog: External Lowercase_id Colon Lpar Lowercase_id Rpar With
 ##
-## Ends in an error in state: 245.
+## Ends in an error in state: 268.
 ##
 ## top_item -> External ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar . Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2957,7 +3227,7 @@ prog: External Lowercase_id Colon Lpar Lowercase_id Rpar With
 
 prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right With
 ##
-## Ends in an error in state: 246.
+## Ends in an error in state: 269.
 ##
 ## top_item -> External ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right . build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2969,7 +3239,7 @@ prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right With
 
 prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Lowercase_id Rpar
 ##
-## Ends in an error in state: 247.
+## Ends in an error in state: 270.
 ##
 ## top_item -> External ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list . option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2987,7 +3257,7 @@ prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Lowercase_i
 
 prog: External Lowercase_id Colon Lowercase_id Equal With
 ##
-## Ends in an error in state: 248.
+## Ends in an error in state: 271.
 ##
 ## option(external_cname) -> Equal . String_lit [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -2999,7 +3269,7 @@ prog: External Lowercase_id Colon Lowercase_id Equal With
 
 prog: External Lowercase_id Colon Lowercase_id Rpar
 ##
-## Ends in an error in state: 251.
+## Ends in an error in state: 274.
 ##
 ## top_item -> External ident Colon build_type_list . Arrow_right build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External ident Colon build_type_list . option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3018,7 +3288,7 @@ prog: External Lowercase_id Colon Lowercase_id Rpar
 
 prog: External Lowercase_id Colon Lowercase_id Arrow_right With
 ##
-## Ends in an error in state: 252.
+## Ends in an error in state: 275.
 ##
 ## top_item -> External ident Colon build_type_list Arrow_right . build_type_list option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3030,7 +3300,7 @@ prog: External Lowercase_id Colon Lowercase_id Arrow_right With
 
 prog: External Lowercase_id Colon Lowercase_id Arrow_right Lowercase_id Rpar
 ##
-## Ends in an error in state: 253.
+## Ends in an error in state: 276.
 ##
 ## top_item -> External ident Colon build_type_list Arrow_right build_type_list . option(external_cname) [ Uppercase_id U8 Type True String_lit Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3048,7 +3318,7 @@ prog: External Lowercase_id Colon Lowercase_id Arrow_right Lowercase_id Rpar
 
 prog: Lowercase_id End
 ##
-## Ends in an error in state: 256.
+## Ends in an error in state: 279.
 ##
 ## list(top_item) -> top_item . list(top_item) [ Eof ]
 ##
@@ -3062,7 +3332,7 @@ prog: Lowercase_id End
 ## In state 174, spurious reduction of production expr -> Lowercase_id
 ## In state 190, spurious reduction of production stmt -> expr
 ## In state 184, spurious reduction of production nonempty_list(stmt) -> stmt
-## In state 257, spurious reduction of production top_item -> nonempty_list(stmt)
+## In state 280, spurious reduction of production top_item -> nonempty_list(stmt)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
