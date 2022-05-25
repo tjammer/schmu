@@ -481,604 +481,638 @@ let rec param_funcs_as_closures = function
 
 let convert_simple_lit typ expr = { typ; expr = Const expr; is_const = true }
 
-let rec convert env expr = convert_annot env None expr
+module rec Core : sig
+  val convert : Env.t -> Ast.expr -> typed_expr
+  val convert_var : Env.t -> Ast.loc -> string -> typed_expr
+  val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
+end = struct
+  open Patternmatch
 
-and convert_annot env annot = function
-  | Ast.Var (loc, id) -> convert_var env loc id
-  | Lit (_, Int i) -> convert_simple_lit Tint (Int i)
-  | Lit (_, Bool b) -> convert_simple_lit Tbool (Bool b)
-  | Lit (_, U8 c) -> convert_simple_lit Tu8 (U8 c)
-  | Lit (_, Float f) -> convert_simple_lit Tfloat (Float f)
-  | Lit (_, I32 i) -> convert_simple_lit Ti32 (I32 i)
-  | Lit (_, F32 i) -> convert_simple_lit Tf32 (F32 i)
-  | Lit (loc, String s) ->
-      let typ = get_prelude env loc "string" in
-      (* TODO is const, but handled differently right now *)
-      { typ; expr = Const (String s); is_const = false }
-  | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
-  | Lit (_, Unit) -> { typ = Tunit; expr = Const Unit; is_const = true }
-  | Lambda (loc, id, e) -> convert_lambda env loc id e
-  | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
-  | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
-  | Unop (loc, unop, expr) -> convert_unop env loc unop expr
-  | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
-  | Record (loc, labels) -> convert_record env loc annot labels
-  | Field (loc, expr, id) -> convert_field env loc expr id
-  | Field_set (loc, expr, id, value) -> convert_field_set env loc expr id value
-  | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
-  | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
-  | Ctor (loc, name, args) -> convert_ctor env loc name args annot
-  | Match (loc, expr, cases) -> convert_match env loc expr cases
+  let rec convert env expr = convert_annot env None expr
 
-and convert_var env loc id =
-  match Env.query_val_opt id env with
-  | Some t ->
-      let typ = instantiate t.typ in
-      { typ; expr = Var id; is_const = t.is_const }
-  | None -> raise (Error (loc, "No var named " ^ id))
+  and convert_annot env annot = function
+    | Ast.Var (loc, id) -> convert_var env loc id
+    | Lit (_, Int i) -> convert_simple_lit Tint (Int i)
+    | Lit (_, Bool b) -> convert_simple_lit Tbool (Bool b)
+    | Lit (_, U8 c) -> convert_simple_lit Tu8 (U8 c)
+    | Lit (_, Float f) -> convert_simple_lit Tfloat (Float f)
+    | Lit (_, I32 i) -> convert_simple_lit Ti32 (I32 i)
+    | Lit (_, F32 i) -> convert_simple_lit Tf32 (F32 i)
+    | Lit (loc, String s) ->
+        let typ = get_prelude env loc "string" in
+        (* TODO is const, but handled differently right now *)
+        { typ; expr = Const (String s); is_const = false }
+    | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
+    | Lit (_, Unit) -> { typ = Tunit; expr = Const Unit; is_const = true }
+    | Lambda (loc, id, e) -> convert_lambda env loc id e
+    | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
+    | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
+    | Unop (loc, unop, expr) -> convert_unop env loc unop expr
+    | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
+    | Record (loc, labels) -> convert_record env loc annot labels
+    | Field (loc, expr, id) -> convert_field env loc expr id
+    | Field_set (loc, expr, id, value) ->
+        convert_field_set env loc expr id value
+    | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
+    | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
+    | Ctor (loc, name, args) -> convert_ctor env loc name args annot
+    | Match (loc, expr, cases) -> convert_match env loc expr cases
 
-and convert_vector_lit env loc vec =
-  let f typ expr =
-    let expr = convert env expr in
-    unify (loc, "In vector literal:") typ expr.typ;
-    (typ, expr)
-  in
-  let typ, exprs = List.fold_left_map f (newvar ()) vec in
+  and convert_var env loc id =
+    match Env.query_val_opt id env with
+    | Some t ->
+        let typ = instantiate t.typ in
+        { typ; expr = Var id; is_const = t.is_const }
+    | None -> raise (Error (loc, "No var named " ^ id))
 
-  let vector = get_prelude env loc "vector" in
-  let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
-  Env.maybe_add_type_instance (string_of_type typ) typ env;
-  { typ; expr = Const (Vector exprs); is_const = false }
+  and convert_vector_lit env loc vec =
+    let f typ expr =
+      let expr = convert env expr in
+      unify (loc, "In vector literal:") typ expr.typ;
+      (typ, expr)
+    in
+    let typ, exprs = List.fold_left_map f (newvar ()) vec in
 
-and typeof_annot_decl env loc annot block =
-  enter_level ();
-  match annot with
-  | None ->
-      let t = convert_block env block |> fst in
-      leave_level ();
-      (* We generalize functions, but allow weak variables for value types *)
-      let typ =
-        match clean t.typ with Tfun _ -> generalize t.typ | _ -> t.typ
-      in
-      { t with typ }
-  | Some annot ->
-      let t_annot = typeof_annot env loc annot in
-      let t = convert_block_annot ~ret:true env (Some t_annot) block |> fst in
-      leave_level ();
-      (* TODO 'In let binding' *)
-      check_annot loc t.typ t_annot;
-      { t with typ = t_annot }
+    let vector = get_prelude env loc "vector" in
+    let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
+    Env.maybe_add_type_instance (string_of_type typ) typ env;
+    { typ; expr = Const (Vector exprs); is_const = false }
 
-and convert_let env loc (_, (idloc, id), type_annot) block =
-  let e1 = typeof_annot_decl env loc type_annot block in
-  (Env.add_value id e1.typ ~is_const:e1.is_const idloc env, e1)
-
-and convert_lambda env loc params body =
-  let env = Env.open_function env in
-  enter_level ();
-  let env, params_t, qparams, ret_annot = handle_params env loc params None in
-
-  let body = convert_block env body |> fst in
-  leave_level ();
-  let _, closed_vars, unused = Env.close_function env in
-  let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-  dont_allow_closure_return loc body.typ;
-  check_unused unused;
-
-  (* For codegen: Mark functions in parameters closures *)
-  let params_t = List.map param_funcs_as_closures params_t in
-
-  let typ = Tfun (params_t, body.typ, kind) in
-  match typ with
-  | Tfun (tparams, ret, kind) ->
-      let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = Tfun (qparams, ret, kind) in
-      check_annot loc typ qtyp;
-
-      let nparams = List.map (fun (_, name, _) -> snd name) params in
-      let tp = { tparams; ret; kind } in
-      let abs = { nparams; body = { body with typ = ret }; tp } in
-      let expr = Lambda (lambda_id (), abs) in
-      { typ; expr; is_const = false }
-  | _ -> failwith "Internal Error: generalize produces a new type?"
-
-and convert_function env loc
-    Ast.{ name = nameloc, name; params; return_annot; body } =
-  (* Create a fresh type var for the function name
-     and use it in the function body *)
-  let unique = next_func name func_tbl in
-
-  enter_level ();
-  let env =
-    (* Recursion allowed for named funcs *)
-    Env.add_value name (newvar ()) nameloc env
-  in
-
-  (* We duplicate some lambda code due to naming *)
-  let env = Env.open_function env in
-  let body_env, params_t, qparams, ret_annot =
-    handle_params env loc params return_annot
-  in
-
-  let body = convert_block body_env body |> fst in
-  leave_level ();
-
-  let env, closed_vars, unused = Env.close_function env in
-
-  let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-  dont_allow_closure_return loc body.typ;
-  check_unused unused;
-
-  (* For codegen: Mark functions in parameters closures *)
-  let params_t = List.map param_funcs_as_closures params_t in
-
-  let typ = Tfun (params_t, body.typ, kind) |> generalize in
-
-  match typ with
-  | Tfun (tparams, ret, kind) ->
-      (* Make sure the types match *)
-      unify (loc, "Function") (Env.find_val name env).typ typ;
-
-      (* Add the generalized type to the env to keep the closure there *)
-      let env = Env.change_type name typ env in
-
-      let ret = match ret_annot with Some ret -> ret | None -> ret in
-      let qtyp = Tfun (qparams, ret, kind) |> generalize in
-      check_annot loc typ qtyp;
-
-      let nparams = List.map (fun (_, name, _) -> snd name) params in
-      let tp = { tparams; ret; kind } in
-      let lambda = { nparams; body = { body with typ = ret }; tp } in
-
-      (env, (name, unique, lambda))
-  | _ -> failwith "Internal Error: generalize produces a new type?"
-
-and convert_app ~switch_uni env loc e1 args =
-  let callee = convert env e1 in
-
-  let typed_exprs = List.map (convert env) args in
-  let args_t = List.map (fun a -> a.typ) typed_exprs in
-  let res_t = newvar () in
-  if switch_uni then
-    unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ
-  else unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple));
-
-  let apply typ texpr = { texpr with typ } in
-  let targs = List.map2 apply args_t typed_exprs in
-
-  (* For now, we don't support const functions *)
-  { typ = res_t; expr = App { callee; args = targs }; is_const = false }
-
-and convert_bop env loc bop e1 e2 =
-  let check typ =
-    let t1 = convert env e1 in
-    let t2 = convert env e2 in
-
-    unify (loc, "Binary " ^ string_of_bop bop) typ t1.typ;
-    unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ;
-    (t1, t2, t1.is_const && t2.is_const)
-  in
-
-  let typ, (t1, t2, is_const) =
-    match bop with
-    | Ast.Plus_i | Mult_i | Minus_i | Div_i -> (Tint, check Tint)
-    | Less_i | Equal_i | Greater_i -> (Tbool, check Tint)
-    | Plus_f | Mult_f | Minus_f | Div_f -> (Tfloat, check Tfloat)
-    | Less_f | Equal_f | Greater_f -> (Tbool, check Tfloat)
-    | And | Or -> (Tbool, check Tbool)
-  in
-  { typ; expr = Bop (bop, t1, t2); is_const }
-
-and convert_unop env loc unop expr =
-  match unop with
-  | Uminus_f ->
-      let e = convert env expr in
-      unify (loc, "Unary -.:") Tfloat e.typ;
-      { typ = Tfloat; expr = Unop (unop, e); is_const = e.is_const }
-  | Uminus_i -> (
-      let e = convert env expr in
-      let msg = "Unary -:" in
-      let expr = Unop (unop, e) in
-
-      try
-        (* We allow '-' to also work on float expressions *)
-        unify (loc, msg) Tfloat e.typ;
-        { typ = Tfloat; expr; is_const = e.is_const }
-      with Error _ -> (
-        try
-          unify (loc, msg) Tint e.typ;
-          { typ = Tint; expr; is_const = e.is_const }
-        with Error (loc, errmsg) ->
-          let pos = String.length msg + String.length ": Expected type int" in
-          let post = String.sub errmsg pos (String.length errmsg - pos) in
-          raise (Error (loc, "Unary -: Expected types int or float " ^ post))))
-
-and convert_if env loc cond e1 e2 =
-  (* We can assume pred evaluates to bool and both
-     branches need to evaluate to the some type *)
-  let type_cond = convert env cond in
-  unify (loc, "In condition") type_cond.typ Tbool;
-  let type_e1 = convert_block env e1 |> fst in
-  let type_e2 =
-    (* We unify in the pattern match to have different messages and unification order *)
-    match e2 with
-    | Some e2 ->
-        let msg = "Branches have different type:" in
-        let e2 = convert_block env e2 |> fst in
-        unify (loc, msg) type_e1.typ e2.typ;
-        e2
+  and typeof_annot_decl env loc annot block =
+    enter_level ();
+    match annot with
     | None ->
-        let msg =
-          "A conditional without else branch should evaluato to type unit."
+        let t = convert_block env block |> fst in
+        leave_level ();
+        (* We generalize functions, but allow weak variables for value types *)
+        let typ =
+          match clean t.typ with Tfun _ -> generalize t.typ | _ -> t.typ
         in
-        let e2 = { typ = Tunit; expr = Const Unit; is_const = true } in
-        unify (loc, msg) e2.typ type_e1.typ;
-        e2
-  in
+        { t with typ }
+    | Some annot ->
+        let t_annot = typeof_annot env loc annot in
+        let t = convert_block_annot ~ret:true env (Some t_annot) block |> fst in
+        leave_level ();
+        (* TODO 'In let binding' *)
+        check_annot loc t.typ t_annot;
+        { t with typ = t_annot }
 
-  (* We don't support polymorphic lambdas in if-exprs in the monomorph backend yet *)
-  (match type_e2.typ with
-  | Tfun (_, _, _) as t when is_type_polymorphic t ->
-      raise
-        (Error
-           ( loc,
-             "Returning polymorphic anonymous function in if expressions is \
-              not supported (yet). Sorry. You can type the function concretely \
-              though." ))
-  | _ -> ());
+  and convert_let env loc (_, (idloc, id), type_annot) block =
+    let e1 = typeof_annot_decl env loc type_annot block in
+    (Env.add_value id e1.typ ~is_const:e1.is_const idloc env, e1)
 
-  (* Would be interesting to evaluate this at compile time,
-     but I think it's not that important right now *)
-  {
-    typ = type_e2.typ;
-    expr = If (type_cond, type_e1, type_e2);
-    is_const = false;
-  }
+  and convert_lambda env loc params body =
+    let env = Env.open_function env in
+    enter_level ();
+    let env, params_t, qparams, ret_annot = handle_params env loc params None in
 
-and convert_record env loc annot labels =
-  let raise_ msg lname rname =
-    let msg = Printf.sprintf "%s field %s on record %s" msg lname rname in
-    raise (Error (loc, msg))
-  in
+    let body = convert_block env body |> fst in
+    leave_level ();
+    let _, closed_vars, unused = Env.close_function env in
+    let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
+    dont_allow_closure_return loc body.typ;
+    check_unused unused;
 
-  let t = get_record_type env loc labels annot in
+    (* For codegen: Mark functions in parameters closures *)
+    let params_t = List.map param_funcs_as_closures params_t in
 
-  let (param, name, labels), labels_expr =
-    match t with
-    | Trecord (param, name, ls) ->
-        let f (lname, expr) =
-          let typ, expr =
-            match array_assoc_opt lname ls with
-            | None -> raise_ "Unbound" lname name
-            | Some (Tvar { contents = Unbound _ } as typ) ->
-                (* If the variable is generic, we figure the type out normally
-                   and then unify for the later fields *)
-                (typ, convert_annot env None expr)
-            | Some (Tvar { contents = Link typ })
-            | Some (Talias (_, typ))
-            | Some typ ->
-                (typ, convert_annot env (Some typ) expr)
-          in
-          unify (loc, "In record expression:") typ expr.typ;
-          (lname, expr)
-        in
-        let labels_expr = List.map f labels in
-        ((param, name, ls), labels_expr)
-    | t ->
-        let msg = "Expected a record type, not " ^ string_of_type t in
-        raise (Error (loc, msg))
-  in
+    let typ = Tfun (params_t, body.typ, kind) in
+    match typ with
+    | Tfun (tparams, ret, kind) ->
+        let ret = match ret_annot with Some ret -> ret | None -> ret in
+        let qtyp = Tfun (qparams, ret, kind) in
+        check_annot loc typ qtyp;
 
-  (* We sort the labels to appear in the defined order *)
-  let is_const, sorted_labels =
-    List.fold_left_map
-      (fun is_const field ->
-        let expr =
-          match List.assoc_opt field.name labels_expr with
-          | Some thing -> thing
-          | None -> raise_ "Missing" field.name name
-        in
-        (* Records with mutable fields cannot be const *)
-        (is_const && (not field.mut) && expr.is_const, (field.name, expr)))
-      true (labels |> Array.to_list)
-  in
-  let typ = Trecord (param, name, labels) |> generalize in
-  Env.maybe_add_type_instance (string_of_type typ) typ env;
-  { typ; expr = Record sorted_labels; is_const }
+        let nparams = List.map (fun (_, name, _) -> snd name) params in
+        let tp = { tparams; ret; kind } in
+        let abs = { nparams; body = { body with typ = ret }; tp } in
+        let expr = Lambda (lambda_id (), abs) in
+        { typ; expr; is_const = false }
+    | _ -> failwith "Internal Error: generalize produces a new type?"
 
-and get_field env loc expr id =
-  let expr = convert env expr in
-  match clean expr.typ with
-  | Trecord (_, name, labels) -> (
-      match assoc_opti id labels with
-      | Some (index, field) -> (field, expr, index)
+  and convert_function env loc
+      Ast.{ name = nameloc, name; params; return_annot; body } =
+    (* Create a fresh type var for the function name
+       and use it in the function body *)
+    let unique = next_func name func_tbl in
+
+    enter_level ();
+    let env =
+      (* Recursion allowed for named funcs *)
+      Env.add_value name (newvar ()) nameloc env
+    in
+
+    (* We duplicate some lambda code due to naming *)
+    let env = Env.open_function env in
+    let body_env, params_t, qparams, ret_annot =
+      handle_params env loc params return_annot
+    in
+
+    let body = convert_block body_env body |> fst in
+    leave_level ();
+
+    let env, closed_vars, unused = Env.close_function env in
+
+    let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
+    dont_allow_closure_return loc body.typ;
+    check_unused unused;
+
+    (* For codegen: Mark functions in parameters closures *)
+    let params_t = List.map param_funcs_as_closures params_t in
+
+    let typ = Tfun (params_t, body.typ, kind) |> generalize in
+
+    match typ with
+    | Tfun (tparams, ret, kind) ->
+        (* Make sure the types match *)
+        unify (loc, "Function") (Env.find_val name env).typ typ;
+
+        (* Add the generalized type to the env to keep the closure there *)
+        let env = Env.change_type name typ env in
+
+        let ret = match ret_annot with Some ret -> ret | None -> ret in
+        let qtyp = Tfun (qparams, ret, kind) |> generalize in
+        check_annot loc typ qtyp;
+
+        let nparams = List.map (fun (_, name, _) -> snd name) params in
+        let tp = { tparams; ret; kind } in
+        let lambda = { nparams; body = { body with typ = ret }; tp } in
+
+        (env, (name, unique, lambda))
+    | _ -> failwith "Internal Error: generalize produces a new type?"
+
+  and convert_app ~switch_uni env loc e1 args =
+    let callee = convert env e1 in
+
+    let typed_exprs = List.map (convert env) args in
+    let args_t = List.map (fun a -> a.typ) typed_exprs in
+    let res_t = newvar () in
+    if switch_uni then
+      unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ
+    else unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple));
+
+    let apply typ texpr = { texpr with typ } in
+    let targs = List.map2 apply args_t typed_exprs in
+
+    (* For now, we don't support const functions *)
+    { typ = res_t; expr = App { callee; args = targs }; is_const = false }
+
+  and convert_bop env loc bop e1 e2 =
+    let check typ =
+      let t1 = convert env e1 in
+      let t2 = convert env e2 in
+
+      unify (loc, "Binary " ^ string_of_bop bop) typ t1.typ;
+      unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ;
+      (t1, t2, t1.is_const && t2.is_const)
+    in
+
+    let typ, (t1, t2, is_const) =
+      match bop with
+      | Ast.Plus_i | Mult_i | Minus_i | Div_i -> (Tint, check Tint)
+      | Less_i | Equal_i | Greater_i -> (Tbool, check Tint)
+      | Plus_f | Mult_f | Minus_f | Div_f -> (Tfloat, check Tfloat)
+      | Less_f | Equal_f | Greater_f -> (Tbool, check Tfloat)
+      | And | Or -> (Tbool, check Tbool)
+    in
+    { typ; expr = Bop (bop, t1, t2); is_const }
+
+  and convert_unop env loc unop expr =
+    match unop with
+    | Uminus_f ->
+        let e = convert env expr in
+        unify (loc, "Unary -.:") Tfloat e.typ;
+        { typ = Tfloat; expr = Unop (unop, e); is_const = e.is_const }
+    | Uminus_i -> (
+        let e = convert env expr in
+        let msg = "Unary -:" in
+        let expr = Unop (unop, e) in
+
+        try
+          (* We allow '-' to also work on float expressions *)
+          unify (loc, msg) Tfloat e.typ;
+          { typ = Tfloat; expr; is_const = e.is_const }
+        with Error _ -> (
+          try
+            unify (loc, msg) Tint e.typ;
+            { typ = Tint; expr; is_const = e.is_const }
+          with Error (loc, errmsg) ->
+            let pos = String.length msg + String.length ": Expected type int" in
+            let post = String.sub errmsg pos (String.length errmsg - pos) in
+            raise (Error (loc, "Unary -: Expected types int or float " ^ post)))
+        )
+
+  and convert_if env loc cond e1 e2 =
+    (* We can assume pred evaluates to bool and both
+       branches need to evaluate to the some type *)
+    let type_cond = convert env cond in
+    unify (loc, "In condition") type_cond.typ Tbool;
+    let type_e1 = convert_block env e1 |> fst in
+    let type_e2 =
+      (* We unify in the pattern match to have different messages and unification order *)
+      match e2 with
+      | Some e2 ->
+          let msg = "Branches have different type:" in
+          let e2 = convert_block env e2 |> fst in
+          unify (loc, msg) type_e1.typ e2.typ;
+          e2
       | None ->
-          raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
-  | t -> (
-      match Env.find_label_opt id env with
-      | Some { index; typename } -> (
-          let record_t = Env.find_type typename env |> instantiate in
-          unify
-            (loc, "Field access of record " ^ string_of_type record_t ^ ":")
-            record_t t;
-          match record_t with
-          | Trecord (_, _, labels) -> (labels.(index), expr, index)
-          | _ -> failwith "nope")
-      | None -> raise (Error (loc, "Unbound field " ^ id)))
+          let msg =
+            "A conditional without else branch should evaluato to type unit."
+          in
+          let e2 = { typ = Tunit; expr = Const Unit; is_const = true } in
+          unify (loc, msg) e2.typ type_e1.typ;
+          e2
+    in
 
-and convert_field env loc expr id =
-  let field, expr, index = get_field env loc expr id in
-  { typ = field.typ; expr = Field (expr, index); is_const = expr.is_const }
+    (* We don't support polymorphic lambdas in if-exprs in the monomorph backend yet *)
+    (match type_e2.typ with
+    | Tfun (_, _, _) as t when is_type_polymorphic t ->
+        raise
+          (Error
+             ( loc,
+               "Returning polymorphic anonymous function in if expressions is \
+                not supported (yet). Sorry. You can type the function \
+                concretely though." ))
+    | _ -> ());
 
-and convert_field_set env loc expr id value =
-  let field, expr, index = get_field env loc expr id in
-  let valexpr = convert env value in
+    (* Would be interesting to evaluate this at compile time,
+       but I think it's not that important right now *)
+    {
+      typ = type_e2.typ;
+      expr = If (type_cond, type_e1, type_e2);
+      is_const = false;
+    }
 
-  (if not field.mut then
-   let msg = Printf.sprintf "Cannot mutate non-mutable field %s" field.name in
-   raise (Error (loc, msg)));
-  unify (loc, "Mutate field " ^ field.name ^ ":") field.typ valexpr.typ;
-  { typ = Tunit; expr = Field_set (expr, index, valexpr); is_const = false }
+  and convert_record env loc annot labels =
+    let raise_ msg lname rname =
+      let msg = Printf.sprintf "%s field %s on record %s" msg lname rname in
+      raise (Error (loc, msg))
+    in
 
-and convert_pipe_head env loc e1 e2 =
-  let switch_uni = true in
-  match e2 with
-  | App (_, callee, args) ->
-      (* Add e1 to beginnig of args *)
-      convert_app ~switch_uni env loc callee (e1 :: args)
-  | _ ->
-      (* Should be a lone id, if not we let it fail in _app *)
-      convert_app ~switch_uni env loc e2 [ e1 ]
+    let t = get_record_type env loc labels annot in
 
-and convert_pipe_tail env loc e1 e2 =
-  let switch_uni = true in
-  match e2 with
-  | App (_, callee, args) ->
-      (* Add e1 to beginnig of args *)
-      convert_app ~switch_uni env loc callee (args @ [ e1 ])
-  | _ ->
-      (* Should be a lone id, if not we let it fail in _app *)
-      convert_app ~switch_uni env loc e2 [ e1 ]
+    let (param, name, labels), labels_expr =
+      match t with
+      | Trecord (param, name, ls) ->
+          let f (lname, expr) =
+            let typ, expr =
+              match array_assoc_opt lname ls with
+              | None -> raise_ "Unbound" lname name
+              | Some (Tvar { contents = Unbound _ } as typ) ->
+                  (* If the variable is generic, we figure the type out normally
+                     and then unify for the later fields *)
+                  (typ, convert_annot env None expr)
+              | Some (Tvar { contents = Link typ })
+              | Some (Talias (_, typ))
+              | Some typ ->
+                  (typ, convert_annot env (Some typ) expr)
+            in
+            unify (loc, "In record expression:") typ expr.typ;
+            (lname, expr)
+          in
+          let labels_expr = List.map f labels in
+          ((param, name, ls), labels_expr)
+      | t ->
+          let msg = "Expected a record type, not " ^ string_of_type t in
+          raise (Error (loc, msg))
+    in
 
-and convert_ctor env loc name arg annot =
-  let Env.{ index; typename }, ctor, variant = get_variant env loc name annot in
-  match (ctor.ctortyp, arg) with
-  | Some typ, Some expr ->
-      let texpr = convert env expr in
-      unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
-      let expr = Ctor (typename, index, Some texpr) in
+    (* We sort the labels to appear in the defined order *)
+    let is_const, sorted_labels =
+      List.fold_left_map
+        (fun is_const field ->
+          let expr =
+            match List.assoc_opt field.name labels_expr with
+            | Some thing -> thing
+            | None -> raise_ "Missing" field.name name
+          in
+          (* Records with mutable fields cannot be const *)
+          (is_const && (not field.mut) && expr.is_const, (field.name, expr)))
+        true (labels |> Array.to_list)
+    in
+    let typ = Trecord (param, name, labels) |> generalize in
+    Env.maybe_add_type_instance (string_of_type typ) typ env;
+    { typ; expr = Record sorted_labels; is_const }
 
-      Env.maybe_add_type_instance (string_of_type variant) variant env;
-      { typ = variant; expr; is_const = false }
-  | None, None ->
-      let expr = Ctor (typename, index, None) in
-      (* NOTE: Const handling for ctors is disabled, see #23 *)
-      { typ = variant; expr; is_const = true }
-  | None, Some _ ->
-      let msg =
-        Printf.sprintf
-          "The constructor %s expects 0 arguments, but an argument is provided"
-          (snd name)
-      in
-      raise (Error (fst name, msg))
-  | Some _, None ->
-      let msg =
-        Printf.sprintf
-          "The constructor %s expects arguments, but none are provided"
-          (snd name)
-      in
-      raise (Error (fst name, msg))
+  and get_field env loc expr id =
+    let expr = convert env expr in
+    match clean expr.typ with
+    | Trecord (_, name, labels) -> (
+        match assoc_opti id labels with
+        | Some (index, field) -> (field, expr, index)
+        | None ->
+            raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
+    | t -> (
+        match Env.find_label_opt id env with
+        | Some { index; typename } -> (
+            let record_t = Env.find_type typename env |> instantiate in
+            unify
+              (loc, "Field access of record " ^ string_of_type record_t ^ ":")
+              record_t t;
+            match record_t with
+            | Trecord (_, _, labels) -> (labels.(index), expr, index)
+            | _ -> failwith "nope")
+        | None -> raise (Error (loc, "Unbound field " ^ id)))
 
-and convert_match env loc expr cases =
-  (* Magical identifier to read pattern expr.
-     There must be a better solution, but my brain doesn't seem to work *)
-  let expr_name = "__expr" in
+  and convert_field env loc expr id =
+    let field, expr, index = get_field env loc expr id in
+    { typ = field.typ; expr = Field (expr, index); is_const = expr.is_const }
 
-  let expr = convert env expr in
-  (* Make the expr available in the patternmatch *)
-  let env = Env.add_value expr_name expr.typ loc env in
+  and convert_field_set env loc expr id value =
+    let field, expr, index = get_field env loc expr id in
+    let valexpr = convert env value in
 
-  (* TODO Should we enter a level here? *)
-  let ret = newvar () in
+    (if not field.mut then
+     let msg = Printf.sprintf "Cannot mutate non-mutable field %s" field.name in
+     raise (Error (loc, msg)));
+    unify (loc, "Mutate field " ^ field.name ^ ":") field.typ valexpr.typ;
+    { typ = Tunit; expr = Field_set (expr, index, valexpr); is_const = false }
 
-  let some_cases = List.map (fun (loc, p, expr) -> (loc, Some p, expr)) cases in
-  let matchexpr, mtch = select_ctor env loc some_cases ret in
+  and convert_pipe_head env loc e1 e2 =
+    let switch_uni = true in
+    match e2 with
+    | App (_, callee, args) ->
+        (* Add e1 to beginnig of args *)
+        convert_app ~switch_uni env loc callee (e1 :: args)
+    | _ ->
+        (* Should be a lone id, if not we let it fail in _app *)
+        convert_app ~switch_uni env loc e2 [ e1 ]
 
-  (* Check for exhaustiveness *)
-  (match Match.is_exhaustive mtch with
-  | Ok () -> ()
-  | Error cases ->
-      let cases = String.concat ", " (List.map Match.cases_to_string cases) in
-      let msg =
-        Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
-          cases
-      in
-      raise (Error (loc, msg)));
+  and convert_pipe_tail env loc e1 e2 =
+    let switch_uni = true in
+    match e2 with
+    | App (_, callee, args) ->
+        (* Add e1 to beginnig of args *)
+        convert_app ~switch_uni env loc callee (args @ [ e1 ])
+    | _ ->
+        (* Should be a lone id, if not we let it fail in _app *)
+        convert_app ~switch_uni env loc e2 [ e1 ]
 
-  { matchexpr with expr = Let (expr_name, expr, matchexpr) }
+  and convert_ctor env loc name arg annot =
+    let Env.{ index; typename }, ctor, variant =
+      get_variant env loc name annot
+    in
+    match (ctor.ctortyp, arg) with
+    | Some typ, Some expr ->
+        let texpr = convert env expr in
+        unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
+        let expr = Ctor (typename, index, Some texpr) in
 
-and ctornames_of_variant = function
-  | Tvariant (_, _, ctors) ->
-      Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname)
-  | _ -> failwith "Internal Error: Not a variant"
+        Env.maybe_add_type_instance (string_of_type variant) variant env;
+        { typ = variant; expr; is_const = false }
+    | None, None ->
+        let expr = Ctor (typename, index, None) in
+        (* NOTE: Const handling for ctors is disabled, see #23 *)
+        { typ = variant; expr; is_const = true }
+    | None, Some _ ->
+        let msg =
+          Printf.sprintf
+            "The constructor %s expects 0 arguments, but an argument is \
+             provided"
+            (snd name)
+        in
+        raise (Error (fst name, msg))
+    | Some _, None ->
+        let msg =
+          Printf.sprintf
+            "The constructor %s expects arguments, but none are provided"
+            (snd name)
+        in
+        raise (Error (fst name, msg))
 
-and select_ctor env all_loc cases ret_typ =
-  (* We build the decision tree here.
-     [match_cases] splits cases into ones that match and ones that don't.
-     [select_ctor] then generates the tree for the cases.
-     This boils down to a chain of if-then-else exprs. A heuristic for
-     choosing the ctor to check first in a case is not needed right now,
-     since we have neither tuples nor literals in matches, but it will
-     be part of [select_ctor] eventually *)
+  and convert_block_annot ~ret env annot stmts =
+    let loc = Lexing.(dummy_pos, dummy_pos) in
 
-  (* Magic value, see above *)
-  let expr_name = "__expr" in
-  let expr = convert_var env all_loc expr_name in
+    let check (loc, typ) =
+      unify (loc, "Left expression in sequence must be of type unit:") Tunit typ
+    in
 
-  let check_redundant init lst =
-    List.fold_left
-      (fun mtch ((loc, _, _) as item) ->
-        try Match.merge (fill_matches env item) mtch
-        with Match.Err Redundant ->
-          raise (Error (loc, "Pattern match case is redundant")))
-      init lst
-  in
+    let rec to_expr env old_type = function
+      | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ]) when ret ->
+          raise (Error (loc, "Block must end with an expression"))
+      | [] when ret -> raise (Error (loc, "Block cannot be empty"))
+      | [] -> ({ typ = Tunit; expr = Const Unit; is_const = false }, env)
+      | Let (loc, decl, block) :: tl ->
+          let env, texpr = convert_let env loc decl block in
+          let cont, env = to_expr env old_type tl in
+          let decl = (fun (_, a, b) -> (snd a, b)) decl in
+          let expr = Let (fst decl, texpr, cont) in
+          ({ typ = cont.typ; expr; is_const = cont.is_const }, env)
+      | Function (loc, func) :: tl ->
+          let env, (name, unique, lambda) = convert_function env loc func in
+          let cont, env = to_expr env old_type tl in
+          let expr = Function (name, unique, lambda, cont) in
+          ({ typ = cont.typ; expr; is_const = false }, env)
+      | [ Expr (loc, e) ] ->
+          last_loc := loc;
+          check old_type;
+          (convert_annot env annot e, env)
+      | Expr (l1, e1) :: tl ->
+          check old_type;
+          let expr = convert env e1 in
+          let cont, env = to_expr env (l1, expr.typ) tl in
+          ( {
+              typ = cont.typ;
+              expr = Sequence (expr, cont);
+              is_const = cont.is_const;
+            },
+            env )
+    in
+    to_expr env (loc, Tunit) stmts
 
-  let ctorexpr ctor =
-    match ctor.ctortyp with
-    (* TODO is this instantiated? *)
-    | Some typ -> { typ; expr = Variant_data expr; is_const = false }
-    | None -> expr
-  in
+  and convert_block ?(ret = true) env stmts =
+    convert_block_annot ~ret env None stmts
+end
 
-  match cases with
-  | [ (loc, Some (Ast.Pctor (name, arg)), ret_expr) ] ->
-      (* Selecting the last case like this only works if we are sure
-         that we have exhausted all cases *)
-      let _, ctor, variant = get_variant env loc name None in
-      unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
+and Patternmatch : sig
+  val convert_match :
+    Env.t ->
+    Ast.loc ->
+    Ast.expr ->
+    (Ast.loc * Ast.pattern * Ast.block) list ->
+    typed_expr
+end = struct
+  open Core
 
-      let names = ctornames_of_variant variant in
+  let rec convert_match env loc expr cases =
+    (* Magical identifier to read pattern expr.
+       There must be a better solution, but my brain doesn't seem to work *)
+    let expr_name = "__expr" in
 
-      let argexpr = ctorexpr ctor in
-      let env = Env.add_value expr_name argexpr.typ loc env in
-      let cont, matches =
-        select_ctor env loc [ (loc, arg, ret_expr) ] ret_typ
-      in
-      ( { cont with expr = Let (expr_name, argexpr, cont) },
-        Match.Partial (names, Smap.add (snd name) matches Smap.empty) )
-  | (loc, Some (Ast.Pctor (name, _)), _) :: _ ->
-      let a, b = match_cases (snd name) cases [] [] in
+    let expr = convert env expr in
+    (* Make the expr available in the patternmatch *)
+    let env = Env.add_value expr_name expr.typ loc env in
 
-      let l, ctor, variant = get_variant env loc name None in
-      unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
+    (* TODO Should we enter a level here? *)
+    let ret = newvar () in
 
-      let names = ctornames_of_variant variant in
+    let some_cases =
+      List.map (fun (loc, p, expr) -> (loc, Some p, expr)) cases
+    in
+    let matchexpr, mtch = select_ctor env loc some_cases ret in
 
-      let index = { typ = Ti32; expr = Variant_index expr; is_const = false } in
-      let cind = { typ = Ti32; expr = Const (I32 l.index); is_const = true } in
-      let cmpexpr = Bop (Ast.Equal_i, index, cind) in
-      let cmp = { typ = Tbool; expr = cmpexpr; is_const = false } in
+    (* Check for exhaustiveness *)
+    (match Match.is_exhaustive mtch with
+    | Ok () -> ()
+    | Error cases ->
+        let cases = String.concat ", " (List.map Match.cases_to_string cases) in
+        let msg =
+          Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
+            cases
+        in
+        raise (Error (loc, msg)));
 
-      let data = ctorexpr ctor in
-      let ifenv = Env.add_value expr_name data.typ loc env in
+    { matchexpr with expr = Let (expr_name, expr, matchexpr) }
 
-      let cont, ifmatch = select_ctor ifenv loc a ret_typ in
+  and ctornames_of_variant = function
+    | Tvariant (_, _, ctors) ->
+        Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname)
+    | _ -> failwith "Internal Error: Not a variant"
 
-      let ifexpr = Let (expr_name, data, cont) in
+  and select_ctor env all_loc cases ret_typ =
+    (* We build the decision tree here.
+       [match_cases] splits cases into ones that match and ones that don't.
+       [select_ctor] then generates the tree for the cases.
+       This boils down to a chain of if-then-else exprs. A heuristic for
+       choosing the ctor to check first in a case is not needed right now,
+       since we have neither tuples nor literals in matches, but it will
+       be part of [select_ctor] eventually *)
 
-      let mtch =
-        Match.Partial (names, Smap.add (snd name) ifmatch Smap.empty)
-      in
-      (* The tail isn't used in the decision tree,
-         but is needed for case analysis *)
-      (* Discard first item as it's processes in select_ctor *)
-      let mtch =
-        match a with [] -> mtch | _ :: tl -> check_redundant mtch tl
-      in
+    (* Magic value, see above *)
+    let expr_name = "__expr" in
+    let expr = convert_var env all_loc expr_name in
 
-      (* This is either an if-then-else or just an if with one ctor,
-         depending on whether [b] is empty *)
-      let expr, matches =
-        match b with
-        | [] -> (ifexpr, mtch)
-        | b ->
-            let if_ = { cont with expr = ifexpr } in
-            let else_, elsematch = select_ctor env loc b ret_typ in
-            let matches = Match.merge elsematch mtch in
-            (If (cmp, if_, else_), matches)
-      in
+    let check_redundant init lst =
+      List.fold_left
+        (fun mtch ((loc, _, _) as item) ->
+          try Match.merge (fill_matches env item) mtch
+          with Match.Err Redundant ->
+            raise (Error (loc, "Pattern match case is redundant")))
+        init lst
+    in
 
-      ({ typ = ret_typ; expr; is_const = false }, matches)
-  | (loc, Some (Pvar (_, name)), ret_expr) :: tl ->
-      (* Bind the variable *)
-      let env = Env.add_value name expr.typ ~is_const:false loc env in
-      let ret, _ = convert_block env ret_expr in
+    let ctorexpr ctor =
+      match ctor.ctortyp with
+      (* TODO is this instantiated? *)
+      | Some typ -> { typ; expr = Variant_data expr; is_const = false }
+      | None -> expr
+    in
 
-      (* This is already exhaustive but we do the tail here as well for errors *)
-      check_redundant Exhaustive tl |> ignore;
+    match cases with
+    | [ (loc, Some (Ast.Pctor (name, arg)), ret_expr) ] ->
+        (* Selecting the last case like this only works if we are sure
+           that we have exhausted all cases *)
+        let _, ctor, variant = get_variant env loc name None in
+        unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
 
-      unify (loc, "Match expression does not match:") ret_typ ret.typ;
-      ( { typ = ret.typ; expr = Let (name, expr, ret); is_const = ret.is_const },
-        Exhaustive )
-  | (_, Some (Ptup _), _) :: _ -> failwith "TODO"
-  | (loc, None, ret_expr) :: _ ->
-      let ret, _ = convert_block env ret_expr in
-      unify (loc, "Match expression does not match:") ret_typ ret.typ;
-      (ret, Exhaustive)
-  | [] -> failwith "Internal Error: Pattern match failed"
+        let names = ctornames_of_variant variant in
 
-and match_cases case cases if_ else_ =
-  match cases with
-  | (loc, Some (Ast.Pctor ((_, name), arg)), expr) :: tl
-    when String.equal case name ->
-      match_cases case tl ((loc, arg, expr) :: if_) else_
-  | ((_, Some (Pctor _), _) as thing) :: tl ->
-      match_cases case tl if_ (thing :: else_)
-  | ((_, Some (Pvar _), _) as thing) :: tl ->
-      match_cases case tl (thing :: if_) (thing :: else_)
-  | (_, None, _) :: tl ->
-      (* TODO correctly handle this case *)
-      print_endline "this strange case";
-      match_cases case tl if_ else_
-  | (_, Some (Ptup _), _) :: _ -> failwith "TODO"
-  | [] -> (List.rev if_, List.rev else_)
+        let argexpr = ctorexpr ctor in
+        let env = Env.add_value expr_name argexpr.typ loc env in
+        let cont, matches =
+          select_ctor env loc [ (loc, arg, ret_expr) ] ret_typ
+        in
+        ( { cont with expr = Let (expr_name, argexpr, cont) },
+          Match.Partial (names, Smap.add (snd name) matches Smap.empty) )
+    | (loc, Some (Ast.Pctor (name, _)), _) :: _ ->
+        let a, b = match_cases (snd name) cases [] [] in
 
-and fill_matches env = function
-  | loc, Some (Ast.Pctor (name, arg)), expr ->
-      let _, _, variant = get_variant env loc name None in
-      let names = ctornames_of_variant variant in
+        let l, ctor, variant = get_variant env loc name None in
+        unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
 
-      let map =
-        Smap.add (snd name) (fill_matches env (loc, arg, expr)) Smap.empty
-      in
-      Match.Partial (names, map)
-  | _, Some (Ptup _), _ -> failwith "TODO"
-  | _, Some (Pvar _), _ -> Exhaustive
-  | _, None, _ -> Exhaustive
+        let names = ctornames_of_variant variant in
 
-and convert_block_annot ~ret env annot stmts =
-  let loc = Lexing.(dummy_pos, dummy_pos) in
+        let index =
+          { typ = Ti32; expr = Variant_index expr; is_const = false }
+        in
+        let cind =
+          { typ = Ti32; expr = Const (I32 l.index); is_const = true }
+        in
+        let cmpexpr = Bop (Ast.Equal_i, index, cind) in
+        let cmp = { typ = Tbool; expr = cmpexpr; is_const = false } in
 
-  let check (loc, typ) =
-    unify (loc, "Left expression in sequence must be of type unit:") Tunit typ
-  in
+        let data = ctorexpr ctor in
+        let ifenv = Env.add_value expr_name data.typ loc env in
 
-  let rec to_expr env old_type = function
-    | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ]) when ret ->
-        raise (Error (loc, "Block must end with an expression"))
-    | [] when ret -> raise (Error (loc, "Block cannot be empty"))
-    | [] -> ({ typ = Tunit; expr = Const Unit; is_const = false }, env)
-    | Let (loc, decl, block) :: tl ->
-        let env, texpr = convert_let env loc decl block in
-        let cont, env = to_expr env old_type tl in
-        let decl = (fun (_, a, b) -> (snd a, b)) decl in
-        let expr = Let (fst decl, texpr, cont) in
-        ({ typ = cont.typ; expr; is_const = cont.is_const }, env)
-    | Function (loc, func) :: tl ->
-        let env, (name, unique, lambda) = convert_function env loc func in
-        let cont, env = to_expr env old_type tl in
-        let expr = Function (name, unique, lambda, cont) in
-        ({ typ = cont.typ; expr; is_const = false }, env)
-    | [ Expr (loc, e) ] ->
-        last_loc := loc;
-        check old_type;
-        (convert_annot env annot e, env)
-    | Expr (l1, e1) :: tl ->
-        check old_type;
-        let expr = convert env e1 in
-        let cont, env = to_expr env (l1, expr.typ) tl in
+        let cont, ifmatch = select_ctor ifenv loc a ret_typ in
+
+        let ifexpr = Let (expr_name, data, cont) in
+
+        let mtch =
+          Match.Partial (names, Smap.add (snd name) ifmatch Smap.empty)
+        in
+        (* The tail isn't used in the decision tree,
+           but is needed for case analysis *)
+        (* Discard first item as it's processes in select_ctor *)
+        let mtch =
+          match a with [] -> mtch | _ :: tl -> check_redundant mtch tl
+        in
+
+        (* This is either an if-then-else or just an if with one ctor,
+           depending on whether [b] is empty *)
+        let expr, matches =
+          match b with
+          | [] -> (ifexpr, mtch)
+          | b ->
+              let if_ = { cont with expr = ifexpr } in
+              let else_, elsematch = select_ctor env loc b ret_typ in
+              let matches = Match.merge elsematch mtch in
+              (If (cmp, if_, else_), matches)
+        in
+
+        ({ typ = ret_typ; expr; is_const = false }, matches)
+    | (loc, Some (Pvar (_, name)), ret_expr) :: tl ->
+        (* Bind the variable *)
+        let env = Env.add_value name expr.typ ~is_const:false loc env in
+        let ret, _ = convert_block env ret_expr in
+
+        (* This is already exhaustive but we do the tail here as well for errors *)
+        check_redundant Exhaustive tl |> ignore;
+
+        unify (loc, "Match expression does not match:") ret_typ ret.typ;
         ( {
-            typ = cont.typ;
-            expr = Sequence (expr, cont);
-            is_const = cont.is_const;
+            typ = ret.typ;
+            expr = Let (name, expr, ret);
+            is_const = ret.is_const;
           },
-          env )
-  in
-  to_expr env (loc, Tunit) stmts
+          Exhaustive )
+    | (_, Some (Ptup _), _) :: _ -> failwith "TODO"
+    | (loc, None, ret_expr) :: _ ->
+        let ret, _ = convert_block env ret_expr in
+        unify (loc, "Match expression does not match:") ret_typ ret.typ;
+        (ret, Exhaustive)
+    | [] -> failwith "Internal Error: Pattern match failed"
 
-and convert_block ?(ret = true) env stmts =
-  convert_block_annot ~ret env None stmts
+  and match_cases case cases if_ else_ =
+    match cases with
+    | (loc, Some (Ast.Pctor ((_, name), arg)), expr) :: tl
+      when String.equal case name ->
+        match_cases case tl ((loc, arg, expr) :: if_) else_
+    | ((_, Some (Pctor _), _) as thing) :: tl ->
+        match_cases case tl if_ (thing :: else_)
+    | ((_, Some (Pvar _), _) as thing) :: tl ->
+        match_cases case tl (thing :: if_) (thing :: else_)
+    | (_, None, _) :: tl ->
+        (* TODO correctly handle this case *)
+        print_endline "this strange case";
+        match_cases case tl if_ else_
+    | (_, Some (Ptup _), _) :: _ -> failwith "TODO"
+    | [] -> (List.rev if_, List.rev else_)
+
+  and fill_matches env = function
+    | loc, Some (Ast.Pctor (name, arg)), expr ->
+        let _, _, variant = get_variant env loc name None in
+        let names = ctornames_of_variant variant in
+
+        let map =
+          Smap.add (snd name) (fill_matches env (loc, arg, expr)) Smap.empty
+        in
+        Match.Partial (names, map)
+    | _, Some (Ptup _), _ -> failwith "TODO"
+    | _, Some (Pvar _), _ -> Exhaustive
+    | _, None, _ -> Exhaustive
+end
 
 let block_external_name loc ~cname id =
   (* We have to deal with shadowing:
@@ -1122,7 +1156,7 @@ let convert_prog ~ret prev_exprs env items =
     (* If we are in main, we want to return a value so the outer [ret] is true.
        However, blocks before the last block cannot return so we set it to
        false temporarily *)
-    let cont, env = convert_block ~ret env block in
+    let cont, env = Core.convert_block ~ret env block in
     let expr =
       match expr with
       | None -> Some cont
