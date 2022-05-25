@@ -1,5 +1,6 @@
 open Types
 open Typed_tree
+open Inference
 
 type external_decl = string * Types.typ * string option
 
@@ -21,11 +22,11 @@ module Str = struct
 end
 
 module Strtbl = Hashtbl.Make (Str)
-module Map = Map.Make (String)
+module Smap = Types.Smap
 module Set = Set.Make (String)
 
 module Match = struct
-  type t = Exhaustive | Partial of string list * t Map.t
+  type t = Exhaustive | Partial of string list * t Smap.t
   type err = Redundant
 
   exception Err of err
@@ -47,7 +48,7 @@ module Match = struct
           | None, None -> failwith "lol"
           | Some other, Some this -> Some (merge other this)
         in
-        let this = Map.merge f other this in
+        let this = Smap.merge f other this in
         Partial (this_list, this)
 
   let rec is_exhaustive = function
@@ -55,21 +56,21 @@ module Match = struct
     | Partial (cases, map) ->
         (* Add missing cases *)
         let cmap =
-          List.fold_left (fun map case -> Map.add case [] map) Map.empty cases
+          List.fold_left (fun map case -> Smap.add case [] map) Smap.empty cases
           |> ref
         in
 
-        Map.iter
+        Smap.iter
           (fun key t ->
             match is_exhaustive t with
-            | Ok () -> cmap := Map.remove key !cmap
-            | Error lst -> cmap := Map.add key lst !cmap)
+            | Ok () -> cmap := Smap.remove key !cmap
+            | Error lst -> cmap := Smap.add key lst !cmap)
           map;
 
         (* Only missing cases remain *)
-        if not (Map.is_empty !cmap) then
+        if not (Smap.is_empty !cmap) then
           let lst =
-            Map.to_seq !cmap |> List.of_seq
+            Smap.to_seq !cmap |> List.of_seq
             |> List.fold_left
                  (* We add for each missing case the current ctor *)
                    (fun acc (a, lst) ->
@@ -105,33 +106,20 @@ let next_func name tbl =
       Strtbl.replace tbl name (n + 1);
       Some (n + 1)
 
-let gensym_state = ref 0
 let lambda_id_state = ref 0
 let reset state = state := 0
-
-let gensym () =
-  let n = !gensym_state in
-  incr gensym_state;
-  string_of_int n
 
 let lambda_id () =
   let id = !lambda_id_state in
   incr lambda_id_state;
   id
 
-let current_level = ref 1
-let reset_level () = current_level := 1
-
 let reset_type_vars () =
-  reset gensym_state;
-  reset_level ();
+  Inference.reset ();
   reset lambda_id_state;
   (* Not a type var, but needs resetting as well *)
   Strtbl.clear func_tbl
 
-let enter_level () = incr current_level
-let leave_level () = decr current_level
-let newvar () = Tvar (ref (Unbound (gensym (), !current_level)))
 let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
 (*
@@ -153,296 +141,8 @@ let is_type_polymorphic typ =
   in
   inner false typ
 
-let pp_to_name name = "'" ^ name
-
-let string_of_type_raw get_name typ =
-  let rec string_of_type = function
-    | Tint -> "int"
-    | Tbool -> "bool"
-    | Tunit -> "unit"
-    | Tfloat -> "float"
-    | Tu8 -> "u8"
-    | Ti32 -> "i32"
-    | Tf32 -> "f32"
-    | Tfun (ts, t, _) -> (
-        match ts with
-        | [ p ] ->
-            Printf.sprintf "%s -> %s" (string_of_type p) (string_of_type t)
-        | ts ->
-            let ts = String.concat ", " (List.map string_of_type ts) in
-            Printf.sprintf "(%s) -> %s" ts (string_of_type t))
-    | Tvar { contents = Link t } -> string_of_type t
-    | Talias (name, t) ->
-        Printf.sprintf "%s = %s" name (clean t |> string_of_type)
-    | Qvar str | Tvar { contents = Unbound (str, _) } -> get_name str
-    | Trecord (param, str, _) | Tvariant (param, str, _) ->
-        str
-        ^ Option.fold ~none:""
-            ~some:(fun param -> Printf.sprintf "(%s)" (string_of_type param))
-            param
-    | Tptr t -> Printf.sprintf "ptr(%s)" (string_of_type t)
-  in
-
-  string_of_type typ
-
-(* Bring type vars into canonical form so the first one is "'a" etc.
-   Only used for printing purposes *)
-let string_of_type_get_name subst =
-  let find_next_letter tbl =
-    (* Find greatest letter *)
-    Strtbl.fold
-      (fun _ s acc ->
-        let code = String.get s 0 |> Char.code in
-        if code > acc then code else acc)
-      tbl
-      (Char.code 'a' |> fun i -> i - 1)
-    |> (* Pick next letter *)
-    ( + ) 1 |> Char.chr |> String.make 1
-  in
-
-  let tbl = Strtbl.of_seq (Map.to_seq subst) in
-  fun name ->
-    match Strtbl.find_opt tbl name with
-    | Some s -> pp_to_name s
-    | None ->
-        let s = find_next_letter tbl in
-        Strtbl.add tbl name s;
-        pp_to_name s
-
-(* Normal version, will name type vars starting from 'a *)
-let string_of_type typ =
-  string_of_type_raw (string_of_type_get_name Map.empty) typ
-
-(* Version with literal type vars (for annotations) *)
-let string_of_type_lit typ = string_of_type_raw pp_to_name typ
-
-(* Version using the subst table created during comparison with annot *)
-let string_of_type_subst subst typ =
-  string_of_type_raw (string_of_type_get_name subst) typ
-
-let rec occurs tvr = function
-  | Tvar tvr' when tvr == tvr' -> failwith "Internal error: Occurs check failed"
-  | Tvar ({ contents = Unbound (id, lvl') } as tv) ->
-      let min_lvl =
-        match !tvr with Unbound (_, lvl) -> min lvl lvl' | _ -> lvl'
-      in
-      tv := Unbound (id, min_lvl)
-  | Tvar { contents = Link ty } | Talias (_, ty) -> occurs tvr ty
-  | Tfun (param_ts, t, _) ->
-      List.iter (occurs tvr) param_ts;
-      occurs tvr t
-  | _ -> ()
-
-let arity (loc, pre) thing la lb =
-  let msg =
-    Printf.sprintf "%s Wrong arity for %s: Expected %i but got %i" pre thing lb
-      la
-  in
-  raise (Error (loc, msg))
-
-exception Unify
-exception Arity of string * int * int
-
-let rec unify t1 t2 =
-  if t1 == t2 then ()
-  else
-    match (t1, t2) with
-    | Tvar { contents = Link t1 }, t2
-    | t1, Tvar { contents = Link t2 }
-    | Talias (_, t1), t2
-    | t1, Talias (_, t2) ->
-        unify t1 t2
-    | Tvar ({ contents = Unbound _ } as tv), t
-    | t, Tvar ({ contents = Unbound _ } as tv) ->
-        occurs tv t;
-        tv := Link t
-    | Tfun (params_l, l, _), Tfun (params_r, r, _) -> (
-        try
-          List.iter2 (fun left right -> unify left right) params_l params_r;
-          unify l r
-        with Invalid_argument _ ->
-          raise (Arity ("function", List.length params_l, List.length params_r))
-        )
-    | Trecord (param1, n1, labels1), Trecord (param2, n2, labels2) ->
-        if String.equal n1 n2 then
-          let () =
-            match (param1, param2) with
-            | Some param1, Some param2 -> unify param1 param2
-            | None, None -> ()
-            | None, Some p2 | Some p2, None ->
-                ignore p2;
-                raise Unify
-          in
-
-          (* We ignore the label names for now *)
-          try Array.iter2 (fun a b -> Types.(unify a.typ b.typ)) labels1 labels2
-          with Invalid_argument _ ->
-            raise (Arity ("record", Array.length labels1, Array.length labels2))
-        else raise Unify
-    | Tvariant (p1, n1, ctors1), Tvariant (p2, n2, ctors2) ->
-        if String.equal n1 n2 then
-          let () =
-            match (p1, p2) with
-            | Some param1, Some param2 -> unify param1 param2
-            | None, None -> ()
-            | None, Some p2 | Some p2, None ->
-                ignore p2;
-                raise Unify
-          in
-
-          (* We ignore the label names for now *)
-          try
-            Array.iter2
-              (fun a b ->
-                match (a.ctortyp, b.ctortyp) with
-                | Some a, Some b -> unify a b
-                | None, None -> ()
-                | Some _, None | None, Some _ -> raise Unify)
-              ctors1 ctors2
-          with Invalid_argument _ ->
-            raise (Arity ("variant", Array.length ctors1, Array.length ctors2))
-        else raise Unify
-    | Tptr l, Tptr r -> unify l r
-    | Qvar a, Qvar b when String.equal a b ->
-        (* We should not need this. Record instantiation? *) ()
-    | _ -> raise Unify
-
-let unify info t1 t2 =
-  try unify t1 t2 with
-  | Unify ->
-      let loc, pre = info in
-      let msg =
-        Printf.sprintf "%s Expected type %s but got type %s" pre
-          (string_of_type t1) (string_of_type t2)
-      in
-      raise (Error (loc, msg))
-  | Arity (thing, l1, l2) -> arity info thing l1 l2
-
-let rec generalize = function
-  | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
-  | Tvar { contents = Link t } | Talias (_, t) -> generalize t
-  | Tfun (t1, t2, k) -> Tfun (List.map generalize t1, generalize t2, k)
-  | Trecord (Some t, name, labels) ->
-      (* Hopefully the param type is the same reference throughout the record *)
-      let param = Some (generalize t) in
-      let f f = Types.{ f with typ = generalize f.typ } in
-      let labels = Array.map f labels in
-      Trecord (param, name, labels)
-  | Tptr t -> Tptr (generalize t)
-  | t -> t
-
-(* TODO sibling functions *)
-let instantiate t =
-  let rec aux subst = function
-    | Qvar id -> (
-        match Map.find_opt id subst with
-        | Some t -> (t, subst)
-        | None ->
-            let tv = newvar () in
-            (tv, Map.add id tv subst))
-    | Tvar { contents = Link t } -> aux subst t
-    | Talias (name, t) ->
-        let t, subst = aux subst t in
-        (Talias (name, t), subst)
-    | Tfun (params_t, t, k) ->
-        let subst, params_t =
-          List.fold_left_map
-            (fun subst param ->
-              let t, subst = aux subst param in
-              (subst, t))
-            subst params_t
-        in
-        let t, subst = aux subst t in
-        (Tfun (params_t, t, k), subst)
-    | Trecord (Some param, name, labels) ->
-        let subst = ref subst in
-        let labels =
-          Array.map
-            (fun f ->
-              let t, subst' = aux !subst Types.(f.typ) in
-              subst := subst';
-              { f with typ = t })
-            labels
-        in
-        let param, subst = aux !subst param in
-        (Trecord (Some param, name, labels), subst)
-    | Tvariant (Some param, name, ctors) ->
-        let subst = ref subst in
-        let ctors =
-          Array.map
-            (fun ctor ->
-              let ctortyp =
-                Option.map
-                  (fun typ ->
-                    let t, subst' = aux !subst typ in
-                    subst := subst';
-                    t)
-                  ctor.ctortyp
-              in
-              { ctor with ctortyp })
-            ctors
-        in
-        let param, subst = aux !subst param in
-        (Tvariant (Some param, name, ctors), subst)
-    | Tptr t ->
-        let t, subst = aux subst t in
-        (Tptr t, subst)
-    | t -> (t, subst)
-  in
-  aux Map.empty t |> fst
-
-(* Checks if types match. [~strict] means Unbound vars will not match everything.
-   This is true for functions where we want to be as general as possible.
-   We need to match everything for weak vars though *)
-let rec types_match ?(strict = false) subst l r =
-  if l == r then (subst, true)
-  else
-    match (l, r) with
-    | Tvar { contents = Unbound _ }, _ when not strict ->
-        (* Unbound vars match every type *) (subst, true)
-    | Qvar l, Qvar r | Tvar { contents = Unbound (l, _) }, Qvar r -> (
-        (* We always map from left to right *)
-        match Map.find_opt l subst with
-        | Some id when String.equal r id -> (subst, true)
-        | Some _ -> (subst, false)
-        | None ->
-            (* We 'connect' left to right *)
-            (Map.add l r subst, true))
-    | Tvar { contents = Link l }, r
-    | l, Tvar { contents = Link r }
-    | Talias (_, l), r
-    | l, Talias (_, r) ->
-        types_match ~strict subst l r
-    | _, Tvar { contents = Unbound _ } ->
-        failwith "Internal Error: Type comparison for non-generalized types"
-    | Tfun (ps_l, l, _), Tfun (ps_r, r, _) -> (
-        try
-          let subst, acc =
-            List.fold_left2
-              (fun (s, acc) l r ->
-                let subst, b = types_match ~strict:true s l r in
-                (subst, acc && b))
-              (subst, true) ps_l ps_r
-          in
-          (* We don't shortcut here to match the annotations for the error message *)
-          let subst, b = types_match ~strict:true subst l r in
-          (subst, acc && b)
-        with Invalid_argument _ -> (subst, false))
-    | Trecord (pl, nl, _), Trecord (pr, nr, _)
-    | Tvariant (pl, nl, _), Tvariant (pr, nr, _) ->
-        (* It should be enough to compare the name (rather, the name's repr)
-           and the param type *)
-        if String.equal nl nr then
-          match (pl, pr) with
-          | Some pl, Some pr -> types_match ~strict subst pl pr
-          | None, None -> (subst, true)
-          | None, Some _ | Some _, None -> (subst, false)
-        else (subst, false)
-    | Tptr l, Tptr r -> types_match ~strict subst l r
-    | _ -> (subst, false)
-
 let check_annot loc l r =
-  let subst, b = types_match Map.empty l r in
+  let subst, b = Inference.types_match Smap.empty l r in
   if b then ()
   else
     let msg =
@@ -707,7 +407,12 @@ let check_type_unique env loc name =
 
 let add_type_param env = function
   | Some name ->
-      let t = Qvar (gensym ()) in
+      (* Create general type *)
+      enter_level ();
+      let typ = newvar () in
+      leave_level ();
+      let t = generalize typ in
+
       (Env.add_type name t env, Some t)
   | None -> (env, None)
 
@@ -1241,7 +946,7 @@ and select_ctor env all_loc cases ret_typ =
         select_ctor env loc [ (loc, arg, ret_expr) ] ret_typ
       in
       ( { cont with expr = Let (expr_name, argexpr, cont) },
-        Match.Partial (names, Map.add (snd name) matches Map.empty) )
+        Match.Partial (names, Smap.add (snd name) matches Smap.empty) )
   | (loc, Some (Ast.Pctor (name, _)), _) :: _ ->
       let a, b = match_cases (snd name) cases [] [] in
 
@@ -1262,7 +967,9 @@ and select_ctor env all_loc cases ret_typ =
 
       let ifexpr = Let (expr_name, data, cont) in
 
-      let mtch = Match.Partial (names, Map.add (snd name) ifmatch Map.empty) in
+      let mtch =
+        Match.Partial (names, Smap.add (snd name) ifmatch Smap.empty)
+      in
       (* The tail isn't used in the decision tree,
          but is needed for case analysis *)
       (* Discard first item as it's processes in select_ctor *)
@@ -1323,7 +1030,7 @@ and fill_matches env = function
       let names = ctornames_of_variant variant in
 
       let map =
-        Map.add (snd name) (fill_matches env (loc, arg, expr)) Map.empty
+        Smap.add (snd name) (fill_matches env (loc, arg, expr)) Smap.empty
       in
       Match.Partial (names, map)
   | _, Some (Ptup _), _ -> failwith "TODO"

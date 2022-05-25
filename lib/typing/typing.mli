@@ -8,7 +8,6 @@ type codegen_tree = {
 
 type msg_fn = string -> Ast.loc -> string -> string
 
-val string_of_type : Types.typ -> string
 val typecheck : Ast.prog -> Types.typ
 
 val to_typed :

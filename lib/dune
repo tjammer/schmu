@@ -11,6 +11,10 @@
   llvm.scalar_opts
   menhirLib))
 
+;; The typing subfolder is part of this library
+
+(include_subdirs unqualified)
+
 (menhir
  (modules parser)
  (flags --explain))
