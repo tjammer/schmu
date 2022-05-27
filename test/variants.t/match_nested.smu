@@ -1,0 +1,14 @@
+external printf : (cstr, int) -> unit
+
+type test = Float(float) | Int(int) | Non
+
+fun do(m) = match m with
+  Some(Float(f)) -> f |> int_of_float
+  Some(Int(i)) -> i
+  Some(Non) -> 1
+  None -> 0
+
+do(Some(Float(3.0))) |>> printf("%i\n".cstr)
+do(Some(Int(2))) |>> printf("%i\n".cstr)
+do(Some(Non)) |>> printf("%i\n".cstr)
+do(None) |>> printf("%i\n".cstr)

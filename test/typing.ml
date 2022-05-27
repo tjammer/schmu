@@ -328,6 +328,24 @@ let test_match_missing () =
   test_exn "Pattern match is not exhaustive. Missing cases: Some"
     "type option('a) = Some('a) | None match Some(1) with\n  None -> -1\n"
 
+let test_match_all_after_ctor () =
+  test "int"
+    {|
+type option('a) = Some('a) | None
+match Some(1) with
+  None -> -1
+  a -> 0
+|}
+
+let test_match_all_before_ctor () =
+    test_exn "Pattern match case is redundant"
+    {|
+type option('a) = Some('a) | None
+match Some(1) with
+  a -> 0
+  None -> -1
+|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -460,5 +478,7 @@ let () =
           case "all" test_match_all;
           case "redundant" test_match_redundant;
           case "missing" test_match_missing;
+          case "all_after_ctor" test_match_all_after_ctor;
+          case "all_before_ctor" test_match_all_before_ctor;
         ] );
     ]
