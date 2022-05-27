@@ -26,7 +26,11 @@ module type S = sig
 end
 
 module Match = struct
-  type t = Exhaustive | Partial of string list * t Smap.t
+  type t =
+    | Exhaustive of int
+    (* Matchalls get a level so that we can distinguish matches from outside a ctor *)
+    | Partial of string list * t Smap.t
+
   type err = Redundant
 
   exception Err of err
@@ -34,13 +38,14 @@ module Match = struct
   (* Merge partial matches if they share the ctor  *)
   let rec merge other this =
     match (other, this) with
-    | _, Exhaustive ->
+    | Exhaustive other, Exhaustive this when other < this -> Exhaustive other
+    | _, Exhaustive _ ->
         (* We are already exhaustive, everything else
            is redundant *)
         raise (Err Redundant)
-    | Exhaustive, _ ->
+    | Exhaustive other, _ ->
         (* If it's exhaustive, we are done *)
-        Exhaustive
+        Exhaustive other
     | Partial (_, other), Partial (this_list, this) ->
         let f _ other this =
           match (other, this) with
@@ -52,7 +57,7 @@ module Match = struct
         Partial (this_list, this)
 
   let rec is_exhaustive = function
-    | Exhaustive -> Ok ()
+    | Exhaustive _ -> Ok ()
     | Partial (cases, map) ->
         (* Add missing cases *)
         let cmap =
@@ -111,6 +116,8 @@ let get_variant env loc name annot =
 module Make (C : Core) = struct
   open C
 
+  type pattern_data = { loc : Ast.loc; ret_expr : Ast.stmt list; lvl : int }
+
   let convert_ctor env loc name arg annot =
     let Env.{ index; typename }, ctor, variant =
       get_variant env loc name annot
@@ -156,7 +163,9 @@ module Make (C : Core) = struct
     let ret = newvar () in
 
     let some_cases =
-      List.map (fun (loc, p, expr) -> (loc, Some p, expr)) cases
+      List.map
+        (fun (loc, p, expr) -> (Some p, { loc; ret_expr = expr; lvl = 0 }))
+        cases
     in
     let matchexpr, mtch = select_ctor env loc some_cases ret in
 
@@ -193,10 +202,10 @@ module Make (C : Core) = struct
 
     let check_redundant init lst =
       List.fold_left
-        (fun mtch ((loc, _, _) as item) ->
+        (fun mtch ((_, d) as item) ->
           try Match.merge (fill_matches env item) mtch
           with Match.Err Redundant ->
-            raise (Error (loc, "Pattern match case is redundant")))
+            raise (Error (d.loc, "Pattern match case is redundant")))
         init lst
     in
 
@@ -208,26 +217,26 @@ module Make (C : Core) = struct
     in
 
     match cases with
-    | [ (loc, Some (Ast.Pctor (name, arg)), ret_expr) ] ->
+    | [ (Some (Ast.Pctor (name, arg)), d) ] ->
         (* Selecting the last case like this only works if we are sure
            that we have exhausted all cases *)
-        let _, ctor, variant = get_variant env loc name None in
-        unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
+        let _, ctor, variant = get_variant env d.loc name None in
+        unify (d.loc, "Variant pattern has unexpected type:") expr.typ variant;
 
         let names = ctornames_of_variant variant in
 
         let argexpr = ctorexpr ctor in
-        let env = Env.add_value expr_name argexpr.typ loc env in
+        let env = Env.add_value expr_name argexpr.typ d.loc env in
         let cont, matches =
-          select_ctor env loc [ (loc, arg, ret_expr) ] ret_typ
+          select_ctor env d.loc [ (arg, { d with lvl = d.lvl + 1 }) ] ret_typ
         in
         ( { cont with expr = Let (expr_name, argexpr, cont) },
           Match.Partial (names, Smap.add (snd name) matches Smap.empty) )
-    | (loc, Some (Ast.Pctor (name, _)), _) :: _ ->
+    | (Some (Ast.Pctor (name, _)), d) :: _ ->
         let a, b = match_cases (snd name) cases [] [] in
 
-        let l, ctor, variant = get_variant env loc name None in
-        unify (loc, "Variant pattern has unexpected type:") expr.typ variant;
+        let l, ctor, variant = get_variant env d.loc name None in
+        unify (d.loc, "Variant pattern has unexpected type:") expr.typ variant;
 
         let names = ctornames_of_variant variant in
 
@@ -241,9 +250,9 @@ module Make (C : Core) = struct
         let cmp = { typ = Tbool; expr = cmpexpr; is_const = false } in
 
         let data = ctorexpr ctor in
-        let ifenv = Env.add_value expr_name data.typ loc env in
+        let ifenv = Env.add_value expr_name data.typ d.loc env in
 
-        let cont, ifmatch = select_ctor ifenv loc a ret_typ in
+        let cont, ifmatch = select_ctor ifenv d.loc a ret_typ in
 
         let ifexpr = Let (expr_name, data, cont) in
 
@@ -264,60 +273,62 @@ module Make (C : Core) = struct
           | [] -> (ifexpr, mtch)
           | b ->
               let if_ = { cont with expr = ifexpr } in
-              let else_, elsematch = select_ctor env loc b ret_typ in
+              let else_, elsematch = select_ctor env d.loc b ret_typ in
               let matches = Match.merge elsematch mtch in
               (If (cmp, if_, else_), matches)
         in
 
         ({ typ = ret_typ; expr; is_const = false }, matches)
-    | (loc, Some (Pvar (_, name)), ret_expr) :: tl ->
+    | (Some (Pvar (_, name)), d) :: tl ->
         (* Bind the variable *)
-        let env = Env.add_value name expr.typ ~is_const:false loc env in
-        let ret, _ = convert_block env ret_expr in
+        let env = Env.add_value name expr.typ ~is_const:false d.loc env in
+        let ret, _ = convert_block env d.ret_expr in
 
         (* This is already exhaustive but we do the tail here as well for errors *)
-        check_redundant Exhaustive tl |> ignore;
+        check_redundant (Exhaustive d.lvl) tl |> ignore;
 
-        unify (loc, "Match expression does not match:") ret_typ ret.typ;
+        unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
         ( {
             typ = ret.typ;
             expr = Let (name, expr, ret);
             is_const = ret.is_const;
           },
-          Exhaustive )
-    | (_, Some (Ptup _), _) :: _ -> failwith "TODO"
-    | (loc, None, ret_expr) :: _ ->
-        let ret, _ = convert_block env ret_expr in
-        unify (loc, "Match expression does not match:") ret_typ ret.typ;
-        (ret, Exhaustive)
+          Exhaustive d.lvl )
+    | (Some (Ptup _), _) :: _ -> failwith "TODO"
+    | (None, d) :: _ ->
+        let ret, _ = convert_block env d.ret_expr in
+        unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
+        (ret, Exhaustive d.lvl)
     | [] -> failwith "Internal Error: Pattern match failed"
 
   and match_cases case cases if_ else_ =
     match cases with
-    | (loc, Some (Ast.Pctor ((_, name), arg)), expr) :: tl
-      when String.equal case name ->
-        match_cases case tl ((loc, arg, expr) :: if_) else_
-    | ((_, Some (Pctor _), _) as thing) :: tl ->
+    | (Some (Ast.Pctor ((_, name), arg)), d) :: tl when String.equal case name
+      ->
+        match_cases case tl ((arg, { d with lvl = d.lvl + 1 }) :: if_) else_
+    | ((Some (Pctor _), _) as thing) :: tl ->
         match_cases case tl if_ (thing :: else_)
-    | ((_, Some (Pvar _), _) as thing) :: tl ->
+    | [ ((Some (Pvar _), _) as thing) ] ->
+        (* If the last item is a catchall we can stuff it into the else branch.
+           This gets rid off a duplication and also fixes a redundancy check bug *)
+        match_cases case [] if_ (thing :: else_)
+    | ((Some (Pvar _), _) as thing) :: tl ->
         match_cases case tl (thing :: if_) (thing :: else_)
-    | (_, None, _) :: tl ->
+    | (None, _) :: tl ->
         (* TODO correctly handle this case *)
         print_endline "this strange case";
         match_cases case tl if_ else_
-    | (_, Some (Ptup _), _) :: _ -> failwith "TODO"
+    | (Some (Ptup _), _) :: _ -> failwith "TODO"
     | [] -> (List.rev if_, List.rev else_)
 
   and fill_matches env = function
-    | loc, Some (Ast.Pctor (name, arg)), expr ->
-        let _, _, variant = get_variant env loc name None in
+    | Some (Ast.Pctor (name, arg)), d ->
+        let _, _, variant = get_variant env d.loc name None in
         let names = ctornames_of_variant variant in
 
-        let map =
-          Smap.add (snd name) (fill_matches env (loc, arg, expr)) Smap.empty
-        in
+        let map = Smap.add (snd name) (fill_matches env (arg, d)) Smap.empty in
         Match.Partial (names, map)
-    | _, Some (Ptup _), _ -> failwith "TODO"
-    | _, Some (Pvar _), _ -> Exhaustive
-    | _, None, _ -> Exhaustive
+    | Some (Ptup _), _ -> failwith "TODO"
+    | Some (Pvar _), d -> Exhaustive d.lvl
+    | None, d -> Exhaustive d.lvl
 end
