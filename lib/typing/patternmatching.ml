@@ -29,7 +29,7 @@ module Match = struct
   type t =
     | Exhaustive of int
     (* Matchalls get a level so that we can distinguish matches from outside a ctor *)
-    | Partial of string list * t Smap.t
+    | Partial of int * string list * t Smap.t
 
   type err = Redundant
 
@@ -46,53 +46,88 @@ module Match = struct
     | Exhaustive other, _ ->
         (* If it's exhaustive, we are done *)
         Exhaustive other
-    | Partial (_, other), Partial (this_list, this) ->
+    | Partial (lvl, other_list, other), Partial (_, this_list, this) ->
+        (* TODO delete this *)
+        assert (other_list = this_list);
+        let length = ref 0 in
         let f _ other this =
+          incr length;
           match (other, this) with
           | None, Some a | Some a, None -> Some a
           | None, None -> failwith "lol"
           | Some other, Some this -> Some (merge other this)
         in
         let this = Smap.merge f other this in
-        Partial (this_list, this)
+        if !length = List.length this_list then
+          Exhaustive lvl
+        else Partial (lvl, this_list, this)
 
-  let rec is_exhaustive = function
-    | Exhaustive _ -> Ok ()
-    | Partial (cases, map) ->
-        (* Add missing cases *)
-        let cmap =
-          List.fold_left (fun map case -> Smap.add case [] map) Smap.empty cases
-          |> ref
-        in
+  (* let rec is_exhaustive = function *)
+  (*   | Exhaustive _ -> Ok () *)
+  (*   | Partial (cases, map) -> *)
+  (*       (\* Add missing cases *\) *)
+  (*       let cmap = *)
+  (*         List.fold_left (fun map case -> Smap.add case [] map) Smap.empty cases *)
+  (*         |> ref *)
+  (*       in *)
 
-        Smap.iter
-          (fun key t ->
-            match is_exhaustive t with
-            | Ok () -> cmap := Smap.remove key !cmap
-            | Error lst -> cmap := Smap.add key lst !cmap)
-          map;
+  (*       Smap.iter *)
+  (*         (fun key t -> *)
+  (*           match is_exhaustive t with *)
+  (*           | Ok () -> cmap := Smap.remove key !cmap *)
+  (*           | Error lst -> cmap := Smap.add key lst !cmap) *)
+  (*         map; *)
 
-        (* Only missing cases remain *)
-        if not (Smap.is_empty !cmap) then
-          let lst =
-            Smap.to_seq !cmap |> List.of_seq
-            |> List.fold_left
-                 (* We add for each missing case the current ctor *)
-                   (fun acc (a, lst) ->
-                   match lst with
-                   | [] -> [ a ] :: acc
-                   | lst ->
-                       List.fold_left (fun acc lst -> (a :: lst) :: acc) acc lst)
-                 []
-          in
+  (*       (\* Only missing cases remain *\) *)
+  (*       if not (Smap.is_empty !cmap) then *)
+  (*         let lst = *)
+  (*           Smap.to_seq !cmap |> List.of_seq *)
+  (*           |> List.fold_left *)
+  (*                (\* We add for each missing case the current ctor *\) *)
+  (*                  (fun acc (a, lst) -> *)
+  (*                  match lst with *)
+  (*                  | [] -> [ a ] :: acc *)
+  (*                  | lst -> *)
+  (*                      List.fold_left (fun acc lst -> (a :: lst) :: acc) acc lst) *)
+  (*                [] *)
+  (*         in *)
 
-          Error lst
-        else Ok ()
+  (*         Error lst *)
+  (*       else Ok () *)
 
-  let rec cases_to_string = function
-    | [] -> ""
-    | [ case ] -> case
-    | case :: tail -> Printf.sprintf "%s(%s)" case (cases_to_string tail)
+  let insert other_ctors ctor lvl lst =
+    let aux = function
+      | line, Exhaustive l when l <= lvl -> (line, Exhaustive l)
+      | line, mtch ->
+          (line, Partial (lvl, other_ctors, Smap.add ctor mtch Smap.empty))
+    in
+    List.map aux lst
+
+  (* let rec cases_to_string = function *)
+  (*   | [] -> "" *)
+  (*   | [ case ] -> case *)
+  (*   | case :: tail -> Printf.sprintf "%s(%s)" case (cases_to_string tail) *)
+  let rec to_string = function
+    | Exhaustive _ -> "Exhaustive"
+    | Partial (_, _, map) ->
+        String.concat ", "
+          (Smap.bindings map
+          |> List.map (fun (key, t) ->
+                 Printf.sprintf "%s(%s)" key (to_string t)))
+
+  let new_check_exhaustive (matches : (int * t) list) =
+    let sorted =
+      List.sort (fun lhs rhs -> Int.compare (fst lhs) (fst rhs)) matches
+    in
+    List.iter
+      (fun (index, t) -> Printf.printf "%i: %s\n" index (to_string t))
+      sorted;
+    (* TODO dedup *)
+    match sorted with
+    | [] -> failwith "Internal Error: Pattern match empty"
+    | hd :: tl ->
+        List.fold_left (fun merged item -> merge (snd item) merged) (snd hd) tl
+        |> ignore
 end
 
 let get_variant env loc name annot =
@@ -116,7 +151,12 @@ let get_variant env loc name annot =
 module Make (C : Core) = struct
   open C
 
-  type pattern_data = { loc : Ast.loc; ret_expr : Ast.stmt list; lvl : int }
+  type pattern_data = {
+    loc : Ast.loc;
+    ret_expr : Ast.stmt list;
+    lvl : int;
+    index : int;
+  }
 
   let convert_ctor env loc name arg annot =
     let Env.{ index; typename }, ctor, variant =
@@ -163,23 +203,25 @@ module Make (C : Core) = struct
     let ret = newvar () in
 
     let some_cases =
-      List.map
-        (fun (loc, p, expr) -> (Some p, { loc; ret_expr = expr; lvl = 0 }))
+      List.mapi
+        (fun i (loc, p, expr) ->
+          (Some p, { loc; ret_expr = expr; lvl = 0; index = i }))
         cases
     in
-    let matchexpr, mtch = select_ctor env loc some_cases ret in
+    let matchexpr, matches = select_ctor env loc some_cases ret in
 
     (* Check for exhaustiveness *)
-    (match Match.is_exhaustive mtch with
-    | Ok () -> ()
-    | Error cases ->
-        let cases = String.concat ", " (List.map Match.cases_to_string cases) in
-        let msg =
-          Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
-            cases
-        in
-        raise (Error (loc, msg)));
+    Match.new_check_exhaustive matches;
 
+    (* (match Match.is_exhaustive mtch with *)
+    (* | Ok () -> () *)
+    (* | Error cases -> *)
+    (*     let cases = String.concat ", " (List.map Match.cases_to_string cases) in *)
+    (*     let msg = *)
+    (*       Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s" *)
+    (*         cases *)
+    (*     in *)
+    (*     raise (Error (loc, msg))); *)
     { matchexpr with expr = Let (expr_name, expr, matchexpr) }
 
   and ctornames_of_variant = function
@@ -200,15 +242,14 @@ module Make (C : Core) = struct
     let expr_name = "__expr" in
     let expr = convert_var env all_loc expr_name in
 
-    let check_redundant init lst =
-      List.fold_left
-        (fun mtch ((_, d) as item) ->
-          try Match.merge (fill_matches env item) mtch
-          with Match.Err Redundant ->
-            raise (Error (d.loc, "Pattern match case is redundant")))
-        init lst
-    in
-
+    (* let check_redundant init lst = *)
+    (*   List.fold_left *)
+    (*     (fun mtch ((_, d) as item) -> *)
+    (*       try Match.merge (fill_matches env item) mtch *)
+    (*       with Match.Err Redundant -> *)
+    (*         raise (Error (d.loc, "Pattern match case is redundant"))) *)
+    (*     init lst *)
+    (* in *)
     let ctorexpr ctor =
       match ctor.ctortyp with
       (* TODO is this instantiated? *)
@@ -231,7 +272,7 @@ module Make (C : Core) = struct
           select_ctor env d.loc [ (arg, { d with lvl = d.lvl + 1 }) ] ret_typ
         in
         ( { cont with expr = Let (expr_name, argexpr, cont) },
-          Match.Partial (names, Smap.add (snd name) matches Smap.empty) )
+          Match.insert names (snd name) d.lvl matches )
     | (Some (Ast.Pctor (name, _)), d) :: _ ->
         let a, b = match_cases (snd name) cases [] [] in
 
@@ -256,25 +297,35 @@ module Make (C : Core) = struct
 
         let ifexpr = Let (expr_name, data, cont) in
 
-        let mtch =
-          Match.Partial (names, Smap.add (snd name) ifmatch Smap.empty)
-        in
+        (* let mtch = *)
+        (*   Match.Partial (names, Smap.add (snd name) ifmatch Smap.empty) *)
+        (* in *)
         (* The tail isn't used in the decision tree,
            but is needed for case analysis *)
         (* Discard first item as it's processes in select_ctor *)
-        let mtch =
-          match a with [] -> mtch | _ :: tl -> check_redundant mtch tl
-        in
+        (* let matches = *)
+        (*   match a with *)
+        (*   | [] -> *)
+        (*       (\* This case would have failed already *\) *)
+        (*       failwith "Internal Error: fail again" *)
+        (*   | _ :: tl -> *)
+        (*       List.fold_left *)
+        (*         (fun acc item -> *)
+        (*           ((snd item).index, fill_matches env item) :: acc) *)
+        (*         ifmatch tl *)
+        (*       |> Match.insert names (snd name) d.lvl *)
+        (* in *)
+        let matches = Match.insert names (snd name) d.lvl ifmatch in
 
         (* This is either an if-then-else or just an if with one ctor,
            depending on whether [b] is empty *)
         let expr, matches =
           match b with
-          | [] -> (ifexpr, mtch)
+          | [] -> (ifexpr, matches)
           | b ->
               let if_ = { cont with expr = ifexpr } in
               let else_, elsematch = select_ctor env d.loc b ret_typ in
-              let matches = Match.merge elsematch mtch in
+              let matches = matches @ elsematch in
               (If (cmp, if_, else_), matches)
         in
 
@@ -285,20 +336,24 @@ module Make (C : Core) = struct
         let ret, _ = convert_block env d.ret_expr in
 
         (* This is already exhaustive but we do the tail here as well for errors *)
-        check_redundant (Exhaustive d.lvl) tl |> ignore;
-
+        let matches =
+          List.fold_left
+            (fun acc item -> ((snd item).index, fill_matches env item) :: acc)
+            [ (d.index, Match.Exhaustive d.lvl) ]
+            tl
+        in
         unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
         ( {
             typ = ret.typ;
             expr = Let (name, expr, ret);
             is_const = ret.is_const;
           },
-          Exhaustive d.lvl )
+          matches )
     | (Some (Ptup _), _) :: _ -> failwith "TODO"
     | (None, d) :: _ ->
         let ret, _ = convert_block env d.ret_expr in
         unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
-        (ret, Exhaustive d.lvl)
+        (ret, [ (d.index, Exhaustive d.lvl) ])
     | [] -> failwith "Internal Error: Pattern match failed"
 
   and match_cases case cases if_ else_ =
@@ -327,7 +382,7 @@ module Make (C : Core) = struct
         let names = ctornames_of_variant variant in
 
         let map = Smap.add (snd name) (fill_matches env (arg, d)) Smap.empty in
-        Match.Partial (names, map)
+        Match.Partial (d.lvl, names, map)
     | Some (Ptup _), _ -> failwith "TODO"
     | Some (Pvar _), d -> Exhaustive d.lvl
     | None, d -> Exhaustive d.lvl
