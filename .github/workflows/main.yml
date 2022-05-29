@@ -1,0 +1,35 @@
+name: build
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build-and-test:
+    name: build
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { ocaml-compiler: 4.14.0, os: ubuntu-22.04 }
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+
+      - run: opam install . --deps-only --with-test
+
+      - run: opam exec -- dune build
+        if: matrix.ocaml-compiler != '4.06.0'
+
+      - run: opam exec -- dune runtest -f
