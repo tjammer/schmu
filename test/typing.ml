@@ -338,12 +338,26 @@ match Some(1) with
 |}
 
 let test_match_all_before_ctor () =
-    test_exn "Pattern match case is redundant"
+  test_exn "Pattern match case is redundant"
     {|
 type option('a) = Some('a) | None
 match Some(1) with
   a -> 0
   None -> -1
+|}
+
+let test_match_redundant_all_cases () =
+  test_exn "Pattern match case is redundant"
+    {|
+type option('a) = Some('a) | None
+type test = Float(float) | Int(int) | Non
+
+match None with
+  Some(Float(f)) -> f |> int_of_float
+  Some(Int(i)) -> i
+  Some(Non) -> 1
+  None -> 0
+  a -> -1
 |}
 
 let case str test = test_case str `Quick test
@@ -480,5 +494,6 @@ let () =
           case "missing" test_match_missing;
           case "all_after_ctor" test_match_all_after_ctor;
           case "all_before_ctor" test_match_all_before_ctor;
+          case "redundant_all_cases" test_match_redundant_all_cases;
         ] );
     ]
