@@ -328,6 +328,20 @@ let test_match_missing () =
   test_exn "Pattern match is not exhaustive. Missing cases: Some"
     "type option('a) = Some('a) | None match Some(1) with\n  None -> -1\n"
 
+let test_match_missing_nested () =
+  test_exn
+    "Pattern match is not exhaustive. Missing cases: Some(Int), Some(Non), None"
+    {|
+type option('a) = Some('a) | None
+type test = Float(float) | Int(int) | Non
+
+match None with
+  Some(Float(f)) -> f |> int_of_float
+  -- Some(Int(i)) -> i
+  -- Some(Non) -> 1
+  -- None -> 0
+|}
+
 let test_match_all_after_ctor () =
   test "int"
     {|
@@ -492,6 +506,7 @@ let () =
           case "all" test_match_all;
           case "redundant" test_match_redundant;
           case "missing" test_match_missing;
+          case "missing nested" test_match_missing_nested;
           case "all_after_ctor" test_match_all_after_ctor;
           case "all_before_ctor" test_match_all_before_ctor;
           case "redundant_all_cases" test_match_redundant_all_cases;
