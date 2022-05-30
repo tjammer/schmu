@@ -180,10 +180,10 @@ expr:
 %inline pattern_item:
   | ctor; option(parens_single(pattern)) { Pctor($1, $2) }
   | Lowercase_id { Pvar($loc, $1) }
+  | Wildcard { Pwildcard $loc }
 
 %inline pattern_tuple:
   | pattern_item; Comma; separated_nonempty_list(Comma, pattern_item) { Ptup($loc, $1 :: $3) }
-
 
 ident:
   | Lowercase_id { ($loc, $1) }

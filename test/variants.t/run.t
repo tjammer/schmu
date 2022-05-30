@@ -62,14 +62,6 @@ Basic variant ctors
 
 Basic pattern matching
   $ schmu match_option.smu --dump-llvm -o out.o && cc out.o && ./a.out
-  match_option.smu:22:3: warning: Unused binding a
-  22 |   a -> 0
-         ^
-  
-  match_option.smu:29:3: warning: Unused binding a
-  29 |   a -> 1
-         ^
-  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

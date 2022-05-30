@@ -326,6 +326,20 @@ module Make (C : Core) = struct
             is_const = ret.is_const;
           },
           matches )
+    | (Some (Pwildcard _), d) :: tl ->
+        (* Basically the same as [Pvar] above, but we do not bind anything *)
+        let expr, _ = convert_block env d.ret_expr in
+
+        (* This is already exhaustive but we do the tail here as well for errors *)
+        let matches =
+          List.fold_left
+            (fun acc item ->
+              ((snd item).index, (snd item).loc, fill_matches env item) :: acc)
+            [ (d.index, d.loc, Match.Exhaustive d.lvl) ]
+            tl
+        in
+        unify (d.loc, "Match expression does not match:") ret_typ expr.typ;
+        (expr, matches)
     | (Some (Ptup _), _) :: _ -> failwith "TODO"
     | (None, d) :: _ ->
         let ret, _ = convert_block env d.ret_expr in
@@ -344,7 +358,8 @@ module Make (C : Core) = struct
         (* If the last item is a catchall we can stuff it into the else branch.
            This gets rid off a duplication and also fixes a redundancy check bug *)
         match_cases case [] if_ (thing :: else_)
-    | ((Some (Pvar _), _) as thing) :: tl ->
+    | ((Some (Pvar _), _) as thing) :: tl
+    | ((Some (Pwildcard _), _) as thing) :: tl ->
         match_cases case tl (thing :: if_) (thing :: else_)
     | (None, _) :: tl ->
         (* TODO correctly handle this case *)
@@ -361,6 +376,6 @@ module Make (C : Core) = struct
         let map = Smap.add (snd name) (fill_matches env (arg, d)) Smap.empty in
         Match.Partial (d.lvl, names, map)
     | Some (Ptup _), _ -> failwith "TODO"
-    | Some (Pvar _), d -> Exhaustive d.lvl
+    | Some (Pvar _), d | Some (Pwildcard _), d -> Exhaustive d.lvl
     | None, d -> Exhaustive d.lvl
 end

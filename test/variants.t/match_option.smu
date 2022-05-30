@@ -19,14 +19,14 @@ opt_match(None) |>> printf("%i\n".cstr)
 -- Some, catchall
 fun some_all(p) = match p with
   Some(thing) -> thing
-  a -> 0
+  _ -> 0
 
 some_all(Some(1)) |>> printf("%i\n".cstr)
 some_all(None) |>> printf("%i\n".cstr)
 
 fun none_all(p) = match p with
   None -> 0
-  a -> 1
+  _ -> 1
 
 none_all(Some(1)) |>> printf("%i\n".cstr)
 none_all(None) |>> printf("%i\n".cstr)

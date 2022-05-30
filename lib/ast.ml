@@ -58,6 +58,7 @@ and pattern =
   | Pctor of (loc * string) * pattern option
   | Pvar of loc * string
   | Ptup of loc * pattern list
+  | Pwildcard of loc
 
 and literal =
   | Int of int

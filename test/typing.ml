@@ -374,6 +374,14 @@ match None with
   a -> -1
 |}
 
+let test_match_wildcard () =
+  test_exn "Pattern match case is redundant"
+{|type option('a) = Some('a) | None
+match Some(1) with
+  _ -> 0
+  None -> -1
+|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -510,5 +518,6 @@ let () =
           case "all_after_ctor" test_match_all_after_ctor;
           case "all_before_ctor" test_match_all_before_ctor;
           case "redundant_all_cases" test_match_redundant_all_cases;
+          case "wildcard" test_match_wildcard;
         ] );
     ]
