@@ -376,10 +376,23 @@ match None with
 
 let test_match_wildcard () =
   test_exn "Pattern match case is redundant"
-{|type option('a) = Some('a) | None
+    {|type option('a) = Some('a) | None
 match Some(1) with
   _ -> 0
   None -> -1
+|}
+
+let test_match_wildcard_nested () =
+  test_exn "Pattern match case is redundant"
+    {|
+type option('a) = Some('a) | None
+type test = Float(float) | Int(int) | Non
+
+match None with
+  Some(Float(f)) -> f |> int_of_float
+  Some(_) -> -2
+  Some(Non) -> 1
+  None -> 0
 |}
 
 let case str test = test_case str `Quick test
@@ -519,5 +532,6 @@ let () =
           case "all_before_ctor" test_match_all_before_ctor;
           case "redundant_all_cases" test_match_redundant_all_cases;
           case "wildcard" test_match_wildcard;
+          case "wildcard_nested" test_match_wildcard_nested;
         ] );
     ]
