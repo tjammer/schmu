@@ -306,29 +306,21 @@ module Make (C : Core) = struct
         in
 
         ({ typ = ret_typ; expr; is_const = false }, matches)
-    | (Some (Pvar (_, name)), d) :: tl ->
+    | (Some (Pvar (loc, name)), d) :: tl ->
         (* Bind the variable *)
         let env = Env.add_value name expr.typ ~is_const:false d.loc env in
-        let ret, _ = convert_block env d.ret_expr in
+        (* Continue with expression *)
+        let ret, matches = select_ctor env loc ((None, d) :: tl) ret_typ in
 
-        (* This is already exhaustive but we do the tail here as well for errors *)
-        let matches =
-          List.fold_left
-            (fun acc item ->
-              ((snd item).index, (snd item).loc, fill_matches env item) :: acc)
-            [ (d.index, d.loc, Match.Exhaustive d.lvl) ]
-            tl
-        in
-        unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
         ( {
             typ = ret.typ;
             expr = Let (name, expr, ret);
             is_const = ret.is_const;
           },
           matches )
-    | (Some (Pwildcard _), d) :: tl ->
-        (* Basically the same as [Pvar] above, but we do not bind anything *)
-        let expr, _ = convert_block env d.ret_expr in
+    | (Some (Ptup _), _) :: _ -> failwith "TODO"
+    | (Some (Pwildcard _), d) :: tl | (None, d) :: tl ->
+        let ret, _ = convert_block env d.ret_expr in
 
         (* This is already exhaustive but we do the tail here as well for errors *)
         let matches =
@@ -338,13 +330,8 @@ module Make (C : Core) = struct
             [ (d.index, d.loc, Match.Exhaustive d.lvl) ]
             tl
         in
-        unify (d.loc, "Match expression does not match:") ret_typ expr.typ;
-        (expr, matches)
-    | (Some (Ptup _), _) :: _ -> failwith "TODO"
-    | (None, d) :: _ ->
-        let ret, _ = convert_block env d.ret_expr in
         unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
-        (ret, [ (d.index, d.loc, Exhaustive d.lvl) ])
+        (ret, matches)
     | [] -> failwith "Internal Error: Pattern match failed"
 
   and match_cases case cases if_ else_ =
