@@ -772,7 +772,7 @@ prog: Match With
 ##
 ## Ends in an error in state: 80.
 ##
-## expr -> Match . expr With Begin nonempty_list(clause) End [ With Wildcard Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
+## expr -> Match . separated_nonempty_list(Comma,expr) With Begin nonempty_list(clause) End [ With Wildcard Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
 ##
 ## The known suffix of the stack is as follows:
 ## Match
@@ -1055,7 +1055,7 @@ prog: Lowercase_id Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lowercase_id Lpar Uppercase_id Rbrack
+prog: Lowercase_id Lpar Uppercase_id With
 ##
 ## Ends in an error in state: 119.
 ##
@@ -1076,33 +1076,33 @@ prog: Lowercase_id Lpar Uppercase_id Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrack Uppercase_id With
+prog: Lbrack Uppercase_id Wildcard
 ##
 ## Ends in an error in state: 121.
 ##
-## expr -> expr . Plus_i expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Minus_i expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Mult_i expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Div_i expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Less_i expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Greater_i expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Bin_equal_i expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Plus_f expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Minus_f expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Mult_f expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Div_f expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Less_f expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Greater_f expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Bin_equal_f expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . And expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Or expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . parens(expr) [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id Arrow_left expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Pipe_head expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Pipe_tail expr [ Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
-## separated_nonempty_list(Comma,expr) -> expr . [ Rpar Rbrack ]
-## separated_nonempty_list(Comma,expr) -> expr . Comma separated_nonempty_list(Comma,expr) [ Rpar Rbrack ]
+## expr -> expr . Plus_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Minus_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Mult_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Div_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Less_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Greater_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Bin_equal_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Plus_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Minus_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Mult_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Div_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Less_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Greater_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Bin_equal_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . And expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Or expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . parens(expr) [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Dot Lowercase_id Arrow_left expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Dot Lowercase_id [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Pipe_head expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## expr -> expr . Pipe_tail expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Comma Bin_equal_i Bin_equal_f And ]
+## separated_nonempty_list(Comma,expr) -> expr . [ With Rpar Rbrack ]
+## separated_nonempty_list(Comma,expr) -> expr . Comma separated_nonempty_list(Comma,expr) [ With Rpar Rbrack ]
 ##
 ## The known suffix of the stack is as follows:
 ## expr
@@ -2066,7 +2066,7 @@ prog: Lbrack Uppercase_id Comma With
 ##
 ## Ends in an error in state: 170.
 ##
-## separated_nonempty_list(Comma,expr) -> expr Comma . separated_nonempty_list(Comma,expr) [ Rpar Rbrack ]
+## separated_nonempty_list(Comma,expr) -> expr Comma . separated_nonempty_list(Comma,expr) [ With Rpar Rbrack ]
 ##
 ## The known suffix of the stack is as follows:
 ## expr Comma
@@ -2542,7 +2542,7 @@ prog: Lbrac Lowercase_id Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrack Uppercase_id Rpar
+prog: Lbrack Uppercase_id With
 ##
 ## Ends in an error in state: 213.
 ##
@@ -2603,35 +2603,14 @@ prog: Lpar Uppercase_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Uppercase_id Wildcard
+prog: Match Uppercase_id Rpar
 ##
 ## Ends in an error in state: 217.
 ##
-## expr -> expr . Plus_i expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Minus_i expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Mult_i expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Div_i expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Less_i expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Greater_i expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Bin_equal_i expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Plus_f expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Minus_f expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Mult_f expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Div_f expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Less_f expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Greater_f expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Bin_equal_f expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . And expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Or expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . parens(expr) [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id Arrow_left expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Pipe_head expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> expr . Pipe_tail expr [ With Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Dot Div_i Div_f Bin_equal_i Bin_equal_f And ]
-## expr -> Match expr . With Begin nonempty_list(clause) End [ With Wildcard Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
+## expr -> Match separated_nonempty_list(Comma,expr) . With Begin nonempty_list(clause) End [ With Wildcard Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
 ##
 ## The known suffix of the stack is as follows:
-## Match expr
+## Match separated_nonempty_list(Comma,expr)
 ##
 ## WARNING: This example involves spurious reductions.
 ## This implies that, although the LR(1) items shown above provide an
@@ -2639,6 +2618,7 @@ prog: Match Uppercase_id Wildcard
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 127, spurious reduction of production option(parens_single(expr)) ->
 ## In state 169, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 121, spurious reduction of production separated_nonempty_list(Comma,expr) -> expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -2647,10 +2627,10 @@ prog: Match Uppercase_id With With
 ##
 ## Ends in an error in state: 218.
 ##
-## expr -> Match expr With . Begin nonempty_list(clause) End [ With Wildcard Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
+## expr -> Match separated_nonempty_list(Comma,expr) With . Begin nonempty_list(clause) End [ With Wildcard Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
 ##
 ## The known suffix of the stack is as follows:
-## Match expr With
+## Match separated_nonempty_list(Comma,expr) With
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -2659,10 +2639,10 @@ prog: Match Uppercase_id With Begin With
 ##
 ## Ends in an error in state: 219.
 ##
-## expr -> Match expr With Begin . nonempty_list(clause) End [ With Wildcard Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
+## expr -> Match separated_nonempty_list(Comma,expr) With Begin . nonempty_list(clause) End [ With Wildcard Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_i Bin_equal_f And ]
 ##
 ## The known suffix of the stack is as follows:
-## Match expr With Begin
+## Match separated_nonempty_list(Comma,expr) With Begin
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>

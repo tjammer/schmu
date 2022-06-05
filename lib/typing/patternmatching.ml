@@ -20,7 +20,7 @@ module type S = sig
   val convert_match :
     Env.t ->
     Ast.loc ->
-    Ast.expr ->
+    Ast.expr list ->
     (Ast.loc * Ast.pattern * Ast.block) list ->
     Typed_tree.typed_expr
 end
@@ -153,6 +153,22 @@ let get_variant env loc name annot =
       let msg = "Unbound constructor " ^ snd name in
       raise (Error (loc, msg))
 
+(* module Tup = struct *)
+(*   let choose_col patterns = *)
+(*     (\* We choose the column based on precedence. *)
+(*        A [Pvar] needs to be bound, *)
+(*        [Pwildcard] is ignored. *)
+(*        Otherwise, we choose a ctor. For simplicity, we choose the first *\) *)
+(*     let rec aux ctor = function *)
+(*       | Ast.Pctor _ as ct :: tl->  ( *)
+(*           match ctor with *)
+(*           | Some _ ->  aux ctor tl *)
+(*           | None -> (\* Use this ctor *\) *)
+(*             aux (Some ct) tl *)
+(*         ) *)
+(*       | Pvar _ -> *)
+(* end *)
+
 module Make (C : Core) = struct
   open C
 
@@ -162,6 +178,14 @@ module Make (C : Core) = struct
     lvl : int;
     index : int;
   }
+
+  let gen_cmp expr const_index =
+    let index = { typ = Ti32; expr = Variant_index expr; is_const = false } in
+    let cind =
+      { typ = Ti32; expr = Const (I32 const_index); is_const = true }
+    in
+    let cmpexpr = Bop (Ast.Equal_i, index, cind) in
+    { typ = Tbool; expr = cmpexpr; is_const = false }
 
   let convert_ctor env loc name arg annot =
     let Env.{ index; typename }, ctor, variant =
@@ -195,14 +219,21 @@ module Make (C : Core) = struct
         in
         raise (Error (fst name, msg))
 
-  let rec convert_match env loc expr cases =
-    (* Magical identifier to read pattern expr.
-       There must be a better solution, but my brain doesn't seem to work *)
-    let expr_name = "__expr" in
+  (* We want to be able to reference the exprs in the pattern match without
+     regenerating it, so we use a migic identifier *)
+  let expr_name i = "__expr" ^ string_of_int i
 
-    let expr = convert env expr in
-    (* Make the expr available in the patternmatch *)
-    let env = Env.add_value expr_name expr.typ loc env in
+  let rec convert_match env loc exprs cases =
+    let (_, env), exprs =
+      List.fold_left_map
+        (fun (i, env) expr ->
+          let e = convert env expr in
+          (* Make the expr available in the patternmatch *)
+          let env = Env.add_value (expr_name i) e.typ loc env in
+          ((i + 1, env), (i, e)))
+        (0, env) exprs
+    in
+    (* TODO error if we have multiple exprs but no tup pattern *)
 
     (* TODO Should we enter a level here? *)
     let ret = newvar () in
@@ -213,7 +244,9 @@ module Make (C : Core) = struct
           (Some p, { loc; ret_expr = expr; lvl = 0; index = i }))
         cases
     in
-    let matchexpr, matches = select_ctor env loc some_cases ret in
+    (* If it's a tuple, the index is passed recursively. Otherwise use 0 *)
+    let tup_index = 0 in
+    let matchexpr, matches = compile_matches env loc tup_index some_cases ret in
 
     (* Check for exhaustiveness *)
     (match Match.is_exhaustive matches with
@@ -225,25 +258,31 @@ module Make (C : Core) = struct
             cases
         in
         raise (Error (loc, msg)));
-    { matchexpr with expr = Let (expr_name, expr, matchexpr) }
+
+    let rec build_expr = function
+      | [] -> matchexpr
+      | (i, expr) :: tl ->
+          { matchexpr with expr = Let (expr_name i, expr, build_expr tl) }
+    in
+
+    build_expr exprs
 
   and ctornames_of_variant = function
     | Tvariant (_, _, ctors) ->
         Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname)
     | _ -> failwith "Internal Error: Not a variant"
 
-  and select_ctor env all_loc cases ret_typ =
+  and compile_matches env all_loc ti cases ret_typ =
     (* We build the decision tree here.
        [match_cases] splits cases into ones that match and ones that don't.
-       [select_ctor] then generates the tree for the cases.
+       [compile_matches] then generates the tree for the cases.
        This boils down to a chain of if-then-else exprs. A heuristic for
        choosing the ctor to check first in a case is not needed right now,
        since we have neither tuples nor literals in matches, but it will
-       be part of [select_ctor] eventually *)
+       be part of [compile_matches] eventually *)
 
     (* Magic value, see above *)
-    let expr_name = "__expr" in
-    let expr = convert_var env all_loc expr_name in
+    let expr = convert_var env all_loc (expr_name ti) in
 
     let ctorexpr ctor =
       match ctor.ctortyp with
@@ -262,11 +301,13 @@ module Make (C : Core) = struct
         let names = ctornames_of_variant variant in
 
         let argexpr = ctorexpr ctor in
-        let env = Env.add_value expr_name argexpr.typ d.loc env in
+        let env = Env.add_value (expr_name ti) argexpr.typ d.loc env in
         let cont, matches =
-          select_ctor env d.loc [ (arg, { d with lvl = d.lvl + 1 }) ] ret_typ
+          compile_matches env d.loc ti
+            [ (arg, { d with lvl = d.lvl + 1 }) ]
+            ret_typ
         in
-        ( { cont with expr = Let (expr_name, argexpr, cont) },
+        ( { cont with expr = Let (expr_name ti, argexpr, cont) },
           Match.insert names (snd name) d.lvl matches )
     | (Some (Ast.Pctor (name, _)), d) :: _ ->
         let a, b = match_cases (snd name) cases [] [] in
@@ -276,20 +317,13 @@ module Make (C : Core) = struct
 
         let names = ctornames_of_variant variant in
 
-        let index =
-          { typ = Ti32; expr = Variant_index expr; is_const = false }
-        in
-        let cind =
-          { typ = Ti32; expr = Const (I32 l.index); is_const = true }
-        in
-        let cmpexpr = Bop (Ast.Equal_i, index, cind) in
-        let cmp = { typ = Tbool; expr = cmpexpr; is_const = false } in
+        let cmp = gen_cmp expr l.index in
 
         let data = ctorexpr ctor in
-        let ifenv = Env.add_value expr_name data.typ d.loc env in
+        let ifenv = Env.add_value (expr_name ti) data.typ d.loc env in
 
-        let cont, ifmatch = select_ctor ifenv d.loc a ret_typ in
-        let ifexpr = Let (expr_name, data, cont) in
+        let cont, ifmatch = compile_matches ifenv d.loc ti a ret_typ in
+        let ifexpr = Let (expr_name ti, data, cont) in
 
         let matches = Match.insert names (snd name) d.lvl ifmatch in
 
@@ -300,7 +334,7 @@ module Make (C : Core) = struct
           | [] -> (ifexpr, matches)
           | b ->
               let if_ = { cont with expr = ifexpr } in
-              let else_, elsematch = select_ctor env d.loc b ret_typ in
+              let else_, elsematch = compile_matches env d.loc ti b ret_typ in
               let matches = matches @ elsematch in
               (If (cmp, if_, else_), matches)
         in
@@ -310,7 +344,9 @@ module Make (C : Core) = struct
         (* Bind the variable *)
         let env = Env.add_value name expr.typ ~is_const:false d.loc env in
         (* Continue with expression *)
-        let ret, matches = select_ctor env loc ((None, d) :: tl) ret_typ in
+        let ret, matches =
+          compile_matches env loc ti ((None, d) :: tl) ret_typ
+        in
 
         ( {
             typ = ret.typ;
@@ -318,7 +354,10 @@ module Make (C : Core) = struct
             is_const = ret.is_const;
           },
           matches )
-    | (Some (Ptup _), _) :: _ -> failwith "TODO"
+    | (Some (Ptup _), _) :: _ ->
+        failwith "TODO tup"
+        (* For simplicity, this duplicates some code of the other patterns.
+           When the algo works, this can probably be cleaned up ab it *)
     | (Some (Pwildcard _), d) :: tl | (None, d) :: tl ->
         let ret, _ = convert_block env d.ret_expr in
 
@@ -365,4 +404,7 @@ module Make (C : Core) = struct
     | Some (Ptup _), _ -> failwith "TODO"
     | Some (Pvar _), d | Some (Pwildcard _), d -> Exhaustive d.lvl
     | None, d -> Exhaustive d.lvl
+
+  (* and compile_tup_matches env all_loc ret_typ = *)
+  (*   (\* Similar as above for the single case. *\) *)
 end

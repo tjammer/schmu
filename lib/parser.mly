@@ -147,7 +147,7 @@ expr:
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
   | Lpar; expr; Rpar { $2 }
   | ctor; option(parens_single(expr)) { Ctor ($loc, $1, $2) }
-  | Match; expr; With; Begin; nonempty_list(clause); End { Match (($startpos, $endpos($5)), $2, $5) }
+  | Match; separated_nonempty_list(Comma, expr); With; Begin; nonempty_list(clause); End { Match (($startpos, $endpos($5)), $2, $5) }
 
 %inline lit:
   | Int { Lit($loc, Int $1) }

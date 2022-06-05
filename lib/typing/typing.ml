@@ -402,7 +402,7 @@ end = struct
     | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
     | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
-    | Match (loc, expr, cases) -> convert_match env loc expr cases
+    | Match (loc, exprs, cases) -> convert_match env loc exprs cases
 
   and convert_var env loc id =
     match Env.query_val_opt id env with
