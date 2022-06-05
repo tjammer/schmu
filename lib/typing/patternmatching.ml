@@ -222,6 +222,7 @@ module Make (C : Core) = struct
   (* We want to be able to reference the exprs in the pattern match without
      regenerating it, so we use a migic identifier *)
   let expr_name i = "__expr" ^ string_of_int i
+  let arg_opt loc = function None -> Ast.Pwildcard loc | Some p -> p
 
   let rec convert_match env loc exprs cases =
     let (_, env), exprs =
@@ -233,6 +234,7 @@ module Make (C : Core) = struct
           ((i + 1, env), (i, e)))
         (0, env) exprs
     in
+
     (* TODO error if we have multiple exprs but no tup pattern *)
 
     (* TODO Should we enter a level here? *)
@@ -241,7 +243,7 @@ module Make (C : Core) = struct
     let some_cases =
       List.mapi
         (fun i (loc, p, expr) ->
-          (Some p, { loc; ret_expr = expr; lvl = 0; index = i }))
+          (p, { loc; ret_expr = expr; lvl = 0; index = i }))
         cases
     in
     (* If it's a tuple, the index is passed recursively. Otherwise use 0 *)
@@ -292,7 +294,7 @@ module Make (C : Core) = struct
     in
 
     match cases with
-    | [ (Some (Ast.Pctor (name, arg)), d) ] ->
+    | [ (Ast.Pctor (name, arg), d) ] ->
         (* Selecting the last case like this only works if we are sure
            that we have exhausted all cases *)
         let _, ctor, variant = get_variant env d.loc name None in
@@ -302,6 +304,8 @@ module Make (C : Core) = struct
 
         let argexpr = ctorexpr ctor in
         let env = Env.add_value (expr_name ti) argexpr.typ d.loc env in
+
+        let arg = arg_opt (fst name) arg in
         let cont, matches =
           compile_matches env d.loc ti
             [ (arg, { d with lvl = d.lvl + 1 }) ]
@@ -309,7 +313,7 @@ module Make (C : Core) = struct
         in
         ( { cont with expr = Let (expr_name ti, argexpr, cont) },
           Match.insert names (snd name) d.lvl matches )
-    | (Some (Ast.Pctor (name, _)), d) :: _ ->
+    | (Ast.Pctor (name, _), d) :: _ ->
         let a, b = match_cases (snd name) cases [] [] in
 
         let l, ctor, variant = get_variant env d.loc name None in
@@ -340,12 +344,12 @@ module Make (C : Core) = struct
         in
 
         ({ typ = ret_typ; expr; is_const = false }, matches)
-    | (Some (Pvar (loc, name)), d) :: tl ->
+    | (Pvar (loc, name), d) :: tl ->
         (* Bind the variable *)
         let env = Env.add_value name expr.typ ~is_const:false d.loc env in
         (* Continue with expression *)
         let ret, matches =
-          compile_matches env loc ti ((None, d) :: tl) ret_typ
+          compile_matches env loc ti ((Pwildcard loc, d) :: tl) ret_typ
         in
 
         ( {
@@ -354,11 +358,11 @@ module Make (C : Core) = struct
             is_const = ret.is_const;
           },
           matches )
-    | (Some (Ptup _), _) :: _ ->
+    | (Ptup _, _) :: _ ->
         failwith "TODO tup"
         (* For simplicity, this duplicates some code of the other patterns.
            When the algo works, this can probably be cleaned up ab it *)
-    | (Some (Pwildcard _), d) :: tl | (None, d) :: tl ->
+    | (Pwildcard _, d) :: tl ->
         let ret, _ = convert_block env d.ret_expr in
 
         (* This is already exhaustive but we do the tail here as well for errors *)
@@ -375,35 +379,29 @@ module Make (C : Core) = struct
 
   and match_cases case cases if_ else_ =
     match cases with
-    | (Some (Ast.Pctor ((_, name), arg)), d) :: tl when String.equal case name
-      ->
+    | (Ast.Pctor ((loc, name), arg), d) :: tl when String.equal case name ->
+        let arg = arg_opt loc arg in
         match_cases case tl ((arg, { d with lvl = d.lvl + 1 }) :: if_) else_
-    | ((Some (Pctor _), _) as thing) :: tl ->
-        match_cases case tl if_ (thing :: else_)
-    | [ ((Some (Pvar _), _) as thing) ] ->
+    | ((Pctor _, _) as thing) :: tl -> match_cases case tl if_ (thing :: else_)
+    | [ ((Pvar _, _) as thing) ] ->
         (* If the last item is a catchall we can stuff it into the else branch.
            This gets rid off a duplication and also fixes a redundancy check bug *)
         match_cases case [] if_ (thing :: else_)
-    | ((Some (Pvar _), _) as thing) :: tl
-    | ((Some (Pwildcard _), _) as thing) :: tl ->
+    | ((Pvar _, _) as thing) :: tl | ((Pwildcard _, _) as thing) :: tl ->
         match_cases case tl (thing :: if_) (thing :: else_)
-    | (None, _) :: tl ->
-        (* TODO correctly handle this case *)
-        print_endline "this strange case";
-        match_cases case tl if_ else_
-    | (Some (Ptup _), _) :: _ -> failwith "TODO"
+    | (Ptup _, _) :: _ -> failwith "TODO"
     | [] -> (List.rev if_, List.rev else_)
 
   and fill_matches env = function
-    | Some (Ast.Pctor (name, arg)), d ->
+    | Ast.Pctor (name, arg), d ->
         let _, _, variant = get_variant env d.loc name None in
         let names = ctornames_of_variant variant in
+        let arg = arg_opt (fst name) arg in
 
         let map = Smap.add (snd name) (fill_matches env (arg, d)) Smap.empty in
         Match.Partial (d.lvl, names, map)
-    | Some (Ptup _), _ -> failwith "TODO"
-    | Some (Pvar _), d | Some (Pwildcard _), d -> Exhaustive d.lvl
-    | None, d -> Exhaustive d.lvl
+    | Ptup _, _ -> failwith "TODO"
+    | Pvar _, d | Pwildcard _, d -> Exhaustive d.lvl
 
   (* and compile_tup_matches env all_loc ret_typ = *)
   (*   (\* Similar as above for the single case. *\) *)
