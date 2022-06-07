@@ -243,12 +243,18 @@ module Make (C : Core) = struct
     let some_cases =
       List.mapi
         (fun i (loc, p, expr) ->
-          (p, { loc; ret_expr = expr; lvl = 0; index = i }))
+          let pat =
+            match p with
+            | Ast.Ptup (_, pats) ->
+                (* TODO see above check arity *)
+                List.mapi (fun i p -> (i, p)) pats
+            | p -> [ (0, p) ]
+          in
+          (pat, { loc; ret_expr = expr; lvl = 0; index = i }))
         cases
     in
-    (* If it's a tuple, the index is passed recursively. Otherwise use 0 *)
-    let tup_index = 0 in
-    let matchexpr, matches = compile_matches env loc tup_index some_cases ret in
+
+    let matchexpr, matches = compile_matches env loc some_cases ret in
 
     (* Check for exhaustiveness *)
     (match Match.is_exhaustive matches with
@@ -274,7 +280,7 @@ module Make (C : Core) = struct
         Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname)
     | _ -> failwith "Internal Error: Not a variant"
 
-  and compile_matches env all_loc ti cases ret_typ =
+  and compile_matches env all_loc cases ret_typ =
     (* We build the decision tree here.
        [match_cases] splits cases into ones that match and ones that don't.
        [compile_matches] then generates the tree for the cases.
@@ -284,50 +290,54 @@ module Make (C : Core) = struct
        be part of [compile_matches] eventually *)
 
     (* Magic value, see above *)
-    let expr = convert_var env all_loc (expr_name ti) in
+    let expr i = convert_var env all_loc (expr_name i) in
 
-    let ctorexpr ctor =
+    let ctorexpr ctor i =
       match ctor.ctortyp with
       (* TODO is this instantiated? *)
-      | Some typ -> { typ; expr = Variant_data expr; is_const = false }
-      | None -> expr
+      | Some typ -> { typ; expr = Variant_data (expr i); is_const = false }
+      | None -> expr i
     in
 
     match cases with
-    | [ (Ast.Pctor (name, arg), d) ] ->
+    | [ ([ (i, Ast.Pctor (name, arg)) ], d) ] ->
         (* Selecting the last case like this only works if we are sure
            that we have exhausted all cases *)
         let _, ctor, variant = get_variant env d.loc name None in
-        unify (d.loc, "Variant pattern has unexpected type:") expr.typ variant;
+        unify
+          (d.loc, "Variant pattern has unexpected type:")
+          (expr i).typ variant;
 
         let names = ctornames_of_variant variant in
 
-        let argexpr = ctorexpr ctor in
-        let env = Env.add_value (expr_name ti) argexpr.typ d.loc env in
+        let argexpr = ctorexpr ctor i in
+        let env = Env.add_value (expr_name i) argexpr.typ d.loc env in
 
         let arg = arg_opt (fst name) arg in
         let cont, matches =
-          compile_matches env d.loc ti
-            [ (arg, { d with lvl = d.lvl + 1 }) ]
+          compile_matches env d.loc
+            [ ([ (i, arg) ], { d with lvl = d.lvl + 1 }) ]
             ret_typ
         in
-        ( { cont with expr = Let (expr_name ti, argexpr, cont) },
+        ( { cont with expr = Let (expr_name i, argexpr, cont) },
           Match.insert names (snd name) d.lvl matches )
-    | (Ast.Pctor (name, _), d) :: _ ->
+    | ([ (i, Ast.Pctor (name, _)) ], d) :: _ ->
         let a, b = match_cases (snd name) cases [] [] in
 
         let l, ctor, variant = get_variant env d.loc name None in
-        unify (d.loc, "Variant pattern has unexpected type:") expr.typ variant;
+        unify
+          (d.loc, "Variant pattern has unexpected type:")
+          (expr i).typ variant;
 
         let names = ctornames_of_variant variant in
 
-        let cmp = gen_cmp expr l.index in
+        let cmp = gen_cmp (expr i) l.index in
 
-        let data = ctorexpr ctor in
-        let ifenv = Env.add_value (expr_name ti) data.typ d.loc env in
+        let data = ctorexpr ctor i in
+        let ifenv = Env.add_value (expr_name i) data.typ d.loc env in
 
-        let cont, ifmatch = compile_matches ifenv d.loc ti a ret_typ in
-        let ifexpr = Let (expr_name ti, data, cont) in
+        let cont, ifmatch = compile_matches ifenv d.loc a ret_typ in
+        let ifexpr = Let (expr_name i, data, cont) in
 
         let matches = Match.insert names (snd name) d.lvl ifmatch in
 
@@ -338,32 +348,32 @@ module Make (C : Core) = struct
           | [] -> (ifexpr, matches)
           | b ->
               let if_ = { cont with expr = ifexpr } in
-              let else_, elsematch = compile_matches env d.loc ti b ret_typ in
+              let else_, elsematch = compile_matches env d.loc b ret_typ in
               let matches = matches @ elsematch in
               (If (cmp, if_, else_), matches)
         in
 
         ({ typ = ret_typ; expr; is_const = false }, matches)
-    | (Pvar (loc, name), d) :: tl ->
+    | ([ (i, Pvar (loc, name)) ], d) :: tl ->
         (* Bind the variable *)
-        let env = Env.add_value name expr.typ ~is_const:false d.loc env in
+        let env = Env.add_value name (expr i).typ ~is_const:false d.loc env in
         (* Continue with expression *)
         let ret, matches =
-          compile_matches env loc ti ((Pwildcard loc, d) :: tl) ret_typ
+          compile_matches env loc (([ (i, Pwildcard loc) ], d) :: tl) ret_typ
         in
 
         ( {
             typ = ret.typ;
-            expr = Let (name, expr, ret);
+            expr = Let (name, expr i, ret);
             is_const = ret.is_const;
           },
           matches )
-    | (Ptup _, _) :: _ ->
-        failwith "TODO tup"
-        (* For simplicity, this duplicates some code of the other patterns.
-           When the algo works, this can probably be cleaned up ab it *)
-    | (Pwildcard _, d) :: tl ->
+    | ([ (_, Ptup _) ], _) :: _ -> failwith "TODO tup"
+    | ([ (i, Pwildcard _) ], d) :: tl ->
         let ret, _ = convert_block env d.ret_expr in
+
+        (* Use expr. Otherwise we get unused binding error *)
+        ignore (expr i);
 
         (* This is already exhaustive but we do the tail here as well for errors *)
         let matches =
@@ -375,33 +385,45 @@ module Make (C : Core) = struct
         in
         unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
         (ret, matches)
+    | _ :: _ -> failwith "not yet"
     | [] -> failwith "Internal Error: Pattern match failed"
 
   and match_cases case cases if_ else_ =
     match cases with
-    | (Ast.Pctor ((loc, name), arg), d) :: tl when String.equal case name ->
+    | ([ (i, Ast.Pctor ((loc, name), arg)) ], d) :: tl
+      when String.equal case name ->
         let arg = arg_opt loc arg in
-        match_cases case tl ((arg, { d with lvl = d.lvl + 1 }) :: if_) else_
-    | ((Pctor _, _) as thing) :: tl -> match_cases case tl if_ (thing :: else_)
-    | [ ((Pvar _, _) as thing) ] ->
+        match_cases case tl
+          (([ (i, arg) ], { d with lvl = d.lvl + 1 }) :: if_)
+          else_
+    | (([ (_, Pctor _) ], _) as thing) :: tl ->
+        match_cases case tl if_ (thing :: else_)
+    | [ (([ (_, Pvar _) ], _) as thing) ] ->
         (* If the last item is a catchall we can stuff it into the else branch.
            This gets rid off a duplication and also fixes a redundancy check bug *)
         match_cases case [] if_ (thing :: else_)
-    | ((Pvar _, _) as thing) :: tl | ((Pwildcard _, _) as thing) :: tl ->
+    | (([ (_, Pvar _) ], _) as thing) :: tl
+    | (([ (_, Pwildcard _) ], _) as thing) :: tl ->
         match_cases case tl (thing :: if_) (thing :: else_)
-    | (Ptup _, _) :: _ -> failwith "TODO"
-    | [] -> (List.rev if_, List.rev else_)
+    | [] ->
+        (List.rev if_, List.rev else_)
+        (* | (Ptup _, _) :: _ -> failwith "TODO" *)
+    | _ -> failwith "Internal Error: Something is wrong 1"
 
   and fill_matches env = function
-    | Ast.Pctor (name, arg), d ->
+    (* This is not yet implemented for tuples *)
+    | [ (i, Ast.Pctor (name, arg)) ], d ->
         let _, _, variant = get_variant env d.loc name None in
         let names = ctornames_of_variant variant in
         let arg = arg_opt (fst name) arg in
 
-        let map = Smap.add (snd name) (fill_matches env (arg, d)) Smap.empty in
+        let map =
+          Smap.add (snd name) (fill_matches env ([ (i, arg) ], d)) Smap.empty
+        in
         Match.Partial (d.lvl, names, map)
-    | Ptup _, _ -> failwith "TODO"
-    | Pvar _, d | Pwildcard _, d -> Exhaustive d.lvl
+    | [ (_, Pvar _) ], d | [ (_, Pwildcard _) ], d ->
+        Exhaustive d.lvl (* | [ (_, Ptup _) ], _ -> failwith "TODO" *)
+    | _ -> failwith "Internal Error: Something is wrong here"
 
   (* and compile_tup_matches env all_loc ret_typ = *)
   (*   (\* Similar as above for the single case. *\) *)
