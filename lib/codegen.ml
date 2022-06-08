@@ -1543,28 +1543,30 @@ and gen_if param expr return =
   let e2 = gen_expr param expr.e2 in
 
   let e2_bb = Llvm.insertion_block builder in
-  let merge_bb = Llvm.append_block context "ifcont" parent in
-  Llvm.position_at_end merge_bb builder;
+  (* We don't want a merge_bb if both branches are tailcalls, so lazy it *)
+  let merge_bb = lazy (Llvm.append_block context "ifcont" parent) in
 
   let llvar =
-    (* If the else evaluates to void, we don't do anything.
-       Void will be added eventually *)
-    match e2.typ with
-    | Tunit -> e1
-    | _ -> (
-        (* Small optimization: If we happen to end up with the same value,
-           we don't generate a phi node (can happen in recursion) *)
-        match (is_tailcall e1, is_tailcall e2) with
-        | true, true ->
-            (* No need for the whole block, we just return some value *)
-            e1
-        | true, false -> e2
-        | false, true -> e1
-        | false, false ->
-            if e1.value <> e2.value then
+    (* Small optimization: If we happen to end up with the same value,
+       we don't generate a phi node (can happen in recursion) *)
+    match (is_tailcall e1, is_tailcall e2) with
+    | true, true ->
+        (* No need for the whole block, we just return some value *)
+        (* print_endline "both"; *)
+        e1
+    | true, false -> e2
+    | false, true -> e1
+    | false, false -> (
+        match e2.typ with
+        (* If the else evaluates to void, we don't do anything.
+           Void will be added eventually *)
+        | Tunit -> e1
+        | _ ->
+            if e1.value <> e2.value then (
+              Llvm.position_at_end (Lazy.force merge_bb) builder;
               let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
               let value = Llvm.build_phi incoming "iftmp" builder in
-              { value; typ = e1.typ; lltyp = e2.lltyp; const = Not }
+              { value; typ = e1.typ; lltyp = e2.lltyp; const = Not })
             else e1)
   in
 
@@ -1573,12 +1575,13 @@ and gen_if param expr return =
 
   if not (is_tailcall e1) then (
     Llvm.position_at_end e1_bb builder;
-    ignore (Llvm.build_br merge_bb builder));
+    ignore (Llvm.build_br (Lazy.force merge_bb) builder));
   if not (is_tailcall e2) then (
     Llvm.position_at_end e2_bb builder;
-    ignore (Llvm.build_br merge_bb builder));
+    ignore (Llvm.build_br (Lazy.force merge_bb) builder));
 
-  Llvm.position_at_end merge_bb builder;
+  if Lazy.is_val merge_bb then
+    Llvm.position_at_end (Lazy.force merge_bb) builder;
   llvar
 
 and codegen_record param typ labels allocref const return =

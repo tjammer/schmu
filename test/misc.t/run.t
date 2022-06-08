@@ -1323,3 +1323,234 @@ We can have if without else
       ^^^^^^^^^^^^^^
   
   [1]
+
+Tailcall loops
+  $ schmu -o out.o --dump-llvm regression_issue_26.smu && cc out.o stub.o && ./a.out
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %string = type { i8*, i64 }
+  
+  @0 = private unnamed_addr constant [12 x i8] c"%i, %i, %i\0A\00", align 1
+  @1 = private unnamed_addr constant [12 x i8] c"%i, %i, %i\0A\00", align 1
+  @2 = private unnamed_addr constant [8 x i8] c"%i, %i\0A\00", align 1
+  @3 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
+  
+  declare void @printf(i8* %0, i64 %1, i64 %2, i64 %3)
+  
+  define private void @nested__3(i64 %a, i64 %b, i64 %c) {
+  entry:
+    %0 = alloca i64, align 8
+    store i64 %a, i64* %0, align 4
+    %1 = alloca i64, align 8
+    store i64 %b, i64* %1, align 4
+    %2 = alloca i64, align 8
+    store i64 %c, i64* %2, align 4
+    %str = alloca %string, align 8
+    br label %rec.outer
+  
+  rec.outer:                                        ; preds = %then8, %else10, %entry
+    %c3.ph = phi i64 [ %c, %entry ], [ 0, %then8 ], [ %add11, %else10 ]
+    %b2.ph = phi i64 [ %b, %entry ], [ %add9, %then8 ], [ %b2, %else10 ]
+    %a1.ph = phi i64 [ %a, %entry ], [ %a1, %then8 ], [ %a1, %else10 ]
+    br label %rec
+  
+  rec:                                              ; preds = %rec.outer, %then
+    %b2 = phi i64 [ 0, %then ], [ %b2.ph, %rec.outer ]
+    %a1 = phi i64 [ %add, %then ], [ %a1.ph, %rec.outer ]
+    %eq = icmp eq i64 %b2, 3
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    %add = add i64 %a1, 1
+    store i64 %add, i64* %0, align 4
+    store i64 0, i64* %1, align 4
+    store i64 %c3.ph, i64* %2, align 4
+    br label %rec
+  
+  else:                                             ; preds = %rec
+    %eq4 = icmp eq i64 %a1, 3
+    br i1 %eq4, label %then5, label %else6
+  
+  then5:                                            ; preds = %else
+    ret void
+  
+  else6:                                            ; preds = %else
+    %eq7 = icmp eq i64 %c3.ph, 3
+    br i1 %eq7, label %then8, label %else10
+  
+  then8:                                            ; preds = %else6
+    store i64 %a1, i64* %0, align 4
+    %add9 = add i64 %b2, 1
+    store i64 %add9, i64* %1, align 4
+    store i64 0, i64* %2, align 4
+    br label %rec.outer
+  
+  else10:                                           ; preds = %else6
+    %cstr16 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i8** %cstr16, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 11, i64* %length, align 4
+    tail call void @printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i64 %a1, i64 %b2, i64 %c3.ph)
+    store i64 %a1, i64* %0, align 4
+    store i64 %b2, i64* %1, align 4
+    %add11 = add i64 %c3.ph, 1
+    store i64 %add11, i64* %2, align 4
+    br label %rec.outer
+  }
+  
+  define private void @nested__2(i64 %a, i64 %b, i64 %c) {
+  entry:
+    %0 = alloca i64, align 8
+    store i64 %a, i64* %0, align 4
+    %1 = alloca i64, align 8
+    store i64 %b, i64* %1, align 4
+    %2 = alloca i64, align 8
+    store i64 %c, i64* %2, align 4
+    %str = alloca %string, align 8
+    br label %rec.outer
+  
+  rec.outer:                                        ; preds = %then5, %else10, %entry
+    %c3.ph = phi i64 [ %c, %entry ], [ 0, %then5 ], [ %add11, %else10 ]
+    %b2.ph = phi i64 [ %b, %entry ], [ %add6, %then5 ], [ %b2, %else10 ]
+    %a1.ph = phi i64 [ %a, %entry ], [ %a1, %then5 ], [ %a1, %else10 ]
+    br label %rec
+  
+  rec:                                              ; preds = %rec.outer, %then
+    %b2 = phi i64 [ 0, %then ], [ %b2.ph, %rec.outer ]
+    %a1 = phi i64 [ %add, %then ], [ %a1.ph, %rec.outer ]
+    %eq = icmp eq i64 %b2, 3
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    %add = add i64 %a1, 1
+    store i64 %add, i64* %0, align 4
+    store i64 0, i64* %1, align 4
+    store i64 %c3.ph, i64* %2, align 4
+    br label %rec
+  
+  else:                                             ; preds = %rec
+    %eq4 = icmp eq i64 %c3.ph, 3
+    br i1 %eq4, label %then5, label %else7
+  
+  then5:                                            ; preds = %else
+    store i64 %a1, i64* %0, align 4
+    %add6 = add i64 %b2, 1
+    store i64 %add6, i64* %1, align 4
+    store i64 0, i64* %2, align 4
+    br label %rec.outer
+  
+  else7:                                            ; preds = %else
+    %eq8 = icmp eq i64 %a1, 3
+    br i1 %eq8, label %then9, label %else10
+  
+  then9:                                            ; preds = %else7
+    ret void
+  
+  else10:                                           ; preds = %else7
+    %cstr17 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0), i8** %cstr17, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 11, i64* %length, align 4
+    tail call void @printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0), i64 %a1, i64 %b2, i64 %c3.ph)
+    store i64 %a1, i64* %0, align 4
+    store i64 %b2, i64* %1, align 4
+    %add11 = add i64 %c3.ph, 1
+    store i64 %add11, i64* %2, align 4
+    br label %rec.outer
+  }
+  
+  define private void @nested(i64 %a, i64 %b) {
+  entry:
+    %0 = alloca i64, align 8
+    store i64 %a, i64* %0, align 4
+    %1 = alloca i64, align 8
+    store i64 %b, i64* %1, align 4
+    %str = alloca %string, align 8
+    br label %rec.outer
+  
+  rec.outer:                                        ; preds = %entry, %then
+    %b2.ph = phi i64 [ %b, %entry ], [ 0, %then ]
+    %a1.ph = phi i64 [ %a, %entry ], [ %add, %then ]
+    br label %rec
+  
+  rec:                                              ; preds = %rec.outer, %else5
+    %b2 = phi i64 [ %add6, %else5 ], [ %b2.ph, %rec.outer ]
+    %eq = icmp eq i64 %b2, 3
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    %add = add i64 %a1.ph, 1
+    store i64 %add, i64* %0, align 4
+    store i64 0, i64* %1, align 4
+    br label %rec.outer
+  
+  else:                                             ; preds = %rec
+    %eq3 = icmp eq i64 %a1.ph, 3
+    br i1 %eq3, label %then4, label %else5
+  
+  then4:                                            ; preds = %else
+    ret void
+  
+  else5:                                            ; preds = %else
+    %cstr10 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([8 x i8], [8 x i8]* @2, i32 0, i32 0), i8** %cstr10, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 7, i64* %length, align 4
+    tail call void @printf(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @2, i32 0, i32 0), i64 %a1.ph, i64 %b2, i64 0)
+    store i64 %a1.ph, i64* %0, align 4
+    %add6 = add i64 %b2, 1
+    store i64 %add6, i64* %1, align 4
+    br label %rec
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    tail call void @nested(i64 0, i64 0)
+    %str = alloca %string, align 8
+    %cstr1 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([2 x i8], [2 x i8]* @3, i32 0, i32 0), i8** %cstr1, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 1, i64* %length, align 4
+    tail call void @printf(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @3, i32 0, i32 0), i64 0, i64 0, i64 0)
+    tail call void @nested__2(i64 0, i64 0, i64 0)
+    ret i64 0
+  }
+  0, 0
+  0, 1
+  0, 2
+  1, 0
+  1, 1
+  1, 2
+  2, 0
+  2, 1
+  2, 2
+  
+  0, 0, 0
+  0, 0, 1
+  0, 0, 2
+  0, 1, 0
+  0, 1, 1
+  0, 1, 2
+  0, 2, 0
+  0, 2, 1
+  0, 2, 2
+  1, 0, 0
+  1, 0, 1
+  1, 0, 2
+  1, 1, 0
+  1, 1, 1
+  1, 1, 2
+  1, 2, 0
+  1, 2, 1
+  1, 2, 2
+  2, 0, 0
+  2, 0, 1
+  2, 0, 2
+  2, 1, 0
+  2, 1, 1
+  2, 1, 2
+  2, 2, 0
+  2, 2, 1
+  2, 2, 2
