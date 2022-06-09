@@ -338,26 +338,6 @@ module Make (C : Core) = struct
     in
 
     match cases with
-    | [ ([ (i, Ast.Pctor (name, arg)) ], d) ] ->
-        (* Selecting the last case like this only works if we are sure
-           that we have exhausted all cases *)
-        let _, ctor, variant = get_variant env d.loc name None in
-        unify
-          (d.loc, "Variant pattern has unexpected type:")
-          (expr i).typ variant;
-
-        let names = ctornames_of_variant variant in
-
-        let argexpr, env = ctorenv env ctor i d.loc in
-
-        let arg = arg_opt (fst name) arg in
-        let cont, matches =
-          compile_matches env d.loc
-            [ ([ (i, arg) ], { d with lvl = d.lvl + 1 }) ]
-            ret_typ
-        in
-        ( { cont with expr = Let (expr_name i, argexpr, cont) },
-          Match.insert names (snd name) d.lvl matches )
     | hd :: tl -> (
         match Tup.choose_next hd with
         | Bare d ->
@@ -404,21 +384,20 @@ module Make (C : Core) = struct
 
             let names = ctornames_of_variant variant in
 
-            let cmp = gen_cmp (expr index) l.index in
-
             let data, ifenv = ctorenv env ctor index d.loc in
-
             let cont, ifmatch = compile_matches ifenv d.loc a ret_typ in
+            (* Make expr available in codegen *)
             let ifexpr = Let (expr_name index, data, cont) in
 
             let matches = Match.insert names name d.lvl ifmatch in
 
-            (* This is either an if-then-else or just an if with one ctor,
+            (* This is either an if-then-else or just an one ctor,
                depending on whether [b] is empty *)
             let expr, matches =
               match b with
               | [] -> (ifexpr, matches)
               | b ->
+                  let cmp = gen_cmp (expr index) l.index in
                   let if_ = { cont with expr = ifexpr } in
                   let else_, elsematch = compile_matches env d.loc b ret_typ in
                   let matches = matches @ elsematch in
