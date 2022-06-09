@@ -153,31 +153,69 @@ let get_variant env loc name annot =
       let msg = "Unbound constructor " ^ snd name in
       raise (Error (loc, msg))
 
-(* module Tup = struct *)
-(*   let choose_col patterns = *)
-(*     (\* We choose the column based on precedence. *)
-(*        A [Pvar] needs to be bound, *)
-(*        [Pwildcard] is ignored. *)
-(*        Otherwise, we choose a ctor. For simplicity, we choose the first *\) *)
-(*     let rec aux ctor = function *)
-(*       | Ast.Pctor _ as ct :: tl->  ( *)
-(*           match ctor with *)
-(*           | Some _ ->  aux ctor tl *)
-(*           | None -> (\* Use this ctor *\) *)
-(*             aux (Some ct) tl *)
-(*         ) *)
-(*       | Pvar _ -> *)
-(* end *)
+type pattern_data = {
+  loc : Ast.loc;
+  ret_expr : Ast.stmt list;
+  lvl : int;
+  index : int;
+}
+
+module Tup = struct
+  type ret_pattern =
+    | Tvar of int * Ast.loc * string
+    | Tctor of int * Ast.loc * string
+    | Tnothing
+
+  type payload = {
+    index : int;
+    loc : Ast.loc;
+    name : string;
+    d : pattern_data;
+    patterns : (int * Ast.pattern) list;
+  }
+
+  type ret = Var of payload | Ctor of payload | Bare of pattern_data
+
+  let choose_next (patterns, d) =
+    (* We choose teh column based on precedence.
+       A [Pvar] needs to be bound,
+       [Pwildcard] is filtered.
+       Otherwise, we choose a ctor. For simplicity, we choose the first *)
+    let rec aux pattern ret_patterns = function
+      | ((i, Ast.Pctor ((loc, name), _)) as thing) :: tl ->
+          let pattern =
+            match pattern with
+            | Tvar _ | Tctor _ -> pattern
+            | Tnothing ->
+                (* Use this pattern *)
+                Tctor (i, loc, name)
+          in
+          aux pattern (thing :: ret_patterns) tl
+      | (i, Pvar (loc, name)) :: tl ->
+          let pattern =
+            match pattern with
+            | Tvar _ -> pattern
+            | Tnothing | Tctor _ -> Tvar (i, loc, name)
+          in
+          (* Var dos not have children *)
+          aux pattern ret_patterns tl
+      | (_, Pwildcard _) :: tl ->
+          (* We drop wildcard patterns *)
+          aux pattern ret_patterns tl
+      | (_, Ptup _) :: _ -> failwith "Internal Error: Unexpected tup pattern"
+      | [] -> (pattern, List.rev ret_patterns)
+    in
+    let ret, patterns = aux Tnothing [] patterns in
+    match ret with
+    | Tnothing ->
+        assert (List.length patterns = 0);
+        Bare d
+    | Tvar (index, loc, name) -> Var { index; loc; name; d; patterns }
+    | Tctor (index, loc, name) -> Ctor { index; loc; name; d; patterns }
+end
 
 module Make (C : Core) = struct
   open C
-
-  type pattern_data = {
-    loc : Ast.loc;
-    ret_expr : Ast.stmt list;
-    lvl : int;
-    index : int;
-  }
 
   let gen_cmp expr const_index =
     let index = { typ = Ti32; expr = Variant_index expr; is_const = false } in
@@ -236,8 +274,6 @@ module Make (C : Core) = struct
     in
 
     (* TODO error if we have multiple exprs but no tup pattern *)
-
-    (* TODO Should we enter a level here? *)
     let ret = newvar () in
 
     let some_cases =
@@ -292,11 +328,13 @@ module Make (C : Core) = struct
     (* Magic value, see above *)
     let expr i = convert_var env all_loc (expr_name i) in
 
-    let ctorexpr ctor i =
+    let ctorenv env ctor i loc =
       match ctor.ctortyp with
       (* TODO is this instantiated? *)
-      | Some typ -> { typ; expr = Variant_data (expr i); is_const = false }
-      | None -> expr i
+      | Some typ ->
+          let data = { typ; expr = Variant_data (expr i); is_const = false } in
+          (data, Env.add_value (expr_name i) data.typ loc env)
+      | None -> (expr i, env)
     in
 
     match cases with
@@ -310,8 +348,7 @@ module Make (C : Core) = struct
 
         let names = ctornames_of_variant variant in
 
-        let argexpr = ctorexpr ctor i in
-        let env = Env.add_value (expr_name i) argexpr.typ d.loc env in
+        let argexpr, env = ctorenv env ctor i d.loc in
 
         let arg = arg_opt (fst name) arg in
         let cont, matches =
@@ -321,72 +358,75 @@ module Make (C : Core) = struct
         in
         ( { cont with expr = Let (expr_name i, argexpr, cont) },
           Match.insert names (snd name) d.lvl matches )
-    | ([ (i, Ast.Pctor (name, _)) ], d) :: _ ->
-        let a, b = match_cases (snd name) cases [] [] in
+    | hd :: tl -> (
+        match Tup.choose_next hd with
+        | Bare d ->
+            let ret, _ = convert_block env d.ret_expr in
 
-        let l, ctor, variant = get_variant env d.loc name None in
-        unify
-          (d.loc, "Variant pattern has unexpected type:")
-          (expr i).typ variant;
+            (* TODO move the [expr i] function to other branch only *)
+            (* (\* Use expr. Otherwise we get unused binding error *\) *)
+            (* ignore (expr i); *)
 
-        let names = ctornames_of_variant variant in
+            (* This is already exhaustive but we do the tail here as well for errors *)
+            let matches =
+              List.fold_left
+                (fun acc item ->
+                  ((snd item).index, (snd item).loc, fill_matches env item)
+                  :: acc)
+                [ (d.index, d.loc, Match.Exhaustive d.lvl) ]
+                tl
+            in
+            unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
+            (ret, matches)
+        | Var { index; loc; name; d; patterns } ->
+            (* Bind the variable *)
+            let env =
+              Env.add_value name (expr index).typ ~is_const:false d.loc env
+            in
+            (* Continue with expression *)
+            let ret, matches =
+              compile_matches env loc ((patterns, d) :: tl) ret_typ
+            in
 
-        let cmp = gen_cmp (expr i) l.index in
+            ( {
+                typ = ret.typ;
+                expr = Let (name, expr index, ret);
+                is_const = ret.is_const;
+              },
+              matches )
+        | Ctor { index; loc; name; d; patterns } ->
+            let a, b = match_cases name ((patterns, d) :: tl) [] [] in
 
-        let data = ctorexpr ctor i in
-        let ifenv = Env.add_value (expr_name i) data.typ d.loc env in
+            let l, ctor, variant = get_variant env d.loc (loc, name) None in
+            unify
+              (d.loc, "Variant pattern has unexpected type:")
+              (expr index).typ variant;
 
-        let cont, ifmatch = compile_matches ifenv d.loc a ret_typ in
-        let ifexpr = Let (expr_name i, data, cont) in
+            let names = ctornames_of_variant variant in
 
-        let matches = Match.insert names (snd name) d.lvl ifmatch in
+            let cmp = gen_cmp (expr index) l.index in
 
-        (* This is either an if-then-else or just an if with one ctor,
-           depending on whether [b] is empty *)
-        let expr, matches =
-          match b with
-          | [] -> (ifexpr, matches)
-          | b ->
-              let if_ = { cont with expr = ifexpr } in
-              let else_, elsematch = compile_matches env d.loc b ret_typ in
-              let matches = matches @ elsematch in
-              (If (cmp, if_, else_), matches)
-        in
+            let data, ifenv = ctorenv env ctor index d.loc in
 
-        ({ typ = ret_typ; expr; is_const = false }, matches)
-    | ([ (i, Pvar (loc, name)) ], d) :: tl ->
-        (* Bind the variable *)
-        let env = Env.add_value name (expr i).typ ~is_const:false d.loc env in
-        (* Continue with expression *)
-        let ret, matches =
-          compile_matches env loc (([ (i, Pwildcard loc) ], d) :: tl) ret_typ
-        in
+            let cont, ifmatch = compile_matches ifenv d.loc a ret_typ in
+            let ifexpr = Let (expr_name index, data, cont) in
 
-        ( {
-            typ = ret.typ;
-            expr = Let (name, expr i, ret);
-            is_const = ret.is_const;
-          },
-          matches )
-    | ([ (_, Ptup _) ], _) :: _ -> failwith "TODO tup"
-    | ([ (i, Pwildcard _) ], d) :: tl ->
-        let ret, _ = convert_block env d.ret_expr in
+            let matches = Match.insert names name d.lvl ifmatch in
 
-        (* Use expr. Otherwise we get unused binding error *)
-        ignore (expr i);
+            (* This is either an if-then-else or just an if with one ctor,
+               depending on whether [b] is empty *)
+            let expr, matches =
+              match b with
+              | [] -> (ifexpr, matches)
+              | b ->
+                  let if_ = { cont with expr = ifexpr } in
+                  let else_, elsematch = compile_matches env d.loc b ret_typ in
+                  let matches = matches @ elsematch in
+                  (If (cmp, if_, else_), matches)
+            in
 
-        (* This is already exhaustive but we do the tail here as well for errors *)
-        let matches =
-          List.fold_left
-            (fun acc item ->
-              ((snd item).index, (snd item).loc, fill_matches env item) :: acc)
-            [ (d.index, d.loc, Match.Exhaustive d.lvl) ]
-            tl
-        in
-        unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
-        (ret, matches)
-    | _ :: _ -> failwith "not yet"
-    | [] -> failwith "Internal Error: Pattern match failed"
+            ({ typ = ret_typ; expr; is_const = false }, matches))
+    | [] -> failwith "Internal Error: Empty match"
 
   and match_cases case cases if_ else_ =
     match cases with
