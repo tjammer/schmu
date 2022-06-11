@@ -218,6 +218,16 @@ end
 module Make (C : Core) = struct
   open C
 
+  (* List.Assoc.set taken from containers *)
+  let rec search_set acc l x ~f =
+    match l with
+    | [] -> f x None acc
+    | (x', y') :: l' ->
+        if x = x' then f x (Some y') (List.rev_append acc l')
+        else search_set ((x', y') :: acc) l' x ~f
+
+  let assoc_set x y l = search_set [] l x ~f:(fun x _ l -> (x, y) :: l)
+
   let gen_cmp expr const_index =
     let index = { typ = Ti32; expr = Variant_index expr; is_const = false } in
     let cind =
@@ -298,18 +308,20 @@ module Make (C : Core) = struct
     in
 
     let matchexpr, matches = compile_matches env loc some_cases ret in
+    ignore matches;
+    ignore Match.is_exhaustive;
+    ignore Match.cases_to_string;
 
     (* Check for exhaustiveness *)
-    (match Match.is_exhaustive matches with
-    | Ok () -> ()
-    | Error cases ->
-        let cases = String.concat ", " (List.map Match.cases_to_string cases) in
-        let msg =
-          Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
-            cases
-        in
-        raise (Error (loc, msg)));
-
+    (* (match Match.is_exhaustive matches with *)
+    (* | Ok () -> () *)
+    (* | Error cases -> *)
+    (*     let cases = String.concat ", " (List.map Match.cases_to_string cases) in *)
+    (*     let msg = *)
+    (*       Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s" *)
+    (*         cases *)
+    (*     in *)
+    (*     raise (Error (loc, msg))); *)
     let rec build_expr = function
       | [] -> matchexpr
       | (i, expr) :: tl ->
@@ -385,7 +397,7 @@ module Make (C : Core) = struct
               },
               matches )
         | Ctor { index; loc; name; d; patterns } ->
-            let a, b = match_cases name ((patterns, d) :: tl) [] [] in
+            let a, b = match_cases (index, name) ((patterns, d) :: tl) [] [] in
 
             let l, ctor, variant = get_variant env d.loc (loc, name) None in
             unify
@@ -417,47 +429,30 @@ module Make (C : Core) = struct
             ({ typ = ret_typ; expr; is_const = false }, matches))
     | [] -> failwith "Internal Error: Empty match"
 
-  (* and match_cases (i, case) cases if_ else_ = *)
-  (* (\* TODO function *\) *)
-  (* match cases with *)
-  (*   | (clauses, d) :: tl -> *)
-  (*     ( *)
-  (*       match List.assoc_opt i clauses with *)
-  (*       | Some (Ast.Pctor ((loc, name), arg)) when *)
-  (*           String.equal case name -> *)
-  (*         (\* TODO the levels can't be in [d] because different clauses can now have *)
-  (*            different levels. Instead, we have to put the levels next to the clause*\) *)
-  (*         let arg = arg_opt loc arg in *)
-  (*         (\* TODO assoc set *\) *)
-  (*         let clauses = List. *)
-  (*     match_cases (i, case) tl *)
-  (*       (([ (i, arg) ], { d with lvl = [ (0, fake_depth d.lvl + 1) ] }) :: if_) *)
-  (*       else_ *)
-
-  (*       | (_, Ast.Pctor ((loc, name), arg)) *)
-  (*     ) *)
-  and match_cases case cases if_ else_ =
+  and match_cases (i, case) cases if_ else_ =
+    (* TODO function *)
     match cases with
-    | ([ (i, Ast.Pctor ((loc, name), arg)) ], d) :: tl
-      when String.equal case name ->
-        let arg = arg_opt loc arg in
-        let lvl = Map.find 0 d.lvl in
-        match_cases case tl
-          (([ (i, arg) ], { d with lvl = Map.add i (lvl + 1) d.lvl }) :: if_)
-          else_
-    | (([ (_, Pctor _) ], _) as thing) :: tl ->
-        match_cases case tl if_ (thing :: else_)
-    | [ (([ (_, Pvar _) ], _) as thing) ] ->
-        (* If the last item is a catchall we can stuff it into the else branch.
-           This gets rid off a duplication and also fixes a redundancy check bug *)
-        match_cases case [] if_ (thing :: else_)
-    | (([ (_, Pvar _) ], _) as thing) :: tl
-    | (([ (_, Pwildcard _) ], _) as thing) :: tl ->
-        match_cases case tl (thing :: if_) (thing :: else_)
-    | [] ->
-        (List.rev if_, List.rev else_)
-        (* | (Ptup _, _) :: _ -> failwith "TODO" *)
-    | _ -> failwith "Internal Error: Something is wrong 1"
+    | (clauses, d) :: tl -> (
+        match List.assoc_opt i clauses with
+        | Some (Ast.Pctor ((loc, name), arg)) when String.equal case name ->
+            (* We found the [case] ctor, thus we extract the argument and insert
+               it at the ctor's place to the [if_] list. Since we are one level
+               deeper, we replace [i]'s [lvl] with [lvl + 1] *)
+            let arg = arg_opt loc arg in
+            let lvl = Map.find i d.lvl in
+            let d = { d with lvl = Map.add i (lvl + 1) d.lvl }
+            and clauses = assoc_set i arg clauses in
+            match_cases (i, case) tl ((clauses, d) :: if_) else_
+        | Some (Ast.Pctor (_, _)) ->
+            (* We found a ctor, but it does not match. Add to [else_] *)
+            match_cases (i, case) tl if_ ((clauses, d) :: else_)
+        | Some (Pvar _ | Pwildcard _) ->
+            (* These match all, so we add them to both [if_] and [else_] *)
+            match_cases (i, case) tl ((clauses, d) :: if_)
+              ((clauses, d) :: else_)
+        | Some (Ptup _) -> failwith "Internal Error: Unexpected tup"
+        | None -> failwith "Internal Error: Column does not exist")
+    | [] -> (List.rev if_, List.rev else_)
 
   and fill_matches env = function
     (* This is not yet implemented for tuples *)
@@ -474,7 +469,4 @@ module Make (C : Core) = struct
         Exhaustive (fake_depth d.lvl)
         (* | [ (_, Ptup _) ], _ -> failwith "TODO" *)
     | _ -> failwith "Internal Error: Something is wrong here"
-
-  (* and compile_tup_matches env all_loc ret_typ = *)
-  (*   (\* Similar as above for the single case. *\) *)
 end
