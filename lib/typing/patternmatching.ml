@@ -1,6 +1,7 @@
 open Types
 open Typed_tree
 open Inference
+module Map = Map.Make (Int)
 
 module type Core = sig
   val convert : Env.t -> Ast.expr -> typed_expr
@@ -156,7 +157,7 @@ let get_variant env loc name annot =
 type pattern_data = {
   loc : Ast.loc;
   ret_expr : Ast.stmt list;
-  lvl : int;
+  lvl : int Map.t;
   index : int;
 }
 
@@ -279,14 +280,20 @@ module Make (C : Core) = struct
     let some_cases =
       List.mapi
         (fun i (loc, p, expr) ->
-          let pat =
+          let pat, lvl =
             match p with
             | Ast.Ptup (_, pats) ->
                 (* TODO see above check arity *)
-                List.mapi (fun i p -> (i, p)) pats
-            | p -> [ (0, p) ]
+                (* We track the depth (lvl) for each column separately *)
+                let (_, lvl), pat =
+                  List.fold_left_map
+                    (fun (i, lvl) p -> ((i + 1, Map.add i 0 lvl), (i, p)))
+                    (0, Map.empty) pats
+                in
+                (pat, lvl)
+            | p -> ([ (0, p) ], Map.add 0 0 Map.empty)
           in
-          (pat, { loc; ret_expr = expr; lvl = 0; index = i }))
+          (pat, { loc; ret_expr = expr; lvl; index = i }))
         cases
     in
 
@@ -315,6 +322,9 @@ module Make (C : Core) = struct
     | Tvariant (_, _, ctors) ->
         Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname)
     | _ -> failwith "Internal Error: Not a variant"
+
+  (* TODO remove  *)
+  and fake_depth m = Map.min_binding m |> snd
 
   and compile_matches env all_loc cases ret_typ =
     (* We build the decision tree here.
@@ -353,7 +363,7 @@ module Make (C : Core) = struct
                 (fun acc item ->
                   ((snd item).index, (snd item).loc, fill_matches env item)
                   :: acc)
-                [ (d.index, d.loc, Match.Exhaustive d.lvl) ]
+                [ (d.index, d.loc, Match.Exhaustive (fake_depth d.lvl)) ]
                 tl
             in
             unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
@@ -389,7 +399,7 @@ module Make (C : Core) = struct
             (* Make expr available in codegen *)
             let ifexpr = Let (expr_name index, data, cont) in
 
-            let matches = Match.insert names name d.lvl ifmatch in
+            let matches = Match.insert names name (fake_depth d.lvl) ifmatch in
 
             (* This is either an if-then-else or just an one ctor,
                depending on whether [b] is empty *)
@@ -407,13 +417,33 @@ module Make (C : Core) = struct
             ({ typ = ret_typ; expr; is_const = false }, matches))
     | [] -> failwith "Internal Error: Empty match"
 
+  (* and match_cases (i, case) cases if_ else_ = *)
+  (* (\* TODO function *\) *)
+  (* match cases with *)
+  (*   | (clauses, d) :: tl -> *)
+  (*     ( *)
+  (*       match List.assoc_opt i clauses with *)
+  (*       | Some (Ast.Pctor ((loc, name), arg)) when *)
+  (*           String.equal case name -> *)
+  (*         (\* TODO the levels can't be in [d] because different clauses can now have *)
+  (*            different levels. Instead, we have to put the levels next to the clause*\) *)
+  (*         let arg = arg_opt loc arg in *)
+  (*         (\* TODO assoc set *\) *)
+  (*         let clauses = List. *)
+  (*     match_cases (i, case) tl *)
+  (*       (([ (i, arg) ], { d with lvl = [ (0, fake_depth d.lvl + 1) ] }) :: if_) *)
+  (*       else_ *)
+
+  (*       | (_, Ast.Pctor ((loc, name), arg)) *)
+  (*     ) *)
   and match_cases case cases if_ else_ =
     match cases with
     | ([ (i, Ast.Pctor ((loc, name), arg)) ], d) :: tl
       when String.equal case name ->
         let arg = arg_opt loc arg in
+        let lvl = Map.find 0 d.lvl in
         match_cases case tl
-          (([ (i, arg) ], { d with lvl = d.lvl + 1 }) :: if_)
+          (([ (i, arg) ], { d with lvl = Map.add i (lvl + 1) d.lvl }) :: if_)
           else_
     | (([ (_, Pctor _) ], _) as thing) :: tl ->
         match_cases case tl if_ (thing :: else_)
@@ -439,9 +469,10 @@ module Make (C : Core) = struct
         let map =
           Smap.add (snd name) (fill_matches env ([ (i, arg) ], d)) Smap.empty
         in
-        Match.Partial (d.lvl, names, map)
+        Match.Partial (fake_depth d.lvl, names, map)
     | [ (_, Pvar _) ], d | [ (_, Pwildcard _) ], d ->
-        Exhaustive d.lvl (* | [ (_, Ptup _) ], _ -> failwith "TODO" *)
+        Exhaustive (fake_depth d.lvl)
+        (* | [ (_, Ptup _) ], _ -> failwith "TODO" *)
     | _ -> failwith "Internal Error: Something is wrong here"
 
   (* and compile_tup_matches env all_loc ret_typ = *)
