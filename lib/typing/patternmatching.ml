@@ -241,7 +241,7 @@ module Make (C : Core) = struct
     | None, None ->
         let expr = Ctor (typename, index, None) in
         (* NOTE: Const handling for ctors is disabled, see #23 *)
-        { typ = variant; expr; is_const = true }
+        { typ = variant; expr; is_const = false }
     | None, Some _ ->
         let msg =
           Printf.sprintf
