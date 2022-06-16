@@ -26,116 +26,6 @@ module type S = sig
     Typed_tree.typed_expr
 end
 
-module Match = struct
-  module Iset = Set.Make (Int)
-
-  type t =
-    | Exhaustive of int
-    (* Matchalls get a level so that we can distinguish matches from outside a ctor *)
-    | Partial of int * string list * t Smap.t
-
-  type tee = t
-  type err = Redundant
-
-  exception Err of err
-
-  module Item = struct
-    type t = int * Ast.loc * tee
-
-    let compare (a, _, _) (b, _, _) = Int.compare a b
-  end
-
-  module Item_set = Set.Make (Item)
-
-  (* Merge partial matches if they share the ctor  *)
-  let rec merge other this =
-    match (other, this) with
-    | Exhaustive other, Exhaustive this when other < this -> Exhaustive other
-    | _, Exhaustive _ ->
-        (* We are already exhaustive, everything else
-           is redundant *)
-        raise (Err Redundant)
-    | Exhaustive other, _ ->
-        (* If it's exhaustive, we are done *)
-        Exhaustive other
-    | Partial (lvl, other_list, other), Partial (_, this_list, this) ->
-        (* TODO delete this *)
-        assert (other_list = this_list);
-        let length = ref 0 in
-        let f _ other this =
-          incr length;
-          match (other, this) with
-          | None, Some a | Some a, None -> Some a
-          | None, None -> failwith "lol"
-          | Some other, Some this -> Some (merge other this)
-        in
-        let this = Smap.merge f other this in
-        if !length = List.length this_list then Exhaustive lvl
-        else Partial (lvl, this_list, this)
-
-  let rec is_exhaust_impl = function
-    | Exhaustive _ -> Ok ()
-    | Partial (_, cases, map) ->
-        (* Add missing cases *)
-        let cmap =
-          List.fold_left (fun map case -> Smap.add case [] map) Smap.empty cases
-          |> ref
-        in
-
-        Smap.iter
-          (fun key t ->
-            match is_exhaust_impl t with
-            | Ok () -> cmap := Smap.remove key !cmap
-            | Error lst -> cmap := Smap.add key lst !cmap)
-          map;
-
-        (* Only missing cases remain *)
-        if not (Smap.is_empty !cmap) then
-          let lst =
-            Smap.to_seq !cmap |> List.of_seq
-            |> List.fold_left
-                 (* We add for each missing case the current ctor *)
-                   (fun acc (a, lst) ->
-                   match lst with
-                   | [] -> [ a ] :: acc
-                   | lst ->
-                       List.fold_left (fun acc lst -> (a :: lst) :: acc) acc lst)
-                 []
-          in
-
-          Error lst
-        else Ok ()
-
-  let insert other_ctors ctor lvl lst =
-    let aux = function
-      | line, loc, Exhaustive l when l <= lvl -> (line, loc, Exhaustive l)
-      | line, loc, mtch ->
-          (line, loc, Partial (lvl, other_ctors, Smap.add ctor mtch Smap.empty))
-    in
-    List.map aux lst
-
-  let rec cases_to_string = function
-    | [] -> ""
-    | [ case ] -> case
-    | case :: tail -> Printf.sprintf "%s(%s)" case (cases_to_string tail)
-
-  let is_exhaustive (matches : (int * Ast.loc * t) list) =
-    (* Dedup and sort *)
-    let dedup = Item_set.of_list matches |> Item_set.elements in
-    (* Merge and check redundant cases *)
-    (match dedup with
-    | [] -> failwith "Internal Error: Pattern match empty"
-    | (_, _, hd) :: tl ->
-        List.fold_left
-          (fun merged (_, loc, item) ->
-            try merge item merged
-            with Err Redundant ->
-              raise (Error (loc, "Pattern match case is redundant")))
-          hd tl)
-    |> (* Check exhaustiveness *)
-    is_exhaust_impl
-end
-
 let get_variant env loc name annot =
   match Env.find_ctor_opt (snd name) env with
   | Some { index; typename } ->
@@ -154,19 +44,9 @@ let get_variant env loc name annot =
       let msg = "Unbound constructor " ^ snd name in
       raise (Error (loc, msg))
 
-type pattern_data = {
-  loc : Ast.loc;
-  ret_expr : Ast.stmt list;
-  lvl : int Map.t;
-  index : int;
-}
+type pattern_data = { loc : Ast.loc; ret_expr : Ast.stmt list }
 
 module Tup = struct
-  type ret_pattern =
-    | Tvar of int * Ast.loc * string
-    | Tctor of int * Ast.loc * string
-    | Tnothing
-
   type payload = {
     index : int;
     loc : Ast.loc;
@@ -178,41 +58,34 @@ module Tup = struct
   type ret = Var of payload | Ctor of payload | Bare of pattern_data
 
   let choose_next (patterns, d) =
-    (* We choose teh column based on precedence.
-       A [Pvar] needs to be bound,
-       [Pwildcard] is filtered.
-       Otherwise, we choose a ctor. For simplicity, we choose the first *)
-    let rec aux pattern ret_patterns = function
-      | ((i, Ast.Pctor ((loc, name), _)) as thing) :: tl ->
-          let pattern =
-            match pattern with
-            | Tvar _ | Tctor _ -> pattern
-            | Tnothing ->
-                (* Use this pattern *)
-                Tctor (i, loc, name)
-          in
-          aux pattern (thing :: ret_patterns) tl
-      | (i, Pvar (loc, name)) :: tl ->
-          let pattern =
-            match pattern with
-            | Tvar _ -> pattern
-            | Tnothing | Tctor _ -> Tvar (i, loc, name)
-          in
-          (* Var dos not have children *)
-          aux pattern ret_patterns tl
-      | (_, Pwildcard _) :: tl ->
-          (* We drop wildcard patterns *)
-          aux pattern ret_patterns tl
-      | (_, Ptup _) :: _ -> failwith "Internal Error: Unexpected tup pattern"
-      | [] -> (pattern, List.rev ret_patterns)
+    (* We choose a column based on precedence.
+       [Pwildcard] is dropped
+       1: [Pvar] needs to be bound,
+       2: Otherwise, we choose a ctor. For simplicity, we choose the first *)
+    let score_patterns pattern =
+      match snd pattern with
+      | Ast.Pctor _ -> 2
+      | Pvar _ -> 1
+      | Pwildcard _ -> failwith "Internal Error: Should have been dropped"
+      | Ptup _ -> failwith "Internal Error: Unexpected tup pattern"
     in
-    let ret, patterns = aux Tnothing [] patterns in
-    match ret with
-    | Tnothing ->
-        assert (List.length patterns = 0);
-        Bare d
-    | Tvar (index, loc, name) -> Var { index; loc; name; d; patterns }
-    | Tctor (index, loc, name) -> Ctor { index; loc; name; d; patterns }
+    let sort_patterns a b = Int.compare (score_patterns a) (score_patterns b) in
+    let filter_patterns p =
+      match snd p with Ast.Pwildcard _ -> false | _ -> true
+    in
+    let sorted =
+      List.filter filter_patterns patterns |> List.sort sort_patterns
+    in
+
+    match sorted with
+    | (index, Ast.Pctor ((loc, name), _)) :: _ ->
+        Ctor { index; loc; name; d; patterns = sorted }
+    | (index, Pvar (loc, name)) :: patterns ->
+        (* Drop var from patterns list *)
+        Var { index; loc; name; d; patterns }
+    | (_, Pwildcard _ | _, Ptup _) :: _ ->
+        failwith "Internal Error: Unexpected tup pattern"
+    | [] -> Bare d
 end
 
 module Make (C : Core) = struct
@@ -288,40 +161,25 @@ module Make (C : Core) = struct
     let ret = newvar () in
 
     let some_cases =
-      List.mapi
-        (fun i (loc, p, expr) ->
-          let pat, lvl =
+      List.map
+        (fun (loc, p, expr) ->
+          let pat =
             match p with
             | Ast.Ptup (_, pats) ->
                 (* TODO see above check arity *)
                 (* We track the depth (lvl) for each column separately *)
-                let (_, lvl), pat =
-                  List.fold_left_map
-                    (fun (i, lvl) p -> ((i + 1, Map.add i 0 lvl), (i, p)))
-                    (0, Map.empty) pats
+                let _, pat =
+                  List.fold_left_map (fun i p -> (i + 1, (i, p))) 0 pats
                 in
-                (pat, lvl)
-            | p -> ([ (0, p) ], Map.add 0 0 Map.empty)
+                pat
+            | p -> [ (0, p) ]
           in
-          (pat, { loc; ret_expr = expr; lvl; index = i }))
+          (pat, { loc; ret_expr = expr }))
         cases
     in
 
-    let matchexpr, matches = compile_matches env loc some_cases ret in
-    ignore matches;
-    ignore Match.is_exhaustive;
-    ignore Match.cases_to_string;
+    let matchexpr = compile_matches env loc some_cases ret in
 
-    (* Check for exhaustiveness *)
-    (* (match Match.is_exhaustive matches with *)
-    (* | Ok () -> () *)
-    (* | Error cases -> *)
-    (*     let cases = String.concat ", " (List.map Match.cases_to_string cases) in *)
-    (*     let msg = *)
-    (*       Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s" *)
-    (*         cases *)
-    (*     in *)
-    (*     raise (Error (loc, msg))); *)
     let rec build_expr = function
       | [] -> matchexpr
       | (i, expr) :: tl ->
@@ -330,13 +188,10 @@ module Make (C : Core) = struct
 
     build_expr exprs
 
-  and ctornames_of_variant = function
-    | Tvariant (_, _, ctors) ->
-        Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname)
-    | _ -> failwith "Internal Error: Not a variant"
-
-  (* TODO remove  *)
-  and fake_depth m = Map.min_binding m |> snd
+  (* and ctornames_of_variant = function *)
+  (*   | Tvariant (_, _, ctors) -> *)
+  (*       Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname) *)
+  (*   | _ -> failwith "Internal Error: Not a variant" *)
 
   and compile_matches env all_loc cases ret_typ =
     (* We build the decision tree here.
@@ -368,34 +223,21 @@ module Make (C : Core) = struct
             (* TODO move the [expr i] function to other branch only *)
             (* (\* Use expr. Otherwise we get unused binding error *\) *)
             (* ignore (expr i); *)
-
-            (* This is already exhaustive but we do the tail here as well for errors *)
-            let matches =
-              List.fold_left
-                (fun acc item ->
-                  ((snd item).index, (snd item).loc, fill_matches env item)
-                  :: acc)
-                [ (d.index, d.loc, Match.Exhaustive (fake_depth d.lvl)) ]
-                tl
-            in
             unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
-            (ret, matches)
+            ret
         | Var { index; loc; name; d; patterns } ->
             (* Bind the variable *)
             let env =
               Env.add_value name (expr index).typ ~is_const:false d.loc env
             in
             (* Continue with expression *)
-            let ret, matches =
-              compile_matches env loc ((patterns, d) :: tl) ret_typ
-            in
+            let ret = compile_matches env loc ((patterns, d) :: tl) ret_typ in
 
-            ( {
-                typ = ret.typ;
-                expr = Let (name, expr index, ret);
-                is_const = ret.is_const;
-              },
-              matches )
+            {
+              typ = ret.typ;
+              expr = Let (name, expr index, ret);
+              is_const = ret.is_const;
+            }
         | Ctor { index; loc; name; d; patterns } ->
             let a, b = match_cases (index, name) ((patterns, d) :: tl) [] [] in
 
@@ -404,33 +246,27 @@ module Make (C : Core) = struct
               (d.loc, "Variant pattern has unexpected type:")
               (expr index).typ variant;
 
-            let names = ctornames_of_variant variant in
-
             let data, ifenv = ctorenv env ctor index d.loc in
-            let cont, ifmatch = compile_matches ifenv d.loc a ret_typ in
+            let cont = compile_matches ifenv d.loc a ret_typ in
             (* Make expr available in codegen *)
             let ifexpr = Let (expr_name index, data, cont) in
 
-            let matches = Match.insert names name (fake_depth d.lvl) ifmatch in
-
             (* This is either an if-then-else or just an one ctor,
                depending on whether [b] is empty *)
-            let expr, matches =
+            let expr =
               match b with
-              | [] -> (ifexpr, matches)
+              | [] -> ifexpr
               | b ->
                   let cmp = gen_cmp (expr index) l.index in
                   let if_ = { cont with expr = ifexpr } in
-                  let else_, elsematch = compile_matches env d.loc b ret_typ in
-                  let matches = matches @ elsematch in
-                  (If (cmp, if_, else_), matches)
+                  let else_ = compile_matches env d.loc b ret_typ in
+                  If (cmp, if_, else_)
             in
 
-            ({ typ = ret_typ; expr; is_const = false }, matches))
+            { typ = ret_typ; expr; is_const = false })
     | [] -> failwith "Internal Error: Empty match"
 
   and match_cases (i, case) cases if_ else_ =
-    (* TODO function *)
     match cases with
     | (clauses, d) :: tl -> (
         match List.assoc_opt i clauses with
@@ -439,9 +275,7 @@ module Make (C : Core) = struct
                it at the ctor's place to the [if_] list. Since we are one level
                deeper, we replace [i]'s [lvl] with [lvl + 1] *)
             let arg = arg_opt loc arg in
-            let lvl = Map.find i d.lvl in
-            let d = { d with lvl = Map.add i (lvl + 1) d.lvl }
-            and clauses = assoc_set i arg clauses in
+            let clauses = assoc_set i arg clauses in
             match_cases (i, case) tl ((clauses, d) :: if_) else_
         | Some (Ast.Pctor (_, _)) ->
             (* We found a ctor, but it does not match. Add to [else_] *)
@@ -453,20 +287,4 @@ module Make (C : Core) = struct
         | Some (Ptup _) -> failwith "Internal Error: Unexpected tup"
         | None -> failwith "Internal Error: Column does not exist")
     | [] -> (List.rev if_, List.rev else_)
-
-  and fill_matches env = function
-    (* This is not yet implemented for tuples *)
-    | [ (i, Ast.Pctor (name, arg)) ], d ->
-        let _, _, variant = get_variant env d.loc name None in
-        let names = ctornames_of_variant variant in
-        let arg = arg_opt (fst name) arg in
-
-        let map =
-          Smap.add (snd name) (fill_matches env ([ (i, arg) ], d)) Smap.empty
-        in
-        Match.Partial (fake_depth d.lvl, names, map)
-    | [ (_, Pvar _) ], d | [ (_, Pwildcard _) ], d ->
-        Exhaustive (fake_depth d.lvl)
-        (* | [ (_, Ptup _) ], _ -> failwith "TODO" *)
-    | _ -> failwith "Internal Error: Something is wrong here"
 end
