@@ -44,7 +44,7 @@ let get_variant env loc name annot =
       let msg = "Unbound constructor " ^ snd name in
       raise (Error (loc, msg))
 
-type pattern_data = { loc : Ast.loc; ret_expr : Ast.stmt list }
+type pattern_data = { loc : Ast.loc; ret_expr : Ast.stmt list; col : int }
 
 module Tup = struct
   type payload = {
@@ -86,6 +86,151 @@ module Tup = struct
     | (_, Pwildcard _ | _, Ptup _) :: _ ->
         failwith "Internal Error: Unexpected tup pattern"
     | [] -> Bare d
+end
+
+module Exhaustiveness = struct
+  module Set = Set.Make (String)
+
+  type 'a exhaustive = Exh | No_rows | Wip of (Ast.pattern list * 'a) list
+  type ctorset = Ctors of ctor list | Inf
+
+  let ctorset_of_variant = function
+    | Tvariant (_, _, ctors) -> Ctors (Array.to_list ctors)
+    | _ -> Inf
+
+  (* [pattern] has a complete signature on first column *)
+  type signature = Complete of ctor list | Missing of string list
+
+  let sig_complete typ patterns =
+    match ctorset_of_variant (clean typ) with
+    | Ctors ctors ->
+        let set =
+          ctors |> List.map (fun ctor -> ctor.ctorname) |> Set.of_list
+        in
+        let sigs =
+          List.fold_left
+            (fun set patterns ->
+              match patterns with
+              | Ast.Pctor ((_, name), _) :: _, _ -> Set.remove name set
+              | _ -> set)
+            set patterns
+        in
+        if Set.is_empty sigs then Complete ctors
+        else Missing (Set.elements sigs)
+    | Inf -> Missing []
+
+  (* Always on first column *)
+  let default = function
+    | [] ->
+        (* No rows, so we fail *)
+        No_rows
+    | patterns ->
+        print_endline "default";
+        let rows_empty = ref true in
+        let patterns =
+          Printf.printf "len: %i\n" (List.length patterns);
+          List.filter_map
+            (function
+              | Ast.Pctor (_, _) :: _, _ ->
+                  print_endline "drop ctor";
+                  (* Drop row *)
+                  rows_empty := false;
+                  None
+              | (Pwildcard _ | Pvar _) :: tl, d ->
+                  (* Discard head element *)
+                  rows_empty := false;
+                  Some (tl, d)
+              | Ptup _ :: _, _ -> failwith "No tuple here"
+              | [], d -> (* Empty row *) Some ([], d))
+            patterns
+        in
+        Printf.printf "rows: %b\n%!" !rows_empty;
+        if !rows_empty then Exh else Wip patterns
+
+  let args_to_list = function
+    | Some (Ast.Ptup (_, pats)) -> pats
+    | Some p -> [ p ]
+    | None -> []
+
+  let arg_to_num = function Some _ -> 1 | None -> 0
+
+  let rec to_n_list x n lst =
+    if n = 0 then lst else to_n_list x (n - 1) (x :: lst)
+
+  (* Specialize first column for [case] *)
+  let specialize case num_args = function
+    | [] -> No_rows
+    | patterns ->
+        let rows_empty = ref true in
+        let patterns =
+          List.filter_map
+            (function
+              | Ast.Pctor (name, args) :: tl, d
+                when String.equal (snd name) case ->
+                  rows_empty := false;
+                  Some (args_to_list args @ tl, d)
+              | Pctor (_, _) :: _, _ ->
+                  (* Drop row *)
+                  rows_empty := false;
+                  None
+              | (Pwildcard _ | Pvar _) :: tl, d ->
+                  let loc = Lexing.(dummy_pos, dummy_pos) in
+                  rows_empty := false;
+                  Some (to_n_list (Ast.Pwildcard loc) num_args [] @ tl, d)
+              | Ptup _ :: _, _ -> failwith "No tuple here"
+              | [], d -> (* Empty row *) Some ([], d))
+            patterns
+        in
+
+        if !rows_empty then Exh else Wip patterns
+
+  (* TODO no rows is not needed *)
+
+  let check_empty patterns =
+    let rows_empty = ref true in
+    List.iter
+      (function
+        | (Ast.Pctor _ | Pwildcard _ | Pvar _) :: _, _ -> rows_empty := false
+        | Ptup _ :: _, _ -> failwith "No tuple here"
+        | [], _ -> ())
+      patterns;
+    if !rows_empty then Ok ()
+    else failwith "Internal Error: No matching type expression"
+
+  let rec is_exhaustive types patterns : (unit, string) result =
+    match (types, patterns) with
+    | _, [] -> Error "not exhaust, rows"
+    | [], patterns -> check_empty patterns
+    | typ :: typstl, patterns -> (
+        match sig_complete typ patterns with
+        | Complete ctors ->
+            print_endline "complete";
+            let exhs =
+              List.map
+                (fun { ctorname; ctortyp } ->
+                  let num = arg_to_num ctortyp in
+                  match specialize ctorname num patterns with
+                  | Exh -> Ok ()
+                  | No_rows -> Error "not exhaust"
+                  | Wip patterns ->
+                      (* In case specializion adds a ctor, we elimate these first *)
+                      (* Right now, the argument arity is 1 at most *)
+                      if num = 1 then
+                        let typ = Option.get ctortyp in
+                        is_exhaustive (typ :: typstl) patterns
+                      else is_exhaustive typstl patterns)
+                ctors
+            in
+            if List.for_all Result.is_ok exhs then Ok () else List.hd exhs
+        | Missing _ (* TODO use these ctors for error message *) -> (
+            print_endline "missing";
+            match default patterns with
+            | Exh -> Ok ()
+            | No_rows -> Error "not exhaust"
+            | Wip patterns ->
+                (* The default matrix only removes ctors and does not add
+                   temporary ones. So we can continue with exprstl *)
+                is_exhaustive typstl patterns))
 end
 
 module Make (C : Core) = struct
@@ -144,7 +289,12 @@ module Make (C : Core) = struct
   (* We want to be able to reference the exprs in the pattern match without
      regenerating it, so we use a migic identifier *)
   let expr_name i = "__expr" ^ string_of_int i
-  let arg_opt loc = function None -> Ast.Pwildcard loc | Some p -> p
+
+  let arg_opt loc =
+    (* TODO We can drop [None] here. Convertion to wildcard should not be needed anymore *)
+    function
+    | None -> Ast.Pwildcard loc
+    | Some p -> p
 
   let rec convert_match env loc exprs cases =
     let (_, env), exprs =
@@ -161,8 +311,8 @@ module Make (C : Core) = struct
     let ret = newvar () in
 
     let some_cases =
-      List.map
-        (fun (loc, p, expr) ->
+      List.mapi
+        (fun i (loc, p, expr) ->
           let pat =
             match p with
             | Ast.Ptup (_, pats) ->
@@ -174,11 +324,19 @@ module Make (C : Core) = struct
                 pat
             | p -> [ (0, p) ]
           in
-          (pat, { loc; ret_expr = expr }))
+          (pat, { loc; ret_expr = expr; col = i }))
         cases
     in
 
     let matchexpr = compile_matches env loc some_cases ret in
+
+    (let types = List.map (fun e -> (snd e).typ |> clean) exprs
+     and patterns =
+       List.map (fun (p, d) -> (List.map (fun (_, p) -> p) p, d)) some_cases
+     in
+     match Exhaustiveness.is_exhaustive types patterns with
+     | Ok () -> ()
+     | Error str -> raise (Error (loc, str)));
 
     let rec build_expr = function
       | [] -> matchexpr
@@ -187,11 +345,6 @@ module Make (C : Core) = struct
     in
 
     build_expr exprs
-
-  (* and ctornames_of_variant = function *)
-  (*   | Tvariant (_, _, ctors) -> *)
-  (*       Array.to_list ctors |> List.map (fun ctor -> ctor.ctorname) *)
-  (*   | _ -> failwith "Internal Error: Not a variant" *)
 
   and compile_matches env all_loc cases ret_typ =
     (* We build the decision tree here.
