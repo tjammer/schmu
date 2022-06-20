@@ -91,7 +91,8 @@ end
 module Exhaustiveness = struct
   module Set = Set.Make (String)
 
-  type 'a exhaustive = Exh | No_rows | Wip of (Ast.pattern list * 'a) list
+  type wip_kind = New_column | Specialization
+  type 'a exhaustive = Exh | Wip of wip_kind * (Ast.pattern list * 'a) list
   type ctorset = Ctors of ctor list | Inf
 
   let ctorset_of_variant = function
@@ -99,7 +100,7 @@ module Exhaustiveness = struct
     | _ -> Inf
 
   (* [pattern] has a complete signature on first column *)
-  type signature = Complete of ctor list | Missing of string list
+  type signature = Complete of ctor list | Missing of string list | Infi
 
   let sig_complete typ patterns =
     match ctorset_of_variant (clean typ) with
@@ -111,41 +112,40 @@ module Exhaustiveness = struct
           List.fold_left
             (fun set patterns ->
               match patterns with
-              | Ast.Pctor ((_, name), _) :: _, _ -> Set.remove name set
+              | Ast.Pctor ((_, name), _) :: _, _ ->
+                  Set.remove name set (* TODO wildcard *)
               | _ -> set)
             set patterns
         in
         if Set.is_empty sigs then Complete ctors
         else Missing (Set.elements sigs)
-    | Inf -> Missing []
+    | Inf -> Infi
 
   (* Always on first column *)
-  let default = function
-    | [] ->
-        (* No rows, so we fail *)
-        No_rows
-    | patterns ->
-        print_endline "default";
-        let rows_empty = ref true in
-        let patterns =
-          Printf.printf "len: %i\n" (List.length patterns);
-          List.filter_map
-            (function
-              | Ast.Pctor (_, _) :: _, _ ->
-                  print_endline "drop ctor";
-                  (* Drop row *)
-                  rows_empty := false;
-                  None
-              | (Pwildcard _ | Pvar _) :: tl, d ->
-                  (* Discard head element *)
-                  rows_empty := false;
-                  Some (tl, d)
-              | Ptup _ :: _, _ -> failwith "No tuple here"
-              | [], d -> (* Empty row *) Some ([], d))
-            patterns
-        in
-        Printf.printf "rows: %b\n%!" !rows_empty;
-        if !rows_empty then Exh else Wip patterns
+  let default patterns =
+    print_endline "default";
+    let rows_empty = ref true in
+    let new_col = ref false in
+    let patterns =
+      List.filter_map
+        (function
+          | Ast.Pctor (_, _) :: _, _ ->
+              (* Drop row *)
+              rows_empty := false;
+              None
+          | (Pwildcard _ | Pvar _) :: tl, d ->
+              (* Discard head element *)
+              new_col := true;
+              rows_empty := false;
+              Some (tl, d)
+          | Ptup _ :: _, _ -> failwith "No tuple here"
+          | [], d -> (* Empty row *) Some ([], d))
+        patterns
+    in
+
+    if !new_col then print_endline "new col";
+    let new_col = if !new_col then New_column else Specialization in
+    if !rows_empty then Exh else Wip (new_col, patterns)
 
   let args_to_list = function
     | Some (Ast.Ptup (_, pats)) -> pats
@@ -158,31 +158,45 @@ module Exhaustiveness = struct
     if n = 0 then lst else to_n_list x (n - 1) (x :: lst)
 
   (* Specialize first column for [case] *)
-  let specialize case num_args = function
-    | [] -> No_rows
-    | patterns ->
-        let rows_empty = ref true in
-        let patterns =
-          List.filter_map
-            (function
-              | Ast.Pctor (name, args) :: tl, d
-                when String.equal (snd name) case ->
-                  rows_empty := false;
-                  Some (args_to_list args @ tl, d)
-              | Pctor (_, _) :: _, _ ->
-                  (* Drop row *)
-                  rows_empty := false;
-                  None
-              | (Pwildcard _ | Pvar _) :: tl, d ->
-                  let loc = Lexing.(dummy_pos, dummy_pos) in
-                  rows_empty := false;
-                  Some (to_n_list (Ast.Pwildcard loc) num_args [] @ tl, d)
-              | Ptup _ :: _, _ -> failwith "No tuple here"
-              | [], d -> (* Empty row *) Some ([], d))
-            patterns
-        in
+  let specialize case num_args patterns =
+    let rows_empty = ref true in
+    let new_col = ref false in
+    let patterns =
+      List.filter_map
+        (function
+          | Ast.Pctor (name, args) :: tl, d when String.equal (snd name) case ->
+              rows_empty := false;
+              let lst =
+                match args_to_list args with
+                | [] ->
+                    new_col := true;
+                    tl
+                | lst -> lst @ tl
+              in
+              Some (lst, d)
+          | Pctor (_, _) :: _, _ ->
+              (* Drop row *)
+              rows_empty := false;
+              None
+          | (Pwildcard _ | Pvar _) :: tl, d ->
+              let loc = Lexing.(dummy_pos, dummy_pos) in
+              rows_empty := false;
+              let lst =
+                match num_args with
+                | 0 ->
+                    new_col := true;
+                    tl
+                | _ -> to_n_list (Ast.Pwildcard loc) num_args [] @ tl
+              in
+              Some (lst, d)
+          | Ptup _ :: _, _ -> failwith "No tuple here"
+          | [], d -> (* Empty row *) Some ([], d))
+        patterns
+    in
 
-        if !rows_empty then Exh else Wip patterns
+    if !new_col then print_endline "new col";
+    let new_col = if !new_col then New_column else Specialization in
+    if !rows_empty then Exh else Wip (new_col, patterns)
 
   (* TODO no rows is not needed *)
 
@@ -197,9 +211,14 @@ module Exhaustiveness = struct
     if !rows_empty then Ok ()
     else failwith "Internal Error: No matching type expression"
 
-  let rec is_exhaustive types patterns : (unit, string) result =
+  let keep_new_col kind (other, str) =
+    match (kind, other) with
+    | New_column, _ | _, New_column -> (New_column, str)
+    | Specialization, Specialization -> (Specialization, str)
+
+  let rec is_exhaustive types patterns : (unit, wip_kind * string) result =
     match (types, patterns) with
-    | _, [] -> Error "not exhaust, rows"
+    | _, [] -> Error (Specialization, "not exhaust, rows")
     | [], patterns -> check_empty patterns
     | typ :: typstl, patterns -> (
         match sig_complete typ patterns with
@@ -208,29 +227,56 @@ module Exhaustiveness = struct
             let exhs =
               List.map
                 (fun { ctorname; ctortyp } ->
+                  print_endline ctorname;
                   let num = arg_to_num ctortyp in
-                  match specialize ctorname num patterns with
-                  | Exh -> Ok ()
-                  | No_rows -> Error "not exhaust"
-                  | Wip patterns ->
-                      (* In case specializion adds a ctor, we elimate these first *)
-                      (* Right now, the argument arity is 1 at most *)
-                      if num = 1 then
-                        let typ = Option.get ctortyp in
-                        is_exhaustive (typ :: typstl) patterns
-                      else is_exhaustive typstl patterns)
+                  ( ctorname,
+                    match specialize ctorname num patterns with
+                    | Exh -> Ok ()
+                    | Wip (kind, patterns) ->
+                        (* In case specializion adds a ctor, we elimate these first *)
+                        (* Right now, the argument arity is 1 at most *)
+                        let ret =
+                          if num = 1 then
+                            let typ = Option.get ctortyp in
+                            is_exhaustive (typ :: typstl) patterns
+                          else is_exhaustive typstl patterns
+                        in
+                        ret |> Result.map_error (keep_new_col kind) ))
                 ctors
             in
-            if List.for_all Result.is_ok exhs then Ok () else List.hd exhs
-        | Missing _ (* TODO use these ctors for error message *) -> (
+
+            if List.for_all (fun i -> snd i |> Result.is_ok) exhs then Ok ()
+            else
+              let ctor, err =
+                List.find (fun i -> snd i |> Result.is_error) exhs
+              in
+              let kind, str = Result.get_error err in
+              let str =
+                match kind with
+                | New_column -> Printf.sprintf "%s, %s" ctor str
+                | Specialization -> Printf.sprintf "%s(%s)" ctor str
+              in
+
+              Error (kind, str)
+        | Missing ctors -> (
             print_endline "missing";
             match default patterns with
             | Exh -> Ok ()
-            | No_rows -> Error "not exhaust"
-            | Wip patterns ->
+            | Wip (kind, patterns) -> (
                 (* The default matrix only removes ctors and does not add
                    temporary ones. So we can continue with exprstl *)
-                is_exhaustive typstl patterns))
+                match is_exhaustive typstl patterns with
+                | Ok () -> Ok ()
+                | Error _ ->
+                    let msg = String.concat ":" ctors in
+                    Error (kind, "^" ^ msg)))
+        | Infi -> (
+            print_endline "infi";
+            match default patterns with
+            | Exh -> Ok ()
+            | Wip (kind, patterns) ->
+                is_exhaustive typstl patterns
+                |> Result.map_error (keep_new_col kind)))
 end
 
 module Make (C : Core) = struct
@@ -336,7 +382,7 @@ module Make (C : Core) = struct
      in
      match Exhaustiveness.is_exhaustive types patterns with
      | Ok () -> ()
-     | Error str -> raise (Error (loc, str)));
+     | Error (_, str) -> raise (Error (loc, str)));
 
     let rec build_expr = function
       | [] -> matchexpr
