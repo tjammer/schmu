@@ -44,7 +44,7 @@ let get_variant env loc name annot =
       let msg = "Unbound constructor " ^ snd name in
       raise (Error (loc, msg))
 
-type pattern_data = { loc : Ast.loc; ret_expr : Ast.stmt list; col : int }
+type pattern_data = { loc : Ast.loc; ret_expr : Ast.stmt list; row : int }
 
 module Tup = struct
   type payload = {
@@ -275,6 +275,14 @@ end
 module Make (C : Core) = struct
   open C
 
+  module Row = struct
+    type t = { loc : Ast.loc; cnt : int }
+
+    let compare a b = Int.compare a.cnt b.cnt
+  end
+
+  module Row_set = Set.Make (Row)
+
   (* List.Assoc.set taken from containers *)
   let rec search_set acc l x ~f =
     match l with
@@ -349,9 +357,11 @@ module Make (C : Core) = struct
     (* TODO error if we have multiple exprs but no tup pattern *)
     let ret = newvar () in
 
+    let used_rows = ref Row_set.empty in
     let some_cases =
       List.mapi
         (fun i (loc, p, expr) ->
+          used_rows := Row_set.add Row.{ loc; cnt = i } !used_rows;
           let pat =
             match p with
             | Ast.Ptup (_, pats) ->
@@ -363,12 +373,13 @@ module Make (C : Core) = struct
                 pat
             | p -> [ (0, p) ]
           in
-          (pat, { loc; ret_expr = expr; col = i }))
+          (pat, { loc; ret_expr = expr; row = i }))
         cases
     in
 
-    let matchexpr = compile_matches env loc some_cases ret in
+    let matchexpr = compile_matches env loc used_rows some_cases ret in
 
+    (* Check for exhaustiveness *)
     (let types = List.map (fun e -> (snd e).typ |> clean) exprs
      and patterns = List.map (fun (p, _) -> List.map snd p) some_cases in
      match Exhaustiveness.is_exhaustive types patterns with
@@ -380,6 +391,12 @@ module Make (C : Core) = struct
          in
          raise (Error (loc, msg)));
 
+    (* Find redundant cases *)
+    (match Row_set.min_elt_opt !used_rows with
+    | None -> ()
+    | Some { loc; cnt = _ } ->
+        raise (Error (loc, "Pattern match case is redundant")));
+
     let rec build_expr = function
       | [] -> matchexpr
       | (i, expr) :: tl ->
@@ -388,7 +405,7 @@ module Make (C : Core) = struct
 
     build_expr exprs
 
-  and compile_matches env all_loc cases ret_typ =
+  and compile_matches env all_loc rows cases ret_typ =
     (* We build the decision tree here.
        [match_cases] splits cases into ones that match and ones that don't.
        [compile_matches] then generates the tree for the cases.
@@ -413,6 +430,9 @@ module Make (C : Core) = struct
     | hd :: tl -> (
         match Tup.choose_next hd with
         | Bare d ->
+            (* Mark row as used *)
+            rows := Row_set.remove { cnt = d.row; loc = d.loc } !rows;
+
             let ret, _ = convert_block env d.ret_expr in
 
             (* TODO move the [expr i] function to other branch only *)
@@ -426,7 +446,9 @@ module Make (C : Core) = struct
               Env.add_value name (expr index).typ ~is_const:false d.loc env
             in
             (* Continue with expression *)
-            let ret = compile_matches env loc ((patterns, d) :: tl) ret_typ in
+            let ret =
+              compile_matches env loc rows ((patterns, d) :: tl) ret_typ
+            in
 
             {
               typ = ret.typ;
@@ -442,7 +464,7 @@ module Make (C : Core) = struct
               (expr index).typ variant;
 
             let data, ifenv = ctorenv env ctor index d.loc in
-            let cont = compile_matches ifenv d.loc a ret_typ in
+            let cont = compile_matches ifenv d.loc rows a ret_typ in
             (* Make expr available in codegen *)
             let ifexpr = Let (expr_name index, data, cont) in
 
@@ -454,7 +476,7 @@ module Make (C : Core) = struct
               | b ->
                   let cmp = gen_cmp (expr index) l.index in
                   let if_ = { cont with expr = ifexpr } in
-                  let else_ = compile_matches env d.loc b ret_typ in
+                  let else_ = compile_matches env d.loc rows b ret_typ in
                   If (cmp, if_, else_)
             in
 
