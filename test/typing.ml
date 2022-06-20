@@ -330,7 +330,7 @@ let test_match_missing () =
 
 let test_match_missing_nested () =
   test_exn
-    "Pattern match is not exhaustive. Missing cases: Some(Int), Some(Non), None"
+    "Pattern match is not exhaustive. Missing cases: Some(Int) | Some(Non)"
     {|
 type option('a) = Some('a) | None
 type test = Float(float) | Int(int) | Non
@@ -339,7 +339,7 @@ match None with
   Some(Float(f)) -> f |> int_of_float
   -- Some(Int(i)) -> i
   -- Some(Non) -> 1
-  -- None -> 0
+  None -> 0
 |}
 
 let test_match_all_after_ctor () =

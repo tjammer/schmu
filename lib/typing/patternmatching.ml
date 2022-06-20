@@ -123,7 +123,6 @@ module Exhaustiveness = struct
 
   (* Always on first column *)
   let default patterns =
-    print_endline "default";
     let rows_empty = ref true in
     let new_col = ref false in
     let patterns =
@@ -143,7 +142,6 @@ module Exhaustiveness = struct
         patterns
     in
 
-    if !new_col then print_endline "new col";
     let new_col = if !new_col then New_column else Specialization in
     if !rows_empty then Exh else Wip (new_col, patterns)
 
@@ -194,7 +192,6 @@ module Exhaustiveness = struct
         patterns
     in
 
-    if !new_col then print_endline "new col";
     let new_col = if !new_col then New_column else Specialization in
     if !rows_empty then Exh else Wip (new_col, patterns)
 
@@ -216,18 +213,16 @@ module Exhaustiveness = struct
     | New_column, _ | _, New_column -> (New_column, str)
     | Specialization, Specialization -> (Specialization, str)
 
-  let rec is_exhaustive types patterns : (unit, wip_kind * string) result =
+  let rec is_exhaustive types patterns : (unit, wip_kind * string list) result =
     match (types, patterns) with
-    | _, [] -> Error (Specialization, "not exhaust, rows")
+    | _, [] -> Error (Specialization, [])
     | [], patterns -> check_empty patterns
     | typ :: typstl, patterns -> (
         match sig_complete typ patterns with
         | Complete ctors ->
-            print_endline "complete";
             let exhs =
               List.map
                 (fun { ctorname; ctortyp } ->
-                  print_endline ctorname;
                   let num = arg_to_num ctortyp in
                   ( ctorname,
                     match specialize ctorname num patterns with
@@ -250,16 +245,17 @@ module Exhaustiveness = struct
               let ctor, err =
                 List.find (fun i -> snd i |> Result.is_error) exhs
               in
-              let kind, str = Result.get_error err in
-              let str =
+              let kind, strs = Result.get_error err in
+              let strs =
                 match kind with
-                | New_column -> Printf.sprintf "%s, %s" ctor str
-                | Specialization -> Printf.sprintf "%s(%s)" ctor str
+                | New_column ->
+                    List.map (fun str -> Printf.sprintf "%s, %s" ctor str) strs
+                | Specialization ->
+                    List.map (fun str -> Printf.sprintf "%s(%s)" ctor str) strs
               in
 
-              Error (kind, str)
+              Error (kind, strs)
         | Missing ctors -> (
-            print_endline "missing";
             match default patterns with
             | Exh -> Ok ()
             | Wip (kind, patterns) -> (
@@ -267,11 +263,8 @@ module Exhaustiveness = struct
                    temporary ones. So we can continue with exprstl *)
                 match is_exhaustive typstl patterns with
                 | Ok () -> Ok ()
-                | Error _ ->
-                    let msg = String.concat ":" ctors in
-                    Error (kind, "^" ^ msg)))
+                | Error _ -> Error (kind, ctors)))
         | Infi -> (
-            print_endline "infi";
             match default patterns with
             | Exh -> Ok ()
             | Wip (kind, patterns) ->
@@ -382,7 +375,12 @@ module Make (C : Core) = struct
      in
      match Exhaustiveness.is_exhaustive types patterns with
      | Ok () -> ()
-     | Error (_, str) -> raise (Error (loc, str)));
+     | Error (_, cases) ->
+         let msg =
+           Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
+             (String.concat " | " cases)
+         in
+         raise (Error (loc, msg)));
 
     let rec build_expr = function
       | [] -> matchexpr
