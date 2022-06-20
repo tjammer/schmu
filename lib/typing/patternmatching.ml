@@ -92,7 +92,7 @@ module Exhaustiveness = struct
   module Set = Set.Make (String)
 
   type wip_kind = New_column | Specialization
-  type 'a exhaustive = Exh | Wip of wip_kind * (Ast.pattern list * 'a) list
+  type exhaustive = Exh | Wip of wip_kind * Ast.pattern list list
   type ctorset = Ctors of ctor list | Inf
 
   let ctorset_of_variant = function
@@ -112,7 +112,7 @@ module Exhaustiveness = struct
           List.fold_left
             (fun set patterns ->
               match patterns with
-              | Ast.Pctor ((_, name), _) :: _, _ ->
+              | Ast.Pctor ((_, name), _) :: _ ->
                   Set.remove name set (* TODO wildcard *)
               | _ -> set)
             set patterns
@@ -128,17 +128,17 @@ module Exhaustiveness = struct
     let patterns =
       List.filter_map
         (function
-          | Ast.Pctor (_, _) :: _, _ ->
+          | Ast.Pctor (_, _) :: _ ->
               (* Drop row *)
               rows_empty := false;
               None
-          | (Pwildcard _ | Pvar _) :: tl, d ->
+          | (Pwildcard _ | Pvar _) :: tl ->
               (* Discard head element *)
               new_col := true;
               rows_empty := false;
-              Some (tl, d)
-          | Ptup _ :: _, _ -> failwith "No tuple here"
-          | [], d -> (* Empty row *) Some ([], d))
+              Some tl
+          | Ptup _ :: _ -> failwith "No tuple here"
+          | [] -> (* Empty row *) Some [])
         patterns
     in
 
@@ -162,7 +162,7 @@ module Exhaustiveness = struct
     let patterns =
       List.filter_map
         (function
-          | Ast.Pctor (name, args) :: tl, d when String.equal (snd name) case ->
+          | Ast.Pctor (name, args) :: tl when String.equal (snd name) case ->
               rows_empty := false;
               let lst =
                 match args_to_list args with
@@ -171,12 +171,12 @@ module Exhaustiveness = struct
                     tl
                 | lst -> lst @ tl
               in
-              Some (lst, d)
-          | Pctor (_, _) :: _, _ ->
+              Some lst
+          | Pctor (_, _) :: _ ->
               (* Drop row *)
               rows_empty := false;
               None
-          | (Pwildcard _ | Pvar _) :: tl, d ->
+          | (Pwildcard _ | Pvar _) :: tl ->
               let loc = Lexing.(dummy_pos, dummy_pos) in
               rows_empty := false;
               let lst =
@@ -186,9 +186,9 @@ module Exhaustiveness = struct
                     tl
                 | _ -> to_n_list (Ast.Pwildcard loc) num_args [] @ tl
               in
-              Some (lst, d)
-          | Ptup _ :: _, _ -> failwith "No tuple here"
-          | [], d -> (* Empty row *) Some ([], d))
+              Some lst
+          | Ptup _ :: _ -> failwith "No tuple here"
+          | [] -> (* Empty row *) Some [])
         patterns
     in
 
@@ -201,9 +201,9 @@ module Exhaustiveness = struct
     let rows_empty = ref true in
     List.iter
       (function
-        | (Ast.Pctor _ | Pwildcard _ | Pvar _) :: _, _ -> rows_empty := false
-        | Ptup _ :: _, _ -> failwith "No tuple here"
-        | [], _ -> ())
+        | (Ast.Pctor _ | Pwildcard _ | Pvar _) :: _ -> rows_empty := false
+        | Ptup _ :: _ -> failwith "No tuple here"
+        | [] -> ())
       patterns;
     if !rows_empty then Ok ()
     else failwith "Internal Error: No matching type expression"
@@ -370,9 +370,7 @@ module Make (C : Core) = struct
     let matchexpr = compile_matches env loc some_cases ret in
 
     (let types = List.map (fun e -> (snd e).typ |> clean) exprs
-     and patterns =
-       List.map (fun (p, d) -> (List.map (fun (_, p) -> p) p, d)) some_cases
-     in
+     and patterns = List.map (fun (p, _) -> List.map snd p) some_cases in
      match Exhaustiveness.is_exhaustive types patterns with
      | Ok () -> ()
      | Error (_, cases) ->
