@@ -364,3 +364,124 @@ Nested pattern matching
   2
   1
   0
+
+Match multiple columns
+  $ schmu tuple_match.smu --dump-llvm -o out.o && cc out.o && ./a.out
+  tuple_match.smu:8:5: warning: Unused binding a
+  8 |     _, a -> 0
+          ^^^^
+  
+  tuple_match.smu:8:5: warning: Unused binding a
+  8 |     _, a -> 0
+          ^^^^
+  
+  tuple_match.smu:8:5: warning: Unused binding a
+  8 |     _, a -> 0
+          ^^^^
+  
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %option_int = type { i32, i64 }
+  %string = type { i8*, i64 }
+  
+  @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
+  
+  declare void @printf(i8* %0, i64 %1)
+  
+  define private void @do(%option_int* %a, %option_int* %b) {
+  entry:
+    %str = alloca %string, align 8
+    %cstr31 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr31, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 3, i64* %length, align 4
+    %tag32 = bitcast %option_int* %a to i32*
+    %index = load i32, i32* %tag32, align 4
+    %eq = icmp eq i32 %index, 0
+    br i1 %eq, label %then, label %else13
+  
+  then:                                             ; preds = %entry
+    %data = getelementptr inbounds %option_int, %option_int* %a, i32 0, i32 1
+    %0 = load i64, i64* %data, align 4
+    %tag133 = bitcast %option_int* %b to i32*
+    %index2 = load i32, i32* %tag133, align 4
+    %eq3 = icmp eq i32 %index2, 0
+    br i1 %eq3, label %then4, label %else
+  
+  then4:                                            ; preds = %then
+    %data5 = getelementptr inbounds %option_int, %option_int* %b, i32 0, i32 1
+    %1 = load i64, i64* %data5, align 4
+    %add = add i64 %0, %1
+    br label %ifcont29
+  
+  else:                                             ; preds = %then
+    %eq8 = icmp eq i32 %index2, 1
+    br i1 %eq8, label %ifcont29, label %else10
+  
+  else10:                                           ; preds = %else
+    br label %ifcont29
+  
+  else13:                                           ; preds = %entry
+    %eq16 = icmp eq i32 %index, 1
+    br i1 %eq16, label %then17, label %ifcont29
+  
+  then17:                                           ; preds = %else13
+    %tag1834 = bitcast %option_int* %b to i32*
+    %index19 = load i32, i32* %tag1834, align 4
+    %eq20 = icmp eq i32 %index19, 0
+    br i1 %eq20, label %then21, label %ifcont29
+  
+  then21:                                           ; preds = %then17
+    %data22 = getelementptr inbounds %option_int, %option_int* %b, i32 0, i32 1
+    %2 = load i64, i64* %data22, align 4
+    br label %ifcont29
+  
+  ifcont29:                                         ; preds = %then17, %then21, %else13, %then4, %else, %else10
+    %iftmp30 = phi i64 [ %add, %then4 ], [ 0, %else10 ], [ %0, %else ], [ %2, %then21 ], [ 0, %then17 ], [ 0, %else13 ]
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %iftmp30)
+    ret void
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %option = alloca %option_int, align 8
+    %tag16 = bitcast %option_int* %option to i32*
+    store i32 1, i32* %tag16, align 4
+    %option1 = alloca %option_int, align 8
+    %tag217 = bitcast %option_int* %option1 to i32*
+    store i32 0, i32* %tag217, align 4
+    %data = getelementptr inbounds %option_int, %option_int* %option1, i32 0, i32 1
+    store i64 1, i64* %data, align 4
+    %option3 = alloca %option_int, align 8
+    %tag418 = bitcast %option_int* %option3 to i32*
+    store i32 0, i32* %tag418, align 4
+    %data5 = getelementptr inbounds %option_int, %option_int* %option3, i32 0, i32 1
+    store i64 2, i64* %data5, align 4
+    call void @do(%option_int* %option1, %option_int* %option3)
+    %option6 = alloca %option_int, align 8
+    %tag719 = bitcast %option_int* %option6 to i32*
+    store i32 0, i32* %tag719, align 4
+    %data8 = getelementptr inbounds %option_int, %option_int* %option6, i32 0, i32 1
+    store i64 2, i64* %data8, align 4
+    call void @do(%option_int* %option, %option_int* %option6)
+    %option9 = alloca %option_int, align 8
+    %tag1020 = bitcast %option_int* %option9 to i32*
+    store i32 0, i32* %tag1020, align 4
+    %data11 = getelementptr inbounds %option_int, %option_int* %option9, i32 0, i32 1
+    store i64 1, i64* %data11, align 4
+    %option12 = alloca %option_int, align 8
+    %tag1321 = bitcast %option_int* %option12 to i32*
+    store i32 1, i32* %tag1321, align 4
+    call void @do(%option_int* %option9, %option_int* %option12)
+    %option14 = alloca %option_int, align 8
+    %tag1522 = bitcast %option_int* %option14 to i32*
+    store i32 1, i32* %tag1522, align 4
+    call void @do(%option_int* %option, %option_int* %option14)
+    ret i64 0
+  }
+  3
+  2
+  1
+  0

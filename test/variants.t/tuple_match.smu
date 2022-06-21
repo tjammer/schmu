@@ -1,0 +1,16 @@
+external printf : (cstr, int) -> unit
+
+fun do(a, b) =
+  match a, b with
+    Some(a), Some(b) -> a + b
+    None, Some(b) -> b
+    Some(a), None -> a
+    _, a -> 0
+  |>> printf("%i\n".cstr)
+
+none_int : option(int) = None
+
+do(Some(1), Some(2))
+do(none_int, Some(2))
+do(Some(1), None)
+do(none_int, None)
