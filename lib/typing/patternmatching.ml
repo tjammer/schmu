@@ -112,8 +112,7 @@ module Exhaustiveness = struct
           List.fold_left
             (fun set patterns ->
               match patterns with
-              | Ast.Pctor ((_, name), _) :: _ ->
-                  Set.remove name set (* TODO wildcard *)
+              | Ast.Pctor ((_, name), _) :: _ -> Set.remove name set
               | _ -> set)
             set patterns
         in
@@ -176,8 +175,7 @@ module Exhaustiveness = struct
               (* Drop row *)
               rows_empty := false;
               None
-          | (Pwildcard _ | Pvar _) :: tl ->
-              let loc = Lexing.(dummy_pos, dummy_pos) in
+          | (Pwildcard loc | Pvar (loc, _)) :: tl ->
               rows_empty := false;
               let lst =
                 match num_args with
@@ -194,8 +192,6 @@ module Exhaustiveness = struct
 
     let new_col = if !new_col then New_column else Specialization in
     if !rows_empty then Exh else Wip (new_col, patterns)
-
-  (* TODO no rows is not needed *)
 
   let check_empty patterns =
     let rows_empty = ref true in
@@ -334,14 +330,9 @@ module Make (C : Core) = struct
         raise (Error (fst name, msg))
 
   (* We want to be able to reference the exprs in the pattern match without
-     regenerating it, so we use a migic identifier *)
+     regenerating it, so we use a magic identifier *)
   let expr_name i = "__expr" ^ string_of_int i
-
-  let arg_opt loc =
-    (* TODO We can drop [None] here. Convertion to wildcard should not be needed anymore *)
-    function
-    | None -> Ast.Pwildcard loc
-    | Some p -> p
+  let arg_opt loc = function None -> Ast.Pwildcard loc | Some p -> p
 
   let rec convert_match env loc exprs cases =
     let (_, env), exprs =
@@ -419,7 +410,6 @@ module Make (C : Core) = struct
 
     let ctorenv env ctor i loc =
       match ctor.ctortyp with
-      (* TODO is this instantiated? *)
       | Some typ ->
           let data = { typ; expr = Variant_data (expr i); is_const = false } in
           (data, Env.add_value (expr_name i) data.typ loc env)
