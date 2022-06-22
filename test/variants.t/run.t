@@ -367,18 +367,6 @@ Nested pattern matching
 
 Match multiple columns
   $ schmu tuple_match.smu --dump-llvm -o out.o && cc out.o && ./a.out
-  tuple_match.smu:8:5: warning: Unused binding a
-  8 |     _, a -> 0
-          ^^^^
-  
-  tuple_match.smu:8:5: warning: Unused binding a
-  8 |     _, a -> 0
-          ^^^^
-  
-  tuple_match.smu:8:5: warning: Unused binding a
-  8 |     _, a -> 0
-          ^^^^
-  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -393,54 +381,43 @@ Match multiple columns
   define private void @do(%option_int* %a, %option_int* %b) {
   entry:
     %str = alloca %string, align 8
-    %cstr31 = bitcast %string* %str to i8**
-    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr31, align 8
+    %cstr17 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr17, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 3, i64* %length, align 4
-    %tag32 = bitcast %option_int* %a to i32*
-    %index = load i32, i32* %tag32, align 4
+    %tag18 = bitcast %option_int* %b to i32*
+    %index = load i32, i32* %tag18, align 4
     %eq = icmp eq i32 %index, 0
-    br i1 %eq, label %then, label %else13
+    br i1 %eq, label %then, label %else6
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option_int, %option_int* %a, i32 0, i32 1
+    %data = getelementptr inbounds %option_int, %option_int* %b, i32 0, i32 1
     %0 = load i64, i64* %data, align 4
-    %tag133 = bitcast %option_int* %b to i32*
-    %index2 = load i32, i32* %tag133, align 4
+    %tag119 = bitcast %option_int* %a to i32*
+    %index2 = load i32, i32* %tag119, align 4
     %eq3 = icmp eq i32 %index2, 0
-    br i1 %eq3, label %then4, label %else
+    br i1 %eq3, label %then4, label %ifcont15
   
   then4:                                            ; preds = %then
-    %data5 = getelementptr inbounds %option_int, %option_int* %b, i32 0, i32 1
+    %data5 = getelementptr inbounds %option_int, %option_int* %a, i32 0, i32 1
     %1 = load i64, i64* %data5, align 4
-    %add = add i64 %0, %1
-    br label %ifcont29
+    %add = add i64 %1, %0
+    br label %ifcont15
   
-  else:                                             ; preds = %then
-    %eq8 = icmp eq i32 %index2, 1
-    br i1 %eq8, label %ifcont29, label %else10
+  else6:                                            ; preds = %entry
+    %tag720 = bitcast %option_int* %a to i32*
+    %index8 = load i32, i32* %tag720, align 4
+    %eq9 = icmp eq i32 %index8, 0
+    br i1 %eq9, label %then10, label %ifcont15
   
-  else10:                                           ; preds = %else
-    br label %ifcont29
+  then10:                                           ; preds = %else6
+    %data11 = getelementptr inbounds %option_int, %option_int* %a, i32 0, i32 1
+    %2 = load i64, i64* %data11, align 4
+    br label %ifcont15
   
-  else13:                                           ; preds = %entry
-    %eq16 = icmp eq i32 %index, 1
-    br i1 %eq16, label %then17, label %ifcont29
-  
-  then17:                                           ; preds = %else13
-    %tag1834 = bitcast %option_int* %b to i32*
-    %index19 = load i32, i32* %tag1834, align 4
-    %eq20 = icmp eq i32 %index19, 0
-    br i1 %eq20, label %then21, label %ifcont29
-  
-  then21:                                           ; preds = %then17
-    %data22 = getelementptr inbounds %option_int, %option_int* %b, i32 0, i32 1
-    %2 = load i64, i64* %data22, align 4
-    br label %ifcont29
-  
-  ifcont29:                                         ; preds = %then17, %then21, %else13, %then4, %else, %else10
-    %iftmp30 = phi i64 [ %add, %then4 ], [ 0, %else10 ], [ %0, %else ], [ %2, %then21 ], [ 0, %then17 ], [ 0, %else13 ]
-    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %iftmp30)
+  ifcont15:                                         ; preds = %then10, %else6, %then4, %then
+    %iftmp16 = phi i64 [ %add, %then4 ], [ %0, %then ], [ %2, %then10 ], [ 0, %else6 ]
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %iftmp16)
     ret void
   }
   

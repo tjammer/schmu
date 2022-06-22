@@ -57,7 +57,35 @@ module Tup = struct
 
   type ret = Var of payload | Ctor of payload | Bare of pattern_data
 
-  let choose_next (patterns, d) =
+  let choose_column ctors tl =
+    (* Count wildcards and vars per column. They lead to duplicated branches *)
+    let m =
+      List.fold_left
+        (fun acc (l, _) ->
+          List.fold_left
+            (fun acc (col, pat) ->
+              match pat with
+              | Ast.Pwildcard _ | Pvar _ ->
+                  (* increase count *)
+                  Map.update col
+                    (function None -> Some 1 | Some a -> Some (a + 1))
+                    acc
+              | _ -> acc)
+            acc l)
+        Map.empty tl
+    in
+    (* Choose column with smallest count *)
+    let col, _ =
+      List.fold_left
+        (fun (acol, acnt) (col, _) ->
+          let cnt = match Map.find_opt col m with Some c -> c | None -> 0 in
+          if cnt < acnt then (col, cnt) else (acol, acnt))
+        (-1, Int.max_int) ctors
+    in
+    assert (col >= 0);
+    col
+
+  let choose_next (patterns, d) tl =
     (* We choose a column based on precedence.
        [Pwildcard] is dropped
        1: [Pvar] needs to be bound,
@@ -78,8 +106,14 @@ module Tup = struct
     in
 
     match sorted with
-    | (index, Ast.Pctor ((loc, name), _)) :: _ ->
+    | [ (index, Ast.Pctor ((loc, name), _)) ] ->
         Ctor { index; loc; name; d; patterns = sorted }
+    | (_, Ast.Pctor _) :: _ -> (
+        let col = choose_column sorted tl in
+        match List.assoc col sorted with
+        | Pctor ((loc, name), _) ->
+            Ctor { index = col; loc; name; d; patterns = sorted }
+        | _ -> failwith "Internal Error: Not a constructor")
     | (index, Pvar (loc, name)) :: patterns ->
         (* Drop var from patterns list *)
         Var { index; loc; name; d; patterns }
@@ -418,7 +452,7 @@ module Make (C : Core) = struct
 
     match cases with
     | hd :: tl -> (
-        match Tup.choose_next hd with
+        match Tup.choose_next hd tl with
         | Bare d ->
             (* Mark row as used *)
             rows := Row_set.remove { cnt = d.row; loc = d.loc } !rows;

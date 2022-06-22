@@ -5,7 +5,7 @@ fun do(a, b) =
     Some(a), Some(b) -> a + b
     None, Some(b) -> b
     Some(a), None -> a
-    _, a -> 0
+    _, None -> 0
   |>> printf("%i\n".cstr)
 
 none_int : option(int) = None
