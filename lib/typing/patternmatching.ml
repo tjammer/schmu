@@ -369,7 +369,7 @@ module Make (C : Core) = struct
   let arg_opt loc = function None -> Ast.Pwildcard loc | Some p -> p
 
   let rec convert_match env loc exprs cases =
-    let (_, env), exprs =
+    let (columns, env), exprs =
       List.fold_left_map
         (fun (i, env) expr ->
           let e = convert env expr in
@@ -379,7 +379,6 @@ module Make (C : Core) = struct
         (0, env) exprs
     in
 
-    (* TODO error if we have multiple exprs but no tup pattern *)
     let ret = newvar () in
 
     let used_rows = ref Row_set.empty in
@@ -387,17 +386,21 @@ module Make (C : Core) = struct
       List.mapi
         (fun i (loc, p, expr) ->
           used_rows := Row_set.add Row.{ loc; cnt = i } !used_rows;
-          let pat =
+          let cols, pat =
             match p with
             | Ast.Ptup (_, pats) ->
-                (* TODO see above check arity *)
                 (* We track the depth (lvl) for each column separately *)
                 let _, pat =
                   List.fold_left_map (fun i p -> (i + 1, (i, p))) 0 pats
                 in
-                pat
-            | p -> [ (0, p) ]
+                (List.length pats, pat)
+            | p -> (1, [ (0, p) ])
           in
+          (if cols <> columns then
+           let msg =
+             Printf.sprintf "Expected %i patterns, but found %i" columns cols
+           in
+           raise (Error (loc, msg)));
           (pat, { loc; ret_expr = expr; row = i }))
         cases
     in

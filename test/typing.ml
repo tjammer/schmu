@@ -395,6 +395,14 @@ match None with
   None -> 0
 |}
 
+let test_match_column_arity () =
+  test_exn "Expected 2 patterns, but found 1"
+    {|
+type option('a) = Some('a) | None
+match 1, 2 with
+  a -> a
+|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -533,5 +541,6 @@ let () =
           (* case "redundant_all_cases" test_match_redundant_all_cases; *)
           case "wildcard" test_match_wildcard;
           case "wildcard_nested" test_match_wildcard_nested;
+          case "column arity" test_match_column_arity;
         ] );
     ]
