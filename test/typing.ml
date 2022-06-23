@@ -538,7 +538,7 @@ let () =
           case "missing nested" test_match_missing_nested;
           case "all_after_ctor" test_match_all_after_ctor;
           case "all_before_ctor" test_match_all_before_ctor;
-          (* case "redundant_all_cases" test_match_redundant_all_cases; *)
+          case "redundant_all_cases" test_match_redundant_all_cases;
           case "wildcard" test_match_wildcard;
           case "wildcard_nested" test_match_wildcard_nested;
           case "column arity" test_match_column_arity;

@@ -134,24 +134,44 @@ module Exhaustiveness = struct
     | _ -> Inf
 
   (* [pattern] has a complete signature on first column *)
-  type signature = Complete of ctor list | Missing of string list | Infi
+  type signature =
+    | Complete of ctor list
+    | Missing of string list
+    | Infi
+    | Maybe_red of Ast.loc * ctor list
 
-  let sig_complete typ patterns =
+  let sig_complete fstcl typ patterns =
     match ctorset_of_variant (clean typ) with
     | Ctors ctors ->
         let set =
           ctors |> List.map (fun ctor -> ctor.ctorname) |> Set.of_list
         in
-        let sigs =
-          List.fold_left
-            (fun set patterns ->
-              match patterns with
-              | Ast.Pctor ((_, name), _) :: _ -> Set.remove name set
-              | _ -> set)
-            set patterns
+
+        let rec fold f lwild last acc = function
+          | [] -> last acc
+          | [ Ast.Pwildcard loc :: _ ] -> lwild loc acc
+          | hd :: tl -> fold f lwild last (f acc hd) tl
         in
-        if Set.is_empty sigs then Complete ctors
-        else Missing (Set.elements sigs)
+        let f set = function
+          | Ast.Pctor ((_, name), _) :: _ ->
+              Set.remove name set (* TODO wildcard *)
+          | _ -> set
+        in
+        let last set =
+          if Set.is_empty set then Complete ctors
+          else Missing (Set.elements set)
+        in
+        let last_wc =
+          if fstcl then fun loc set ->
+            if Set.is_empty set then
+              (* The last row is a wildcard, but all ctors are there before.
+                 Might be a redundant case (see "redundant_all_cases" test case) *)
+              Maybe_red (loc, ctors)
+            else f set [ Pwildcard loc ] |> last
+          else fun _ set -> last set
+        in
+
+        fold f last_wc last set patterns
     | Inf -> Infi
 
   (* Always on first column *)
@@ -243,63 +263,75 @@ module Exhaustiveness = struct
     | New_column, _ | _, New_column -> (New_column, str)
     | Specialization, Specialization -> (Specialization, str)
 
-  let rec is_exhaustive types patterns : (unit, wip_kind * string list) result =
+  (* We add an extra redundancy check for first column *)
+  let rec is_exhaustive fstcl types patterns :
+      (unit, wip_kind * string list) result =
     match (types, patterns) with
     | _, [] -> Error (Specialization, [])
     | [], patterns -> check_empty patterns
     | typ :: typstl, patterns -> (
-        match sig_complete typ patterns with
-        | Complete ctors ->
-            let exhs =
-              List.map
-                (fun { ctorname; ctortyp } ->
-                  let num = arg_to_num ctortyp in
-                  ( ctorname,
-                    match specialize ctorname num patterns with
-                    | Exh -> Ok ()
-                    | Wip (kind, patterns) ->
-                        (* In case specializion adds a ctor, we elimate these first *)
-                        (* Right now, the argument arity is 1 at most *)
-                        let ret =
-                          if num = 1 then
-                            let typ = Option.get ctortyp in
-                            is_exhaustive (typ :: typstl) patterns
-                          else is_exhaustive typstl patterns
-                        in
-                        ret |> Result.map_error (keep_new_col kind) ))
-                ctors
-            in
-
-            if List.for_all (fun i -> snd i |> Result.is_ok) exhs then Ok ()
-            else
-              let ctor, err =
-                List.find (fun i -> snd i |> Result.is_error) exhs
-              in
-              let kind, strs = Result.get_error err in
-              let strs =
-                match kind with
-                | New_column ->
-                    List.map (fun str -> Printf.sprintf "%s, %s" ctor str) strs
-                | Specialization ->
-                    List.map (fun str -> Printf.sprintf "%s(%s)" ctor str) strs
-              in
-
-              Error (kind, strs)
+        match sig_complete fstcl typ patterns with
+        | Maybe_red (loc, ctors) -> maybe_red loc typstl patterns ctors
+        | Complete ctors -> complete_sig fstcl typstl patterns ctors
         | Missing ctors -> (
             match default patterns with
             | Exh -> Ok ()
             | Wip (kind, patterns) -> (
                 (* The default matrix only removes ctors and does not add
                    temporary ones. So we can continue with exprstl *)
-                match is_exhaustive typstl patterns with
+                match is_exhaustive false typstl patterns with
                 | Ok () -> Ok ()
                 | Error _ -> Error (kind, ctors)))
         | Infi -> (
             match default patterns with
             | Exh -> Ok ()
             | Wip (kind, patterns) ->
-                is_exhaustive typstl patterns
+                is_exhaustive false typstl patterns
                 |> Result.map_error (keep_new_col kind)))
+
+  and complete_sig fstcl typstl patterns ctors =
+    let exhs =
+      List.map
+        (fun { ctorname; ctortyp } ->
+          let num = arg_to_num ctortyp in
+          ( ctorname,
+            match specialize ctorname num patterns with
+            | Exh -> Ok ()
+            | Wip (kind, patterns) ->
+                (* In case specializion adds a ctor, we elimate these first *)
+                (* Right now, the argument arity is 1 at most *)
+                let ret =
+                  if num = 1 then
+                    let typ = Option.get ctortyp in
+                    is_exhaustive fstcl (typ :: typstl) patterns
+                  else is_exhaustive false typstl patterns
+                in
+                ret |> Result.map_error (keep_new_col kind) ))
+        ctors
+    in
+
+    if List.for_all (fun i -> snd i |> Result.is_ok) exhs then Ok ()
+    else
+      let ctor, err = List.find (fun i -> snd i |> Result.is_error) exhs in
+      let kind, strs = Result.get_error err in
+      let strs =
+        match kind with
+        | New_column ->
+            List.map (fun str -> Printf.sprintf "%s, %s" ctor str) strs
+        | Specialization ->
+            List.map (fun str -> Printf.sprintf "%s(%s)" ctor str) strs
+      in
+
+      Error (kind, strs)
+
+  and maybe_red loc typstl patterns ctors =
+    (* String last entry (a wildcard) from patterns and see if all is exhaustive
+       If so, the wildcard is useless *)
+    (* We have to do better here in the future. This works, but is wasteful *)
+    let stripped = List.rev patterns |> List.tl |> List.rev in
+    match complete_sig true typstl stripped ctors with
+    | Ok () -> raise (Error (loc, "Pattern match case is redundant"))
+    | Error _ -> complete_sig true typstl patterns ctors
 end
 
 module Make (C : Core) = struct
@@ -410,7 +442,7 @@ module Make (C : Core) = struct
     (* Check for exhaustiveness *)
     (let types = List.map (fun e -> (snd e).typ |> clean) exprs
      and patterns = List.map (fun (p, _) -> List.map snd p) some_cases in
-     match Exhaustiveness.is_exhaustive types patterns with
+     match Exhaustiveness.is_exhaustive true types patterns with
      | Ok () -> ()
      | Error (_, cases) ->
          let msg =
