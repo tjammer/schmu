@@ -32,6 +32,11 @@ and const =
   | Vector of typed_expr list
   | Unit
 
+and toplevel_item =
+  | Tl_let of string * typed_expr
+  | Tl_function of string * int option * abstraction
+  | Tl_expr of typed_expr
+
 and func = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; tp : func }
 and generic_fun = { concrete : func; generic : func }

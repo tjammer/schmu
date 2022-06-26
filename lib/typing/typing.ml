@@ -7,7 +7,7 @@ type external_decl = string * Types.typ * string option
 type codegen_tree = {
   externals : external_decl list;
   typedefs : Types.typ list;
-  tree : Typed_tree.typed_expr;
+  items : Typed_tree.toplevel_item list;
 }
 
 type msg_fn = string -> Ast.loc -> string -> string
@@ -370,6 +370,12 @@ module rec Core : sig
 
   val convert_var : Env.t -> Ast.loc -> string -> typed_expr
   val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
+
+  val convert_let :
+    Env.t -> Ast.loc -> Ast.decl -> Ast.block -> Env.t * typed_expr
+
+  val convert_function :
+    Env.t -> Ast.loc -> Ast.func -> Env.t * (string * int option * abstraction)
 end = struct
   open Records
   open Patternmatch
@@ -717,49 +723,44 @@ let block_external_name loc ~cname id =
       in
       raise (Error (loc, msg))
 
-let convert_prog ~ret prev_exprs env items =
-  let rec aux expr env = function
-    | [] -> (expr, env)
-    | [ Ast.Block block ] -> aux_block expr env block [] ret
-    | Ast.Block block :: tl -> aux_block expr env block tl false
-    | Ext_decl (loc, (idloc, id), typ, cname) :: tl ->
+let convert_prog env ~prelude items =
+  let old = ref (Lexing.(dummy_pos, dummy_pos), Tunit) in
+
+  let rec aux (env, items) = function
+    | Ast.Block block ->
+        let old', env, items =
+          List.fold_left aux_block (!old, env, items) block
+        in
+        old := old';
+        (env, items)
+    | Ext_decl (loc, (idloc, id), typ, cname) ->
         let typ = typeof_annot env loc typ in
         block_external_name loc ~cname id;
-        aux expr (Env.add_external id ~cname typ idloc env) tl
-    | Typedef (loc, Trecord t) :: tl ->
-        let env = type_record env loc t in
-        aux expr env tl
-    | Typedef (loc, Talias (name, type_spec)) :: tl ->
-        let env = type_alias env loc name type_spec in
-        aux expr env tl
-    | Typedef (loc, Tvariant v) :: tl ->
-        let env = type_variant env loc v in
-        aux expr env tl
-  and aux_block expr env block tl ret =
-    (* If we are in main, we want to return a value so the outer [ret] is true.
-       However, blocks before the last block cannot return so we set it to
-       false temporarily *)
-    let cont, env = Core.convert_block ~ret env block in
-    let expr =
-      match expr with
-      | None -> Some cont
-      | Some expr ->
-          Some
-            {
-              typ = cont.typ;
-              expr = Sequence (expr, cont);
-              is_const = cont.is_const;
-            }
-    in
-    aux expr env tl
+        (Env.add_external id ~cname typ idloc env, items)
+    | Typedef (loc, Trecord t) -> (type_record env loc t, items)
+    | Typedef (loc, Talias (name, type_spec)) ->
+        (type_alias env loc name type_spec, items)
+    | Typedef (loc, Tvariant v) -> (type_variant env loc v, items)
+  and aux_block (old, env, items) = function
+    (* TODO dedup *)
+    | Ast.Let (loc, decl, block) ->
+        let env, texpr = Core.convert_let env loc decl block in
+        let decl = (fun (_, a, b) -> (snd a, b)) decl in
+        (old, env, Tl_let (fst decl, texpr) :: items)
+    | Function (loc, func) ->
+        let env, (name, unique, lambda) = Core.convert_function env loc func in
+        (old, env, Tl_function (name, unique, lambda) :: items)
+    | Expr (loc, expr) ->
+        let expr = Core.convert env expr in
+        (* Only the last expression is allowed to return something *)
+        unify
+          (fst old, "Left expression in sequence must be of type unit:")
+          Tunit (snd old);
+        ((loc, expr.typ), env, Tl_expr expr :: items)
   in
 
-  aux prev_exprs env items |> fun (expr, env) ->
-  match expr with
-  | None when ret ->
-      (* If there is nothing in the program, should we error or not? *)
-      (Some { typ = Tunit; expr = Const Unit; is_const = false }, env)
-  | rest -> (rest, env)
+  let env, items = List.fold_left aux (env, prelude) items in
+  (snd !old, env, List.rev items)
 
 (* Conversion to Typing.exr below *)
 let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
@@ -779,12 +780,13 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
   in
 
   (* Add prelude *)
-  let prelude, env = convert_prog ~ret:false None env prelude in
+  let _, env, prelude = convert_prog env ~prelude:[] prelude in
 
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
-  let tree, env = convert_prog ~ret:true prelude env prog in
+  let last_type, env, items = convert_prog env ~prelude prog in
+  (* TODO test wrong return type *)
   let typedefs = Env.typedefs env and externals = Env.externals env in
 
   let _, _, unused = Env.close_function env in
@@ -792,7 +794,7 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
-   match (Option.get tree).typ |> clean with
+   match clean last_type with
    | Tunit | Tint -> ()
    | t ->
        let msg =
@@ -801,11 +803,18 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
        raise (Error (!last_loc, msg)));
 
   (* print_endline (String.concat ", " (List.map string_of_type typedefs)); *)
-  { externals; typedefs; tree = Option.get tree }
+  { externals; typedefs; items }
 
 let typecheck (prog : Ast.prog) =
+  let rec get_last_type = function
+    | Tl_expr expr :: _ -> expr.typ
+    | (Tl_function _ | Tl_let _) :: tl -> get_last_type tl
+    | [] -> Tunit
+  in
+
   (* Ignore unused binding warnings *)
   let msg_fn _ _ _ = "" in
   let tree = to_typed ~check_ret:false msg_fn ~prelude:[] prog in
-  print_endline (show_typ tree.tree.typ);
-  tree.tree.typ
+  let typ = get_last_type (List.rev tree.items) in
+  print_endline (show_typ typ);
+  typ
