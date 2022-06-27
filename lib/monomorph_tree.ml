@@ -488,13 +488,25 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
-  | Let (id, e1, e2) -> morph_let make param id e1 e2
+  | Let (id, e1, e2) ->
+      let p, e1 = prep_let param id e1 in
+      let p, e2, func = morph_expr { p with ret = param.ret } e2 in
+      (p, { e2 with expr = Mlet (id, e1, e2) }, func)
   | Record labels -> morph_record make param labels texpr.is_const
   | Field (expr, index) -> morph_field make param expr index
   | Field_set (expr, index, value) ->
       morph_field_set make param expr index value
   | Sequence (expr, cont) -> morph_seq make param expr cont
-  | Function (name, uniq, abs, cont) -> morph_func param (name, uniq, abs, cont)
+  | Function (name, uniq, abs, cont) ->
+      let p, call, abs = prep_func param (name, uniq, abs) in
+      let p, cont, func = morph_expr { p with ret = param.ret } cont in
+      ( p,
+        {
+          typ = cont.typ;
+          expr = Mfunction (call, abs, cont);
+          return = param.ret;
+        },
+        func )
   | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
   | App { callee; args } -> morph_app make param callee args
   | Ctor (variant, index, dataexpr) ->
@@ -576,12 +588,11 @@ and morph_if mk p cond e1 e2 =
     mk (Mif { cond; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc) } )
 
-and morph_let mk p id e1' e2 =
-  let ret = p.ret in
-  let p, e1, func = morph_expr { p with ret = false } e1' in
+and prep_let p id e =
+  let p, e1, func = morph_expr { p with ret = false } e in
   (* We add constants to the constant table, not the current env *)
   let p =
-    if e1'.is_const then
+    if e.is_const then
       (* Maybe we have to generate a new name here *)
       let cnt = new_id constant_uniq_state in
       let cid =
@@ -597,8 +608,7 @@ and morph_let mk p id e1' e2 =
       { p with vars = Vars.add id (Const cid) p.vars }
     else { p with vars = Vars.add id (Normal func) p.vars }
   in
-  let p, e2, func = morph_expr { p with ret } e2 in
-  (p, mk (Mlet (id, e1, e2)) ret, func)
+  (p, e1)
 
 and morph_record mk p labels is_const =
   let ret = p.ret in
@@ -647,7 +657,7 @@ and morph_seq mk p expr cont =
   let p, cont, func = morph_expr { p with ret } cont in
   (p, mk (Mseq (expr, cont)) ret, func)
 
-and morph_func p (username, uniq, abs, cont) =
+and prep_func p (username, uniq, abs) =
   (* If the function is concretely typed, we add it to the function list and
      add the usercode name to the bound variables. In the polymorphic case,
      we add the function to the bound variables, but not to the function list.
@@ -666,7 +676,6 @@ and morph_func p (username, uniq, abs, cont) =
   in
   let pnames = abs.nparams in
 
-  let ret = p.ret in
   (* Make sure recursion works and the current function can be used in its body *)
   let temp_p =
     recursion_stack := (call, recursive) :: !recursion_stack;
@@ -718,9 +727,7 @@ and morph_func p (username, uniq, abs, cont) =
       let funcs = gen_func :: p.funcs in
       { p with vars; funcs }
   in
-
-  let p, cont, func = morph_expr { p with ret } cont in
-  (p, { typ = cont.typ; expr = Mfunction (call, abs, cont); return = ret }, func)
+  (p, call, abs)
 
 and morph_lambda typ p id abs =
   let typ = cln typ in
@@ -855,7 +862,33 @@ and morph_var_data mk p expr =
   let p, e, func = morph_expr { p with ret = false } expr in
   ({ p with ret }, mk (Mvar_data e) ret, func)
 
-let monomorphize { Typing.externals; typedefs; tree } =
+let morph_toplvl param items =
+  let rec aux param = function
+    | [] ->
+        failwith "Internal Error: Modules not yet supported. Must end with expr"
+    | Typed_tree.Tl_let (id, expr) :: tl ->
+        let p, e1 = prep_let param id expr in
+        let p, e2, func = aux { p with ret = param.ret } tl in
+        (p, { e2 with expr = Mlet (id, e1, e2) }, func)
+    | Tl_function (name, uniq, abs) :: tl ->
+        let p, call, abs = prep_func param (name, uniq, abs) in
+        let p, cont, func = aux { p with ret = param.ret } tl in
+        ( p,
+          {
+            typ = cont.typ;
+            expr = Mfunction (call, abs, cont);
+            return = param.ret;
+          },
+          func )
+    | [ Tl_expr e ] -> morph_expr param e
+    | Tl_expr e :: tl ->
+        let p, e, _ = morph_expr param e in
+        let p, cont, func = aux { p with ret = param.ret } tl in
+        (p, { typ = cont.typ; expr = Mseq (e, cont); return = param.ret }, func)
+  in
+  aux param items
+
+let monomorphize { Typing.externals; typedefs; items } =
   reset ();
 
   (* Register malloc builtin, so freeing automatically works *)
@@ -866,7 +899,7 @@ let monomorphize { Typing.externals; typedefs; tree } =
   let param =
     { vars; monomorphized = Set.empty; funcs = []; ret = false; mallocs = [] }
   in
-  let p, tree, _ = morph_expr param tree in
+  let p, tree, _ = morph_toplvl param items in
 
   let tree = free_mallocs tree p.mallocs in
 
