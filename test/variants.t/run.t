@@ -21,7 +21,7 @@ Basic variant ctors
   
   @0 = private unnamed_addr constant [6 x i8] c"hello\00", align 1
   
-  define private void @wrap_option(%option_string* %0) {
+  define private void @schmu_wrap_option(%option_string* %0) {
   entry:
     %tag1 = bitcast %option_string* %0 to i32*
     store i32 0, i32* %tag1, align 4
@@ -33,7 +33,7 @@ Basic variant ctors
     ret void
   }
   
-  define private i32 @wrap_clike() {
+  define private i32 @schmu_wrap_clike() {
   entry:
     %clike = alloca %clike, align 8
     %tag2 = bitcast %clike* %clike to i32*
@@ -80,7 +80,7 @@ Basic pattern matching
   
   declare void @printf(i8* %0, i64 %1)
   
-  define private i64 @none_all(%option_int* %p) {
+  define private i64 @schmu_none_all(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -95,7 +95,7 @@ Basic pattern matching
     ret i64 %iftmp
   }
   
-  define private i64 @some_all(%option_int* %p) {
+  define private i64 @schmu_some_all(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -112,7 +112,7 @@ Basic pattern matching
     ret i64 %iftmp
   }
   
-  define private i64 @opt_match(%option_int* %p) {
+  define private i64 @schmu_opt_match(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -129,7 +129,7 @@ Basic pattern matching
     ret i64 %iftmp
   }
   
-  define private i64 @match_opt(%option_int* %p) {
+  define private i64 @schmu_match_opt(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -158,7 +158,7 @@ Basic pattern matching
     store i32 0, i32* %tag40, align 4
     %data = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
     store i64 1, i64* %data, align 4
-    %0 = call i64 @match_opt(%option_int* %option)
+    %0 = call i64 @schmu_match_opt(%option_int* %option)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %0)
     %str1 = alloca %string, align 8
     %cstr241 = bitcast %string* %str1 to i8**
@@ -168,7 +168,7 @@ Basic pattern matching
     %option4 = alloca %option_int, align 8
     %tag542 = bitcast %option_int* %option4 to i32*
     store i32 1, i32* %tag542, align 4
-    %1 = call i64 @match_opt(%option_int* %option4)
+    %1 = call i64 @schmu_match_opt(%option_int* %option4)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), i64 %1)
     %str6 = alloca %string, align 8
     %cstr743 = bitcast %string* %str6 to i8**
@@ -180,7 +180,7 @@ Basic pattern matching
     store i32 0, i32* %tag1044, align 4
     %data11 = getelementptr inbounds %option_int, %option_int* %option9, i32 0, i32 1
     store i64 1, i64* %data11, align 4
-    %2 = call i64 @opt_match(%option_int* %option9)
+    %2 = call i64 @schmu_opt_match(%option_int* %option9)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0), i64 %2)
     %str12 = alloca %string, align 8
     %cstr1345 = bitcast %string* %str12 to i8**
@@ -190,7 +190,7 @@ Basic pattern matching
     %option15 = alloca %option_int, align 8
     %tag1646 = bitcast %option_int* %option15 to i32*
     store i32 1, i32* %tag1646, align 4
-    %3 = call i64 @opt_match(%option_int* %option15)
+    %3 = call i64 @schmu_opt_match(%option_int* %option15)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i64 %3)
     %str17 = alloca %string, align 8
     %cstr1847 = bitcast %string* %str17 to i8**
@@ -202,7 +202,7 @@ Basic pattern matching
     store i32 0, i32* %tag2148, align 4
     %data22 = getelementptr inbounds %option_int, %option_int* %option20, i32 0, i32 1
     store i64 1, i64* %data22, align 4
-    %4 = call i64 @some_all(%option_int* %option20)
+    %4 = call i64 @schmu_some_all(%option_int* %option20)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @4, i32 0, i32 0), i64 %4)
     %str23 = alloca %string, align 8
     %cstr2449 = bitcast %string* %str23 to i8**
@@ -212,7 +212,7 @@ Basic pattern matching
     %option26 = alloca %option_int, align 8
     %tag2750 = bitcast %option_int* %option26 to i32*
     store i32 1, i32* %tag2750, align 4
-    %5 = call i64 @some_all(%option_int* %option26)
+    %5 = call i64 @schmu_some_all(%option_int* %option26)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @5, i32 0, i32 0), i64 %5)
     %str28 = alloca %string, align 8
     %cstr2951 = bitcast %string* %str28 to i8**
@@ -224,7 +224,7 @@ Basic pattern matching
     store i32 0, i32* %tag3252, align 4
     %data33 = getelementptr inbounds %option_int, %option_int* %option31, i32 0, i32 1
     store i64 1, i64* %data33, align 4
-    %6 = call i64 @none_all(%option_int* %option31)
+    %6 = call i64 @schmu_none_all(%option_int* %option31)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @6, i32 0, i32 0), i64 %6)
     %str34 = alloca %string, align 8
     %cstr3553 = bitcast %string* %str34 to i8**
@@ -234,7 +234,7 @@ Basic pattern matching
     %option37 = alloca %option_int, align 8
     %tag3854 = bitcast %option_int* %option37 to i32*
     store i32 1, i32* %tag3854, align 4
-    %7 = call i64 @none_all(%option_int* %option37)
+    %7 = call i64 @schmu_none_all(%option_int* %option37)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @7, i32 0, i32 0), i64 %7)
     ret i64 0
   }
@@ -264,7 +264,7 @@ Nested pattern matching
   
   declare void @printf(i8* %0, i64 %1)
   
-  define private i64 @do(%option_test* %m) {
+  define private i64 @schmu_do(%option_test* %m) {
   entry:
     %tag17 = bitcast %option_test* %m to i32*
     %index = load i32, i32* %tag17, align 4
@@ -317,7 +317,7 @@ Nested pattern matching
     store i32 0, i32* %tag126, align 4
     %data2 = getelementptr inbounds %test, %test* %data, i32 0, i32 1
     store double 3.000000e+00, double* %data2, align 8
-    %0 = call i64 @do(%option_test* %option)
+    %0 = call i64 @schmu_do(%option_test* %option)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %0)
     %str3 = alloca %string, align 8
     %cstr427 = bitcast %string* %str3 to i8**
@@ -333,7 +333,7 @@ Nested pattern matching
     %data10 = getelementptr inbounds %test, %test* %data8, i32 0, i32 1
     %1 = bitcast double* %data10 to i64*
     store i64 2, i64* %1, align 4
-    %2 = call i64 @do(%option_test* %option6)
+    %2 = call i64 @schmu_do(%option_test* %option6)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), i64 %2)
     %str12 = alloca %string, align 8
     %cstr1330 = bitcast %string* %str12 to i8**
@@ -346,7 +346,7 @@ Nested pattern matching
     %data17 = getelementptr inbounds %option_test, %option_test* %option15, i32 0, i32 1
     %tag1832 = bitcast %test* %data17 to i32*
     store i32 2, i32* %tag1832, align 4
-    %3 = call i64 @do(%option_test* %option15)
+    %3 = call i64 @schmu_do(%option_test* %option15)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0), i64 %3)
     %str19 = alloca %string, align 8
     %cstr2033 = bitcast %string* %str19 to i8**
@@ -356,7 +356,7 @@ Nested pattern matching
     %option22 = alloca %option_test, align 8
     %tag2334 = bitcast %option_test* %option22 to i32*
     store i32 1, i32* %tag2334, align 4
-    %4 = call i64 @do(%option_test* %option22)
+    %4 = call i64 @schmu_do(%option_test* %option22)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i64 %4)
     ret i64 0
   }
@@ -378,7 +378,7 @@ Match multiple columns
   
   declare void @printf(i8* %0, i64 %1)
   
-  define private void @do(%option_int* %a, %option_int* %b) {
+  define private void @schmu_do(%option_int* %a, %option_int* %b) {
   entry:
     %str = alloca %string, align 8
     %cstr17 = bitcast %string* %str to i8**
@@ -436,13 +436,13 @@ Match multiple columns
     store i32 0, i32* %tag418, align 4
     %data5 = getelementptr inbounds %option_int, %option_int* %option3, i32 0, i32 1
     store i64 2, i64* %data5, align 4
-    call void @do(%option_int* %option1, %option_int* %option3)
+    call void @schmu_do(%option_int* %option1, %option_int* %option3)
     %option6 = alloca %option_int, align 8
     %tag719 = bitcast %option_int* %option6 to i32*
     store i32 0, i32* %tag719, align 4
     %data8 = getelementptr inbounds %option_int, %option_int* %option6, i32 0, i32 1
     store i64 2, i64* %data8, align 4
-    call void @do(%option_int* %option, %option_int* %option6)
+    call void @schmu_do(%option_int* %option, %option_int* %option6)
     %option9 = alloca %option_int, align 8
     %tag1020 = bitcast %option_int* %option9 to i32*
     store i32 0, i32* %tag1020, align 4
@@ -451,11 +451,11 @@ Match multiple columns
     %option12 = alloca %option_int, align 8
     %tag1321 = bitcast %option_int* %option12 to i32*
     store i32 1, i32* %tag1321, align 4
-    call void @do(%option_int* %option9, %option_int* %option12)
+    call void @schmu_do(%option_int* %option9, %option_int* %option12)
     %option14 = alloca %option_int, align 8
     %tag1522 = bitcast %option_int* %option14 to i32*
     store i32 1, i32* %tag1522, align 4
-    call void @do(%option_int* %option, %option_int* %option14)
+    call void @schmu_do(%option_int* %option, %option_int* %option14)
     ret i64 0
   }
   3

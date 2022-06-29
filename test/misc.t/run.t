@@ -9,7 +9,7 @@ Test elif
   
   declare void @assert(i1 %0)
   
-  define private i64 @test(i64 %n) {
+  define private i64 @schmu_test(i64 %n) {
   entry:
     %eq = icmp eq i64 %n, 10
     br i1 %eq, label %ifcont8, label %else
@@ -32,16 +32,16 @@ Test elif
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i64 @test(i64 10)
+    %0 = tail call i64 @schmu_test(i64 10)
     %eq = icmp eq i64 %0, 1
     tail call void @assert(i1 %eq)
-    %1 = tail call i64 @test(i64 0)
+    %1 = tail call i64 @schmu_test(i64 0)
     %eq1 = icmp eq i64 %1, 2
     tail call void @assert(i1 %eq1)
-    %2 = tail call i64 @test(i64 1)
+    %2 = tail call i64 @schmu_test(i64 1)
     %eq2 = icmp eq i64 %2, 3
     tail call void @assert(i1 %eq2)
-    %3 = tail call i64 @test(i64 11)
+    %3 = tail call i64 @schmu_test(i64 11)
     %eq3 = icmp eq i64 %3, 4
     tail call void @assert(i1 %eq3)
     ret i64 0
@@ -126,15 +126,15 @@ Also mutable fields and 'realloc' builtin
   @1 = private unnamed_addr constant [6 x i8] c"young\00", align 1
   @2 = private unnamed_addr constant [6 x i8] c"world\00", align 1
   
-  define private void @vec_of_records(%vector_container* %0) {
+  define private void @schmu_vec_of_records(%vector_container* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 64)
     %2 = bitcast i8* %1 to %container*
     %data1 = bitcast %vector_container* %0 to %container**
     store %container* %2, %container** %data1, align 8
-    tail call void @record_of_vecs(%container* %2)
+    tail call void @schmu_record_of_vecs(%container* %2)
     %3 = getelementptr %container, %container* %2, i64 1
-    tail call void @record_of_vecs(%container* %3)
+    tail call void @schmu_record_of_vecs(%container* %3)
     %len = getelementptr inbounds %vector_container, %vector_container* %0, i32 0, i32 1
     store i64 2, i64* %len, align 4
     %cap = getelementptr inbounds %vector_container, %vector_container* %0, i32 0, i32 2
@@ -142,7 +142,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @record_of_vecs(%container* %0) {
+  define private void @schmu_record_of_vecs(%container* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 16)
     %2 = bitcast i8* %1 to i64*
@@ -165,7 +165,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @nest_local() {
+  define private void @schmu_nest_local() {
   entry:
     %0 = tail call i8* @malloc(i64 48)
     %1 = bitcast i8* %0 to %vector_int*
@@ -224,13 +224,13 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @nest_allocs(%vector_vector_int* %0) {
+  define private void @schmu_nest_allocs(%vector_vector_int* %0) {
   entry:
-    tail call void @make_nested_vec(%vector_vector_int* %0)
+    tail call void @schmu_make_nested_vec(%vector_vector_int* %0)
     ret void
   }
   
-  define private void @make_nested_vec(%vector_vector_int* %0) {
+  define private void @schmu_make_nested_vec(%vector_vector_int* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 48)
     %2 = bitcast i8* %1 to %vector_int*
@@ -266,16 +266,16 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @nest_fns(%vector_foo* %0) {
+  define private void @schmu_nest_fns(%vector_foo* %0) {
   entry:
-    tail call void @make_vec(%vector_foo* %0)
+    tail call void @schmu_make_vec(%vector_foo* %0)
     ret void
   }
   
-  define private void @inner_parent_scope() {
+  define private void @schmu_inner_parent_scope() {
   entry:
     %ret = alloca %vector_foo, align 8
-    call void @make_vec(%vector_foo* %ret)
+    call void @schmu_make_vec(%vector_foo* %ret)
     %0 = bitcast %vector_foo* %ret to %foo**
     %1 = load %foo*, %foo** %0, align 8
     %2 = bitcast %foo* %1 to i8*
@@ -283,7 +283,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @make_vec(%vector_foo* %0) {
+  define private void @schmu_make_vec(%vector_foo* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 24)
     %2 = bitcast i8* %1 to %foo*
@@ -301,7 +301,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @vec_inside() {
+  define private void @schmu_vec_inside() {
   entry:
     %0 = tail call i8* @malloc(i64 24)
     %1 = bitcast i8* %0 to %foo*
@@ -373,11 +373,11 @@ Also mutable fields and 'realloc' builtin
     %cap8 = getelementptr inbounds %vector_foo, %vector_foo* %vec5, i32 0, i32 2
     store i64 3, i64* %cap8, align 4
     %ret = alloca %vector_foo, align 8
-    call void @make_vec(%vector_foo* %ret)
-    call void @vec_inside()
-    call void @inner_parent_scope()
+    call void @schmu_make_vec(%vector_foo* %ret)
+    call void @schmu_vec_inside()
+    call void @schmu_inner_parent_scope()
     %ret9 = alloca %vector_foo, align 8
-    call void @nest_fns(%vector_foo* %ret9)
+    call void @schmu_nest_fns(%vector_foo* %ret9)
     %8 = call i8* @malloc(i64 48)
     %9 = bitcast i8* %8 to %vector_int*
     %vec10 = alloca %vector_vector_int, align 8
@@ -414,10 +414,10 @@ Also mutable fields and 'realloc' builtin
     %18 = bitcast i8* %17 to %vector_int*
     store %vector_int* %18, %vector_int** %data1177, align 8
     %ret20 = alloca %vector_vector_int, align 8
-    call void @make_nested_vec(%vector_vector_int* %ret20)
+    call void @schmu_make_nested_vec(%vector_vector_int* %ret20)
     %ret21 = alloca %vector_vector_int, align 8
-    call void @nest_allocs(%vector_vector_int* %ret21)
-    call void @nest_local()
+    call void @schmu_nest_allocs(%vector_vector_int* %ret21)
+    call void @schmu_nest_local()
     %19 = alloca %container, align 8
     %index80 = bitcast %container* %19 to i64*
     store i64 12, i64* %index80, align 4
@@ -434,21 +434,21 @@ Also mutable fields and 'realloc' builtin
     %cap25 = getelementptr inbounds %vector_int, %vector_int* %vec22, i32 0, i32 2
     store i64 2, i64* %cap25, align 4
     %ret26 = alloca %container, align 8
-    call void @record_of_vecs(%container* %ret26)
+    call void @schmu_record_of_vecs(%container* %ret26)
     %23 = call i8* @malloc(i64 64)
     %24 = bitcast i8* %23 to %container*
     %vec27 = alloca %vector_container, align 8
     %data2882 = bitcast %vector_container* %vec27 to %container**
     store %container* %24, %container** %data2882, align 8
-    call void @record_of_vecs(%container* %24)
+    call void @schmu_record_of_vecs(%container* %24)
     %25 = getelementptr %container, %container* %24, i64 1
-    call void @record_of_vecs(%container* %25)
+    call void @schmu_record_of_vecs(%container* %25)
     %len29 = getelementptr inbounds %vector_container, %vector_container* %vec27, i32 0, i32 1
     store i64 2, i64* %len29, align 4
     %cap30 = getelementptr inbounds %vector_container, %vector_container* %vec27, i32 0, i32 2
     store i64 2, i64* %cap30, align 4
     %ret31 = alloca %vector_container, align 8
-    call void @vec_of_records(%vector_container* %ret31)
+    call void @schmu_vec_of_records(%vector_container* %ret31)
     %26 = load %string*, %string** %data72, align 8
     %27 = bitcast %string* %26 to i8*
     call void @free(i8* %27)
@@ -697,21 +697,21 @@ Regression test for issue #19
   
   %v3 = type { double, double, double }
   
-  define private void @wrap(%v3* %0) {
+  define private void @schmu_wrap(%v3* %0) {
   entry:
     %boxconst = alloca %v3, align 8
     store %v3 { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02 }, %v3* %boxconst, align 8
     %ret = alloca %v3, align 8
-    call void @v3_scale(%v3* %ret, %v3* %boxconst, double 1.500000e+00)
+    call void @schmu_v3_scale(%v3* %ret, %v3* %boxconst, double 1.500000e+00)
     %boxconst1 = alloca %v3, align 8
     store %v3 { double 1.000000e+00, double 2.000000e+00, double 3.000000e+00 }, %v3* %boxconst1, align 8
     %ret2 = alloca %v3, align 8
-    call void @v3_scale(%v3* %ret2, %v3* %boxconst1, double 1.500000e+00)
-    call void @v3_add(%v3* %0, %v3* %ret, %v3* %ret2)
+    call void @schmu_v3_scale(%v3* %ret2, %v3* %boxconst1, double 1.500000e+00)
+    call void @schmu_v3_add(%v3* %0, %v3* %ret, %v3* %ret2)
     ret void
   }
   
-  define private void @v3_scale(%v3* %0, %v3* %v3, double %factor) {
+  define private void @schmu_v3_scale(%v3* %0, %v3* %v3, double %factor) {
   entry:
     %x3 = bitcast %v3* %0 to double*
     %1 = bitcast %v3* %v3 to double*
@@ -731,7 +731,7 @@ Regression test for issue #19
     ret void
   }
   
-  define private void @v3_add(%v3* %0, %v3* %lhs, %v3* %rhs) {
+  define private void @schmu_v3_add(%v3* %0, %v3* %lhs, %v3* %rhs) {
   entry:
     %x3 = bitcast %v3* %0 to double*
     %1 = bitcast %v3* %lhs to double*
@@ -760,7 +760,7 @@ Regression test for issue #19
   define i64 @main(i64 %arg) {
   entry:
     %ret = alloca %v3, align 8
-    call void @wrap(%v3* %ret)
+    call void @schmu_wrap(%v3* %ret)
     ret i64 0
   }
 
@@ -800,7 +800,7 @@ Test 'and', 'or' and 'not'
   
   declare void @puts(i8* %0)
   
-  define private i1 @false_() {
+  define private i1 @schmu_false_() {
   entry:
     %str = alloca %string, align 8
     %cstr3 = bitcast %string* %str to i8**
@@ -809,11 +809,11 @@ Test 'and', 'or' and 'not'
     store i64 5, i64* %length, align 4
     %unbox = bitcast %string* %str to { i64, i64 }*
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([6 x i8]* @0 to i64), i64 5)
+    tail call void @schmu_ps(i64 ptrtoint ([6 x i8]* @0 to i64), i64 5)
     ret i1 false
   }
   
-  define private i1 @true_() {
+  define private i1 @schmu_true_() {
   entry:
     %str = alloca %string, align 8
     %cstr3 = bitcast %string* %str to i8**
@@ -822,11 +822,11 @@ Test 'and', 'or' and 'not'
     store i64 4, i64* %length, align 4
     %unbox = bitcast %string* %str to { i64, i64 }*
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([5 x i8]* @1 to i64), i64 4)
+    tail call void @schmu_ps(i64 ptrtoint ([5 x i8]* @1 to i64), i64 4)
     ret i1 true
   }
   
-  define private void @ps(i64 %0, i64 %1) {
+  define private void @schmu_ps(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst2 = bitcast { i64, i64 }* %box to i64*
@@ -847,12 +847,12 @@ Test 'and', 'or' and 'not'
     store i64 11, i64* %length, align 4
     %unbox = bitcast %string* %str to { i64, i64 }*
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([12 x i8]* @2 to i64), i64 11)
-    %0 = tail call i1 @true_()
+    tail call void @schmu_ps(i64 ptrtoint ([12 x i8]* @2 to i64), i64 11)
+    %0 = tail call i1 @schmu_true_()
     br i1 %0, label %true1, label %cont
   
   true1:                                            ; preds = %entry
-    %1 = tail call i1 @true_()
+    %1 = tail call i1 @schmu_true_()
     br i1 %1, label %true2, label %cont
   
   true2:                                            ; preds = %true1
@@ -870,7 +870,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length5, align 4
     %unbox6 = bitcast %string* %str3 to { i64, i64 }*
     %snd9 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox6, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @3 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @3 to i64), i64 3)
     br label %ifcont
   
   else:                                             ; preds = %cont
@@ -881,15 +881,15 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length13, align 4
     %unbox14 = bitcast %string* %str11 to { i64, i64 }*
     %snd17 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox14, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @4 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @4 to i64), i64 2)
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
-    %2 = tail call i1 @true_()
+    %2 = tail call i1 @schmu_true_()
     br i1 %2, label %true119, label %cont21
   
   true119:                                          ; preds = %ifcont
-    %3 = tail call i1 @false_()
+    %3 = tail call i1 @schmu_false_()
     br i1 %3, label %true220, label %cont21
   
   true220:                                          ; preds = %true119
@@ -907,7 +907,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length26, align 4
     %unbox27 = bitcast %string* %str24 to { i64, i64 }*
     %snd30 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox27, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @5 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @5 to i64), i64 3)
     br label %ifcont41
   
   else32:                                           ; preds = %cont21
@@ -918,15 +918,15 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length35, align 4
     %unbox36 = bitcast %string* %str33 to { i64, i64 }*
     %snd39 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox36, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @6 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @6 to i64), i64 2)
     br label %ifcont41
   
   ifcont41:                                         ; preds = %else32, %then23
-    %4 = tail call i1 @false_()
+    %4 = tail call i1 @schmu_false_()
     br i1 %4, label %true142, label %cont44
   
   true142:                                          ; preds = %ifcont41
-    %5 = tail call i1 @true_()
+    %5 = tail call i1 @schmu_true_()
     br i1 %5, label %true243, label %cont44
   
   true243:                                          ; preds = %true142
@@ -944,7 +944,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length49, align 4
     %unbox50 = bitcast %string* %str47 to { i64, i64 }*
     %snd53 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox50, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @7 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @7 to i64), i64 3)
     br label %ifcont64
   
   else55:                                           ; preds = %cont44
@@ -955,15 +955,15 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length58, align 4
     %unbox59 = bitcast %string* %str56 to { i64, i64 }*
     %snd62 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox59, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @8 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @8 to i64), i64 2)
     br label %ifcont64
   
   ifcont64:                                         ; preds = %else55, %then46
-    %6 = tail call i1 @false_()
+    %6 = tail call i1 @schmu_false_()
     br i1 %6, label %true165, label %cont67
   
   true165:                                          ; preds = %ifcont64
-    %7 = tail call i1 @false_()
+    %7 = tail call i1 @schmu_false_()
     br i1 %7, label %true266, label %cont67
   
   true266:                                          ; preds = %true165
@@ -981,7 +981,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length72, align 4
     %unbox73 = bitcast %string* %str70 to { i64, i64 }*
     %snd76 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox73, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @9 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @9 to i64), i64 3)
     br label %ifcont87
   
   else78:                                           ; preds = %cont67
@@ -992,7 +992,7 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length81, align 4
     %unbox82 = bitcast %string* %str79 to { i64, i64 }*
     %snd85 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox82, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @10 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @10 to i64), i64 2)
     br label %ifcont87
   
   ifcont87:                                         ; preds = %else78, %then69
@@ -1003,12 +1003,12 @@ Test 'and', 'or' and 'not'
     store i64 10, i64* %length90, align 4
     %unbox91 = bitcast %string* %str88 to { i64, i64 }*
     %snd94 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox91, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([11 x i8]* @11 to i64), i64 10)
-    %8 = tail call i1 @true_()
+    tail call void @schmu_ps(i64 ptrtoint ([11 x i8]* @11 to i64), i64 10)
+    %8 = tail call i1 @schmu_true_()
     br i1 %8, label %cont96, label %false1
   
   false1:                                           ; preds = %ifcont87
-    %9 = tail call i1 @true_()
+    %9 = tail call i1 @schmu_true_()
     br i1 %9, label %cont96, label %false2
   
   false2:                                           ; preds = %false1
@@ -1026,7 +1026,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length101, align 4
     %unbox102 = bitcast %string* %str99 to { i64, i64 }*
     %snd105 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox102, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @12 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @12 to i64), i64 3)
     br label %ifcont116
   
   else107:                                          ; preds = %cont96
@@ -1037,15 +1037,15 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length110, align 4
     %unbox111 = bitcast %string* %str108 to { i64, i64 }*
     %snd114 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox111, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @13 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @13 to i64), i64 2)
     br label %ifcont116
   
   ifcont116:                                        ; preds = %else107, %then98
-    %10 = tail call i1 @true_()
+    %10 = tail call i1 @schmu_true_()
     br i1 %10, label %cont119, label %false1117
   
   false1117:                                        ; preds = %ifcont116
-    %11 = tail call i1 @false_()
+    %11 = tail call i1 @schmu_false_()
     br i1 %11, label %cont119, label %false2118
   
   false2118:                                        ; preds = %false1117
@@ -1063,7 +1063,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length124, align 4
     %unbox125 = bitcast %string* %str122 to { i64, i64 }*
     %snd128 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox125, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @14 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @14 to i64), i64 3)
     br label %ifcont139
   
   else130:                                          ; preds = %cont119
@@ -1074,15 +1074,15 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length133, align 4
     %unbox134 = bitcast %string* %str131 to { i64, i64 }*
     %snd137 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox134, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @15 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @15 to i64), i64 2)
     br label %ifcont139
   
   ifcont139:                                        ; preds = %else130, %then121
-    %12 = tail call i1 @false_()
+    %12 = tail call i1 @schmu_false_()
     br i1 %12, label %cont142, label %false1140
   
   false1140:                                        ; preds = %ifcont139
-    %13 = tail call i1 @true_()
+    %13 = tail call i1 @schmu_true_()
     br i1 %13, label %cont142, label %false2141
   
   false2141:                                        ; preds = %false1140
@@ -1100,7 +1100,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length147, align 4
     %unbox148 = bitcast %string* %str145 to { i64, i64 }*
     %snd151 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox148, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @16 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @16 to i64), i64 3)
     br label %ifcont162
   
   else153:                                          ; preds = %cont142
@@ -1111,15 +1111,15 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length156, align 4
     %unbox157 = bitcast %string* %str154 to { i64, i64 }*
     %snd160 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox157, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @17 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @17 to i64), i64 2)
     br label %ifcont162
   
   ifcont162:                                        ; preds = %else153, %then144
-    %14 = tail call i1 @false_()
+    %14 = tail call i1 @schmu_false_()
     br i1 %14, label %cont165, label %false1163
   
   false1163:                                        ; preds = %ifcont162
-    %15 = tail call i1 @false_()
+    %15 = tail call i1 @schmu_false_()
     br i1 %15, label %cont165, label %false2164
   
   false2164:                                        ; preds = %false1163
@@ -1137,7 +1137,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length170, align 4
     %unbox171 = bitcast %string* %str168 to { i64, i64 }*
     %snd174 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox171, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @18 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @18 to i64), i64 3)
     br label %ifcont185
   
   else176:                                          ; preds = %cont165
@@ -1148,7 +1148,7 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length179, align 4
     %unbox180 = bitcast %string* %str177 to { i64, i64 }*
     %snd183 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox180, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @19 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @19 to i64), i64 2)
     br label %ifcont185
   
   ifcont185:                                        ; preds = %else176, %then167
@@ -1159,8 +1159,8 @@ Test 'and', 'or' and 'not'
     store i64 11, i64* %length188, align 4
     %unbox189 = bitcast %string* %str186 to { i64, i64 }*
     %snd192 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox189, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([12 x i8]* @20 to i64), i64 11)
-    %16 = tail call i1 @true_()
+    tail call void @schmu_ps(i64 ptrtoint ([12 x i8]* @20 to i64), i64 11)
+    %16 = tail call i1 @schmu_true_()
     %17 = xor i1 %16, true
     br i1 %17, label %then194, label %else203
   
@@ -1172,7 +1172,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length197, align 4
     %unbox198 = bitcast %string* %str195 to { i64, i64 }*
     %snd201 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox198, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @21 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @21 to i64), i64 3)
     br label %ifcont212
   
   else203:                                          ; preds = %ifcont185
@@ -1183,11 +1183,11 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length206, align 4
     %unbox207 = bitcast %string* %str204 to { i64, i64 }*
     %snd210 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox207, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @22 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @22 to i64), i64 2)
     br label %ifcont212
   
   ifcont212:                                        ; preds = %else203, %then194
-    %18 = tail call i1 @false_()
+    %18 = tail call i1 @schmu_false_()
     %19 = xor i1 %18, true
     br i1 %19, label %then213, label %else222
   
@@ -1199,7 +1199,7 @@ Test 'and', 'or' and 'not'
     store i64 3, i64* %length216, align 4
     %unbox217 = bitcast %string* %str214 to { i64, i64 }*
     %snd220 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox217, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([4 x i8]* @23 to i64), i64 3)
+    tail call void @schmu_ps(i64 ptrtoint ([4 x i8]* @23 to i64), i64 3)
     br label %ifcont231
   
   else222:                                          ; preds = %ifcont212
@@ -1210,7 +1210,7 @@ Test 'and', 'or' and 'not'
     store i64 2, i64* %length225, align 4
     %unbox226 = bitcast %string* %str223 to { i64, i64 }*
     %snd229 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox226, i32 0, i32 1
-    tail call void @ps(i64 ptrtoint ([3 x i8]* @24 to i64), i64 2)
+    tail call void @schmu_ps(i64 ptrtoint ([3 x i8]* @24 to i64), i64 2)
     br label %ifcont231
   
   ifcont231:                                        ; preds = %else222, %then213
@@ -1339,7 +1339,7 @@ Tailcall loops
   
   declare void @printf(i8* %0, i64 %1, i64 %2, i64 %3)
   
-  define private void @nested__3(i64 %a, i64 %b, i64 %c) {
+  define private void @schmu_nested__3(i64 %a, i64 %b, i64 %c) {
   entry:
     %0 = alloca i64, align 8
     store i64 %a, i64* %0, align 4
@@ -1400,7 +1400,7 @@ Tailcall loops
     br label %rec.outer
   }
   
-  define private void @nested__2(i64 %a, i64 %b, i64 %c) {
+  define private void @schmu_nested__2(i64 %a, i64 %b, i64 %c) {
   entry:
     %0 = alloca i64, align 8
     store i64 %a, i64* %0, align 4
@@ -1461,7 +1461,7 @@ Tailcall loops
     br label %rec.outer
   }
   
-  define private void @nested(i64 %a, i64 %b) {
+  define private void @schmu_nested(i64 %a, i64 %b) {
   entry:
     %0 = alloca i64, align 8
     store i64 %a, i64* %0, align 4
@@ -1507,14 +1507,14 @@ Tailcall loops
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @nested(i64 0, i64 0)
+    tail call void @schmu_nested(i64 0, i64 0)
     %str = alloca %string, align 8
     %cstr1 = bitcast %string* %str to i8**
     store i8* getelementptr inbounds ([2 x i8], [2 x i8]* @3, i32 0, i32 0), i8** %cstr1, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 1, i64* %length, align 4
     tail call void @printf(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @3, i32 0, i32 0), i64 0, i64 0, i64 0)
-    tail call void @nested__2(i64 0, i64 0, i64 0)
+    tail call void @schmu_nested__2(i64 0, i64 0, i64 0)
     ret i64 0
   }
   0, 0

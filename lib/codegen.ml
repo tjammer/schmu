@@ -19,6 +19,7 @@ module Strtbl = Hashtbl.Make (Str)
 module Ptrtbl = Hashtbl.Make (Int)
 
 type const_kind = Not | Const | Const_ptr
+type mangle_kind = C | Schmu
 
 type llvar = {
   value : Llvm.llvalue;
@@ -630,12 +631,23 @@ let set_struct_field value ptr =
         memcpy ~dst:ptr ~src:value ~size
   | _ -> ignore (Llvm.build_store value.value ptr builder)
 
-let declare_function fun_name = function
+let mangle name = function C -> name | Schmu -> "schmu_" ^ name
+
+let unmangle kind name =
+  match kind with
+  | C -> name
+  | Schmu ->
+      let open String in
+      let len = length "schmu_" in
+      sub name len (length name - len)
+
+let declare_function mangle_kind fun_name = function
   | Tfun (params, ret, kind) as typ ->
       let ft = typeof_func ~param:false ~decl:true (params, ret, kind) in
+      let name = mangle fun_name mangle_kind in
       let llvar =
         {
-          value = Llvm.declare_function fun_name ft the_module;
+          value = Llvm.declare_function name ft the_module;
           typ;
           lltyp = ft;
           const = Not;
@@ -925,13 +937,13 @@ let fun_return name ret =
       else Llvm.build_ret_void builder
   | _ -> Llvm.build_ret ret.value builder
 
-let rec gen_function vars ?(linkage = Llvm.Linkage.Private)
+let rec gen_function vars ?(mangle = Schmu) ?(linkage = Llvm.Linkage.Private)
     { Monomorph_tree.abs; name; recursive } =
   let typ = Monomorph_tree.typ_of_abs abs in
 
   match typ with
   | Tfun (tparams, ret_t, kind) as typ ->
-      let func = declare_function name.call typ in
+      let func = declare_function mangle name.call typ in
       Llvm.set_linkage linkage func.value;
 
       let start_index, alloca =
@@ -1327,7 +1339,11 @@ and gen_app param callee args allocref ret_t malloc =
       | Closure _ -> (
           (* In this case we are in a recursive closure function.
              We get the closure env and add it to the arguments we pass *)
-          match Vars.find_opt (Llvm.value_name func.value) param.vars with
+          match
+            Vars.find_opt
+              (Llvm.value_name func.value |> unmangle Schmu)
+              param.vars
+          with
           | Some func ->
               (* We do this to make sure it's a recursive function.
                  If we cannot find something. there is an error somewhere *)
@@ -1829,7 +1845,7 @@ let generate ~target ~outname ~release
   let vars =
     List.fold_left
       (fun vars (name, typ, cname) ->
-        Vars.add name (declare_function cname typ) vars)
+        Vars.add name (declare_function C cname typ) vars)
       Vars.empty externals
   in
 
@@ -1841,7 +1857,7 @@ let generate ~target ~outname ~release
           let typ =
             Tfun (func.abs.func.params, func.abs.func.ret, func.abs.func.kind)
           in
-          let fnc = declare_function func.name.call typ in
+          let fnc = declare_function Schmu func.name.call typ in
 
           (* Add to the normal variable environment *)
           Vars.add func.name.call fnc acc)
@@ -1859,7 +1875,7 @@ let generate ~target ~outname ~release
   let linkage = Llvm.Linkage.External in
 
   ignore
-  @@ gen_function funcs ~linkage
+  @@ gen_function funcs ~mangle:C ~linkage
        {
          name = { Monomorph_tree.user = "main"; call = "main" };
          recursive = Rnone;
