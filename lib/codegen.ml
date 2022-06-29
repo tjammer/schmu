@@ -49,6 +49,7 @@ let ( ++ ) = Seq.append
 let record_tbl = Strtbl.create 32
 let ptr_tbl = Ptrtbl.create 32
 let const_tbl = Strtbl.create 64
+let string_tbl = Strtbl.create 64
 let const_pass = ref true
 let context = Llvm.global_context ()
 let the_module = Llvm.create_module context "context"
@@ -1687,7 +1688,14 @@ and codegen_chain param expr cont =
 
 and codegen_string_lit param s typ allocref =
   let lltyp = Strtbl.find record_tbl "string" in
-  let ptr = Llvm.build_global_stringptr s "" builder in
+  let ptr =
+    match Strtbl.find_opt string_tbl s with
+    | Some ptr -> ptr
+    | None ->
+        let ptr = Llvm.build_global_stringptr s "" builder in
+        Strtbl.add string_tbl s ptr;
+        ptr
+  in
 
   (* Check for preallocs *)
   let string = get_prealloc !allocref param lltyp "str" in
