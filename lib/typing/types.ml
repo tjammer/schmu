@@ -143,7 +143,13 @@ let rec to_sexp = function
   | Tfloat -> Atom "Tfloat"
   | Ti32 -> Atom "Ti32"
   | Tf32 -> Atom "Tf32"
-  | Tvar { contents = tv } -> List [ Atom "Tvar"; tv_to_sexp tv ]
+  | Tvar { contents = Link t } -> to_sexp t
+  | Tvar { contents = Unbound (str, n) } ->
+      List
+        [
+          Atom "Tvar";
+          List [ Atom "Unbound"; sexp_of_string str; sexp_of_int n ];
+        ]
   | Qvar str -> List [ Atom "Qvar"; sexp_of_string str ]
   | Tfun (params, ret, kind) ->
       List
@@ -171,11 +177,6 @@ let rec to_sexp = function
           sexp_of_array ctor_to_sexp ctors;
         ]
   | Tptr t -> List [ Atom "Tptr"; to_sexp t ]
-
-and tv_to_sexp = function
-  | Unbound (str, n) ->
-      List [ Atom "Unbound"; sexp_of_string str; sexp_of_int n ]
-  | Link t -> List [ Atom "Link"; to_sexp t ]
 
 and kind_to_sexp = function
   | Simple -> Atom "Simple"
@@ -215,7 +216,6 @@ let rec of_sexp = function
 
 and tv_of_sexp = function
   | List [ Atom "Unbound"; Atom name; i ] -> Unbound (name, int_of_sexp i)
-  | List [ Atom "Link"; t ] -> Link (of_sexp t)
   | s -> of_sexp_error "tv_of_sexp" s
 
 and kind_of_sexp = function

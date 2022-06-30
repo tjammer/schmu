@@ -788,18 +788,6 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
        raise (Error (!last_loc, msg)));
 
   (* print_endline (String.concat ", " (List.map string_of_type typedefs)); *)
-  List.filter_map
-    (function
-      | Tl_function (name, _, abs) ->
-          Some
-            Module.(
-              Ifun
-                ( Typed_tree.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)),
-                  name ))
-      | _ -> None)
-    items
-  |> Module.t_to_sexp
-  |> Sexplib0.Sexp.pp_hum Format.std_formatter;
   { externals; typedefs; items }
 
 let typecheck (prog : Ast.prog) =
