@@ -161,19 +161,6 @@ let func_of_typ = function
   | Tfun (params, ret, kind) -> { params; ret; kind }
   | _ -> failwith "Internal Error: Not a function type"
 
-(* Functions must be unique, so we add a number to each function if
-   it already exists in the global scope.
-   In local scope, our Map.t will resolve to the correct function.
-   E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
-   if the global function exists. *)
-
-(* For named functions *)
-let unique_name = function
-  | name, None -> name
-  | name, Some n -> name ^ "__" ^ string_of_int n
-
-let lambda_name id = "__fun" ^ string_of_int id
-
 let find_function_expr vars = function
   | Mvar (id, _) -> (
       match Vars.find_opt id vars with
@@ -664,7 +651,7 @@ and prep_func p (username, uniq, abs) =
      Instead, the monomorphized instance will be added later *)
   let ftyp = Types.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)) |> cln in
 
-  let call = unique_name (username, uniq) in
+  let call = Module.unique_name (username, uniq) in
   let recursive = Rnormal in
 
   let func =
@@ -732,7 +719,7 @@ and prep_func p (username, uniq, abs) =
 and morph_lambda typ p id abs =
   let typ = cln typ in
 
-  let name = lambda_name id in
+  let name = Module.lambda_name id in
   let recursive = Rnone in
   let func =
     {

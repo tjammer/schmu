@@ -63,21 +63,6 @@ let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
   Helper functions
 *)
 
-let is_type_polymorphic typ =
-  let rec inner acc = function
-    | Qvar _ | Tvar { contents = Unbound _ } -> true
-    | Tvar { contents = Link t } | Talias (_, t) -> inner acc t
-    | Trecord (Some t, _, _) | Tvariant (Some t, _, _) -> inner acc t
-    | Tfun (params, ret, _) ->
-        let acc = List.fold_left inner acc params in
-        inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ | Tvariant _ | Tu8 | Tfloat | Ti32 | Tf32
-      ->
-        acc
-    | Tptr t -> inner acc t
-  in
-  inner false typ
-
 let check_annot loc l r =
   let subst, b = Inference.types_match Smap.empty l r in
   if b then ()
@@ -168,7 +153,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Talias (name, t) -> (
         let cleaned = clean t in
         match is_quantified cleaned with
-        | Some _ when is_type_polymorphic cleaned -> Some name
+        | Some _ when is_polymorphic cleaned -> Some name
         | Some _ | None -> (* When can alias a concrete type *) None)
     | Tvar { contents = Link t } -> is_quantified t
     | _ -> None
@@ -619,7 +604,7 @@ end = struct
 
     (* We don't support polymorphic lambdas in if-exprs in the monomorph backend yet *)
     (match type_e2.typ with
-    | Tfun (_, _, _) as t when is_type_polymorphic t ->
+    | Tfun (_, _, _) as t when is_polymorphic t ->
         raise
           (Error
              ( loc,
@@ -803,6 +788,18 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
        raise (Error (!last_loc, msg)));
 
   (* print_endline (String.concat ", " (List.map string_of_type typedefs)); *)
+  List.filter_map
+    (function
+      | Tl_function (name, _, abs) ->
+          Some
+            Module.(
+              Ifun
+                ( Typed_tree.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)),
+                  name ))
+      | _ -> None)
+    items
+  |> Module.t_to_sexp
+  |> Sexplib0.Sexp.pp_hum Format.std_formatter;
   { externals; typedefs; items }
 
 let typecheck (prog : Ast.prog) =

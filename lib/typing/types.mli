@@ -37,3 +37,7 @@ val string_of_type_lit : typ -> string
 
 val string_of_type_subst : string Smap.t -> typ -> string
 (** Version using the subst table created during comparison with annot *)
+
+val is_polymorphic : typ -> bool
+val to_sexp : typ -> Sexplib0.Sexp.t
+val of_sexp : Sexplib0.Sexp.t -> typ
