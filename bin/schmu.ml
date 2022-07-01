@@ -3,6 +3,7 @@ type opts = {
   outname : string;
   dump_llvm : bool;
   release : bool;
+  modul : bool;
 }
 
 let ( >>= ) = Result.bind
@@ -19,7 +20,7 @@ let read_prelude () =
   if Sys.file_exists file then Ok file
   else Error ("Could not open prelude at " ^ file)
 
-let run file prelude { target; outname; dump_llvm; release } =
+let run file prelude { target; outname; dump_llvm; release; modul } =
   let fmt_msg_fn kind loc msg =
     let file = Lexing.((fst loc).pos_fname) in
     let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
@@ -36,10 +37,17 @@ let run file prelude { target; outname; dump_llvm; release } =
     Parse.parse prelude >>= fun prelude ->
     Parse.parse file >>= fun prog ->
     Ok
-      (let tree =
-         Typing.to_typed ~prelude fmt_msg_fn prog |> Monomorph_tree.monomorphize
-       in
-       ignore (Codegen.generate ~target ~outname ~release tree);
+      (let ttree = Typing.to_typed ~prelude fmt_msg_fn prog in
+
+       (* TODO if a module has only forward decls, we don't need to codegen anything *)
+       Monomorph_tree.monomorphize ttree
+       |> Codegen.generate ~target ~outname ~release ~modul
+       |> ignore;
+       if modul then (
+         let m = Module.of_codegen_tree ttree |> Module.t_to_sexp in
+         let modfile = open_out (Filename.remove_extension outname ^ ".smi") in
+         Sexplib0.Sexp.pp_hum (Format.formatter_of_out_channel modfile) m;
+         close_out modfile);
        if dump_llvm then Llvm.dump_module Codegen.the_module)
   with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
@@ -62,6 +70,7 @@ let () =
   let outname = ref "" in
   let filename = ref [] in
   let release = ref false in
+  let modul = ref false in
   let anon_fun fn =
     match !filename with
     | [] -> filename := [ fn ]
@@ -85,6 +94,7 @@ let () =
       );
       ("--dump-llvm", Arg.Set dump_llvm, "Dump LLLVM IR");
       ("--release", Arg.Set release, "Optimize");
+      ("-m", Arg.Set modul, "Compile module");
     ]
   in
   let () = Arg.parse speclist anon_fun usage in
@@ -97,4 +107,10 @@ let () =
     match !outname with "" -> default_outname (List.hd !filename) | s -> s
   in
   run_file (List.hd !filename)
-    { target; outname; dump_llvm = !dump_llvm; release = !release }
+    {
+      target;
+      outname;
+      dump_llvm = !dump_llvm;
+      release = !release;
+      modul = !modul;
+    }

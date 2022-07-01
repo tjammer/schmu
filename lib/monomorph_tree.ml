@@ -851,8 +851,7 @@ and morph_var_data mk p expr =
 
 let morph_toplvl param items =
   let rec aux param = function
-    | [] ->
-        failwith "Internal Error: Modules not yet supported. Must end with expr"
+    | [] -> (param, { typ = Tunit; expr = Mconst Unit; return = true }, no_var)
     | Typed_tree.Tl_let (id, expr) :: tl ->
         let p, e1 = prep_let param id expr in
         let p, e2, func = aux { p with ret = param.ret } tl in

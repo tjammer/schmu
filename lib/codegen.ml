@@ -1838,7 +1838,7 @@ let fill_constants constants =
   in
   List.iter f constants
 
-let generate ~target ~outname ~release
+let generate ~target ~outname ~release ~modul
     { Monomorph_tree.constants; externals; typedefs; tree; funcs } =
   (* Add record types.
      We do this first to ensure that all record definitons
@@ -1878,22 +1878,22 @@ let generate ~target ~outname ~release
       { vars; alloca = None; finalize = None; rec_block = None }
       funcs
   in
+  (if not modul then
+   (* Add main *)
+   let linkage = Llvm.Linkage.External in
 
-  (* Add main *)
-  let linkage = Llvm.Linkage.External in
-
-  ignore
-  @@ gen_function funcs ~mangle:C ~linkage
-       {
-         name = { Monomorph_tree.user = "main"; call = "main" };
-         recursive = Rnone;
-         abs =
-           {
-             func = { params = [ Tint ]; ret = Tint; kind = Simple };
-             pnames = [ "arg" ];
-             body = { tree with typ = Tint };
-           };
-       };
+   ignore
+   @@ gen_function funcs ~mangle:C ~linkage
+        {
+          name = { Monomorph_tree.user = "main"; call = "main" };
+          recursive = Rnone;
+          abs =
+            {
+              func = { params = [ Tint ]; ret = Tint; kind = Simple };
+              pnames = [ "arg" ];
+              body = { tree with typ = Tint };
+            };
+        });
 
   (match Llvm_analysis.verify_module the_module with
   | Some output -> print_endline output
