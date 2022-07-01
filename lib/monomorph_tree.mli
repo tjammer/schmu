@@ -72,7 +72,7 @@ type external_decl = string * typ * string
 type monomorphized_tree = {
   constants : (string * monod_tree) list;
   externals : external_decl list;
-  typedefs : typ list;
+  typeinsts : typ list;
   tree : monod_tree;
   funcs : to_gen_func list;
 }

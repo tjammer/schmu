@@ -287,6 +287,16 @@ let typedefs env =
   let values ({ Type_key.key = _; ord = _ }, v) = v in
   Tmap.filter
     (fun _ typ ->
+      match typ with Trecord _ | Tvariant _ | Talias _ -> true | _ -> false)
+    env.types
+  |> Tmap.bindings
+  |> List.sort Type_key.cmp_map_sort
+  |> List.map values
+
+let typeinstances env =
+  let values ({ Type_key.key = _; ord = _ }, v) = v in
+  Tmap.filter
+    (fun _ typ ->
       match typ with
       | Trecord (Some (Qvar _), _, _) | Tvariant (Some (Qvar _), _, _) ->
           (* We don't want to add generic records *)

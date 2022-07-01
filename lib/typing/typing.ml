@@ -7,6 +7,7 @@ type external_decl = string * Types.typ * string option
 type codegen_tree = {
   externals : external_decl list;
   typedefs : Types.typ list;
+  typeinsts : Types.typ list;
   items : Typed_tree.toplevel_item list;
 }
 
@@ -772,7 +773,9 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
 
   let last_type, env, items = convert_prog env ~prelude prog in
   (* TODO test wrong return type *)
-  let typedefs = Env.typedefs env and externals = Env.externals env in
+  let typedefs = Env.typedefs env
+  and externals = Env.externals env
+  and typeinsts = Env.typeinstances env in
 
   let _, _, unused = Env.close_function env in
   check_unused unused;
@@ -788,7 +791,7 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
        raise (Error (!last_loc, msg)));
 
   (* print_endline (String.concat ", " (List.map string_of_type typedefs)); *)
-  { externals; typedefs; items }
+  { externals; typedefs; typeinsts; items }
 
 let typecheck (prog : Ast.prog) =
   let rec get_last_type = function

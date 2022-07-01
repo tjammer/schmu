@@ -3,6 +3,7 @@ type external_decl = string * Types.typ * string option
 type codegen_tree = {
   externals : external_decl list;
   typedefs : Types.typ list;
+  typeinsts : Types.typ list;
   items : Typed_tree.toplevel_item list;
 }
 

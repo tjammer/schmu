@@ -1839,11 +1839,11 @@ let fill_constants constants =
   List.iter f constants
 
 let generate ~target ~outname ~release ~modul
-    { Monomorph_tree.constants; externals; typedefs; tree; funcs } =
+    { Monomorph_tree.constants; externals; typeinsts; tree; funcs } =
   (* Add record types.
      We do this first to ensure that all record definitons
      are available for external decls *)
-  List.iter to_named_typedefs typedefs;
+  List.iter to_named_typedefs typeinsts;
 
   (* Fill const_tbl *)
   fill_constants constants;

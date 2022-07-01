@@ -64,7 +64,10 @@ val find_ctor_opt : key -> t -> label option
     as well as the type of the ctor if it has data *)
 
 val typedefs : t -> typ list
-(** [typedefs env] returns a list of all named typedefs for codegen *)
+(** [typedefs env] returns a list of all named typedefs for module exporting *)
+
+val typeinstances : t -> typ list
+(** [typeinstances env] return a list of all instanced types for codegen*)
 
 val externals : t -> (string * typ * string option) list
 (** [externals env] returns a list of all external function declarations *)
