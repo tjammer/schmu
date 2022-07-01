@@ -93,5 +93,6 @@ type top_item =
   | Block of block
   | Ext_decl of external_decl
   | Typedef of loc * typedef
+  | Import of loc * string
 
 type prog = top_item list

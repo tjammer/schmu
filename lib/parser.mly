@@ -75,6 +75,7 @@
 %token Match
 %token With
 %token Wildcard
+%token Import
 
 %left And Or
 %nonassoc Less_i Less_f Greater_i Greater_f
@@ -93,6 +94,7 @@ top_item:
   | nonempty_list(stmt) { Block $1 }
   | external_decl { Ext_decl $1 }
   | typedef { Typedef ($loc, $1) }
+  | import { Import ($loc, $1) }
 
 %inline external_decl:
   | External; ident; type_expr; option(external_cname) { $loc, $2, $3, $4 }
@@ -107,6 +109,9 @@ top_item:
     { Talias ($2, $4) }
   | Type; typename; Equal; separated_nonempty_list(Bar, ctordef)
     { Tvariant { name = $2; ctors = $4 } }
+
+%inline import:
+  | Import; Uppercase_id { $2 }
 
 %inline ctordef:
   | ctor; option(ctortyp) { { name = $1; typ_annot = $2 } }
