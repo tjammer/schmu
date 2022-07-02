@@ -2,15 +2,6 @@ open Types
 open Typed_tree
 open Inference
 
-type external_decl = string * Types.typ * string option
-
-type codegen_tree = {
-  externals : external_decl list;
-  typedefs : Types.typ list;
-  typeinsts : Types.typ list;
-  items : Typed_tree.toplevel_item list;
-}
-
 type msg_fn = string -> Ast.loc -> string -> string
 
 module Strset = Set.Make (String)
@@ -727,6 +718,11 @@ let convert_prog env ~prelude items =
     | Typedef (loc, Talias (name, type_spec)) ->
         (type_alias env loc name type_spec, items)
     | Typedef (loc, Tvariant v) -> (type_variant env loc v, items)
+    | Import (loc, modul) ->
+        ignore loc;
+        ignore modul;
+        ignore Module.unique_name;
+        (env, items)
   and aux_block (old, env, items) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->

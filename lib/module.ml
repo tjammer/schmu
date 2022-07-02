@@ -39,7 +39,7 @@ let t_of_sexp s =
       { types; items }
   | s -> of_sexp_error "module_of_sexp" s
 
-let of_codegen_tree Typing.{ typedefs; items; _ } =
+let of_typed_tree Typed_tree.{ typedefs; items; _ } =
   let is_polymorphic_func (f : Typed_tree.func) =
     is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
   in

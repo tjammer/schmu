@@ -874,7 +874,7 @@ let morph_toplvl param items =
   in
   aux param items
 
-let monomorphize { Typing.externals; typeinsts; items; _ } =
+let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
   reset ();
 
   (* Register malloc builtin, so freeing automatically works *)

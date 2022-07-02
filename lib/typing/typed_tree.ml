@@ -42,3 +42,12 @@ and abstraction = { nparams : string list; body : typed_expr; tp : func }
 and generic_fun = { concrete : func; generic : func }
 
 exception Error of Ast.loc * string
+
+type external_decl = string * typ * string option
+
+type t = {
+  externals : external_decl list;
+  typedefs : typ list;
+  typeinsts : typ list;
+  items : toplevel_item list;
+}

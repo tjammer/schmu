@@ -44,7 +44,7 @@ let run file prelude { target; outname; dump_llvm; release; modul } =
        |> Codegen.generate ~target ~outname ~release ~modul
        |> ignore;
        if modul then (
-         let m = Module.of_codegen_tree ttree |> Module.t_to_sexp in
+         let m = Module.of_typed_tree ttree |> Module.t_to_sexp in
          let modfile = open_out (Filename.remove_extension outname ^ ".smi") in
          Sexplib0.Sexp.pp_hum (Format.formatter_of_out_channel modfile) m;
          close_out modfile);

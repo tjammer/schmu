@@ -78,4 +78,4 @@ type monomorphized_tree = {
 }
 
 val typ_of_abs : abstraction -> typ
-val monomorphize : Typing.codegen_tree -> monomorphized_tree
+val monomorphize : Typed_tree.t -> monomorphized_tree
