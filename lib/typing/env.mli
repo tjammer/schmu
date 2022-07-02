@@ -4,15 +4,17 @@ open Types
 type key = string
 type label = { index : int; typename : string }
 type t
+type value = { typ : typ; param : bool; const : bool; imported : bool }
 type unused = (unit, (string * Ast.loc) list) result
-type return = { typ : typ; is_const : bool } (* return type for values *)
+type return = { typ : typ; const : bool } (* return type for values *)
+
+val def_value : value
+(** Default value, everything is false *)
 
 val empty : (typ -> string) -> t
 
-val add_value :
-  key -> typ -> Ast.loc -> ?is_const:bool -> ?is_param:bool -> t -> t
-(** [add_value key typ loc ~is_param] add value [key] defined at [loc] with type [typ] to env.
-    [is_param] defaults to false *)
+val add_value : key -> value -> Ast.loc -> t -> t
+(** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
 
 val add_external : key -> cname:string option -> typ -> Ast.loc -> t -> t
 (** like [add_value], but keeps track of external declarations *)

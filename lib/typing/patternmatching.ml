@@ -406,7 +406,9 @@ module Make (C : Core) = struct
         (fun (i, env) expr ->
           let e = convert env expr in
           (* Make the expr available in the patternmatch *)
-          let env = Env.add_value (expr_name i) e.typ loc env in
+          let env =
+            Env.(add_value (expr_name i) { def_value with typ = e.typ }) loc env
+          in
           ((i + 1, env), (i, e)))
         (0, env) exprs
     in
@@ -481,7 +483,10 @@ module Make (C : Core) = struct
       match ctor.ctortyp with
       | Some typ ->
           let data = { typ; expr = Variant_data (expr i); is_const = false } in
-          (data, Env.add_value (expr_name i) data.typ loc env)
+          ( data,
+            Env.(
+              add_value (expr_name i) { def_value with typ = data.typ } loc env)
+          )
       | None -> (expr i, env)
     in
 
@@ -502,7 +507,10 @@ module Make (C : Core) = struct
         | Var { index; loc; name; d; patterns } ->
             (* Bind the variable *)
             let env =
-              Env.add_value name (expr index).typ ~is_const:false d.loc env
+              Env.(
+                add_value name
+                  { def_value with typ = (expr index).typ }
+                  d.loc env)
             in
             (* Continue with expression *)
             let ret =

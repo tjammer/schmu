@@ -237,7 +237,9 @@ let handle_params env loc params ret =
         | Some annot -> handle (typeof_annot ~param:true env loc annot)
       in
       (* Might be const, but not important here *)
-      ( Env.add_value id type_id ~is_const:false ~is_param:true idloc env,
+      ( Env.add_value id
+          { typ = type_id; const = false; param = true; imported = false }
+          idloc env,
         (type_id, qparams) ))
     env params
   |> fun (env, lst) ->
@@ -391,7 +393,7 @@ end = struct
     match Env.query_val_opt id env with
     | Some t ->
         let typ = instantiate t.typ in
-        { typ; expr = Var id; is_const = t.is_const }
+        { typ; expr = Var id; is_const = t.const }
     | None -> raise (Error (loc, "No var named " ^ id))
 
   and convert_vector_lit env loc vec =
@@ -428,7 +430,10 @@ end = struct
 
   and convert_let env loc (_, (idloc, id), type_annot) block =
     let e1 = typeof_annot_decl env loc type_annot block in
-    (Env.add_value id e1.typ ~is_const:e1.is_const idloc env, e1)
+    ( Env.add_value id
+        { Env.def_value with typ = e1.typ; const = e1.is_const }
+        idloc env,
+      e1 )
 
   and convert_lambda env loc params body =
     let env = Env.open_function env in
@@ -468,7 +473,7 @@ end = struct
     enter_level ();
     let env =
       (* Recursion allowed for named funcs *)
-      Env.add_value name (newvar ()) nameloc env
+      Env.(add_value name { def_value with typ = newvar () } nameloc env)
     in
 
     (* We duplicate some lambda code due to naming *)
@@ -757,7 +762,7 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
           enter_level ();
           let typ = instantiate typ in
           leave_level ();
-          Env.add_value str (generalize typ) loc env))
+          Env.(add_value str { def_value with typ = generalize typ } loc env)))
       (Env.empty string_of_type)
   in
 
