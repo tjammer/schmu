@@ -935,14 +935,13 @@ let fun_return name ret =
       else Llvm.build_ret_void builder
   | _ -> Llvm.build_ret ret.value builder
 
-let rec gen_function vars ?(mangle = Schmu) ?(linkage = Llvm.Linkage.Private)
+let rec gen_function vars ?(mangle = Schmu)
     { Monomorph_tree.abs; name; recursive } =
   let typ = Monomorph_tree.typ_of_abs abs in
 
   match typ with
   | Tfun (tparams, ret_t, kind) as typ ->
       let func = declare_function mangle name.call typ in
-      Llvm.set_linkage linkage func.value;
 
       let start_index, alloca =
         match ret_t with
@@ -1875,22 +1874,20 @@ let generate ~target ~outname ~release ~modul
       { vars; alloca = None; finalize = None; rec_block = None }
       funcs
   in
-  (if not modul then
-   (* Add main *)
-   let linkage = Llvm.Linkage.External in
-
-   ignore
-   @@ gen_function funcs ~mangle:C ~linkage
-        {
-          name = { Monomorph_tree.user = "main"; call = "main" };
-          recursive = Rnone;
-          abs =
-            {
-              func = { params = [ Tint ]; ret = Tint; kind = Simple };
-              pnames = [ "arg" ];
-              body = { tree with typ = Tint };
-            };
-        });
+  if not modul then
+    (* Add main *)
+    ignore
+    @@ gen_function funcs ~mangle:C
+         {
+           name = { Monomorph_tree.user = "main"; call = "main" };
+           recursive = Rnone;
+           abs =
+             {
+               func = { params = [ Tint ]; ret = Tint; kind = Simple };
+               pnames = [ "arg" ];
+               body = { tree with typ = Tint };
+             };
+         };
 
   (match Llvm_analysis.verify_module the_module with
   | Some output -> print_endline output

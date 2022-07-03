@@ -32,7 +32,7 @@ Pass record to function
   
   declare void @printi(i64 %0)
   
-  define private void @schmu_pass_to_func(i64 %0, i64 %1) {
+  define void @schmu_pass_to_func(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst2 = bitcast { i64, i64 }* %box to i64*
@@ -63,7 +63,7 @@ Create record
   
   declare void @printi(i64 %0)
   
-  define private { i64, i64 } @schmu_create_record(i64 %x, i64 %y) {
+  define { i64, i64 } @schmu_create_record(i64 %x, i64 %y) {
   entry:
     %0 = alloca %foo, align 8
     %x14 = bitcast %foo* %0 to i64*
@@ -102,7 +102,7 @@ Nested records
   
   declare void @printi(i64 %0)
   
-  define private { i64, i64 } @schmu___g.g___fun0_ti.ti(i64 %0, i64 %1) {
+  define { i64, i64 } @schmu___g.g___fun0_ti.ti(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst3 = bitcast { i64, i64 }* %box to i64*
@@ -113,7 +113,7 @@ Nested records
     ret { i64, i64 } %unbox2
   }
   
-  define private i64 @schmu_inner__3() {
+  define i64 @schmu_inner__3() {
   entry:
     %0 = alloca %inner, align 8
     store %inner { i64 3 }, %inner* %0, align 4
@@ -176,7 +176,7 @@ Pass generic record
   
   declare void @printi(i64 %0)
   
-  define private { i64, i16 } @schmu___tg.tg_pass_tb.tb(i64 %0, i16 %1) {
+  define { i64, i16 } @schmu___tg.tg_pass_tb.tb(i64 %0, i16 %1) {
   entry:
     %box = alloca { i64, i16 }, align 8
     %fst3 = bitcast { i64, i16 }* %box to i64*
@@ -201,7 +201,7 @@ Pass generic record
     ret { i64, i16 } %unbox2
   }
   
-  define private { i64, i16 } @schmu___g.gg.g_apply_tb.tbtb.tb(%closure* %f, i64 %0, i16 %1) {
+  define { i64, i16 } @schmu___g.gg.g_apply_tb.tbtb.tb(%closure* %f, i64 %0, i16 %1) {
   entry:
     %box = alloca { i64, i16 }, align 8
     %fst11 = bitcast { i64, i16 }* %box to i64*
@@ -220,7 +220,7 @@ Pass generic record
     ret { i64, i16 } %2
   }
   
-  define private void @schmu___tg.tg_pass_ti.ti(%t_int* %0, %t_int* %x) {
+  define void @schmu___tg.tg_pass_ti.ti(%t_int* %0, %t_int* %x) {
   entry:
     %first1 = bitcast %t_int* %0 to i64*
     %1 = bitcast %t_int* %x to i64*
@@ -237,7 +237,7 @@ Pass generic record
     ret void
   }
   
-  define private void @schmu___g.gg.g_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
+  define void @schmu___g.gg.g_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -298,7 +298,7 @@ Access parametrized record fields
   
   declare void @printi(i64 %0)
   
-  define private void @schmu___gen_firstg.u_is_gen_firsti.u(i64 %0, i8 %1) {
+  define void @schmu___gen_firstg.u_is_gen_firsti.u(i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst2 = bitcast { i64, i8 }* %box to i64*
@@ -312,7 +312,7 @@ Access parametrized record fields
     ret void
   }
   
-  define private i64 @schmu___gen_firstg.g_only_gen_firsti.i(i64 %0, i8 %1) {
+  define i64 @schmu___gen_firstg.g_only_gen_firsti.i(i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst2 = bitcast { i64, i8 }* %box to i64*
@@ -322,14 +322,14 @@ Access parametrized record fields
     ret i64 %0
   }
   
-  define private i64 @schmu___tg.g_gen_ti.i(%t_int* %any) {
+  define i64 @schmu___tg.g_gen_ti.i(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 2
     %1 = load i64, i64* %0, align 4
     ret i64 %1
   }
   
-  define private void @schmu___tg.u_third_ti.u(%t_int* %any) {
+  define void @schmu___tg.u_third_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 3
     %1 = load i1, i1* %0, align 1
@@ -337,7 +337,7 @@ Access parametrized record fields
     ret void
   }
   
-  define private void @schmu___tg.u_first_ti.u(%t_int* %any) {
+  define void @schmu___tg.u_first_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 1
     %1 = load i64, i64* %0, align 4
@@ -345,7 +345,7 @@ Access parametrized record fields
     ret void
   }
   
-  define private void @schmu_print_bool(i1 %b) {
+  define void @schmu_print_bool(i1 %b) {
   entry:
     br i1 %b, label %then, label %else
   
@@ -389,7 +389,7 @@ Make sure alignment of generic param works
   
   declare void @printi(i64 %0)
   
-  define private i64 @schmu___misalignedg.g_gen_misalignedi.i(%misaligned_int* %any) {
+  define i64 @schmu___misalignedg.g_gen_misalignedi.i(%misaligned_int* %any) {
   entry:
     %0 = getelementptr inbounds %misaligned_int, %misaligned_int* %any, i32 0, i32 1
     %1 = load i64, i64* %0, align 4
@@ -423,7 +423,7 @@ Support function/closure fields
   
   declare void @printi(i64 %0)
   
-  define private void @schmu_ten_times(i64 %0, i64 %1) {
+  define void @schmu_ten_times(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst8 = bitcast { i64, i64 }* %box to i64*
@@ -462,7 +462,7 @@ Support function/closure fields
     ret void
   }
   
-  define private { i64, i64 } @schmu_advance(i64 %0, i64 %1) {
+  define { i64, i64 } @schmu_advance(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst4 = bitcast { i64, i64 }* %box to i64*
@@ -488,7 +488,7 @@ Support function/closure fields
     ret { i64, i64 } %unbox3
   }
   
-  define private i64 @schmu___fun0(i64 %x) {
+  define i64 @schmu___fun0(i64 %x) {
   entry:
     %add = add i64 %x, 1
     ret i64 %add
@@ -541,7 +541,7 @@ Regression test: Closures for records used to use store/load like for register v
   
   declare void @printi(i64 %0)
   
-  define private void @schmu_print_foo() {
+  define void @schmu_print_foo() {
   entry:
     tail call void @printi(i64 12)
     tail call void @printi(i64 14)
@@ -576,13 +576,13 @@ This caused stores to a wrong pointer type in LLVM
   
   declare void @printi(i64 %0)
   
-  define private { i64, i64 } @schmu_ctrl() {
+  define { i64, i64 } @schmu_ctrl() {
   entry:
     %unbox = load { i64, i64 }, { i64, i64 }* bitcast (%ys* @ret to { i64, i64 }*), align 4
     ret { i64, i64 } %unbox
   }
   
-  define private { i64, i64 } @schmu_record_with_laters() {
+  define { i64, i64 } @schmu_record_with_laters() {
   entry:
     %0 = alloca %ys, align 8
     store %ys { %foo { i64 12 }, i64 15 }, %ys* %0, align 4
@@ -637,7 +637,7 @@ A return of a field should not be preallocated
   
   declare void @printi(i64 %0)
   
-  define private void @schmu_test_thing_mut(%int_wrap* %0) {
+  define void @schmu_test_thing_mut(%int_wrap* %0) {
   entry:
     %1 = alloca %mut_int_wrap, align 8
     %wrapped3 = bitcast %mut_int_wrap* %1 to %int_wrap*
@@ -658,7 +658,7 @@ A return of a field should not be preallocated
     ret void
   }
   
-  define private void @schmu_vector_loop__2(i64 %i, i8* %0) {
+  define void @schmu_vector_loop__2(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %mut_int_wrap* }*
     %test5 = bitcast { %mut_int_wrap* }* %clsr to %mut_int_wrap**
@@ -696,13 +696,13 @@ A return of a field should not be preallocated
     br label %rec
   }
   
-  define private void @schmu_test_thing(%int_wrap* %0) {
+  define void @schmu_test_thing(%int_wrap* %0) {
   entry:
     tail call void @schmu_vector_loop(%int_wrap* %0, i64 0)
     ret void
   }
   
-  define private void @schmu_vector_loop(%int_wrap* %0, i64 %i) {
+  define void @schmu_vector_loop(%int_wrap* %0, i64 %i) {
   entry:
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 4

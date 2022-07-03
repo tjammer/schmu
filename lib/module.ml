@@ -1,6 +1,9 @@
 open Types
+module Sexp = Csexp.Make (Sexplib0.Sexp)
 
 type item = Mfun of typ * string (* TODO lets and exprs *)
+
+(* TODO we need a name for types, or support aliases *)
 type t = { types : typ list; items : item list }
 
 (* Functions must be unique, so we add a number to each function if
@@ -62,3 +65,19 @@ let of_typed_tree Typed_tree.{ typedefs; items; _ } =
       items
   in
   { types = typedefs; items }
+
+let read_module ~regeneralize name =
+  let c = open_in (String.lowercase_ascii (name ^ ".smi")) in
+  let r =
+    Result.map
+      (fun m ->
+        let m = t_of_sexp m in
+        let types = List.map regeneralize m.types in
+        let items =
+          List.map (function Mfun (t, n) -> Mfun (regeneralize t, n)) m.items
+        in
+        { types; items })
+      (Sexp.input c)
+  in
+  close_in c;
+  r

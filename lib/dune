@@ -10,7 +10,8 @@
   llvm.passmgr_builder
   llvm.scalar_opts
   menhirLib
-  sexplib0))
+  sexplib0
+  csexp))
 
 ;; The typing subfolder is part of this library
 

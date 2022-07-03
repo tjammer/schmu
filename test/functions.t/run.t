@@ -13,7 +13,7 @@ Simple fibonacci
   
   declare void @printi(i64 %0)
   
-  define private i64 @schmu_fib(i64 %n) {
+  define i64 @schmu_fib(i64 %n) {
   entry:
     br label %tailrecurse
   
@@ -51,7 +51,7 @@ Fibonacci, but we shadow a bunch
   
   declare void @printi(i64 %0)
   
-  define private i64 @schmu_fib(i64 %n) {
+  define i64 @schmu_fib(i64 %n) {
   entry:
     %lt = icmp slt i64 %n, 2
     br i1 %lt, label %ifcont, label %else
@@ -67,14 +67,14 @@ Fibonacci, but we shadow a bunch
     ret i64 %iftmp
   }
   
-  define private i64 @schmu___fun0(i64 %n) {
+  define i64 @schmu___fun0(i64 %n) {
   entry:
     %sub = sub i64 %n, 1
     %0 = tail call i64 @schmu_fib(i64 %sub)
     ret i64 %0
   }
   
-  define private i64 @schmu_fibn2(i64 %n) {
+  define i64 @schmu_fibn2(i64 %n) {
   entry:
     %sub = sub i64 %n, 2
     %0 = tail call i64 @schmu_fib(i64 %sub)
@@ -95,7 +95,7 @@ Multiple parameters
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  define private i64 @schmu_doiflesselse(i64 %a, i64 %b, i64 %greater, i64 %less) {
+  define i64 @schmu_doiflesselse(i64 %a, i64 %b, i64 %greater, i64 %less) {
   entry:
     %lt = icmp slt i64 %a, %b
     br i1 %lt, label %ifcont, label %else
@@ -108,13 +108,13 @@ Multiple parameters
     ret i64 %iftmp
   }
   
-  define private i64 @schmu_add(i64 %a, i64 %b) {
+  define i64 @schmu_add(i64 %a, i64 %b) {
   entry:
     %add = add i64 %a, %b
     ret i64 %add
   }
   
-  define private i64 @schmu_one() {
+  define i64 @schmu_one() {
   entry:
     ret i64 1
   }
@@ -137,7 +137,7 @@ We have downwards closures
   %capturable = type { i64 }
   %closure = type { i8*, i8* }
   
-  define private i64 @schmu_capture_a_wrapped(i8* %0) {
+  define i64 @schmu_capture_a_wrapped(i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %capturable* }*
     %a5 = bitcast { %capturable* }* %clsr to %capturable**
@@ -155,7 +155,7 @@ We have downwards closures
     ret i64 %1
   }
   
-  define private i64 @schmu_wrap(i8* %0) {
+  define i64 @schmu_wrap(i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %capturable* }*
     %a5 = bitcast { %capturable* }* %clsr to %capturable**
@@ -173,7 +173,7 @@ We have downwards closures
     ret i64 %1
   }
   
-  define private i64 @schmu_inner__3(i8* %0) {
+  define i64 @schmu_inner__3(i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %capturable* }*
     %a2 = bitcast { %capturable* }* %clsr to %capturable**
@@ -184,7 +184,7 @@ We have downwards closures
     ret i64 %add
   }
   
-  define private i64 @schmu_capture_a(i8* %0) {
+  define i64 @schmu_capture_a(i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %capturable* }*
     %a2 = bitcast { %capturable* }* %clsr to %capturable**
@@ -238,17 +238,17 @@ First class functions
   
   declare void @printi(i64 %0)
   
-  define private i64 @schmu___g.g_pass_i.i(i64 %x) {
+  define i64 @schmu___g.g_pass_i.i(i64 %x) {
   entry:
     ret i64 %x
   }
   
-  define private i64 @schmu___fun2(i64 %x) {
+  define i64 @schmu___fun2(i64 %x) {
   entry:
     ret i64 %x
   }
   
-  define private i1 @schmu___gg.g.g_apply_bb.b.b(i1 %x, %closure* %f) {
+  define i1 @schmu___gg.g.g_apply_bb.b.b(i1 %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -259,13 +259,13 @@ First class functions
     ret i1 %0
   }
   
-  define private i64 @schmu___fun1(i64 %x) {
+  define i64 @schmu___fun1(i64 %x) {
   entry:
     %add = add i64 %x, 1
     ret i64 %add
   }
   
-  define private i64 @schmu___gg.g.g_apply_ii.i.i(i64 %x, %closure* %f) {
+  define i64 @schmu___gg.g.g_apply_ii.i.i(i64 %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -276,7 +276,7 @@ First class functions
     ret i64 %0
   }
   
-  define private i64 @schmu_int_of_bool(i1 %b) {
+  define i64 @schmu_int_of_bool(i1 %b) {
   entry:
     br i1 %b, label %ifcont, label %else
   
@@ -288,12 +288,12 @@ First class functions
     ret i64 %iftmp
   }
   
-  define private i1 @schmu_makefalse(i1 %b) {
+  define i1 @schmu_makefalse(i1 %b) {
   entry:
     ret i1 false
   }
   
-  define private i64 @schmu_add1(i64 %x) {
+  define i64 @schmu_add1(i64 %x) {
   entry:
     %add = add i64 %x, 1
     ret i64 %add
@@ -362,7 +362,7 @@ Don't try to create 'void' value in if
   
   declare void @printi(i64 %0)
   
-  define private void @schmu_foo(i64 %i) {
+  define void @schmu_foo(i64 %i) {
   entry:
     %0 = alloca i64, align 8
     store i64 %i, i64* %0, align 4
@@ -418,7 +418,7 @@ Captured values should not overwrite function params
   
   declare void @printi(i64 %0)
   
-  define private i64 @schmu_add(%closure* %a, %closure* %b) {
+  define i64 @schmu_add(%closure* %a, %closure* %b) {
   entry:
     %funcptr7 = bitcast %closure* %a to i8**
     %loadtmp = load i8*, i8** %funcptr7, align 8
@@ -436,12 +436,12 @@ Captured values should not overwrite function params
     ret i64 %add
   }
   
-  define private i64 @schmu_two() {
+  define i64 @schmu_two() {
   entry:
     ret i64 2
   }
   
-  define private i64 @schmu_one() {
+  define i64 @schmu_one() {
   entry:
     ret i64 1
   }
@@ -477,19 +477,19 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   
   declare void @printi(i64 %0)
   
-  define private i64 @schmu___fun1(i64 %x) {
+  define i64 @schmu___fun1(i64 %x) {
   entry:
     ret i64 %x
   }
   
-  define private i64 @schmu___g.g___fun0_ti.ti(i64 %0) {
+  define i64 @schmu___g.g___fun0_ti.ti(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
     ret i64 %0
   }
   
-  define private i1 @schmu___gg.g.g_apply_bb.b.b(i1 %x, %closure* %f) {
+  define i1 @schmu___gg.g.g_apply_bb.b.b(i1 %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -500,7 +500,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i1 %0
   }
   
-  define private i8 @schmu___gg.g.g_apply_tbtb.tb.tb(i8 %0, %closure* %f) {
+  define i8 @schmu___gg.g.g_apply_tbtb.tb.tb(i8 %0, %closure* %f) {
   entry:
     %box = alloca i8, align 1
     store i8 %0, i8* %box, align 1
@@ -516,7 +516,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i8 %1
   }
   
-  define private i64 @schmu___gg.g.g_apply_titi.ti.ti(i64 %0, %closure* %f) {
+  define i64 @schmu___gg.g.g_apply_titi.ti.ti(i64 %0, %closure* %f) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
@@ -532,7 +532,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i64 %1
   }
   
-  define private i64 @schmu___gg.g.g_apply_ii.i.i(i64 %x, %closure* %f) {
+  define i64 @schmu___gg.g.g_apply_ii.i.i(i64 %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -543,7 +543,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i64 %0
   }
   
-  define private i64 @schmu_add3_rec(i64 %0) {
+  define i64 @schmu_add3_rec(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
@@ -554,7 +554,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i64 %add
   }
   
-  define private i8 @schmu_make_rec_false(i8 %0) {
+  define i8 @schmu_make_rec_false(i8 %0) {
   entry:
     %box = alloca i8, align 1
     store i8 %0, i8* %box, align 1
@@ -574,12 +574,12 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i8 %unbox2
   }
   
-  define private i1 @schmu_makefalse(i1 %b) {
+  define i1 @schmu_makefalse(i1 %b) {
   entry:
     ret i1 false
   }
   
-  define private void @schmu_print_bool(i1 %b) {
+  define void @schmu_print_bool(i1 %b) {
   entry:
     br i1 %b, label %then, label %else
   
@@ -592,13 +592,13 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret void
   }
   
-  define private i64 @schmu_add1(i64 %x) {
+  define i64 @schmu_add1(i64 %x) {
   entry:
     %add = add i64 %x, 1
     ret i64 %add
   }
   
-  define private i64 @schmu_add_closed(i64 %x) {
+  define i64 @schmu_add_closed(i64 %x) {
   entry:
     %add = add i64 %x, 2
     ret i64 %add
@@ -676,7 +676,7 @@ A generic pass function. This example is not 100% correct, but works due to call
   
   declare void @printi(i64 %0)
   
-  define private { i64, i8 } @schmu___g.g_pass_t.t(i64 %0, i8 %1) {
+  define { i64, i8 } @schmu___g.g_pass_t.t(i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst3 = bitcast { i64, i8 }* %box to i64*
@@ -687,7 +687,7 @@ A generic pass function. This example is not 100% correct, but works due to call
     ret { i64, i8 } %unbox2
   }
   
-  define private { i64, i8 } @schmu___g.gg.g_apply_t.tt.t(%closure* %f, i64 %0, i8 %1) {
+  define { i64, i8 } @schmu___g.gg.g_apply_t.tt.t(%closure* %f, i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst11 = bitcast { i64, i8 }* %box to i64*
@@ -706,12 +706,12 @@ A generic pass function. This example is not 100% correct, but works due to call
     ret { i64, i8 } %2
   }
   
-  define private i64 @schmu___g.g_pass_i.i(i64 %x) {
+  define i64 @schmu___g.g_pass_i.i(i64 %x) {
   entry:
     ret i64 %x
   }
   
-  define private i64 @schmu___g.gg.g_apply_i.ii.i(%closure* %f, i64 %x) {
+  define i64 @schmu___g.gg.g_apply_i.ii.i(%closure* %f, i64 %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -768,7 +768,7 @@ a second function. Instead, the closure struct was being created again and the c
   
   declare void @printi(i64 %0)
   
-  define private i64 @schmu___ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(i64 %0, %closure* %f, %closure* %env) {
+  define i64 @schmu___ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(i64 %0, %closure* %f, %closure* %env) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
@@ -784,7 +784,7 @@ a second function. Instead, the closure struct was being created again and the c
     ret i64 %1
   }
   
-  define private i64 @schmu___tgg.g.tg_boxed2int_int_tii.i.ti(i64 %0, %closure* %env) {
+  define i64 @schmu___tgg.g.tg_boxed2int_int_tii.i.ti(i64 %0, %closure* %env) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
@@ -800,7 +800,7 @@ a second function. Instead, the closure struct was being created again and the c
     ret i64 %1
   }
   
-  define private i64 @schmu___ggg.gg.g_apply_titii.i.tii.i.ti(i64 %0, %closure* %f, %closure* %env) {
+  define i64 @schmu___ggg.gg.g_apply_titii.i.tii.i.ti(i64 %0, %closure* %f, %closure* %env) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
@@ -816,7 +816,7 @@ a second function. Instead, the closure struct was being created again and the c
     ret i64 %1
   }
   
-  define private i64 @schmu_add1(i64 %x) {
+  define i64 @schmu_add1(i64 %x) {
   entry:
     %add = add i64 %x, 1
     ret i64 %add
@@ -867,7 +867,7 @@ Closures can recurse too
   
   declare void @printi(i64 %0)
   
-  define private void @schmu_loop(i64 %i) {
+  define void @schmu_loop(i64 %i) {
   entry:
     %0 = alloca i64, align 8
     store i64 %i, i64* %0, align 4
@@ -938,7 +938,7 @@ Support monomorphization of nested functions
   
   declare void @printi(i64 %0)
   
-  define private i64 @schmu___g.g_wrapped_rec.rec(i64 %0) {
+  define i64 @schmu___g.g_wrapped_rec.rec(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
@@ -949,31 +949,31 @@ Support monomorphization of nested functions
     ret i64 %1
   }
   
-  define private i64 @schmu___g.g_id_rec.rec(i64 %0) {
+  define i64 @schmu___g.g_id_rec.rec(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
     ret i64 %0
   }
   
-  define private i1 @schmu___g.g_wrapped_b.b(i1 %x) {
+  define i1 @schmu___g.g_wrapped_b.b(i1 %x) {
   entry:
     %0 = tail call i1 @schmu___g.g_id_b.b(i1 %x)
     ret i1 %0
   }
   
-  define private i1 @schmu___g.g_id_b.b(i1 %x) {
+  define i1 @schmu___g.g_id_b.b(i1 %x) {
   entry:
     ret i1 %x
   }
   
-  define private i64 @schmu___g.g_wrapped_i.i(i64 %x) {
+  define i64 @schmu___g.g_wrapped_i.i(i64 %x) {
   entry:
     %0 = tail call i64 @schmu___g.g_id_i.i(i64 %x)
     ret i64 %0
   }
   
-  define private i64 @schmu___g.g_id_i.i(i64 %x) {
+  define i64 @schmu___g.g_id_i.i(i64 %x) {
   entry:
     ret i64 %x
   }
@@ -1004,14 +1004,14 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   declare void @printi(i64 %0)
   
-  define private void @schmu___fun0(i64 %x) {
+  define void @schmu___fun0(i64 %x) {
   entry:
     %mul = mul i64 %x, 2
     tail call void @printi(i64 %mul)
     ret void
   }
   
-  define private void @schmu___vectorgg.u.u_vector_iter__2_vectorii.u.u(%vector_int* %vec, %closure* %f) {
+  define void @schmu___vectorgg.u.u_vector_iter__2_vectorii.u.u(%vector_int* %vec, %closure* %f) {
   entry:
     %monoclstmp = alloca %closure, align 8
     %funptr27 = bitcast %closure* %monoclstmp to i8**
@@ -1048,7 +1048,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define private void @schmu___ivectorg.u_inner_cls_f_ivectori.u(i64 %i, %vector_int* %vec, i8* %0) {
+  define void @schmu___ivectorg.u_inner_cls_f_ivectori.u(i64 %i, %vector_int* %vec, i8* %0) {
   entry:
     br label %tailrecurse
   
@@ -1080,7 +1080,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %tailrecurse
   }
   
-  define private void @schmu___ig.u.u_inner_cls_vec_ii.u.u(i64 %i, %closure* %f, i8* %0) {
+  define void @schmu___ig.u.u_inner_cls_vec_ii.u.u(i64 %i, %closure* %f, i8* %0) {
   entry:
     br label %tailrecurse
   
@@ -1112,7 +1112,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %tailrecurse
   }
   
-  define private void @schmu___i.u_inner_cls_both_i.u(i64 %i, i8* %0) {
+  define void @schmu___i.u_inner_cls_both_i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %closure*, %vector_int* }*
     %f6 = bitcast { %closure*, %vector_int* }* %clsr to %closure**
@@ -1149,7 +1149,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   }
   
-  define private void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 %val) {
+  define void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 %val) {
   entry:
     %0 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
     %1 = load i64, i64* %0, align 4
@@ -1260,7 +1260,7 @@ Closures have to be added to the env of other closures, so they can be called co
   
   declare void @printf(i8* %0, i64 %1)
   
-  define private void @schmu_use_above() {
+  define void @schmu_use_above() {
   entry:
     %str = alloca %string, align 8
     %cstr1 = bitcast %string* %str to i8**
@@ -1272,7 +1272,7 @@ Closures have to be added to the env of other closures, so they can be called co
     ret void
   }
   
-  define private i64 @schmu_close_over_a() {
+  define i64 @schmu_close_over_a() {
   entry:
     ret i64 20
   }

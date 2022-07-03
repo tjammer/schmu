@@ -46,7 +46,7 @@ let run file prelude { target; outname; dump_llvm; release; modul } =
        if modul then (
          let m = Module.of_typed_tree ttree |> Module.t_to_sexp in
          let modfile = open_out (Filename.remove_extension outname ^ ".smi") in
-         Sexplib0.Sexp.pp_hum (Format.formatter_of_out_channel modfile) m;
+         Module.Sexp.to_channel modfile m;
          close_out modfile);
        if dump_llvm then Llvm.dump_module Codegen.the_module)
   with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)

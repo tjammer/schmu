@@ -21,7 +21,7 @@ Basic variant ctors
   
   @0 = private unnamed_addr constant [6 x i8] c"hello\00", align 1
   
-  define private void @schmu_wrap_option(%option_string* %0) {
+  define void @schmu_wrap_option(%option_string* %0) {
   entry:
     %tag1 = bitcast %option_string* %0 to i32*
     store i32 0, i32* %tag1, align 4
@@ -33,7 +33,7 @@ Basic variant ctors
     ret void
   }
   
-  define private i32 @schmu_wrap_clike() {
+  define i32 @schmu_wrap_clike() {
   entry:
     %clike = alloca %clike, align 8
     %tag2 = bitcast %clike* %clike to i32*
@@ -73,7 +73,7 @@ Basic pattern matching
   
   declare void @printf(i8* %0, i64 %1)
   
-  define private i64 @schmu___optiong.i_none_all_optioni.i(%option_int* %p) {
+  define i64 @schmu___optiong.i_none_all_optioni.i(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -88,7 +88,7 @@ Basic pattern matching
     ret i64 %iftmp
   }
   
-  define private i64 @schmu_some_all(%option_int* %p) {
+  define i64 @schmu_some_all(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -105,7 +105,7 @@ Basic pattern matching
     ret i64 %iftmp
   }
   
-  define private i64 @schmu_opt_match(%option_int* %p) {
+  define i64 @schmu_opt_match(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -122,7 +122,7 @@ Basic pattern matching
     ret i64 %iftmp
   }
   
-  define private i64 @schmu_match_opt(%option_int* %p) {
+  define i64 @schmu_match_opt(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -254,7 +254,7 @@ Nested pattern matching
   
   declare void @printf(i8* %0, i64 %1)
   
-  define private i64 @schmu_do(%option_test* %m) {
+  define i64 @schmu_do(%option_test* %m) {
   entry:
     %tag17 = bitcast %option_test* %m to i32*
     %index = load i32, i32* %tag17, align 4
@@ -368,7 +368,7 @@ Match multiple columns
   
   declare void @printf(i8* %0, i64 %1)
   
-  define private void @schmu_do(%option_int* %a, %option_int* %b) {
+  define void @schmu_do(%option_int* %a, %option_int* %b) {
   entry:
     %str = alloca %string, align 8
     %cstr17 = bitcast %string* %str to i8**

@@ -9,7 +9,7 @@ Test elif
   
   declare void @assert(i1 %0)
   
-  define private i64 @schmu_test(i64 %n) {
+  define i64 @schmu_test(i64 %n) {
   entry:
     %eq = icmp eq i64 %n, 10
     br i1 %eq, label %ifcont8, label %else
@@ -126,7 +126,7 @@ Also mutable fields and 'realloc' builtin
   @1 = private unnamed_addr constant [6 x i8] c"young\00", align 1
   @2 = private unnamed_addr constant [6 x i8] c"world\00", align 1
   
-  define private void @schmu_vec_of_records(%vector_container* %0) {
+  define void @schmu_vec_of_records(%vector_container* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 64)
     %2 = bitcast i8* %1 to %container*
@@ -142,7 +142,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @schmu_record_of_vecs(%container* %0) {
+  define void @schmu_record_of_vecs(%container* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 16)
     %2 = bitcast i8* %1 to i64*
@@ -165,7 +165,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @schmu_nest_local() {
+  define void @schmu_nest_local() {
   entry:
     %0 = tail call i8* @malloc(i64 48)
     %1 = bitcast i8* %0 to %vector_int*
@@ -224,13 +224,13 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @schmu_nest_allocs(%vector_vector_int* %0) {
+  define void @schmu_nest_allocs(%vector_vector_int* %0) {
   entry:
     tail call void @schmu_make_nested_vec(%vector_vector_int* %0)
     ret void
   }
   
-  define private void @schmu_make_nested_vec(%vector_vector_int* %0) {
+  define void @schmu_make_nested_vec(%vector_vector_int* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 48)
     %2 = bitcast i8* %1 to %vector_int*
@@ -266,13 +266,13 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @schmu_nest_fns(%vector_foo* %0) {
+  define void @schmu_nest_fns(%vector_foo* %0) {
   entry:
     tail call void @schmu_make_vec(%vector_foo* %0)
     ret void
   }
   
-  define private void @schmu_inner_parent_scope() {
+  define void @schmu_inner_parent_scope() {
   entry:
     %ret = alloca %vector_foo, align 8
     call void @schmu_make_vec(%vector_foo* %ret)
@@ -283,7 +283,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @schmu_make_vec(%vector_foo* %0) {
+  define void @schmu_make_vec(%vector_foo* %0) {
   entry:
     %1 = tail call i8* @malloc(i64 24)
     %2 = bitcast i8* %1 to %foo*
@@ -301,7 +301,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define private void @schmu_vec_inside() {
+  define void @schmu_vec_inside() {
   entry:
     %0 = tail call i8* @malloc(i64 24)
     %1 = bitcast i8* %0 to %foo*
@@ -697,7 +697,7 @@ Regression test for issue #19
   
   %v3 = type { double, double, double }
   
-  define private void @schmu_wrap(%v3* %0) {
+  define void @schmu_wrap(%v3* %0) {
   entry:
     %boxconst = alloca %v3, align 8
     store %v3 { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02 }, %v3* %boxconst, align 8
@@ -711,7 +711,7 @@ Regression test for issue #19
     ret void
   }
   
-  define private void @schmu_v3_scale(%v3* %0, %v3* %v3, double %factor) {
+  define void @schmu_v3_scale(%v3* %0, %v3* %v3, double %factor) {
   entry:
     %x3 = bitcast %v3* %0 to double*
     %1 = bitcast %v3* %v3 to double*
@@ -731,7 +731,7 @@ Regression test for issue #19
     ret void
   }
   
-  define private void @schmu_v3_add(%v3* %0, %v3* %lhs, %v3* %rhs) {
+  define void @schmu_v3_add(%v3* %0, %v3* %lhs, %v3* %rhs) {
   entry:
     %x3 = bitcast %v3* %0 to double*
     %1 = bitcast %v3* %lhs to double*
@@ -782,7 +782,7 @@ Test 'and', 'or' and 'not'
   
   declare void @puts(i8* %0)
   
-  define private i1 @schmu_false_() {
+  define i1 @schmu_false_() {
   entry:
     %str = alloca %string, align 8
     %cstr3 = bitcast %string* %str to i8**
@@ -795,7 +795,7 @@ Test 'and', 'or' and 'not'
     ret i1 false
   }
   
-  define private i1 @schmu_true_() {
+  define i1 @schmu_true_() {
   entry:
     %str = alloca %string, align 8
     %cstr3 = bitcast %string* %str to i8**
@@ -808,7 +808,7 @@ Test 'and', 'or' and 'not'
     ret i1 true
   }
   
-  define private void @schmu_ps(i64 %0, i64 %1) {
+  define void @schmu_ps(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst2 = bitcast { i64, i64 }* %box to i64*
@@ -1320,7 +1320,7 @@ Tailcall loops
   
   declare void @printf(i8* %0, i64 %1, i64 %2, i64 %3)
   
-  define private void @schmu_nested__3(i64 %a, i64 %b, i64 %c) {
+  define void @schmu_nested__3(i64 %a, i64 %b, i64 %c) {
   entry:
     %0 = alloca i64, align 8
     store i64 %a, i64* %0, align 4
@@ -1381,7 +1381,7 @@ Tailcall loops
     br label %rec.outer
   }
   
-  define private void @schmu_nested__2(i64 %a, i64 %b, i64 %c) {
+  define void @schmu_nested__2(i64 %a, i64 %b, i64 %c) {
   entry:
     %0 = alloca i64, align 8
     store i64 %a, i64* %0, align 4
@@ -1442,7 +1442,7 @@ Tailcall loops
     br label %rec.outer
   }
   
-  define private void @schmu_nested(i64 %a, i64 %b) {
+  define void @schmu_nested(i64 %a, i64 %b) {
   entry:
     %0 = alloca i64, align 8
     store i64 %a, i64* %0, align 4

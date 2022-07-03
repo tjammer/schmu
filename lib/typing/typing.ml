@@ -19,6 +19,8 @@ module Set = Set.Make (String)
 module Recs = Records
 module Pm = Patternmatching
 
+let dummy_loc = Lexing.(dummy_pos, dummy_pos)
+
 (*
    Module state
  *)
@@ -723,11 +725,39 @@ let convert_prog env ~prelude items =
     | Typedef (loc, Talias (name, type_spec)) ->
         (type_alias env loc name type_spec, items)
     | Typedef (loc, Tvariant v) -> (type_variant env loc v, items)
-    | Import (loc, modul) ->
-        ignore loc;
-        ignore modul;
-        ignore Module.unique_name;
-        (env, items)
+    | Import (loc, modul) -> (
+        (* TODO this is an 'open' rather than an 'import' *)
+        (* TODO cache this *)
+        match Module.read_module ~regeneralize modul with
+        | Ok m ->
+            (* Add to env *)
+            let env =
+              List.fold_left
+                (fun env t ->
+                  match t with
+                  | Trecord (param, name, labels) ->
+                      Env.add_record name ~param ~labels env
+                  | Tvariant (param, name, ctors) ->
+                      Env.add_variant name ~param ~ctors env
+                  | Talias (name, _) -> Env.add_alias name t env
+                  | t ->
+                      failwith
+                        ("Internal Error: Unexpected type in module: "
+                       ^ show_typ t))
+                env m.types
+            in
+            let env =
+              List.fold_left
+                (fun env item ->
+                  match item with
+                  | Module.Mfun (typ, name) ->
+                      Env.add_external name
+                        ~cname:(Some ("schmu_" ^ name))
+                        typ dummy_loc env)
+                env m.items
+            in
+            (env, items)
+        | Error s -> raise (Error (loc, "Module " ^ modul ^ s)))
   and aux_block (old, env, items) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->

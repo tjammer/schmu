@@ -84,14 +84,11 @@ let add_value key value loc env =
 
       (* Shadowed bindings stay in the Hashtbl, but are not reachable (I think).
          Thus, warning for unused shadowed bindings works *)
-      let tbl = scope.used in
-      Hashtbl.add tbl key { loc; used = ref false };
+      (if not value.imported then
+       let tbl = scope.used in
+       Hashtbl.add tbl key { loc; used = ref false });
 
       { env with values = { scope with valmap } :: tl }
-
-(* Open module: Like add value, but don't track usage.
-   Still, check if we shadow something which is unused.
-   Alternatively, mark every item from scope as used? *)
 
 let add_external key ~cname typ loc env =
   let env = add_value key { def_value with typ } loc env in
