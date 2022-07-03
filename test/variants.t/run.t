@@ -73,7 +73,7 @@ Basic pattern matching
   
   declare void @printf(i8* %0, i64 %1)
   
-  define private i64 @schmu_none_all(%option_int* %p) {
+  define private i64 @schmu___optiong.i_none_all_optioni.i(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -217,17 +217,17 @@ Basic pattern matching
     store i32 0, i32* %tag3252, align 4
     %data33 = getelementptr inbounds %option_int, %option_int* %option31, i32 0, i32 1
     store i64 1, i64* %data33, align 4
-    %6 = call i64 @schmu_none_all(%option_int* %option31)
+    %6 = call i64 @schmu___optiong.i_none_all_optioni.i(%option_int* %option31)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %6)
-    %str34 = alloca %string, align 8
-    %cstr3553 = bitcast %string* %str34 to i8**
-    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr3553, align 8
-    %length36 = getelementptr inbounds %string, %string* %str34, i32 0, i32 1
-    store i64 3, i64* %length36, align 4
-    %option37 = alloca %option_int, align 8
-    %tag3854 = bitcast %option_int* %option37 to i32*
-    store i32 1, i32* %tag3854, align 4
-    %7 = call i64 @schmu_none_all(%option_int* %option37)
+    %option34 = alloca %option_int, align 8
+    %tag3553 = bitcast %option_int* %option34 to i32*
+    store i32 1, i32* %tag3553, align 4
+    %str36 = alloca %string, align 8
+    %cstr3754 = bitcast %string* %str36 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr3754, align 8
+    %length38 = getelementptr inbounds %string, %string* %str36, i32 0, i32 1
+    store i64 3, i64* %length38, align 4
+    %7 = call i64 @schmu___optiong.i_none_all_optioni.i(%option_int* %option34)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %7)
     ret i64 0
   }

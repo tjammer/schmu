@@ -120,7 +120,8 @@ let unify info t1 t2 =
 
 let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
-  | Tvar { contents = Link t } | Talias (_, t) -> generalize t
+  | Tvar { contents = Link t } -> generalize t
+  | Talias (n, t) -> Talias (n, generalize t)
   | Tfun (t1, t2, k) -> Tfun (List.map generalize t1, generalize t2, k)
   | Trecord (Some t, name, labels) ->
       (* Hopefully the param type is the same reference throughout the record *)
@@ -128,6 +129,12 @@ let rec generalize = function
       let f f = Types.{ f with typ = generalize f.typ } in
       let labels = Array.map f labels in
       Trecord (param, name, labels)
+  | Tvariant (Some t, name, ctors) ->
+      (* Hopefully the param type is the same reference throughout the variant *)
+      let param = Some (generalize t) in
+      let f c = Types.{ c with ctortyp = Option.map generalize c.ctortyp } in
+      let ctors = Array.map f ctors in
+      Tvariant (param, name, ctors)
   | Tptr t -> Tptr (generalize t)
   | t -> t
 
@@ -190,6 +197,13 @@ let instantiate t =
     | t -> (t, subst)
   in
   aux Smap.empty t |> fst
+
+let regeneralize typ =
+  enter_level ();
+  let typ = instantiate typ in
+  leave_level ();
+  let typ = generalize typ in
+  typ
 
 (* Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.

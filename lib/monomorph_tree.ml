@@ -226,6 +226,23 @@ let subst_type ~concrete poly parent =
         let subst, _ = Array.fold_left f (subst, 0) l1 in
         let subst, param = inner subst (i, j) in
         (subst, Trecord (Some param, record, labels))
+    | (Tvariant (Some i, variant, l1) as l), Tvariant (Some j, _, l2)
+      when is_type_polymorphic l ->
+        let ctors = Array.copy l1 in
+        let f (subst, i) (ctor : Cleaned_types.ctor) =
+          let subst, t =
+            match (ctor.ctortyp, l2.(i).ctortyp) with
+            | Some l, Some r ->
+                let subst, t = (inner subst) (l, r) in
+                (subst, Some t)
+            | _ -> (subst, None)
+          in
+          ctors.(i) <- Cleaned_types.{ (ctors.(i)) with ctortyp = t };
+          (subst, i + 1)
+        in
+        let subst, _ = Array.fold_left f (subst, 0) l1 in
+        let subst, param = inner subst (i, j) in
+        (subst, Tvariant (Some param, variant, ctors))
     | Tptr l, Tptr r ->
         let subst, t = inner subst (l, r) in
         (subst, Tptr t)
@@ -248,6 +265,12 @@ let subst_type ~concrete poly parent =
         let f field = Cleaned_types.{ field with typ = subst field.typ } in
         let labels = Array.map f labels in
         Trecord (Some (subst p), record, labels)
+    | Tvariant (Some p, variant, ctors) as t when is_type_polymorphic t ->
+        let f ctor =
+          Cleaned_types.{ ctor with ctortyp = Option.map subst ctor.ctortyp }
+        in
+        let ctors = Array.map f ctors in
+        Tvariant (Some (subst p), variant, ctors)
     | Tptr t -> Tptr (subst t)
     | t -> t
   in

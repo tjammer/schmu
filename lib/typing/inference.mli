@@ -11,6 +11,7 @@ val leave_level : unit -> unit
 val unify : err -> typ -> typ -> unit
 val generalize : typ -> typ
 val instantiate : typ -> typ
+val regeneralize : typ -> typ
 
 val types_match :
   ?strict:bool -> string Smap.t -> typ -> typ -> string Smap.t * bool

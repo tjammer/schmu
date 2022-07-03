@@ -905,17 +905,14 @@ let func_to_closure vars llvar =
 
 (* Get monomorphized function *)
 let get_mono_func func param = function
-  | Monomorph_tree.Mono name ->
+  | Monomorph_tree.Mono name -> (
       let func = Vars.find name param.vars in
       (* Monomorphized functions are not yet converted to closures *)
-      let func =
-        match func.typ with
-        | Tfun (_, _, Closure assoc) ->
-            gen_closure_obj param assoc func "monoclstmp"
-        | Tfun (_, _, Simple) -> func
-        | _ -> failwith "Internal Error: What are we applying?"
-      in
-      func
+      match func.typ with
+      | Tfun (_, _, Closure assoc) ->
+          gen_closure_obj param assoc func "monoclstmp"
+      | Tfun (_, _, Simple) -> func
+      | _ -> failwith "Internal Error: What are we applying?")
   | Concrete name -> Vars.find name param.vars
   | Default | Recursive _ -> func
   | Builtin _ -> failwith "Internal Error: Normally calling a builtin"

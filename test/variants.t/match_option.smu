@@ -29,4 +29,5 @@ fun none_all(p) = match p with
   _ -> 1
 
 none_all(Some(1)) |>> printf("%i\n".cstr)
-none_all(None) |>> printf("%i\n".cstr)
+none_int : option(int) = None
+none_all(none_int) |>> printf("%i\n".cstr)
