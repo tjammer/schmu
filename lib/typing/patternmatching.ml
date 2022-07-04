@@ -373,7 +373,7 @@ module Make (C : Core) = struct
         unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
         let expr = Ctor (typename, index, Some texpr) in
 
-        Env.maybe_add_type_instance (string_of_type variant) variant env;
+        Env.maybe_add_type_instance variant env;
         { typ = variant; expr; is_const = false }
     | None, None ->
         let expr = Ctor (typename, index, None) in

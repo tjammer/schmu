@@ -195,7 +195,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
            codegen struct generation depends on order *)
         (match t with
         | Trecord (Some _, _, _) | Tvariant (Some _, _, _) ->
-            Env.maybe_add_type_instance (string_of_type subst) subst env
+            Env.maybe_add_type_instance subst env
         | _ -> ());
         subst
   and handle_annot = function
@@ -408,7 +408,7 @@ end = struct
 
     let vector = get_prelude env loc "vector" in
     let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
-    Env.maybe_add_type_instance (string_of_type typ) typ env;
+    Env.maybe_add_type_instance typ env;
     { typ; expr = Const (Vector exprs); is_const = false }
 
   and typeof_annot_decl env loc annot block =
@@ -793,7 +793,7 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
           let typ = instantiate typ in
           leave_level ();
           Env.(add_value str { def_value with typ = generalize typ } loc env)))
-      (Env.empty string_of_type)
+      (Env.empty ())
   in
 
   (* Add prelude *)

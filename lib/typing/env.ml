@@ -54,14 +54,13 @@ type t = {
   instances : typ Tmap.t ref;
   (* Instantiations for both records and variants *)
   externals : (typ * string option) Tmap.t;
-  print_fn : typ -> string;
 }
 
 type unused = (unit, (string * Ast.loc) list) result
 
 let def_value = { typ = Tunit; param = false; const = false; imported = false }
 
-let empty print_fn =
+let empty () =
   {
     values =
       [
@@ -73,7 +72,6 @@ let empty print_fn =
     types = Tmap.empty;
     instances = ref Tmap.empty;
     externals = Tmap.empty;
-    print_fn;
   }
 
 let add_value key value loc env =
@@ -146,8 +144,9 @@ let is_unbound = function
   | Qvar _ | Tvar { contents = Unbound _ } -> true
   | _ -> false
 
-let maybe_add_type_instance key typ env =
+let maybe_add_type_instance typ env =
   (* We reject generic records with unbound variables *)
+  let key = string_of_type typ in
   let key = Type_key.create key in
 
   match clean typ with
@@ -266,7 +265,7 @@ let query_val_opt key env =
             if not imported then mark_used key scope.used;
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
-            maybe_add_type_instance (env.print_fn typ) typ env;
+            maybe_add_type_instance typ env;
             Some { typ; const })
   in
   aux 0 env.values

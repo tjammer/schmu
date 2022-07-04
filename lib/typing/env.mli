@@ -11,7 +11,7 @@ type return = { typ : typ; const : bool } (* return type for values *)
 val def_value : value
 (** Default value, everything is false *)
 
-val empty : (typ -> string) -> t
+val empty : unit -> t
 
 val add_value : key -> value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
@@ -32,7 +32,7 @@ val add_variant : key -> param:typ option -> ctors:ctor array -> t -> t
 (** [add_variant variant_name ~param ~ctors env] returns an env with an added variant named [variant_name]
     optionally parametrized by [param] with [ctors] *)
 
-val maybe_add_type_instance : key -> typ -> t -> unit
+val maybe_add_type_instance : typ -> t -> unit
 (** [maybe_add_type_instance record_name ~param typ] mutably adds a concrete parametrization
          of a record if [param] is Some type and the same instance has not already been added  *)
 
