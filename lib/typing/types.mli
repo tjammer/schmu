@@ -16,7 +16,7 @@ type typ =
   | Trecord of typ option * string * field array
   | Tvariant of typ option * string * ctor array
   | Tptr of typ
-[@@deriving show { with_path = false }]
+[@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ
@@ -39,5 +39,3 @@ val string_of_type_subst : string Smap.t -> typ -> string
 (** Version using the subst table created during comparison with annot *)
 
 val is_polymorphic : typ -> bool
-val to_sexp : typ -> Sexplib0.Sexp.t
-val of_sexp : Sexplib0.Sexp.t -> typ

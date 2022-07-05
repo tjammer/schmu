@@ -458,8 +458,8 @@ end = struct
         check_annot loc typ qtyp;
 
         let nparams = List.map (fun (_, name, _) -> snd name) params in
-        let tp = { tparams; ret; kind } in
-        let abs = { nparams; body = { body with typ = ret }; tp } in
+        let func = { tparams; ret; kind } in
+        let abs = { nparams; body = { body with typ = ret }; func } in
         let expr = Lambda (lambda_id (), abs) in
         { typ; expr; is_const = false }
     | _ -> failwith "Internal Error: generalize produces a new type?"
@@ -509,8 +509,8 @@ end = struct
         check_annot loc typ qtyp;
 
         let nparams = List.map (fun (_, name, _) -> snd name) params in
-        let tp = { tparams; ret; kind } in
-        let lambda = { nparams; body = { body with typ = ret }; tp } in
+        let func = { tparams; ret; kind } in
+        let lambda = { nparams; body = { body with typ = ret }; func } in
 
         (env, (name, unique, lambda))
     | _ -> failwith "Internal Error: generalize produces a new type?"
@@ -747,7 +747,7 @@ let convert_prog env ~prelude items modul =
         (old, env, Tl_let (fst decl, texpr) :: items, m)
     | Function (loc, func) ->
         let env, (name, unique, abs) = Core.convert_function env loc func in
-        let m = Module.add_fun name unique abs m in
+        let m = Module.add_fun name unique abs.func m in
         (old, env, Tl_function (name, unique, abs) :: items, m)
     | Expr (loc, expr) ->
         let expr = Core.convert env expr in

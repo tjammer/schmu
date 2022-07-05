@@ -17,10 +17,10 @@ type bop =
   | Minus_f
   | And
   | Or
-[@@deriving show]
+[@@deriving show, sexp]
 (* Eventually, this will be handled differently, hopefully not as hardcoded *)
 
-type unop = Uminus_i | Uminus_f [@@deriving show]
+type unop = Uminus_i | Uminus_f [@@deriving show, sexp]
 
 type type_spec =
   | Ty_id of string

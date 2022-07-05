@@ -672,16 +672,18 @@ and prep_func p (username, uniq, abs) =
      add the usercode name to the bound variables. In the polymorphic case,
      we add the function to the bound variables, but not to the function list.
      Instead, the monomorphized instance will be added later *)
-  let ftyp = Types.(Tfun (abs.tp.tparams, abs.tp.ret, abs.tp.kind)) |> cln in
+  let ftyp =
+    Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln
+  in
 
   let call = Module.unique_name (username, uniq) in
   let recursive = Rnormal in
 
   let func =
     {
-      params = List.map cln abs.tp.tparams;
-      ret = cln abs.tp.ret;
-      kind = cln_kind abs.tp.kind;
+      params = List.map cln abs.func.tparams;
+      ret = cln abs.func.ret;
+      kind = cln_kind abs.func.kind;
     }
   in
   let pnames = abs.nparams in
@@ -690,7 +692,8 @@ and prep_func p (username, uniq, abs) =
   let temp_p =
     recursion_stack := (call, recursive) :: !recursion_stack;
     let alloc =
-      if Types.is_struct abs.tp.ret then Value (ref (request ())) else No_value
+      if Types.is_struct abs.func.ret then Value (ref (request ()))
+      else No_value
     in
     let value = { no_var with fn = Forward_decl call; alloc } in
     let vars = Vars.add username (Normal value) p.vars in
@@ -746,9 +749,9 @@ and morph_lambda typ p id abs =
   let recursive = Rnone in
   let func =
     {
-      params = List.map cln abs.tp.tparams;
-      ret = cln abs.tp.ret;
-      kind = cln_kind abs.tp.kind;
+      params = List.map cln abs.func.tparams;
+      ret = cln abs.func.ret;
+      kind = cln_kind abs.func.kind;
     }
   in
   let pnames = abs.nparams in
@@ -763,7 +766,7 @@ and morph_lambda typ p id abs =
   let p = { p with monomorphized = tmp.monomorphized; funcs = tmp.funcs } in
   leave_level ();
 
-  if Types.is_struct abs.tp.ret then set_alloca var.alloc;
+  if Types.is_struct abs.func.ret then set_alloca var.alloc;
 
   (* Why do we need this again in lambda? They can't recurse. *)
   (* But functions on the lambda body might *)

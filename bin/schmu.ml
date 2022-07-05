@@ -48,7 +48,7 @@ let run file prelude { target; outname; dump_llvm; release; modul; no_prelude }
        |> Codegen.generate ~target ~outname ~release ~modul
        |> ignore;
        if modul then (
-         let m = Option.get m |> List.rev |> Module.t_to_sexp in
+         let m = Option.get m |> List.rev |> Module.sexp_of_t in
          let modfile = open_out (outname ^ ".smi") in
          Module.Sexp.to_channel modfile m;
          close_out modfile);

@@ -14,7 +14,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %add
   }
   $ cat nonpoly_func.smi
-  ((5:Mtype(8:Tvariant()6:either((4:Left())(5:Right()))))(4:Mfun(4:Tfun(4:Tint4:Tint)4:Tint6:Simple)8:add_ints))
+  ((5:Mtype(8:Tvariant()6:either(((8:ctorname4:Left)(7:ctortyp()))((8:ctorname5:Right)(7:ctortyp())))))(4:Mfun(4:Tfun(4:Tint4:Tint)4:Tint6:Simple)8:add_ints))
   $ schmu import_nonpoly_func.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"

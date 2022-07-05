@@ -1,4 +1,5 @@
 open Types
+open Sexplib0.Sexp_conv
 
 type expr =
   | Var of string
@@ -17,7 +18,7 @@ type expr =
   | Ctor of (string * int * typed_expr option)
   | Variant_index of typed_expr
   | Variant_data of typed_expr
-[@@deriving show]
+[@@deriving show, sexp]
 
 and typed_expr = { typ : typ; expr : expr; is_const : bool }
 
@@ -38,7 +39,7 @@ and toplevel_item =
   | Tl_expr of typed_expr
 
 and func = { tparams : typ list; ret : typ; kind : fun_kind }
-and abstraction = { nparams : string list; body : typed_expr; tp : func }
+and abstraction = { nparams : string list; body : typed_expr; func : func }
 and generic_fun = { concrete : func; generic : func }
 
 exception Error of Ast.loc * string
