@@ -45,7 +45,7 @@ let run file prelude { target; outname; dump_llvm; release; modul } =
        |> ignore;
        if modul then (
          let m = Option.get m |> List.rev |> Module.t_to_sexp in
-         let modfile = open_out (Filename.remove_extension outname ^ ".smi") in
+         let modfile = open_out (outname ^ ".smi") in
          Module.Sexp.to_channel modfile m;
          close_out modfile);
        if dump_llvm then Llvm.dump_module Codegen.the_module)
@@ -59,7 +59,7 @@ let run_file filename opts =
       prerr_endline msg;
       exit 1
 
-let default_outname filename = Filename.remove_extension filename ^ ".o"
+let default_outname filename = Filename.(basename filename |> remove_extension)
 let usage = "Usage: schmu [options] filename"
 
 let () =

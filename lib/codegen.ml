@@ -1911,5 +1911,8 @@ let generate ~target ~outname ~release ~modul
   let target = Target.by_triple triple in
 
   let machine = TargetMachine.create ~triple target ~reloc_mode in
+  let outname =
+    if Filename.check_suffix outname ".o" then outname else outname ^ ".o"
+  in
   TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile outname
     machine
