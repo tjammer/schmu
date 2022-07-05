@@ -4,23 +4,27 @@ type opts = {
   dump_llvm : bool;
   release : bool;
   modul : bool;
+  no_prelude : bool;
 }
 
 let ( >>= ) = Result.bind
 
-let read_prelude () =
-  let ( // ) = Filename.concat in
-  let file =
-    match Schmu_std.Sites.std with
-    | file :: _ -> file // "prelude.smu"
-    | [] ->
-        (Sys.argv.(0) |> Filename.dirname)
-        // ".." // "lib" // "schmu" // "std" // "prelude.smu"
-  in
-  if Sys.file_exists file then Ok file
-  else Error ("Could not open prelude at " ^ file)
+let read_prelude opts =
+  if opts.no_prelude then Ok ""
+  else
+    let ( // ) = Filename.concat in
+    let file =
+      match Schmu_std.Sites.std with
+      | file :: _ -> file // "prelude.smu"
+      | [] ->
+          (Sys.argv.(0) |> Filename.dirname)
+          // ".." // "lib" // "schmu" // "std" // "prelude.smu"
+    in
+    if Sys.file_exists file then Ok file
+    else Error ("Could not open prelude at " ^ file)
 
-let run file prelude { target; outname; dump_llvm; release; modul } =
+let run file prelude { target; outname; dump_llvm; release; modul; no_prelude }
+    =
   let fmt_msg_fn kind loc msg =
     let file = Lexing.((fst loc).pos_fname) in
     let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
@@ -34,7 +38,7 @@ let run file prelude { target; outname; dump_llvm; release; modul } =
 
   let open Schmulang in
   try
-    Parse.parse prelude >>= fun prelude ->
+    (if no_prelude then Ok [] else Parse.parse prelude) >>= fun prelude ->
     Parse.parse file >>= fun prog ->
     Ok
       (let ttree, m = Typing.to_typed ~modul ~prelude fmt_msg_fn prog in
@@ -53,7 +57,7 @@ let run file prelude { target; outname; dump_llvm; release; modul } =
 
 let run_file filename opts =
   (* Open the prelude *)
-  (read_prelude () >>= fun prelude -> run filename prelude opts) |> function
+  (read_prelude opts >>= fun prelude -> run filename prelude opts) |> function
   | Ok () -> ()
   | Error msg ->
       prerr_endline msg;
@@ -71,6 +75,7 @@ let () =
   let filename = ref [] in
   let release = ref false in
   let modul = ref false in
+  let no_prelude = ref false in
   let anon_fun fn =
     match !filename with
     | [] -> filename := [ fn ]
@@ -95,6 +100,7 @@ let () =
       ("--dump-llvm", Arg.Set dump_llvm, "Dump LLLVM IR");
       ("--release", Arg.Set release, "Optimize");
       ("-m", Arg.Set modul, "Compile module");
+      ("--no-prelude", Arg.Set no_prelude, "Compile without prelude");
     ]
   in
   let () = Arg.parse speclist anon_fun usage in
@@ -113,4 +119,5 @@ let () =
       dump_llvm = !dump_llvm;
       release = !release;
       modul = !modul;
+      no_prelude = !no_prelude;
     }
