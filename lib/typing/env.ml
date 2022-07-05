@@ -88,8 +88,8 @@ let add_value key value loc env =
 
       { env with values = { scope with valmap } :: tl }
 
-let add_external key ~cname typ loc env =
-  let env = add_value key { def_value with typ } loc env in
+let add_external key ~cname typ ~imported loc env =
+  let env = add_value key { def_value with typ; imported } loc env in
   let tkey = Type_key.create key in
   let externals = Tmap.add tkey (typ, cname) env.externals in
   { env with externals }

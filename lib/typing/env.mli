@@ -16,7 +16,8 @@ val empty : unit -> t
 val add_value : key -> value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
 
-val add_external : key -> cname:string option -> typ -> Ast.loc -> t -> t
+val add_external :
+  key -> cname:string option -> typ -> imported:bool -> Ast.loc -> t -> t
 (** like [add_value], but keeps track of external declarations *)
 
 val change_type : key -> typ -> t -> t

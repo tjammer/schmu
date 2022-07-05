@@ -37,14 +37,14 @@ let run file prelude { target; outname; dump_llvm; release; modul } =
     Parse.parse prelude >>= fun prelude ->
     Parse.parse file >>= fun prog ->
     Ok
-      (let ttree = Typing.to_typed ~prelude fmt_msg_fn prog in
+      (let ttree, m = Typing.to_typed ~modul ~prelude fmt_msg_fn prog in
 
        (* TODO if a module has only forward decls, we don't need to codegen anything *)
        Monomorph_tree.monomorphize ttree
        |> Codegen.generate ~target ~outname ~release ~modul
        |> ignore;
        if modul then (
-         let m = Module.of_typed_tree ttree |> Module.t_to_sexp in
+         let m = Option.get m |> List.rev |> Module.t_to_sexp in
          let modfile = open_out (Filename.remove_extension outname ^ ".smi") in
          Module.Sexp.to_channel modfile m;
          close_out modfile);

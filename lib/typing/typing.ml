@@ -19,8 +19,6 @@ module Set = Set.Make (String)
 module Recs = Records
 module Pm = Patternmatching
 
-let dummy_loc = Lexing.(dummy_pos, dummy_pos)
-
 (*
    Module state
  *)
@@ -707,80 +705,64 @@ let block_external_name loc ~cname id =
       in
       raise (Error (loc, msg))
 
-let convert_prog env ~prelude items =
+let convert_prog env ~prelude items modul =
   let old = ref (Lexing.(dummy_pos, dummy_pos), Tunit) in
 
-  let rec aux (env, items) = function
+  let rec aux (env, items, m) = function
     | Ast.Block block ->
-        let old', env, items =
-          List.fold_left aux_block (!old, env, items) block
+        let old', env, items, m =
+          List.fold_left aux_block (!old, env, items, m) block
         in
         old := old';
-        (env, items)
+        (env, items, m)
     | Ext_decl (loc, (idloc, id), typ, cname) ->
         let typ = typeof_annot env loc typ in
         block_external_name loc ~cname id;
-        (Env.add_external id ~cname typ idloc env, items)
-    | Typedef (loc, Trecord t) -> (type_record env loc t, items)
+        (Env.add_external id ~cname typ ~imported:false idloc env, items, m)
+    | Typedef (loc, Trecord t) ->
+        let env = type_record env loc t in
+        let m = Module.add_type (Env.find_type t.name.name env) m in
+        (env, items, m)
     | Typedef (loc, Talias (name, type_spec)) ->
-        (type_alias env loc name type_spec, items)
-    | Typedef (loc, Tvariant v) -> (type_variant env loc v, items)
+        let env = type_alias env loc name type_spec in
+        let m = Module.add_type (Env.find_type name.name env) m in
+        (env, items, m)
+    | Typedef (loc, Tvariant v) ->
+        let env = type_variant env loc v in
+        let m = Module.add_type (Env.find_type v.name.name env) m in
+        (env, items, m)
     | Import (loc, modul) -> (
         (* TODO this is an 'open' rather than an 'import' *)
         (* TODO cache this *)
         match Module.read_module ~regeneralize modul with
-        | Ok m ->
-            (* Add to env *)
-            let env =
-              List.fold_left
-                (fun env t ->
-                  match t with
-                  | Trecord (param, name, labels) ->
-                      Env.add_record name ~param ~labels env
-                  | Tvariant (param, name, ctors) ->
-                      Env.add_variant name ~param ~ctors env
-                  | Talias (name, _) -> Env.add_alias name t env
-                  | t ->
-                      failwith
-                        ("Internal Error: Unexpected type in module: "
-                       ^ show_typ t))
-                env m.types
-            in
-            let env =
-              List.fold_left
-                (fun env item ->
-                  match item with
-                  | Module.Mfun (typ, name) ->
-                      Env.add_external name
-                        ~cname:(Some ("schmu_" ^ name))
-                        typ dummy_loc env)
-                env m.items
-            in
-            (env, items)
+        | Ok modul ->
+            (* TODO remember this import somehow *)
+            (Module.add_to_env env modul, items, m)
         | Error s -> raise (Error (loc, "Module " ^ modul ^ s)))
-  and aux_block (old, env, items) = function
+  and aux_block (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
         let env, texpr = Core.convert_let env loc decl block in
         let decl = (fun (_, a, b) -> (snd a, b)) decl in
-        (old, env, Tl_let (fst decl, texpr) :: items)
+        (old, env, Tl_let (fst decl, texpr) :: items, m)
     | Function (loc, func) ->
-        let env, (name, unique, lambda) = Core.convert_function env loc func in
-        (old, env, Tl_function (name, unique, lambda) :: items)
+        let env, (name, unique, abs) = Core.convert_function env loc func in
+        let m = Module.add_fun name unique abs m in
+        (old, env, Tl_function (name, unique, abs) :: items, m)
     | Expr (loc, expr) ->
         let expr = Core.convert env expr in
         (* Only the last expression is allowed to return something *)
         unify
           (fst old, "Left expression in sequence must be of type unit:")
           Tunit (snd old);
-        ((loc, expr.typ), env, Tl_expr expr :: items)
+        ((loc, expr.typ), env, Tl_expr expr :: items, m)
   in
 
-  let env, items = List.fold_left aux (env, prelude) items in
-  (snd !old, env, List.rev items)
+  let env, items, m = List.fold_left aux (env, prelude, modul) items in
+  (snd !old, env, List.rev items, m)
 
 (* Conversion to Typing.exr below *)
-let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
+let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 
@@ -797,12 +779,12 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
   in
 
   (* Add prelude *)
-  let _, env, prelude = convert_prog env ~prelude:[] prelude in
+  let _, env, prelude, _ = convert_prog env ~prelude:[] prelude [] in
 
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
-  let last_type, env, items = convert_prog env ~prelude prog in
+  let last_type, env, items, m = convert_prog env ~prelude prog [] in
   (* TODO test wrong return type *)
   let typedefs = Env.typedefs env
   and externals = Env.externals env
@@ -822,7 +804,8 @@ let to_typed ?(check_ret = true) msg_fn ~prelude (prog : Ast.prog) =
        raise (Error (!last_loc, msg)));
 
   (* print_endline (String.concat ", " (List.map string_of_type typedefs)); *)
-  { externals; typedefs; typeinsts; items }
+  let m = if modul then Some m else None in
+  ({ externals; typedefs; typeinsts; items }, m)
 
 let typecheck (prog : Ast.prog) =
   let rec get_last_type = function
@@ -833,7 +816,8 @@ let typecheck (prog : Ast.prog) =
 
   (* Ignore unused binding warnings *)
   let msg_fn _ _ _ = "" in
-  let tree = to_typed ~check_ret:false msg_fn ~prelude:[] prog in
+  let modul = false in
+  let tree, _ = to_typed ~modul ~check_ret:false msg_fn ~prelude:[] prog in
   let typ = get_last_type (List.rev tree.items) in
   print_endline (show_typ typ);
   typ
