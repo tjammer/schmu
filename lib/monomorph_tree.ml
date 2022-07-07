@@ -99,7 +99,10 @@ type var_normal = {
 }
 
 (* TODO could be used for Builtin as well *)
-type var = Normal of var_normal | Const of string | Global of string
+type var =
+  | Normal of var_normal
+  | Const of string
+  | Global of string * var_normal
 
 type morph_param = {
   vars : var Vars.t;
@@ -167,7 +170,8 @@ let find_function_expr vars = function
   | Mvar (id, _) -> (
       match Vars.find_opt id vars with
       | Some (Normal thing) -> thing.fn
-      | Some (Const _ | Global _) -> No_function
+      | Some (Global (_, thing)) -> thing.fn
+      | Some (Const _) -> No_function
       | None -> (
           match Builtin.of_string id with
           | Some b -> Builtin b
@@ -533,7 +537,7 @@ and morph_var mk p v =
     match Vars.find_opt v p.vars with
     | Some (Normal thing) -> ((v, Vnorm), thing)
     | Some (Const thing) -> ((thing, Vconst), no_var)
-    | Some (Global thing) -> ((thing, Vglobal), no_var)
+    | Some (Global (id, thing)) -> ((id, Vglobal), thing)
     | None -> ((v, Vnorm), no_var)
   in
   (p, mk (Mvar (v, kind)) p.ret, alloca)
@@ -625,6 +629,8 @@ and prep_let p id e =
         in
         ({ p with vars = Vars.add id (Const cid) p.vars }, None)
     | { global = true; _ } ->
+        (* Globals are 'preallocated' at module level *)
+        set_alloca func.alloc;
         let cnt = new_id constant_uniq_state in
         let gid =
           match Hashtbl.find_opt global_tbl id with
@@ -638,7 +644,7 @@ and prep_let p id e =
               Hashtbl.add global_name_tbl id ();
               id
         in
-        ({ p with vars = Vars.add id (Global gid) p.vars }, Some gid)
+        ({ p with vars = Vars.add id (Global (gid, func)) p.vars }, Some gid)
     | _ -> ({ p with vars = Vars.add id (Normal func) p.vars }, None)
   in
   (p, e1, gn)

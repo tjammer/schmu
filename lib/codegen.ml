@@ -340,6 +340,12 @@ and get_lltype_field = function
       (* Not really a paramater, but is treated equally (ptr to closure struct) *)
       typeof_func ~param:true ~decl:false (params, ret, kind)
 
+and get_lltype_global = function
+  | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Tptr _
+    | Trecord _ | Tvariant _ ) as t ->
+      get_lltype_def t
+  | Tfun _ -> closure_t
+
 (* LLVM type of closure struct and records *)
 and typeof_aggregate agg =
   Array.map get_lltype_field agg |> Llvm.struct_type context
@@ -1042,19 +1048,7 @@ and gen_expr param typed_expr =
       in
 
       gen_expr { param with vars = Vars.add name func param.vars } cont
-  | Mlet (id, equals_ty, gn, let_ty) ->
-      let expr_val =
-        match gn with
-        | Some n ->
-            let dst = Strtbl.find const_tbl n in
-            let v = gen_expr { param with alloca = Some dst.value } equals_ty in
-            store_alloca ~src:v ~dst:dst.value;
-            let v = { v with value = dst.value } in
-            Strtbl.replace const_tbl n v;
-            v
-        | None -> gen_expr param equals_ty
-      in
-      gen_expr { param with vars = Vars.add id expr_val param.vars } let_ty
+  | Mlet (id, equals_ty, gn, let_ty) -> gen_let param id equals_ty gn let_ty
   | Mlambda (name, abs) ->
       let func =
         match Vars.find_opt name param.vars with
@@ -1089,6 +1083,20 @@ and gen_expr param typed_expr =
       gen_ctor param ctor typed_expr.typ allocref const
   | Mvar_index expr -> gen_var_index param expr |> fin
   | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
+
+and gen_let param id equals gn let' =
+  let expr_val =
+    match gn with
+    | Some n ->
+        let dst = Strtbl.find const_tbl n in
+        let v = gen_expr { param with alloca = Some dst.value } equals in
+        store_alloca ~src:v ~dst:dst.value;
+        let v = { v with value = dst.value } in
+        Strtbl.replace const_tbl n v;
+        v
+    | None -> gen_expr param equals
+  in
+  gen_expr { param with vars = Vars.add id expr_val param.vars } let'
 
 and gen_const = function
   | Int i ->
@@ -1129,13 +1137,12 @@ and gen_var vars typ id kind =
               failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
       )
   | Vconst -> Strtbl.find const_tbl id
-  | Vglobal -> (
+  | Vglobal ->
       let v = Strtbl.find const_tbl id in
-      match typ with
-      | Trecord _ | Tvariant _ -> v
-      | _ ->
-          let value = Llvm.build_load v.value id builder in
-          { v with value })
+      if is_struct typ then v
+      else
+        let value = Llvm.build_load v.value id builder in
+        { v with value }
 
 and gen_bop param e1 e2 bop =
   let gen = gen_expr param in
@@ -1854,7 +1861,11 @@ let fill_constants constants =
 
 let decl_globals globals =
   let f (name, typ) =
-    let value = Llvm.declare_global (get_lltype_def typ) name the_module in
+    let lltyp = get_lltype_global typ in
+    let null = Llvm.const_int int_t 0 in
+    let value =
+      Llvm.define_global name (Llvm.const_bitcast null lltyp) the_module
+    in
     Strtbl.add const_tbl name { dummy_fn_value with value }
   in
   List.iter f globals
