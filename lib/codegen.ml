@@ -761,7 +761,8 @@ let add_closure vars func = function
 
 let store_alloca ~src ~dst =
   if is_struct src.typ then
-    memcpy ~dst ~src ~size:(sizeof_typ src.typ |> llval_of_size)
+    if src.value = dst then ()
+    else memcpy ~dst ~src ~size:(sizeof_typ src.typ |> llval_of_size)
   else (* Simple type *)
     ignore (Llvm.build_store src.value dst builder)
 
