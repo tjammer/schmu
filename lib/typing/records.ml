@@ -104,7 +104,7 @@ module Make (C : Core) = struct
     in
 
     (* We sort the labels to appear in the defined order *)
-    let is_const, sorted_labels =
+    let const, sorted_labels =
       List.fold_left_map
         (fun is_const field ->
           let expr =
@@ -113,12 +113,12 @@ module Make (C : Core) = struct
             | None -> raise_ "Missing" field.name name
           in
           (* Records with mutable fields cannot be const *)
-          (is_const && (not field.mut) && expr.is_const, (field.name, expr)))
+          (is_const && (not field.mut) && expr.attr.const, (field.name, expr)))
         true (labels |> Array.to_list)
     in
     let typ = Trecord (param, name, labels) |> generalize in
     Env.maybe_add_type_instance typ env;
-    { typ; expr = Record sorted_labels; is_const }
+    { typ; expr = Record sorted_labels; attr = { no_attr with const } }
 
   and get_field env loc expr id =
     let expr = convert env expr in
@@ -142,7 +142,11 @@ module Make (C : Core) = struct
 
   and convert_field env loc expr id =
     let field, expr, index = get_field env loc expr id in
-    { typ = field.typ; expr = Field (expr, index); is_const = expr.is_const }
+    {
+      typ = field.typ;
+      expr = Field (expr, index);
+      attr = { no_attr with const = expr.attr.const };
+    }
 
   and convert_field_set env loc expr id value =
     let field, expr, index = get_field env loc expr id in
@@ -152,5 +156,5 @@ module Make (C : Core) = struct
      let msg = Printf.sprintf "Cannot mutate non-mutable field %s" field.name in
      raise (Error (loc, msg)));
     unify (loc, "Mutate field " ^ field.name ^ ":") field.typ valexpr.typ;
-    { typ = Tunit; expr = Field_set (expr, index, valexpr); is_const = false }
+    { typ = Tunit; expr = Field_set (expr, index, valexpr); attr = no_attr }
 end

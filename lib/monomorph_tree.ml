@@ -502,7 +502,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p, e1 = prep_let param id e1 in
       let p, e2, func = morph_expr { p with ret = param.ret } e2 in
       (p, { e2 with expr = Mlet (id, e1, e2) }, func)
-  | Record labels -> morph_record make param labels texpr.is_const
+  | Record labels -> morph_record make param labels texpr.attr
   | Field (expr, index) -> morph_field make param expr index
   | Field_set (expr, index, value) ->
       morph_field_set make param expr index value
@@ -520,7 +520,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
   | App { callee; args } -> morph_app make param callee args
   | Ctor (variant, index, dataexpr) ->
-      morph_ctor make param variant index dataexpr texpr.is_const
+      morph_ctor make param variant index dataexpr texpr.attr
   | Variant_index expr -> morph_var_index make param expr
   | Variant_data expr -> morph_var_data make param expr
 
@@ -602,7 +602,7 @@ and prep_let p id e =
   let p, e1, func = morph_expr { p with ret = false } e in
   (* We add constants to the constant table, not the current env *)
   let p =
-    if e.is_const then
+    if e.attr.const then
       (* Maybe we have to generate a new name here *)
       let cnt = new_id constant_uniq_state in
       let cid =
@@ -641,7 +641,7 @@ and morph_record mk p labels is_const =
 
   let alloca = ref (request ()) in
   ( { p with ret },
-    mk (Mrecord (labels, alloca, is_const)) ret,
+    mk (Mrecord (labels, alloca, is_const.const)) ret,
     { fn = No_function; alloc = Value alloca; malloc } )
 
 and morph_field mk p expr index =
@@ -858,7 +858,7 @@ and morph_ctor mk p variant index expr is_const =
 
   let alloca = ref (request ()) in
   ( { p with ret },
-    mk (Mctor (ctor, alloca, is_const)) ret,
+    mk (Mctor (ctor, alloca, is_const.const)) ret,
     { fn = No_function; alloc = Value alloca; malloc } )
 
 (* Both variant exprs are as default as possible.

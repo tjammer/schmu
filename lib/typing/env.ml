@@ -30,9 +30,16 @@ type label = {
   typename : string;
 }
 
-type value = { typ : typ; param : bool; const : bool; imported : bool }
+type value = {
+  typ : typ;
+  param : bool;
+  const : bool;
+  global : bool;
+  imported : bool;
+}
+
 type usage = { loc : Ast.loc; used : bool ref }
-type return = { typ : typ; const : bool }
+type return = { typ : typ; const : bool; global : bool }
 
 (* function scope *)
 type scope = {
@@ -58,7 +65,14 @@ type t = {
 
 type unused = (unit, (string * Ast.loc) list) result
 
-let def_value = { typ = Tunit; param = false; const = false; imported = false }
+let def_value =
+  {
+    typ = Tunit;
+    param = false;
+    const = false;
+    global = false;
+    imported = false;
+  }
 
 let empty () =
   {
@@ -210,9 +224,11 @@ let close_function env =
                (* We only add functions to the closure if they are params
                   Or: if they are closures *)
                let k = Type_key.key k in
-               let { typ; param; const; imported } = find_val_raw k env in
+               let { typ; param; const; global; imported } =
+                 find_val_raw k env
+               in
                (* Const values (and imported ones) are not closed over, they exist module-wide *)
-               if const || imported then None
+               if const || global || imported then None
                else
                  match clean typ with
                  | Tfun (_, _, Closure _) -> Some (k, typ)
@@ -229,7 +245,8 @@ let find_val_opt key env =
     | scope :: tl -> (
         match Map.find_opt key scope.valmap with
         | None -> aux tl
-        | Some vl -> Some { typ = vl.typ; const = vl.const })
+        | Some vl -> Some { typ = vl.typ; const = vl.const; global = vl.global }
+        )
   in
   aux env.values
 
@@ -256,7 +273,7 @@ let query_val_opt key env =
     | scope :: tl -> (
         match Map.find_opt key scope.valmap with
         | None -> aux (scope_lvl + 1) tl
-        | Some { typ; const; imported; _ } ->
+        | Some { typ; const; imported; global; _ } ->
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
             (match scope_lvl with
             | 0 -> ()
@@ -266,7 +283,7 @@ let query_val_opt key env =
             (* It might be expensive to call this on each query, but we need to make sure we
                pick up every used record instance *)
             maybe_add_type_instance typ env;
-            Some { typ; const })
+            Some { typ; const; global })
   in
   aux 0 env.values
 

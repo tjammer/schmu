@@ -20,7 +20,7 @@ type expr =
   | Variant_data of typed_expr
 [@@deriving show, sexp]
 
-and typed_expr = { typ : typ; expr : expr; is_const : bool }
+and typed_expr = { typ : typ; expr : expr; attr : attr }
 
 and const =
   | Int of int
@@ -41,6 +41,9 @@ and toplevel_item =
 and func = { tparams : typ list; ret : typ; kind : fun_kind }
 and abstraction = { nparams : string list; body : typed_expr; func : func }
 and generic_fun = { concrete : func; generic : func }
+and attr = { const : bool; global : bool }
+
+let no_attr = { const = false; global = false }
 
 exception Error of Ast.loc * string
 

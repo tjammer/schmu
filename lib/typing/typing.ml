@@ -238,7 +238,13 @@ let handle_params env loc params ret =
       in
       (* Might be const, but not important here *)
       ( Env.add_value id
-          { typ = type_id; const = false; param = true; imported = false }
+          {
+            typ = type_id;
+            const = false;
+            param = true;
+            global = false;
+            imported = false;
+          }
           idloc env,
         (type_id, qparams) ))
     env params
@@ -339,7 +345,8 @@ let rec param_funcs_as_closures = function
   | Tfun (params, ret, _) -> Tfun (params, ret, Closure [])
   | t -> t
 
-let convert_simple_lit typ expr = { typ; expr = Const expr; is_const = true }
+let convert_simple_lit typ expr =
+  { typ; expr = Const expr; attr = { no_attr with const = true } }
 
 module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
@@ -351,7 +358,12 @@ module rec Core : sig
   val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
 
   val convert_let :
-    Env.t -> Ast.loc -> Ast.decl -> Ast.block -> Env.t * typed_expr
+    global:bool ->
+    Env.t ->
+    Ast.loc ->
+    Ast.decl ->
+    Ast.block ->
+    Env.t * typed_expr
 
   val convert_function :
     Env.t -> Ast.loc -> Ast.func -> Env.t * (string * int option * abstraction)
@@ -372,9 +384,10 @@ end = struct
     | Lit (loc, String s) ->
         let typ = get_prelude env loc "string" in
         (* TODO is const, but handled differently right now *)
-        { typ; expr = Const (String s); is_const = false }
+        { typ; expr = Const (String s); attr = no_attr }
     | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
-    | Lit (_, Unit) -> { typ = Tunit; expr = Const Unit; is_const = true }
+    | Lit (_, Unit) ->
+        { typ = Tunit; expr = Const Unit; attr = { no_attr with const = true } }
     | Lambda (loc, id, e) -> convert_lambda env loc id e
     | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
     | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
@@ -393,7 +406,7 @@ end = struct
     match Env.query_val_opt id env with
     | Some t ->
         let typ = instantiate t.typ in
-        { typ; expr = Var id; is_const = t.const }
+        { typ; expr = Var id; attr = { const = t.const; global = t.global } }
     | None -> raise (Error (loc, "No var named " ^ id))
 
   and convert_vector_lit env loc vec =
@@ -407,7 +420,7 @@ end = struct
     let vector = get_prelude env loc "vector" in
     let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
     Env.maybe_add_type_instance typ env;
-    { typ; expr = Const (Vector exprs); is_const = false }
+    { typ; expr = Const (Vector exprs); attr = no_attr }
 
   and typeof_annot_decl env loc annot block =
     enter_level ();
@@ -428,12 +441,12 @@ end = struct
         check_annot loc t.typ t_annot;
         { t with typ = t_annot }
 
-  and convert_let env loc (_, (idloc, id), type_annot) block =
+  and convert_let ~global env loc (_, (idloc, id), type_annot) block =
     let e1 = typeof_annot_decl env loc type_annot block in
     ( Env.add_value id
-        { Env.def_value with typ = e1.typ; const = e1.is_const }
+        { Env.def_value with typ = e1.typ; const = e1.attr.const; global }
         idloc env,
-      e1 )
+      { e1 with attr = { e1.attr with global } } )
 
   and convert_lambda env loc params body =
     let env = Env.open_function env in
@@ -461,7 +474,7 @@ end = struct
         let func = { tparams; ret; kind } in
         let abs = { nparams; body = { body with typ = ret }; func } in
         let expr = Lambda (lambda_id (), abs) in
-        { typ; expr; is_const = false }
+        { typ; expr; attr = no_attr }
     | _ -> failwith "Internal Error: generalize produces a new type?"
 
   and convert_function env loc
@@ -529,7 +542,7 @@ end = struct
     let targs = List.map2 apply args_t typed_exprs in
 
     (* For now, we don't support const functions *)
-    { typ = res_t; expr = App { callee; args = targs }; is_const = false }
+    { typ = res_t; expr = App { callee; args = targs }; attr = no_attr }
 
   and convert_bop env loc bop e1 e2 =
     let check typ =
@@ -538,10 +551,10 @@ end = struct
 
       unify (loc, "Binary " ^ string_of_bop bop) typ t1.typ;
       unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ;
-      (t1, t2, t1.is_const && t2.is_const)
+      (t1, t2, t1.attr.const && t2.attr.const)
     in
 
-    let typ, (t1, t2, is_const) =
+    let typ, (t1, t2, const) =
       match bop with
       | Ast.Plus_i | Mult_i | Minus_i | Div_i -> (Tint, check Tint)
       | Less_i | Equal_i | Greater_i -> (Tbool, check Tint)
@@ -549,14 +562,14 @@ end = struct
       | Less_f | Equal_f | Greater_f -> (Tbool, check Tfloat)
       | And | Or -> (Tbool, check Tbool)
     in
-    { typ; expr = Bop (bop, t1, t2); is_const }
+    { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const } }
 
   and convert_unop env loc unop expr =
     match unop with
     | Uminus_f ->
         let e = convert env expr in
         unify (loc, "Unary -.:") Tfloat e.typ;
-        { typ = Tfloat; expr = Unop (unop, e); is_const = e.is_const }
+        { typ = Tfloat; expr = Unop (unop, e); attr = e.attr }
     | Uminus_i -> (
         let e = convert env expr in
         let msg = "Unary -:" in
@@ -565,11 +578,11 @@ end = struct
         try
           (* We allow '-' to also work on float expressions *)
           unify (loc, msg) Tfloat e.typ;
-          { typ = Tfloat; expr; is_const = e.is_const }
+          { typ = Tfloat; expr; attr = e.attr }
         with Error _ -> (
           try
             unify (loc, msg) Tint e.typ;
-            { typ = Tint; expr; is_const = e.is_const }
+            { typ = Tint; expr; attr = e.attr }
           with Error (loc, errmsg) ->
             let pos = String.length msg + String.length ": Expected type int" in
             let post = String.sub errmsg pos (String.length errmsg - pos) in
@@ -594,7 +607,13 @@ end = struct
           let msg =
             "A conditional without else branch should evaluato to type unit."
           in
-          let e2 = { typ = Tunit; expr = Const Unit; is_const = true } in
+          let e2 =
+            {
+              typ = Tunit;
+              expr = Const Unit;
+              attr = { no_attr with const = true };
+            }
+          in
           unify (loc, msg) e2.typ type_e1.typ;
           e2
     in
@@ -615,7 +634,7 @@ end = struct
     {
       typ = type_e2.typ;
       expr = If (type_cond, type_e1, type_e2);
-      is_const = false;
+      attr = no_attr;
     }
 
   and convert_pipe_head env loc e1 e2 =
@@ -649,18 +668,18 @@ end = struct
       | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ]) when ret ->
           raise (Error (loc, "Block must end with an expression"))
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
-      | [] -> ({ typ = Tunit; expr = Const Unit; is_const = false }, env)
+      | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr }, env)
       | Let (loc, decl, block) :: tl ->
-          let env, texpr = convert_let env loc decl block in
+          let env, texpr = convert_let ~global:false env loc decl block in
           let cont, env = to_expr env old_type tl in
           let decl = (fun (_, a, b) -> (snd a, b)) decl in
           let expr = Let (fst decl, texpr, cont) in
-          ({ typ = cont.typ; expr; is_const = cont.is_const }, env)
+          ({ typ = cont.typ; expr; attr = cont.attr }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, lambda) = convert_function env loc func in
           let cont, env = to_expr env old_type tl in
           let expr = Function (name, unique, lambda, cont) in
-          ({ typ = cont.typ; expr; is_const = false }, env)
+          ({ typ = cont.typ; expr; attr = cont.attr }, env)
       | [ Expr (loc, e) ] ->
           last_loc := loc;
           check old_type;
@@ -669,11 +688,7 @@ end = struct
           check old_type;
           let expr = convert env e1 in
           let cont, env = to_expr env (l1, expr.typ) tl in
-          ( {
-              typ = cont.typ;
-              expr = Sequence (expr, cont);
-              is_const = cont.is_const;
-            },
+          ( { typ = cont.typ; expr = Sequence (expr, cont); attr = cont.attr },
             env )
     in
     to_expr env (loc, Tunit) stmts
@@ -742,7 +757,7 @@ let convert_prog env ~prelude items modul =
   and aux_block (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
-        let env, texpr = Core.convert_let env loc decl block in
+        let env, texpr = Core.convert_let ~global:false env loc decl block in
         let decl = (fun (_, a, b) -> (snd a, b)) decl in
         (old, env, Tl_let (fst decl, texpr) :: items, m)
     | Function (loc, func) ->

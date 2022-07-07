@@ -4,9 +4,18 @@ open Types
 type key = string
 type label = { index : int; typename : string }
 type t
-type value = { typ : typ; param : bool; const : bool; imported : bool }
+
+type value = {
+  typ : typ;
+  param : bool;
+  const : bool;
+  global : bool;
+  imported : bool;
+}
+
 type unused = (unit, (string * Ast.loc) list) result
-type return = { typ : typ; const : bool } (* return type for values *)
+type return = { typ : typ; const : bool; global : bool }
+(* return type for values *)
 
 val def_value : value
 (** Default value, everything is false *)

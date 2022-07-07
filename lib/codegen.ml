@@ -1622,8 +1622,8 @@ and codegen_record param typ labels allocref const return =
         let value =
           let f (_, expr) =
             let e = gen_expr param expr in
-            match (e.typ, e.const) with
-            | Trecord _, Const_ptr ->
+            match e.const with
+            | Const_ptr ->
                 (* The global value is a ptr, we need to 'deref' it *)
                 Llvm.global_initializer e.value |> Option.get
             | _ -> e.value

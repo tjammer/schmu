@@ -356,12 +356,16 @@ module Make (C : Core) = struct
   let assoc_set x y l = search_set [] l x ~f:(fun x _ l -> (x, y) :: l)
 
   let gen_cmp expr const_index =
-    let index = { typ = Ti32; expr = Variant_index expr; is_const = false } in
+    let index = { typ = Ti32; expr = Variant_index expr; attr = no_attr } in
     let cind =
-      { typ = Ti32; expr = Const (I32 const_index); is_const = true }
+      {
+        typ = Ti32;
+        expr = Const (I32 const_index);
+        attr = { no_attr with const = true };
+      }
     in
     let cmpexpr = Bop (Ast.Equal_i, index, cind) in
-    { typ = Tbool; expr = cmpexpr; is_const = false }
+    { typ = Tbool; expr = cmpexpr; attr = no_attr }
 
   let convert_ctor env loc name arg annot =
     let Env.{ index; typename }, ctor, variant =
@@ -374,11 +378,11 @@ module Make (C : Core) = struct
         let expr = Ctor (typename, index, Some texpr) in
 
         Env.maybe_add_type_instance variant env;
-        { typ = variant; expr; is_const = false }
+        { typ = variant; expr; attr = no_attr }
     | None, None ->
         let expr = Ctor (typename, index, None) in
         (* NOTE: Const handling for ctors is disabled, see #23 *)
-        { typ = variant; expr; is_const = false }
+        { typ = variant; expr; attr = no_attr }
     | None, Some _ ->
         let msg =
           Printf.sprintf
@@ -482,7 +486,7 @@ module Make (C : Core) = struct
     let ctorenv env ctor i loc =
       match ctor.ctortyp with
       | Some typ ->
-          let data = { typ; expr = Variant_data (expr i); is_const = false } in
+          let data = { typ; expr = Variant_data (expr i); attr = no_attr } in
           ( data,
             Env.(
               add_value (expr_name i) { def_value with typ = data.typ } loc env)
@@ -520,7 +524,7 @@ module Make (C : Core) = struct
             {
               typ = ret.typ;
               expr = Let (name, expr index, ret);
-              is_const = ret.is_const;
+              attr = ret.attr;
             }
         | Ctor { index; loc; name; d; patterns } ->
             let a, b = match_cases (index, name) ((patterns, d) :: tl) [] [] in
@@ -547,7 +551,7 @@ module Make (C : Core) = struct
                   If (cmp, if_, else_)
             in
 
-            { typ = ret_typ; expr; is_const = false })
+            { typ = ret_typ; expr; attr = no_attr })
     | [] -> failwith "Internal Error: Empty match"
 
   and match_cases (i, case) cases if_ else_ =
