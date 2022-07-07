@@ -1,7 +1,10 @@
 -- We need a nonconst value to capture
 type to_capture = { mutable field : int }
-a = { field = 1 }
 
-fun() ->
-  a = fun() -> a
-  a
+-- Wrap into function because globals are not captured
+fun main_() =
+  a = { field = 1 }
+
+  fun() ->
+    a = fun() -> a
+    a

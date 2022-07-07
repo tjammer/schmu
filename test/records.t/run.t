@@ -94,11 +94,15 @@ Nested records
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %inner = type { i64 }
+  %closure = type { i8*, i8* }
   %foo = type { i64, %inner }
+  %inner = type { i64 }
   %t_int = type { i64, %p_inner_innerst_int }
   %p_inner_innerst_int = type { %innerst_int }
   %innerst_int = type { i64 }
+  
+  @f = global %closure zeroinitializer
+  @a = global %foo zeroinitializer
   
   declare void @printi(i64 %0)
   
@@ -124,34 +128,28 @@ Nested records
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %foo, align 8
-    %a6 = bitcast %foo* %0 to i64*
-    store i64 0, i64* %a6, align 4
-    %b = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
-    %1 = tail call i64 @schmu_inner__3()
-    %box = bitcast %inner* %b to i64*
-    store i64 %1, i64* %box, align 4
-    %2 = bitcast %inner* %b to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %2, i64 8, i1 false)
-    %3 = bitcast %inner* %b to i64*
-    %4 = load i64, i64* %3, align 4
-    tail call void @printi(i64 %4)
+    store i64 0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 0), align 4
+    %0 = tail call i64 @schmu_inner__3()
+    store i64 %0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 4
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%inner* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1) to i8*), i8* bitcast (i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0) to i8*), i64 8, i1 false)
+    %1 = load i64, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 4
+    tail call void @printi(i64 %1)
     %boxconst = alloca %t_int, align 8
     store %t_int { i64 17, %p_inner_innerst_int { %innerst_int { i64 124 } } }, %t_int* %boxconst, align 4
     %unbox = bitcast %t_int* %boxconst to { i64, i64 }*
-    %fst7 = bitcast { i64, i64 }* %unbox to i64*
-    %fst2 = load i64, i64* %fst7, align 4
+    %fst4 = bitcast { i64, i64 }* %unbox to i64*
+    %fst1 = load i64, i64* %fst4, align 4
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
-    %snd3 = load i64, i64* %snd, align 4
+    %snd2 = load i64, i64* %snd, align 4
     %ret = alloca %t_int, align 8
-    %5 = tail call { i64, i64 } @schmu___g.g___fun0_ti.ti(i64 %fst2, i64 %snd3)
-    %box4 = bitcast %t_int* %ret to { i64, i64 }*
-    store { i64, i64 } %5, { i64, i64 }* %box4, align 4
-    %6 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
-    %7 = bitcast %p_inner_innerst_int* %6 to %innerst_int*
-    %8 = bitcast %innerst_int* %7 to i64*
-    %9 = load i64, i64* %8, align 4
-    tail call void @printi(i64 %9)
+    %2 = tail call { i64, i64 } @schmu___g.g___fun0_ti.ti(i64 %fst1, i64 %snd2)
+    %box = bitcast %t_int* %ret to { i64, i64 }*
+    store { i64, i64 } %2, { i64, i64 }* %box, align 4
+    %3 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
+    %4 = bitcast %p_inner_innerst_int* %3 to %innerst_int*
+    %5 = bitcast %innerst_int* %4 to i64*
+    %6 = load i64, i64* %5, align 4
+    tail call void @printi(i64 %6)
     ret i64 0
   }
   
@@ -421,6 +419,8 @@ Support function/closure fields
   %state = type { i64, %closure* }
   %closure = type { i8*, i8* }
   
+  @state = global %state zeroinitializer
+  
   declare void @printi(i64 %0)
   
   define void @schmu_ten_times(i64 %0, i64 %1) {
@@ -499,20 +499,15 @@ Support function/closure fields
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %state, align 8
-    %cnt3 = bitcast %state* %0 to i64*
-    store i64 0, i64* %cnt3, align 4
-    %next = getelementptr inbounds %state, %state* %0, i32 0, i32 1
+    store i64 0, i64* getelementptr inbounds (%state, %state* @state, i32 0, i32 0), align 4
     %clstmp = alloca %closure, align 8
-    %funptr4 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 (i64)* @schmu___fun0 to i8*), i8** %funptr4, align 8
+    %funptr1 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (i64 (i64)* @schmu___fun0 to i8*), i8** %funptr1, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    store %closure* %clstmp, %closure** %next, align 8
-    %unbox = bitcast %state* %0 to { i64, i64 }*
-    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
-    %1 = ptrtoint %closure* %clstmp to i64
-    call void @schmu_ten_times(i64 0, i64 %1)
+    store %closure* %clstmp, %closure** getelementptr inbounds (%state, %state* @state, i32 0, i32 1), align 8
+    %0 = ptrtoint %closure* %clstmp to i64
+    call void @schmu_ten_times(i64 0, i64 %0)
     ret i64 0
   }
   
@@ -573,6 +568,8 @@ This caused stores to a wrong pointer type in LLVM
   @x = constant %foo { i64 12 }
   @ret = constant %ys { %foo { i64 17 }, i64 9 }
   @a = constant %ys { %foo { i64 1 }, i64 2 }
+  @ys = global %ys zeroinitializer
+  @ctrl = global %ys zeroinitializer
   
   declare void @printi(i64 %0)
   
@@ -593,28 +590,18 @@ This caused stores to a wrong pointer type in LLVM
   
   define i64 @main(i64 %arg) {
   entry:
-    %ret = alloca %ys, align 8
     %0 = tail call { i64, i64 } @schmu_record_with_laters()
-    %box = bitcast %ys* %ret to { i64, i64 }*
-    store { i64, i64 } %0, { i64, i64 }* %box, align 4
-    %1 = getelementptr inbounds %ys, %ys* %ret, i32 0, i32 1
-    %2 = load i64, i64* %1, align 4
+    store { i64, i64 } %0, { i64, i64 }* bitcast (%ys* @ys to { i64, i64 }*), align 4
+    %1 = load i64, i64* getelementptr inbounds (%ys, %ys* @ys, i32 0, i32 1), align 4
+    tail call void @printi(i64 %1)
+    %2 = load i64, i64* getelementptr inbounds (%ys, %ys* @ys, i32 0, i32 0, i32 0), align 4
     tail call void @printi(i64 %2)
-    %3 = bitcast %ys* %ret to %foo*
-    %4 = bitcast %foo* %3 to i64*
-    %5 = load i64, i64* %4, align 4
+    %3 = tail call { i64, i64 } @schmu_ctrl()
+    store { i64, i64 } %3, { i64, i64 }* bitcast (%ys* @ctrl to { i64, i64 }*), align 4
+    %4 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl, i32 0, i32 0, i32 0), align 4
+    tail call void @printi(i64 %4)
+    %5 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl, i32 0, i32 1), align 4
     tail call void @printi(i64 %5)
-    %ret2 = alloca %ys, align 8
-    %6 = tail call { i64, i64 } @schmu_ctrl()
-    %box3 = bitcast %ys* %ret2 to { i64, i64 }*
-    store { i64, i64 } %6, { i64, i64 }* %box3, align 4
-    %7 = bitcast %ys* %ret2 to %foo*
-    %8 = bitcast %foo* %7 to i64*
-    %9 = load i64, i64* %8, align 4
-    tail call void @printi(i64 %9)
-    %10 = getelementptr inbounds %ys, %ys* %ret2, i32 0, i32 1
-    %11 = load i64, i64* %10, align 4
-    tail call void @printi(i64 %11)
     ret i64 0
   }
   15

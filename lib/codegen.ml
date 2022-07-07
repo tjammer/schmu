@@ -1048,7 +1048,7 @@ and gen_expr param typed_expr =
       in
 
       gen_expr { param with vars = Vars.add name func param.vars } cont
-  | Mlet (id, equals_ty, gn, let_ty) -> gen_let param id equals_ty gn let_ty
+  | Mlet (id, equals, gn, let') -> gen_let param id equals gn let'
   | Mlambda (name, abs) ->
       let func =
         match Vars.find_opt name param.vars with
@@ -1087,13 +1087,19 @@ and gen_expr param typed_expr =
 and gen_let param id equals gn let' =
   let expr_val =
     match gn with
-    | Some n ->
+    | Some n -> (
         let dst = Strtbl.find const_tbl n in
         let v = gen_expr { param with alloca = Some dst.value } equals in
-        store_alloca ~src:v ~dst:dst.value;
-        let v = { v with value = dst.value } in
-        Strtbl.replace const_tbl n v;
-        v
+        (* Bandaid for polymorphic first class functions. In monomorph pass, the
+           global is ignored. TODO. Here, we make sure that the dummy_fn_value is
+           not set to the global. The global will stay 0 forever *)
+        match equals.typ with
+        | Tfun _ when is_type_polymorphic equals.typ -> v
+        | _ ->
+            store_alloca ~src:v ~dst:dst.value;
+            let v = { v with value = dst.value } in
+            Strtbl.replace const_tbl n v;
+            v)
     | None -> gen_expr param equals
   in
   gen_expr { param with vars = Vars.add id expr_val param.vars } let'
