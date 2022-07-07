@@ -10,7 +10,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * monod_tree
+  | Mlet of string * monod_tree * global_name * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
   | Mapp of {
@@ -62,7 +62,8 @@ and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
-and var_kind = Var_norm | Var_const
+and var_kind = Vnorm | Vconst | Vglobal
+and global_name = string option
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -71,6 +72,7 @@ type external_decl = string * typ * string
 
 type monomorphized_tree = {
   constants : (string * monod_tree) list;
+  globals : (string * typ) list;
   externals : external_decl list;
   typeinsts : typ list;
   tree : monod_tree;

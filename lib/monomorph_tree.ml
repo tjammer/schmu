@@ -17,7 +17,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * monod_tree
+  | Mlet of string * monod_tree * global_name * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
   | Mapp of {
@@ -64,7 +64,8 @@ and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
-and var_kind = Var_norm | Var_const
+and var_kind = Vnorm | Vconst | Vglobal
+and global_name = string option
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -73,6 +74,7 @@ type external_decl = string * typ * string
 
 type monomorphized_tree = {
   constants : (string * monod_tree) list;
+  globals : (string * typ) list;
   externals : external_decl list;
   typeinsts : typ list;
   tree : monod_tree;
@@ -97,7 +99,7 @@ type var_normal = {
 }
 
 (* TODO could be used for Builtin as well *)
-type var = Normal of var_normal | Const of string
+type var = Normal of var_normal | Const of string | Global of string
 
 type morph_param = {
   vars : var Vars.t;
@@ -165,7 +167,7 @@ let find_function_expr vars = function
   | Mvar (id, _) -> (
       match Vars.find_opt id vars with
       | Some (Normal thing) -> thing.fn
-      | Some (Const _) -> No_function
+      | Some (Const _ | Global _) -> No_function
       | None -> (
           match Builtin.of_string id with
           | Some b -> Builtin b
@@ -310,10 +312,10 @@ let rec subst_body p subst tree =
         let e1 = sub expr.e1 in
         let e2 = sub expr.e2 in
         { tree with typ = e1.typ; expr = Mif { cond; e1; e2 } }
-    | Mlet (id, expr, cont) ->
+    | Mlet (id, expr, gn, cont) ->
         let expr = sub expr in
         let cont = sub cont in
-        { tree with typ = cont.typ; expr = Mlet (id, expr, cont) }
+        { tree with typ = cont.typ; expr = Mlet (id, expr, gn, cont) }
     | Mlambda (name, abs) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
@@ -470,7 +472,9 @@ let free_mallocs body mallocs =
 
 let recursion_stack = ref []
 let constant_uniq_state = ref 1
+let global_name_tbl = Hashtbl.create 64
 let constant_tbl = Hashtbl.create 64
+let global_tbl = Hashtbl.create 64
 
 let pop_recursion_stack () =
   match !recursion_stack with
@@ -499,9 +503,9 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let (id, e1, e2) ->
-      let p, e1 = prep_let param id e1 in
+      let p, e1, gn = prep_let param id e1 in
       let p, e2, func = morph_expr { p with ret = param.ret } e2 in
-      (p, { e2 with expr = Mlet (id, e1, e2) }, func)
+      (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
   | Record labels -> morph_record make param labels texpr.attr
   | Field (expr, index) -> morph_field make param expr index
   | Field_set (expr, index, value) ->
@@ -527,9 +531,10 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
 and morph_var mk p v =
   let (v, kind), alloca =
     match Vars.find_opt v p.vars with
-    | Some (Normal thing) -> ((v, Var_norm), thing)
-    | Some (Const thing) -> ((thing, Var_const), no_var)
-    | None -> ((v, Var_norm), no_var)
+    | Some (Normal thing) -> ((v, Vnorm), thing)
+    | Some (Const thing) -> ((thing, Vconst), no_var)
+    | Some (Global thing) -> ((thing, Vglobal), no_var)
+    | None -> ((v, Vnorm), no_var)
   in
   (p, mk (Mvar (v, kind)) p.ret, alloca)
 
@@ -601,24 +606,42 @@ and morph_if mk p cond e1 e2 =
 and prep_let p id e =
   let p, e1, func = morph_expr { p with ret = false } e in
   (* We add constants to the constant table, not the current env *)
-  let p =
-    if e.attr.const then
-      (* Maybe we have to generate a new name here *)
-      let cnt = new_id constant_uniq_state in
-      let cid =
-        match Hashtbl.find_opt constant_tbl id with
-        | Some _ ->
-            let id = Printf.sprintf "__%i%s" cnt id in
-            Hashtbl.add constant_tbl id (cnt, e1);
-            id
-        | None ->
-            Hashtbl.add constant_tbl id (cnt, e1);
-            id
-      in
-      { p with vars = Vars.add id (Const cid) p.vars }
-    else { p with vars = Vars.add id (Normal func) p.vars }
+  let p, gn =
+    match e.attr with
+    | { const = true; _ } ->
+        (* Maybe we have to generate a new name here *)
+        let cnt = new_id constant_uniq_state in
+        let cid =
+          match Hashtbl.find_opt global_name_tbl id with
+          | Some _ ->
+              let id = Printf.sprintf "__%i%s" cnt id in
+              Hashtbl.add constant_tbl id (cnt, e1);
+              Hashtbl.add global_name_tbl id ();
+              id
+          | None ->
+              Hashtbl.add constant_tbl id (cnt, e1);
+              Hashtbl.add global_name_tbl id ();
+              id
+        in
+        ({ p with vars = Vars.add id (Const cid) p.vars }, None)
+    | { global = true; _ } ->
+        let cnt = new_id constant_uniq_state in
+        let gid =
+          match Hashtbl.find_opt global_tbl id with
+          | Some _ ->
+              let id = Printf.sprintf "__%i%s" cnt id in
+              Hashtbl.add global_tbl id (cnt, e1.typ);
+              Hashtbl.add global_name_tbl id ();
+              id
+          | None ->
+              Hashtbl.add global_tbl id (cnt, e1.typ);
+              Hashtbl.add global_name_tbl id ();
+              id
+        in
+        ({ p with vars = Vars.add id (Global gid) p.vars }, Some gid)
+    | _ -> ({ p with vars = Vars.add id (Normal func) p.vars }, None)
   in
-  (p, e1)
+  (p, e1, gn)
 
 and morph_record mk p labels is_const =
   let ret = p.ret in
@@ -879,9 +902,9 @@ let morph_toplvl param items =
   let rec aux param = function
     | [] -> (param, { typ = Tunit; expr = Mconst Unit; return = true }, no_var)
     | Typed_tree.Tl_let (id, expr) :: tl ->
-        let p, e1 = prep_let param id expr in
+        let p, e1, gn = prep_let param id expr in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        (p, { e2 with expr = Mlet (id, e1, e2) }, func)
+        (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
     | Tl_function (name, uniq, abs) :: tl ->
         let p, call, abs = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in
@@ -932,6 +955,12 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
            ignore id;
            (name, tree))
   in
+  let globals =
+    Hashtbl.to_seq global_tbl |> List.of_seq |> List.sort sort_const
+    |> List.map (fun (name, (id, typ)) ->
+           ignore id;
+           (name, typ))
+  in
 
   (* TODO maybe try to catch memory leaks? *)
-  { constants; externals; typeinsts; tree; funcs = p.funcs }
+  { constants; globals; externals; typeinsts; tree; funcs = p.funcs }

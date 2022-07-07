@@ -757,7 +757,7 @@ let convert_prog env ~prelude items modul =
   and aux_block (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
-        let env, texpr = Core.convert_let ~global:false env loc decl block in
+        let env, texpr = Core.convert_let ~global:true env loc decl block in
         let decl = (fun (_, a, b) -> (snd a, b)) decl in
         (old, env, Tl_let (fst decl, texpr) :: items, m)
     | Function (loc, func) ->

@@ -91,6 +91,9 @@ let dummy_fn_value =
      in a monomorphized version *)
   { typ = Tunit; value = Llvm.const_int i32_t (-1); lltyp = i32_t; const = Not }
 
+let no_param =
+  { vars = Vars.empty; alloca = None; finalize = None; rec_block = None }
+
 (* Named structs for typedefs *)
 
 let rec struct_name = function
@@ -1038,8 +1041,18 @@ and gen_expr param typed_expr =
       in
 
       gen_expr { param with vars = Vars.add name func param.vars } cont
-  | Mlet (id, equals_ty, let_ty) ->
-      let expr_val = gen_expr param equals_ty in
+  | Mlet (id, equals_ty, gn, let_ty) ->
+      let expr_val =
+        match gn with
+        | Some n ->
+            let dst = Strtbl.find const_tbl n in
+            let v = gen_expr { param with alloca = Some dst.value } equals_ty in
+            store_alloca ~src:v ~dst:dst.value;
+            let v = { v with value = dst.value } in
+            Strtbl.replace const_tbl n v;
+            v
+        | None -> gen_expr param equals_ty
+      in
       gen_expr { param with vars = Vars.add id expr_val param.vars } let_ty
   | Mlambda (name, abs) ->
       let func =
@@ -1100,7 +1113,7 @@ and gen_const = function
 
 and gen_var vars typ id kind =
   match kind with
-  | Var_norm -> (
+  | Vnorm -> (
       match Vars.find_opt id vars with
       | Some v -> v
       | None -> (
@@ -1114,7 +1127,14 @@ and gen_var vars typ id kind =
               (* If the variable isn't bound, something went wrong before *)
               failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
       )
-  | Var_const -> Strtbl.find const_tbl id
+  | Vconst -> Strtbl.find const_tbl id
+  | Vglobal -> (
+      let v = Strtbl.find const_tbl id in
+      match typ with
+      | Trecord _ | Tvariant _ -> v
+      | _ ->
+          let value = Llvm.build_load v.value id builder in
+          { v with value })
 
 and gen_bop param e1 e2 bop =
   let gen = gen_expr param in
@@ -1819,10 +1839,7 @@ and gen_var_data param expr typ =
 
 let fill_constants constants =
   let f (name, tree) =
-    let param =
-      { vars = Vars.empty; alloca = None; finalize = None; rec_block = None }
-    in
-    let init = gen_expr param tree in
+    let init = gen_expr no_param tree in
     (* We only add records to the global table, because they are expected as ptrs.
        For ints or floats, we just return the immediate value *)
     match init.typ with
@@ -1834,8 +1851,15 @@ let fill_constants constants =
   in
   List.iter f constants
 
+let decl_globals globals =
+  let f (name, typ) =
+    let value = Llvm.declare_global (get_lltype_def typ) name the_module in
+    Strtbl.add const_tbl name { dummy_fn_value with value }
+  in
+  List.iter f globals
+
 let generate ~target ~outname ~release ~modul
-    { Monomorph_tree.constants; externals; typeinsts; tree; funcs } =
+    { Monomorph_tree.constants; globals; externals; typeinsts; tree; funcs } =
   (* Add record types.
      We do this first to ensure that all record definitons
      are available for external decls *)
@@ -1843,6 +1867,7 @@ let generate ~target ~outname ~release ~modul
 
   (* Fill const_tbl *)
   fill_constants constants;
+  decl_globals globals;
   const_pass := false;
 
   (* External declarations *)
