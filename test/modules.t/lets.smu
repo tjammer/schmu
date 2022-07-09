@@ -1,0 +1,7 @@
+a = 12
+
+external printf : (cstr, int) -> unit
+
+fun generate_b() = 21
+
+b = generate_b()
