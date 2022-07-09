@@ -376,6 +376,8 @@ Captured values should not overwrite function params
   
   %closure = type { i8*, i8* }
   
+  @b = constant i64 2
+  
   declare void @printi(i64 %0)
   
   define i64 @schmu_add(%closure* %a, %closure* %b) {
@@ -435,6 +437,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   %t_bool = type { i1 }
   %t_int = type { i64 }
   
+  @a = constant i64 2
   @f = global %closure zeroinitializer
   
   declare void @printi(i64 %0)
@@ -832,6 +835,8 @@ Closures can recurse too
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  @outer = constant i64 10
+  
   declare void @printi(i64 %0)
   
   define void @schmu_loop(i64 %i) {
@@ -1221,6 +1226,7 @@ Closures have to be added to the env of other closures, so they can be called co
   
   %string = type { i8*, i64 }
   
+  @a = constant i64 20
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
   
   declare void @printf(i8* %0, i64 %1)

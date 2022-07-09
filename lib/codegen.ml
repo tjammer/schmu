@@ -1142,8 +1142,7 @@ and gen_var vars typ id kind =
               (* If the variable isn't bound, something went wrong before *)
               failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
       )
-  | Vconst -> Strtbl.find const_tbl id
-  | Vglobal ->
+  | Vconst | Vglobal ->
       let v = Strtbl.find const_tbl id in
       if is_struct typ then v
       else
@@ -1856,16 +1855,16 @@ let fill_constants constants =
     let init = gen_expr no_param tree in
     (* We only add records to the global table, because they are expected as ptrs.
        For ints or floats, we just return the immediate value *)
+    let value = Llvm.define_global name init.value the_module in
+    Llvm.set_global_constant true value;
     match init.typ with
     | Trecord _ ->
-        let value = Llvm.define_global name init.value the_module in
-        Llvm.set_global_constant true value;
         Strtbl.add const_tbl name { init with value; const = Const_ptr }
-    | _ -> Strtbl.add const_tbl name init
+    | _ -> Strtbl.add const_tbl name { init with value; const = Const }
   in
   List.iter f constants
 
-let decl_globals globals =
+let def_globals globals =
   let f (name, typ) =
     let lltyp = get_lltype_global typ in
     let null = Llvm.const_int int_t 0 in
@@ -1885,7 +1884,7 @@ let generate ~target ~outname ~release ~modul
 
   (* Fill const_tbl *)
   fill_constants constants;
-  decl_globals globals;
+  def_globals globals;
   const_pass := false;
 
   (* External declarations *)
