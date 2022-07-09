@@ -733,6 +733,7 @@ let convert_prog env ~prelude items modul =
     | Ext_decl (loc, (idloc, id), typ, cname) ->
         let typ = typeof_annot env loc typ in
         block_external_name loc ~cname id;
+        let m = Module.add_external typ id cname m in
         (Env.add_external id ~cname typ ~imported:false idloc env, items, m)
     | Typedef (loc, Trecord t) ->
         let env = type_record env loc t in
