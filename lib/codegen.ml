@@ -86,6 +86,11 @@ let closure_t =
 
 let generic_t = Llvm.named_struct_type context "generic"
 
+let global_t =
+  Llvm.(
+    struct_type context
+      [| i32_t; function_type unit_t [||] |> pointer_type; voidptr_t |])
+
 let dummy_fn_value =
   (* When we need something in the env for a function which will only be called
      in a monomorphized version *)
@@ -1928,20 +1933,53 @@ let generate ~target ~outname ~release ~modul
       { vars; alloca = None; finalize = None; rec_block = None }
       funcs
   in
-  if not modul then
-    (* Add main *)
-    ignore
-    @@ gen_function funcs ~mangle:C
+
+  let outname =
+    if Filename.check_suffix outname ".o" then Filename.chop_suffix outname ".o"
+    else outname
+  in
+
+  (if not modul then
+   (* Add main *)
+   gen_function funcs ~mangle:C
+     {
+       name = { Monomorph_tree.user = "main"; call = "main" };
+       recursive = Rnone;
+       abs =
          {
-           name = { Monomorph_tree.user = "main"; call = "main" };
-           recursive = Rnone;
-           abs =
-             {
-               func = { params = [ Tint ]; ret = Tint; kind = Simple };
-               pnames = [ "arg" ];
-               body = { tree with typ = Tint };
-             };
+           func = { params = [ Tint ]; ret = Tint; kind = Simple };
+           pnames = [ "arg" ];
+           body = { tree with typ = Tint };
          };
+     }
+   |> ignore
+  else
+    (* Or module init *)
+    let name = "__" ^ outname ^ "_init" in
+    let p =
+      gen_function funcs ~mangle:C
+        {
+          name = { Monomorph_tree.user = name; call = name };
+          recursive = Rnone;
+          abs =
+            {
+              func = { params = []; ret = Tunit; kind = Simple };
+              pnames = [];
+              body = tree;
+            };
+        }
+    in
+    let init = Vars.find name p.vars in
+    let open Llvm in
+    set_linkage Linkage.Internal init.value;
+    set_section ".text.startup" init.value;
+
+    let init =
+      [| const_int i32_t 65535; init.value; const_pointer_null voidptr_t |]
+    in
+    let global = const_array global_t [| const_struct context init |] in
+    let global = define_global "llvm.global_ctors" global the_module in
+    set_linkage Appending global);
 
   (match Llvm_analysis.verify_module the_module with
   | Some output -> print_endline output
@@ -1965,8 +2003,5 @@ let generate ~target ~outname ~release ~modul
   let target = Target.by_triple triple in
 
   let machine = TargetMachine.create ~triple target ~reloc_mode in
-  let outname =
-    if Filename.check_suffix outname ".o" then outname else outname ^ ".o"
-  in
-  TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile outname
-    machine
+  TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile
+    (outname ^ ".o") machine

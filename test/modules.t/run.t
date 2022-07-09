@@ -8,10 +8,17 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__nonpoly_func_init, i8* null }]
+  
   define i64 @schmu_add_ints(i64 %a, i64 %b) {
   entry:
     %add = add i64 %a, %b
     ret i64 %add
+  }
+  
+  define internal void @__nonpoly_func_init() section ".text.startup" {
+  entry:
+    ret void
   }
   $ cat nonpoly_func.smi
   ((5:Mtype(8:Tvariant()6:either(((8:ctorname4:Left)(7:ctortyp()))((8:ctorname5:Right)(7:ctortyp())))))(4:Mfun(4:Tfun(4:Tint4:Tint)4:Tint6:Simple)8:add_ints))
@@ -81,6 +88,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   @a = constant i64 12
   @b = global i64 0
+  @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__lets_init, i8* null }]
   
   declare void @printf(i8* %0, i64 %1)
   
@@ -88,6 +96,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   entry:
     ret i64 21
   }
+  
+  define internal void @__lets_init() section ".text.startup" {
+  entry:
+    %0 = tail call i64 @schmu_generate_b()
+    store i64 %0, i64* @b, align 4
+    ret void
+  }
+
   $ schmu open_lets.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"
@@ -121,6 +137,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %b)
     ret i64 0
   }
+
   $ cc lets.o open_lets.o && ./a.out
   12
-  0
+  21
