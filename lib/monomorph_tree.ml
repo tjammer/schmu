@@ -937,6 +937,20 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
   let var = { fn = Builtin Malloc; alloc = No_value; malloc = Some malloc } in
   let vars = Vars.add "__malloc" (Normal var) Vars.empty in
 
+  (* External are globals. By marking them [Global] here, we don't have to
+     introduce a special case in codegen, or mark them Const_ptr when they are not *)
+  let vars =
+    List.fold_left
+      (fun vars (name, t, cname) ->
+        (* We skip functions, because they work as is. TODO polymorphic functions *)
+        match t with
+        | Types.Tfun _ -> vars
+        | _ ->
+            let name = match cname with None -> name | Some cname -> cname in
+            Vars.add name (Global (name, no_var)) vars)
+      vars externals
+  in
+
   let param =
     { vars; monomorphized = Set.empty; funcs = []; ret = false; mallocs = [] }
   in

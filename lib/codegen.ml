@@ -1875,6 +1875,18 @@ let def_globals globals =
   in
   List.iter f globals
 
+let decl_external cname = function
+  | Tfun _ as t when not (is_type_polymorphic t) -> declare_function C cname t
+  | typ ->
+      let lltyp = get_lltype_global typ in
+      let value = Llvm.declare_global lltyp cname the_module in
+      (* TODO constness in module *)
+      let v = { value; typ; lltyp; const = Not } in
+      (* Add also to global table
+         TODO: Is adding to the normal var table still needed? *)
+      Strtbl.add const_tbl cname v;
+      v
+
 let generate ~target ~outname ~release ~modul
     { Monomorph_tree.constants; globals; externals; typeinsts; tree; funcs } =
   (* Add record types.
@@ -1891,7 +1903,7 @@ let generate ~target ~outname ~release ~modul
   let vars =
     List.fold_left
       (fun vars (name, typ, cname) ->
-        Vars.add name (declare_function C cname typ) vars)
+        Vars.add name (decl_external cname typ) vars)
       Vars.empty externals
   in
 

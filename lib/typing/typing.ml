@@ -758,8 +758,9 @@ let convert_prog env ~prelude items modul =
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
         let env, texpr = Core.convert_let ~global:true env loc decl block in
-        let decl = (fun (_, a, b) -> (snd a, b)) decl in
-        (old, env, Tl_let (fst decl, texpr) :: items, m)
+        let id = (fun (_, a, _) -> snd a) decl in
+        let m = Module.add_external texpr.typ id None m in
+        (old, env, Tl_let (id, texpr) :: items, m)
     | Function (loc, func) ->
         let env, (name, unique, abs) = Core.convert_function env loc func in
         let m = Module.add_fun name unique abs.func m in
