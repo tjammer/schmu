@@ -1,4 +1,4 @@
-import Lets
+open Lets
 
 printf("%i\n".cstr, a)
 printf("%i\n".cstr, b)

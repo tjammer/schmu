@@ -747,7 +747,7 @@ let convert_prog env ~prelude items modul =
         let env = type_variant env loc v in
         let m = Module.add_type (Env.find_type v.name.name env) m in
         (env, items, m)
-    | Import (loc, modul) -> (
+    | Open (loc, modul) -> (
         (* TODO this is an 'open' rather than an 'import' *)
         (* TODO cache this *)
         match Module.read_module ~regeneralize modul with

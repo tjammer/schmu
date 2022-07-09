@@ -74,7 +74,7 @@ rule read =
   | "mutable" { Mutable }
   | "match"  { Match }
   | "with"   { With }
-  | "import" { Import }
+  | "open" { Open }
   | '_'      { Wildcard }
   | lowercase_id       { Lowercase_id (Lexing.lexeme lexbuf) }
   | uppercase_id       { Uppercase_id (Lexing.lexeme lexbuf) }

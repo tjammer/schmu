@@ -1,4 +1,4 @@
-import Nonpoly_func
+open Nonpoly_func
 
 external printf : (cstr, int) -> unit
 
