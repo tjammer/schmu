@@ -761,8 +761,14 @@ let convert_prog env ~prelude items modul =
     | Ast.Let (loc, decl, block) ->
         let env, texpr = Core.convert_let ~global:true env loc decl block in
         let id = (fun (_, a, _) -> snd a) decl in
-        let m = Module.add_external texpr.typ id None m in
         let uniq = uniq_name id in
+        (* Make string option out of int option for unique name *)
+        let uniq_name =
+          match uniq with
+          | None -> None
+          | Some i -> Some (Module.unique_name id (Some i))
+        in
+        let m = Module.add_external texpr.typ id uniq_name m in
         (old, env, Tl_let (id, uniq, texpr) :: items, m)
     | Function (loc, func) ->
         let env, (name, unique, abs) = Core.convert_function env loc func in

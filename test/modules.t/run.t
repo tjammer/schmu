@@ -117,7 +117,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   %string = type { i8*, i64 }
   
   @b = external global i64
-  @a = external global i64
+  @a__2 = external global i64
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
   
   declare void @printf(i8* %0, i64 %1)
@@ -131,8 +131,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr4, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 3, i64* %length, align 4
-    %a = load i64, i64* @a, align 4
-    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %a)
+    %a__2 = load i64, i64* @a__2, align 4
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %a__2)
     %str1 = alloca %string, align 8
     %cstr25 = bitcast %string* %str1 to i8**
     store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr25, align 8
@@ -143,6 +143,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 0
   }
 
+  $ cat lets.smi
+  ((8:Mext_fun4:Tint1:a())(8:Mext_fun(4:Tfun((6:Talias4:cstr(4:Tptr3:Tu8))4:Tint)5:Tunit6:Simple)6:printf())(4:Mfun(4:Tfun()4:Tint6:Simple)10:generate_b)(8:Mext_fun(4:Tvar(4:Link4:Tint))1:b())(8:Mext_fun4:Tint1:a(4:a__2)))
+
   $ cc lets.o open_lets.o && ./a.out
-  12
+  11
   21

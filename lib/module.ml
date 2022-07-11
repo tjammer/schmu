@@ -7,7 +7,6 @@ type t = item list [@@deriving sexp]
 and item =
   | Mtype of typ
   | Mfun of typ * string
-  (* TODO lets and exprs *)
   | Mext_fun of typ * string * string option
 
 (* Functions must be unique, so we add a number to each function if

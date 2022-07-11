@@ -925,8 +925,8 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
         match t with
         | Types.Tfun _ -> vars
         | _ ->
-            let name = match cname with None -> name | Some cname -> cname in
-            Vars.add name (Global (name, no_var)) vars)
+            let cname = match cname with None -> name | Some cname -> cname in
+            Vars.add name (Global (cname, no_var)) vars)
       vars externals
   in
 
