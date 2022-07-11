@@ -24,15 +24,15 @@ module Pm = Patternmatching
  *)
 
 let fmt_msg_fn : msg_fn option ref = ref None
-let func_tbl = Strtbl.create 1
+let uniq_tbl = Strtbl.create 1
 
-let next_func name tbl =
-  match Strtbl.find_opt tbl name with
+let uniq_name name =
+  match Strtbl.find_opt uniq_tbl name with
   | None ->
-      Strtbl.add tbl name 1;
+      Strtbl.add uniq_tbl name 1;
       None
   | Some n ->
-      Strtbl.replace tbl name (n + 1);
+      Strtbl.replace uniq_tbl name (n + 1);
       Some (n + 1)
 
 let lambda_id_state = ref 0
@@ -47,7 +47,7 @@ let reset_type_vars () =
   Inference.reset ();
   reset lambda_id_state;
   (* Not a type var, but needs resetting as well *)
-  Strtbl.clear func_tbl
+  Strtbl.clear uniq_tbl
 
 let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
@@ -481,7 +481,7 @@ end = struct
       Ast.{ name = nameloc, name; params; return_annot; body } =
     (* Create a fresh type var for the function name
        and use it in the function body *)
-    let unique = next_func name func_tbl in
+    let unique = uniq_name name in
 
     enter_level ();
     let env =
@@ -672,8 +672,9 @@ end = struct
       | Let (loc, decl, block) :: tl ->
           let env, texpr = convert_let ~global:false env loc decl block in
           let cont, env = to_expr env old_type tl in
-          let decl = (fun (_, a, b) -> (snd a, b)) decl in
-          let expr = Let (fst decl, texpr, cont) in
+          let id = (fun (_, a, _) -> snd a) decl in
+          let uniq = if texpr.attr.const then uniq_name id else None in
+          let expr = Let (id, uniq, texpr, cont) in
           ({ typ = cont.typ; expr; attr = cont.attr }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, lambda) = convert_function env loc func in
@@ -703,14 +704,14 @@ and Patternmatch : Pm.S = Pm.Make (Core)
 let block_external_name loc ~cname id =
   (* We have to deal with shadowing:
      If there is no function with the same name, we make sure
-     all future function use different names internally (via [func_tbl]).
+     all future function use different names internally (via [uniq_tbl]).
      If there already is a function, there is nothing we can do right now,
      so we error *)
   let name = match cname with Some name -> name | None -> id in
-  match Strtbl.find_opt func_tbl name with
+  match Strtbl.find_opt uniq_tbl name with
   | None ->
-      (* Good, block this name. NOTE see [next_func] *)
-      Strtbl.add func_tbl name 1
+      (* Good, block this name. NOTE see [uniq_name] *)
+      Strtbl.add uniq_tbl name 1
   | Some _ ->
       let msg =
         Printf.sprintf
@@ -761,7 +762,8 @@ let convert_prog env ~prelude items modul =
         let env, texpr = Core.convert_let ~global:true env loc decl block in
         let id = (fun (_, a, _) -> snd a) decl in
         let m = Module.add_external texpr.typ id None m in
-        (old, env, Tl_let (id, texpr) :: items, m)
+        let uniq = uniq_name id in
+        (old, env, Tl_let (id, uniq, texpr) :: items, m)
     | Function (loc, func) ->
         let env, (name, unique, abs) = Core.convert_function env loc func in
         let m = Module.add_fun name unique abs.func m in

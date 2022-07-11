@@ -466,7 +466,7 @@ module Make (C : Core) = struct
     let rec build_expr = function
       | [] -> matchexpr
       | (i, expr) :: tl ->
-          { matchexpr with expr = Let (expr_name i, expr, build_expr tl) }
+          { matchexpr with expr = Let (expr_name i, None, expr, build_expr tl) }
     in
 
     build_expr exprs
@@ -523,7 +523,7 @@ module Make (C : Core) = struct
 
             {
               typ = ret.typ;
-              expr = Let (name, expr index, ret);
+              expr = Let (name, None, expr index, ret);
               attr = ret.attr;
             }
         | Ctor { index; loc; name; d; patterns } ->
@@ -537,7 +537,7 @@ module Make (C : Core) = struct
             let data, ifenv = ctorenv env ctor index d.loc in
             let cont = compile_matches ifenv d.loc rows a ret_typ in
             (* Make expr available in codegen *)
-            let ifexpr = Let (expr_name index, data, cont) in
+            let ifexpr = Let (expr_name index, None, data, cont) in
 
             (* This is either an if-then-else or just an one ctor,
                depending on whether [b] is empty *)

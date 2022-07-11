@@ -476,7 +476,6 @@ let free_mallocs body mallocs =
 
 let recursion_stack = ref []
 let constant_uniq_state = ref 1
-let global_name_tbl = Hashtbl.create 64
 let constant_tbl = Hashtbl.create 64
 let global_tbl = Hashtbl.create 64
 
@@ -506,8 +505,8 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
-  | Let (id, e1, e2) ->
-      let p, e1, gn = prep_let param id e1 in
+  | Let (id, uniq, e1, e2) ->
+      let p, e1, gn = prep_let param id uniq e1 in
       let p, e2, func = morph_expr { p with ret = param.ret } e2 in
       (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
   | Record labels -> morph_record make param labels texpr.attr
@@ -607,44 +606,24 @@ and morph_if mk p cond e1 e2 =
     mk (Mif { cond; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc) } )
 
-and prep_let p id e =
+and prep_let p id uniq e =
   let p, e1, func = morph_expr { p with ret = false } e in
   (* We add constants to the constant table, not the current env *)
   let p, gn =
     match e.attr with
     | { const = true; _ } ->
+        let uniq = Module.unique_name id uniq in
         (* Maybe we have to generate a new name here *)
         let cnt = new_id constant_uniq_state in
-        let cid =
-          match Hashtbl.find_opt global_name_tbl id with
-          | Some _ ->
-              let id = Printf.sprintf "__%i%s" cnt id in
-              Hashtbl.add constant_tbl id (cnt, e1);
-              Hashtbl.add global_name_tbl id ();
-              id
-          | None ->
-              Hashtbl.add constant_tbl id (cnt, e1);
-              Hashtbl.add global_name_tbl id ();
-              id
-        in
-        ({ p with vars = Vars.add id (Const cid) p.vars }, None)
+        Hashtbl.add constant_tbl uniq (cnt, e1);
+        ({ p with vars = Vars.add id (Const uniq) p.vars }, None)
     | { global = true; _ } ->
         (* Globals are 'preallocated' at module level *)
         set_alloca func.alloc;
+        let uniq = Module.unique_name id uniq in
         let cnt = new_id constant_uniq_state in
-        let gid =
-          match Hashtbl.find_opt global_tbl id with
-          | Some _ ->
-              let id = Printf.sprintf "__%i%s" cnt id in
-              Hashtbl.add global_tbl id (cnt, e1.typ);
-              Hashtbl.add global_name_tbl id ();
-              id
-          | None ->
-              Hashtbl.add global_tbl id (cnt, e1.typ);
-              Hashtbl.add global_name_tbl id ();
-              id
-        in
-        ({ p with vars = Vars.add id (Global (gid, func)) p.vars }, Some gid)
+        Hashtbl.add global_tbl uniq (cnt, e1.typ);
+        ({ p with vars = Vars.add id (Global (uniq, func)) p.vars }, Some uniq)
     | _ -> ({ p with vars = Vars.add id (Normal func) p.vars }, None)
   in
   (p, e1, gn)
@@ -705,7 +684,7 @@ and prep_func p (username, uniq, abs) =
     Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln
   in
 
-  let call = Module.unique_name (username, uniq) in
+  let call = Module.unique_name username uniq in
   let recursive = Rnormal in
 
   let func =
@@ -907,8 +886,8 @@ and morph_var_data mk p expr =
 let morph_toplvl param items =
   let rec aux param = function
     | [] -> (param, { typ = Tunit; expr = Mconst Unit; return = true }, no_var)
-    | Typed_tree.Tl_let (id, expr) :: tl ->
-        let p, e1, gn = prep_let param id expr in
+    | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
+        let p, e1, gn = prep_let param id uniq expr in
         let p, e2, func = aux { p with ret = param.ret } tl in
         (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
     | Tl_function (name, uniq, abs) :: tl ->

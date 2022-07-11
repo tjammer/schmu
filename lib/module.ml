@@ -17,9 +17,9 @@ and item =
    if the global function exists. *)
 
 (* For named functions *)
-let unique_name = function
-  | name, None -> name
-  | name, Some n -> name ^ "__" ^ string_of_int n
+let unique_name name = function
+  | None -> name
+  | Some n -> name ^ "__" ^ string_of_int n
 
 let lambda_name id = "__fun" ^ string_of_int id
 
@@ -33,8 +33,7 @@ let add_fun name uniq (func : Typed_tree.func) m =
     (* failwith "polymorphic functions in modules are not supported yet TODO" *)
     m
   else
-    Mfun (Tfun (func.tparams, func.ret, func.kind), unique_name (name, uniq))
-    :: m
+    Mfun (Tfun (func.tparams, func.ret, func.kind), unique_name name uniq) :: m
 
 let add_external t name cname m = Mext_fun (t, name, cname) :: m
 

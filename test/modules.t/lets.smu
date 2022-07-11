@@ -6,6 +6,6 @@ fun generate_b() = 21
 
 b = generate_b()
 
--- c =
---   printf("hello world\n".cstr, 0)
---   0
+a = 11
+
+-- printf("hello from Lets\n".cstr, 0)

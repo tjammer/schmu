@@ -7,7 +7,7 @@ type expr =
   | Bop of Ast.bop * typed_expr * typed_expr
   | Unop of Ast.unop * typed_expr
   | If of typed_expr * typed_expr * typed_expr
-  | Let of string * typed_expr * typed_expr
+  | Let of string * int option * typed_expr * typed_expr
   | Lambda of int * abstraction
   | Function of string * int option * abstraction * typed_expr
   | App of { callee : typed_expr; args : typed_expr list }
@@ -34,7 +34,7 @@ and const =
   | Unit
 
 and toplevel_item =
-  | Tl_let of string * typed_expr
+  | Tl_let of string * int option * typed_expr
   | Tl_function of string * int option * abstraction
   | Tl_expr of typed_expr
 

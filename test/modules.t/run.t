@@ -82,11 +82,16 @@ Simplest module with 1 type and 1 nonpolymorphic function
   7 | b = generate_b()
       ^
   
+  lets.smu:9:1: warning: Unused binding a
+  9 | a = 11
+      ^
+  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   @a = constant i64 12
+  @a__2 = constant i64 11
   @b = global i64 0
   @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__lets_init, i8* null }]
   
@@ -111,8 +116,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   %string = type { i8*, i64 }
   
-  @a = external global i64
   @b = external global i64
+  @a = external global i64
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
   
   declare void @printf(i8* %0, i64 %1)

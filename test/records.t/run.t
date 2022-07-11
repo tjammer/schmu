@@ -569,7 +569,7 @@ This caused stores to a wrong pointer type in LLVM
   @ret = constant %ys { %foo { i64 17 }, i64 9 }
   @a = constant %ys { %foo { i64 1 }, i64 2 }
   @ys = global %ys zeroinitializer
-  @ctrl = global %ys zeroinitializer
+  @ctrl__2 = global %ys zeroinitializer
   
   declare void @printi(i64 %0)
   
@@ -597,10 +597,10 @@ This caused stores to a wrong pointer type in LLVM
     %2 = load i64, i64* getelementptr inbounds (%ys, %ys* @ys, i32 0, i32 0, i32 0), align 4
     tail call void @printi(i64 %2)
     %3 = tail call { i64, i64 } @schmu_ctrl()
-    store { i64, i64 } %3, { i64, i64 }* bitcast (%ys* @ctrl to { i64, i64 }*), align 4
-    %4 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl, i32 0, i32 0, i32 0), align 4
+    store { i64, i64 } %3, { i64, i64 }* bitcast (%ys* @ctrl__2 to { i64, i64 }*), align 4
+    %4 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl__2, i32 0, i32 0, i32 0), align 4
     tail call void @printi(i64 %4)
-    %5 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl, i32 0, i32 1), align 4
+    %5 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl__2, i32 0, i32 1), align 4
     tail call void @printi(i64 %5)
     ret i64 0
   }
