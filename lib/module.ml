@@ -7,7 +7,7 @@ type t = item list [@@deriving sexp]
 and item =
   | Mtype of typ
   | Mfun of typ * string
-  | Mext_fun of typ * string * string option
+  | Mext of typ * string * string option
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
@@ -34,7 +34,7 @@ let add_fun name uniq (func : Typed_tree.func) m =
   else
     Mfun (Tfun (func.tparams, func.ret, func.kind), unique_name name uniq) :: m
 
-let add_external t name cname m = Mext_fun (t, name, cname) :: m
+let add_external t name cname m = Mext (t, name, cname) :: m
 
 let read_module ~regeneralize name =
   let c = open_in (String.lowercase_ascii (name ^ ".smi")) in
@@ -44,7 +44,7 @@ let read_module ~regeneralize name =
          (List.map (function
            | Mtype t -> Mtype (regeneralize t)
            | Mfun (t, n) -> Mfun (regeneralize t, n)
-           | Mext_fun (t, n, cn) -> Mext_fun (regeneralize t, n, cn)))
+           | Mext (t, n, cn) -> Mext (regeneralize t, n, cn)))
   in
   close_in c;
   r
@@ -65,6 +65,6 @@ let add_to_env env m =
           Env.add_external ~imported:true n
             ~cname:(Some ("schmu_" ^ n))
             t dummy_loc env
-      | Mext_fun (t, n, cname) ->
+      | Mext (t, n, cname) ->
           Env.add_external ~imported:true n ~cname t dummy_loc env)
     env m
