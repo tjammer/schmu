@@ -749,12 +749,12 @@ let convert_prog env ~prelude items modul =
         let m = Module.add_type (Env.find_type v.name.name env) m in
         (env, items, m)
     | Open (loc, modul) -> (
-        (* TODO this is an 'open' rather than an 'import' *)
         (* TODO cache this *)
         match Module.read_module ~regeneralize modul with
         | Ok modul ->
             (* TODO remember this import somehow *)
-            (Module.add_to_env env modul, items, m)
+            let env, items = Module.add_to_env env items modul in
+            (env, items, m)
         | Error s -> raise (Error (loc, "Module " ^ modul ^ s)))
   and aux_block (old, env, items, m) = function
     (* TODO dedup *)
@@ -772,7 +772,7 @@ let convert_prog env ~prelude items modul =
         (old, env, Tl_let (id, uniq, texpr) :: items, m)
     | Function (loc, func) ->
         let env, (name, unique, abs) = Core.convert_function env loc func in
-        let m = Module.add_fun name unique abs.func m in
+        let m = Module.add_fun name unique abs m in
         (old, env, Tl_function (name, unique, abs) :: items, m)
     | Expr (loc, expr) ->
         let expr = Core.convert env expr in
