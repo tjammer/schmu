@@ -2,7 +2,7 @@ Compile stubs
   $ cc -c stub.c
 
 Test elif
-  $ schmu -o out.o --dump-llvm elseif.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o elseif.smu && ./elseif
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -48,7 +48,7 @@ Test elif
   }
 
 Test simple typedef
-  $ schmu -o out.o --dump-llvm simple_typealias.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o simple_typealias.smu && ./simple_typealias
   simple_typealias.smu:2:10: warning: Unused binding puts
   2 | external puts : foo -> unit
                ^^^^
@@ -66,7 +66,7 @@ Test simple typedef
 
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
-  $ schmu -o out.o --dump-llvm free_vector.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o free_vector.smu && ./free_vector
   free_vector.smu:7:1: warning: Unused binding vec
   7 | vec = ["hey", "young", "world"]
       ^^^
@@ -587,7 +587,7 @@ Also mutable fields and 'realloc' builtin
   attributes #0 = { argmemonly nofree nounwind willreturn }
 
 Test x86_64-linux-gnu ABI (parts of it, anyway)
-  $ schmu -o out.o --dump-llvm abi.smu
+  $ schmu --dump-llvm -c abi.smu
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -676,7 +676,7 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   }
 
 Regression test for issue #19
-  $ schmu -o out.o --dump-llvm regression_issue_19.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o regression_issue_19.smu && ./regression_issue_19
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -751,7 +751,7 @@ Regression test for issue #19
   }
 
 Test 'and', 'or' and 'not'
-  $ schmu -o out.o --dump-llvm boolean_logic.smu && cc out.o && ./a.out
+  $ schmu --dump-llvm stub.o boolean_logic.smu && ./boolean_logic
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1213,7 +1213,7 @@ Test 'and', 'or' and 'not'
   yes
 
 
-  $ schmu -o out.o --dump-llvm unary_minus.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o unary_minus.smu && ./unary_minus
   unary_minus.smu:1:1: warning: Unused binding a
   1 | a = -1.0
       ^
@@ -1248,7 +1248,7 @@ Test 'and', 'or' and 'not'
   [254]
 
 Test unused binding warning
-  $ schmu -o out.o unused.smu
+  $ schmu unused.smu stub.o
   unused.smu:2:1: warning: Unused binding unused1
   2 | unused1 = 0
       ^^^^^^^
@@ -1278,12 +1278,12 @@ Test unused binding warning
          ^^^^^^^^^
   
 Allow declaring a c function with a different name
-  $ schmu -o out.o cname_decl.smu && cc out.o stub.o && ./a.out
+  $ schmu stub.o cname_decl.smu && ./cname_decl
   
   42
 
 Print error when using uppercase names for externals
-  $ schmu -o out.o cname_decl_wrong.smu
+  $ schmu stub.o cname_decl_wrong.smu
   cname_decl_wrong.smu:1:16 Syntax error: Functions must have lowercase names. Use the following form: 'external schmu_name : <type> = "CName"'
   
   1 | external Printi : int -> unit
@@ -1292,7 +1292,7 @@ Print error when using uppercase names for externals
   [1]
 
 We can have if without else
-  $ schmu -o out.o if_no_else.smu
+  $ schmu if_no_else.smu
   if_no_else.smu:3:1: error: A conditional without else branch should evaluato to type unit. Expected type unit but got type int
   3 | if true then 2
       ^^^^^^^^^^^^^^
@@ -1300,7 +1300,7 @@ We can have if without else
   [1]
 
 Tailcall loops
-  $ schmu -o out.o --dump-llvm regression_issue_26.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o regression_issue_26.smu && ./regression_issue_26
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

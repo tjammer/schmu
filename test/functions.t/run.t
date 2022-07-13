@@ -6,7 +6,7 @@ We discard the triple, b/c it varies from distro to distro
 e.g. x86_64-unknown-linux-gnu on Fedora vs x86_64-pc-linux-gnu on gentoo
 
 Simple fibonacci
-  $ schmu -o out.o --dump-llvm fib.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm -o a.out stub.o fib.smu && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -44,7 +44,7 @@ Simple fibonacci
   832040
 
 Fibonacci, but we shadow a bunch
-  $ schmu -o out.o --dump-llvm shadowing.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o shadowing.smu && ./shadowing
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -90,7 +90,7 @@ Fibonacci, but we shadow a bunch
   832040
 
 Multiple parameters
-  $ schmu -o out.o --dump-llvm multi_params.smu && cc out.o && ./a.out
+  $ schmu --dump-llvm stub.o multi_params.smu && ./multi_params
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -129,7 +129,7 @@ Multiple parameters
   [1]
 
 We have downwards closures
-  $ schmu -o out.o --dump-llvm closure.smu && cc out.o && ./a.out
+  $ schmu --dump-llvm stub.o closure.smu && ./closure
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -174,7 +174,7 @@ We have downwards closures
   [12]
 
 First class functions
-  $ schmu -o out.o --dump-llvm first_class.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o first_class.smu && ./first_class
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -306,7 +306,7 @@ First class functions
   5
 
 We don't allow returning closures
-  $ schmu -o out.o --dump-llvm no_closure_returns.smu
+  $ schmu --dump-llvm stub.o no_closure_returns.smu && ./no_closure_returns
   no_closure_returns.smu:8:3: error: Cannot (yet) return a closure
    8 | ..fun() ->
    9 |     a = fun() -> a
@@ -315,7 +315,7 @@ We don't allow returning closures
   [1]
 
 Don't try to create 'void' value in if
-  $ schmu -o out.o --dump-llvm if_return_void.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o if_return_void.smu && ./if_return_void
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -369,7 +369,7 @@ Don't try to create 'void' value in if
   0
 
 Captured values should not overwrite function params
-  $ schmu -o out.o --dump-llvm overwrite_params.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o -o a.out overwrite_params.smu && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -428,7 +428,7 @@ Captured values should not overwrite function params
 
 Functions can be generic. In this test, we generate 'apply' only once and use it with
 3 different functions with different types
-  $ schmu -o out.o --dump-llvm generic_fun_arg.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o generic_fun_arg.smu && ./generic_fun_arg
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -631,7 +631,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   18
 
 A generic pass function. This example is not 100% correct, but works due to calling convertion.
-  $ schmu -o out.o --dump-llvm generic_pass.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o generic_pass.smu && ./generic_pass
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -723,7 +723,7 @@ A generic pass function. This example is not 100% correct, but works due to call
 
 This is a regression test. The 'add1' function was not marked as a closure when being called from
 a second function. Instead, the closure struct was being created again and the code segfaulted
-  $ schmu -o out.o --dump-llvm indirect_closure.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o indirect_closure.smu && ./indirect_closure
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -830,7 +830,7 @@ a second function. Instead, the closure struct was being created again and the c
   16
 
 Closures can recurse too
-  $ schmu -o out.o --dump-llvm recursive_closure.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o -o a.out recursive_closure.smu && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -879,14 +879,14 @@ Closures can recurse too
   10
 
 Print error when returning a polymorphic lambda in an if expression
-  $ schmu -o out.o --dump-llvm no_lambda_let_poly_monomorph.smu
+  $ schmu --dump-llvm stub.o no_lambda_let_poly_monomorph.smu
   no_lambda_let_poly_monomorph.smu:6:5: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though.
   6 | f = if true then fun(x) -> x else fun(x) -> x
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
   [1]
 Allow mixing of typedefs and external decls in the preface
-  $ schmu -o out.o --dump-llvm mix_preface.smu
+  $ schmu --dump-llvm stub.o mix_preface.smu && ./mix_preface
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -901,7 +901,7 @@ Allow mixing of typedefs and external decls in the preface
   }
 
 Support monomorphization of nested functions
-  $ schmu -o out.o --dump-llvm monomorph_nested.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o monomorph_nested.smu && ./monomorph_nested
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -966,7 +966,7 @@ Support monomorphization of nested functions
   24
 
 Nested polymorphic closures. Does not quite work for another nesting level
-  $ schmu -o out.o --dump-llvm nested_polymorphic_closures.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o nested_polymorphic_closures.smu && ./nested_polymorphic_closures
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1219,7 +1219,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   10
 
 Closures have to be added to the env of other closures, so they can be called correctly
-  $ schmu -o out.o --dump-llvm closures_to_env.smu && cc out.o stub.o && ./a.out
+  $ schmu --dump-llvm stub.o closures_to_env.smu && ./closures_to_env
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

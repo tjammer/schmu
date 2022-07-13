@@ -4,7 +4,9 @@ type opts = {
   dump_llvm : bool;
   release : bool;
   modul : bool;
+  compile_only : bool;
   no_prelude : bool;
+  link_modules : string list;
 }
 
 let ( >>= ) = Result.bind
@@ -23,8 +25,17 @@ let read_prelude opts =
     if Sys.file_exists file then Ok file
     else Error ("Could not open prelude at " ^ file)
 
-let run file prelude { target; outname; dump_llvm; release; modul; no_prelude }
-    =
+let run file prelude
+    {
+      target;
+      outname;
+      dump_llvm;
+      release;
+      modul;
+      compile_only;
+      no_prelude;
+      link_modules;
+    } =
   let fmt_msg_fn kind loc msg =
     let file = Lexing.((fst loc).pos_fname) in
     let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
@@ -47,12 +58,14 @@ let run file prelude { target; outname; dump_llvm; release; modul; no_prelude }
        Monomorph_tree.monomorphize ttree
        |> Codegen.generate ~target ~outname ~release ~modul
        |> ignore;
+       if dump_llvm then Llvm.dump_module Codegen.the_module;
        if modul then (
          let m = Option.get m |> List.rev |> Module.sexp_of_t in
          let modfile = open_out (outname ^ ".smi") in
          Module.Sexp.to_channel modfile m;
-         close_out modfile);
-       if dump_llvm then Llvm.dump_module Codegen.the_module)
+         close_out modfile)
+       else if compile_only then ()
+       else Link.link outname link_modules)
   with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
@@ -72,17 +85,25 @@ let () =
   let target = ref "" in
   let dump_llvm = ref false in
   let outname = ref "" in
-  let filename = ref [] in
+  let filename = ref None in
+  let link_modules = ref [] in
   let release = ref false in
   let modul = ref false in
+  let compile_only = ref false in
   let no_prelude = ref false in
   let anon_fun fn =
-    match !filename with
-    | [] -> filename := [ fn ]
-    | _ ->
-        (* We only allow a single filename (for now) *)
-        print_endline usage;
-        exit 64
+    if Filename.check_suffix fn ".o" then link_modules := fn :: !link_modules
+    else if Filename.check_suffix fn ".smu" then (
+      match !filename with
+      | None -> filename := Some fn
+      | Some _ ->
+          (* We only allow a single filename (for now) *)
+          print_endline usage;
+          exit 64)
+    else (
+      print_endline @@ "Don't know what to do with suffix "
+      ^ Filename.extension fn;
+      exit 64)
   in
   let speclist =
     [
@@ -100,6 +121,7 @@ let () =
       ("--dump-llvm", Arg.Set dump_llvm, "Dump LLLVM IR");
       ("--release", Arg.Set release, "Optimize");
       ("-m", Arg.Set modul, "Compile module");
+      ("-c", Arg.Set compile_only, "Compile as main, but don't link");
       ("--no-prelude", Arg.Set no_prelude, "Compile without prelude");
     ]
   in
@@ -109,15 +131,25 @@ let () =
     print_endline usage;
     exit 64);
   let target = match !target with "" -> None | s -> Some s in
+  (match !filename with
+  | None ->
+      print_endline "No main module";
+      exit 64
+  | Some _ -> ());
   let outname =
-    match !outname with "" -> default_outname (List.hd !filename) | s -> s
+    match !outname with
+    | "" -> default_outname (Option.get !filename)
+    | s ->
+        if Filename.check_suffix s ".o" then Filename.chop_suffix s ".o" else s
   in
-  run_file (List.hd !filename)
+  run_file (Option.get !filename)
     {
       target;
       outname;
       dump_llvm = !dump_llvm;
       release = !release;
       modul = !modul;
+      compile_only = !compile_only;
       no_prelude = !no_prelude;
+      link_modules = List.rev !link_modules;
     }

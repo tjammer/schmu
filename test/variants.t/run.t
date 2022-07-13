@@ -61,7 +61,7 @@ Basic variant ctors
   }
 
 Basic pattern matching
-  $ schmu match_option.smu --dump-llvm -o out.o && cc out.o && ./a.out
+  $ schmu match_option.smu --dump-llvm && ./match_option
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -240,7 +240,7 @@ Basic pattern matching
   0
 
 Nested pattern matching
-  $ schmu match_nested.smu --dump-llvm -o out.o && cc out.o && ./a.out
+  $ schmu match_nested.smu --dump-llvm && ./match_nested
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -355,7 +355,7 @@ Nested pattern matching
   0
 
 Match multiple columns
-  $ schmu tuple_match.smu --dump-llvm -o out.o && cc out.o && ./a.out
+  $ schmu tuple_match.smu --dump-llvm && ./tuple_match
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

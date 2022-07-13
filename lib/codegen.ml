@@ -1935,11 +1935,6 @@ let generate ~target ~outname ~release ~modul
       funcs
   in
 
-  let outname =
-    if Filename.check_suffix outname ".o" then Filename.chop_suffix outname ".o"
-    else outname
-  in
-
   (if not modul then
    (* Add main *)
    gen_function funcs ~mangle:C

@@ -22,7 +22,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   }
   $ cat nonpoly_func.smi
   ((5:Mtype(8:Tvariant()6:either(((8:ctorname4:Left)(7:ctortyp()))((8:ctorname5:Right)(7:ctortyp())))))(4:Mfun(4:Tfun(4:Tint4:Tint)4:Tint6:Simple)8:add_ints))
-  $ schmu open_nonpoly_func.smu --dump-llvm
+  $ schmu nonpoly_func.o open_nonpoly_func.smu --dump-llvm && ./open_nonpoly_func
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -66,7 +66,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
     tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %0)
     ret i64 0
   }
-  $ cc nonpoly_func.o open_nonpoly_func.o && ./a.out
   5
 
   $ schmu lets.smu -m --dump-llvm
@@ -109,7 +108,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
 
-  $ schmu open_lets.smu --dump-llvm
+  $ schmu lets.o open_lets.smu --dump-llvm && ./open_lets
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -142,10 +141,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
     tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %b)
     ret i64 0
   }
+  11
+  21
 
   $ cat lets.smi
   ((4:Mext4:Tint1:a())(4:Mext(4:Tfun((6:Talias4:cstr(4:Tptr3:Tu8))4:Tint)5:Tunit6:Simple)6:printf())(4:Mfun(4:Tfun()4:Tint6:Simple)10:generate_b)(4:Mext(4:Tvar(4:Link4:Tint))1:b())(4:Mext4:Tint1:a(4:a__2)))
-
-  $ cc lets.o open_lets.o && ./a.out
-  11
-  21
