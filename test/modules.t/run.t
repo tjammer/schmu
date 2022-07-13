@@ -92,7 +92,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   @a = constant i64 12
   @a__2 = constant i64 11
-  @b = global i64 0
+  @b = global i64 0, align 8
   @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__lets_init, i8* null }]
   
   declare void @printf(i8* %0, i64 %1)

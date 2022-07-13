@@ -101,8 +101,8 @@ Nested records
   %p_inner_innerst_int = type { %innerst_int }
   %innerst_int = type { i64 }
   
-  @f = global %closure zeroinitializer
-  @a = global %foo zeroinitializer
+  @f = global %closure zeroinitializer, align 8
+  @a = global %foo zeroinitializer, align 16
   
   declare void @printi(i64 %0)
   
@@ -419,7 +419,7 @@ Support function/closure fields
   %state = type { i64, %closure* }
   %closure = type { i8*, i8* }
   
-  @state = global %state zeroinitializer
+  @state = global %state zeroinitializer, align 16
   
   declare void @printi(i64 %0)
   
@@ -568,8 +568,8 @@ This caused stores to a wrong pointer type in LLVM
   @x = constant %foo { i64 12 }
   @ret = constant %ys { %foo { i64 17 }, i64 9 }
   @a = constant %ys { %foo { i64 1 }, i64 2 }
-  @ys = global %ys zeroinitializer
-  @ctrl__2 = global %ys zeroinitializer
+  @ys = global %ys zeroinitializer, align 16
+  @ctrl__2 = global %ys zeroinitializer, align 16
   
   declare void @printi(i64 %0)
   

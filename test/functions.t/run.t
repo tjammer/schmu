@@ -136,7 +136,7 @@ We have downwards closures
   
   %capturable = type { i64 }
   
-  @a = global %capturable zeroinitializer
+  @a = global %capturable zeroinitializer, align 8
   
   define i64 @schmu_capture_a_wrapped() {
   entry:
@@ -181,7 +181,7 @@ First class functions
   
   %closure = type { i8*, i8* }
   
-  @pass2 = global %closure zeroinitializer
+  @pass2 = global %closure zeroinitializer, align 8
   
   declare void @printi(i64 %0)
   
@@ -438,7 +438,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   %t_int = type { i64 }
   
   @a = constant i64 2
-  @f = global %closure zeroinitializer
+  @f = global %closure zeroinitializer, align 8
   
   declare void @printi(i64 %0)
   
@@ -731,8 +731,8 @@ a second function. Instead, the closure struct was being created again and the c
   %closure = type { i8*, i8* }
   %t_int = type { i64 }
   
-  @a = global i64 0
-  @b = global i64 0
+  @a = global i64 0, align 8
+  @b = global i64 0, align 8
   
   declare void @printi(i64 %0)
   
@@ -974,7 +974,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   %vector_int = type { i64*, i64, i64 }
   %closure = type { i8*, i8* }
   
-  @vec = global %vector_int zeroinitializer
+  @vec = global %vector_int zeroinitializer, align 16
   
   declare void @printi(i64 %0)
   

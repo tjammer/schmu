@@ -1876,6 +1876,7 @@ let def_globals globals =
     let value =
       Llvm.define_global name (Llvm.const_bitcast null lltyp) the_module
     in
+    Llvm.set_alignment (sizeof_typ typ) value;
     Strtbl.add const_tbl name { dummy_fn_value with value }
   in
   List.iter f globals

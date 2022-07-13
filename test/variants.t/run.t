@@ -69,7 +69,7 @@ Basic pattern matching
   %option_int = type { i32, i64 }
   %string = type { i8*, i64 }
   
-  @none_int = global %option_int zeroinitializer
+  @none_int = global %option_int zeroinitializer, align 16
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
   
   declare void @printf(i8* %0, i64 %1)
@@ -363,7 +363,7 @@ Match multiple columns
   %option_int = type { i32, i64 }
   %string = type { i8*, i64 }
   
-  @none_int = global %option_int zeroinitializer
+  @none_int = global %option_int zeroinitializer, align 16
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
   
   declare void @printf(i8* %0, i64 %1)
