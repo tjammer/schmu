@@ -164,8 +164,8 @@ let maybe_add_type_instance typ env =
   let key = Type_key.create key in
 
   match clean typ with
-  | (Trecord (Some t, _, _) | Tvariant (Some t, _, _)) when not (is_unbound t)
-    -> (
+  | (Trecord (Some t, _, _) | Tvariant (Some t, _, _))
+    when not (is_unbound (clean t)) -> (
       match Tmap.find_opt key !(env.instances) with
       | None -> env.instances := Tmap.add key typ !(env.instances)
       | Some _ -> ())

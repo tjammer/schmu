@@ -1,0 +1,8 @@
+open Poly_func
+
+external printf : (cstr, int) -> unit
+
+classify(Some(3)) |>> printf("%i\n".cstr)
+classify(Some(3.0)) |>> printf("%i\n".cstr)
+none : option(float) = None
+classify(none) |>> printf("%i\n".cstr)

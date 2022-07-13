@@ -828,7 +828,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
        in
        raise (Error (!last_loc, msg)));
 
-  (* print_endline (String.concat ", " (List.map string_of_type typedefs)); *)
+  (* print_endline (String.concat ", " (List.map string_of_type typeinsts)); *)
   let m = if modul then Some m else None in
   ({ externals; typedefs; typeinsts; items }, m)
 
