@@ -401,6 +401,7 @@ end = struct
     | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, exprs, cases) -> convert_match env loc exprs cases
+    | Local_open (loc, modul, blk) -> convert_open env loc modul blk
 
   and convert_var env loc id =
     match Env.query_val_opt id env with
@@ -657,6 +658,13 @@ end = struct
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
 
+  and convert_open env loc modul blk =
+    match Module.read_module ~regeneralize modul with
+    | Ok modul ->
+        let env = Module.add_to_env env modul in
+        convert_block env blk |> fst
+    | Error s -> raise (Error (loc, "Module " ^ modul ^ s))
+
   and convert_block_annot ~ret env annot stmts =
     let loc = Lexing.(dummy_pos, dummy_pos) in
 
@@ -753,7 +761,7 @@ let convert_prog env ~prelude items modul =
         match Module.read_module ~regeneralize modul with
         | Ok modul ->
             (* TODO remember this import somehow *)
-            let env, items = Module.add_to_env env items modul in
+            let env = Module.add_to_env env modul in
             (env, items, m)
         | Error s -> raise (Error (loc, "Module " ^ modul ^ s)))
   and aux_block (old, env, items, m) = function
@@ -814,6 +822,9 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
   let typedefs = Env.typedefs env
   and externals = Env.externals env
   and typeinsts = Env.typeinstances env in
+
+  (* Add polymorphic functions from imported modules *)
+  let items = !Module.poly_funcs @ items in
 
   let _, _, unused = Env.close_function env in
   check_unused unused;

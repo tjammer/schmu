@@ -53,6 +53,7 @@ and expr =
   | Pipe_tail of loc * expr * expr
   | Ctor of loc * (loc * string) * expr option
   | Match of loc * expr list * (loc * pattern * block) list
+  | Local_open of loc * string * block
 
 and pattern =
   | Pctor of (loc * string) * pattern option

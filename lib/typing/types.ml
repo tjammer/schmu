@@ -44,6 +44,14 @@ let rec clean = function
           name,
           Array.map (fun field -> { field with typ = clean field.typ }) fields
         )
+  | Tvariant (param, name, ctors) ->
+      let param = Option.map clean param in
+      Tvariant
+        ( param,
+          name,
+          Array.map
+            (fun ctor -> { ctor with ctortyp = Option.map clean ctor.ctortyp })
+            ctors )
   | Talias (_, t) -> clean t
   | Tptr t -> Tptr (clean t)
   | t -> t

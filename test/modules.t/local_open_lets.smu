@@ -1,0 +1,2 @@
+Lets.printf("%i\n".cstr, Lets.a)
+Lets.(printf("%i\n".cstr, b))

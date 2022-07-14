@@ -60,7 +60,7 @@ type t = {
      probably should go into another pass once we add it *)
   instances : typ Tmap.t ref;
   (* Instantiations for both records and variants *)
-  externals : (typ * string option) Tmap.t;
+  externals : (typ * string option) Tmap.t ref;
 }
 
 type unused = (unit, (string * Ast.loc) list) result
@@ -85,7 +85,7 @@ let empty () =
     ctors = Map.empty;
     types = Tmap.empty;
     instances = ref Tmap.empty;
-    externals = Tmap.empty;
+    externals = ref Tmap.empty;
   }
 
 let add_value key value loc env =
@@ -105,8 +105,8 @@ let add_value key value loc env =
 let add_external key ~cname typ ~imported loc env =
   let env = add_value key { def_value with typ; imported } loc env in
   let tkey = Type_key.create key in
-  let externals = Tmap.add tkey (typ, cname) env.externals in
-  { env with externals }
+  env.externals := Tmap.add tkey (typ, cname) !(env.externals);
+  env
 
 let change_type key typ env =
   match env.values with
@@ -122,6 +122,15 @@ let add_type key t env =
   let key = Type_key.create key in
   let types = Tmap.add key t env.types in
   { env with types }
+
+let maybe_add_inst_internal key typ env =
+  match clean typ with
+  | Trecord (Some (Qvar _), _, _) | Tvariant (Some (Qvar _), _, _) -> ()
+  | Trecord _ | Tvariant _ -> (
+      match Tmap.find_opt key !(env.instances) with
+      | None -> env.instances := Tmap.add key typ !(env.instances)
+      | Some _ -> ())
+  | _ -> ()
 
 let add_record record ~param ~labels env =
   let typ = Trecord (param, record, labels) in
@@ -139,6 +148,7 @@ let add_record record ~param ~labels env =
   in
   let record = Type_key.create record in
   let types = Tmap.add record typ env.types in
+  maybe_add_inst_internal record typ env;
   { env with labels; types; labelsets }
 
 let add_variant variant ~param ~ctors env =
@@ -152,6 +162,7 @@ let add_variant variant ~param ~ctors env =
   in
   let variant = Type_key.create variant in
   let types = Tmap.add variant typ env.types in
+  maybe_add_inst_internal variant typ env;
   { env with ctors; types }
 
 let is_unbound = function
@@ -164,8 +175,8 @@ let maybe_add_type_instance typ env =
   let key = Type_key.create key in
 
   match clean typ with
-  | (Trecord (Some t, _, _) | Tvariant (Some t, _, _))
-    when not (is_unbound (clean t)) -> (
+  | (Trecord (Some t, _, _) | Tvariant (Some t, _, _)) when not (is_unbound t)
+    -> (
       match Tmap.find_opt key !(env.instances) with
       | None -> env.instances := Tmap.add key typ !(env.instances)
       | Some _ -> ())
@@ -314,23 +325,24 @@ let typedefs env =
 
 let typeinstances env =
   let values ({ Type_key.key = _; ord = _ }, v) = v in
-  Tmap.filter
-    (fun _ typ ->
-      match typ with
-      | Trecord (Some (Qvar _), _, _) | Tvariant (Some (Qvar _), _, _) ->
-          (* We don't want to add generic records *)
-          false
-      | Trecord _ | Tvariant _ -> true
-      | _ -> false)
-    env.types
-  |> Tmap.bindings
-  |> (* Add instances *)
-  fun simple_records ->
-  simple_records @ Tmap.bindings !(env.instances)
+  (* Tmap.filter *)
+  (*   (fun _ typ -> *)
+  (*     match typ with *)
+  (*     | Trecord (Some (Qvar _), _, _) | Tvariant (Some (Qvar _), _, _) -> *)
+  (*         (\* We don't want to add generic records *\) *)
+  (*         false *)
+  (*     | Trecord _ | Tvariant _ -> true *)
+  (*     | _ -> false) *)
+  (*   env.types *)
+  (* |> Tmap.bindings *)
+  (* |> (\* Add instances *\) *)
+  (* fun simple_records -> *)
+  (* simple_records @ *)
+  Tmap.bindings !(env.instances)
   |> List.sort Type_key.cmp_map_sort
   |> List.map values
 
 let externals env =
-  Tmap.bindings env.externals
+  Tmap.bindings !(env.externals)
   |> List.sort Type_key.cmp_map_sort
   |> List.map (fun (key, (typ, cname)) -> (Type_key.key key, typ, cname))
