@@ -180,34 +180,34 @@ let test_para_instance_wrong_func () =
     "type foo('a) = { gen : 'a } fun use(foo) = foo.gen + 17 foo = { gen = 17 \
      } use( { gen = true } )"
 
-let test_pipe_head_single () = test "int" "fun add1(a) = a + 1 10|>add1"
-let test_pipe_head_single_call () = test "int" "fun add1(a) = a + 1 10|>add1()"
+let test_pipe_head_single () = test "int" "fun add1(a) = a + 1 10|.add1"
+let test_pipe_head_single_call () = test "int" "fun add1(a) = a + 1 10|.add1()"
 
 let test_pipe_head_multi_call () =
-  test "int" "fun add1(a) = a + 1 10 |> add1 |> add1"
+  test "int" "fun add1(a) = a + 1 10 |. add1 |. add1"
 
 let test_pipe_head_single_wrong_type () =
   test_exn "Application: Expected type int -> 'a but got type int"
-    "add1 = 1 10|>add1"
+    "add1 = 1 10|.add1"
 
-let test_pipe_head_mult () = test "int" "fun add(a, b) = a + b 10|>add(12)"
+let test_pipe_head_mult () = test "int" "fun add(a, b) = a + b 10|.add(12)"
 
 let test_pipe_head_mult_wrong_type () =
   test_exn "Application: Wrong arity for function: Expected 1 but got 2"
-    "fun add1(a) = a + 1 10|>add1(12)"
+    "fun add1(a) = a + 1 10|.add1(12)"
 
-let test_pipe_tail_single () = test "int" "fun add1(a) = a + 1 10|>>add1"
-let test_pipe_tail_single_call () = test "int" "fun add1(a) = a + 1 10|>>add1()"
+let test_pipe_tail_single () = test "int" "fun add1(a) = a + 1 10|>add1"
+let test_pipe_tail_single_call () = test "int" "fun add1(a) = a + 1 10|>add1()"
 
 let test_pipe_tail_single_wrong_type () =
   test_exn "Application: Expected type int -> 'a but got type int"
-    "add1 = 1 10|>>add1"
+    "add1 = 1 10|>add1"
 
-let test_pipe_tail_mult () = test "int" "fun add(a, b) = a + b 10|>>add(12)"
+let test_pipe_tail_mult () = test "int" "fun add(a, b) = a + b 10|>add(12)"
 
 let test_pipe_tail_mult_wrong_type () =
   test_exn "Application: Wrong arity for function: Expected 1 but got 2"
-    "fun add1(a) = a + 1 10|>>add1(12)"
+    "fun add1(a) = a + 1 10|>add1(12)"
 
 let test_alias_simple () =
   test "foo = int -> unit" "type foo = int external f : foo -> unit f"
@@ -336,7 +336,7 @@ type option('a) = Some('a) | None
 type test = Float(float) | Int(int) | Non
 
 match None with
-  Some(Float(f)) -> f |> int_of_float
+  Some(Float(f)) -> f |. int_of_float
   -- Some(Int(i)) -> i
   -- Some(Non) -> 1
   None -> 0
@@ -367,7 +367,7 @@ type option('a) = Some('a) | None
 type test = Float(float) | Int(int) | Non
 
 match None with
-  Some(Float(f)) -> f |> int_of_float
+  Some(Float(f)) -> f |. int_of_float
   Some(Int(i)) -> i
   Some(Non) -> 1
   None -> 0
@@ -389,7 +389,7 @@ type option('a) = Some('a) | None
 type test = Float(float) | Int(int) | Non
 
 match None with
-  Some(Float(f)) -> f |> int_of_float
+  Some(Float(f)) -> f |. int_of_float
   Some(_) -> -2
   Some(Non) -> 1
   None -> 0

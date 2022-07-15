@@ -1,13 +1,13 @@
-Some(1) |> ignore
+Some(1) |. ignore
 
 type foo = { x : float, y : float }
 type larger = One | Two(foo) | Three(int)
 
-Three(3) |> ignore
+Three(3) |. ignore
 
 type clike = A | B | C | D | E
 
-C |> ignore
+C |. ignore
 
 fun wrap_clike() = C
 

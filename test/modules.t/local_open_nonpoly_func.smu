@@ -5,4 +5,4 @@ fun do(a) = Nonpoly_func.match a with
   Left -> add_ints(0, 5)
   Right -> add_ints(0, -5)
 
-do(Nonpoly_func.Left)  |>> printf("%i\n".cstr)
+do(Nonpoly_func.Left)  |> printf("%i\n".cstr)

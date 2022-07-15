@@ -7,6 +7,6 @@ fun pass(x) = x
 fun apply(f, x) =  f(x)
 
 -- printi(apply(pass, 20))
-20|>>apply(pass) |> printi
+20|>apply(pass) |. printi
 -- printi(apply(pass, { i = 700, b = false }).i)
-{ i = 700, b = false } |>> apply(pass).i |> printi
+{ i = 700, b = false } |> apply(pass).i |. printi

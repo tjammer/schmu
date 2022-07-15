@@ -5,29 +5,29 @@ fun match_opt(p) = match p with
   Some(thing) -> thing
   None -> 0
 
-match_opt(Some(1)) |>> printf("%i\n".cstr)
-match_opt(None) |>> printf("%i\n".cstr)
+match_opt(Some(1)) |> printf("%i\n".cstr)
+match_opt(None) |> printf("%i\n".cstr)
 
 -- switch ctors
 fun opt_match(p) = match p with
   None -> 0
   Some(thing) -> thing
 
-opt_match(Some(1)) |>> printf("%i\n".cstr)
-opt_match(None) |>> printf("%i\n".cstr)
+opt_match(Some(1)) |> printf("%i\n".cstr)
+opt_match(None) |> printf("%i\n".cstr)
 
 -- Some, catchall
 fun some_all(p) = match p with
   Some(thing) -> thing
   _ -> 0
 
-some_all(Some(1)) |>> printf("%i\n".cstr)
-some_all(None) |>> printf("%i\n".cstr)
+some_all(Some(1)) |> printf("%i\n".cstr)
+some_all(None) |> printf("%i\n".cstr)
 
 fun none_all(p) = match p with
   None -> 0
   _ -> 1
 
-none_all(Some(1)) |>> printf("%i\n".cstr)
+none_all(Some(1)) |> printf("%i\n".cstr)
 none_int : option(int) = None
-none_all(none_int) |>> printf("%i\n".cstr)
+none_all(none_int) |> printf("%i\n".cstr)

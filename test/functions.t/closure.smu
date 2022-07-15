@@ -12,5 +12,5 @@ fun capture_a_wrapped() =
 
   wrap()
 
-capture_a() |> ignore
+capture_a() |. ignore
 capture_a_wrapped()

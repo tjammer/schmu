@@ -41,8 +41,8 @@ else ps("no")
 
 ps("test 'not':")
 
-if true_() |> not then ps("yes")
+if true_() |. not then ps("yes")
 else ps("no")
 
-if false_() |> not then ps("yes")
+if false_() |. not then ps("yes")
 else ps("no")

@@ -4,7 +4,7 @@ unused1 = 0
 -- will be shadowed before usage
 unused2 = 0
 unused2 = 0
-unused2 |> ignore
+unused2 |. ignore
 
 -- use in closure
 used3 = 0
@@ -19,14 +19,14 @@ if true then
 else
   unused5 = 0
   0
-|> ignore
+|. ignore
 
 if true then
   used1 = 0
-  used1 |> ignore
+  used1 |. ignore
 else
   used2 = 0
-  used2 |> ignore
+  used2 |. ignore
 
 if true then
   -- unused here, should be warned
@@ -36,7 +36,7 @@ else
   usedlater = 0
   ignore(usedlater)
   0
-|> ignore
+|. ignore
 
 if true then
   usedlater = 0
@@ -46,4 +46,4 @@ else
   -- unused here, should be warned
   usedlater = 0
   0
-|> ignore
+|. ignore

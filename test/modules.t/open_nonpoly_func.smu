@@ -6,4 +6,4 @@ fun do(a) = match a with
   Left -> add_ints(0, 5)
   Right -> add_ints(0, -5)
 
-do(Left)  |>> printf("%i\n".cstr)
+do(Left)  |> printf("%i\n".cstr)
