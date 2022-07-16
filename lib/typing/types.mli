@@ -20,8 +20,8 @@ type typ =
 
 and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ
-and field = { name : string; typ : typ; mut : bool }
-and ctor = { ctorname : string; ctortyp : typ option }
+and field = { fname : string; ftyp : typ; mut : bool }
+and ctor = { cname : string; ctyp : typ option }
 
 val clean : typ -> typ
 (** Follows links and aliases *)

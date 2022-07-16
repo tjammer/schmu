@@ -136,14 +136,14 @@ let add_record record ~param ~labels env =
   let typ = Trecord (param, record, labels) in
 
   let labelset =
-    Array.to_seq labels |> Seq.map (fun f -> f.name) |> Labelset.of_seq
+    Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
   in
   let labelsets = Lmap.add labelset record env.labelsets in
 
   let _, labels =
     Array.fold_left
       (fun (index, labels) field ->
-        (index + 1, Map.add field.name { index; typename = record } labels))
+        (index + 1, Map.add field.fname { index; typename = record } labels))
       (0, env.labels) labels
   in
   let record = Type_key.create record in
@@ -157,7 +157,7 @@ let add_variant variant ~param ~ctors env =
   let _, ctors =
     Array.fold_left
       (fun (index, ctors) ctor ->
-        (index + 1, Map.add ctor.ctorname { index; typename = variant } ctors))
+        (index + 1, Map.add ctor.cname { index; typename = variant } ctors))
       (0, env.ctors) ctors
   in
   let variant = Type_key.create variant in

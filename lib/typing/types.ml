@@ -28,8 +28,8 @@ type typ =
 
 and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ
-and field = { name : string; typ : typ; mut : bool }
-and ctor = { ctorname : string; ctortyp : typ option }
+and field = { fname : string; ftyp : typ; mut : bool }
+and ctor = { cname : string; ctyp : typ option }
 
 let rec clean = function
   | Tvar { contents = Link t } -> clean t
@@ -42,7 +42,7 @@ let rec clean = function
       Trecord
         ( param,
           name,
-          Array.map (fun field -> { field with typ = clean field.typ }) fields
+          Array.map (fun field -> { field with ftyp = clean field.ftyp }) fields
         )
   | Tvariant (param, name, ctors) ->
       let param = Option.map clean param in
@@ -50,7 +50,7 @@ let rec clean = function
         ( param,
           name,
           Array.map
-            (fun ctor -> { ctor with ctortyp = Option.map clean ctor.ctortyp })
+            (fun ctor -> { ctor with ctyp = Option.map clean ctor.ctyp })
             ctors )
   | Talias (_, t) -> clean t
   | Tptr t -> Tptr (clean t)

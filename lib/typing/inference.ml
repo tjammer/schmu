@@ -75,7 +75,8 @@ let rec unify t1 t2 =
           in
 
           (* We ignore the label names for now *)
-          try Array.iter2 (fun a b -> Types.(unify a.typ b.typ)) labels1 labels2
+          try
+            Array.iter2 (fun a b -> Types.(unify a.ftyp b.ftyp)) labels1 labels2
           with Invalid_argument _ ->
             raise (Arity ("record", Array.length labels1, Array.length labels2))
         else raise Unify
@@ -94,7 +95,7 @@ let rec unify t1 t2 =
           try
             Array.iter2
               (fun a b ->
-                match (a.ctortyp, b.ctortyp) with
+                match (a.ctyp, b.ctyp) with
                 | Some a, Some b -> unify a b
                 | None, None -> ()
                 | Some _, None | None, Some _ -> raise Unify)
@@ -126,13 +127,13 @@ let rec generalize = function
   | Trecord (Some t, name, labels) ->
       (* Hopefully the param type is the same reference throughout the record *)
       let param = Some (generalize t) in
-      let f f = Types.{ f with typ = generalize f.typ } in
+      let f f = Types.{ f with ftyp = generalize f.ftyp } in
       let labels = Array.map f labels in
       Trecord (param, name, labels)
   | Tvariant (Some t, name, ctors) ->
       (* Hopefully the param type is the same reference throughout the variant *)
       let param = Some (generalize t) in
-      let f c = Types.{ c with ctortyp = Option.map generalize c.ctortyp } in
+      let f c = Types.{ c with ctyp = Option.map generalize c.ctyp } in
       let ctors = Array.map f ctors in
       Tvariant (param, name, ctors)
   | Tptr t -> Tptr (generalize t)
@@ -166,9 +167,9 @@ let instantiate t =
         let labels =
           Array.map
             (fun f ->
-              let t, subst' = aux !subst Types.(f.typ) in
+              let t, subst' = aux !subst Types.(f.ftyp) in
               subst := subst';
-              { f with typ = t })
+              { f with ftyp = t })
             labels
         in
         let param, subst = aux !subst param in
@@ -178,15 +179,15 @@ let instantiate t =
         let ctors =
           Array.map
             (fun ctor ->
-              let ctortyp =
+              let ctyp =
                 Option.map
                   (fun typ ->
                     let t, subst' = aux !subst typ in
                     subst := subst';
                     t)
-                  ctor.ctortyp
+                  ctor.ctyp
               in
-              { ctor with ctortyp })
+              { ctor with ctyp })
             ctors
         in
         let param, subst = aux !subst param in

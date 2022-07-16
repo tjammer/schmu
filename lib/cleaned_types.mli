@@ -14,8 +14,8 @@ type typ =
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
-and field = { typ : typ; mut : bool }
-and ctor = { ctorname : string; ctortyp : typ option }
+and field = { ftyp : typ; mut : bool }
+and ctor = { cname : string; ctyp : typ option }
 
 val is_type_polymorphic : typ -> bool
 val string_of_type : typ -> string

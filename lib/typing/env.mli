@@ -1,4 +1,3 @@
-(* TODO check_unused fn *)
 open Types
 
 type key = string
@@ -72,7 +71,7 @@ val find_labelset_opt : string list -> t -> typ option
 (** [find_labelset_opt labelnames env] returns the first record type with a matching labelset *)
 
 val find_ctor_opt : key -> t -> label option
-(** [find_ctor_opt ctorname env] returns the variant of which the ctor is part of
+(** [find_ctor_opt cname env] returns the variant of which the ctor is part of
     as well as the type of the ctor if it has data *)
 
 val typedefs : t -> typ list

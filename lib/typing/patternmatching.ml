@@ -143,9 +143,7 @@ module Exhaustiveness = struct
   let sig_complete fstcl typ patterns =
     match ctorset_of_variant (clean typ) with
     | Ctors ctors ->
-        let set =
-          ctors |> List.map (fun ctor -> ctor.ctorname) |> Set.of_list
-        in
+        let set = ctors |> List.map (fun ctor -> ctor.cname) |> Set.of_list in
 
         let rec fold f lwild last acc = function
           | [] -> last acc
@@ -292,17 +290,17 @@ module Exhaustiveness = struct
   and complete_sig fstcl typstl patterns ctors =
     let exhs =
       List.map
-        (fun { ctorname; ctortyp } ->
-          let num = arg_to_num ctortyp in
-          ( ctorname,
-            match specialize ctorname num patterns with
+        (fun { cname; ctyp } ->
+          let num = arg_to_num ctyp in
+          ( cname,
+            match specialize cname num patterns with
             | Exh -> Ok ()
             | Wip (kind, patterns) ->
                 (* In case specializion adds a ctor, we elimate these first *)
                 (* Right now, the argument arity is 1 at most *)
                 let ret =
                   if num = 1 then
-                    let typ = Option.get ctortyp in
+                    let typ = Option.get ctyp in
                     is_exhaustive fstcl (typ :: typstl) patterns
                   else is_exhaustive false typstl patterns
                 in
@@ -371,7 +369,7 @@ module Make (C : Core) = struct
     let Env.{ index; typename }, ctor, variant =
       get_variant env loc name annot
     in
-    match (ctor.ctortyp, arg) with
+    match (ctor.ctyp, arg) with
     | Some typ, Some expr ->
         let texpr = convert env expr in
         unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
@@ -484,7 +482,7 @@ module Make (C : Core) = struct
     let expr i = convert_var env all_loc (expr_name i) in
 
     let ctorenv env ctor i loc =
-      match ctor.ctortyp with
+      match ctor.ctyp with
       | Some typ ->
           let data = { typ; expr = Variant_data (expr i); attr = no_attr } in
           ( data,

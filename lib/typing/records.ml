@@ -33,7 +33,7 @@ let array_assoc_opt name arr =
     if i = Array.length arr then None
     else
       let field = arr.(i) in
-      if String.equal field.name name then Some field.typ else inner (i + 1)
+      if String.equal field.fname name then Some field.ftyp else inner (i + 1)
   in
   inner 0
 
@@ -41,7 +41,7 @@ let assoc_opti qkey arr =
   let rec aux i =
     if i < Array.length arr then
       let field = arr.(i) in
-      if String.equal qkey field.name then Some (i, field) else aux (i + 1)
+      if String.equal qkey field.fname then Some (i, field) else aux (i + 1)
     else None
   in
   aux 0
@@ -108,12 +108,12 @@ module Make (C : Core) = struct
       List.fold_left_map
         (fun is_const field ->
           let expr =
-            match List.assoc_opt field.name labels_expr with
+            match List.assoc_opt field.fname labels_expr with
             | Some thing -> thing
-            | None -> raise_ "Missing" field.name name
+            | None -> raise_ "Missing" field.fname name
           in
           (* Records with mutable fields cannot be const *)
-          (is_const && (not field.mut) && expr.attr.const, (field.name, expr)))
+          (is_const && (not field.mut) && expr.attr.const, (field.fname, expr)))
         true (labels |> Array.to_list)
     in
     let typ = Trecord (param, name, labels) |> generalize in
@@ -143,7 +143,7 @@ module Make (C : Core) = struct
   and convert_field env loc expr id =
     let field, expr, index = get_field env loc expr id in
     {
-      typ = field.typ;
+      typ = field.ftyp;
       expr = Field (expr, index);
       attr = { no_attr with const = expr.attr.const };
     }
@@ -153,8 +153,10 @@ module Make (C : Core) = struct
     let valexpr = convert env value in
 
     (if not field.mut then
-     let msg = Printf.sprintf "Cannot mutate non-mutable field %s" field.name in
+     let msg =
+       Printf.sprintf "Cannot mutate non-mutable field %s" field.fname
+     in
      raise (Error (loc, msg)));
-    unify (loc, "Mutate field " ^ field.name ^ ":") field.typ valexpr.typ;
+    unify (loc, "Mutate field " ^ field.fname ^ ":") field.ftyp valexpr.typ;
     { typ = Tunit; expr = Field_set (expr, index, valexpr); attr = no_attr }
 end

@@ -141,7 +141,7 @@ let rec sizeof_typ typ =
         (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
         add_size_align ~upto:8 ~sz:8 size_pr
     | Trecord (_, _, labels) ->
-        Array.fold_left (fun pr (f : field) -> inner pr f.typ) size_pr labels
+        Array.fold_left (fun pr (f : field) -> inner pr f.ftyp) size_pr labels
     | Tvariant (_, _, ctors) ->
         (* For simplicity, we use i32 for the tag. If the variant contains no data
            i.e. is a C enum, we want to use i32 anyway, since that's what C uses.
@@ -170,7 +170,7 @@ and variant_get_largest ctors =
   let largest, _ =
     Array.fold_left
       (fun (largest, size) ctor ->
-        match ctor.ctortyp with
+        match ctor.ctyp with
         | None -> (largest, size)
         | Some typ ->
             let sz = sizeof_typ typ in
@@ -188,13 +188,13 @@ let llval_of_size size = Llvm.const_int int_t size
 let rec is_mutable = function
   | Trecord (_, _, fields) ->
       Array.fold_left
-        (fun acc field -> field.mut || is_mutable field.typ || acc)
+        (fun acc field -> field.mut || is_mutable field.ftyp || acc)
         false fields
   | Tvariant (_, _, ctors) ->
       Array.fold_left
         (fun acc ctor ->
           let some typ = is_mutable typ || acc in
-          Option.fold ~none:acc ~some ctor.ctortyp)
+          Option.fold ~none:acc ~some ctor.ctyp)
         false ctors
   | _ -> false
 
@@ -246,7 +246,7 @@ and pkind_of_typ typ =
   match typ with
   | Trecord (_, _, fields) when not (is_mutable typ) ->
       let types =
-        Array.map (fun (field : Cleaned_types.field) -> field.typ) fields
+        Array.map (fun (field : Cleaned_types.field) -> field.ftyp) fields
         |> Array.to_list
       in
       aux typ types
@@ -288,7 +288,7 @@ let type_unboxed kind =
     | Ints i ->
         "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
   in
-  let anon_field_of_typ typ = { mut = false; typ = helper typ } in
+  let anon_field_of_typ typ = { mut = false; ftyp = helper typ } in
 
   match kind with
   | One_param a -> helper a
@@ -478,7 +478,7 @@ let to_named_typedefs = function
       let name = struct_name t in
       let t = Llvm.named_struct_type context name in
       let lltyp =
-        Array.map (fun (f : field) -> f.typ) labels
+        Array.map (fun (f : field) -> f.ftyp) labels
         |> typeof_aggregate |> Llvm.struct_element_types
       in
       Llvm.struct_set_body t lltyp false;
@@ -574,9 +574,9 @@ let rec free_value value = function
   | Trecord (_, _, fields) ->
       Array.iteri
         (fun i (f : field) ->
-          if contains_vector f.typ then
+          if contains_vector f.ftyp then
             let ptr = Llvm.build_struct_gep value i "" builder in
-            free_value ptr f.typ)
+            free_value ptr f.ftyp)
         fields
   | t ->
       print_endline (show_typ t);
@@ -586,7 +586,7 @@ and contains_vector = function
   | Trecord (_, name, _) when String.equal name "vector" -> true
   | Trecord (_, _, fields) ->
       Array.fold_left
-        (fun b (f : field) -> f.typ |> contains_vector || b)
+        (fun b (f : field) -> f.ftyp |> contains_vector || b)
         false fields
   | _ -> false
 
@@ -1689,7 +1689,7 @@ and codegen_record param typ labels allocref const return =
 and codegen_field param expr index =
   let typ =
     match expr.typ with
-    | Trecord (_, _, fields) -> fields.(index).typ
+    | Trecord (_, _, fields) -> fields.(index).ftyp
     | _ ->
         print_endline (show_typ expr.typ);
         failwith "Internal Error: No record in fields"

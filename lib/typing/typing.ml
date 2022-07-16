@@ -104,12 +104,12 @@ let rec subst_generic ~id typ = function
       let ret = subst_generic ~id typ ret in
       Tfun (ps, ret, kind)
   | Trecord (Some p, name, labels) ->
-      let f f = Types.{ f with typ = subst_generic ~id typ f.typ } in
+      let f f = Types.{ f with ftyp = subst_generic ~id typ f.ftyp } in
       let labels = Array.map f labels in
       Trecord (Some (subst_generic ~id typ p), name, labels)
   | Tvariant (Some p, name, ctors) ->
       let f c =
-        Types.{ c with ctortyp = Option.map (subst_generic ~id typ) c.ctortyp }
+        Types.{ c with ctyp = Option.map (subst_generic ~id typ) c.ctyp }
       in
       let ctors = Array.map f ctors in
       Tvariant (Some (subst_generic ~id typ p), name, ctors)
@@ -290,9 +290,9 @@ let type_record env loc Ast.{ name = { poly_param; name }; labels } =
     let env, param = add_type_param env poly_param in
     let labels =
       Array.map
-        (fun (mut, name, type_expr) ->
-          let typ = typeof_annot ~typedef:true env loc type_expr in
-          { name; typ; mut })
+        (fun (mut, fname, type_expr) ->
+          let ftyp = typeof_annot ~typedef:true env loc type_expr in
+          { fname; ftyp; mut })
         labels
     in
     (labels, param)
@@ -314,14 +314,14 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
   let temp_env, param = add_type_param env poly_param in
   let ctors =
     List.map
-      (fun { Ast.name = _, ctorname; typ_annot } ->
+      (fun { Ast.name = _, cname; typ_annot } ->
         match typ_annot with
         | None ->
             (* Just a ctor, without data *)
-            { ctorname; ctortyp = None }
+            { cname; ctyp = None }
         | Some annot ->
             let typ = typeof_annot ~typedef:true temp_env loc [ annot ] in
-            { ctorname; ctortyp = Some typ })
+            { cname; ctyp = Some typ })
       ctors
     |> Array.of_list
   in

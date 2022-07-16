@@ -136,7 +136,7 @@ let rec cln = function
       let param = Option.map cln param in
       let fields =
         Array.map
-          (fun field -> { typ = cln Types.(field.typ); mut = field.mut })
+          (fun field -> { ftyp = cln Types.(field.ftyp); mut = field.mut })
           fields
       in
       Trecord (param, name, fields)
@@ -145,10 +145,7 @@ let rec cln = function
       let ctors =
         Array.map
           (fun ctor ->
-            {
-              ctorname = Types.(ctor.ctorname);
-              ctortyp = Option.map cln ctor.ctortyp;
-            })
+            { cname = Types.(ctor.cname); ctyp = Option.map cln ctor.ctyp })
           ctors
       in
       Tvariant (param, name, ctors)
@@ -225,8 +222,8 @@ let subst_type ~concrete poly parent =
       when is_type_polymorphic l ->
         let labels = Array.copy l1 in
         let f (subst, i) (label : Cleaned_types.field) =
-          let subst, t = inner subst (label.typ, l2.(i).typ) in
-          labels.(i) <- Cleaned_types.{ (labels.(i)) with typ = t };
+          let subst, ftyp = inner subst (label.ftyp, l2.(i).ftyp) in
+          labels.(i) <- Cleaned_types.{ (labels.(i)) with ftyp };
           (subst, i + 1)
         in
         let subst, _ = Array.fold_left f (subst, 0) l1 in
@@ -236,14 +233,14 @@ let subst_type ~concrete poly parent =
       when is_type_polymorphic l ->
         let ctors = Array.copy l1 in
         let f (subst, i) (ctor : Cleaned_types.ctor) =
-          let subst, t =
-            match (ctor.ctortyp, l2.(i).ctortyp) with
+          let subst, ctyp =
+            match (ctor.ctyp, l2.(i).ctyp) with
             | Some l, Some r ->
                 let subst, t = (inner subst) (l, r) in
                 (subst, Some t)
             | _ -> (subst, None)
           in
-          ctors.(i) <- Cleaned_types.{ (ctors.(i)) with ctortyp = t };
+          ctors.(i) <- Cleaned_types.{ (ctors.(i)) with ctyp };
           (subst, i + 1)
         in
         let subst, _ = Array.fold_left f (subst, 0) l1 in
@@ -268,12 +265,12 @@ let subst_type ~concrete poly parent =
         in
         Tfun (ps, subst r, kind)
     | Trecord (Some p, record, labels) as t when is_type_polymorphic t ->
-        let f field = Cleaned_types.{ field with typ = subst field.typ } in
+        let f field = Cleaned_types.{ field with ftyp = subst field.ftyp } in
         let labels = Array.map f labels in
         Trecord (Some (subst p), record, labels)
     | Tvariant (Some p, variant, ctors) as t when is_type_polymorphic t ->
         let f ctor =
-          Cleaned_types.{ ctor with ctortyp = Option.map subst ctor.ctortyp }
+          Cleaned_types.{ ctor with ctyp = Option.map subst ctor.ctyp }
         in
         let ctors = Array.map f ctors in
         Tvariant (Some (subst p), variant, ctors)

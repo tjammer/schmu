@@ -115,9 +115,9 @@ top_item:
   | Open; Uppercase_id { $2 }
 
 %inline ctordef:
-  | ctor; option(ctortyp) { { name = $1; typ_annot = $2 } }
+  | ctor; option(ctyp) { { name = $1; typ_annot = $2 } }
 
-%inline ctortyp:
+%inline ctyp:
   | Lpar; type_func; Rpar { $2 }
 
 %inline typename:
