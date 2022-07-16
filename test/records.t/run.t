@@ -554,9 +554,9 @@ Regression test: Closures for records used to use store/load like for register v
 Regression test: Return allocas were propagated by lets to values earlier in a function.
 This caused stores to a wrong pointer type in LLVM
   $ schmu --dump-llvm stub.o nested_init_let.smu && ./nested_init_let
-  nested_init_let.smu:12:3: warning: Unused binding a
-  12 |   a = { y = { x = 1 }, z = 2 }
-         ^
+  nested_init_let.smu:12:7: warning: Unused binding a
+  12 |   val a = { y = { x = 1 }, z = 2 }
+             ^
   
   ; ModuleID = 'context'
   source_filename = "context"

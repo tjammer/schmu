@@ -8,7 +8,7 @@ fun do(a, b) =
     _, None -> 0
   |> printf("%i\n".cstr)
 
-none_int : option(int) = None
+val none_int : option(int) = None
 
 do(Some(1), Some(2))
 do(none_int, Some(2))

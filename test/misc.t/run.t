@@ -67,45 +67,45 @@ Test simple typedef
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
   $ schmu --dump-llvm stub.o free_vector.smu && ./free_vector
-  free_vector.smu:7:1: warning: Unused binding vec
-  7 | vec = ["hey", "young", "world"]
-      ^^^
+  free_vector.smu:7:5: warning: Unused binding vec
+  7 | val vec = ["hey", "young", "world"]
+          ^^^
   
-  free_vector.smu:8:1: warning: Unused binding vec
-  8 | vec = [x, {x = 2}, {x = 3}]
-      ^^^
+  free_vector.smu:8:5: warning: Unused binding vec
+  8 | val vec = [x, {x = 2}, {x = 3}]
+          ^^^
   
-  free_vector.smu:48:1: warning: Unused binding vec
-  48 | vec = make_vec()
-       ^^^
+  free_vector.smu:48:5: warning: Unused binding vec
+  48 | val vec = make_vec()
+           ^^^
   
-  free_vector.smu:51:1: warning: Unused binding normal
-  51 | normal = nest_fns()
-       ^^^^^^
+  free_vector.smu:51:5: warning: Unused binding normal
+  51 | val normal = nest_fns()
+           ^^^^^^
   
-  free_vector.smu:55:1: warning: Unused binding nested
-  55 | nested = make_nested_vec()
-       ^^^^^^
+  free_vector.smu:55:5: warning: Unused binding nested
+  55 | val nested = make_nested_vec()
+           ^^^^^^
   
-  free_vector.smu:56:1: warning: Unused binding nested
-  56 | nested = nest_allocs()
-       ^^^^^^
+  free_vector.smu:56:5: warning: Unused binding nested
+  56 | val nested = nest_allocs()
+           ^^^^^^
   
-  free_vector.smu:59:1: warning: Unused binding rec_of_vec
-  59 | rec_of_vec = { index = 12, vec = [1, 2]}
-       ^^^^^^^^^^
+  free_vector.smu:59:5: warning: Unused binding rec_of_vec
+  59 | val rec_of_vec = { index = 12, vec = [1, 2]}
+           ^^^^^^^^^^
   
-  free_vector.smu:60:1: warning: Unused binding rec_of_vec
-  60 | rec_of_vec = record_of_vecs()
-       ^^^^^^^^^^
+  free_vector.smu:60:5: warning: Unused binding rec_of_vec
+  60 | val rec_of_vec = record_of_vecs()
+           ^^^^^^^^^^
   
-  free_vector.smu:62:1: warning: Unused binding vec_of_rec
-  62 | vec_of_rec = [record_of_vecs(), record_of_vecs()]
-       ^^^^^^^^^^
+  free_vector.smu:62:5: warning: Unused binding vec_of_rec
+  62 | val vec_of_rec = [record_of_vecs(), record_of_vecs()]
+           ^^^^^^^^^^
   
-  free_vector.smu:63:1: warning: Unused binding vec_of_rec
-  63 | vec_of_rec = vec_of_records()
-       ^^^^^^^^^^
+  free_vector.smu:63:5: warning: Unused binding vec_of_rec
+  63 | val vec_of_rec = vec_of_records()
+           ^^^^^^^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -1214,21 +1214,21 @@ Test 'and', 'or' and 'not'
 
 
   $ schmu --dump-llvm stub.o unary_minus.smu && ./unary_minus
-  unary_minus.smu:1:1: warning: Unused binding a
-  1 | a = -1.0
-      ^
+  unary_minus.smu:1:5: warning: Unused binding a
+  1 | val a = -1.0
+          ^
   
-  unary_minus.smu:2:1: warning: Unused binding a
-  2 | a = -.1.0
-      ^
+  unary_minus.smu:2:5: warning: Unused binding a
+  2 | val a = -.1.0
+          ^
   
-  unary_minus.smu:3:1: warning: Unused binding a
-  3 | a = - 1.0
-      ^
+  unary_minus.smu:3:5: warning: Unused binding a
+  3 | val a = - 1.0
+          ^
   
-  unary_minus.smu:4:1: warning: Unused binding a
-  4 | a = -. 1.0
-      ^
+  unary_minus.smu:4:5: warning: Unused binding a
+  4 | val a = -. 1.0
+          ^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -1249,33 +1249,33 @@ Test 'and', 'or' and 'not'
 
 Test unused binding warning
   $ schmu unused.smu stub.o
-  unused.smu:2:1: warning: Unused binding unused1
-  2 | unused1 = 0
-      ^^^^^^^
+  unused.smu:2:5: warning: Unused binding unused1
+  2 | val unused1 = 0
+          ^^^^^^^
   
-  unused.smu:5:1: warning: Unused binding unused2
-  5 | unused2 = 0
-      ^^^^^^^
+  unused.smu:5:5: warning: Unused binding unused2
+  5 | val unused2 = 0
+          ^^^^^^^
   
   unused.smu:12:5: warning: Unused binding use_unused3
   12 | fun use_unused3() =
            ^^^^^^^^^^^
   
-  unused.smu:17:3: warning: Unused binding unused4
-  17 |   unused4 = 0
-         ^^^^^^^
+  unused.smu:17:7: warning: Unused binding unused4
+  17 |   val unused4 = 0
+             ^^^^^^^
   
-  unused.smu:20:3: warning: Unused binding unused5
-  20 |   unused5 = 0
-         ^^^^^^^
+  unused.smu:20:7: warning: Unused binding unused5
+  20 |   val unused5 = 0
+             ^^^^^^^
   
-  unused.smu:33:3: warning: Unused binding usedlater
-  33 |   usedlater = 0
-         ^^^^^^^^^
+  unused.smu:33:7: warning: Unused binding usedlater
+  33 |   val usedlater = 0
+             ^^^^^^^^^
   
-  unused.smu:47:3: warning: Unused binding usedlater
-  47 |   usedlater = 0
-         ^^^^^^^^^
+  unused.smu:47:7: warning: Unused binding usedlater
+  47 |   val usedlater = 0
+             ^^^^^^^^^
   
 Allow declaring a c function with a different name
   $ schmu stub.o cname_decl.smu && ./cname_decl

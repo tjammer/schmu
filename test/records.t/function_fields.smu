@@ -2,7 +2,7 @@ external printi : int -> unit
 
 type state = { cnt : int, next : int -> int }
 
-state = { cnt = 0, next = fun(x) -> x + 1 }
+val state = { cnt = 0, next = fun(x) -> x + 1 }
 
 fun advance(state) =
   { cnt = state.next(state.cnt), next = state.next }

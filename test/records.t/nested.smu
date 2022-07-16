@@ -11,8 +11,8 @@ type foo = { a : int, b : inner }
 
 fun inner() = { a = 3 }
 
-f = fun(x) -> x
+val f = fun(x) -> x
 
-a = { a = 0, b = inner() }
+val a = { a = 0, b = inner() }
 printi(a.b.a)
 printi(f({ x = 17, inner = { a = { a = 124 } } }).inner.a.a)

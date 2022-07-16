@@ -9,7 +9,7 @@ fun pass(x) =
   -- as a generic variable and then copied trivially
   { first = x.first, gen = x.gen, third = x.third }
 
-int_t = { first = 700, gen = 20, third = false }
+val int_t = { first = 700, gen = 20, third = false }
 
 printi(apply(pass, int_t).first)
 printi(apply(pass, { first = 234, gen = false, third = true }).first)

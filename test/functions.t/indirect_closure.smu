@@ -11,10 +11,10 @@ fun add1(x : int) -> int =
   x + 1
 
 fun boxed2int_int(t, env) =
-  a = env(t.x)
+  val a = env(t.x)
   { x = a }
 
-a = apply({x = 15}, boxed2int_int, add1).x
+val a = apply({x = 15}, boxed2int_int, add1).x
 printi(a)
-b = apply2({x = 15}, boxed2int_int, add1).x
+val b = apply2({x = 15}, boxed2int_int, add1).x
 printi(b)

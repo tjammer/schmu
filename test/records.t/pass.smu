@@ -4,5 +4,5 @@ type foo = { x : int, y : int }
 
 fun pass_to_func(a) = printi(a.y)
 
-a = { y = 20, x = 10 }
+val a = { y = 20, x = 10 }
 pass_to_func(a)

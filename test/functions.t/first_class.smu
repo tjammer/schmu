@@ -8,7 +8,7 @@ fun add1(x) = x + 1
 fun pass(x) = x
 
 -- ...and a lambda
-pass2 = fun(x) -> x
+val pass2 = fun(x) -> x
 
 fun makefalse(b) =
   if b then false

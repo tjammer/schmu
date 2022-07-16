@@ -1,14 +1,14 @@
 external printi : int -> unit
 
-fun vector_push(vec, val) =
+fun vector_push(vec, v) =
   if vec.length < vec.capacity then
-    __unsafe_ptr_set(vec.data, vec.length, val)
+    __unsafe_ptr_set(vec.data, vec.length, v)
     vec.length <- vec.length + 1
   else
-    cap = vec.capacity * 2
+    val cap = vec.capacity * 2
     vec.data <- __realloc(vec.data, cap)
     vec.capacity <- cap
-    __unsafe_ptr_set(vec.data, vec.length, val)
+    __unsafe_ptr_set(vec.data, vec.length, v)
     vec.length <- vec.length + 1
 
 fun vector_iter(vec, f) =
@@ -38,7 +38,7 @@ fun vector_iter(vec, f) =
   inner_cls_f(0, vec)
 
 
-vec = []
+val vec = []
 vector_push(vec, 1)
 vector_push(vec, 2)
 vector_push(vec, 3)

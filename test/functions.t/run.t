@@ -309,7 +309,7 @@ We don't allow returning closures
   $ schmu --dump-llvm stub.o no_closure_returns.smu && ./no_closure_returns
   no_closure_returns.smu:8:3: error: Cannot (yet) return a closure
    8 | ..fun() ->
-   9 |     a = fun() -> a
+   9 |     val a = fun() -> a
   10 |     a
   
   [1]
@@ -880,9 +880,9 @@ Closures can recurse too
 
 Print error when returning a polymorphic lambda in an if expression
   $ schmu --dump-llvm stub.o no_lambda_let_poly_monomorph.smu
-  no_lambda_let_poly_monomorph.smu:6:5: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though.
-  6 | f = if true then fun(x) -> x else fun(x) -> x
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  no_lambda_let_poly_monomorph.smu:6:9: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though.
+  6 | val f = if true then fun(x) -> x else fun(x) -> x
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
   [1]
 Allow mixing of typedefs and external decls in the preface
@@ -1123,7 +1123,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   }
   
-  define void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 %val) {
+  define void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 %v) {
   entry:
     %0 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
     %1 = load i64, i64* %0, align 4
@@ -1136,7 +1136,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %4 = bitcast %vector_int* %vec to i64**
     %5 = load i64*, i64** %4, align 8
     %6 = getelementptr inbounds i64, i64* %5, i64 %1
-    store i64 %val, i64* %6, align 4
+    store i64 %v, i64* %6, align 4
     %7 = bitcast %vector_int* %vec to i8*
     %sunkaddr = getelementptr inbounds i8, i8* %7, i64 8
     %8 = bitcast i8* %sunkaddr to i64*
@@ -1163,7 +1163,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %19 = bitcast i8* %sunkaddr3 to i64*
     %20 = load i64, i64* %19, align 4
     %21 = getelementptr inbounds i64, i64* %15, i64 %20
-    store i64 %val, i64* %21, align 4
+    store i64 %v, i64* %21, align 4
     %22 = load i64, i64* %19, align 4
     %add1 = add i64 %22, 1
     store i64 %add1, i64* %19, align 4

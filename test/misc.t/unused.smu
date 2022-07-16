@@ -1,49 +1,49 @@
 -- default unused
-unused1 = 0
+val unused1 = 0
 
 -- will be shadowed before usage
-unused2 = 0
-unused2 = 0
+val unused2 = 0
+val unused2 = 0
 unused2 |. ignore
 
 -- use in closure
-used3 = 0
+val used3 = 0
 
 fun use_unused3() =
   -- TODO Should we mark this as used only if the function is used?
   ignore(used3)
 
 if true then
-  unused4 = 0
+  val unused4 = 0
   0
 else
-  unused5 = 0
+  val unused5 = 0
   0
 |. ignore
 
 if true then
-  used1 = 0
+  val used1 = 0
   used1 |. ignore
 else
-  used2 = 0
+  val used2 = 0
   used2 |. ignore
 
 if true then
   -- unused here, should be warned
-  usedlater = 0
+  val usedlater = 0
   0
 else
-  usedlater = 0
+  val usedlater = 0
   ignore(usedlater)
   0
 |. ignore
 
 if true then
-  usedlater = 0
+  val usedlater = 0
   ignore(usedlater)
   0
 else
   -- unused here, should be warned
-  usedlater = 0
+  val usedlater = 0
   0
 |. ignore

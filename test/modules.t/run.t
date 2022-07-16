@@ -1,8 +1,8 @@
 Simplest module with 1 type and 1 nonpolymorphic function
   $ schmu nonpoly_func.smu -m --dump-llvm
-  nonpoly_func.smu:5:3: warning: Unused binding c
-  5 |   c = 10
-        ^
+  nonpoly_func.smu:5:7: warning: Unused binding c
+  5 |   val c = 10
+            ^
   
   ; ModuleID = 'context'
   source_filename = "context"

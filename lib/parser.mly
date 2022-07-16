@@ -67,6 +67,7 @@
 %token Eof
 %token External
 %token Fun
+%token Val
 %token Type
 %token Quote
 %token Pipe_head
@@ -131,7 +132,7 @@ block:
   | Begin; nonempty_list(stmt); End { $2 }
 
 stmt:
-  | decl; Equal; block { Let($loc, $1, $3) }
+  | Val; decl; Equal; block { Let($loc, $2, $4) }
   | Fun; ident; parens(decl); option(return_annot); Equal; block
     { Function ($loc, {name = $2; params = $3; return_annot = $4; body = $6}) }
   | expr { Expr ($loc, $1) }

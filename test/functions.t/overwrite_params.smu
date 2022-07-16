@@ -1,7 +1,7 @@
 external printi : int -> unit
 
 -- b is captured by two()
-b = 2
+val b = 2
 
 fun one() = 1
 

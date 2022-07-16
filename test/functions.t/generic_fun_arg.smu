@@ -6,7 +6,7 @@ type t('a) = { x : 'a }
 fun apply(x: 'a, f : 'a -> 'b) =
   f(x)
 
-a = 2
+val a = 2
 
 fun add_closed(x) =
   -- we close over a
@@ -33,7 +33,7 @@ fun make_rec_false(r) =
 fun add3_rec(t) = { x = t.x + 3 }
 
 -- A polymorphic function which will get monomorphized
-f = fun(x) -> x
+val f = fun(x) -> x
 
 printi(apply(20, add1))
 printi(apply(20, add_closed))

@@ -59,7 +59,7 @@ rule read =
   | "or"     { Or }
   | '='      { Equal }
   | "=="     { Bin_equal_i }
-  | "==."     { Bin_equal_f }
+  | "==."    { Bin_equal_f }
   | ','      { Comma }
   | ':'      { Colon }
   | '|'      { Bar }
@@ -70,11 +70,12 @@ rule read =
   | "elseif" { Elseif }
   | "external" { External }
   | "fun"    { Fun }
+  | "val"    { Val }
   | "type"   { Type }
   | "mutable" { Mutable }
   | "match"  { Match }
   | "with"   { With }
-  | "open" { Open }
+  | "open"   { Open }
   | '_'      { Wildcard }
   | lowercase_id       { Lowercase_id (Lexing.lexeme lexbuf) }
   | uppercase_id       { Uppercase_id (Lexing.lexeme lexbuf) }
@@ -102,7 +103,7 @@ rule read =
   | "->"     { Arrow_right }
   | "<-"     { Arrow_left }
   | "|."     { Pipe_head }
-  | "|>"    { Pipe_tail }
+  | "|>"     { Pipe_tail }
   | "--"     { line_comment lexbuf }
   | eof      { Eof }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

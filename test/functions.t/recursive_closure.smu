@@ -1,6 +1,6 @@
 external printi : int -> unit
 
-outer = 10
+val outer = 10
 
 fun loop(i) =
   -- We capture outer here

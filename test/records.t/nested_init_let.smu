@@ -3,20 +3,20 @@ type ys = { y : foo, z : int }
 external printi : int -> unit
 
 fun record_with_laters() =
-  x = { x = 12 }
+  val x = { x = 12 }
   { y = x, z = 15 }
 
 fun ctrl() =
   -- control case. Here everything can be created inplace
-  ret = { y = { x = 17 }, z = 9 }
-  a = { y = { x = 1 }, z = 2 }
+  val ret = { y = { x = 17 }, z = 9 }
+  val a = { y = { x = 1 }, z = 2 }
   ret
 
-ys = record_with_laters()
+val ys = record_with_laters()
 printi(ys.z)
 printi(ys.y.x)
 -- should print 17 and 9
-ctrl = ctrl()
+val ctrl = ctrl()
 printi(ctrl.y.x)
 printi(ctrl.z)
 0

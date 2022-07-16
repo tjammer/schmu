@@ -3,8 +3,8 @@ type to_capture = { mutable field : int }
 
 -- Wrap into function because globals are not captured
 fun main_() =
-  a = { field = 1 }
+  val a = { field = 1 }
 
   fun() ->
-    a = fun() -> a
+    val a = fun() -> a
     a

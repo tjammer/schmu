@@ -5,5 +5,5 @@ type misaligned('a) = { fst : inner, gen : 'a }
 
 fun gen(any) = any.gen
 
-m = { fst = { fst = 50, snd = 40}, gen = 30 }
+val m = { fst = { fst = 50, snd = 40}, gen = 30 }
 printi(gen(m))

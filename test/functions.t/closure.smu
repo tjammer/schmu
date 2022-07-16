@@ -1,5 +1,5 @@
 type capturable = { mutable a : int }
-a = { a = 10 }
+val a = { a = 10 }
 
 fun capture_a() = a.a + 2
 

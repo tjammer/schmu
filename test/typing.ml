@@ -13,28 +13,28 @@ let test_exn msg src =
   (check string) "" msg
     (try get_type src with Typed_tree.Error (_, msg) -> msg)
 
-let test_const_int () = test "int" "a = 1 a"
-let test_const_neg_int () = test "int" "a = -1 a"
+let test_const_int () = test "int" "val a = 1 a"
+let test_const_neg_int () = test "int" "val a = -1 a"
 
 let test_const_neg_int_wrong () =
   test_exn "Unary -: Expected types int or float but got type bool"
-    "a = -true a"
+    "val a = -true a"
 
-let test_const_neg_int2 () = test "int" "a = - 1 a"
-let test_const_float () = test "float" "a = 1.0 a"
-let test_const_neg_float () = test "float" "a = -1.0 a"
+let test_const_neg_int2 () = test "int" "val a = - 1 a"
+let test_const_float () = test "float" "val a = 1.0 a"
+let test_const_neg_float () = test "float" "val a = -1.0 a"
 
 let test_const_neg_float_wrong () =
-  test_exn "Unary -.: Expected type float but got type bool" "a = -.true a"
+  test_exn "Unary -.: Expected type float but got type bool" "val a = -.true a"
 
-let test_const_neg_float2 () = test "float" "a = -.1.0 a"
-let test_const_bool () = test "bool" "a = true a"
-let test_const_u8 () = test "u8" "a = 123u8 a"
-let test_const_i32 () = test "i32" "a = 123i32 a"
-let test_const_neg_i32 () = test "i32" "a = -123i32 a"
-let test_const_f32 () = test "f32" "a = 1.0f32 a"
-let test_const_neg_f32 () = test "f32" "a = -1.0f32 a"
-let test_hint_int () = test "int" "a : int = 1 a"
+let test_const_neg_float2 () = test "float" "val a = -.1.0 a"
+let test_const_bool () = test "bool" "val a = true a"
+let test_const_u8 () = test "u8" "val a = 123u8 a"
+let test_const_i32 () = test "i32" "val a = 123i32 a"
+let test_const_neg_i32 () = test "i32" "val a = -123i32 a"
+let test_const_f32 () = test "f32" "val a = 1.0f32 a"
+let test_const_neg_f32 () = test "f32" "val a = -1.0f32 a"
+let test_hint_int () = test "int" "val a : int = 1 a"
 let test_func_id () = test "'a -> 'a" "fun(a) -> a"
 let test_func_id_hint () = test "int -> int" "fun(a : int) -> a"
 let test_func_int () = test "int -> int" "fun(a) -> a + 1"
@@ -51,8 +51,8 @@ let test_func_1st_hint () =
 
 let test_func_1st_stay_general () =
   test "('a, 'a -> 'b) -> 'b"
-    "fun foo(x, f) = f(x) fun add1(x) = x + 1 a = foo(1, add1) fun boolean(x : \
-     bool) = x b = foo(true, boolean) foo"
+    "fun foo(x, f) = f(x) fun add1(x) = x + 1 val a = foo(1, add1) fun \
+     boolean(x : bool) = x val b = foo(true, boolean) foo"
 
 let test_func_recursive_if () =
   test "int -> unit"
@@ -92,7 +92,7 @@ let test_record_wrong_choose () =
      true}"
 
 let test_record_field_simple () =
-  test "int" "type t = {x : int} a = {x = 10} a.x"
+  test "int" "type t = {x : int} val a = {x = 10} a.x"
 
 let test_record_field_infer () =
   test "t -> int" "type t = {x : int} fun(a) -> a.x"
@@ -112,36 +112,38 @@ let test_record_nested_field_generic () =
 
 let test_record_field_no_record () =
   test_exn "Field access of record t: Expected type t but got type int"
-    "type t = {x : int} a = 10 a.x"
+    "type t = {x : int} val a = 10 a.x"
 
 let test_record_field_wrong_record () =
   test_exn "Application: Expected type t1 -> int but got type t2 -> 'a"
-    "type t1 = {x : int} type t2 = {y:int} fun foo(a) = a.x b = {y = 10} foo(b)"
+    "type t1 = {x : int} type t2 = {y:int} fun foo(a) = a.x val b = {y = 10} \
+     foo(b)"
 
 let test_annot_concrete () = test "int -> bool" "fun foo(x) -> bool = x < 3 foo"
 
 let test_annot_concrete_fail () =
   test_exn "Var annotation: Expected type bool -> int but got type int -> bool"
-    "foo : bool -> int = fun(x) -> x < 3 foo"
+    "val foo : bool -> int = fun(x) -> x < 3 foo"
 
 let test_annot_mix () = test "'a -> 'a" "fun pass(x : 'b) -> 'b = x pass"
 
 let test_annot_mix_fail () =
   test_exn "Var annotation: Expected type 'b -> int but got type 'b -> 'b"
-    "pass : 'b -> int = fun(x) -> x pass"
+    "val pass : 'b -> int = fun(x) -> x pass"
 
 let test_annot_generic () = test "'a -> 'a" "fun pass(x : 'b) -> 'b = x pass"
 
 let test_annot_generic_fail () =
   test_exn "Var annotation: Expected type 'a -> 'b but got type 'a -> 'a"
-    "pass : 'a -> 'b = fun(x) -> x pass"
+    "val pass : 'a -> 'b = fun(x) -> x pass"
 
 let test_annot_record_simple () =
-  test "a" "type a = { x : int } type b = { x : int } a : a = { x = 12 } a"
+  test "a" "type a = { x : int } type b = { x : int } val a : a = { x = 12 } a"
 
 let test_annot_record_generic () =
   test "a(bool)"
-    "type a('a) = { x : 'a } type b = { x : int } a : a(bool) = { x = true } a"
+    "type a('a) = { x : 'a } type b = { x : int } val a : a(bool) = { x = true \
+     } a"
 
 let test_sequence () =
   test "int" "external printi : int -> unit printi(20) 1 + 1"
@@ -154,8 +156,8 @@ let test_sequence_fail () =
 
 let test_para_instantiate () =
   test "foo(int)"
-    "type foo('a) = { first : int, gen : 'a } foo = { first = 10, gen = 20 } \
-     foo"
+    "type foo('a) = { first : int, gen : 'a } val foo = { first = 10, gen = 20 \
+     } foo"
 
 let test_para_gen_fun () =
   test "foo('a) -> int"
@@ -166,19 +168,19 @@ let test_para_gen_return () =
 
 let test_para_multiple () =
   test "bool"
-    "type foo('a) = { gen : 'a } fun get(foo) = foo.gen a = { gen = 12 } b : \
-     int = get(a) c = { gen = false } get(c)"
+    "type foo('a) = { gen : 'a } fun get(foo) = foo.gen val a = { gen = 12 } \
+     val b : int = get(a) val c = { gen = false } get(c)"
 
 let test_para_instance_func () =
   test "foo(int) -> int"
-    "type foo('a) = { gen : 'a } fun use(foo) = foo.gen + 17 foo = { gen = 17 \
-     } use"
+    "type foo('a) = { gen : 'a } fun use(foo) = foo.gen + 17 val foo = { gen = \
+     17 } use"
 
 let test_para_instance_wrong_func () =
   test_exn
     "Application: Expected type foo(int) -> int but got type foo(bool) -> 'a"
-    "type foo('a) = { gen : 'a } fun use(foo) = foo.gen + 17 foo = { gen = 17 \
-     } use( { gen = true } )"
+    "type foo('a) = { gen : 'a } fun use(foo) = foo.gen + 17 val foo = { gen = \
+     17 } use( { gen = true } )"
 
 let test_pipe_head_single () = test "int" "fun add1(a) = a + 1 10|.add1"
 let test_pipe_head_single_call () = test "int" "fun add1(a) = a + 1 10|.add1()"
@@ -188,7 +190,7 @@ let test_pipe_head_multi_call () =
 
 let test_pipe_head_single_wrong_type () =
   test_exn "Application: Expected type int -> 'a but got type int"
-    "add1 = 1 10|.add1"
+    "val add1 = 1 10|.add1"
 
 let test_pipe_head_mult () = test "int" "fun add(a, b) = a + b 10|.add(12)"
 
@@ -201,7 +203,7 @@ let test_pipe_tail_single_call () = test "int" "fun add1(a) = a + 1 10|>add1()"
 
 let test_pipe_tail_single_wrong_type () =
   test_exn "Application: Expected type int -> 'a but got type int"
-    "add1 = 1 10|>add1"
+    "val add1 = 1 10|>add1"
 
 let test_pipe_tail_mult () = test "int" "fun add(a, b) = a + b 10|>add(12)"
 
@@ -235,14 +237,14 @@ let test_vector_lit () =
 let test_vector_var () =
   test "vector(int)"
     {|type vector('a) = { data : ptr('a), length : int }
-    a = [0,1]
+    val a = [0,1]
     a|}
 
 let test_vector_weak () =
   test "vector(int)"
     {|type vector('a) = { data : ptr('a), length : int }
     external set : (vector('a), 'a) -> unit
-    a = []
+    val a = []
     set(a, 2)
     a|}
 
@@ -254,7 +256,7 @@ let test_vector_different_types () =
 let test_vector_different_annot () =
   test_exn "Var annotation: Expected type vector(bool) but got type vector(int)"
     {|type vector('a) = { data : ptr('a), length : int }
-    a : vector(bool) = [0,1]
+    val a : vector(bool) = [0,1]
     a|}
 
 let test_vector_different_annot_weak () =
@@ -263,7 +265,7 @@ let test_vector_different_annot_weak () =
      (vector(bool), int) -> 'a"
     {|type vector('a) = { data : ptr('a), length : int }
     external set : (vector('a), 'a) -> unit
-    a : vector(bool) = []
+    val a : vector(bool) = []
     set(a, 2)|}
 
 let test_vector_different_weak () =
@@ -272,22 +274,22 @@ let test_vector_different_weak () =
      (vector(int), bool) -> 'a"
     {|type vector('a) = { data : ptr('a), length : int }
     external set : (vector('a), 'a) -> unit
-    a =[]
+    val a = []
     set(a, 2)
     set(a, true)|}
 
 let test_mutable_declare () = test "int" "type foo = { mutable x : int } 0"
 
 let test_mutable_set () =
-  test "unit" "type foo = { mutable x : int } foo = { x = 12 } foo.x <- 13"
+  test "unit" "type foo = { mutable x : int } val foo = { x = 12 } foo.x <- 13"
 
 let test_mutable_set_wrong_type () =
   test_exn "Mutate field x: Expected type int but got type bool"
-    "type foo = { mutable x : int } foo = { x = 12 } foo.x <- true"
+    "type foo = { mutable x : int } val foo = { x = 12 } foo.x <- true"
 
 let test_mutable_set_non_mut () =
   test_exn "Cannot mutate non-mutable field x"
-    "type foo = { x : int } foo = { x = 12} foo.x <- 13"
+    "type foo = { x : int } val foo = { x = 12} foo.x <- 13"
 
 let test_variants_option_none () =
   test "option('a)" "type option('a) = None | Some('a) None"
@@ -297,11 +299,11 @@ let test_variants_option_some () =
 
 let test_variants_option_some_some () =
   test "option(option(float))"
-    "type option('a) = None | Some('a) a = Some(1.0) Some(a)"
+    "type option('a) = None | Some('a) val a = Some(1.0) Some(a)"
 
 let test_variants_option_annot () =
   test "option(option(float))"
-    "type option('a) = None | Some('a) a : option(float) = None Some(a)"
+    "type option('a) = None | Some('a) val a : option(float) = None Some(a)"
 
 let test_variants_option_none_arg () =
   test_exn

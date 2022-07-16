@@ -3,5 +3,5 @@ external printi : int -> unit
 type foo = { x : bool, y : int }
 
 -- The fields don't need to be given in order
-a = { y = 10, x = true }
+val a = { y = 10, x = true }
 printi(a.y)
