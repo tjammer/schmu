@@ -8,17 +8,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__nonpoly_func_init, i8* null }]
-  
   define i64 @schmu_add_ints(i64 %a, i64 %b) {
   entry:
     %add = add i64 %a, %b
     ret i64 %add
-  }
-  
-  define internal void @__nonpoly_func_init() section ".text.startup" {
-  entry:
-    ret void
   }
   $ cat nonpoly_func.smi
   ((5:Mtype(8:Tvariant()6:either(((8:ctorname4:Left)(7:ctortyp()))((8:ctorname5:Right)(7:ctortyp())))))(4:Mfun(4:Tfun(4:Tint4:Tint)4:Tint6:Simple)8:add_ints))
@@ -238,13 +231,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-  
-  @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__poly_func_init, i8* null }]
-  
-  define internal void @__poly_func_init() section ".text.startup" {
-  entry:
-    ret void
-  }
   $ cat poly_func.smi
   ((9:Mpoly_fun((7:nparams(5:thing))(4:body((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(4:Link(8:Tvariant((4:Tvar(4:Link(4:Tvar(7:Unbound2:481:2)))))6:option(((8:ctorname4:Some)(7:ctortyp((4:Tvar(4:Link(4:Tvar(7:Unbound2:481:2)))))))((8:ctorname4:None)(7:ctortyp())))))))(4:expr(3:Var5:thing))(4:attr((5:const5:false)(6:global5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(2:If((3:typ5:Tbool)(4:expr(3:Bop7:Equal_i((3:typ4:Ti32)(4:expr(13:Variant_index((3:typ(8:Tvariant((4:Tvar(4:Link(4:Tvar(7:Unbound2:481:2)))))6:option(((8:ctorname4:Some)(7:ctortyp((4:Tvar(4:Link(4:Tvar(7:Unbound2:481:2)))))))((8:ctorname4:None)(7:ctortyp())))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Ti32)(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(4:Link(4:Tvar(7:Unbound2:481:2)))))(4:expr(12:Variant_data((3:typ(8:Tvariant((4:Tvar(4:Link(4:Tvar(7:Unbound2:481:2)))))6:option(((8:ctorname4:Some)(7:ctortyp((4:Tvar(4:Link(4:Tvar(7:Unbound2:481:2)))))))((8:ctorname4:None)(7:ctortyp())))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const4:true)(6:global5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(3:Let7:__expr0()((3:typ(8:Tvariant((4:Tvar(7:Unbound2:481:2)))6:option(((8:ctorname4:Some)(7:ctortyp((4:Tvar(7:Unbound2:481:2)))))((8:ctorname4:None)(7:ctortyp())))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false)))))(4:func((7:tparams((8:Tvariant((4:Qvar2:48))6:option(((8:ctorname4:Some)(7:ctortyp((4:Qvar2:48))))((8:ctorname4:None)(7:ctortyp()))))))(3:ret4:Tint)(4:kind6:Simple))))8:classify))
 

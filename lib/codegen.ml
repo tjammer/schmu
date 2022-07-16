@@ -1893,6 +1893,25 @@ let decl_external cname = function
       Strtbl.add const_tbl cname v;
       v
 
+let has_init_code tree =
+  let rec aux = function
+    (* We have to deal with 'toplevel' type nodes only *)
+    | Monomorph_tree.Mlet (name, _, gname, cont) -> (
+        let name = match gname with Some name -> name | None -> name in
+        match Strtbl.find_opt const_tbl name with
+        | Some thing -> (
+            match thing.const with
+            | Const | Const_ptr ->
+                (* is const, so no need to initialize *)
+                aux cont.expr
+            | Not -> true)
+        | None -> failwith "Internal Error: global value not found")
+    | Mfunction (_, _, cont) -> aux cont.expr
+    | Mconst Unit -> false
+    | _ -> true
+  in
+  aux Monomorph_tree.(tree.expr)
+
 let generate ~target ~outname ~release ~modul
     { Monomorph_tree.constants; globals; externals; typeinsts; tree; funcs } =
   (* Add record types.
@@ -1935,21 +1954,21 @@ let generate ~target ~outname ~release ~modul
       funcs
   in
 
-  (if not modul then
-   (* Add main *)
-   gen_function funcs ~mangle:C
-     {
-       name = { Monomorph_tree.user = "main"; call = "main" };
-       recursive = Rnone;
-       abs =
-         {
-           func = { params = [ Tint ]; ret = Tint; kind = Simple };
-           pnames = [ "arg" ];
-           body = { tree with typ = Tint };
-         };
-     }
-   |> ignore
-  else
+  if not modul then
+    (* Add main *)
+    gen_function funcs ~mangle:C
+      {
+        name = { Monomorph_tree.user = "main"; call = "main" };
+        recursive = Rnone;
+        abs =
+          {
+            func = { params = [ Tint ]; ret = Tint; kind = Simple };
+            pnames = [ "arg" ];
+            body = { tree with typ = Tint };
+          };
+      }
+    |> ignore
+  else if has_init_code tree then (
     (* Or module init *)
     let name = "__" ^ outname ^ "_init" in
     let p =
