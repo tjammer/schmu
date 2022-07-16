@@ -1,3 +1,6 @@
 type either = Left | Right
 
-fun add_ints(a, b) = a + b
+fun add_ints(a, b) =
+  -- add unused for to generate warning here
+  c = 10
+  a + b

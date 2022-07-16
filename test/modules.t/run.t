@@ -1,12 +1,14 @@
 Simplest module with 1 type and 1 nonpolymorphic function
   $ schmu nonpoly_func.smu -m --dump-llvm
-  nonpoly_func.smu:3:5: warning: Unused binding add_ints
-  3 | fun add_ints(a, b) = a + b
-          ^^^^^^^^
+  nonpoly_func.smu:5:3: warning: Unused binding c
+  5 |   c = 10
+        ^
   
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  @c = constant i64 10
   
   define i64 @schmu_add_ints(i64 %a, i64 %b) {
   entry:
@@ -109,22 +111,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   5
 
   $ schmu lets.smu -m --dump-llvm
-  lets.smu:1:1: warning: Unused binding a
-  1 | a = 12
-      ^
-  
-  lets.smu:3:10: warning: Unused binding printf
-  3 | external printf : (cstr, int) -> unit
-               ^^^^^^
-  
-  lets.smu:7:1: warning: Unused binding b
-  7 | b = generate_b()
-      ^
-  
-  lets.smu:9:1: warning: Unused binding a
-  9 | a = 11
-      ^
-  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -224,10 +210,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   21
 
   $ schmu -m --dump-llvm poly_func.smu
-  poly_func.smu:1:5: warning: Unused binding classify
-  1 | fun classify(thing) = match thing with
-          ^^^^^^^^
-  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

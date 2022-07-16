@@ -827,7 +827,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
   let items = !Module.poly_funcs @ items in
 
   let _, _, unused = Env.close_function env in
-  check_unused unused;
+  if not modul then check_unused unused;
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
