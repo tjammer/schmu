@@ -276,7 +276,7 @@ Nested pattern matching
     br label %ifcont15
   
   else:                                             ; preds = %then
-    %eq8 = icmp eq i32 %index2, 1
+    %eq8 = icmp eq i32 %index2, 42
     br i1 %eq8, label %then9, label %ifcont15
   
   then9:                                            ; preds = %else
@@ -318,7 +318,7 @@ Nested pattern matching
     store i32 0, i32* %tag728, align 4
     %data8 = getelementptr inbounds %option_test, %option_test* %option6, i32 0, i32 1
     %tag929 = bitcast %test* %data8 to i32*
-    store i32 1, i32* %tag929, align 4
+    store i32 42, i32* %tag929, align 4
     %data10 = getelementptr inbounds %test, %test* %data8, i32 0, i32 1
     %1 = bitcast double* %data10 to i64*
     store i64 2, i64* %1, align 4
@@ -334,7 +334,7 @@ Nested pattern matching
     store i32 0, i32* %tag1631, align 4
     %data17 = getelementptr inbounds %option_test, %option_test* %option15, i32 0, i32 1
     %tag1832 = bitcast %test* %data17 to i32*
-    store i32 2, i32* %tag1832, align 4
+    store i32 1, i32* %tag1832, align 4
     %3 = call i64 @schmu_do(%option_test* %option15)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %3)
     %str19 = alloca %string, align 8
@@ -450,3 +450,10 @@ Match multiple columns
   2
   1
   0
+
+  $ schmu custom_tag_reuse.smu
+  custom_tag_reuse.smu:1:25: error: Tag 1 already used for constructor A
+  1 | type tags = A : 1 | B | C : 1
+                              ^
+  
+  [1]

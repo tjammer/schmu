@@ -15,7 +15,6 @@ end
 
 module Strtbl = Hashtbl.Make (Str)
 module Smap = Types.Smap
-module Iset = Set.Make (Int)
 module Set = Set.Make (String)
 module Recs = Records
 module Pm = Patternmatching
@@ -315,25 +314,41 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
   let temp_env, param = add_type_param env poly_param in
 
   let next = ref (-1) in
-  let indices = ref Iset.empty in
-  let rec nexti () =
+  let indices = Hashtbl.create 32 in
+  let rec nexti name =
     incr next;
-    if Iset.mem !next !indices then nexti ()
+    if Hashtbl.mem indices !next then nexti name
     else (
-      indices := Iset.add !next !indices;
+      Hashtbl.add indices !next name;
       !next)
   in
+  let maybe_add_index name = function Some i -> i | None -> nexti name in
+
+  (* Prefill optional indices *)
+  List.iter
+    (fun { Ast.index; name; _ } ->
+      match index with
+      | Some i -> (
+          match Hashtbl.find_opt indices i with
+          | Some n ->
+              let msg =
+                Printf.sprintf "Tag %i already used for constructor %s" i n
+              in
+              raise (Error (fst name, msg))
+          | None -> Hashtbl.add indices i (snd name))
+      | None -> ())
+    ctors;
 
   let ctors =
     List.map
-      (fun { Ast.name = _, cname; typ_annot } ->
+      (fun { Ast.name = _, cname; typ_annot; index } ->
         match typ_annot with
         | None ->
             (* Just a ctor, without data *)
-            { cname; ctyp = None; index = nexti () }
+            { cname; ctyp = None; index = maybe_add_index cname index }
         | Some annot ->
             let typ = typeof_annot ~typedef:true temp_env loc [ annot ] in
-            { cname; ctyp = Some typ; index = nexti () })
+            { cname; ctyp = Some typ; index = maybe_add_index cname index })
       ctors
     |> Array.of_list
   in

@@ -115,10 +115,13 @@ top_item:
   | Open; Uppercase_id { $2 }
 
 %inline ctordef:
-  | ctor; option(ctyp) { { name = $1; typ_annot = $2 } }
+  | ctor; option(ctyp); option(tag) { { name = $1; typ_annot = $2; index = $3 } }
 
 %inline ctyp:
   | Lpar; type_func; Rpar { $2 }
+
+%inline tag:
+  | Colon; Int { $2 }
 
 %inline typename:
   | Lowercase_id; option(typedef_poly_id) { { name = $1; poly_param = string_of_ty_var $2 } }

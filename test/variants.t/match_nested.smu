@@ -1,6 +1,6 @@
 external printf : (cstr, int) -> unit
 
-type test = Float(float) | Int(int) | Non
+type test = Float(float) | Int(int) : 42 | Non
 
 fun do(m) = match m with
   Some(Float(f)) -> f |. int_of_float

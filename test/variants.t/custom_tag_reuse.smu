@@ -1,0 +1,1 @@
+type tags = A : 1 | B | C : 1
