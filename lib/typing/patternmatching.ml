@@ -39,7 +39,7 @@ let get_variant env loc name annot =
       (match annot with
       | Some t -> unify (loc, "In constructor " ^ snd name ^ ":") t variant
       | None -> ());
-      (Env.{ index; typename }, ctor, variant)
+      (typename, ctor, variant)
   | None ->
       let msg = "Unbound constructor " ^ snd name in
       raise (Error (loc, msg))
@@ -290,7 +290,7 @@ module Exhaustiveness = struct
   and complete_sig fstcl typstl patterns ctors =
     let exhs =
       List.map
-        (fun { cname; ctyp } ->
+        (fun { cname; ctyp; index = _ } ->
           let num = arg_to_num ctyp in
           ( cname,
             match specialize cname num patterns with
@@ -366,19 +366,17 @@ module Make (C : Core) = struct
     { typ = Tbool; expr = cmpexpr; attr = no_attr }
 
   let convert_ctor env loc name arg annot =
-    let Env.{ index; typename }, ctor, variant =
-      get_variant env loc name annot
-    in
+    let typename, ctor, variant = get_variant env loc name annot in
     match (ctor.ctyp, arg) with
     | Some typ, Some expr ->
         let texpr = convert env expr in
         unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
-        let expr = Ctor (typename, index, Some texpr) in
+        let expr = Ctor (typename, ctor.index, Some texpr) in
 
         Env.maybe_add_type_instance variant env;
         { typ = variant; expr; attr = no_attr }
     | None, None ->
-        let expr = Ctor (typename, index, None) in
+        let expr = Ctor (typename, ctor.index, None) in
         (* NOTE: Const handling for ctors is disabled, see #23 *)
         { typ = variant; expr; attr = no_attr }
     | None, Some _ ->
@@ -527,7 +525,7 @@ module Make (C : Core) = struct
         | Ctor { index; loc; name; d; patterns } ->
             let a, b = match_cases (index, name) ((patterns, d) :: tl) [] [] in
 
-            let l, ctor, variant = get_variant env d.loc (loc, name) None in
+            let _, ctor, variant = get_variant env d.loc (loc, name) None in
             unify
               (d.loc, "Variant pattern has unexpected type:")
               (expr index).typ variant;
@@ -543,7 +541,7 @@ module Make (C : Core) = struct
               match b with
               | [] -> ifexpr
               | b ->
-                  let cmp = gen_cmp (expr index) l.index in
+                  let cmp = gen_cmp (expr index) ctor.index in
                   let if_ = { cont with expr = ifexpr } in
                   let else_ = compile_matches env d.loc rows b ret_typ in
                   If (cmp, if_, else_)

@@ -15,7 +15,7 @@ type typ =
 
 and fun_kind = Simple | Closure of (string * typ) list
 and field = { ftyp : typ; mut : bool }
-and ctor = { cname : string; ctyp : typ option }
+and ctor = { cname : string; ctyp : typ option; index : int }
 
 let is_type_polymorphic typ =
   let rec inner acc = function

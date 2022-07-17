@@ -29,7 +29,7 @@ type typ =
 and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ
 and field = { fname : string; ftyp : typ; mut : bool }
-and ctor = { cname : string; ctyp : typ option }
+and ctor = { cname : string; ctyp : typ option; index : int }
 
 let rec clean = function
   | Tvar { contents = Link t } -> clean t

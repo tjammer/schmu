@@ -145,7 +145,11 @@ let rec cln = function
       let ctors =
         Array.map
           (fun ctor ->
-            { cname = Types.(ctor.cname); ctyp = Option.map cln ctor.ctyp })
+            {
+              cname = Types.(ctor.cname);
+              ctyp = Option.map cln ctor.ctyp;
+              index = ctor.index;
+            })
           ctors
       in
       Tvariant (param, name, ctors)

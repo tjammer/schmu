@@ -15,6 +15,7 @@ end
 
 module Strtbl = Hashtbl.Make (Str)
 module Smap = Types.Smap
+module Iset = Set.Make (Int)
 module Set = Set.Make (String)
 module Recs = Records
 module Pm = Patternmatching
@@ -312,16 +313,27 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
   check_type_unique env loc name;
   (* Temporarily add polymorphic type name to env *)
   let temp_env, param = add_type_param env poly_param in
+
+  let next = ref (-1) in
+  let indices = ref Iset.empty in
+  let rec nexti () =
+    incr next;
+    if Iset.mem !next !indices then nexti ()
+    else (
+      indices := Iset.add !next !indices;
+      !next)
+  in
+
   let ctors =
     List.map
       (fun { Ast.name = _, cname; typ_annot } ->
         match typ_annot with
         | None ->
             (* Just a ctor, without data *)
-            { cname; ctyp = None }
+            { cname; ctyp = None; index = nexti () }
         | Some annot ->
             let typ = typeof_annot ~typedef:true temp_env loc [ annot ] in
-            { cname; ctyp = Some typ })
+            { cname; ctyp = Some typ; index = nexti () })
       ctors
     |> Array.of_list
   in
