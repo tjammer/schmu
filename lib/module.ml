@@ -80,7 +80,7 @@ let add_to_env env m =
       | Mtype t ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
       | Mfun (t, n) ->
-          Env.add_external ~imported:true n
+          Env.add_external ~imported:(Some `Schmu) n
             ~cname:(Some ("schmu_" ^ n))
             t dummy_loc env
       | Mpoly_fun (abs, n) ->
@@ -92,5 +92,5 @@ let add_to_env env m =
           in
           env
       | Mext (t, n, cname) ->
-          Env.add_external ~imported:true n ~cname t dummy_loc env)
+          Env.add_external ~imported:(Some `C) n ~cname t dummy_loc env)
     env m

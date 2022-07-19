@@ -40,12 +40,13 @@ type value = {
 
 type usage = { loc : Ast.loc; used : bool ref }
 type return = { typ : typ; const : bool; global : bool }
+type imported = [ `C | `Schmu ]
 
 type ext = {
   ext_name : string;
   ext_typ : typ;
   ext_cname : string option;
-  imported : bool;
+  imported : imported option;
 }
 
 (* function scope *)
@@ -110,7 +111,11 @@ let add_value key value loc env =
       { env with values = { scope with valmap } :: tl }
 
 let add_external ext_name ~cname typ ~imported loc env =
-  let env = add_value ext_name { def_value with typ; imported } loc env in
+  let env =
+    add_value ext_name
+      { def_value with typ; imported = Option.is_some imported }
+      loc env
+  in
   let tkey = Type_key.create ext_name in
   let vl = { ext_name; ext_typ = typ; ext_cname = cname; imported } in
   env.externals := Tmap.add tkey vl !(env.externals);

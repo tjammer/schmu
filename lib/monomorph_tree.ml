@@ -952,7 +952,10 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
         let cname =
           match ext_cname with None -> ext_name | Some cname -> cname
         in
-        { ext_name; ext_typ = cln t; c_linkage = not imported; cname })
+        let c_linkage =
+          match imported with None | Some `C -> true | Some `Schmu -> false
+        in
+        { ext_name; ext_typ = cln t; c_linkage; cname })
       externals
   in
   let typeinsts = List.map cln typeinsts in

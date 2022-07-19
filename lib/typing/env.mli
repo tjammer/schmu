@@ -14,12 +14,13 @@ type value = {
 
 type unused = (unit, (string * Ast.loc) list) result
 type return = { typ : typ; const : bool; global : bool }
+type imported = [ `C | `Schmu ]
 
 type ext = {
   ext_name : string;
   ext_typ : typ;
   ext_cname : string option;
-  imported : bool;
+  imported : imported option;
 }
 (* return type for values *)
 
@@ -32,7 +33,13 @@ val add_value : key -> value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
 
 val add_external :
-  key -> cname:string option -> typ -> imported:bool -> Ast.loc -> t -> t
+  key ->
+  cname:string option ->
+  typ ->
+  imported:imported option ->
+  Ast.loc ->
+  t ->
+  t
 (** like [add_value], but keeps track of external declarations *)
 
 val change_type : key -> typ -> t -> t

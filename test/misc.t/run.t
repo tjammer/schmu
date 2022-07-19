@@ -610,15 +610,15 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   
   declare i64 @subi1(i64 %0)
   
-  declare void @subv3(%v3* %0, %v3* %1)
+  declare void @subv3(%v3* %0, %v3* byval(%v3) %1)
   
-  declare void @subi3(%i3* %0, %i3* %1)
+  declare void @subi3(%i3* %0, %i3* byval(%i3) %1)
   
-  declare void @subv4(%v4* %0, %v4* %1)
+  declare void @subv4(%v4* %0, %v4* byval(%v4) %1)
   
-  declare void @submixed4(%mixed4* %0, %mixed4* %1)
+  declare void @submixed4(%mixed4* %0, %mixed4* byval(%mixed4) %1)
   
-  declare void @subtrailv2(%trailv2* %0, %trailv2* %1)
+  declare void @subtrailv2(%trailv2* %0, %trailv2* byval(%trailv2) %1)
   
   define i64 @main(i64 %arg) {
   entry:
