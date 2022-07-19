@@ -62,3 +62,9 @@ let rec string_of_type = function
 let is_struct = function
   | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ -> true
   | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Tptr _ -> false
+
+let is_aggregate = function
+  | Trecord _ | Tvariant _ -> true
+  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Tptr _ | Tfun _
+  | Tpoly _ ->
+      false

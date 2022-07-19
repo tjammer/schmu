@@ -68,7 +68,13 @@ and global_name = string option
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
 type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
-type external_decl = string * typ * string
+
+type external_decl = {
+  ext_name : string;
+  ext_typ : typ;
+  cname : string;
+  c_linkage : bool;
+}
 
 type monomorphized_tree = {
   constants : (string * monod_tree) list;

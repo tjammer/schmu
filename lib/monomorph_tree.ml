@@ -70,7 +70,13 @@ and global_name = string option
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
 type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
-type external_decl = string * typ * string
+
+type external_decl = {
+  ext_name : string;
+  ext_typ : typ;
+  cname : string;
+  c_linkage : bool;
+}
 
 type monomorphized_tree = {
   constants : (string * monod_tree) list;
@@ -921,13 +927,15 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
      introduce a special case in codegen, or mark them Const_ptr when they are not *)
   let vars =
     List.fold_left
-      (fun vars (name, t, cname) ->
+      (fun vars { Env.imported = _; ext_name; ext_typ; ext_cname } ->
         (* We skip functions, because they work as is. TODO polymorphic functions *)
-        match t with
+        match ext_typ with
         | Types.Tfun _ -> vars
         | _ ->
-            let cname = match cname with None -> name | Some cname -> cname in
-            Vars.add name (Global (cname, no_var)) vars)
+            let cname =
+              match ext_cname with None -> ext_name | Some cname -> cname
+            in
+            Vars.add ext_name (Global (cname, no_var)) vars)
       vars externals
   in
 
@@ -940,9 +948,11 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
 
   let externals =
     List.map
-      (fun (n, t, cname) ->
-        let cname = match cname with None -> n | Some cname -> cname in
-        (n, cln t, cname))
+      (fun { Env.imported; ext_name; ext_typ = t; ext_cname } ->
+        let cname =
+          match ext_cname with None -> ext_name | Some cname -> cname
+        in
+        { ext_name; ext_typ = cln t; c_linkage = not imported; cname })
       externals
   in
   let typeinsts = List.map cln typeinsts in

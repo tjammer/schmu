@@ -14,6 +14,13 @@ type value = {
 
 type unused = (unit, (string * Ast.loc) list) result
 type return = { typ : typ; const : bool; global : bool }
+
+type ext = {
+  ext_name : string;
+  ext_typ : typ;
+  ext_cname : string option;
+  imported : bool;
+}
 (* return type for values *)
 
 val def_value : value
@@ -80,5 +87,5 @@ val typedefs : t -> typ list
 val typeinstances : t -> typ list
 (** [typeinstances env] return a list of all instanced types for codegen*)
 
-val externals : t -> (string * typ * string option) list
+val externals : t -> ext list
 (** [externals env] returns a list of all external function declarations *)

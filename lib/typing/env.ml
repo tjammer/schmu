@@ -41,6 +41,13 @@ type value = {
 type usage = { loc : Ast.loc; used : bool ref }
 type return = { typ : typ; const : bool; global : bool }
 
+type ext = {
+  ext_name : string;
+  ext_typ : typ;
+  ext_cname : string option;
+  imported : bool;
+}
+
 (* function scope *)
 type scope = {
   valmap : value Map.t;
@@ -60,7 +67,7 @@ type t = {
      probably should go into another pass once we add it *)
   instances : typ Tmap.t ref;
   (* Instantiations for both records and variants *)
-  externals : (typ * string option) Tmap.t ref;
+  externals : ext Tmap.t ref;
 }
 
 type unused = (unit, (string * Ast.loc) list) result
@@ -102,10 +109,11 @@ let add_value key value loc env =
 
       { env with values = { scope with valmap } :: tl }
 
-let add_external key ~cname typ ~imported loc env =
-  let env = add_value key { def_value with typ; imported } loc env in
-  let tkey = Type_key.create key in
-  env.externals := Tmap.add tkey (typ, cname) !(env.externals);
+let add_external ext_name ~cname typ ~imported loc env =
+  let env = add_value ext_name { def_value with typ; imported } loc env in
+  let tkey = Type_key.create ext_name in
+  let vl = { ext_name; ext_typ = typ; ext_cname = cname; imported } in
+  env.externals := Tmap.add tkey vl !(env.externals);
   env
 
 let change_type key typ env =
@@ -156,7 +164,7 @@ let add_variant variant ~param ~ctors env =
 
   let _, ctors =
     Array.fold_left
-      (fun (index, ctors) ctor ->
+      (fun (index, ctors) (ctor : ctor) ->
         (index + 1, Map.add ctor.cname { index; typename = variant } ctors))
       (0, env.ctors) ctors
   in
@@ -345,4 +353,4 @@ let typeinstances env =
 let externals env =
   Tmap.bindings !(env.externals)
   |> List.sort Type_key.cmp_map_sort
-  |> List.map (fun (key, (typ, cname)) -> (Type_key.key key, typ, cname))
+  |> List.map snd

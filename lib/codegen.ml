@@ -320,7 +320,7 @@ let rec get_lltype_def = function
           failwith
             (Printf.sprintf "Record struct not found for type %s (def)" name))
   | Tfun (params, ret, kind) ->
-      typeof_func ~param:false ~decl:false (params, ret, kind)
+      typeof_func ~param:false ~decl:false (params, ret, kind) |> fst
   | Tptr t -> get_lltype_def t |> Llvm.pointer_type
 
 and get_lltype_param = function
@@ -328,7 +328,7 @@ and get_lltype_param = function
     ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
-      typeof_func ~param:true ~decl:false (params, ret, kind)
+      typeof_func ~param:true ~decl:false (params, ret, kind) |> fst
   | (Trecord _ as typ) | (Tvariant _ as typ) -> (
       let name = struct_name typ in
       match Strtbl.find_opt record_tbl name with
@@ -346,7 +346,7 @@ and get_lltype_field = function
       get_lltype_def t
   | Tfun (params, ret, kind) ->
       (* Not really a paramater, but is treated equally (ptr to closure struct) *)
-      typeof_func ~param:true ~decl:false (params, ret, kind)
+      typeof_func ~param:true ~decl:false (params, ret, kind) |> fst
 
 and get_lltype_global = function
   | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Tptr _
@@ -369,7 +369,7 @@ and typeof_closure agg =
   |> Llvm.struct_type context
 
 and typeof_func ~param ~decl (params, ret, kind) =
-  if param then closure_t |> Llvm.pointer_type
+  if param then closure_t |> fun t -> (Llvm.pointer_type t, [])
   else
     (* When [get_lltype] is called on a function, we handle the dynamic case where
        a function or closure is being passed to another function.
@@ -389,22 +389,31 @@ and typeof_func ~param ~decl (params, ret, kind) =
         match kind with Closure _ -> Seq.return voidptr_t | _ -> Seq.empty
       else Seq.return voidptr_t
     in
+
+    (* Index 0 is return type *)
+    let start_idx = if Seq.is_empty prefix then 0 else 1 in
+    let byvals = ref [] in
+    let i = ref start_idx in
     let params_t =
       (* For the params, we want to produce the param type.
          There is a special case for records which are splint into two words. *)
       List.fold_left
         (fun ps typ ->
+          incr i;
           match pkind_of_typ typ with
           | Unboxed (Two_params (fst, snd)) ->
               (* snd before fst b/c we rev later *)
               lltype_unbox snd :: lltype_unbox fst :: ps
+          | Boxed when is_aggregate typ ->
+              byvals := (!i, typ) :: !byvals;
+              get_lltype_param typ :: ps
           | _ -> get_lltype_param typ :: ps)
         [] params
       |> List.rev |> List.to_seq
       |> fun seq -> prefix ++ seq ++ suffix |> Array.of_seq
     in
     let ft = Llvm.function_type ret_t params_t in
-    ft
+    (ft, !byvals)
 
 let box_record typ ~size ?(alloc = None) ~snd_val value =
   (* From int to record *)
@@ -659,18 +668,18 @@ let unmangle kind name =
       let len = length "schmu_" in
       sub name len (length name - len)
 
-let declare_function mangle_kind fun_name = function
+let declare_function ~c_linkage mangle_kind fun_name = function
   | Tfun (params, ret, kind) as typ ->
-      let ft = typeof_func ~param:false ~decl:true (params, ret, kind) in
-      let name = mangle fun_name mangle_kind in
-      let llvar =
-        {
-          value = Llvm.declare_function name ft the_module;
-          typ;
-          lltyp = ft;
-          const = Not;
-        }
+      let ft, byvals =
+        typeof_func ~param:false ~decl:true (params, ret, kind)
       in
+      let name = mangle fun_name mangle_kind in
+      let value = Llvm.declare_function name ft the_module in
+      if c_linkage then
+        List.iter
+          (fun (i, typ) -> add_byval value i (get_lltype_def typ))
+          byvals;
+      let llvar = { value; typ; lltyp = ft; const = Not } in
       llvar
   | _ ->
       prerr_endline fun_name;
@@ -959,7 +968,7 @@ let rec gen_function vars ?(mangle = Schmu)
 
   match typ with
   | Tfun (tparams, ret_t, kind) as typ ->
-      let func = declare_function mangle name.call typ in
+      let func = declare_function ~c_linkage:false mangle name.call typ in
 
       let start_index, alloca =
         match ret_t with
@@ -1011,11 +1020,10 @@ let rec gen_function vars ?(mangle = Schmu)
 
       ignore (fun_return name.call ret);
 
-      if Llvm_analysis.verify_function func.value |> not then (
-        Llvm.dump_module the_module;
-        (* To generate the report *)
-        Llvm_analysis.assert_valid_function func.value);
-
+      (* if Llvm_analysis.verify_function func.value |> not then ( *)
+      (*   Llvm.dump_module the_module; *)
+      (*   (\* To generate the report *\) *)
+      (*   Llvm_analysis.assert_valid_function func.value); *)
       let _ = Llvm.PassManager.run_function func.value fpm in
       { vars with vars = Vars.add name.call func vars.vars }
   | _ ->
@@ -1884,8 +1892,9 @@ let def_globals globals =
   in
   List.iter f globals
 
-let decl_external cname = function
-  | Tfun _ as t when not (is_type_polymorphic t) -> declare_function C cname t
+let decl_external ~c_linkage cname = function
+  | Tfun _ as t when not (is_type_polymorphic t) ->
+      declare_function ~c_linkage C cname t
   | typ ->
       let lltyp = get_lltype_global typ in
       let value = Llvm.declare_global lltyp cname the_module in
@@ -1930,8 +1939,8 @@ let generate ~target ~outname ~release ~modul
   (* External declarations *)
   let vars =
     List.fold_left
-      (fun vars (name, typ, cname) ->
-        Vars.add name (decl_external cname typ) vars)
+      (fun vars { Monomorph_tree.ext_name; ext_typ; cname; c_linkage } ->
+        Vars.add ext_name (decl_external cname ext_typ ~c_linkage) vars)
       Vars.empty externals
   in
 
@@ -1943,7 +1952,9 @@ let generate ~target ~outname ~release ~modul
           let typ =
             Tfun (func.abs.func.params, func.abs.func.ret, func.abs.func.kind)
           in
-          let fnc = declare_function Schmu func.name.call typ in
+          let fnc =
+            declare_function ~c_linkage:false Schmu func.name.call typ
+          in
 
           (* Add to the normal variable environment *)
           Vars.add func.name.call fnc acc)

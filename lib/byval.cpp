@@ -14,7 +14,7 @@ extern "C"
     Type*               llvm_type = unwrap<Type>(type_val);
     attr_builder.addByValAttr(llvm_type);
     const AttributeList new_attr_set =
-      attr_set.addAttributes(func->getContext(), ArgNo, attr_builder);
+      attr_set.addAttributes(func->getContext(), (ArgNo >> 1), attr_builder);
     func->setAttributes(new_attr_set);
   }
 }
