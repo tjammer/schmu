@@ -2,6 +2,9 @@ open Cleaned_types
 module Vars = Map.Make (String)
 module Set = Set.Make (String)
 
+external add_byval : Llvm.llvalue -> int -> Llvm.lltype -> unit
+  = "LlvmAddByvalAttr"
+
 module Str = struct
   type t = string
 

@@ -11,7 +11,17 @@
   llvm.scalar_opts
   menhirLib
   sexplib0
-  csexp))
+  csexp)
+ (foreign_archives byval))
+
+(rule
+ ; (alias build-raylib)
+ (targets libbyval.a dllbyval.so)
+ (deps byval.cpp configure.sh)
+ (action
+  (no-infer
+   (progn
+    (run make)))))
 
 ;; The typing subfolder is part of this library
 
