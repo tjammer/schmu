@@ -13,21 +13,21 @@ fun vector_push(vec, v) =
 
 fun vector_iter(vec, f) =
   fun inner_cls_both(i) =
-    if i == vec.length then
+    if i = vec.length then
       ()
     else
       f(__unsafe_ptr_get(vec.data, i))
       inner_cls_both(i+1)
 
   fun inner_cls_vec(i, f) =
-    if i == vec.length then
+    if i = vec.length then
       ()
     else
       f(__unsafe_ptr_get(vec.data, i))
       inner_cls_vec(i+1, f)
 
   fun inner_cls_f(i, vec) =
-    if i == vec.length then
+    if i = vec.length then
       ()
     else
       f(__unsafe_ptr_get(vec.data, i))

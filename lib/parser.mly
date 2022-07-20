@@ -48,7 +48,6 @@
 %token Less_f
 %token Greater_i
 %token Greater_f
-%token Bin_equal_i
 %token Bin_equal_f
 %token And
 %token Or
@@ -82,7 +81,7 @@
 %nonassoc Less_i Less_f Greater_i Greater_f
 %left Plus_i Plus_f Minus_i Minus_f
 %left Mult_i Mult_f Div_i Div_f
-%left Bin_equal_i Bin_equal_f
+%left Equal Bin_equal_f
 %left Pipe_head Pipe_tail Dot
 
 %start <Ast.prog> prog
@@ -219,7 +218,7 @@ bool:
   | Div_i   { Div_i }
   | Less_i  { Less_i }
   | Greater_i { Greater_i }
-  | Bin_equal_i { Equal_i }
+  | Equal { Equal_i }
   | Plus_f  { Plus_f }
   | Minus_f { Minus_f }
   | Mult_f  { Mult_f }

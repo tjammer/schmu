@@ -4,9 +4,9 @@ val limit = 3
 
 -- this works
 fun nested(a, b) =
-  if b == limit then
+  if b = limit then
     nested(a + 1, 0)
-  elseif a == limit then ()
+  elseif a = limit then ()
   else
     printf("%i, %i\n".cstr, a, b, 0)
     nested(a, b + 1)
@@ -16,11 +16,11 @@ nested(0, 0)
 printf("\n".cstr, 0, 0, 0)
 
 fun nested(a, b, c) =
-  if b == limit then
+  if b = limit then
     nested(a + 1, 0, c)
-  elseif c == limit then
+  elseif c = limit then
     nested(a, b + 1, 0)
-  elseif a == limit then
+  elseif a = limit then
     ()
   else
     printf("%i, %i, %i\n".cstr, a, b, c)
@@ -29,11 +29,11 @@ fun nested(a, b, c) =
 nested(0, 0, 0)
 
 fun nested(a, b, c) =
-  if b == limit then
+  if b = limit then
     nested(a + 1, 0, c)
-  elseif a == limit then
+  elseif a = limit then
     ()
-  elseif c == limit then
+  elseif c = limit then
     nested(a, b + 1, 0)
   else
     printf("%i, %i, %i\n".cstr, a, b, c)

@@ -127,7 +127,7 @@ let () =
   in
   let () = Arg.parse speclist anon_fun usage in
 
-  if Array.length Sys.argv == 1 then (
+  if Array.length Sys.argv = 1 then (
     print_endline usage;
     exit 64);
   let target = match !target with "" -> None | s -> Some s in

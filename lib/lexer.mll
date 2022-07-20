@@ -58,8 +58,7 @@ rule read =
   | "and"    { And }
   | "or"     { Or }
   | '='      { Equal }
-  | "=="     { Bin_equal_i }
-  | "==."    { Bin_equal_f }
+  | "=."     { Bin_equal_f }
   | ','      { Comma }
   | ':'      { Colon }
   | '|'      { Bar }
