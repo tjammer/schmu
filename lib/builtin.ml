@@ -10,6 +10,8 @@ type t =
   | I32_to_int
   | U8_of_int
   | U8_to_int
+  | F32_of_float
+  | F32_to_float
   | Not
 [@@deriving show]
 
@@ -32,6 +34,7 @@ let tbl =
     (I32_to_int, Tfun ([ Ti32 ], Tint, Simple), "i32_to_int");
     (U8_of_int, Tfun ([ Tint ], Tu8, Simple), "u8_of_int");
     (U8_to_int, Tfun ([ Tu8 ], Tint, Simple), "u8_to_int");
+    (F32_of_float, Tfun ([ Tfloat ], Tf32, Simple), "f32_of_float");
     (Not, Tfun ([ Tbool ], Tbool, Simple), "not");
   ]
 
@@ -47,6 +50,8 @@ let of_string = function
   | "i32_to_int" -> Some I32_to_int
   | "u8_of_int" -> Some U8_of_int
   | "u8_to_int" -> Some U8_to_int
+  | "f32_of_float" -> Some F32_of_float
+  | "f32_to_float" -> Some F32_to_float
   | "not" -> Some Not
   | _ -> None
 

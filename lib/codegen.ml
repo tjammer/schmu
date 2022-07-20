@@ -1566,6 +1566,8 @@ and gen_app_builtin param (b, fnc) args =
   | I32_to_int -> cast Llvm.build_intcast int_t
   | U8_of_int -> cast Llvm.build_intcast u8_t
   | U8_to_int -> cast Llvm.build_intcast int_t
+  | F32_of_float -> cast Llvm.build_fpcast f32_t
+  | F32_to_float -> cast Llvm.build_fpcast float_t
   | Not ->
       let value =
         match args with
