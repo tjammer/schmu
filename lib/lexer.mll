@@ -30,10 +30,8 @@ let min = '-'
 let int = digit+
 let u8 = digit+ "u8"
 let float = digit+ '.' digit+
-let i32 = digit+ "i32"
-let neg_i32 = min i32
-let f32 = float "f32"
-let neg_f32 = min f32
+let i32 = min? digit+ "i32"
+let f32 = min? float "f32"
 
 let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
 let uppercase_id = uppercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
@@ -50,9 +48,7 @@ rule read =
   | float    { Float (float_of_string (Lexing.lexeme lexbuf)) }
   | u8       { U8 (u8_of_string (Lexing.lexeme lexbuf)) }
   | i32      { I32 (f_of_string int_of_string (Lexing.lexeme lexbuf)) }
-  | neg_i32  { I32 (-f_of_string int_of_string (Lexing.lexeme lexbuf)) }
   | f32      { F32 (f_of_string float_of_string (Lexing.lexeme lexbuf)) }
-  | neg_f32  { F32 (-.f_of_string float_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { True }
   | "false"  { False }
   | "and"    { And }
