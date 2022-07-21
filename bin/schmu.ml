@@ -7,6 +7,7 @@ type opts = {
   compile_only : bool;
   no_prelude : bool;
   link_modules : string list;
+  check_only : bool;
 }
 
 let ( >>= ) = Result.bind
@@ -35,6 +36,7 @@ let run file prelude
       compile_only;
       no_prelude;
       link_modules;
+      check_only;
     } =
   let fmt_msg_fn kind loc msg =
     let file = Lexing.((fst loc).pos_fname) in
@@ -54,18 +56,20 @@ let run file prelude
     Ok
       (let ttree, m = Typing.to_typed ~modul ~prelude fmt_msg_fn prog in
 
-       (* TODO if a module has only forward decls, we don't need to codegen anything *)
-       Monomorph_tree.monomorphize ttree
-       |> Codegen.generate ~target ~outname ~release ~modul
-       |> ignore;
-       if dump_llvm then Llvm.dump_module Codegen.the_module;
-       if modul then (
-         let m = Option.get m |> List.rev |> Module.sexp_of_t in
-         let modfile = open_out (outname ^ ".smi") in
-         Module.Sexp.to_channel modfile m;
-         close_out modfile)
-       else if compile_only then ()
-       else Link.link outname link_modules)
+       if check_only then ()
+       else (
+         (* TODO if a module has only forward decls, we don't need to codegen anything *)
+         Monomorph_tree.monomorphize ttree
+         |> Codegen.generate ~target ~outname ~release ~modul
+         |> ignore;
+         if dump_llvm then Llvm.dump_module Codegen.the_module;
+         if modul then (
+           let m = Option.get m |> List.rev |> Module.sexp_of_t in
+           let modfile = open_out (outname ^ ".smi") in
+           Module.Sexp.to_channel modfile m;
+           close_out modfile)
+         else if compile_only then ()
+         else Link.link outname link_modules))
   with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
@@ -91,6 +95,7 @@ let () =
   let modul = ref false in
   let compile_only = ref false in
   let no_prelude = ref false in
+  let check_only = ref false in
   let anon_fun fn =
     if Filename.check_suffix fn ".o" then link_modules := fn :: !link_modules
     else if Filename.check_suffix fn ".smu" then (
@@ -123,6 +128,7 @@ let () =
       ("-m", Arg.Set modul, "Compile module");
       ("-c", Arg.Set compile_only, "Compile as main, but don't link");
       ("--no-prelude", Arg.Set no_prelude, "Compile without prelude");
+      ("--check", Arg.Set check_only, "Typecheck only");
     ]
   in
   let () = Arg.parse speclist anon_fun usage in
@@ -152,4 +158,5 @@ let () =
       compile_only = !compile_only;
       no_prelude = !no_prelude;
       link_modules = List.rev !link_modules;
+      check_only = !check_only;
     }
