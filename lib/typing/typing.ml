@@ -166,14 +166,10 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         Qvar id
     | Ty_func l -> handle_annot env l
     | Ty_list l -> type_list env l
-    | Ty_open_id (loc, spec, modul) -> (
-        match Module.read_module ~regeneralize modul with
-        | Ok modul ->
-            let env = Module.add_to_env env modul in
-            concrete_type env spec
-        | Error s ->
-            let msg = Printf.sprintf "Module %s: %s" modul s in
-            raise (Error (loc, msg)))
+    | Ty_open_id (loc, spec, modul) ->
+        let modul = Module.read_exn ~regeneralize modul loc in
+        let env = Module.add_to_env env modul in
+        concrete_type env spec
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
     | [ Ty_id "ptr" ] -> raise (Error (loc, "Type ptr needs a type parameter"))
@@ -694,13 +690,9 @@ end = struct
         convert_app ~switch_uni env loc e2 [ e1 ]
 
   and convert_open env loc modul blk =
-    match Module.read_module ~regeneralize modul with
-    | Ok modul ->
-        let env = Module.add_to_env env modul in
-        convert_block env blk |> fst
-    | Error s ->
-        let msg = Printf.sprintf "Module %s: %s" modul s in
-        raise (Error (loc, msg))
+    let modul = Module.read_exn ~regeneralize modul loc in
+    let env = Module.add_to_env env modul in
+    convert_block env blk |> fst
 
   and convert_block_annot ~ret env annot stmts =
     let loc = Lexing.(dummy_pos, dummy_pos) in
@@ -793,16 +785,10 @@ let convert_prog env ~prelude items modul =
         let env = type_variant env loc v in
         let m = Module.add_type (Env.find_type v.name.name env) m in
         (env, items, m)
-    | Open (loc, modul) -> (
-        (* TODO cache this *)
-        match Module.read_module ~regeneralize modul with
-        | Ok modul ->
-            (* TODO remember this import somehow *)
-            let env = Module.add_to_env env modul in
-            (env, items, m)
-        | Error s ->
-            let msg = Printf.sprintf "Module %s: %s" modul s in
-            raise (Error (loc, msg)))
+    | Open (loc, modul) ->
+        let modul = Module.read_exn ~regeneralize modul loc in
+        let env = Module.add_to_env env modul in
+        (env, items, m)
   and aux_block (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->

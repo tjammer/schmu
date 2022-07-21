@@ -69,6 +69,13 @@ let read_module ~regeneralize name =
         r
       with Sys_error s -> Error s)
 
+let read_exn ~regeneralize name loc =
+  match read_module ~regeneralize name with
+  | Ok modul -> modul
+  | Error s ->
+      let msg = Printf.sprintf "Module %s: %s" name s in
+      raise (Typed_tree.Error (loc, msg))
+
 let add_to_env env m =
   let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
   List.fold_left
