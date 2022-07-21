@@ -690,7 +690,9 @@ end = struct
     | Ok modul ->
         let env = Module.add_to_env env modul in
         convert_block env blk |> fst
-    | Error s -> raise (Error (loc, "Module " ^ modul ^ s))
+    | Error s ->
+        let msg = Printf.sprintf "Module %s: %s" modul s in
+        raise (Error (loc, msg))
 
   and convert_block_annot ~ret env annot stmts =
     let loc = Lexing.(dummy_pos, dummy_pos) in
@@ -790,7 +792,9 @@ let convert_prog env ~prelude items modul =
             (* TODO remember this import somehow *)
             let env = Module.add_to_env env modul in
             (env, items, m)
-        | Error s -> raise (Error (loc, "Module " ^ modul ^ s)))
+        | Error s ->
+            let msg = Printf.sprintf "Module %s: %s" modul s in
+            raise (Error (loc, msg)))
   and aux_block (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->

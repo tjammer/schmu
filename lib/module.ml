@@ -46,26 +46,28 @@ let poly_funcs = ref []
 let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with
   | Some r -> r
-  | None ->
-      let c = open_in (String.lowercase_ascii (name ^ ".smi")) in
-      let r =
-        Result.map t_of_sexp (Sexp.input c)
-        |> Result.map
-             (List.map (function
-               | Mtype t -> Mtype (regeneralize t)
-               | Mfun (t, n) -> Mfun (regeneralize t, n)
-               | Mext (t, n, cn) -> Mext (regeneralize t, n, cn)
-               | Mpoly_fun (abs, n) ->
-                   (* We ought to regeneralize here. Not only the type, but
-                      the body as well? *)
-                   poly_funcs :=
-                     Typed_tree.Tl_function (n, None, abs) :: !poly_funcs;
-                   (* This will be ignored in [add_to_env] *)
-                   Mpoly_fun (abs, n)))
-      in
-      close_in c;
-      Hashtbl.add module_cache name r;
-      r
+  | None -> (
+      try
+        let c = open_in (String.lowercase_ascii (name ^ ".smi")) in
+        let r =
+          Result.map t_of_sexp (Sexp.input c)
+          |> Result.map
+               (List.map (function
+                 | Mtype t -> Mtype (regeneralize t)
+                 | Mfun (t, n) -> Mfun (regeneralize t, n)
+                 | Mext (t, n, cn) -> Mext (regeneralize t, n, cn)
+                 | Mpoly_fun (abs, n) ->
+                     (* We ought to regeneralize here. Not only the type, but
+                        the body as well? *)
+                     poly_funcs :=
+                       Typed_tree.Tl_function (n, None, abs) :: !poly_funcs;
+                     (* This will be ignored in [add_to_env] *)
+                     Mpoly_fun (abs, n)))
+        in
+        close_in c;
+        Hashtbl.add module_cache name r;
+        r
+      with Sys_error s -> Error s)
 
 let add_to_env env m =
   let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
