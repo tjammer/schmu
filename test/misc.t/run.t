@@ -1284,7 +1284,7 @@ Allow declaring a c function with a different name
 
 Print error when using uppercase names for externals
   $ schmu stub.o cname_decl_wrong.smu
-  cname_decl_wrong.smu:1:16 Syntax error: Functions must have lowercase names. Use the following form: 'external schmu_name : <type> = "CName"'
+  cname_decl_wrong.smu:1:16: error: Functions must have lowercase names. Use the following form: 'external schmu_name : <type> = "CName"'
   
   1 | external Printi : int -> unit
                ^^^^^^
