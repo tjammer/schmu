@@ -266,9 +266,10 @@ build_type_list:
   | type_spec; Lpar; build_type_list; Rpar { $1 :: $3 }
   | type_spec { [$1] }
 
-%inline type_spec:
+type_spec:
   | Lowercase_id { Ty_id $1 }
   | poly_id { $1 }
+  | Uppercase_id; Dot; type_spec { Ty_open_id ($loc, $3, $1) }
 
 %inline poly_id:
   | Quote; Lowercase_id { Ty_var $2 }

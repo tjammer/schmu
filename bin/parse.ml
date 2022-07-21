@@ -70,8 +70,7 @@ let fail src file lexbuf (checkpoint : _ I.checkpoint) =
   let message = E.expand (get src checkpoint) message in
 
   let msg =
-    Format.asprintf "%s:%s: %s: %s\n%!%a" file pos "error" message pp
-      [ loc ]
+    Format.asprintf "%s:%s: %s: %s\n%!%a" file pos "error" message pp [ loc ]
   in
   Error msg
 

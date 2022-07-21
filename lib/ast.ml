@@ -27,6 +27,7 @@ type type_spec =
   | Ty_var of string
   | Ty_list of type_spec list
   | Ty_func of type_spec list
+  | Ty_open_id of loc * type_spec * string
 
 type type_expr = type_spec list
 and decl = loc * (loc * string) * type_expr option

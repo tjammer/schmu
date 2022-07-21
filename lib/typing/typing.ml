@@ -133,7 +133,7 @@ and get_generic_id loc = function
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let fn_kind = if param then Closure [] else Simple in
 
-  let find t tick =
+  let find env t tick =
     match Env.find_type_opt t env with
     | Some t -> t
     | None -> raise (Error (loc, "Unbound type " ^ tick ^ t ^ "."))
@@ -151,7 +151,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | _ -> None
   in
 
-  let rec concrete_type = function
+  let rec concrete_type env = function
     | Ast.Ty_id "int" -> Tint
     | Ty_id "bool" -> Tbool
     | Ty_id "unit" -> Tunit
@@ -159,33 +159,41 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_id "float" -> Tfloat
     | Ty_id "i32" -> Ti32
     | Ty_id "f32" -> Tf32
-    | Ty_id t -> find t ""
-    | Ty_var id when typedef -> find id "'"
+    | Ty_id t -> find env t ""
+    | Ty_var id when typedef -> find env id "'"
     | Ty_var id ->
         (* Type annotation in function *)
         Qvar id
-    | Ty_func l -> handle_annot l
-    | Ty_list l -> type_list l
-  and type_list = function
+    | Ty_func l -> handle_annot env l
+    | Ty_list l -> type_list env l
+    | Ty_open_id (loc, spec, modul) -> (
+        match Module.read_module ~regeneralize modul with
+        | Ok modul ->
+            let env = Module.add_to_env env modul in
+            concrete_type env spec
+        | Error s ->
+            let msg = Printf.sprintf "Module %s: %s" modul s in
+            raise (Error (loc, msg)))
+  and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
     | [ Ty_id "ptr" ] -> raise (Error (loc, "Type ptr needs a type parameter"))
     | [ t ] -> (
-        let t = concrete_type t in
+        let t = concrete_type env t in
         match is_quantified t with
         | Some name ->
             raise (Error (loc, "Type " ^ name ^ " needs a type parameter"))
         | None -> t)
-    | lst -> container_t lst
-  and container_t lst =
+    | lst -> container_t env lst
+  and container_t env lst =
     match lst with
     | [] -> failwith "Internal Error: Type record list should not be empty"
-    | [ t ] -> concrete_type t
+    | [ t ] -> concrete_type env t
     | Ty_id "ptr" :: tl ->
-        let nested = container_t tl in
+        let nested = container_t env tl in
         Tptr nested
     | hd :: tl ->
-        let t = concrete_type hd in
-        let nested = container_t tl in
+        let t = concrete_type env hd in
+        let nested = container_t env tl in
         let subst = subst_generic ~id:(get_generic_id loc t) nested t in
 
         (* Add record instance.
@@ -196,12 +204,12 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
             Env.maybe_add_type_instance subst env
         | _ -> ());
         subst
-  and handle_annot = function
+  and handle_annot env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
-    | [ t ] -> concrete_type t
-    | [ Ast.Ty_id "unit"; t ] -> Tfun ([], concrete_type t, fn_kind)
+    | [ t ] -> concrete_type env t
+    | [ Ast.Ty_id "unit"; t ] -> Tfun ([], concrete_type env t, fn_kind)
     | [ Ast.Ty_list [ Ast.Ty_id "unit" ]; t ] ->
-        Tfun ([], concrete_type t, fn_kind)
+        Tfun ([], concrete_type env t, fn_kind)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)
     | l -> (
@@ -209,12 +217,12 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         match List.rev l with
         | last :: head ->
             Tfun
-              ( List.map concrete_type (List.rev head),
-                concrete_type last,
+              ( List.map (concrete_type env) (List.rev head),
+                concrete_type env last,
                 fn_kind )
         | [] -> failwith ":)")
   in
-  handle_annot annot
+  handle_annot env annot
 
 let handle_params env loc params ret =
   (* return updated env with bindings for parameters and types of parameters *)
