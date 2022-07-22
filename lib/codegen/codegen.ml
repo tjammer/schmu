@@ -1914,9 +1914,9 @@ let has_init_code tree =
   aux Monomorph_tree.(tree.expr)
 
 let add_frees tree frees =
-  List.fold_right
-    (fun id tree -> Monomorph_tree.{ tree with expr = Mfree_after (tree, id) })
-    frees tree
+  List.fold_left
+    (fun tree id -> Monomorph_tree.{ tree with expr = Mfree_after (tree, id) })
+    tree frees
 
 let add_global_init funcs outname kind body =
   let fname, glname =

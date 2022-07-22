@@ -434,152 +434,152 @@ Also mutable fields and 'realloc' builtin
     store i64 2, i64* getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec, i32 0, i32 1), align 4
     store i64 2, i64* getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec, i32 0, i32 2), align 4
     tail call void @schmu_vec_of_records(%vector_container* @vec_of_rec__2)
-    %27 = load %string*, %string** getelementptr inbounds (%vector_string, %vector_string* @vec, i32 0, i32 0), align 8
-    %28 = bitcast %string* %27 to i8*
-    tail call void @free(i8* %28)
-    %29 = load %foo*, %foo** getelementptr inbounds (%vector_foo, %vector_foo* @vec__2, i32 0, i32 0), align 8
-    %30 = bitcast %foo* %29 to i8*
-    tail call void @free(i8* %30)
-    %31 = load %foo*, %foo** getelementptr inbounds (%vector_foo, %vector_foo* @vec__3, i32 0, i32 0), align 8
-    %32 = bitcast %foo* %31 to i8*
-    tail call void @free(i8* %32)
-    %33 = load %foo*, %foo** getelementptr inbounds (%vector_foo, %vector_foo* @normal, i32 0, i32 0), align 8
-    %34 = bitcast %foo* %33 to i8*
-    tail call void @free(i8* %34)
-    %35 = load %vector_int*, %vector_int** getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested, i32 0, i32 0), align 8
-    %leni = load i64, i64* getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested, i32 0, i32 1), align 4
+    %27 = load %container*, %container** getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec__2, i32 0, i32 0), align 8
+    %leni = load i64, i64* getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec__2, i32 0, i32 1), align 4
     %cnt = alloca i64, align 8
     store i64 0, i64* %cnt, align 4
+    %scevgep40 = getelementptr %container, %container* %27, i64 0, i32 1, i32 0
+    %scevgep4041 = bitcast i64** %scevgep40 to %container*
     br label %rec
   
   rec:                                              ; preds = %free, %entry
-    %lsr.iv42 = phi %vector_int* [ %scevgep43, %free ], [ %35, %entry ]
-    %36 = phi i64 [ %41, %free ], [ 0, %entry ]
-    %37 = icmp slt i64 %36, %leni
-    br i1 %37, label %free, label %cont
+    %lsr.iv42 = phi %container* [ %scevgep43, %free ], [ %scevgep4041, %entry ]
+    %28 = phi i64 [ %33, %free ], [ 0, %entry ]
+    %29 = icmp slt i64 %28, %leni
+    br i1 %29, label %free, label %cont
   
   free:                                             ; preds = %rec
-    %38 = bitcast %vector_int* %lsr.iv42 to i64**
+    %30 = bitcast %container* %lsr.iv42 to i64**
+    %31 = load i64*, i64** %30, align 8
+    %32 = bitcast i64* %31 to i8*
+    tail call void @free(i8* %32)
+    %33 = add i64 %28, 1
+    store i64 %33, i64* %cnt, align 4
+    %scevgep43 = getelementptr %container, %container* %lsr.iv42, i64 1
+    br label %rec
+  
+  cont:                                             ; preds = %rec
+    %34 = bitcast %container* %27 to i8*
+    tail call void @free(i8* %34)
+    %35 = load %container*, %container** getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec, i32 0, i32 0), align 8
+    %leni8 = load i64, i64* getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec, i32 0, i32 1), align 4
+    %cnt9 = alloca i64, align 8
+    store i64 0, i64* %cnt9, align 4
+    %scevgep35 = getelementptr %container, %container* %35, i64 0, i32 1, i32 0
+    %scevgep3536 = bitcast i64** %scevgep35 to %container*
+    br label %rec10
+  
+  rec10:                                            ; preds = %free11, %cont
+    %lsr.iv37 = phi %container* [ %scevgep38, %free11 ], [ %scevgep3536, %cont ]
+    %36 = phi i64 [ %41, %free11 ], [ 0, %cont ]
+    %37 = icmp slt i64 %36, %leni8
+    br i1 %37, label %free11, label %cont12
+  
+  free11:                                           ; preds = %rec10
+    %38 = bitcast %container* %lsr.iv37 to i64**
     %39 = load i64*, i64** %38, align 8
     %40 = bitcast i64* %39 to i8*
     tail call void @free(i8* %40)
     %41 = add i64 %36, 1
-    store i64 %41, i64* %cnt, align 4
-    %scevgep43 = getelementptr %vector_int, %vector_int* %lsr.iv42, i64 1
-    br label %rec
-  
-  cont:                                             ; preds = %rec
-    %42 = bitcast %vector_int* %35 to i8*
-    tail call void @free(i8* %42)
-    %43 = load %vector_int*, %vector_int** getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested__2, i32 0, i32 0), align 8
-    %leni8 = load i64, i64* getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested__2, i32 0, i32 1), align 4
-    %cnt9 = alloca i64, align 8
-    store i64 0, i64* %cnt9, align 4
-    br label %rec10
-  
-  rec10:                                            ; preds = %free11, %cont
-    %lsr.iv39 = phi %vector_int* [ %scevgep40, %free11 ], [ %43, %cont ]
-    %44 = phi i64 [ %49, %free11 ], [ 0, %cont ]
-    %45 = icmp slt i64 %44, %leni8
-    br i1 %45, label %free11, label %cont12
-  
-  free11:                                           ; preds = %rec10
-    %46 = bitcast %vector_int* %lsr.iv39 to i64**
-    %47 = load i64*, i64** %46, align 8
-    %48 = bitcast i64* %47 to i8*
-    tail call void @free(i8* %48)
-    %49 = add i64 %44, 1
-    store i64 %49, i64* %cnt9, align 4
-    %scevgep40 = getelementptr %vector_int, %vector_int* %lsr.iv39, i64 1
+    store i64 %41, i64* %cnt9, align 4
+    %scevgep38 = getelementptr %container, %container* %lsr.iv37, i64 1
     br label %rec10
   
   cont12:                                           ; preds = %rec10
-    %50 = bitcast %vector_int* %43 to i8*
-    tail call void @free(i8* %50)
-    %51 = load %vector_int*, %vector_int** getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested__3, i32 0, i32 0), align 8
+    %42 = bitcast %container* %35 to i8*
+    tail call void @free(i8* %42)
+    %43 = load i64*, i64** getelementptr inbounds (%container, %container* @rec_of_vec__2, i32 0, i32 1, i32 0), align 8
+    %44 = bitcast i64* %43 to i8*
+    tail call void @free(i8* %44)
+    %45 = load i64*, i64** getelementptr inbounds (%container, %container* @rec_of_vec, i32 0, i32 1, i32 0), align 8
+    %46 = bitcast i64* %45 to i8*
+    tail call void @free(i8* %46)
+    %47 = load %vector_int*, %vector_int** getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested__3, i32 0, i32 0), align 8
     %leni13 = load i64, i64* getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested__3, i32 0, i32 1), align 4
     %cnt14 = alloca i64, align 8
     store i64 0, i64* %cnt14, align 4
     br label %rec15
   
   rec15:                                            ; preds = %free16, %cont12
-    %lsr.iv36 = phi %vector_int* [ %scevgep37, %free16 ], [ %51, %cont12 ]
-    %52 = phi i64 [ %57, %free16 ], [ 0, %cont12 ]
-    %53 = icmp slt i64 %52, %leni13
-    br i1 %53, label %free16, label %cont17
+    %lsr.iv32 = phi %vector_int* [ %scevgep33, %free16 ], [ %47, %cont12 ]
+    %48 = phi i64 [ %53, %free16 ], [ 0, %cont12 ]
+    %49 = icmp slt i64 %48, %leni13
+    br i1 %49, label %free16, label %cont17
   
   free16:                                           ; preds = %rec15
-    %54 = bitcast %vector_int* %lsr.iv36 to i64**
-    %55 = load i64*, i64** %54, align 8
-    %56 = bitcast i64* %55 to i8*
-    tail call void @free(i8* %56)
-    %57 = add i64 %52, 1
-    store i64 %57, i64* %cnt14, align 4
-    %scevgep37 = getelementptr %vector_int, %vector_int* %lsr.iv36, i64 1
+    %50 = bitcast %vector_int* %lsr.iv32 to i64**
+    %51 = load i64*, i64** %50, align 8
+    %52 = bitcast i64* %51 to i8*
+    tail call void @free(i8* %52)
+    %53 = add i64 %48, 1
+    store i64 %53, i64* %cnt14, align 4
+    %scevgep33 = getelementptr %vector_int, %vector_int* %lsr.iv32, i64 1
     br label %rec15
   
   cont17:                                           ; preds = %rec15
-    %58 = bitcast %vector_int* %51 to i8*
-    tail call void @free(i8* %58)
-    %59 = load i64*, i64** getelementptr inbounds (%container, %container* @rec_of_vec, i32 0, i32 1, i32 0), align 8
-    %60 = bitcast i64* %59 to i8*
-    tail call void @free(i8* %60)
-    %61 = load i64*, i64** getelementptr inbounds (%container, %container* @rec_of_vec__2, i32 0, i32 1, i32 0), align 8
-    %62 = bitcast i64* %61 to i8*
-    tail call void @free(i8* %62)
-    %63 = load %container*, %container** getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec, i32 0, i32 0), align 8
-    %leni18 = load i64, i64* getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec, i32 0, i32 1), align 4
+    %54 = bitcast %vector_int* %47 to i8*
+    tail call void @free(i8* %54)
+    %55 = load %vector_int*, %vector_int** getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested__2, i32 0, i32 0), align 8
+    %leni18 = load i64, i64* getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested__2, i32 0, i32 1), align 4
     %cnt19 = alloca i64, align 8
     store i64 0, i64* %cnt19, align 4
-    %scevgep31 = getelementptr %container, %container* %63, i64 0, i32 1, i32 0
-    %scevgep3132 = bitcast i64** %scevgep31 to %container*
     br label %rec20
   
   rec20:                                            ; preds = %free21, %cont17
-    %lsr.iv33 = phi %container* [ %scevgep34, %free21 ], [ %scevgep3132, %cont17 ]
-    %64 = phi i64 [ %69, %free21 ], [ 0, %cont17 ]
-    %65 = icmp slt i64 %64, %leni18
-    br i1 %65, label %free21, label %cont22
+    %lsr.iv29 = phi %vector_int* [ %scevgep30, %free21 ], [ %55, %cont17 ]
+    %56 = phi i64 [ %61, %free21 ], [ 0, %cont17 ]
+    %57 = icmp slt i64 %56, %leni18
+    br i1 %57, label %free21, label %cont22
   
   free21:                                           ; preds = %rec20
-    %66 = bitcast %container* %lsr.iv33 to i64**
+    %58 = bitcast %vector_int* %lsr.iv29 to i64**
+    %59 = load i64*, i64** %58, align 8
+    %60 = bitcast i64* %59 to i8*
+    tail call void @free(i8* %60)
+    %61 = add i64 %56, 1
+    store i64 %61, i64* %cnt19, align 4
+    %scevgep30 = getelementptr %vector_int, %vector_int* %lsr.iv29, i64 1
+    br label %rec20
+  
+  cont22:                                           ; preds = %rec20
+    %62 = bitcast %vector_int* %55 to i8*
+    tail call void @free(i8* %62)
+    %63 = load %vector_int*, %vector_int** getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested, i32 0, i32 0), align 8
+    %leni23 = load i64, i64* getelementptr inbounds (%vector_vector_int, %vector_vector_int* @nested, i32 0, i32 1), align 4
+    %cnt24 = alloca i64, align 8
+    store i64 0, i64* %cnt24, align 4
+    br label %rec25
+  
+  rec25:                                            ; preds = %free26, %cont22
+    %lsr.iv = phi %vector_int* [ %scevgep, %free26 ], [ %63, %cont22 ]
+    %64 = phi i64 [ %69, %free26 ], [ 0, %cont22 ]
+    %65 = icmp slt i64 %64, %leni23
+    br i1 %65, label %free26, label %cont27
+  
+  free26:                                           ; preds = %rec25
+    %66 = bitcast %vector_int* %lsr.iv to i64**
     %67 = load i64*, i64** %66, align 8
     %68 = bitcast i64* %67 to i8*
     tail call void @free(i8* %68)
     %69 = add i64 %64, 1
-    store i64 %69, i64* %cnt19, align 4
-    %scevgep34 = getelementptr %container, %container* %lsr.iv33, i64 1
-    br label %rec20
-  
-  cont22:                                           ; preds = %rec20
-    %70 = bitcast %container* %63 to i8*
-    tail call void @free(i8* %70)
-    %71 = load %container*, %container** getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec__2, i32 0, i32 0), align 8
-    %leni23 = load i64, i64* getelementptr inbounds (%vector_container, %vector_container* @vec_of_rec__2, i32 0, i32 1), align 4
-    %cnt24 = alloca i64, align 8
-    store i64 0, i64* %cnt24, align 4
-    %scevgep = getelementptr %container, %container* %71, i64 0, i32 1, i32 0
-    %scevgep28 = bitcast i64** %scevgep to %container*
-    br label %rec25
-  
-  rec25:                                            ; preds = %free26, %cont22
-    %lsr.iv = phi %container* [ %scevgep29, %free26 ], [ %scevgep28, %cont22 ]
-    %72 = phi i64 [ %77, %free26 ], [ 0, %cont22 ]
-    %73 = icmp slt i64 %72, %leni23
-    br i1 %73, label %free26, label %cont27
-  
-  free26:                                           ; preds = %rec25
-    %74 = bitcast %container* %lsr.iv to i64**
-    %75 = load i64*, i64** %74, align 8
-    %76 = bitcast i64* %75 to i8*
-    tail call void @free(i8* %76)
-    %77 = add i64 %72, 1
-    store i64 %77, i64* %cnt24, align 4
-    %scevgep29 = getelementptr %container, %container* %lsr.iv, i64 1
+    store i64 %69, i64* %cnt24, align 4
+    %scevgep = getelementptr %vector_int, %vector_int* %lsr.iv, i64 1
     br label %rec25
   
   cont27:                                           ; preds = %rec25
-    %78 = bitcast %container* %71 to i8*
+    %70 = bitcast %vector_int* %63 to i8*
+    tail call void @free(i8* %70)
+    %71 = load %foo*, %foo** getelementptr inbounds (%vector_foo, %vector_foo* @normal, i32 0, i32 0), align 8
+    %72 = bitcast %foo* %71 to i8*
+    tail call void @free(i8* %72)
+    %73 = load %foo*, %foo** getelementptr inbounds (%vector_foo, %vector_foo* @vec__3, i32 0, i32 0), align 8
+    %74 = bitcast %foo* %73 to i8*
+    tail call void @free(i8* %74)
+    %75 = load %foo*, %foo** getelementptr inbounds (%vector_foo, %vector_foo* @vec__2, i32 0, i32 0), align 8
+    %76 = bitcast %foo* %75 to i8*
+    tail call void @free(i8* %76)
+    %77 = load %string*, %string** getelementptr inbounds (%vector_string, %vector_string* @vec, i32 0, i32 0), align 8
+    %78 = bitcast %string* %77 to i8*
     tail call void @free(i8* %78)
     ret i64 0
   }

@@ -433,10 +433,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define internal void @__malloc_some_deinit() section ".text.startup" {
   entry:
-    %0 = load i64*, i64** getelementptr inbounds (%vector_int, %vector_int* @vtest, i32 0, i32 0), align 8
+    %0 = load i64*, i64** getelementptr inbounds (%vector_int, %vector_int* @vtest2, i32 0, i32 0), align 8
     %1 = bitcast i64* %0 to i8*
     tail call void @free(i8* %1)
-    %2 = load i64*, i64** getelementptr inbounds (%vector_int, %vector_int* @vtest2, i32 0, i32 0), align 8
+    %2 = load i64*, i64** getelementptr inbounds (%vector_int, %vector_int* @vtest, i32 0, i32 0), align 8
     %3 = bitcast i64* %2 to i8*
     tail call void @free(i8* %3)
     ret void
