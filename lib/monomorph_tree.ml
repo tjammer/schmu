@@ -84,6 +84,7 @@ type monomorphized_tree = {
   externals : external_decl list;
   typeinsts : typ list;
   tree : monod_tree;
+  frees : int list;
   funcs : to_gen_func list;
 }
 
@@ -944,7 +945,11 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
   in
   let p, tree, _ = morph_toplvl param items in
 
-  let tree = free_mallocs tree p.mallocs in
+  let frees =
+    List.filter_map
+      (function { id; kind = { contents = Local } } -> Some id | _ -> None)
+      p.mallocs
+  in
 
   let externals =
     List.map
@@ -976,4 +981,4 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
   in
 
   (* TODO maybe try to catch memory leaks? *)
-  { constants; globals; externals; typeinsts; tree; funcs = p.funcs }
+  { constants; globals; externals; typeinsts; tree; frees; funcs = p.funcs }

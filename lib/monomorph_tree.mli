@@ -82,6 +82,7 @@ type monomorphized_tree = {
   externals : external_decl list;
   typeinsts : typ list;
   tree : monod_tree;
+  frees : int list;
   funcs : to_gen_func list;
 }
 

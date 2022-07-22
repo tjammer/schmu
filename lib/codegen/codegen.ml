@@ -5,21 +5,8 @@ module Set = Set.Make (String)
 external add_byval : Llvm.llvalue -> int -> Llvm.lltype -> unit
   = "LlvmAddByvalAttr"
 
-module Str = struct
-  type t = string
-
-  let hash = Hashtbl.hash
-  let equal = String.equal
-end
-
-module Int = struct
-  include Int
-
-  let hash i = i
-end
-
-module Strtbl = Hashtbl.Make (Str)
-module Ptrtbl = Hashtbl.Make (Int)
+module Strtbl = Hashtbl
+module Ptrtbl = Hashtbl
 
 type const_kind = Not | Const | Const_ptr
 type mangle_kind = C | Schmu
@@ -1926,8 +1913,52 @@ let has_init_code tree =
   in
   aux Monomorph_tree.(tree.expr)
 
+let add_frees tree frees =
+  List.fold_right
+    (fun id tree -> Monomorph_tree.{ tree with expr = Mfree_after (tree, id) })
+    frees tree
+
+let add_global_init funcs outname kind body =
+  let fname, glname =
+    match kind with
+    | `Ctor -> ("__" ^ outname ^ "_init", "llvm.global_ctors")
+    | `Dtor -> ("__" ^ outname ^ "_deinit", "llvm.global_dtors")
+  in
+  let p =
+    gen_function funcs ~mangle:C
+      {
+        name = { Monomorph_tree.user = fname; call = fname };
+        recursive = Rnone;
+        abs =
+          {
+            func = { params = []; ret = Tunit; kind = Simple };
+            pnames = [];
+            body;
+          };
+      }
+  in
+  let init = Vars.find fname p.vars in
+  let open Llvm in
+  set_linkage Linkage.Internal init.value;
+  set_section ".text.startup" init.value;
+
+  let init =
+    [| const_int i32_t 65535; init.value; const_pointer_null voidptr_t |]
+  in
+  let global = const_array global_t [| const_struct context init |] in
+  let global = define_global glname global the_module in
+  set_linkage Appending global
+
 let generate ~target ~outname ~release ~modul
-    { Monomorph_tree.constants; globals; externals; typeinsts; tree; funcs } =
+    {
+      Monomorph_tree.constants;
+      globals;
+      externals;
+      typeinsts;
+      tree;
+      frees;
+      funcs;
+    } =
   (* Add record types.
      We do this first to ensure that all record definitons
      are available for external decls *)
@@ -1972,6 +2003,7 @@ let generate ~target ~outname ~release ~modul
 
   if not modul then
     (* Add main *)
+    let tree = add_frees tree frees in
     gen_function funcs ~mangle:C
       {
         name = { Monomorph_tree.user = "main"; call = "main" };
@@ -1986,31 +2018,16 @@ let generate ~target ~outname ~release ~modul
     |> ignore
   else if has_init_code tree then (
     (* Or module init *)
-    let name = "__" ^ outname ^ "_init" in
-    let p =
-      gen_function funcs ~mangle:C
-        {
-          name = { Monomorph_tree.user = name; call = name };
-          recursive = Rnone;
-          abs =
-            {
-              func = { params = []; ret = Tunit; kind = Simple };
-              pnames = [];
-              body = tree;
-            };
-        }
-    in
-    let init = Vars.find name p.vars in
-    let open Llvm in
-    set_linkage Linkage.Internal init.value;
-    set_section ".text.startup" init.value;
+    add_global_init funcs outname `Ctor tree;
 
-    let init =
-      [| const_int i32_t 65535; init.value; const_pointer_null voidptr_t |]
-    in
-    let global = const_array global_t [| const_struct context init |] in
-    let global = define_global "llvm.global_ctors" global the_module in
-    set_linkage Appending global);
+    match frees with
+    | [] -> ()
+    | frees ->
+        (* Add frees to global dctors in reverse order *)
+        let body =
+          Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true }
+        in
+        add_global_init no_param outname `Dtor (add_frees body frees));
 
   (match Llvm_analysis.verify_module the_module with
   | Some output -> print_endline output
