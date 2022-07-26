@@ -1,0 +1,61 @@
+opam-version: "2.0"
+version: "0.1"
+description:
+  "A functional programming language focused on a simple and practical core"
+maintainer: ["tobiasjammer@gmail.com"]
+authors: ["Tobias Mock"]
+depends: [
+  "base" {= "v0.15.0"}
+  "base-threads" {= "base"}
+  "base-unix" {= "base"}
+  "bigarray-compat" {= "1.1.0"}
+  "conf-cmake" {= "1"}
+  "conf-llvm" {= "13.0.0"}
+  "conf-python-3" {= "1.0.0"}
+  "cppo" {= "1.6.9"}
+  "csexp" {= "1.5.1"}
+  "ctypes" {= "0.20.1"}
+  "dune" {= "3.3.1"}
+  "dune-configurator" {= "3.3.1"}
+  "dune-private-libs" {= "3.3.1"}
+  "dune-site" {= "3.3.1"}
+  "dyn" {= "3.3.1"}
+  "integers" {= "0.7.0"}
+  "llvm" {= "13.0.0"}
+  "menhir" {= "20220210"}
+  "menhirLib" {= "20220210"}
+  "menhirSdk" {= "20220210"}
+  "ocaml" {= "4.14.0"}
+  "ocaml-compiler-libs" {= "v0.12.4"}
+  "ocaml-config" {= "2"}
+  "ocamlfind" {= "1.9.5"}
+  "ordering" {= "3.3.1"}
+  "pp" {= "1.1.2"}
+  "pp_loc" {= "2.1.0"}
+  "ppx_derivers" {= "1.2.1"}
+  "ppx_deriving" {= "5.2.1"}
+  "ppx_sexp_conv" {= "v0.15.1"}
+  "ppxlib" {= "0.27.0"}
+  "result" {= "1.5"}
+  "sexplib0" {= "v0.15.1"}
+  "stdlib-shims" {= "0.3.0"}
+  "stdune" {= "3.3.1"}
+]
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "--promote-install-files=false"
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+  ["dune" "install" "-p" name "--create-install-files" name]
+]
+name: "schmu"
+synopsis: ""
