@@ -17,7 +17,7 @@
 (rule
  ; (alias build-raylib)
  (targets libbyval.a dllbyval.so)
- (deps byval.cpp configure.sh)
+ (deps byval.cpp configure.sh Makefile)
  (action
   (no-infer
    (progn
