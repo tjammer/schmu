@@ -565,9 +565,9 @@ This caused stores to a wrong pointer type in LLVM
   %foo = type { i64 }
   %ys = type { %foo, i64 }
   
-  @x = constant %foo { i64 12 }
-  @ret = constant %ys { %foo { i64 17 }, i64 9 }
-  @a = constant %ys { %foo { i64 1 }, i64 2 }
+  @x = internal constant %foo { i64 12 }
+  @ret = internal constant %ys { %foo { i64 17 }, i64 9 }
+  @a = internal constant %ys { %foo { i64 1 }, i64 2 }
   @ys = global %ys zeroinitializer, align 16
   @ctrl__2 = global %ys zeroinitializer, align 16
   
@@ -620,7 +620,7 @@ A return of a field should not be preallocated
   %mut_int_wrap = type { %int_wrap }
   %closure = type { i8*, i8* }
   
-  @test = constant %test_int_wrap { %int_wrap { i64 2, i64 0, i64 0 } }
+  @test = internal constant %test_int_wrap { %int_wrap { i64 2, i64 0, i64 0 } }
   
   declare void @printi(i64 %0)
   

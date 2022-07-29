@@ -1856,12 +1856,13 @@ and gen_var_data param expr typ =
   { value; typ; lltyp = Llvm.type_of value; const = Not }
 
 let fill_constants constants =
-  let f (name, tree) =
+  let f (name, tree, toplvl) =
     let init = gen_expr no_param tree in
     (* We only add records to the global table, because they are expected as ptrs.
        For ints or floats, we just return the immediate value *)
     let value = Llvm.define_global name init.value the_module in
     Llvm.set_global_constant true value;
+    if not toplvl then Llvm.set_linkage Llvm.Linkage.Internal value;
     match init.typ with
     | Trecord _ ->
         Strtbl.add const_tbl name { init with value; const = Const_ptr }
@@ -1870,13 +1871,14 @@ let fill_constants constants =
   List.iter f constants
 
 let def_globals globals =
-  let f (name, typ) =
+  let f (name, typ, toplvl) =
     let lltyp = get_lltype_global typ in
     let null = Llvm.const_int int_t 0 in
     let value =
       Llvm.define_global name (Llvm.const_bitcast null lltyp) the_module
     in
     Llvm.set_alignment (sizeof_typ typ) value;
+    if not toplvl then Llvm.set_linkage Llvm.Linkage.Internal value;
     Strtbl.add const_tbl name { dummy_fn_value with value }
   in
   List.iter f globals

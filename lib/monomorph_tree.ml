@@ -79,8 +79,8 @@ type external_decl = {
 }
 
 type monomorphized_tree = {
-  constants : (string * monod_tree) list;
-  globals : (string * typ) list;
+  constants : (string * monod_tree * bool) list;
+  globals : (string * typ * bool) list;
   externals : external_decl list;
   typeinsts : typ list;
   tree : monod_tree;
@@ -514,7 +514,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let (id, uniq, e1, e2) ->
-      let p, e1, gn = prep_let param id uniq e1 in
+      let p, e1, gn = prep_let param id uniq e1 false in
       let p, e2, func = morph_expr { p with ret = param.ret } e2 in
       (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
   | Record labels -> morph_record make param labels texpr.attr
@@ -614,7 +614,7 @@ and morph_if mk p cond e1 e2 =
     mk (Mif { cond; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc) } )
 
-and prep_let p id uniq e =
+and prep_let p id uniq e toplvl =
   let p, e1, func = morph_expr { p with ret = false } e in
   (* We add constants to the constant table, not the current env *)
   let p, gn =
@@ -623,14 +623,14 @@ and prep_let p id uniq e =
         let uniq = Module.unique_name id uniq in
         (* Maybe we have to generate a new name here *)
         let cnt = new_id constant_uniq_state in
-        Hashtbl.add constant_tbl uniq (cnt, e1);
+        Hashtbl.add constant_tbl uniq (cnt, e1, toplvl);
         ({ p with vars = Vars.add id (Const uniq) p.vars }, None)
     | { global = true; _ } ->
         (* Globals are 'preallocated' at module level *)
         set_alloca func.alloc;
         let uniq = Module.unique_name id uniq in
         let cnt = new_id constant_uniq_state in
-        Hashtbl.add global_tbl uniq (cnt, e1.typ);
+        Hashtbl.add global_tbl uniq (cnt, e1.typ, toplvl);
         ({ p with vars = Vars.add id (Global (uniq, func)) p.vars }, Some uniq)
     | _ -> ({ p with vars = Vars.add id (Normal func) p.vars }, None)
   in
@@ -895,7 +895,7 @@ let morph_toplvl param items =
   let rec aux param = function
     | [] -> (param, { typ = Tunit; expr = Mconst Unit; return = true }, no_var)
     | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
-        let p, e1, gn = prep_let param id uniq expr in
+        let p, e1, gn = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
         (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
     | Tl_function (name, uniq, abs) :: tl ->
@@ -965,19 +965,19 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
   in
   let typeinsts = List.map cln typeinsts in
 
-  let sort_const (_, (lid, _)) (_, (rid, _)) = Int.compare lid rid in
+  let sort_const (_, (lid, _, _)) (_, (rid, _, _)) = Int.compare lid rid in
   let constants =
     Hashtbl.to_seq constant_tbl
     |> List.of_seq |> List.sort sort_const
-    |> List.map (fun (name, (id, tree)) ->
+    |> List.map (fun (name, (id, tree, toplvl)) ->
            ignore id;
-           (name, tree))
+           (name, tree, toplvl))
   in
   let globals =
     Hashtbl.to_seq global_tbl |> List.of_seq |> List.sort sort_const
-    |> List.map (fun (name, (id, typ)) ->
+    |> List.map (fun (name, (id, typ, toplvl)) ->
            ignore id;
-           (name, typ))
+           (name, typ, toplvl))
   in
 
   (* TODO maybe try to catch memory leaks? *)

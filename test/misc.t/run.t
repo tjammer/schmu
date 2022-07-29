@@ -121,7 +121,7 @@ Also mutable fields and 'realloc' builtin
   %vector_container = type { %container*, i64, i64 }
   
   @x = constant %foo { i64 1 }
-  @x__2 = constant %foo { i64 23 }
+  @x__2 = internal constant %foo { i64 23 }
   @vec = global %vector_string zeroinitializer, align 16
   @vec__2 = global %vector_foo zeroinitializer, align 16
   @vec__3 = global %vector_foo zeroinitializer, align 16

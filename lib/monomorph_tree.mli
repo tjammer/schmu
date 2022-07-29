@@ -77,8 +77,8 @@ type external_decl = {
 }
 
 type monomorphized_tree = {
-  constants : (string * monod_tree) list;
-  globals : (string * typ) list;
+  constants : (string * monod_tree * bool) list; (* toplvl bool *)
+  globals : (string * typ * bool) list; (* toplvl bool *)
   externals : external_decl list;
   typeinsts : typ list;
   tree : monod_tree;
