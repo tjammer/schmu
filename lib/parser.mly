@@ -140,7 +140,7 @@ stmt:
   | expr { Expr ($loc, $1) }
 
 expr:
-  | Lowercase_id { Var($loc, $1) }
+  | module_expr { $1 }
   | lit { $1 }
   | expr; binop; expr { Bop($loc, $2, $1, $3) }
   | unop; expr { Unop ($loc, $1, $2) }
@@ -148,16 +148,19 @@ expr:
   | Fun; parens(decl); Arrow_right; block
     { Lambda($loc, $2, $4) }
   | callable; parens(expr) { App($loc, $1, $2) }
-  | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
   | expr; Dot; Lowercase_id; Arrow_left; expr { Field_set ($loc, $1, $3, $5) } /* Copying the first part makes checking for mutability easier */
   | expr; Dot; Lowercase_id { Field ($loc, $1, $3) }
   | expr; Pipe_head; expr { Pipe_head ($loc, $1, $3) }
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
+  | Match; separated_nonempty_list(Comma, expr); With; Begin; nonempty_list(clause); End { Match (($startpos, $endpos($5)), $2, $5) }
+  | Uppercase_id; Dot; module_expr { Local_open ($loc, $1, [Expr ($sloc, $3)]) }
+  | Uppercase_id; Dot; Lpar; block; Rpar { Local_open ($loc, $1, $4) }
+
+%inline module_expr:
+  | Lowercase_id { Var($loc, $1) }
+  | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
   | Lpar; expr; Rpar { $2 }
   | ctor; option(parens_single(expr)) { Ctor ($loc, $1, $2) }
-  | Match; separated_nonempty_list(Comma, expr); With; Begin; nonempty_list(clause); End { Match (($startpos, $endpos($5)), $2, $5) }
-  | Uppercase_id; Dot; expr { Local_open ($loc, $1, [Expr ($sloc, $3)]) }
-  | Uppercase_id; Dot; Lpar; block; Rpar { Local_open ($loc, $1, $4) }
 
 %inline lit:
   | Int { Lit($loc, Int $1) }
