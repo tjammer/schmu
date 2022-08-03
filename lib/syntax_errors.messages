@@ -32,7 +32,7 @@ prog: Val Lowercase_id With
 ## Val ident
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting '='
 
 prog: Val Lowercase_id Colon With
 ##
