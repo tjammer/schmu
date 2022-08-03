@@ -96,8 +96,8 @@ type to_gen_func_kind =
   | No_function
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
-type malloc_kind = Return_value | Local
-type malloc = { id : int; kind : malloc_kind ref }
+type malloc = { id : int; mlvl : int ref }
+(* type malloc = Atom of malloc_item | Collection of malloc_item list *)
 
 type var_normal = {
   fn : to_gen_func_kind;
@@ -466,18 +466,17 @@ let rec set_alloca = function
   | Value _ | No_value -> ()
 
 let propagate_malloc = function
-  | Some { id = _; kind } -> kind := Return_value
+  | Some { id = _; mlvl } -> mlvl := !mlvl - 1
   | None -> ()
 
 let free_mallocs body mallocs =
   (* Filter out the returned alloc (if it exists), free the rest
      then mark returned one local for next scope *)
-  let f { id; kind } body =
-    match kind with
-    | { contents = Local } ->
-        (* The tree should behave the same to the outer world, so we copy type and return field *)
-        { body with expr = Mfree_after (body, id) }
-    | { contents = Return_value } -> body
+  let f { id; mlvl } body =
+    if !mlvl > !alloc_lvl then
+      (* The tree should behave the same to the outer world, so we copy type and return field *)
+      { body with expr = Mfree_after (body, id) }
+    else body
   in
 
   List.fold_right f mallocs body
@@ -541,11 +540,19 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
 
 and morph_var mk p v =
   let (v, kind), alloca =
-    match Vars.find_opt v p.vars with
-    | Some (Normal thing) -> ((v, Vnorm), thing)
-    | Some (Const thing) -> ((thing, Vconst), no_var)
-    | Some (Global (id, thing)) -> ((id, Vglobal), thing)
-    | None -> ((v, Vnorm), no_var)
+    match v with
+    | "__malloc" ->
+        let malloc = { id = new_id malloc_id; mlvl = ref !alloc_lvl } in
+        let var =
+          { fn = Builtin Malloc; alloc = No_value; malloc = Some malloc }
+        in
+        ((v, Vnorm), var)
+    | v -> (
+        match Vars.find_opt v p.vars with
+        | Some (Normal thing) -> ((v, Vnorm), thing)
+        | Some (Const thing) -> ((thing, Vconst), no_var)
+        | Some (Global (id, thing)) -> ((id, Vglobal), thing)
+        | None -> ((v, Vnorm), no_var))
   in
   (p, mk (Mvar (v, kind)) p.ret, alloca)
 
@@ -576,7 +583,7 @@ and morph_vector mk p v =
   let alloca = ref (request ()) in
 
   let id = new_id malloc_id in
-  let malloc = { id; kind = ref Local } in
+  let malloc = { id; mlvl = ref !alloc_lvl } in
   let mallocs = malloc :: old_mallocs in
 
   ( { p with ret; mallocs },
@@ -817,7 +824,7 @@ and morph_app mk p callee args =
   let malloc, p =
     match var.malloc with
     | Some _ ->
-        let malloc = { id = new_id malloc_id; kind = ref Local } in
+        let malloc = { id = new_id malloc_id; mlvl = ref !alloc_lvl } in
         (Some malloc, { p with mallocs = malloc :: p.mallocs })
     | None -> (None, p)
   in
@@ -919,11 +926,6 @@ let morph_toplvl param items =
 let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
   reset ();
 
-  (* Register malloc builtin, so freeing automatically works *)
-  let malloc = { id = new_id malloc_id; kind = ref Local } in
-  let var = { fn = Builtin Malloc; alloc = No_value; malloc = Some malloc } in
-  let vars = Vars.add "__malloc" (Normal var) Vars.empty in
-
   (* External are globals. By marking them [Global] here, we don't have to
      introduce a special case in codegen, or mark them Const_ptr when they are not *)
   let vars =
@@ -937,7 +939,7 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
               match ext_cname with None -> ext_name | Some cname -> cname
             in
             Vars.add ext_name (Global (cname, no_var)) vars)
-      vars externals
+      Vars.empty externals
   in
 
   let param =
@@ -947,7 +949,7 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
 
   let frees =
     List.filter_map
-      (function { id; kind = { contents = Local } } -> Some id | _ -> None)
+      (function { id; mlvl } when !mlvl >= !alloc_lvl -> Some id | _ -> None)
       p.mallocs
   in
 
