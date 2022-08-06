@@ -1613,6 +1613,22 @@ and gen_if param expr return =
            Void will be added eventually *)
         | Tunit -> e1
         | _ ->
+            let e1, e2 =
+              if is_struct e1.typ then
+                (* Both values have to either be ptrs or const literals *)
+                match (e1.const, e2.const) with
+                | Const, (Not | Const_ptr) ->
+                    let value = alloca param e1.lltyp "" in
+                    ignore (Llvm.build_store e1.value value builder);
+                    ({ e1 with value; const = Const_ptr }, e2)
+                | (Not | Const_ptr), Const ->
+                    let value = alloca param e2.lltyp "" in
+                    ignore (Llvm.build_store e2.value value builder);
+                    (e1, { e2 with value; const = Const_ptr })
+                | _, _ -> (e1, e2)
+              else (e1, e2)
+            in
+
             if e1.value <> e2.value then (
               Llvm.position_at_end (Lazy.force merge_bb) builder;
               let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in

@@ -1529,3 +1529,71 @@ Tailcall loops
   2, 2, 0
   2, 2, 1
   2, 2, 2
+
+Make sure an if returns either Const or Const_ptr, but in a consistent way
+  $ schmu -c --dump-llvm regression_issue_30.smu
+  regression_issue_30.smu:8:5: warning: Unused binding calc_acc
+  8 | fun calc_acc(vel) =
+          ^^^^^^^^
+  
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %v = type { double, double, double }
+  
+  @acc_force = internal constant double 1.000000e+02
+  
+  declare double @dot(%v* byval(%v) %0, %v* byval(%v) %1)
+  
+  declare void @norm(%v* %0, %v* byval(%v) %1)
+  
+  declare void @scale(%v* %0, %v* byval(%v) %1, double %2)
+  
+  declare i1 @maybe()
+  
+  define void @schmu_calc_acc(%v* %0, %v* %vel) {
+  entry:
+    %1 = tail call double @dot(%v* %vel, %v* %vel)
+    %gt = fcmp ogt double %1, 1.000000e-01
+    br i1 %gt, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %ret = alloca %v, align 8
+    call void @norm(%v* %ret, %v* %vel)
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    %2 = alloca %v, align 8
+    store %v { double 1.000000e+00, double 0.000000e+00, double 0.000000e+00 }, %v* %2, align 8
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    %iftmp = phi %v* [ %ret, %then ], [ %2, %else ]
+    %3 = call i1 @maybe()
+    br i1 %3, label %then1, label %else2
+  
+  then1:                                            ; preds = %ifcont
+    call void @scale(%v* %0, %v* %iftmp, double 1.000000e+02)
+    br label %ifcont7
+  
+  else2:                                            ; preds = %ifcont
+    %4 = call i1 @maybe()
+    br i1 %4, label %then3, label %else5
+  
+  then3:                                            ; preds = %else2
+    call void @scale(%v* %0, %v* %iftmp, double -3.000000e+02)
+    br label %ifcont7
+  
+  else5:                                            ; preds = %else2
+    call void @scale(%v* %0, %v* %iftmp, double 1.000000e-01)
+    br label %ifcont7
+  
+  ifcont7:                                          ; preds = %then3, %else5, %then1
+    ret void
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    ret i64 0
+  }
