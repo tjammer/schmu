@@ -8,6 +8,7 @@ type opts = {
   no_prelude : bool;
   link_modules : string list;
   check_only : bool;
+  cargs : string list;
 }
 
 let ( >>= ) = Result.bind
@@ -37,6 +38,7 @@ let run file prelude
       no_prelude;
       link_modules;
       check_only;
+      cargs;
     } =
   let fmt_msg_fn kind loc msg =
     let file = Lexing.((fst loc).pos_fname) in
@@ -69,7 +71,7 @@ let run file prelude
            Module.Sexp.to_channel modfile m;
            close_out modfile)
          else if compile_only then ()
-         else Link.link outname link_modules))
+         else Link.link outname link_modules cargs))
   with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
@@ -96,6 +98,8 @@ let () =
   let compile_only = ref false in
   let no_prelude = ref false in
   let check_only = ref false in
+  let cargs = ref [] in
+  let carg s = cargs := s :: !cargs in
   let anon_fun fn =
     if Filename.check_suffix fn ".o" then link_modules := fn :: !link_modules
     else if Filename.check_suffix fn ".smu" then (
@@ -129,6 +133,7 @@ let () =
       ("-c", Arg.Set compile_only, "Compile as main, but don't link");
       ("--no-prelude", Arg.Set no_prelude, "Compile without prelude");
       ("--check", Arg.Set check_only, "Typecheck only");
+      ("--cc", Arg.String carg, "Pass to C compiler");
     ]
   in
   let () = Arg.parse speclist anon_fun usage in
@@ -159,4 +164,5 @@ let () =
       no_prelude = !no_prelude;
       link_modules = List.rev !link_modules;
       check_only = !check_only;
+      cargs = List.rev !cargs;
     }

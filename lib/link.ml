@@ -1,9 +1,8 @@
-let link outname modules =
+let link outname modules cargs =
   (* Invoke 'cc' with all the files here *)
   let cmd =
-    Printf.sprintf "cc -o %s %s %s.o" outname
-      (String.concat " " modules)
-      outname
+    Printf.sprintf "cc -o %s %s.o %s" outname outname
+      (String.concat " " (modules @ cargs))
   in
   let ret = Sys.command cmd in
   if ret = 0 then (* Remove temp object file *)
