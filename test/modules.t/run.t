@@ -191,21 +191,37 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define i64 @main(i64 %arg) {
   entry:
     %str = alloca %string, align 8
-    %cstr4 = bitcast %string* %str to i8**
-    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr4, align 8
+    %cstr12 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr12, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 3, i64* %length, align 4
     %a__2 = load i64, i64* @a__2, align 4
     tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %a__2)
     %str1 = alloca %string, align 8
-    %cstr25 = bitcast %string* %str1 to i8**
-    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr25, align 8
+    %cstr213 = bitcast %string* %str1 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr213, align 8
     %length3 = getelementptr inbounds %string, %string* %str1, i32 0, i32 1
     store i64 3, i64* %length3, align 4
     %b = load i64, i64* @b, align 4
     tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %b)
+    %str4 = alloca %string, align 8
+    %cstr514 = bitcast %string* %str4 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr514, align 8
+    %length6 = getelementptr inbounds %string, %string* %str4, i32 0, i32 1
+    store i64 3, i64* %length6, align 4
+    %a__27 = load i64, i64* @a__2, align 4
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %a__27)
+    %str8 = alloca %string, align 8
+    %cstr915 = bitcast %string* %str8 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr915, align 8
+    %length10 = getelementptr inbounds %string, %string* %str8, i32 0, i32 1
+    store i64 3, i64* %length10, align 4
+    %b11 = load i64, i64* @b, align 4
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %b11)
     ret i64 0
   }
+  11
+  21
   11
   21
 
