@@ -205,7 +205,7 @@ ctor:
   | Uppercase_id { $loc, $1 }
 
 let parens(x) :=
-  | Lpar; lst = separated_list(Comma, x); Rpar; { lst }
+  | Lpar; option(Begin); lst = separated_list(Comma, x); option(End); Rpar; { lst }
 
 let parens_single(x) :=
   | Lpar; item = x; Rpar; { item }
