@@ -35,6 +35,7 @@ let tbl =
     (U8_of_int, Tfun ([ Tint ], Tu8, Simple), "u8_of_int");
     (U8_to_int, Tfun ([ Tu8 ], Tint, Simple), "u8_to_int");
     (F32_of_float, Tfun ([ Tfloat ], Tf32, Simple), "f32_of_float");
+    (F32_to_float, Tfun ([ Tf32 ], Tfloat, Simple), "f32_to_float");
     (Not, Tfun ([ Tbool ], Tbool, Simple), "not");
   ]
 
