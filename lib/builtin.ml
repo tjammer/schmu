@@ -18,15 +18,15 @@ type t =
 let tbl =
   [
     ( Unsafe_ptr_get,
-      Types.Tfun ([ Tptr (Qvar "0"); Tint ], Qvar "0", Simple),
+      Types.Tfun ([ Traw_ptr (Qvar "0"); Tint ], Qvar "0", Simple),
       "__unsafe_ptr_get" );
     ( Unsafe_ptr_set,
-      Tfun ([ Tptr (Qvar "0"); Tint; Qvar "0" ], Tunit, Simple),
+      Tfun ([ Traw_ptr (Qvar "0"); Tint; Qvar "0" ], Tunit, Simple),
       "__unsafe_ptr_set" );
     ( Realloc,
-      Tfun ([ Tptr (Qvar "0"); Tint ], Tptr (Qvar "0"), Simple),
+      Tfun ([ Traw_ptr (Qvar "0"); Tint ], Traw_ptr (Qvar "0"), Simple),
       "__realloc" );
-    (Malloc, Tfun ([ Tint ], Tptr (Qvar "0"), Simple), "__malloc");
+    (Malloc, Tfun ([ Tint ], Traw_ptr (Qvar "0"), Simple), "__malloc");
     (Ignore, Tfun ([ Qvar "0" ], Tunit, Simple), "ignore");
     (Int_of_float, Tfun ([ Tfloat ], Tint, Simple), "int_of_float");
     (Float_of_int, Tfun ([ Tint ], Tfloat, Simple), "float_of_int");

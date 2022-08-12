@@ -215,15 +215,15 @@ let test_alias_simple () =
   test "foo = int -> unit" "type foo = int external f : foo -> unit f"
 
 let test_alias_param_concrete () =
-  test "foo = ptr(u8) -> unit" "type foo = ptr(u8) external f : foo -> unit f"
+  test "foo = raw_ptr(u8) -> unit" "type foo = raw_ptr(u8) external f : foo -> unit f"
 
 let test_alias_param_quant () =
-  test "foo = ptr('a) -> unit"
-    "type foo('a) = ptr('a) external f : foo('a) -> unit f"
+  test "foo = raw_ptr('a) -> unit"
+    "type foo('a) = raw_ptr('a) external f : foo('a) -> unit f"
 
 let test_alias_param_missing () =
   test_exn "Type foo needs a type parameter"
-    "type foo('a) = ptr('a) external f : foo -> unit f"
+    "type foo('a) = raw_ptr('a) external f : foo -> unit f"
 
 let test_alias_of_alias () =
   test "bar = int -> foo = int"
@@ -231,18 +231,18 @@ let test_alias_of_alias () =
 
 let test_vector_lit () =
   test "vector(int)"
-    {|type vector('a) = { data : ptr('a), length : int }
+    {|type vector('a) = { data : raw_ptr('a), length : int }
     [0,1]|}
 
 let test_vector_var () =
   test "vector(int)"
-    {|type vector('a) = { data : ptr('a), length : int }
+    {|type vector('a) = { data : raw_ptr('a), length : int }
     val a = [0,1]
     a|}
 
 let test_vector_weak () =
   test "vector(int)"
-    {|type vector('a) = { data : ptr('a), length : int }
+    {|type vector('a) = { data : raw_ptr('a), length : int }
     external set : (vector('a), 'a) -> unit
     val a = []
     set(a, 2)
@@ -250,12 +250,12 @@ let test_vector_weak () =
 
 let test_vector_different_types () =
   test_exn "In vector literal: Expected type int but got type bool"
-    {|type vector('a) = { data : ptr('a), length : int }
+    {|type vector('a) = { data : raw_ptr('a), length : int }
     [0,true]|}
 
 let test_vector_different_annot () =
   test_exn "Var annotation: Expected type vector(bool) but got type vector(int)"
-    {|type vector('a) = { data : ptr('a), length : int }
+    {|type vector('a) = { data : raw_ptr('a), length : int }
     val a : vector(bool) = [0,1]
     a|}
 
@@ -263,7 +263,7 @@ let test_vector_different_annot_weak () =
   test_exn
     "Application: Expected type (vector(bool), bool) -> unit but got type \
      (vector(bool), int) -> 'a"
-    {|type vector('a) = { data : ptr('a), length : int }
+    {|type vector('a) = { data : raw_ptr('a), length : int }
     external set : (vector('a), 'a) -> unit
     val a : vector(bool) = []
     set(a, 2)|}
@@ -272,7 +272,7 @@ let test_vector_different_weak () =
   test_exn
     "Application: Expected type (vector(int), int) -> unit but got type \
      (vector(int), bool) -> 'a"
-    {|type vector('a) = { data : ptr('a), length : int }
+    {|type vector('a) = { data : raw_ptr('a), length : int }
     external set : (vector('a), 'a) -> unit
     val a = []
     set(a, 2)

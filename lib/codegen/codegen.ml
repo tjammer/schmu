@@ -149,7 +149,7 @@ let rec sizeof_typ typ =
     | Tpoly _ ->
         Llvm.dump_module the_module;
         failwith "too generic for a size"
-    | Tptr _ ->
+    | Traw_ptr _ ->
         (* TODO pass in triple. Until then, assume 64bit *)
         add_size_align ~upto:8 ~sz:8 size_pr
   in
@@ -308,10 +308,10 @@ let rec get_lltype_def = function
             (Printf.sprintf "Record struct not found for type %s (def)" name))
   | Tfun (params, ret, kind) ->
       typeof_func ~param:false ~decl:false (params, ret, kind) |> fst
-  | Tptr t -> get_lltype_def t |> Llvm.pointer_type
+  | Traw_ptr t -> get_lltype_def t |> Llvm.pointer_type
 
 and get_lltype_param = function
-  | (Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Tptr _) as t
+  | (Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _) as t
     ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
@@ -328,7 +328,7 @@ and get_lltype_param = function
             (Printf.sprintf "Record struct not found for type %s (param)" name))
 
 and get_lltype_field = function
-  | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Tptr _
+  | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _
     | Trecord _ | Tvariant _ ) as t ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
@@ -336,7 +336,7 @@ and get_lltype_field = function
       typeof_func ~param:true ~decl:false (params, ret, kind) |> fst
 
 and get_lltype_global = function
-  | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Tptr _
+  | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _
     | Trecord _ | Tvariant _ ) as t ->
       get_lltype_def t
   | Tfun _ -> closure_t
@@ -830,7 +830,7 @@ let add_params vars f fname names types start_index recursive =
         let dst = Llvm.build_alloca typ "" builder in
         store_alloca ~src ~dst;
         dst
-    | Tptr _ -> failwith "TODO"
+    | Traw_ptr _ -> failwith "TODO"
     | t ->
         (* Simple type *)
         let typ = get_lltype_def t in
@@ -843,7 +843,7 @@ let add_params vars f fname names types start_index recursive =
     match value.typ with
     | Trecord _ | Tvariant _ -> value.value
     | Tfun _ -> value.value
-    | Tptr _ -> failwith "TODO"
+    | Traw_ptr _ -> failwith "TODO"
     | _ -> Llvm.build_load value.value name builder
   in
 
@@ -1515,7 +1515,7 @@ and gen_app_builtin param (b, fnc) args =
   | Realloc ->
       let item_size =
         match fnc.ret with
-        | Tptr t -> sizeof_typ t |> Llvm.const_int int_t
+        | Traw_ptr t -> sizeof_typ t |> Llvm.const_int int_t
         | _ -> failwith "Internal Error: Nonptr return of alloc"
       in
 
@@ -1532,7 +1532,7 @@ and gen_app_builtin param (b, fnc) args =
   | Malloc ->
       let item_size =
         match fnc.ret with
-        | Tptr t -> sizeof_typ t |> Llvm.const_int int_t
+        | Traw_ptr t -> sizeof_typ t |> Llvm.const_int int_t
         | _ -> failwith "Internal Error: Nonptr return of alloc"
       in
 

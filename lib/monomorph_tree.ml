@@ -160,7 +160,7 @@ let rec cln = function
           ctors
       in
       Tvariant (param, name, ctors)
-  | Tptr t -> Tptr (cln t)
+  | Traw_ptr t -> Traw_ptr (cln t)
 
 and cln_kind = function
   | Simple -> Simple
@@ -211,7 +211,7 @@ let get_mono_name name ~poly concrete =
         Printf.sprintf "%s%s" name (str t)
     | Trecord (_, name, _) | Tvariant (_, name, _) -> name
     | Tpoly _ -> "g"
-    | Tptr t -> Printf.sprintf "p%s" (str t)
+    | Traw_ptr t -> Printf.sprintf "p%s" (str t)
   in
   Printf.sprintf "__%s_%s_%s" (str poly) name (str concrete)
 
@@ -257,9 +257,9 @@ let subst_type ~concrete poly parent =
         let subst, _ = Array.fold_left f (subst, 0) l1 in
         let subst, param = inner subst (i, j) in
         (subst, Tvariant (Some param, variant, ctors))
-    | Tptr l, Tptr r ->
+    | Traw_ptr l, Traw_ptr r ->
         let subst, t = inner subst (l, r) in
-        (subst, Tptr t)
+        (subst, Traw_ptr t)
     | t, _ -> (subst, t)
   in
   let vars, typ = inner Vars.empty (poly, concrete) in
@@ -285,7 +285,7 @@ let subst_type ~concrete poly parent =
         in
         let ctors = Array.map f ctors in
         Tvariant (Some (subst p), variant, ctors)
-    | Tptr t -> Tptr (subst t)
+    | Traw_ptr t -> Traw_ptr (subst t)
     | t -> t
   in
 

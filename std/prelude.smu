@@ -1,8 +1,8 @@
-type cstr = ptr(u8)
+type cstr = raw_ptr(u8)
 type string = { cstr : cstr, length : int }
 
 type vector('a) = {
-  mutable data : ptr('a),
+  mutable data : raw_ptr('a),
   mutable length : int,
   mutable capacity : int
 }

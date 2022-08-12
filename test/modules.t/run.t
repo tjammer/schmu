@@ -171,7 +171,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   21
 
   $ cat lets.smi
-  ((4:Mext4:Tint1:a())(4:Mext(4:Tfun((6:Talias4:cstr(4:Tptr3:Tu8))4:Tint)5:Tunit6:Simple)6:printf())(4:Mfun(4:Tfun()4:Tint6:Simple)10:generate_b)(4:Mext(4:Tvar(4:Link4:Tint))1:b())(4:Mext4:Tint1:a(4:a__2)))
+  ((4:Mext4:Tint1:a())(4:Mext(4:Tfun((6:Talias4:cstr(8:Traw_ptr3:Tu8))4:Tint)5:Tunit6:Simple)6:printf())(4:Mfun(4:Tfun()4:Tint6:Simple)10:generate_b)(4:Mext(4:Tvar(4:Link4:Tint))1:b())(4:Mext4:Tint1:a(4:a__2)))
 
   $ schmu lets.o local_open_lets.smu --dump-llvm && ./local_open_lets
   ; ModuleID = 'context'

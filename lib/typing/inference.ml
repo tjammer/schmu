@@ -103,7 +103,7 @@ let rec unify t1 t2 =
           with Invalid_argument _ ->
             raise (Arity ("variant", Array.length ctors1, Array.length ctors2))
         else raise Unify
-    | Tptr l, Tptr r -> unify l r
+    | Traw_ptr l, Traw_ptr r -> unify l r
     | Qvar a, Qvar b when String.equal a b ->
         (* We should not need this. Record instantiation? *) ()
     | _ -> raise Unify
@@ -136,7 +136,7 @@ let rec generalize = function
       let f c = Types.{ c with ctyp = Option.map generalize c.ctyp } in
       let ctors = Array.map f ctors in
       Tvariant (param, name, ctors)
-  | Tptr t -> Tptr (generalize t)
+  | Traw_ptr t -> Traw_ptr (generalize t)
   | t -> t
 
 (* TODO sibling functions *)
@@ -192,9 +192,9 @@ let instantiate t =
         in
         let param, subst = aux !subst param in
         (Tvariant (Some param, name, ctors), subst)
-    | Tptr t ->
+    | Traw_ptr t ->
         let t, subst = aux subst t in
-        (Tptr t, subst)
+        (Traw_ptr t, subst)
     | t -> (t, subst)
   in
   aux Smap.empty t |> fst
@@ -253,5 +253,5 @@ let rec types_match ?(strict = false) subst l r =
           | None, None -> (subst, true)
           | None, Some _ | Some _, None -> (subst, false)
         else (subst, false)
-    | Tptr l, Tptr r -> types_match ~strict subst l r
+    | Traw_ptr l, Traw_ptr r -> types_match ~strict subst l r
     | _ -> (subst, false)

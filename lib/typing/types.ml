@@ -23,7 +23,7 @@ type typ =
   | Talias of string * typ
   | Trecord of typ option * string * field array
   | Tvariant of typ option * string * ctor array
-  | Tptr of typ
+  | Traw_ptr of typ
 [@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of (string * typ) list
@@ -53,14 +53,14 @@ let rec clean = function
             (fun ctor -> { ctor with ctyp = Option.map clean ctor.ctyp })
             ctors )
   | Talias (_, t) -> clean t
-  | Tptr t -> Tptr (clean t)
+  | Traw_ptr t -> Traw_ptr (clean t)
   | t -> t
 
 let rec is_struct = function
   | Tvar { contents = Link t } | Talias (_, t) -> is_struct t
   | Trecord _ | Tvariant _ | Tfun _ | Qvar _ | Tvar { contents = Unbound _ } ->
       true
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Tptr _ -> false
+  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Traw_ptr _ -> false
 
 let pp_to_name name = "'" ^ name
 
@@ -89,7 +89,7 @@ let string_of_type_raw get_name typ =
         ^ Option.fold ~none:""
             ~some:(fun param -> Printf.sprintf "(%s)" (string_of_type param))
             param
-    | Tptr t -> Printf.sprintf "ptr(%s)" (string_of_type t)
+    | Traw_ptr t -> Printf.sprintf "raw_ptr(%s)" (string_of_type t)
   in
 
   string_of_type typ
@@ -137,6 +137,6 @@ let is_polymorphic typ =
     | Tbool | Tunit | Tint | Trecord _ | Tvariant _ | Tu8 | Tfloat | Ti32 | Tf32
       ->
         acc
-    | Tptr t -> inner acc t
+    | Traw_ptr t -> inner acc t
   in
   inner false typ

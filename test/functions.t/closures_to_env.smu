@@ -1,4 +1,4 @@
-external printf : (ptr(u8), int) -> unit
+external printf : (raw_ptr(u8), int) -> unit
 
 val a = 20
 

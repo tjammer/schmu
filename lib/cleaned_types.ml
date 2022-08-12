@@ -10,7 +10,7 @@ type typ =
   | Tfun of typ list * typ * fun_kind
   | Trecord of typ option * string * field array
   | Tvariant of typ option * string * ctor array
-  | Tptr of typ
+  | Traw_ptr of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
@@ -33,7 +33,7 @@ let is_type_polymorphic typ =
     | Tbool | Tunit | Tint | Trecord _ | Tvariant _ | Tu8 | Tfloat | Ti32 | Tf32
       ->
         acc
-    | Tptr t -> inner acc t
+    | Traw_ptr t -> inner acc t
   in
   inner false typ
 
@@ -57,14 +57,14 @@ let rec string_of_type = function
       ^ Option.fold ~none:""
           ~some:(fun param -> Printf.sprintf "(%s)" (string_of_type param))
           param
-  | Tptr t -> Printf.sprintf "ptr(%s)" (string_of_type t)
+  | Traw_ptr t -> Printf.sprintf "raw_ptr(%s)" (string_of_type t)
 
 let is_struct = function
   | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ -> true
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Tptr _ -> false
+  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Traw_ptr _ -> false
 
 let is_aggregate = function
   | Trecord _ | Tvariant _ -> true
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Tptr _ | Tfun _
+  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Traw_ptr _ | Tfun _
   | Tpoly _ ->
       false

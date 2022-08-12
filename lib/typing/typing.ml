@@ -113,7 +113,7 @@ let rec subst_generic ~id typ = function
       in
       let ctors = Array.map f ctors in
       Tvariant (Some (subst_generic ~id typ p), name, ctors)
-  | Tptr t -> Tptr (subst_generic ~id typ t)
+  | Traw_ptr t -> Traw_ptr (subst_generic ~id typ t)
   | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
   | t -> t
 
@@ -123,8 +123,8 @@ and get_generic_id loc = function
   | Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _)
   | Tvariant (Some (Qvar id), _, _)
   | Tvariant (Some (Tvar { contents = Unbound (id, _) }), _, _)
-  | Tptr (Qvar id)
-  | Tptr (Tvar { contents = Unbound (id, _) }) ->
+  | Traw_ptr (Qvar id)
+  | Traw_ptr (Tvar { contents = Unbound (id, _) }) ->
       id
   | t ->
       raise
@@ -141,7 +141,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
 
   let rec is_quantified = function
     | Trecord (Some _, name, _) -> Some name
-    | Tptr _ -> Some "ptr"
+    | Traw_ptr _ -> Some "raw_ptr"
     | Talias (name, t) -> (
         let cleaned = clean t in
         match is_quantified cleaned with
@@ -172,7 +172,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         concrete_type env spec
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
-    | [ Ty_id "ptr" ] -> raise (Error (loc, "Type ptr needs a type parameter"))
+    | [ Ty_id "raw_ptr" ] -> raise (Error (loc, "Type raw_ptr needs a type parameter"))
     | [ t ] -> (
         let t = concrete_type env t in
         match is_quantified t with
@@ -184,9 +184,9 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     match lst with
     | [] -> failwith "Internal Error: Type record list should not be empty"
     | [ t ] -> concrete_type env t
-    | Ty_id "ptr" :: tl ->
+    | Ty_id "raw_ptr" :: tl ->
         let nested = container_t env tl in
-        Tptr nested
+        Traw_ptr nested
     | hd :: tl ->
         let t = concrete_type env hd in
         let nested = container_t env tl in
