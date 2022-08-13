@@ -182,17 +182,22 @@ let is_unbound = function
   | Qvar _ | Tvar { contents = Unbound _ } -> true
   | _ -> false
 
-let maybe_add_type_instance typ env =
+let rec maybe_add_type_instance typ env =
   (* We reject generic records with unbound variables *)
   let key = string_of_type typ in
-  let key = Type_key.create key in
+
+  let add_instance () =
+    let key = Type_key.create key in
+    match Tmap.find_opt key !(env.instances) with
+    | None -> env.instances := Tmap.add key typ !(env.instances)
+    | Some _ -> ()
+  in
 
   match clean typ with
-  | (Trecord (Some t, _, _) | Tvariant (Some t, _, _)) when not (is_unbound t)
-    -> (
-      match Tmap.find_opt key !(env.instances) with
-      | None -> env.instances := Tmap.add key typ !(env.instances)
-      | Some _ -> ())
+  | Trecord (Some t, _, fields) when not (is_unbound t) ->
+      Array.iter (fun f -> maybe_add_type_instance f.ftyp env) fields;
+      add_instance ()
+  | Tvariant (Some t, _, _) when not (is_unbound t) -> add_instance ()
   | _ -> ()
 
 let add_alias name typ env =

@@ -1,9 +1,10 @@
+type ptr('a) = { ptr : raw_ptr('a), length : int }
+type owned_ptr('a) = { mutable optr : raw_ptr('a), mutable length : int }
 type cstr = raw_ptr(u8)
 type string = { cstr : cstr, length : int }
 
 type vector('a) = {
-  mutable data : raw_ptr('a),
-  mutable length : int,
+  ptr : owned_ptr('a),
   mutable capacity : int
 }
 
@@ -11,33 +12,33 @@ type vector('a) = {
 fun vector_init(capacity) =
   -- __malloc is a builtin, the compiler will free once the ptr
   -- drops out of scope.
-  val ptr = __malloc(capacity)
-  { data = ptr, length = 0, capacity }
+  val optr = __malloc(capacity)
+  { ptr = { optr, length = 0 }, capacity }
 
 fun vector_push(vec, v) =
-  if vec.length = vec.capacity then
+  if vec.ptr.length = vec.capacity then
     val cap = vec.capacity * 2
-    vec.data <- __realloc(vec.data, cap)
+    vec.ptr.optr <- __realloc(vec.ptr.optr, cap)
     vec.capacity <- cap
-  __unsafe_ptr_set(vec.data, vec.length, v)
-  vec.length <- vec.length + 1
+  __unsafe_ptr_set(vec.ptr.optr, vec.ptr.length, v)
+  vec.ptr.length <- vec.ptr.length + 1
 
 fun vector_iter(vec, f) =
   fun inner(i) =
-    if i = vec.length then
+    if i = vec.ptr.length then
       ()
     else
-      f(__unsafe_ptr_get(vec.data, i))
+      f(__unsafe_ptr_get(vec.ptr.optr, i))
       inner(i+1)
 
   inner(0)
 
 fun vector_fold(vec, f, init) =
   fun inner(i, acc) =
-    if i = vec.length then
+    if i = vec.ptr.length then
       acc
     else
-      val acc = f(acc, __unsafe_ptr_get(vec.data, i))
+      val acc = f(acc, __unsafe_ptr_get(vec.ptr.optr, i))
       inner(i+1, acc)
 
   inner(0, init)

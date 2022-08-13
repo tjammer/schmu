@@ -311,8 +311,8 @@ let rec get_lltype_def = function
   | Traw_ptr t -> get_lltype_def t |> Llvm.pointer_type
 
 and get_lltype_param = function
-  | (Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _) as t
-    ->
+  | (Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _)
+    as t ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
       typeof_func ~param:true ~decl:false (params, ret, kind) |> fst
@@ -558,11 +558,12 @@ let free ptr =
 let rec free_value value = function
   | Trecord (Some t, name, _) when String.equal name "vector" ->
       (* Free nested vectors *)
-      let ptr = Llvm.build_struct_gep value 0 "" builder in
-      let ptr = Llvm.build_load ptr "" builder in
+      let fatptr = Llvm.build_struct_gep value 0 "" builder in
+      let ptr_to_rawptr = Llvm.build_struct_gep fatptr 0 "" builder in
+      let ptr = Llvm.build_load ptr_to_rawptr "" builder in
 
       (if contains_vector t then
-       let len_ptr = Llvm.build_struct_gep value 1 "lenptr" builder in
+       let len_ptr = Llvm.build_struct_gep fatptr 1 "lenptr" builder in
        (* This should be num_t also, at some point *)
        let len = Llvm.build_load len_ptr "leni" builder in
        let len = Llvm.build_intcast len int_t "len" builder in
@@ -1603,7 +1604,6 @@ and gen_if param expr return =
     match (is_tailcall e1, is_tailcall e2) with
     | true, true ->
         (* No need for the whole block, we just return some value *)
-        (* print_endline "both"; *)
         e1
     | true, false -> e2
     | false, true -> e1
@@ -1770,6 +1770,7 @@ and codegen_vector_lit param id es typ allocref =
   let cap =
     match es with
     | [] ->
+        (* TODO nullptr *)
         (* Empty list so far. We allocate 1 item to get an address *)
         1
     | es -> List.length es
@@ -1784,7 +1785,9 @@ and codegen_vector_lit param id es typ allocref =
   let vec = get_prealloc !allocref param lltyp "vec" in
 
   (* Add ptr to vector struct *)
-  let data = Llvm.build_struct_gep vec 0 "data" builder in
+  let owned_ptr = Llvm.build_struct_gep vec 0 "owned_ptr" builder in
+  let data = Llvm.build_struct_gep owned_ptr 0 "data" builder in
+
   ignore (Llvm.build_store ptr data builder);
 
   (* Initialize *)
@@ -1805,10 +1808,10 @@ and codegen_vector_lit param id es typ allocref =
       0 es
   in
 
-  let lenptr = Llvm.build_struct_gep vec 1 "len" builder in
+  let lenptr = Llvm.build_struct_gep owned_ptr 1 "len" builder in
   ignore (Llvm.(build_store (const_int int_t len) lenptr) builder);
 
-  let capptr = Llvm.build_struct_gep vec 2 "cap" builder in
+  let capptr = Llvm.build_struct_gep vec 1 "cap" builder in
   ignore (Llvm.(build_store (const_int int_t cap) capptr) builder);
 
   Ptrtbl.add ptr_tbl id (vec, typ);

@@ -1,36 +1,36 @@
 external printi : int -> unit
 
 fun vector_push(vec, v) =
-  if vec.length < vec.capacity then
-    __unsafe_ptr_set(vec.data, vec.length, v)
-    vec.length <- vec.length + 1
+  if vec.ptr.length < vec.capacity then
+    __unsafe_ptr_set(vec.ptr.optr, vec.ptr.length, v)
+    vec.ptr.length <- vec.ptr.length + 1
   else
     val cap = vec.capacity * 2
-    vec.data <- __realloc(vec.data, cap)
+    vec.ptr.optr <- __realloc(vec.ptr.optr, cap)
     vec.capacity <- cap
-    __unsafe_ptr_set(vec.data, vec.length, v)
-    vec.length <- vec.length + 1
+    __unsafe_ptr_set(vec.ptr.optr, vec.ptr.length, v)
+    vec.ptr.length <- vec.ptr.length + 1
 
 fun vector_iter(vec, f) =
   fun inner_cls_both(i) =
-    if i = vec.length then
+    if i = vec.ptr.length then
       ()
     else
-      f(__unsafe_ptr_get(vec.data, i))
+      f(__unsafe_ptr_get(vec.ptr.optr, i))
       inner_cls_both(i+1)
 
   fun inner_cls_vec(i, f) =
-    if i = vec.length then
+    if i = vec.ptr.length then
       ()
     else
-      f(__unsafe_ptr_get(vec.data, i))
+      f(__unsafe_ptr_get(vec.ptr.optr, i))
       inner_cls_vec(i+1, f)
 
   fun inner_cls_f(i, vec) =
-    if i = vec.length then
+    if i = vec.ptr.length then
       ()
     else
-      f(__unsafe_ptr_get(vec.data, i))
+      f(__unsafe_ptr_get(vec.ptr.optr, i))
       inner_cls_f(i+1, vec)
 
   inner_cls_both(0)
@@ -45,7 +45,7 @@ vector_push(vec, 3)
 vector_push(vec, 4)
 vector_push(vec, 5)
 
--- vec.data -> __unsafe_ptr_get(4) -> printi
+-- vec.ptr.optr -> __unsafe_ptr_get(4) -> printi
 
 
 vector_iter(vec, fun(x) -> printi(x*2))

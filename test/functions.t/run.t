@@ -971,7 +971,8 @@ Nested polymorphic closures. Does not quite work for another nesting level
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %vector_int = type { i64*, i64, i64 }
+  %vector_int = type { %owned_ptr_int, i64 }
+  %owned_ptr_int = type { i64*, i64 }
   %closure = type { i8*, i8* }
   
   @vec = global %vector_int zeroinitializer, align 16
@@ -1031,25 +1032,27 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %clsr = bitcast i8* %0 to { %closure* }*
     %f3 = bitcast { %closure* }* %clsr to %closure**
     %f1 = load %closure*, %closure** %f3, align 8
-    %1 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
-    %2 = load i64, i64* %1, align 4
-    %eq = icmp eq i64 %i.tr, %2
+    %1 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %2 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %1, i32 0, i32 1
+    %3 = load i64, i64* %2, align 4
+    %eq = icmp eq i64 %i.tr, %3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %tailrecurse
     ret void
   
   else:                                             ; preds = %tailrecurse
-    %3 = bitcast %vector_int* %vec to i64**
-    %4 = load i64*, i64** %3, align 8
-    %scevgep = getelementptr i64, i64* %4, i64 %i.tr
-    %5 = load i64, i64* %scevgep, align 4
+    %4 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %5 = bitcast %owned_ptr_int* %4 to i64**
+    %6 = load i64*, i64** %5, align 8
+    %scevgep = getelementptr i64, i64* %6, i64 %i.tr
+    %7 = load i64, i64* %scevgep, align 4
     %funcptr4 = bitcast %closure* %f1 to i8**
     %loadtmp = load i8*, i8** %funcptr4, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
     %loadtmp2 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %5, i8* %loadtmp2)
+    tail call void %casttmp(i64 %7, i8* %loadtmp2)
     %add = add i64 %i.tr, 1
     br label %tailrecurse
   }
@@ -1063,25 +1066,27 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %clsr = bitcast i8* %0 to { %vector_int* }*
     %vec3 = bitcast { %vector_int* }* %clsr to %vector_int**
     %vec1 = load %vector_int*, %vector_int** %vec3, align 8
-    %1 = getelementptr inbounds %vector_int, %vector_int* %vec1, i32 0, i32 1
-    %2 = load i64, i64* %1, align 4
-    %eq = icmp eq i64 %i.tr, %2
+    %1 = bitcast %vector_int* %vec1 to %owned_ptr_int*
+    %2 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %1, i32 0, i32 1
+    %3 = load i64, i64* %2, align 4
+    %eq = icmp eq i64 %i.tr, %3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %tailrecurse
     ret void
   
   else:                                             ; preds = %tailrecurse
-    %3 = bitcast %vector_int* %vec1 to i64**
-    %4 = load i64*, i64** %3, align 8
-    %scevgep = getelementptr i64, i64* %4, i64 %i.tr
-    %5 = load i64, i64* %scevgep, align 4
+    %4 = bitcast %vector_int* %vec1 to %owned_ptr_int*
+    %5 = bitcast %owned_ptr_int* %4 to i64**
+    %6 = load i64*, i64** %5, align 8
+    %scevgep = getelementptr i64, i64* %6, i64 %i.tr
+    %7 = load i64, i64* %scevgep, align 4
     %funcptr4 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr4, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp2 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %5, i8* %loadtmp2)
+    tail call void %casttmp(i64 %7, i8* %loadtmp2)
     %add = add i64 %i.tr, 1
     br label %tailrecurse
   }
@@ -1099,25 +1104,27 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   rec:                                              ; preds = %else, %entry
     %i3 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %2 = getelementptr inbounds %vector_int, %vector_int* %vec2, i32 0, i32 1
-    %3 = load i64, i64* %2, align 4
-    %eq = icmp eq i64 %i3, %3
+    %2 = bitcast %vector_int* %vec2 to %owned_ptr_int*
+    %3 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %2, i32 0, i32 1
+    %4 = load i64, i64* %3, align 4
+    %eq = icmp eq i64 %i3, %4
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %4 = bitcast %vector_int* %vec2 to i64**
-    %5 = load i64*, i64** %4, align 8
-    %scevgep = getelementptr i64, i64* %5, i64 %i3
-    %6 = load i64, i64* %scevgep, align 4
+    %5 = bitcast %vector_int* %vec2 to %owned_ptr_int*
+    %6 = bitcast %owned_ptr_int* %5 to i64**
+    %7 = load i64*, i64** %6, align 8
+    %scevgep = getelementptr i64, i64* %7, i64 %i3
+    %8 = load i64, i64* %scevgep, align 4
     %funcptr7 = bitcast %closure* %f1 to i8**
     %loadtmp = load i8*, i8** %funcptr7, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
     %loadtmp4 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %6, i8* %loadtmp4)
+    tail call void %casttmp(i64 %8, i8* %loadtmp4)
     %add = add i64 %i3, 1
     store i64 %add, i64* %1, align 4
     br label %rec
@@ -1125,48 +1132,51 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   define void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 %v) {
   entry:
-    %0 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
-    %1 = load i64, i64* %0, align 4
-    %2 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 2
-    %3 = load i64, i64* %2, align 4
-    %lt = icmp slt i64 %1, %3
+    %0 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %1 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %0, i32 0, i32 1
+    %2 = load i64, i64* %1, align 4
+    %3 = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
+    %4 = load i64, i64* %3, align 4
+    %lt = icmp slt i64 %2, %4
     br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %entry
-    %4 = bitcast %vector_int* %vec to i64**
-    %5 = load i64*, i64** %4, align 8
-    %6 = getelementptr inbounds i64, i64* %5, i64 %1
-    store i64 %v, i64* %6, align 4
-    %7 = bitcast %vector_int* %vec to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %7, i64 8
-    %8 = bitcast i8* %sunkaddr to i64*
-    %9 = load i64, i64* %8, align 4
-    %add = add i64 %9, 1
-    store i64 %add, i64* %8, align 4
+    %5 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %6 = bitcast %owned_ptr_int* %5 to i64**
+    %7 = load i64*, i64** %6, align 8
+    %8 = getelementptr inbounds i64, i64* %7, i64 %2
+    store i64 %v, i64* %8, align 4
+    %9 = bitcast %vector_int* %vec to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %9, i64 8
+    %10 = bitcast i8* %sunkaddr to i64*
+    %11 = load i64, i64* %10, align 4
+    %add = add i64 %11, 1
+    store i64 %add, i64* %10, align 4
     br label %ifcont
   
   else:                                             ; preds = %entry
-    %mul = mul i64 %3, 2
-    %10 = bitcast %vector_int* %vec to i64**
-    %11 = load i64*, i64** %10, align 8
-    %12 = mul i64 %mul, 8
-    %13 = bitcast i64* %11 to i8*
-    %14 = tail call i8* @realloc(i8* %13, i64 %12)
-    %15 = bitcast i8* %14 to i64*
-    store i64* %15, i64** %10, align 8
-    %16 = bitcast %vector_int* %vec to i8*
-    %sunkaddr2 = getelementptr inbounds i8, i8* %16, i64 16
-    %17 = bitcast i8* %sunkaddr2 to i64*
-    store i64 %mul, i64* %17, align 4
-    %18 = bitcast %vector_int* %vec to i8*
-    %sunkaddr3 = getelementptr inbounds i8, i8* %18, i64 8
-    %19 = bitcast i8* %sunkaddr3 to i64*
-    %20 = load i64, i64* %19, align 4
-    %21 = getelementptr inbounds i64, i64* %15, i64 %20
-    store i64 %v, i64* %21, align 4
-    %22 = load i64, i64* %19, align 4
-    %add1 = add i64 %22, 1
-    store i64 %add1, i64* %19, align 4
+    %12 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %mul = mul i64 %4, 2
+    %13 = bitcast %owned_ptr_int* %12 to i64**
+    %14 = load i64*, i64** %13, align 8
+    %15 = mul i64 %mul, 8
+    %16 = bitcast i64* %14 to i8*
+    %17 = tail call i8* @realloc(i8* %16, i64 %15)
+    %18 = bitcast i8* %17 to i64*
+    store i64* %18, i64** %13, align 8
+    %19 = bitcast %vector_int* %vec to i8*
+    %sunkaddr2 = getelementptr inbounds i8, i8* %19, i64 16
+    %20 = bitcast i8* %sunkaddr2 to i64*
+    store i64 %mul, i64* %20, align 4
+    %21 = bitcast %vector_int* %vec to i8*
+    %sunkaddr3 = getelementptr inbounds i8, i8* %21, i64 8
+    %22 = bitcast i8* %sunkaddr3 to i64*
+    %23 = load i64, i64* %22, align 4
+    %24 = getelementptr inbounds i64, i64* %18, i64 %23
+    store i64 %v, i64* %24, align 4
+    %25 = load i64, i64* %22, align 4
+    %add1 = add i64 %25, 1
+    store i64 %add1, i64* %22, align 4
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
@@ -1179,9 +1189,9 @@ Nested polymorphic closures. Does not quite work for another nesting level
   entry:
     %0 = tail call i8* @malloc(i64 8)
     %1 = bitcast i8* %0 to i64*
-    store i64* %1, i64** getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 0), align 8
-    store i64 0, i64* getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 1), align 4
-    store i64 1, i64* getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 2), align 4
+    store i64* %1, i64** getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 0, i32 0), align 8
+    store i64 0, i64* getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 0, i32 1), align 4
+    store i64 1, i64* getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 1), align 4
     tail call void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* @vec, i64 1)
     tail call void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* @vec, i64 2)
     tail call void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* @vec, i64 3)
@@ -1193,7 +1203,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
     call void @schmu___vectorgg.u.u_vector_iter__2_vectorii.u.u(%vector_int* @vec, %closure* %clstmp)
-    %2 = load i64*, i64** getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 0), align 8
+    %2 = load i64*, i64** getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 0, i32 0), align 8
     %3 = bitcast i64* %2 to i8*
     call void @free(i8* %3)
     ret i64 0

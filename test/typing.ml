@@ -215,7 +215,8 @@ let test_alias_simple () =
   test "foo = int -> unit" "type foo = int external f : foo -> unit f"
 
 let test_alias_param_concrete () =
-  test "foo = raw_ptr(u8) -> unit" "type foo = raw_ptr(u8) external f : foo -> unit f"
+  test "foo = raw_ptr(u8) -> unit"
+    "type foo = raw_ptr(u8) external f : foo -> unit f"
 
 let test_alias_param_quant () =
   test "foo = raw_ptr('a) -> unit"

@@ -172,7 +172,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         concrete_type env spec
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
-    | [ Ty_id "raw_ptr" ] -> raise (Error (loc, "Type raw_ptr needs a type parameter"))
+    | [ Ty_id "raw_ptr" ] ->
+        raise (Error (loc, "Type raw_ptr needs a type parameter"))
     | [ t ] -> (
         let t = concrete_type env t in
         match is_quantified t with

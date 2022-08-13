@@ -10,8 +10,8 @@ val vec = [x, {x = 2}, {x = 3}]
 -- Vec is only alive inside the function and should be freed there
 fun vec_inside() =
   val vec = [x, {x = 2}, {x = 3}]
-  -- Make sure wu can call realloc
-  vec.data <- __realloc(vec.data, 9)
+  -- Make sure we can call realloc
+   vec.ptr.optr <- __realloc(vec.ptr.optr, 9)
 
 -- Vec is returned and should be freed in its parent scope
 fun make_vec() =
@@ -51,7 +51,7 @@ inner_parent_scope()
 val normal = nest_fns()
 
 val nested = [[0, 1], [2, 3]]
-nested.data <- __realloc(nested.data, 9)
+nested.ptr.optr <- __realloc(nested.ptr.optr, 9)
 val nested = make_nested_vec()
 val nested = nest_allocs()
 nest_local()
