@@ -556,41 +556,40 @@ let free ptr =
 
 (* Recursively frees a record (which can contain vector and other records) *)
 let rec free_value value = function
-  | Trecord (Some t, name, _) when String.equal name "vector" ->
-      (* Free nested vectors *)
-      let fatptr = Llvm.build_struct_gep value 0 "" builder in
-      let ptr_to_rawptr = Llvm.build_struct_gep fatptr 0 "" builder in
-      let ptr = Llvm.build_load ptr_to_rawptr "" builder in
+  | Trecord (Some t, name, _) when String.equal name "owned_ptr" ->
+      (* Free nested owned_ptrs *)
+      let ptr = Llvm.build_struct_gep value 0 "" builder in
+      let ptr = Llvm.build_load ptr "" builder in
 
-      (if contains_vector t then
-       let len_ptr = Llvm.build_struct_gep fatptr 1 "lenptr" builder in
+      (if contains_owned_ptr t then
+       let len_ptr = Llvm.build_struct_gep value 1 "lenptr" builder in
        (* This should be num_t also, at some point *)
        let len = Llvm.build_load len_ptr "leni" builder in
        let len = Llvm.build_intcast len int_t "len" builder in
-       free_vector_children ptr len t);
+       free_owned_ptr_children ptr len t);
       ignore (free ptr)
-  | Trecord (_, name, _) when String.equal name "vector" ->
-      failwith "Internal Error: vector has no type"
+  | Trecord (_, name, _) when String.equal name "owned_ptr" ->
+      failwith "Internal Error: On free: owned_ptr has no type"
   | Trecord (_, _, fields) ->
       Array.iteri
         (fun i (f : field) ->
-          if contains_vector f.ftyp then
+          if contains_owned_ptr f.ftyp then
             let ptr = Llvm.build_struct_gep value i "" builder in
             free_value ptr f.ftyp)
         fields
   | t ->
       print_endline (show_typ t);
-      failwith "freeing records other than vector TODO"
+      failwith "freeing records other than owned_ptr TODO"
 
-and contains_vector = function
-  | Trecord (_, name, _) when String.equal name "vector" -> true
+and contains_owned_ptr = function
+  | Trecord (_, name, _) when String.equal name "owned_ptr" -> true
   | Trecord (_, _, fields) ->
       Array.fold_left
-        (fun b (f : field) -> f.ftyp |> contains_vector || b)
+        (fun b (f : field) -> f.ftyp |> contains_owned_ptr || b)
         false fields
   | _ -> false
 
-and free_vector_children value len = function
+and free_owned_ptr_children value len = function
   | Trecord _ as typ ->
       let start_bb = Llvm.insertion_block builder in
       let parent = Llvm.block_parent start_bb in
@@ -630,9 +629,9 @@ let free_id id =
   (match Ptrtbl.find_opt ptr_tbl id with
   | Some (value, typ) ->
       (* For propagated mallocs, we don't get the ptr directly but get the struct instead.
-         Here, we hardcode for vector, b/c it's the only thing allocating right now. *)
+         Here, we hardcode for owned_ptr, b/c it's the only thing allocating right now. *)
 
-      (* Free nested vectors *)
+      (* Free nested owned_ptrs *)
       free_value value typ
   | None ->
       "Internal Error: Cannot find ptr for id " ^ string_of_int id |> failwith);
