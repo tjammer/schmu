@@ -154,7 +154,7 @@ expr:
   | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
   | Match; separated_nonempty_list(Comma, expr); With; Begin; nonempty_list(clause); End { Match (($startpos, $endpos($5)), $2, $5) }
   | Uppercase_id; Dot; module_expr { Local_open ($loc, $1, [Expr ($sloc, $3)]) }
-  | Uppercase_id; Dot; Lpar; block; Rpar { Local_open ($loc, $1, $4) }
+  | Uppercase_id; Dot; Lpar; nonempty_list(stmt); Rpar { Local_open ($loc, $1, $4) }
 
 %inline module_expr:
   | Lowercase_id { Var($loc, $1) }
@@ -205,7 +205,7 @@ ctor:
   | Uppercase_id { $loc, $1 }
 
 let parens(x) :=
-  | Lpar; option(Begin); lst = separated_list(Comma, x); option(End); Rpar; { lst }
+  | Lpar; lst = separated_list(Comma, x); Rpar; { lst }
 
 let parens_single(x) :=
   | Lpar; item = x; Rpar; { item }

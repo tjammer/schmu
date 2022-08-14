@@ -14,7 +14,7 @@ prog: Val With
 ##
 ## Ends in an error in state: 1.
 ##
-## stmt -> Val . ident option(type_expr) Equal block [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## stmt -> Val . ident option(type_expr) Equal block [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Val
@@ -26,7 +26,7 @@ prog: Val Lowercase_id With
 ##
 ## Ends in an error in state: 3.
 ##
-## stmt -> Val ident . option(type_expr) Equal block [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## stmt -> Val ident . option(type_expr) Equal block [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Val ident
@@ -38,9 +38,9 @@ prog: Val Lowercase_id Colon With
 ##
 ## Ends in an error in state: 4.
 ##
-## option(type_expr) -> Colon . build_type_list Arrow_right build_type_list [ Rpar Equal End Comma ]
-## option(type_expr) -> Colon . Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list [ Rpar Equal End Comma ]
-## option(type_expr) -> Colon . build_type_list [ Rpar Equal End Comma ]
+## option(type_expr) -> Colon . build_type_list Arrow_right build_type_list [ Rpar Equal Comma ]
+## option(type_expr) -> Colon . Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list [ Rpar Equal Comma ]
+## option(type_expr) -> Colon . build_type_list [ Rpar Equal Comma ]
 ##
 ## The known suffix of the stack is as follows:
 ## Colon
@@ -52,7 +52,7 @@ prog: External Lowercase_id Colon Uppercase_id With
 ##
 ## Ends in an error in state: 5.
 ##
-## type_spec -> Uppercase_id . Dot type_spec [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof End Comma Builtin_id Arrow_right ]
+## type_spec -> Uppercase_id . Dot type_spec [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof Comma Builtin_id Arrow_right ]
 ##
 ## The known suffix of the stack is as follows:
 ## Uppercase_id
@@ -64,7 +64,7 @@ prog: External Lowercase_id Colon Uppercase_id Dot With
 ##
 ## Ends in an error in state: 6.
 ##
-## type_spec -> Uppercase_id Dot . type_spec [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof End Comma Builtin_id Arrow_right ]
+## type_spec -> Uppercase_id Dot . type_spec [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof Comma Builtin_id Arrow_right ]
 ##
 ## The known suffix of the stack is as follows:
 ## Uppercase_id Dot
@@ -76,7 +76,7 @@ prog: External Lowercase_id Colon Quote With
 ##
 ## Ends in an error in state: 7.
 ##
-## type_spec -> Quote . Lowercase_id [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof End Comma Builtin_id Arrow_right ]
+## type_spec -> Quote . Lowercase_id [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof Comma Builtin_id Arrow_right ]
 ##
 ## The known suffix of the stack is as follows:
 ## Quote
@@ -88,7 +88,7 @@ prog: Val Lowercase_id Colon Lpar With
 ##
 ## Ends in an error in state: 11.
 ##
-## option(type_expr) -> Colon Lpar . separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list [ Rpar Equal End Comma ]
+## option(type_expr) -> Colon Lpar . separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list [ Rpar Equal Comma ]
 ##
 ## The known suffix of the stack is as follows:
 ## Colon Lpar
@@ -113,8 +113,8 @@ prog: External Lowercase_id Colon Lowercase_id With
 ##
 ## Ends in an error in state: 13.
 ##
-## build_type_list -> type_spec . Lpar build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof End Comma Builtin_id Arrow_right ]
-## build_type_list -> type_spec . [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof End Comma Builtin_id Arrow_right ]
+## build_type_list -> type_spec . Lpar build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof Comma Builtin_id Arrow_right ]
+## build_type_list -> type_spec . [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof Comma Builtin_id Arrow_right ]
 ##
 ## The known suffix of the stack is as follows:
 ## type_spec
@@ -126,7 +126,7 @@ prog: External Lowercase_id Colon Lowercase_id Lpar With
 ##
 ## Ends in an error in state: 14.
 ##
-## build_type_list -> type_spec Lpar . build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof End Comma Builtin_id Arrow_right ]
+## build_type_list -> type_spec Lpar . build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof Comma Builtin_id Arrow_right ]
 ##
 ## The known suffix of the stack is as follows:
 ## type_spec Lpar
@@ -138,7 +138,7 @@ prog: External Lowercase_id Colon Lowercase_id Lpar Lowercase_id Val
 ##
 ## Ends in an error in state: 15.
 ##
-## build_type_list -> type_spec Lpar build_type_list . Rpar [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof End Comma Builtin_id Arrow_right ]
+## build_type_list -> type_spec Lpar build_type_list . Rpar [ Val Uppercase_id U8 Type True String_lit Rpar Rbrac Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Equal Eof Comma Builtin_id Arrow_right ]
 ##
 ## The known suffix of the stack is as follows:
 ## type_spec Lpar build_type_list
@@ -321,7 +321,7 @@ prog: Val Lowercase_id Colon Lpar Lowercase_id Rpar With
 ##
 ## Ends in an error in state: 34.
 ##
-## option(type_expr) -> Colon Lpar separated_nonempty_list(Comma,type_func) Rpar . Arrow_right build_type_list [ Rpar Equal End Comma ]
+## option(type_expr) -> Colon Lpar separated_nonempty_list(Comma,type_func) Rpar . Arrow_right build_type_list [ Rpar Equal Comma ]
 ##
 ## The known suffix of the stack is as follows:
 ## Colon Lpar separated_nonempty_list(Comma,type_func) Rpar
@@ -333,7 +333,7 @@ prog: Val Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right With
 ##
 ## Ends in an error in state: 35.
 ##
-## option(type_expr) -> Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right . build_type_list [ Rpar Equal End Comma ]
+## option(type_expr) -> Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right . build_type_list [ Rpar Equal Comma ]
 ##
 ## The known suffix of the stack is as follows:
 ## Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right
@@ -345,8 +345,8 @@ prog: Val Lowercase_id Colon Lowercase_id Val
 ##
 ## Ends in an error in state: 37.
 ##
-## option(type_expr) -> Colon build_type_list . Arrow_right build_type_list [ Rpar Equal End Comma ]
-## option(type_expr) -> Colon build_type_list . [ Rpar Equal End Comma ]
+## option(type_expr) -> Colon build_type_list . Arrow_right build_type_list [ Rpar Equal Comma ]
+## option(type_expr) -> Colon build_type_list . [ Rpar Equal Comma ]
 ##
 ## The known suffix of the stack is as follows:
 ## Colon build_type_list
@@ -364,7 +364,7 @@ prog: Val Lowercase_id Colon Lowercase_id Arrow_right With
 ##
 ## Ends in an error in state: 38.
 ##
-## option(type_expr) -> Colon build_type_list Arrow_right . build_type_list [ Rpar Equal End Comma ]
+## option(type_expr) -> Colon build_type_list Arrow_right . build_type_list [ Rpar Equal Comma ]
 ##
 ## The known suffix of the stack is as follows:
 ## Colon build_type_list Arrow_right
@@ -376,7 +376,7 @@ prog: Val Lowercase_id Colon Lowercase_id Rpar
 ##
 ## Ends in an error in state: 40.
 ##
-## stmt -> Val ident option(type_expr) . Equal block [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## stmt -> Val ident option(type_expr) . Equal block [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Val ident option(type_expr)
@@ -395,7 +395,7 @@ prog: Val Lowercase_id Equal With
 ##
 ## Ends in an error in state: 41.
 ##
-## stmt -> Val ident option(type_expr) Equal . block [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## stmt -> Val ident option(type_expr) Equal . block [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Val ident option(type_expr) Equal
@@ -412,7 +412,7 @@ prog: Uppercase_id Quote
 ## expr -> Uppercase_id . Dot Lbrac separated_nonempty_list(Comma,record_item) Rbrac [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> Uppercase_id . Dot Lpar expr Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> Uppercase_id . Dot ctor option(parens_single(expr)) [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
-## expr -> Uppercase_id . Dot Lpar block Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
+## expr -> Uppercase_id . Dot Lpar nonempty_list(stmt) Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
 ## The known suffix of the stack is as follows:
 ## Uppercase_id
@@ -428,7 +428,7 @@ prog: Uppercase_id Dot With
 ## expr -> Uppercase_id Dot . Lbrac separated_nonempty_list(Comma,record_item) Rbrac [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> Uppercase_id Dot . Lpar expr Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> Uppercase_id Dot . ctor option(parens_single(expr)) [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
-## expr -> Uppercase_id Dot . Lpar block Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
+## expr -> Uppercase_id Dot . Lpar nonempty_list(stmt) Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
 ## The known suffix of the stack is as follows:
 ## Uppercase_id Dot
@@ -441,7 +441,7 @@ prog: Uppercase_id Dot Lpar With
 ## Ends in an error in state: 45.
 ##
 ## expr -> Uppercase_id Dot Lpar . expr Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
-## expr -> Uppercase_id Dot Lpar . block Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
+## expr -> Uppercase_id Dot Lpar . nonempty_list(stmt) Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
 ## The known suffix of the stack is as follows:
 ## Uppercase_id Dot Lpar
@@ -578,7 +578,7 @@ prog: Fun Lpar With
 ##
 ## Ends in an error in state: 63.
 ##
-## parens(decl) -> Lpar . option(Begin) loption(separated_nonempty_list(Comma,decl)) option(End) Rpar [ Equal Arrow_right ]
+## parens(decl) -> Lpar . loption(separated_nonempty_list(Comma,decl)) Rpar [ Equal Arrow_right ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar
@@ -586,36 +586,12 @@ prog: Fun Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Begin With
-##
-## Ends in an error in state: 65.
-##
-## parens(decl) -> Lpar option(Begin) . loption(separated_nonempty_list(Comma,decl)) option(End) Rpar [ Equal Arrow_right ]
-##
-## The known suffix of the stack is as follows:
-## Lpar option(Begin)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Lpar End With
-##
-## Ends in an error in state: 69.
-##
-## parens(decl) -> Lpar option(Begin) loption(separated_nonempty_list(Comma,decl)) option(End) . Rpar [ Equal Arrow_right ]
-##
-## The known suffix of the stack is as follows:
-## Lpar option(Begin) loption(separated_nonempty_list(Comma,decl)) option(End)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Fun Lpar Lowercase_id With
 ##
-## Ends in an error in state: 71.
+## Ends in an error in state: 67.
 ##
-## separated_nonempty_list(Comma,decl) -> ident . option(type_expr) [ Rpar End ]
-## separated_nonempty_list(Comma,decl) -> ident . option(type_expr) Comma separated_nonempty_list(Comma,decl) [ Rpar End ]
+## separated_nonempty_list(Comma,decl) -> ident . option(type_expr) [ Rpar ]
+## separated_nonempty_list(Comma,decl) -> ident . option(type_expr) Comma separated_nonempty_list(Comma,decl) [ Rpar ]
 ##
 ## The known suffix of the stack is as follows:
 ## ident
@@ -625,10 +601,10 @@ prog: Fun Lpar Lowercase_id With
 
 prog: Fun Lpar Lowercase_id Colon Lowercase_id Equal
 ##
-## Ends in an error in state: 72.
+## Ends in an error in state: 68.
 ##
-## separated_nonempty_list(Comma,decl) -> ident option(type_expr) . [ Rpar End ]
-## separated_nonempty_list(Comma,decl) -> ident option(type_expr) . Comma separated_nonempty_list(Comma,decl) [ Rpar End ]
+## separated_nonempty_list(Comma,decl) -> ident option(type_expr) . [ Rpar ]
+## separated_nonempty_list(Comma,decl) -> ident option(type_expr) . Comma separated_nonempty_list(Comma,decl) [ Rpar ]
 ##
 ## The known suffix of the stack is as follows:
 ## ident option(type_expr)
@@ -645,9 +621,9 @@ prog: Fun Lpar Lowercase_id Colon Lowercase_id Equal
 
 prog: Fun Lpar Lowercase_id Comma With
 ##
-## Ends in an error in state: 73.
+## Ends in an error in state: 69.
 ##
-## separated_nonempty_list(Comma,decl) -> ident option(type_expr) Comma . separated_nonempty_list(Comma,decl) [ Rpar End ]
+## separated_nonempty_list(Comma,decl) -> ident option(type_expr) Comma . separated_nonempty_list(Comma,decl) [ Rpar ]
 ##
 ## The known suffix of the stack is as follows:
 ## ident option(type_expr) Comma
@@ -657,7 +633,7 @@ prog: Fun Lpar Lowercase_id Comma With
 
 prog: Fun Lpar Rpar With
 ##
-## Ends in an error in state: 75.
+## Ends in an error in state: 71.
 ##
 ## expr -> Fun parens(decl) . Arrow_right block [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -669,7 +645,7 @@ Expecting '->'
 
 prog: Fun Lpar Rpar Arrow_right With
 ##
-## Ends in an error in state: 76.
+## Ends in an error in state: 72.
 ##
 ## expr -> Fun parens(decl) Arrow_right . block [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -681,7 +657,7 @@ prog: Fun Lpar Rpar Arrow_right With
 
 prog: Builtin_id With
 ##
-## Ends in an error in state: 80.
+## Ends in an error in state: 76.
 ##
 ## expr -> Builtin_id . parens(expr) [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -693,9 +669,9 @@ prog: Builtin_id With
 
 prog: False Lpar With
 ##
-## Ends in an error in state: 81.
+## Ends in an error in state: 77.
 ##
-## parens(expr) -> Lpar . option(Begin) loption(separated_nonempty_list(Comma,expr)) option(End) Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
+## parens(expr) -> Lpar . loption(separated_nonempty_list(Comma,expr)) Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar
@@ -703,79 +679,55 @@ prog: False Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Lpar Begin With
-##
-## Ends in an error in state: 82.
-##
-## parens(expr) -> Lpar option(Begin) . loption(separated_nonempty_list(Comma,expr)) option(End) Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
-##
-## The known suffix of the stack is as follows:
-## Lpar option(Begin)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: False Lpar Uppercase_id With
 ##
-## Ends in an error in state: 85.
+## Ends in an error in state: 80.
 ##
-## parens(expr) -> Lpar option(Begin) loption(separated_nonempty_list(Comma,expr)) . option(End) Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
+## parens(expr) -> Lpar loption(separated_nonempty_list(Comma,expr)) . Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar option(Begin) loption(separated_nonempty_list(Comma,expr))
+## Lpar loption(separated_nonempty_list(Comma,expr))
 ##
 ## WARNING: This example involves spurious reductions.
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 88, spurious reduction of production separated_nonempty_list(Comma,expr) -> expr
-## In state 84, spurious reduction of production loption(separated_nonempty_list(Comma,expr)) -> separated_nonempty_list(Comma,expr)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Lpar End With
-##
-## Ends in an error in state: 86.
-##
-## parens(expr) -> Lpar option(Begin) loption(separated_nonempty_list(Comma,expr)) option(End) . Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
-##
-## The known suffix of the stack is as follows:
-## Lpar option(Begin) loption(separated_nonempty_list(Comma,expr)) option(End)
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 82, spurious reduction of production separated_nonempty_list(Comma,expr) -> expr
+## In state 79, spurious reduction of production loption(separated_nonempty_list(Comma,expr)) -> separated_nonempty_list(Comma,expr)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lbrack Uppercase_id Wildcard
 ##
-## Ends in an error in state: 88.
+## Ends in an error in state: 82.
 ##
-## expr -> expr . Plus_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Minus_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Mult_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Div_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Less_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Greater_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Equal expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Plus_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Minus_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Mult_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Div_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Less_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Greater_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Bin_equal_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . And expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Or expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . parens(expr) [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id Arrow_left expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Pipe_head expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## expr -> expr . Pipe_tail expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal End Dot Div_i Div_f Comma Bin_equal_f And ]
-## separated_nonempty_list(Comma,expr) -> expr . [ With Rpar Rbrack End ]
-## separated_nonempty_list(Comma,expr) -> expr . Comma separated_nonempty_list(Comma,expr) [ With Rpar Rbrack End ]
+## expr -> expr . Plus_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Minus_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Mult_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Div_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Less_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Greater_i expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Equal expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Plus_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Minus_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Mult_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Div_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Less_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Greater_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Bin_equal_f expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . And expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Or expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . parens(expr) [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Dot Lowercase_id Arrow_left expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Dot Lowercase_id [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Pipe_head expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## expr -> expr . Pipe_tail expr [ With Rpar Rbrack Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
+## separated_nonempty_list(Comma,expr) -> expr . [ With Rpar Rbrack ]
+## separated_nonempty_list(Comma,expr) -> expr . Comma separated_nonempty_list(Comma,expr) [ With Rpar Rbrack ]
 ##
 ## The known suffix of the stack is as follows:
 ## expr
@@ -785,15 +737,15 @@ prog: Lbrack Uppercase_id Wildcard
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Uppercase_id Plus_i With
 ##
-## Ends in an error in state: 89.
+## Ends in an error in state: 83.
 ##
 ## expr -> expr Plus_i . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -805,7 +757,7 @@ prog: Uppercase_id Plus_i With
 
 prog: Uppercase_id Plus_i False Quote
 ##
-## Ends in an error in state: 90.
+## Ends in an error in state: 84.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr Plus_i expr . [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -838,7 +790,7 @@ prog: Uppercase_id Plus_i False Quote
 
 prog: Uppercase_id Pipe_tail With
 ##
-## Ends in an error in state: 91.
+## Ends in an error in state: 85.
 ##
 ## expr -> expr Pipe_tail . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -850,7 +802,7 @@ prog: Uppercase_id Pipe_tail With
 
 prog: Uppercase_id Pipe_tail False Quote
 ##
-## Ends in an error in state: 92.
+## Ends in an error in state: 86.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -883,7 +835,7 @@ prog: Uppercase_id Pipe_tail False Quote
 
 prog: Uppercase_id Lpar With
 ##
-## Ends in an error in state: 95.
+## Ends in an error in state: 89.
 ##
 ## parens_single(expr) -> Lpar . expr Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -895,7 +847,7 @@ prog: Uppercase_id Lpar With
 
 prog: Uppercase_id Lpar Uppercase_id With
 ##
-## Ends in an error in state: 96.
+## Ends in an error in state: 90.
 ##
 ## expr -> expr . Plus_i expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
@@ -928,15 +880,15 @@ prog: Uppercase_id Lpar Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Uppercase_id Plus_f With
 ##
-## Ends in an error in state: 98.
+## Ends in an error in state: 92.
 ##
 ## expr -> expr Plus_f . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -948,7 +900,7 @@ prog: Uppercase_id Plus_f With
 
 prog: Uppercase_id Plus_f False Quote
 ##
-## Ends in an error in state: 99.
+## Ends in an error in state: 93.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -981,7 +933,7 @@ prog: Uppercase_id Plus_f False Quote
 
 prog: Uppercase_id Pipe_head With
 ##
-## Ends in an error in state: 100.
+## Ends in an error in state: 94.
 ##
 ## expr -> expr Pipe_head . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -993,7 +945,7 @@ prog: Uppercase_id Pipe_head With
 
 prog: Uppercase_id Pipe_head False Quote
 ##
-## Ends in an error in state: 101.
+## Ends in an error in state: 95.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1026,7 +978,7 @@ prog: Uppercase_id Pipe_head False Quote
 
 prog: Uppercase_id Mult_i With
 ##
-## Ends in an error in state: 103.
+## Ends in an error in state: 97.
 ##
 ## expr -> expr Mult_i . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1038,7 +990,7 @@ prog: Uppercase_id Mult_i With
 
 prog: Uppercase_id Mult_i False Quote
 ##
-## Ends in an error in state: 104.
+## Ends in an error in state: 98.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1071,7 +1023,7 @@ prog: Uppercase_id Mult_i False Quote
 
 prog: Uppercase_id Equal With
 ##
-## Ends in an error in state: 105.
+## Ends in an error in state: 99.
 ##
 ## expr -> expr Equal . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1083,7 +1035,7 @@ prog: Uppercase_id Equal With
 
 prog: Uppercase_id Equal False Quote
 ##
-## Ends in an error in state: 106.
+## Ends in an error in state: 100.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1116,7 +1068,7 @@ prog: Uppercase_id Equal False Quote
 
 prog: False Dot With
 ##
-## Ends in an error in state: 107.
+## Ends in an error in state: 101.
 ##
 ## expr -> expr Dot . Lowercase_id Arrow_left expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr Dot . Lowercase_id [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1129,7 +1081,7 @@ prog: False Dot With
 
 prog: False Dot Lowercase_id Quote
 ##
-## Ends in an error in state: 108.
+## Ends in an error in state: 102.
 ##
 ## expr -> expr Dot Lowercase_id . Arrow_left expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr Dot Lowercase_id . [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1142,7 +1094,7 @@ prog: False Dot Lowercase_id Quote
 
 prog: False Dot Lowercase_id Arrow_left With
 ##
-## Ends in an error in state: 109.
+## Ends in an error in state: 103.
 ##
 ## expr -> expr Dot Lowercase_id Arrow_left . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1154,7 +1106,7 @@ prog: False Dot Lowercase_id Arrow_left With
 
 prog: False Dot Lowercase_id Arrow_left False Quote
 ##
-## Ends in an error in state: 110.
+## Ends in an error in state: 104.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1187,7 +1139,7 @@ prog: False Dot Lowercase_id Arrow_left False Quote
 
 prog: Uppercase_id Or With
 ##
-## Ends in an error in state: 111.
+## Ends in an error in state: 105.
 ##
 ## expr -> expr Or . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1199,7 +1151,7 @@ prog: Uppercase_id Or With
 
 prog: Uppercase_id Or False Quote
 ##
-## Ends in an error in state: 112.
+## Ends in an error in state: 106.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1232,7 +1184,7 @@ prog: Uppercase_id Or False Quote
 
 prog: Uppercase_id Mult_f With
 ##
-## Ends in an error in state: 113.
+## Ends in an error in state: 107.
 ##
 ## expr -> expr Mult_f . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1244,7 +1196,7 @@ prog: Uppercase_id Mult_f With
 
 prog: Uppercase_id Mult_f False Quote
 ##
-## Ends in an error in state: 114.
+## Ends in an error in state: 108.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1277,7 +1229,7 @@ prog: Uppercase_id Mult_f False Quote
 
 prog: Uppercase_id Bin_equal_f With
 ##
-## Ends in an error in state: 115.
+## Ends in an error in state: 109.
 ##
 ## expr -> expr Bin_equal_f . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1289,7 +1241,7 @@ prog: Uppercase_id Bin_equal_f With
 
 prog: Uppercase_id Bin_equal_f False Quote
 ##
-## Ends in an error in state: 116.
+## Ends in an error in state: 110.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1322,7 +1274,7 @@ prog: Uppercase_id Bin_equal_f False Quote
 
 prog: Uppercase_id Minus_i With
 ##
-## Ends in an error in state: 117.
+## Ends in an error in state: 111.
 ##
 ## expr -> expr Minus_i . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1334,7 +1286,7 @@ prog: Uppercase_id Minus_i With
 
 prog: Uppercase_id Minus_i False Quote
 ##
-## Ends in an error in state: 118.
+## Ends in an error in state: 112.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1367,7 +1319,7 @@ prog: Uppercase_id Minus_i False Quote
 
 prog: Uppercase_id Div_i With
 ##
-## Ends in an error in state: 119.
+## Ends in an error in state: 113.
 ##
 ## expr -> expr Div_i . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1379,7 +1331,7 @@ prog: Uppercase_id Div_i With
 
 prog: Uppercase_id Div_i False Quote
 ##
-## Ends in an error in state: 120.
+## Ends in an error in state: 114.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1412,7 +1364,7 @@ prog: Uppercase_id Div_i False Quote
 
 prog: Uppercase_id Div_f With
 ##
-## Ends in an error in state: 121.
+## Ends in an error in state: 115.
 ##
 ## expr -> expr Div_f . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1424,7 +1376,7 @@ prog: Uppercase_id Div_f With
 
 prog: Uppercase_id Div_f False Quote
 ##
-## Ends in an error in state: 122.
+## Ends in an error in state: 116.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1457,7 +1409,7 @@ prog: Uppercase_id Div_f False Quote
 
 prog: Uppercase_id Minus_f With
 ##
-## Ends in an error in state: 123.
+## Ends in an error in state: 117.
 ##
 ## expr -> expr Minus_f . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1469,7 +1421,7 @@ prog: Uppercase_id Minus_f With
 
 prog: Uppercase_id Minus_f False Quote
 ##
-## Ends in an error in state: 124.
+## Ends in an error in state: 118.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1502,7 +1454,7 @@ prog: Uppercase_id Minus_f False Quote
 
 prog: Uppercase_id Less_i With
 ##
-## Ends in an error in state: 125.
+## Ends in an error in state: 119.
 ##
 ## expr -> expr Less_i . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1514,7 +1466,7 @@ prog: Uppercase_id Less_i With
 
 prog: Uppercase_id Less_i False Quote
 ##
-## Ends in an error in state: 126.
+## Ends in an error in state: 120.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1547,7 +1499,7 @@ prog: Uppercase_id Less_i False Quote
 
 prog: Uppercase_id Less_f With
 ##
-## Ends in an error in state: 127.
+## Ends in an error in state: 121.
 ##
 ## expr -> expr Less_f . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1559,7 +1511,7 @@ prog: Uppercase_id Less_f With
 
 prog: Uppercase_id Less_f False Quote
 ##
-## Ends in an error in state: 128.
+## Ends in an error in state: 122.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1592,7 +1544,7 @@ prog: Uppercase_id Less_f False Quote
 
 prog: Uppercase_id Greater_i With
 ##
-## Ends in an error in state: 129.
+## Ends in an error in state: 123.
 ##
 ## expr -> expr Greater_i . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1604,7 +1556,7 @@ prog: Uppercase_id Greater_i With
 
 prog: Uppercase_id Greater_i False Quote
 ##
-## Ends in an error in state: 130.
+## Ends in an error in state: 124.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1637,7 +1589,7 @@ prog: Uppercase_id Greater_i False Quote
 
 prog: Uppercase_id Greater_f With
 ##
-## Ends in an error in state: 131.
+## Ends in an error in state: 125.
 ##
 ## expr -> expr Greater_f . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1649,7 +1601,7 @@ prog: Uppercase_id Greater_f With
 
 prog: Uppercase_id Greater_f False Quote
 ##
-## Ends in an error in state: 132.
+## Ends in an error in state: 126.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1682,7 +1634,7 @@ prog: Uppercase_id Greater_f False Quote
 
 prog: Uppercase_id And With
 ##
-## Ends in an error in state: 133.
+## Ends in an error in state: 127.
 ##
 ## expr -> expr And . expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1694,7 +1646,7 @@ prog: Uppercase_id And With
 
 prog: Uppercase_id And False Quote
 ##
-## Ends in an error in state: 134.
+## Ends in an error in state: 128.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1727,9 +1679,9 @@ prog: Uppercase_id And False Quote
 
 prog: Lbrack Uppercase_id Comma With
 ##
-## Ends in an error in state: 137.
+## Ends in an error in state: 131.
 ##
-## separated_nonempty_list(Comma,expr) -> expr Comma . separated_nonempty_list(Comma,expr) [ With Rpar Rbrack End ]
+## separated_nonempty_list(Comma,expr) -> expr Comma . separated_nonempty_list(Comma,expr) [ With Rpar Rbrack ]
 ##
 ## The known suffix of the stack is as follows:
 ## expr Comma
@@ -1739,7 +1691,7 @@ prog: Lbrack Uppercase_id Comma With
 
 prog: If Uppercase_id Then Begin With
 ##
-## Ends in an error in state: 140.
+## Ends in an error in state: 134.
 ##
 ## block -> Begin . nonempty_list(stmt) End [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1751,10 +1703,10 @@ prog: If Uppercase_id Then Begin With
 
 prog: Fun With
 ##
-## Ends in an error in state: 141.
+## Ends in an error in state: 135.
 ##
-## expr -> Fun . parens(decl) Arrow_right block [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## stmt -> Fun . ident parens(decl) option(return_annot) Equal block [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## expr -> Fun . parens(decl) Arrow_right block [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## stmt -> Fun . ident parens(decl) option(return_annot) Equal block [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Fun
@@ -1764,9 +1716,9 @@ prog: Fun With
 
 prog: Fun Lowercase_id With
 ##
-## Ends in an error in state: 142.
+## Ends in an error in state: 136.
 ##
-## stmt -> Fun ident . parens(decl) option(return_annot) Equal block [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## stmt -> Fun ident . parens(decl) option(return_annot) Equal block [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Fun ident
@@ -1776,9 +1728,9 @@ prog: Fun Lowercase_id With
 
 prog: Fun Lowercase_id Lpar Rpar With
 ##
-## Ends in an error in state: 143.
+## Ends in an error in state: 137.
 ##
-## stmt -> Fun ident parens(decl) . option(return_annot) Equal block [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## stmt -> Fun ident parens(decl) . option(return_annot) Equal block [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Fun ident parens(decl)
@@ -1788,7 +1740,7 @@ prog: Fun Lowercase_id Lpar Rpar With
 
 prog: Fun Lowercase_id Lpar Rpar Arrow_right With
 ##
-## Ends in an error in state: 144.
+## Ends in an error in state: 138.
 ##
 ## option(return_annot) -> Arrow_right . build_type_list [ Equal ]
 ##
@@ -1800,9 +1752,9 @@ prog: Fun Lowercase_id Lpar Rpar Arrow_right With
 
 prog: Fun Lowercase_id Lpar Rpar Arrow_right Lowercase_id Val
 ##
-## Ends in an error in state: 146.
+## Ends in an error in state: 140.
 ##
-## stmt -> Fun ident parens(decl) option(return_annot) . Equal block [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## stmt -> Fun ident parens(decl) option(return_annot) . Equal block [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Fun ident parens(decl) option(return_annot)
@@ -1812,16 +1764,16 @@ prog: Fun Lowercase_id Lpar Rpar Arrow_right Lowercase_id Val
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 13, spurious reduction of production build_type_list -> type_spec
-## In state 145, spurious reduction of production option(return_annot) -> Arrow_right build_type_list
+## In state 139, spurious reduction of production option(return_annot) -> Arrow_right build_type_list
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Fun Lowercase_id Lpar Rpar Equal With
 ##
-## Ends in an error in state: 147.
+## Ends in an error in state: 141.
 ##
-## stmt -> Fun ident parens(decl) option(return_annot) Equal . block [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## stmt -> Fun ident parens(decl) option(return_annot) Equal . block [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Fun ident parens(decl) option(return_annot) Equal
@@ -1831,7 +1783,7 @@ prog: Fun Lowercase_id Lpar Rpar Equal With
 
 prog: If Uppercase_id Then False Quote
 ##
-## Ends in an error in state: 148.
+## Ends in an error in state: 142.
 ##
 ## block -> expr . [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -1864,10 +1816,10 @@ prog: If Uppercase_id Then False Quote
 
 prog: Val Lowercase_id Equal Uppercase_id With
 ##
-## Ends in an error in state: 150.
+## Ends in an error in state: 144.
 ##
-## nonempty_list(stmt) -> stmt . [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
-## nonempty_list(stmt) -> stmt . nonempty_list(stmt) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## nonempty_list(stmt) -> stmt . [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## nonempty_list(stmt) -> stmt . nonempty_list(stmt) [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## stmt
@@ -1877,40 +1829,40 @@ prog: Val Lowercase_id Equal Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 148, spurious reduction of production block -> expr
-## In state 252, spurious reduction of production stmt -> Val ident option(type_expr) Equal block
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 142, spurious reduction of production block -> expr
+## In state 246, spurious reduction of production stmt -> Val ident option(type_expr) Equal block
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Uppercase_id With
 ##
-## Ends in an error in state: 152.
+## Ends in an error in state: 146.
 ##
-## expr -> expr . Plus_i expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Minus_i expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Mult_i expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Div_i expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Less_i expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Greater_i expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Equal expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Plus_f expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Minus_f expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Mult_f expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Div_f expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Less_f expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Greater_f expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Bin_equal_f expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . And expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Or expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . parens(expr) [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id Arrow_left expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Pipe_head expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## expr -> expr . Pipe_tail expr [ Val Uppercase_id U8 Type True String_lit Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
-## stmt -> expr . [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
+## expr -> expr . Plus_i expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Minus_i expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Mult_i expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Div_i expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Less_i expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Greater_i expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Equal expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Plus_f expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Minus_f expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Mult_f expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Div_f expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Less_f expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Greater_f expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Bin_equal_f expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . And expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Or expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . parens(expr) [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Dot Lowercase_id Arrow_left expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Dot Lowercase_id [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Pipe_head expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Pipe_tail expr [ Val Uppercase_id U8 Type True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## stmt -> expr . [ Val Uppercase_id U8 Type True String_lit Rpar Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof End Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## expr
@@ -1920,15 +1872,15 @@ prog: Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: If Uppercase_id Then Begin Uppercase_id Type
 ##
-## Ends in an error in state: 153.
+## Ends in an error in state: 147.
 ##
 ## block -> Begin nonempty_list(stmt) . End [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -1940,17 +1892,17 @@ prog: If Uppercase_id Then Begin Uppercase_id Type
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 152, spurious reduction of production stmt -> expr
-## In state 150, spurious reduction of production nonempty_list(stmt) -> stmt
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 146, spurious reduction of production stmt -> expr
+## In state 144, spurious reduction of production nonempty_list(stmt) -> stmt
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: If Uppercase_id With
 ##
-## Ends in an error in state: 156.
+## Ends in an error in state: 150.
 ##
 ## expr -> expr . Plus_i expr [ Then Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ Then Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
@@ -1983,15 +1935,15 @@ prog: If Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: If Uppercase_id Then With
 ##
-## Ends in an error in state: 157.
+## Ends in an error in state: 151.
 ##
 ## expr -> If expr Then . block list(elif) option(elseblk) [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2003,7 +1955,7 @@ prog: If Uppercase_id Then With
 
 prog: If Uppercase_id Then Begin Uppercase_id End Quote
 ##
-## Ends in an error in state: 158.
+## Ends in an error in state: 152.
 ##
 ## expr -> If expr Then block . list(elif) option(elseblk) [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2015,7 +1967,7 @@ prog: If Uppercase_id Then Begin Uppercase_id End Quote
 
 prog: If Uppercase_id Then Uppercase_id Elseif With
 ##
-## Ends in an error in state: 159.
+## Ends in an error in state: 153.
 ##
 ## list(elif) -> Elseif . expr Then block list(elif) [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2027,7 +1979,7 @@ prog: If Uppercase_id Then Uppercase_id Elseif With
 
 prog: If Uppercase_id Then Uppercase_id Elseif Uppercase_id With
 ##
-## Ends in an error in state: 160.
+## Ends in an error in state: 154.
 ##
 ## expr -> expr . Plus_i expr [ Then Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ Then Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
@@ -2060,15 +2012,15 @@ prog: If Uppercase_id Then Uppercase_id Elseif Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: If Uppercase_id Then Uppercase_id Elseif Uppercase_id Then With
 ##
-## Ends in an error in state: 161.
+## Ends in an error in state: 155.
 ##
 ## list(elif) -> Elseif expr Then . block list(elif) [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2080,7 +2032,7 @@ prog: If Uppercase_id Then Uppercase_id Elseif Uppercase_id Then With
 
 prog: If Uppercase_id Then Uppercase_id Elseif Uppercase_id Then Begin Uppercase_id End Quote
 ##
-## Ends in an error in state: 162.
+## Ends in an error in state: 156.
 ##
 ## list(elif) -> Elseif expr Then block . list(elif) [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2092,7 +2044,7 @@ prog: If Uppercase_id Then Uppercase_id Elseif Uppercase_id Then Begin Uppercase
 
 prog: If Uppercase_id Then Uppercase_id Else With
 ##
-## Ends in an error in state: 165.
+## Ends in an error in state: 159.
 ##
 ## option(elseblk) -> Else . block [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2104,7 +2056,7 @@ prog: If Uppercase_id Then Uppercase_id Else With
 
 prog: Lbrac Lowercase_id Equal Uppercase_id With
 ##
-## Ends in an error in state: 168.
+## Ends in an error in state: 162.
 ##
 ## expr -> expr . Plus_i expr [ Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Comma Bin_equal_f And ]
@@ -2138,15 +2090,15 @@ prog: Lbrac Lowercase_id Equal Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lbrac Lowercase_id Equal Uppercase_id Comma With
 ##
-## Ends in an error in state: 169.
+## Ends in an error in state: 163.
 ##
 ## separated_nonempty_list(Comma,record_item) -> Lowercase_id Equal expr Comma . separated_nonempty_list(Comma,record_item) [ Rbrac ]
 ##
@@ -2158,7 +2110,7 @@ prog: Lbrac Lowercase_id Equal Uppercase_id Comma With
 
 prog: Lbrac Lowercase_id Comma With
 ##
-## Ends in an error in state: 171.
+## Ends in an error in state: 165.
 ##
 ## separated_nonempty_list(Comma,record_item) -> Lowercase_id Comma . separated_nonempty_list(Comma,record_item) [ Rbrac ]
 ##
@@ -2170,7 +2122,7 @@ prog: Lbrac Lowercase_id Comma With
 
 prog: Lbrack Uppercase_id With
 ##
-## Ends in an error in state: 175.
+## Ends in an error in state: 169.
 ##
 ## vector_lit -> Lbrack loption(separated_nonempty_list(Comma,expr)) . Rbrack [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2182,17 +2134,17 @@ prog: Lbrack Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 88, spurious reduction of production separated_nonempty_list(Comma,expr) -> expr
-## In state 84, spurious reduction of production loption(separated_nonempty_list(Comma,expr)) -> separated_nonempty_list(Comma,expr)
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 82, spurious reduction of production separated_nonempty_list(Comma,expr) -> expr
+## In state 79, spurious reduction of production loption(separated_nonempty_list(Comma,expr)) -> separated_nonempty_list(Comma,expr)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Uppercase_id With
 ##
-## Ends in an error in state: 177.
+## Ends in an error in state: 171.
 ##
 ## expr -> Lpar expr . Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Plus_i expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
@@ -2225,15 +2177,15 @@ prog: Lpar Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id Rpar
 ##
-## Ends in an error in state: 179.
+## Ends in an error in state: 173.
 ##
 ## expr -> Match separated_nonempty_list(Comma,expr) . With Begin nonempty_list(clause) End [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2245,16 +2197,16 @@ prog: Match Uppercase_id Rpar
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 88, spurious reduction of production separated_nonempty_list(Comma,expr) -> expr
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 82, spurious reduction of production separated_nonempty_list(Comma,expr) -> expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With With
 ##
-## Ends in an error in state: 180.
+## Ends in an error in state: 174.
 ##
 ## expr -> Match separated_nonempty_list(Comma,expr) With . Begin nonempty_list(clause) End [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2266,7 +2218,7 @@ prog: Match Uppercase_id With With
 
 prog: Match Uppercase_id With Begin With
 ##
-## Ends in an error in state: 181.
+## Ends in an error in state: 175.
 ##
 ## expr -> Match separated_nonempty_list(Comma,expr) With Begin . nonempty_list(clause) End [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -2278,7 +2230,7 @@ prog: Match Uppercase_id With Begin With
 
 prog: Match Uppercase_id With Begin Wildcard With
 ##
-## Ends in an error in state: 182.
+## Ends in an error in state: 176.
 ##
 ## nonempty_list(clause) -> Wildcard . Arrow_right block [ End ]
 ## nonempty_list(clause) -> Wildcard . Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
@@ -2293,7 +2245,7 @@ prog: Match Uppercase_id With Begin Wildcard With
 
 prog: Match Uppercase_id With Begin Wildcard Comma With
 ##
-## Ends in an error in state: 183.
+## Ends in an error in state: 177.
 ##
 ## nonempty_list(clause) -> Wildcard Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
 ## nonempty_list(clause) -> Wildcard Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block nonempty_list(clause) [ End ]
@@ -2306,7 +2258,7 @@ prog: Match Uppercase_id With Begin Wildcard Comma With
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Wildcard With
 ##
-## Ends in an error in state: 184.
+## Ends in an error in state: 178.
 ##
 ## separated_nonempty_list(Comma,pattern_item) -> Wildcard . [ Rpar Arrow_right ]
 ## separated_nonempty_list(Comma,pattern_item) -> Wildcard . Comma separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
@@ -2319,7 +2271,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Wildcard With
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Wildcard Comma With
 ##
-## Ends in an error in state: 185.
+## Ends in an error in state: 179.
 ##
 ## separated_nonempty_list(Comma,pattern_item) -> Wildcard Comma . separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
 ##
@@ -2331,7 +2283,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Wildcard Comma With
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Lowercase_id With
 ##
-## Ends in an error in state: 186.
+## Ends in an error in state: 180.
 ##
 ## separated_nonempty_list(Comma,pattern_item) -> Lowercase_id . [ Rpar Arrow_right ]
 ## separated_nonempty_list(Comma,pattern_item) -> Lowercase_id . Comma separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
@@ -2344,7 +2296,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Lowercase_id With
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Lowercase_id Comma With
 ##
-## Ends in an error in state: 187.
+## Ends in an error in state: 181.
 ##
 ## separated_nonempty_list(Comma,pattern_item) -> Lowercase_id Comma . separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
 ##
@@ -2356,7 +2308,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Lowercase_id Comma With
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id With
 ##
-## Ends in an error in state: 189.
+## Ends in an error in state: 183.
 ##
 ## separated_nonempty_list(Comma,pattern_item) -> ctor . option(parens_single(pattern)) [ Rpar Arrow_right ]
 ## separated_nonempty_list(Comma,pattern_item) -> ctor . option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
@@ -2369,7 +2321,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id With
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar With
 ##
-## Ends in an error in state: 190.
+## Ends in an error in state: 184.
 ##
 ## parens_single(pattern) -> Lpar . ctor option(parens_single(pattern)) Rpar [ Rpar Comma Arrow_right ]
 ## parens_single(pattern) -> Lpar . Lowercase_id Rpar [ Rpar Comma Arrow_right ]
@@ -2386,7 +2338,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar With
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Wildcard With
 ##
-## Ends in an error in state: 191.
+## Ends in an error in state: 185.
 ##
 ## parens_single(pattern) -> Lpar Wildcard . Rpar [ Rpar Comma Arrow_right ]
 ## parens_single(pattern) -> Lpar Wildcard . Comma separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
@@ -2399,7 +2351,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Wildcard With
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Wildcard Comma With
 ##
-## Ends in an error in state: 193.
+## Ends in an error in state: 187.
 ##
 ## parens_single(pattern) -> Lpar Wildcard Comma . separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
 ##
@@ -2411,7 +2363,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Wildcard Comma With
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Wildcard Comma Uppercase_id Arrow_right
 ##
-## Ends in an error in state: 194.
+## Ends in an error in state: 188.
 ##
 ## parens_single(pattern) -> Lpar Wildcard Comma separated_nonempty_list(Comma,pattern_item) . Rpar [ Rpar Comma Arrow_right ]
 ##
@@ -2422,15 +2374,15 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Wildcard Comma Uppercase_i
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 189, spurious reduction of production option(parens_single(pattern)) ->
-## In state 208, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+## In state 183, spurious reduction of production option(parens_single(pattern)) ->
+## In state 202, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id With
 ##
-## Ends in an error in state: 196.
+## Ends in an error in state: 190.
 ##
 ## parens_single(pattern) -> Lpar Lowercase_id . Rpar [ Rpar Comma Arrow_right ]
 ## parens_single(pattern) -> Lpar Lowercase_id . Comma separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
@@ -2443,7 +2395,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id With
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id Comma With
 ##
-## Ends in an error in state: 198.
+## Ends in an error in state: 192.
 ##
 ## parens_single(pattern) -> Lpar Lowercase_id Comma . separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
 ##
@@ -2455,7 +2407,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id Comma With
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id Comma Uppercase_id Arrow_right
 ##
-## Ends in an error in state: 199.
+## Ends in an error in state: 193.
 ##
 ## parens_single(pattern) -> Lpar Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) . Rpar [ Rpar Comma Arrow_right ]
 ##
@@ -2466,15 +2418,15 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Lowercase_id Comma Upperca
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 189, spurious reduction of production option(parens_single(pattern)) ->
-## In state 208, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+## In state 183, spurious reduction of production option(parens_single(pattern)) ->
+## In state 202, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id With
 ##
-## Ends in an error in state: 201.
+## Ends in an error in state: 195.
 ##
 ## parens_single(pattern) -> Lpar ctor . option(parens_single(pattern)) Rpar [ Rpar Comma Arrow_right ]
 ## parens_single(pattern) -> Lpar ctor . option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
@@ -2487,7 +2439,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id With
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Lpar Uppercase_id Rpar With
 ##
-## Ends in an error in state: 203.
+## Ends in an error in state: 197.
 ##
 ## parens_single(pattern) -> Lpar ctor option(parens_single(pattern)) . Rpar [ Rpar Comma Arrow_right ]
 ## parens_single(pattern) -> Lpar ctor option(parens_single(pattern)) . Comma separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
@@ -2500,7 +2452,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Lpar Uppercas
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Comma With
 ##
-## Ends in an error in state: 205.
+## Ends in an error in state: 199.
 ##
 ## parens_single(pattern) -> Lpar ctor option(parens_single(pattern)) Comma . separated_nonempty_list(Comma,pattern_item) Rpar [ Rpar Comma Arrow_right ]
 ##
@@ -2512,7 +2464,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Comma With
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Comma Uppercase_id Arrow_right
 ##
-## Ends in an error in state: 206.
+## Ends in an error in state: 200.
 ##
 ## parens_single(pattern) -> Lpar ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) . Rpar [ Rpar Comma Arrow_right ]
 ##
@@ -2523,15 +2475,15 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Comma Upperca
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 189, spurious reduction of production option(parens_single(pattern)) ->
-## In state 208, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+## In state 183, spurious reduction of production option(parens_single(pattern)) ->
+## In state 202, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Lpar Uppercase_id Rpar With
 ##
-## Ends in an error in state: 208.
+## Ends in an error in state: 202.
 ##
 ## separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern)) . [ Rpar Arrow_right ]
 ## separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern)) . Comma separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
@@ -2544,7 +2496,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Lpar Upperca
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Comma With
 ##
-## Ends in an error in state: 209.
+## Ends in an error in state: 203.
 ##
 ## separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern)) Comma . separated_nonempty_list(Comma,pattern_item) [ Rpar Arrow_right ]
 ##
@@ -2556,7 +2508,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Comma With
 
 prog: Match Uppercase_id With Begin Wildcard Comma Uppercase_id Rpar
 ##
-## Ends in an error in state: 212.
+## Ends in an error in state: 206.
 ##
 ## nonempty_list(clause) -> Wildcard Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block [ End ]
 ## nonempty_list(clause) -> Wildcard Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block nonempty_list(clause) [ End ]
@@ -2568,15 +2520,15 @@ prog: Match Uppercase_id With Begin Wildcard Comma Uppercase_id Rpar
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 189, spurious reduction of production option(parens_single(pattern)) ->
-## In state 208, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+## In state 183, spurious reduction of production option(parens_single(pattern)) ->
+## In state 202, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Wildcard Comma Uppercase_id Arrow_right With
 ##
-## Ends in an error in state: 213.
+## Ends in an error in state: 207.
 ##
 ## nonempty_list(clause) -> Wildcard Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block [ End ]
 ## nonempty_list(clause) -> Wildcard Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block nonempty_list(clause) [ End ]
@@ -2589,7 +2541,7 @@ prog: Match Uppercase_id With Begin Wildcard Comma Uppercase_id Arrow_right With
 
 prog: Match Uppercase_id With Begin Wildcard Comma Uppercase_id Arrow_right Uppercase_id With
 ##
-## Ends in an error in state: 214.
+## Ends in an error in state: 208.
 ##
 ## nonempty_list(clause) -> Wildcard Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . [ End ]
 ## nonempty_list(clause) -> Wildcard Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . nonempty_list(clause) [ End ]
@@ -2602,16 +2554,16 @@ prog: Match Uppercase_id With Begin Wildcard Comma Uppercase_id Arrow_right Uppe
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 148, spurious reduction of production block -> expr
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 142, spurious reduction of production block -> expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Lowercase_id With
 ##
-## Ends in an error in state: 215.
+## Ends in an error in state: 209.
 ##
 ## nonempty_list(clause) -> Lowercase_id . Arrow_right block [ End ]
 ## nonempty_list(clause) -> Lowercase_id . Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
@@ -2626,7 +2578,7 @@ prog: Match Uppercase_id With Begin Lowercase_id With
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma With
 ##
-## Ends in an error in state: 216.
+## Ends in an error in state: 210.
 ##
 ## nonempty_list(clause) -> Lowercase_id Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
 ## nonempty_list(clause) -> Lowercase_id Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block nonempty_list(clause) [ End ]
@@ -2639,7 +2591,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma With
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Rpar
 ##
-## Ends in an error in state: 217.
+## Ends in an error in state: 211.
 ##
 ## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block [ End ]
 ## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block nonempty_list(clause) [ End ]
@@ -2651,15 +2603,15 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Rpar
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 189, spurious reduction of production option(parens_single(pattern)) ->
-## In state 208, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+## In state 183, spurious reduction of production option(parens_single(pattern)) ->
+## In state 202, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Arrow_right With
 ##
-## Ends in an error in state: 218.
+## Ends in an error in state: 212.
 ##
 ## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block [ End ]
 ## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block nonempty_list(clause) [ End ]
@@ -2672,7 +2624,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Arrow_right 
 
 prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Arrow_right Uppercase_id With
 ##
-## Ends in an error in state: 219.
+## Ends in an error in state: 213.
 ##
 ## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . [ End ]
 ## nonempty_list(clause) -> Lowercase_id Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . nonempty_list(clause) [ End ]
@@ -2685,16 +2637,16 @@ prog: Match Uppercase_id With Begin Lowercase_id Comma Uppercase_id Arrow_right 
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 148, spurious reduction of production block -> expr
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 142, spurious reduction of production block -> expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Uppercase_id With
 ##
-## Ends in an error in state: 221.
+## Ends in an error in state: 215.
 ##
 ## nonempty_list(clause) -> ctor . option(parens_single(pattern)) Arrow_right block [ End ]
 ## nonempty_list(clause) -> ctor . option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
@@ -2709,7 +2661,7 @@ prog: Match Uppercase_id With Begin Uppercase_id With
 
 prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Rpar With
 ##
-## Ends in an error in state: 222.
+## Ends in an error in state: 216.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) . Arrow_right block [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) . Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
@@ -2724,7 +2676,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Lpar Uppercase_id Rpar With
 
 prog: Match Uppercase_id With Begin Uppercase_id Comma With
 ##
-## Ends in an error in state: 223.
+## Ends in an error in state: 217.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma . separated_nonempty_list(Comma,pattern_item) Arrow_right block nonempty_list(clause) [ End ]
@@ -2737,7 +2689,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Comma With
 
 prog: Match Uppercase_id With Begin Uppercase_id Comma Uppercase_id Rpar
 ##
-## Ends in an error in state: 224.
+## Ends in an error in state: 218.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) . Arrow_right block nonempty_list(clause) [ End ]
@@ -2749,15 +2701,15 @@ prog: Match Uppercase_id With Begin Uppercase_id Comma Uppercase_id Rpar
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 189, spurious reduction of production option(parens_single(pattern)) ->
-## In state 208, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
+## In state 183, spurious reduction of production option(parens_single(pattern)) ->
+## In state 202, spurious reduction of production separated_nonempty_list(Comma,pattern_item) -> ctor option(parens_single(pattern))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Uppercase_id Comma Uppercase_id Arrow_right With
 ##
-## Ends in an error in state: 225.
+## Ends in an error in state: 219.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right . block nonempty_list(clause) [ End ]
@@ -2770,7 +2722,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Comma Uppercase_id Arrow_right 
 
 prog: Match Uppercase_id With Begin Uppercase_id Comma Uppercase_id Arrow_right Uppercase_id With
 ##
-## Ends in an error in state: 226.
+## Ends in an error in state: 220.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Comma separated_nonempty_list(Comma,pattern_item) Arrow_right block . nonempty_list(clause) [ End ]
@@ -2783,16 +2735,16 @@ prog: Match Uppercase_id With Begin Uppercase_id Comma Uppercase_id Arrow_right 
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 148, spurious reduction of production block -> expr
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 142, spurious reduction of production block -> expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Uppercase_id Arrow_right With
 ##
-## Ends in an error in state: 228.
+## Ends in an error in state: 222.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Arrow_right . block [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Arrow_right . block nonempty_list(clause) [ End ]
@@ -2805,7 +2757,7 @@ prog: Match Uppercase_id With Begin Uppercase_id Arrow_right With
 
 prog: Match Uppercase_id With Begin Uppercase_id Arrow_right Uppercase_id With
 ##
-## Ends in an error in state: 229.
+## Ends in an error in state: 223.
 ##
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Arrow_right block . [ End ]
 ## nonempty_list(clause) -> ctor option(parens_single(pattern)) Arrow_right block . nonempty_list(clause) [ End ]
@@ -2818,16 +2770,16 @@ prog: Match Uppercase_id With Begin Uppercase_id Arrow_right Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 148, spurious reduction of production block -> expr
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 142, spurious reduction of production block -> expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Lowercase_id Arrow_right With
 ##
-## Ends in an error in state: 231.
+## Ends in an error in state: 225.
 ##
 ## nonempty_list(clause) -> Lowercase_id Arrow_right . block [ End ]
 ## nonempty_list(clause) -> Lowercase_id Arrow_right . block nonempty_list(clause) [ End ]
@@ -2840,7 +2792,7 @@ prog: Match Uppercase_id With Begin Lowercase_id Arrow_right With
 
 prog: Match Uppercase_id With Begin Lowercase_id Arrow_right Uppercase_id With
 ##
-## Ends in an error in state: 232.
+## Ends in an error in state: 226.
 ##
 ## nonempty_list(clause) -> Lowercase_id Arrow_right block . [ End ]
 ## nonempty_list(clause) -> Lowercase_id Arrow_right block . nonempty_list(clause) [ End ]
@@ -2853,16 +2805,16 @@ prog: Match Uppercase_id With Begin Lowercase_id Arrow_right Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 148, spurious reduction of production block -> expr
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 142, spurious reduction of production block -> expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Uppercase_id With Begin Wildcard Arrow_right With
 ##
-## Ends in an error in state: 235.
+## Ends in an error in state: 229.
 ##
 ## nonempty_list(clause) -> Wildcard Arrow_right . block [ End ]
 ## nonempty_list(clause) -> Wildcard Arrow_right . block nonempty_list(clause) [ End ]
@@ -2875,7 +2827,7 @@ prog: Match Uppercase_id With Begin Wildcard Arrow_right With
 
 prog: Match Uppercase_id With Begin Wildcard Arrow_right Uppercase_id With
 ##
-## Ends in an error in state: 236.
+## Ends in an error in state: 230.
 ##
 ## nonempty_list(clause) -> Wildcard Arrow_right block . [ End ]
 ## nonempty_list(clause) -> Wildcard Arrow_right block . nonempty_list(clause) [ End ]
@@ -2888,16 +2840,16 @@ prog: Match Uppercase_id With Begin Wildcard Arrow_right Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 148, spurious reduction of production block -> expr
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 142, spurious reduction of production block -> expr
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Minus_f False Quote
 ##
-## Ends in an error in state: 240.
+## Ends in an error in state: 234.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -2930,7 +2882,7 @@ prog: Minus_f False Quote
 
 prog: Minus_i False Quote
 ##
-## Ends in an error in state: 241.
+## Ends in an error in state: 235.
 ##
 ## expr -> expr . Plus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ## expr -> expr . Minus_i expr [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
@@ -2961,33 +2913,56 @@ prog: Minus_i False Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Uppercase_id Dot Lpar Uppercase_id Uppercase_id Type
+##
+## Ends in an error in state: 236.
+##
+## expr -> Uppercase_id Dot Lpar nonempty_list(stmt) . Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
+##
+## The known suffix of the stack is as follows:
+## Uppercase_id Dot Lpar nonempty_list(stmt)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 42, spurious reduction of production ctor -> Uppercase_id
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 146, spurious reduction of production stmt -> expr
+## In state 144, spurious reduction of production nonempty_list(stmt) -> stmt
+## In state 145, spurious reduction of production nonempty_list(stmt) -> stmt nonempty_list(stmt)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Uppercase_id Dot Lpar Uppercase_id With
 ##
-## Ends in an error in state: 242.
+## Ends in an error in state: 238.
 ##
-## block -> expr . [ Rpar ]
-## expr -> expr . Plus_i expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Minus_i expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Mult_i expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Div_i expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Less_i expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Greater_i expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Equal expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Plus_f expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Minus_f expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Mult_f expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Div_f expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Less_f expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Greater_f expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Bin_equal_f expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . And expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Or expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . parens(expr) [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id Arrow_left expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Dot Lowercase_id [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Pipe_head expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
-## expr -> expr . Pipe_tail expr [ Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Lpar Less_i Less_f Greater_i Greater_f Equal Dot Div_i Div_f Bin_equal_f And ]
+## expr -> expr . Plus_i expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Minus_i expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Mult_i expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Div_i expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Less_i expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Greater_i expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Equal expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Plus_f expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Minus_f expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Mult_f expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Div_f expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Less_f expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Greater_f expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Bin_equal_f expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . And expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Or expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . parens(expr) [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Dot Lowercase_id Arrow_left expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Dot Lowercase_id [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Pipe_head expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
+## expr -> expr . Pipe_tail expr [ Val Uppercase_id U8 True String_lit Rpar Plus_i Plus_f Pipe_tail Pipe_head Or Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 Equal Dot Div_i Div_f Builtin_id Bin_equal_f And ]
 ## expr -> Uppercase_id Dot Lpar expr . Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
+## stmt -> expr . [ Val Uppercase_id U8 True String_lit Rpar Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 Builtin_id ]
 ##
 ## The known suffix of the stack is as follows:
 ## Uppercase_id Dot Lpar expr
@@ -2997,27 +2972,15 @@ prog: Uppercase_id Dot Lpar Uppercase_id With
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Uppercase_id Dot Lpar Begin Uppercase_id End With
-##
-## Ends in an error in state: 244.
-##
-## expr -> Uppercase_id Dot Lpar block . Rpar [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
-##
-## The known suffix of the stack is as follows:
-## Uppercase_id Dot Lpar block
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Uppercase_id Dot Lbrac With
 ##
-## Ends in an error in state: 247.
+## Ends in an error in state: 241.
 ##
 ## expr -> Uppercase_id Dot Lbrac . separated_nonempty_list(Comma,record_item) Rbrac [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -3029,7 +2992,7 @@ prog: Uppercase_id Dot Lbrac With
 
 prog: Uppercase_id Dot Uppercase_id Quote
 ##
-## Ends in an error in state: 250.
+## Ends in an error in state: 244.
 ##
 ## expr -> Uppercase_id Dot ctor . option(parens_single(expr)) [ With Wildcard Val Uppercase_id U8 Type True Then String_lit Rpar Rbrack Rbrac Plus_i Plus_f Pipe_tail Pipe_head Or Open Mult_i Mult_f Minus_i Minus_f Match Lpar Lowercase_id Less_i Less_f Lbrack Lbrac Int If I32 Greater_i Greater_f Fun Float False F32 External Equal Eof End Elseif Else Dot Div_i Div_f Comma Builtin_id Bin_equal_f And ]
 ##
@@ -3041,7 +3004,7 @@ prog: Uppercase_id Dot Uppercase_id Quote
 
 prog: Type With
 ##
-## Ends in an error in state: 253.
+## Ends in an error in state: 247.
 ##
 ## top_item -> Type . Lowercase_id option(typedef_poly_id) Equal Lbrac separated_nonempty_list(Comma,type_decl) Rbrac [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> Type . Lowercase_id option(typedef_poly_id) Equal build_type_list [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3055,7 +3018,7 @@ prog: Type With
 
 prog: Type Lowercase_id With
 ##
-## Ends in an error in state: 254.
+## Ends in an error in state: 248.
 ##
 ## top_item -> Type Lowercase_id . option(typedef_poly_id) Equal Lbrac separated_nonempty_list(Comma,type_decl) Rbrac [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> Type Lowercase_id . option(typedef_poly_id) Equal build_type_list [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3069,7 +3032,7 @@ prog: Type Lowercase_id With
 
 prog: Type Lowercase_id Lpar With
 ##
-## Ends in an error in state: 255.
+## Ends in an error in state: 249.
 ##
 ## option(typedef_poly_id) -> Lpar . Quote Lowercase_id Rpar [ Equal ]
 ##
@@ -3081,7 +3044,7 @@ Type variables are denoted with " ' ". Try 'a instead of a for type variables
 
 prog: Type Lowercase_id Lpar Quote With
 ##
-## Ends in an error in state: 256.
+## Ends in an error in state: 250.
 ##
 ## option(typedef_poly_id) -> Lpar Quote . Lowercase_id Rpar [ Equal ]
 ##
@@ -3093,7 +3056,7 @@ prog: Type Lowercase_id Lpar Quote With
 
 prog: Type Lowercase_id Lpar Quote Lowercase_id With
 ##
-## Ends in an error in state: 257.
+## Ends in an error in state: 251.
 ##
 ## option(typedef_poly_id) -> Lpar Quote Lowercase_id . Rpar [ Equal ]
 ##
@@ -3105,7 +3068,7 @@ prog: Type Lowercase_id Lpar Quote Lowercase_id With
 
 prog: Type Lowercase_id Lpar Quote Lowercase_id Rpar With
 ##
-## Ends in an error in state: 259.
+## Ends in an error in state: 253.
 ##
 ## top_item -> Type Lowercase_id option(typedef_poly_id) . Equal Lbrac separated_nonempty_list(Comma,type_decl) Rbrac [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> Type Lowercase_id option(typedef_poly_id) . Equal build_type_list [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3119,7 +3082,7 @@ prog: Type Lowercase_id Lpar Quote Lowercase_id Rpar With
 
 prog: Type Lowercase_id Equal With
 ##
-## Ends in an error in state: 260.
+## Ends in an error in state: 254.
 ##
 ## top_item -> Type Lowercase_id option(typedef_poly_id) Equal . Lbrac separated_nonempty_list(Comma,type_decl) Rbrac [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> Type Lowercase_id option(typedef_poly_id) Equal . build_type_list [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3133,7 +3096,7 @@ prog: Type Lowercase_id Equal With
 
 prog: Type Lowercase_id Equal Uppercase_id With
 ##
-## Ends in an error in state: 261.
+## Ends in an error in state: 255.
 ##
 ## ctor -> Uppercase_id . [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
 ## type_spec -> Uppercase_id . Dot type_spec [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3146,7 +3109,7 @@ prog: Type Lowercase_id Equal Uppercase_id With
 
 prog: Type Lowercase_id Equal Lbrac With
 ##
-## Ends in an error in state: 262.
+## Ends in an error in state: 256.
 ##
 ## top_item -> Type Lowercase_id option(typedef_poly_id) Equal Lbrac . separated_nonempty_list(Comma,type_decl) Rbrac [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3158,7 +3121,7 @@ prog: Type Lowercase_id Equal Lbrac With
 
 prog: Type Lowercase_id Equal Lbrac Mutable With
 ##
-## Ends in an error in state: 266.
+## Ends in an error in state: 260.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) . Lowercase_id Colon build_type_list Arrow_right build_type_list [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) . Lowercase_id Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list [ Rbrac ]
@@ -3175,7 +3138,7 @@ prog: Type Lowercase_id Equal Lbrac Mutable With
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id With
 ##
-## Ends in an error in state: 267.
+## Ends in an error in state: 261.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id . Colon build_type_list Arrow_right build_type_list [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id . Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list [ Rbrac ]
@@ -3192,7 +3155,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id With
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon With
 ##
-## Ends in an error in state: 268.
+## Ends in an error in state: 262.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon . build_type_list Arrow_right build_type_list [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon . Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list [ Rbrac ]
@@ -3209,7 +3172,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon With
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar With
 ##
-## Ends in an error in state: 269.
+## Ends in an error in state: 263.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon Lpar . separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon Lpar . separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list Comma separated_nonempty_list(Comma,type_decl) [ Rbrac ]
@@ -3222,7 +3185,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar With
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar Lowercase_id Rpar With
 ##
-## Ends in an error in state: 271.
+## Ends in an error in state: 265.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon Lpar separated_nonempty_list(Comma,type_func) Rpar . Arrow_right build_type_list [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon Lpar separated_nonempty_list(Comma,type_func) Rpar . Arrow_right build_type_list Comma separated_nonempty_list(Comma,type_decl) [ Rbrac ]
@@ -3235,7 +3198,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar Lowercase_id Rpar Wi
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right With
 ##
-## Ends in an error in state: 272.
+## Ends in an error in state: 266.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right . build_type_list [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right . build_type_list Comma separated_nonempty_list(Comma,type_decl) [ Rbrac ]
@@ -3248,7 +3211,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar Lowercase_id Rpar Ar
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Lowercase_id Val
 ##
-## Ends in an error in state: 273.
+## Ends in an error in state: 267.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list . [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list . Comma separated_nonempty_list(Comma,type_decl) [ Rbrac ]
@@ -3267,7 +3230,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar Lowercase_id Rpar Ar
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Lowercase_id Comma With
 ##
-## Ends in an error in state: 274.
+## Ends in an error in state: 268.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list Comma . separated_nonempty_list(Comma,type_decl) [ Rbrac ]
 ##
@@ -3279,7 +3242,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lpar Lowercase_id Rpar Ar
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Val
 ##
-## Ends in an error in state: 276.
+## Ends in an error in state: 270.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon build_type_list . Arrow_right build_type_list [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon build_type_list . [ Rbrac ]
@@ -3300,7 +3263,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Val
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Comma With
 ##
-## Ends in an error in state: 277.
+## Ends in an error in state: 271.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon build_type_list Comma . separated_nonempty_list(Comma,type_decl) [ Rbrac ]
 ##
@@ -3312,7 +3275,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Comma With
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Arrow_right With
 ##
-## Ends in an error in state: 279.
+## Ends in an error in state: 273.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon build_type_list Arrow_right . build_type_list [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon build_type_list Arrow_right . build_type_list Comma separated_nonempty_list(Comma,type_decl) [ Rbrac ]
@@ -3325,7 +3288,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Arrow_right 
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Arrow_right Lowercase_id Val
 ##
-## Ends in an error in state: 280.
+## Ends in an error in state: 274.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon build_type_list Arrow_right build_type_list . [ Rbrac ]
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon build_type_list Arrow_right build_type_list . Comma separated_nonempty_list(Comma,type_decl) [ Rbrac ]
@@ -3344,7 +3307,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Arrow_right 
 
 prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Arrow_right Lowercase_id Comma With
 ##
-## Ends in an error in state: 281.
+## Ends in an error in state: 275.
 ##
 ## separated_nonempty_list(Comma,type_decl) -> boption(Mutable) Lowercase_id Colon build_type_list Arrow_right build_type_list Comma . separated_nonempty_list(Comma,type_decl) [ Rbrac ]
 ##
@@ -3356,7 +3319,7 @@ prog: Type Lowercase_id Equal Lbrac Lowercase_id Colon Lowercase_id Arrow_right 
 
 prog: Type Lowercase_id Equal Uppercase_id Bar Uppercase_id With
 ##
-## Ends in an error in state: 284.
+## Ends in an error in state: 278.
 ##
 ## separated_nonempty_list(Bar,ctordef) -> ctor . option(ctyp) option(tag) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## separated_nonempty_list(Bar,ctordef) -> ctor . option(ctyp) option(tag) Bar separated_nonempty_list(Bar,ctordef) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3369,7 +3332,7 @@ prog: Type Lowercase_id Equal Uppercase_id Bar Uppercase_id With
 
 prog: Type Lowercase_id Equal Uppercase_id Lpar With
 ##
-## Ends in an error in state: 285.
+## Ends in an error in state: 279.
 ##
 ## option(ctyp) -> Lpar . build_type_list Arrow_right build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
 ## option(ctyp) -> Lpar . Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
@@ -3383,7 +3346,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar With
 
 prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar With
 ##
-## Ends in an error in state: 286.
+## Ends in an error in state: 280.
 ##
 ## option(ctyp) -> Lpar Lpar . separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
 ##
@@ -3395,7 +3358,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar With
 
 prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar With
 ##
-## Ends in an error in state: 288.
+## Ends in an error in state: 282.
 ##
 ## option(ctyp) -> Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar . Arrow_right build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
 ##
@@ -3407,7 +3370,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar With
 
 prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar Arrow_right With
 ##
-## Ends in an error in state: 289.
+## Ends in an error in state: 283.
 ##
 ## option(ctyp) -> Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right . build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
 ##
@@ -3419,7 +3382,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar Arrow_rig
 
 prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar Arrow_right Lowercase_id Val
 ##
-## Ends in an error in state: 290.
+## Ends in an error in state: 284.
 ##
 ## option(ctyp) -> Lpar Lpar separated_nonempty_list(Comma,type_list) Rpar Arrow_right build_type_list . Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
 ##
@@ -3437,7 +3400,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lpar Lowercase_id Rpar Arrow_rig
 
 prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Val
 ##
-## Ends in an error in state: 292.
+## Ends in an error in state: 286.
 ##
 ## option(ctyp) -> Lpar build_type_list . Arrow_right build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
 ## option(ctyp) -> Lpar build_type_list . Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
@@ -3456,7 +3419,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Val
 
 prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Arrow_right With
 ##
-## Ends in an error in state: 294.
+## Ends in an error in state: 288.
 ##
 ## option(ctyp) -> Lpar build_type_list Arrow_right . build_type_list Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
 ##
@@ -3468,7 +3431,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Arrow_right With
 
 prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Arrow_right Lowercase_id Val
 ##
-## Ends in an error in state: 295.
+## Ends in an error in state: 289.
 ##
 ## option(ctyp) -> Lpar build_type_list Arrow_right build_type_list . Rpar [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Colon Builtin_id Bar ]
 ##
@@ -3486,7 +3449,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Arrow_right Lowerca
 
 prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Rpar With
 ##
-## Ends in an error in state: 297.
+## Ends in an error in state: 291.
 ##
 ## separated_nonempty_list(Bar,ctordef) -> ctor option(ctyp) . option(tag) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## separated_nonempty_list(Bar,ctordef) -> ctor option(ctyp) . option(tag) Bar separated_nonempty_list(Bar,ctordef) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3499,7 +3462,7 @@ prog: Type Lowercase_id Equal Uppercase_id Lpar Lowercase_id Rpar With
 
 prog: Type Lowercase_id Equal Uppercase_id Colon With
 ##
-## Ends in an error in state: 298.
+## Ends in an error in state: 292.
 ##
 ## option(tag) -> Colon . Int [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id Bar ]
 ##
@@ -3511,7 +3474,7 @@ prog: Type Lowercase_id Equal Uppercase_id Colon With
 
 prog: Type Lowercase_id Equal Uppercase_id Colon Int With
 ##
-## Ends in an error in state: 300.
+## Ends in an error in state: 294.
 ##
 ## separated_nonempty_list(Bar,ctordef) -> ctor option(ctyp) option(tag) . [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## separated_nonempty_list(Bar,ctordef) -> ctor option(ctyp) option(tag) . Bar separated_nonempty_list(Bar,ctordef) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3524,7 +3487,7 @@ prog: Type Lowercase_id Equal Uppercase_id Colon Int With
 
 prog: Type Lowercase_id Equal Uppercase_id Bar With
 ##
-## Ends in an error in state: 301.
+## Ends in an error in state: 295.
 ##
 ## separated_nonempty_list(Bar,ctordef) -> ctor option(ctyp) option(tag) Bar . separated_nonempty_list(Bar,ctordef) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3536,7 +3499,7 @@ prog: Type Lowercase_id Equal Uppercase_id Bar With
 
 prog: Open With
 ##
-## Ends in an error in state: 304.
+## Ends in an error in state: 298.
 ##
 ## top_item -> Open . Uppercase_id [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3548,7 +3511,7 @@ Module identifiers must be uppercase
 
 prog: External With
 ##
-## Ends in an error in state: 306.
+## Ends in an error in state: 300.
 ##
 ## top_item -> External . ident Colon build_type_list Arrow_right build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External . ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3562,7 +3525,7 @@ Functions must have lowercase names. Use the following form: 'external schmu_nam
 
 prog: External Lowercase_id With
 ##
-## Ends in an error in state: 307.
+## Ends in an error in state: 301.
 ##
 ## top_item -> External ident . Colon build_type_list Arrow_right build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External ident . Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3576,7 +3539,7 @@ prog: External Lowercase_id With
 
 prog: External Lowercase_id Colon With
 ##
-## Ends in an error in state: 308.
+## Ends in an error in state: 302.
 ##
 ## top_item -> External ident Colon . build_type_list Arrow_right build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External ident Colon . Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3590,7 +3553,7 @@ prog: External Lowercase_id Colon With
 
 prog: External Lowercase_id Colon Lpar With
 ##
-## Ends in an error in state: 309.
+## Ends in an error in state: 303.
 ##
 ## top_item -> External ident Colon Lpar . separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3602,7 +3565,7 @@ prog: External Lowercase_id Colon Lpar With
 
 prog: External Lowercase_id Colon Lpar Lowercase_id Rpar With
 ##
-## Ends in an error in state: 311.
+## Ends in an error in state: 305.
 ##
 ## top_item -> External ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar . Arrow_right build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3614,7 +3577,7 @@ prog: External Lowercase_id Colon Lpar Lowercase_id Rpar With
 
 prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right With
 ##
-## Ends in an error in state: 312.
+## Ends in an error in state: 306.
 ##
 ## top_item -> External ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right . build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3626,7 +3589,7 @@ prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right With
 
 prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Lowercase_id Rpar
 ##
-## Ends in an error in state: 313.
+## Ends in an error in state: 307.
 ##
 ## top_item -> External ident Colon Lpar separated_nonempty_list(Comma,type_func) Rpar Arrow_right build_type_list . option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3644,7 +3607,7 @@ prog: External Lowercase_id Colon Lpar Lowercase_id Rpar Arrow_right Lowercase_i
 
 prog: External Lowercase_id Colon Lowercase_id Equal With
 ##
-## Ends in an error in state: 314.
+## Ends in an error in state: 308.
 ##
 ## option(external_cname) -> Equal . String_lit [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3656,7 +3619,7 @@ prog: External Lowercase_id Colon Lowercase_id Equal With
 
 prog: External Lowercase_id Colon Lowercase_id Rpar
 ##
-## Ends in an error in state: 317.
+## Ends in an error in state: 311.
 ##
 ## top_item -> External ident Colon build_type_list . Arrow_right build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ## top_item -> External ident Colon build_type_list . option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
@@ -3675,7 +3638,7 @@ prog: External Lowercase_id Colon Lowercase_id Rpar
 
 prog: External Lowercase_id Colon Lowercase_id Arrow_right With
 ##
-## Ends in an error in state: 318.
+## Ends in an error in state: 312.
 ##
 ## top_item -> External ident Colon build_type_list Arrow_right . build_type_list option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3687,7 +3650,7 @@ prog: External Lowercase_id Colon Lowercase_id Arrow_right With
 
 prog: External Lowercase_id Colon Lowercase_id Arrow_right Lowercase_id Rpar
 ##
-## Ends in an error in state: 319.
+## Ends in an error in state: 313.
 ##
 ## top_item -> External ident Colon build_type_list Arrow_right build_type_list . option(external_cname) [ Val Uppercase_id U8 Type True String_lit Open Minus_i Minus_f Match Lpar Lowercase_id Lbrack Lbrac Int If I32 Fun Float False F32 External Eof Builtin_id ]
 ##
@@ -3705,7 +3668,7 @@ prog: External Lowercase_id Colon Lowercase_id Arrow_right Lowercase_id Rpar
 
 prog: Uppercase_id End
 ##
-## Ends in an error in state: 322.
+## Ends in an error in state: 316.
 ##
 ## list(top_item) -> top_item . list(top_item) [ Eof ]
 ##
@@ -3717,11 +3680,11 @@ prog: Uppercase_id End
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 42, spurious reduction of production ctor -> Uppercase_id
-## In state 94, spurious reduction of production option(parens_single(expr)) ->
-## In state 136, spurious reduction of production expr -> ctor option(parens_single(expr))
-## In state 152, spurious reduction of production stmt -> expr
-## In state 150, spurious reduction of production nonempty_list(stmt) -> stmt
-## In state 323, spurious reduction of production top_item -> nonempty_list(stmt)
+## In state 88, spurious reduction of production option(parens_single(expr)) ->
+## In state 130, spurious reduction of production expr -> ctor option(parens_single(expr))
+## In state 146, spurious reduction of production stmt -> expr
+## In state 144, spurious reduction of production nonempty_list(stmt) -> stmt
+## In state 317, spurious reduction of production top_item -> nonempty_list(stmt)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
