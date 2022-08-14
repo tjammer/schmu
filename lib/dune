@@ -43,53 +43,53 @@
 ;; to share a single [token] type. This makes them usable with the same
 ;; lexer.
 
-(rule
- (action
-  (with-stdout-to
-   unitActionsParser.mly
-   (run menhir %{dep:parser.mly} --only-preprocess-u))))
+; (rule
+;  (action
+;   (with-stdout-to
+;    unitActionsParser.mly
+;    (run menhir %{dep:parser.mly} --only-preprocess-u))))
 
-(menhir
- (modules unitActionsParser)
- (flags --table --external-tokens Parser))
+; (menhir
+;  (modules unitActionsParser)
+;  (flags --table --external-tokens Parser))
 
-;; This section deals with the .messages file.
+; ;; This section deals with the .messages file.
 
-;; The following rule generates "syntax_errors.ml" based on the source file
-;; "syntax_errors.messages". It requires the completeness check to have been
-;; performed first. (If desired, this check could be disabled.)
+; ;; The following rule generates "syntax_errors.ml" based on the source file
+; ;; "syntax_errors.messages". It requires the completeness check to have been
+; ;; performed first. (If desired, this check could be disabled.)
 
-(rule
- (deps syntax_errors.check)
- (action
-  (with-stdout-to
-   syntax_errors.ml
-   (run
-    menhir
-    %{dep:parser.mly}
-    --compile-errors
-    %{dep:syntax_errors.messages}))))
+; (rule
+;  (deps syntax_errors.check)
+;  (action
+;   (with-stdout-to
+;    syntax_errors.ml
+;    (run
+;     menhir
+;     %{dep:parser.mly}
+;     --compile-errors
+;     %{dep:syntax_errors.messages}))))
 
-;; This rule generates a file "syntax_errors.auto.messages" that contains a
-;; list of all error states. It is used by the completeness check.
+; ;; This rule generates a file "syntax_errors.auto.messages" that contains a
+; ;; list of all error states. It is used by the completeness check.
 
-(rule
- (with-stdout-to
-  syntax_errors.auto.messages
-  (run menhir %{dep:parser.mly} --list-errors)))
+; (rule
+;  (with-stdout-to
+;   syntax_errors.auto.messages
+;   (run menhir %{dep:parser.mly} --list-errors)))
 
-;; This rule implements the completeness check. It checks that every error
-;; state listed in the auto-generated file "syntax_errors.auto.messages"
-;; is also listed in the file "syntax_errors.messages" that is maintained
-;; by the programmer.
+; ;; This rule implements the completeness check. It checks that every error
+; ;; state listed in the auto-generated file "syntax_errors.auto.messages"
+; ;; is also listed in the file "syntax_errors.messages" that is maintained
+; ;; by the programmer.
 
-(rule
- (with-stdout-to
-  syntax_errors.check
-  (run
-   menhir
-   %{dep:parser.mly}
-   --compare-errors
-   %{dep:syntax_errors.auto.messages}
-   --compare-errors
-   %{dep:syntax_errors.messages})))
+; (rule
+;  (with-stdout-to
+;   syntax_errors.check
+;   (run
+;    menhir
+;    %{dep:parser.mly}
+;    --compare-errors
+;    %{dep:syntax_errors.auto.messages}
+;    --compare-errors
+;    %{dep:syntax_errors.messages})))
