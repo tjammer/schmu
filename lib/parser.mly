@@ -253,9 +253,9 @@ vector_lit:
   | Lpar; poly_id; Rpar { $2 }
 
 %inline type_expr:
-  | Colon; type_list; Arrow_right; type_list { [$2; $4] }
-  | Colon; Lpar; separated_nonempty_list(Comma, type_func); Rpar; Arrow_right; type_list  { $3 @ [$6] }
-  | Colon; type_list { [$2] }
+  | Colon; type_list; Arrow_right; type_list { Ty_func [ $2; $4] }
+  | Colon; Lpar; separated_nonempty_list(Comma, type_func); Rpar; Arrow_right; type_list  { Ty_func ($3 @ [$6]) }
+  | Colon; type_list { $2 }
 
 %inline type_func:
   | type_list; Arrow_right; type_list { Ty_func [$1; $3] }

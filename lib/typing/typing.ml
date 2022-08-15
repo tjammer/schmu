@@ -164,7 +164,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_var id ->
         (* Type annotation in function *)
         Qvar id
-    | Ty_func l -> handle_annot env l
+    | Ty_func l -> handle_func env l
     | Ty_list l -> type_list env l
     | Ty_open_id (loc, spec, modul) ->
         let modul = Module.read_exn ~regeneralize modul loc in
@@ -201,7 +201,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
             Env.maybe_add_type_instance subst env
         | _ -> ());
         subst
-  and handle_annot env = function
+  and handle_func env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ t ] -> concrete_type env t
     | [ Ast.Ty_id "unit"; t ] -> Tfun ([], concrete_type env t, fn_kind)
@@ -219,7 +219,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
                 fn_kind )
         | [] -> failwith ":)")
   in
-  handle_annot env annot
+  concrete_type env annot
 
 let handle_params env loc params ret =
   (* return updated env with bindings for parameters and types of parameters *)
@@ -255,7 +255,7 @@ let handle_params env loc params ret =
     env params
   |> fun (env, lst) ->
   let ids, qparams = List.split lst in
-  let ret = Option.map (fun t -> typeof_annot env loc [ t ]) ret in
+  let ret = Option.map (fun t -> typeof_annot env loc t) ret in
   (env, ids, qparams, ret)
 
 let get_prelude env loc name =
@@ -309,7 +309,7 @@ let type_alias env loc { Ast.poly_param; name } type_spec =
   check_type_unique env loc name;
   (* Temporarily add polymorphic type name to env *)
   let temp_env, _ = add_type_param env poly_param in
-  let typ = typeof_annot ~typedef:true temp_env loc [ type_spec ] in
+  let typ = typeof_annot ~typedef:true temp_env loc type_spec in
   Env.add_alias name typ env
 
 let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
@@ -352,7 +352,7 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
             (* Just a ctor, without data *)
             { cname; ctyp = None; index = maybe_add_index cname index }
         | Some annot ->
-            let typ = typeof_annot ~typedef:true temp_env loc [ annot ] in
+            let typ = typeof_annot ~typedef:true temp_env loc annot in
             { cname; ctyp = Some typ; index = maybe_add_index cname index })
       ctors
     |> Array.of_list
