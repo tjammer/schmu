@@ -20,6 +20,9 @@ let u8_of_string str =
 let f_of_string f str =
   String.sub str 0 (String.length str - 3)
   |> f
+
+let name_of_string str =
+  String.sub str 1 (String.length str - 1)
 }
 
 let digit = ['0'-'9']
@@ -36,6 +39,10 @@ let f32 = min? float "f32"
 let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
 let uppercase_id = uppercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
 let builtin_id = "__" lowercase_id
+
+let kebab_id = lowercase_alpha (lowercase_alpha|'-')*
+let name = ':'(lowercase_id|kebab_id)
+let constructor = '#'(lowercase_id|kebab_id)
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -71,9 +78,15 @@ rule read =
   | "match"  { Match }
   | "with"   { With }
   | "open"   { Open }
+  | "defrecord" { Defrecord }
+  | "defalias"  { Defalias }
+  | "defvariant" { Defvariant }
   | '_'      { Wildcard }
-  | lowercase_id       { Lowercase_id (Lexing.lexeme lexbuf) }
-  | uppercase_id       { Uppercase_id (Lexing.lexeme lexbuf) }
+  | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
+  | uppercase_id { Uppercase_id (Lexing.lexeme lexbuf) }
+  | kebab_id     { Kebab_id (Lexing.lexeme lexbuf) }
+  | name     { Name (name_of_string (Lexing.lexeme lexbuf)) }
+  | constructor{ Constructor (name_of_string (Lexing.lexeme lexbuf)) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | '+'      { Plus_i }
