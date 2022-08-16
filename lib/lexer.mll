@@ -70,6 +70,7 @@ rule read =
   | "val"    { Val }
   | "mutable" { Mutable }
   | "match"  { Match }
+  | "do"     { Do }
   | "open"   { Open }
   | "record" { Defrecord }
   | "alias"  { Defalias }

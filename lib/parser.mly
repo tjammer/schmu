@@ -21,6 +21,7 @@
 %token Arrow_right
 %token Arrow_righter
 %token Dot
+%token Do
 %token <string> Lowercase_id
 %token <string> Uppercase_id
 %token <string> Kebab_id
@@ -144,7 +145,8 @@ let maybe_bracks(x) :=
   | Open; ident { snd $2 }
 
 block:
-  | atom_or_list(stmt) { $1 }
+  | stmt = stmt { [stmt] }
+  | Lpar; Do; stmts = nonempty_list(stmt); Rpar { stmts }
 
 stmt:
   | parenss(sexp_let) { $1 }
@@ -162,7 +164,7 @@ stmt:
   | ident; sexp_type_expr { $loc, $1, Some $2 }
 
 %inline sexp_fun:
-  | Fun; ident; maybe_bracks(list(sexp_decl)); block
+  | Fun; ident; maybe_bracks(list(sexp_decl)); list(stmt)
     { Function ($loc, { name = $2; params = $3; return_annot = None; body = $4 }) }
 
 sexp_expr:
@@ -215,7 +217,7 @@ sexp_expr:
   | If; sexp_expr; block; option(block) { If ($loc, $2, $3, $4) }
 
 %inline sexp_lambda:
-  | Fun; maybe_bracks(list(sexp_decl)) block
+  | Fun; maybe_bracks(list(sexp_decl)) list(stmt)
     { Lambda ($loc, $2, $3) }
 
 %inline sexp_field_set:
@@ -320,7 +322,7 @@ build_sexp_type_list:
   | type_spec { [$1] }
 
 type_spec:
-  | Lowercase_id { Ty_id $1 }
+  | ident { Ty_id (snd $1) }
   | poly_id { $1 }
   | Uppercase_id; Dot; type_spec { Ty_open_id ($loc, $3, $1) }
 
