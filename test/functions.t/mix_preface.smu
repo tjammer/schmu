@@ -1,4 +1,4 @@
-type first = { a :int }
+type first = { a : int }
 external dummy_call : unit -> first
 
 ignore(dummy_call)

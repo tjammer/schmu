@@ -6,30 +6,27 @@
       | Some (Ty_var s) -> Some s
       | _ -> failwith "Internal Error: Should have been a type var"
 
-    let parse_elseifs loc cond then_ elseifs else_ =
-      let rec aux = function
-        | [ (loc, cond, blk) ] ->
-            Some [ Ast.Expr (loc, Ast.If (loc, cond, blk, else_)) ]
-        | (loc, cond, blk) :: tl ->
-            Some [ Ast.Expr (loc, If (loc, cond, blk, aux tl)) ]
-        | [] -> else_
+    let make_pairs bin arg args =
+      let rec build = function
+        | [ a ] -> bin arg a
+        | a :: tl -> bin (build tl) a
+        | [] -> failwith "unreachable"
       in
-      Ast.If (loc, cond, then_, aux elseifs)
+      build (List.rev args)
 
 %}
 
 %token Equal
 %token Comma
-%token Colon
-%token Bar
 %token Arrow_right
-%token Arrow_left
+%token Arrow_righter
 %token Dot
 %token <string> Lowercase_id
 %token <string> Uppercase_id
 %token <string> Kebab_id
 %token <string> Name
 %token <string> Constructor
+%token <string> Accessor
 %token <int> Int
 %token <char> U8
 %token <float> Float
@@ -61,34 +58,18 @@
 %token Lbrack
 %token Rbrack
 %token If
-%token Then
-%token Elseif
-%token Else
-%token Begin
-%token End
 %token Eof
-%token External
 %token Fun
 %token Val
-%token Type
 %token Quote
-%token Pipe_head
-%token Pipe_tail
-%token Mutable
 %token Match
-%token With
 %token Wildcard
 %token Open
 %token Defrecord
 %token Defalias
 %token Defvariant
-
-%left And Or
-%nonassoc Less_i Less_f Greater_i Greater_f
-%left Plus_i Plus_f Minus_i Minus_f
-%left Mult_i Mult_f Div_i Div_f
-%left Equal Bin_equal_f
-%left Pipe_head Pipe_tail Dot
+%token Defexternal
+%token Fset
 
 %start <Ast.prog> prog
 
@@ -103,21 +84,15 @@ top_item:
   | open_ { Open ($loc, $1) }
 
 %inline external_decl:
-  | External; ident; type_expr; option(external_cname) { $loc, $2, $3, $4 }
-
-%inline external_cname:
-  | Equal; String_lit { $2 }
+  | parenss(defexternal) { $1 }
 
 %inline typedef:
   | parenss(defrecord) { $1 }
-  | Type; typename; Equal; Lbrac; separated_nonempty_list(Comma, type_decl); Rbrac
-    { Trecord { name = $2; labels = Array.of_list $5 } }
   | parenss(defalias) { $1 }
-  | Type; typename; Equal; type_list
-    { Talias ($2, $4) }
   | parenss(defvariant) { $1 }
-  | Type; typename; Equal; separated_nonempty_list(Bar, ctordef)
-    { Tvariant { name = $2; ctors = $4 } }
+
+%inline defexternal:
+  | Defexternal; ident; sexp_type_expr; option(String_lit) { $loc, $2, $3, $4 }
 
 %inline defrecord:
   | Defrecord; sexp_typename; maybe_bracs(nonempty_list(sexp_type_decl))
@@ -127,7 +102,7 @@ top_item:
   | Defalias; sexp_typename; sexp_type_list { Talias ($2, $3 ) }
 
 %inline defvariant:
-  | Defvariant; sexp_typename; atom_or_list(parenss(sexp_ctordef)) { Tvariant { name = $2; ctors = $3 } }
+  | Defvariant; sexp_typename; atom_or_list(sexp_ctordef) { Tvariant { name = $2; ctors = $3 } }
 
 let atom_or_list(x) :=
   | atom = x; { [atom] }
@@ -137,7 +112,15 @@ let maybe_bracs(x) :=
   | Lpar; thing = x; Rpar; { thing }
   | Lbrac; thing = x; Rbrac; { thing }
 
+let maybe_bracks(x) :=
+  | Lpar; thing = x; Rpar; { thing }
+  | Lbrack; thing = x; Rbrack; { thing }
+
 %inline sexp_ctordef:
+  | parenss(sexp_ctordef_item) { $1 }
+  | sexp_ctor { { name = $1; typ_annot = None; index = None } }
+
+%inline sexp_ctordef_item:
   | sexp_ctor; sexp_type_list { { name = $1; typ_annot = Some $2; index = None } }
   | sexp_ctor; Int { { name = $1; typ_annot = None; index = Some $2 } }
 
@@ -149,58 +132,62 @@ let maybe_bracs(x) :=
   | Name; sexp_type_expr { false, $1, $2 }
 
 %inline open_:
-  | Open; Uppercase_id { $2 }
+  | parenss(sexp_open) { $1 }
 
-%inline ctordef:
-  | ctor; option(ctyp); option(tag) { { name = $1; typ_annot = $2; index = $3 } }
-
-%inline ctyp:
-  | Lpar; type_func; Rpar { $2 }
-
-%inline tag:
-  | Colon; Int { $2 }
-
-%inline typename:
-  | Lowercase_id; option(typedef_poly_id) { { name = $1; poly_param = string_of_ty_var $2 } }
-
-/* Only used for records */
-%inline type_decl:
-  | boption(Mutable); Lowercase_id; type_expr { $1, $2, $3 }
+%inline sexp_open:
+  | Open; ident { snd $2 }
 
 block:
-  | expr { [Expr ($sloc, $1)] }
-  | Begin; nonempty_list(stmt); End { $2 }
+  | atom_or_list(stmt) { $1 }
 
 stmt:
-  | Val; decl; Equal; block { Let($loc, $2, $4) }
-  | Fun; ident; parensl(decl); option(return_annot); Equal; block
-    { Function ($loc, {name = $2; params = $3; return_annot = $4; body = $6}) }
-  | expr { Expr ($loc, $1) }
+  | parenss(sexp_let) { $1 }
+  | parenss(sexp_fun) { $1 }
+  | sexp_expr { Expr ($loc, $1) }
 
-expr:
-  | module_expr { $1 }
-  | lit { $1 }
-  | expr; binop; expr { Bop($loc, $2, $1, $3) }
-  | unop; expr { Unop ($loc, $1, $2) }
-  | If; expr; Then; block; list(elif); option(elseblk) { parse_elseifs $loc $2 $4 $5 $6 }
-  | Fun; parensl(decl); Arrow_right; block
-    { Lambda($loc, $2, $4) }
-  | callable; parensl(expr) { App($loc, $1, $2) }
-  | expr; Dot; Lowercase_id; Arrow_left; expr { Field_set ($loc, $1, $3, $5) } /* Copying the first part makes checking for mutability easier */
-  | expr; Dot; Lowercase_id { Field ($loc, $1, $3) }
-  | expr; Pipe_head; expr { Pipe_head ($loc, $1, $3) }
-  | expr; Pipe_tail; expr { Pipe_tail ($loc, $1, $3) }
-  | Match; separated_nonempty_list(Comma, expr); With; Begin; nonempty_list(clause); End { Match (($startpos, $endpos($5)), $2, $5) }
-  | Uppercase_id; Dot; module_expr { Local_open ($loc, $1, [Expr ($sloc, $3)]) }
-  | Uppercase_id; Dot; Lpar; nonempty_list(stmt); Rpar { Local_open ($loc, $1, $4) }
+%inline sexp_let:
+  | Val; sexp_decl; block { Let($loc, $2, $3) }
 
-%inline module_expr:
-  | Lowercase_id { Var($loc, $1) }
-  | Lbrac; separated_nonempty_list(Comma, record_item); Rbrac { Record ($loc, $2) }
-  | Lpar; expr; Rpar { $2 }
-  | ctor; option(parenss(expr)) { Ctor ($loc, $1, $2) }
+%inline sexp_decl:
+  | ident { $loc, $1, None }
+  | parenss(sexp_decl_typed) { $1 }
 
-%inline lit:
+%inline sexp_decl_typed:
+  | ident; sexp_type_expr { $loc, $1, Some $2 }
+
+%inline sexp_fun:
+  | Fun; ident; maybe_bracks(list(sexp_decl)); block
+    { Function ($loc, { name = $2; params = $3; return_annot = None; body = $4 }) }
+
+sexp_expr:
+  | ident { Var (fst $1, snd $1) }
+  | maybe_bracs(nonempty_list(sexp_record_item)) { Record ($loc, $1) }
+  | sexp_ctor_inst { $1 }
+  | sexp_lit { $1 }
+  | sexp_binop { $1 }
+  | unop; sexp_expr { Unop ($loc, $1, $2) }
+  | parenss(sexp_if) { $1 }
+  | parenss(sexp_lambda) { $1 }
+  | parenss(sexp_field_set) { $1 }
+  | parenss(sexp_field_get) { $1 }
+  | parenss(sexp_pipe_head) { $1 }
+  | parenss(sexp_pipe_tail) { $1 }
+  | parenss(sexp_call) { $1 }
+  | sexp_module_expr { $1 }
+  | parenss(sexp_match) { $1 }
+
+%inline sexp_record_item:
+  | Name; sexp_expr { $1, $2 }
+  | Name { $1, Var ($loc, $1) }
+
+%inline sexp_ctor_inst:
+  | sexp_ctor { Ctor ($loc, $1, None) }
+  | parenss(sexp_ctor_item) { $1 }
+
+%inline sexp_ctor_item:
+  | sexp_ctor; sexp_expr { Ctor ($loc, $1, Some $2) }
+
+%inline sexp_lit:
   | Int { Lit($loc, Int $1) }
   | U8  { Lit($loc, U8 $1) }
   | bool { Lit($loc, Bool  $1) }
@@ -208,40 +195,71 @@ expr:
   | I32 { Lit($loc, I32 $1) }
   | F32 { Lit($loc, F32 $1) }
   | String_lit { Lit($loc, String $1) }
-  | vector_lit { Lit($loc, Vector $1) }
+  | sexp_vector_lit { Lit($loc, Vector $1) }
   | Lpar; Rpar { Lit($loc, Unit) }
 
-%inline elseblk:
-  | Else; block { $2 }
+%inline sexp_binop:
+  | parenss(sexp_binop_items) { $1 }
 
-%inline elif:
-  | Elseif; expr; Then; block { ($loc, $2, $4) }
+%inline sexp_binop_items:
+  | binop; sexp_expr; nonempty_list(sexp_expr)
+    { make_pairs (fun a b -> Ast.Bop ($loc, $1, a, b)) $2 $3 }
 
-%inline record_item:
-  | Lowercase_id; Equal; expr { $1, $3 }
-  | Lowercase_id { $1, Var($loc, $1) }
+%inline sexp_if:
+  | If; sexp_expr; block; option(block) { If ($loc, $2, $3, $4) }
 
-%inline clause:
-  | pattern; Arrow_right; block { $loc($1), $1, $3 }
+%inline sexp_lambda:
+  | Fun; maybe_bracks(list(sexp_decl)) block
+    { Lambda ($loc, $2, $3) }
 
-%inline pattern:
-  | pattern_item { $1 }
-  | pattern_tuple { $1 }
+%inline sexp_field_set:
+  | Fset; sexp_expr; Accessor; sexp_expr { Field_set ($loc, $2, $3, $4) }
 
-%inline pattern_item:
-  | ctor; option(parenss(pattern)) { Pctor($1, $2) }
-  | Lowercase_id { Pvar($loc, $1) }
+%inline sexp_field_get:
+  | Accessor; sexp_expr { Field ($loc, $2, $1) }
+
+%inline sexp_pipe_head:
+  | Arrow_right; sexp_expr; nonempty_list(sexp_expr)
+    { make_pairs (fun a b -> Ast.Pipe_head ($loc, a, b)) $2 $3 }
+
+%inline sexp_pipe_tail:
+  | Arrow_righter; sexp_expr; nonempty_list(sexp_expr)
+    { make_pairs (fun a b -> Ast.Pipe_tail ($loc, a, b)) $2 $3 }
+
+%inline sexp_call:
+  | sexp_expr { App ($loc, $1, []) }
+  | sexp_expr; sexp_expr { App ($loc, $1, [$2]) }
+  | sexp_expr; nonempty_list(sexp_expr) { App ($loc, $1, $2) }
+  | Builtin_id; list(sexp_expr) { App ($loc, Var($loc, $1), $2) }
+
+%inline sexp_module_expr:
+  | ident; Div_i; block { Local_open ($loc, snd $1, $3) }
+
+%inline sexp_match:
+  | Match; atom_or_list(sexp_expr); nonempty_list(sexp_clause) { Match (($startpos, $endpos($2)), $2, $3) }
+
+%inline sexp_clause:
+  | sexp_pattern; block { $loc($1), $1, $2 }
+
+%inline sexp_pattern:
+  | sexp_pattern_item { $1 }
+  | parenss(sexp_pattern_tuple) { $1 }
+
+%inline sexp_pattern_item:
+  | sexp_ctor { Pctor ($1, None) }
+  | parenss(ctor_pattern_item) { $1 }
+  | ident { Pvar(fst $1, snd $1) }
   | Wildcard { Pwildcard $loc }
 
-%inline pattern_tuple:
-  | pattern_item; Comma; separated_nonempty_list(Comma, pattern_item) { Ptup($loc, $1 :: $3) }
+%inline ctor_pattern_item:
+  | sexp_ctor; sexp_pattern { Pctor ($1, Some $2) }
+
+%inline sexp_pattern_tuple:
+  | sexp_pattern_item; nonempty_list(sexp_pattern_item) { Ptup ($loc, $1 :: $2) }
 
 ident:
   | Lowercase_id { ($loc, $1) }
   | Kebab_id { ($loc, $1) }
-
-ctor:
-  | Uppercase_id { $loc, $1 }
 
 sexp_ctor:
   | Constructor { $loc, $1 }
@@ -278,26 +296,8 @@ bool:
   | Minus_i { Uminus_i }
   | Minus_f { Uminus_f }
 
-%inline decl:
-  | ident; option(type_expr) {$loc, $1, $2 }
-
-%inline callable:
-  | expr { $1 }
-  | Builtin_id { Var($loc, $1) }
-
-vector_lit:
-  | Lbrack; separated_list(Comma, expr); Rbrack { $2 }
-
-%inline return_annot:
-  | Arrow_right; type_list { $2 }
-
-%inline typedef_poly_id:
-  | Lpar; poly_id; Rpar { $2 }
-
-%inline type_expr:
-  | Colon; type_list; Arrow_right; type_list { Ty_func [ $2; $4] }
-  | Colon; Lpar; separated_nonempty_list(Comma, type_func); Rpar; Arrow_right; type_list  { Ty_func ($3 @ [$6]) }
-  | Colon; type_list { $2 }
+sexp_vector_lit:
+  | Lbrack; list(sexp_expr); Rbrack { $2 }
 
 %inline sexp_type_expr:
   | sexp_type_list { $1 }
@@ -308,18 +308,6 @@ vector_lit:
 
 %inline sexp_type_list:
   | build_sexp_type_list { Ty_list $1 }
-
-%inline type_func:
-  | type_list; Arrow_right; type_list { Ty_func [$1; $3] }
-  | Lpar; separated_nonempty_list(Comma, type_list); Rpar; Arrow_right; type_list  { Ty_func ($2 @ [$5]) }
-  | type_list { $1 }
-
-%inline type_list:
-  | build_type_list { Ty_list $1 }
-
-build_type_list:
-  | type_spec; Lpar; build_type_list; Rpar { $1 :: $3 }
-  | type_spec { [$1] }
 
 build_sexp_type_list:
   | Lpar; type_spec; build_sexp_type_list; Rpar { $2 :: $3 }

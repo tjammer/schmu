@@ -43,6 +43,7 @@ let builtin_id = "__" lowercase_id
 let kebab_id = lowercase_alpha (lowercase_alpha|'-')*
 let name = ':'(lowercase_id|kebab_id)
 let constructor = '#'(lowercase_id|kebab_id)
+let accessor = '.'(lowercase_id|kebab_id)
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -63,29 +64,23 @@ rule read =
   | '='      { Equal }
   | "=."     { Bin_equal_f }
   | ','      { Comma }
-  | ':'      { Colon }
-  | '|'      { Bar }
   | "'"      { Quote }
   | "if"     { If }
-  | "then"   { Then }
-  | "else"   { Else }
-  | "elseif" { Elseif }
-  | "external" { External }
   | "fun"    { Fun }
   | "val"    { Val }
-  | "type"   { Type }
-  | "mutable" { Mutable }
   | "match"  { Match }
-  | "with"   { With }
   | "open"   { Open }
-  | "defrecord" { Defrecord }
-  | "defalias"  { Defalias }
-  | "defvariant" { Defvariant }
+  | "record" { Defrecord }
+  | "alias"  { Defalias }
+  | "variant" { Defvariant }
+  | "external"{ Defexternal }
+  | "fset"   { Fset }
   | '_'      { Wildcard }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
   | uppercase_id { Uppercase_id (Lexing.lexeme lexbuf) }
   | kebab_id     { Kebab_id (Lexing.lexeme lexbuf) }
   | name     { Name (name_of_string (Lexing.lexeme lexbuf)) }
+  | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }
   | constructor{ Constructor (name_of_string (Lexing.lexeme lexbuf)) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
@@ -109,9 +104,7 @@ rule read =
   | '['      { Lbrack }
   | ']'      { Rbrack }
   | "->"     { Arrow_right }
-  | "<-"     { Arrow_left }
-  | "|."     { Pipe_head }
-  | "|>"     { Pipe_tail }
+  | "->>"    { Arrow_righter }
   | "--"     { line_comment lexbuf }
   | eof      { Eof }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
