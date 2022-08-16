@@ -63,13 +63,14 @@
 %token Val
 %token Quote
 %token Match
+%token Mutable
 %token Wildcard
 %token Open
 %token Defrecord
 %token Defalias
 %token Defvariant
 %token Defexternal
-%token Fset
+%token Setf
 
 %start <Ast.prog> prog
 
@@ -78,7 +79,7 @@
 prog: prog = list(top_item); Eof { prog }
 
 top_item:
-  | stmt = stmt { Stmt stmt }
+  | block = nonempty_list(stmt) { Block block }
   | decl = external_decl { Ext_decl decl }
   | def = typedef { Typedef ($loc, def) }
   | open_ { Open ($loc, $1) }
@@ -108,6 +109,10 @@ let atom_or_list(x) :=
   | atom = x; { [atom] }
   | list = parenss(nonempty_list(x)); { list }
 
+let atom_or_quoted_list(x) :=
+  | atom = x; { [atom] }
+  | Quote; list = parenss(nonempty_list(x)); { list }
+
 let maybe_bracs(x) :=
   | Lpar; thing = x; Rpar; { thing }
   | Lbrac; thing = x; Rbrac; { thing }
@@ -130,6 +135,7 @@ let maybe_bracks(x) :=
 
 %inline sexp_type_decl:
   | Name; sexp_type_expr { false, $1, $2 }
+  | Name; Lpar; Mutable; sexp_type_expr; Rpar { true, $1, $4 }
 
 %inline open_:
   | parenss(sexp_open) { $1 }
@@ -213,7 +219,7 @@ sexp_expr:
     { Lambda ($loc, $2, $3) }
 
 %inline sexp_field_set:
-  | Fset; sexp_expr; Accessor; sexp_expr { Field_set ($loc, $2, $3, $4) }
+  | Setf; sexp_expr; Accessor; sexp_expr { Field_set ($loc, $2, $3, $4) }
 
 %inline sexp_field_get:
   | Accessor; sexp_expr { Field ($loc, $2, $1) }
@@ -236,7 +242,7 @@ sexp_expr:
   | ident; Div_i; block { Local_open ($loc, snd $1, $3) }
 
 %inline sexp_match:
-  | Match; atom_or_list(sexp_expr); nonempty_list(sexp_clause) { Match (($startpos, $endpos($2)), $2, $3) }
+  | Match; atom_or_quoted_list(sexp_expr); nonempty_list(sexp_clause) { Match (($startpos, $endpos($2)), $2, $3) }
 
 %inline sexp_clause:
   | sexp_pattern; block { $loc($1), $1, $2 }
