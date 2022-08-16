@@ -57,7 +57,7 @@ let test_func_1st_stay_general () =
 let test_func_recursive_if () =
   test "int -> unit"
     "external ext : unit -> unit fun foo(i) = if i < 2 then ext() else \
-     foo(i-1) foo"
+     foo(i - 1) foo"
 
 let test_func_generic_return () =
   test "int" "fun apply(f, x) = f(x) fun add1(x) = x + 1 apply(add1, 1)"
@@ -116,7 +116,7 @@ let test_record_field_no_record () =
 
 let test_record_field_wrong_record () =
   test_exn "Application: Expected type t1 -> int but got type t2 -> 'a"
-    "type t1 = {x : int} type t2 = {y:int} fun foo(a) = a.x val b = {y = 10} \
+    "type t1 = {x : int} type t2 = {y : int} fun foo(a) = a.x val b = {y = 10} \
      foo(b)"
 
 let test_annot_concrete () = test "int -> bool" "fun foo(x) -> bool = x < 3 foo"
