@@ -68,13 +68,14 @@ rule read =
   | "if"     { If }
   | "fun"    { Fun }
   | "val"    { Val }
+  | "mutable" { Mutable }
   | "match"  { Match }
   | "open"   { Open }
   | "record" { Defrecord }
   | "alias"  { Defalias }
   | "variant" { Defvariant }
   | "external"{ Defexternal }
-  | "fset"   { Fset }
+  | "setf"   { Setf }
   | '_'      { Wildcard }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
   | uppercase_id { Uppercase_id (Lexing.lexeme lexbuf) }

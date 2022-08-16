@@ -382,7 +382,7 @@ module Make (C : Core) = struct
     | None, Some _ ->
         let msg =
           Printf.sprintf
-            "The constructor %s expects 0 arguments, but an argument is \
+            "The constructor #%s expects 0 arguments, but an argument is \
              provided"
             (snd name)
         in
@@ -390,7 +390,7 @@ module Make (C : Core) = struct
     | Some _, None ->
         let msg =
           Printf.sprintf
-            "The constructor %s expects arguments, but none are provided"
+            "The constructor #%s expects arguments, but none are provided"
             (snd name)
         in
         raise (Error (fst name, msg))
@@ -448,7 +448,7 @@ module Make (C : Core) = struct
      | Ok () -> ()
      | Error (_, cases) ->
          let msg =
-           Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
+           Printf.sprintf "Pattern match is not exhaustive. Missing cases: #%s"
              (String.concat " | " cases)
          in
          raise (Error (loc, msg)));
