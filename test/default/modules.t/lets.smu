@@ -1,11 +1,11 @@
-val a = 12
+(val a 12)
 
-external printf : (cstr, int) -> unit
+(external printf (fun cstr int unit))
 
-fun generate_b() = 21
+(fun generate_b [] 21)
 
-val b = generate_b()
+(val b (generate_b))
 
-val a = 11
+(val a 11)
 
 -- printf("hello from Lets\n".cstr, 0)

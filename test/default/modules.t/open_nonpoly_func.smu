@@ -1,9 +1,11 @@
-open Nonpoly_func
+(open nonpoly_func)
 
-external printf : (cstr, int) -> unit
+(external printf (fun cstr int unit))
 
-fun do(a) = match a with
-  Left -> add_ints(0, 5)
-  Right -> add_ints(0, -5)
+(fun doo [a]
+  (match a
+   #left (add_ints 0 5)
+   #right (add_ints 0 -5)))
 
-do(Left)  |> printf("%i\n".cstr)
+(->> (doo #left)
+     (printf (.cstr "%i\n")))

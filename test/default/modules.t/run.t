@@ -1,8 +1,8 @@
 Simplest module with 1 type and 1 nonpolymorphic function
   $ schmu nonpoly_func.smu -m --dump-llvm
-  nonpoly_func.smu:5:7: warning: Unused binding c
-  5 |   val c = 10
-            ^
+  nonpoly_func.smu:4:8: warning: Unused binding c
+  4 |   (val c 10)
+             ^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -16,7 +16,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %add
   }
   $ cat nonpoly_func.smi
-  ((5:Mtype(8:Tvariant()6:either(((5:cname4:Left)(4:ctyp())(5:index1:0))((5:cname5:Right)(4:ctyp())(5:index1:1)))))(4:Mfun(4:Tfun(4:Tint4:Tint)4:Tint6:Simple)8:add_ints))
+  ((5:Mtype(8:Tvariant()6:either(((5:cname4:left)(4:ctyp())(5:index1:0))((5:cname5:right)(4:ctyp())(5:index1:1)))))(4:Mfun(4:Tfun(4:Tint4:Tint)4:Tint6:Simple)8:add_ints))
 
   $ schmu nonpoly_func.o open_nonpoly_func.smu --dump-llvm && ./open_nonpoly_func
   ; ModuleID = 'context'
@@ -32,7 +32,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define i64 @schmu_do(i32 %0) {
+  define i64 @schmu_doo(i32 %0) {
   entry:
     %box = alloca i32, align 4
     store i32 %0, i32* %box, align 4
@@ -58,7 +58,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %either = alloca %either, align 8
     %tag3 = bitcast %either* %either to i32*
     store i32 0, i32* %tag3, align 4
-    %0 = tail call i64 @schmu_do(i32 0)
+    %0 = tail call i64 @schmu_doo(i32 0)
     tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %0)
     ret i64 0
   }
@@ -78,7 +78,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare i64 @schmu_add_ints(i64 %0, i64 %1)
   
-  define i64 @schmu_do(i32 %0) {
+  define i64 @schmu_doo(i32 %0) {
   entry:
     %box = alloca i32, align 4
     store i32 %0, i32* %box, align 4
@@ -104,7 +104,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %either = alloca %either, align 8
     %tag3 = bitcast %either* %either to i32*
     store i32 0, i32* %tag3, align 4
-    %0 = tail call i64 @schmu_do(i32 0)
+    %0 = tail call i64 @schmu_doo(i32 0)
     tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %0)
     ret i64 0
   }
@@ -230,7 +230,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   $ cat poly_func.smi
-  ((9:Mpoly_fun((7:nparams(5:thing))(4:body((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(4:Link(8:Tvariant((4:Tvar(4:Link(4:Tvar(7:Unbound2:501:2)))))6:option(((5:cname4:Some)(4:ctyp((4:Tvar(4:Link(4:Tvar(7:Unbound2:501:2))))))(5:index1:0))((5:cname4:None)(4:ctyp())(5:index1:1)))))))(4:expr(3:Var5:thing))(4:attr((5:const5:false)(6:global5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(2:If((3:typ5:Tbool)(4:expr(3:Bop7:Equal_i((3:typ4:Ti32)(4:expr(13:Variant_index((3:typ(8:Tvariant((4:Tvar(4:Link(4:Tvar(7:Unbound2:501:2)))))6:option(((5:cname4:Some)(4:ctyp((4:Tvar(4:Link(4:Tvar(7:Unbound2:501:2))))))(5:index1:0))((5:cname4:None)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Ti32)(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(4:Link(4:Tvar(7:Unbound2:501:2)))))(4:expr(12:Variant_data((3:typ(8:Tvariant((4:Tvar(4:Link(4:Tvar(7:Unbound2:501:2)))))6:option(((5:cname4:Some)(4:ctyp((4:Tvar(4:Link(4:Tvar(7:Unbound2:501:2))))))(5:index1:0))((5:cname4:None)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const4:true)(6:global5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(3:Let7:__expr0()((3:typ(8:Tvariant((4:Tvar(7:Unbound2:501:2)))6:option(((5:cname4:Some)(4:ctyp((4:Tvar(7:Unbound2:501:2))))(5:index1:0))((5:cname4:None)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false)))))(4:func((7:tparams((8:Tvariant((4:Qvar2:50))6:option(((5:cname4:Some)(4:ctyp((4:Qvar2:50)))(5:index1:0))((5:cname4:None)(4:ctyp())(5:index1:1))))))(3:ret4:Tint)(4:kind6:Simple))))8:classify))
+  ((9:Mpoly_fun((7:nparams(5:thing))(4:body((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(4:Link(8:Tvariant((4:Tvar(4:Link(4:Tvar(7:Unbound2:371:2)))))6:option(((5:cname4:some)(4:ctyp((4:Tvar(4:Link(4:Tvar(7:Unbound2:371:2))))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))))(4:expr(3:Var5:thing))(4:attr((5:const5:false)(6:global5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(2:If((3:typ5:Tbool)(4:expr(3:Bop7:Equal_i((3:typ4:Ti32)(4:expr(13:Variant_index((3:typ(8:Tvariant((4:Tvar(4:Link(4:Tvar(7:Unbound2:371:2)))))6:option(((5:cname4:some)(4:ctyp((4:Tvar(4:Link(4:Tvar(7:Unbound2:371:2))))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Ti32)(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(4:Link(4:Tvar(7:Unbound2:371:2)))))(4:expr(12:Variant_data((3:typ(8:Tvariant((4:Tvar(4:Link(4:Tvar(7:Unbound2:371:2)))))6:option(((5:cname4:some)(4:ctyp((4:Tvar(4:Link(4:Tvar(7:Unbound2:371:2))))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const4:true)(6:global5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(3:Let7:__expr0()((3:typ(8:Tvariant((4:Tvar(7:Unbound2:371:2)))6:option(((5:cname4:some)(4:ctyp((4:Tvar(7:Unbound2:371:2))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false)))))(4:func((7:tparams((8:Tvariant((4:Qvar2:37))6:option(((5:cname4:some)(4:ctyp((4:Qvar2:37)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1))))))(3:ret4:Tint)(4:kind6:Simple))))8:classify))
 
   $ schmu poly_func.o open_poly_func.smu --dump-llvm && ./open_poly_func
   ; ModuleID = 'context'
@@ -461,9 +461,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @free(i8* %0)
   $ schmu malloc_some.o use_malloc_some.smu --dump-llvm && ./use_malloc_some
-  use_malloc_some.smu:3:5: warning: Unused binding do_something
-  3 | fun do_something(big) = big.a + 1
-          ^^^^^^^^^^^^
+  use_malloc_some.smu:3:6: warning: Unused binding do_something
+  3 | (fun do_something [big] (+ (.a big) 1))
+           ^^^^^^^^^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"

@@ -1,6 +1,9 @@
-external printf : (cstr, int) -> unit
+(external printf (fun cstr int unit))
 
-Poly_func.classify(Some(3)) |> printf("%i\n".cstr)
-Poly_func.classify(Some(3.0)) |> printf("%i\n".cstr)
-val none : option(float) = None
-Poly_func.(classify(none) |> printf("%i\n".cstr))
+(->> (poly_func/classify (#some 3))
+    (printf (.cstr "%i\n")))
+(->> (poly_func/classify (#some 3.0))
+    (printf (.cstr "%i\n")))
+(val (none (option float)) #none)
+poly_func/(->> (classify none)
+              (printf (.cstr "%i\n")))

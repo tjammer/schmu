@@ -315,11 +315,11 @@ let test_variants_option_annot () =
 
 let test_variants_option_none_arg () =
   test_exn
-    "The constructor #none expects 0 arguments, but an argument is provided"
+    "The constructor none expects 0 arguments, but an argument is provided"
     "(variant (option 'a) (#none (#some 'a))) (#none 1)"
 
 let test_variants_option_some_arg () =
-  test_exn "The constructor #some expects arguments, but none are provided"
+  test_exn "The constructor some expects arguments, but none are provided"
     "(variant (option 'a) (#none (#some 'a))) #some"
 
 let test_match_all () =
@@ -332,12 +332,12 @@ let test_match_redundant () =
     "(variant (option 'a) (#none (#some 'a))) (match (#some 1) a a #none -1)"
 
 let test_match_missing () =
-  test_exn "Pattern match is not exhaustive. Missing cases: #some"
+  test_exn "Pattern match is not exhaustive. Missing cases: some"
     "(variant (option 'a) (#none (#some 'a))) (match (#some 1) #none -1)"
 
 let test_match_missing_nested () =
   test_exn
-    "Pattern match is not exhaustive. Missing cases: #some(int) | some(non)"
+    "Pattern match is not exhaustive. Missing cases: some(int) | some(non)"
     {|(variant (option 'a) (#none (#some 'a)))
     (variant test ((#float float) (#int int) #non))
     (match #none

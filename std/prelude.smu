@@ -1,46 +1,44 @@
-type ptr('a) = { ptr : raw_ptr('a), length : int }
-type owned_ptr('a) = { mutable optr : raw_ptr('a), mutable length : int }
-type cstr = raw_ptr(u8)
-type string = { cstr : cstr, length : int }
+(record (ptr 'a) { :ptr (raw_ptr 'a) :length int })
 
-type vector('a) = {
-  ptr : owned_ptr('a),
-  mutable capacity : int
-}
+(record (owned_ptr 'a) { :optr (mutable (raw_ptr 'a)) :length (mutable int) })
+
+(alias cstr (raw_ptr u8))
+
+(record string { :cstr cstr :length int })
+
+(record (vector 'a) {:ptr (owned_ptr 'a) :capacity (mutable int)})
 
 -- vector functions
-fun vector_init(capacity) =
-  -- __malloc is a builtin, the compiler will free once the ptr
-  -- drops out of scope.
-  val optr = __malloc(capacity)
-  { ptr = { optr, length = 0 }, capacity }
+(fun vector_init [capacity]
+  (val optr (__malloc capacity))
+  {:ptr {:optr :length 0} :capacity})
 
-fun vector_push(vec, v) =
-  if vec.ptr.length = vec.capacity then
-    val cap = vec.capacity * 2
-    vec.ptr.optr <- __realloc(vec.ptr.optr, cap)
-    vec.capacity <- cap
-  __unsafe_ptr_set(vec.ptr.optr, vec.ptr.length, v)
-  vec.ptr.length <- vec.ptr.length + 1
+(fun vector_push [vec v]
+  (if (= (.length (.ptr vec)) (.capacity vec))
+    (do
+      (val cap (* (.capacity vec) 2))
+      (setf (.ptr vec) .optr (__realloc (.optr (.ptr vec)) cap))
+      (setf vec .capacity cap)))
+      (__unsafe_ptr_set (.optr (.ptr vec)) (.length (.ptr vec)) v)
+      (setf (.ptr vec) .length (+ (.length (.ptr vec)) 1)))
 
-fun vector_iter(vec, f) =
-  fun inner(i) =
-    if i = vec.ptr.length then
+(fun vector_iter [vec f]
+  (fun inner [i]
+    (if (= i (.length (.ptr vec)))
       ()
-    else
-      f(__unsafe_ptr_get(vec.ptr.optr, i))
-      inner(i+1)
+      (do
+      (f (__unsafe_ptr_get (.optr (.ptr vec)) i))
+        (inner (+ i 1)))))
+  (inner 0))
 
-  inner(0)
+-- fun vector_fold(vec, f, init) =
+--   fun inner(i, acc) =
+--     if i = vec.ptr.length then
+--       acc
+--     else
+--       val acc = f(acc, __unsafe_ptr_get(vec.ptr.optr, i))
+--       inner(i+1, acc)
 
-fun vector_fold(vec, f, init) =
-  fun inner(i, acc) =
-    if i = vec.ptr.length then
-      acc
-    else
-      val acc = f(acc, __unsafe_ptr_get(vec.ptr.optr, i))
-      inner(i+1, acc)
+--   inner(0, init)
 
-  inner(0, init)
-
-type option('a) = Some('a) | None
+(variant (option 'a) ((#some 'a) #none))

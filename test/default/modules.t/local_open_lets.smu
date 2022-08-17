@@ -1,7 +1,6 @@
-Lets.printf("%i\n".cstr, Lets.a)
-Lets.(printf("%i\n".cstr, b))
+(lets/printf (.cstr "%i\n") lets/a)
+lets/(printf (.cstr "%i\n") b)
 
-Lets.(
-  printf("%i\n".cstr, a)
-  printf("%i\n".cstr, b)
-)
+lets/(do
+  (printf (.cstr "%i\n") a)
+  (printf (.cstr "%i\n") b))

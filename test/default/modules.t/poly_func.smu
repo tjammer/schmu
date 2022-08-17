@@ -1,3 +1,4 @@
-fun classify(thing) = match thing with
-  Some(_) -> 0
-  None -> 1
+(fun classify [thing]
+  (match thing
+    (#some _) 0
+    #none 1))

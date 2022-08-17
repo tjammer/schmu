@@ -1,6 +1,5 @@
-type either = Left | Right
+(variant either (#left #right))
 
-fun add_ints(a, b) =
-  -- add unused for to generate warning here
-  val c = 10
-  a + b
+(fun add_ints [a b]
+  (val c 10)
+  (+ a b))

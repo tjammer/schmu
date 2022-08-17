@@ -1,11 +1,9 @@
-type big = { a : int, b : float, c : int, d : int }
+(record big { :a int :b float :c int :d int })
 
-fun do_something(big) = big.a + 1
+(fun do_something [big] (+ (.a big) 1))
 
--- do_something({a = 10, b = 12.0, c = 12, d = 13})
+(external printf (fun cstr int unit))
 
-external printf : (cstr, int) -> unit
+(fun printi [i] (printf (.cstr "%i\n") i))
 
-fun printi(i) = printf("%i\n".cstr, i)
-
-vector_iter(Malloc_some.vtest, printi)
+(vector_iter malloc_some/vtest printi)

@@ -1,9 +1,10 @@
-external printf : (cstr, int) -> unit
+(external printf (fun cstr int unit))
 
-fun do(a) = Nonpoly_func.(match a with
-  -- TODO open modules for patterns
-  Left -> add_ints(0, 5)
-  Right -> add_ints(0, -5)
-)
+(fun doo [a]
+-- TODO open modules for patterns
+   nonpoly_func/(match a
+    #left  (add_ints 0 5)
+    #right (add_ints 0 -5)))
 
-do(Nonpoly_func.Left)  |> printf("%i\n".cstr)
+(->> (doo nonpoly_func/#left)
+     (printf (.cstr "%i\n")))
