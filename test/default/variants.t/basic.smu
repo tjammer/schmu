@@ -1,16 +1,16 @@
-Some(1) |. ignore
+(ignore (#some 1))
 
-type foo = { x : float, y : float }
-type larger = One | Two(foo) | Three(int)
+(record foo {:x float :y float})
+(variant larger (#one (#two foo) (#three int)))
 
-Three(3) |. ignore
+(ignore (#three 3))
 
-type clike = A | B | C | D | E
+(variant clike (#a #b #c #d #e))
 
-C |. ignore
+(ignore #c)
 
-fun wrap_clike() = C
+(fun wrap_clike [] #c)
 
-fun wrap_option() = Some("hello")
+(fun wrap_option [] (#some "hello"))
 
 0

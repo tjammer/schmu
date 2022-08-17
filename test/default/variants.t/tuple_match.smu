@@ -1,16 +1,16 @@
-external printf : (cstr, int) -> unit
+(external printf (fun cstr int unit))
 
-fun do(a, b) =
-  match a, b with
-    Some(a), Some(b) -> a + b
-    None, Some(b) -> b
-    Some(a), None -> a
-    _, None -> 0
-  |> printf("%i\n".cstr)
+(fun doo [a b]
+  (->> (match '(a b)
+           '((#some a) (#some b)) (+ a b)
+           '(#none (#some b)) b
+           '((#some a) #none) a
+           '(_ #none) 0)
+        (printf (.cstr "%i\n"))))
 
-val none_int : option(int) = None
+(val (none_int (option int)) #none)
 
-do(Some(1), Some(2))
-do(none_int, Some(2))
-do(Some(1), None)
-do(none_int, None)
+(doo (#some 1) (#some 2))
+(doo none_int (#some 2))
+(doo (#some 1) #none)
+(doo none_int #none)

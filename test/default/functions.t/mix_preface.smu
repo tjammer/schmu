@@ -1,11 +1,11 @@
-type first = { a : int }
-external dummy_call : unit -> first
+(record first { :a int })
+(external dummy_call (fun unit first))
 
-ignore(dummy_call)
+(ignore dummy_call)
 
-type second = { a : int }
-external print_2nd : second -> unit
+(record second { :a int })
+(external print-2nd (second unit))
 
-ignore(print_2nd)
+(ignore print-2nd)
 
 0

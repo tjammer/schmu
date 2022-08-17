@@ -1,12 +1,12 @@
 Basic variant ctors
   $ schmu basic.smu --dump-llvm
-  basic.smu:12:5: warning: Unused binding wrap_clike
-  12 | fun wrap_clike() = C
-           ^^^^^^^^^^
+  basic.smu:12:6: warning: Unused binding wrap_clike
+  12 | (fun wrap_clike [] #c)
+            ^^^^^^^^^^
   
-  basic.smu:14:5: warning: Unused binding wrap_option
-  14 | fun wrap_option() = Some("hello")
-           ^^^^^^^^^^^
+  basic.smu:14:6: warning: Unused binding wrap_option
+  14 | (fun wrap_option [] (#some "hello"))
+            ^^^^^^^^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -253,7 +253,7 @@ Nested pattern matching
   
   declare void @printf(i8* %0, i64 %1)
   
-  define i64 @schmu_do(%option_test* %m) {
+  define i64 @schmu_doo(%option_test* %m) {
   entry:
     %tag17 = bitcast %option_test* %m to i32*
     %index = load i32, i32* %tag17, align 4
@@ -276,7 +276,7 @@ Nested pattern matching
     br label %ifcont15
   
   else:                                             ; preds = %then
-    %eq8 = icmp eq i32 %index2, 42
+    %eq8 = icmp eq i32 %index2, 1
     br i1 %eq8, label %then9, label %ifcont15
   
   then9:                                            ; preds = %else
@@ -306,7 +306,7 @@ Nested pattern matching
     store i32 0, i32* %tag126, align 4
     %data2 = getelementptr inbounds %test, %test* %data, i32 0, i32 1
     store double 3.000000e+00, double* %data2, align 8
-    %0 = call i64 @schmu_do(%option_test* %option)
+    %0 = call i64 @schmu_doo(%option_test* %option)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %0)
     %str3 = alloca %string, align 8
     %cstr427 = bitcast %string* %str3 to i8**
@@ -318,11 +318,11 @@ Nested pattern matching
     store i32 0, i32* %tag728, align 4
     %data8 = getelementptr inbounds %option_test, %option_test* %option6, i32 0, i32 1
     %tag929 = bitcast %test* %data8 to i32*
-    store i32 42, i32* %tag929, align 4
+    store i32 1, i32* %tag929, align 4
     %data10 = getelementptr inbounds %test, %test* %data8, i32 0, i32 1
     %1 = bitcast double* %data10 to i64*
     store i64 2, i64* %1, align 4
-    %2 = call i64 @schmu_do(%option_test* %option6)
+    %2 = call i64 @schmu_doo(%option_test* %option6)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %2)
     %str12 = alloca %string, align 8
     %cstr1330 = bitcast %string* %str12 to i8**
@@ -334,8 +334,8 @@ Nested pattern matching
     store i32 0, i32* %tag1631, align 4
     %data17 = getelementptr inbounds %option_test, %option_test* %option15, i32 0, i32 1
     %tag1832 = bitcast %test* %data17 to i32*
-    store i32 1, i32* %tag1832, align 4
-    %3 = call i64 @schmu_do(%option_test* %option15)
+    store i32 2, i32* %tag1832, align 4
+    %3 = call i64 @schmu_doo(%option_test* %option15)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %3)
     %str19 = alloca %string, align 8
     %cstr2033 = bitcast %string* %str19 to i8**
@@ -345,7 +345,7 @@ Nested pattern matching
     %option22 = alloca %option_test, align 8
     %tag2334 = bitcast %option_test* %option22 to i32*
     store i32 1, i32* %tag2334, align 4
-    %4 = call i64 @schmu_do(%option_test* %option22)
+    %4 = call i64 @schmu_doo(%option_test* %option22)
     call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %4)
     ret i64 0
   }
@@ -368,7 +368,7 @@ Match multiple columns
   
   declare void @printf(i8* %0, i64 %1)
   
-  define void @schmu_do(%option_int* %a, %option_int* %b) {
+  define void @schmu_doo(%option_int* %a, %option_int* %b) {
   entry:
     %str = alloca %string, align 8
     %cstr17 = bitcast %string* %str to i8**
@@ -424,13 +424,13 @@ Match multiple columns
     store i32 0, i32* %tag215, align 4
     %data3 = getelementptr inbounds %option_int, %option_int* %option1, i32 0, i32 1
     store i64 2, i64* %data3, align 4
-    call void @schmu_do(%option_int* %option, %option_int* %option1)
+    call void @schmu_doo(%option_int* %option, %option_int* %option1)
     %option4 = alloca %option_int, align 8
     %tag516 = bitcast %option_int* %option4 to i32*
     store i32 0, i32* %tag516, align 4
     %data6 = getelementptr inbounds %option_int, %option_int* %option4, i32 0, i32 1
     store i64 2, i64* %data6, align 4
-    call void @schmu_do(%option_int* @none_int, %option_int* %option4)
+    call void @schmu_doo(%option_int* @none_int, %option_int* %option4)
     %option7 = alloca %option_int, align 8
     %tag817 = bitcast %option_int* %option7 to i32*
     store i32 0, i32* %tag817, align 4
@@ -439,11 +439,11 @@ Match multiple columns
     %option10 = alloca %option_int, align 8
     %tag1118 = bitcast %option_int* %option10 to i32*
     store i32 1, i32* %tag1118, align 4
-    call void @schmu_do(%option_int* %option7, %option_int* %option10)
+    call void @schmu_doo(%option_int* %option7, %option_int* %option10)
     %option12 = alloca %option_int, align 8
     %tag1319 = bitcast %option_int* %option12 to i32*
     store i32 1, i32* %tag1319, align 4
-    call void @schmu_do(%option_int* @none_int, %option_int* %option12)
+    call void @schmu_doo(%option_int* @none_int, %option_int* %option12)
     ret i64 0
   }
   3
@@ -452,8 +452,8 @@ Match multiple columns
   0
 
   $ schmu custom_tag_reuse.smu
-  custom_tag_reuse.smu:1:25: error: Tag 1 already used for constructor A
-  1 | type tags = A : 1 | B | C : 1
-                              ^
+  custom_tag_reuse.smu:1:27: error: Tag 1 already used for constructor a
+  1 | (variant tags ((#a 1) #b (#c 1)))
+                                ^^
   
   [1]
