@@ -250,7 +250,7 @@ sexp_expr:
 
 %inline sexp_pattern:
   | sexp_pattern_item { $1 }
-  | parenss(sexp_pattern_tuple) { $1 }
+  | Quote; Lpar; tup = sexp_pattern_tuple; Rpar { tup }
 
 %inline sexp_pattern_item:
   | sexp_ctor { Pctor ($1, None) }

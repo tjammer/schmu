@@ -14,7 +14,7 @@ prog: Minus_i Wildcard
 ##
 ## Ends in an error in state: 4.
 ##
-## sexp_expr -> Minus_i . sexp_expr [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## sexp_expr -> Minus_i . sexp_expr [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Minus_i
@@ -26,7 +26,7 @@ prog: Minus_f Wildcard
 ##
 ## Ends in an error in state: 5.
 ##
-## sexp_expr -> Minus_f . sexp_expr [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## sexp_expr -> Minus_f . sexp_expr [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Minus_f
@@ -38,36 +38,36 @@ prog: Lbrack Lpar Wildcard
 ##
 ## Ends in an error in state: 6.
 ##
-## maybe_bracs(nonempty_list(sexp_record_item)) -> Lpar . nonempty_list(sexp_record_item) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Plus_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Minus_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Mult_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Div_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Less_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Greater_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Equal sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Plus_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Minus_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Mult_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Div_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Less_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Greater_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Bin_equal_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . And sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Or sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar . sexp_expr sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar . Builtin_id list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_ctor_item) -> Lpar . sexp_ctor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_field_get) -> Lpar . Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_field_set) -> Lpar . Setf sexp_expr Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_if) -> Lpar . If sexp_expr block option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_lambda) -> Lpar . Fun maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_match) -> Lpar . Match atom_or_quoted_list(sexp_expr) nonempty_list(sexp_clause) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_pipe_head) -> Lpar . Arrow_right sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_pipe_tail) -> Lpar . Arrow_righter sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## sexp_expr -> Lpar . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## maybe_bracs(nonempty_list(sexp_record_item)) -> Lpar . nonempty_list(sexp_record_item) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Plus_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Minus_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Mult_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Div_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Less_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Greater_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Equal sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Plus_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Minus_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Mult_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Div_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Less_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Greater_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Bin_equal_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . And sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Or sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar . sexp_expr sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar . Builtin_id list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_ctor_item) -> Lpar . sexp_ctor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_get) -> Lpar . Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_set) -> Lpar . Setf sexp_expr Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_if) -> Lpar . If sexp_expr block option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_lambda) -> Lpar . Fun maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_match) -> Lpar . Match atom_or_quoted_list(sexp_expr) nonempty_list(sexp_clause) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_pipe_head) -> Lpar . Arrow_right sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_pipe_tail) -> Lpar . Arrow_righter sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## sexp_expr -> Lpar . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar
@@ -79,7 +79,7 @@ prog: Lpar Setf Wildcard
 ##
 ## Ends in an error in state: 7.
 ##
-## parenss(sexp_field_set) -> Lpar Setf . sexp_expr Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_set) -> Lpar Setf . sexp_expr Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Setf
@@ -91,7 +91,7 @@ prog: Lbrack Wildcard
 ##
 ## Ends in an error in state: 9.
 ##
-## sexp_vector_lit -> Lbrack . list(sexp_expr) Rbrack [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## sexp_vector_lit -> Lbrack . list(sexp_expr) Rbrack [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lbrack
@@ -103,7 +103,7 @@ prog: Lbrac Wildcard
 ##
 ## Ends in an error in state: 10.
 ##
-## maybe_bracs(nonempty_list(sexp_record_item)) -> Lbrac . nonempty_list(sexp_record_item) Rbrac [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## maybe_bracs(nonempty_list(sexp_record_item)) -> Lbrac . nonempty_list(sexp_record_item) Rbrac [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lbrac
@@ -143,8 +143,8 @@ prog: Kebab_id Val
 ##
 ## Ends in an error in state: 35.
 ##
-## sexp_expr -> ident . [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## sexp_expr -> ident . Div_i block [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## sexp_expr -> ident . [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## sexp_expr -> ident . Div_i block [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## ident
@@ -156,7 +156,7 @@ prog: Kebab_id Div_i Wildcard
 ##
 ## Ends in an error in state: 36.
 ##
-## sexp_expr -> ident Div_i . block [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## sexp_expr -> ident Div_i . block [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## ident Div_i
@@ -168,40 +168,40 @@ prog: Kebab_id Div_i Lpar Wildcard
 ##
 ## Ends in an error in state: 37.
 ##
-## block -> Lpar . Do nonempty_list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## maybe_bracs(nonempty_list(sexp_record_item)) -> Lpar . nonempty_list(sexp_record_item) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Plus_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Minus_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Mult_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Div_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Less_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Greater_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Equal sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Plus_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Minus_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Mult_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Div_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Less_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Greater_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Bin_equal_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . And sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_binop_items) -> Lpar . Or sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar . sexp_expr sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar . Builtin_id list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_ctor_item) -> Lpar . sexp_ctor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_field_get) -> Lpar . Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_field_set) -> Lpar . Setf sexp_expr Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_fun) -> Lpar . Fun ident maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_if) -> Lpar . If sexp_expr block option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_lambda) -> Lpar . Fun maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_let) -> Lpar . Val ident block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_let) -> Lpar . Val parenss(sexp_decl_typed) block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_match) -> Lpar . Match atom_or_quoted_list(sexp_expr) nonempty_list(sexp_clause) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_pipe_head) -> Lpar . Arrow_right sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_pipe_tail) -> Lpar . Arrow_righter sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## sexp_expr -> Lpar . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## block -> Lpar . Do nonempty_list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## maybe_bracs(nonempty_list(sexp_record_item)) -> Lpar . nonempty_list(sexp_record_item) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Plus_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Minus_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Mult_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Div_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Less_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Greater_i sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Equal sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Plus_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Minus_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Mult_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Div_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Less_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Greater_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Bin_equal_f sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . And sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar . Or sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar . sexp_expr sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar . Builtin_id list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_ctor_item) -> Lpar . sexp_ctor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_get) -> Lpar . Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_set) -> Lpar . Setf sexp_expr Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_fun) -> Lpar . Fun ident maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_if) -> Lpar . If sexp_expr block option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_lambda) -> Lpar . Fun maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_let) -> Lpar . Val ident block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_let) -> Lpar . Val parenss(sexp_decl_typed) block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_match) -> Lpar . Match atom_or_quoted_list(sexp_expr) nonempty_list(sexp_clause) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_pipe_head) -> Lpar . Arrow_right sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_pipe_tail) -> Lpar . Arrow_righter sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## sexp_expr -> Lpar . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar
@@ -213,8 +213,8 @@ prog: Lpar Val Wildcard
 ##
 ## Ends in an error in state: 38.
 ##
-## parenss(sexp_let) -> Lpar Val . ident block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_let) -> Lpar Val . parenss(sexp_decl_typed) block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_let) -> Lpar Val . ident block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_let) -> Lpar Val . parenss(sexp_decl_typed) block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Val
@@ -399,7 +399,7 @@ prog: Lpar Val Lpar Kebab_id Kebab_id Rpar Wildcard
 ##
 ## Ends in an error in state: 64.
 ##
-## parenss(sexp_let) -> Lpar Val parenss(sexp_decl_typed) . block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_let) -> Lpar Val parenss(sexp_decl_typed) . block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Val parenss(sexp_decl_typed)
@@ -411,7 +411,7 @@ prog: Lpar Val Lpar Kebab_id Kebab_id Rpar False Wildcard
 ##
 ## Ends in an error in state: 70.
 ##
-## parenss(sexp_let) -> Lpar Val parenss(sexp_decl_typed) block . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_let) -> Lpar Val parenss(sexp_decl_typed) block . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Val parenss(sexp_decl_typed) block
@@ -423,7 +423,7 @@ prog: Lpar Val Kebab_id Wildcard
 ##
 ## Ends in an error in state: 72.
 ##
-## parenss(sexp_let) -> Lpar Val ident . block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_let) -> Lpar Val ident . block Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Val ident
@@ -435,7 +435,7 @@ prog: Lpar Val Kebab_id False Wildcard
 ##
 ## Ends in an error in state: 73.
 ##
-## parenss(sexp_let) -> Lpar Val ident block . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_let) -> Lpar Val ident block . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Val ident block
@@ -447,7 +447,7 @@ prog: Lpar Plus_i Wildcard
 ##
 ## Ends in an error in state: 76.
 ##
-## parenss(sexp_binop_items) -> Lpar Plus_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Plus_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Plus_i
@@ -459,7 +459,7 @@ prog: Lpar Plus_i False Wildcard
 ##
 ## Ends in an error in state: 77.
 ##
-## parenss(sexp_binop_items) -> Lpar Plus_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Plus_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Plus_i sexp_expr
@@ -484,7 +484,7 @@ prog: Lpar Plus_f Wildcard
 ##
 ## Ends in an error in state: 82.
 ##
-## parenss(sexp_binop_items) -> Lpar Plus_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Plus_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Plus_f
@@ -496,7 +496,7 @@ prog: Lpar Plus_f False Wildcard
 ##
 ## Ends in an error in state: 83.
 ##
-## parenss(sexp_binop_items) -> Lpar Plus_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Plus_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Plus_f sexp_expr
@@ -508,7 +508,7 @@ prog: Lpar Or Wildcard
 ##
 ## Ends in an error in state: 86.
 ##
-## parenss(sexp_binop_items) -> Lpar Or . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Or . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Or
@@ -520,7 +520,7 @@ prog: Lpar Or False Wildcard
 ##
 ## Ends in an error in state: 87.
 ##
-## parenss(sexp_binop_items) -> Lpar Or sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Or sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Or sexp_expr
@@ -532,7 +532,7 @@ prog: Lpar Mult_i Wildcard
 ##
 ## Ends in an error in state: 90.
 ##
-## parenss(sexp_binop_items) -> Lpar Mult_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Mult_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Mult_i
@@ -544,7 +544,7 @@ prog: Lpar Mult_i False Wildcard
 ##
 ## Ends in an error in state: 91.
 ##
-## parenss(sexp_binop_items) -> Lpar Mult_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Mult_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Mult_i sexp_expr
@@ -556,7 +556,7 @@ prog: Lpar Mult_f Wildcard
 ##
 ## Ends in an error in state: 94.
 ##
-## parenss(sexp_binop_items) -> Lpar Mult_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Mult_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Mult_f
@@ -568,7 +568,7 @@ prog: Lpar Mult_f False Wildcard
 ##
 ## Ends in an error in state: 95.
 ##
-## parenss(sexp_binop_items) -> Lpar Mult_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Mult_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Mult_f sexp_expr
@@ -580,7 +580,7 @@ prog: Lpar Minus_i Wildcard
 ##
 ## Ends in an error in state: 98.
 ##
-## parenss(sexp_binop_items) -> Lpar Minus_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Minus_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ## sexp_expr -> Minus_i . sexp_expr [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
@@ -593,7 +593,7 @@ prog: Lpar Minus_i False Wildcard
 ##
 ## Ends in an error in state: 99.
 ##
-## parenss(sexp_binop_items) -> Lpar Minus_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Minus_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ## sexp_expr -> Minus_i sexp_expr . [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
@@ -606,7 +606,7 @@ prog: Lpar Minus_f Wildcard
 ##
 ## Ends in an error in state: 102.
 ##
-## parenss(sexp_binop_items) -> Lpar Minus_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Minus_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ## sexp_expr -> Minus_f . sexp_expr [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
@@ -619,7 +619,7 @@ prog: Lpar Minus_f False Wildcard
 ##
 ## Ends in an error in state: 103.
 ##
-## parenss(sexp_binop_items) -> Lpar Minus_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Minus_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ## sexp_expr -> Minus_f sexp_expr . [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
@@ -632,7 +632,7 @@ prog: Lpar Match Wildcard
 ##
 ## Ends in an error in state: 106.
 ##
-## parenss(sexp_match) -> Lpar Match . atom_or_quoted_list(sexp_expr) nonempty_list(sexp_clause) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_match) -> Lpar Match . atom_or_quoted_list(sexp_expr) nonempty_list(sexp_clause) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Match
@@ -644,7 +644,7 @@ prog: Lpar Match Quote Wildcard
 ##
 ## Ends in an error in state: 107.
 ##
-## atom_or_quoted_list(sexp_expr) -> Quote . parenss(nonempty_list(sexp_expr)) [ Wildcard Lpar Lowercase_id Kebab_id Constructor ]
+## atom_or_quoted_list(sexp_expr) -> Quote . parenss(nonempty_list(sexp_expr)) [ Wildcard Quote Lpar Lowercase_id Kebab_id Constructor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Quote
@@ -656,7 +656,7 @@ prog: Lpar Match Quote Lpar Wildcard
 ##
 ## Ends in an error in state: 108.
 ##
-## parenss(nonempty_list(sexp_expr)) -> Lpar . nonempty_list(sexp_expr) Rpar [ Wildcard Lpar Lowercase_id Kebab_id Constructor ]
+## parenss(nonempty_list(sexp_expr)) -> Lpar . nonempty_list(sexp_expr) Rpar [ Wildcard Quote Lpar Lowercase_id Kebab_id Constructor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar
@@ -668,7 +668,7 @@ prog: Lpar Match False U8
 ##
 ## Ends in an error in state: 113.
 ##
-## parenss(sexp_match) -> Lpar Match atom_or_quoted_list(sexp_expr) . nonempty_list(sexp_clause) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_match) -> Lpar Match atom_or_quoted_list(sexp_expr) . nonempty_list(sexp_clause) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Match atom_or_quoted_list(sexp_expr)
@@ -702,41 +702,60 @@ prog: Lpar Match False Wildcard False U8
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Val
+prog: Lpar Match False Quote Wildcard
 ##
 ## Ends in an error in state: 116.
 ##
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor sexp_ctor Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor parenss(ctor_pattern_item) Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor ident Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor Wildcard Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor parenss(sexp_pattern_tuple) Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(sexp_pattern_tuple) -> Lpar . sexp_ctor nonempty_list(sexp_pattern_item) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(sexp_pattern_tuple) -> Lpar . parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(sexp_pattern_tuple) -> Lpar . ident nonempty_list(sexp_pattern_item) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(sexp_pattern_tuple) -> Lpar . Wildcard nonempty_list(sexp_pattern_item) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## nonempty_list(sexp_clause) -> Quote . Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote . Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote . Lpar ident nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote . Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote . Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote . Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote . Lpar ident nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote . Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar
+## Quote
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Wildcard Val
+prog: Lpar Match False Quote Lpar Val
 ##
 ## Ends in an error in state: 117.
 ##
-## parenss(sexp_pattern_tuple) -> Lpar Wildcard . nonempty_list(sexp_pattern_item) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## nonempty_list(sexp_clause) -> Quote Lpar . sexp_ctor nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar . parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar . ident nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar . Wildcard nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar . sexp_ctor nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar . parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar . ident nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar . Wildcard nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar Wildcard
+## Quote Lpar
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Kebab_id Wildcard Val
+prog: Lpar Match False Quote Lpar Wildcard Val
 ##
 ## Ends in an error in state: 118.
+##
+## nonempty_list(sexp_clause) -> Quote Lpar Wildcard . nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar Wildcard . nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar Wildcard
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Kebab_id Wildcard Val
+##
+## Ends in an error in state: 119.
 ##
 ## nonempty_list(sexp_pattern_item) -> Wildcard . [ Rpar ]
 ## nonempty_list(sexp_pattern_item) -> Wildcard . nonempty_list(sexp_pattern_item) [ Rpar ]
@@ -747,15 +766,18 @@ prog: Lpar Match False Lpar Kebab_id Wildcard Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Lpar Wildcard
+prog: Lpar Match False Lpar Wildcard
 ##
-## Ends in an error in state: 119.
+## Ends in an error in state: 120.
 ##
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor sexp_ctor Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor parenss(ctor_pattern_item) Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor ident Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor Wildcard Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-## parenss(ctor_pattern_item) -> Lpar . sexp_ctor parenss(sexp_pattern_tuple) Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
+## parenss(ctor_pattern_item) -> Lpar . sexp_ctor sexp_ctor Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar . sexp_ctor parenss(ctor_pattern_item) Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar . sexp_ctor ident Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar . sexp_ctor Wildcard Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar . sexp_ctor Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar . sexp_ctor Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar . sexp_ctor Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar . sexp_ctor Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar
@@ -763,15 +785,18 @@ prog: Lpar Match False Lpar Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Lpar Constructor Val
+prog: Lpar Match False Lpar Constructor Val
 ##
-## Ends in an error in state: 120.
+## Ends in an error in state: 121.
 ##
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . sexp_ctor Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . parenss(ctor_pattern_item) Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . ident Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . Wildcard Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . parenss(sexp_pattern_tuple) Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor . sexp_ctor Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor . parenss(ctor_pattern_item) Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor . ident Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor . Wildcard Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor . Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor . Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor . Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor . Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar sexp_ctor
@@ -779,11 +804,11 @@ prog: Lpar Match False Lpar Lpar Constructor Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Lpar Constructor Wildcard Wildcard
+prog: Lpar Match False Lpar Constructor Wildcard Wildcard
 ##
-## Ends in an error in state: 121.
+## Ends in an error in state: 122.
 ##
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor Wildcard . Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Wildcard . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar sexp_ctor Wildcard
@@ -791,57 +816,51 @@ prog: Lpar Match False Lpar Lpar Constructor Wildcard Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Lpar Constructor Constructor Wildcard
+prog: Lpar Match False Lpar Constructor Quote Wildcard
 ##
-## Ends in an error in state: 123.
+## Ends in an error in state: 124.
 ##
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor sexp_ctor . Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote . Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote . Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote . Lpar ident nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote . Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar sexp_ctor sexp_ctor
+## Lpar sexp_ctor Quote
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Constructor Lpar Kebab_id Kebab_id Rpar Wildcard
+prog: Lpar Match False Lpar Constructor Quote Lpar Val
 ##
 ## Ends in an error in state: 125.
 ##
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor parenss(sexp_pattern_tuple) . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar . sexp_ctor nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar . parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar . ident nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar . Wildcard nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar sexp_ctor parenss(sexp_pattern_tuple)
+## Lpar sexp_ctor Quote Lpar
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Lpar Constructor Lpar Constructor Kebab_id Rpar Wildcard
+prog: Lpar Match False Lpar Constructor Quote Lpar Wildcard Val
+##
+## Ends in an error in state: 126.
+##
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar Wildcard . nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor Quote Lpar Wildcard
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Kebab_id Constructor Val
 ##
 ## Ends in an error in state: 127.
-##
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor parenss(ctor_pattern_item) . Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar sexp_ctor parenss(ctor_pattern_item)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Match False Lpar Lpar Constructor Kebab_id Wildcard
-##
-## Ends in an error in state: 129.
-##
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor ident . Rpar [ Wildcard Rpar Lpar Lowercase_id Kebab_id Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar sexp_ctor ident
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Match False Lpar Kebab_id Constructor Val
-##
-## Ends in an error in state: 131.
 ##
 ## nonempty_list(sexp_pattern_item) -> sexp_ctor . [ Rpar ]
 ## nonempty_list(sexp_pattern_item) -> sexp_ctor . nonempty_list(sexp_pattern_item) [ Rpar ]
@@ -852,9 +871,9 @@ prog: Lpar Match False Lpar Kebab_id Constructor Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Kebab_id Lpar Constructor Kebab_id Rpar Val
+prog: Lpar Match False Quote Lpar Kebab_id Lpar Constructor Kebab_id Rpar Val
 ##
-## Ends in an error in state: 132.
+## Ends in an error in state: 128.
 ##
 ## nonempty_list(sexp_pattern_item) -> parenss(ctor_pattern_item) . [ Rpar ]
 ## nonempty_list(sexp_pattern_item) -> parenss(ctor_pattern_item) . nonempty_list(sexp_pattern_item) [ Rpar ]
@@ -865,9 +884,9 @@ prog: Lpar Match False Lpar Kebab_id Lpar Constructor Kebab_id Rpar Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Kebab_id Kebab_id Val
+prog: Lpar Match False Quote Lpar Kebab_id Kebab_id Val
 ##
-## Ends in an error in state: 134.
+## Ends in an error in state: 130.
 ##
 ## nonempty_list(sexp_pattern_item) -> ident . [ Rpar ]
 ## nonempty_list(sexp_pattern_item) -> ident . nonempty_list(sexp_pattern_item) [ Rpar ]
@@ -878,43 +897,94 @@ prog: Lpar Match False Lpar Kebab_id Kebab_id Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Constructor Val
+prog: Lpar Match False Lpar Constructor Quote Lpar Wildcard Kebab_id Rpar Wildcard
+##
+## Ends in an error in state: 134.
+##
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Lpar Constructor Quote Lpar Constructor Val
+##
+## Ends in an error in state: 136.
+##
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar sexp_ctor . nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor Quote Lpar sexp_ctor
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Lpar Constructor Quote Lpar Constructor Kebab_id Rpar Wildcard
+##
+## Ends in an error in state: 138.
+##
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Lpar Constructor Quote Lpar Lpar Constructor Kebab_id Rpar Val
 ##
 ## Ends in an error in state: 140.
 ##
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . sexp_ctor Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . parenss(ctor_pattern_item) Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . ident Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . Wildcard Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor . parenss(sexp_pattern_tuple) Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-## parenss(sexp_pattern_tuple) -> Lpar sexp_ctor . nonempty_list(sexp_pattern_item) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar parenss(ctor_pattern_item) . nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar sexp_ctor
+## Lpar sexp_ctor Quote Lpar parenss(ctor_pattern_item)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Constructor Wildcard Val
-##
-## Ends in an error in state: 141.
-##
-## nonempty_list(sexp_pattern_item) -> Wildcard . [ Rpar ]
-## nonempty_list(sexp_pattern_item) -> Wildcard . nonempty_list(sexp_pattern_item) [ Rpar ]
-## parenss(ctor_pattern_item) -> Lpar sexp_ctor Wildcard . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar sexp_ctor Wildcard
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Match False Lpar Constructor Constructor Val
+prog: Lpar Match False Lpar Constructor Quote Lpar Lpar Constructor Kebab_id Rpar Kebab_id Rpar Wildcard
 ##
 ## Ends in an error in state: 142.
 ##
-## nonempty_list(sexp_pattern_item) -> sexp_ctor . [ Rpar ]
-## nonempty_list(sexp_pattern_item) -> sexp_ctor . nonempty_list(sexp_pattern_item) [ Rpar ]
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Lpar Constructor Quote Lpar Kebab_id Val
+##
+## Ends in an error in state: 144.
+##
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar ident . nonempty_list(sexp_pattern_item) Rpar Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor Quote Lpar ident
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Lpar Constructor Quote Lpar Kebab_id Kebab_id Rpar Wildcard
+##
+## Ends in an error in state: 146.
+##
+## parenss(ctor_pattern_item) -> Lpar sexp_ctor Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Lpar Constructor Constructor Wildcard
+##
+## Ends in an error in state: 148.
+##
 ## parenss(ctor_pattern_item) -> Lpar sexp_ctor sexp_ctor . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
@@ -923,12 +993,10 @@ prog: Lpar Match False Lpar Constructor Constructor Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Constructor Lpar Constructor Kebab_id Rpar Val
+prog: Lpar Match False Lpar Constructor Lpar Constructor Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 143.
+## Ends in an error in state: 150.
 ##
-## nonempty_list(sexp_pattern_item) -> parenss(ctor_pattern_item) . [ Rpar ]
-## nonempty_list(sexp_pattern_item) -> parenss(ctor_pattern_item) . nonempty_list(sexp_pattern_item) [ Rpar ]
 ## parenss(ctor_pattern_item) -> Lpar sexp_ctor parenss(ctor_pattern_item) . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
@@ -937,12 +1005,10 @@ prog: Lpar Match False Lpar Constructor Lpar Constructor Kebab_id Rpar Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Constructor Kebab_id Val
+prog: Lpar Match False Lpar Constructor Kebab_id Wildcard
 ##
-## Ends in an error in state: 146.
+## Ends in an error in state: 152.
 ##
-## nonempty_list(sexp_pattern_item) -> ident . [ Rpar ]
-## nonempty_list(sexp_pattern_item) -> ident . nonempty_list(sexp_pattern_item) [ Rpar ]
 ## parenss(ctor_pattern_item) -> Lpar sexp_ctor ident . Rpar [ Wildcard U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
@@ -951,33 +1017,35 @@ prog: Lpar Match False Lpar Constructor Kebab_id Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Lpar Constructor Kebab_id Rpar Val
+prog: Lpar Match False Quote Lpar Wildcard Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 147.
+## Ends in an error in state: 156.
 ##
-## parenss(sexp_pattern_tuple) -> Lpar parenss(ctor_pattern_item) . nonempty_list(sexp_pattern_item) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## nonempty_list(sexp_clause) -> Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar . block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar . block nonempty_list(sexp_clause) [ Rpar ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar parenss(ctor_pattern_item)
+## Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Kebab_id Val
+prog: Lpar Match False Quote Lpar Wildcard Kebab_id Rpar False U8
 ##
-## Ends in an error in state: 150.
+## Ends in an error in state: 157.
 ##
-## parenss(sexp_pattern_tuple) -> Lpar ident . nonempty_list(sexp_pattern_item) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
+## nonempty_list(sexp_clause) -> Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar block . [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar block . nonempty_list(sexp_clause) [ Rpar ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar ident
+## Quote Lpar Wildcard nonempty_list(sexp_pattern_item) Rpar block
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Match False Constructor Wildcard
 ##
-## Ends in an error in state: 153.
+## Ends in an error in state: 158.
 ##
 ## nonempty_list(sexp_clause) -> sexp_ctor . block [ Rpar ]
 ## nonempty_list(sexp_clause) -> sexp_ctor . block nonempty_list(sexp_clause) [ Rpar ]
@@ -990,7 +1058,7 @@ prog: Lpar Match False Constructor Wildcard
 
 prog: Lpar Match False Constructor False U8
 ##
-## Ends in an error in state: 154.
+## Ends in an error in state: 159.
 ##
 ## nonempty_list(sexp_clause) -> sexp_ctor block . [ Rpar ]
 ## nonempty_list(sexp_clause) -> sexp_ctor block . nonempty_list(sexp_clause) [ Rpar ]
@@ -1001,35 +1069,9 @@ prog: Lpar Match False Constructor False U8
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Kebab_id Kebab_id Rpar Wildcard
-##
-## Ends in an error in state: 155.
-##
-## nonempty_list(sexp_clause) -> parenss(sexp_pattern_tuple) . block [ Rpar ]
-## nonempty_list(sexp_clause) -> parenss(sexp_pattern_tuple) . block nonempty_list(sexp_clause) [ Rpar ]
-##
-## The known suffix of the stack is as follows:
-## parenss(sexp_pattern_tuple)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Match False Lpar Kebab_id Kebab_id Rpar False U8
-##
-## Ends in an error in state: 156.
-##
-## nonempty_list(sexp_clause) -> parenss(sexp_pattern_tuple) block . [ Rpar ]
-## nonempty_list(sexp_clause) -> parenss(sexp_pattern_tuple) block . nonempty_list(sexp_clause) [ Rpar ]
-##
-## The known suffix of the stack is as follows:
-## parenss(sexp_pattern_tuple) block
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Lpar Match False Lpar Constructor Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 157.
+## Ends in an error in state: 160.
 ##
 ## nonempty_list(sexp_clause) -> parenss(ctor_pattern_item) . block [ Rpar ]
 ## nonempty_list(sexp_clause) -> parenss(ctor_pattern_item) . block nonempty_list(sexp_clause) [ Rpar ]
@@ -1042,7 +1084,7 @@ prog: Lpar Match False Lpar Constructor Kebab_id Rpar Wildcard
 
 prog: Lpar Match False Lpar Constructor Kebab_id Rpar False U8
 ##
-## Ends in an error in state: 158.
+## Ends in an error in state: 161.
 ##
 ## nonempty_list(sexp_clause) -> parenss(ctor_pattern_item) block . [ Rpar ]
 ## nonempty_list(sexp_clause) -> parenss(ctor_pattern_item) block . nonempty_list(sexp_clause) [ Rpar ]
@@ -1055,7 +1097,7 @@ prog: Lpar Match False Lpar Constructor Kebab_id Rpar False U8
 
 prog: Lpar Match False Kebab_id Wildcard
 ##
-## Ends in an error in state: 160.
+## Ends in an error in state: 163.
 ##
 ## nonempty_list(sexp_clause) -> ident . block [ Rpar ]
 ## nonempty_list(sexp_clause) -> ident . block nonempty_list(sexp_clause) [ Rpar ]
@@ -1068,7 +1110,7 @@ prog: Lpar Match False Kebab_id Wildcard
 
 prog: Lpar Match False Kebab_id False U8
 ##
-## Ends in an error in state: 161.
+## Ends in an error in state: 164.
 ##
 ## nonempty_list(sexp_clause) -> ident block . [ Rpar ]
 ## nonempty_list(sexp_clause) -> ident block . nonempty_list(sexp_clause) [ Rpar ]
@@ -1079,11 +1121,128 @@ prog: Lpar Match False Kebab_id False U8
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Less_i Wildcard
+prog: Lpar Match False Quote Lpar Constructor Val
 ##
 ## Ends in an error in state: 168.
 ##
-## parenss(sexp_binop_items) -> Lpar Less_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## nonempty_list(sexp_clause) -> Quote Lpar sexp_ctor . nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar sexp_ctor . nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar sexp_ctor
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Constructor Kebab_id Rpar Wildcard
+##
+## Ends in an error in state: 170.
+##
+## nonempty_list(sexp_clause) -> Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar . block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar . block nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Constructor Kebab_id Rpar False U8
+##
+## Ends in an error in state: 171.
+##
+## nonempty_list(sexp_clause) -> Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar block . [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar block . nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar sexp_ctor nonempty_list(sexp_pattern_item) Rpar block
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Lpar Constructor Kebab_id Rpar Val
+##
+## Ends in an error in state: 173.
+##
+## nonempty_list(sexp_clause) -> Quote Lpar parenss(ctor_pattern_item) . nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar parenss(ctor_pattern_item) . nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar parenss(ctor_pattern_item)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Lpar Constructor Kebab_id Rpar Kebab_id Rpar Wildcard
+##
+## Ends in an error in state: 175.
+##
+## nonempty_list(sexp_clause) -> Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar . block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar . block nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Lpar Constructor Kebab_id Rpar Kebab_id Rpar False U8
+##
+## Ends in an error in state: 176.
+##
+## nonempty_list(sexp_clause) -> Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar block . [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar block . nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar parenss(ctor_pattern_item) nonempty_list(sexp_pattern_item) Rpar block
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Kebab_id Val
+##
+## Ends in an error in state: 178.
+##
+## nonempty_list(sexp_clause) -> Quote Lpar ident . nonempty_list(sexp_pattern_item) Rpar block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar ident . nonempty_list(sexp_pattern_item) Rpar block nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar ident
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Kebab_id Kebab_id Rpar Wildcard
+##
+## Ends in an error in state: 180.
+##
+## nonempty_list(sexp_clause) -> Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar . block [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar . block nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Quote Lpar Kebab_id Kebab_id Rpar False U8
+##
+## Ends in an error in state: 181.
+##
+## nonempty_list(sexp_clause) -> Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar block . [ Rpar ]
+## nonempty_list(sexp_clause) -> Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar block . nonempty_list(sexp_clause) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Quote Lpar ident nonempty_list(sexp_pattern_item) Rpar block
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Less_i Wildcard
+##
+## Ends in an error in state: 186.
+##
+## parenss(sexp_binop_items) -> Lpar Less_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Less_i
@@ -1093,9 +1252,9 @@ prog: Lpar Less_i Wildcard
 
 prog: Lpar Less_i False Wildcard
 ##
-## Ends in an error in state: 169.
+## Ends in an error in state: 187.
 ##
-## parenss(sexp_binop_items) -> Lpar Less_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Less_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Less_i sexp_expr
@@ -1105,9 +1264,9 @@ prog: Lpar Less_i False Wildcard
 
 prog: Lpar Less_f Wildcard
 ##
-## Ends in an error in state: 172.
+## Ends in an error in state: 190.
 ##
-## parenss(sexp_binop_items) -> Lpar Less_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Less_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Less_f
@@ -1117,9 +1276,9 @@ prog: Lpar Less_f Wildcard
 
 prog: Lpar Less_f False Wildcard
 ##
-## Ends in an error in state: 173.
+## Ends in an error in state: 191.
 ##
-## parenss(sexp_binop_items) -> Lpar Less_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Less_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Less_f sexp_expr
@@ -1129,9 +1288,9 @@ prog: Lpar Less_f False Wildcard
 
 prog: Lpar If Wildcard
 ##
-## Ends in an error in state: 176.
+## Ends in an error in state: 194.
 ##
-## parenss(sexp_if) -> Lpar If . sexp_expr block option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_if) -> Lpar If . sexp_expr block option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar If
@@ -1141,9 +1300,9 @@ prog: Lpar If Wildcard
 
 prog: Lpar If False Wildcard
 ##
-## Ends in an error in state: 177.
+## Ends in an error in state: 195.
 ##
-## parenss(sexp_if) -> Lpar If sexp_expr . block option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_if) -> Lpar If sexp_expr . block option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar If sexp_expr
@@ -1153,9 +1312,9 @@ prog: Lpar If False Wildcard
 
 prog: Lpar If False False Wildcard
 ##
-## Ends in an error in state: 178.
+## Ends in an error in state: 196.
 ##
-## parenss(sexp_if) -> Lpar If sexp_expr block . option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_if) -> Lpar If sexp_expr block . option(block) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar If sexp_expr block
@@ -1165,9 +1324,9 @@ prog: Lpar If False False Wildcard
 
 prog: Lpar If False False False Wildcard
 ##
-## Ends in an error in state: 179.
+## Ends in an error in state: 197.
 ##
-## parenss(sexp_if) -> Lpar If sexp_expr block option(block) . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_if) -> Lpar If sexp_expr block option(block) . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar If sexp_expr block option(block)
@@ -1177,9 +1336,9 @@ prog: Lpar If False False False Wildcard
 
 prog: Lpar Greater_i Wildcard
 ##
-## Ends in an error in state: 182.
+## Ends in an error in state: 200.
 ##
-## parenss(sexp_binop_items) -> Lpar Greater_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Greater_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Greater_i
@@ -1189,9 +1348,9 @@ prog: Lpar Greater_i Wildcard
 
 prog: Lpar Greater_i False Wildcard
 ##
-## Ends in an error in state: 183.
+## Ends in an error in state: 201.
 ##
-## parenss(sexp_binop_items) -> Lpar Greater_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Greater_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Greater_i sexp_expr
@@ -1201,9 +1360,9 @@ prog: Lpar Greater_i False Wildcard
 
 prog: Lpar Greater_f Wildcard
 ##
-## Ends in an error in state: 186.
+## Ends in an error in state: 204.
 ##
-## parenss(sexp_binop_items) -> Lpar Greater_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Greater_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Greater_f
@@ -1213,9 +1372,9 @@ prog: Lpar Greater_f Wildcard
 
 prog: Lpar Greater_f False Wildcard
 ##
-## Ends in an error in state: 187.
+## Ends in an error in state: 205.
 ##
-## parenss(sexp_binop_items) -> Lpar Greater_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Greater_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Greater_f sexp_expr
@@ -1225,10 +1384,10 @@ prog: Lpar Greater_f False Wildcard
 
 prog: Lpar Fun Wildcard
 ##
-## Ends in an error in state: 190.
+## Ends in an error in state: 208.
 ##
-## parenss(sexp_fun) -> Lpar Fun . ident maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_lambda) -> Lpar Fun . maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_fun) -> Lpar Fun . ident maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_lambda) -> Lpar Fun . maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Fun
@@ -1238,7 +1397,7 @@ prog: Lpar Fun Wildcard
 
 prog: Lpar Fun Lpar Wildcard
 ##
-## Ends in an error in state: 191.
+## Ends in an error in state: 209.
 ##
 ## maybe_bracks(list(sexp_decl)) -> Lpar . list(sexp_decl) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
@@ -1250,7 +1409,7 @@ prog: Lpar Fun Lpar Wildcard
 
 prog: Lpar Fun Lbrack Lpar Kebab_id Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 192.
+## Ends in an error in state: 210.
 ##
 ## list(sexp_decl) -> parenss(sexp_decl_typed) . list(sexp_decl) [ Rpar Rbrack ]
 ##
@@ -1262,7 +1421,7 @@ prog: Lpar Fun Lbrack Lpar Kebab_id Kebab_id Rpar Wildcard
 
 prog: Lpar Fun Lbrack Kebab_id Wildcard
 ##
-## Ends in an error in state: 194.
+## Ends in an error in state: 212.
 ##
 ## list(sexp_decl) -> ident . list(sexp_decl) [ Rpar Rbrack ]
 ##
@@ -1274,7 +1433,7 @@ prog: Lpar Fun Lbrack Kebab_id Wildcard
 
 prog: Lpar Fun Lpar Kebab_id Rbrack
 ##
-## Ends in an error in state: 196.
+## Ends in an error in state: 214.
 ##
 ## maybe_bracks(list(sexp_decl)) -> Lpar list(sexp_decl) . Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
@@ -1285,15 +1444,15 @@ prog: Lpar Fun Lpar Kebab_id Rbrack
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 194, spurious reduction of production list(sexp_decl) ->
-## In state 195, spurious reduction of production list(sexp_decl) -> ident list(sexp_decl)
+## In state 212, spurious reduction of production list(sexp_decl) ->
+## In state 213, spurious reduction of production list(sexp_decl) -> ident list(sexp_decl)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Fun Lbrack Wildcard
 ##
-## Ends in an error in state: 198.
+## Ends in an error in state: 216.
 ##
 ## maybe_bracks(list(sexp_decl)) -> Lbrack . list(sexp_decl) Rbrack [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
@@ -1305,7 +1464,7 @@ prog: Lpar Fun Lbrack Wildcard
 
 prog: Lpar Fun Lbrack Kebab_id Rpar
 ##
-## Ends in an error in state: 199.
+## Ends in an error in state: 217.
 ##
 ## maybe_bracks(list(sexp_decl)) -> Lbrack list(sexp_decl) . Rbrack [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
@@ -1316,17 +1475,17 @@ prog: Lpar Fun Lbrack Kebab_id Rpar
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 194, spurious reduction of production list(sexp_decl) ->
-## In state 195, spurious reduction of production list(sexp_decl) -> ident list(sexp_decl)
+## In state 212, spurious reduction of production list(sexp_decl) ->
+## In state 213, spurious reduction of production list(sexp_decl) -> ident list(sexp_decl)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Fun Lbrack Rbrack Wildcard
 ##
-## Ends in an error in state: 201.
+## Ends in an error in state: 219.
 ##
-## parenss(sexp_lambda) -> Lpar Fun maybe_bracks(list(sexp_decl)) . list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_lambda) -> Lpar Fun maybe_bracks(list(sexp_decl)) . list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Fun maybe_bracks(list(sexp_decl))
@@ -1336,7 +1495,7 @@ prog: Lpar Fun Lbrack Rbrack Wildcard
 
 prog: Lpar Fun Lbrack Rbrack Lpar Wildcard
 ##
-## Ends in an error in state: 202.
+## Ends in an error in state: 220.
 ##
 ## maybe_bracs(nonempty_list(sexp_record_item)) -> Lpar . nonempty_list(sexp_record_item) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ## parenss(sexp_binop_items) -> Lpar . Plus_i sexp_expr nonempty_list(sexp_expr) Rpar [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
@@ -1380,9 +1539,9 @@ prog: Lpar Fun Lbrack Rbrack Lpar Wildcard
 
 prog: Lpar Equal Wildcard
 ##
-## Ends in an error in state: 203.
+## Ends in an error in state: 221.
 ##
-## parenss(sexp_binop_items) -> Lpar Equal . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Equal . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Equal
@@ -1392,9 +1551,9 @@ prog: Lpar Equal Wildcard
 
 prog: Lpar Equal False Wildcard
 ##
-## Ends in an error in state: 204.
+## Ends in an error in state: 222.
 ##
-## parenss(sexp_binop_items) -> Lpar Equal sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Equal sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Equal sexp_expr
@@ -1404,9 +1563,9 @@ prog: Lpar Equal False Wildcard
 
 prog: Lpar Div_i Wildcard
 ##
-## Ends in an error in state: 207.
+## Ends in an error in state: 225.
 ##
-## parenss(sexp_binop_items) -> Lpar Div_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Div_i . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Div_i
@@ -1416,9 +1575,9 @@ prog: Lpar Div_i Wildcard
 
 prog: Lpar Div_i False Wildcard
 ##
-## Ends in an error in state: 208.
+## Ends in an error in state: 226.
 ##
-## parenss(sexp_binop_items) -> Lpar Div_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Div_i sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Div_i sexp_expr
@@ -1428,9 +1587,9 @@ prog: Lpar Div_i False Wildcard
 
 prog: Lpar Div_f Wildcard
 ##
-## Ends in an error in state: 211.
+## Ends in an error in state: 229.
 ##
-## parenss(sexp_binop_items) -> Lpar Div_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Div_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Div_f
@@ -1440,9 +1599,9 @@ prog: Lpar Div_f Wildcard
 
 prog: Lpar Div_f False Wildcard
 ##
-## Ends in an error in state: 212.
+## Ends in an error in state: 230.
 ##
-## parenss(sexp_binop_items) -> Lpar Div_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Div_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Div_f sexp_expr
@@ -1452,9 +1611,9 @@ prog: Lpar Div_f False Wildcard
 
 prog: Lpar Builtin_id Wildcard
 ##
-## Ends in an error in state: 215.
+## Ends in an error in state: 233.
 ##
-## parenss(sexp_call) -> Lpar Builtin_id . list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar Builtin_id . list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Builtin_id
@@ -1464,7 +1623,7 @@ prog: Lpar Builtin_id Wildcard
 
 prog: Lbrack False Wildcard
 ##
-## Ends in an error in state: 216.
+## Ends in an error in state: 234.
 ##
 ## list(sexp_expr) -> sexp_expr . list(sexp_expr) [ Rpar Rbrack ]
 ##
@@ -1476,9 +1635,9 @@ prog: Lbrack False Wildcard
 
 prog: Lpar Builtin_id False Rbrack
 ##
-## Ends in an error in state: 218.
+## Ends in an error in state: 236.
 ##
-## parenss(sexp_call) -> Lpar Builtin_id list(sexp_expr) . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar Builtin_id list(sexp_expr) . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Builtin_id list(sexp_expr)
@@ -1487,17 +1646,17 @@ prog: Lpar Builtin_id False Rbrack
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 216, spurious reduction of production list(sexp_expr) ->
-## In state 217, spurious reduction of production list(sexp_expr) -> sexp_expr list(sexp_expr)
+## In state 234, spurious reduction of production list(sexp_expr) ->
+## In state 235, spurious reduction of production list(sexp_expr) -> sexp_expr list(sexp_expr)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Bin_equal_f Wildcard
 ##
-## Ends in an error in state: 220.
+## Ends in an error in state: 238.
 ##
-## parenss(sexp_binop_items) -> Lpar Bin_equal_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Bin_equal_f . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Bin_equal_f
@@ -1507,9 +1666,9 @@ prog: Lpar Bin_equal_f Wildcard
 
 prog: Lpar Bin_equal_f False Wildcard
 ##
-## Ends in an error in state: 221.
+## Ends in an error in state: 239.
 ##
-## parenss(sexp_binop_items) -> Lpar Bin_equal_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar Bin_equal_f sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Bin_equal_f sexp_expr
@@ -1519,9 +1678,9 @@ prog: Lpar Bin_equal_f False Wildcard
 
 prog: Lpar Arrow_righter Wildcard
 ##
-## Ends in an error in state: 224.
+## Ends in an error in state: 242.
 ##
-## parenss(sexp_pipe_tail) -> Lpar Arrow_righter . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_pipe_tail) -> Lpar Arrow_righter . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Arrow_righter
@@ -1531,9 +1690,9 @@ prog: Lpar Arrow_righter Wildcard
 
 prog: Lpar Arrow_righter False Wildcard
 ##
-## Ends in an error in state: 225.
+## Ends in an error in state: 243.
 ##
-## parenss(sexp_pipe_tail) -> Lpar Arrow_righter sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_pipe_tail) -> Lpar Arrow_righter sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Arrow_righter sexp_expr
@@ -1543,9 +1702,9 @@ prog: Lpar Arrow_righter False Wildcard
 
 prog: Lpar Arrow_right Wildcard
 ##
-## Ends in an error in state: 228.
+## Ends in an error in state: 246.
 ##
-## parenss(sexp_pipe_head) -> Lpar Arrow_right . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_pipe_head) -> Lpar Arrow_right . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Arrow_right
@@ -1555,9 +1714,9 @@ prog: Lpar Arrow_right Wildcard
 
 prog: Lpar Arrow_right False Wildcard
 ##
-## Ends in an error in state: 229.
+## Ends in an error in state: 247.
 ##
-## parenss(sexp_pipe_head) -> Lpar Arrow_right sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_pipe_head) -> Lpar Arrow_right sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Arrow_right sexp_expr
@@ -1567,9 +1726,9 @@ prog: Lpar Arrow_right False Wildcard
 
 prog: Lpar And Wildcard
 ##
-## Ends in an error in state: 232.
+## Ends in an error in state: 250.
 ##
-## parenss(sexp_binop_items) -> Lpar And . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar And . sexp_expr nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar And
@@ -1579,9 +1738,9 @@ prog: Lpar And Wildcard
 
 prog: Lpar And False Wildcard
 ##
-## Ends in an error in state: 233.
+## Ends in an error in state: 251.
 ##
-## parenss(sexp_binop_items) -> Lpar And sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_binop_items) -> Lpar And sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar And sexp_expr
@@ -1591,9 +1750,9 @@ prog: Lpar And False Wildcard
 
 prog: Lpar Accessor Wildcard
 ##
-## Ends in an error in state: 236.
+## Ends in an error in state: 254.
 ##
-## parenss(sexp_field_get) -> Lpar Accessor . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_get) -> Lpar Accessor . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Accessor
@@ -1603,9 +1762,9 @@ prog: Lpar Accessor Wildcard
 
 prog: Lpar Accessor False Wildcard
 ##
-## Ends in an error in state: 237.
+## Ends in an error in state: 255.
 ##
-## parenss(sexp_field_get) -> Lpar Accessor sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_get) -> Lpar Accessor sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Accessor sexp_expr
@@ -1615,11 +1774,11 @@ prog: Lpar Accessor False Wildcard
 
 prog: Lpar False Wildcard
 ##
-## Ends in an error in state: 239.
+## Ends in an error in state: 257.
 ##
-## parenss(sexp_call) -> Lpar sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar sexp_expr . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
-## parenss(sexp_call) -> Lpar sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar sexp_expr . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar sexp_expr . nonempty_list(sexp_expr) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar sexp_expr
@@ -1629,11 +1788,11 @@ prog: Lpar False Wildcard
 
 prog: Lpar False False Wildcard
 ##
-## Ends in an error in state: 241.
+## Ends in an error in state: 259.
 ##
 ## nonempty_list(sexp_expr) -> sexp_expr . [ Rpar ]
 ## nonempty_list(sexp_expr) -> sexp_expr . nonempty_list(sexp_expr) [ Rpar ]
-## parenss(sexp_call) -> Lpar sexp_expr sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_call) -> Lpar sexp_expr sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar sexp_expr sexp_expr
@@ -1643,9 +1802,9 @@ prog: Lpar False False Wildcard
 
 prog: Lpar Constructor Wildcard
 ##
-## Ends in an error in state: 245.
+## Ends in an error in state: 263.
 ##
-## parenss(sexp_ctor_item) -> Lpar sexp_ctor . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_ctor_item) -> Lpar sexp_ctor . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ## sexp_expr -> sexp_ctor . [ U8 True String_lit Rpar Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Constructor ]
 ##
 ## The known suffix of the stack is as follows:
@@ -1656,9 +1815,9 @@ prog: Lpar Constructor Wildcard
 
 prog: Lpar Constructor False Wildcard
 ##
-## Ends in an error in state: 246.
+## Ends in an error in state: 264.
 ##
-## parenss(sexp_ctor_item) -> Lpar sexp_ctor sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_ctor_item) -> Lpar sexp_ctor sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar sexp_ctor sexp_expr
@@ -1668,9 +1827,9 @@ prog: Lpar Constructor False Wildcard
 
 prog: Lpar Name Rbrac
 ##
-## Ends in an error in state: 248.
+## Ends in an error in state: 266.
 ##
-## maybe_bracs(nonempty_list(sexp_record_item)) -> Lpar nonempty_list(sexp_record_item) . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## maybe_bracs(nonempty_list(sexp_record_item)) -> Lpar nonempty_list(sexp_record_item) . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar nonempty_list(sexp_record_item)
@@ -1686,7 +1845,7 @@ prog: Lpar Name Rbrac
 
 prog: Lpar Fun Lbrack Rbrack False Wildcard
 ##
-## Ends in an error in state: 250.
+## Ends in an error in state: 268.
 ##
 ## list(stmt) -> stmt . list(stmt) [ Rpar ]
 ##
@@ -1698,9 +1857,9 @@ prog: Lpar Fun Lbrack Rbrack False Wildcard
 
 prog: Lpar Fun Kebab_id Wildcard
 ##
-## Ends in an error in state: 254.
+## Ends in an error in state: 272.
 ##
-## parenss(sexp_fun) -> Lpar Fun ident . maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_fun) -> Lpar Fun ident . maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Fun ident
@@ -1710,9 +1869,9 @@ prog: Lpar Fun Kebab_id Wildcard
 
 prog: Lpar Fun Kebab_id Lbrack Rbrack Wildcard
 ##
-## Ends in an error in state: 255.
+## Ends in an error in state: 273.
 ##
-## parenss(sexp_fun) -> Lpar Fun ident maybe_bracks(list(sexp_decl)) . list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_fun) -> Lpar Fun ident maybe_bracks(list(sexp_decl)) . list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Fun ident maybe_bracks(list(sexp_decl))
@@ -1722,9 +1881,9 @@ prog: Lpar Fun Kebab_id Lbrack Rbrack Wildcard
 
 prog: Kebab_id Div_i Lpar Do Wildcard
 ##
-## Ends in an error in state: 258.
+## Ends in an error in state: 276.
 ##
-## block -> Lpar Do . nonempty_list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## block -> Lpar Do . nonempty_list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Do
@@ -1734,7 +1893,7 @@ prog: Kebab_id Div_i Lpar Do Wildcard
 
 prog: Kebab_id Div_i Lpar Do False Wildcard
 ##
-## Ends in an error in state: 259.
+## Ends in an error in state: 277.
 ##
 ## nonempty_list(stmt) -> stmt . [ Rpar ]
 ## nonempty_list(stmt) -> stmt . nonempty_list(stmt) [ Rpar ]
@@ -1747,9 +1906,9 @@ prog: Kebab_id Div_i Lpar Do False Wildcard
 
 prog: Lbrac Name Rpar
 ##
-## Ends in an error in state: 264.
+## Ends in an error in state: 282.
 ##
-## maybe_bracs(nonempty_list(sexp_record_item)) -> Lbrac nonempty_list(sexp_record_item) . Rbrac [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## maybe_bracs(nonempty_list(sexp_record_item)) -> Lbrac nonempty_list(sexp_record_item) . Rbrac [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lbrac nonempty_list(sexp_record_item)
@@ -1765,9 +1924,9 @@ prog: Lbrac Name Rpar
 
 prog: Lbrack False Rpar
 ##
-## Ends in an error in state: 266.
+## Ends in an error in state: 284.
 ##
-## sexp_vector_lit -> Lbrack list(sexp_expr) . Rbrack [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## sexp_vector_lit -> Lbrack list(sexp_expr) . Rbrack [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lbrack list(sexp_expr)
@@ -1776,17 +1935,17 @@ prog: Lbrack False Rpar
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 216, spurious reduction of production list(sexp_expr) ->
-## In state 217, spurious reduction of production list(sexp_expr) -> sexp_expr list(sexp_expr)
+## In state 234, spurious reduction of production list(sexp_expr) ->
+## In state 235, spurious reduction of production list(sexp_expr) -> sexp_expr list(sexp_expr)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Setf False Wildcard
 ##
-## Ends in an error in state: 268.
+## Ends in an error in state: 286.
 ##
-## parenss(sexp_field_set) -> Lpar Setf sexp_expr . Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_set) -> Lpar Setf sexp_expr . Accessor sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Setf sexp_expr
@@ -1796,9 +1955,9 @@ prog: Lpar Setf False Wildcard
 
 prog: Lpar Setf False Accessor Wildcard
 ##
-## Ends in an error in state: 269.
+## Ends in an error in state: 287.
 ##
-## parenss(sexp_field_set) -> Lpar Setf sexp_expr Accessor . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_set) -> Lpar Setf sexp_expr Accessor . sexp_expr Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Setf sexp_expr Accessor
@@ -1808,9 +1967,9 @@ prog: Lpar Setf False Accessor Wildcard
 
 prog: Lpar Setf False Accessor False Wildcard
 ##
-## Ends in an error in state: 270.
+## Ends in an error in state: 288.
 ##
-## parenss(sexp_field_set) -> Lpar Setf sexp_expr Accessor sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_field_set) -> Lpar Setf sexp_expr Accessor sexp_expr . Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Setf sexp_expr Accessor sexp_expr
@@ -1820,9 +1979,9 @@ prog: Lpar Setf False Accessor False Wildcard
 
 prog: Lbrack Lpar Fun Wildcard
 ##
-## Ends in an error in state: 272.
+## Ends in an error in state: 290.
 ##
-## parenss(sexp_lambda) -> Lpar Fun . maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
+## parenss(sexp_lambda) -> Lpar Fun . maybe_bracks(list(sexp_decl)) list(stmt) Rpar [ Wildcard U8 True String_lit Rpar Rbrack Rbrac Quote Name Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor Accessor ]
 ##
 ## The known suffix of the stack is as follows:
 ## Lpar Fun
@@ -1832,7 +1991,7 @@ prog: Lbrack Lpar Fun Wildcard
 
 prog: Lpar Wildcard
 ##
-## Ends in an error in state: 275.
+## Ends in an error in state: 293.
 ##
 ## maybe_bracs(nonempty_list(sexp_record_item)) -> Lpar . nonempty_list(sexp_record_item) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defalias) -> Lpar . Defalias ident build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
@@ -1885,7 +2044,7 @@ prog: Lpar Wildcard
 
 prog: Lpar Open Wildcard
 ##
-## Ends in an error in state: 276.
+## Ends in an error in state: 294.
 ##
 ## parenss(sexp_open) -> Lpar Open . ident Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -1897,7 +2056,7 @@ prog: Lpar Open Wildcard
 
 prog: Lpar Open Kebab_id Wildcard
 ##
-## Ends in an error in state: 277.
+## Ends in an error in state: 295.
 ##
 ## parenss(sexp_open) -> Lpar Open ident . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -1909,7 +2068,7 @@ prog: Lpar Open Kebab_id Wildcard
 
 prog: Lpar Defvariant Wildcard
 ##
-## Ends in an error in state: 279.
+## Ends in an error in state: 297.
 ##
 ## parenss(defvariant) -> Lpar Defvariant . ident atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defvariant) -> Lpar Defvariant . Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
@@ -1922,7 +2081,7 @@ prog: Lpar Defvariant Wildcard
 
 prog: Lpar Defvariant Lpar Wildcard
 ##
-## Ends in an error in state: 280.
+## Ends in an error in state: 298.
 ##
 ## parenss(defvariant) -> Lpar Defvariant Lpar . ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -1934,7 +2093,7 @@ prog: Lpar Defvariant Lpar Wildcard
 
 prog: Lpar Defvariant Lpar Kebab_id Wildcard
 ##
-## Ends in an error in state: 281.
+## Ends in an error in state: 299.
 ##
 ## parenss(defvariant) -> Lpar Defvariant Lpar ident . Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -1946,7 +2105,7 @@ prog: Lpar Defvariant Lpar Kebab_id Wildcard
 
 prog: Lpar Defvariant Lpar Kebab_id Quote Wildcard
 ##
-## Ends in an error in state: 282.
+## Ends in an error in state: 300.
 ##
 ## parenss(defvariant) -> Lpar Defvariant Lpar ident Quote . Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -1958,7 +2117,7 @@ prog: Lpar Defvariant Lpar Kebab_id Quote Wildcard
 
 prog: Lpar Defvariant Lpar Kebab_id Quote Lowercase_id Wildcard
 ##
-## Ends in an error in state: 283.
+## Ends in an error in state: 301.
 ##
 ## parenss(defvariant) -> Lpar Defvariant Lpar ident Quote Lowercase_id . Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -1970,7 +2129,7 @@ prog: Lpar Defvariant Lpar Kebab_id Quote Lowercase_id Wildcard
 
 prog: Lpar Defvariant Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
 ##
-## Ends in an error in state: 284.
+## Ends in an error in state: 302.
 ##
 ## parenss(defvariant) -> Lpar Defvariant Lpar ident Quote Lowercase_id Rpar . atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -1982,7 +2141,7 @@ prog: Lpar Defvariant Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
 
 prog: Lpar Defvariant Kebab_id Lpar Wildcard
 ##
-## Ends in an error in state: 285.
+## Ends in an error in state: 303.
 ##
 ## parenss(nonempty_list(sexp_ctordef)) -> Lpar . nonempty_list(sexp_ctordef) Rpar [ Rpar ]
 ## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor build_sexp_type_list Rpar [ Rpar ]
@@ -1996,7 +2155,7 @@ prog: Lpar Defvariant Kebab_id Lpar Wildcard
 
 prog: Lpar Defvariant Kebab_id Lpar Lpar Wildcard
 ##
-## Ends in an error in state: 286.
+## Ends in an error in state: 304.
 ##
 ## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor build_sexp_type_list Rpar [ Rpar Lpar Constructor ]
 ## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor Int Rpar [ Rpar Lpar Constructor ]
@@ -2009,7 +2168,7 @@ prog: Lpar Defvariant Kebab_id Lpar Lpar Wildcard
 
 prog: Lpar Defvariant Kebab_id Lpar Lpar Constructor Wildcard
 ##
-## Ends in an error in state: 287.
+## Ends in an error in state: 305.
 ##
 ## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . build_sexp_type_list Rpar [ Rpar Lpar Constructor ]
 ## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . Int Rpar [ Rpar Lpar Constructor ]
@@ -2022,7 +2181,7 @@ prog: Lpar Defvariant Kebab_id Lpar Lpar Constructor Wildcard
 
 prog: Lpar Defvariant Kebab_id Lpar Constructor Int Wildcard
 ##
-## Ends in an error in state: 288.
+## Ends in an error in state: 306.
 ##
 ## parenss(sexp_ctordef_item) -> Lpar sexp_ctor Int . Rpar [ Rpar Lpar Constructor ]
 ##
@@ -2034,7 +2193,7 @@ prog: Lpar Defvariant Kebab_id Lpar Constructor Int Wildcard
 
 prog: Lpar Defvariant Kebab_id Lpar Constructor Kebab_id Wildcard
 ##
-## Ends in an error in state: 290.
+## Ends in an error in state: 308.
 ##
 ## parenss(sexp_ctordef_item) -> Lpar sexp_ctor build_sexp_type_list . Rpar [ Rpar Lpar Constructor ]
 ##
@@ -2046,7 +2205,7 @@ prog: Lpar Defvariant Kebab_id Lpar Constructor Kebab_id Wildcard
 
 prog: Lpar Defvariant Kebab_id Lpar Constructor Wildcard
 ##
-## Ends in an error in state: 292.
+## Ends in an error in state: 310.
 ##
 ## nonempty_list(sexp_ctordef) -> sexp_ctor . [ Rpar ]
 ## nonempty_list(sexp_ctordef) -> sexp_ctor . nonempty_list(sexp_ctordef) [ Rpar ]
@@ -2061,7 +2220,7 @@ prog: Lpar Defvariant Kebab_id Lpar Constructor Wildcard
 
 prog: Lpar Defvariant Kebab_id Lpar Constructor Lpar Wildcard
 ##
-## Ends in an error in state: 293.
+## Ends in an error in state: 311.
 ##
 ## build_sexp_type_list -> Lpar . type_spec build_sexp_type_list Rpar [ Rpar ]
 ## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor build_sexp_type_list Rpar [ Rpar Lpar Constructor ]
@@ -2075,7 +2234,7 @@ prog: Lpar Defvariant Kebab_id Lpar Constructor Lpar Wildcard
 
 prog: Lpar Defvariant Kebab_id Lpar Constructor Constructor Wildcard
 ##
-## Ends in an error in state: 294.
+## Ends in an error in state: 312.
 ##
 ## nonempty_list(sexp_ctordef) -> sexp_ctor . [ Rpar ]
 ## nonempty_list(sexp_ctordef) -> sexp_ctor . nonempty_list(sexp_ctordef) [ Rpar ]
@@ -2088,7 +2247,7 @@ prog: Lpar Defvariant Kebab_id Lpar Constructor Constructor Wildcard
 
 prog: Lpar Defvariant Kebab_id Lpar Lpar Constructor Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 295.
+## Ends in an error in state: 313.
 ##
 ## nonempty_list(sexp_ctordef) -> parenss(sexp_ctordef_item) . [ Rpar ]
 ## nonempty_list(sexp_ctordef) -> parenss(sexp_ctordef_item) . nonempty_list(sexp_ctordef) [ Rpar ]
@@ -2101,7 +2260,7 @@ prog: Lpar Defvariant Kebab_id Lpar Lpar Constructor Kebab_id Rpar Wildcard
 
 prog: Lpar Defvariant Lpar Kebab_id Quote Lowercase_id Rpar Constructor Wildcard
 ##
-## Ends in an error in state: 303.
+## Ends in an error in state: 321.
 ##
 ## parenss(defvariant) -> Lpar Defvariant Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2113,7 +2272,7 @@ prog: Lpar Defvariant Lpar Kebab_id Quote Lowercase_id Rpar Constructor Wildcard
 
 prog: Lpar Defvariant Kebab_id Wildcard
 ##
-## Ends in an error in state: 305.
+## Ends in an error in state: 323.
 ##
 ## parenss(defvariant) -> Lpar Defvariant ident . atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2125,7 +2284,7 @@ prog: Lpar Defvariant Kebab_id Wildcard
 
 prog: Lpar Defvariant Kebab_id Constructor Wildcard
 ##
-## Ends in an error in state: 306.
+## Ends in an error in state: 324.
 ##
 ## parenss(defvariant) -> Lpar Defvariant ident atom_or_list(sexp_ctordef) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2137,7 +2296,7 @@ prog: Lpar Defvariant Kebab_id Constructor Wildcard
 
 prog: Lpar Defrecord Wildcard
 ##
-## Ends in an error in state: 308.
+## Ends in an error in state: 326.
 ##
 ## parenss(defrecord) -> Lpar Defrecord . ident maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defrecord) -> Lpar Defrecord . Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
@@ -2150,7 +2309,7 @@ prog: Lpar Defrecord Wildcard
 
 prog: Lpar Defrecord Lpar Wildcard
 ##
-## Ends in an error in state: 309.
+## Ends in an error in state: 327.
 ##
 ## parenss(defrecord) -> Lpar Defrecord Lpar . ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2162,7 +2321,7 @@ prog: Lpar Defrecord Lpar Wildcard
 
 prog: Lpar Defrecord Lpar Kebab_id Wildcard
 ##
-## Ends in an error in state: 310.
+## Ends in an error in state: 328.
 ##
 ## parenss(defrecord) -> Lpar Defrecord Lpar ident . Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2174,7 +2333,7 @@ prog: Lpar Defrecord Lpar Kebab_id Wildcard
 
 prog: Lpar Defrecord Lpar Kebab_id Quote Wildcard
 ##
-## Ends in an error in state: 311.
+## Ends in an error in state: 329.
 ##
 ## parenss(defrecord) -> Lpar Defrecord Lpar ident Quote . Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2186,7 +2345,7 @@ prog: Lpar Defrecord Lpar Kebab_id Quote Wildcard
 
 prog: Lpar Defrecord Lpar Kebab_id Quote Lowercase_id Wildcard
 ##
-## Ends in an error in state: 312.
+## Ends in an error in state: 330.
 ##
 ## parenss(defrecord) -> Lpar Defrecord Lpar ident Quote Lowercase_id . Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2198,7 +2357,7 @@ prog: Lpar Defrecord Lpar Kebab_id Quote Lowercase_id Wildcard
 
 prog: Lpar Defrecord Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
 ##
-## Ends in an error in state: 313.
+## Ends in an error in state: 331.
 ##
 ## parenss(defrecord) -> Lpar Defrecord Lpar ident Quote Lowercase_id Rpar . maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2210,7 +2369,7 @@ prog: Lpar Defrecord Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
 
 prog: Lpar Defrecord Kebab_id Lpar Wildcard
 ##
-## Ends in an error in state: 314.
+## Ends in an error in state: 332.
 ##
 ## maybe_bracs(nonempty_list(sexp_type_decl)) -> Lpar . nonempty_list(sexp_type_decl) Rpar [ Rpar ]
 ##
@@ -2222,7 +2381,7 @@ prog: Lpar Defrecord Kebab_id Lpar Wildcard
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Wildcard
 ##
-## Ends in an error in state: 315.
+## Ends in an error in state: 333.
 ##
 ## nonempty_list(sexp_type_decl) -> Name . build_sexp_type_list [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name . parenss(sexp_type_func) [ Rpar Rbrac ]
@@ -2241,7 +2400,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Wildcard
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Wildcard
 ##
-## Ends in an error in state: 316.
+## Ends in an error in state: 334.
 ##
 ## build_sexp_type_list -> Lpar . type_spec build_sexp_type_list Rpar [ Rpar Rbrac Name ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar . Mutable build_sexp_type_list Rpar [ Rpar Rbrac ]
@@ -2258,7 +2417,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Wildcard
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Wildcard
 ##
-## Ends in an error in state: 317.
+## Ends in an error in state: 335.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable . build_sexp_type_list Rpar [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable . parenss(sexp_type_func) Rpar [ Rpar Rbrac ]
@@ -2273,7 +2432,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Wildcard
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 318.
+## Ends in an error in state: 336.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable parenss(sexp_type_func) . Rpar [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable parenss(sexp_type_func) . Rpar nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2286,7 +2445,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Wil
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Rpar Wildcard
 ##
-## Ends in an error in state: 319.
+## Ends in an error in state: 337.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable parenss(sexp_type_func) Rpar . [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable parenss(sexp_type_func) Rpar . nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2299,7 +2458,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Rpa
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Kebab_id Wildcard
 ##
-## Ends in an error in state: 321.
+## Ends in an error in state: 339.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable build_sexp_type_list . Rpar [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable build_sexp_type_list . Rpar nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2312,7 +2471,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Kebab_id Wildcard
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 322.
+## Ends in an error in state: 340.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable build_sexp_type_list Rpar . [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable build_sexp_type_list Rpar . nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2325,7 +2484,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Kebab_id Rpar Wildcard
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Fun Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 324.
+## Ends in an error in state: 342.
 ##
 ## nonempty_list(sexp_type_decl) -> Name parenss(sexp_type_func) . [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name parenss(sexp_type_func) . nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2338,7 +2497,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Fun Kebab_id Rpar Wildcard
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id Wildcard
 ##
-## Ends in an error in state: 326.
+## Ends in an error in state: 344.
 ##
 ## nonempty_list(sexp_type_decl) -> Name build_sexp_type_list . [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name build_sexp_type_list . nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2351,7 +2510,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id Wildcard
 
 prog: Lpar Defrecord Kebab_id Lpar Name Kebab_id Rbrac
 ##
-## Ends in an error in state: 328.
+## Ends in an error in state: 346.
 ##
 ## maybe_bracs(nonempty_list(sexp_type_decl)) -> Lpar nonempty_list(sexp_type_decl) . Rpar [ Rpar ]
 ##
@@ -2362,14 +2521,14 @@ prog: Lpar Defrecord Kebab_id Lpar Name Kebab_id Rbrac
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 326, spurious reduction of production nonempty_list(sexp_type_decl) -> Name build_sexp_type_list
+## In state 344, spurious reduction of production nonempty_list(sexp_type_decl) -> Name build_sexp_type_list
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Defrecord Kebab_id Lbrac Wildcard
 ##
-## Ends in an error in state: 330.
+## Ends in an error in state: 348.
 ##
 ## maybe_bracs(nonempty_list(sexp_type_decl)) -> Lbrac . nonempty_list(sexp_type_decl) Rbrac [ Rpar ]
 ##
@@ -2381,7 +2540,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Wildcard
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id Rpar
 ##
-## Ends in an error in state: 331.
+## Ends in an error in state: 349.
 ##
 ## maybe_bracs(nonempty_list(sexp_type_decl)) -> Lbrac nonempty_list(sexp_type_decl) . Rbrac [ Rpar ]
 ##
@@ -2392,14 +2551,14 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id Rpar
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 326, spurious reduction of production nonempty_list(sexp_type_decl) -> Name build_sexp_type_list
+## In state 344, spurious reduction of production nonempty_list(sexp_type_decl) -> Name build_sexp_type_list
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Defrecord Lpar Kebab_id Quote Lowercase_id Rpar Lbrac Name Kebab_id Rbrac Wildcard
 ##
-## Ends in an error in state: 333.
+## Ends in an error in state: 351.
 ##
 ## parenss(defrecord) -> Lpar Defrecord Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2411,7 +2570,7 @@ prog: Lpar Defrecord Lpar Kebab_id Quote Lowercase_id Rpar Lbrac Name Kebab_id R
 
 prog: Lpar Defrecord Kebab_id Wildcard
 ##
-## Ends in an error in state: 335.
+## Ends in an error in state: 353.
 ##
 ## parenss(defrecord) -> Lpar Defrecord ident . maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2423,7 +2582,7 @@ prog: Lpar Defrecord Kebab_id Wildcard
 
 prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id Rbrac Wildcard
 ##
-## Ends in an error in state: 336.
+## Ends in an error in state: 354.
 ##
 ## parenss(defrecord) -> Lpar Defrecord ident maybe_bracs(nonempty_list(sexp_type_decl)) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2435,7 +2594,7 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id Rbrac Wildcard
 
 prog: Lpar Defexternal Wildcard
 ##
-## Ends in an error in state: 338.
+## Ends in an error in state: 356.
 ##
 ## parenss(defexternal) -> Lpar Defexternal . ident build_sexp_type_list option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defexternal) -> Lpar Defexternal . ident parenss(sexp_type_func) option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
@@ -2448,7 +2607,7 @@ prog: Lpar Defexternal Wildcard
 
 prog: Lpar Defexternal Kebab_id Wildcard
 ##
-## Ends in an error in state: 339.
+## Ends in an error in state: 357.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident . build_sexp_type_list option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defexternal) -> Lpar Defexternal ident . parenss(sexp_type_func) option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
@@ -2461,7 +2620,7 @@ prog: Lpar Defexternal Kebab_id Wildcard
 
 prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 340.
+## Ends in an error in state: 358.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident parenss(sexp_type_func) . option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2473,7 +2632,7 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar Wildcard
 
 prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar String_lit Wildcard
 ##
-## Ends in an error in state: 342.
+## Ends in an error in state: 360.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident parenss(sexp_type_func) option(String_lit) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2485,7 +2644,7 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar String_lit Wildcard
 
 prog: Lpar Defexternal Kebab_id Kebab_id Wildcard
 ##
-## Ends in an error in state: 344.
+## Ends in an error in state: 362.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident build_sexp_type_list . option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2497,7 +2656,7 @@ prog: Lpar Defexternal Kebab_id Kebab_id Wildcard
 
 prog: Lpar Defexternal Kebab_id Kebab_id String_lit Wildcard
 ##
-## Ends in an error in state: 345.
+## Ends in an error in state: 363.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident build_sexp_type_list option(String_lit) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2509,7 +2668,7 @@ prog: Lpar Defexternal Kebab_id Kebab_id String_lit Wildcard
 
 prog: Lpar Defalias Wildcard
 ##
-## Ends in an error in state: 347.
+## Ends in an error in state: 365.
 ##
 ## parenss(defalias) -> Lpar Defalias . ident build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defalias) -> Lpar Defalias . Lpar ident Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
@@ -2522,7 +2681,7 @@ prog: Lpar Defalias Wildcard
 
 prog: Lpar Defalias Lpar Wildcard
 ##
-## Ends in an error in state: 348.
+## Ends in an error in state: 366.
 ##
 ## parenss(defalias) -> Lpar Defalias Lpar . ident Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2534,7 +2693,7 @@ prog: Lpar Defalias Lpar Wildcard
 
 prog: Lpar Defalias Lpar Kebab_id Wildcard
 ##
-## Ends in an error in state: 349.
+## Ends in an error in state: 367.
 ##
 ## parenss(defalias) -> Lpar Defalias Lpar ident . Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2546,7 +2705,7 @@ prog: Lpar Defalias Lpar Kebab_id Wildcard
 
 prog: Lpar Defalias Lpar Kebab_id Quote Wildcard
 ##
-## Ends in an error in state: 350.
+## Ends in an error in state: 368.
 ##
 ## parenss(defalias) -> Lpar Defalias Lpar ident Quote . Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2558,7 +2717,7 @@ prog: Lpar Defalias Lpar Kebab_id Quote Wildcard
 
 prog: Lpar Defalias Lpar Kebab_id Quote Lowercase_id Wildcard
 ##
-## Ends in an error in state: 351.
+## Ends in an error in state: 369.
 ##
 ## parenss(defalias) -> Lpar Defalias Lpar ident Quote Lowercase_id . Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2570,7 +2729,7 @@ prog: Lpar Defalias Lpar Kebab_id Quote Lowercase_id Wildcard
 
 prog: Lpar Defalias Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
 ##
-## Ends in an error in state: 352.
+## Ends in an error in state: 370.
 ##
 ## parenss(defalias) -> Lpar Defalias Lpar ident Quote Lowercase_id Rpar . build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2582,7 +2741,7 @@ prog: Lpar Defalias Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
 
 prog: Lpar Defalias Lpar Kebab_id Quote Lowercase_id Rpar Kebab_id Wildcard
 ##
-## Ends in an error in state: 353.
+## Ends in an error in state: 371.
 ##
 ## parenss(defalias) -> Lpar Defalias Lpar ident Quote Lowercase_id Rpar build_sexp_type_list . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2594,7 +2753,7 @@ prog: Lpar Defalias Lpar Kebab_id Quote Lowercase_id Rpar Kebab_id Wildcard
 
 prog: Lpar Defalias Kebab_id Wildcard
 ##
-## Ends in an error in state: 355.
+## Ends in an error in state: 373.
 ##
 ## parenss(defalias) -> Lpar Defalias ident . build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2606,7 +2765,7 @@ prog: Lpar Defalias Kebab_id Wildcard
 
 prog: Lpar Defalias Kebab_id Kebab_id Wildcard
 ##
-## Ends in an error in state: 356.
+## Ends in an error in state: 374.
 ##
 ## parenss(defalias) -> Lpar Defalias ident build_sexp_type_list . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2618,7 +2777,7 @@ prog: Lpar Defalias Kebab_id Kebab_id Wildcard
 
 prog: False Wildcard
 ##
-## Ends in an error in state: 358.
+## Ends in an error in state: 376.
 ##
 ## list(top_item) -> top_item . list(top_item) [ Eof ]
 ##
