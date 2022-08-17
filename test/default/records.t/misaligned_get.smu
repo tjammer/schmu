@@ -1,9 +1,9 @@
-external printi : int -> unit
+(external printi (fun int unit))
 
-type inner = { fst : int, snd : int }
-type misaligned('a) = { fst : inner, gen : 'a }
+(record inner {:fst int :snd int})
+(record (misaligned 'a) {:fst inner :gen 'a})
 
-fun gen(any) = any.gen
+(fun gen [any] (.gen any))
 
-val m = { fst = { fst = 50, snd = 40}, gen = 30 }
-printi(gen(m))
+(val m {:fst {:fst 50 :snd 40} :gen 30})
+(printi (gen m))

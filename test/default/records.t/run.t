@@ -404,9 +404,9 @@ Make sure alignment of generic param works
 
 Parametrization needs to be given, if a type is generic
   $ schmu --dump-llvm stub.o missing_parameter.smu && ./missing_parameter
-  missing_parameter.smu:5:6: error: Type t needs a type parameter
-  5 | fun (t : t) -> t.t
-           ^^^^^
+  missing_parameter.smu:5:8: error: Type t needs a type parameter
+  5 | (fun [(t t)] (.t t))
+             ^^^
   
   [1]
 
@@ -554,9 +554,9 @@ Regression test: Closures for records used to use store/load like for register v
 Regression test: Return allocas were propagated by lets to values earlier in a function.
 This caused stores to a wrong pointer type in LLVM
   $ schmu --dump-llvm stub.o nested_init_let.smu && ./nested_init_let
-  nested_init_let.smu:12:7: warning: Unused binding a
-  12 |   val a = { y = { x = 1 }, z = 2 }
-             ^
+  nested_init_let.smu:13:8: warning: Unused binding a
+  13 |   (val a {:y {:x 1} :z 2})
+              ^
   
   ; ModuleID = 'context'
   source_filename = "context"

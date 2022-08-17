@@ -1,28 +1,30 @@
-external printi : int -> unit
+(external printi (fun int unit))
 
-type t('a) = { null : int, first : int, gen : 'a, third : bool }
+(record (t 'a) {:null int :first int :gen 'a :third bool})
 
-type gen_first('a) = { only : 'a, is : bool }
+(record (gen_first 'a) {:only 'a :is bool})
 
-fun print_bool(b) =
-  if b then printi(1)
-  else printi(0)
+(fun print_bool [b]
+  (if b (printi 1) (printi 0)))
 
-fun first(any) = printi(any.first)
+(fun first [any]
+  (printi (.first any)))
 
-fun gen(any) = any.gen
+(fun gen [any] (.gen any))
 
-fun third(any) = print_bool(any.third)
+(fun third [any]
+  (print_bool (.third any)))
 
-fun only(any) = any.only
+(fun only [any] (.only any))
 
-fun is(any) = print_bool(any.is)
+(fun is [any]
+  (print_bool (.is any)))
 
-val int_t = { null = 0, first = 700, gen = 20, third = true }
-val f = { only = 420, is = false }
+(val int_t {:null 0 :first 700 :gen 20 :third true})
+(val f {:only 420 :is false})
 
-first(int_t)
-third(int_t)
-printi(gen(int_t))
-printi(only(f))
-is(f)
+(first int_t)
+(third int_t)
+(printi (gen int_t))
+(printi (only f))
+(is f)

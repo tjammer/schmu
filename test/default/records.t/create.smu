@@ -1,7 +1,8 @@
-external printi : int -> unit
+(external printi (fun int unit))
 
-type foo = { x : int, y : int }
+(record foo {:x int :y int})
 
-fun create_record(x, y) = { x = x, y = y }
+(fun create_record [x y]
+  {:x :y})
 
-printi(create_record(8, 0).x)
+(printi (.x (create_record 8 0)))

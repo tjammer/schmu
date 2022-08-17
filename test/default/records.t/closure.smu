@@ -1,12 +1,11 @@
-external printi : int -> unit
+(external printi (fun int unit))
 
-type foo = { x : int, y : int }
+(record foo {:x int :y int})
 
-val foo = { x = 12, y = 14 }
+(val foo {:x 12 :y 14})
 
-fun print_foo() =
-  -- we close over foo
-  printi(foo.x)
-  printi(foo.y)
+(fun print_foo []
+  (printi (.x foo))
+  (printi (.y foo)))
 
-print_foo()
+(print_foo)

@@ -1,15 +1,15 @@
-external printi : int -> unit
+(external printi (fun int unit))
 
-type t('a) = { first : int, gen : 'a, third : bool }
+(record (t 'a) {:first int :gen 'a :third bool})
 
-fun apply(f : 'b -> 'a, x : 'b) -> 'a = f(x)
+(fun apply [(f (fun 'b 'a)) (x 'b)] (f x))
 
-fun pass(x) =
+(fun pass [x]
   -- We have to use the record somehow, otherwise it's passed
   -- as a generic variable and then copied trivially
-  { first = x.first, gen = x.gen, third = x.third }
+  {:first (.first x) :gen (.gen x) :third (.third x)})
 
-val int_t = { first = 700, gen = 20, third = false }
+(val int_t {:first 700 :gen 20 :third false})
 
-printi(apply(pass, int_t).first)
-printi(apply(pass, { first = 234, gen = false, third = true }).first)
+(printi (.first (apply pass int_t)))
+(printi (.first (apply pass {:first 234 :gen false :third true})))

@@ -1,16 +1,17 @@
-external printi : int -> unit
+(external printi (fun int unit))
 
-type state = { cnt : int, next : int -> int }
+(record state {:cnt int :next (fun int int)})
 
-val state = { cnt = 0, next = fun(x) -> x + 1 }
+(val state {:cnt 0 :next (fun [x] (+ x 1))})
 
-fun advance(state) =
-  { cnt = state.next(state.cnt), next = state.next }
+(fun advance [state]
+  {:cnt ((.next state) (.cnt state)) :next (.next state)})
 
-fun ten_times (state) =
-  if state.cnt < 10 then
-    printi(state.cnt)
-    ten_times(advance(state))
-  else printi(100)
+(fun ten_times [state]
+  (if (< (.cnt state) 10)
+    (do
+      (printi (.cnt state))
+      (ten_times (advance state)))
+    (printi 100)))
 
-ten_times(state)
+(ten_times state)

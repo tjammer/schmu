@@ -31,14 +31,13 @@
         (inner (+ i 1)))))
   (inner 0))
 
--- fun vector_fold(vec, f, init) =
---   fun inner(i, acc) =
---     if i = vec.ptr.length then
---       acc
---     else
---       val acc = f(acc, __unsafe_ptr_get(vec.ptr.optr, i))
---       inner(i+1, acc)
-
---   inner(0, init)
+(fun vector_fold [vec f init]
+  (fun inner [i acc]
+    (if (= i (.length (.ptr vec)))
+      acc
+      (do
+        (val acc (f acc (__unsafe_ptr_get (.optr (.ptr vec)) i)))
+        (inner (+ i 1) acc))))
+  (inner 0 init))
 
 (variant (option 'a) ((#some 'a) #none))

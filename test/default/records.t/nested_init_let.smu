@@ -1,22 +1,23 @@
-type foo = { x : int }
-type ys = { y : foo, z : int }
-external printi : int -> unit
+(record foo {:x int})
 
-fun record_with_laters() =
-  val x = { x = 12 }
-  { y = x, z = 15 }
+(record ys (:y foo :z int))
 
-fun ctrl() =
-  -- control case. Here everything can be created inplace
-  val ret = { y = { x = 17 }, z = 9 }
-  val a = { y = { x = 1 }, z = 2 }
-  ret
+(external printi (fun int unit))
 
-val ys = record_with_laters()
-printi(ys.z)
-printi(ys.y.x)
+(fun record_with_laters []
+  (val x {:x 12})
+  (:y x :z 15))
+
+(fun ctrl []
+  (val ret {:y {:x 17} :z 9})
+  (val a {:y {:x 1} :z 2})
+  ret)
+
+(val ys (record_with_laters))
+(printi (.z ys))
+(printi (.x (.y ys)))
 -- should print 17 and 9
-val ctrl = ctrl()
-printi(ctrl.y.x)
-printi(ctrl.z)
+(val ctrl (ctrl))
+(printi (.x (.y ctrl)))
+(printi (.z ctrl))
 0

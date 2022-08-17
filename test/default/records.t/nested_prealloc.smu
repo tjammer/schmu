@@ -1,28 +1,31 @@
-external printi : int -> unit
-type int_wrap = { dat: int, b: int, c: int }
-type test('a)  = { int_wrap: 'a }
+(external printi (fun int unit))
 
-type mut('a) = { mutable wrapped: 'a }
+(record int_wrap {:dat int :b int :c int})
 
-fun test_thing() =
-  val test = { int_wrap = { dat = 2, b = 0, c = 0 } }
-  fun vector_loop(i) =
-    if i = 10 then
-      test.int_wrap
-    else
-      vector_loop(i+1)
-  vector_loop(0)
+(record (test 'a) {:int_wrap 'a})
 
-fun test_thing_mut() =
-  val test = { wrapped = { dat = 2, b = 0, c = 0 } }
-  fun vector_loop(i) =
-    if i = 10 then
+(record (mut 'a) {:wrapped (mutable 'a)})
+
+(fun test_thing []
+  (val test {:int_wrap {:dat 2 :b 0 :c 0}})
+  (fun vector_loop [i]
+    (if (= i 10)
+      (.int_wrap test)
+      (vector_loop (+ i 1))))
+  (vector_loop 0))
+
+(fun test_thing_mut []
+  (val test {:wrapped {:dat 2 :b 0 :c 0}})
+  (fun vector_loop [i]
+    (if (= i 10)
       ()
-    else
-      test.wrapped <- { dat = test.wrapped.dat + 1, b = 0, c = 0 }
-      vector_loop(i+1)
-  vector_loop(0)
-  test.wrapped
+      (do
+        (setf test .wrapped {:dat (+ (.dat (.wrapped test)) 1) :b 0 :c 0})
+        (vector_loop (+ i 1)))))
+  (vector_loop 0)
+  (.wrapped test))
 
-test_thing() .dat |. printi
-test_thing_mut() .dat |. printi
+(-> (.dat (test_thing))
+    printi)
+(-> (.dat (test_thing_mut))
+    printi)
