@@ -63,7 +63,6 @@ rule read =
   | "or"     { Or }
   | '='      { Equal }
   | "=."     { Bin_equal_f }
-  | ','      { Comma }
   | "'"      { Quote }
   | "if"     { If }
   | "fun"    { Fun }

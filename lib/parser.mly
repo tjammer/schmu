@@ -17,7 +17,6 @@
 %}
 
 %token Equal
-%token Comma
 %token Arrow_right
 %token Arrow_righter
 %token Dot
@@ -80,7 +79,7 @@
 prog: prog = list(top_item); Eof { prog }
 
 top_item:
-  | block = nonempty_list(stmt) { Block block }
+  | stmt = stmt { Stmt stmt }
   | decl = external_decl { Ext_decl decl }
   | def = typedef { Typedef ($loc, def) }
   | open_ { Open ($loc, $1) }
@@ -271,9 +270,6 @@ ident:
 
 sexp_ctor:
   | Constructor { $loc, $1 }
-
-let parensl(x) :=
-  | Lpar; lst = separated_list(Comma, x); Rpar; { lst }
 
 let parenss(x) :=
   | Lpar; item = x; Rpar; { item }
