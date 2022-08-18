@@ -288,15 +288,15 @@ let test_mutable_declare () = test "int" "(record foo { :x (mutable int) }) 0"
 
 let test_mutable_set () =
   test "unit"
-    "(record foo { :x (mutable int) }) (val foo { :x 12 }) (setf foo .x 13)"
+    "(record foo { :x (mutable int) }) (val foo { :x 12 }) (setf (.x foo) 13)"
 
 let test_mutable_set_wrong_type () =
   test_exn "Mutate field x: Expected type int but got type bool"
-    "(record foo { :x (mutable int) }) (val foo { :x 12 }) (setf foo .x true)"
+    "(record foo { :x (mutable int) }) (val foo { :x 12 }) (setf (.x foo) true)"
 
 let test_mutable_set_non_mut () =
   test_exn "Cannot mutate non-mutable field x"
-    "(record foo { :x int }) (val foo { :x 12}) (setf foo .x 13)"
+    "(record foo { :x int }) (val foo { :x 12}) (setf (.x foo) 13)"
 
 let test_variants_option_none () =
   test "option('a)" "(variant (option 'a) (#none (#some 'a))) #none"

@@ -17,10 +17,10 @@
   (if (= (.length (.ptr vec)) (.capacity vec))
     (do
       (val cap (* (.capacity vec) 2))
-      (setf (.ptr vec) .optr (__realloc (.optr (.ptr vec)) cap))
-      (setf vec .capacity cap)))
+      (setf (.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) cap))
+      (setf (.capacity vec) cap)))
       (__unsafe_ptr_set (.optr (.ptr vec)) (.length (.ptr vec)) v)
-      (setf (.ptr vec) .length (+ (.length (.ptr vec)) 1)))
+      (setf (.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))
 
 (fun vector_iter [vec f]
   (fun inner [i]

@@ -220,7 +220,11 @@ sexp_expr:
     { Lambda ($loc, $2, $3) }
 
 %inline sexp_field_set:
-  | Setf; sexp_expr; Accessor; sexp_expr { Field_set ($loc, $2, $3, $4) }
+  | Setf; access = parenss(sexp_set_access); sexp_expr
+    { Field_set ($loc, snd access, fst access, $3) }
+
+%inline sexp_set_access:
+  | acc = Accessor; exp = sexp_expr { acc, exp }
 
 %inline sexp_field_get:
   | Accessor; sexp_expr { Field ($loc, $2, $1) }
