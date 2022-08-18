@@ -1,0 +1,9 @@
+-- We need a nonconst value to capture
+(record to_capture {:field (mutable int)})
+
+-- Wrap into function because globals are not captured
+(fun main_ []
+     (val a {:field 1})
+     (fun []
+          (val a (fun [] a))
+          a))

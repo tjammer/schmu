@@ -4,8 +4,8 @@
 (ignore dummy_call)
 
 (record second { :a int })
-(external print-2nd (second unit))
+(external print_2nd (fun second unit))
 
-(ignore print-2nd)
+(ignore print_2nd)
 
 0

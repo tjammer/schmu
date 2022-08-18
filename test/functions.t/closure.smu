@@ -1,0 +1,17 @@
+(record capturable {:a (mutable int)})
+(val a {:a 10})
+
+(fun capture_a []
+  (+ (.a a) 2))
+
+(fun capture_a_wrapped []
+  -- empty function. In order for this to work, the closure
+  -- needs to be propagated in env
+  (fun wrap []
+    (fun inner []
+      (+ (.a a) 2))
+    (inner))
+  (wrap))
+
+(ignore (capture_a))
+(capture_a_wrapped)

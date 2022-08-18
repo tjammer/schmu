@@ -1,0 +1,14 @@
+(external printi (fun int unit))
+
+(fun fib [n]
+  (if (< n 2)
+    n
+    -- local function
+    (do
+      (fun fibn2 [n] (fib (- n 2)))
+      -- anonymous function
+      -- shadow fib. Since the function is anonymous, the inner fib call still calls the outer fib
+      (val fib (fun [n] (fib (- n 1))))
+      (+ (fibn2 n) (fib n)))))
+
+(printi (fib 30))

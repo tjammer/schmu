@@ -1484,7 +1484,7 @@ prog: Lpar Fun Lbrack Wildcard
 ## Lbrack
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting identifier
 
 prog: Lpar Fun Lbrack Kebab_id Rpar
 ##

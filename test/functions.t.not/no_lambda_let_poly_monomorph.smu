@@ -1,8 +1,0 @@
-external printi : int -> unit
-
-type t = { x : int }
-
--- A polymorphic anonymous function which can not be resolved in the backend (yet)
-val f = if true then fun(x) -> x else fun(x) -> x
-
-printi(f({ x = 17 }).x)

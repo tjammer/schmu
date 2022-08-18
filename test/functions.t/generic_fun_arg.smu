@@ -1,0 +1,51 @@
+(external printi (fun int unit))
+
+(record (t 'a) {:x 'a})
+
+-- This fn is generic
+(fun apply [(x 'a) (f (fun 'a 'b))]
+  (f x))
+
+(val a 2)
+
+(fun add_closed [x]
+  -- we close over
+  (+ x a))
+
+-- simple int -> int
+(fun add1 [x] (+ x 1))
+
+(fun print_bool [b]
+  (if b
+    (printi 1)
+    (printi 0)))
+
+-- simple bool -> bool
+(fun makefalse [b]
+  (if b
+    false
+    b))
+
+-- bool t -> bool t
+(fun make_rec_false [r]
+  (if (.x r)
+    {:x false}
+    r))
+
+-- simple t -> t
+(fun add3_rec [t]
+  {:x (+ (.x t) 3)})
+
+-- A polymorphic function which will get monomorphized
+(val f (fun [x] x))
+
+(printi (apply 20 add1))
+(printi (apply 20 add_closed))
+(printi (.x (apply {:x 20} add3_rec)))
+(print_bool (.x (apply {:x true} make_rec_false)))
+(print_bool (apply true makefalse))
+(printi (.x (f {:x 17})))
+-- inline polymorphic function
+(-> 18
+    (fun [x] x)
+    printi)

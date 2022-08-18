@@ -1,0 +1,48 @@
+(external printi (fun int unit))
+
+(fun vector_push [vec v]
+  (if (< (.length (.ptr vec)) (.capacity vec))
+    (do
+      (__unsafe_ptr_set (.optr (.ptr vec)) (.length (.ptr vec)) v)
+      (setf (.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))
+    (do
+      (val cap (* (.capacity vec) 2))
+      (setf (.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) cap))
+      (setf (.capacity vec) cap)
+      (__unsafe_ptr_set (.optr (.ptr vec)) (.length (.ptr vec)) v)
+      (setf (.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))))
+
+(fun vector_iter [vec f]
+  (fun inner_cls_both [i]
+    (if (= i (.length (.ptr vec)))
+      ()
+      (do
+        (f (__unsafe_ptr_get (.optr (.ptr vec)) i))
+        (inner_cls_both (+ i 1)))))
+
+  (fun inner_cls_vec [i f]
+    (if (= i (.length (.ptr vec)))
+      ()
+      (do
+        (f (__unsafe_ptr_get (.optr (.ptr vec)) i))
+        (inner_cls_vec (+ i 1) f))))
+
+  (fun inner_cls_f [i vec]
+    (if (= i (.length (.ptr vec)))
+      ()
+      (do
+        (f (__unsafe_ptr_get (.optr (.ptr vec)) i))
+        (inner_cls_f (+ i 1) vec))))
+
+  (inner_cls_both 0)
+  (inner_cls_vec 0 f)
+  (inner_cls_f 0 vec))
+
+(val vec [])
+(vector_push vec 1)
+(vector_push vec 2)
+(vector_push vec 3)
+(vector_push vec 4)
+(vector_push vec 5)
+
+(vector_iter vec (fun [x] (printi (* x 2))))

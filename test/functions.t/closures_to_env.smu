@@ -1,0 +1,10 @@
+(external printf (fun cstr int unit))
+
+(val a 20)
+
+(fun close_over_a [] a)
+
+(fun use_above []
+  (printf (.cstr "%i\n") (close_over_a)))
+
+(use_above)

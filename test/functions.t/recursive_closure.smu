@@ -1,0 +1,13 @@
+(external printi (fun int unit))
+
+(val outer 10)
+
+(fun loop [i]
+  -- we capture outer here
+  (if (< i outer)
+    (do
+      (printi i)
+      (loop (+ i 1))) -- and recurse here
+    (printi i)))
+
+(loop 0)

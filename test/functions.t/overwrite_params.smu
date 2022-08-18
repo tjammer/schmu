@@ -1,0 +1,13 @@
+(external printi (fun int unit))
+
+(val b 2)
+
+(fun one [] 1)
+
+(fun two [] b)
+
+(fun add [a b]
+  -- b should be a function, not captured value
+  (+ (a) (b)))
+
+(printi (add one two))

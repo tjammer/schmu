@@ -1,0 +1,15 @@
+(external printi (fun int unit))
+
+(record t {:i int :b bool})
+
+(fun pass [x] x)
+
+(fun apply [f x] (f x))
+
+-- printi(apply(pass, 20))
+(-> (apply pass 20)
+    printi)
+-- printi(apply(pass, { i = 700, b = false }).i)
+(-> (.i (->> {:i 700 :b false}
+             (apply pass)))
+    printi)
