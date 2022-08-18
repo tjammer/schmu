@@ -97,7 +97,7 @@ type typedef =
   | Tvariant of variant
 
 type top_item =
-  | Block of block
+  | Stmt of stmt
   | Ext_decl of external_decl
   | Typedef of loc * typedef
   | Open of loc * string
