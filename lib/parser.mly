@@ -88,12 +88,12 @@
 
 %%
 
-prog: list(top_item); Eof { $1 }
+prog: prog = list(top_item); Eof { prog }
 
 top_item:
-  | nonempty_list(stmt) { Block $1 }
-  | external_decl { Ext_decl $1 }
-  | typedef { Typedef ($loc, $1) }
+  | stmt = stmt { Stmt stmt }
+  | decl = external_decl { Ext_decl decl }
+  | def = typedef { Typedef ($loc, def) }
   | open_ { Open ($loc, $1) }
 
 %inline external_decl:

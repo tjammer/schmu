@@ -763,10 +763,8 @@ let convert_prog env ~prelude items modul =
   let old = ref (Lexing.(dummy_pos, dummy_pos), Tunit) in
 
   let rec aux (env, items, m) = function
-    | Ast.Block block ->
-        let old', env, items, m =
-          List.fold_left aux_block (!old, env, items, m) block
-        in
+    | Ast.Stmt stmt ->
+        let old', env, items, m = aux_stmt (!old, env, items, m) stmt in
         old := old';
         (env, items, m)
     | Ext_decl (loc, (idloc, id), typ, cname) ->
@@ -790,7 +788,7 @@ let convert_prog env ~prelude items modul =
         let modul = Module.read_exn ~regeneralize modul loc in
         let env = Module.add_to_env env modul in
         (env, items, m)
-  and aux_block (old, env, items, m) = function
+  and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
         let env, texpr = Core.convert_let ~global:true env loc decl block in
