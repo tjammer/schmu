@@ -1712,16 +1712,22 @@ and codegen_field param expr index =
 
   let value = gen_expr param expr in
 
-  (* NOTE I feel like there should be a condition here matching on Const or Const_ptr,
-     and to use either a const_extractvalue or runtime struct gep.
-     In practice, it does not seem to be needed *)
-  let ptr = Llvm.build_struct_gep value.value index "" builder in
-  (* In case we return a record, we don't load, but return the pointer.
-     The idea is that this will be used either as a return value for a function (where it is copied),
-     or for another field, where the pointer is needed.
-     We should distinguish between structs and pointers somehow *)
-  let value = load ptr typ in
-  { value; typ; lltyp = Llvm.type_of value; const = Not }
+  let value, const =
+    match value.const with
+    | Const_ptr | Not ->
+        let p = Llvm.build_struct_gep value.value index "" builder in
+        (* In case we return a record, we don't load, but return the pointer.
+           The idea is that this will be used either as a return value for a function (where it is copied),
+           or for another field, where the pointer is needed.
+           We should distinguish between structs and pointers somehow *)
+        (load p typ, Not)
+    | Const ->
+        (* If the record is const, we use extractvalue and propagate the constness *)
+        let p = Llvm.(const_extractvalue value.value [| index |]) in
+        (p, Const)
+  in
+
+  { value; typ; lltyp = get_lltype_def typ; const }
 
 and codegen_field_set param expr index valexpr =
   let value = gen_expr param expr in

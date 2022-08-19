@@ -16,7 +16,6 @@
 
 -- pipe field accessor
 (record foo {:x int})
-(val a {:x 1})
-(-> a
+(-> {:x 1}
     .x
     printi)

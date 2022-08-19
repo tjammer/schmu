@@ -1613,10 +1613,7 @@ Piping for ctors and field accessors
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %foo = type { i64 }
   %option_int = type { i32, i64 }
-  
-  @a = constant %foo { i64 1 }
   
   declare void @Printi(i64 %0)
   
