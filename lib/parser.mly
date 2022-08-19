@@ -6,6 +6,15 @@
       | Some (Ty_var s) -> Some s
       | _ -> failwith "Internal Error: Should have been a type var"
 
+    let parse_cond loc fst then_ conds =
+      let rec aux = function
+        | [ (_, _, blk) ] -> blk
+        | (loc, cond, blk) :: tl ->
+            Some [ Ast.Expr (loc, If (loc, cond, Option.get blk, aux tl)) ]
+        | [] -> failwith "Menhir, this list should be nonempty"
+      in
+      Ast.If (loc, fst, then_, aux conds)
+
     let make_pairs bin arg args =
       let rec build = function
         | [ a ] -> bin arg a
@@ -58,6 +67,7 @@
 %token Lbrack
 %token Rbrack
 %token If
+%token Cond
 %token Eof
 %token Fun
 %token Val
@@ -214,6 +224,11 @@ sexp_expr:
 
 %inline sexp_if:
   | If; sexp_expr; block; option(block) { If ($loc, $2, $3, $4) }
+  | Cond; fst = sexp_expr; then_ = block; conds = sexp_cond { parse_cond $loc fst then_ conds }
+
+sexp_cond:
+  | cond = sexp_expr; expr = block; tl = sexp_cond { ($loc, cond, Some expr) :: tl }
+  | else_ = option(block) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
   | Fun; maybe_bracks(list(sexp_decl)) list(stmt)

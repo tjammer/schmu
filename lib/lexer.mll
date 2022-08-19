@@ -76,6 +76,7 @@ rule read =
   | "variant" { Defvariant }
   | "external"{ Defexternal }
   | "setf"   { Setf }
+  | "cond"   { Cond }
   | '_'      { Wildcard }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
   | uppercase_id { Uppercase_id (Lexing.lexeme lexbuf) }
