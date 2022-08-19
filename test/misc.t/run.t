@@ -1606,3 +1606,58 @@ Make sure an if returns either Const or Const_ptr, but in a consistent way
   entry:
     ret i64 0
   }
+
+Piping for ctors and field accessors
+  $ schmu stub.o --dump-llvm piping.smu && ./piping
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %foo = type { i64 }
+  %option_int = type { i32, i64 }
+  
+  @a = constant %foo { i64 1 }
+  
+  declare void @Printi(i64 %0)
+  
+  define i64 @schmu___fun1(%option_int* %x) {
+  entry:
+    %tag1 = bitcast %option_int* %x to i32*
+    %index = load i32, i32* %tag1, align 4
+    %eq = icmp eq i32 %index, 0
+    br i1 %eq, label %then, label %ifcont
+  
+  then:                                             ; preds = %entry
+    %data = getelementptr inbounds %option_int, %option_int* %x, i32 0, i32 1
+    %0 = load i64, i64* %data, align 4
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    %iftmp = phi i64 [ %0, %then ], [ 0, %entry ]
+    ret i64 %iftmp
+  }
+  
+  define i64 @schmu___fun0(i64 %x) {
+  entry:
+    %add = add i64 %x, 1
+    ret i64 %add
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %0 = tail call i64 @schmu___fun0(i64 1)
+    tail call void @Printi(i64 %0)
+    %option = alloca %option_int, align 8
+    %tag1 = bitcast %option_int* %option to i32*
+    store i32 0, i32* %tag1, align 4
+    %data = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
+    store i64 1, i64* %data, align 4
+    %1 = call i64 @schmu___fun1(%option_int* %option)
+    call void @Printi(i64 %1)
+    call void @Printi(i64 1)
+    ret i64 0
+  }
+  
+  2
+  1
+  1

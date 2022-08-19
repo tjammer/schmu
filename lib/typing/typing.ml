@@ -670,25 +670,36 @@ end = struct
       attr = no_attr;
     }
 
+  and pipe_ctor_msg =
+    "Constructor already has an argument, cannot pipe a second one"
+
   and convert_pipe_head env loc e1 e2 =
     let switch_uni = true in
     match e2 with
-    | App (_, callee, args) ->
+    | Pip_expr (App (_, callee, args)) ->
         (* Add e1 to beginnig of args *)
         convert_app ~switch_uni env loc callee (e1 :: args)
-    | _ ->
+    | Pip_expr (Ctor (_, name, expr)) ->
+        if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
+        convert_ctor env loc name (Some e1) None
+    | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
+    | Pip_field field -> convert_field env loc e1 field
 
   and convert_pipe_tail env loc e1 e2 =
     let switch_uni = true in
     match e2 with
-    | App (_, callee, args) ->
+    | Pip_expr (App (_, callee, args)) ->
         (* Add e1 to beginnig of args *)
         convert_app ~switch_uni env loc callee (args @ [ e1 ])
-    | _ ->
+    | Pip_expr (Ctor (_, name, expr)) ->
+        if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
+        convert_ctor env loc name (Some e1) None
+    | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
+    | Pip_field field -> convert_field env loc e1 field
 
   and convert_open env loc modul blk =
     let modul = Module.read_exn ~regeneralize modul loc in

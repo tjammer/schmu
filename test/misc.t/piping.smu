@@ -1,0 +1,22 @@
+(external printi (fun int unit) "Printi")
+
+-- pipe into normal function
+(-> 1
+    (fun [x] (+ x 1))
+    printi)
+
+-- pipe into ctor
+(-> 1
+    #some
+    (fun [x]
+      (match x
+        (#some a) a
+        #none 0))
+    printi)
+
+-- pipe field accessor
+(record foo {:x int})
+(val a {:x 1})
+(-> a
+    .x
+    printi)

@@ -49,11 +49,13 @@ and expr =
   | Record of loc * (string * expr) list
   | Field of loc * expr * string
   | Field_set of loc * expr * string * expr
-  | Pipe_head of loc * expr * expr
-  | Pipe_tail of loc * expr * expr
+  | Pipe_head of loc * expr * pipeable
+  | Pipe_tail of loc * expr * pipeable
   | Ctor of loc * (loc * string) * expr option
   | Match of loc * expr list * (loc * pattern * block) list
   | Local_open of loc * string * block
+
+and pipeable = Pip_expr of expr | Pip_field of string
 
 and pattern =
   | Pctor of (loc * string) * pattern option

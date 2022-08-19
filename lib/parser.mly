@@ -245,12 +245,16 @@ sexp_cond:
   | Accessor; sexp_expr { Field ($loc, $2, $1) }
 
 %inline sexp_pipe_head:
-  | Arrow_right; sexp_expr; nonempty_list(sexp_expr)
+  | Arrow_right; sexp_expr; nonempty_list(pipeable)
     { make_pairs (fun a b -> Ast.Pipe_head ($loc, a, b)) $2 $3 }
 
 %inline sexp_pipe_tail:
-  | Arrow_righter; sexp_expr; nonempty_list(sexp_expr)
+  | Arrow_righter; sexp_expr; nonempty_list(pipeable)
     { make_pairs (fun a b -> Ast.Pipe_tail ($loc, a, b)) $2 $3 }
+
+%inline pipeable:
+  | expr = sexp_expr { Pip_expr expr }
+  | f = Accessor { Pip_field f }
 
 %inline sexp_call:
   | sexp_expr { App ($loc, $1, []) }
