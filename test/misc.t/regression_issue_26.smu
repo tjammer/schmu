@@ -1,0 +1,38 @@
+(external printf (fun cstr int int int unit))
+
+(val limit 3)
+
+-- this works
+(fun nested [a b]
+  (cond
+    (= b limit) (nested (+ a 1) 0)
+    (= a limit) ()
+    (do
+      (printf (.cstr "%i, %i\n") a b 0)
+      (nested a (+ b 1)))))
+
+(nested 0 0)
+
+(printf (.cstr "\n") 0 0 0)
+
+(fun nested [a b c]
+  (cond
+    (= b limit) (nested (+ a 1) 0 c)
+    (= c limit) (nested a (+ b 1) 0)
+    (= a limit) ()
+    (do
+      (printf (.cstr "%i, %i, %i\n") a b c)
+      (nested a b (+ c 1)))))
+
+(nested 0 0 0)
+
+(fun nested [a b c]
+  (cond
+    (= b limit) (nested (+ a 1) 0 c)
+    (= a limit) ()
+    (= c limit) (nested a (+ b 1) 0)
+    (do
+      (printf (.cstr "%i, %i, %i\n") a b c)
+      (nested a b (+ c 1)))))
+
+0

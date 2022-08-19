@@ -1,0 +1,3 @@
+(external printi (fun int unit) "Printi")
+
+(printi 42)

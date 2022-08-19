@@ -1,3 +1,0 @@
-type foo = raw_ptr(u8)
-external puts : foo -> unit
-0

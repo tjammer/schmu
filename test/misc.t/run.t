@@ -49,9 +49,9 @@ Test elif
 
 Test simple typedef
   $ schmu --dump-llvm stub.o simple_typealias.smu && ./simple_typealias
-  simple_typealias.smu:2:10: warning: Unused binding puts
-  2 | external puts : foo -> unit
-               ^^^^
+  simple_typealias.smu:2:11: warning: Unused binding puts
+  2 | (external puts (fun foo unit))
+                ^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -67,45 +67,45 @@ Test simple typedef
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
   $ schmu --dump-llvm stub.o free_vector.smu && ./free_vector
-  free_vector.smu:7:5: warning: Unused binding vec
-  7 | val vec = ["hey", "young", "world"]
-          ^^^
-  
-  free_vector.smu:8:5: warning: Unused binding vec
-  8 | val vec = [x, {x = 2}, {x = 3}]
-          ^^^
-  
-  free_vector.smu:48:5: warning: Unused binding vec
-  48 | val vec = make_vec()
+  free_vector.smu:7:6: warning: Unused binding vec
+  7 | (val vec ["hey" "young" "world"])
            ^^^
   
-  free_vector.smu:51:5: warning: Unused binding normal
-  51 | val normal = nest_fns()
-           ^^^^^^
+  free_vector.smu:8:6: warning: Unused binding vec
+  8 | (val vec [x {:x 2} {:x 3}])
+           ^^^
   
-  free_vector.smu:55:5: warning: Unused binding nested
-  55 | val nested = make_nested_vec()
-           ^^^^^^
+  free_vector.smu:48:6: warning: Unused binding vec
+  48 | (val vec (make_vec))
+            ^^^
   
-  free_vector.smu:56:5: warning: Unused binding nested
-  56 | val nested = nest_allocs()
-           ^^^^^^
+  free_vector.smu:51:6: warning: Unused binding normal
+  51 | (val normal (nest_fns))
+            ^^^^^^
   
-  free_vector.smu:59:5: warning: Unused binding rec_of_vec
-  59 | val rec_of_vec = { index = 12, vec = [1, 2]}
-           ^^^^^^^^^^
+  free_vector.smu:55:6: warning: Unused binding nested
+  55 | (val nested (make_nested_vec))
+            ^^^^^^
   
-  free_vector.smu:60:5: warning: Unused binding rec_of_vec
-  60 | val rec_of_vec = record_of_vecs()
-           ^^^^^^^^^^
+  free_vector.smu:56:6: warning: Unused binding nested
+  56 | (val nested (nest_allocs))
+            ^^^^^^
   
-  free_vector.smu:62:5: warning: Unused binding vec_of_rec
-  62 | val vec_of_rec = [record_of_vecs(), record_of_vecs()]
-           ^^^^^^^^^^
+  free_vector.smu:59:6: warning: Unused binding rec_of_vec
+  59 | (val rec_of_vec {:index 12 :vec [1 2]})
+            ^^^^^^^^^^
   
-  free_vector.smu:63:5: warning: Unused binding vec_of_rec
-  63 | val vec_of_rec = vec_of_records()
-           ^^^^^^^^^^
+  free_vector.smu:60:6: warning: Unused binding rec_of_vec
+  60 | (val rec_of_vec (record_of_vecs))
+            ^^^^^^^^^^
+  
+  free_vector.smu:62:6: warning: Unused binding vec_of_rec
+  62 | (val vec_of_rec [(record_of_vecs) (record_of_vecs)])
+            ^^^^^^^^^^
+  
+  free_vector.smu:63:6: warning: Unused binding vec_of_rec
+  63 | (val vec_of_rec (vec_of_records))
+            ^^^^^^^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -1232,21 +1232,21 @@ Test 'and', 'or' and 'not'
 
 
   $ schmu --dump-llvm stub.o unary_minus.smu && ./unary_minus
-  unary_minus.smu:1:5: warning: Unused binding a
-  1 | val a = -1.0
-          ^
+  unary_minus.smu:1:6: warning: Unused binding a
+  1 | (val a -1.0)
+           ^
   
-  unary_minus.smu:2:5: warning: Unused binding a
-  2 | val a = -.1.0
-          ^
+  unary_minus.smu:2:6: warning: Unused binding a
+  2 | (val a -.1.0)
+           ^
   
-  unary_minus.smu:3:5: warning: Unused binding a
-  3 | val a = - 1.0
-          ^
+  unary_minus.smu:3:6: warning: Unused binding a
+  3 | (val a - 1.0)
+           ^
   
-  unary_minus.smu:4:5: warning: Unused binding a
-  4 | val a = -. 1.0
-          ^
+  unary_minus.smu:4:6: warning: Unused binding a
+  4 | (val a -. 1.0)
+           ^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -1267,53 +1267,44 @@ Test 'and', 'or' and 'not'
 
 Test unused binding warning
   $ schmu unused.smu stub.o
-  unused.smu:2:5: warning: Unused binding unused1
-  2 | val unused1 = 0
-          ^^^^^^^
+  unused.smu:2:6: warning: Unused binding unused1
+  2 | (val unused1 0)
+           ^^^^^^^
   
-  unused.smu:5:5: warning: Unused binding unused2
-  5 | val unused2 = 0
-          ^^^^^^^
+  unused.smu:5:6: warning: Unused binding unused2
+  5 | (val unused2 0)
+           ^^^^^^^
   
-  unused.smu:12:5: warning: Unused binding use_unused3
-  12 | fun use_unused3() =
-           ^^^^^^^^^^^
+  unused.smu:12:6: warning: Unused binding use_unused3
+  12 | (fun use_unused3 []
+            ^^^^^^^^^^^
   
-  unused.smu:17:7: warning: Unused binding unused4
-  17 |   val unused4 = 0
-             ^^^^^^^
+  unused.smu:19:11: warning: Unused binding unused4
+  19 |      (val unused4 0)
+                 ^^^^^^^
   
-  unused.smu:20:7: warning: Unused binding unused5
-  20 |   val unused5 = 0
-             ^^^^^^^
+  unused.smu:23:11: warning: Unused binding unused5
+  23 |      (val unused5 0)
+                 ^^^^^^^
   
-  unused.smu:33:7: warning: Unused binding usedlater
-  33 |   val usedlater = 0
-             ^^^^^^^^^
+  unused.smu:38:13: warning: Unused binding usedlater
+  38 |        (val usedlater 0)
+                   ^^^^^^^^^
   
-  unused.smu:47:7: warning: Unused binding usedlater
-  47 |   val usedlater = 0
-             ^^^^^^^^^
+  unused.smu:52:13: warning: Unused binding usedlater
+  52 |        (val usedlater 0)
+                   ^^^^^^^^^
   
 Allow declaring a c function with a different name
   $ schmu stub.o cname_decl.smu && ./cname_decl
   
   42
 
-Print error when using uppercase names for externals
-  $ schmu stub.o cname_decl_wrong.smu
-  cname_decl_wrong.smu:1:16: error: Functions must have lowercase names. Use the following form: 'external schmu_name : <type> = "CName"'
-  
-  1 | external Printi : int -> unit
-               ^^^^^^
-  
-  [1]
-
 We can have if without else
   $ schmu if_no_else.smu
-  if_no_else.smu:3:1: error: A conditional without else branch should evaluato to type unit. Expected type unit but got type int
-  3 | if true then 2
-      ^^^^^^^^^^^^^^
+  if_no_else.smu:2:2: error: A conditional without else branch should evaluato to type unit. Expected type unit but got type int
+  2 | (if true 2)
+       ^^^^^^^^^
   
   [1]
 
@@ -1550,9 +1541,9 @@ Tailcall loops
 
 Make sure an if returns either Const or Const_ptr, but in a consistent way
   $ schmu -c --dump-llvm regression_issue_30.smu
-  regression_issue_30.smu:8:5: warning: Unused binding calc_acc
-  8 | fun calc_acc(vel) =
-          ^^^^^^^^
+  regression_issue_30.smu:8:6: warning: Unused binding calc_acc
+  8 | (fun calc_acc [vel]
+           ^^^^^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"

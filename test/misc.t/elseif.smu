@@ -1,0 +1,13 @@
+(external assert (fun bool unit))
+
+(fun test [n]
+  (cond
+    (= n 10) 1
+    (< n 1) 2
+    (< n 10) 3
+    4))
+
+(assert (= (test 10) 1))
+(assert (= (test 0) 2))
+(assert (= (test 1) 3))
+(assert (= (test 11) 4))

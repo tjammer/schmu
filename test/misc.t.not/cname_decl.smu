@@ -1,3 +1,0 @@
-external printi : int -> unit = "Printi"
-
-printi(42)

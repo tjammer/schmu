@@ -1,0 +1,57 @@
+(external puts (fun cstr unit))
+
+(fun ps [str] (puts (.cstr str)))
+
+(fun true_ []
+  (ps "true")
+  true)
+
+(fun false_ []
+  (ps "false")
+  false)
+
+(ps "test 'and':")
+
+(if (and (true_) (true_))
+  (ps "yes")
+  (ps "no"))
+
+(if (and (true_) (false_))
+  (ps "yes")
+  (ps "no"))
+
+(if (and (false_) (true_))
+  (ps "yes")
+  (ps "no"))
+
+(if (and (false_) (false_))
+  (ps "yes")
+  (ps "no"))
+
+(ps "test 'or':")
+
+(if (or (true_) (true_))
+  (ps "yes")
+  (ps "no"))
+
+(if (or (true_) (false_))
+  (ps "yes")
+  (ps "no"))
+
+(if (or (false_) (true_))
+  (ps "yes")
+  (ps "no"))
+
+(if (or (false_) (false_))
+  (ps "yes")
+  (ps "no"))
+
+(ps "test 'not':")
+
+(if (not (true_))
+  (ps "yes")
+  (ps "no"))
+
+(if (not (false_))
+  (ps "yes")
+  (ps "no"))

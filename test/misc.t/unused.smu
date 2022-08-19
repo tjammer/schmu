@@ -1,0 +1,53 @@
+-- default unused
+(val unused1 0)
+
+-- will be shadowed before usage
+(val unused2 0)
+(val unused2 0)
+(ignore unused2)
+
+-- use in closure
+(val used3 0)
+
+(fun use_unused3 []
+  -- TODO Should we mark this as used only if the function is used?
+  (ignore used3))
+
+(ignore
+ (if true
+   (do
+     (val unused4 0)
+     0)
+
+   (do
+     (val unused5 0)
+     0)))
+
+(if true
+    (do
+      (val used1 0)
+      (ignore used1))
+    (do
+      (val used2 0)
+         (ignore used2)))
+
+(ignore
+ (if true
+     -- unused here, should be warned
+     (do
+       (val usedlater 0)
+       0)
+     (do
+       (val usedlater 0)
+       (ignore usedlater)
+       0)))
+
+(ignore
+ (if true
+     (do
+       (val usedlater 0)
+       (ignore usedlater)
+       0)
+     (do -- unused here, should be warned
+       (val usedlater 0)
+       0)))
