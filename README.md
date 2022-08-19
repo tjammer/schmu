@@ -13,7 +13,7 @@ Fibonacci example
 external printi : int -> unit
 
 -- Variable binding
-number = 35
+val number = 35
 
 -- Calculate fibonacci number
 fun fib(n) =
@@ -22,8 +22,12 @@ fun fib(n) =
   else fib(n - 1) + fib(n - 2)
 
 -- and print it
-printi(fib(number))
+fib(number) |. printi
 ```
+
+A note on syntax:
+For ease of development, schmu currently uses an s-expression based syntax.
+The plan is to switch back to a more traditional syntax once the semantics are closer to being finalized.
 
 <!-- ``` lua -->
 <!-- external printi : int -> unit -->
