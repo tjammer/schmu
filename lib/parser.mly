@@ -28,10 +28,8 @@
 %token Equal
 %token Arrow_right
 %token Arrow_righter
-%token Dot
 %token Do
 %token <string> Lowercase_id
-%token <string> Uppercase_id
 %token <string> Kebab_id
 %token <string> Name
 %token <string> Constructor
@@ -343,7 +341,7 @@ build_sexp_type_list:
 type_spec:
   | ident { Ty_id (snd $1) }
   | poly_id { $1 }
-  | Uppercase_id; Dot; type_spec { Ty_open_id ($loc, $3, $1) }
+  | ident; Div_i; type_spec { Ty_open_id ($loc, $3, snd $1) }
 
 %inline poly_id:
   | Quote; Lowercase_id { Ty_var $2 }

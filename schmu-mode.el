@@ -22,11 +22,12 @@
   (let ((table (make-syntax-table)))
 
     ;; Comments start with a '#' and end with a newline
-    (modify-syntax-entry ?- ". 12" table)
+    (modify-syntax-entry ?- "_. 12" table)
     (modify-syntax-entry ?\n ">" table)
 
     ;; For keywords, make the ':' part of the symbol class
     (modify-syntax-entry ?: "_" table)
+    (modify-syntax-entry ?# "_" table)
 
     ;; Backtick is a string delimiter
     (modify-syntax-entry ?` "\"" table)
@@ -61,7 +62,7 @@ the syntax table, so `forward-word' works as expected.")
   "The regex to identify schmu function names.")
 
 (defconst schmu-var-decl-forms
-  '("var" "var-" "def" "def-" "defglobal" "varglobal" "default" "dyn"))
+  '("var" "var-" "def" "def-" "defglobal" "varglobal" "default" "dyn" "variant" "record" "alias"))
 
 (defconst schmu-variable-declaration-pattern
   (rx-to-string `(sequence ,@schmu-start-of-sexp
@@ -70,7 +71,7 @@ the syntax table, so `forward-word' works as expected.")
   "The regex to identify variable declarations.")
 
 (defconst schmu-keyword-pattern
-  (rx-to-string `(group symbol-start ":" ,schmu-symbol)))
+  (rx-to-string `(group symbol-start (or ":" "#") ,schmu-symbol)))
 
 (defconst schmu-error-pattern
   (rx-to-string `(sequence ,@schmu-start-of-sexp (group symbol-start "error" symbol-end))))
@@ -254,7 +255,7 @@ There is special handling for:
                body-indent)
               (method
                (funcall method indent-point state))
-              ((string-match (rx bos (or "val" "with-")) head)
+              ((string-match (rx bos (or "val" "variant" "with-")) head)
                body-indent) ;just like 'defun
               (t
                (schmu--normal-indent state)))))))
@@ -385,7 +386,7 @@ STATE is the `parse-partial-sexp' state for that position."
   (setq-local indent-line-function #'schmu-indent-line)
   (setq-local lisp-indent-function #'schmu-indent-function)
   (setq-local comment-start "--")
-  (setq-local comment-start-skip "#+ *")
+  ;; (setq-local comment-start-skip "-+ *")
   (setq-local comment-use-syntax t)
   (setq-local comment-end "")
   (setq-local imenu-case-fold-search t)

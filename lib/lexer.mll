@@ -37,10 +37,9 @@ let i32 = min? digit+ "i32"
 let f32 = min? float "f32"
 
 let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
-let uppercase_id = uppercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
 let builtin_id = "__" lowercase_id
 
-let kebab_id = lowercase_alpha (lowercase_alpha|'-')*
+let kebab_id = lowercase_alpha (lowercase_alpha|'-'|digit|'?')*
 let name = ':'(lowercase_id|kebab_id)
 let constructor = '#'(lowercase_id|kebab_id)
 let accessor = '.'(lowercase_id|kebab_id)
@@ -79,7 +78,6 @@ rule read =
   | "cond"   { Cond }
   | '_'      { Wildcard }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
-  | uppercase_id { Uppercase_id (Lexing.lexeme lexbuf) }
   | kebab_id     { Kebab_id (Lexing.lexeme lexbuf) }
   | name     { Name (name_of_string (Lexing.lexeme lexbuf)) }
   | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }
@@ -98,7 +96,6 @@ rule read =
   | "<."     { Less_f }
   | '>'      { Greater_i }
   | ">."     { Greater_f }
-  | '.'      { Dot }
   | '('      { Lpar }
   | ')'      { Rpar }
   | '{'      { Lbrac }
