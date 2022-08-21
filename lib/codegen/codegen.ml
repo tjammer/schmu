@@ -434,6 +434,38 @@ let maybe_box_record typ ?(alloc = None) ?(snd_val = None) value =
   | Unboxed size -> box_record typ ~size ~alloc ~snd_val value
   | Boxed -> value
 
+let unbox_const_record kind value =
+  (* TODO Implement for two params and check why it's unreachable right now *)
+  let target_type = lltype_unboxed kind in
+  match kind with
+  | Two_params _ ->
+      failwith "Internal Error: Cannot deal with const two types yet"
+  | One_param (Ints _) ->
+      let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
+      if pieces > 1 then failwith "Int of pieces TODO"
+      else
+        let is_signed =
+          match value.typ with
+          | Trecord (_, _, fields) -> (
+              match fields.(0).ftyp with Tbool -> false | _ -> true)
+          | _ -> failwith "Internal Error: Not a record to unbox"
+        in
+        let value = Llvm.const_extractvalue value.value [| 0 |] in
+        Llvm.const_intcast ~is_signed value target_type
+  | One_param (F32 | Float) ->
+      let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
+      if pieces > 1 then failwith "Float of pieces TODO"
+      else
+        let value = Llvm.const_extractvalue value.value [| 0 |] in
+        Llvm.const_fpcast value target_type
+  | One_param F32_vec ->
+      let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
+      if pieces <> 2 then failwith "F32_vec of pieces TODO"
+      else
+        let v1 = Llvm.const_extractvalue value.value [| 0 |] in
+        let v2 = Llvm.const_extractvalue value.value [| 1 |] in
+        Llvm.const_vector [| v1; v2 |]
+
 let unbox_record ~kind ~ret value =
   let structptr =
     lazy
@@ -449,7 +481,7 @@ let unbox_record ~kind ~ret value =
   (* If this is a return value, we unbox it as a struct every time *)
   match (ret, kind) with
   | (true, _ | _, One_param _) when is_const ->
-      (Llvm.const_bitcast value.value (lltype_unboxed kind), None)
+      (unbox_const_record kind value, None)
   | true, _ | _, One_param _ ->
       (Llvm.build_load (Lazy.force structptr) "unbox" builder, None)
   | _, Two_params _ ->

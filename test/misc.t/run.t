@@ -619,6 +619,8 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   %i2 = type { i64, i64 }
   %v1 = type { double }
   %i1 = type { i64 }
+  %f2s = type { float, float }
+  %f3s = type { float, float, float }
   
   declare { double, double } @subv2(double %0, double %1)
   
@@ -638,13 +640,17 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   
   declare void @subtrailv2(%trailv2* %0, %trailv2* byval(%trailv2) %1)
   
+  declare <2 x float> @subf2s(<2 x float> %0)
+  
+  declare { <2 x float>, float } @subf3s(<2 x float> %0, float %1)
+  
   define i64 @main(i64 %arg) {
   entry:
     %boxconst = alloca %v2, align 8
     store %v2 { double 1.000000e+00, double 1.000000e+01 }, %v2* %boxconst, align 8
     %unbox = bitcast %v2* %boxconst to { double, double }*
-    %fst29 = bitcast { double, double }* %unbox to double*
-    %fst1 = load double, double* %fst29, align 8
+    %fst41 = bitcast { double, double }* %unbox to double*
+    %fst1 = load double, double* %fst41, align 8
     %snd = getelementptr inbounds { double, double }, { double, double }* %unbox, i32 0, i32 1
     %snd2 = load double, double* %snd, align 8
     %ret = alloca %v2, align 8
@@ -654,8 +660,8 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %boxconst4 = alloca %i2, align 8
     store %i2 { i64 1, i64 10 }, %i2* %boxconst4, align 4
     %unbox5 = bitcast %i2* %boxconst4 to { i64, i64 }*
-    %fst630 = bitcast { i64, i64 }* %unbox5 to i64*
-    %fst7 = load i64, i64* %fst630, align 4
+    %fst642 = bitcast { i64, i64 }* %unbox5 to i64*
+    %fst7 = load i64, i64* %fst642, align 4
     %snd8 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox5, i32 0, i32 1
     %snd9 = load i64, i64* %snd8, align 4
     %ret10 = alloca %i2, align 8
@@ -663,11 +669,11 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %box11 = bitcast %i2* %ret10 to { i64, i64 }*
     store { i64, i64 } %1, { i64, i64 }* %box11, align 4
     %ret13 = alloca %v1, align 8
-    %2 = tail call double @subv1(double bitcast (%v1 { double 1.000000e+00 } to double))
+    %2 = tail call double @subv1(double 1.000000e+00)
     %box14 = bitcast %v1* %ret13 to double*
     store double %2, double* %box14, align 8
     %ret16 = alloca %i1, align 8
-    %3 = tail call i64 @subi1(i64 bitcast (%i1 { i64 1 } to i64))
+    %3 = tail call i64 @subi1(i64 1)
     %box17 = bitcast %i1* %ret16 to i64*
     store i64 %3, i64* %box17, align 4
     %boxconst19 = alloca %v3, align 8
@@ -690,6 +696,21 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     store %trailv2 { i64 1, i64 2, double 1.000000e+00, double 2.000000e+00 }, %trailv2* %boxconst27, align 8
     %ret28 = alloca %trailv2, align 8
     call void @subtrailv2(%trailv2* %ret28, %trailv2* %boxconst27)
+    %ret29 = alloca %f2s, align 8
+    %4 = call <2 x float> @subf2s(<2 x float> <float 2.000000e+00, float 3.000000e+00>)
+    %box30 = bitcast %f2s* %ret29 to <2 x float>*
+    store <2 x float> %4, <2 x float>* %box30, align 8
+    %boxconst32 = alloca %f3s, align 8
+    store %f3s { float 2.000000e+00, float 3.000000e+00, float 5.000000e+00 }, %f3s* %boxconst32, align 4
+    %unbox33 = bitcast %f3s* %boxconst32 to { <2 x float>, float }*
+    %fst3443 = bitcast { <2 x float>, float }* %unbox33 to <2 x float>*
+    %fst35 = load <2 x float>, <2 x float>* %fst3443, align 8
+    %snd36 = getelementptr inbounds { <2 x float>, float }, { <2 x float>, float }* %unbox33, i32 0, i32 1
+    %snd37 = load float, float* %snd36, align 4
+    %ret38 = alloca %f3s, align 8
+    %5 = call { <2 x float>, float } @subf3s(<2 x float> %fst35, float %snd37)
+    %box39 = bitcast %f3s* %ret38 to { <2 x float>, float }*
+    store { <2 x float>, float } %5, { <2 x float>, float }* %box39, align 8
     ret i64 0
   }
 

@@ -7,6 +7,8 @@
 (record v4 {:x float :y float :z float :w float})
 (record mixed4 {:x float :y float :z float :k int})
 (record trailv2 {:a int :b int :c float :d float})
+(record f2s {:fx f32 :fy f32})
+(record f3s {:fx f32 :fy f32 :fz f32})
 
 (external subv2 (fun v2 v2))
 (external subi2 (fun i2 i2))
@@ -17,6 +19,8 @@
 (external subv4 (fun v4 v4))
 (external submixed4 (fun mixed4 mixed4))
 (external subtrailv2 (fun trailv2 trailv2))
+(external subf2s (fun f2s f2s))
+(external subf3s (fun f3s f3s))
 
 (ignore (subv2 {:z 1.0 :y 10.0}))
 (ignore (subi2 {:x 1 :y 10 }))
@@ -27,3 +31,5 @@
 (ignore (subv4 {:x 1.0 :y 10.0 :z 100.0 :w 1000.0}))
 (ignore (submixed4 {:x 1.0 :y 10.0 :z 100.0 :k 1 }))
 (ignore (subtrailv2 {:a 1 :b 2 :c 1.0 :d 2.0 }))
+(ignore (subf2s {:fx 2.0f32 :fy 3.0f32}))
+(ignore (subf3s {:fx 2.0f32 :fy 3.0f32 :fz 5.0f32}))

@@ -591,7 +591,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %envptr6 = getelementptr inbounds %closure, %closure* %clstmp4, i32 0, i32 1
     store i8* null, i8** %envptr6, align 8
     %ret = alloca %t_int, align 8
-    %2 = call i64 @schmu___gg.g.g_apply_titi.ti.ti(i64 bitcast (%t_int { i64 20 } to i64), %closure* %clstmp4)
+    %2 = call i64 @schmu___gg.g.g_apply_titi.ti.ti(i64 20, %closure* %clstmp4)
     %box = bitcast %t_int* %ret to i64*
     store i64 %2, i64* %box, align 4
     call void @printi(i64 %2)
@@ -601,7 +601,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %envptr10 = getelementptr inbounds %closure, %closure* %clstmp8, i32 0, i32 1
     store i8* null, i8** %envptr10, align 8
     %ret11 = alloca %t_bool, align 8
-    %3 = call i8 @schmu___gg.g.g_apply_tbtb.tb.tb(i8 bitcast (%t_bool { i1 true } to i8), %closure* %clstmp8)
+    %3 = call i8 @schmu___gg.g.g_apply_tbtb.tb.tb(i8 1, %closure* %clstmp8)
     %box12 = bitcast %t_bool* %ret11 to i8*
     store i8 %3, i8* %box12, align 1
     %4 = trunc i8 %3 to i1
@@ -614,7 +614,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %5 = call i1 @schmu___gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp14)
     call void @schmu_print_bool(i1 %5)
     %ret17 = alloca %t_int, align 8
-    %6 = call i64 @schmu___g.g___fun0_ti.ti(i64 bitcast (%t_int { i64 17 } to i64))
+    %6 = call i64 @schmu___g.g___fun0_ti.ti(i64 17)
     %box18 = bitcast %t_int* %ret17 to i64*
     store i64 %6, i64* %box18, align 4
     call void @printi(i64 %6)
@@ -803,7 +803,7 @@ a second function. Instead, the closure struct was being created again and the c
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
     %ret = alloca %t_int, align 8
-    %0 = call i64 @schmu___ggg.gg.g_apply_titii.i.tii.i.ti(i64 bitcast (%t_int { i64 15 } to i64), %closure* %clstmp, %closure* %clstmp1)
+    %0 = call i64 @schmu___ggg.gg.g_apply_titii.i.tii.i.ti(i64 15, %closure* %clstmp, %closure* %clstmp1)
     %box = bitcast %t_int* %ret to i64*
     store i64 %0, i64* %box, align 4
     store i64 %0, i64* @a, align 4
@@ -819,7 +819,7 @@ a second function. Instead, the closure struct was being created again and the c
     %envptr10 = getelementptr inbounds %closure, %closure* %clstmp8, i32 0, i32 1
     store i8* null, i8** %envptr10, align 8
     %ret11 = alloca %t_int, align 8
-    %1 = call i64 @schmu___ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(i64 bitcast (%t_int { i64 15 } to i64), %closure* %clstmp5, %closure* %clstmp8)
+    %1 = call i64 @schmu___ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(i64 15, %closure* %clstmp5, %closure* %clstmp8)
     %box12 = bitcast %t_int* %ret11 to i64*
     store i64 %1, i64* %box12, align 4
     store i64 %1, i64* @b, align 4
@@ -956,7 +956,7 @@ Support monomorphization of nested functions
     tail call void @printi(i64 %0)
     %1 = tail call i1 @schmu___g.g_wrapped_b.b(i1 false)
     %ret = alloca %rec, align 8
-    %2 = tail call i64 @schmu___g.g_wrapped_rec.rec(i64 bitcast (%rec { i64 24 } to i64))
+    %2 = tail call i64 @schmu___g.g_wrapped_rec.rec(i64 24)
     %box = bitcast %rec* %ret to i64*
     store i64 %2, i64* %box, align 4
     tail call void @printi(i64 %2)
