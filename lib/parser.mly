@@ -79,6 +79,7 @@
 %token Defvariant
 %token Defexternal
 %token Setf
+%token Fmt_str
 
 %start <Ast.prog> prog
 
@@ -190,6 +191,7 @@ sexp_expr:
   | parenss(sexp_call) { $1 }
   | sexp_module_expr { $1 }
   | parenss(sexp_match) { $1 }
+  | fmt = parenss(fmt_str) { fmt }
 
 %inline sexp_record_item:
   | Name; sexp_expr { $1, $2 }
@@ -284,6 +286,9 @@ sexp_cond:
 
 %inline sexp_pattern_tuple:
   | sexp_pattern_item; nonempty_list(sexp_pattern_item) { Ptup ($loc, $1 :: $2) }
+
+%inline fmt_str:
+  | Fmt_str; lst = nonempty_list(sexp_expr) { Fmt ($loc, lst) }
 
 ident:
   | Lowercase_id { ($loc, $1) }

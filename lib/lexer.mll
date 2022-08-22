@@ -76,13 +76,14 @@ rule read =
   | "external"{ Defexternal }
   | "setf"   { Setf }
   | "cond"   { Cond }
-  | '_'      { Wildcard }
+  | "fmt-str"{ Fmt_str }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
   | kebab_id     { Kebab_id (Lexing.lexeme lexbuf) }
   | name     { Name (name_of_string (Lexing.lexeme lexbuf)) }
   | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }
   | constructor{ Constructor (name_of_string (Lexing.lexeme lexbuf)) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
+  | '_'      { Wildcard }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | '+'      { Plus_i }
   | min      { Minus_i }
