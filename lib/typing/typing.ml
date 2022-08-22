@@ -318,42 +318,48 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
   (* Temporarily add polymorphic type name to env *)
   let temp_env, param = add_type_param env poly_param in
 
+  (* We follow the C way for C-style enums. At the same time, we forbid
+     tag clashes for constructors with payload *)
   let next = ref (-1) in
   let indices = Hashtbl.create 32 in
-  let rec nexti name =
+  let nexti ~has_payload loc name =
     incr next;
-    if Hashtbl.mem indices !next then nexti name
-    else (
-      Hashtbl.add indices !next name;
-      !next)
+    match Hashtbl.find_opt indices !next with
+    | Some (name, pl) when has_payload || pl ->
+        let msg =
+          Printf.sprintf "Tag %i already used for constructor %s" !next name
+        in
+        raise (Error (loc, msg))
+    | Some _ | None ->
+        Hashtbl.replace indices !next (name, has_payload);
+        !next
   in
-  let maybe_add_index name = function Some i -> i | None -> nexti name in
-
-  (* Prefill optional indices *)
-  List.iter
-    (fun { Ast.index; name; _ } ->
-      match index with
-      | Some i -> (
-          match Hashtbl.find_opt indices i with
-          | Some n ->
-              let msg =
-                Printf.sprintf "Tag %i already used for constructor %s" i n
-              in
-              raise (Error (fst name, msg))
-          | None -> Hashtbl.add indices i (snd name))
-      | None -> ())
-    ctors;
+  let maybe_add_index has_payload loc name = function
+    | Some i ->
+        (* We set the index to one lower, as it increases on call to [nexti] *)
+        next := i - 1;
+        nexti ~has_payload loc name
+    | None -> nexti ~has_payload loc name
+  in
 
   let ctors =
     List.map
-      (fun { Ast.name = _, cname; typ_annot; index } ->
+      (fun { Ast.name = loc, cname; typ_annot; index } ->
         match typ_annot with
         | None ->
             (* Just a ctor, without data *)
-            { cname; ctyp = None; index = maybe_add_index cname index }
+            {
+              cname;
+              ctyp = None;
+              index = maybe_add_index false loc cname index;
+            }
         | Some annot ->
             let typ = typeof_annot ~typedef:true temp_env loc annot in
-            { cname; ctyp = Some typ; index = maybe_add_index cname index })
+            {
+              cname;
+              ctyp = Some typ;
+              index = maybe_add_index true loc cname index;
+            })
       ctors
     |> Array.of_list
   in

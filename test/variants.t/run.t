@@ -452,8 +452,8 @@ Match multiple columns
   0
 
   $ schmu custom_tag_reuse.smu
-  custom_tag_reuse.smu:1:27: error: Tag 1 already used for constructor a
-  1 | (variant tags ((#a 1) #b (#c 1)))
-                                ^^
+  custom_tag_reuse.smu:1:31: error: Tag 1 already used for constructor a
+  1 | (variant tags ((#a 1) (#b 0) (#c int)))
+                                    ^^
   
   [1]
