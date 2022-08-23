@@ -111,7 +111,7 @@ type var_normal = {
 type var =
   | Normal of var_normal
   | Const of string
-  | Global of string * var_normal
+  | Global of string * var_normal * bool ref
 
 type morph_param = {
   vars : var Vars.t;
@@ -180,7 +180,9 @@ let find_function_expr vars = function
   | Mvar (id, _) -> (
       match Vars.find_opt id vars with
       | Some (Normal thing) -> thing.fn
-      | Some (Global (_, thing)) -> thing.fn
+      | Some (Global (_, thing, used)) ->
+          used := true;
+          thing.fn
       | Some (Const _) -> No_function
       | None -> (
           match Builtin.of_string id with
@@ -559,7 +561,9 @@ and morph_var mk p v =
         match Vars.find_opt v p.vars with
         | Some (Normal thing) -> ((v, Vnorm), thing)
         | Some (Const thing) -> ((thing, Vconst), no_var)
-        | Some (Global (id, thing)) -> ((id, Vglobal), thing)
+        | Some (Global (id, thing, used)) ->
+            used := true;
+            ((id, Vglobal), thing)
         | None -> ((v, Vnorm), no_var))
   in
   (p, mk (Mvar (v, kind)) p.ret, alloca)
@@ -646,7 +650,8 @@ and prep_let p id uniq e toplvl =
         let uniq = Module.unique_name id uniq in
         let cnt = new_id constant_uniq_state in
         Hashtbl.add global_tbl uniq (cnt, e1.typ, toplvl);
-        ({ p with vars = Vars.add id (Global (uniq, func)) p.vars }, Some uniq)
+        ( { p with vars = Vars.add id (Global (uniq, func, ref false)) p.vars },
+          Some uniq )
     | _ -> ({ p with vars = Vars.add id (Normal func) p.vars }, None)
   in
   (p, e1, gn)
@@ -976,15 +981,11 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
      introduce a special case in codegen, or mark them Const_ptr when they are not *)
   let vars =
     List.fold_left
-      (fun vars { Env.imported = _; ext_name; ext_typ; ext_cname } ->
-        (* We skip functions, because they work as is. TODO polymorphic functions *)
-        match ext_typ with
-        | Types.Tfun _ -> vars
-        | _ ->
-            let cname =
-              match ext_cname with None -> ext_name | Some cname -> cname
-            in
-            Vars.add ext_name (Global (cname, no_var)) vars)
+      (fun vars { Env.imported = _; ext_name; ext_typ = _; ext_cname; used } ->
+        let cname =
+          match ext_cname with None -> ext_name | Some cname -> cname
+        in
+        Vars.add ext_name (Global (cname, no_var, used)) vars)
       Vars.empty externals
   in
 
@@ -1000,15 +1001,17 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
   in
 
   let externals =
-    List.map
-      (fun { Env.imported; ext_name; ext_typ = t; ext_cname } ->
-        let cname =
-          match ext_cname with None -> ext_name | Some cname -> cname
-        in
-        let c_linkage =
-          match imported with None | Some `C -> true | Some `Schmu -> false
-        in
-        { ext_name; ext_typ = cln t; c_linkage; cname })
+    List.filter_map
+      (fun { Env.imported; ext_name; ext_typ = t; ext_cname; used } ->
+        if not !used then None
+        else
+          let cname =
+            match ext_cname with None -> ext_name | Some cname -> cname
+          in
+          let c_linkage =
+            match imported with None | Some `C -> true | Some `Schmu -> false
+          in
+          Some { ext_name; ext_typ = cln t; c_linkage; cname })
       externals
   in
   let typeinsts = List.map cln typeinsts in

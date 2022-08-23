@@ -38,7 +38,7 @@ type value = {
   imported : bool;
 }
 
-type usage = { loc : Ast.loc; used : bool ref }
+type usage = { loc : Ast.loc; used : bool ref; imported : bool }
 type return = { typ : typ; const : bool; global : bool }
 type imported = [ `C | `Schmu ]
 
@@ -47,6 +47,7 @@ type ext = {
   ext_typ : typ;
   ext_cname : string option;
   imported : imported option;
+  used : bool ref;
 }
 
 (* function scope *)
@@ -106,18 +107,30 @@ let add_value key value loc env =
          Thus, warning for unused shadowed bindings works *)
       (if not value.imported then
        let tbl = scope.used in
-       Hashtbl.add tbl key { loc; used = ref false });
+       Hashtbl.add tbl key { loc; used = ref false; imported = value.imported });
 
       { env with values = { scope with valmap } :: tl }
 
 let add_external ext_name ~cname typ ~imported loc env =
-  let env =
-    add_value ext_name
-      { def_value with typ; imported = Option.is_some imported }
-      loc env
+  let env, used =
+    match env.values with
+    | [] -> failwith "Internal Error: Env empty"
+    | scope :: tl ->
+        let valmap =
+          Map.add ext_name
+            { def_value with typ; imported = Option.is_some imported }
+            scope.valmap
+        in
+
+        let used = ref false in
+        let tbl = scope.used in
+        Hashtbl.add tbl ext_name
+          { loc; used; imported = Option.is_some imported };
+
+        ({ env with values = { scope with valmap } :: tl }, used)
   in
   let tkey = Type_key.create ext_name in
-  let vl = { ext_name; ext_typ = typ; ext_cname = cname; imported } in
+  let vl = { ext_name; ext_typ = typ; ext_cname = cname; imported; used } in
   env.externals := Tmap.add tkey vl !(env.externals);
   env
 
@@ -226,7 +239,8 @@ let find_unused ret tbl =
   let ret =
     Hashtbl.fold
       (fun name (used : usage) acc ->
-        if not !(used.used) then (name, used.loc) :: acc else acc)
+        if (not !(used.used)) && not used.imported then (name, used.loc) :: acc
+        else acc)
       tbl ret
   in
   match ret with
@@ -343,19 +357,6 @@ let typedefs env =
 
 let typeinstances env =
   let values ({ Type_key.key = _; ord = _ }, v) = v in
-  (* Tmap.filter *)
-  (*   (fun _ typ -> *)
-  (*     match typ with *)
-  (*     | Trecord (Some (Qvar _), _, _) | Tvariant (Some (Qvar _), _, _) -> *)
-  (*         (\* We don't want to add generic records *\) *)
-  (*         false *)
-  (*     | Trecord _ | Tvariant _ -> true *)
-  (*     | _ -> false) *)
-  (*   env.types *)
-  (* |> Tmap.bindings *)
-  (* |> (\* Add instances *\) *)
-  (* fun simple_records -> *)
-  (* simple_records @ *)
   Tmap.bindings !(env.instances)
   |> List.sort Type_key.cmp_map_sort
   |> List.map values

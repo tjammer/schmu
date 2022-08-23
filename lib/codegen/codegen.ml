@@ -2033,11 +2033,7 @@ let decl_external ~c_linkage cname = function
       let lltyp = get_lltype_global typ in
       let value = Llvm.declare_global lltyp cname the_module in
       (* TODO constness in module *)
-      let v = { value; typ; lltyp; const = Not } in
-      (* Add also to global table
-         TODO: Is adding to the normal var table still needed? *)
-      Strtbl.add const_tbl cname v;
-      v
+      { value; typ; lltyp; const = Not }
 
 let has_init_code tree =
   let rec aux = function
@@ -2115,12 +2111,11 @@ let generate ~target ~outname ~release ~modul
   const_pass := false;
 
   (* External declarations *)
-  let vars =
-    List.fold_left
-      (fun vars { Monomorph_tree.ext_name; ext_typ; cname; c_linkage } ->
-        Vars.add ext_name (decl_external cname ext_typ ~c_linkage) vars)
-      Vars.empty externals
-  in
+  List.iter
+    (fun { Monomorph_tree.ext_name = _; ext_typ; cname; c_linkage } ->
+      let v = decl_external cname ext_typ ~c_linkage in
+      Strtbl.add const_tbl cname v)
+    externals;
 
   (* Factor out functions for llvm *)
   let funcs =
@@ -2136,7 +2131,7 @@ let generate ~target ~outname ~release ~modul
 
           (* Add to the normal variable environment *)
           Vars.add func.name.call fnc acc)
-        vars funcs
+        Vars.empty funcs
     in
 
     (* Generate functions *)

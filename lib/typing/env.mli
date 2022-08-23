@@ -21,6 +21,7 @@ type ext = {
   ext_typ : typ;
   ext_cname : string option;
   imported : imported option;
+  used : bool ref;
 }
 (* return type for values *)
 
