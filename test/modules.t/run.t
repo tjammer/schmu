@@ -120,8 +120,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @b = global i64 0, align 8
   @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__lets_init, i8* null }]
   
-  declare void @printf(i8* %0, i64 %1)
-  
   define i64 @schmu_generate_b() {
   entry:
     ret i64 21
@@ -146,8 +144,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
   
   declare void @printf(i8* %0, i64 %1)
-  
-  declare i64 @schmu_generate_b()
   
   define i64 @main(i64 %arg) {
   entry:
@@ -185,8 +181,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
   
   declare void @printf(i8* %0, i64 %1)
-  
-  declare i64 @schmu_generate_b()
   
   define i64 @main(i64 %arg) {
   entry:
@@ -479,15 +473,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
   %string = type { i8*, i64 }
   %big = type { i64, double, i64, i64 }
   
-  @a = external global i64
-  @b = external global i64
   @vtest = external global %vector_int
-  @vtest2 = external global %vector_int
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
   
   declare void @printf(i8* %0, i64 %1)
-  
-  declare i64 @schmu_add_ints(i64 %0, i64 %1)
   
   define void @schmu___vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* %vec, %closure* %f) {
   entry:
