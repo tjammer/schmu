@@ -41,3 +41,7 @@
   (inner 0 init))
 
 (variant (option 'a) ((#some 'a) #none))
+
+-- (external puts (fun cstr unit))
+
+-- (fun print [str] (puts (.cstr str)))

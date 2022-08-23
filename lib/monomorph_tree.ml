@@ -35,7 +35,7 @@ type expr =
   | Mctor of (string * int * monod_tree option) * alloca * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
-  | Mfmt of fmt list * alloca
+  | Mfmt of fmt list * alloca * int
 [@@deriving show]
 
 and const =
@@ -394,11 +394,11 @@ let rec subst_body p subst tree =
     | Mfree_after (expr, id) ->
         let expr = sub expr in
         { tree with typ = expr.typ; expr = Mfree_after (expr, id) }
-    | Mfmt (fmts, alloca) ->
+    | Mfmt (fmts, alloca, id) ->
         let fmts =
           List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
         in
-        { tree with expr = Mfmt (fmts, alloca) }
+        { tree with expr = Mfmt (fmts, alloca, id) }
   in
   (!p, inner tree)
 
@@ -789,15 +789,30 @@ and morph_lambda typ p id abs =
 
   let ret = p.ret in
   let vars = p.vars in
+  (* lambdas don't recurse, but functions inside the body might *)
   recursion_stack := (name, recursive) :: !recursion_stack;
-  let tmp, body, var = morph_expr { p with ret = true } abs.body in
+  let temp_p =
+    (* Add parameters to env as normal values.
+       The existing values might not be 'normal' *)
+    let vars =
+      List.fold_left
+        (fun vars name -> Vars.add name (Normal no_var) vars)
+        vars pnames
+    in
+    { p with vars; ret = true; mallocs = [] }
+  in
+
+  let tmp, body, var = morph_expr temp_p abs.body in
 
   (* Collect functions from body *)
   enter_level ();
   let p = { p with monomorphized = tmp.monomorphized; funcs = tmp.funcs } in
   leave_level ();
 
-  if Types.is_struct abs.func.ret then set_alloca var.alloc;
+  if is_struct body.typ then (
+    set_alloca var.alloc;
+    propagate_malloc var.malloc);
+  let body = free_mallocs body temp_p.mallocs in
 
   (* Why do we need this again in lambda? They can't recurse. *)
   (* But functions on the lambda body might *)
@@ -921,10 +936,13 @@ and morph_fmt mk p exprs =
   leave_level ();
 
   let alloca = ref (request ()) in
+  let id = new_id malloc_id in
+  let malloc = { id; mlvl = ref !alloc_lvl } in
+  let mallocs = malloc :: p.mallocs in
 
-  ( { p with ret },
-    mk (Mfmt (es, alloca)) ret,
-    { no_var with alloc = Value alloca } )
+  ( { p with ret; mallocs },
+    mk (Mfmt (es, alloca, id)) ret,
+    { no_var with alloc = Value alloca; malloc = Some malloc } )
 
 let morph_toplvl param items =
   let rec aux param = function

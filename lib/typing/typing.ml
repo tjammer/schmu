@@ -716,10 +716,15 @@ end = struct
   and convert_fmt env loc exprs =
     let f expr =
       let e = convert env expr in
-      match e.expr, clean e.typ with
+      match (e.expr, clean e.typ) with
       | Const (String s), _ -> Fstr s
-      | _ , Tint -> Fexpr e
-      | _, _ -> failwith "TODO not implemented yet"
+      | _, Trecord (_, name, _) when String.equal name "string" -> Fexpr e
+      | _, (Tint | Tfloat | Tbool) -> Fexpr e
+      | _, Tvar { contents = Unbound _ } ->
+          Fexpr e (* Might be the right type later *)
+      | _, _ ->
+          print_string (show_typ e.typ);
+          failwith "TODO not implemented yet "
     in
     let exprs = List.map f exprs in
     let typ = get_prelude env loc "string" in

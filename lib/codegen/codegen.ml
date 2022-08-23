@@ -669,6 +669,46 @@ let free_id id =
       "Internal Error: Cannot find ptr for id " ^ string_of_int id |> failwith);
   Ptrtbl.remove ptr_tbl id
 
+let get_const_string s =
+  match Strtbl.find_opt string_tbl s with
+  | Some ptr -> ptr
+  | None ->
+      let ptr = Llvm.build_global_stringptr s "" builder in
+      Strtbl.add string_tbl s ptr;
+      ptr
+
+let fmt_str value =
+  match value.typ with
+  | Tint -> ("%i", value.value)
+  | Tfloat -> ("%.9g", value.value)
+  | Trecord (_, name, _) when String.equal name "string" ->
+      let ptr = Llvm.build_struct_gep value.value 0 "" builder in
+      ("%s", Llvm.build_load ptr "" builder)
+  | Tbool ->
+      let start_bb = Llvm.insertion_block builder in
+      let parent = Llvm.block_parent start_bb in
+
+      let false_bb = Llvm.append_block context "free" parent in
+      let cont_bb = Llvm.append_block context "cont" parent in
+
+      ignore (Llvm.build_cond_br value.value cont_bb false_bb builder);
+
+      Llvm.position_at_end false_bb builder;
+      ignore (Llvm.build_br cont_bb builder);
+      Llvm.position_at_end cont_bb builder;
+      let value =
+        Llvm.build_phi
+          [
+            (get_const_string "true", start_bb);
+            (get_const_string "false", false_bb);
+          ]
+          "" builder
+      in
+      ("%s", value)
+  | _ ->
+      print_endline (show_typ value.typ);
+      failwith "Internal Error: Impossible string format"
+
 let set_struct_field value ptr =
   match value.typ with
   | Trecord _ | Tvariant _ ->
@@ -1118,7 +1158,8 @@ and gen_expr param typed_expr =
       gen_ctor param ctor typed_expr.typ allocref const
   | Mvar_index expr -> gen_var_index param expr |> fin
   | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
-  | Mfmt (fmts, allocref) -> gen_fmt_str param fmts typed_expr.typ allocref
+  | Mfmt (fmts, allocref, id) ->
+      gen_fmt_str param fmts typed_expr.typ allocref id
 
 and gen_let param id equals gn let' =
   let expr_val =
@@ -1774,14 +1815,6 @@ and codegen_chain param expr cont =
   ignore (gen_expr param expr);
   gen_expr param cont
 
-and get_const_string s =
-  match Strtbl.find_opt string_tbl s with
-  | Some ptr -> ptr
-  | None ->
-      let ptr = Llvm.build_global_stringptr s "" builder in
-      Strtbl.add string_tbl s ptr;
-      ptr
-
 and codegen_string_lit param s typ allocref =
   let lltyp = Strtbl.find record_tbl "string" in
   let ptr = get_const_string s in
@@ -1913,7 +1946,7 @@ and gen_var_data param expr typ =
   let value = load ptr typ in
   { value; typ; lltyp = Llvm.type_of value; const = Not }
 
-and gen_fmt_str param exprs typ allocref =
+and gen_fmt_str param exprs typ allocref id =
   let snprintf_decl =
     lazy
       Llvm.(
@@ -1929,7 +1962,8 @@ and gen_fmt_str param exprs typ allocref =
     | Monomorph_tree.Fstr s -> (fmtstr ^ s, args)
     | Fexpr e ->
         let value = gen_expr param e in
-        (fmtstr ^ "%li", value.value :: args)
+        let str, value = fmt_str value in
+        (fmtstr ^ str, value :: args)
   in
   let fmt, args = List.fold_left f ("", []) exprs in
   (* Calculate size *)
@@ -1959,6 +1993,8 @@ and gen_fmt_str param exprs typ allocref =
   ignore (Llvm.build_store ptr cstr builder);
   let len = Llvm.build_struct_gep string 1 "length" builder in
   ignore (Llvm.build_store size len builder);
+
+  Ptrtbl.add ptr_tbl id (string, typ);
 
   { value = string; typ; lltyp; const = Not }
 
