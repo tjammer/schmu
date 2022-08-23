@@ -1118,6 +1118,7 @@ and gen_expr param typed_expr =
       gen_ctor param ctor typed_expr.typ allocref const
   | Mvar_index expr -> gen_var_index param expr |> fin
   | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
+  | Mfmt (fmts, allocref) -> gen_fmt_str param fmts typed_expr.typ allocref
 
 and gen_let param id equals gn let' =
   let expr_val =
@@ -1773,16 +1774,17 @@ and codegen_chain param expr cont =
   ignore (gen_expr param expr);
   gen_expr param cont
 
+and get_const_string s =
+  match Strtbl.find_opt string_tbl s with
+  | Some ptr -> ptr
+  | None ->
+      let ptr = Llvm.build_global_stringptr s "" builder in
+      Strtbl.add string_tbl s ptr;
+      ptr
+
 and codegen_string_lit param s typ allocref =
   let lltyp = Strtbl.find record_tbl "string" in
-  let ptr =
-    match Strtbl.find_opt string_tbl s with
-    | Some ptr -> ptr
-    | None ->
-        let ptr = Llvm.build_global_stringptr s "" builder in
-        Strtbl.add string_tbl s ptr;
-        ptr
-  in
+  let ptr = get_const_string s in
 
   (* Check for preallocs *)
   let string = get_prealloc !allocref param lltyp "str" in
@@ -1910,6 +1912,55 @@ and gen_var_data param expr typ =
   let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
   let value = load ptr typ in
   { value; typ; lltyp = Llvm.type_of value; const = Not }
+
+and gen_fmt_str param exprs typ allocref =
+  let snprintf_decl =
+    lazy
+      Llvm.(
+        let ft =
+          var_arg_function_type i32_t [| voidptr_t; int_t; voidptr_t |]
+        in
+        declare_function "snprintf" ft the_module)
+  in
+  let lltyp = Strtbl.find record_tbl "string" in
+
+  let f (fmtstr, args) expr =
+    match expr with
+    | Monomorph_tree.Fstr s -> (fmtstr ^ s, args)
+    | Fexpr e ->
+        let value = gen_expr param e in
+        (fmtstr ^ "%li", value.value :: args)
+  in
+  let fmt, args = List.fold_left f ("", []) exprs in
+  (* Calculate size *)
+  let fmtptr = get_const_string fmt in
+  let itemargs = List.rev args in
+  let args =
+    Llvm.const_pointer_null voidptr_t
+    :: Llvm.const_int int_t 0 :: fmtptr :: itemargs
+    |> Array.of_list
+  in
+  let size =
+    Llvm.build_call (Lazy.force snprintf_decl) args "fmtsize" builder
+  in
+  (* Add null terminator *)
+  let size = Llvm.build_add size (Llvm.const_int i32_t 1) "" builder in
+  let size = Llvm.build_intcast size int_t "" builder in
+  let ptr = malloc ~size in
+
+  (* Format string *)
+  let args = ptr :: size :: fmtptr :: itemargs |> Array.of_list in
+  ignore (Llvm.build_call (Lazy.force snprintf_decl) args "fmt" builder);
+
+  (* Build string record *)
+  let string = get_prealloc !allocref param lltyp "str" in
+
+  let cstr = Llvm.build_struct_gep string 0 "cstr" builder in
+  ignore (Llvm.build_store ptr cstr builder);
+  let len = Llvm.build_struct_gep string 1 "length" builder in
+  ignore (Llvm.build_store size len builder);
+
+  { value = string; typ; lltyp; const = Not }
 
 let fill_constants constants =
   let f (name, tree, toplvl) =

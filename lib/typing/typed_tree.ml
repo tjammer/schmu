@@ -18,9 +18,11 @@ type expr =
   | Ctor of (string * int * typed_expr option)
   | Variant_index of typed_expr
   | Variant_data of typed_expr
+  | Fmt of fmt list
 [@@deriving show, sexp]
 
 and typed_expr = { typ : typ; expr : expr; attr : attr }
+and fmt = Fstr of string | Fexpr of typed_expr
 
 and const =
   | Int of int

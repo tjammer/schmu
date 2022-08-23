@@ -440,6 +440,7 @@ end = struct
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, exprs, cases) -> convert_match env loc exprs cases
     | Local_open (loc, modul, blk) -> convert_open env loc modul blk
+    | Fmt (loc, exprs) -> convert_fmt env loc exprs
 
   and convert_var env loc id =
     match Env.query_val_opt id env with
@@ -711,6 +712,18 @@ end = struct
     let modul = Module.read_exn ~regeneralize modul loc in
     let env = Module.add_to_env env modul in
     convert_block env blk |> fst
+
+  and convert_fmt env loc exprs =
+    let f expr =
+      let e = convert env expr in
+      match e.expr, clean e.typ with
+      | Const (String s), _ -> Fstr s
+      | _ , Tint -> Fexpr e
+      | _, _ -> failwith "TODO not implemented yet"
+    in
+    let exprs = List.map f exprs in
+    let typ = get_prelude env loc "string" in
+    { typ; expr = Fmt exprs; attr = no_attr }
 
   and convert_block_annot ~ret env annot stmts =
     let loc = Lexing.(dummy_pos, dummy_pos) in

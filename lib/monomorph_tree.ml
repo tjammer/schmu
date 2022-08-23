@@ -35,6 +35,7 @@ type expr =
   | Mctor of (string * int * monod_tree option) * alloca * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
+  | Mfmt of fmt list * alloca
 [@@deriving show]
 
 and const =
@@ -66,6 +67,7 @@ and allocas = Preallocated | Request of request
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 and var_kind = Vnorm | Vconst | Vglobal
 and global_name = string option
+and fmt = Fstr of string | Fexpr of monod_tree
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -392,6 +394,11 @@ let rec subst_body p subst tree =
     | Mfree_after (expr, id) ->
         let expr = sub expr in
         { tree with typ = expr.typ; expr = Mfree_after (expr, id) }
+    | Mfmt (fmts, alloca) ->
+        let fmts =
+          List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
+        in
+        { tree with expr = Mfmt (fmts, alloca) }
   in
   (!p, inner tree)
 
@@ -537,6 +544,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       morph_ctor make param variant index dataexpr texpr.attr
   | Variant_index expr -> morph_var_index make param expr
   | Variant_data expr -> morph_var_data make param expr
+  | Fmt exprs -> morph_fmt make param exprs
 
 and morph_var mk p v =
   let (v, kind), alloca =
@@ -897,6 +905,26 @@ and morph_var_data mk p expr =
   (* False because we only use it interally in if expr? *)
   let p, e, func = morph_expr { p with ret = false } expr in
   ({ p with ret }, mk (Mvar_data e) ret, func)
+
+and morph_fmt mk p exprs =
+  let ret = p.ret in
+  let p = { p with ret = false } in
+
+  let f p = function
+    | Typed_tree.Fexpr e ->
+        let p, e, _ = morph_expr p e in
+        (p, Fexpr e)
+    | Fstr s -> (p, Fstr s)
+  in
+  enter_level ();
+  let p, es = List.fold_left_map f p exprs in
+  leave_level ();
+
+  let alloca = ref (request ()) in
+
+  ( { p with ret },
+    mk (Mfmt (es, alloca)) ret,
+    { no_var with alloc = Value alloca } )
 
 let morph_toplvl param items =
   let rec aux param = function

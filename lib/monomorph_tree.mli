@@ -30,6 +30,7 @@ type expr =
   | Mctor of (string * int * monod_tree option) * alloca * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
+  | Mfmt of fmt list * alloca
 
 and const =
   | Int of int
@@ -64,6 +65,7 @@ and allocas = Preallocated | Request of request
 and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 and var_kind = Vnorm | Vconst | Vglobal
 and global_name = string option
+ and fmt = Fstr of string | Fexpr of monod_tree
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
