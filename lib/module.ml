@@ -42,13 +42,25 @@ let module_cache = Hashtbl.create 64
 
 (* Right now we only ever compile one module, so this can safely be global *)
 let poly_funcs = ref []
+let paths = ref [ "." ]
+
+let find_file name =
+  let name = String.lowercase_ascii (name ^ ".smi") in
+  let ( // ) = Filename.concat in
+  let rec path = function
+    | p :: tl ->
+        let file = p // name in
+        if Sys.file_exists file then file else path tl
+    | [] -> raise Not_found
+  in
+  path !paths
 
 let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with
   | Some r -> r
   | None -> (
       try
-        let c = open_in (String.lowercase_ascii (name ^ ".smi")) in
+        let c = open_in (find_file name) in
         let r =
           Result.map t_of_sexp (Sexp.input c)
           |> Result.map
@@ -67,7 +79,7 @@ let read_module ~regeneralize name =
         close_in c;
         Hashtbl.add module_cache name r;
         r
-      with Sys_error s -> Error s)
+      with Not_found -> Error ("Could not open file: " ^ name))
 
 let read_exn ~regeneralize name loc =
   match read_module ~regeneralize name with
@@ -85,7 +97,7 @@ let add_to_env env m =
           Env.add_record name ~param ~labels env
       | Mtype (Tvariant (param, name, ctors)) ->
           Env.add_variant name ~param ~ctors env
-      | Mtype (Talias (name, _) as t) -> Env.add_alias name t env
+      | Mtype (Talias (name, t)) -> Env.add_alias name t env
       | Mtype t ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
       | Mfun (t, n) ->

@@ -13,21 +13,21 @@ type opts = {
 
 let ( >>= ) = Result.bind
 
-let read_prelude opts =
-  if opts.no_prelude then Ok ""
+let prelude_paths opts =
+  (* In case we find nothing, we append the empty list *)
+  if opts.no_prelude then []
   else
     let ( // ) = Filename.concat in
     let file =
       match Schmu_std.Sites.std with
-      | file :: _ -> file // "prelude.smu"
+      | file :: _ -> file
       | [] ->
           (Sys.argv.(0) |> Filename.dirname)
-          // ".." // "lib" // "schmu" // "std" // "prelude.smu"
+          // ".." // "lib" // "schmu" // "std"
     in
-    if Sys.file_exists file then Ok file
-    else Error ("Could not open prelude at " ^ file)
+    if Sys.file_exists (file // "prelude.smu") then [ file ] else []
 
-let run file prelude
+let run file
     {
       target;
       outname;
@@ -51,9 +51,9 @@ let run file prelude
       kind msg pp [ loc ]
   in
 
+  let prelude = not no_prelude in
   let open Schmulang in
   try
-    (if no_prelude then Ok [] else Parse.parse prelude) >>= fun prelude ->
     Parse.parse file >>= fun prog ->
     Ok
       (let ttree, m = Typing.to_typed ~modul ~prelude fmt_msg_fn prog in
@@ -75,8 +75,10 @@ let run file prelude
   with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
-  (* Open the prelude *)
-  (read_prelude opts >>= fun prelude -> run filename prelude opts) |> function
+  (* Add sites to module search path *)
+  Schmulang.Module.paths := prelude_paths opts @ !Schmulang.Module.paths;
+
+  match run filename opts with
   | Ok () -> ()
   | Error msg ->
       prerr_endline msg;

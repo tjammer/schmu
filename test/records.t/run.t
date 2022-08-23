@@ -117,7 +117,7 @@ Nested records
     ret { i64, i64 } %unbox2
   }
   
-  define i64 @schmu_inner__3() {
+  define i64 @schmu_inner() {
   entry:
     %0 = alloca %inner, align 8
     store %inner { i64 3 }, %inner* %0, align 4
@@ -129,7 +129,7 @@ Nested records
   define i64 @main(i64 %arg) {
   entry:
     store i64 0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 0), align 4
-    %0 = tail call i64 @schmu_inner__3()
+    %0 = tail call i64 @schmu_inner()
     store i64 %0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 4
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%inner* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1) to i8*), i8* bitcast (i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0) to i8*), i64 8, i1 false)
     %1 = load i64, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 4

@@ -6,6 +6,6 @@ val to_typed :
   ?check_ret:bool ->
   modul:bool ->
   msg_fn ->
-  prelude:Ast.prog ->
+  prelude:bool ->
   Ast.prog ->
   Typed_tree.t * Module.t option

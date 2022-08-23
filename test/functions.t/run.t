@@ -146,11 +146,11 @@ We have downwards closures
   
   define i64 @schmu_wrap() {
   entry:
-    %0 = tail call i64 @schmu_inner__3()
+    %0 = tail call i64 @schmu_inner()
     ret i64 %0
   }
   
-  define i64 @schmu_inner__3() {
+  define i64 @schmu_inner() {
   entry:
     %0 = load i64, i64* getelementptr inbounds (%capturable, %capturable* @a, i32 0, i32 0), align 4
     %add = add i64 %0, 2
@@ -986,7 +986,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define void @schmu___vectorgg.u.u_vector_iter__2_vectorii.u.u(%vector_int* %vec, %closure* %f) {
+  define void @schmu___vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* %vec, %closure* %f) {
   entry:
     %monoclstmp = alloca %closure, align 8
     %funptr27 = bitcast %closure* %monoclstmp to i8**
@@ -1130,7 +1130,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   }
   
-  define void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* %vec, i64 %v) {
+  define void @schmu___vectorgg.u_vector_push_vectorii.u(%vector_int* %vec, i64 %v) {
   entry:
     %0 = bitcast %vector_int* %vec to %owned_ptr_int*
     %1 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %0, i32 0, i32 1
@@ -1192,17 +1192,17 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i64* %1, i64** getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 0, i32 0), align 8
     store i64 0, i64* getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 0, i32 1), align 4
     store i64 1, i64* getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 1), align 4
-    tail call void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* @vec, i64 1)
-    tail call void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* @vec, i64 2)
-    tail call void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* @vec, i64 3)
-    tail call void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* @vec, i64 4)
-    tail call void @schmu___vectorgg.u_vector_push__2_vectorii.u(%vector_int* @vec, i64 5)
+    tail call void @schmu___vectorgg.u_vector_push_vectorii.u(%vector_int* @vec, i64 1)
+    tail call void @schmu___vectorgg.u_vector_push_vectorii.u(%vector_int* @vec, i64 2)
+    tail call void @schmu___vectorgg.u_vector_push_vectorii.u(%vector_int* @vec, i64 3)
+    tail call void @schmu___vectorgg.u_vector_push_vectorii.u(%vector_int* @vec, i64 4)
+    tail call void @schmu___vectorgg.u_vector_push_vectorii.u(%vector_int* @vec, i64 5)
     %clstmp = alloca %closure, align 8
     %funptr1 = bitcast %closure* %clstmp to i8**
     store i8* bitcast (void (i64)* @schmu___fun0 to i8*), i8** %funptr1, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    call void @schmu___vectorgg.u.u_vector_iter__2_vectorii.u.u(%vector_int* @vec, %closure* %clstmp)
+    call void @schmu___vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* @vec, %closure* %clstmp)
     %2 = load i64*, i64** getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 0, i32 0), align 8
     %3 = bitcast i64* %2 to i8*
     call void @free(i8* %3)

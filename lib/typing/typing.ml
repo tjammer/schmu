@@ -794,7 +794,7 @@ let block_external_name loc ~cname id =
       in
       raise (Error (loc, msg))
 
-let convert_prog env ~prelude items modul =
+let convert_prog env items modul =
   let old = ref (Lexing.(dummy_pos, dummy_pos), Tunit) in
 
   let rec aux (env, items, m) = function
@@ -850,7 +850,7 @@ let convert_prog env ~prelude items modul =
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
   in
 
-  let env, items, m = List.fold_left aux (env, prelude, modul) items in
+  let env, items, m = List.fold_left aux (env, [], modul) items in
   (snd !old, env, List.rev items, m)
 
 (* Conversion to Typing.exr below *)
@@ -870,13 +870,18 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
       (Env.empty ())
   in
 
-  (* Add prelude *)
-  let _, env, prelude, _ = convert_prog env ~prelude:[] prelude [] in
+  (* Open prelude *)
+  let env =
+    if prelude then
+      let prelude = Module.read_exn ~regeneralize "prelude" loc in
+      Module.add_to_env env prelude
+    else env
+  in
 
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
-  let last_type, env, items, m = convert_prog env ~prelude prog [] in
+  let last_type, env, items, m = convert_prog env prog [] in
   (* TODO test wrong return type *)
   let typedefs = Env.typedefs env
   and externals = Env.externals env
@@ -912,7 +917,7 @@ let typecheck (prog : Ast.prog) =
   (* Ignore unused binding warnings *)
   let msg_fn _ _ _ = "" in
   let modul = false in
-  let tree, _ = to_typed ~modul ~check_ret:false msg_fn ~prelude:[] prog in
+  let tree, _ = to_typed ~modul ~check_ret:false msg_fn ~prelude:false prog in
   let typ = get_last_type (List.rev tree.items) in
   print_endline (show_typ typ);
   typ
