@@ -600,6 +600,27 @@ let rec free_value value = function
        let len = Llvm.build_intcast len int_t "len" builder in
        free_owned_ptr_children ptr len t);
       ignore (free ptr)
+  | Trecord (_, name, _) when String.equal name "string" ->
+      let start_bb = Llvm.insertion_block builder in
+      let parent = Llvm.block_parent start_bb in
+
+      let owned_bb = Llvm.append_block context "free" parent in
+      let cont_bb = Llvm.append_block context "cont" parent in
+
+      let lengthptr = Llvm.build_struct_gep value 1 "" builder in
+      let length = Llvm.build_load lengthptr "" builder in
+      let cond =
+        Llvm.(build_icmp Icmp.Slt length (const_null int_t) "owned") builder
+      in
+      ignore (Llvm.build_cond_br cond owned_bb cont_bb builder);
+
+      Llvm.position_at_end owned_bb builder;
+      let ptr = Llvm.build_struct_gep value 0 "" builder in
+      let ptr = Llvm.build_load ptr "" builder in
+      ignore (free ptr);
+      ignore (Llvm.build_br cont_bb builder);
+
+      Llvm.position_at_end cont_bb builder
   | Trecord (_, name, _) when String.equal name "owned_ptr" ->
       failwith "Internal Error: On free: owned_ptr has no type"
   | Trecord (_, _, fields) ->
@@ -615,6 +636,7 @@ let rec free_value value = function
 
 and contains_owned_ptr = function
   | Trecord (_, name, _) when String.equal name "owned_ptr" -> true
+  | Trecord (_, name, _) when String.equal name "string" -> true
   | Trecord (_, _, fields) ->
       Array.fold_left
         (fun b (f : field) -> f.ftyp |> contains_owned_ptr || b)
@@ -1992,6 +2014,8 @@ and gen_fmt_str param exprs typ allocref id =
   let cstr = Llvm.build_struct_gep string 0 "cstr" builder in
   ignore (Llvm.build_store ptr cstr builder);
   let len = Llvm.build_struct_gep string 1 "length" builder in
+  (* Flip sign bit to mark as owned string which needs to be freed *)
+  let size = Llvm.build_mul size (Llvm.const_int int_t (-1)) "" builder in
   ignore (Llvm.build_store size len builder);
 
   Ptrtbl.add ptr_tbl id (string, typ);
