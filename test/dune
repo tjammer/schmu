@@ -1,5 +1,6 @@
 (cram
- (deps %{bin:schmu}))
+ (deps
+  (package schmu)))
 
 (tests
  (names typing)
