@@ -44,6 +44,9 @@ let module_cache = Hashtbl.create 64
 let poly_funcs = ref []
 let paths = ref [ "." ]
 
+(* We cache the prelude path for later *)
+let prelude_path = ref None
+
 let find_file name =
   let name = String.lowercase_ascii (name ^ ".smi") in
   let ( // ) = Filename.concat in
@@ -53,7 +56,9 @@ let find_file name =
         if Sys.file_exists file then file else path tl
     | [] -> raise Not_found
   in
-  path !paths
+  let file = path !paths in
+  if String.starts_with ~prefix:"prelude" name then prelude_path := Some file;
+  file
 
 let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with

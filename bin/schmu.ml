@@ -71,7 +71,7 @@ let run file
            Module.Sexp.to_channel modfile m;
            close_out modfile)
          else if compile_only then ()
-         else Link.link outname link_modules cargs))
+         else Link.link ~prelude outname link_modules cargs))
   with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =

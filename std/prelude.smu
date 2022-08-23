@@ -2,13 +2,22 @@
 
 (record (owned_ptr 'a) { :optr (mutable (raw_ptr 'a)) :length (mutable int) })
 
+-- string
 (alias cstr (raw_ptr u8))
 
 (record string { :cstr cstr :length int })
 
+(external puts (fun cstr unit))
+
+(fun print [str] (puts (.cstr str)))
+
+(external abs (fun int int))
+
+(fun string-len [str] (abs (.length str)))
+
+-- vector
 (record (vector 'a) {:ptr (owned_ptr 'a) :capacity (mutable int)})
 
--- vector functions
 (fun vector_init [capacity]
   (val optr (__malloc capacity))
   {:ptr {:optr :length 0} :capacity})
@@ -40,8 +49,5 @@
         (inner (+ i 1) acc))))
   (inner 0 init))
 
+-- option
 (variant (option 'a) ((#some 'a) #none))
-
--- (external puts (fun cstr unit))
-
--- (fun print [str] (puts (.cstr str)))

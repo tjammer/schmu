@@ -8,4 +8,4 @@
  (section
   (site
    (schmu std)))
- (files prelude.smu prelude.smi))
+ (files prelude.smu prelude.smi prelude.o))
