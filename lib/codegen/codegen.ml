@@ -701,7 +701,7 @@ let get_const_string s =
 
 let fmt_str value =
   match value.typ with
-  | Tint -> ("%i", value.value)
+  | Tint -> ("%li", value.value)
   | Tfloat -> ("%.9g", value.value)
   | Trecord (_, name, _) when String.equal name "string" ->
       let ptr = Llvm.build_struct_gep value.value 0 "" builder in
@@ -727,6 +727,9 @@ let fmt_str value =
           "" builder
       in
       ("%s", value)
+  | Tu8 -> ("%hhi", value.value)
+  | Ti32 -> ("%i", value.value)
+  | Tf32 -> (".9gf", value.value)
   | _ ->
       print_endline (show_typ value.typ);
       failwith "Internal Error: Impossible string format"

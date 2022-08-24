@@ -719,7 +719,7 @@ end = struct
       match (e.expr, clean e.typ) with
       | Const (String s), _ -> Fstr s
       | _, Trecord (_, name, _) when String.equal name "string" -> Fexpr e
-      | _, (Tint | Tfloat | Tbool) -> Fexpr e
+      | _, (Tint | Tfloat | Tbool | Tu8 | Ti32 | Tf32) -> Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)
       | _, _ ->
