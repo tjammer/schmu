@@ -1,7 +1,7 @@
 (external printi (fun int unit))
 
-(record inner {:fst int :snd int})
-(record (misaligned 'a) {:fst inner :gen 'a})
+(type inner {:fst int :snd int})
+(type (misaligned 'a) {:fst inner :gen 'a})
 
 (fun gen [any] (.gen any))
 

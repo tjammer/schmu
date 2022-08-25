@@ -1,11 +1,11 @@
 (ignore (#some 1))
 
-(record foo {:x float :y float})
-(variant larger (#one (#two foo) (#three int)))
+(type foo {:x float :y float})
+(type larger (#one (#two foo) (#three int)))
 
 (ignore (#three 3))
 
-(variant clike (#a #b #c #d #e))
+(type clike (#a #b #c #d #e))
 
 (ignore #c)
 

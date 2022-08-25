@@ -1,3 +1,3 @@
-(alias foo (raw_ptr u8))
+(type foo (raw_ptr u8))
 (external puts (fun foo unit))
 0

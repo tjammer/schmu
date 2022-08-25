@@ -1,6 +1,6 @@
 (external printi (fun int unit))
 
-(record (t 'a) {:x 'a})
+(type (t 'a) {:x 'a})
 
 -- This fn is generic
 (fun apply [(x 'a) (f (fun 'a 'b))]

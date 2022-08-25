@@ -1,6 +1,6 @@
 (external printi (fun int unit))
 
-(record t {:i int :b bool})
+(type t {:i int :b bool})
 
 (fun pass [x] x)
 

@@ -1,6 +1,6 @@
 (external printi (fun int unit))
 
-(record (t 'a) {:first int :gen 'a :third bool})
+(type (t 'a) {:first int :gen 'a :third bool})
 
 (fun apply [(f (fun 'b 'a)) (x 'b)] (f x))
 

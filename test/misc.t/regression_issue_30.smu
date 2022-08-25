@@ -1,4 +1,4 @@
-(record v {:x float :y float :z float})
+(type v {:x float :y float :z float})
 
 (external dot (fun v v float))
 (external norm (fun v v))

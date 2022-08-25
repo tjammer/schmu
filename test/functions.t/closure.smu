@@ -1,4 +1,4 @@
-(record capturable {:a (mutable int)})
+(type capturable {:a (mutable int)})
 (val a {:a 10})
 
 (fun capture_a []

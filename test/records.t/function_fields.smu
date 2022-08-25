@@ -1,6 +1,6 @@
 (external printi (fun int unit))
 
-(record state {:cnt int :next (fun int int)})
+(type state {:cnt int :next (fun int int)})
 
 (val state {:cnt 0 :next (fun [x] (+ x 1))})
 

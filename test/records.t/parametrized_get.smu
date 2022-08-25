@@ -1,8 +1,8 @@
 (external printi (fun int unit))
 
-(record (t 'a) {:null int :first int :gen 'a :third bool})
+(type (t 'a) {:null int :first int :gen 'a :third bool})
 
-(record (gen_first 'a) {:only 'a :is bool})
+(type (gen_first 'a) {:only 'a :is bool})
 
 (fun print_bool [b]
   (if b (printi 1) (printi 0)))

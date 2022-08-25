@@ -1,5 +1,5 @@
 -- We need a nonconst value to capture
-(record to_capture {:field (mutable int)})
+(type to_capture {:field (mutable int)})
 
 -- Wrap into function because globals are not captured
 (fun main_ []

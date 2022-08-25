@@ -18,17 +18,17 @@
 -- printi(f({ x = 17, inner = { a = { a = 124 } } }).inner.a.a)
 (external printi (fun int unit))
 
-(record (innerst 'b) {:a 'b})
+(type (innerst 'b) {:a 'b})
 
-(record (p_inner 'a) {:a 'a})
+(type (p_inner 'a) {:a 'a})
 
-(alias (alias_ 'a) (p_inner 'a))
+(type (alias 'a) (p_inner 'a))
 
-(record (t 'a) {:x int :inner (alias_ (innerst 'a))})
+(type (t 'a) {:x int :inner (alias (innerst 'a))})
 
-(record inner {:a int})
+(type inner {:a int})
 
-(record foo {:a int :b inner})
+(type foo {:a int :b inner})
 
 (fun inner [] {:a 3})
 

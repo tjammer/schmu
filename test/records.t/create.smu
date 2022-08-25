@@ -1,6 +1,6 @@
 (external printi (fun int unit))
 
-(record foo {:x int :y int})
+(type foo {:x int :y int})
 
 (fun create_record [x y]
   {:x :y})

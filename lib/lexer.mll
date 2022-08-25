@@ -70,9 +70,7 @@ rule read =
   | "match"  { Match }
   | "do"     { Do }
   | "open"   { Open }
-  | "record" { Defrecord }
-  | "alias"  { Defalias }
-  | "variant" { Defvariant }
+  | "type" { Type }
   | "external"{ Defexternal }
   | "setf"   { Setf }
   | "cond"   { Cond }

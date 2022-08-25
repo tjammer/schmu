@@ -1,6 +1,6 @@
 (external printf (fun cstr int unit))
 
-(variant test ((#float float) (#int int) #non))
+(type test ((#float float) (#int int) #non))
 
 (fun doo [m]
   (match m

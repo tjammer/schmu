@@ -1,6 +1,6 @@
-(record foo {:x int})
+(type foo {:x int})
 
-(record ys (:y foo :z int))
+(type ys (:y foo :z int))
 
 (external printi (fun int unit))
 

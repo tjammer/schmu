@@ -276,7 +276,7 @@ prog: Lpar Val Lpar Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defalias Kebab_id Quote Wildcard
+prog: Lpar Defexternal Kebab_id Quote Wildcard
 ##
 ## Ends in an error in state: 44.
 ##
@@ -326,7 +326,7 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Lpar Fun Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defalias Kebab_id Kebab_id Wildcard
+prog: Lpar Defexternal Kebab_id Kebab_id Wildcard
 ##
 ## Ends in an error in state: 51.
 ##
@@ -339,7 +339,7 @@ prog: Lpar Defalias Kebab_id Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defalias Kebab_id Kebab_id Div_i Wildcard
+prog: Lpar Defexternal Kebab_id Kebab_id Div_i Wildcard
 ##
 ## Ends in an error in state: 52.
 ##
@@ -371,7 +371,7 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defalias Kebab_id Lpar Kebab_id String_lit
+prog: Lpar Defexternal Kebab_id Lpar Kebab_id String_lit
 ##
 ## Ends in an error in state: 58.
 ##
@@ -389,7 +389,7 @@ prog: Lpar Defalias Kebab_id Lpar Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defalias Kebab_id Lpar Wildcard
+prog: Lpar Defexternal Kebab_id Lpar Kebab_id Lpar Wildcard
 ##
 ## Ends in an error in state: 59.
 ##
@@ -401,7 +401,7 @@ prog: Lpar Defalias Kebab_id Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defalias Kebab_id Lpar Kebab_id Kebab_id String_lit
+prog: Lpar Defexternal Kebab_id Lpar Kebab_id Kebab_id String_lit
 ##
 ## Ends in an error in state: 60.
 ##
@@ -2163,14 +2163,14 @@ prog: Lpar Wildcard
 ## Ends in an error in state: 312.
 ##
 ## maybe_bracs(nonempty_list(sexp_record_item)) -> Lpar . nonempty_list(sexp_record_item) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-## parenss(defalias) -> Lpar . Defalias ident build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-## parenss(defalias) -> Lpar . Defalias Lpar ident Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defalias) -> Lpar . Type ident build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defalias) -> Lpar . Type Lpar ident Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defexternal) -> Lpar . Defexternal ident build_sexp_type_list option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defexternal) -> Lpar . Defexternal ident parenss(sexp_type_func) option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-## parenss(defrecord) -> Lpar . Defrecord ident maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-## parenss(defrecord) -> Lpar . Defrecord Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-## parenss(defvariant) -> Lpar . Defvariant ident atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-## parenss(defvariant) -> Lpar . Defvariant Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar . Type ident maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar . Type Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar . Type ident atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar . Type Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(fmt_str) -> Lpar . Fmt_str nonempty_list(sexp_expr) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(sexp_binop_items) -> Lpar . Plus_i sexp_expr nonempty_list(sexp_expr) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(sexp_binop_items) -> Lpar . Minus_i sexp_expr nonempty_list(sexp_expr) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
@@ -2213,107 +2213,99 @@ prog: Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Open Wildcard
+prog: Lpar Type Wildcard
 ##
 ## Ends in an error in state: 313.
 ##
-## parenss(sexp_open) -> Lpar Open . ident Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defalias) -> Lpar Type . ident build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defalias) -> Lpar Type . Lpar ident Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar Type . ident maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar Type . Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar Type . ident atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar Type . Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar Open
+## Lpar Type
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Open Kebab_id Wildcard
+prog: Lpar Type Lpar Wildcard
 ##
 ## Ends in an error in state: 314.
 ##
-## parenss(sexp_open) -> Lpar Open ident . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defalias) -> Lpar Type Lpar . ident Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar Type Lpar . ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar Type Lpar . ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar Open ident
+## Lpar Type Lpar
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defvariant Wildcard
+prog: Lpar Type Lpar Kebab_id Wildcard
+##
+## Ends in an error in state: 315.
+##
+## parenss(defalias) -> Lpar Type Lpar ident . Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar Type Lpar ident . Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar Type Lpar ident . Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Type Lpar ident
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Lpar Kebab_id Quote Wildcard
 ##
 ## Ends in an error in state: 316.
 ##
-## parenss(defvariant) -> Lpar Defvariant . ident atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-## parenss(defvariant) -> Lpar Defvariant . Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defalias) -> Lpar Type Lpar ident Quote . Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar Type Lpar ident Quote . Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar Type Lpar ident Quote . Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar Defvariant
+## Lpar Type Lpar ident Quote
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defvariant Lpar Wildcard
+prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Wildcard
 ##
 ## Ends in an error in state: 317.
 ##
-## parenss(defvariant) -> Lpar Defvariant Lpar . ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defalias) -> Lpar Type Lpar ident Quote Lowercase_id . Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar Type Lpar ident Quote Lowercase_id . Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar Type Lpar ident Quote Lowercase_id . Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar Defvariant Lpar
+## Lpar Type Lpar ident Quote Lowercase_id
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defvariant Lpar Kebab_id Wildcard
+prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
 ##
 ## Ends in an error in state: 318.
 ##
-## parenss(defvariant) -> Lpar Defvariant Lpar ident . Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defalias) -> Lpar Type Lpar ident Quote Lowercase_id Rpar . build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar Type Lpar ident Quote Lowercase_id Rpar . maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar Type Lpar ident Quote Lowercase_id Rpar . atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar Defvariant Lpar ident
+## Lpar Type Lpar ident Quote Lowercase_id Rpar
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defvariant Lpar Kebab_id Quote Wildcard
+prog: Lpar Type Kebab_id Lpar Wildcard
 ##
 ## Ends in an error in state: 319.
 ##
-## parenss(defvariant) -> Lpar Defvariant Lpar ident Quote . Lowercase_id Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defvariant Lpar ident Quote
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Lpar Kebab_id Quote Lowercase_id Wildcard
-##
-## Ends in an error in state: 320.
-##
-## parenss(defvariant) -> Lpar Defvariant Lpar ident Quote Lowercase_id . Rpar atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defvariant Lpar ident Quote Lowercase_id
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
-##
-## Ends in an error in state: 321.
-##
-## parenss(defvariant) -> Lpar Defvariant Lpar ident Quote Lowercase_id Rpar . atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defvariant Lpar ident Quote Lowercase_id Rpar
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Lpar Wildcard
-##
-## Ends in an error in state: 322.
-##
+## build_sexp_type_list -> Lpar . type_spec build_sexp_type_list Rpar [ Rpar ]
+## maybe_bracs(nonempty_list(sexp_type_decl)) -> Lpar . nonempty_list(sexp_type_decl) Rpar [ Rpar ]
 ## parenss(nonempty_list(sexp_ctordef)) -> Lpar . nonempty_list(sexp_ctordef) Rpar [ Rpar ]
 ## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor build_sexp_type_list Rpar [ Rpar ]
 ## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor Int Rpar [ Rpar ]
@@ -2324,242 +2316,9 @@ prog: Lpar Defvariant Kebab_id Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defvariant Kebab_id Lpar Lpar Wildcard
+prog: Lpar Type Kebab_id Lbrac Name Wildcard
 ##
-## Ends in an error in state: 323.
-##
-## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor build_sexp_type_list Rpar [ Rpar Lpar Constructor ]
-## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor Int Rpar [ Rpar Lpar Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Lpar Lpar Constructor Wildcard
-##
-## Ends in an error in state: 324.
-##
-## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . build_sexp_type_list Rpar [ Rpar Lpar Constructor ]
-## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . Int Rpar [ Rpar Lpar Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar sexp_ctor
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Lpar Constructor Int Wildcard
-##
-## Ends in an error in state: 325.
-##
-## parenss(sexp_ctordef_item) -> Lpar sexp_ctor Int . Rpar [ Rpar Lpar Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar sexp_ctor Int
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Lpar Constructor Kebab_id String_lit
-##
-## Ends in an error in state: 327.
-##
-## parenss(sexp_ctordef_item) -> Lpar sexp_ctor build_sexp_type_list . Rpar [ Rpar Lpar Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar sexp_ctor build_sexp_type_list
-##
-## WARNING: This example involves spurious reductions.
-## This implies that, although the LR(1) items shown above provide an
-## accurate view of the past (what has been recognized so far), they
-## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 51, spurious reduction of production type_spec -> ident
-## In state 48, spurious reduction of production build_sexp_type_list -> type_spec
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Lpar Constructor Wildcard
-##
-## Ends in an error in state: 329.
-##
-## nonempty_list(sexp_ctordef) -> sexp_ctor . [ Rpar ]
-## nonempty_list(sexp_ctordef) -> sexp_ctor . nonempty_list(sexp_ctordef) [ Rpar ]
-## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . build_sexp_type_list Rpar [ Rpar ]
-## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . Int Rpar [ Rpar ]
-##
-## The known suffix of the stack is as follows:
-## Lpar sexp_ctor
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Lpar Constructor Lpar Wildcard
-##
-## Ends in an error in state: 330.
-##
-## build_sexp_type_list -> Lpar . type_spec build_sexp_type_list Rpar [ Rpar ]
-## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor build_sexp_type_list Rpar [ Rpar Lpar Constructor ]
-## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor Int Rpar [ Rpar Lpar Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Lpar Constructor Constructor Wildcard
-##
-## Ends in an error in state: 331.
-##
-## nonempty_list(sexp_ctordef) -> sexp_ctor . [ Rpar ]
-## nonempty_list(sexp_ctordef) -> sexp_ctor . nonempty_list(sexp_ctordef) [ Rpar ]
-##
-## The known suffix of the stack is as follows:
-## sexp_ctor
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Lpar Lpar Constructor Kebab_id Rpar Wildcard
-##
-## Ends in an error in state: 332.
-##
-## nonempty_list(sexp_ctordef) -> parenss(sexp_ctordef_item) . [ Rpar ]
-## nonempty_list(sexp_ctordef) -> parenss(sexp_ctordef_item) . nonempty_list(sexp_ctordef) [ Rpar ]
-##
-## The known suffix of the stack is as follows:
-## parenss(sexp_ctordef_item)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Lpar Kebab_id Quote Lowercase_id Rpar Constructor Wildcard
-##
-## Ends in an error in state: 340.
-##
-## parenss(defvariant) -> Lpar Defvariant Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defvariant Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Wildcard
-##
-## Ends in an error in state: 342.
-##
-## parenss(defvariant) -> Lpar Defvariant ident . atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defvariant ident
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defvariant Kebab_id Constructor Wildcard
-##
-## Ends in an error in state: 343.
-##
-## parenss(defvariant) -> Lpar Defvariant ident atom_or_list(sexp_ctordef) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defvariant ident atom_or_list(sexp_ctordef)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defrecord Wildcard
-##
-## Ends in an error in state: 345.
-##
-## parenss(defrecord) -> Lpar Defrecord . ident maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-## parenss(defrecord) -> Lpar Defrecord . Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defrecord
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defrecord Lpar Wildcard
-##
-## Ends in an error in state: 346.
-##
-## parenss(defrecord) -> Lpar Defrecord Lpar . ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defrecord Lpar
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defrecord Lpar Kebab_id Wildcard
-##
-## Ends in an error in state: 347.
-##
-## parenss(defrecord) -> Lpar Defrecord Lpar ident . Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defrecord Lpar ident
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defrecord Lpar Kebab_id Quote Wildcard
-##
-## Ends in an error in state: 348.
-##
-## parenss(defrecord) -> Lpar Defrecord Lpar ident Quote . Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defrecord Lpar ident Quote
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defrecord Lpar Kebab_id Quote Lowercase_id Wildcard
-##
-## Ends in an error in state: 349.
-##
-## parenss(defrecord) -> Lpar Defrecord Lpar ident Quote Lowercase_id . Rpar maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defrecord Lpar ident Quote Lowercase_id
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defrecord Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
-##
-## Ends in an error in state: 350.
-##
-## parenss(defrecord) -> Lpar Defrecord Lpar ident Quote Lowercase_id Rpar . maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defrecord Lpar ident Quote Lowercase_id Rpar
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defrecord Kebab_id Lpar Wildcard
-##
-## Ends in an error in state: 351.
-##
-## maybe_bracs(nonempty_list(sexp_type_decl)) -> Lpar . nonempty_list(sexp_type_decl) Rpar [ Rpar ]
-##
-## The known suffix of the stack is as follows:
-## Lpar
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defrecord Kebab_id Lbrac Name Wildcard
-##
-## Ends in an error in state: 352.
+## Ends in an error in state: 320.
 ##
 ## nonempty_list(sexp_type_decl) -> Name . build_sexp_type_list [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name . parenss(sexp_type_func) [ Rpar Rbrac ]
@@ -2576,9 +2335,9 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Wildcard
+prog: Lpar Type Kebab_id Lbrac Name Lpar Wildcard
 ##
-## Ends in an error in state: 353.
+## Ends in an error in state: 321.
 ##
 ## build_sexp_type_list -> Lpar . type_spec build_sexp_type_list Rpar [ Rpar Rbrac Name ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar . Mutable build_sexp_type_list Rpar [ Rpar Rbrac ]
@@ -2593,9 +2352,9 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Wildcard
+prog: Lpar Type Kebab_id Lbrac Name Lpar Mutable Wildcard
 ##
-## Ends in an error in state: 354.
+## Ends in an error in state: 322.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable . build_sexp_type_list Rpar [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable . parenss(sexp_type_func) Rpar [ Rpar Rbrac ]
@@ -2608,9 +2367,9 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Wildcard
+prog: Lpar Type Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 355.
+## Ends in an error in state: 323.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable parenss(sexp_type_func) . Rpar [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable parenss(sexp_type_func) . Rpar nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2621,9 +2380,9 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Wil
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Rpar Wildcard
+prog: Lpar Type Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Rpar Wildcard
 ##
-## Ends in an error in state: 356.
+## Ends in an error in state: 324.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable parenss(sexp_type_func) Rpar . [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable parenss(sexp_type_func) Rpar . nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2634,9 +2393,9 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Lpar Fun Kebab_id Rpar Rpa
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Kebab_id String_lit
+prog: Lpar Type Kebab_id Lbrac Name Lpar Mutable Kebab_id String_lit
 ##
-## Ends in an error in state: 358.
+## Ends in an error in state: 326.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable build_sexp_type_list . Rpar [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable build_sexp_type_list . Rpar nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2654,9 +2413,9 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Kebab_id Rpar Wildcard
+prog: Lpar Type Kebab_id Lbrac Name Lpar Mutable Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 359.
+## Ends in an error in state: 327.
 ##
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable build_sexp_type_list Rpar . [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name Lpar Mutable build_sexp_type_list Rpar . nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2667,9 +2426,9 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Mutable Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Fun Kebab_id Rpar Wildcard
+prog: Lpar Type Kebab_id Lbrac Name Lpar Fun Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 361.
+## Ends in an error in state: 329.
 ##
 ## nonempty_list(sexp_type_decl) -> Name parenss(sexp_type_func) . [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name parenss(sexp_type_func) . nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2680,9 +2439,9 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Lpar Fun Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id String_lit
+prog: Lpar Type Kebab_id Lbrac Name Kebab_id String_lit
 ##
-## Ends in an error in state: 363.
+## Ends in an error in state: 331.
 ##
 ## nonempty_list(sexp_type_decl) -> Name build_sexp_type_list . [ Rpar Rbrac ]
 ## nonempty_list(sexp_type_decl) -> Name build_sexp_type_list . nonempty_list(sexp_type_decl) [ Rpar Rbrac ]
@@ -2700,9 +2459,121 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lpar Name Kebab_id Rbrac
+prog: Lpar Type Kebab_id Lpar Lpar Wildcard
 ##
-## Ends in an error in state: 365.
+## Ends in an error in state: 333.
+##
+## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor build_sexp_type_list Rpar [ Rpar Lpar Constructor ]
+## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor Int Rpar [ Rpar Lpar Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lpar Lpar Constructor Wildcard
+##
+## Ends in an error in state: 334.
+##
+## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . build_sexp_type_list Rpar [ Rpar Lpar Constructor ]
+## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . Int Rpar [ Rpar Lpar Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lpar Constructor Int Wildcard
+##
+## Ends in an error in state: 335.
+##
+## parenss(sexp_ctordef_item) -> Lpar sexp_ctor Int . Rpar [ Rpar Lpar Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor Int
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lpar Constructor Kebab_id String_lit
+##
+## Ends in an error in state: 337.
+##
+## parenss(sexp_ctordef_item) -> Lpar sexp_ctor build_sexp_type_list . Rpar [ Rpar Lpar Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor build_sexp_type_list
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 51, spurious reduction of production type_spec -> ident
+## In state 48, spurious reduction of production build_sexp_type_list -> type_spec
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lpar Constructor Wildcard
+##
+## Ends in an error in state: 339.
+##
+## nonempty_list(sexp_ctordef) -> sexp_ctor . [ Rpar ]
+## nonempty_list(sexp_ctordef) -> sexp_ctor . nonempty_list(sexp_ctordef) [ Rpar ]
+## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . build_sexp_type_list Rpar [ Rpar ]
+## parenss(sexp_ctordef_item) -> Lpar sexp_ctor . Int Rpar [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## Lpar sexp_ctor
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lpar Constructor Lpar Wildcard
+##
+## Ends in an error in state: 340.
+##
+## build_sexp_type_list -> Lpar . type_spec build_sexp_type_list Rpar [ Rpar ]
+## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor build_sexp_type_list Rpar [ Rpar Lpar Constructor ]
+## parenss(sexp_ctordef_item) -> Lpar . sexp_ctor Int Rpar [ Rpar Lpar Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lpar Constructor Constructor Wildcard
+##
+## Ends in an error in state: 341.
+##
+## nonempty_list(sexp_ctordef) -> sexp_ctor . [ Rpar ]
+## nonempty_list(sexp_ctordef) -> sexp_ctor . nonempty_list(sexp_ctordef) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## sexp_ctor
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lpar Lpar Constructor Kebab_id Rpar Wildcard
+##
+## Ends in an error in state: 342.
+##
+## nonempty_list(sexp_ctordef) -> parenss(sexp_ctordef_item) . [ Rpar ]
+## nonempty_list(sexp_ctordef) -> parenss(sexp_ctordef_item) . nonempty_list(sexp_ctordef) [ Rpar ]
+##
+## The known suffix of the stack is as follows:
+## parenss(sexp_ctordef_item)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lpar Name Kebab_id Rbrac
+##
+## Ends in an error in state: 345.
 ##
 ## maybe_bracs(nonempty_list(sexp_type_decl)) -> Lpar nonempty_list(sexp_type_decl) . Rpar [ Rpar ]
 ##
@@ -2715,14 +2586,14 @@ prog: Lpar Defrecord Kebab_id Lpar Name Kebab_id Rbrac
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 51, spurious reduction of production type_spec -> ident
 ## In state 48, spurious reduction of production build_sexp_type_list -> type_spec
-## In state 363, spurious reduction of production nonempty_list(sexp_type_decl) -> Name build_sexp_type_list
+## In state 331, spurious reduction of production nonempty_list(sexp_type_decl) -> Name build_sexp_type_list
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Wildcard
+prog: Lpar Type Kebab_id Lbrac Wildcard
 ##
-## Ends in an error in state: 367.
+## Ends in an error in state: 349.
 ##
 ## maybe_bracs(nonempty_list(sexp_type_decl)) -> Lbrac . nonempty_list(sexp_type_decl) Rbrac [ Rpar ]
 ##
@@ -2732,9 +2603,9 @@ prog: Lpar Defrecord Kebab_id Lbrac Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id Rpar
+prog: Lpar Type Kebab_id Lbrac Name Kebab_id Rpar
 ##
-## Ends in an error in state: 368.
+## Ends in an error in state: 350.
 ##
 ## maybe_bracs(nonempty_list(sexp_type_decl)) -> Lbrac nonempty_list(sexp_type_decl) . Rbrac [ Rpar ]
 ##
@@ -2747,50 +2618,138 @@ prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id Rpar
 ## may provide an INCOMPLETE view of the future (what was expected next).
 ## In state 51, spurious reduction of production type_spec -> ident
 ## In state 48, spurious reduction of production build_sexp_type_list -> type_spec
-## In state 363, spurious reduction of production nonempty_list(sexp_type_decl) -> Name build_sexp_type_list
+## In state 331, spurious reduction of production nonempty_list(sexp_type_decl) -> Name build_sexp_type_list
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Lpar Kebab_id Quote Lowercase_id Rpar Lbrac Name Kebab_id Rbrac Wildcard
+prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Lbrac Name Kebab_id Rbrac Wildcard
 ##
-## Ends in an error in state: 370.
+## Ends in an error in state: 355.
 ##
-## parenss(defrecord) -> Lpar Defrecord Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar Type Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl)) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar Defrecord Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl))
+## Lpar Type Lpar ident Quote Lowercase_id Rpar maybe_bracs(nonempty_list(sexp_type_decl))
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Wildcard
+prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Kebab_id String_lit
 ##
-## Ends in an error in state: 372.
+## Ends in an error in state: 357.
 ##
-## parenss(defrecord) -> Lpar Defrecord ident . maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defalias) -> Lpar Type Lpar ident Quote Lowercase_id Rpar build_sexp_type_list . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar Defrecord ident
+## Lpar Type Lpar ident Quote Lowercase_id Rpar build_sexp_type_list
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 51, spurious reduction of production type_spec -> ident
+## In state 48, spurious reduction of production build_sexp_type_list -> type_spec
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defrecord Kebab_id Lbrac Name Kebab_id Rbrac Wildcard
+prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Constructor Wildcard
 ##
-## Ends in an error in state: 373.
+## Ends in an error in state: 359.
 ##
-## parenss(defrecord) -> Lpar Defrecord ident maybe_bracs(nonempty_list(sexp_type_decl)) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar Type Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
 ## The known suffix of the stack is as follows:
-## Lpar Defrecord ident maybe_bracs(nonempty_list(sexp_type_decl))
+## Lpar Type Lpar ident Quote Lowercase_id Rpar atom_or_list(sexp_ctordef)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Wildcard
+##
+## Ends in an error in state: 361.
+##
+## parenss(defalias) -> Lpar Type ident . build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defrecord) -> Lpar Type ident . maybe_bracs(nonempty_list(sexp_type_decl)) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+## parenss(defvariant) -> Lpar Type ident . atom_or_list(sexp_ctordef) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Type ident
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lbrac Name Kebab_id Rbrac Wildcard
+##
+## Ends in an error in state: 362.
+##
+## parenss(defrecord) -> Lpar Type ident maybe_bracs(nonempty_list(sexp_type_decl)) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Type ident maybe_bracs(nonempty_list(sexp_type_decl))
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Kebab_id String_lit
+##
+## Ends in an error in state: 364.
+##
+## parenss(defalias) -> Lpar Type ident build_sexp_type_list . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Type ident build_sexp_type_list
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 51, spurious reduction of production type_spec -> ident
+## In state 48, spurious reduction of production build_sexp_type_list -> type_spec
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Constructor Wildcard
+##
+## Ends in an error in state: 366.
+##
+## parenss(defvariant) -> Lpar Type ident atom_or_list(sexp_ctordef) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Type ident atom_or_list(sexp_ctordef)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Open Wildcard
+##
+## Ends in an error in state: 368.
+##
+## parenss(sexp_open) -> Lpar Open . ident Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Open
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Open Kebab_id Wildcard
+##
+## Ends in an error in state: 369.
+##
+## parenss(sexp_open) -> Lpar Open ident . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
+##
+## The known suffix of the stack is as follows:
+## Lpar Open ident
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Defexternal Wildcard
 ##
-## Ends in an error in state: 375.
+## Ends in an error in state: 371.
 ##
 ## parenss(defexternal) -> Lpar Defexternal . ident build_sexp_type_list option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defexternal) -> Lpar Defexternal . ident parenss(sexp_type_func) option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
@@ -2803,7 +2762,7 @@ prog: Lpar Defexternal Wildcard
 
 prog: Lpar Defexternal Kebab_id Wildcard
 ##
-## Ends in an error in state: 376.
+## Ends in an error in state: 372.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident . build_sexp_type_list option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ## parenss(defexternal) -> Lpar Defexternal ident . parenss(sexp_type_func) option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
@@ -2816,7 +2775,7 @@ prog: Lpar Defexternal Kebab_id Wildcard
 
 prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar Wildcard
 ##
-## Ends in an error in state: 377.
+## Ends in an error in state: 373.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident parenss(sexp_type_func) . option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2828,7 +2787,7 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar Wildcard
 
 prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar String_lit Wildcard
 ##
-## Ends in an error in state: 379.
+## Ends in an error in state: 375.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident parenss(sexp_type_func) option(String_lit) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2840,7 +2799,7 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar String_lit Wildcard
 
 prog: Lpar Defexternal Kebab_id Kebab_id Rbrac
 ##
-## Ends in an error in state: 381.
+## Ends in an error in state: 377.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident build_sexp_type_list . option(String_lit) Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2859,7 +2818,7 @@ prog: Lpar Defexternal Kebab_id Kebab_id Rbrac
 
 prog: Lpar Defexternal Kebab_id Kebab_id String_lit Wildcard
 ##
-## Ends in an error in state: 382.
+## Ends in an error in state: 378.
 ##
 ## parenss(defexternal) -> Lpar Defexternal ident build_sexp_type_list option(String_lit) . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
 ##
@@ -2869,132 +2828,9 @@ prog: Lpar Defexternal Kebab_id Kebab_id String_lit Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defalias Wildcard
-##
-## Ends in an error in state: 384.
-##
-## parenss(defalias) -> Lpar Defalias . ident build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-## parenss(defalias) -> Lpar Defalias . Lpar ident Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defalias
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defalias Lpar Wildcard
-##
-## Ends in an error in state: 385.
-##
-## parenss(defalias) -> Lpar Defalias Lpar . ident Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defalias Lpar
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defalias Lpar Kebab_id Wildcard
-##
-## Ends in an error in state: 386.
-##
-## parenss(defalias) -> Lpar Defalias Lpar ident . Quote Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defalias Lpar ident
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defalias Lpar Kebab_id Quote Wildcard
-##
-## Ends in an error in state: 387.
-##
-## parenss(defalias) -> Lpar Defalias Lpar ident Quote . Lowercase_id Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defalias Lpar ident Quote
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defalias Lpar Kebab_id Quote Lowercase_id Wildcard
-##
-## Ends in an error in state: 388.
-##
-## parenss(defalias) -> Lpar Defalias Lpar ident Quote Lowercase_id . Rpar build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defalias Lpar ident Quote Lowercase_id
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defalias Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
-##
-## Ends in an error in state: 389.
-##
-## parenss(defalias) -> Lpar Defalias Lpar ident Quote Lowercase_id Rpar . build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defalias Lpar ident Quote Lowercase_id Rpar
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defalias Lpar Kebab_id Quote Lowercase_id Rpar Kebab_id String_lit
-##
-## Ends in an error in state: 390.
-##
-## parenss(defalias) -> Lpar Defalias Lpar ident Quote Lowercase_id Rpar build_sexp_type_list . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defalias Lpar ident Quote Lowercase_id Rpar build_sexp_type_list
-##
-## WARNING: This example involves spurious reductions.
-## This implies that, although the LR(1) items shown above provide an
-## accurate view of the past (what has been recognized so far), they
-## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 51, spurious reduction of production type_spec -> ident
-## In state 48, spurious reduction of production build_sexp_type_list -> type_spec
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defalias Kebab_id Wildcard
-##
-## Ends in an error in state: 392.
-##
-## parenss(defalias) -> Lpar Defalias ident . build_sexp_type_list Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defalias ident
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defalias Kebab_id Kebab_id String_lit
-##
-## Ends in an error in state: 393.
-##
-## parenss(defalias) -> Lpar Defalias ident build_sexp_type_list . Rpar [ U8 True String_lit Minus_i Minus_f Lpar Lowercase_id Lbrack Lbrac Kebab_id Int I32 Float False F32 Eof Constructor ]
-##
-## The known suffix of the stack is as follows:
-## Lpar Defalias ident build_sexp_type_list
-##
-## WARNING: This example involves spurious reductions.
-## This implies that, although the LR(1) items shown above provide an
-## accurate view of the past (what has been recognized so far), they
-## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 51, spurious reduction of production type_spec -> ident
-## In state 48, spurious reduction of production build_sexp_type_list -> type_spec
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: False Wildcard
 ##
-## Ends in an error in state: 395.
+## Ends in an error in state: 380.
 ##
 ## list(top_item) -> top_item . list(top_item) [ Eof ]
 ##

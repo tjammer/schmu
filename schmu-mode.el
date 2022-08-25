@@ -62,7 +62,7 @@ the syntax table, so `forward-word' works as expected.")
   "The regex to identify schmu function names.")
 
 (defconst schmu-var-decl-forms
-  '("var" "var-" "def" "def-" "defglobal" "varglobal" "default" "dyn" "variant" "record" "alias"))
+  '("var" "var-" "def" "def-" "defglobal" "varglobal" "default" "dyn" "type"))
 
 (defconst schmu-variable-declaration-pattern
   (rx-to-string `(sequence ,@schmu-start-of-sexp
@@ -114,9 +114,7 @@ the syntax table, so `forward-word' works as expected.")
     "external"
     "do"
     "open"
-    "record"
-    "variant"
-    "alias"
+    "type"
     "match"
 
     ,@schmu-var-decl-forms
@@ -255,7 +253,7 @@ There is special handling for:
                body-indent)
               (method
                (funcall method indent-point state))
-              ((string-match (rx bos (or "val" "variant" "with-")) head)
+              ((string-match (rx bos (or "val" "type" "with-")) head)
                body-indent) ;just like 'defun
               (t
                (schmu--normal-indent state)))))))

@@ -1,4 +1,4 @@
-(record big { :a int :b float :c int :d int })
+(type big { :a int :b float :c int :d int })
 
 (fun do_something [big] (+ (.a big) 1))
 

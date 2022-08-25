@@ -1,11 +1,11 @@
-(record (ptr 'a) { :ptr (raw_ptr 'a) :length int })
+(type (ptr 'a) { :ptr (raw_ptr 'a) :length int })
 
-(record (owned_ptr 'a) { :optr (mutable (raw_ptr 'a)) :length (mutable int) })
+(type (owned_ptr 'a) { :optr (mutable (raw_ptr 'a)) :length (mutable int) })
 
 -- string
-(alias cstr (raw_ptr u8))
+(type cstr (raw_ptr u8))
 
-(record string { :cstr cstr :length int })
+(type string { :cstr cstr :length int })
 
 (external puts (fun cstr unit))
 
@@ -16,7 +16,7 @@
 (fun string-len [str] (abs (.length str)))
 
 -- vector
-(record (vector 'a) {:ptr (owned_ptr 'a) :capacity (mutable int)})
+(type (vector 'a) {:ptr (owned_ptr 'a) :capacity (mutable int)})
 
 (fun vector_init [capacity]
   (val optr (__malloc capacity))
@@ -50,4 +50,4 @@
   (inner 0 init))
 
 -- option
-(variant (option 'a) ((#some 'a) #none))
+(type (option 'a) ((#some 'a) #none))

@@ -1,10 +1,10 @@
 (external printi (fun int unit))
 
-(record int_wrap {:dat int :b int :c int})
+(type int_wrap {:dat int :b int :c int})
 
-(record (test 'a) {:int_wrap 'a})
+(type (test 'a) {:int_wrap 'a})
 
-(record (mut 'a) {:wrapped (mutable 'a)})
+(type (mut 'a) {:wrapped (mutable 'a)})
 
 (fun test_thing []
   (val test {:int_wrap {:dat 2 :b 0 :c 0}})

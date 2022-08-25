@@ -1,6 +1,6 @@
 (external printi (fun int unit))
 
-(record (t 'a) {:x 'a})
+(type (t 'a) {:x 'a})
 
 (fun apply [x f env]
   (f x env))

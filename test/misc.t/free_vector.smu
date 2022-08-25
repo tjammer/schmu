@@ -1,5 +1,5 @@
-(record foo {:x int})
-(record container {:index int :vec (vector int)})
+(type foo {:x int})
+(type container {:index int :vec (vector int)})
 
 (val x {:x 1})
 

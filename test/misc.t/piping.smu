@@ -15,7 +15,7 @@
     printi)
 
 -- pipe field accessor
-(record foo {:x int})
+(type foo {:x int})
 (-> {:x 1}
     .x
     printi)

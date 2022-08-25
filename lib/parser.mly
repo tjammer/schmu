@@ -74,9 +74,7 @@
 %token Mutable
 %token Wildcard
 %token Open
-%token Defrecord
-%token Defalias
-%token Defvariant
+%token Type
 %token Defexternal
 %token Setf
 %token Fmt_str
@@ -105,14 +103,14 @@ top_item:
   | Defexternal; ident; sexp_type_expr; option(String_lit) { $loc, $2, $3, $4 }
 
 %inline defrecord:
-  | Defrecord; sexp_typename; maybe_bracs(nonempty_list(sexp_type_decl))
+  | Type; sexp_typename; maybe_bracs(nonempty_list(sexp_type_decl))
     { Trecord { name = $2; labels = Array.of_list $3 } }
 
 %inline defalias:
-  | Defalias; sexp_typename; sexp_type_list { Talias ($2, $3 ) }
+  | Type; sexp_typename; sexp_type_list { Talias ($2, $3 ) }
 
 %inline defvariant:
-  | Defvariant; sexp_typename; atom_or_list(sexp_ctordef) { Tvariant { name = $2; ctors = $3 } }
+  | Type; sexp_typename; atom_or_list(sexp_ctordef) { Tvariant { name = $2; ctors = $3 } }
 
 let atom_or_list(x) :=
   | atom = x; { [atom] }

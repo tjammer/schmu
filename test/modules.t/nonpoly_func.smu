@@ -1,4 +1,4 @@
-(variant either (#left #right))
+(type either (#left #right))
 
 (fun add_ints [a b]
   (val c 10)

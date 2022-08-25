@@ -1,4 +1,4 @@
-(record v3 {:x float :y float :z float})
+(type v3 {:x float :y float :z float})
 
 (fun v3_add [lhs rhs]
   {:x (+. (.x lhs) (.x rhs)) :y (+. (.y lhs) (.y rhs)) :z (+. (.z lhs) (.z rhs))})

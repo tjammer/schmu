@@ -1,9 +1,9 @@
-(record first { :a int })
+(type first { :a int })
 (external dummy_call (fun unit first))
 
 (ignore dummy_call)
 
-(record second { :a int })
+(type second { :a int })
 (external print_2nd (fun second unit))
 
 (ignore print_2nd)
