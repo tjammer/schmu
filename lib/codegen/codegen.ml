@@ -903,7 +903,7 @@ let add_params vars f fname names types start_index recursive =
     | _ -> ((Llvm.params f.value).(i) |> maybe_box_record typ, i)
   in
 
-  let add_simple () =
+  let add_simple vars =
     (* We simply add to env, no special handling for tailrecursion *)
     List.fold_left2
       (fun (env, i) name typ ->
@@ -946,14 +946,14 @@ let add_params vars f fname names types start_index recursive =
 
   (* If the function is named, we allow recursion *)
   match recursive with
-  | Monomorph_tree.Rnone -> (add_simple (), None)
+  | Monomorph_tree.Rnone -> (add_simple vars, None)
   | Rnormal ->
-      ( add_simple ()
-        |> Vars.add Monomorph_tree.(fname.call) f
+      ( Vars.add Monomorph_tree.(fname.call) f vars
         |> (* We also add the user name. This is needed for polymorphic nested functions.
               At the monomorphization stage, the codegen isn't rewritten to it's call name.
            *)
-        Vars.add Monomorph_tree.(fname.user) f,
+        Vars.add Monomorph_tree.(fname.user) f
+        |> add_simple,
         None )
   | Rtail ->
       (* In the entry block, we create a alloca for each parameter.
@@ -979,6 +979,9 @@ let add_params vars f fname names types start_index recursive =
       let entry = Llvm.builder_before context entry in
       Llvm.position_at_end rec_ builder;
 
+      (* Add the function itself to env with username *)
+      let vars = Vars.add Monomorph_tree.(fname.user) f vars in
+
       let vars, _ =
         List.fold_left2
           (fun (env, i) name typ ->
@@ -988,9 +991,6 @@ let add_params vars f fname names types start_index recursive =
             (Vars.add name { llvar with value } env, i + 1))
           (vars, start_index) names types
       in
-
-      (* Add the function itself to env with username *)
-      let vars = Vars.add Monomorph_tree.(fname.user) f vars in
 
       (vars, Some { rec_; entry })
 
@@ -1656,7 +1656,6 @@ and gen_app_builtin param (b, fnc) args =
   | F32_of_float -> cast Llvm.build_fpcast f32_t
   | U8_of_int -> cast Llvm.build_intcast u8_t
   | U8_to_int -> cast Llvm.build_intcast int_t
-
   | Not ->
       let value =
         match args with
