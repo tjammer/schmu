@@ -1646,14 +1646,17 @@ and gen_app_builtin param (b, fnc) args =
 
       { value; typ = fnc.ret; lltyp = Llvm.type_of value; const = Not }
   | Ignore -> dummy_fn_value
-  | Int_of_float -> cast Llvm.build_fptosi int_t
-  | Float_of_int -> cast Llvm.build_sitofp float_t
+  | Int_of_float | Int_of_f32 -> cast Llvm.build_fptosi int_t
+  | Int_of_i32 -> cast Llvm.build_intcast int_t
+  | Float_of_int | Float_of_i32 -> cast Llvm.build_sitofp float_t
+  | Float_of_f32 -> cast Llvm.build_fpcast float_t
+  | I32_of_float | I32_of_f32 -> cast Llvm.build_fptosi i32_t
   | I32_of_int -> cast Llvm.build_intcast i32_t
-  | I32_to_int -> cast Llvm.build_intcast int_t
+  | F32_of_int | F32_of_i32 -> cast Llvm.build_sitofp f32_t
+  | F32_of_float -> cast Llvm.build_fpcast f32_t
   | U8_of_int -> cast Llvm.build_intcast u8_t
   | U8_to_int -> cast Llvm.build_intcast int_t
-  | F32_of_float -> cast Llvm.build_fpcast f32_t
-  | F32_to_float -> cast Llvm.build_fpcast float_t
+
   | Not ->
       let value =
         match args with
