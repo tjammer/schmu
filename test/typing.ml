@@ -68,14 +68,10 @@ let test_record_false () =
     "(type t { :x int :y int }) { :x 2 :z 2 }"
 
 let test_record_choose () =
-  test "t1"
-    "(type t1 {:x int :y int}) (type t2 {:x int :z int}) {:x 2 :y 2}"
+  test "t1" "(type t1 {:x int :y int}) (type t2 {:x int :z int}) {:x 2 :y 2}"
 
-let test_record_reorder () =
-  test "t" "(type t {:x int :y int}) { :y 10 :x 2 }"
-
-let test_record_create_if () =
-  test "t" "(type t {:x int}) { :x (if true 1 0) }"
+let test_record_reorder () = test "t" "(type t {:x int :y int}) { :y 10 :x 2 }"
+let test_record_create_if () = test "t" "(type t {:x int}) { :x (if true 1 0) }"
 
 let test_record_create_return () =
   test "t" "(type t {:x int}) (fun a [] 10) { :x (a) }"
@@ -99,13 +95,13 @@ let test_record_same_field_infer () =
 
 let test_record_nested_field_infer () =
   test "c"
-    "(type a { :x int }) (type b { :x int }) (type c { :x int :y a }) { \
-     :x 12 :y { :x 12 } }"
+    "(type a { :x int }) (type b { :x int }) (type c { :x int :y a }) { :x 12 \
+     :y { :x 12 } }"
 
 let test_record_nested_field_generic () =
   test "c(b)"
-    "(type a { :x int }) (type b { :x int }) (type (c 'a) { :x int :y 'a \
-     }) { :x 12 :y { :x 12 } }"
+    "(type a { :x int }) (type b { :x int }) (type (c 'a) { :x int :y 'a }) { \
+     :x 12 :y { :x 12 } }"
 
 let test_record_field_no_record () =
   test_exn "Field access of record t: Expected type t but got type int"
@@ -139,8 +135,8 @@ let test_annot_record_simple () =
 
 let test_annot_record_generic () =
   test "a(bool)"
-    "(type (a 'a) { :x 'a }) (type b { :x int }) (val (a (a bool)) { :x \
-     true }) a"
+    "(type (a 'a) { :x 'a }) (type b { :x int }) (val (a (a bool)) { :x true \
+     }) a"
 
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
@@ -153,13 +149,11 @@ let test_sequence_fail () =
 
 let test_para_instantiate () =
   test "foo(int)"
-    "(type (foo 'a) { :first int :gen 'a }) (val foo { :first 10 :gen 20 }) \
-     foo"
+    "(type (foo 'a) { :first int :gen 'a }) (val foo { :first 10 :gen 20 }) foo"
 
 let test_para_gen_fun () =
   test "foo('a) -> int"
-    "(type (foo 'a) { :gen 'a :second int }) (fun get (foo) (.second foo)) \
-     get"
+    "(type (foo 'a) { :gen 'a :second int }) (fun get (foo) (.second foo)) get"
 
 let test_para_gen_return () =
   test "foo('a) -> 'a"
@@ -172,14 +166,14 @@ let test_para_multiple () =
 
 let test_para_instance_func () =
   test "foo(int) -> int"
-    "(type (foo 'a) { :gen 'a }) (fun use (foo) (+ (.gen foo) 17)) (val foo \
-     { :gen 17 }) use"
+    "(type (foo 'a) { :gen 'a }) (fun use (foo) (+ (.gen foo) 17)) (val foo { \
+     :gen 17 }) use"
 
 let test_para_instance_wrong_func () =
   test_exn
     "Application: Expected type foo(int) -> int but got type foo(bool) -> 'a"
-    "(type (foo 'a) { :gen 'a }) (fun use (foo) (+ (.gen foo) 17)) (val foo \
-     { :gen 17 }) (use { :gen true } )"
+    "(type (foo 'a) { :gen 'a }) (fun use (foo) (+ (.gen foo) 17)) (val foo { \
+     :gen 17 }) (use { :gen true } )"
 
 let test_pipe_head_single () = test "int" "(fun add1 (a) (+ a 1)) (-> 10 add1)"
 
@@ -324,8 +318,8 @@ let test_variants_option_some_arg () =
 
 let test_match_all () =
   test "int"
-    "(type (option 'a) (#none (#some 'a))) (match (#some 1) (#some a) a  \
-     #none -1)"
+    "(type (option 'a) (#none (#some 'a))) (match (#some 1) (#some a) a  #none \
+     -1)"
 
 let test_match_redundant () =
   test_exn "Pattern match case is redundant"
