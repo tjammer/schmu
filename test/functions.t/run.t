@@ -1025,70 +1025,87 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   define void @schmu___ivectorg.u_inner_cls_f_ivectori.u(i64 %i, %vector_int* %vec, i8* %0) {
   entry:
-    br label %tailrecurse
-  
-  tailrecurse:                                      ; preds = %else, %entry
-    %i.tr = phi i64 [ %i, %entry ], [ %add, %else ]
     %clsr = bitcast i8* %0 to { %closure* }*
-    %f3 = bitcast { %closure* }* %clsr to %closure**
-    %f1 = load %closure*, %closure** %f3, align 8
-    %1 = bitcast %vector_int* %vec to %owned_ptr_int*
-    %2 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %1, i32 0, i32 1
-    %3 = load i64, i64* %2, align 4
-    %eq = icmp eq i64 %i.tr, %3
+    %f7 = bitcast { %closure* }* %clsr to %closure**
+    %f1 = load %closure*, %closure** %f7, align 8
+    %1 = alloca i64, align 8
+    store i64 %i, i64* %1, align 4
+    %2 = alloca %vector_int, align 8
+    %3 = bitcast %vector_int* %2 to i8*
+    %4 = bitcast %vector_int* %vec to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 24, i1 false)
+    %.phi.trans.insert8 = bitcast %vector_int* %2 to %owned_ptr_int*
+    %.phi.trans.insert5 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %.phi.trans.insert8, i32 0, i32 1
+    %.pre = load i64, i64* %.phi.trans.insert5, align 4
+    %5 = sub i64 0, %.pre
+    %6 = add i64 %i, 1
+    br label %rec
+  
+  rec:                                              ; preds = %else, %entry
+    %lsr.iv = phi i64 [ %lsr.iv.next, %else ], [ %6, %entry ]
+    %7 = add i64 %5, %lsr.iv
+    %eq = icmp eq i64 %7, 1
     br i1 %eq, label %then, label %else
   
-  then:                                             ; preds = %tailrecurse
+  then:                                             ; preds = %rec
     ret void
   
-  else:                                             ; preds = %tailrecurse
-    %4 = bitcast %vector_int* %vec to %owned_ptr_int*
-    %5 = bitcast %owned_ptr_int* %4 to i64**
-    %6 = load i64*, i64** %5, align 8
-    %scevgep = getelementptr i64, i64* %6, i64 %i.tr
-    %7 = load i64, i64* %scevgep, align 4
-    %funcptr4 = bitcast %closure* %f1 to i8**
-    %loadtmp = load i8*, i8** %funcptr4, align 8
+  else:                                             ; preds = %rec
+    %8 = bitcast %vector_int* %2 to %owned_ptr_int*
+    %9 = bitcast %owned_ptr_int* %8 to i64**
+    %10 = load i64*, i64** %9, align 8
+    %scevgep = getelementptr i64, i64* %10, i64 %lsr.iv
+    %scevgep6 = getelementptr i64, i64* %scevgep, i64 -1
+    %11 = load i64, i64* %scevgep6, align 4
+    %funcptr9 = bitcast %closure* %f1 to i8**
+    %loadtmp = load i8*, i8** %funcptr9, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
-    %loadtmp2 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %7, i8* %loadtmp2)
-    %add = add i64 %i.tr, 1
-    br label %tailrecurse
+    %loadtmp3 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i64 %11, i8* %loadtmp3)
+    store i64 %lsr.iv, i64* %1, align 4
+    %lsr.iv.next = add i64 %lsr.iv, 1
+    br label %rec
   }
   
   define void @schmu___ig.u.u_inner_cls_vec_ii.u.u(i64 %i, %closure* %f, i8* %0) {
   entry:
-    br label %tailrecurse
-  
-  tailrecurse:                                      ; preds = %else, %entry
-    %i.tr = phi i64 [ %i, %entry ], [ %add, %else ]
     %clsr = bitcast i8* %0 to { %vector_int* }*
-    %vec3 = bitcast { %vector_int* }* %clsr to %vector_int**
-    %vec1 = load %vector_int*, %vector_int** %vec3, align 8
-    %1 = bitcast %vector_int* %vec1 to %owned_ptr_int*
-    %2 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %1, i32 0, i32 1
-    %3 = load i64, i64* %2, align 4
-    %eq = icmp eq i64 %i.tr, %3
+    %vec5 = bitcast { %vector_int* }* %clsr to %vector_int**
+    %vec1 = load %vector_int*, %vector_int** %vec5, align 8
+    %1 = alloca i64, align 8
+    store i64 %i, i64* %1, align 4
+    %2 = alloca %closure, align 8
+    %3 = bitcast %closure* %2 to i8*
+    %4 = bitcast %closure* %f to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 8, i1 false)
+    br label %rec
+  
+  rec:                                              ; preds = %else, %entry
+    %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %5 = bitcast %vector_int* %vec1 to %owned_ptr_int*
+    %6 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %5, i32 0, i32 1
+    %7 = load i64, i64* %6, align 4
+    %eq = icmp eq i64 %i2, %7
     br i1 %eq, label %then, label %else
   
-  then:                                             ; preds = %tailrecurse
+  then:                                             ; preds = %rec
     ret void
   
-  else:                                             ; preds = %tailrecurse
-    %4 = bitcast %vector_int* %vec1 to %owned_ptr_int*
-    %5 = bitcast %owned_ptr_int* %4 to i64**
-    %6 = load i64*, i64** %5, align 8
-    %scevgep = getelementptr i64, i64* %6, i64 %i.tr
-    %7 = load i64, i64* %scevgep, align 4
-    %funcptr4 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr4, align 8
+  else:                                             ; preds = %rec
+    %8 = bitcast %vector_int* %vec1 to %owned_ptr_int*
+    %9 = bitcast %owned_ptr_int* %8 to i64**
+    %10 = load i64*, i64** %9, align 8
+    %scevgep = getelementptr i64, i64* %10, i64 %i2
+    %11 = load i64, i64* %scevgep, align 4
+    %funcptr6 = bitcast %closure* %2 to i8**
+    %loadtmp = load i8*, i8** %funcptr6, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
-    %loadtmp2 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %7, i8* %loadtmp2)
-    %add = add i64 %i.tr, 1
-    br label %tailrecurse
+    %envptr = getelementptr inbounds %closure, %closure* %2, i32 0, i32 1
+    tail call void %casttmp(i64 %11, i8* undef)
+    %add = add i64 %i2, 1
+    store i64 %add, i64* %1, align 4
+    br label %rec
   }
   
   define void @schmu___i.u_inner_cls_both_i.u(i64 %i, i8* %0) {
@@ -1183,6 +1200,9 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
   declare i8* @realloc(i8* %0, i64 %1)
   
   define i64 @main(i64 %arg) {
@@ -1212,6 +1232,8 @@ Nested polymorphic closures. Does not quite work for another nesting level
   declare i8* @malloc(i64 %0)
   
   declare void @free(i8* %0)
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   2
   4
   6

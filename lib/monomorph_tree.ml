@@ -196,6 +196,7 @@ let find_function_expr vars = function
       No_function
   | Mlambda _ -> (* Concrete type is already inferred *) No_function
   | Mlet _ -> No_function
+  | Mfmt _ -> No_function
   | e ->
       print_endline (show_expr e);
       "Not supported: " ^ show_expr e |> failwith
@@ -407,6 +408,10 @@ let rec subst_body p subst tree =
 and monomorphize_call p expr parent_sub : morph_param * call_name =
   match find_function_expr p.vars expr.expr with
   | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
+  | Forward_decl name ->
+      (* We don't have to do anything, because the correct function will be called in the first place.
+         Except when it is called with different types recursively. We'll see *)
+      (p, Recursive name)
   | _ when is_type_polymorphic expr.typ -> (p, Default)
   | Concrete (func, username) ->
       (* If a named function gets a generated name, the call site has to be made aware *)
@@ -441,10 +446,6 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
           let monomorphized = Set.add call p.monomorphized in
           ({ p with funcs; monomorphized }, Mono call)
   | No_function -> (p, Default)
-  | Forward_decl name ->
-      (* We don't have to do anything, because the correct function will be called in the first place.
-         Except when it is called with different types recursively. We'll see *)
-      (p, Recursive name)
 
 (* State *)
 
