@@ -131,21 +131,25 @@ let rec sizeof_typ typ =
         (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
         add_size_align ~upto:8 ~sz:8 size_pr
     | Trecord (_, _, labels) ->
-        Array.fold_left (fun pr (f : field) -> inner pr f.ftyp) size_pr labels
+        let { size; align = upto } =
+          Array.fold_left
+            (fun pr (f : field) -> inner pr f.ftyp)
+            { size = 0; align = 1 } labels
+        in
+        let sz = alignup ~size ~upto in
+        add_size_align ~upto ~sz size_pr
     | Tvariant (_, _, ctors) ->
         (* For simplicity, we use i32 for the tag. If the variant contains no data
            i.e. is a C enum, we want to use i32 anyway, since that's what C uses.
            And then we don't have to worry about the size *)
-        (* I'm not sure if this makes the variant correctly aligned in a struct.
-           Maybe we should first get the size assuming 0 alignment and then
-           alignup from the current size_pr? *)
-        let init = inner { size = 0; align = 0 } Ti32 in
+        let init = inner { size = 0; align = 1 } Ti32 in
         let final =
           match variant_get_largest ctors with
           | Some typ -> inner init typ
           | None -> init
         in
-        add_size_align ~upto:final.align ~sz:final.size size_pr
+        let sz = alignup ~size:final.size ~upto:final.align in
+        add_size_align ~upto:final.align ~sz size_pr
     | Tpoly _ ->
         Llvm.dump_module the_module;
         failwith "too generic for a size"
