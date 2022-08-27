@@ -174,22 +174,24 @@ stmt:
     { Function ($loc, { name = $2; params = $3; return_annot = None; body = $4 }) }
 
 sexp_expr:
-  | ident { Var (fst $1, snd $1) }
-  | maybe_bracs(nonempty_list(sexp_record_item)) { Record ($loc, $1) }
   | sexp_ctor_inst { $1 }
+  | maybe_bracs(nonempty_list(sexp_record_item)) { Record ($loc, $1) }
   | sexp_lit { $1 }
-  | sexp_binop { $1 }
   | unop; sexp_expr { Unop ($loc, $1, $2) }
+  | callable = callable_expr { callable }
+  | parenss(sexp_field_set) { $1 }
+  | fmt = parenss(fmt_str) { fmt }
+
+%inline callable_expr:
+  | ident { Var (fst $1, snd $1) }
   | parenss(sexp_if) { $1 }
   | parenss(sexp_lambda) { $1 }
-  | parenss(sexp_field_set) { $1 }
   | parenss(sexp_field_get) { $1 }
   | parenss(sexp_pipe_head) { $1 }
   | parenss(sexp_pipe_tail) { $1 }
   | parenss(sexp_call) { $1 }
   | sexp_module_expr { $1 }
   | parenss(sexp_match) { $1 }
-  | fmt = parenss(fmt_str) { fmt }
 
 %inline sexp_record_item:
   | Name; sexp_expr { $1, $2 }
@@ -212,13 +214,6 @@ sexp_expr:
   | String_lit { Lit($loc, String $1) }
   | sexp_vector_lit { Lit($loc, Vector $1) }
   | Lpar; Rpar { Lit($loc, Unit) }
-
-%inline sexp_binop:
-  | parenss(sexp_binop_items) { $1 }
-
-%inline sexp_binop_items:
-  | binop; sexp_expr; nonempty_list(sexp_expr)
-    { make_pairs (fun a b -> Ast.Bop ($loc, $1, a, b)) $2 $3 }
 
 %inline sexp_if:
   | If; sexp_expr; block; option(block) { If ($loc, $2, $3, $4) }
@@ -250,14 +245,15 @@ sexp_cond:
   | Arrow_righter; sexp_expr; nonempty_list(pipeable)
     { make_pairs (fun a b -> Ast.Pipe_tail ($loc, a, b)) $2 $3 }
 
-%inline pipeable:
+pipeable:
   | expr = sexp_expr { Pip_expr expr }
   | f = Accessor { Pip_field f }
 
 %inline sexp_call:
-  | sexp_expr { App ($loc, $1, []) }
-  | sexp_expr; sexp_expr { App ($loc, $1, [$2]) }
-  | sexp_expr; nonempty_list(sexp_expr) { App ($loc, $1, $2) }
+  | callable_expr { App ($loc, $1, []) }
+  | callable_expr; sexp_expr { App ($loc, $1, [$2]) }
+  | callable_expr; a1 = sexp_expr; args = nonempty_list(sexp_expr) { App ($loc, $1, a1 :: args) }
+  | op = binop; exprs = nonempty_list(sexp_expr) { Bop ($loc, op, exprs) }
   | Builtin_id; list(sexp_expr) { App ($loc, Var($loc, $1), $2) }
 
 %inline sexp_module_expr:

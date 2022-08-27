@@ -428,7 +428,7 @@ end = struct
         { typ = Tunit; expr = Const Unit; attr = { no_attr with const = true } }
     | Lambda (loc, id, e) -> convert_lambda env loc id e
     | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
-    | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
+    | Bop (loc, bop, es) -> convert_bop env loc bop es
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
     | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
     | Record (loc, labels) -> convert_record env loc annot labels
@@ -584,7 +584,7 @@ end = struct
     (* For now, we don't support const functions *)
     { typ = res_t; expr = App { callee; args = targs }; attr = no_attr }
 
-  and convert_bop env loc bop e1 e2 =
+  and convert_bop_impl env loc bop e1 e2 =
     let check typ =
       let t1 = convert env e1 in
       let t2 = convert env e2 in
@@ -603,6 +603,17 @@ end = struct
       | And | Or -> (Tbool, check Tbool)
     in
     { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const } }
+
+  and convert_bop env loc bop es =
+    let rec build = function
+      | [ _ ] | [] ->
+          raise (Error (loc, "Binary operator needs at least two operands"))
+      | [ a; b ] -> convert_bop_impl env loc bop a b
+      | a :: tl ->
+          let tl = build tl in
+          { tl with expr = Bop (bop, tl, convert env a) }
+    in
+    build es
 
   and convert_unop env loc unop expr =
     match unop with
@@ -689,6 +700,7 @@ end = struct
     | Pip_expr (Ctor (_, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1) None
+    | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (e1 :: exprs)
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
@@ -703,6 +715,7 @@ end = struct
     | Pip_expr (Ctor (_, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1) None
+    | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (exprs @ [ e1 ])
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]

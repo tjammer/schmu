@@ -41,7 +41,7 @@ type func = {
 and expr =
   | Var of loc * string
   | Lit of loc * literal
-  | Bop of loc * bop * expr * expr
+  | Bop of loc * bop * expr list
   | Unop of loc * unop * expr
   | If of loc * expr * block * block option
   | Lambda of loc * decl list * block
