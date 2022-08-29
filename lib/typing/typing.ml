@@ -192,14 +192,6 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         let t = concrete_type env hd in
         let nested = container_t env tl in
         let subst = subst_generic ~id:(get_generic_id loc t) nested t in
-
-        (* Add record instance.
-           A new instance could be introduced here, we have to make sure it's added b/c
-           codegen struct generation depends on order *)
-        (match t with
-        | Trecord (Some _, _, _) | Tvariant (Some _, _, _) ->
-            Env.maybe_add_type_instance subst env
-        | _ -> ());
         subst
   and handle_func env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
@@ -459,7 +451,6 @@ end = struct
 
     let vector = get_prelude env loc "vector" in
     let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
-    Env.maybe_add_type_instance typ env;
     { typ; expr = Const (Vector exprs); attr = no_attr }
 
   and typeof_annot_decl env loc annot block =
@@ -896,12 +887,10 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
 
   let last_type, env, items, m = convert_prog env prog [] in
   (* TODO test wrong return type *)
-  let typedefs = Env.typedefs env
-  and externals = Env.externals env
-  and typeinsts = Env.typeinstances env in
+  let externals = Env.externals env in
 
   (* Add polymorphic functions from imported modules *)
-  let items = (List.rev !Module.poly_funcs) @ items in
+  let items = List.rev !Module.poly_funcs @ items in
 
   let _, _, unused = Env.close_function env in
   if not modul then check_unused unused;
@@ -918,7 +907,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
 
   (* print_endline (String.concat ", " (List.map string_of_type typeinsts)); *)
   let m = if modul then Some m else None in
-  ({ externals; typedefs; typeinsts; items }, m)
+  ({ externals; items }, m)
 
 let typecheck (prog : Ast.prog) =
   let rec get_last_type = function

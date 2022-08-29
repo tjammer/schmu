@@ -84,7 +84,6 @@ type monomorphized_tree = {
   constants : (string * monod_tree * bool) list;
   globals : (string * typ * bool) list;
   externals : external_decl list;
-  typeinsts : typ list;
   tree : monod_tree;
   frees : int list;
   funcs : to_gen_func list;
@@ -975,7 +974,7 @@ let morph_toplvl param items =
   in
   aux param items
 
-let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
+let monomorphize { Typed_tree.externals; items; _ } =
   reset ();
 
   (* External are globals. By marking them [Global] here, we don't have to
@@ -1015,7 +1014,6 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
           Some { ext_name; ext_typ = cln t; c_linkage; cname })
       externals
   in
-  let typeinsts = List.map cln typeinsts in
 
   let sort_const (_, (lid, _, _)) (_, (rid, _, _)) = Int.compare lid rid in
   let constants =
@@ -1033,4 +1031,4 @@ let monomorphize { Typed_tree.externals; typeinsts; items; _ } =
   in
 
   (* TODO maybe try to catch memory leaks? *)
-  { constants; globals; externals; typeinsts; tree; frees; funcs = p.funcs }
+  { constants; globals; externals; tree; frees; funcs = p.funcs }

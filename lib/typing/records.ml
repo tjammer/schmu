@@ -117,7 +117,6 @@ module Make (C : Core) = struct
         true (labels |> Array.to_list)
     in
     let typ = Trecord (param, name, labels) |> generalize in
-    Env.maybe_add_type_instance typ env;
     { typ; expr = Record sorted_labels; attr = { no_attr with const } }
 
   and get_field env loc expr id =

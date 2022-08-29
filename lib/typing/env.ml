@@ -67,8 +67,6 @@ type t = {
   (* The record types are saved in their most general form.
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
-  instances : typ Tmap.t ref;
-  (* Instantiations for both records and variants *)
   externals : ext Tmap.t ref;
 }
 
@@ -93,7 +91,6 @@ let empty () =
     labelsets = Lmap.empty;
     ctors = Map.empty;
     types = Tmap.empty;
-    instances = ref Tmap.empty;
     externals = ref Tmap.empty;
   }
 
@@ -149,15 +146,6 @@ let add_type key t env =
   let types = Tmap.add key t env.types in
   { env with types }
 
-let maybe_add_inst_internal key typ env =
-  match clean typ with
-  | Trecord (Some (Qvar _), _, _) | Tvariant (Some (Qvar _), _, _) -> ()
-  | Trecord _ | Tvariant _ -> (
-      match Tmap.find_opt key !(env.instances) with
-      | None -> env.instances := Tmap.add key typ !(env.instances)
-      | Some _ -> ())
-  | _ -> ()
-
 let add_record record ~param ~labels env =
   let typ = Trecord (param, record, labels) in
 
@@ -174,7 +162,6 @@ let add_record record ~param ~labels env =
   in
   let record = Type_key.create record in
   let types = Tmap.add record typ env.types in
-  maybe_add_inst_internal record typ env;
   { env with labels; types; labelsets }
 
 let add_variant variant ~param ~ctors env =
@@ -188,30 +175,7 @@ let add_variant variant ~param ~ctors env =
   in
   let variant = Type_key.create variant in
   let types = Tmap.add variant typ env.types in
-  maybe_add_inst_internal variant typ env;
   { env with ctors; types }
-
-let is_unbound = function
-  | Qvar _ | Tvar { contents = Unbound _ } -> true
-  | _ -> false
-
-let rec maybe_add_type_instance typ env =
-  (* We reject generic records with unbound variables *)
-  let key = string_of_type typ in
-
-  let add_instance () =
-    let key = Type_key.create key in
-    match Tmap.find_opt key !(env.instances) with
-    | None -> env.instances := Tmap.add key typ !(env.instances)
-    | Some _ -> ()
-  in
-
-  match clean typ with
-  | Trecord (Some t, _, fields) when not (is_unbound t) ->
-      Array.iter (fun f -> maybe_add_type_instance f.ftyp env) fields;
-      add_instance ()
-  | Tvariant (Some t, _, _) when not (is_unbound t) -> add_instance ()
-  | _ -> ()
 
 let add_alias name typ env =
   let key = Type_key.create name in
@@ -323,9 +287,6 @@ let query_val_opt key env =
             | _ -> add scope_lvl (Type_key.create key) env.values);
             (* Mark value used, if it's not imported *)
             if not imported then mark_used key scope.used;
-            (* It might be expensive to call this on each query, but we need to make sure we
-               pick up every used record instance *)
-            maybe_add_type_instance typ env;
             Some { typ; const; global })
   in
   aux 0 env.values
@@ -344,22 +305,6 @@ let find_labelset_opt labels env =
   | None -> None
 
 let find_ctor_opt name env = Map.find_opt name env.ctors
-
-let typedefs env =
-  let values ({ Type_key.key = _; ord = _ }, v) = v in
-  Tmap.filter
-    (fun _ typ ->
-      match typ with Trecord _ | Tvariant _ | Talias _ -> true | _ -> false)
-    env.types
-  |> Tmap.bindings
-  |> List.sort Type_key.cmp_map_sort
-  |> List.map values
-
-let typeinstances env =
-  let values ({ Type_key.key = _; ord = _ }, v) = v in
-  Tmap.bindings !(env.instances)
-  |> List.sort Type_key.cmp_map_sort
-  |> List.map values
 
 let externals env =
   Tmap.bindings !(env.externals)

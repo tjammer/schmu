@@ -82,7 +82,6 @@ type monomorphized_tree = {
   constants : (string * monod_tree * bool) list; (* toplvl bool *)
   globals : (string * typ * bool) list; (* toplvl bool *)
   externals : external_decl list;
-  typeinsts : typ list;
   tree : monod_tree;
   frees : int list;
   funcs : to_gen_func list;

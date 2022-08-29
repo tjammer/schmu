@@ -36,7 +36,7 @@ type unboxed =
 type aggregate_param_kind = Boxed | Unboxed of unboxed
 
 let ( ++ ) = Seq.append
-let record_tbl = Strtbl.create 32
+let struct_tbl = Strtbl.create 32
 let ptr_tbl = Ptrtbl.create 32
 let const_tbl = Strtbl.create 64
 let string_tbl = Strtbl.create 64
@@ -67,6 +67,13 @@ let float_t = Llvm.double_type context
 let f32_t = Llvm.float_type context
 let unit_t = Llvm.void_type context
 let voidptr_t = Llvm.(i8_type context |> pointer_type)
+
+let string_t =
+  Trecord
+    ( None,
+      "string",
+      [| { ftyp = Traw_ptr Tu8; mut = false }; { ftyp = Tint; mut = false } |]
+    )
 
 let closure_t =
   let t = Llvm.named_struct_type context "closure" in
@@ -302,14 +309,7 @@ let rec get_lltype_def = function
   | Tf32 -> f32_t
   | Tunit -> unit_t
   | Tpoly _ -> generic_t |> Llvm.pointer_type
-  | (Trecord _ as t) | (Tvariant _ as t) -> (
-      let name = struct_name t in
-      (* TODO rename [record] here to something *)
-      match Strtbl.find_opt record_tbl name with
-      | Some t -> t
-      | None ->
-          failwith
-            (Printf.sprintf "Record struct not found for type %s (def)" name))
+  | (Trecord _ as t) | (Tvariant _ as t) -> get_struct t
   | Tfun (params, ret, kind) ->
       typeof_func ~param:false ~decl:false (params, ret, kind) |> fst
   | Traw_ptr t -> get_lltype_def t |> Llvm.pointer_type
@@ -321,15 +321,10 @@ and get_lltype_param = function
   | Tfun (params, ret, kind) ->
       typeof_func ~param:true ~decl:false (params, ret, kind) |> fst
   | (Trecord _ as typ) | (Tvariant _ as typ) -> (
-      let name = struct_name typ in
-      match Strtbl.find_opt record_tbl name with
-      | Some t -> (
-          match pkind_of_typ typ with
-          | Boxed -> t |> Llvm.pointer_type
-          | Unboxed size -> lltype_unboxed size)
-      | None ->
-          failwith
-            (Printf.sprintf "Record struct not found for type %s (param)" name))
+      let t = get_struct typ in
+      match pkind_of_typ typ with
+      | Boxed -> t |> Llvm.pointer_type
+      | Unboxed size -> lltype_unboxed size)
 
 and get_lltype_field = function
   | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _
@@ -405,6 +400,42 @@ and typeof_func ~param ~decl (params, ret, kind) =
     in
     let ft = Llvm.function_type ret_t params_t in
     (ft, !byvals)
+
+and to_named_typedefs name = function
+  | Trecord (_, _, labels) ->
+      let t = Llvm.named_struct_type context name in
+      let lltyp =
+        Array.map (fun (f : field) -> f.ftyp) labels
+        |> typeof_aggregate |> Llvm.struct_element_types
+      in
+      Llvm.struct_set_body t lltyp false;
+      Strtbl.replace struct_tbl name t;
+      t
+  | Tvariant (_, _, ctors) -> (
+      (* We loop throug each ctor and then we use the largest one as a
+         typedef for the whole type *)
+      let tag = i32_t in
+      let largest = variant_get_largest ctors |> Option.map get_lltype_def in
+      let t = Llvm.named_struct_type context name in
+      match largest with
+      | Some lltyp ->
+          Llvm.struct_set_body t [| tag; lltyp |] false;
+          Strtbl.replace struct_tbl name t;
+          t
+      | None ->
+          (* C style enum, no data, just tag *)
+          Llvm.struct_set_body t [| tag |] false;
+          Strtbl.replace struct_tbl name t;
+          t)
+  | _ -> failwith "Internal Error: Only records and variants should be here"
+
+and get_struct t =
+  let name = struct_name t in
+  match Strtbl.find_opt struct_tbl name with
+  | Some t -> t
+  | None ->
+      (* Add struct to struct tbl *)
+      to_named_typedefs name t
 
 let box_record typ ~size ?(alloc = None) ~snd_val value =
   (* From int to record *)
@@ -502,39 +533,6 @@ let maybe_unbox_record typ value =
   match pkind_of_typ typ with
   | Unboxed kind -> unbox_record ~kind ~ret:false value
   | Boxed -> (value.value, None)
-
-let add_exn name t =
-  (* Type shadowing is tracked in the typing phase.
-     If a type exists already, we just don't add it another time *)
-  if Strtbl.mem record_tbl name then () else Strtbl.add record_tbl name t
-
-let to_named_typedefs = function
-  | Trecord (_, _, labels) as t ->
-      let name = struct_name t in
-      let t = Llvm.named_struct_type context name in
-      let lltyp =
-        Array.map (fun (f : field) -> f.ftyp) labels
-        |> typeof_aggregate |> Llvm.struct_element_types
-      in
-      Llvm.struct_set_body t lltyp false;
-
-      add_exn name t
-  | Tvariant (_, _, ctors) as t -> (
-      (* We loop throug each ctor and then we use the largest one as a
-         typedef for the whole type *)
-      let name = struct_name t in
-      let tag = i32_t in
-      let largest = variant_get_largest ctors |> Option.map get_lltype_def in
-      let t = Llvm.named_struct_type context name in
-      match largest with
-      | Some lltyp ->
-          Llvm.struct_set_body t [| tag; lltyp |] false;
-          add_exn name t
-      | None ->
-          (* C style enum, no data, just tag *)
-          Llvm.struct_set_body t [| tag |] false;
-          add_exn name t)
-  | _ -> failwith "Internal Error: Only records and variants should be here"
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src ~size =
@@ -1847,7 +1845,7 @@ and codegen_chain param expr cont =
   gen_expr param cont
 
 and codegen_string_lit param s typ allocref =
-  let lltyp = Strtbl.find record_tbl "string" in
+  let lltyp = get_struct string_t in
   let ptr = get_const_string s in
 
   (* Check for preallocs *)
@@ -1861,7 +1859,7 @@ and codegen_string_lit param s typ allocref =
   { value = string; typ; lltyp; const = Const_ptr }
 
 and codegen_vector_lit param id es typ allocref =
-  let lltyp = Strtbl.find record_tbl (struct_name typ) in
+  let lltyp = get_struct typ in
   let item_typ =
     match typ with
     | Trecord (Some t, _, _) -> t
@@ -1931,7 +1929,7 @@ and gen_ctor param (variant, tag, expr) typ allocref const =
 
   (* This approach means we alloca every time, even if the enum
      ends up being a clike constant. There's room for improvement here *)
-  let lltyp = Strtbl.find record_tbl (struct_name typ) in
+  let lltyp = get_struct typ in
   let var = get_prealloc !allocref param lltyp variant in
 
   (* Set tag *)
@@ -1986,7 +1984,7 @@ and gen_fmt_str param exprs typ allocref id =
         in
         declare_function "snprintf" ft the_module)
   in
-  let lltyp = Strtbl.find record_tbl "string" in
+  let lltyp = get_struct string_t in
 
   let f (fmtstr, args) expr =
     match expr with
@@ -2124,20 +2122,7 @@ let add_global_init funcs outname kind body =
   set_linkage Appending global
 
 let generate ~target ~outname ~release ~modul
-    {
-      Monomorph_tree.constants;
-      globals;
-      externals;
-      typeinsts;
-      tree;
-      frees;
-      funcs;
-    } =
-  (* Add record types.
-     We do this first to ensure that all record definitons
-     are available for external decls *)
-  List.iter to_named_typedefs typeinsts;
-
+    { Monomorph_tree.constants; globals; externals; tree; frees; funcs } =
   (* Fill const_tbl *)
   fill_constants constants;
   def_globals globals;
