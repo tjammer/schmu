@@ -66,6 +66,7 @@ rule read =
   | "if"     { If }
   | "fun"    { Fun }
   | "val"    { Val }
+  | "let"    { Let }
   | "mutable" { Mutable }
   | "match"  { Match }
   | "do"     { Do }

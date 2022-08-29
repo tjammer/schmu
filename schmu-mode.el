@@ -109,6 +109,7 @@ the syntax table, so `forward-word' works as expected.")
     "do"
     "fun"
     "val"
+    "let"
     "type"
     "if"
     "external"

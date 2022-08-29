@@ -44,6 +44,7 @@ and expr =
   | Bop of loc * bop * expr list
   | Unop of loc * unop * expr
   | If of loc * expr * block * block option
+  | Let_e of loc * decl * expr * expr
   | Lambda of loc * decl list * block
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list

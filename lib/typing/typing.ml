@@ -419,6 +419,7 @@ end = struct
     | Lit (_, Unit) ->
         { typ = Tunit; expr = Const Unit; attr = { no_attr with const = true } }
     | Lambda (loc, id, e) -> convert_lambda env loc id e
+    | Let_e (loc, decl, expr, cont) -> convert_let_e env loc decl expr cont
     | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
     | Bop (loc, bop, es) -> convert_bop env loc bop es
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
@@ -478,6 +479,16 @@ end = struct
         { Env.def_value with typ = e1.typ; const = e1.attr.const; global }
         idloc env,
       { e1 with attr = { e1.attr with global } } )
+
+  and convert_let_e env loc decl expr cont =
+    let env, texpr =
+      convert_let ~global:false env loc decl [ Ast.Expr (loc, expr) ]
+    in
+    let cont = convert env cont in
+    let id = (fun (_, a, _) -> snd a) decl in
+    let uniq = if texpr.attr.const then uniq_name id else None in
+    let expr = Let (id, uniq, texpr, cont) in
+    { typ = cont.typ; expr; attr = cont.attr }
 
   and convert_lambda env loc params body =
     let env = Env.open_function env in

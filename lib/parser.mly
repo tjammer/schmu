@@ -23,6 +23,14 @@
       in
       build (List.rev args)
 
+    let make_lets lets cont =
+      let rec build = function
+        | [ loc, name, expr ] -> Let_e (loc, name, expr, cont)
+        | (loc, name, expr) :: tl -> Let_e (loc, name, expr, build tl)
+        | [] -> failwith "unreachable"
+      in
+      build lets
+
 %}
 
 %token Equal
@@ -69,6 +77,7 @@
 %token Eof
 %token Fun
 %token Val
+%token Let
 %token Quote
 %token Match
 %token Mutable
@@ -128,6 +137,9 @@ let maybe_bracks(x) :=
   | Lpar; thing = x; Rpar; { thing }
   | Lbrack; thing = x; Rbrack; { thing }
 
+let bracks(x) :=
+  | Lbrack; thing = x; Rbrack; { thing }
+
 %inline sexp_ctordef:
   | parenss(sexp_ctordef_item) { $1 }
   | sexp_ctor { { name = $1; typ_annot = None; index = None } }
@@ -184,6 +196,7 @@ sexp_expr:
 
 %inline callable_expr:
   | ident { Var (fst $1, snd $1) }
+  | parenss(lets) { $1 }
   | parenss(sexp_if) { $1 }
   | parenss(sexp_lambda) { $1 }
   | parenss(sexp_field_get) { $1 }
@@ -192,6 +205,13 @@ sexp_expr:
   | parenss(sexp_call) { $1 }
   | sexp_module_expr { $1 }
   | parenss(sexp_match) { $1 }
+
+%inline lets:
+  | Let; lets = maybe_bracks(nonempty_list(lets_let)); expr = sexp_expr
+    { make_lets lets expr }
+
+%inline lets_let:
+  | decl = sexp_decl; expr = sexp_expr { $loc, decl, expr }
 
 %inline sexp_record_item:
   | Name; sexp_expr { $1, $2 }
