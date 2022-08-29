@@ -901,7 +901,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
   and typeinsts = Env.typeinstances env in
 
   (* Add polymorphic functions from imported modules *)
-  let items = !Module.poly_funcs @ items in
+  let items = (List.rev !Module.poly_funcs) @ items in
 
   let _, _, unused = Env.close_function env in
   if not modul then check_unused unused;
