@@ -1710,3 +1710,7 @@ Piping for ctors and field accessors
   2
   1
   1
+
+Function calls for known functions act as annotations to decide which ctor or record to use.
+Prints nothing, just works
+  $ schmu function_call_annot.smu

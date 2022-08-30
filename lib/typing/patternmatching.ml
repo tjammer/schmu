@@ -26,23 +26,47 @@ module type S = sig
     Typed_tree.typed_expr
 end
 
-let get_variant env loc name annot =
-  match Env.find_ctor_opt (snd name) env with
-  | Some { index; typename } ->
-      (* We get the ctor type from the variant *)
-      let ctor, variant =
-        match Env.query_type ~instantiate typename env with
-        | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
-        | _ -> failwith "Internal Error: Not a variant"
-      in
+let array_assoc_opt name arr =
+  let rec inner i =
+    if i = Array.length arr then None
+    else
+      let ctor = arr.(i) in
+      if String.equal ctor.cname name then Some ctor else inner (i + 1)
+  in
+  inner 0
 
-      (match annot with
-      | Some t -> unify (loc, "In constructor " ^ snd name ^ ":") t variant
-      | None -> ());
+let get_variant env loc (_, name) annot =
+  match annot with
+  | Some (Tvariant (_, typename, ctors) as variant) ->
+      let ctor =
+        match array_assoc_opt name ctors with
+        | Some ctor -> ctor
+        | None ->
+            let msg =
+              Printf.sprintf "Unbound constructor %s on variant %s" name
+                typename
+            in
+            raise (Error (loc, msg))
+      in
       (typename, ctor, variant)
-  | None ->
-      let msg = "Unbound constructor " ^ snd name in
-      raise (Error (loc, msg))
+  | Some _ -> failwith "Internal Error: Not a variant for annot"
+  | None -> (
+      match Env.find_ctor_opt name env with
+      | Some { index; typename } ->
+          (* We get the ctor type from the variant *)
+          let ctor, variant =
+            match Env.query_type ~instantiate typename env with
+            | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
+            | _ -> failwith "Internal Error: Not a variant"
+          in
+
+          (match annot with
+          | Some t -> unify (loc, "In constructor " ^ name ^ ":") t variant
+          | None -> ());
+          (typename, ctor, variant)
+      | None ->
+          let msg = "Unbound constructor " ^ name in
+          raise (Error (loc, msg)))
 
 type pattern_data = { loc : Ast.loc; ret_expr : Ast.expr; row : int }
 

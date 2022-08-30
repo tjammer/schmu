@@ -170,8 +170,7 @@ let test_para_instance_func () =
      :gen 17 }) use"
 
 let test_para_instance_wrong_func () =
-  test_exn
-    "Application: Expected type foo(int) -> int but got type foo(bool) -> 'a"
+  test_exn "In record expression: Expected type int but got type bool"
     "(type (foo 'a) { :gen 'a }) (fun use (foo) (+ (.gen foo) 17)) (val foo { \
      :gen 17 }) (use { :gen true } )"
 

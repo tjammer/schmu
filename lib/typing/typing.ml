@@ -213,6 +213,22 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
   concrete_type env annot
 
+let rec param_annots t =
+  let annot t =
+    match clean t with
+    | Qvar _ | Tvar { contents = Unbound _ } -> None
+    | _ -> Some t
+  in
+  (* We don't clean here, because it might mess with links *)
+  match t with
+  | Talias (_, t) | Tvar { contents = Link t } -> param_annots t
+  | Qvar _ | Tvar { contents = Unbound _ } -> [||]
+  | Tfun (typs, _, _) -> List.map annot typs |> Array.of_list
+  | _ -> [||]
+
+let param_annot annots i =
+  if Array.length annots > i then Array.get annots i else None
+
 let handle_params env loc params ret =
   (* return updated env with bindings for parameters and types of parameters *)
   let rec handle = function
@@ -572,7 +588,10 @@ end = struct
   and convert_app ~switch_uni env loc e1 args =
     let callee = convert env e1 in
 
-    let typed_exprs = List.map (convert env) args in
+    let annots = param_annots callee.typ in
+    let typed_exprs =
+      List.mapi (fun i e -> convert_annot env (param_annot annots i) e) args
+    in
     let args_t = List.map (fun a -> a.typ) typed_exprs in
     let res_t = newvar () in
     if switch_uni then
