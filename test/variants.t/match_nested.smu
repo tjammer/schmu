@@ -1,19 +1,19 @@
 (external printf (fun cstr int unit))
 
-(type test ((#float float) (#int int) #non))
+(type test ((#float float) (#int int) #none))
 
 (fun doo [m]
   (match m
     (#some (#float f)) (int_of_float f)
     (#some (#int i)) i
-    (#some #non) 1
+    (#some #none) 1
     #none 0))
 
 (->> (doo (#some (#float 3.0)))
      (printf (.cstr "%i\n")))
 (->> (doo (#some (#int 2)))
      (printf (.cstr "%i\n")))
-(->> (doo (#some #non))
+(->> (doo (#some #none))
      (printf (.cstr "%i\n")))
 (->> (doo #none)
      (printf (.cstr "%i\n")))

@@ -72,7 +72,7 @@ type pattern_data = { loc : Ast.loc; ret_expr : Ast.expr; row : int }
 
 module Tup = struct
   type payload = {
-    index : int;
+    col : int;
     loc : Ast.loc;
     name : string;
     d : pattern_data;
@@ -130,17 +130,17 @@ module Tup = struct
     in
 
     match sorted with
-    | [ (index, Ast.Pctor ((loc, name), _)) ] ->
-        Ctor { index; loc; name; d; patterns = sorted }
+    | [ (col, Ast.Pctor ((loc, name), _)) ] ->
+        Ctor { col; loc; name; d; patterns = sorted }
     | (_, Ast.Pctor _) :: _ -> (
         let col = choose_column sorted tl in
         match List.assoc col sorted with
         | Pctor ((loc, name), _) ->
-            Ctor { index = col; loc; name; d; patterns = sorted }
+            Ctor { col; loc; name; d; patterns = sorted }
         | _ -> failwith "Internal Error: Not a constructor")
-    | (index, Pvar (loc, name)) :: patterns ->
+    | (col, Pvar (loc, name)) :: patterns ->
         (* Drop var from patterns list *)
-        Var { index; loc; name; d; patterns }
+        Var { col; loc; name; d; patterns }
     | (_, Pwildcard _ | _, Ptup _) :: _ ->
         failwith "Internal Error: Unexpected tup pattern"
     | [] -> Bare d
@@ -367,6 +367,11 @@ module Make (C : Core) = struct
 
   module Row_set = Set.Make (Row)
 
+  let make_annot t =
+    match clean t with
+    | Qvar _ | Tvar { contents = Unbound _ } -> None
+    | _ -> Some t
+
   (* List.Assoc.set taken from containers *)
   let rec search_set acc l x ~f =
     match l with
@@ -527,13 +532,11 @@ module Make (C : Core) = struct
             (* ignore (expr i); *)
             unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
             ret
-        | Var { index; loc; name; d; patterns } ->
+        | Var { col; loc; name; d; patterns } ->
             (* Bind the variable *)
             let env =
               Env.(
-                add_value name
-                  { def_value with typ = (expr index).typ }
-                  d.loc env)
+                add_value name { def_value with typ = (expr col).typ } d.loc env)
             in
             (* Continue with expression *)
             let ret =
@@ -542,21 +545,22 @@ module Make (C : Core) = struct
 
             {
               typ = ret.typ;
-              expr = Let (name, None, expr index, ret);
+              expr = Let (name, None, expr col, ret);
               attr = ret.attr;
             }
-        | Ctor { index; loc; name; d; patterns } ->
-            let a, b = match_cases (index, name) ((patterns, d) :: tl) [] [] in
+        | Ctor { col; loc; name; d; patterns } ->
+            let a, b = match_cases (col, name) ((patterns, d) :: tl) [] [] in
 
-            let _, ctor, variant = get_variant env d.loc (loc, name) None in
+            let annot = make_annot (expr col).typ in
+            let _, ctor, variant = get_variant env d.loc (loc, name) annot in
             unify
               (d.loc, "Variant pattern has unexpected type:")
-              (expr index).typ variant;
+              (expr col).typ variant;
 
-            let data, ifenv = ctorenv env ctor index d.loc in
+            let data, ifenv = ctorenv env ctor col d.loc in
             let cont = compile_matches ifenv d.loc rows a ret_typ in
             (* Make expr available in codegen *)
-            let ifexpr = Let (expr_name index, None, data, cont) in
+            let ifexpr = Let (expr_name col, None, data, cont) in
 
             (* This is either an if-then-else or just an one ctor,
                depending on whether [b] is empty *)
@@ -564,7 +568,7 @@ module Make (C : Core) = struct
               match b with
               | [] -> ifexpr
               | b ->
-                  let cmp = gen_cmp (expr index) ctor.index in
+                  let cmp = gen_cmp (expr col) ctor.index in
                   let if_ = { cont with expr = ifexpr } in
                   let else_ = compile_matches env d.loc rows b ret_typ in
                   If (cmp, if_, else_)
