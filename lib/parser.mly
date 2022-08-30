@@ -10,7 +10,7 @@
       let rec aux = function
         | [ (_, _, blk) ] -> blk
         | (loc, cond, blk) :: tl ->
-            Some [ Ast.Expr (loc, If (loc, cond, Option.get blk, aux tl)) ]
+            Some (If (loc, cond, Option.get blk, aux tl))
         | [] -> failwith "Menhir, this list should be nonempty"
       in
       Ast.If (loc, fst, then_, aux conds)
@@ -25,7 +25,7 @@
 
     let make_lets lets cont =
       let rec build = function
-        | [ loc, name, expr ] -> Let_e (loc, name, expr, cont)
+        | [ loc, name, expr ] -> Let_e (loc, name, expr, Do_block cont)
         | (loc, name, expr) :: tl -> Let_e (loc, name, expr, build tl)
         | [] -> failwith "unreachable"
       in
@@ -162,17 +162,13 @@ let bracks(x) :=
 %inline sexp_open:
   | Open; ident { snd $2 }
 
-block:
-  | stmt = stmt { [stmt] }
-  | Lpar; Do; stmts = nonempty_list(stmt); Rpar { stmts }
-
 stmt:
   | parenss(sexp_let) { $1 }
   | parenss(sexp_fun) { $1 }
   | sexp_expr { Expr ($loc, $1) }
 
 %inline sexp_let:
-  | Val; sexp_decl; block { Let($loc, $2, $3) }
+  | Val; sexp_decl; sexp_expr { Let($loc, $2, $3) }
 
 %inline sexp_decl:
   | ident { $loc, $1, None }
@@ -203,12 +199,13 @@ sexp_expr:
   | parenss(sexp_pipe_head) { $1 }
   | parenss(sexp_pipe_tail) { $1 }
   | parenss(sexp_call) { $1 }
+  | parenss(do_block) { $1 }
   | sexp_module_expr { $1 }
   | parenss(sexp_match) { $1 }
 
 %inline lets:
-  | Let; lets = maybe_bracks(nonempty_list(lets_let)); expr = sexp_expr
-    { make_lets lets expr }
+  | Let; lets = maybe_bracks(nonempty_list(lets_let)); block = nonempty_list(stmt)
+    { make_lets lets block }
 
 %inline lets_let:
   | decl = sexp_decl; expr = sexp_expr { $loc, decl, expr }
@@ -236,12 +233,12 @@ sexp_expr:
   | Lpar; Rpar { Lit($loc, Unit) }
 
 %inline sexp_if:
-  | If; sexp_expr; block; option(block) { If ($loc, $2, $3, $4) }
-  | Cond; fst = sexp_expr; then_ = block; conds = sexp_cond { parse_cond $loc fst then_ conds }
+  | If; sexp_expr; sexp_expr; option(sexp_expr) { If ($loc, $2, $3, $4) }
+  | Cond; fst = sexp_expr; then_ = sexp_expr; conds = sexp_cond { parse_cond $loc fst then_ conds }
 
 sexp_cond:
-  | cond = sexp_expr; expr = block; tl = sexp_cond { ($loc, cond, Some expr) :: tl }
-  | else_ = option(block) { [$loc, Lit($loc, Unit), else_] }
+  | cond = sexp_expr; expr = sexp_expr; tl = sexp_cond { ($loc, cond, Some expr) :: tl }
+  | else_ = option(sexp_expr) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
   | Fun; maybe_bracks(list(sexp_decl)) list(stmt)
@@ -276,14 +273,17 @@ pipeable:
   | op = binop; exprs = nonempty_list(sexp_expr) { Bop ($loc, op, exprs) }
   | Builtin_id; list(sexp_expr) { App ($loc, Var($loc, $1), $2) }
 
+%inline do_block:
+  | Do; stmts = nonempty_list(stmt) { Do_block stmts }
+
 %inline sexp_module_expr:
-  | ident; Div_i; block { Local_open ($loc, snd $1, $3) }
+  | ident; Div_i; sexp_expr { Local_open ($loc, snd $1, $3) }
 
 %inline sexp_match:
   | Match; atom_or_quoted_list(sexp_expr); nonempty_list(sexp_clause) { Match (($startpos, $endpos($2)), $2, $3) }
 
 %inline sexp_clause:
-  | sexp_pattern; block { $loc($1), $1, $2 }
+  | sexp_pattern; sexp_expr { $loc($1), $1, $2 }
 
 %inline sexp_pattern:
   | sexp_pattern_item { $1 }

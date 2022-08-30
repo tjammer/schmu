@@ -22,7 +22,7 @@ module type S = sig
     Env.t ->
     Ast.loc ->
     Ast.expr list ->
-    (Ast.loc * Ast.pattern * Ast.block) list ->
+    (Ast.loc * Ast.pattern * Ast.expr) list ->
     Typed_tree.typed_expr
 end
 
@@ -44,7 +44,7 @@ let get_variant env loc name annot =
       let msg = "Unbound constructor " ^ snd name in
       raise (Error (loc, msg))
 
-type pattern_data = { loc : Ast.loc; ret_expr : Ast.stmt list; row : int }
+type pattern_data = { loc : Ast.loc; ret_expr : Ast.expr; row : int }
 
 module Tup = struct
   type payload = {
@@ -496,7 +496,7 @@ module Make (C : Core) = struct
             (* Mark row as used *)
             rows := Row_set.remove { cnt = d.row; loc = d.loc } !rows;
 
-            let ret, _ = convert_block env d.ret_expr in
+            let ret = convert env d.ret_expr in
 
             (* TODO move the [expr i] function to other branch only *)
             (* (\* Use expr. Otherwise we get unused binding error *\) *)

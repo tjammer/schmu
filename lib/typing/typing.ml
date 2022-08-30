@@ -392,7 +392,7 @@ module rec Core : sig
     Env.t ->
     Ast.loc ->
     Ast.decl ->
-    Ast.block ->
+    Ast.expr ->
     Env.t * typed_expr
 
   val convert_function :
@@ -428,6 +428,7 @@ end = struct
     | Field (loc, expr, id) -> convert_field env loc expr id
     | Field_set (loc, expr, id, value) ->
         convert_field_set env loc expr id value
+    | Do_block stmts -> convert_block env stmts |> fst
     | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
     | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
@@ -458,7 +459,7 @@ end = struct
     enter_level ();
     match annot with
     | None ->
-        let t = convert_block env block |> fst in
+        let t = convert env block in
         leave_level ();
         (* We generalize functions, but allow weak variables for value types *)
         let typ =
@@ -467,7 +468,7 @@ end = struct
         { t with typ }
     | Some annot ->
         let t_annot = typeof_annot env loc annot in
-        let t = convert_block_annot ~ret:true env (Some t_annot) block |> fst in
+        let t = convert_annot env (Some t_annot) block in
         leave_level ();
         (* TODO 'In let binding' *)
         check_annot loc t.typ t_annot;
@@ -481,9 +482,7 @@ end = struct
       { e1 with attr = { e1.attr with global } } )
 
   and convert_let_e env loc decl expr cont =
-    let env, texpr =
-      convert_let ~global:false env loc decl [ Ast.Expr (loc, expr) ]
-    in
+    let env, texpr = convert_let ~global:false env loc decl expr in
     let cont = convert env cont in
     let id = (fun (_, a, _) -> snd a) decl in
     let uniq = if texpr.attr.const then uniq_name id else None in
@@ -647,13 +646,13 @@ end = struct
        branches need to evaluate to the some type *)
     let type_cond = convert env cond in
     unify (loc, "In condition") type_cond.typ Tbool;
-    let type_e1 = convert_block env e1 |> fst in
+    let type_e1 = convert env e1 in
     let type_e2 =
       (* We unify in the pattern match to have different messages and unification order *)
       match e2 with
       | Some e2 ->
           let msg = "Branches have different type:" in
-          let e2 = convert_block env e2 |> fst in
+          let e2 = convert env e2 in
           unify (loc, msg) type_e1.typ e2.typ;
           e2
       | None ->
@@ -723,10 +722,10 @@ end = struct
         convert_app ~switch_uni env loc e2 [ e1 ]
     | Pip_field field -> convert_field env loc e1 field
 
-  and convert_open env loc modul blk =
+  and convert_open env loc modul expr =
     let modul = Module.read_exn ~regeneralize modul loc in
     let env = Module.add_to_env env modul in
-    convert_block env blk |> fst
+    convert env expr
 
   and convert_fmt env loc exprs =
     let f expr =

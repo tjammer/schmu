@@ -43,18 +43,19 @@ and expr =
   | Lit of loc * literal
   | Bop of loc * bop * expr list
   | Unop of loc * unop * expr
-  | If of loc * expr * block * block option
+  | If of loc * expr * expr * expr option
   | Let_e of loc * decl * expr * expr
   | Lambda of loc * decl list * block
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list
   | Field of loc * expr * string
   | Field_set of loc * expr * string * expr
+  | Do_block of block
   | Pipe_head of loc * expr * pipeable
   | Pipe_tail of loc * expr * pipeable
   | Ctor of loc * (loc * string) * expr option
-  | Match of loc * expr list * (loc * pattern * block) list
-  | Local_open of loc * string * block
+  | Match of loc * expr list * (loc * pattern * expr) list
+  | Local_open of loc * string * expr
   | Fmt of loc * expr list
 
 and pipeable = Pip_expr of expr | Pip_field of string
@@ -77,7 +78,7 @@ and literal =
   | Unit
 
 and stmt =
-  | Let of loc * decl * block
+  | Let of loc * decl * expr
   | Function of loc * func
   | Expr of (loc * expr)
 

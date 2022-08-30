@@ -254,7 +254,7 @@ There is special handling for:
                body-indent)
               (method
                (funcall method indent-point state))
-              ((string-match (rx bos (or "val" "type" "with-")) head)
+              ((string-match (rx bos (or "val" "let" "type" "with-")) head)
                body-indent) ;just like 'defun
               (t
                (schmu--normal-indent state)))))))
