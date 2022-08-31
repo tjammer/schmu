@@ -103,29 +103,33 @@ let rec subst_generic ~id typ = function
       let ps = List.map (subst_generic ~id typ) ps in
       let ret = subst_generic ~id typ ret in
       Tfun (ps, ret, kind)
-  | Trecord (Some p, name, labels) ->
+  | Trecord (ps, name, labels) ->
+      let ps = List.map (subst_generic ~id typ) ps in
       let f f = Types.{ f with ftyp = subst_generic ~id typ f.ftyp } in
       let labels = Array.map f labels in
-      Trecord (Some (subst_generic ~id typ p), name, labels)
-  | Tvariant (Some p, name, ctors) ->
+      Trecord (ps, name, labels)
+  | Tvariant (ps, name, ctors) ->
+      let ps = List.map (subst_generic ~id typ) ps in
       let f c =
         Types.{ c with ctyp = Option.map (subst_generic ~id typ) c.ctyp }
       in
       let ctors = Array.map f ctors in
-      Tvariant (Some (subst_generic ~id typ p), name, ctors)
+      Tvariant (ps, name, ctors)
   | Traw_ptr t -> Traw_ptr (subst_generic ~id typ t)
   | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
   | t -> t
 
 and get_generic_id loc = function
   | Tvar { contents = Link t } | Talias (_, t) -> get_generic_id loc t
-  | Trecord (Some (Qvar id), _, _)
-  | Trecord (Some (Tvar { contents = Unbound (id, _) }), _, _)
-  | Tvariant (Some (Qvar id), _, _)
-  | Tvariant (Some (Tvar { contents = Unbound (id, _) }), _, _)
+  | Trecord (Qvar id :: _, _, _)
+  | Trecord (Tvar { contents = Unbound (id, _) } :: _, _, _)
+  | Tvariant (Qvar id :: _, _, _)
+  | Tvariant (Tvar { contents = Unbound (id, _) } :: _, _, _)
   | Traw_ptr (Qvar id)
   | Traw_ptr (Tvar { contents = Unbound (id, _) }) ->
       id
+  | Trecord (_ :: tl, _, _) | Tvariant (_ :: tl, _, _) ->
+      get_generic_id loc (Trecord (tl, "", [||]))
   | t ->
       raise
         (Error (loc, "Expected a parametrized type, not " ^ string_of_type t))
@@ -140,7 +144,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
 
   let rec is_quantified = function
-    | Trecord (Some _, name, _) -> Some name
+    | Trecord ([], _, _) | Tvariant ([], _, _) -> None
+    | Trecord (_, name, _) | Tvariant (_, name, _) -> Some name
     | Traw_ptr _ -> Some "raw_ptr"
     | Talias (name, t) -> (
         let cleaned = clean t in
@@ -292,13 +297,13 @@ let add_type_param env = function
       leave_level ();
       let t = generalize typ in
 
-      (Env.add_type name t env, Some t)
-  | None -> (env, None)
+      (Env.add_type name t env, [ t ])
+  | None -> (env, [])
 
 let type_record env loc Ast.{ name = { poly_param; name }; labels } =
   (* Make sure that each type name only appears once per module *)
   check_type_unique env loc name;
-  let labels, param =
+  let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let env, param = add_type_param env poly_param in
     let labels =
@@ -310,7 +315,7 @@ let type_record env loc Ast.{ name = { poly_param; name }; labels } =
     in
     (labels, param)
   in
-  Env.add_record name ~param ~labels env
+  Env.add_record name ~params ~labels env
 
 let type_alias env loc { Ast.poly_param; name } type_spec =
   (* Make sure that each type name only appears once per module *)
@@ -324,7 +329,7 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
   (* Make sure that each type name only appears once per module *)
   check_type_unique env loc name;
   (* Temporarily add polymorphic type name to env *)
-  let temp_env, param = add_type_param env poly_param in
+  let temp_env, params = add_type_param env poly_param in
 
   (* We follow the C way for C-style enums. At the same time, we forbid
      tag clashes for constructors with payload *)
@@ -371,7 +376,7 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
       ctors
     |> Array.of_list
   in
-  Env.add_variant name ~param ~ctors env
+  Env.add_variant name ~params ~ctors env
 
 let dont_allow_closure_return loc fn =
   let rec error_on_closure = function

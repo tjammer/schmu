@@ -98,10 +98,10 @@ let add_to_env env m =
   List.fold_left
     (fun env item ->
       match item with
-      | Mtype (Trecord (param, name, labels)) ->
-          Env.add_record name ~param ~labels env
-      | Mtype (Tvariant (param, name, ctors)) ->
-          Env.add_variant name ~param ~ctors env
+      | Mtype (Trecord (params, name, labels)) ->
+          Env.add_record name ~params ~labels env
+      | Mtype (Tvariant (params, name, ctors)) ->
+          Env.add_variant name ~params ~ctors env
       | Mtype (Talias (name, t)) -> Env.add_alias name t env
       | Mtype t ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)

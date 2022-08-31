@@ -21,8 +21,8 @@ type typ =
   | Qvar of string
   | Tfun of typ list * typ * fun_kind
   | Talias of string * typ
-  | Trecord of typ option * string * field array
-  | Tvariant of typ option * string * ctor array
+  | Trecord of typ list * string * field array
+  | Tvariant of typ list * string * ctor array
   | Traw_ptr of typ
 [@@deriving show { with_path = false }, sexp]
 
@@ -37,17 +37,17 @@ let rec clean = function
       let vals = List.map (fun (name, typ) -> (name, clean typ)) vals in
       Tfun (List.map clean params, clean ret, Closure vals)
   | Tfun (params, ret, kind) -> Tfun (List.map clean params, clean ret, kind)
-  | Trecord (param, name, fields) ->
-      let param = Option.map clean param in
+  | Trecord (params, name, fields) ->
+      let params = List.map clean params in
       Trecord
-        ( param,
+        ( params,
           name,
           Array.map (fun field -> { field with ftyp = clean field.ftyp }) fields
         )
-  | Tvariant (param, name, ctors) ->
-      let param = Option.map clean param in
+  | Tvariant (params, name, ctors) ->
+      let params = List.map clean params in
       Tvariant
-        ( param,
+        ( params,
           name,
           Array.map
             (fun ctor -> { ctor with ctyp = Option.map clean ctor.ctyp })
@@ -84,11 +84,12 @@ let string_of_type_raw get_name typ =
     | Talias (name, t) ->
         Printf.sprintf "%s = %s" name (clean t |> string_of_type)
     | Qvar str | Tvar { contents = Unbound (str, _) } -> get_name str
-    | Trecord (param, str, _) | Tvariant (param, str, _) ->
-        str
-        ^ Option.fold ~none:""
-            ~some:(fun param -> Printf.sprintf "(%s)" (string_of_type param))
-            param
+    | Trecord (ps, str, _) | Tvariant (ps, str, _) -> (
+        match ps with
+        | [] -> str
+        | l ->
+            let arg = String.concat ", " (List.map string_of_type l) in
+            Printf.sprintf "%s(%s)" str arg)
     | Traw_ptr t -> Printf.sprintf "raw_ptr(%s)" (string_of_type t)
   in
 
@@ -130,13 +131,11 @@ let is_polymorphic typ =
   let rec inner acc = function
     | Qvar _ | Tvar { contents = Unbound _ } -> true
     | Tvar { contents = Link t } | Talias (_, t) -> inner acc t
-    | Trecord (Some t, _, _) | Tvariant (Some t, _, _) -> inner acc t
+    | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
     | Tfun (params, ret, _) ->
         let acc = List.fold_left inner acc params in
         inner acc ret
-    | Tbool | Tunit | Tint | Trecord _ | Tvariant _ | Tu8 | Tfloat | Ti32 | Tf32
-      ->
-        acc
+    | Tbool | Tunit | Tint | Tu8 | Tfloat | Ti32 | Tf32 -> acc
     | Traw_ptr t -> inner acc t
   in
   inner false typ

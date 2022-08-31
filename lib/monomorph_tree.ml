@@ -140,16 +140,16 @@ let rec cln = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
       Tfun (List.map cln params, cln ret, cln_kind kind)
-  | Trecord (param, name, fields) ->
-      let param = Option.map cln param in
+  | Trecord (ps, name, fields) ->
+      let ps = List.map cln ps in
       let fields =
         Array.map
           (fun field -> { ftyp = cln Types.(field.ftyp); mut = field.mut })
           fields
       in
-      Trecord (param, name, fields)
-  | Tvariant (param, name, ctors) ->
-      let param = Option.map cln param in
+      Trecord (ps, name, fields)
+  | Tvariant (ps, name, ctors) ->
+      let ps = List.map cln ps in
       let ctors =
         Array.map
           (fun ctor ->
@@ -160,7 +160,7 @@ let rec cln = function
             })
           ctors
       in
-      Tvariant (param, name, ctors)
+      Tvariant (ps, name, ctors)
   | Traw_ptr t -> Traw_ptr (cln t)
 
 and cln_kind = function
@@ -211,9 +211,8 @@ let get_mono_name name ~poly concrete =
     | Tf32 -> "f32"
     | Tfun (ps, r, _) ->
         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
-    | Trecord (Some t, name, _) | Tvariant (Some t, name, _) ->
-        Printf.sprintf "%s%s" name (str t)
-    | Trecord (_, name, _) | Tvariant (_, name, _) -> name
+    | Trecord (ps, name, _) | Tvariant (ps, name, _) ->
+        Printf.sprintf "%s%s" name (String.concat "" (List.map str ps))
     | Tpoly _ -> "g"
     | Traw_ptr t -> Printf.sprintf "p%s" (str t)
   in
@@ -233,7 +232,7 @@ let subst_type ~concrete poly parent =
         in
         let subst, r = inner subst (r1, r2) in
         (subst, Tfun (ps, r, kind))
-    | (Trecord (Some i, record, l1) as l), Trecord (Some j, _, l2)
+    | (Trecord (i, record, l1) as l), Trecord (j, _, l2)
       when is_type_polymorphic l ->
         let labels = Array.copy l1 in
         let f (subst, i) (label : Cleaned_types.field) =
@@ -242,9 +241,13 @@ let subst_type ~concrete poly parent =
           (subst, i + 1)
         in
         let subst, _ = Array.fold_left f (subst, 0) l1 in
-        let subst, param = inner subst (i, j) in
-        (subst, Trecord (Some param, record, labels))
-    | (Tvariant (Some i, variant, l1) as l), Tvariant (Some j, _, l2)
+        let subst, ps =
+          List.fold_left_map
+            (fun subst (l, r) -> inner subst (l, r))
+            subst (List.combine i j)
+        in
+        (subst, Trecord (ps, record, labels))
+    | (Tvariant (i, variant, l1) as l), Tvariant (j, _, l2)
       when is_type_polymorphic l ->
         let ctors = Array.copy l1 in
         let f (subst, i) (ctor : Cleaned_types.ctor) =
@@ -259,8 +262,12 @@ let subst_type ~concrete poly parent =
           (subst, i + 1)
         in
         let subst, _ = Array.fold_left f (subst, 0) l1 in
-        let subst, param = inner subst (i, j) in
-        (subst, Tvariant (Some param, variant, ctors))
+        let subst, ps =
+          List.fold_left_map
+            (fun subst (l, r) -> inner subst (l, r))
+            subst (List.combine i j)
+        in
+        (subst, Tvariant (ps, variant, ctors))
     | Traw_ptr l, Traw_ptr r ->
         let subst, t = inner subst (l, r) in
         (subst, Traw_ptr t)
@@ -279,16 +286,18 @@ let subst_type ~concrete poly parent =
           | Closure cls -> Closure (List.map (fun (nm, t) -> (nm, subst t)) cls)
         in
         Tfun (ps, subst r, kind)
-    | Trecord (Some p, record, labels) as t when is_type_polymorphic t ->
+    | Trecord (ps, record, labels) as t when is_type_polymorphic t ->
+        let ps = List.map subst ps in
         let f field = Cleaned_types.{ field with ftyp = subst field.ftyp } in
         let labels = Array.map f labels in
-        Trecord (Some (subst p), record, labels)
-    | Tvariant (Some p, variant, ctors) as t when is_type_polymorphic t ->
+        Trecord (ps, record, labels)
+    | Tvariant (ps, variant, ctors) as t when is_type_polymorphic t ->
+        let ps = List.map subst ps in
         let f ctor =
           Cleaned_types.{ ctor with ctyp = Option.map subst ctor.ctyp }
         in
         let ctors = Array.map f ctors in
-        Tvariant (Some (subst p), variant, ctors)
+        Tvariant (ps, variant, ctors)
     | Traw_ptr t -> Traw_ptr (subst t)
     | t -> t
   in

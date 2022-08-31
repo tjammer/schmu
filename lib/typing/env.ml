@@ -146,8 +146,8 @@ let add_type key t env =
   let types = Tmap.add key t env.types in
   { env with types }
 
-let add_record record ~param ~labels env =
-  let typ = Trecord (param, record, labels) in
+let add_record record ~params ~labels env =
+  let typ = Trecord (params, record, labels) in
 
   let labelset =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
@@ -164,8 +164,8 @@ let add_record record ~param ~labels env =
   let types = Tmap.add record typ env.types in
   { env with labels; types; labelsets }
 
-let add_variant variant ~param ~ctors env =
-  let typ = Tvariant (param, variant, ctors) in
+let add_variant variant ~params ~ctors env =
+  let typ = Tvariant (params, variant, ctors) in
 
   let _, ctors =
     Array.fold_left

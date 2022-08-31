@@ -63,36 +63,20 @@ let rec unify t1 t2 =
         with Invalid_argument _ ->
           raise (Arity ("function", List.length params_l, List.length params_r))
         )
-    | Trecord (param1, n1, labels1), Trecord (param2, n2, labels2) ->
+    | Trecord (ps1, n1, labels1), Trecord (ps2, n2, labels2) ->
         if String.equal n1 n2 then
-          let () =
-            match (param1, param2) with
-            | Some param1, Some param2 -> unify param1 param2
-            | None, None -> ()
-            | None, Some p2 | Some p2, None ->
-                ignore p2;
-                raise Unify
-          in
-
-          (* We ignore the label names for now *)
           try
+            List.iter2 unify ps1 ps2;
+            (* We ignore the label names for now *)
             Array.iter2 (fun a b -> Types.(unify a.ftyp b.ftyp)) labels1 labels2
           with Invalid_argument _ ->
             raise (Arity ("record", Array.length labels1, Array.length labels2))
         else raise Unify
-    | Tvariant (p1, n1, ctors1), Tvariant (p2, n2, ctors2) ->
+    | Tvariant (ps1, n1, ctors1), Tvariant (ps2, n2, ctors2) ->
         if String.equal n1 n2 then
-          let () =
-            match (p1, p2) with
-            | Some param1, Some param2 -> unify param1 param2
-            | None, None -> ()
-            | None, Some p2 | Some p2, None ->
-                ignore p2;
-                raise Unify
-          in
-
-          (* We ignore the label names for now *)
           try
+            List.iter2 unify ps1 ps2;
+            (* We ignore the ctor names for now *)
             Array.iter2
               (fun a b ->
                 match (a.ctyp, b.ctyp) with
@@ -100,8 +84,7 @@ let rec unify t1 t2 =
                 | None, None -> ()
                 | Some _, None | None, Some _ -> raise Unify)
               ctors1 ctors2
-          with Invalid_argument _ ->
-            raise (Arity ("variant", Array.length ctors1, Array.length ctors2))
+          with Invalid_argument _ -> raise Unify
         else raise Unify
     | Traw_ptr l, Traw_ptr r -> unify l r
     | Qvar a, Qvar b when String.equal a b ->
@@ -124,18 +107,18 @@ let rec generalize = function
   | Tvar { contents = Link t } -> generalize t
   | Talias (n, t) -> Talias (n, generalize t)
   | Tfun (t1, t2, k) -> Tfun (List.map generalize t1, generalize t2, k)
-  | Trecord (Some t, name, labels) ->
+  | Trecord (ps, name, labels) ->
       (* Hopefully the param type is the same reference throughout the record *)
-      let param = Some (generalize t) in
+      let ps = List.map generalize ps in
       let f f = Types.{ f with ftyp = generalize f.ftyp } in
       let labels = Array.map f labels in
-      Trecord (param, name, labels)
-  | Tvariant (Some t, name, ctors) ->
+      Trecord (ps, name, labels)
+  | Tvariant (ps, name, ctors) ->
       (* Hopefully the param type is the same reference throughout the variant *)
-      let param = Some (generalize t) in
+      let ps = List.map generalize ps in
       let f c = Types.{ c with ctyp = Option.map generalize c.ctyp } in
       let ctors = Array.map f ctors in
-      Tvariant (param, name, ctors)
+      Tvariant (ps, name, ctors)
   | Traw_ptr t -> Traw_ptr (generalize t)
   | t -> t
 
@@ -162,8 +145,16 @@ let instantiate t =
         in
         let t, subst = aux subst t in
         (Tfun (params_t, t, k), subst)
-    | Trecord (Some param, name, labels) ->
+    | Trecord (ps, name, labels) ->
         let subst = ref subst in
+        let ps =
+          List.map
+            (fun t ->
+              let t, subst' = aux !subst t in
+              subst := subst';
+              t)
+            ps
+        in
         let labels =
           Array.map
             (fun f ->
@@ -172,10 +163,17 @@ let instantiate t =
               { f with ftyp = t })
             labels
         in
-        let param, subst = aux !subst param in
-        (Trecord (Some param, name, labels), subst)
-    | Tvariant (Some param, name, ctors) ->
+        (Trecord (ps, name, labels), !subst)
+    | Tvariant (ps, name, ctors) ->
         let subst = ref subst in
+        let ps =
+          List.map
+            (fun t ->
+              let t, subst' = aux !subst t in
+              subst := subst';
+              t)
+            ps
+        in
         let ctors =
           Array.map
             (fun ctor ->
@@ -190,8 +188,7 @@ let instantiate t =
               { ctor with ctyp })
             ctors
         in
-        let param, subst = aux !subst param in
-        (Tvariant (Some param, name, ctors), subst)
+        (Tvariant (ps, name, ctors), !subst)
     | Traw_ptr t ->
         let t, subst = aux subst t in
         (Traw_ptr t, subst)
@@ -248,10 +245,11 @@ let rec types_match ?(strict = false) subst l r =
         (* It should be enough to compare the name (rather, the name's repr)
            and the param type *)
         if String.equal nl nr then
-          match (pl, pr) with
-          | Some pl, Some pr -> types_match ~strict subst pl pr
-          | None, None -> (subst, true)
-          | None, Some _ | Some _, None -> (subst, false)
+          List.fold_left2
+            (fun (s, acc) l r ->
+              let subst, b = types_match ~strict s l r in
+              (subst, acc && b))
+            (subst, true) pl pr
         else (subst, false)
     | Traw_ptr l, Traw_ptr r -> types_match ~strict subst l r
     | _ -> (subst, false)

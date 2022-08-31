@@ -8,8 +8,8 @@ type typ =
   | Tf32
   | Tpoly of string
   | Tfun of typ list * typ * fun_kind
-  | Trecord of typ option * string * field array
-  | Tvariant of typ option * string * ctor array
+  | Trecord of typ list * string * field array
+  | Tvariant of typ list * string * ctor array
   | Traw_ptr of typ
 [@@deriving show { with_path = false }]
 

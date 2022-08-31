@@ -70,7 +70,7 @@ let voidptr_t = Llvm.(i8_type context |> pointer_type)
 
 let string_t =
   Trecord
-    ( None,
+    ( [],
       "string",
       [| { ftyp = Traw_ptr Tu8; mut = false }; { ftyp = Tint; mut = false } |]
     )
@@ -102,10 +102,8 @@ let rec struct_name = function
   (* We match on each type here to allow for nested parametrization like [int foo bar].
      [poly] argument will create a name used for a poly var, ie spell out the generic name *)
   | Trecord (param, name, _) | Tvariant (param, name, _) ->
-      let some p =
-        "_" ^ match p with Tpoly _ -> "generic" | t -> struct_name t
-      in
-      Printf.sprintf "%s%s" name (Option.fold ~none:"" ~some param)
+      let some t = match t with Tpoly _ -> "generic" | t -> struct_name t in
+      String.concat "_" (name :: List.map some param)
   | t -> string_of_type t
 
 (*
@@ -295,7 +293,7 @@ let type_unboxed kind =
   | One_param a -> helper a
   | Two_params (a, b) ->
       (* We need a tuple here *)
-      Trecord (None, "param_tup", [| anon_field_of_typ a; anon_field_of_typ b |])
+      Trecord ([], "param_tup", [| anon_field_of_typ a; anon_field_of_typ b |])
 
 (** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to
@@ -590,7 +588,7 @@ let free ptr =
 
 (* Recursively frees a record (which can contain vector and other records) *)
 let rec free_value value = function
-  | Trecord (Some t, name, _) when String.equal name "owned_ptr" ->
+  | Trecord ([ t ], name, _) when String.equal name "owned_ptr" ->
       (* Free nested owned_ptrs *)
       let ptr = Llvm.build_struct_gep value 0 "" builder in
       let ptr = Llvm.build_load ptr "" builder in
@@ -1862,7 +1860,7 @@ and codegen_vector_lit param id es typ allocref =
   let lltyp = get_struct typ in
   let item_typ =
     match typ with
-    | Trecord (Some t, _, _) -> t
+    | Trecord ([ t ], _, _) -> t
     | _ ->
         print_endline (show_typ typ);
         failwith "Internal Error: No record in vector"

@@ -48,11 +48,11 @@ val change_type : key -> typ -> t -> t
 
 val add_type : key -> typ -> t -> t
 
-val add_record : key -> param:typ option -> labels:field array -> t -> t
+val add_record : key -> params:typ list -> labels:field array -> t -> t
 (** [add record record_name ~param ~labels env] returns an env with an added record named [record_name]
      optionally parametrized by [param] with typed [labels] *)
 
-val add_variant : key -> param:typ option -> ctors:ctor array -> t -> t
+val add_variant : key -> params:typ list -> ctors:ctor array -> t -> t
 (** [add_variant variant_name ~param ~ctors env] returns an env with an added variant named [variant_name]
     optionally parametrized by [param] with [ctors] *)
 
