@@ -303,7 +303,7 @@ module Exhaustiveness = struct
                    temporary ones. So we can continue with exprstl *)
                 match is_exhaustive false typstl patterns with
                 | Ok () -> Ok ()
-                | Error _ -> Error (kind, ctors)))
+                | Error _ -> Error (kind, List.map (fun s -> "#" ^ s) ctors)))
         | Infi -> (
             match default patterns with
             | Exh -> Ok ()
@@ -341,7 +341,7 @@ module Exhaustiveness = struct
         | New_column ->
             List.map (fun str -> Printf.sprintf "%s, %s" ctor str) strs
         | Specialization ->
-            List.map (fun str -> Printf.sprintf "%s(%s)" ctor str) strs
+            List.map (fun str -> Printf.sprintf "(#%s %s)" ctor str) strs
       in
 
       Error (kind, strs)

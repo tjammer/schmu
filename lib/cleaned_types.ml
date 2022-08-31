@@ -43,20 +43,17 @@ let rec string_of_type = function
   | Tfloat -> "float"
   | Ti32 -> "i32"
   | Tf32 -> "f32"
-  | Tfun (ts, t, _) -> (
-      match ts with
-      | [ p ] -> Printf.sprintf "%s -> %s" (string_of_type p) (string_of_type t)
-      | ts ->
-          let ts = String.concat ", " (List.map string_of_type ts) in
-          Printf.sprintf "(%s) -> %s" ts (string_of_type t))
+  | Tfun (ts, t, _) ->
+      let ps = String.concat " " (List.map string_of_type ts) in
+      Printf.sprintf "(fun %s %s)" ps (string_of_type t)
   | Tpoly str -> str
   | Trecord (ps, str, _) | Tvariant (ps, str, _) -> (
       match ps with
       | [] -> str
       | l ->
-          let arg = String.concat ", " (List.map string_of_type l) in
-          Printf.sprintf "%s(%s)" str arg)
-  | Traw_ptr t -> Printf.sprintf "raw_ptr(%s)" (string_of_type t)
+          let arg = String.concat " " (List.map string_of_type l) in
+          Printf.sprintf "(%s %s)" str arg)
+  | Traw_ptr t -> Printf.sprintf "(raw_ptr %s)" (string_of_type t)
 
 let is_struct = function
   | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ -> true

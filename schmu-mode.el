@@ -365,7 +365,7 @@ STATE is the `parse-partial-sexp' state for that position."
           (if 1)
           (if-let 1)
           (if-not 1)
-          (let 1)
+          (let 0)
           (loop 1)
           (match 1)
           (or 0)

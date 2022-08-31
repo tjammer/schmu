@@ -34,27 +34,27 @@ let test_const_neg_i32 () = test "i32" "(val a -123i32) a"
 let test_const_f32 () = test "f32" "(val a 1.0f32) a"
 let test_const_neg_f32 () = test "f32" "(val a -1.0f32) a"
 let test_hint_int () = test "int" "(val (a int) 1) a"
-let test_func_id () = test "'a -> 'a" "(fun (a) a)"
-let test_func_id_hint () = test "int -> int" "(fun ((a int)) a)"
-let test_func_int () = test "int -> int" "(fun (a) (+ a 1))"
-let test_func_bool () = test "bool -> int" "(fun (a) (if a 1  1))"
+let test_func_id () = test "(fun 'a 'a)" "(fun (a) a)"
+let test_func_id_hint () = test "(fun int int)" "(fun ((a int)) a)"
+let test_func_int () = test "(fun int int)" "(fun (a) (+ a 1))"
+let test_func_bool () = test "(fun bool int)" "(fun (a) (if a 1  1))"
 
 let test_func_external () =
-  test "int -> unit" "(external func (fun int unit)) func"
+  test "(fun int unit)" "(external func (fun int unit)) func"
 
 let test_func_1st_class () =
-  test "(int -> 'a, int) -> 'a" "(fun (func (arg int)) (func arg))"
+  test "(fun (fun int 'a) int 'a)" "(fun (func (arg int)) (func arg))"
 
 let test_func_1st_hint () =
-  test "(int -> unit, int) -> unit" "(fun [(f (fun int unit)) arg] (f arg))"
+  test "(fun (fun int unit) int unit)" "(fun [(f (fun int unit)) arg] (f arg))"
 
 let test_func_1st_stay_general () =
-  test "('a, 'a -> 'b) -> 'b"
+  test "(fun 'a (fun 'a 'b) 'b)"
     "(fun foo [x f] (f x)) (fun add1 [x] (+ x 1)) (val a (foo 1 add1)) (fun \
      boolean [(x bool)] x) (val b (foo true boolean)) foo"
 
 let test_func_recursive_if () =
-  test "int -> unit"
+  test "(fun int unit)"
     "(external ext (fun unit unit)) (fun foo [i] (if (< i 2) (ext)  (foo (- i \
      1)))) foo"
 
@@ -88,7 +88,7 @@ let test_record_field_simple () =
   test "int" "(type t {:x int}) (val a {:x 10}) (.x a)"
 
 let test_record_field_infer () =
-  test "t -> int" "(type t {:x int}) (fun (a) (.x a))"
+  test "(fun t int)" "(type t {:x int}) (fun (a) (.x a))"
 
 let test_record_same_field_infer () =
   test "a" "(type a { :x int }) (type b { :x int :y int }) { :x 12 }"
@@ -99,7 +99,7 @@ let test_record_nested_field_infer () =
      :y { :x 12 } }"
 
 let test_record_nested_field_generic () =
-  test "c(b)"
+  test "(c b)"
     "(type a { :x int }) (type b { :x int }) (type (c 'a) { :x int :y 'a }) { \
      :x 12 :y { :x 12 } }"
 
@@ -108,33 +108,34 @@ let test_record_field_no_record () =
     "(type t {:x int}) (val a 10) (.x a)"
 
 let test_record_field_wrong_record () =
-  test_exn "Application: Expected type t1 -> int but got type t2 -> 'a"
+  test_exn "Application: Expected type (fun t1 int) but got type (fun t2 'a)"
     "(type t1 {:x int}) (type t2 {:y int}) (fun foo (a) (.x a)) (val b {:y \
      10}) (foo b)"
 
-let test_annot_concrete () = test "int -> bool" "(fun foo (x) (< x 3)) foo"
+let test_annot_concrete () = test "(fun int bool)" "(fun foo (x) (< x 3)) foo"
 
 let test_annot_concrete_fail () =
-  test_exn "Var annotation: Expected type bool -> int but got type int -> bool"
+  test_exn
+    "Var annotation: Expected type (fun bool int) but got type (fun int bool)"
     "(val (foo (fun bool int)) (fun (x) (< x 3))) foo"
 
-let test_annot_mix () = test "'a -> 'a" "(fun pass [(x 'b)] x) pass"
+let test_annot_mix () = test "(fun 'a 'a)" "(fun pass [(x 'b)] x) pass"
 
 let test_annot_mix_fail () =
-  test_exn "Var annotation: Expected type 'b -> int but got type 'b -> 'b"
+  test_exn "Var annotation: Expected type (fun 'b int) but got type (fun 'b 'b)"
     "(val (pass (fun 'b int)) (fun (x) x)) pass"
 
-let test_annot_generic () = test "'a -> 'a" "(fun pass [(x 'b)] x) pass"
+let test_annot_generic () = test "(fun 'a 'a)" "(fun pass [(x 'b)] x) pass"
 
 let test_annot_generic_fail () =
-  test_exn "Var annotation: Expected type 'a -> 'b but got type 'a -> 'a"
+  test_exn "Var annotation: Expected type (fun 'a 'b) but got type (fun 'a 'a)"
     "(val (pass (fun 'a 'b)) (fun (x) x)) pass"
 
 let test_annot_record_simple () =
   test "a" "(type a { :x int }) (type b { :x int }) (val (a a) { :x 12 }) a"
 
 let test_annot_record_generic () =
-  test "a(bool)"
+  test "(a bool)"
     "(type (a 'a) { :x 'a }) (type b { :x int }) (val (a (a bool)) { :x true \
      }) a"
 
@@ -148,15 +149,15 @@ let test_sequence_fail () =
     "(fun add1 (x) (+ x 1)) (add1 20) (+ 1 1)"
 
 let test_para_instantiate () =
-  test "foo(int)"
+  test "(foo int)"
     "(type (foo 'a) { :first int :gen 'a }) (val foo { :first 10 :gen 20 }) foo"
 
 let test_para_gen_fun () =
-  test "foo('a) -> int"
+  test "(fun (foo 'a) int)"
     "(type (foo 'a) { :gen 'a :second int }) (fun get (foo) (.second foo)) get"
 
 let test_para_gen_return () =
-  test "foo('a) -> 'a"
+  test "(fun (foo 'a) 'a)"
     "(type (foo 'a) { :gen 'a }) (fun get (foo) (.gen foo)) get"
 
 let test_para_multiple () =
@@ -165,7 +166,7 @@ let test_para_multiple () =
      }) (val (b int) (get a)) (val c { :gen false }) (get c)"
 
 let test_para_instance_func () =
-  test "foo(int) -> int"
+  test "(fun (foo int) int)"
     "(type (foo 'a) { :gen 'a }) (fun use (foo) (+ (.gen foo) 17)) (val foo { \
      :gen 17 }) use"
 
@@ -183,7 +184,7 @@ let test_pipe_head_multi_call () =
   test "int" "(fun add1(a) (+ a 1)) (-> 10 add1 add1)"
 
 let test_pipe_head_single_wrong_type () =
-  test_exn "Application: Expected type int -> 'a but got type int"
+  test_exn "Application: Expected type (fun int 'a) but got type int"
     "(val add1 1) (-> 10 add1)"
 
 let test_pipe_head_mult () =
@@ -199,7 +200,7 @@ let test_pipe_tail_single_call () =
   test "int" "(fun add1(a) (+ a 1)) (->> 10 (add1))"
 
 let test_pipe_tail_single_wrong_type () =
-  test_exn "Application: Expected type int -> 'a but got type int"
+  test_exn "Application: Expected type (fun int 'a) but got type int"
     "(val add1 1) (->> 10 add1)"
 
 let test_pipe_tail_mult () =
@@ -210,14 +211,14 @@ let test_pipe_tail_mult_wrong_type () =
     "(fun add1(a) (+ a 1)) (->> 10 (add1 12))"
 
 let test_alias_simple () =
-  test "foo = int -> unit" "(type foo int) (external f (fun foo unit)) f"
+  test "(fun foo = int unit)" "(type foo int) (external f (fun foo unit)) f"
 
 let test_alias_param_concrete () =
-  test "foo = raw_ptr(u8) -> unit"
+  test "(fun foo = (raw_ptr u8) unit)"
     "(type foo (raw_ptr u8)) (external f (fun foo unit)) f"
 
 let test_alias_param_quant () =
-  test "foo = raw_ptr('a) -> unit"
+  test "(fun foo = (raw_ptr 'a) unit)"
     "(type (foo 'a) (raw_ptr 'a)) (external f (fun (foo 'a) unit)) f"
 
 let test_alias_param_missing () =
@@ -225,22 +226,22 @@ let test_alias_param_missing () =
     "(type (foo 'a) (raw_ptr 'a)) (external f (fun foo unit)) f"
 
 let test_alias_of_alias () =
-  test "bar = int -> foo = int"
+  test "(fun bar = int foo = int)"
     "(type foo int) (type bar foo) (external f (fun bar foo)) f"
 
 let test_vector_lit () =
-  test "vector(int)"
+  test "(vector int)"
     {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
     [0 1]|}
 
 let test_vector_var () =
-  test "vector(int)"
+  test "(vector int)"
     {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
     (val a [0 1])
     a|}
 
 let test_vector_weak () =
-  test "vector(int)"
+  test "(vector int)"
     {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
     (external set (fun (vector 'a) 'a unit))
     (val a [])
@@ -253,15 +254,16 @@ let test_vector_different_types () =
     [0 true]|}
 
 let test_vector_different_annot () =
-  test_exn "Var annotation: Expected type vector(bool) but got type vector(int)"
+  test_exn
+    "Var annotation: Expected type (vector bool) but got type (vector int)"
     {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
     (val (a (vector bool)) [0 1])
     a|}
 
 let test_vector_different_annot_weak () =
   test_exn
-    "Application: Expected type (vector(bool), bool) -> unit but got type \
-     (vector(bool), int) -> 'a"
+    "Application: Expected type (fun (vector bool) bool unit) but got type \
+     (fun (vector bool) int 'a)"
     {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
     (external set (fun (vector 'a) 'a unit))
     (val (a (vector bool)) [])
@@ -269,8 +271,8 @@ let test_vector_different_annot_weak () =
 
 let test_vector_different_weak () =
   test_exn
-    "Application: Expected type (vector(int), int) -> unit but got type \
-     (vector(int), bool) -> 'a"
+    "Application: Expected type (fun (vector int) int unit) but got type (fun \
+     (vector int) bool 'a)"
     {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
     (external set (fun (vector 'a) 'a unit))
     (val a [])
@@ -292,17 +294,17 @@ let test_mutable_set_non_mut () =
     "(type foo { :x int }) (val foo { :x 12}) (setf (.x foo) 13)"
 
 let test_variants_option_none () =
-  test "option('a)" "(type (option 'a) (#none (#some 'a))) #none"
+  test "(option 'a)" "(type (option 'a) (#none (#some 'a))) #none"
 
 let test_variants_option_some () =
-  test "option(int)" "(type (option 'a) (#none (#some 'a))) (#some 1)"
+  test "(option int)" "(type (option 'a) (#none (#some 'a))) (#some 1)"
 
 let test_variants_option_some_some () =
-  test "option(option(float))"
+  test "(option (option float))"
     "(type (option 'a) (#none (#some 'a))) (val a (#some 1.0)) (#some a)"
 
 let test_variants_option_annot () =
-  test "option(option(float))"
+  test "(option (option float))"
     "(type (option 'a) (#none (#some 'a))) (val (a (option float)) #none) \
      (#some a)"
 
@@ -325,12 +327,13 @@ let test_match_redundant () =
     "(type (option 'a) (#none (#some 'a))) (match (#some 1) a a #none -1)"
 
 let test_match_missing () =
-  test_exn "Pattern match is not exhaustive. Missing cases: some"
+  test_exn "Pattern match is not exhaustive. Missing cases: #some"
     "(type (option 'a) (#none (#some 'a))) (match (#some 1) #none -1)"
 
 let test_match_missing_nested () =
   test_exn
-    "Pattern match is not exhaustive. Missing cases: some(int) | some(non)"
+    "Pattern match is not exhaustive. Missing cases: (#some #int) | (#some \
+     #non)"
     {|(type (option 'a) (#none (#some 'a)))
     (type test ((#float float) (#int int) #non))
     (match #none
@@ -395,10 +398,10 @@ let test_match_column_arity () =
 |}
 
 let test_multi_record2 () =
-  test "foo(int, bool)" "(type (foo 'a 'b) {:a 'a :b 'b}) {:a 0 :b false}"
+  test "(foo int bool)" "(type (foo 'a 'b) {:a 'a :b 'b}) {:a 0 :b false}"
 
 let test_multi_variant2 () =
-  test "foo(int, 'a)" "(type (foo 'a 'b) ((#some 'a) (#other 'b))) (#some 1)"
+  test "(foo int 'a)" "(type (foo 'a 'b) ((#some 'a) (#other 'b))) (#some 1)"
 
 let case str test = test_case str `Quick test
 
