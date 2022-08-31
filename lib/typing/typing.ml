@@ -289,16 +289,17 @@ let check_type_unique env loc name =
       raise (Error (loc, msg))
   | None -> ()
 
-let add_type_param env = function
-  | Some name ->
+let add_type_param env ts =
+  List.fold_left_map
+    (fun env name ->
       (* Create general type *)
       enter_level ();
       let typ = newvar () in
       leave_level ();
       let t = generalize typ in
 
-      (Env.add_type name t env, [ t ])
-  | None -> (env, [])
+      (Env.add_type name t env, t))
+    env ts
 
 let type_record env loc Ast.{ name = { poly_param; name }; labels } =
   (* Make sure that each type name only appears once per module *)

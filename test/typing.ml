@@ -394,6 +394,12 @@ let test_match_column_arity () =
       a a)
 |}
 
+let test_multi_record2 () =
+  test "foo(int, bool)" "(type (foo 'a 'b) {:a 'a :b 'b}) {:a 0 :b false}"
+
+let test_multi_variant2 () =
+  test "foo(int, 'a)" "(type (foo 'a 'b) ((#some 'a) (#other 'b))) (#some 1)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -533,5 +539,10 @@ let () =
           case "wildcard" test_match_wildcard;
           case "wildcard_nested" test_match_wildcard_nested;
           case "column arity" test_match_column_arity;
+        ] );
+      ( "multi params",
+        [
+          case "record 2" test_multi_record2;
+          case "variant 2" test_multi_variant2;
         ] );
     ]

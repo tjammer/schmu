@@ -2,8 +2,7 @@
     open Ast
 
     let string_of_ty_var = function
-      | None -> None
-      | Some (Ty_var s) -> Some s
+      | Ty_var s -> s
       | _ -> failwith "Internal Error: Should have been a type var"
 
     let parse_cond loc fst then_ conds =
@@ -149,8 +148,8 @@ let bracks(x) :=
   | sexp_ctor; Int { { name = $1; typ_annot = None; index = Some $2 } }
 
 %inline sexp_typename:
-  | ident { { name = snd $1; poly_param = None } }
-  | Lpar; ident; poly_id; Rpar { { name = snd $2; poly_param = string_of_ty_var (Some $3) } }
+  | ident { { name = snd $1; poly_param = [] } }
+  | Lpar; ident; polys = nonempty_list(poly_id); Rpar { { name = snd $2; poly_param = List.map string_of_ty_var polys } }
 
 %inline sexp_type_decl:
   | Name; sexp_type_expr { false, $1, $2 }
