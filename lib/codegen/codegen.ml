@@ -1577,12 +1577,12 @@ and gen_app_builtin param (b, fnc) args =
   in
   let args = List.map handle_arg args in
 
-  let cast f dst =
+  let cast f lltyp typ =
     match args with
     | [ value ] ->
-        let value = f value dst "" builder in
+        let value = f value lltyp "" builder in
         (* TODO Not always int. That's a bug *)
-        { value; typ = Tint; lltyp = int_t; const = Not }
+        { value; typ; lltyp; const = Not }
     | _ -> failwith "Internal Error: Arity mismatch in builtin"
   in
 
@@ -1648,16 +1648,16 @@ and gen_app_builtin param (b, fnc) args =
 
       { value; typ = fnc.ret; lltyp = Llvm.type_of value; const = Not }
   | Ignore -> dummy_fn_value
-  | Int_of_float | Int_of_f32 -> cast Llvm.build_fptosi int_t
-  | Int_of_i32 -> cast Llvm.build_intcast int_t
-  | Float_of_int | Float_of_i32 -> cast Llvm.build_sitofp float_t
-  | Float_of_f32 -> cast Llvm.build_fpcast float_t
-  | I32_of_float | I32_of_f32 -> cast Llvm.build_fptosi i32_t
-  | I32_of_int -> cast Llvm.build_intcast i32_t
-  | F32_of_int | F32_of_i32 -> cast Llvm.build_sitofp f32_t
-  | F32_of_float -> cast Llvm.build_fpcast f32_t
-  | U8_of_int -> cast Llvm.build_intcast u8_t
-  | U8_to_int -> cast Llvm.build_intcast int_t
+  | Int_of_float | Int_of_f32 -> cast Llvm.build_fptosi int_t Tint
+  | Int_of_i32 -> cast Llvm.build_intcast int_t Tint
+  | Float_of_int | Float_of_i32 -> cast Llvm.build_sitofp float_t Tfloat
+  | Float_of_f32 -> cast Llvm.build_fpcast float_t Tfloat
+  | I32_of_float | I32_of_f32 -> cast Llvm.build_fptosi i32_t Ti32
+  | I32_of_int -> cast Llvm.build_intcast i32_t Ti32
+  | F32_of_int | F32_of_i32 -> cast Llvm.build_sitofp f32_t Tf32
+  | F32_of_float -> cast Llvm.build_fpcast f32_t Tf32
+  | U8_of_int -> cast Llvm.build_intcast u8_t Tu8
+  | U8_to_int -> cast Llvm.build_intcast int_t Tu8
   | Not ->
       let value =
         match args with
