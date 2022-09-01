@@ -135,7 +135,7 @@ the syntax table, so `forward-word' works as expected.")
     (,schmu-variable-declaration-pattern . (1 font-lock-variable-name-face))
     (,schmu-error-pattern . (1 font-lock-warning-face))
     (,schmu-constant-pattern . (1 font-lock-constant-face))
-    (,schmu-keyword-pattern . (1 font-lock-builtin-face))))
+    (,schmu-keyword-pattern . (1 font-lock-constant-face))))
 
 ;; The schmu-mode indentation logic borrows heavily from
 ;; racket-mode and clojure-mode
@@ -365,7 +365,7 @@ STATE is the `parse-partial-sexp' state for that position."
           (if 1)
           (if-let 1)
           (if-not 1)
-          (let 0)
+          (let 1)
           (loop 1)
           (match 1)
           (or 0)

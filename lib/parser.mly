@@ -177,8 +177,8 @@ stmt:
   | ident; sexp_type_expr { $loc, $1, Some $2 }
 
 %inline sexp_fun:
-  | Fun; ident; maybe_bracks(list(sexp_decl)); list(stmt)
-    { Function ($loc, { name = $2; params = $3; return_annot = None; body = $4 }) }
+  | Fun; name = ident; option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
+    { Function ($loc, { name; params; return_annot = None; body }) }
 
 sexp_expr:
   | sexp_ctor_inst { $1 }
@@ -240,8 +240,8 @@ sexp_cond:
   | else_ = option(sexp_expr) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
-  | Fun; maybe_bracks(list(sexp_decl)) list(stmt)
-    { Lambda ($loc, $2, $3) }
+  | Fun; params = maybe_bracks(list(sexp_decl)); body = list(stmt)
+    { Lambda ($loc, params, body) }
 
 %inline sexp_field_set:
   | Setf; access = parenss(sexp_set_access); sexp_expr
