@@ -109,7 +109,7 @@ module Tup = struct
     assert (col >= 0);
     col
 
-  let choose_next (patterns, d) tl =
+  let choose_next (patterns, d) tl ignore_wildcard =
     (* We choose a column based on precedence.
        [Pwildcard] is dropped
        1: [Pvar] needs to be bound,
@@ -123,7 +123,11 @@ module Tup = struct
     in
     let sort_patterns a b = Int.compare (score_patterns a) (score_patterns b) in
     let filter_patterns p =
-      match snd p with Ast.Pwildcard _ -> false | _ -> true
+      match snd p with
+      | Ast.Pwildcard _ ->
+          ignore_wildcard (fst p);
+          false
+      | _ -> true
     in
     let sorted =
       List.filter filter_patterns patterns |> List.sort sort_patterns
@@ -517,19 +521,17 @@ module Make (C : Core) = struct
           )
       | None -> (expr i, env)
     in
+    let ignore_expr i = ignore (expr i) in
 
     match cases with
     | hd :: tl -> (
-        match Tup.choose_next hd tl with
+        match Tup.choose_next hd tl ignore_expr with
         | Bare d ->
             (* Mark row as used *)
             rows := Row_set.remove { cnt = d.row; loc = d.loc } !rows;
 
             let ret = convert env d.ret_expr in
 
-            (* TODO move the [expr i] function to other branch only *)
-            (* (\* Use expr. Otherwise we get unused binding error *\) *)
-            (* ignore (expr i); *)
             unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
             ret
         | Var { col; loc; name; d; patterns } ->
