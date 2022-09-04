@@ -478,7 +478,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define void @schmu___vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* %vec, %closure* %f) {
+  define void @schmu___vectorgg.u.u_vector-iter_vectorii.u.u(%vector_int* %vec, %closure* %f) {
   entry:
     %monoclstmp = alloca %closure, align 8
     %funptr5 = bitcast %closure* %monoclstmp to i8**
@@ -560,7 +560,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i8* bitcast (void (i64)* @schmu_printi to i8*), i8** %funptr1, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    call void @schmu___vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* @vtest, %closure* %clstmp)
+    call void @schmu___vectorgg.u.u_vector-iter_vectorii.u.u(%vector_int* @vtest, %closure* %clstmp)
     ret i64 0
   }
   0

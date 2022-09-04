@@ -6,4 +6,4 @@
 
 (fun printi [i] (printf (.cstr "%i\n") i))
 
-(vector_iter malloc_some/vtest printi)
+(vector-iter malloc_some/vtest printi)

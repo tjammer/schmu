@@ -12,7 +12,7 @@
       (__unsafe_ptr_set (.optr (.ptr vec)) (.length (.ptr vec)) v)
       (setf (.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))))
 
-(fun vector_iter [vec f]
+(fun vector-iter [vec f]
   (fun inner_cls_both [i]
     (if (= i (.length (.ptr vec)))
       ()
@@ -45,4 +45,4 @@
 (vector_push vec 4)
 (vector_push vec 5)
 
-(vector_iter vec (fun [x] (printi (* x 2))))
+(vector-iter vec (fun [x] (printi (* x 2))))

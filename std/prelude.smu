@@ -18,36 +18,59 @@
 -- vector
 (type (vector 'a) {:ptr (owned_ptr 'a) :capacity (mutable int)})
 
-(fun vector_init [capacity]
+(fun vector-init [capacity]
   (val optr (__malloc capacity))
   {:ptr {:optr :length 0} :capacity})
 
-(fun vector_push [vec v]
+(fun vector-get [vec i]
+  (__unsafe_ptr_get (.optr (.ptr vec)) i))
+
+(fun vector-set [vec i v]
+  (__unsafe_ptr_set (.optr (.ptr vec)) i v))
+
+(fun vector-push [vec v]
   (if (= (.length (.ptr vec)) (.capacity vec))
     (do
       (val cap (* (.capacity vec) 2))
       (setf (.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) cap))
       (setf (.capacity vec) cap)))
-      (__unsafe_ptr_set (.optr (.ptr vec)) (.length (.ptr vec)) v)
+      (vector-set vec (.length (.ptr vec)) v)
       (setf (.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))
 
-(fun vector_iter [vec f]
+(fun vector-iter [vec f]
   (fun inner [i]
     (if (= i (.length (.ptr vec)))
       ()
       (do
-      (f (__unsafe_ptr_get (.optr (.ptr vec)) i))
+        (f (vector-get vec i))
         (inner (+ i 1)))))
   (inner 0))
 
-(fun vector_fold [vec f init]
+(fun vector-fold [vec f init]
   (fun inner [i acc]
     (if (= i (.length (.ptr vec)))
       acc
       (do
-        (val acc (f acc (__unsafe_ptr_get (.optr (.ptr vec)) i)))
+        (val acc (f acc (vector-get vec i)))
         (inner (+ i 1) acc))))
   (inner 0 init))
 
+(fun vector-update [vec f]
+  (fun inner [i]
+    (if (= i (.length (.ptr vec)))
+      ()
+      (do
+        (vector-set vec i (f (vector-get vec i))))))
+  (inner 0))
+
 -- option
 (type (option 'a) ((#some 'a) #none))
+
+-- ref
+(type (ref 'a) {:contents (mutable 'a)})
+
+(fun deref [a] (.contents a))
+
+(fun ref [contents] {:contents})
+
+(fun ref-set [a v] (setf (.contents a) v))

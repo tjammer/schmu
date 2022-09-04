@@ -986,7 +986,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define void @schmu___vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* %vec, %closure* %f) {
+  define void @schmu___vectorgg.u.u_vector-iter_vectorii.u.u(%vector_int* %vec, %closure* %f) {
   entry:
     %monoclstmp = alloca %closure, align 8
     %funptr27 = bitcast %closure* %monoclstmp to i8**
@@ -1222,7 +1222,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i8* bitcast (void (i64)* @schmu___fun0 to i8*), i8** %funptr1, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    call void @schmu___vectorgg.u.u_vector_iter_vectorii.u.u(%vector_int* @vec, %closure* %clstmp)
+    call void @schmu___vectorgg.u.u_vector-iter_vectorii.u.u(%vector_int* @vec, %closure* %clstmp)
     %2 = load i64*, i64** getelementptr inbounds (%vector_int, %vector_int* @vec, i32 0, i32 0, i32 0), align 8
     %3 = bitcast i64* %2 to i8*
     call void @free(i8* %3)
