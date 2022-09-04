@@ -391,7 +391,7 @@ let test_match_wildcard_nested () =
 |}
 
 let test_match_column_arity () =
-  test_exn "Expected 2 patterns, but found 1"
+  test_exn "Expecting 2 patterns, but found 1"
     {|(type (option 'a) (#none (#some 'a)))
     (match '(1 2)
       a a)

@@ -49,7 +49,11 @@ let get_variant env loc (_, name) annot =
             raise (Error (loc, msg))
       in
       (typename, ctor, variant)
-  | Some _ -> failwith "Internal Error: Not a variant for annot"
+  | Some t ->
+      let msg =
+        Printf.sprintf "Expecting a variant type, not %s" (string_of_type t)
+      in
+      raise (Error (loc, msg))
   | None -> (
       match Env.find_ctor_opt name env with
       | Some { index; typename } ->
@@ -464,7 +468,7 @@ module Make (C : Core) = struct
           in
           (if cols <> columns then
            let msg =
-             Printf.sprintf "Expected %i patterns, but found %i" columns cols
+             Printf.sprintf "Expecting %i patterns, but found %i" columns cols
            in
            raise (Error (loc, msg)));
           (pat, { loc; ret_expr = expr; row = i }))
