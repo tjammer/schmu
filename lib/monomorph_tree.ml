@@ -684,6 +684,9 @@ and morph_record mk p labels is_const =
   let (p, malloc), labels = List.fold_left_map f (p, None) labels in
   leave_level ();
 
+  (* mallocs were generated at a lower level, we increase to current level (or decrease :)) *)
+  (match malloc with None -> () | Some m -> m.mlvl := !alloc_lvl);
+
   let alloca = ref (request ()) in
   ( { p with ret },
     mk (Mrecord (labels, alloca, is_const.const)) ret,
