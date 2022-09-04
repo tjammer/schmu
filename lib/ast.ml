@@ -36,6 +36,7 @@ type func = {
   params : decl list;
   return_annot : type_spec option;
   body : block;
+  attr : (loc * string) option;
 }
 
 and expr =

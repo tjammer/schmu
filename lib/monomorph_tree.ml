@@ -58,6 +58,7 @@ and call_name =
   | Default
   | Recursive of string
   | Builtin of Builtin.t * func
+  | Inline of string list * monod_tree
 
 and monod_expr = { ex : monod_tree; monomorph : call_name }
 and monod_tree = { typ : typ; expr : expr; return : bool }
@@ -90,10 +91,12 @@ type monomorphized_tree = {
 }
 
 type to_gen_func_kind =
+  (* TODO use a prefix *)
   | Concrete of to_gen_func * string
   | Polymorphic of to_gen_func
   | Forward_decl of string
   | Builtin of Builtin.t
+  | Inline of string list * typ * monod_tree
   | No_function
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
@@ -416,6 +419,17 @@ let rec subst_body p subst tree =
 and monomorphize_call p expr parent_sub : morph_param * call_name =
   match find_function_expr p.vars expr.expr with
   | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
+  | Inline (ps, typ, tree) ->
+      (* Copied from Polymorphic below *)
+      (* The parent substitution is threaded through to its children.
+         This deals with nested closures *)
+      let subst, typ = subst_type ~concrete:expr.typ typ parent_sub in
+
+      (* If the type is still polymorphic, we cannot generate it *)
+      if is_type_polymorphic typ then (p, Default)
+      else let p, tree = subst_body p subst tree in
+
+           (p, Inline (ps, tree))
   | Forward_decl name ->
       (* We don't have to do anything, because the correct function will be called in the first place.
          Except when it is called with different types recursively. We'll see *)
@@ -726,6 +740,7 @@ and prep_func p (username, uniq, abs) =
 
   let call = Module.unique_name username uniq in
   let recursive = Rnormal in
+  let inline = abs.inline in
 
   let func =
     {
@@ -743,6 +758,7 @@ and prep_func p (username, uniq, abs) =
       if Types.is_struct abs.func.ret then Value (ref (request ()))
       else No_value
     in
+    (* TODO make it impossible to recursively call an inline function *)
     let value = { no_var with fn = Forward_decl call; alloc } in
     let vars = Vars.add username (Normal value) p.vars in
 
@@ -754,7 +770,7 @@ and prep_func p (username, uniq, abs) =
         vars pnames
     in
 
-    { p with vars; ret = true; mallocs = [] }
+    { p with vars; ret = (if not inline then true else p.ret); mallocs = [] }
   in
 
   enter_level ();
@@ -778,7 +794,11 @@ and prep_func p (username, uniq, abs) =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
   let p =
-    if is_type_polymorphic ftyp then
+    if inline then
+      let fn = Inline (pnames, ftyp, body) in
+      let vars = Vars.add username (Normal { var with fn }) p.vars in
+      { p with vars }
+    else if is_type_polymorphic ftyp then
       let fn = Polymorphic gen_func in
       let vars = Vars.add username (Normal { var with fn }) p.vars in
       { p with vars }

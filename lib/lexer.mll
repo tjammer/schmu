@@ -40,7 +40,7 @@ let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
 let builtin_id = "__" lowercase_id
 
 let kebab_id = lowercase_alpha (lowercase_alpha|'-'|digit|'?')*
-let name = ':'(lowercase_id|kebab_id)
+let keyword = ':'(lowercase_id|kebab_id)
 let constructor = '#'(lowercase_id|kebab_id)
 let accessor = '.'(lowercase_id|kebab_id)
 
@@ -78,7 +78,7 @@ rule read =
   | "fmt-str"{ Fmt_str }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
   | kebab_id     { Kebab_id (Lexing.lexeme lexbuf) }
-  | name     { Name (name_of_string (Lexing.lexeme lexbuf)) }
+  | keyword  { Keyword (name_of_string (Lexing.lexeme lexbuf)) }
   | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }
   | constructor{ Constructor (name_of_string (Lexing.lexeme lexbuf)) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }

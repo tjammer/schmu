@@ -38,7 +38,7 @@
 %token Do
 %token <string> Lowercase_id
 %token <string> Kebab_id
-%token <string> Name
+%token <string> Keyword
 %token <string> Constructor
 %token <string> Accessor
 %token <int> Int
@@ -152,8 +152,8 @@ let bracks(x) :=
   | Lpar; ident; polys = nonempty_list(poly_id); Rpar { { name = snd $2; poly_param = List.map string_of_ty_var polys } }
 
 %inline sexp_type_decl:
-  | Name; sexp_type_expr { false, $1, $2 }
-  | Name; Lpar; Mutable; sexp_type_expr; Rpar { true, $1, $4 }
+  | Keyword; sexp_type_expr { false, $1, $2 }
+  | Keyword; Lpar; Mutable; sexp_type_expr; Rpar { true, $1, $4 }
 
 %inline open_:
   | parenss(sexp_open) { $1 }
@@ -177,8 +177,11 @@ stmt:
   | ident; sexp_type_expr { $loc, $1, Some $2 }
 
 %inline sexp_fun:
-  | Fun; name = ident; option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
-    { Function ($loc, { name; params; return_annot = None; body }) }
+  | Fun; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
+    { Function ($loc, { name; params; return_annot = None; body; attr }) }
+
+%inline attr:
+  | kw = Keyword { $loc, kw }
 
 sexp_expr:
   | sexp_ctor_inst { $1 }
@@ -210,8 +213,8 @@ sexp_expr:
   | decl = sexp_decl; expr = sexp_expr { $loc, decl, expr }
 
 %inline sexp_record_item:
-  | Name; sexp_expr { $1, $2 }
-  | Name { $1, Var ($loc, $1) }
+  | Keyword; sexp_expr { $1, $2 }
+  | Keyword { $1, Var ($loc, $1) }
 
 %inline sexp_ctor_inst:
   | sexp_ctor { Ctor ($loc, $1, None) }

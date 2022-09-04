@@ -41,7 +41,14 @@ and toplevel_item =
   | Tl_expr of typed_expr
 
 and func = { tparams : typ list; ret : typ; kind : fun_kind }
-and abstraction = { nparams : string list; body : typed_expr; func : func }
+
+and abstraction = {
+  nparams : string list;
+  body : typed_expr;
+  func : func;
+  inline : bool;
+}
+
 and generic_fun = { concrete : func; generic : func }
 and attr = { const : bool; global : bool }
 

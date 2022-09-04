@@ -55,6 +55,7 @@ and call_name =
   (* Recursive function call.
      The function name is only for housekeeping *)
   | Builtin of Builtin.t * func
+  | Inline of string list * monod_tree
 (* Builtin function with special codegen *)
 
 and monod_expr = { ex : monod_tree; monomorph : call_name }

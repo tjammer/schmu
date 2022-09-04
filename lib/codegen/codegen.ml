@@ -1027,6 +1027,7 @@ let get_mono_func func param = function
   | Concrete name -> Vars.find name param.vars
   | Default | Recursive _ -> func
   | Builtin _ -> failwith "Internal Error: Normally calling a builtin"
+  | Inline _ -> failwith "Internal Error: Normally calling an inline func"
 
 let fun_return name ret =
   match ret.typ with
@@ -1168,6 +1169,8 @@ and gen_expr param typed_expr =
       | true, Recursive _, Some block ->
           gen_app_tailrec param callee args block typed_expr.typ
       | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args |> fin
+      | _, Inline (pnames, tree), _ ->
+          gen_app_inline param args pnames tree |> fin
       | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
   | Mif expr -> gen_if param expr typed_expr.return
   | Mrecord (labels, allocref, const) ->
@@ -1666,6 +1669,18 @@ and gen_app_builtin param (b, fnc) args =
       let true_value = Llvm.const_int bool_t (Bool.to_int true) in
       let value = Llvm.build_xor value true_value "" builder in
       { value; typ = Tbool; lltyp = bool_t; const = Not }
+
+and gen_app_inline param args names tree =
+  (* Identify args to param names *)
+  let f env arg param =
+    let arg' = gen_expr env Monomorph_tree.(arg.ex) in
+    let arg = get_mono_func arg' env arg.monomorph in
+
+    let vars = Vars.add param arg env.vars in
+    { env with vars }
+  in
+  let env = List.fold_left2 f param args names in
+  gen_expr env tree
 
 and gen_if param expr return =
   (* If a function ends in a if expression (and returns a struct),

@@ -535,16 +535,25 @@ end = struct
 
         let nparams = List.map (fun (_, name, _) -> snd name) params in
         let func = { tparams; ret; kind } in
-        let abs = { nparams; body = { body with typ = ret }; func } in
+        let abs =
+          { nparams; body = { body with typ = ret }; func; inline = false }
+        in
         let expr = Lambda (lambda_id (), abs) in
         { typ; expr; attr = no_attr }
     | _ -> failwith "Internal Error: generalize produces a new type?"
 
   and convert_function env loc
-      Ast.{ name = nameloc, name; params; return_annot; body } =
+      Ast.{ name = nameloc, name; params; return_annot; body; attr } =
     (* Create a fresh type var for the function name
        and use it in the function body *)
     let unique = uniq_name name in
+
+    let inline =
+      match attr with
+      | Some (_, "inline") -> true
+      | Some (loc, attr) -> raise (Error (loc, "Unknown attribute: " ^ attr))
+      | None -> false
+    in
 
     enter_level ();
     let env =
@@ -586,7 +595,9 @@ end = struct
 
         let nparams = List.map (fun (_, name, _) -> snd name) params in
         let func = { tparams; ret; kind } in
-        let lambda = { nparams; body = { body with typ = ret }; func } in
+        let lambda =
+          { nparams; body = { body with typ = ret }; func; inline }
+        in
 
         (env, (name, unique, lambda))
     | _ -> failwith "Internal Error: generalize produces a new type?"
