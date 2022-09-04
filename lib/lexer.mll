@@ -116,6 +116,7 @@ and line_comment =
 
 and read_string buf =
   parse
+  | newline { next_line lexbuf; read_string buf lexbuf }
   | '"'       { String_lit (Buffer.contents buf) }
   | '\\' '/'  { Buffer.add_char buf '/'; read_string buf lexbuf }
   | '\\' '\\' { Buffer.add_char buf '\\'; read_string buf lexbuf }
@@ -124,7 +125,7 @@ and read_string buf =
   | '\\' 'n'  { Buffer.add_char buf '\n'; read_string buf lexbuf }
   | '\\' 'r'  { Buffer.add_char buf '\r'; read_string buf lexbuf }
   | '\\' 't'  { Buffer.add_char buf '\t'; read_string buf lexbuf }
-  | [^ '"' '\\']+
+  | [^ '"' '\\' '\n' '\r']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       read_string buf lexbuf
     }
