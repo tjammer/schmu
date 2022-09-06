@@ -41,6 +41,7 @@
 %token <string> Keyword
 %token <string> Constructor
 %token <string> Accessor
+%token <string> At_id
 %token <int> Int
 %token <char> U8
 %token <float> Float
@@ -186,6 +187,7 @@ stmt:
 sexp_expr:
   | sexp_ctor_inst { $1 }
   | maybe_bracs(nonempty_list(sexp_record_item)) { Record ($loc, $1) }
+  | upd = maybe_bracs(record_update) { upd }
   | sexp_lit { $1 }
   | unop; sexp_expr { Unop ($loc, $1, $2) }
   | callable = callable_expr { callable }
@@ -215,6 +217,9 @@ sexp_expr:
 %inline sexp_record_item:
   | Keyword; sexp_expr { $1, $2 }
   | Keyword { $1, Var ($loc, $1) }
+
+%inline record_update:
+  | record = At_id; items = nonempty_list(sexp_record_item) { Record_update ($loc, ($loc(record), record), items) }
 
 %inline sexp_ctor_inst:
   | sexp_ctor { Ctor ($loc, $1, None) }

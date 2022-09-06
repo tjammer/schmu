@@ -13,6 +13,14 @@ module type S = sig
     (string * Ast.expr) list ->
     Typed_tree.typed_expr
 
+  val convert_record_update :
+    Env.t ->
+    Ast.loc ->
+    Types.typ option ->
+    Ast.loc * string ->
+    (string * Ast.expr) list ->
+    Typed_tree.typed_expr
+
   val convert_field :
     Env.t ->
     Lexing.position * Lexing.position ->

@@ -43,6 +43,7 @@ let kebab_id = lowercase_alpha (lowercase_alpha|'-'|digit|'?')*
 let keyword = ':'(lowercase_id|kebab_id)
 let constructor = '#'(lowercase_id|kebab_id)
 let accessor = '.'(lowercase_id|kebab_id)
+let at_id = '@'(lowercase_id|kebab_id)
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -80,6 +81,7 @@ rule read =
   | kebab_id     { Kebab_id (Lexing.lexeme lexbuf) }
   | keyword  { Keyword (name_of_string (Lexing.lexeme lexbuf)) }
   | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }
+  | at_id    { At_id (name_of_string (Lexing.lexeme lexbuf)) }
   | constructor{ Constructor (name_of_string (Lexing.lexeme lexbuf)) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '_'      { Wildcard }

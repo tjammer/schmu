@@ -447,6 +447,8 @@ end = struct
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
     | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
     | Record (loc, labels) -> convert_record env loc annot labels
+    | Record_update (loc, record, items) ->
+        convert_record_update env loc annot record items
     | Field (loc, expr, id) -> convert_field env loc expr id
     | Field_set (loc, expr, id, value) ->
         convert_field_set env loc expr id value

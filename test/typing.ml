@@ -112,6 +112,20 @@ let test_record_field_wrong_record () =
     "(type t1 {:x int}) (type t2 {:y int}) (fun foo (a) (.x a)) (val b {:y \
      10}) (foo b)"
 
+let test_record_update () =
+  test "a" "(type a {:x int :y int}) (val a {:x 10 :y 20}) {@a :y 30}"
+
+let test_record_update_poly_same () =
+  test "(a int)" "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) (@a :x 20)"
+
+let test_record_update_poly_change () =
+  test "(a float)"
+    "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) (@a :x 20.0)"
+
+let test_record_update_useless () =
+  test_exn "All fields are explicitely updated. Record update is useless"
+    "(type a {:x int :y int}) (val a {:x 10 :y 20}) {@a :y 30 :x 10}"
+
 let test_annot_concrete () = test "(fun int bool)" "(fun foo (x) (< x 3)) foo"
 
 let test_annot_concrete_fail () =
@@ -457,6 +471,10 @@ let () =
           case "nested_field_infer_generic" test_record_nested_field_generic;
           case "field_no_record" test_record_field_no_record;
           case "field_wrong_record" test_record_field_wrong_record;
+          case "update" test_record_update;
+          case "update_poly" test_record_update_poly_same;
+          case "update_poly_change" test_record_update_poly_change;
+          case "update_useless" test_record_update_useless;
         ] );
       ( "annotations",
         [

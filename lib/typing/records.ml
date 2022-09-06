@@ -17,6 +17,14 @@ module type S = sig
     (string * Ast.expr) list ->
     Typed_tree.typed_expr
 
+  val convert_record_update :
+    Env.t ->
+    Ast.loc ->
+    Types.typ option ->
+    Ast.loc * string ->
+    (string * Ast.expr) list ->
+    Typed_tree.typed_expr
+
   val convert_field :
     Env.t ->
     Lexing.position * Lexing.position ->
@@ -118,6 +126,39 @@ module Make (C : Core) = struct
     in
     let typ = Trecord (param, name, labels) |> generalize in
     { typ; expr = Record sorted_labels; attr = { no_attr with const } }
+
+  and convert_record_update env loc annot (rloc, rid) items =
+    (* Implemented in terms of [convert_record] *)
+    let record_var = Ast.Var (rloc, rid) in
+    let record = convert env record_var in
+
+    let updated = List.to_seq items |> Smap.of_seq in
+
+    let all_new = ref true in
+    let fields =
+      match record.typ with
+      | Trecord (_, _, fields) ->
+          Array.map
+            (fun field ->
+              match Smap.find_opt field.fname updated with
+              | Some expr -> (field.fname, expr)
+              | None ->
+                  (* There are some old fields. *)
+                  all_new := false;
+                  let expr = Ast.Field (loc, record_var, field.fname) in
+                  (field.fname, expr))
+            fields
+      | t ->
+          let msg = "Expected a record type, not " ^ string_of_type t in
+          raise (Error (loc, msg))
+    in
+
+    if !all_new then
+      raise
+        (Error
+           (loc, "All fields are explicitely updated. Record update is useless"));
+
+    convert_record env loc annot (Array.to_list fields)
 
   and get_field env loc expr id =
     let expr = convert env expr in
