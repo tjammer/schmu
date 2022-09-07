@@ -542,7 +542,7 @@ module Make (C : Core) = struct
             (* Bind the variable *)
             let env =
               Env.(
-                add_value name { def_value with typ = (expr col).typ } d.loc env)
+                add_value name { def_value with typ = (expr col).typ } loc env)
             in
             (* Continue with expression *)
             let ret =
@@ -558,7 +558,7 @@ module Make (C : Core) = struct
             let a, b = match_cases (col, name) ((patterns, d) :: tl) [] [] in
 
             let annot = make_annot (expr col).typ in
-            let _, ctor, variant = get_variant env d.loc (loc, name) annot in
+            let _, ctor, variant = get_variant env loc (loc, name) annot in
             unify
               (d.loc, "Variant pattern has unexpected type:")
               (expr col).typ variant;
