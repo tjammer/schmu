@@ -87,7 +87,7 @@ module Make (C : Core) = struct
 
     let (param, name, labels), labels_expr =
       match t with
-      | Trecord (param, name, ls) ->
+      | Trecord (param, Some name, ls) ->
           let f (lname, expr) =
             let typ, expr =
               match array_assoc_opt lname ls with
@@ -124,7 +124,7 @@ module Make (C : Core) = struct
           (is_const && (not field.mut) && expr.attr.const, (field.fname, expr)))
         true (labels |> Array.to_list)
     in
-    let typ = Trecord (param, name, labels) |> generalize in
+    let typ = Trecord (param, Some name, labels) |> generalize in
     { typ; expr = Record sorted_labels; attr = { no_attr with const } }
 
   and convert_record_update env loc annot (rloc, rid) items =
@@ -163,7 +163,7 @@ module Make (C : Core) = struct
   and get_field env loc expr id =
     let expr = convert env expr in
     match clean expr.typ with
-    | Trecord (_, name, labels) -> (
+    | Trecord (_, Some name, labels) -> (
         match assoc_opti id labels with
         | Some (index, field) -> (field, expr, index)
         | None ->

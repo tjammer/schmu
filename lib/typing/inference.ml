@@ -63,7 +63,11 @@ let rec unify t1 t2 =
         with Invalid_argument _ ->
           raise (Arity ("function", List.length params_l, List.length params_r))
         )
-    | Trecord (ps1, n1, labels1), Trecord (ps2, n2, labels2) ->
+    | Trecord (_, None, labels1), Trecord (_, None, labels2) -> (
+        try Array.iter2 (fun a b -> Types.(unify a.ftyp b.ftyp)) labels1 labels2
+        with Invalid_argument _ ->
+          raise (Arity ("tuple", Array.length labels1, Array.length labels2)))
+    | Trecord (ps1, Some n1, labels1), Trecord (ps2, Some n2, labels2) ->
         if String.equal n1 n2 then
           try
             List.iter2 unify ps1 ps2;
@@ -240,7 +244,16 @@ let rec types_match ?(strict = false) subst l r =
           let subst, b = types_match ~strict:true subst l r in
           (subst, acc && b)
         with Invalid_argument _ -> (subst, false))
-    | Trecord (pl, nl, _), Trecord (pr, nr, _)
+    | Trecord (_, None, l), Trecord (_, None, r) -> (
+        let l = Array.to_list l and r = Array.to_list r in
+        try
+          List.fold_left2
+            (fun (s, acc) l r ->
+              let subst, b = types_match s l.ftyp r.ftyp in
+              (subst, acc && b))
+            (subst, true) l r
+        with Invalid_argument _ -> (subst, false))
+    | Trecord (pl, Some nl, _), Trecord (pr, Some nr, _)
     | Tvariant (pl, nl, _), Tvariant (pr, nr, _) ->
         (* It should be enough to compare the name (rather, the name's repr)
            and the param type *)

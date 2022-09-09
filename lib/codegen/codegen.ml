@@ -71,7 +71,7 @@ let voidptr_t = Llvm.(i8_type context |> pointer_type)
 let string_t =
   Trecord
     ( [],
-      "string",
+      Some "string",
       [| { ftyp = Traw_ptr Tu8; mut = false }; { ftyp = Tint; mut = false } |]
     )
 
@@ -101,9 +101,12 @@ let no_param =
 let rec struct_name = function
   (* We match on each type here to allow for nested parametrization like [int foo bar].
      [poly] argument will create a name used for a poly var, ie spell out the generic name *)
-  | Trecord (param, name, _) | Tvariant (param, name, _) ->
+  | Trecord (param, Some name, _) | Tvariant (param, name, _) ->
       let some t = match t with Tpoly _ -> "generic" | t -> struct_name t in
       String.concat "_" (name :: List.map some param)
+  | Trecord (_, None, fs) ->
+      let ts = Array.to_list fs |> List.map (fun f -> struct_name f.ftyp) in
+      "tuple_" ^ String.concat "_" ts
   | t -> string_of_type t
 
 (*
@@ -293,7 +296,8 @@ let type_unboxed kind =
   | One_param a -> helper a
   | Two_params (a, b) ->
       (* We need a tuple here *)
-      Trecord ([], "param_tup", [| anon_field_of_typ a; anon_field_of_typ b |])
+      Trecord
+        ([], Some "param_tup", [| anon_field_of_typ a; anon_field_of_typ b |])
 
 (** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to
@@ -588,7 +592,7 @@ let free ptr =
 
 (* Recursively frees a record (which can contain vector and other records) *)
 let rec free_value value = function
-  | Trecord ([ t ], name, _) when String.equal name "owned_ptr" ->
+  | Trecord ([ t ], Some name, _) when String.equal name "owned_ptr" ->
       (* Free nested owned_ptrs *)
       let ptr = Llvm.build_struct_gep value 0 "" builder in
       let ptr = Llvm.build_load ptr "" builder in
@@ -600,7 +604,7 @@ let rec free_value value = function
        let len = Llvm.build_intcast len int_t "len" builder in
        free_owned_ptr_children ptr len t);
       ignore (free ptr)
-  | Trecord (_, name, _) when String.equal name "string" ->
+  | Trecord (_, Some name, _) when String.equal name "string" ->
       let start_bb = Llvm.insertion_block builder in
       let parent = Llvm.block_parent start_bb in
 
@@ -621,7 +625,7 @@ let rec free_value value = function
       ignore (Llvm.build_br cont_bb builder);
 
       Llvm.position_at_end cont_bb builder
-  | Trecord (_, name, _) when String.equal name "owned_ptr" ->
+  | Trecord (_, Some name, _) when String.equal name "owned_ptr" ->
       failwith "Internal Error: On free: owned_ptr has no type"
   | Trecord (_, _, fields) ->
       Array.iteri
@@ -635,8 +639,8 @@ let rec free_value value = function
       failwith "freeing records other than owned_ptr TODO"
 
 and contains_owned_ptr = function
-  | Trecord (_, name, _) when String.equal name "owned_ptr" -> true
-  | Trecord (_, name, _) when String.equal name "string" -> true
+  | Trecord (_, Some name, _) when String.equal name "owned_ptr" -> true
+  | Trecord (_, Some name, _) when String.equal name "string" -> true
   | Trecord (_, _, fields) ->
       Array.fold_left
         (fun b (f : field) -> f.ftyp |> contains_owned_ptr || b)
@@ -703,7 +707,7 @@ let fmt_str value =
   match value.typ with
   | Tint -> ("%li", value.value)
   | Tfloat -> ("%.9g", value.value)
-  | Trecord (_, name, _) when String.equal name "string" ->
+  | Trecord (_, Some name, _) when String.equal name "string" ->
       let ptr = Llvm.build_struct_gep value.value 0 "" builder in
       ("%s", Llvm.build_load ptr "" builder)
   | Tbool ->

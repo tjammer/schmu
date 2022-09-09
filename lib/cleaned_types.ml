@@ -8,7 +8,7 @@ type typ =
   | Tf32
   | Tpoly of string
   | Tfun of typ list * typ * fun_kind
-  | Trecord of typ list * string * field array
+  | Trecord of typ list * string option * field array
   | Tvariant of typ list * string * ctor array
   | Traw_ptr of typ
 [@@deriving show { with_path = false }]
@@ -47,7 +47,10 @@ let rec string_of_type = function
       let ps = String.concat " " (List.map string_of_type ts) in
       Printf.sprintf "(fun %s %s)" ps (string_of_type t)
   | Tpoly str -> str
-  | Trecord (ps, str, _) | Tvariant (ps, str, _) -> (
+  | Trecord (_, None, fs) ->
+      let lst = Array.to_list fs |> List.map (fun f -> string_of_type f.ftyp) in
+      Printf.sprintf "{%s}" (String.concat " " lst)
+  | Trecord (ps, Some str, _) | Tvariant (ps, str, _) -> (
       match ps with
       | [] -> str
       | l ->

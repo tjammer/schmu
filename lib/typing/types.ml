@@ -21,7 +21,7 @@ type typ =
   | Qvar of string
   | Tfun of typ list * typ * fun_kind
   | Talias of string * typ
-  | Trecord of typ list * string * field array
+  | Trecord of typ list * string option * field array
   | Tvariant of typ list * string * ctor array
   | Traw_ptr of typ
 [@@deriving show { with_path = false }, sexp]
@@ -80,7 +80,12 @@ let string_of_type_raw get_name typ =
     | Talias (name, t) ->
         Printf.sprintf "%s = %s" name (clean t |> string_of_type)
     | Qvar str | Tvar { contents = Unbound (str, _) } -> get_name str
-    | Trecord (ps, str, _) | Tvariant (ps, str, _) -> (
+    | Trecord (_, None, fs) ->
+        let lst =
+          Array.to_list fs |> List.map (fun f -> string_of_type f.ftyp)
+        in
+        Printf.sprintf "{%s}" (String.concat " " lst)
+    | Trecord (ps, Some str, _) | Tvariant (ps, str, _) -> (
         match ps with
         | [] -> str
         | l ->

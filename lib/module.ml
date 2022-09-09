@@ -98,7 +98,7 @@ let add_to_env env m =
   List.fold_left
     (fun env item ->
       match item with
-      | Mtype (Trecord (params, name, labels)) ->
+      | Mtype (Trecord (params, Some name, labels)) ->
           Env.add_record name ~params ~labels env
       | Mtype (Tvariant (params, name, ctors)) ->
           Env.add_variant name ~params ~ctors env

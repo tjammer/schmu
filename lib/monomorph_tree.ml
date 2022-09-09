@@ -214,8 +214,10 @@ let get_mono_name name ~poly concrete =
     | Tf32 -> "f32"
     | Tfun (ps, r, _) ->
         Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
-    | Trecord (ps, name, _) | Tvariant (ps, name, _) ->
+    | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
         Printf.sprintf "%s%s" name (String.concat "" (List.map str ps))
+    | Trecord (_, None, fs) ->
+        Array.to_list fs |> List.map (fun f -> str f.ftyp) |> String.concat "-"
     | Tpoly _ -> "g"
     | Traw_ptr t -> Printf.sprintf "p%s" (str t)
   in

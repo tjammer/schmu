@@ -13,7 +13,7 @@ type typ =
   | Qvar of string
   | Tfun of typ list * typ * fun_kind
   | Talias of string * typ
-  | Trecord of typ list * string * field array
+  | Trecord of typ list * string option * field array
   | Tvariant of typ list * string * ctor array
   | Traw_ptr of typ
 [@@deriving show { with_path = false }, sexp]

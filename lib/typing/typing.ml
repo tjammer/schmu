@@ -129,7 +129,7 @@ and get_generic_id loc = function
   | Traw_ptr (Tvar { contents = Unbound (id, _) }) ->
       id
   | Trecord (_ :: tl, _, _) | Tvariant (_ :: tl, _, _) ->
-      get_generic_id loc (Trecord (tl, "", [||]))
+      get_generic_id loc (Trecord (tl, Some "", [||]))
   | t ->
       raise
         (Error (loc, "Expected a parametrized type, not " ^ string_of_type t))
@@ -145,7 +145,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
 
   let rec is_quantified = function
     | Trecord ([], _, _) | Tvariant ([], _, _) -> None
-    | Trecord (_, name, _) | Tvariant (_, name, _) -> Some name
+    | Trecord (_, Some name, _) | Tvariant (_, name, _) -> Some name
     | Traw_ptr _ -> Some "raw_ptr"
     | Talias (name, t) -> (
         let cleaned = clean t in
@@ -770,7 +770,7 @@ end = struct
       let e = convert env expr in
       match (e.expr, clean e.typ) with
       | Const (String s), _ -> Fstr s
-      | _, Trecord (_, name, _) when String.equal name "string" -> Fexpr e
+      | _, Trecord (_, Some name, _) when String.equal name "string" -> Fexpr e
       | _, (Tint | Tfloat | Tbool | Tu8 | Ti32 | Tf32) -> Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)

@@ -147,7 +147,7 @@ let add_type key t env =
   { env with types }
 
 let add_record record ~params ~labels env =
-  let typ = Trecord (params, record, labels) in
+  let typ = Trecord (params, Some record, labels) in
 
   let labelset =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
