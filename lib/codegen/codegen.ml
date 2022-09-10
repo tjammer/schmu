@@ -877,6 +877,12 @@ let store_alloca ~src ~dst =
   else (* Simple type *)
     ignore (Llvm.build_store src.value dst builder)
 
+let tailrec_store ~src ~dst =
+  if is_mutable src.typ then
+    let cast = Llvm.build_ptrtoint src.value int_t "" builder in
+    ignore (Llvm.build_store cast dst builder)
+  else store_alloca ~src ~dst
+
 let load ptr = function
   | Trecord _ | Tvariant _ -> ptr
   | _ -> Llvm.build_load ptr "" builder
@@ -921,6 +927,12 @@ let add_params vars f fname names types start_index recursive =
 
   let alloca_copy src =
     match src.typ with
+    | (Trecord _ | Tvariant _) as r when is_mutable r ->
+        (* We get the ptr by casting then store it in a value *)
+        let cast = Llvm.build_ptrtoint src.value int_t "" builder in
+        let dst = Llvm.build_alloca int_t "" builder in
+        ignore (Llvm.build_store cast dst builder);
+        dst
     | (Trecord _ | Tvariant _) as r ->
         let typ = get_lltype_def r in
         let dst = Llvm.build_alloca typ "" builder in
@@ -946,6 +958,14 @@ let add_params vars f fname names types start_index recursive =
     | Tfun _ -> value.value
     | Traw_ptr _ -> failwith "TODO"
     | _ -> Llvm.build_load value.value name builder
+  in
+
+  let tailrec_load ptr name =
+    (* Includes special handling for mutable structs in tailrecursive case *)
+    if is_mutable ptr.typ then
+      let v = Llvm.build_load ptr.value "" builder in
+      Llvm.build_inttoptr v ptr.lltyp "name" builder
+    else load ptr name
   in
 
   (* If the function is named, we allow recursion *)
@@ -991,7 +1011,7 @@ let add_params vars f fname names types start_index recursive =
           (fun (env, i) name typ ->
             let i = get_index i typ in
             let llvar = Vars.find (name_of_alloc_param i) env in
-            let value = load llvar name in
+            let value = tailrec_load llvar name in
             (Vars.add name { llvar with value } env, i + 1))
           (vars, start_index) names types
       in
@@ -1556,7 +1576,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
 
     (* We store the params in pre-allocated variables *)
     if llvar.value <> alloca.value then
-      store_alloca ~src:llvar ~dst:alloca.value;
+      tailrec_store ~src:llvar ~dst:alloca.value;
     i + 1
   in
 

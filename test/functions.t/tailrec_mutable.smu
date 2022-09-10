@@ -1,0 +1,12 @@
+(type bref {:a (mutable bool)})
+
+(fun mut-iref [i rf]
+  (if (> i 0)
+    (setf (.a rf) true)
+    (mut-iref (+ i 1) rf)))
+
+(val rf {:a false})
+
+(mut-iref 0 rf)
+
+(print (fmt-str (.a rf)))

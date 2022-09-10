@@ -1026,45 +1026,42 @@ Nested polymorphic closures. Does not quite work for another nesting level
   define void @schmu___ivectorg.u_inner_cls_f_ivectori.u(i64 %i, %vector_int* %vec, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %closure* }*
-    %f7 = bitcast { %closure* }* %clsr to %closure**
-    %f1 = load %closure*, %closure** %f7, align 8
+    %f5 = bitcast { %closure* }* %clsr to %closure**
+    %f1 = load %closure*, %closure** %f5, align 8
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 4
-    %2 = alloca %vector_int, align 8
-    %3 = bitcast %vector_int* %2 to i8*
-    %4 = bitcast %vector_int* %vec to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 24, i1 false)
-    %.phi.trans.insert8 = bitcast %vector_int* %2 to %owned_ptr_int*
-    %.phi.trans.insert5 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %.phi.trans.insert8, i32 0, i32 1
-    %.pre = load i64, i64* %.phi.trans.insert5, align 4
-    %5 = sub i64 0, %.pre
-    %6 = add i64 %i, 1
+    %2 = ptrtoint %vector_int* %vec to i64
+    %3 = alloca i64, align 8
+    store i64 %2, i64* %3, align 4
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %lsr.iv = phi i64 [ %lsr.iv.next, %else ], [ %6, %entry ]
-    %7 = add i64 %5, %lsr.iv
-    %eq = icmp eq i64 %7, 1
+    %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %4 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %5 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %4, i32 0, i32 1
+    %6 = load i64, i64* %5, align 4
+    %eq = icmp eq i64 %i2, %6
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %8 = bitcast %vector_int* %2 to %owned_ptr_int*
-    %9 = bitcast %owned_ptr_int* %8 to i64**
+    %7 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %8 = ptrtoint %vector_int* %vec to i64
+    %9 = bitcast %owned_ptr_int* %7 to i64**
     %10 = load i64*, i64** %9, align 8
-    %scevgep = getelementptr i64, i64* %10, i64 %lsr.iv
-    %scevgep6 = getelementptr i64, i64* %scevgep, i64 -1
-    %11 = load i64, i64* %scevgep6, align 4
-    %funcptr9 = bitcast %closure* %f1 to i8**
-    %loadtmp = load i8*, i8** %funcptr9, align 8
+    %scevgep = getelementptr i64, i64* %10, i64 %i2
+    %11 = load i64, i64* %scevgep, align 4
+    %funcptr6 = bitcast %closure* %f1 to i8**
+    %loadtmp = load i8*, i8** %funcptr6, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
     %loadtmp3 = load i8*, i8** %envptr, align 8
     tail call void %casttmp(i64 %11, i8* %loadtmp3)
-    store i64 %lsr.iv, i64* %1, align 4
-    %lsr.iv.next = add i64 %lsr.iv, 1
+    %add = add i64 %i2, 1
+    store i64 %add, i64* %1, align 4
+    store i64 %8, i64* %3, align 4
     br label %rec
   }
   
@@ -1286,3 +1283,91 @@ Closures have to be added to the env of other closures, so they can be called co
     ret i64 0
   }
   20
+
+Don't copy mutable types in setup of tailrecursive functions
+  $ schmu --dump-llvm tailrec_mutable.smu && ./tailrec_mutable
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %bref = type { i1 }
+  %string = type { i8*, i64 }
+  
+  @rf = global %bref zeroinitializer, align 1
+  @0 = private unnamed_addr constant [6 x i8] c"false\00", align 1
+  @1 = private unnamed_addr constant [5 x i8] c"true\00", align 1
+  @2 = private unnamed_addr constant [3 x i8] c"%s\00", align 1
+  
+  declare void @schmu_print(i64 %0, i64 %1)
+  
+  define void @schmu_mut-iref(i64 %i, %bref* %rf) {
+  entry:
+    %0 = alloca i64, align 8
+    store i64 %i, i64* %0, align 4
+    %1 = ptrtoint %bref* %rf to i64
+    %2 = alloca i64, align 8
+    store i64 %1, i64* %2, align 4
+    br label %rec
+  
+  rec:                                              ; preds = %else, %entry
+    %i1 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %gt = icmp sgt i64 %i1, 0
+    br i1 %gt, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    %3 = bitcast %bref* %rf to i1*
+    store i1 true, i1* %3, align 1
+    ret void
+  
+  else:                                             ; preds = %rec
+    %4 = ptrtoint %bref* %rf to i64
+    %add = add i64 %i1, 1
+    store i64 %add, i64* %0, align 4
+    store i64 %4, i64* %2, align 4
+    br label %rec
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    store i1 false, i1* getelementptr inbounds (%bref, %bref* @rf, i32 0, i32 0), align 1
+    tail call void @schmu_mut-iref(i64 0, %bref* @rf)
+    %0 = load i1, i1* getelementptr inbounds (%bref, %bref* @rf, i32 0, i32 0), align 1
+    br i1 %0, label %cont, label %free
+  
+  free:                                             ; preds = %entry
+    br label %cont
+  
+  cont:                                             ; preds = %free, %entry
+    %1 = phi i8* [ getelementptr inbounds ([5 x i8], [5 x i8]* @1, i32 0, i32 0), %entry ], [ getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0), %free ]
+    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr inbounds ([3 x i8], [3 x i8]* @2, i32 0, i32 0), i8* %1)
+    %2 = add i32 %fmtsize, 1
+    %3 = sext i32 %2 to i64
+    %4 = tail call i8* @malloc(i64 %3)
+    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %4, i64 %3, i8* getelementptr inbounds ([3 x i8], [3 x i8]* @2, i32 0, i32 0), i8* %1)
+    %str = alloca %string, align 8
+    %cstr5 = bitcast %string* %str to i8**
+    store i8* %4, i8** %cstr5, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    %5 = mul i64 %3, -1
+    store i64 %5, i64* %length, align 4
+    %unbox = bitcast %string* %str to { i64, i64 }*
+    %6 = ptrtoint i8* %4 to i64
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
+    tail call void @schmu_print(i64 %6, i64 %5)
+    %owned = icmp slt i64 %5, 0
+    br i1 %owned, label %free3, label %cont4
+  
+  free3:                                            ; preds = %cont
+    tail call void @free(i8* %4)
+    br label %cont4
+  
+  cont4:                                            ; preds = %free3, %cont
+    ret i64 0
+  }
+  
+  declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
+  
+  declare i8* @malloc(i64 %0)
+  
+  declare void @free(i8* %0)
+  true
