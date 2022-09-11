@@ -1,12 +1,24 @@
 (type bref {:a (mutable bool)})
 
-(fun mut-iref [i rf]
+(fun mut-bref [i rf]
   (if (> i 0)
     (setf (.a rf) true)
-    (mut-iref (+ i 1) rf)))
+    (mut-bref (+ i 1) rf)))
+
+(fun dontmut-bref [i rf]
+  (if (> i 0)
+    (setf (.a rf) false)
+    -- introduce a new object, so the old one won't get mutated
+    (dontmut-bref (+ i 1) {:a true})))
 
 (val rf {:a false})
 
-(mut-iref 0 rf)
+(mut-bref 0 rf)
 
+-- change from false to true
+(print (fmt-str (.a rf)))
+
+(dontmut-bref 0 rf)
+
+-- don't change
 (print (fmt-str (.a rf)))

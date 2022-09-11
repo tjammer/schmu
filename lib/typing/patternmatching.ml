@@ -117,7 +117,8 @@ module Tup = struct
     (* We choose a column based on precedence.
        [Pwildcard] is dropped
        1: [Pvar] needs to be bound,
-       2: Otherwise, we choose a ctor. For simplicity, we choose the first *)
+       2: Otherwise, we choose a ctor. For simplicity, we choose the first
+          TODO choose based on some heuristic *)
     let score_patterns pattern =
       match snd pattern with
       | Ast.Pctor _ -> 2

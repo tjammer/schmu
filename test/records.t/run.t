@@ -426,39 +426,38 @@ Support function/closure fields
   define void @schmu_ten_times(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
-    %fst8 = bitcast { i64, i64 }* %box to i64*
-    store i64 %0, i64* %fst8, align 4
+    %fst10 = bitcast { i64, i64 }* %box to i64*
+    store i64 %0, i64* %fst10, align 4
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
     store i64 %1, i64* %snd, align 4
     %state = bitcast { i64, i64 }* %box to %state*
-    %2 = alloca %state, align 8
-    %3 = bitcast %state* %2 to i8*
-    %4 = bitcast %state* %state to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 16, i1 false)
+    %2 = alloca %state*, align 8
+    store %state* %state, %state** %2, align 8
     %ret = alloca %state, align 8
     br label %rec
   
   rec:                                              ; preds = %then, %entry
-    %5 = bitcast %state* %2 to i64*
-    %6 = load i64, i64* %5, align 4
-    %lt = icmp slt i64 %6, 10
+    %state2 = phi %state* [ %ret, %then ], [ %state, %entry ]
+    %3 = bitcast %state* %state2 to i64*
+    %4 = load i64, i64* %3, align 4
+    %lt = icmp slt i64 %4, 10
     br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %rec
-    %7 = bitcast %state* %2 to i8*
-    tail call void @printi(i64 %6)
-    %unbox = bitcast %state* %2 to { i64, i64 }*
-    %snd4 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
-    %snd5 = load i64, i64* %snd4, align 4
-    %8 = tail call { i64, i64 } @schmu_advance(i64 %6, i64 %snd5)
-    %box6 = bitcast %state* %ret to { i64, i64 }*
-    store { i64, i64 } %8, { i64, i64 }* %box6, align 4
-    %9 = bitcast %state* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %9, i64 16, i1 false)
+    call void @printi(i64 %4)
+    %unbox = bitcast %state* %state2 to { i64, i64 }*
+    %fst311 = bitcast { i64, i64 }* %unbox to i64*
+    %fst4 = load i64, i64* %fst311, align 4
+    %snd5 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
+    %snd6 = load i64, i64* %snd5, align 4
+    %5 = call { i64, i64 } @schmu_advance(i64 %fst4, i64 %snd6)
+    %box7 = bitcast %state* %ret to { i64, i64 }*
+    store { i64, i64 } %5, { i64, i64 }* %box7, align 4
+    store %state* %ret, %state** %2, align 8
     br label %rec
   
   else:                                             ; preds = %rec
-    tail call void @printi(i64 100)
+    call void @printi(i64 100)
     ret void
   }
   
@@ -494,9 +493,6 @@ Support function/closure fields
     ret i64 %add
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
   define i64 @main(i64 %arg) {
   entry:
     store i64 0, i64* getelementptr inbounds (%state, %state* @state, i32 0, i32 0), align 4
@@ -510,8 +506,6 @@ Support function/closure fields
     call void @schmu_ten_times(i64 0, i64 %0)
     ret i64 0
   }
-  
-  attributes #0 = { argmemonly nofree nounwind willreturn }
   0
   1
   2

@@ -870,7 +870,7 @@ let add_closure vars func = function
       in
       env
 
-let store_alloca ~src ~dst =
+let store_or_copy ~src ~dst =
   if is_struct src.typ then
     if src.value = dst then ()
     else memcpy ~dst ~src ~size:(sizeof_typ src.typ |> llval_of_size)
@@ -878,10 +878,9 @@ let store_alloca ~src ~dst =
     ignore (Llvm.build_store src.value dst builder)
 
 let tailrec_store ~src ~dst =
-  if is_mutable src.typ then
-    let cast = Llvm.build_ptrtoint src.value int_t "" builder in
-    ignore (Llvm.build_store cast dst builder)
-  else store_alloca ~src ~dst
+  (* Used to have special handling for mutable vars,
+     now we use the same strategy (modify a ptr) for every struct type *)
+  ignore (Llvm.build_store src.value dst builder)
 
 let load ptr = function
   | Trecord _ | Tvariant _ -> ptr
@@ -927,45 +926,23 @@ let add_params vars f fname names types start_index recursive =
 
   let alloca_copy src =
     match src.typ with
-    | (Trecord _ | Tvariant _) as r when is_mutable r ->
-        (* We get the ptr by casting then store it in a value *)
-        let cast = Llvm.build_ptrtoint src.value int_t "" builder in
-        let dst = Llvm.build_alloca int_t "" builder in
-        ignore (Llvm.build_store cast dst builder);
+    | Tfun _ ->
+        let typ = Llvm.pointer_type closure_t in
+        let dst = Llvm.build_alloca typ "" builder in
+        tailrec_store ~src ~dst;
         dst
     | (Trecord _ | Tvariant _) as r ->
-        let typ = get_lltype_def r in
+        let typ = Llvm.pointer_type (get_lltype_def r) in
         let dst = Llvm.build_alloca typ "" builder in
-        store_alloca ~src ~dst;
-        dst
-    | Tfun _ ->
-        let typ = closure_t in
-        let dst = Llvm.build_alloca typ "" builder in
-        store_alloca ~src ~dst;
+        tailrec_store ~src ~dst;
         dst
     | Traw_ptr _ -> failwith "TODO"
     | t ->
         (* Simple type *)
         let typ = get_lltype_def t in
         let dst = Llvm.build_alloca typ "" builder in
-        store_alloca ~src ~dst;
+        tailrec_store ~src ~dst;
         dst
-  in
-
-  let load value name =
-    match value.typ with
-    | Trecord _ | Tvariant _ -> value.value
-    | Tfun _ -> value.value
-    | Traw_ptr _ -> failwith "TODO"
-    | _ -> Llvm.build_load value.value name builder
-  in
-
-  let tailrec_load ptr name =
-    (* Includes special handling for mutable structs in tailrecursive case *)
-    if is_mutable ptr.typ then
-      let v = Llvm.build_load ptr.value "" builder in
-      Llvm.build_inttoptr v ptr.lltyp "name" builder
-    else load ptr name
   in
 
   (* If the function is named, we allow recursion *)
@@ -1011,7 +988,7 @@ let add_params vars f fname names types start_index recursive =
           (fun (env, i) name typ ->
             let i = get_index i typ in
             let llvar = Vars.find (name_of_alloc_param i) env in
-            let value = tailrec_load llvar name in
+            let value = Llvm.build_load llvar.value name builder in
             (Vars.add name { llvar with value } env, i + 1))
           (vars, start_index) names types
       in
@@ -1225,7 +1202,7 @@ and gen_let param id equals gn let' =
         match equals.typ with
         | Tfun _ when is_type_polymorphic equals.typ -> v
         | _ ->
-            store_alloca ~src:v ~dst:dst.value;
+            store_or_copy ~src:v ~dst:dst.value;
             let v = { v with value = dst.value } in
             Strtbl.replace const_tbl n v;
             v)

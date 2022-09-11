@@ -1026,82 +1026,80 @@ Nested polymorphic closures. Does not quite work for another nesting level
   define void @schmu___ivectorg.u_inner_cls_f_ivectori.u(i64 %i, %vector_int* %vec, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %closure* }*
-    %f5 = bitcast { %closure* }* %clsr to %closure**
-    %f1 = load %closure*, %closure** %f5, align 8
+    %f7 = bitcast { %closure* }* %clsr to %closure**
+    %f1 = load %closure*, %closure** %f7, align 8
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 4
-    %2 = ptrtoint %vector_int* %vec to i64
-    %3 = alloca i64, align 8
-    store i64 %2, i64* %3, align 4
+    %2 = alloca %vector_int*, align 8
+    store %vector_int* %vec, %vector_int** %2, align 8
     br label %rec
   
   rec:                                              ; preds = %else, %entry
     %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %4 = bitcast %vector_int* %vec to %owned_ptr_int*
-    %5 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %4, i32 0, i32 1
-    %6 = load i64, i64* %5, align 4
-    %eq = icmp eq i64 %i2, %6
+    %3 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %4 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %3, i32 0, i32 1
+    %5 = load i64, i64* %4, align 4
+    %eq = icmp eq i64 %i2, %5
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %7 = bitcast %vector_int* %vec to %owned_ptr_int*
-    %8 = ptrtoint %vector_int* %vec to i64
-    %9 = bitcast %owned_ptr_int* %7 to i64**
-    %10 = load i64*, i64** %9, align 8
-    %scevgep = getelementptr i64, i64* %10, i64 %i2
-    %11 = load i64, i64* %scevgep, align 4
-    %funcptr6 = bitcast %closure* %f1 to i8**
-    %loadtmp = load i8*, i8** %funcptr6, align 8
+    %6 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %7 = bitcast %owned_ptr_int* %6 to i64**
+    %8 = load i64*, i64** %7, align 8
+    %scevgep = getelementptr i64, i64* %8, i64 %i2
+    %9 = load i64, i64* %scevgep, align 4
+    %funcptr8 = bitcast %closure* %f1 to i8**
+    %loadtmp = load i8*, i8** %funcptr8, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
-    %loadtmp3 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %11, i8* %loadtmp3)
+    %loadtmp4 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i64 %9, i8* %loadtmp4)
     %add = add i64 %i2, 1
     store i64 %add, i64* %1, align 4
-    store i64 %8, i64* %3, align 4
+    store %vector_int* %vec, %vector_int** %2, align 8
     br label %rec
   }
   
   define void @schmu___ig.u.u_inner_cls_vec_ii.u.u(i64 %i, %closure* %f, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %vector_int* }*
-    %vec5 = bitcast { %vector_int* }* %clsr to %vector_int**
-    %vec1 = load %vector_int*, %vector_int** %vec5, align 8
+    %vec7 = bitcast { %vector_int* }* %clsr to %vector_int**
+    %vec1 = load %vector_int*, %vector_int** %vec7, align 8
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 4
-    %2 = alloca %closure, align 8
-    %3 = bitcast %closure* %2 to i8*
-    %4 = bitcast %closure* %f to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 8, i1 false)
+    %2 = alloca %closure*, align 8
+    store %closure* %f, %closure** %2, align 8
     br label %rec
   
   rec:                                              ; preds = %else, %entry
     %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %5 = bitcast %vector_int* %vec1 to %owned_ptr_int*
-    %6 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %5, i32 0, i32 1
-    %7 = load i64, i64* %6, align 4
-    %eq = icmp eq i64 %i2, %7
+    %3 = bitcast %vector_int* %vec1 to %owned_ptr_int*
+    %4 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %3, i32 0, i32 1
+    %5 = load i64, i64* %4, align 4
+    %eq = icmp eq i64 %i2, %5
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %8 = bitcast %vector_int* %vec1 to %owned_ptr_int*
-    %9 = bitcast %owned_ptr_int* %8 to i64**
-    %10 = load i64*, i64** %9, align 8
-    %scevgep = getelementptr i64, i64* %10, i64 %i2
-    %11 = load i64, i64* %scevgep, align 4
-    %funcptr6 = bitcast %closure* %2 to i8**
-    %loadtmp = load i8*, i8** %funcptr6, align 8
+    %6 = bitcast %vector_int* %vec1 to %owned_ptr_int*
+    %7 = bitcast %owned_ptr_int* %6 to i64**
+    %8 = load i64*, i64** %7, align 8
+    %scevgep = getelementptr i64, i64* %8, i64 %i2
+    %9 = load i64, i64* %scevgep, align 4
+    %funcptr8 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr8, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %2, i32 0, i32 1
-    tail call void %casttmp(i64 %11, i8* undef)
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp4 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i64 %9, i8* %loadtmp4)
     %add = add i64 %i2, 1
     store i64 %add, i64* %1, align 4
+    store %closure* %f, %closure** %2, align 8
     br label %rec
   }
   
@@ -1197,9 +1195,6 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
   declare i8* @realloc(i8* %0, i64 %1)
   
   define i64 @main(i64 %arg) {
@@ -1229,8 +1224,6 @@ Nested polymorphic closures. Does not quite work for another nesting level
   declare i8* @malloc(i64 %0)
   
   declare void @free(i8* %0)
-  
-  attributes #0 = { argmemonly nofree nounwind willreturn }
   2
   4
   6
@@ -1300,13 +1293,41 @@ Don't copy mutable types in setup of tailrecursive functions
   
   declare void @schmu_print(i64 %0, i64 %1)
   
-  define void @schmu_mut-iref(i64 %i, %bref* %rf) {
+  define void @schmu_dontmut-bref(i64 %i, %bref* %rf) {
   entry:
     %0 = alloca i64, align 8
     store i64 %i, i64* %0, align 4
-    %1 = ptrtoint %bref* %rf to i64
-    %2 = alloca i64, align 8
-    store i64 %1, i64* %2, align 4
+    %1 = alloca %bref*, align 8
+    store %bref* %rf, %bref** %1, align 8
+    %2 = alloca %bref, align 8
+    br label %rec
+  
+  rec:                                              ; preds = %else, %entry
+    %rf2 = phi %bref* [ %2, %else ], [ %rf, %entry ]
+    %i1 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %gt = icmp sgt i64 %i1, 0
+    br i1 %gt, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    %3 = bitcast %bref* %rf2 to i1*
+    store i1 false, i1* %3, align 1
+    ret void
+  
+  else:                                             ; preds = %rec
+    %add = add i64 %i1, 1
+    store i64 %add, i64* %0, align 4
+    %a5 = bitcast %bref* %2 to i1*
+    store i1 true, i1* %a5, align 1
+    store %bref* %2, %bref** %1, align 8
+    br label %rec
+  }
+  
+  define void @schmu_mut-bref(i64 %i, %bref* %rf) {
+  entry:
+    %0 = alloca i64, align 8
+    store i64 %i, i64* %0, align 4
+    %1 = alloca %bref*, align 8
+    store %bref* %rf, %bref** %1, align 8
     br label %rec
   
   rec:                                              ; preds = %else, %entry
@@ -1315,22 +1336,21 @@ Don't copy mutable types in setup of tailrecursive functions
     br i1 %gt, label %then, label %else
   
   then:                                             ; preds = %rec
-    %3 = bitcast %bref* %rf to i1*
-    store i1 true, i1* %3, align 1
+    %2 = bitcast %bref* %rf to i1*
+    store i1 true, i1* %2, align 1
     ret void
   
   else:                                             ; preds = %rec
-    %4 = ptrtoint %bref* %rf to i64
     %add = add i64 %i1, 1
     store i64 %add, i64* %0, align 4
-    store i64 %4, i64* %2, align 4
+    store %bref* %rf, %bref** %1, align 8
     br label %rec
   }
   
   define i64 @main(i64 %arg) {
   entry:
     store i1 false, i1* getelementptr inbounds (%bref, %bref* @rf, i32 0, i32 0), align 1
-    tail call void @schmu_mut-iref(i64 0, %bref* @rf)
+    tail call void @schmu_mut-bref(i64 0, %bref* @rf)
     %0 = load i1, i1* getelementptr inbounds (%bref, %bref* @rf, i32 0, i32 0), align 1
     br i1 %0, label %cont, label %free
   
@@ -1345,8 +1365,8 @@ Don't copy mutable types in setup of tailrecursive functions
     %4 = tail call i8* @malloc(i64 %3)
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %4, i64 %3, i8* getelementptr inbounds ([3 x i8], [3 x i8]* @2, i32 0, i32 0), i8* %1)
     %str = alloca %string, align 8
-    %cstr5 = bitcast %string* %str to i8**
-    store i8* %4, i8** %cstr5, align 8
+    %cstr20 = bitcast %string* %str to i8**
+    store i8* %4, i8** %cstr20, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     %5 = mul i64 %3, -1
     store i64 %5, i64* %length, align 4
@@ -1354,14 +1374,46 @@ Don't copy mutable types in setup of tailrecursive functions
     %6 = ptrtoint i8* %4 to i64
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
     tail call void @schmu_print(i64 %6, i64 %5)
-    %owned = icmp slt i64 %5, 0
-    br i1 %owned, label %free3, label %cont4
+    tail call void @schmu_dontmut-bref(i64 0, %bref* @rf)
+    %7 = load i1, i1* getelementptr inbounds (%bref, %bref* @rf, i32 0, i32 0), align 1
+    br i1 %7, label %cont4, label %free3
   
   free3:                                            ; preds = %cont
-    tail call void @free(i8* %4)
     br label %cont4
   
   cont4:                                            ; preds = %free3, %cont
+    %8 = phi i8* [ getelementptr inbounds ([5 x i8], [5 x i8]* @1, i32 0, i32 0), %cont ], [ getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0), %free3 ]
+    %fmtsize5 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr inbounds ([3 x i8], [3 x i8]* @2, i32 0, i32 0), i8* %8)
+    %9 = add i32 %fmtsize5, 1
+    %10 = sext i32 %9 to i64
+    %11 = tail call i8* @malloc(i64 %10)
+    %fmt6 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %11, i64 %10, i8* getelementptr inbounds ([3 x i8], [3 x i8]* @2, i32 0, i32 0), i8* %8)
+    %str7 = alloca %string, align 8
+    %cstr822 = bitcast %string* %str7 to i8**
+    store i8* %11, i8** %cstr822, align 8
+    %length9 = getelementptr inbounds %string, %string* %str7, i32 0, i32 1
+    %12 = mul i64 %10, -1
+    store i64 %12, i64* %length9, align 4
+    %unbox10 = bitcast %string* %str7 to { i64, i64 }*
+    %13 = ptrtoint i8* %11 to i64
+    %snd13 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox10, i32 0, i32 1
+    tail call void @schmu_print(i64 %13, i64 %12)
+    %owned = icmp slt i64 %12, 0
+    br i1 %owned, label %free15, label %cont16
+  
+  free15:                                           ; preds = %cont4
+    tail call void @free(i8* %11)
+    br label %cont16
+  
+  cont16:                                           ; preds = %free15, %cont4
+    %owned19 = icmp slt i64 %5, 0
+    br i1 %owned19, label %free17, label %cont18
+  
+  free17:                                           ; preds = %cont16
+    tail call void @free(i8* %4)
+    br label %cont18
+  
+  cont18:                                           ; preds = %free17, %cont16
     ret i64 0
   }
   
@@ -1370,4 +1422,5 @@ Don't copy mutable types in setup of tailrecursive functions
   declare i8* @malloc(i64 %0)
   
   declare void @free(i8* %0)
+  true
   true
