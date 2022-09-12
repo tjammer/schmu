@@ -116,11 +116,11 @@ let test_record_update () =
   test "a" "(type a {:x int :y int}) (val a {:x 10 :y 20}) {@a :y 30}"
 
 let test_record_update_poly_same () =
-  test "(a int)" "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) (@a :x 20)"
+  test "(a int)" "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) {@a :x 20}"
 
 let test_record_update_poly_change () =
   test "(a float)"
-    "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) (@a :x 20.0)"
+    "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) {@a :x 20.0}"
 
 let test_record_update_useless () =
   test_exn "All fields are explicitely updated. Record update is useless"
@@ -407,7 +407,7 @@ let test_match_wildcard_nested () =
 let test_match_column_arity () =
   test_exn "Expecting 2 patterns, but found 1"
     {|(type (option 'a) (#none (#some 'a)))
-    (match '(1 2)
+    (match '{1 2}
       (a a))
 |}
 

@@ -102,18 +102,18 @@ top_item:
   | open_ { Open ($loc, $1) }
 
 %inline external_decl:
-  | parenss(defexternal) { $1 }
+  | parens(defexternal) { $1 }
 
 %inline typedef:
-  | parenss(defrecord) { $1 }
-  | parenss(defalias) { $1 }
-  | parenss(defvariant) { $1 }
+  | parens(defrecord) { $1 }
+  | parens(defalias) { $1 }
+  | parens(defvariant) { $1 }
 
 %inline defexternal:
   | Defexternal; ident; sexp_type_expr; option(String_lit) { $loc, $2, $3, $4 }
 
 %inline defrecord:
-  | Type; sexp_typename; maybe_bracs(nonempty_list(sexp_type_decl))
+  | Type; sexp_typename; bracs(nonempty_list(sexp_type_decl))
     { Trecord { name = $2; labels = Array.of_list $3 } }
 
 %inline defalias:
@@ -124,14 +124,13 @@ top_item:
 
 let atom_or_list(x) :=
   | atom = x; { [atom] }
-  | list = parenss(nonempty_list(x)); { list }
+  | list = parens(nonempty_list(x)); { list }
 
-let atom_or_quoted_list(x) :=
+let atom_or_tup_pattern(x) :=
   | atom = x; { [atom] }
-  | Quote; list = parenss(nonempty_list(x)); { list }
+  | Quote; list = bracs(nonempty_list(x)); { list }
 
-let maybe_bracs(x) :=
-  | Lpar; thing = x; Rpar; { thing }
+let bracs(x) :=
   | Lbrac; thing = x; Rbrac; { thing }
 
 let maybe_bracks(x) :=
@@ -142,7 +141,7 @@ let bracks(x) :=
   | Lbrack; thing = x; Rbrack; { thing }
 
 %inline sexp_ctordef:
-  | parenss(sexp_ctordef_item) { $1 }
+  | parens(sexp_ctordef_item) { $1 }
   | sexp_ctor { { name = $1; typ_annot = None; index = None } }
 
 %inline sexp_ctordef_item:
@@ -158,14 +157,14 @@ let bracks(x) :=
   | Keyword; Lpar; Mutable; sexp_type_expr; Rpar { true, $1, $4 }
 
 %inline open_:
-  | parenss(sexp_open) { $1 }
+  | parens(sexp_open) { $1 }
 
 %inline sexp_open:
   | Open; ident { snd $2 }
 
 stmt:
-  | parenss(sexp_let) { $1 }
-  | parenss(sexp_fun) { $1 }
+  | parens(sexp_let) { $1 }
+  | parens(sexp_fun) { $1 }
   | sexp_expr { Expr ($loc, $1) }
 
 %inline sexp_let:
@@ -173,7 +172,7 @@ stmt:
 
 %inline sexp_decl:
   | ident { $loc, $1, None }
-  | parenss(sexp_decl_typed) { $1 }
+  | parens(sexp_decl_typed) { $1 }
 
 %inline sexp_decl_typed:
   | ident; sexp_type_expr { $loc, $1, Some $2 }
@@ -187,26 +186,26 @@ stmt:
 
 sexp_expr:
   | sexp_ctor_inst { $1 }
-  | maybe_bracs(nonempty_list(sexp_record_item)) { Record ($loc, $1) }
-  | upd = maybe_bracs(record_update) { upd }
+  | bracs(nonempty_list(sexp_record_item)) { Record ($loc, $1) }
+  | upd = bracs(record_update) { upd }
   | sexp_lit { $1 }
   | unop; sexp_expr { Unop ($loc, $1, $2) }
   | callable = callable_expr { callable }
-  | parenss(sexp_field_set) { $1 }
-  | fmt = parenss(fmt_str) { fmt }
+  | parens(sexp_field_set) { $1 }
+  | fmt = parens(fmt_str) { fmt }
 
 %inline callable_expr:
   | ident { Var (fst $1, snd $1) }
-  | parenss(lets) { $1 }
-  | parenss(sexp_if) { $1 }
-  | parenss(sexp_lambda) { $1 }
-  | parenss(sexp_field_get) { $1 }
-  | parenss(sexp_pipe_head) { $1 }
-  | parenss(sexp_pipe_tail) { $1 }
-  | parenss(sexp_call) { $1 }
-  | parenss(do_block) { $1 }
+  | parens(lets) { $1 }
+  | parens(sexp_if) { $1 }
+  | parens(sexp_lambda) { $1 }
+  | parens(sexp_field_get) { $1 }
+  | parens(sexp_pipe_head) { $1 }
+  | parens(sexp_pipe_tail) { $1 }
+  | parens(sexp_call) { $1 }
+  | parens(do_block) { $1 }
   | sexp_module_expr { $1 }
-  | parenss(sexp_match) { $1 }
+  | parens(sexp_match) { $1 }
 
 %inline lets:
   | Let; lets = maybe_bracks(nonempty_list(lets_let)); block = nonempty_list(stmt)
@@ -224,7 +223,7 @@ sexp_expr:
 
 %inline sexp_ctor_inst:
   | sexp_ctor { Ctor ($loc, $1, None) }
-  | parenss(sexp_ctor_item) { $1 }
+  | parens(sexp_ctor_item) { $1 }
 
 %inline sexp_ctor_item:
   | sexp_ctor; sexp_expr { Ctor ($loc, $1, Some $2) }
@@ -242,7 +241,7 @@ sexp_expr:
 
 %inline sexp_if:
   | If; sexp_expr; sexp_expr; option(sexp_expr) { If ($loc, $2, $3, $4) }
-  | Cond; cond = parenss(cond_item) conds = sexp_cond
+  | Cond; cond = parens(cond_item) conds = sexp_cond
     { let loc, fst, then_ = cond in
       parse_cond loc fst (Option.get then_) conds }
 
@@ -253,15 +252,15 @@ sexp_expr:
   | Else; e = sexp_expr { e }
 
 sexp_cond:
-  | cond = parenss(cond_item); tl = sexp_cond { cond :: tl }
-  | else_ = option(parenss(cond_else)) { [$loc, Lit($loc, Unit), else_] }
+  | cond = parens(cond_item); tl = sexp_cond { cond :: tl }
+  | else_ = option(parens(cond_else)) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
   | Fun; params = maybe_bracks(list(sexp_decl)); body = list(stmt)
     { Lambda ($loc, params, body) }
 
 %inline sexp_field_set:
-  | Setf; access = parenss(sexp_set_access); sexp_expr
+  | Setf; access = parens(sexp_set_access); sexp_expr
     { Field_set ($loc, snd access, fst access, $3) }
 
 %inline sexp_set_access:
@@ -296,20 +295,22 @@ pipeable:
   | ident; Div_i; sexp_expr { Local_open ($loc, snd $1, $3) }
 
 %inline sexp_match:
-  | Match; atom_or_quoted_list(sexp_expr); nonempty_list(parenss(sexp_clause)) { Match (($startpos, $endpos($2)), $2, $3) }
+  | Match; atom_or_tup_pattern(sexp_expr); nonempty_list(parens(sexp_clause))
+    { Match (($startpos, $endpos($2)), $2, $3) }
 
 %inline sexp_clause:
   | sexp_pattern; sexp_expr { $loc($1), $1, $2 }
 
 %inline sexp_pattern:
   | sexp_pattern_item { $1 }
-  | Quote; Lpar; tup = sexp_pattern_tuple; Rpar { tup }
+  | tup = bracs(sexp_pattern_tuple) { tup }
 
 %inline sexp_pattern_item:
   | sexp_ctor { Pctor ($1, None) }
-  | parenss(ctor_pattern_item) { $1 }
+  | parens(ctor_pattern_item) { $1 }
   | ident { Pvar(fst $1, snd $1) }
   | Wildcard { Pwildcard $loc }
+  | items = bracs(nonempty_list(attr)) { Precord ($loc, items) }
 
 %inline ctor_pattern_item:
   | sexp_ctor; sexp_pattern { Pctor ($1, Some $2) }
@@ -327,7 +328,7 @@ ident:
 sexp_ctor:
   | Constructor { $loc, $1 }
 
-let parenss(x) :=
+let parens(x) :=
   | Lpar; item = x; Rpar; { item }
 
 bool:
@@ -361,7 +362,7 @@ sexp_vector_lit:
 
 %inline sexp_type_expr:
   | sexp_type_list { $1 }
-  | parenss(sexp_type_func) { $1 }
+  | parens(sexp_type_func) { $1 }
 
 %inline sexp_type_func:
   | Fun; nonempty_list(sexp_type_expr) { Ty_func $2 }

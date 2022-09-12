@@ -67,6 +67,7 @@ and pattern =
   | Pvar of loc * string
   | Ptup of loc * pattern list
   | Pwildcard of loc
+  | Precord of loc * (loc * string) list
 
 and literal =
   | Int of int

@@ -1,12 +1,12 @@
 (type foo {:x int})
 
-(type ys (:y foo :z int))
+(type ys {:y foo :z int})
 
 (external printi (fun int unit))
 
 (fun record_with_laters []
   (val x {:x 12})
-  (:y x :z 15))
+  {:y x :z 15})
 
 (fun ctrl []
   (val ret {:y {:x 17} :z 9})

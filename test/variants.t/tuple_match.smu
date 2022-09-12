@@ -1,12 +1,12 @@
 (external printf (fun cstr int unit))
 
 (fun doo [a b]
-  (->> (match '(a b)
-           ('((#some a) (#some b)) (+ a b))
-           ('(#none (#some b)) b)
-           ('((#some a) #none) a)
-           ('(_ #none) 0))
-        (printf (.cstr "%i\n"))))
+  (->> (match '{a b}
+         ({(#some a) (#some b)} (+ a b))
+         ({#none (#some b)} b)
+         ({(#some a) #none} a)
+         ({_ #none} 0))
+       (printf (.cstr "%i\n"))))
 
 (val (none_int (option int)) #none)
 
