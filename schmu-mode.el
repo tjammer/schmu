@@ -112,6 +112,7 @@ the syntax table, so `forward-word' works as expected.")
     "let"
     "type"
     "if"
+    "else"
     "external"
     "do"
     "open"

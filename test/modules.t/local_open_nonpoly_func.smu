@@ -3,8 +3,8 @@
 (fun doo [a]
 -- TODO open modules for patterns
    nonpoly_func/(match a
-    #left  (add_ints 0 5)
-    #right (add_ints 0 -5)))
+    (#left  (add_ints 0 5))
+    (#right (add_ints 0 -5))))
 
 (->> (doo nonpoly_func/#left)
      (printf (.cstr "%i\n")))

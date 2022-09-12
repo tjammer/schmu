@@ -73,6 +73,7 @@
 %token Lbrack
 %token Rbrack
 %token If
+%token Else
 %token Cond
 %token Eof
 %token Fun
@@ -241,11 +242,19 @@ sexp_expr:
 
 %inline sexp_if:
   | If; sexp_expr; sexp_expr; option(sexp_expr) { If ($loc, $2, $3, $4) }
-  | Cond; fst = sexp_expr; then_ = sexp_expr; conds = sexp_cond { parse_cond $loc fst then_ conds }
+  | Cond; cond = parenss(cond_item) conds = sexp_cond
+    { let loc, fst, then_ = cond in
+      parse_cond loc fst (Option.get then_) conds }
+
+%inline cond_item:
+  | cond = sexp_expr; expr = sexp_expr { ($loc, cond, Some expr) }
+
+%inline cond_else:
+  | Else; e = sexp_expr { e }
 
 sexp_cond:
-  | cond = sexp_expr; expr = sexp_expr; tl = sexp_cond { ($loc, cond, Some expr) :: tl }
-  | else_ = option(sexp_expr) { [$loc, Lit($loc, Unit), else_] }
+  | cond = parenss(cond_item); tl = sexp_cond { cond :: tl }
+  | else_ = option(parenss(cond_else)) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
   | Fun; params = maybe_bracks(list(sexp_decl)); body = list(stmt)
@@ -287,7 +296,7 @@ pipeable:
   | ident; Div_i; sexp_expr { Local_open ($loc, snd $1, $3) }
 
 %inline sexp_match:
-  | Match; atom_or_quoted_list(sexp_expr); nonempty_list(sexp_clause) { Match (($startpos, $endpos($2)), $2, $3) }
+  | Match; atom_or_quoted_list(sexp_expr); nonempty_list(parenss(sexp_clause)) { Match (($startpos, $endpos($2)), $2, $3) }
 
 %inline sexp_clause:
   | sexp_pattern; sexp_expr { $loc($1), $1, $2 }

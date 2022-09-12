@@ -10,8 +10,8 @@
     #some
     (fun [x]
       (match x
-        (#some a) a
-        #none 0))
+        ((#some a) a)
+        (#none 0)))
     printi)
 
 -- pipe field accessor

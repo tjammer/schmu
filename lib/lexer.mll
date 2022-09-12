@@ -65,6 +65,7 @@ rule read =
   | "=."     { Bin_equal_f }
   | "'"      { Quote }
   | "if"     { If }
+  | "else"   { Else }
   | "fun"    { Fun }
   | "val"    { Val }
   | "let"    { Let }

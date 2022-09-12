@@ -333,16 +333,16 @@ let test_variants_option_some_arg () =
 
 let test_match_all () =
   test "int"
-    "(type (option 'a) (#none (#some 'a))) (match (#some 1) (#some a) a  #none \
-     -1)"
+    "(type (option 'a) (#none (#some 'a))) (match (#some 1) ((#some a) a)  (#none \
+     -1))"
 
 let test_match_redundant () =
   test_exn "Pattern match case is redundant"
-    "(type (option 'a) (#none (#some 'a))) (match (#some 1) a a #none -1)"
+    "(type (option 'a) (#none (#some 'a))) (match (#some 1) (a a) (#none -1))"
 
 let test_match_missing () =
   test_exn "Pattern match is not exhaustive. Missing cases: #some"
-    "(type (option 'a) (#none (#some 'a))) (match (#some 1) #none -1)"
+    "(type (option 'a) (#none (#some 'a))) (match (#some 1) (#none -1))"
 
 let test_match_missing_nested () =
   test_exn
@@ -351,26 +351,26 @@ let test_match_missing_nested () =
     {|(type (option 'a) (#none (#some 'a)))
     (type test ((#float float) (#int int) #non))
     (match #none
-      (#some (#float f)) (-> f int_of_float)
-      -- (#some (#int i)) i
-      -- (#some #non) 1
-      #none 0)
+      ((#some (#float f)) (-> f int_of_float))
+      -- ((#some (#int i)) i)
+      -- ((#some #non) 1)
+      (#none 0))
 |}
 
 let test_match_all_after_ctor () =
   test "int"
     {|(type (option 'a) (#none (#some 'a)))
 (match (#some 1)
-    #none -1
-    a 0)
+    (#none -1)
+    (a 0))
 |}
 
 let test_match_all_before_ctor () =
   test_exn "Pattern match case is redundant"
     {|(type (option 'a) (#none (#some 'a)))
     (match (#some 1)
-      a 0
-      #none -1)
+      (a 0)
+      (#none -1))
 |}
 
 let test_match_redundant_all_cases () =
@@ -378,19 +378,19 @@ let test_match_redundant_all_cases () =
     {|(type (option 'a) (#none (#some 'a)))
     (type test ((#float float) (#int int) #non))
     (match #none
-      (#some (#float f)) (-> f int_of_float)
-      (#some (#int i)) i
-      (#some #non) 1
-      #none 0
-      a -1)
+      ((#some (#float f)) (-> f int_of_float))
+      ((#some (#int i)) i)
+      ((#some #non) 1)
+      (#none 0)
+      (a -1))
 |}
 
 let test_match_wildcard () =
   test_exn "Pattern match case is redundant"
     {|(type (option 'a) (#none (#some 'a)))
     (match (#some 1)
-      _ 0
-      #none -1)
+      (_ 0)
+      (#none -1))
 |}
 
 let test_match_wildcard_nested () =
@@ -398,17 +398,17 @@ let test_match_wildcard_nested () =
     {|(type (option 'a) (#none (#some 'a)))
     (type test ((#float float) (#int int) #non))
     (match #none
-      (#some (#float f)) (-> f int_of_float)
-      (#some _) -2
-      (#some #non) 1
-      #none 0)
+      ((#some (#float f)) (-> f int_of_float))
+      ((#some _) -2)
+      ((#some #non) 1)
+      (#none 0))
 |}
 
 let test_match_column_arity () =
   test_exn "Expecting 2 patterns, but found 1"
     {|(type (option 'a) (#none (#some 'a)))
     (match '(1 2)
-      a a)
+      (a a))
 |}
 
 let test_multi_record2 () =

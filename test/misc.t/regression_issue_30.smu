@@ -11,7 +11,7 @@
               {:x 1.0 :y 0.0 :z 0.0}))
   (val acc_force 100.0)
   (val acc (cond
-             (maybe) (scale vunit acc_force)
-             (maybe) (scale vunit - (*. acc_force 3.0))
-             (scale vunit 0.1)))
+             ((maybe) (scale vunit acc_force))
+             ((maybe) (scale vunit - (*. acc_force 3.0)))
+             (else (scale vunit 0.1))))
   acc)

@@ -3,8 +3,8 @@
 -- standard case
 (fun match_opt [p]
   (match p
-    (#some thing) thing
-    #none 0))
+    ((#some thing) thing)
+    (#none 0)))
 
 (->> (match_opt (#some 1))
      (printf (.cstr "%i\n")))
@@ -14,8 +14,8 @@
 -- switch ctors
 (fun opt_match [p]
   (match p
-    #none 0
-    (#some thing) thing))
+    (#none 0)
+    ((#some thing) thing)))
 
 (->> (opt_match (#some 1))
      (printf (.cstr "%i\n")))
@@ -25,8 +25,8 @@
 -- some, catchall
 (fun some_all [p]
   (match p
-    (#some thing) thing
-    _ 0))
+    ((#some thing) thing)
+    (_ 0)))
 
 (->> (some_all (#some 1))
      (printf (.cstr "%i\n")))
@@ -36,8 +36,8 @@
 
 (fun none_all [p]
   (match p
-    #none 0
-    _ 1))
+    (#none 0)
+    (_ 1)))
 
 (->> (none_all (#some 1))
      (printf (.cstr "%i\n")))

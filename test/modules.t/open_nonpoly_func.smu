@@ -4,8 +4,8 @@
 
 (fun doo [a]
   (match a
-   #left (add_ints 0 5)
-   #right (add_ints 0 -5)))
+   (#left (add_ints 0 5))
+   (#right (add_ints 0 -5))))
 
 (->> (doo #left)
      (printf (.cstr "%i\n")))
