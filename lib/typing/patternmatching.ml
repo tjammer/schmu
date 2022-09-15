@@ -1,7 +1,16 @@
 open Types
 open Typed_tree
 open Inference
-module Map = Map.Make (Int)
+
+module Col_path = struct
+  type t = int list
+
+  let compare a b =
+    let a = Hashtbl.hash a and b = Hashtbl.hash b in
+    Int.compare a b
+end
+
+module Cmap = Map.Make (Col_path)
 
 module type Core = sig
   val convert : Env.t -> Ast.expr -> typed_expr
@@ -76,17 +85,20 @@ type pattern_data = { loc : Ast.loc; ret_expr : Ast.expr; row : int }
 
 module Tup = struct
   type payload = {
-    col : int;
+    col : int list;
+        (* Records need a path instead of just a column. {:a} in 1st column might be [0;0] *)
     loc : Ast.loc;
     name : string;
     d : pattern_data;
-    patterns : (int * Ast.pattern) list;
+    patterns : (int list * Ast.pattern) list;
   }
 
   type ret = Var of payload | Ctor of payload | Bare of pattern_data
 
   let choose_column ctors tl =
     (* Count wildcards and vars per column. They lead to duplicated branches *)
+    (* TODO special handling for record pattern. This needs to be destructored
+       and the wildcards and vars counted *)
     let m =
       List.fold_left
         (fun acc (l, _) ->
@@ -95,33 +107,35 @@ module Tup = struct
               match pat with
               | Ast.Pwildcard _ | Pvar _ ->
                   (* increase count *)
-                  Map.update col
+                  Cmap.update col
                     (function None -> Some 1 | Some a -> Some (a + 1))
                     acc
               | _ -> acc)
             acc l)
-        Map.empty tl
+        Cmap.empty tl
     in
     (* Choose column with smallest count *)
     let col, _ =
       List.fold_left
         (fun (acol, acnt) (col, _) ->
-          let cnt = match Map.find_opt col m with Some c -> c | None -> 0 in
+          let cnt = match Cmap.find_opt col m with Some c -> c | None -> 0 in
           if cnt < acnt then (col, cnt) else (acol, acnt))
-        (-1, Int.max_int) ctors
+        ([ -1 ], Int.max_int) ctors
     in
-    assert (col >= 0);
+    assert (match col with [] -> false | hd :: _ -> hd >= 0);
     col
 
+  (* TODO before we choose next, we need to expand record patterns *)
   let choose_next (patterns, d) tl ignore_wildcard =
     (* We choose a column based on precedence.
        [Pwildcard] is dropped
        1: [Pvar] needs to be bound,
-       2: Otherwise, we choose a ctor. For simplicity, we choose the first
-          TODO choose based on some heuristic *)
+       2: Otherwise, we choose a ctor, using [choose_column] *)
     let score_patterns pattern =
       match snd pattern with
-      | Ast.Pctor _ -> 2
+      | Ast.Precord _ ->
+          3 (* Records have highest prio, as they get destructored *)
+      | Pctor _ -> 2
       | Pvar _ -> 1
       | Pwildcard _ -> failwith "Internal Error: Should have been dropped"
       | Ptup _ -> failwith "Internal Error: Unexpected tup pattern"
@@ -152,6 +166,7 @@ module Tup = struct
         Var { col; loc; name; d; patterns }
     | (_, Pwildcard _ | _, Ptup _) :: _ ->
         failwith "Internal Error: Unexpected tup pattern"
+    | (_, Precord _) :: _ -> failwith "Internal Error: Unexpected record"
     | [] -> Bare d
 end
 
@@ -173,12 +188,15 @@ module Exhaustiveness = struct
     | Infi
     | Maybe_red of Ast.loc * ctor list
 
+  (** Check if ctorset is complete or some ctor is missing. Might also be infinite *)
   let sig_complete fstcl typ patterns =
     match ctorset_of_variant (clean typ) with
     | Ctors ctors ->
         let set = ctors |> List.map (fun ctor -> ctor.cname) |> Set.of_list in
 
         let rec fold f lwild last acc = function
+          (* Special case if the last case is a wildcard. Here, we might have a complete
+             ctor set before and the wildcard is redundant *)
           | [] -> last acc
           | [ Ast.Pwildcard loc :: _ ] -> lwild loc acc
           | hd :: tl -> fold f lwild last (f acc hd) tl
@@ -222,6 +240,7 @@ module Exhaustiveness = struct
               rows_empty := false;
               Some tl
           | Ptup _ :: _ -> failwith "No tuple here"
+          | Precord _ :: _ -> failwith "TODO record"
           | [] -> (* Empty row *) Some [])
         patterns
     in
@@ -271,6 +290,7 @@ module Exhaustiveness = struct
               in
               Some lst
           | Ptup _ :: _ -> failwith "No tuple here"
+          | Precord _ :: _ -> failwith "TODO record"
           | [] -> (* Empty row *) Some [])
         patterns
     in
@@ -284,6 +304,7 @@ module Exhaustiveness = struct
       (function
         | (Ast.Pctor _ | Pwildcard _ | Pvar _) :: _ -> rows_empty := false
         | Ptup _ :: _ -> failwith "No tuple here"
+        | Precord _ :: _ -> failwith "TODO record"
         | [] -> ())
       patterns;
     if !rows_empty then Ok ()
@@ -434,7 +455,7 @@ module Make (C : Core) = struct
 
   (* We want to be able to reference the exprs in the pattern match without
      regenerating it, so we use a magic identifier *)
-  let expr_name i = "__expr" ^ string_of_int i
+  let expr_name is = "__expr" ^ String.concat "_" (List.map string_of_int is)
   let arg_opt loc = function None -> Ast.Pwildcard loc | Some p -> p
 
   let rec convert_match env loc exprs cases =
@@ -444,9 +465,10 @@ module Make (C : Core) = struct
           let e = convert env expr in
           (* Make the expr available in the patternmatch *)
           let env =
-            Env.(add_value (expr_name i) { def_value with typ = e.typ }) loc env
+            Env.(add_value (expr_name [ i ]) { def_value with typ = e.typ })
+              loc env
           in
-          ((i + 1, env), (i, e)))
+          ((i + 1, env), ([ i ], e)))
         (0, env) exprs
     in
 
@@ -462,10 +484,10 @@ module Make (C : Core) = struct
             | Ast.Ptup (_, pats) ->
                 (* We track the depth (lvl) for each column separately *)
                 let _, pat =
-                  List.fold_left_map (fun i p -> (i + 1, (i, p))) 0 pats
+                  List.fold_left_map (fun i p -> (i + 1, ([ i ], p))) 0 pats
                 in
                 (List.length pats, pat)
-            | p -> (1, [ (0, p) ])
+            | p -> (1, [ ([ 0 ], p) ])
           in
           (if cols <> columns then
            let msg =
@@ -595,8 +617,10 @@ module Make (C : Core) = struct
             let arg = arg_opt loc arg in
             let clauses = assoc_set i arg clauses in
             match_cases (i, case) tl ((clauses, d) :: if_) else_
-        | Some (Ast.Pctor (_, _)) ->
-            (* We found a ctor, but it does not match. Add to [else_] *)
+        | Some (Ast.Pctor _) | Some (Precord _) ->
+            (* We found a ctor, but it does not match. Add to [else_].
+               This works for record patterns as well. We are searching for a ctor,
+               a record is surely not the ctor we are searching for *)
             match_cases (i, case) tl if_ ((clauses, d) :: else_)
         | Some (Pvar _ | Pwildcard _) ->
             (* These match all, so we add them to both [if_] and [else_] *)
