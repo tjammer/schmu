@@ -18,6 +18,11 @@ module type Core = sig
   val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
 end
 
+module type Recs = sig
+  val get_record_type :
+    Env.t -> Ast.loc -> string list -> Types.typ option -> Types.typ
+end
+
 module type S = sig
   val convert_ctor :
     Env.t ->
@@ -93,7 +98,11 @@ module Tup = struct
     patterns : (int list * Ast.pattern) list;
   }
 
-  type ret = Var of payload | Ctor of payload | Bare of pattern_data
+  type ret =
+    | Var of payload
+    | Ctor of payload
+    | Bare of pattern_data
+    | Record of (Ast.loc * string) list * payload
 
   let choose_column ctors tl =
     (* Count wildcards and vars per column. They lead to duplicated branches *)
@@ -125,7 +134,6 @@ module Tup = struct
     assert (match col with [] -> false | hd :: _ -> hd >= 0);
     col
 
-  (* TODO before we choose next, we need to expand record patterns *)
   let choose_next (patterns, d) tl ignore_wildcard =
     (* We choose a column based on precedence.
        [Pwildcard] is dropped
@@ -166,7 +174,9 @@ module Tup = struct
         Var { col; loc; name; d; patterns }
     | (_, Pwildcard _ | _, Ptup _) :: _ ->
         failwith "Internal Error: Unexpected tup pattern"
-    | (_, Precord _) :: _ -> failwith "Internal Error: Unexpected record"
+    | (col, Precord (loc, fields)) :: patterns ->
+        (* Drop record from patterns list *)
+        Record (fields, { col; loc; name = ""; d; patterns })
     | [] -> Bare d
 end
 
@@ -302,9 +312,9 @@ module Exhaustiveness = struct
     let rows_empty = ref true in
     List.iter
       (function
-        | (Ast.Pctor _ | Pwildcard _ | Pvar _) :: _ -> rows_empty := false
+        | (Ast.Pctor _ | Pwildcard _ | Pvar _ | Precord _) :: _ ->
+            rows_empty := false
         | Ptup _ :: _ -> failwith "No tuple here"
-        | Precord _ :: _ -> failwith "TODO record"
         | [] -> ())
       patterns;
     if !rows_empty then Ok ()
@@ -386,8 +396,9 @@ module Exhaustiveness = struct
     | Error _ -> complete_sig true typstl patterns ctors
 end
 
-module Make (C : Core) = struct
+module Make (C : Core) (R : Recs) = struct
   open C
+  open R
 
   module Row = struct
     type t = { loc : Ast.loc; cnt : int }
@@ -501,16 +512,18 @@ module Make (C : Core) = struct
     let matchexpr = compile_matches env loc used_rows some_cases ret in
 
     (* Check for exhaustiveness *)
-    (let types = List.map (fun e -> (snd e).typ |> clean) exprs
-     and patterns = List.map (fun (p, _) -> List.map snd p) some_cases in
-     match Exhaustiveness.is_exhaustive true types patterns with
-     | Ok () -> ()
-     | Error (_, cases) ->
-         let msg =
-           Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
-             (String.concat " | " cases)
-         in
-         raise (Error (loc, msg)));
+    (* (let types = List.map (fun e -> (snd e).typ |> clean) exprs *)
+    (*  and patterns = List.map (fun (p, _) -> List.map snd p) some_cases in *)
+    (*  match Exhaustiveness.is_exhaustive true types patterns with *)
+    (*  | Ok () -> () *)
+    (*  | Error (_, cases) -> *)
+    (*      let msg = *)
+    (*        Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s" *)
+    (*          (String.concat " | " cases) *)
+    (*      in *)
+    (*      raise (Error (loc, msg)) *)
+    (*        ); *)
+    ignore Exhaustiveness.is_exhaustive;
 
     (* Find redundant cases *)
     (match Row_set.min_elt_opt !used_rows with
@@ -603,7 +616,110 @@ module Make (C : Core) = struct
                   If (cmp, if_, else_)
             in
 
-            { typ = ret_typ; expr; attr = no_attr })
+            { typ = ret_typ; expr; attr = no_attr }
+        | Record (pfields, { col; loc; d; patterns; _ }) ->
+            let module Set = Set.Make (String) in
+            let labelset = List.map snd pfields in
+            let annot = make_annot (expr col).typ in
+            let t = get_record_type env loc labelset annot in
+            unify (loc, "Record pattern has unexpected type:") (expr col).typ t;
+
+            let fields =
+              match clean t with
+              | Trecord (_, _, fields) -> fields
+              | _ -> failwith "Internal Error: How is this not a record?"
+            in
+
+            let fset =
+              ref
+                (Array.to_seq fields |> Seq.map (fun f -> f.fname) |> Set.of_seq)
+            in
+
+            let find_name loc name =
+              let rec inner i =
+                if i = Array.length fields then None
+                else
+                  let field = fields.(i) in
+                  if String.equal field.fname name then
+                    if
+                      (* Make sure we use each field only once *)
+                      Set.mem name !fset
+                    then (
+                      fset := Set.remove name !fset;
+                      Some (field, i))
+                    else
+                      let msg =
+                        Printf.sprintf "Field %s appears multiple times" name
+                      in
+                      raise (Error (loc, msg))
+                  else inner (i + 1)
+              in
+              inner 0
+            in
+
+            (* Bind all field variables *)
+            (* Loop names list for better errors *)
+            let index_fields =
+              List.map
+                (fun (loc, name) ->
+                  let field, index =
+                    match find_name loc name with
+                    | Some f -> f
+                    | None ->
+                        let msg =
+                          Printf.sprintf "Unbound field %s on record %s" name
+                            (string_of_type t)
+                        in
+                        raise (Error (loc, msg))
+                  in
+                  (field, index, loc, name))
+                pfields
+            in
+
+            (* Make sure no fields are missing *)
+            (if not (Set.is_empty !fset) then
+             let missing = Set.choose !fset in
+             let msg =
+               Printf.sprintf
+                 "There are fields missig in record pattern, for instance %s"
+                 missing
+             in
+             raise (Error (loc, msg)));
+
+            let env, patterns =
+              List.fold_left
+                (fun (env, pats) (field, index, loc, name) ->
+                  let col = index :: col in
+                  let env =
+                    Env.(
+                      add_value (expr_name col)
+                        { def_value with typ = field.ftyp }
+                        loc env)
+                  in
+                  let pats = (col, Ast.Pvar (loc, name)) :: pats in
+                  (env, pats))
+                (env, patterns) index_fields
+            in
+
+            let ret =
+              compile_matches env loc rows ((patterns, d) :: tl) ret_typ
+            in
+            let expr =
+              List.fold_left
+                (fun ret (field, index, _, _) ->
+                  let newcol = index :: col in
+                  let expr =
+                    {
+                      typ = field.ftyp;
+                      expr = Field (expr col, index);
+                      attr = no_attr;
+                    }
+                  in
+
+                  { ret with expr = Let (expr_name newcol, None, expr, ret) })
+                ret index_fields
+            in
+            expr)
     | [] -> failwith "Internal Error: Empty match"
 
   and match_cases (i, case) cases if_ else_ =

@@ -34,6 +34,9 @@ module type S = sig
 
   val convert_field_set :
     Env.t -> Ast.loc -> Ast.expr -> string -> Ast.expr -> Typed_tree.typed_expr
+
+  val get_record_type :
+    Env.t -> Ast.loc -> string list -> Types.typ option -> Types.typ
 end
 
 let array_assoc_opt name arr =
@@ -54,28 +57,27 @@ let assoc_opti qkey arr =
   in
   aux 0
 
-let get_record_type env loc labels annot =
-  match annot with
-  | Some t -> t
-  | None -> (
-      let labelset = List.map fst labels in
-      match Env.find_labelset_opt labelset env with
-      | Some t -> instantiate t
-      | None -> (
-          (* There is a wrong label somewhere. We get the type of the first label and let
-             it fail below.
-             The list can never be empty due to the grammar *)
-          match Env.find_label_opt (List.hd labels |> fst) env with
-          | Some t -> Env.query_type ~instantiate t.typename env
-          | None ->
-              let msg =
-                Printf.sprintf "Cannot find record with label %s"
-                  (List.hd labels |> fst)
-              in
-              raise (Error (loc, msg))))
-
 module Make (C : Core) = struct
   open C
+
+  let get_record_type env loc labelset annot =
+    match annot with
+    | Some t -> t
+    | None -> (
+        match Env.find_labelset_opt labelset env with
+        | Some t -> instantiate t
+        | None -> (
+            (* There is a wrong label somewhere. We get the type of the first label and let
+               it fail below.
+               The list can never be empty due to the grammar *)
+            match Env.find_label_opt (List.hd labelset) env with
+            | Some t -> Env.query_type ~instantiate t.typename env
+            | None ->
+                let msg =
+                  Printf.sprintf "Cannot find record with label %s"
+                    (List.hd labelset)
+                in
+                raise (Error (loc, msg))))
 
   let rec convert_record env loc annot labels =
     let raise_ msg lname rname =
@@ -83,7 +85,8 @@ module Make (C : Core) = struct
       raise (Error (loc, msg))
     in
 
-    let t = get_record_type env loc labels annot in
+    let labelset = List.map fst labels in
+    let t = get_record_type env loc labelset annot in
 
     let (param, name, labels), labels_expr =
       match t with

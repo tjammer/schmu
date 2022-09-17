@@ -824,7 +824,7 @@ end = struct
 end
 
 and Records : Recs.S = Recs.Make (Core)
-and Patternmatch : Pm.S = Pm.Make (Core)
+and Patternmatch : Pm.S = Pm.Make (Core) (Records)
 
 let block_external_name loc ~cname id =
   (* We have to deal with shadowing:

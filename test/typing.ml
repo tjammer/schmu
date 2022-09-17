@@ -333,8 +333,8 @@ let test_variants_option_some_arg () =
 
 let test_match_all () =
   test "int"
-    "(type (option 'a) (#none (#some 'a))) (match (#some 1) ((#some a) a)  (#none \
-     -1))"
+    "(type (option 'a) (#none (#some 'a))) (match (#some 1) ((#some a) a)  \
+     (#none -1))"
 
 let test_match_redundant () =
   test_exn "Pattern match case is redundant"

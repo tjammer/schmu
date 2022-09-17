@@ -6,6 +6,11 @@ module type Core = sig
     ?ret:bool -> Env.t -> Ast.block -> Typed_tree.typed_expr * Env.t
 end
 
+module type Recs = sig
+  val get_record_type :
+    Env.t -> Ast.loc -> string list -> Types.typ option -> Types.typ
+end
+
 module type S = sig
   val convert_ctor :
     Env.t ->
@@ -23,4 +28,4 @@ module type S = sig
     Typed_tree.typed_expr
 end
 
-module Make (C : Core) : S
+module Make (C : Core) (R : Recs) : S
