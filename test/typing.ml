@@ -64,7 +64,7 @@ let test_func_generic_return () =
 let test_record_clear () = test "t" "(type t { :x int :y int }) { :x 2 :y 2 }"
 
 let test_record_false () =
-  test_exn "Unbound field z on record t"
+  test_exn "Unbound field :z on record t"
     "(type t { :x int :y int }) { :x 2 :z 2 }"
 
 let test_record_choose () =
@@ -411,6 +411,26 @@ let test_match_column_arity () =
       (a a))
 |}
 
+let test_match_record () =
+  test "int"
+    "(type (option 'a) ((#some 'a) #none)) (type foo {:a int :b float}) (match \
+     (#some {:a 12 :b 53.0}) ((#some {:a :b}) a) (#none 0))"
+
+let test_match_record_field_missing () =
+  test_exn "There are missing fields in record pattern, for instance :b"
+    "(type (option 'a) ((#some 'a) #none)) (type foo {:a int :b float}) (match \
+     (#some {:a 12 :b 53.0}) ((#some {:a}) a) (#none 0))"
+
+let test_match_record_field_twice () =
+  test_exn "Field :a appears multiple times in record pattern"
+    "(type (option 'a) ((#some 'a) #none)) (type foo {:a int :b float}) (match \
+     (#some {:a 12 :b 53.0}) ((#some {:a :a}) a) (#none 0))"
+
+let test_match_record_field_wrong () =
+  test_exn "Unbound field :c on record foo"
+    "(type (option 'a) ((#some 'a) #none)) (type foo {:a int :b float}) (match \
+     (#some {:a 12 :b 53.0}) ((#some {:a :c}) a) (#none 0))"
+
 let test_multi_record2 () =
   test "(foo int bool)" "(type (foo 'a 'b) {:a 'a :b 'b}) {:a 0 :b false}"
 
@@ -560,6 +580,10 @@ let () =
           case "wildcard" test_match_wildcard;
           case "wildcard_nested" test_match_wildcard_nested;
           case "column arity" test_match_column_arity;
+          case "record" test_match_record;
+          case "record field missing" test_match_record_field_missing;
+          case "record field twice" test_match_record_field_twice;
+          case "record field wrong" test_match_record_field_wrong;
         ] );
       ( "multi params",
         [

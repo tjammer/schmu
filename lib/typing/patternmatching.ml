@@ -244,13 +244,12 @@ module Exhaustiveness = struct
               (* Drop row *)
               rows_empty := false;
               None
-          | (Pwildcard _ | Pvar _) :: tl ->
+          | (Pwildcard _ | Pvar _ | Precord _) :: tl ->
               (* Discard head element *)
               new_col := true;
               rows_empty := false;
               Some tl
           | Ptup _ :: _ -> failwith "No tuple here"
-          | Precord _ :: _ -> failwith "TODO record"
           | [] -> (* Empty row *) Some [])
         patterns
     in
@@ -289,7 +288,7 @@ module Exhaustiveness = struct
               (* Drop row *)
               rows_empty := false;
               None
-          | (Pwildcard loc | Pvar (loc, _)) :: tl ->
+          | (Pwildcard loc | Pvar (loc, _) | Precord (loc, _)) :: tl ->
               rows_empty := false;
               let lst =
                 match num_args with
@@ -300,7 +299,6 @@ module Exhaustiveness = struct
               in
               Some lst
           | Ptup _ :: _ -> failwith "No tuple here"
-          | Precord _ :: _ -> failwith "TODO record"
           | [] -> (* Empty row *) Some [])
         patterns
     in
@@ -512,18 +510,16 @@ module Make (C : Core) (R : Recs) = struct
     let matchexpr = compile_matches env loc used_rows some_cases ret in
 
     (* Check for exhaustiveness *)
-    (* (let types = List.map (fun e -> (snd e).typ |> clean) exprs *)
-    (*  and patterns = List.map (fun (p, _) -> List.map snd p) some_cases in *)
-    (*  match Exhaustiveness.is_exhaustive true types patterns with *)
-    (*  | Ok () -> () *)
-    (*  | Error (_, cases) -> *)
-    (*      let msg = *)
-    (*        Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s" *)
-    (*          (String.concat " | " cases) *)
-    (*      in *)
-    (*      raise (Error (loc, msg)) *)
-    (*        ); *)
-    ignore Exhaustiveness.is_exhaustive;
+    (let types = List.map (fun e -> (snd e).typ |> clean) exprs
+     and patterns = List.map (fun (p, _) -> List.map snd p) some_cases in
+     match Exhaustiveness.is_exhaustive true types patterns with
+     | Ok () -> ()
+     | Error (_, cases) ->
+         let msg =
+           Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
+             (String.concat " | " cases)
+         in
+         raise (Error (loc, msg)));
 
     (* Find redundant cases *)
     (match Row_set.min_elt_opt !used_rows with
@@ -649,7 +645,9 @@ module Make (C : Core) (R : Recs) = struct
                       Some (field, i))
                     else
                       let msg =
-                        Printf.sprintf "Field %s appears multiple times" name
+                        Printf.sprintf
+                          "Field :%s appears multiple times in record pattern"
+                          name
                       in
                       raise (Error (loc, msg))
                   else inner (i + 1)
@@ -667,7 +665,7 @@ module Make (C : Core) (R : Recs) = struct
                     | Some f -> f
                     | None ->
                         let msg =
-                          Printf.sprintf "Unbound field %s on record %s" name
+                          Printf.sprintf "Unbound field :%s on record %s" name
                             (string_of_type t)
                         in
                         raise (Error (loc, msg))
@@ -681,7 +679,7 @@ module Make (C : Core) (R : Recs) = struct
              let missing = Set.choose !fset in
              let msg =
                Printf.sprintf
-                 "There are fields missig in record pattern, for instance %s"
+                 "There are missing fields in record pattern, for instance :%s"
                  missing
              in
              raise (Error (loc, msg)));

@@ -81,7 +81,7 @@ module Make (C : Core) = struct
 
   let rec convert_record env loc annot labels =
     let raise_ msg lname rname =
-      let msg = Printf.sprintf "%s field %s on record %s" msg lname rname in
+      let msg = Printf.sprintf "%s field :%s on record %s" msg lname rname in
       raise (Error (loc, msg))
     in
 
@@ -170,7 +170,7 @@ module Make (C : Core) = struct
         match assoc_opti id labels with
         | Some (index, field) -> (field, expr, index)
         | None ->
-            raise (Error (loc, "Unbound field " ^ id ^ " on record " ^ name)))
+            raise (Error (loc, "Unbound field :" ^ id ^ " on record " ^ name)))
     | t -> (
         match Env.find_label_opt id env with
         | Some { index; typename } -> (
@@ -181,7 +181,7 @@ module Make (C : Core) = struct
             match record_t with
             | Trecord (_, _, labels) -> (labels.(index), expr, index)
             | _ -> failwith "nope")
-        | None -> raise (Error (loc, "Unbound field " ^ id)))
+        | None -> raise (Error (loc, "Unbound field :" ^ id)))
 
   and convert_field env loc expr id =
     let field, expr, index = get_field env loc expr id in
