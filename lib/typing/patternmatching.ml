@@ -160,7 +160,7 @@ module Tup = struct
     assert (match col with [] -> false | hd :: _ -> hd >= 0);
     (col, pat)
 
-  let choose_next (patterns, d) tl ignore_wildcard =
+  let choose_next (patterns, d) tl =
     (* We choose a column based on precedence.
        [Pwildcard] is dropped
        1: [Pvar] needs to be bound,
@@ -175,11 +175,7 @@ module Tup = struct
     in
     let sort_patterns a b = Int.compare (score_patterns a) (score_patterns b) in
     let filter_patterns p =
-      match (snd p).pat with
-      | Tp_wildcard _ ->
-          ignore_wildcard (fst p);
-          false
-      | _ -> true
+      match (snd p).pat with Tp_wildcard _ -> false | _ -> true
     in
     let sorted =
       List.filter filter_patterns patterns |> List.sort sort_patterns
@@ -417,6 +413,10 @@ module Make (C : Core) (R : Recs) = struct
   open C
   open R
 
+  (* Internal expression values in codegen shouldn't trigger unused binding warnings.
+     `imported = true` makes sure no warning is issued *)
+  let exprval = Env.{ def_value with imported = true }
+
   module Row = struct
     type t = { loc : Ast.loc; cnt : int }
 
@@ -573,10 +573,7 @@ module Make (C : Core) (R : Recs) = struct
           match (ctor.ctyp, payload) with
           | Some typ, Some p ->
               let env =
-                Env.(
-                  add_value (expr_name path)
-                    { def_value with typ; imported = true }
-                    loc env)
+                Env.(add_value (expr_name path) { exprval with typ } loc env)
               in
               (* Inherit ctor path, and specialize *)
               Some (type_pattern env (path, p))
@@ -610,7 +607,7 @@ module Make (C : Core) (R : Recs) = struct
               let env =
                 Env.(
                   add_value (expr_name path)
-                    { def_value with typ = field.ftyp; imported = true }
+                    { exprval with typ = field.ftyp }
                     loc env)
               in
               let fpat =
@@ -629,7 +626,7 @@ module Make (C : Core) (R : Recs) = struct
           let e = convert env expr in
           (* Make the expr available in the patternmatch *)
           let env =
-            Env.(add_value (expr_name [ i ]) { def_value with typ = e.typ })
+            Env.(add_value (expr_name [ i ]) { exprval with typ = e.typ })
               loc env
           in
           ((i + 1, env), ([ i ], e)))
@@ -714,15 +711,14 @@ module Make (C : Core) (R : Recs) = struct
           let data = { typ; expr; attr = no_attr } in
           ( data,
             Env.(
-              add_value (expr_name i) { def_value with typ = data.typ } loc env)
+              add_value (expr_name i) { exprval with typ = data.typ } loc env)
           )
       | None -> (expr i, env)
     in
-    let ignore_expr i = ignore (expr i) in
 
     match cases with
     | hd :: tl -> (
-        match Tup.choose_next hd tl ignore_expr with
+        match Tup.choose_next hd tl with
         | Bare d ->
             (* Mark row as used *)
             rows := Row_set.remove { cnt = d.row; loc = d.loc } !rows;
@@ -775,7 +771,7 @@ module Make (C : Core) (R : Recs) = struct
                   let env =
                     Env.(
                       add_value (expr_name col)
-                        { def_value with typ = iftyp }
+                        { exprval with typ = field.iftyp }
                         loc env)
                   in
                   (* If there is no extra pattern provided, the field name
