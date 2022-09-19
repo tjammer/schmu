@@ -50,24 +50,27 @@ let array_assoc_opt name arr =
   inner 0
 
 let get_variant env loc (_, name) annot =
+  (* Don't use clean directly, to keep integrity of link *)
   match annot with
-  | Some (Tvariant (_, typename, ctors) as variant) ->
-      let ctor =
-        match array_assoc_opt name ctors with
-        | Some ctor -> ctor
-        | None ->
-            let msg =
-              Printf.sprintf "Unbound constructor %s on variant %s" name
-                typename
-            in
-            raise (Error (loc, msg))
-      in
-      (typename, ctor, variant)
-  | Some t ->
-      let msg =
-        Printf.sprintf "Expecting a variant type, not %s" (string_of_type t)
-      in
-      raise (Error (loc, msg))
+  | Some variant -> (
+      match clean variant with
+      | Tvariant (_, typename, ctors) ->
+          let ctor =
+            match array_assoc_opt name ctors with
+            | Some ctor -> ctor
+            | None ->
+                let msg =
+                  Printf.sprintf "Unbound constructor %s on variant %s" name
+                    typename
+                in
+                raise (Error (loc, msg))
+          in
+          (typename, ctor, variant)
+      | t ->
+          let msg =
+            Printf.sprintf "Expecting a variant type, not %s" (string_of_type t)
+          in
+          raise (Error (loc, msg)))
   | None -> (
       match Env.find_ctor_opt name env with
       | Some { index; typename } ->
@@ -88,33 +91,55 @@ let get_variant env loc (_, name) annot =
 
 type pattern_data = { loc : Ast.loc; ret_expr : Ast.expr; row : int }
 
+type typed_pattern = { ptyp : typ; pat : tpat }
+and pathed_pattern = int list * typed_pattern
+
+and tpat =
+  | Tp_ctor of Ast.loc * string * ctor_param
+  | Tp_var of Ast.loc * string
+  | Tp_wildcard of Ast.loc
+  | Tp_record of Ast.loc * index_field list
+
+and ctor_param = { cindex : int; cpat : pathed_pattern option }
+
+and index_field = {
+  floc : Ast.loc;
+  name : string;
+  index : int;
+  iftyp : typ;
+  fpat : pathed_pattern option;
+}
+
 module Tup = struct
   type payload = {
-    col : int list;
+    path : int list;
         (* Records need a path instead of just a column. {:a} in 1st column might be [0;0] *)
     loc : Ast.loc;
     name : string;
     d : pattern_data;
-    patterns : (int list * Ast.pattern) list;
+    patterns : pathed_pattern list;
+    pltyp : typ;
   }
 
   type ret =
     | Var of payload
-    | Ctor of payload
+    | Ctor of payload * ctor_param
     | Bare of pattern_data
-    | Record of (Ast.loc * string * Ast.pattern option) list * payload
+    | Record of index_field list * payload
 
   let choose_column ctors tl =
     (* Count wildcards and vars per column. They lead to duplicated branches *)
     (* TODO special handling for record pattern. This needs to be destructored
        and the wildcards and vars counted *)
+    let dummy_loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
+    let dummy_pattern = { ptyp = Tunit; pat = Tp_wildcard dummy_loc } in
     let m =
       List.fold_left
         (fun acc (l, _) ->
           List.fold_left
             (fun acc (col, pat) ->
-              match pat with
-              | Ast.Pwildcard _ | Pvar _ ->
+              match pat.pat with
+              | Tp_wildcard _ | Tp_var _ ->
                   (* increase count *)
                   Cmap.update col
                     (function None -> Some 1 | Some a -> Some (a + 1))
@@ -124,15 +149,16 @@ module Tup = struct
         Cmap.empty tl
     in
     (* Choose column with smallest count *)
-    let col, _ =
+    let (col, pat), _ =
       List.fold_left
-        (fun (acol, acnt) (col, _) ->
+        (fun ((acol, apat), acnt) (col, pat) ->
           let cnt = match Cmap.find_opt col m with Some c -> c | None -> 0 in
-          if cnt < acnt then (col, cnt) else (acol, acnt))
-        ([ -1 ], Int.max_int) ctors
+          if cnt < acnt then ((col, pat), cnt) else ((acol, apat), acnt))
+        (([ -1 ], dummy_pattern), Int.max_int)
+        ctors
     in
     assert (match col with [] -> false | hd :: _ -> hd >= 0);
-    col
+    (col, pat)
 
   let choose_next (patterns, d) tl ignore_wildcard =
     (* We choose a column based on precedence.
@@ -140,18 +166,17 @@ module Tup = struct
        1: [Pvar] needs to be bound,
        2: Otherwise, we choose a ctor, using [choose_column] *)
     let score_patterns pattern =
-      match snd pattern with
-      | Ast.Precord _ ->
+      match (snd pattern).pat with
+      | Tp_record _ ->
           3 (* Records have highest prio, as they get destructored *)
-      | Pctor _ -> 2
-      | Pvar _ -> 1
-      | Pwildcard _ -> failwith "Internal Error: Should have been dropped"
-      | Ptup _ -> failwith "Internal Error: Unexpected tup pattern"
+      | Tp_ctor _ -> 2
+      | Tp_var _ -> 1
+      | Tp_wildcard _ -> failwith "Internal Error: Should have been dropped"
     in
     let sort_patterns a b = Int.compare (score_patterns a) (score_patterns b) in
     let filter_patterns p =
-      match snd p with
-      | Ast.Pwildcard _ ->
+      match (snd p).pat with
+      | Tp_wildcard _ ->
           ignore_wildcard (fst p);
           false
       | _ -> true
@@ -161,22 +186,22 @@ module Tup = struct
     in
 
     match sorted with
-    | [ (col, Ast.Pctor ((loc, name), _)) ] ->
-        Ctor { col; loc; name; d; patterns = sorted }
-    | (_, Ast.Pctor _) :: _ -> (
-        let col = choose_column sorted tl in
-        match List.assoc col sorted with
-        | Pctor ((loc, name), _) ->
-            Ctor { col; loc; name; d; patterns = sorted }
+    | [ (path, { pat = Tp_ctor (loc, name, param); ptyp }) ] ->
+        Ctor ({ path; loc; name; d; patterns = sorted; pltyp = ptyp }, param)
+    | (_, { pat = Tp_ctor _; ptyp }) :: _ -> (
+        let path, pat = choose_column sorted tl in
+        match pat.pat with
+        | Tp_ctor (loc, name, param) ->
+            Ctor ({ path; loc; name; d; patterns = sorted; pltyp = ptyp }, param)
         | _ -> failwith "Internal Error: Not a constructor")
-    | (col, Pvar (loc, name)) :: patterns ->
+    | (path, { pat = Tp_var (loc, name); ptyp }) :: patterns ->
         (* Drop var from patterns list *)
-        Var { col; loc; name; d; patterns }
-    | (_, Pwildcard _ | _, Ptup _) :: _ ->
+        Var { path; loc; name; d; patterns; pltyp = ptyp }
+    | (_, { pat = Tp_wildcard _; _ }) :: _ ->
         failwith "Internal Error: Unexpected sorted pattern"
-    | (col, Precord (loc, fields)) :: patterns ->
+    | (path, { pat = Tp_record (loc, fields); ptyp }) :: patterns ->
         (* Drop record from patterns list *)
-        Record (fields, { col; loc; name = ""; d; patterns })
+        Record (fields, { path; loc; name = ""; d; patterns; pltyp = ptyp })
     | [] -> Bare d
 end
 
@@ -184,7 +209,7 @@ module Exhaustiveness = struct
   module Set = Set.Make (String)
 
   type wip_kind = New_column | Specialization
-  type exhaustive = Exh | Wip of wip_kind * Ast.pattern list list
+  type exhaustive = Exh | Wip of wip_kind * tpat list list
   type ctorset = Ctors of ctor list | Inf
 
   let ctorset_of_variant = function
@@ -208,12 +233,11 @@ module Exhaustiveness = struct
           (* Special case if the last case is a wildcard. Here, we might have a complete
              ctor set before and the wildcard is redundant *)
           | [] -> last acc
-          | [ Ast.Pwildcard loc :: _ ] -> lwild loc acc
+          | [ Tp_wildcard loc :: _ ] -> lwild loc acc
           | hd :: tl -> fold f lwild last (f acc hd) tl
         in
         let f set = function
-          | Ast.Pctor ((_, name), _) :: _ ->
-              Set.remove name set (* TODO wildcard *)
+          | Tp_ctor (_, name, _) :: _ -> Set.remove name set (* TODO wildcard *)
           | _ -> set
         in
         let last set =
@@ -226,7 +250,7 @@ module Exhaustiveness = struct
               (* The last row is a wildcard, but all ctors are there before.
                  Might be a redundant case (see "redundant_all_cases" test case) *)
               Maybe_red (loc, ctors)
-            else f set [ Pwildcard loc ] |> last
+            else f set [ Tp_wildcard loc ] |> last
           else fun _ set -> last set
         in
 
@@ -240,16 +264,15 @@ module Exhaustiveness = struct
     let patterns =
       List.filter_map
         (function
-          | Ast.Pctor (_, _) :: _ ->
+          | Tp_ctor _ :: _ ->
               (* Drop row *)
               rows_empty := false;
               None
-          | (Pwildcard _ | Pvar _ | Precord _) :: tl ->
+          | (Tp_wildcard _ | Tp_var _ | Tp_record _) :: tl ->
               (* Discard head element *)
               new_col := true;
               rows_empty := false;
               Some tl
-          | Ptup _ :: _ -> failwith "No tuple here"
           | [] -> (* Empty row *) Some [])
         patterns
     in
@@ -257,10 +280,8 @@ module Exhaustiveness = struct
     let new_col = if !new_col then New_column else Specialization in
     if !rows_empty then Exh else Wip (new_col, patterns)
 
-  let args_to_list = function
-    | Some (Ast.Ptup (_, pats)) -> pats
-    | Some p -> [ p ]
-    | None -> []
+  let args_to_list a =
+    match a.cpat with Some p -> [ (snd p).pat ] | None -> []
 
   let arg_to_num = function Some _ -> 1 | None -> 0
 
@@ -274,7 +295,7 @@ module Exhaustiveness = struct
     let patterns =
       List.filter_map
         (function
-          | Ast.Pctor (name, args) :: tl when String.equal (snd name) case ->
+          | Tp_ctor (_, name, args) :: tl when String.equal name case ->
               rows_empty := false;
               let lst =
                 match args_to_list args with
@@ -284,21 +305,20 @@ module Exhaustiveness = struct
                 | lst -> lst @ tl
               in
               Some lst
-          | Pctor (_, _) :: _ ->
+          | Tp_ctor _ :: _ ->
               (* Drop row *)
               rows_empty := false;
               None
-          | (Pwildcard loc | Pvar (loc, _) | Precord (loc, _)) :: tl ->
+          | (Tp_wildcard loc | Tp_var (loc, _) | Tp_record (loc, _)) :: tl ->
               rows_empty := false;
               let lst =
                 match num_args with
                 | 0 ->
                     new_col := true;
                     tl
-                | _ -> to_n_list (Ast.Pwildcard loc) num_args [] @ tl
+                | _ -> to_n_list (Tp_wildcard loc) num_args [] @ tl
               in
               Some lst
-          | Ptup _ :: _ -> failwith "No tuple here"
           | [] -> (* Empty row *) Some [])
         patterns
     in
@@ -310,9 +330,8 @@ module Exhaustiveness = struct
     let rows_empty = ref true in
     List.iter
       (function
-        | (Ast.Pctor _ | Pwildcard _ | Pvar _ | Precord _) :: _ ->
+        | (Tp_ctor _ | Tp_wildcard _ | Tp_var _ | Tp_record _) :: _ ->
             rows_empty := false
-        | Ptup _ :: _ -> failwith "No tuple here"
         | [] -> ())
       patterns;
     if !rows_empty then Ok ()
@@ -469,7 +488,10 @@ module Make (C : Core) (R : Recs) = struct
   (* We want to be able to reference the exprs in the pattern match without
      regenerating it, so we use a magic identifier *)
   let expr_name is = "__expr" ^ String.concat "_" (List.map string_of_int is)
-  let arg_opt loc = function None -> Ast.Pwildcard loc | Some p -> p
+
+  let arg_opt ptyp loc = function
+    | None -> { pat = Tp_wildcard loc; ptyp }
+    | Some p -> snd p
 
   let calc_index_fields loc fields t =
     let module Set = Set.Make (String) in
@@ -534,21 +556,6 @@ module Make (C : Core) (R : Recs) = struct
      raise (Error (loc, msg)));
     index_fields
 
-  type typed_pattern = { path : int list; ptyp : typ; pat : tpat }
-
-  and tpat =
-    | Tp_ctor of Ast.loc * string * typed_pattern option
-    | Tp_var of Ast.loc * string
-    | Tp_wildcard of Ast.loc
-    | Tp_record of Ast.loc * index_field list
-
-  and index_field = {
-    floc : Ast.loc;
-    name : string;
-    index : int;
-    fpat : typed_pattern option;
-  }
-
   let path_typ env p = Env.(find_val (expr_name p) env).typ
 
   let rec type_pattern env (path, pat) =
@@ -562,27 +569,30 @@ module Make (C : Core) (R : Recs) = struct
         unify
           (loc, "Variant pattern has unexpected type:")
           (path_typ env path) variant;
-        let payload =
+        let cpat =
           match (ctor.ctyp, payload) with
           | Some typ, Some p ->
               let env =
-                Env.(add_value (expr_name path) { def_value with typ } loc env)
+                Env.(
+                  add_value (expr_name path)
+                    { def_value with typ; imported = true }
+                    loc env)
               in
               (* Inherit ctor path, and specialize *)
               Some (type_pattern env (path, p))
           | None, None -> None
           | _ -> mismatch_err loc name ctor.ctyp payload
         in
-        let pat = Tp_ctor (loc, name, payload) in
-        { path; ptyp = variant; pat }
+        let pat = Tp_ctor (loc, name, { cindex = ctor.index; cpat }) in
+        (path, { ptyp = variant; pat })
     | Pvar (loc, name) ->
         let ptyp = path_typ env path in
         let pat = Tp_var (loc, name) in
-        { path; ptyp; pat }
+        (path, { ptyp; pat })
     | Pwildcard loc ->
         let ptyp = path_typ env path in
         let pat = Tp_wildcard loc in
-        { path; ptyp; pat }
+        (path, { ptyp; pat })
     | Ptup _ -> failwith "Internal Error: Unexpected tup"
     | Precord (loc, pats) ->
         let labelset = List.map (fun (_, a, _) -> a) pats in
@@ -600,17 +610,17 @@ module Make (C : Core) (R : Recs) = struct
               let env =
                 Env.(
                   add_value (expr_name path)
-                    { def_value with typ = field.ftyp }
+                    { def_value with typ = field.ftyp; imported = true }
                     loc env)
               in
               let fpat =
                 Option.map (fun pat -> type_pattern env (path, pat)) pat
               in
-              { floc; name; index; fpat })
+              { floc; name; index; iftyp = field.ftyp; fpat })
             index_fields
         in
         let pat = Tp_record (loc, fields) in
-        { path; ptyp; pat }
+        (path, { ptyp; pat })
 
   let rec convert_match env loc exprs cases =
     let (columns, env), exprs =
@@ -634,14 +644,17 @@ module Make (C : Core) (R : Recs) = struct
         (fun i (loc, p, expr) ->
           used_rows := Row_set.add Row.{ loc; cnt = i } !used_rows;
           let cols, pat =
+            (* convert into typed pattern *)
             match p with
             | Ast.Ptup (_, pats) ->
                 (* We track the depth (lvl) for each column separately *)
                 let _, pat =
-                  List.fold_left_map (fun i p -> (i + 1, ([ i ], p))) 0 pats
+                  List.fold_left_map
+                    (fun i p -> (i + 1, type_pattern env ([ i ], p)))
+                    0 pats
                 in
                 (List.length pats, pat)
-            | p -> (1, [ ([ 0 ], p) ])
+            | p -> (1, [ type_pattern env ([ 0 ], p) ])
           in
           (if cols <> columns then
            let msg =
@@ -656,7 +669,9 @@ module Make (C : Core) (R : Recs) = struct
 
     (* Check for exhaustiveness *)
     (let types = List.map (fun e -> (snd e).typ |> clean) exprs
-     and patterns = List.map (fun (p, _) -> List.map snd p) some_cases in
+     and patterns =
+       List.map (fun p -> List.map (fun p -> (snd p).pat) (fst p)) some_cases
+     in
      match Exhaustiveness.is_exhaustive true types patterns with
      | Ok () -> ()
      | Error (_, cases) ->
@@ -693,9 +708,10 @@ module Make (C : Core) (R : Recs) = struct
     let expr i = convert_var env all_loc (expr_name i) in
 
     let ctorenv env ctor i loc =
-      match ctor.ctyp with
-      | Some typ ->
-          let data = { typ; expr = Variant_data (expr i); attr = no_attr } in
+      match ctor with
+      | Some p ->
+          let typ = (snd p).ptyp and expr = Variant_data (expr i) in
+          let data = { typ; expr; attr = no_attr } in
           ( data,
             Env.(
               add_value (expr_name i) { def_value with typ = data.typ } loc env)
@@ -715,11 +731,10 @@ module Make (C : Core) (R : Recs) = struct
 
             unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
             ret
-        | Var { col; loc; name; d; patterns } ->
+        | Var { path; loc; name; d; patterns; pltyp } ->
             (* Bind the variable *)
             let env =
-              Env.(
-                add_value name { def_value with typ = (expr col).typ } loc env)
+              Env.(add_value name { def_value with typ = pltyp } loc env)
             in
             (* Continue with expression *)
             let ret =
@@ -728,22 +743,16 @@ module Make (C : Core) (R : Recs) = struct
 
             {
               typ = ret.typ;
-              expr = Let (name, None, expr col, ret);
+              expr = Let (name, None, expr path, ret);
               attr = ret.attr;
             }
-        | Ctor { col; loc; name; d; patterns } ->
-            let a, b = match_cases (col, name) ((patterns, d) :: tl) [] [] in
+        | Ctor ({ path; loc; name; d; patterns; pltyp = _ }, param) ->
+            let a, b = match_cases (path, name) ((patterns, d) :: tl) [] [] in
 
-            let annot = make_annot (expr col).typ in
-            let _, ctor, variant = get_variant env loc (loc, name) annot in
-            unify
-              (d.loc, "Variant pattern has unexpected type:")
-              (expr col).typ variant;
-
-            let data, ifenv = ctorenv env ctor col d.loc in
+            let data, ifenv = ctorenv env param.cpat path loc in
             let cont = compile_matches ifenv d.loc rows a ret_typ in
             (* Make expr available in codegen *)
-            let ifexpr = Let (expr_name col, None, data, cont) in
+            let ifexpr = Let (expr_name path, None, data, cont) in
 
             (* This is either an if-then-else or just an one ctor,
                depending on whether [b] is empty *)
@@ -751,40 +760,35 @@ module Make (C : Core) (R : Recs) = struct
               match b with
               | [] -> ifexpr
               | b ->
-                  let cmp = gen_cmp (expr col) ctor.index in
+                  let cmp = gen_cmp (expr path) param.cindex in
                   let if_ = { cont with expr = ifexpr } in
                   let else_ = compile_matches env d.loc rows b ret_typ in
                   If (cmp, if_, else_)
             in
 
             { typ = ret_typ; expr; attr = no_attr }
-        | Record (fields, { col; loc; d; patterns; _ }) ->
-            let labelset = List.map (fun (_, a, _) -> a) fields in
-            let annot = make_annot (expr col).typ in
-            let t = get_record_type env loc labelset annot in
-            unify (loc, "Record pattern has unexpected type:") (expr col).typ t;
-
-            let index_fields = calc_index_fields loc fields t in
-
+        | Record (fields, { path; loc; d; patterns; _ }) ->
             let env, patterns =
               List.fold_left
-                (fun (env, pats) (field, index, loc, name, pat) ->
-                  let col = index :: col in
+                (fun (env, pats) { floc; name; index; iftyp; fpat } ->
+                  let col = index :: path in
                   let env =
                     Env.(
                       add_value (expr_name col)
-                        { def_value with typ = field.ftyp }
+                        { def_value with typ = iftyp }
                         loc env)
                   in
                   (* If there is no extra pattern provided, the field name
                      functions as a variable pattern *)
                   let pat =
-                    match pat with Some p -> p | None -> Ast.Pvar (loc, name)
+                    match fpat with
+                    | Some p -> snd p
+                    | None -> { ptyp = iftyp; pat = Tp_var (floc, name) }
                   in
 
                   let pats = (col, pat) :: pats in
                   (env, pats))
-                (env, patterns) index_fields
+                (env, patterns) fields
             in
 
             let ret =
@@ -792,18 +796,18 @@ module Make (C : Core) (R : Recs) = struct
             in
             let expr =
               List.fold_left
-                (fun ret (field, index, _, _, _) ->
-                  let newcol = index :: col in
+                (fun ret { index; iftyp; _ } ->
+                  let newcol = index :: path in
                   let expr =
                     {
-                      typ = field.ftyp;
-                      expr = Field (expr col, index);
+                      typ = iftyp;
+                      expr = Field (expr path, index);
                       attr = no_attr;
                     }
                   in
 
                   { ret with expr = Let (expr_name newcol, None, expr, ret) })
-                ret index_fields
+                ret fields
             in
             expr)
     | [] -> failwith "Internal Error: Empty match"
@@ -812,23 +816,23 @@ module Make (C : Core) (R : Recs) = struct
     match cases with
     | (clauses, d) :: tl -> (
         match List.assoc_opt i clauses with
-        | Some (Ast.Pctor ((loc, name), arg)) when String.equal case name ->
+        | Some { pat = Tp_ctor (loc, name, arg); ptyp }
+          when String.equal case name ->
             (* We found the [case] ctor, thus we extract the argument and insert
                it at the ctor's place to the [if_] list. Since we are one level
                deeper, we replace [i]'s [lvl] with [lvl + 1] *)
-            let arg = arg_opt loc arg in
+            let arg = arg_opt ptyp loc arg.cpat in
             let clauses = assoc_set i arg clauses in
             match_cases (i, case) tl ((clauses, d) :: if_) else_
-        | Some (Ast.Pctor _) | Some (Precord _) ->
+        | Some { pat = Tp_ctor _ | Tp_record _; _ } ->
             (* We found a ctor, but it does not match. Add to [else_].
                This works for record patterns as well. We are searching for a ctor,
                a record is surely not the ctor we are searching for *)
             match_cases (i, case) tl if_ ((clauses, d) :: else_)
-        | Some (Pvar _ | Pwildcard _) ->
+        | Some { pat = Tp_var _ | Tp_wildcard _; _ } ->
             (* These match all, so we add them to both [if_] and [else_] *)
             match_cases (i, case) tl ((clauses, d) :: if_)
               ((clauses, d) :: else_)
-        | Some (Ptup _) -> failwith "Internal Error: Unexpected tup"
         | None -> failwith "Internal Error: Column does not exist")
     | [] -> (List.rev if_, List.rev else_)
 end
