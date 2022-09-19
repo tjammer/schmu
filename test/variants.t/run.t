@@ -457,3 +457,18 @@ Match multiple columns
                                  ^^
   
   [1]
+
+Record literals in pattern matches
+  $ schmu match_record.smu && ./match_record
+  match_record.smu:5:35: warning: Unused binding b
+  5 |             ((#some {:a (#some a) :b}) a)
+                                        ^^
+  
+  match_record.smu:6:31: warning: Unused binding b
+  6 |             ((#some {:a #none :b}) -1)
+                                    ^^
+  
+  10
+  -1
+  20
+  -2

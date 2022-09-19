@@ -440,6 +440,10 @@ module Make (C : Core) (R : Recs) = struct
 
   let assoc_set x y l = search_set [] l x ~f:(fun x _ l -> (x, y) :: l)
 
+  let assoc_remove x l =
+    search_set [] l x ~f:(fun _ opt_y rest ->
+        match opt_y with None -> l (* keep as is *) | Some _ -> rest)
+
   let gen_cmp expr const_index =
     let index = { typ = Ti32; expr = Variant_index expr; attr = no_attr } in
     let cind =
@@ -764,28 +768,24 @@ module Make (C : Core) (R : Recs) = struct
 
             { typ = ret_typ; expr; attr = no_attr }
         | Record (fields, { path; loc; d; patterns; _ }) ->
-            let env, patterns =
+            let env =
               List.fold_left
-                (fun (env, pats) { floc; name; index; iftyp; fpat } ->
-                  let col = index :: path in
+                (fun env field ->
+                  let col = field.index :: path in
                   let env =
                     Env.(
                       add_value (expr_name col)
                         { exprval with typ = field.iftyp }
                         loc env)
                   in
-                  (* If there is no extra pattern provided, the field name
-                     functions as a variable pattern *)
-                  let pat =
-                    match fpat with
-                    | Some p -> snd p
-                    | None -> { ptyp = iftyp; pat = Tp_var (floc, name) }
-                  in
-
-                  let pats = (col, pat) :: pats in
-                  (env, pats))
-                (env, patterns) fields
+                  env)
+                env fields
             in
+
+            (* Since we have all neccessary data in place, we do this row here *)
+            let patterns = expand_record path fields patterns in
+            (* Expand in all rows down from here. Replace record pattern with expanded fields *)
+            let tl = expand_records path tl [] in
 
             let ret =
               compile_matches env loc rows ((patterns, d) :: tl) ret_typ
@@ -825,10 +825,44 @@ module Make (C : Core) (R : Recs) = struct
                This works for record patterns as well. We are searching for a ctor,
                a record is surely not the ctor we are searching for *)
             match_cases (i, case) tl if_ ((clauses, d) :: else_)
-        | Some { pat = Tp_var _ | Tp_wildcard _; _ } ->
+        | Some { pat = Tp_var _ | Tp_wildcard _; _ } | None ->
             (* These match all, so we add them to both [if_] and [else_] *)
+            (* We can also end up here if a record was not expanded.
+               Treat like wildcard or var *)
             match_cases (i, case) tl ((clauses, d) :: if_)
-              ((clauses, d) :: else_)
-        | None -> failwith "Internal Error: Column does not exist")
+              ((clauses, d) :: else_))
     | [] -> (List.rev if_, List.rev else_)
+
+  and expand_record path fields patterns =
+    List.fold_left
+      (fun pats { floc; name; index; iftyp; fpat } ->
+        let col = index :: path in
+        (* If there is no extra pattern provided, the field name
+           functions as a variable pattern *)
+        let pat =
+          match fpat with
+          | Some p -> snd p
+          | None -> { ptyp = iftyp; pat = Tp_var (floc, name) }
+        in
+        (col, pat) :: pats)
+      patterns fields
+
+  and expand_records path patterns expanded =
+    match patterns with
+    | (patterns, d) :: tl -> (
+        match List.assoc_opt path patterns with
+        | Some { pat = Tp_record (_, fields); _ } ->
+            (* First, remove current record pattern *)
+            let patterns =
+              assoc_remove path patterns |> expand_record path fields
+            in
+            expand_records path tl ((patterns, d) :: expanded)
+        | Some _ ->
+            (* If there is another pattern, the record is not expanded, thus not expandable *)
+            expand_records path tl ((patterns, d) :: expanded)
+        | None ->
+            (* Nothing is found here, this is an error, or a nested pattern.
+               We throw first to have a look TODO *)
+            failwith "Internal Error: Maybe? Nested record?")
+    | [] -> List.rev expanded
 end
