@@ -310,7 +310,10 @@ pipeable:
   | parens(ctor_pattern_item) { $1 }
   | ident { Pvar(fst $1, snd $1) }
   | Wildcard { Pwildcard $loc }
-  | items = bracs(nonempty_list(attr)) { Precord ($loc, items) }
+  | items = bracs(nonempty_list(record_item_pattern)) { Precord ($loc, items) }
+
+%inline record_item_pattern:
+  | attr = attr; p = option(sexp_pattern) { fst attr, snd attr, p }
 
 %inline ctor_pattern_item:
   | sexp_ctor; sexp_pattern { Pctor ($1, Some $2) }

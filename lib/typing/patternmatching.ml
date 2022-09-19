@@ -102,7 +102,7 @@ module Tup = struct
     | Var of payload
     | Ctor of payload
     | Bare of pattern_data
-    | Record of (Ast.loc * string) list * payload
+    | Record of (Ast.loc * string * Ast.pattern option) list * payload
 
   let choose_column ctors tl =
     (* Count wildcards and vars per column. They lead to duplicated branches *)
@@ -173,7 +173,7 @@ module Tup = struct
         (* Drop var from patterns list *)
         Var { col; loc; name; d; patterns }
     | (_, Pwildcard _ | _, Ptup _) :: _ ->
-        failwith "Internal Error: Unexpected tup pattern"
+        failwith "Internal Error: Unexpected sorted pattern"
     | (col, Precord (loc, fields)) :: patterns ->
         (* Drop record from patterns list *)
         Record (fields, { col; loc; name = ""; d; patterns })
@@ -433,6 +433,24 @@ module Make (C : Core) (R : Recs) = struct
     let cmpexpr = Bop (Ast.Equal_i, index, cind) in
     { typ = Tbool; expr = cmpexpr; attr = no_attr }
 
+  let mismatch_err loc name ctor arg =
+    match (ctor, arg) with
+    | None, Some _ ->
+        let msg =
+          Printf.sprintf
+            "The constructor %s expects 0 arguments, but an argument is \
+             provided"
+            name
+        in
+        raise (Error (loc, msg))
+    | Some _, None ->
+        let msg =
+          Printf.sprintf
+            "The constructor %s expects arguments, but none are provided" name
+        in
+        raise (Error (loc, msg))
+    | _ -> failwith "Internal Error: Not a mismatch"
+
   let convert_ctor env loc name arg annot =
     let typename, ctor, variant = get_variant env loc name annot in
     match (ctor.ctyp, arg) with
@@ -446,26 +464,153 @@ module Make (C : Core) (R : Recs) = struct
         let expr = Ctor (typename, ctor.index, None) in
         (* NOTE: Const handling for ctors is disabled, see #23 *)
         { typ = variant; expr; attr = no_attr }
-    | None, Some _ ->
-        let msg =
-          Printf.sprintf
-            "The constructor %s expects 0 arguments, but an argument is \
-             provided"
-            (snd name)
-        in
-        raise (Error (fst name, msg))
-    | Some _, None ->
-        let msg =
-          Printf.sprintf
-            "The constructor %s expects arguments, but none are provided"
-            (snd name)
-        in
-        raise (Error (fst name, msg))
+    | _ -> mismatch_err (fst name) (snd name) ctor.ctyp arg
 
   (* We want to be able to reference the exprs in the pattern match without
      regenerating it, so we use a magic identifier *)
   let expr_name is = "__expr" ^ String.concat "_" (List.map string_of_int is)
   let arg_opt loc = function None -> Ast.Pwildcard loc | Some p -> p
+
+  let calc_index_fields loc fields t =
+    let module Set = Set.Make (String) in
+    let rfields =
+      match clean t with
+      | Trecord (_, _, rfields) -> rfields
+      | _ -> failwith "Internal Error: How is this not a record?"
+    in
+
+    let fset =
+      ref (Array.to_seq rfields |> Seq.map (fun f -> f.fname) |> Set.of_seq)
+    in
+
+    let find_name loc name =
+      let rec inner i =
+        if i = Array.length rfields then None
+        else
+          let field = rfields.(i) in
+          if String.equal field.fname name then
+            if (* Make sure we use each field only once *)
+               Set.mem name !fset
+            then (
+              fset := Set.remove name !fset;
+              Some (field, i))
+            else
+              let msg =
+                Printf.sprintf
+                  "Field :%s appears multiple times in record pattern" name
+              in
+              raise (Error (loc, msg))
+          else inner (i + 1)
+      in
+      inner 0
+    in
+
+    (* Bind all field variables *)
+    (* Loop names list for better errors *)
+    let index_fields =
+      List.map
+        (fun (loc, name, pat) ->
+          let field, index =
+            match find_name loc name with
+            | Some f -> f
+            | None ->
+                let msg =
+                  Printf.sprintf "Unbound field :%s on record %s" name
+                    (string_of_type t)
+                in
+                raise (Error (loc, msg))
+          in
+          (field, index, loc, name, pat))
+        fields
+    in
+
+    (* Make sure no fields are missing *)
+    (if not (Set.is_empty !fset) then
+     let missing = Set.choose !fset in
+     let msg =
+       Printf.sprintf
+         "There are missing fields in record pattern, for instance :%s" missing
+     in
+     raise (Error (loc, msg)));
+    index_fields
+
+  type typed_pattern = { path : int list; ptyp : typ; pat : tpat }
+
+  and tpat =
+    | Tp_ctor of Ast.loc * string * typed_pattern option
+    | Tp_var of Ast.loc * string
+    | Tp_wildcard of Ast.loc
+    | Tp_record of Ast.loc * index_field list
+
+  and index_field = {
+    floc : Ast.loc;
+    name : string;
+    index : int;
+    fpat : typed_pattern option;
+  }
+
+  let path_typ env p = Env.(find_val (expr_name p) env).typ
+
+  let rec type_pattern env (path, pat) =
+    match pat with
+    (* Convert pattern into typed patterns. By typechecking the pattern before
+       building the decision tree, record patterns (which add new columns) can
+       be visited more efficiently *)
+    | Ast.Pctor ((loc, name), payload) ->
+        let annot = make_annot (path_typ env path) in
+        let _, ctor, variant = get_variant env loc (loc, name) annot in
+        unify
+          (loc, "Variant pattern has unexpected type:")
+          (path_typ env path) variant;
+        let payload =
+          match (ctor.ctyp, payload) with
+          | Some typ, Some p ->
+              let env =
+                Env.(add_value (expr_name path) { def_value with typ } loc env)
+              in
+              (* Inherit ctor path, and specialize *)
+              Some (type_pattern env (path, p))
+          | None, None -> None
+          | _ -> mismatch_err loc name ctor.ctyp payload
+        in
+        let pat = Tp_ctor (loc, name, payload) in
+        { path; ptyp = variant; pat }
+    | Pvar (loc, name) ->
+        let ptyp = path_typ env path in
+        let pat = Tp_var (loc, name) in
+        { path; ptyp; pat }
+    | Pwildcard loc ->
+        let ptyp = path_typ env path in
+        let pat = Tp_wildcard loc in
+        { path; ptyp; pat }
+    | Ptup _ -> failwith "Internal Error: Unexpected tup"
+    | Precord (loc, pats) ->
+        let labelset = List.map (fun (_, a, _) -> a) pats in
+        let annot = make_annot (path_typ env path) in
+        let ptyp = get_record_type env loc labelset annot in
+        unify
+          (loc, "Record pattern has unexpected type:")
+          (path_typ env path) ptyp;
+
+        let index_fields = calc_index_fields loc pats ptyp in
+        let fields =
+          List.map
+            (fun (field, index, floc, name, pat) ->
+              let path = index :: path in
+              let env =
+                Env.(
+                  add_value (expr_name path)
+                    { def_value with typ = field.ftyp }
+                    loc env)
+              in
+              let fpat =
+                Option.map (fun pat -> type_pattern env (path, pat)) pat
+              in
+              { floc; name; index; fpat })
+            index_fields
+        in
+        let pat = Tp_record (loc, fields) in
+        { path; ptyp; pat }
 
   let rec convert_match env loc exprs cases =
     let (columns, env), exprs =
@@ -613,80 +758,17 @@ module Make (C : Core) (R : Recs) = struct
             in
 
             { typ = ret_typ; expr; attr = no_attr }
-        | Record (pfields, { col; loc; d; patterns; _ }) ->
-            let module Set = Set.Make (String) in
-            let labelset = List.map snd pfields in
+        | Record (fields, { col; loc; d; patterns; _ }) ->
+            let labelset = List.map (fun (_, a, _) -> a) fields in
             let annot = make_annot (expr col).typ in
             let t = get_record_type env loc labelset annot in
             unify (loc, "Record pattern has unexpected type:") (expr col).typ t;
 
-            let fields =
-              match clean t with
-              | Trecord (_, _, fields) -> fields
-              | _ -> failwith "Internal Error: How is this not a record?"
-            in
-
-            let fset =
-              ref
-                (Array.to_seq fields |> Seq.map (fun f -> f.fname) |> Set.of_seq)
-            in
-
-            let find_name loc name =
-              let rec inner i =
-                if i = Array.length fields then None
-                else
-                  let field = fields.(i) in
-                  if String.equal field.fname name then
-                    if
-                      (* Make sure we use each field only once *)
-                      Set.mem name !fset
-                    then (
-                      fset := Set.remove name !fset;
-                      Some (field, i))
-                    else
-                      let msg =
-                        Printf.sprintf
-                          "Field :%s appears multiple times in record pattern"
-                          name
-                      in
-                      raise (Error (loc, msg))
-                  else inner (i + 1)
-              in
-              inner 0
-            in
-
-            (* Bind all field variables *)
-            (* Loop names list for better errors *)
-            let index_fields =
-              List.map
-                (fun (loc, name) ->
-                  let field, index =
-                    match find_name loc name with
-                    | Some f -> f
-                    | None ->
-                        let msg =
-                          Printf.sprintf "Unbound field :%s on record %s" name
-                            (string_of_type t)
-                        in
-                        raise (Error (loc, msg))
-                  in
-                  (field, index, loc, name))
-                pfields
-            in
-
-            (* Make sure no fields are missing *)
-            (if not (Set.is_empty !fset) then
-             let missing = Set.choose !fset in
-             let msg =
-               Printf.sprintf
-                 "There are missing fields in record pattern, for instance :%s"
-                 missing
-             in
-             raise (Error (loc, msg)));
+            let index_fields = calc_index_fields loc fields t in
 
             let env, patterns =
               List.fold_left
-                (fun (env, pats) (field, index, loc, name) ->
+                (fun (env, pats) (field, index, loc, name, pat) ->
                   let col = index :: col in
                   let env =
                     Env.(
@@ -694,7 +776,13 @@ module Make (C : Core) (R : Recs) = struct
                         { def_value with typ = field.ftyp }
                         loc env)
                   in
-                  let pats = (col, Ast.Pvar (loc, name)) :: pats in
+                  (* If there is no extra pattern provided, the field name
+                     functions as a variable pattern *)
+                  let pat =
+                    match pat with Some p -> p | None -> Ast.Pvar (loc, name)
+                  in
+
+                  let pats = (col, pat) :: pats in
                   (env, pats))
                 (env, patterns) index_fields
             in
@@ -704,7 +792,7 @@ module Make (C : Core) (R : Recs) = struct
             in
             let expr =
               List.fold_left
-                (fun ret (field, index, _, _) ->
+                (fun ret (field, index, _, _, _) ->
                   let newcol = index :: col in
                   let expr =
                     {

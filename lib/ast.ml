@@ -1,4 +1,4 @@
-type loc = Lexing.position * Lexing.position
+type loc = Lexing.position * Lexing.position [@opaque] [@@deriving show]
 
 type bop =
   | Plus_i
@@ -27,7 +27,7 @@ type type_spec =
   | Ty_var of string
   | Ty_list of type_spec list
   | Ty_func of type_spec list
-  | Ty_open_id of loc * type_spec * string
+  | Ty_open_id of loc * type_spec * string [@@deriving show]
 
 and decl = loc * (loc * string) * type_spec option
 
@@ -67,7 +67,7 @@ and pattern =
   | Pvar of loc * string
   | Ptup of loc * pattern list
   | Pwildcard of loc
-  | Precord of loc * (loc * string) list
+  | Precord of loc * (loc * string * pattern option) list [@@deriving show]
 
 and literal =
   | Int of int
