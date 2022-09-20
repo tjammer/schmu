@@ -293,6 +293,13 @@ module Exhaustiveness = struct
   let rec to_n_list x n lst =
     if n = 0 then lst else to_n_list x (n - 1) (x :: lst)
 
+  let loc_of_pat = function
+    | Tp_wildcard loc
+    | Tp_var (loc, _)
+    | Tp_record (loc, _)
+    | Tp_ctor (loc, _, _) ->
+        loc
+
   (* Specialize first column for [case] *)
   let specialize case num_args patterns =
     let rows_empty = ref true in
@@ -315,11 +322,7 @@ module Exhaustiveness = struct
               (* Drop row *)
               rows_empty := false;
               None
-          | {
-              pat = Tp_wildcard loc | Tp_var (loc, _) | Tp_record (loc, _);
-              ptyp;
-            }
-            :: tl ->
+          | { pat; ptyp } :: tl ->
               rows_empty := false;
               let lst =
                 match num_args with
@@ -327,6 +330,7 @@ module Exhaustiveness = struct
                     new_col := true;
                     tl
                 | _ ->
+                    let loc = loc_of_pat pat in
                     to_n_list { pat = Tp_wildcard loc; ptyp } num_args [] @ tl
               in
               Some lst
@@ -360,9 +364,7 @@ module Exhaustiveness = struct
                 match is_exhaustive false patterns with
                 | Ok () -> Ok ()
                 | Error _ -> Error (kind, List.map (fun s -> "#" ^ s) ctors)))
-        | Expand_record fields ->
-            ignore fields;
-            failwith "TODO"
+        | Expand_record fields -> expand_record fields patterns
         | Infi -> (
             match default patterns with
             | Exh -> Ok ()
@@ -411,6 +413,32 @@ module Exhaustiveness = struct
     match complete_sig true stripped ctors with
     | Ok () -> raise (Error (loc, "Pattern match case is redundant"))
     | Error _ -> complete_sig true patterns ctors
+
+  and expand_record fields patterns =
+    (* The pattern in the first column is a record pattern. We replace it by
+       the expanded record pattern instead. If there is an actual record pattern
+       we can use it as is. Otherwise we fill the fields with wildcards *)
+    let wc_field loc ptyp = { pat = Tp_wildcard loc; ptyp } in
+
+    let f = function
+      | [] -> failwith "Internal Error: There are so empty records"
+      | { pat = Tp_record (_, fields); _ } :: tl ->
+          let fields =
+            List.map
+              (fun f ->
+                match f.fpat with
+                | Some p -> snd p
+                | None -> wc_field f.floc f.iftyp)
+              fields
+          in
+          fields @ tl
+      | p :: tl ->
+          let fields =
+            List.map (fun f -> wc_field (loc_of_pat p.pat) f.ftyp) fields
+          in
+          fields @ tl
+    in
+    is_exhaustive false (List.map f patterns)
 end
 
 module Make (C : Core) (R : Recs) = struct

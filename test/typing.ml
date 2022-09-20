@@ -431,6 +431,12 @@ let test_match_record_field_wrong () =
     "(type (option 'a) ((#some 'a) #none)) (type foo {:a int :b float}) (match \
      (#some {:a 12 :b 53.0}) ((#some {:a :c}) a) (#none 0))"
 
+let test_match_record_case_missing () =
+  test_exn "Pattern match is not exhaustive. Missing cases: (#some #none)"
+    "(type (option 'a) ((#some 'a) #none)) (type (foo 'a) {:a 'a :b float}) \
+     (match (#some {:a (#some 2) :b 53.0}) ((#some {:a (#some a) :b}) a) \
+     (#none 0))"
+
 let test_multi_record2 () =
   test "(foo int bool)" "(type (foo 'a 'b) {:a 'a :b 'b}) {:a 0 :b false}"
 
@@ -584,6 +590,7 @@ let () =
           case "record field missing" test_match_record_field_missing;
           case "record field twice" test_match_record_field_twice;
           case "record field wrong" test_match_record_field_wrong;
+          case "record case missing" test_match_record_case_missing;
         ] );
       ( "multi params",
         [
