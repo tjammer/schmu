@@ -767,15 +767,20 @@ end = struct
     convert env expr
 
   and convert_tuple env exprs =
-    let exprs =
-      List.mapi (fun i expr -> (string_of_int i, convert env expr)) exprs
+    let (_, const), exprs =
+      List.fold_left_map
+        (fun (i, const) expr ->
+          let expr = convert env expr in
+          let const = const && expr.attr.const in
+          ((i + 1, const), (string_of_int i, expr)))
+        (0, true) exprs
     in
     let fields =
       List.map (fun (fname, e) -> { fname; ftyp = e.typ; mut = false }) exprs
     in
     let typs = List.map (fun e -> (snd e).typ) exprs in
     let typ = Trecord (typs, None, Array.of_list fields) in
-    { typ; expr = Record exprs; attr = no_attr }
+    { typ; expr = Record exprs; attr = { const; global = false } }
 
   and convert_fmt env loc exprs =
     let f expr =
