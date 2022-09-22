@@ -447,6 +447,7 @@ end = struct
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
     | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
     | Record (loc, labels) -> convert_record env loc annot labels
+    | Tuple (_, exprs) -> convert_tuple env exprs
     | Record_update (loc, record, items) ->
         convert_record_update env loc annot record items
     | Field (loc, expr, id) -> convert_field env loc expr id
@@ -764,6 +765,17 @@ end = struct
     let modul = Module.read_exn ~regeneralize modul loc in
     let env = Module.add_to_env env modul in
     convert env expr
+
+  and convert_tuple env exprs =
+    let exprs =
+      List.mapi (fun i expr -> (string_of_int i, convert env expr)) exprs
+    in
+    let fields =
+      List.map (fun (fname, e) -> { fname; ftyp = e.typ; mut = false }) exprs
+    in
+    let typs = List.map (fun e -> (snd e).typ) exprs in
+    let typ = Trecord (typs, None, Array.of_list fields) in
+    { typ; expr = Record exprs; attr = no_attr }
 
   and convert_fmt env loc exprs =
     let f expr =

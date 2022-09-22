@@ -187,6 +187,7 @@ stmt:
 sexp_expr:
   | sexp_ctor_inst { $1 }
   | bracs(nonempty_list(sexp_record_item)) { Record ($loc, $1) }
+  | exprs = bracs(nonempty_list(sexp_expr)) { Tuple ($loc, exprs) }
   | upd = bracs(record_update) { upd }
   | sexp_lit { $1 }
   | unop; sexp_expr { Unop ($loc, $1, $2) }

@@ -49,6 +49,7 @@ and expr =
   | Lambda of loc * decl list * block
   | App of loc * expr * expr list
   | Record of loc * (string * expr) list
+  | Tuple of loc * expr list
   | Record_update of loc * (loc * string) * (string * expr) list
   | Field of loc * expr * string
   | Field_set of loc * expr * string * expr

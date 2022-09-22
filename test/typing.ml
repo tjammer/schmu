@@ -443,6 +443,7 @@ let test_multi_record2 () =
 let test_multi_variant2 () =
   test "(foo int 'a)" "(type (foo 'a 'b) ((#some 'a) (#other 'b))) (#some 1)"
 
+let test_tuple () = test "{int float}" "{1 2.0}"
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -597,4 +598,5 @@ let () =
           case "record 2" test_multi_record2;
           case "variant 2" test_multi_variant2;
         ] );
+      ("tuples", [ case "tuple" test_tuple ]);
     ]

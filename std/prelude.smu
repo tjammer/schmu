@@ -35,8 +35,8 @@
       (val cap (* (.capacity vec) 2))
       (setf (.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) cap))
       (setf (.capacity vec) cap)))
-      (vector-set vec (.length (.ptr vec)) v)
-      (setf (.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))
+  (vector-set vec (.length (.ptr vec)) v)
+  (setf (.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))
 
 (fun vector-iter [vec f]
   (fun inner [i]
