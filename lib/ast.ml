@@ -69,6 +69,7 @@ and pattern =
   | Ptup of loc * pattern list
   | Pwildcard of loc
   | Precord of loc * (loc * string * pattern option) list
+  | Plit_int of loc * int
 
 and literal =
   | Int of int

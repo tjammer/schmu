@@ -437,6 +437,26 @@ let test_match_record_case_missing () =
      (match (#some {:a (#some 2) :b 53.0}) ((#some {:a (#some a) :b}) a) \
      (#none 0))"
 
+let test_match_int () =
+  test "int"
+    "(type (option 'a) ((#some 'a) #none)) (match (#some 10)  ((#some 1) 1) \
+     ((#some 10) 10) ((#some _) 0) (#none -1))"
+
+let test_match_int_wildcard_missing () =
+  test_exn "Pattern match is not exhaustive. Missing cases: "
+    "(type (option 'a) ((#some 'a) #none)) (match (#some 10)  ((#some 1) 1) \
+     ((#some 10) 10) (#none -1))"
+
+let test_match_int_twice () =
+  test_exn "Pattern match case is redundant"
+    "(type (option 'a) ((#some 'a) #none)) (match (#some 10)  ((#some 1) 1) \
+     ((#some 10) 10) ((#some 10) 10) ((#some _) 0) (#none -1))"
+
+let test_match_int_after_catchall () =
+  test_exn "Pattern match case is redundant"
+    "(type (option 'a) ((#some 'a) #none)) (match (#some 10)  ((#some 1) 1) \
+     ((#some _) 0) ((#some 10) 10) (#none -1))"
+
 let test_multi_record2 () =
   test "(foo int bool)" "(type (foo 'a 'b) {:a 'a :b 'b}) {:a 0 :b false}"
 
@@ -592,6 +612,10 @@ let () =
           case "record field twice" test_match_record_field_twice;
           case "record field wrong" test_match_record_field_wrong;
           case "record case missing" test_match_record_case_missing;
+          case "int" test_match_int;
+          case "int wildcard missing" test_match_int_wildcard_missing;
+          case "int twice" test_match_int_twice;
+          case "int after catchall" test_match_int_after_catchall;
         ] );
       ( "multi params",
         [

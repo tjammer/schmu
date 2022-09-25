@@ -99,6 +99,7 @@ and tpat =
   | Tp_var of Ast.loc * string
   | Tp_wildcard of Ast.loc
   | Tp_record of Ast.loc * index_field list
+  | Tp_int of Ast.loc * int
 
 and ctor_param = { cindex : int; cpat : pathed_pattern option }
 
@@ -111,6 +112,7 @@ and index_field = {
 }
 
 module Tup = struct
+  (* TODO not every thing has a name *)
   type payload = {
     path : int list;
         (* Records need a path instead of just a column. {:a} in 1st column might be [0;0] *)
@@ -124,6 +126,7 @@ module Tup = struct
   type ret =
     | Var of payload
     | Ctor of payload * ctor_param
+    | Lit_int of payload * int
     | Bare of pattern_data
     | Record of index_field list * payload
 
@@ -168,8 +171,9 @@ module Tup = struct
     let score_patterns pattern =
       match (snd pattern).pat with
       | Tp_record _ ->
-          3 (* Records have highest prio, as they get destructored *)
-      | Tp_ctor _ -> 2
+          4 (* Records have highest prio, as they get destructored *)
+      | Tp_ctor _ -> 3
+      | Tp_int _ -> 2
       | Tp_var _ -> 1
       | Tp_wildcard _ -> failwith "Internal Error: Should have been dropped"
     in
@@ -184,12 +188,21 @@ module Tup = struct
     match sorted with
     | [ (path, { pat = Tp_ctor (loc, name, param); ptyp }) ] ->
         Ctor ({ path; loc; name; d; patterns = sorted; pltyp = ptyp }, param)
+    | [ (path, { pat = Tp_int (loc, i); ptyp }) ] ->
+        Lit_int ({ path; loc; name = ""; d; patterns = sorted; pltyp = ptyp }, i)
     | (_, { pat = Tp_ctor _; ptyp }) :: _ -> (
         let path, pat = choose_column sorted tl in
         match pat.pat with
         | Tp_ctor (loc, name, param) ->
             Ctor ({ path; loc; name; d; patterns = sorted; pltyp = ptyp }, param)
         | _ -> failwith "Internal Error: Not a constructor")
+    | (_, { pat = Tp_int _; ptyp }) :: _ -> (
+        let path, pat = choose_column sorted tl in
+        match pat.pat with
+        | Tp_int (loc, i) ->
+            Lit_int
+              ({ path; loc; name = ""; d; patterns = sorted; pltyp = ptyp }, i)
+        | _ -> failwith "Internal Error: Not an int pattern")
     | (path, { pat = Tp_var (loc, name); ptyp }) :: patterns ->
         (* Drop var from patterns list *)
         Var { path; loc; name; d; patterns; pltyp = ptyp }
@@ -271,7 +284,7 @@ module Exhaustiveness = struct
     let patterns =
       List.filter_map
         (function
-          | { pat = Tp_ctor _; _ } :: _ ->
+          | { pat = Tp_ctor _ | Tp_int _; _ } :: _ ->
               (* Drop row *)
               rows_empty := false;
               None
@@ -297,7 +310,8 @@ module Exhaustiveness = struct
     | Tp_wildcard loc
     | Tp_var (loc, _)
     | Tp_record (loc, _)
-    | Tp_ctor (loc, _, _) ->
+    | Tp_ctor (loc, _, _)
+    | Tp_int (loc, _) ->
         loc
 
   (* Specialize first column for [case] *)
@@ -476,8 +490,7 @@ module Make (C : Core) (R : Recs) = struct
     search_set [] l x ~f:(fun _ opt_y rest ->
         match opt_y with None -> l (* keep as is *) | Some _ -> rest)
 
-  let gen_cmp expr const_index =
-    let index = { typ = Ti32; expr = Variant_index expr; attr = no_attr } in
+  let gen_cmp index const_index =
     let cind =
       {
         typ = Ti32;
@@ -628,7 +641,7 @@ module Make (C : Core) (R : Recs) = struct
         (path, { ptyp; pat })
     | Ptup _ -> failwith "Internal Error: Unexpected tup"
     | Precord (loc, pats) ->
-        let labelset = List.map (fun (_, a, _) -> a) pats in
+        let labelset = List.map (fun (_, name, _) -> name) pats in
         let annot = make_annot (path_typ env path) in
         let ptyp = get_record_type env loc labelset annot in
         unify
@@ -654,6 +667,9 @@ module Make (C : Core) (R : Recs) = struct
         in
         let pat = Tp_record (loc, fields) in
         (path, { ptyp; pat })
+    | Plit_int (loc, i) ->
+        unify (loc, "Int pattern has unexpected type:") (path_typ env path) Tint;
+        (path, { ptyp = Tint; pat = Tp_int (loc, i) })
 
   let rec convert_match env loc exprs cases =
     let (columns, env), exprs =
@@ -791,12 +807,33 @@ module Make (C : Core) (R : Recs) = struct
               match b with
               | [] -> ifexpr
               | b ->
-                  let cmp = gen_cmp (expr path) param.cindex in
+                  let index =
+                    {
+                      typ = Ti32;
+                      expr = Variant_index (expr path);
+                      attr = no_attr;
+                    }
+                  in
+                  let cmp = gen_cmp index param.cindex in
                   let if_ = { cont with expr = ifexpr } in
                   let else_ = compile_matches env d.loc rows b ret_typ in
                   If (cmp, if_, else_)
             in
 
+            { typ = ret_typ; expr; attr = no_attr }
+        | Lit_int ({ path; d; patterns; _ }, i) ->
+            let a, b = match_int (path, i) ((patterns, d) :: tl) [] [] in
+
+            let cont = compile_matches env d.loc rows a ret_typ in
+
+            let expr =
+              match b with
+              | [] -> cont.expr
+              | b ->
+                  let cmp = gen_cmp (expr path) i in
+                  let else_ = compile_matches env d.loc rows b ret_typ in
+                  If (cmp, cont, else_)
+            in
             { typ = ret_typ; expr; attr = no_attr }
         | Record (fields, { path; loc; d; patterns; _ }) ->
             let env =
@@ -851,7 +888,7 @@ module Make (C : Core) (R : Recs) = struct
             let arg = arg_opt ptyp loc arg.cpat in
             let clauses = assoc_set i arg clauses in
             match_cases (i, case) tl ((clauses, d) :: if_) else_
-        | Some { pat = Tp_ctor _ | Tp_record _; _ } ->
+        | Some { pat = Tp_ctor _ | Tp_record _ | Tp_int _; _ } ->
             (* We found a ctor, but it does not match. Add to [else_].
                This works for record patterns as well. We are searching for a ctor,
                a record is surely not the ctor we are searching for *)
@@ -861,6 +898,20 @@ module Make (C : Core) (R : Recs) = struct
             (* We can also end up here if a record was not expanded.
                Treat like wildcard or var *)
             match_cases (i, case) tl ((clauses, d) :: if_)
+              ((clauses, d) :: else_))
+    | [] -> (List.rev if_, List.rev else_)
+
+  and match_int (path, int) cases if_ else_ =
+    match cases with
+    | (clauses, d) :: tl -> (
+        match List.assoc_opt path clauses with
+        | Some { pat = Tp_int (_, i); _ } when Int.equal int i ->
+            let clauses = assoc_remove path clauses in
+            match_int (path, int) tl ((clauses, d) :: if_) else_
+        | Some { pat = Tp_ctor _ | Tp_record _ | Tp_int _; _ } ->
+            match_int (path, int) tl if_ ((clauses, d) :: else_)
+        | Some { pat = Tp_var _ | Tp_wildcard _; _ } | None ->
+            match_int (path, int) tl ((clauses, d) :: if_)
               ((clauses, d) :: else_))
     | [] -> (List.rev if_, List.rev else_)
 

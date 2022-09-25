@@ -312,6 +312,7 @@ pipeable:
   | ident { Pvar(fst $1, snd $1) }
   | Wildcard { Pwildcard $loc }
   | items = bracs(nonempty_list(record_item_pattern)) { Precord ($loc, items) }
+  | i = Int { Plit_int ($loc, i) }
 
 %inline record_item_pattern:
   | attr = attr; p = option(sexp_pattern) { fst attr, snd attr, p }
