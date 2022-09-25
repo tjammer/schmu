@@ -95,13 +95,13 @@ type typed_pattern = { ptyp : typ; pat : tpat }
 and pathed_pattern = int list * typed_pattern
 
 and tpat =
-  | Tp_ctor of Ast.loc * string * ctor_param
+  | Tp_ctor of Ast.loc * ctor_param
   | Tp_var of Ast.loc * string
   | Tp_wildcard of Ast.loc
   | Tp_record of Ast.loc * index_field list
   | Tp_int of Ast.loc * int
 
-and ctor_param = { cindex : int; cpat : pathed_pattern option }
+and ctor_param = { cindex : int; cpat : pathed_pattern option; ctname : string }
 
 and index_field = {
   floc : Ast.loc;
@@ -112,19 +112,17 @@ and index_field = {
 }
 
 module Tup = struct
-  (* TODO not every thing has a name *)
   type payload = {
     path : int list;
         (* Records need a path instead of just a column. {:a} in 1st column might be [0;0] *)
     loc : Ast.loc;
-    name : string;
     d : pattern_data;
     patterns : pathed_pattern list;
     pltyp : typ;
   }
 
   type ret =
-    | Var of payload
+    | Var of payload * string
     | Ctor of payload * ctor_param
     | Lit_int of payload * int
     | Bare of pattern_data
@@ -186,31 +184,30 @@ module Tup = struct
     in
 
     match sorted with
-    | [ (path, { pat = Tp_ctor (loc, name, param); ptyp }) ] ->
-        Ctor ({ path; loc; name; d; patterns = sorted; pltyp = ptyp }, param)
+    | [ (path, { pat = Tp_ctor (loc, param); ptyp }) ] ->
+        Ctor ({ path; loc; d; patterns = sorted; pltyp = ptyp }, param)
     | [ (path, { pat = Tp_int (loc, i); ptyp }) ] ->
-        Lit_int ({ path; loc; name = ""; d; patterns = sorted; pltyp = ptyp }, i)
+        Lit_int ({ path; loc; d; patterns = sorted; pltyp = ptyp }, i)
     | (_, { pat = Tp_ctor _; ptyp }) :: _ -> (
         let path, pat = choose_column sorted tl in
         match pat.pat with
-        | Tp_ctor (loc, name, param) ->
-            Ctor ({ path; loc; name; d; patterns = sorted; pltyp = ptyp }, param)
+        | Tp_ctor (loc, param) ->
+            Ctor ({ path; loc; d; patterns = sorted; pltyp = ptyp }, param)
         | _ -> failwith "Internal Error: Not a constructor")
     | (_, { pat = Tp_int _; ptyp }) :: _ -> (
         let path, pat = choose_column sorted tl in
         match pat.pat with
         | Tp_int (loc, i) ->
-            Lit_int
-              ({ path; loc; name = ""; d; patterns = sorted; pltyp = ptyp }, i)
+            Lit_int ({ path; loc; d; patterns = sorted; pltyp = ptyp }, i)
         | _ -> failwith "Internal Error: Not an int pattern")
     | (path, { pat = Tp_var (loc, name); ptyp }) :: patterns ->
         (* Drop var from patterns list *)
-        Var { path; loc; name; d; patterns; pltyp = ptyp }
+        Var ({ path; loc; d; patterns; pltyp = ptyp }, name)
     | (_, { pat = Tp_wildcard _; _ }) :: _ ->
         failwith "Internal Error: Unexpected sorted pattern"
     | (path, { pat = Tp_record (loc, fields); ptyp }) :: patterns ->
         (* Drop record from patterns list *)
-        Record (fields, { path; loc; name = ""; d; patterns; pltyp = ptyp })
+        Record (fields, { path; loc; d; patterns; pltyp = ptyp })
     | [] -> Bare d
 end
 
@@ -255,8 +252,8 @@ module Exhaustiveness = struct
               | hd :: tl -> fold f lwild last (f acc hd) tl
             in
             let f set = function
-              | { pat = Tp_ctor (_, name, _); _ } :: _ ->
-                  Set.remove name set (* TODO wildcard *)
+              | { pat = Tp_ctor (_, p); _ } :: _ ->
+                  Set.remove p.ctname set (* TODO wildcard *)
               | _ -> set
             in
             let last set =
@@ -310,7 +307,7 @@ module Exhaustiveness = struct
     | Tp_wildcard loc
     | Tp_var (loc, _)
     | Tp_record (loc, _)
-    | Tp_ctor (loc, _, _)
+    | Tp_ctor (loc, _)
     | Tp_int (loc, _) ->
         loc
 
@@ -321,11 +318,11 @@ module Exhaustiveness = struct
     let patterns =
       List.filter_map
         (function
-          | { pat = Tp_ctor (_, name, args); _ } :: tl
-            when String.equal name case ->
+          | { pat = Tp_ctor (_, param); _ } :: tl
+            when String.equal param.ctname case ->
               rows_empty := false;
               let lst =
-                match args_to_list args with
+                match args_to_list param with
                 | [] ->
                     new_col := true;
                     tl
@@ -629,7 +626,7 @@ module Make (C : Core) (R : Recs) = struct
           | None, None -> None
           | _ -> mismatch_err loc name ctor.ctyp payload
         in
-        let pat = Tp_ctor (loc, name, { cindex = ctor.index; cpat }) in
+        let pat = Tp_ctor (loc, { cindex = ctor.index; cpat; ctname = name }) in
         (path, { ptyp = variant; pat })
     | Pvar (loc, name) ->
         let ptyp = path_typ env path in
@@ -639,7 +636,11 @@ module Make (C : Core) (R : Recs) = struct
         let ptyp = path_typ env path in
         let pat = Tp_wildcard loc in
         (path, { ptyp; pat })
-    | Ptup _ -> failwith "Internal Error: Unexpected tup"
+    | Ptup (loc, pats) ->
+        ignore loc;
+        ignore pats;
+        (* TODO unify *)
+        failwith "TODO"
     | Precord (loc, pats) ->
         let labelset = List.map (fun (_, name, _) -> name) pats in
         let annot = make_annot (path_typ env path) in
@@ -778,7 +779,7 @@ module Make (C : Core) (R : Recs) = struct
 
             unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
             ret
-        | Var { path; loc; name; d; patterns; pltyp } ->
+        | Var ({ path; loc; d; patterns; pltyp }, name) ->
             (* Bind the variable *)
             let env =
               Env.(add_value name { def_value with typ = pltyp } loc env)
@@ -793,8 +794,10 @@ module Make (C : Core) (R : Recs) = struct
               expr = Let (name, None, expr path, ret);
               attr = ret.attr;
             }
-        | Ctor ({ path; loc; name; d; patterns; pltyp = _ }, param) ->
-            let a, b = match_cases (path, name) ((patterns, d) :: tl) [] [] in
+        | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
+            let a, b =
+              match_cases (path, param.ctname) ((patterns, d) :: tl) [] []
+            in
 
             let data, ifenv = ctorenv env param.cpat path loc in
             let cont = compile_matches ifenv d.loc rows a ret_typ in
@@ -880,12 +883,12 @@ module Make (C : Core) (R : Recs) = struct
     match cases with
     | (clauses, d) :: tl -> (
         match List.assoc_opt i clauses with
-        | Some { pat = Tp_ctor (loc, name, arg); ptyp }
-          when String.equal case name ->
+        | Some { pat = Tp_ctor (loc, param); ptyp }
+          when String.equal case param.ctname ->
             (* We found the [case] ctor, thus we extract the argument and insert
                it at the ctor's place to the [if_] list. Since we are one level
                deeper, we replace [i]'s [lvl] with [lvl + 1] *)
-            let arg = arg_opt ptyp loc arg.cpat in
+            let arg = arg_opt ptyp loc param.cpat in
             let clauses = assoc_set i arg clauses in
             match_cases (i, case) tl ((clauses, d) :: if_) else_
         | Some { pat = Tp_ctor _ | Tp_record _ | Tp_int _; _ } ->
