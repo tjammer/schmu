@@ -35,7 +35,7 @@ module type S = sig
   val convert_match :
     Env.t ->
     Ast.loc ->
-    Ast.expr list ->
+    Ast.expr ->
     (Ast.loc * Ast.pattern * Ast.expr) list ->
     Typed_tree.typed_expr
 end
@@ -672,7 +672,11 @@ module Make (C : Core) (R : Recs) = struct
                     (i + 1, field :: pats))
                   (0, []) pats fields
               with Invalid_argument _ ->
-                raise (Error (loc, "Tuple of unexpected size"))
+                let msg =
+                  Printf.sprintf "Expecting %n fields, but found %n"
+                    (List.length fields) (List.length pats)
+                in
+                raise (Error (loc, msg))
             in
             let pats = List.rev pats in
             let fields =
@@ -721,18 +725,11 @@ module Make (C : Core) (R : Recs) = struct
         unify (loc, "Int pattern has unexpected type:") (path_typ env path) Tint;
         (path, { ptyp = Tint; pat = Tp_int (loc, i) })
 
-  let rec convert_match env loc exprs cases =
-    let (columns, env), exprs =
-      List.fold_left_map
-        (fun (i, env) expr ->
-          let e = convert env expr in
-          (* Make the expr available in the patternmatch *)
-          let env =
-            Env.(add_value (expr_name [ i ]) { exprval with typ = e.typ })
-              loc env
-          in
-          ((i + 1, env), ([ i ], e)))
-        (0, env) exprs
+  let rec convert_match env loc expr cases =
+    let path = [ 0 ] in
+    let env, expr =
+      let e = convert env expr in
+      (Env.(add_value (expr_name path) { exprval with typ = e.typ }) loc env, e)
     in
 
     let ret = newvar () in
@@ -742,24 +739,7 @@ module Make (C : Core) (R : Recs) = struct
       List.mapi
         (fun i (loc, p, expr) ->
           used_rows := Row_set.add Row.{ loc; cnt = i } !used_rows;
-          let cols, pat =
-            (* convert into typed pattern *)
-            match p with
-            | Ast.Ptup (_, pats) ->
-                (* We track the depth (lvl) for each column separately *)
-                let _, pat =
-                  List.fold_left_map
-                    (fun i (_, p) -> (i + 1, type_pattern env ([ i ], p)))
-                    0 pats
-                in
-                (List.length pats, pat)
-            | p -> (1, [ type_pattern env ([ 0 ], p) ])
-          in
-          (if cols <> columns then
-           let msg =
-             Printf.sprintf "Expecting %i patterns, but found %i" columns cols
-           in
-           raise (Error (loc, msg)));
+          let pat = [ type_pattern env ([ 0 ], p) ] in
           (pat, { loc; ret_expr = expr; row = i }))
         cases
     in
@@ -785,13 +765,7 @@ module Make (C : Core) (R : Recs) = struct
     | Some { loc; cnt = _ } ->
         raise (Error (loc, "Pattern match case is redundant")));
 
-    let rec build_expr = function
-      | [] -> matchexpr
-      | (i, expr) :: tl ->
-          { matchexpr with expr = Let (expr_name i, None, expr, build_expr tl) }
-    in
-
-    build_expr exprs
+    { matchexpr with expr = Let (expr_name path, None, expr, matchexpr) }
 
   and compile_matches env all_loc rows cases ret_typ =
     (* We build the decision tree here.

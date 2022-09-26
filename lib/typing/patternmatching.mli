@@ -23,7 +23,7 @@ module type S = sig
   val convert_match :
     Env.t ->
     Ast.loc ->
-    Ast.expr list ->
+    Ast.expr ->
     (Ast.loc * Ast.pattern * Ast.expr) list ->
     Typed_tree.typed_expr
 end

@@ -296,8 +296,8 @@ pipeable:
   | ident; Div_i; sexp_expr { Local_open ($loc, snd $1, $3) }
 
 %inline sexp_match:
-  | Match; atom_or_tup_pattern(sexp_expr); nonempty_list(parens(sexp_clause))
-    { Match (($startpos, $endpos($2)), $2, $3) }
+  | Match; expr = sexp_expr; nonempty_list(parens(sexp_clause))
+    { Match (($startpos, $endpos(expr)), expr, $3) }
 
 %inline sexp_clause:
   | sexp_pattern; sexp_expr { $loc($1), $1, $2 }

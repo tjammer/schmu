@@ -405,10 +405,10 @@ let test_match_wildcard_nested () =
 |}
 
 let test_match_column_arity () =
-  test_exn "Expecting 2 patterns, but found 1"
+  test_exn "Expecting 2 fields, but found 3"
     {|(type (option 'a) (#none (#some 'a)))
-    (match '{1 2}
-      (a a))
+    (match {1 2}
+      ({a b c} a))
 |}
 
 let test_match_record () =

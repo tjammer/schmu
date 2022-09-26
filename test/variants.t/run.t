@@ -362,6 +362,7 @@ Match multiple columns
   
   %option_int = type { i32, i64 }
   %string = type { i8*, i64 }
+  %tuple_option_int_option_int = type { %option_int, %option_int }
   
   @none_int = global %option_int zeroinitializer, align 16
   @0 = private unnamed_addr constant [4 x i8] c"%i\0A\00", align 1
@@ -375,41 +376,59 @@ Match multiple columns
     store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr17, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 3, i64* %length, align 4
-    %tag18 = bitcast %option_int* %b to i32*
-    %index = load i32, i32* %tag18, align 4
+    %0 = alloca %tuple_option_int_option_int, align 8
+    %"018" = bitcast %tuple_option_int_option_int* %0 to %option_int*
+    %1 = bitcast %option_int* %"018" to i8*
+    %2 = bitcast %option_int* %a to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 16, i1 false)
+    %"1" = getelementptr inbounds %tuple_option_int_option_int, %tuple_option_int_option_int* %0, i32 0, i32 1
+    %3 = bitcast %option_int* %"1" to i8*
+    %4 = bitcast %option_int* %b to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 16, i1 false)
+    %tag19 = bitcast %option_int* %"1" to i32*
+    %index = load i32, i32* %tag19, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else6
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option_int, %option_int* %b, i32 0, i32 1
-    %0 = load i64, i64* %data, align 4
-    %tag119 = bitcast %option_int* %a to i32*
-    %index2 = load i32, i32* %tag119, align 4
+    %5 = bitcast %tuple_option_int_option_int* %0 to %option_int*
+    %6 = bitcast %tuple_option_int_option_int* %0 to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %6, i64 24
+    %7 = bitcast i8* %sunkaddr to i64*
+    %8 = load i64, i64* %7, align 4
+    %tag120 = bitcast %option_int* %5 to i32*
+    %index2 = load i32, i32* %tag120, align 4
     %eq3 = icmp eq i32 %index2, 0
     br i1 %eq3, label %then4, label %ifcont15
   
   then4:                                            ; preds = %then
-    %data5 = getelementptr inbounds %option_int, %option_int* %a, i32 0, i32 1
-    %1 = load i64, i64* %data5, align 4
-    %add = add i64 %1, %0
+    %9 = bitcast %tuple_option_int_option_int* %0 to %option_int*
+    %data5 = getelementptr inbounds %option_int, %option_int* %9, i32 0, i32 1
+    %10 = load i64, i64* %data5, align 4
+    %add = add i64 %10, %8
     br label %ifcont15
   
   else6:                                            ; preds = %entry
-    %tag720 = bitcast %option_int* %a to i32*
-    %index8 = load i32, i32* %tag720, align 4
+    %11 = bitcast %tuple_option_int_option_int* %0 to %option_int*
+    %tag721 = bitcast %option_int* %11 to i32*
+    %index8 = load i32, i32* %tag721, align 4
     %eq9 = icmp eq i32 %index8, 0
     br i1 %eq9, label %then10, label %ifcont15
   
   then10:                                           ; preds = %else6
-    %data11 = getelementptr inbounds %option_int, %option_int* %a, i32 0, i32 1
-    %2 = load i64, i64* %data11, align 4
+    %12 = bitcast %tuple_option_int_option_int* %0 to %option_int*
+    %data11 = getelementptr inbounds %option_int, %option_int* %12, i32 0, i32 1
+    %13 = load i64, i64* %data11, align 4
     br label %ifcont15
   
   ifcont15:                                         ; preds = %then10, %else6, %then4, %then
-    %iftmp16 = phi i64 [ %add, %then4 ], [ %0, %then ], [ %2, %then10 ], [ 0, %else6 ]
+    %iftmp16 = phi i64 [ %add, %then4 ], [ %8, %then ], [ %13, %then10 ], [ 0, %else6 ]
     tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %iftmp16)
     ret void
   }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i64 @main(i64 %arg) {
   entry:
@@ -446,6 +465,8 @@ Match multiple columns
     call void @schmu_doo(%option_int* @none_int, %option_int* %option12)
     ret i64 0
   }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   3
   2
   1

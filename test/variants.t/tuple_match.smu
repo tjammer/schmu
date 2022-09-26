@@ -1,7 +1,7 @@
 (external printf (fun cstr int unit))
 
 (fun doo [a b]
-  (->> (match '{a b}
+  (->> (match {a b}
          ({(#some a) (#some b)} (+ a b))
          ({#none (#some b)} b)
          ({(#some a) #none} a)
