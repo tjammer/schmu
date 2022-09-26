@@ -66,7 +66,7 @@ and pipeable = Pip_expr of expr | Pip_field of string
 and pattern =
   | Pctor of (loc * string) * pattern option
   | Pvar of loc * string
-  | Ptup of loc * pattern list
+  | Ptup of loc * (loc * pattern) list
   | Pwildcard of loc
   | Precord of loc * (loc * string * pattern option) list
   | Plit_int of loc * int

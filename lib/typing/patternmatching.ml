@@ -98,17 +98,25 @@ and tpat =
   | Tp_ctor of Ast.loc * ctor_param
   | Tp_var of Ast.loc * string
   | Tp_wildcard of Ast.loc
-  | Tp_record of Ast.loc * index_field list
+  | Tp_record of Ast.loc * record_field list
+  | Tp_tuple of Ast.loc * tuple_field list
   | Tp_int of Ast.loc * int
 
 and ctor_param = { cindex : int; cpat : pathed_pattern option; ctname : string }
 
-and index_field = {
+and record_field = {
   floc : Ast.loc;
   name : string;
   index : int;
   iftyp : typ;
   fpat : pathed_pattern option;
+}
+
+and tuple_field = {
+  tloc : Ast.loc;
+  tindex : int;
+  ttyp : typ;
+  tpat : pathed_pattern;
 }
 
 module Tup = struct
@@ -126,7 +134,8 @@ module Tup = struct
     | Ctor of payload * ctor_param
     | Lit_int of payload * int
     | Bare of pattern_data
-    | Record of index_field list * payload
+    | Record of record_field list * payload
+    | Tuple of tuple_field list * payload
 
   let choose_column ctors tl =
     (* Count wildcards and vars per column. They lead to duplicated branches *)
@@ -168,7 +177,7 @@ module Tup = struct
        2: Otherwise, we choose a ctor, using [choose_column] *)
     let score_patterns pattern =
       match (snd pattern).pat with
-      | Tp_record _ ->
+      | Tp_record _ | Tp_tuple _ ->
           4 (* Records have highest prio, as they get destructored *)
       | Tp_ctor _ -> 3
       | Tp_int _ -> 2
@@ -208,6 +217,9 @@ module Tup = struct
     | (path, { pat = Tp_record (loc, fields); ptyp }) :: patterns ->
         (* Drop record from patterns list *)
         Record (fields, { path; loc; d; patterns; pltyp = ptyp })
+    | (path, { pat = Tp_tuple (loc, fields); ptyp }) :: patterns ->
+        (* Drop tuple from patterns list *)
+        Tuple (fields, { path; loc; d; patterns; pltyp = ptyp })
     | [] -> Bare d
 end
 
@@ -285,7 +297,8 @@ module Exhaustiveness = struct
               (* Drop row *)
               rows_empty := false;
               None
-          | { pat = Tp_wildcard _ | Tp_var _ | Tp_record _; _ } :: tl ->
+          | { pat = Tp_wildcard _ | Tp_var _ | Tp_record _ | Tp_tuple _; _ }
+            :: tl ->
               (* Discard head element *)
               new_col := true;
               rows_empty := false;
@@ -307,6 +320,7 @@ module Exhaustiveness = struct
     | Tp_wildcard loc
     | Tp_var (loc, _)
     | Tp_record (loc, _)
+    | Tp_tuple (loc, _)
     | Tp_ctor (loc, _)
     | Tp_int (loc, _) ->
         loc
@@ -636,11 +650,46 @@ module Make (C : Core) (R : Recs) = struct
         let ptyp = path_typ env path in
         let pat = Tp_wildcard loc in
         (path, { ptyp; pat })
-    | Ptup (loc, pats) ->
-        ignore loc;
-        ignore pats;
-        (* TODO unify *)
-        failwith "TODO"
+    | Ptup (loc, pats) -> (
+        let typ = path_typ env path in
+        match clean typ with
+        | Trecord (_, None, fields) ->
+            let fields = Array.to_list fields |> List.map (fun f -> f.ftyp) in
+
+            let _, pats =
+              try
+                List.fold_left2
+                  (fun (i, pats) (tloc, pat) typ ->
+                    let path = i :: path in
+                    let env =
+                      Env.(
+                        add_value (expr_name path) { exprval with typ } loc env)
+                    in
+                    let tpat = type_pattern env (path, pat) in
+                    let field =
+                      { tloc; tindex = i; ttyp = (snd tpat).ptyp; tpat }
+                    in
+                    (i + 1, field :: pats))
+                  (0, []) pats fields
+              with Invalid_argument _ ->
+                raise (Error (loc, "Tuple of unexpected size"))
+            in
+            let pats = List.rev pats in
+            let fields =
+              List.map
+                (fun p ->
+                  let ftyp = p.ttyp in
+                  { fname = string_of_int p.tindex; ftyp; mut = false })
+                pats
+              |> Array.of_list
+            in
+            unify
+              (loc, "Tuple pattern has unexpected type:")
+              (Trecord ([], None, fields))
+              typ;
+            let pat = Tp_tuple (loc, pats) in
+            (path, { ptyp = typ; pat })
+        | t -> raise (Error (loc, "Expected tuple, not " ^ string_of_type t)))
     | Precord (loc, pats) ->
         let labelset = List.map (fun (_, name, _) -> name) pats in
         let annot = make_annot (path_typ env path) in
@@ -700,7 +749,7 @@ module Make (C : Core) (R : Recs) = struct
                 (* We track the depth (lvl) for each column separately *)
                 let _, pat =
                   List.fold_left_map
-                    (fun i p -> (i + 1, type_pattern env ([ i ], p)))
+                    (fun i (_, p) -> (i + 1, type_pattern env ([ i ], p)))
                     0 pats
                 in
                 (List.length pats, pat)
@@ -876,6 +925,42 @@ module Make (C : Core) (R : Recs) = struct
                   { ret with expr = Let (expr_name newcol, None, expr, ret) })
                 ret fields
             in
+            expr
+        | Tuple (fields, { path; loc; d; patterns; _ }) ->
+            let env =
+              List.fold_left
+                (fun env pat ->
+                  let col = pat.tindex :: path in
+                  Env.(
+                    add_value (expr_name col)
+                      { exprval with typ = pat.ttyp }
+                      loc env))
+                env fields
+            in
+
+            (* Since we have all neccessary data in place, we do this row here *)
+            let patterns = expand_tuple path fields patterns in
+            (* Expand in all rows down from here. Replace tuple pattern with expanded fields *)
+            let tl = expand_tuples path tl [] in
+
+            let ret =
+              compile_matches env loc rows ((patterns, d) :: tl) ret_typ
+            in
+            let expr =
+              List.fold_left
+                (fun ret pat ->
+                  let newcol = pat.tindex :: path in
+                  let expr =
+                    {
+                      typ = pat.ttyp;
+                      expr = Field (expr path, pat.tindex);
+                      attr = no_attr;
+                    }
+                  in
+
+                  { ret with expr = Let (expr_name newcol, None, expr, ret) })
+                ret fields
+            in
             expr)
     | [] -> failwith "Internal Error: Empty match"
 
@@ -891,7 +976,7 @@ module Make (C : Core) (R : Recs) = struct
             let arg = arg_opt ptyp loc param.cpat in
             let clauses = assoc_set i arg clauses in
             match_cases (i, case) tl ((clauses, d) :: if_) else_
-        | Some { pat = Tp_ctor _ | Tp_record _ | Tp_int _; _ } ->
+        | Some { pat = Tp_ctor _ | Tp_record _ | Tp_tuple _ | Tp_int _; _ } ->
             (* We found a ctor, but it does not match. Add to [else_].
                This works for record patterns as well. We are searching for a ctor,
                a record is surely not the ctor we are searching for *)
@@ -911,7 +996,7 @@ module Make (C : Core) (R : Recs) = struct
         | Some { pat = Tp_int (_, i); _ } when Int.equal int i ->
             let clauses = assoc_remove path clauses in
             match_int (path, int) tl ((clauses, d) :: if_) else_
-        | Some { pat = Tp_ctor _ | Tp_record _ | Tp_int _; _ } ->
+        | Some { pat = Tp_ctor _ | Tp_record _ | Tp_tuple _ | Tp_int _; _ } ->
             match_int (path, int) tl if_ ((clauses, d) :: else_)
         | Some { pat = Tp_var _ | Tp_wildcard _; _ } | None ->
             match_int (path, int) tl ((clauses, d) :: if_)
@@ -932,6 +1017,14 @@ module Make (C : Core) (R : Recs) = struct
         (col, pat) :: pats)
       patterns fields
 
+  and expand_tuple path fields patterns =
+    List.fold_left
+      (fun pats { tindex; tpat; _ } ->
+        let col = tindex :: path in
+        assert (col = fst tpat);
+        tpat :: pats)
+      patterns fields
+
   and expand_records path patterns expanded =
     match patterns with
     | (patterns, d) :: tl -> (
@@ -945,6 +1038,25 @@ module Make (C : Core) (R : Recs) = struct
         | Some _ ->
             (* If there is another pattern, the record is not expanded, thus not expandable *)
             expand_records path tl ((patterns, d) :: expanded)
+        | None ->
+            (* Nothing is found here, this is an error, or a nested pattern.
+               We throw first to have a look TODO *)
+            failwith "Internal Error: Maybe? Nested record?")
+    | [] -> List.rev expanded
+
+  and expand_tuples path patterns expanded =
+    match patterns with
+    | (patterns, d) :: tl -> (
+        match List.assoc_opt path patterns with
+        | Some { pat = Tp_tuple (_, fields); _ } ->
+            (* First, remove current record pattern *)
+            let patterns =
+              assoc_remove path patterns |> expand_tuple path fields
+            in
+            expand_tuples path tl ((patterns, d) :: expanded)
+        | Some _ ->
+            (* If there is another pattern, the record is not expanded, thus not expandable *)
+            expand_tuples path tl ((patterns, d) :: expanded)
         | None ->
             (* Nothing is found here, this is an error, or a nested pattern.
                We throw first to have a look TODO *)

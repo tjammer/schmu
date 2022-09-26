@@ -302,17 +302,18 @@ pipeable:
 %inline sexp_clause:
   | sexp_pattern; sexp_expr { $loc($1), $1, $2 }
 
-%inline sexp_pattern:
-  | sexp_pattern_item { $1 }
-  | tup = bracs(sexp_pattern_tuple) { tup }
+let with_loc(x) :=
+  | item = x; { $loc, item }
 
-%inline sexp_pattern_item:
+%inline sexp_pattern:
   | sexp_ctor { Pctor ($1, None) }
   | parens(ctor_pattern_item) { $1 }
   | ident { Pvar(fst $1, snd $1) }
   | Wildcard { Pwildcard $loc }
   | items = bracs(nonempty_list(record_item_pattern)) { Precord ($loc, items) }
   | i = Int { Plit_int ($loc, i) }
+  | tup = bracs(sexp_pattern_tuple) { tup }
+
 
 %inline record_item_pattern:
   | attr = attr; p = option(sexp_pattern) { fst attr, snd attr, p }
@@ -321,7 +322,8 @@ pipeable:
   | sexp_ctor; sexp_pattern { Pctor ($1, Some $2) }
 
 %inline sexp_pattern_tuple:
-  | sexp_pattern_item; nonempty_list(sexp_pattern_item) { Ptup ($loc, $1 :: $2) }
+  | with_loc(sexp_pattern); nonempty_list(with_loc(sexp_pattern))
+    { Ptup ($loc, $1 :: $2) }
 
 %inline fmt_str:
   | Fmt_str; lst = nonempty_list(sexp_expr) { Fmt ($loc, lst) }
