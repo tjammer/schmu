@@ -119,6 +119,15 @@ and tuple_field = {
   tpat : pathed_pattern;
 }
 
+let loc_of_pat = function
+  | Tp_wildcard loc
+  | Tp_var (loc, _)
+  | Tp_record (loc, _)
+  | Tp_tuple (loc, _)
+  | Tp_ctor (loc, _)
+  | Tp_int (loc, _) ->
+      loc
+
 module Tup = struct
   type payload = {
     path : int list;
@@ -315,15 +324,6 @@ module Exhaustiveness = struct
 
   let rec to_n_list x n lst =
     if n = 0 then lst else to_n_list x (n - 1) (x :: lst)
-
-  let loc_of_pat = function
-    | Tp_wildcard loc
-    | Tp_var (loc, _)
-    | Tp_record (loc, _)
-    | Tp_tuple (loc, _)
-    | Tp_ctor (loc, _)
-    | Tp_int (loc, _) ->
-        loc
 
   (* Specialize first column for [case] *)
   let specialize case num_args patterns =
@@ -774,13 +774,19 @@ module Make (C : Core) (R : Recs) = struct
 
     let ret = newvar () in
 
+    let exp_rows = ref 0 in
+    (* expanded rows *)
     let used_rows = ref Row_set.empty in
     let typed_cases =
-      List.mapi
-        (fun i (loc, p, expr) ->
-          used_rows := Row_set.add Row.{ loc; cnt = i } !used_rows;
+      List.map
+        (fun (_, p, expr) ->
           type_pattern env ([ 0 ], p)
-          |> List.map (fun pat -> ([ pat ], { loc; ret_expr = expr; row = i })))
+          |> List.map (fun pat ->
+                 incr exp_rows;
+                 let loc = loc_of_pat (snd pat).pat in
+                 used_rows :=
+                   Row_set.add Row.{ loc; cnt = !exp_rows } !used_rows;
+                 ([ pat ], { loc; ret_expr = expr; row = !exp_rows })))
         cases
     in
     let typed_cases = List.concat typed_cases in
