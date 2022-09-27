@@ -70,6 +70,7 @@ and pattern =
   | Pwildcard of loc
   | Precord of loc * (loc * string * pattern option) list
   | Plit_int of loc * int
+  | Por of pattern list
 
 and literal =
   | Int of int

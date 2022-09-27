@@ -313,7 +313,12 @@ let with_loc(x) :=
   | items = bracs(nonempty_list(record_item_pattern)) { Precord ($loc, items) }
   | i = Int { Plit_int ($loc, i) }
   | tup = bracs(sexp_pattern_tuple) { tup }
+  | parens(or_pattern) { $1 }
 
+
+%inline or_pattern:
+  | Or; head = sexp_pattern; tail = nonempty_list(sexp_pattern)
+    { Por (head :: tail) }
 
 %inline record_item_pattern:
   | attr = attr; p = option(sexp_pattern) { fst attr, snd attr, p }

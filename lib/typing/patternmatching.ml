@@ -178,10 +178,10 @@ module Tup = struct
     let score_patterns pattern =
       match (snd pattern).pat with
       | Tp_record _ | Tp_tuple _ ->
-          4 (* Records have highest prio, as they get destructored *)
+          1 (* Records have highest prio, as they get destructored *)
       | Tp_ctor _ -> 3
-      | Tp_int _ -> 2
-      | Tp_var _ -> 1
+      | Tp_int _ -> 3
+      | Tp_var _ -> 2
       | Tp_wildcard _ -> failwith "Internal Error: Should have been dropped"
     in
     let sort_patterns a b = Int.compare (score_patterns a) (score_patterns b) in
@@ -501,14 +501,7 @@ module Make (C : Core) (R : Recs) = struct
     search_set [] l x ~f:(fun _ opt_y rest ->
         match opt_y with None -> l (* keep as is *) | Some _ -> rest)
 
-  let gen_cmp index const_index =
-    let cind =
-      {
-        typ = Ti32;
-        expr = Const (I32 const_index);
-        attr = { no_attr with const = true };
-      }
-    in
+  let gen_cmp index cind =
     let cmpexpr = Bop (Ast.Equal_i, index, cind) in
     { typ = Tbool; expr = cmpexpr; attr = no_attr }
 
@@ -616,40 +609,64 @@ module Make (C : Core) (R : Recs) = struct
      raise (Error (loc, msg)));
     index_fields
 
+  (* from containers *)
+  let cartesian_product l =
+    (* [left]: elements picked so far
+       [right]: sets to pick elements from
+       [acc]: accumulator for the result, to pass to continuation
+       [k]: continuation *)
+    let rec prod_rec left right k acc =
+      match right with
+      | [] -> k acc (List.rev left)
+      | l1 :: tail ->
+          List.fold_left (fun acc x -> prod_rec (x :: left) tail k acc) acc l1
+    in
+    prod_rec [] l (fun acc l' -> l' :: acc) []
+
   let path_typ env p = Env.(find_val (expr_name p) env).typ
 
   let rec type_pattern env (path, pat) =
+    (* This function got a little more complicated since we expand or-patterns
+       inplace. *)
     match pat with
     (* Convert pattern into typed patterns. By typechecking the pattern before
        building the decision tree, record patterns (which add new columns) can
        be visited more efficiently *)
-    | Ast.Pctor ((loc, name), payload) ->
+    | Ast.Pctor ((loc, name), payload) -> (
         let annot = make_annot (path_typ env path) in
         let _, ctor, variant = get_variant env loc (loc, name) annot in
         unify
           (loc, "Variant pattern has unexpected type:")
           (path_typ env path) variant;
-        let cpat =
-          match (ctor.ctyp, payload) with
-          | Some typ, Some p ->
-              let env =
-                Env.(add_value (expr_name path) { exprval with typ } loc env)
+        match (ctor.ctyp, payload) with
+        | Some typ, Some p ->
+            let env =
+              Env.(add_value (expr_name path) { exprval with typ } loc env)
+            in
+            (* Inherit ctor path, and specialize *)
+            let lst = type_pattern env (path, p) in
+            let f cpat =
+              let pat =
+                Tp_ctor
+                  (loc, { cindex = ctor.index; cpat = Some cpat; ctname = name })
               in
-              (* Inherit ctor path, and specialize *)
-              Some (type_pattern env (path, p))
-          | None, None -> None
-          | _ -> mismatch_err loc name ctor.ctyp payload
-        in
-        let pat = Tp_ctor (loc, { cindex = ctor.index; cpat; ctname = name }) in
-        (path, { ptyp = variant; pat })
+              (path, { ptyp = variant; pat })
+            in
+            List.map f lst
+        | None, None ->
+            let pat =
+              Tp_ctor (loc, { cindex = ctor.index; cpat = None; ctname = name })
+            in
+            [ (path, { ptyp = variant; pat }) ]
+        | _ -> mismatch_err loc name ctor.ctyp payload)
     | Pvar (loc, name) ->
         let ptyp = path_typ env path in
         let pat = Tp_var (loc, name) in
-        (path, { ptyp; pat })
+        [ (path, { ptyp; pat }) ]
     | Pwildcard loc ->
         let ptyp = path_typ env path in
         let pat = Tp_wildcard loc in
-        (path, { ptyp; pat })
+        [ (path, { ptyp; pat }) ]
     | Ptup (loc, pats) -> (
         let typ = path_typ env path in
         match clean typ with
@@ -665,11 +682,14 @@ module Make (C : Core) (R : Recs) = struct
                       Env.(
                         add_value (expr_name path) { exprval with typ } loc env)
                     in
-                    let tpat = type_pattern env (path, pat) in
-                    let field =
-                      { tloc; tindex = i; ttyp = (snd tpat).ptyp; tpat }
+                    let tpats = type_pattern env (path, pat) in
+                    let fields =
+                      List.map
+                        (fun tpat ->
+                          { tloc; tindex = i; ttyp = (snd tpat).ptyp; tpat })
+                        tpats
                     in
-                    (i + 1, field :: pats))
+                    (i + 1, fields :: pats))
                   (0, []) pats fields
               with Invalid_argument _ ->
                 let msg =
@@ -682,6 +702,7 @@ module Make (C : Core) (R : Recs) = struct
             let fields =
               List.map
                 (fun p ->
+                  let p = List.hd p in
                   let ftyp = p.ttyp in
                   { fname = string_of_int p.tindex; ftyp; mut = false })
                 pats
@@ -691,8 +712,10 @@ module Make (C : Core) (R : Recs) = struct
               (loc, "Tuple pattern has unexpected type:")
               (Trecord ([], None, fields))
               typ;
-            let pat = Tp_tuple (loc, pats) in
-            (path, { ptyp = typ; pat })
+            cartesian_product pats
+            |> List.map (fun pats ->
+                   let pat = Tp_tuple (loc, pats) in
+                   (path, { ptyp = typ; pat }))
         | t -> raise (Error (loc, "Expected tuple, not " ^ string_of_type t)))
     | Precord (loc, pats) ->
         let labelset = List.map (fun (_, name, _) -> name) pats in
@@ -713,17 +736,34 @@ module Make (C : Core) (R : Recs) = struct
                     { exprval with typ = field.ftyp }
                     loc env)
               in
-              let fpat =
-                Option.map (fun pat -> type_pattern env (path, pat)) pat
-              in
-              { floc; name; index; iftyp = field.ftyp; fpat })
+              match pat with
+              | None ->
+                  [ { floc; name; index; iftyp = field.ftyp; fpat = None } ]
+              | Some pat ->
+                  let pats = type_pattern env (path, pat) in
+                  List.map
+                    (fun fpat ->
+                      {
+                        floc;
+                        name;
+                        index;
+                        iftyp = field.ftyp;
+                        fpat = Some fpat;
+                      })
+                    pats)
             index_fields
         in
-        let pat = Tp_record (loc, fields) in
-        (path, { ptyp; pat })
+        cartesian_product fields
+        |> List.map (fun fields ->
+               let pat = Tp_record (loc, fields) in
+               (path, { ptyp; pat }))
     | Plit_int (loc, i) ->
         unify (loc, "Int pattern has unexpected type:") (path_typ env path) Tint;
-        (path, { ptyp = Tint; pat = Tp_int (loc, i) })
+        [ (path, { ptyp = Tint; pat = Tp_int (loc, i) }) ]
+    | Por pats ->
+        (* Don't add to pattern *)
+        let pats = List.map (fun p -> type_pattern env (path, p)) pats in
+        cartesian_product pats |> List.concat
 
   let rec convert_match env loc expr cases =
     let path = [ 0 ] in
@@ -735,20 +775,21 @@ module Make (C : Core) (R : Recs) = struct
     let ret = newvar () in
 
     let used_rows = ref Row_set.empty in
-    let some_cases =
+    let typed_cases =
       List.mapi
         (fun i (loc, p, expr) ->
           used_rows := Row_set.add Row.{ loc; cnt = i } !used_rows;
-          let pat = [ type_pattern env ([ 0 ], p) ] in
-          (pat, { loc; ret_expr = expr; row = i }))
+          type_pattern env ([ 0 ], p)
+          |> List.map (fun pat -> ([ pat ], { loc; ret_expr = expr; row = i })))
         cases
     in
+    let typed_cases = List.concat typed_cases in
 
-    let matchexpr = compile_matches env loc used_rows some_cases ret in
+    let matchexpr = compile_matches env loc used_rows typed_cases ret in
 
     (* Check for exhaustiveness *)
     (let patterns =
-       List.map (fun p -> List.map (fun p -> snd p) (fst p)) some_cases
+       List.map (fun p -> List.map (fun p -> snd p) (fst p)) typed_cases
      in
      match Exhaustiveness.is_exhaustive true patterns with
      | Ok () -> ()
@@ -840,7 +881,14 @@ module Make (C : Core) (R : Recs) = struct
                       attr = no_attr;
                     }
                   in
-                  let cmp = gen_cmp index param.cindex in
+                  let cind =
+                    {
+                      typ = Ti32;
+                      expr = Const (I32 param.cindex);
+                      attr = { no_attr with const = true };
+                    }
+                  in
+                  let cmp = gen_cmp index cind in
                   let if_ = { cont with expr = ifexpr } in
                   let else_ = compile_matches env d.loc rows b ret_typ in
                   If (cmp, if_, else_)
@@ -856,7 +904,14 @@ module Make (C : Core) (R : Recs) = struct
               match b with
               | [] -> cont.expr
               | b ->
-                  let cmp = gen_cmp (expr path) i in
+                  let cind =
+                    {
+                      typ = Tint;
+                      expr = Const (Int i);
+                      attr = { no_attr with const = true };
+                    }
+                  in
+                  let cmp = gen_cmp (expr path) cind in
                   let else_ = compile_matches env d.loc rows b ret_typ in
                   If (cmp, cont, else_)
             in
