@@ -9,20 +9,17 @@ Here's what it looks like:
 
 Fibonacci example
 ``` haskell
--- No print function yet, so we use a C stub to print integers
-external printi : int -> unit
-
 -- Variable binding
-val number = 35
+(val number 35)
 
 -- Calculate fibonacci number
-fun fib(n) =
-  -- The function simply returns the expression, no 'return' statement
-  if n < 2 then n
-  else fib(n - 1) + fib(n - 2)
+(fun fib [n]
+  (match n
+    ((or 0 1) n)
+    (_ (+ (fib (- n 1)) (fib (- n 2))))))
 
 -- and print it
-fib(number) |. printi
+(print (fmt-str (fib number)))
 ```
 
 A note on syntax:
@@ -86,7 +83,7 @@ The memory management story is not fully fleshed out yet, right now there is a b
 + [x] Higher order functions and (downward) closures
 + [x] Polymorphic functions and monomorphization
 + [x] Type-parametrized records
-+ [ ] Algebraic data types and pattern matching
++ [x] Algebraic data types and pattern matching
 + [ ] Module system
 + [ ] Recursive data types
 + [ ] C ABI compatibilty. WIP, the machinery is in place and it's mostly done for x86_64-linux-gnu. Other targets will be added in the future.
