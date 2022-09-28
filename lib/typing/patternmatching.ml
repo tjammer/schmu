@@ -89,7 +89,12 @@ let get_variant env loc (_, name) annot =
           let msg = "Unbound constructor " ^ name in
           raise (Error (loc, msg)))
 
-type pattern_data = { loc : Ast.loc; ret_expr : Ast.expr; row : int }
+type pattern_data = {
+  loc : Ast.loc;
+  ret_expr : Ast.expr;
+  row : int;
+  ret_env : Env.t;
+}
 
 type typed_pattern = { ptyp : typ; pat : tpat }
 and pathed_pattern = int list * typed_pattern
@@ -667,56 +672,45 @@ module Make (C : Core) (R : Recs) = struct
         let ptyp = path_typ env path in
         let pat = Tp_wildcard loc in
         [ (path, { ptyp; pat }) ]
-    | Ptup (loc, pats) -> (
+    | Ptup (loc, pats) ->
         let typ = path_typ env path in
-        match clean typ with
-        | Trecord (_, None, fields) ->
-            let fields = Array.to_list fields |> List.map (fun f -> f.ftyp) in
-
-            let _, pats =
-              try
-                List.fold_left2
-                  (fun (i, pats) (tloc, pat) typ ->
-                    let path = i :: path in
-                    let env =
-                      Env.(
-                        add_value (expr_name path) { exprval with typ } loc env)
-                    in
-                    let tpats = type_pattern env (path, pat) in
-                    let fields =
-                      List.map
-                        (fun tpat ->
-                          { tloc; tindex = i; ttyp = (snd tpat).ptyp; tpat })
-                        tpats
-                    in
-                    (i + 1, fields :: pats))
-                  (0, []) pats fields
-              with Invalid_argument _ ->
-                let msg =
-                  Printf.sprintf "Expecting %n fields, but found %n"
-                    (List.length fields) (List.length pats)
-                in
-                raise (Error (loc, msg))
-            in
-            let pats = List.rev pats in
-            let fields =
-              List.map
-                (fun p ->
-                  let p = List.hd p in
-                  let ftyp = p.ttyp in
-                  { fname = string_of_int p.tindex; ftyp; mut = false })
-                pats
-              |> Array.of_list
-            in
-            unify
-              (loc, "Tuple pattern has unexpected type:")
-              (Trecord ([], None, fields))
-              typ;
-            cartesian_product pats
-            |> List.map (fun pats ->
-                   let pat = Tp_tuple (loc, pats) in
-                   (path, { ptyp = typ; pat }))
-        | t -> raise (Error (loc, "Expected tuple, not " ^ string_of_type t)))
+        let pats =
+          List.mapi
+            (fun i (tloc, pat) ->
+              let path = i :: path in
+              let env =
+                Env.(
+                  add_value (expr_name path)
+                    { exprval with typ = newvar () }
+                    loc env)
+              in
+              let tpats = type_pattern env (path, pat) in
+              let fields =
+                List.map
+                  (fun tpat ->
+                    { tloc; tindex = i; ttyp = (snd tpat).ptyp; tpat })
+                  tpats
+              in
+              fields)
+            pats
+        in
+        let fields =
+          List.map
+            (fun p ->
+              let p = List.hd p in
+              let ftyp = p.ttyp in
+              { fname = string_of_int p.tindex; ftyp; mut = false })
+            pats
+          |> Array.of_list
+        in
+        unify
+          (loc, "Tuple pattern has unexpected type:")
+          (Trecord ([], None, fields))
+          typ;
+        cartesian_product pats
+        |> List.map (fun pats ->
+               let pat = Tp_tuple (loc, pats) in
+               (path, { ptyp = typ; pat }))
     | Precord (loc, pats) ->
         let labelset = List.map (fun (_, name, _) -> name) pats in
         let annot = make_annot (path_typ env path) in
@@ -779,14 +773,14 @@ module Make (C : Core) (R : Recs) = struct
     let used_rows = ref Row_set.empty in
     let typed_cases =
       List.map
-        (fun (_, p, expr) ->
+        (fun (_, p, ret_expr) ->
           type_pattern env ([ 0 ], p)
           |> List.map (fun pat ->
                  incr exp_rows;
                  let loc = loc_of_pat (snd pat).pat in
                  used_rows :=
                    Row_set.add Row.{ loc; cnt = !exp_rows } !used_rows;
-                 ([ pat ], { loc; ret_expr = expr; row = !exp_rows })))
+                 ([ pat ], { loc; ret_expr; row = !exp_rows; ret_env = env })))
         cases
     in
     let typed_cases = List.concat typed_cases in
@@ -845,16 +839,17 @@ module Make (C : Core) (R : Recs) = struct
             (* Mark row as used *)
             rows := Row_set.remove { cnt = d.row; loc = d.loc } !rows;
 
-            let ret = convert env d.ret_expr in
+            let ret = convert d.ret_env d.ret_expr in
 
             unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
             ret
         | Var ({ path; loc; d; patterns; pltyp }, name) ->
             (* Bind the variable *)
-            let env =
-              Env.(add_value name { def_value with typ = pltyp } loc env)
+            let ret_env =
+              Env.(add_value name { def_value with typ = pltyp } loc d.ret_env)
             in
             (* Continue with expression *)
+            let d = { d with ret_env } in
             let ret =
               compile_matches env loc rows ((patterns, d) :: tl) ret_typ
             in

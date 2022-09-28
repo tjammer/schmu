@@ -405,7 +405,9 @@ let test_match_wildcard_nested () =
 |}
 
 let test_match_column_arity () =
-  test_exn "Expecting 2 fields, but found 3"
+  test_exn
+    "Tuple pattern has unexpected type: Wrong arity for tuple: Expected 2 but \
+     got 3"
     {|(type (option 'a) (#none (#some 'a)))
     (match {1 2}
       ({a b c} a))
@@ -456,6 +458,15 @@ let test_match_int_after_catchall () =
   test_exn "Pattern match case is redundant"
     "(type (option 'a) ((#some 'a) #none)) (match (#some 10)  ((#some 1) 1) \
      ((#some _) 0) ((#some 10) 10) (#none -1))"
+
+let test_match_or () = test "int" "(match {1 2} ((or {a 1} {a 2}) a) (_ -1))"
+
+let test_match_or_missing_var () =
+  test_exn "No var named a" "(match {1 2} ((or {a 1} {b 2}) a) (_ -1))"
+
+let test_match_or_redundant () =
+  test_exn "Pattern match case is redundant"
+    "(match {1 2} ((or {a 1} {a 2} {a 1}) a) (_ -1))"
 
 let test_multi_record2 () =
   test "(foo int bool)" "(type (foo 'a 'b) {:a 'a :b 'b}) {:a 0 :b false}"
@@ -616,6 +627,9 @@ let () =
           case "int wildcard missing" test_match_int_wildcard_missing;
           case "int twice" test_match_int_twice;
           case "int after catchall" test_match_int_after_catchall;
+          case "or" test_match_or;
+          case "or missing var" test_match_or_missing_var;
+          case "or redundant" test_match_or_redundant;
         ] );
       ( "multi params",
         [
