@@ -293,15 +293,14 @@ let test_vector_different_weak () =
     (set a 2)
     (set a true)|}
 
-let test_mutable_declare () = test "int" "(type foo { :x (mutable int) }) 0"
+let test_mutable_declare () = test "int" "(type foo { :x& int }) 0"
 
 let test_mutable_set () =
-  test "unit"
-    "(type foo { :x (mutable int) }) (val foo { :x 12 }) (setf (.x foo) 13)"
+  test "unit" "(type foo { :x& int }) (val foo { :x 12 }) (setf (.x foo) 13)"
 
 let test_mutable_set_wrong_type () =
   test_exn "Mutate field x: Expected type int but got type bool"
-    "(type foo { :x (mutable int) }) (val foo { :x 12 }) (setf (.x foo) true)"
+    "(type foo { :x& int }) (val foo { :x 12 }) (setf (.x foo) true)"
 
 let test_mutable_set_non_mut () =
   test_exn "Cannot mutate non-mutable field x"

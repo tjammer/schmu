@@ -4,7 +4,7 @@
 
 (type (test 'a) {:int_wrap 'a})
 
-(type (mut 'a) {:wrapped (mutable 'a)})
+(type (mut 'a) {:wrapped& 'a})
 
 (fun test_thing []
   (val test {:int_wrap {:dat 2 :b 0 :c 0}})

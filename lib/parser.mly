@@ -39,6 +39,7 @@
 %token <string> Lowercase_id
 %token <string> Kebab_id
 %token <string> Keyword
+%token <string> Mut_keyword
 %token <string> Constructor
 %token <string> Accessor
 %token <string> At_id
@@ -81,7 +82,6 @@
 %token Let
 %token Quote
 %token Match
-%token Mutable
 %token Wildcard
 %token Open
 %token Type
@@ -153,8 +153,8 @@ let bracks(x) :=
   | Lpar; ident; polys = nonempty_list(poly_id); Rpar { { name = snd $2; poly_param = List.map string_of_ty_var polys } }
 
 %inline sexp_type_decl:
-  | Keyword; sexp_type_expr { false, $1, $2 }
-  | Keyword; Lpar; Mutable; sexp_type_expr; Rpar { true, $1, $4 }
+  | name = Keyword; t = sexp_type_expr { false, name, t }
+  | name = Mut_keyword; t = sexp_type_expr; { true, name, t }
 
 %inline open_:
   | parens(sexp_open) { $1 }

@@ -1,4 +1,4 @@
-(type bref {:a (mutable bool)})
+(type bref {:a& bool})
 
 (fun mut-bref [i rf]
   (if (> i 0)
