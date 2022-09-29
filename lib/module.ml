@@ -39,6 +39,7 @@ let add_fun name uniq (abs : Typed_tree.abstraction) m =
 
 let add_external t name cname m = Mext (t, name, cname) :: m
 let module_cache = Hashtbl.create 64
+(* TODO sort by insertion order *)
 
 (* Right now we only ever compile one module, so this can safely be global *)
 let poly_funcs = ref []
@@ -47,8 +48,8 @@ let paths = ref [ "." ]
 (* We cache the prelude path for later *)
 let prelude_path = ref None
 
-let find_file name =
-  let name = String.lowercase_ascii (name ^ ".smi") in
+let find_file name suffix =
+  let name = String.lowercase_ascii (name ^ suffix) in
   let ( // ) = Filename.concat in
   let rec path = function
     | p :: tl ->
@@ -65,7 +66,7 @@ let read_module ~regeneralize name =
   | Some r -> r
   | None -> (
       try
-        let c = open_in (find_file name) in
+        let c = open_in (find_file name ".smi") in
         let r =
           Result.map t_of_sexp (Sexp.input c)
           |> Result.map

@@ -6,7 +6,7 @@ type opts = {
   modul : bool;
   compile_only : bool;
   no_prelude : bool;
-  link_modules : string list;
+  objects : string list;
   check_only : bool;
   cargs : string list;
 }
@@ -36,7 +36,7 @@ let run file
       modul;
       compile_only;
       no_prelude;
-      link_modules;
+      objects;
       check_only;
       cargs;
     } =
@@ -71,7 +71,7 @@ let run file
            Module.Sexp.to_channel modfile m;
            close_out modfile)
          else if compile_only then ()
-         else Link.link ~prelude outname link_modules cargs))
+         else Link.link ~prelude outname objects cargs))
   with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
@@ -94,7 +94,7 @@ let () =
   let dump_llvm = ref false in
   let outname = ref "" in
   let filename = ref None in
-  let link_modules = ref [] in
+  let objects = ref [] in
   let release = ref false in
   let modul = ref false in
   let compile_only = ref false in
@@ -103,7 +103,7 @@ let () =
   let cargs = ref [] in
   let carg s = cargs := s :: !cargs in
   let anon_fun fn =
-    if Filename.check_suffix fn ".o" then link_modules := fn :: !link_modules
+    if Filename.check_suffix fn ".o" then objects := fn :: !objects
     else if Filename.check_suffix fn ".smu" then (
       match !filename with
       | None -> filename := Some fn
@@ -164,7 +164,7 @@ let () =
       modul = !modul;
       compile_only = !compile_only;
       no_prelude = !no_prelude;
-      link_modules = List.rev !link_modules;
+      objects = List.rev !objects;
       check_only = !check_only;
       cargs = List.rev !cargs;
     }
