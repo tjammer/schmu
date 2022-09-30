@@ -47,8 +47,7 @@ let kebab_id = lowercase_alpha (lowercase_alpha|'-'|digit|'?')*
 let keyword = ':'(lowercase_id|kebab_id)
 let mut_kw = ':'(lowercase_id|kebab_id)'&'
 let constructor = '#'(lowercase_id|kebab_id)
-let accessor = '.'(lowercase_id|kebab_id)
-let tup_accessor = '.'digit
+let accessor = '.'(lowercase_id|kebab_id|int)
 let at_id = '@'(lowercase_id|kebab_id)
 
 let white = [' ' '\t']+

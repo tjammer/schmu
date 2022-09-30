@@ -166,11 +166,16 @@ module Make (C : Core) = struct
   and get_field env loc expr id =
     let expr = convert env expr in
     match clean expr.typ with
-    | Trecord (_, Some name, labels) -> (
+    | Trecord (_, name, labels) -> (
         match assoc_opti id labels with
         | Some (index, field) -> (field, expr, index)
         | None ->
-            raise (Error (loc, "Unbound field :" ^ id ^ " on record " ^ name)))
+            let name =
+              match name with
+              | Some n -> "record " ^ n
+              | None -> Printf.sprintf "tuple of size %i" (Array.length labels)
+            in
+            raise (Error (loc, "Unbound field :" ^ id ^ " on " ^ name)))
     | t -> (
         match Env.find_label_opt id env with
         | Some { index; typename } -> (
