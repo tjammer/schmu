@@ -234,7 +234,7 @@ let rec param_annots t =
 let param_annot annots i =
   if Array.length annots > i then Array.get annots i else None
 
-let handle_params env loc params ret =
+let handle_params env loc (params : Ast.decl list) ret =
   (* return updated env with bindings for parameters and types of parameters *)
   let rec handle = function
     | Qvar _ as t -> (newvar (), t)
@@ -246,9 +246,9 @@ let handle_params env loc params ret =
   in
 
   List.fold_left_map
-    (fun env (loc, (idloc, id), type_annot) ->
+    (fun env { Ast.loc; ident = idloc, id; mut; annot } ->
       let type_id, qparams =
-        match type_annot with
+        match annot with
         | None ->
             let t = newvar () in
             (t, t)
@@ -262,6 +262,7 @@ let handle_params env loc params ret =
             param = true;
             global = false;
             imported = false;
+            mut;
           }
           idloc env,
         (type_id, qparams) ))
@@ -465,7 +466,9 @@ end = struct
     match Env.query_val_opt id env with
     | Some t ->
         let typ = instantiate t.typ in
-        { typ; expr = Var id; attr = { const = t.const; global = t.global } }
+        let mut = if t.mut then Myes else Mnot in
+        let attr = { const = t.const; global = t.global; mut } in
+        { typ; expr = Var id; attr }
     | None -> raise (Error (loc, "No var named " ^ id))
 
   and convert_vector_lit env loc vec =
@@ -499,17 +502,18 @@ end = struct
         check_annot loc t.typ t_annot;
         { t with typ = t_annot }
 
-  and convert_let ~global env loc (_, (idloc, id), type_annot) block =
-    let e1 = typeof_annot_decl env loc type_annot block in
+  and convert_let ~global env loc { Ast.loc = _; ident = idloc, id; mut; annot }
+      block =
+    let e1 = typeof_annot_decl env loc annot block in
     ( Env.add_value id
-        { Env.def_value with typ = e1.typ; const = e1.attr.const; global }
+        { Env.def_value with typ = e1.typ; const = e1.attr.const; global; mut }
         idloc env,
       { e1 with attr = { e1.attr with global } } )
 
   and convert_let_e env loc decl expr cont =
     let env, texpr = convert_let ~global:false env loc decl expr in
     let cont = convert env cont in
-    let id = (fun (_, a, _) -> snd a) decl in
+    let id = snd decl.ident in
     let uniq = if texpr.attr.const then uniq_name id else None in
     let expr = Let (id, uniq, texpr, cont) in
     { typ = cont.typ; expr; attr = cont.attr }
@@ -536,7 +540,7 @@ end = struct
         let qtyp = Tfun (qparams, ret, kind) in
         check_annot loc typ qtyp;
 
-        let nparams = List.map (fun (_, name, _) -> snd name) params in
+        let nparams = List.map (fun (d : Ast.decl) -> snd d.ident) params in
         let func = { tparams; ret; kind } in
         let abs =
           { nparams; body = { body with typ = ret }; func; inline = false }
@@ -596,7 +600,7 @@ end = struct
         let qtyp = Tfun (qparams, ret, kind) |> generalize in
         check_annot loc typ qtyp;
 
-        let nparams = List.map (fun (_, name, _) -> snd name) params in
+        let nparams = List.map (fun (d : Ast.decl) -> snd d.ident) params in
         let func = { tparams; ret; kind } in
         let lambda =
           { nparams; body = { body with typ = ret }; func; inline }
@@ -780,7 +784,7 @@ end = struct
     in
     let typs = List.map (fun e -> (snd e).typ) exprs in
     let typ = Trecord (typs, None, Array.of_list fields) in
-    { typ; expr = Record exprs; attr = { const; global = false } }
+    { typ; expr = Record exprs; attr = { const; global = false; mut = Mnot } }
 
   and convert_fmt env loc exprs =
     let f expr =
@@ -814,7 +818,7 @@ end = struct
       | Let (loc, decl, block) :: tl ->
           let env, texpr = convert_let ~global:false env loc decl block in
           let cont, env = to_expr env old_type tl in
-          let id = (fun (_, a, _) -> snd a) decl in
+          let id = snd decl.ident in
           let uniq = if texpr.attr.const then uniq_name id else None in
           let expr = Let (id, uniq, texpr, cont) in
           ({ typ = cont.typ; expr; attr = cont.attr }, env)
@@ -896,7 +900,7 @@ let convert_prog env items modul =
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
         let env, texpr = Core.convert_let ~global:true env loc decl block in
-        let id = (fun (_, a, _) -> snd a) decl in
+        let id = snd decl.ident in
         let uniq = uniq_name id in
         (* Make string option out of int option for unique name *)
         let uniq_name =

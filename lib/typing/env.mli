@@ -10,10 +10,11 @@ type value = {
   const : bool;
   global : bool;
   imported : bool;
+  mut : bool
 }
 
 type unused = (unit, (string * Ast.loc) list) result
-type return = { typ : typ; const : bool; global : bool }
+type return = { typ : typ; const : bool; global : bool; mut : bool }
 type imported = [ `C | `Schmu ]
 
 type ext = {

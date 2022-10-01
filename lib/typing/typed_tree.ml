@@ -50,9 +50,10 @@ and abstraction = {
 }
 
 and generic_fun = { concrete : func; generic : func }
-and attr = { const : bool; global : bool }
+and mut_kind = Myes | Mnot | Munbound
+and attr = { const : bool; global : bool; mut : mut_kind }
 
-let no_attr = { const = false; global = false }
+let no_attr = { const = false; global = false; mut = Munbound }
 
 exception Error of Ast.loc * string
 

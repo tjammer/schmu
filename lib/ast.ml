@@ -29,7 +29,12 @@ type type_spec =
   | Ty_func of type_spec list
   | Ty_open_id of loc * type_spec * string
 
-and decl = loc * (loc * string) * type_spec option
+and decl = {
+  loc : loc;
+  ident : loc * string;
+  mut : bool;
+  annot : type_spec option;
+}
 
 type func = {
   name : loc * string;

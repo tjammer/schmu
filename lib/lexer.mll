@@ -27,6 +27,9 @@ let name_of_string str =
 let mut_name_of_string str =
   String.sub str 1 (String.length str - 2)
 
+let mut_of_string str =
+  String.sub str 0 (String.length str - 1)
+
 }
 
 let digit = ['0'-'9']
@@ -44,6 +47,7 @@ let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
 let builtin_id = "__" lowercase_id
 
 let kebab_id = lowercase_alpha (lowercase_alpha|'-'|digit|'?')*
+let mut_id = (kebab_id)'&'
 let keyword = ':'(lowercase_id|kebab_id)
 let mut_kw = ':'(lowercase_id|kebab_id)'&'
 let constructor = '#'(lowercase_id|kebab_id)
@@ -83,7 +87,8 @@ rule read =
   | "cond"   { Cond }
   | "fmt-str"{ Fmt_str }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
-  | kebab_id     { Kebab_id (Lexing.lexeme lexbuf) }
+  | kebab_id { Kebab_id (Lexing.lexeme lexbuf) }
+  | mut_id   { Mut_id (mut_of_string (Lexing.lexeme lexbuf))}
   | keyword  { Keyword (name_of_string (Lexing.lexeme lexbuf)) }
   | mut_kw   { Mut_keyword (mut_name_of_string (Lexing.lexeme lexbuf)) }
   | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }

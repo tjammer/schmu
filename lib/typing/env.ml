@@ -36,10 +36,11 @@ type value = {
   const : bool;
   global : bool;
   imported : bool;
+  mut : bool;
 }
 
 type usage = { loc : Ast.loc; used : bool ref; imported : bool }
-type return = { typ : typ; const : bool; global : bool }
+type return = { typ : typ; const : bool; global : bool; mut : bool }
 type imported = [ `C | `Schmu ]
 
 type ext = {
@@ -79,6 +80,7 @@ let def_value =
     const = false;
     global = false;
     imported = false;
+    mut = false;
   }
 
 let empty () =
@@ -231,7 +233,7 @@ let close_function env =
                (* We only add functions to the closure if they are params
                   Or: if they are closures *)
                let k = Type_key.key k in
-               let { typ; param; const; global; imported } =
+               let { typ; param; const; global; imported; mut = _ } =
                  find_val_raw k env
                in
                (* Const values (and imported ones) are not closed over, they exist module-wide *)
@@ -252,8 +254,14 @@ let find_val_opt key env =
     | scope :: tl -> (
         match Map.find_opt key scope.valmap with
         | None -> aux tl
-        | Some vl -> Some { typ = vl.typ; const = vl.const; global = vl.global }
-        )
+        | Some vl ->
+            Some
+              {
+                typ = vl.typ;
+                const = vl.const;
+                global = vl.global;
+                mut = vl.mut;
+              })
   in
   aux env.values
 
@@ -280,14 +288,14 @@ let query_val_opt key env =
     | scope :: tl -> (
         match Map.find_opt key scope.valmap with
         | None -> aux (scope_lvl + 1) tl
-        | Some { typ; const; imported; global; _ } ->
+        | Some { typ; const; imported; global; mut; param = _ } ->
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
             (match scope_lvl with
             | 0 -> ()
             | _ -> add scope_lvl (Type_key.create key) env.values);
             (* Mark value used, if it's not imported *)
             if not imported then mark_used key scope.used;
-            Some { typ; const; global })
+            Some { typ; const; global; mut })
   in
   aux 0 env.values
 

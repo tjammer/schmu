@@ -38,6 +38,7 @@
 %token Do
 %token <string> Lowercase_id
 %token <string> Kebab_id
+%token <string> Mut_id
 %token <string> Keyword
 %token <string> Mut_keyword
 %token <string> Constructor
@@ -171,11 +172,13 @@ stmt:
   | Val; sexp_decl; sexp_expr { Let($loc, $2, $3) }
 
 %inline sexp_decl:
-  | ident { $loc, $1, None }
+  | ident = ident;  { { loc = $loc; ident; mut = false; annot = None } }
+  | ident = mut_ident { { loc = $loc; ident; mut = true; annot = None } }
   | parens(sexp_decl_typed) { $1 }
 
 %inline sexp_decl_typed:
-  | ident; sexp_type_expr { $loc, $1, Some $2 }
+  | ident = ident; sexp_type_expr { { loc = $loc; ident; mut = false; annot = Some $2 } }
+  | ident = mut_ident; sexp_type_expr { { loc = $loc; ident; mut = true; annot = Some $2 } }
 
 %inline sexp_fun:
   | Fun; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
@@ -336,6 +339,9 @@ let with_loc(x) :=
 ident:
   | Lowercase_id { ($loc, $1) }
   | Kebab_id { ($loc, $1) }
+
+mut_ident:
+  | id = Mut_id { $loc, id }
 
 sexp_ctor:
   | Constructor { $loc, $1 }
