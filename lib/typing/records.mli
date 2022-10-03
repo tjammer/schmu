@@ -28,9 +28,6 @@ module type S = sig
     string ->
     Typed_tree.typed_expr
 
-  val convert_field_set :
-    Env.t -> Ast.loc -> Ast.expr -> string -> Ast.expr -> Typed_tree.typed_expr
-
   val get_record_type :
     Env.t -> Ast.loc -> string list -> Types.typ option -> Types.typ
 end

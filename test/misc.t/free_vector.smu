@@ -11,7 +11,7 @@
 (fun vec_inside []
   (val vec [x {:x 2} {:x 3}])
   -- Make sure we can call realloc
-  (setf (.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) 9)))
+  (set (.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) 9)))
 
 -- Vec is returned and should be freed in its parent scope
 (fun make_vec []
@@ -51,7 +51,7 @@
 (val normal (nest_fns))
 
 (val nested [[0 1] [2 3]])
-(setf (.optr (.ptr nested)) (__realloc (.optr (.ptr nested)) 9))
+(set (.optr (.ptr nested)) (__realloc (.optr (.ptr nested)) 9))
 (val nested (make_nested_vec))
 (val nested (nest_allocs))
 (nest_local)

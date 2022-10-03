@@ -257,9 +257,9 @@ let test_vector_var () =
 let test_vector_weak () =
   test "(vector int)"
     {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    (external set (fun (vector 'a) 'a unit))
+    (external setf (fun (vector 'a) 'a unit))
     (val a [])
-    (set a  2)
+    (setf a  2)
     a|}
 
 let test_vector_different_types () =
@@ -279,32 +279,32 @@ let test_vector_different_annot_weak () =
     "Application: Expected type (fun (vector bool) bool unit) but got type \
      (fun (vector bool) int 'a)"
     {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    (external set (fun (vector 'a) 'a unit))
+    (external setf (fun (vector 'a) 'a unit))
     (val (a (vector bool)) [])
-    (set a 2)|}
+    (setf a 2)|}
 
 let test_vector_different_weak () =
   test_exn
     "Application: Expected type (fun (vector int) int unit) but got type (fun \
      (vector int) bool 'a)"
     {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    (external set (fun (vector 'a) 'a unit))
+    (external setf (fun (vector 'a) 'a unit))
     (val a [])
-    (set a 2)
-    (set a true)|}
+    (setf a 2)
+    (setf a true)|}
 
 let test_mutable_declare () = test "int" "(type foo { :x& int }) 0"
 
 let test_mutable_set () =
-  test "unit" "(type foo { :x& int }) (val foo { :x 12 }) (setf (.x foo) 13)"
+  test "unit" "(type foo { :x& int }) (val foo { :x 12 }) (set (.x foo) 13)"
 
 let test_mutable_set_wrong_type () =
-  test_exn "Mutate field x: Expected type int but got type bool"
-    "(type foo { :x& int }) (val foo { :x 12 }) (setf (.x foo) true)"
+  test_exn "Mutate: Expected type int but got type bool"
+    "(type foo { :x& int }) (val foo { :x 12 }) (set (.x foo) true)"
 
 let test_mutable_set_non_mut () =
-  test_exn "Cannot mutate non-mutable field x"
-    "(type foo { :x int }) (val foo { :x 12}) (setf (.x foo) 13)"
+  test_exn "Cannot mutate non-mutable binding"
+    "(type foo { :x int }) (val foo { :x 12}) (set (.x foo) 13)"
 
 let test_variants_option_none () =
   test "(option 'a)" "(type (option 'a) (#none (#some 'a))) #none"

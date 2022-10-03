@@ -32,9 +32,6 @@ module type S = sig
     string ->
     Typed_tree.typed_expr
 
-  val convert_field_set :
-    Env.t -> Ast.loc -> Ast.expr -> string -> Ast.expr -> Typed_tree.typed_expr
-
   val get_record_type :
     Env.t -> Ast.loc -> string list -> Types.typ option -> Types.typ
 end
@@ -193,18 +190,6 @@ module Make (C : Core) = struct
     {
       typ = field.ftyp;
       expr = Field (expr, index);
-      attr = { no_attr with const = expr.attr.const };
+      attr = { no_attr with const = expr.attr.const; mut = field.mut };
     }
-
-  and convert_field_set env loc expr id value =
-    let field, expr, index = get_field env loc expr id in
-    let valexpr = convert env value in
-
-    (if not field.mut then
-     let msg =
-       Printf.sprintf "Cannot mutate non-mutable field %s" field.fname
-     in
-     raise (Error (loc, msg)));
-    unify (loc, "Mutate field " ^ field.fname ^ ":") field.ftyp valexpr.typ;
-    { typ = Tunit; expr = Field_set (expr, index, valexpr); attr = no_attr }
 end

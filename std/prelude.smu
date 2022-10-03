@@ -33,10 +33,10 @@
   (if (= (.length (.ptr vec)) (.capacity vec))
     (do
       (val cap (* (.capacity vec) 2))
-      (setf (.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) cap))
-      (setf (.capacity vec) cap)))
+      (set (.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) cap))
+      (set (.capacity vec) cap)))
   (vector-set vec (.length (.ptr vec)) v)
-  (setf (.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))
+  (set (.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))
 
 (fun vector-iter [vec f]
   (fun inner [i]
@@ -76,4 +76,4 @@
 
 (fun ref [contents] {:contents})
 
-(fun ref-set [a v] (setf (.contents a) v))
+(fun ref-set [a v] (set (.contents a) v))

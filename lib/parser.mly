@@ -87,7 +87,7 @@
 %token Open
 %token Type
 %token Defexternal
-%token Setf
+%token Set
 %token Fmt_str
 
 %start <Ast.prog> prog
@@ -264,11 +264,8 @@ sexp_cond:
     { Lambda ($loc, params, body) }
 
 %inline sexp_field_set:
-  | Setf; access = parens(sexp_set_access); sexp_expr
-    { Field_set ($loc, snd access, fst access, $3) }
-
-%inline sexp_set_access:
-  | acc = Accessor; exp = sexp_expr { acc, exp }
+  | Set; var = sexp_expr; value = sexp_expr
+    { Set ($loc, var, value) }
 
 %inline sexp_field_get:
   | Accessor; sexp_expr { Field ($loc, $2, $1) }

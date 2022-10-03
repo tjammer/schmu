@@ -1179,8 +1179,7 @@ and gen_expr param typed_expr =
         typed_expr.return
       |> fin
   | Mfield (expr, index) -> codegen_field param expr index |> fin
-  | Mfield_set (expr, index, value) ->
-      codegen_field_set param expr index value |> fin
+  | Mset (expr, value) -> codegen_set param expr value |> fin
   | Mseq (expr, cont) -> codegen_chain param expr cont
   | Mfree_after (expr, id) -> gen_free param expr id
   | Mctor (ctor, allocref, const) ->
@@ -1846,12 +1845,11 @@ and codegen_field param expr index =
 
   { value; typ; lltyp = get_lltype_def typ; const }
 
-and codegen_field_set param expr index valexpr =
-  let value = gen_expr param expr in
-  let ptr = Llvm.build_struct_gep value.value index "" builder in
+and codegen_set param expr valexpr =
+  let ptr = gen_expr param expr in
   let value = gen_expr param valexpr in
   (* We know that ptr cannot be a constant record, but value might *)
-  set_struct_field value ptr;
+  set_struct_field value ptr.value;
   { dummy_fn_value with lltyp = unit_t }
 
 and codegen_chain param expr cont =

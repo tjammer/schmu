@@ -13,7 +13,7 @@ type expr =
   | App of { callee : typed_expr; args : typed_expr list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
-  | Field_set of (typed_expr * int * typed_expr)
+  | Set of (typed_expr * typed_expr)
   | Sequence of (typed_expr * typed_expr)
   | Ctor of (string * int * typed_expr option)
   | Variant_index of typed_expr
@@ -50,10 +50,9 @@ and abstraction = {
 }
 
 and generic_fun = { concrete : func; generic : func }
-and mut_kind = Myes | Mnot | Munbound
-and attr = { const : bool; global : bool; mut : mut_kind }
+and attr = { const : bool; global : bool; mut : bool }
 
-let no_attr = { const = false; global = false; mut = Munbound }
+let no_attr = { const = false; global = false; mut = false }
 
 exception Error of Ast.loc * string
 

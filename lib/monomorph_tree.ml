@@ -29,7 +29,7 @@ type expr =
     }
   | Mrecord of (string * monod_tree) list * alloca * bool
   | Mfield of (monod_tree * int)
-  | Mfield_set of (monod_tree * int * monod_tree)
+  | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)
   | Mfree_after of monod_tree * int
   | Mctor of (string * int * monod_tree option) * alloca * bool
@@ -397,12 +397,8 @@ let rec subst_body p subst tree =
         { tree with typ = subst tree.typ; expr = Mvar_index (sub expr) }
     | Mvar_data expr ->
         { tree with typ = subst tree.typ; expr = Mvar_data (sub expr) }
-    | Mfield_set (expr, index, value) ->
-        {
-          tree with
-          typ = subst tree.typ;
-          expr = Mfield_set (sub expr, index, sub value);
-        }
+    | Mset (expr, value) ->
+        { tree with typ = subst tree.typ; expr = Mset (sub expr, sub value) }
     | Mseq (expr, cont) ->
         let expr = sub expr in
         let cont = sub cont in
@@ -552,8 +548,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
   | Record labels -> morph_record make param labels texpr.attr
   | Field (expr, index) -> morph_field make param expr index
-  | Field_set (expr, index, value) ->
-      morph_field_set make param expr index value
+  | Set (expr, value) -> morph_set make param expr value
   | Sequence (expr, cont) -> morph_seq make param expr cont
   | Function (name, uniq, abs, cont) ->
       let p, call, abs = prep_func param (name, uniq, abs) in
@@ -715,7 +710,7 @@ and morph_field mk p expr index =
      Otherwise codegen might use a nested type as its parent *)
   ({ p with ret }, mk (Mfield (e, index)) ret, { func with alloc = No_value })
 
-and morph_field_set mk p expr index value =
+and morph_set mk p expr value =
   let ret = p.ret in
   let p, e, _ = morph_expr { p with ret = false } expr in
   let p, v, func = morph_expr p value in
@@ -723,7 +718,7 @@ and morph_field_set mk p expr index value =
   (* TODO handle this in morph_call, where realloc drops the old ptr and adds the new one to the free list *)
   (* If we mutate a ptr with realloced ptr, the old one is already freed and we drop it from
      the free list *)
-  ({ p with ret }, mk (Mfield_set (e, index, v)) ret, func)
+  ({ p with ret }, mk (Mset (e, v)) ret, func)
 
 and morph_seq mk p expr cont =
   let ret = p.ret in

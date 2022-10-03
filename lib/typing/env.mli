@@ -10,7 +10,7 @@ type value = {
   const : bool;
   global : bool;
   imported : bool;
-  mut : bool
+  mut : bool;
 }
 
 type unused = (unit, (string * Ast.loc) list) result

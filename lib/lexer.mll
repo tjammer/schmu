@@ -83,7 +83,7 @@ rule read =
   | "open"   { Open }
   | "type" { Type }
   | "external"{ Defexternal }
-  | "setf"   { Setf }
+  | "set"   { Set }
   | "cond"   { Cond }
   | "fmt-str"{ Fmt_str }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }

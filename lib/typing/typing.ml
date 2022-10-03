@@ -452,8 +452,7 @@ end = struct
     | Record_update (loc, record, items) ->
         convert_record_update env loc annot record items
     | Field (loc, expr, id) -> convert_field env loc expr id
-    | Field_set (loc, expr, id, value) ->
-        convert_field_set env loc expr id value
+    | Set (loc, expr, value) -> convert_set env loc expr value
     | Do_block stmts -> convert_block env stmts |> fst
     | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
     | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
@@ -466,8 +465,7 @@ end = struct
     match Env.query_val_opt id env with
     | Some t ->
         let typ = instantiate t.typ in
-        let mut = if t.mut then Myes else Mnot in
-        let attr = { const = t.const; global = t.global; mut } in
+        let attr = { const = t.const; global = t.global; mut = t.mut } in
         { typ; expr = Var id; attr }
     | None -> raise (Error (loc, "No var named " ^ id))
 
@@ -735,6 +733,16 @@ end = struct
   and pipe_ctor_msg =
     "Constructor already has an argument, cannot pipe a second one"
 
+  and convert_set env loc expr value =
+    let toset = convert env expr in
+    let valexpr = convert env value in
+
+    (if not toset.attr.mut then
+     let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
+     raise (Error (loc, msg)));
+    unify (loc, "Mutate:") toset.typ valexpr.typ;
+    { typ = Tunit; expr = Set (toset, valexpr); attr = no_attr }
+
   and convert_pipe_head env loc e1 e2 =
     let switch_uni = true in
     match e2 with
@@ -784,7 +792,8 @@ end = struct
     in
     let typs = List.map (fun e -> (snd e).typ) exprs in
     let typ = Trecord (typs, None, Array.of_list fields) in
-    { typ; expr = Record exprs; attr = { const; global = false; mut = Mnot } }
+    let attr = { const; global = false; mut = true } in
+    { typ; expr = Record exprs; attr }
 
   and convert_fmt env loc exprs =
     let f expr =
