@@ -152,15 +152,15 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr4, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 3, i64* %length, align 4
-    %a__2 = load i64, i64* @a__2, align 4
-    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %a__2)
+    %0 = load i64, i64* @a__2, align 4
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %0)
     %str1 = alloca %string, align 8
     %cstr25 = bitcast %string* %str1 to i8**
     store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr25, align 8
     %length3 = getelementptr inbounds %string, %string* %str1, i32 0, i32 1
     store i64 3, i64* %length3, align 4
-    %b = load i64, i64* @b, align 4
-    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %b)
+    %1 = load i64, i64* @b, align 4
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %1)
     ret i64 0
   }
   11
@@ -185,33 +185,33 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define i64 @main(i64 %arg) {
   entry:
     %str = alloca %string, align 8
-    %cstr12 = bitcast %string* %str to i8**
-    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr12, align 8
+    %cstr10 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr10, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 3, i64* %length, align 4
-    %a__2 = load i64, i64* @a__2, align 4
-    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %a__2)
+    %0 = load i64, i64* @a__2, align 4
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %0)
     %str1 = alloca %string, align 8
-    %cstr213 = bitcast %string* %str1 to i8**
-    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr213, align 8
+    %cstr211 = bitcast %string* %str1 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr211, align 8
     %length3 = getelementptr inbounds %string, %string* %str1, i32 0, i32 1
     store i64 3, i64* %length3, align 4
-    %b = load i64, i64* @b, align 4
-    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %b)
+    %1 = load i64, i64* @b, align 4
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %1)
     %str4 = alloca %string, align 8
-    %cstr514 = bitcast %string* %str4 to i8**
-    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr514, align 8
+    %cstr512 = bitcast %string* %str4 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr512, align 8
     %length6 = getelementptr inbounds %string, %string* %str4, i32 0, i32 1
     store i64 3, i64* %length6, align 4
-    %a__27 = load i64, i64* @a__2, align 4
-    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %a__27)
-    %str8 = alloca %string, align 8
-    %cstr915 = bitcast %string* %str8 to i8**
-    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr915, align 8
-    %length10 = getelementptr inbounds %string, %string* %str8, i32 0, i32 1
-    store i64 3, i64* %length10, align 4
-    %b11 = load i64, i64* @b, align 4
-    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %b11)
+    %2 = load i64, i64* @a__2, align 4
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %2)
+    %str7 = alloca %string, align 8
+    %cstr813 = bitcast %string* %str7 to i8**
+    store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i8** %cstr813, align 8
+    %length9 = getelementptr inbounds %string, %string* %str7, i32 0, i32 1
+    store i64 3, i64* %length9, align 4
+    %3 = load i64, i64* @b, align 4
+    tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %3)
     ret i64 0
   }
   11
@@ -224,7 +224,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   $ cat poly_func.smi
-  ((9:Mpoly_fun((7:nparams(5:thing))(4:body((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(4:Link(8:Tvariant((4:Tvar(7:Unbound2:131:2)))6:option(((5:cname4:some)(4:ctyp((4:Tvar(7:Unbound2:131:2))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))))(4:expr(3:Var5:thing))(4:attr((5:const5:false)(6:global5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(2:If((3:typ5:Tbool)(4:expr(3:Bop7:Equal_i((3:typ4:Ti32)(4:expr(13:Variant_index((3:typ(8:Tvariant((4:Tvar(7:Unbound2:131:2)))6:option(((5:cname4:some)(4:ctyp((4:Tvar(7:Unbound2:131:2))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Ti32)(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(7:Unbound2:131:2)))(4:expr(12:Variant_data((3:typ(8:Tvariant((4:Tvar(7:Unbound2:131:2)))6:option(((5:cname4:some)(4:ctyp((4:Tvar(7:Unbound2:131:2))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const4:true)(6:global5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(3:Let7:__expr0()((3:typ(8:Tvariant((4:Tvar(7:Unbound2:131:2)))6:option(((5:cname4:some)(4:ctyp((4:Tvar(7:Unbound2:131:2))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false))))))(4:attr((5:const5:false)(6:global5:false)))))(4:func((7:tparams((8:Tvariant((4:Qvar2:13))6:option(((5:cname4:some)(4:ctyp((4:Qvar2:13)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1))))))(3:ret4:Tint)(4:kind6:Simple)))(6:inline5:false))8:classify))
+  ((9:Mpoly_fun((7:nparams(5:thing))(4:body((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(4:Link(8:Tvariant((4:Tvar(7:Unbound2:131:2)))6:option(((5:cname4:some)(4:ctyp((4:Tvar(7:Unbound2:131:2))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))))(4:expr(3:Var5:thing))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(2:If((3:typ5:Tbool)(4:expr(3:Bop7:Equal_i((3:typ4:Ti32)(4:expr(13:Variant_index((3:typ(8:Tvariant((4:Tvar(7:Unbound2:131:2)))6:option(((5:cname4:some)(4:ctyp((4:Tvar(7:Unbound2:131:2))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false))))((3:typ4:Ti32)(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false))))((3:typ4:Tint)(4:expr(3:Let7:__expr0()((3:typ(4:Tvar(7:Unbound2:131:2)))(4:expr(12:Variant_data((3:typ(8:Tvariant((4:Tvar(7:Unbound2:131:2)))6:option(((5:cname4:some)(4:ctyp((4:Tvar(7:Unbound2:131:2))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false))))))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false))))((3:typ(4:Tvar(4:Link4:Tint)))(4:expr(3:Let7:__expr0()((3:typ(8:Tvariant((4:Tvar(7:Unbound2:131:2)))6:option(((5:cname4:some)(4:ctyp((4:Tvar(7:Unbound2:131:2))))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))))(4:func((7:tparams((8:Tvariant((4:Qvar2:13))6:option(((5:cname4:some)(4:ctyp((4:Qvar2:13)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1))))))(3:ret4:Tint)(4:kind6:Simple)))(6:inline5:false))8:classify))
 
   $ schmu open_poly_func.smu --dump-llvm && ./open_poly_func
   ; ModuleID = 'context'
@@ -456,7 +456,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   declare void @free(i8* %0)
 
   $ cat malloc_some.smi
-  ((5:Mtype(8:Tvariant()6:either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(4:Tfun(4:Tint4:Tint)4:Tint6:Simple)8:add_ints)(4:Mext4:Tint1:a())(4:Mext(4:Tvar(4:Link4:Tint))1:b())(9:Mpoly_fun((7:nparams(1:x))(4:body((3:typ(4:Qvar2:15))(4:expr(3:Var1:x))(4:attr((5:const5:false)(6:global5:false)))))(4:func((7:tparams((4:Qvar2:15)))(3:ret(4:Qvar2:15))(4:kind6:Simple)))(6:inline5:false))2:id)(4:Mext(7:Trecord((4:Tvar(4:Link4:Tint)))(6:vector)(((5:fname3:ptr)(4:ftyp(7:Trecord((4:Tvar(4:Link4:Tint)))(9:owned_ptr)(((5:fname4:optr)(4:ftyp(8:Traw_ptr(4:Tvar(4:Link4:Tint))))(3:mut4:true))((5:fname6:length)(4:ftyp4:Tint)(3:mut4:true)))))(3:mut5:false))((5:fname8:capacity)(4:ftyp4:Tint)(3:mut4:true))))5:vtest())(4:Mext(7:Trecord((4:Tvar(4:Link4:Tint)))(6:vector)(((5:fname3:ptr)(4:ftyp(7:Trecord((4:Tvar(4:Link4:Tint)))(9:owned_ptr)(((5:fname4:optr)(4:ftyp(8:Traw_ptr(4:Tvar(4:Link4:Tint))))(3:mut4:true))((5:fname6:length)(4:ftyp4:Tint)(3:mut4:true)))))(3:mut5:false))((5:fname8:capacity)(4:ftyp4:Tint)(3:mut4:true))))6:vtest2()))
+  ((5:Mtype(8:Tvariant()6:either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(4:Tfun(4:Tint4:Tint)4:Tint6:Simple)8:add_ints)(4:Mext4:Tint1:a())(4:Mext(4:Tvar(4:Link4:Tint))1:b())(9:Mpoly_fun((7:nparams(1:x))(4:body((3:typ(4:Qvar2:15))(4:expr(3:Var1:x))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))))(4:func((7:tparams((4:Qvar2:15)))(3:ret(4:Qvar2:15))(4:kind6:Simple)))(6:inline5:false))2:id)(4:Mext(7:Trecord((4:Tvar(4:Link4:Tint)))(6:vector)(((5:fname3:ptr)(4:ftyp(7:Trecord((4:Tvar(4:Link4:Tint)))(9:owned_ptr)(((5:fname4:optr)(4:ftyp(8:Traw_ptr(4:Tvar(4:Link4:Tint))))(3:mut4:true))((5:fname6:length)(4:ftyp4:Tint)(3:mut4:true)))))(3:mut5:false))((5:fname8:capacity)(4:ftyp4:Tint)(3:mut4:true))))5:vtest())(4:Mext(7:Trecord((4:Tvar(4:Link4:Tint)))(6:vector)(((5:fname3:ptr)(4:ftyp(7:Trecord((4:Tvar(4:Link4:Tint)))(9:owned_ptr)(((5:fname4:optr)(4:ftyp(8:Traw_ptr(4:Tvar(4:Link4:Tint))))(3:mut4:true))((5:fname6:length)(4:ftyp4:Tint)(3:mut4:true)))))(3:mut5:false))((5:fname8:capacity)(4:ftyp4:Tint)(3:mut4:true))))6:vtest2()))
 
   $ schmu use_malloc_some.smu --dump-llvm && ./use_malloc_some
   use_malloc_some.smu:3:6: warning: Unused binding do_something
@@ -498,8 +498,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define void @schmu___i.u_inner_i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %closure*, %vector_int* }*
-    %f6 = bitcast { %closure*, %vector_int* }* %clsr to %closure**
-    %f1 = load %closure*, %closure** %f6, align 8
+    %f4 = bitcast { %closure*, %vector_int* }* %clsr to %closure**
+    %f1 = load %closure*, %closure** %f4, align 8
     %vec = getelementptr inbounds { %closure*, %vector_int* }, { %closure*, %vector_int* }* %clsr, i32 0, i32 1
     %vec2 = load %vector_int*, %vector_int** %vec, align 8
     %1 = alloca i64, align 8
@@ -507,29 +507,29 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %i3 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %2 = bitcast %vector_int* %vec2 to %owned_ptr_int*
-    %3 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %2, i32 0, i32 1
-    %4 = load i64, i64* %3, align 4
-    %eq = icmp eq i64 %i3, %4
+    %2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %3 = bitcast %vector_int* %vec2 to %owned_ptr_int*
+    %4 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %3, i32 0, i32 1
+    %5 = load i64, i64* %4, align 4
+    %eq = icmp eq i64 %2, %5
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %5 = bitcast %vector_int* %vec2 to %owned_ptr_int*
-    %6 = bitcast %owned_ptr_int* %5 to i64**
-    %7 = load i64*, i64** %6, align 8
-    %scevgep = getelementptr i64, i64* %7, i64 %i3
-    %8 = load i64, i64* %scevgep, align 4
-    %funcptr7 = bitcast %closure* %f1 to i8**
-    %loadtmp = load i8*, i8** %funcptr7, align 8
+    %6 = bitcast %vector_int* %vec2 to %owned_ptr_int*
+    %7 = bitcast %owned_ptr_int* %6 to i64**
+    %8 = load i64*, i64** %7, align 8
+    %scevgep = getelementptr i64, i64* %8, i64 %2
+    %9 = load i64, i64* %scevgep, align 4
+    %funcptr5 = bitcast %closure* %f1 to i8**
+    %loadtmp = load i8*, i8** %funcptr5, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
-    %loadtmp4 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %8, i8* %loadtmp4)
-    %add = add i64 %i3, 1
+    %loadtmp3 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i64 %9, i8* %loadtmp3)
+    %add = add i64 %2, 1
     store i64 %add, i64* %1, align 4
     br label %rec
   }

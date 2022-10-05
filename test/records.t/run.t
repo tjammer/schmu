@@ -464,27 +464,27 @@ Support function/closure fields
   define { i64, i64 } @schmu_advance(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
-    %fst4 = bitcast { i64, i64 }* %box to i64*
-    store i64 %0, i64* %fst4, align 4
+    %fst5 = bitcast { i64, i64 }* %box to i64*
+    store i64 %0, i64* %fst5, align 4
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
     store i64 %1, i64* %snd, align 4
     %state = bitcast { i64, i64 }* %box to %state*
     %2 = alloca %state, align 8
-    %cnt5 = bitcast %state* %2 to i64*
+    %cnt6 = bitcast %state* %2 to i64*
     %3 = getelementptr inbounds %state, %state* %state, i32 0, i32 1
     %4 = inttoptr i64 %1 to %closure*
-    %funcptr6 = bitcast %closure* %4 to i8**
-    %loadtmp = load i8*, i8** %funcptr6, align 8
+    %funcptr7 = bitcast %closure* %4 to i8**
+    %loadtmp = load i8*, i8** %funcptr7, align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %4, i32 0, i32 1
     %loadtmp2 = load i8*, i8** %envptr, align 8
     %5 = tail call i64 %casttmp(i64 %0, i8* %loadtmp2)
-    store i64 %5, i64* %cnt5, align 4
+    store i64 %5, i64* %cnt6, align 4
     %next = getelementptr inbounds %state, %state* %2, i32 0, i32 1
     store %closure* %4, %closure** %next, align 8
     %unbox = bitcast %state* %2 to { i64, i64 }*
-    %unbox3 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
-    ret { i64, i64 } %unbox3
+    %unbox4 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
+    ret { i64, i64 } %unbox4
   }
   
   define i64 @schmu___fun0(i64 %x) {
@@ -642,8 +642,8 @@ A return of a field should not be preallocated
   define void @schmu_vector_loop__2(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %mut_int_wrap* }*
-    %test5 = bitcast { %mut_int_wrap* }* %clsr to %mut_int_wrap**
-    %test1 = load %mut_int_wrap*, %mut_int_wrap** %test5, align 8
+    %test3 = bitcast { %mut_int_wrap* }* %clsr to %mut_int_wrap**
+    %test1 = load %mut_int_wrap*, %mut_int_wrap** %test3, align 8
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 4
     %2 = alloca %int_wrap, align 8
@@ -660,11 +660,11 @@ A return of a field should not be preallocated
   
   else:                                             ; preds = %rec
     %4 = bitcast %mut_int_wrap* %test1 to %int_wrap*
-    %dat6 = bitcast %int_wrap* %2 to i64*
+    %dat4 = bitcast %int_wrap* %2 to i64*
     %5 = bitcast %int_wrap* %4 to i64*
     %6 = load i64, i64* %5, align 4
     %add = add i64 %6, 1
-    store i64 %add, i64* %dat6, align 4
+    store i64 %add, i64* %dat4, align 4
     %b = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 1
     store i64 0, i64* %b, align 4
     %c = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 2

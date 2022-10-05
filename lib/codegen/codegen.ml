@@ -8,14 +8,14 @@ external add_byval : Llvm.llvalue -> int -> Llvm.lltype -> unit
 module Strtbl = Hashtbl
 module Ptrtbl = Hashtbl
 
-type const_kind = Not | Const | Const_ptr
+type value_kind = Const | Const_ptr | Imm | Ptr
 type mangle_kind = C | Schmu
 
 type llvar = {
   value : Llvm.llvalue;
   typ : typ;
   lltyp : Llvm.lltype;
-  const : const_kind;
+  kind : value_kind;
 }
 
 type rec_block = { rec_ : Llvm.llbasicblock; entry : Llvm.llbuilder }
@@ -91,10 +91,14 @@ let global_t =
 let dummy_fn_value =
   (* When we need something in the env for a function which will only be called
      in a monomorphized version *)
-  { typ = Tunit; value = Llvm.const_int i32_t (-1); lltyp = i32_t; const = Not }
+  { typ = Tunit; value = Llvm.const_int i32_t (-1); lltyp = i32_t; kind = Ptr }
 
 let no_param =
   { vars = Vars.empty; alloca = None; finalize = None; rec_block = None }
+
+let default_kind = function
+  | Tint | Tbool | Tfloat | Tu8 | Ti32 | Tf32 | Tunit | Traw_ptr _ -> Imm
+  | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ -> Ptr
 
 (* Named structs for typedefs *)
 
@@ -512,7 +516,7 @@ let unbox_record ~kind ~ret value =
   in
 
   let is_const =
-    match value.const with Const -> true | Not | Const_ptr -> false
+    match value.kind with Const -> true | Ptr | Const_ptr | Imm -> false
   in
 
   (* If this is a return value, we unbox it as a struct every time *)
@@ -529,18 +533,32 @@ let unbox_record ~kind ~ret value =
       let v2 = Llvm.build_load ptr "snd" builder in
       (v1, Some v2)
 
+let bring_default value =
+  if is_struct value.typ then value.value
+  else
+    match value.kind with
+    | Const_ptr -> Llvm.global_initializer value.value |> Option.get
+    | Ptr -> Llvm.build_load value.value "" builder
+    | Const | Imm -> value.value
+
+let bring_default_var v =
+  let kind = if is_struct v.typ then v.kind else default_kind v.typ in
+  { v with value = bring_default v; kind }
+
 (* Checks the param kind before calling [unbox_record] *)
-let maybe_unbox_record typ value =
+let pass_value value =
   (* From record to int *)
-  match pkind_of_typ typ with
-  | Unboxed kind -> unbox_record ~kind ~ret:false value
-  | Boxed -> (value.value, None)
+  if is_struct value.typ then
+    match pkind_of_typ value.typ with
+    | Unboxed kind -> unbox_record ~kind ~ret:false value
+    | Boxed -> (value.value, None)
+  else (bring_default value, None)
 
 (* Given two ptr types (most likely to structs), copy src to dst *)
 let memcpy ~dst ~src ~size =
-  match src.const with
-  | Const -> ignore (Llvm.build_store src.value dst builder)
-  | Not | Const_ptr ->
+  match src.kind with
+  | Const | Imm -> ignore (Llvm.build_store src.value dst builder)
+  | Ptr | Const_ptr ->
       let memcpy_decl =
         lazy
           Llvm.(
@@ -704,9 +722,10 @@ let get_const_string s =
       ptr
 
 let fmt_str value =
+  let v = bring_default value in
   match value.typ with
-  | Tint -> ("%li", value.value)
-  | Tfloat -> ("%.9g", value.value)
+  | Tint -> ("%li", v)
+  | Tfloat -> ("%.9g", v)
   | Trecord (_, Some name, _) when String.equal name "string" ->
       let ptr = Llvm.build_struct_gep value.value 0 "" builder in
       ("%s", Llvm.build_load ptr "" builder)
@@ -717,7 +736,7 @@ let fmt_str value =
       let false_bb = Llvm.append_block context "free" parent in
       let cont_bb = Llvm.append_block context "cont" parent in
 
-      ignore (Llvm.build_cond_br value.value cont_bb false_bb builder);
+      ignore (Llvm.build_cond_br v cont_bb false_bb builder);
 
       Llvm.position_at_end false_bb builder;
       ignore (Llvm.build_br cont_bb builder);
@@ -731,9 +750,9 @@ let fmt_str value =
           "" builder
       in
       ("%s", value)
-  | Tu8 -> ("%hhi", value.value)
-  | Ti32 -> ("%i", value.value)
-  | Tf32 -> (".9gf", value.value)
+  | Tu8 -> ("%hhi", v)
+  | Ti32 -> ("%i", v)
+  | Tf32 -> (".9gf", v)
   | _ ->
       print_endline (show_typ value.typ);
       failwith "Internal Error: Impossible string format"
@@ -767,7 +786,7 @@ let declare_function ~c_linkage mangle_kind fun_name = function
         List.iter
           (fun (i, typ) -> add_byval value i (get_lltype_def typ))
           byvals;
-      let llvar = { value; typ; lltyp = ft; const = Not } in
+      let llvar = { value; typ; lltyp = ft; kind = Imm } in
       llvar
   | _ ->
       prerr_endline fun_name;
@@ -833,7 +852,7 @@ let gen_closure_obj param assoc func name =
      when passed *)
   let typ = tfun_to_closure func.typ in
 
-  { value = clsr_struct; typ; lltyp = func.lltyp; const = Not }
+  { value = clsr_struct; typ; lltyp = func.lltyp; kind = Imm }
 
 let add_closure vars func = function
   | Simple -> vars
@@ -864,7 +883,7 @@ let add_closure vars func = function
                   let value = Llvm.build_load item_ptr name builder in
                   (value, Llvm.type_of value)
             in
-            let item = { value; typ; lltyp; const = Not } in
+            let item = { value; typ; lltyp; kind = default_kind typ } in
             (Vars.add name item env, i + 1))
           (vars, 0) assoc
       in
@@ -881,10 +900,6 @@ let tailrec_store ~src ~dst =
   (* Used to have special handling for mutable vars,
      now we use the same strategy (modify a ptr) for every struct type *)
   ignore (Llvm.build_store src.value dst builder)
-
-let load ptr = function
-  | Trecord _ | Tvariant _ -> ptr
-  | _ -> Llvm.build_load ptr "" builder
 
 let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
 
@@ -917,7 +932,8 @@ let add_params vars f fname names types start_index recursive =
     List.fold_left2
       (fun (env, i) name typ ->
         let value, i = get_value i typ in
-        let param = { value; typ; lltyp = Llvm.type_of value; const = Not } in
+        let kind = default_kind typ in
+        let param = { value; typ; lltyp = Llvm.type_of value; kind } in
         Llvm.set_value_name name value;
         (Vars.add name param env, i + 1))
       (vars, start_index) names types
@@ -967,7 +983,7 @@ let add_params vars f fname names types start_index recursive =
             let value, i = get_value i typ in
             Llvm.set_value_name name value;
             let value =
-              { value; typ; lltyp = Llvm.type_of value; const = Not }
+              { value; typ; lltyp = Llvm.type_of value; kind = Ptr }
             in
             let alloc = { value with value = alloca_copy value } in
             (Vars.add (name_of_alloc_param i) alloc env, i + 1))
@@ -988,7 +1004,10 @@ let add_params vars f fname names types start_index recursive =
           (fun (env, i) name typ ->
             let i = get_index i typ in
             let llvar = Vars.find (name_of_alloc_param i) env in
-            let value = Llvm.build_load llvar.value name builder in
+            let value =
+              if is_struct typ then Llvm.build_load llvar.value name builder
+              else llvar.value
+            in
             (Vars.add name { llvar with value } env, i + 1))
           (vars, start_index) names types
       in
@@ -1006,10 +1025,14 @@ let pass_function param llvar kind =
       llvar
 
 let func_to_closure vars llvar =
-  (* TODO somewhere we don't convert into closure correctly.
-     It happens at function that are annotated. There, every function comes
-     out as 'Simple' *)
+  (* TODO somewhere we don't convert into closure correctly. *)
   if Llvm.type_of llvar.value = (closure_t |> Llvm.pointer_type) then llvar
+  else if
+    (* Ugly :( *)
+    Llvm.type_of llvar.value = Llvm.(closure_t |> pointer_type |> pointer_type)
+  then
+    let value = Llvm.build_load llvar.value "loadfn" builder in
+    { llvar with value; kind = Imm }
   else
     match llvar.typ with
     | Tfun (_, _, kind) -> pass_function vars llvar kind
@@ -1046,7 +1069,13 @@ let fun_return name ret =
       if String.equal name "main" then
         Llvm.(build_ret (const_int int_t 0)) builder
       else Llvm.build_ret_void builder
-  | _ -> Llvm.build_ret ret.value builder
+  | _ ->
+      let value =
+        match ret.kind with
+        | Const_ptr | Ptr -> Llvm.build_load ret.value "" builder
+        | _ -> ret.value
+      in
+      Llvm.build_ret value builder
 
 let rec gen_function vars ?(mangle = Schmu)
     { Monomorph_tree.abs; name; recursive } =
@@ -1195,6 +1224,7 @@ and gen_let param id equals gn let' =
     | Some n -> (
         let dst = Strtbl.find const_tbl n in
         let v = gen_expr { param with alloca = Some dst.value } equals in
+        let v = { v with value = bring_default v } in
         (* Bandaid for polymorphic first class functions. In monomorph pass, the
            global is ignored. TODO. Here, we make sure that the dummy_fn_value is
            not set to the global. The global will stay 0 forever *)
@@ -1212,22 +1242,22 @@ and gen_let param id equals gn let' =
 and gen_const = function
   | Int i ->
       let value = Llvm.const_int int_t i in
-      { value; typ = Tint; lltyp = int_t; const = Const }
+      { value; typ = Tint; lltyp = int_t; kind = Const }
   | Bool b ->
       let value = Llvm.const_int bool_t (Bool.to_int b) in
-      { value; typ = Tbool; lltyp = bool_t; const = Const }
+      { value; typ = Tbool; lltyp = bool_t; kind = Const }
   | U8 c ->
       let value = Llvm.const_int u8_t (Char.code c) in
-      { value; typ = Tu8; lltyp = u8_t; const = Const }
+      { value; typ = Tu8; lltyp = u8_t; kind = Const }
   | Float f ->
       let value = Llvm.const_float float_t f in
-      { value; typ = Tfloat; lltyp = float_t; const = Const }
+      { value; typ = Tfloat; lltyp = float_t; kind = Const }
   | I32 i ->
       let value = Llvm.const_int i32_t i in
-      { value; typ = Ti32; lltyp = i32_t; const = Const }
+      { value; typ = Ti32; lltyp = i32_t; kind = Const }
   | F32 f ->
       let value = Llvm.const_float f32_t f in
-      { value; typ = Tf32; lltyp = f32_t; const = Const }
+      { value; typ = Tf32; lltyp = f32_t; kind = Const }
   | Unit -> dummy_fn_value
   | String _ | Vector _ -> failwith "In other branch"
 
@@ -1247,91 +1277,58 @@ and gen_var vars typ id kind =
               (* If the variable isn't bound, something went wrong before *)
               failwith ("Internal Error: Could not find " ^ id ^ " in codegen"))
       )
-  | Vconst | Vglobal ->
-      let v = Strtbl.find const_tbl id in
-      if is_struct typ then v
-      else
-        let value = Llvm.build_load v.value id builder in
-        { v with value }
+  | Vconst | Vglobal -> Strtbl.find const_tbl id
 
 and gen_bop param e1 e2 bop =
   let gen = gen_expr param in
   let bldr = builder in
   let bld f str =
-    let e1 = gen e1 in
-    let e2 = gen e2 in
-    f e1.value e2.value str builder
+    let e1 = gen e1 |> bring_default in
+    let e2 = gen e2 |> bring_default in
+    f e1 e2 str builder
   in
   let open Llvm in
   match bop with
   | Plus_i ->
-      { value = bld build_add "add"; typ = Tint; lltyp = int_t; const = Not }
+      { value = bld build_add "add"; typ = Tint; lltyp = int_t; kind = Imm }
   | Minus_i ->
-      { value = bld build_sub "sub"; typ = Tint; lltyp = int_t; const = Not }
+      { value = bld build_sub "sub"; typ = Tint; lltyp = int_t; kind = Imm }
   | Mult_i ->
-      { value = bld build_mul "mul"; typ = Tint; lltyp = int_t; const = Not }
+      { value = bld build_mul "mul"; typ = Tint; lltyp = int_t; kind = Imm }
   | Div_i ->
-      { value = bld build_sdiv "div"; typ = Tint; lltyp = int_t; const = Not }
+      { value = bld build_sdiv "div"; typ = Tint; lltyp = int_t; kind = Imm }
   | Less_i ->
       let value = bld (build_icmp Icmp.Slt) "lt" in
-      { value; typ = Tbool; lltyp = bool_t; const = Not }
+      { value; typ = Tbool; lltyp = bool_t; kind = Imm }
   | Greater_i ->
       let value = bld (build_icmp Icmp.Sgt) "gt" in
-      { value; typ = Tbool; lltyp = bool_t; const = Not }
+      { value; typ = Tbool; lltyp = bool_t; kind = Imm }
   | Equal_i ->
       let value = bld (build_icmp Icmp.Eq) "eq" in
-      { value; typ = Tbool; lltyp = bool_t; const = Not }
+      { value; typ = Tbool; lltyp = bool_t; kind = Imm }
   | Plus_f ->
-      {
-        value = bld build_fadd "add";
-        typ = Tfloat;
-        lltyp = float_t;
-        const = Not;
-      }
+      let value = bld build_fadd "add" in
+      { value; typ = Tfloat; lltyp = float_t; kind = Imm }
   | Minus_f ->
-      {
-        value = bld build_fsub "sub";
-        typ = Tfloat;
-        lltyp = float_t;
-        const = Not;
-      }
+      let value = bld build_fsub "sub" in
+      { value; typ = Tfloat; lltyp = float_t; kind = Imm }
   | Mult_f ->
-      {
-        value = bld build_fmul "mul";
-        typ = Tfloat;
-        lltyp = float_t;
-        const = Not;
-      }
+      let value = bld build_fmul "mul" in
+      { value; typ = Tfloat; lltyp = float_t; kind = Imm }
   | Div_f ->
-      {
-        value = bld build_fdiv "div";
-        typ = Tfloat;
-        lltyp = float_t;
-        const = Not;
-      }
+      let value = bld build_fdiv "div" in
+      { value; typ = Tfloat; lltyp = float_t; kind = Imm }
   | Less_f ->
-      {
-        value = bld (build_fcmp Fcmp.Olt) "lt";
-        typ = Tbool;
-        lltyp = bool_t;
-        const = Not;
-      }
+      let value = bld (build_fcmp Fcmp.Olt) "lt" in
+      { value; typ = Tbool; lltyp = bool_t; kind = Imm }
   | Greater_f ->
-      {
-        value = bld (build_fcmp Fcmp.Ogt) "gt";
-        typ = Tbool;
-        lltyp = bool_t;
-        const = Not;
-      }
+      let value = bld (build_fcmp Fcmp.Ogt) "gt" in
+      { value; typ = Tbool; lltyp = bool_t; kind = Imm }
   | Equal_f ->
-      {
-        value = bld (build_fcmp Fcmp.Oeq) "eq";
-        typ = Tbool;
-        lltyp = bool_t;
-        const = Not;
-      }
+      let value = bld (build_fcmp Fcmp.Oeq) "eq" in
+      { value; typ = Tbool; lltyp = bool_t; kind = Imm }
   | And ->
-      let cond1 = gen e1 in
+      let cond1 = gen e1 |> bring_default in
 
       (* Current block *)
       let start_bb = insertion_block bldr in
@@ -1341,13 +1338,13 @@ and gen_bop param e1 e2 bop =
       let true2_bb = append_block context "true2" parent in
       let continue_bb = append_block context "cont" parent in
 
-      ignore (build_cond_br cond1.value true1_bb continue_bb bldr);
+      ignore (build_cond_br cond1 true1_bb continue_bb bldr);
 
       position_at_end true1_bb bldr;
-      let cond2 = gen e2 in
+      let cond2 = gen e2 |> bring_default in
       (* Codegen can change the current bb *)
       let t1_bb = insertion_block bldr in
-      ignore (build_cond_br cond2.value true2_bb continue_bb bldr);
+      ignore (build_cond_br cond2 true2_bb continue_bb bldr);
 
       position_at_end true2_bb bldr;
       ignore (build_br continue_bb bldr);
@@ -1363,9 +1360,9 @@ and gen_bop param e1 e2 bop =
         ]
       in
       let value = build_phi incoming "andtmp" bldr in
-      { value; typ = Tbool; lltyp = bool_t; const = Not }
+      { value; typ = Tbool; lltyp = bool_t; kind = Imm }
   | Or ->
-      let cond1 = gen e1 in
+      let cond1 = gen e1 |> bring_default in
 
       (* Current block *)
       let start_bb = insertion_block bldr in
@@ -1375,13 +1372,13 @@ and gen_bop param e1 e2 bop =
       let false2_bb = append_block context "false2" parent in
       let continue_bb = append_block context "cont" parent in
 
-      ignore (build_cond_br cond1.value continue_bb false1_bb bldr);
+      ignore (build_cond_br cond1 continue_bb false1_bb bldr);
 
       position_at_end false1_bb bldr;
-      let cond2 = gen e2 in
+      let cond2 = gen e2 |> bring_default in
       (* Codegen can change the current bb *)
       let f1_bb = insertion_block bldr in
-      ignore (build_cond_br cond2.value continue_bb false2_bb bldr);
+      ignore (build_cond_br cond2 continue_bb false2_bb bldr);
 
       position_at_end false2_bb bldr;
       ignore (build_br continue_bb bldr);
@@ -1397,17 +1394,17 @@ and gen_bop param e1 e2 bop =
         ]
       in
       let value = build_phi incoming "andtmp" bldr in
-      { value; typ = Tbool; lltyp = bool_t; const = Not }
+      { value; typ = Tbool; lltyp = bool_t; kind = Imm }
 
 and gen_unop param e =
   let expr = gen_expr param e in
   let value =
     match expr.typ with
-    | Tint -> Llvm.build_neg expr.value "neg" builder
-    | Tfloat -> Llvm.build_fneg expr.value "neg" builder
+    | Tint -> Llvm.build_neg (bring_default expr) "neg" builder
+    | Tfloat -> Llvm.build_fneg (bring_default expr) "neg" builder
     | _ -> failwith "Internal Error: Unsupported unary op"
   in
-  { expr with value }
+  { expr with value; kind = Imm }
 
 and gen_app param callee args allocref ret_t malloc =
   let func = gen_expr param callee.ex in
@@ -1433,7 +1430,7 @@ and gen_app param callee args allocref ret_t malloc =
            a pointer. This isn't pretty, but will do for now. For the single
            param, unboxed case we can skip boxing *)
         let arg =
-          match (arg'.typ, pkind_of_typ arg'.typ, arg'.const) with
+          match (arg'.typ, pkind_of_typ arg'.typ, arg'.kind) with
           (* The [Two_params] case is tricky to do using only consts,
              so we box and use the standard runtime version *)
           | (Trecord _ | Tvariant _), Boxed, Const
@@ -1442,7 +1439,7 @@ and gen_app param callee args allocref ret_t malloc =
           | _ -> get_mono_func arg' param arg.monomorph
         in
 
-        match maybe_unbox_record arg.typ arg with
+        match pass_value arg with
         | fst, Some snd ->
             (* We can skip [func_to_closure] in this case *)
             (* snd before fst, b/c we rev at the end *)
@@ -1455,6 +1452,17 @@ and gen_app param callee args allocref ret_t malloc =
   in
 
   (* No names here, might be void/unit *)
+  let func =
+    (* TODO closure fields might not be loaded. We need to handle this in monomorph,
+       possibly with a new function type *)
+    if
+      Llvm.type_of func.value = Llvm.(closure_t |> pointer_type |> pointer_type)
+    then
+      let value = Llvm.build_load func.value "loadfn" builder in
+      { func with value; kind = Imm }
+    else func
+  in
+
   let funcval, envarg =
     if Llvm.type_of func.value = (closure_t |> Llvm.pointer_type) then
       (* Function to call is a closure (or a function passed into another one).
@@ -1524,7 +1532,7 @@ and gen_app param callee args allocref ret_t malloc =
   | Some id -> Ptrtbl.add ptr_tbl id (value, ret)
   | None -> ());
 
-  { value; typ = ret; lltyp; const = Not }
+  { value; typ = ret; lltyp; kind = default_kind ret }
 
 and gen_app_tailrec param callee args rec_block ret_t =
   (* We evaluate, there might be side-effects *)
@@ -1566,7 +1574,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
   in
 
   let value = Llvm.build_br rec_block.rec_ builder in
-  { value; typ = Tpoly "tail"; lltyp; const = Not }
+  { value; typ = Tpoly "tail"; lltyp; kind = default_kind ret }
 
 and gen_app_builtin param (b, fnc) args =
   let handle_arg arg =
@@ -1574,16 +1582,16 @@ and gen_app_builtin param (b, fnc) args =
     let arg = get_mono_func arg' param arg.monomorph in
 
     (* For [ignore], we don't really need to generate the closure objects here *)
-    match b with Ignore -> arg.value | _ -> (func_to_closure param arg).value
+    match b with Ignore -> arg | _ -> func_to_closure param arg
   in
   let args = List.map handle_arg args in
 
   let cast f lltyp typ =
     match args with
     | [ value ] ->
-        let value = f value lltyp "" builder in
+        let value = f (bring_default value) lltyp "" builder in
         (* TODO Not always int. That's a bug *)
-        { value; typ; lltyp; const = Not }
+        { value; typ; lltyp; kind = Imm }
     | _ -> failwith "Internal Error: Arity mismatch in builtin"
   in
 
@@ -1591,27 +1599,21 @@ and gen_app_builtin param (b, fnc) args =
   | Builtin.Unsafe_ptr_get ->
       let ptr, index =
         match args with
-        | [ ptr; index ] -> (ptr, index)
+        | [ ptr; index ] -> (bring_default ptr, bring_default index)
         | _ -> failwith "Internal Error: Arity mismatch in builtin"
       in
-      let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
-      let value = load ptr fnc.ret in
-      { value; typ = fnc.ret; lltyp = Llvm.type_of value; const = Not }
+      let value = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
+      { value; typ = fnc.ret; lltyp = Llvm.type_of value; kind = Ptr }
   | Unsafe_ptr_set ->
       let ptr, index, value =
         match args with
-        | [ ptr; index; value ] -> (ptr, index, value)
+        | [ ptr; index; value ] ->
+            (bring_default ptr, bring_default index, bring_default_var value)
         | _ -> failwith "Internal Error: Arity mismatch in builtin"
       in
       let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
-      let value =
-        {
-          value;
-          typ = List.nth fnc.params 2;
-          lltyp = Llvm.type_of value;
-          const = Not;
-        }
-      in
+      let value = { value with typ = List.nth fnc.params 2 } in
+
       set_struct_field value ptr;
       { dummy_fn_value with lltyp = unit_t }
   | Realloc ->
@@ -1624,13 +1626,13 @@ and gen_app_builtin param (b, fnc) args =
       let ptr, size =
         match args with
         | [ ptr; size ] ->
-            let size = Llvm.build_mul size item_size "" builder in
-            (ptr, size)
+            let size = Llvm.build_mul size.value item_size "" builder in
+            (bring_default ptr, size)
         | _ -> failwith "Internal Error: Arity mismatch in builtin"
       in
       let value = realloc ptr ~size in
-
-      { value; typ = fnc.ret; lltyp = Llvm.type_of value; const = Not }
+      let kind = default_kind fnc.ret in
+      { value; typ = fnc.ret; lltyp = Llvm.type_of value; kind }
   | Malloc ->
       let item_size =
         match fnc.ret with
@@ -1640,14 +1642,14 @@ and gen_app_builtin param (b, fnc) args =
 
       let size =
         match args with
-        | [ size ] -> Llvm.build_mul size item_size "" builder
+        | [ size ] -> Llvm.build_mul size.value item_size "" builder
         | _ -> failwith "Internal Error: Arity mismatch in builder"
       in
       let ptr_typ = get_lltype_def fnc.ret in
       let value = malloc ~size in
       let value = Llvm.build_bitcast value ptr_typ "" builder in
 
-      { value; typ = fnc.ret; lltyp = Llvm.type_of value; const = Not }
+      { value; typ = fnc.ret; lltyp = Llvm.type_of value; kind = Ptr }
   | Ignore -> dummy_fn_value
   | Int_of_float | Int_of_f32 -> cast Llvm.build_fptosi int_t Tint
   | Int_of_i32 -> cast Llvm.build_intcast int_t Tint
@@ -1662,13 +1664,13 @@ and gen_app_builtin param (b, fnc) args =
   | Not ->
       let value =
         match args with
-        | [ value ] -> value
+        | [ value ] -> value.value
         | _ -> failwith "Interal Error: Arity mismatch in builder"
       in
 
       let true_value = Llvm.const_int bool_t (Bool.to_int true) in
       let value = Llvm.build_xor value true_value "" builder in
-      { value; typ = Tbool; lltyp = bool_t; const = Not }
+      { value; typ = Tbool; lltyp = bool_t; kind = Imm }
 
 and gen_app_inline param args names tree =
   (* Identify args to param names *)
@@ -1692,7 +1694,7 @@ and gen_if param expr return =
     match e.typ with Tpoly id when String.equal "tail" id -> true | _ -> false
   in
 
-  let cond = gen_expr param expr.cond in
+  let cond = gen_expr param expr.cond |> bring_default in
 
   (* Get current block *)
   let start_bb = Llvm.insertion_block builder in
@@ -1729,31 +1731,35 @@ and gen_if param expr return =
         | Tunit -> e1
         | _ ->
             let e1, e2 =
-              if is_struct e1.typ then
-                (* Both values have to either be ptrs or const literals *)
-                match (e1.const, e2.const) with
-                | Const, (Not | Const_ptr) ->
-                    let value = alloca param e1.lltyp "" in
-                    ignore (Llvm.build_store e1.value value builder);
-                    ({ e1 with value; const = Const_ptr }, e2)
-                | (Not | Const_ptr), Const ->
-                    let value = alloca param e2.lltyp "" in
-                    ignore (Llvm.build_store e2.value value builder);
-                    (e1, { e2 with value; const = Const_ptr })
-                | _, _ -> (e1, e2)
-              else (e1, e2)
+              (* Both values have to either be ptrs or const literals *)
+              match (e1.kind, e2.kind) with
+              | Const, (Ptr | Const_ptr) when is_struct e1.typ ->
+                  Llvm.position_at_end then_bb builder;
+                  let value = alloca param e1.lltyp "" in
+                  ignore (Llvm.build_store (bring_default e1) value builder);
+                  ({ e1 with value; kind = Const_ptr }, e2)
+              | (Const | Imm), (Ptr | Const_ptr) ->
+                  (e1, { e2 with value = bring_default e2; kind = e1.kind })
+              | (Ptr | Const_ptr), Const when is_struct e2.typ ->
+                  let value = alloca param e2.lltyp "" in
+                  ignore (Llvm.build_store (bring_default e2) value builder);
+                  (e1, { e2 with value; kind = Const_ptr })
+              | (Ptr | Const_ptr), (Const | Imm) ->
+                  Llvm.position_at_end then_bb builder;
+                  ({ e1 with value = bring_default e1; kind = e2.kind }, e2)
+              | _, _ -> (e1, e2)
             in
 
             if e1.value <> e2.value then (
               Llvm.position_at_end (Lazy.force merge_bb) builder;
               let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
               let value = Llvm.build_phi incoming "iftmp" builder in
-              { value; typ = e1.typ; lltyp = e2.lltyp; const = Not })
+              { value; typ = e1.typ; lltyp = e2.lltyp; kind = e1.kind })
             else e1)
   in
 
   Llvm.position_at_end start_bb builder;
-  ignore (Llvm.build_cond_br cond.value then_bb else_bb builder);
+  ignore (Llvm.build_cond_br cond then_bb else_bb builder);
 
   if not (is_tailcall e1) then (
     Llvm.position_at_end e1_bb builder;
@@ -1769,7 +1775,7 @@ and gen_if param expr return =
 and codegen_record param typ labels allocref const return =
   let lltyp = get_lltype_field typ in
 
-  let value, const =
+  let value, kind =
     match const with
     | false ->
         let record = get_prealloc !allocref param lltyp "" in
@@ -1779,11 +1785,13 @@ and codegen_record param typ labels allocref const return =
             let ptr = Llvm.build_struct_gep record i name builder in
             let value =
               gen_expr { param with alloca = Some ptr } expr
-              |> func_to_closure param
+              |> (* Const records will stay const, no allocation done to lift
+                    it to Ptr. Thus, it stays Const*)
+              bring_default_var |> func_to_closure param
             in
             set_struct_field value ptr)
           labels;
-        (record, Not)
+        (record, Ptr)
     | true when not !const_pass ->
         (* We generate the const for runtime use. An addition to
            re-generating the constants, there are immediate literals.
@@ -1791,7 +1799,7 @@ and codegen_record param typ labels allocref const return =
         let value =
           let f (_, expr) =
             let e = gen_expr param expr in
-            match e.const with
+            match e.kind with
             | Const_ptr ->
                 (* The global value is a ptr, we need to 'deref' it *)
                 Llvm.global_initializer e.value |> Option.get
@@ -1815,7 +1823,7 @@ and codegen_record param typ labels allocref const return =
         (ret, Const)
   in
 
-  { value; typ; lltyp = Llvm.type_of value; const }
+  { value; typ; lltyp = Llvm.type_of value; kind }
 
 and codegen_field param expr index =
   let typ =
@@ -1828,22 +1836,23 @@ and codegen_field param expr index =
 
   let value = gen_expr param expr in
 
-  let value, const =
-    match value.const with
-    | Const_ptr | Not ->
+  let value, kind =
+    match value.kind with
+    | Const_ptr | Ptr ->
         let p = Llvm.build_struct_gep value.value index "" builder in
         (* In case we return a record, we don't load, but return the pointer.
            The idea is that this will be used either as a return value for a function (where it is copied),
            or for another field, where the pointer is needed.
            We should distinguish between structs and pointers somehow *)
-        (load p typ, Not)
+        (p, Ptr)
     | Const ->
         (* If the record is const, we use extractvalue and propagate the constness *)
         let p = Llvm.(const_extractvalue value.value [| index |]) in
         (p, Const)
+    | Imm -> failwith "Internal Error: Did not expect Imm in field"
   in
 
-  { value; typ; lltyp = get_lltype_def typ; const }
+  { value; typ; lltyp = get_lltype_def typ; kind }
 
 and codegen_set param expr valexpr =
   let ptr = gen_expr param expr in
@@ -1868,7 +1877,7 @@ and codegen_string_lit param s typ allocref =
   let len = Llvm.build_struct_gep string 1 "length" builder in
   ignore (Llvm.build_store (Llvm.const_int int_t (String.length s)) len builder);
 
-  { value = string; typ; lltyp; const = Const_ptr }
+  { value = string; typ; lltyp; kind = Const_ptr }
 
 and codegen_vector_lit param id es typ allocref =
   let lltyp = get_struct typ in
@@ -1929,7 +1938,7 @@ and codegen_vector_lit param id es typ allocref =
 
   Ptrtbl.add ptr_tbl id (vec, typ);
 
-  { value = vec; typ; lltyp; const = Not }
+  { value = vec; typ; lltyp; kind = Ptr }
 
 and gen_free param expr id =
   let ret = gen_expr param expr in
@@ -1951,7 +1960,7 @@ and gen_ctor param (variant, tag, expr) typ allocref const =
       value = Llvm.const_int i32_t tag;
       typ = Ti32;
       lltyp = i32_t;
-      const = Const;
+      kind = Const;
     }
   in
   set_struct_field tag tagptr;
@@ -1971,21 +1980,20 @@ and gen_ctor param (variant, tag, expr) typ allocref const =
       in
       set_struct_field data dataptr
   | None -> ());
-  { value = var; typ; lltyp; const = Not }
+  { value = var; typ; lltyp; kind = Ptr }
 
 and gen_var_index param expr =
   let var = gen_expr param expr in
   let tagptr = Llvm.build_struct_gep var.value 0 "tag" builder in
   let value = Llvm.build_load tagptr "index" builder in
-  { value; typ = Ti32; lltyp = i32_t; const = Not }
+  { value; typ = Ti32; lltyp = i32_t; kind = Imm }
 
 and gen_var_data param expr typ =
   let var = gen_expr param expr in
   let dataptr = Llvm.build_struct_gep var.value 1 "data" builder in
   let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
-  let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
-  let value = load ptr typ in
-  { value; typ; lltyp = Llvm.type_of value; const = Not }
+  let value = Llvm.build_bitcast dataptr ptr_t "" builder in
+  { value; typ; lltyp = Llvm.type_of value; kind = Ptr }
 
 and gen_fmt_str param exprs typ allocref id =
   let snprintf_decl =
@@ -2039,7 +2047,7 @@ and gen_fmt_str param exprs typ allocref id =
 
   Ptrtbl.add ptr_tbl id (string, typ);
 
-  { value = string; typ; lltyp; const = Not }
+  { value = string; typ; lltyp; kind = Ptr }
 
 let fill_constants constants =
   let f (name, tree, toplvl) =
@@ -2049,10 +2057,7 @@ let fill_constants constants =
     let value = Llvm.define_global name init.value the_module in
     Llvm.set_global_constant true value;
     if not toplvl then Llvm.set_linkage Llvm.Linkage.Internal value;
-    match init.typ with
-    | Trecord _ ->
-        Strtbl.add const_tbl name { init with value; const = Const_ptr }
-    | _ -> Strtbl.add const_tbl name { init with value; const = Const }
+    Strtbl.add const_tbl name { init with value; kind = Const_ptr }
   in
   List.iter f constants
 
@@ -2076,7 +2081,7 @@ let decl_external ~c_linkage cname = function
       let lltyp = get_lltype_global typ in
       let value = Llvm.declare_global lltyp cname the_module in
       (* TODO constness in module *)
-      { value; typ; lltyp; const = Not }
+      { value; typ; lltyp; kind = Ptr }
 
 let has_init_code tree =
   let rec aux = function
@@ -2085,11 +2090,11 @@ let has_init_code tree =
         let name = match gname with Some name -> name | None -> name in
         match Strtbl.find_opt const_tbl name with
         | Some thing -> (
-            match thing.const with
+            match thing.kind with
             | Const | Const_ptr ->
                 (* is const, so no need to initialize *)
                 aux cont.expr
-            | Not -> true)
+            | Ptr | Imm -> true)
         | None -> failwith "Internal Error: global value not found")
     | Mfunction (_, _, cont) -> aux cont.expr
     | Mconst Unit -> false
