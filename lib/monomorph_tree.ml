@@ -17,7 +17,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * global_name * monod_tree
+  | Mlet of bool * string * monod_tree * global_name * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
   | Mapp of {
@@ -342,10 +342,10 @@ let rec subst_body p subst tree =
         let e1 = sub expr.e1 in
         let e2 = sub expr.e2 in
         { tree with typ = e1.typ; expr = Mif { cond; e1; e2 } }
-    | Mlet (id, expr, gn, cont) ->
+    | Mlet (mut, id, expr, gn, cont) ->
         let expr = sub expr in
         let cont = sub cont in
-        { tree with typ = cont.typ; expr = Mlet (id, expr, gn, cont) }
+        { tree with typ = cont.typ; expr = Mlet (mut, id, expr, gn, cont) }
     | Mlambda (name, abs) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
@@ -542,10 +542,10 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
-  | Let (id, uniq, e1, e2) ->
-      let p, e1, gn = prep_let param id uniq e1 false in
+  | Let (id, uniq, e1', e2) ->
+      let p, e1, gn = prep_let param id uniq e1' false in
       let p, e2, func = morph_expr { p with ret = param.ret } e2 in
-      (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
+      (p, { e2 with expr = Mlet (e1'.attr.mut, id, e1, gn, e2) }, func)
   | Record labels -> morph_record make param labels texpr.attr
   | Field (expr, index) -> morph_field make param expr index
   | Set (expr, value) -> morph_set make param expr value
@@ -984,7 +984,7 @@ let morph_toplvl param items =
     | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
         let p, e1, gn = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
+        (p, { e2 with expr = Mlet (expr.attr.mut, id, e1, gn, e2) }, func)
     | Tl_function (name, uniq, abs) :: tl ->
         let p, call, abs = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in

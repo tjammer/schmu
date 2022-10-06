@@ -10,7 +10,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * global_name * monod_tree
+  | Mlet of bool * string * monod_tree * global_name * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
   | Mapp of {

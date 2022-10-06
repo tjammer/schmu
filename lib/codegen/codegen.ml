@@ -1179,7 +1179,7 @@ and gen_expr param typed_expr =
       in
 
       gen_expr { param with vars = Vars.add name func param.vars } cont
-  | Mlet (id, equals, gn, let') -> gen_let param id equals gn let'
+  | Mlet (mut, id, equals, gn, let') -> gen_let param id equals gn let' mut
   | Mlambda (name, abs) ->
       let func =
         match Vars.find_opt name param.vars with
@@ -1218,7 +1218,7 @@ and gen_expr param typed_expr =
   | Mfmt (fmts, allocref, id) ->
       gen_fmt_str param fmts typed_expr.typ allocref id
 
-and gen_let param id equals gn let' =
+and gen_let param id equals gn let' mut =
   let expr_val =
     match gn with
     | Some n -> (
@@ -1235,7 +1235,13 @@ and gen_let param id equals gn let' =
             let v = { v with value = dst.value; kind = Ptr } in
             Strtbl.replace const_tbl n v;
             v)
-    | None -> gen_expr param equals
+    | None ->
+        let v = gen_expr param equals in
+        if mut && not (is_struct v.typ) then (
+          let value = Llvm.build_alloca v.lltyp id builder in
+          ignore (Llvm.build_store v.value value builder);
+          { v with value; kind = Ptr })
+        else v
   in
   gen_expr { param with vars = Vars.add id expr_val param.vars } let'
 
@@ -1971,7 +1977,9 @@ and gen_ctor param (variant, tag, expr) typ allocref const =
       let dataptr = Llvm.build_struct_gep var 1 "data" builder in
       let ptr_t = get_lltype_def expr.typ |> Llvm.pointer_type in
       let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
-      let data = gen_expr { param with alloca = Some ptr } expr |> bring_default_var in
+      let data =
+        gen_expr { param with alloca = Some ptr } expr |> bring_default_var
+      in
 
       let dataptr =
         Llvm.build_bitcast dataptr
@@ -2086,7 +2094,7 @@ let decl_external ~c_linkage cname = function
 let has_init_code tree =
   let rec aux = function
     (* We have to deal with 'toplevel' type nodes only *)
-    | Monomorph_tree.Mlet (name, _, gname, cont) -> (
+    | Monomorph_tree.Mlet (_, name, _, gname, cont) -> (
         let name = match gname with Some name -> name | None -> name in
         match Strtbl.find_opt const_tbl name with
         | Some thing -> (

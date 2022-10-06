@@ -306,6 +306,11 @@ let test_mutable_set_non_mut () =
   test_exn "Cannot mutate non-mutable binding"
     "(type foo { :x int }) (val foo { :x 12}) (set (.x foo) 13)"
 
+let test_mutable_value () = test "int" "(val b& 10) (set b 14) b"
+
+let test_mutable_nonmut_value () =
+  test_exn "Cannot mutate non-mutable binding" "(val b 10) (set b 14) b"
+
 let test_variants_option_none () =
   test "(option 'a)" "(type (option 'a) (#none (#some 'a))) #none"
 
@@ -600,6 +605,8 @@ let () =
           case "set" test_mutable_set;
           case "set_wrong_type" test_mutable_set_wrong_type;
           case "set_non_mut" test_mutable_set_non_mut;
+          case "value" test_mutable_value;
+          case "nonmut_value" test_mutable_nonmut_value;
         ] );
       ( "variants",
         [
