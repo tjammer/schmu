@@ -503,10 +503,11 @@ end = struct
   and convert_let ~global env loc { Ast.loc = _; ident = idloc, id; mut; annot }
       block =
     let e1 = typeof_annot_decl env loc annot block in
+    let const = e1.attr.const && not mut in
     ( Env.add_value id
-        { Env.def_value with typ = e1.typ; const = e1.attr.const; global; mut }
+        { Env.def_value with typ = e1.typ; const; global; mut }
         idloc env,
-      { e1 with attr = { e1.attr with global } } )
+      { e1 with attr = { global; const; mut } } )
 
   and convert_let_e env loc decl expr cont =
     let env, texpr = convert_let ~global:false env loc decl expr in

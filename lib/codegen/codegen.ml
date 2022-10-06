@@ -1232,7 +1232,7 @@ and gen_let param id equals gn let' =
         | Tfun _ when is_type_polymorphic equals.typ -> v
         | _ ->
             store_or_copy ~src:v ~dst:dst.value;
-            let v = { v with value = dst.value } in
+            let v = { v with value = dst.value; kind = Ptr } in
             Strtbl.replace const_tbl n v;
             v)
     | None -> gen_expr param equals
@@ -1971,7 +1971,7 @@ and gen_ctor param (variant, tag, expr) typ allocref const =
       let dataptr = Llvm.build_struct_gep var 1 "data" builder in
       let ptr_t = get_lltype_def expr.typ |> Llvm.pointer_type in
       let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
-      let data = gen_expr { param with alloca = Some ptr } expr in
+      let data = gen_expr { param with alloca = Some ptr } expr |> bring_default_var in
 
       let dataptr =
         Llvm.build_bitcast dataptr
@@ -2070,7 +2070,7 @@ let def_globals globals =
     in
     Llvm.set_alignment (sizeof_typ typ) value;
     if not toplvl then Llvm.set_linkage Llvm.Linkage.Internal value;
-    Strtbl.add const_tbl name { dummy_fn_value with value }
+    Strtbl.add const_tbl name { value; lltyp; typ; kind = Ptr }
   in
   List.iter f globals
 

@@ -1717,3 +1717,37 @@ Piping for ctors and field accessors
 Function calls for known functions act as annotations to decide which ctor or record to use.
 Prints nothing, just works
   $ schmu function_call_annot.smu
+
+Ensure global are loadad correctly when passed to functions
+  $ schmu --dump-llvm regression_load_global.smu
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %bar = type { double, double, i64, double, double, float }
+  
+  @height = constant i64 720
+  @world = global %bar zeroinitializer, align 32
+  
+  define void @schmu_wrap-seg() {
+  entry:
+    tail call void @schmu___g.u_get-seg_bar.u(%bar* @world)
+    ret void
+  }
+  
+  define void @schmu___g.u_get-seg_bar.u(%bar* %bar) {
+  entry:
+    ret void
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    store double 0.000000e+00, double* getelementptr inbounds (%bar, %bar* @world, i32 0, i32 0), align 8
+    store double 1.280000e+03, double* getelementptr inbounds (%bar, %bar* @world, i32 0, i32 1), align 8
+    store i64 10, i64* getelementptr inbounds (%bar, %bar* @world, i32 0, i32 2), align 4
+    store double 1.000000e-01, double* getelementptr inbounds (%bar, %bar* @world, i32 0, i32 3), align 8
+    store double 5.400000e+02, double* getelementptr inbounds (%bar, %bar* @world, i32 0, i32 4), align 8
+    store float 5.000000e+00, float* getelementptr inbounds (%bar, %bar* @world, i32 0, i32 5), align 4
+    tail call void @schmu_wrap-seg()
+    ret i64 0
+  }
