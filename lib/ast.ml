@@ -57,7 +57,7 @@ and expr =
   | Tuple of loc * expr list
   | Record_update of loc * (loc * string) * (string * expr) list
   | Field of loc * expr * string
-  | Set of loc * expr * expr
+  | Set of loc * (loc * expr) * expr
   | Do_block of block
   | Pipe_head of loc * expr * pipeable
   | Pipe_tail of loc * expr * pipeable

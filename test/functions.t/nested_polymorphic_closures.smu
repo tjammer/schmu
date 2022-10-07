@@ -1,6 +1,6 @@
 (external printi (fun int unit))
 
-(fun vector_push [vec v]
+(fun vector_push [vec& v]
   (if (< (.length (.ptr vec)) (.capacity vec))
     (do
       (__unsafe_ptr_set (.optr (.ptr vec)) (.length (.ptr vec)) v)

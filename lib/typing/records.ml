@@ -187,9 +187,10 @@ module Make (C : Core) = struct
 
   and convert_field env loc expr id =
     let field, expr, index = get_field env loc expr id in
+    let mut = expr.attr.mut && field.mut in
     {
       typ = field.ftyp;
       expr = Field (expr, index);
-      attr = { no_attr with const = expr.attr.const; mut = field.mut };
+      attr = { no_attr with const = expr.attr.const; mut };
     }
 end

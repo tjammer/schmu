@@ -548,7 +548,7 @@ prog: Lpar Match False Lpar Val
 ## Lpar
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting pattern
 
 prog: Lpar Match False Lpar Wildcard Wildcard
 ##

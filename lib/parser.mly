@@ -265,7 +265,7 @@ sexp_cond:
 
 %inline sexp_field_set:
   | Set; var = sexp_expr; value = sexp_expr
-    { Set ($loc, var, value) }
+    { Set ($loc, ($loc(var), var), value) }
 
 %inline sexp_field_get:
   | Accessor; sexp_expr { Field ($loc, $2, $1) }

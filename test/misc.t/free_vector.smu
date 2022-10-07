@@ -9,7 +9,7 @@
 
 -- Vec is only alive inside the function and should be freed there
 (fun vec_inside []
-  (val vec [x {:x 2} {:x 3}])
+  (val vec& [x {:x 2} {:x 3}])
   -- Make sure we can call realloc
   (set (.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) 9)))
 
@@ -50,7 +50,7 @@
 (inner_parent_scope)
 (val normal (nest_fns))
 
-(val nested [[0 1] [2 3]])
+(val nested& [[0 1] [2 3]])
 (set (.optr (.ptr nested)) (__realloc (.optr (.ptr nested)) 9))
 (val nested (make_nested_vec))
 (val nested (nest_allocs))

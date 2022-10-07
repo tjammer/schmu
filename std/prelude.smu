@@ -16,7 +16,7 @@
 (fun string-len [str] (abs (.length str)))
 
 -- vector
-(type (vector 'a) {:ptr (owned_ptr 'a) :capacity& int})
+(type (vector 'a) {:ptr& (owned_ptr 'a) :capacity& int})
 
 (fun vector-init [capacity]
   (val optr (__malloc capacity))
@@ -29,7 +29,7 @@
 (fun vector-set [vec i v]
   (__unsafe_ptr_set (.optr (.ptr vec)) i v))
 
-(fun vector-push [vec v]
+(fun vector-push [vec& v]
   (if (= (.length (.ptr vec)) (.capacity vec))
     (do
       (val cap (* (.capacity vec) 2))
@@ -76,4 +76,4 @@
 
 (fun ref [contents] {:contents})
 
-(fun ref-set [a v] (set (.contents a) v))
+(fun ref-set [a& v] (set (.contents a) v))

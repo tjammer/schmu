@@ -734,13 +734,13 @@ end = struct
   and pipe_ctor_msg =
     "Constructor already has an argument, cannot pipe a second one"
 
-  and convert_set env loc expr value =
+  and convert_set env loc (eloc, expr) value =
     let toset = convert env expr in
     let valexpr = convert env value in
 
     (if not toset.attr.mut then
      let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
-     raise (Error (loc, msg)));
+     raise (Error (eloc, msg)));
     unify (loc, "Mutate:") toset.typ valexpr.typ;
     { typ = Tunit; expr = Set (toset, valexpr); attr = no_attr }
 
