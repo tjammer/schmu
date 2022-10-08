@@ -39,10 +39,10 @@
   (inner_cls_f 0 vec))
 
 (val vec [])
-(vector_push vec 1)
-(vector_push vec 2)
-(vector_push vec 3)
-(vector_push vec 4)
-(vector_push vec 5)
+(vector_push &vec 1)
+(vector_push &vec 2)
+(vector_push &vec 3)
+(vector_push &vec 4)
+(vector_push &vec 5)
 
 (vector-iter vec (fun [x] (printi (* x 2))))

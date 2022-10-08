@@ -3,22 +3,22 @@
 (fun mut-bref [i rf&]
   (if (> i 0)
     (set (.a rf) true)
-    (mut-bref (+ i 1) rf)))
+    (mut-bref (+ i 1) &rf)))
 
 (fun dontmut-bref [i rf&]
   (if (> i 0)
     (set (.a rf) false)
     -- introduce a new object, so the old one won't get mutated
-    (dontmut-bref (+ i 1) {:a true})))
+    (dontmut-bref (+ i 1) &{:a true})))
 
 (val rf {:a false})
 
-(mut-bref 0 rf)
+(mut-bref 0 &rf)
 
 -- change from false to true
 (print (fmt-str (.a rf)))
 
-(dontmut-bref 0 rf)
+(dontmut-bref 0 &rf)
 
 -- don't change
 (print (fmt-str (.a rf)))

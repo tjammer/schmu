@@ -59,7 +59,9 @@ let rec unify t1 t2 =
     | Tfun (params_l, l, _), Tfun (params_r, r, _) -> (
         try
           List.iter2
-            (fun left right -> unify left.pt right.pt)
+            (fun left right ->
+              if not (Bool.equal left.pmut right.pmut) then raise Unify;
+              unify left.pt right.pt)
             params_l params_r;
           unify l r
         with Invalid_argument _ ->

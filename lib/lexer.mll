@@ -97,6 +97,7 @@ rule read =
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '_'      { Wildcard }
   | '"'      { read_string (Buffer.create 17) lexbuf }
+  | '&'      { Ampersand }
   | '+'      { Plus_i }
   | min      { Minus_i }
   | '*'      { Mult_i }

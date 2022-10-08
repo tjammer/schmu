@@ -81,7 +81,12 @@ let string_of_type_raw get_name typ =
     | Tf32 -> "f32"
     | Tfun (ts, t, _) ->
         let ps =
-          String.concat " " (List.map (fun p -> string_of_type p.pt) ts)
+          String.concat " "
+            (List.map
+               (fun p ->
+                 let pre = if p.pmut then "&" else "" in
+                 pre ^ string_of_type p.pt)
+               ts)
         in
         Printf.sprintf "(fun %s %s)" ps (string_of_type t)
     | Tvar { contents = Link t } -> string_of_type t

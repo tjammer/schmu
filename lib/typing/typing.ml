@@ -633,15 +633,17 @@ end = struct
 
     let annots = param_annots callee.typ in
     let typed_exprs =
-      List.mapi (fun i e -> convert_annot env (param_annot annots i) e) args
+      List.mapi
+        (fun i (mut, e) -> (mut, convert_annot env (param_annot annots i) e))
+        args
     in
-    let args_t = List.map (fun a -> { pmut = false; pt = a.typ }) typed_exprs in
+    let args_t = List.map (fun (pmut, a) -> { pmut; pt = a.typ }) typed_exprs in
     let res_t = newvar () in
     if switch_uni then
       unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ
     else unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple));
 
-    let apply param texpr = { texpr with typ = param.pt } in
+    let apply param (_, texpr) = { texpr with typ = param.pt } in
     let targs = List.map2 apply args_t typed_exprs in
 
     (* For now, we don't support const functions *)
@@ -772,12 +774,12 @@ end = struct
         convert_app ~switch_uni env loc callee (e1 :: args)
     | Pip_expr (Ctor (_, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
-        convert_ctor env loc name (Some e1) None
-    | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (e1 :: exprs)
+        convert_ctor env loc name (Some (snd e1)) None
+    | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (snd e1 :: exprs)
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
-    | Pip_field field -> convert_field env loc e1 field
+    | Pip_field field -> convert_field env loc (snd e1) field
 
   and convert_pipe_tail env loc e1 e2 =
     let switch_uni = true in
@@ -787,12 +789,13 @@ end = struct
         convert_app ~switch_uni env loc callee (args @ [ e1 ])
     | Pip_expr (Ctor (_, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
-        convert_ctor env loc name (Some e1) None
-    | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (exprs @ [ e1 ])
+        convert_ctor env loc name (Some (snd e1)) None
+    | Pip_expr (Bop (_, op, exprs)) ->
+        convert_bop env loc op (exprs @ [ snd e1 ])
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
-    | Pip_field field -> convert_field env loc e1 field
+    | Pip_field field -> convert_field env loc (snd e1) field
 
   and convert_open env loc modul expr =
     let modul = Module.read_exn ~regeneralize modul loc in

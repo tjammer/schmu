@@ -17,7 +17,7 @@
     let make_pairs bin arg args =
       let rec build = function
         | [ a ] -> bin arg a
-        | a :: tl -> bin (build tl) a
+        | a :: tl -> bin (false, (build tl)) a
         | [] -> failwith "unreachable"
       in
       build (List.rev args)
@@ -74,6 +74,7 @@
 %token Rbrac
 %token Lbrack
 %token Rbrack
+%token Ampersand
 %token If
 %token Else
 %token Cond
@@ -271,11 +272,11 @@ sexp_cond:
   | Accessor; sexp_expr { Field ($loc, $2, $1) }
 
 %inline sexp_pipe_head:
-  | Arrow_right; sexp_expr; nonempty_list(pipeable)
+  | Arrow_right; call_arg; nonempty_list(pipeable)
     { make_pairs (fun a b -> Ast.Pipe_head ($loc, a, b)) $2 $3 }
 
 %inline sexp_pipe_tail:
-  | Arrow_righter; sexp_expr; nonempty_list(pipeable)
+  | Arrow_righter; call_arg; nonempty_list(pipeable)
     { make_pairs (fun a b -> Ast.Pipe_tail ($loc, a, b)) $2 $3 }
 
 pipeable:
@@ -284,10 +285,13 @@ pipeable:
 
 %inline sexp_call:
   | callable_expr { App ($loc, $1, []) }
-  | callable_expr; sexp_expr { App ($loc, $1, [$2]) }
-  | callable_expr; a1 = sexp_expr; args = nonempty_list(sexp_expr) { App ($loc, $1, a1 :: args) }
+  | callable_expr; call_arg { App ($loc, $1, [$2]) }
+  | callable_expr; a1 = call_arg; args = nonempty_list(call_arg) { App ($loc, $1, a1 :: args) }
   | op = binop; exprs = nonempty_list(sexp_expr) { Bop ($loc, op, exprs) }
-  | Builtin_id; list(sexp_expr) { App ($loc, Var($loc, $1), $2) }
+  | Builtin_id; list(call_arg) { App ($loc, Var($loc, $1), $2) }
+
+%inline call_arg:
+  | mut = boption(Ampersand); expr = sexp_expr { mut, expr }
 
 %inline do_block:
   | Do; stmts = nonempty_list(stmt) { Do_block stmts }
