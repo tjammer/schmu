@@ -100,7 +100,13 @@ let rec subst_generic ~id typ = function
     ->
       typ
   | Tfun (ps, ret, kind) ->
-      let ps = List.map (subst_generic ~id typ) ps in
+      let ps =
+        List.map
+          (fun p ->
+            let pt = subst_generic ~id typ p.pt in
+            { p with pt })
+          ps
+      in
       let ret = subst_generic ~id typ ret in
       Tfun (ps, ret, kind)
   | Trecord (ps, name, labels) ->
@@ -211,7 +217,10 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         match List.rev l with
         | last :: head ->
             Tfun
-              ( List.map (concrete_type env) (List.rev head),
+              (* TODO figure out type spec syntax for mutability *)
+              ( List.map
+                  (fun s -> { pt = concrete_type env s; pmut = false })
+                  (List.rev head),
                 concrete_type env last,
                 fn_kind )
         | [] -> failwith ":)")
@@ -228,7 +237,7 @@ let rec param_annots t =
   match t with
   | Talias (_, t) | Tvar { contents = Link t } -> param_annots t
   | Qvar _ | Tvar { contents = Unbound _ } -> [||]
-  | Tfun (typs, _, _) -> List.map annot typs |> Array.of_list
+  | Tfun (typs, _, _) -> List.map (fun p -> annot p.pt) typs |> Array.of_list
   | _ -> [||]
 
 let param_annot annots i =
@@ -239,7 +248,14 @@ let handle_params env loc (params : Ast.decl list) ret =
   let rec handle = function
     | Qvar _ as t -> (newvar (), t)
     | Tfun (params, ret, kind) ->
-        let params, qparams = List.map handle params |> List.split in
+        let params, qparams =
+          List.map
+            (fun p ->
+              let a, b = handle p.pt in
+              ({ p with pt = a }, { p with pt = b }))
+            params
+          |> List.split
+        in
         let ret, qret = handle ret in
         (Tfun (params, ret, kind), Tfun (qparams, qret, kind))
     | t -> (t, t)
@@ -265,7 +281,7 @@ let handle_params env loc (params : Ast.decl list) ret =
             mut;
           }
           idloc env,
-        (type_id, qparams) ))
+        ({ pt = type_id; pmut = mut }, { pt = qparams; pmut = mut }) ))
     env params
   |> fun (env, lst) ->
   let ids, qparams = List.split lst in
@@ -530,7 +546,9 @@ end = struct
     check_unused unused;
 
     (* For codegen: Mark functions in parameters closures *)
-    let params_t = List.map param_funcs_as_closures params_t in
+    let params_t =
+      List.map (fun p -> { p with pt = param_funcs_as_closures p.pt }) params_t
+    in
 
     let typ = Tfun (params_t, body.typ, kind) in
     match typ with
@@ -583,7 +601,9 @@ end = struct
     check_unused unused;
 
     (* For codegen: Mark functions in parameters closures *)
-    let params_t = List.map param_funcs_as_closures params_t in
+    let params_t =
+      List.map (fun p -> { p with pt = param_funcs_as_closures p.pt }) params_t
+    in
 
     let typ = Tfun (params_t, body.typ, kind) |> generalize in
 
@@ -615,13 +635,13 @@ end = struct
     let typed_exprs =
       List.mapi (fun i e -> convert_annot env (param_annot annots i) e) args
     in
-    let args_t = List.map (fun a -> a.typ) typed_exprs in
+    let args_t = List.map (fun a -> { pmut = false; pt = a.typ }) typed_exprs in
     let res_t = newvar () in
     if switch_uni then
       unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ
     else unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple));
 
-    let apply typ texpr = { texpr with typ } in
+    let apply param texpr = { texpr with typ = param.pt } in
     let targs = List.map2 apply args_t typed_exprs in
 
     (* For now, we don't support const functions *)

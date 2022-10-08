@@ -40,7 +40,7 @@ and toplevel_item =
   | Tl_function of string * int option * abstraction
   | Tl_expr of typed_expr
 
-and func = { tparams : typ list; ret : typ; kind : fun_kind }
+and func = { tparams : param list; ret : typ; kind : fun_kind }
 
 and abstraction = {
   nparams : string list;

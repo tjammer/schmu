@@ -19,7 +19,7 @@ type typ =
   | Tf32
   | Tvar of tv ref
   | Qvar of string
-  | Tfun of typ list * typ * fun_kind
+  | Tfun of param list * typ * fun_kind
   | Talias of string * typ
   | Trecord of typ list * string option * field array
   | Tvariant of typ list * string * ctor array
@@ -28,6 +28,7 @@ type typ =
 
 and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ
+and param = { pt : typ; pmut : bool }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 
@@ -35,8 +36,13 @@ let rec clean = function
   | Tvar { contents = Link t } -> clean t
   | Tfun (params, ret, Closure vals) ->
       let vals = List.map (fun (name, typ) -> (name, clean typ)) vals in
-      Tfun (List.map clean params, clean ret, Closure vals)
-  | Tfun (params, ret, kind) -> Tfun (List.map clean params, clean ret, kind)
+      Tfun
+        ( List.map (fun p -> { p with pt = clean p.pt }) params,
+          clean ret,
+          Closure vals )
+  | Tfun (params, ret, kind) ->
+      Tfun
+        (List.map (fun p -> { p with pt = clean p.pt }) params, clean ret, kind)
   | Trecord (params, name, fields) ->
       let params = List.map clean params in
       Trecord
@@ -74,7 +80,9 @@ let string_of_type_raw get_name typ =
     | Ti32 -> "i32"
     | Tf32 -> "f32"
     | Tfun (ts, t, _) ->
-        let ps = String.concat " " (List.map string_of_type ts) in
+        let ps =
+          String.concat " " (List.map (fun p -> string_of_type p.pt) ts)
+        in
         Printf.sprintf "(fun %s %s)" ps (string_of_type t)
     | Tvar { contents = Link t } -> string_of_type t
     | Talias (name, t) ->
@@ -134,7 +142,7 @@ let is_polymorphic typ =
     | Tvar { contents = Link t } | Talias (_, t) -> inner acc t
     | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
     | Tfun (params, ret, _) ->
-        let acc = List.fold_left inner acc params in
+        let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
         inner acc ret
     | Tbool | Tunit | Tint | Tu8 | Tfloat | Ti32 | Tf32 -> acc
     | Traw_ptr t -> inner acc t

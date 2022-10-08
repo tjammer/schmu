@@ -44,7 +44,7 @@ and const =
   | Unit
 (* The int is the malloc id used for freeing later *)
 
-and func = { params : typ list; ret : typ; kind : fun_kind }
+and func = { params : param list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
 
 and call_name =

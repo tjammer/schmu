@@ -11,7 +11,7 @@ type typ =
   | Tf32
   | Tvar of tv ref
   | Qvar of string
-  | Tfun of typ list * typ * fun_kind
+  | Tfun of param list * typ * fun_kind
   | Talias of string * typ
   | Trecord of typ list * string option * field array
   | Tvariant of typ list * string * ctor array
@@ -20,6 +20,7 @@ type typ =
 
 and fun_kind = Simple | Closure of (string * typ) list
 and tv = Unbound of string * int | Link of typ
+and param = { pt : typ; pmut : bool }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 

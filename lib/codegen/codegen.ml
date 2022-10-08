@@ -390,7 +390,8 @@ and typeof_func ~param ~decl (params, ret, kind) =
       (* For the params, we want to produce the param type.
          There is a special case for records which are splint into two words. *)
       List.fold_left
-        (fun ps typ ->
+        (fun ps p ->
+          let typ = p.pt in
           incr i;
           match pkind_of_typ typ with
           | Unboxed (Two_params (fst, snd)) ->
@@ -1107,6 +1108,7 @@ let rec gen_function vars ?(mangle = Schmu)
       let tvars = add_closure vars.vars func kind in
 
       (* Add parameters to env *)
+      let tparams = List.map (fun p -> p.pt) tparams in
       let tvars, rec_block =
         add_params tvars func name abs.pnames tparams start_index recursive
       in
@@ -1618,7 +1620,7 @@ and gen_app_builtin param (b, fnc) args =
         | _ -> failwith "Internal Error: Arity mismatch in builtin"
       in
       let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
-      let value = { value with typ = List.nth fnc.params 2 } in
+      let value = { value with typ = (List.nth fnc.params 2).pt } in
 
       set_struct_field value ptr;
       { dummy_fn_value with lltyp = unit_t }
@@ -2193,7 +2195,12 @@ let generate ~target ~outname ~release ~modul
         recursive = Rnone;
         abs =
           {
-            func = { params = [ Tint ]; ret = Tint; kind = Simple };
+            func =
+              {
+                params = [ { pt = Tint; pmut = false } ];
+                ret = Tint;
+                kind = Simple;
+              };
             pnames = [ "arg" ];
             body = { tree with typ = Tint };
           };

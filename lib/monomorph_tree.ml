@@ -49,7 +49,7 @@ and const =
   | Vector of int * monod_tree list * alloca
   | Unit
 
-and func = { params : typ list; ret : typ; kind : fun_kind }
+and func = { params : param list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
 
 and call_name =
@@ -142,7 +142,7 @@ let rec cln = function
   | Tf32 -> Tf32
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
-      Tfun (List.map cln params, cln ret, cln_kind kind)
+      Tfun (List.map cln_param params, cln ret, cln_kind kind)
   | Trecord (ps, name, fields) ->
       let ps = List.map cln ps in
       let fields =
@@ -171,6 +171,10 @@ and cln_kind = function
   | Closure vals ->
       let vals = List.map (fun (name, typ) -> (name, cln typ)) vals in
       Closure vals
+
+and cln_param p =
+  let pt = cln Types.(p.pt) in
+  { pt; pmut = p.pmut }
 
 let typ_of_abs abs = Tfun (abs.func.params, abs.func.ret, abs.func.kind)
 
@@ -213,7 +217,9 @@ let get_mono_name name ~poly concrete =
     | Ti32 -> "i32"
     | Tf32 -> "f32"
     | Tfun (ps, r, _) ->
-        Printf.sprintf "%s.%s" (String.concat "" (List.map str ps)) (str r)
+        Printf.sprintf "%s.%s"
+          (String.concat "" (List.map (fun p -> str p.pt) ps))
+          (str r)
     | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
         Printf.sprintf "%s%s" name (String.concat "" (List.map str ps))
     | Trecord (_, None, fs) ->
@@ -232,7 +238,9 @@ let subst_type ~concrete poly parent =
     | Tfun (ps1, r1, kind), Tfun (ps2, r2, _) ->
         let subst, ps =
           List.fold_left_map
-            (fun subst (l, r) -> inner subst (l, r))
+            (fun subst (l, r) ->
+              let s, pt = inner subst (l.pt, r.pt) in
+              (s, { l with pt }))
             subst (List.combine ps1 ps2)
         in
         let subst, r = inner subst (r1, r2) in
@@ -284,7 +292,7 @@ let subst_type ~concrete poly parent =
     | Tpoly id as old -> (
         match Vars.find_opt id vars with Some t -> t | None -> old)
     | Tfun (ps, r, kind) ->
-        let ps = List.map subst ps in
+        let ps = List.map (fun p -> { p with pt = subst p.pt }) ps in
         let kind =
           match kind with
           | Simple -> Simple
@@ -320,7 +328,7 @@ let rec subst_body p subst tree =
   let p = ref p in
 
   let subst_func { params; ret; kind } =
-    let params = List.map subst params in
+    let params = List.map (fun p -> { p with pt = subst p.pt }) params in
     let ret = subst ret in
     let kind =
       match kind with
@@ -741,7 +749,7 @@ and prep_func p (username, uniq, abs) =
 
   let func =
     {
-      params = List.map cln abs.func.tparams;
+      params = List.map cln_param abs.func.tparams;
       ret = cln abs.func.ret;
       kind = cln_kind abs.func.kind;
     }
@@ -814,7 +822,7 @@ and morph_lambda typ p id abs =
   let recursive = Rnone in
   let func =
     {
-      params = List.map cln abs.func.tparams;
+      params = List.map cln_param abs.func.tparams;
       ret = cln abs.func.ret;
       kind = cln_kind abs.func.kind;
     }

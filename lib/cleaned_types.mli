@@ -7,13 +7,14 @@ type typ =
   | Ti32
   | Tf32
   | Tpoly of string
-  | Tfun of typ list * typ * fun_kind
+  | Tfun of param list * typ * fun_kind
   | Trecord of typ list * string option * field array
   | Tvariant of typ list * string * ctor array
   | Traw_ptr of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of (string * typ) list
+and param = { pt : typ; pmut : bool }
 and field = { ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 

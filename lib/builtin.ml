@@ -22,33 +22,61 @@ type t =
 [@@deriving show]
 
 let tbl =
+  let pmut = false in
   [
     ( Unsafe_ptr_get,
-      Types.Tfun ([ Traw_ptr (Qvar "0"); Tint ], Qvar "0", Simple),
+      Types.Tfun
+        ( [ { pt = Traw_ptr (Qvar "0"); pmut }; { pt = Tint; pmut } ],
+          Qvar "0",
+          Simple ),
       "__unsafe_ptr_get" );
     ( Unsafe_ptr_set,
-      Tfun ([ Traw_ptr (Qvar "0"); Tint; Qvar "0" ], Tunit, Simple),
+      Tfun
+        ( [
+            { pt = Traw_ptr (Qvar "0"); pmut };
+            { pt = Tint; pmut };
+            { pt = Qvar "0"; pmut };
+          ],
+          Tunit,
+          Simple ),
       "__unsafe_ptr_set" );
     ( Realloc,
-      Tfun ([ Traw_ptr (Qvar "0"); Tint ], Traw_ptr (Qvar "0"), Simple),
+      Tfun
+        ( [ { pmut; pt = Traw_ptr (Qvar "0") }; { pmut; pt = Tint } ],
+          Traw_ptr (Qvar "0"),
+          Simple ),
       "__realloc" );
-    (Malloc, Tfun ([ Tint ], Traw_ptr (Qvar "0"), Simple), "__malloc");
-    (Ignore, Tfun ([ Qvar "0" ], Tunit, Simple), "ignore");
-    (Int_of_float, Tfun ([ Tfloat ], Tint, Simple), "int_of_float");
-    (Int_of_i32, Tfun ([ Ti32 ], Tint, Simple), "int_of_i32");
-    (Int_of_f32, Tfun ([ Tf32 ], Tint, Simple), "int_of_f32");
-    (Float_of_int, Tfun ([ Tint ], Tfloat, Simple), "float_of_int");
-    (Float_of_f32, Tfun ([ Tf32 ], Tfloat, Simple), "float_of_f32");
-    (Float_of_i32, Tfun ([ Ti32 ], Tfloat, Simple), "float_of_i32");
-    (I32_of_int, Tfun ([ Tint ], Ti32, Simple), "i32_of_int");
-    (I32_of_float, Tfun ([ Tfloat ], Ti32, Simple), "i32_of_float");
-    (I32_of_f32, Tfun ([ Tf32 ], Ti32, Simple), "i32_of_f32");
-    (F32_of_float, Tfun ([ Tfloat ], Tf32, Simple), "f32_of_float");
-    (F32_of_int, Tfun ([ Tint ], Tf32, Simple), "f32_of_int");
-    (F32_of_i32, Tfun ([ Ti32 ], Tf32, Simple), "f32_of_i32");
-    (U8_of_int, Tfun ([ Tint ], Tu8, Simple), "u8_of_int");
-    (U8_to_int, Tfun ([ Tu8 ], Tint, Simple), "u8_to_int");
-    (Not, Tfun ([ Tbool ], Tbool, Simple), "not");
+    ( Malloc,
+      Tfun ([ { pmut; pt = Tint } ], Traw_ptr (Qvar "0"), Simple),
+      "__malloc" );
+    (Ignore, Tfun ([ { pmut; pt = Qvar "0" } ], Tunit, Simple), "ignore");
+    ( Int_of_float,
+      Tfun ([ { pmut; pt = Tfloat } ], Tint, Simple),
+      "int_of_float" );
+    (Int_of_i32, Tfun ([ { pmut; pt = Ti32 } ], Tint, Simple), "int_of_i32");
+    (Int_of_f32, Tfun ([ { pmut; pt = Tf32 } ], Tint, Simple), "int_of_f32");
+    ( Float_of_int,
+      Tfun ([ { pmut; pt = Tint } ], Tfloat, Simple),
+      "float_of_int" );
+    ( Float_of_f32,
+      Tfun ([ { pmut; pt = Tf32 } ], Tfloat, Simple),
+      "float_of_f32" );
+    ( Float_of_i32,
+      Tfun ([ { pmut; pt = Ti32 } ], Tfloat, Simple),
+      "float_of_i32" );
+    (I32_of_int, Tfun ([ { pmut; pt = Tint } ], Ti32, Simple), "i32_of_int");
+    ( I32_of_float,
+      Tfun ([ { pmut; pt = Tfloat } ], Ti32, Simple),
+      "i32_of_float" );
+    (I32_of_f32, Tfun ([ { pmut; pt = Tf32 } ], Ti32, Simple), "i32_of_f32");
+    ( F32_of_float,
+      Tfun ([ { pmut; pt = Tfloat } ], Tf32, Simple),
+      "f32_of_float" );
+    (F32_of_int, Tfun ([ { pmut; pt = Tint } ], Tf32, Simple), "f32_of_int");
+    (F32_of_i32, Tfun ([ { pmut; pt = Ti32 } ], Tf32, Simple), "f32_of_i32");
+    (U8_of_int, Tfun ([ { pmut; pt = Tint } ], Tu8, Simple), "u8_of_int");
+    (U8_to_int, Tfun ([ { pmut; pt = Tu8 } ], Tint, Simple), "u8_to_int");
+    (Not, Tfun ([ { pmut; pt = Tbool } ], Tbool, Simple), "not");
   ]
 
 let of_string = function

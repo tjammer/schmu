@@ -29,7 +29,7 @@ let rec occurs tvr = function
       tv := Unbound (id, min_lvl)
   | Tvar { contents = Link ty } | Talias (_, ty) -> occurs tvr ty
   | Tfun (param_ts, t, _) ->
-      List.iter (occurs tvr) param_ts;
+      List.iter (fun p -> occurs tvr p.pt) param_ts;
       occurs tvr t
   | _ -> ()
 
@@ -58,7 +58,9 @@ let rec unify t1 t2 =
         tv := Link t
     | Tfun (params_l, l, _), Tfun (params_r, r, _) -> (
         try
-          List.iter2 (fun left right -> unify left right) params_l params_r;
+          List.iter2
+            (fun left right -> unify left.pt right.pt)
+            params_l params_r;
           unify l r
         with Invalid_argument _ ->
           raise (Arity ("function", List.length params_l, List.length params_r))
@@ -110,7 +112,9 @@ let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
   | Tvar { contents = Link t } -> generalize t
   | Talias (n, t) -> Talias (n, generalize t)
-  | Tfun (t1, t2, k) -> Tfun (List.map generalize t1, generalize t2, k)
+  | Tfun (t1, t2, k) ->
+      let gen p = { p with pt = generalize p.pt } in
+      Tfun (List.map gen t1, generalize t2, k)
   | Trecord (ps, name, labels) ->
       (* Hopefully the param type is the same reference throughout the record *)
       let ps = List.map generalize ps in
@@ -143,8 +147,8 @@ let instantiate t =
         let subst, params_t =
           List.fold_left_map
             (fun subst param ->
-              let t, subst = aux subst param in
-              (subst, t))
+              let pt, subst = aux subst param.pt in
+              (subst, { param with pt }))
             subst params_t
         in
         let t, subst = aux subst t in
@@ -236,7 +240,8 @@ let rec types_match ?(strict = false) subst l r =
           let subst, acc =
             List.fold_left2
               (fun (s, acc) l r ->
-                let subst, b = types_match ~strict:true s l r in
+                let subst, b = types_match ~strict:true s l.pt r.pt in
+                let b = b && Bool.equal l.pmut r.pmut in
                 (subst, acc && b))
               (subst, true) ps_l ps_r
           in
