@@ -310,13 +310,13 @@ let rec get_lltype_def = function
 and get_lltype_param mut = function
   | (Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _)
     as t ->
-      get_lltype_def t
+      let t = get_lltype_def t in
+      if mut then t |> Llvm.pointer_type else t
   | Tfun (params, ret, kind) ->
       typeof_func ~param:true ~decl:false (params, ret, kind) |> fst
-  | (Trecord _ as typ) | (Tvariant _ as typ) -> (
-      let t = get_struct typ in
-      match pkind_of_typ mut typ with
-      | Boxed -> t |> Llvm.pointer_type
+  | (Trecord _ | Tvariant _) as t -> (
+      match pkind_of_typ mut t with
+      | Boxed -> get_lltype_def t |> Llvm.pointer_type
       | Unboxed size -> lltype_unboxed size)
 
 and get_lltype_field = function
@@ -540,6 +540,7 @@ let pass_value mut value =
     match pkind_of_typ mut value.typ with
     | Unboxed kind -> unbox_record ~kind ~ret:false value
     | Boxed -> (value.value, None)
+  else if mut then (value.value, None)
   else (bring_default value, None)
 
 (* Given two ptr types (most likely to structs), copy src to dst *)

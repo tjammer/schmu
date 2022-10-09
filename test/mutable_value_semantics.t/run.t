@@ -95,6 +95,3 @@ Warn on unneeded mutable bindings
   7 | (val b& 0)
            ^
   
-  Store operand must be a pointer.
-    store i64 %b, i64 %a, align 4
-  
