@@ -191,19 +191,6 @@ let llval_of_size size = Llvm.const_int int_t size
    ABI handling
 *)
 
-let rec is_mutable = function
-  | Trecord (_, _, fields) ->
-      Array.fold_left
-        (fun acc field -> field.mut || is_mutable field.ftyp || acc)
-        false fields
-  | Tvariant (_, _, ctors) ->
-      Array.fold_left
-        (fun acc ctor ->
-          let some typ = is_mutable typ || acc in
-          Option.fold ~none:acc ~some ctor.ctyp)
-        false ctors
-  | _ -> false
-
 let rec get_word ~size items = function
   | [] -> (List.rev items, [], size)
   | typ :: tl ->
@@ -227,7 +214,7 @@ and extract_word ~size = function
       let size = match size with 1 -> 1 | 2 -> 2 | 3 | 4 -> 4 | _ -> 8 in
       Some (Ints size)
 
-and pkind_of_typ typ =
+and pkind_of_typ mut typ =
   (* We destruct the type into words of 8 byte.
      A word is then either a double, an int (containing different types)
      or a vector of float (for x86_64-linux-gnu). If a type straddles
@@ -250,13 +237,13 @@ and pkind_of_typ typ =
       | None, _ -> Boxed
   in
   match typ with
-  | Trecord (_, _, fields) when not (is_mutable typ) ->
+  | Trecord (_, _, fields) when not mut ->
       let types =
         Array.map (fun (field : Cleaned_types.field) -> field.ftyp) fields
         |> Array.to_list
       in
       aux typ types
-  | Tvariant (_, _, ctors) when not (is_mutable typ) ->
+  | Tvariant (_, _, ctors) when not mut ->
       let types =
         match variant_get_largest ctors with
         | Some typ -> [ Ti32; typ ]
@@ -320,7 +307,7 @@ let rec get_lltype_def = function
       typeof_func ~param:false ~decl:false (params, ret, kind) |> fst
   | Traw_ptr t -> get_lltype_def t |> Llvm.pointer_type
 
-and get_lltype_param = function
+and get_lltype_param mut = function
   | (Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _)
     as t ->
       get_lltype_def t
@@ -328,7 +315,7 @@ and get_lltype_param = function
       typeof_func ~param:true ~decl:false (params, ret, kind) |> fst
   | (Trecord _ as typ) | (Tvariant _ as typ) -> (
       let t = get_struct typ in
-      match pkind_of_typ typ with
+      match pkind_of_typ mut typ with
       | Boxed -> t |> Llvm.pointer_type
       | Unboxed size -> lltype_unboxed size)
 
@@ -354,7 +341,7 @@ and typeof_closure agg =
   Array.map
     (fun cl ->
       match cl.cltyp with
-      | (Trecord _ | Tvariant _) when is_mutable cl.cltyp ->
+      | (Trecord _ | Tvariant _) when cl.clmut ->
           get_lltype_field cl.cltyp |> Llvm.pointer_type
       | typ -> get_lltype_field typ)
     agg
@@ -369,10 +356,10 @@ and typeof_func ~param ~decl (params, ret, kind) =
        pass it as first argument to the function *)
     let prefix, ret_t =
       if is_struct ret then
-        match pkind_of_typ ret with
-        | Boxed -> (Seq.return (get_lltype_param ret), unit_t)
+        match pkind_of_typ false ret with
+        | Boxed -> (Seq.return (get_lltype_param false ret), unit_t)
         | Unboxed size -> (Seq.empty, lltype_unboxed size)
-      else (Seq.empty, get_lltype_param ret)
+      else (Seq.empty, get_lltype_param false ret)
     in
 
     let suffix =
@@ -393,14 +380,14 @@ and typeof_func ~param ~decl (params, ret, kind) =
         (fun ps p ->
           let typ = p.pt in
           incr i;
-          match pkind_of_typ typ with
+          match pkind_of_typ p.pmut typ with
           | Unboxed (Two_params (fst, snd)) ->
               (* snd before fst b/c we rev later *)
               lltype_unbox snd :: lltype_unbox fst :: ps
           | Boxed when is_aggregate typ ->
               byvals := (!i, typ) :: !byvals;
-              get_lltype_param typ :: ps
-          | _ -> get_lltype_param typ :: ps)
+              get_lltype_param p.pmut typ :: ps
+          | _ -> get_lltype_param p.pmut typ :: ps)
         [] params
       |> List.rev |> List.to_seq
       |> fun seq -> prefix ++ seq ++ suffix |> Array.of_seq
@@ -470,9 +457,9 @@ let box_record typ ~size ?(alloc = None) ~snd_val value =
     "box" builder
 
 (* Checks the param kind before calling [box_record] *)
-let maybe_box_record typ ?(alloc = None) ?(snd_val = None) value =
+let maybe_box_record mut typ ?(alloc = None) ?(snd_val = None) value =
   (* From int to record *)
-  match pkind_of_typ typ with
+  match pkind_of_typ mut typ with
   | Unboxed size -> box_record typ ~size ~alloc ~snd_val value
   | Boxed -> value
 
@@ -547,10 +534,10 @@ let bring_default_var v =
   { v with value = bring_default v; kind }
 
 (* Checks the param kind before calling [unbox_record] *)
-let pass_value value =
+let pass_value mut value =
   (* From record to int *)
   if is_struct value.typ then
-    match pkind_of_typ value.typ with
+    match pkind_of_typ mut value.typ with
     | Unboxed kind -> unbox_record ~kind ~ret:false value
     | Boxed -> (value.value, None)
   else (bring_default value, None)
@@ -821,7 +808,7 @@ let gen_closure_obj param assoc func name =
     let src = Vars.find cl.clname param.vars in
     let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
     (match cl.cltyp with
-    | (Trecord _ | Tvariant _) when is_mutable cl.cltyp ->
+    | (Trecord _ | Tvariant _) when cl.clmut ->
         ignore (Llvm.build_store src.value dst builder)
     | Trecord _ | Tvariant _ ->
         (* For records, we just memcpy
@@ -871,7 +858,7 @@ let add_closure vars func = function
         let value, lltyp =
           match typ with
           (* No need for C interop with closures *)
-          | (Trecord _ | Tvariant _) when is_mutable cl.cltyp ->
+          | (Trecord _ | Tvariant _) when cl.clmut ->
               (* Mutable records are passed as pointers into the env *)
               let value = Llvm.build_load item_ptr cl.clname builder in
 
@@ -909,34 +896,35 @@ let get_prealloc allocref param lltyp str =
   | _ -> alloca param lltyp str
 
 (* We need to handle the index the same way as [get_value] below *)
-let get_index i typ =
-  match pkind_of_typ typ with Unboxed (Two_params _) -> i + 1 | _ -> i
+let get_index i mut typ =
+  match pkind_of_typ mut typ with Unboxed (Two_params _) -> i + 1 | _ -> i
 
 (* This adds the function parameters to the env.
    In case the function is tailrecursive, it allocas each parameter in
    the entry block and creates a recursion block which starts off by loading
    each parameter. *)
-let add_params vars f fname names types start_index recursive =
+let add_params vars f fname names params start_index recursive =
   (* We specially treat the case where a record is passed as two params *)
-  let get_value i typ =
-    match pkind_of_typ typ with
+  let get_value i mut typ =
+    match pkind_of_typ mut typ with
     | Unboxed (Two_params _) ->
         let v1 = (Llvm.params f.value).(i) in
         let v2 = (Llvm.params f.value).(i + 1) in
-        (maybe_box_record ~snd_val:(Some v2) typ v1, i + 1)
-    | _ -> ((Llvm.params f.value).(i) |> maybe_box_record typ, i)
+        (maybe_box_record ~snd_val:(Some v2) mut typ v1, i + 1)
+    | _ -> ((Llvm.params f.value).(i) |> maybe_box_record mut typ, i)
   in
 
   let add_simple vars =
     (* We simply add to env, no special handling for tailrecursion *)
     List.fold_left2
-      (fun (env, i) name typ ->
-        let value, i = get_value i typ in
+      (fun (env, i) name p ->
+        let typ = p.pt in
+        let value, i = get_value i p.pmut typ in
         let kind = default_kind typ in
         let param = { value; typ; lltyp = Llvm.type_of value; kind } in
         Llvm.set_value_name name value;
         (Vars.add name param env, i + 1))
-      (vars, start_index) names types
+      (vars, start_index) names params
     |> fst
   in
 
@@ -979,15 +967,16 @@ let add_params vars f fname names types start_index recursive =
          real parameters *)
       let vars =
         List.fold_left2
-          (fun (env, i) name typ ->
-            let value, i = get_value i typ in
+          (fun (env, i) name p ->
+            let typ = p.pt in
+            let value, i = get_value i p.pmut typ in
             Llvm.set_value_name name value;
             let value =
               { value; typ; lltyp = Llvm.type_of value; kind = Ptr }
             in
             let alloc = { value with value = alloca_copy value } in
             (Vars.add (name_of_alloc_param i) alloc env, i + 1))
-          (vars, start_index) names types
+          (vars, start_index) names params
         |> fst
       in
       (* Recursion block*)
@@ -1001,15 +990,16 @@ let add_params vars f fname names types start_index recursive =
 
       let vars, _ =
         List.fold_left2
-          (fun (env, i) name typ ->
-            let i = get_index i typ in
+          (fun (env, i) name p ->
+            let typ = p.pt in
+            let i = get_index i p.pmut typ in
             let llvar = Vars.find (name_of_alloc_param i) env in
             let value =
               if is_struct typ then Llvm.build_load llvar.value name builder
               else llvar.value
             in
             (Vars.add name { llvar with value } env, i + 1))
-          (vars, start_index) names types
+          (vars, start_index) names params
       in
 
       (vars, Some { rec_; entry })
@@ -1056,7 +1046,7 @@ let get_mono_func func param = function
 let fun_return name ret =
   match ret.typ with
   | (Trecord _ | Tvariant _) as t -> (
-      match pkind_of_typ t with
+      match pkind_of_typ false t with
       | Boxed -> (* Default record case *) Llvm.build_ret_void builder
       | Unboxed kind ->
           let unboxed, _ = unbox_record ~kind ~ret:true ret in
@@ -1088,7 +1078,7 @@ let rec gen_function vars ?(mangle = Schmu)
       let start_index, alloca =
         match ret_t with
         | (Trecord _ | Tvariant _) as t -> (
-            match pkind_of_typ t with
+            match pkind_of_typ false t with
             | Boxed ->
                 (* Whenever the return type is boxed, we add the prealloc to the environment *)
                 (* The call site has to decide if the prealloc is used or not *)
@@ -1107,7 +1097,6 @@ let rec gen_function vars ?(mangle = Schmu)
       let tvars = add_closure vars.vars func kind in
 
       (* Add parameters to env *)
-      let tparams = List.map (fun p -> p.pt) tparams in
       let tvars, rec_block =
         add_params tvars func name abs.pnames tparams start_index recursive
       in
@@ -1117,7 +1106,7 @@ let rec gen_function vars ?(mangle = Schmu)
             its ptr (1st parameter) and return void *)
         match ret.typ with
         | (Trecord _ | Tvariant _) as t -> (
-            match pkind_of_typ t with
+            match pkind_of_typ false t with
             | Boxed ->
                 (* Since we only have POD records, we can safely memcpy here *)
                 let dst = Llvm.(params func.value).(0) in
@@ -1430,23 +1419,23 @@ and gen_app param callee args allocref ret_t malloc =
 
   let args =
     List.fold_left
-      (fun args arg ->
-        let arg' = gen_expr param Monomorph_tree.(arg.ex) in
+      (fun args oarg ->
+        let arg' = gen_expr param Monomorph_tree.(oarg.ex) in
 
         (* In case the record passed is constant, we allocate it here to pass
            a pointer. This isn't pretty, but will do for now. For the single
            param, unboxed case we can skip boxing *)
         let arg =
-          match (arg'.typ, pkind_of_typ arg'.typ, arg'.kind) with
+          match (arg'.typ, pkind_of_typ oarg.mut arg'.typ, arg'.kind) with
           (* The [Two_params] case is tricky to do using only consts,
              so we box and use the standard runtime version *)
           | (Trecord _ | Tvariant _), Boxed, Const
           | (Trecord _ | Tvariant _), Unboxed (Two_params _), Const ->
               box_const param arg'
-          | _ -> get_mono_func arg' param arg.monomorph
+          | _ -> get_mono_func arg' param oarg.monomorph
         in
 
-        match pass_value arg with
+        match pass_value oarg.mut arg with
         | fst, Some snd ->
             (* We can skip [func_to_closure] in this case *)
             (* snd before fst, b/c we rev at the end *)
@@ -1511,7 +1500,7 @@ and gen_app param callee args allocref ret_t malloc =
     match ret_t with
     | (Trecord _ | Tvariant _) as t -> (
         let lltyp = get_lltype_def ret_t in
-        match pkind_of_typ t with
+        match pkind_of_typ false t with
         | Boxed ->
             let retval = get_prealloc !allocref param lltyp "ret" in
             let ret' = Seq.return retval in
@@ -1531,7 +1520,7 @@ and gen_app param callee args allocref ret_t malloc =
     | t ->
         let args = args ++ envarg |> Array.of_seq in
         let retval = Llvm.build_call funcval args "" builder in
-        (retval, get_lltype_param t)
+        (retval, get_lltype_param false t)
   in
 
   (* For freeing propagated mallocs *)
@@ -1548,7 +1537,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
   let start_index, ret =
     match func.typ with
     | Tfun (_, (Trecord _ as r), _) | Tfun (_, (Tvariant _ as r), _) -> (
-        match pkind_of_typ r with
+        match pkind_of_typ false r with
         | Boxed -> (1, r)
         | Unboxed size -> (0, type_unboxed size))
     | Tfun (_, ret, _) -> (0, ret)
@@ -1557,12 +1546,12 @@ and gen_app_tailrec param callee args rec_block ret_t =
     | _ -> failwith "Internal Error: Not a func in gen app tailrec"
   in
 
-  let handle_arg i arg =
-    let arg' = gen_expr param Monomorph_tree.(arg.ex) in
-    let arg = get_mono_func arg' param arg.monomorph in
+  let handle_arg i oarg =
+    let arg' = gen_expr param Monomorph_tree.(oarg.ex) in
+    let arg = get_mono_func arg' param oarg.monomorph in
     let llvar = func_to_closure param arg in
 
-    let i = get_index i arg.typ in
+    let i = get_index i oarg.mut arg.typ in
     let alloca = Vars.find (name_of_alloc_param i) param.vars in
 
     (* We store the params in pre-allocated variables *)
@@ -1577,7 +1566,7 @@ and gen_app_tailrec param callee args rec_block ret_t =
     (* TODO record *)
     match ret with
     | Trecord _ | Tvariant _ -> get_lltype_def ret_t
-    | t -> get_lltype_param t
+    | t -> get_lltype_param false t
   in
 
   let value = Llvm.build_br rec_block.rec_ builder in

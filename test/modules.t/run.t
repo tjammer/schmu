@@ -483,12 +483,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %monoclstmp = alloca %closure, align 8
     %funptr5 = bitcast %closure* %monoclstmp to i8**
     store i8* bitcast (void (i64, i8*)* @schmu___i.u_inner_i.u to i8*), i8** %funptr5, align 8
-    %clsr_monoclstmp = alloca { %closure*, %vector_int* }, align 8
-    %f16 = bitcast { %closure*, %vector_int* }* %clsr_monoclstmp to %closure**
+    %clsr_monoclstmp = alloca { %closure*, %vector_int }, align 8
+    %f16 = bitcast { %closure*, %vector_int }* %clsr_monoclstmp to %closure**
     store %closure* %f, %closure** %f16, align 8
-    %vec2 = getelementptr inbounds { %closure*, %vector_int* }, { %closure*, %vector_int* }* %clsr_monoclstmp, i32 0, i32 1
-    store %vector_int* %vec, %vector_int** %vec2, align 8
-    %env = bitcast { %closure*, %vector_int* }* %clsr_monoclstmp to i8*
+    %vec2 = getelementptr inbounds { %closure*, %vector_int }, { %closure*, %vector_int }* %clsr_monoclstmp, i32 0, i32 1
+    %0 = bitcast %vector_int* %vec2 to i8*
+    %1 = bitcast %vector_int* %vec to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 24, i1 false)
+    %env = bitcast { %closure*, %vector_int }* %clsr_monoclstmp to i8*
     %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     call void @schmu___i.u_inner_i.u(i64 0, i8* %env)
@@ -497,38 +499,36 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define void @schmu___i.u_inner_i.u(i64 %i, i8* %0) {
   entry:
-    %clsr = bitcast i8* %0 to { %closure*, %vector_int* }*
-    %f4 = bitcast { %closure*, %vector_int* }* %clsr to %closure**
-    %f1 = load %closure*, %closure** %f4, align 8
-    %vec = getelementptr inbounds { %closure*, %vector_int* }, { %closure*, %vector_int* }* %clsr, i32 0, i32 1
-    %vec2 = load %vector_int*, %vector_int** %vec, align 8
+    %clsr = bitcast i8* %0 to { %closure*, %vector_int }*
+    %f3 = bitcast { %closure*, %vector_int }* %clsr to %closure**
+    %f1 = load %closure*, %closure** %f3, align 8
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 4
     br label %rec
   
   rec:                                              ; preds = %else, %entry
     %2 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %3 = bitcast %vector_int* %vec2 to %owned_ptr_int*
-    %4 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %3, i32 0, i32 1
-    %5 = load i64, i64* %4, align 4
-    %eq = icmp eq i64 %2, %5
+    %sunkaddr = getelementptr inbounds i8, i8* %0, i64 16
+    %3 = bitcast i8* %sunkaddr to i64*
+    %4 = load i64, i64* %3, align 4
+    %eq = icmp eq i64 %2, %4
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %6 = bitcast %vector_int* %vec2 to %owned_ptr_int*
-    %7 = bitcast %owned_ptr_int* %6 to i64**
-    %8 = load i64*, i64** %7, align 8
-    %scevgep = getelementptr i64, i64* %8, i64 %2
-    %9 = load i64, i64* %scevgep, align 4
+    %sunkaddr4 = getelementptr inbounds i8, i8* %0, i64 8
+    %5 = bitcast i8* %sunkaddr4 to i64**
+    %6 = load i64*, i64** %5, align 8
+    %scevgep = getelementptr i64, i64* %6, i64 %2
+    %7 = load i64, i64* %scevgep, align 4
     %funcptr5 = bitcast %closure* %f1 to i8**
     %loadtmp = load i8*, i8** %funcptr5, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
-    %loadtmp3 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %9, i8* %loadtmp3)
+    %loadtmp2 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i64 %7, i8* %loadtmp2)
     %add = add i64 %2, 1
     store i64 %add, i64* %1, align 4
     br label %rec
@@ -553,6 +553,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %add
   }
   
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
   define i64 @main(i64 %arg) {
   entry:
     %clstmp = alloca %closure, align 8
@@ -563,5 +566,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     call void @schmu___vectorgg.u.u_vector-iter_vectorii.u.u(%vector_int* @vtest, %closure* %clstmp)
     ret i64 0
   }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   0
   1

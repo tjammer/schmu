@@ -60,7 +60,7 @@ and call_name =
   | Builtin of Builtin.t * func
   | Inline of string list * monod_tree
 
-and monod_expr = { ex : monod_tree; monomorph : call_name }
+and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
 and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
@@ -387,7 +387,7 @@ let rec subst_body p subst tree =
 
         let p2, monomorph = monomorphize_call old_p ex (Some subst) in
 
-        let callee = { ex; monomorph } in
+        let callee = { callee with ex; monomorph } in
         p := { !p with funcs = p2.funcs; monomorphized = p2.monomorphized };
 
         let args = List.map (fun arg -> { arg with ex = sub arg.ex }) args in
@@ -892,7 +892,7 @@ and morph_app mk p callee args =
   let ret = p.ret in
   let p, ex, var = morph_expr { p with ret = false } callee in
   let p, monomorph = monomorphize_call p ex None in
-  let callee = { ex; monomorph } in
+  let callee = { ex; monomorph; mut = false } in
 
   let malloc, p =
     match var.malloc with
@@ -908,7 +908,7 @@ and morph_app mk p callee args =
   let f p arg =
     let p, ex, _ = morph_expr p arg in
     let p, monomorph = monomorphize_call p ex None in
-    (p, { ex; monomorph })
+    (p, { ex; monomorph; mut = arg.attr.mut })
   in
   let p, args = List.fold_left_map f p args in
 

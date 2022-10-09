@@ -58,7 +58,7 @@ and call_name =
   | Inline of string list * monod_tree
 (* Builtin function with special codegen *)
 
-and monod_expr = { ex : monod_tree; monomorph : call_name }
+and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
 and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
