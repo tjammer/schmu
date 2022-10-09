@@ -206,20 +206,21 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         subst
   and handle_func env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
-    | [ t ] -> concrete_type env t
-    | [ Ast.Ty_id "unit"; t ] -> Tfun ([], concrete_type env t, fn_kind)
-    | [ Ast.Ty_list [ Ast.Ty_id "unit" ]; t ] ->
+    | [ (t, _) ] -> concrete_type env t
+    | [ (Ast.Ty_id "unit", _); (t, _) ] ->
+        Tfun ([], concrete_type env t, fn_kind)
+    | [ (Ast.Ty_list [ Ast.Ty_id "unit" ], _); (t, _) ] ->
         Tfun ([], concrete_type env t, fn_kind)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)
     | l -> (
         (* We reverse the list times :( *)
         match List.rev l with
-        | last :: head ->
+        | (last, _) :: head ->
             Tfun
               (* TODO figure out type spec syntax for mutability *)
               ( List.map
-                  (fun s -> { pt = concrete_type env s; pmut = false })
+                  (fun (s, pmut) -> { pt = concrete_type env s; pmut })
                   (List.rev head),
                 concrete_type env last,
                 fn_kind )

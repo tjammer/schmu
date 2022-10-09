@@ -88,7 +88,6 @@ rule read =
   | "fmt-str"{ Fmt_str }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
   | kebab_id { Kebab_id (Lexing.lexeme lexbuf) }
-  | mut_id   { Mut_id (mut_of_string (Lexing.lexeme lexbuf))}
   | keyword  { Keyword (name_of_string (Lexing.lexeme lexbuf)) }
   | mut_kw   { Mut_keyword (mut_name_of_string (Lexing.lexeme lexbuf)) }
   | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }

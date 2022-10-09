@@ -26,7 +26,7 @@ type type_spec =
   | Ty_id of string
   | Ty_var of string
   | Ty_list of type_spec list
-  | Ty_func of type_spec list
+  | Ty_func of (type_spec * bool) list
   | Ty_open_id of loc * type_spec * string
 
 and decl = {

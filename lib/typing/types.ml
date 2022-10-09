@@ -83,9 +83,7 @@ let string_of_type_raw get_name typ =
         let ps =
           String.concat " "
             (List.map
-               (fun p ->
-                 let pre = if p.pmut then "&" else "" in
-                 pre ^ string_of_type p.pt)
+               (fun p -> string_of_type p.pt ^ if p.pmut then "&" else "")
                ts)
         in
         Printf.sprintf "(fun %s %s)" ps (string_of_type t)

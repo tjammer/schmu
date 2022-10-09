@@ -45,7 +45,12 @@ let rec string_of_type = function
   | Ti32 -> "i32"
   | Tf32 -> "f32"
   | Tfun (ts, t, _) ->
-      let ps = String.concat " " (List.map (fun p -> string_of_type p.pt) ts) in
+      let ps =
+        String.concat " "
+          (List.map
+             (fun p -> string_of_type p.pt ^ if p.pmut then "&" else "")
+             ts)
+      in
       Printf.sprintf "(fun %s %s)" ps (string_of_type t)
   | Tpoly str -> str
   | Trecord (_, None, fs) ->

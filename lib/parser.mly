@@ -38,7 +38,6 @@
 %token Do
 %token <string> Lowercase_id
 %token <string> Kebab_id
-%token <string> Mut_id
 %token <string> Keyword
 %token <string> Mut_keyword
 %token <string> Constructor
@@ -173,13 +172,11 @@ stmt:
   | Val; sexp_decl; sexp_expr { Let($loc, $2, $3) }
 
 %inline sexp_decl:
-  | ident = ident;  { { loc = $loc; ident; mut = false; annot = None } }
-  | ident = mut_ident { { loc = $loc; ident; mut = true; annot = None } }
+  | ident = ident; mut = boption(Ampersand)  { { loc = $loc; ident; mut; annot = None } }
   | parens(sexp_decl_typed) { $1 }
 
 %inline sexp_decl_typed:
-  | ident = ident; sexp_type_expr { { loc = $loc; ident; mut = false; annot = Some $2 } }
-  | ident = mut_ident; sexp_type_expr { { loc = $loc; ident; mut = true; annot = Some $2 } }
+  | ident = ident; mut = boption(Ampersand); annot = sexp_type_expr { { loc = $loc; ident; mut; annot = Some annot } }
 
 %inline sexp_fun:
   | Fun; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
@@ -341,9 +338,6 @@ ident:
   | Lowercase_id { ($loc, $1) }
   | Kebab_id { ($loc, $1) }
 
-mut_ident:
-  | id = Mut_id { $loc, id }
-
 sexp_ctor:
   | Constructor { $loc, $1 }
 
@@ -384,7 +378,10 @@ sexp_vector_lit:
   | parens(sexp_type_func) { $1 }
 
 %inline sexp_type_func:
-  | Fun; nonempty_list(sexp_type_expr) { Ty_func $2 }
+  | Fun; nonempty_list(sexp_fun_param) { Ty_func $2 }
+
+%inline sexp_fun_param:
+  | spec = sexp_type_expr; mut = boption(Ampersand) { spec, mut }
 
 %inline sexp_type_list:
   | build_sexp_type_list { Ty_list $1 }

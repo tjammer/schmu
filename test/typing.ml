@@ -145,6 +145,17 @@ let test_annot_generic_fail () =
   test_exn "Var annotation: Expected type (fun 'a 'b) but got type (fun 'a 'a)"
     "(val (pass (fun 'a 'b)) (fun (x) x)) pass"
 
+let test_annot_generic_mut () =
+  test "(fun 'a& 'a)" "(fun pass [(x& 'b)] x) pass"
+
+let test_annot_fun_mut_param () =
+  test "(fun int& unit)"
+    "(external f (fun int& unit)) (val (a (fun int& unit)) f) a"
+
+let test_annot_generic_fun_mut_param () =
+  test "(fun 'a& unit)"
+    "(external f (fun 'a& unit)) (val (a (fun 'a& unit)) f) a"
+
 let test_annot_record_simple () =
   test "a" "(type a { :x int }) (type b { :x int }) (val (a a) { :x 12 }) a"
 
@@ -314,6 +325,10 @@ let test_mutable_nonmut_value () =
 let test_mutable_nonmut_transitive () =
   test_exn "Cannot mutate non-mutable binding"
     "(type foo { :x& int }) (val foo { :x 12 }) (set (.x foo) 13)"
+
+let test_mutable_nonmut_transitive_inv () =
+  test_exn "Cannot mutate non-mutable binding"
+    "(type foo { :x int }) (val foo& { :x 12 }) (set (.x foo) 13)"
 
 let test_variants_option_none () =
   test "(option 'a)" "(type (option 'a) (#none (#some 'a))) #none"
@@ -555,6 +570,9 @@ let () =
           case "mix_fail" test_annot_mix_fail;
           case "generic" test_annot_generic;
           case "generic_fail" test_annot_generic_fail;
+          case "generic mut" test_annot_generic_mut;
+          case "fun mut param" test_annot_fun_mut_param;
+          case "generic fun mut param" test_annot_generic_fun_mut_param;
           case "record_let" test_annot_record_simple;
           case "record_let_gen" test_annot_record_generic;
         ] );
@@ -610,8 +628,9 @@ let () =
           case "set_wrong_type" test_mutable_set_wrong_type;
           case "set_non_mut" test_mutable_set_non_mut;
           case "value" test_mutable_value;
-          case "nonmut_value" test_mutable_nonmut_value;
-          case "nonmut_transitive" test_mutable_nonmut_transitive;
+          case "nonmut value" test_mutable_nonmut_value;
+          case "nonmut transitive" test_mutable_nonmut_transitive;
+          case "nonmut transitive inversed" test_mutable_nonmut_transitive_inv;
         ] );
       ( "variants",
         [
