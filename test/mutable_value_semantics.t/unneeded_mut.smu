@@ -1,0 +1,10 @@
+(fun do_nothing [a&]
+  (ignore a))
+
+(fun do_mut [a& b]
+  (set a b))
+
+(val b& 0)
+(ignore b)
+(val a& 0)
+(do_mut &a 1)

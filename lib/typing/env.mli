@@ -13,7 +13,8 @@ type value = {
   mut : bool;
 }
 
-type unused = (unit, (string * Ast.loc) list) result
+type warn_kind = Unused | Unmutated
+type unused = (unit, (string * warn_kind * Ast.loc) list) result
 type return = { typ : typ; const : bool; global : bool; mut : bool }
 type imported = [ `C | `Schmu ]
 
@@ -70,6 +71,8 @@ val query_val_opt : key -> t -> return option
 (** [query_opt key env] is like find_val_opt, but marks [key] as
      being used in the current scope (e.g. a closure) *)
 
+val open_mutation : t -> unit
+val close_mutation : t -> unit
 val find_type_opt : key -> t -> typ option
 val find_type : key -> t -> typ
 

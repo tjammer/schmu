@@ -38,7 +38,7 @@
   (inner_cls_vec 0 f)
   (inner_cls_f 0 vec))
 
-(val vec [])
+(val vec& [])
 (vector_push &vec 1)
 (vector_push &vec 2)
 (vector_push &vec 3)

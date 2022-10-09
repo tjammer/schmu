@@ -39,7 +39,13 @@ type value = {
   mut : bool;
 }
 
-type usage = { loc : Ast.loc; used : bool ref; imported : bool }
+type usage = {
+  loc : Ast.loc;
+  used : bool ref;
+  imported : bool;
+  mutated : bool ref;
+}
+
 type return = { typ : typ; const : bool; global : bool; mut : bool }
 type imported = [ `C | `Schmu ]
 
@@ -69,9 +75,11 @@ type t = {
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
   externals : ext Tmap.t ref;
+  in_mut : int ref;
 }
 
-type unused = (unit, (string * Ast.loc) list) result
+type warn_kind = Unused | Unmutated
+type unused = (unit, (string * warn_kind * Ast.loc) list) result
 
 let def_value =
   {
@@ -94,6 +102,7 @@ let empty () =
     ctors = Map.empty;
     types = Tmap.empty;
     externals = ref Tmap.empty;
+    in_mut = ref 0;
   }
 
 let add_value key value loc env =
@@ -106,7 +115,10 @@ let add_value key value loc env =
          Thus, warning for unused shadowed bindings works *)
       (if not value.imported then
        let tbl = scope.used in
-       Hashtbl.add tbl key { loc; used = ref false; imported = value.imported });
+       (* If the value is not mutable, we set it to mutated to let the later check pass *)
+       let mutated = if value.mut then ref false else ref true in
+       Hashtbl.add tbl key
+         { loc; used = ref false; imported = value.imported; mutated });
 
       { env with values = { scope with valmap } :: tl }
 
@@ -122,9 +134,11 @@ let add_external ext_name ~cname typ ~imported loc env =
         in
 
         let used = ref false in
+        (* external things cannot be mutated right now *)
+        let mutated = ref true in
         let tbl = scope.used in
         Hashtbl.add tbl ext_name
-          { loc; used; imported = Option.is_some imported };
+          { loc; used; imported = Option.is_some imported; mutated };
 
         ({ env with values = { scope with valmap } :: tl }, used)
   in
@@ -205,7 +219,9 @@ let find_unused ret tbl =
   let ret =
     Hashtbl.fold
       (fun name (used : usage) acc ->
-        if (not !(used.used)) && not used.imported then (name, used.loc) :: acc
+        if used.imported then acc
+        else if not !(used.used) then (name, Unused, used.loc) :: acc
+        else if not !(used.mutated) then (name, Unmutated, used.loc) :: acc
         else acc)
       tbl ret
   in
@@ -215,7 +231,7 @@ let find_unused ret tbl =
       (* Sort the warnings so the ones form the start of file are printed first *)
       let some =
         List.sort
-          (fun (_, ((lhs : Lexing.position), _)) (_, (rhs, _)) ->
+          (fun (_, _, ((lhs : Lexing.position), _)) (_, _, (rhs, _)) ->
             if lhs.pos_lnum <> rhs.pos_lnum then
               Int.compare lhs.pos_lnum rhs.pos_lnum
             else Int.compare lhs.pos_cnum rhs.pos_cnum)
@@ -268,9 +284,11 @@ let find_val_opt key env =
 let find_val key env =
   match find_val_opt key env with Some vl -> vl | None -> raise Not_found
 
-let mark_used name tbl =
+let mark_used name tbl mut =
   match Hashtbl.find_opt tbl name with
-  | Some (used : usage) -> used.used := true
+  | Some (used : usage) ->
+      if !mut > 0 then used.mutated := true;
+      used.used := true
   | None -> ()
 
 let query_val_opt key env =
@@ -294,7 +312,7 @@ let query_val_opt key env =
             | 0 -> ()
             | _ -> add scope_lvl (Type_key.create key) env.values);
             (* Mark value used, if it's not imported *)
-            if not imported then mark_used key scope.used;
+            if not imported then mark_used key scope.used env.in_mut;
             Some { typ; const; global; mut })
   in
   aux 0 env.values
@@ -318,3 +336,6 @@ let externals env =
   Tmap.bindings !(env.externals)
   |> List.sort Type_key.cmp_map_sort
   |> List.map snd
+
+let open_mutation env = incr env.in_mut
+let close_mutation env = decr env.in_mut

@@ -69,8 +69,13 @@ let check_annot loc l r =
 let check_unused = function
   | Ok () -> ()
   | Error errors ->
-      let err (name, loc) =
-        (Option.get !fmt_msg_fn) "warning" loc ("Unused binding " ^ name)
+      let err (name, kind, loc) =
+        let warn_kind =
+          match kind with
+          | Env.Unused -> "Unused"
+          | Unmutated -> "Unmutated mutable"
+        in
+        (Option.get !fmt_msg_fn) "warning" loc (warn_kind ^ " binding " ^ name)
         |> print_endline
       in
       List.iter err errors
@@ -635,7 +640,15 @@ end = struct
     let annots = param_annots callee.typ in
     let typed_exprs =
       List.mapi
-        (fun i (mut, e) -> (mut, convert_annot env (param_annot annots i) e))
+        (fun i (mut, e) ->
+          ( mut,
+            let () = if mut then Env.open_mutation env in
+            let e = convert_annot env (param_annot annots i) e in
+            (if mut then
+             let () = Env.close_mutation env in
+             if not e.attr.mut then
+               raise (Error (loc, "Mutably passed expression is not mutable")));
+            e ))
         args
     in
     let args_t = List.map (fun (pmut, a) -> { pmut; pt = a.typ }) typed_exprs in
@@ -758,7 +771,9 @@ end = struct
     "Constructor already has an argument, cannot pipe a second one"
 
   and convert_set env loc (eloc, expr) value =
+    Env.open_mutation env;
     let toset = convert env expr in
+    Env.close_mutation env;
     let valexpr = convert env value in
 
     (if not toset.attr.mut then

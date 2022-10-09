@@ -80,3 +80,21 @@ Test simple setting of mutable variables
   declare void @free(i8* %0)
   14
   15
+
+Warn on unneeded mutable bindings
+  $ schmu unneeded_mut.smu
+  unneeded_mut.smu:1:18: warning: Unmutated mutable binding a
+  1 | (fun do_nothing [a&]
+                       ^
+  
+  unneeded_mut.smu:1:6: warning: Unused binding do_nothing
+  1 | (fun do_nothing [a&]
+           ^^^^^^^^^^
+  
+  unneeded_mut.smu:7:6: warning: Unmutated mutable binding b
+  7 | (val b& 0)
+           ^
+  
+  Store operand must be a pointer.
+    store i64 %b, i64 %a, align 4
+  

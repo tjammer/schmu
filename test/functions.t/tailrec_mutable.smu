@@ -9,9 +9,11 @@
   (if (> i 0)
     (set (.a rf) false)
     -- introduce a new object, so the old one won't get mutated
-    (dontmut-bref (+ i 1) &{:a true})))
+    (do
+      (val rf2& {:a true})
+      (dontmut-bref (+ i 1) &rf2))))
 
-(val rf {:a false})
+(val rf& {:a false})
 
 (mut-bref 0 &rf)
 

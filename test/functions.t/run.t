@@ -1314,10 +1314,10 @@ Don't copy mutable types in setup of tailrecursive functions
     ret void
   
   else:                                             ; preds = %rec
-    %add = add i64 %3, 1
-    store i64 %add, i64* %0, align 4
     %a3 = bitcast %bref* %2 to i1*
     store i1 true, i1* %a3, align 1
+    %add = add i64 %3, 1
+    store i64 %add, i64* %0, align 4
     store %bref* %2, %bref** %1, align 8
     br label %rec
   }
