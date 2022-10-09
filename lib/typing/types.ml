@@ -26,16 +26,17 @@ type typ =
   | Traw_ptr of typ
 [@@deriving show { with_path = false }, sexp]
 
-and fun_kind = Simple | Closure of (string * typ) list
+and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pmut : bool }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
+and closed = { clname : string; clmut : bool; cltyp : typ }
 
 let rec clean = function
   | Tvar { contents = Link t } -> clean t
   | Tfun (params, ret, Closure vals) ->
-      let vals = List.map (fun (name, typ) -> (name, clean typ)) vals in
+      let vals = List.map (fun cl -> { cl with cltyp = clean cl.cltyp }) vals in
       Tfun
         ( List.map (fun p -> { p with pt = clean p.pt }) params,
           clean ret,

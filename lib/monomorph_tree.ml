@@ -169,7 +169,12 @@ let rec cln = function
 and cln_kind = function
   | Simple -> Simple
   | Closure vals ->
-      let vals = List.map (fun (name, typ) -> (name, cln typ)) vals in
+      let vals =
+        List.map
+          (fun (cl : Types.closed) ->
+            { clname = cl.clname; cltyp = cln cl.cltyp; clmut = cl.clmut })
+          vals
+      in
       Closure vals
 
 and cln_param p =
@@ -296,7 +301,9 @@ let subst_type ~concrete poly parent =
         let kind =
           match kind with
           | Simple -> Simple
-          | Closure cls -> Closure (List.map (fun (nm, t) -> (nm, subst t)) cls)
+          | Closure cls ->
+              Closure
+                (List.map (fun cl -> { cl with cltyp = subst cl.cltyp }) cls)
         in
         Tfun (ps, subst r, kind)
     | Trecord (ps, record, labels) as t when is_type_polymorphic t ->
@@ -333,7 +340,8 @@ let rec subst_body p subst tree =
     let kind =
       match kind with
       | Simple -> Simple
-      | Closure cls -> Closure (List.map (fun (nm, typ) -> (nm, subst typ)) cls)
+      | Closure cls ->
+          Closure (List.map (fun cl -> { cl with cltyp = subst cl.cltyp }) cls)
     in
     { params; ret; kind }
   in

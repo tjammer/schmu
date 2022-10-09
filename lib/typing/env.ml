@@ -248,17 +248,17 @@ let close_function env =
         |> List.filter_map (fun k ->
                (* We only add functions to the closure if they are params
                   Or: if they are closures *)
-               let k = Type_key.key k in
-               let { typ; param; const; global; imported; mut = _ } =
-                 find_val_raw k env
+               let clname = Type_key.key k in
+               let { typ; param; const; global; imported; mut = clmut } =
+                 find_val_raw clname env
                in
                (* Const values (and imported ones) are not closed over, they exist module-wide *)
                if const || global || imported then None
                else
                  match clean typ with
-                 | Tfun (_, _, Closure _) -> Some (k, typ)
+                 | Tfun (_, _, Closure _) -> Some { clname; cltyp = typ; clmut }
                  | Tfun _ when not param -> None
-                 | _ -> Some (k, typ))
+                 | _ -> Some { clname; cltyp = typ; clmut })
       in
 
       let unused = find_unused [] scope.used in

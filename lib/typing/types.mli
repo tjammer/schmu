@@ -18,11 +18,12 @@ type typ =
   | Traw_ptr of typ
 [@@deriving show { with_path = false }, sexp]
 
-and fun_kind = Simple | Closure of (string * typ) list
+and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pmut : bool }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
+and closed = { clname : string; clmut : bool; cltyp : typ }
 
 val clean : typ -> typ
 (** Follows links and aliases *)

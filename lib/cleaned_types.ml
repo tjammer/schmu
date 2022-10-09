@@ -13,10 +13,11 @@ type typ =
   | Traw_ptr of typ
 [@@deriving show { with_path = false }]
 
-and fun_kind = Simple | Closure of (string * typ) list
+and fun_kind = Simple | Closure of closed list
 and param = { pt : typ; pmut : bool }
 and field = { ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
+and closed = { clname : string; clmut : bool; cltyp : typ }
 
 let is_type_polymorphic typ =
   let rec inner acc = function
@@ -28,7 +29,7 @@ let is_type_polymorphic typ =
           match kind with
           | Simple -> acc
           | Closure cls ->
-              List.fold_left (fun acc (_, t) -> inner acc t) acc cls
+              List.fold_left (fun acc cl -> inner acc cl.cltyp) acc cls
         in
         inner acc ret
     | Tbool | Tunit | Tint | Tu8 | Tfloat | Ti32 | Tf32 -> acc

@@ -352,10 +352,10 @@ and typeof_aggregate agg =
 
 and typeof_closure agg =
   Array.map
-    (fun (_, typ) ->
-      match typ with
-      | (Trecord _ | Tvariant _) when is_mutable typ ->
-          get_lltype_field typ |> Llvm.pointer_type
+    (fun cl ->
+      match cl.cltyp with
+      | (Trecord _ | Tvariant _) when is_mutable cl.cltyp ->
+          get_lltype_field cl.cltyp |> Llvm.pointer_type
       | typ -> get_lltype_field typ)
     agg
   |> Llvm.struct_type context
@@ -817,16 +817,16 @@ let gen_closure_obj param assoc func name =
   let fun_casted = Llvm.build_bitcast func.value voidptr_t "func" builder in
   ignore (Llvm.build_store fun_casted fun_ptr builder);
 
-  let store_closed_var clsr_ptr i (name, typ) =
-    let src = Vars.find name param.vars in
-    let dst = Llvm.build_struct_gep clsr_ptr i name builder in
-    (match typ with
-    | (Trecord _ | Tvariant _) when is_mutable typ ->
+  let store_closed_var clsr_ptr i cl =
+    let src = Vars.find cl.clname param.vars in
+    let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
+    (match cl.cltyp with
+    | (Trecord _ | Tvariant _) when is_mutable cl.cltyp ->
         ignore (Llvm.build_store src.value dst builder)
     | Trecord _ | Tvariant _ ->
         (* For records, we just memcpy
            TODO don't use types here, but type kinds*)
-        let size = sizeof_typ typ |> Llvm.const_int int_t in
+        let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
         memcpy ~src ~dst ~size
     | _ -> ignore (Llvm.build_store src.value dst builder));
     i + 1
@@ -865,29 +865,28 @@ let add_closure vars func = function
       in
       let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
 
-      let env, _ =
-        List.fold_left
-          (fun (env, i) (name, typ) ->
-            let item_ptr = Llvm.build_struct_gep clsr_ptr i name builder in
-            let value, lltyp =
-              match typ with
-              (* No need for C interop with closures *)
-              | (Trecord _ | Tvariant _) when is_mutable typ ->
-                  (* Mutable records are passed as pointers into the env *)
-                  let value = Llvm.build_load item_ptr name builder in
+      let add_closure (env, i) cl =
+        let item_ptr = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
+        let typ = cl.cltyp in
+        let value, lltyp =
+          match typ with
+          (* No need for C interop with closures *)
+          | (Trecord _ | Tvariant _) when is_mutable cl.cltyp ->
+              (* Mutable records are passed as pointers into the env *)
+              let value = Llvm.build_load item_ptr cl.clname builder in
 
-                  (value, get_lltype_def typ |> Llvm.pointer_type)
-              | Trecord _ | Tvariant _ ->
-                  (* For records we want a ptr so that gep and memcpy work *)
-                  (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
-              | _ ->
-                  let value = Llvm.build_load item_ptr name builder in
-                  (value, Llvm.type_of value)
-            in
-            let item = { value; typ; lltyp; kind = default_kind typ } in
-            (Vars.add name item env, i + 1))
-          (vars, 0) assoc
+              (value, get_lltype_def typ |> Llvm.pointer_type)
+          | Trecord _ | Tvariant _ ->
+              (* For records we want a ptr so that gep and memcpy work *)
+              (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
+          | _ ->
+              let value = Llvm.build_load item_ptr cl.clname builder in
+              (value, Llvm.type_of value)
+        in
+        let item = { value; typ; lltyp; kind = default_kind typ } in
+        (Vars.add cl.clname item env, i + 1)
       in
+      let env, _ = List.fold_left add_closure (vars, 0) assoc in
       env
 
 let store_or_copy ~src ~dst =

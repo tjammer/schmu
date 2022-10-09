@@ -61,7 +61,7 @@ val add_variant : key -> params:typ list -> ctors:ctor array -> t -> t
 val add_alias : key -> typ -> t -> t
 val open_function : t -> t
 
-val close_function : t -> t * (string * typ) list * unused
+val close_function : t -> t * closed list * unused
 (** Returns the variables captured in the closed function scope, and first unused var  *)
 
 val find_val : key -> t -> return
