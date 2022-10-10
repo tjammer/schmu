@@ -95,3 +95,26 @@ Warn on unneeded mutable bindings
   7 | (val b& 0)
            ^
   
+Use mutable values as ptrs to C code
+  $ schmu -c --dump-llvm ptr_to_c.smu
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %foo = type { i64 }
+  
+  @i = global i64 0, align 8
+  @foo = global %foo zeroinitializer, align 8
+  
+  declare void @mutate_int(i64* %0)
+  
+  declare void @mutate_foo(%foo* %0)
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    store i64 0, i64* @i, align 4
+    tail call void @mutate_int(i64* @i)
+    store i64 0, i64* getelementptr inbounds (%foo, %foo* @foo, i32 0, i32 0), align 4
+    tail call void @mutate_foo(%foo* @foo)
+    ret i64 0
+  }
