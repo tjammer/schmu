@@ -44,6 +44,8 @@ type func = {
   attr : (loc * string) option;
 }
 
+and argument = { amut : bool; aloc : loc; aexpr : expr }
+
 and expr =
   | Var of loc * string
   | Lit of loc * literal
@@ -52,15 +54,15 @@ and expr =
   | If of loc * expr * expr * expr option
   | Let_e of loc * decl * expr * expr
   | Lambda of loc * decl list * block
-  | App of loc * expr * (bool * expr) list
+  | App of loc * expr * argument list
   | Record of loc * (string * expr) list
   | Tuple of loc * expr list
   | Record_update of loc * (loc * string) * (string * expr) list
   | Field of loc * expr * string
   | Set of loc * (loc * expr) * expr
   | Do_block of block
-  | Pipe_head of loc * (bool * expr) * pipeable
-  | Pipe_tail of loc * (bool * expr) * pipeable
+  | Pipe_head of loc * argument * pipeable
+  | Pipe_tail of loc * argument * pipeable
   | Ctor of loc * (loc * string) * expr option
   | Match of loc * expr * (loc * pattern * expr) list
   | Local_open of loc * string * expr

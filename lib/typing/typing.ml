@@ -640,14 +640,15 @@ end = struct
     let annots = param_annots callee.typ in
     let typed_exprs =
       List.mapi
-        (fun i (mut, e) ->
-          ( mut,
-            let () = if mut then Env.open_mutation env in
-            let e = convert_annot env (param_annot annots i) e in
-            (if mut then
+        (fun i (a : Ast.argument) ->
+          ( a.amut,
+            let () = if a.amut then Env.open_mutation env in
+            let e = convert_annot env (param_annot annots i) a.aexpr in
+            (if a.amut then
              let () = Env.close_mutation env in
              if not e.attr.mut then
-               raise (Error (loc, "Mutably passed expression is not mutable")));
+               raise
+                 (Error (a.aloc, "Mutably passed expression is not mutable")));
             e ))
         args
     in
@@ -790,12 +791,12 @@ end = struct
         convert_app ~switch_uni env loc callee (e1 :: args)
     | Pip_expr (Ctor (_, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
-        convert_ctor env loc name (Some (snd e1)) None
-    | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (snd e1 :: exprs)
+        convert_ctor env loc name (Some e1.aexpr) None
+    | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (e1.aexpr :: exprs)
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
-    | Pip_field field -> convert_field env loc (snd e1) field
+    | Pip_field field -> convert_field env loc e1.aexpr field
 
   and convert_pipe_tail env loc e1 e2 =
     let switch_uni = true in
@@ -805,13 +806,13 @@ end = struct
         convert_app ~switch_uni env loc callee (args @ [ e1 ])
     | Pip_expr (Ctor (_, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
-        convert_ctor env loc name (Some (snd e1)) None
+        convert_ctor env loc name (Some e1.aexpr) None
     | Pip_expr (Bop (_, op, exprs)) ->
-        convert_bop env loc op (exprs @ [ snd e1 ])
+        convert_bop env loc op (exprs @ [ e1.aexpr ])
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
-    | Pip_field field -> convert_field env loc (snd e1) field
+    | Pip_field field -> convert_field env loc e1.aexpr field
 
   and convert_open env loc modul expr =
     let modul = Module.read_exn ~regeneralize modul loc in

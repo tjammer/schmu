@@ -14,10 +14,10 @@
       in
       Ast.If (loc, fst, then_, aux conds)
 
-    let make_pairs bin arg args =
+    let make_pairs bin arg args aloc =
       let rec build = function
         | [ a ] -> bin arg a
-        | a :: tl -> bin (false, (build tl)) a
+        | a :: tl -> bin {amut = false; aexpr = (build tl); aloc} a
         | [] -> failwith "unreachable"
       in
       build (List.rev args)
@@ -270,11 +270,11 @@ sexp_cond:
 
 %inline sexp_pipe_head:
   | Arrow_right; call_arg; nonempty_list(pipeable)
-    { make_pairs (fun a b -> Ast.Pipe_head ($loc, a, b)) $2 $3 }
+    { make_pairs (fun a b -> Ast.Pipe_head ($loc, a, b)) $2 $3 $loc }
 
 %inline sexp_pipe_tail:
   | Arrow_righter; call_arg; nonempty_list(pipeable)
-    { make_pairs (fun a b -> Ast.Pipe_tail ($loc, a, b)) $2 $3 }
+    { make_pairs (fun a b -> Ast.Pipe_tail ($loc, a, b)) $2 $3 $loc }
 
 pipeable:
   | expr = sexp_expr { Pip_expr expr }
@@ -288,7 +288,7 @@ pipeable:
   | Builtin_id; list(call_arg) { App ($loc, Var($loc, $1), $2) }
 
 %inline call_arg:
-  | mut = boption(Ampersand); expr = sexp_expr { mut, expr }
+  | amut = boption(Ampersand); aexpr = sexp_expr { {amut; aexpr; aloc = $loc} }
 
 %inline do_block:
   | Do; stmts = nonempty_list(stmt) { Do_block stmts }
