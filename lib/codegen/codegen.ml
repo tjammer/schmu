@@ -385,7 +385,7 @@ and typeof_func ~param ~decl (params, ret, kind) =
               (* snd before fst b/c we rev later *)
               lltype_unbox snd :: lltype_unbox fst :: ps
           | Boxed when is_aggregate typ ->
-              byvals := (!i, typ) :: !byvals;
+              if not p.pmut then byvals := (!i, typ) :: !byvals;
               get_lltype_param p.pmut typ :: ps
           | _ -> get_lltype_param p.pmut typ :: ps)
         [] params
