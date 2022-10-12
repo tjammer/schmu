@@ -2,12 +2,12 @@
 
 (fun mut-bref [i rf&]
   (if (> i 0)
-    (set (.a rf) true)
+    (set &(.a rf) true)
     (mut-bref (+ i 1) &rf)))
 
 (fun dontmut-bref [i rf&]
   (if (> i 0)
-    (set (.a rf) false)
+    (set &(.a rf) false)
     -- introduce a new object, so the old one won't get mutated
     (do
       (val rf2& {:a true})

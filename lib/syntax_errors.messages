@@ -16,7 +16,11 @@ prog: Lbrac Lpar Wildcard
 
 prog: Lpar Set Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting '&' to indicate mutation
+
+prog: Lpar Set Ampersand Wildcard
+
+Expecting expression to set to
 
 prog: Lbrack Wildcard
 
@@ -58,11 +62,11 @@ prog: Lbrack False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Set False Rpar
+prog: Lpar Set Ampersand False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Set False False U8
+prog: Lpar Set Ampersand False False U8
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

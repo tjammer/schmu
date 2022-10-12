@@ -262,7 +262,7 @@ sexp_cond:
     { Lambda ($loc, params, body) }
 
 %inline sexp_field_set:
-  | Set; var = sexp_expr; value = sexp_expr
+  | Set; Ampersand; var = sexp_expr; value = sexp_expr
     { Set ($loc, ($loc(var), var), value) }
 
 %inline sexp_field_get:
