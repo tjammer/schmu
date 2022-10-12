@@ -869,7 +869,7 @@ let add_closure vars func = function
               (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
           | _ ->
               let value = Llvm.build_load item_ptr cl.clname builder in
-              (value, Llvm.type_of value)
+              (value, get_lltype_def typ)
         in
         let item = { value; typ; lltyp; kind = default_kind typ } in
         (Vars.add cl.clname item env, i + 1)
@@ -922,7 +922,7 @@ let add_params vars f fname names params start_index recursive =
         let typ = p.pt in
         let value, i = get_value i p.pmut typ in
         let kind = default_kind typ in
-        let param = { value; typ; lltyp = Llvm.type_of value; kind } in
+        let param = { value; typ; lltyp = get_lltype_def typ; kind } in
         Llvm.set_value_name name value;
         (Vars.add name param env, i + 1))
       (vars, start_index) names params
@@ -973,7 +973,7 @@ let add_params vars f fname names params start_index recursive =
             let value, i = get_value i p.pmut typ in
             Llvm.set_value_name name value;
             let value =
-              { value; typ; lltyp = Llvm.type_of value; kind = Ptr }
+              { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
             in
             let alloc = { value with value = alloca_copy value } in
             (Vars.add (name_of_alloc_param i) alloc env, i + 1))
@@ -1628,8 +1628,7 @@ and gen_app_builtin param (b, fnc) args =
         | _ -> failwith "Internal Error: Arity mismatch in builtin"
       in
       let value = realloc ptr ~size in
-      let kind = default_kind fnc.ret in
-      { value; typ = fnc.ret; lltyp = Llvm.type_of value; kind }
+      { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Ptr }
   | Malloc ->
       let item_size =
         match fnc.ret with
@@ -1646,7 +1645,7 @@ and gen_app_builtin param (b, fnc) args =
       let value = malloc ~size in
       let value = Llvm.build_bitcast value ptr_typ "" builder in
 
-      { value; typ = fnc.ret; lltyp = Llvm.type_of value; kind = Ptr }
+      { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Ptr }
   | Ignore -> dummy_fn_value
   | Int_of_float | Int_of_f32 -> cast Llvm.build_fptosi int_t Tint
   | Int_of_i32 -> cast Llvm.build_intcast int_t Tint
@@ -1820,7 +1819,7 @@ and codegen_record param typ labels allocref const return =
         (ret, Const)
   in
 
-  { value; typ; lltyp = Llvm.type_of value; kind }
+  { value; typ; lltyp; kind }
 
 and codegen_field param expr index =
   let typ =
@@ -1992,7 +1991,7 @@ and gen_var_data param expr typ =
   let dataptr = Llvm.build_struct_gep var.value 1 "data" builder in
   let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
   let value = Llvm.build_bitcast dataptr ptr_t "" builder in
-  { value; typ; lltyp = Llvm.type_of value; kind = Ptr }
+  { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
 
 and gen_fmt_str param exprs typ allocref id =
   let snprintf_decl =
