@@ -1227,7 +1227,7 @@ and gen_let param id equals gn let' mut =
             Strtbl.replace const_tbl n v;
             v)
     | None ->
-        let v = gen_expr param equals in
+        let v = gen_expr param equals |> bring_default_var in
         if mut && not (is_struct v.typ) then (
           let value = Llvm.build_alloca v.lltyp id builder in
           ignore (Llvm.build_store v.value value builder);
@@ -1600,7 +1600,7 @@ and gen_app_builtin param (b, fnc) args =
         | _ -> failwith "Internal Error: Arity mismatch in builtin"
       in
       let value = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
-      { value; typ = fnc.ret; lltyp = Llvm.type_of value; kind = Ptr }
+      { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Ptr }
   | Unsafe_ptr_set ->
       let ptr, index, value =
         match args with
