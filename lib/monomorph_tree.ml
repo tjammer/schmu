@@ -36,7 +36,7 @@ type expr =
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
-  | Mcopy of bool * monod_tree
+  | Mcopy of { temporary : bool; mut : bool; expr : monod_tree; nm : string }
 [@@deriving show]
 
 and const =
@@ -428,7 +428,7 @@ let rec subst_body p subst tree =
           List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
         in
         { tree with expr = Mfmt (fmts, alloca, id) }
-    | Mcopy (ret_mut, expr) -> { tree with expr = Mcopy (ret_mut, sub expr) }
+    | Mcopy c -> { tree with expr = Mcopy { c with expr = sub c.expr } }
   in
   (!p, inner tree)
 
@@ -550,13 +550,33 @@ let set_tailrec name =
   | _ :: _ -> ()
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
-let copy_let lhs lmut rmut =
+let rec is_temporary = function
+  | Mvar _ | Mfield _ | Mvar_data _ -> false
+  | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _ | Mfmt _
+  | Mcopy _ ->
+      true
+  | Mapp { callee; _ } -> (
+      match callee.monomorph with
+      | Inline (_, e) -> is_temporary e.expr
+      | Builtin (Unsafe_ptr_get, _) -> false
+      | _ -> true)
+  | Munop (_, t) -> is_temporary t.expr
+  | Mif { e1; e2; _ } -> is_temporary e1.expr && is_temporary e2.expr
+  | Mlet (_, _, _, cont)
+  | Mfunction (_, _, cont)
+  | Mseq (_, cont)
+  | Mfree_after (cont, _) ->
+      is_temporary cont.expr
+  | Mset _ -> failwith "Internal Error: Trying to copy unit"
+
+let copy_let lhs lmut rmut nm =
   match (lmut, rmut) with
   | false, false ->
       (* We don't need to copy *)
       lhs
   | _ ->
-      let expr = Mcopy (lmut, lhs) in
+      let temporary = is_temporary lhs.expr in
+      let expr = Mcopy { temporary; mut = lmut; expr = lhs; nm } in
       { lhs with expr }
 
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
@@ -576,7 +596,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
         match gn with
         | Some _ -> { e2 with expr = Mlet (id, e1, gn, e2) }
         | None ->
-            let e1 = copy_let e1 lhs.attr.mut rmut in
+            let e1 = copy_let e1 lhs.attr.mut rmut id in
             { e2 with expr = Mlet (id, e1, gn, e2) }
       in
       (p, e2, func)

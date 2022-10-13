@@ -392,37 +392,44 @@ Match multiple columns
   
   then:                                             ; preds = %entry
     %5 = bitcast %tuple_option_int_option_int* %0 to %option_int*
-    %6 = bitcast %tuple_option_int_option_int* %0 to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %6, i64 24
-    %7 = bitcast i8* %sunkaddr to i64*
-    %8 = load i64, i64* %7, align 4
     %tag120 = bitcast %option_int* %5 to i32*
     %index2 = load i32, i32* %tag120, align 4
     %eq3 = icmp eq i32 %index2, 0
-    br i1 %eq3, label %then4, label %ifcont15
+    br i1 %eq3, label %then4, label %else
   
   then4:                                            ; preds = %then
-    %9 = bitcast %tuple_option_int_option_int* %0 to %option_int*
-    %data5 = getelementptr inbounds %option_int, %option_int* %9, i32 0, i32 1
-    %10 = load i64, i64* %data5, align 4
-    %add = add i64 %10, %8
+    %6 = bitcast %tuple_option_int_option_int* %0 to %option_int*
+    %data5 = getelementptr inbounds %option_int, %option_int* %6, i32 0, i32 1
+    %7 = load i64, i64* %data5, align 4
+    %8 = bitcast %tuple_option_int_option_int* %0 to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %8, i64 24
+    %9 = bitcast i8* %sunkaddr to i64*
+    %10 = load i64, i64* %9, align 4
+    %add = add i64 %7, %10
+    br label %ifcont15
+  
+  else:                                             ; preds = %then
+    %11 = bitcast %tuple_option_int_option_int* %0 to i8*
+    %sunkaddr21 = getelementptr inbounds i8, i8* %11, i64 24
+    %12 = bitcast i8* %sunkaddr21 to i64*
+    %13 = load i64, i64* %12, align 4
     br label %ifcont15
   
   else6:                                            ; preds = %entry
-    %11 = bitcast %tuple_option_int_option_int* %0 to %option_int*
-    %tag721 = bitcast %option_int* %11 to i32*
-    %index8 = load i32, i32* %tag721, align 4
+    %14 = bitcast %tuple_option_int_option_int* %0 to %option_int*
+    %tag722 = bitcast %option_int* %14 to i32*
+    %index8 = load i32, i32* %tag722, align 4
     %eq9 = icmp eq i32 %index8, 0
     br i1 %eq9, label %then10, label %ifcont15
   
   then10:                                           ; preds = %else6
-    %12 = bitcast %tuple_option_int_option_int* %0 to %option_int*
-    %data11 = getelementptr inbounds %option_int, %option_int* %12, i32 0, i32 1
-    %13 = load i64, i64* %data11, align 4
+    %15 = bitcast %tuple_option_int_option_int* %0 to %option_int*
+    %data11 = getelementptr inbounds %option_int, %option_int* %15, i32 0, i32 1
+    %16 = load i64, i64* %data11, align 4
     br label %ifcont15
   
-  ifcont15:                                         ; preds = %then10, %else6, %then4, %then
-    %iftmp16 = phi i64 [ %add, %then4 ], [ %8, %then ], [ %13, %then10 ], [ 0, %else6 ]
+  ifcont15:                                         ; preds = %then10, %else6, %then4, %else
+    %iftmp16 = phi i64 [ %add, %then4 ], [ %13, %else ], [ %16, %then10 ], [ 0, %else6 ]
     tail call void @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %iftmp16)
     ret void
   }

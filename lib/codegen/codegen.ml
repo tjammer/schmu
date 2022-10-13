@@ -1208,7 +1208,8 @@ and gen_expr param typed_expr =
   | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
   | Mfmt (fmts, allocref, id) ->
       gen_fmt_str param fmts typed_expr.typ allocref id |> fin
-  | Mcopy (ret_mut, expr) -> gen_copy param ret_mut expr |> fin
+  | Mcopy { temporary; mut; expr; nm } ->
+      gen_copy param temporary mut expr nm |> fin
 
 and gen_let param id equals gn let' =
   let expr_val =
@@ -2044,25 +2045,27 @@ and gen_fmt_str param exprs typ allocref id =
 
   { value = string; typ; lltyp; kind = Ptr }
 
-and gen_copy param ret_mut expr =
-  let v = gen_expr param expr in
-  if is_struct v.typ then (
-    let dst = alloca param (get_lltype_def v.typ) "cpy" in
-    memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
-    { v with value = dst })
+and gen_copy param temp mut expr nm =
+  let v = gen_expr param expr |> bring_default_var in
+  if is_struct v.typ then
+    if not temp then (
+      let dst = alloca param (get_lltype_def v.typ) nm in
+      memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
+      { v with value = dst })
+    else v
   else
     match v.kind with
     | Const_ptr | Ptr ->
-        if ret_mut then (
-          let dst = alloca param (get_lltype_def v.typ) "cpy" in
+        if mut && not temp then (
+          let dst = alloca param (get_lltype_def v.typ) nm in
           memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
           { v with value = dst })
         else
-          let value = Llvm.build_load v.value "cpy" builder in
+          let value = Llvm.build_load v.value nm builder in
           { v with value; kind = Imm }
     | Const | Imm ->
-        if ret_mut then (
-          let dst = alloca param (get_lltype_def v.typ) "cpy" in
+        if mut then (
+          let dst = alloca param (get_lltype_def v.typ) nm in
           ignore (Llvm.build_store v.value dst builder);
           { v with value = dst; kind = Ptr })
         else v

@@ -31,8 +31,7 @@ type expr =
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
-  | Mcopy of
-      bool * monod_tree (* bool indicates that the returned copy is mutable *)
+  | Mcopy of { temporary : bool; mut : bool; expr : monod_tree; nm : string }
 
 and const =
   | Int of int
