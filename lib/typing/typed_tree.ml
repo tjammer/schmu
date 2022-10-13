@@ -44,7 +44,7 @@ and const =
   | Unit
 
 and toplevel_item =
-  | Tl_let of string * int option * bool * typed_expr
+  | Tl_let of string * int option * typed_expr
   | Tl_function of string * int option * abstraction
   | Tl_expr of typed_expr
 

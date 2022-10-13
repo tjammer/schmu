@@ -834,7 +834,7 @@ end = struct
     in
     let typs = List.map (fun e -> (snd e).typ) exprs in
     let typ = Trecord (typs, None, Array.of_list fields) in
-    let attr = { const; global = false; mut = true } in
+    let attr = { const; global = false; mut = false } in
     { typ; expr = Record exprs; attr }
 
   and convert_fmt env loc exprs =
@@ -950,7 +950,7 @@ let convert_prog env items modul =
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
-        let env, lhs, rmut = Core.convert_let ~global:true env loc decl block in
+        let env, lhs, _ = Core.convert_let ~global:true env loc decl block in
         let id = snd decl.ident in
         let uniq = uniq_name id in
         (* Make string option out of int option for unique name *)
@@ -960,7 +960,7 @@ let convert_prog env items modul =
           | Some i -> Some (Module.unique_name id (Some i))
         in
         let m = Module.add_external lhs.typ id uniq_name m in
-        (old, env, Tl_let (id, uniq, rmut, lhs) :: items, m)
+        (old, env, Tl_let (id, uniq, lhs) :: items, m)
     | Function (loc, func) ->
         let env, (name, unique, abs) = Core.convert_function env loc func in
         let m = Module.add_fun name unique abs m in

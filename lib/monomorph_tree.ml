@@ -17,7 +17,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of bool * string * monod_tree * global_name * monod_tree
+  | Mlet of string * monod_tree * global_name * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
   | Mapp of {
@@ -359,10 +359,10 @@ let rec subst_body p subst tree =
         let e1 = sub expr.e1 in
         let e2 = sub expr.e2 in
         { tree with typ = e1.typ; expr = Mif { cond; e1; e2 } }
-    | Mlet (mut, id, expr, gn, cont) ->
+    | Mlet (id, expr, gn, cont) ->
         let expr = sub expr in
         let cont = sub cont in
-        { tree with typ = cont.typ; expr = Mlet (mut, id, expr, gn, cont) }
+        { tree with typ = cont.typ; expr = Mlet (id, expr, gn, cont) }
     | Mlambda (name, abs) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
@@ -550,7 +550,14 @@ let set_tailrec name =
   | _ :: _ -> ()
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
-(* let copy_let expr expr_mut let_mut *)
+let copy_let lhs lmut rmut =
+  match (lmut, rmut) with
+  | false, false ->
+      (* We don't need to copy *)
+      lhs
+  | _ ->
+      let expr = Mcopy (lmut, lhs) in
+      { lhs with expr }
 
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return = { typ = cln texpr.typ; expr; return } in
@@ -563,10 +570,16 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let { id; uniq; rmut; lhs; cont } ->
-      ignore rmut;
       let p, e1, gn = prep_let param id uniq lhs false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
-      (p, { e2 with expr = Mlet (lhs.attr.mut, id, e1, gn, e2) }, func)
+      let e2 =
+        match gn with
+        | Some _ -> { e2 with expr = Mlet (id, e1, gn, e2) }
+        | None ->
+            let e1 = copy_let e1 lhs.attr.mut rmut in
+            { e2 with expr = Mlet (id, e1, gn, e2) }
+      in
+      (p, e2, func)
   | Record labels -> morph_record make param labels texpr.attr
   | Field (expr, index) -> morph_field make param expr index
   | Set (expr, value) -> morph_set make param expr value
@@ -1002,11 +1015,10 @@ and morph_fmt mk p exprs =
 let morph_toplvl param items =
   let rec aux param = function
     | [] -> (param, { typ = Tunit; expr = Mconst Unit; return = true }, no_var)
-    | Typed_tree.Tl_let (id, uniq, rmut, expr) :: tl ->
-        ignore rmut;
+    | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
         let p, e1, gn = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        (p, { e2 with expr = Mlet (expr.attr.mut, id, e1, gn, e2) }, func)
+        (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
     | Tl_function (name, uniq, abs) :: tl ->
         let p, call, abs = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in

@@ -1170,7 +1170,7 @@ and gen_expr param typed_expr =
       in
 
       gen_expr { param with vars = Vars.add name func param.vars } cont
-  | Mlet (mut, id, equals, gn, let') -> gen_let param id equals gn let' mut
+  | Mlet (id, equals, gn, let') -> gen_let param id equals gn let'
   | Mlambda (name, abs) ->
       let func =
         match Vars.find_opt name param.vars with
@@ -1210,7 +1210,7 @@ and gen_expr param typed_expr =
       gen_fmt_str param fmts typed_expr.typ allocref id |> fin
   | Mcopy (ret_mut, expr) -> gen_copy param ret_mut expr |> fin
 
-and gen_let param id equals gn let' mut =
+and gen_let param id equals gn let' =
   let expr_val =
     match gn with
     | Some n -> (
@@ -1228,12 +1228,8 @@ and gen_let param id equals gn let' mut =
             Strtbl.replace const_tbl n v;
             v)
     | None ->
-        let v = gen_expr param equals |> bring_default_var in
-        if mut && not (is_struct v.typ) then (
-          let value = Llvm.build_alloca v.lltyp id builder in
-          ignore (Llvm.build_store v.value value builder);
-          { v with value; kind = Ptr })
-        else v
+        let v = gen_expr param equals in
+        v
   in
   gen_expr { param with vars = Vars.add id expr_val param.vars } let'
 
@@ -2051,14 +2047,14 @@ and gen_fmt_str param exprs typ allocref id =
 and gen_copy param ret_mut expr =
   let v = gen_expr param expr in
   if is_struct v.typ then (
-    let dst = Llvm.build_alloca (get_lltype_def v.typ) "cpy" builder in
+    let dst = alloca param (get_lltype_def v.typ) "cpy" in
     memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
     { v with value = dst })
   else
     match v.kind with
     | Const_ptr | Ptr ->
         if ret_mut then (
-          let dst = Llvm.build_alloca (get_lltype_def v.typ) "cpy" builder in
+          let dst = alloca param (get_lltype_def v.typ) "cpy" in
           memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
           { v with value = dst })
         else
@@ -2066,7 +2062,7 @@ and gen_copy param ret_mut expr =
           { v with value; kind = Imm }
     | Const | Imm ->
         if ret_mut then (
-          let dst = Llvm.build_alloca (get_lltype_def v.typ) "cpy" builder in
+          let dst = alloca param (get_lltype_def v.typ) "cpy" in
           ignore (Llvm.build_store v.value dst builder);
           { v with value = dst; kind = Ptr })
         else v
@@ -2108,7 +2104,7 @@ let decl_external ~c_linkage cname = function
 let has_init_code tree =
   let rec aux = function
     (* We have to deal with 'toplevel' type nodes only *)
-    | Monomorph_tree.Mlet (_, name, _, gname, cont) -> (
+    | Monomorph_tree.Mlet (name, _, gname, cont) -> (
         let name = match gname with Some name -> name | None -> name in
         match Strtbl.find_opt const_tbl name with
         | Some thing -> (

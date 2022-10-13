@@ -857,10 +857,10 @@ module Make (C : Core) (R : Recs) = struct
               compile_matches env loc rows ((patterns, d) :: tl) ret_typ
             in
 
+            let lhs = expr path in
             {
               typ = cont.typ;
-              expr =
-                Let { id; uniq = None; rmut = false; lhs = expr path; cont };
+              expr = Let { id; uniq = None; rmut = false; lhs; cont };
               attr = cont.attr;
             }
         | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
@@ -1002,7 +1002,7 @@ module Make (C : Core) (R : Recs) = struct
                     let id = expr_name newcol in
                     Let { id; uniq = None; rmut = false; lhs = expr; cont }
                   in
-                  { ret with expr })
+                  { cont with expr })
                 ret fields
             in
             expr)
