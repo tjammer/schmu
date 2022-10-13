@@ -36,6 +36,7 @@ type expr =
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
+  | Mcopy of bool * monod_tree
 [@@deriving show]
 
 and const =
@@ -427,6 +428,7 @@ let rec subst_body p subst tree =
           List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
         in
         { tree with expr = Mfmt (fmts, alloca, id) }
+    | Mcopy (ret_mut, expr) -> { tree with expr = Mcopy (ret_mut, sub expr) }
   in
   (!p, inner tree)
 
@@ -548,6 +550,8 @@ let set_tailrec name =
   | _ :: _ -> ()
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
+(* let copy_let expr expr_mut let_mut *)
+
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return = { typ = cln texpr.typ; expr; return } in
   match texpr.expr with
@@ -558,10 +562,11 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
-  | Let (id, uniq, e1', e2) ->
-      let p, e1, gn = prep_let param id uniq e1' false in
-      let p, e2, func = morph_expr { p with ret = param.ret } e2 in
-      (p, { e2 with expr = Mlet (e1'.attr.mut, id, e1, gn, e2) }, func)
+  | Let { id; uniq; rmut; lhs; cont } ->
+      ignore rmut;
+      let p, e1, gn = prep_let param id uniq lhs false in
+      let p, e2, func = morph_expr { p with ret = param.ret } cont in
+      (p, { e2 with expr = Mlet (lhs.attr.mut, id, e1, gn, e2) }, func)
   | Record labels -> morph_record make param labels texpr.attr
   | Field (expr, index) -> morph_field make param expr index
   | Set (expr, value) -> morph_set make param expr value
@@ -997,7 +1002,8 @@ and morph_fmt mk p exprs =
 let morph_toplvl param items =
   let rec aux param = function
     | [] -> (param, { typ = Tunit; expr = Mconst Unit; return = true }, no_var)
-    | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
+    | Typed_tree.Tl_let (id, uniq, rmut, expr) :: tl ->
+        ignore rmut;
         let p, e1, gn = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
         (p, { e2 with expr = Mlet (expr.attr.mut, id, e1, gn, e2) }, func)

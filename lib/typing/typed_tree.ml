@@ -7,7 +7,7 @@ type expr =
   | Bop of Ast.bop * typed_expr * typed_expr
   | Unop of Ast.unop * typed_expr
   | If of typed_expr * typed_expr * typed_expr
-  | Let of string * int option * typed_expr * typed_expr
+  | Let of let_data
   | Lambda of int * abstraction
   | Function of string * int option * abstraction * typed_expr
   | App of { callee : typed_expr; args : typed_expr list }
@@ -24,6 +24,14 @@ type expr =
 and typed_expr = { typ : typ; expr : expr; attr : attr }
 and fmt = Fstr of string | Fexpr of typed_expr
 
+and let_data = {
+  id : string;
+  uniq : int option;
+  rmut : bool;
+  lhs : typed_expr;
+  cont : typed_expr;
+}
+
 and const =
   | Int of int
   | Bool of bool
@@ -36,7 +44,7 @@ and const =
   | Unit
 
 and toplevel_item =
-  | Tl_let of string * int option * typed_expr
+  | Tl_let of string * int option * bool * typed_expr
   | Tl_function of string * int option * abstraction
   | Tl_expr of typed_expr
 

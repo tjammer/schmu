@@ -785,7 +785,7 @@ module Make (C : Core) (R : Recs) = struct
     in
     let typed_cases = List.concat typed_cases in
 
-    let matchexpr = compile_matches env loc used_rows typed_cases ret in
+    let cont = compile_matches env loc used_rows typed_cases ret in
 
     (* Check for exhaustiveness *)
     (let patterns =
@@ -806,7 +806,10 @@ module Make (C : Core) (R : Recs) = struct
     | Some { loc; cnt = _ } ->
         raise (Error (loc, "Pattern match case is redundant")));
 
-    { matchexpr with expr = Let (expr_name path, None, expr, matchexpr) }
+    let expr =
+      Let { id = expr_name path; uniq = None; lhs = expr; rmut = false; cont }
+    in
+    { cont with expr }
 
   and compile_matches env all_loc rows cases ret_typ =
     (* We build the decision tree here.
@@ -843,21 +846,22 @@ module Make (C : Core) (R : Recs) = struct
 
             unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
             ret
-        | Var ({ path; loc; d; patterns; pltyp }, name) ->
+        | Var ({ path; loc; d; patterns; pltyp }, id) ->
             (* Bind the variable *)
             let ret_env =
-              Env.(add_value name { def_value with typ = pltyp } loc d.ret_env)
+              Env.(add_value id { def_value with typ = pltyp } loc d.ret_env)
             in
             (* Continue with expression *)
             let d = { d with ret_env } in
-            let ret =
+            let cont =
               compile_matches env loc rows ((patterns, d) :: tl) ret_typ
             in
 
             {
-              typ = ret.typ;
-              expr = Let (name, None, expr path, ret);
-              attr = ret.attr;
+              typ = cont.typ;
+              expr =
+                Let { id; uniq = None; rmut = false; lhs = expr path; cont };
+              attr = cont.attr;
             }
         | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
             let a, b =
@@ -867,7 +871,10 @@ module Make (C : Core) (R : Recs) = struct
             let data, ifenv = ctorenv env param.cpat path loc in
             let cont = compile_matches ifenv d.loc rows a ret_typ in
             (* Make expr available in codegen *)
-            let ifexpr = Let (expr_name path, None, data, cont) in
+            let ifexpr =
+              let id = expr_name path in
+              Let { id; uniq = None; rmut = false; lhs = data; cont }
+            in
 
             (* This is either an if-then-else or just an one ctor,
                depending on whether [b] is empty *)
@@ -942,7 +949,7 @@ module Make (C : Core) (R : Recs) = struct
             in
             let expr =
               List.fold_left
-                (fun ret { index; iftyp; _ } ->
+                (fun cont { index; iftyp; _ } ->
                   let newcol = index :: path in
                   let expr =
                     {
@@ -952,7 +959,11 @@ module Make (C : Core) (R : Recs) = struct
                     }
                   in
 
-                  { ret with expr = Let (expr_name newcol, None, expr, ret) })
+                  let expr =
+                    let id = expr_name newcol in
+                    Let { id; uniq = None; rmut = false; lhs = expr; cont }
+                  in
+                  { cont with expr })
                 ret fields
             in
             expr
@@ -978,7 +989,7 @@ module Make (C : Core) (R : Recs) = struct
             in
             let expr =
               List.fold_left
-                (fun ret pat ->
+                (fun cont pat ->
                   let newcol = pat.tindex :: path in
                   let expr =
                     {
@@ -987,8 +998,11 @@ module Make (C : Core) (R : Recs) = struct
                       attr = no_attr;
                     }
                   in
-
-                  { ret with expr = Let (expr_name newcol, None, expr, ret) })
+                  let expr =
+                    let id = expr_name newcol in
+                    Let { id; uniq = None; rmut = false; lhs = expr; cont }
+                  in
+                  { ret with expr })
                 ret fields
             in
             expr)

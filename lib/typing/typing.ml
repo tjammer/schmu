@@ -438,7 +438,7 @@ module rec Core : sig
     Ast.loc ->
     Ast.decl ->
     Ast.expr ->
-    Env.t * typed_expr
+    Env.t * typed_expr * bool
 
   val convert_function :
     Env.t -> Ast.loc -> Ast.func -> Env.t * (string * int option * abstraction)
@@ -529,14 +529,15 @@ end = struct
     ( Env.add_value id
         { Env.def_value with typ = e1.typ; const; global; mut }
         idloc env,
-      { e1 with attr = { global; const; mut } } )
+      { e1 with attr = { global; const; mut } },
+      e1.attr.mut )
 
   and convert_let_e env loc decl expr cont =
-    let env, texpr = convert_let ~global:false env loc decl expr in
+    let env, lhs, rmut = convert_let ~global:false env loc decl expr in
     let cont = convert env cont in
     let id = snd decl.ident in
-    let uniq = if texpr.attr.const then uniq_name id else None in
-    let expr = Let (id, uniq, texpr, cont) in
+    let uniq = if lhs.attr.const then uniq_name id else None in
+    let expr = Let { id; uniq; rmut; lhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr }
 
   and convert_lambda env loc params body =
@@ -866,11 +867,11 @@ end = struct
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr }, env)
       | Let (loc, decl, block) :: tl ->
-          let env, texpr = convert_let ~global:false env loc decl block in
+          let env, lhs, rmut = convert_let ~global:false env loc decl block in
           let cont, env = to_expr env old_type tl in
           let id = snd decl.ident in
-          let uniq = if texpr.attr.const then uniq_name id else None in
-          let expr = Let (id, uniq, texpr, cont) in
+          let uniq = if lhs.attr.const then uniq_name id else None in
+          let expr = Let { id; uniq; rmut; lhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, lambda) = convert_function env loc func in
@@ -949,7 +950,7 @@ let convert_prog env items modul =
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
-        let env, texpr = Core.convert_let ~global:true env loc decl block in
+        let env, lhs, rmut = Core.convert_let ~global:true env loc decl block in
         let id = snd decl.ident in
         let uniq = uniq_name id in
         (* Make string option out of int option for unique name *)
@@ -958,8 +959,8 @@ let convert_prog env items modul =
           | None -> None
           | Some i -> Some (Module.unique_name id (Some i))
         in
-        let m = Module.add_external texpr.typ id uniq_name m in
-        (old, env, Tl_let (id, uniq, texpr) :: items, m)
+        let m = Module.add_external lhs.typ id uniq_name m in
+        (old, env, Tl_let (id, uniq, rmut, lhs) :: items, m)
     | Function (loc, func) ->
         let env, (name, unique, abs) = Core.convert_function env loc func in
         let m = Module.add_fun name unique abs m in

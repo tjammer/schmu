@@ -1207,7 +1207,8 @@ and gen_expr param typed_expr =
   | Mvar_index expr -> gen_var_index param expr |> fin
   | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
   | Mfmt (fmts, allocref, id) ->
-      gen_fmt_str param fmts typed_expr.typ allocref id
+      gen_fmt_str param fmts typed_expr.typ allocref id |> fin
+  | Mcopy (ret_mut, expr) -> gen_copy param ret_mut expr |> fin
 
 and gen_let param id equals gn let' mut =
   let expr_val =
@@ -2046,6 +2047,29 @@ and gen_fmt_str param exprs typ allocref id =
   Ptrtbl.add ptr_tbl id (string, typ);
 
   { value = string; typ; lltyp; kind = Ptr }
+
+and gen_copy param ret_mut expr =
+  let v = gen_expr param expr in
+  if is_struct v.typ then (
+    let dst = Llvm.build_alloca (get_lltype_def v.typ) "cpy" builder in
+    memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
+    { v with value = dst })
+  else
+    match v.kind with
+    | Const_ptr | Ptr ->
+        if ret_mut then (
+          let dst = Llvm.build_alloca (get_lltype_def v.typ) "cpy" builder in
+          memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
+          { v with value = dst })
+        else
+          let value = Llvm.build_load v.value "cpy" builder in
+          { v with value; kind = Imm }
+    | Const | Imm ->
+        if ret_mut then (
+          let dst = Llvm.build_alloca (get_lltype_def v.typ) "cpy" builder in
+          ignore (Llvm.build_store v.value dst builder);
+          { v with value = dst; kind = Ptr })
+        else v
 
 let fill_constants constants =
   let f (name, tree, toplvl) =
