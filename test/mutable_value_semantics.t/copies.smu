@@ -1,0 +1,33 @@
+(val v [0])
+(val fst& (vector-get v 0))
+(set &fst 1)
+(print (fmt-str fst))
+(print (fmt-str (vector-get v 0)))
+
+(fun in-fun []
+  (val v [0])
+  (val fst& (vector-get v 0))
+  (set &fst 1)
+  (print (fmt-str fst))
+  (print (fmt-str (vector-get v 0))))
+
+(in-fun)
+
+(print "record")
+
+(type foo {:a& int})
+
+(val v [{:a 0}])
+(val fst& (vector-get v 0))
+(set &(.a fst) 1)
+(print (fmt-str (.a fst)))
+(print (fmt-str (.a (vector-get v 0))))
+
+(fun in-fun []
+  (val v [{:a 0}])
+  (val fst& (vector-get v 0))
+  (set &(.a fst) 1)
+  (print (fmt-str (.a fst)))
+  (print (fmt-str (.a (vector-get v 0)))))
+
+(in-fun)
