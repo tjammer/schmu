@@ -127,6 +127,7 @@ let rec subst_generic ~id typ = function
       let ctors = Array.map f ctors in
       Tvariant (ps, name, ctors)
   | Traw_ptr t -> Traw_ptr (subst_generic ~id typ t)
+  | Tarray t -> Tarray (subst_generic ~id typ t)
   | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
   | t -> t
 
@@ -137,7 +138,9 @@ and get_generic_id loc = function
   | Tvariant (Qvar id :: _, _, _)
   | Tvariant (Tvar { contents = Unbound (id, _) } :: _, _, _)
   | Traw_ptr (Qvar id)
-  | Traw_ptr (Tvar { contents = Unbound (id, _) }) ->
+  | Traw_ptr (Tvar { contents = Unbound (id, _) })
+  | Tarray (Qvar id)
+  | Tarray (Tvar { contents = Unbound (id, _) }) ->
       id
   | Trecord (_ :: tl, _, _) | Tvariant (_ :: tl, _, _) ->
       get_generic_id loc (Trecord (tl, Some "", [||]))
@@ -158,6 +161,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Trecord ([], _, _) | Tvariant ([], _, _) -> None
     | Trecord (_, Some name, _) | Tvariant (_, name, _) -> Some name
     | Traw_ptr _ -> Some "raw_ptr"
+    | Tarray _ -> Some "array"
     | Talias (name, t) -> (
         let cleaned = clean t in
         match is_quantified cleaned with
@@ -190,6 +194,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | [] -> failwith "Internal Error: Type param list should not be empty"
     | [ Ty_id "raw_ptr" ] ->
         raise (Error (loc, "Type raw_ptr needs a type parameter"))
+    | [ Ty_id "array" ] ->
+        raise (Error (loc, "Type array needs a type parameter"))
     | [ t ] -> (
         let t = concrete_type env t in
         match is_quantified t with
@@ -204,6 +210,9 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_id "raw_ptr" :: tl ->
         let nested = container_t env tl in
         Traw_ptr nested
+    | Ty_id "array" :: tl ->
+        let nested = container_t env tl in
+        Tarray nested
     | hd :: tl ->
         let t = concrete_type env hd in
         let nested = container_t env tl in

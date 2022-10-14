@@ -97,7 +97,8 @@ let no_param =
   { vars = Vars.empty; alloca = None; finalize = None; rec_block = None }
 
 let default_kind = function
-  | Tint | Tbool | Tfloat | Tu8 | Ti32 | Tf32 | Tunit | Traw_ptr _ -> Imm
+  | Tint | Tbool | Tfloat | Tu8 | Ti32 | Tf32 | Tunit | Traw_ptr _ | Tarray _ ->
+      Imm
   | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ -> Ptr
 
 (* Named structs for typedefs *)
@@ -165,7 +166,7 @@ let rec sizeof_typ typ =
     | Tpoly _ ->
         Llvm.dump_module the_module;
         failwith "too generic for a size"
-    | Traw_ptr _ ->
+    | Traw_ptr _ | Tarray _ ->
         (* TODO pass in triple. Until then, assume 64bit *)
         add_size_align ~upto:8 ~sz:8 size_pr
   in
@@ -305,11 +306,11 @@ let rec get_lltype_def = function
   | (Trecord _ as t) | (Tvariant _ as t) -> get_struct t
   | Tfun (params, ret, kind) ->
       typeof_func ~param:false ~decl:false (params, ret, kind) |> fst
-  | Traw_ptr t -> get_lltype_def t |> Llvm.pointer_type
+  | Traw_ptr t | Tarray t -> get_lltype_def t |> Llvm.pointer_type
 
 and get_lltype_param mut = function
-  | (Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _)
-    as t ->
+  | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _
+    | Tarray _ ) as t ->
       let t = get_lltype_def t in
       if mut then t |> Llvm.pointer_type else t
   | Tfun (params, ret, kind) ->
@@ -321,7 +322,7 @@ and get_lltype_param mut = function
 
 and get_lltype_field = function
   | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _
-    | Trecord _ | Tvariant _ ) as t ->
+    | Tarray _ | Trecord _ | Tvariant _ ) as t ->
       get_lltype_def t
   | Tfun (params, ret, kind) ->
       (* Not really a paramater, but is treated equally (ptr to closure struct) *)
@@ -329,7 +330,7 @@ and get_lltype_field = function
 
 and get_lltype_global = function
   | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _
-    | Trecord _ | Tvariant _ ) as t ->
+    | Tarray _ | Trecord _ | Tvariant _ ) as t ->
       get_lltype_def t
   | Tfun _ -> closure_t
 

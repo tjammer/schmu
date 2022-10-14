@@ -11,6 +11,7 @@ type typ =
   | Trecord of typ list * string option * field array
   | Tvariant of typ list * string * ctor array
   | Traw_ptr of typ
+  | Tarray of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of closed list

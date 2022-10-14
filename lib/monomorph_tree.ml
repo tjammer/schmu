@@ -166,6 +166,7 @@ let rec cln = function
       in
       Tvariant (ps, name, ctors)
   | Traw_ptr t -> Traw_ptr (cln t)
+  | Tarray t -> Tarray (cln t)
 
 and cln_kind = function
   | Simple -> Simple
@@ -214,6 +215,7 @@ let find_function_expr vars = function
       "Not supported: " ^ show_expr e |> failwith
 
 let get_mono_name name ~poly concrete =
+  let open Printf in
   let rec str = function
     | Tint -> "i"
     | Tbool -> "b"
@@ -223,17 +225,18 @@ let get_mono_name name ~poly concrete =
     | Ti32 -> "i32"
     | Tf32 -> "f32"
     | Tfun (ps, r, _) ->
-        Printf.sprintf "%s.%s"
+        sprintf "%s.%s"
           (String.concat "" (List.map (fun p -> str p.pt) ps))
           (str r)
     | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
-        Printf.sprintf "%s%s" name (String.concat "" (List.map str ps))
+        sprintf "%s%s" name (String.concat "" (List.map str ps))
     | Trecord (_, None, fs) ->
         Array.to_list fs |> List.map (fun f -> str f.ftyp) |> String.concat "-"
     | Tpoly _ -> "g"
-    | Traw_ptr t -> Printf.sprintf "p%s" (str t)
+    | Traw_ptr t -> sprintf "p%s" (str t)
+    | Tarray t -> sprintf "a%s" (str t)
   in
-  Printf.sprintf "__%s_%s_%s" (str poly) name (str concrete)
+  sprintf "__%s_%s_%s" (str poly) name (str concrete)
 
 let subst_type ~concrete poly parent =
   let rec inner subst = function
@@ -290,6 +293,9 @@ let subst_type ~concrete poly parent =
     | Traw_ptr l, Traw_ptr r ->
         let subst, t = inner subst (l, r) in
         (subst, Traw_ptr t)
+    | Tarray l, Tarray r ->
+        let subst, t = inner subst (l, r) in
+        (subst, Tarray t)
     | t, _ -> (subst, t)
   in
   let vars, typ = inner Vars.empty (poly, concrete) in
@@ -320,6 +326,7 @@ let subst_type ~concrete poly parent =
         let ctors = Array.map f ctors in
         Tvariant (ps, variant, ctors)
     | Traw_ptr t -> Traw_ptr (subst t)
+    | Tarray t -> Tarray (subst t)
     | t -> t
   in
 

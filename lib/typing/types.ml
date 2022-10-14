@@ -24,6 +24,7 @@ type typ =
   | Trecord of typ list * string option * field array
   | Tvariant of typ list * string * ctor array
   | Traw_ptr of typ
+  | Tarray of typ
 [@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of closed list
@@ -67,7 +68,8 @@ let rec is_struct = function
   | Tvar { contents = Link t } | Talias (_, t) -> is_struct t
   | Trecord _ | Tvariant _ | Tfun _ | Qvar _ | Tvar { contents = Unbound _ } ->
       true
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Traw_ptr _ -> false
+  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Traw_ptr _ | Tarray _ ->
+      false
 
 let pp_to_name name = "'" ^ name
 
@@ -104,6 +106,7 @@ let string_of_type_raw get_name typ =
             let arg = String.concat " " (List.map string_of_type l) in
             Printf.sprintf "(%s %s)" str arg)
     | Traw_ptr t -> Printf.sprintf "(raw_ptr %s)" (string_of_type t)
+    | Tarray t -> Printf.sprintf "(array %s)" (string_of_type t)
   in
 
   string_of_type typ
@@ -149,6 +152,6 @@ let is_polymorphic typ =
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
         inner acc ret
     | Tbool | Tunit | Tint | Tu8 | Tfloat | Ti32 | Tf32 -> acc
-    | Traw_ptr t -> inner acc t
+    | Traw_ptr t | Tarray t -> inner acc t
   in
   inner false typ

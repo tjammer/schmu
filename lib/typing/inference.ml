@@ -95,6 +95,7 @@ let rec unify t1 t2 =
           with Invalid_argument _ -> raise Unify
         else raise Unify
     | Traw_ptr l, Traw_ptr r -> unify l r
+    | Tarray l, Tarray r -> unify l r
     | Qvar a, Qvar b when String.equal a b ->
         (* We should not need this. Record instantiation? *) ()
     | _ -> raise Unify
@@ -130,6 +131,7 @@ let rec generalize = function
       let ctors = Array.map f ctors in
       Tvariant (ps, name, ctors)
   | Traw_ptr t -> Traw_ptr (generalize t)
+  | Tarray t -> Tarray (generalize t)
   | t -> t
 
 (* TODO sibling functions *)
@@ -202,6 +204,9 @@ let instantiate t =
     | Traw_ptr t ->
         let t, subst = aux subst t in
         (Traw_ptr t, subst)
+    | Tarray t ->
+        let t, subst = aux subst t in
+        (Tarray t, subst)
     | t -> (t, subst)
   in
   aux Smap.empty t |> fst
@@ -271,5 +276,6 @@ let rec types_match ?(strict = false) subst l r =
               (subst, acc && b))
             (subst, true) pl pr
         else (subst, false)
-    | Traw_ptr l, Traw_ptr r -> types_match ~strict subst l r
+    | Traw_ptr l, Traw_ptr r | Tarray l, Tarray r ->
+        types_match ~strict subst l r
     | _ -> (subst, false)
