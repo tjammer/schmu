@@ -57,7 +57,7 @@ and expr =
   | App of loc * expr * argument list
   | Record of loc * (string * expr) list
   | Tuple of loc * expr list
-  | Record_update of loc * (loc * string) * (string * expr) list
+  | Record_update of loc * expr * (string * expr) list
   | Field of loc * expr * string
   | Set of loc * (loc * expr) * expr
   | Do_block of block

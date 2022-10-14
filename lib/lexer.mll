@@ -52,7 +52,6 @@ let keyword = ':'(lowercase_id|kebab_id)
 let mut_kw = ':'(lowercase_id|kebab_id)'&'
 let constructor = '#'(lowercase_id|kebab_id)
 let accessor = '.'(lowercase_id|kebab_id|int)
-let at_id = '@'(lowercase_id|kebab_id)
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -91,12 +90,12 @@ rule read =
   | keyword  { Keyword (name_of_string (Lexing.lexeme lexbuf)) }
   | mut_kw   { Mut_keyword (mut_name_of_string (Lexing.lexeme lexbuf)) }
   | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }
-  | at_id    { At_id (name_of_string (Lexing.lexeme lexbuf)) }
   | constructor{ Constructor (name_of_string (Lexing.lexeme lexbuf)) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '_'      { Wildcard }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | '&'      { Ampersand }
+  | '@'      { At }
   | '+'      { Plus_i }
   | min      { Minus_i }
   | '*'      { Mult_i }

@@ -42,7 +42,6 @@
 %token <string> Mut_keyword
 %token <string> Constructor
 %token <string> Accessor
-%token <string> At_id
 %token <int> Int
 %token <char> U8
 %token <float> Float
@@ -74,6 +73,7 @@
 %token Lbrack
 %token Rbrack
 %token Ampersand
+%token At
 %token If
 %token Else
 %token Cond
@@ -221,7 +221,8 @@ sexp_expr:
   | Keyword { $1, Var ($loc, $1) }
 
 %inline record_update:
-  | record = At_id; items = nonempty_list(sexp_record_item) { Record_update ($loc, ($loc(record), record), items) }
+  | At; record = sexp_expr; items = nonempty_list(sexp_record_item)
+    { Record_update ($loc, record, items) }
 
 %inline sexp_ctor_inst:
   | sexp_ctor { Ctor ($loc, $1, None) }

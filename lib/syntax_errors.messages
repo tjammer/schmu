@@ -46,7 +46,11 @@ prog: Kebab_id Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac At_id Wildcard
+prog: Lbrac At Wildcard
+
+Expecting record to update
+
+prog: Lbrac At False U8
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

@@ -21,7 +21,7 @@ module type S = sig
     Env.t ->
     Ast.loc ->
     Types.typ option ->
-    Ast.loc * string ->
+    Ast.expr ->
     (string * Ast.expr) list ->
     Typed_tree.typed_expr
 
@@ -127,10 +127,9 @@ module Make (C : Core) = struct
     let typ = Trecord (param, Some name, labels) |> generalize in
     { typ; expr = Record sorted_labels; attr = { no_attr with const } }
 
-  and convert_record_update env loc annot (rloc, rid) items =
+  and convert_record_update env loc annot record_arg items =
     (* Implemented in terms of [convert_record] *)
-    let record_var = Ast.Var (rloc, rid) in
-    let record = convert env record_var in
+    let record = convert env record_arg in
 
     let updated = List.to_seq items |> Smap.of_seq in
 
@@ -145,7 +144,7 @@ module Make (C : Core) = struct
               | None ->
                   (* There are some old fields. *)
                   all_new := false;
-                  let expr = Ast.Field (loc, record_var, field.fname) in
+                  let expr = Ast.Field (loc, record_arg, field.fname) in
                   (field.fname, expr))
             fields
       | t ->

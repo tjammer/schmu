@@ -126,6 +126,9 @@ let test_record_update_useless () =
   test_exn "All fields are explicitely updated. Record update is useless"
     "(type a {:x int :y int}) (val a {:x 10 :y 20}) {@a :y 30 :x 10}"
 
+let test_record_update_expr () =
+  test "a" "(type a {:x int :y int}) {@{:x 10 :y 20} :y 30}"
+
 let test_annot_concrete () = test "(fun int bool)" "(fun foo (x) (< x 3)) foo"
 
 let test_annot_concrete_fail () =
@@ -558,9 +561,10 @@ let () =
           case "field_no_record" test_record_field_no_record;
           case "field_wrong_record" test_record_field_wrong_record;
           case "update" test_record_update;
-          case "update_poly" test_record_update_poly_same;
-          case "update_poly_change" test_record_update_poly_change;
-          case "update_useless" test_record_update_useless;
+          case "update poly" test_record_update_poly_same;
+          case "update poly_change" test_record_update_poly_change;
+          case "update useless" test_record_update_useless;
+          case "update expr" test_record_update_expr;
         ] );
       ( "annotations",
         [
