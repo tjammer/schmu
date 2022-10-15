@@ -66,14 +66,3 @@
 
 -- option
 (type (option 'a) ((#some 'a) #none))
-
--- ref
-(type (ref 'a) {:contents& 'a})
-
-(fun deref :inline [a]
-  -- has to be inline until there is proper handling for reference types
-  (.contents a))
-
-(fun ref [contents] {:contents})
-
-(fun ref-set [a& v] (set &(.contents a) v))
