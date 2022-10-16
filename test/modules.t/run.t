@@ -502,36 +502,43 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %clsr = bitcast i8* %0 to { %closure*, %vector_int }*
     %f3 = bitcast { %closure*, %vector_int }* %clsr to %closure**
     %f1 = load %closure*, %closure** %f3, align 8
+    %vec = getelementptr inbounds { %closure*, %vector_int }, { %closure*, %vector_int }* %clsr, i32 0, i32 1
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 4
     br label %rec
   
   rec:                                              ; preds = %else, %entry
     %2 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %sunkaddr = getelementptr inbounds i8, i8* %0, i64 16
-    %3 = bitcast i8* %sunkaddr to i64*
-    %4 = load i64, i64* %3, align 4
-    %eq = icmp eq i64 %2, %4
+    %3 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %4 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %3, i32 0, i32 1
+    %5 = load i64, i64* %4, align 4
+    %eq = icmp eq i64 %2, %5
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %sunkaddr4 = getelementptr inbounds i8, i8* %0, i64 8
-    %5 = bitcast i8* %sunkaddr4 to i64**
-    %6 = load i64*, i64** %5, align 8
-    %scevgep = getelementptr i64, i64* %6, i64 %2
-    %7 = load i64, i64* %scevgep, align 4
-    %funcptr5 = bitcast %closure* %f1 to i8**
-    %loadtmp = load i8*, i8** %funcptr5, align 8
+    %6 = tail call i64 @schmu___vectorgi.g_vector-get_vectorii.i(%vector_int* %vec, i64 %2)
+    %funcptr4 = bitcast %closure* %f1 to i8**
+    %loadtmp = load i8*, i8** %funcptr4, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
     %loadtmp2 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %7, i8* %loadtmp2)
+    tail call void %casttmp(i64 %6, i8* %loadtmp2)
     %add = add i64 %2, 1
     store i64 %add, i64* %1, align 4
     br label %rec
+  }
+  
+  define i64 @schmu___vectorgi.g_vector-get_vectorii.i(%vector_int* %vec, i64 %i) {
+  entry:
+    %0 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %1 = bitcast %owned_ptr_int* %0 to i64**
+    %2 = load i64*, i64** %1, align 8
+    %3 = getelementptr inbounds i64, i64* %2, i64 %i
+    %4 = load i64, i64* %3, align 4
+    ret i64 %4
   }
   
   define void @schmu_printi(i64 %i) {

@@ -22,8 +22,7 @@
   (val optr (__malloc capacity))
   {:ptr {:optr :length 0} :capacity})
 
-(fun vector-get :inline [vec i]
-  -- has to be inline until there is proper handling for reference types
+(fun vector-get [vec i]
   (__unsafe_ptr_get (.optr (.ptr vec)) i))
 
 (fun vector-set [vec i v]
