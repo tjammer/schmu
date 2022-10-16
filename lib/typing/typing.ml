@@ -432,6 +432,14 @@ let rec param_funcs_as_closures = function
 let convert_simple_lit typ expr =
   { typ; expr = Const expr; attr = { no_attr with const = true } }
 
+let rec builtins_hack = function
+  (* return of __unsafe_ptr_get should be marked mut, otherwise it won't be copied
+     correctly later in codegen. *)
+  | Ast.Var (_, id) when String.equal id "__unsafe_ptr_get" ->
+      { no_attr with mut = true }
+  | Let_e (__, _, _, cont) -> builtins_hack cont
+  | _ -> no_attr
+
 module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
 
@@ -673,8 +681,10 @@ end = struct
     let apply param (texpr, mut) = ({ texpr with typ = param.pt }, mut) in
     let targs = List.map2 apply args_t typed_exprs in
 
+    let attr = builtins_hack e1 in
+
     (* For now, we don't support const functions *)
-    { typ = res_t; expr = App { callee; args = targs }; attr = no_attr }
+    { typ = res_t; expr = App { callee; args = targs }; attr }
 
   and convert_bop_impl env loc bop e1 e2 =
     let check typ =
