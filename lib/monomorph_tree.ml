@@ -950,10 +950,10 @@ and morph_app mk p callee args =
   (if ret then
    match callee.monomorph with Recursive name -> set_tailrec name | _ -> ());
 
-  let f p arg =
+  let f p (arg, mut) =
     let p, ex, _ = morph_expr p arg in
     let p, monomorph = monomorphize_call p ex None in
-    (p, { ex; monomorph; mut = arg.attr.mut })
+    (p, { ex; monomorph; mut })
   in
   let p, args = List.fold_left_map f p args in
 

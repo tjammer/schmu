@@ -651,24 +651,26 @@ end = struct
     let typed_exprs =
       List.mapi
         (fun i (a : Ast.argument) ->
-          ( a.amut,
-            let () = if a.amut then Env.open_mutation env in
+          let e =
+            if a.amut then Env.open_mutation env;
             let e = convert_annot env (param_annot annots i) a.aexpr in
-            (if a.amut then
-             let () = Env.close_mutation env in
-             if not e.attr.mut then
-               raise
-                 (Error (a.aloc, "Mutably passed expression is not mutable")));
-            e ))
+            if a.amut then (
+              Env.close_mutation env;
+              if not e.attr.mut then
+                raise
+                  (Error (a.aloc, "Mutably passed expression is not mutable")));
+            e
+          in
+          (e, a.amut))
         args
     in
-    let args_t = List.map (fun (pmut, a) -> { pmut; pt = a.typ }) typed_exprs in
+    let args_t = List.map (fun (a, pmut) -> { pmut; pt = a.typ }) typed_exprs in
     let res_t = newvar () in
     if switch_uni then
       unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ
     else unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple));
 
-    let apply param (_, texpr) = { texpr with typ = param.pt } in
+    let apply param (texpr, mut) = ({ texpr with typ = param.pt }, mut) in
     let targs = List.map2 apply args_t typed_exprs in
 
     (* For now, we don't support const functions *)

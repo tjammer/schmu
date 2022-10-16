@@ -10,7 +10,7 @@ type expr =
   | Let of let_data
   | Lambda of int * abstraction
   | Function of string * int option * abstraction * typed_expr
-  | App of { callee : typed_expr; args : typed_expr list }
+  | App of { callee : typed_expr; args : arg list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
   | Set of (typed_expr * typed_expr)
@@ -49,6 +49,7 @@ and toplevel_item =
   | Tl_expr of typed_expr
 
 and func = { tparams : param list; ret : typ; kind : fun_kind }
+and arg = typed_expr * bool
 
 and abstraction = {
   nparams : string list;
