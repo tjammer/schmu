@@ -41,6 +41,7 @@ and const =
   | F32 of float
   | String of string
   | Vector of typed_expr list
+  | Array of typed_expr list
   | Unit
 
 and toplevel_item =

@@ -48,6 +48,7 @@ and const =
   | F32 of float
   | String of string * alloca
   | Vector of int * monod_tree list * alloca
+  | Array of monod_tree list * alloca
   | Unit
 
 and func = { params : param list; ret : typ; kind : fun_kind }
@@ -592,6 +593,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Typed_tree.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
   | Const (Vector v) -> morph_vector make param v
+  | Const (Array a) -> morph_array make param a
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
@@ -683,8 +685,30 @@ and morph_vector mk p v =
     mk (Mconst (Vector (id, v, alloca))) p.ret,
     { fn = No_function; alloc = Value alloca; malloc = Some malloc } )
 
+and morph_array mk p a =
+  let ret = p.ret in
+  let p = { p with ret = false } in
+
+  (* ret = false is threaded through p *)
+  enter_level ();
+  (* vectors are freed recursively, we don't need to track the items here *)
+  let f param e =
+    let p, e, var = morph_expr param e in
+    (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
+    set_alloca var.alloc;
+    (p, e)
+  in
+  let p, a = List.fold_left_map f p a in
+  leave_level ();
+  let alloca = ref (request ()) in
+
+  ( { p with ret },
+    mk (Mconst (Array (a, alloca))) p.ret,
+    { fn = No_function; alloc = Value alloca; malloc = None } )
+
 and morph_const = function
-  | String _ | Vector _ -> failwith "Internal Error: Const should be extra case"
+  | String _ | Vector _ | Array _ ->
+      failwith "Internal Error: Const should be extra case"
   | Int i -> Int i
   | Bool b -> Bool b
   | Float f -> Float f

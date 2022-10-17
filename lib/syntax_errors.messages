@@ -10,7 +10,7 @@ prog: Minus_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Lpar Wildcard
+prog: Larray Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -30,11 +30,11 @@ prog: Lbrac Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Keyword Wildcard
+prog: Larray Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Keyword False U8
+prog: Larray False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -43,6 +43,14 @@ prog: Kebab_id Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Kebab_id Div_i Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lbrac Keyword Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lbrac Keyword False U8
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -59,10 +67,6 @@ prog: Lbrac False Rbrack
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lbrac False Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lbrack False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -882,7 +886,7 @@ prog: Lpar Kebab_id False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Lpar Fun Wildcard
+prog: Larray Lpar Fun Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

@@ -478,6 +478,7 @@ end = struct
         (* TODO is const, but handled differently right now *)
         { typ; expr = Const (String s); attr = no_attr }
     | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
+    | Lit (loc, Array arr) -> convert_array_lit env loc arr
     | Lit (_, Unit) ->
         { typ = Tunit; expr = Const Unit; attr = { no_attr with const = true } }
     | Lambda (loc, id, e) -> convert_lambda env loc id e
@@ -519,6 +520,17 @@ end = struct
     let vector = get_prelude env loc "vector" in
     let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
     { typ; expr = Const (Vector exprs); attr = no_attr }
+
+  and convert_array_lit env loc arr =
+    let f typ expr =
+      let expr = convert env expr in
+      unify (loc, "In array literal:") typ expr.typ;
+      (typ, expr)
+    in
+    let typ, exprs = List.fold_left_map f (newvar ()) arr in
+
+    let typ = Tarray typ in
+    { typ; expr = Const (Array exprs); attr = no_attr }
 
   and typeof_annot_decl env loc annot block =
     enter_level ();

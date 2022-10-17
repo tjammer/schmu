@@ -1,6 +1,5 @@
 open Cleaned_types
 open Llvm_types
-open Size_align
 module Vars = Map.Make (String)
 module Set = Set.Make (String)
 module Strtbl = Hashtbl
@@ -17,9 +16,11 @@ module rec Core : sig
   val gen_function :
     param -> ?mangle:mangle_kind -> Monomorph_tree.to_gen_func -> param
 end = struct
+  open Size_align
   open T
   open A
   open H
+  open Ar
 
   let rec gen_function vars ?(mangle = Schmu)
       { Monomorph_tree.abs; name; recursive } =
@@ -103,6 +104,8 @@ end = struct
         gen_string_lit param s typed_expr.typ allocref
     | Mconst (Vector (id, es, allocref)) ->
         gen_vector_lit param id es typed_expr.typ allocref
+    | Mconst (Array (arr, allocref)) ->
+        gen_array_lit param arr typed_expr.typ allocref
     | Mconst c -> gen_const c |> fin
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
@@ -148,8 +151,7 @@ end = struct
         | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
     | Mif expr -> gen_if param expr typed_expr.return
     | Mrecord (labels, allocref, const) ->
-        gen_record param typed_expr.typ labels allocref const
-          typed_expr.return
+        gen_record param typed_expr.typ labels allocref const typed_expr.return
         |> fin
     | Mfield (expr, index) -> gen_field param expr index |> fin
     | Mset (expr, value) -> gen_set param expr value |> fin
@@ -207,7 +209,7 @@ end = struct
         let value = Llvm.const_float f32_t f in
         { value; typ = Tf32; lltyp = f32_t; kind = Const }
     | Unit -> dummy_fn_value
-    | String _ | Vector _ -> failwith "In other branch"
+    | String _ | Vector _ | Array _ -> failwith "In other branch"
 
   and gen_var vars typ id kind =
     match kind with
@@ -1031,6 +1033,7 @@ end
 and T : Lltypes_intf.S = Lltypes.Make (A)
 and A : Abi_intf.S = Abi.Make (T)
 and H : Helpers.S = Helpers.Make (T) (A)
+and Ar : Arr.S = Arr.Make
 
 let fill_constants constants =
   let f (name, tree, toplvl) =

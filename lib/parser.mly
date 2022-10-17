@@ -72,6 +72,7 @@
 %token Rbrac
 %token Lbrack
 %token Rbrack
+%token Larray
 %token Ampersand
 %token At
 %token If
@@ -240,6 +241,7 @@ sexp_expr:
   | F32 { Lit($loc, F32 $1) }
   | String_lit { Lit($loc, String $1) }
   | sexp_vector_lit { Lit($loc, Vector $1) }
+  | array_lit { Lit($loc, Array $1) }
   | Lpar; Rpar { Lit($loc, Unit) }
 
 %inline sexp_if:
@@ -373,6 +375,9 @@ bool:
 
 sexp_vector_lit:
   | Lbrack; list(sexp_expr); Rbrack { $2 }
+
+array_lit:
+  | Larray; list(sexp_expr); Rbrack { $2 }
 
 %inline sexp_type_expr:
   | sexp_type_list { $1 }
