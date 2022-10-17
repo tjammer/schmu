@@ -100,9 +100,9 @@ end = struct
 
     match typed_expr.expr with
     | Mconst (String (s, allocref)) ->
-        codegen_string_lit param s typed_expr.typ allocref
+        gen_string_lit param s typed_expr.typ allocref
     | Mconst (Vector (id, es, allocref)) ->
-        codegen_vector_lit param id es typed_expr.typ allocref
+        gen_vector_lit param id es typed_expr.typ allocref
     | Mconst c -> gen_const c |> fin
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
@@ -148,12 +148,12 @@ end = struct
         | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
     | Mif expr -> gen_if param expr typed_expr.return
     | Mrecord (labels, allocref, const) ->
-        codegen_record param typed_expr.typ labels allocref const
+        gen_record param typed_expr.typ labels allocref const
           typed_expr.return
         |> fin
-    | Mfield (expr, index) -> codegen_field param expr index |> fin
-    | Mset (expr, value) -> codegen_set param expr value |> fin
-    | Mseq (expr, cont) -> codegen_chain param expr cont
+    | Mfield (expr, index) -> gen_field param expr index |> fin
+    | Mset (expr, value) -> gen_set param expr value |> fin
+    | Mseq (expr, cont) -> gen_chain param expr cont
     | Mfree_after (expr, id) -> gen_free param expr id
     | Mctor (ctor, allocref, const) ->
         gen_ctor param ctor typed_expr.typ allocref const
@@ -722,7 +722,7 @@ end = struct
       Llvm.position_at_end (Lazy.force merge_bb) builder;
     llvar
 
-  and codegen_record param typ labels allocref const return =
+  and gen_record param typ labels allocref const return =
     let lltyp = get_lltype_field typ in
 
     let value, kind =
@@ -775,7 +775,7 @@ end = struct
 
     { value; typ; lltyp; kind }
 
-  and codegen_field param expr index =
+  and gen_field param expr index =
     let typ =
       match expr.typ with
       | Trecord (_, _, fields) -> fields.(index).ftyp
@@ -804,18 +804,18 @@ end = struct
 
     { value; typ; lltyp = get_lltype_def typ; kind }
 
-  and codegen_set param expr valexpr =
+  and gen_set param expr valexpr =
     let ptr = gen_expr param expr in
     let value = gen_expr param valexpr in
     (* We know that ptr cannot be a constant record, but value might *)
     set_struct_field value ptr.value;
     { dummy_fn_value with lltyp = unit_t }
 
-  and codegen_chain param expr cont =
+  and gen_chain param expr cont =
     ignore (gen_expr param expr);
     gen_expr param cont
 
-  and codegen_string_lit param s typ allocref =
+  and gen_string_lit param s typ allocref =
     let lltyp = get_struct string_type in
     let ptr = get_const_string s in
 
@@ -830,7 +830,7 @@ end = struct
 
     { value = string; typ; lltyp; kind = Const_ptr }
 
-  and codegen_vector_lit param id es typ allocref =
+  and gen_vector_lit param id es typ allocref =
     let lltyp = get_struct typ in
     let item_typ =
       match typ with
