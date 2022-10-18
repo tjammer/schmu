@@ -1,5 +1,6 @@
 open Cleaned_types
 open Llvm_types
+open Size_align
 module Vars = Map.Make (String)
 module Set = Set.Make (String)
 module Strtbl = Hashtbl
@@ -16,7 +17,6 @@ module rec Core : sig
   val gen_function :
     param -> ?mangle:mangle_kind -> Monomorph_tree.to_gen_func -> param
 end = struct
-  open Size_align
   open T
   open A
   open H
@@ -1033,7 +1033,7 @@ end
 and T : Lltypes_intf.S = Lltypes.Make (A)
 and A : Abi_intf.S = Abi.Make (T)
 and H : Helpers.S = Helpers.Make (T) (A)
-and Ar : Arr.S = Arr.Make
+and Ar : Arr.S = Arr.Make (T) (H) (Core)
 
 let fill_constants constants =
   let f (name, tree, toplvl) =
