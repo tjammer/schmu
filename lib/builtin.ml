@@ -19,6 +19,8 @@ type t =
   | F32_of_int
   | F32_of_i32
   | Not
+  | Array_get
+  | Array_set
 [@@deriving show]
 
 let tbl =
@@ -77,6 +79,22 @@ let tbl =
     (U8_of_int, Tfun ([ { pmut; pt = Tint } ], Tu8, Simple), "u8_of_int");
     (U8_to_int, Tfun ([ { pmut; pt = Tu8 } ], Tint, Simple), "u8_to_int");
     (Not, Tfun ([ { pmut; pt = Tbool } ], Tbool, Simple), "not");
+    ( Array_get,
+      Tfun
+        ( [ { pmut; pt = Tarray (Qvar "0") }; { pmut; pt = Tint } ],
+          Qvar "0",
+          Simple ),
+      "array-get" );
+    ( Array_set,
+      Tfun
+        ( [
+            { pmut = true; pt = Tarray (Qvar "0") };
+            { pmut; pt = Tint };
+            { pmut; pt = Qvar "0" };
+          ],
+          Tunit,
+          Simple ),
+      "array-set" );
   ]
 
 let of_string = function
@@ -100,6 +118,8 @@ let of_string = function
   | "u8_of_int" -> Some U8_of_int
   | "u8_to_int" -> Some U8_to_int
   | "not" -> Some Not
+  | "array-get" -> Some Array_get
+  | "array-set" -> Some Array_set
   | _ -> None
 
 let fold f init = List.fold_left f init tbl

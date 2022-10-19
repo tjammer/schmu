@@ -563,10 +563,11 @@ end = struct
           | _ -> failwith "Internal Error: Arity mismatch in builtin"
         in
         let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
-        let value = { value with typ = (List.nth fnc.params 2).pt } in
 
         set_struct_field value ptr;
         { dummy_fn_value with lltyp = unit_t }
+    | Array_get -> array_get args fnc.ret
+    | Array_set -> array_set args
     | Realloc ->
         let ptr, size =
           match args with
