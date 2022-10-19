@@ -42,8 +42,8 @@ let tbl =
       "__unsafe_ptr_set" );
     ( Realloc,
       Tfun
-        ( [ { pmut; pt = Traw_ptr (Qvar "0") }; { pmut; pt = Tint } ],
-          Traw_ptr (Qvar "0"),
+        ( [ { pmut = true; pt = Traw_ptr (Qvar "0") }; { pmut; pt = Tint } ],
+          Tunit,
           Simple ),
       "__realloc" );
     ( Malloc,

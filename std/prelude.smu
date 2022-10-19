@@ -32,7 +32,7 @@
   (if (= (.length (.ptr vec)) (.capacity vec))
     (do
       (val cap (* (.capacity vec) 2))
-      (set &(.optr (.ptr vec)) (__realloc (.optr (.ptr vec)) cap))
+      (__realloc &(.optr (.ptr vec)) cap)
       (set &(.capacity vec) cap)))
   (vector-set vec (.length (.ptr vec)) v)
   (set &(.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))

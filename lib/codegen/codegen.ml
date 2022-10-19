@@ -568,21 +568,23 @@ end = struct
         set_struct_field value ptr;
         { dummy_fn_value with lltyp = unit_t }
     | Realloc ->
-        let item_size =
-          match fnc.ret with
-          | Traw_ptr t -> sizeof_typ t |> Llvm.const_int int_t
-          | _ -> failwith "Internal Error: Nonptr return of alloc"
-        in
-
         let ptr, size =
           match args with
           | [ ptr; size ] ->
+              let item_size =
+                match ptr.typ with
+                | Traw_ptr t -> sizeof_typ t |> Llvm.const_int int_t
+                | _ ->
+                    print_endline (show_typ ptr.typ);
+                    failwith "Internal Error: Nonptr return of alloc"
+              in
               let size = Llvm.build_mul size.value item_size "" builder in
-              (bring_default ptr, size)
+              (ptr, size)
           | _ -> failwith "Internal Error: Arity mismatch in builtin"
         in
-        let value = realloc ptr ~size in
-        { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Ptr }
+        let value = realloc (bring_default ptr) ~size in
+        ignore (Llvm.build_store value ptr.value builder);
+        { dummy_fn_value with lltyp = unit_t }
     | Malloc ->
         let item_size =
           match fnc.ret with
