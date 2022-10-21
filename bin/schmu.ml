@@ -72,7 +72,7 @@ let run file
              |> snd |> Module.sexp_of_t
            in
            let modfile = open_out (outname ^ ".smi") in
-           Module.Sexp.to_channel modfile m;
+           Module.to_channel modfile m;
            close_out modfile)
          else if compile_only then ()
          else Link.link outname objects cargs))
