@@ -36,7 +36,7 @@ type expr =
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
-  | Mcopy of { temporary : bool; mut : bool; expr : monod_tree; nm : string }
+  | Mcopy of { kind : copy_kind; expr : monod_tree; nm : string }
 [@@deriving show]
 
 and const =
@@ -71,6 +71,10 @@ and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 and var_kind = Vnorm | Vconst | Vglobal
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
+
+and copy_kind =
+  | Cglobal of string
+  | Cnormal of { temporary : bool; mut : bool }
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -585,8 +589,19 @@ let copy_let lhs lmut rmut nm =
       lhs
   | _ ->
       let temporary = is_temporary lhs.expr in
-      let expr = Mcopy { temporary; mut = lmut; expr = lhs; nm } in
+      let kind = Cnormal { temporary; mut = lmut } in
+      let expr = Mcopy { kind; expr = lhs; nm } in
       { lhs with expr }
+
+let make_e2 e1 e2 id gn lmut rmut =
+  match gn with
+  | Some n ->
+      let expr = Mcopy { kind = Cglobal n; expr = e1; nm = id } in
+      let e1 = { e1 with expr } in
+      { e2 with expr = Mlet (id, e1, gn, e2) }
+  | None ->
+      let e1 = copy_let e1 lmut rmut id in
+      { e2 with expr = Mlet (id, e1, gn, e2) }
 
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return = { typ = cln texpr.typ; expr; return } in
@@ -602,13 +617,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Let { id; uniq; rmut; lhs; cont } ->
       let p, e1, gn = prep_let param id uniq lhs false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
-      let e2 =
-        match gn with
-        | Some _ -> { e2 with expr = Mlet (id, e1, gn, e2) }
-        | None ->
-            let e1 = copy_let e1 lhs.attr.mut rmut id in
-            { e2 with expr = Mlet (id, e1, gn, e2) }
-      in
+      let e2 = make_e2 e1 e2 id gn lhs.attr.mut rmut in
       (p, e2, func)
   | Record labels -> morph_record make param labels texpr.attr
   | Field (expr, index) -> morph_field make param expr index
@@ -1070,7 +1079,8 @@ let morph_toplvl param items =
     | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
         let p, e1, gn = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        (p, { e2 with expr = Mlet (id, e1, gn, e2) }, func)
+        let e2 = make_e2 e1 e2 id gn expr.attr.mut false in
+        (p, e2, func)
     | Tl_function (name, uniq, abs) :: tl ->
         let p, call, abs = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in

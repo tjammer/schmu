@@ -690,55 +690,55 @@ Make sure there is no aliasing here
     %cap = getelementptr inbounds %vector_int, %vector_int* %vec, i32 0, i32 1
     store i64 1, i64* %cap, align 4
     %2 = load i64*, i64** %data17, align 8
-    %3 = load i64, i64* %2, align 4
+    %const = load i64, i64* %2, align 4
     call void @schmu___vectorgig.u_vector-set_vectoriii.u(%vector_int* %vec, i64 0, i64 1)
-    %4 = call i64 @schmu___vectorgi.g_vector-get_vectorii.i(%vector_int* %vec, i64 0)
-    %fmtsize = call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %4)
-    %5 = add i32 %fmtsize, 1
-    %6 = sext i32 %5 to i64
-    %7 = call i8* @malloc(i64 %6)
-    %fmt = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %7, i64 %6, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %4)
+    %3 = call i64 @schmu___vectorgi.g_vector-get_vectorii.i(%vector_int* %vec, i64 0)
+    %fmtsize = call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %3)
+    %4 = add i32 %fmtsize, 1
+    %5 = sext i32 %4 to i64
+    %6 = call i8* @malloc(i64 %5)
+    %fmt = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %6, i64 %5, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %3)
     %str = alloca %string, align 8
     %cstr18 = bitcast %string* %str to i8**
-    store i8* %7, i8** %cstr18, align 8
+    store i8* %6, i8** %cstr18, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
-    %8 = mul i64 %6, -1
-    store i64 %8, i64* %length, align 4
+    %7 = mul i64 %5, -1
+    store i64 %7, i64* %length, align 4
     %unbox = bitcast %string* %str to { i64, i64 }*
-    %9 = ptrtoint i8* %7 to i64
+    %8 = ptrtoint i8* %6 to i64
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
-    call void @schmu_print(i64 %9, i64 %8)
-    %fmtsize3 = call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %3)
-    %10 = add i32 %fmtsize3, 1
-    %11 = sext i32 %10 to i64
-    %12 = call i8* @malloc(i64 %11)
-    %fmt4 = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %12, i64 %11, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %3)
+    call void @schmu_print(i64 %8, i64 %7)
+    %fmtsize3 = call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %const)
+    %9 = add i32 %fmtsize3, 1
+    %10 = sext i32 %9 to i64
+    %11 = call i8* @malloc(i64 %10)
+    %fmt4 = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %11, i64 %10, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %const)
     %str5 = alloca %string, align 8
     %cstr620 = bitcast %string* %str5 to i8**
-    store i8* %12, i8** %cstr620, align 8
+    store i8* %11, i8** %cstr620, align 8
     %length7 = getelementptr inbounds %string, %string* %str5, i32 0, i32 1
-    %13 = mul i64 %11, -1
-    store i64 %13, i64* %length7, align 4
+    %12 = mul i64 %10, -1
+    store i64 %12, i64* %length7, align 4
     %unbox8 = bitcast %string* %str5 to { i64, i64 }*
-    %14 = ptrtoint i8* %12 to i64
+    %13 = ptrtoint i8* %11 to i64
     %snd11 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox8, i32 0, i32 1
-    call void @schmu_print(i64 %14, i64 %13)
-    %15 = load i64*, i64** %data17, align 8
-    %16 = bitcast i64* %15 to i8*
-    call void @free(i8* %16)
-    %owned = icmp slt i64 %8, 0
+    call void @schmu_print(i64 %13, i64 %12)
+    %14 = load i64*, i64** %data17, align 8
+    %15 = bitcast i64* %14 to i8*
+    call void @free(i8* %15)
+    %owned = icmp slt i64 %7, 0
     br i1 %owned, label %free, label %cont
   
   free:                                             ; preds = %entry
-    call void @free(i8* %7)
+    call void @free(i8* %6)
     br label %cont
   
   cont:                                             ; preds = %free, %entry
-    %owned15 = icmp slt i64 %13, 0
+    %owned15 = icmp slt i64 %12, 0
     br i1 %owned15, label %free13, label %cont14
   
   free13:                                           ; preds = %cont
-    call void @free(i8* %12)
+    call void @free(i8* %11)
     br label %cont14
   
   cont14:                                           ; preds = %free13, %cont
