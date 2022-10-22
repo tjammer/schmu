@@ -281,6 +281,7 @@ sexp_cond:
 
 pipeable:
   | expr = sexp_expr { Pip_expr expr }
+  | Fmt_str { Pip_expr (Fmt ($loc, [])) }
   | f = Accessor { Pip_field f }
 
 %inline sexp_call:
@@ -335,7 +336,7 @@ let with_loc(x) :=
     { Ptup ($loc, $1 :: $2) }
 
 %inline fmt_str:
-  | Fmt_str; lst = nonempty_list(sexp_expr) { Fmt ($loc, lst) }
+  | Fmt_str; lst = list(sexp_expr) { Fmt ($loc, lst) }
 
 ident:
   | Lowercase_id { ($loc, $1) }

@@ -827,6 +827,7 @@ end = struct
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
     | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (e1.aexpr :: exprs)
+    | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (e1.aexpr :: l)
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
@@ -843,6 +844,7 @@ end = struct
         convert_ctor env loc name (Some e1.aexpr) None
     | Pip_expr (Bop (_, op, exprs)) ->
         convert_bop env loc op (exprs @ [ e1.aexpr ])
+    | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (l @ [ e1.aexpr ])
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]

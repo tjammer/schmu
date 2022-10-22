@@ -34,7 +34,7 @@ prog: Larray Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Larray False Rpar
+prog: Larray False Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -43,6 +43,10 @@ prog: Kebab_id Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Kebab_id Div_i Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Larray False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -67,6 +71,10 @@ prog: Lbrac False Rbrack
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lbrac False Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lbrack False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -594,7 +602,7 @@ prog: Lpar Fmt_str Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fmt_str False Rbrac
+prog: Lpar Fmt_str False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
