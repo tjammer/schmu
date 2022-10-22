@@ -435,8 +435,11 @@ let convert_simple_lit typ expr =
 let rec builtins_hack = function
   (* return of __unsafe_ptr_get should be marked mut, otherwise it won't be copied
      correctly later in codegen. *)
-  | Ast.Var (_, id) when String.equal id "__unsafe_ptr_get" ->
-      { no_attr with mut = true }
+  (* NOTE is_temporary is monomorph_tree also needs to be updated *)
+  | Ast.Var (_, id) -> (
+      match id with
+      | "__unsafe_ptr_get" | "array-get" -> { no_attr with mut = true }
+      | _ -> no_attr)
   | Let_e (__, _, _, cont) -> builtins_hack cont
   | _ -> no_attr
 
