@@ -1018,8 +1018,9 @@ end = struct
 
   and gen_copy_global param gn expr =
     let dst = Strtbl.find const_tbl gn in
-    let v = gen_expr { param with alloca = Some dst.value } expr in
-    let v = { v with value = bring_default v } in
+    let v =
+      gen_expr { param with alloca = Some dst.value } expr |> bring_default_var
+    in
     (* Bandaid for polymorphic first class functions. In monomorph pass, the
        global is ignored. TODO. Here, we make sure that the dummy_fn_value is
        not set to the global. The global will stay 0 forever *)
