@@ -36,7 +36,12 @@ type expr =
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
-  | Mcopy of { kind : copy_kind; expr : monod_tree; nm : string }
+  | Mcopy of {
+      kind : copy_kind;
+      temporary : bool;
+      expr : monod_tree;
+      nm : string;
+    }
 [@@deriving show]
 
 and const =
@@ -71,10 +76,7 @@ and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 and var_kind = Vnorm | Vconst | Vglobal
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
-
-and copy_kind =
-  | Cglobal of string
-  | Cnormal of { temporary : bool; mut : bool }
+and copy_kind = Cglobal of string | Cnormal of bool
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -582,25 +584,26 @@ let rec is_temporary = function
       is_temporary cont.expr
   | Mset _ -> failwith "Internal Error: Trying to copy unit"
 
-let copy_let lhs lmut rmut nm =
+let copy_let lhs lmut rmut nm temporary =
   match (lmut, rmut) with
   | false, false ->
       (* We don't need to copy *)
+      (* TODO if it's not temporary, we need to increase the ref count *)
       lhs
   | _ ->
-      let temporary = is_temporary lhs.expr in
-      let kind = Cnormal { temporary; mut = lmut } in
-      let expr = Mcopy { kind; expr = lhs; nm } in
+      let kind = Cnormal lmut in
+      let expr = Mcopy { kind; temporary; expr = lhs; nm } in
       { lhs with expr }
 
 let make_e2 e1 e2 id gn lmut rmut =
+  let temporary = is_temporary e1.expr in
   match gn with
   | Some n ->
-      let expr = Mcopy { kind = Cglobal n; expr = e1; nm = id } in
+      let expr = Mcopy { kind = Cglobal n; temporary; expr = e1; nm = id } in
       let e1 = { e1 with expr } in
       { e2 with expr = Mlet (id, e1, gn, e2) }
   | None ->
-      let e1 = copy_let e1 lmut rmut id in
+      let e1 = copy_let e1 lmut rmut id temporary in
       { e2 with expr = Mlet (id, e1, gn, e2) }
 
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =

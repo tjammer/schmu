@@ -163,10 +163,10 @@ end = struct
     | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
     | Mfmt (fmts, allocref, id) ->
         gen_fmt_str param fmts typed_expr.typ allocref id |> fin
-    | Mcopy { kind; expr; nm } ->
+    | Mcopy { kind; temporary; expr; nm } ->
         (match kind with
-        | Cglobal gn -> gen_copy_global param gn expr
-        | Cnormal { temporary; mut } -> gen_copy param temporary mut expr nm)
+        | Cglobal gn -> gen_copy_global param temporary gn expr
+        | Cnormal mut -> gen_copy param temporary mut expr nm)
         |> fin
 
   and gen_let param id equals let' =
@@ -1016,7 +1016,8 @@ end = struct
             { v with value = dst; kind = Ptr })
           else v
 
-  and gen_copy_global param gn expr =
+  and gen_copy_global param temporary gn expr =
+    ignore temporary;
     let dst = Strtbl.find const_tbl gn in
     let v =
       gen_expr { param with alloca = Some dst.value } expr |> bring_default_var
@@ -1024,9 +1025,11 @@ end = struct
     (* Bandaid for polymorphic first class functions. In monomorph pass, the
        global is ignored. TODO. Here, we make sure that the dummy_fn_value is
        not set to the global. The global will stay 0 forever *)
-    match expr.typ with
-    | Tfun _ when is_type_polymorphic expr.typ -> v
+    match v.typ with
+    | Tunit -> v
     | _ ->
+        if not temporary then incr_refcount v;
+
         store_or_copy ~src:v ~dst:dst.value;
         let v = { v with value = dst.value; kind = Ptr } in
         Strtbl.replace const_tbl gn v;

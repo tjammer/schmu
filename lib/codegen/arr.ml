@@ -11,6 +11,8 @@ module type S = sig
 
   val array_get : llvar list -> typ -> llvar
   val array_set : llvar list -> llvar
+  val incr_refcount : llvar -> unit
+  val decr_refcount : llvar -> unit
 end
 
 module type Core = sig
@@ -29,7 +31,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
   let ci i = Llvm.const_int int_t i
 
-  let gen_array_lit param exprs typ allocref =
+  let item_type_head_size typ =
+    (* Return pair lltyp, size of head *)
     let item_typ =
       match typ with
       | Tarray t -> t
@@ -38,9 +41,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
           failwith "Internal Error: No array in array"
     in
     let llitem_typ = get_lltype_def item_typ in
-    let vec_sz = List.length exprs in
-
     let item_sz = sizeof_typ item_typ in
+
     let mut = false in
     let head_sz =
       sizeof_typ
@@ -53,8 +55,15 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
                { ftyp = Tint; mut };
                { ftyp = item_typ; mut };
              |] ))
+      - item_sz
     in
-    let cap = head_sz + ((vec_sz - 1) * item_sz) in
+    (llitem_typ, head_sz, item_sz)
+
+  let gen_array_lit param exprs typ allocref =
+    let vec_sz = List.length exprs in
+
+    let llitem_typ, head_size, item_size = item_type_head_size typ in
+    let cap = head_size + (vec_sz * item_size) in
 
     let lltyp = get_lltype_def typ in
     let ptr =
@@ -88,7 +97,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
         match src.typ with
         | Trecord _ | Tvariant _ ->
             if dst <> src.value then
-              memcpy ~dst ~src ~size:(Llvm.const_int int_t item_sz)
+              memcpy ~dst ~src ~size:(Llvm.const_int int_t item_size)
             else (* The record was constructed inplace *) ()
         | _ -> ignore (Llvm.build_store src.value dst builder))
       exprs;
@@ -113,13 +122,93 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let value = Llvm.build_gep ptr [| index |] "" builder in
     { value; typ; lltyp; kind = Ptr }
 
+  let incr_refcount v =
+    (* TODO recurse *)
+    match v.typ with
+    | Tarray _ ->
+        let v = bring_default v in
+        let int_ptr =
+          Llvm.build_bitcast v (Llvm.pointer_type int_t) "ref" builder
+        in
+        let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
+        let value = Llvm.build_load dst "ref" builder in
+        let added = Llvm.build_add value (Llvm.const_int int_t 1) "" builder in
+        ignore (Llvm.build_store added dst builder)
+    | _ -> ()
+
+  let decr_refcount v =
+    let v = bring_default v in
+    let int_ptr =
+      Llvm.build_bitcast v (Llvm.pointer_type int_t) "ref" builder
+    in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
+    let value = Llvm.build_load dst "ref" builder in
+    let added = Llvm.build_sub value (Llvm.const_int int_t 1) "" builder in
+    ignore (Llvm.build_store added dst builder)
+
+  let maybe_relocate orig =
+    (match orig.kind with
+    | Ptr | Const_ptr -> ()
+    | _ -> failwith "Internal Error: Not passed as mutable");
+    (* Get current block *)
+    let start_bb = Llvm.insertion_block builder in
+    let parent = Llvm.block_parent start_bb in
+
+    let reloc_bb = Llvm.append_block context "relocate" parent in
+    let merge_bb = Llvm.append_block context "merge" parent in
+
+    let v = bring_default_var orig in
+    let int_ptr =
+      Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "ref" builder
+    in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
+    let rc = Llvm.build_load dst "ref" builder in
+    let cmp =
+      Llvm.(build_icmp Icmp.Sgt) rc (Llvm.const_int int_t 1) "" builder
+    in
+
+    ignore (Llvm.build_cond_br cmp reloc_bb merge_bb builder);
+
+    Llvm.position_at_end reloc_bb builder;
+    (* Get new ptr *)
+    let cap = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    let cap = Llvm.build_load cap "cap" builder in
+
+    let _, head_size, item_size = item_type_head_size orig.typ in
+    let itemssize =
+      Llvm.build_mul cap (Llvm.const_int int_t item_size) "" builder
+    in
+    (* Really capacity, not size *)
+    let size =
+      Llvm.build_add itemssize (Llvm.const_int int_t head_size) "" builder
+    in
+
+    let lltyp = get_lltype_def orig.typ in
+    let ptr =
+      malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
+    in
+    ignore
+      (let src = { value = ptr; typ = orig.typ; kind = Ptr; lltyp } in
+       memcpy ~src ~dst:ptr ~size);
+    (* set orig pointer to new ptr *)
+    ignore (Llvm.build_store ptr orig.value builder);
+
+    (* Decrease orig refcount  *)
+    decr_refcount v;
+
+    ignore (Llvm.build_br merge_bb builder);
+
+    Llvm.position_at_end merge_bb builder;
+    bring_default_var orig
+
   let array_set args =
     let arr, index, value =
       match args with
       | [ arr; index; value ] ->
-          (bring_default_var arr, bring_default index, bring_default_var value)
+          (arr, bring_default index, bring_default_var value)
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
+    let arr = maybe_relocate arr in
     let int_ptr =
       Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
     in

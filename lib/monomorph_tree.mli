@@ -31,7 +31,12 @@ type expr =
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
-  | Mcopy of { kind : copy_kind; expr : monod_tree; nm : string }
+  | Mcopy of {
+      kind : copy_kind;
+      temporary : bool;
+      expr : monod_tree;
+      nm : string;
+    }
 
 and const =
   | Int of int
@@ -69,10 +74,7 @@ and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 and var_kind = Vnorm | Vconst | Vglobal
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
-
-and copy_kind =
-  | Cglobal of string
-  | Cnormal of { temporary : bool; mut : bool }
+and copy_kind = Cglobal of string | Cnormal of bool
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
