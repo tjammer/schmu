@@ -993,6 +993,7 @@ end = struct
 
   and gen_copy param temp mut expr nm =
     let v = gen_expr param expr in
+    if not temp then incr_refcount v;
     if is_struct v.typ then
       if not temp then (
         let dst = alloca param (get_lltype_def v.typ) nm in
@@ -1006,6 +1007,7 @@ end = struct
             let dst = alloca param (get_lltype_def v.typ) nm in
             memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
             { v with value = dst })
+          else if mut then v
           else
             let value = Llvm.build_load v.value nm builder in
             { v with value; kind = Imm }
@@ -1017,7 +1019,6 @@ end = struct
           else v
 
   and gen_copy_global param temporary gn expr =
-    ignore temporary;
     let dst = Strtbl.find const_tbl gn in
     let v =
       gen_expr { param with alloca = Some dst.value } expr |> bring_default_var

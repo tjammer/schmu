@@ -14,3 +14,25 @@
     fmt-str
     print)
 (print (fmt-str (array-get d 0)))
+
+
+(fun in-fun []
+  (print "in fun")
+  (val a& $[10])
+  (val b a)
+  (val c& a)
+  (val d b)
+
+  -- (set &(array-get a 0) 12)
+  (array-set &a 0 12)
+  (print (fmt-str (array-get a 0)))
+  -- (set &(array-get c 0) 15)
+  (array-set &c 0 15)
+  (print (fmt-str (array-get a 0)))
+  (print (fmt-str (array-get b 0)))
+  (-> (array-get c 0)
+      fmt-str
+      print)
+  (print (fmt-str (array-get d 0))))
+
+(in-fun)
