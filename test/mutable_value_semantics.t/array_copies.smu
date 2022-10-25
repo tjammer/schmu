@@ -1,3 +1,6 @@
+(fun print-0th [a]
+  (print (fmt-str (array-get a 0))))
+
 (val a& $[10])
 (val b a)
 (val c& a)
@@ -5,15 +8,13 @@
 
 -- (set &(array-get a 0) 12)
 (array-set &a 0 12)
-(print (fmt-str (array-get a 0)))
+(print-0th a)
 -- (set &(array-get c 0) 15)
 (array-set &c 0 15)
-(print (fmt-str (array-get a 0)))
-(print (fmt-str (array-get b 0)))
-(-> (array-get c 0)
-    fmt-str
-    print)
-(print (fmt-str (array-get d 0)))
+(print-0th a)
+(print-0th b)
+(print-0th c)
+(print-0th d)
 
 
 (fun in-fun []
@@ -25,14 +26,12 @@
 
   -- (set &(array-get a 0) 12)
   (array-set &a 0 12)
-  (print (fmt-str (array-get a 0)))
+  (print-0th a)
   -- (set &(array-get c 0) 15)
   (array-set &c 0 15)
-  (print (fmt-str (array-get a 0)))
-  (print (fmt-str (array-get b 0)))
-  (-> (array-get c 0)
-      fmt-str
-      print)
-  (print (fmt-str (array-get d 0))))
+  (print-0th a)
+  (print-0th b)
+  (print-0th c)
+  (print-0th d))
 
 (in-fun)
