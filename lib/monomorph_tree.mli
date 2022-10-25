@@ -37,6 +37,7 @@ type expr =
       expr : monod_tree;
       nm : string;
     }
+  | Mincr_ref of monod_tree
 
 and const =
   | Int of int

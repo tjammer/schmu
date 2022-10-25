@@ -42,6 +42,7 @@ type expr =
       expr : monod_tree;
       nm : string;
     }
+  | Mincr_ref of monod_tree
 [@@deriving show]
 
 and const =
@@ -442,7 +443,14 @@ let rec subst_body p subst tree =
           List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
         in
         { tree with expr = Mfmt (fmts, alloca, id) }
-    | Mcopy c -> { tree with expr = Mcopy { c with expr = sub c.expr } }
+    | Mcopy c ->
+        {
+          tree with
+          typ = subst tree.typ;
+          expr = Mcopy { c with expr = sub c.expr };
+        }
+    | Mincr_ref c ->
+        { tree with typ = subst tree.typ; expr = Mincr_ref (sub c) }
   in
   (!p, inner tree)
 
@@ -567,12 +575,13 @@ let set_tailrec name =
 let rec is_temporary = function
   | Mvar _ | Mfield _ | Mvar_data _ -> false
   | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _ | Mfmt _
-  | Mcopy _ ->
+  | Mcopy _ | Mincr_ref _ ->
       true
   | Mapp { callee; _ } -> (
       match callee.monomorph with
       | Inline (_, e) -> is_temporary e.expr
       | Builtin (Unsafe_ptr_get, _) -> false
+      | Builtin (Array_get, _) -> false
       | _ -> true)
   | Munop (_, t) -> is_temporary t.expr
   | Mif { e1; e2; _ } -> is_temporary e1.expr && is_temporary e2.expr
@@ -587,8 +596,7 @@ let copy_let lhs lmut rmut nm temporary =
   match (lmut, rmut) with
   | false, false ->
       (* We don't need to copy *)
-      (* TODO if it's not temporary, we need to increase the ref count *)
-      lhs
+      if temporary then lhs else { lhs with expr = Mincr_ref lhs }
   | _ ->
       let kind = Cnormal lmut in
       let expr = Mcopy { kind; temporary; expr = lhs; nm } in

@@ -168,6 +168,7 @@ end = struct
         | Cglobal gn -> gen_copy_global param temporary gn expr
         | Cnormal mut -> gen_copy param temporary mut expr nm)
         |> fin
+    | Mincr_ref expr -> gen_incr_ref param expr
 
   and gen_let param id equals let' =
     let expr_val = gen_expr param equals in
@@ -1035,6 +1036,11 @@ end = struct
         let v = { v with value = dst.value; kind = Ptr } in
         Strtbl.replace const_tbl gn v;
         v
+
+  and gen_incr_ref param expr =
+    let v = gen_expr param expr in
+    incr_refcount v;
+    v
 end
 
 and T : Lltypes_intf.S = Lltypes.Make (A)
