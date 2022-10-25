@@ -1351,3 +1351,167 @@ Copies, but with ref-counted arrays
   10
   15
   10
+
+
+  $ schmu array_in_record_copies.smu --dump-llvm && ./array_in_record_copies
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %arrec = type { i64* }
+  %string = type { i8*, i64 }
+  
+  @a = global %arrec zeroinitializer, align 8
+  @b = global %arrec zeroinitializer, align 8
+  @0 = private unnamed_addr constant [4 x i8] c"%li\00", align 1
+  @1 = private unnamed_addr constant [7 x i8] c"in fun\00", align 1
+  
+  declare void @schmu_print(i64 %0, i64 %1)
+  
+  define void @schmu_in-fun() {
+  entry:
+    %0 = alloca %arrec, align 8
+    %a14 = bitcast %arrec* %0 to i64**
+    %1 = tail call i8* @malloc(i64 32)
+    %2 = bitcast i8* %1 to i64*
+    %arr = alloca i64*, align 8
+    store i64* %2, i64** %arr, align 8
+    store i64 1, i64* %2, align 4
+    %size = getelementptr i64, i64* %2, i64 1
+    store i64 1, i64* %size, align 4
+    %cap = getelementptr i64, i64* %2, i64 2
+    store i64 1, i64* %cap, align 4
+    %data = getelementptr i64, i64* %2, i64 3
+    store i64 10, i64* %data, align 4
+    store i64* %2, i64** %a14, align 8
+    store i64 2, i64* %2, align 4
+    %b = alloca %arrec, align 8
+    %3 = bitcast %arrec* %b to i8*
+    %4 = bitcast %arrec* %0 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 8, i1 false)
+    %5 = ptrtoint i64* %2 to i64
+    %6 = bitcast i8* %1 to i64*
+    %7 = bitcast %arrec* %0 to i64**
+    %8 = tail call i8* @malloc(i64 32)
+    %9 = bitcast i8* %8 to i64*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %8, i64 32, i1 false)
+    store i64* %9, i64** %7, align 8
+    %ref8 = load i64, i64* %6, align 4
+    %10 = sub i64 %ref8, 1
+    store i64 %10, i64* %6, align 4
+    %11 = ptrtoint i64* %9 to i64
+    %data9 = getelementptr i64, i64* %9, i64 3
+    store i64 12, i64* %data9, align 4
+    tail call void @schmu_print-thing(i64 %11)
+    %unbox11 = bitcast %arrec* %b to i64*
+    %unbox12 = load i64, i64* %unbox11, align 4
+    tail call void @schmu_print-thing(i64 %unbox12)
+    ret void
+  }
+  
+  define void @schmu_print-thing(i64 %0) {
+  entry:
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 4
+    %1 = inttoptr i64 %0 to i64*
+    %data = getelementptr i64, i64* %1, i64 3
+    %2 = load i64, i64* %data, align 4
+    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %2)
+    %3 = add i32 %fmtsize, 1
+    %4 = sext i32 %3 to i64
+    %5 = tail call i8* @malloc(i64 %4)
+    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %5, i64 %4, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %2)
+    %str = alloca %string, align 8
+    %cstr4 = bitcast %string* %str to i8**
+    store i8* %5, i8** %cstr4, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    %6 = mul i64 %4, -1
+    store i64 %6, i64* %length, align 4
+    %unbox = bitcast %string* %str to { i64, i64 }*
+    %7 = ptrtoint i8* %5 to i64
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
+    tail call void @schmu_print(i64 %7, i64 %6)
+    %owned = icmp slt i64 %6, 0
+    br i1 %owned, label %free, label %cont
+  
+  free:                                             ; preds = %entry
+    tail call void @free(i8* %5)
+    ret void
+  
+  cont:                                             ; preds = %entry
+    ret void
+  }
+  
+  declare i8* @malloc(i64 %0)
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
+  
+  declare void @free(i8* %0)
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %0 = tail call i8* @malloc(i64 32)
+    %1 = bitcast i8* %0 to i64*
+    %arr = alloca i64*, align 8
+    store i64* %1, i64** %arr, align 8
+    store i64 1, i64* %1, align 4
+    %size = getelementptr i64, i64* %1, i64 1
+    store i64 1, i64* %size, align 4
+    %cap = getelementptr i64, i64* %1, i64 2
+    store i64 1, i64* %cap, align 4
+    %data = getelementptr i64, i64* %1, i64 3
+    store i64 10, i64* %data, align 4
+    store i64* %1, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
+    %ref2 = load i64, i64* %1, align 4
+    %2 = add i64 %ref2, 1
+    store i64 %2, i64* %1, align 4
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%arrec* @b to i8*), i8* bitcast (%arrec* @a to i8*), i64 8, i1 false)
+    %3 = load i64*, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
+    %ref4 = load i64, i64* %3, align 4
+    %4 = icmp sgt i64 %ref4, 1
+    br i1 %4, label %relocate, label %merge
+  
+  relocate:                                         ; preds = %entry
+    %cap5 = getelementptr i64, i64* %3, i64 2
+    %cap6 = load i64, i64* %cap5, align 4
+    %5 = mul i64 %cap6, 8
+    %6 = add i64 %5, 24
+    %7 = tail call i8* @malloc(i64 %6)
+    %8 = bitcast i8* %7 to i64*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %7, i64 %6, i1 false)
+    store i64* %8, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
+    %ref8 = load i64, i64* %3, align 4
+    %9 = sub i64 %ref8, 1
+    store i64 %9, i64* %3, align 4
+    %.pre = load i64*, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
+    br label %merge
+  
+  merge:                                            ; preds = %relocate, %entry
+    %10 = phi i64* [ %.pre, %relocate ], [ %3, %entry ]
+    %data9 = getelementptr i64, i64* %10, i64 3
+    store i64 12, i64* %data9, align 4
+    %unbox = load i64, i64* bitcast (%arrec* @a to i64*), align 4
+    tail call void @schmu_print-thing(i64 %unbox)
+    %unbox10 = load i64, i64* bitcast (%arrec* @b to i64*), align 4
+    tail call void @schmu_print-thing(i64 %unbox10)
+    %str = alloca %string, align 8
+    %cstr14 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([7 x i8], [7 x i8]* @1, i32 0, i32 0), i8** %cstr14, align 8
+    %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
+    store i64 6, i64* %length, align 4
+    %unbox11 = bitcast %string* %str to { i64, i64 }*
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox11, i32 0, i32 1
+    tail call void @schmu_print(i64 ptrtoint ([7 x i8]* @1 to i64), i64 6)
+    tail call void @schmu_in-fun()
+    ret i64 0
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
+  12
+  10
+  in fun
+  12
+  10

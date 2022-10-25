@@ -927,16 +927,11 @@ end = struct
 
   and gen_var_index param expr =
     let var = gen_expr param expr in
-    let tagptr = Llvm.build_struct_gep var.value 0 "tag" builder in
-    let value = Llvm.build_load tagptr "index" builder in
-    { value; typ = Ti32; lltyp = i32_t; kind = Imm }
+    var_index var
 
   and gen_var_data param expr typ =
     let var = gen_expr param expr in
-    let dataptr = Llvm.build_struct_gep var.value 1 "data" builder in
-    let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
-    let value = Llvm.build_bitcast dataptr ptr_t "" builder in
-    { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
+    var_data var typ
 
   and gen_fmt_str param exprs typ allocref id =
     let snprintf_decl =

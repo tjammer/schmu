@@ -122,29 +122,58 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let value = Llvm.build_gep ptr [| index |] "" builder in
     { value; typ; lltyp; kind = Ptr }
 
-  let incr_refcount v =
-    (* TODO recurse *)
+  let rec contains_array = function
+    | Tarray _ -> true
+    | Trecord (_, _, fields) ->
+        Array.fold_left (fun b f -> f.ftyp |> contains_array || b) false fields
+    | Tvariant (_, _, ctors) ->
+        Array.fold_left
+          (fun b c ->
+            (match c.ctyp with Some t -> contains_array t | None -> false)
+            || b)
+          false ctors
+    | _ -> false
+
+  let rec iter_array fn v =
     match v.typ with
-    | Tarray _ ->
-        let v = bring_default v in
-        let int_ptr =
-          Llvm.build_bitcast v (Llvm.pointer_type int_t) "ref" builder
-        in
-        let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-        let value = Llvm.build_load dst "ref" builder in
-        let added = Llvm.build_add value (Llvm.const_int int_t 1) "" builder in
-        ignore (Llvm.build_store added dst builder)
+    | Tarray _ -> fn v
+    | Trecord (_, _, fields) ->
+        Array.iteri
+          (fun i f ->
+            if contains_array f.ftyp then
+              let value = Llvm.build_struct_gep v.value i "" builder in
+              let lltyp = get_lltype_def f.ftyp in
+              iter_array fn { value; lltyp; kind = Ptr; typ = f.ftyp }
+            else ())
+          fields
+    | Tvariant _ -> (* TODO? *) ()
     | _ -> ()
 
-  let decr_refcount v =
-    let v = bring_default v in
-    let int_ptr =
-      Llvm.build_bitcast v (Llvm.pointer_type int_t) "ref" builder
+  let incr_refcount v =
+    let f v =
+      let v = bring_default v in
+      let int_ptr =
+        Llvm.build_bitcast v (Llvm.pointer_type int_t) "ref" builder
+      in
+      let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
+      let value = Llvm.build_load dst "ref" builder in
+      let added = Llvm.build_add value (Llvm.const_int int_t 1) "" builder in
+      ignore (Llvm.build_store added dst builder)
     in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-    let value = Llvm.build_load dst "ref" builder in
-    let added = Llvm.build_sub value (Llvm.const_int int_t 1) "" builder in
-    ignore (Llvm.build_store added dst builder)
+    iter_array f v
+
+  let decr_refcount v =
+    let f v =
+      let v = bring_default v in
+      let int_ptr =
+        Llvm.build_bitcast v (Llvm.pointer_type int_t) "ref" builder
+      in
+      let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
+      let value = Llvm.build_load dst "ref" builder in
+      let added = Llvm.build_sub value (Llvm.const_int int_t 1) "" builder in
+      ignore (Llvm.build_store added dst builder)
+    in
+    iter_array f v
 
   let maybe_relocate orig =
     (match orig.kind with

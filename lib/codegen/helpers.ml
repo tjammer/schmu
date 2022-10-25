@@ -55,6 +55,10 @@ module type S = sig
   val get_const_string : string -> Llvm.llvalue
   val free_id : int -> unit
   val fmt_str : llvar -> string * Llvm.llvalue
+
+  (* For reuse in arr.ml *)
+  val var_index : llvar -> llvar
+  val var_data : llvar -> typ -> llvar
 end
 
 module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
@@ -644,4 +648,15 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
           | _ -> ret.value
         in
         Llvm.build_ret value builder
+
+  let var_index var =
+    let tagptr = Llvm.build_struct_gep var.value 0 "tag" builder in
+    let value = Llvm.build_load tagptr "index" builder in
+    { value; typ = Ti32; lltyp = i32_t; kind = Imm }
+
+  let var_data var typ =
+    let dataptr = Llvm.build_struct_gep var.value 1 "data" builder in
+    let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
+    let value = Llvm.build_bitcast dataptr ptr_t "" builder in
+    { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
 end
