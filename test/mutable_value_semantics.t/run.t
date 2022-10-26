@@ -933,8 +933,8 @@ Copies, but with ref-counted arrays
   define void @schmu_in-fun() {
   entry:
     %str = alloca %string, align 8
-    %cstr28 = bitcast %string* %str to i8**
-    store i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0), i8** %cstr28, align 8
+    %cstr5 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0), i8** %cstr5, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 6, i64* %length, align 4
     %unbox = bitcast %string* %str to { i64, i64 }*
@@ -951,57 +951,28 @@ Copies, but with ref-counted arrays
     store i64 1, i64* %cap, align 4
     %data = getelementptr i64, i64* %1, i64 3
     store i64 10, i64* %data, align 4
-    store i64 2, i64* %1, align 4
-    store i64 3, i64* %1, align 4
+    %2 = load i64*, i64** %arr, align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %2)
+    tail call void @__g.u_incr_rc_ai.u(i64* %2)
     %c = alloca i64*, align 8
-    %2 = bitcast i64** %c to i8*
-    %3 = bitcast i64** %arr to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
-    store i64 4, i64* %1, align 4
-    %4 = bitcast i8* %0 to i64*
-    %5 = tail call i8* @malloc(i64 32)
-    %6 = bitcast i8* %5 to i64*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %0, i64 32, i1 false)
-    store i64* %6, i64** %arr, align 8
-    %ref15 = load i64, i64* %4, align 4
-    %7 = sub i64 %ref15, 1
-    store i64 %7, i64* %4, align 4
-    %data16 = getelementptr i64, i64* %6, i64 3
-    store i64 12, i64* %data16, align 4
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %6)
-    %8 = load i64*, i64** %c, align 8
-    %ref20 = load i64, i64* %8, align 4
-    %9 = icmp sgt i64 %ref20, 1
-    br i1 %9, label %relocate17, label %merge18
-  
-  relocate17:                                       ; preds = %entry
-    %sz21 = getelementptr i64, i64* %8, i64 1
-    %size22 = load i64, i64* %sz21, align 4
-    %cap23 = getelementptr i64, i64* %8, i64 2
-    %cap24 = load i64, i64* %cap23, align 4
-    %10 = mul i64 %cap24, 8
-    %11 = add i64 %10, 24
-    %12 = tail call i8* @malloc(i64 %11)
-    %13 = bitcast i8* %12 to i64*
-    %14 = mul i64 %size22, 8
-    %15 = add i64 %14, 24
-    %16 = bitcast i64* %8 to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %12, i8* %16, i64 %15, i1 false)
-    store i64* %13, i64** %c, align 8
-    %ref26 = load i64, i64* %8, align 4
-    %17 = sub i64 %ref26, 1
-    store i64 %17, i64* %8, align 4
-    br label %merge18
-  
-  merge18:                                          ; preds = %relocate17, %entry
-    %18 = phi i64* [ %13, %relocate17 ], [ %8, %entry ]
-    %19 = bitcast i8* %0 to i64*
-    %data27 = getelementptr i64, i64* %18, i64 3
-    store i64 15, i64* %data27, align 4
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %6)
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %19)
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %18)
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %19)
+    %3 = bitcast i64** %c to i8*
+    %4 = bitcast i64** %arr to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 8, i1 false)
+    tail call void @__g.u_incr_rc_ai.u(i64* %2)
+    %5 = call i64* @__ag.ag_reloc_ai.ai(i64** %arr)
+    %data3 = getelementptr i64, i64* %5, i64 3
+    store i64 12, i64* %data3, align 4
+    %6 = load i64*, i64** %arr, align 8
+    call void @schmu___ag.u_print-0th_ai.u(i64* %6)
+    %7 = call i64* @__ag.ag_reloc_ai.ai(i64** %c)
+    %data4 = getelementptr i64, i64* %7, i64 3
+    store i64 15, i64* %data4, align 4
+    %8 = load i64*, i64** %arr, align 8
+    call void @schmu___ag.u_print-0th_ai.u(i64* %8)
+    call void @schmu___ag.u_print-0th_ai.u(i64* %2)
+    %9 = load i64*, i64** %c, align 8
+    call void @schmu___ag.u_print-0th_ai.u(i64* %9)
+    call void @schmu___ag.u_print-0th_ai.u(i64* %2)
     ret void
   }
   
@@ -1037,8 +1008,57 @@ Copies, but with ref-counted arrays
   
   declare i8* @malloc(i64 %0)
   
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
+  
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define internal i64* @__ag.ag_reloc_ai.ai(i64** %0) {
+  entry:
+    %1 = load i64*, i64** %0, align 8
+    %ref3 = bitcast i64* %1 to i64*
+    %ref1 = load i64, i64* %ref3, align 4
+    %2 = icmp sgt i64 %ref1, 1
+    br i1 %2, label %relocate, label %merge
+  
+  relocate:                                         ; preds = %entry
+    %sz = getelementptr i64, i64* %1, i64 1
+    %size = load i64, i64* %sz, align 4
+    %cap = getelementptr i64, i64* %1, i64 2
+    %cap2 = load i64, i64* %cap, align 4
+    %3 = mul i64 %cap2, 8
+    %4 = add i64 %3, 24
+    %5 = call i8* @malloc(i64 %4)
+    %6 = bitcast i8* %5 to i64*
+    %7 = mul i64 %size, 8
+    %8 = add i64 %7, 24
+    %9 = bitcast i64* %6 to i8*
+    %10 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* %10, i64 %8, i1 false)
+    store i64* %6, i64** %0, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %1)
+    br label %merge
+  
+  merge:                                            ; preds = %relocate, %entry
+    %11 = load i64*, i64** %0, align 8
+    ret i64* %11
+  }
+  
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = sub i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
   
   declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
   
@@ -1058,88 +1078,30 @@ Copies, but with ref-counted arrays
     store i64 10, i64* %data, align 4
     %2 = load i64*, i64** @a, align 8
     store i64* %2, i64** @a, align 8
-    %ref2 = load i64, i64* %2, align 4
-    %3 = add i64 %ref2, 1
-    store i64 %3, i64* %2, align 4
+    tail call void @__g.u_incr_rc_ai.u(i64* %2)
     store i64* %2, i64** @b, align 8
-    %4 = load i64*, i64** @a, align 8
-    %ref4 = load i64, i64* %4, align 4
-    %5 = add i64 %ref4, 1
-    store i64 %5, i64* %4, align 4
-    store i64* %4, i64** @c, align 8
-    %6 = load i64*, i64** @b, align 8
-    %ref6 = load i64, i64* %6, align 4
-    %7 = add i64 %ref6, 1
-    store i64 %7, i64* %6, align 4
-    store i64* %6, i64** @d, align 8
+    %3 = load i64*, i64** @a, align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %3)
+    store i64* %3, i64** @c, align 8
+    %4 = load i64*, i64** @b, align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %4)
+    store i64* %4, i64** @d, align 8
+    %5 = tail call i64* @__ag.ag_reloc_ai.ai(i64** @a)
+    %data1 = getelementptr i64, i64* %5, i64 3
+    store i64 12, i64* %data1, align 4
+    %6 = load i64*, i64** @a, align 8
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %6)
+    %7 = tail call i64* @__ag.ag_reloc_ai.ai(i64** @c)
+    %data2 = getelementptr i64, i64* %7, i64 3
+    store i64 15, i64* %data2, align 4
     %8 = load i64*, i64** @a, align 8
-    %ref8 = load i64, i64* %8, align 4
-    %9 = icmp sgt i64 %ref8, 1
-    br i1 %9, label %relocate, label %merge
-  
-  relocate:                                         ; preds = %entry
-    %sz = getelementptr i64, i64* %8, i64 1
-    %size9 = load i64, i64* %sz, align 4
-    %cap10 = getelementptr i64, i64* %8, i64 2
-    %cap11 = load i64, i64* %cap10, align 4
-    %10 = mul i64 %cap11, 8
-    %11 = add i64 %10, 24
-    %12 = tail call i8* @malloc(i64 %11)
-    %13 = bitcast i8* %12 to i64*
-    %14 = mul i64 %size9, 8
-    %15 = add i64 %14, 24
-    %16 = bitcast i64* %8 to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %12, i8* %16, i64 %15, i1 false)
-    store i64* %13, i64** @a, align 8
-    %ref13 = load i64, i64* %8, align 4
-    %17 = sub i64 %ref13, 1
-    store i64 %17, i64* %8, align 4
-    %.pre = load i64*, i64** @a, align 8
-    br label %merge
-  
-  merge:                                            ; preds = %relocate, %entry
-    %18 = phi i64* [ %.pre, %relocate ], [ %8, %entry ]
-    %data14 = getelementptr i64, i64* %18, i64 3
-    store i64 12, i64* %data14, align 4
-    %19 = load i64*, i64** @a, align 8
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %19)
-    %20 = load i64*, i64** @c, align 8
-    %ref18 = load i64, i64* %20, align 4
-    %21 = icmp sgt i64 %ref18, 1
-    br i1 %21, label %relocate15, label %merge16
-  
-  relocate15:                                       ; preds = %merge
-    %sz19 = getelementptr i64, i64* %20, i64 1
-    %size20 = load i64, i64* %sz19, align 4
-    %cap21 = getelementptr i64, i64* %20, i64 2
-    %cap22 = load i64, i64* %cap21, align 4
-    %22 = mul i64 %cap22, 8
-    %23 = add i64 %22, 24
-    %24 = tail call i8* @malloc(i64 %23)
-    %25 = bitcast i8* %24 to i64*
-    %26 = mul i64 %size20, 8
-    %27 = add i64 %26, 24
-    %28 = bitcast i64* %20 to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %24, i8* %28, i64 %27, i1 false)
-    store i64* %25, i64** @c, align 8
-    %ref24 = load i64, i64* %20, align 4
-    %29 = sub i64 %ref24, 1
-    store i64 %29, i64* %20, align 4
-    %.pre26 = load i64*, i64** @c, align 8
-    br label %merge16
-  
-  merge16:                                          ; preds = %relocate15, %merge
-    %30 = phi i64* [ %.pre26, %relocate15 ], [ %20, %merge ]
-    %data25 = getelementptr i64, i64* %30, i64 3
-    store i64 15, i64* %data25, align 4
-    %31 = load i64*, i64** @a, align 8
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %31)
-    %32 = load i64*, i64** @b, align 8
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %32)
-    %33 = load i64*, i64** @c, align 8
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %33)
-    %34 = load i64*, i64** @d, align 8
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %34)
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %8)
+    %9 = load i64*, i64** @b, align 8
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %9)
+    %10 = load i64*, i64** @c, align 8
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %10)
+    %11 = load i64*, i64** @d, align 8
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %11)
     tail call void @schmu_in-fun()
     ret i64 0
   }
@@ -1176,7 +1138,7 @@ Copies, but with ref-counted arrays
   define void @schmu_in-fun() {
   entry:
     %0 = alloca %arrec, align 8
-    %a15 = bitcast %arrec* %0 to i64**
+    %a5 = bitcast %arrec* %0 to i64**
     %1 = tail call i8* @malloc(i64 32)
     %2 = bitcast i8* %1 to i64*
     %arr = alloca i64*, align 8
@@ -1188,29 +1150,21 @@ Copies, but with ref-counted arrays
     store i64 1, i64* %cap, align 4
     %data = getelementptr i64, i64* %2, i64 3
     store i64 10, i64* %data, align 4
-    store i64* %2, i64** %a15, align 8
-    store i64 2, i64* %2, align 4
+    store i64* %2, i64** %a5, align 8
+    call void @__g.u_incr_rc_arrec.u(%arrec* %0)
     %b = alloca %arrec, align 8
     %3 = bitcast %arrec* %b to i8*
     %4 = bitcast %arrec* %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 8, i1 false)
-    %5 = ptrtoint i64* %2 to i64
-    %6 = bitcast i8* %1 to i64*
-    %7 = bitcast %arrec* %0 to i64**
-    %8 = tail call i8* @malloc(i64 32)
-    %9 = bitcast i8* %8 to i64*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %1, i64 32, i1 false)
-    store i64* %9, i64** %7, align 8
-    %ref9 = load i64, i64* %6, align 4
-    %10 = sub i64 %ref9, 1
-    store i64 %10, i64* %6, align 4
-    %11 = ptrtoint i64* %9 to i64
-    %data10 = getelementptr i64, i64* %9, i64 3
-    store i64 12, i64* %data10, align 4
-    tail call void @schmu_print-thing(i64 %11)
-    %unbox12 = bitcast %arrec* %b to i64*
-    %unbox13 = load i64, i64* %unbox12, align 4
-    tail call void @schmu_print-thing(i64 %unbox13)
+    %5 = call i64* @__ag.ag_reloc_ai.ai(i64** %a5)
+    %data1 = getelementptr i64, i64* %5, i64 3
+    store i64 12, i64* %data1, align 4
+    %unbox = bitcast %arrec* %0 to i64*
+    %unbox2 = load i64, i64* %unbox, align 4
+    call void @schmu_print-thing(i64 %unbox2)
+    %unbox3 = bitcast %arrec* %b to i64*
+    %unbox4 = load i64, i64* %unbox3, align 4
+    call void @schmu_print-thing(i64 %unbox4)
     ret void
   }
   
@@ -1249,8 +1203,59 @@ Copies, but with ref-counted arrays
   
   declare i8* @malloc(i64 %0)
   
+  define internal void @__g.u_incr_rc_arrec.u(%arrec* %0) {
+  entry:
+    %1 = bitcast %arrec* %0 to i64**
+    %2 = load i64*, i64** %1, align 8
+    %ref2 = bitcast i64* %2 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %3 = add i64 %ref1, 1
+    store i64 %3, i64* %ref2, align 4
+    ret void
+  }
+  
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define internal i64* @__ag.ag_reloc_ai.ai(i64** %0) {
+  entry:
+    %1 = load i64*, i64** %0, align 8
+    %ref3 = bitcast i64* %1 to i64*
+    %ref1 = load i64, i64* %ref3, align 4
+    %2 = icmp sgt i64 %ref1, 1
+    br i1 %2, label %relocate, label %merge
+  
+  relocate:                                         ; preds = %entry
+    %sz = getelementptr i64, i64* %1, i64 1
+    %size = load i64, i64* %sz, align 4
+    %cap = getelementptr i64, i64* %1, i64 2
+    %cap2 = load i64, i64* %cap, align 4
+    %3 = mul i64 %cap2, 8
+    %4 = add i64 %3, 24
+    %5 = call i8* @malloc(i64 %4)
+    %6 = bitcast i8* %5 to i64*
+    %7 = mul i64 %size, 8
+    %8 = add i64 %7, 24
+    %9 = bitcast i64* %6 to i8*
+    %10 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* %10, i64 %8, i1 false)
+    store i64* %6, i64** %0, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %1)
+    br label %merge
+  
+  merge:                                            ; preds = %relocate, %entry
+    %11 = load i64*, i64** %0, align 8
+    ret i64* %11
+  }
+  
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = sub i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
   
   declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
   
@@ -1270,50 +1275,22 @@ Copies, but with ref-counted arrays
     %data = getelementptr i64, i64* %1, i64 3
     store i64 10, i64* %data, align 4
     store i64* %1, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
-    %ref2 = load i64, i64* %1, align 4
-    %2 = add i64 %ref2, 1
-    store i64 %2, i64* %1, align 4
+    tail call void @__g.u_incr_rc_arrec.u(%arrec* @a)
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%arrec* @b to i8*), i8* bitcast (%arrec* @a to i8*), i64 8, i1 false)
-    %3 = load i64*, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
-    %ref4 = load i64, i64* %3, align 4
-    %4 = icmp sgt i64 %ref4, 1
-    br i1 %4, label %relocate, label %merge
-  
-  relocate:                                         ; preds = %entry
-    %sz = getelementptr i64, i64* %3, i64 1
-    %size5 = load i64, i64* %sz, align 4
-    %cap6 = getelementptr i64, i64* %3, i64 2
-    %cap7 = load i64, i64* %cap6, align 4
-    %5 = mul i64 %cap7, 8
-    %6 = add i64 %5, 24
-    %7 = tail call i8* @malloc(i64 %6)
-    %8 = bitcast i8* %7 to i64*
-    %9 = mul i64 %size5, 8
-    %10 = add i64 %9, 24
-    %11 = bitcast i64* %3 to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %11, i64 %10, i1 false)
-    store i64* %8, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
-    %ref9 = load i64, i64* %3, align 4
-    %12 = sub i64 %ref9, 1
-    store i64 %12, i64* %3, align 4
-    %.pre = load i64*, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
-    br label %merge
-  
-  merge:                                            ; preds = %relocate, %entry
-    %13 = phi i64* [ %.pre, %relocate ], [ %3, %entry ]
-    %data10 = getelementptr i64, i64* %13, i64 3
-    store i64 12, i64* %data10, align 4
+    %2 = tail call i64* @__ag.ag_reloc_ai.ai(i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0))
+    %data1 = getelementptr i64, i64* %2, i64 3
+    store i64 12, i64* %data1, align 4
     %unbox = load i64, i64* bitcast (%arrec* @a to i64*), align 4
     tail call void @schmu_print-thing(i64 %unbox)
-    %unbox11 = load i64, i64* bitcast (%arrec* @b to i64*), align 4
-    tail call void @schmu_print-thing(i64 %unbox11)
+    %unbox2 = load i64, i64* bitcast (%arrec* @b to i64*), align 4
+    tail call void @schmu_print-thing(i64 %unbox2)
     %str = alloca %string, align 8
-    %cstr15 = bitcast %string* %str to i8**
-    store i8* getelementptr inbounds ([7 x i8], [7 x i8]* @1, i32 0, i32 0), i8** %cstr15, align 8
+    %cstr6 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([7 x i8], [7 x i8]* @1, i32 0, i32 0), i8** %cstr6, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 6, i64* %length, align 4
-    %unbox12 = bitcast %string* %str to { i64, i64 }*
-    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox12, i32 0, i32 1
+    %unbox3 = bitcast %string* %str to { i64, i64 }*
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox3, i32 0, i32 1
     tail call void @schmu_print(i64 ptrtoint ([7 x i8]* @1 to i64), i64 6)
     tail call void @schmu_in-fun()
     ret i64 0
@@ -1420,23 +1397,30 @@ Copies, but with ref-counted arrays
     store i64 20, i64* %data9, align 4
     %8 = load i64**, i64*** @a, align 8
     store i64** %8, i64*** @a, align 8
-    %ref11 = bitcast i64** %8 to i64*
-    %ref13 = load i64, i64* %ref11, align 4
-    %9 = add i64 %ref13, 1
-    store i64 %9, i64* %ref11, align 4
+    tail call void @__g.u_incr_rc_aai.u(i64** %8)
     store i64** %8, i64*** @b, align 8
-    %10 = load i64**, i64*** @a, align 8
-    %11 = bitcast i64** %10 to i64*
-    %data14 = getelementptr i64, i64* %11, i64 3
-    %12 = bitcast i64* %data14 to i64**
-    %13 = load i64*, i64** %12, align 8
-    %data15 = getelementptr i64, i64* %13, i64 3
-    store i64 15, i64* %data15, align 4
-    %14 = load i64**, i64*** @a, align 8
+    %9 = load i64**, i64*** @a, align 8
+    %10 = bitcast i64** %9 to i64*
+    %data11 = getelementptr i64, i64* %10, i64 3
+    %11 = bitcast i64* %data11 to i64**
+    %12 = load i64*, i64** %11, align 8
+    %data12 = getelementptr i64, i64* %12, i64 3
+    store i64 15, i64* %data12, align 4
+    %13 = load i64**, i64*** @a, align 8
+    tail call void @schmu___aag.u_prnt_aai.u(i64** %13)
+    %14 = load i64**, i64*** @b, align 8
     tail call void @schmu___aag.u_prnt_aai.u(i64** %14)
-    %15 = load i64**, i64*** @b, align 8
-    tail call void @schmu___aag.u_prnt_aai.u(i64** %15)
     ret i64 0
+  }
+  
+  define internal void @__g.u_incr_rc_aai.u(i64** %0) {
+  entry:
+    %ref = bitcast i64** %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 4
+    %1 = add i64 %ref2, 1
+    store i64 %1, i64* %ref13, align 4
+    ret void
   }
   15, 20
   15, 20

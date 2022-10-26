@@ -1202,6 +1202,8 @@ let generate ~target ~outname ~release ~modul
           Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true }
         in
         add_global_init H.no_param outname `Dtor (add_frees body frees));
+  (* Generate internal helper functions for arrays *)
+  Ar.gen_functions ();
 
   (match Llvm_analysis.verify_module the_module with
   | Some output -> print_endline output

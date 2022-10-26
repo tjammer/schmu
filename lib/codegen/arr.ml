@@ -13,6 +13,7 @@ module type S = sig
   val array_set : llvar list -> llvar
   val incr_refcount : llvar -> unit
   val decr_refcount : llvar -> unit
+  val gen_functions : unit -> unit
 end
 
 module type Core = sig
@@ -29,6 +30,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
   open H
   open C
 
+  type func = Incr_rc | Decr_rc | Reloc
+
+  let func_tbl = Hashtbl.create 64
   let ci i = Llvm.const_int int_t i
 
   let item_type_head_size typ =
@@ -149,7 +153,46 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     | Tvariant _ -> (* TODO? *) ()
     | _ -> ()
 
-  let incr_refcount v =
+
+  let make_rc_fn v kind =
+    let name =
+      match kind with
+      | Incr_rc -> "incr_rc"
+      | Decr_rc -> "decr_rc"
+      | Reloc -> failwith "Internal Error: We ended up relocating"
+    in
+    let poly = Tfun ([ { pmut = false; pt = Tpoly "0" } ], Tunit, Simple) in
+    let typ = Tfun ([ { pmut = false; pt = v.typ } ], Tunit, Simple) in
+    let name = Monomorph_tree.get_mono_name name ~poly typ in
+    match Hashtbl.find_opt func_tbl name with
+    | Some (_, _, f) -> f
+    | None ->
+        let ps =
+          match default_kind v.typ with
+          | Const_ptr | Ptr -> get_lltype_def v.typ |> Llvm.pointer_type
+          | Imm | Const -> get_lltype_def v.typ
+        in
+        let ft = Llvm.function_type unit_t [| ps |] in
+        let f = Llvm.declare_function name ft the_module in
+        Llvm.set_linkage Llvm.Linkage.Internal f;
+        let v = bring_default_var v in
+        Hashtbl.replace func_tbl name (kind, v, f);
+        f
+
+  let rc_fn v kind =
+    if contains_array v.typ then
+      let f = make_rc_fn v kind in
+      let v =
+        match v.kind with
+        | Ptr | Const_ptr -> bring_default v
+        | Imm | Const -> v.value
+      in
+
+      ignore (Llvm.build_call f [| v |] "" builder)
+
+  let incr_refcount v = rc_fn v Incr_rc
+
+  let incr_rc_impl v =
     let f v =
       let v = bring_default v in
       let int_ptr =
@@ -162,7 +205,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     in
     iter_array f v
 
-  let decr_refcount v =
+  let decr_refcount v = rc_fn v Decr_rc
+
+  let decr_rc_impl v =
     let f v =
       let v = bring_default v in
       let int_ptr =
@@ -179,6 +224,35 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     (match orig.kind with
     | Ptr | Const_ptr -> ()
     | _ -> failwith "Internal Error: Not passed as mutable");
+    let poly =
+      Tfun
+        ( [ { pmut = true; pt = Tarray (Tpoly "0") } ],
+          Tarray (Tpoly "0"),
+          Simple )
+    in
+    let typ = Tfun ([ { pmut = true; pt = orig.typ } ], orig.typ, Simple) in
+    let name = Monomorph_tree.get_mono_name "reloc" ~poly typ in
+    let f =
+      match Hashtbl.find_opt func_tbl name with
+      | Some (_, _, f) -> f
+      | None ->
+          let ret = get_lltype_def orig.typ in
+          let ps = ret |> Llvm.pointer_type in
+          let ft = Llvm.function_type ret [| ps |] in
+          let f = Llvm.declare_function name ft the_module in
+          Llvm.set_linkage Llvm.Linkage.Internal f;
+          Hashtbl.replace func_tbl name (Reloc, orig, f);
+          f
+    in
+    (* We need to decrease inside relocate impl *)
+    let tmp = { orig with kind = Imm } in
+    ignore (make_rc_fn tmp Decr_rc);
+    let value = Llvm.build_call f [| orig.value |] "" builder in
+    (* For some reason, we default? *)
+    { orig with value; kind = Imm }
+
+  let relocate_impl orig =
+    (* TODO if we relocate, we need to incr ref of children arrays *)
     (* Get current block *)
     let start_bb = Llvm.insertion_block builder in
     let parent = Llvm.block_parent start_bb in
@@ -258,4 +332,25 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     set_struct_field value ptr;
     { dummy_fn_value with lltyp = unit_t }
+
+  let gen_functions () =
+    Hashtbl.iter
+      (fun _ (kind, v, ft) ->
+        let bb = Llvm.append_block context "entry" ft in
+        Llvm.position_at_end bb builder;
+
+        let value = Llvm.param ft 0 in
+        (* We saved typ and kind *)
+        let v = { v with value } in
+        match kind with
+        | Incr_rc ->
+            incr_rc_impl v;
+            ignore (Llvm.build_ret_void builder)
+        | Decr_rc ->
+            decr_rc_impl v;
+            ignore (Llvm.build_ret_void builder)
+        | Reloc ->
+            let v = relocate_impl v in
+            ignore (Llvm.build_ret v.value builder))
+      func_tbl
 end
