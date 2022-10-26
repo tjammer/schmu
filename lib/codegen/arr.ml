@@ -94,12 +94,12 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
         let dst = Llvm.build_gep ptr [| ci i |] (string_of_int i) builder in
         let src = gen_expr { param with alloca = Some dst } expr in
 
-        match src.typ with
-        | Trecord _ | Tvariant _ ->
+        match src.kind with
+        | Ptr | Const_ptr ->
             if dst <> src.value then
               memcpy ~dst ~src ~size:(Llvm.const_int int_t item_size)
             else (* The record was constructed inplace *) ()
-        | _ -> ignore (Llvm.build_store src.value dst builder))
+        | Imm | Const -> ignore (Llvm.build_store src.value dst builder))
       exprs;
     { value = arr; typ; lltyp; kind = Ptr }
 
