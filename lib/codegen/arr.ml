@@ -61,12 +61,12 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
              |] ))
       - item_sz
     in
-    (llitem_typ, head_sz, item_sz)
+    (item_typ, llitem_typ, head_sz, item_sz)
 
   let gen_array_lit param exprs typ allocref =
     let vec_sz = List.length exprs in
 
-    let llitem_typ, head_size, item_size = item_type_head_size typ in
+    let _, llitem_typ, head_size, item_size = item_type_head_size typ in
     let cap = head_size + (vec_sz * item_size) in
 
     let lltyp = get_lltype_def typ in
@@ -153,6 +153,39 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     | Tvariant _ -> (* TODO? *) ()
     | _ -> ()
 
+  let iter_array_children data size typ f =
+    let start_bb = Llvm.insertion_block builder in
+    let parent = Llvm.block_parent start_bb in
+
+    (* Simple loop, start at 0 *)
+    let cnt = Llvm.build_alloca int_t "cnt" builder in
+    ignore (Llvm.build_store (Llvm.const_int int_t 0) cnt builder);
+
+    let rec_bb = Llvm.append_block context "rec" parent in
+    let child_bb = Llvm.append_block context "child" parent in
+    let cont_bb = Llvm.append_block context "cont" parent in
+
+    ignore (Llvm.build_br rec_bb builder);
+    Llvm.position_at_end rec_bb builder;
+
+    (* Check if we are done *)
+    let cnt_loaded = Llvm.build_load cnt "" builder in
+    let cmp = Llvm.(build_icmp Icmp.Slt) cnt_loaded size "" builder in
+    ignore (Llvm.build_cond_br cmp child_bb cont_bb builder);
+
+    Llvm.position_at_end child_bb builder;
+    (* The ptr has the correct type, no need to multiply size *)
+    let value = Llvm.build_gep data [| cnt_loaded |] "" builder in
+    let lltyp = get_lltype_def typ in
+    let temp = { value; typ; lltyp; kind = Ptr } in
+    f temp;
+
+    let one = Llvm.const_int int_t 1 in
+    let next = Llvm.build_add cnt_loaded one "" builder in
+    ignore (Llvm.build_store next cnt builder);
+    ignore (Llvm.build_br rec_bb builder);
+
+    Llvm.position_at_end cont_bb builder
 
   let make_rc_fn v kind =
     let name =
@@ -252,7 +285,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     { orig with value; kind = Imm }
 
   let relocate_impl orig =
-    (* TODO if we relocate, we need to incr ref of children arrays *)
     (* Get current block *)
     let start_bb = Llvm.insertion_block builder in
     let parent = Llvm.block_parent start_bb in
@@ -300,6 +332,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
       Llvm.build_add itemssize (Llvm.const_int int_t head_size) "" builder
     in
     ignore
+      (* Ptr is needed here to get a copy *)
       (let src = { value = v.value; typ = orig.typ; kind = Ptr; lltyp } in
        memcpy ~src ~dst:ptr ~size);
     (* set orig pointer to new ptr *)
@@ -307,6 +340,16 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     (* Decrease orig refcount  *)
     decr_refcount v;
+
+    (* Increase member refcount *)
+    (if contains_array item_type then
+     let data =
+       Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+       Llvm.build_bitcast ptr
+         (get_lltype_def item_type |> Llvm.pointer_type)
+         "data" builder
+     in
+     iter_array_children data sz item_type incr_refcount);
 
     ignore (Llvm.build_br merge_bb builder);
 
