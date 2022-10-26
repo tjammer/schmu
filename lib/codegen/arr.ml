@@ -226,7 +226,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
       Llvm.build_add itemssize (Llvm.const_int int_t head_size) "" builder
     in
     ignore
-      (let src = { value = ptr; typ = orig.typ; kind = Ptr; lltyp } in
+      (let src = { value = v.value; typ = orig.typ; kind = Ptr; lltyp } in
        memcpy ~src ~dst:ptr ~size);
     (* set orig pointer to new ptr *)
     ignore (Llvm.build_store ptr orig.value builder);

@@ -961,7 +961,7 @@ Copies, but with ref-counted arrays
     %4 = bitcast i8* %0 to i64*
     %5 = tail call i8* @malloc(i64 32)
     %6 = bitcast i8* %5 to i64*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %5, i64 32, i1 false)
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %0, i64 32, i1 false)
     store i64* %6, i64** %arr, align 8
     %ref15 = load i64, i64* %4, align 4
     %7 = sub i64 %ref15, 1
@@ -985,22 +985,23 @@ Copies, but with ref-counted arrays
     %13 = bitcast i8* %12 to i64*
     %14 = mul i64 %size22, 8
     %15 = add i64 %14, 24
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %12, i8* %12, i64 %15, i1 false)
+    %16 = bitcast i64* %8 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %12, i8* %16, i64 %15, i1 false)
     store i64* %13, i64** %c, align 8
     %ref26 = load i64, i64* %8, align 4
-    %16 = sub i64 %ref26, 1
-    store i64 %16, i64* %8, align 4
+    %17 = sub i64 %ref26, 1
+    store i64 %17, i64* %8, align 4
     br label %merge18
   
   merge18:                                          ; preds = %relocate17, %entry
-    %17 = phi i64* [ %13, %relocate17 ], [ %8, %entry ]
-    %18 = bitcast i8* %0 to i64*
-    %data27 = getelementptr i64, i64* %17, i64 3
+    %18 = phi i64* [ %13, %relocate17 ], [ %8, %entry ]
+    %19 = bitcast i8* %0 to i64*
+    %data27 = getelementptr i64, i64* %18, i64 3
     store i64 15, i64* %data27, align 4
     tail call void @schmu___ag.u_print-0th_ai.u(i64* %6)
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %19)
     tail call void @schmu___ag.u_print-0th_ai.u(i64* %18)
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %17)
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %18)
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %19)
     ret void
   }
   
@@ -1087,56 +1088,58 @@ Copies, but with ref-counted arrays
     %13 = bitcast i8* %12 to i64*
     %14 = mul i64 %size9, 8
     %15 = add i64 %14, 24
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %12, i8* %12, i64 %15, i1 false)
+    %16 = bitcast i64* %8 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %12, i8* %16, i64 %15, i1 false)
     store i64* %13, i64** @a, align 8
     %ref13 = load i64, i64* %8, align 4
-    %16 = sub i64 %ref13, 1
-    store i64 %16, i64* %8, align 4
+    %17 = sub i64 %ref13, 1
+    store i64 %17, i64* %8, align 4
     %.pre = load i64*, i64** @a, align 8
     br label %merge
   
   merge:                                            ; preds = %relocate, %entry
-    %17 = phi i64* [ %.pre, %relocate ], [ %8, %entry ]
-    %data14 = getelementptr i64, i64* %17, i64 3
+    %18 = phi i64* [ %.pre, %relocate ], [ %8, %entry ]
+    %data14 = getelementptr i64, i64* %18, i64 3
     store i64 12, i64* %data14, align 4
-    %18 = load i64*, i64** @a, align 8
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %18)
-    %19 = load i64*, i64** @c, align 8
-    %ref18 = load i64, i64* %19, align 4
-    %20 = icmp sgt i64 %ref18, 1
-    br i1 %20, label %relocate15, label %merge16
+    %19 = load i64*, i64** @a, align 8
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %19)
+    %20 = load i64*, i64** @c, align 8
+    %ref18 = load i64, i64* %20, align 4
+    %21 = icmp sgt i64 %ref18, 1
+    br i1 %21, label %relocate15, label %merge16
   
   relocate15:                                       ; preds = %merge
-    %sz19 = getelementptr i64, i64* %19, i64 1
+    %sz19 = getelementptr i64, i64* %20, i64 1
     %size20 = load i64, i64* %sz19, align 4
-    %cap21 = getelementptr i64, i64* %19, i64 2
+    %cap21 = getelementptr i64, i64* %20, i64 2
     %cap22 = load i64, i64* %cap21, align 4
-    %21 = mul i64 %cap22, 8
-    %22 = add i64 %21, 24
-    %23 = tail call i8* @malloc(i64 %22)
-    %24 = bitcast i8* %23 to i64*
-    %25 = mul i64 %size20, 8
-    %26 = add i64 %25, 24
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %23, i8* %23, i64 %26, i1 false)
-    store i64* %24, i64** @c, align 8
-    %ref24 = load i64, i64* %19, align 4
-    %27 = sub i64 %ref24, 1
-    store i64 %27, i64* %19, align 4
+    %22 = mul i64 %cap22, 8
+    %23 = add i64 %22, 24
+    %24 = tail call i8* @malloc(i64 %23)
+    %25 = bitcast i8* %24 to i64*
+    %26 = mul i64 %size20, 8
+    %27 = add i64 %26, 24
+    %28 = bitcast i64* %20 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %24, i8* %28, i64 %27, i1 false)
+    store i64* %25, i64** @c, align 8
+    %ref24 = load i64, i64* %20, align 4
+    %29 = sub i64 %ref24, 1
+    store i64 %29, i64* %20, align 4
     %.pre26 = load i64*, i64** @c, align 8
     br label %merge16
   
   merge16:                                          ; preds = %relocate15, %merge
-    %28 = phi i64* [ %.pre26, %relocate15 ], [ %19, %merge ]
-    %data25 = getelementptr i64, i64* %28, i64 3
+    %30 = phi i64* [ %.pre26, %relocate15 ], [ %20, %merge ]
+    %data25 = getelementptr i64, i64* %30, i64 3
     store i64 15, i64* %data25, align 4
-    %29 = load i64*, i64** @a, align 8
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %29)
-    %30 = load i64*, i64** @b, align 8
-    tail call void @schmu___ag.u_print-0th_ai.u(i64* %30)
-    %31 = load i64*, i64** @c, align 8
+    %31 = load i64*, i64** @a, align 8
     tail call void @schmu___ag.u_print-0th_ai.u(i64* %31)
-    %32 = load i64*, i64** @d, align 8
+    %32 = load i64*, i64** @b, align 8
     tail call void @schmu___ag.u_print-0th_ai.u(i64* %32)
+    %33 = load i64*, i64** @c, align 8
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %33)
+    %34 = load i64*, i64** @d, align 8
+    tail call void @schmu___ag.u_print-0th_ai.u(i64* %34)
     tail call void @schmu_in-fun()
     ret i64 0
   }
@@ -1196,7 +1199,7 @@ Copies, but with ref-counted arrays
     %7 = bitcast %arrec* %0 to i64**
     %8 = tail call i8* @malloc(i64 32)
     %9 = bitcast i8* %8 to i64*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %8, i64 32, i1 false)
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %1, i64 32, i1 false)
     store i64* %9, i64** %7, align 8
     %ref9 = load i64, i64* %6, align 4
     %10 = sub i64 %ref9, 1
@@ -1287,17 +1290,18 @@ Copies, but with ref-counted arrays
     %8 = bitcast i8* %7 to i64*
     %9 = mul i64 %size5, 8
     %10 = add i64 %9, 24
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %7, i64 %10, i1 false)
+    %11 = bitcast i64* %3 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %11, i64 %10, i1 false)
     store i64* %8, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
     %ref9 = load i64, i64* %3, align 4
-    %11 = sub i64 %ref9, 1
-    store i64 %11, i64* %3, align 4
+    %12 = sub i64 %ref9, 1
+    store i64 %12, i64* %3, align 4
     %.pre = load i64*, i64** getelementptr inbounds (%arrec, %arrec* @a, i32 0, i32 0), align 8
     br label %merge
   
   merge:                                            ; preds = %relocate, %entry
-    %12 = phi i64* [ %.pre, %relocate ], [ %3, %entry ]
-    %data10 = getelementptr i64, i64* %12, i64 3
+    %13 = phi i64* [ %.pre, %relocate ], [ %3, %entry ]
+    %data10 = getelementptr i64, i64* %13, i64 3
     store i64 12, i64* %data10, align 4
     %unbox = load i64, i64* bitcast (%arrec* @a to i64*), align 4
     tail call void @schmu_print-thing(i64 %unbox)
