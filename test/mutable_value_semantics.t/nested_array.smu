@@ -1,0 +1,12 @@
+(fun prnt [a]
+  (print (fmt-str
+          (array-get (array-get a 0) 0)
+          ", "
+          (array-get (array-get a 1) 0))))
+
+(val a& $[$[10] $[20]])
+(val b a)
+
+(set &(array-get (array-get a 0) 0) 15)
+(prnt a)
+(prnt b)

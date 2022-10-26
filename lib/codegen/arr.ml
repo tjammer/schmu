@@ -200,21 +200,30 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     Llvm.position_at_end reloc_bb builder;
     (* Get new ptr *)
+    let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
+    let sz = Llvm.build_load sz "size" builder in
+
     let cap = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
     let cap = Llvm.build_load cap "cap" builder in
 
-    let _, head_size, item_size = item_type_head_size orig.typ in
-    let itemssize =
+    let item_type, _, head_size, item_size = item_type_head_size orig.typ in
+    let itemscap =
       Llvm.build_mul cap (Llvm.const_int int_t item_size) "" builder
     in
     (* Really capacity, not size *)
     let size =
-      Llvm.build_add itemssize (Llvm.const_int int_t head_size) "" builder
+      Llvm.build_add itemscap (Llvm.const_int int_t head_size) "" builder
     in
 
     let lltyp = get_lltype_def orig.typ in
     let ptr =
       malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
+    in
+    let itemssize =
+      Llvm.build_mul sz (Llvm.const_int int_t item_size) "" builder
+    in
+    let size =
+      Llvm.build_add itemssize (Llvm.const_int int_t head_size) "" builder
     in
     ignore
       (let src = { value = ptr; typ = orig.typ; kind = Ptr; lltyp } in
