@@ -1399,11 +1399,11 @@ Copies, but with ref-counted arrays
     store i64** %8, i64*** @a, align 8
     tail call void @__g.u_incr_rc_aai.u(i64** %8)
     store i64** %8, i64*** @b, align 8
-    %9 = load i64**, i64*** @a, align 8
+    %9 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @a)
     %10 = bitcast i64** %9 to i64*
     %data11 = getelementptr i64, i64* %10, i64 3
     %11 = bitcast i64* %data11 to i64**
-    %12 = load i64*, i64** %11, align 8
+    %12 = tail call i64* @__ag.ag_reloc_ai.ai(i64** %11)
     %data12 = getelementptr i64, i64* %12, i64 3
     store i64 15, i64* %data12, align 4
     %13 = load i64**, i64*** @a, align 8
@@ -1422,5 +1422,122 @@ Copies, but with ref-counted arrays
     store i64 %1, i64* %ref13, align 4
     ret void
   }
+  
+  define internal i64** @__ag.ag_reloc_aai.aai(i64*** %0) {
+  entry:
+    %1 = load i64**, i64*** %0, align 8
+    %ref = bitcast i64** %1 to i64*
+    %ref15 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref15, align 4
+    %2 = icmp sgt i64 %ref2, 1
+    br i1 %2, label %relocate, label %merge
+  
+  relocate:                                         ; preds = %entry
+    %3 = bitcast i64** %1 to i64*
+    %sz = getelementptr i64, i64* %3, i64 1
+    %size = load i64, i64* %sz, align 4
+    %cap = getelementptr i64, i64* %3, i64 2
+    %cap3 = load i64, i64* %cap, align 4
+    %4 = mul i64 %cap3, 8
+    %5 = add i64 %4, 24
+    %6 = call i8* @malloc(i64 %5)
+    %7 = bitcast i8* %6 to i64**
+    %8 = mul i64 %size, 8
+    %9 = add i64 %8, 24
+    %10 = bitcast i64** %7 to i8*
+    %11 = bitcast i64** %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %10, i8* %11, i64 %9, i1 false)
+    store i64** %7, i64*** %0, align 8
+    call void @__g.u_decr_rc_aai.u(i64** %1)
+    %cnt = alloca i64, align 8
+    store i64 0, i64* %cnt, align 4
+    br label %rec
+  
+  merge:                                            ; preds = %rec, %entry
+    %12 = load i64**, i64*** %0, align 8
+    ret i64** %12
+  
+  rec:                                              ; preds = %child, %relocate
+    %13 = load i64, i64* %cnt, align 4
+    %14 = icmp slt i64 %13, %size
+    br i1 %14, label %child, label %merge
+  
+  child:                                            ; preds = %rec
+    %sunkaddr = mul i64 %13, 8
+    %15 = bitcast i64** %1 to i8*
+    %sunkaddr6 = getelementptr i8, i8* %15, i64 %sunkaddr
+    %sunkaddr7 = getelementptr i8, i8* %sunkaddr6, i64 24
+    %16 = bitcast i8* %sunkaddr7 to i64**
+    %17 = load i64*, i64** %16, align 8
+    %18 = load i64*, i64** %16, align 8
+    call void @__g.u_incr_rc_ai.u(i64* %18)
+    %19 = add i64 %13, 1
+    store i64 %19, i64* %cnt, align 4
+    br label %rec
+  }
+  
+  define internal void @__g.u_decr_rc_aai.u(i64** %0) {
+  entry:
+    %ref = bitcast i64** %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 4
+    %1 = sub i64 %ref2, 1
+    store i64 %1, i64* %ref13, align 4
+    ret void
+  }
+  
+  define internal i64* @__ag.ag_reloc_ai.ai(i64** %0) {
+  entry:
+    %1 = load i64*, i64** %0, align 8
+    %ref3 = bitcast i64* %1 to i64*
+    %ref1 = load i64, i64* %ref3, align 4
+    %2 = icmp sgt i64 %ref1, 1
+    br i1 %2, label %relocate, label %merge
+  
+  relocate:                                         ; preds = %entry
+    %sz = getelementptr i64, i64* %1, i64 1
+    %size = load i64, i64* %sz, align 4
+    %cap = getelementptr i64, i64* %1, i64 2
+    %cap2 = load i64, i64* %cap, align 4
+    %3 = mul i64 %cap2, 8
+    %4 = add i64 %3, 24
+    %5 = call i8* @malloc(i64 %4)
+    %6 = bitcast i8* %5 to i64*
+    %7 = mul i64 %size, 8
+    %8 = add i64 %7, 24
+    %9 = bitcast i64* %6 to i8*
+    %10 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* %10, i64 %8, i1 false)
+    store i64* %6, i64** %0, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %1)
+    br label %merge
+  
+  merge:                                            ; preds = %relocate, %entry
+    %11 = load i64*, i64** %0, align 8
+    ret i64* %11
+  }
+  
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = sub i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   15, 20
-  15, 20
+  10, 20

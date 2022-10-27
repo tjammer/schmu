@@ -4,7 +4,6 @@ module type S = sig
 
   val ptr_tbl : (int, Llvm.llvalue * typ) Hashtbl.t
   val dummy_fn_value : llvar
-  val no_param : Llvm_types.param
   val declare_function : c_linkage:bool -> mangle_kind -> string -> typ -> llvar
   val add_closure : llvar Vars.t -> llvar -> fun_kind -> llvar Vars.t
 
@@ -85,9 +84,6 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
       lltyp = i32_t;
       kind = Ptr;
     }
-
-  let no_param =
-    { vars = Vars.empty; alloca = None; finalize = None; rec_block = None }
 
   let default_kind = function
     | Tint | Tbool | Tfloat | Tu8 | Ti32 | Tf32 | Tunit | Traw_ptr _ | Tarray _

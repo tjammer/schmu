@@ -75,7 +75,9 @@ end = struct
 
         let finalize = Some fun_finalize in
         let ret =
-          gen_expr { vars = tvars; alloca; finalize; rec_block } abs.body
+          gen_expr
+            { vars = tvars; alloca; finalize; rec_block; in_set = false }
+            abs.body
         in
 
         ignore (fun_return name.call ret);
@@ -551,7 +553,7 @@ end = struct
 
         set_struct_field value ptr;
         { dummy_fn_value with lltyp = unit_t }
-    | Array_get -> array_get args fnc.ret
+    | Array_get -> array_get ~in_set:param.in_set args fnc.ret
     | Array_set -> array_set args
     | Realloc ->
         let ptr, size =
@@ -795,7 +797,7 @@ end = struct
     { value; typ; lltyp = get_lltype_def typ; kind }
 
   and gen_set param expr valexpr =
-    let ptr = gen_expr param expr in
+    let ptr = gen_expr { param with in_set = true } expr in
     let value = gen_expr param valexpr in
     (* We know that ptr cannot be a constant record, but value might *)
     set_struct_field value ptr.value;
@@ -1043,9 +1045,18 @@ and A : Abi_intf.S = Abi.Make (T)
 and H : Helpers.S = Helpers.Make (T) (A)
 and Ar : Arr.S = Arr.Make (T) (H) (Core)
 
+let no_param =
+  {
+    vars = Vars.empty;
+    alloca = None;
+    finalize = None;
+    rec_block = None;
+    in_set = false;
+  }
+
 let fill_constants constants =
   let f (name, tree, toplvl) =
-    let init = Core.gen_expr H.no_param tree in
+    let init = Core.gen_expr no_param tree in
     (* We only add records to the global table, because they are expected as ptrs.
        For ints or floats, we just return the immediate value *)
     let value = Llvm.define_global name init.value the_module in
@@ -1166,7 +1177,7 @@ let generate ~target ~outname ~release ~modul
     (* Generate functions *)
     List.fold_left
       (fun acc func -> Core.gen_function acc func)
-      { vars; alloca = None; finalize = None; rec_block = None }
+      { vars; alloca = None; finalize = None; rec_block = None; in_set = false }
       funcs
   in
 
@@ -1201,7 +1212,7 @@ let generate ~target ~outname ~release ~modul
         let body =
           Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true }
         in
-        add_global_init H.no_param outname `Dtor (add_frees body frees));
+        add_global_init no_param outname `Dtor (add_frees body frees));
   (* Generate internal helper functions for arrays *)
   Ar.gen_functions ();
 

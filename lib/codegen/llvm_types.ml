@@ -18,6 +18,7 @@ type param = {
   alloca : Llvm.llvalue option;
   finalize : (llvar -> unit) option;
   rec_block : rec_block option;
+  in_set : bool;
 }
 
 let context = Llvm.global_context ()

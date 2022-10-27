@@ -9,7 +9,7 @@ module type S = sig
     Monomorph_tree.alloca ->
     llvar
 
-  val array_get : llvar list -> typ -> llvar
+  val array_get : in_set:bool -> llvar list -> typ -> llvar
   val array_set : llvar list -> llvar
   val incr_refcount : llvar -> unit
   val decr_refcount : llvar -> unit
@@ -106,25 +106,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
         | Imm | Const -> ignore (Llvm.build_store src.value dst builder))
       exprs;
     { value = arr; typ; lltyp; kind = Ptr }
-
-  let array_get args typ =
-    let arr, index =
-      match args with
-      | [ arr; index ] -> (bring_default_var arr, bring_default index)
-      | _ -> failwith "Internal Error: Arity mismatch in builtin"
-    in
-
-    let lltyp = get_lltype_def typ in
-    let int_ptr =
-      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
-    in
-    let ptr =
-      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-      Llvm.build_bitcast ptr (Llvm.pointer_type lltyp) "" builder
-    in
-
-    let value = Llvm.build_gep ptr [| index |] "" builder in
-    { value; typ; lltyp; kind = Ptr }
 
   let rec contains_array = function
     | Tarray _ -> true
@@ -355,6 +336,28 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     Llvm.position_at_end merge_bb builder;
     bring_default_var orig
+
+  let array_get ~in_set args typ =
+    let arr, index =
+      match args with
+      | [ arr; index ] -> (arr, bring_default index)
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    in
+
+    (* If we are being set, it's similar to array_set *)
+    let arr = if in_set then maybe_relocate arr else bring_default_var arr in
+
+    let lltyp = get_lltype_def typ in
+    let int_ptr =
+      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
+    in
+    let ptr =
+      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+      Llvm.build_bitcast ptr (Llvm.pointer_type lltyp) "" builder
+    in
+
+    let value = Llvm.build_gep ptr [| index |] "" builder in
+    { value; typ; lltyp; kind = Ptr }
 
   let array_set args =
     let arr, index, value =
