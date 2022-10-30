@@ -35,15 +35,15 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
   let func_tbl = Hashtbl.create 64
   let ci i = Llvm.const_int int_t i
 
+  let item_type = function
+    | Tarray t -> t
+    | t ->
+        print_endline (show_typ t);
+        failwith "Internal Error: No array in array"
+
   let item_type_head_size typ =
     (* Return pair lltyp, size of head *)
-    let item_typ =
-      match typ with
-      | Tarray t -> t
-      | _ ->
-          print_endline (show_typ typ);
-          failwith "Internal Error: No array in array"
-    in
+    let item_typ = item_type typ in
     let llitem_typ = get_lltype_def item_typ in
     let item_sz = sizeof_typ item_typ in
 
@@ -222,16 +222,55 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
   let decr_refcount v = rc_fn v Decr_rc
 
   let decr_rc_impl v =
-    let f v =
-      let v = bring_default v in
+    let f var =
+      (* Load ref *)
+      let v = bring_default var in
       let int_ptr =
         Llvm.build_bitcast v (Llvm.pointer_type int_t) "ref" builder
       in
       let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-      let value = Llvm.build_load dst "ref" builder in
-      let added = Llvm.build_sub value (Llvm.const_int int_t 1) "" builder in
-      ignore (Llvm.build_store added dst builder)
+      let rc = Llvm.build_load dst "ref" builder in
+
+      (* Get current block *)
+      let start_bb = Llvm.insertion_block builder in
+      let parent = Llvm.block_parent start_bb in
+
+      let decr_bb = Llvm.append_block context "decr" parent in
+      let free_bb = Llvm.append_block context "free" parent in
+      let merge_bb = Llvm.append_block context "merge" parent in
+
+      let cmp =
+        Llvm.(build_icmp Icmp.Eq) rc (Llvm.const_int int_t 1) "" builder
+      in
+      ignore (Llvm.build_cond_br cmp free_bb decr_bb builder);
+
+      (* decr *)
+      Llvm.position_at_end decr_bb builder;
+      let added = Llvm.build_sub rc (Llvm.const_int int_t 1) "" builder in
+      ignore (Llvm.build_store added dst builder);
+      ignore (Llvm.build_br merge_bb builder);
+
+      (* free *)
+      Llvm.position_at_end free_bb builder;
+      let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
+      let sz = Llvm.build_load sz "size" builder in
+
+      let item_type = item_type var.typ in
+
+      let data =
+        Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+        Llvm.build_bitcast ptr
+          (get_lltype_def item_type |> Llvm.pointer_type)
+          "data" builder
+      in
+      iter_array_children data sz item_type decr_refcount;
+
+      ignore (free int_ptr);
+      ignore (Llvm.build_br merge_bb builder);
+
+      Llvm.position_at_end merge_bb builder
     in
+
     iter_array f v
 
   let maybe_relocate orig =
@@ -318,6 +357,13 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
        memcpy ~src ~dst:ptr ~size);
     (* set orig pointer to new ptr *)
     ignore (Llvm.build_store ptr orig.value builder);
+
+    (* We copied orig including refcount. Reset to 1 *)
+    let new_int_ptr =
+      Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "ref" builder
+    in
+    let new_dst = Llvm.build_gep new_int_ptr [| ci 0 |] "ref" builder in
+    ignore (Llvm.build_store (ci 1) new_dst builder);
 
     (* Decrease orig refcount  *)
     decr_refcount v;

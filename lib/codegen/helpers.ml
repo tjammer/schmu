@@ -53,6 +53,7 @@ module type S = sig
   val alloca : Llvm_types.param -> Llvm.lltype -> string -> Llvm.llvalue
   val get_const_string : string -> Llvm.llvalue
   val free_id : int -> unit
+  val free : Llvm.llvalue -> Llvm.llvalue
   val fmt_str : llvar -> string * Llvm.llvalue
 
   (* For reuse in arr.ml *)
