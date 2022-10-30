@@ -22,6 +22,8 @@ end = struct
   open H
   open Ar
 
+  let decr_tbl = Strtbl.create 64
+
   let rec gen_function vars ?(mangle = Schmu)
       { Monomorph_tree.abs; name; recursive } =
     let typ = Monomorph_tree.typ_of_abs abs in
@@ -106,8 +108,12 @@ end = struct
         gen_string_lit param s typed_expr.typ allocref
     | Mconst (Vector (id, es, allocref)) ->
         gen_vector_lit param id es typed_expr.typ allocref
-    | Mconst (Array (arr, allocref)) ->
-        gen_array_lit param arr typed_expr.typ allocref
+    | Mconst (Array (arr, allocref, id)) ->
+        Printf.printf "arrthing %i\n%!" id;
+        let v = gen_array_lit param arr typed_expr.typ allocref in
+        Printf.printf "arrthing %i\n%!" id;
+        Hashtbl.replace decr_tbl id v;
+        v
     | Mconst c -> gen_const c |> fin
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
@@ -128,7 +134,7 @@ end = struct
         in
 
         gen_expr { param with vars = Vars.add name func param.vars } cont
-    | Mlet (id, equals, _, let') -> gen_let param id equals let'
+    | Mlet (id, equals, _, vid, let') -> gen_let param id equals let' vid
     | Mlambda (name, abs) ->
         let func =
           match Vars.find_opt name param.vars with
@@ -170,10 +176,14 @@ end = struct
         | Cglobal gn -> gen_copy_global param temporary gn expr
         | Cnormal mut -> gen_copy param temporary mut expr nm)
         |> fin
-    | Mincr_ref expr -> gen_incr_ref param expr
+    | Mincr_ref expr -> gen_incr_ref param expr |> fin
+    | Mdecr_ref (id, expr) -> gen_decr_ref param id expr |> fin
 
-  and gen_let param id equals let' =
+  and gen_let param id equals let' vid =
     let expr_val = gen_expr param equals in
+    (match vid with
+    | Some id -> Strtbl.replace decr_tbl id expr_val
+    | None -> ());
     gen_expr { param with vars = Vars.add id expr_val param.vars } let'
 
   and gen_const = function
@@ -1038,6 +1048,19 @@ end = struct
     let v = gen_expr param expr in
     incr_refcount v;
     v
+
+  and gen_decr_ref param id expr =
+    let v = gen_expr param expr in
+    match Hashtbl.find_opt decr_tbl id with
+    | Some id ->
+        decr_refcount id;
+        v
+    | None ->
+        print_int id;
+        print_newline ();
+        print_endline (Monomorph_tree.show_monod_tree expr);
+
+        failwith "Internal Error: Nothing to decr"
 end
 
 and T : Lltypes_intf.S = Lltypes.Make (A)
@@ -1091,7 +1114,7 @@ let decl_external ~c_linkage cname = function
 let has_init_code tree =
   let rec aux = function
     (* We have to deal with 'toplevel' type nodes only *)
-    | Monomorph_tree.Mlet (name, _, gname, cont) -> (
+    | Monomorph_tree.Mlet (name, _, gname, _, cont) -> (
         let name = match gname with Some name -> name | None -> name in
         match Strtbl.find_opt const_tbl name with
         | Some thing -> (

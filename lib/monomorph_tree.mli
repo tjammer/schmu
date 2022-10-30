@@ -10,7 +10,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * global_name * monod_tree
+  | Mlet of string * monod_tree * global_name * int option * monod_tree
   | Mlambda of string * abstraction
   | Mfunction of string * abstraction * monod_tree
   | Mapp of {
@@ -38,6 +38,7 @@ type expr =
       nm : string;
     }
   | Mincr_ref of monod_tree
+  | Mdecr_ref of int * monod_tree
 
 and const =
   | Int of int
@@ -48,11 +49,11 @@ and const =
   | F32 of float
   | String of string * alloca
   | Vector of int * monod_tree list * alloca
-  | Array of monod_tree list * alloca
+  | Array of monod_tree list * alloca * int
   | Unit
 (* The int is the malloc id used for freeing later *)
 
-and func = { params : param list; ret : typ; kind : fun_kind }
+and func = { params : param list; ret : typ; kind : fun_kind } [@@deriving show]
 and abstraction = { func : func; pnames : string list; body : monod_tree }
 
 and call_name =
