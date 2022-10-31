@@ -22,7 +22,11 @@ type expr =
          Codegen must check if there are nested allocations *)
       id : int; (* Internal id for nested monomorphization *)
     }
-  | Mrecord of (string * monod_tree) list * alloca * bool (* bool: is_const *)
+  | Mrecord of
+      (string * monod_tree) list
+      * alloca
+      * int option
+      * bool (* bool: is_const *)
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)

@@ -109,9 +109,7 @@ end = struct
     | Mconst (Vector (id, es, allocref)) ->
         gen_vector_lit param id es typed_expr.typ allocref
     | Mconst (Array (arr, allocref, id)) ->
-        Printf.printf "arrthing %i\n%!" id;
         let v = gen_array_lit param arr typed_expr.typ allocref in
-        Printf.printf "arrthing %i\n%!" id;
         Hashtbl.replace decr_tbl id v;
         v
     | Mconst c -> gen_const c |> fin
@@ -158,8 +156,9 @@ end = struct
             gen_app_inline param args pnames tree |> fin
         | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
     | Mif expr -> gen_if param expr typed_expr.return
-    | Mrecord (labels, allocref, const) ->
-        gen_record param typed_expr.typ labels allocref const typed_expr.return
+    | Mrecord (labels, allocref, id, const) ->
+        gen_record param typed_expr.typ labels allocref id const
+          typed_expr.return
         |> fin
     | Mfield (expr, index) -> gen_field param expr index |> fin
     | Mset (expr, value) -> gen_set param expr value |> fin
@@ -724,7 +723,7 @@ end = struct
       Llvm.position_at_end (Lazy.force merge_bb) builder;
     llvar
 
-  and gen_record param typ labels allocref const return =
+  and gen_record param typ labels allocref id const return =
     let lltyp = get_lltype_field typ in
 
     let value, kind =
@@ -775,7 +774,9 @@ end = struct
           (ret, Const)
     in
 
-    { value; typ; lltyp; kind }
+    let v = { value; typ; lltyp; kind } in
+    (match id with Some id -> Strtbl.replace decr_tbl id v | None -> ());
+    v
 
   and gen_field param expr index =
     let typ =
@@ -1058,8 +1059,6 @@ end = struct
     | None ->
         print_int id;
         print_newline ();
-        print_endline (Monomorph_tree.show_monod_tree expr);
-
         failwith "Internal Error: Nothing to decr"
 end
 

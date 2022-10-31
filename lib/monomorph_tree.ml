@@ -1,5 +1,6 @@
 open Cleaned_types
 module Vars = Map.Make (String)
+module Iset = Set.Make (Int)
 module Set = Set.Make (String)
 
 module Hint = struct
@@ -27,7 +28,7 @@ type expr =
       malloc : int option;
       id : int;
     }
-  | Mrecord of (string * monod_tree) list * alloca * bool
+  | Mrecord of (string * monod_tree) list * alloca * int option * bool
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)
@@ -117,7 +118,7 @@ type var_normal = {
   fn : to_gen_func_kind;
   alloc : alloc;
   malloc : malloc option;
-  id : int;
+  id : int option;
 }
 
 (* TODO could be used for Builtin as well *)
@@ -137,10 +138,10 @@ type morph_param = {
       (* Tracks all heap allocations in a scope.
          If a value with allocation is returned, they are marked for the parent scope.
          Otherwise freed *)
-  ids : int list list;
+  ids : Iset.t list;
 }
 
-let no_var = { fn = No_function; alloc = No_value; malloc = None; id = -1 }
+let no_var = { fn = No_function; alloc = No_value; malloc = None; id = None }
 let apptbl = Apptbl.create 64
 
 let rec cln = function
@@ -224,6 +225,21 @@ let find_function_expr vars = function
   | e ->
       print_endline (show_expr e);
       "Not supported: " ^ show_expr e |> failwith
+
+let rec mb_contains_array = function
+  | Tarray _ -> true
+  | Trecord (_, _, fields) ->
+      Array.fold_left (fun b f -> f.ftyp |> mb_contains_array || b) false fields
+  | Tvariant (_, _, ctors) ->
+      Array.fold_left
+        (fun b c ->
+          (match c.ctyp with Some t -> mb_contains_array t | None -> false)
+          || b)
+        false ctors
+  | Tpoly _ -> true
+  | _ -> false
+
+let () = ignore mb_contains_array
 
 let get_mono_name name ~poly concrete =
   let open Printf in
@@ -416,12 +432,12 @@ let rec subst_body p subst tree =
           typ = func.ret;
           expr = Mapp { callee; args; alloca; malloc; id };
         }
-    | Mrecord (labels, alloca, const) ->
+    | Mrecord (labels, alloca, id, const) ->
         let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
         {
           tree with
           typ = subst tree.typ;
-          expr = Mrecord (labels, alloca, const);
+          expr = Mrecord (labels, alloca, id, const);
         }
     | Mctor ((var, index, expr), alloca, const) ->
         let expr = Mctor ((var, index, Option.map sub expr), alloca, const) in
@@ -560,18 +576,28 @@ let free_mallocs body mallocs =
 
 let decr_refs body = function
   | [] -> body
-  | l :: _ ->
-      List.fold_left
-        (fun body id -> { body with expr = Mdecr_ref (id, body) })
-        body l
+  | s :: _ ->
+      Iset.to_rev_seq s
+      |> Seq.fold_left
+           (fun body id -> { body with expr = Mdecr_ref (id, body) })
+           body
 
-let remove_id ~id = function
-  | [] -> []
-  | l :: tl ->
-      Printf.printf "Removing id %i\n" id;
-      List.filter (fun i -> not (Int.equal id i)) l :: tl
+let remove_id ~id ids =
+  match id with
+  | Some id -> ( match ids with [] -> [] | s :: tl -> Iset.remove id s :: tl)
+  | None -> ids
 
-let add_id ~id = function [] -> [ [ id ] ] | l :: tl -> (id :: l) :: tl
+let add_id ~id = function
+  | [] -> [ Iset.add id Iset.empty ]
+  | s :: tl -> Iset.add id s :: tl
+
+let mb_id p typ =
+  if mb_contains_array typ then
+    let id = new_id var_id in
+    let ids = add_id ~id p.ids in
+    (Some id, ids)
+  else (None, p.ids)
+
 let recursion_stack = ref []
 let constant_uniq_state = ref 1
 let constant_tbl = Hashtbl.create 64
@@ -626,13 +652,11 @@ let copy_let lhs lmut rmut nm temporary =
 
 let make_e2 e1 e2 id gn lmut rmut p =
   let temporary = is_temporary e1.expr in
-  let p, vid =
-    if not temporary then (
-      let vid = new_id var_id in
-      let ids = add_id ~id:vid p.ids in
-      Printf.printf "add id %i for typ %s\n%!" vid (string_of_type e1.typ);
-      ({ p with ids }, Some vid))
-    else (p, None)
+  let vid, p =
+    if not temporary then
+      let id, ids = mb_id p e1.typ in
+      (id, { p with ids })
+    else (None, p)
   in
   match gn with
   | Some n ->
@@ -659,7 +683,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       let p, e2 = make_e2 e1 e2 id gn lhs.attr.mut rmut p in
       (p, e2, func)
-  | Record labels -> morph_record make param labels texpr.attr
+  | Record labels -> morph_record make param labels texpr.attr (cln texpr.typ)
   | Field (expr, index) -> morph_field make param expr index
   | Set (expr, value) -> morph_set make param expr value
   | Sequence (expr, cont) -> morph_seq make param expr cont
@@ -691,7 +715,7 @@ and morph_var mk p v =
             fn = Builtin Malloc;
             alloc = No_value;
             malloc = Some malloc;
-            id = new_id var_id;
+            id = Some (new_id var_id);
           }
         in
         ((v, Vnorm), var)
@@ -738,12 +762,8 @@ and morph_vector mk p v =
 
   ( { p with ret; mallocs },
     mk (Mconst (Vector (id, v, alloca))) p.ret,
-    {
-      fn = No_function;
-      alloc = Value alloca;
-      malloc = Some malloc;
-      id = new_id var_id;
-    } )
+    { fn = No_function; alloc = Value alloca; malloc = Some malloc; id = None }
+  )
 
 and morph_array mk p a =
   let ret = p.ret in
@@ -765,11 +785,10 @@ and morph_array mk p a =
   let alloca = ref (request ()) in
   let id = new_id var_id in
   let ids = add_id ~id p.ids in
-  Printf.printf "add id %i for typ array\n%!" id;
 
   ( { p with ret; ids },
     mk (Mconst (Array (a, alloca, id))) p.ret,
-    { fn = No_function; alloc = Value alloca; malloc = None; id } )
+    { fn = No_function; alloc = Value alloca; malloc = None; id = Some id } )
 
 and morph_const = function
   | String _ | Vector _ | Array _ ->
@@ -826,7 +845,7 @@ and prep_let p id uniq e toplvl =
   in
   (p, e1, gn)
 
-and morph_record mk p labels is_const =
+and morph_record mk p labels is_const typ =
   let ret = p.ret in
   let p = { p with ret = false } in
 
@@ -848,12 +867,11 @@ and morph_record mk p labels is_const =
 
   (* mallocs were generated at a lower level, we increase to current level (or decrease :)) *)
   (match malloc with None -> () | Some m -> m.mlvl := !alloc_lvl);
-  let id = new_id var_id in
-  let ids = add_id ~id p.ids in
+  let id, ids = mb_id p typ in
 
   let alloca = ref (request ()) in
   ( { p with ret; ids },
-    mk (Mrecord (labels, alloca, is_const.const)) ret,
+    mk (Mrecord (labels, alloca, id, is_const.const)) ret,
     { fn = No_function; alloc = Value alloca; malloc; id } )
 
 and morph_field mk p expr index =
@@ -920,7 +938,14 @@ and prep_func p (username, uniq, abs) =
         vars pnames
     in
 
-    { p with vars; ret = (if not inline then true else p.ret); mallocs = [] }
+    let ids = Iset.empty :: p.ids in
+    {
+      p with
+      vars;
+      ret = (if not inline then true else p.ret);
+      mallocs = [];
+      ids;
+    }
   in
 
   enter_level ();
@@ -987,7 +1012,8 @@ and morph_lambda typ p id abs =
         (fun vars name -> Vars.add name (Normal no_var) vars)
         vars pnames
     in
-    { p with vars; ret = true; mallocs = [] }
+    let ids = Iset.empty :: p.ids in
+    { p with vars; ret = true; mallocs = []; ids }
   in
 
   let tmp, body, var = morph_expr temp_p abs.body in
@@ -1001,6 +1027,7 @@ and morph_lambda typ p id abs =
     set_alloca var.alloc;
     propagate_malloc var.malloc);
   let body = free_mallocs body temp_p.mallocs in
+  let body = decr_refs body (remove_id ~id:var.id temp_p.ids) in
 
   (* Why do we need this again in lambda? They can't recurse. *)
   (* But functions on the lambda body might *)
@@ -1093,7 +1120,7 @@ and morph_ctor mk p variant index expr is_const =
   let alloca = ref (request ()) in
   ( { p with ret },
     mk (Mctor (ctor, alloca, is_const.const)) ret,
-    { fn = No_function; alloc = Value alloca; malloc; id = new_id var_id } )
+    { fn = No_function; alloc = Value alloca; malloc; id = None } )
 
 (* Both variant exprs are as default as possible.
    We handle everything in codegen *)
