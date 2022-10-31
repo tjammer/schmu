@@ -11,6 +11,7 @@ module type S = sig
 
   val array_get : in_set:bool -> llvar list -> typ -> llvar
   val array_set : llvar list -> llvar
+  val array_length : llvar list -> llvar
   val incr_refcount : llvar -> unit
   val decr_refcount : llvar -> unit
   val gen_functions : unit -> unit
@@ -424,6 +425,20 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     set_struct_field value ptr;
     { dummy_fn_value with lltyp = unit_t }
+
+  let array_length args =
+    let arr =
+      match args with
+      | [ arr ] -> arr
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    in
+    let arr = bring_default_var arr in
+    let int_ptr =
+      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
+    in
+    let value = Llvm.build_gep int_ptr [| ci 1 |] "len" builder in
+
+    { value; typ = Tint; lltyp = int_t; kind = Ptr }
 
   let gen_functions () =
     Hashtbl.iter

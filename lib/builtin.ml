@@ -21,6 +21,7 @@ type t =
   | Not
   | Array_get
   | Array_set
+  | Array_length
 [@@deriving show]
 
 let tbl =
@@ -95,6 +96,9 @@ let tbl =
           Tunit,
           Simple ),
       "array-set" );
+    ( Array_length,
+      Tfun ([ { pmut; pt = Tarray (Qvar "0") } ], Tint, Simple),
+      "array-length" );
   ]
 
 let of_string = function
@@ -120,6 +124,7 @@ let of_string = function
   | "not" -> Some Not
   | "array-get" -> Some Array_get
   | "array-set" -> Some Array_set
+  | "array-length" -> Some Array_length
   | _ -> None
 
 let fold f init = List.fold_left f init tbl

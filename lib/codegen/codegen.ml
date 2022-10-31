@@ -564,6 +564,7 @@ end = struct
         { dummy_fn_value with lltyp = unit_t }
     | Array_get -> array_get ~in_set:param.in_set args fnc.ret
     | Array_set -> array_set args
+    | Array_length -> array_length args
     | Realloc ->
         let ptr, size =
           match args with
