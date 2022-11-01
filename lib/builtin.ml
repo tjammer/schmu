@@ -22,6 +22,7 @@ type t =
   | Array_get
   | Array_set
   | Array_length
+  | Array_push
 [@@deriving show]
 
 let tbl =
@@ -99,6 +100,12 @@ let tbl =
     ( Array_length,
       Tfun ([ { pmut; pt = Tarray (Qvar "0") } ], Tint, Simple),
       "array-length" );
+    ( Array_push,
+      Tfun
+        ( [ { pmut = true; pt = Tarray (Qvar "0") }; { pmut; pt = Qvar "0" } ],
+          Tunit,
+          Simple ),
+      "array-push" );
   ]
 
 let of_string = function
@@ -125,6 +132,7 @@ let of_string = function
   | "array-get" -> Some Array_get
   | "array-set" -> Some Array_set
   | "array-length" -> Some Array_length
+  | "array-push" -> Some Array_push
   | _ -> None
 
 let fold f init = List.fold_left f init tbl

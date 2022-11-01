@@ -12,6 +12,7 @@ module type S = sig
   val array_get : in_set:bool -> llvar list -> typ -> llvar
   val array_set : llvar list -> llvar
   val array_length : llvar list -> llvar
+  val array_push : llvar list -> llvar
   val incr_refcount : llvar -> unit
   val decr_refcount : llvar -> unit
   val gen_functions : unit -> unit
@@ -31,7 +32,13 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
   open H
   open C
 
-  type func = Incr_rc | Decr_rc | Reloc
+  type func = Incr_rc | Decr_rc | Reloc | Grow
+
+  let name_of_func = function
+    | Incr_rc -> "incr_rc"
+    | Decr_rc -> "decr_rc"
+    | Reloc -> "reloc"
+    | Grow -> "grow"
 
   let func_tbl = Hashtbl.create 64
   let ci i = Llvm.const_int int_t i
@@ -170,12 +177,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     Llvm.position_at_end cont_bb builder
 
   let make_rc_fn v kind =
-    let name =
-      match kind with
-      | Incr_rc -> "incr_rc"
-      | Decr_rc -> "decr_rc"
-      | Reloc -> failwith "Internal Error: We ended up relocating"
-    in
+    let name = name_of_func kind in
     let poly = Tfun ([ { pmut = false; pt = Tpoly "0" } ], Tunit, Simple) in
     let typ = Tfun ([ { pmut = false; pt = v.typ } ], Tunit, Simple) in
     let name = Monomorph_tree.get_mono_name name ~poly typ in
@@ -274,7 +276,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     iter_array f v
 
-  let maybe_relocate orig =
+  let modify_arr_fn kind orig =
     (match orig.kind with
     | Ptr | Const_ptr -> ()
     | _ -> failwith "Internal Error: Not passed as mutable");
@@ -285,7 +287,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
           Simple )
     in
     let typ = Tfun ([ { pmut = true; pt = orig.typ } ], orig.typ, Simple) in
-    let name = Monomorph_tree.get_mono_name "reloc" ~poly typ in
+    let name = Monomorph_tree.get_mono_name (name_of_func kind) ~poly typ in
     let f =
       match Hashtbl.find_opt func_tbl name with
       | Some (_, _, f) -> f
@@ -295,7 +297,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
           let ft = Llvm.function_type ret [| ps |] in
           let f = Llvm.declare_function name ft the_module in
           Llvm.set_linkage Llvm.Linkage.Internal f;
-          Hashtbl.replace func_tbl name (Reloc, orig, f);
+          Hashtbl.replace func_tbl name (kind, orig, f);
           f
     in
     (* We need to decrease inside relocate impl *)
@@ -304,6 +306,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let value = Llvm.build_call f [| orig.value |] "" builder in
     (* For some reason, we default? *)
     { orig with value; kind = Imm }
+
+  let maybe_relocate orig = modify_arr_fn Reloc orig
 
   let relocate_impl orig =
     (* Get current block *)
@@ -440,6 +444,163 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     { value; typ = Tint; lltyp = int_t; kind = Ptr }
 
+  let grow orig = modify_arr_fn Grow orig
+
+  let grow_impl orig =
+    let v = bring_default_var orig in
+    let int_ptr =
+      Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "" builder
+    in
+    let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    let old_cap = Llvm.build_load dst "cap" builder in
+    let new_cap = Llvm.build_mul old_cap (ci 2) "" builder in
+
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
+    let rc = Llvm.build_load dst "ref" builder in
+
+    let item_type, _, head_size, item_size = item_type_head_size orig.typ in
+    let itemscap =
+      Llvm.build_mul new_cap (Llvm.const_int int_t item_size) "" builder
+    in
+    let size =
+      Llvm.build_add itemscap (Llvm.const_int int_t head_size) "" builder
+    in
+
+    let start_bb = Llvm.insertion_block builder in
+    let parent = Llvm.block_parent start_bb in
+
+    let realloc_bb = Llvm.append_block context "realloc" parent in
+    let malloc_bb = Llvm.append_block context "malloc" parent in
+    let merge_bb = Llvm.append_block context "merge" parent in
+
+    let cmp =
+      Llvm.(build_icmp Icmp.Eq) rc (Llvm.const_int int_t 1) "" builder
+    in
+
+    ignore (Llvm.build_cond_br cmp realloc_bb malloc_bb builder);
+
+    (* Realloc *)
+    Llvm.position_at_end realloc_bb builder;
+
+    let rptr = realloc (bring_default orig) ~size in
+    ignore (Llvm.build_store rptr orig.value builder);
+    ignore (Llvm.build_br merge_bb builder);
+
+    (* malloc *)
+    Llvm.position_at_end malloc_bb builder;
+
+    let lltyp = get_lltype_def orig.typ in
+    let ptr =
+      malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
+    in
+
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let sz = Llvm.build_load dst "size" builder in
+    let itemssize =
+      Llvm.build_mul sz (Llvm.const_int int_t item_size) "" builder
+    in
+    let size =
+      Llvm.build_add itemssize (Llvm.const_int int_t head_size) "" builder
+    in
+    ignore
+      (* Ptr is needed here to get a copy *)
+      (let src = { value = v.value; typ = orig.typ; kind = Ptr; lltyp } in
+       memcpy ~src ~dst:ptr ~size);
+    (* set orig pointer to new ptr *)
+    ignore (Llvm.build_store ptr orig.value builder);
+
+    (* We copied orig including refcount. Reset to 1 *)
+    let new_int_ptr =
+      Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "ref" builder
+    in
+    let new_dst = Llvm.build_gep new_int_ptr [| ci 0 |] "ref" builder in
+    ignore (Llvm.build_store (ci 1) new_dst builder);
+
+    (* Decrease orig refcount  *)
+    decr_refcount v;
+
+    (* Increase member refcount *)
+    (if contains_array item_type then
+     let data =
+       Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+       Llvm.build_bitcast ptr
+         (get_lltype_def item_type |> Llvm.pointer_type)
+         "data" builder
+     in
+     iter_array_children data sz item_type incr_refcount);
+
+    ignore (Llvm.build_br merge_bb builder);
+
+    (* Merge *)
+    Llvm.position_at_end merge_bb builder;
+
+    let ptr =
+      Llvm.build_phi [ (rptr, realloc_bb); (ptr, malloc_bb) ] "" builder
+    in
+    let new_int_ptr =
+      Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "newcap" builder
+    in
+    let new_dst = Llvm.build_gep new_int_ptr [| ci 2 |] "newcap" builder in
+    ignore (Llvm.build_store new_cap new_dst builder);
+    bring_default_var orig
+
+  let array_push args =
+    let arr, value =
+      match args with
+      | [ arr; value ] -> (arr, bring_default_var value)
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    in
+
+    let v = bring_default arr in
+    let int_ptr = Llvm.build_bitcast v (Llvm.pointer_type int_t) "" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let sz = Llvm.build_load dst "size" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    let cap = Llvm.build_load dst "cap" builder in
+
+    (* Get current block *)
+    let start_bb = Llvm.insertion_block builder in
+    let parent = Llvm.block_parent start_bb in
+
+    let keep_bb = Llvm.append_block context "keep" parent in
+    let grow_bb = Llvm.append_block context "grow" parent in
+    let merge_bb = Llvm.append_block context "merge" parent in
+
+    let cmp = Llvm.(build_icmp Icmp.Eq) cap sz "" builder in
+    ignore (Llvm.build_cond_br cmp grow_bb keep_bb builder);
+
+    (* There is enough capacity *)
+    Llvm.position_at_end keep_bb builder;
+    let keep_arr = maybe_relocate arr in
+    ignore (Llvm.build_br merge_bb builder);
+
+    (* Not enough capacity, grow the array *)
+    Llvm.position_at_end grow_bb builder;
+    let grow_arr = grow arr in
+    ignore (Llvm.build_br merge_bb builder);
+
+    (* Merge *)
+    Llvm.position_at_end merge_bb builder;
+    let arr =
+      Llvm.build_phi
+        [ (keep_arr.value, keep_bb); (grow_arr.value, grow_bb) ]
+        "" builder
+    in
+    let int_ptr = Llvm.build_bitcast arr (Llvm.pointer_type int_t) "" builder in
+    let ptr =
+      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+      Llvm.build_bitcast ptr grow_arr.lltyp "" builder
+    in
+    let ptr = Llvm.build_gep ptr [| sz |] "" builder in
+
+    set_struct_field value ptr;
+
+    let szptr = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let new_sz = Llvm.build_add sz (ci 1) "" builder in
+    ignore (Llvm.build_store new_sz szptr builder);
+
+    { dummy_fn_value with lltyp = unit_t }
+
   let gen_functions () =
     Hashtbl.iter
       (fun _ (kind, v, ft) ->
@@ -458,6 +619,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
             ignore (Llvm.build_ret_void builder)
         | Reloc ->
             let v = relocate_impl v in
+            ignore (Llvm.build_ret v.value builder)
+        | Grow ->
+            let v = grow_impl v in
             ignore (Llvm.build_ret v.value builder))
       func_tbl
 end
