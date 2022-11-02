@@ -642,8 +642,8 @@ A return of a field should not be preallocated
   define void @schmu_vector_loop__2(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %mut_int_wrap* }*
-    %test3 = bitcast { %mut_int_wrap* }* %clsr to %mut_int_wrap**
-    %test1 = load %mut_int_wrap*, %mut_int_wrap** %test3, align 8
+    %test5 = bitcast { %mut_int_wrap* }* %clsr to %mut_int_wrap**
+    %test1 = load %mut_int_wrap*, %mut_int_wrap** %test5, align 8
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 4
     %2 = alloca %int_wrap, align 8
@@ -660,11 +660,11 @@ A return of a field should not be preallocated
   
   else:                                             ; preds = %rec
     %4 = bitcast %mut_int_wrap* %test1 to %int_wrap*
-    %dat4 = bitcast %int_wrap* %2 to i64*
+    %dat6 = bitcast %int_wrap* %2 to i64*
     %5 = bitcast %int_wrap* %4 to i64*
     %6 = load i64, i64* %5, align 4
     %add = add i64 %6, 1
-    store i64 %add, i64* %dat4, align 4
+    store i64 %add, i64* %dat6, align 4
     %b = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 1
     store i64 0, i64* %b, align 4
     %c = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 2

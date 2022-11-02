@@ -500,33 +500,33 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define void @schmu___i.u_inner_i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %closure*, %vector_int }*
-    %f3 = bitcast { %closure*, %vector_int }* %clsr to %closure**
-    %f1 = load %closure*, %closure** %f3, align 8
+    %f5 = bitcast { %closure*, %vector_int }* %clsr to %closure**
+    %f1 = load %closure*, %closure** %f5, align 8
     %vec = getelementptr inbounds { %closure*, %vector_int }, { %closure*, %vector_int }* %clsr, i32 0, i32 1
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 4
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %2 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %3 = bitcast %vector_int* %vec to %owned_ptr_int*
-    %4 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %3, i32 0, i32 1
-    %5 = load i64, i64* %4, align 4
-    %eq = icmp eq i64 %2, %5
+    %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %2 = bitcast %vector_int* %vec to %owned_ptr_int*
+    %3 = getelementptr inbounds %owned_ptr_int, %owned_ptr_int* %2, i32 0, i32 1
+    %4 = load i64, i64* %3, align 4
+    %eq = icmp eq i64 %i2, %4
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %6 = tail call i64 @schmu___vectorgi.g_vector-get_vectorii.i(%vector_int* %vec, i64 %2)
-    %funcptr4 = bitcast %closure* %f1 to i8**
-    %loadtmp = load i8*, i8** %funcptr4, align 8
+    %5 = tail call i64 @schmu___vectorgi.g_vector-get_vectorii.i(%vector_int* %vec, i64 %i2)
+    %funcptr6 = bitcast %closure* %f1 to i8**
+    %loadtmp = load i8*, i8** %funcptr6, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f1, i32 0, i32 1
-    %loadtmp2 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %6, i8* %loadtmp2)
-    %add = add i64 %2, 1
+    %loadtmp3 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i64 %5, i8* %loadtmp3)
+    %add = add i64 %i2, 1
     store i64 %add, i64* %1, align 4
     br label %rec
   }

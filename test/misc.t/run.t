@@ -1384,58 +1384,56 @@ Tailcall loops
     %2 = alloca i64, align 8
     store i64 %c, i64* %2, align 4
     %str = alloca %string, align 8
-    br label %rec.outer.outer
-  
-  rec.outer.outer:                                  ; preds = %then, %entry
-    %.ph.ph = phi i64 [ 0, %then ], [ %b, %entry ]
-    %.ph10.ph = phi i64 [ %add, %then ], [ %a, %entry ]
-    %.ph11.ph = phi i64 [ %3, %then ], [ %c, %entry ]
     br label %rec.outer
   
-  rec.outer:                                        ; preds = %rec.outer.outer, %then5
-    %.ph = phi i64 [ %add6, %then5 ], [ %.ph.ph, %rec.outer.outer ]
-    %.ph11 = phi i64 [ 0, %then5 ], [ %.ph11.ph, %rec.outer.outer ]
-    %.ph12 = phi i64 [ %4, %then5 ], [ %.ph10.ph, %rec.outer.outer ]
+  rec.outer:                                        ; preds = %then8, %else10, %entry
+    %c3.ph = phi i64 [ %c, %entry ], [ 0, %then8 ], [ %add11, %else10 ]
+    %b2.ph = phi i64 [ %b, %entry ], [ %add9, %then8 ], [ %b2, %else10 ]
+    %a1.ph = phi i64 [ %a, %entry ], [ %a1, %then8 ], [ %a1, %else10 ]
     br label %rec
   
-  rec:                                              ; preds = %rec.outer, %else7
-    %3 = phi i64 [ %add8, %else7 ], [ %.ph11, %rec.outer ]
-    %4 = phi i64 [ %.ph10.ph, %else7 ], [ %.ph12, %rec.outer ]
-    %eq = icmp eq i64 %.ph, 3
+  rec:                                              ; preds = %rec.outer, %then
+    %b2 = phi i64 [ 0, %then ], [ %b2.ph, %rec.outer ]
+    %a1 = phi i64 [ %add, %then ], [ %a1.ph, %rec.outer ]
+    %eq = icmp eq i64 %b2, 3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
-    %add = add i64 %.ph10.ph, 1
+    %add = add i64 %a1, 1
     store i64 %add, i64* %0, align 4
     store i64 0, i64* %1, align 4
-    br label %rec.outer.outer
+    store i64 %c3.ph, i64* %2, align 4
+    br label %rec
   
   else:                                             ; preds = %rec
-    %eq1 = icmp eq i64 %4, 3
-    br i1 %eq1, label %then2, label %else3
+    %eq4 = icmp eq i64 %a1, 3
+    br i1 %eq4, label %then5, label %else6
   
-  then2:                                            ; preds = %else
+  then5:                                            ; preds = %else
     ret void
   
-  else3:                                            ; preds = %else
-    %eq4 = icmp eq i64 %3, 3
-    br i1 %eq4, label %then5, label %else7
+  else6:                                            ; preds = %else
+    %eq7 = icmp eq i64 %c3.ph, 3
+    br i1 %eq7, label %then8, label %else10
   
-  then5:                                            ; preds = %else3
-    %add6 = add i64 %.ph, 1
-    store i64 %add6, i64* %1, align 4
+  then8:                                            ; preds = %else6
+    store i64 %a1, i64* %0, align 4
+    %add9 = add i64 %b2, 1
+    store i64 %add9, i64* %1, align 4
     store i64 0, i64* %2, align 4
     br label %rec.outer
   
-  else7:                                            ; preds = %else3
-    %cstr13 = bitcast %string* %str to i8**
-    store i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i8** %cstr13, align 8
+  else10:                                           ; preds = %else6
+    %cstr16 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i8** %cstr16, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 11, i64* %length, align 4
-    tail call void @printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i64 %.ph10.ph, i64 %.ph, i64 %3)
-    %add8 = add i64 %3, 1
-    store i64 %add8, i64* %2, align 4
-    br label %rec
+    tail call void @printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i64 %a1, i64 %b2, i64 %c3.ph)
+    store i64 %a1, i64* %0, align 4
+    store i64 %b2, i64* %1, align 4
+    %add11 = add i64 %c3.ph, 1
+    store i64 %add11, i64* %2, align 4
+    br label %rec.outer
   }
   
   define void @schmu_nested__2(i64 %a, i64 %b, i64 %c) {
@@ -1447,58 +1445,56 @@ Tailcall loops
     %2 = alloca i64, align 8
     store i64 %c, i64* %2, align 4
     %str = alloca %string, align 8
-    br label %rec.outer.outer
-  
-  rec.outer.outer:                                  ; preds = %then, %entry
-    %.ph.ph = phi i64 [ 0, %then ], [ %b, %entry ]
-    %.ph11.ph = phi i64 [ %add, %then ], [ %a, %entry ]
-    %.ph13.ph = phi i64 [ %4, %then ], [ %c, %entry ]
     br label %rec.outer
   
-  rec.outer:                                        ; preds = %rec.outer.outer, %then2
-    %.ph = phi i64 [ %add3, %then2 ], [ %.ph.ph, %rec.outer.outer ]
-    %.ph12 = phi i64 [ %3, %then2 ], [ %.ph11.ph, %rec.outer.outer ]
-    %.ph13 = phi i64 [ 0, %then2 ], [ %.ph13.ph, %rec.outer.outer ]
+  rec.outer:                                        ; preds = %then5, %else10, %entry
+    %c3.ph = phi i64 [ %c, %entry ], [ 0, %then5 ], [ %add11, %else10 ]
+    %b2.ph = phi i64 [ %b, %entry ], [ %add6, %then5 ], [ %b2, %else10 ]
+    %a1.ph = phi i64 [ %a, %entry ], [ %a1, %then5 ], [ %a1, %else10 ]
     br label %rec
   
-  rec:                                              ; preds = %rec.outer, %else7
-    %3 = phi i64 [ %.ph11.ph, %else7 ], [ %.ph12, %rec.outer ]
-    %4 = phi i64 [ %add8, %else7 ], [ %.ph13, %rec.outer ]
-    %eq = icmp eq i64 %.ph, 3
+  rec:                                              ; preds = %rec.outer, %then
+    %b2 = phi i64 [ 0, %then ], [ %b2.ph, %rec.outer ]
+    %a1 = phi i64 [ %add, %then ], [ %a1.ph, %rec.outer ]
+    %eq = icmp eq i64 %b2, 3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
-    %add = add i64 %.ph11.ph, 1
+    %add = add i64 %a1, 1
     store i64 %add, i64* %0, align 4
     store i64 0, i64* %1, align 4
-    br label %rec.outer.outer
+    store i64 %c3.ph, i64* %2, align 4
+    br label %rec
   
   else:                                             ; preds = %rec
-    %eq1 = icmp eq i64 %4, 3
-    br i1 %eq1, label %then2, label %else4
+    %eq4 = icmp eq i64 %c3.ph, 3
+    br i1 %eq4, label %then5, label %else7
   
-  then2:                                            ; preds = %else
-    %add3 = add i64 %.ph, 1
-    store i64 %add3, i64* %1, align 4
+  then5:                                            ; preds = %else
+    store i64 %a1, i64* %0, align 4
+    %add6 = add i64 %b2, 1
+    store i64 %add6, i64* %1, align 4
     store i64 0, i64* %2, align 4
     br label %rec.outer
   
-  else4:                                            ; preds = %else
-    %eq5 = icmp eq i64 %3, 3
-    br i1 %eq5, label %then6, label %else7
+  else7:                                            ; preds = %else
+    %eq8 = icmp eq i64 %a1, 3
+    br i1 %eq8, label %then9, label %else10
   
-  then6:                                            ; preds = %else4
+  then9:                                            ; preds = %else7
     ret void
   
-  else7:                                            ; preds = %else4
-    %cstr14 = bitcast %string* %str to i8**
-    store i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i8** %cstr14, align 8
+  else10:                                           ; preds = %else7
+    %cstr17 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i8** %cstr17, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 11, i64* %length, align 4
-    tail call void @printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i64 %.ph11.ph, i64 %.ph, i64 %4)
-    %add8 = add i64 %4, 1
-    store i64 %add8, i64* %2, align 4
-    br label %rec
+    tail call void @printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), i64 %a1, i64 %b2, i64 %c3.ph)
+    store i64 %a1, i64* %0, align 4
+    store i64 %b2, i64* %1, align 4
+    %add11 = add i64 %c3.ph, 1
+    store i64 %add11, i64* %2, align 4
+    br label %rec.outer
   }
   
   define void @schmu_nested(i64 %a, i64 %b) {
@@ -1511,36 +1507,37 @@ Tailcall loops
     br label %rec.outer
   
   rec.outer:                                        ; preds = %entry, %then
-    %.ph = phi i64 [ %a, %entry ], [ %add, %then ]
-    %.ph6 = phi i64 [ %b, %entry ], [ 0, %then ]
+    %b2.ph = phi i64 [ %b, %entry ], [ 0, %then ]
+    %a1.ph = phi i64 [ %a, %entry ], [ %add, %then ]
     br label %rec
   
-  rec:                                              ; preds = %rec.outer, %else3
-    %2 = phi i64 [ %add4, %else3 ], [ %.ph6, %rec.outer ]
-    %eq = icmp eq i64 %2, 3
+  rec:                                              ; preds = %rec.outer, %else5
+    %b2 = phi i64 [ %add6, %else5 ], [ %b2.ph, %rec.outer ]
+    %eq = icmp eq i64 %b2, 3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
-    %add = add i64 %.ph, 1
+    %add = add i64 %a1.ph, 1
     store i64 %add, i64* %0, align 4
     store i64 0, i64* %1, align 4
     br label %rec.outer
   
   else:                                             ; preds = %rec
-    %eq1 = icmp eq i64 %.ph, 3
-    br i1 %eq1, label %then2, label %else3
+    %eq3 = icmp eq i64 %a1.ph, 3
+    br i1 %eq3, label %then4, label %else5
   
-  then2:                                            ; preds = %else
+  then4:                                            ; preds = %else
     ret void
   
-  else3:                                            ; preds = %else
-    %cstr7 = bitcast %string* %str to i8**
-    store i8* getelementptr inbounds ([8 x i8], [8 x i8]* @1, i32 0, i32 0), i8** %cstr7, align 8
+  else5:                                            ; preds = %else
+    %cstr10 = bitcast %string* %str to i8**
+    store i8* getelementptr inbounds ([8 x i8], [8 x i8]* @1, i32 0, i32 0), i8** %cstr10, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     store i64 7, i64* %length, align 4
-    tail call void @printf(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @1, i32 0, i32 0), i64 %.ph, i64 %2, i64 0)
-    %add4 = add i64 %2, 1
-    store i64 %add4, i64* %1, align 4
+    tail call void @printf(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @1, i32 0, i32 0), i64 %a1.ph, i64 %b2, i64 0)
+    store i64 %a1.ph, i64* %0, align 4
+    %add6 = add i64 %b2, 1
+    store i64 %add6, i64* %1, align 4
     br label %rec
   }
   

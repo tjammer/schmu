@@ -572,11 +572,9 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
               let typ = p.pt in
               let i = get_index i p.pmut typ in
               let llvar = Vars.find (name_of_alloc_param i) env in
-              let value =
-                if is_struct typ then Llvm.build_load llvar.value name builder
-                else llvar.value
-              in
-              (Vars.add name { llvar with value } env, i + 1))
+              let value = Llvm.build_load llvar.value name builder in
+              let kind = default_kind typ in
+              (Vars.add name { llvar with value; kind } env, i + 1))
             (vars, start_index) names params
         in
 
