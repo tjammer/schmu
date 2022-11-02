@@ -255,18 +255,18 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
       (* free *)
       Llvm.position_at_end free_bb builder;
-      let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
-      let sz = Llvm.build_load sz "size" builder in
-
       let item_type = item_type var.typ in
+      (if contains_array item_type then
+       let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
+       let sz = Llvm.build_load sz "size" builder in
 
-      let data =
-        Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-        Llvm.build_bitcast ptr
-          (get_lltype_def item_type |> Llvm.pointer_type)
-          "data" builder
-      in
-      iter_array_children data sz item_type decr_refcount;
+       let data =
+         Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+         Llvm.build_bitcast ptr
+           (get_lltype_def item_type |> Llvm.pointer_type)
+           "data" builder
+       in
+       iter_array_children data sz item_type decr_refcount);
 
       ignore (free int_ptr);
       ignore (Llvm.build_br merge_bb builder);

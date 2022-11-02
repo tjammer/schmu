@@ -1073,31 +1073,12 @@ Copies, but with ref-counted arrays
     br label %merge
   
   free:                                             ; preds = %entry
-    %sz = getelementptr i64, i64* %0, i64 1
-    %size = load i64, i64* %sz, align 4
-    %data = getelementptr i64, i64* %0, i64 3
-    %cnt = alloca i64, align 8
-    store i64 0, i64* %cnt, align 4
-    br label %rec
-  
-  merge:                                            ; preds = %cont, %decr
-    ret void
-  
-  rec:                                              ; preds = %child, %free
-    %4 = load i64, i64* %cnt, align 4
-    %5 = icmp slt i64 %4, %size
-    br i1 %5, label %child, label %cont
-  
-  child:                                            ; preds = %rec
-    %6 = getelementptr i64, i64* %data, i64 %4
-    %7 = add i64 %4, 1
-    store i64 %7, i64* %cnt, align 4
-    br label %rec
-  
-  cont:                                             ; preds = %rec
-    %8 = bitcast i64* %0 to i8*
-    call void @free(i8* %8)
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
     br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
   }
   
   declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
@@ -1314,31 +1295,12 @@ Copies, but with ref-counted arrays
     br label %merge
   
   free:                                             ; preds = %entry
-    %sz = getelementptr i64, i64* %0, i64 1
-    %size = load i64, i64* %sz, align 4
-    %data = getelementptr i64, i64* %0, i64 3
-    %cnt = alloca i64, align 8
-    store i64 0, i64* %cnt, align 4
-    br label %rec
-  
-  merge:                                            ; preds = %cont, %decr
-    ret void
-  
-  rec:                                              ; preds = %child, %free
-    %4 = load i64, i64* %cnt, align 4
-    %5 = icmp slt i64 %4, %size
-    br i1 %5, label %child, label %cont
-  
-  child:                                            ; preds = %rec
-    %6 = getelementptr i64, i64* %data, i64 %4
-    %7 = add i64 %4, 1
-    store i64 %7, i64* %cnt, align 4
-    br label %rec
-  
-  cont:                                             ; preds = %rec
-    %8 = bitcast i64* %0 to i8*
-    call void @free(i8* %8)
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
     br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
   }
   
   define internal void @__g.u_decr_rc_arrec.u(%arrec* %0) {
@@ -1357,31 +1319,12 @@ Copies, but with ref-counted arrays
     br label %merge
   
   free:                                             ; preds = %entry
-    %sz = getelementptr i64, i64* %2, i64 1
-    %size = load i64, i64* %sz, align 4
-    %data = getelementptr i64, i64* %2, i64 3
-    %cnt = alloca i64, align 8
-    store i64 0, i64* %cnt, align 4
-    br label %rec
-  
-  merge:                                            ; preds = %cont, %decr
-    ret void
-  
-  rec:                                              ; preds = %child, %free
-    %6 = load i64, i64* %cnt, align 4
-    %7 = icmp slt i64 %6, %size
-    br i1 %7, label %child, label %cont
-  
-  child:                                            ; preds = %rec
-    %8 = getelementptr i64, i64* %data, i64 %6
-    %9 = add i64 %6, 1
-    store i64 %9, i64* %cnt, align 4
-    br label %rec
-  
-  cont:                                             ; preds = %rec
-    %10 = bitcast i64* %2 to i8*
-    call void @free(i8* %10)
+    %6 = bitcast i64* %2 to i8*
+    call void @free(i8* %6)
     br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
   }
   
   declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
@@ -1709,31 +1652,12 @@ Copies, but with ref-counted arrays
     br label %merge
   
   free:                                             ; preds = %entry
-    %sz = getelementptr i64, i64* %0, i64 1
-    %size = load i64, i64* %sz, align 4
-    %data = getelementptr i64, i64* %0, i64 3
-    %cnt = alloca i64, align 8
-    store i64 0, i64* %cnt, align 4
-    br label %rec
-  
-  merge:                                            ; preds = %cont, %decr
-    ret void
-  
-  rec:                                              ; preds = %child, %free
-    %4 = load i64, i64* %cnt, align 4
-    %5 = icmp slt i64 %4, %size
-    br i1 %5, label %child, label %cont
-  
-  child:                                            ; preds = %rec
-    %6 = getelementptr i64, i64* %data, i64 %4
-    %7 = add i64 %4, 1
-    store i64 %7, i64* %cnt, align 4
-    br label %rec
-  
-  cont:                                             ; preds = %rec
-    %8 = bitcast i64* %0 to i8*
-    call void @free(i8* %8)
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
     br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
   }
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
