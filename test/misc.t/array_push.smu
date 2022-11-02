@@ -1,0 +1,19 @@
+(val a& $[10 20])
+(val b a)
+
+(array-push &a 30)
+
+(print (fmt-str (array-length a)))
+(print (fmt-str (array-length b)))
+
+
+(fun in-fun []
+  (val a& $[10 20])
+  (val b a)
+
+  (array-push &a 30)
+
+  (print (fmt-str (array-length a)))
+  (print (fmt-str (array-length b))))
+
+(in-fun)

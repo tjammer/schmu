@@ -489,7 +489,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
           let v1 = (Llvm.params f.value).(i) in
           let v2 = (Llvm.params f.value).(i + 1) in
           (maybe_box_record ~snd_val:(Some v2) mut typ v1, i + 1)
-      | _ -> ((Llvm.params f.value).(i) |> maybe_box_record mut typ, i)
+      | _ -> (Llvm.param f.value i |> maybe_box_record mut typ, i)
     in
 
     let add_simple vars =
@@ -498,7 +498,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
         (fun (env, i) name p ->
           let typ = p.pt in
           let value, i = get_value i p.pmut typ in
-          let kind = default_kind typ in
+          let kind = if p.pmut then Ptr else default_kind typ in
           let param = { value; typ; lltyp = get_lltype_def typ; kind } in
           Llvm.set_value_name name value;
           (Vars.add name param env, i + 1))
