@@ -75,7 +75,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let vec_sz = List.length exprs in
 
     let _, llitem_typ, head_size, item_size = item_type_head_size typ in
-    let cap = head_size + (vec_sz * item_size) in
+    let cap_sz = Int.max 1 vec_sz in
+    let cap = head_size + (cap_sz * item_size) in
 
     let lltyp = get_lltype_def typ in
     let ptr =
@@ -94,7 +95,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
     ignore (Llvm.build_store (ci vec_sz) dst builder);
     let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
-    ignore (Llvm.build_store (ci vec_sz) dst builder);
+    ignore (Llvm.build_store (ci cap_sz) dst builder);
     let ptr =
       Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
       Llvm.build_bitcast ptr (Llvm.pointer_type llitem_typ) "" builder

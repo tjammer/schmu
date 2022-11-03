@@ -1016,12 +1016,12 @@ and morph_lambda typ p id abs =
     { p with vars; ret = true; mallocs = []; ids }
   in
 
-  let tmp, body, var = morph_expr temp_p abs.body in
+    enter_level ();
+  let temp_p, body, var = morph_expr temp_p abs.body in
+  leave_level ();
 
   (* Collect functions from body *)
-  enter_level ();
-  let p = { p with monomorphized = tmp.monomorphized; funcs = tmp.funcs } in
-  leave_level ();
+  let p = { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs } in
 
   if is_struct body.typ then (
     set_alloca var.alloc;

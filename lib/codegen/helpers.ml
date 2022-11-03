@@ -506,7 +506,8 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
       |> fst
     in
 
-    let alloca_copy src =
+    let alloca_copy mut src =
+      let m t = if mut then Llvm.pointer_type t else t in
       match src.typ with
       | Tfun _ ->
           let typ = Llvm.pointer_type closure_t in
@@ -521,7 +522,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
       | Traw_ptr _ -> failwith "TODO"
       | t ->
           (* Simple type *)
-          let typ = get_lltype_def t in
+          let typ = get_lltype_def t |> m in
           let dst = Llvm.build_alloca typ "" builder in
           tailrec_store ~src ~dst;
           dst
@@ -552,7 +553,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
               let value =
                 { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
               in
-              let alloc = { value with value = alloca_copy value } in
+              let alloc = { value with value = alloca_copy p.pmut value } in
               (Vars.add (name_of_alloc_param i) alloc env, i + 1))
             (vars, start_index) names params
           |> fst
@@ -573,7 +574,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
               let i = get_index i p.pmut typ in
               let llvar = Vars.find (name_of_alloc_param i) env in
               let value = Llvm.build_load llvar.value name builder in
-              let kind = default_kind typ in
+              let kind = if p.pmut then Ptr else default_kind typ in
               (Vars.add name { llvar with value; kind } env, i + 1))
             (vars, start_index) names params
         in

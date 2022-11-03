@@ -24,3 +24,53 @@
 
 -- don't change
 (print (fmt-str (.a rf)))
+
+-- same for int record type
+(type r {:a& int})
+
+(fun mod-rec [r& i]
+  (if (= i 2)
+    (set &(.a r) i)
+    (mod-rec &r (+ i 1))))
+
+(let [ar& {:a 20}]
+  (mod-rec &ar 0)
+  (print (fmt-str (.a ar))))
+
+-- array
+(fun push-twice [a& i]
+  (if (= i 2)
+    ()
+    (do
+      (array-push &a 20)
+      (push-twice &a (+ i 1)))))
+
+(let [a& $[10 20]]
+  (push-twice &a 0)
+  (print (fmt-str (array-length a))))
+
+-- int
+(fun change-int [i& j]
+  (if (= j 100)
+    (set &i j)
+    (change-int &i (+ j 1))))
+
+(let [i& 0]
+  (change-int &i 0)
+  (print (fmt-str i)))
+
+-- create bogus objects to tidy up
+(fun test [a& i]
+  (cond
+    ((= i 2) (let [b& $[10]]
+               (test &b (+ i 1))))
+    ((= i 10) (let [b& $[10]]
+                (test &b (+ i 1))))
+    ((= i 12) ())
+    (else (do
+            (array-push &a 20)
+            (test &a (+ i 1))))))
+
+(let [a& $[]]
+  (test &a 0)
+  (print (fmt-str (array-length a))))
