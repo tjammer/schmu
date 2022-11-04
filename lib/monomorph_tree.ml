@@ -27,6 +27,7 @@ type expr =
       alloca : alloca;
       malloc : int option;
       id : int;
+      vid : int option;
     }
   | Mrecord of (string * monod_tree) list * alloca * int option * bool
   | Mfield of (monod_tree * int)
@@ -409,7 +410,7 @@ let rec subst_body p subst tree =
         in
         let cont = { (inner cont) with typ = subst cont.typ } in
         { tree with typ = cont.typ; expr = Mfunction (name, abs, cont) }
-    | Mapp { callee; args; alloca; malloc; id } ->
+    | Mapp { callee; args; alloca; malloc; id; vid } ->
         let ex = sub callee.ex in
 
         (* We use the parametrs at function creation time to deal with scope *)
@@ -430,7 +431,7 @@ let rec subst_body p subst tree =
         {
           tree with
           typ = func.ret;
-          expr = Mapp { callee; args; alloca; malloc; id };
+          expr = Mapp { callee; args; alloca; malloc; id; vid };
         }
     | Mrecord (labels, alloca, id, const) ->
         let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
@@ -628,7 +629,7 @@ let rec is_temporary = function
       match callee.monomorph with
       | Inline (_, e) -> is_temporary e.expr
       | Builtin (Unsafe_ptr_get, _) -> false
-      | Builtin (Array_get, _) -> false
+      | Builtin (Array_get, _) -> true
       | _ -> true)
   | Munop (_, t) -> is_temporary t.expr
   | Mif { e1; e2; _ } -> is_temporary e1.expr && is_temporary e2.expr
@@ -698,7 +699,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
         },
         func )
   | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
-  | App { callee; args } -> morph_app make param callee args
+  | App { callee; args } -> morph_app make param callee args (cln texpr.typ)
   | Ctor (variant, index, dataexpr) ->
       morph_ctor make param variant index dataexpr texpr.attr
   | Variant_index expr -> morph_var_index make param expr
@@ -883,13 +884,22 @@ and morph_field mk p expr index =
 
 and morph_set mk p expr value =
   let ret = p.ret in
+  let ids = p.ids in
+  (* We don't track allocations in the to-set expr.
+     This helps with nested allocated things.
+     If we do, there are additional relocations happening and the wrong
+     things are freed. If one were to force an allocation here,
+     that's a leak*)
   let p, e, _ = morph_expr { p with ret = false } expr in
-  let p, v, func = morph_expr p value in
+  let p, v, func = morph_expr { p with ids = [] } value in
+
+  let tree = mk (Mset (e, v)) ret in
+  let tree = decr_refs tree p.ids in
 
   (* TODO handle this in morph_call, where realloc drops the old ptr and adds the new one to the free list *)
   (* If we mutate a ptr with realloced ptr, the old one is already freed and we drop it from
      the free list *)
-  ({ p with ret }, mk (Mset (e, v)) ret, func)
+  ({ p with ret; ids }, tree, func)
 
 and morph_seq mk p expr cont =
   let ret = p.ret in
@@ -1016,12 +1026,14 @@ and morph_lambda typ p id abs =
     { p with vars; ret = true; mallocs = []; ids }
   in
 
-    enter_level ();
+  enter_level ();
   let temp_p, body, var = morph_expr temp_p abs.body in
   leave_level ();
 
   (* Collect functions from body *)
-  let p = { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs } in
+  let p =
+    { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
+  in
 
   if is_struct body.typ then (
     set_alloca var.alloc;
@@ -1049,7 +1061,7 @@ and morph_lambda typ p id abs =
     { typ; expr = Mlambda (name, abs); return = ret },
     { var with fn } )
 
-and morph_app mk p callee args =
+and morph_app mk p callee args ret_typ =
   (* Save env for later monomorphization *)
   let id = new_id malloc_id in
   Apptbl.add apptbl id p;
@@ -1087,11 +1099,13 @@ and morph_app mk p callee args =
     else (No_value, ref (request ()))
   in
 
+  let vid, ids = mb_id p ret_typ in
   let app =
     let malloc = Option.map (fun (m : malloc) -> m.id) malloc in
-    Mapp { callee; args; alloca = alloc_ref; malloc; id }
+    Mapp { callee; args; alloca = alloc_ref; malloc; id; vid }
   in
-  ({ p with ret }, mk app ret, { no_var with alloc; malloc })
+
+  ({ p with ret; ids }, mk app ret, { no_var with alloc; malloc })
 
 and morph_ctor mk p variant index expr is_const =
   let ret = p.ret in

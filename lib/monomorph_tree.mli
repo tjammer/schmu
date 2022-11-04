@@ -21,6 +21,7 @@ type expr =
       (* Mallocs have to go through a call to get propagated.
          Codegen must check if there are nested allocations *)
       id : int; (* Internal id for nested monomorphization *)
+      vid : int option;
     }
   | Mrecord of
       (string * monod_tree) list
@@ -57,7 +58,7 @@ and const =
   | Unit
 (* The int is the malloc id used for freeing later *)
 
-and func = { params : param list; ret : typ; kind : fun_kind } [@@deriving show]
+and func = { params : param list; ret : typ; kind : fun_kind }
 and abstraction = { func : func; pnames : string list; body : monod_tree }
 
 and call_name =

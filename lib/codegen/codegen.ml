@@ -147,14 +147,19 @@ end = struct
               dummy_fn_value
         in
         func
-    | Mapp { callee; args; alloca; malloc; id = _ } -> (
-        match (typed_expr.return, callee.monomorph, param.rec_block) with
-        | true, Recursive _, Some block ->
-            gen_app_tailrec param callee args block typed_expr.typ
-        | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args |> fin
-        | _, Inline (pnames, tree), _ ->
-            gen_app_inline param args pnames tree |> fin
-        | _ -> gen_app param callee args alloca typed_expr.typ malloc |> fin)
+    | Mapp { callee; args; alloca; malloc; id = _; vid } ->
+        let value =
+          match (typed_expr.return, callee.monomorph, param.rec_block) with
+          | true, Recursive _, Some block ->
+              gen_app_tailrec param callee args block typed_expr.typ
+          | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args
+          | _, Inline (pnames, tree), _ -> gen_app_inline param args pnames tree
+          | _ -> gen_app param callee args alloca typed_expr.typ malloc
+        in
+        (match vid with
+        | Some id -> Strtbl.replace decr_tbl id value
+        | None -> ());
+        fin value
     | Mif expr -> gen_if param expr typed_expr.return
     | Mrecord (labels, allocref, id, const) ->
         gen_record param typed_expr.typ labels allocref id const
