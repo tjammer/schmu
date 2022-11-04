@@ -7,6 +7,9 @@ Test simple setting of mutable variables
   %string = type { i8*, i64 }
   
   @b = global i64 0, align 8
+  @a = global i64** null, align 8
+  @b__2 = global i64** null, align 8
+  @c = global i64* null, align 8
   @0 = private unnamed_addr constant [4 x i8] c"%li\00", align 1
   
   declare void @schmu_print(i64 %0, i64 %1)
@@ -29,8 +32,8 @@ Test simple setting of mutable variables
     %2 = tail call i8* @malloc(i64 %1)
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %2, i64 %1, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 14)
     %str = alloca %string, align 8
-    %cstr16 = bitcast %string* %str to i8**
-    store i8* %2, i8** %cstr16, align 8
+    %cstr38 = bitcast %string* %str to i8**
+    store i8* %2, i8** %cstr38, align 8
     %length = getelementptr inbounds %string, %string* %str, i32 0, i32 1
     %3 = mul i64 %1, -1
     store i64 %3, i64* %length, align 4
@@ -45,8 +48,8 @@ Test simple setting of mutable variables
     %8 = tail call i8* @malloc(i64 %7)
     %fmt4 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %8, i64 %7, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i64 %5)
     %str5 = alloca %string, align 8
-    %cstr618 = bitcast %string* %str5 to i8**
-    store i8* %8, i8** %cstr618, align 8
+    %cstr640 = bitcast %string* %str5 to i8**
+    store i8* %8, i8** %cstr640, align 8
     %length7 = getelementptr inbounds %string, %string* %str5, i32 0, i32 1
     %9 = mul i64 %7, -1
     store i64 %9, i64* %length7, align 4
@@ -54,6 +57,88 @@ Test simple setting of mutable variables
     %10 = ptrtoint i8* %8 to i64
     %snd11 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox8, i32 0, i32 1
     tail call void @schmu_print(i64 %10, i64 %9)
+    %11 = tail call i8* @malloc(i64 40)
+    %12 = bitcast i8* %11 to i64**
+    store i64** %12, i64*** @a, align 8
+    %13 = bitcast i64** %12 to i64*
+    store i64 1, i64* %13, align 4
+    %size = getelementptr i64, i64* %13, i64 1
+    store i64 2, i64* %size, align 4
+    %cap = getelementptr i64, i64* %13, i64 2
+    store i64 2, i64* %cap, align 4
+    %data = getelementptr i64, i64* %13, i64 3
+    %14 = bitcast i64* %data to i64**
+    %15 = tail call i8* @malloc(i64 32)
+    %16 = bitcast i8* %15 to i64*
+    store i64* %16, i64** %14, align 8
+    store i64 1, i64* %16, align 4
+    %size14 = getelementptr i64, i64* %16, i64 1
+    store i64 1, i64* %size14, align 4
+    %cap15 = getelementptr i64, i64* %16, i64 2
+    store i64 1, i64* %cap15, align 4
+    %data16 = getelementptr i64, i64* %16, i64 3
+    store i64 10, i64* %data16, align 4
+    %"1" = getelementptr i64*, i64** %14, i64 1
+    %17 = tail call i8* @malloc(i64 32)
+    %18 = bitcast i8* %17 to i64*
+    store i64* %18, i64** %"1", align 8
+    store i64 1, i64* %18, align 4
+    %size19 = getelementptr i64, i64* %18, i64 1
+    store i64 1, i64* %size19, align 4
+    %cap20 = getelementptr i64, i64* %18, i64 2
+    store i64 1, i64* %cap20, align 4
+    %data21 = getelementptr i64, i64* %18, i64 3
+    store i64 20, i64* %data21, align 4
+    %19 = load i64**, i64*** @a, align 8
+    store i64** %19, i64*** @a, align 8
+    tail call void @__g.u_incr_rc_aai.u(i64** %19)
+    store i64** %19, i64*** @b__2, align 8
+    %20 = tail call i8* @malloc(i64 32)
+    %21 = bitcast i8* %20 to i64*
+    store i64* %21, i64** @c, align 8
+    store i64 1, i64* %21, align 4
+    %size24 = getelementptr i64, i64* %21, i64 1
+    store i64 1, i64* %size24, align 4
+    %cap25 = getelementptr i64, i64* %21, i64 2
+    store i64 1, i64* %cap25, align 4
+    %data26 = getelementptr i64, i64* %21, i64 3
+    store i64 30, i64* %data26, align 4
+    %22 = load i64*, i64** @c, align 8
+    store i64* %22, i64** @c, align 8
+    %23 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @a)
+    %24 = bitcast i64** %23 to i64*
+    %data28 = getelementptr i64, i64* %24, i64 3
+    %25 = bitcast i64* %data28 to i64**
+    %26 = load i64*, i64** %25, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %26)
+    %27 = load i64*, i64** @c, align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %27)
+    %28 = load i64*, i64** @c, align 8
+    store i64* %28, i64** %25, align 8
+    %29 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @a)
+    %30 = bitcast i64** %29 to i64*
+    %data29 = getelementptr i64, i64* %30, i64 3
+    %31 = bitcast i64* %data29 to i64**
+    %32 = load i64*, i64** %31, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %32)
+    %33 = tail call i8* @malloc(i64 32)
+    %34 = bitcast i8* %33 to i64*
+    %arr = alloca i64*, align 8
+    store i64* %34, i64** %arr, align 8
+    store i64 1, i64* %34, align 4
+    %size31 = getelementptr i64, i64* %34, i64 1
+    store i64 1, i64* %size31, align 4
+    %cap32 = getelementptr i64, i64* %34, i64 2
+    store i64 1, i64* %cap32, align 4
+    %data33 = getelementptr i64, i64* %34, i64 3
+    store i64 10, i64* %data33, align 4
+    store i64* %34, i64** %31, align 8
+    %35 = load i64**, i64*** @b__2, align 8
+    tail call void @__g.u_decr_rc_aai.u(i64** %35)
+    %36 = load i64*, i64** @c, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %36)
+    %37 = load i64**, i64*** @a, align 8
+    tail call void @__g.u_decr_rc_aai.u(i64** %37)
     %owned = icmp slt i64 %9, 0
     br i1 %owned, label %free, label %cont
   
@@ -62,14 +147,20 @@ Test simple setting of mutable variables
     br label %cont
   
   cont:                                             ; preds = %free, %entry
-    %owned15 = icmp slt i64 %3, 0
-    br i1 %owned15, label %free13, label %cont14
+    %38 = bitcast %string* %str to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %38, i64 8
+    %39 = bitcast i8* %sunkaddr to i64*
+    %40 = load i64, i64* %39, align 4
+    %owned37 = icmp slt i64 %40, 0
+    br i1 %owned37, label %free35, label %cont36
   
-  free13:                                           ; preds = %cont
-    tail call void @free(i8* %2)
-    br label %cont14
+  free35:                                           ; preds = %cont
+    %41 = bitcast %string* %str to i8**
+    %42 = load i8*, i8** %41, align 8
+    tail call void @free(i8* %42)
+    br label %cont36
   
-  cont14:                                           ; preds = %free13, %cont
+  cont36:                                           ; preds = %free35, %cont
     ret i64 0
   }
   
@@ -77,7 +168,158 @@ Test simple setting of mutable variables
   
   declare i8* @malloc(i64 %0)
   
+  define internal void @__g.u_incr_rc_aai.u(i64** %0) {
+  entry:
+    %ref = bitcast i64** %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 4
+    %1 = add i64 %ref2, 1
+    store i64 %1, i64* %ref13, align 4
+    ret void
+  }
+  
+  define internal i64** @__ag.ag_reloc_aai.aai(i64*** %0) {
+  entry:
+    %1 = load i64**, i64*** %0, align 8
+    %ref = bitcast i64** %1 to i64*
+    %ref17 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref17, align 4
+    %2 = icmp sgt i64 %ref2, 1
+    br i1 %2, label %relocate, label %merge
+  
+  relocate:                                         ; preds = %entry
+    %3 = bitcast i64** %1 to i64*
+    %sz = getelementptr i64, i64* %3, i64 1
+    %size = load i64, i64* %sz, align 4
+    %cap = getelementptr i64, i64* %3, i64 2
+    %cap3 = load i64, i64* %cap, align 4
+    %4 = mul i64 %cap3, 8
+    %5 = add i64 %4, 24
+    %6 = call i8* @malloc(i64 %5)
+    %7 = bitcast i8* %6 to i64**
+    %8 = mul i64 %size, 8
+    %9 = add i64 %8, 24
+    %10 = bitcast i64** %7 to i8*
+    %11 = bitcast i64** %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %10, i8* %11, i64 %9, i1 false)
+    store i64** %7, i64*** %0, align 8
+    %ref4 = bitcast i64** %7 to i64*
+    %ref58 = bitcast i64* %ref4 to i64*
+    store i64 1, i64* %ref58, align 4
+    call void @__g.u_decr_rc_aai.u(i64** %1)
+    %cnt = alloca i64, align 8
+    store i64 0, i64* %cnt, align 4
+    br label %rec
+  
+  merge:                                            ; preds = %rec, %entry
+    %12 = load i64**, i64*** %0, align 8
+    ret i64** %12
+  
+  rec:                                              ; preds = %child, %relocate
+    %13 = load i64, i64* %cnt, align 4
+    %14 = icmp slt i64 %13, %size
+    br i1 %14, label %child, label %merge
+  
+  child:                                            ; preds = %rec
+    %sunkaddr = mul i64 %13, 8
+    %15 = bitcast i64** %1 to i8*
+    %sunkaddr9 = getelementptr i8, i8* %15, i64 %sunkaddr
+    %sunkaddr10 = getelementptr i8, i8* %sunkaddr9, i64 24
+    %16 = bitcast i8* %sunkaddr10 to i64**
+    %17 = load i64*, i64** %16, align 8
+    call void @__g.u_incr_rc_ai.u(i64* %17)
+    %18 = add i64 %13, 1
+    store i64 %18, i64* %cnt, align 4
+    br label %rec
+  }
+  
+  define internal void @__g.u_decr_rc_aai.u(i64** %0) {
+  entry:
+    %ref = bitcast i64** %0 to i64*
+    %ref14 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref14, align 4
+    %1 = icmp eq i64 %ref2, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i64** %0 to i64*
+    %3 = bitcast i64* %2 to i64*
+    %4 = sub i64 %ref2, 1
+    store i64 %4, i64* %3, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %5 = bitcast i64** %0 to i64*
+    %sz = getelementptr i64, i64* %5, i64 1
+    %size = load i64, i64* %sz, align 4
+    %cnt = alloca i64, align 8
+    store i64 0, i64* %cnt, align 4
+    br label %rec
+  
+  merge:                                            ; preds = %cont, %decr
+    ret void
+  
+  rec:                                              ; preds = %child, %free
+    %6 = load i64, i64* %cnt, align 4
+    %7 = icmp slt i64 %6, %size
+    br i1 %7, label %child, label %cont
+  
+  child:                                            ; preds = %rec
+    %sunkaddr = mul i64 %6, 8
+    %8 = bitcast i64** %0 to i8*
+    %sunkaddr5 = getelementptr i8, i8* %8, i64 %sunkaddr
+    %sunkaddr6 = getelementptr i8, i8* %sunkaddr5, i64 24
+    %9 = bitcast i8* %sunkaddr6 to i64**
+    %10 = load i64*, i64** %9, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %10)
+    %11 = add i64 %6, 1
+    store i64 %11, i64* %cnt, align 4
+    br label %rec
+  
+  cont:                                             ; preds = %rec
+    %12 = bitcast i64** %0 to i64*
+    %13 = bitcast i64* %12 to i8*
+    call void @free(i8* %13)
+    br label %merge
+  }
+  
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = icmp eq i64 %ref1, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i64* %0 to i64*
+    %3 = sub i64 %ref1, 1
+    store i64 %3, i64* %2, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
+  
   declare void @free(i8* %0)
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
   14
   15
 

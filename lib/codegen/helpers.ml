@@ -325,7 +325,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
         if value.value <> ptr then
           let size = sizeof_typ value.typ |> llval_of_size in
           memcpy ~dst:ptr ~src:value ~size
-    | _ -> ignore (Llvm.build_store value.value ptr builder)
+    | _ -> ignore (Llvm.build_store (bring_default value) ptr builder)
 
   let mangle name = function C -> name | Schmu -> "schmu_" ^ name
 

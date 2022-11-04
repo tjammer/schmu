@@ -893,8 +893,12 @@ and morph_set mk p expr value =
   let p, e, _ = morph_expr { p with ret = false } expr in
   let p, v, func = morph_expr { p with ids = [] } value in
 
+  let v =
+    if not (is_temporary v.expr) then { v with expr = Mincr_ref v } else v
+  in
+
   let tree = mk (Mset (e, v)) ret in
-  let tree = decr_refs tree p.ids in
+  let tree = decr_refs tree (remove_id ~id:func.id p.ids) in
 
   (* TODO handle this in morph_call, where realloc drops the old ptr and adds the new one to the free list *)
   (* If we mutate a ptr with realloced ptr, the old one is already freed and we drop it from

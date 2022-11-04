@@ -7,3 +7,11 @@
   (set &b 15)
   b)
 (print (fmt-str (hmm)))
+
+(val a& $[$[10] $[20]])
+(val b a)
+(ignore b)
+
+(val c $[30])
+(set &(array-get a 0) c)
+(set &(array-get a 0) $[10])

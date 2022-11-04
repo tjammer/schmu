@@ -429,6 +429,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
       Llvm.build_bitcast ptr arr.lltyp "" builder
     in
     let ptr = Llvm.build_gep ptr [| index |] "" builder in
+    decr_refcount { value with value = ptr; kind = Ptr };
 
     set_struct_field value ptr;
     { dummy_fn_value with lltyp = unit_t }
