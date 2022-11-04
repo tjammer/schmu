@@ -1,5 +1,5 @@
 Test simple setting of mutable variables
-  $ schmu --dump-llvm simple_set.smu && ./simple_set
+  $ schmu --dump-llvm simple_set.smu && valgrind -q --leak-check=yes ./simple_set
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -362,7 +362,7 @@ Use mutable values as ptrs to C code
   }
 
 Make sure there is no aliasing here
-  $ schmu --dump-llvm copies.smu && ./copies
+  $ schmu --dump-llvm copies.smu && valgrind -q --leak-check=yes ./copies
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -702,7 +702,7 @@ Make sure there is no aliasing here
   1
   0
 
-  $ schmu --dump-llvm mut_alias.smu && ./mut_alias
+  $ schmu --dump-llvm mut_alias.smu && valgrind -q --leak-check=yes ./mut_alias
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -903,7 +903,7 @@ Make sure there is no aliasing here
   0
   0
 
-  $ schmu --dump-llvm const_let.smu && ./const_let
+  $ schmu --dump-llvm const_let.smu && valgrind -q --leak-check=yes ./const_let
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1932,7 +1932,7 @@ Copies, but with ref-counted arrays
   10, 20
 
 
-  $ schmu --dump-llvm modify_in_fn.smu && ./modify_in_fn
+  $ schmu --dump-llvm modify_in_fn.smu && valgrind -q --leak-check=yes ./modify_in_fn
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

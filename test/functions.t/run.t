@@ -1280,7 +1280,7 @@ Closures have to be added to the env of other closures, so they can be called co
   20
 
 Don't copy mutable types in setup of tailrecursive functions
-  $ schmu --dump-llvm tailrec_mutable.smu && ./tailrec_mutable
+  $ schmu --dump-llvm tailrec_mutable.smu && valgrind -q --leak-check=yes ./tailrec_mutable
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

@@ -64,7 +64,7 @@ Test simple typedef
 
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
-  $ schmu --dump-llvm stub.o free_vector.smu && ./free_vector
+  $ schmu --dump-llvm stub.o free_vector.smu && valgrind -q --leak-check=yes ./free_vector
   free_vector.smu:7:6: warning: Unused binding vec
   7 | (val vec ["hey" "young" "world"])
            ^^^
@@ -1750,7 +1750,7 @@ Ensure global are loadad correctly when passed to functions
   }
 
 
-  $ schmu --dump-llvm array_push.smu && ./array_push
+  $ schmu --dump-llvm array_push.smu && valgrind -q --leak-check=yes ./array_push
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
