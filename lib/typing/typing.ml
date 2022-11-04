@@ -432,15 +432,24 @@ let rec param_funcs_as_closures = function
 let convert_simple_lit typ expr =
   { typ; expr = Const expr; attr = { no_attr with const = true } }
 
-let rec builtins_hack = function
+let rec builtins_hack callee args =
   (* return of __unsafe_ptr_get should be marked mut, otherwise it won't be copied
      correctly later in codegen. *)
   (* NOTE is_temporary is monomorph_tree also needs to be updated *)
+  match callee with
   | Ast.Var (_, id) -> (
       match id with
-      | "__unsafe_ptr_get" | "array-get" -> { no_attr with mut = true }
+      | "__unsafe_ptr_get" -> { no_attr with mut = true }
+      | "array-get" ->
+          let mut =
+            match args with
+            (* We only care about the first arg, ie the array *)
+            | (_, _, mut) :: _ -> mut
+            | _ -> false
+          in
+          { no_attr with mut }
       | _ -> no_attr)
-  | Let_e (__, _, _, cont) -> builtins_hack cont
+  | Let_e (__, _, _, cont) -> builtins_hack cont args
   | _ -> no_attr
 
 module rec Core : sig
@@ -684,19 +693,22 @@ end = struct
                   (Error (a.aloc, "Mutably passed expression is not mutable")));
             e
           in
-          (e, a.amut))
+          (* We also care about whether the argument _can_ be mutable, for array-get *)
+          (e, a.amut, e.attr.mut))
         args
     in
-    let args_t = List.map (fun (a, pmut) -> { pmut; pt = a.typ }) typed_exprs in
+    let args_t =
+      List.map (fun (a, pmut, _) -> { pmut; pt = a.typ }) typed_exprs
+    in
     let res_t = newvar () in
     if switch_uni then
       unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ
     else unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple));
 
-    let apply param (texpr, mut) = ({ texpr with typ = param.pt }, mut) in
+    let apply param (texpr, mut, _) = ({ texpr with typ = param.pt }, mut) in
     let targs = List.map2 apply args_t typed_exprs in
 
-    let attr = builtins_hack e1 in
+    let attr = builtins_hack e1 typed_exprs in
 
     (* For now, we don't support const functions *)
     { typ = res_t; expr = App { callee; args = targs }; attr }
