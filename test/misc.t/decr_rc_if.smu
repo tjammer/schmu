@@ -1,0 +1,7 @@
+(fun ret-true [] true)
+
+(ignore
+ (if (ret-true)
+   (let [a $[10]]
+     $[10])
+   $[0]))

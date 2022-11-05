@@ -77,7 +77,14 @@ and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
-and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
+
+and ifexpr = {
+  cond : monod_tree;
+  e1 : monod_tree;
+  e2 : monod_tree;
+  iid : int option;
+}
+
 and var_kind = Vnorm | Vconst | Vglobal
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree

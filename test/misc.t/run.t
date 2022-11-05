@@ -2089,3 +2089,96 @@ Ensure global are loadad correctly when passed to functions
   2
   3
   2
+
+Decrease ref counts for local variables in if branches
+  $ schmu --dump-llvm decr_rc_if.smu && valgrind -q --leak-check=yes ./decr_rc_if
+  decr_rc_if.smu:5:10: warning: Unused binding a
+  5 |    (let [a $[10]]
+               ^
+  
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  define i1 @schmu_ret-true() {
+  entry:
+    ret i1 true
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %0 = tail call i1 @schmu_ret-true()
+    br i1 %0, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %1 = tail call i8* @malloc(i64 32)
+    %2 = bitcast i8* %1 to i64*
+    %arr = alloca i64*, align 8
+    store i64* %2, i64** %arr, align 8
+    store i64 1, i64* %2, align 4
+    %size = getelementptr i64, i64* %2, i64 1
+    store i64 1, i64* %size, align 4
+    %cap = getelementptr i64, i64* %2, i64 2
+    store i64 1, i64* %cap, align 4
+    %data = getelementptr i64, i64* %2, i64 3
+    store i64 10, i64* %data, align 4
+    %3 = tail call i8* @malloc(i64 32)
+    %4 = bitcast i8* %3 to i64*
+    %arr1 = alloca i64*, align 8
+    store i64* %4, i64** %arr1, align 8
+    store i64 1, i64* %4, align 4
+    %size3 = getelementptr i64, i64* %4, i64 1
+    store i64 1, i64* %size3, align 4
+    %cap4 = getelementptr i64, i64* %4, i64 2
+    store i64 1, i64* %cap4, align 4
+    %data5 = getelementptr i64, i64* %4, i64 3
+    store i64 10, i64* %data5, align 4
+    tail call void @__g.u_decr_rc_ai.u(i64* %2)
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    %5 = tail call i8* @malloc(i64 32)
+    %6 = bitcast i8* %5 to i64*
+    %arr7 = alloca i64*, align 8
+    store i64* %6, i64** %arr7, align 8
+    store i64 1, i64* %6, align 4
+    %size9 = getelementptr i64, i64* %6, i64 1
+    store i64 1, i64* %size9, align 4
+    %cap10 = getelementptr i64, i64* %6, i64 2
+    store i64 1, i64* %cap10, align 4
+    %data11 = getelementptr i64, i64* %6, i64 3
+    store i64 0, i64* %data11, align 4
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    %7 = phi i64* [ %4, %then ], [ %6, %else ]
+    %iftmp = phi i64** [ %arr1, %then ], [ %arr7, %else ]
+    tail call void @__g.u_decr_rc_ai.u(i64* %7)
+    ret i64 0
+  }
+  
+  declare i8* @malloc(i64 %0)
+  
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = icmp eq i64 %ref1, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i64* %0 to i64*
+    %3 = sub i64 %ref1, 1
+    store i64 %3, i64* %2, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  declare void @free(i8* %0)

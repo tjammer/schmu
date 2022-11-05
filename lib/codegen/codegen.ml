@@ -728,6 +728,9 @@ end = struct
 
     if Lazy.is_val merge_bb then
       Llvm.position_at_end (Lazy.force merge_bb) builder;
+    (match expr.iid with
+    | Some id -> Strtbl.replace decr_tbl id llvar
+    | None -> ());
     llvar
 
   and gen_record param typ labels allocref id const return =

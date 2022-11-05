@@ -76,7 +76,14 @@ and monod_tree = { typ : typ; expr : expr; return : bool }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
-and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
+
+and ifexpr = {
+  cond : monod_tree;
+  e1 : monod_tree;
+  e2 : monod_tree;
+  iid : int option;
+}
+
 and var_kind = Vnorm | Vconst | Vglobal
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
@@ -393,7 +400,7 @@ let rec subst_body p subst tree =
         let cond = sub expr.cond in
         let e1 = sub expr.e1 in
         let e2 = sub expr.e2 in
-        { tree with typ = e1.typ; expr = Mif { cond; e1; e2 } }
+        { tree with typ = e1.typ; expr = Mif { expr with cond; e1; e2 } }
     | Mlet (id, expr, gn, vid, cont) ->
         let expr = sub expr in
         let cont = sub cont in
@@ -592,12 +599,12 @@ let add_id ~id = function
   | [] -> [ Iset.add id Iset.empty ]
   | s :: tl -> Iset.add id s :: tl
 
-let mb_id p typ =
+let mb_id ids typ =
   if mb_contains_array typ then
     let id = new_id var_id in
-    let ids = add_id ~id p.ids in
+    let ids = add_id ~id ids in
     (Some id, ids)
-  else (None, p.ids)
+  else (None, ids)
 
 let recursion_stack = ref []
 let constant_uniq_state = ref 1
@@ -655,7 +662,7 @@ let make_e2 e1 e2 id gn lmut rmut p =
   let temporary = is_temporary e1.expr in
   let vid, p =
     if not temporary then
-      let id, ids = mb_id p e1.typ in
+      let id, ids = mb_id p.ids e1.typ in
       (id, { p with ids })
     else (None, p)
   in
@@ -816,11 +823,19 @@ and morph_unop mk p unop expr =
 
 and morph_if mk p cond e1 e2 =
   let ret = p.ret in
+  let oids = p.ids in
   let p, cond, _ = morph_expr { p with ret = false } cond in
-  let p, e1, a = morph_expr { p with ret } e1 in
-  let p, e2, b = morph_expr { p with ret } e2 in
-  ( p,
-    mk (Mif { cond; e1; e2 }) ret,
+  let ids = Iset.empty :: oids in
+
+  let p, e1, a = morph_expr { p with ret; ids } e1 in
+  let e1 = decr_refs e1 (remove_id ~id:a.id p.ids) in
+
+  let p, e2, b = morph_expr { p with ret; ids } e2 in
+  let e2 = decr_refs e2 (remove_id ~id:b.id p.ids) in
+
+  let iid, ids = mb_id oids e1.typ in
+  ( { p with ids },
+    mk (Mif { cond; e1; e2; iid }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc) } )
 
 and prep_let p id uniq e toplvl =
@@ -868,7 +883,7 @@ and morph_record mk p labels is_const typ =
 
   (* mallocs were generated at a lower level, we increase to current level (or decrease :)) *)
   (match malloc with None -> () | Some m -> m.mlvl := !alloc_lvl);
-  let id, ids = mb_id p typ in
+  let id, ids = mb_id p.ids typ in
 
   let alloca = ref (request ()) in
   ( { p with ret; ids },
@@ -1103,7 +1118,7 @@ and morph_app mk p callee args ret_typ =
     else (No_value, ref (request ()))
   in
 
-  let vid, ids = mb_id p ret_typ in
+  let vid, ids = mb_id p.ids ret_typ in
   let app =
     let malloc = Option.map (fun (m : malloc) -> m.id) malloc in
     Mapp { callee; args; alloca = alloc_ref; malloc; id; vid }
