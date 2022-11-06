@@ -134,6 +134,7 @@ type var =
   | Normal of var_normal
   | Const of string
   | Global of string * var_normal * bool ref
+  | Param of var_normal
 
 type morph_param = {
   vars : var Vars.t;
@@ -212,7 +213,7 @@ let func_of_typ = function
 let find_function_expr vars = function
   | Mvar (id, _) -> (
       match Vars.find_opt id vars with
-      | Some (Normal thing) -> thing.fn
+      | Some (Normal thing | Param thing) -> thing.fn
       | Some (Global (_, thing, used)) ->
           used := true;
           thing.fn
@@ -708,7 +709,8 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Fmt exprs -> morph_fmt make param exprs
 
 and morph_var mk p v =
-  let (v, kind), alloca =
+  let incr = ref false in
+  let (v, kind), var =
     match v with
     | "__malloc" ->
         let malloc = { id = new_id malloc_id; mlvl = ref !alloc_lvl } in
@@ -724,13 +726,21 @@ and morph_var mk p v =
     | v -> (
         match Vars.find_opt v p.vars with
         | Some (Normal thing) -> ((v, Vnorm), thing)
+        | Some (Param thing) ->
+            if p.ret then
+              (* We return a parameter. Make sure to increase refcount here.
+                 Also, create an var id for it to deref later *)
+              incr := true;
+            ((v, Vnorm), thing)
         | Some (Const thing) -> ((thing, Vconst), no_var)
         | Some (Global (id, thing, used)) ->
             used := true;
             ((id, Vglobal), thing)
         | None -> ((v, Vnorm), no_var))
   in
-  (p, mk (Mvar (v, kind)) p.ret, alloca)
+  let ex = mk (Mvar (v, kind)) p.ret in
+  let ex = if not !incr then ex else { ex with expr = Mincr_ref ex } in
+  (p, ex, var)
 
 and morph_string mk p s =
   let alloca = ref (request ()) in
@@ -965,7 +975,7 @@ and prep_func p (username, uniq, abs) =
        The existing values might not be 'normal' *)
     let vars =
       List.fold_left
-        (fun vars name -> Vars.add name (Normal no_var) vars)
+        (fun vars name -> Vars.add name (Param no_var) vars)
         vars pnames
     in
 
@@ -1040,7 +1050,7 @@ and morph_lambda typ p id abs =
        The existing values might not be 'normal' *)
     let vars =
       List.fold_left
-        (fun vars name -> Vars.add name (Normal no_var) vars)
+        (fun vars name -> Vars.add name (Param no_var) vars)
         vars pnames
     in
     let ids = Iset.empty :: p.ids in
@@ -1111,7 +1121,7 @@ and morph_app mk p callee args ret_typ =
   in
 
   let f p arg =
-    let p, ex, var = morph_expr p arg in
+    let p, ex, var = morph_expr { p with ret = false } arg in
     let ids = if is_tailrec then remove_id ~id:var.id p.ids else p.ids in
     let p, monomorph = monomorphize_call { p with ids } ex None in
     (p, ex, monomorph)
@@ -1159,7 +1169,7 @@ and morph_app mk p callee args ret_typ =
     Mapp { callee; args; alloca = alloc_ref; malloc; id; vid }
   in
 
-  ({ p with ret; ids }, mk app ret, { no_var with alloc; malloc })
+  ({ p with ret; ids }, mk app ret, { no_var with alloc; malloc; id = vid })
 
 and morph_ctor mk p variant index expr is_const =
   let ret = p.ret in

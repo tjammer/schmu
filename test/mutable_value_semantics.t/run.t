@@ -2345,3 +2345,75 @@ Make sure variable ids are correctly propagated
   declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
+
+Free array params correctly if they are returned
+  $ schmu --dump-llvm pass_array_param.smu && valgrind -q --leak-check=yes ./pass_array_param
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  define i64* @schmu_create() {
+  entry:
+    %0 = tail call i8* @malloc(i64 32)
+    %1 = bitcast i8* %0 to i64*
+    %arr = alloca i64*, align 8
+    store i64* %1, i64** %arr, align 8
+    store i64 1, i64* %1, align 4
+    %size = getelementptr i64, i64* %1, i64 1
+    store i64 1, i64* %size, align 4
+    %cap = getelementptr i64, i64* %1, i64 2
+    store i64 1, i64* %cap, align 4
+    %data = getelementptr i64, i64* %1, i64 3
+    store i64 10, i64* %data, align 4
+    %2 = tail call i64* @schmu___g.g_pass_ai.ai(i64* %1)
+    tail call void @__g.u_decr_rc_ai.u(i64* %1)
+    ret i64* %2
+  }
+  
+  define i64* @schmu___g.g_pass_ai.ai(i64* %x) {
+  entry:
+    tail call void @__g.u_incr_rc_ai.u(i64* %x)
+    ret i64* %x
+  }
+  
+  declare i8* @malloc(i64 %0)
+  
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = icmp eq i64 %ref1, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i64* %0 to i64*
+    %3 = sub i64 %ref1, 1
+    store i64 %3, i64* %2, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %0 = tail call i64* @schmu_create()
+    tail call void @__g.u_decr_rc_ai.u(i64* %0)
+    ret i64 0
+  }
+  
+  declare void @free(i8* %0)
