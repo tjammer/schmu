@@ -658,14 +658,8 @@ let copy_let lhs lmut rmut nm temporary =
       let expr = Mcopy { kind; temporary; expr = lhs; nm } in
       { lhs with expr }
 
-let make_e2 e1 e2 id gn lmut rmut p =
+let make_e2 e1 e2 id gn lmut rmut p vid =
   let temporary = is_temporary e1.expr in
-  let vid, p =
-    if not temporary then
-      let id, ids = mb_id p.ids e1.typ in
-      (id, { p with ids })
-    else (None, p)
-  in
   match gn with
   | Some n ->
       let expr = Mcopy { kind = Cglobal n; temporary; expr = e1; nm = id } in
@@ -687,9 +681,9 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let { id; uniq; rmut; lhs; cont } ->
-      let p, e1, gn = prep_let param id uniq lhs false in
+      let p, e1, gn, vid = prep_let param id uniq lhs false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
-      let p, e2 = make_e2 e1 e2 id gn lhs.attr.mut rmut p in
+      let p, e2 = make_e2 e1 e2 id gn lhs.attr.mut rmut p vid in
       (p, e2, func)
   | Record labels -> morph_record make param labels texpr.attr (cln texpr.typ)
   | Field (expr, index) -> morph_field make param expr index
@@ -841,6 +835,14 @@ and morph_if mk p cond e1 e2 =
 and prep_let p id uniq e toplvl =
   let p, e1, func = morph_expr { p with ret = false } e in
   (* We add constants to the constant table, not the current env *)
+  let temporary = is_temporary e1.expr in
+  let vid, ids =
+    if not temporary then
+      let id, ids = mb_id p.ids e1.typ in
+      (id, ids)
+    else (func.id, p.ids)
+  in
+  let func = { func with id = vid } in
   let p, gn =
     match e.attr with
     | { const = true; _ } ->
@@ -855,11 +857,11 @@ and prep_let p id uniq e toplvl =
         let uniq = Module.unique_name id uniq in
         let cnt = new_id constant_uniq_state in
         Hashtbl.add global_tbl uniq (cnt, e1.typ, toplvl);
-        ( { p with vars = Vars.add id (Global (uniq, func, ref false)) p.vars },
-          Some uniq )
-    | _ -> ({ p with vars = Vars.add id (Normal func) p.vars }, None)
+        let vars = Vars.add id (Global (uniq, func, ref false)) p.vars in
+        ({ p with vars; ids }, Some uniq)
+    | _ -> ({ p with vars = Vars.add id (Normal func) p.vars; ids }, None)
   in
-  (p, e1, gn)
+  (p, e1, gn, vid)
 
 and morph_record mk p labels is_const typ =
   let ret = p.ret in
@@ -1098,16 +1100,49 @@ and morph_app mk p callee args ret_typ =
     | None -> (None, p)
   in
 
-  (if ret then
-   match callee.monomorph with Recursive name -> set_tailrec name | _ -> ());
-
-  let f p (arg, mut) =
-    let p, ex, _ = morph_expr p arg in
-    let p, monomorph = monomorphize_call p ex None in
-    (p, { ex; monomorph; mut })
+  let is_tailrec =
+    if ret then
+      match callee.monomorph with
+      | Recursive name ->
+          set_tailrec name;
+          true
+      | _ -> false
+    else false
   in
-  let p, args = List.fold_left_map f p args in
 
+  let f p arg =
+    let p, ex, var = morph_expr p arg in
+    let ids = if is_tailrec then remove_id ~id:var.id p.ids else p.ids in
+    let p, monomorph = monomorphize_call { p with ids } ex None in
+    (p, ex, monomorph)
+  in
+  let rec fold_decr_last p args = function
+    | [ (arg, mut) ] ->
+        let p, ex, monomorph = f p arg in
+        let ex = if is_tailrec then decr_refs ex p.ids else ex in
+        let ids =
+          if is_tailrec then
+            (* In tailrec functions, we are always in an extra scope of an 'if' here.
+               Thus, it's ok if we free everything. *)
+            match p.ids with _ :: tl -> Iset.empty :: tl | [] -> p.ids
+          else p.ids
+        in
+        ({ p with ids }, { ex; monomorph; mut } :: args)
+    | (arg, mut) :: tl ->
+        let p, ex, monomorph = f p arg in
+        fold_decr_last p ({ ex; monomorph; mut } :: args) tl
+    | [] -> (p, [])
+  in
+  let p, args = fold_decr_last p [] args in
+  let args = List.rev args in
+
+  (* let f p (arg, mut) = *)
+  (*   let p, ex, var = morph_expr p arg in *)
+  (*   let ids = if is_tailrec then remove_id ~id:var.id p.ids else p.ids in *)
+  (*   let p, monomorph = monomorphize_call { p with ids } ex None in *)
+  (*   (p, { ex; monomorph; mut }) *)
+  (* in *)
+  (* let p, args = List.fold_left_map f p args in *)
   let alloc, alloc_ref =
     if is_struct callee.ex.typ then
       (* For every call, we make a new request. If the call is the return
@@ -1196,9 +1231,9 @@ let morph_toplvl param items =
   let rec aux param = function
     | [] -> (param, { typ = Tunit; expr = Mconst Unit; return = true }, no_var)
     | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
-        let p, e1, gn = prep_let param id uniq expr true in
+        let p, e1, gn, vid = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        let p, e2 = make_e2 e1 e2 id gn expr.attr.mut false p in
+        let p, e2 = make_e2 e1 e2 id gn expr.attr.mut false p vid in
         (p, e2, func)
     | Tl_function (name, uniq, abs) :: tl ->
         let p, call, abs = prep_func param (name, uniq, abs) in

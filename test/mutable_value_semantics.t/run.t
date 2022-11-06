@@ -2168,3 +2168,180 @@ Copies, but with ref-counted arrays
   attributes #0 = { argmemonly nofree nounwind willreturn }
   30
   2
+
+Make sure variable ids are correctly propagated
+  $ schmu --dump-llvm varid_propagate.smu && valgrind -q --leak-check=yes ./varid_propagate
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  define i64* @schmu___agg.ag_f1_aii.ai(i64* %acc, i64 %v) {
+  entry:
+    tail call void @__g.u_incr_rc_ai.u(i64* %acc)
+    %tmp = alloca i64*, align 8
+    store i64* %acc, i64** %tmp, align 8
+    %size = getelementptr i64, i64* %acc, i64 1
+    %size1 = load i64, i64* %size, align 4
+    %cap = getelementptr i64, i64* %acc, i64 2
+    %cap2 = load i64, i64* %cap, align 4
+    %0 = icmp eq i64 %cap2, %size1
+    br i1 %0, label %grow, label %keep
+  
+  keep:                                             ; preds = %entry
+    %1 = call i64* @__ag.ag_reloc_ai.ai(i64** %tmp)
+    br label %merge
+  
+  grow:                                             ; preds = %entry
+    %2 = call i64* @__ag.ag_grow_ai.ai(i64** %tmp)
+    br label %merge
+  
+  merge:                                            ; preds = %grow, %keep
+    %3 = phi i64* [ %1, %keep ], [ %2, %grow ]
+    %data = getelementptr i64, i64* %3, i64 3
+    %4 = getelementptr i64, i64* %data, i64 %size1
+    store i64 %v, i64* %4, align 4
+    %size3 = getelementptr i64, i64* %3, i64 1
+    %5 = add i64 %size1, 1
+    store i64 %5, i64* %size3, align 4
+    %6 = load i64*, i64** %tmp, align 8
+    ret i64* %6
+  }
+  
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
+  
+  define internal i64* @__ag.ag_reloc_ai.ai(i64** %0) {
+  entry:
+    %1 = load i64*, i64** %0, align 8
+    %ref4 = bitcast i64* %1 to i64*
+    %ref1 = load i64, i64* %ref4, align 4
+    %2 = icmp sgt i64 %ref1, 1
+    br i1 %2, label %relocate, label %merge
+  
+  relocate:                                         ; preds = %entry
+    %sz = getelementptr i64, i64* %1, i64 1
+    %size = load i64, i64* %sz, align 4
+    %cap = getelementptr i64, i64* %1, i64 2
+    %cap2 = load i64, i64* %cap, align 4
+    %3 = mul i64 %cap2, 8
+    %4 = add i64 %3, 24
+    %5 = call i8* @malloc(i64 %4)
+    %6 = bitcast i8* %5 to i64*
+    %7 = mul i64 %size, 8
+    %8 = add i64 %7, 24
+    %9 = bitcast i64* %6 to i8*
+    %10 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* %10, i64 %8, i1 false)
+    store i64* %6, i64** %0, align 8
+    %ref35 = bitcast i64* %6 to i64*
+    store i64 1, i64* %ref35, align 4
+    call void @__g.u_decr_rc_ai.u(i64* %1)
+    br label %merge
+  
+  merge:                                            ; preds = %relocate, %entry
+    %11 = load i64*, i64** %0, align 8
+    ret i64* %11
+  }
+  
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = icmp eq i64 %ref1, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i64* %0 to i64*
+    %3 = sub i64 %ref1, 1
+    store i64 %3, i64* %2, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  define internal i64* @__ag.ag_grow_ai.ai(i64** %0) {
+  entry:
+    %1 = load i64*, i64** %0, align 8
+    %cap = getelementptr i64, i64* %1, i64 2
+    %cap1 = load i64, i64* %cap, align 4
+    %2 = mul i64 %cap1, 2
+    %ref5 = bitcast i64* %1 to i64*
+    %ref2 = load i64, i64* %ref5, align 4
+    %3 = mul i64 %2, 8
+    %4 = add i64 %3, 24
+    %5 = icmp eq i64 %ref2, 1
+    br i1 %5, label %realloc, label %malloc
+  
+  realloc:                                          ; preds = %entry
+    %6 = load i64*, i64** %0, align 8
+    %7 = bitcast i64* %6 to i8*
+    %8 = call i8* @realloc(i8* %7, i64 %4)
+    %9 = bitcast i8* %8 to i64*
+    store i64* %9, i64** %0, align 8
+    br label %merge
+  
+  malloc:                                           ; preds = %entry
+    %10 = call i8* @malloc(i64 %4)
+    %11 = bitcast i8* %10 to i64*
+    %size = getelementptr i64, i64* %1, i64 1
+    %size3 = load i64, i64* %size, align 4
+    %12 = mul i64 %size3, 8
+    %13 = add i64 %12, 24
+    %14 = bitcast i64* %11 to i8*
+    %15 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %14, i8* %15, i64 %13, i1 false)
+    store i64* %11, i64** %0, align 8
+    %ref46 = bitcast i64* %11 to i64*
+    store i64 1, i64* %ref46, align 4
+    call void @__g.u_decr_rc_ai.u(i64* %1)
+    br label %merge
+  
+  merge:                                            ; preds = %malloc, %realloc
+    %16 = phi i64* [ %9, %realloc ], [ %11, %malloc ]
+    %newcap = getelementptr i64, i64* %16, i64 2
+    store i64 %2, i64* %newcap, align 4
+    %17 = load i64*, i64** %0, align 8
+    ret i64* %17
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %0 = tail call i8* @malloc(i64 32)
+    %1 = bitcast i8* %0 to i64*
+    %arr = alloca i64*, align 8
+    store i64* %1, i64** %arr, align 8
+    store i64 1, i64* %1, align 4
+    %size = getelementptr i64, i64* %1, i64 1
+    store i64 1, i64* %size, align 4
+    %cap = getelementptr i64, i64* %1, i64 2
+    store i64 1, i64* %cap, align 4
+    %data = getelementptr i64, i64* %1, i64 3
+    store i64 0, i64* %data, align 4
+    %2 = tail call i64* @schmu___agg.ag_f1_aii.ai(i64* %1, i64 0)
+    tail call void @__g.u_decr_rc_ai.u(i64* %2)
+    tail call void @__g.u_decr_rc_ai.u(i64* %1)
+    ret i64 0
+  }
+  
+  declare i8* @malloc(i64 %0)
+  
+  declare i8* @realloc(i8* %0, i64 %1)
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  declare void @free(i8* %0)
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }

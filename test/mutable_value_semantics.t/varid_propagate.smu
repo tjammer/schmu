@@ -1,0 +1,6 @@
+(fun f1 [acc v]
+  (let [tmp& acc]
+    (array-push &tmp v)
+    tmp))
+
+(ignore (f1 $[0] 0))
