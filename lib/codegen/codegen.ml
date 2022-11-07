@@ -374,7 +374,7 @@ end = struct
 
     let args =
       List.fold_left
-        (fun args oarg ->
+        (fun args (oarg, _) ->
           let arg' = gen_expr param Monomorph_tree.(oarg.ex) in
 
           (* In case the record passed is constant, we allocate it here to pass
@@ -502,13 +502,38 @@ end = struct
       | _ -> failwith "Internal Error: Not a func in gen app tailrec"
     in
 
-    let handle_arg i oarg =
+    let handle_arg i (oarg, is_arg) =
       let arg' = gen_expr param Monomorph_tree.(oarg.ex) in
       let arg = get_mono_func arg' param oarg.monomorph in
       let llvar = func_to_closure param arg in
 
       let i = get_index i oarg.mut arg.typ in
       let alloca = Vars.find (name_of_alloc_param i) param.vars in
+
+      if contains_array alloca.typ && not is_arg then (
+        (* Set param to now value, deref the old one if the cookie was set *)
+        let v = Vars.find (name_of_alloc_cookie i) param.vars in
+        let cookie = Llvm.build_load v.value "" builder in
+
+        let start_bb = Llvm.insertion_block builder in
+        let parent = Llvm.block_parent start_bb in
+
+        let decr_bb = Llvm.append_block context "decr" parent in
+        let cookie_bb = Llvm.append_block context "cookie" parent in
+        let cont_bb = Llvm.append_block context "cont" parent in
+        ignore (Llvm.build_cond_br cookie decr_bb cookie_bb builder);
+
+        Llvm.position_at_end decr_bb builder;
+        let value = Llvm.build_load alloca.value "" builder in
+        let kind = if oarg.mut then Ptr else default_kind alloca.typ in
+        decr_refcount { alloca with value; kind };
+        ignore (Llvm.build_br cont_bb builder);
+
+        Llvm.position_at_end cookie_bb builder;
+        ignore (Llvm.build_store (Llvm.const_int bool_t 1) v.value builder);
+        ignore (Llvm.build_br cont_bb builder);
+
+        Llvm.position_at_end cont_bb builder);
 
       (* We store the params in pre-allocated variables *)
       if llvar.value <> alloca.value then
@@ -529,7 +554,7 @@ end = struct
     { value; typ = Tpoly "tail"; lltyp; kind = default_kind ret }
 
   and gen_app_builtin param (b, fnc) args =
-    let handle_arg arg =
+    let handle_arg (arg, _) =
       let arg' = gen_expr param Monomorph_tree.(arg.ex) in
       let arg = get_mono_func arg' param arg.monomorph in
 
@@ -630,7 +655,7 @@ end = struct
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)
-    let f env arg param =
+    let f env (arg, _) param =
       let arg' = gen_expr env Monomorph_tree.(arg.ex) in
       let arg = get_mono_func arg' env arg.monomorph in
 
@@ -1075,8 +1100,8 @@ end
 
 and T : Lltypes_intf.S = Lltypes.Make (A)
 and A : Abi_intf.S = Abi.Make (T)
-and H : Helpers.S = Helpers.Make (T) (A)
-and Ar : Arr.S = Arr.Make (T) (H) (Core)
+and H : Helpers.S = Helpers.Make (T) (A) (Ar)
+and Ar : Arr_intf.S = Arr.Make (T) (H) (Core)
 
 let no_param =
   {

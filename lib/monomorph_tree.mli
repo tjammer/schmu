@@ -15,7 +15,7 @@ type expr =
   | Mfunction of string * abstraction * monod_tree
   | Mapp of {
       callee : monod_expr;
-      args : monod_expr list;
+      args : (monod_expr * bool) list;
       alloca : alloca;
       malloc : int option;
       (* Mallocs have to go through a call to get propagated.

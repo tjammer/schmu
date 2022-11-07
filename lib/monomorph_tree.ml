@@ -23,7 +23,7 @@ type expr =
   | Mfunction of string * abstraction * monod_tree
   | Mapp of {
       callee : monod_expr;
-      args : monod_expr list;
+      args : (monod_expr * bool) list;
       alloca : alloca;
       malloc : int option;
       id : int;
@@ -120,7 +120,6 @@ type to_gen_func_kind =
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 type malloc = { id : int; mlvl : int ref }
-(* type malloc = Atom of malloc_item | Collection of malloc_item list *)
 
 type var_normal = {
   fn : to_gen_func_kind;
@@ -434,7 +433,9 @@ let rec subst_body p subst tree =
         let callee = { callee with ex; monomorph } in
         p := { !p with funcs = p2.funcs; monomorphized = p2.monomorphized };
 
-        let args = List.map (fun arg -> { arg with ex = sub arg.ex }) args in
+        let args =
+          List.map (fun (arg, a) -> ({ arg with ex = sub arg.ex }, a)) args
+        in
         let func = func_of_typ callee.ex.typ in
         {
           tree with
@@ -727,11 +728,14 @@ and morph_var mk p v =
         match Vars.find_opt v p.vars with
         | Some (Normal thing) -> ((v, Vnorm), thing)
         | Some (Param thing) ->
-            if p.ret then
+            if p.ret then (
               (* We return a parameter. Make sure to increase refcount here.
                  Also, create an var id for it to deref later *)
               incr := true;
-            ((v, Vnorm), thing)
+              ((v, Vnorm), thing))
+            else
+              (* Mark argument with a bogus id *)
+              ((v, Vnorm), { thing with id = Some (-1) })
         | Some (Const thing) -> ((thing, Vconst), no_var)
         | Some (Global (id, thing, used)) ->
             used := true;
@@ -1121,14 +1125,19 @@ and morph_app mk p callee args ret_typ =
   in
 
   let f p arg =
+    let is_arg = function
+      (* See morph_var *)
+      | Some i -> i < 0
+      | None -> false
+    in
     let p, ex, var = morph_expr { p with ret = false } arg in
     let ids = if is_tailrec then remove_id ~id:var.id p.ids else p.ids in
     let p, monomorph = monomorphize_call { p with ids } ex None in
-    (p, ex, monomorph)
+    (p, ex, monomorph, is_arg var.id)
   in
   let rec fold_decr_last p args = function
     | [ (arg, mut) ] ->
-        let p, ex, monomorph = f p arg in
+        let p, ex, monomorph, arg = f p arg in
         let ex = if is_tailrec then decr_refs ex p.ids else ex in
         let ids =
           if is_tailrec then
@@ -1137,22 +1146,15 @@ and morph_app mk p callee args ret_typ =
             match p.ids with _ :: tl -> Iset.empty :: tl | [] -> p.ids
           else p.ids
         in
-        ({ p with ids }, { ex; monomorph; mut } :: args)
+        ({ p with ids }, ({ ex; monomorph; mut }, arg) :: args)
     | (arg, mut) :: tl ->
-        let p, ex, monomorph = f p arg in
-        fold_decr_last p ({ ex; monomorph; mut } :: args) tl
+        let p, ex, monomorph, arg = f p arg in
+        fold_decr_last p (({ ex; monomorph; mut }, arg) :: args) tl
     | [] -> (p, [])
   in
   let p, args = fold_decr_last p [] args in
   let args = List.rev args in
 
-  (* let f p (arg, mut) = *)
-  (*   let p, ex, var = morph_expr p arg in *)
-  (*   let ids = if is_tailrec then remove_id ~id:var.id p.ids else p.ids in *)
-  (*   let p, monomorph = monomorphize_call { p with ids } ex None in *)
-  (*   (p, { ex; monomorph; mut }) *)
-  (* in *)
-  (* let p, args = List.fold_left_map f p args in *)
   let alloc, alloc_ref =
     if is_struct callee.ex.typ then
       (* For every call, we make a new request. If the call is the return

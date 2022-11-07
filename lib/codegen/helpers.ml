@@ -46,6 +46,7 @@ module type S = sig
   val default_kind : typ -> value_kind
   val get_index : int -> bool -> typ -> int
   val name_of_alloc_param : int -> string
+  val name_of_alloc_cookie : int -> string
   val tailrec_store : src:llvar -> dst:Llvm.llvalue -> unit
   val set_struct_field : llvar -> Llvm.llvalue -> unit
   val realloc : Llvm.llvalue -> size:Llvm.llvalue -> Llvm.llvalue
@@ -61,7 +62,7 @@ module type S = sig
   val var_data : llvar -> typ -> llvar
 end
 
-module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
+module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
   open Cleaned_types
   open Llvm_types
   open Size_align
@@ -467,6 +468,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
     ignore (Llvm.build_store src.value dst builder)
 
   let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
+  let name_of_alloc_cookie i = "__" ^ string_of_int i ^ "_alloc_cookie"
 
   let get_prealloc allocref param lltyp str =
     match (allocref, param.alloca) with
@@ -554,7 +556,20 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) = struct
                 { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
               in
               let alloc = { value with value = alloca_copy p.pmut value } in
-              (Vars.add (name_of_alloc_param i) alloc env, i + 1))
+              let env = Vars.add (name_of_alloc_param i) alloc env in
+              let env =
+                if Arr.contains_array typ then (
+                  (* Create flag to see if it was set to a temp value *)
+                  let cookie = Llvm.build_alloca bool_t "" builder in
+                  ignore
+                    (Llvm.build_store (Llvm.const_int bool_t 0) cookie builder);
+                  let llvar =
+                    { value = cookie; lltyp = bool_t; typ = Tbool; kind = Ptr }
+                  in
+                  Vars.add (name_of_alloc_cookie i) llvar env)
+                else env
+              in
+              (env, i + 1))
             (vars, start_index) names params
           |> fst
         in

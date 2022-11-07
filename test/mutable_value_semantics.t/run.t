@@ -133,10 +133,10 @@ Test simple setting of mutable variables
     %data33 = getelementptr i64, i64* %34, i64 3
     store i64 10, i64* %data33, align 4
     store i64* %34, i64** %31, align 8
-    %35 = load i64**, i64*** @b__2, align 8
-    tail call void @__g.u_decr_rc_aai.u(i64** %35)
-    %36 = load i64*, i64** @c, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %36)
+    %35 = load i64*, i64** @c, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %35)
+    %36 = load i64**, i64*** @b__2, align 8
+    tail call void @__g.u_decr_rc_aai.u(i64** %36)
     %37 = load i64**, i64*** @a, align 8
     tail call void @__g.u_decr_rc_aai.u(i64** %37)
     %owned = icmp slt i64 %9, 0
@@ -1366,11 +1366,11 @@ Copies, but with ref-counted arrays
     %11 = load i64*, i64** @d, align 8
     tail call void @schmu___ag.u_print-0th_ai.u(i64* %11)
     tail call void @schmu_in-fun()
-    %12 = load i64*, i64** @b, align 8
+    %12 = load i64*, i64** @d, align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %12)
     %13 = load i64*, i64** @c, align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %13)
-    %14 = load i64*, i64** @d, align 8
+    %14 = load i64*, i64** @b, align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %14)
     %15 = load i64*, i64** @a, align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %15)
