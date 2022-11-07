@@ -823,8 +823,8 @@ end = struct
 
   and gen_set param expr valexpr =
     let ptr = gen_expr { param with in_set = true } expr in
-    decr_refcount ptr;
     let value = gen_expr param valexpr in
+    decr_refcount ptr;
     (* We know that ptr cannot be a constant record, but value might *)
     set_struct_field value ptr.value;
     { dummy_fn_value with lltyp = unit_t }

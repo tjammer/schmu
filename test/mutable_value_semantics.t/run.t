@@ -109,30 +109,30 @@ Test simple setting of mutable variables
     %24 = bitcast i64** %23 to i64*
     %data28 = getelementptr i64, i64* %24, i64 3
     %25 = bitcast i64* %data28 to i64**
-    %26 = load i64*, i64** %25, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %26)
-    %27 = load i64*, i64** @c, align 8
-    tail call void @__g.u_incr_rc_ai.u(i64* %27)
+    %26 = load i64*, i64** @c, align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %26)
+    %27 = load i64*, i64** %25, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %27)
     %28 = load i64*, i64** @c, align 8
     store i64* %28, i64** %25, align 8
     %29 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @a)
     %30 = bitcast i64** %29 to i64*
     %data29 = getelementptr i64, i64* %30, i64 3
     %31 = bitcast i64* %data29 to i64**
-    %32 = load i64*, i64** %31, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %32)
-    %33 = tail call i8* @malloc(i64 32)
-    %34 = bitcast i8* %33 to i64*
+    %32 = tail call i8* @malloc(i64 32)
+    %33 = bitcast i8* %32 to i64*
     %arr = alloca i64*, align 8
-    store i64* %34, i64** %arr, align 8
-    store i64 1, i64* %34, align 4
-    %size31 = getelementptr i64, i64* %34, i64 1
+    store i64* %33, i64** %arr, align 8
+    store i64 1, i64* %33, align 4
+    %size31 = getelementptr i64, i64* %33, i64 1
     store i64 1, i64* %size31, align 4
-    %cap32 = getelementptr i64, i64* %34, i64 2
+    %cap32 = getelementptr i64, i64* %33, i64 2
     store i64 1, i64* %cap32, align 4
-    %data33 = getelementptr i64, i64* %34, i64 3
+    %data33 = getelementptr i64, i64* %33, i64 3
     store i64 10, i64* %data33, align 4
-    store i64* %34, i64** %31, align 8
+    %34 = load i64*, i64** %31, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %34)
+    store i64* %33, i64** %31, align 8
     %35 = load i64*, i64** @c, align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %35)
     %36 = load i64**, i64*** @b__2, align 8
@@ -283,6 +283,15 @@ Test simple setting of mutable variables
     br label %merge
   }
   
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
+  
   define internal void @__g.u_decr_rc_ai.u(i64* %0) {
   entry:
     %ref2 = bitcast i64* %0 to i64*
@@ -302,15 +311,6 @@ Test simple setting of mutable variables
     br label %merge
   
   merge:                                            ; preds = %free, %decr
-    ret void
-  }
-  
-  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
-  entry:
-    %ref2 = bitcast i64* %0 to i64*
-    %ref1 = load i64, i64* %ref2, align 4
-    %1 = add i64 %ref1, 1
-    store i64 %1, i64* %ref2, align 4
     ret void
   }
   
