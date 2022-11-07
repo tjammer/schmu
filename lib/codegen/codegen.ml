@@ -76,12 +76,14 @@ end = struct
         in
 
         let finalize = Some fun_finalize in
-        let ret =
-          gen_expr
-            { vars = tvars; alloca; finalize; rec_block; in_set = false }
-            abs.body
+        let param =
+          { vars = tvars; alloca; finalize; rec_block; in_set = false }
         in
+        let ret = gen_expr param abs.body in
 
+        (match recursive with
+        | Rtail -> tail_return param tparams start_index
+        | Rnone | Rnormal -> ());
         ignore (fun_return name.call ret);
 
         (* if Llvm_analysis.verify_function func.value |> not then ( *)
@@ -510,30 +512,7 @@ end = struct
       let i = get_index i oarg.mut arg.typ in
       let alloca = Vars.find (name_of_alloc_param i) param.vars in
 
-      if contains_array alloca.typ && not is_arg then (
-        (* Set param to now value, deref the old one if the cookie was set *)
-        let v = Vars.find (name_of_alloc_cookie i) param.vars in
-        let cookie = Llvm.build_load v.value "" builder in
-
-        let start_bb = Llvm.insertion_block builder in
-        let parent = Llvm.block_parent start_bb in
-
-        let decr_bb = Llvm.append_block context "decr" parent in
-        let cookie_bb = Llvm.append_block context "cookie" parent in
-        let cont_bb = Llvm.append_block context "cont" parent in
-        ignore (Llvm.build_cond_br cookie decr_bb cookie_bb builder);
-
-        Llvm.position_at_end decr_bb builder;
-        let value = Llvm.build_load alloca.value "" builder in
-        let kind = if oarg.mut then Ptr else default_kind alloca.typ in
-        decr_refcount { alloca with value; kind };
-        ignore (Llvm.build_br cont_bb builder);
-
-        Llvm.position_at_end cookie_bb builder;
-        ignore (Llvm.build_store (Llvm.const_int bool_t 1) v.value builder);
-        ignore (Llvm.build_br cont_bb builder);
-
-        Llvm.position_at_end cont_bb builder);
+      if not is_arg then tail_decr_param param alloca i oarg.mut;
 
       (* We store the params in pre-allocated variables *)
       if llvar.value <> alloca.value then

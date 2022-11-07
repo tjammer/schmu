@@ -60,6 +60,8 @@ module type S = sig
   (* For reuse in arr.ml *)
   val var_index : llvar -> llvar
   val var_data : llvar -> typ -> llvar
+  val tail_decr_param : Llvm_types.param -> llvar -> int -> bool -> unit
+  val tail_return : Llvm_types.param -> param list -> int -> unit
 end
 
 module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
@@ -659,6 +661,42 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
           | _ -> ret.value
         in
         Llvm.build_ret value builder
+
+  let tail_decr_param param alloca i mut =
+    if Arr.contains_array alloca.typ then (
+      (* Set param to new value, deref the old one if the cookie was set *)
+      let v = Vars.find (name_of_alloc_cookie i) param.vars in
+      let cookie = Llvm.build_load v.value "" builder in
+
+      let start_bb = Llvm.insertion_block builder in
+      let parent = Llvm.block_parent start_bb in
+
+      let decr_bb = Llvm.append_block context "call_decr" parent in
+      let cookie_bb = Llvm.append_block context "cookie" parent in
+      let cont_bb = Llvm.append_block context "cont" parent in
+      ignore (Llvm.build_cond_br cookie decr_bb cookie_bb builder);
+
+      Llvm.position_at_end decr_bb builder;
+      let value = Llvm.build_load alloca.value "" builder in
+      let kind = if mut then Ptr else default_kind alloca.typ in
+      Arr.decr_refcount { alloca with value; kind };
+      ignore (Llvm.build_br cont_bb builder);
+
+      Llvm.position_at_end cookie_bb builder;
+      ignore (Llvm.build_store (Llvm.const_int bool_t 1) v.value builder);
+      ignore (Llvm.build_br cont_bb builder);
+
+      Llvm.position_at_end cont_bb builder)
+
+  let tail_return param params start_index =
+    let f i p =
+      let i = get_index i p.pmut p.pt in
+      let alloca = Vars.find (name_of_alloc_param i) param.vars in
+
+      tail_decr_param param alloca i p.pmut;
+      i + 1
+    in
+    ignore (List.fold_left f start_index params)
 
   let var_index var =
     let tagptr = Llvm.build_struct_gep var.value 0 "tag" builder in

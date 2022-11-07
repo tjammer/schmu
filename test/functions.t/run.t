@@ -1301,97 +1301,135 @@ Don't copy mutable types in setup of tailrecursive functions
   entry:
     %0 = alloca i64**, align 8
     store i64** %a, i64*** %0, align 8
-    %1 = alloca i64, align 8
-    store i64 %i, i64* %1, align 4
+    %1 = alloca i1, align 1
+    store i1 false, i1* %1, align 1
+    %2 = alloca i64, align 8
+    store i64 %i, i64* %2, align 4
     %arr = alloca i64*, align 8
     %arr5 = alloca i64*, align 8
     br label %rec.outer
   
-  rec.outer:                                        ; preds = %then, %then4, %entry
-    %i2.ph = phi i64 [ %i, %entry ], [ 3, %then ], [ 11, %then4 ]
-    %a1.ph = phi i64** [ %a, %entry ], [ %arr, %then ], [ %arr5, %then4 ]
-    %2 = add i64 %i2.ph, 1
+  rec.outer:                                        ; preds = %cont, %cont13, %entry
+    %.ph = phi i1 [ false, %entry ], [ true, %cont ], [ %10, %cont13 ]
+    %.ph33 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont13 ]
+    %.ph34 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont13 ]
+    %i2.ph = phi i64 [ %i, %entry ], [ 3, %cont ], [ 11, %cont13 ]
+    %.ph35 = phi i64** [ %a, %entry ], [ %arr, %cont ], [ %arr5, %cont13 ]
+    %3 = add i64 %i2.ph, 1
     br label %rec
   
   rec:                                              ; preds = %rec.outer, %merge
-    %lsr.iv = phi i64 [ %2, %rec.outer ], [ %lsr.iv.next, %merge ]
+    %lsr.iv = phi i64 [ %3, %rec.outer ], [ %lsr.iv.next, %merge ]
     %eq = icmp eq i64 %lsr.iv, 3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
-    %3 = call i8* @malloc(i64 32)
-    %4 = bitcast i8* %3 to i64*
-    store i64* %4, i64** %arr, align 8
-    store i64 1, i64* %4, align 4
-    %size = getelementptr i64, i64* %4, i64 1
+    %4 = call i8* @malloc(i64 32)
+    %5 = bitcast i8* %4 to i64*
+    store i64* %5, i64** %arr, align 8
+    store i64 1, i64* %5, align 4
+    %size = getelementptr i64, i64* %5, i64 1
     store i64 1, i64* %size, align 4
-    %cap = getelementptr i64, i64* %4, i64 2
+    %cap = getelementptr i64, i64* %5, i64 2
     store i64 1, i64* %cap, align 4
-    %data = getelementptr i64, i64* %4, i64 3
+    %data = getelementptr i64, i64* %5, i64 3
     store i64 10, i64* %data, align 4
+    br i1 %.ph, label %call_decr, label %cookie
+  
+  call_decr:                                        ; preds = %then
+    %6 = load i64*, i64** %.ph35, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %6)
+    br label %cont
+  
+  cookie:                                           ; preds = %then
+    store i1 true, i1* %1, align 1
+    br label %cont
+  
+  cont:                                             ; preds = %cookie, %call_decr
     store i64** %arr, i64*** %0, align 8
-    store i64 3, i64* %1, align 4
+    store i64 3, i64* %2, align 4
     br label %rec.outer
   
   else:                                             ; preds = %rec
     %eq3 = icmp eq i64 %lsr.iv, 11
-    br i1 %eq3, label %then4, label %else12
+    br i1 %eq3, label %then4, label %else15
   
   then4:                                            ; preds = %else
-    %5 = call i8* @malloc(i64 32)
-    %6 = bitcast i8* %5 to i64*
-    store i64* %6, i64** %arr5, align 8
-    store i64 1, i64* %6, align 4
-    %size7 = getelementptr i64, i64* %6, i64 1
+    %7 = call i8* @malloc(i64 32)
+    %8 = bitcast i8* %7 to i64*
+    store i64* %8, i64** %arr5, align 8
+    store i64 1, i64* %8, align 4
+    %size7 = getelementptr i64, i64* %8, i64 1
     store i64 1, i64* %size7, align 4
-    %cap8 = getelementptr i64, i64* %6, i64 2
+    %cap8 = getelementptr i64, i64* %8, i64 2
     store i64 1, i64* %cap8, align 4
-    %data9 = getelementptr i64, i64* %6, i64 3
+    %data9 = getelementptr i64, i64* %8, i64 3
     store i64 10, i64* %data9, align 4
+    br i1 %.ph33, label %call_decr11, label %cookie12
+  
+  call_decr11:                                      ; preds = %then4
+    %9 = load i64*, i64** %.ph35, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %9)
+    br label %cont13
+  
+  cookie12:                                         ; preds = %then4
+    store i1 true, i1* %1, align 1
+    br label %cont13
+  
+  cont13:                                           ; preds = %cookie12, %call_decr11
+    %10 = phi i1 [ true, %cookie12 ], [ %.ph, %call_decr11 ]
     store i64** %arr5, i64*** %0, align 8
-    store i64 11, i64* %1, align 4
+    store i64 11, i64* %2, align 4
     br label %rec.outer
   
-  else12:                                           ; preds = %else
-    %eq13 = icmp eq i64 %lsr.iv, 13
-    br i1 %eq13, label %then14, label %else15
+  else15:                                           ; preds = %else
+    %eq16 = icmp eq i64 %lsr.iv, 13
+    br i1 %eq16, label %then17, label %else18
   
-  then14:                                           ; preds = %else12
-    %7 = load i64*, i64** %arr5, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %7)
-    %8 = load i64*, i64** %arr, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %8)
-    ret void
+  then17:                                           ; preds = %else15
+    br i1 %.ph34, label %call_decr28, label %cookie29
   
-  else15:                                           ; preds = %else12
-    %9 = load i64*, i64** %a1.ph, align 8
-    %size16 = getelementptr i64, i64* %9, i64 1
-    %size17 = load i64, i64* %size16, align 4
-    %cap18 = getelementptr i64, i64* %9, i64 2
-    %cap19 = load i64, i64* %cap18, align 4
-    %10 = icmp eq i64 %cap19, %size17
-    br i1 %10, label %grow, label %keep
+  else18:                                           ; preds = %else15
+    %11 = load i64*, i64** %.ph35, align 8
+    %size19 = getelementptr i64, i64* %11, i64 1
+    %size20 = load i64, i64* %size19, align 4
+    %cap21 = getelementptr i64, i64* %11, i64 2
+    %cap22 = load i64, i64* %cap21, align 4
+    %12 = icmp eq i64 %cap22, %size20
+    br i1 %12, label %grow, label %keep
   
-  keep:                                             ; preds = %else15
-    %11 = call i64* @__ag.ag_reloc_ai.ai(i64** %a1.ph)
+  keep:                                             ; preds = %else18
+    %13 = call i64* @__ag.ag_reloc_ai.ai(i64** %.ph35)
     br label %merge
   
-  grow:                                             ; preds = %else15
-    %12 = call i64* @__ag.ag_grow_ai.ai(i64** %a1.ph)
+  grow:                                             ; preds = %else18
+    %14 = call i64* @__ag.ag_grow_ai.ai(i64** %.ph35)
     br label %merge
   
   merge:                                            ; preds = %grow, %keep
-    %13 = phi i64* [ %11, %keep ], [ %12, %grow ]
-    %data20 = getelementptr i64, i64* %13, i64 3
-    %14 = getelementptr i64, i64* %data20, i64 %size17
-    store i64 20, i64* %14, align 4
-    %size21 = getelementptr i64, i64* %13, i64 1
-    %15 = add i64 %size17, 1
-    store i64 %15, i64* %size21, align 4
-    store i64** %a1.ph, i64*** %0, align 8
-    store i64 %lsr.iv, i64* %1, align 4
+    %15 = phi i64* [ %13, %keep ], [ %14, %grow ]
+    %data23 = getelementptr i64, i64* %15, i64 3
+    %16 = getelementptr i64, i64* %data23, i64 %size20
+    store i64 20, i64* %16, align 4
+    %size24 = getelementptr i64, i64* %15, i64 1
+    %17 = add i64 %size20, 1
+    store i64 %17, i64* %size24, align 4
+    store i64** %.ph35, i64*** %0, align 8
+    store i64 %lsr.iv, i64* %2, align 4
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
+  
+  call_decr28:                                      ; preds = %then17
+    %18 = load i64*, i64** %.ph35, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %18)
+    br label %cont30
+  
+  cookie29:                                         ; preds = %then17
+    store i1 true, i1* %1, align 1
+    br label %cont30
+  
+  cont30:                                           ; preds = %cookie29, %call_decr28
+    ret void
   }
   
   define void @schmu_change-int(i64* %i, i64 %j) {
@@ -1423,46 +1461,49 @@ Don't copy mutable types in setup of tailrecursive functions
   entry:
     %0 = alloca i64**, align 8
     store i64** %a, i64*** %0, align 8
-    %1 = alloca i64, align 8
-    store i64 %i, i64* %1, align 4
-    %2 = add i64 %i, 1
+    %1 = alloca i1, align 1
+    store i1 false, i1* %1, align 1
+    %2 = alloca i64, align 8
+    store i64 %i, i64* %2, align 4
+    %3 = add i64 %i, 1
     br label %rec
   
   rec:                                              ; preds = %merge, %entry
-    %lsr.iv = phi i64 [ %lsr.iv.next, %merge ], [ %2, %entry ]
+    %lsr.iv = phi i64 [ %lsr.iv.next, %merge ], [ %3, %entry ]
     %eq = icmp eq i64 %lsr.iv, 3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
+    store i1 true, i1* %1, align 1
     ret void
   
   else:                                             ; preds = %rec
-    %3 = load i64*, i64** %a, align 8
-    %size = getelementptr i64, i64* %3, i64 1
+    %4 = load i64*, i64** %a, align 8
+    %size = getelementptr i64, i64* %4, i64 1
     %size3 = load i64, i64* %size, align 4
-    %cap = getelementptr i64, i64* %3, i64 2
+    %cap = getelementptr i64, i64* %4, i64 2
     %cap4 = load i64, i64* %cap, align 4
-    %4 = icmp eq i64 %cap4, %size3
-    br i1 %4, label %grow, label %keep
+    %5 = icmp eq i64 %cap4, %size3
+    br i1 %5, label %grow, label %keep
   
   keep:                                             ; preds = %else
-    %5 = tail call i64* @__ag.ag_reloc_ai.ai(i64** %a)
+    %6 = tail call i64* @__ag.ag_reloc_ai.ai(i64** %a)
     br label %merge
   
   grow:                                             ; preds = %else
-    %6 = tail call i64* @__ag.ag_grow_ai.ai(i64** %a)
+    %7 = tail call i64* @__ag.ag_grow_ai.ai(i64** %a)
     br label %merge
   
   merge:                                            ; preds = %grow, %keep
-    %7 = phi i64* [ %5, %keep ], [ %6, %grow ]
-    %data = getelementptr i64, i64* %7, i64 3
-    %8 = getelementptr i64, i64* %data, i64 %size3
-    store i64 20, i64* %8, align 4
-    %size5 = getelementptr i64, i64* %7, i64 1
-    %9 = add i64 %size3, 1
-    store i64 %9, i64* %size5, align 4
+    %8 = phi i64* [ %6, %keep ], [ %7, %grow ]
+    %data = getelementptr i64, i64* %8, i64 3
+    %9 = getelementptr i64, i64* %data, i64 %size3
+    store i64 20, i64* %9, align 4
+    %size5 = getelementptr i64, i64* %8, i64 1
+    %10 = add i64 %size3, 1
+    store i64 %10, i64* %size5, align 4
     store i64** %a, i64*** %0, align 8
-    store i64 %lsr.iv, i64* %1, align 4
+    store i64 %lsr.iv, i64* %2, align 4
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
   }
@@ -1549,6 +1590,28 @@ Don't copy mutable types in setup of tailrecursive functions
   
   declare i8* @malloc(i64 %0)
   
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = icmp eq i64 %ref1, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i64* %0 to i64*
+    %3 = sub i64 %ref1, 1
+    store i64 %3, i64* %2, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
   define internal i64* @__ag.ag_reloc_ai.ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
@@ -1580,28 +1643,6 @@ Don't copy mutable types in setup of tailrecursive functions
   merge:                                            ; preds = %relocate, %entry
     %11 = load i64*, i64** %0, align 8
     ret i64* %11
-  }
-  
-  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
-  entry:
-    %ref2 = bitcast i64* %0 to i64*
-    %ref1 = load i64, i64* %ref2, align 4
-    %1 = icmp eq i64 %ref1, 1
-    br i1 %1, label %free, label %decr
-  
-  decr:                                             ; preds = %entry
-    %2 = bitcast i64* %0 to i64*
-    %3 = sub i64 %ref1, 1
-    store i64 %3, i64* %2, align 4
-    br label %merge
-  
-  free:                                             ; preds = %entry
-    %4 = bitcast i64* %0 to i8*
-    call void @free(i8* %4)
-    br label %merge
-  
-  merge:                                            ; preds = %free, %decr
-    ret void
   }
   
   define internal i64* @__ag.ag_grow_ai.ai(i64** %0) {

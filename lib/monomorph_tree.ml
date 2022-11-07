@@ -844,7 +844,7 @@ and morph_if mk p cond e1 e2 =
   let iid, ids = mb_id oids e1.typ in
   ( { p with ids },
     mk (Mif { cond; e1; e2; iid }) ret,
-    { a with alloc = Two_values (a.alloc, b.alloc) } )
+    { a with alloc = Two_values (a.alloc, b.alloc); id = iid } )
 
 and prep_let p id uniq e toplvl =
   let p, e1, func = morph_expr { p with ret = false } e in
