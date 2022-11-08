@@ -209,7 +209,7 @@ let func_of_typ = function
   | Tfun (params, ret, kind) -> { params; ret; kind }
   | _ -> failwith "Internal Error: Not a function type"
 
-let find_function_expr vars = function
+let rec find_function_expr vars = function
   | Mvar (id, _) -> (
       match Vars.find_opt id vars with
       | Some (Normal thing | Param thing) -> thing.fn
@@ -230,6 +230,7 @@ let find_function_expr vars = function
   | Mlambda _ -> (* Concrete type is already inferred *) No_function
   | Mlet _ -> No_function
   | Mfmt _ -> No_function
+  | Mincr_ref e -> find_function_expr vars e.expr
   | e ->
       print_endline (show_expr e);
       "Not supported: " ^ show_expr e |> failwith
@@ -1130,14 +1131,38 @@ and morph_app mk p callee args ret_typ =
       | Some i -> i < 0
       | None -> false
     in
+    let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
     let ids = if is_tailrec then remove_id ~id:var.id p.ids else p.ids in
     let p, monomorph = monomorphize_call { p with ids } ex None in
-    (p, ex, monomorph, is_arg var.id)
+    ({ p with ret }, ex, monomorph, is_arg var.id)
+  in
+  (* array-push and array-set get special treatment.
+     The thing to set should either be a temporary, or its ref counter needs to be increased. *)
+  let special_f p arg =
+    let ret = p.ret in
+    let p, v, var = morph_expr { p with ret = false } arg in
+
+    let v, ids =
+      if not (is_temporary v.expr) then ({ v with expr = Mincr_ref v }, p.ids)
+      else (v, remove_id ~id:var.id p.ids)
+    in
+
+    let p, monomorph = monomorphize_call { p with ids } v None in
+    ({ p with ret }, v, monomorph, false)
+  in
+  let is_special =
+    (* We only call on last argument, thus we don't track argument index *)
+    match callee.monomorph with
+    | Builtin (Array_set, _) -> true
+    | Builtin (Array_push, _) -> true
+    | _ -> false
   in
   let rec fold_decr_last p args = function
     | [ (arg, mut) ] ->
-        let p, ex, monomorph, arg = f p arg in
+        let p, ex, monomorph, arg =
+          if is_special then special_f p arg else f p arg
+        in
         let ex = if is_tailrec then decr_refs ex p.ids else ex in
         let ids =
           if is_tailrec then

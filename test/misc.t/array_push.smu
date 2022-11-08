@@ -17,3 +17,12 @@
   (print (fmt-str (array-length b))))
 
 (in-fun)
+
+(val nested& $[$[0 1] $[2 3]])
+(val a $[4 5])
+(array-push &nested a)
+(array-set &nested 1 a)
+(set &(array-get nested 1) a)
+(array-push &nested $[4 5])
+(array-set &nested 1 $[4 5])
+(set &(array-get nested 1) $[4 5])
