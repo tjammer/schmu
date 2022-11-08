@@ -469,6 +469,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let rptr = realloc (bring_default orig) ~size in
     ignore (Llvm.build_store rptr orig.value builder);
     ignore (Llvm.build_br merge_bb builder);
+    let realloc_bb = Llvm.insertion_block builder in
 
     (* malloc *)
     Llvm.position_at_end malloc_bb builder;
@@ -512,6 +513,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
          "data" builder
      in
      iter_array_children data sz item_type incr_refcount);
+    let malloc_bb = Llvm.insertion_block builder in
 
     ignore (Llvm.build_br merge_bb builder);
 
