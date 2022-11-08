@@ -587,6 +587,51 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     { dummy_fn_value with lltyp = unit_t }
 
+  let array_drop_back args =
+    let arr =
+      match args with
+      | [ arr ] -> arr
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    in
+    let arr = maybe_relocate arr in
+    let int_ptr =
+      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
+    in
+
+    let ptr =
+      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+      Llvm.build_bitcast ptr arr.lltyp "" builder
+    in
+
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let sz = Llvm.build_load dst "size" builder in
+
+    let start_bb = Llvm.insertion_block builder in
+    let parent = Llvm.block_parent start_bb in
+
+    let drop_last_bb = Llvm.append_block context "drop_last" parent in
+    let cont_bb = Llvm.append_block context "cont" parent in
+
+    let cmp = Llvm.(build_icmp Icmp.Sgt) sz (ci 0) "" builder in
+    ignore (Llvm.build_cond_br cmp drop_last_bb cont_bb builder);
+
+    Llvm.position_at_end drop_last_bb builder;
+    let index = Llvm.build_sub sz (ci 1) "" builder in
+    let ptr = Llvm.build_gep ptr [| index |] "" builder in
+
+    let item_typ = item_type arr.typ in
+    let llitem_typ = get_lltype_def item_typ in
+
+    decr_refcount
+      { value = ptr; kind = Ptr; typ = item_typ; lltyp = llitem_typ };
+
+    ignore (Llvm.build_store index dst builder);
+    ignore (Llvm.build_br cont_bb builder);
+
+    Llvm.position_at_end cont_bb builder;
+
+    { dummy_fn_value with lltyp = unit_t }
+
   let gen_functions () =
     Hashtbl.iter
       (fun _ (kind, v, ft) ->
