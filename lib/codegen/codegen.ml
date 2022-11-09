@@ -515,8 +515,9 @@ end = struct
       if not is_arg then tail_decr_param param alloca i oarg.mut;
 
       (* We store the params in pre-allocated variables *)
-      if llvar.value <> alloca.value then
-        tailrec_store ~src:llvar ~dst:alloca.value;
+      (if llvar.value <> alloca.value then
+       let src = if oarg.mut then llvar else bring_default_var llvar in
+       tailrec_store ~src ~dst:alloca.value);
       i + 1
     in
 

@@ -554,10 +554,11 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
               let typ = p.pt in
               let value, i = get_value i p.pmut typ in
               Llvm.set_value_name name value;
-              let value =
-                { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
+              let kind = if p.pmut then Ptr else default_kind typ in
+              let value = { value; typ; lltyp = get_lltype_def typ; kind } in
+              let alloc =
+                { value with value = alloca_copy p.pmut value; kind = Ptr }
               in
-              let alloc = { value with value = alloca_copy p.pmut value } in
               let env = Vars.add (name_of_alloc_param i) alloc env in
               let env =
                 if Arr.contains_array typ then (
