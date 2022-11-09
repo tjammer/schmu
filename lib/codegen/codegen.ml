@@ -837,19 +837,32 @@ end = struct
     gen_expr param cont
 
   and gen_string_lit param s typ allocref =
-    let lltyp = get_struct string_type in
-    let ptr = get_const_string s in
+    let lltyp = get_lltype_def typ in
+    let u8 i = Llvm.const_int u8_t i in
+    let thing =
+      String.to_seq s |> Seq.map Char.code |> fun sq ->
+      Seq.append sq (Seq.return 0)
+      |> Seq.map u8 |> Array.of_seq
+      |> Llvm.const_array (Llvm.array_type u8_t (String.length s + 1))
+    in
+    let arr =
+      List.to_seq [ 1; String.length s; String.length s ]
+      |> Seq.map (Llvm.const_int int_t)
+      |> (fun s -> Seq.append s (Seq.return thing))
+      |> Array.of_seq
+    in
+
+    let content = Llvm.const_struct context arr in
+    let value = Llvm.define_global "consthi" content the_module in
+    Llvm.set_linkage Llvm.Linkage.Private value;
+    Llvm.set_unnamed_addr true value;
+    let ptr = Llvm.build_bitcast value lltyp "" builder in
 
     (* Check for preallocs *)
     let string = get_prealloc !allocref param lltyp "str" in
 
-    let cstr = Llvm.build_struct_gep string 0 "cstr" builder in
-    ignore (Llvm.build_store ptr cstr builder);
-    let len = Llvm.build_struct_gep string 1 "length" builder in
-    ignore
-      (Llvm.build_store (Llvm.const_int int_t (String.length s)) len builder);
-
-    { value = string; typ; lltyp; kind = Const_ptr }
+    ignore (Llvm.build_store ptr string builder);
+    { value = string; typ; lltyp; kind = Ptr }
 
   and gen_vector_lit param id es typ allocref =
     let lltyp = get_struct typ in

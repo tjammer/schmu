@@ -631,7 +631,7 @@ let set_tailrec name =
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
 let rec is_temporary = function
-  | Mvar _ | Mfield _ | Mvar_data _ -> false
+  | Mvar _ | Mfield _ | Mvar_data _ | Mconst (String _) -> false
   | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _ | Mfmt _
   | Mcopy _ | Mincr_ref _ ->
       true

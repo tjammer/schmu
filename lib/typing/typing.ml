@@ -475,6 +475,8 @@ end = struct
   open Records
   open Patternmatch
 
+  let string_typ = Talias ("string", Tarray Tu8)
+
   let rec convert env expr = convert_annot env None expr
 
   and convert_annot env annot = function
@@ -485,8 +487,8 @@ end = struct
     | Lit (_, Float f) -> convert_simple_lit Tfloat (Float f)
     | Lit (_, I32 i) -> convert_simple_lit Ti32 (I32 i)
     | Lit (_, F32 i) -> convert_simple_lit Tf32 (F32 i)
-    | Lit (loc, String s) ->
-        let typ = get_prelude env loc "string" in
+    | Lit (_, String s) ->
+        let typ = string_typ in
         (* TODO is const, but handled differently right now *)
         { typ; expr = Const (String s); attr = no_attr }
     | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
@@ -511,7 +513,7 @@ end = struct
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, exprs, cases) -> convert_match env loc exprs cases
     | Local_open (loc, modul, blk) -> convert_open env loc modul blk
-    | Fmt (loc, exprs) -> convert_fmt env loc exprs
+    | Fmt (_, exprs) -> convert_fmt env exprs
 
   and convert_var env loc id =
     match Env.query_val_opt id env with
@@ -842,7 +844,7 @@ end = struct
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
     | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (e1.aexpr :: exprs)
-    | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (e1.aexpr :: l)
+    | Pip_expr (Fmt (_, l)) -> convert_fmt env (e1.aexpr :: l)
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
@@ -859,7 +861,7 @@ end = struct
         convert_ctor env loc name (Some e1.aexpr) None
     | Pip_expr (Bop (_, op, exprs)) ->
         convert_bop env loc op (exprs @ [ e1.aexpr ])
-    | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (l @ [ e1.aexpr ])
+    | Pip_expr (Fmt (_, l)) -> convert_fmt env (l @ [ e1.aexpr ])
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
@@ -887,12 +889,12 @@ end = struct
     let attr = { const; global = false; mut = false } in
     { typ; expr = Record exprs; attr }
 
-  and convert_fmt env loc exprs =
+  and convert_fmt env exprs =
     let f expr =
       let e = convert env expr in
       match (e.expr, clean e.typ) with
       | Const (String s), _ -> Fstr s
-      | _, Trecord (_, Some name, _) when String.equal name "string" -> Fexpr e
+      | _, Tarray Tu8 -> Fexpr e
       | _, (Tint | Tfloat | Tbool | Tu8 | Ti32 | Tf32) -> Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)
@@ -901,7 +903,7 @@ end = struct
           failwith "TODO not implemented yet "
     in
     let exprs = List.map f exprs in
-    let typ = get_prelude env loc "string" in
+    let typ = string_typ in
     { typ; expr = Fmt exprs; attr = no_attr }
 
   and convert_block_annot ~ret env annot stmts =

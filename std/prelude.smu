@@ -5,15 +5,15 @@
 -- string
 (type cstr (raw_ptr u8))
 
-(type string { :cstr cstr :length int })
+(type string (array u8))
 
 (external puts (fun cstr unit))
 
-(fun print [str] (puts (.cstr str)))
+(fun print [str] (puts (array-data str)))
 
 (external abs (fun int int))
 
-(fun string-len [str] (abs (.length str)))
+(fun string-len [str] (abs (array-length str)))
 
 -- vector
 (type (vector 'a) {:ptr& (owned_ptr 'a) :capacity& int})
