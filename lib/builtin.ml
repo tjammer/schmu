@@ -24,6 +24,7 @@ type t =
   | Array_length
   | Array_push
   | Array_drop_back
+  | Array_data
 [@@deriving show]
 
 let tbl =
@@ -110,6 +111,9 @@ let tbl =
     ( Array_drop_back,
       Tfun ([ { pmut = true; pt = Tarray (Qvar "0") } ], Tunit, Simple),
       "array-drop-back" );
+    ( Array_data,
+      Tfun ([ { pmut; pt = Tarray (Qvar "0") } ], Traw_ptr (Qvar "0"), Simple),
+      "array-data" );
   ]
 
 let of_string = function
@@ -138,6 +142,7 @@ let of_string = function
   | "array-length" -> Some Array_length
   | "array-push" -> Some Array_push
   | "array-drop-back" -> Some Array_drop_back
+  | "array-data" -> Some Array_data
   | _ -> None
 
 let fold f init = List.fold_left f init tbl

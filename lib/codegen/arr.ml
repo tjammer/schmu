@@ -633,6 +633,29 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     { dummy_fn_value with lltyp = unit_t }
 
+  let array_data args =
+    let arr =
+      match args with
+      | [ arr ] -> bring_default_var arr
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    in
+
+    let itemtyp = item_type arr.typ in
+    let lltyp = get_lltype_def itemtyp in
+    let int_ptr =
+      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
+    in
+    let ptr =
+      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+      Llvm.build_bitcast ptr (Llvm.pointer_type lltyp) "" builder
+    in
+
+    let valueptr = Llvm.build_gep ptr [| ci 0 |] "" builder in
+    let typ = Traw_ptr itemtyp in
+    let lltyp = get_lltype_def typ in
+    let v = { value = valueptr; typ; lltyp; kind = Imm } in
+    v
+
   let gen_functions () =
     Hashtbl.iter
       (fun _ (kind, v, ft) ->

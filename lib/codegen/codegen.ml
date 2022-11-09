@@ -577,6 +577,7 @@ end = struct
     | Array_length -> array_length args
     | Array_push -> array_push args
     | Array_drop_back -> array_drop_back args
+    | Array_data -> array_data args
     | Realloc ->
         let ptr, size =
           match args with
