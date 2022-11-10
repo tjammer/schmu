@@ -60,10 +60,3 @@ let global_t =
   Llvm.(
     struct_type context
       [| i32_t; function_type unit_t [||] |> pointer_type; voidptr_t |])
-
-let string_type =
-  Trecord
-    ( [],
-      Some "string",
-      [| { ftyp = Traw_ptr Tu8; mut = false }; { ftyp = Tint; mut = false } |]
-    )

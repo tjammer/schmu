@@ -296,7 +296,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         in
 
         let content = Llvm.const_struct context arr in
-        let value = Llvm.define_global "consthi" content the_module in
+        let value = Llvm.define_global "" content the_module in
         Llvm.set_linkage Llvm.Linkage.Private value;
         Llvm.set_unnamed_addr true value;
         let lltyp = get_lltype_def (Tarray Tu8) in
@@ -306,13 +306,13 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         ptr
 
   let fmt_str value =
-    let v = bring_default value in
+    let v = bring_default_var value in
     match value.typ with
-    | Tint -> ("%li", v)
-    | Tfloat -> ("%.9g", v)
-    | Trecord (_, Some name, _) when String.equal name "string" ->
-        let ptr = Llvm.build_struct_gep value.value 0 "" builder in
-        ("%s", Llvm.build_load ptr "" builder)
+    | Tint -> ("%li", v.value)
+    | Tfloat -> ("%.9g", v.value)
+    | Tarray Tu8 ->
+        let ptr = Arr.array_data [ v ] in
+        ("%s", ptr.value)
     | Tbool ->
         let start_bb = Llvm.insertion_block builder in
         let parent = Llvm.block_parent start_bb in
@@ -320,7 +320,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         let false_bb = Llvm.append_block context "free" parent in
         let cont_bb = Llvm.append_block context "cont" parent in
 
-        ignore (Llvm.build_cond_br v cont_bb false_bb builder);
+        ignore (Llvm.build_cond_br v.value cont_bb false_bb builder);
 
         Llvm.position_at_end false_bb builder;
         ignore (Llvm.build_br cont_bb builder);
@@ -334,9 +334,9 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
             "" builder
         in
         ("%s", value)
-    | Tu8 -> ("%hhi", v)
-    | Ti32 -> ("%i", v)
-    | Tf32 -> (".9gf", v)
+    | Tu8 -> ("%hhi", v.value)
+    | Ti32 -> ("%i", v.value)
+    | Tf32 -> (".9gf", v.value)
     | _ ->
         print_endline (show_typ value.typ);
         failwith "Internal Error: Impossible string format"

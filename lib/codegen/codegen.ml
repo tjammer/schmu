@@ -968,7 +968,7 @@ end = struct
           in
           declare_function "snprintf" ft the_module)
     in
-    let lltyp = get_struct string_type in
+    let lltyp = get_lltype_def typ in
 
     let f (fmtstr, args) expr =
       match expr with
@@ -980,38 +980,60 @@ end = struct
     in
     let fmt, args = List.fold_left f ("", []) exprs in
     (* Calculate size *)
-    let fmtptr = get_const_string fmt in
+    let fmtptr =
+      get_const_string fmt |> fun value ->
+      array_data [ { value; kind = Imm; typ; lltyp } ]
+    in
     let itemargs = List.rev args in
     let args =
       Llvm.const_pointer_null voidptr_t
-      :: Llvm.const_int int_t 0 :: fmtptr :: itemargs
+      :: Llvm.const_int int_t 0 :: fmtptr.value :: itemargs
       |> Array.of_list
     in
-    let size =
+    let ssize =
       Llvm.build_call (Lazy.force snprintf_decl) args "fmtsize" builder
     in
-    (* Add null terminator *)
-    let size = Llvm.build_add size (Llvm.const_int i32_t 1) "" builder in
+    (* Add null terminator (and rc head) *)
+    let _, llitem_typ, head_size, _ = item_type_head_size typ in
+    let size =
+      Llvm.build_add ssize (Llvm.const_int i32_t (head_size + 1)) "" builder
+    in
     let size = Llvm.build_intcast size int_t "" builder in
-    let ptr = malloc ~size in
+    let arr_ptr =
+      malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
+    in
+
+    (* Initialize counts *)
+    let ci i = Llvm.const_int int_t i in
+    let int_ptr =
+      Llvm.build_bitcast arr_ptr (Llvm.pointer_type int_t) "" builder
+    in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
+    (* refcount of 1 *)
+    ignore (Llvm.build_store (ci 1) dst builder);
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let ssize = Llvm.build_intcast ssize int_t "" builder in
+    ignore (Llvm.build_store ssize dst builder);
+    let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    ignore (Llvm.build_store ssize dst builder);
+    let ptr =
+      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+      Llvm.build_bitcast ptr (Llvm.pointer_type llitem_typ) "" builder
+    in
 
     (* Format string *)
-    let args = ptr :: size :: fmtptr :: itemargs |> Array.of_list in
+    (* [size] argument here is not really correct (head_size is added),
+       but we made sure it's enough *)
+    let args = ptr :: size :: fmtptr.value :: itemargs |> Array.of_list in
     ignore (Llvm.build_call (Lazy.force snprintf_decl) args "fmt" builder);
 
     (* Build string record *)
     let string = get_prealloc !allocref param lltyp "str" in
+    ignore (Llvm.build_store arr_ptr string builder);
 
-    let cstr = Llvm.build_struct_gep string 0 "cstr" builder in
-    ignore (Llvm.build_store ptr cstr builder);
-    let len = Llvm.build_struct_gep string 1 "length" builder in
-    (* Flip sign bit to mark as owned string which needs to be freed *)
-    let size = Llvm.build_mul size (Llvm.const_int int_t (-1)) "" builder in
-    ignore (Llvm.build_store size len builder);
-
-    Ptrtbl.add ptr_tbl id (string, typ);
-
-    { value = string; typ; lltyp; kind = Ptr }
+    let v = { value = string; typ; lltyp; kind = Ptr } in
+    Hashtbl.replace decr_tbl id v;
+    v
 
   and gen_copy param temp mut expr nm =
     let v = gen_expr param expr in

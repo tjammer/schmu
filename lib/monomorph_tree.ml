@@ -1267,13 +1267,12 @@ and morph_fmt mk p exprs =
   leave_level ();
 
   let alloca = ref (request ()) in
-  let id = new_id malloc_id in
-  let malloc = { id; mlvl = ref !alloc_lvl } in
-  let mallocs = malloc :: p.mallocs in
+  let id = new_id var_id in
+  let ids = add_id ~id p.ids in
 
-  ( { p with ret; mallocs },
+  ( { p with ret; ids },
     mk (Mfmt (es, alloca, id)) ret,
-    { no_var with alloc = Value alloca; malloc = Some malloc } )
+    { no_var with alloc = Value alloca; id = Some id } )
 
 let morph_toplvl param items =
   let rec aux param = function
