@@ -108,8 +108,8 @@ end = struct
     match typed_expr.expr with
     | Mconst (String (s, allocref, rf)) ->
         gen_string_lit param s typed_expr.typ allocref rf
-    | Mconst (Vector (id, es, allocref)) ->
-        gen_vector_lit param id es typed_expr.typ allocref
+    | Mconst (Vector (es, allocref)) ->
+        gen_vector_lit param  es typed_expr.typ allocref
     | Mconst (Array (arr, allocref, id)) ->
         let v = gen_array_lit param arr typed_expr.typ allocref in
         Hashtbl.replace decr_tbl id v;
@@ -149,14 +149,14 @@ end = struct
               dummy_fn_value
         in
         func
-    | Mapp { callee; args; alloca; malloc; id = _; vid } ->
+    | Mapp { callee; args; alloca; id = _; vid } ->
         let value =
           match (typed_expr.return, callee.monomorph, param.rec_block) with
           | true, Recursive _, Some block ->
               gen_app_tailrec param callee args block typed_expr.typ
           | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args
           | _, Inline (pnames, tree), _ -> gen_app_inline param args pnames tree
-          | _ -> gen_app param callee args alloca typed_expr.typ malloc
+          | _ -> gen_app param callee args alloca typed_expr.typ
         in
         (match vid with
         | Some id -> Strtbl.replace decr_tbl id value
@@ -170,7 +170,6 @@ end = struct
     | Mfield (expr, index) -> gen_field param expr index |> fin
     | Mset (expr, value) -> gen_set param expr value |> fin
     | Mseq (expr, cont) -> gen_chain param expr cont
-    | Mfree_after (expr, id) -> gen_free param expr id
     | Mctor (ctor, allocref, const) ->
         gen_ctor param ctor typed_expr.typ allocref const
     | Mvar_index expr -> gen_var_index param expr |> fin
@@ -359,7 +358,7 @@ end = struct
     in
     { expr with value; kind = Imm }
 
-  and gen_app param callee args allocref ret_t malloc =
+  and gen_app param callee args allocref ret_t =
     let func = gen_expr param callee.ex in
 
     let func = get_mono_func func param callee.monomorph in
@@ -480,11 +479,6 @@ end = struct
           let retval = Llvm.build_call funcval args "" builder in
           (retval, get_lltype_param false t)
     in
-
-    (* For freeing propagated mallocs *)
-    (match malloc with
-    | Some id -> Ptrtbl.add ptr_tbl id (value, ret)
-    | None -> ());
 
     { value; typ = ret; lltyp; kind = default_kind ret }
 
@@ -846,7 +840,7 @@ end = struct
     ignore (Llvm.build_store ptr string builder);
     { value = string; typ; lltyp; kind = Ptr }
 
-  and gen_vector_lit param id es typ allocref =
+  and gen_vector_lit param es typ allocref =
     let lltyp = get_struct typ in
     let item_typ =
       match typ with
@@ -903,14 +897,8 @@ end = struct
     let capptr = Llvm.build_struct_gep vec 1 "cap" builder in
     ignore (Llvm.(build_store (const_int int_t cap) capptr) builder);
 
-    Ptrtbl.add ptr_tbl id (vec, typ);
-
     { value = vec; typ; lltyp; kind = Ptr }
 
-  and gen_free param expr id =
-    let ret = gen_expr param expr in
-    ignore (free_id id);
-    ret
 
   and gen_ctor param (variant, tag, expr) typ allocref const =
     ignore const;
@@ -1164,11 +1152,6 @@ let has_init_code tree =
   in
   aux Monomorph_tree.(tree.expr)
 
-let add_frees tree frees =
-  List.fold_left
-    (fun tree id -> Monomorph_tree.{ tree with expr = Mfree_after (tree, id) })
-    tree frees
-
 let add_global_init funcs outname kind body =
   let fname, glname =
     match kind with
@@ -1201,7 +1184,7 @@ let add_global_init funcs outname kind body =
   set_linkage Appending global
 
 let generate ~target ~outname ~release ~modul
-    { Monomorph_tree.constants; globals; externals; tree; frees; funcs } =
+    { Monomorph_tree.constants; globals; externals; tree; funcs } =
   (* Fill const_tbl *)
   fill_constants constants;
   def_globals globals;
@@ -1240,7 +1223,6 @@ let generate ~target ~outname ~release ~modul
 
   if not modul then
     (* Add main *)
-    let tree = add_frees tree frees in
     Core.gen_function funcs ~mangle:C
       {
         name = { Monomorph_tree.user = "main"; call = "main" };
@@ -1258,18 +1240,9 @@ let generate ~target ~outname ~release ~modul
           };
       }
     |> ignore
-  else if has_init_code tree then (
+  else if has_init_code tree then
     (* Or module init *)
-    add_global_init funcs outname `Ctor tree;
-
-    match frees with
-    | [] -> ()
-    | frees ->
-        (* Add frees to global dctors in reverse order *)
-        let body =
-          Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true }
-        in
-        add_global_init no_param outname `Dtor (add_frees body frees));
+    add_global_init funcs outname `Ctor tree (* TODO decr refs *);
   (* Generate internal helper functions for arrays *)
   Ar.gen_functions ();
 

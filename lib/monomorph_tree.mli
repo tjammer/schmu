@@ -17,9 +17,6 @@ type expr =
       callee : monod_expr;
       args : (monod_expr * bool) list;
       alloca : alloca;
-      malloc : int option;
-      (* Mallocs have to go through a call to get propagated.
-         Codegen must check if there are nested allocations *)
       id : int; (* Internal id for nested monomorphization *)
       vid : int option;
     }
@@ -31,7 +28,6 @@ type expr =
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)
-  | Mfree_after of monod_tree * int
   | Mctor of (string * int * monod_tree option) * alloca * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
@@ -53,7 +49,7 @@ and const =
   | I32 of int
   | F32 of float
   | String of string * alloca * int ref
-  | Vector of int * monod_tree list * alloca
+  | Vector of monod_tree list * alloca
   | Array of monod_tree list * alloca * int
   | Unit
 (* The int is the malloc id used for freeing later *)
@@ -106,7 +102,6 @@ type monomorphized_tree = {
   globals : (string * typ * bool) list; (* toplvl bool *)
   externals : external_decl list;
   tree : monod_tree;
-  frees : int list;
   funcs : to_gen_func list;
 }
 

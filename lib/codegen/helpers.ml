@@ -2,7 +2,6 @@ module type S = sig
   open Llvm_types
   open Cleaned_types
 
-  val ptr_tbl : (int, Llvm.llvalue * typ) Hashtbl.t
   val dummy_fn_value : llvar
   val declare_function : c_linkage:bool -> mangle_kind -> string -> typ -> llvar
   val add_closure : llvar Vars.t -> llvar -> fun_kind -> llvar Vars.t
@@ -53,7 +52,6 @@ module type S = sig
   val malloc : size:Llvm.llvalue -> Llvm.llvalue
   val alloca : Llvm_types.param -> Llvm.lltype -> string -> Llvm.llvalue
   val get_const_string : ?rf:int ref option -> string -> Llvm.llvalue
-  val free_id : int -> unit
   val free : Llvm.llvalue -> Llvm.llvalue
   val fmt_str : llvar -> string * Llvm.llvalue
 
@@ -71,13 +69,11 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
   open T
   open A
   module Strtbl = Hashtbl
-  module Ptrtbl = Hashtbl
 
   external add_byval : Llvm.llvalue -> int -> Llvm.lltype -> unit
     = "LlvmAddByvalAttr"
 
   let string_tbl = Strtbl.create 64
-  let ptr_tbl = Ptrtbl.create 32
 
   let dummy_fn_value =
     (* When we need something in the env for a function which will only be called
@@ -170,111 +166,6 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     let ptr = Llvm.build_bitcast ptr voidptr_t "" builder in
 
     Llvm.build_call (Lazy.force free_decl) [| ptr |] "" builder
-
-  (* Recursively frees a record (which can contain vector and other records) *)
-  let rec free_value value = function
-    | Trecord ([ t ], Some name, _) when String.equal name "owned_ptr" ->
-        (* Free nested owned_ptrs *)
-        let ptr = Llvm.build_struct_gep value 0 "" builder in
-        let ptr = Llvm.build_load ptr "" builder in
-
-        (if contains_owned_ptr t then
-         let len_ptr = Llvm.build_struct_gep value 1 "lenptr" builder in
-         (* This should be num_t also, at some point *)
-         let len = Llvm.build_load len_ptr "leni" builder in
-         let len = Llvm.build_intcast len int_t "len" builder in
-         free_owned_ptr_children ptr len t);
-        ignore (free ptr)
-    | Trecord (_, Some name, _) when String.equal name "string" ->
-        let start_bb = Llvm.insertion_block builder in
-        let parent = Llvm.block_parent start_bb in
-
-        let owned_bb = Llvm.append_block context "free" parent in
-        let cont_bb = Llvm.append_block context "cont" parent in
-
-        let lengthptr = Llvm.build_struct_gep value 1 "" builder in
-        let length = Llvm.build_load lengthptr "" builder in
-        let cond =
-          Llvm.(build_icmp Icmp.Slt length (const_null int_t) "owned") builder
-        in
-        ignore (Llvm.build_cond_br cond owned_bb cont_bb builder);
-
-        Llvm.position_at_end owned_bb builder;
-        let ptr = Llvm.build_struct_gep value 0 "" builder in
-        let ptr = Llvm.build_load ptr "" builder in
-        ignore (free ptr);
-        ignore (Llvm.build_br cont_bb builder);
-
-        Llvm.position_at_end cont_bb builder
-    | Trecord (_, Some name, _) when String.equal name "owned_ptr" ->
-        failwith "Internal Error: On free: owned_ptr has no type"
-    | Trecord (_, _, fields) ->
-        Array.iteri
-          (fun i (f : field) ->
-            if contains_owned_ptr f.ftyp then
-              let ptr = Llvm.build_struct_gep value i "" builder in
-              free_value ptr f.ftyp)
-          fields
-    | t ->
-        print_endline (show_typ t);
-        failwith "freeing records other than owned_ptr TODO"
-
-  and contains_owned_ptr = function
-    | Trecord (_, Some name, _) when String.equal name "owned_ptr" -> true
-    | Trecord (_, Some name, _) when String.equal name "string" -> true
-    | Trecord (_, _, fields) ->
-        Array.fold_left
-          (fun b (f : field) -> f.ftyp |> contains_owned_ptr || b)
-          false fields
-    | _ -> false
-
-  and free_owned_ptr_children value len = function
-    | Trecord _ as typ ->
-        let start_bb = Llvm.insertion_block builder in
-        let parent = Llvm.block_parent start_bb in
-
-        (* Simple loop, start at 0 *)
-        let cnt = Llvm.build_alloca int_t "cnt" builder in
-        ignore (Llvm.build_store (Llvm.const_int int_t 0) cnt builder);
-
-        let rec_bb = Llvm.append_block context "rec" parent in
-        let free_bb = Llvm.append_block context "free" parent in
-        let cont_bb = Llvm.append_block context "cont" parent in
-
-        ignore (Llvm.build_br rec_bb builder);
-        Llvm.position_at_end rec_bb builder;
-
-        (* Check if we are done *)
-        let cnt_loaded = Llvm.build_load cnt "" builder in
-        let cmp = Llvm.(build_icmp Icmp.Slt) cnt_loaded len "" builder in
-        ignore (Llvm.build_cond_br cmp free_bb cont_bb builder);
-
-        Llvm.position_at_end free_bb builder;
-        (* The ptr has the correct type, no need to multiply size *)
-        let ptr = Llvm.build_gep value [| cnt_loaded |] "" builder in
-
-        free_value ptr typ;
-        let one = Llvm.const_int int_t 1 in
-        let next = Llvm.build_add cnt_loaded one "" builder in
-        ignore (Llvm.build_store next cnt builder);
-        ignore (Llvm.build_br rec_bb builder);
-
-        Llvm.position_at_end cont_bb builder
-    | t ->
-        print_endline (show_typ t);
-        failwith "Internal Error: Freeing this type is not supported"
-
-  let free_id id =
-    (match Ptrtbl.find_opt ptr_tbl id with
-    | Some (value, typ) ->
-        (* For propagated mallocs, we don't get the ptr directly but get the struct instead.
-           Here, we hardcode for owned_ptr, b/c it's the only thing allocating right now. *)
-
-        (* Free nested owned_ptrs *)
-        free_value value typ
-    | None ->
-        "Internal Error: Cannot find ptr for id " ^ string_of_int id |> failwith);
-    Ptrtbl.remove ptr_tbl id
 
   let get_const_string ?(rf = None) s =
     match Strtbl.find_opt string_tbl s with
