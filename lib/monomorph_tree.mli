@@ -52,7 +52,7 @@ and const =
   | Float of float
   | I32 of int
   | F32 of float
-  | String of string * alloca
+  | String of string * alloca * int ref
   | Vector of int * monod_tree list * alloca
   | Array of monod_tree list * alloca * int
   | Unit

@@ -52,7 +52,7 @@ module type S = sig
   val realloc : Llvm.llvalue -> size:Llvm.llvalue -> Llvm.llvalue
   val malloc : size:Llvm.llvalue -> Llvm.llvalue
   val alloca : Llvm_types.param -> Llvm.lltype -> string -> Llvm.llvalue
-  val get_const_string : string -> Llvm.llvalue
+  val get_const_string : ?rf:int ref option -> string -> Llvm.llvalue
   val free_id : int -> unit
   val free : Llvm.llvalue -> Llvm.llvalue
   val fmt_str : llvar -> string * Llvm.llvalue
@@ -276,11 +276,32 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         "Internal Error: Cannot find ptr for id " ^ string_of_int id |> failwith);
     Ptrtbl.remove ptr_tbl id
 
-  let get_const_string s =
+  let get_const_string ?(rf = None) s =
     match Strtbl.find_opt string_tbl s with
     | Some ptr -> ptr
     | None ->
-        let ptr = Llvm.build_global_stringptr s "" builder in
+        let u8 i = Llvm.const_int u8_t i in
+        let thing =
+          String.to_seq s |> Seq.map Char.code |> fun sq ->
+          Seq.append sq (Seq.return 0)
+          |> Seq.map u8 |> Array.of_seq
+          |> Llvm.const_array (Llvm.array_type u8_t (String.length s + 1))
+        in
+        let rf = match rf with Some rf -> !rf | None -> 1 in
+        let arr =
+          List.to_seq [ rf; String.length s; String.length s ]
+          |> Seq.map (Llvm.const_int int_t)
+          |> (fun s -> Seq.append s (Seq.return thing))
+          |> Array.of_seq
+        in
+
+        let content = Llvm.const_struct context arr in
+        let value = Llvm.define_global "consthi" content the_module in
+        Llvm.set_linkage Llvm.Linkage.Private value;
+        Llvm.set_unnamed_addr true value;
+        let lltyp = get_lltype_def (Tarray Tu8) in
+        let ptr = Llvm.build_bitcast value lltyp "" builder in
+
         Strtbl.add string_tbl s ptr;
         ptr
 

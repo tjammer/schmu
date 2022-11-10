@@ -106,8 +106,8 @@ end = struct
     in
 
     match typed_expr.expr with
-    | Mconst (String (s, allocref)) ->
-        gen_string_lit param s typed_expr.typ allocref
+    | Mconst (String (s, allocref, rf)) ->
+        gen_string_lit param s typed_expr.typ allocref rf
     | Mconst (Vector (id, es, allocref)) ->
         gen_vector_lit param id es typed_expr.typ allocref
     | Mconst (Array (arr, allocref, id)) ->
@@ -836,27 +836,9 @@ end = struct
     ignore (gen_expr param expr);
     gen_expr param cont
 
-  and gen_string_lit param s typ allocref =
+  and gen_string_lit param s typ allocref rf =
     let lltyp = get_lltype_def typ in
-    let u8 i = Llvm.const_int u8_t i in
-    let thing =
-      String.to_seq s |> Seq.map Char.code |> fun sq ->
-      Seq.append sq (Seq.return 0)
-      |> Seq.map u8 |> Array.of_seq
-      |> Llvm.const_array (Llvm.array_type u8_t (String.length s + 1))
-    in
-    let arr =
-      List.to_seq [ 1; String.length s; String.length s ]
-      |> Seq.map (Llvm.const_int int_t)
-      |> (fun s -> Seq.append s (Seq.return thing))
-      |> Array.of_seq
-    in
-
-    let content = Llvm.const_struct context arr in
-    let value = Llvm.define_global "consthi" content the_module in
-    Llvm.set_linkage Llvm.Linkage.Private value;
-    Llvm.set_unnamed_addr true value;
-    let ptr = Llvm.build_bitcast value lltyp "" builder in
+    let ptr = get_const_string ~rf:(Some rf) s in
 
     (* Check for preallocs *)
     let string = get_prealloc !allocref param lltyp "str" in
