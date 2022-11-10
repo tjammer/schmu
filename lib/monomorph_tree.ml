@@ -54,7 +54,6 @@ and const =
   | I32 of int
   | F32 of float
   | String of string * alloca * int ref
-  | Vector of  monod_tree list * alloca
   | Array of monod_tree list * alloca * int
   | Unit
 
@@ -646,7 +645,6 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   match texpr.expr with
   | Typed_tree.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
-  | Const (Vector v) -> morph_vector make param v
   | Const (Array a) -> morph_array make param a
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
@@ -724,29 +722,6 @@ and morph_string mk p s =
     mk (Mconst (String (s, alloca, rf))) p.ret,
     { no_var with fn = No_function; alloc = Value alloca } )
 
-and morph_vector mk p v =
-  let ret = p.ret in
-  (* We want to discard any inner mallocs.
-     They will be cleaned up when this vector is freed at runtime *)
-  let p = { p with ret = false } in
-
-  (* ret = false is threaded through p *)
-  enter_level ();
-  (* vectors are freed recursively, we don't need to track the items here *)
-  let f param e =
-    let p, e, var = morph_expr param e in
-    (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
-    set_alloca var.alloc;
-    (p, e)
-  in
-  let p, v = List.fold_left_map f p v in
-  leave_level ();
-  let alloca = ref (request ()) in
-
-  ( { p with ret },
-    mk (Mconst (Vector (v, alloca))) p.ret,
-    { fn = No_function; alloc = Value alloca; id = None } )
-
 and morph_array mk p a =
   let ret = p.ret in
   (* TODO save id list and pass empty one. Destroy temporary objects not directly used as member *)
@@ -773,8 +748,7 @@ and morph_array mk p a =
     { fn = No_function; alloc = Value alloca; id = Some id } )
 
 and morph_const = function
-  | String _ | Vector _ | Array _ ->
-      failwith "Internal Error: Const should be extra case"
+  | String _ | Array _ -> failwith "Internal Error: Const should be extra case"
   | Int i -> Int i
   | Bool b -> Bool b
   | Float f -> Float f

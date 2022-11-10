@@ -87,7 +87,6 @@ and literal =
   | I32 of int
   | F32 of float
   | String of string
-  | Vector of expr list
   | Array of expr list
   | Unit
 

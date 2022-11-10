@@ -146,9 +146,6 @@ let rec canonbody sub (e : Typed_tree.typed_expr) =
 
 and canonexpr sub = function
   | Typed_tree.Var _ as v -> (sub, v)
-  | Const (Vector v) ->
-      let sub, v = List.fold_left_map canonbody sub v in
-      (sub, Const (Vector v))
   | Const (Array a) ->
       let sub, a = List.fold_left_map canonbody sub a in
       (sub, Const (Array a))

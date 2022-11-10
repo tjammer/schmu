@@ -114,7 +114,6 @@ rule read =
   | '}'      { Rbrac }
   | '['      { Lbrack }
   | ']'      { Rbrack }
-  | "$["     { Larray }
   | "->"     { Arrow_right }
   | "->>"    { Arrow_righter }
   | "--"     { line_comment lexbuf }

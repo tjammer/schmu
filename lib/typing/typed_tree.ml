@@ -40,7 +40,6 @@ and const =
   | I32 of int
   | F32 of float
   | String of string
-  | Vector of typed_expr list
   | Array of typed_expr list
   | Unit
 

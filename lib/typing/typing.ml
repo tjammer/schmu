@@ -303,14 +303,6 @@ let handle_params env loc (params : Ast.decl list) ret =
   let ret = Option.map (fun t -> typeof_annot env loc t) ret in
   (env, ids, qparams, ret)
 
-let get_prelude env loc name =
-  let typ =
-    match Env.find_type_opt name env with
-    | Some t -> t
-    | None -> raise (Error (loc, "Cannot find type string. Prelude is missing"))
-  in
-  typ
-
 let check_type_unique env loc name =
   match Env.find_type_opt name env with
   | Some _ ->
@@ -491,7 +483,6 @@ end = struct
         let typ = string_typ in
         (* TODO is const, but handled differently right now *)
         { typ; expr = Const (String s); attr = no_attr }
-    | Lit (loc, Vector vec) -> convert_vector_lit env loc vec
     | Lit (loc, Array arr) -> convert_array_lit env loc arr
     | Lit (_, Unit) ->
         { typ = Tunit; expr = Const Unit; attr = { no_attr with const = true } }
@@ -522,18 +513,6 @@ end = struct
         let attr = { const = t.const; global = t.global; mut = t.mut } in
         { typ; expr = Var id; attr }
     | None -> raise (Error (loc, "No var named " ^ id))
-
-  and convert_vector_lit env loc vec =
-    let f typ expr =
-      let expr = convert env expr in
-      unify (loc, "In vector literal:") typ expr.typ;
-      (typ, expr)
-    in
-    let typ, exprs = List.fold_left_map f (newvar ()) vec in
-
-    let vector = get_prelude env loc "vector" in
-    let typ = subst_generic ~id:(get_generic_id loc vector) typ vector in
-    { typ; expr = Const (Vector exprs); attr = no_attr }
 
   and convert_array_lit env loc arr =
     let f typ expr =

@@ -108,8 +108,6 @@ end = struct
     match typed_expr.expr with
     | Mconst (String (s, allocref, rf)) ->
         gen_string_lit param s typed_expr.typ allocref rf
-    | Mconst (Vector (es, allocref)) ->
-        gen_vector_lit param  es typed_expr.typ allocref
     | Mconst (Array (arr, allocref, id)) ->
         let v = gen_array_lit param arr typed_expr.typ allocref in
         Hashtbl.replace decr_tbl id v;
@@ -211,7 +209,7 @@ end = struct
         let value = Llvm.const_float f32_t f in
         { value; typ = Tf32; lltyp = f32_t; kind = Const }
     | Unit -> dummy_fn_value
-    | String _ | Vector _ | Array _ -> failwith "In other branch"
+    | String _ | Array _ -> failwith "In other branch"
 
   and gen_var vars typ id kind =
     match kind with
@@ -839,66 +837,6 @@ end = struct
 
     ignore (Llvm.build_store ptr string builder);
     { value = string; typ; lltyp; kind = Ptr }
-
-  and gen_vector_lit param es typ allocref =
-    let lltyp = get_struct typ in
-    let item_typ =
-      match typ with
-      | Trecord ([ t ], _, _) -> t
-      | _ ->
-          print_endline (show_typ typ);
-          failwith "Internal Error: No record in vector"
-    in
-    let item_size = sizeof_typ item_typ in
-    let cap =
-      match es with
-      | [] ->
-          (* TODO nullptr *)
-          (* Empty list so far. We allocate 1 item to get an address *)
-          1
-      | es -> List.length es
-    in
-    let ptr_typ = get_lltype_def item_typ |> Llvm.pointer_type in
-    let ptr =
-      malloc ~size:(cap * item_size |> Llvm.const_int int_t) |> fun ptr ->
-      Llvm.build_bitcast ptr ptr_typ "" builder
-    in
-
-    (* Check for preallocs *)
-    let vec = get_prealloc !allocref param lltyp "vec" in
-
-    (* Add ptr to vector struct *)
-    let owned_ptr = Llvm.build_struct_gep vec 0 "owned_ptr" builder in
-    let data = Llvm.build_struct_gep owned_ptr 0 "data" builder in
-
-    ignore (Llvm.build_store ptr data builder);
-
-    (* Initialize *)
-    let len =
-      List.fold_left
-        (fun i expr ->
-          let index = [| Llvm.const_int int_t i |] in
-          let dst = Llvm.build_gep ptr index "" builder in
-          let src = gen_expr { param with alloca = Some dst } expr in
-
-          (match src.typ with
-          | Trecord _ | Tvariant _ ->
-              if dst <> src.value then
-                memcpy ~dst ~src ~size:(Llvm.const_int int_t item_size)
-              else (* The record was constructed inplace *) ()
-          | _ -> ignore (Llvm.build_store src.value dst builder));
-          i + 1)
-        0 es
-    in
-
-    let lenptr = Llvm.build_struct_gep owned_ptr 1 "len" builder in
-    ignore (Llvm.(build_store (const_int int_t len) lenptr) builder);
-
-    let capptr = Llvm.build_struct_gep vec 1 "cap" builder in
-    ignore (Llvm.(build_store (const_int int_t cap) capptr) builder);
-
-    { value = vec; typ; lltyp; kind = Ptr }
-
 
   and gen_ctor param (variant, tag, expr) typ allocref const =
     ignore const;
