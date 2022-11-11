@@ -1122,7 +1122,7 @@ let add_global_init funcs outname kind body =
   set_linkage Appending global
 
 let generate ~target ~outname ~release ~modul
-    { Monomorph_tree.constants; globals; externals; tree; funcs } =
+    { Monomorph_tree.constants; globals; externals; tree; funcs; decrs } =
   (* Fill const_tbl *)
   fill_constants constants;
   def_globals globals;
@@ -1159,8 +1159,15 @@ let generate ~target ~outname ~release ~modul
       funcs
   in
 
+  let decr_refs tree =
+    Seq.fold_left
+      (fun tree id -> Monomorph_tree.{ tree with expr = Mdecr_ref (id, tree) })
+      tree
+  in
+
   if not modul then
     (* Add main *)
+    let tree = decr_refs tree decrs in
     Core.gen_function funcs ~mangle:C
       {
         name = { Monomorph_tree.user = "main"; call = "main" };
@@ -1178,9 +1185,16 @@ let generate ~target ~outname ~release ~modul
           };
       }
     |> ignore
-  else if has_init_code tree then
+  else if has_init_code tree then (
     (* Or module init *)
-    add_global_init funcs outname `Ctor tree (* TODO decr refs *);
+    add_global_init funcs outname `Ctor tree;
+
+    (* Add frees to global dctors in reverse order *)
+    if not (Seq.is_empty decrs) then
+      let body =
+        Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true }
+      in
+      add_global_init no_param outname `Dtor (decr_refs body decrs));
   (* Generate internal helper functions for arrays *)
   Ar.gen_functions ();
 

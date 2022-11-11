@@ -103,6 +103,7 @@ type monomorphized_tree = {
   externals : external_decl list;
   tree : monod_tree;
   funcs : to_gen_func list;
+  decrs : int Seq.t;
 }
 
 type to_gen_func_kind =
@@ -1216,7 +1217,9 @@ let monomorphize { Typed_tree.externals; items; _ } =
   in
   let p, tree, _ = morph_toplvl param items in
 
-  let tree = decr_refs tree p.ids in
+  let decrs =
+    match p.ids with [] -> Seq.empty | ids :: _ -> Iset.to_rev_seq ids
+  in
 
   let externals =
     List.filter_map
@@ -1249,4 +1252,4 @@ let monomorphize { Typed_tree.externals; items; _ } =
   in
 
   (* TODO maybe try to catch memory leaks? *)
-  { constants; globals; externals; tree; funcs = p.funcs }
+  { constants; globals; externals; tree; funcs = p.funcs; decrs }

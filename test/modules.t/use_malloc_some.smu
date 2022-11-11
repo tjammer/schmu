@@ -4,6 +4,6 @@
 
 (external printf (fun cstr int unit))
 
-(fun printi [i] (printf (.cstr "%i\n") i))
+(fun printi [i] (printf (array-data "%i\n") i))
 
-(vector-iter malloc_some/vtest printi)
+(array-iter malloc_some/vtest printi)

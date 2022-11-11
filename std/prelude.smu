@@ -11,57 +11,27 @@
 
 (fun print [str] (puts (array-data str)))
 
-(external abs (fun int int))
+(fun string-len [str] (array-length str))
 
-(fun string-len [str] (abs (array-length str)))
-
--- vector
-(type (vector 'a) {:ptr& (owned_ptr 'a) :capacity& int})
-
-(fun vector-init [capacity]
-  (val optr (__malloc capacity))
-  {:ptr {:optr :length 0} :capacity})
-
-(fun vector-get [vec i]
-  (__unsafe_ptr_get (.optr (.ptr vec)) i))
-
-(fun vector-set [vec i v]
-  (__unsafe_ptr_set (.optr (.ptr vec)) i v))
-
-(fun vector-push [vec& v]
-  (if (= (.length (.ptr vec)) (.capacity vec))
-    (do
-      (val cap (* (.capacity vec) 2))
-      (__realloc &(.optr (.ptr vec)) cap)
-      (set &(.capacity vec) cap)))
-  (vector-set vec (.length (.ptr vec)) v)
-  (set &(.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))
-
-(fun vector-iter [vec f]
+-- array
+(fun array-iter [arr f]
   (fun inner [i]
-    (if (= i (.length (.ptr vec)))
+    (if (= i (array-length arr))
       ()
       (do
-        (f (vector-get vec i))
+        (f (array-get arr i))
         (inner (+ i 1)))))
   (inner 0))
 
-(fun vector-fold [vec f init]
-  (fun inner [i acc]
-    (if (= i (.length (.ptr vec)))
+(fun array-foldi [arr f init]
+  (fun inner [i acc&]
+    (if (= i (array-length arr))
       acc
       (do
-        (val acc (f acc (vector-get vec i)))
-        (inner (+ i 1) acc))))
-  (inner 0 init))
-
-(fun vector-update [vec f]
-  (fun inner [i]
-    (if (= i (.length (.ptr vec)))
-      ()
-      (do
-        (vector-set vec i (f (vector-get vec i))))))
-  (inner 0))
+        (set &acc (f i acc (array-get arr i)))
+        (inner (+ i 1) &acc))))
+  (val acc& init)
+  (inner 0 &acc))
 
 -- option
 (type (option 'a) ((#some 'a) #none))

@@ -8,4 +8,4 @@
 
 (val a 11)
 
--- printf("hello from Lets\n".cstr, 0)
+-- printf("hello from Lets\n"array-data, 0)

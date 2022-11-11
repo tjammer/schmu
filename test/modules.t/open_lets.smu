@@ -1,4 +1,4 @@
 (open lets)
 
-(printf (.cstr "%i\n") a)
-(printf (.cstr "%i\n") b)
+(printf (array-data "%i\n") a)
+(printf (array-data "%i\n") b)
