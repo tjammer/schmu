@@ -3,4 +3,4 @@
     (array-push &tmp v)
     tmp))
 
-(ignore (f1 $[0] 0))
+(ignore (f1 [0] 0))

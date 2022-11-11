@@ -1,57 +1,53 @@
-(external puts (fun cstr unit))
-
-(fun ps [str] (puts (.cstr str)))
-
 (fun true_ []
-  (ps "true")
+  (print "true")
   true)
 
 (fun false_ []
-  (ps "false")
+  (print "false")
   false)
 
-(ps "test 'and':")
+(print "test 'and':")
 
 (if (and (true_) (true_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))
 
 (if (and (true_) (false_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))
 
 (if (and (false_) (true_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))
 
 (if (and (false_) (false_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))
 
-(ps "test 'or':")
+(print "test 'or':")
 
 (if (or (true_) (true_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))
 
 (if (or (true_) (false_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))
 
 (if (or (false_) (true_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))
 
 (if (or (false_) (false_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))
 
-(ps "test 'not':")
+(print "test 'not':")
 
 (if (not (true_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))
 
 (if (not (false_))
-  (ps "yes")
-  (ps "no"))
+  (print "yes")
+  (print "no"))

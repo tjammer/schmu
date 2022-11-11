@@ -1,6 +1,6 @@
 (type arrec {:a& (array int)})
 
-(val a& {:a $[10]})
+(val a& {:a [10]})
 (val b a)
 (array-set &(.a a) 0 12)
 
@@ -13,7 +13,7 @@
 (print "in fun")
 
 (fun in-fun []
-  (val a& {:a $[10]})
+  (val a& {:a [10]})
   (val b a)
   (array-set &(.a a) 0 12)
 

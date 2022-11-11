@@ -9,6 +9,6 @@
 (modify &a)
 (print (fmt-str (.a a)))
 
-(val b& $[10])
+(val b& [10])
 (mod2 &b)
 (print (fmt-str (array-length b)))

@@ -1,4 +1,4 @@
-(val nested& $[$[0 1] $[2 3]])
+(val nested& [[0 1] [2 3]])
 (print (fmt-str (array-length nested)))
 (array-drop-back &nested)
 (print (fmt-str (array-length nested)))

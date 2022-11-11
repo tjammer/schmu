@@ -1,4 +1,4 @@
-(val a& $[10 20])
+(val a& [10 20])
 (val b a)
 
 (array-push &a 30)
@@ -8,7 +8,7 @@
 
 
 (fun in-fun []
-  (val a& $[10 20])
+  (val a& [10 20])
   (val b a)
 
   (array-push &a 30)
@@ -18,11 +18,11 @@
 
 (in-fun)
 
-(val nested& $[$[0 1] $[2 3]])
-(val a $[4 5])
+(val nested& [[0 1] [2 3]])
+(val a [4 5])
 (array-push &nested a)
 (array-set &nested 1 a)
 (set &(array-get nested 1) a)
-(array-push &nested $[4 5])
-(array-set &nested 1 $[4 5])
-(set &(array-get nested 1) $[4 5])
+(array-push &nested [4 5])
+(array-set &nested 1 [4 5])
+(set &(array-get nested 1) [4 5])

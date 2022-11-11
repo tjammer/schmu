@@ -1,23 +1,14 @@
-(val v [0])
-(val const (vector-get v 0))
-(vector-set v 0 1)
-(print (fmt-str (vector-get v 0)))
+(val v& [0])
+(val const (array-get v 0))
+(array-set &v 0 1)
+(print (fmt-str (array-get v 0)))
 (print (fmt-str const))
 
 (fun in-fun []
-  (val v [0])
-  (val const (vector-get v 0))
-  (vector-set v 0 1)
-  (print (fmt-str (vector-get v 0)))
-  (print (fmt-str const)))
-
-(in-fun)
-
-(fun in-fun []
-  (val v [0])
-  (val const (__unsafe_ptr_get (.optr (.ptr v)) 0))
-  (vector-set v 0 1)
-  (print (fmt-str (vector-get v 0)))
+  (val v& [0])
+  (val const (array-get v 0))
+  (array-set &v 0 1)
+  (print (fmt-str (array-get v 0)))
   (print (fmt-str const)))
 
 (in-fun)

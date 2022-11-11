@@ -257,52 +257,45 @@ let test_alias_of_alias () =
   test "(fun bar = int foo = int)"
     "(type foo int) (type bar foo) (external f (fun bar foo)) f"
 
-let test_vector_lit () =
-  test "(vector int)"
-    {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    [0 1]|}
+let test_array_lit () =
+  test "(array int)"
+    "[0 1]"
 
-let test_vector_var () =
-  test "(vector int)"
-    {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    (val a [0 1])
+let test_array_var () =
+  test "(array int)"
+    {|(val a [0 1])
     a|}
 
-let test_vector_weak () =
-  test "(vector int)"
-    {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    (external setf (fun (vector 'a) 'a unit))
+let test_array_weak () =
+  test "(array int)"
+    {|(external setf (fun (array 'a) 'a unit))
     (val a [])
     (setf a  2)
     a|}
 
-let test_vector_different_types () =
-  test_exn "In vector literal: Expected type int but got type bool"
-    {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    [0 true]|}
+let test_array_different_types () =
+  test_exn "In array literal: Expected type int but got type bool"
+    "[0 true]"
 
-let test_vector_different_annot () =
+let test_array_different_annot () =
   test_exn
-    "Var annotation: Expected type (vector bool) but got type (vector int)"
-    {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    (val (a (vector bool)) [0 1])
+    "Var annotation: Expected type (array bool) but got type (array int)"
+    {|(val (a (array bool)) [0 1])
     a|}
 
-let test_vector_different_annot_weak () =
+let test_array_different_annot_weak () =
   test_exn
-    "Application: Expected type (fun (vector bool) bool unit) but got type \
-     (fun (vector bool) int 'a)"
-    {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    (external setf (fun (vector 'a) 'a unit))
-    (val (a (vector bool)) [])
+    "Application: Expected type (fun (array bool) bool unit) but got type \
+     (fun (array bool) int 'a)"
+    {|(external setf (fun (array 'a) 'a unit))
+    (val (a (array bool)) [])
     (setf a 2)|}
 
-let test_vector_different_weak () =
+let test_array_different_weak () =
   test_exn
-    "Application: Expected type (fun (vector int) int unit) but got type (fun \
-     (vector int) bool 'a)"
-    {|(type (vector 'a) { :data (raw_ptr 'a) :length int })
-    (external setf (fun (vector 'a) 'a unit))
+    "Application: Expected type (fun (array int) int unit) but got type (fun \
+     (array int) bool 'a)"
+    {|(external setf (fun (array 'a) 'a unit))
     (val a [])
     (setf a 2)
     (setf a true)|}
@@ -615,15 +608,15 @@ let () =
           case "param_missing" test_alias_param_missing;
           case "of_alias" test_alias_of_alias;
         ] );
-      ( "vector",
+      ( "array",
         [
-          case "literal" test_vector_lit;
-          case "var" test_vector_var;
-          case "weak" test_vector_weak;
-          case "different_types" test_vector_different_types;
-          case "different_annot" test_vector_different_annot;
-          case "different_annot_weak" test_vector_different_annot_weak;
-          case "different_weak" test_vector_different_weak;
+          case "literal" test_array_lit;
+          case "var" test_array_var;
+          case "weak" test_array_weak;
+          case "different_types" test_array_different_types;
+          case "different_annot" test_array_different_annot;
+          case "different_annot_weak" test_array_different_annot_weak;
+          case "different_weak" test_array_different_weak;
         ] );
       ( "mutable",
         [

@@ -1,7 +1,7 @@
 (fun print-0th [a]
   (print (fmt-str (array-get a 0))))
 
-(val a& $[10])
+(val a& [10])
 (val b a)
 (val c& a)
 (val d b)
@@ -19,7 +19,7 @@
 
 (fun in-fun []
   (print "in fun")
-  (val a& $[10])
+  (val a& [10])
   (val b a)
   (val c& a)
   (val d b)

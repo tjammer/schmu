@@ -1,7 +1,7 @@
 (fun pass [x] x)
 
 (fun create []
-  (val arr $[10])
+  (val arr [10])
   (pass arr))
 
 (ignore (create))
