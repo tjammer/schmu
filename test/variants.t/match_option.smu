@@ -7,9 +7,9 @@
     (#none 0)))
 
 (->> (match_opt (#some 1))
-     (printf (.cstr "%i\n")))
+     (printf (array-data "%i\n")))
 (->> (match_opt #none)
-     (printf (.cstr "%i\n")))
+     (printf (array-data "%i\n")))
 
 -- switch ctors
 (fun opt_match [p]
@@ -18,9 +18,9 @@
     ((#some thing) thing)))
 
 (->> (opt_match (#some 1))
-     (printf (.cstr "%i\n")))
+     (printf (array-data "%i\n")))
 (->> (opt_match #none)
-     (printf (.cstr "%i\n")))
+     (printf (array-data "%i\n")))
 
 -- some, catchall
 (fun some_all [p]
@@ -29,9 +29,9 @@
     (_ 0)))
 
 (->> (some_all (#some 1))
-     (printf (.cstr "%i\n")))
+     (printf (array-data "%i\n")))
 (->> (some_all #none)
-     (printf (.cstr "%i\n")))
+     (printf (array-data "%i\n")))
 
 
 (fun none_all [p]
@@ -40,7 +40,7 @@
     (_ 1)))
 
 (->> (none_all (#some 1))
-     (printf (.cstr "%i\n")))
+     (printf (array-data "%i\n")))
 (val (none_int (option int)) #none)
 (->> (none_all none_int)
-     (printf (.cstr "%i\n")))
+     (printf (array-data "%i\n")))

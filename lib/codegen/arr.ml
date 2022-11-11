@@ -108,6 +108,17 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
           false ctors
     | _ -> false
 
+  let rec array_types ts = function
+    | Tarray t -> t :: ts
+    | Trecord (_, _, fields) ->
+        Array.fold_left (fun ts f -> array_types ts f.ftyp) ts fields
+    | Tvariant (_, _, ctors) ->
+        Array.fold_left
+          (fun ts c ->
+            match c.ctyp with Some t -> array_types ts t | None -> ts)
+          ts ctors
+    | _ -> ts
+
   let rec iter_array fn v =
     match v.typ with
     | Tarray _ -> fn v
@@ -158,6 +169,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     Llvm.position_at_end cont_bb builder
 
   let make_rc_fn v kind =
+    (* TODO use only type *)
     let name = name_of_func kind in
     let poly = Tfun ([ { pmut = false; pt = Tpoly "0" } ], Tunit, Simple) in
     let typ = Tfun ([ { pmut = false; pt = v.typ } ], Tunit, Simple) in
@@ -165,15 +177,15 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     match Hashtbl.find_opt func_tbl name with
     | Some (_, _, f) -> f
     | None ->
-        let ps =
+        let lltyp =
           match default_kind v.typ with
           | Const_ptr | Ptr -> get_lltype_def v.typ |> Llvm.pointer_type
           | Imm | Const -> get_lltype_def v.typ
         in
-        let ft = Llvm.function_type unit_t [| ps |] in
+        let ft = Llvm.function_type unit_t [| lltyp |] in
         let f = Llvm.declare_function name ft the_module in
         Llvm.set_linkage Llvm.Linkage.Internal f;
-        let v = bring_default_var v in
+        let v = { v with kind = default_kind v.typ } in
         Hashtbl.replace func_tbl name (kind, v, f);
         f
 
@@ -203,7 +215,32 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     in
     iter_array f v
 
-  let decr_refcount v = rc_fn v Decr_rc
+  let rec decl_decr_children pseudovar t =
+    (* The normal free function navigates to array children, but we
+       have to make sure the function for each type is available *)
+    let ts = array_types [] t in
+    let f typ =
+      (* value will be set correctly at [gen_functions].
+         Make sure the other field are correct *)
+      if contains_array typ then (
+        let kind = default_kind typ in
+        let lltyp =
+          match kind with
+          | Const_ptr | Ptr -> get_lltype_def typ |> Llvm.pointer_type
+          | Imm | Const -> get_lltype_def typ
+        in
+        let v = { pseudovar with typ; lltyp; kind } in
+        ignore (make_rc_fn v Decr_rc);
+        decl_decr_children pseudovar typ)
+    in
+
+    List.iter f ts
+
+  let decr_refcount v =
+    let f = rc_fn v Decr_rc in
+    (* Recursively declare children decr functions for freeing *)
+    decl_decr_children v v.typ;
+    f
 
   let decr_rc_impl v =
     let f var =
@@ -256,6 +293,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     in
 
     iter_array f v
+
+  (* let rec fwddecl_decr_children tmp = *)
+  (*   if contains_array *)
 
   let modify_arr_fn kind orig =
     (match orig.kind with

@@ -1,48 +1,36 @@
 (external printi (fun int unit))
 
-(fun vector_push [vec& v]
-  (if (< (.length (.ptr vec)) (.capacity vec))
-    (do
-      (__unsafe_ptr_set (.optr (.ptr vec)) (.length (.ptr vec)) v)
-      (set &(.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))
-    (do
-      (val cap (* (.capacity vec) 2))
-      (__realloc &(.optr (.ptr vec)) cap)
-      (set &(.capacity vec) cap)
-      (__unsafe_ptr_set (.optr (.ptr vec)) (.length (.ptr vec)) v)
-      (set &(.length (.ptr vec)) (+ (.length (.ptr vec)) 1)))))
-
-(fun vector-iter [vec f]
+(fun array-iter [arr f]
   (fun inner_cls_both [i]
-    (if (= i (.length (.ptr vec)))
+    (if (= i (array-length arr))
       ()
       (do
-        (f (__unsafe_ptr_get (.optr (.ptr vec)) i))
+        (f (array-get arr i))
         (inner_cls_both (+ i 1)))))
 
-  (fun inner_cls_vec [i f]
-    (if (= i (.length (.ptr vec)))
+  (fun inner_cls_arr [i f]
+    (if (= i (array-length arr))
       ()
       (do
-        (f (__unsafe_ptr_get (.optr (.ptr vec)) i))
-        (inner_cls_vec (+ i 1) f))))
+        (f (array-get arr i))
+        (inner_cls_arr (+ i 1) f))))
 
-  (fun inner_cls_f [i vec]
-    (if (= i (.length (.ptr vec)))
+  (fun inner_cls_f [i arr]
+    (if (= i (array-length arr))
       ()
       (do
-        (f (__unsafe_ptr_get (.optr (.ptr vec)) i))
-        (inner_cls_f (+ i 1) vec))))
+        (f (array-get arr i))
+        (inner_cls_f (+ i 1) arr))))
 
   (inner_cls_both 0)
-  (inner_cls_vec 0 f)
-  (inner_cls_f 0 vec))
+  (inner_cls_arr 0 f)
+  (inner_cls_f 0 arr))
 
-(val vec& [])
-(vector_push &vec 1)
-(vector_push &vec 2)
-(vector_push &vec 3)
-(vector_push &vec 4)
-(vector_push &vec 5)
+(val arr& [])
+(array-push &arr 1)
+(array-push &arr 2)
+(array-push &arr 3)
+(array-push &arr 4)
+(array-push &arr 5)
 
-(vector-iter vec (fun [x] (printi (* x 2))))
+(array-iter arr (fun [x] (printi (* x 2))))

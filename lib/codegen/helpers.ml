@@ -178,7 +178,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
           |> Seq.map u8 |> Array.of_seq
           |> Llvm.const_array (Llvm.array_type u8_t (String.length s + 1))
         in
-        let rf = match rf with Some rf -> !rf | None -> 1 in
+        let rf = match rf with Some rf -> !rf + 1 | None -> 2 in
         let arr =
           List.to_seq [ rf; String.length s; String.length s ]
           |> Seq.map (Llvm.const_int int_t)
@@ -224,7 +224,11 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
             ]
             "" builder
         in
-        ("%s", value)
+        let typ = Tarray Tu8 in
+        let lltyp = get_lltype_def typ in
+        let v = { value; typ; lltyp; kind = Imm } in
+        let ptr = Arr.array_data [ v ] in
+        ("%s", ptr.value)
     | Tu8 -> ("%hhi", v.value)
     | Ti32 -> ("%i", v.value)
     | Tf32 -> (".9gf", v.value)

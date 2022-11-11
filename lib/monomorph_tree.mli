@@ -102,7 +102,7 @@ type monomorphized_tree = {
   externals : external_decl list;
   tree : monod_tree;
   funcs : to_gen_func list;
-  decrs : int Seq.t
+  decrs : int Seq.t;
 }
 
 val typ_of_abs : abstraction -> typ

@@ -257,13 +257,9 @@ let test_alias_of_alias () =
   test "(fun bar = int foo = int)"
     "(type foo int) (type bar foo) (external f (fun bar foo)) f"
 
-let test_array_lit () =
-  test "(array int)"
-    "[0 1]"
+let test_array_lit () = test "(array int)" "[0 1]"
 
-let test_array_var () =
-  test "(array int)"
-    {|(val a [0 1])
+let test_array_var () = test "(array int)" {|(val a [0 1])
     a|}
 
 let test_array_weak () =
@@ -274,19 +270,17 @@ let test_array_weak () =
     a|}
 
 let test_array_different_types () =
-  test_exn "In array literal: Expected type int but got type bool"
-    "[0 true]"
+  test_exn "In array literal: Expected type int but got type bool" "[0 true]"
 
 let test_array_different_annot () =
-  test_exn
-    "Var annotation: Expected type (array bool) but got type (array int)"
+  test_exn "Var annotation: Expected type (array bool) but got type (array int)"
     {|(val (a (array bool)) [0 1])
     a|}
 
 let test_array_different_annot_weak () =
   test_exn
-    "Application: Expected type (fun (array bool) bool unit) but got type \
-     (fun (array bool) int 'a)"
+    "Application: Expected type (fun (array bool) bool unit) but got type (fun \
+     (array bool) int 'a)"
     {|(external setf (fun (array 'a) 'a unit))
     (val (a (array bool)) [])
     (setf a 2)|}
