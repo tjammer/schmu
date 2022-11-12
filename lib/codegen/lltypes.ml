@@ -71,10 +71,8 @@ module Make (A : Abi_intf.S) = struct
   and typeof_closure agg =
     Array.map
       (fun cl ->
-        match cl.cltyp with
-        | (Trecord _ | Tvariant _) when cl.clmut ->
-            get_lltype_field cl.cltyp |> Llvm.pointer_type
-        | typ -> get_lltype_field typ)
+        if cl.clmut then get_lltype_field cl.cltyp |> Llvm.pointer_type
+        else get_lltype_field cl.cltyp)
       agg
     |> Llvm.struct_type context
 

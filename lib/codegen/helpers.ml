@@ -367,7 +367,8 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
                 let value = Llvm.build_load item_ptr cl.clname builder in
                 (value, get_lltype_def typ)
           in
-          let item = { value; typ; lltyp; kind = default_kind typ } in
+          let kind = if cl.clmut then Ptr else default_kind typ in
+          let item = { value; typ; lltyp; kind } in
           (Vars.add cl.clname item env, i + 1)
         in
         let env, _ = List.fold_left add_closure (vars, 0) assoc in
