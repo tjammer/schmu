@@ -1,0 +1,25 @@
+(val arr [1 2 3 4 5 6 7 8 9 10])
+
+(fun string-append [str& app]
+  (array-iter app (fun [char] (array-push &str char))))
+
+(fun string-add-null [str&]
+  (array-push &str 0u8)
+  (array-drop-back &str))
+
+(fun string-concat [arr delim]
+  (fun inner [acc& i]
+    (if (= i (array-length arr))
+      ()
+      (let [v (array-get arr i)
+            app (if (= i 0)
+                  (fmt-str v)
+                  (fmt-str delim v))]
+        (string-append &acc app)
+        (inner &acc (+ i 1)))))
+  (let [acc& ""]
+    (inner &acc 0)
+    (string-add-null &acc)
+    acc))
+
+(print (string-concat arr ", "))
