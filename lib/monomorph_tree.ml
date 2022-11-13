@@ -216,10 +216,13 @@ let rec find_function_expr vars = function
       (* We are not allowing to return functions in ifs,
          b/c we cannot codegen anyway *)
       No_function
-  | Mlambda _ -> (* Concrete type is already inferred *) No_function
+  | Mlambda (name, _) -> (
+      match Vars.find_opt name vars with
+      | Some (Normal thing) -> thing.fn
+      | _ -> No_function)
   | Mlet _ -> No_function
   | Mfmt _ -> No_function
-  | Mincr_ref e -> find_function_expr vars e.expr
+  | Mincr_ref e | Mdecr_ref (_, e) -> find_function_expr vars e.expr
   | e ->
       print_endline (show_expr e);
       "Not supported: " ^ show_expr e |> failwith
@@ -410,7 +413,7 @@ let rec subst_body p subst tree =
     | Mapp { callee; args; alloca; id; vid } ->
         let ex = sub callee.ex in
 
-        (* We use the parametrs at function creation time to deal with scope *)
+        (* We use the parameters at function creation time to deal with scope *)
         let old_p =
           match Apptbl.find_opt apptbl id with
           | Some old ->
@@ -421,11 +424,17 @@ let rec subst_body p subst tree =
         let p2, monomorph = monomorphize_call old_p ex (Some subst) in
 
         let callee = { callee with ex; monomorph } in
+
+        let p2, args =
+          List.fold_left_map
+            (fun p2 (arg, a) ->
+              let ex = sub arg.ex in
+              let p2, monomorph = monomorphize_call p2 ex (Some subst) in
+              (p2, ({ arg with ex; monomorph }, a)))
+            p2 args
+        in
         p := { !p with funcs = p2.funcs; monomorphized = p2.monomorphized };
 
-        let args =
-          List.map (fun (arg, a) -> ({ arg with ex = sub arg.ex }, a)) args
-        in
         let func = func_of_typ callee.ex.typ in
         {
           tree with
@@ -1011,7 +1020,11 @@ and morph_lambda typ p id abs =
 
   let p = { p with vars } in
   let p, fn =
-    if is_type_polymorphic typ then (p, Polymorphic gen_func)
+    if is_type_polymorphic typ then
+      (* Add fun to env so we can query it later for monomorphization *)
+      let fn = Polymorphic gen_func in
+      let vars = Vars.add name (Normal { no_var with fn }) p.vars in
+      ({ p with vars }, Polymorphic gen_func)
     else
       let funcs = gen_func :: p.funcs in
       ({ p with funcs }, Concrete (gen_func, name))
@@ -1023,7 +1036,6 @@ and morph_lambda typ p id abs =
 and morph_app mk p callee args ret_typ =
   (* Save env for later monomorphization *)
   let id = new_id var_id in
-  Apptbl.add apptbl id p;
 
   let ret = p.ret in
   let p, ex, _ = morph_expr { p with ret = false } callee in
@@ -1094,6 +1106,8 @@ and morph_app mk p callee args ret_typ =
   in
   let p, args = fold_decr_last p [] args in
   let args = List.rev args in
+
+  Apptbl.add apptbl id p;
 
   let alloc, alloc_ref =
     if is_struct callee.ex.typ then
