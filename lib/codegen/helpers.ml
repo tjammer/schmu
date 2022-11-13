@@ -180,7 +180,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         in
         let rf = match rf with Some rf -> !rf + 1 | None -> 2 in
         let arr =
-          List.to_seq [ rf; String.length s; String.length s ]
+          List.to_seq [ rf; String.length s; Int.max 1 (String.length s) ]
           |> Seq.map (Llvm.const_int int_t)
           |> (fun s -> Seq.append s (Seq.return thing))
           |> Array.of_seq
