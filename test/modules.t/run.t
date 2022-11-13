@@ -458,7 +458,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   entry:
     %monoclstmp = alloca %closure, align 8
     %funptr5 = bitcast %closure* %monoclstmp to i8**
-    store i8* bitcast (void (i64, i8*)* @schmu___i.u_inner_i.u to i8*), i8** %funptr5, align 8
+    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
     %clsr_monoclstmp = alloca { i64*, %closure* }, align 8
     %arr16 = bitcast { i64*, %closure* }* %clsr_monoclstmp to i64**
     store i64* %arr, i64** %arr16, align 8
@@ -467,11 +467,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %env = bitcast { i64*, %closure* }* %clsr_monoclstmp to i8*
     %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @schmu___i.u_inner_i.u(i64 0, i8* %env)
+    call void @schmu___i.u-ag-g.u_inner_i.u-ai-i.u(i64 0, i8* %env)
     ret void
   }
   
-  define void @schmu___i.u_inner_i.u(i64 %i, i8* %0) {
+  define void @schmu___i.u-ag-g.u_inner_i.u-ai-i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i64*, %closure* }*
     %arr7 = bitcast { i64*, %closure* }* %clsr to i64**

@@ -252,10 +252,19 @@ let get_mono_name name ~poly concrete =
     | Tfloat -> "f"
     | Ti32 -> "i32"
     | Tf32 -> "f32"
-    | Tfun (ps, r, _) ->
-        sprintf "%s.%s"
+    | Tfun (ps, r, k) ->
+        let k =
+          match k with
+          | Simple -> ""
+          | Closure c -> (
+              match c with
+              | [] -> ""
+              | c -> "-" ^ String.concat "-" (List.map (fun c -> str c.cltyp) c)
+              )
+        in
+        sprintf "%s.%s%s"
           (String.concat "" (List.map (fun p -> str p.pt) ps))
-          (str r)
+          (str r) k
     | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
         sprintf "%s%s" name (String.concat "" (List.map str ps))
     | Trecord (_, None, fs) ->
@@ -272,7 +281,7 @@ let subst_type ~concrete poly parent =
         match Vars.find_opt id subst with
         | Some _ -> (* Already in tbl*) (subst, t)
         | None -> (Vars.add id t subst, t))
-    | Tfun (ps1, r1, kind), Tfun (ps2, r2, _) ->
+    | Tfun (ps1, r1, k1), Tfun (ps2, r2, k2) ->
         let subst, ps =
           List.fold_left_map
             (fun subst (l, r) ->
@@ -281,6 +290,21 @@ let subst_type ~concrete poly parent =
             subst (List.combine ps1 ps2)
         in
         let subst, r = inner subst (r1, r2) in
+        let subst, kind =
+          match (k1, k2) with
+          | Simple, Simple -> (subst, Simple)
+          | Closure c1, Closure c2 ->
+              let s, c =
+                List.fold_left_map
+                  (fun subst (l, r) ->
+                    let s, cltyp = inner subst (l.cltyp, r.cltyp) in
+                    (s, { l with cltyp }))
+                  subst (List.combine c1 c2)
+              in
+              (s, Closure c)
+          | _ ->
+              failwith "Internal Error: Unexpected Simple-Closure combination"
+        in
         (subst, Tfun (ps, r, kind))
     | (Trecord (i, record, l1) as l), Trecord (j, _, l2)
       when is_type_polymorphic l ->

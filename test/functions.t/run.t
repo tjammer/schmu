@@ -988,7 +988,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   entry:
     %monoclstmp = alloca %closure, align 8
     %funptr27 = bitcast %closure* %monoclstmp to i8**
-    store i8* bitcast (void (i64, i8*)* @schmu___i.u_inner_cls_both_i.u to i8*), i8** %funptr27, align 8
+    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u_inner_cls_both_i.u-ai-i.u to i8*), i8** %funptr27, align 8
     %clsr_monoclstmp = alloca { i64*, %closure* }, align 8
     %arr128 = bitcast { i64*, %closure* }* %clsr_monoclstmp to i64**
     store i64* %arr, i64** %arr128, align 8
@@ -997,31 +997,31 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %env = bitcast { i64*, %closure* }* %clsr_monoclstmp to i8*
     %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @schmu___i.u_inner_cls_both_i.u(i64 0, i8* %env)
+    call void @schmu___i.u-ag-g.u_inner_cls_both_i.u-ai-i.u(i64 0, i8* %env)
     %monoclstmp5 = alloca %closure, align 8
     %funptr629 = bitcast %closure* %monoclstmp5 to i8**
-    store i8* bitcast (void (i64, %closure*, i8*)* @schmu___ig.u.u_inner_cls_arr_ii.u.u to i8*), i8** %funptr629, align 8
+    store i8* bitcast (void (i64, %closure*, i8*)* @schmu___ig.u.u-ag_inner_cls_arr_ii.u.u-ai to i8*), i8** %funptr629, align 8
     %clsr_monoclstmp7 = alloca { i64* }, align 8
     %arr830 = bitcast { i64* }* %clsr_monoclstmp7 to i64**
     store i64* %arr, i64** %arr830, align 8
     %env9 = bitcast { i64* }* %clsr_monoclstmp7 to i8*
     %envptr10 = getelementptr inbounds %closure, %closure* %monoclstmp5, i32 0, i32 1
     store i8* %env9, i8** %envptr10, align 8
-    call void @schmu___ig.u.u_inner_cls_arr_ii.u.u(i64 0, %closure* %f, i8* %env9)
+    call void @schmu___ig.u.u-ag_inner_cls_arr_ii.u.u-ai(i64 0, %closure* %f, i8* %env9)
     %monoclstmp16 = alloca %closure, align 8
     %funptr1731 = bitcast %closure* %monoclstmp16 to i8**
-    store i8* bitcast (void (i64, i64*, i8*)* @schmu___iag.u_inner_cls_f_iai.u to i8*), i8** %funptr1731, align 8
+    store i8* bitcast (void (i64, i64*, i8*)* @schmu___iag.u-g.u_inner_cls_f_iai.u-i.u to i8*), i8** %funptr1731, align 8
     %clsr_monoclstmp18 = alloca { %closure* }, align 8
     %f1932 = bitcast { %closure* }* %clsr_monoclstmp18 to %closure**
     store %closure* %f, %closure** %f1932, align 8
     %env20 = bitcast { %closure* }* %clsr_monoclstmp18 to i8*
     %envptr21 = getelementptr inbounds %closure, %closure* %monoclstmp16, i32 0, i32 1
     store i8* %env20, i8** %envptr21, align 8
-    call void @schmu___iag.u_inner_cls_f_iai.u(i64 0, i64* %arr, i8* %env20)
+    call void @schmu___iag.u-g.u_inner_cls_f_iai.u-i.u(i64 0, i64* %arr, i8* %env20)
     ret void
   }
   
-  define void @schmu___iag.u_inner_cls_f_iai.u(i64 %i, i64* %arr, i8* %0) {
+  define void @schmu___iag.u-g.u_inner_cls_f_iai.u-i.u(i64 %i, i64* %arr, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { %closure* }*
     %f8 = bitcast { %closure* }* %clsr to %closure**
@@ -1061,7 +1061,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   }
   
-  define void @schmu___ig.u.u_inner_cls_arr_ii.u.u(i64 %i, %closure* %f, i8* %0) {
+  define void @schmu___ig.u.u-ag_inner_cls_arr_ii.u.u-ai(i64 %i, %closure* %f, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i64* }*
     %arr8 = bitcast { i64* }* %clsr to i64**
@@ -1101,7 +1101,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   }
   
-  define void @schmu___i.u_inner_cls_both_i.u(i64 %i, i8* %0) {
+  define void @schmu___i.u-ag-g.u_inner_cls_both_i.u-ai-i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i64*, %closure* }*
     %arr7 = bitcast { i64*, %closure* }* %clsr to i64**
