@@ -23,6 +23,15 @@
         (inner (+ i 1)))))
   (inner 0))
 
+(fun array-iteri [arr f]
+  (fun inner [i]
+    (if (= i (array-length arr))
+      ()
+      (do
+        (f i (array-get arr i))
+        (inner (+ i 1)))))
+  (inner 0))
+
 (fun array-foldi [arr f init]
   (fun inner [i acc&]
     (if (= i (array-length arr))

@@ -8,18 +8,14 @@
   (array-drop-back &str))
 
 (fun string-concat [arr delim]
-  (fun inner [acc& i]
-    (if (= i (array-length arr))
-      ()
-      (let [v (array-get arr i)
-            app (if (= i 0)
-                  (fmt-str v)
-                  (fmt-str delim v))]
-        (string-append &acc app)
-        (inner &acc (+ i 1)))))
-  (let [acc& ""]
-    (inner &acc 0)
-    (string-add-null &acc)
-    acc))
+  (val acc& "")
+  (array-iteri
+   arr
+   (fun [i v]
+     (if (> i 0)
+       (string-append &acc delim))
+     (string-append &acc (fmt-str v))))
+  (string-add-null &acc)
+  acc)
 
 (print (string-concat arr ", "))

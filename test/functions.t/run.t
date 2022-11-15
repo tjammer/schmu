@@ -2089,12 +2089,11 @@ The lamba passed as array-iter argument is polymorphic
   @arr = global i64* null, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [1 x [1 x i8]] } { i64 2, i64 0, i64 1, [1 x [1 x i8]] zeroinitializer }
   @1 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
-  @2 = private unnamed_addr global { i64, i64, i64, [6 x i8] } { i64 2, i64 5, i64 5, [6 x i8] c"%s%li\00" }
-  @3 = private unnamed_addr global { i64, i64, i64, [3 x i8] } { i64 2, i64 2, i64 2, [3 x i8] c", \00" }
+  @2 = private unnamed_addr global { i64, i64, i64, [3 x i8] } { i64 2, i64 2, i64 2, [3 x i8] c", \00" }
   
   declare void @schmu_print(i8* %0)
   
-  define i8* @schmu___agg.ac_string-concat_aiac.ac(i64* %arr, i8* %delim) {
+  define i8* @schmu___agac.ac_string-concat_aiac.ac(i64* %arr, i8* %delim) {
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [1 x [1 x i8]] }* @0 to i8*), i8** %str, align 8
@@ -2104,114 +2103,111 @@ The lamba passed as array-iter argument is polymorphic
     %1 = bitcast i8** %str to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 8, i1 false)
     %monoclstmp = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %monoclstmp to i8**
-    store i8* bitcast (void (i8**, i64, i8*)* @schmu___aci.u-ag-g_inner_aci.u-ai-ac to i8*), i8** %funptr5, align 8
-    %clsr_monoclstmp = alloca { i64*, i8* }, align 8
-    %arr16 = bitcast { i64*, i8* }* %clsr_monoclstmp to i64**
-    store i64* %arr, i64** %arr16, align 8
-    %delim2 = getelementptr inbounds { i64*, i8* }, { i64*, i8* }* %clsr_monoclstmp, i32 0, i32 1
+    %funptr3 = bitcast %closure* %monoclstmp to i8**
+    store i8* bitcast (void (i64, i64, i8*)* @schmu___ig.u-ac-ac___fun1_ii.u-ac-ac to i8*), i8** %funptr3, align 8
+    %clsr_monoclstmp = alloca { i8**, i8* }, align 8
+    %acc14 = bitcast { i8**, i8* }* %clsr_monoclstmp to i8***
+    store i8** %acc, i8*** %acc14, align 8
+    %delim2 = getelementptr inbounds { i8**, i8* }, { i8**, i8* }* %clsr_monoclstmp, i32 0, i32 1
     store i8* %delim, i8** %delim2, align 8
-    %env = bitcast { i64*, i8* }* %clsr_monoclstmp to i8*
+    %env = bitcast { i8**, i8* }* %clsr_monoclstmp to i8*
     %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @schmu___aci.u-ag-g_inner_aci.u-ai-ac(i8** %acc, i64 0, i8* %env)
+    call void @schmu___agig.u.u_array-iteri_aiii.u.u(i64* %arr, %closure* %monoclstmp)
     call void @schmu_string-add-null(i8** %acc)
     %2 = load i8*, i8** %acc, align 8
     ret i8* %2
   }
   
-  define void @schmu___aci.u-ag-g_inner_aci.u-ai-ac(i8** %acc, i64 %i, i8* %0) {
+  define void @schmu___ig.u-ac-ac___fun1_ii.u-ac-ac(i64 %i, i64 %v, i8* %0) {
   entry:
-    %clsr = bitcast i8* %0 to { i64*, i8* }*
-    %arr21 = bitcast { i64*, i8* }* %clsr to i64**
-    %arr1 = load i64*, i64** %arr21, align 8
-    %delim = getelementptr inbounds { i64*, i8* }, { i64*, i8* }* %clsr, i32 0, i32 1
+    %clsr = bitcast i8* %0 to { i8**, i8* }*
+    %acc3 = bitcast { i8**, i8* }* %clsr to i8***
+    %acc1 = load i8**, i8*** %acc3, align 8
+    %delim = getelementptr inbounds { i8**, i8* }, { i8**, i8* }* %clsr, i32 0, i32 1
     %delim2 = load i8*, i8** %delim, align 8
-    %1 = alloca i8**, align 8
-    store i8** %acc, i8*** %1, align 8
-    %2 = alloca i1, align 1
-    store i1 false, i1* %2, align 1
-    %3 = alloca i64, align 8
-    store i64 %i, i64* %3, align 4
+    %gt = icmp sgt i64 %i, 0
+    br i1 %gt, label %then, label %ifcont
+  
+  then:                                             ; preds = %entry
+    tail call void @schmu___agag.u_string-append_acac.u(i8** %acc1, i8* %delim2)
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @1, i32 0, i32 0), i64 3) to i8*), i64 %v)
+    %1 = add i32 %fmtsize, 32
+    %2 = sext i32 %1 to i64
+    %3 = tail call i8* @malloc(i64 %2)
+    %4 = bitcast i8* %3 to i64*
+    store i64 1, i64* %4, align 4
+    %size = getelementptr i64, i64* %4, i64 1
+    %5 = sext i32 %fmtsize to i64
+    store i64 %5, i64* %size, align 4
+    %cap = getelementptr i64, i64* %4, i64 2
+    store i64 %5, i64* %cap, align 4
+    %data = getelementptr i64, i64* %4, i64 3
+    %6 = bitcast i64* %data to i8*
+    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %6, i64 %2, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @1, i32 0, i32 0), i64 3) to i8*), i64 %v)
     %str = alloca i8*, align 8
-    %str16 = alloca i8*, align 8
+    store i8* %3, i8** %str, align 8
+    tail call void @schmu___agag.u_string-append_acac.u(i8** %acc1, i8* %3)
+    tail call void @__g.u_decr_rc_ac.u(i8* %3)
+    ret void
+  }
+  
+  define void @schmu___agig.u.u_array-iteri_aiii.u.u(i64* %arr, %closure* %f) {
+  entry:
+    %monoclstmp = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %monoclstmp to i8**
+    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-ig.u_inner__2_i.u-ai-ii.u to i8*), i8** %funptr5, align 8
+    %clsr_monoclstmp = alloca { i64*, %closure* }, align 8
+    %arr16 = bitcast { i64*, %closure* }* %clsr_monoclstmp to i64**
+    store i64* %arr, i64** %arr16, align 8
+    %f2 = getelementptr inbounds { i64*, %closure* }, { i64*, %closure* }* %clsr_monoclstmp, i32 0, i32 1
+    store %closure* %f, %closure** %f2, align 8
+    %env = bitcast { i64*, %closure* }* %clsr_monoclstmp to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    store i8* %env, i8** %envptr, align 8
+    call void @schmu___i.u-ag-ig.u_inner__2_i.u-ai-ii.u(i64 0, i8* %env)
+    ret void
+  }
+  
+  define void @schmu___i.u-ag-ig.u_inner__2_i.u-ai-ii.u(i64 %i, i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { i64*, %closure* }*
+    %arr7 = bitcast { i64*, %closure* }* %clsr to i64**
+    %arr1 = load i64*, i64** %arr7, align 8
+    %f = getelementptr inbounds { i64*, %closure* }, { i64*, %closure* }* %clsr, i32 0, i32 1
+    %f2 = load %closure*, %closure** %f, align 8
+    %1 = alloca i64, align 8
+    store i64 %i, i64* %1, align 4
     br label %rec
   
-  rec:                                              ; preds = %ifcont, %entry
-    %i4 = phi i64 [ %add, %ifcont ], [ %i, %entry ]
+  rec:                                              ; preds = %else, %entry
+    %i3 = phi i64 [ %add, %else ], [ %i, %entry ]
     %len = getelementptr i64, i64* %arr1, i64 1
-    %4 = load i64, i64* %len, align 4
-    %eq = icmp eq i64 %i4, %4
+    %2 = load i64, i64* %len, align 4
+    %eq = icmp eq i64 %i3, %2
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
-    store i1 true, i1* %2, align 1
     ret void
   
   else:                                             ; preds = %rec
-    %eq5 = icmp eq i64 %i4, 0
-    br i1 %eq5, label %then6, label %else8
-  
-  then6:                                            ; preds = %else
-    %sunkaddr = mul i64 %i4, 8
-    %5 = bitcast i64* %arr1 to i8*
-    %sunkaddr22 = getelementptr i8, i8* %5, i64 %sunkaddr
-    %sunkaddr23 = getelementptr i8, i8* %sunkaddr22, i64 24
-    %6 = bitcast i8* %sunkaddr23 to i64*
-    %7 = load i64, i64* %6, align 4
-    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @1, i32 0, i32 0), i64 3) to i8*), i64 %7)
-    %8 = add i32 %fmtsize, 32
-    %9 = sext i32 %8 to i64
-    %10 = tail call i8* @malloc(i64 %9)
-    %11 = bitcast i8* %10 to i64*
-    store i64 1, i64* %11, align 4
-    %size = getelementptr i64, i64* %11, i64 1
-    %12 = sext i32 %fmtsize to i64
-    store i64 %12, i64* %size, align 4
-    %cap = getelementptr i64, i64* %11, i64 2
-    store i64 %12, i64* %cap, align 4
-    %data7 = getelementptr i64, i64* %11, i64 3
-    %13 = bitcast i64* %data7 to i8*
-    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %13, i64 %9, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @1, i32 0, i32 0), i64 3) to i8*), i64 %7)
-    store i8* %10, i8** %str, align 8
-    br label %ifcont
-  
-  else8:                                            ; preds = %else
-    %14 = bitcast i8* %delim2 to i64*
-    %data9 = getelementptr i64, i64* %14, i64 3
-    %15 = bitcast i64* %data9 to i8*
-    %sunkaddr24 = mul i64 %i4, 8
-    %16 = bitcast i64* %arr1 to i8*
-    %sunkaddr25 = getelementptr i8, i8* %16, i64 %sunkaddr24
-    %sunkaddr26 = getelementptr i8, i8* %sunkaddr25, i64 24
-    %17 = bitcast i8* %sunkaddr26 to i64*
-    %18 = load i64, i64* %17, align 4
-    %fmtsize10 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [6 x i8] }, { i64, i64, i64, [6 x i8] }* @2, i32 0, i32 0), i64 3) to i8*), i8* %15, i64 %18)
-    %19 = add i32 %fmtsize10, 32
-    %20 = sext i32 %19 to i64
-    %21 = tail call i8* @malloc(i64 %20)
-    %22 = bitcast i8* %21 to i64*
-    store i64 1, i64* %22, align 4
-    %size12 = getelementptr i64, i64* %22, i64 1
-    %23 = sext i32 %fmtsize10 to i64
-    store i64 %23, i64* %size12, align 4
-    %cap13 = getelementptr i64, i64* %22, i64 2
-    store i64 %23, i64* %cap13, align 4
-    %data14 = getelementptr i64, i64* %22, i64 3
-    %24 = bitcast i64* %data14 to i8*
-    %fmt15 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %24, i64 %20, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [6 x i8] }, { i64, i64, i64, [6 x i8] }* @2, i32 0, i32 0), i64 3) to i8*), i8* %15, i64 %18)
-    store i8* %21, i8** %str16, align 8
-    br label %ifcont
-  
-  ifcont:                                           ; preds = %else8, %then6
-    %25 = phi i8* [ %10, %then6 ], [ %21, %else8 ]
-    %iftmp = phi i8** [ %str, %then6 ], [ %str16, %else8 ]
-    tail call void @schmu___agag.u_string-append_acac.u(i8** %acc, i8* %25)
-    store i8** %acc, i8*** %1, align 8
-    %add = add i64 %i4, 1
-    %26 = load i8*, i8** %iftmp, align 8
-    tail call void @__g.u_decr_rc_ac.u(i8* %26)
-    store i64 %add, i64* %3, align 4
+    %sunkaddr = mul i64 %i3, 8
+    %3 = bitcast i64* %arr1 to i8*
+    %sunkaddr8 = getelementptr i8, i8* %3, i64 %sunkaddr
+    %sunkaddr9 = getelementptr i8, i8* %sunkaddr8, i64 24
+    %4 = bitcast i8* %sunkaddr9 to i64*
+    %5 = load i64, i64* %4, align 4
+    %funcptr10 = bitcast %closure* %f2 to i8**
+    %loadtmp = load i8*, i8** %funcptr10, align 8
+    %casttmp = bitcast i8* %loadtmp to void (i64, i64, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %f2, i32 0, i32 1
+    %loadtmp4 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i64 %i3, i64 %5, i8* %loadtmp4)
+    %add = add i64 %i3, 1
+    store i64 %add, i64* %1, align 4
     br label %rec
   }
   
@@ -2521,8 +2517,8 @@ The lamba passed as array-iter argument is polymorphic
     %2 = load i64*, i64** @arr, align 8
     store i64* %2, i64** @arr, align 8
     %str = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @3 to i8*), i8** %str, align 8
-    %3 = tail call i8* @schmu___agg.ac_string-concat_aiac.ac(i64* %2, i8* bitcast ({ i64, i64, i64, [3 x i8] }* @3 to i8*))
+    store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @2 to i8*), i8** %str, align 8
+    %3 = tail call i8* @schmu___agac.ac_string-concat_aiac.ac(i64* %2, i8* bitcast ({ i64, i64, i64, [3 x i8] }* @2 to i8*))
     tail call void @schmu_print(i8* %3)
     tail call void @__g.u_decr_rc_ac.u(i8* %3)
     %4 = load i64*, i64** @arr, align 8
