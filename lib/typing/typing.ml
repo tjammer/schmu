@@ -143,7 +143,7 @@ and get_generic_id loc = function
   | Tarray (Tvar { contents = Unbound (id, _) }) ->
       id
   | Trecord (_ :: tl, _, _) | Tvariant (_ :: tl, _, _) ->
-      get_generic_id loc (Trecord (tl, Some "", [||]))
+      get_generic_id loc (Trecord (tl, None, [||]))
   | t ->
       raise
         (Error (loc, "Expected a parametrized type, not " ^ string_of_type t))
@@ -160,8 +160,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let rec is_quantified = function
     | Trecord ([], _, _) | Tvariant ([], _, _) -> None
     | Trecord (_, Some name, _) | Tvariant (_, name, _) -> Some name
-    | Traw_ptr _ -> Some "raw_ptr"
-    | Tarray _ -> Some "array"
+    | Traw_ptr _ -> Some (Path.Pid "raw_ptr")
+    | Tarray _ -> Some (Path.Pid "array")
     | Talias (name, t) -> (
         let cleaned = clean t in
         match is_quantified cleaned with
@@ -200,7 +200,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         let t = concrete_type env t in
         match is_quantified t with
         | Some name ->
-            raise (Error (loc, "Type " ^ name ^ " needs a type parameter"))
+            raise
+              (Error (loc, "Type " ^ Path.show name ^ " needs a type parameter"))
         | None -> t)
     | lst -> container_t env lst
   and container_t env lst =
@@ -467,7 +468,7 @@ end = struct
   open Records
   open Patternmatch
 
-  let string_typ = Talias ("string", Tarray Tu8)
+  let string_typ = Talias (Path.Pid "string", Tarray Tu8)
 
   let rec convert env expr = convert_annot env None expr
 

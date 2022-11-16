@@ -61,11 +61,11 @@ let get_variant env loc (_, name) annot =
             | None ->
                 let msg =
                   Printf.sprintf "Unbound constructor %s on variant %s" name
-                    typename
+                    (Path.show typename)
                 in
                 raise (Error (loc, msg))
           in
-          (typename, ctor, variant)
+          (Path.show typename, ctor, variant)
       | t ->
           let msg =
             Printf.sprintf "Expecting a variant type, not %s" (string_of_type t)

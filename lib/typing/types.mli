@@ -12,9 +12,9 @@ type typ =
   | Tvar of tv ref
   | Qvar of string
   | Tfun of param list * typ * fun_kind
-  | Talias of string * typ
-  | Trecord of typ list * string option * field array
-  | Tvariant of typ list * string * ctor array
+  | Talias of Path.t * typ
+  | Trecord of typ list * Path.t option * field array
+  | Tvariant of typ list * Path.t * ctor array
   | Traw_ptr of typ
   | Tarray of typ
 [@@deriving show { with_path = false }, sexp]

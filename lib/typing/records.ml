@@ -91,7 +91,7 @@ module Make (C : Core) = struct
           let f (lname, expr) =
             let typ, expr =
               match array_assoc_opt lname ls with
-              | None -> raise_ "Unbound" lname name
+              | None -> raise_ "Unbound" lname (Path.show name)
               | Some (Tvar { contents = Unbound _ } as typ) ->
                   (* If the variable is generic, we figure the type out normally
                      and then unify for the later fields *)
@@ -118,7 +118,7 @@ module Make (C : Core) = struct
           let expr =
             match List.assoc_opt field.fname labels_expr with
             | Some thing -> thing
-            | None -> raise_ "Missing" field.fname name
+            | None -> raise_ "Missing" field.fname (Path.show name)
           in
           (* Records with mutable fields cannot be const *)
           (is_const && (not field.mut) && expr.attr.const, (field.fname, expr)))
@@ -168,7 +168,7 @@ module Make (C : Core) = struct
         | None ->
             let name =
               match name with
-              | Some n -> "record " ^ n
+              | Some n -> "record " ^ Path.show n
               | None -> Printf.sprintf "tuple of size %i" (Array.length labels)
             in
             raise (Error (loc, "Unbound field :" ^ id ^ " on " ^ name)))

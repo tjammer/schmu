@@ -20,9 +20,9 @@ type typ =
   | Tvar of tv ref
   | Qvar of string
   | Tfun of param list * typ * fun_kind
-  | Talias of string * typ
-  | Trecord of typ list * string option * field array
-  | Tvariant of typ list * string * ctor array
+  | Talias of Path.t * typ
+  | Trecord of typ list * Path.t option * field array
+  | Tvariant of typ list * Path.t * ctor array
   | Traw_ptr of typ
   | Tarray of typ
 [@@deriving show { with_path = false }, sexp]
@@ -92,7 +92,7 @@ let string_of_type_raw get_name typ =
         Printf.sprintf "(fun %s %s)" ps (string_of_type t)
     | Tvar { contents = Link t } -> string_of_type t
     | Talias (name, t) ->
-        Printf.sprintf "%s = %s" name (clean t |> string_of_type)
+        Printf.sprintf "%s = %s" (Path.show name) (clean t |> string_of_type)
     | Qvar str | Tvar { contents = Unbound (str, _) } -> get_name str
     | Trecord (_, None, fs) ->
         let lst =
@@ -101,10 +101,10 @@ let string_of_type_raw get_name typ =
         Printf.sprintf "{%s}" (String.concat " " lst)
     | Trecord (ps, Some str, _) | Tvariant (ps, str, _) -> (
         match ps with
-        | [] -> str
+        | [] -> Path.show str
         | l ->
             let arg = String.concat " " (List.map string_of_type l) in
-            Printf.sprintf "(%s %s)" str arg)
+            Printf.sprintf "(%s %s)" (Path.show str) arg)
     | Traw_ptr t -> Printf.sprintf "(raw_ptr %s)" (string_of_type t)
     | Tarray t -> Printf.sprintf "(array %s)" (string_of_type t)
   in

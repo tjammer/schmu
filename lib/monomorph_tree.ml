@@ -160,6 +160,7 @@ let rec cln = function
           (fun field -> { ftyp = cln Types.(field.ftyp); mut = field.mut })
           fields
       in
+      let name = Option.map Path.get_hd name in
       Trecord (ps, name, fields)
   | Tvariant (ps, name, ctors) ->
       let ps = List.map cln ps in
@@ -173,7 +174,7 @@ let rec cln = function
             })
           ctors
       in
-      Tvariant (ps, name, ctors)
+      Tvariant (ps, Path.get_hd name, ctors)
   | Traw_ptr t -> Traw_ptr (cln t)
   | Tarray t -> Tarray (cln t)
 

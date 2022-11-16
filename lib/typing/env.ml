@@ -20,6 +20,8 @@ end
 module Labelset = Set.Make (String)
 module Lmap = Map.Make (Labelset)
 module Tmap = Map.Make (Type_key)
+
+(* TODO ord map  *)
 module Map = Map.Make (String)
 module Set = Set.Make (Type_key)
 
@@ -163,7 +165,7 @@ let add_type key t env =
   { env with types }
 
 let add_record record ~params ~labels env =
-  let typ = Trecord (params, Some record, labels) in
+  let typ = Trecord (params, Some (Path.Pid record), labels) in
 
   let labelset =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
@@ -181,7 +183,7 @@ let add_record record ~params ~labels env =
   { env with labels; types; labelsets }
 
 let add_variant variant ~params ~ctors env =
-  let typ = Tvariant (params, variant, ctors) in
+  let typ = Tvariant (params, Path.Pid variant, ctors) in
 
   let _, ctors =
     Array.fold_left
@@ -195,7 +197,7 @@ let add_variant variant ~params ~ctors env =
 
 let add_alias name typ env =
   let key = Type_key.create name in
-  let types = Tmap.add key (Talias (name, typ)) env.types in
+  let types = Tmap.add key (Talias (Path.Pid name, typ)) env.types in
   { env with types }
 
 let find_val_raw key env =

@@ -72,7 +72,7 @@ let rec unify t1 t2 =
         with Invalid_argument _ ->
           raise (Arity ("tuple", Array.length labels1, Array.length labels2)))
     | Trecord (ps1, Some n1, labels1), Trecord (ps2, Some n2, labels2) ->
-        if String.equal n1 n2 then
+        if Path.equal n1 n2 then
           try
             List.iter2 unify ps1 ps2;
             (* We ignore the label names for now *)
@@ -81,7 +81,7 @@ let rec unify t1 t2 =
             raise (Arity ("record", Array.length labels1, Array.length labels2))
         else raise Unify
     | Tvariant (ps1, n1, ctors1), Tvariant (ps2, n2, ctors2) ->
-        if String.equal n1 n2 then
+        if Path.equal n1 n2 then
           try
             List.iter2 unify ps1 ps2;
             (* We ignore the ctor names for now *)
@@ -269,7 +269,7 @@ let rec types_match ?(strict = false) subst l r =
     | Tvariant (pl, nl, _), Tvariant (pr, nr, _) ->
         (* It should be enough to compare the name (rather, the name's repr)
            and the param type *)
-        if String.equal nl nr then
+        if Path.equal nl nr then
           List.fold_left2
             (fun (s, acc) l r ->
               let subst, b = types_match ~strict s l r in
