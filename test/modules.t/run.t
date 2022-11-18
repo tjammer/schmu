@@ -16,7 +16,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %add
   }
   $ cat nonpoly_func.smi
-  ((5:Mtype(8:Tvariant()6:either(((5:cname4:left)(4:ctyp())(5:index1:0))((5:cname5:right)(4:ctyp())(5:index1:1)))))(4:Mfun(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)8:add_ints))
+  ((5:Mtype(8:Tvariant()19:nonpoly_func/either(((5:cname4:left)(4:ctyp())(5:index1:0))((5:cname5:right)(4:ctyp())(5:index1:1)))))(4:Mfun(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)8:add_ints))
 
   $ schmu open_nonpoly_func.smu --dump-llvm && ./open_nonpoly_func
   ; ModuleID = 'context'
@@ -435,7 +435,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   declare void @free(i8* %0)
 
   $ cat malloc_some.smi
-  ((5:Mtype(8:Tvariant()6:either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)8:add_ints)(4:Mext4:Tint1:a())(4:Mext4:Tint1:b())(9:Mpoly_fun((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(3:Var1:x))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(4:pmut5:false))))(3:ret(4:Qvar1:1))(4:kind6:Simple)))(6:inline5:false))2:id)(4:Mext(6:Tarray4:Tint)5:vtest())(4:Mext(6:Tarray4:Tint)6:vtest2()))
+  ((5:Mtype(8:Tvariant()18:malloc_some/either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)8:add_ints)(4:Mext4:Tint1:a())(4:Mext4:Tint1:b())(9:Mpoly_fun((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(3:Var1:x))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(4:pmut5:false))))(3:ret(4:Qvar1:1))(4:kind6:Simple)))(6:inline5:false))2:id)(4:Mext(6:Tarray4:Tint)5:vtest())(4:Mext(6:Tarray4:Tint)6:vtest2()))
 
   $ schmu use_malloc_some.smu --dump-llvm && ./use_malloc_some
   use_malloc_some.smu:3:6: warning: Unused binding do_something

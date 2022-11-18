@@ -27,6 +27,7 @@ let rec equal l r =
 
 let compare l r = Stdlib.compare l r
 let imported = function Pid _ -> false | Pmod _ -> true
+let local = function Pid _ -> true | Pmod _ -> false
 
 let only_hd = function
   | Pid s -> s

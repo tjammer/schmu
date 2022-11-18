@@ -1,6 +1,7 @@
 open Types
 module Sexp = Csexp.Make (Sexplib0.Sexp)
 open Sexplib0.Sexp_conv
+module S = Set.Make (Path)
 
 type t = item list [@@deriving sexp]
 
@@ -337,4 +338,114 @@ let add_to_env env m =
           Env.add_external ~imported:(Some `C) n ~cname t dummy_loc env)
     env m
 
-let to_channel c m = Sexp.to_channel c m
+let rec mod_t sub name t =
+  let nm p = if S.mem p sub then Path.Pmod (name, p) else p in
+  match t with
+  | Talias (p, t) -> Talias (nm p, mod_t sub name t)
+  | Trecord (ps, n, fields) ->
+      let ps = List.map (mod_t sub name) ps in
+      let n = Option.map nm n in
+      let fields =
+        Array.map (fun f -> { f with ftyp = mod_t sub name f.ftyp }) fields
+      in
+      Trecord (ps, n, fields)
+  | Tvariant (ps, n, ctors) ->
+      let ps = List.map (mod_t sub name) ps in
+      let n = nm n in
+      let ctors =
+        Array.map
+          (fun c -> { c with ctyp = Option.map (mod_t sub name) c.ctyp })
+          ctors
+      in
+      Tvariant (ps, n, ctors)
+  | Traw_ptr t -> Traw_ptr (mod_t sub name t)
+  | Tarray t -> Tarray (mod_t sub name t)
+  | Tfun (ps, r, kind) ->
+      let ps = List.map (fun p -> { p with pt = mod_t sub name p.pt }) ps in
+      let r = mod_t sub name r in
+      let kind =
+        match kind with
+        | Simple -> kind
+        | Closure c ->
+            let c =
+              List.map (fun c -> { c with cltyp = mod_t sub name c.cltyp }) c
+            in
+            Closure c
+      in
+      Tfun (ps, r, kind)
+  | Tvar { contents = Link t } -> Tvar { contents = Link (mod_t sub name t) }
+  | t -> t
+
+let extr_name = function
+  | Trecord (_, n, _) -> n
+  | Talias (n, _) | Tvariant (_, n, _) -> Some n
+  | _ -> None
+
+let rec mod_expr f e =
+  Typed_tree.{ e with typ = f e.typ; expr = mod_body f e.expr }
+
+and mod_body f e =
+  let m = mod_expr f in
+  match e with
+  | Const (Array ts) -> Const (Array (List.map m ts))
+  | Bop (b, l, r) -> Bop (b, m l, m r)
+  | Unop (u, e) -> Unop (u, m e)
+  | If (c, l, r) -> If (m c, m l, m r)
+  | Let l -> Let { l with lhs = m l.lhs; cont = m l.cont }
+  | Lambda (i, abs) -> Lambda (i, mod_abs f abs)
+  | Function (n, i, abs, cont) -> Function (n, i, mod_abs f abs, m cont)
+  | App { callee; args } ->
+      App
+        { callee = m callee; args = List.map (fun (e, mut) -> (m e, mut)) args }
+  | Record ts -> Record (List.map (fun (n, e) -> (n, m e)) ts)
+  | Field (t, i) -> Field (m t, i)
+  | Set (l, r) -> Set (m l, m r)
+  | Sequence (l, r) -> Sequence (m l, m r)
+  | Ctor (n, i, t) -> Ctor (n, i, Option.map m t)
+  | Variant_index t -> Variant_index (m t)
+  | Variant_data t -> Variant_data (m t)
+  | Fmt fs ->
+      let f = function Typed_tree.Fstr _ as f -> f | Fexpr t -> Fexpr (m t) in
+      Fmt (List.map f fs)
+  | e -> e
+
+and mod_abs f abs =
+  let body = mod_expr f abs.body in
+  let func =
+    let tparams = List.map (fun p -> { p with pt = f p.pt }) abs.func.tparams in
+    let ret = f abs.func.ret in
+    let kind =
+      match abs.func.kind with
+      | Simple -> Simple
+      | Closure c ->
+          let c = List.map (fun c -> { c with cltyp = f c.cltyp }) c in
+          Closure c
+    in
+    Typed_tree.{ tparams; ret; kind }
+  in
+  { abs with body; func }
+
+let make_module sub name m =
+  let s t =
+    match extr_name t with Some p -> sub := S.add p !sub | None -> ()
+  in
+  match m with
+  | Mtype t ->
+      s t;
+      Mtype (mod_t !sub name t)
+  | Mfun (t, n) ->
+      sub := S.add (Path.Pid n) !sub;
+      Mfun (mod_t !sub name t, n)
+  | Mext (t, n, cn) ->
+      sub := S.add (Path.Pid n) !sub;
+      Mext (mod_t !sub name t, n, cn)
+  | Mpoly_fun (abs, n) ->
+      sub := S.add (Path.Pid n) !sub;
+      Mpoly_fun (mod_abs (mod_t !sub name) abs, n)
+
+let to_channel c name m =
+  let s = ref S.empty in
+  m |> List.rev
+  |> List.map (make_module s name)
+  |> List.fold_left_map fold_canonize Types.Smap.empty
+  |> snd |> sexp_of_t |> Sexp.to_channel c

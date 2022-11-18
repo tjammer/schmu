@@ -66,13 +66,8 @@ let run file
          |> ignore;
          if dump_llvm then Llvm.dump_module Codegen.the_module;
          if modul then (
-           let m =
-             Option.get m |> List.rev
-             |> List.fold_left_map Module.fold_canonize Types.Smap.empty
-             |> snd |> Module.sexp_of_t
-           in
            let modfile = open_out (outname ^ ".smi") in
-           Module.to_channel modfile m;
+           Module.to_channel modfile outname (Option.get m);
            close_out modfile)
          else if compile_only then ()
          else Link.link outname objects cargs))
