@@ -811,16 +811,41 @@ Copies, but with ref-counted arrays
   @b = global i64* null, align 8
   @c = global i64* null, align 8
   @d = global i64* null, align 8
-  @0 = private unnamed_addr global { i64, i64, i64, [7 x i8] } { i64 2, i64 6, i64 6, [7 x i8] c"in fun\00" }
-  @1 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
+  @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
+  @1 = private unnamed_addr global { i64, i64, i64, [7 x i8] } { i64 2, i64 6, i64 6, [7 x i8] c"in fun\00" }
   
   declare void @schmu_print(i8* %0)
+  
+  define void @schmu___ag.u_print-0th_ai.u(i64* %a) {
+  entry:
+    %data = getelementptr i64, i64* %a, i64 3
+    %0 = load i64, i64* %data, align 4
+    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i32 0, i32 0), i64 3) to i8*), i64 %0)
+    %1 = add i32 %fmtsize, 32
+    %2 = sext i32 %1 to i64
+    %3 = tail call i8* @malloc(i64 %2)
+    %4 = bitcast i8* %3 to i64*
+    store i64 1, i64* %4, align 4
+    %size = getelementptr i64, i64* %4, i64 1
+    %5 = sext i32 %fmtsize to i64
+    store i64 %5, i64* %size, align 4
+    %cap = getelementptr i64, i64* %4, i64 2
+    store i64 %5, i64* %cap, align 4
+    %data1 = getelementptr i64, i64* %4, i64 3
+    %6 = bitcast i64* %data1 to i8*
+    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %6, i64 %2, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i32 0, i32 0), i64 3) to i8*), i64 %0)
+    %str = alloca i8*, align 8
+    store i8* %3, i8** %str, align 8
+    tail call void @schmu_print(i8* %3)
+    tail call void @__g.u_decr_rc_ac.u(i8* %3)
+    ret void
+  }
   
   define void @schmu_in-fun() {
   entry:
     %str = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [7 x i8] }* @0 to i8*), i8** %str, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [7 x i8] }* @0 to i8*))
+    store i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*), i8** %str, align 8
+    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*))
     %0 = tail call i8* @malloc(i64 32)
     %1 = bitcast i8* %0 to i64*
     %arr = alloca i64*, align 8
@@ -863,32 +888,34 @@ Copies, but with ref-counted arrays
     ret void
   }
   
-  define void @schmu___ag.u_print-0th_ai.u(i64* %a) {
-  entry:
-    %data = getelementptr i64, i64* %a, i64 3
-    %0 = load i64, i64* %data, align 4
-    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @1, i32 0, i32 0), i64 3) to i8*), i64 %0)
-    %1 = add i32 %fmtsize, 32
-    %2 = sext i32 %1 to i64
-    %3 = tail call i8* @malloc(i64 %2)
-    %4 = bitcast i8* %3 to i64*
-    store i64 1, i64* %4, align 4
-    %size = getelementptr i64, i64* %4, i64 1
-    %5 = sext i32 %fmtsize to i64
-    store i64 %5, i64* %size, align 4
-    %cap = getelementptr i64, i64* %4, i64 2
-    store i64 %5, i64* %cap, align 4
-    %data1 = getelementptr i64, i64* %4, i64 3
-    %6 = bitcast i64* %data1 to i8*
-    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %6, i64 %2, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @1, i32 0, i32 0), i64 3) to i8*), i64 %0)
-    %str = alloca i8*, align 8
-    store i8* %3, i8** %str, align 8
-    tail call void @schmu_print(i8* %3)
-    tail call void @__g.u_decr_rc_ac.u(i8* %3)
-    ret void
-  }
+  declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
   
   declare i8* @malloc(i64 %0)
+  
+  define internal void @__g.u_decr_rc_ac.u(i8* %0) {
+  entry:
+    %ref = bitcast i8* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 4
+    %1 = icmp eq i64 %ref2, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i8* %0 to i64*
+    %3 = bitcast i64* %2 to i64*
+    %4 = sub i64 %ref2, 1
+    store i64 %4, i64* %3, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %5 = bitcast i8* %0 to i64*
+    %6 = bitcast i64* %5 to i8*
+    call void @free(i8* %6)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
   
   define internal void @__g.u_incr_rc_ai.u(i64* %0) {
   entry:
@@ -951,33 +978,6 @@ Copies, but with ref-counted arrays
   free:                                             ; preds = %entry
     %4 = bitcast i64* %0 to i8*
     call void @free(i8* %4)
-    br label %merge
-  
-  merge:                                            ; preds = %free, %decr
-    ret void
-  }
-  
-  declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
-  
-  define internal void @__g.u_decr_rc_ac.u(i8* %0) {
-  entry:
-    %ref = bitcast i8* %0 to i64*
-    %ref13 = bitcast i64* %ref to i64*
-    %ref2 = load i64, i64* %ref13, align 4
-    %1 = icmp eq i64 %ref2, 1
-    br i1 %1, label %free, label %decr
-  
-  decr:                                             ; preds = %entry
-    %2 = bitcast i8* %0 to i64*
-    %3 = bitcast i64* %2 to i64*
-    %4 = sub i64 %ref2, 1
-    store i64 %4, i64* %3, align 4
-    br label %merge
-  
-  free:                                             ; preds = %entry
-    %5 = bitcast i8* %0 to i64*
-    %6 = bitcast i64* %5 to i8*
-    call void @free(i8* %6)
     br label %merge
   
   merge:                                            ; preds = %free, %decr
@@ -2051,6 +2051,12 @@ Free array params correctly if they are returned
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  define i64* @schmu___g.g_pass_ai.ai(i64* %x) {
+  entry:
+    tail call void @__g.u_incr_rc_ai.u(i64* %x)
+    ret i64* %x
+  }
+  
   define i64* @schmu_create() {
   entry:
     %0 = tail call i8* @malloc(i64 32)
@@ -2069,10 +2075,13 @@ Free array params correctly if they are returned
     ret i64* %2
   }
   
-  define i64* @schmu___g.g_pass_ai.ai(i64* %x) {
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
   entry:
-    tail call void @__g.u_incr_rc_ai.u(i64* %x)
-    ret i64* %x
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
   }
   
   declare i8* @malloc(i64 %0)
@@ -2096,15 +2105,6 @@ Free array params correctly if they are returned
     br label %merge
   
   merge:                                            ; preds = %free, %decr
-    ret void
-  }
-  
-  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
-  entry:
-    %ref2 = bitcast i64* %0 to i64*
-    %ref1 = load i64, i64* %ref2, align 4
-    %1 = add i64 %ref1, 1
-    store i64 %1, i64* %ref2, align 4
     ret void
   }
   

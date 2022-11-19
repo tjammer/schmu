@@ -167,12 +167,42 @@ Pass generic record
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %t_int = type { i64, i64, i1 }
-  %t_bool = type { i64, i1, i1 }
   %closure = type { i8*, i8* }
+  %t_bool = type { i64, i1, i1 }
   
   @int_t = constant %t_int { i64 700, i64 20, i1 false }
   
   declare void @printi(i64 %0)
+  
+  define { i64, i16 } @schmu___g.gg.g_apply_tb.tbtb.tb(%closure* %f, i64 %0, i16 %1) {
+  entry:
+    %box = alloca { i64, i16 }, align 8
+    %fst11 = bitcast { i64, i16 }* %box to i64*
+    store i64 %0, i64* %fst11, align 4
+    %snd = getelementptr inbounds { i64, i16 }, { i64, i16 }* %box, i32 0, i32 1
+    store i16 %1, i16* %snd, align 2
+    %funcptr12 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr12, align 8
+    %casttmp = bitcast i8* %loadtmp to { i64, i16 } (i64, i16, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp6 = load i8*, i8** %envptr, align 8
+    %ret = alloca %t_bool, align 8
+    %2 = tail call { i64, i16 } %casttmp(i64 %0, i16 %1, i8* %loadtmp6)
+    %box7 = bitcast %t_bool* %ret to { i64, i16 }*
+    store { i64, i16 } %2, { i64, i16 }* %box7, align 4
+    ret { i64, i16 } %2
+  }
+  
+  define void @schmu___g.gg.g_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
+  entry:
+    %funcptr2 = bitcast %closure* %f to i8**
+    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %casttmp = bitcast i8* %loadtmp to void (%t_int*, %t_int*, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp1 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(%t_int* %0, %t_int* %x, i8* %loadtmp1)
+    ret void
+  }
   
   define { i64, i16 } @schmu___tg.tg_pass_tb.tb(i64 %0, i16 %1) {
   entry:
@@ -199,25 +229,6 @@ Pass generic record
     ret { i64, i16 } %unbox2
   }
   
-  define { i64, i16 } @schmu___g.gg.g_apply_tb.tbtb.tb(%closure* %f, i64 %0, i16 %1) {
-  entry:
-    %box = alloca { i64, i16 }, align 8
-    %fst11 = bitcast { i64, i16 }* %box to i64*
-    store i64 %0, i64* %fst11, align 4
-    %snd = getelementptr inbounds { i64, i16 }, { i64, i16 }* %box, i32 0, i32 1
-    store i16 %1, i16* %snd, align 2
-    %funcptr12 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr12, align 8
-    %casttmp = bitcast i8* %loadtmp to { i64, i16 } (i64, i16, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
-    %loadtmp6 = load i8*, i8** %envptr, align 8
-    %ret = alloca %t_bool, align 8
-    %2 = tail call { i64, i16 } %casttmp(i64 %0, i16 %1, i8* %loadtmp6)
-    %box7 = bitcast %t_bool* %ret to { i64, i16 }*
-    store { i64, i16 } %2, { i64, i16 }* %box7, align 4
-    ret { i64, i16 } %2
-  }
-  
   define void @schmu___tg.tg_pass_ti.ti(%t_int* %0, %t_int* %x) {
   entry:
     %first1 = bitcast %t_int* %0 to i64*
@@ -232,17 +243,6 @@ Pass generic record
     %5 = getelementptr inbounds %t_int, %t_int* %x, i32 0, i32 2
     %6 = load i1, i1* %5, align 1
     store i1 %6, i1* %third, align 1
-    ret void
-  }
-  
-  define void @schmu___g.gg.g_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
-  entry:
-    %funcptr2 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
-    %casttmp = bitcast i8* %loadtmp to void (%t_int*, %t_int*, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
-    %loadtmp1 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(%t_int* %0, %t_int* %x, i8* %loadtmp1)
     ret void
   }
   
@@ -296,6 +296,16 @@ Access parametrized record fields
   
   declare void @printi(i64 %0)
   
+  define i64 @schmu___gen_firstg.g_only_gen_firsti.i(i64 %0, i8 %1) {
+  entry:
+    %box = alloca { i64, i8 }, align 8
+    %fst2 = bitcast { i64, i8 }* %box to i64*
+    store i64 %0, i64* %fst2, align 4
+    %snd = getelementptr inbounds { i64, i8 }, { i64, i8 }* %box, i32 0, i32 1
+    store i8 %1, i8* %snd, align 1
+    ret i64 %0
+  }
+  
   define void @schmu___gen_firstg.u_is_gen_firsti.u(i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
@@ -310,16 +320,6 @@ Access parametrized record fields
     ret void
   }
   
-  define i64 @schmu___gen_firstg.g_only_gen_firsti.i(i64 %0, i8 %1) {
-  entry:
-    %box = alloca { i64, i8 }, align 8
-    %fst2 = bitcast { i64, i8 }* %box to i64*
-    store i64 %0, i64* %fst2, align 4
-    %snd = getelementptr inbounds { i64, i8 }, { i64, i8 }* %box, i32 0, i32 1
-    store i8 %1, i8* %snd, align 1
-    ret i64 %0
-  }
-  
   define i64 @schmu___tg.g_gen_ti.i(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 2
@@ -327,19 +327,19 @@ Access parametrized record fields
     ret i64 %1
   }
   
-  define void @schmu___tg.u_third_ti.u(%t_int* %any) {
-  entry:
-    %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 3
-    %1 = load i1, i1* %0, align 1
-    tail call void @schmu_print_bool(i1 %1)
-    ret void
-  }
-  
   define void @schmu___tg.u_first_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 1
     %1 = load i64, i64* %0, align 4
     tail call void @printi(i64 %1)
+    ret void
+  }
+  
+  define void @schmu___tg.u_third_ti.u(%t_int* %any) {
+  entry:
+    %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 3
+    %1 = load i1, i1* %0, align 1
+    tail call void @schmu_print_bool(i1 %1)
     ret void
   }
   
@@ -423,6 +423,38 @@ Support function/closure fields
   
   declare void @printi(i64 %0)
   
+  define i64 @schmu___fun0(i64 %x) {
+  entry:
+    %add = add i64 %x, 1
+    ret i64 %add
+  }
+  
+  define { i64, i64 } @schmu_advance(i64 %0, i64 %1) {
+  entry:
+    %box = alloca { i64, i64 }, align 8
+    %fst5 = bitcast { i64, i64 }* %box to i64*
+    store i64 %0, i64* %fst5, align 4
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
+    store i64 %1, i64* %snd, align 4
+    %state = bitcast { i64, i64 }* %box to %state*
+    %2 = alloca %state, align 8
+    %cnt6 = bitcast %state* %2 to i64*
+    %3 = getelementptr inbounds %state, %state* %state, i32 0, i32 1
+    %4 = inttoptr i64 %1 to %closure*
+    %funcptr7 = bitcast %closure* %4 to i8**
+    %loadtmp = load i8*, i8** %funcptr7, align 8
+    %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
+    %envptr = getelementptr inbounds %closure, %closure* %4, i32 0, i32 1
+    %loadtmp2 = load i8*, i8** %envptr, align 8
+    %5 = tail call i64 %casttmp(i64 %0, i8* %loadtmp2)
+    store i64 %5, i64* %cnt6, align 4
+    %next = getelementptr inbounds %state, %state* %2, i32 0, i32 1
+    store %closure* %4, %closure** %next, align 8
+    %unbox = bitcast %state* %2 to { i64, i64 }*
+    %unbox4 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
+    ret { i64, i64 } %unbox4
+  }
+  
   define void @schmu_ten_times(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
@@ -459,38 +491,6 @@ Support function/closure fields
   else:                                             ; preds = %rec
     call void @printi(i64 100)
     ret void
-  }
-  
-  define { i64, i64 } @schmu_advance(i64 %0, i64 %1) {
-  entry:
-    %box = alloca { i64, i64 }, align 8
-    %fst5 = bitcast { i64, i64 }* %box to i64*
-    store i64 %0, i64* %fst5, align 4
-    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
-    store i64 %1, i64* %snd, align 4
-    %state = bitcast { i64, i64 }* %box to %state*
-    %2 = alloca %state, align 8
-    %cnt6 = bitcast %state* %2 to i64*
-    %3 = getelementptr inbounds %state, %state* %state, i32 0, i32 1
-    %4 = inttoptr i64 %1 to %closure*
-    %funcptr7 = bitcast %closure* %4 to i8**
-    %loadtmp = load i8*, i8** %funcptr7, align 8
-    %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %4, i32 0, i32 1
-    %loadtmp2 = load i8*, i8** %envptr, align 8
-    %5 = tail call i64 %casttmp(i64 %0, i8* %loadtmp2)
-    store i64 %5, i64* %cnt6, align 4
-    %next = getelementptr inbounds %state, %state* %2, i32 0, i32 1
-    store %closure* %4, %closure** %next, align 8
-    %unbox = bitcast %state* %2 to { i64, i64 }*
-    %unbox4 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
-    ret { i64, i64 } %unbox4
-  }
-  
-  define i64 @schmu___fun0(i64 %x) {
-  entry:
-    %add = add i64 %x, 1
-    ret i64 %add
   }
   
   define i64 @main(i64 %arg) {
@@ -618,6 +618,12 @@ A return of a field should not be preallocated
   
   declare void @printi(i64 %0)
   
+  define void @schmu_test_thing(%int_wrap* %0) {
+  entry:
+    tail call void @schmu_vector_loop(%int_wrap* %0, i64 0)
+    ret void
+  }
+  
   define void @schmu_test_thing_mut(%int_wrap* %0) {
   entry:
     %1 = alloca %mut_int_wrap, align 8
@@ -637,6 +643,29 @@ A return of a field should not be preallocated
     %3 = bitcast %int_wrap* %wrapped3 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 24, i1 false)
     ret void
+  }
+  
+  define void @schmu_vector_loop(%int_wrap* %0, i64 %i) {
+  entry:
+    %1 = alloca i64, align 8
+    store i64 %i, i64* %1, align 4
+    %2 = add i64 %i, 1
+    br label %rec
+  
+  rec:                                              ; preds = %else, %entry
+    %lsr.iv = phi i64 [ %lsr.iv.next, %else ], [ %2, %entry ]
+    %eq = icmp eq i64 %lsr.iv, 11
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    %3 = bitcast %int_wrap* %0 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* bitcast (%test_int_wrap* @test to i8*), i64 24, i1 false)
+    ret void
+  
+  else:                                             ; preds = %rec
+    store i64 %lsr.iv, i64* %1, align 4
+    %lsr.iv.next = add i64 %lsr.iv, 1
+    br label %rec
   }
   
   define void @schmu_vector_loop__2(i64 %i, i8* %0) {
@@ -672,35 +701,6 @@ A return of a field should not be preallocated
     %7 = bitcast %int_wrap* %4 to i8*
     %8 = bitcast %int_wrap* %2 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 24, i1 false)
-    store i64 %lsr.iv, i64* %1, align 4
-    %lsr.iv.next = add i64 %lsr.iv, 1
-    br label %rec
-  }
-  
-  define void @schmu_test_thing(%int_wrap* %0) {
-  entry:
-    tail call void @schmu_vector_loop(%int_wrap* %0, i64 0)
-    ret void
-  }
-  
-  define void @schmu_vector_loop(%int_wrap* %0, i64 %i) {
-  entry:
-    %1 = alloca i64, align 8
-    store i64 %i, i64* %1, align 4
-    %2 = add i64 %i, 1
-    br label %rec
-  
-  rec:                                              ; preds = %else, %entry
-    %lsr.iv = phi i64 [ %lsr.iv.next, %else ], [ %2, %entry ]
-    %eq = icmp eq i64 %lsr.iv, 11
-    br i1 %eq, label %then, label %else
-  
-  then:                                             ; preds = %rec
-    %3 = bitcast %int_wrap* %0 to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* bitcast (%test_int_wrap* @test to i8*), i64 24, i1 false)
-    ret void
-  
-  else:                                             ; preds = %rec
     store i64 %lsr.iv, i64* %1, align 4
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec

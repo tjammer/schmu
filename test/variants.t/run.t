@@ -12,13 +12,21 @@ Basic variant ctors
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %"option_(array u8)" = type { i32, i8* }
   %clike = type { i32 }
+  %"option_(array u8)" = type { i32, i8* }
   %option_int = type { i32, i64 }
   %larger = type { i32, %foo }
   %foo = type { double, double }
   
   @0 = private unnamed_addr global { i64, i64, i64, [6 x i8] } { i64 2, i64 5, i64 5, [6 x i8] c"hello\00" }
+  
+  define i32 @schmu_wrap_clike() {
+  entry:
+    %clike = alloca %clike, align 8
+    %tag2 = bitcast %clike* %clike to i32*
+    store i32 2, i32* %tag2, align 4
+    ret i32 2
+  }
   
   define void @schmu_wrap_option(%"option_(array u8)"* %0) {
   entry:
@@ -29,14 +37,6 @@ Basic variant ctors
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %str, align 8
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %data, align 8
     ret void
-  }
-  
-  define i32 @schmu_wrap_clike() {
-  entry:
-    %clike = alloca %clike, align 8
-    %tag2 = bitcast %clike* %clike to i32*
-    store i32 2, i32* %tag2, align 4
-    ret i32 2
   }
   
   define i64 @main(i64 %arg) {
@@ -86,7 +86,7 @@ Basic pattern matching
     ret i64 %iftmp
   }
   
-  define i64 @schmu_some_all(%option_int* %p) {
+  define i64 @schmu_match_opt(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -120,7 +120,7 @@ Basic pattern matching
     ret i64 %iftmp
   }
   
-  define i64 @schmu_match_opt(%option_int* %p) {
+  define i64 @schmu_some_all(%option_int* %p) {
   entry:
     %tag1 = bitcast %option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4

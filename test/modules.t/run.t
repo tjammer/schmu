@@ -510,20 +510,20 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br label %rec
   }
   
-  define void @schmu_printi(i64 %i) {
-  entry:
-    %str = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str, align 8
-    tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %i)
-    ret void
-  }
-  
   define i64 @schmu_do_something(%big* %big) {
   entry:
     %0 = bitcast %big* %big to i64*
     %1 = load i64, i64* %0, align 4
     %add = add i64 %1, 1
     ret i64 %add
+  }
+  
+  define void @schmu_printi(i64 %i) {
+  entry:
+    %str = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str, align 8
+    tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %i)
+    ret void
   }
   
   define i64 @main(i64 %arg) {

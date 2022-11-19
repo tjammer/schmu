@@ -1,7 +1,6 @@
 open Cleaned_types
 module Vars = Map.Make (String)
 module Iset = Set.Make (Int)
-module Set = Set.Make (String)
 
 module Hint = struct
   type t = int
@@ -88,7 +87,6 @@ and copy_kind = Cglobal of string | Cnormal of bool
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
-type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
 
 type external_decl = {
   ext_name : string;
@@ -97,19 +95,30 @@ type external_decl = {
   c_linkage : bool;
 }
 
+type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
+
+module To_gen_func = struct
+  type t = to_gen_func
+
+  let compare a b = String.compare a.name.call b.name.call
+end
+
+module Fset = Set.Make (To_gen_func)
+module Set = Set.Make (String)
+
 type monomorphized_tree = {
   constants : (string * monod_tree * bool) list;
   globals : (string * typ * bool) list;
   externals : external_decl list;
   tree : monod_tree;
-  funcs : to_gen_func list;
+  funcs : To_gen_func.t list;
   decrs : int Seq.t;
 }
 
 type to_gen_func_kind =
   (* TODO use a prefix *)
-  | Concrete of to_gen_func * string
-  | Polymorphic of to_gen_func
+  | Concrete of To_gen_func.t * string
+  | Polymorphic of To_gen_func.t
   | Forward_decl of string
   | Builtin of Builtin.t
   | Inline of string list * typ * monod_tree
@@ -128,7 +137,7 @@ type var =
 type morph_param = {
   vars : var Vars.t;
   monomorphized : Set.t;
-  funcs : to_gen_func list; (* to generate in codegen *)
+  funcs : Fset.t; (* to generate in codegen *)
   ret : bool;
   (* Marks an expression where an if is the last piece which returns a record.
      Needed for tail call elim *)
@@ -458,7 +467,12 @@ let rec subst_body p subst tree =
               (p2, ({ arg with ex; monomorph }, a)))
             p2 args
         in
-        p := { !p with funcs = p2.funcs; monomorphized = p2.monomorphized };
+        p :=
+          {
+            !p with
+            funcs = Fset.union !p.funcs p2.funcs;
+            monomorphized = Set.union !p.monomorphized p2.monomorphized;
+          };
 
         let func = func_of_typ callee.ex.typ in
         {
@@ -553,8 +567,9 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
           let fnc = func_of_typ typ in
           let name = { func.name with call } in
           let funcs =
-            { func with abs = { func.abs with func = fnc; body }; name }
-            :: p.funcs
+            Fset.add
+              { func with abs = { func.abs with func = fnc; body }; name }
+              p.funcs
           in
           let monomorphized = Set.add call p.monomorphized in
           ({ p with funcs; monomorphized }, Mono call)
@@ -987,7 +1002,7 @@ and prep_func p (username, uniq, abs) =
     else
       let fn = Concrete (gen_func, username) in
       let vars = Vars.add username (Normal { var with fn }) p.vars in
-      let funcs = gen_func :: p.funcs in
+      let funcs = Fset.add gen_func p.funcs in
       { p with vars; funcs }
   in
   (p, call, abs)
@@ -1051,7 +1066,7 @@ and morph_lambda typ p id abs =
       let vars = Vars.add name (Normal { no_var with fn }) p.vars in
       ({ p with vars }, Polymorphic gen_func)
     else
-      let funcs = gen_func :: p.funcs in
+      let funcs = Fset.add gen_func p.funcs in
       ({ p with funcs }, Concrete (gen_func, name))
   in
   ( { p with ret },
@@ -1265,7 +1280,13 @@ let monomorphize { Typed_tree.externals; items; _ } =
   in
 
   let param =
-    { vars; monomorphized = Set.empty; funcs = []; ret = false; ids = [] }
+    {
+      vars;
+      monomorphized = Set.empty;
+      funcs = Fset.empty;
+      ret = false;
+      ids = [];
+    }
   in
   let p, tree, _ = morph_toplvl param items in
 
@@ -1303,5 +1324,5 @@ let monomorphize { Typed_tree.externals; items; _ } =
            (name, typ, toplvl))
   in
 
-  (* TODO maybe try to catch memory leaks? *)
-  { constants; globals; externals; tree; funcs = p.funcs; decrs }
+  let funcs = Fset.to_seq p.funcs |> List.of_seq in
+  { constants; globals; externals; tree; funcs; decrs }
