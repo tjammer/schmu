@@ -1131,6 +1131,19 @@ and morph_app mk p callee args ret_typ =
   in
   let p, args = fold_decr_last p [] args in
   let args = List.rev args in
+  let p, callee =
+    match args with
+    | [] when is_tailrec ->
+        (* We haven't decreased references yet, because there is no last argument.
+           Essentially, we do the same work as in the last arg of [fold_decr_last]*)
+        let ids =
+          match p.ids with _ :: tl -> Iset.empty :: tl | [] -> p.ids
+        in
+        (* Note that we use the original p.ids for [decr_refs] *)
+        let ex = decr_refs callee.ex p.ids in
+        ({ p with ids }, { callee with ex })
+    | _ -> (p, callee)
+  in
 
   Apptbl.add apptbl id p;
 
