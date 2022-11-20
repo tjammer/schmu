@@ -154,7 +154,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let find env t tick =
     match Env.find_type_opt t env with
     | Some t -> t
-    | None -> raise (Error (loc, "Unbound type " ^ tick ^ t ^ "."))
+    | None -> raise (Error (loc, "Unbound type " ^ tick ^ Path.show t ^ "."))
   in
 
   let rec is_quantified = function
@@ -179,17 +179,20 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_id "float" -> Tfloat
     | Ty_id "i32" -> Ti32
     | Ty_id "f32" -> Tf32
-    | Ty_id t -> find env t ""
+    | Ty_id t -> find env (Path.Pid t) ""
     | Ty_var id when typedef -> find env id "'"
     | Ty_var id ->
         (* Type annotation in function *)
-        Qvar id
+        Qvar (Path.get_hd id)
     | Ty_func l -> handle_func env l
     | Ty_list l -> type_list env l
-    | Ty_open_id (loc, spec, modul) ->
-        let modul = Module.read_exn ~regeneralize modul loc in
+    | Ty_open_id (loc, path) -> import_path loc env path path
+  and import_path loc env full = function
+    | Path.Pid _ -> find env full ""
+    | Path.Pmod (md, tl) ->
+        let modul = Module.read_exn ~regeneralize md loc in
         let env = Module.add_to_env env modul in
-        concrete_type env spec
+        import_path loc env full tl
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
     | [ Ty_id "raw_ptr" ] ->
@@ -309,7 +312,8 @@ let check_type_unique env loc name =
   | Some _ ->
       let msg =
         Printf.sprintf
-          "Type names in a module must be unique. %s exists already" name
+          "Type names in a module must be unique. %s exists already"
+          (Path.show name)
       in
       raise (Error (loc, msg))
   | None -> ()

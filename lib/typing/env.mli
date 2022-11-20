@@ -1,7 +1,7 @@
 open Types
 
 type key = string
-type label = { index : int; typename : string }
+type label = { index : int; typename : Path.t }
 type t
 
 type value = {
@@ -48,17 +48,17 @@ val add_external :
 val change_type : key -> typ -> t -> t
 (** To give the generalized type with closure for functions *)
 
-val add_type : key -> typ -> t -> t
+val add_type : Path.t -> typ -> t -> t
 
-val add_record : key -> params:typ list -> labels:field array -> t -> t
+val add_record : Path.t -> params:typ list -> labels:field array -> t -> t
 (** [add record record_name ~param ~labels env] returns an env with an added record named [record_name]
      optionally parametrized by [param] with typed [labels] *)
 
-val add_variant : key -> params:typ list -> ctors:ctor array -> t -> t
+val add_variant : Path.t -> params:typ list -> ctors:ctor array -> t -> t
 (** [add_variant variant_name ~param ~ctors env] returns an env with an added variant named [variant_name]
     optionally parametrized by [param] with [ctors] *)
 
-val add_alias : key -> typ -> t -> t
+val add_alias : Path.t -> typ -> t -> t
 val open_function : t -> t
 
 val close_function : t -> t * closed list * unused
@@ -73,10 +73,10 @@ val query_val_opt : key -> t -> return option
 
 val open_mutation : t -> unit
 val close_mutation : t -> unit
-val find_type_opt : key -> t -> typ option
-val find_type : key -> t -> typ
+val find_type_opt : Path.t -> t -> typ option
+val find_type : Path.t -> t -> typ
 
-val query_type : instantiate:(typ -> typ) -> key -> t -> typ
+val query_type : instantiate:(typ -> typ) -> Path.t -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)
 
 val find_label_opt : key -> t -> label option

@@ -65,7 +65,7 @@ let get_variant env loc (_, name) annot =
                 in
                 raise (Error (loc, msg))
           in
-          (Path.show typename, ctor, variant)
+          (typename, ctor, variant)
       | t ->
           let msg =
             Printf.sprintf "Expecting a variant type, not %s" (string_of_type t)
@@ -534,11 +534,11 @@ module Make (C : Core) (R : Recs) = struct
     | Some typ, Some expr ->
         let texpr = convert env expr in
         unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
-        let expr = Ctor (typename, ctor.index, Some texpr) in
+        let expr = Ctor (Path.get_hd typename, ctor.index, Some texpr) in
 
         { typ = variant; expr; attr = no_attr }
     | None, None ->
-        let expr = Ctor (typename, ctor.index, None) in
+        let expr = Ctor (Path.get_hd typename, ctor.index, None) in
         (* NOTE: Const handling for ctors is disabled, see #23 *)
         { typ = variant; expr; attr = no_attr }
     | _ -> mismatch_err (fst name) (snd name) ctor.ctyp arg

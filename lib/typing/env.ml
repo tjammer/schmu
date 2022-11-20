@@ -13,23 +13,22 @@ module Type_key = struct
     let ord = !state in
     incr state;
     { key; ord }
-
-  let key { key; ord = _ } = key
 end
 
 module Labelset = Set.Make (String)
 module Lmap = Map.Make (Labelset)
-module Tmap = Map.Make (Type_key)
+module Tmap = Map.Make (Path)
+module Emap = Map.Make (Type_key)
 
 (* TODO ord map  *)
 module Map = Map.Make (String)
-module Set = Set.Make (Type_key)
+module Set = Set.Make (String)
 
 type key = string
 
 type label = {
   index : int; (* index of laber in record labels array *)
-  typename : string;
+  typename : Path.t;
 }
 
 type value = {
@@ -70,13 +69,13 @@ type scope = {
 type t = {
   values : scope list;
   labels : label Map.t; (* For single labels (field access) *)
-  labelsets : string Lmap.t; (* For finding the type of a record expression *)
+  labelsets : Path.t Lmap.t; (* For finding the type of a record expression *)
   ctors : label Map.t; (* Variant constructors *)
   types : typ Tmap.t;
   (* The record types are saved in their most general form.
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
-  externals : ext Tmap.t ref;
+  externals : ext Emap.t ref;
   in_mut : int ref;
 }
 
@@ -103,7 +102,7 @@ let empty () =
     labelsets = Lmap.empty;
     ctors = Map.empty;
     types = Tmap.empty;
-    externals = ref Tmap.empty;
+    externals = ref Emap.empty;
     in_mut = ref 0;
   }
 
@@ -146,7 +145,7 @@ let add_external ext_name ~cname typ ~imported loc env =
   in
   let tkey = Type_key.create ext_name in
   let vl = { ext_name; ext_typ = typ; ext_cname = cname; imported; used } in
-  env.externals := Tmap.add tkey vl !(env.externals);
+  env.externals := Emap.add tkey vl !(env.externals);
   env
 
 let change_type key typ env =
@@ -160,12 +159,11 @@ let change_type key typ env =
       | None -> "Internal Error: Missing key for changing " ^ key |> failwith)
 
 let add_type key t env =
-  let key = Type_key.create key in
   let types = Tmap.add key t env.types in
   { env with types }
 
 let add_record record ~params ~labels env =
-  let typ = Trecord (params, Some (Path.Pid record), labels) in
+  let typ = Trecord (params, Some record, labels) in
 
   let labelset =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
@@ -178,12 +176,11 @@ let add_record record ~params ~labels env =
         (index + 1, Map.add field.fname { index; typename = record } labels))
       (0, env.labels) labels
   in
-  let record = Type_key.create record in
   let types = Tmap.add record typ env.types in
   { env with labels; types; labelsets }
 
 let add_variant variant ~params ~ctors env =
-  let typ = Tvariant (params, Path.Pid variant, ctors) in
+  let typ = Tvariant (params, variant, ctors) in
 
   let _, ctors =
     Array.fold_left
@@ -191,13 +188,11 @@ let add_variant variant ~params ~ctors env =
         (index + 1, Map.add ctor.cname { index; typename = variant } ctors))
       (0, env.ctors) ctors
   in
-  let variant = Type_key.create variant in
   let types = Tmap.add variant typ env.types in
   { env with ctors; types }
 
 let add_alias name typ env =
-  let key = Type_key.create name in
-  let types = Tmap.add key (Talias (Path.Pid name, typ)) env.types in
+  let types = Tmap.add name (Talias (name, typ)) env.types in
   { env with types }
 
 let find_val_raw key env =
@@ -247,10 +242,9 @@ let close_function env =
   | scope :: tl ->
       let closed =
         !(scope.closed) |> Set.to_seq |> List.of_seq
-        |> List.filter_map (fun k ->
+        |> List.filter_map (fun clname ->
                (* We only add functions to the closure if they are params
                   Or: if they are closures *)
-               let clname = Type_key.key k in
                let { typ; param; const; global; imported; mut = clmut } =
                  find_val_raw clname env
                in
@@ -310,21 +304,16 @@ let query_val_opt key env =
         | None -> aux (scope_lvl + 1) tl
         | Some { typ; const; imported; global; mut; param = _ } ->
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
-            (match scope_lvl with
-            | 0 -> ()
-            | _ -> add scope_lvl (Type_key.create key) env.values);
+            (match scope_lvl with 0 -> () | _ -> add scope_lvl key env.values);
             (* Mark value used, if it's not imported *)
             if not imported then mark_used key scope.used env.in_mut;
             Some { typ; const; global; mut })
   in
   aux 0 env.values
 
-let find_type_opt key env = Tmap.find_opt (Type_key.create key) env.types
-let find_type key env = Tmap.find (Type_key.create key) env.types
-
-let query_type ~instantiate key env =
-  Tmap.find (Type_key.create key) env.types |> instantiate
-
+let find_type_opt key env = Tmap.find_opt key env.types
+let find_type key env = Tmap.find key env.types
+let query_type ~instantiate key env = Tmap.find key env.types |> instantiate
 let find_label_opt key env = Map.find_opt key env.labels
 
 let find_labelset_opt labels env =
@@ -335,7 +324,7 @@ let find_labelset_opt labels env =
 let find_ctor_opt name env = Map.find_opt name env.ctors
 
 let externals env =
-  Tmap.bindings !(env.externals)
+  Emap.bindings !(env.externals)
   |> List.sort Type_key.cmp_map_sort
   |> List.map snd
 

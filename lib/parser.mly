@@ -1,9 +1,14 @@
 %{
     open Ast
 
-    let string_of_ty_var = function
+    let path_of_ty_var = function
       | Ty_var s -> s
       | _ -> failwith "Internal Error: Should have been a type var"
+
+    let rec flatten_open  = function
+      | [] -> failwith "Internal Error: nonempty"
+      | [ last ] -> Path.Pid (snd last)
+      | hd :: tl -> Path.Pmod (snd hd, flatten_open tl)
 
     let parse_cond loc fst then_ conds =
       let rec aux = function
@@ -150,8 +155,9 @@ let bracks(x) :=
   | sexp_ctor; Int { { name = $1; typ_annot = None; index = Some $2 } }
 
 %inline sexp_typename:
-  | ident { { name = snd $1; poly_param = [] } }
-  | Lpar; ident; polys = nonempty_list(poly_id); Rpar { { name = snd $2; poly_param = List.map string_of_ty_var polys } }
+  | ident { { name = Path.Pid (snd $1); poly_param = [] } }
+  | Lpar; ident; polys = nonempty_list(poly_id); Rpar
+    { { name = (Path.Pid (snd $2)); poly_param = List.map path_of_ty_var polys } }
 
 %inline sexp_type_decl:
   | name = Keyword; t = sexp_type_expr { false, name, t }
@@ -395,7 +401,8 @@ build_sexp_type_list:
 type_spec:
   | ident { Ty_id (snd $1) }
   | poly_id { $1 }
-  | ident; Div_i; type_spec { Ty_open_id ($loc, $3, snd $1) }
+  | fst = ident; Div_i; lst = separated_nonempty_list(Div_i, ident)
+    { Ty_open_id ($loc, flatten_open (fst :: lst) ) }
 
 %inline poly_id:
-  | Quote; Lowercase_id { Ty_var $2 }
+  | Quote; Lowercase_id { Ty_var (Path.Pid $2) }

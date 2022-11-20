@@ -316,10 +316,10 @@ let add_to_env env m =
     (fun env item ->
       match item with
       | Mtype (Trecord (params, Some name, labels)) ->
-          Env.add_record (Path.get_hd name) ~params ~labels env
+          Env.add_record name ~params ~labels env
       | Mtype (Tvariant (params, name, ctors)) ->
-          Env.add_variant (Path.get_hd name) ~params ~ctors env
-      | Mtype (Talias (name, t)) -> Env.add_alias (Path.get_hd name) t env
+          Env.add_variant name ~params ~ctors env
+      | Mtype (Talias (name, t)) -> Env.add_alias name t env
       | Mtype t ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
       | Mfun (t, n) ->
@@ -446,6 +446,8 @@ let make_module sub name m =
 let to_channel c name m =
   let s = ref S.empty in
   m |> List.rev
-  |> List.map (make_module s name)
+  |> (fun l ->
+       if String.equal name "prelude" then l
+       else List.map (make_module s name) l)
   |> List.fold_left_map fold_canonize Types.Smap.empty
   |> snd |> sexp_of_t |> Sexp.to_channel c
