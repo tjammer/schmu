@@ -310,70 +310,49 @@ let read_exn ~regeneralize name loc =
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Typed_tree.Error (loc, msg))
 
-let add_to_env env m =
-  let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
-  List.fold_left
-    (fun env item ->
-      match item with
-      | Mtype (Trecord (params, Some name, labels)) ->
-          Env.add_record name ~params ~labels env
-      | Mtype (Tvariant (params, name, ctors)) ->
-          Env.add_variant name ~params ~ctors env
-      | Mtype (Talias (name, t)) -> Env.add_alias name t env
-      | Mtype t ->
-          failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
-      | Mfun (t, n) ->
-          Env.add_external ~imported:(Some `Schmu) n
-            ~cname:(Some ("schmu_" ^ n))
-            t dummy_loc env
-      | Mpoly_fun (abs, n) ->
-          let env =
-            Env.(
-              add_value n
-                { def_value with typ = type_of_func abs.func; imported = true }
-                dummy_loc env)
-          in
-          env
-      | Mext (t, n, cname) ->
-          Env.add_external ~imported:(Some `C) n ~cname t dummy_loc env)
-    env m
+type modif_kind = Add of string * S.t | Rem of string
 
-let rec mod_t sub name t =
-  let nm p = if S.mem p sub then Path.Pmod (name, p) else p in
+let modif = function
+  | Add (name, sub) -> fun p -> if S.mem p sub then Path.Pmod (name, p) else p
+  | Rem name -> (
+      function Path.Pmod (s, t) when String.equal s name -> t | p -> p)
+
+let rec mod_t mkind t =
+  let nm = modif mkind in
   match t with
-  | Talias (p, t) -> Talias (nm p, mod_t sub name t)
+  | Talias (p, t) -> Talias (nm p, mod_t mkind t)
   | Trecord (ps, n, fields) ->
-      let ps = List.map (mod_t sub name) ps in
+      let ps = List.map (mod_t mkind) ps in
       let n = Option.map nm n in
       let fields =
-        Array.map (fun f -> { f with ftyp = mod_t sub name f.ftyp }) fields
+        Array.map (fun f -> { f with ftyp = mod_t mkind f.ftyp }) fields
       in
       Trecord (ps, n, fields)
   | Tvariant (ps, n, ctors) ->
-      let ps = List.map (mod_t sub name) ps in
+      let ps = List.map (mod_t mkind) ps in
       let n = nm n in
       let ctors =
         Array.map
-          (fun c -> { c with ctyp = Option.map (mod_t sub name) c.ctyp })
+          (fun c -> { c with ctyp = Option.map (mod_t mkind) c.ctyp })
           ctors
       in
       Tvariant (ps, n, ctors)
-  | Traw_ptr t -> Traw_ptr (mod_t sub name t)
-  | Tarray t -> Tarray (mod_t sub name t)
+  | Traw_ptr t -> Traw_ptr (mod_t mkind t)
+  | Tarray t -> Tarray (mod_t mkind t)
   | Tfun (ps, r, kind) ->
-      let ps = List.map (fun p -> { p with pt = mod_t sub name p.pt }) ps in
-      let r = mod_t sub name r in
+      let ps = List.map (fun p -> { p with pt = mod_t mkind p.pt }) ps in
+      let r = mod_t mkind r in
       let kind =
         match kind with
         | Simple -> kind
         | Closure c ->
             let c =
-              List.map (fun c -> { c with cltyp = mod_t sub name c.cltyp }) c
+              List.map (fun c -> { c with cltyp = mod_t mkind c.cltyp }) c
             in
             Closure c
       in
       Tfun (ps, r, kind)
-  | Tvar { contents = Link t } -> Tvar { contents = Link (mod_t sub name t) }
+  | Tvar { contents = Link t } -> Tvar { contents = Link (mod_t mkind t) }
   | t -> t
 
 let extr_name = function
@@ -425,6 +404,43 @@ and mod_abs f abs =
   in
   { abs with body; func }
 
+let demake_module name = function
+  | Mtype t -> Mtype (mod_t (Rem name) t)
+  | Mfun (t, n) -> Mfun (mod_t (Rem name) t, n)
+  | Mext (t, n, cn) -> Mext (mod_t (Rem name) t, n, cn)
+  | Mpoly_fun (abs, n) -> Mpoly_fun (mod_abs (mod_t (Rem name)) abs, n)
+
+let add_to_env env toplvl m =
+  let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
+  let demk =
+    match toplvl with Some name -> demake_module name | None -> Fun.id
+  in
+  List.fold_left
+    (fun env item ->
+      match demk item with
+      | Mtype (Trecord (params, Some name, labels)) ->
+          Env.add_record name ~params ~labels env
+      | Mtype (Tvariant (params, name, ctors)) ->
+          Env.add_variant name ~params ~ctors env
+      | Mtype (Talias (name, t)) -> Env.add_alias name t env
+      | Mtype t ->
+          failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
+      | Mfun (t, n) ->
+          Env.add_external ~imported:(Some `Schmu) n
+            ~cname:(Some ("schmu_" ^ n))
+            t dummy_loc env
+      | Mpoly_fun (abs, n) ->
+          let env =
+            Env.(
+              add_value n
+                { def_value with typ = type_of_func abs.func; imported = true }
+                dummy_loc env)
+          in
+          env
+      | Mext (t, n, cname) ->
+          Env.add_external ~imported:(Some `C) n ~cname t dummy_loc env)
+    env m
+
 let make_module sub name m =
   let s t =
     match extr_name t with Some p -> sub := S.add p !sub | None -> ()
@@ -432,22 +448,20 @@ let make_module sub name m =
   match m with
   | Mtype t ->
       s t;
-      Mtype (mod_t !sub name t)
+      Mtype (mod_t (Add (name, !sub)) t)
   | Mfun (t, n) ->
       sub := S.add (Path.Pid n) !sub;
-      Mfun (mod_t !sub name t, n)
+      Mfun (mod_t (Add (name, !sub)) t, n)
   | Mext (t, n, cn) ->
       sub := S.add (Path.Pid n) !sub;
-      Mext (mod_t !sub name t, n, cn)
+      Mext (mod_t (Add (name, !sub)) t, n, cn)
   | Mpoly_fun (abs, n) ->
       sub := S.add (Path.Pid n) !sub;
-      Mpoly_fun (mod_abs (mod_t !sub name) abs, n)
+      Mpoly_fun (mod_abs (mod_t (Add (name, !sub))) abs, n)
 
 let to_channel c name m =
   let s = ref S.empty in
   m |> List.rev
-  |> (fun l ->
-       if String.equal name "prelude" then l
-       else List.map (make_module s name) l)
+  |> List.map (make_module s name)
   |> List.fold_left_map fold_canonize Types.Smap.empty
   |> snd |> sexp_of_t |> Sexp.to_channel c

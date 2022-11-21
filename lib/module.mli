@@ -19,5 +19,5 @@ val paths : string list ref
 val prelude_path : string option ref
 val find_file : string -> string -> string
 val read_exn : regeneralize:(typ -> typ) -> string -> Ast.loc -> t
-val add_to_env : Env.t -> t -> Env.t
+val add_to_env : Env.t -> string option -> t -> Env.t
 val to_channel : out_channel -> string -> t -> unit

@@ -191,7 +191,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Path.Pid _ -> find env full ""
     | Path.Pmod (md, tl) ->
         let modul = Module.read_exn ~regeneralize md loc in
-        let env = Module.add_to_env env modul in
+        let env = Module.add_to_env env None modul in
         import_path loc env full tl
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
@@ -853,7 +853,7 @@ end = struct
 
   and convert_open env loc modul expr =
     let modul = Module.read_exn ~regeneralize modul loc in
-    let env = Module.add_to_env env modul in
+    let env = Module.add_to_env env None modul in
     convert env expr
 
   and convert_tuple env exprs =
@@ -979,9 +979,9 @@ let convert_prog env items modul =
         let env = type_variant env loc v in
         let m = Module.add_type (Env.find_type v.name.name env) m in
         (env, items, m)
-    | Open (loc, modul) ->
-        let modul = Module.read_exn ~regeneralize modul loc in
-        let env = Module.add_to_env env modul in
+    | Open (loc, mname) ->
+        let modul = Module.read_exn ~regeneralize mname loc in
+        let env = Module.add_to_env env (Some mname) modul in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
@@ -1034,7 +1034,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
   let env =
     if prelude then
       let prelude = Module.read_exn ~regeneralize "prelude" loc in
-      Module.add_to_env env prelude
+      Module.add_to_env env (Some "prelude") prelude
     else env
   in
 
