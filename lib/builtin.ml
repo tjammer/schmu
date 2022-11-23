@@ -19,6 +19,7 @@ type t =
   | F32_of_int
   | F32_of_i32
   | Not
+  | Mod
   | Array_get
   | Array_set
   | Array_length
@@ -83,6 +84,9 @@ let tbl =
     (U8_of_int, Tfun ([ { pmut; pt = Tint } ], Tu8, Simple), "u8_of_int");
     (U8_to_int, Tfun ([ { pmut; pt = Tu8 } ], Tint, Simple), "u8_to_int");
     (Not, Tfun ([ { pmut; pt = Tbool } ], Tbool, Simple), "not");
+    ( Mod,
+      Tfun ([ { pmut; pt = Tint }; { pmut; pt = Tint } ], Tint, Simple),
+      "mod" );
     ( Array_get,
       Tfun
         ( [ { pmut; pt = Tarray (Qvar "0") }; { pmut; pt = Tint } ],
@@ -137,6 +141,7 @@ let of_string = function
   | "u8_of_int" -> Some U8_of_int
   | "u8_to_int" -> Some U8_to_int
   | "not" -> Some Not
+  | "mod" -> Some Mod
   | "array-get" -> Some Array_get
   | "array-set" -> Some Array_set
   | "array-length" -> Some Array_length

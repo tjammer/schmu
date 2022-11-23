@@ -564,6 +564,15 @@ end = struct
 
         set_struct_field value ptr;
         { dummy_fn_value with lltyp = unit_t }
+    | Mod -> (
+        match args with
+        | [ value; md ] ->
+            let value =
+              Llvm.build_srem (bring_default value) (bring_default md) "mod"
+                builder
+            in
+            { value; typ = Tint; lltyp = int_t; kind = Imm }
+        | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Array_get -> array_get ~in_set:param.in_set args fnc.ret
     | Array_set -> array_set args
     | Array_length -> array_length args
