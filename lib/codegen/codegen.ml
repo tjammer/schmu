@@ -152,7 +152,7 @@ end = struct
           match (typed_expr.return, callee.monomorph, param.rec_block) with
           | true, Recursive _, Some block ->
               gen_app_tailrec param callee args block typed_expr.typ
-          | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args
+          | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args alloca
           | _, Inline (pnames, tree), _ -> gen_app_inline param args pnames tree
           | _ -> gen_app param callee args alloca typed_expr.typ
         in
@@ -525,7 +525,7 @@ end = struct
     let value = Llvm.build_br rec_block.rec_ builder in
     { value; typ = Tpoly "tail"; lltyp; kind = default_kind ret }
 
-  and gen_app_builtin param (b, fnc) args =
+  and gen_app_builtin param (b, fnc) args allocref =
     let handle_arg (arg, _) =
       let arg' = gen_expr param Monomorph_tree.(arg.ex) in
       let arg = get_mono_func arg' param arg.monomorph in
@@ -579,6 +579,7 @@ end = struct
     | Array_push -> array_push args
     | Array_drop_back -> array_drop_back args
     | Array_data -> array_data args
+    | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
     | Realloc ->
         let ptr, size =
           match args with

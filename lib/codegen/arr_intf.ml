@@ -15,6 +15,10 @@ module type S = sig
   val array_push : llvar list -> llvar
   val array_drop_back : llvar list -> llvar
   val array_data : llvar list -> llvar
+
+  val unsafe_array_create :
+    param -> llvar list -> typ -> Monomorph_tree.alloca -> llvar
+
   val incr_refcount : llvar -> unit
   val decr_refcount : llvar -> unit
   val gen_functions : unit -> unit

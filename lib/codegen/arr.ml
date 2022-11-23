@@ -359,24 +359,16 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let cap = Llvm.build_load cap "cap" builder in
 
     let item_type, _, head_size, item_size = item_type_head_size orig.typ in
-    let itemscap =
-      Llvm.build_mul cap (Llvm.const_int int_t item_size) "" builder
-    in
+    let itemscap = Llvm.build_mul cap (ci item_size) "" builder in
     (* Really capacity, not size *)
-    let size =
-      Llvm.build_add itemscap (Llvm.const_int int_t head_size) "" builder
-    in
+    let size = Llvm.build_add itemscap (ci head_size) "" builder in
 
     let lltyp = get_lltype_def orig.typ in
     let ptr =
       malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
     in
-    let itemssize =
-      Llvm.build_mul sz (Llvm.const_int int_t item_size) "" builder
-    in
-    let size =
-      Llvm.build_add itemssize (Llvm.const_int int_t head_size) "" builder
-    in
+    let itemssize = Llvm.build_mul sz (ci item_size) "" builder in
+    let size = Llvm.build_add itemssize (ci head_size) "" builder in
     ignore
       (* Ptr is needed here to get a copy *)
       (let src = { value = v.value; typ = orig.typ; kind = Ptr; lltyp } in
@@ -482,12 +474,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let rc = Llvm.build_load dst "ref" builder in
 
     let item_type, _, head_size, item_size = item_type_head_size orig.typ in
-    let itemscap =
-      Llvm.build_mul new_cap (Llvm.const_int int_t item_size) "" builder
-    in
-    let size =
-      Llvm.build_add itemscap (Llvm.const_int int_t head_size) "" builder
-    in
+    let itemscap = Llvm.build_mul new_cap (ci item_size) "" builder in
+    let size = Llvm.build_add itemscap (ci head_size) "" builder in
 
     let start_bb = Llvm.insertion_block builder in
     let parent = Llvm.block_parent start_bb in
@@ -496,9 +484,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let malloc_bb = Llvm.append_block context "malloc" parent in
     let merge_bb = Llvm.append_block context "merge" parent in
 
-    let cmp =
-      Llvm.(build_icmp Icmp.Eq) rc (Llvm.const_int int_t 1) "" builder
-    in
+    let cmp = Llvm.(build_icmp Icmp.Eq) rc (ci 1) "" builder in
 
     ignore (Llvm.build_cond_br cmp realloc_bb malloc_bb builder);
 
@@ -520,12 +506,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
     let sz = Llvm.build_load dst "size" builder in
-    let itemssize =
-      Llvm.build_mul sz (Llvm.const_int int_t item_size) "" builder
-    in
-    let size =
-      Llvm.build_add itemssize (Llvm.const_int int_t head_size) "" builder
-    in
+    let itemssize = Llvm.build_mul sz (ci item_size) "" builder in
+    let size = Llvm.build_add itemssize (ci head_size) "" builder in
     ignore
       (* Ptr is needed here to get a copy *)
       (let src = { value = v.value; typ = orig.typ; kind = Ptr; lltyp } in
@@ -693,6 +675,39 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let lltyp = get_lltype_def typ in
     let v = { value = valueptr; typ; lltyp; kind = Imm } in
     v
+
+  let unsafe_array_create param args typ allocref =
+    let sz =
+      match args with
+      | [ sz ] -> bring_default sz
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    in
+
+    (* array initialization code is copied from [gen_array_lit] a bit *)
+    let _, _, head_size, item_size = item_type_head_size typ in
+    (* [sz] passed here could be anything. It's unsafe alright *)
+    let itemscap = Llvm.build_mul sz (ci item_size) "" builder in
+    let size = Llvm.build_add (ci head_size) itemscap "" builder in
+
+    let lltyp = get_lltype_def typ in
+    let ptr =
+      malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
+    in
+
+    let arr = get_prealloc !allocref param lltyp "arr" in
+    ignore (Llvm.build_store ptr arr builder);
+
+    (* Initialize counts *)
+    let int_ptr = Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
+    (* refcount of 1 *)
+    ignore (Llvm.build_store (ci 1) dst builder);
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    ignore (Llvm.build_store sz dst builder);
+    let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    ignore (Llvm.build_store sz dst builder);
+
+    { value = arr; typ; lltyp; kind = Ptr }
 
   let gen_functions () =
     Hashtbl.iter
