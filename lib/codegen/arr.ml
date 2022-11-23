@@ -429,9 +429,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     in
 
     let value = Llvm.build_gep ptr [| index |] "" builder in
-    let v = { value; typ; lltyp; kind = Ptr } in
-    if not in_set then incr_refcount v;
-    v
+    { value; typ; lltyp; kind = Ptr }
 
   let array_set args =
     let arr, index, value =

@@ -1308,47 +1308,34 @@ Copies, but with ref-counted arrays
     %data = getelementptr i64, i64* %0, i64 3
     %1 = bitcast i64* %data to i64**
     %2 = load i64*, i64** %1, align 8
-    tail call void @__g.u_incr_rc_ai.u(i64* %2)
-    %3 = load i64*, i64** %1, align 8
-    %data1 = getelementptr i64, i64* %3, i64 3
-    %4 = load i64, i64* %data1, align 4
-    %5 = getelementptr i64*, i64** %1, i64 1
-    %6 = load i64*, i64** %5, align 8
-    tail call void @__g.u_incr_rc_ai.u(i64* %6)
-    %7 = load i64*, i64** %5, align 8
-    %data3 = getelementptr i64, i64* %7, i64 3
-    %8 = load i64, i64* %data3, align 4
-    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [9 x i8] }, { i64, i64, i64, [9 x i8] }* @0, i32 0, i32 0), i64 3) to i8*), i64 %4, i64 %8)
-    %9 = add i32 %fmtsize, 32
-    %10 = sext i32 %9 to i64
-    %11 = tail call i8* @malloc(i64 %10)
-    %12 = bitcast i8* %11 to i64*
-    store i64 1, i64* %12, align 4
-    %size = getelementptr i64, i64* %12, i64 1
-    %13 = sext i32 %fmtsize to i64
-    store i64 %13, i64* %size, align 4
-    %cap = getelementptr i64, i64* %12, i64 2
-    store i64 %13, i64* %cap, align 4
-    %data4 = getelementptr i64, i64* %12, i64 3
-    %14 = bitcast i64* %data4 to i8*
-    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %14, i64 %10, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [9 x i8] }, { i64, i64, i64, [9 x i8] }* @0, i32 0, i32 0), i64 3) to i8*), i64 %4, i64 %8)
+    %data1 = getelementptr i64, i64* %2, i64 3
+    %3 = load i64, i64* %data1, align 4
+    %4 = getelementptr i64*, i64** %1, i64 1
+    %5 = load i64*, i64** %4, align 8
+    %data3 = getelementptr i64, i64* %5, i64 3
+    %6 = load i64, i64* %data3, align 4
+    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [9 x i8] }, { i64, i64, i64, [9 x i8] }* @0, i32 0, i32 0), i64 3) to i8*), i64 %3, i64 %6)
+    %7 = add i32 %fmtsize, 32
+    %8 = sext i32 %7 to i64
+    %9 = tail call i8* @malloc(i64 %8)
+    %10 = bitcast i8* %9 to i64*
+    store i64 1, i64* %10, align 4
+    %size = getelementptr i64, i64* %10, i64 1
+    %11 = sext i32 %fmtsize to i64
+    store i64 %11, i64* %size, align 4
+    %cap = getelementptr i64, i64* %10, i64 2
+    store i64 %11, i64* %cap, align 4
+    %data4 = getelementptr i64, i64* %10, i64 3
+    %12 = bitcast i64* %data4 to i8*
+    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %12, i64 %8, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [9 x i8] }, { i64, i64, i64, [9 x i8] }* @0, i32 0, i32 0), i64 3) to i8*), i64 %3, i64 %6)
     %str = alloca i8*, align 8
-    store i8* %11, i8** %str, align 8
-    tail call void @schmu_print(i8* %11)
-    tail call void @__g.u_decr_rc_ac.u(i8* %11)
-    %15 = load i64*, i64** %5, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %15)
-    %16 = load i64*, i64** %1, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %16)
-    ret void
-  }
-  
-  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
-  entry:
-    %ref2 = bitcast i64* %0 to i64*
-    %ref1 = load i64, i64* %ref2, align 4
-    %1 = add i64 %ref1, 1
-    store i64 %1, i64* %ref2, align 4
+    store i8* %9, i8** %str, align 8
+    tail call void @schmu_print(i8* %9)
+    tail call void @__g.u_decr_rc_ac.u(i8* %9)
+    %13 = load i64*, i64** %4, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %13)
+    %14 = load i64*, i64** %1, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %14)
     ret void
   }
   
@@ -1609,6 +1596,15 @@ Copies, but with ref-counted arrays
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
   
   declare void @free(i8* %0)
   

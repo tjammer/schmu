@@ -658,7 +658,7 @@ let rec is_temporary = function
       match callee.monomorph with
       | Inline (_, e) -> is_temporary e.expr
       | Builtin (Unsafe_ptr_get, _) -> false
-      | Builtin (Array_get, _) -> true
+      | Builtin (Array_get, _) -> false
       | _ -> true)
   | Munop (_, t) -> is_temporary t.expr
   | Mif { e1; e2; _ } -> is_temporary e1.expr && is_temporary e2.expr
@@ -1172,10 +1172,21 @@ and morph_app mk p callee args ret_typ =
     else (No_value, ref (request ()))
   in
 
+  let mkapp =
+    (* array-get does not return a temporary. If its value is returned in a function,
+       increase value's refcount so that it's really a temporary *)
+    match callee.monomorph with
+    | Builtin (Array_get, _) when ret ->
+        fun app ->
+          let app = mk app ret in
+          { app with expr = Mincr_ref app }
+    | _ -> fun app -> mk app ret
+  in
+
   let vid, ids = mb_id p.ids ret_typ in
   let app = Mapp { callee; args; alloca = alloc_ref; id; vid } in
 
-  ({ p with ret; ids }, mk app ret, { no_var with alloc; id = vid })
+  ({ p with ret; ids }, mkapp app, { no_var with alloc; id = vid })
 
 and morph_ctor mk p variant index expr is_const =
   let ret = p.ret in
