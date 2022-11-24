@@ -355,7 +355,9 @@ Also mutable fields and 'realloc' builtin
     %index3 = bitcast %container* %2 to i64*
     store i64 1, i64* %index3, align 4
     %arr1 = getelementptr inbounds %container, %container* %2, i32 0, i32 1
+    tail call void @__g.u_incr_rc_ai.u(i64* %1)
     store i64* %1, i64** %arr1, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %1)
     %unbox = bitcast %container* %2 to { i64, i64 }*
     %unbox2 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
     ret { i64, i64 } %unbox2
@@ -548,6 +550,15 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
+  
   define i64 @main(i64 %arg) {
   entry:
     %0 = tail call i8* @malloc(i64 48)
@@ -562,10 +573,13 @@ Also mutable fields and 'realloc' builtin
     %data = getelementptr i64, i64* %2, i64 3
     %3 = bitcast i64* %data to i8**
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %3, align 8
+    tail call void @__g.u_incr_rc_ac.u(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*))
     %"1" = getelementptr i8*, i8** %3, i64 1
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @1 to i8*), i8** %"1", align 8
+    tail call void @__g.u_incr_rc_ac.u(i8* bitcast ({ i64, i64, i64, [6 x i8] }* @1 to i8*))
     %"2" = getelementptr i8*, i8** %3, i64 2
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @2 to i8*), i8** %"2", align 8
+    tail call void @__g.u_incr_rc_ac.u(i8* bitcast ({ i64, i64, i64, [6 x i8] }* @2 to i8*))
     %4 = load i8**, i8*** @arr, align 8
     store i8** %4, i8*** @arr, align 8
     %5 = tail call i8* @malloc(i64 48)
@@ -740,6 +754,16 @@ Also mutable fields and 'realloc' builtin
     %57 = load i8**, i8*** @arr, align 8
     tail call void @__g.u_decr_rc_aac.u(i8** %57)
     ret i64 0
+  }
+  
+  define internal void @__g.u_incr_rc_ac.u(i8* %0) {
+  entry:
+    %ref = bitcast i8* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 4
+    %1 = add i64 %ref2, 1
+    store i64 %1, i64* %ref13, align 4
+    ret void
   }
   
   define internal i64** @__ag.ag_reloc_aai.aai(i64*** %0) {
@@ -1009,15 +1033,6 @@ Also mutable fields and 'realloc' builtin
     br label %merge
   
   merge:                                            ; preds = %free, %decr
-    ret void
-  }
-  
-  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
-  entry:
-    %ref2 = bitcast i64* %0 to i64*
-    %ref1 = load i64, i64* %ref2, align 4
-    %1 = add i64 %ref1, 1
-    store i64 %1, i64* %ref2, align 4
     ret void
   }
   

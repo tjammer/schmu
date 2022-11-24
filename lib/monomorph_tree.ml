@@ -652,7 +652,7 @@ let set_tailrec name =
 let rec is_temporary = function
   | Mvar _ | Mfield _ | Mvar_data _ | Mconst (String _) -> false
   | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _ | Mfmt _
-  | Mcopy _ | Mincr_ref _ ->
+  | Mcopy _ ->
       true
   | Mapp { callee; _ } -> (
       match callee.monomorph with
@@ -665,7 +665,8 @@ let rec is_temporary = function
   | Mlet (_, _, _, _, cont)
   | Mfunction (_, _, cont)
   | Mseq (_, cont)
-  | Mdecr_ref (_, cont) ->
+  | Mdecr_ref (_, cont)
+  | Mincr_ref cont ->
       is_temporary cont.expr
   | Mset _ -> failwith "Internal Error: Trying to copy unit"
 
@@ -689,6 +690,9 @@ let make_e2 e1 e2 id gn lmut rmut p vid =
   | None ->
       let e1 = copy_let e1 lmut rmut id temporary in
       (p, { e2 with expr = Mlet (id, e1, gn, vid, e2) })
+
+let mb_incr v =
+  if not (is_temporary v.expr) then { v with expr = Mincr_ref v } else v
 
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return = { typ = cln texpr.typ; expr; return } in
@@ -783,7 +787,10 @@ and morph_array mk p a =
   let f param e =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
-    let ids = remove_id ~id:var.id p.ids in
+    let e = mb_incr e in
+    let ids =
+      if is_temporary e.expr then remove_id ~id:var.id p.ids else p.ids
+    in
     set_alloca var.alloc;
     ({ p with ids }, e)
   in
@@ -878,7 +885,10 @@ and morph_record mk p labels is_const typ =
   let f param (id, e) =
     let p, e, var = morph_expr param e in
     if is_struct e.typ then set_alloca var.alloc;
-    let ids = remove_id ~id:var.id p.ids in
+    let e = mb_incr e in
+    let ids =
+      if is_temporary e.expr then remove_id ~id:var.id p.ids else p.ids
+    in
     ({ p with ids }, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
@@ -909,9 +919,7 @@ and morph_set mk p expr value =
   let p, e, _ = morph_expr { p with ret = false } expr in
   let p, v, func = morph_expr { p with ids = [] } value in
 
-  let v =
-    if not (is_temporary v.expr) then { v with expr = Mincr_ref v } else v
-  in
+  let v = mb_incr v in
 
   let tree = mk (Mset (e, v)) ret in
   let tree = decr_refs tree (remove_id ~id:func.id p.ids) in
@@ -1172,18 +1180,23 @@ and morph_app mk p callee args ret_typ =
     else (No_value, ref (request ()))
   in
 
-  let mkapp =
+  let mkapp, vid, ids =
     (* array-get does not return a temporary. If its value is returned in a function,
        increase value's refcount so that it's really a temporary *)
     match callee.monomorph with
-    | Builtin (Array_get, _) when ret ->
-        fun app ->
-          let app = mk app ret in
-          { app with expr = Mincr_ref app }
-    | _ -> fun app -> mk app ret
+    | Builtin (Array_get, _) ->
+        let mk =
+          if ret then fun app ->
+            let app = mk app ret in
+            { app with expr = Mincr_ref app }
+          else fun app -> mk app ret
+        in
+        (mk, None, p.ids)
+    | _ ->
+        let vid, ids = mb_id p.ids ret_typ in
+        ((fun app -> mk app ret), vid, ids)
   in
 
-  let vid, ids = mb_id p.ids ret_typ in
   let app = Mapp { callee; args; alloca = alloc_ref; id; vid } in
 
   ({ p with ret; ids }, mkapp app, { no_var with alloc; id = vid })

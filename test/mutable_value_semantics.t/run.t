@@ -565,6 +565,7 @@ Check aliasing
   0
   0
 
+Const let
   $ schmu --dump-llvm const_let.smu && valgrind -q --leak-check=yes ./const_let
   ; ModuleID = 'context'
   source_filename = "context"
@@ -802,7 +803,7 @@ Check aliasing
 
 
 Copies, but with ref-counted arrays
-  $ schmu array_copies.smu --dump-llvm && ./array_copies
+  $ schmu array_copies.smu --dump-llvm && valgrind -q --leak-check=yes ./array_copies
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1049,8 +1050,8 @@ Copies, but with ref-counted arrays
   15
   10
 
-
-  $ schmu array_in_record_copies.smu --dump-llvm && ./array_in_record_copies
+Arrays in records
+  $ schmu array_in_record_copies.smu --dump-llvm && valgrind -q --leak-check=yes ./array_in_record_copies
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1290,8 +1291,8 @@ Copies, but with ref-counted arrays
   12
   10
 
-
-  $ schmu nested_array.smu --dump-llvm && ./nested_array
+Nested arrays
+  $ schmu nested_array.smu --dump-llvm && valgrind -q --leak-check=yes ./nested_array
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1332,10 +1333,6 @@ Copies, but with ref-counted arrays
     store i8* %9, i8** %str, align 8
     tail call void @schmu_print(i8* %9)
     tail call void @__g.u_decr_rc_ac.u(i8* %9)
-    %13 = load i64*, i64** %4, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %13)
-    %14 = load i64*, i64** %1, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %14)
     ret void
   }
   
@@ -1362,28 +1359,6 @@ Copies, but with ref-counted arrays
     %5 = bitcast i8* %0 to i64*
     %6 = bitcast i64* %5 to i8*
     call void @free(i8* %6)
-    br label %merge
-  
-  merge:                                            ; preds = %free, %decr
-    ret void
-  }
-  
-  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
-  entry:
-    %ref2 = bitcast i64* %0 to i64*
-    %ref1 = load i64, i64* %ref2, align 4
-    %1 = icmp eq i64 %ref1, 1
-    br i1 %1, label %free, label %decr
-  
-  decr:                                             ; preds = %entry
-    %2 = bitcast i64* %0 to i64*
-    %3 = sub i64 %ref1, 1
-    store i64 %3, i64* %2, align 4
-    br label %merge
-  
-  free:                                             ; preds = %entry
-    %4 = bitcast i64* %0 to i8*
-    call void @free(i8* %4)
     br label %merge
   
   merge:                                            ; preds = %free, %decr
@@ -1594,6 +1569,28 @@ Copies, but with ref-counted arrays
     ret i64* %11
   }
   
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = icmp eq i64 %ref1, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i64* %0 to i64*
+    %3 = sub i64 %ref1, 1
+    store i64 %3, i64* %2, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
@@ -1613,6 +1610,7 @@ Copies, but with ref-counted arrays
   10, 20
 
 
+Modify in function
   $ schmu --dump-llvm modify_in_fn.smu && valgrind -q --leak-check=yes ./modify_in_fn
   ; ModuleID = 'context'
   source_filename = "context"
