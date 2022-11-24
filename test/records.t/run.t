@@ -404,7 +404,7 @@ Make sure alignment of generic param works
 
 Parametrization needs to be given, if a type is generic
   $ schmu --dump-llvm stub.o missing_parameter.smu && ./missing_parameter
-  missing_parameter.smu:5:8: error: Type t needs a type parameter
+  missing_parameter.smu:5:8: error: Type t expects 1 type parameter
   5 | (fun [(t t)] (.t t))
              ^^^
   

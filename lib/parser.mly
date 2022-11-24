@@ -391,12 +391,9 @@ array_lit:
 %inline sexp_fun_param:
   | spec = sexp_type_expr; mut = boption(Ampersand) { spec, mut }
 
-%inline sexp_type_list:
-  | build_sexp_type_list { Ty_list $1 }
-
-build_sexp_type_list:
-  | Lpar; type_spec; build_sexp_type_list; Rpar { $2 :: $3 }
-  | type_spec { [$1] }
+sexp_type_list:
+  | Lpar; hd = type_spec; tl = nonempty_list(sexp_type_list); Rpar { Ty_list (hd :: tl) }
+  | type_spec { $1 }
 
 type_spec:
   | ident { Ty_id (snd $1) }

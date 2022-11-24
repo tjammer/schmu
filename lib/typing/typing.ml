@@ -131,22 +131,15 @@ let rec subst_generic ~id typ = function
   | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
   | t -> t
 
-and get_generic_id loc = function
-  | Tvar { contents = Link t } | Talias (_, t) -> get_generic_id loc t
-  | Trecord (Qvar id :: _, _, _)
-  | Trecord (Tvar { contents = Unbound (id, _) } :: _, _, _)
-  | Tvariant (Qvar id :: _, _, _)
-  | Tvariant (Tvar { contents = Unbound (id, _) } :: _, _, _)
-  | Traw_ptr (Qvar id)
-  | Traw_ptr (Tvar { contents = Unbound (id, _) })
-  | Tarray (Qvar id)
-  | Tarray (Tvar { contents = Unbound (id, _) }) ->
-      id
-  | Trecord (_ :: tl, _, _) | Tvariant (_ :: tl, _, _) ->
-      get_generic_id loc (Trecord (tl, None, [||]))
-  | t ->
-      raise
-        (Error (loc, "Expected a parametrized type, not " ^ string_of_type t))
+and get_generic_id = function
+  | Qvar id | Tvar { contents = Unbound (id, _) } -> Some id
+  | Tvar { contents = Link t } | Talias (_, t) -> get_generic_id t
+  | Trecord (hd :: tl, _, _) | Tvariant (hd :: tl, _, _) -> (
+      match get_generic_id hd with
+      | Some id -> Some id
+      | None -> get_generic_id (Trecord (tl, None, [||])))
+  | Tarray t | Traw_ptr t -> get_generic_id t
+  | _ -> None
 
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let fn_kind = if param then Closure [] else Simple in
@@ -159,19 +152,20 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
 
   let rec is_quantified = function
     | Trecord ([], _, _) | Tvariant ([], _, _) -> None
-    | Trecord (_, Some name, _) | Tvariant (_, name, _) -> Some name
-    | Traw_ptr _ -> Some (Path.Pid "raw_ptr")
-    | Tarray _ -> Some (Path.Pid "array")
+    | Trecord (ts, Some name, _) | Tvariant (ts, name, _) ->
+        Some (name, List.length ts)
+    | Traw_ptr _ -> Some (Path.Pid "raw_ptr", 1)
+    | Tarray _ -> Some (Path.Pid "array", 1)
     | Talias (name, t) -> (
         let cleaned = clean t in
         match is_quantified cleaned with
-        | Some _ when is_polymorphic cleaned -> Some name
+        | Some (_, n) when is_polymorphic cleaned -> Some (name, n)
         | Some _ | None -> (* When can alias a concrete type *) None)
     | Tvar { contents = Link t } -> is_quantified t
     | _ -> None
   in
 
-  let rec concrete_type env = function
+  let rec concrete_type in_list env = function
     | Ast.Ty_id "int" -> Tint
     | Ty_id "bool" -> Tbool
     | Ty_id "unit" -> Tunit
@@ -179,7 +173,28 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_id "float" -> Tfloat
     | Ty_id "i32" -> Ti32
     | Ty_id "f32" -> Tf32
-    | Ty_id t -> find env (Path.Pid t) ""
+    | Ty_id "array" ->
+        if not in_list then
+          raise (Error (loc, "Type array expects 1 type parameter"));
+        Tarray (Qvar "o")
+        (* Use a letter care so we don't clash with a real value *)
+    | Ty_id "raw_ptr" ->
+        if not in_list then
+          raise (Error (loc, "Type raw_ptr expects 1 type parameter"));
+        Traw_ptr (Qvar "o")
+    | Ty_id t ->
+        let t = find env (Path.Pid t) "" in
+        (if not in_list then
+         match is_quantified t with
+         | Some (name, n) ->
+             let msg =
+               Printf.sprintf "Type %s expects %i type parameter%s"
+                 (Path.show name) n
+                 (if n > 1 then "s" else "")
+             in
+             raise (Error (loc, msg))
+         | None -> ());
+        t
     | Ty_var id when typedef -> find env id "'"
     | Ty_var id ->
         (* Type annotation in function *)
@@ -195,40 +210,40 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         import_path loc env full tl
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
-    | [ Ty_id "raw_ptr" ] ->
-        raise (Error (loc, "Type raw_ptr needs a type parameter"))
-    | [ Ty_id "array" ] ->
-        raise (Error (loc, "Type array needs a type parameter"))
-    | [ t ] -> (
-        let t = concrete_type env t in
+    | t :: tl -> (
+        let t = concrete_type true env t in
         match is_quantified t with
-        | Some name ->
-            raise
-              (Error (loc, "Type " ^ Path.show name ^ " needs a type parameter"))
-        | None -> t)
-    | lst -> container_t env lst
-  and container_t env lst =
-    match lst with
-    | [] -> failwith "Internal Error: Type record list should not be empty"
-    | [ t ] -> concrete_type env t
-    | Ty_id "raw_ptr" :: tl ->
-        let nested = container_t env tl in
-        Traw_ptr nested
-    | Ty_id "array" :: tl ->
-        let nested = container_t env tl in
-        Tarray nested
+        | Some (name, n) ->
+            if Int.equal n (List.length tl) then contained_t t env tl
+            else
+              let msg =
+                Printf.sprintf "Type %s expects %i type parameter%s"
+                  (Path.show name) n
+                  (if n > 1 then "s" else "")
+              in
+              raise (Error (loc, msg))
+        | None -> failwith "Internal Error: Not sure, this shouldn't happen")
+  and contained_t t env = function
+    | [] -> t
     | hd :: tl ->
-        let t = concrete_type env hd in
-        let nested = container_t env tl in
-        let subst = subst_generic ~id:(get_generic_id loc t) nested t in
-        subst
+        let nested = concrete_type false env hd in
+        let id =
+          match get_generic_id t with
+          | Some id -> id
+          | None ->
+              raise
+                (Error
+                   (loc, "Expected a parametrized type, not " ^ string_of_type t))
+        in
+        let subst = subst_generic ~id nested t in
+        contained_t subst env tl
   and handle_func env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
-    | [ (t, _) ] -> concrete_type env t
+    | [ (t, _) ] -> concrete_type false env t
     | [ (Ast.Ty_id "unit", _); (t, _) ] ->
-        Tfun ([], concrete_type env t, fn_kind)
+        Tfun ([], concrete_type false env t, fn_kind)
     | [ (Ast.Ty_list [ Ast.Ty_id "unit" ], _); (t, _) ] ->
-        Tfun ([], concrete_type env t, fn_kind)
+        Tfun ([], concrete_type false env t, fn_kind)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)
     | l -> (
@@ -236,15 +251,14 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         match List.rev l with
         | (last, _) :: head ->
             Tfun
-              (* TODO figure out type spec syntax for mutability *)
               ( List.map
-                  (fun (s, pmut) -> { pt = concrete_type env s; pmut })
+                  (fun (s, pmut) -> { pt = concrete_type false env s; pmut })
                   (List.rev head),
-                concrete_type env last,
+                concrete_type false env last,
                 fn_kind )
         | [] -> failwith ":)")
   in
-  concrete_type env annot
+  concrete_type false env annot
 
 let rec param_annots t =
   let annot t =

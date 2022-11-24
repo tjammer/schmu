@@ -167,6 +167,10 @@ let test_annot_record_generic () =
     "(type (a 'a) { :x 'a }) (type b { :x int }) (val (a (a bool)) { :x true \
      }) a"
 
+let test_annot_record_generic_multiple () =
+  test_exn "Type a expects 2 type parameters"
+    "(type (a 'a 'b) { :x 'a :y 'b }) (val (a a) { :x true }) a"
+
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
 
@@ -250,7 +254,7 @@ let test_alias_param_quant () =
     "(type (foo 'a) (raw_ptr 'a)) (external f (fun (foo 'a) unit)) f"
 
 let test_alias_param_missing () =
-  test_exn "Type foo needs a type parameter"
+  test_exn "Type foo expects 1 type parameter"
     "(type (foo 'a) (raw_ptr 'a)) (external f (fun foo unit)) f"
 
 let test_alias_of_alias () =
@@ -566,6 +570,7 @@ let () =
           case "generic fun mut param" test_annot_generic_fun_mut_param;
           case "record_let" test_annot_record_simple;
           case "record_let_gen" test_annot_record_generic;
+          case "record_muliple" test_annot_record_generic_multiple;
         ] );
       ( "function sequencing",
         [
