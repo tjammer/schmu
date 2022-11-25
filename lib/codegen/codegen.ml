@@ -168,8 +168,8 @@ end = struct
     | Mfield (expr, index) -> gen_field param expr index |> fin
     | Mset (expr, value) -> gen_set param expr value |> fin
     | Mseq (expr, cont) -> gen_chain param expr cont
-    | Mctor (ctor, allocref, const) ->
-        gen_ctor param ctor typed_expr.typ allocref const
+    | Mctor (ctor, allocref, id, const) ->
+        gen_ctor param ctor typed_expr.typ allocref id const
     | Mvar_index expr -> gen_var_index param expr |> fin
     | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
     | Mfmt (fmts, allocref, id) ->
@@ -848,7 +848,7 @@ end = struct
     ignore (Llvm.build_store ptr string builder);
     { value = string; typ; lltyp; kind = Ptr }
 
-  and gen_ctor param (variant, tag, expr) typ allocref const =
+  and gen_ctor param (variant, tag, expr) typ allocref id const =
     ignore const;
 
     (* This approach means we alloca every time, even if the enum
@@ -885,7 +885,9 @@ end = struct
         in
         set_struct_field data dataptr
     | None -> ());
-    { value = var; typ; lltyp; kind = Ptr }
+    let v = { value = var; typ; lltyp; kind = Ptr } in
+    (match id with Some id -> Strtbl.replace decr_tbl id v | None -> ());
+    v
 
   and gen_var_index param expr =
     let var = gen_expr param expr in

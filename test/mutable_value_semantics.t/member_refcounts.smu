@@ -7,3 +7,10 @@
 (val r [a])
 (set &(array-get a 0) 30)
 (print (fmt-str (array-get (array-get r 0) 0)))
+
+(val r (#some a))
+(set &(array-get a 0) 40)
+(print
+ (match r
+   ((#some a) (fmt-str (array-get a 0)))
+   (#none "none")))

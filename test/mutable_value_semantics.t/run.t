@@ -2111,18 +2111,22 @@ Free array params correctly if they are returned
   
   declare void @free(i8* %0)
 
-Refcounts for members in arrays and records
+Refcounts for members in arrays, records and variants
   $ schmu --dump-llvm member_refcounts.smu && valgrind -q --leak-check=yes ./member_refcounts
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %r = type { i64* }
+  %option_array_int = type { i32, i64* }
   
   @a = global i64* null, align 8
   @r = global %r zeroinitializer, align 8
   @r__2 = global i64** null, align 8
+  @r__3 = global %option_array_int zeroinitializer, align 16
+  @__expr0 = internal global %option_array_int zeroinitializer, align 16
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
+  @1 = private unnamed_addr global { i64, i64, i64, [5 x i8] } { i64 2, i64 4, i64 4, [5 x i8] c"none\00" }
   
   declare void @schmu_print(i8* %0)
   
@@ -2210,13 +2214,72 @@ Refcounts for members in arrays and records
     %str21 = alloca i8*, align 8
     store i8* %28, i8** %str21, align 8
     tail call void @schmu_print(i8* %28)
+    store i32 0, i32* getelementptr inbounds (%option_array_int, %option_array_int* @r__3, i32 0, i32 0), align 4
+    %32 = load i64*, i64** @a, align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %32)
+    %33 = load i64*, i64** @a, align 8
+    store i64* %33, i64** getelementptr inbounds (%option_array_int, %option_array_int* @r__3, i32 0, i32 1), align 8
+    %34 = tail call i64* @__ag.ag_reloc_ai.ai(i64** @a)
+    %data22 = getelementptr i64, i64* %34, i64 3
+    store i64 40, i64* %data22, align 4
+    tail call void @__g.u_incr_rc_optionai.u(%option_array_int* @r__3)
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%option_array_int* @__expr0 to i8*), i8* bitcast (%option_array_int* @r__3 to i8*), i64 16, i1 false)
+    %index = load i32, i32* getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 0), align 4
+    %eq = icmp eq i32 %index, 0
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %35 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %35)
+    %36 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %36)
+    %37 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    %data23 = getelementptr i64, i64* %37, i64 3
+    %38 = load i64, i64* %data23, align 4
+    %fmtsize24 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i32 0, i32 0), i64 3) to i8*), i64 %38)
+    %39 = add i32 %fmtsize24, 32
+    %40 = sext i32 %39 to i64
+    %41 = tail call i8* @malloc(i64 %40)
+    %42 = bitcast i8* %41 to i64*
+    store i64 1, i64* %42, align 4
+    %size26 = getelementptr i64, i64* %42, i64 1
+    %43 = sext i32 %fmtsize24 to i64
+    store i64 %43, i64* %size26, align 4
+    %cap27 = getelementptr i64, i64* %42, i64 2
+    store i64 %43, i64* %cap27, align 4
+    %data28 = getelementptr i64, i64* %42, i64 3
+    %44 = bitcast i64* %data28 to i8*
+    %fmt29 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %44, i64 %40, i8* bitcast (i64* getelementptr (i64, i64* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i32 0, i32 0), i64 3) to i8*), i64 %38)
+    %str30 = alloca i8*, align 8
+    store i8* %41, i8** %str30, align 8
+    %45 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %45)
+    %46 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %46)
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    tail call void @__g.u_incr_rc_optionai.u(%option_array_int* @__expr0)
+    %str31 = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @1 to i8*), i8** %str31, align 8
+    tail call void @__g.u_decr_rc_optionai.u(%option_array_int* @__expr0)
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    %47 = phi i8* [ %41, %then ], [ bitcast ({ i64, i64, i64, [5 x i8] }* @1 to i8*), %else ]
+    %iftmp = phi i8** [ %str30, %then ], [ %str31, %else ]
+    tail call void @schmu_print(i8* %47)
+    %48 = load i8*, i8** %iftmp, align 8
+    tail call void @__g.u_decr_rc_ac.u(i8* %48)
+    tail call void @__g.u_decr_rc_optionai.u(%option_array_int* @__expr0)
+    tail call void @__g.u_decr_rc_optionai.u(%option_array_int* @r__3)
     tail call void @__g.u_decr_rc_ac.u(i8* %28)
-    %32 = load i64**, i64*** @r__2, align 8
-    tail call void @__g.u_decr_rc_aai.u(i64** %32)
+    %49 = load i64**, i64*** @r__2, align 8
+    tail call void @__g.u_decr_rc_aai.u(i64** %49)
     tail call void @__g.u_decr_rc_ac.u(i8* %9)
     tail call void @__g.u_decr_rc_r.u(%r* @r)
-    %33 = load i64*, i64** @a, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %33)
+    %50 = load i64*, i64** @a, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %50)
     ret i64 0
   }
   
@@ -2290,6 +2353,56 @@ Refcounts for members in arrays and records
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define internal void @__g.u_incr_rc_optionai.u(%option_array_int* %0) {
+  entry:
+    %tag2 = bitcast %option_array_int* %0 to i32*
+    %index = load i32, i32* %tag2, align 4
+    %1 = icmp eq i32 %index, 0
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %option_array_int, %option_array_int* %0, i32 0, i32 1
+    %2 = load i64*, i64** %data, align 8
+    %ref3 = bitcast i64* %2 to i64*
+    %ref1 = load i64, i64* %ref3, align 4
+    %3 = add i64 %ref1, 1
+    store i64 %3, i64* %ref3, align 4
+    br label %cont
+  
+  cont:                                             ; preds = %match, %entry
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_optionai.u(%option_array_int* %0) {
+  entry:
+    %tag2 = bitcast %option_array_int* %0 to i32*
+    %index = load i32, i32* %tag2, align 4
+    %1 = icmp eq i32 %index, 0
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %option_array_int, %option_array_int* %0, i32 0, i32 1
+    %2 = load i64*, i64** %data, align 8
+    %ref3 = bitcast i64* %2 to i64*
+    %ref1 = load i64, i64* %ref3, align 4
+    %3 = icmp eq i64 %ref1, 1
+    br i1 %3, label %free, label %decr
+  
+  cont:                                             ; preds = %decr, %free, %entry
+    ret void
+  
+  decr:                                             ; preds = %match
+    %4 = bitcast i64* %2 to i64*
+    %5 = sub i64 %ref1, 1
+    store i64 %5, i64* %4, align 4
+    br label %cont
+  
+  free:                                             ; preds = %match
+    %6 = bitcast i64* %2 to i8*
+    call void @free(i8* %6)
+    br label %cont
+  }
   
   define internal void @__g.u_decr_rc_ac.u(i8* %0) {
   entry:
@@ -2395,3 +2508,4 @@ Refcounts for members in arrays and records
   attributes #0 = { argmemonly nofree nounwind willreturn }
   10
   20
+  30

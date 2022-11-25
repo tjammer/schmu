@@ -128,10 +128,40 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
             if contains_array f.ftyp then
               let value = Llvm.build_struct_gep v.value i "" builder in
               let lltyp = get_lltype_def f.ftyp in
-              iter_array fn { value; lltyp; kind = Ptr; typ = f.ftyp }
-            else ())
+              iter_array fn { value; lltyp; kind = Ptr; typ = f.ftyp })
           fields
-    | Tvariant _ -> (* TODO? *) ()
+    | Tvariant (_, _, ctors) ->
+        if contains_array v.typ then
+          (* We check again to guard against getting the tag without needing it *)
+          let index = var_index v in
+          Array.iteri
+            (fun i c ->
+              match c.ctyp with
+              | None -> ()
+              | Some typ ->
+                  if contains_array typ then (
+                    (* Compare to tag *)
+                    let start_bb = Llvm.insertion_block builder in
+                    let parent = Llvm.block_parent start_bb in
+
+                    let match_bb = Llvm.append_block context "match" parent in
+                    let cont_bb = Llvm.append_block context "cont" parent in
+
+                    let cmp =
+                      Llvm.(
+                        build_icmp Icmp.Eq index.value (const_int i32_t i) "")
+                        builder
+                    in
+                    ignore (Llvm.build_cond_br cmp match_bb cont_bb builder);
+
+                    (* Get data and apply [fn] *)
+                    Llvm.position_at_end match_bb builder;
+                    let data = var_data v typ in
+                    iter_array fn data;
+                    ignore (Llvm.build_br cont_bb builder);
+
+                    Llvm.position_at_end cont_bb builder))
+            ctors
     | _ -> ()
 
   let iter_array_children data size typ f =

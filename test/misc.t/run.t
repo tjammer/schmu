@@ -3331,12 +3331,52 @@ Global lets with expressions
   
   define internal void @__g.u_incr_rc_optionai.u(%option_array_int* %0) {
   entry:
+    %tag2 = bitcast %option_array_int* %0 to i32*
+    %index = load i32, i32* %tag2, align 4
+    %1 = icmp eq i32 %index, 0
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %option_array_int, %option_array_int* %0, i32 0, i32 1
+    %2 = load i64*, i64** %data, align 8
+    %ref3 = bitcast i64* %2 to i64*
+    %ref1 = load i64, i64* %ref3, align 4
+    %3 = add i64 %ref1, 1
+    store i64 %3, i64* %ref3, align 4
+    br label %cont
+  
+  cont:                                             ; preds = %match, %entry
     ret void
   }
   
   define internal void @__g.u_decr_rc_optionai.u(%option_array_int* %0) {
   entry:
+    %tag2 = bitcast %option_array_int* %0 to i32*
+    %index = load i32, i32* %tag2, align 4
+    %1 = icmp eq i32 %index, 0
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %option_array_int, %option_array_int* %0, i32 0, i32 1
+    %2 = load i64*, i64** %data, align 8
+    %ref3 = bitcast i64* %2 to i64*
+    %ref1 = load i64, i64* %ref3, align 4
+    %3 = icmp eq i64 %ref1, 1
+    br i1 %3, label %free, label %decr
+  
+  cont:                                             ; preds = %decr, %free, %entry
     ret void
+  
+  decr:                                             ; preds = %match
+    %4 = bitcast i64* %2 to i64*
+    %5 = sub i64 %ref1, 1
+    store i64 %5, i64* %4, align 4
+    br label %cont
+  
+  free:                                             ; preds = %match
+    %6 = bitcast i64* %2 to i8*
+    call void @free(i8* %6)
+    br label %cont
   }
   
   define internal void @__g.u_decr_rc_rai.u(%r_array_int* %0) {

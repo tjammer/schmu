@@ -31,7 +31,7 @@ type expr =
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)
-  | Mctor of (string * int * monod_tree option) * alloca * bool
+  | Mctor of (string * int * monod_tree option) * alloca * int option * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
@@ -488,8 +488,10 @@ let rec subst_body p subst tree =
           typ = subst tree.typ;
           expr = Mrecord (labels, alloca, id, const);
         }
-    | Mctor ((var, index, expr), alloca, const) ->
-        let expr = Mctor ((var, index, Option.map sub expr), alloca, const) in
+    | Mctor ((var, index, expr), alloca, id, const) ->
+        let expr =
+          Mctor ((var, index, Option.map sub expr), alloca, id, const)
+        in
         { tree with typ = subst tree.typ; expr }
     | Mfield (expr, index) ->
         { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
@@ -727,7 +729,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
   | App { callee; args } -> morph_app make param callee args (cln texpr.typ)
   | Ctor (variant, index, dataexpr) ->
-      morph_ctor make param variant index dataexpr texpr.attr
+      morph_ctor make param variant index dataexpr texpr.attr (cln texpr.typ)
   | Variant_index expr -> morph_var_index make param expr
   | Variant_data expr -> morph_var_data make param expr
   | Fmt exprs -> morph_fmt make param exprs
@@ -1208,7 +1210,7 @@ and morph_app mk p callee args ret_typ =
 
   ({ p with ret; ids }, mkapp app, { no_var with alloc; id = vid })
 
-and morph_ctor mk p variant index expr is_const =
+and morph_ctor mk p variant index expr is_const typ =
   let ret = p.ret in
   let p = { p with ret = false } in
 
@@ -1220,16 +1222,22 @@ and morph_ctor mk p variant index expr is_const =
         (* Similar to [morph_record], collect mallocs in data *)
         let p, e, var = morph_expr p expr in
         if is_struct e.typ then set_alloca var.alloc;
-        (p, (variant, index, Some e))
+        let e = mb_incr e in
+        let ids =
+          if is_temporary e.expr then remove_id ~id:var.id p.ids else p.ids
+        in
+        ({ p with ids }, (variant, index, Some e))
     | None -> (p, (variant, index, None))
   in
 
   leave_level ();
 
+  let id, ids = mb_id p.ids typ in
+
   let alloca = ref (request ()) in
-  ( { p with ret },
-    mk (Mctor (ctor, alloca, is_const.const)) ret,
-    { fn = No_function; alloc = Value alloca; id = None } )
+  ( { p with ret; ids },
+    mk (Mctor (ctor, alloca, id, is_const.const)) ret,
+    { fn = No_function; alloc = Value alloca; id } )
 
 (* Both variant exprs are as default as possible.
    We handle everything in codegen *)

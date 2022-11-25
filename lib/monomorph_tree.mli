@@ -28,7 +28,7 @@ type expr =
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)
-  | Mctor of (string * int * monod_tree option) * alloca * bool
+  | Mctor of (string * int * monod_tree option) * alloca * int option * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
