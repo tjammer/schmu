@@ -42,5 +42,12 @@
   (val acc& init)
   (inner 0 &acc))
 
+(fun iter-range [from to f]
+  (fun inner [i]
+    (if (= i to)
+      ()
+      (do (f i) (inner (+ i 1)))))
+  (inner from))
+
 -- option
 (type (option 'a) ((#some 'a) #none))
