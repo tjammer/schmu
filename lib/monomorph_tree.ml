@@ -145,6 +145,7 @@ type morph_param = {
       (* Tracks all heap allocations in a scope.
          If a value with allocation is returned, they are marked for the parent scope.
          Otherwise freed *)
+  toplvl : bool;
 }
 
 let no_var = { fn = No_function; alloc = No_value; id = None }
@@ -977,7 +978,13 @@ and prep_func p (username, uniq, abs) =
     in
 
     let ids = Iset.empty :: p.ids in
-    { p with vars; ret = (if not inline then true else p.ret); ids }
+    {
+      p with
+      vars;
+      ret = (if not inline then true else p.ret);
+      ids;
+      toplvl = false;
+    }
   in
 
   enter_level ();
@@ -1042,7 +1049,7 @@ and morph_lambda typ p id abs =
         vars pnames
     in
     let ids = Iset.empty :: p.ids in
-    { p with vars; ret = true; ids }
+    { p with vars; ret = true; ids; toplvl = false }
   in
 
   enter_level ();
@@ -1212,8 +1219,6 @@ and morph_ctor mk p variant index expr is_const =
     | Some expr ->
         (* Similar to [morph_record], collect mallocs in data *)
         let p, e, var = morph_expr p expr in
-        (* TODO We should now handle not only records, but all types which are
-           automatically allocated: Variants *)
         if is_struct e.typ then set_alloca var.alloc;
         (p, (variant, index, Some e))
     | None -> (p, (variant, index, None))
@@ -1238,6 +1243,18 @@ and morph_var_data mk p expr =
   let ret = p.ret in
   (* False because we only use it interally in if expr? *)
   let p, e, func = morph_expr { p with ret = false } expr in
+  let func =
+    (* Since we essentially change the datatype here, we have to be sure that
+       the variant was allocated before. Usually it is, but in the case of toplevel
+       lets it might not. For instance if we have an (option t) which is matched on
+       at assignment. Then, the global value is t, but if we propagate the alloc,
+       the parent (option t) will try to initialize into the global value, which is t,
+       another type.*)
+    if p.toplvl then
+      let alloc = Value (ref (request ())) in
+      { func with alloc }
+    else func
+  in
   ({ p with ret }, mk (Mvar_data e) ret, func)
 
 and morph_fmt mk p exprs =
@@ -1310,6 +1327,7 @@ let monomorphize { Typed_tree.externals; items; _ } =
       funcs = Fset.empty;
       ret = false;
       ids = [];
+      toplvl = true;
     }
   in
   let p, tree, _ = morph_toplvl param items in

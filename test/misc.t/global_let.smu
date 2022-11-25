@@ -1,0 +1,10 @@
+(fun ret-none []
+  (val (a (option (array int))) #none)
+  a)
+(val b (match (ret-none) ((#some a) a) (#none [1 2])))
+(ignore b)
+
+(type (r 'a) {:a 'a})
+(fun ret-rec [] {:a [10 20 30]})
+(val c (let [a (ret-rec)] (array-get (.a a) 1)))
+(ignore c)

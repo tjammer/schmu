@@ -3193,3 +3193,174 @@ Drop last element
   1
   0
   0
+
+Global lets with expressions
+  $ schmu --dump-llvm global_let.smu && valgrind -q --leak-check=yes ./global_let
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %"option_(array int)" = type { i32, i64* }
+  %"r_(array int)" = type { i64* }
+  
+  @b = global i64* null, align 8
+  @c = global i64 0, align 8
+  
+  define void @schmu_ret-none(%"option_(array int)"* %0) {
+  entry:
+    %tag1 = bitcast %"option_(array int)"* %0 to i32*
+    store i32 1, i32* %tag1, align 4
+    ret void
+  }
+  
+  define i64 @schmu_ret-rec() {
+  entry:
+    %0 = alloca %"r_(array int)", align 8
+    %a2 = bitcast %"r_(array int)"* %0 to i64**
+    %1 = tail call i8* @malloc(i64 48)
+    %2 = bitcast i8* %1 to i64*
+    %arr = alloca i64*, align 8
+    store i64* %2, i64** %arr, align 8
+    store i64 1, i64* %2, align 4
+    %size = getelementptr i64, i64* %2, i64 1
+    store i64 3, i64* %size, align 4
+    %cap = getelementptr i64, i64* %2, i64 2
+    store i64 3, i64* %cap, align 4
+    %data = getelementptr i64, i64* %2, i64 3
+    store i64 10, i64* %data, align 4
+    %"1" = getelementptr i64, i64* %data, i64 1
+    store i64 20, i64* %"1", align 4
+    %"2" = getelementptr i64, i64* %data, i64 2
+    store i64 30, i64* %"2", align 4
+    store i64* %2, i64** %a2, align 8
+    %3 = ptrtoint i64* %2 to i64
+    ret i64 %3
+  }
+  
+  declare i8* @malloc(i64 %0)
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %ret = alloca %"option_(array int)", align 8
+    call void @schmu_ret-none(%"option_(array int)"* %ret)
+    %tag5 = bitcast %"option_(array int)"* %ret to i32*
+    %index = load i32, i32* %tag5, align 4
+    %eq = icmp eq i32 %index, 0
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %data = getelementptr inbounds %"option_(array int)", %"option_(array int)"* %ret, i32 0, i32 1
+    %0 = load i64*, i64** %data, align 8
+    call void @__g.u_incr_rc_ai.u(i64* %0)
+    %1 = load i64*, i64** %data, align 8
+    call void @__g.u_incr_rc_ai.u(i64* %1)
+    %2 = load i64*, i64** %data, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %2)
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    call void @__g.u_incr_rc_optionai.u(%"option_(array int)"* %ret)
+    %3 = call i8* @malloc(i64 40)
+    %4 = bitcast i8* %3 to i64*
+    store i64* %4, i64** @b, align 8
+    store i64 1, i64* %4, align 4
+    %size = getelementptr i64, i64* %4, i64 1
+    store i64 2, i64* %size, align 4
+    %cap = getelementptr i64, i64* %4, i64 2
+    store i64 2, i64* %cap, align 4
+    %data1 = getelementptr i64, i64* %4, i64 3
+    store i64 1, i64* %data1, align 4
+    %"1" = getelementptr i64, i64* %data1, i64 1
+    store i64 2, i64* %"1", align 4
+    call void @__g.u_decr_rc_optionai.u(%"option_(array int)"* %ret)
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    %iftmp = phi i64** [ %data, %then ], [ @b, %else ]
+    %5 = load i64*, i64** %iftmp, align 8
+    call void @__g.u_incr_rc_ai.u(i64* %5)
+    store i64* %5, i64** @b, align 8
+    %ret2 = alloca %"r_(array int)", align 8
+    %6 = call i64 @schmu_ret-rec()
+    %box = bitcast %"r_(array int)"* %ret2 to i64*
+    store i64 %6, i64* %box, align 4
+    %7 = inttoptr i64 %6 to i64*
+    %data4 = getelementptr i64, i64* %7, i64 3
+    %8 = getelementptr i64, i64* %data4, i64 1
+    %9 = load i64, i64* %8, align 4
+    store i64 %9, i64* @c, align 4
+    call void @__g.u_decr_rc_rai.u(%"r_(array int)"* %ret2)
+    %10 = load i64*, i64** @b, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %10)
+    %11 = load i64*, i64** %iftmp, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %11)
+    call void @__g.u_decr_rc_optionai.u(%"option_(array int)"* %ret)
+    ret i64 0
+  }
+  
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 4
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %1 = icmp eq i64 %ref1, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i64* %0 to i64*
+    %3 = sub i64 %ref1, 1
+    store i64 %3, i64* %2, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %4 = bitcast i64* %0 to i8*
+    call void @free(i8* %4)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  define internal void @__g.u_incr_rc_optionai.u(%"option_(array int)"* %0) {
+  entry:
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_optionai.u(%"option_(array int)"* %0) {
+  entry:
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_rai.u(%"r_(array int)"* %0) {
+  entry:
+    %1 = bitcast %"r_(array int)"* %0 to i64**
+    %2 = load i64*, i64** %1, align 8
+    %ref2 = bitcast i64* %2 to i64*
+    %ref1 = load i64, i64* %ref2, align 4
+    %3 = icmp eq i64 %ref1, 1
+    br i1 %3, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %4 = bitcast i64* %2 to i64*
+    %5 = sub i64 %ref1, 1
+    store i64 %5, i64* %4, align 4
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %6 = bitcast i64* %2 to i8*
+    call void @free(i8* %6)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  declare void @free(i8* %0)
