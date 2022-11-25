@@ -95,9 +95,11 @@ let rec unify t1 t2 =
           with Invalid_argument _ -> raise Unify
         else raise Unify
     | Traw_ptr l, Traw_ptr r -> unify l r
-    | Tarray l, Tarray r -> unify l r
-    | Qvar a, Qvar b when String.equal a b ->
-        (* We should not need this. Record instantiation? *) ()
+    | Tarray l, Tarray r ->
+        unify l r
+        (* | Qvar a, Qvar b when String.equal a b -> *)
+        (*     (\* We should not need this. Record instantiation? *\) () *)
+        (* NOTE Don't delete this comment for now, as the problem might surface again at a later time *)
     | _ -> raise Unify
 
 let unify info t1 t2 =
@@ -113,7 +115,9 @@ let unify info t1 t2 =
 
 let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
-  | Tvar { contents = Link t } -> generalize t
+  | Tvar ({ contents = Link t } as tv) ->
+      tv := Link (generalize t);
+      Tvar tv
   | Talias (n, t) -> Talias (n, generalize t)
   | Tfun (t1, t2, k) ->
       let gen p = { p with pt = generalize p.pt } in

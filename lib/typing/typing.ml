@@ -131,15 +131,13 @@ let rec subst_generic ~id typ = function
   | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
   | t -> t
 
-and get_generic_id = function
-  | Qvar id | Tvar { contents = Unbound (id, _) } -> Some id
-  | Tvar { contents = Link t } | Talias (_, t) -> get_generic_id t
-  | Trecord (hd :: tl, _, _) | Tvariant (hd :: tl, _, _) -> (
-      match get_generic_id hd with
-      | Some id -> Some id
-      | None -> get_generic_id (Trecord (tl, None, [||])))
-  | Tarray t | Traw_ptr t -> get_generic_id t
-  | _ -> None
+and get_generic_ids = function
+  | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
+  | Tvar { contents = Link t } | Talias (_, t) -> get_generic_ids t
+  | Trecord (ps, _, _) | Tvariant (ps, _, _) ->
+      List.map get_generic_ids ps |> List.concat
+  | Tarray t | Traw_ptr t -> get_generic_ids t
+  | _ -> []
 
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let fn_kind = if param then Closure [] else Simple in
@@ -213,30 +211,29 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | t :: tl -> (
         let t = concrete_type true env t in
         match is_quantified t with
-        | Some (name, n) ->
-            if Int.equal n (List.length tl) then contained_t t env tl
-            else
+        | Some (name, n) -> (
+            try
+              match get_generic_ids t with
+              | [] ->
+                  raise
+                    (Error
+                       ( loc,
+                         "Expected a parametrized type, not " ^ string_of_type t
+                       ))
+              | l ->
+                  List.fold_left2
+                    (fun parent child id ->
+                      let t = concrete_type false env child in
+                      subst_generic ~id t parent)
+                    t tl l
+            with Invalid_argument _ ->
               let msg =
                 Printf.sprintf "Type %s expects %i type parameter%s"
                   (Path.show name) n
                   (if n > 1 then "s" else "")
               in
-              raise (Error (loc, msg))
+              raise (Error (loc, msg)))
         | None -> failwith "Internal Error: Not sure, this shouldn't happen")
-  and contained_t t env = function
-    | [] -> t
-    | hd :: tl ->
-        let nested = concrete_type false env hd in
-        let id =
-          match get_generic_id t with
-          | Some id -> id
-          | None ->
-              raise
-                (Error
-                   (loc, "Expected a parametrized type, not " ^ string_of_type t))
-        in
-        let subst = subst_generic ~id nested t in
-        contained_t subst env tl
   and handle_func env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ (t, _) ] -> concrete_type false env t
