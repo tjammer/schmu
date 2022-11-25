@@ -13,7 +13,7 @@ Basic variant ctors
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %clike = type { i32 }
-  %"option_(array u8)" = type { i32, i8* }
+  %option_array_u8 = type { i32, i8* }
   %option_int = type { i32, i64 }
   %larger = type { i32, %foo }
   %foo = type { double, double }
@@ -28,11 +28,11 @@ Basic variant ctors
     ret i32 2
   }
   
-  define void @schmu_wrap_option(%"option_(array u8)"* %0) {
+  define void @schmu_wrap_option(%option_array_u8* %0) {
   entry:
-    %tag1 = bitcast %"option_(array u8)"* %0 to i32*
+    %tag1 = bitcast %option_array_u8* %0 to i32*
     store i32 0, i32* %tag1, align 4
-    %data = getelementptr inbounds %"option_(array u8)", %"option_(array u8)"* %0, i32 0, i32 1
+    %data = getelementptr inbounds %option_array_u8, %option_array_u8* %0, i32 0, i32 1
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %str, align 8
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %data, align 8

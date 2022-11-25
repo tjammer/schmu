@@ -182,12 +182,12 @@ end = struct
     | Mincr_ref expr -> gen_incr_ref param expr |> fin
     | Mdecr_ref (id, expr) -> gen_decr_ref param id expr |> fin
 
-  and gen_let param id equals let' vid =
+  and gen_let param id equals cont vid =
     let expr_val = gen_expr param equals in
     (match vid with
     | Some id -> Strtbl.replace decr_tbl id expr_val
     | None -> ());
-    gen_expr { param with vars = Vars.add id expr_val param.vars } let'
+    gen_expr { param with vars = Vars.add id expr_val param.vars } cont
 
   and gen_const = function
     | Int i ->

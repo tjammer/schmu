@@ -19,6 +19,8 @@ module Make (A : Abi_intf.S) = struct
     | Trecord (_, None, fs) ->
         let ts = Array.to_list fs |> List.map (fun f -> struct_name f.ftyp) in
         "tuple_" ^ String.concat "_" ts
+    | Tarray t -> "array_" ^ struct_name t
+    | Traw_ptr t -> "raw_ptr_" ^ struct_name t
     | t -> string_of_type t
 
   (** For functions, when passed as parameter, we convert it to a closure ptr
