@@ -215,11 +215,10 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
             try
               match get_generic_ids t with
               | [] ->
-                  raise
-                    (Error
-                       ( loc,
-                         "Expected a parametrized type, not " ^ string_of_type t
-                       ))
+                  let msg =
+                    "Expected a parametrized type, not " ^ string_of_type t
+                  in
+                  raise (Error (loc, msg))
               | l ->
                   List.fold_left2
                     (fun parent child id ->
@@ -437,8 +436,8 @@ let rec param_funcs_as_closures = function
   | Tfun (params, ret, _) -> Tfun (params, ret, Closure [])
   | t -> t
 
-let convert_simple_lit typ expr =
-  { typ; expr = Const expr; attr = { no_attr with const = true } }
+let convert_simple_lit loc typ expr =
+  { typ; expr = Const expr; attr = { no_attr with const = true }; loc }
 
 let rec builtins_hack callee args =
   (* return of __unsafe_ptr_get should be marked mut, otherwise it won't be copied
@@ -489,19 +488,20 @@ end = struct
 
   and convert_annot env annot = function
     | Ast.Var (loc, id) -> convert_var env loc id
-    | Lit (_, Int i) -> convert_simple_lit Tint (Int i)
-    | Lit (_, Bool b) -> convert_simple_lit Tbool (Bool b)
-    | Lit (_, U8 c) -> convert_simple_lit Tu8 (U8 c)
-    | Lit (_, Float f) -> convert_simple_lit Tfloat (Float f)
-    | Lit (_, I32 i) -> convert_simple_lit Ti32 (I32 i)
-    | Lit (_, F32 i) -> convert_simple_lit Tf32 (F32 i)
-    | Lit (_, String s) ->
+    | Lit (loc, Int i) -> convert_simple_lit loc Tint (Int i)
+    | Lit (loc, Bool b) -> convert_simple_lit loc Tbool (Bool b)
+    | Lit (loc, U8 c) -> convert_simple_lit loc Tu8 (U8 c)
+    | Lit (loc, Float f) -> convert_simple_lit loc Tfloat (Float f)
+    | Lit (loc, I32 i) -> convert_simple_lit loc Ti32 (I32 i)
+    | Lit (loc, F32 i) -> convert_simple_lit loc Tf32 (F32 i)
+    | Lit (loc, String s) ->
         let typ = string_typ in
         (* TODO is const, but handled differently right now *)
-        { typ; expr = Const (String s); attr = no_attr }
+        { typ; expr = Const (String s); attr = no_attr; loc }
     | Lit (loc, Array arr) -> convert_array_lit env loc arr
-    | Lit (_, Unit) ->
-        { typ = Tunit; expr = Const Unit; attr = { no_attr with const = true } }
+    | Lit (loc, Unit) ->
+        let attr = { no_attr with const = true } in
+        { typ = Tunit; expr = Const Unit; attr; loc }
     | Lambda (loc, id, e) -> convert_lambda env loc id e
     | Let_e (loc, decl, expr, cont) -> convert_let_e env loc decl expr cont
     | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
@@ -509,7 +509,7 @@ end = struct
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
     | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
     | Record (loc, labels) -> convert_record env loc annot labels
-    | Tuple (_, exprs) -> convert_tuple env exprs
+    | Tuple (loc, exprs) -> convert_tuple env loc exprs
     | Record_update (loc, record, items) ->
         convert_record_update env loc annot record items
     | Field (loc, expr, id) -> convert_field env loc expr id
@@ -520,14 +520,14 @@ end = struct
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, exprs, cases) -> convert_match env loc exprs cases
     | Local_open (loc, modul, blk) -> convert_open env loc modul blk
-    | Fmt (_, exprs) -> convert_fmt env exprs
+    | Fmt (loc, exprs) -> convert_fmt env loc exprs
 
   and convert_var env loc id =
     match Env.query_val_opt id env with
     | Some t ->
         let typ = instantiate t.typ in
         let attr = { const = t.const; global = t.global; mut = t.mut } in
-        { typ; expr = Var id; attr }
+        { typ; expr = Var id; attr; loc }
     | None -> raise (Error (loc, "No var named " ^ id))
 
   and convert_array_lit env loc arr =
@@ -539,7 +539,7 @@ end = struct
     let typ, exprs = List.fold_left_map f (newvar ()) arr in
 
     let typ = Tarray typ in
-    { typ; expr = Const (Array exprs); attr = no_attr }
+    { typ; expr = Const (Array exprs); attr = no_attr; loc }
 
   and typeof_annot_decl env loc annot block =
     enter_level ();
@@ -576,7 +576,7 @@ end = struct
     let id = snd decl.ident in
     let uniq = if lhs.attr.const then uniq_name id else None in
     let expr = Let { id; uniq; rmut; lhs; cont } in
-    { typ = cont.typ; expr; attr = cont.attr }
+    { typ = cont.typ; expr; attr = cont.attr; loc }
 
   and convert_lambda env loc params body =
     let env = Env.open_function env in
@@ -608,7 +608,7 @@ end = struct
           { nparams; body = { body with typ = ret }; func; inline = false }
         in
         let expr = Lambda (lambda_id (), abs) in
-        { typ; expr; attr = no_attr }
+        { typ; expr; attr = no_attr; loc }
     | _ -> failwith "Internal Error: generalize produces a new type?"
 
   and convert_function env loc
@@ -708,7 +708,7 @@ end = struct
     let attr = builtins_hack e1 typed_exprs in
 
     (* For now, we don't support const functions *)
-    { typ = res_t; expr = App { callee; args = targs }; attr }
+    { typ = res_t; expr = App { callee; args = targs }; attr; loc }
 
   and convert_bop_impl env loc bop e1 e2 =
     let check typ =
@@ -728,7 +728,7 @@ end = struct
       | Less_f | Equal_f | Greater_f -> (Tbool, check Tfloat)
       | And | Or -> (Tbool, check Tbool)
     in
-    { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const } }
+    { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const }; loc }
 
   and convert_bop env loc bop es =
     let rec build = function
@@ -746,7 +746,7 @@ end = struct
     | Uminus_f ->
         let e = convert env expr in
         unify (loc, "Unary -.:") Tfloat e.typ;
-        { typ = Tfloat; expr = Unop (unop, e); attr = e.attr }
+        { typ = Tfloat; expr = Unop (unop, e); attr = e.attr; loc }
     | Uminus_i -> (
         let e = convert env expr in
         let msg = "Unary -:" in
@@ -755,11 +755,11 @@ end = struct
         try
           (* We allow '-' to also work on float expressions *)
           unify (loc, msg) Tfloat e.typ;
-          { typ = Tfloat; expr; attr = e.attr }
+          { typ = Tfloat; expr; attr = e.attr; loc }
         with Error _ -> (
           try
             unify (loc, msg) Tint e.typ;
-            { typ = Tint; expr; attr = e.attr }
+            { typ = Tint; expr; attr = e.attr; loc }
           with Error (loc, errmsg) ->
             let pos = String.length msg + String.length ": Expected type int" in
             let post = String.sub errmsg pos (String.length errmsg - pos) in
@@ -785,11 +785,8 @@ end = struct
             "A conditional without else branch should evaluato to type unit."
           in
           let e2 =
-            {
-              typ = Tunit;
-              expr = Const Unit;
-              attr = { no_attr with const = true };
-            }
+            let attr = { no_attr with const = true } in
+            { typ = Tunit; expr = Const Unit; attr; loc }
           in
           unify (loc, msg) e2.typ type_e1.typ;
           e2
@@ -812,6 +809,7 @@ end = struct
       typ = type_e2.typ;
       expr = If (type_cond, type_e1, type_e2);
       attr = no_attr;
+      loc;
     }
 
   and pipe_ctor_msg =
@@ -827,19 +825,20 @@ end = struct
      let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
      raise (Error (eloc, msg)));
     unify (loc, "Mutate:") toset.typ valexpr.typ;
-    { typ = Tunit; expr = Set (toset, valexpr); attr = no_attr }
+    { typ = Tunit; expr = Set (toset, valexpr); attr = no_attr; loc }
 
   and convert_pipe_head env loc e1 e2 =
     let switch_uni = true in
     match e2 with
-    | Pip_expr (App (_, callee, args)) ->
+    | Pip_expr (App (loc, callee, args)) ->
         (* Add e1 to beginnig of args *)
         convert_app ~switch_uni env loc callee (e1 :: args)
-    | Pip_expr (Ctor (_, name, expr)) ->
+    | Pip_expr (Ctor (loc, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
-    | Pip_expr (Bop (_, op, exprs)) -> convert_bop env loc op (e1.aexpr :: exprs)
-    | Pip_expr (Fmt (_, l)) -> convert_fmt env (e1.aexpr :: l)
+    | Pip_expr (Bop (loc, op, exprs)) ->
+        convert_bop env loc op (e1.aexpr :: exprs)
+    | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (e1.aexpr :: l)
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
@@ -848,15 +847,15 @@ end = struct
   and convert_pipe_tail env loc e1 e2 =
     let switch_uni = true in
     match e2 with
-    | Pip_expr (App (_, callee, args)) ->
+    | Pip_expr (App (loc, callee, args)) ->
         (* Add e1 to beginnig of args *)
         convert_app ~switch_uni env loc callee (args @ [ e1 ])
-    | Pip_expr (Ctor (_, name, expr)) ->
+    | Pip_expr (Ctor (loc, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
-    | Pip_expr (Bop (_, op, exprs)) ->
+    | Pip_expr (Bop (loc, op, exprs)) ->
         convert_bop env loc op (exprs @ [ e1.aexpr ])
-    | Pip_expr (Fmt (_, l)) -> convert_fmt env (l @ [ e1.aexpr ])
+    | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (l @ [ e1.aexpr ])
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
@@ -867,7 +866,7 @@ end = struct
     let env = Module.add_to_env env None modul in
     convert env expr
 
-  and convert_tuple env exprs =
+  and convert_tuple env loc exprs =
     let (_, const), exprs =
       List.fold_left_map
         (fun (i, const) expr ->
@@ -882,9 +881,9 @@ end = struct
     let typs = List.map (fun e -> (snd e).typ) exprs in
     let typ = Trecord (typs, None, Array.of_list fields) in
     let attr = { const; global = false; mut = false } in
-    { typ; expr = Record exprs; attr }
+    { typ; expr = Record exprs; attr; loc }
 
-  and convert_fmt env exprs =
+  and convert_fmt env loc exprs =
     let f expr =
       let e = convert env expr in
       match (e.expr, clean e.typ) with
@@ -899,7 +898,7 @@ end = struct
     in
     let exprs = List.map f exprs in
     let typ = string_typ in
-    { typ; expr = Fmt exprs; attr = no_attr }
+    { typ; expr = Fmt exprs; attr = no_attr; loc }
 
   and convert_block_annot ~ret env annot stmts =
     let loc = Lexing.(dummy_pos, dummy_pos) in
@@ -912,19 +911,19 @@ end = struct
       | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ]) when ret ->
           raise (Error (loc, "Block must end with an expression"))
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
-      | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr }, env)
+      | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, block) :: tl ->
           let env, lhs, rmut = convert_let ~global:false env loc decl block in
           let cont, env = to_expr env old_type tl in
           let id = snd decl.ident in
           let uniq = if lhs.attr.const then uniq_name id else None in
           let expr = Let { id; uniq; rmut; lhs; cont } in
-          ({ typ = cont.typ; expr; attr = cont.attr }, env)
+          ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, lambda) = convert_function env loc func in
           let cont, env = to_expr env old_type tl in
           let expr = Function (name, unique, lambda, cont) in
-          ({ typ = cont.typ; expr; attr = cont.attr }, env)
+          ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | [ Expr (loc, e) ] ->
           last_loc := loc;
           check old_type;
@@ -933,8 +932,8 @@ end = struct
           check old_type;
           let expr = convert env e1 in
           let cont, env = to_expr env (l1, expr.typ) tl in
-          ( { typ = cont.typ; expr = Sequence (expr, cont); attr = cont.attr },
-            env )
+          let expr = Sequence (expr, cont) in
+          ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
     in
     to_expr env (loc, Tunit) stmts
 

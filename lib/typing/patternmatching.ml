@@ -506,9 +506,9 @@ module Make (C : Core) (R : Recs) = struct
     search_set [] l x ~f:(fun _ opt_y rest ->
         match opt_y with None -> l (* keep as is *) | Some _ -> rest)
 
-  let gen_cmp index cind =
+  let gen_cmp loc index cind =
     let cmpexpr = Bop (Ast.Equal_i, index, cind) in
-    { typ = Tbool; expr = cmpexpr; attr = no_attr }
+    { typ = Tbool; expr = cmpexpr; attr = no_attr; loc }
 
   let mismatch_err loc name ctor arg =
     match (ctor, arg) with
@@ -536,11 +536,11 @@ module Make (C : Core) (R : Recs) = struct
         unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
         let expr = Ctor (Path.get_hd typename, ctor.index, Some texpr) in
 
-        { typ = variant; expr; attr = no_attr }
+        { typ = variant; expr; attr = no_attr; loc }
     | None, None ->
         let expr = Ctor (Path.get_hd typename, ctor.index, None) in
         (* NOTE: Const handling for ctors is disabled, see #23 *)
-        { typ = variant; expr; attr = no_attr }
+        { typ = variant; expr; attr = no_attr; loc }
     | _ -> mismatch_err (fst name) (snd name) ctor.ctyp arg
 
   (* We want to be able to reference the exprs in the pattern match without
@@ -827,7 +827,7 @@ module Make (C : Core) (R : Recs) = struct
       match ctor with
       | Some p ->
           let typ = (snd p).ptyp and expr = Variant_data (expr i) in
-          let data = { typ; expr; attr = no_attr } in
+          let data = { typ; expr; attr = no_attr; loc } in
           ( data,
             Env.(
               add_value (expr_name i) { exprval with typ = data.typ } loc env)
@@ -858,11 +858,8 @@ module Make (C : Core) (R : Recs) = struct
             in
 
             let lhs = expr path in
-            {
-              typ = cont.typ;
-              expr = Let { id; uniq = None; rmut = false; lhs; cont };
-              attr = cont.attr;
-            }
+            let expr = Let { id; uniq = None; rmut = false; lhs; cont } in
+            { typ = cont.typ; expr; attr = cont.attr; loc }
         | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
             let a, b =
               match_cases (path, param.ctname) ((patterns, d) :: tl) [] []
@@ -883,27 +880,21 @@ module Make (C : Core) (R : Recs) = struct
               | [] -> ifexpr
               | b ->
                   let index =
-                    {
-                      typ = Ti32;
-                      expr = Variant_index (expr path);
-                      attr = no_attr;
-                    }
+                    let expr = Variant_index (expr path) in
+                    { typ = Ti32; expr; attr = no_attr; loc }
                   in
                   let cind =
-                    {
-                      typ = Ti32;
-                      expr = Const (I32 param.cindex);
-                      attr = { no_attr with const = true };
-                    }
+                    let attr = { no_attr with const = true } in
+                    { typ = Ti32; expr = Const (I32 param.cindex); attr; loc }
                   in
-                  let cmp = gen_cmp index cind in
+                  let cmp = gen_cmp loc index cind in
                   let if_ = { cont with expr = ifexpr } in
                   let else_ = compile_matches env d.loc rows b ret_typ in
                   If (cmp, if_, else_)
             in
 
-            { typ = ret_typ; expr; attr = no_attr }
-        | Lit_int ({ path; d; patterns; _ }, i) ->
+            { typ = ret_typ; expr; attr = no_attr; loc }
+        | Lit_int ({ path; d; patterns; loc; _ }, i) ->
             let a, b = match_int (path, i) ((patterns, d) :: tl) [] [] in
 
             let cont = compile_matches env d.loc rows a ret_typ in
@@ -913,17 +904,14 @@ module Make (C : Core) (R : Recs) = struct
               | [] -> cont.expr
               | b ->
                   let cind =
-                    {
-                      typ = Tint;
-                      expr = Const (Int i);
-                      attr = { no_attr with const = true };
-                    }
+                    let attr = { no_attr with const = true } in
+                    { typ = Tint; expr = Const (Int i); attr; loc }
                   in
-                  let cmp = gen_cmp (expr path) cind in
+                  let cmp = gen_cmp loc (expr path) cind in
                   let else_ = compile_matches env d.loc rows b ret_typ in
                   If (cmp, cont, else_)
             in
-            { typ = ret_typ; expr; attr = no_attr }
+            { typ = ret_typ; expr; attr = no_attr; loc }
         | Record (fields, { path; loc; d; patterns; _ }) ->
             let env =
               List.fold_left
@@ -951,13 +939,8 @@ module Make (C : Core) (R : Recs) = struct
               List.fold_left
                 (fun cont { index; iftyp; _ } ->
                   let newcol = index :: path in
-                  let expr =
-                    {
-                      typ = iftyp;
-                      expr = Field (expr path, index);
-                      attr = no_attr;
-                    }
-                  in
+                  let expr = Field (expr path, index) in
+                  let expr = { typ = iftyp; expr; attr = no_attr; loc } in
 
                   let expr =
                     let id = expr_name newcol in
@@ -991,13 +974,8 @@ module Make (C : Core) (R : Recs) = struct
               List.fold_left
                 (fun cont pat ->
                   let newcol = pat.tindex :: path in
-                  let expr =
-                    {
-                      typ = pat.ttyp;
-                      expr = Field (expr path, pat.tindex);
-                      attr = no_attr;
-                    }
-                  in
+                  let expr = Field (expr path, pat.tindex) in
+                  let expr = { typ = pat.ttyp; expr; attr = no_attr; loc } in
                   let expr =
                     let id = expr_name newcol in
                     Let { id; uniq = None; rmut = false; lhs = expr; cont }

@@ -1,6 +1,18 @@
 open Types
 open Sexplib0.Sexp_conv
 
+module Show = struct
+  type pos = Lexing.position = {
+    pos_fname : string;
+    pos_lnum : int;
+    pos_bol : int;
+    pos_cnum : int;
+  }
+  [@@deriving show, sexp]
+end
+
+type loc = Show.pos * Show.pos [@@deriving show, sexp]
+
 type expr =
   | Var of string
   | Const of const
@@ -21,7 +33,7 @@ type expr =
   | Fmt of fmt list
 [@@deriving show, sexp]
 
-and typed_expr = { typ : typ; expr : expr; attr : attr }
+and typed_expr = { typ : typ; expr : expr; attr : attr; loc : loc }
 and fmt = Fstr of string | Fexpr of typed_expr
 
 and let_data = {

@@ -125,7 +125,7 @@ module Make (C : Core) = struct
         true (labels |> Array.to_list)
     in
     let typ = Trecord (param, Some name, labels) |> generalize in
-    { typ; expr = Record sorted_labels; attr = { no_attr with const } }
+    { typ; expr = Record sorted_labels; attr = { no_attr with const }; loc }
 
   and convert_record_update env loc annot record_arg items =
     (* Implemented in terms of [convert_record] *)
@@ -187,9 +187,6 @@ module Make (C : Core) = struct
   and convert_field env loc expr id =
     let field, expr, index = get_field env loc expr id in
     let mut = expr.attr.mut && field.mut in
-    {
-      typ = field.ftyp;
-      expr = Field (expr, index);
-      attr = { no_attr with const = expr.attr.const; mut };
-    }
+    let attr = { no_attr with const = expr.attr.const; mut } in
+    { typ = field.ftyp; expr = Field (expr, index); attr; loc }
 end
