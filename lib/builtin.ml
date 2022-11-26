@@ -41,7 +41,7 @@ let tbl =
     ( Unsafe_ptr_set,
       Tfun
         ( [
-            { pt = Traw_ptr (Qvar "0"); pmut };
+            { pt = Traw_ptr (Qvar "0"); pmut = true };
             { pt = Tint; pmut };
             { pt = Qvar "0"; pmut };
           ],

@@ -447,7 +447,7 @@ let rec builtins_hack callee args =
   | Ast.Var (_, id) -> (
       match id with
       | "__unsafe_ptr_get" -> { no_attr with mut = true }
-      | "array-get" ->
+      | "array-get" | "array-data" ->
           let mut =
             match args with
             (* We only care about the first arg, ie the array *)

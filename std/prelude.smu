@@ -32,6 +32,16 @@
         (inner (+ i 1)))))
   (inner 0))
 
+(fun array-fold [arr f init]
+  (fun inner [i acc&]
+    (if (= i (array-length arr))
+      acc
+      (do
+        (set &acc (f acc (array-get arr i)))
+        (inner (+ i 1) &acc))))
+  (val acc& init)
+  (inner 0 &acc))
+
 (fun array-foldi [arr f init]
   (fun inner [i acc&]
     (if (= i (array-length arr))
