@@ -42,3 +42,4 @@ val string_of_type_subst : string Smap.t -> typ -> string
 (** Version using the subst table created during comparison with annot *)
 
 val is_polymorphic : typ -> bool
+val is_weak : typ -> bool

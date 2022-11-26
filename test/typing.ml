@@ -325,7 +325,8 @@ let test_mutable_nonmut_transitive_inv () =
     "(type foo { :x int }) (val foo& { :x 12 }) (set &(.x foo) 13)"
 
 let test_variants_option_none () =
-  test "(option 'a)" "(type (option 'a) (#none (#some 'a))) #none"
+  test_exn "Expression contains weak type variables: (option 'a)"
+    "(type (option 'a) (#none (#some 'a))) #none"
 
 let test_variants_option_some () =
   test "(option int)" "(type (option 'a) (#none (#some 'a))) (#some 1)"
@@ -489,7 +490,8 @@ let test_multi_record2 () =
   test "(foo int bool)" "(type (foo 'a 'b) {:a 'a :b 'b}) {:a 0 :b false}"
 
 let test_multi_variant2 () =
-  test "(foo int 'a)" "(type (foo 'a 'b) ((#some 'a) (#other 'b))) (#some 1)"
+  test_exn "Expression contains weak type variables: (foo int 'a)"
+    "(type (foo 'a 'b) ((#some 'a) (#other 'b))) (#some 1)"
 
 let test_tuple () = test "{int float}" "{1 2.0}"
 let test_tuple_access () = test "int" "(.0 {1 2.0})"

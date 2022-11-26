@@ -1023,6 +1023,48 @@ let convert_prog env items modul =
   let env, items, m = List.fold_left aux (env, [], modul) items in
   (snd !old, env, List.rev items, m)
 
+let rec catch_weak_vars = function
+  | Tl_let (_, _, e) -> catch_weak_expr e
+  | Tl_expr e -> catch_weak_expr e
+  | Tl_function _ -> ()
+
+and catch_weak_expr e =
+  let _raise () =
+    (* print_endline (show_expr e.expr); *)
+    (* print_endline (show_typ e.typ); *)
+    raise
+      (Error
+         ( e.loc,
+           "Expression contains weak type variables: " ^ string_of_type e.typ ))
+  in
+  if is_weak e.typ then _raise ();
+  match e.expr with
+  | Var _ | Const _ | Lambda _ -> ()
+  | Bop (_, e1, e2) | Set (e1, e2) | Sequence (e1, e2) ->
+      catch_weak_expr e1;
+      catch_weak_expr e2
+  | Unop (_, e)
+  | Field (e, _)
+  | Ctor (_, _, Some e)
+  | Variant_index e
+  | Variant_data e
+  | Function (_, _, _, e) ->
+      catch_weak_expr e
+  | If (cond, e1, e2) ->
+      catch_weak_expr cond;
+      catch_weak_expr e1;
+      catch_weak_expr e2
+  | Let { lhs; cont; _ } ->
+      catch_weak_expr lhs;
+      catch_weak_expr cont
+  | App { callee; args } ->
+      catch_weak_expr callee;
+      List.iter (fun a -> catch_weak_expr (fst a)) args
+  | Record fs -> List.iter (fun f -> catch_weak_expr (snd f)) fs
+  | Ctor _ -> ()
+  | Fmt fmt ->
+      List.iter (function Fstr _ -> () | Fexpr e -> catch_weak_expr e) fmt
+
 (* Conversion to Typing.exr below *)
 let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
   fmt_msg_fn := Some msg_fn;
@@ -1054,6 +1096,9 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
   let last_type, env, items, m = convert_prog env prog [] in
   (* TODO test wrong return type *)
   let externals = Env.externals env in
+
+  (* Catch weak type variables *)
+  List.iter catch_weak_vars items;
 
   (* Add polymorphic functions from imported modules *)
   let items = List.rev !Module.poly_funcs @ items in

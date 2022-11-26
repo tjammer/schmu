@@ -155,3 +155,17 @@ let is_polymorphic typ =
     | Traw_ptr t | Tarray t -> inner acc t
   in
   inner false typ
+
+let rec is_weak = function
+  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Qvar _ -> false
+  | Tvar { contents = Link t } | Talias (_, t) | Tarray t | Traw_ptr t ->
+      is_weak t
+  | Tvar { contents = Unbound _ } -> true
+  | Trecord (ps, _, _) | Tvariant (ps, _, _) ->
+      List.fold_left (fun b t -> is_weak t || b) false ps
+  | Tfun _ ->
+      (* Function types can contain weak vars which will reify on call.
+         Thus we skip functions here.
+         I'm not sure if this leaves some weak variables undetected, but
+         at least some are caught *)
+      false
