@@ -174,12 +174,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str1, align 8
     %1 = load i64, i64* @b, align 4
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
-    %str3 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str3, align 8
+    %str2 = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str2, align 8
     %2 = load i64, i64* @a__2, align 4
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %2)
-    %str5 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str5, align 8
+    %str3 = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str3, align 8
     %3 = load i64, i64* @b, align 4
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %3)
     ret i64 0
@@ -246,24 +246,24 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str, align 8
     %option = alloca %option_int, align 8
-    %tag9 = bitcast %option_int* %option to i32*
-    store i32 0, i32* %tag9, align 4
-    %data1 = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
-    store i64 3, i64* %data1, align 4
+    %tag6 = bitcast %option_int* %option to i32*
+    store i32 0, i32* %tag6, align 4
+    %data = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
+    store i64 3, i64* %data, align 4
     %0 = call i64 @schmu___optiong.i_classify_optioni.i(%option_int* %option)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
-    %str2 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str2, align 8
-    %option4 = alloca %option_float, align 8
-    %tag510 = bitcast %option_float* %option4 to i32*
-    store i32 0, i32* %tag510, align 4
-    %data6 = getelementptr inbounds %option_float, %option_float* %option4, i32 0, i32 1
-    store double 3.000000e+00, double* %data6, align 8
-    %1 = call i64 @schmu___optiong.i_classify_optionf.i(%option_float* %option4)
+    %str1 = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str1, align 8
+    %option2 = alloca %option_float, align 8
+    %tag37 = bitcast %option_float* %option2 to i32*
+    store i32 0, i32* %tag37, align 4
+    %data4 = getelementptr inbounds %option_float, %option_float* %option2, i32 0, i32 1
+    store double 3.000000e+00, double* %data4, align 8
+    %1 = call i64 @schmu___optiong.i_classify_optionf.i(%option_float* %option2)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
     store i32 1, i32* getelementptr inbounds (%option_float, %option_float* @none, i32 0, i32 0), align 4
-    %str7 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str7, align 8
+    %str5 = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str5, align 8
     %2 = call i64 @schmu___optiong.i_classify_optionf.i(%option_float* @none)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %2)
     ret i64 0
@@ -322,24 +322,24 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str, align 8
     %option = alloca %option_int, align 8
-    %tag9 = bitcast %option_int* %option to i32*
-    store i32 0, i32* %tag9, align 4
-    %data1 = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
-    store i64 3, i64* %data1, align 4
+    %tag6 = bitcast %option_int* %option to i32*
+    store i32 0, i32* %tag6, align 4
+    %data = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
+    store i64 3, i64* %data, align 4
     %0 = call i64 @schmu___optiong.i_classify_optioni.i(%option_int* %option)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
-    %str2 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str2, align 8
-    %option4 = alloca %option_float, align 8
-    %tag510 = bitcast %option_float* %option4 to i32*
-    store i32 0, i32* %tag510, align 4
-    %data6 = getelementptr inbounds %option_float, %option_float* %option4, i32 0, i32 1
-    store double 3.000000e+00, double* %data6, align 8
-    %1 = call i64 @schmu___optiong.i_classify_optionf.i(%option_float* %option4)
+    %str1 = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str1, align 8
+    %option2 = alloca %option_float, align 8
+    %tag37 = bitcast %option_float* %option2 to i32*
+    store i32 0, i32* %tag37, align 4
+    %data4 = getelementptr inbounds %option_float, %option_float* %option2, i32 0, i32 1
+    store double 3.000000e+00, double* %data4, align 8
+    %1 = call i64 @schmu___optiong.i_classify_optionf.i(%option_float* %option2)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
     store i32 1, i32* getelementptr inbounds (%option_float, %option_float* @none, i32 0, i32 0), align 4
-    %str7 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str7, align 8
+    %str5 = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str5, align 8
     %2 = call i64 @schmu___optiong.i_classify_optionf.i(%option_float* @none)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %2)
     ret i64 0
@@ -378,24 +378,26 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i64 2, i64* %size, align 4
     %cap = getelementptr i64, i64* %2, i64 2
     store i64 2, i64* %cap, align 4
-    %data = getelementptr i64, i64* %2, i64 3
+    %3 = getelementptr i8, i8* %1, i64 24
+    %data = bitcast i8* %3 to i64*
     store i64 0, i64* %data, align 4
     %"1" = getelementptr i64, i64* %data, i64 1
     store i64 1, i64* %"1", align 4
-    %3 = load i64*, i64** @vtest, align 8
-    store i64* %3, i64** @vtest, align 8
-    %4 = tail call i8* @malloc(i64 32)
-    %5 = bitcast i8* %4 to i64*
-    store i64* %5, i64** @vtest2, align 8
-    store i64 1, i64* %5, align 4
-    %size2 = getelementptr i64, i64* %5, i64 1
-    store i64 1, i64* %size2, align 4
-    %cap3 = getelementptr i64, i64* %5, i64 2
-    store i64 1, i64* %cap3, align 4
-    %data4 = getelementptr i64, i64* %5, i64 3
-    store i64 3, i64* %data4, align 4
-    %6 = load i64*, i64** @vtest2, align 8
+    %4 = load i64*, i64** @vtest, align 8
+    store i64* %4, i64** @vtest, align 8
+    %5 = tail call i8* @malloc(i64 32)
+    %6 = bitcast i8* %5 to i64*
     store i64* %6, i64** @vtest2, align 8
+    store i64 1, i64* %6, align 4
+    %size2 = getelementptr i64, i64* %6, i64 1
+    store i64 1, i64* %size2, align 4
+    %cap3 = getelementptr i64, i64* %6, i64 2
+    store i64 1, i64* %cap3, align 4
+    %7 = getelementptr i8, i8* %5, i64 24
+    %data4 = bitcast i8* %7 to i64*
+    store i64 3, i64* %data4, align 4
+    %8 = load i64*, i64** @vtest2, align 8
+    store i64* %8, i64** @vtest2, align 8
     ret void
   }
   

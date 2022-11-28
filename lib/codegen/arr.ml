@@ -13,6 +13,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
   open C
 
   type func = Incr_rc | Decr_rc | Reloc | Grow
+  type index = Iconst of int | Idyn of Llvm.llvalue
 
   let name_of_func = function
     | Incr_rc -> "incr_rc"
@@ -33,7 +34,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     (* Return pair lltyp, size of head *)
     let item_typ = item_type typ in
     let llitem_typ = get_lltype_def item_typ in
-    let item_sz = sizeof_typ item_typ in
+    let item_sz, item_align = size_alignof_typ item_typ in
 
     let mut = false in
     let head_sz =
@@ -42,19 +43,37 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
            ( [],
              None,
              [|
-               { ftyp = Tint; mut };
-               { ftyp = Tint; mut };
-               { ftyp = Tint; mut };
-               { ftyp = item_typ; mut };
+               { ftyp = Tint; mut }; { ftyp = Tint; mut }; { ftyp = Tint; mut };
              |] ))
-      - item_sz
     in
+    assert (Int.equal head_sz 24);
+    let head_sz = alignup ~size:head_sz ~upto:item_align in
+
     (item_typ, llitem_typ, head_sz, item_sz)
+
+  let data_ptr ptr arrtyp =
+    let _, llitem_typ, head_size, _ = item_type_head_size arrtyp in
+    Llvm.build_bitcast ptr (Llvm.pointer_type u8_t) "" builder |> fun ptr ->
+    Llvm.build_gep ptr [| ci head_size |] "" builder |> fun ptr ->
+    Llvm.build_bitcast ptr (Llvm.pointer_type llitem_typ) "data" builder
+
+  let data_get ptr arrtyp index =
+    let _, llitem_typ, head_size, item_sz = item_type_head_size arrtyp in
+    let ptr = Llvm.build_bitcast ptr (Llvm.pointer_type u8_t) "" builder in
+    let idx =
+      match index with
+      | Iconst i -> (i * item_sz) + head_size |> ci
+      | Idyn i ->
+          let items = Llvm.build_mul (ci item_sz) i "" builder in
+          Llvm.build_add (ci head_size) items "" builder
+    in
+    let data = Llvm.build_gep ptr [| idx |] "" builder in
+    Llvm.build_bitcast data (Llvm.pointer_type llitem_typ) "data" builder
 
   let gen_array_lit param exprs typ allocref =
     let vec_sz = List.length exprs in
 
-    let _, llitem_typ, head_size, item_size = item_type_head_size typ in
+    let _, _, head_size, item_size = item_type_head_size typ in
     let cap_sz = Int.max 1 vec_sz in
     let cap = head_size + (cap_sz * item_size) in
 
@@ -76,10 +95,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     ignore (Llvm.build_store (ci vec_sz) dst builder);
     let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
     ignore (Llvm.build_store (ci cap_sz) dst builder);
-    let ptr =
-      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-      Llvm.build_bitcast ptr (Llvm.pointer_type llitem_typ) "" builder
-    in
+    let ptr = data_ptr ptr typ in
 
     (* Initialize *)
     List.iteri
@@ -164,7 +180,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
             ctors
     | _ -> ()
 
-  let iter_array_children data size typ f =
+  let iter_array_children arr size typ f =
     let start_bb = Llvm.insertion_block builder in
     let parent = Llvm.block_parent start_bb in
 
@@ -186,7 +202,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     Llvm.position_at_end child_bb builder;
     (* The ptr has the correct type, no need to multiply size *)
-    let value = Llvm.build_gep data [| cnt_loaded |] "" builder in
+    let value = data_get arr.value arr.typ (Idyn cnt_loaded) in
     let lltyp = get_lltype_def typ in
     let temp = { value; typ; lltyp; kind = Ptr } in
     f temp;
@@ -275,9 +291,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
   let decr_rc_impl v =
     let f var =
       (* Load ref *)
-      let v = bring_default var in
+      let v = bring_default_var var in
       let int_ptr =
-        Llvm.build_bitcast v (Llvm.pointer_type int_t) "ref" builder
+        Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "ref" builder
       in
       let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
       let rc = Llvm.build_load dst "ref" builder in
@@ -308,13 +324,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
        let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
        let sz = Llvm.build_load sz "size" builder in
 
-       let data =
-         Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-         Llvm.build_bitcast ptr
-           (get_lltype_def item_type |> Llvm.pointer_type)
-           "data" builder
-       in
-       iter_array_children data sz item_type decr_refcount);
+       iter_array_children v sz item_type decr_refcount);
 
       ignore (free int_ptr);
       ignore (Llvm.build_br merge_bb builder);
@@ -417,14 +427,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     decr_refcount v;
 
     (* Increase member refcount *)
-    (if contains_array item_type then
-     let data =
-       Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-       Llvm.build_bitcast ptr
-         (get_lltype_def item_type |> Llvm.pointer_type)
-         "data" builder
-     in
-     iter_array_children data sz item_type incr_refcount);
+    if contains_array item_type then
+      iter_array_children v sz item_type incr_refcount;
 
     ignore (Llvm.build_br merge_bb builder);
 
@@ -442,15 +446,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let arr = if in_set then maybe_relocate arr else bring_default_var arr in
 
     let lltyp = get_lltype_def typ in
-    let int_ptr =
-      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
-    in
-    let ptr =
-      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-      Llvm.build_bitcast ptr (Llvm.pointer_type lltyp) "" builder
-    in
-
-    let value = Llvm.build_gep ptr [| index |] "" builder in
+    let value = data_get arr.value arr.typ (Idyn index) in
     { value; typ; lltyp; kind = Ptr }
 
   let array_set args =
@@ -461,14 +457,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
     let arr = maybe_relocate arr in
-    let int_ptr =
-      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
-    in
-    let ptr =
-      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-      Llvm.build_bitcast ptr arr.lltyp "" builder
-    in
-    let ptr = Llvm.build_gep ptr [| index |] "" builder in
+    let ptr = data_get arr.value arr.typ (Idyn index) in
     decr_refcount { value with value = ptr; kind = Ptr };
 
     set_struct_field value ptr;
@@ -556,14 +545,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     decr_refcount v;
 
     (* Increase member refcount *)
-    (if contains_array item_type then
-     let data =
-       Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-       Llvm.build_bitcast ptr
-         (get_lltype_def item_type |> Llvm.pointer_type)
-         "data" builder
-     in
-     iter_array_children data sz item_type incr_refcount);
+    if contains_array item_type then
+      iter_array_children v sz item_type incr_refcount;
     let malloc_bb = Llvm.insertion_block builder in
 
     ignore (Llvm.build_br merge_bb builder);
@@ -589,6 +572,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     in
 
     let v = bring_default arr in
+    let arrtyp = arr.typ in
     let int_ptr = Llvm.build_bitcast v (Llvm.pointer_type int_t) "" builder in
     let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
     let sz = Llvm.build_load dst "size" builder in
@@ -624,11 +608,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
         "" builder
     in
     let int_ptr = Llvm.build_bitcast arr (Llvm.pointer_type int_t) "" builder in
-    let ptr =
-      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-      Llvm.build_bitcast ptr grow_arr.lltyp "" builder
-    in
-    let ptr = Llvm.build_gep ptr [| sz |] "" builder in
+    let ptr = data_get arr arrtyp (Idyn sz) in
 
     set_struct_field value ptr;
 
@@ -649,11 +629,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
       Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
     in
 
-    let ptr =
-      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-      Llvm.build_bitcast ptr arr.lltyp "" builder
-    in
-
     let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
     let sz = Llvm.build_load dst "size" builder in
 
@@ -668,7 +643,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     Llvm.position_at_end drop_last_bb builder;
     let index = Llvm.build_sub sz (ci 1) "" builder in
-    let ptr = Llvm.build_gep ptr [| index |] "" builder in
+    let ptr = data_get arr.value arr.typ (Idyn index) in
 
     let item_typ = item_type arr.typ in
     let llitem_typ = get_lltype_def item_typ in
@@ -691,16 +666,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     in
 
     let itemtyp = item_type arr.typ in
-    let lltyp = get_lltype_def itemtyp in
-    let int_ptr =
-      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
-    in
-    let ptr =
-      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
-      Llvm.build_bitcast ptr (Llvm.pointer_type lltyp) "" builder
-    in
-
-    let valueptr = Llvm.build_gep ptr [| ci 0 |] "" builder in
+    let valueptr = data_get arr.value arr.typ (Iconst 0) in
     let typ = Traw_ptr itemtyp in
     let lltyp = get_lltype_def typ in
     let v = { value = valueptr; typ; lltyp; kind = Imm } in
