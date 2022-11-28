@@ -2294,11 +2294,11 @@ Refcounts for members in arrays, records and variants
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    %45 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    %45 = load i64*, i64** bitcast (i8* getelementptr (i8, i8* bitcast (%option_array_int* @__expr0 to i8*), i64 8) to i64**), align 8
     tail call void @__g.u_incr_rc_ai.u(i64* %45)
-    %46 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    %46 = load i64*, i64** bitcast (i8* getelementptr (i8, i8* bitcast (%option_array_int* @__expr0 to i8*), i64 8) to i64**), align 8
     tail call void @__g.u_incr_rc_ai.u(i64* %46)
-    %47 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    %47 = load i64*, i64** bitcast (i8* getelementptr (i8, i8* bitcast (%option_array_int* @__expr0 to i8*), i64 8) to i64**), align 8
     %48 = bitcast i64* %47 to i8*
     %49 = getelementptr i8, i8* %48, i64 24
     %data23 = bitcast i8* %49 to i64*
@@ -2319,9 +2319,9 @@ Refcounts for members in arrays, records and variants
     %fmt29 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %56, i64 %52, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %50)
     %str30 = alloca i8*, align 8
     store i8* %53, i8** %str30, align 8
-    %57 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    %57 = load i64*, i64** bitcast (i8* getelementptr (i8, i8* bitcast (%option_array_int* @__expr0 to i8*), i64 8) to i64**), align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %57)
-    %58 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @__expr0, i32 0, i32 1), align 8
+    %58 = load i64*, i64** bitcast (i8* getelementptr (i8, i8* bitcast (%option_array_int* @__expr0 to i8*), i64 8) to i64**), align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %58)
     br label %ifcont
   
@@ -2429,12 +2429,14 @@ Refcounts for members in arrays, records and variants
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option_array_int, %option_array_int* %0, i32 0, i32 1
-    %2 = load i64*, i64** %data, align 8
-    %ref3 = bitcast i64* %2 to i64*
+    %2 = bitcast %option_array_int* %0 to i8*
+    %var_data = getelementptr i8, i8* %2, i64 8
+    %3 = bitcast i8* %var_data to i64**
+    %4 = load i64*, i64** %3, align 8
+    %ref3 = bitcast i64* %4 to i64*
     %ref1 = load i64, i64* %ref3, align 4
-    %3 = add i64 %ref1, 1
-    store i64 %3, i64* %ref3, align 4
+    %5 = add i64 %ref1, 1
+    store i64 %5, i64* %ref3, align 4
     br label %cont
   
   cont:                                             ; preds = %match, %entry
@@ -2449,25 +2451,27 @@ Refcounts for members in arrays, records and variants
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option_array_int, %option_array_int* %0, i32 0, i32 1
-    %2 = load i64*, i64** %data, align 8
-    %ref3 = bitcast i64* %2 to i64*
+    %2 = bitcast %option_array_int* %0 to i8*
+    %var_data = getelementptr i8, i8* %2, i64 8
+    %3 = bitcast i8* %var_data to i64**
+    %4 = load i64*, i64** %3, align 8
+    %ref3 = bitcast i64* %4 to i64*
     %ref1 = load i64, i64* %ref3, align 4
-    %3 = icmp eq i64 %ref1, 1
-    br i1 %3, label %free, label %decr
+    %5 = icmp eq i64 %ref1, 1
+    br i1 %5, label %free, label %decr
   
   cont:                                             ; preds = %decr, %free, %entry
     ret void
   
   decr:                                             ; preds = %match
-    %4 = bitcast i64* %2 to i64*
-    %5 = sub i64 %ref1, 1
-    store i64 %5, i64* %4, align 4
+    %6 = bitcast i64* %4 to i64*
+    %7 = sub i64 %ref1, 1
+    store i64 %7, i64* %6, align 4
     br label %cont
   
   free:                                             ; preds = %match
-    %6 = bitcast i64* %2 to i8*
-    call void @free(i8* %6)
+    %8 = bitcast i64* %4 to i8*
+    call void @free(i8* %8)
     br label %cont
   }
   

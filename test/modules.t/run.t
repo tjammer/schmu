@@ -217,7 +217,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option_float, %option_float* %thing, i32 0, i32 1
+    %0 = bitcast %option_float* %thing to i8*
+    %var_data = getelementptr i8, i8* %0, i64 8
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -233,7 +234,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option_int, %option_int* %thing, i32 0, i32 1
+    %0 = bitcast %option_int* %thing to i8*
+    %var_data = getelementptr i8, i8* %0, i64 8
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -293,7 +295,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option_float, %option_float* %thing, i32 0, i32 1
+    %0 = bitcast %option_float* %thing to i8*
+    %var_data = getelementptr i8, i8* %0, i64 8
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -309,7 +312,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option_int, %option_int* %thing, i32 0, i32 1
+    %0 = bitcast %option_int* %thing to i8*
+    %var_data = getelementptr i8, i8* %0, i64 8
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
