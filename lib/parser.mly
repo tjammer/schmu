@@ -94,6 +94,7 @@
 %token Defexternal
 %token Set
 %token Fmt_str
+%token Rec
 
 %start <Ast.prog> prog
 
@@ -171,8 +172,9 @@ let bracks(x) :=
 
 stmt:
   | parens(sexp_let) { $1 }
-  | parens(sexp_fun) { $1 }
+  | parens(sexp_fun) { Function (fst $1, snd $1) }
   | sexp_expr { Expr ($loc, $1) }
+  | parens(sexp_rec) { $1}
 
 %inline sexp_let:
   | Val; sexp_decl; sexp_expr { Let($loc, $2, $3) }
@@ -186,10 +188,13 @@ stmt:
 
 %inline sexp_fun:
   | Fun; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
-    { Function ($loc, { name; params; return_annot = None; body; attr }) }
+    { ($loc, { name; params; return_annot = None; body; attr }) }
 
 %inline attr:
   | kw = Keyword { $loc, kw }
+
+%inline sexp_rec:
+  | Rec; fst = parens(sexp_fun); tl = nonempty_list(parens(sexp_fun)) { Rec ($loc, fst :: tl) }
 
 sexp_expr:
   | sexp_ctor_inst { $1 }

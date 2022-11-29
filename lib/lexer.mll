@@ -85,6 +85,7 @@ rule read =
   | "set"   { Set }
   | "cond"   { Cond }
   | "fmt-str"{ Fmt_str }
+  | "rec"    { Rec }
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
   | kebab_id { Kebab_id (Lexing.lexeme lexbuf) }
   | keyword  { Keyword (name_of_string (Lexing.lexeme lexbuf)) }

@@ -94,6 +94,7 @@ and stmt =
   | Let of loc * decl * expr
   | Function of loc * func
   | Expr of (loc * expr)
+  | Rec of (loc * (loc * func) list)
 
 and block = stmt list
 

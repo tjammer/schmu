@@ -120,6 +120,7 @@ the syntax table, so `forward-word' works as expected.")
     "match"
     "and"
     "or"
+    "rec"
 
     ,@schmu-var-decl-forms
     ,@schmu-function-decl-forms)

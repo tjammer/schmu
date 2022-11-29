@@ -477,7 +477,11 @@ module rec Core : sig
     Env.t * typed_expr * bool
 
   val convert_function :
-    Env.t -> Ast.loc -> Ast.func -> Env.t * (string * int option * abstraction)
+    Env.t ->
+    Ast.loc ->
+    Ast.func ->
+    bool ->
+    Env.t * (string * int option * abstraction)
 end = struct
   open Records
   open Patternmatch
@@ -612,7 +616,7 @@ end = struct
     | _ -> failwith "Internal Error: generalize produces a new type?"
 
   and convert_function env loc
-      Ast.{ name = nameloc, name; params; return_annot; body; attr } =
+      Ast.{ name = nameloc, name; params; return_annot; body; attr } inrec =
     (* Create a fresh type var for the function name
        and use it in the function body *)
     let unique = uniq_name name in
@@ -626,8 +630,12 @@ end = struct
 
     enter_level ();
     let env =
-      (* Recursion allowed for named funcs *)
-      Env.(add_value name { def_value with typ = newvar () } nameloc env)
+      if inrec then
+        (* Function is already part of env with a fresh variable *)
+        env
+      else
+        (* Recursion allowed for named funcs *)
+        Env.(add_value name { def_value with typ = newvar () } nameloc env)
     in
 
     (* We duplicate some lambda code due to naming *)
@@ -920,7 +928,8 @@ end = struct
     in
 
     let rec to_expr env old_type = function
-      | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ]) when ret ->
+      | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ] | [ Rec (loc, _) ])
+        when ret ->
           raise (Error (loc, "Block must end with an expression"))
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr; loc }, env)
@@ -932,9 +941,21 @@ end = struct
           let expr = Let { id; uniq; rmut; lhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
-          let env, (name, unique, lambda) = convert_function env loc func in
+          let env, (name, unique, abs) = convert_function env loc func false in
           let cont, env = to_expr env old_type tl in
-          let expr = Function (name, unique, lambda, cont) in
+          let expr = Function (name, unique, abs, cont) in
+          ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
+      | Rec (loc, funcs) :: tl ->
+          (* Collect function names *)
+          let collect env (_, (func : Ast.func)) =
+            let nameloc, name = func.name in
+            Env.(add_value name { def_value with typ = newvar () } nameloc env)
+          in
+          let env = List.fold_left collect env funcs in
+          let f env (_, func) = convert_function env loc func true in
+          let env, funcs = List.fold_left_map f env funcs in
+          let cont, env = to_expr env old_type tl in
+          let expr = Rec (funcs, cont) in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | [ Expr (loc, e) ] ->
           last_loc := loc;
@@ -1020,9 +1041,22 @@ let convert_prog env items modul =
         let m = Module.add_external lhs.typ id uniq_name m in
         (old, env, Tl_let (id, uniq, lhs) :: items, m)
     | Function (loc, func) ->
-        let env, (name, unique, abs) = Core.convert_function env loc func in
+        let env, (name, unique, abs) =
+          Core.convert_function env loc func false
+        in
         let m = Module.add_fun name unique abs m in
         (old, env, Tl_function (name, unique, abs) :: items, m)
+    | Rec (loc, funcs) ->
+        (* Collect function names *)
+        let collect env (_, (func : Ast.func)) =
+          let nameloc, name = func.name in
+          Env.(add_value name { def_value with typ = newvar () } nameloc env)
+        in
+        let env = List.fold_left collect env funcs in
+        let f env (_, func) = Core.convert_function env loc func true in
+        let env, funcs = List.fold_left_map f env funcs in
+        let m = Module.add_rec funcs m in
+        (old, env, Tl_rec funcs :: items, m)
     | Expr (loc, expr) ->
         let expr = Core.convert env expr in
         (* Only the last expression is allowed to return something *)
@@ -1039,6 +1073,8 @@ let rec catch_weak_vars = function
   | Tl_let (_, _, e) -> catch_weak_expr Sset.empty e
   | Tl_expr e -> catch_weak_expr Sset.empty e
   | Tl_function (_, _, abs) -> catch_weak_body Sset.empty abs
+  | Tl_rec fs ->
+      List.iter (fun (_, _, abs) -> catch_weak_body Sset.empty abs) fs
 
 and catch_weak_body sub abs =
   (* Allow the types present in the function signature *)
@@ -1073,6 +1109,9 @@ and catch_weak_expr sub e =
   | Function (_, _, abs, e) ->
       catch_weak_body sub abs;
       catch_weak_expr sub e
+  | Rec (fs, cont) ->
+      List.iter (fun (_, _, abs) -> catch_weak_body sub abs) fs;
+      catch_weak_expr sub cont
   | If (cond, e1, e2) ->
       catch_weak_expr sub cond;
       catch_weak_expr sub e1;
@@ -1146,7 +1185,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
 let typecheck (prog : Ast.prog) =
   let rec get_last_type = function
     | Tl_expr expr :: _ -> expr.typ
-    | (Tl_function _ | Tl_let _) :: tl -> get_last_type tl
+    | (Tl_function _ | Tl_let _ | Tl_rec _) :: tl -> get_last_type tl
     | [] -> Tunit
   in
 

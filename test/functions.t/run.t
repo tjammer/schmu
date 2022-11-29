@@ -906,7 +906,7 @@ Support monomorphization of nested functions
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %rec = type { i64 }
+  %rc = type { i64 }
   
   declare void @printi(i64 %0)
   
@@ -920,7 +920,7 @@ Support monomorphization of nested functions
     ret i64 %x
   }
   
-  define i64 @schmu___g.g_id_rec.rec(i64 %0) {
+  define i64 @schmu___g.g_id_rc.rc(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
@@ -939,13 +939,13 @@ Support monomorphization of nested functions
     ret i64 %0
   }
   
-  define i64 @schmu___g.g_wrapped_rec.rec(i64 %0) {
+  define i64 @schmu___g.g_wrapped_rc.rc(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 4
-    %ret = alloca %rec, align 8
-    %1 = tail call i64 @schmu___g.g_id_rec.rec(i64 %0)
-    %box3 = bitcast %rec* %ret to i64*
+    %ret = alloca %rc, align 8
+    %1 = tail call i64 @schmu___g.g_id_rc.rc(i64 %0)
+    %box3 = bitcast %rc* %ret to i64*
     store i64 %1, i64* %box3, align 4
     ret i64 %1
   }
@@ -955,9 +955,9 @@ Support monomorphization of nested functions
     %0 = tail call i64 @schmu___g.g_wrapped_i.i(i64 12)
     tail call void @printi(i64 %0)
     %1 = tail call i1 @schmu___g.g_wrapped_b.b(i1 false)
-    %ret = alloca %rec, align 8
-    %2 = tail call i64 @schmu___g.g_wrapped_rec.rec(i64 24)
-    %box = bitcast %rec* %ret to i64*
+    %ret = alloca %rc, align 8
+    %2 = tail call i64 @schmu___g.g_wrapped_rc.rc(i64 24)
+    %box = bitcast %rc* %ret to i64*
     store i64 %2, i64* %box, align 4
     tail call void @printi(i64 %2)
     ret i64 0

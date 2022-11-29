@@ -16,7 +16,7 @@ prog: Lbrac Lpar Wildcard
 
 prog: Lpar Set Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting '&' to indicate mutation
 
 prog: Lpar Set Ampersand Wildcard
 
@@ -144,7 +144,7 @@ prog: Lpar Match False U8
 
 prog: Lpar Match False Lpar Val
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting pattern
 
 prog: Lpar Match False Lpar Wildcard Wildcard
 
@@ -332,15 +332,15 @@ prog: Lpar Match False Lpar Lbrac Kebab_id Kebab_id Rbrac False U8
 
 prog: Lpar Match False Lpar Lbrac Keyword Rbrac Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting (pattern expression)
 
 prog: Lpar Match False Lpar Lbrac Keyword Rbrac False U8
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting (pattern expression)
 
 prog: Lpar Match False Lpar Kebab_id False Rpar Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting (pattern expression)
 
 prog: Lpar Lpar Wildcard
 
@@ -378,6 +378,14 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id String_lit
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Ampersand Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar Defexternal Kebab_id Lpar Fun Lpar Fun Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -402,14 +410,6 @@ prog: Lpar Defexternal Kebab_id Kebab_id Div_i Kebab_id Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id String_lit
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Ampersand Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Lpar Defexternal Kebab_id Lpar Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -422,11 +422,11 @@ prog: Lpar Defexternal Kebab_id Lpar Kebab_id Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Val Lpar Kebab_id Lpar Fun Kebab_id Rpar Wildcard
+prog: Lpar Val Lpar Kebab_id Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Val Lpar Kebab_id Kebab_id String_lit
+prog: Lpar Val Lpar Kebab_id Lpar Fun Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -494,6 +494,74 @@ prog: Lpar Val Kebab_id False U8
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Rec Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Rec Lpar Wildcard
+
+Expecting function definition
+
+prog: Lpar Rec Lpar Fun Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Kebab_id Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Kebab_id Keyword Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Kebab_id String_lit Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Lpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Lbrack Lpar Kebab_id Kebab_id Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Lbrack Kebab_id Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Lbrack Kebab_id Ampersand Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Lpar Kebab_id Rbrack
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Lbrack Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Lbrack Kebab_id Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Kebab_id Lbrack Rbrack Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fun Lbrack Rbrack False Rbrack
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Rec Lpar Fun Kebab_id Lbrack Rbrack Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Rec Lpar Fun Kebab_id Lbrack Rbrack Rpar Lpar Fun Kebab_id Lbrack Rbrack Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar Less_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -546,55 +614,7 @@ prog: Lpar Fun Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fun Lpar Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Lbrack Lpar Kebab_id Kebab_id Rpar Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Lbrack Kebab_id Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Lbrack Kebab_id Ampersand Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Lpar Kebab_id Rbrack
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Lbrack Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Lbrack Kebab_id Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Lpar Fun Lbrack Rbrack Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Lbrack Rbrack False Rbrack
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Kebab_id Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Kebab_id Keyword Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Kebab_id String_lit Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fun Kebab_id Lbrack Rbrack Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -640,43 +660,43 @@ prog: Lpar Div_f False Rbrac
 
 prog: Lpar Cond Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting expression
 
 prog: Lpar Cond Lpar Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting (condition expression)
 
 prog: Lpar Cond Lpar False Rpar
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting expression
 
 prog: Lpar Cond Lpar False False U8
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting only one expression per condition
 
 prog: Lpar Cond Lpar False False Rpar Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting (condition expression)
 
 prog: Lpar Cond Lpar False False Rpar Lpar Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting condition
 
 prog: Lpar Cond Lpar False False Rpar Lpar Else Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting expression
 
 prog: Lpar Cond Lpar False False Rpar Lpar Else False U8
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting only one expression in 'else' case
 
 prog: Lpar Cond Lpar False False Rpar Lpar Else False Rpar Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting no condition after 'else'
 
 prog: Lpar Cond Lpar False False Rpar Lpar False False Rpar Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expceting (condition expression)
 
 prog: Lpar Builtin_id Wildcard
 
@@ -708,7 +728,7 @@ prog: Lpar Arrow_righter Ampersand Wildcard
 
 prog: Lpar Arrow_righter False Rpar
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting something to pipe into
 
 prog: Lpar Arrow_right False False Rbrack
 
@@ -970,7 +990,7 @@ prog: Lpar Type Kebab_id Lbrac Mut_keyword Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Mut_keyword Lpar Fun Kebab_id Rpar Wildcard
+prog: Lpar Type Kebab_id Lbrac Mut_keyword Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -978,15 +998,15 @@ prog: Lpar Type Kebab_id Lbrac Keyword Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Keyword Lpar Fun Kebab_id Rpar Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Lpar Type Kebab_id Lbrac Keyword Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Mut_keyword Kebab_id String_lit
+prog: Lpar Type Kebab_id Lbrac Keyword Lpar Fun Kebab_id Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Type Kebab_id Lbrac Mut_keyword Lpar Fun Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -994,7 +1014,7 @@ prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Lbrac Mut_keyword Kebab_id Rbrac Wildcard
+prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Lbrac Keyword Kebab_id Rbrac Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1010,7 +1030,7 @@ prog: Lpar Type Kebab_id Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Mut_keyword Kebab_id Rbrac Wildcard
+prog: Lpar Type Kebab_id Lbrac Keyword Kebab_id Rbrac Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1034,19 +1054,19 @@ prog: Lpar Defexternal Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar String_lit Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Lpar Defexternal Kebab_id Kebab_id Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Defexternal Kebab_id Kebab_id String_lit Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar String_lit Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

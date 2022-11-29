@@ -120,6 +120,7 @@ type to_gen_func_kind =
   | Concrete of To_gen_func.t * string
   | Polymorphic of To_gen_func.t
   | Forward_decl of string
+  | Mutual_rec of string * typ
   | Builtin of Builtin.t
   | Inline of string list * typ * monod_tree
   | No_function
@@ -542,6 +543,14 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
       (* We don't have to do anything, because the correct function will be called in the first place.
          Except when it is called with different types recursively. We'll see *)
       (p, Recursive name)
+  | Mutual_rec (name, typ) ->
+      if is_type_polymorphic typ then (
+        let call = get_mono_name name ~poly:typ expr.typ in
+        if not (Set.mem call p.monomorphized) then
+          (* The function doesn't exist yet, will it ever exist? *)
+          print_endline ("Warning, does this function exist: " ^ call);
+        (p, Mono call))
+      else (p, Default)
   | _ when is_type_polymorphic expr.typ -> (p, Default)
   | Concrete (func, username) ->
       (* If a named function gets a generated name, the call site has to be made aware *)
@@ -697,6 +706,16 @@ let make_e2 e1 e2 id gn lmut rmut p vid =
 let mb_incr v =
   if not (is_temporary v.expr) then { v with expr = Mincr_ref v } else v
 
+let rec_fs_to_env p (username, uniq, (abs : Typed_tree.abstraction)) =
+  let ftyp =
+    Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln
+  in
+
+  let call = Module.unique_name username uniq in
+  let fn = Mutual_rec (call, ftyp) in
+  let vars = Vars.add username (Normal { no_var with fn }) p.vars in
+  { p with vars }
+
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return = { typ = cln texpr.typ; expr; return } in
   match texpr.expr with
@@ -726,6 +745,22 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
           return = param.ret;
         },
         func )
+  | Rec (fs, cont) ->
+      let p = List.fold_left rec_fs_to_env param fs in
+      let rec inner p = function
+        | (name, uniq, abs) :: tl ->
+            let p, call, abs = prep_func p (name, uniq, abs) in
+            let p, cont, func = inner { p with ret = param.ret } tl in
+            ( p,
+              {
+                typ = cont.typ;
+                expr = Mfunction (call, abs, cont);
+                return = param.ret;
+              },
+              func )
+        | [] -> morph_expr { p with ret = param.ret } cont
+      in
+      inner p fs
   | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
   | App { callee; args } -> morph_app make param callee args (cln texpr.typ)
   | Ctor (variant, index, dataexpr) ->
@@ -1010,15 +1045,15 @@ and prep_func p (username, uniq, abs) =
   let p =
     if inline then
       let fn = Inline (pnames, ftyp, body) in
-      let vars = Vars.add username (Normal { var with fn }) p.vars in
+      let vars = Vars.add username (Normal { no_var with fn }) p.vars in
       { p with vars }
     else if is_type_polymorphic ftyp then
       let fn = Polymorphic gen_func in
-      let vars = Vars.add username (Normal { var with fn }) p.vars in
+      let vars = Vars.add username (Normal { no_var with fn }) p.vars in
       { p with vars }
     else
       let fn = Concrete (gen_func, username) in
-      let vars = Vars.add username (Normal { var with fn }) p.vars in
+      let vars = Vars.add username (Normal { no_var with fn }) p.vars in
       let funcs = Fset.add gen_func p.funcs in
       { p with vars; funcs }
   in
@@ -1305,6 +1340,22 @@ let morph_toplvl param items =
             return = param.ret;
           },
           func )
+    | Tl_rec fs :: tl ->
+        let p = List.fold_left rec_fs_to_env param fs in
+        let rec inner p = function
+          | (name, uniq, abs) :: tl ->
+              let p, call, abs = prep_func p (name, uniq, abs) in
+              let p, cont, func = inner { p with ret = param.ret } tl in
+              ( p,
+                {
+                  typ = cont.typ;
+                  expr = Mfunction (call, abs, cont);
+                  return = param.ret;
+                },
+                func )
+          | [] -> aux { p with ret = param.ret } tl
+        in
+        inner p fs
     | [ Tl_expr e ] -> morph_expr param e
     | Tl_expr e :: tl ->
         let p, e, _ = morph_expr param e in

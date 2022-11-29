@@ -3444,3 +3444,9 @@ Global lets with expressions
   }
   
   declare void @free(i8* %0)
+
+Mutual recursive function
+  $ schmu mutual_rec.smu && ./mutual_rec
+  true
+  false
+  true

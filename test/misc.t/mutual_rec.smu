@@ -1,0 +1,15 @@
+(rec
+ (fun even? [i]
+   (match i
+     (0 true)
+     (1 false)
+     (n (odd? (- n 1)))))
+ (fun odd? [i]
+   (match i
+     (0 false)
+     (1 true)
+     (n (even? (- n 1))))))
+
+(print (fmt-str (odd? 1)))
+(print (fmt-str (odd? 100)))
+(print (fmt-str (even? 100)))

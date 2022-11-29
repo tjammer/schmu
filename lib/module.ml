@@ -38,6 +38,7 @@ let add_fun name uniq (abs : Typed_tree.abstraction) m =
     Mpoly_fun (abs, unique_name name uniq) :: m
   else Mfun (type_of_func abs.func, unique_name name uniq) :: m
 
+let add_rec _ m = m
 let add_external t name cname m = Mext (t, name, cname) :: m
 let module_cache = Hashtbl.create 64
 (* TODO sort by insertion order *)
@@ -174,6 +175,16 @@ and canonexpr sub = function
       let sub, abs = canonabs sub abs in
       let sub, cont = canonbody sub cont in
       (sub, Function (n, u, abs, cont))
+  | Rec (fs, cont) ->
+      let sub, fs =
+        List.fold_left_map
+          (fun sub (n, u, abs) ->
+            let sub, abs = canonabs sub abs in
+            (sub, (n, u, abs)))
+          sub fs
+      in
+      let sub, cont = canonbody sub cont in
+      (sub, Rec (fs, cont))
   | App { callee; args } ->
       let sub, callee = canonbody sub callee in
       let sub, args =

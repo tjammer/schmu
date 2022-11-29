@@ -1,6 +1,6 @@
 (external printi (fun int unit))
 
-(type rec {:x int})
+(type rc {:x int})
 
 (fun wrapped [x]
   (fun id [x] x)

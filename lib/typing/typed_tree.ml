@@ -22,6 +22,7 @@ type expr =
   | Let of let_data
   | Lambda of int * abstraction
   | Function of string * int option * abstraction * typed_expr
+  | Rec of (string * int option * abstraction) list * typed_expr
   | App of { callee : typed_expr; args : arg list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int)
@@ -59,6 +60,7 @@ and toplevel_item =
   | Tl_let of string * int option * typed_expr
   | Tl_function of string * int option * abstraction
   | Tl_expr of typed_expr
+  | Tl_rec of (string * int option * abstraction) list
 
 and func = { tparams : param list; ret : typ; kind : fun_kind }
 and arg = typed_expr * bool
@@ -70,6 +72,7 @@ and abstraction = {
   inline : bool;
 }
 
+(* TODO function data *)
 and generic_fun = { concrete : func; generic : func }
 and attr = { const : bool; global : bool; mut : bool }
 
