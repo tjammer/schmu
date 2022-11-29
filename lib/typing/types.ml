@@ -7,6 +7,7 @@ end
 
 module Strtbl = Hashtbl.Make (Str)
 module Smap = Map.Make (String)
+module Sset = Set.Make (String)
 open Sexplib0.Sexp_conv
 
 type typ =
@@ -156,13 +157,14 @@ let is_polymorphic typ =
   in
   inner false typ
 
-let rec is_weak = function
+let rec is_weak ~sub = function
   | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Qvar _ -> false
   | Tvar { contents = Link t } | Talias (_, t) | Tarray t | Traw_ptr t ->
-      is_weak t
-  | Tvar { contents = Unbound _ } -> true
+      is_weak ~sub t
+  | Tvar { contents = Unbound (id, _) } ->
+      if Sset.mem id sub then false else true
   | Trecord (ps, _, _) | Tvariant (ps, _, _) ->
-      List.fold_left (fun b t -> is_weak t || b) false ps
+      List.fold_left (fun b t -> is_weak ~sub t || b) false ps
   | Tfun _ ->
       (* Function types can contain weak vars which will reify on call.
          Thus we skip functions here.

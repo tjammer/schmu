@@ -554,9 +554,12 @@ module Make (C : Core) (R : Recs) = struct
   let calc_index_fields loc fields t =
     let module Set = Set.Make (String) in
     let rfields =
-      match clean t with
-      | Trecord (_, _, rfields) -> rfields
-      | _ -> failwith "Internal Error: How is this not a record?"
+      let rec inner = function
+        | Trecord (_, _, rfields) -> rfields
+        | Talias (_, t) | Tvar { contents = Link t } -> inner t
+        | _ -> failwith "Internal Error: How is this not a record?"
+      in
+      inner t
     in
 
     let fset =

@@ -172,13 +172,13 @@ module Make (C : Core) = struct
               | None -> Printf.sprintf "tuple of size %i" (Array.length labels)
             in
             raise (Error (loc, "Unbound field :" ^ id ^ " on " ^ name)))
-    | t -> (
+    | _ -> (
         match Env.find_label_opt id env with
         | Some { index; typename } -> (
             let record_t = Env.find_type typename env |> instantiate in
             unify
               (loc, "Field access of record " ^ string_of_type record_t ^ ":")
-              record_t t;
+              record_t expr.typ;
             match record_t with
             | Trecord (_, _, labels) -> (labels.(index), expr, index)
             | _ -> failwith "nope")

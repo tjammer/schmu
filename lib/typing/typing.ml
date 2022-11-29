@@ -707,8 +707,20 @@ end = struct
 
     let attr = builtins_hack e1 typed_exprs in
 
+    (* Extract the returning type from the callee, because it's properly
+       generalized and linked. This way, everything in a function body
+       should be generalized and we can easily catch weak type variables *)
+    let typ =
+      let rec extract_typ = function
+        | Tfun (_, t, _) -> t
+        | Talias (_, t) | Tvar { contents = Link t } -> extract_typ t
+        | t -> t
+      in
+      extract_typ callee.typ
+    in
+
     (* For now, we don't support const functions *)
-    { typ = res_t; expr = App { callee; args = targs }; attr; loc }
+    { typ; expr = App { callee; args = targs }; attr; loc }
 
   and convert_bop_impl env loc bop e1 e2 =
     let check typ =
@@ -1024,11 +1036,20 @@ let convert_prog env items modul =
   (snd !old, env, List.rev items, m)
 
 let rec catch_weak_vars = function
-  | Tl_let (_, _, e) -> catch_weak_expr e
-  | Tl_expr e -> catch_weak_expr e
-  | Tl_function _ -> ()
+  | Tl_let (_, _, e) -> catch_weak_expr Sset.empty e
+  | Tl_expr e -> catch_weak_expr Sset.empty e
+  | Tl_function (_, _, abs) -> catch_weak_body Sset.empty abs
 
-and catch_weak_expr e =
+and catch_weak_body sub abs =
+  (* Allow the types present in the function signature *)
+  let ret = get_generic_ids abs.func.ret in
+  let l =
+    List.fold_left (fun s p -> get_generic_ids p.pt @ s) ret abs.func.tparams
+  in
+  let sub = Sset.union sub (Sset.of_list l) in
+  catch_weak_expr sub abs.body
+
+and catch_weak_expr sub e =
   let _raise () =
     (* print_endline (show_expr e.expr); *)
     (* print_endline (show_typ e.typ); *)
@@ -1037,33 +1058,35 @@ and catch_weak_expr e =
          ( e.loc,
            "Expression contains weak type variables: " ^ string_of_type e.typ ))
   in
-  if is_weak e.typ then _raise ();
+  if is_weak ~sub e.typ then _raise ();
   match e.expr with
   | Var _ | Const _ | Lambda _ -> ()
   | Bop (_, e1, e2) | Set (e1, e2) | Sequence (e1, e2) ->
-      catch_weak_expr e1;
-      catch_weak_expr e2
+      catch_weak_expr sub e1;
+      catch_weak_expr sub e2
   | Unop (_, e)
   | Field (e, _)
   | Ctor (_, _, Some e)
   | Variant_index e
-  | Variant_data e
-  | Function (_, _, _, e) ->
-      catch_weak_expr e
+  | Variant_data e ->
+      catch_weak_expr sub e
+  | Function (_, _, abs, e) ->
+      catch_weak_body sub abs;
+      catch_weak_expr sub e
   | If (cond, e1, e2) ->
-      catch_weak_expr cond;
-      catch_weak_expr e1;
-      catch_weak_expr e2
+      catch_weak_expr sub cond;
+      catch_weak_expr sub e1;
+      catch_weak_expr sub e2
   | Let { lhs; cont; _ } ->
-      catch_weak_expr lhs;
-      catch_weak_expr cont
+      catch_weak_expr sub lhs;
+      catch_weak_expr sub cont
   | App { callee; args } ->
-      catch_weak_expr callee;
-      List.iter (fun a -> catch_weak_expr (fst a)) args
-  | Record fs -> List.iter (fun f -> catch_weak_expr (snd f)) fs
+      catch_weak_expr sub callee;
+      List.iter (fun a -> catch_weak_expr sub (fst a)) args
+  | Record fs -> List.iter (fun f -> catch_weak_expr sub (snd f)) fs
   | Ctor _ -> ()
   | Fmt fmt ->
-      List.iter (function Fstr _ -> () | Fexpr e -> catch_weak_expr e) fmt
+      List.iter (function Fstr _ -> () | Fexpr e -> catch_weak_expr sub e) fmt
 
 (* Conversion to Typing.exr below *)
 let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
@@ -1110,9 +1133,9 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
   (if check_ret then
    match clean last_type with
    | Tunit | Tint -> ()
-   | t ->
+   | _ ->
        let msg =
-         "Program must return type int or unit, not " ^ string_of_type t
+         "Program must return type int or unit, not " ^ string_of_type last_type
        in
        raise (Error (!last_loc, msg)));
 
