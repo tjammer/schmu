@@ -952,10 +952,24 @@ end = struct
             Env.(add_value name { def_value with typ = newvar () } nameloc env)
           in
           let env = List.fold_left collect env funcs in
-          let f env (_, func) = convert_function env loc func true in
+          let f env (loc, func) =
+            let env, f = convert_function env loc func true in
+            (env, (loc, f))
+          in
           let env, funcs = List.fold_left_map f env funcs in
           let cont, env = to_expr env old_type tl in
-          let expr = Rec (funcs, cont) in
+
+          let rec aux = function
+            | (loc, (n, u, abs)) :: tl ->
+                let t = Env.find_val n env in
+                let decls, cont = aux tl in
+                let expr = Function (n, u, abs, cont) in
+                ( (n, u, t.typ) :: decls,
+                  { typ = cont.typ; expr; attr = cont.attr; loc } )
+            | [] -> ([], cont)
+          in
+          let decls, cont = aux funcs in
+          let expr = Mutual_rec_decls (decls, cont) in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | [ Expr (loc, e) ] ->
           last_loc := loc;
@@ -1055,8 +1069,16 @@ let convert_prog env items modul =
         let env = List.fold_left collect env funcs in
         let f env (_, func) = Core.convert_function env loc func true in
         let env, funcs = List.fold_left_map f env funcs in
+        let rec aux = function
+          | (n, u, abs) :: tl ->
+              let t = Env.find_val n env in
+              let decls, fitems = aux tl in
+              ((n, u, t.typ) :: decls, Tl_function (n, u, abs) :: fitems)
+          | [] -> ([], items)
+        in
+        let decls, items = aux funcs in
         let m = Module.add_rec funcs m in
-        (old, env, Tl_rec funcs :: items, m)
+        (old, env, Tl_mutual_rec_decls decls :: items, m)
     | Expr (loc, expr) ->
         let expr = Core.convert env expr in
         (* Only the last expression is allowed to return something *)
@@ -1073,8 +1095,7 @@ let rec catch_weak_vars = function
   | Tl_let (_, _, e) -> catch_weak_expr Sset.empty e
   | Tl_expr e -> catch_weak_expr Sset.empty e
   | Tl_function (_, _, abs) -> catch_weak_body Sset.empty abs
-  | Tl_rec fs ->
-      List.iter (fun (_, _, abs) -> catch_weak_body Sset.empty abs) fs
+  | Tl_mutual_rec_decls _ -> ()
 
 and catch_weak_body sub abs =
   (* Allow the types present in the function signature *)
@@ -1104,14 +1125,12 @@ and catch_weak_expr sub e =
   | Field (e, _)
   | Ctor (_, _, Some e)
   | Variant_index e
-  | Variant_data e ->
+  | Variant_data e
+  | Mutual_rec_decls (_, e) ->
       catch_weak_expr sub e
   | Function (_, _, abs, e) ->
       catch_weak_body sub abs;
       catch_weak_expr sub e
-  | Rec (fs, cont) ->
-      List.iter (fun (_, _, abs) -> catch_weak_body sub abs) fs;
-      catch_weak_expr sub cont
   | If (cond, e1, e2) ->
       catch_weak_expr sub cond;
       catch_weak_expr sub e1;
@@ -1185,7 +1204,8 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
 let typecheck (prog : Ast.prog) =
   let rec get_last_type = function
     | Tl_expr expr :: _ -> expr.typ
-    | (Tl_function _ | Tl_let _ | Tl_rec _) :: tl -> get_last_type tl
+    | (Tl_function _ | Tl_let _ | Tl_mutual_rec_decls _) :: tl ->
+        get_last_type tl
     | [] -> Tunit
   in
 

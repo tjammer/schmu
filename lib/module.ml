@@ -182,16 +182,16 @@ and canonexpr sub = function
       let sub, abs = canonabs sub abs in
       let sub, cont = canonbody sub cont in
       (sub, Function (n, u, abs, cont))
-  | Rec (fs, cont) ->
+  | Mutual_rec_decls (fs, cont) ->
       let sub, fs =
         List.fold_left_map
-          (fun sub (n, u, abs) ->
-            let sub, abs = canonabs sub abs in
-            (sub, (n, u, abs)))
+          (fun sub (n, u, t) ->
+            let sub, t = canonize sub t in
+            (sub, (n, u, t)))
           sub fs
       in
       let sub, cont = canonbody sub cont in
-      (sub, Rec (fs, cont))
+      (sub, Mutual_rec_decls (fs, cont))
   | App { callee; args } ->
       let sub, callee = canonbody sub callee in
       let sub, args =

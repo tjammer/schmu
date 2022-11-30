@@ -706,10 +706,8 @@ let make_e2 e1 e2 id gn lmut rmut p vid =
 let mb_incr v =
   if not (is_temporary v.expr) then { v with expr = Mincr_ref v } else v
 
-let rec_fs_to_env p (username, uniq, (abs : Typed_tree.abstraction)) =
-  let ftyp =
-    Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln
-  in
+let rec_fs_to_env p (username, uniq, typ) =
+  let ftyp = cln typ in
 
   let call = Module.unique_name username uniq in
   let fn = Mutual_rec (call, ftyp) in
@@ -745,22 +743,9 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
           return = param.ret;
         },
         func )
-  | Rec (fs, cont) ->
-      let p = List.fold_left rec_fs_to_env param fs in
-      let rec inner p = function
-        | (name, uniq, abs) :: tl ->
-            let p, call, abs = prep_func p (name, uniq, abs) in
-            let p, cont, func = inner { p with ret = param.ret } tl in
-            ( p,
-              {
-                typ = cont.typ;
-                expr = Mfunction (call, abs, cont);
-                return = param.ret;
-              },
-              func )
-        | [] -> morph_expr { p with ret = param.ret } cont
-      in
-      inner p fs
+  | Mutual_rec_decls (decls, cont) ->
+      let p = List.fold_left rec_fs_to_env param decls in
+      morph_expr p cont
   | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
   | App { callee; args } -> morph_app make param callee args (cln texpr.typ)
   | Ctor (variant, index, dataexpr) ->
@@ -1340,22 +1325,9 @@ let morph_toplvl param items =
             return = param.ret;
           },
           func )
-    | Tl_rec fs :: tl ->
-        let p = List.fold_left rec_fs_to_env param fs in
-        let rec inner p = function
-          | (name, uniq, abs) :: tl ->
-              let p, call, abs = prep_func p (name, uniq, abs) in
-              let p, cont, func = inner { p with ret = param.ret } tl in
-              ( p,
-                {
-                  typ = cont.typ;
-                  expr = Mfunction (call, abs, cont);
-                  return = param.ret;
-                },
-                func )
-          | [] -> aux { p with ret = param.ret } tl
-        in
-        inner p fs
+    | Tl_mutual_rec_decls decls :: tl ->
+        let p = List.fold_left rec_fs_to_env param decls in
+        aux { p with ret = param.ret } tl
     | [ Tl_expr e ] -> morph_expr param e
     | Tl_expr e :: tl ->
         let p, e, _ = morph_expr param e in
