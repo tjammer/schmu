@@ -4,12 +4,13 @@ open Sexplib0.Sexp_conv
 module S = Set.Make (Path)
 
 type t = item list [@@deriving sexp]
+and name = { user : string; call : string }
 
 and item =
   | Mtype of typ
-  | Mfun of typ * string
-  | Mext of typ * string * string option
-  | Mpoly_fun of Typed_tree.abstraction * string
+  | Mfun of typ * name
+  | Mext of typ * name
+  | Mpoly_fun of Typed_tree.abstraction * string * int option
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
@@ -33,13 +34,19 @@ let type_of_func (func : Typed_tree.func) =
   Tfun (func.tparams, func.ret, func.kind)
 
 let add_fun name uniq (abs : Typed_tree.abstraction) m =
+  let call = unique_name name uniq in
   if is_polymorphic_func abs.func then
     (* failwith "polymorphic functions in modules are not supported yet TODO" *)
-    Mpoly_fun (abs, unique_name name uniq) :: m
-  else Mfun (type_of_func abs.func, unique_name name uniq) :: m
+    Mpoly_fun (abs, name, uniq) :: m
+  else Mfun (type_of_func abs.func, { user = name; call }) :: m
 
-let add_rec _ m = m
-let add_external t name cname m = Mext (t, name, cname) :: m
+let add_rec funs m =
+  List.fold_left (fun m (n, u, abs) -> add_fun n u abs m) m funs
+
+let add_external t name cname m =
+  let call = match cname with Some s -> s | None -> name in
+  Mext (t, { user = name; call }) :: m
+
 let module_cache = Hashtbl.create 64
 (* TODO sort by insertion order *)
 
@@ -273,13 +280,13 @@ and canonabs sub abs =
 let map_item ~f = function
   | Mtype t -> Mtype (f t)
   | Mfun (t, n) -> Mfun (f t, n)
-  | Mext (t, n, cn) -> Mext (f t, n, cn)
-  | Mpoly_fun (abs, n) ->
+  | Mext (t, n) -> Mext (f t, n)
+  | Mpoly_fun (abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
-      poly_funcs := Typed_tree.Tl_function (n, None, abs) :: !poly_funcs;
+      poly_funcs := Typed_tree.Tl_function (n, u, abs) :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
-      Mpoly_fun (abs, n)
+      Mpoly_fun (abs, n, u)
 
 let fold_canonize sub = function
   | Mtype t ->
@@ -288,16 +295,16 @@ let fold_canonize sub = function
   | Mfun (t, n) ->
       let a, t = canonize sub t in
       (a, Mfun (t, n))
-  | Mext (t, n, cn) ->
+  | Mext (t, n) ->
       let a, t = canonize sub t in
-      (a, Mext (t, n, cn))
-  | Mpoly_fun (abs, n) ->
+      (a, Mext (t, n))
+  | Mpoly_fun (abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
       let sub, abs = canonabs sub abs in
       poly_funcs := Typed_tree.Tl_function (n, None, abs) :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
-      (sub, Mpoly_fun (abs, n))
+      (sub, Mpoly_fun (abs, n, u))
 
 let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with
@@ -418,8 +425,8 @@ and mod_abs f abs =
 let demake_module name = function
   | Mtype t -> Mtype (mod_t (Rem name) t)
   | Mfun (t, n) -> Mfun (mod_t (Rem name) t, n)
-  | Mext (t, n, cn) -> Mext (mod_t (Rem name) t, n, cn)
-  | Mpoly_fun (abs, n) -> Mpoly_fun (mod_abs (mod_t (Rem name)) abs, n)
+  | Mext (t, n) -> Mext (mod_t (Rem name) t, n)
+  | Mpoly_fun (abs, n, u) -> Mpoly_fun (mod_abs (mod_t (Rem name)) abs, n, u)
 
 let add_to_env env toplvl m =
   let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
@@ -437,10 +444,10 @@ let add_to_env env toplvl m =
       | Mtype t ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
       | Mfun (t, n) ->
-          Env.add_external ~imported:(Some `Schmu) n
-            ~cname:(Some ("schmu_" ^ n))
+          Env.add_external ~imported:(Some `Schmu) n.user
+            ~cname:(Some ("schmu_" ^ n.call))
             t dummy_loc env
-      | Mpoly_fun (abs, n) ->
+      | Mpoly_fun (abs, n, _) ->
           let env =
             Env.(
               add_value n
@@ -448,8 +455,9 @@ let add_to_env env toplvl m =
                 dummy_loc env)
           in
           env
-      | Mext (t, n, cname) ->
-          Env.add_external ~imported:(Some `C) n ~cname t dummy_loc env)
+      | Mext (t, n) ->
+          Env.add_external ~imported:(Some `C) n.user ~cname:(Some n.call) t
+            dummy_loc env)
     env m
 
 let make_module sub name m =
@@ -461,14 +469,14 @@ let make_module sub name m =
       s t;
       Mtype (mod_t (Add (name, !sub)) t)
   | Mfun (t, n) ->
-      sub := S.add (Path.Pid n) !sub;
+      sub := S.add (Path.Pid n.user) !sub;
       Mfun (mod_t (Add (name, !sub)) t, n)
-  | Mext (t, n, cn) ->
+  | Mext (t, n) ->
+      sub := S.add (Path.Pid n.user) !sub;
+      Mext (mod_t (Add (name, !sub)) t, n)
+  | Mpoly_fun (abs, n, u) ->
       sub := S.add (Path.Pid n) !sub;
-      Mext (mod_t (Add (name, !sub)) t, n, cn)
-  | Mpoly_fun (abs, n) ->
-      sub := S.add (Path.Pid n) !sub;
-      Mpoly_fun (mod_abs (mod_t (Add (name, !sub))) abs, n)
+      Mpoly_fun (mod_abs (mod_t (Add (name, !sub))) abs, n, u)
 
 let to_channel c name m =
   let s = ref S.empty in

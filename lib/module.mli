@@ -1,12 +1,13 @@
 open Types
 
 type t = item list [@@deriving sexp]
+and name = { user : string; call : string }
 
 and item =
   | Mtype of typ
-  | Mfun of typ * string
-  | Mext of typ * string * string option
-  | Mpoly_fun of Typed_tree.abstraction * string
+  | Mfun of typ * name
+  | Mext of typ * name
+  | Mpoly_fun of Typed_tree.abstraction * string * int option
 
 val unique_name : string -> int option -> string
 val lambda_name : int -> string
