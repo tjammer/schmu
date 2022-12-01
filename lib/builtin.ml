@@ -27,6 +27,7 @@ type t =
   | Array_drop_back
   | Array_data
   | Unsafe_array_create
+  | Unsafe_nullptr
 [@@deriving show]
 
 let tbl =
@@ -122,6 +123,7 @@ let tbl =
     ( Unsafe_array_create,
       Tfun ([ { pmut; pt = Tint } ], Tarray (Qvar "0"), Simple),
       "__unsafe_array_create" );
+    (Unsafe_nullptr, Tfun ([], Traw_ptr Tu8, Simple), "__unsafe_nullptr");
   ]
 
 let of_string = function
@@ -153,6 +155,7 @@ let of_string = function
   | "array-drop-back" -> Some Array_drop_back
   | "array-data" -> Some Array_data
   | "__unsafe_array_create" -> Some Unsafe_array_create
+  | "__unsafe_nullptr" -> Some Unsafe_nullptr
   | _ -> None
 
 let fold f init = List.fold_left f init tbl

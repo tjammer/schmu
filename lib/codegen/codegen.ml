@@ -580,6 +580,9 @@ end = struct
     | Array_drop_back -> array_drop_back args
     | Array_data -> array_data args
     | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
+    | Unsafe_nullptr ->
+        let value = Llvm.const_null voidptr_t in
+        { value; typ = Traw_ptr Tunit; lltyp = voidptr_t; kind = Const }
     | Realloc ->
         let ptr, size =
           match args with
