@@ -871,6 +871,9 @@ and morph_if mk p cond e1 e2 =
   let p, e2, b = morph_expr { p with ret; ids } e2 in
   let e2 = decr_refs e2 (remove_id ~id:b.id p.ids) in
 
+  (* Remove returing ids from original id list as a new one is issued *)
+  let oids = remove_id ~id:a.id oids |> remove_id ~id:b.id in
+
   let iid, ids = mb_id oids e1.typ in
   ( { p with ids },
     mk (Mif { cond; e1; e2; iid }) ret,
