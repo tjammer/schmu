@@ -658,7 +658,13 @@ end = struct
       List.map (fun p -> { p with pt = param_funcs_as_closures p.pt }) params_t
     in
 
-    let typ = Tfun (params_t, body.typ, kind) |> generalize in
+    let typ =
+      Tfun (params_t, body.typ, kind)
+      |>
+      (* For mutually recursive functions, we generalize at the end of the rec block.
+         Otherwise calls to the not-last function in the set will not work*)
+      fun t -> if inrec then t else generalize t
+    in
 
     match typ with
     | Tfun (tparams, ret, kind) ->
@@ -949,7 +955,10 @@ end = struct
           (* Collect function names *)
           let collect env (_, (func : Ast.func)) =
             let nameloc, name = func.name in
-            Env.(add_value name { def_value with typ = newvar () } nameloc env)
+            enter_level ();
+            let typ = newvar () in
+            leave_level ();
+            Env.(add_value name { def_value with typ } nameloc env)
           in
           let env = List.fold_left collect env funcs in
           let f env (loc, func) =
@@ -1064,21 +1073,28 @@ let convert_prog env items modul =
         (* Collect function names *)
         let collect env (_, (func : Ast.func)) =
           let nameloc, name = func.name in
-          Env.(add_value name { def_value with typ = newvar () } nameloc env)
+          enter_level ();
+          let typ = newvar () in
+          leave_level ();
+          Env.(add_value name { def_value with typ } nameloc env)
         in
         let env = List.fold_left collect env funcs in
         let f env (_, func) = Core.convert_function env loc func true in
         let env, funcs = List.fold_left_map f env funcs in
-        let rec aux = function
+        let rec aux env = function
           | (n, u, abs) :: tl ->
               let t = Env.find_val n env in
-              let decls, fitems = aux tl in
-              ((n, u, t.typ) :: decls, Tl_function (n, u, abs) :: fitems)
-          | [] -> ([], items)
+              (* Generalize the functions *)
+              let typ = generalize t.typ in
+              let env = Env.change_type n typ env in
+
+              let decls, fitems, env = aux env tl in
+              ((n, u, t.typ) :: decls, Tl_function (n, u, abs) :: fitems, env)
+          | [] -> ([], [], env)
         in
-        let decls, items = aux funcs in
-        let m = Module.add_rec funcs m in
-        (old, env, Tl_mutual_rec_decls decls :: items, m)
+        let decls, fitems, env = aux env (List.rev funcs) in
+        let m = Module.add_rec_block funcs m in
+        (old, env, fitems @ (Tl_mutual_rec_decls decls :: items), m)
     | Expr (loc, expr) ->
         let expr = Core.convert env expr in
         (* Only the last expression is allowed to return something *)

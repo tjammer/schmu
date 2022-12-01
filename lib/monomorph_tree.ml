@@ -118,7 +118,7 @@ type monomorphized_tree = {
 type to_gen_func_kind =
   (* TODO use a prefix *)
   | Concrete of To_gen_func.t * string
-  | Polymorphic of To_gen_func.t
+  | Polymorphic of string (* call name *)
   | Forward_decl of string
   | Mutual_rec of string * typ
   | Builtin of Builtin.t
@@ -151,6 +151,8 @@ type morph_param = {
 
 let no_var = { fn = No_function; alloc = No_value; id = None }
 let apptbl = Apptbl.create 64
+let poly_funcs_tbl = Hashtbl.create 64
+let missing_polys_tbl = Hashtbl.create 64
 
 let rec cln = function
   | Types.Tvar { contents = Link t } | Talias (_, t) -> cln t
@@ -548,7 +550,8 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
         let call = get_mono_name name ~poly:typ expr.typ in
         if not (Set.mem call p.monomorphized) then
           (* The function doesn't exist yet, will it ever exist? *)
-          print_endline ("Warning, does this function exist: " ^ call);
+          if not (Hashtbl.mem missing_polys_tbl call) then
+            Hashtbl.add missing_polys_tbl name (p, expr.typ, parent_sub);
         (p, Mono call))
       else (p, Default)
   | _ when is_type_polymorphic expr.typ -> (p, Default)
@@ -557,35 +560,41 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
       if not (String.equal func.name.call username) then
         (p, Concrete func.name.call)
       else (p, Default)
-  | Polymorphic func ->
-      let typ = typ_of_abs func.abs in
-      let call = get_mono_name func.name.call ~poly:typ expr.typ in
-
-      if Set.mem call p.monomorphized then
-        (* The function exists, we don't do anything right now *)
-        (p, Mono call)
-      else
-        (* We generate the function *)
-
-        (* The parent substitution is threaded through to its children.
-           This deals with nested closures *)
-        let subst, typ = subst_type ~concrete:expr.typ typ parent_sub in
-
-        (* If the type is still polymorphic, we cannot generate it *)
-        if is_type_polymorphic typ then (p, Default)
-        else
-          let p, body = subst_body p subst func.abs.body in
-
-          let fnc = func_of_typ typ in
-          let name = { func.name with call } in
-          let funcs =
-            Fset.add
-              { func with abs = { func.abs with func = fnc; body }; name }
-              p.funcs
-          in
-          let monomorphized = Set.add call p.monomorphized in
-          ({ p with funcs; monomorphized }, Mono call)
+  | Polymorphic call -> (
+      match Hashtbl.find_opt poly_funcs_tbl call with
+      | Some func ->
+          let typ = typ_of_abs func.abs in
+          monomorphize p typ expr.typ func parent_sub
+      | None -> failwith "Internal Error: Poly function not registered yet")
   | No_function -> (p, Default)
+
+and monomorphize p typ concrete func parent_sub =
+  let call = get_mono_name func.name.call ~poly:typ concrete in
+
+  if Set.mem call p.monomorphized then
+    (* The function exists, we don't do anything right now *)
+    (p, Mono call)
+  else
+    (* We generate the function *)
+
+    (* The parent substitution is threaded through to its children.
+       This deals with nested closures *)
+    let subst, typ = subst_type ~concrete typ parent_sub in
+
+    (* If the type is still polymorphic, we cannot generate it *)
+    if is_type_polymorphic typ then (p, Default)
+    else
+      let p, body = subst_body p subst func.abs.body in
+
+      let fnc = func_of_typ typ in
+      let name = { func.name with call } in
+      let funcs =
+        Fset.add
+          { func with abs = { func.abs with func = fnc; body }; name }
+          p.funcs
+      in
+      let monomorphized = Set.add call p.monomorphized in
+      ({ p with funcs; monomorphized }, Mono call)
 
 (* State *)
 
@@ -1032,10 +1041,11 @@ and prep_func p (username, uniq, abs) =
       let fn = Inline (pnames, ftyp, body) in
       let vars = Vars.add username (Normal { no_var with fn }) p.vars in
       { p with vars }
-    else if is_type_polymorphic ftyp then
-      let fn = Polymorphic gen_func in
+    else if is_type_polymorphic ftyp then (
+      let fn = Polymorphic call in
       let vars = Vars.add username (Normal { no_var with fn }) p.vars in
-      { p with vars }
+      Hashtbl.add poly_funcs_tbl call gen_func;
+      { p with vars })
     else
       let fn = Concrete (gen_func, username) in
       let vars = Vars.add username (Normal { no_var with fn }) p.vars in
@@ -1097,11 +1107,12 @@ and morph_lambda typ p id abs =
 
   let p = { p with vars } in
   let p, fn =
-    if is_type_polymorphic typ then
+    if is_type_polymorphic typ then (
       (* Add fun to env so we can query it later for monomorphization *)
-      let fn = Polymorphic gen_func in
+      let fn = Polymorphic name in
       let vars = Vars.add name (Normal { no_var with fn }) p.vars in
-      ({ p with vars }, Polymorphic gen_func)
+      Hashtbl.add poly_funcs_tbl name gen_func;
+      ({ p with vars }, Polymorphic name))
     else
       let funcs = Fset.add gen_func p.funcs in
       ({ p with funcs }, Concrete (gen_func, name))
@@ -1362,6 +1373,30 @@ let monomorphize { Typed_tree.externals; items; _ } =
     }
   in
   let p, tree, _ = morph_toplvl param items in
+
+  (* Add missing monomorphized functions from rec blocks *)
+  let p =
+    Hashtbl.fold
+      (fun call (p, concrete, parent_sub) realp ->
+        let p =
+          { p with funcs = realp.funcs; monomorphized = realp.monomorphized }
+        in
+        let p, _ =
+          match Hashtbl.find_opt poly_funcs_tbl call with
+          | Some func ->
+              let typ = typ_of_abs func.abs in
+              monomorphize p typ concrete func parent_sub
+          | None ->
+              failwith
+                ("Internal Error: Poly function not registered yet: " ^ call)
+        in
+        {
+          realp with
+          funcs = Fset.union p.funcs realp.funcs;
+          monomorphized = Set.union p.monomorphized realp.monomorphized;
+        })
+      missing_polys_tbl p
+  in
 
   let decrs =
     match p.ids with [] -> Seq.empty | ids :: _ -> Iset.to_rev_seq ids

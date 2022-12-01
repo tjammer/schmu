@@ -3450,3 +3450,31 @@ Mutual recursive function
   true
   false
   true
+
+Polymorphic mutual recursive function
+  $ schmu -m m2.smu
+  $ schmu polymorphic_mutual_rec.smu && ./polymorphic_mutual_rec
+  true
+  false
+  true
+  pop
+  pop
+  pop
+  pop
+  pop
+  pop
+  pop
+  pop
+  0
+  8
+  pop
+  pop
+  pop
+  pop
+  pop
+  pop
+  pop
+  pop
+  0
+  16
+  right

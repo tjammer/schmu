@@ -11,6 +11,7 @@ and item =
   | Mfun of typ * name
   | Mext of typ * name
   | Mpoly_fun of Typed_tree.abstraction * string * int option
+  | Mmutual_rec of (string * int option * typ) list
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
@@ -40,7 +41,15 @@ let add_fun name uniq (abs : Typed_tree.abstraction) m =
     Mpoly_fun (abs, name, uniq) :: m
   else Mfun (type_of_func abs.func, { user = name; call }) :: m
 
-let add_rec funs m =
+let add_rec_block funs m =
+  let ms =
+    List.filter_map
+      (fun (name, uniq, (abs : Typed_tree.abstraction)) ->
+        let typ = type_of_func abs.func in
+        if is_polymorphic typ then Some (name, uniq, typ) else None)
+      funs
+  in
+  let m = Mmutual_rec ms :: m in
   List.fold_left (fun m (n, u, abs) -> add_fun n u abs m) m funs
 
 let add_external t name cname m =
@@ -80,13 +89,13 @@ let rec canonize sub = function
           let ns = string_of_int !c in
           incr c;
           (Smap.add id ns sub, Qvar ns))
-  | Tvar { contents = Unbound (id, i) } -> (
+  | Tvar { contents = Unbound (id, _) } -> (
       match Smap.find_opt id sub with
-      | Some s -> (sub, Tvar (ref (Unbound (s, i))))
+      | Some s -> (sub, Qvar s)
       | None ->
           let ns = string_of_int !c in
           incr c;
-          (Smap.add id ns sub, Tvar (ref (Unbound (ns, i)))))
+          (Smap.add id ns sub, Qvar ns))
   | (Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32) as t -> (sub, t)
   | Tvar { contents = Link t } -> canonize sub t
   | Tfun (ps, r, k) ->
@@ -287,6 +296,10 @@ let map_item ~f = function
       poly_funcs := Typed_tree.Tl_function (n, u, abs) :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
       Mpoly_fun (abs, n, u)
+  | Mmutual_rec decls ->
+      let decls = List.map (fun (n, u, t) -> (n, u, f t)) decls in
+      poly_funcs := Typed_tree.Tl_mutual_rec_decls decls :: !poly_funcs;
+      Mmutual_rec decls
 
 let fold_canonize sub = function
   | Mtype t ->
@@ -302,9 +315,17 @@ let fold_canonize sub = function
       (* We ought to f here. Not only the type, but
          the body as well? *)
       let sub, abs = canonabs sub abs in
-      poly_funcs := Typed_tree.Tl_function (n, None, abs) :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
       (sub, Mpoly_fun (abs, n, u))
+  | Mmutual_rec decls ->
+      let a, decls =
+        List.fold_left_map
+          (fun sub (n, u, t) ->
+            let a, t = canonize sub t in
+            (a, (n, u, t)))
+          sub decls
+      in
+      (a, Mmutual_rec decls)
 
 let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with
@@ -427,6 +448,9 @@ let demake_module name = function
   | Mfun (t, n) -> Mfun (mod_t (Rem name) t, n)
   | Mext (t, n) -> Mext (mod_t (Rem name) t, n)
   | Mpoly_fun (abs, n, u) -> Mpoly_fun (mod_abs (mod_t (Rem name)) abs, n, u)
+  | Mmutual_rec ds ->
+      let ds = List.map (fun (n, u, t) -> (n, u, mod_t (Rem name) t)) ds in
+      Mmutual_rec ds
 
 let add_to_env env toplvl m =
   let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
@@ -457,7 +481,15 @@ let add_to_env env toplvl m =
           env
       | Mext (t, n) ->
           Env.add_external ~imported:(Some `C) n.user ~cname:(Some n.call) t
-            dummy_loc env)
+            dummy_loc env
+      | Mmutual_rec ds ->
+          List.fold_left
+            (fun env (name, _, typ) ->
+              Env.(
+                add_value name
+                  { def_value with typ; imported = true }
+                  dummy_loc env))
+            env ds)
     env m
 
 let make_module sub name m =
@@ -477,6 +509,15 @@ let make_module sub name m =
   | Mpoly_fun (abs, n, u) ->
       sub := S.add (Path.Pid n) !sub;
       Mpoly_fun (mod_abs (mod_t (Add (name, !sub))) abs, n, u)
+  | Mmutual_rec ds ->
+      let ds =
+        List.map
+          (fun (n, u, t) ->
+            sub := S.add (Path.Pid n) !sub;
+            (n, u, mod_t (Add (name, !sub)) t))
+          ds
+      in
+      Mmutual_rec ds
 
 let to_channel c name m =
   let s = ref S.empty in

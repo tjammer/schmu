@@ -1,0 +1,32 @@
+m2/(do
+     (print (fmt-str (odd? 1)))
+     (print (fmt-str (odd? 100)))
+     (print (fmt-str (even? 100)))
+
+     (val arr& [0 1 2 3])
+     (pop &arr)
+     (val arr& [0 1 2 3])
+     (pop-all &arr)
+     (print (fmt-str (array-length arr)))
+
+     (print (fmt-str cnt)))
+
+(rec
+ (fun pop [arr&]
+   (print "pop")
+   (array-drop-back &arr)
+   (pop-all &arr))
+ (fun pop-all [arr&]
+   (if (= (array-length arr) 0)
+     ()
+     (pop &arr))))
+
+(val arr& [0 1 2 3])
+(pop &arr)
+(val arr& [0 1 2 3])
+(pop-all &arr)
+(print (fmt-str (array-length arr)))
+
+(print (fmt-str m2/cnt))
+
+(ignore (m2/test 1))
