@@ -680,6 +680,7 @@ let rec is_temporary = function
       | Inline (_, e) -> is_temporary e.expr
       | Builtin (Unsafe_ptr_get, _) -> false
       | Builtin (Array_get, _) -> false
+      | Builtin (Array_length, _) -> false
       | _ -> true)
   | Munop (_, t) -> is_temporary t.expr
   | Mif { e1; e2; _ } -> is_temporary e1.expr && is_temporary e2.expr

@@ -474,9 +474,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
       Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
     in
     let value = Llvm.build_gep int_ptr [| ci 1 |] "len" builder in
-    let value = Llvm.build_load value "" builder in
 
-    { value; typ = Tint; lltyp = int_t; kind = Imm }
+    { value; typ = Tint; lltyp = int_t; kind = Ptr }
 
   let grow orig = modify_arr_fn Grow orig
 
