@@ -36,9 +36,9 @@ Pass record to function
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst2 = bitcast { i64, i64 }* %box to i64*
-    store i64 %0, i64* %fst2, align 4
+    store i64 %0, i64* %fst2, align 8
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
-    store i64 %1, i64* %snd, align 4
+    store i64 %1, i64* %snd, align 8
     %a = bitcast { i64, i64 }* %box to %foo*
     %2 = getelementptr inbounds %foo, %foo* %a, i32 0, i32 1
     tail call void @printi(i64 %1)
@@ -67,11 +67,11 @@ Create record
   entry:
     %0 = alloca %foo, align 8
     %x14 = bitcast %foo* %0 to i64*
-    store i64 %x, i64* %x14, align 4
+    store i64 %x, i64* %x14, align 8
     %y2 = getelementptr inbounds %foo, %foo* %0, i32 0, i32 1
-    store i64 %y, i64* %y2, align 4
+    store i64 %y, i64* %y2, align 8
     %unbox = bitcast %foo* %0 to { i64, i64 }*
-    %unbox3 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
+    %unbox3 = load { i64, i64 }, { i64, i64 }* %unbox, align 8
     ret { i64, i64 } %unbox3
   }
   
@@ -80,9 +80,9 @@ Create record
     %ret = alloca %foo, align 8
     %0 = tail call { i64, i64 } @schmu_create_record(i64 8, i64 0)
     %box = bitcast %foo* %ret to { i64, i64 }*
-    store { i64, i64 } %0, { i64, i64 }* %box, align 4
+    store { i64, i64 } %0, { i64, i64 }* %box, align 8
     %1 = bitcast %foo* %ret to i64*
-    %2 = load i64, i64* %1, align 4
+    %2 = load i64, i64* %1, align 8
     tail call void @printi(i64 %2)
     ret i64 0
   }
@@ -110,45 +110,45 @@ Nested records
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst3 = bitcast { i64, i64 }* %box to i64*
-    store i64 %0, i64* %fst3, align 4
+    store i64 %0, i64* %fst3, align 8
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
-    store i64 %1, i64* %snd, align 4
-    %unbox2 = load { i64, i64 }, { i64, i64 }* %box, align 4
+    store i64 %1, i64* %snd, align 8
+    %unbox2 = load { i64, i64 }, { i64, i64 }* %box, align 8
     ret { i64, i64 } %unbox2
   }
   
   define i64 @schmu_inner() {
   entry:
     %0 = alloca %inner, align 8
-    store %inner { i64 3 }, %inner* %0, align 4
+    store %inner { i64 3 }, %inner* %0, align 8
     %unbox = bitcast %inner* %0 to i64*
-    %unbox1 = load i64, i64* %unbox, align 4
+    %unbox1 = load i64, i64* %unbox, align 8
     ret i64 %unbox1
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    store i64 0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 0), align 4
+    store i64 0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 0), align 8
     %0 = tail call i64 @schmu_inner()
-    store i64 %0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 4
+    store i64 %0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 8
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%inner* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1) to i8*), i8* bitcast (i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0) to i8*), i64 8, i1 false)
-    %1 = load i64, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 4
+    %1 = load i64, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 8
     tail call void @printi(i64 %1)
     %boxconst = alloca %t_int, align 8
-    store %t_int { i64 17, %p_inner_innerst_int { %innerst_int { i64 124 } } }, %t_int* %boxconst, align 4
+    store %t_int { i64 17, %p_inner_innerst_int { %innerst_int { i64 124 } } }, %t_int* %boxconst, align 8
     %unbox = bitcast %t_int* %boxconst to { i64, i64 }*
     %fst4 = bitcast { i64, i64 }* %unbox to i64*
-    %fst1 = load i64, i64* %fst4, align 4
+    %fst1 = load i64, i64* %fst4, align 8
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
-    %snd2 = load i64, i64* %snd, align 4
+    %snd2 = load i64, i64* %snd, align 8
     %ret = alloca %t_int, align 8
     %2 = tail call { i64, i64 } @schmu___g.g___fun0_ti.ti(i64 %fst1, i64 %snd2)
     %box = bitcast %t_int* %ret to { i64, i64 }*
-    store { i64, i64 } %2, { i64, i64 }* %box, align 4
+    store { i64, i64 } %2, { i64, i64 }* %box, align 8
     %3 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
     %4 = bitcast %p_inner_innerst_int* %3 to %innerst_int*
     %5 = bitcast %innerst_int* %4 to i64*
-    %6 = load i64, i64* %5, align 4
+    %6 = load i64, i64* %5, align 8
     tail call void @printi(i64 %6)
     ret i64 0
   }
@@ -178,7 +178,7 @@ Pass generic record
   entry:
     %box = alloca { i64, i16 }, align 8
     %fst11 = bitcast { i64, i16 }* %box to i64*
-    store i64 %0, i64* %fst11, align 4
+    store i64 %0, i64* %fst11, align 8
     %snd = getelementptr inbounds { i64, i16 }, { i64, i16 }* %box, i32 0, i32 1
     store i16 %1, i16* %snd, align 2
     %funcptr12 = bitcast %closure* %f to i8**
@@ -189,7 +189,7 @@ Pass generic record
     %ret = alloca %t_bool, align 8
     %2 = tail call { i64, i16 } %casttmp(i64 %0, i16 %1, i8* %loadtmp6)
     %box7 = bitcast %t_bool* %ret to { i64, i16 }*
-    store { i64, i16 } %2, { i64, i16 }* %box7, align 4
+    store { i64, i16 } %2, { i64, i16 }* %box7, align 8
     ret { i64, i16 } %2
   }
   
@@ -208,13 +208,13 @@ Pass generic record
   entry:
     %box = alloca { i64, i16 }, align 8
     %fst3 = bitcast { i64, i16 }* %box to i64*
-    store i64 %0, i64* %fst3, align 4
+    store i64 %0, i64* %fst3, align 8
     %snd = getelementptr inbounds { i64, i16 }, { i64, i16 }* %box, i32 0, i32 1
     store i16 %1, i16* %snd, align 2
     %x = bitcast { i64, i16 }* %box to %t_bool*
     %2 = alloca %t_bool, align 8
     %first4 = bitcast %t_bool* %2 to i64*
-    store i64 %0, i64* %first4, align 4
+    store i64 %0, i64* %first4, align 8
     %gen = getelementptr inbounds %t_bool, %t_bool* %2, i32 0, i32 1
     %3 = getelementptr inbounds %t_bool, %t_bool* %x, i32 0, i32 1
     %4 = trunc i16 %1 to i8
@@ -225,7 +225,7 @@ Pass generic record
     %7 = load i1, i1* %6, align 1
     store i1 %7, i1* %third, align 1
     %unbox = bitcast %t_bool* %2 to { i64, i16 }*
-    %unbox2 = load { i64, i16 }, { i64, i16 }* %unbox, align 4
+    %unbox2 = load { i64, i16 }, { i64, i16 }* %unbox, align 8
     ret { i64, i16 } %unbox2
   }
   
@@ -233,12 +233,12 @@ Pass generic record
   entry:
     %first1 = bitcast %t_int* %0 to i64*
     %1 = bitcast %t_int* %x to i64*
-    %2 = load i64, i64* %1, align 4
-    store i64 %2, i64* %first1, align 4
+    %2 = load i64, i64* %1, align 8
+    store i64 %2, i64* %first1, align 8
     %gen = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 1
     %3 = getelementptr inbounds %t_int, %t_int* %x, i32 0, i32 1
-    %4 = load i64, i64* %3, align 4
-    store i64 %4, i64* %gen, align 4
+    %4 = load i64, i64* %3, align 8
+    store i64 %4, i64* %gen, align 8
     %third = getelementptr inbounds %t_int, %t_int* %0, i32 0, i32 2
     %5 = getelementptr inbounds %t_int, %t_int* %x, i32 0, i32 2
     %6 = load i1, i1* %5, align 1
@@ -256,7 +256,7 @@ Pass generic record
     %ret = alloca %t_int, align 8
     call void @schmu___g.gg.g_apply_ti.titi.ti(%t_int* %ret, %closure* %clstmp, %t_int* @int_t)
     %0 = bitcast %t_int* %ret to i64*
-    %1 = load i64, i64* %0, align 4
+    %1 = load i64, i64* %0, align 8
     call void @printi(i64 %1)
     %clstmp1 = alloca %closure, align 8
     %funptr29 = bitcast %closure* %clstmp1 to i8**
@@ -264,18 +264,18 @@ Pass generic record
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
     %boxconst = alloca %t_bool, align 8
-    store %t_bool { i64 234, i1 false, i1 true }, %t_bool* %boxconst, align 4
+    store %t_bool { i64 234, i1 false, i1 true }, %t_bool* %boxconst, align 8
     %unbox = bitcast %t_bool* %boxconst to { i64, i16 }*
     %fst10 = bitcast { i64, i16 }* %unbox to i64*
-    %fst4 = load i64, i64* %fst10, align 4
+    %fst4 = load i64, i64* %fst10, align 8
     %snd = getelementptr inbounds { i64, i16 }, { i64, i16 }* %unbox, i32 0, i32 1
     %snd5 = load i16, i16* %snd, align 2
     %ret6 = alloca %t_bool, align 8
     %2 = call { i64, i16 } @schmu___g.gg.g_apply_tb.tbtb.tb(%closure* %clstmp1, i64 %fst4, i16 %snd5)
     %box = bitcast %t_bool* %ret6 to { i64, i16 }*
-    store { i64, i16 } %2, { i64, i16 }* %box, align 4
+    store { i64, i16 } %2, { i64, i16 }* %box, align 8
     %3 = bitcast %t_bool* %ret6 to i64*
-    %4 = load i64, i64* %3, align 4
+    %4 = load i64, i64* %3, align 8
     call void @printi(i64 %4)
     ret i64 0
   }
@@ -300,7 +300,7 @@ Access parametrized record fields
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst2 = bitcast { i64, i8 }* %box to i64*
-    store i64 %0, i64* %fst2, align 4
+    store i64 %0, i64* %fst2, align 8
     %snd = getelementptr inbounds { i64, i8 }, { i64, i8 }* %box, i32 0, i32 1
     store i8 %1, i8* %snd, align 1
     ret i64 %0
@@ -310,7 +310,7 @@ Access parametrized record fields
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst2 = bitcast { i64, i8 }* %box to i64*
-    store i64 %0, i64* %fst2, align 4
+    store i64 %0, i64* %fst2, align 8
     %snd = getelementptr inbounds { i64, i8 }, { i64, i8 }* %box, i32 0, i32 1
     store i8 %1, i8* %snd, align 1
     %any = bitcast { i64, i8 }* %box to %gen_first_int*
@@ -323,14 +323,14 @@ Access parametrized record fields
   define i64 @schmu___tg.g_gen_ti.i(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 2
-    %1 = load i64, i64* %0, align 4
+    %1 = load i64, i64* %0, align 8
     ret i64 %1
   }
   
   define void @schmu___tg.u_first_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 1
-    %1 = load i64, i64* %0, align 4
+    %1 = load i64, i64* %0, align 8
     tail call void @printi(i64 %1)
     ret void
   }
@@ -390,7 +390,7 @@ Make sure alignment of generic param works
   define i64 @schmu___misalignedg.g_gen_misalignedi.i(%misaligned_int* %any) {
   entry:
     %0 = getelementptr inbounds %misaligned_int, %misaligned_int* %any, i32 0, i32 1
-    %1 = load i64, i64* %0, align 4
+    %1 = load i64, i64* %0, align 8
     ret i64 %1
   }
   
@@ -433,9 +433,9 @@ Support function/closure fields
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst5 = bitcast { i64, i64 }* %box to i64*
-    store i64 %0, i64* %fst5, align 4
+    store i64 %0, i64* %fst5, align 8
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
-    store i64 %1, i64* %snd, align 4
+    store i64 %1, i64* %snd, align 8
     %state = bitcast { i64, i64 }* %box to %state*
     %2 = alloca %state, align 8
     %cnt6 = bitcast %state* %2 to i64*
@@ -447,11 +447,11 @@ Support function/closure fields
     %envptr = getelementptr inbounds %closure, %closure* %4, i32 0, i32 1
     %loadtmp2 = load i8*, i8** %envptr, align 8
     %5 = tail call i64 %casttmp(i64 %0, i8* %loadtmp2)
-    store i64 %5, i64* %cnt6, align 4
+    store i64 %5, i64* %cnt6, align 8
     %next = getelementptr inbounds %state, %state* %2, i32 0, i32 1
     store %closure* %4, %closure** %next, align 8
     %unbox = bitcast %state* %2 to { i64, i64 }*
-    %unbox4 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
+    %unbox4 = load { i64, i64 }, { i64, i64 }* %unbox, align 8
     ret { i64, i64 } %unbox4
   }
   
@@ -459,9 +459,9 @@ Support function/closure fields
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst10 = bitcast { i64, i64 }* %box to i64*
-    store i64 %0, i64* %fst10, align 4
+    store i64 %0, i64* %fst10, align 8
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
-    store i64 %1, i64* %snd, align 4
+    store i64 %1, i64* %snd, align 8
     %state = bitcast { i64, i64 }* %box to %state*
     %2 = alloca %state*, align 8
     store %state* %state, %state** %2, align 8
@@ -471,7 +471,7 @@ Support function/closure fields
   rec:                                              ; preds = %then, %entry
     %state2 = phi %state* [ %ret, %then ], [ %state, %entry ]
     %3 = bitcast %state* %state2 to i64*
-    %4 = load i64, i64* %3, align 4
+    %4 = load i64, i64* %3, align 8
     %lt = icmp slt i64 %4, 10
     br i1 %lt, label %then, label %else
   
@@ -479,12 +479,12 @@ Support function/closure fields
     call void @printi(i64 %4)
     %unbox = bitcast %state* %state2 to { i64, i64 }*
     %fst311 = bitcast { i64, i64 }* %unbox to i64*
-    %fst4 = load i64, i64* %fst311, align 4
+    %fst4 = load i64, i64* %fst311, align 8
     %snd5 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
-    %snd6 = load i64, i64* %snd5, align 4
+    %snd6 = load i64, i64* %snd5, align 8
     %5 = call { i64, i64 } @schmu_advance(i64 %fst4, i64 %snd6)
     %box7 = bitcast %state* %ret to { i64, i64 }*
-    store { i64, i64 } %5, { i64, i64 }* %box7, align 4
+    store { i64, i64 } %5, { i64, i64 }* %box7, align 8
     store %state* %ret, %state** %2, align 8
     br label %rec
   
@@ -495,7 +495,7 @@ Support function/closure fields
   
   define i64 @main(i64 %arg) {
   entry:
-    store i64 0, i64* getelementptr inbounds (%state, %state* @state, i32 0, i32 0), align 4
+    store i64 0, i64* getelementptr inbounds (%state, %state* @state, i32 0, i32 0), align 8
     %clstmp = alloca %closure, align 8
     %funptr1 = bitcast %closure* %clstmp to i8**
     store i8* bitcast (i64 (i64)* @schmu___fun0 to i8*), i8** %funptr1, align 8
@@ -569,32 +569,32 @@ This caused stores to a wrong pointer type in LLVM
   
   define { i64, i64 } @schmu_ctrl() {
   entry:
-    %unbox = load { i64, i64 }, { i64, i64 }* bitcast (%ys* @ret to { i64, i64 }*), align 4
+    %unbox = load { i64, i64 }, { i64, i64 }* bitcast (%ys* @ret to { i64, i64 }*), align 8
     ret { i64, i64 } %unbox
   }
   
   define { i64, i64 } @schmu_record_with_laters() {
   entry:
     %0 = alloca %ys, align 8
-    store %ys { %foo { i64 12 }, i64 15 }, %ys* %0, align 4
+    store %ys { %foo { i64 12 }, i64 15 }, %ys* %0, align 8
     %unbox = bitcast %ys* %0 to { i64, i64 }*
-    %unbox1 = load { i64, i64 }, { i64, i64 }* %unbox, align 4
+    %unbox1 = load { i64, i64 }, { i64, i64 }* %unbox, align 8
     ret { i64, i64 } %unbox1
   }
   
   define i64 @main(i64 %arg) {
   entry:
     %0 = tail call { i64, i64 } @schmu_record_with_laters()
-    store { i64, i64 } %0, { i64, i64 }* bitcast (%ys* @ys to { i64, i64 }*), align 4
-    %1 = load i64, i64* getelementptr inbounds (%ys, %ys* @ys, i32 0, i32 1), align 4
+    store { i64, i64 } %0, { i64, i64 }* bitcast (%ys* @ys to { i64, i64 }*), align 8
+    %1 = load i64, i64* getelementptr inbounds (%ys, %ys* @ys, i32 0, i32 1), align 8
     tail call void @printi(i64 %1)
-    %2 = load i64, i64* getelementptr inbounds (%ys, %ys* @ys, i32 0, i32 0, i32 0), align 4
+    %2 = load i64, i64* getelementptr inbounds (%ys, %ys* @ys, i32 0, i32 0, i32 0), align 8
     tail call void @printi(i64 %2)
     %3 = tail call { i64, i64 } @schmu_ctrl()
-    store { i64, i64 } %3, { i64, i64 }* bitcast (%ys* @ctrl__2 to { i64, i64 }*), align 4
-    %4 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl__2, i32 0, i32 0, i32 0), align 4
+    store { i64, i64 } %3, { i64, i64 }* bitcast (%ys* @ctrl__2 to { i64, i64 }*), align 8
+    %4 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl__2, i32 0, i32 0, i32 0), align 8
     tail call void @printi(i64 %4)
-    %5 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl__2, i32 0, i32 1), align 4
+    %5 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl__2, i32 0, i32 1), align 8
     tail call void @printi(i64 %5)
     ret i64 0
   }
@@ -628,7 +628,7 @@ A return of a field should not be preallocated
   entry:
     %1 = alloca %mut_int_wrap, align 8
     %wrapped3 = bitcast %mut_int_wrap* %1 to %int_wrap*
-    store %int_wrap { i64 2, i64 0, i64 0 }, %int_wrap* %wrapped3, align 4
+    store %int_wrap { i64 2, i64 0, i64 0 }, %int_wrap* %wrapped3, align 8
     %vector_loop__2 = alloca %closure, align 8
     %funptr4 = bitcast %closure* %vector_loop__2 to i8**
     store i8* bitcast (void (i64, i8*)* @schmu_vector_loop__2 to i8*), i8** %funptr4, align 8
@@ -648,7 +648,7 @@ A return of a field should not be preallocated
   define void @schmu_vector_loop(%int_wrap* %0, i64 %i) {
   entry:
     %1 = alloca i64, align 8
-    store i64 %i, i64* %1, align 4
+    store i64 %i, i64* %1, align 8
     %2 = add i64 %i, 1
     br label %rec
   
@@ -663,7 +663,7 @@ A return of a field should not be preallocated
     ret void
   
   else:                                             ; preds = %rec
-    store i64 %lsr.iv, i64* %1, align 4
+    store i64 %lsr.iv, i64* %1, align 8
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
   }
@@ -674,7 +674,7 @@ A return of a field should not be preallocated
     %test5 = bitcast { %mut_int_wrap* }* %clsr to %mut_int_wrap**
     %test1 = load %mut_int_wrap*, %mut_int_wrap** %test5, align 8
     %1 = alloca i64, align 8
-    store i64 %i, i64* %1, align 4
+    store i64 %i, i64* %1, align 8
     %2 = alloca %int_wrap, align 8
     %3 = add i64 %i, 1
     br label %rec
@@ -691,17 +691,17 @@ A return of a field should not be preallocated
     %4 = bitcast %mut_int_wrap* %test1 to %int_wrap*
     %dat6 = bitcast %int_wrap* %2 to i64*
     %5 = bitcast %int_wrap* %4 to i64*
-    %6 = load i64, i64* %5, align 4
+    %6 = load i64, i64* %5, align 8
     %add = add i64 %6, 1
-    store i64 %add, i64* %dat6, align 4
+    store i64 %add, i64* %dat6, align 8
     %b = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 1
-    store i64 0, i64* %b, align 4
+    store i64 0, i64* %b, align 8
     %c = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 2
-    store i64 0, i64* %c, align 4
+    store i64 0, i64* %c, align 8
     %7 = bitcast %int_wrap* %4 to i8*
     %8 = bitcast %int_wrap* %2 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 24, i1 false)
-    store i64 %lsr.iv, i64* %1, align 4
+    store i64 %lsr.iv, i64* %1, align 8
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
   }
@@ -714,12 +714,12 @@ A return of a field should not be preallocated
     %ret = alloca %int_wrap, align 8
     call void @schmu_test_thing(%int_wrap* %ret)
     %0 = bitcast %int_wrap* %ret to i64*
-    %1 = load i64, i64* %0, align 4
+    %1 = load i64, i64* %0, align 8
     call void @printi(i64 %1)
     %ret1 = alloca %int_wrap, align 8
     call void @schmu_test_thing_mut(%int_wrap* %ret1)
     %2 = bitcast %int_wrap* %ret1 to i64*
-    %3 = load i64, i64* %2, align 4
+    %3 = load i64, i64* %2, align 8
     call void @printi(i64 %3)
     ret i64 0
   }

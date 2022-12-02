@@ -622,11 +622,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     { value; typ = Ti32; lltyp = i32_t; kind = Imm }
 
   let var_data var typ =
-    let _, item_align = size_alignof_typ typ in
-    let offset = alignup ~size:(sizeof_typ Tint) ~upto:item_align in
-    let ptr = Llvm.(build_bitcast var.value (pointer_type u8_t)) "" builder in
-    let ofs = Llvm.const_int int_t offset in
-    let dataptr = Llvm.build_gep ptr [| ofs |] "var_data" builder in
+    let dataptr = Llvm.build_struct_gep var.value 1 "data" builder in
     let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
     let value = Llvm.build_bitcast dataptr ptr_t "" builder in
     { value; typ; lltyp = get_lltype_def typ; kind = Ptr }

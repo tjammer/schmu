@@ -1138,6 +1138,21 @@ let add_global_init funcs outname kind body =
 
 let generate ~target ~outname ~release ~modul
     { Monomorph_tree.constants; globals; externals; tree; funcs; decrs } =
+  let open Llvm_target in
+  let triple =
+    match target with
+    | Some target -> target
+    | None -> Llvm_target.Target.default_triple ()
+  in
+  Llvm_all_backends.initialize ();
+
+  let target = Llvm_target.Target.by_triple triple in
+  let reloc_mode = Llvm_target.RelocMode.PIC in
+  let machine = TargetMachine.create ~triple target ~reloc_mode in
+  let layout = DataLayout.as_string (TargetMachine.data_layout machine) in
+
+  Llvm.set_data_layout layout the_module;
+
   (* Fill const_tbl *)
   fill_constants constants;
   def_globals globals;
@@ -1217,6 +1232,7 @@ let generate ~target ~outname ~release ~modul
   | Some output -> print_endline output
   | None -> ());
 
+  (* Emit code to file *)
   if release then (
     let pm = Llvm.PassManager.create () in
     let bldr = Llvm_passmgr_builder.create () in
@@ -1225,15 +1241,5 @@ let generate ~target ~outname ~release ~modul
       ~run_inliner:true pm bldr;
     Llvm.PassManager.run_module the_module pm |> ignore);
 
-  (* Emit code to file *)
-  Llvm_all_backends.initialize ();
-  let open Llvm_target in
-  let triple =
-    match target with Some target -> target | None -> Target.default_triple ()
-  in
-  let reloc_mode = RelocMode.PIC in
-  let target = Target.by_triple triple in
-
-  let machine = TargetMachine.create ~triple target ~reloc_mode in
   TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile
     (outname ^ ".o") machine

@@ -120,7 +120,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define internal void @__lets_init() section ".text.startup" {
   entry:
     %0 = tail call i64 @schmu_generate_b()
-    store i64 %0, i64* @b, align 4
+    store i64 %0, i64* @b, align 8
     ret void
   }
 
@@ -139,11 +139,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str, align 8
-    %0 = load i64, i64* @a__2, align 4
+    %0 = load i64, i64* @a__2, align 8
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
     %str1 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str1, align 8
-    %1 = load i64, i64* @b, align 4
+    %1 = load i64, i64* @b, align 8
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
     ret i64 0
   }
@@ -168,19 +168,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str, align 8
-    %0 = load i64, i64* @a__2, align 4
+    %0 = load i64, i64* @a__2, align 8
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
     %str1 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str1, align 8
-    %1 = load i64, i64* @b, align 4
+    %1 = load i64, i64* @b, align 8
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
     %str2 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str2, align 8
-    %2 = load i64, i64* @a__2, align 4
+    %2 = load i64, i64* @a__2, align 8
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %2)
     %str3 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str3, align 8
-    %3 = load i64, i64* @b, align 4
+    %3 = load i64, i64* @b, align 8
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %3)
     ret i64 0
   }
@@ -217,8 +217,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %0 = bitcast %option_float* %thing to i8*
-    %var_data = getelementptr i8, i8* %0, i64 8
+    %data = getelementptr inbounds %option_float, %option_float* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -234,8 +233,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %0 = bitcast %option_int* %thing to i8*
-    %var_data = getelementptr i8, i8* %0, i64 8
+    %data = getelementptr inbounds %option_int, %option_int* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -251,7 +249,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %tag6 = bitcast %option_int* %option to i32*
     store i32 0, i32* %tag6, align 4
     %data = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
-    store i64 3, i64* %data, align 4
+    store i64 3, i64* %data, align 8
     %0 = call i64 @schmu___optiong.i_classify_optioni.i(%option_int* %option)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
     %str1 = alloca i8*, align 8
@@ -295,8 +293,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %0 = bitcast %option_float* %thing to i8*
-    %var_data = getelementptr i8, i8* %0, i64 8
+    %data = getelementptr inbounds %option_float, %option_float* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -312,8 +309,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %0 = bitcast %option_int* %thing to i8*
-    %var_data = getelementptr i8, i8* %0, i64 8
+    %data = getelementptr inbounds %option_int, %option_int* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -329,7 +325,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %tag6 = bitcast %option_int* %option to i32*
     store i32 0, i32* %tag6, align 4
     %data = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
-    store i64 3, i64* %data, align 4
+    store i64 3, i64* %data, align 8
     %0 = call i64 @schmu___optiong.i_classify_optioni.i(%option_int* %option)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
     %str1 = alloca i8*, align 8
@@ -373,33 +369,33 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define internal void @__malloc_some_init() section ".text.startup" {
   entry:
     %0 = tail call i64 @schmu_add_ints(i64 1, i64 3)
-    store i64 %0, i64* @b, align 4
+    store i64 %0, i64* @b, align 8
     %1 = tail call i8* @malloc(i64 40)
     %2 = bitcast i8* %1 to i64*
     store i64* %2, i64** @vtest, align 8
-    store i64 1, i64* %2, align 4
+    store i64 1, i64* %2, align 8
     %size = getelementptr i64, i64* %2, i64 1
-    store i64 2, i64* %size, align 4
+    store i64 2, i64* %size, align 8
     %cap = getelementptr i64, i64* %2, i64 2
-    store i64 2, i64* %cap, align 4
+    store i64 2, i64* %cap, align 8
     %3 = getelementptr i8, i8* %1, i64 24
     %data = bitcast i8* %3 to i64*
-    store i64 0, i64* %data, align 4
+    store i64 0, i64* %data, align 8
     %"1" = getelementptr i64, i64* %data, i64 1
-    store i64 1, i64* %"1", align 4
+    store i64 1, i64* %"1", align 8
     %4 = load i64*, i64** @vtest, align 8
     store i64* %4, i64** @vtest, align 8
     %5 = tail call i8* @malloc(i64 32)
     %6 = bitcast i8* %5 to i64*
     store i64* %6, i64** @vtest2, align 8
-    store i64 1, i64* %6, align 4
+    store i64 1, i64* %6, align 8
     %size2 = getelementptr i64, i64* %6, i64 1
-    store i64 1, i64* %size2, align 4
+    store i64 1, i64* %size2, align 8
     %cap3 = getelementptr i64, i64* %6, i64 2
-    store i64 1, i64* %cap3, align 4
+    store i64 1, i64* %cap3, align 8
     %7 = getelementptr i8, i8* %5, i64 24
     %data4 = bitcast i8* %7 to i64*
-    store i64 3, i64* %data4, align 4
+    store i64 3, i64* %data4, align 8
     %8 = load i64*, i64** @vtest2, align 8
     store i64* %8, i64** @vtest2, align 8
     ret void
@@ -419,14 +415,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define internal void @__g.u_decr_rc_ai.u(i64* %0) {
   entry:
     %ref2 = bitcast i64* %0 to i64*
-    %ref1 = load i64, i64* %ref2, align 4
+    %ref1 = load i64, i64* %ref2, align 8
     %1 = icmp eq i64 %ref1, 1
     br i1 %1, label %free, label %decr
   
   decr:                                             ; preds = %entry
     %2 = bitcast i64* %0 to i64*
     %3 = sub i64 %ref1, 1
-    store i64 %3, i64* %2, align 4
+    store i64 %3, i64* %2, align 8
     br label %merge
   
   free:                                             ; preds = %entry
@@ -485,13 +481,13 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %f = getelementptr inbounds { i64*, %closure* }, { i64*, %closure* }* %clsr, i32 0, i32 1
     %f2 = load %closure*, %closure** %f, align 8
     %1 = alloca i64, align 8
-    store i64 %i, i64* %1, align 4
+    store i64 %i, i64* %1, align 8
     br label %rec
   
   rec:                                              ; preds = %else, %entry
     %i3 = phi i64 [ %add, %else ], [ %i, %entry ]
     %len = getelementptr i64, i64* %arr1, i64 1
-    %2 = load i64, i64* %len, align 4
+    %2 = load i64, i64* %len, align 8
     %eq = icmp eq i64 %i3, %2
     br i1 %eq, label %then, label %else
   
@@ -504,7 +500,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %sunkaddr8 = getelementptr i8, i8* %3, i64 %sunkaddr
     %sunkaddr9 = getelementptr i8, i8* %sunkaddr8, i64 24
     %4 = bitcast i8* %sunkaddr9 to i64*
-    %5 = load i64, i64* %4, align 4
+    %5 = load i64, i64* %4, align 8
     %funcptr10 = bitcast %closure* %f2 to i8**
     %loadtmp = load i8*, i8** %funcptr10, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
@@ -512,14 +508,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %loadtmp4 = load i8*, i8** %envptr, align 8
     tail call void %casttmp(i64 %5, i8* %loadtmp4)
     %add = add i64 %i3, 1
-    store i64 %add, i64* %1, align 4
+    store i64 %add, i64* %1, align 8
     br label %rec
   }
   
   define i64 @schmu_do_something(%big* %big) {
   entry:
     %0 = bitcast %big* %big to i64*
-    %1 = load i64, i64* %0, align 4
+    %1 = load i64, i64* %0, align 8
     %add = add i64 %1, 1
     ret i64 %add
   }
