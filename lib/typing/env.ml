@@ -130,7 +130,12 @@ let add_external ext_name ~cname typ ~imported loc env =
     | scope :: tl ->
         let valmap =
           Map.add ext_name
-            { def_value with typ; imported = Option.is_some imported }
+            {
+              def_value with
+              typ;
+              imported = Option.is_some imported;
+              global = true;
+            }
             scope.valmap
         in
 
