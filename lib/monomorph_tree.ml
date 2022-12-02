@@ -135,6 +135,8 @@ type var =
   | Global of string * var_normal * bool ref
   | Param of var_normal
 
+type id_kind = Id_func | Id_local
+
 type morph_param = {
   vars : var Vars.t;
   monomorphized : Set.t;
@@ -142,7 +144,7 @@ type morph_param = {
   ret : bool;
   (* Marks an expression where an if is the last piece which returns a record.
      Needed for tail call elim *)
-  ids : Iset.t list;
+  ids : (id_kind * Iset.t) list;
       (* Tracks all heap allocations in a scope.
          If a value with allocation is returned, they are marked for the parent scope.
          Otherwise freed *)
@@ -626,20 +628,42 @@ let rec set_alloca = function
 
 let decr_refs body = function
   | [] -> body
-  | s :: _ ->
+  | (_, s) :: _ ->
       Iset.to_rev_seq s
       |> Seq.fold_left
            (fun body id -> { body with expr = Mdecr_ref (id, body) })
            body
 
-let remove_id ~id ids =
+let rec decr_all_refs body = function
+  | [] -> body
+  | (Id_local, s) :: tl ->
+      Iset.to_rev_seq s
+      |> Seq.fold_left
+           (fun body id -> { body with expr = Mdecr_ref (id, body) })
+           (decr_all_refs body tl)
+  | (Id_func, s) :: _ ->
+      Iset.to_rev_seq s
+      |> Seq.fold_left
+           (fun body id -> { body with expr = Mdecr_ref (id, body) })
+           body
+
+let rec remove_id ~id ids =
   match id with
-  | Some id -> ( match ids with [] -> [] | s :: tl -> Iset.remove id s :: tl)
+  | Some sid -> (
+      match ids with
+      | [] -> []
+      | (Id_local, s) :: tl -> (Id_local, Iset.remove sid s) :: remove_id ~id tl
+      | (Id_func, s) :: tl -> (Id_func, Iset.remove sid s) :: tl)
   | None -> ids
 
+let rec empty_ids = function
+  | (Id_func, _) :: tl -> (Id_func, Iset.empty) :: tl
+  | (Id_local, _) :: tl -> (Id_local, Iset.empty) :: empty_ids tl
+  | [] -> []
+
 let add_id ~id = function
-  | [] -> [ Iset.add id Iset.empty ]
-  | s :: tl -> Iset.add id s :: tl
+  | [] -> failwith "Internal Error: Empty ids"
+  | (k, s) :: tl -> (k, Iset.add id s) :: tl
 
 let mb_id ids typ =
   if mb_contains_array typ then
@@ -863,7 +887,7 @@ and morph_if mk p cond e1 e2 =
   let ret = p.ret in
   let oids = p.ids in
   let p, cond, _ = morph_expr { p with ret = false } cond in
-  let ids = Iset.empty :: oids in
+  let ids = (Id_local, Iset.empty) :: oids in
 
   let p, e1, a = morph_expr { p with ret; ids } e1 in
   let e1 = decr_refs e1 (remove_id ~id:a.id p.ids) in
@@ -953,7 +977,9 @@ and morph_set mk p expr value =
      things are freed. If one were to force an allocation here,
      that's a leak*)
   let p, e, _ = morph_expr { p with ret = false } expr in
-  let p, v, func = morph_expr { p with ids = [] } value in
+  let p, v, func =
+    morph_expr { p with ids = [ (Id_local, Iset.empty) ] } value
+  in
 
   let v = mb_incr v in
 
@@ -1012,7 +1038,7 @@ and prep_func p (username, uniq, abs) =
         vars pnames
     in
 
-    let ids = Iset.empty :: p.ids in
+    let ids = (Id_func, Iset.empty) :: p.ids in
     {
       p with
       vars;
@@ -1084,7 +1110,7 @@ and morph_lambda typ p id abs =
         (fun vars name -> Vars.add name (Param no_var) vars)
         vars pnames
     in
-    let ids = Iset.empty :: p.ids in
+    let ids = (Id_func, Iset.empty) :: p.ids in
     { p with vars; ret = true; ids; toplvl = false }
   in
 
@@ -1182,12 +1208,12 @@ and morph_app mk p callee args ret_typ =
         let p, ex, monomorph, arg =
           if is_special then special_f p arg else f p arg
         in
-        let ex = if is_tailrec then decr_refs ex p.ids else ex in
+        let ex = if is_tailrec then decr_all_refs ex p.ids else ex in
         let ids =
           if is_tailrec then
             (* In tailrec functions, we are always in an extra scope of an 'if' here.
                Thus, it's ok if we free everything. *)
-            match p.ids with _ :: tl -> Iset.empty :: tl | [] -> p.ids
+            empty_ids p.ids
           else p.ids
         in
         ({ p with ids }, ({ ex; monomorph; mut }, arg) :: args)
@@ -1203,11 +1229,9 @@ and morph_app mk p callee args ret_typ =
     | [] when is_tailrec ->
         (* We haven't decreased references yet, because there is no last argument.
            Essentially, we do the same work as in the last arg of [fold_decr_last]*)
-        let ids =
-          match p.ids with _ :: tl -> Iset.empty :: tl | [] -> p.ids
-        in
+        let ids = empty_ids p.ids in
         (* Note that we use the original p.ids for [decr_refs] *)
-        let ex = decr_refs callee.ex p.ids in
+        let ex = decr_all_refs callee.ex p.ids in
         ({ p with ids }, { callee with ex })
     | _ -> (p, callee)
   in
@@ -1372,7 +1396,7 @@ let monomorphize { Typed_tree.externals; items; _ } =
       monomorphized = Set.empty;
       funcs = Fset.empty;
       ret = false;
-      ids = [];
+      ids = [ (Id_func, Iset.empty) ];
       toplvl = true;
     }
   in
@@ -1403,7 +1427,7 @@ let monomorphize { Typed_tree.externals; items; _ } =
   in
 
   let decrs =
-    match p.ids with [] -> Seq.empty | ids :: _ -> Iset.to_rev_seq ids
+    match p.ids with [] -> Seq.empty | (_, ids) :: _ -> Iset.to_rev_seq ids
   in
 
   let externals =
