@@ -310,7 +310,8 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
              TODO don't use types here, but type kinds*)
           let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
           memcpy ~src ~dst ~size
-      | _ -> ignore (Llvm.build_store src.value dst builder));
+      | _ when cl.clmut -> ignore (Llvm.build_store src.value dst builder)
+      | _ -> ignore (Llvm.build_store (bring_default src) dst builder));
       i + 1
     in
 
