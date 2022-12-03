@@ -52,6 +52,19 @@
   (val acc& init)
   (inner 0 &acc))
 
+(fun array-map [arr f]
+  (val ret& (__unsafe_array_create (array-length arr)))
+  (set &(array-length ret) 0)
+  -- TODO array-reserve
+  (fun inner [i]
+    (if (= i (array-length arr))
+      ()
+      (do
+        (array-push &ret (f (array-get arr i)))
+        (inner (+ i 1)))))
+  (inner 0)
+  ret)
+
 (fun iter-range [from to f]
   (fun inner [i]
     (if (= i to)
