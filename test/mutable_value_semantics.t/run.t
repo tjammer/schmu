@@ -1583,6 +1583,15 @@ Nested arrays
     br label %merge
   }
   
+  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
+  entry:
+    %ref2 = bitcast i64* %0 to i64*
+    %ref1 = load i64, i64* %ref2, align 8
+    %1 = add i64 %ref1, 1
+    store i64 %1, i64* %ref2, align 8
+    ret void
+  }
+  
   define internal i64* @__ag.ag_reloc_ai.ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
@@ -1640,15 +1649,6 @@ Nested arrays
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
-  define internal void @__g.u_incr_rc_ai.u(i64* %0) {
-  entry:
-    %ref2 = bitcast i64* %0 to i64*
-    %ref1 = load i64, i64* %ref2, align 8
-    %1 = add i64 %ref1, 1
-    store i64 %1, i64* %ref2, align 8
-    ret void
-  }
   
   declare void @free(i8* %0)
   

@@ -282,11 +282,27 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     List.iter f ts
 
+  let decl_incr_children pseudovar t =
+    let ts = array_types [] t in
+    let f typ =
+      (* value will be set correctly at [gen_functions].
+         Make sure the other field are correct *)
+      if contains_array typ then
+        let kind = default_kind typ in
+        let lltyp =
+          match kind with
+          | Const_ptr | Ptr -> get_lltype_def typ |> Llvm.pointer_type
+          | Imm | Const -> get_lltype_def typ
+        in
+        let v = { pseudovar with typ; lltyp; kind } in
+        ignore (make_rc_fn v Incr_rc)
+    in
+    List.iter f ts
+
   let decr_refcount v =
-    let f = rc_fn v Decr_rc in
+    rc_fn v Decr_rc;
     (* Recursively declare children decr functions for freeing *)
-    decl_decr_children v v.typ;
-    f
+    decl_decr_children v v.typ
 
   let decr_rc_impl v =
     let f var =
@@ -334,9 +350,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     iter_array f v
 
-  (* let rec fwddecl_decr_children tmp = *)
-  (*   if contains_array *)
-
   let modify_arr_fn kind orig =
     (match orig.kind with
     | Ptr | Const_ptr -> ()
@@ -368,7 +381,10 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     (* For some reason, we default? *)
     { orig with value; kind = Imm }
 
-  let maybe_relocate orig = modify_arr_fn Reloc orig
+  let maybe_relocate orig =
+    let call = modify_arr_fn Reloc orig in
+    decl_incr_children orig orig.typ;
+    call
 
   let relocate_impl orig =
     (* Get current block *)
@@ -477,7 +493,10 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     { value; typ = Tint; lltyp = int_t; kind = Ptr }
 
-  let grow orig = modify_arr_fn Grow orig
+  let grow orig =
+    let call = modify_arr_fn Grow orig in
+    decl_incr_children orig orig.typ;
+    call
 
   let grow_impl orig =
     let v = bring_default_var orig in
