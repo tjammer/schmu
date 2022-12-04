@@ -1107,8 +1107,16 @@ and prep_func p (username, uniq, abs) =
 
   if is_struct body.typ then set_alloca var.alloc;
 
-  let body = decr_refs body (remove_id ~id:var.id temp_p.ids) in
-
+  let body =
+    match Option.map (classify_id temp_p.ids) var.id with
+    | None -> decr_refs body temp_p.ids
+    | Some (Spid_unknown | Spid_func) ->
+        decr_refs body (remove_id ~id:var.id temp_p.ids)
+    | Some Spid_parent ->
+        decr_refs
+          { body with expr = Mincr_ref body }
+          (remove_id ~id:var.id temp_p.ids)
+  in
   let recursive = pop_recursion_stack () in
 
   let abs = { func; pnames; body } in

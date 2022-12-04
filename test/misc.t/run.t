@@ -3474,3 +3474,6 @@ Polymorphic mutual recursive function
 
 Incr refcounts correctly in ifs
   $ schmu rc_ifs.smu && valgrind -q --leak-check=yes ./rc_ifs
+
+Incr refcounts correctly for closed over returns
+  $ schmu rc_linear_closed_return.smu && valgrind -q --leak-check=yes ./rc_linear_closed_return
