@@ -564,6 +564,14 @@ end = struct
 
         set_struct_field value ptr;
         { dummy_fn_value with lltyp = unit_t }
+    | Unsafe_ptr_at ->
+        let ptr, index =
+          match args with
+          | [ ptr; index ] -> (bring_default ptr, bring_default index)
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        let value = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
+        { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Imm }
     | Mod -> (
         match args with
         | [ value; md ] ->

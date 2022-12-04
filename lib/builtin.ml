@@ -1,6 +1,7 @@
 type t =
   | Unsafe_ptr_get
   | Unsafe_ptr_set
+  | Unsafe_ptr_at
   | Realloc
   | Malloc
   | Ignore
@@ -49,6 +50,12 @@ let tbl =
           Tunit,
           Simple ),
       "__unsafe_ptr_set" );
+    ( Unsafe_ptr_at,
+      Tfun
+        ( [ { pt = Traw_ptr (Qvar "0"); pmut }; { pt = Tint; pmut } ],
+          Traw_ptr (Qvar "0"),
+          Simple ),
+      "__unsafe_ptr_at" );
     ( Realloc,
       Tfun
         ( [ { pmut = true; pt = Traw_ptr (Qvar "0") }; { pmut; pt = Tint } ],
@@ -129,6 +136,7 @@ let tbl =
 let of_string = function
   | "__unsafe_ptr_get" -> Some Unsafe_ptr_get
   | "__unsafe_ptr_set" -> Some Unsafe_ptr_set
+  | "__unsafe_ptr_at" -> Some Unsafe_ptr_at
   | "__realloc" -> Some Realloc
   | "__malloc" -> Some Malloc
   | "ignore" -> Some Ignore
