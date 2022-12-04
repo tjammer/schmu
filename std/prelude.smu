@@ -58,12 +58,11 @@
   -- TODO array-reserve
   (fun inner [i]
     (if (= i (array-length arr))
-      ()
+      ret
       (do
         (array-push &ret (f (array-get arr i)))
         (inner (+ i 1)))))
-  (inner 0)
-  ret)
+  (inner 0))
 
 (fun iter-range [from to f]
   (fun inner [i]

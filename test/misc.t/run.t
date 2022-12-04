@@ -3470,3 +3470,7 @@ Polymorphic mutual recursive function
   0
   16
   right
+
+
+Incr refcounts correctly in ifs
+  $ schmu rc_ifs.smu && valgrind -q --leak-check=yes ./rc_ifs

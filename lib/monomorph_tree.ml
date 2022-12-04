@@ -675,6 +675,20 @@ let rec empty_ids = function
   | (Id_local, _) :: tl -> (Id_local, Iset.empty) :: empty_ids tl
   | [] -> []
 
+type spec_id_kind = Spid_func | Spid_parent | Spid_unknown
+
+let classify_id ids id =
+  let rec aux = function
+    | ((Id_local | Id_func), s) :: _, Spid_func when Iset.mem id s -> Spid_func
+    | (Id_local, _) :: tl, Spid_func -> aux (tl, Spid_func)
+    | (Id_func, _) :: tl, Spid_func -> aux (tl, Spid_parent)
+    | (_, s) :: _, Spid_parent when Iset.mem id s -> Spid_parent
+    | _ :: tl, Spid_parent -> aux (tl, Spid_parent)
+    | [], _ -> Spid_unknown
+    | _, Spid_unknown -> Spid_unknown
+  in
+  aux (ids, Spid_func)
+
 let add_id ~id = function
   | [] -> failwith "Internal Error: Empty ids"
   | (k, s) :: tl -> (k, Iset.add id s) :: tl
@@ -907,14 +921,36 @@ and morph_if mk p cond e1 e2 =
   let ids = (Id_local, Iset.empty) :: oids in
 
   let p, e1, a = morph_expr { p with ret; ids } e1 in
-  let e1 = decr_refs e1 (remove_id ~id:a.id p.ids) in
+  let e1 =
+    match Option.map (classify_id oids) a.id with
+    | None -> decr_refs e1 p.ids
+    | Some Spid_unknown -> decr_refs e1 (remove_id ~id:a.id p.ids)
+    | Some (Spid_func | Spid_parent) ->
+        decr_refs { e1 with expr = Mincr_ref e1 } (remove_id ~id:a.id p.ids)
+  in
 
   let p, e2, b = morph_expr { p with ret; ids } e2 in
-  let e2 = decr_refs e2 (remove_id ~id:b.id p.ids) in
+  let e2 =
+    match Option.map (classify_id oids) b.id with
+    | None -> decr_refs e2 p.ids
+    | Some Spid_unknown -> decr_refs e2 (remove_id ~id:b.id p.ids)
+    | Some (Spid_func | Spid_parent) ->
+        decr_refs { e2 with expr = Mincr_ref e2 } (remove_id ~id:b.id p.ids)
+  in
 
-  (* Remove returing ids from original id list as a new one is issued *)
-  let oids = remove_id ~id:a.id oids |> remove_id ~id:b.id in
-
+  (* Remove returning ids from original id list as a new one is issued *)
+  (* NOTE that might not work. The if-expr returns either [a] or [b], but here
+     we remove both, unconditionally. That's probably wrong. *)
+  (* Have to look at different cases here:
+     1. Allocation is if-local. Here, it's enough to remove it from [a] and [b]
+        list.
+     2. Allocation are function-local. We want to remove the id from the function
+        scope id list, but we don't know which one is picked. --We can check if both are the same,
+        then remove from function scope (they are never the same).--
+        Otherwise we increase ref for both branches. --Maybe we can also not
+        generate a new id if both are the same--
+     3. If the variable comes from a parent scope (is closed over), we have to increase
+        ref count in each branch. *)
   let iid, ids = mb_id oids e1.typ in
   ( { p with ids },
     mk (Mif { cond; e1; e2; iid }) ret,
