@@ -156,57 +156,7 @@ let apptbl = Apptbl.create 64
 let poly_funcs_tbl = Hashtbl.create 64
 let missing_polys_tbl = Hashtbl.create 64
 
-let rec cln = function
-  | Types.Tvar { contents = Link t } | Talias (_, t) -> cln t
-  | Tint -> Tint
-  | Tbool -> Tbool
-  | Tunit -> Tunit
-  | Tu8 -> Tu8
-  | Tfloat -> Tfloat
-  | Ti32 -> Ti32
-  | Tf32 -> Tf32
-  | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
-  | Tfun (params, ret, kind) ->
-      Tfun (List.map cln_param params, cln ret, cln_kind kind)
-  | Trecord (ps, name, fields) ->
-      let ps = List.map cln ps in
-      let fields =
-        Array.map
-          (fun field -> { ftyp = cln Types.(field.ftyp); mut = field.mut })
-          fields
-      in
-      let name = Option.map Path.get_hd name in
-      Trecord (ps, name, fields)
-  | Tvariant (ps, name, ctors) ->
-      let ps = List.map cln ps in
-      let ctors =
-        Array.map
-          (fun ctor ->
-            {
-              cname = Types.(ctor.cname);
-              ctyp = Option.map cln ctor.ctyp;
-              index = ctor.index;
-            })
-          ctors
-      in
-      Tvariant (ps, Path.get_hd name, ctors)
-  | Traw_ptr t -> Traw_ptr (cln t)
-  | Tarray t -> Tarray (cln t)
-
-and cln_kind = function
-  | Simple -> Simple
-  | Closure vals ->
-      let vals =
-        List.map
-          (fun (cl : Types.closed) ->
-            { clname = cl.clname; cltyp = cln cl.cltyp; clmut = cl.clmut })
-          vals
-      in
-      Closure vals
-
-and cln_param p =
-  let pt = cln Types.(p.pt) in
-  { pt; pmut = p.pmut }
+(* Monomorphization *)
 
 let typ_of_abs abs = Tfun (abs.func.params, abs.func.ret, abs.func.kind)
 
@@ -598,6 +548,70 @@ and monomorphize p typ concrete func parent_sub =
       let monomorphized = Set.add call p.monomorphized in
       ({ p with funcs; monomorphized }, Mono call)
 
+let extract_callname fallback = function
+  | Mono c | Concrete c | Recursive c -> c
+  | Default -> fallback
+  | Builtin _ | Inline _ ->
+      failwith "Internal error: Builtin or inline function captured in closure"
+
+let rec cln p = function
+  | Types.Tvar { contents = Link t } | Talias (_, t) -> cln p t
+  | Tint -> Tint
+  | Tbool -> Tbool
+  | Tunit -> Tunit
+  | Tu8 -> Tu8
+  | Tfloat -> Tfloat
+  | Ti32 -> Ti32
+  | Tf32 -> Tf32
+  | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
+  | Tfun (params, ret, kind) ->
+      Tfun (List.map (cln_param p) params, cln p ret, cln_kind p kind)
+  | Trecord (ps, name, fields) ->
+      let ps = List.map (cln p) ps in
+      let fields =
+        Array.map
+          (fun field -> { ftyp = cln p Types.(field.ftyp); mut = field.mut })
+          fields
+      in
+      let name = Option.map Path.get_hd name in
+      Trecord (ps, name, fields)
+  | Tvariant (ps, name, ctors) ->
+      let ps = List.map (cln p) ps in
+      let ctors =
+        Array.map
+          (fun ctor ->
+            {
+              cname = Types.(ctor.cname);
+              ctyp = Option.map (cln p) ctor.ctyp;
+              index = ctor.index;
+            })
+          ctors
+      in
+      Tvariant (ps, Path.get_hd name, ctors)
+  | Traw_ptr t -> Traw_ptr (cln p t)
+  | Tarray t -> Tarray (cln p t)
+
+and cln_kind p = function
+  | Simple -> Simple
+  | Closure vals ->
+      let vals =
+        List.map
+          (fun (cl : Types.closed) ->
+            let typ = cln p cl.cltyp in
+            let expr =
+              { typ; expr = Mvar (cl.clname, Vnorm); return = false }
+            in
+            let _, callname = monomorphize_call p expr None in
+            let clname = extract_callname cl.clname callname in
+            { clname; cltyp = typ; clmut = cl.clmut })
+          vals
+      in
+      Closure vals
+
+and cln_param param p =
+  let pt = cln param Types.(p.pt) in
+  { pt; pmut = p.pmut }
+
 (* State *)
 
 let alloc_lvl = ref 1
@@ -741,7 +755,7 @@ let mb_incr v =
   if not (is_temporary v.expr) then { v with expr = Mincr_ref v } else v
 
 let rec_fs_to_env p (username, uniq, typ) =
-  let ftyp = cln typ in
+  let ftyp = cln p typ in
 
   let call = Module.unique_name username uniq in
   let fn = Mutual_rec (call, ftyp) in
@@ -749,7 +763,7 @@ let rec_fs_to_env p (username, uniq, typ) =
   { p with vars }
 
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
-  let make expr return = { typ = cln texpr.typ; expr; return } in
+  let make expr return = { typ = cln param texpr.typ; expr; return } in
   match texpr.expr with
   | Typed_tree.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
@@ -763,7 +777,8 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       let p, e2 = make_e2 e1 e2 id gn lhs.attr.mut rmut p vid in
       (p, e2, func)
-  | Record labels -> morph_record make param labels texpr.attr (cln texpr.typ)
+  | Record labels ->
+      morph_record make param labels texpr.attr (cln param texpr.typ)
   | Field (expr, index) -> morph_field make param expr index
   | Set (expr, value) -> morph_set make param expr value
   | Sequence (expr, cont) -> morph_seq make param expr cont
@@ -781,9 +796,11 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p = List.fold_left rec_fs_to_env param decls in
       morph_expr p cont
   | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
-  | App { callee; args } -> morph_app make param callee args (cln texpr.typ)
+  | App { callee; args } ->
+      morph_app make param callee args (cln param texpr.typ)
   | Ctor (variant, index, dataexpr) ->
-      morph_ctor make param variant index dataexpr texpr.attr (cln texpr.typ)
+      morph_ctor make param variant index dataexpr texpr.attr
+        (cln param texpr.typ)
   | Variant_index expr -> morph_var_index make param expr
   | Variant_data expr -> morph_var_data make param expr
   | Fmt exprs -> morph_fmt make param exprs
@@ -1003,7 +1020,7 @@ and prep_func p (username, uniq, abs) =
      we add the function to the bound variables, but not to the function list.
      Instead, the monomorphized instance will be added later *)
   let ftyp =
-    Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln
+    Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln p
   in
 
   let call = Module.unique_name username uniq in
@@ -1012,9 +1029,9 @@ and prep_func p (username, uniq, abs) =
 
   let func =
     {
-      params = List.map cln_param abs.func.tparams;
-      ret = cln abs.func.ret;
-      kind = cln_kind abs.func.kind;
+      params = List.map (cln_param p) abs.func.tparams;
+      ret = cln p abs.func.ret;
+      kind = cln_kind p abs.func.kind;
     }
   in
   let pnames = abs.nparams in
@@ -1085,15 +1102,15 @@ and prep_func p (username, uniq, abs) =
   (p, call, abs)
 
 and morph_lambda typ p id abs =
-  let typ = cln typ in
+  let typ = cln p typ in
 
   let name = Module.lambda_name id in
   let recursive = Rnone in
   let func =
     {
-      params = List.map cln_param abs.func.tparams;
-      ret = cln abs.func.ret;
-      kind = cln_kind abs.func.kind;
+      params = List.map (cln_param p) abs.func.tparams;
+      ret = cln p abs.func.ret;
+      kind = cln_kind p abs.func.kind;
     }
   in
   let pnames = abs.nparams in
@@ -1441,7 +1458,7 @@ let monomorphize { Typed_tree.externals; items; _ } =
           let c_linkage =
             match imported with None | Some `C -> true | Some `Schmu -> false
           in
-          Some { ext_name; ext_typ = cln t; c_linkage; cname })
+          Some { ext_name; ext_typ = cln p t; c_linkage; cname })
       externals
   in
 
