@@ -229,7 +229,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         let v = { value; typ; lltyp; kind = Imm } in
         let ptr = Arr.array_data [ v ] in
         ("%s", ptr.value)
-    | Tu8 -> ("%hhi", v.value)
+    | Tu8 -> ("%c", v.value)
     | Ti32 -> ("%i", v.value)
     | Tf32 -> (".9gf", v.value)
     | _ ->

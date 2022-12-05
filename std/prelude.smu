@@ -1,7 +1,3 @@
-(type (ptr 'a) { :ptr (raw_ptr 'a) :length int })
-
-(type (owned_ptr 'a) { :optr& (raw_ptr 'a) :length& int })
-
 -- string
 (type cstr (raw_ptr u8))
 
@@ -73,3 +69,6 @@
 
 -- option
 (type (option 'a) ((#some 'a) #none))
+
+-- char
+(fun char-equal [a b] (= (u8_to_int a) (u8_to_int b)))

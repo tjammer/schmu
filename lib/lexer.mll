@@ -30,6 +30,39 @@ let mut_name_of_string str =
 let mut_of_string str =
   String.sub str 0 (String.length str - 1)
 
+let hex_digit_value d =
+  let d = Char.code d in
+  if d >= 97 then d - 87 else
+  if d >= 65 then d - 55 else
+  d - 48
+
+let decimal_code c d u =
+  100 * (Char.code c - 48) + 10 * (Char.code d - 48) + (Char.code u - 48)
+
+let hexadecimal_code s =
+  let rec loop acc i =
+    if i < String.length s then
+      let value = hex_digit_value s.[i] in
+      loop (16 * acc + value) (i + 1)
+    else acc in
+  loop 0 0
+
+let char_for_octal_code c d u =
+  let c = 64 * (Char.code c - 48) +
+           8 * (Char.code d - 48) +
+               (Char.code u - 48) in
+  Char.chr c
+
+let char_for_hexadecimal_code d u =
+  Char.chr (16 * (hex_digit_value d) + (hex_digit_value u))
+
+let char_for_backslash = function
+    'n' -> '\010'
+  | 'r' -> '\013'
+  | 'b' -> '\008'
+  | 't' -> '\009'
+  | c   -> c
+
 }
 
 let digit = ['0'-'9']
@@ -55,6 +88,7 @@ let accessor = '.'(lowercase_id|kebab_id|int)
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
+let backslash_escapes = ['\\' '\'' '"' 'n' 't' 'b' 'r' ' ']
 
 rule read =
   parse
@@ -95,6 +129,18 @@ rule read =
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | '_'      { Wildcard }
   | '"'      { read_string (Buffer.create 17) lexbuf }
+  | "'" [^ '\\'] "'" { U8 (Lexing.lexeme_char lexbuf 1) }
+  | "'" '\\' backslash_escapes "'" { U8 (char_for_backslash (Lexing.lexeme_char lexbuf 2)) }
+  | "'" '\\' (['0'-'9'] as c) (['0'-'9'] as d) (['0'-'9'] as u)"'"
+    { let v = decimal_code c d u in
+      if v > 255 then
+        raise (SyntaxError
+          (Printf.sprintf "illegal escape sequence \\%c%c%c" c d u))
+      else
+        U8 (Char.chr v) }
+  | "'" '\\' 'x'
+       (['0'-'9' 'a'-'f' 'A'-'F'] as d) (['0'-'9' 'a'-'f' 'A'-'F'] as u) "'"
+       { U8 (char_for_hexadecimal_code d u) }
   | '&'      { Ampersand }
   | '@'      { At }
   | '+'      { Plus_i }
