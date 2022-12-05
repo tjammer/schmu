@@ -154,6 +154,14 @@ prog: Lpar Match False Lpar Wildcard False U8
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Match False Lpar U8 Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Lpar U8 False U8
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar Match False Lpar Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -167,6 +175,10 @@ prog: Lpar Match False Lpar Lpar Or Wildcard Val
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Match False Lpar Lpar Or Kebab_id Wildcard Val
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Lpar Lpar Or Kebab_id U8 Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -218,6 +230,10 @@ prog: Lpar Match False Lpar Lpar Or Kebab_id Lbrac Keyword Rbrac Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Match False Lpar Lpar Or U8 Val
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar Match False Lpar Lpar Or Int Val
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -251,6 +267,10 @@ prog: Lpar Match False Lpar Lpar Constructor Val
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Match False Lpar Lpar Constructor Wildcard Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Match False Lpar Lpar Constructor U8 Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

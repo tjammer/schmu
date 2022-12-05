@@ -106,6 +106,7 @@ and tpat =
   | Tp_record of Ast.loc * record_field list
   | Tp_tuple of Ast.loc * tuple_field list
   | Tp_int of Ast.loc * int
+  | Tp_char of Ast.loc * char
 
 and ctor_param = { cindex : int; cpat : pathed_pattern option; ctname : string }
 
@@ -130,7 +131,8 @@ let loc_of_pat = function
   | Tp_record (loc, _)
   | Tp_tuple (loc, _)
   | Tp_ctor (loc, _)
-  | Tp_int (loc, _) ->
+  | Tp_int (loc, _)
+  | Tp_char (loc, _) ->
       loc
 
 module Tup = struct
@@ -147,6 +149,7 @@ module Tup = struct
     | Var of payload * string
     | Ctor of payload * ctor_param
     | Lit_int of payload * int
+    | Lit_char of payload * char
     | Bare of pattern_data
     | Record of record_field list * payload
     | Tuple of tuple_field list * payload
@@ -194,7 +197,7 @@ module Tup = struct
       | Tp_record _ | Tp_tuple _ ->
           1 (* Records have highest prio, as they get destructored *)
       | Tp_ctor _ -> 3
-      | Tp_int _ -> 3
+      | Tp_int _ | Tp_char _ -> 3
       | Tp_var _ -> 2
       | Tp_wildcard _ -> failwith "Internal Error: Should have been dropped"
     in
@@ -211,6 +214,8 @@ module Tup = struct
         Ctor ({ path; loc; d; patterns = sorted; pltyp = ptyp }, param)
     | [ (path, { pat = Tp_int (loc, i); ptyp }) ] ->
         Lit_int ({ path; loc; d; patterns = sorted; pltyp = ptyp }, i)
+    | [ (path, { pat = Tp_char (loc, c); ptyp }) ] ->
+        Lit_char ({ path; loc; d; patterns = sorted; pltyp = ptyp }, c)
     | (_, { pat = Tp_ctor _; ptyp }) :: _ -> (
         let path, pat = choose_column sorted tl in
         match pat.pat with
@@ -222,6 +227,12 @@ module Tup = struct
         match pat.pat with
         | Tp_int (loc, i) ->
             Lit_int ({ path; loc; d; patterns = sorted; pltyp = ptyp }, i)
+        | _ -> failwith "Internal Error: Not an int pattern")
+    | (_, { pat = Tp_char _; ptyp }) :: _ -> (
+        let path, pat = choose_column sorted tl in
+        match pat.pat with
+        | Tp_char (loc, c) ->
+            Lit_char ({ path; loc; d; patterns = sorted; pltyp = ptyp }, c)
         | _ -> failwith "Internal Error: Not an int pattern")
     | (path, { pat = Tp_var (loc, name); ptyp }) :: patterns ->
         (* Drop var from patterns list *)
@@ -307,7 +318,7 @@ module Exhaustiveness = struct
     let patterns =
       List.filter_map
         (function
-          | { pat = Tp_ctor _ | Tp_int _; _ } :: _ ->
+          | { pat = Tp_ctor _ | Tp_int _ | Tp_char _; _ } :: _ ->
               (* Drop row *)
               rows_empty := false;
               None
@@ -757,6 +768,9 @@ module Make (C : Core) (R : Recs) = struct
     | Plit_int (loc, i) ->
         unify (loc, "Int pattern has unexpected type:") (path_typ env path) Tint;
         [ (path, { ptyp = Tint; pat = Tp_int (loc, i) }) ]
+    | Plit_char (loc, c) ->
+        unify (loc, "Char pattern has unexpected type:") (path_typ env path) Tu8;
+        [ (path, { ptyp = Tu8; pat = Tp_char (loc, c) }) ]
     | Por pats ->
         (* Don't add to pattern *)
         let pats = List.map (fun p -> type_pattern env (path, p)) pats in
@@ -915,6 +929,25 @@ module Make (C : Core) (R : Recs) = struct
                   If (cmp, cont, else_)
             in
             { typ = ret_typ; expr; attr = no_attr; loc }
+        | Lit_char ({ path; d; patterns; loc; _ }, c) ->
+            let a, b = match_char (path, c) ((patterns, d) :: tl) [] [] in
+
+            let cont = compile_matches env d.loc rows a ret_typ in
+
+            let expr =
+              match b with
+              | [] -> cont.expr
+              | b ->
+                  let cind =
+                    let attr = { no_attr with const = true } in
+                    { typ = Tu8; expr = Const (U8 c); attr; loc }
+                  in
+                  (* i64 and u8 equal compare call the same llvm functions *)
+                  let cmp = gen_cmp loc (expr path) cind in
+                  let else_ = compile_matches env d.loc rows b ret_typ in
+                  If (cmp, cont, else_)
+            in
+            { typ = ret_typ; expr; attr = no_attr; loc }
         | Record (fields, { path; loc; d; patterns; _ }) ->
             let env =
               List.fold_left
@@ -1001,7 +1034,11 @@ module Make (C : Core) (R : Recs) = struct
             let arg = arg_opt ptyp loc param.cpat in
             let clauses = assoc_set i arg clauses in
             match_cases (i, case) tl ((clauses, d) :: if_) else_
-        | Some { pat = Tp_ctor _ | Tp_record _ | Tp_tuple _ | Tp_int _; _ } ->
+        | Some
+            {
+              pat = Tp_ctor _ | Tp_record _ | Tp_tuple _ | Tp_int _ | Tp_char _;
+              _;
+            } ->
             (* We found a ctor, but it does not match. Add to [else_].
                This works for record patterns as well. We are searching for a ctor,
                a record is surely not the ctor we are searching for *)
@@ -1021,10 +1058,32 @@ module Make (C : Core) (R : Recs) = struct
         | Some { pat = Tp_int (_, i); _ } when Int.equal int i ->
             let clauses = assoc_remove path clauses in
             match_int (path, int) tl ((clauses, d) :: if_) else_
-        | Some { pat = Tp_ctor _ | Tp_record _ | Tp_tuple _ | Tp_int _; _ } ->
+        | Some
+            {
+              pat = Tp_ctor _ | Tp_record _ | Tp_tuple _ | Tp_int _ | Tp_char _;
+              _;
+            } ->
             match_int (path, int) tl if_ ((clauses, d) :: else_)
         | Some { pat = Tp_var _ | Tp_wildcard _; _ } | None ->
             match_int (path, int) tl ((clauses, d) :: if_)
+              ((clauses, d) :: else_))
+    | [] -> (List.rev if_, List.rev else_)
+
+  and match_char (path, char) cases if_ else_ =
+    match cases with
+    | (clauses, d) :: tl -> (
+        match List.assoc_opt path clauses with
+        | Some { pat = Tp_char (_, c); _ } when Char.equal char c ->
+            let clauses = assoc_remove path clauses in
+            match_char (path, char) tl ((clauses, d) :: if_) else_
+        | Some
+            {
+              pat = Tp_ctor _ | Tp_record _ | Tp_tuple _ | Tp_int _ | Tp_char _;
+              _;
+            } ->
+            match_char (path, char) tl if_ ((clauses, d) :: else_)
+        | Some { pat = Tp_var _ | Tp_wildcard _; _ } | None ->
+            match_char (path, char) tl ((clauses, d) :: if_)
               ((clauses, d) :: else_))
     | [] -> (List.rev if_, List.rev else_)
 

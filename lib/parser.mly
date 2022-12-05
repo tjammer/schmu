@@ -326,6 +326,7 @@ let with_loc(x) :=
   | Wildcard { Pwildcard $loc }
   | items = bracs(nonempty_list(record_item_pattern)) { Precord ($loc, items) }
   | i = Int { Plit_int ($loc, i) }
+  | c = U8 {Plit_char ($loc, c)}
   | tup = bracs(sexp_pattern_tuple) { tup }
   | parens(or_pattern) { $1 }
 
