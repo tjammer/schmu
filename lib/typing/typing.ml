@@ -635,7 +635,11 @@ end = struct
         env
       else
         (* Recursion allowed for named funcs *)
-        Env.(add_value name { def_value with typ = newvar () } nameloc env)
+        let ps =
+          List.map (fun p -> Ast.{ pmut = p.mut; pt = newvar () }) params
+        in
+        let typ = Tfun (ps, newvar (), Simple) in
+        Env.(add_value name { def_value with typ } nameloc env)
     in
 
     (* We duplicate some lambda code due to naming *)
