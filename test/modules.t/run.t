@@ -383,21 +383,17 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i64 0, i64* %data, align 8
     %"1" = getelementptr i64, i64* %data, i64 1
     store i64 1, i64* %"1", align 8
-    %4 = load i64*, i64** @vtest, align 8
-    store i64* %4, i64** @vtest, align 8
-    %5 = tail call i8* @malloc(i64 32)
-    %6 = bitcast i8* %5 to i64*
-    store i64* %6, i64** @vtest2, align 8
-    store i64 1, i64* %6, align 8
-    %size2 = getelementptr i64, i64* %6, i64 1
+    %4 = tail call i8* @malloc(i64 32)
+    %5 = bitcast i8* %4 to i64*
+    store i64* %5, i64** @vtest2, align 8
+    store i64 1, i64* %5, align 8
+    %size2 = getelementptr i64, i64* %5, i64 1
     store i64 1, i64* %size2, align 8
-    %cap3 = getelementptr i64, i64* %6, i64 2
+    %cap3 = getelementptr i64, i64* %5, i64 2
     store i64 1, i64* %cap3, align 8
-    %7 = getelementptr i8, i8* %5, i64 24
-    %data4 = bitcast i8* %7 to i64*
+    %6 = getelementptr i8, i8* %4, i64 24
+    %data4 = bitcast i8* %6 to i64*
     store i64 3, i64* %data4, align 8
-    %8 = load i64*, i64** @vtest2, align 8
-    store i64* %8, i64** @vtest2, align 8
     ret void
   }
   

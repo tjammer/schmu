@@ -1013,18 +1013,19 @@ end = struct
 
   and gen_copy_global param temporary gn expr =
     let dst = Strtbl.find const_tbl gn in
-    let v =
-      gen_expr { param with alloca = Some dst.value } expr |> bring_default_var
-    in
+    let v = gen_expr { param with alloca = Some dst.value } expr in
     (* Bandaid for polymorphic first class functions. In monomorph pass, the
        global is ignored. TODO. Here, we make sure that the dummy_fn_value is
        not set to the global. The global will stay 0 forever *)
     match v.typ with
     | Tunit -> v
     | _ ->
-        if not temporary then incr_refcount v;
+        let src = bring_default_var v in
+        if not temporary then incr_refcount src;
 
-        store_or_copy ~src:v ~dst:dst.value;
+        (* Only copy if the alloca was not used
+           (for whatever reason; it should have been used) *)
+        if v.value <> dst.value then store_or_copy ~src ~dst:dst.value;
         let v = { v with value = dst.value; kind = Ptr } in
         Strtbl.replace const_tbl gn v;
         v

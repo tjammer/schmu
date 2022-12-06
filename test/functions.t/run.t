@@ -1174,7 +1174,6 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i64 1, i64* %cap, align 8
     %2 = getelementptr i8, i8* %0, i64 24
     %3 = load i64*, i64** @arr, align 8
-    store i64* %3, i64** @arr, align 8
     %size1 = getelementptr i64, i64* %3, i64 1
     %size2 = load i64, i64* %size1, align 8
     %cap3 = getelementptr i64, i64* %3, i64 2
@@ -2533,7 +2532,6 @@ The lamba passed as array-iter argument is polymorphic
     %"9" = getelementptr i64, i64* %data, i64 9
     store i64 10, i64* %"9", align 8
     %3 = load i64*, i64** @arr, align 8
-    store i64* %3, i64** @arr, align 8
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @2 to i8*), i8** %str, align 8
     %4 = tail call i8* @schmu___agac.ac_string-concat_aiac.ac(i64* %3, i8* bitcast ({ i64, i64, i64, [3 x i8] }* @2 to i8*))

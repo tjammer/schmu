@@ -584,183 +584,175 @@ Also mutable fields and 'realloc' builtin
     %"2" = getelementptr i8*, i8** %data, i64 2
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @2 to i8*), i8** %"2", align 8
     tail call void @__g.u_incr_rc_ac.u(i8* bitcast ({ i64, i64, i64, [6 x i8] }* @2 to i8*))
-    %4 = load i8**, i8*** @arr, align 8
-    store i8** %4, i8*** @arr, align 8
-    %5 = tail call i8* @malloc(i64 48)
-    %6 = bitcast i8* %5 to %foo*
-    store %foo* %6, %foo** @arr__2, align 8
-    %7 = bitcast %foo* %6 to i64*
-    store i64 1, i64* %7, align 8
-    %size2 = getelementptr i64, i64* %7, i64 1
+    %4 = tail call i8* @malloc(i64 48)
+    %5 = bitcast i8* %4 to %foo*
+    store %foo* %5, %foo** @arr__2, align 8
+    %6 = bitcast %foo* %5 to i64*
+    store i64 1, i64* %6, align 8
+    %size2 = getelementptr i64, i64* %6, i64 1
     store i64 3, i64* %size2, align 8
-    %cap3 = getelementptr i64, i64* %7, i64 2
+    %cap3 = getelementptr i64, i64* %6, i64 2
     store i64 3, i64* %cap3, align 8
-    %8 = getelementptr i8, i8* %5, i64 24
-    %data4 = bitcast i8* %8 to %foo*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* bitcast (%foo* @x to i8*), i64 8, i1 false)
+    %7 = getelementptr i8, i8* %4, i64 24
+    %data4 = bitcast i8* %7 to %foo*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* bitcast (%foo* @x to i8*), i64 8, i1 false)
     %"16" = getelementptr %foo, %foo* %data4, i64 1
     store %foo { i64 2 }, %foo* %"16", align 8
     %"27" = getelementptr %foo, %foo* %data4, i64 2
     store %foo { i64 3 }, %foo* %"27", align 8
-    %9 = load %foo*, %foo** @arr__2, align 8
-    store %foo* %9, %foo** @arr__2, align 8
-    %10 = tail call %foo* @schmu_make_arr()
-    store %foo* %10, %foo** @arr__3, align 8
+    %8 = tail call %foo* @schmu_make_arr()
+    store %foo* %8, %foo** @arr__3, align 8
     tail call void @schmu_arr_inside()
     tail call void @schmu_inner_parent_scope()
-    %11 = tail call %foo* @schmu_nest_fns()
-    store %foo* %11, %foo** @normal, align 8
-    %12 = tail call i8* @malloc(i64 40)
-    %13 = bitcast i8* %12 to i64**
-    store i64** %13, i64*** @nested, align 8
-    %14 = bitcast i64** %13 to i64*
-    store i64 1, i64* %14, align 8
-    %size9 = getelementptr i64, i64* %14, i64 1
+    %9 = tail call %foo* @schmu_nest_fns()
+    store %foo* %9, %foo** @normal, align 8
+    %10 = tail call i8* @malloc(i64 40)
+    %11 = bitcast i8* %10 to i64**
+    store i64** %11, i64*** @nested, align 8
+    %12 = bitcast i64** %11 to i64*
+    store i64 1, i64* %12, align 8
+    %size9 = getelementptr i64, i64* %12, i64 1
     store i64 2, i64* %size9, align 8
-    %cap10 = getelementptr i64, i64* %14, i64 2
+    %cap10 = getelementptr i64, i64* %12, i64 2
     store i64 2, i64* %cap10, align 8
-    %15 = getelementptr i8, i8* %12, i64 24
-    %data11 = bitcast i8* %15 to i64**
-    %16 = tail call i8* @malloc(i64 40)
-    %17 = bitcast i8* %16 to i64*
-    store i64* %17, i64** %data11, align 8
-    store i64 1, i64* %17, align 8
-    %size14 = getelementptr i64, i64* %17, i64 1
+    %13 = getelementptr i8, i8* %10, i64 24
+    %data11 = bitcast i8* %13 to i64**
+    %14 = tail call i8* @malloc(i64 40)
+    %15 = bitcast i8* %14 to i64*
+    store i64* %15, i64** %data11, align 8
+    store i64 1, i64* %15, align 8
+    %size14 = getelementptr i64, i64* %15, i64 1
     store i64 2, i64* %size14, align 8
-    %cap15 = getelementptr i64, i64* %17, i64 2
+    %cap15 = getelementptr i64, i64* %15, i64 2
     store i64 2, i64* %cap15, align 8
-    %18 = getelementptr i8, i8* %16, i64 24
-    %data16 = bitcast i8* %18 to i64*
+    %16 = getelementptr i8, i8* %14, i64 24
+    %data16 = bitcast i8* %16 to i64*
     store i64 0, i64* %data16, align 8
     %"118" = getelementptr i64, i64* %data16, i64 1
     store i64 1, i64* %"118", align 8
     %"119" = getelementptr i64*, i64** %data11, i64 1
-    %19 = tail call i8* @malloc(i64 40)
-    %20 = bitcast i8* %19 to i64*
-    store i64* %20, i64** %"119", align 8
-    store i64 1, i64* %20, align 8
-    %size21 = getelementptr i64, i64* %20, i64 1
+    %17 = tail call i8* @malloc(i64 40)
+    %18 = bitcast i8* %17 to i64*
+    store i64* %18, i64** %"119", align 8
+    store i64 1, i64* %18, align 8
+    %size21 = getelementptr i64, i64* %18, i64 1
     store i64 2, i64* %size21, align 8
-    %cap22 = getelementptr i64, i64* %20, i64 2
+    %cap22 = getelementptr i64, i64* %18, i64 2
     store i64 2, i64* %cap22, align 8
-    %21 = getelementptr i8, i8* %19, i64 24
-    %data23 = bitcast i8* %21 to i64*
+    %19 = getelementptr i8, i8* %17, i64 24
+    %data23 = bitcast i8* %19 to i64*
     store i64 2, i64* %data23, align 8
     %"125" = getelementptr i64, i64* %data23, i64 1
     store i64 3, i64* %"125", align 8
-    %22 = load i64**, i64*** @nested, align 8
-    store i64** %22, i64*** @nested, align 8
-    %23 = tail call i8* @malloc(i64 40)
-    %24 = bitcast i8* %23 to i64*
+    %20 = tail call i8* @malloc(i64 40)
+    %21 = bitcast i8* %20 to i64*
     %arr = alloca i64*, align 8
-    store i64* %24, i64** %arr, align 8
-    store i64 1, i64* %24, align 8
-    %size27 = getelementptr i64, i64* %24, i64 1
+    store i64* %21, i64** %arr, align 8
+    store i64 1, i64* %21, align 8
+    %size27 = getelementptr i64, i64* %21, i64 1
     store i64 2, i64* %size27, align 8
-    %cap28 = getelementptr i64, i64* %24, i64 2
+    %cap28 = getelementptr i64, i64* %21, i64 2
     store i64 2, i64* %cap28, align 8
-    %25 = getelementptr i8, i8* %23, i64 24
-    %data29 = bitcast i8* %25 to i64*
+    %22 = getelementptr i8, i8* %20, i64 24
+    %data29 = bitcast i8* %22 to i64*
     store i64 4, i64* %data29, align 8
     %"131" = getelementptr i64, i64* %data29, i64 1
     store i64 5, i64* %"131", align 8
-    %26 = load i64**, i64*** @nested, align 8
-    %27 = bitcast i64** %26 to i64*
-    %size32 = getelementptr i64, i64* %27, i64 1
+    %23 = load i64**, i64*** @nested, align 8
+    %24 = bitcast i64** %23 to i64*
+    %size32 = getelementptr i64, i64* %24, i64 1
     %size33 = load i64, i64* %size32, align 8
-    %cap34 = getelementptr i64, i64* %27, i64 2
+    %cap34 = getelementptr i64, i64* %24, i64 2
     %cap35 = load i64, i64* %cap34, align 8
-    %28 = icmp eq i64 %cap35, %size33
-    br i1 %28, label %grow, label %keep
+    %25 = icmp eq i64 %cap35, %size33
+    br i1 %25, label %grow, label %keep
   
   keep:                                             ; preds = %entry
-    %29 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
+    %26 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
     br label %merge
   
   grow:                                             ; preds = %entry
-    %30 = tail call i64** @__ag.ag_grow_aai.aai(i64*** @nested)
+    %27 = tail call i64** @__ag.ag_grow_aai.aai(i64*** @nested)
     br label %merge
   
   merge:                                            ; preds = %grow, %keep
-    %31 = phi i64** [ %29, %keep ], [ %30, %grow ]
-    %32 = bitcast i8* %23 to i64*
-    %33 = bitcast i64** %31 to i64*
-    %34 = bitcast i64** %31 to i8*
-    %35 = mul i64 8, %size33
-    %36 = add i64 24, %35
-    %37 = getelementptr i8, i8* %34, i64 %36
-    %data36 = bitcast i8* %37 to i64**
-    store i64* %32, i64** %data36, align 8
-    %size37 = getelementptr i64, i64* %33, i64 1
-    %38 = add i64 %size33, 1
-    store i64 %38, i64* %size37, align 8
-    %39 = tail call i64** @schmu_make_nested_arr()
-    store i64** %39, i64*** @nested__2, align 8
-    %40 = tail call i64** @schmu_nest_allocs()
-    store i64** %40, i64*** @nested__3, align 8
+    %28 = phi i64** [ %26, %keep ], [ %27, %grow ]
+    %29 = bitcast i8* %20 to i64*
+    %30 = bitcast i64** %28 to i64*
+    %31 = bitcast i64** %28 to i8*
+    %32 = mul i64 8, %size33
+    %33 = add i64 24, %32
+    %34 = getelementptr i8, i8* %31, i64 %33
+    %data36 = bitcast i8* %34 to i64**
+    store i64* %29, i64** %data36, align 8
+    %size37 = getelementptr i64, i64* %30, i64 1
+    %35 = add i64 %size33, 1
+    store i64 %35, i64* %size37, align 8
+    %36 = tail call i64** @schmu_make_nested_arr()
+    store i64** %36, i64*** @nested__2, align 8
+    %37 = tail call i64** @schmu_nest_allocs()
+    store i64** %37, i64*** @nested__3, align 8
     tail call void @schmu_nest_local()
     store i64 12, i64* getelementptr inbounds (%container, %container* @rec_of_arr, i32 0, i32 0), align 8
-    %41 = tail call i8* @malloc(i64 40)
-    %42 = bitcast i8* %41 to i64*
+    %38 = tail call i8* @malloc(i64 40)
+    %39 = bitcast i8* %38 to i64*
     %arr38 = alloca i64*, align 8
-    store i64* %42, i64** %arr38, align 8
-    store i64 1, i64* %42, align 8
-    %size40 = getelementptr i64, i64* %42, i64 1
+    store i64* %39, i64** %arr38, align 8
+    store i64 1, i64* %39, align 8
+    %size40 = getelementptr i64, i64* %39, i64 1
     store i64 2, i64* %size40, align 8
-    %cap41 = getelementptr i64, i64* %42, i64 2
+    %cap41 = getelementptr i64, i64* %39, i64 2
     store i64 2, i64* %cap41, align 8
-    %43 = getelementptr i8, i8* %41, i64 24
-    %data42 = bitcast i8* %43 to i64*
+    %40 = getelementptr i8, i8* %38, i64 24
+    %data42 = bitcast i8* %40 to i64*
     store i64 1, i64* %data42, align 8
     %"144" = getelementptr i64, i64* %data42, i64 1
     store i64 2, i64* %"144", align 8
-    store i64* %42, i64** getelementptr inbounds (%container, %container* @rec_of_arr, i32 0, i32 1), align 8
-    %44 = tail call { i64, i64 } @schmu_record_of_arrs()
-    store { i64, i64 } %44, { i64, i64 }* bitcast (%container* @rec_of_arr__2 to { i64, i64 }*), align 8
-    %45 = tail call i8* @malloc(i64 56)
-    %46 = bitcast i8* %45 to %container*
-    store %container* %46, %container** @arr_of_rec, align 8
-    %47 = bitcast %container* %46 to i64*
-    store i64 1, i64* %47, align 8
-    %size46 = getelementptr i64, i64* %47, i64 1
+    store i64* %39, i64** getelementptr inbounds (%container, %container* @rec_of_arr, i32 0, i32 1), align 8
+    %41 = tail call { i64, i64 } @schmu_record_of_arrs()
+    store { i64, i64 } %41, { i64, i64 }* bitcast (%container* @rec_of_arr__2 to { i64, i64 }*), align 8
+    %42 = tail call i8* @malloc(i64 56)
+    %43 = bitcast i8* %42 to %container*
+    store %container* %43, %container** @arr_of_rec, align 8
+    %44 = bitcast %container* %43 to i64*
+    store i64 1, i64* %44, align 8
+    %size46 = getelementptr i64, i64* %44, i64 1
     store i64 2, i64* %size46, align 8
-    %cap47 = getelementptr i64, i64* %47, i64 2
+    %cap47 = getelementptr i64, i64* %44, i64 2
     store i64 2, i64* %cap47, align 8
-    %48 = getelementptr i8, i8* %45, i64 24
-    %data48 = bitcast i8* %48 to %container*
-    %49 = tail call { i64, i64 } @schmu_record_of_arrs()
+    %45 = getelementptr i8, i8* %42, i64 24
+    %data48 = bitcast i8* %45 to %container*
+    %46 = tail call { i64, i64 } @schmu_record_of_arrs()
     %box = bitcast %container* %data48 to { i64, i64 }*
-    store { i64, i64 } %49, { i64, i64 }* %box, align 8
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %48, i8* %48, i64 16, i1 false)
+    store { i64, i64 } %46, { i64, i64 }* %box, align 8
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %45, i8* %45, i64 16, i1 false)
     %"151" = getelementptr %container, %container* %data48, i64 1
-    %50 = tail call { i64, i64 } @schmu_record_of_arrs()
+    %47 = tail call { i64, i64 } @schmu_record_of_arrs()
     %box52 = bitcast %container* %"151" to { i64, i64 }*
-    store { i64, i64 } %50, { i64, i64 }* %box52, align 8
-    %51 = bitcast %container* %"151" to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %51, i8* %51, i64 16, i1 false)
-    %52 = load %container*, %container** @arr_of_rec, align 8
-    store %container* %52, %container** @arr_of_rec, align 8
-    %53 = tail call %container* @schmu_arr_of_records()
-    store %container* %53, %container** @arr_of_rec__2, align 8
-    tail call void @__g.u_decr_rc_acontainer.u(%container* %53)
-    %54 = load %container*, %container** @arr_of_rec, align 8
-    tail call void @__g.u_decr_rc_acontainer.u(%container* %54)
+    store { i64, i64 } %47, { i64, i64 }* %box52, align 8
+    %48 = bitcast %container* %"151" to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %48, i8* %48, i64 16, i1 false)
+    %49 = tail call %container* @schmu_arr_of_records()
+    store %container* %49, %container** @arr_of_rec__2, align 8
+    tail call void @__g.u_decr_rc_acontainer.u(%container* %49)
+    %50 = load %container*, %container** @arr_of_rec, align 8
+    tail call void @__g.u_decr_rc_acontainer.u(%container* %50)
     tail call void @__g.u_decr_rc_container.u(%container* @rec_of_arr__2)
     tail call void @__g.u_decr_rc_container.u(%container* @rec_of_arr)
-    %55 = load i64**, i64*** @nested__3, align 8
-    tail call void @__g.u_decr_rc_aai.u(i64** %55)
-    %56 = load i64**, i64*** @nested__2, align 8
-    tail call void @__g.u_decr_rc_aai.u(i64** %56)
-    %57 = load i64**, i64*** @nested, align 8
-    tail call void @__g.u_decr_rc_aai.u(i64** %57)
-    %58 = load %foo*, %foo** @normal, align 8
-    tail call void @__g.u_decr_rc_afoo.u(%foo* %58)
-    %59 = load %foo*, %foo** @arr__3, align 8
-    tail call void @__g.u_decr_rc_afoo.u(%foo* %59)
-    %60 = load %foo*, %foo** @arr__2, align 8
-    tail call void @__g.u_decr_rc_afoo.u(%foo* %60)
-    %61 = load i8**, i8*** @arr, align 8
-    tail call void @__g.u_decr_rc_aac.u(i8** %61)
+    %51 = load i64**, i64*** @nested__3, align 8
+    tail call void @__g.u_decr_rc_aai.u(i64** %51)
+    %52 = load i64**, i64*** @nested__2, align 8
+    tail call void @__g.u_decr_rc_aai.u(i64** %52)
+    %53 = load i64**, i64*** @nested, align 8
+    tail call void @__g.u_decr_rc_aai.u(i64** %53)
+    %54 = load %foo*, %foo** @normal, align 8
+    tail call void @__g.u_decr_rc_afoo.u(%foo* %54)
+    %55 = load %foo*, %foo** @arr__3, align 8
+    tail call void @__g.u_decr_rc_afoo.u(%foo* %55)
+    %56 = load %foo*, %foo** @arr__2, align 8
+    tail call void @__g.u_decr_rc_afoo.u(%foo* %56)
+    %57 = load i8**, i8*** @arr, align 8
+    tail call void @__g.u_decr_rc_aac.u(i8** %57)
     ret i64 0
   }
   
@@ -2274,7 +2266,6 @@ Ensure global are loadad correctly when passed to functions
     %"1" = getelementptr i64, i64* %data, i64 1
     store i64 20, i64* %"1", align 8
     %3 = load i64*, i64** @a, align 8
-    store i64* %3, i64** @a, align 8
     tail call void @__g.u_incr_rc_ai.u(i64* %3)
     store i64* %3, i64** @b, align 8
     %4 = load i64*, i64** @a, align 8
@@ -2383,170 +2374,167 @@ Ensure global are loadad correctly when passed to functions
     store i64 2, i64* %data34, align 8
     %"136" = getelementptr i64, i64* %data34, i64 1
     store i64 3, i64* %"136", align 8
-    %40 = load i64**, i64*** @nested, align 8
-    store i64** %40, i64*** @nested, align 8
-    %41 = tail call i8* @malloc(i64 40)
-    %42 = bitcast i8* %41 to i64*
-    store i64* %42, i64** @a__2, align 8
-    store i64 1, i64* %42, align 8
-    %size38 = getelementptr i64, i64* %42, i64 1
+    %40 = tail call i8* @malloc(i64 40)
+    %41 = bitcast i8* %40 to i64*
+    store i64* %41, i64** @a__2, align 8
+    store i64 1, i64* %41, align 8
+    %size38 = getelementptr i64, i64* %41, i64 1
     store i64 2, i64* %size38, align 8
-    %cap39 = getelementptr i64, i64* %42, i64 2
+    %cap39 = getelementptr i64, i64* %41, i64 2
     store i64 2, i64* %cap39, align 8
-    %43 = getelementptr i8, i8* %41, i64 24
-    %data40 = bitcast i8* %43 to i64*
+    %42 = getelementptr i8, i8* %40, i64 24
+    %data40 = bitcast i8* %42 to i64*
     store i64 4, i64* %data40, align 8
     %"142" = getelementptr i64, i64* %data40, i64 1
     store i64 5, i64* %"142", align 8
+    %43 = load i64*, i64** @a__2, align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %43)
     %44 = load i64*, i64** @a__2, align 8
-    store i64* %44, i64** @a__2, align 8
-    tail call void @__g.u_incr_rc_ai.u(i64* %44)
-    %45 = load i64*, i64** @a__2, align 8
-    %46 = load i64**, i64*** @nested, align 8
-    %47 = bitcast i64** %46 to i64*
-    %size43 = getelementptr i64, i64* %47, i64 1
+    %45 = load i64**, i64*** @nested, align 8
+    %46 = bitcast i64** %45 to i64*
+    %size43 = getelementptr i64, i64* %46, i64 1
     %size44 = load i64, i64* %size43, align 8
-    %cap45 = getelementptr i64, i64* %47, i64 2
+    %cap45 = getelementptr i64, i64* %46, i64 2
     %cap46 = load i64, i64* %cap45, align 8
-    %48 = icmp eq i64 %cap46, %size44
-    br i1 %48, label %grow48, label %keep47
+    %47 = icmp eq i64 %cap46, %size44
+    br i1 %47, label %grow48, label %keep47
   
   keep47:                                           ; preds = %merge
-    %49 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
+    %48 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
     br label %merge49
   
   grow48:                                           ; preds = %merge
-    %50 = tail call i64** @__ag.ag_grow_aai.aai(i64*** @nested)
+    %49 = tail call i64** @__ag.ag_grow_aai.aai(i64*** @nested)
     br label %merge49
   
   merge49:                                          ; preds = %grow48, %keep47
-    %51 = phi i64** [ %49, %keep47 ], [ %50, %grow48 ]
-    %52 = bitcast i64** %51 to i64*
-    %53 = bitcast i64** %51 to i8*
-    %54 = mul i64 8, %size44
-    %55 = add i64 24, %54
-    %56 = getelementptr i8, i8* %53, i64 %55
-    %data50 = bitcast i8* %56 to i64**
-    store i64* %45, i64** %data50, align 8
-    %size51 = getelementptr i64, i64* %52, i64 1
-    %57 = add i64 %size44, 1
-    store i64 %57, i64* %size51, align 8
+    %50 = phi i64** [ %48, %keep47 ], [ %49, %grow48 ]
+    %51 = bitcast i64** %50 to i64*
+    %52 = bitcast i64** %50 to i8*
+    %53 = mul i64 8, %size44
+    %54 = add i64 24, %53
+    %55 = getelementptr i8, i8* %52, i64 %54
+    %data50 = bitcast i8* %55 to i64**
+    store i64* %44, i64** %data50, align 8
+    %size51 = getelementptr i64, i64* %51, i64 1
+    %56 = add i64 %size44, 1
+    store i64 %56, i64* %size51, align 8
+    %57 = load i64*, i64** @a__2, align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %57)
     %58 = load i64*, i64** @a__2, align 8
-    tail call void @__g.u_incr_rc_ai.u(i64* %58)
-    %59 = load i64*, i64** @a__2, align 8
-    %60 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
-    %61 = bitcast i64** %60 to i8*
-    %62 = getelementptr i8, i8* %61, i64 32
-    %data52 = bitcast i8* %62 to i64**
-    %63 = load i64*, i64** %data52, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %63)
-    store i64* %59, i64** %data52, align 8
-    %64 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
-    %65 = bitcast i64** %64 to i8*
-    %66 = getelementptr i8, i8* %65, i64 32
-    %data53 = bitcast i8* %66 to i64**
-    %67 = load i64*, i64** @a__2, align 8
-    tail call void @__g.u_incr_rc_ai.u(i64* %67)
-    %68 = load i64*, i64** %data53, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %68)
-    %69 = load i64*, i64** @a__2, align 8
-    store i64* %69, i64** %data53, align 8
-    %70 = tail call i8* @malloc(i64 40)
-    %71 = bitcast i8* %70 to i64*
+    %59 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
+    %60 = bitcast i64** %59 to i8*
+    %61 = getelementptr i8, i8* %60, i64 32
+    %data52 = bitcast i8* %61 to i64**
+    %62 = load i64*, i64** %data52, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %62)
+    store i64* %58, i64** %data52, align 8
+    %63 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
+    %64 = bitcast i64** %63 to i8*
+    %65 = getelementptr i8, i8* %64, i64 32
+    %data53 = bitcast i8* %65 to i64**
+    %66 = load i64*, i64** @a__2, align 8
+    tail call void @__g.u_incr_rc_ai.u(i64* %66)
+    %67 = load i64*, i64** %data53, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %67)
+    %68 = load i64*, i64** @a__2, align 8
+    store i64* %68, i64** %data53, align 8
+    %69 = tail call i8* @malloc(i64 40)
+    %70 = bitcast i8* %69 to i64*
     %arr = alloca i64*, align 8
-    store i64* %71, i64** %arr, align 8
-    store i64 1, i64* %71, align 8
-    %size55 = getelementptr i64, i64* %71, i64 1
+    store i64* %70, i64** %arr, align 8
+    store i64 1, i64* %70, align 8
+    %size55 = getelementptr i64, i64* %70, i64 1
     store i64 2, i64* %size55, align 8
-    %cap56 = getelementptr i64, i64* %71, i64 2
+    %cap56 = getelementptr i64, i64* %70, i64 2
     store i64 2, i64* %cap56, align 8
-    %72 = getelementptr i8, i8* %70, i64 24
-    %data57 = bitcast i8* %72 to i64*
+    %71 = getelementptr i8, i8* %69, i64 24
+    %data57 = bitcast i8* %71 to i64*
     store i64 4, i64* %data57, align 8
     %"159" = getelementptr i64, i64* %data57, i64 1
     store i64 5, i64* %"159", align 8
-    %73 = load i64**, i64*** @nested, align 8
-    %74 = bitcast i64** %73 to i64*
-    %size60 = getelementptr i64, i64* %74, i64 1
+    %72 = load i64**, i64*** @nested, align 8
+    %73 = bitcast i64** %72 to i64*
+    %size60 = getelementptr i64, i64* %73, i64 1
     %size61 = load i64, i64* %size60, align 8
-    %cap62 = getelementptr i64, i64* %74, i64 2
+    %cap62 = getelementptr i64, i64* %73, i64 2
     %cap63 = load i64, i64* %cap62, align 8
-    %75 = icmp eq i64 %cap63, %size61
-    br i1 %75, label %grow65, label %keep64
+    %74 = icmp eq i64 %cap63, %size61
+    br i1 %74, label %grow65, label %keep64
   
   keep64:                                           ; preds = %merge49
-    %76 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
+    %75 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
     br label %merge66
   
   grow65:                                           ; preds = %merge49
-    %77 = tail call i64** @__ag.ag_grow_aai.aai(i64*** @nested)
+    %76 = tail call i64** @__ag.ag_grow_aai.aai(i64*** @nested)
     br label %merge66
   
   merge66:                                          ; preds = %grow65, %keep64
-    %78 = phi i64** [ %76, %keep64 ], [ %77, %grow65 ]
-    %79 = bitcast i8* %70 to i64*
-    %80 = bitcast i64** %78 to i64*
-    %81 = bitcast i64** %78 to i8*
-    %82 = mul i64 8, %size61
-    %83 = add i64 24, %82
-    %84 = getelementptr i8, i8* %81, i64 %83
-    %data67 = bitcast i8* %84 to i64**
-    store i64* %79, i64** %data67, align 8
-    %size68 = getelementptr i64, i64* %80, i64 1
-    %85 = add i64 %size61, 1
-    store i64 %85, i64* %size68, align 8
-    %86 = tail call i8* @malloc(i64 40)
-    %87 = bitcast i8* %86 to i64*
+    %77 = phi i64** [ %75, %keep64 ], [ %76, %grow65 ]
+    %78 = bitcast i8* %69 to i64*
+    %79 = bitcast i64** %77 to i64*
+    %80 = bitcast i64** %77 to i8*
+    %81 = mul i64 8, %size61
+    %82 = add i64 24, %81
+    %83 = getelementptr i8, i8* %80, i64 %82
+    %data67 = bitcast i8* %83 to i64**
+    store i64* %78, i64** %data67, align 8
+    %size68 = getelementptr i64, i64* %79, i64 1
+    %84 = add i64 %size61, 1
+    store i64 %84, i64* %size68, align 8
+    %85 = tail call i8* @malloc(i64 40)
+    %86 = bitcast i8* %85 to i64*
     %arr69 = alloca i64*, align 8
-    store i64* %87, i64** %arr69, align 8
-    store i64 1, i64* %87, align 8
-    %size71 = getelementptr i64, i64* %87, i64 1
+    store i64* %86, i64** %arr69, align 8
+    store i64 1, i64* %86, align 8
+    %size71 = getelementptr i64, i64* %86, i64 1
     store i64 2, i64* %size71, align 8
-    %cap72 = getelementptr i64, i64* %87, i64 2
+    %cap72 = getelementptr i64, i64* %86, i64 2
     store i64 2, i64* %cap72, align 8
-    %88 = getelementptr i8, i8* %86, i64 24
-    %data73 = bitcast i8* %88 to i64*
+    %87 = getelementptr i8, i8* %85, i64 24
+    %data73 = bitcast i8* %87 to i64*
     store i64 4, i64* %data73, align 8
     %"175" = getelementptr i64, i64* %data73, i64 1
     store i64 5, i64* %"175", align 8
-    %89 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
-    %90 = bitcast i64** %89 to i8*
-    %91 = getelementptr i8, i8* %90, i64 32
-    %data76 = bitcast i8* %91 to i64**
-    %92 = load i64*, i64** %data76, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %92)
-    store i64* %87, i64** %data76, align 8
-    %93 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
-    %94 = bitcast i64** %93 to i8*
-    %95 = getelementptr i8, i8* %94, i64 32
-    %data77 = bitcast i8* %95 to i64**
-    %96 = tail call i8* @malloc(i64 40)
-    %97 = bitcast i8* %96 to i64*
+    %88 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
+    %89 = bitcast i64** %88 to i8*
+    %90 = getelementptr i8, i8* %89, i64 32
+    %data76 = bitcast i8* %90 to i64**
+    %91 = load i64*, i64** %data76, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %91)
+    store i64* %86, i64** %data76, align 8
+    %92 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
+    %93 = bitcast i64** %92 to i8*
+    %94 = getelementptr i8, i8* %93, i64 32
+    %data77 = bitcast i8* %94 to i64**
+    %95 = tail call i8* @malloc(i64 40)
+    %96 = bitcast i8* %95 to i64*
     %arr78 = alloca i64*, align 8
-    store i64* %97, i64** %arr78, align 8
-    store i64 1, i64* %97, align 8
-    %size80 = getelementptr i64, i64* %97, i64 1
+    store i64* %96, i64** %arr78, align 8
+    store i64 1, i64* %96, align 8
+    %size80 = getelementptr i64, i64* %96, i64 1
     store i64 2, i64* %size80, align 8
-    %cap81 = getelementptr i64, i64* %97, i64 2
+    %cap81 = getelementptr i64, i64* %96, i64 2
     store i64 2, i64* %cap81, align 8
-    %98 = getelementptr i8, i8* %96, i64 24
-    %data82 = bitcast i8* %98 to i64*
+    %97 = getelementptr i8, i8* %95, i64 24
+    %data82 = bitcast i8* %97 to i64*
     store i64 4, i64* %data82, align 8
     %"184" = getelementptr i64, i64* %data82, i64 1
     store i64 5, i64* %"184", align 8
-    %99 = load i64*, i64** %data77, align 8
+    %98 = load i64*, i64** %data77, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %98)
+    store i64* %96, i64** %data77, align 8
+    %99 = load i64*, i64** @a__2, align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %99)
-    store i64* %97, i64** %data77, align 8
-    %100 = load i64*, i64** @a__2, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %100)
-    %101 = load i64**, i64*** @nested, align 8
-    tail call void @__g.u_decr_rc_aai.u(i64** %101)
+    %100 = load i64**, i64*** @nested, align 8
+    tail call void @__g.u_decr_rc_aai.u(i64** %100)
     tail call void @__g.u_decr_rc_ac.u(i8* %26)
     tail call void @__g.u_decr_rc_ac.u(i8* %18)
-    %102 = load i64*, i64** @b, align 8
+    %101 = load i64*, i64** @b, align 8
+    tail call void @__g.u_decr_rc_ai.u(i64* %101)
+    %102 = load i64*, i64** @a, align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %102)
-    %103 = load i64*, i64** @a, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %103)
     ret i64 0
   }
   
@@ -2885,7 +2873,6 @@ Drop last element
     %"112" = getelementptr i64, i64* %data10, i64 1
     store i64 3, i64* %"112", align 8
     %10 = load i64**, i64*** @nested, align 8
-    store i64** %10, i64*** @nested, align 8
     %11 = bitcast i64** %10 to i64*
     %len = getelementptr i64, i64* %11, i64 1
     %12 = load i64, i64* %len, align 8
