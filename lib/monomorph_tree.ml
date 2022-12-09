@@ -193,20 +193,20 @@ let rec find_function_expr vars = function
       print_endline (show_expr e);
       "Not supported: " ^ show_expr e |> failwith
 
-let rec mb_contains_array = function
-  | Tarray _ -> true
+let rec mb_contains_refcount = function
+  | Tarray _ | Tfun _ -> true
   | Trecord (_, _, fields) ->
-      Array.fold_left (fun b f -> f.ftyp |> mb_contains_array || b) false fields
+      Array.fold_left
+        (fun b f -> f.ftyp |> mb_contains_refcount || b)
+        false fields
   | Tvariant (_, _, ctors) ->
       Array.fold_left
         (fun b c ->
-          (match c.ctyp with Some t -> mb_contains_array t | None -> false)
+          (match c.ctyp with Some t -> mb_contains_refcount t | None -> false)
           || b)
         false ctors
   | Tpoly _ -> true
   | _ -> false
-
-let () = ignore mb_contains_array
 
 let get_mono_name name ~poly concrete =
   let open Printf in
@@ -694,7 +694,7 @@ let add_id ~id = function
   | (k, s) :: tl -> (k, Iset.add id s) :: tl
 
 let mb_id ids typ =
-  if mb_contains_array typ then
+  if mb_contains_refcount typ then
     let id = new_id var_id in
     let ids = add_id ~id ids in
     (Some id, ids)

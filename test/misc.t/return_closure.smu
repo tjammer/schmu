@@ -1,0 +1,15 @@
+(fun ret-fn [b]
+  (fun bla [a] (+ a b))
+  bla)
+
+(fun ret-lambda [b]
+  (fun [a] (+ a b)))
+
+
+(val f (ret-fn 13))
+(val f2 (ret-fn 35))
+(print (fmt-str (f 12)))
+(print (fmt-str (f2 12)))
+
+(val f (ret-lambda 134))
+(print (fmt-str (f 12)))

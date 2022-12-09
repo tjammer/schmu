@@ -447,6 +447,7 @@ Support function/closure fields
     %4 = tail call i64 %casttmp(i64 %3, i8* %loadtmp1)
     store i64 %4, i64* %cnt2, align 8
     %next = getelementptr inbounds %state, %state* %0, i32 0, i32 1
+    tail call void @__g.u_incr_rc_i.i.u(%closure* %1)
     %5 = bitcast %closure* %next to i8*
     %6 = bitcast %closure* %1 to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 24, i1 false)
@@ -457,29 +458,92 @@ Support function/closure fields
   entry:
     %0 = alloca %state*, align 8
     store %state* %state, %state** %0, align 8
+    %1 = alloca i1, align 1
+    store i1 false, i1* %1, align 1
     %ret = alloca %state, align 8
     br label %rec
   
-  rec:                                              ; preds = %then, %entry
-    %state1 = phi %state* [ %ret, %then ], [ %state, %entry ]
-    %1 = bitcast %state* %state1 to i64*
-    %2 = load i64, i64* %1, align 8
-    %lt = icmp slt i64 %2, 10
+  rec:                                              ; preds = %cont, %entry
+    %2 = phi i1 [ true, %cont ], [ false, %entry ]
+    %3 = phi %state* [ %ret, %cont ], [ %state, %entry ]
+    %4 = bitcast %state* %3 to i64*
+    %5 = load i64, i64* %4, align 8
+    %lt = icmp slt i64 %5, 10
     br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %rec
-    call void @printi(i64 %2)
-    call void @schmu_advance(%state* %ret, %state* %state1)
+    call void @printi(i64 %5)
+    call void @schmu_advance(%state* %ret, %state* %3)
+    br i1 %2, label %call_decr, label %cookie
+  
+  call_decr:                                        ; preds = %then
+    call void @__g.u_decr_rc_state.u(%state* %3)
+    br label %cont
+  
+  cookie:                                           ; preds = %then
+    store i1 true, i1* %1, align 1
+    br label %cont
+  
+  cont:                                             ; preds = %cookie, %call_decr
     store %state* %ret, %state** %0, align 8
     br label %rec
   
   else:                                             ; preds = %rec
     call void @printi(i64 100)
+    br i1 %2, label %call_decr2, label %cookie3
+  
+  call_decr2:                                       ; preds = %else
+    call void @__g.u_decr_rc_state.u(%state* %3)
+    br label %cont4
+  
+  cookie3:                                          ; preds = %else
+    store i1 true, i1* %1, align 1
+    br label %cont4
+  
+  cont4:                                            ; preds = %cookie3, %call_decr2
+    ret void
+  }
+  
+  define internal void @__g.u_incr_rc_i.i.u(%closure* %0) {
+  entry:
+    %ref = bitcast %closure* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %1 = add i64 %ref2, 1
+    store i64 %1, i64* %ref13, align 8
     ret void
   }
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define internal void @__g.u_decr_rc_state.u(%state* %0) {
+  entry:
+    %1 = getelementptr inbounds %state, %state* %0, i32 0, i32 1
+    %ref = bitcast %closure* %1 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %2 = icmp eq i64 %ref2, 1
+    br i1 %2, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %3 = bitcast %closure* %1 to i64*
+    %4 = bitcast i64* %3 to i64*
+    %5 = sub i64 %ref2, 1
+    store i64 %5, i64* %4, align 8
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %6 = bitcast %closure* %1 to i64*
+    %7 = bitcast i64* %6 to %closure*
+    %8 = getelementptr inbounds %closure, %closure* %7, i32 0, i32 2
+    %9 = load i8*, i8** %8, align 8
+    call void @free(i8* %9)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
   
   define i64 @main(i64 %arg) {
   entry:
@@ -488,8 +552,11 @@ Support function/closure fields
     store i8* bitcast (i64 (i64)* @schmu___fun0 to i8*), i8** getelementptr inbounds (%state, %state* @state, i32 0, i32 1, i32 1), align 8
     store i8* null, i8** getelementptr inbounds (%state, %state* @state, i32 0, i32 1, i32 2), align 8
     tail call void @schmu_ten_times(%state* @state)
+    tail call void @__g.u_decr_rc_state.u(%state* @state)
     ret i64 0
   }
+  
+  declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
   0

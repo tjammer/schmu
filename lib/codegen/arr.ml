@@ -112,42 +112,44 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
       exprs;
     { value = arr; typ; lltyp; kind = Ptr }
 
-  let rec contains_array = function
-    | Tarray _ -> true
+  let rec contains_refcount = function
+    | Tarray _ | Tfun _ -> true
     | Trecord (_, _, fields) ->
-        Array.fold_left (fun b f -> f.ftyp |> contains_array || b) false fields
+        Array.fold_left
+          (fun b f -> f.ftyp |> contains_refcount || b)
+          false fields
     | Tvariant (_, _, ctors) ->
         Array.fold_left
           (fun b c ->
-            (match c.ctyp with Some t -> contains_array t | None -> false)
+            (match c.ctyp with Some t -> contains_refcount t | None -> false)
             || b)
           false ctors
     | _ -> false
 
-  let rec array_types ts = function
+  let rec refcount_types ts = function
     | Tarray t -> t :: ts
     | Trecord (_, _, fields) ->
-        Array.fold_left (fun ts f -> array_types ts f.ftyp) ts fields
+        Array.fold_left (fun ts f -> refcount_types ts f.ftyp) ts fields
     | Tvariant (_, _, ctors) ->
         Array.fold_left
           (fun ts c ->
-            match c.ctyp with Some t -> array_types ts t | None -> ts)
+            match c.ctyp with Some t -> refcount_types ts t | None -> ts)
           ts ctors
     | _ -> ts
 
   let rec iter_array fn v =
     match v.typ with
-    | Tarray _ -> fn v
+    | Tarray _ | Tfun _ -> fn v
     | Trecord (_, _, fields) ->
         Array.iteri
           (fun i f ->
-            if contains_array f.ftyp then
+            if contains_refcount f.ftyp then
               let value = Llvm.build_struct_gep v.value i "" builder in
               let lltyp = get_lltype_def f.ftyp in
               iter_array fn { value; lltyp; kind = Ptr; typ = f.ftyp })
           fields
     | Tvariant (_, _, ctors) ->
-        if contains_array v.typ then
+        if contains_refcount v.typ then
           (* We check again to guard against getting the tag without needing it *)
           let index = var_index v in
           Array.iteri
@@ -155,7 +157,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
               match c.ctyp with
               | None -> ()
               | Some typ ->
-                  if contains_array typ then (
+                  if contains_refcount typ then (
                     (* Compare to tag *)
                     let start_bb = Llvm.insertion_block builder in
                     let parent = Llvm.block_parent start_bb in
@@ -236,7 +238,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
         f
 
   let rc_fn v kind =
-    if contains_array v.typ then
+    if contains_refcount v.typ then
       let f = make_rc_fn v kind in
       let v =
         match v.kind with
@@ -264,11 +266,11 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
   let rec decl_decr_children pseudovar t =
     (* The normal free function navigates to array children, but we
        have to make sure the function for each type is available *)
-    let ts = array_types [] t in
+    let ts = refcount_types [] t in
     let f typ =
       (* value will be set correctly at [gen_functions].
          Make sure the other field are correct *)
-      if contains_array typ then (
+      if contains_refcount typ then (
         let kind = default_kind typ in
         let lltyp =
           match kind with
@@ -283,11 +285,11 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     List.iter f ts
 
   let decl_incr_children pseudovar t =
-    let ts = array_types [] t in
+    let ts = refcount_types [] t in
     let f typ =
       (* value will be set correctly at [gen_functions].
          Make sure the other field are correct *)
-      if contains_array typ then
+      if contains_refcount typ then
         let kind = default_kind typ in
         let lltyp =
           match kind with
@@ -335,14 +337,25 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
       (* free *)
       Llvm.position_at_end free_bb builder;
-      let item_type = item_type var.typ in
-      (if contains_array item_type then
-       let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
-       let sz = Llvm.build_load sz "size" builder in
+      (match var.typ with
+      | Tarray _ ->
+          let item_type = item_type var.typ in
+          (if contains_refcount item_type then
+           let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
+           let sz = Llvm.build_load sz "size" builder in
 
-       iter_array_children v sz item_type decr_refcount);
+           iter_array_children v sz item_type decr_refcount);
 
-      ignore (free int_ptr);
+          ignore (free int_ptr)
+      | Tfun _ ->
+          (* We can't yet recursively free closures. *)
+          let llt = Llvm.(pointer_type closure_t) in
+          let ptr = Llvm.(build_bitcast int_ptr) llt "" builder in
+          let envptr = Llvm.build_struct_gep ptr 2 "" builder in
+          let envptr = Llvm.build_load envptr "" builder in
+          ignore (free envptr)
+      | _ -> failwith "Internal Error: What kind of ref is this?");
+
       ignore (Llvm.build_br merge_bb builder);
 
       Llvm.position_at_end merge_bb builder
@@ -443,7 +456,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     decr_refcount v;
 
     (* Increase member refcount *)
-    if contains_array item_type then
+    if contains_refcount item_type then
       iter_array_children v sz item_type incr_refcount;
 
     ignore (Llvm.build_br merge_bb builder);
@@ -563,7 +576,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     decr_refcount v;
 
     (* Increase member refcount *)
-    if contains_array item_type then
+    if contains_refcount item_type then
       iter_array_children v sz item_type incr_refcount;
     let malloc_bb = Llvm.insertion_block builder in
 

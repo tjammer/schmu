@@ -1146,31 +1146,34 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i64 %i, i64* %1, align 8
     %2 = alloca %closure*, align 8
     store %closure* %f, %closure** %2, align 8
+    %3 = alloca i1, align 1
+    store i1 false, i1* %3, align 1
     br label %rec
   
   rec:                                              ; preds = %else, %entry
     %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
     %len = getelementptr i64, i64* %arr1, i64 1
-    %3 = load i64, i64* %len, align 8
-    %eq = icmp eq i64 %i2, %3
+    %4 = load i64, i64* %len, align 8
+    %eq = icmp eq i64 %i2, %4
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
+    store i1 true, i1* %3, align 1
     ret void
   
   else:                                             ; preds = %rec
     %sunkaddr = mul i64 %i2, 8
-    %4 = bitcast i64* %arr1 to i8*
-    %sunkaddr9 = getelementptr i8, i8* %4, i64 %sunkaddr
+    %5 = bitcast i64* %arr1 to i8*
+    %sunkaddr9 = getelementptr i8, i8* %5, i64 %sunkaddr
     %sunkaddr10 = getelementptr i8, i8* %sunkaddr9, i64 24
-    %5 = bitcast i8* %sunkaddr10 to i64*
-    %6 = load i64, i64* %5, align 8
+    %6 = bitcast i8* %sunkaddr10 to i64*
+    %7 = load i64, i64* %6, align 8
     %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
     %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
     %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp4 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %6, i8* %loadtmp4)
+    tail call void %casttmp(i64 %7, i8* %loadtmp4)
     %add = add i64 %i2, 1
     store i64 %add, i64* %1, align 8
     store %closure* %f, %closure** %2, align 8
@@ -1196,6 +1199,33 @@ Nested polymorphic closures. Does not quite work for another nesting level
   free:                                             ; preds = %entry
     %4 = bitcast i64* %0 to i8*
     call void @free(i8* %4)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_i.u.u(%closure* %0) {
+  entry:
+    %ref = bitcast %closure* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %1 = icmp eq i64 %ref2, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast %closure* %0 to i64*
+    %3 = bitcast i64* %2 to i64*
+    %4 = sub i64 %ref2, 1
+    store i64 %4, i64* %3, align 8
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %5 = bitcast %closure* %0 to i64*
+    %6 = bitcast i64* %5 to %closure*
+    %7 = getelementptr inbounds %closure, %closure* %6, i32 0, i32 2
+    %8 = load i8*, i8** %7, align 8
+    call void @free(i8* %8)
     br label %merge
   
   merge:                                            ; preds = %free, %decr
@@ -1442,9 +1472,9 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret i64* %17
   }
   
-  declare i8* @realloc(i8* %0, i64 %1)
-  
   declare void @free(i8* %0)
+  
+  declare i8* @realloc(i8* %0, i64 %1)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
   2

@@ -22,6 +22,6 @@ module type S = sig
   val incr_refcount : llvar -> unit
   val decr_refcount : llvar -> unit
   val gen_functions : unit -> unit
-  val contains_array : typ -> bool
+  val contains_refcount : typ -> bool
   val item_type_head_size : typ -> typ * Llvm.lltype * int * int
 end

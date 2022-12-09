@@ -301,12 +301,28 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     | Tfun (ps, ret, Simple) -> Tfun (ps, ret, Closure [])
     | t -> t
 
+  let is_prealloc allocref =
+    match !allocref with Monomorph_tree.Preallocated -> true | _ -> false
+
   let gen_closure_obj param assoc func name allocref =
     let clsr_struct = get_prealloc !allocref param closure_t name in
 
+    let refc =
+      match assoc with
+      | [] ->
+          (* Nothing is captured, nothing needs to be freed *)
+          2
+      | _ when is_prealloc allocref ->
+          (* We allocate memory and need to free it later *)
+          1
+      | _ ->
+          (* We capture, but only downwards *)
+          2
+    in
+
     (* Add ref count *)
     let rc_ptr = Llvm.build_struct_gep clsr_struct 0 "rc" builder in
-    ignore (Llvm.(build_store (const_int int_t 1) rc_ptr) builder );
+    ignore (Llvm.(build_store (const_int int_t refc) rc_ptr) builder);
 
     (* Add function ptr *)
     let fun_ptr = Llvm.build_struct_gep clsr_struct 1 "funptr" builder in
@@ -335,7 +351,15 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
       | [] -> Llvm.const_pointer_null voidptr_t
       | assoc ->
           let assoc_type = typeof_closure (Array.of_list assoc) in
-          let clsr_ptr = alloca param assoc_type ("clsr_" ^ name) in
+          let clsr_ptr =
+            if is_prealloc allocref then
+              let size = Llvm.size_of assoc_type in
+              let ptr = malloc ~size in
+              Llvm.build_bitcast ptr
+                (Llvm.pointer_type assoc_type)
+                ("clsr_" ^ name) builder
+            else alloca param assoc_type ("clsr_" ^ name)
+          in
           ignore (List.fold_left (store_closed_var clsr_ptr) 0 assoc);
 
           let clsr_casted =
@@ -488,7 +512,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
               in
               let env = Vars.add (name_of_alloc_param i) alloc env in
               let env =
-                if Arr.contains_array typ then (
+                if Arr.contains_refcount typ then (
                   (* Create flag to see if it was set to a temp value *)
                   let cookie = Llvm.build_alloca bool_t "" builder in
                   ignore
@@ -525,9 +549,6 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         in
 
         (vars, Some { rec_; entry })
-
-  let is_prealloc allocref =
-    match !allocref with Monomorph_tree.Preallocated -> true | _ -> false
 
   let no_prealloc = Monomorph_tree.(ref (Request { id = -1; lvl = -1 }))
 
@@ -589,7 +610,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         Llvm.build_ret value builder
 
   let tail_decr_param param alloca i mut =
-    if Arr.contains_array alloca.typ then (
+    if Arr.contains_refcount alloca.typ then (
       (* Set param to new value, deref the old one if the cookie was set *)
       let v = Vars.find (name_of_alloc_cookie i) param.vars in
       let cookie = Llvm.build_load v.value "" builder in
