@@ -418,15 +418,6 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
   in
   Env.add_variant name ~params ~ctors env
 
-let dont_allow_closure_return loc fn =
-  let rec error_on_closure = function
-    | Tfun (_, _, Closure _) ->
-        raise (Error (loc, "Cannot (yet) return a closure"))
-    | Tvar { contents = Link typ } | Talias (_, typ) -> error_on_closure typ
-    | _ -> ()
-  in
-  error_on_closure fn
-
 let rec param_funcs_as_closures = function
   (* Functions passed as parameters need to have an empty closure, otherwise they cannot
      be captured (see above). Kind of sucks *)
@@ -591,7 +582,6 @@ end = struct
     leave_level ();
     let _, closed_vars, unused = Env.close_function env in
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-    dont_allow_closure_return loc body.typ;
     check_unused unused;
 
     (* For codegen: Mark functions in parameters closures *)
@@ -654,7 +644,6 @@ end = struct
     let env, closed_vars, unused = Env.close_function env in
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-    dont_allow_closure_return loc body.typ;
     check_unused unused;
 
     (* For codegen: Mark functions in parameters closures *)

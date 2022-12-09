@@ -19,7 +19,7 @@ type expr =
   | Mif of ifexpr
   | Mlet of string * monod_tree * global_name * int option * monod_tree
   | Mlambda of string * abstraction * alloca
-  | Mfunction of string * abstraction * monod_tree
+  | Mfunction of string * abstraction * monod_tree * alloca
   | Mapp of {
       callee : monod_expr;
       args : (monod_expr * bool) list;
@@ -394,12 +394,12 @@ let rec subst_body p subst tree =
         in
         let typ = typ_of_abs abs in
         { tree with typ; expr = Mlambda (name, abs, alloca) }
-    | Mfunction (name, abs, cont) ->
+    | Mfunction (name, abs, cont, alloca) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
         in
         let cont = { (inner cont) with typ = subst cont.typ } in
-        { tree with typ = cont.typ; expr = Mfunction (name, abs, cont) }
+        { tree with typ = cont.typ; expr = Mfunction (name, abs, cont, alloca) }
     | Mapp { callee; args; alloca; id; vid } ->
         let ex = sub callee.ex in
 
@@ -737,7 +737,7 @@ let rec is_temporary = function
   | Munop (_, t) -> is_temporary t.expr
   | Mif { e1; e2; _ } -> is_temporary e1.expr && is_temporary e2.expr
   | Mlet (_, _, _, _, cont)
-  | Mfunction (_, _, cont)
+  | Mfunction (_, _, cont, _)
   | Mseq (_, cont)
   | Mdecr_ref (_, cont)
   | Mincr_ref cont ->
@@ -797,12 +797,12 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Set (expr, value) -> morph_set make param expr value
   | Sequence (expr, cont) -> morph_seq make param expr cont
   | Function (name, uniq, abs, cont) ->
-      let p, call, abs = prep_func param (name, uniq, abs) in
+      let p, call, abs, alloca = prep_func param (name, uniq, abs) in
       let p, cont, func = morph_expr { p with ret = param.ret } cont in
       ( p,
         {
           typ = cont.typ;
-          expr = Mfunction (call, abs, cont);
+          expr = Mfunction (call, abs, cont, alloca);
           return = param.ret;
         },
         func )
@@ -1127,23 +1127,25 @@ and prep_func p (username, uniq, abs) =
   let p =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
+  let alloca = ref (request ()) in
+  let alloc = Value alloca in
   let p =
     if inline then
       let fn = Inline (pnames, ftyp, body) in
-      let vars = Vars.add username (Normal { no_var with fn }) p.vars in
+      let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
       { p with vars }
     else if is_type_polymorphic ftyp then (
       let fn = Polymorphic call in
-      let vars = Vars.add username (Normal { no_var with fn }) p.vars in
+      let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
       Hashtbl.add poly_funcs_tbl call gen_func;
       { p with vars })
     else
       let fn = Concrete (gen_func, username) in
-      let vars = Vars.add username (Normal { no_var with fn }) p.vars in
+      let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
       let funcs = Fset.add gen_func p.funcs in
       { p with vars; funcs }
   in
-  (p, call, abs)
+  (p, call, abs, alloca)
 
 and morph_lambda mk typ p id abs =
   let typ = cln p typ in
@@ -1419,12 +1421,12 @@ let morph_toplvl param items =
         let p, e2 = make_e2 e1 e2 id gn expr.attr.mut false p vid in
         (p, e2, func)
     | Tl_function (name, uniq, abs) :: tl ->
-        let p, call, abs = prep_func param (name, uniq, abs) in
+        let p, call, abs, alloca = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in
         ( p,
           {
             typ = cont.typ;
-            expr = Mfunction (call, abs, cont);
+            expr = Mfunction (call, abs, cont, alloca);
             return = param.ret;
           },
           func )

@@ -12,7 +12,7 @@ type expr =
   | Mif of ifexpr
   | Mlet of string * monod_tree * global_name * int option * monod_tree
   | Mlambda of string * abstraction * alloca
-  | Mfunction of string * abstraction * monod_tree
+  | Mfunction of string * abstraction * monod_tree * alloca
   | Mapp of {
       callee : monod_expr;
       args : (monod_expr * bool) list;

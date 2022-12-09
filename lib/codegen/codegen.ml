@@ -116,15 +116,16 @@ end = struct
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
     | Mvar (id, kind) -> gen_var param.vars typed_expr.typ id kind |> fin
-    | Mfunction (name, abs, cont) ->
+    | Mfunction (name, abs, cont, allocref) ->
         (* The functions are already generated *)
         let func =
           match Vars.find_opt name param.vars with
           | Some func -> (
               match abs.func.kind with
-              | Simple -> func
-              | Closure assoc ->
-                  gen_closure_obj param assoc func name no_prealloc)
+              | Closure assoc -> gen_closure_obj param assoc func name allocref
+              | Simple when is_prealloc allocref ->
+                  gen_closure_obj param [] func name allocref
+              | Simple -> func)
           | None ->
               (* The function is polymorphic and monomorphized versions are generated. *)
               (* We just return some bogus value, it will never be applied anyway
@@ -1099,7 +1100,7 @@ let has_init_code tree =
                 aux cont.expr
             | Ptr | Imm -> true)
         | None -> failwith "Internal Error: global value not found")
-    | Mfunction (_, _, cont) -> aux cont.expr
+    | Mfunction (_, _, cont, _) -> aux cont.expr
     | Mconst Unit -> false
     | _ -> true
   in

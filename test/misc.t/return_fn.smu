@@ -1,11 +1,13 @@
 (fun ret-fn []
   (fun [a] (+ a 12)))
 
-(fun named [a]
-  (+ a 12))
-
 (fun ret-named []
+  (fun named [a]
+    (+ a 13))
   named)
 
 (val f (ret-fn))
+(print (fmt-str (f 12)))
+
+(val f (ret-named))
 (print (fmt-str (f 12)))

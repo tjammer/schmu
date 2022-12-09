@@ -305,15 +305,6 @@ First class functions
   4
   5
 
-We don't allow returning closures
-  $ schmu --dump-llvm stub.o no_closure_returns.smu && ./no_closure_returns
-  no_closure_returns.smu:7:7: error: Cannot (yet) return a closure
-  7 | ......fun []
-  8 |           (val a (fun [] a))
-  9 |           a..
-  
-  [1]
-
 Don't try to create 'void' value in if
   $ schmu --dump-llvm stub.o if_return_void.smu && ./if_return_void
   ; ModuleID = 'context'
