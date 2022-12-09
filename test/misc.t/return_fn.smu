@@ -1,0 +1,11 @@
+(fun ret-fn []
+  (fun [a] (+ a 12)))
+
+(fun named [a]
+  (+ a 12))
+
+(fun ret-named []
+  named)
+
+(val f (ret-fn))
+(print (fmt-str (f 12)))

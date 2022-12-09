@@ -480,13 +480,8 @@ Support function/closure fields
   define i64 @main(i64 %arg) {
   entry:
     store i64 0, i64* getelementptr inbounds (%state, %state* @state, i32 0, i32 0), align 8
-    %clstmp = alloca %closure, align 8
-    %funptr1 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 (i64)* @schmu___fun0 to i8*), i8** %funptr1, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
-    store i8* null, i8** %envptr, align 8
-    %0 = bitcast %closure* %clstmp to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%closure* getelementptr inbounds (%state, %state* @state, i32 0, i32 1) to i8*), i8* %0, i64 16, i1 false)
+    store i8* bitcast (i64 (i64)* @schmu___fun0 to i8*), i8** getelementptr inbounds (%state, %state* @state, i32 0, i32 1, i32 0), align 8
+    store i8* null, i8** getelementptr inbounds (%state, %state* @state, i32 0, i32 1, i32 1), align 8
     tail call void @schmu_ten_times(%state* @state)
     ret i64 0
   }

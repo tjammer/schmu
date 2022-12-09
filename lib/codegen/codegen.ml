@@ -34,7 +34,7 @@ end = struct
 
         let start_index, alloca =
           match ret_t with
-          | (Trecord _ | Tvariant _) as t -> (
+          | (Trecord _ | Tvariant _ | Tfun _) as t -> (
               match pkind_of_typ false t with
               | Boxed ->
                   (* Whenever the return type is boxed, we add the prealloc to the environment *)
@@ -62,7 +62,7 @@ end = struct
           (* If we want to return a struct, we copy the struct to
               its ptr (1st parameter) and return void *)
           match ret.typ with
-          | (Trecord _ | Tvariant _) as t -> (
+          | (Trecord _ | Tvariant _ | Tfun _) as t -> (
               match pkind_of_typ false t with
               | Boxed ->
                   (* Since we only have POD records, we can safely memcpy here *)
@@ -123,7 +123,8 @@ end = struct
           | Some func -> (
               match abs.func.kind with
               | Simple -> func
-              | Closure assoc -> gen_closure_obj param assoc func name)
+              | Closure assoc ->
+                  gen_closure_obj param assoc func name no_prealloc)
           | None ->
               (* The function is polymorphic and monomorphized versions are generated. *)
               (* We just return some bogus value, it will never be applied anyway
@@ -133,20 +134,22 @@ end = struct
 
         gen_expr { param with vars = Vars.add name func param.vars } cont
     | Mlet (id, equals, _, vid, let') -> gen_let param id equals let' vid
-    | Mlambda (name, abs) ->
+    | Mlambda (name, abs, allocref) ->
         let func =
           match Vars.find_opt name param.vars with
           | Some func -> (
               match abs.func.kind with
-              | Simple -> func
-              | Closure assoc -> gen_closure_obj param assoc func name)
+              | Closure assoc -> gen_closure_obj param assoc func name allocref
+              | Simple when is_prealloc allocref ->
+                  gen_closure_obj param [] func name allocref
+              | Simple -> func)
           | None ->
               (* The function is polymorphic and monomorphized versions are generated. *)
               (* We just return some bogus value, it will never be applied anyway
                  (and if it will, LLVM will fail) *)
               dummy_fn_value
         in
-        func
+        func |> fin
     | Mapp { callee; args; alloca; id = _; vid } ->
         let value =
           match (typed_expr.return, callee.monomorph, param.rec_block) with
@@ -402,18 +405,6 @@ end = struct
     in
 
     (* No names here, might be void/unit *)
-    let func =
-      (* TODO closure fields might not be loaded. We need to handle this in monomorph,
-         possibly with a new function type *)
-      if
-        Llvm.type_of func.value
-        = Llvm.(closure_t |> pointer_type |> pointer_type)
-      then
-        let value = Llvm.build_load func.value "loadfn" builder in
-        { func with value; kind = Imm }
-      else func
-    in
-
     let funcval, envarg =
       if Llvm.type_of func.value = (closure_t |> Llvm.pointer_type) then
         (* Function to call is a closure (or a function passed into another one).
@@ -453,7 +444,7 @@ end = struct
 
     let value, lltyp =
       match ret_t with
-      | (Trecord _ | Tvariant _) as t -> (
+      | (Trecord _ | Tvariant _ | Tfun _) as t -> (
           let lltyp = get_lltype_def ret_t in
           match pkind_of_typ false t with
           | Boxed ->

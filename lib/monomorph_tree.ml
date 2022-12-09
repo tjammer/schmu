@@ -18,7 +18,7 @@ type expr =
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
   | Mlet of string * monod_tree * global_name * int option * monod_tree
-  | Mlambda of string * abstraction
+  | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree
   | Mapp of {
       callee : monod_expr;
@@ -182,7 +182,7 @@ let rec find_function_expr vars = function
       (* We are not allowing to return functions in ifs,
          b/c we cannot codegen anyway *)
       No_function
-  | Mlambda (name, _) -> (
+  | Mlambda (name, _, _) -> (
       match Vars.find_opt name vars with
       | Some (Normal thing) -> thing.fn
       | _ -> No_function)
@@ -388,12 +388,12 @@ let rec subst_body p subst tree =
         let expr = sub expr in
         let cont = sub cont in
         { tree with typ = cont.typ; expr = Mlet (id, expr, gn, vid, cont) }
-    | Mlambda (name, abs) ->
+    | Mlambda (name, abs, alloca) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
         in
         let typ = typ_of_abs abs in
-        { tree with typ; expr = Mlambda (name, abs) }
+        { tree with typ; expr = Mlambda (name, abs, alloca) }
     | Mfunction (name, abs, cont) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
@@ -809,7 +809,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Mutual_rec_decls (decls, cont) ->
       let p = List.fold_left rec_fs_to_env param decls in
       morph_expr p cont
-  | Lambda (id, abs) -> morph_lambda texpr.typ param id abs
+  | Lambda (id, abs) -> morph_lambda make texpr.typ param id abs
   | App { callee; args } ->
       morph_app make param callee args (cln param texpr.typ)
   | Ctor (variant, index, dataexpr) ->
@@ -1145,7 +1145,7 @@ and prep_func p (username, uniq, abs) =
   in
   (p, call, abs)
 
-and morph_lambda typ p id abs =
+and morph_lambda mk typ p id abs =
   let typ = cln p typ in
 
   let name = Module.lambda_name id in
@@ -1208,9 +1208,12 @@ and morph_lambda typ p id abs =
       let funcs = Fset.add gen_func p.funcs in
       ({ p with funcs }, Concrete (gen_func, name))
   in
+  (* Function can be returned themselves. In that case, a closure object will be generated,
+     so treat it the same as any local allocation *)
+  let alloca = ref (request ()) in
   ( { p with ret },
-    { typ; expr = Mlambda (name, abs); return = ret },
-    { var with fn } )
+    mk (Mlambda (name, abs, alloca)) ret,
+    { var with fn; alloc = Value alloca } )
 
 and morph_app mk p callee args ret_typ =
   (* Save env for later monomorphization *)

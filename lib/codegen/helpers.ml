@@ -21,11 +21,18 @@ module type S = sig
   val fun_return : string -> llvar -> Llvm.llvalue
 
   val gen_closure_obj :
-    Llvm_types.param -> closed list -> llvar -> string -> llvar
+    Llvm_types.param ->
+    closed list ->
+    llvar ->
+    string ->
+    Monomorph_tree.alloca ->
+    llvar
 
   val bring_default : llvar -> Llvm.llvalue
   val bring_default_var : llvar -> llvar
   val store_or_copy : src:llvar -> dst:Llvm.llvalue -> unit
+  val is_prealloc : Monomorph_tree.allocas ref -> bool
+  val no_prealloc : Monomorph_tree.allocas ref
 
   val get_mono_func :
     llvar -> Llvm_types.param -> Monomorph_tree.call_name -> llvar
@@ -279,6 +286,11 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     in
     Llvm.build_alloca typ str builder
 
+  let get_prealloc allocref param lltyp str =
+    match (allocref, param.alloca) with
+    | Monomorph_tree.Preallocated, Some value -> value
+    | _ -> alloca param lltyp str
+
   let box_const param var =
     let value = alloca param (get_lltype_def var.typ) "boxconst" in
     ignore (Llvm.build_store var.value value builder);
@@ -289,8 +301,8 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     | Tfun (ps, ret, Simple) -> Tfun (ps, ret, Closure [])
     | t -> t
 
-  let gen_closure_obj param assoc func name =
-    let clsr_struct = alloca param closure_t name in
+  let gen_closure_obj param assoc func name allocref =
+    let clsr_struct = get_prealloc !allocref param closure_t name in
 
     (* Add function ptr *)
     let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
@@ -387,11 +399,6 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
   let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
   let name_of_alloc_cookie i = "__" ^ string_of_int i ^ "_alloc_cookie"
-
-  let get_prealloc allocref param lltyp str =
-    match (allocref, param.alloca) with
-    | Monomorph_tree.Preallocated, Some value -> value
-    | _ -> alloca param lltyp str
 
   (* We need to handle the index the same way as [get_value] below *)
   let get_index i mut typ =
@@ -515,12 +522,17 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
         (vars, Some { rec_; entry })
 
+  let is_prealloc allocref =
+    match !allocref with Monomorph_tree.Preallocated -> true | _ -> false
+
+  let no_prealloc = Monomorph_tree.(ref (Request { id = -1; lvl = -1 }))
+
   let pass_function param llvar kind =
     match kind with
     | Simple ->
         (* If a function is passed into [func] we convert it to a closure
            and pass nullptr to env*)
-        gen_closure_obj param [] llvar "clstmp"
+        gen_closure_obj param [] llvar "clstmp" no_prealloc
     | Closure _ ->
         (* This closure is a struct and has an env *)
         llvar
@@ -528,13 +540,6 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
   let func_to_closure vars llvar =
     (* TODO somewhere we don't convert into closure correctly. *)
     if Llvm.type_of llvar.value = (closure_t |> Llvm.pointer_type) then llvar
-    else if
-      (* Ugly :( *)
-      Llvm.type_of llvar.value
-      = Llvm.(closure_t |> pointer_type |> pointer_type)
-    then
-      let value = Llvm.build_load llvar.value "loadfn" builder in
-      { llvar with value; kind = Imm }
     else
       match llvar.typ with
       | Tfun (_, _, kind) -> pass_function vars llvar kind
@@ -547,7 +552,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         (* Monomorphized functions are not yet converted to closures *)
         match func.typ with
         | Tfun (_, _, Closure assoc) ->
-            gen_closure_obj param assoc func "monoclstmp"
+            gen_closure_obj param assoc func "monoclstmp" no_prealloc
         | Tfun (_, _, Simple) -> func
         | _ -> failwith "Internal Error: What are we applying?")
     | Concrete name -> Vars.find name param.vars
@@ -557,7 +562,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
   let fun_return name ret =
     match ret.typ with
-    | (Trecord _ | Tvariant _) as t -> (
+    | (Trecord _ | Tvariant _ | Tfun _) as t -> (
         match pkind_of_typ false t with
         | Boxed -> (* Default record case *) Llvm.build_ret_void builder
         | Unboxed kind ->
