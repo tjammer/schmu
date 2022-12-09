@@ -3472,7 +3472,7 @@ Return nonclosure functions
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
+  %closure = type { i64, i8*, i8* }
   
   @f = global %closure zeroinitializer, align 16
   @f__2 = global %closure zeroinitializer, align 16
@@ -3494,18 +3494,22 @@ Return nonclosure functions
   
   define void @schmu_ret-fn(%closure* %0) {
   entry:
-    %funptr1 = bitcast %closure* %0 to i8**
-    store i8* bitcast (i64 (i64)* @schmu___fun0 to i8*), i8** %funptr1, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
+    %rc1 = bitcast %closure* %0 to i64*
+    store i64 2, i64* %rc1, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu___fun0 to i8*), i8** %funptr, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 2
     store i8* null, i8** %envptr, align 8
     ret void
   }
   
   define void @schmu_ret-named(%closure* %0) {
   entry:
-    %funptr1 = bitcast %closure* %0 to i8**
-    store i8* bitcast (i64 (i64)* @schmu_named to i8*), i8** %funptr1, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
+    %rc1 = bitcast %closure* %0 to i64*
+    store i64 2, i64* %rc1, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu_named to i8*), i8** %funptr, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 2
     store i8* null, i8** %envptr, align 8
     ret void
   }
@@ -3513,9 +3517,9 @@ Return nonclosure functions
   define i64 @main(i64 %arg) {
   entry:
     tail call void @schmu_ret-fn(%closure* @f)
-    %loadtmp = load i8*, i8** getelementptr inbounds (%closure, %closure* @f, i32 0, i32 0), align 8
+    %loadtmp = load i8*, i8** getelementptr inbounds (%closure, %closure* @f, i32 0, i32 1), align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
-    %loadtmp1 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f, i32 0, i32 1), align 8
+    %loadtmp1 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f, i32 0, i32 2), align 8
     %0 = tail call i64 %casttmp(i64 12, i8* %loadtmp1)
     %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %0)
     %1 = add i32 %fmtsize, 25
@@ -3535,9 +3539,9 @@ Return nonclosure functions
     store i8* %3, i8** %str, align 8
     tail call void @schmu_print(i8* %3)
     tail call void @schmu_ret-named(%closure* @f__2)
-    %loadtmp2 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f__2, i32 0, i32 0), align 8
+    %loadtmp2 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f__2, i32 0, i32 1), align 8
     %casttmp3 = bitcast i8* %loadtmp2 to i64 (i64, i8*)*
-    %loadtmp4 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f__2, i32 0, i32 1), align 8
+    %loadtmp4 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f__2, i32 0, i32 2), align 8
     %7 = tail call i64 %casttmp3(i64 12, i8* %loadtmp4)
     %fmtsize5 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %7)
     %8 = add i32 %fmtsize5, 25

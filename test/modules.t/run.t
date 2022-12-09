@@ -444,7 +444,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
+  %closure = type { i64, i8*, i8* }
   %big = type { i64, double, i64, i64 }
   
   @vtest = external global i64*
@@ -455,17 +455,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define void @schmu___agg.u.u_array-iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
     %monoclstmp = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %monoclstmp to i8**
-    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
+    %rc5 = bitcast %closure* %monoclstmp to i64*
+    store i64 2, i64* %rc5, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u_inner_i.u-ai-i.u to i8*), i8** %funptr, align 8
     %clsr_monoclstmp = alloca { i64*, %closure }, align 8
     %arr16 = bitcast { i64*, %closure }* %clsr_monoclstmp to i64**
     store i64* %arr, i64** %arr16, align 8
     %f2 = getelementptr inbounds { i64*, %closure }, { i64*, %closure }* %clsr_monoclstmp, i32 0, i32 1
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 24, i1 false)
     %env = bitcast { i64*, %closure }* %clsr_monoclstmp to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 2
     store i8* %env, i8** %envptr, align 8
     call void @schmu___i.u-ag-g.u_inner_i.u-ai-i.u(i64 0, i8* %env)
     ret void
@@ -497,12 +499,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %sunkaddr8 = getelementptr i8, i8* %sunkaddr7, i64 24
     %4 = bitcast i8* %sunkaddr8 to i64*
     %5 = load i64, i64* %4, align 8
-    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 8
-    %6 = bitcast i8* %sunkaddr10 to i8**
+    %sunkaddr9 = getelementptr inbounds i8, i8* %0, i64 16
+    %6 = bitcast i8* %sunkaddr9 to i8**
     %loadtmp = load i8*, i8** %6, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %sunkaddr11 = getelementptr inbounds i8, i8* %0, i64 16
-    %7 = bitcast i8* %sunkaddr11 to i8**
+    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 24
+    %7 = bitcast i8* %sunkaddr10 to i8**
     %loadtmp3 = load i8*, i8** %7, align 8
     tail call void %casttmp(i64 %5, i8* %loadtmp3)
     %add = add i64 %i2, 1
@@ -533,9 +535,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
   entry:
     %0 = load i64*, i64** @vtest, align 8
     %clstmp = alloca %closure, align 8
-    %funptr1 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (void (i64)* @schmu_printi to i8*), i8** %funptr1, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %rc1 = bitcast %closure* %clstmp to i64*
+    store i64 2, i64* %rc1, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* bitcast (void (i64)* @schmu_printi to i8*), i8** %funptr, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 2
     store i8* null, i8** %envptr, align 8
     call void @schmu___agg.u.u_array-iter_aii.u.u(i64* %0, %closure* %clstmp)
     ret i64 0

@@ -50,7 +50,7 @@ let voidptr_t = Llvm.(i8_type context |> pointer_type)
 
 let closure_t =
   let t = Llvm.named_struct_type context "closure" in
-  let typ = [| voidptr_t; voidptr_t |] in
+  let typ = [| int_t; voidptr_t; voidptr_t |] in
   Llvm.struct_set_body t typ false;
   t
 

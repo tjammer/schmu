@@ -179,7 +179,7 @@ First class functions
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
+  %closure = type { i64, i8*, i8* }
   
   @pass2 = global %closure zeroinitializer, align 16
   
@@ -208,10 +208,10 @@ First class functions
   
   define i1 @schmu___gg.g.g_apply_bb.b.b(i1 %x, %closure* %f) {
   entry:
-    %funcptr2 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i1 (i1, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %0 = tail call i1 %casttmp(i1 %x, i8* %loadtmp1)
     ret i1 %0
@@ -219,10 +219,10 @@ First class functions
   
   define i64 @schmu___gg.g.g_apply_ii.i.i(i64 %x, %closure* %f) {
   entry:
-    %funcptr2 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %0 = tail call i64 %casttmp(i64 %x, i8* %loadtmp1)
     ret i64 %0
@@ -254,47 +254,59 @@ First class functions
   define i64 @main(i64 %arg) {
   entry:
     %clstmp = alloca %closure, align 8
-    %funptr16 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 (i64)* @schmu_add1 to i8*), i8** %funptr16, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %rc21 = bitcast %closure* %clstmp to i64*
+    store i64 2, i64* %rc21, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu_add1 to i8*), i8** %funptr, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 2
     store i8* null, i8** %envptr, align 8
     %0 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 0, %closure* %clstmp)
     call void @printi(i64 %0)
     %clstmp1 = alloca %closure, align 8
-    %funptr217 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast (i64 (i64)* @schmu___fun1 to i8*), i8** %funptr217, align 8
-    %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
-    store i8* null, i8** %envptr3, align 8
+    %rc222 = bitcast %closure* %clstmp1 to i64*
+    store i64 2, i64* %rc222, align 8
+    %funptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu___fun1 to i8*), i8** %funptr3, align 8
+    %envptr4 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 2
+    store i8* null, i8** %envptr4, align 8
     %1 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 1, %closure* %clstmp1)
     call void @printi(i64 %1)
-    %clstmp4 = alloca %closure, align 8
-    %funptr518 = bitcast %closure* %clstmp4 to i8**
-    store i8* bitcast (i1 (i1)* @schmu_makefalse to i8*), i8** %funptr518, align 8
-    %envptr6 = getelementptr inbounds %closure, %closure* %clstmp4, i32 0, i32 1
-    store i8* null, i8** %envptr6, align 8
-    %2 = call i1 @schmu___gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp4)
+    %clstmp5 = alloca %closure, align 8
+    %rc623 = bitcast %closure* %clstmp5 to i64*
+    store i64 2, i64* %rc623, align 8
+    %funptr7 = getelementptr inbounds %closure, %closure* %clstmp5, i32 0, i32 1
+    store i8* bitcast (i1 (i1)* @schmu_makefalse to i8*), i8** %funptr7, align 8
+    %envptr8 = getelementptr inbounds %closure, %closure* %clstmp5, i32 0, i32 2
+    store i8* null, i8** %envptr8, align 8
+    %2 = call i1 @schmu___gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp5)
     %3 = call i64 @schmu_int_of_bool(i1 %2)
     call void @printi(i64 %3)
-    %clstmp7 = alloca %closure, align 8
-    %funptr819 = bitcast %closure* %clstmp7 to i8**
-    store i8* bitcast (i64 (i64)* @schmu___fun2 to i8*), i8** %funptr819, align 8
-    %envptr9 = getelementptr inbounds %closure, %closure* %clstmp7, i32 0, i32 1
-    store i8* null, i8** %envptr9, align 8
-    %4 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 3, %closure* %clstmp7)
-    call void @printi(i64 %4)
-    %clstmp10 = alloca %closure, align 8
-    %funptr1120 = bitcast %closure* %clstmp10 to i8**
-    store i8* bitcast (i64 (i64)* @schmu___g.g_pass_i.i to i8*), i8** %funptr1120, align 8
-    %envptr12 = getelementptr inbounds %closure, %closure* %clstmp10, i32 0, i32 1
+    %clstmp9 = alloca %closure, align 8
+    %rc1024 = bitcast %closure* %clstmp9 to i64*
+    store i64 2, i64* %rc1024, align 8
+    %funptr11 = getelementptr inbounds %closure, %closure* %clstmp9, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu___fun2 to i8*), i8** %funptr11, align 8
+    %envptr12 = getelementptr inbounds %closure, %closure* %clstmp9, i32 0, i32 2
     store i8* null, i8** %envptr12, align 8
-    %5 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 4, %closure* %clstmp10)
-    call void @printi(i64 %5)
+    %4 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 3, %closure* %clstmp9)
+    call void @printi(i64 %4)
     %clstmp13 = alloca %closure, align 8
-    %funptr1421 = bitcast %closure* %clstmp13 to i8**
-    store i8* bitcast (i64 (i64)* @schmu___g.g___fun0_i.i to i8*), i8** %funptr1421, align 8
-    %envptr15 = getelementptr inbounds %closure, %closure* %clstmp13, i32 0, i32 1
-    store i8* null, i8** %envptr15, align 8
-    %6 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 5, %closure* %clstmp13)
+    %rc1425 = bitcast %closure* %clstmp13 to i64*
+    store i64 2, i64* %rc1425, align 8
+    %funptr15 = getelementptr inbounds %closure, %closure* %clstmp13, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu___g.g_pass_i.i to i8*), i8** %funptr15, align 8
+    %envptr16 = getelementptr inbounds %closure, %closure* %clstmp13, i32 0, i32 2
+    store i8* null, i8** %envptr16, align 8
+    %5 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 4, %closure* %clstmp13)
+    call void @printi(i64 %5)
+    %clstmp17 = alloca %closure, align 8
+    %rc1826 = bitcast %closure* %clstmp17 to i64*
+    store i64 2, i64* %rc1826, align 8
+    %funptr19 = getelementptr inbounds %closure, %closure* %clstmp17, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu___g.g___fun0_i.i to i8*), i8** %funptr19, align 8
+    %envptr20 = getelementptr inbounds %closure, %closure* %clstmp17, i32 0, i32 2
+    store i8* null, i8** %envptr20, align 8
+    %6 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 5, %closure* %clstmp17)
     call void @printi(i64 %6)
     ret i64 0
   }
@@ -365,7 +377,7 @@ Captured values should not overwrite function params
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
+  %closure = type { i64, i8*, i8* }
   
   @b = constant i64 2
   
@@ -373,16 +385,16 @@ Captured values should not overwrite function params
   
   define i64 @schmu_add(%closure* %a, %closure* %b) {
   entry:
-    %funcptr7 = bitcast %closure* %a to i8**
-    %loadtmp = load i8*, i8** %funcptr7, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %a, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %a, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %a, i32 0, i32 2
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %0 = tail call i64 %casttmp(i8* %loadtmp1)
-    %funcptr28 = bitcast %closure* %b to i8**
-    %loadtmp3 = load i8*, i8** %funcptr28, align 8
+    %funcptr2 = getelementptr inbounds %closure, %closure* %b, i32 0, i32 1
+    %loadtmp3 = load i8*, i8** %funcptr2, align 8
     %casttmp4 = bitcast i8* %loadtmp3 to i64 (i8*)*
-    %envptr5 = getelementptr inbounds %closure, %closure* %b, i32 0, i32 1
+    %envptr5 = getelementptr inbounds %closure, %closure* %b, i32 0, i32 2
     %loadtmp6 = load i8*, i8** %envptr5, align 8
     %1 = tail call i64 %casttmp4(i8* %loadtmp6)
     %add = add i64 %0, %1
@@ -402,15 +414,19 @@ Captured values should not overwrite function params
   define i64 @main(i64 %arg) {
   entry:
     %clstmp = alloca %closure, align 8
-    %funptr4 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 ()* @schmu_one to i8*), i8** %funptr4, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %rc5 = bitcast %closure* %clstmp to i64*
+    store i64 2, i64* %rc5, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* bitcast (i64 ()* @schmu_one to i8*), i8** %funptr, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 2
     store i8* null, i8** %envptr, align 8
     %clstmp1 = alloca %closure, align 8
-    %funptr25 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast (i64 ()* @schmu_two to i8*), i8** %funptr25, align 8
-    %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
-    store i8* null, i8** %envptr3, align 8
+    %rc26 = bitcast %closure* %clstmp1 to i64*
+    store i64 2, i64* %rc26, align 8
+    %funptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
+    store i8* bitcast (i64 ()* @schmu_two to i8*), i8** %funptr3, align 8
+    %envptr4 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 2
+    store i8* null, i8** %envptr4, align 8
     %0 = call i64 @schmu_add(%closure* %clstmp, %closure* %clstmp1)
     call void @printi(i64 %0)
     ret i64 0
@@ -424,7 +440,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
+  %closure = type { i64, i8*, i8* }
   %t_bool = type { i1 }
   %t_int = type { i64 }
   
@@ -447,10 +463,10 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   
   define i1 @schmu___gg.g.g_apply_bb.b.b(i1 %x, %closure* %f) {
   entry:
-    %funcptr2 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i1 (i1, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %0 = tail call i1 %casttmp(i1 %x, i8* %loadtmp1)
     ret i1 %0
@@ -458,10 +474,10 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   
   define i64 @schmu___gg.g.g_apply_ii.i.i(i64 %x, %closure* %f) {
   entry:
-    %funcptr2 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %0 = tail call i64 %casttmp(i64 %x, i8* %loadtmp1)
     ret i64 %0
@@ -471,10 +487,10 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   entry:
     %box = alloca i8, align 1
     store i8 %0, i8* %box, align 1
-    %funcptr8 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr8, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i8 (i8, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_bool, align 8
     %1 = tail call i8 %casttmp(i8 %0, i8* %loadtmp3)
@@ -487,10 +503,10 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
-    %funcptr8 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr8, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
     %1 = tail call i64 %casttmp(i64 %0, i8* %loadtmp3)
@@ -563,51 +579,61 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   define i64 @main(i64 %arg) {
   entry:
     %clstmp = alloca %closure, align 8
-    %funptr20 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 (i64)* @schmu_add1 to i8*), i8** %funptr20, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %rc24 = bitcast %closure* %clstmp to i64*
+    store i64 2, i64* %rc24, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu_add1 to i8*), i8** %funptr, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 2
     store i8* null, i8** %envptr, align 8
     %0 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 20, %closure* %clstmp)
     call void @printi(i64 %0)
     %clstmp1 = alloca %closure, align 8
-    %funptr221 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast (i64 (i64)* @schmu_add_closed to i8*), i8** %funptr221, align 8
-    %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
-    store i8* null, i8** %envptr3, align 8
+    %rc225 = bitcast %closure* %clstmp1 to i64*
+    store i64 2, i64* %rc225, align 8
+    %funptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu_add_closed to i8*), i8** %funptr3, align 8
+    %envptr4 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 2
+    store i8* null, i8** %envptr4, align 8
     %1 = call i64 @schmu___gg.g.g_apply_ii.i.i(i64 20, %closure* %clstmp1)
     call void @printi(i64 %1)
-    %clstmp4 = alloca %closure, align 8
-    %funptr522 = bitcast %closure* %clstmp4 to i8**
-    store i8* bitcast (i64 (i64)* @schmu_add3_rec to i8*), i8** %funptr522, align 8
-    %envptr6 = getelementptr inbounds %closure, %closure* %clstmp4, i32 0, i32 1
-    store i8* null, i8** %envptr6, align 8
+    %clstmp5 = alloca %closure, align 8
+    %rc626 = bitcast %closure* %clstmp5 to i64*
+    store i64 2, i64* %rc626, align 8
+    %funptr7 = getelementptr inbounds %closure, %closure* %clstmp5, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu_add3_rec to i8*), i8** %funptr7, align 8
+    %envptr8 = getelementptr inbounds %closure, %closure* %clstmp5, i32 0, i32 2
+    store i8* null, i8** %envptr8, align 8
     %ret = alloca %t_int, align 8
-    %2 = call i64 @schmu___gg.g.g_apply_titi.ti.ti(i64 20, %closure* %clstmp4)
+    %2 = call i64 @schmu___gg.g.g_apply_titi.ti.ti(i64 20, %closure* %clstmp5)
     %box = bitcast %t_int* %ret to i64*
     store i64 %2, i64* %box, align 8
     call void @printi(i64 %2)
-    %clstmp8 = alloca %closure, align 8
-    %funptr923 = bitcast %closure* %clstmp8 to i8**
-    store i8* bitcast (i8 (i8)* @schmu_make_rec_false to i8*), i8** %funptr923, align 8
-    %envptr10 = getelementptr inbounds %closure, %closure* %clstmp8, i32 0, i32 1
-    store i8* null, i8** %envptr10, align 8
-    %ret11 = alloca %t_bool, align 8
-    %3 = call i8 @schmu___gg.g.g_apply_tbtb.tb.tb(i8 1, %closure* %clstmp8)
-    %box12 = bitcast %t_bool* %ret11 to i8*
-    store i8 %3, i8* %box12, align 1
+    %clstmp10 = alloca %closure, align 8
+    %rc1127 = bitcast %closure* %clstmp10 to i64*
+    store i64 2, i64* %rc1127, align 8
+    %funptr12 = getelementptr inbounds %closure, %closure* %clstmp10, i32 0, i32 1
+    store i8* bitcast (i8 (i8)* @schmu_make_rec_false to i8*), i8** %funptr12, align 8
+    %envptr13 = getelementptr inbounds %closure, %closure* %clstmp10, i32 0, i32 2
+    store i8* null, i8** %envptr13, align 8
+    %ret14 = alloca %t_bool, align 8
+    %3 = call i8 @schmu___gg.g.g_apply_tbtb.tb.tb(i8 1, %closure* %clstmp10)
+    %box15 = bitcast %t_bool* %ret14 to i8*
+    store i8 %3, i8* %box15, align 1
     %4 = trunc i8 %3 to i1
     call void @schmu_print_bool(i1 %4)
-    %clstmp14 = alloca %closure, align 8
-    %funptr1524 = bitcast %closure* %clstmp14 to i8**
-    store i8* bitcast (i1 (i1)* @schmu_makefalse to i8*), i8** %funptr1524, align 8
-    %envptr16 = getelementptr inbounds %closure, %closure* %clstmp14, i32 0, i32 1
-    store i8* null, i8** %envptr16, align 8
-    %5 = call i1 @schmu___gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp14)
+    %clstmp17 = alloca %closure, align 8
+    %rc1828 = bitcast %closure* %clstmp17 to i64*
+    store i64 2, i64* %rc1828, align 8
+    %funptr19 = getelementptr inbounds %closure, %closure* %clstmp17, i32 0, i32 1
+    store i8* bitcast (i1 (i1)* @schmu_makefalse to i8*), i8** %funptr19, align 8
+    %envptr20 = getelementptr inbounds %closure, %closure* %clstmp17, i32 0, i32 2
+    store i8* null, i8** %envptr20, align 8
+    %5 = call i1 @schmu___gg.g.g_apply_bb.b.b(i1 true, %closure* %clstmp17)
     call void @schmu_print_bool(i1 %5)
-    %ret17 = alloca %t_int, align 8
+    %ret21 = alloca %t_int, align 8
     %6 = call i64 @schmu___g.g___fun0_ti.ti(i64 17)
-    %box18 = bitcast %t_int* %ret17 to i64*
-    store i64 %6, i64* %box18, align 8
+    %box22 = bitcast %t_int* %ret21 to i64*
+    store i64 %6, i64* %box22, align 8
     call void @printi(i64 %6)
     %7 = call i64 @schmu___fun1(i64 18)
     call void @printi(i64 %7)
@@ -627,7 +653,7 @@ A generic pass function. This example is not 100% correct, but works due to call
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
+  %closure = type { i64, i8*, i8* }
   %t = type { i64, i1 }
   
   declare void @printi(i64 %0)
@@ -650,10 +676,10 @@ A generic pass function. This example is not 100% correct, but works due to call
   
   define i64 @schmu___g.gg.g_apply_i.ii.i(%closure* %f, i64 %x) {
   entry:
-    %funcptr2 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp1 = load i8*, i8** %envptr, align 8
     %0 = tail call i64 %casttmp(i64 %x, i8* %loadtmp1)
     ret i64 %0
@@ -666,10 +692,10 @@ A generic pass function. This example is not 100% correct, but works due to call
     store i64 %0, i64* %fst11, align 8
     %snd = getelementptr inbounds { i64, i8 }, { i64, i8 }* %box, i32 0, i32 1
     store i8 %1, i8* %snd, align 1
-    %funcptr12 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr12, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to { i64, i8 } (i64, i8, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp6 = load i8*, i8** %envptr, align 8
     %ret = alloca %t, align 8
     %2 = tail call { i64, i8 } %casttmp(i64 %0, i8 %1, i8* %loadtmp6)
@@ -681,26 +707,30 @@ A generic pass function. This example is not 100% correct, but works due to call
   define i64 @main(i64 %arg) {
   entry:
     %clstmp = alloca %closure, align 8
-    %funptr7 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 (i64)* @schmu___g.g_pass_i.i to i8*), i8** %funptr7, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %rc8 = bitcast %closure* %clstmp to i64*
+    store i64 2, i64* %rc8, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu___g.g_pass_i.i to i8*), i8** %funptr, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 2
     store i8* null, i8** %envptr, align 8
     %0 = call i64 @schmu___g.gg.g_apply_i.ii.i(%closure* %clstmp, i64 20)
     call void @printi(i64 %0)
     %clstmp1 = alloca %closure, align 8
-    %funptr28 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast ({ i64, i8 } (i64, i8)* @schmu___g.g_pass_t.t to i8*), i8** %funptr28, align 8
-    %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
-    store i8* null, i8** %envptr3, align 8
+    %rc29 = bitcast %closure* %clstmp1 to i64*
+    store i64 2, i64* %rc29, align 8
+    %funptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
+    store i8* bitcast ({ i64, i8 } (i64, i8)* @schmu___g.g_pass_t.t to i8*), i8** %funptr3, align 8
+    %envptr4 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 2
+    store i8* null, i8** %envptr4, align 8
     %boxconst = alloca %t, align 8
     store %t { i64 700, i1 false }, %t* %boxconst, align 8
     %unbox = bitcast %t* %boxconst to { i64, i8 }*
-    %fst9 = bitcast { i64, i8 }* %unbox to i64*
-    %fst4 = load i64, i64* %fst9, align 8
+    %fst10 = bitcast { i64, i8 }* %unbox to i64*
+    %fst5 = load i64, i64* %fst10, align 8
     %snd = getelementptr inbounds { i64, i8 }, { i64, i8 }* %unbox, i32 0, i32 1
-    %snd5 = load i8, i8* %snd, align 1
+    %snd6 = load i8, i8* %snd, align 1
     %ret = alloca %t, align 8
-    %1 = call { i64, i8 } @schmu___g.gg.g_apply_t.tt.t(%closure* %clstmp1, i64 %fst4, i8 %snd5)
+    %1 = call { i64, i8 } @schmu___g.gg.g_apply_t.tt.t(%closure* %clstmp1, i64 %fst5, i8 %snd6)
     %box = bitcast %t* %ret to { i64, i8 }*
     store { i64, i8 } %1, { i64, i8 }* %box, align 8
     %2 = bitcast %t* %ret to i64*
@@ -719,7 +749,7 @@ a second function. Instead, the closure struct was being created again and the c
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
+  %closure = type { i64, i8*, i8* }
   %t_int = type { i64 }
   
   @a = global i64 0, align 8
@@ -731,10 +761,10 @@ a second function. Instead, the closure struct was being created again and the c
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
-    %funcptr8 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr8, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, %closure*, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
     %1 = tail call i64 %casttmp(i64 %0, %closure* %env, i8* %loadtmp3)
@@ -747,10 +777,10 @@ a second function. Instead, the closure struct was being created again and the c
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
-    %funcptr8 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr8, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, %closure*, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp3 = load i8*, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
     %1 = tail call i64 %casttmp(i64 %0, %closure* %env, i8* %loadtmp3)
@@ -763,15 +793,15 @@ a second function. Instead, the closure struct was being created again and the c
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
-    %funcptr4 = bitcast %closure* %env to i8**
-    %loadtmp = load i8*, i8** %funcptr4, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %env, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %env, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %env, i32 0, i32 2
     %loadtmp2 = load i8*, i8** %envptr, align 8
     %1 = tail call i64 %casttmp(i64 %0, i8* %loadtmp2)
     %2 = alloca %t_int, align 8
-    %x5 = bitcast %t_int* %2 to i64*
-    store i64 %1, i64* %x5, align 8
+    %x4 = bitcast %t_int* %2 to i64*
+    store i64 %1, i64* %x4, align 8
     ret i64 %1
   }
   
@@ -784,35 +814,43 @@ a second function. Instead, the closure struct was being created again and the c
   define i64 @main(i64 %arg) {
   entry:
     %clstmp = alloca %closure, align 8
-    %funptr14 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (i64 (i64, %closure*)* @schmu___tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr14, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %rc17 = bitcast %closure* %clstmp to i64*
+    store i64 2, i64* %rc17, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* bitcast (i64 (i64, %closure*)* @schmu___tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 2
     store i8* null, i8** %envptr, align 8
     %clstmp1 = alloca %closure, align 8
-    %funptr215 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast (i64 (i64)* @schmu_add1 to i8*), i8** %funptr215, align 8
-    %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
-    store i8* null, i8** %envptr3, align 8
+    %rc218 = bitcast %closure* %clstmp1 to i64*
+    store i64 2, i64* %rc218, align 8
+    %funptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu_add1 to i8*), i8** %funptr3, align 8
+    %envptr4 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 2
+    store i8* null, i8** %envptr4, align 8
     %ret = alloca %t_int, align 8
     %0 = call i64 @schmu___ggg.gg.g_apply_titii.i.tii.i.ti(i64 15, %closure* %clstmp, %closure* %clstmp1)
     %box = bitcast %t_int* %ret to i64*
     store i64 %0, i64* %box, align 8
     store i64 %0, i64* @a, align 8
     call void @printi(i64 %0)
-    %clstmp5 = alloca %closure, align 8
-    %funptr616 = bitcast %closure* %clstmp5 to i8**
-    store i8* bitcast (i64 (i64, %closure*)* @schmu___tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr616, align 8
-    %envptr7 = getelementptr inbounds %closure, %closure* %clstmp5, i32 0, i32 1
-    store i8* null, i8** %envptr7, align 8
-    %clstmp8 = alloca %closure, align 8
-    %funptr917 = bitcast %closure* %clstmp8 to i8**
-    store i8* bitcast (i64 (i64)* @schmu_add1 to i8*), i8** %funptr917, align 8
-    %envptr10 = getelementptr inbounds %closure, %closure* %clstmp8, i32 0, i32 1
-    store i8* null, i8** %envptr10, align 8
-    %ret11 = alloca %t_int, align 8
-    %1 = call i64 @schmu___ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(i64 15, %closure* %clstmp5, %closure* %clstmp8)
-    %box12 = bitcast %t_int* %ret11 to i64*
-    store i64 %1, i64* %box12, align 8
+    %clstmp6 = alloca %closure, align 8
+    %rc719 = bitcast %closure* %clstmp6 to i64*
+    store i64 2, i64* %rc719, align 8
+    %funptr8 = getelementptr inbounds %closure, %closure* %clstmp6, i32 0, i32 1
+    store i8* bitcast (i64 (i64, %closure*)* @schmu___tgg.g.tg_boxed2int_int_tii.i.ti to i8*), i8** %funptr8, align 8
+    %envptr9 = getelementptr inbounds %closure, %closure* %clstmp6, i32 0, i32 2
+    store i8* null, i8** %envptr9, align 8
+    %clstmp10 = alloca %closure, align 8
+    %rc1120 = bitcast %closure* %clstmp10 to i64*
+    store i64 2, i64* %rc1120, align 8
+    %funptr12 = getelementptr inbounds %closure, %closure* %clstmp10, i32 0, i32 1
+    store i8* bitcast (i64 (i64)* @schmu_add1 to i8*), i8** %funptr12, align 8
+    %envptr13 = getelementptr inbounds %closure, %closure* %clstmp10, i32 0, i32 2
+    store i8* null, i8** %envptr13, align 8
+    %ret14 = alloca %t_int, align 8
+    %1 = call i64 @schmu___ggg.g.gg.g.g_apply2_titii.i.tii.i.ti(i64 15, %closure* %clstmp6, %closure* %clstmp10)
+    %box15 = bitcast %t_int* %ret14 to i64*
+    store i64 %1, i64* %box15, align 8
     store i64 %1, i64* @b, align 8
     call void @printi(i64 %1)
     ret i64 0
@@ -962,7 +1000,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
+  %closure = type { i64, i8*, i8* }
   
   @arr = global i64* null, align 8
   
@@ -971,40 +1009,46 @@ Nested polymorphic closures. Does not quite work for another nesting level
   define void @schmu___agg.u.u_array-iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
     %monoclstmp = alloca %closure, align 8
-    %funptr27 = bitcast %closure* %monoclstmp to i8**
-    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u_inner_cls_both_i.u-ai-i.u to i8*), i8** %funptr27, align 8
+    %rc29 = bitcast %closure* %monoclstmp to i64*
+    store i64 2, i64* %rc29, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u_inner_cls_both_i.u-ai-i.u to i8*), i8** %funptr, align 8
     %clsr_monoclstmp = alloca { i64*, %closure }, align 8
-    %arr128 = bitcast { i64*, %closure }* %clsr_monoclstmp to i64**
-    store i64* %arr, i64** %arr128, align 8
+    %arr130 = bitcast { i64*, %closure }* %clsr_monoclstmp to i64**
+    store i64* %arr, i64** %arr130, align 8
     %f2 = getelementptr inbounds { i64*, %closure }, { i64*, %closure }* %clsr_monoclstmp, i32 0, i32 1
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 24, i1 false)
     %env = bitcast { i64*, %closure }* %clsr_monoclstmp to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 2
     store i8* %env, i8** %envptr, align 8
     call void @schmu___i.u-ag-g.u_inner_cls_both_i.u-ai-i.u(i64 0, i8* %env)
     %monoclstmp5 = alloca %closure, align 8
-    %funptr629 = bitcast %closure* %monoclstmp5 to i8**
-    store i8* bitcast (void (i64, %closure*, i8*)* @schmu___ig.u.u-ag_inner_cls_arr_ii.u.u-ai to i8*), i8** %funptr629, align 8
-    %clsr_monoclstmp7 = alloca { i64* }, align 8
-    %arr830 = bitcast { i64* }* %clsr_monoclstmp7 to i64**
-    store i64* %arr, i64** %arr830, align 8
-    %env9 = bitcast { i64* }* %clsr_monoclstmp7 to i8*
-    %envptr10 = getelementptr inbounds %closure, %closure* %monoclstmp5, i32 0, i32 1
-    store i8* %env9, i8** %envptr10, align 8
-    call void @schmu___ig.u.u-ag_inner_cls_arr_ii.u.u-ai(i64 0, %closure* %f, i8* %env9)
-    %monoclstmp16 = alloca %closure, align 8
-    %funptr1731 = bitcast %closure* %monoclstmp16 to i8**
-    store i8* bitcast (void (i64, i64*, i8*)* @schmu___iag.u-g.u_inner_cls_f_iai.u-i.u to i8*), i8** %funptr1731, align 8
-    %clsr_monoclstmp18 = alloca { %closure }, align 8
-    %f1932 = bitcast { %closure }* %clsr_monoclstmp18 to %closure*
-    %2 = bitcast %closure* %f1932 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %1, i64 16, i1 false)
-    %env20 = bitcast { %closure }* %clsr_monoclstmp18 to i8*
-    %envptr21 = getelementptr inbounds %closure, %closure* %monoclstmp16, i32 0, i32 1
-    store i8* %env20, i8** %envptr21, align 8
-    call void @schmu___iag.u-g.u_inner_cls_f_iai.u-i.u(i64 0, i64* %arr, i8* %env20)
+    %rc631 = bitcast %closure* %monoclstmp5 to i64*
+    store i64 2, i64* %rc631, align 8
+    %funptr7 = getelementptr inbounds %closure, %closure* %monoclstmp5, i32 0, i32 1
+    store i8* bitcast (void (i64, %closure*, i8*)* @schmu___ig.u.u-ag_inner_cls_arr_ii.u.u-ai to i8*), i8** %funptr7, align 8
+    %clsr_monoclstmp8 = alloca { i64* }, align 8
+    %arr932 = bitcast { i64* }* %clsr_monoclstmp8 to i64**
+    store i64* %arr, i64** %arr932, align 8
+    %env10 = bitcast { i64* }* %clsr_monoclstmp8 to i8*
+    %envptr11 = getelementptr inbounds %closure, %closure* %monoclstmp5, i32 0, i32 2
+    store i8* %env10, i8** %envptr11, align 8
+    call void @schmu___ig.u.u-ag_inner_cls_arr_ii.u.u-ai(i64 0, %closure* %f, i8* %env10)
+    %monoclstmp17 = alloca %closure, align 8
+    %rc1833 = bitcast %closure* %monoclstmp17 to i64*
+    store i64 2, i64* %rc1833, align 8
+    %funptr19 = getelementptr inbounds %closure, %closure* %monoclstmp17, i32 0, i32 1
+    store i8* bitcast (void (i64, i64*, i8*)* @schmu___iag.u-g.u_inner_cls_f_iai.u-i.u to i8*), i8** %funptr19, align 8
+    %clsr_monoclstmp20 = alloca { %closure }, align 8
+    %f2134 = bitcast { %closure }* %clsr_monoclstmp20 to %closure*
+    %2 = bitcast %closure* %f2134 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %1, i64 24, i1 false)
+    %env22 = bitcast { %closure }* %clsr_monoclstmp20 to i8*
+    %envptr23 = getelementptr inbounds %closure, %closure* %monoclstmp17, i32 0, i32 2
+    store i8* %env22, i8** %envptr23, align 8
+    call void @schmu___iag.u-g.u_inner_cls_f_iai.u-i.u(i64 0, i64* %arr, i8* %env22)
     ret void
   }
   
@@ -1041,12 +1085,12 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %sunkaddr8 = getelementptr i8, i8* %sunkaddr7, i64 24
     %4 = bitcast i8* %sunkaddr8 to i64*
     %5 = load i64, i64* %4, align 8
-    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 8
-    %6 = bitcast i8* %sunkaddr10 to i8**
+    %sunkaddr9 = getelementptr inbounds i8, i8* %0, i64 16
+    %6 = bitcast i8* %sunkaddr9 to i8**
     %loadtmp = load i8*, i8** %6, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %sunkaddr11 = getelementptr inbounds i8, i8* %0, i64 16
-    %7 = bitcast i8* %sunkaddr11 to i8**
+    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 24
+    %7 = bitcast i8* %sunkaddr10 to i8**
     %loadtmp3 = load i8*, i8** %7, align 8
     tail call void %casttmp(i64 %5, i8* %loadtmp3)
     %add = add i64 %i2, 1
@@ -1079,11 +1123,12 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %scevgep = getelementptr i64, i64* %arr, i64 %i1
     %scevgep6 = getelementptr i64, i64* %scevgep, i64 3
     %5 = load i64, i64* %scevgep6, align 8
-    %6 = bitcast i8* %0 to i8**
+    %sunkaddr = getelementptr inbounds i8, i8* %0, i64 8
+    %6 = bitcast i8* %sunkaddr to i8**
     %loadtmp = load i8*, i8** %6, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %sunkaddr = getelementptr inbounds i8, i8* %0, i64 8
-    %7 = bitcast i8* %sunkaddr to i8**
+    %sunkaddr8 = getelementptr inbounds i8, i8* %0, i64 16
+    %7 = bitcast i8* %sunkaddr8 to i8**
     %loadtmp3 = load i8*, i8** %7, align 8
     tail call void %casttmp(i64 %5, i8* %loadtmp3)
     %add = add i64 %i1, 1
@@ -1120,10 +1165,10 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %sunkaddr10 = getelementptr i8, i8* %sunkaddr9, i64 24
     %5 = bitcast i8* %sunkaddr10 to i64*
     %6 = load i64, i64* %5, align 8
-    %funcptr11 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr11, align 8
+    %funcptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %loadtmp = load i8*, i8** %funcptr, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 2
     %loadtmp4 = load i8*, i8** %envptr, align 8
     tail call void %casttmp(i64 %6, i8* %loadtmp4)
     %add = add i64 %i2, 1
@@ -1305,9 +1350,11 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i64 %52, i64* %size42, align 8
     %53 = load i64*, i64** @arr, align 8
     %clstmp = alloca %closure, align 8
-    %funptr43 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (void (i64)* @schmu___fun0 to i8*), i8** %funptr43, align 8
-    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    %rc43 = bitcast %closure* %clstmp to i64*
+    store i64 2, i64* %rc43, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* bitcast (void (i64)* @schmu___fun0 to i8*), i8** %funptr, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 2
     store i8* null, i8** %envptr, align 8
     call void @schmu___agg.u.u_array-iter_aii.u.u(i64* %53, %closure* %clstmp)
     %54 = load i64*, i64** @arr, align 8
@@ -2095,7 +2142,7 @@ The lamba passed as array-iter argument is polymorphic
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
+  %closure = type { i64, i8*, i8* }
   
   @arr = global i64* null, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [1 x [1 x i8]] } { i64 2, i64 0, i64 1, [1 x [1 x i8]] zeroinitializer }
@@ -2114,15 +2161,17 @@ The lamba passed as array-iter argument is polymorphic
     %1 = bitcast i8** %str to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 8, i1 false)
     %monoclstmp = alloca %closure, align 8
-    %funptr3 = bitcast %closure* %monoclstmp to i8**
-    store i8* bitcast (void (i64, i64, i8*)* @schmu___ig.u-ac-ac___fun1_ii.u-ac-ac to i8*), i8** %funptr3, align 8
+    %rc3 = bitcast %closure* %monoclstmp to i64*
+    store i64 2, i64* %rc3, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    store i8* bitcast (void (i64, i64, i8*)* @schmu___ig.u-ac-ac___fun1_ii.u-ac-ac to i8*), i8** %funptr, align 8
     %clsr_monoclstmp = alloca { i8**, i8* }, align 8
     %acc14 = bitcast { i8**, i8* }* %clsr_monoclstmp to i8***
     store i8** %acc, i8*** %acc14, align 8
     %delim2 = getelementptr inbounds { i8**, i8* }, { i8**, i8* }* %clsr_monoclstmp, i32 0, i32 1
     store i8* %delim, i8** %delim2, align 8
     %env = bitcast { i8**, i8* }* %clsr_monoclstmp to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 2
     store i8* %env, i8** %envptr, align 8
     call void @schmu___agig.u.u_array-iteri_aiii.u.u(i64* %arr, %closure* %monoclstmp)
     call void @schmu_string-add-null(i8** %acc)
@@ -2133,13 +2182,15 @@ The lamba passed as array-iter argument is polymorphic
   define void @schmu___agag.u_string-append_acac.u(i8** %str, i8* %app) {
   entry:
     %monoclstmp = alloca %closure, align 8
-    %funptr2 = bitcast %closure* %monoclstmp to i8**
-    store i8* bitcast (void (i8, i8*)* @schmu___g.u-ag___fun0_c.u-ac to i8*), i8** %funptr2, align 8
+    %rc2 = bitcast %closure* %monoclstmp to i64*
+    store i64 2, i64* %rc2, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    store i8* bitcast (void (i8, i8*)* @schmu___g.u-ag___fun0_c.u-ac to i8*), i8** %funptr, align 8
     %clsr_monoclstmp = alloca { i8** }, align 8
     %str13 = bitcast { i8** }* %clsr_monoclstmp to i8***
     store i8** %str, i8*** %str13, align 8
     %env = bitcast { i8** }* %clsr_monoclstmp to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 2
     store i8* %env, i8** %envptr, align 8
     call void @schmu___agg.u.u_array-iter_acc.u.u(i8* %app, %closure* %monoclstmp)
     ret void
@@ -2148,17 +2199,19 @@ The lamba passed as array-iter argument is polymorphic
   define void @schmu___agg.u.u_array-iter_acc.u.u(i8* %arr, %closure* %f) {
   entry:
     %monoclstmp = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %monoclstmp to i8**
-    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u_inner_i.u-ac-c.u to i8*), i8** %funptr5, align 8
+    %rc5 = bitcast %closure* %monoclstmp to i64*
+    store i64 2, i64* %rc5, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u_inner_i.u-ac-c.u to i8*), i8** %funptr, align 8
     %clsr_monoclstmp = alloca { i8*, %closure }, align 8
     %arr16 = bitcast { i8*, %closure }* %clsr_monoclstmp to i8**
     store i8* %arr, i8** %arr16, align 8
     %f2 = getelementptr inbounds { i8*, %closure }, { i8*, %closure }* %clsr_monoclstmp, i32 0, i32 1
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 24, i1 false)
     %env = bitcast { i8*, %closure }* %clsr_monoclstmp to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 2
     store i8* %env, i8** %envptr, align 8
     call void @schmu___i.u-ag-g.u_inner_i.u-ac-c.u(i64 0, i8* %env)
     ret void
@@ -2167,17 +2220,19 @@ The lamba passed as array-iter argument is polymorphic
   define void @schmu___agig.u.u_array-iteri_aiii.u.u(i64* %arr, %closure* %f) {
   entry:
     %monoclstmp = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %monoclstmp to i8**
-    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-ig.u_inner__2_i.u-ai-ii.u to i8*), i8** %funptr5, align 8
+    %rc5 = bitcast %closure* %monoclstmp to i64*
+    store i64 2, i64* %rc5, align 8
+    %funptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-ig.u_inner__2_i.u-ai-ii.u to i8*), i8** %funptr, align 8
     %clsr_monoclstmp = alloca { i64*, %closure }, align 8
     %arr16 = bitcast { i64*, %closure }* %clsr_monoclstmp to i64**
     store i64* %arr, i64** %arr16, align 8
     %f2 = getelementptr inbounds { i64*, %closure }, { i64*, %closure }* %clsr_monoclstmp, i32 0, i32 1
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 24, i1 false)
     %env = bitcast { i64*, %closure }* %clsr_monoclstmp to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 2
     store i8* %env, i8** %envptr, align 8
     call void @schmu___i.u-ag-ig.u_inner__2_i.u-ai-ii.u(i64 0, i8* %env)
     ret void
@@ -2241,12 +2296,12 @@ The lamba passed as array-iter argument is polymorphic
     %sunkaddr = getelementptr i8, i8* %arr1, i64 %i2
     %sunkaddr7 = getelementptr i8, i8* %sunkaddr, i64 24
     %4 = load i8, i8* %sunkaddr7, align 1
-    %sunkaddr9 = getelementptr inbounds i8, i8* %0, i64 8
-    %5 = bitcast i8* %sunkaddr9 to i8**
+    %sunkaddr8 = getelementptr inbounds i8, i8* %0, i64 16
+    %5 = bitcast i8* %sunkaddr8 to i8**
     %loadtmp = load i8*, i8** %5, align 8
     %casttmp = bitcast i8* %loadtmp to void (i8, i8*)*
-    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 16
-    %6 = bitcast i8* %sunkaddr10 to i8**
+    %sunkaddr9 = getelementptr inbounds i8, i8* %0, i64 24
+    %6 = bitcast i8* %sunkaddr9 to i8**
     %loadtmp3 = load i8*, i8** %6, align 8
     tail call void %casttmp(i8 %4, i8* %loadtmp3)
     %add = add i64 %i2, 1
@@ -2280,12 +2335,12 @@ The lamba passed as array-iter argument is polymorphic
     %sunkaddr8 = getelementptr i8, i8* %sunkaddr7, i64 24
     %4 = bitcast i8* %sunkaddr8 to i64*
     %5 = load i64, i64* %4, align 8
-    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 8
-    %6 = bitcast i8* %sunkaddr10 to i8**
+    %sunkaddr9 = getelementptr inbounds i8, i8* %0, i64 16
+    %6 = bitcast i8* %sunkaddr9 to i8**
     %loadtmp = load i8*, i8** %6, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i64, i8*)*
-    %sunkaddr11 = getelementptr inbounds i8, i8* %0, i64 16
-    %7 = bitcast i8* %sunkaddr11 to i8**
+    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 24
+    %7 = bitcast i8* %sunkaddr10 to i8**
     %loadtmp3 = load i8*, i8** %7, align 8
     tail call void %casttmp(i64 %i2, i64 %5, i8* %loadtmp3)
     %add = add i64 %i2, 1

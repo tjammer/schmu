@@ -304,8 +304,12 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
   let gen_closure_obj param assoc func name allocref =
     let clsr_struct = get_prealloc !allocref param closure_t name in
 
+    (* Add ref count *)
+    let rc_ptr = Llvm.build_struct_gep clsr_struct 0 "rc" builder in
+    ignore (Llvm.(build_store (const_int int_t 1) rc_ptr) builder );
+
     (* Add function ptr *)
-    let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
+    let fun_ptr = Llvm.build_struct_gep clsr_struct 1 "funptr" builder in
     let fun_casted = Llvm.build_bitcast func.value voidptr_t "func" builder in
     ignore (Llvm.build_store fun_casted fun_ptr builder);
 
@@ -341,7 +345,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     in
 
     (* Add closure env to struct *)
-    let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
+    let env_ptr = Llvm.build_struct_gep clsr_struct 2 "envptr" builder in
     ignore (Llvm.build_store clsr_ptr env_ptr builder);
 
     (* Turn simple functions into empty closures, so they are handled correctly

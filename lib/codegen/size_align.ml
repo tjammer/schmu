@@ -23,7 +23,7 @@ let rec size_align_impl size_pr typ =
   | Tunit -> failwith "Does this make sense?"
   | Tfun _ ->
       (* A closure, 2 ptrs. Assume 64bit *)
-      add_size_align ~upto:8 ~sz:16 size_pr
+      add_size_align ~upto:8 ~sz:24 size_pr
   | Trecord (_, _, labels) ->
       let { size; align = upto } =
         Array.fold_left
