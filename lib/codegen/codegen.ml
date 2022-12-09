@@ -421,7 +421,7 @@ end = struct
            then get env ptr (as voidptr) from the second field and pass it as last argument *)
         let funcp = Llvm.build_struct_gep func.value 0 "funcptr" builder in
         let funcp = Llvm.build_load funcp "loadtmp" builder in
-        let typ = get_lltype_def func.typ |> Llvm.pointer_type in
+        let typ = typeof_funclike func.typ |> Llvm.pointer_type in
         let funcp = Llvm.build_bitcast funcp typ "casttmp" builder in
 
         let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
@@ -754,7 +754,7 @@ end = struct
     llvar
 
   and gen_record param typ labels allocref id const return =
-    let lltyp = get_lltype_field typ in
+    let lltyp = get_lltype_def typ in
 
     let value, kind =
       match const with
@@ -1075,7 +1075,7 @@ let fill_constants constants =
 
 let def_globals globals =
   let f (name, typ, toplvl) =
-    let lltyp = T.get_lltype_global typ in
+    let lltyp = T.get_lltype_def typ in
     let null = Llvm.const_int int_t 0 in
     let value =
       Llvm.define_global name (Llvm.const_bitcast null lltyp) the_module
@@ -1090,7 +1090,7 @@ let decl_external ~c_linkage cname = function
   | Tfun _ as t when not (is_type_polymorphic t) ->
       H.declare_function ~c_linkage C cname t
   | typ ->
-      let lltyp = T.get_lltype_global typ in
+      let lltyp = T.get_lltype_def typ in
       let value = Llvm.declare_global lltyp cname the_module in
       (* TODO constness in module *)
       { value; typ; lltyp; kind = Ptr }

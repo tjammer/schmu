@@ -22,8 +22,8 @@ let rec size_align_impl size_pr typ =
       { size_pr with size = size_pr.size + 1 }
   | Tunit -> failwith "Does this make sense?"
   | Tfun _ ->
-      (* Just a ptr? Or a closure, 2 ptrs. Assume 64bit *)
-      add_size_align ~upto:8 ~sz:8 size_pr
+      (* A closure, 2 ptrs. Assume 64bit *)
+      add_size_align ~upto:8 ~sz:16 size_pr
   | Trecord (_, _, labels) ->
       let { size; align = upto } =
         Array.fold_left

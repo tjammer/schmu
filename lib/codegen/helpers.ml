@@ -240,7 +240,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
   let set_struct_field value ptr =
     match value.typ with
-    | Trecord _ | Tvariant _ ->
+    | Trecord _ | Tvariant _ | Tfun _ ->
         if value.value <> ptr then
           let size = sizeof_typ value.typ |> llval_of_size in
           memcpy ~dst:ptr ~src:value ~size
@@ -258,9 +258,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
   let declare_function ~c_linkage mangle_kind fun_name = function
     | Tfun (params, ret, kind) as typ ->
-        let ft, byvals =
-          typeof_func ~param:false ~decl:true (params, ret, kind)
-        in
+        let ft, byvals = typeof_func ~decl:true (params, ret, kind) in
         let name = mangle fun_name mangle_kind in
         let value = Llvm.declare_function name ft the_module in
         if c_linkage then
@@ -303,9 +301,9 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
       let src = Vars.find cl.clname param.vars in
       let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
       (match cl.cltyp with
-      | (Trecord _ | Tvariant _) when cl.clmut ->
+      | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut ->
           ignore (Llvm.build_store src.value dst builder)
-      | Trecord _ | Tvariant _ ->
+      | Trecord _ | Tvariant _ | Tfun _ ->
           (* For records, we just memcpy
              TODO don't use types here, but type kinds*)
           let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
@@ -338,7 +336,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
        when passed *)
     let typ = tfun_to_closure func.typ in
 
-    { value = clsr_struct; typ; lltyp = func.lltyp; kind = Imm }
+    { value = clsr_struct; typ; lltyp = func.lltyp; kind = Ptr }
 
   let add_closure vars func = function
     | Simple -> vars
@@ -356,12 +354,12 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
           let value, lltyp =
             match typ with
             (* No need for C interop with closures *)
-            | (Trecord _ | Tvariant _) when cl.clmut ->
+            | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut ->
                 (* Mutable records are passed as pointers into the env *)
                 let value = Llvm.build_load item_ptr cl.clname builder in
 
                 (value, get_lltype_def typ |> Llvm.pointer_type)
-            | Trecord _ | Tvariant _ ->
+            | Trecord _ | Tvariant _ | Tfun _ ->
                 (* For records we want a ptr so that gep and memcpy work *)
                 (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
             | _ ->
