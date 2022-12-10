@@ -632,6 +632,13 @@ let reset () =
   alloc_id := 1;
   var_id := 1
 
+(* The first var_id is reserved for global values (such as string literals).
+   In ifs where string literals can be returned, they will get decreased.
+   If this happens in function we could decrease string literals multiple times
+   and try to free them. To combat this, a global id is generated at top level,
+   which causes appropriate ref increases. See [morph_if] for details*)
+let global_id = 1
+
 let rec set_alloca = function
   | Value ({ contents = Request req } as a) when req.lvl >= !alloc_lvl ->
       a := Preallocated
@@ -862,7 +869,7 @@ and morph_string mk p s =
   in
   ( p,
     mk (Mconst (String (s, alloca, rf))) p.ret,
-    { no_var with fn = No_function; alloc = Value alloca } )
+    { fn = No_function; alloc = Value alloca; id = Some global_id } )
 
 and morph_array mk p a =
   let ret = p.ret in
@@ -1457,12 +1464,15 @@ let monomorphize { Typed_tree.externals; items; _ } =
   in
 
   let param =
+    (* Generate one toplevel id for global values. They won't be decreased *)
+    let iset = Iset.add (new_id var_id) Iset.empty in
+    let () = assert (!var_id = 2) in
     {
       vars;
       monomorphized = Set.empty;
       funcs = Fset.empty;
       ret = false;
-      ids = [ (Id_func, Iset.empty) ];
+      ids = [ (Id_func, iset) ];
       toplvl = true;
     }
   in
@@ -1493,7 +1503,10 @@ let monomorphize { Typed_tree.externals; items; _ } =
   in
 
   let decrs =
-    match p.ids with [] -> Seq.empty | (_, ids) :: _ -> Iset.to_rev_seq ids
+    match p.ids with
+    | [] -> Seq.empty
+    | (_, ids) :: _ ->
+        Iset.to_rev_seq ids |> Seq.filter (fun i -> not (Int.equal i global_id))
   in
 
   let externals =

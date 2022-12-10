@@ -1,0 +1,12 @@
+(fun ret-non []
+  (if false
+    (#some 20)
+    #none))
+
+(fun try []
+  (print (match (ret-non)
+         ((#some j) (fmt-str j))
+         (#none "none"))))
+
+(try)
+(try)

@@ -3827,3 +3827,8 @@ Return closures
   25
   47
   146
+
+Don't try to free string literals in ifs
+  $ schmu incr_str_lit_ifs.smu && valgrind -q --leak-check=yes ./incr_str_lit_ifs
+  none
+  none

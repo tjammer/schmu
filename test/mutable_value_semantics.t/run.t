@@ -2318,6 +2318,7 @@ Refcounts for members in arrays, records and variants
     tail call void @__g.u_incr_rc_optionai.u(%option_array_int* @__expr0)
     %str31 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @1 to i8*), i8** %str31, align 8
+    tail call void @__g.u_incr_rc_ac.u(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @1 to i8*))
     tail call void @__g.u_decr_rc_optionai.u(%option_array_int* @__expr0)
     br label %ifcont
   
@@ -2427,6 +2428,16 @@ Refcounts for members in arrays, records and variants
     br label %cont
   
   cont:                                             ; preds = %match, %entry
+    ret void
+  }
+  
+  define internal void @__g.u_incr_rc_ac.u(i8* %0) {
+  entry:
+    %ref = bitcast i8* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %1 = add i64 %ref2, 1
+    store i64 %1, i64* %ref13, align 8
     ret void
   }
   
