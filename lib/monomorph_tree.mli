@@ -87,7 +87,13 @@ and copy_kind = Cglobal of string | Cnormal of bool
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
-type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
+
+type to_gen_func = {
+  abs : abstraction;
+  name : func_name;
+  recursive : recurs;
+  upward : unit -> bool;
+}
 
 type external_decl = {
   ext_name : string;

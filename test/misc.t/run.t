@@ -3832,3 +3832,14 @@ Don't try to free string literals in ifs
   $ schmu incr_str_lit_ifs.smu && valgrind -q --leak-check=yes ./incr_str_lit_ifs
   none
   none
+
+Mutable variables in upward closures
+  $ schmu upward_mut.smu && valgrind -q --leak-check=yes ./upward_mut
+  1
+  2
+  3
+  4
+  1
+  2
+  3
+  4

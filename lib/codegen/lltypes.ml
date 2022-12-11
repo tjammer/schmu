@@ -56,10 +56,11 @@ module Make (A : Abi_intf.S) = struct
   and typeof_aggregate agg =
     Array.map get_lltype_def agg |> Llvm.struct_type context
 
-  and typeof_closure agg =
+  and typeof_closure agg upward =
     Array.map
       (fun cl ->
-        if cl.clmut then get_lltype_def cl.cltyp |> Llvm.pointer_type
+        if cl.clmut && not upward then
+          get_lltype_def cl.cltyp |> Llvm.pointer_type
         else get_lltype_def cl.cltyp)
       agg
     |> Llvm.struct_type context

@@ -1,0 +1,23 @@
+(type c {:c& int})
+
+(fun counter []
+  (val cnt& 0)
+  (fun [] (set &cnt (+ cnt 1))
+    cnt))
+
+(val c (counter))
+(print (fmt-str (c)))
+(print (fmt-str (c)))
+(print (fmt-str (c)))
+(print (fmt-str (c)))
+
+(fun counter []
+  (val cnt& {:c 0})
+  (fun [] (set &cnt {:c (+ (.c cnt) 1)})
+    cnt))
+
+(val c (counter))
+(print (fmt-str (.c (c))))
+(print (fmt-str (.c (c))))
+(print (fmt-str (.c (c))))
+(print (fmt-str (.c (c))))

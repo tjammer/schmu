@@ -25,7 +25,7 @@ end = struct
   let decr_tbl = Strtbl.create 64
 
   let rec gen_function vars ?(mangle = Schmu)
-      { Monomorph_tree.abs; name; recursive } =
+      { Monomorph_tree.abs; name; recursive; upward } =
     let typ = Monomorph_tree.typ_of_abs abs in
 
     match typ with
@@ -51,7 +51,7 @@ end = struct
 
         (* Add params from closure *)
         (* We generate both the code for extracting the closure and add the vars to the environment *)
-        let tvars = add_closure vars.vars func kind in
+        let tvars = add_closure vars.vars func (upward ()) kind in
 
         (* Add parameters to env *)
         let tvars, rec_block =
@@ -1113,10 +1113,12 @@ let add_global_init funcs outname kind body =
     | `Dtor -> ("__" ^ outname ^ "_deinit", "llvm.global_dtors")
   in
   let p =
+    let upward () = false in
     Core.gen_function funcs ~mangle:C
       {
         name = { Monomorph_tree.user = fname; call = fname };
         recursive = Rnone;
+        upward;
         abs =
           {
             func = { params = []; ret = Tunit; kind = Simple };
@@ -1199,10 +1201,12 @@ let generate ~target ~outname ~release ~modul
   if not modul then
     (* Add main *)
     let tree = decr_refs tree decrs in
+    let upward () = false in
     Core.gen_function funcs ~mangle:C
       {
         name = { Monomorph_tree.user = "main"; call = "main" };
         recursive = Rnone;
+        upward;
         abs =
           {
             func =

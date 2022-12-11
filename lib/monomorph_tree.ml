@@ -95,7 +95,12 @@ type external_decl = {
   c_linkage : bool;
 }
 
-type to_gen_func = { abs : abstraction; name : func_name; recursive : recurs }
+type to_gen_func = {
+  abs : abstraction;
+  name : func_name;
+  recursive : recurs;
+  upward : unit -> bool;
+}
 
 module To_gen_func = struct
   type t = to_gen_func
@@ -1126,16 +1131,18 @@ and prep_func p (username, uniq, abs) =
   in
   let recursive = pop_recursion_stack () in
 
-  let abs = { func; pnames; body } in
-  let name = { user = username; call } in
-  let gen_func = { abs; name; recursive } in
-
   (* Collect functions from body *)
   let p =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
   let alloca = ref (request ()) in
   let alloc = Value alloca in
+  let upward () = match !alloca with Preallocated -> true | _ -> false in
+
+  let abs = { func; pnames; body } in
+  let name = { user = username; call } in
+  let gen_func = { abs; name; recursive; upward } in
+
   let p =
     if inline then
       let fn = Inline (pnames, ftyp, body) in
@@ -1201,10 +1208,13 @@ and morph_lambda mk typ p id abs =
   (* But functions on the lambda body might *)
   ignore (pop_recursion_stack ());
 
+  let alloca = ref (request ()) in
+  let upward () = match !alloca with Preallocated -> true | _ -> false in
+
   let abs = { func; pnames; body } in
   (* lambdas have no username, so we just repeat the call name *)
   let names = { call = name; user = name } in
-  let gen_func = { abs; name = names; recursive } in
+  let gen_func = { abs; name = names; recursive; upward } in
 
   let p = { p with vars } in
   let p, fn =
@@ -1220,10 +1230,9 @@ and morph_lambda mk typ p id abs =
   in
   (* Function can be returned themselves. In that case, a closure object will be generated,
      so treat it the same as any local allocation *)
-  let alloca = ref (request ()) in
   ( { p with ret },
     mk (Mlambda (name, abs, alloca)) ret,
-    { var with fn; alloc = Value alloca } )
+    { no_var with fn; alloc = Value alloca } )
 
 and morph_app mk p callee args ret_typ =
   (* Save env for later monomorphization *)

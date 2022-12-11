@@ -4,7 +4,7 @@ module type S = sig
 
   val dummy_fn_value : llvar
   val declare_function : c_linkage:bool -> mangle_kind -> string -> typ -> llvar
-  val add_closure : llvar Vars.t -> llvar -> fun_kind -> llvar Vars.t
+  val add_closure : llvar Vars.t -> llvar -> bool -> fun_kind -> llvar Vars.t
 
   val add_params :
     llvar Vars.t ->
@@ -307,12 +307,14 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
   let gen_closure_obj param assoc func name allocref =
     let clsr_struct = get_prealloc !allocref param closure_t name in
 
+    let upward = is_prealloc allocref in
+
     let refc =
       match assoc with
       | [] ->
           (* Nothing is captured, nothing needs to be freed *)
           2
-      | _ when is_prealloc allocref ->
+      | _ when upward ->
           (* We allocate memory and need to free it later *)
           1
       | _ ->
@@ -333,14 +335,15 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
       let src = Vars.find cl.clname param.vars in
       let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
       (match cl.cltyp with
-      | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut ->
+      | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut && not upward ->
           ignore (Llvm.build_store src.value dst builder)
       | Trecord _ | Tvariant _ | Tfun _ ->
           (* For records, we just memcpy
              TODO don't use types here, but type kinds*)
           let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
           memcpy ~src ~dst ~size
-      | _ when cl.clmut -> ignore (Llvm.build_store src.value dst builder)
+      | _ when cl.clmut && not upward ->
+          ignore (Llvm.build_store src.value dst builder)
       | _ -> ignore (Llvm.build_store (bring_default src) dst builder));
       i + 1
     in
@@ -350,9 +353,9 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
       match assoc with
       | [] -> Llvm.const_pointer_null voidptr_t
       | assoc ->
-          let assoc_type = typeof_closure (Array.of_list assoc) in
+          let assoc_type = typeof_closure (Array.of_list assoc) upward in
           let clsr_ptr =
-            if is_prealloc allocref then
+            if upward then
               let size = Llvm.size_of assoc_type in
               let ptr = malloc ~size in
               Llvm.build_bitcast ptr
@@ -378,13 +381,13 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
     { value = clsr_struct; typ; lltyp = func.lltyp; kind = Ptr }
 
-  let add_closure vars func = function
+  let add_closure vars func upward = function
     | Simple -> vars
     | Closure assoc ->
         let closure_index = (Llvm.params func.value |> Array.length) - 1 in
         let clsr_param = (Llvm.params func.value).(closure_index) in
         let clsr_type =
-          typeof_closure (Array.of_list assoc) |> Llvm.pointer_type
+          typeof_closure (Array.of_list assoc) upward |> Llvm.pointer_type
         in
         let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
 
@@ -394,13 +397,15 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
           let value, lltyp =
             match typ with
             (* No need for C interop with closures *)
-            | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut ->
+            | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut && not upward ->
                 (* Mutable records are passed as pointers into the env *)
                 let value = Llvm.build_load item_ptr cl.clname builder in
 
                 (value, get_lltype_def typ |> Llvm.pointer_type)
             | Trecord _ | Tvariant _ | Tfun _ ->
                 (* For records we want a ptr so that gep and memcpy work *)
+                (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
+            | _ when cl.clmut && upward ->
                 (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
             | _ ->
                 let value = Llvm.build_load item_ptr cl.clname builder in
