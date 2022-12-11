@@ -1110,9 +1110,9 @@ and prep_func p (username, uniq, abs) =
 
   enter_level ();
   let temp_p, body, var = morph_expr temp_p abs.body in
-  leave_level ();
-
+  (* Set alloca in lower level. This deals with closed over allocas which are returned *)
   if is_struct body.typ then set_alloca var.alloc;
+  leave_level ();
 
   let body =
     match Option.map (classify_id temp_p.ids) var.id with
@@ -1186,6 +1186,8 @@ and morph_lambda mk typ p id abs =
 
   enter_level ();
   let temp_p, body, var = morph_expr temp_p abs.body in
+  (* Set alloca in lower level. This deals with closed over allocas which are returned *)
+  if is_struct body.typ then set_alloca var.alloc;
   leave_level ();
 
   (* Collect functions from body *)
@@ -1193,7 +1195,6 @@ and morph_lambda mk typ p id abs =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
 
-  if is_struct body.typ then set_alloca var.alloc;
   let body = decr_refs body (remove_id ~id:var.id temp_p.ids) in
 
   (* Why do we need this again in lambda? They can't recurse. *)
