@@ -2190,20 +2190,20 @@ The lamba passed as array-iter argument is polymorphic
     %0 = bitcast i8** %acc to i8*
     %1 = bitcast i8** %str to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 8, i1 false)
-    %monoclstmp = alloca %closure, align 8
-    %rc3 = bitcast %closure* %monoclstmp to i64*
+    %__ig.u-ac-ac___fun1_ii.u-ac-ac = alloca %closure, align 8
+    %rc3 = bitcast %closure* %__ig.u-ac-ac___fun1_ii.u-ac-ac to i64*
     store i64 2, i64* %rc3, align 8
-    %funptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    %funptr = getelementptr inbounds %closure, %closure* %__ig.u-ac-ac___fun1_ii.u-ac-ac, i32 0, i32 1
     store i8* bitcast (void (i64, i64, i8*)* @schmu___ig.u-ac-ac___fun1_ii.u-ac-ac to i8*), i8** %funptr, align 8
-    %clsr_monoclstmp = alloca { i8**, i8* }, align 8
-    %acc14 = bitcast { i8**, i8* }* %clsr_monoclstmp to i8***
+    %clsr___ig.u-ac-ac___fun1_ii.u-ac-ac = alloca { i8**, i8* }, align 8
+    %acc14 = bitcast { i8**, i8* }* %clsr___ig.u-ac-ac___fun1_ii.u-ac-ac to i8***
     store i8** %acc, i8*** %acc14, align 8
-    %delim2 = getelementptr inbounds { i8**, i8* }, { i8**, i8* }* %clsr_monoclstmp, i32 0, i32 1
+    %delim2 = getelementptr inbounds { i8**, i8* }, { i8**, i8* }* %clsr___ig.u-ac-ac___fun1_ii.u-ac-ac, i32 0, i32 1
     store i8* %delim, i8** %delim2, align 8
-    %env = bitcast { i8**, i8* }* %clsr_monoclstmp to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 2
+    %env = bitcast { i8**, i8* }* %clsr___ig.u-ac-ac___fun1_ii.u-ac-ac to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__ig.u-ac-ac___fun1_ii.u-ac-ac, i32 0, i32 2
     store i8* %env, i8** %envptr, align 8
-    call void @schmu___agig.u.u_array-iteri_aiii.u.u(i64* %arr, %closure* %monoclstmp)
+    call void @schmu___agig.u.u_array-iteri_aiii.u.u(i64* %arr, %closure* %__ig.u-ac-ac___fun1_ii.u-ac-ac)
     call void @schmu_string-add-null(i8** %acc)
     %2 = load i8*, i8** %acc, align 8
     ret i8* %2
@@ -2211,18 +2211,18 @@ The lamba passed as array-iter argument is polymorphic
   
   define void @schmu___agag.u_string-append_acac.u(i8** %str, i8* %app) {
   entry:
-    %monoclstmp = alloca %closure, align 8
-    %rc2 = bitcast %closure* %monoclstmp to i64*
+    %__g.u-ag___fun0_c.u-ac = alloca %closure, align 8
+    %rc2 = bitcast %closure* %__g.u-ag___fun0_c.u-ac to i64*
     store i64 2, i64* %rc2, align 8
-    %funptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    %funptr = getelementptr inbounds %closure, %closure* %__g.u-ag___fun0_c.u-ac, i32 0, i32 1
     store i8* bitcast (void (i8, i8*)* @schmu___g.u-ag___fun0_c.u-ac to i8*), i8** %funptr, align 8
-    %clsr_monoclstmp = alloca { i8** }, align 8
-    %str13 = bitcast { i8** }* %clsr_monoclstmp to i8***
+    %clsr___g.u-ag___fun0_c.u-ac = alloca { i8** }, align 8
+    %str13 = bitcast { i8** }* %clsr___g.u-ag___fun0_c.u-ac to i8***
     store i8** %str, i8*** %str13, align 8
-    %env = bitcast { i8** }* %clsr_monoclstmp to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 2
+    %env = bitcast { i8** }* %clsr___g.u-ag___fun0_c.u-ac to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__g.u-ag___fun0_c.u-ac, i32 0, i32 2
     store i8* %env, i8** %envptr, align 8
-    call void @schmu___agg.u.u_array-iter_acc.u.u(i8* %app, %closure* %monoclstmp)
+    call void @schmu___agg.u.u_array-iter_acc.u.u(i8* %app, %closure* %__g.u-ag___fun0_c.u-ac)
     ret void
   }
   
@@ -2651,3 +2651,9 @@ The lamba passed as array-iter argument is polymorphic
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+
+Infer type in upward closure
+  $ schmu closure_inference.smu && valgrind -q --leak-check=yes ./closure_inference
+  ("", "x")
+  ("x", "i")
+  ("i", "x")

@@ -1,15 +1,7 @@
 open Cleaned_types
 module Vars = Map.Make (String)
 module Iset = Set.Make (Int)
-
-module Hint = struct
-  type t = int
-
-  let equal = Int.equal
-  let hash x = x
-end
-
-module Apptbl = Hashtbl.Make (Hint)
+module Apptbl = Hashtbl
 
 type expr =
   | Mvar of string * var_kind
@@ -398,11 +390,20 @@ let rec subst_body p subst tree =
           { abs with func = subst_func abs.func; body = sub abs.body }
         in
         let typ = typ_of_abs abs in
+
+        (* We may have to monomorphize. For instance if the lambda returned
+           from a polymorphic function *)
+        let name = mono_callable name typ tree in
+
         { tree with typ; expr = Mlambda (name, abs, alloca) }
     | Mfunction (name, abs, cont, alloca) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
         in
+        (* We may have to monomorphize. For instance if the lambda returned
+           from a polymorphic function *)
+        let name = mono_callable name (typ_of_abs abs) tree in
+
         let cont = { (inner cont) with typ = subst cont.typ } in
         { tree with typ = cont.typ; expr = Mfunction (name, abs, cont, alloca) }
     | Mapp { callee; args; alloca; id; vid } ->
@@ -410,7 +411,7 @@ let rec subst_body p subst tree =
 
         (* We use the parameters at function creation time to deal with scope *)
         let old_p =
-          match Apptbl.find_opt apptbl id with
+          match Apptbl.find_opt apptbl (string_of_int id) with
           | Some old ->
               { old with funcs = !p.funcs; monomorphized = !p.monomorphized }
           | None -> failwith "Internal Error: No old param"
@@ -481,7 +482,28 @@ let rec subst_body p subst tree =
     | Mdecr_ref (id, cont) ->
         let cont = sub cont in
         { tree with typ = cont.typ; expr = Mdecr_ref (id, cont) }
+  and mono_callable name typ tree =
+    if is_type_polymorphic tree.typ then
+      match Apptbl.find_opt apptbl name with
+      | Some old ->
+          let old =
+            { old with funcs = !p.funcs; monomorphized = !p.monomorphized }
+          in
+          let p2, monomorph =
+            monomorphize_call old { tree with typ } (Some subst)
+          in
+          let name = match monomorph with Mono name -> name | _ -> name in
+          p :=
+            {
+              !p with
+              funcs = Fset.union !p.funcs p2.funcs;
+              monomorphized = Set.union !p.monomorphized p2.monomorphized;
+            };
+          name
+      | None -> (* It's concrete, all good *) name
+    else name
   in
+
   (!p, inner tree)
 
 and monomorphize_call p expr parent_sub : morph_param * call_name =
@@ -1208,6 +1230,8 @@ and morph_lambda mk typ p id abs =
   (* But functions on the lambda body might *)
   ignore (pop_recursion_stack ());
 
+  (* Function can be returned themselves. In that case, a closure object will be generated,
+     so treat it the same as any local allocation *)
   let alloca = ref (request ()) in
   let upward () = match !alloca with Preallocated -> true | _ -> false in
 
@@ -1228,8 +1252,10 @@ and morph_lambda mk typ p id abs =
       let funcs = Fset.add gen_func p.funcs in
       ({ p with funcs }, Concrete (gen_func, name))
   in
-  (* Function can be returned themselves. In that case, a closure object will be generated,
-     so treat it the same as any local allocation *)
+
+  (* Save fake env with call name for monomorphization *)
+  Apptbl.add apptbl name p;
+
   ( { p with ret },
     mk (Mlambda (name, abs, alloca)) ret,
     { no_var with fn; alloc = Value alloca } )
@@ -1319,7 +1345,7 @@ and morph_app mk p callee args ret_typ =
     | _ -> (p, callee)
   in
 
-  Apptbl.add apptbl id p;
+  Apptbl.add apptbl (string_of_int id) p;
 
   let alloc, alloc_ref =
     if is_struct callee.ex.typ then

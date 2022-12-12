@@ -1,0 +1,48 @@
+(type lexbuf  {:buf string :curr int})
+(type view {:pbuf string :start int :len int})
+(type ok {:rem lexbuf :mtch view})
+(type parse-result ((#ok ok) (#err lexbuf)))
+
+(fun char [c]
+  (fun [buf]
+    (if (char-equal (array-get buf.buf buf.curr) c)
+      (#ok {:mtch {:pbuf buf.buf :start buf.curr :len 1}
+            :rem {@buf :curr (+ 1 buf.curr)}})
+      (#err buf))))
+
+(fun string-of-view [view]
+  (val ret& (__unsafe_array_create (+ 1 view.len)))
+  (set &(array-length ret) 0)
+  (iter-range (.start view) (+ view.start view.len)
+              (fun [c] (array-push &ret (array-get view.pbuf c))))
+  (array-push &ret '\000')
+  (array-drop-back &ret)
+  ret)
+
+(fun view-of-lexbuf [lb]
+  {:pbuf lb.buf :start lb.curr :len (- (array-length lb.buf) lb.curr)})
+
+(fun print-result [res]
+  (-> (match res
+        ((#ok {:rem :mtch})
+         (fmt-str "(\"" (string-of-view (view-of-lexbuf rem))
+                  "\", \"" (string-of-view mtch) "\")"))
+        ((#err lexbuf)
+         (fmt-str "(\"" (string-of-view (view-of-lexbuf lexbuf)) "\", \"\")")))
+      print))
+
+(fun alt [a b]
+ (fun [buf] -- This variable is polymorphic
+   (match (a buf)
+     ((#ok r) (#ok r))
+     ((#err _) (b buf)))))
+
+(val lx {:buf "x" :curr 0})
+(val li {:buf "ix" :curr 0})
+(val l0 {:buf "xi" :curr 0})
+
+(val c (alt (char 'x') (char 'i')))
+
+(print-result (c lx))
+(print-result (c li))
+(print-result (c l0))

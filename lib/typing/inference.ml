@@ -120,7 +120,7 @@ let rec generalize = function
   | Talias (n, t) -> Talias (n, generalize t)
   | Tfun (t1, t2, k) ->
       let gen p = { p with pt = generalize p.pt } in
-      Tfun (List.map gen t1, generalize t2, k)
+      Tfun (List.map gen t1, generalize t2, generalize_closure k)
   | Trecord (ps, name, labels) ->
       (* Hopefully the param type is the same reference throughout the record *)
       let ps = List.map generalize ps in
@@ -136,6 +136,11 @@ let rec generalize = function
   | Traw_ptr t -> Traw_ptr (generalize t)
   | Tarray t -> Tarray (generalize t)
   | t -> t
+
+and generalize_closure = function
+  | Simple -> Simple
+  | Closure cls ->
+      Closure (List.map (fun c -> { c with cltyp = generalize c.cltyp }) cls)
 
 (* TODO sibling functions *)
 let instantiate t =
@@ -159,6 +164,19 @@ let instantiate t =
             subst params_t
         in
         let t, subst = aux subst t in
+        let k, subst =
+          match k with
+          | Simple -> (k, subst)
+          | Closure cls ->
+              let subst, cls =
+                List.fold_left_map
+                  (fun s c ->
+                    let cltyp, subst = aux s c.cltyp in
+                    (subst, { c with cltyp }))
+                  subst cls
+              in
+              (Closure cls, subst)
+        in
         (Tfun (params_t, t, k), subst)
     | Trecord (ps, name, labels) ->
         let subst = ref subst in
