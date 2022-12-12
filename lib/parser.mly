@@ -96,6 +96,10 @@
 %token Fmt_str
 %token Rec
 
+%nonassoc Minus_i Minus_f
+%left Accessor
+%left Div_i
+
 %start <Ast.prog> prog
 
 %%
@@ -202,8 +206,8 @@ sexp_expr:
   | exprs = bracs(nonempty_list(sexp_expr)) { Tuple ($loc, exprs) }
   | upd = bracs(record_update) { upd }
   | sexp_lit { $1 }
-  | unop; sexp_expr { Unop ($loc, $1, $2) }
   | callable = callable_expr { callable }
+  | unop; sexp_expr { Unop ($loc, $1, $2) }
   | parens(sexp_field_set) { $1 }
   | fmt = parens(fmt_str) { fmt }
 
@@ -213,6 +217,7 @@ sexp_expr:
   | parens(sexp_if) { $1 }
   | parens(sexp_lambda) { $1 }
   | parens(sexp_field_get) { $1 }
+  | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
   | parens(sexp_pipe_head) { $1 }
   | parens(sexp_pipe_tail) { $1 }
   | parens(sexp_call) { $1 }
@@ -291,7 +296,7 @@ sexp_cond:
 pipeable:
   | expr = sexp_expr { Pip_expr expr }
   | Fmt_str { Pip_expr (Fmt ($loc, [])) }
-  | f = Accessor { Pip_field f }
+  | f = parens(Accessor) { Pip_field f }
 
 %inline sexp_call:
   | callable_expr { App ($loc, $1, []) }

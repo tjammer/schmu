@@ -122,7 +122,11 @@ prog: Lpar Minus_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Minus_i False Rbrac
+prog: Lpar Minus_i False Rbrack
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Minus_i False False Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -130,7 +134,11 @@ prog: Lpar Minus_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Minus_f False Rbrac
+prog: Lpar Minus_f False Rbrack
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Minus_f False False Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -362,10 +370,6 @@ prog: Lpar Match False Lpar Kebab_id False Rpar Wildcard
 
 Expecting (pattern expression)
 
-prog: Lpar Lpar Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Lpar Let Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -570,7 +574,11 @@ prog: Lpar Fun Kebab_id Lbrack Rbrack Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fun Lbrack Rbrack False Rbrack
+prog: Lpar Fun Lbrack Rbrack False Eof
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -658,7 +666,7 @@ prog: Lpar Do Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Do False Rbrack
+prog: Lpar Do False Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -716,7 +724,7 @@ Expecting no condition after 'else'
 
 prog: Lpar Cond Lpar False False Rpar Lpar False False Rpar Wildcard
 
-Expceting (condition expression)
+Expecting (condition expression)
 
 prog: Lpar Builtin_id Wildcard
 
@@ -750,7 +758,11 @@ prog: Lpar Arrow_righter False Rpar
 
 Expecting something to pipe into
 
-prog: Lpar Arrow_right False False Rbrack
+prog: Lpar Arrow_right False Lpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lbrac Lpar Fun Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -766,6 +778,14 @@ prog: Lpar Arrow_right False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Arrow_right False False Rbrack
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Arrow_right False Fmt_str Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar And Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -774,11 +794,35 @@ prog: Lpar And False Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Accessor Wildcard
+prog: Lpar Arrow_right False Lpar Accessor Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Accessor False U8
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Accessor Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Accessor Ampersand Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Accessor False Rbrack
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id False Ampersand Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id False False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -799,14 +843,6 @@ prog: Lpar Lpar Arrow_righter False False Rpar Ampersand Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Lpar Arrow_righter False False Rpar False Rbrack
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Kebab_id False Ampersand Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Kebab_id False False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -934,7 +970,15 @@ prog: Lpar Kebab_id False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Lpar Fun Wildcard
+prog: Lpar Accessor Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Minus_f False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Minus_i False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
