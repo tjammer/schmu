@@ -10,7 +10,10 @@ let test a src = (check string) "" a (get_type src)
 
 let test_exn msg src =
   (check string) "" msg
-    (try get_type src with Typed_tree.Error (_, msg) -> msg)
+    (try
+       ignore (get_type src);
+       failwith "Expected an exception"
+     with Typed_tree.Error (_, msg) -> msg)
 
 let test_const_int () = test "int" "(val a 1) a"
 let test_const_neg_int () = test "int" "(val a -1) a"
@@ -128,6 +131,10 @@ let test_record_update_useless () =
 
 let test_record_update_expr () =
   test "a" "(type a {:x int :y int}) {@{:x 10 :y 20} :y 30}"
+
+let test_record_update_wrong_field () =
+  test_exn "Unbound field :z on a"
+    "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) {@a :z 20}"
 
 let test_annot_concrete () = test "(fun int bool)" "(fun foo (x) (< x 3)) foo"
 
@@ -274,7 +281,9 @@ let test_array_weak () =
     a|}
 
 let test_array_different_types () =
-  test_exn "In array literal: Expected type int but got type bool" "[0 true]"
+  test_exn
+    "In array literal: Expected type int but got type bool.\n\
+     Cannot unify types int and bool" "[0 true]"
 
 let test_array_different_annot () =
   test_exn "Var annotation: Expected type (array bool) but got type (array int)"
@@ -284,7 +293,8 @@ let test_array_different_annot () =
 let test_array_different_annot_weak () =
   test_exn
     "Application: Expected type (fun (array bool) bool unit) but got type (fun \
-     (array bool) int 'a)"
+     (array bool) int 'a).\n\
+     Cannot unify types bool and int"
     {|(external setf (fun (array 'a) 'a unit))
     (val (a (array bool)) [])
     (setf a 2)|}
@@ -292,7 +302,8 @@ let test_array_different_annot_weak () =
 let test_array_different_weak () =
   test_exn
     "Application: Expected type (fun (array int) int unit) but got type (fun \
-     (array int) bool 'a)"
+     (array int) bool 'a).\n\
+     Cannot unify types int and bool"
     {|(external setf (fun (array 'a) 'a unit))
     (val a [])
     (setf a 2)
@@ -558,6 +569,7 @@ let () =
           case "update poly_change" test_record_update_poly_change;
           case "update useless" test_record_update_useless;
           case "update expr" test_record_update_expr;
+          case "update wrong field" test_record_update_wrong_field;
         ] );
       ( "annotations",
         [

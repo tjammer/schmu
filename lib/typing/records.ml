@@ -131,16 +131,20 @@ module Make (C : Core) = struct
     (* Implemented in terms of [convert_record] *)
     let record = convert env record_arg in
 
-    let updated = List.to_seq items |> Smap.of_seq in
+    let updated = List.to_seq items |> Hashtbl.of_seq in
 
     let all_new = ref true in
+    let name = ref (Path.Pid "") in
     let fields =
       match record.typ with
-      | Trecord (_, _, fields) ->
+      | Trecord (_, Some n, fields) ->
+          name := n;
           Array.map
             (fun field ->
-              match Smap.find_opt field.fname updated with
-              | Some expr -> (field.fname, expr)
+              match Hashtbl.find_opt updated field.fname with
+              | Some expr ->
+                  Hashtbl.remove updated field.fname;
+                  (field.fname, expr)
               | None ->
                   (* There are some old fields. *)
                   all_new := false;
@@ -156,6 +160,12 @@ module Make (C : Core) = struct
       raise
         (Error
            (loc, "All fields are explicitely updated. Record update is useless"));
+
+    Hashtbl.iter
+      (fun field _ ->
+        raise
+          (Error (loc, "Unbound field :" ^ field ^ " on " ^ Path.show !name)))
+      updated;
 
     convert_record env loc annot (Array.to_list fields)
 
