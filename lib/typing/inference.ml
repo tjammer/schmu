@@ -31,6 +31,15 @@ let rec occurs tvr = function
   | Tfun (param_ts, t, _) ->
       List.iter (fun p -> occurs tvr p.pt) param_ts;
       occurs tvr t
+  | Trecord (ps, _, fs) ->
+      List.iter (occurs tvr) ps;
+      Array.iter (fun f -> occurs tvr f.ftyp) fs
+  | Tvariant (ps, _, cs) ->
+      List.iter (occurs tvr) ps;
+      Array.iter
+        (fun c -> match c.ctyp with None -> () | Some t -> occurs tvr t)
+        cs
+  | Traw_ptr t | Tarray t -> occurs tvr t
   | _ -> ()
 
 let arity (loc, pre) thing la lb =
