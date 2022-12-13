@@ -2,8 +2,6 @@ open Types
 
 type err = Ast.loc * string
 
-exception Unify
-
 val reset : unit -> unit
 val newvar : unit -> typ
 val enter_level : unit -> unit
