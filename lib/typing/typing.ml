@@ -911,6 +911,8 @@ end = struct
       | _, (Tint | Tfloat | Tbool | Tu8 | Ti32 | Tf32) -> Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)
+      | _, Tarray (Tvar { contents = Unbound _ }) ->
+          Fexpr e (* Might be string later *)
       | _, _ ->
           print_string (show_typ e.typ);
           failwith "TODO not implemented yet "
