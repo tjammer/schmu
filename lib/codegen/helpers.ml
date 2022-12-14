@@ -322,12 +322,8 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
           2
     in
 
-    (* Add ref count *)
-    let rc_ptr = Llvm.build_struct_gep clsr_struct 0 "rc" builder in
-    ignore (Llvm.(build_store (const_int int_t refc) rc_ptr) builder);
-
     (* Add function ptr *)
-    let fun_ptr = Llvm.build_struct_gep clsr_struct 1 "funptr" builder in
+    let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
     let fun_casted = Llvm.build_bitcast func.value voidptr_t "func" builder in
     ignore (Llvm.build_store fun_casted fun_ptr builder);
 
@@ -353,7 +349,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
       match assoc with
       | [] -> Llvm.const_pointer_null voidptr_t
       | assoc ->
-          let assoc_type = typeof_closure (Array.of_list assoc) upward in
+          let assoc_type = typeof_closure assoc upward in
           let clsr_ptr =
             if upward then
               let size = Llvm.size_of assoc_type in
@@ -363,7 +359,12 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
                 ("clsr_" ^ name) builder
             else alloca param assoc_type ("clsr_" ^ name)
           in
-          ignore (List.fold_left (store_closed_var clsr_ptr) 0 assoc);
+          (* [1] as starting index, because [0] is ref count *)
+          ignore (List.fold_left (store_closed_var clsr_ptr) 1 assoc);
+
+          (* Add ref count *)
+          let rc_ptr = Llvm.build_struct_gep clsr_ptr 0 "rc" builder in
+          ignore (Llvm.(build_store (const_int int_t refc) rc_ptr) builder);
 
           let clsr_casted =
             Llvm.build_bitcast clsr_ptr voidptr_t "env" builder
@@ -372,7 +373,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     in
 
     (* Add closure env to struct *)
-    let env_ptr = Llvm.build_struct_gep clsr_struct 2 "envptr" builder in
+    let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
     ignore (Llvm.build_store clsr_ptr env_ptr builder);
 
     (* Turn simple functions into empty closures, so they are handled correctly
@@ -386,9 +387,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     | Closure assoc ->
         let closure_index = (Llvm.params func.value |> Array.length) - 1 in
         let clsr_param = (Llvm.params func.value).(closure_index) in
-        let clsr_type =
-          typeof_closure (Array.of_list assoc) upward |> Llvm.pointer_type
-        in
+        let clsr_type = typeof_closure assoc upward |> Llvm.pointer_type in
         let clsr_ptr = Llvm.build_bitcast clsr_param clsr_type "clsr" builder in
 
         let add_closure (env, i) cl =
@@ -415,7 +414,8 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
           let item = { value; typ; lltyp; kind } in
           (Vars.add cl.clname item env, i + 1)
         in
-        let env, _ = List.fold_left add_closure (vars, 0) assoc in
+        (* [1] as starting index, because [0] is ref count *)
+        let env, _ = List.fold_left add_closure (vars, 1) assoc in
         env
 
   let store_or_copy ~src ~dst =

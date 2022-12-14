@@ -411,12 +411,12 @@ end = struct
         (* Function to call is a closure (or a function passed into another one).
            We get the funptr from the first field, cast to the correct type,
            then get env ptr (as voidptr) from the second field and pass it as last argument *)
-        let funcp = Llvm.build_struct_gep func.value 1 "funcptr" builder in
+        let funcp = Llvm.build_struct_gep func.value 0 "funcptr" builder in
         let funcp = Llvm.build_load funcp "loadtmp" builder in
         let typ = typeof_funclike func.typ |> Llvm.pointer_type in
         let funcp = Llvm.build_bitcast funcp typ "casttmp" builder in
 
-        let env_ptr = Llvm.build_struct_gep func.value 2 "envptr" builder in
+        let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
         let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
         (funcp, Seq.return env_ptr)
       else

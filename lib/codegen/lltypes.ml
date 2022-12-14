@@ -57,13 +57,13 @@ module Make (A : Abi_intf.S) = struct
     Array.map get_lltype_def agg |> Llvm.struct_type context
 
   and typeof_closure agg upward =
-    Array.map
+    List.map
       (fun cl ->
         if cl.clmut && not upward then
           get_lltype_def cl.cltyp |> Llvm.pointer_type
         else get_lltype_def cl.cltyp)
-      agg
-    |> Llvm.struct_type context
+      ({ clname = "rc"; clmut = false; cltyp = Tint } :: agg)
+    |> Array.of_list |> Llvm.struct_type context
 
   and typeof_funclike = function
     (* Returns a LLVM function type to use far calling a closure *)

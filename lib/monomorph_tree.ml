@@ -905,7 +905,6 @@ and morph_array mk p a =
 
   (* ret = false is threaded through p *)
   enter_level ();
-  (* vectors are freed recursively, we don't need to track the items here *)
   let f param e =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)

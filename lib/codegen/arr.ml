@@ -250,18 +250,46 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
   let incr_refcount v = rc_fn v Incr_rc
 
+  let get_ref_ptr impl var =
+    match var.typ with
+    | Tarray _ -> impl (bring_default_var var)
+    | Tfun _ ->
+        let ptr = bring_default var in
+        let ptr =
+          Llvm.(build_bitcast ptr (pointer_type closure_t)) "" builder
+        in
+        let value = Llvm.build_struct_gep ptr 1 "" builder in
+        let mb_null = Llvm.build_load value "" builder in
+
+        (* Closures can have no env at all -> nullptr *)
+        let start_bb = Llvm.insertion_block builder in
+        let parent = Llvm.block_parent start_bb in
+
+        let notnull_bb = Llvm.append_block context "nonnull" parent in
+        let ret_bb = Llvm.append_block context "ret" parent in
+        let nullptr = Llvm.(const_null (type_of mb_null)) in
+        let cmp = Llvm.(build_icmp Icmp.Eq mb_null nullptr "") builder in
+        ignore (Llvm.build_cond_br cmp ret_bb notnull_bb builder);
+
+        Llvm.position_at_end notnull_bb builder;
+
+        impl { var with value = mb_null };
+        ignore (Llvm.build_br ret_bb builder);
+
+        Llvm.position_at_end ret_bb builder
+    | _ -> failwith "Internal Error: What kind of ref is this?"
+
   let incr_rc_impl v =
     let f v =
-      let v = bring_default v in
       let int_ptr =
-        Llvm.build_bitcast v (Llvm.pointer_type int_t) "ref" builder
+        Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "ref" builder
       in
       let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
       let value = Llvm.build_load dst "ref" builder in
       let added = Llvm.build_add value (Llvm.const_int int_t 1) "" builder in
       ignore (Llvm.build_store added dst builder)
     in
-    iter_array f v
+    iter_array (get_ref_ptr f) v
 
   let rec decl_decr_children pseudovar t =
     (* The normal free function navigates to array children, but we
@@ -307,9 +335,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     decl_decr_children v v.typ
 
   let decr_rc_impl v =
-    let f var =
-      (* Load ref *)
-      let v = bring_default_var var in
+    let f v =
       let int_ptr =
         Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "ref" builder
       in
@@ -337,9 +363,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
       (* free *)
       Llvm.position_at_end free_bb builder;
-      (match var.typ with
+      (match v.typ with
       | Tarray _ ->
-          let item_type = item_type var.typ in
+          let item_type = item_type v.typ in
           (if contains_refcount item_type then
            let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
            let sz = Llvm.build_load sz "size" builder in
@@ -349,11 +375,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
           ignore (free int_ptr)
       | Tfun _ ->
           (* We can't yet recursively free closures. *)
-          let llt = Llvm.(pointer_type closure_t) in
-          let ptr = Llvm.(build_bitcast int_ptr) llt "" builder in
-          let envptr = Llvm.build_struct_gep ptr 2 "" builder in
-          let envptr = Llvm.build_load envptr "" builder in
-          ignore (free envptr)
+          ignore (free int_ptr)
       | _ -> failwith "Internal Error: What kind of ref is this?");
 
       ignore (Llvm.build_br merge_bb builder);
@@ -361,7 +383,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
       Llvm.position_at_end merge_bb builder
     in
 
-    iter_array f v
+    iter_array (get_ref_ptr f) v
 
   let modify_arr_fn kind orig =
     (match orig.kind with
