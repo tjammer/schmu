@@ -452,51 +452,54 @@ Support function/closure fields
   
   define void @schmu_ten_times(%state* %state) {
   entry:
-    %0 = alloca %state*, align 8
-    store %state* %state, %state** %0, align 8
-    %1 = alloca i1, align 1
-    store i1 false, i1* %1, align 1
+    %0 = alloca %state, align 8
+    %1 = bitcast %state* %0 to i8*
+    %2 = bitcast %state* %state to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 24, i1 false)
+    %3 = alloca i1, align 1
+    store i1 false, i1* %3, align 1
     %ret = alloca %state, align 8
     br label %rec
   
   rec:                                              ; preds = %cont, %entry
-    %2 = phi i1 [ true, %cont ], [ false, %entry ]
-    %3 = phi %state* [ %ret, %cont ], [ %state, %entry ]
-    %4 = bitcast %state* %3 to i64*
-    %5 = load i64, i64* %4, align 8
-    %lt = icmp slt i64 %5, 10
+    %4 = phi i1 [ true, %cont ], [ false, %entry ]
+    %5 = bitcast %state* %0 to i64*
+    %6 = load i64, i64* %5, align 8
+    %lt = icmp slt i64 %6, 10
     br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %rec
-    call void @printi(i64 %5)
-    call void @schmu_advance(%state* %ret, %state* %3)
-    br i1 %2, label %call_decr, label %cookie
+    call void @printi(i64 %6)
+    call void @schmu_advance(%state* %ret, %state* %0)
+    br i1 %4, label %call_decr, label %cookie
   
   call_decr:                                        ; preds = %then
-    call void @__g.u_decr_rc_state.u(%state* %3)
+    call void @__g.u_decr_rc_state.u(%state* %0)
     br label %cont
   
   cookie:                                           ; preds = %then
-    store i1 true, i1* %1, align 1
+    store i1 true, i1* %3, align 1
     br label %cont
   
   cont:                                             ; preds = %cookie, %call_decr
-    store %state* %ret, %state** %0, align 8
+    %7 = bitcast %state* %0 to i8*
+    %8 = bitcast %state* %ret to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 24, i1 false)
     br label %rec
   
   else:                                             ; preds = %rec
     call void @printi(i64 100)
-    br i1 %2, label %call_decr2, label %cookie3
+    br i1 %4, label %call_decr1, label %cookie2
   
-  call_decr2:                                       ; preds = %else
-    call void @__g.u_decr_rc_state.u(%state* %3)
-    br label %cont4
+  call_decr1:                                       ; preds = %else
+    call void @__g.u_decr_rc_state.u(%state* %0)
+    br label %cont3
   
-  cookie3:                                          ; preds = %else
-    store i1 true, i1* %1, align 1
-    br label %cont4
+  cookie2:                                          ; preds = %else
+    store i1 true, i1* %3, align 1
+    br label %cont3
   
-  cont4:                                            ; preds = %cookie3, %call_decr2
+  cont3:                                            ; preds = %cookie2, %call_decr1
     ret void
   }
   
@@ -752,11 +755,11 @@ A return of a field should not be preallocated
   
   else:                                             ; preds = %rec
     %4 = bitcast %mut_int_wrap* %test1 to %int_wrap*
-    %dat5 = bitcast %int_wrap* %2 to i64*
+    %dat3 = bitcast %int_wrap* %2 to i64*
     %5 = bitcast %int_wrap* %4 to i64*
     %6 = load i64, i64* %5, align 8
     %add = add i64 %6, 1
-    store i64 %add, i64* %dat5, align 8
+    store i64 %add, i64* %dat3, align 8
     %b = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 1
     store i64 0, i64* %b, align 8
     %c = getelementptr inbounds %int_wrap, %int_wrap* %2, i32 0, i32 2

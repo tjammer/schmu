@@ -483,31 +483,31 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %2 = phi i64 [ %add, %else ], [ %i, %entry ]
     %len = getelementptr i64, i64* %arr1, i64 1
-    %2 = load i64, i64* %len, align 8
-    %eq = icmp eq i64 %i2, %2
+    %3 = load i64, i64* %len, align 8
+    %eq = icmp eq i64 %2, %3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %sunkaddr = mul i64 %i2, 8
-    %3 = bitcast i64* %arr1 to i8*
-    %sunkaddr6 = getelementptr i8, i8* %3, i64 %sunkaddr
-    %sunkaddr7 = getelementptr i8, i8* %sunkaddr6, i64 24
-    %4 = bitcast i8* %sunkaddr7 to i64*
-    %5 = load i64, i64* %4, align 8
-    %sunkaddr9 = getelementptr inbounds i8, i8* %0, i64 16
-    %6 = bitcast i8* %sunkaddr9 to i8**
-    %loadtmp = load i8*, i8** %6, align 8
+    %sunkaddr = mul i64 %2, 8
+    %4 = bitcast i64* %arr1 to i8*
+    %sunkaddr4 = getelementptr i8, i8* %4, i64 %sunkaddr
+    %sunkaddr5 = getelementptr i8, i8* %sunkaddr4, i64 24
+    %5 = bitcast i8* %sunkaddr5 to i64*
+    %6 = load i64, i64* %5, align 8
+    %sunkaddr7 = getelementptr inbounds i8, i8* %0, i64 16
+    %7 = bitcast i8* %sunkaddr7 to i8**
+    %loadtmp = load i8*, i8** %7, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 24
-    %7 = bitcast i8* %sunkaddr10 to i8**
-    %loadtmp3 = load i8*, i8** %7, align 8
-    tail call void %casttmp(i64 %5, i8* %loadtmp3)
-    %add = add i64 %i2, 1
+    %sunkaddr8 = getelementptr inbounds i8, i8* %0, i64 24
+    %8 = bitcast i8* %sunkaddr8 to i8**
+    %loadtmp2 = load i8*, i8** %8, align 8
+    tail call void %casttmp(i64 %6, i8* %loadtmp2)
+    %add = add i64 %2, 1
     store i64 %add, i64* %1, align 8
     br label %rec
   }

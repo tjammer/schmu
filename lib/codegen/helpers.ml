@@ -422,8 +422,9 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     if is_struct src.typ then
       if src.value = dst then ()
       else memcpy ~dst ~src ~size:(sizeof_typ src.typ |> llval_of_size)
-    else (* Simple type *)
-      ignore (Llvm.build_store src.value dst builder)
+    else
+      (* Simple type *)
+      ignore (Llvm.build_store (bring_default src) dst builder)
 
   let tailrec_store ~src ~dst =
     (* Used to have special handling for mutable vars,
@@ -468,23 +469,21 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
     let alloca_copy mut src =
       let m t = if mut then Llvm.pointer_type t else t in
+      let store dst =
+        if mut then tailrec_store ~src ~dst else store_or_copy ~src ~dst
+      in
       match src.typ with
-      | Tfun _ ->
-          let typ = Llvm.pointer_type closure_t in
+      | Trecord _ | Tvariant _ | Tfun _ ->
+          let typ = get_lltype_def src.typ |> m in
           let dst = Llvm.build_alloca typ "" builder in
-          tailrec_store ~src ~dst;
-          dst
-      | (Trecord _ | Tvariant _) as r ->
-          let typ = Llvm.pointer_type (get_lltype_def r) in
-          let dst = Llvm.build_alloca typ "" builder in
-          tailrec_store ~src ~dst;
+          store dst;
           dst
       | Traw_ptr _ -> failwith "TODO"
       | t ->
           (* Simple type *)
           let typ = get_lltype_def t |> m in
           let dst = Llvm.build_alloca typ "" builder in
-          tailrec_store ~src ~dst;
+          store dst;
           dst
     in
 
@@ -547,9 +546,12 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
               let typ = p.pt in
               let i = get_index i p.pmut typ in
               let llvar = Vars.find (name_of_alloc_param i) env in
-              let value = Llvm.build_load llvar.value name builder in
-              let kind = if p.pmut then Ptr else default_kind typ in
-              (Vars.add name { llvar with value; kind } env, i + 1))
+              let value =
+                if p.pmut then Llvm.build_load llvar.value name builder
+                else llvar.value
+              in
+              (* let kind = if p.pmut then Ptr else default_kind typ in *)
+              (Vars.add name { llvar with value } env, i + 1))
             (vars, start_index) names params
         in
 
@@ -629,9 +631,11 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
       ignore (Llvm.build_cond_br cookie decr_bb cookie_bb builder);
 
       Llvm.position_at_end decr_bb builder;
-      let value = Llvm.build_load alloca.value "" builder in
-      let kind = if mut then Ptr else default_kind alloca.typ in
-      Arr.decr_refcount { alloca with value; kind };
+      let value =
+        if mut then Llvm.build_load alloca.value "" builder else alloca.value
+      in
+      (* let kind = if mut then Ptr else default_kind alloca.typ in *)
+      Arr.decr_refcount { alloca with value };
       ignore (Llvm.build_br cont_bb builder);
 
       Llvm.position_at_end cookie_bb builder;

@@ -320,32 +320,32 @@ Don't try to create 'void' value in if
     br label %rec
   
   rec:                                              ; preds = %ifcont, %entry
-    %i1 = phi i64 [ %sub5, %ifcont ], [ %i, %entry ]
-    %lt = icmp slt i64 %i1, 2
+    %1 = phi i64 [ %sub4, %ifcont ], [ %i, %entry ]
+    %lt = icmp slt i64 %1, 2
     br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %rec
-    %1 = add i64 %i1, -1
-    tail call void @printi(i64 %1)
+    %2 = add i64 %1, -1
+    tail call void @printi(i64 %2)
     ret void
   
   else:                                             ; preds = %rec
-    %lt2 = icmp slt i64 %i1, 400
-    br i1 %lt2, label %then3, label %else4
+    %lt1 = icmp slt i64 %1, 400
+    br i1 %lt1, label %then2, label %else3
   
-  then3:                                            ; preds = %else
-    tail call void @printi(i64 %i1)
+  then2:                                            ; preds = %else
+    tail call void @printi(i64 %1)
     br label %ifcont
   
-  else4:                                            ; preds = %else
-    %add = add i64 %i1, 1
+  else3:                                            ; preds = %else
+    %add = add i64 %1, 1
     tail call void @printi(i64 %add)
     br label %ifcont
   
-  ifcont:                                           ; preds = %else4, %then3
-    %sub5 = sub i64 %i1, 1
-    %2 = add i64 %i1, -1
-    store i64 %2, i64* %0, align 8
+  ifcont:                                           ; preds = %else3, %then2
+    %sub4 = sub i64 %1, 1
+    %3 = add i64 %1, -1
+    store i64 %3, i64* %0, align 8
     br label %rec
   }
   
@@ -837,18 +837,18 @@ Closures can recurse too
     br label %rec
   
   rec:                                              ; preds = %then, %entry
-    %i1 = phi i64 [ %add, %then ], [ %i, %entry ]
-    %lt = icmp slt i64 %i1, 10
+    %1 = phi i64 [ %add, %then ], [ %i, %entry ]
+    %lt = icmp slt i64 %1, 10
     br i1 %lt, label %then, label %else
   
   then:                                             ; preds = %rec
-    tail call void @printi(i64 %i1)
-    %add = add i64 %i1, 1
+    tail call void @printi(i64 %1)
+    %add = add i64 %1, 1
     store i64 %add, i64* %0, align 8
     br label %rec
   
   else:                                             ; preds = %rec
-    tail call void @printi(i64 %i1)
+    tail call void @printi(i64 %1)
     ret void
   }
   
@@ -1031,31 +1031,31 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %2 = phi i64 [ %add, %else ], [ %i, %entry ]
     %len = getelementptr i64, i64* %arr1, i64 1
-    %2 = load i64, i64* %len, align 8
-    %eq = icmp eq i64 %i2, %2
+    %3 = load i64, i64* %len, align 8
+    %eq = icmp eq i64 %2, %3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %sunkaddr = mul i64 %i2, 8
-    %3 = bitcast i64* %arr1 to i8*
-    %sunkaddr6 = getelementptr i8, i8* %3, i64 %sunkaddr
-    %sunkaddr7 = getelementptr i8, i8* %sunkaddr6, i64 24
-    %4 = bitcast i8* %sunkaddr7 to i64*
-    %5 = load i64, i64* %4, align 8
-    %sunkaddr9 = getelementptr inbounds i8, i8* %0, i64 16
-    %6 = bitcast i8* %sunkaddr9 to i8**
-    %loadtmp = load i8*, i8** %6, align 8
+    %sunkaddr = mul i64 %2, 8
+    %4 = bitcast i64* %arr1 to i8*
+    %sunkaddr4 = getelementptr i8, i8* %4, i64 %sunkaddr
+    %sunkaddr5 = getelementptr i8, i8* %sunkaddr4, i64 24
+    %5 = bitcast i8* %sunkaddr5 to i64*
+    %6 = load i64, i64* %5, align 8
+    %sunkaddr7 = getelementptr inbounds i8, i8* %0, i64 16
+    %7 = bitcast i8* %sunkaddr7 to i8**
+    %loadtmp = load i8*, i8** %7, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 24
-    %7 = bitcast i8* %sunkaddr10 to i8**
-    %loadtmp3 = load i8*, i8** %7, align 8
-    tail call void %casttmp(i64 %5, i8* %loadtmp3)
-    %add = add i64 %i2, 1
+    %sunkaddr8 = getelementptr inbounds i8, i8* %0, i64 24
+    %8 = bitcast i8* %sunkaddr8 to i8**
+    %loadtmp2 = load i8*, i8** %8, align 8
+    tail call void %casttmp(i64 %6, i8* %loadtmp2)
+    %add = add i64 %2, 1
     store i64 %add, i64* %1, align 8
     br label %rec
   }
@@ -1071,10 +1071,10 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %i1 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %4 = phi i64 [ %add, %else ], [ %i, %entry ]
     %len = getelementptr i64, i64* %arr, i64 1
-    %4 = load i64, i64* %len, align 8
-    %eq = icmp eq i64 %i1, %4
+    %5 = load i64, i64* %len, align 8
+    %eq = icmp eq i64 %4, %5
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
@@ -1082,20 +1082,22 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   
   else:                                             ; preds = %rec
-    %scevgep = getelementptr i64, i64* %arr, i64 %i1
-    %scevgep6 = getelementptr i64, i64* %scevgep, i64 3
-    %5 = load i64, i64* %scevgep6, align 8
-    %sunkaddr = getelementptr inbounds i8, i8* %0, i64 8
-    %6 = bitcast i8* %sunkaddr to i8**
-    %loadtmp = load i8*, i8** %6, align 8
+    %sunkaddr = mul i64 %4, 8
+    %6 = bitcast i64* %arr to i8*
+    %sunkaddr3 = getelementptr i8, i8* %6, i64 %sunkaddr
+    %sunkaddr4 = getelementptr i8, i8* %sunkaddr3, i64 24
+    %7 = bitcast i8* %sunkaddr4 to i64*
+    %8 = load i64, i64* %7, align 8
+    %sunkaddr6 = getelementptr inbounds i8, i8* %0, i64 8
+    %9 = bitcast i8* %sunkaddr6 to i8**
+    %loadtmp = load i8*, i8** %9, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %sunkaddr8 = getelementptr inbounds i8, i8* %0, i64 16
-    %7 = bitcast i8* %sunkaddr8 to i8**
-    %loadtmp3 = load i8*, i8** %7, align 8
-    tail call void %casttmp(i64 %5, i8* %loadtmp3)
-    %add = add i64 %i1, 1
+    %sunkaddr7 = getelementptr inbounds i8, i8* %0, i64 16
+    %10 = bitcast i8* %sunkaddr7 to i8**
+    %loadtmp1 = load i8*, i8** %10, align 8
+    tail call void %casttmp(i64 %8, i8* %loadtmp1)
+    %add = add i64 %4, 1
     store i64 %add, i64* %1, align 8
-    store i64* %arr, i64** %2, align 8
     br label %rec
   }
   
@@ -1106,39 +1108,40 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %arr1 = load i64*, i64** %arr, align 8
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 8
-    %2 = alloca %closure*, align 8
-    store %closure* %f, %closure** %2, align 8
-    %3 = alloca i1, align 1
-    store i1 false, i1* %3, align 1
+    %2 = alloca %closure, align 8
+    %3 = bitcast %closure* %2 to i8*
+    %4 = bitcast %closure* %f to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 16, i1 false)
+    %5 = alloca i1, align 1
+    store i1 false, i1* %5, align 1
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %6 = phi i64 [ %add, %else ], [ %i, %entry ]
     %len = getelementptr i64, i64* %arr1, i64 1
-    %4 = load i64, i64* %len, align 8
-    %eq = icmp eq i64 %i2, %4
+    %7 = load i64, i64* %len, align 8
+    %eq = icmp eq i64 %6, %7
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
-    store i1 true, i1* %3, align 1
+    store i1 true, i1* %5, align 1
     ret void
   
   else:                                             ; preds = %rec
-    %sunkaddr = mul i64 %i2, 8
-    %5 = bitcast i64* %arr1 to i8*
-    %sunkaddr8 = getelementptr i8, i8* %5, i64 %sunkaddr
-    %sunkaddr9 = getelementptr i8, i8* %sunkaddr8, i64 24
-    %6 = bitcast i8* %sunkaddr9 to i64*
-    %7 = load i64, i64* %6, align 8
-    %funcptr10 = bitcast %closure* %f to i8**
-    %loadtmp = load i8*, i8** %funcptr10, align 8
+    %sunkaddr = mul i64 %6, 8
+    %8 = bitcast i64* %arr1 to i8*
+    %sunkaddr4 = getelementptr i8, i8* %8, i64 %sunkaddr
+    %sunkaddr5 = getelementptr i8, i8* %sunkaddr4, i64 24
+    %9 = bitcast i8* %sunkaddr5 to i64*
+    %10 = load i64, i64* %9, align 8
+    %funcptr6 = bitcast %closure* %2 to i8**
+    %loadtmp = load i8*, i8** %funcptr6, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %f, i32 0, i32 1
-    %loadtmp4 = load i8*, i8** %envptr, align 8
-    tail call void %casttmp(i64 %7, i8* %loadtmp4)
-    %add = add i64 %i2, 1
+    %envptr = getelementptr inbounds %closure, %closure* %2, i32 0, i32 1
+    %loadtmp2 = load i8*, i8** %envptr, align 8
+    tail call void %casttmp(i64 %10, i8* %loadtmp2)
+    %add = add i64 %6, 1
     store i64 %add, i64* %1, align 8
-    store %closure* %f, %closure** %2, align 8
     br label %rec
   }
   
@@ -1541,20 +1544,20 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %rf2 = phi %bref* [ %2, %else ], [ %rf, %entry ]
-    %i1 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %gt = icmp sgt i64 %i1, 0
+    %3 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %rf1 = phi %bref* [ %2, %else ], [ %rf, %entry ]
+    %gt = icmp sgt i64 %3, 0
     br i1 %gt, label %then, label %else
   
   then:                                             ; preds = %rec
-    %3 = bitcast %bref* %rf2 to i1*
-    store i1 false, i1* %3, align 1
+    %4 = bitcast %bref* %rf1 to i1*
+    store i1 false, i1* %4, align 1
     ret void
   
   else:                                             ; preds = %rec
-    %a5 = bitcast %bref* %2 to i1*
-    store i1 true, i1* %a5, align 1
-    %add = add i64 %i1, 1
+    %a3 = bitcast %bref* %2 to i1*
+    store i1 true, i1* %a3, align 1
+    %add = add i64 %3, 1
     store i64 %add, i64* %0, align 8
     store %bref* %2, %bref** %1, align 8
     br label %rec
@@ -1595,17 +1598,17 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %i1 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %gt = icmp sgt i64 %i1, 0
+    %2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %gt = icmp sgt i64 %2, 0
     br i1 %gt, label %then, label %else
   
   then:                                             ; preds = %rec
-    %2 = bitcast %bref* %rf to i1*
-    store i1 true, i1* %2, align 1
+    %3 = bitcast %bref* %rf to i1*
+    store i1 true, i1* %3, align 1
     ret void
   
   else:                                             ; preds = %rec
-    %add = add i64 %i1, 1
+    %add = add i64 %2, 1
     store i64 %add, i64* %0, align 8
     store %bref* %rf, %bref** %1, align 8
     br label %rec
@@ -1634,10 +1637,10 @@ Don't copy mutable types in setup of tailrecursive functions
   else:                                             ; preds = %rec
     %4 = load i64*, i64** %a, align 8
     %size = getelementptr i64, i64* %4, i64 1
-    %size3 = load i64, i64* %size, align 8
+    %size2 = load i64, i64* %size, align 8
     %cap = getelementptr i64, i64* %4, i64 2
-    %cap4 = load i64, i64* %cap, align 8
-    %5 = icmp eq i64 %cap4, %size3
+    %cap3 = load i64, i64* %cap, align 8
+    %5 = icmp eq i64 %cap3, %size2
     br i1 %5, label %grow, label %keep
   
   keep:                                             ; preds = %else
@@ -1651,14 +1654,14 @@ Don't copy mutable types in setup of tailrecursive functions
   merge:                                            ; preds = %grow, %keep
     %8 = phi i64* [ %6, %keep ], [ %7, %grow ]
     %9 = bitcast i64* %8 to i8*
-    %10 = mul i64 8, %size3
+    %10 = mul i64 8, %size2
     %11 = add i64 24, %10
     %12 = getelementptr i8, i8* %9, i64 %11
     %data = bitcast i8* %12 to i64*
     store i64 20, i64* %data, align 8
-    %size5 = getelementptr i64, i64* %8, i64 1
-    %13 = add i64 %size3, 1
-    store i64 %13, i64* %size5, align 8
+    %size4 = getelementptr i64, i64* %8, i64 1
+    %13 = add i64 %size2, 1
+    store i64 %13, i64* %size4, align 8
     store i64** %a, i64*** %0, align 8
     store i64 %lsr.iv, i64* %2, align 8
     %lsr.iv.next = add i64 %lsr.iv, 1
@@ -1674,16 +1677,16 @@ Don't copy mutable types in setup of tailrecursive functions
     %2 = alloca i64, align 8
     store i64 %i, i64* %2, align 8
     %arr = alloca i64*, align 8
-    %arr5 = alloca i64*, align 8
+    %arr4 = alloca i64*, align 8
     br label %rec.outer
   
-  rec.outer:                                        ; preds = %cont, %cont13, %entry
-    %.ph = phi i1 [ false, %entry ], [ true, %cont ], [ %12, %cont13 ]
-    %.ph33 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont13 ]
-    %.ph34 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont13 ]
-    %i2.ph = phi i64 [ %i, %entry ], [ 3, %cont ], [ 11, %cont13 ]
-    %.ph35 = phi i64** [ %a, %entry ], [ %arr, %cont ], [ %arr5, %cont13 ]
-    %3 = add i64 %i2.ph, 1
+  rec.outer:                                        ; preds = %cont, %cont12, %entry
+    %.ph = phi i1 [ false, %entry ], [ true, %cont ], [ %12, %cont12 ]
+    %.ph31 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont12 ]
+    %.ph32 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont12 ]
+    %.ph33 = phi i64 [ %i, %entry ], [ 3, %cont ], [ 11, %cont12 ]
+    %.ph34 = phi i64** [ %a, %entry ], [ %arr, %cont ], [ %arr4, %cont12 ]
+    %3 = add i64 %.ph33, 1
     br label %rec
   
   rec:                                              ; preds = %rec.outer, %merge
@@ -1706,7 +1709,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br i1 %.ph, label %call_decr, label %cookie
   
   call_decr:                                        ; preds = %then
-    %7 = load i64*, i64** %.ph35, align 8
+    %7 = load i64*, i64** %.ph34, align 8
     call void @__g.u_decr_rc_ai.u(i64* %7)
     br label %cont
   
@@ -1720,88 +1723,88 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec.outer
   
   else:                                             ; preds = %rec
-    %eq3 = icmp eq i64 %lsr.iv, 11
-    br i1 %eq3, label %then4, label %else15
+    %eq2 = icmp eq i64 %lsr.iv, 11
+    br i1 %eq2, label %then3, label %else14
   
-  then4:                                            ; preds = %else
+  then3:                                            ; preds = %else
     %8 = call i8* @malloc(i64 32)
     %9 = bitcast i8* %8 to i64*
-    store i64* %9, i64** %arr5, align 8
+    store i64* %9, i64** %arr4, align 8
     store i64 1, i64* %9, align 8
-    %size7 = getelementptr i64, i64* %9, i64 1
-    store i64 1, i64* %size7, align 8
-    %cap8 = getelementptr i64, i64* %9, i64 2
-    store i64 1, i64* %cap8, align 8
+    %size6 = getelementptr i64, i64* %9, i64 1
+    store i64 1, i64* %size6, align 8
+    %cap7 = getelementptr i64, i64* %9, i64 2
+    store i64 1, i64* %cap7, align 8
     %10 = getelementptr i8, i8* %8, i64 24
-    %data9 = bitcast i8* %10 to i64*
-    store i64 10, i64* %data9, align 8
-    br i1 %.ph33, label %call_decr11, label %cookie12
+    %data8 = bitcast i8* %10 to i64*
+    store i64 10, i64* %data8, align 8
+    br i1 %.ph31, label %call_decr10, label %cookie11
   
-  call_decr11:                                      ; preds = %then4
-    %11 = load i64*, i64** %.ph35, align 8
+  call_decr10:                                      ; preds = %then3
+    %11 = load i64*, i64** %.ph34, align 8
     call void @__g.u_decr_rc_ai.u(i64* %11)
-    br label %cont13
+    br label %cont12
   
-  cookie12:                                         ; preds = %then4
+  cookie11:                                         ; preds = %then3
     store i1 true, i1* %1, align 1
-    br label %cont13
+    br label %cont12
   
-  cont13:                                           ; preds = %cookie12, %call_decr11
-    %12 = phi i1 [ true, %cookie12 ], [ %.ph, %call_decr11 ]
-    store i64** %arr5, i64*** %0, align 8
+  cont12:                                           ; preds = %cookie11, %call_decr10
+    %12 = phi i1 [ true, %cookie11 ], [ %.ph, %call_decr10 ]
+    store i64** %arr4, i64*** %0, align 8
     store i64 11, i64* %2, align 8
     br label %rec.outer
   
-  else15:                                           ; preds = %else
-    %eq16 = icmp eq i64 %lsr.iv, 13
-    br i1 %eq16, label %then17, label %else18
+  else14:                                           ; preds = %else
+    %eq15 = icmp eq i64 %lsr.iv, 13
+    br i1 %eq15, label %then16, label %else17
   
-  then17:                                           ; preds = %else15
-    br i1 %.ph34, label %call_decr28, label %cookie29
+  then16:                                           ; preds = %else14
+    br i1 %.ph32, label %call_decr27, label %cookie28
   
-  else18:                                           ; preds = %else15
-    %13 = load i64*, i64** %.ph35, align 8
-    %size19 = getelementptr i64, i64* %13, i64 1
-    %size20 = load i64, i64* %size19, align 8
-    %cap21 = getelementptr i64, i64* %13, i64 2
-    %cap22 = load i64, i64* %cap21, align 8
-    %14 = icmp eq i64 %cap22, %size20
+  else17:                                           ; preds = %else14
+    %13 = load i64*, i64** %.ph34, align 8
+    %size18 = getelementptr i64, i64* %13, i64 1
+    %size19 = load i64, i64* %size18, align 8
+    %cap20 = getelementptr i64, i64* %13, i64 2
+    %cap21 = load i64, i64* %cap20, align 8
+    %14 = icmp eq i64 %cap21, %size19
     br i1 %14, label %grow, label %keep
   
-  keep:                                             ; preds = %else18
-    %15 = call i64* @__ag.ag_reloc_ai.ai(i64** %.ph35)
+  keep:                                             ; preds = %else17
+    %15 = call i64* @__ag.ag_reloc_ai.ai(i64** %.ph34)
     br label %merge
   
-  grow:                                             ; preds = %else18
-    %16 = call i64* @__ag.ag_grow_ai.ai(i64** %.ph35)
+  grow:                                             ; preds = %else17
+    %16 = call i64* @__ag.ag_grow_ai.ai(i64** %.ph34)
     br label %merge
   
   merge:                                            ; preds = %grow, %keep
     %17 = phi i64* [ %15, %keep ], [ %16, %grow ]
     %18 = bitcast i64* %17 to i8*
-    %19 = mul i64 8, %size20
+    %19 = mul i64 8, %size19
     %20 = add i64 24, %19
     %21 = getelementptr i8, i8* %18, i64 %20
-    %data23 = bitcast i8* %21 to i64*
-    store i64 20, i64* %data23, align 8
-    %size24 = getelementptr i64, i64* %17, i64 1
-    %22 = add i64 %size20, 1
-    store i64 %22, i64* %size24, align 8
-    store i64** %.ph35, i64*** %0, align 8
+    %data22 = bitcast i8* %21 to i64*
+    store i64 20, i64* %data22, align 8
+    %size23 = getelementptr i64, i64* %17, i64 1
+    %22 = add i64 %size19, 1
+    store i64 %22, i64* %size23, align 8
+    store i64** %.ph34, i64*** %0, align 8
     store i64 %lsr.iv, i64* %2, align 8
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
   
-  call_decr28:                                      ; preds = %then17
-    %23 = load i64*, i64** %.ph35, align 8
+  call_decr27:                                      ; preds = %then16
+    %23 = load i64*, i64** %.ph34, align 8
     call void @__g.u_decr_rc_ai.u(i64* %23)
-    br label %cont30
+    br label %cont29
   
-  cookie29:                                         ; preds = %then17
+  cookie28:                                         ; preds = %then16
     store i1 true, i1* %1, align 1
-    br label %cont30
+    br label %cont29
   
-  cont30:                                           ; preds = %cookie29, %call_decr28
+  cont29:                                           ; preds = %cookie28, %call_decr27
     ret void
   }
   
@@ -2276,29 +2279,29 @@ The lamba passed as array-iter argument is polymorphic
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %2 = bitcast i8* %arr1 to i64*
-    %len = getelementptr i64, i64* %2, i64 1
-    %3 = load i64, i64* %len, align 8
-    %eq = icmp eq i64 %i2, %3
+    %2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %3 = bitcast i8* %arr1 to i64*
+    %len = getelementptr i64, i64* %3, i64 1
+    %4 = load i64, i64* %len, align 8
+    %eq = icmp eq i64 %2, %4
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %sunkaddr = getelementptr i8, i8* %arr1, i64 %i2
-    %sunkaddr6 = getelementptr i8, i8* %sunkaddr, i64 24
-    %4 = load i8, i8* %sunkaddr6, align 1
-    %sunkaddr8 = getelementptr inbounds i8, i8* %0, i64 16
-    %5 = bitcast i8* %sunkaddr8 to i8**
-    %loadtmp = load i8*, i8** %5, align 8
+    %sunkaddr = getelementptr i8, i8* %arr1, i64 %2
+    %sunkaddr4 = getelementptr i8, i8* %sunkaddr, i64 24
+    %5 = load i8, i8* %sunkaddr4, align 1
+    %sunkaddr6 = getelementptr inbounds i8, i8* %0, i64 16
+    %6 = bitcast i8* %sunkaddr6 to i8**
+    %loadtmp = load i8*, i8** %6, align 8
     %casttmp = bitcast i8* %loadtmp to void (i8, i8*)*
-    %sunkaddr9 = getelementptr inbounds i8, i8* %0, i64 24
-    %6 = bitcast i8* %sunkaddr9 to i8**
-    %loadtmp3 = load i8*, i8** %6, align 8
-    tail call void %casttmp(i8 %4, i8* %loadtmp3)
-    %add = add i64 %i2, 1
+    %sunkaddr7 = getelementptr inbounds i8, i8* %0, i64 24
+    %7 = bitcast i8* %sunkaddr7 to i8**
+    %loadtmp2 = load i8*, i8** %7, align 8
+    tail call void %casttmp(i8 %5, i8* %loadtmp2)
+    %add = add i64 %2, 1
     store i64 %add, i64* %1, align 8
     br label %rec
   }
@@ -2313,31 +2316,31 @@ The lamba passed as array-iter argument is polymorphic
     br label %rec
   
   rec:                                              ; preds = %else, %entry
-    %i2 = phi i64 [ %add, %else ], [ %i, %entry ]
+    %2 = phi i64 [ %add, %else ], [ %i, %entry ]
     %len = getelementptr i64, i64* %arr1, i64 1
-    %2 = load i64, i64* %len, align 8
-    %eq = icmp eq i64 %i2, %2
+    %3 = load i64, i64* %len, align 8
+    %eq = icmp eq i64 %2, %3
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
     ret void
   
   else:                                             ; preds = %rec
-    %sunkaddr = mul i64 %i2, 8
-    %3 = bitcast i64* %arr1 to i8*
-    %sunkaddr6 = getelementptr i8, i8* %3, i64 %sunkaddr
-    %sunkaddr7 = getelementptr i8, i8* %sunkaddr6, i64 24
-    %4 = bitcast i8* %sunkaddr7 to i64*
-    %5 = load i64, i64* %4, align 8
-    %sunkaddr9 = getelementptr inbounds i8, i8* %0, i64 16
-    %6 = bitcast i8* %sunkaddr9 to i8**
-    %loadtmp = load i8*, i8** %6, align 8
+    %sunkaddr = mul i64 %2, 8
+    %4 = bitcast i64* %arr1 to i8*
+    %sunkaddr4 = getelementptr i8, i8* %4, i64 %sunkaddr
+    %sunkaddr5 = getelementptr i8, i8* %sunkaddr4, i64 24
+    %5 = bitcast i8* %sunkaddr5 to i64*
+    %6 = load i64, i64* %5, align 8
+    %sunkaddr7 = getelementptr inbounds i8, i8* %0, i64 16
+    %7 = bitcast i8* %sunkaddr7 to i8**
+    %loadtmp = load i8*, i8** %7, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i64, i8*)*
-    %sunkaddr10 = getelementptr inbounds i8, i8* %0, i64 24
-    %7 = bitcast i8* %sunkaddr10 to i8**
-    %loadtmp3 = load i8*, i8** %7, align 8
-    tail call void %casttmp(i64 %i2, i64 %5, i8* %loadtmp3)
-    %add = add i64 %i2, 1
+    %sunkaddr8 = getelementptr inbounds i8, i8* %0, i64 24
+    %8 = bitcast i8* %sunkaddr8 to i8**
+    %loadtmp2 = load i8*, i8** %8, align 8
+    tail call void %casttmp(i64 %2, i64 %6, i8* %loadtmp2)
+    %add = add i64 %2, 1
     store i64 %add, i64* %1, align 8
     br label %rec
   }

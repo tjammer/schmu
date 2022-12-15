@@ -500,8 +500,8 @@ end = struct
 
       (* We store the params in pre-allocated variables *)
       (if llvar.value <> alloca.value then
-       let src = if oarg.mut then llvar else bring_default_var llvar in
-       tailrec_store ~src ~dst:alloca.value);
+       let store = if oarg.mut then tailrec_store else store_or_copy in
+       store ~src:llvar ~dst:alloca.value);
       i + 1
     in
 
