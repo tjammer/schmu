@@ -897,8 +897,7 @@ end = struct
     let fields =
       List.map (fun (fname, e) -> { fname; ftyp = e.typ; mut = false }) exprs
     in
-    let typs = List.map (fun e -> (snd e).typ) exprs in
-    let typ = Trecord (typs, None, Array.of_list fields) in
+    let typ = Trecord ([], None, Array.of_list fields) in
     let attr = { const; global = false; mut = false } in
     { typ; expr = Record exprs; attr; loc }
 

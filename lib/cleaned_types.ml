@@ -23,6 +23,8 @@ and closed = { clname : string; clmut : bool; cltyp : typ }
 let is_type_polymorphic typ =
   let rec inner acc = function
     | Tpoly _ -> true
+    | Trecord (_, None, fs) ->
+        Array.fold_left (fun acc f -> inner acc f.ftyp) acc fs
     | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
     | Tfun (params, ret, kind) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in

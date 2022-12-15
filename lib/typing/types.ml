@@ -148,6 +148,8 @@ let is_polymorphic typ =
   let rec inner acc = function
     | Qvar _ | Tvar { contents = Unbound _ } -> true
     | Tvar { contents = Link t } | Talias (_, t) -> inner acc t
+    | Trecord (_, None, fs) ->
+        Array.fold_left (fun acc f -> inner acc f.ftyp) acc fs
     | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
     | Tfun (params, ret, _) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
