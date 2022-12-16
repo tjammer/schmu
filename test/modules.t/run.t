@@ -546,3 +546,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   attributes #0 = { argmemonly nofree nounwind willreturn }
   0
   1
+
+Allocate and clean init code with refcounting
+  $ schmu init.smu -m
+  $ schmu use_init.smu && ./use_init
+  hello from init

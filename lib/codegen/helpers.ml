@@ -61,6 +61,7 @@ module type S = sig
   val get_const_string : ?rf:int ref option -> string -> Llvm.llvalue
   val free : Llvm.llvalue -> Llvm.llvalue
   val fmt_str : llvar -> string * Llvm.llvalue
+  val set_in_init : bool -> unit
 
   (* For reuse in arr.ml *)
   val var_index : llvar -> llvar
@@ -81,6 +82,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     = "LlvmAddByvalAttr"
 
   let string_tbl = Strtbl.create 64
+  let in_init = ref false
 
   let dummy_fn_value =
     (* When we need something in the env for a function which will only be called
@@ -284,7 +286,14 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     let builder =
       match param.rec_block with Some r -> r.entry | _ -> builder
     in
-    Llvm.build_alloca typ str builder
+    if !in_init then (
+      let null = Llvm.const_int int_t 0 in
+      let value =
+        Llvm.define_global "" (Llvm.const_bitcast null typ) the_module
+      in
+      Llvm.(set_linkage Linkage.Internal value);
+      value)
+    else Llvm.build_alloca typ str builder
 
   let get_prealloc allocref param lltyp str =
     match (allocref, param.alloca) with
@@ -664,4 +673,6 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
     let value = Llvm.build_bitcast dataptr ptr_t "" builder in
     { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
+
+  let set_in_init b = in_init := b
 end

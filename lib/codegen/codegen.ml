@@ -1222,6 +1222,7 @@ let generate ~target ~outname ~release ~modul
     |> ignore
   else if has_init_code tree then (
     (* Or module init *)
+    H.set_in_init true;
     add_global_init funcs outname `Ctor tree;
 
     (* Add frees to global dctors in reverse order *)
