@@ -205,7 +205,7 @@ let rec mb_contains_refcount = function
   | Tpoly _ -> true
   | _ -> false
 
-let get_mono_name name ~poly concrete =
+let get_mono_name name ~poly ~closure concrete =
   let open Printf in
   let rec str = function
     | Tint -> "i"
@@ -218,12 +218,12 @@ let get_mono_name name ~poly concrete =
     | Tfun (ps, r, k) ->
         let k =
           match k with
-          | Simple -> ""
-          | Closure c -> (
+          | Closure c when closure -> (
               match c with
               | [] -> ""
               | c -> "-" ^ String.concat "-" (List.map (fun c -> str c.cltyp) c)
               )
+          | Closure _ | Simple -> ""
         in
         sprintf "%s.%s%s"
           (String.concat "" (List.map (fun p -> str p.pt) ps))
@@ -231,7 +231,10 @@ let get_mono_name name ~poly concrete =
     | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
         sprintf "%s%s" name (String.concat "" (List.map str ps))
     | Trecord (_, None, fs) ->
-        Array.to_list fs |> List.map (fun f -> str f.ftyp) |> String.concat "-"
+        "tup-"
+        ^ (Array.to_list fs
+          |> List.map (fun f -> str f.ftyp)
+          |> String.concat "-")
     | Tpoly _ -> "g"
     | Traw_ptr t -> sprintf "p%s" (str t)
     | Tarray t -> sprintf "a%s" (str t)
@@ -526,7 +529,7 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
       (p, Recursive name)
   | Mutual_rec (name, typ) ->
       if is_type_polymorphic typ then (
-        let call = get_mono_name name ~poly:typ expr.typ in
+        let call = get_mono_name name ~closure:true ~poly:typ expr.typ in
         if not (Set.mem call p.monomorphized) then
           (* The function doesn't exist yet, will it ever exist? *)
           if not (Hashtbl.mem missing_polys_tbl call) then
@@ -548,7 +551,7 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
   | No_function -> (p, Default)
 
 and monomorphize p typ concrete func parent_sub =
-  let call = get_mono_name func.name.call ~poly:typ concrete in
+  let call = get_mono_name func.name.call ~closure:true ~poly:typ concrete in
 
   if Set.mem call p.monomorphized then
     (* The function exists, we don't do anything right now *)

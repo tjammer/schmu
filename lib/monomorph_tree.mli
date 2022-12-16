@@ -113,4 +113,4 @@ type monomorphized_tree = {
 
 val typ_of_abs : abstraction -> typ
 val monomorphize : Typed_tree.t -> monomorphized_tree
-val get_mono_name : string -> poly:typ -> typ -> string
+val get_mono_name : string -> poly:typ -> closure:bool -> typ -> string

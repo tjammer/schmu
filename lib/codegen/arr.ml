@@ -221,7 +221,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let name = name_of_func kind in
     let poly = Tfun ([ { pmut = false; pt = Tpoly "0" } ], Tunit, Simple) in
     let typ = Tfun ([ { pmut = false; pt = v.typ } ], Tunit, Simple) in
-    let name = Monomorph_tree.get_mono_name name ~poly typ in
+    let name = Monomorph_tree.get_mono_name name ~closure:false ~poly typ in
     match Hashtbl.find_opt func_tbl name with
     | Some (_, _, f) -> f
     | None ->
@@ -396,7 +396,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
           Simple )
     in
     let typ = Tfun ([ { pmut = true; pt = orig.typ } ], orig.typ, Simple) in
-    let name = Monomorph_tree.get_mono_name (name_of_func kind) ~poly typ in
+    let name =
+      Monomorph_tree.get_mono_name (name_of_func kind) ~closure:false ~poly typ
+    in
     let f =
       match Hashtbl.find_opt func_tbl name with
       | Some (_, _, f) -> f

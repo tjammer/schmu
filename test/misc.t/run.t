@@ -3764,11 +3764,11 @@ Return closures
     store i8* %17, i8** %str21, align 8
     tail call void @schmu_print(i8* %17)
     tail call void @__g.u_decr_rc_ac.u(i8* %17)
-    tail call void @__g.u_decr_rc_i.i-i.u(%closure* @f__2)
+    tail call void @__g.u_decr_rc_i.i.u(%closure* @f__2)
     tail call void @__g.u_decr_rc_ac.u(i8* %10)
     tail call void @__g.u_decr_rc_ac.u(i8* %3)
-    tail call void @__g.u_decr_rc_i.i-i.u(%closure* @f2)
-    tail call void @__g.u_decr_rc_i.i-i.u(%closure* @f)
+    tail call void @__g.u_decr_rc_i.i.u(%closure* @f2)
+    tail call void @__g.u_decr_rc_i.i.u(%closure* @f)
     ret i64 0
   }
   
@@ -3799,7 +3799,7 @@ Return closures
     ret void
   }
   
-  define internal void @__g.u_decr_rc_i.i-i.u(%closure* %0) {
+  define internal void @__g.u_decr_rc_i.i.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
