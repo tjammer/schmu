@@ -151,7 +151,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   21
 
   $ cat lets.smi
-  ((4:Mext4:Tint((4:user1:a)(4:call1:a)))(4:Mext(4:Tfun(((2:pt(6:Talias4:cstr(8:Traw_ptr3:Tu8)))(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))5:Tunit6:Simple)((4:user6:printf)(4:call6:printf)))(4:Mfun(4:Tfun()4:Tint6:Simple)((4:user10:generate_b)(4:call10:generate_b)))(4:Mext4:Tint((4:user1:b)(4:call1:b)))(4:Mext4:Tint((4:user1:a)(4:call4:a__2))))
+  ((4:Mext4:Tint((4:user1:a)(4:call1:a))5:false)(4:Mext(4:Tfun(((2:pt(6:Talias4:cstr(8:Traw_ptr3:Tu8)))(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))5:Tunit6:Simple)((4:user6:printf)(4:call6:printf))5:false)(4:Mfun(4:Tfun()4:Tint6:Simple)((4:user10:generate_b)(4:call10:generate_b)))(4:Mext4:Tint((4:user1:b)(4:call1:b))5:false)(4:Mext4:Tint((4:user1:a)(4:call4:a__2))5:false))
 
   $ schmu local_open_lets.smu --dump-llvm && ./local_open_lets
   ; ModuleID = 'context'
@@ -433,7 +433,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   declare void @free(i8* %0)
 
   $ cat malloc_some.smi
-  ((5:Mtype(8:Tvariant()18:malloc_some/either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)((4:user8:add_ints)(4:call8:add_ints)))(4:Mext4:Tint((4:user1:a)(4:call1:a)))(4:Mext4:Tint((4:user1:b)(4:call1:b)))(9:Mpoly_fun((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(3:Var1:x))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:100)(8:pos_cnum3:112))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:100)(8:pos_cnum3:113))))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(4:pmut5:false))))(3:ret(4:Qvar1:1))(4:kind6:Simple)))(6:inline5:false))2:id())(4:Mext(6:Tarray4:Tint)((4:user5:vtest)(4:call5:vtest)))(4:Mext(6:Tarray4:Tint)((4:user6:vtest2)(4:call6:vtest2))))
+  ((5:Mtype(8:Tvariant()18:malloc_some/either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)((4:user8:add_ints)(4:call8:add_ints)))(4:Mext4:Tint((4:user1:a)(4:call1:a))5:false)(4:Mext4:Tint((4:user1:b)(4:call1:b))5:false)(9:Mpoly_fun((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(3:Var1:x))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:100)(8:pos_cnum3:112))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:100)(8:pos_cnum3:113))))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(4:pmut5:false))))(3:ret(4:Qvar1:1))(4:kind6:Simple)))(6:inline5:false))2:id())(4:Mext(6:Tarray4:Tint)((4:user5:vtest)(4:call5:vtest))5:false)(4:Mext(6:Tarray4:Tint)((4:user6:vtest2)(4:call6:vtest2))5:false))
 
   $ schmu use_malloc_some.smu --dump-llvm && ./use_malloc_some
   use_malloc_some.smu:3:6: warning: Unused binding do_something
@@ -559,3 +559,6 @@ Use module name prefix for function names to prevent linker dups
   2 | (fun specific_name [] ())
            ^^^^^^^^^^^^^
   
+Distinguish closures and functions
+  $ schmu decl_lambda.smu -m
+  $ schmu use_lambda.smu && ./use_lambda

@@ -85,6 +85,7 @@ type external_decl = {
   ext_typ : typ;
   cname : string;
   c_linkage : bool;
+  closure : bool;
 }
 
 type to_gen_func = {
@@ -1493,7 +1494,7 @@ let monomorphize { Typed_tree.externals; items; _ } =
      introduce a special case in codegen, or mark them Const_ptr when they are not *)
   let vars =
     List.fold_left
-      (fun vars { Env.imported = _; ext_name; ext_typ = _; ext_cname; used } ->
+      (fun vars { Env.ext_cname; ext_name; used; _ } ->
         let cname =
           match ext_cname with None -> ext_name | Some cname -> cname
         in
@@ -1549,7 +1550,7 @@ let monomorphize { Typed_tree.externals; items; _ } =
 
   let externals =
     List.filter_map
-      (fun { Env.imported; ext_name; ext_typ = t; ext_cname; used } ->
+      (fun { Env.imported; ext_name; ext_typ = t; ext_cname; used; closure } ->
         if not !used then None
         else
           let cname =
@@ -1558,7 +1559,7 @@ let monomorphize { Typed_tree.externals; items; _ } =
           let c_linkage =
             match imported with None | Some `C -> true | Some `Schmu -> false
           in
-          Some { ext_name; ext_typ = cln p t; c_linkage; cname })
+          Some { ext_name; ext_typ = cln p t; c_linkage; cname; closure })
       externals
   in
 

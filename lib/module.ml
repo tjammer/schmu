@@ -9,7 +9,7 @@ and name = { user : string; call : string }
 and item =
   | Mtype of typ
   | Mfun of typ * name
-  | Mext of typ * name
+  | Mext of typ * name * bool (* is closure *)
   | Mpoly_fun of Typed_tree.abstraction * string * int option
   | Mmutual_rec of (string * int option * typ) list
 
@@ -52,9 +52,10 @@ let add_rec_block funs m =
   let m = Mmutual_rec ms :: m in
   List.fold_left (fun m (n, u, abs) -> add_fun n u abs m) m funs
 
-let add_external t name cname m =
+let add_external t name cname ~closure m =
+  let closure = match clean t with Tfun _ -> closure | _ -> false in
   let call = match cname with Some s -> s | None -> name in
-  Mext (t, { user = name; call }) :: m
+  Mext (t, { user = name; call }, closure) :: m
 
 let module_cache = Hashtbl.create 64
 (* TODO sort by insertion order *)
@@ -289,7 +290,7 @@ and canonabs sub abs =
 let map_item ~f = function
   | Mtype t -> Mtype (f t)
   | Mfun (t, n) -> Mfun (f t, n)
-  | Mext (t, n) -> Mext (f t, n)
+  | Mext (t, n, c) -> Mext (f t, n, c)
   | Mpoly_fun (abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
@@ -308,9 +309,9 @@ let fold_canonize sub = function
   | Mfun (t, n) ->
       let a, t = canonize sub t in
       (a, Mfun (t, n))
-  | Mext (t, n) ->
+  | Mext (t, n, c) ->
       let a, t = canonize sub t in
-      (a, Mext (t, n))
+      (a, Mext (t, n, c))
   | Mpoly_fun (abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
@@ -446,7 +447,7 @@ and mod_abs f abs =
 let demake_module name = function
   | Mtype t -> Mtype (mod_t (Rem name) t)
   | Mfun (t, n) -> Mfun (mod_t (Rem name) t, n)
-  | Mext (t, n) -> Mext (mod_t (Rem name) t, n)
+  | Mext (t, n, c) -> Mext (mod_t (Rem name) t, n, c)
   | Mpoly_fun (abs, n, u) -> Mpoly_fun (mod_abs (mod_t (Rem name)) abs, n, u)
   | Mmutual_rec ds ->
       let ds = List.map (fun (n, u, t) -> (n, u, mod_t (Rem name) t)) ds in
@@ -471,7 +472,7 @@ let add_to_env env toplvl m =
       | Mfun (t, n) ->
           Env.add_external ~imported:(Some `Schmu) n.user
             ~cname:(Some (toplvl ^ "_" ^ n.call))
-            t dummy_loc env
+            ~closure:false t dummy_loc env
       | Mpoly_fun (abs, n, _) ->
           let env =
             Env.(
@@ -480,9 +481,9 @@ let add_to_env env toplvl m =
                 dummy_loc env)
           in
           env
-      | Mext (t, n) ->
-          Env.add_external ~imported:(Some `C) n.user ~cname:(Some n.call) t
-            dummy_loc env
+      | Mext (t, n, closure) ->
+          Env.add_external ~closure ~imported:(Some `C) n.user
+            ~cname:(Some n.call) t dummy_loc env
       | Mmutual_rec ds ->
           List.fold_left
             (fun env (name, _, typ) ->
@@ -504,9 +505,9 @@ let make_module sub name m =
   | Mfun (t, n) ->
       sub := S.add (Path.Pid n.user) !sub;
       Mfun (mod_t (Add (name, !sub)) t, n)
-  | Mext (t, n) ->
+  | Mext (t, n, c) ->
       sub := S.add (Path.Pid n.user) !sub;
-      Mext (mod_t (Add (name, !sub)) t, n)
+      Mext (mod_t (Add (name, !sub)) t, n, c)
   | Mpoly_fun (abs, n, u) ->
       sub := S.add (Path.Pid n) !sub;
       Mpoly_fun (mod_abs (mod_t (Add (name, !sub))) abs, n, u)

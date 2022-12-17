@@ -6,7 +6,7 @@ and name = { user : string; call : string }
 and item =
   | Mtype of typ
   | Mfun of typ * name
-  | Mext of typ * name
+  | Mext of typ * name * bool (* is closure *)
   | Mpoly_fun of Typed_tree.abstraction * string * int option
   | Mmutual_rec of (string * int option * typ) list
 
@@ -18,7 +18,7 @@ val add_fun : string -> int option -> Typed_tree.abstraction -> t -> t
 val add_rec_block :
   (string * int option * Typed_tree.abstraction) list -> t -> t
 
-val add_external : typ -> string -> string option -> t -> t
+val add_external : typ -> string -> string option -> closure:bool -> t -> t
 val module_cache : (string, (t, string) result) Hashtbl.t
 val poly_funcs : Typed_tree.toplevel_item list ref
 val paths : string list ref

@@ -1,0 +1,1 @@
+(val lambda (fun [x] (+ x 1)))

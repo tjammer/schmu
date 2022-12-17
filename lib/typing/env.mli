@@ -24,6 +24,7 @@ type ext = {
   ext_cname : string option;
   imported : imported option;
   used : bool ref;
+  closure : bool;
 }
 (* return type for values *)
 
@@ -40,6 +41,7 @@ val add_external :
   cname:string option ->
   typ ->
   imported:imported option ->
+  closure:bool ->
   Ast.loc ->
   t ->
   t

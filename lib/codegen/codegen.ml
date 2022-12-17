@@ -1078,8 +1078,8 @@ let def_globals globals =
   in
   List.iter f globals
 
-let decl_external ~c_linkage cname = function
-  | Tfun _ as t when not (is_type_polymorphic t) ->
+let decl_external ~c_linkage ~closure cname = function
+  | Tfun _ as t when (not (is_type_polymorphic t)) && not closure ->
       H.declare_function ~c_linkage C cname t
   | typ ->
       let lltyp = T.get_lltype_def typ in
@@ -1169,8 +1169,8 @@ let generate ~target ~outname ~release ~modul
 
   (* External declarations *)
   List.iter
-    (fun { Monomorph_tree.ext_name = _; ext_typ; cname; c_linkage } ->
-      let v = decl_external cname ext_typ ~c_linkage in
+    (fun { Monomorph_tree.ext_name = _; ext_typ; cname; c_linkage; closure } ->
+      let v = decl_external cname ext_typ ~closure ~c_linkage in
       Strtbl.add const_tbl cname v)
     externals;
 

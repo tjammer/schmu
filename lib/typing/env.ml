@@ -56,6 +56,7 @@ type ext = {
   ext_cname : string option;
   imported : imported option;
   used : bool ref;
+  closure : bool;
 }
 
 (* function scope *)
@@ -123,7 +124,7 @@ let add_value key value loc env =
 
       { env with values = { scope with valmap } :: tl }
 
-let add_external ext_name ~cname typ ~imported loc env =
+let add_external ext_name ~cname typ ~imported ~closure loc env =
   let env, used =
     match env.values with
     | [] -> failwith "Internal Error: Env empty"
@@ -149,7 +150,9 @@ let add_external ext_name ~cname typ ~imported loc env =
         ({ env with values = { scope with valmap } :: tl }, used)
   in
   let tkey = Type_key.create ext_name in
-  let vl = { ext_name; ext_typ = typ; ext_cname = cname; imported; used } in
+  let vl =
+    { ext_name; ext_typ = typ; ext_cname = cname; imported; used; closure }
+  in
   env.externals := Emap.add tkey vl !(env.externals);
   env
 

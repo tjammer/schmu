@@ -100,6 +100,7 @@ type external_decl = {
   ext_typ : typ;
   cname : string;
   c_linkage : bool;
+  closure : bool;
 }
 
 type monomorphized_tree = {
