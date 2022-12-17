@@ -10,7 +10,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   @c = internal constant i64 10
   
-  define i64 @schmu_add_ints(i64 %a, i64 %b) {
+  define i64 @nonpoly_func_add_ints(i64 %a, i64 %b) {
   entry:
     %add = add i64 %a, %b
     ret i64 %add
@@ -27,7 +27,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
-  declare i64 @schmu_add_ints(i64 %0, i64 %1)
+  declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
   
   declare void @printf(i8* %0, i64 %1)
   
@@ -39,11 +39,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    %1 = tail call i64 @schmu_add_ints(i64 0, i64 5)
+    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5)
     ret i64 %1
   
   else:                                             ; preds = %entry
-    %2 = tail call i64 @schmu_add_ints(i64 0, i64 -5)
+    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5)
     ret i64 %2
   }
   
@@ -71,7 +71,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  declare i64 @schmu_add_ints(i64 %0, i64 %1)
+  declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
   
   define i64 @schmu_doo(i32 %0) {
   entry:
@@ -81,11 +81,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    %1 = tail call i64 @schmu_add_ints(i64 0, i64 5)
+    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5)
     ret i64 %1
   
   else:                                             ; preds = %entry
-    %2 = tail call i64 @schmu_add_ints(i64 0, i64 -5)
+    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5)
     ret i64 %2
   }
   
@@ -112,14 +112,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @b = global i64 0, align 8
   @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__lets_init, i8* null }]
   
-  define i64 @schmu_generate_b() {
+  define i64 @lets_generate_b() {
   entry:
     ret i64 21
   }
   
   define internal void @__lets_init() section ".text.startup" {
   entry:
-    %0 = tail call i64 @schmu_generate_b()
+    %0 = tail call i64 @lets_generate_b()
     store i64 %0, i64* @b, align 8
     ret void
   }
@@ -360,7 +360,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__malloc_some_init, i8* null }]
   @llvm.global_dtors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__malloc_some_deinit, i8* null }]
   
-  define i64 @schmu_add_ints(i64 %a, i64 %b) {
+  define i64 @malloc_some_add_ints(i64 %a, i64 %b) {
   entry:
     %add = add i64 %a, %b
     ret i64 %add
@@ -368,7 +368,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define internal void @__malloc_some_init() section ".text.startup" {
   entry:
-    %0 = tail call i64 @schmu_add_ints(i64 1, i64 3)
+    %0 = tail call i64 @malloc_some_add_ints(i64 1, i64 3)
     store i64 %0, i64* @b, align 8
     %1 = tail call i8* @malloc(i64 40)
     %2 = bitcast i8* %1 to i64*
@@ -551,3 +551,11 @@ Allocate and clean init code with refcounting
   $ schmu init.smu -m
   $ schmu use_init.smu && ./use_init
   hello from init
+
+Use module name prefix for function names to prevent linker dups
+  $ schmu nameclash_mod.smu -m
+  $ schmu nameclash_use.smu
+  nameclash_use.smu:2:6: warning: Unused binding specific_name
+  2 | (fun specific_name [] ())
+           ^^^^^^^^^^^^^
+  

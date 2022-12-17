@@ -454,9 +454,10 @@ let demake_module name = function
 
 let add_to_env env toplvl m =
   let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
-  let demk =
-    match toplvl with Some name -> demake_module name | None -> Fun.id
-  in
+  let demk = demake_module toplvl in
+  (*   (\* Why only toplvl? *\) *)
+  (*   match toplvl with Some name -> demake_module name | None -> Fun.id *)
+  (* in *)
   List.fold_left
     (fun env item ->
       match demk item with
@@ -469,7 +470,7 @@ let add_to_env env toplvl m =
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
       | Mfun (t, n) ->
           Env.add_external ~imported:(Some `Schmu) n.user
-            ~cname:(Some ("schmu_" ^ n.call))
+            ~cname:(Some (toplvl ^ "_" ^ n.call))
             t dummy_loc env
       | Mpoly_fun (abs, n, _) ->
           let env =

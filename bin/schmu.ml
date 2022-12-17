@@ -58,16 +58,22 @@ let run file
     Ok
       (let ttree, m = Typing.to_typed ~modul ~prelude fmt_msg_fn prog in
 
+       let md = if modul then Some outname else None in
+
        if check_only then ()
        else (
          (* TODO if a module has only forward decls, we don't need to codegen anything *)
          Monomorph_tree.monomorphize ttree
-         |> Codegen.generate ~target ~outname ~release ~modul
+         |> Codegen.generate ~target ~outname ~release ~modul:md
          |> ignore;
          if dump_llvm then Llvm.dump_module Codegen.the_module;
          if modul then (
            let modfile = open_out (outname ^ ".smi") in
-           Module.to_channel modfile outname (Option.get m);
+           let prefix =
+             if no_prelude && String.equal outname "prelude" then "schmu"
+             else outname
+           in
+           Module.to_channel modfile prefix (Option.get m);
            close_out modfile)
          else if compile_only then ()
          else Link.link outname objects cargs))

@@ -1,0 +1,2 @@
+(open nameclash_mod)
+(fun specific_name [] ())

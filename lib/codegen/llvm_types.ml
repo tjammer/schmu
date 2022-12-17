@@ -2,7 +2,7 @@ open Cleaned_types
 module Vars = Map.Make (String)
 
 type value_kind = Const | Const_ptr | Imm | Ptr
-type mangle_kind = C | Schmu
+type mangle_kind = C | Schmu of string
 
 type llvar = {
   value : Llvm.llvalue;

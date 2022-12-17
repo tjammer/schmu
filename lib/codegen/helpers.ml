@@ -255,15 +255,17 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
           memcpy ~dst:ptr ~src:value ~size
     | _ -> ignore (Llvm.build_store (bring_default value) ptr builder)
 
-  let mangle name = function C -> name | Schmu -> "schmu_" ^ name
+  let mangle name = function C -> name | Schmu n -> n ^ "_" ^ name
 
   let unmangle kind name =
     match kind with
     | C -> name
-    | Schmu ->
+    | Schmu _ ->
         let open String in
-        let len = length "schmu_" in
-        sub name len (length name - len)
+        let len = String.index name '_' + 1 in
+        let ret = sub name len (length name - len) in
+        Printf.printf "unmangling %s to %s\n%!" name ret;
+        ret
 
   let declare_function ~c_linkage mangle_kind fun_name = function
     | Tfun (params, ret, kind) as typ ->
