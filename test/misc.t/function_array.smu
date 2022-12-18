@@ -1,0 +1,2 @@
+(val arr [print])
+(ignore arr)

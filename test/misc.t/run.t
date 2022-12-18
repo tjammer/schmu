@@ -3850,3 +3850,6 @@ Mutable variables in upward closures
   2
   3
   4
+
+Functions in arrays
+  $ schmu function_array.smu && valgrind -q --leak-check=yes ./function_array

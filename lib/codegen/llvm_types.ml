@@ -21,6 +21,15 @@ type param = {
   in_set : bool;
 }
 
+let no_param =
+  {
+    vars = Vars.empty;
+    alloca = None;
+    finalize = None;
+    rec_block = None;
+    in_set = false;
+  }
+
 let context = Llvm.global_context ()
 let the_module = Llvm.create_module context "context"
 let fpm = Llvm.PassManager.create_function the_module

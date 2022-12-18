@@ -101,7 +101,10 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     List.iteri
       (fun i expr ->
         let dst = Llvm.build_gep ptr [| ci i |] (string_of_int i) builder in
-        let src = gen_expr { param with alloca = Some dst } expr in
+        let src =
+          gen_expr { param with alloca = Some dst } expr
+          |> func_to_closure param
+        in
 
         match src.kind with
         | Ptr | Const_ptr ->
@@ -240,13 +243,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
   let rc_fn v kind =
     if contains_refcount v.typ then
       let f = make_rc_fn v kind in
-      let v =
-        match v.kind with
-        | Ptr | Const_ptr -> bring_default v
-        | Imm | Const -> v.value
-      in
+      let v = bring_default_var v |> func_to_closure no_param in
 
-      ignore (Llvm.build_call f [| v |] "" builder)
+      Llvm.build_call f [| v.value |] "" builder |> ignore
 
   let incr_refcount v = rc_fn v Incr_rc
 

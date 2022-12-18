@@ -1044,15 +1044,6 @@ and A : Abi_intf.S = Abi.Make (T)
 and H : Helpers.S = Helpers.Make (T) (A) (Ar)
 and Ar : Arr_intf.S = Arr.Make (T) (H) (Core)
 
-let no_param =
-  {
-    vars = Vars.empty;
-    alloca = None;
-    finalize = None;
-    rec_block = None;
-    in_set = false;
-  }
-
 let fill_constants constants =
   let f (name, tree, toplvl) =
     let init = Core.gen_expr no_param tree in
