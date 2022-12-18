@@ -488,7 +488,7 @@ module Make (C : Core) (R : Recs) = struct
 
   (* Internal expression values in codegen shouldn't trigger unused binding warnings.
      `imported = true` makes sure no warning is issued *)
-  let exprval = Env.{ def_value with imported = true }
+  let exprval = Env.def_value
 
   module Row = struct
     type t = { loc : Ast.loc; cnt : int }
@@ -662,6 +662,7 @@ module Make (C : Core) (R : Recs) = struct
             let env =
               Env.(add_value (expr_name path) { exprval with typ } loc env)
             in
+            ignore (Env.query_val_opt (expr_name path) env);
             (* Inherit ctor path, and specialize *)
             let lst = type_pattern env (path, p) in
             let f cpat =
@@ -698,6 +699,7 @@ module Make (C : Core) (R : Recs) = struct
                     { exprval with typ = newvar () }
                     loc env)
               in
+              ignore (Env.query_val_opt (expr_name path) env);
               let tpats = type_pattern env (path, pat) in
               let fields =
                 List.map
@@ -744,6 +746,7 @@ module Make (C : Core) (R : Recs) = struct
                     { exprval with typ = field.ftyp }
                     loc env)
               in
+              ignore (Env.query_val_opt (expr_name path) env);
               match pat with
               | None ->
                   [ { floc; name; index; iftyp = field.ftyp; fpat = None } ]
@@ -782,6 +785,7 @@ module Make (C : Core) (R : Recs) = struct
       let e = convert env expr in
       (Env.(add_value (expr_name path) { exprval with typ = e.typ }) loc env, e)
     in
+    ignore (Env.query_val_opt (expr_name path) env);
 
     let ret = newvar () in
 
@@ -845,10 +849,12 @@ module Make (C : Core) (R : Recs) = struct
       | Some p ->
           let typ = (snd p).ptyp and expr = Variant_data (expr i) in
           let data = { typ; expr; attr = no_attr; loc } in
-          ( data,
+          let env =
             Env.(
               add_value (expr_name i) { exprval with typ = data.typ } loc env)
-          )
+          in
+          ignore (Env.query_val_opt (expr_name i) env);
+          (data, env)
       | None -> (expr i, env)
     in
 
@@ -959,6 +965,7 @@ module Make (C : Core) (R : Recs) = struct
                         { exprval with typ = field.iftyp }
                         loc env)
                   in
+                  ignore (Env.query_val_opt (expr_name col) env);
                   env)
                 env fields
             in
@@ -991,10 +998,14 @@ module Make (C : Core) (R : Recs) = struct
               List.fold_left
                 (fun env pat ->
                   let col = pat.tindex :: path in
-                  Env.(
-                    add_value (expr_name col)
-                      { exprval with typ = pat.ttyp }
-                      loc env))
+                  let env =
+                    Env.(
+                      add_value (expr_name col)
+                        { exprval with typ = pat.ttyp }
+                        loc env)
+                  in
+                  ignore (Env.query_val_opt (expr_name col) env);
+                  env)
                 env fields
             in
 
