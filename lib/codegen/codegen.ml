@@ -1083,6 +1083,7 @@ let decl_external ~c_linkage ~closure cname = function
 let has_init_code tree =
   let rec aux = function
     (* We have to deal with 'toplevel' type nodes only *)
+    (* TODO toplevel let expressions do not produce globals *)
     | Monomorph_tree.Mlet (name, _, gname, _, cont) -> (
         let name = match gname with Some name -> name | None -> name in
         match Strtbl.find_opt const_tbl name with

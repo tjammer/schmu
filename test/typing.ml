@@ -286,7 +286,9 @@ let test_array_different_types () =
      Cannot unify types int and bool" "[0 true]"
 
 let test_array_different_annot () =
-  test_exn "Var annotation: Expected type (array bool) but got type (array int)"
+  test_exn
+    "In let binding: Expected type (array int) but got type (array bool).\n\
+     Cannot unify types int and bool"
     {|(val (a (array bool)) [0 1])
     a|}
 

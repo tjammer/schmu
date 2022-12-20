@@ -556,8 +556,11 @@ end = struct
         let t_annot = typeof_annot env loc annot in
         let t = convert_annot env (Some t_annot) block in
         leave_level ();
-        (* TODO 'In let binding' *)
-        check_annot loc t.typ t_annot;
+
+        (match clean t.typ with
+        | Tfun _ -> check_annot loc t.typ t_annot
+        | _ -> unify (loc, "In let binding:") t.typ t_annot);
+
         { t with typ = t_annot }
 
   and convert_let ~global env loc { Ast.loc = _; ident = idloc, id; mut; annot }
