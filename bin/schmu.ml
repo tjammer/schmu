@@ -69,11 +69,7 @@ let run file
          if dump_llvm then Llvm.dump_module Codegen.the_module;
          if modul then (
            let modfile = open_out (outname ^ ".smi") in
-           let prefix =
-             if no_prelude && String.equal outname "prelude" then "schmu"
-             else outname
-           in
-           Module.to_channel modfile prefix (Option.get m);
+           Module.to_channel modfile ~outname (Option.get m);
            close_out modfile)
          else if compile_only then ()
          else Link.link outname objects cargs))

@@ -306,7 +306,7 @@ let handle_params env loc (params : Ast.decl list) ret =
             const = false;
             param = true;
             global = false;
-            imported = false;
+            imported = None;
             mut;
           }
           idloc env,
@@ -522,6 +522,11 @@ end = struct
     | Some t ->
         let typ = instantiate t.typ in
         let attr = { const = t.const; global = t.global; mut = t.mut } in
+        let id =
+          match t.imported with
+          | Some mname -> Env.mod_fn_name ~mname id
+          | _ -> id
+        in
         { typ; expr = Var id; attr; loc }
     | None -> raise (Error (loc, "No var named " ^ id))
 
@@ -1179,7 +1184,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
   let env =
     if prelude then
       let prelude = Module.read_exn ~regeneralize "prelude" loc in
-      Module.add_to_env env "schmu" prelude
+      Module.add_to_env env "prelude" prelude
     else env
   in
 

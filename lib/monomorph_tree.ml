@@ -1557,7 +1557,10 @@ let monomorphize { Typed_tree.externals; items; _ } =
             match ext_cname with None -> ext_name | Some cname -> cname
           in
           let c_linkage =
-            match imported with None | Some `C -> true | Some `Schmu -> false
+            match imported with
+            (* A value is either imported or a real external decl (eg C function) *)
+            | None | Some (_, `C) -> true
+            | Some (_, `Schmu) -> false
           in
           Some { ext_name; ext_typ = cln p t; c_linkage; cname; closure })
       externals

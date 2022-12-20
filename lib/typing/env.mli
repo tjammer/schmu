@@ -3,20 +3,27 @@ open Types
 type key = string
 type label = { index : int; typename : Path.t }
 type t
+type imported = string * [ `C | `Schmu ]
 
 type value = {
   typ : typ;
   param : bool;
   const : bool;
   global : bool;
-  imported : bool;
+  imported : imported option;
   mut : bool;
 }
 
 type warn_kind = Unused | Unmutated
 type unused = (unit, (string * warn_kind * Ast.loc) list) result
-type return = { typ : typ; const : bool; global : bool; mut : bool }
-type imported = [ `C | `Schmu ]
+
+type return = {
+  typ : typ;
+  const : bool;
+  global : bool;
+  mut : bool;
+  imported : string option;
+}
 
 type ext = {
   ext_name : string;
@@ -90,6 +97,8 @@ val find_labelset_opt : string list -> t -> typ option
 val find_ctor_opt : key -> t -> label option
 (** [find_ctor_opt cname env] returns the variant of which the ctor is part of
     as well as the type of the ctor if it has data *)
+
+val mod_fn_name : mname:key -> key -> key
 
 val externals : t -> ext list
 (** [externals env] returns a list of all external function declarations *)

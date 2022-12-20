@@ -369,6 +369,8 @@ end = struct
       match func.typ with
       | Tfun (_, ret, kind) -> (ret, kind)
       | Tunit ->
+          print_endline (Monomorph_tree.show_expr callee.ex.expr);
+          print_endline (Monomorph_tree.show_call_name callee.monomorph);
           failwith
             "Internal Error: Probably cannot find monomorphized function in \
              gen_app"
@@ -1132,12 +1134,7 @@ let add_global_init funcs outname kind body =
 
 let generate ~target ~outname ~release ~modul
     { Monomorph_tree.constants; globals; externals; tree; funcs; decrs } =
-  let mangle =
-    match modul with
-    | None -> Schmu "schmu"
-    | Some "prelude" -> Schmu "schmu"
-    | Some m -> Schmu m
-  in
+  let mangle = match modul with None -> Schmu "schmu" | Some m -> Schmu m in
   let open Llvm_target in
   let triple =
     match target with

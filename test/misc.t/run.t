@@ -1243,13 +1243,13 @@ Test 'and', 'or' and 'not'
   @5 = private unnamed_addr global { i64, i64, i64, [11 x i8] } { i64 2, i64 10, i64 10, [11 x i8] c"test 'or':\00" }
   @6 = private unnamed_addr global { i64, i64, i64, [12 x i8] } { i64 2, i64 11, i64 11, [12 x i8] c"test 'not':\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define i1 @schmu_false_() {
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %str, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*))
     ret i1 false
   }
   
@@ -1257,7 +1257,7 @@ Test 'and', 'or' and 'not'
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @1 to i8*), i8** %str, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @1 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @1 to i8*))
     ret i1 true
   }
   
@@ -1265,7 +1265,7 @@ Test 'and', 'or' and 'not'
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [12 x i8] }* @2 to i8*), i8** %str, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [12 x i8] }* @2 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [12 x i8] }* @2 to i8*))
     %0 = tail call i1 @schmu_true_()
     br i1 %0, label %true1, label %cont
   
@@ -1283,13 +1283,13 @@ Test 'and', 'or' and 'not'
   then:                                             ; preds = %cont
     %str1 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str1, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont
   
   else:                                             ; preds = %cont
     %str2 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str2, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
@@ -1310,13 +1310,13 @@ Test 'and', 'or' and 'not'
   then7:                                            ; preds = %cont5
     %str8 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str8, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont11
   
   else9:                                            ; preds = %cont5
     %str10 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str10, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont11
   
   ifcont11:                                         ; preds = %else9, %then7
@@ -1337,13 +1337,13 @@ Test 'and', 'or' and 'not'
   then16:                                           ; preds = %cont14
     %str17 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str17, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont20
   
   else18:                                           ; preds = %cont14
     %str19 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str19, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont20
   
   ifcont20:                                         ; preds = %else18, %then16
@@ -1364,19 +1364,19 @@ Test 'and', 'or' and 'not'
   then25:                                           ; preds = %cont23
     %str26 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str26, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont29
   
   else27:                                           ; preds = %cont23
     %str28 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str28, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont29
   
   ifcont29:                                         ; preds = %else27, %then25
     %str30 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [11 x i8] }* @5 to i8*), i8** %str30, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [11 x i8] }* @5 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [11 x i8] }* @5 to i8*))
     %8 = tail call i1 @schmu_true_()
     br i1 %8, label %cont31, label %false1
   
@@ -1394,13 +1394,13 @@ Test 'and', 'or' and 'not'
   then33:                                           ; preds = %cont31
     %str34 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str34, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont37
   
   else35:                                           ; preds = %cont31
     %str36 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str36, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont37
   
   ifcont37:                                         ; preds = %else35, %then33
@@ -1421,13 +1421,13 @@ Test 'and', 'or' and 'not'
   then42:                                           ; preds = %cont40
     %str43 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str43, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont46
   
   else44:                                           ; preds = %cont40
     %str45 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str45, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont46
   
   ifcont46:                                         ; preds = %else44, %then42
@@ -1448,13 +1448,13 @@ Test 'and', 'or' and 'not'
   then51:                                           ; preds = %cont49
     %str52 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str52, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont55
   
   else53:                                           ; preds = %cont49
     %str54 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str54, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont55
   
   ifcont55:                                         ; preds = %else53, %then51
@@ -1475,19 +1475,19 @@ Test 'and', 'or' and 'not'
   then60:                                           ; preds = %cont58
     %str61 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str61, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont64
   
   else62:                                           ; preds = %cont58
     %str63 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str63, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont64
   
   ifcont64:                                         ; preds = %else62, %then60
     %str65 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [12 x i8] }* @6 to i8*), i8** %str65, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [12 x i8] }* @6 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [12 x i8] }* @6 to i8*))
     %16 = tail call i1 @schmu_true_()
     %17 = xor i1 %16, true
     br i1 %17, label %then66, label %else68
@@ -1495,13 +1495,13 @@ Test 'and', 'or' and 'not'
   then66:                                           ; preds = %ifcont64
     %str67 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str67, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont70
   
   else68:                                           ; preds = %ifcont64
     %str69 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str69, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont70
   
   ifcont70:                                         ; preds = %else68, %then66
@@ -1512,13 +1512,13 @@ Test 'and', 'or' and 'not'
   then71:                                           ; preds = %ifcont70
     %str72 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*), i8** %str72, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont75
   
   else73:                                           ; preds = %ifcont70
     %str74 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*), i8** %str74, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont75
   
   ifcont75:                                         ; preds = %else73, %then71
@@ -2020,7 +2020,7 @@ Ensure global are loadad correctly when passed to functions
   @a__2 = global i64* null, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define void @schmu_in-fun() {
   entry:
@@ -2085,7 +2085,7 @@ Ensure global are loadad correctly when passed to functions
     %fmt = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %20, i64 %16, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %14)
     %str = alloca i8*, align 8
     store i8* %17, i8** %str, align 8
-    call void @schmu_print(i8* %17)
+    call void @prelude_print(i8* %17)
     %21 = bitcast i64* %3 to i8*
     %sunkaddr = getelementptr i8, i8* %21, i64 8
     %22 = bitcast i8* %sunkaddr to i64*
@@ -2106,7 +2106,7 @@ Ensure global are loadad correctly when passed to functions
     %fmt17 = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %29, i64 %25, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %23)
     %str18 = alloca i8*, align 8
     store i8* %26, i8** %str18, align 8
-    call void @schmu_print(i8* %26)
+    call void @prelude_print(i8* %26)
     call void @__g.u_decr_rc_ac.u(i8* %26)
     call void @__g.u_decr_rc_ac.u(i8* %17)
     call void @__g.u_decr_rc_ai.u(i64* %3)
@@ -2317,7 +2317,7 @@ Ensure global are loadad correctly when passed to functions
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %21, i64 %17, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %15)
     %str = alloca i8*, align 8
     store i8* %18, i8** %str, align 8
-    tail call void @schmu_print(i8* %18)
+    tail call void @prelude_print(i8* %18)
     %22 = load i64*, i64** @b, align 8
     %len11 = getelementptr i64, i64* %22, i64 1
     %23 = load i64, i64* %len11, align 8
@@ -2337,7 +2337,7 @@ Ensure global are loadad correctly when passed to functions
     %fmt17 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %29, i64 %25, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %23)
     %str18 = alloca i8*, align 8
     store i8* %26, i8** %str18, align 8
-    tail call void @schmu_print(i8* %26)
+    tail call void @prelude_print(i8* %26)
     tail call void @schmu_in-fun()
     %30 = tail call i8* @malloc(i64 40)
     %31 = bitcast i8* %30 to i64**
@@ -2833,7 +2833,7 @@ Drop last element
   @nested = global i64** null, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -2895,7 +2895,7 @@ Drop last element
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %18, i64 %14, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %12)
     %str = alloca i8*, align 8
     store i8* %15, i8** %str, align 8
-    tail call void @schmu_print(i8* %15)
+    tail call void @prelude_print(i8* %15)
     %19 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
     %20 = bitcast i64** %19 to i64*
     %size17 = getelementptr i64, i64* %20, i64 1
@@ -2939,7 +2939,7 @@ Drop last element
     %fmt26 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %38, i64 %34, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %32)
     %str27 = alloca i8*, align 8
     store i8* %35, i8** %str27, align 8
-    tail call void @schmu_print(i8* %35)
+    tail call void @prelude_print(i8* %35)
     %39 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
     %40 = bitcast i64** %39 to i64*
     %size28 = getelementptr i64, i64* %40, i64 1
@@ -2983,7 +2983,7 @@ Drop last element
     %fmt39 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %58, i64 %54, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %52)
     %str40 = alloca i8*, align 8
     store i8* %55, i8** %str40, align 8
-    tail call void @schmu_print(i8* %55)
+    tail call void @prelude_print(i8* %55)
     %59 = tail call i64** @__ag.ag_reloc_aai.aai(i64*** @nested)
     %60 = bitcast i64** %59 to i64*
     %size41 = getelementptr i64, i64* %60, i64 1
@@ -3027,7 +3027,7 @@ Drop last element
     %fmt52 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %78, i64 %74, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %72)
     %str53 = alloca i8*, align 8
     store i8* %75, i8** %str53, align 8
-    tail call void @schmu_print(i8* %75)
+    tail call void @prelude_print(i8* %75)
     tail call void @__g.u_decr_rc_ac.u(i8* %75)
     tail call void @__g.u_decr_rc_ac.u(i8* %55)
     tail call void @__g.u_decr_rc_ac.u(i8* %35)
@@ -3458,7 +3458,7 @@ Polymorphic mutual recursive function
   pop
   pop
   0
-  16
+  8
   right
 
 
@@ -3481,7 +3481,7 @@ Return nonclosure functions
   @f__2 = global %closure zeroinitializer, align 16
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define i64 @schmu___fun0(i64 %a) {
   entry:
@@ -3536,7 +3536,7 @@ Return nonclosure functions
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %6, i64 %2, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %0)
     %str = alloca i8*, align 8
     store i8* %3, i8** %str, align 8
-    tail call void @schmu_print(i8* %3)
+    tail call void @prelude_print(i8* %3)
     tail call void @schmu_ret-named(%closure* @f__2)
     %loadtmp2 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f__2, i32 0, i32 0), align 8
     %casttmp3 = bitcast i8* %loadtmp2 to i64 (i64, i8*)*
@@ -3558,7 +3558,7 @@ Return nonclosure functions
     %fmt10 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %13, i64 %9, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %7)
     %str11 = alloca i8*, align 8
     store i8* %10, i8** %str11, align 8
-    tail call void @schmu_print(i8* %10)
+    tail call void @prelude_print(i8* %10)
     tail call void @__g.u_decr_rc_ac.u(i8* %10)
     tail call void @__g.u_decr_rc_i.i.u(%closure* @f__2)
     tail call void @__g.u_decr_rc_ac.u(i8* %3)
@@ -3643,7 +3643,7 @@ Return closures
   @f__2 = global %closure zeroinitializer, align 16
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define i64 @schmu___fun0(i64 %a, i8* %0) {
   entry:
@@ -3719,7 +3719,7 @@ Return closures
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %6, i64 %2, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %0)
     %str = alloca i8*, align 8
     store i8* %3, i8** %str, align 8
-    tail call void @schmu_print(i8* %3)
+    tail call void @prelude_print(i8* %3)
     %loadtmp2 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f2, i32 0, i32 0), align 8
     %casttmp3 = bitcast i8* %loadtmp2 to i64 (i64, i8*)*
     %loadtmp4 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f2, i32 0, i32 1), align 8
@@ -3740,7 +3740,7 @@ Return closures
     %fmt10 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %13, i64 %9, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %7)
     %str11 = alloca i8*, align 8
     store i8* %10, i8** %str11, align 8
-    tail call void @schmu_print(i8* %10)
+    tail call void @prelude_print(i8* %10)
     tail call void @schmu_ret-lambda(%closure* @f__2, i64 134)
     %loadtmp12 = load i8*, i8** getelementptr inbounds (%closure, %closure* @f__2, i32 0, i32 0), align 8
     %casttmp13 = bitcast i8* %loadtmp12 to i64 (i64, i8*)*
@@ -3762,7 +3762,7 @@ Return closures
     %fmt20 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %20, i64 %16, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %14)
     %str21 = alloca i8*, align 8
     store i8* %17, i8** %str21, align 8
-    tail call void @schmu_print(i8* %17)
+    tail call void @prelude_print(i8* %17)
     tail call void @__g.u_decr_rc_ac.u(i8* %17)
     tail call void @__g.u_decr_rc_i.i.u(%closure* @f__2)
     tail call void @__g.u_decr_rc_ac.u(i8* %10)

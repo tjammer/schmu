@@ -10,7 +10,7 @@ Test simple setting of mutable variables
   @c = global i64* null, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define i64 @schmu_hmm() {
   entry:
@@ -40,7 +40,7 @@ Test simple setting of mutable variables
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %5, i64 %1, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 14)
     %str = alloca i8*, align 8
     store i8* %2, i8** %str, align 8
-    tail call void @schmu_print(i8* %2)
+    tail call void @prelude_print(i8* %2)
     %6 = tail call i64 @schmu_hmm()
     %fmtsize1 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %6)
     %7 = add i32 %fmtsize1, 25
@@ -58,7 +58,7 @@ Test simple setting of mutable variables
     %fmt6 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %12, i64 %8, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %6)
     %str7 = alloca i8*, align 8
     store i8* %9, i8** %str7, align 8
-    tail call void @schmu_print(i8* %9)
+    tail call void @prelude_print(i8* %9)
     %13 = tail call i8* @malloc(i64 40)
     %14 = bitcast i8* %13 to i64**
     store i64** %14, i64*** @a, align 8
@@ -383,7 +383,7 @@ Check aliasing
   @snd = global %foo zeroinitializer, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define void @schmu_new-fun() {
   entry:
@@ -415,7 +415,7 @@ Check aliasing
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %10, i64 %6, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 1)
     %str = alloca i8*, align 8
     store i8* %7, i8** %str, align 8
-    tail call void @schmu_print(i8* %7)
+    tail call void @prelude_print(i8* %7)
     %fmtsize1 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 0)
     %11 = add i32 %fmtsize1, 25
     %12 = sext i32 %11 to i64
@@ -432,7 +432,7 @@ Check aliasing
     %fmt6 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %16, i64 %12, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 0)
     %str7 = alloca i8*, align 8
     store i8* %13, i8** %str7, align 8
-    tail call void @schmu_print(i8* %13)
+    tail call void @prelude_print(i8* %13)
     %17 = bitcast %foo* %snd to i64*
     %18 = load i64, i64* %17, align 8
     %fmtsize8 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %18)
@@ -451,7 +451,7 @@ Check aliasing
     %fmt13 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %24, i64 %20, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %18)
     %str14 = alloca i8*, align 8
     store i8* %21, i8** %str14, align 8
-    tail call void @schmu_print(i8* %21)
+    tail call void @prelude_print(i8* %21)
     tail call void @__g.u_decr_rc_ac.u(i8* %21)
     tail call void @__g.u_decr_rc_ac.u(i8* %13)
     tail call void @__g.u_decr_rc_ac.u(i8* %7)
@@ -512,7 +512,7 @@ Check aliasing
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %5, i64 %1, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 1)
     %str = alloca i8*, align 8
     store i8* %2, i8** %str, align 8
-    tail call void @schmu_print(i8* %2)
+    tail call void @prelude_print(i8* %2)
     %6 = load i64, i64* getelementptr inbounds (%foo, %foo* @f, i32 0, i32 0), align 8
     %fmtsize1 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %6)
     %7 = add i32 %fmtsize1, 25
@@ -530,7 +530,7 @@ Check aliasing
     %fmt6 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %12, i64 %8, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %6)
     %str7 = alloca i8*, align 8
     store i8* %9, i8** %str7, align 8
-    tail call void @schmu_print(i8* %9)
+    tail call void @prelude_print(i8* %9)
     %13 = load i64, i64* getelementptr inbounds (%foo, %foo* @snd, i32 0, i32 0), align 8
     %fmtsize8 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %13)
     %14 = add i32 %fmtsize8, 25
@@ -548,7 +548,7 @@ Check aliasing
     %fmt13 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %19, i64 %15, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %13)
     %str14 = alloca i8*, align 8
     store i8* %16, i8** %str14, align 8
-    tail call void @schmu_print(i8* %16)
+    tail call void @prelude_print(i8* %16)
     tail call void @schmu_new-fun()
     tail call void @__g.u_decr_rc_ac.u(i8* %16)
     tail call void @__g.u_decr_rc_ac.u(i8* %9)
@@ -576,7 +576,7 @@ Const let
   @const = global i64 0, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define void @schmu_in-fun() {
   entry:
@@ -623,7 +623,7 @@ Const let
     %fmt = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %18, i64 %14, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %12)
     %str = alloca i8*, align 8
     store i8* %15, i8** %str, align 8
-    call void @schmu_print(i8* %15)
+    call void @prelude_print(i8* %15)
     %fmtsize8 = call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %const)
     %19 = add i32 %fmtsize8, 25
     %20 = sext i32 %19 to i64
@@ -640,7 +640,7 @@ Const let
     %fmt13 = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %24, i64 %20, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %const)
     %str14 = alloca i8*, align 8
     store i8* %21, i8** %str14, align 8
-    call void @schmu_print(i8* %21)
+    call void @prelude_print(i8* %21)
     call void @__g.u_decr_rc_ac.u(i8* %21)
     call void @__g.u_decr_rc_ac.u(i8* %15)
     %25 = load i64*, i64** %arr, align 8
@@ -777,7 +777,7 @@ Const let
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %19, i64 %15, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %13)
     %str = alloca i8*, align 8
     store i8* %16, i8** %str, align 8
-    tail call void @schmu_print(i8* %16)
+    tail call void @prelude_print(i8* %16)
     %20 = load i64, i64* @const, align 8
     %fmtsize8 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %20)
     %21 = add i32 %fmtsize8, 25
@@ -795,7 +795,7 @@ Const let
     %fmt13 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %26, i64 %22, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %20)
     %str14 = alloca i8*, align 8
     store i8* %23, i8** %str14, align 8
-    tail call void @schmu_print(i8* %23)
+    tail call void @prelude_print(i8* %23)
     tail call void @schmu_in-fun()
     tail call void @__g.u_decr_rc_ac.u(i8* %23)
     tail call void @__g.u_decr_rc_ac.u(i8* %16)
@@ -829,7 +829,7 @@ Copies, but with ref-counted arrays
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   @1 = private unnamed_addr global { i64, i64, i64, [7 x i8] } { i64 2, i64 6, i64 6, [7 x i8] c"in fun\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define void @schmu___ag.u_print-0th_ai.u(i64* %a) {
   entry:
@@ -853,7 +853,7 @@ Copies, but with ref-counted arrays
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %8, i64 %4, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %2)
     %str = alloca i8*, align 8
     store i8* %5, i8** %str, align 8
-    tail call void @schmu_print(i8* %5)
+    tail call void @prelude_print(i8* %5)
     tail call void @__g.u_decr_rc_ac.u(i8* %5)
     ret void
   }
@@ -862,7 +862,7 @@ Copies, but with ref-counted arrays
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*), i8** %str, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*))
     %0 = tail call i8* @malloc(i64 32)
     %1 = bitcast i8* %0 to i64*
     %arr = alloca i64*, align 8
@@ -1088,7 +1088,7 @@ Arrays in records
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   @1 = private unnamed_addr global { i64, i64, i64, [7 x i8] } { i64 2, i64 6, i64 6, [7 x i8] c"in fun\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define void @schmu_in-fun() {
   entry:
@@ -1153,7 +1153,7 @@ Arrays in records
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %10, i64 %6, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %4)
     %str = alloca i8*, align 8
     store i8* %7, i8** %str, align 8
-    tail call void @schmu_print(i8* %7)
+    tail call void @prelude_print(i8* %7)
     tail call void @__g.u_decr_rc_ac.u(i8* %7)
     ret void
   }
@@ -1308,7 +1308,7 @@ Arrays in records
     tail call void @schmu_print-thing(i64 %unbox2)
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*), i8** %str, align 8
-    tail call void @schmu_print(i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*))
     tail call void @schmu_in-fun()
     tail call void @__g.u_decr_rc_arrec.u(%arrec* @b)
     tail call void @__g.u_decr_rc_arrec.u(%arrec* @a)
@@ -1334,7 +1334,7 @@ Nested arrays
   @b = global i64** null, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [9 x i8] } { i64 2, i64 8, i64 8, [9 x i8] c"%li, %li\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define void @schmu___aag.u_prnt_aai.u(i64** %a) {
   entry:
@@ -1369,7 +1369,7 @@ Nested arrays
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %16, i64 %12, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [9 x i8] }* @0 to i8*), i64 24), i64 %5, i64 %10)
     %str = alloca i8*, align 8
     store i8* %13, i8** %str, align 8
-    tail call void @schmu_print(i8* %13)
+    tail call void @prelude_print(i8* %13)
     tail call void @__g.u_decr_rc_ac.u(i8* %13)
     ret void
   }
@@ -1663,7 +1663,7 @@ Modify in function
   @b = global i64* null, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define void @schmu_mod2(i64** %a) {
   entry:
@@ -1825,7 +1825,7 @@ Modify in function
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %6, i64 %2, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %0)
     %str = alloca i8*, align 8
     store i8* %3, i8** %str, align 8
-    tail call void @schmu_print(i8* %3)
+    tail call void @prelude_print(i8* %3)
     %7 = tail call i8* @malloc(i64 32)
     %8 = bitcast i8* %7 to i64*
     store i64* %8, i64** @b, align 8
@@ -1857,7 +1857,7 @@ Modify in function
     %fmt10 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %17, i64 %13, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %11)
     %str11 = alloca i8*, align 8
     store i8* %14, i8** %str11, align 8
-    tail call void @schmu_print(i8* %14)
+    tail call void @prelude_print(i8* %14)
     tail call void @__g.u_decr_rc_ac.u(i8* %14)
     %18 = load i64*, i64** @b, align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %18)
@@ -2176,7 +2176,7 @@ Refcounts for members in arrays, records and variants
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   @1 = private unnamed_addr global { i64, i64, i64, [5 x i8] } { i64 2, i64 4, i64 4, [5 x i8] c"none\00" }
   
-  declare void @schmu_print(i8* %0)
+  declare void @prelude_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -2221,7 +2221,7 @@ Refcounts for members in arrays, records and variants
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %17, i64 %13, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %11)
     %str = alloca i8*, align 8
     store i8* %14, i8** %str, align 8
-    tail call void @schmu_print(i8* %14)
+    tail call void @prelude_print(i8* %14)
     %18 = tail call i8* @malloc(i64 32)
     %19 = bitcast i8* %18 to i64**
     store i64** %19, i64*** @r__2, align 8
@@ -2265,7 +2265,7 @@ Refcounts for members in arrays, records and variants
     %fmt20 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %38, i64 %34, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %32)
     %str21 = alloca i8*, align 8
     store i8* %35, i8** %str21, align 8
-    tail call void @schmu_print(i8* %35)
+    tail call void @prelude_print(i8* %35)
     store i32 0, i32* getelementptr inbounds (%option_array_int, %option_array_int* @r__3, i32 0, i32 0), align 4
     %39 = load i64*, i64** @a, align 8
     tail call void @__g.u_incr_rc_ai.u(i64* %39)
@@ -2325,7 +2325,7 @@ Refcounts for members in arrays, records and variants
   ifcont:                                           ; preds = %else, %then
     %58 = phi i8* [ %52, %then ], [ bitcast ({ i64, i64, i64, [5 x i8] }* @1 to i8*), %else ]
     %iftmp = phi i8** [ %str30, %then ], [ %str31, %else ]
-    tail call void @schmu_print(i8* %58)
+    tail call void @prelude_print(i8* %58)
     %59 = load i8*, i8** %iftmp, align 8
     tail call void @__g.u_decr_rc_ac.u(i8* %59)
     tail call void @__g.u_decr_rc_optionai.u(%option_array_int* @__expr0)

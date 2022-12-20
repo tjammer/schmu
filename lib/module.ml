@@ -158,40 +158,46 @@ let rec canonize sub = function
       let sub, t = canonize sub t in
       (sub, Tarray t)
 
-let rec canonbody sub (e : Typed_tree.typed_expr) =
+let rec canonbody mname nsub sub (e : Typed_tree.typed_expr) =
   let sub, typ = canonize sub e.typ in
-  let sub, expr = canonexpr sub e.expr in
+  let sub, expr = canonexpr mname nsub sub e.expr in
   (sub, Typed_tree.{ e with typ; expr })
 
-and canonexpr sub = function
-  | Typed_tree.Var _ as v -> (sub, v)
+and change_name id nsub =
+  match Smap.find_opt id nsub with None -> id | Some name -> name
+
+and canonexpr mname nsub sub = function
+  | Typed_tree.Var id ->
+      let id = change_name id nsub in
+      (sub, Var id)
   | Const (Array a) ->
-      let sub, a = List.fold_left_map canonbody sub a in
+      let sub, a = List.fold_left_map (canonbody mname nsub) sub a in
       (sub, Const (Array a))
   | Const c -> (sub, Const c)
   | Bop (op, e1, e2) ->
-      let sub, e1 = canonbody sub e1 in
-      let sub, e2 = canonbody sub e2 in
+      let sub, e1 = (canonbody mname nsub) sub e1 in
+      let sub, e2 = (canonbody mname nsub) sub e2 in
       (sub, Bop (op, e1, e2))
   | Unop (op, e) ->
-      let sub, e = canonbody sub e in
+      let sub, e = (canonbody mname nsub) sub e in
       (sub, Unop (op, e))
   | If (cond, e1, e2) ->
-      let sub, cond = canonbody sub cond in
-      let sub, e1 = canonbody sub e1 in
-      let sub, e2 = canonbody sub e2 in
+      let sub, cond = (canonbody mname nsub) sub cond in
+      let sub, e1 = (canonbody mname nsub) sub e1 in
+      let sub, e2 = (canonbody mname nsub) sub e2 in
       (sub, If (cond, e1, e2))
   | Let d ->
-      let sub, lhs = canonbody sub d.lhs in
-      let sub, cont = canonbody sub d.cont in
+      let sub, lhs = (canonbody mname nsub) sub d.lhs in
+      let sub, cont = (canonbody mname nsub) sub d.cont in
       (sub, Let { d with lhs; cont })
   | Lambda (i, abs) ->
-      let sub, abs = canonabs sub abs in
+      let sub, abs = canonabs mname sub nsub abs in
       (sub, Lambda (i, abs))
   | Function (n, u, abs, cont) ->
-      let sub, abs = canonabs sub abs in
-      let sub, cont = canonbody sub cont in
-      (sub, Function (n, u, abs, cont))
+      let nsub = Smap.add n (Env.mod_fn_name ~mname n) nsub in
+      let sub, abs = canonabs mname sub nsub abs in
+      let sub, cont = (canonbody mname nsub) sub cont in
+      (sub, Function (change_name n nsub, u, abs, cont))
   | Mutual_rec_decls (fs, cont) ->
       let sub, fs =
         List.fold_left_map
@@ -200,14 +206,14 @@ and canonexpr sub = function
             (sub, (n, u, t)))
           sub fs
       in
-      let sub, cont = canonbody sub cont in
+      let sub, cont = (canonbody mname nsub) sub cont in
       (sub, Mutual_rec_decls (fs, cont))
   | App { callee; args } ->
-      let sub, callee = canonbody sub callee in
+      let sub, callee = (canonbody mname nsub) sub callee in
       let sub, args =
         List.fold_left_map
           (fun sub (e, mut) ->
-            let sub, e = canonbody sub e in
+            let sub, e = (canonbody mname nsub) sub e in
             (sub, (e, mut)))
           sub args
       in
@@ -216,36 +222,36 @@ and canonexpr sub = function
       let sub, fs =
         List.fold_left_map
           (fun sub (n, e) ->
-            let sub, e = canonbody sub e in
+            let sub, e = (canonbody mname nsub) sub e in
             (sub, (n, e)))
           sub fs
       in
       (sub, Record fs)
   | Field (e, i) ->
-      let sub, e = canonbody sub e in
+      let sub, e = (canonbody mname nsub) sub e in
       (sub, Field (e, i))
   | Set (a, b) ->
-      let sub, a = canonbody sub a in
-      let sub, b = canonbody sub b in
+      let sub, a = (canonbody mname nsub) sub a in
+      let sub, b = (canonbody mname nsub) sub b in
       (sub, Set (a, b))
   | Sequence (a, b) ->
-      let sub, a = canonbody sub a in
-      let sub, b = canonbody sub b in
+      let sub, a = (canonbody mname nsub) sub a in
+      let sub, b = (canonbody mname nsub) sub b in
       (sub, Sequence (a, b))
   | Ctor (n, i, e) ->
       let sub, e =
         match e with
         | Some e ->
-            let sub, e = canonbody sub e in
+            let sub, e = (canonbody mname nsub) sub e in
             (sub, Some e)
         | None -> (sub, None)
       in
       (sub, Ctor (n, i, e))
   | Variant_index e ->
-      let sub, e = canonbody sub e in
+      let sub, e = (canonbody mname nsub) sub e in
       (sub, Variant_index e)
   | Variant_data e ->
-      let sub, e = canonbody sub e in
+      let sub, e = (canonbody mname nsub) sub e in
       (sub, Variant_data e)
   | Fmt fs ->
       let sub, fs =
@@ -255,13 +261,13 @@ and canonexpr sub = function
               match e with
               | Fstr s -> (sub, Fstr s)
               | Fexpr e ->
-                  let sub, e = canonbody sub e in
+                  let sub, e = (canonbody mname nsub) sub e in
                   (sub, Fexpr e))
           sub fs
       in
       (sub, Fmt fs)
 
-and canonabs sub abs =
+and canonabs mname sub nsub abs =
   let sub, tparams =
     List.fold_left_map
       (fun sub p ->
@@ -278,55 +284,74 @@ and canonabs sub abs =
           List.fold_left_map
             (fun sub c ->
               let sub, cltyp = canonize sub c.cltyp in
-              (sub, { c with cltyp }))
+              let clname = change_name c.clname nsub in
+              (sub, { c with cltyp; clname }))
             sub l
         in
         (sub, Closure l)
   in
   let func = { Typed_tree.tparams; ret; kind } in
-  let sub, body = canonbody sub abs.body in
+  let sub, body = (canonbody mname nsub) sub abs.body in
   (sub, { abs with func; body })
 
-let map_item ~f = function
+let map_item ~mname ~f = function
   | Mtype t -> Mtype (f t)
   | Mfun (t, n) -> Mfun (f t, n)
+  | Mext (t, n, c) when c -> Mext (f t, n, c)
   | Mext (t, n, c) -> Mext (f t, n, c)
   | Mpoly_fun (abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
-      poly_funcs := Typed_tree.Tl_function (n, u, abs) :: !poly_funcs;
+      poly_funcs :=
+        (* Change name of poly func to module-unique name to prevent name clashes from
+           different modules *)
+        Typed_tree.Tl_function (Env.mod_fn_name ~mname n, u, abs) :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
       Mpoly_fun (abs, n, u)
   | Mmutual_rec decls ->
       let decls = List.map (fun (n, u, t) -> (n, u, f t)) decls in
-      poly_funcs := Typed_tree.Tl_mutual_rec_decls decls :: !poly_funcs;
+      let mname_decls =
+        List.map
+          (fun (n, u, t) ->
+            let nn = Env.mod_fn_name ~mname n in
+            (nn, u, t))
+          decls
+      in
+      poly_funcs := Typed_tree.Tl_mutual_rec_decls mname_decls :: !poly_funcs;
       Mmutual_rec decls
 
-let fold_canonize sub = function
+(* Number qvars from 0 and change names of Var-nodes to their unique form.
+   _<module_name>_name*)
+let fold_canonize mname (ts_sub, nsub) = function
   | Mtype t ->
-      let a, t = canonize sub t in
-      (a, Mtype t)
+      let a, t = canonize ts_sub t in
+      ((a, nsub), Mtype t)
   | Mfun (t, n) ->
-      let a, t = canonize sub t in
-      (a, Mfun (t, n))
+      let a, t = canonize ts_sub t in
+      let s = Smap.add n.user (Env.mod_fn_name ~mname n.user) nsub in
+      ((a, s), Mfun (t, n))
   | Mext (t, n, c) ->
-      let a, t = canonize sub t in
-      (a, Mext (t, n, c))
+      let a, t = canonize ts_sub t in
+      let s = Smap.add n.user (Env.mod_fn_name ~mname n.user) nsub in
+      ((a, s), Mext (t, n, c))
   | Mpoly_fun (abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
-      let sub, abs = canonabs sub abs in
+      (* Change Var-nodes in body here *)
+      let s = Smap.add n (Env.mod_fn_name ~mname n) nsub in
+      let a, abs = canonabs mname ts_sub s abs in
       (* This will be ignored in [add_to_env] *)
-      (sub, Mpoly_fun (abs, n, u))
+      ((a, s), Mpoly_fun (abs, n, u))
   | Mmutual_rec decls ->
-      let a, decls =
+      let (a, nsub), decls =
         List.fold_left_map
-          (fun sub (n, u, t) ->
-            let a, t = canonize sub t in
-            (a, (n, u, t)))
-          sub decls
+          (fun (ts_sub, nsub) (n, u, t) ->
+            let a, t = canonize ts_sub t in
+            let s = Smap.add n (Env.mod_fn_name ~mname n) nsub in
+            ((a, s), (n, u, t)))
+          (ts_sub, nsub) decls
       in
-      (a, Mmutual_rec decls)
+      ((a, nsub), Mmutual_rec decls)
 
 let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with
@@ -336,7 +361,7 @@ let read_module ~regeneralize name =
         let c = open_in (find_file name ".smi") in
         let r =
           Result.map t_of_sexp (Sexp.input c)
-          |> Result.map (List.map (map_item ~f:regeneralize))
+          |> Result.map (List.map (map_item ~mname:name ~f:regeneralize))
         in
         close_in c;
         Hashtbl.add module_cache name r;
@@ -453,12 +478,12 @@ let demake_module name = function
       let ds = List.map (fun (n, u, t) -> (n, u, mod_t (Rem name) t)) ds in
       Mmutual_rec ds
 
-let add_to_env env toplvl m =
+let add_to_env env ~toplvl mname m =
   let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
-  let demk = demake_module toplvl in
-  (*   (\* Why only toplvl? *\) *)
-  (*   match toplvl with Some name -> demake_module name | None -> Fun.id *)
-  (* in *)
+  let demk item =
+    (* Why only toplvl? *)
+    if toplvl then demake_module mname item else item
+  in
   List.fold_left
     (fun env item ->
       match demk item with
@@ -470,26 +495,30 @@ let add_to_env env toplvl m =
       | Mtype t ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
       | Mfun (t, n) ->
-          Env.add_external ~imported:(Some `Schmu) n.user
-            ~cname:(Some (toplvl ^ "_" ^ n.call))
+          Env.add_external
+            ~imported:(Some (mname, `Schmu))
+            n.user
+            ~cname:(Some (mname ^ "_" ^ n.call))
             ~closure:false t dummy_loc env
       | Mpoly_fun (abs, n, _) ->
+          let imported = Some (mname, `Schmu) in
           let env =
             Env.(
               add_value n
-                { def_value with typ = type_of_func abs.func; imported = true }
+                { def_value with typ = type_of_func abs.func; imported }
                 dummy_loc env)
           in
           env
       | Mext (t, n, closure) ->
-          Env.add_external ~closure ~imported:(Some `C) n.user
-            ~cname:(Some n.call) t dummy_loc env
+          Env.add_external ~closure
+            ~imported:(Some (mname, `C))
+            n.user ~cname:(Some n.call) t dummy_loc env
       | Mmutual_rec ds ->
           List.fold_left
             (fun env (name, _, typ) ->
               Env.(
                 add_value name
-                  { def_value with typ; imported = true }
+                  { def_value with typ; imported = Some (mname, `Schmu) }
                   dummy_loc env))
             env ds)
     env m
@@ -521,9 +550,9 @@ let make_module sub name m =
       in
       Mmutual_rec ds
 
-let to_channel c name m =
+let to_channel c ~outname m =
   let s = ref S.empty in
   m |> List.rev
-  |> List.map (make_module s name)
-  |> List.fold_left_map fold_canonize Types.Smap.empty
+  |> List.map (make_module s outname)
+  |> List.fold_left_map (fold_canonize outname) (Types.Smap.empty, Smap.empty)
   |> snd |> sexp_of_t |> Sexp.to_channel c

@@ -6,7 +6,8 @@ module Type_key = struct
 
   type t = { key : string; ord : int }
 
-  let compare a b = String.compare a.key b.key
+  let equal a b = String.equal a.key b.key
+  let hash a = Hashtbl.hash a.key
   let cmp_map_sort (a, _) (b, _) = Int.compare a.ord b.ord
 
   let create key =
@@ -18,7 +19,7 @@ end
 module Labelset = Set.Make (String)
 module Lmap = Map.Make (Labelset)
 module Tmap = Map.Make (Path)
-module Emap = Map.Make (Type_key)
+module Etbl = Hashtbl.Make (Type_key)
 
 (* TODO ord map  *)
 module Map = Map.Make (String)
@@ -31,12 +32,14 @@ type label = {
   typename : Path.t;
 }
 
+type imported = string * [ `C | `Schmu ]
+
 type value = {
   typ : typ;
   param : bool;
   const : bool;
   global : bool;
-  imported : bool;
+  imported : imported option;
   mut : bool;
 }
 
@@ -47,8 +50,13 @@ type usage = {
   mutated : bool ref;
 }
 
-type return = { typ : typ; const : bool; global : bool; mut : bool }
-type imported = [ `C | `Schmu ]
+type return = {
+  typ : typ;
+  const : bool;
+  global : bool;
+  mut : bool;
+  imported : string option;
+}
 
 type ext = {
   ext_name : string;
@@ -76,7 +84,7 @@ type t = {
   (* The record types are saved in their most general form.
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
-  externals : ext Emap.t ref;
+  externals : ext Etbl.t;
   in_mut : int ref;
 }
 
@@ -89,7 +97,7 @@ let def_value =
     param = false;
     const = false;
     global = false;
-    imported = false;
+    imported = None;
     mut = false;
   }
 
@@ -103,7 +111,7 @@ let empty () =
     labelsets = Lmap.empty;
     ctors = Map.empty;
     types = Tmap.empty;
-    externals = ref Emap.empty;
+    externals = Etbl.create 64;
     in_mut = ref 0;
   }
 
@@ -115,12 +123,17 @@ let add_value key value loc env =
 
       (* Shadowed bindings stay in the Hashtbl, but are not reachable (I think).
          Thus, warning for unused shadowed bindings works *)
-      (if not value.imported then
+      (if Option.is_none value.imported then
        let tbl = scope.used in
        (* If the value is not mutable, we set it to mutated to let the later check pass *)
        let mutated = if value.mut then ref false else ref true in
        Hashtbl.add tbl key
-         { loc; used = ref false; imported = value.imported; mutated });
+         {
+           loc;
+           used = ref false;
+           imported = Option.is_some value.imported;
+           mutated;
+         });
 
       { env with values = { scope with valmap } :: tl }
 
@@ -131,12 +144,7 @@ let add_external ext_name ~cname typ ~imported ~closure loc env =
     | scope :: tl ->
         let valmap =
           Map.add ext_name
-            {
-              def_value with
-              typ;
-              imported = Option.is_some imported;
-              global = true;
-            }
+            { def_value with typ; imported; global = true }
             scope.valmap
         in
 
@@ -153,7 +161,7 @@ let add_external ext_name ~cname typ ~imported ~closure loc env =
   let vl =
     { ext_name; ext_typ = typ; ext_cname = cname; imported; used; closure }
   in
-  env.externals := Emap.add tkey vl !(env.externals);
+  Etbl.add env.externals tkey vl;
   env
 
 let change_type key typ env =
@@ -257,7 +265,7 @@ let close_function env =
                  find_val_raw clname env
                in
                (* Const values (and imported ones) are not closed over, they exist module-wide *)
-               if const || global || imported then None
+               if const || global || Option.is_some imported then None
                else
                  match clean typ with
                  | Tfun (_, _, Closure _) -> Some { clname; cltyp = typ; clmut }
@@ -275,12 +283,14 @@ let find_val_opt key env =
         match Map.find_opt key scope.valmap with
         | None -> aux tl
         | Some vl ->
+            let imported = Option.map fst vl.imported in
             Some
               {
                 typ = vl.typ;
                 const = vl.const;
                 global = vl.global;
                 mut = vl.mut;
+                imported;
               })
   in
   aux env.values
@@ -314,8 +324,9 @@ let query_val_opt key env =
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
             (match scope_lvl with 0 -> () | _ -> add scope_lvl key env.values);
             (* Mark value used, if it's not imported *)
-            if not imported then mark_used key scope.used env.in_mut;
-            Some { typ; const; global; mut })
+            if Option.is_none imported then mark_used key scope.used env.in_mut;
+            let imported = Option.map fst imported in
+            Some { typ; const; global; mut; imported })
   in
   aux 0 env.values
 
@@ -331,10 +342,17 @@ let find_labelset_opt labels env =
 
 let find_ctor_opt name env = Map.find_opt name env.ctors
 
+(* Copy in module *)
+let mod_fn_name ~mname fname = "_" ^ mname ^ "_" ^ fname
+
 let externals env =
-  Emap.bindings !(env.externals)
+  Etbl.to_seq env.externals |> List.of_seq
   |> List.sort Type_key.cmp_map_sort
-  |> List.map snd
+  |> List.map (fun (_, e) ->
+         match e.imported with
+         | Some (mname, _) ->
+             { e with ext_name = mod_fn_name ~mname e.ext_name }
+         | _ -> e)
 
 let open_mutation env = incr env.in_mut
 let close_mutation env = decr env.in_mut

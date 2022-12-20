@@ -40,6 +40,7 @@ type expr =
     }
   | Mincr_ref of monod_tree
   | Mdecr_ref of int * monod_tree
+[@@deriving show]
 
 and const =
   | Int of int
