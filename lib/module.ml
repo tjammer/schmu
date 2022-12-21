@@ -188,6 +188,9 @@ and canonexpr mname nsub sub = function
       (sub, If (cond, e1, e2))
   | Let d ->
       let sub, lhs = (canonbody mname nsub) sub d.lhs in
+      (* Remove [id] from names map. If there is a function named [id],
+         we don't want to rename accesses to the here named variable. *)
+      let nsub = Smap.remove d.id nsub in
       let sub, cont = (canonbody mname nsub) sub d.cont in
       (sub, Let { d with lhs; cont })
   | Lambda (i, abs) ->
