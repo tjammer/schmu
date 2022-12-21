@@ -124,7 +124,13 @@ type to_gen_func_kind =
   | No_function
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
-type var_normal = { fn : to_gen_func_kind; alloc : alloc; id : int option }
+
+type var_normal = {
+  fn : to_gen_func_kind;
+  alloc : alloc;
+  id : int option;
+  tailrec : bool;
+}
 
 (* TODO could be used for Builtin as well *)
 type var =
@@ -149,7 +155,7 @@ type morph_param = {
   toplvl : bool;
 }
 
-let no_var = { fn = No_function; alloc = No_value; id = None }
+let no_var = { fn = No_function; alloc = No_value; id = None; tailrec = false }
 let apptbl = Apptbl.create 64
 let poly_funcs_tbl = Hashtbl.create 64
 let missing_polys_tbl = Hashtbl.create 64
@@ -862,7 +868,9 @@ and morph_var mk p v =
   let (v, kind), var =
     match v with
     | "__malloc" ->
-        let var = { fn = Builtin Malloc; alloc = No_value; id = None } in
+        let var =
+          { no_var with fn = Builtin Malloc; alloc = No_value; id = None }
+        in
         ((v, Vnorm), var)
     | v -> (
         match Vars.find_opt v p.vars with
@@ -900,7 +908,8 @@ and morph_string mk p s =
   in
   ( p,
     mk (Mconst (String (s, alloca, rf))) p.ret,
-    { fn = No_function; alloc = Value alloca; id = Some global_id } )
+    { no_var with fn = No_function; alloc = Value alloca; id = Some global_id }
+  )
 
 and morph_array mk p a =
   let ret = p.ret in
@@ -927,7 +936,7 @@ and morph_array mk p a =
 
   ( { p with ret; ids },
     mk (Mconst (Array (a, alloca, id))) p.ret,
-    { fn = No_function; alloc = Value alloca; id = Some id } )
+    { no_var with fn = No_function; alloc = Value alloca; id = Some id } )
 
 and morph_const = function
   | String _ | Array _ -> failwith "Internal Error: Const should be extra case"
@@ -960,6 +969,12 @@ and morph_if mk p cond e1 e2 =
   let p, e1, a = morph_expr { p with ret; ids } e1 in
   let e1 =
     match Option.map (classify_id oids) a.id with
+    | _ when a.tailrec ->
+        (* For tailrecursive calls, every ref is already decreased in [morph_app].
+           Furthermore, if both branches are tailrecursive, calling decr_ref might
+           destroy a basic block in codegen. That's due to no merge blocks being
+           created in that case *)
+        e1
     | None -> decr_refs e1 p.ids
     | Some Spid_unknown -> decr_refs e1 (remove_id ~id:a.id p.ids)
     | Some (Spid_func | Spid_parent) ->
@@ -969,6 +984,7 @@ and morph_if mk p cond e1 e2 =
   let p, e2, b = morph_expr { p with ret; ids } e2 in
   let e2 =
     match Option.map (classify_id oids) b.id with
+    | _ when b.tailrec -> e2
     | None -> decr_refs e2 p.ids
     | Some Spid_unknown -> decr_refs e2 (remove_id ~id:b.id p.ids)
     | Some (Spid_func | Spid_parent) ->
@@ -1049,7 +1065,7 @@ and morph_record mk p labels is_const typ =
   let alloca = ref (request ()) in
   ( { p with ret; ids },
     mk (Mrecord (labels, alloca, id, is_const.const)) ret,
-    { fn = No_function; alloc = Value alloca; id } )
+    { no_var with fn = No_function; alloc = Value alloca; id } )
 
 and morph_field mk p expr index =
   let ret = p.ret in
@@ -1272,7 +1288,7 @@ and morph_app mk p callee args ret_typ =
   let p, monomorph = monomorphize_call p ex None in
   let callee = { ex; monomorph; mut = false } in
 
-  let is_tailrec =
+  let tailrec =
     if ret then
       match callee.monomorph with
       | Recursive name ->
@@ -1290,7 +1306,7 @@ and morph_app mk p callee args ret_typ =
     in
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
-    let ids = if is_tailrec then remove_id ~id:var.id p.ids else p.ids in
+    let ids = if tailrec then remove_id ~id:var.id p.ids else p.ids in
     let p, monomorph = monomorphize_call { p with ids } ex None in
     ({ p with ret }, ex, monomorph, is_arg var.id)
   in
@@ -1320,9 +1336,9 @@ and morph_app mk p callee args ret_typ =
         let p, ex, monomorph, arg =
           if is_special then special_f p arg else f p arg
         in
-        let ex = if is_tailrec then decr_all_refs ex p.ids else ex in
+        let ex = if tailrec then decr_all_refs ex p.ids else ex in
         let ids =
-          if is_tailrec then
+          if tailrec then
             (* In tailrec functions, we are always in an extra scope of an 'if' here.
                Thus, it's ok if we free everything. *)
             empty_ids p.ids
@@ -1338,7 +1354,7 @@ and morph_app mk p callee args ret_typ =
   let args = List.rev args in
   let p, callee =
     match args with
-    | [] when is_tailrec ->
+    | [] when tailrec ->
         (* We haven't decreased references yet, because there is no last argument.
            Essentially, we do the same work as in the last arg of [fold_decr_last]*)
         let ids = empty_ids p.ids in
@@ -1379,7 +1395,7 @@ and morph_app mk p callee args ret_typ =
 
   let app = Mapp { callee; args; alloca = alloc_ref; id; vid } in
 
-  ({ p with ret; ids }, mkapp app, { no_var with alloc; id = vid })
+  ({ p with ret; ids }, mkapp app, { no_var with alloc; id = vid; tailrec })
 
 and morph_ctor mk p variant index expr is_const typ =
   let ret = p.ret in
@@ -1408,7 +1424,7 @@ and morph_ctor mk p variant index expr is_const typ =
   let alloca = ref (request ()) in
   ( { p with ret; ids },
     mk (Mctor (ctor, alloca, id, is_const.const)) ret,
-    { fn = No_function; alloc = Value alloca; id } )
+    { no_var with fn = No_function; alloc = Value alloca; id } )
 
 (* Both variant exprs are as default as possible.
    We handle everything in codegen *)
