@@ -1,5 +1,5 @@
 Test simple setting of mutable variables
-  $ schmu --dump-llvm simple_set.smu && valgrind -q --leak-check=yes ./simple_set
+  $ schmu --dump-llvm simple_set.smu && valgrind -q --leak-check=yes --show-reachable=yes ./simple_set
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -371,7 +371,7 @@ Use mutable values as ptrs to C code
   }
 
 Check aliasing
-  $ schmu --dump-llvm mut_alias.smu && valgrind -q --leak-check=yes ./mut_alias
+  $ schmu --dump-llvm mut_alias.smu && valgrind -q --leak-check=yes --show-reachable=yes ./mut_alias
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -567,7 +567,7 @@ Check aliasing
   0
 
 Const let
-  $ schmu --dump-llvm const_let.smu && valgrind -q --leak-check=yes ./const_let
+  $ schmu --dump-llvm const_let.smu && valgrind -q --leak-check=yes --show-reachable=yes ./const_let
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -817,7 +817,7 @@ Const let
 
 
 Copies, but with ref-counted arrays
-  $ schmu array_copies.smu --dump-llvm && valgrind -q --leak-check=yes ./array_copies
+  $ schmu array_copies.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./array_copies
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1076,7 +1076,7 @@ Copies, but with ref-counted arrays
   10
 
 Arrays in records
-  $ schmu array_in_record_copies.smu --dump-llvm && valgrind -q --leak-check=yes ./array_in_record_copies
+  $ schmu array_in_record_copies.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./array_in_record_copies
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1325,7 +1325,7 @@ Arrays in records
   10
 
 Nested arrays
-  $ schmu nested_array.smu --dump-llvm && valgrind -q --leak-check=yes ./nested_array
+  $ schmu nested_array.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./nested_array
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1652,7 +1652,7 @@ Nested arrays
 
 
 Modify in function
-  $ schmu --dump-llvm modify_in_fn.smu && valgrind -q --leak-check=yes ./modify_in_fn
+  $ schmu --dump-llvm modify_in_fn.smu && valgrind -q --leak-check=yes --show-reachable=yes ./modify_in_fn
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1906,7 +1906,7 @@ Modify in function
   2
 
 Make sure variable ids are correctly propagated
-  $ schmu --dump-llvm varid_propagate.smu && valgrind -q --leak-check=yes ./varid_propagate
+  $ schmu --dump-llvm varid_propagate.smu && valgrind -q --leak-check=yes --show-reachable=yes ./varid_propagate
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -2087,7 +2087,7 @@ Make sure variable ids are correctly propagated
   attributes #0 = { argmemonly nofree nounwind willreturn }
 
 Free array params correctly if they are returned
-  $ schmu --dump-llvm pass_array_param.smu && valgrind -q --leak-check=yes ./pass_array_param
+  $ schmu --dump-llvm pass_array_param.smu && valgrind -q --leak-check=yes --show-reachable=yes ./pass_array_param
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -2160,7 +2160,7 @@ Free array params correctly if they are returned
   declare void @free(i8* %0)
 
 Refcounts for members in arrays, records and variants
-  $ schmu --dump-llvm member_refcounts.smu && valgrind -q --leak-check=yes ./member_refcounts
+  $ schmu --dump-llvm member_refcounts.smu && valgrind -q --leak-check=yes --show-reachable=yes ./member_refcounts
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

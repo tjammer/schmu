@@ -64,7 +64,7 @@ Test simple typedef
 
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
-  $ schmu --dump-llvm stub.o free_array.smu && valgrind -q --leak-check=yes ./free_array
+  $ schmu --dump-llvm stub.o free_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_array
   free_array.smu:7:6: warning: Unused binding arr
   7 | (val arr ["hey" "young" "world"])
            ^^^
@@ -2009,7 +2009,7 @@ Ensure global are loadad correctly when passed to functions
   }
 
 
-  $ schmu --dump-llvm array_push.smu && valgrind -q --leak-check=yes ./array_push
+  $ schmu --dump-llvm array_push.smu && valgrind -q --leak-check=yes --show-reachable=yes ./array_push
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -2729,7 +2729,7 @@ Ensure global are loadad correctly when passed to functions
   2
 
 Decrease ref counts for local variables in if branches
-  $ schmu --dump-llvm decr_rc_if.smu && valgrind -q --leak-check=yes ./decr_rc_if
+  $ schmu --dump-llvm decr_rc_if.smu && valgrind -q --leak-check=yes --show-reachable=yes ./decr_rc_if
   decr_rc_if.smu:5:10: warning: Unused binding a
   5 |    (let [a [10]]
                ^
@@ -2825,7 +2825,7 @@ Decrease ref counts for local variables in if branches
   declare void @free(i8* %0)
 
 Drop last element
-  $ schmu --dump-llvm array_drop_back.smu && valgrind -q --leak-check=yes ./array_drop_back
+  $ schmu --dump-llvm array_drop_back.smu && valgrind -q --leak-check=yes --show-reachable=yes ./array_drop_back
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -3214,7 +3214,7 @@ Drop last element
   0
 
 Global lets with expressions
-  $ schmu --dump-llvm global_let.smu && valgrind -q --leak-check=yes ./global_let
+  $ schmu --dump-llvm global_let.smu && valgrind -q --leak-check=yes --show-reachable=yes ./global_let
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -3463,10 +3463,10 @@ Polymorphic mutual recursive function
 
 
 Incr refcounts correctly in ifs
-  $ schmu rc_ifs.smu && valgrind -q --leak-check=yes ./rc_ifs
+  $ schmu rc_ifs.smu && valgrind -q --leak-check=yes --show-reachable=yes ./rc_ifs
 
 Incr refcounts correctly for closed over returns
-  $ schmu rc_linear_closed_return.smu && valgrind -q --leak-check=yes ./rc_linear_closed_return
+  $ schmu rc_linear_closed_return.smu && valgrind -q --leak-check=yes --show-reachable=yes ./rc_linear_closed_return
 
 
 Return nonclosure functions
@@ -3631,7 +3631,7 @@ Return nonclosure functions
   25
 
 Return closures
-  $ schmu --dump-llvm return_closure.smu && valgrind -q --leak-check=yes ./return_closure
+  $ schmu --dump-llvm return_closure.smu && valgrind -q --leak-check=yes --show-reachable=yes ./return_closure
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -3836,12 +3836,12 @@ Return closures
   146
 
 Don't try to free string literals in ifs
-  $ schmu incr_str_lit_ifs.smu && valgrind -q --leak-check=yes ./incr_str_lit_ifs
+  $ schmu incr_str_lit_ifs.smu && valgrind -q --leak-check=yes --show-reachable=yes ./incr_str_lit_ifs
   none
   none
 
 Mutable variables in upward closures
-  $ schmu upward_mut.smu && valgrind -q --leak-check=yes ./upward_mut
+  $ schmu upward_mut.smu && valgrind -q --leak-check=yes --show-reachable=yes ./upward_mut
   1
   2
   3
@@ -3852,7 +3852,7 @@ Mutable variables in upward closures
   4
 
 Functions in arrays
-  $ schmu function_array.smu && valgrind -q --leak-check=yes ./function_array
+  $ schmu function_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./function_array
 
 Take/use not all allocations of a record in tailrec calls
   $ schmu --dump-llvm take_partial_alloc.smu && valgrind -q --leak-check=yes --show-reachable=yes ./take_partial_alloc

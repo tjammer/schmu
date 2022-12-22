@@ -957,7 +957,7 @@ Support monomorphization of nested functions
   24
 
 Nested polymorphic closures. Does not quite work for another nesting level
-  $ schmu --dump-llvm stub.o nested_polymorphic_closures.smu && valgrind -q --leak-check=yes ./nested_polymorphic_closures
+  $ schmu --dump-llvm stub.o nested_polymorphic_closures.smu && valgrind -q --leak-check=yes --show-reachable=yes ./nested_polymorphic_closures
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1493,7 +1493,7 @@ Closures have to be added to the env of other closures, so they can be called co
   20
 
 Don't copy mutable types in setup of tailrecursive functions
-  $ schmu --dump-llvm tailrec_mutable.smu && valgrind -q --leak-check=yes ./tailrec_mutable
+  $ schmu --dump-llvm tailrec_mutable.smu && valgrind -q --leak-check=yes --show-reachable=yes ./tailrec_mutable
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -2134,7 +2134,7 @@ Don't copy mutable types in setup of tailrecursive functions
   2
 
 The lamba passed as array-iter argument is polymorphic
-  $ schmu polymorphic_lambda_argument.smu --dump-llvm && valgrind -q --leak-check=yes ./polymorphic_lambda_argument
+  $ schmu polymorphic_lambda_argument.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./polymorphic_lambda_argument
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -2620,7 +2620,7 @@ The lamba passed as array-iter argument is polymorphic
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 
 Infer type in upward closure
-  $ schmu closure_inference.smu && valgrind -q --leak-check=yes ./closure_inference
+  $ schmu closure_inference.smu && valgrind -q --leak-check=yes --show-reachable=yes ./closure_inference
   ("", "x")
   ("x", "i")
   ("i", "x")
