@@ -788,6 +788,25 @@ let rec is_temporary = function
       is_temporary cont.expr
   | Mset _ -> failwith "Internal Error: Trying to copy unit"
 
+let rec is_part = function
+  | Mfield _ | Mvar_data _ -> true
+  | Mapp { callee; _ } -> (
+      match callee.monomorph with
+      | Builtin (Unsafe_ptr_get, _) -> true
+      | Builtin (Array_get, _) -> true
+      | _ -> false)
+  | Mvar _ | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _
+  | Mfmt _ | Mcopy _ | Mset _ ->
+      false
+  | Mif { e1; e2; _ } -> is_part e1.expr || is_part e2.expr
+  | Mlet (_, _, _, _, cont)
+  | Mfunction (_, _, cont, _)
+  | Mseq (_, cont)
+  | Mdecr_ref (_, cont)
+  | Mincr_ref cont
+  | Munop (_, cont) ->
+      is_part cont.expr
+
 let copy_let lhs lmut rmut nm temporary =
   match (lmut, rmut) with
   | false, false ->
@@ -1306,7 +1325,19 @@ and morph_app mk p callee args ret_typ =
     in
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
-    let ids = if tailrec then remove_id ~id:var.id p.ids else p.ids in
+    let ids, ex =
+      if tailrec then
+        if (not (is_arg var.id)) && is_part ex.expr then
+          (* A new parameter is set (= not arg) and it's a partial access.
+             We have to make sure we don't increase (or not decrease) the ref
+             counts of the whole records, because there might be multiple allocated fields.
+             In that case, only the passed one will eventually have it ref count decreased,
+             causing a leak of the other record fields. This can be avoided if we decrease
+             ref counts of the whole record and increase the passed fields's ref count before *)
+          (p.ids, { ex with expr = Mincr_ref ex })
+        else (remove_id ~id:var.id p.ids, ex)
+      else (p.ids, ex)
+    in
     let p, monomorph = monomorphize_call { p with ids } ex None in
     ({ p with ret }, ex, monomorph, is_arg var.id)
   in

@@ -3853,3 +3853,516 @@ Mutable variables in upward closures
 
 Functions in arrays
   $ schmu function_array.smu && valgrind -q --leak-check=yes ./function_array
+
+Take/use not all allocations of a record in tailrec calls
+  $ schmu --dump-llvm take_partial_alloc.smu && valgrind -q --leak-check=yes --show-reachable=yes ./take_partial_alloc
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %view = type { i8*, i64, i64 }
+  %parse-result_int = type { i32, %success_int }
+  %success_int = type { %view, i64 }
+  %parse-result_view = type { i32, %success_view }
+  %success_view = type { %view, %view }
+  
+  @s = global i8* null, align 8
+  @inp = global %view zeroinitializer, align 16
+  @0 = private unnamed_addr global { i64, i64, i64, [2 x i8] } { i64 2, i64 1, i64 1, [2 x i8] c" \00" }
+  
+  declare i1 @prelude_char-equal(i8 %0, i8 %1)
+  
+  define void @schmu_aux(%parse-result_int* %0, %view* %rem, i64 %cnt) {
+  entry:
+    %1 = alloca %view, align 8
+    %2 = bitcast %view* %1 to i8*
+    %3 = bitcast %view* %rem to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 24, i1 false)
+    %4 = alloca i1, align 1
+    store i1 false, i1* %4, align 1
+    %5 = alloca i64, align 8
+    store i64 %cnt, i64* %5, align 8
+    %ret = alloca %parse-result_view, align 8
+    br label %rec
+  
+  rec:                                              ; preds = %cont, %entry
+    %6 = phi i1 [ true, %cont ], [ false, %entry ]
+    %7 = phi i64 [ %add, %cont ], [ %cnt, %entry ]
+    call void @schmu_ch(%parse-result_view* %ret, %view* %1)
+    %tag8 = bitcast %parse-result_view* %ret to i32*
+    %index = load i32, i32* %tag8, align 4
+    %eq = icmp eq i32 %index, 0
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    %data = getelementptr inbounds %parse-result_view, %parse-result_view* %ret, i32 0, i32 1
+    call void @__g.u_incr_rc_successview.u(%success_view* %data)
+    call void @__g.u_incr_rc_successview.u(%success_view* %data)
+    %8 = bitcast %success_view* %data to %view*
+    call void @__g.u_incr_rc_view.u(%view* %8)
+    br i1 %6, label %call_decr, label %cookie
+  
+  call_decr:                                        ; preds = %then
+    call void @__g.u_decr_rc_view.u(%view* %1)
+    br label %cont
+  
+  cookie:                                           ; preds = %then
+    store i1 true, i1* %4, align 1
+    br label %cont
+  
+  cont:                                             ; preds = %cookie, %call_decr
+    %9 = bitcast %success_view* %data to %view*
+    %10 = bitcast %view* %1 to i8*
+    %11 = bitcast %view* %9 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %10, i8* %11, i64 24, i1 false)
+    %add = add i64 %7, 1
+    call void @__g.u_decr_rc_parse-resultview.u(%parse-result_view* %ret)
+    call void @__g.u_decr_rc_successview.u(%success_view* %data)
+    call void @__g.u_decr_rc_successview.u(%success_view* %data)
+    store i64 %add, i64* %5, align 8
+    br label %rec
+  
+  else:                                             ; preds = %rec
+    %12 = bitcast %view* %1 to i8*
+    %data1 = getelementptr inbounds %parse-result_view, %parse-result_view* %ret, i32 0, i32 1
+    %13 = bitcast %success_view* %data1 to %view*
+    call void @__g.u_incr_rc_view.u(%view* %13)
+    %tag29 = bitcast %parse-result_int* %0 to i32*
+    store i32 0, i32* %tag29, align 4
+    %data3 = getelementptr inbounds %parse-result_int, %parse-result_int* %0, i32 0, i32 1
+    %rem410 = bitcast %success_int* %data3 to %view*
+    call void @__g.u_incr_rc_view.u(%view* %1)
+    %14 = bitcast %view* %rem410 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %14, i8* %12, i64 24, i1 false)
+    %mtch = getelementptr inbounds %success_int, %success_int* %data3, i32 0, i32 1
+    store i64 %7, i64* %mtch, align 8
+    call void @__g.u_decr_rc_view.u(%view* %13)
+    call void @__g.u_decr_rc_parse-resultview.u(%parse-result_view* %ret)
+    br i1 %6, label %call_decr5, label %cookie6
+  
+  call_decr5:                                       ; preds = %else
+    call void @__g.u_decr_rc_view.u(%view* %1)
+    br label %cont7
+  
+  cookie6:                                          ; preds = %else
+    store i1 true, i1* %4, align 1
+    br label %cont7
+  
+  cont7:                                            ; preds = %cookie6, %call_decr5
+    ret void
+  }
+  
+  define void @schmu_ch(%parse-result_view* %0, %view* %buf) {
+  entry:
+    %1 = bitcast %view* %buf to i8**
+    %2 = getelementptr inbounds %view, %view* %buf, i32 0, i32 1
+    %3 = load i64, i64* %2, align 8
+    %4 = load i8*, i8** %1, align 8
+    %5 = add i64 24, %3
+    %6 = getelementptr i8, i8* %4, i64 %5
+    %7 = load i8, i8* %6, align 1
+    %8 = tail call i1 @prelude_char-equal(i8 %7, i8 32)
+    br i1 %8, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %9 = bitcast %view* %buf to i8**
+    %tag8 = bitcast %parse-result_view* %0 to i32*
+    store i32 0, i32* %tag8, align 4
+    %data = getelementptr inbounds %parse-result_view, %parse-result_view* %0, i32 0, i32 1
+    %rem9 = bitcast %success_view* %data to %view*
+    %buf110 = bitcast %view* %rem9 to i8**
+    %10 = load i8*, i8** %9, align 8
+    tail call void @__g.u_incr_rc_ac.u(i8* %10)
+    %11 = load i8*, i8** %9, align 8
+    store i8* %11, i8** %buf110, align 8
+    %start = getelementptr inbounds %view, %view* %rem9, i32 0, i32 1
+    %12 = bitcast %view* %buf to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %12, i64 8
+    %13 = bitcast i8* %sunkaddr to i64*
+    %14 = load i64, i64* %13, align 8
+    %add = add i64 1, %14
+    store i64 %add, i64* %start, align 8
+    %len = getelementptr inbounds %view, %view* %rem9, i32 0, i32 2
+    %15 = getelementptr inbounds %view, %view* %buf, i32 0, i32 2
+    %16 = load i64, i64* %15, align 8
+    %sub = sub i64 %16, 1
+    store i64 %sub, i64* %len, align 8
+    %mtch = getelementptr inbounds %success_view, %success_view* %data, i32 0, i32 1
+    %buf211 = bitcast %view* %mtch to i8**
+    %17 = load i8*, i8** %9, align 8
+    tail call void @__g.u_incr_rc_ac.u(i8* %17)
+    %18 = load i8*, i8** %9, align 8
+    store i8* %18, i8** %buf211, align 8
+    %start3 = getelementptr inbounds %view, %view* %mtch, i32 0, i32 1
+    %19 = load i64, i64* %13, align 8
+    store i64 %19, i64* %start3, align 8
+    %len4 = getelementptr inbounds %view, %view* %mtch, i32 0, i32 2
+    store i64 1, i64* %len4, align 8
+    ret void
+  
+  else:                                             ; preds = %entry
+    %tag512 = bitcast %parse-result_view* %0 to i32*
+    store i32 1, i32* %tag512, align 4
+    %data6 = getelementptr inbounds %parse-result_view, %parse-result_view* %0, i32 0, i32 1
+    %20 = bitcast %success_view* %data6 to %view*
+    tail call void @__g.u_incr_rc_view.u(%view* %buf)
+    %21 = bitcast %view* %20 to i8*
+    %22 = bitcast %view* %buf to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %21, i8* %22, i64 24, i1 false)
+    ret void
+  }
+  
+  define void @schmu_many-count(%parse-result_int* %0, %view* %buf) {
+  entry:
+    tail call void @schmu_aux(%parse-result_int* %0, %view* %buf, i64 0)
+    ret void
+  }
+  
+  define void @schmu_view-of-string(%view* %0, i8* %str) {
+  entry:
+    %buf2 = bitcast %view* %0 to i8**
+    tail call void @__g.u_incr_rc_ac.u(i8* %str)
+    store i8* %str, i8** %buf2, align 8
+    %start = getelementptr inbounds %view, %view* %0, i32 0, i32 1
+    store i64 0, i64* %start, align 8
+    %len = getelementptr inbounds %view, %view* %0, i32 0, i32 2
+    %1 = bitcast i8* %str to i64*
+    %len1 = getelementptr i64, i64* %1, i64 1
+    %2 = load i64, i64* %len1, align 8
+    store i64 %2, i64* %len, align 8
+    ret void
+  }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define internal void @__g.u_incr_rc_successview.u(%success_view* %0) {
+  entry:
+    %1 = bitcast %success_view* %0 to %view*
+    %2 = bitcast %view* %1 to i8**
+    %3 = load i8*, i8** %2, align 8
+    %ref = bitcast i8* %3 to i64*
+    %ref16 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref16, align 8
+    %4 = add i64 %ref2, 1
+    store i64 %4, i64* %ref16, align 8
+    %5 = getelementptr inbounds %success_view, %success_view* %0, i32 0, i32 1
+    %6 = bitcast %view* %5 to i8**
+    %7 = load i8*, i8** %6, align 8
+    %ref3 = bitcast i8* %7 to i64*
+    %ref47 = bitcast i64* %ref3 to i64*
+    %ref5 = load i64, i64* %ref47, align 8
+    %8 = add i64 %ref5, 1
+    store i64 %8, i64* %ref47, align 8
+    ret void
+  }
+  
+  define internal void @__g.u_incr_rc_view.u(%view* %0) {
+  entry:
+    %1 = bitcast %view* %0 to i8**
+    %2 = load i8*, i8** %1, align 8
+    %ref = bitcast i8* %2 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %3 = add i64 %ref2, 1
+    store i64 %3, i64* %ref13, align 8
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_view.u(%view* %0) {
+  entry:
+    %1 = bitcast %view* %0 to i8**
+    %2 = load i8*, i8** %1, align 8
+    %ref = bitcast i8* %2 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %3 = icmp eq i64 %ref2, 1
+    br i1 %3, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %4 = bitcast i8* %2 to i64*
+    %5 = bitcast i64* %4 to i64*
+    %6 = sub i64 %ref2, 1
+    store i64 %6, i64* %5, align 8
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %7 = bitcast i8* %2 to i64*
+    %8 = bitcast i64* %7 to i8*
+    call void @free(i8* %8)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_parse-resultview.u(%parse-result_view* %0) {
+  entry:
+    %tag18 = bitcast %parse-result_view* %0 to i32*
+    %index = load i32, i32* %tag18, align 4
+    %1 = icmp eq i32 %index, 0
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %parse-result_view, %parse-result_view* %0, i32 0, i32 1
+    %2 = bitcast %success_view* %data to %view*
+    %3 = bitcast %view* %2 to i8**
+    %4 = load i8*, i8** %3, align 8
+    %ref = bitcast i8* %4 to i64*
+    %ref119 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref119, align 8
+    %5 = icmp eq i64 %ref2, 1
+    br i1 %5, label %free, label %decr
+  
+  cont:                                             ; preds = %decr6, %free7, %entry
+    %6 = icmp eq i32 %index, 1
+    br i1 %6, label %match9, label %cont10
+  
+  decr:                                             ; preds = %match
+    %7 = bitcast i8* %4 to i64*
+    %8 = bitcast i64* %7 to i64*
+    %9 = sub i64 %ref2, 1
+    store i64 %9, i64* %8, align 8
+    br label %merge
+  
+  free:                                             ; preds = %match
+    %10 = bitcast i8* %4 to i64*
+    %11 = bitcast i64* %10 to i8*
+    call void @free(i8* %11)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    %12 = bitcast %parse-result_view* %0 to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %12, i64 32
+    %13 = bitcast i8* %sunkaddr to i8**
+    %14 = load i8*, i8** %13, align 8
+    %ref3 = bitcast i8* %14 to i64*
+    %ref420 = bitcast i64* %ref3 to i64*
+    %ref5 = load i64, i64* %ref420, align 8
+    %15 = icmp eq i64 %ref5, 1
+    br i1 %15, label %free7, label %decr6
+  
+  decr6:                                            ; preds = %merge
+    %16 = bitcast i8* %14 to i64*
+    %17 = bitcast i64* %16 to i64*
+    %18 = sub i64 %ref5, 1
+    store i64 %18, i64* %17, align 8
+    br label %cont
+  
+  free7:                                            ; preds = %merge
+    %19 = bitcast i8* %14 to i64*
+    %20 = bitcast i64* %19 to i8*
+    call void @free(i8* %20)
+    br label %cont
+  
+  match9:                                           ; preds = %cont
+    %data11 = getelementptr inbounds %parse-result_view, %parse-result_view* %0, i32 0, i32 1
+    %21 = bitcast %success_view* %data11 to %view*
+    %22 = bitcast %view* %21 to i8**
+    %23 = load i8*, i8** %22, align 8
+    %ref12 = bitcast i8* %23 to i64*
+    %ref1321 = bitcast i64* %ref12 to i64*
+    %ref14 = load i64, i64* %ref1321, align 8
+    %24 = icmp eq i64 %ref14, 1
+    br i1 %24, label %free16, label %decr15
+  
+  cont10:                                           ; preds = %decr15, %free16, %cont
+    ret void
+  
+  decr15:                                           ; preds = %match9
+    %25 = bitcast i8* %23 to i64*
+    %26 = bitcast i64* %25 to i64*
+    %27 = sub i64 %ref14, 1
+    store i64 %27, i64* %26, align 8
+    br label %cont10
+  
+  free16:                                           ; preds = %match9
+    %28 = bitcast i8* %23 to i64*
+    %29 = bitcast i64* %28 to i8*
+    call void @free(i8* %29)
+    br label %cont10
+  }
+  
+  define internal void @__g.u_decr_rc_successview.u(%success_view* %0) {
+  entry:
+    %1 = bitcast %success_view* %0 to %view*
+    %2 = bitcast %view* %1 to i8**
+    %3 = load i8*, i8** %2, align 8
+    %ref = bitcast i8* %3 to i64*
+    %ref19 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref19, align 8
+    %4 = icmp eq i64 %ref2, 1
+    br i1 %4, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %5 = bitcast i8* %3 to i64*
+    %6 = bitcast i64* %5 to i64*
+    %7 = sub i64 %ref2, 1
+    store i64 %7, i64* %6, align 8
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %8 = bitcast i8* %3 to i64*
+    %9 = bitcast i64* %8 to i8*
+    call void @free(i8* %9)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    %10 = getelementptr inbounds %success_view, %success_view* %0, i32 0, i32 1
+    %11 = bitcast %view* %10 to i8**
+    %12 = load i8*, i8** %11, align 8
+    %ref3 = bitcast i8* %12 to i64*
+    %ref410 = bitcast i64* %ref3 to i64*
+    %ref5 = load i64, i64* %ref410, align 8
+    %13 = icmp eq i64 %ref5, 1
+    br i1 %13, label %free7, label %decr6
+  
+  decr6:                                            ; preds = %merge
+    %14 = bitcast i8* %12 to i64*
+    %15 = bitcast i64* %14 to i64*
+    %16 = sub i64 %ref5, 1
+    store i64 %16, i64* %15, align 8
+    br label %merge8
+  
+  free7:                                            ; preds = %merge
+    %17 = bitcast i8* %12 to i64*
+    %18 = bitcast i64* %17 to i8*
+    call void @free(i8* %18)
+    br label %merge8
+  
+  merge8:                                           ; preds = %free7, %decr6
+    ret void
+  }
+  
+  define internal void @__g.u_incr_rc_ac.u(i8* %0) {
+  entry:
+    %ref = bitcast i8* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %1 = add i64 %ref2, 1
+    store i64 %1, i64* %ref13, align 8
+    ret void
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [2 x i8] }* @0 to i8*), i64 24))
+    %0 = add i32 %fmtsize, 25
+    %1 = sext i32 %0 to i64
+    %2 = tail call i8* @malloc(i64 %1)
+    %3 = bitcast i8* %2 to i64*
+    store i64 1, i64* %3, align 8
+    %size = getelementptr i64, i64* %3, i64 1
+    %4 = sext i32 %fmtsize to i64
+    store i64 %4, i64* %size, align 8
+    %cap = getelementptr i64, i64* %3, i64 2
+    store i64 %4, i64* %cap, align 8
+    %data = getelementptr i64, i64* %3, i64 3
+    %5 = bitcast i64* %data to i8*
+    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %5, i64 %1, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [2 x i8] }* @0 to i8*), i64 24))
+    store i8* %2, i8** @s, align 8
+    tail call void @schmu_view-of-string(%view* @inp, i8* %2)
+    %ret = alloca %parse-result_int, align 8
+    call void @schmu_many-count(%parse-result_int* %ret, %view* @inp)
+    call void @__g.u_decr_rc_parse-resulti.u(%parse-result_int* %ret)
+    call void @__g.u_decr_rc_view.u(%view* @inp)
+    %6 = load i8*, i8** @s, align 8
+    call void @__g.u_decr_rc_ac.u(i8* %6)
+    ret i64 0
+  }
+  
+  declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
+  
+  declare i8* @malloc(i64 %0)
+  
+  define internal void @__g.u_decr_rc_parse-resulti.u(%parse-result_int* %0) {
+  entry:
+    %tag12 = bitcast %parse-result_int* %0 to i32*
+    %index = load i32, i32* %tag12, align 4
+    %1 = icmp eq i32 %index, 0
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %parse-result_int, %parse-result_int* %0, i32 0, i32 1
+    %2 = bitcast %success_int* %data to %view*
+    %3 = bitcast %view* %2 to i8**
+    %4 = load i8*, i8** %3, align 8
+    %ref = bitcast i8* %4 to i64*
+    %ref113 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref113, align 8
+    %5 = icmp eq i64 %ref2, 1
+    br i1 %5, label %free, label %decr
+  
+  cont:                                             ; preds = %decr, %free, %entry
+    %6 = icmp eq i32 %index, 1
+    br i1 %6, label %match3, label %cont4
+  
+  decr:                                             ; preds = %match
+    %7 = bitcast i8* %4 to i64*
+    %8 = bitcast i64* %7 to i64*
+    %9 = sub i64 %ref2, 1
+    store i64 %9, i64* %8, align 8
+    br label %cont
+  
+  free:                                             ; preds = %match
+    %10 = bitcast i8* %4 to i64*
+    %11 = bitcast i64* %10 to i8*
+    call void @free(i8* %11)
+    br label %cont
+  
+  match3:                                           ; preds = %cont
+    %data5 = getelementptr inbounds %parse-result_int, %parse-result_int* %0, i32 0, i32 1
+    %12 = bitcast %success_int* %data5 to %view*
+    %13 = bitcast %view* %12 to i8**
+    %14 = load i8*, i8** %13, align 8
+    %ref6 = bitcast i8* %14 to i64*
+    %ref714 = bitcast i64* %ref6 to i64*
+    %ref8 = load i64, i64* %ref714, align 8
+    %15 = icmp eq i64 %ref8, 1
+    br i1 %15, label %free10, label %decr9
+  
+  cont4:                                            ; preds = %decr9, %free10, %cont
+    ret void
+  
+  decr9:                                            ; preds = %match3
+    %16 = bitcast i8* %14 to i64*
+    %17 = bitcast i64* %16 to i64*
+    %18 = sub i64 %ref8, 1
+    store i64 %18, i64* %17, align 8
+    br label %cont4
+  
+  free10:                                           ; preds = %match3
+    %19 = bitcast i8* %14 to i64*
+    %20 = bitcast i64* %19 to i8*
+    call void @free(i8* %20)
+    br label %cont4
+  }
+  
+  define internal void @__g.u_decr_rc_ac.u(i8* %0) {
+  entry:
+    %ref = bitcast i8* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %1 = icmp eq i64 %ref2, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i8* %0 to i64*
+    %3 = bitcast i64* %2 to i64*
+    %4 = sub i64 %ref2, 1
+    store i64 %4, i64* %3, align 8
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %5 = bitcast i8* %0 to i64*
+    %6 = bitcast i64* %5 to i8*
+    call void @free(i8* %6)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  declare void @free(i8* %0)
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
