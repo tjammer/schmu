@@ -981,8 +981,8 @@ and morph_unop mk p unop expr =
 
 and morph_if mk p cond e1 e2 =
   let ret = p.ret in
-  let oids = p.ids in
   let p, cond, _ = morph_expr { p with ret = false } cond in
+  let oids = p.ids in
   let ids = (Id_local, Iset.empty) :: oids in
 
   let p, e1, a = morph_expr { p with ret; ids } e1 in
@@ -1009,6 +1009,7 @@ and morph_if mk p cond e1 e2 =
     | Some (Spid_func | Spid_parent) ->
         decr_refs { e2 with expr = Mincr_ref e2 } (remove_id ~id:b.id p.ids)
   in
+  let tailrec = a.tailrec && b.tailrec in
 
   (* Remove returning ids from original id list as a new one is issued *)
   (* NOTE that might not work. The if-expr returns either [a] or [b], but here
@@ -1026,7 +1027,7 @@ and morph_if mk p cond e1 e2 =
   let iid, ids = mb_id oids e1.typ in
   ( { p with ids },
     mk (Mif { cond; e1; e2; iid }) ret,
-    { a with alloc = Two_values (a.alloc, b.alloc); id = iid } )
+    { a with alloc = Two_values (a.alloc, b.alloc); id = iid; tailrec } )
 
 and prep_let p id uniq e toplvl =
   let p, e1, func = morph_expr { p with ret = false } e in
