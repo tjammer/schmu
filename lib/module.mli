@@ -11,7 +11,7 @@ and item =
   | Mmutual_rec of (string * int option * typ) list
 
 val unique_name : string -> int option -> string
-val lambda_name : int -> string
+val lambda_name : string option -> int -> string
 val add_type : typ -> t -> t
 val add_fun : string -> int option -> Typed_tree.abstraction -> t -> t
 

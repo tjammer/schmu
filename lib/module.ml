@@ -24,7 +24,9 @@ let unique_name name = function
   | None -> name
   | Some n -> name ^ "__" ^ string_of_int n
 
-let lambda_name id = "__fun" ^ string_of_int id
+let lambda_name mn id =
+  (match mn with Some mname -> "__" ^ mname | None -> "")
+  ^ "__fun" ^ string_of_int id
 
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
@@ -193,9 +195,9 @@ and canonexpr mname nsub sub = function
       let nsub = Smap.remove d.id nsub in
       let sub, cont = (canonbody mname nsub) sub d.cont in
       (sub, Let { d with lhs; cont })
-  | Lambda (i, abs) ->
+  | Lambda (i, _, abs) ->
       let sub, abs = canonabs mname sub nsub abs in
-      (sub, Lambda (i, abs))
+      (sub, Lambda (i, Some mname, abs))
   | Function (n, u, abs, cont) ->
       let nsub = Smap.add n (Env.mod_fn_name ~mname n) nsub in
       let sub, abs = canonabs mname sub nsub abs in
@@ -439,7 +441,7 @@ and mod_body f e =
   | Unop (u, e) -> Unop (u, m e)
   | If (c, l, r) -> If (m c, m l, m r)
   | Let l -> Let { l with lhs = m l.lhs; cont = m l.cont }
-  | Lambda (i, abs) -> Lambda (i, mod_abs f abs)
+  | Lambda (i, mn, abs) -> Lambda (i, mn, mod_abs f abs)
   | Function (n, i, abs, cont) -> Function (n, i, mod_abs f abs, m cont)
   | App { callee; args } ->
       App

@@ -872,7 +872,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Mutual_rec_decls (decls, cont) ->
       let p = List.fold_left rec_fs_to_env param decls in
       morph_expr p cont
-  | Lambda (id, abs) -> morph_lambda make texpr.typ param id abs
+  | Lambda (id, mn, abs) -> morph_lambda make texpr.typ param id mn abs
   | App { callee; args } ->
       morph_app make param callee args (cln param texpr.typ)
   | Ctor (variant, index, dataexpr) ->
@@ -1222,10 +1222,10 @@ and prep_func p (username, uniq, abs) =
   in
   (p, call, abs, alloca)
 
-and morph_lambda mk typ p id abs =
+and morph_lambda mk typ p id mn abs =
   let typ = cln p typ in
 
-  let name = Module.lambda_name id in
+  let name = Module.lambda_name mn id in
   let recursive = Rnone in
   let func =
     {

@@ -20,7 +20,7 @@ type expr =
   | Unop of Ast.unop * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of let_data
-  | Lambda of int * abstraction
+  | Lambda of int * string option * abstraction
   | Function of string * int option * abstraction * typed_expr
   | Mutual_rec_decls of (string * int option * typ) list * typed_expr
   | App of { callee : typed_expr; args : arg list }
