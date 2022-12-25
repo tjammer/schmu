@@ -1155,7 +1155,7 @@ and catch_weak_expr sub e =
       catch_weak_expr sub cond;
       catch_weak_expr sub e1;
       catch_weak_expr sub e2
-  | Let { lhs; cont; _ } ->
+  | Let { lhs; cont; _ } | Bind (_, _, lhs, cont) ->
       catch_weak_expr sub lhs;
       catch_weak_expr sub cont
   | App { callee; args } ->

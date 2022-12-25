@@ -195,6 +195,11 @@ and canonexpr mname nsub sub = function
       let nsub = Smap.remove d.id nsub in
       let sub, cont = (canonbody mname nsub) sub d.cont in
       (sub, Let { d with lhs; cont })
+  | Bind (id, un, lhs, cont) ->
+      let sub, lhs = (canonbody mname nsub) sub lhs in
+      let nsub = Smap.remove id nsub in
+      let sub, cont = (canonbody mname nsub) sub cont in
+      (sub, Bind (id, un, lhs, cont))
   | Lambda (i, _, abs) ->
       let sub, abs = canonabs mname sub nsub abs in
       (sub, Lambda (i, Some mname, abs))

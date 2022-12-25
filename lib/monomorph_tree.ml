@@ -10,6 +10,7 @@ type expr =
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
   | Mlet of string * monod_tree * global_name * int option * monod_tree
+  | Mbind of string * monod_tree * monod_tree
   | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree * alloca
   | Mapp of {
@@ -190,7 +191,7 @@ let rec find_function_expr vars = function
       match Vars.find_opt name vars with
       | Some (Normal thing) -> thing.fn
       | _ -> No_function)
-  | Mlet _ -> No_function
+  | Mlet _ | Mbind _ -> No_function (* TODO cont? Didn't work on quick test *)
   | Mfmt _ -> No_function
   | Mincr_ref e | Mdecr_ref (_, e) -> find_function_expr vars e.expr
   | e ->
@@ -395,6 +396,10 @@ let rec subst_body p subst tree =
         let expr = sub expr in
         let cont = sub cont in
         { tree with typ = cont.typ; expr = Mlet (id, expr, gn, vid, cont) }
+    | Mbind (id, lhs, cont) ->
+        let lhs = sub lhs in
+        let cont = sub cont in
+        { tree with typ = cont.typ; expr = Mbind (id, lhs, cont) }
     | Mlambda (name, abs, alloca) ->
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
@@ -781,6 +786,7 @@ let rec is_temporary = function
   | Munop (_, t) -> is_temporary t.expr
   | Mif { e1; e2; _ } -> is_temporary e1.expr && is_temporary e2.expr
   | Mlet (_, _, _, _, cont)
+  | Mbind (_, _, cont)
   | Mfunction (_, _, cont, _)
   | Mseq (_, cont)
   | Mdecr_ref (_, cont)
@@ -800,6 +806,7 @@ let rec is_part = function
       false
   | Mif { e1; e2; _ } -> is_part e1.expr || is_part e2.expr
   | Mlet (_, _, _, _, cont)
+  | Mbind (_, _, cont)
   | Mfunction (_, _, cont, _)
   | Mseq (_, cont)
   | Mdecr_ref (_, cont)
@@ -854,6 +861,14 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       let p, e2 = make_e2 e1 e2 id gn lhs.attr.mut rmut p vid in
       (p, e2, func)
+  | Bind (id, uniq, lhs, cont) ->
+      let uniq = Module.unique_name id uniq in
+      let p, lhs, func = morph_expr { param with ret = false } lhs in
+      let vars = Vars.add uniq (Normal func) p.vars in
+      let p, cont, func = morph_expr { p with ret = param.ret; vars } cont in
+      ( p,
+        { typ = cont.typ; expr = Mbind (uniq, lhs, cont); return = param.ret },
+        func )
   | Record labels ->
       morph_record make param labels texpr.attr (cln param texpr.typ)
   | Field (expr, index) -> morph_field make param expr index

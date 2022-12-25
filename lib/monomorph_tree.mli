@@ -11,6 +11,7 @@ type expr =
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
   | Mlet of string * monod_tree * global_name * int option * monod_tree
+  | Mbind of string * monod_tree * monod_tree
   | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree * alloca
   | Mapp of {

@@ -135,6 +135,7 @@ end = struct
 
         gen_expr { param with vars = Vars.add name func param.vars } cont
     | Mlet (id, equals, _, vid, let') -> gen_let param id equals let' vid
+    | Mbind (id, equals, cont) -> gen_bind param id equals cont
     | Mlambda (name, abs, allocref) ->
         let func =
           match Vars.find_opt name param.vars with
@@ -192,6 +193,10 @@ end = struct
     | Some id -> Strtbl.replace decr_tbl id expr_val
     | None -> ());
     gen_expr { param with vars = Vars.add id expr_val param.vars } cont
+
+  and gen_bind param id equals cont =
+    let lhs = gen_expr param equals in
+    gen_expr { param with vars = Vars.add id lhs param.vars } cont
 
   and gen_const = function
     | Int i ->

@@ -3272,50 +3272,44 @@ Global lets with expressions
     %data = getelementptr inbounds %option_array_int, %option_array_int* %ret, i32 0, i32 1
     %0 = load i64*, i64** %data, align 8
     call void @__g.u_incr_rc_ai.u(i64* %0)
-    %1 = load i64*, i64** %data, align 8
-    call void @__g.u_incr_rc_ai.u(i64* %1)
-    %2 = load i64*, i64** %data, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %2)
     br label %ifcont
   
   else:                                             ; preds = %entry
-    call void @__g.u_incr_rc_optionai.u(%option_array_int* %ret)
-    %3 = call i8* @malloc(i64 40)
-    %4 = bitcast i8* %3 to i64*
-    store i64* %4, i64** @b, align 8
-    store i64 1, i64* %4, align 8
-    %size = getelementptr i64, i64* %4, i64 1
+    %1 = call i8* @malloc(i64 40)
+    %2 = bitcast i8* %1 to i64*
+    store i64* %2, i64** @b, align 8
+    store i64 1, i64* %2, align 8
+    %size = getelementptr i64, i64* %2, i64 1
     store i64 2, i64* %size, align 8
-    %cap = getelementptr i64, i64* %4, i64 2
+    %cap = getelementptr i64, i64* %2, i64 2
     store i64 2, i64* %cap, align 8
-    %5 = getelementptr i8, i8* %3, i64 24
-    %data1 = bitcast i8* %5 to i64*
+    %3 = getelementptr i8, i8* %1, i64 24
+    %data1 = bitcast i8* %3 to i64*
     store i64 1, i64* %data1, align 8
     %"1" = getelementptr i64, i64* %data1, i64 1
     store i64 2, i64* %"1", align 8
-    call void @__g.u_decr_rc_optionai.u(%option_array_int* %ret)
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
     %iftmp = phi i64** [ %data, %then ], [ @b, %else ]
-    %6 = load i64*, i64** %iftmp, align 8
-    call void @__g.u_incr_rc_ai.u(i64* %6)
-    store i64* %6, i64** @b, align 8
+    %4 = load i64*, i64** %iftmp, align 8
+    call void @__g.u_incr_rc_ai.u(i64* %4)
+    store i64* %4, i64** @b, align 8
     %ret2 = alloca %r_array_int, align 8
-    %7 = call i64 @schmu_ret-rec()
+    %5 = call i64 @schmu_ret-rec()
     %box = bitcast %r_array_int* %ret2 to i64*
-    store i64 %7, i64* %box, align 8
-    %8 = inttoptr i64 %7 to i64*
-    %9 = bitcast i64* %8 to i8*
-    %10 = getelementptr i8, i8* %9, i64 32
-    %data4 = bitcast i8* %10 to i64*
-    %11 = load i64, i64* %data4, align 8
-    store i64 %11, i64* @c, align 8
+    store i64 %5, i64* %box, align 8
+    %6 = inttoptr i64 %5 to i64*
+    %7 = bitcast i64* %6 to i8*
+    %8 = getelementptr i8, i8* %7, i64 32
+    %data4 = bitcast i8* %8 to i64*
+    %9 = load i64, i64* %data4, align 8
+    store i64 %9, i64* @c, align 8
     call void @__g.u_decr_rc_rai.u(%r_array_int* %ret2)
-    %12 = load i64*, i64** @b, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %12)
-    %13 = load i64*, i64** %iftmp, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %13)
+    %10 = load i64*, i64** @b, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %10)
+    %11 = load i64*, i64** %iftmp, align 8
+    call void @__g.u_decr_rc_ai.u(i64* %11)
     call void @__g.u_decr_rc_optionai.u(%option_array_int* %ret)
     ret i64 0
   }
@@ -3326,6 +3320,30 @@ Global lets with expressions
     %ref1 = load i64, i64* %ref2, align 8
     %1 = add i64 %ref1, 1
     store i64 %1, i64* %ref2, align 8
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_rai.u(%r_array_int* %0) {
+  entry:
+    %1 = bitcast %r_array_int* %0 to i64**
+    %2 = load i64*, i64** %1, align 8
+    %ref2 = bitcast i64* %2 to i64*
+    %ref1 = load i64, i64* %ref2, align 8
+    %3 = icmp eq i64 %ref1, 1
+    br i1 %3, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %4 = bitcast i64* %2 to i64*
+    %5 = sub i64 %ref1, 1
+    store i64 %5, i64* %4, align 8
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %6 = bitcast i64* %2 to i8*
+    call void @free(i8* %6)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
     ret void
   }
   
@@ -3348,26 +3366,6 @@ Global lets with expressions
     br label %merge
   
   merge:                                            ; preds = %free, %decr
-    ret void
-  }
-  
-  define internal void @__g.u_incr_rc_optionai.u(%option_array_int* %0) {
-  entry:
-    %tag2 = bitcast %option_array_int* %0 to i32*
-    %index = load i32, i32* %tag2, align 4
-    %1 = icmp eq i32 %index, 0
-    br i1 %1, label %match, label %cont
-  
-  match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option_array_int, %option_array_int* %0, i32 0, i32 1
-    %2 = load i64*, i64** %data, align 8
-    %ref3 = bitcast i64* %2 to i64*
-    %ref1 = load i64, i64* %ref3, align 8
-    %3 = add i64 %ref1, 1
-    store i64 %3, i64* %ref3, align 8
-    br label %cont
-  
-  cont:                                             ; preds = %match, %entry
     ret void
   }
   
@@ -3399,30 +3397,6 @@ Global lets with expressions
     %6 = bitcast i64* %2 to i8*
     call void @free(i8* %6)
     br label %cont
-  }
-  
-  define internal void @__g.u_decr_rc_rai.u(%r_array_int* %0) {
-  entry:
-    %1 = bitcast %r_array_int* %0 to i64**
-    %2 = load i64*, i64** %1, align 8
-    %ref2 = bitcast i64* %2 to i64*
-    %ref1 = load i64, i64* %ref2, align 8
-    %3 = icmp eq i64 %ref1, 1
-    br i1 %3, label %free, label %decr
-  
-  decr:                                             ; preds = %entry
-    %4 = bitcast i64* %2 to i64*
-    %5 = sub i64 %ref1, 1
-    store i64 %5, i64* %4, align 8
-    br label %merge
-  
-  free:                                             ; preds = %entry
-    %6 = bitcast i64* %2 to i8*
-    call void @free(i8* %6)
-    br label %merge
-  
-  merge:                                            ; preds = %free, %decr
-    ret void
   }
   
   declare void @free(i8* %0)
@@ -3897,7 +3871,6 @@ Take/use not all allocations of a record in tailrec calls
   then:                                             ; preds = %rec
     %data = getelementptr inbounds %parse-result_view, %parse-result_view* %ret, i32 0, i32 1
     call void @__g.u_incr_rc_successview.u(%success_view* %data)
-    call void @__g.u_incr_rc_successview.u(%success_view* %data)
     %8 = bitcast %success_view* %data to %view*
     call void @__g.u_incr_rc_view.u(%view* %8)
     br i1 %6, label %call_decr, label %cookie
@@ -3918,25 +3891,21 @@ Take/use not all allocations of a record in tailrec calls
     %add = add i64 %7, 1
     call void @__g.u_decr_rc_parse-resultview.u(%parse-result_view* %ret)
     call void @__g.u_decr_rc_successview.u(%success_view* %data)
-    call void @__g.u_decr_rc_successview.u(%success_view* %data)
     store i64 %add, i64* %5, align 8
     br label %rec
   
   else:                                             ; preds = %rec
     %12 = bitcast %view* %1 to i8*
     %data1 = getelementptr inbounds %parse-result_view, %parse-result_view* %ret, i32 0, i32 1
-    %13 = bitcast %success_view* %data1 to %view*
-    call void @__g.u_incr_rc_view.u(%view* %13)
     %tag29 = bitcast %parse-result_int* %0 to i32*
     store i32 0, i32* %tag29, align 4
     %data3 = getelementptr inbounds %parse-result_int, %parse-result_int* %0, i32 0, i32 1
     %rem410 = bitcast %success_int* %data3 to %view*
     call void @__g.u_incr_rc_view.u(%view* %1)
-    %14 = bitcast %view* %rem410 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %14, i8* %12, i64 24, i1 false)
+    %13 = bitcast %view* %rem410 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %13, i8* %12, i64 24, i1 false)
     %mtch = getelementptr inbounds %success_int, %success_int* %data3, i32 0, i32 1
     store i64 %7, i64* %mtch, align 8
-    call void @__g.u_decr_rc_view.u(%view* %13)
     call void @__g.u_decr_rc_parse-resultview.u(%parse-result_view* %ret)
     br i1 %6, label %call_decr5, label %cookie6
   
