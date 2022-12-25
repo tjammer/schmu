@@ -985,6 +985,15 @@ and morph_if mk p cond e1 e2 =
   let oids = p.ids in
   let ids = (Id_local, Iset.empty) :: oids in
 
+  let incr_param e v =
+    match v.id with
+    (* If we return a parameter, we don't know if the value is allocated
+          or global. Since it's going to be deallocated later we have to increase
+       its ref count. *)
+    | Some -1 when mb_contains_refcount e.typ -> { e with expr = Mincr_ref e }
+    | _ -> e
+  in
+
   let p, e1, a = morph_expr { p with ret; ids } e1 in
   let e1 =
     match Option.map (classify_id oids) a.id with
@@ -994,8 +1003,9 @@ and morph_if mk p cond e1 e2 =
            destroy a basic block in codegen. That's due to no merge blocks being
            created in that case *)
         e1
-    | None -> decr_refs e1 p.ids
-    | Some Spid_unknown -> decr_refs e1 (remove_id ~id:a.id p.ids)
+    | None -> decr_refs (incr_param e1 a) p.ids
+    | Some Spid_unknown ->
+        decr_refs (incr_param e1 a) (remove_id ~id:a.id p.ids)
     | Some (Spid_func | Spid_parent) ->
         decr_refs { e1 with expr = Mincr_ref e1 } (remove_id ~id:a.id p.ids)
   in
@@ -1004,8 +1014,9 @@ and morph_if mk p cond e1 e2 =
   let e2 =
     match Option.map (classify_id oids) b.id with
     | _ when b.tailrec -> e2
-    | None -> decr_refs e2 p.ids
-    | Some Spid_unknown -> decr_refs e2 (remove_id ~id:b.id p.ids)
+    | None -> decr_refs (incr_param e2 b) p.ids
+    | Some Spid_unknown ->
+        decr_refs (incr_param e2 b) (remove_id ~id:b.id p.ids)
     | Some (Spid_func | Spid_parent) ->
         decr_refs { e2 with expr = Mincr_ref e2 } (remove_id ~id:b.id p.ids)
   in

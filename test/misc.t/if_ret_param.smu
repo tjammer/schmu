@@ -1,0 +1,16 @@
+(val s "/")
+
+(fun times [limit f]
+  (fun inner [i]
+    (if (= i limit)
+      ()
+      (do
+        (f s)
+        (inner (+ i 1)))))
+  (inner 0))
+
+(fun test [value]
+  (ignore (if true
+            value
+            (fmt-str "/" value))))
+(times 2 test)
