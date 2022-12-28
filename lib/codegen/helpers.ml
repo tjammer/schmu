@@ -595,7 +595,9 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         (* Monomorphized functions are not yet converted to closures *)
         match func.typ with
         | Tfun (_, _, Closure assoc) ->
-            gen_closure_obj param assoc func "monoclstmp" no_prealloc
+            if Llvm.type_of func.value = (closure_t |> Llvm.pointer_type) then
+              func
+            else gen_closure_obj param assoc func "monoclstmp" no_prealloc
         | Tfun (_, _, Simple) -> func
         | _ -> failwith "Internal Error: What are we applying?")
     | Concrete name -> Vars.find name param.vars

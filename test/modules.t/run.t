@@ -454,20 +454,20 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define void @schmu___agg.u.u__prelude_array-iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
-    %monoclstmp = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %monoclstmp to i8**
+    %__i.u-ag-g.u__prelude_inner_i.u-ai-i.u = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %__i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i8**
     store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
-    %clsr_monoclstmp = alloca { i64, i64*, %closure }, align 8
-    %arr1 = getelementptr inbounds { i64, i64*, %closure }, { i64, i64*, %closure }* %clsr_monoclstmp, i32 0, i32 1
+    %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u = alloca { i64, i64*, %closure }, align 8
+    %arr1 = getelementptr inbounds { i64, i64*, %closure }, { i64, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u, i32 0, i32 1
     store i64* %arr, i64** %arr1, align 8
-    %f2 = getelementptr inbounds { i64, i64*, %closure }, { i64, i64*, %closure }* %clsr_monoclstmp, i32 0, i32 2
+    %f2 = getelementptr inbounds { i64, i64*, %closure }, { i64, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u, i32 0, i32 2
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %rc6 = bitcast { i64, i64*, %closure }* %clsr_monoclstmp to i64*
+    %rc6 = bitcast { i64, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i64*
     store i64 2, i64* %rc6, align 8
-    %env = bitcast { i64, i64*, %closure }* %clsr_monoclstmp to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %monoclstmp, i32 0, i32 1
+    %env = bitcast { i64, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u__prelude_inner_i.u-ai-i.u, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     call void @schmu___i.u-ag-g.u__prelude_inner_i.u-ai-i.u(i64 0, i8* %env)
     ret void

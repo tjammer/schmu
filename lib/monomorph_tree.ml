@@ -359,7 +359,7 @@ let subst_type ~concrete poly parent =
   (* We might have to substitute other types (in closures) from an outer scope *)
   let subst, typ =
     match parent with
-    | Some sub -> ((fun t -> subst t |> sub), sub typ)
+    | Some sub -> ((fun t -> sub t |> subst), sub typ)
     | None -> (subst, typ)
   in
 
@@ -412,12 +412,13 @@ let rec subst_body p subst tree =
 
         { tree with typ; expr = Mlambda (name, abs, alloca) }
     | Mfunction (name, abs, cont, alloca) ->
+        let typ = typ_of_abs abs in
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
         in
         (* We may have to monomorphize. For instance if the lambda returned
            from a polymorphic function *)
-        let name = mono_callable name (typ_of_abs abs) tree in
+        let name = mono_callable name (typ_of_abs abs) { tree with typ } in
 
         let cont = { (inner cont) with typ = subst cont.typ } in
         { tree with typ = cont.typ; expr = Mfunction (name, abs, cont, alloca) }
@@ -498,7 +499,7 @@ let rec subst_body p subst tree =
         let cont = sub cont in
         { tree with typ = cont.typ; expr = Mdecr_ref (id, cont) }
   and mono_callable name typ tree =
-    if is_type_polymorphic tree.typ then
+    if is_type_polymorphic tree.typ then (
       match Apptbl.find_opt apptbl name with
       | Some old ->
           let old =
@@ -515,7 +516,26 @@ let rec subst_body p subst tree =
               monomorphized = Set.union !p.monomorphized p2.monomorphized;
             };
           name
-      | None -> (* It's concrete, all good *) name
+      | None ->
+          (* Partly copied from [monomorphize_call] *)
+          if is_type_polymorphic typ then name
+          else
+            let p2, monomorph =
+              match Hashtbl.find_opt poly_funcs_tbl name with
+              | Some func -> monomorphize !p tree.typ typ func (Some subst)
+              | None ->
+                  failwith "Internal Error: Poly function not registered yet"
+            in
+
+            let name = match monomorph with Mono name -> name | _ -> name in
+            p :=
+              {
+                !p with
+                funcs = Fset.union !p.funcs p2.funcs;
+                monomorphized = Set.union !p.monomorphized p2.monomorphized;
+              };
+
+            (* It's concrete, all good *) name)
     else name
   in
 
