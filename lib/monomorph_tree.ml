@@ -634,11 +634,14 @@ and monomorphize p typ concrete func parent_sub =
       let monomorphized = Set.add call p.monomorphized in
       ({ p with funcs; monomorphized }, Mono call)
 
-let extract_callname fallback = function
-  | Mono c | Concrete c | Recursive c -> c
-  | Default -> fallback
+let extract_callname default vars expr =
+  match find_function_expr vars expr with
   | Builtin _ | Inline _ ->
       failwith "Internal error: Builtin or inline function captured in closure"
+  | Mutual_rec _ -> failwith "TODO mutual rec"
+  | Forward_decl call | Polymorphic call -> call
+  | Concrete (func, _) -> func.name.call
+  | No_function -> default
 
 let rec cln p = function
   | Types.Tvar { contents = Link t } | Talias (_, t) -> cln p t
@@ -686,11 +689,7 @@ and cln_kind p = function
             let typ = cln p cl.cltyp in
             let clname =
               if not cl.clparam then
-                let expr =
-                  { typ; expr = Mvar (cl.clname, Vnorm); return = false }
-                in
-                let _, callname = monomorphize_call p expr None in
-                extract_callname cl.clname callname
+                extract_callname cl.clname p.vars (Mvar (cl.clname, Vnorm))
               else cl.clname
             in
             { clname; cltyp = typ; clmut = cl.clmut; clparam = cl.clparam })

@@ -263,9 +263,8 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     | Schmu _ ->
         let open String in
         let len = String.index name '_' + 1 in
-        let ret = sub name len (length name - len) in
-        Printf.printf "unmangling %s to %s\n%!" name ret;
-        ret
+        (* Printf.printf "unmangling %s to %s\n%!" name ret; *)
+        sub name len (length name - len)
 
   let declare_function ~c_linkage mangle_kind fun_name = function
     | Tfun (params, ret, kind) as typ ->
