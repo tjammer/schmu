@@ -249,7 +249,7 @@ let get_mono_name name ~poly ~closure concrete =
   in
   sprintf "__%s_%s_%s" (str poly) name (str concrete)
 
-let subst_type ~concrete poly parent =
+let rec subst_type ~concrete poly parent =
   let rec inner subst = function
     | Tpoly id, t -> (
         match Vars.find_opt id subst with
@@ -272,7 +272,20 @@ let subst_type ~concrete poly parent =
                 List.fold_left_map
                   (fun subst (l, r) ->
                     let s, cltyp = inner subst (l.cltyp, r.cltyp) in
-                    (s, { l with cltyp }))
+                    (* Copied from [subst_kind] *)
+                    let is_function =
+                      match cltyp with Tfun _ -> true | _ -> false
+                    in
+                    let clname =
+                      if
+                        is_function && (not l.clparam)
+                        && is_type_polymorphic l.cltyp
+                        && not (is_type_polymorphic cltyp)
+                      then
+                        get_mono_name l.clname ~closure:true ~poly:l.cltyp cltyp
+                      else l.clname
+                    in
+                    (s, { l with cltyp; clname }))
                   subst (List.combine c1 c2)
               in
               (s, Closure c)
@@ -331,13 +344,7 @@ let subst_type ~concrete poly parent =
         match Vars.find_opt id vars with Some t -> t | None -> old)
     | Tfun (ps, r, kind) ->
         let ps = List.map (fun p -> { p with pt = subst p.pt }) ps in
-        let kind =
-          match kind with
-          | Simple -> Simple
-          | Closure cls ->
-              Closure
-                (List.map (fun cl -> { cl with cltyp = subst cl.cltyp }) cls)
-        in
+        let kind = subst_kind subst kind in
         Tfun (ps, subst r, kind)
     | Trecord (ps, record, labels) as t when is_type_polymorphic t ->
         let ps = List.map subst ps in
@@ -365,18 +372,34 @@ let subst_type ~concrete poly parent =
 
   (subst, typ)
 
-let rec subst_body p subst tree =
+and subst_kind subst = function
+  | Simple -> Simple
+  | Closure cls ->
+      let cls =
+        List.map
+          (fun cl ->
+            let cltyp = subst cl.cltyp in
+            let is_function = match cltyp with Tfun _ -> true | _ -> false in
+            let clname =
+              if
+                is_function && (not cl.clparam)
+                && is_type_polymorphic cl.cltyp
+                && not (is_type_polymorphic cltyp)
+              then get_mono_name cl.clname ~closure:true ~poly:cl.cltyp cltyp
+              else cl.clname
+            in
+            { cl with cltyp; clname })
+          cls
+      in
+      Closure cls
+
+and subst_body p subst tree =
   let p = ref p in
 
   let subst_func { params; ret; kind } =
     let params = List.map (fun p -> { p with pt = subst p.pt }) params in
     let ret = subst ret in
-    let kind =
-      match kind with
-      | Simple -> Simple
-      | Closure cls ->
-          Closure (List.map (fun cl -> { cl with cltyp = subst cl.cltyp }) cls)
-    in
+    let kind = subst_kind subst kind in
     { params; ret; kind }
   in
 
@@ -600,7 +623,8 @@ and monomorphize p typ concrete func parent_sub =
     else
       let p, body = subst_body p subst func.abs.body in
 
-      let fnc = func_of_typ typ in
+      let kind = subst_kind subst func.abs.func.kind in
+      let fnc = { (func_of_typ typ) with kind } in
       let name = { func.name with call } in
       let funcs =
         Fset.add
@@ -660,12 +684,16 @@ and cln_kind p = function
         List.map
           (fun (cl : Types.closed) ->
             let typ = cln p cl.cltyp in
-            let expr =
-              { typ; expr = Mvar (cl.clname, Vnorm); return = false }
+            let clname =
+              if not cl.clparam then
+                let expr =
+                  { typ; expr = Mvar (cl.clname, Vnorm); return = false }
+                in
+                let _, callname = monomorphize_call p expr None in
+                extract_callname cl.clname callname
+              else cl.clname
             in
-            let _, callname = monomorphize_call p expr None in
-            let clname = extract_callname cl.clname callname in
-            { clname; cltyp = typ; clmut = cl.clmut })
+            { clname; cltyp = typ; clmut = cl.clmut; clparam = cl.clparam })
           vals
       in
       Closure vals

@@ -268,9 +268,10 @@ let close_function env =
                if const || global || Option.is_some imported then None
                else
                  match clean typ with
-                 | Tfun (_, _, Closure _) -> Some { clname; cltyp = typ; clmut }
+                 | Tfun (_, _, Closure _) ->
+                     Some { clname; cltyp = typ; clmut; clparam = param }
                  | Tfun _ when not param -> None
-                 | _ -> Some { clname; cltyp = typ; clmut })
+                 | _ -> Some { clname; cltyp = typ; clmut; clparam = param })
       in
 
       let unused = find_unused [] scope.used in

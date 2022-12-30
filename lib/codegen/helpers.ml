@@ -339,7 +339,14 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     ignore (Llvm.build_store fun_casted fun_ptr builder);
 
     let store_closed_var clsr_ptr i cl =
-      let src = Vars.find cl.clname param.vars in
+      let src =
+        match Vars.find_opt cl.clname param.vars with
+        | Some v -> v
+        | None ->
+            Llvm.dump_module the_module;
+            failwith
+              ("Internal Error: Cannot find closed variable: " ^ cl.clname)
+      in
       let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
       (match cl.cltyp with
       | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut && not upward ->
@@ -599,7 +606,10 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
               func
             else gen_closure_obj param assoc func "monoclstmp" no_prealloc
         | Tfun (_, _, Simple) -> func
-        | _ -> failwith "Internal Error: What are we applying?")
+        | _ ->
+            print_endline name;
+            print_endline (show_typ func.typ);
+            failwith "Internal Error: What are we applying?")
     | Concrete name -> Vars.find name param.vars
     | Default | Recursive _ -> func
     | Builtin _ -> failwith "Internal Error: Normally calling a builtin"

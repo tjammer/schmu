@@ -33,7 +33,7 @@ and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pmut : bool }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
-and closed = { clname : string; clmut : bool; cltyp : typ }
+and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
 
 let rec clean = function
   | Tvar { contents = Link t } -> clean t

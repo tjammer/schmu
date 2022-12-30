@@ -62,7 +62,7 @@ module Make (A : Abi_intf.S) = struct
         if cl.clmut && not upward then
           get_lltype_def cl.cltyp |> Llvm.pointer_type
         else get_lltype_def cl.cltyp)
-      ({ clname = "rc"; clmut = false; cltyp = Tint } :: agg)
+      ({ clname = "rc"; clmut = false; cltyp = Tint; clparam = false } :: agg)
     |> Array.of_list |> Llvm.struct_type context
 
   and typeof_funclike = function

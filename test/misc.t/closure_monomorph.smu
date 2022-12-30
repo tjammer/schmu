@@ -1,0 +1,66 @@
+(fun sort [arr& cmp]
+  (fun swap [arr& i j]
+    (val tmp (array-get arr i))
+    (set &(array-get arr i) (array-get arr j))
+    (set &(array-get arr j) tmp))
+  (fun partition [arr& lo hi]
+    (val pivot (array-get arr hi))
+    (val i& (- lo 1))
+    (iter-range lo hi
+                (fun [j]
+                  -- TODO cannot capture [cmp] here
+                  (if (< (cmp (array-get arr j) pivot) 0)
+                    (do
+                      (set &i (+ i 1))
+                      (swap &arr i j)))))
+    (val i (+ i 1))
+    (swap &arr i hi)
+    i)
+  -- quicksort is a closure, as it closes over partition. partition itself
+  -- is polymorphic. Before this change, quicksort would close over the dummy
+  -- representation of partition and then construct the closure at the call site.
+  -- This doesn't work here because cmp is not available insize quicksort.
+  -- Instead, quicksort now closes over the already monomorphized partition.
+  -- Functions in closures are now mention the monomorphized name instead
+  -- of the lexical one
+  (fun quicksort [arr& lo hi]
+    (if (or (not (< lo hi)) (< lo 0))
+      ()
+      (let [p (partition &arr lo hi)]
+        (quicksort &arr lo (- p 1))
+        (quicksort &arr (+ p 1) hi))))
+
+  (quicksort &arr 0 (- (array-length arr) 1)))
+
+(val arr& [9 30 0 50 2030 34])
+(sort &arr (fun [a b ] (- a b)))
+
+-- (fun sort [arr& cmp]
+--   (fun swap [arr& i j]
+--     (val tmp (array-get arr i))
+--     (set &(array-get arr i) (array-get arr j))
+--     (set &(array-get arr j) tmp))
+--   (fun partition [arr& lo hi]
+--     (val pivot (array-get arr hi))
+--     (val i& (- lo 1))
+--     (iter-range lo hi
+--                 (fun [j]
+--                   -- TODO cannot capture [cmp] here
+--                   (if (< (cmp (array-get arr j) pivot) 0)
+--                     (do
+--                       (set &i (+ i 1))
+--                       (swap &arr i j)))))
+--     (val i (+ i 1))
+--     (swap &arr i hi)
+--     i)
+--   (fun quicksort [arr& lo hi]
+--     (if (or (not (< lo hi)) (< lo 0))
+--       ()
+--       (let [p (partition &arr lo hi)]
+--         (quicksort &arr lo (- p 1))
+--         (quicksort &arr (+ p 1) hi))))
+
+--   (quicksort &arr 0 (- (array-length arr) 1)))
+
+-- (val arr& [9 30 0 50 2030 34])
+-- (sort &arr (fun [a b ] (- a b)))
