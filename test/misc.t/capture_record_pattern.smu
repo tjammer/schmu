@@ -1,0 +1,28 @@
+(fun bind [res f]
+  (match res
+    ((#some r) (f r))
+    (#none #none)))
+
+(fun use [param thing]
+  (match param
+    ({bar foo} (bind (bar thing)
+                     -- [foo] must be captured here
+                     (fun [r] (bind (foo r)
+                     (fun [r] (print (fmt-str r)) (#some r))))))))
+
+(ignore
+ (use {(fun [i] (#some (+ i 1)))
+       (fun [i] (#some (+ i 2)))}
+      0))
+
+-- This here is just a test to make sure that we can alias normal,
+-- monomorphized functions
+(fun f [i]
+  (print (fmt-str "printing " i)))
+
+(fun print-poly [to-print]
+  (match f
+    (foo (foo to-print))))
+
+(print-poly 0)
+(print-poly 1.1)

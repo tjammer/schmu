@@ -5007,3 +5007,9 @@ Monomorphization in closures
   declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
+
+Use captured record-field functions
+  $ schmu capture_record_pattern.smu && ./capture_record_pattern
+  3
+  printing 0
+  printing 1.1

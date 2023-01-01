@@ -870,7 +870,14 @@ module Make (C : Core) (R : Recs) = struct
         | Var ({ path; loc; d; patterns; pltyp }, id) ->
             (* Bind the variable *)
             let ret_env =
-              Env.(add_value id { def_value with typ = pltyp } loc d.ret_env)
+              Env.(
+                add_value id
+                  (* The value here is not a function parameter. But like a parameter,
+                     it needs to be captured in closures and cannot be called directly,
+                     because it might be a record field. Marking it param works fine
+                     in this case *)
+                  { def_value with typ = pltyp; param = true }
+                  loc d.ret_env)
             in
             (* Continue with expression *)
             let d = { d with ret_env } in
