@@ -152,8 +152,9 @@ let add_external ext_name ~cname typ ~imported ~closure loc env =
         (* external things cannot be mutated right now *)
         let mutated = ref true in
         let tbl = scope.used in
-        Hashtbl.add tbl ext_name
-          { loc; used; imported = Option.is_some imported; mutated };
+        if Option.is_none imported then
+          Hashtbl.add tbl ext_name
+            { loc; used; imported = Option.is_some imported; mutated };
 
         ({ env with values = { scope with valmap } :: tl }, used)
   in
