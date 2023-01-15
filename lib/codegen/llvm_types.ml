@@ -69,3 +69,5 @@ let global_t =
   Llvm.(
     struct_type context
       [| i32_t; function_type unit_t [||] |> pointer_type; voidptr_t |])
+
+let dtor_t = Llvm.(function_type unit_t [| voidptr_t |])

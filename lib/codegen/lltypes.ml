@@ -21,6 +21,10 @@ module Make (A : Abi_intf.S) = struct
         "tuple_" ^ String.concat "_" ts
     | Tarray t -> "array_" ^ struct_name t
     | Traw_ptr t -> "raw_ptr_" ^ struct_name t
+    | Tfun (ps, r, _) ->
+        "fn_"
+        ^ String.concat "." (List.map (fun p -> struct_name p.pt) ps)
+        ^ "." ^ struct_name r
     | t -> string_of_type t
 
   (** For functions, when passed as parameter, we convert it to a closure ptr
@@ -62,7 +66,14 @@ module Make (A : Abi_intf.S) = struct
         if cl.clmut && not upward then
           get_lltype_def cl.cltyp |> Llvm.pointer_type
         else get_lltype_def cl.cltyp)
-      ({ clname = "rc"; clmut = false; cltyp = Tint; clparam = false } :: agg)
+      ({ clname = "rc"; clmut = false; cltyp = Tint; clparam = false }
+      :: {
+           clname = "dtor";
+           clmut = false;
+           cltyp = Traw_ptr Tu8;
+           clparam = false;
+         }
+      :: agg)
     |> Array.of_list |> Llvm.struct_type context
 
   and typeof_funclike = function

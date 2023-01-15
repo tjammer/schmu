@@ -82,6 +82,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     = "LlvmAddByvalAttr"
 
   let string_tbl = Strtbl.create 64
+  let dtor_tbl = Strtbl.create 64
   let in_init = ref false
 
   let dummy_fn_value =
@@ -314,6 +315,69 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
   let is_prealloc allocref =
     match !allocref with Monomorph_tree.Preallocated -> true | _ -> false
 
+  let assoc_contains_ref assoc =
+    List.fold_left (fun b c -> b || Arr.contains_refcount c.cltyp) false assoc
+
+  let dtor_name assoc =
+    let ts = List.map (fun cl -> struct_name cl.cltyp) assoc in
+    "dtor_" ^ String.concat "_" ts
+
+  let get_closure_item cl item_ptr upward =
+    let typ = cl.cltyp in
+    let value, lltyp =
+      match typ with
+      (* No need for C interop with closures *)
+      | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut && not upward ->
+          (* Mutable records are passed as pointers into the env *)
+          let value = Llvm.build_load item_ptr cl.clname builder in
+
+          (value, get_lltype_def typ |> Llvm.pointer_type)
+      | Trecord _ | Tvariant _ | Tfun _ ->
+          (* For records we want a ptr so that gep and memcpy work *)
+          (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
+      | _ when cl.clmut && upward ->
+          (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
+      | _ ->
+          let value = Llvm.build_load item_ptr cl.clname builder in
+          (value, get_lltype_def typ)
+    in
+    let kind = if cl.clmut then Ptr else default_kind typ in
+    { value; typ; lltyp; kind }
+
+  let get_dtor assoc_type assoc =
+    let name = dtor_name assoc in
+    match Strtbl.find_opt dtor_tbl name with
+    | Some f -> f
+    | None ->
+        (* Create dtor function *)
+        let curr_bb = Llvm.insertion_block builder in
+
+        let func = Llvm.declare_function name dtor_t the_module in
+        Llvm.set_linkage Llvm.Linkage.Internal func;
+        let bb = Llvm.append_block context "entry" func in
+        Llvm.position_at_end bb builder;
+
+        let p0 = Llvm.param func 0 in
+        let clsr_ptr =
+          Llvm.(build_bitcast p0 (pointer_type assoc_type)) "" builder
+        in
+        let f i cl =
+          let item_ptr = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
+          let upward = true in
+          (* Otherwise we wouldn't be here *)
+          let item = get_closure_item cl item_ptr upward in
+          if Arr.contains_refcount cl.cltyp then Arr.decr_refcount item;
+          i + 1
+        in
+        (* [2] as starting index, because [0] is ref count, and [1] is dtor *)
+        ignore (List.fold_left f 2 assoc);
+        ignore (Llvm.build_ret_void builder);
+
+        Llvm.position_at_end curr_bb builder;
+
+        Strtbl.add dtor_tbl name func;
+        func
+
   let gen_closure_obj param assoc func name allocref =
     let clsr_struct = get_prealloc !allocref param closure_t name in
 
@@ -346,6 +410,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
             failwith
               ("Internal Error: Cannot find closed variable: " ^ cl.clname)
       in
+      if upward then Arr.incr_refcount src;
       let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
       (match cl.cltyp with
       | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut && not upward ->
@@ -376,12 +441,25 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
                 ("clsr_" ^ name) builder
             else alloca param assoc_type ("clsr_" ^ name)
           in
-          (* [1] as starting index, because [0] is ref count *)
-          ignore (List.fold_left (store_closed_var clsr_ptr) 1 assoc);
+          (* [2] as starting index, because [0] is ref count, and [1] is dtor *)
+          ignore (List.fold_left (store_closed_var clsr_ptr) 2 assoc);
 
           (* Add ref count *)
           let rc_ptr = Llvm.build_struct_gep clsr_ptr 0 "rc" builder in
           ignore (Llvm.(build_store (const_int int_t refc) rc_ptr) builder);
+
+          (* Create dtor function if it does not exist yet *)
+          let dtor =
+            if assoc_contains_ref assoc && upward then
+              Llvm.build_bitcast
+                (get_dtor assoc_type assoc)
+                voidptr_t "" builder
+            else Llvm.(const_pointer_null voidptr_t)
+          in
+
+          (* Add dtor *)
+          let dtor_ptr = Llvm.build_struct_gep clsr_ptr 1 "dtor" builder in
+          ignore (Llvm.(build_store dtor dtor_ptr) builder);
 
           let clsr_casted =
             Llvm.build_bitcast clsr_ptr voidptr_t "env" builder
@@ -409,30 +487,11 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
         let add_closure (env, i) cl =
           let item_ptr = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
-          let typ = cl.cltyp in
-          let value, lltyp =
-            match typ with
-            (* No need for C interop with closures *)
-            | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut && not upward ->
-                (* Mutable records are passed as pointers into the env *)
-                let value = Llvm.build_load item_ptr cl.clname builder in
-
-                (value, get_lltype_def typ |> Llvm.pointer_type)
-            | Trecord _ | Tvariant _ | Tfun _ ->
-                (* For records we want a ptr so that gep and memcpy work *)
-                (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
-            | _ when cl.clmut && upward ->
-                (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
-            | _ ->
-                let value = Llvm.build_load item_ptr cl.clname builder in
-                (value, get_lltype_def typ)
-          in
-          let kind = if cl.clmut then Ptr else default_kind typ in
-          let item = { value; typ; lltyp; kind } in
+          let item = get_closure_item cl item_ptr upward in
           (Vars.add cl.clname item env, i + 1)
         in
-        (* [1] as starting index, because [0] is ref count *)
-        let env, _ = List.fold_left add_closure (vars, 1) assoc in
+        (* [2] as starting index, because [0] is ref count, and [1] is dtor *)
+        let env, _ = List.fold_left add_closure (vars, 2) assoc in
         env
 
   let store_or_copy ~src ~dst =

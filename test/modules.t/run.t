@@ -457,16 +457,18 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %__i.u-ag-g.u__prelude_inner_i.u-ai-i.u = alloca %closure, align 8
     %funptr5 = bitcast %closure* %__i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i8**
     store i8* bitcast (void (i64, i8*)* @schmu___i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
-    %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u = alloca { i64, i64*, %closure }, align 8
-    %arr1 = getelementptr inbounds { i64, i64*, %closure }, { i64, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u, i32 0, i32 1
+    %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u = alloca { i64, i8*, i64*, %closure }, align 8
+    %arr1 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u, i32 0, i32 2
     store i64* %arr, i64** %arr1, align 8
-    %f2 = getelementptr inbounds { i64, i64*, %closure }, { i64, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u, i32 0, i32 2
+    %f2 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u, i32 0, i32 3
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %rc6 = bitcast { i64, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i64*
+    %rc6 = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i64*
     store i64 2, i64* %rc6, align 8
-    %env = bitcast { i64, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i8*
+    %dtor = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u, i32 0, i32 1
+    store i8* null, i8** %dtor, align 8
+    %env = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u__prelude_inner_i.u-ai-i.u to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u__prelude_inner_i.u-ai-i.u, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     call void @schmu___i.u-ag-g.u__prelude_inner_i.u-ai-i.u(i64 0, i8* %env)
@@ -475,8 +477,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define void @schmu___i.u-ag-g.u__prelude_inner_i.u-ai-i.u(i64 %i, i8* %0) {
   entry:
-    %clsr = bitcast i8* %0 to { i64, i64*, %closure }*
-    %arr = getelementptr inbounds { i64, i64*, %closure }, { i64, i64*, %closure }* %clsr, i32 0, i32 1
+    %clsr = bitcast i8* %0 to { i64, i8*, i64*, %closure }*
+    %arr = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr, i32 0, i32 2
     %arr1 = load i64*, i64** %arr, align 8
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 8
@@ -499,11 +501,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %sunkaddr5 = getelementptr i8, i8* %sunkaddr4, i64 24
     %5 = bitcast i8* %sunkaddr5 to i64*
     %6 = load i64, i64* %5, align 8
-    %sunkaddr7 = getelementptr inbounds i8, i8* %0, i64 16
+    %sunkaddr7 = getelementptr inbounds i8, i8* %0, i64 24
     %7 = bitcast i8* %sunkaddr7 to i8**
     %loadtmp = load i8*, i8** %7, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %sunkaddr8 = getelementptr inbounds i8, i8* %0, i64 24
+    %sunkaddr8 = getelementptr inbounds i8, i8* %0, i64 32
     %8 = bitcast i8* %sunkaddr8 to i8**
     %loadtmp2 = load i8*, i8** %8, align 8
     tail call void %casttmp(i64 %6, i8* %loadtmp2)

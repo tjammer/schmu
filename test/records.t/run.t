@@ -535,12 +535,12 @@ Support function/closure fields
   
   nonnull:                                          ; preds = %entry
     %ref = bitcast i8* %3 to i64*
-    %ref13 = bitcast i64* %ref to i64*
-    %ref2 = load i64, i64* %ref13, align 8
+    %ref16 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref16, align 8
     %5 = icmp eq i64 %ref2, 1
     br i1 %5, label %free, label %decr
   
-  ret:                                              ; preds = %decr, %free, %entry
+  ret:                                              ; preds = %decr, %rly_free, %entry
     ret void
   
   decr:                                             ; preds = %nonnull
@@ -552,8 +552,23 @@ Support function/closure fields
   
   free:                                             ; preds = %nonnull
     %9 = bitcast i8* %3 to i64*
-    %10 = bitcast i64* %9 to i8*
-    call void @free(i8* %10)
+    %dtor3 = getelementptr i64, i64* %9, i64 1
+    %10 = bitcast i64* %dtor3 to i8**
+    %dtor4 = load i8*, i8** %10, align 8
+    %11 = icmp eq i8* %dtor4, null
+    br i1 %11, label %rly_free, label %dtor
+  
+  dtor:                                             ; preds = %free
+    %12 = bitcast i8* %3 to i64*
+    %dtor5 = bitcast i8* %dtor4 to void (i8*)*
+    %13 = bitcast i64* %12 to i8*
+    call void %dtor5(i8* %13)
+    br label %rly_free
+  
+  rly_free:                                         ; preds = %dtor, %free
+    %14 = bitcast i8* %3 to i64*
+    %15 = bitcast i64* %14 to i8*
+    call void @free(i8* %15)
     br label %ret
   }
   
@@ -696,12 +711,14 @@ A return of a field should not be preallocated
     %vector_loop__2 = alloca %closure, align 8
     %funptr4 = bitcast %closure* %vector_loop__2 to i8**
     store i8* bitcast (void (i64, i8*)* @schmu_vector_loop__2 to i8*), i8** %funptr4, align 8
-    %clsr_vector_loop__2 = alloca { i64, %mut_int_wrap* }, align 8
-    %test = getelementptr inbounds { i64, %mut_int_wrap* }, { i64, %mut_int_wrap* }* %clsr_vector_loop__2, i32 0, i32 1
+    %clsr_vector_loop__2 = alloca { i64, i8*, %mut_int_wrap* }, align 8
+    %test = getelementptr inbounds { i64, i8*, %mut_int_wrap* }, { i64, i8*, %mut_int_wrap* }* %clsr_vector_loop__2, i32 0, i32 2
     store %mut_int_wrap* %1, %mut_int_wrap** %test, align 8
-    %rc5 = bitcast { i64, %mut_int_wrap* }* %clsr_vector_loop__2 to i64*
+    %rc5 = bitcast { i64, i8*, %mut_int_wrap* }* %clsr_vector_loop__2 to i64*
     store i64 2, i64* %rc5, align 8
-    %env = bitcast { i64, %mut_int_wrap* }* %clsr_vector_loop__2 to i8*
+    %dtor = getelementptr inbounds { i64, i8*, %mut_int_wrap* }, { i64, i8*, %mut_int_wrap* }* %clsr_vector_loop__2, i32 0, i32 1
+    store i8* null, i8** %dtor, align 8
+    %env = bitcast { i64, i8*, %mut_int_wrap* }* %clsr_vector_loop__2 to i8*
     %envptr = getelementptr inbounds %closure, %closure* %vector_loop__2, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     call void @schmu_vector_loop__2(i64 0, i8* %env)
@@ -736,8 +753,8 @@ A return of a field should not be preallocated
   
   define void @schmu_vector_loop__2(i64 %i, i8* %0) {
   entry:
-    %clsr = bitcast i8* %0 to { i64, %mut_int_wrap* }*
-    %test = getelementptr inbounds { i64, %mut_int_wrap* }, { i64, %mut_int_wrap* }* %clsr, i32 0, i32 1
+    %clsr = bitcast i8* %0 to { i64, i8*, %mut_int_wrap* }*
+    %test = getelementptr inbounds { i64, i8*, %mut_int_wrap* }, { i64, i8*, %mut_int_wrap* }* %clsr, i32 0, i32 2
     %test1 = load %mut_int_wrap*, %mut_int_wrap** %test, align 8
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 8

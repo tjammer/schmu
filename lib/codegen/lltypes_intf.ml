@@ -10,4 +10,5 @@ module type S = sig
   val typeof_closure : closed list -> bool -> Llvm.lltype
   val get_lltype_param : bool -> typ -> Llvm.lltype
   val get_struct : typ -> Llvm.lltype
+  val struct_name : typ -> string
 end

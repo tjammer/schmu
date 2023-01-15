@@ -1,0 +1,7 @@
+(fun return-closure [name]
+  -- create object on heap
+  (val n (fmt-str "++" name))
+  (fun [] (print n )))
+
+(val f (return-closure "aoeu"))
+(f)

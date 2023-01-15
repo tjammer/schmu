@@ -373,7 +373,31 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
           ignore (free int_ptr)
       | Tfun _ ->
-          (* We can't yet recursively free closures. *)
+          (* Call dtor of closure if it exists *)
+          let start_bb = Llvm.insertion_block builder in
+          let parent = Llvm.block_parent start_bb in
+
+          let dtor_bb = Llvm.append_block context "dtor" parent in
+          let rly_free_bb = Llvm.append_block context "rly_free" parent in
+          let nullptr = Llvm.(voidptr_t |> const_pointer_null) in
+          let dtor_ptr = Llvm.build_gep int_ptr [| ci 1 |] "dtor" builder in
+          let dtor_ptr =
+            Llvm.build_bitcast dtor_ptr (Llvm.pointer_type voidptr_t) "" builder
+          in
+          let dtor_ptr = Llvm.build_load dtor_ptr "dtor" builder in
+
+          let cmp = Llvm.(build_icmp Icmp.Eq dtor_ptr nullptr "") builder in
+          ignore (Llvm.build_cond_br cmp rly_free_bb dtor_bb builder);
+
+          Llvm.position_at_end dtor_bb builder;
+          let dtor =
+            Llvm.(build_bitcast dtor_ptr (pointer_type dtor_t)) "dtor" builder
+          in
+          let arg = [| Llvm.build_bitcast int_ptr voidptr_t "" builder |] in
+          ignore (Llvm.build_call dtor arg "" builder);
+          ignore (Llvm.build_br rly_free_bb builder);
+
+          Llvm.position_at_end rly_free_bb builder;
           ignore (free int_ptr)
       | _ -> failwith "Internal Error: What kind of ref is this?");
 
