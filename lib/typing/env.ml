@@ -67,13 +67,19 @@ type ext = {
   closure : bool;
 }
 
+type scope_kind = Sfunc | Smodule | Sfunc_cont
+
 (* function scope *)
 type scope = {
   valmap : value Map.t;
   closed : Set.t ref;
   used : (string, usage) Hashtbl.t;
-      (* Another list for local scopes (like in if) *)
+  kind : scope_kind; (* Another list for local scopes (like in if) *)
 }
+
+(* Reference types make it easy to track usage. As a consequence we have to keep the scopes themselves
+   in another structure. Ie. the scope list. Labelset etc data is immutable and goes out of scope
+   naturally, so no extra handling is needed there. *)
 
 type t = {
   values : scope list;
@@ -85,6 +91,7 @@ type t = {
      For codegen, we also save the instances of generics. This
      probably should go into another pass once we add it *)
   externals : ext Etbl.t;
+      (* externals won't collide between scopes and modules, thus we keep a reference type here *)
   in_mut : int ref;
 }
 
@@ -101,12 +108,12 @@ let def_value =
     mut = false;
   }
 
+let empty_scope kind =
+  { valmap = Map.empty; closed = ref Set.empty; used = Hashtbl.create 64; kind }
+
 let empty () =
   {
-    values =
-      [
-        { valmap = Map.empty; closed = ref Set.empty; used = Hashtbl.create 64 };
-      ];
+    values = [ empty_scope Sfunc ];
     labels = Map.empty;
     labelsets = Lmap.empty;
     ctors = Map.empty;
@@ -224,10 +231,37 @@ let find_val_raw key env =
 
 let open_function env =
   (* Due to the ref, we have to create a new object every time *)
-  let empty =
-    [ { valmap = Map.empty; closed = ref Set.empty; used = Hashtbl.create 64 } ]
+  (match env.values with
+  | { kind = Sfunc | Sfunc_cont; _ } :: _ -> ()
+  | _ -> failwith "Internal Error: Module not finished in env (function)");
+  { env with values = empty_scope Sfunc :: env.values }
+
+let open_module env =
+  (match env.values with
+  | { kind = Sfunc | Sfunc_cont; _ } :: _ -> ()
+  | _ -> failwith "Internal Error: Module not finished in env");
+  { env with values = empty_scope Smodule :: env.values }
+
+let finish_module env =
+  (match env.values with
+  | { kind = Smodule; _ } :: _ -> ()
+  | _ -> failwith "Internal Error: Module not opened in env (cont)");
+  { env with values = empty_scope Sfunc_cont :: env.values }
+
+let close_module env =
+  (match env.values with
+  | { kind = Sfunc | Sfunc_cont; _ } :: _ -> ()
+  | _ -> failwith "Internal Error: Module not opened in env (close)");
+  let rec aux before = function
+    | { kind = Smodule; _ } :: tl ->
+        (* Found the module *)
+        (* TODO check for unused *)
+        List.rev_append before tl
+    | ({ kind = Sfunc | Sfunc_cont; _ } as scope) :: tl ->
+        aux (scope :: before) tl
+    | [] -> failwith "Internal Error: Empty scope on close_module"
   in
-  { env with values = empty @ env.values }
+  { env with values = aux [] env.values }
 
 let find_unused ret tbl =
   let ret =
@@ -321,7 +355,14 @@ let query_val_opt key env =
     | [] -> None
     | scope :: tl -> (
         match Map.find_opt key scope.valmap with
-        | None -> aux (scope_lvl + 1) tl
+        | None -> (
+            match scope.kind with
+            | Sfunc ->
+                (* Increase scope level normally *)
+                aux (scope_lvl + 1) tl
+            | Sfunc_cont | Smodule ->
+                (* We are still in the same functionlike scope *)
+                aux scope_lvl tl)
         | Some { typ; const; imported; global; mut; param = _ } ->
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
             (match scope_lvl with 0 -> () | _ -> add scope_lvl key env.values);
