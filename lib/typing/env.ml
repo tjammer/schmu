@@ -73,7 +73,8 @@ type scope_kind = Sfunc | Smodule | Sfunc_cont
 type scope = {
   valmap : value Map.t;
   closed : Set.t ref;
-  used : (string, usage) Hashtbl.t;
+  used : (Path.t, usage) Hashtbl.t;
+  (* used_types : (Path.t, Ast.loc * bool ref) Hashtbl.t; *)
   kind : scope_kind; (* Another list for local scopes (like in if) *)
 }
 
@@ -96,7 +97,7 @@ type t = {
 }
 
 type warn_kind = Unused | Unmutated
-type unused = (unit, (string * warn_kind * Ast.loc) list) result
+type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
 
 let def_value =
   {
@@ -134,7 +135,7 @@ let add_value key value loc env =
        let tbl = scope.used in
        (* If the value is not mutable, we set it to mutated to let the later check pass *)
        let mutated = if value.mut then ref false else ref true in
-       Hashtbl.add tbl key
+       Hashtbl.add tbl (Path.Pid key)
          {
            loc;
            used = ref false;
@@ -160,7 +161,7 @@ let add_external ext_name ~cname typ ~imported ~closure loc env =
         let mutated = ref true in
         let tbl = scope.used in
         if Option.is_none imported then
-          Hashtbl.add tbl ext_name
+          Hashtbl.add tbl (Path.Pid ext_name)
             { loc; used; imported = Option.is_some imported; mutated };
 
         ({ env with values = { scope with valmap } :: tl }, used)
@@ -367,7 +368,8 @@ let query_val_opt key env =
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
             (match scope_lvl with 0 -> () | _ -> add scope_lvl key env.values);
             (* Mark value used, if it's not imported *)
-            if Option.is_none imported then mark_used key scope.used env.in_mut;
+            if Option.is_none imported then
+              mark_used (Path.Pid key) scope.used env.in_mut;
             let imported = Option.map fst imported in
             Some { typ; const; global; mut; imported })
   in

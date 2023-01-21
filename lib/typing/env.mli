@@ -15,7 +15,7 @@ type value = {
 }
 
 type warn_kind = Unused | Unmutated
-type unused = (unit, (string * warn_kind * Ast.loc) list) result
+type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
 
 type return = {
   typ : typ;
@@ -77,9 +77,7 @@ val open_module : t -> t
 (** Doesn't actually open the module, but makes the env ready for matching the following adds to a module *)
 
 val finish_module : t -> t
-
 val close_module : t -> t
-
 val find_val : key -> t -> return
 val find_val_opt : key -> t -> return option
 

@@ -183,12 +183,15 @@ stmt:
 %inline sexp_let:
   | Val; sexp_decl; sexp_expr { Let($loc, $2, $3) }
 
-%inline sexp_decl:
-  | ident = ident; mut = boption(Ampersand)  { { loc = $loc; ident; mut; annot = None } }
+sexp_decl:
+  /* | ident = ident; mut = boption(Ampersand) { { loc = $loc; ident; mut; annot = None; kind = Did } } */
   | parens(sexp_decl_typed) { $1 }
+  | pattern = sexp_pattern; mut = boption(Ampersand)
+    { {loc = $loc; pattern; mut; annot = None} }
 
 %inline sexp_decl_typed:
-  | ident = ident; mut = boption(Ampersand); annot = sexp_type_expr { { loc = $loc; ident; mut; annot = Some annot } }
+  | id = ident; mut = boption(Ampersand); annot = sexp_type_expr
+    { { loc = $loc; pattern = Pvar (fst id, snd id); mut; annot = Some annot } }
 
 %inline sexp_fun:
   | Fun; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
@@ -338,7 +341,7 @@ let with_loc(x) :=
 
 %inline or_pattern:
   | Or; head = sexp_pattern; tail = nonempty_list(sexp_pattern)
-    { Por (head :: tail) }
+    { Por ($loc, (head :: tail)) }
 
 %inline record_item_pattern:
   | attr = attr; p = option(sexp_pattern) { fst attr, snd attr, p }

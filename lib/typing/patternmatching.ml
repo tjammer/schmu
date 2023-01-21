@@ -38,6 +38,8 @@ module type S = sig
     Ast.expr ->
     (Ast.loc * Ast.pattern * Ast.expr) list ->
     Typed_tree.typed_expr
+
+  val pattern_id : int -> Ast.pattern -> string * Ast.loc
 end
 
 let array_assoc_opt name arr =
@@ -145,14 +147,14 @@ module Tup = struct
     pltyp : typ;
   }
 
-  type ret =
-    | Var of payload * string
-    | Ctor of payload * ctor_param
-    | Lit_int of payload * int
-    | Lit_char of payload * char
+  type 'a ret =
+    | Var of 'a * string
+    | Ctor of 'a * ctor_param
+    | Lit_int of 'a * int
+    | Lit_char of 'a * char
     | Bare of pattern_data
-    | Record of record_field list * payload
-    | Tuple of tuple_field list * payload
+    | Record of record_field list * 'a
+    | Tuple of tuple_field list * 'a
 
   let choose_column ctors tl =
     (* Count wildcards and vars per column. They lead to duplicated branches *)
@@ -642,6 +644,11 @@ module Make (C : Core) (R : Recs) = struct
     in
     prod_rec [] l (fun acc l' -> l' :: acc) []
 
+  let add_ignore name value loc env =
+    let env = Env.(add_value name value loc env) in
+    ignore (Env.query_val_opt name env);
+    env
+
   let path_typ env p = Env.(find_val (expr_name p) env).typ
 
   let rec type_pattern env (path, pat) =
@@ -660,9 +667,8 @@ module Make (C : Core) (R : Recs) = struct
         match (ctor.ctyp, payload) with
         | Some typ, Some p ->
             let env =
-              Env.(add_value (expr_name path) { exprval with typ } loc env)
+              add_ignore (expr_name path) { exprval with typ } loc env
             in
-            ignore (Env.query_val_opt (expr_name path) env);
             (* Inherit ctor path, and specialize *)
             let lst = type_pattern env (path, p) in
             let f cpat =
@@ -694,12 +700,10 @@ module Make (C : Core) (R : Recs) = struct
             (fun i (tloc, pat) ->
               let path = i :: path in
               let env =
-                Env.(
-                  add_value (expr_name path)
-                    { exprval with typ = newvar () }
-                    loc env)
+                add_ignore (expr_name path)
+                  { exprval with typ = newvar () }
+                  loc env
               in
-              ignore (Env.query_val_opt (expr_name path) env);
               let tpats = type_pattern env (path, pat) in
               let fields =
                 List.map
@@ -741,12 +745,10 @@ module Make (C : Core) (R : Recs) = struct
             (fun (field, index, floc, name, pat) ->
               let path = index :: path in
               let env =
-                Env.(
-                  add_value (expr_name path)
-                    { exprval with typ = field.ftyp }
-                    loc env)
+                add_ignore (expr_name path)
+                  { exprval with typ = field.ftyp }
+                  loc env
               in
-              ignore (Env.query_val_opt (expr_name path) env);
               match pat with
               | None ->
                   [ { floc; name; index; iftyp = field.ftyp; fpat = None } ]
@@ -774,7 +776,7 @@ module Make (C : Core) (R : Recs) = struct
     | Plit_char (loc, c) ->
         unify (loc, "Char pattern has unexpected type:") (path_typ env path) Tu8;
         [ (path, { ptyp = Tu8; pat = Tp_char (loc, c) }) ]
-    | Por pats ->
+    | Por (_, pats) ->
         (* Don't add to pattern *)
         let pats = List.map (fun p -> type_pattern env (path, p)) pats in
         cartesian_product pats |> List.concat
@@ -783,9 +785,8 @@ module Make (C : Core) (R : Recs) = struct
     let path = [ 0 ] in
     let env, expr =
       let e = convert env expr in
-      (Env.(add_value (expr_name path) { exprval with typ = e.typ }) loc env, e)
+      (add_ignore (expr_name path) { exprval with typ = e.typ } loc env, e)
     in
-    ignore (Env.query_val_opt (expr_name path) env);
 
     let ret = newvar () in
 
@@ -830,7 +831,7 @@ module Make (C : Core) (R : Recs) = struct
     let expr = Bind (expr_name path, None, expr, cont) in
     { cont with expr }
 
-  and compile_matches env all_loc rows cases ret_typ =
+  and compile_matches env all_loc used_rows cases ret_typ =
     (* We build the decision tree here.
        [match_cases] splits cases into ones that match and ones that don't.
        [compile_matches] then generates the tree for the cases.
@@ -848,10 +849,8 @@ module Make (C : Core) (R : Recs) = struct
           let typ = (snd p).ptyp and expr = Variant_data (expr i) in
           let data = { typ; expr; attr = no_attr; loc } in
           let env =
-            Env.(
-              add_value (expr_name i) { exprval with typ = data.typ } loc env)
+            add_ignore (expr_name i) { exprval with typ = data.typ } loc env
           in
-          ignore (Env.query_val_opt (expr_name i) env);
           (data, env)
       | None -> (expr i, env)
     in
@@ -861,7 +860,7 @@ module Make (C : Core) (R : Recs) = struct
         match Tup.choose_next hd tl with
         | Bare d ->
             (* Mark row as used *)
-            rows := Row_set.remove { cnt = d.row; loc = d.loc } !rows;
+            used_rows := Row_set.remove { cnt = d.row; loc = d.loc } !used_rows;
 
             let ret = convert d.ret_env d.ret_expr in
 
@@ -882,7 +881,7 @@ module Make (C : Core) (R : Recs) = struct
             (* Continue with expression *)
             let d = { d with ret_env } in
             let cont =
-              compile_matches env loc rows ((patterns, d) :: tl) ret_typ
+              compile_matches env loc used_rows ((patterns, d) :: tl) ret_typ
             in
 
             let lhs = expr path in
@@ -894,7 +893,7 @@ module Make (C : Core) (R : Recs) = struct
             in
 
             let data, ifenv = ctorenv env param.cpat path loc in
-            let cont = compile_matches ifenv d.loc rows a ret_typ in
+            let cont = compile_matches ifenv d.loc used_rows a ret_typ in
             (* Make expr available in codegen *)
             let ifexpr =
               let id = expr_name path in
@@ -917,7 +916,7 @@ module Make (C : Core) (R : Recs) = struct
                   in
                   let cmp = gen_cmp loc index cind in
                   let if_ = { cont with expr = ifexpr } in
-                  let else_ = compile_matches env d.loc rows b ret_typ in
+                  let else_ = compile_matches env d.loc used_rows b ret_typ in
                   If (cmp, if_, else_)
             in
 
@@ -925,7 +924,7 @@ module Make (C : Core) (R : Recs) = struct
         | Lit_int ({ path; d; patterns; loc; _ }, i) ->
             let a, b = match_int (path, i) ((patterns, d) :: tl) [] [] in
 
-            let cont = compile_matches env d.loc rows a ret_typ in
+            let cont = compile_matches env d.loc used_rows a ret_typ in
 
             let expr =
               match b with
@@ -936,14 +935,14 @@ module Make (C : Core) (R : Recs) = struct
                     { typ = Tint; expr = Const (Int i); attr; loc }
                   in
                   let cmp = gen_cmp loc (expr path) cind in
-                  let else_ = compile_matches env d.loc rows b ret_typ in
+                  let else_ = compile_matches env d.loc used_rows b ret_typ in
                   If (cmp, cont, else_)
             in
             { typ = ret_typ; expr; attr = no_attr; loc }
         | Lit_char ({ path; d; patterns; loc; _ }, c) ->
             let a, b = match_char (path, c) ((patterns, d) :: tl) [] [] in
 
-            let cont = compile_matches env d.loc rows a ret_typ in
+            let cont = compile_matches env d.loc used_rows a ret_typ in
 
             let expr =
               match b with
@@ -955,7 +954,7 @@ module Make (C : Core) (R : Recs) = struct
                   in
                   (* i64 and u8 equal compare call the same llvm functions *)
                   let cmp = gen_cmp loc (expr path) cind in
-                  let else_ = compile_matches env d.loc rows b ret_typ in
+                  let else_ = compile_matches env d.loc used_rows b ret_typ in
                   If (cmp, cont, else_)
             in
             { typ = ret_typ; expr; attr = no_attr; loc }
@@ -964,14 +963,9 @@ module Make (C : Core) (R : Recs) = struct
               List.fold_left
                 (fun env field ->
                   let col = field.index :: path in
-                  let env =
-                    Env.(
-                      add_value (expr_name col)
-                        { exprval with typ = field.iftyp }
-                        loc env)
-                  in
-                  ignore (Env.query_val_opt (expr_name col) env);
-                  env)
+                  add_ignore (expr_name col)
+                    { exprval with typ = field.iftyp }
+                    loc env)
                 env fields
             in
 
@@ -981,7 +975,7 @@ module Make (C : Core) (R : Recs) = struct
             let tl = expand_records path tl [] in
 
             let ret =
-              compile_matches env loc rows ((patterns, d) :: tl) ret_typ
+              compile_matches env loc used_rows ((patterns, d) :: tl) ret_typ
             in
             let expr =
               List.fold_left
@@ -1003,14 +997,9 @@ module Make (C : Core) (R : Recs) = struct
               List.fold_left
                 (fun env pat ->
                   let col = pat.tindex :: path in
-                  let env =
-                    Env.(
-                      add_value (expr_name col)
-                        { exprval with typ = pat.ttyp }
-                        loc env)
-                  in
-                  ignore (Env.query_val_opt (expr_name col) env);
-                  env)
+                  add_ignore (expr_name col)
+                    { exprval with typ = pat.ttyp }
+                    loc env)
                 env fields
             in
 
@@ -1020,7 +1009,7 @@ module Make (C : Core) (R : Recs) = struct
             let tl = expand_tuples path tl [] in
 
             let ret =
-              compile_matches env loc rows ((patterns, d) :: tl) ret_typ
+              compile_matches env loc used_rows ((patterns, d) :: tl) ret_typ
             in
             let expr =
               List.fold_left
@@ -1162,4 +1151,19 @@ module Make (C : Core) (R : Recs) = struct
                We throw first to have a look TODO *)
             failwith "Internal Error: Maybe? Nested record?")
     | [] -> List.rev expanded
+
+  (* let decl_pick_next patterns = *)
+
+  (* let compile_decl *)
+
+  (* let convert_decl env pat = *)
+  (*   let typed = type_pattern env ([0], pat) in *)
+  (*   print_endline (String.concat "\n" (List.map (show_pathed_pattern) typed)); *)
+
+  let pattern_id i = function
+    | Ast.Pvar (loc, id) -> (id, loc)
+    | Pctor ((loc, _), _) | Ptup (loc, _) | Pwildcard loc | Precord (loc, _) ->
+        (expr_name [ i ], loc)
+    | Plit_int (loc, _) | Plit_char (loc, _) | Por (loc, _) ->
+        raise (Error (loc, "Unexpected pattern in declaration"))
 end

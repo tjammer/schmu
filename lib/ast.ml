@@ -1,4 +1,4 @@
-type loc = Lexing.position * Lexing.position
+type loc = (Lexing.position * Lexing.position[@opaque]) [@@deriving show]
 
 type bop =
   | Plus_i
@@ -31,12 +31,12 @@ type type_spec =
 
 and decl = {
   loc : loc;
-  ident : loc * string;
+  pattern : pattern;
   mut : bool;
   annot : type_spec option;
 }
 
-type func = {
+and func = {
   name : loc * string;
   params : decl list;
   return_annot : type_spec option;
@@ -78,7 +78,7 @@ and pattern =
   | Precord of loc * (loc * string * pattern option) list
   | Plit_int of loc * int
   | Plit_char of loc * char
-  | Por of pattern list
+  | Por of loc * pattern list
 
 and literal =
   | Int of int

@@ -75,7 +75,8 @@ let check_unused = function
           | Env.Unused -> "Unused"
           | Unmutated -> "Unmutated mutable"
         in
-        (Option.get !fmt_msg_fn) "warning" loc (warn_kind ^ " binding " ^ name)
+        (Option.get !fmt_msg_fn) "warning" loc
+          (warn_kind ^ " binding " ^ Path.show name)
         |> print_endline
       in
       List.iter err errors
@@ -272,7 +273,7 @@ let rec param_annots t =
 let param_annot annots i =
   if Array.length annots > i then Array.get annots i else None
 
-let handle_params env loc (params : Ast.decl list) ret =
+let handle_params env loc (params : Ast.decl list) pattern_id ret =
   (* return updated env with bindings for parameters and types of parameters *)
   let rec handle = function
     | Qvar _ as t -> (newvar (), t)
@@ -291,7 +292,8 @@ let handle_params env loc (params : Ast.decl list) ret =
   in
 
   List.fold_left_map
-    (fun env { Ast.loc; ident = idloc, id; mut; annot } ->
+    (fun (env, i) { Ast.loc; pattern; mut; annot } ->
+      let id, idloc = pattern_id i pattern in
       let type_id, qparams =
         match annot with
         | None ->
@@ -300,19 +302,20 @@ let handle_params env loc (params : Ast.decl list) ret =
         | Some annot -> handle (typeof_annot ~param:true env loc annot)
       in
       (* Might be const, but not important here *)
-      ( Env.add_value id
-          {
-            typ = type_id;
-            const = false;
-            param = true;
-            global = false;
-            imported = None;
-            mut;
-          }
-          idloc env,
+      ( ( Env.add_value id
+            {
+              typ = type_id;
+              const = false;
+              param = true;
+              global = false;
+              imported = None;
+              mut;
+            }
+            idloc env,
+          i + 1 ),
         ({ pt = type_id; pmut = mut }, { pt = qparams; pmut = mut }) ))
-    env params
-  |> fun (env, lst) ->
+    (env, 0) params
+  |> fun ((env, _), lst) ->
   let ids, qparams = List.split lst in
   let ret = Option.map (fun t -> typeof_annot env loc t) ret in
   (env, ids, qparams, ret)
@@ -473,10 +476,13 @@ module rec Core : sig
     Ast.func ->
     bool ->
     Env.t * (string * int option * abstraction)
+
+  val pattern_id : int -> Ast.pattern -> string * Ast.loc
 end = struct
   open Records
   open Patternmatch
 
+  let pattern_id = pattern_id
   let string_typ = Talias (Path.Pid "string", Tarray Tu8)
 
   let rec convert env expr = convert_annot env None expr
@@ -563,8 +569,8 @@ end = struct
 
         { t with typ = t_annot }
 
-  and convert_let ~global env loc { Ast.loc = _; ident = idloc, id; mut; annot }
-      block =
+  and convert_let ~global env loc { Ast.loc = _; pattern; mut; annot } block =
+    let id, idloc = pattern_id 0 pattern in
     let e1 = typeof_annot_decl env loc annot block in
     let const = e1.attr.const && not mut in
     ( Env.add_value id
@@ -576,7 +582,7 @@ end = struct
   and convert_let_e env loc decl expr cont =
     let env, lhs, rmut = convert_let ~global:false env loc decl expr in
     let cont = convert env cont in
-    let id = snd decl.ident in
+    let id, _ = pattern_id 0 decl.pattern in
     let uniq = if lhs.attr.const then uniq_name id else None in
     let expr = Let { id; uniq; rmut; lhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr; loc }
@@ -584,7 +590,9 @@ end = struct
   and convert_lambda env loc params body =
     let env = Env.open_function env in
     enter_level ();
-    let env, params_t, qparams, ret_annot = handle_params env loc params None in
+    let env, params_t, qparams, ret_annot =
+      handle_params env loc params pattern_id None
+    in
 
     let body = convert_block env body |> fst in
     leave_level ();
@@ -604,7 +612,11 @@ end = struct
         let qtyp = Tfun (qparams, ret, kind) in
         check_annot loc typ qtyp;
 
-        let nparams = List.map (fun (d : Ast.decl) -> snd d.ident) params in
+        let nparams =
+          List.mapi
+            (fun i (d : Ast.decl) -> fst (pattern_id i d.pattern))
+            params
+        in
         let func = { tparams; ret; kind } in
         let abs =
           { nparams; body = { body with typ = ret }; func; inline = false }
@@ -643,7 +655,7 @@ end = struct
     (* We duplicate some lambda code due to naming *)
     let env = Env.open_function env in
     let body_env, params_t, qparams, ret_annot =
-      handle_params env loc params return_annot
+      handle_params env loc params pattern_id return_annot
     in
 
     let body = convert_block body_env body |> fst in
@@ -679,7 +691,11 @@ end = struct
         let qtyp = Tfun (qparams, ret, kind) |> generalize in
         check_annot loc typ qtyp;
 
-        let nparams = List.map (fun (d : Ast.decl) -> snd d.ident) params in
+        let nparams =
+          List.mapi
+            (fun i (d : Ast.decl) -> fst (pattern_id i d.pattern))
+            params
+        in
         let func = { tparams; ret; kind } in
         let lambda =
           { nparams; body = { body with typ = ret }; func; inline }
@@ -949,7 +965,7 @@ end = struct
       | Let (loc, decl, block) :: tl ->
           let env, lhs, rmut = convert_let ~global:false env loc decl block in
           let cont, env = to_expr env old_type tl in
-          let id = snd decl.ident in
+          let id = fst (pattern_id 0 decl.pattern) in
           let uniq = if lhs.attr.const then uniq_name id else None in
           let expr = Let { id; uniq; rmut; lhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
@@ -1064,7 +1080,7 @@ let convert_prog env items modul =
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
         let env, lhs, _ = Core.convert_let ~global:true env loc decl block in
-        let id = snd decl.ident in
+        let id = fst (Core.pattern_id 0 decl.pattern) in
         let uniq = uniq_name id in
         (* Make string option out of int option for unique name *)
         let uniq_name =
