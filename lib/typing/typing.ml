@@ -468,7 +468,7 @@ module rec Core : sig
     Ast.loc ->
     Ast.decl ->
     Ast.expr ->
-    Env.t * typed_expr * bool
+    Env.t * string * typed_expr * bool
 
   val convert_function :
     Env.t ->
@@ -476,13 +476,10 @@ module rec Core : sig
     Ast.func ->
     bool ->
     Env.t * (string * int option * abstraction)
-
-  val pattern_id : int -> Ast.pattern -> string * Ast.loc
 end = struct
   open Records
   open Patternmatch
 
-  let pattern_id = pattern_id
   let string_typ = Talias (Path.Pid "string", Tarray Tu8)
 
   let rec convert env expr = convert_annot env None expr
@@ -569,20 +566,22 @@ end = struct
 
         { t with typ = t_annot }
 
-  and convert_let ~global env loc { Ast.loc = _; pattern; mut; annot } block =
-    let id, idloc = pattern_id 0 pattern in
-    let e1 = typeof_annot_decl env loc annot block in
+  and convert_let ~global env loc (decl : Ast.decl) block =
+    let id, idloc = pattern_id 0 decl.pattern in
+    let e1 = typeof_annot_decl env loc decl.annot block in
+    let mut = decl.mut in
     let const = e1.attr.const && not mut in
-    ( Env.add_value id
+    let env =
+      Env.add_value id
         { Env.def_value with typ = e1.typ; const; global; mut }
-        idloc env,
-      { e1 with attr = { global; const; mut } },
-      e1.attr.mut )
+        idloc env
+    in
+    let env, _ = convert_decl env [ decl ] in
+    (env, id, { e1 with attr = { global; const; mut } }, e1.attr.mut)
 
   and convert_let_e env loc decl expr cont =
-    let env, lhs, rmut = convert_let ~global:false env loc decl expr in
+    let env, id, lhs, rmut = convert_let ~global:false env loc decl expr in
     let cont = convert env cont in
-    let id, _ = pattern_id 0 decl.pattern in
     let uniq = if lhs.attr.const then uniq_name id else None in
     let expr = Let { id; uniq; rmut; lhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr; loc }
@@ -593,6 +592,8 @@ end = struct
     let env, params_t, qparams, ret_annot =
       handle_params env loc params pattern_id None
     in
+
+    let env, _ = convert_decl env params in
 
     let body = convert_block env body |> fst in
     leave_level ();
@@ -657,6 +658,8 @@ end = struct
     let body_env, params_t, qparams, ret_annot =
       handle_params env loc params pattern_id return_annot
     in
+
+    let body_env, _ = convert_decl body_env params in
 
     let body = convert_block body_env body |> fst in
     leave_level ();
@@ -963,9 +966,10 @@ end = struct
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, block) :: tl ->
-          let env, lhs, rmut = convert_let ~global:false env loc decl block in
+          let env, id, lhs, rmut =
+            convert_let ~global:false env loc decl block
+          in
           let cont, env = to_expr env old_type tl in
-          let id = fst (pattern_id 0 decl.pattern) in
           let uniq = if lhs.attr.const then uniq_name id else None in
           let expr = Let { id; uniq; rmut; lhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
@@ -1079,8 +1083,9 @@ let convert_prog env items modul =
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
-        let env, lhs, _ = Core.convert_let ~global:true env loc decl block in
-        let id = fst (Core.pattern_id 0 decl.pattern) in
+        let env, id, lhs, _ =
+          Core.convert_let ~global:true env loc decl block
+        in
         let uniq = uniq_name id in
         (* Make string option out of int option for unique name *)
         let uniq_name =

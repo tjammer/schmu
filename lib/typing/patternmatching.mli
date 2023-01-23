@@ -28,6 +28,9 @@ module type S = sig
     Typed_tree.typed_expr
 
   val pattern_id : int -> Ast.pattern -> string * Ast.loc
+
+  val convert_decl :
+    Env.t -> Ast.decl list -> Env.t * (string * Typed_tree.typed_expr) list
 end
 
 module Make (C : Core) (R : Recs) : S

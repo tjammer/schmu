@@ -40,6 +40,9 @@ module type S = sig
     Typed_tree.typed_expr
 
   val pattern_id : int -> Ast.pattern -> string * Ast.loc
+
+  val convert_decl :
+    Env.t -> Ast.decl list -> Env.t * (string * typed_expr) list
 end
 
 let array_assoc_opt name arr =
@@ -147,6 +150,7 @@ module Tup = struct
     pltyp : typ;
   }
 
+  (* TODO use payload *)
   type 'a ret =
     | Var of 'a * string
     | Ctor of 'a * ctor_param
@@ -570,7 +574,10 @@ module Make (C : Core) (R : Recs) = struct
       let rec inner = function
         | Trecord (_, _, rfields) -> rfields
         | Talias (_, t) | Tvar { contents = Link t } -> inner t
-        | _ -> failwith "Internal Error: How is this not a record?"
+        | t ->
+            raise
+              (Error
+                 (loc, "Record pattern has unexpected type " ^ string_of_type t))
       in
       inner t
     in
@@ -796,6 +803,7 @@ module Make (C : Core) (R : Recs) = struct
     let typed_cases =
       List.map
         (fun (_, p, ret_expr) ->
+          (* TODO use 2 params *)
           type_pattern env ([ 0 ], p)
           |> List.map (fun pat ->
                  incr exp_rows;
@@ -1152,18 +1160,103 @@ module Make (C : Core) (R : Recs) = struct
             failwith "Internal Error: Maybe? Nested record?")
     | [] -> List.rev expanded
 
-  (* let decl_pick_next patterns = *)
-
-  (* let compile_decl *)
-
-  (* let convert_decl env pat = *)
-  (*   let typed = type_pattern env ([0], pat) in *)
-  (*   print_endline (String.concat "\n" (List.map (show_pathed_pattern) typed)); *)
-
   let pattern_id i = function
     | Ast.Pvar (loc, id) -> (id, loc)
-    | Pctor ((loc, _), _) | Ptup (loc, _) | Pwildcard loc | Precord (loc, _) ->
-        (expr_name [ i ], loc)
-    | Plit_int (loc, _) | Plit_char (loc, _) | Por (loc, _) ->
+    | Ptup (loc, _) | Pwildcard loc | Precord (loc, _) -> (expr_name [ i ], loc)
+    | Pctor ((loc, _), _) | Plit_int (loc, _) | Plit_char (loc, _) | Por (loc, _)
+      ->
         raise (Error (loc, "Unexpected pattern in declaration"))
+
+  (* Magic value, see above *)
+  let expr env i loc = convert_var env loc (expr_name i)
+
+  let bind_pattern env loc i p =
+    let typed = type_pattern env ([ i ], p) in
+    let pts = List.map snd typed in
+    (match Exhaustiveness.is_exhaustive true [ pts ] with
+    | Ok () -> ()
+    | Error (_, cases) ->
+        let msg =
+          Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
+            (String.concat " | " cases)
+        in
+        raise (Error (loc, msg)));
+
+    let rec loop (env, binds) = function
+      | (path, pat) :: tl -> (
+          match pat.pat with
+          | Tp_record (loc, fields) ->
+              let env, nbinds =
+                List.fold_left_map
+                  (fun env f ->
+                    let col = f.index :: path in
+
+                    let expr = Field (expr env path f.floc, f.index) in
+                    let expr =
+                      { typ = f.iftyp; expr; attr = no_attr; loc = f.floc }
+                    in
+                    let id = expr_name col in
+
+                    ( add_ignore (expr_name col)
+                        { exprval with typ = f.iftyp }
+                        loc env,
+                      (id, expr) ))
+                  env fields
+              in
+              let pats = expand_record path fields tl in
+              loop (env, nbinds @ binds) pats
+          | Tp_tuple (loc, fields) ->
+              let env, nbinds =
+                List.fold_left_map
+                  (fun env f ->
+                    let col = f.tindex :: path in
+
+                    let expr = Field (expr env path f.tloc, f.tindex) in
+                    let expr =
+                      { typ = f.ttyp; expr; attr = no_attr; loc = f.tloc }
+                    in
+                    let id = expr_name col in
+
+                    ( add_ignore (expr_name col)
+                        { exprval with typ = f.ttyp }
+                        loc env,
+                      (id, expr) ))
+                  env fields
+              in
+              let pats = expand_tuple path fields tl in
+              loop (env, nbinds @ binds) pats
+          | Tp_var (loc, id) ->
+              let env =
+                Env.(add_value id { def_value with typ = pat.ptyp } loc env)
+              in
+              loop (env, (id, expr env path loc) :: binds) tl
+          | Tp_wildcard _ -> loop (env, binds) tl
+          | Tp_ctor _ | Tp_int _ | Tp_char _ ->
+              failwith
+                "Internal Error: Should have been filtered in [convert_decl]")
+      | [] -> (env, binds)
+    in
+    loop (env, []) typed
+
+  let convert_decl env pats =
+    let f (env, i, ret) decl =
+      match Ast.(decl.pattern) with
+      | Ast.Pvar _ -> (env, i + 1, ret)
+      | Pwildcard _ ->
+          (* expr_name was added before to env in [handle_param].
+             Make sure it's marked as used *)
+          ignore (Env.query_val_opt (expr_name [ i ]) env);
+          (env, i + 1, ret)
+      | (Ptup (loc, _) | Precord (loc, _)) as p ->
+          let env, binds = bind_pattern env loc i p in
+          (env, i + 1, binds)
+      | Pctor ((loc, _), _)
+      | Plit_int (loc, _)
+      | Plit_char (loc, _)
+      | Por (loc, _) ->
+          raise (Error (loc, "Unexpected pattern in declaration"))
+    in
+
+    let env, _, binds = List.fold_left f (env, 0, []) pats in
+    (env, binds)
 end

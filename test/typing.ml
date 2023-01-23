@@ -512,6 +512,33 @@ let test_tuple_access () = test "int" "(.0 {1 2.0})"
 let test_tuple_access_out_of_bound () =
   test_exn "Unbound field :2 on tuple of size 2" "(.2 {1 2.0})"
 
+let test_pattern_decl_var () = test "int" "(val a 123) a"
+let test_pattern_decl_wildcard () = test "int" "(val _ 123) 0"
+
+let test_pattern_decl_record () =
+  test "float" "(type foo {:i int :f float})(val {:i :f} {:i 12 :f 5.0}) f"
+
+let test_pattern_decl_record_wrong_field () =
+  test_exn "Unbound field :y on record foo"
+    "(type foo {:i int :f float})(val {:y :f} {:i 12 :f 5.0}) f"
+
+let test_pattern_decl_record_missing () =
+  test_exn "There are missing fields in record pattern, for instance :i"
+    "(type foo {:i int :f float})(val {:f} {:i 12 :f 5.0}) f"
+
+let test_pattern_decl_record_exhaust () =
+  test_exn "Pattern match is not exhaustive. Missing cases: "
+    "(type foo {:i int :f float})(val {:i 1 :f} {:i 12 :f 5.0}) f"
+
+let test_pattern_decl_tuple () = test "float" "(val {i f} {12 5.0}) f"
+
+let test_pattern_decl_tuple_missing () =
+  test_exn
+    "Tuple pattern has unexpected type: Wrong arity for tuple: Expected 3 but \
+     got 2"
+    "(type foo {:i int :f float})(val {x f} {12 5.0 20}) f"
+
+let test_pattern_decl_tuple_exhaust () = test_exn "" "(val {1 f} {12 5.0}) f"
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -688,5 +715,17 @@ let () =
           case "tuple" test_tuple;
           case "tuple access" test_tuple_access;
           case "tuple access out of bound" test_tuple_access_out_of_bound;
+        ] );
+      ( "pattern decl",
+        [
+          case "var" test_pattern_decl_var;
+          case "wildcard" test_pattern_decl_wildcard;
+          case "record" test_pattern_decl_record;
+          case "record wrong field" test_pattern_decl_record_wrong_field;
+          case "record missing" test_pattern_decl_record_missing;
+          case "record exhaust" test_pattern_decl_record_exhaust;
+          case "tuple" test_pattern_decl_tuple;
+          case "tuple missing" test_pattern_decl_tuple_missing;
+          case "tuple exhaust" test_pattern_decl_tuple_exhaust;
         ] );
     ]
