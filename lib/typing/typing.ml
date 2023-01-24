@@ -135,6 +135,11 @@ let rec subst_generic ~id typ = function
 and get_generic_ids = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
   | Tvar { contents = Link t } | Talias (_, t) -> get_generic_ids t
+  | Trecord (_, None, fs) ->
+      (* Tuples are not well behaved with generic paramaters. The parameter can
+         hide in the fields and are not propageted to out to the first field *)
+      Array.map (fun f -> f.ftyp) fs
+      |> Array.to_list |> List.map get_generic_ids |> List.concat
   | Trecord (ps, _, _) | Tvariant (ps, _, _) ->
       List.map get_generic_ids ps |> List.concat
   | Tarray t | Traw_ptr t -> get_generic_ids t
