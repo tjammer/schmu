@@ -538,7 +538,10 @@ let test_pattern_decl_tuple_missing () =
      got 2"
     "(type foo {:i int :f float})(val {x f} {12 5.0 20}) f"
 
-let test_pattern_decl_tuple_exhaust () = test_exn "" "(val {1 f} {12 5.0}) f"
+let test_pattern_decl_tuple_exhaust () =
+  test_exn "Pattern match is not exhaustive. Missing cases: "
+    "(val {1 f} {12 5.0}) f"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)

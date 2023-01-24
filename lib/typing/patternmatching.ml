@@ -150,15 +150,14 @@ module Tup = struct
     pltyp : typ;
   }
 
-  (* TODO use payload *)
-  type 'a ret =
-    | Var of 'a * string
-    | Ctor of 'a * ctor_param
-    | Lit_int of 'a * int
-    | Lit_char of 'a * char
+  type ret =
+    | Var of payload * string
+    | Ctor of payload * ctor_param
+    | Lit_int of payload * int
+    | Lit_char of payload * char
     | Bare of pattern_data
-    | Record of record_field list * 'a
-    | Tuple of tuple_field list * 'a
+    | Record of record_field list * payload
+    | Tuple of tuple_field list * payload
 
   let choose_column ctors tl =
     (* Count wildcards and vars per column. They lead to duplicated branches *)
@@ -479,6 +478,9 @@ module Exhaustiveness = struct
               fields
           in
           fields @ tl
+      | { pat = Tp_tuple (_, fields); _ } :: tl ->
+          let fields = List.map (fun f -> snd f.tpat) fields in
+          fields @ tl
       | p :: tl ->
           let fields =
             List.map (fun f -> wc_field (loc_of_pat p.pat) f.ftyp) fields
@@ -660,7 +662,7 @@ module Make (C : Core) (R : Recs) = struct
 
   let rec type_pattern env (path, pat) =
     (* This function got a little more complicated since we expand or-patterns
-       inplace. *)
+       inplace. Because of this, a list must be returned instead of a single pattern *)
     match pat with
     (* Convert pattern into typed patterns. By typechecking the pattern before
        building the decision tree, record patterns (which add new columns) can
