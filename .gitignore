@@ -5,4 +5,4 @@ _build
 a.out
 _opam
 .envrc
-shell.nix
+.direnv
