@@ -5061,3 +5061,9 @@ Use captured record-field functions
   3
   printing 0
   printing 1.1
+
+Allow patterns in decls
+  $ schmu pattern_decls.smu && ./pattern_decls
+  hello
+  20
+  30

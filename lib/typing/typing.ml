@@ -135,11 +135,6 @@ let rec subst_generic ~id typ = function
 and get_generic_ids = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
   | Tvar { contents = Link t } | Talias (_, t) -> get_generic_ids t
-  | Trecord (_, None, fs) ->
-      (* Tuples are not well behaved with generic paramaters. The parameter can
-         hide in the fields and are not propageted to out to the first field *)
-      Array.map (fun f -> f.ftyp) fs
-      |> Array.to_list |> List.map get_generic_ids |> List.concat
   | Trecord (ps, _, _) | Tvariant (ps, _, _) ->
       List.map get_generic_ids ps |> List.concat
   | Tarray t | Traw_ptr t -> get_generic_ids t
@@ -458,6 +453,8 @@ let rec builtins_hack callee args =
   | Let_e (__, _, _, cont) -> builtins_hack cont args
   | _ -> no_attr
 
+let fold_decl cont (id, e) = { cont with expr = Bind (id, None, e, cont) }
+
 module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
 
@@ -473,7 +470,7 @@ module rec Core : sig
     Ast.loc ->
     Ast.decl ->
     Ast.expr ->
-    Env.t * string * typed_expr * bool
+    Env.t * string * typed_expr * bool * (string * typed_expr) list
 
   val convert_function :
     Env.t ->
@@ -581,12 +578,16 @@ end = struct
         { Env.def_value with typ = e1.typ; const; global; mut }
         idloc env
     in
-    let env, _ = convert_decl env [ decl ] in
-    (env, id, { e1 with attr = { global; const; mut } }, e1.attr.mut)
+    let env, pat_exprs = convert_decl env [ decl ] in
+    let expr = { e1 with attr = { global; const; mut } } in
+    (env, id, expr, e1.attr.mut, pat_exprs)
 
   and convert_let_e env loc decl expr cont =
-    let env, id, lhs, rmut = convert_let ~global:false env loc decl expr in
+    let env, id, lhs, rmut, pats =
+      convert_let ~global:false env loc decl expr
+    in
     let cont = convert env cont in
+    let cont = List.fold_left fold_decl cont pats in
     let uniq = if lhs.attr.const then uniq_name id else None in
     let expr = Let { id; uniq; rmut; lhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr; loc }
@@ -598,9 +599,11 @@ end = struct
       handle_params env loc params pattern_id None
     in
 
-    let env, _ = convert_decl env params in
+    let env, param_exprs = convert_decl env params in
 
     let body = convert_block env body |> fst in
+    let body = List.fold_left fold_decl body param_exprs in
+
     leave_level ();
     let _, closed_vars, unused = Env.close_function env in
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
@@ -664,9 +667,10 @@ end = struct
       handle_params env loc params pattern_id return_annot
     in
 
-    let body_env, _ = convert_decl body_env params in
+    let body_env, param_exprs = convert_decl body_env params in
 
     let body = convert_block body_env body |> fst in
+    let body = List.fold_left fold_decl body param_exprs in
     leave_level ();
 
     let env, closed_vars, unused = Env.close_function env in
@@ -971,10 +975,11 @@ end = struct
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, block) :: tl ->
-          let env, id, lhs, rmut =
+          let env, id, lhs, rmut, pats =
             convert_let ~global:false env loc decl block
           in
           let cont, env = to_expr env old_type tl in
+          let cont = List.fold_left fold_decl cont pats in
           let uniq = if lhs.attr.const then uniq_name id else None in
           let expr = Let { id; uniq; rmut; lhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
@@ -1088,7 +1093,7 @@ let convert_prog env items modul =
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
-        let env, id, lhs, _ =
+        let env, id, lhs, _, pats =
           Core.convert_let ~global:true env loc decl block
         in
         let uniq = uniq_name id in
@@ -1099,7 +1104,14 @@ let convert_prog env items modul =
           | Some i -> Some (Module.unique_name id (Some i))
         in
         let m = Module.add_external lhs.typ id uniq_name ~closure:true m in
-        (old, env, Tl_let (id, uniq, lhs) :: items, m)
+        let expr =
+          let expr = Tl_let (id, uniq, lhs) in
+          match pats with
+          (* Maybe add pattern expressions *)
+          | [] -> [ expr ]
+          | ps -> List.map (fun (id, e) -> Tl_bind (id, e)) ps @ [ expr ]
+        in
+        (old, env, expr @ items, m)
     | Function (loc, func) ->
         let env, (name, unique, abs) =
           Core.convert_function env loc func false
@@ -1145,8 +1157,8 @@ let convert_prog env items modul =
   (snd !old, env, List.rev items, m)
 
 let rec catch_weak_vars = function
-  | Tl_let (_, _, e) -> catch_weak_expr Sset.empty e
-  | Tl_expr e -> catch_weak_expr Sset.empty e
+  | Tl_let (_, _, e) | Tl_bind (_, e) | Tl_expr e ->
+      catch_weak_expr Sset.empty e
   | Tl_function (_, _, abs) -> catch_weak_body Sset.empty abs
   | Tl_mutual_rec_decls _ -> ()
 
@@ -1257,7 +1269,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
 let typecheck (prog : Ast.prog) =
   let rec get_last_type = function
     | Tl_expr expr :: _ -> expr.typ
-    | (Tl_function _ | Tl_let _ | Tl_mutual_rec_decls _) :: tl ->
+    | (Tl_function _ | Tl_let _ | Tl_bind _ | Tl_mutual_rec_decls _) :: tl ->
         get_last_type tl
     | [] -> Tunit
   in

@@ -1597,6 +1597,12 @@ let morph_toplvl param items =
             return = param.ret;
           },
           func )
+    | Tl_bind (id, expr) :: tl ->
+        let p, e1, func = morph_expr { param with ret = false } expr in
+        let p, e2, func =
+          aux { p with vars = Vars.add id (Normal func) p.vars } tl
+        in
+        (p, { e2 with expr = Mbind (id, e1, e2) }, func)
     | Tl_mutual_rec_decls decls :: tl ->
         let p = List.fold_left rec_fs_to_env param decls in
         aux { p with ret = param.ret } tl

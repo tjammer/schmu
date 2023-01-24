@@ -12,6 +12,7 @@ and item =
   | Mext of typ * name * bool (* is closure *)
   | Mpoly_fun of Typed_tree.abstraction * string * int option
   | Mmutual_rec of (string * int option * typ) list
+(* TODO pattern binds *)
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.

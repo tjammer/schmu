@@ -1,0 +1,10 @@
+(fun hmm [{_ {x _}}]
+  (print x))
+
+(hmm {10 {"hello" 20.0}})
+
+(val {i _} {20 30.0})
+(print (fmt-str i))
+
+(let [{f _} {30.0 20}]
+  (print (fmt-str f)))

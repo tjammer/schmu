@@ -732,9 +732,14 @@ module Make (C : Core) (R : Recs) = struct
             pats
           |> Array.of_list
         in
+        let ps =
+          Array.to_list fields
+          |> List.filter_map (fun f ->
+                 if is_polymorphic f.ftyp then Some f.ftyp else None)
+        in
         unify
           (loc, "Tuple pattern has unexpected type:")
-          (Trecord ([], None, fields))
+          (Trecord (ps, None, fields))
           typ;
         cartesian_product pats
         |> List.map (fun pats ->
@@ -805,7 +810,6 @@ module Make (C : Core) (R : Recs) = struct
     let typed_cases =
       List.map
         (fun (_, p, ret_expr) ->
-          (* TODO use 2 params *)
           type_pattern env ([ 0 ], p)
           |> List.map (fun pat ->
                  incr exp_rows;
