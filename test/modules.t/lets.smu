@@ -1,11 +1,11 @@
-(val a 12)
+(def a 12)
 
 (external printf (fun cstr int unit))
 
-(fun generate_b [] 21)
+(defn generate_b [] 21)
 
-(val b (generate_b))
+(def b (generate_b))
 
-(val a 11)
+(def a 11)
 
 -- printf("hello from Lets\n"array-data, 0)

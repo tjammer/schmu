@@ -2,21 +2,21 @@
 
 (type bar {:start float :end float :nsegs int :margin float :y float :thick f32})
 
-(val height 720)
+(def height 720)
 
-(val world {:start 0.0
+(def world {:start 0.0
             :end 1280.0
             :nsegs 10
             :margin 0.1
             :y (*. (float_of_int height) 0.75)
             :thick 5.0f32})
 
-(fun get-seg
+(defn get-seg
   "Get segment [i] of [bar]"
   [bar]
   (ignore bar))
 
-(fun wrap-seg []
+(defn wrap-seg []
   (get-seg world))
 
 (wrap-seg)

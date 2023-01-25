@@ -4,24 +4,24 @@
 
 (type (gen_first 'a) {:only 'a :is bool})
 
-(fun print_bool [b]
+(defn print_bool [b]
   (if b (printi 1) (printi 0)))
 
-(fun first [any]
+(defn first [any]
   (printi (.first any)))
 
-(fun gen [any] (.gen any))
+(defn gen [any] (.gen any))
 
-(fun third [any]
+(defn third [any]
   (print_bool (.third any)))
 
-(fun only [any] (.only any))
+(defn only [any] (.only any))
 
-(fun is [any]
+(defn is [any]
   (print_bool (.is any)))
 
-(val int_t {:null 0 :first 700 :gen 20 :third true})
-(val f {:only 420 :is false})
+(def int_t {:null 0 :first 700 :gen 20 :third true})
+(def f {:only 420 :is false})
 
 (first int_t)
 (third int_t)

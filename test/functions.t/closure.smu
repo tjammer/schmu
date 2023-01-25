@@ -1,14 +1,14 @@
 (type capturable {:a& int})
-(val a {:a 10})
+(def a {:a 10})
 
-(fun capture_a []
+(defn capture_a []
   (+ (.a a) 2))
 
-(fun capture_a_wrapped []
+(defn capture_a_wrapped []
   -- empty function. In order for this to work, the closure
   -- needs to be propagated in env
-  (fun wrap []
-    (fun inner []
+  (defn wrap []
+    (defn inner []
       (+ (.a a) 2))
     (inner))
   (wrap))

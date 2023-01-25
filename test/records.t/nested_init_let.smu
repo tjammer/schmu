@@ -4,20 +4,20 @@
 
 (external printi (fun int unit))
 
-(fun record_with_laters []
-  (val x {:x 12})
+(defn record_with_laters []
+  (def x {:x 12})
   {:y x :z 15})
 
-(fun ctrl []
-  (val ret {:y {:x 17} :z 9})
-  (val a {:y {:x 1} :z 2})
+(defn ctrl []
+  (def ret {:y {:x 17} :z 9})
+  (def a {:y {:x 1} :z 2})
   ret)
 
-(val ys (record_with_laters))
+(def ys (record_with_laters))
 (printi (.z ys))
 (printi (.x (.y ys)))
 -- should print 17 and 9
-(val ctrl (ctrl))
+(def ctrl (ctrl))
 (printi (.x (.y ctrl)))
 (printi (.z ctrl))
 0

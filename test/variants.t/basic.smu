@@ -9,8 +9,8 @@
 
 (ignore #c)
 
-(fun wrap_clike [] #c)
+(defn wrap_clike [] #c)
 
-(fun wrap_option [] (#some "hello"))
+(defn wrap_option [] (#some "hello"))
 
 0

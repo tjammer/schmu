@@ -50,7 +50,7 @@ the syntax table, so `forward-word' works as expected.")
 
 (defconst schmu-macro-decl-forms '("defmacro" "defmacro-"))
 
-(defconst schmu-normal-function-decl-forms '("fun"))
+(defconst schmu-normal-function-decl-forms '("defn"))
 
 (defconst schmu-function-decl-forms
   `(,@schmu-normal-function-decl-forms ,@schmu-macro-decl-forms "varfn" "fn"))
@@ -108,7 +108,9 @@ the syntax table, so `forward-word' works as expected.")
     "->>"
     "do"
     "fun"
-    "val"
+    "def"
+    "defn"
+    "fn"
     "let"
     "type"
     "if"
@@ -359,7 +361,7 @@ STATE is the `parse-partial-sexp' state for that position."
         '((and  0)
           (defmacro defun)
           (defmacro- defun)
-          (fun defun)
+          (defn defun)
           (case 1)
           (cond 0)
           (do  0)

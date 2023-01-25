@@ -1,6 +1,6 @@
 (external printi (fun int unit))
 
-(fun foo [i]
+(defn foo [i]
   (if (< i 2)
     (printi (- i 1))
     (do

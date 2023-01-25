@@ -1,4 +1,4 @@
-(fun classify [thing]
+(defn classify [thing]
   (match thing
     ((#some _) 0)
     (#none 1)))

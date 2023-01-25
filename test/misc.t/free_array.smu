@@ -1,64 +1,64 @@
 (type foo {:x int})
 (type container {:index int :arr (array int)})
 
-(val x {:x 1})
+(def x {:x 1})
 
 -- These are freed at the end of the program
-(val arr ["hey" "young" "world"])
-(val arr [x {:x 2} {:x 3}])
+(def arr ["hey" "young" "world"])
+(def arr [x {:x 2} {:x 3}])
 
 -- Arr is only alive inside the function and should be freed there
-(fun arr_inside []
-  (val arr& [x {:x 2} {:x 3}])
+(defn arr_inside []
+  (def arr& [x {:x 2} {:x 3}])
   -- Make sure we can call realloc
   (array-push &arr {:x 12}))
 
 -- Arr is returned and should be freed in its parent scope
-(fun make_arr []
-  (val x {:x 23})
+(defn make_arr []
+  (def x {:x 23})
   [x {:x 2} {:x 3}])
 
-(fun inner_parent_scope []
+(defn inner_parent_scope []
   (ignore (make_arr)))
 
 -- Arr can be propagated out through multiple function calls
-(fun nest_fns []
+(defn nest_fns []
   (make_arr))
 
-(fun make_nested_arr []
-  (val nested [[0 1] [2 3]])
+(defn make_nested_arr []
+  (def nested [[0 1] [2 3]])
   nested)
 
-(fun nest_allocs []
+(defn nest_allocs []
   (make_nested_arr))
 
 -- Should be freed locally
-(fun nest_local []
+(defn nest_local []
   (ignore [[0 1] [2 3]]))
 
 -- Records of arrtors
-(fun record_of_arrs []
-  (val arr [1 2])
+(defn record_of_arrs []
+  (def arr [1 2])
   {:index 1 :arr})
 
 -- Arrtors of records (of arrtors)
-(fun arr_of_records []
+(defn arr_of_records []
   [(record_of_arrs) (record_of_arrs)])
 
-(val arr (make_arr))
+(def arr (make_arr))
 (arr_inside)
 (inner_parent_scope)
-(val normal (nest_fns))
+(def normal (nest_fns))
 
-(val nested& [[0 1] [2 3]])
+(def nested& [[0 1] [2 3]])
 (array-push &nested [4 5])
-(val nested (make_nested_arr))
-(val nested (nest_allocs))
+(def nested (make_nested_arr))
+(def nested (nest_allocs))
 (nest_local)
 
-(val rec_of_arr {:index 12 :arr [1 2]})
-(val rec_of_arr (record_of_arrs))
+(def rec_of_arr {:index 12 :arr [1 2]})
+(def rec_of_arr (record_of_arrs))
 
-(val arr_of_rec [(record_of_arrs) (record_of_arrs)])
-(val arr_of_rec (arr_of_records))
+(def arr_of_rec [(record_of_arrs) (record_of_arrs)])
+(def arr_of_rec (arr_of_records))
 0

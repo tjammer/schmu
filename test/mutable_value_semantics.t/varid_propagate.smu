@@ -1,4 +1,4 @@
-(fun f1 [acc v]
+(defn f1 [acc v]
   (let [tmp& acc]
     (array-push &tmp v)
     tmp))

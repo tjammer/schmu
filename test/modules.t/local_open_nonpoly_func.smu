@@ -1,6 +1,6 @@
 (external printf (fun cstr int unit))
 
-(fun doo [a]
+(defn doo [a]
 -- TODO open modules for patterns
    nonpoly_func/(match a
     (#left  (add_ints 0 5))

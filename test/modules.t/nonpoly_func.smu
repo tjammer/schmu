@@ -1,5 +1,5 @@
 (type either (#left #right))
 
-(fun add_ints [a b]
-  (val c 10)
+(defn add_ints [a b]
+  (def c 10)
   (+ a b))

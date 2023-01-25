@@ -1,22 +1,22 @@
 (type c {:c& int})
 
-(fun counter []
-  (val cnt& 0)
-  (fun [] (set &cnt (+ cnt 1))
+(defn counter []
+  (def cnt& 0)
+  (fn [] (set &cnt (+ cnt 1))
     cnt))
 
-(val c (counter))
+(def c (counter))
 (print (fmt-str (c)))
 (print (fmt-str (c)))
 (print (fmt-str (c)))
 (print (fmt-str (c)))
 
-(fun counter []
-  (val cnt& {:c 0})
-  (fun [] (set &cnt {:c (+ (.c cnt) 1)})
+(defn counter []
+  (def cnt& {:c 0})
+  (fn [] (set &cnt {:c (+ (.c cnt) 1)})
     cnt))
 
-(val c (counter))
+(def c (counter))
 (print (fmt-str (.c (c))))
 (print (fmt-str (.c (c))))
 (print (fmt-str (.c (c))))

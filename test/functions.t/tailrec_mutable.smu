@@ -1,19 +1,19 @@
 (type bref {:a& bool})
 
-(fun mut-bref [i rf&]
+(defn mut-bref [i rf&]
   (if (> i 0)
     (set &(.a rf) true)
     (mut-bref (+ i 1) &rf)))
 
-(fun dontmut-bref [i rf&]
+(defn dontmut-bref [i rf&]
   (if (> i 0)
     (set &(.a rf) false)
     -- introduce a new object, so the old one won't get mutated
     (do
-      (val rf2& {:a true})
+      (def rf2& {:a true})
       (dontmut-bref (+ i 1) &rf2))))
 
-(val rf& {:a false})
+(def rf& {:a false})
 
 (mut-bref 0 &rf)
 
@@ -28,7 +28,7 @@
 -- same for int record type
 (type r {:a& int})
 
-(fun mod-rec [r& i]
+(defn mod-rec [r& i]
   (if (= i 2)
     (set &(.a r) i)
     (mod-rec &r (+ i 1))))
@@ -38,7 +38,7 @@
   (print (fmt-str (.a ar))))
 
 -- array
-(fun push-twice [a& i]
+(defn push-twice [a& i]
   (if (= i 2)
     ()
     (do
@@ -50,7 +50,7 @@
   (print (fmt-str (array-length a))))
 
 -- int
-(fun change-int [i& j]
+(defn change-int [i& j]
   (if (= j 100)
     (set &i j)
     (change-int &i (+ j 1))))
@@ -60,7 +60,7 @@
   (print (fmt-str i)))
 
 -- create bogus objects to tidy up
-(fun test [a& i]
+(defn test [a& i]
   (cond
     ((= i 2) (let [b& [10]]
                (test &b (+ i 1))))

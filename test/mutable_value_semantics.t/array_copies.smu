@@ -1,10 +1,10 @@
-(fun print-0th [a]
+(defn print-0th [a]
   (print (fmt-str (array-get a 0))))
 
-(val a& [10])
-(val b a)
-(val c& a)
-(val d b)
+(def a& [10])
+(def b a)
+(def c& a)
+(def d b)
 
 -- (set &(array-get a 0) 12)
 (array-set &a 0 12)
@@ -17,12 +17,12 @@
 (print-0th d)
 
 
-(fun in-fun []
+(defn in-fun []
   (print "in fun")
-  (val a& [10])
-  (val b a)
-  (val c& a)
-  (val d b)
+  (def a& [10])
+  (def b a)
+  (def c& a)
+  (def d b)
 
   -- (set &(array-get a 0) 12)
   (array-set &a 0 12)

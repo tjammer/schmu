@@ -1,14 +1,14 @@
 (type f {:a& int})
-(fun modify [r&]
+(defn modify [r&]
   (set &(.a r) 30))
 
-(fun mod2 [a&]
+(defn mod2 [a&]
   (array-push &a 20))
 
-(val a& {:a 20})
+(def a& {:a 20})
 (modify &a)
 (print (fmt-str (.a a)))
 
-(val b& [10])
+(def b& [10])
 (mod2 &b)
 (print (fmt-str (array-length b)))

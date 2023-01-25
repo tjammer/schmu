@@ -2,23 +2,23 @@
 (type (success 'a) {:rem view :mtch 'a})
 (type (parse-result 'a) ((#ok (success 'a)) (#err view)))
 
-(fun view-of-string [str]
+(defn view-of-string [str]
   {:buf str :start 0 :len (array-length str)})
 
-(fun ch [buf]
+(defn ch [buf]
   (if (char-equal (array-get buf.buf buf.start) ' ')
     (#ok {:mtch {@buf :len 1}
           :rem {@buf :start (+ 1 buf.start) :len (- buf.len 1)}})
     (#err buf)))
 
-(fun many-count [buf]
-  (fun aux [rem cnt]
+(defn many-count [buf]
+  (defn aux [rem cnt]
     (match (ch rem)
       ((#ok r) (aux r.rem (+ cnt 1)))
       ((#err _) (#ok {:rem :mtch cnt}))))
   (aux buf 0))
 
-(val s (fmt-str " "))
+(def s (fmt-str " "))
 
-(val inp (view-of-string s))
+(def inp (view-of-string s))
 (ignore (many-count inp))

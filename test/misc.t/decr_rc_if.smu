@@ -1,4 +1,4 @@
-(fun ret-true [] true)
+(defn ret-true [] true)
 
 (ignore
  (if (ret-true)

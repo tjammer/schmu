@@ -1,2 +1,2 @@
-(val arr [print])
+(def arr [print])
 (ignore arr)

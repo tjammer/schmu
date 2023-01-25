@@ -2,13 +2,13 @@
 
 -- pipe into normal function
 (-> 1
-    (fun [x] (+ x 1))
+    (fn [x] (+ x 1))
     printi)
 
 -- pipe into ctor
 (-> 1
     #some
-    (fun [x]
+    (fn [x]
       (match x
         ((#some a) a)
         (#none 0)))

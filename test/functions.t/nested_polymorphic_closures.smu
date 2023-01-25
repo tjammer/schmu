@@ -1,21 +1,21 @@
 (external printi (fun int unit))
 
-(fun array-iter [arr f]
-  (fun inner_cls_both [i]
+(defn array-iter [arr f]
+  (defn inner_cls_both [i]
     (if (= i (array-length arr))
       ()
       (do
         (f (array-get arr i))
         (inner_cls_both (+ i 1)))))
 
-  (fun inner_cls_arr [i f]
+  (defn inner_cls_arr [i f]
     (if (= i (array-length arr))
       ()
       (do
         (f (array-get arr i))
         (inner_cls_arr (+ i 1) f))))
 
-  (fun inner_cls_f [i arr]
+  (defn inner_cls_f [i arr]
     (if (= i (array-length arr))
       ()
       (do
@@ -26,11 +26,11 @@
   (inner_cls_arr 0 f)
   (inner_cls_f 0 arr))
 
-(val arr& [])
+(def arr& [])
 (array-push &arr 1)
 (array-push &arr 2)
 (array-push &arr 3)
 (array-push &arr 4)
 (array-push &arr 5)
 
-(array-iter arr (fun [x] (printi (* x 2))))
+(array-iter arr (fn [x] (printi (* x 2))))

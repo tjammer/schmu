@@ -1,2 +1,2 @@
 (open nameclash_mod)
-(fun specific_name [] ())
+(defn specific_name [] ())

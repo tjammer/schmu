@@ -30,11 +30,11 @@
 
 (type foo {:a int :b inner})
 
-(fun inner [] {:a 3})
+(defn inner [] {:a 3})
 
-(val f (fun [x] x))
+(def f (fn [x] x))
 
-(val a {:a 0 :b (inner)})
+(def a {:a 0 :b (inner)})
 
 (printi (.a (.b a)))
 (printi (.a (.a (.inner (f {:x 17 :inner {:a {:a 124}}})))))

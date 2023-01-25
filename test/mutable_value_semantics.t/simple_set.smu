@@ -1,17 +1,17 @@
-(val b& 10)
+(def b& 10)
 (set &b 14)
 (print (fmt-str b))
 
-(fun hmm []
-  (val b& 10)
+(defn hmm []
+  (def b& 10)
   (set &b 15)
   b)
 (print (fmt-str (hmm)))
 
-(val a& [[10] [20]])
-(val b a)
+(def a& [[10] [20]])
+(def b a)
 (ignore b)
 
-(val c [30])
+(def c [30])
 (set &(array-get a 0) c)
 (set &(array-get a 0) [10])

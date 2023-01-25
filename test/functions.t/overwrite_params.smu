@@ -1,12 +1,12 @@
 (external printi (fun int unit))
 
-(val b 2)
+(def b 2)
 
-(fun one [] 1)
+(defn one [] 1)
 
-(fun two [] b)
+(defn two [] b)
 
-(fun add [a b]
+(defn add [a b]
   -- b should be a function, not captured value
   (+ (a) (b)))
 

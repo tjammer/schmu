@@ -2,7 +2,7 @@
 (type foo {:a int})
 (external mutate_foo (fun foo& unit))
 
-(val i& 0)
+(def i& 0)
 (mutate_int &i)
-(val foo& {:a 0})
+(def foo& {:a 0})
 (mutate_foo &foo)

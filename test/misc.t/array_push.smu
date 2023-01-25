@@ -1,5 +1,5 @@
-(val a& [10 20])
-(val b a)
+(def a& [10 20])
+(def b a)
 
 (array-push &a 30)
 
@@ -7,9 +7,9 @@
 (print (fmt-str (array-length b)))
 
 
-(fun in-fun []
-  (val a& [10 20])
-  (val b a)
+(defn in-fun []
+  (def a& [10 20])
+  (def b a)
 
   (array-push &a 30)
 
@@ -18,8 +18,8 @@
 
 (in-fun)
 
-(val nested& [[0 1] [2 3]])
-(val a [4 5])
+(def nested& [[0 1] [2 3]])
+(def a [4 5])
 (array-push &nested a)
 (array-set &nested 1 a)
 (set &(array-get nested 1) a)

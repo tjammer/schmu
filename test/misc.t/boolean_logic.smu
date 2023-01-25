@@ -1,8 +1,8 @@
-(fun true_ []
+(defn true_ []
   (print "true")
   true)
 
-(fun false_ []
+(defn false_ []
   (print "false")
   false)
 

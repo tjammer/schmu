@@ -4,5 +4,5 @@
 
 (->> (classify (#some 3)) (printf (array-data "%i\n")))
 (->> (classify (#some 3.0)) (printf (array-data "%i\n")))
-(val (none (option float)) #none)
+(def (none (option float)) #none)
 (->> (classify none) (printf (array-data "%i\n")))

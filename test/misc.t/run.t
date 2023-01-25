@@ -66,43 +66,43 @@ Allocate vectors on the heap and free them. Check with valgrind whenever somethi
 Also mutable fields and 'realloc' builtin
   $ schmu --dump-llvm stub.o free_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_array
   free_array.smu:7:6: warning: Unused binding arr
-  7 | (val arr ["hey" "young" "world"])
+  7 | (def arr ["hey" "young" "world"])
            ^^^
   
   free_array.smu:8:6: warning: Unused binding arr
-  8 | (val arr [x {:x 2} {:x 3}])
+  8 | (def arr [x {:x 2} {:x 3}])
            ^^^
   
   free_array.smu:48:6: warning: Unused binding arr
-  48 | (val arr (make_arr))
+  48 | (def arr (make_arr))
             ^^^
   
   free_array.smu:51:6: warning: Unused binding normal
-  51 | (val normal (nest_fns))
+  51 | (def normal (nest_fns))
             ^^^^^^
   
   free_array.smu:55:6: warning: Unused binding nested
-  55 | (val nested (make_nested_arr))
+  55 | (def nested (make_nested_arr))
             ^^^^^^
   
   free_array.smu:56:6: warning: Unused binding nested
-  56 | (val nested (nest_allocs))
+  56 | (def nested (nest_allocs))
             ^^^^^^
   
   free_array.smu:59:6: warning: Unused binding rec_of_arr
-  59 | (val rec_of_arr {:index 12 :arr [1 2]})
+  59 | (def rec_of_arr {:index 12 :arr [1 2]})
             ^^^^^^^^^^
   
   free_array.smu:60:6: warning: Unused binding rec_of_arr
-  60 | (val rec_of_arr (record_of_arrs))
+  60 | (def rec_of_arr (record_of_arrs))
             ^^^^^^^^^^
   
   free_array.smu:62:6: warning: Unused binding arr_of_rec
-  62 | (val arr_of_rec [(record_of_arrs) (record_of_arrs)])
+  62 | (def arr_of_rec [(record_of_arrs) (record_of_arrs)])
             ^^^^^^^^^^
   
   free_array.smu:63:6: warning: Unused binding arr_of_rec
-  63 | (val arr_of_rec (arr_of_records))
+  63 | (def arr_of_rec (arr_of_records))
             ^^^^^^^^^^
   
   ; ModuleID = 'context'
@@ -1555,19 +1555,19 @@ Test 'and', 'or' and 'not'
 
   $ schmu --dump-llvm stub.o unary_minus.smu && ./unary_minus
   unary_minus.smu:1:6: warning: Unused binding a
-  1 | (val a -1.0)
+  1 | (def a -1.0)
            ^
   
   unary_minus.smu:2:6: warning: Unused binding a
-  2 | (val a -.1.0)
+  2 | (def a -.1.0)
            ^
   
   unary_minus.smu:3:6: warning: Unused binding a
-  3 | (val a - 1.0)
+  3 | (def a - 1.0)
            ^
   
   unary_minus.smu:4:6: warning: Unused binding a
-  4 | (val a -. 1.0)
+  4 | (def a -. 1.0)
            ^
   
   ; ModuleID = 'context'
@@ -1590,31 +1590,31 @@ Test 'and', 'or' and 'not'
 Test unused binding warning
   $ schmu unused.smu stub.o
   unused.smu:2:6: warning: Unused binding unused1
-  2 | (val unused1 0)
+  2 | (def unused1 0)
            ^^^^^^^
   
   unused.smu:5:6: warning: Unused binding unused2
-  5 | (val unused2 0)
+  5 | (def unused2 0)
            ^^^^^^^
   
-  unused.smu:12:6: warning: Unused binding use_unused3
-  12 | (fun use_unused3 []
-            ^^^^^^^^^^^
+  unused.smu:12:7: warning: Unused binding use_unused3
+  12 | (defn use_unused3 []
+             ^^^^^^^^^^^
   
   unused.smu:19:11: warning: Unused binding unused4
-  19 |      (val unused4 0)
+  19 |      (def unused4 0)
                  ^^^^^^^
   
   unused.smu:23:11: warning: Unused binding unused5
-  23 |      (val unused5 0)
+  23 |      (def unused5 0)
                  ^^^^^^^
   
   unused.smu:38:13: warning: Unused binding usedlater
-  38 |        (val usedlater 0)
+  38 |        (def usedlater 0)
                    ^^^^^^^^^
   
   unused.smu:52:13: warning: Unused binding usedlater
-  52 |        (val usedlater 0)
+  52 |        (def usedlater 0)
                    ^^^^^^^^^
   
 Allow declaring a c function with a different name
@@ -1852,9 +1852,9 @@ Tailcall loops
 
 Make sure an if returns either Const or Const_ptr, but in a consistent way
   $ schmu -c --dump-llvm regression_issue_30.smu
-  regression_issue_30.smu:8:6: warning: Unused binding calc_acc
-  8 | (fun calc_acc [vel]
-           ^^^^^^^^
+  regression_issue_30.smu:8:7: warning: Unused binding calc_acc
+  8 | (defn calc_acc [vel]
+            ^^^^^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"

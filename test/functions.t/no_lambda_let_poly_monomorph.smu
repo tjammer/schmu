@@ -2,6 +2,6 @@
 
 (type t {:x int})
 -- A polymorphic anonymous function which can not be resolved in the backend (yet)
-(val f (if true (fun [x] x) (fun [x] x)))
+(def f (if true (fn [x] x) (fn [x] x)))
 
 (printi (.x (f {:x 17})))

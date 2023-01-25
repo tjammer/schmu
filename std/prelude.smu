@@ -5,13 +5,13 @@
 
 (external puts (fun cstr unit))
 
-(fun print [str] (puts (array-data str)))
+(defn print [str] (puts (array-data str)))
 
-(fun string-len [str] (array-length str))
+(defn string-len [str] (array-length str))
 
 -- array
-(fun array-iter [arr f]
-  (fun inner [i]
+(defn array-iter [arr f]
+  (defn inner [i]
     (if (= i (array-length arr))
       ()
       (do
@@ -19,8 +19,8 @@
         (inner (+ i 1)))))
   (inner 0))
 
-(fun array-iteri [arr f]
-  (fun inner [i]
+(defn array-iteri [arr f]
+  (defn inner [i]
     (if (= i (array-length arr))
       ()
       (do
@@ -28,31 +28,31 @@
         (inner (+ i 1)))))
   (inner 0))
 
-(fun array-fold [arr f init]
-  (fun inner [i acc&]
+(defn array-fold [arr f init]
+  (defn inner [i acc&]
     (if (= i (array-length arr))
       acc
       (do
         (set &acc (f acc (array-get arr i)))
         (inner (+ i 1) &acc))))
-  (val acc& init)
+  (def acc& init)
   (inner 0 &acc))
 
-(fun array-foldi [arr f init]
-  (fun inner [i acc&]
+(defn array-foldi [arr f init]
+  (defn inner [i acc&]
     (if (= i (array-length arr))
       acc
       (do
         (set &acc (f i acc (array-get arr i)))
         (inner (+ i 1) &acc))))
-  (val acc& init)
+  (def acc& init)
   (inner 0 &acc))
 
-(fun array-map [arr f]
-  (val ret& (__unsafe_array_create (array-length arr)))
+(defn array-map [arr f]
+  (def ret& (__unsafe_array_create (array-length arr)))
   (set &(array-length ret) 0)
   -- TODO array-reserve
-  (fun inner [i]
+  (defn inner [i]
     (if (= i (array-length arr))
       ret
       (do
@@ -60,8 +60,8 @@
         (inner (+ i 1)))))
   (inner 0))
 
-(fun iter-range [from to f]
-  (fun inner [i]
+(defn iter-range [from to f]
+  (defn inner [i]
     (if (= i to)
       ()
       (do (f i) (inner (+ i 1)))))
@@ -71,4 +71,4 @@
 (type (option 'a) ((#some 'a) #none))
 
 -- char
-(fun char-equal [a b] (= (u8_to_int a) (u8_to_int b)))
+(defn char-equal [a b] (= (u8_to_int a) (u8_to_int b)))

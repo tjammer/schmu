@@ -1,8 +1,8 @@
-(fun one [] 1)
+(defn one [] 1)
 
-(fun add [(a int) (b int)] (+ a b))
+(defn add [(a int) (b int)] (+ a b))
 
-(fun doiflesselse
+(defn doiflesselse
   [(a int) (b int) (greater int) (less int)]
   (if (< a b)
       less

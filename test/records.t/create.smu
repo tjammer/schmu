@@ -2,7 +2,7 @@
 
 (type foo {:x int :y int})
 
-(fun create_record [x y]
+(defn create_record [x y]
   {:x :y})
 
 (printi (.x (create_record 8 0)))

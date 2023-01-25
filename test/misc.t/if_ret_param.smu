@@ -1,7 +1,7 @@
-(val s "/")
+(def s "/")
 
-(fun times [limit f]
-  (fun inner [i]
+(defn times [limit f]
+  (defn inner [i]
     (if (= i limit)
       ()
       (do
@@ -9,7 +9,7 @@
         (inner (+ i 1)))))
   (inner 0))
 
-(fun test [value]
+(defn test [value]
   (ignore (if true
             value
             (fmt-str "/" value))))

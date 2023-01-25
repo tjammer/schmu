@@ -1,17 +1,17 @@
 (type foo {:a& int})
 
-(val f {:a 0})
-(val fst& f)
-(val snd fst)
+(def f {:a 0})
+(def fst& f)
+(def snd fst)
 (set &(.a fst) 1)
 (print (fmt-str (.a fst)))
 (print (fmt-str (.a f)))
 (print (fmt-str (.a snd)))
 
-(fun new-fun []
-  (val f {:a 0})
-  (val fst& f)
-  (val snd fst)
+(defn new-fun []
+  (def f {:a 0})
+  (def fst& f)
+  (def snd fst)
   (set &(.a fst) 1)
   (print (fmt-str (.a fst)))
   (print (fmt-str (.a f)))

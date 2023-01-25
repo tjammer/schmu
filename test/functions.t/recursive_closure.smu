@@ -1,8 +1,8 @@
 (external printi (fun int unit))
 
-(val outer 10)
+(def outer 10)
 
-(fun loop [i]
+(defn loop [i]
   -- we capture outer here
   (if (< i outer)
     (do

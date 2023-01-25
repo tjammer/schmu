@@ -1,12 +1,12 @@
-(fun test []
-  (val (ret (array int)) [])
-  (fun inner [i]
+(defn test []
+  (def (ret (array int)) [])
+  (defn inner [i]
     (ignore i)
     ret)
-  (val io (inner 10))
+  (def io (inner 10))
   (ignore io)
   ret)
 
 
-(val a (test))
+(def a (test))
 (ignore a)

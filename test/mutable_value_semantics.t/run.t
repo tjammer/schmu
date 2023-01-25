@@ -334,16 +334,16 @@ Test simple setting of mutable variables
 
 Warn on unneeded mutable bindings
   $ schmu unneeded_mut.smu
-  unneeded_mut.smu:1:18: warning: Unmutated mutable binding a
-  1 | (fun do_nothing [a&]
-                       ^
+  unneeded_mut.smu:1:19: warning: Unmutated mutable binding a
+  1 | (defn do_nothing [a&]
+                        ^
   
-  unneeded_mut.smu:1:6: warning: Unused binding do_nothing
-  1 | (fun do_nothing [a&]
-           ^^^^^^^^^^
+  unneeded_mut.smu:1:7: warning: Unused binding do_nothing
+  1 | (defn do_nothing [a&]
+            ^^^^^^^^^^
   
   unneeded_mut.smu:7:6: warning: Unmutated mutable binding b
-  7 | (val b& 0)
+  7 | (def b& 0)
            ^
   
 Use mutable values as ptrs to C code

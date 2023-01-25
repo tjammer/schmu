@@ -2,12 +2,12 @@
 
 (type state {:cnt int :next (fun int int)})
 
-(val state {:cnt 0 :next (fun [x] (+ x 1))})
+(def state {:cnt 0 :next (fn [x] (+ x 1))})
 
-(fun advance [state]
+(defn advance [state]
   {:cnt ((.next state) (.cnt state)) :next (.next state)})
 
-(fun ten_times [state]
+(defn ten_times [state]
   (if (< (.cnt state) 10)
     (do
       (printi (.cnt state))

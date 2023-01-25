@@ -1,10 +1,10 @@
 (type arrec {:a& (array int)})
 
-(val a& {:a [10]})
-(val b a)
+(def a& {:a [10]})
+(def b a)
 (array-set &(.a a) 0 12)
 
-(fun print-thing [a]
+(defn print-thing [a]
   (print (fmt-str (array-get (.a a) 0))))
 
 (print-thing a)
@@ -12,9 +12,9 @@
 
 (print "in fun")
 
-(fun in-fun []
-  (val a& {:a [10]})
-  (val b a)
+(defn in-fun []
+  (def a& {:a [10]})
+  (def b a)
   (array-set &(.a a) 0 12)
 
   (print-thing a)

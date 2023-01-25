@@ -2,9 +2,9 @@
 
 (type foo {:x int :y int})
 
-(val foo {:x 12 :y 14})
+(def foo {:x 12 :y 14})
 
-(fun print_foo []
+(defn print_foo []
   (printi (.x foo))
   (printi (.y foo)))
 

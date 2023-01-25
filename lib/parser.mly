@@ -83,8 +83,10 @@
 %token Else
 %token Cond
 %token Eof
+%token Def
+%token Defn
+%token Fn
 %token Fun
-%token Val
 %token Let
 %token Quote
 %token Match
@@ -181,7 +183,7 @@ stmt:
   | parens(sexp_rec) { $1}
 
 %inline sexp_let:
-  | Val; sexp_decl; sexp_expr { Let($loc, $2, $3) }
+  | Def; sexp_decl; sexp_expr { Let($loc, $2, $3) }
 
 sexp_decl:
   /* | ident = ident; mut = boption(Ampersand) { { loc = $loc; ident; mut; annot = None; kind = Did } } */
@@ -194,7 +196,7 @@ sexp_decl:
     { { loc = $loc; pattern = Pvar (fst id, snd id); mut; annot = Some annot } }
 
 %inline sexp_fun:
-  | Fun; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
+  | Defn; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
     { ($loc, { name; params; return_annot = None; body; attr }) }
 
 %inline attr:
@@ -278,7 +280,7 @@ sexp_cond:
   | else_ = option(parens(cond_else)) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
-  | Fun; params = maybe_bracks(list(sexp_decl)); body = list(stmt)
+  | Fn; params = maybe_bracks(list(sexp_decl)); body = list(stmt)
     { Lambda ($loc, params, body) }
 
 %inline sexp_field_set:

@@ -15,54 +15,54 @@ let test_exn msg src =
        failwith "Expected an exception"
      with Typed_tree.Error (_, msg) -> msg)
 
-let test_const_int () = test "int" "(val a 1) a"
-let test_const_neg_int () = test "int" "(val a -1) a"
+let test_const_int () = test "int" "(def a 1) a"
+let test_const_neg_int () = test "int" "(def a -1) a"
 
 let test_const_neg_int_wrong () =
   test_exn "Unary -: Expected types int or float but got type bool"
-    "(val a -true) a"
+    "(def a -true) a"
 
-let test_const_neg_int2 () = test "int" "(val a - 1) a"
-let test_const_float () = test "float" "(val a 1.0) a"
-let test_const_neg_float () = test "float" "(val a -1.0) a"
+let test_const_neg_int2 () = test "int" "(def a - 1) a"
+let test_const_float () = test "float" "(def a 1.0) a"
+let test_const_neg_float () = test "float" "(def a -1.0) a"
 
 let test_const_neg_float_wrong () =
-  test_exn "Unary -.: Expected type float but got type bool" "(val a -.true) a"
+  test_exn "Unary -.: Expected type float but got type bool" "(def a -.true) a"
 
-let test_const_neg_float2 () = test "float" "(val a -.1.0) a"
-let test_const_bool () = test "bool" "(val a true) a"
-let test_const_u8 () = test "u8" "(val a 123u8) a"
-let test_const_i32 () = test "i32" "(val a 123i32) a"
-let test_const_neg_i32 () = test "i32" "(val a -123i32) a"
-let test_const_f32 () = test "f32" "(val a 1.0f32) a"
-let test_const_neg_f32 () = test "f32" "(val a -1.0f32) a"
-let test_hint_int () = test "int" "(val (a int) 1) a"
-let test_func_id () = test "(fun 'a 'a)" "(fun (a) a)"
-let test_func_id_hint () = test "(fun int int)" "(fun ((a int)) a)"
-let test_func_int () = test "(fun int int)" "(fun (a) (+ a 1))"
-let test_func_bool () = test "(fun bool int)" "(fun (a) (if a 1  1))"
+let test_const_neg_float2 () = test "float" "(def a -.1.0) a"
+let test_const_bool () = test "bool" "(def a true) a"
+let test_const_u8 () = test "u8" "(def a 123u8) a"
+let test_const_i32 () = test "i32" "(def a 123i32) a"
+let test_const_neg_i32 () = test "i32" "(def a -123i32) a"
+let test_const_f32 () = test "f32" "(def a 1.0f32) a"
+let test_const_neg_f32 () = test "f32" "(def a -1.0f32) a"
+let test_hint_int () = test "int" "(def (a int) 1) a"
+let test_func_id () = test "(fun 'a 'a)" "(fn (a) a)"
+let test_func_id_hint () = test "(fun int int)" "(fn ((a int)) a)"
+let test_func_int () = test "(fun int int)" "(fn (a) (+ a 1))"
+let test_func_bool () = test "(fun bool int)" "(fn (a) (if a 1  1))"
 
 let test_func_external () =
   test "(fun int unit)" "(external func (fun int unit)) func"
 
 let test_func_1st_class () =
-  test "(fun (fun int 'a) int 'a)" "(fun (func (arg int)) (func arg))"
+  test "(fun (fun int 'a) int 'a)" "(fn (func (arg int)) (func arg))"
 
 let test_func_1st_hint () =
-  test "(fun (fun int unit) int unit)" "(fun [(f (fun int unit)) arg] (f arg))"
+  test "(fun (fun int unit) int unit)" "(fn [(f (fun int unit)) arg] (f arg))"
 
 let test_func_1st_stay_general () =
   test "(fun 'a (fun 'a 'b) 'b)"
-    "(fun foo [x f] (f x)) (fun add1 [x] (+ x 1)) (val a (foo 1 add1)) (fun \
-     boolean [(x bool)] x) (val b (foo true boolean)) foo"
+    "(defn foo [x f] (f x)) (defn add1 [x] (+ x 1)) (def a (foo 1 add1)) (defn \
+     boolean [(x bool)] x) (def b (foo true boolean)) foo"
 
 let test_func_recursive_if () =
   test "(fun int unit)"
-    "(external ext (fun unit unit)) (fun foo [i] (if (< i 2) (ext)  (foo (- i \
+    "(external ext (fun unit unit)) (defn foo [i] (if (< i 2) (ext)  (foo (- i \
      1)))) foo"
 
 let test_func_generic_return () =
-  test "int" "(fun apply [f x] (f x)) (fun add1 [x] (+ x 1)) (apply add1 1)"
+  test "int" "(defn apply [f x] (f x)) (defn add1 [x] (+ x 1)) (apply add1 1)"
 
 let test_record_clear () = test "t" "(type t { :x int :y int }) { :x 2 :y 2 }"
 
@@ -77,7 +77,7 @@ let test_record_reorder () = test "t" "(type t {:x int :y int}) { :y 10 :x 2 }"
 let test_record_create_if () = test "t" "(type t {:x int}) { :x (if true 1 0) }"
 
 let test_record_create_return () =
-  test "t" "(type t {:x int}) (fun a [] 10) { :x (a) }"
+  test "t" "(type t {:x int}) (defn a [] 10) { :x (a) }"
 
 let test_record_wrong_type () =
   test_exn "In record expression: Expected type int but got type bool"
@@ -88,10 +88,10 @@ let test_record_wrong_choose () =
     "(type t1 {:x int :y int}) (type t2 {:x int :z int}) {:x 2 :y true}"
 
 let test_record_field_simple () =
-  test "int" "(type t {:x int}) (val a {:x 10}) (.x a)"
+  test "int" "(type t {:x int}) (def a {:x 10}) (.x a)"
 
 let test_record_field_infer () =
-  test "(fun t int)" "(type t {:x int}) (fun (a) (.x a))"
+  test "(fun t int)" "(type t {:x int}) (fn (a) (.x a))"
 
 let test_record_same_field_infer () =
   test "a" "(type a { :x int }) (type b { :x int :y int }) { :x 12 }"
@@ -108,75 +108,75 @@ let test_record_nested_field_generic () =
 
 let test_record_field_no_record () =
   test_exn "Field access of record t: Expected type t but got type int"
-    "(type t {:x int}) (val a 10) (.x a)"
+    "(type t {:x int}) (def a 10) (.x a)"
 
 let test_record_field_wrong_record () =
   test_exn "Application: Expected type (fun t1 int) but got type (fun t2 'a)"
-    "(type t1 {:x int}) (type t2 {:y int}) (fun foo (a) (.x a)) (val b {:y \
+    "(type t1 {:x int}) (type t2 {:y int}) (defn foo (a) (.x a)) (def b {:y \
      10}) (foo b)"
 
 let test_record_update () =
-  test "a" "(type a {:x int :y int}) (val a {:x 10 :y 20}) {@a :y 30}"
+  test "a" "(type a {:x int :y int}) (def a {:x 10 :y 20}) {@a :y 30}"
 
 let test_record_update_poly_same () =
-  test "(a int)" "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) {@a :x 20}"
+  test "(a int)" "(type (a 'a) {:x 'a :y int}) (def a {:x 10 :y 20}) {@a :x 20}"
 
 let test_record_update_poly_change () =
   test "(a float)"
-    "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) {@a :x 20.0}"
+    "(type (a 'a) {:x 'a :y int}) (def a {:x 10 :y 20}) {@a :x 20.0}"
 
 let test_record_update_useless () =
   test_exn "All fields are explicitely updated. Record update is useless"
-    "(type a {:x int :y int}) (val a {:x 10 :y 20}) {@a :y 30 :x 10}"
+    "(type a {:x int :y int}) (def a {:x 10 :y 20}) {@a :y 30 :x 10}"
 
 let test_record_update_expr () =
   test "a" "(type a {:x int :y int}) {@{:x 10 :y 20} :y 30}"
 
 let test_record_update_wrong_field () =
   test_exn "Unbound field :z on a"
-    "(type (a 'a) {:x 'a :y int}) (val a {:x 10 :y 20}) {@a :z 20}"
+    "(type (a 'a) {:x 'a :y int}) (def a {:x 10 :y 20}) {@a :z 20}"
 
-let test_annot_concrete () = test "(fun int bool)" "(fun foo (x) (< x 3)) foo"
+let test_annot_concrete () = test "(fun int bool)" "(defn foo (x) (< x 3)) foo"
 
 let test_annot_concrete_fail () =
   test_exn
     "Var annotation: Expected type (fun bool int) but got type (fun int bool)"
-    "(val (foo (fun bool int)) (fun (x) (< x 3))) foo"
+    "(def (foo (fun bool int)) (fn (x) (< x 3))) foo"
 
-let test_annot_mix () = test "(fun 'a 'a)" "(fun pass [(x 'b)] x) pass"
+let test_annot_mix () = test "(fun 'a 'a)" "(defn pass [(x 'b)] x) pass"
 
 let test_annot_mix_fail () =
   test_exn "Var annotation: Expected type (fun 'b int) but got type (fun 'b 'b)"
-    "(val (pass (fun 'b int)) (fun (x) x)) pass"
+    "(def (pass (fun 'b int)) (fn (x) x)) pass"
 
-let test_annot_generic () = test "(fun 'a 'a)" "(fun pass [(x 'b)] x) pass"
+let test_annot_generic () = test "(fun 'a 'a)" "(defn pass [(x 'b)] x) pass"
 
 let test_annot_generic_fail () =
   test_exn "Var annotation: Expected type (fun 'a 'b) but got type (fun 'a 'a)"
-    "(val (pass (fun 'a 'b)) (fun (x) x)) pass"
+    "(def (pass (fun 'a 'b)) (fn (x) x)) pass"
 
 let test_annot_generic_mut () =
-  test "(fun 'a& 'a)" "(fun pass [(x& 'b)] x) pass"
+  test "(fun 'a& 'a)" "(defn pass [(x& 'b)] x) pass"
 
 let test_annot_fun_mut_param () =
   test "(fun int& unit)"
-    "(external f (fun int& unit)) (val (a (fun int& unit)) f) a"
+    "(external f (fun int& unit)) (def (a (fun int& unit)) f) a"
 
 let test_annot_generic_fun_mut_param () =
   test "(fun 'a& unit)"
-    "(external f (fun 'a& unit)) (val (a (fun 'a& unit)) f) a"
+    "(external f (fun 'a& unit)) (def (a (fun 'a& unit)) f) a"
 
 let test_annot_record_simple () =
-  test "a" "(type a { :x int }) (type b { :x int }) (val (a a) { :x 12 }) a"
+  test "a" "(type a { :x int }) (type b { :x int }) (def (a a) { :x 12 }) a"
 
 let test_annot_record_generic () =
   test "(a bool)"
-    "(type (a 'a) { :x 'a }) (type b { :x int }) (val (a (a bool)) { :x true \
+    "(type (a 'a) { :x 'a }) (type b { :x int }) (def (a (a bool)) { :x true \
      }) a"
 
 let test_annot_record_generic_multiple () =
   test_exn "Type a expects 2 type parameters"
-    "(type (a 'a 'b) { :x 'a :y 'b }) (val (a a) { :x true }) a"
+    "(type (a 'a 'b) { :x 'a :y 'b }) (def (a a) { :x true }) a"
 
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
@@ -185,69 +185,69 @@ let test_sequence_fail () =
   test_exn
     "Left expression in sequence must be of type unit: Expected type unit but \
      got type int"
-    "(fun add1 (x) (+ x 1)) (add1 20) (+ 1 1)"
+    "(defn add1 (x) (+ x 1)) (add1 20) (+ 1 1)"
 
 let test_para_instantiate () =
   test "(foo int)"
-    "(type (foo 'a) { :first int :gen 'a }) (val foo { :first 10 :gen 20 }) foo"
+    "(type (foo 'a) { :first int :gen 'a }) (def foo { :first 10 :gen 20 }) foo"
 
 let test_para_gen_fun () =
   test "(fun (foo 'a) int)"
-    "(type (foo 'a) { :gen 'a :second int }) (fun get (foo) (.second foo)) get"
+    "(type (foo 'a) { :gen 'a :second int }) (defn get (foo) (.second foo)) get"
 
 let test_para_gen_return () =
   test "(fun (foo 'a) 'a)"
-    "(type (foo 'a) { :gen 'a }) (fun get (foo) (.gen foo)) get"
+    "(type (foo 'a) { :gen 'a }) (defn get (foo) (.gen foo)) get"
 
 let test_para_multiple () =
   test "bool"
-    "(type (foo 'a) { :gen 'a }) (fun get (foo) (.gen foo)) (val a { :gen 12 \
-     }) (val (b int) (get a)) (val c { :gen false }) (get c)"
+    "(type (foo 'a) { :gen 'a }) (defn get (foo) (.gen foo)) (def a { :gen 12 \
+     }) (def (b int) (get a)) (def c { :gen false }) (get c)"
 
 let test_para_instance_func () =
   test "(fun (foo int) int)"
-    "(type (foo 'a) { :gen 'a }) (fun use (foo) (+ (.gen foo) 17)) (val foo { \
+    "(type (foo 'a) { :gen 'a }) (defn use (foo) (+ (.gen foo) 17)) (def foo { \
      :gen 17 }) use"
 
 let test_para_instance_wrong_func () =
   test_exn "In record expression: Expected type int but got type bool"
-    "(type (foo 'a) { :gen 'a }) (fun use (foo) (+ (.gen foo) 17)) (val foo { \
+    "(type (foo 'a) { :gen 'a }) (defn use (foo) (+ (.gen foo) 17)) (def foo { \
      :gen 17 }) (use { :gen true } )"
 
-let test_pipe_head_single () = test "int" "(fun add1 (a) (+ a 1)) (-> 10 add1)"
+let test_pipe_head_single () = test "int" "(defn add1 (a) (+ a 1)) (-> 10 add1)"
 
 let test_pipe_head_single_call () =
-  test "int" "(fun add1 (a) (+ a 1)) (-> 10  (add1))"
+  test "int" "(defn add1 (a) (+ a 1)) (-> 10  (add1))"
 
 let test_pipe_head_multi_call () =
-  test "int" "(fun add1(a) (+ a 1)) (-> 10 add1 add1)"
+  test "int" "(defn add1(a) (+ a 1)) (-> 10 add1 add1)"
 
 let test_pipe_head_single_wrong_type () =
   test_exn "Application: Expected type (fun int 'a) but got type int"
-    "(val add1 1) (-> 10 add1)"
+    "(def add1 1) (-> 10 add1)"
 
 let test_pipe_head_mult () =
-  test "int" "(fun add (a b) (+ a b)) (-> 10 (add 12))"
+  test "int" "(defn add (a b) (+ a b)) (-> 10 (add 12))"
 
 let test_pipe_head_mult_wrong_type () =
   test_exn "Application: Wrong arity for function: Expected 1 but got 2"
-    "(fun add1(a) (+ a 1)) (-> 10 (add1 12))"
+    "(defn add1(a) (+ a 1)) (-> 10 (add1 12))"
 
-let test_pipe_tail_single () = test "int" "(fun add1(a) (+ a 1)) (->> 10 add1)"
+let test_pipe_tail_single () = test "int" "(defn add1(a) (+ a 1)) (->> 10 add1)"
 
 let test_pipe_tail_single_call () =
-  test "int" "(fun add1(a) (+ a 1)) (->> 10 (add1))"
+  test "int" "(defn add1(a) (+ a 1)) (->> 10 (add1))"
 
 let test_pipe_tail_single_wrong_type () =
   test_exn "Application: Expected type (fun int 'a) but got type int"
-    "(val add1 1) (->> 10 add1)"
+    "(def add1 1) (->> 10 add1)"
 
 let test_pipe_tail_mult () =
-  test "int" "(fun add (a b) (+ a b)) (->> 10 (add 12))"
+  test "int" "(defn add (a b) (+ a b)) (->> 10 (add 12))"
 
 let test_pipe_tail_mult_wrong_type () =
   test_exn "Application: Wrong arity for function: Expected 1 but got 2"
-    "(fun add1(a) (+ a 1)) (->> 10 (add1 12))"
+    "(defn add1(a) (+ a 1)) (->> 10 (add1 12))"
 
 let test_alias_simple () =
   test "(fun foo = int unit)" "(type foo int) (external f (fun foo unit)) f"
@@ -270,13 +270,13 @@ let test_alias_of_alias () =
 
 let test_array_lit () = test "(array int)" "[0 1]"
 
-let test_array_var () = test "(array int)" {|(val a [0 1])
+let test_array_var () = test "(array int)" {|(def a [0 1])
     a|}
 
 let test_array_weak () =
   test "(array int)"
     {|(external setf (fun (array 'a) 'a unit))
-    (val a [])
+    (def a [])
     (setf a  2)
     a|}
 
@@ -289,7 +289,7 @@ let test_array_different_annot () =
   test_exn
     "In let binding: Expected type (array int) but got type (array bool).\n\
      Cannot unify types int and bool"
-    {|(val (a (array bool)) [0 1])
+    {|(def (a (array bool)) [0 1])
     a|}
 
 let test_array_different_annot_weak () =
@@ -298,7 +298,7 @@ let test_array_different_annot_weak () =
      (array bool) int 'a).\n\
      Cannot unify types bool and int"
     {|(external setf (fun (array 'a) 'a unit))
-    (val (a (array bool)) [])
+    (def (a (array bool)) [])
     (setf a 2)|}
 
 let test_array_different_weak () =
@@ -307,35 +307,35 @@ let test_array_different_weak () =
      (array int) bool 'a).\n\
      Cannot unify types int and bool"
     {|(external setf (fun (array 'a) 'a unit))
-    (val a [])
+    (def a [])
     (setf a 2)
     (setf a true)|}
 
 let test_mutable_declare () = test "int" "(type foo { :x& int }) 0"
 
 let test_mutable_set () =
-  test "unit" "(type foo { :x& int }) (val foo& { :x 12 }) (set &(.x foo) 13)"
+  test "unit" "(type foo { :x& int }) (def foo& { :x 12 }) (set &(.x foo) 13)"
 
 let test_mutable_set_wrong_type () =
   test_exn "Mutate: Expected type int but got type bool"
-    "(type foo { :x& int }) (val foo& { :x 12 }) (set &(.x foo) true)"
+    "(type foo { :x& int }) (def foo& { :x 12 }) (set &(.x foo) true)"
 
 let test_mutable_set_non_mut () =
   test_exn "Cannot mutate non-mutable binding"
-    "(type foo { :x int }) (val foo { :x 12}) (set &(.x foo) 13)"
+    "(type foo { :x int }) (def foo { :x 12}) (set &(.x foo) 13)"
 
-let test_mutable_value () = test "int" "(val b& 10) (set &b 14) b"
+let test_mutable_value () = test "int" "(def b& 10) (set &b 14) b"
 
 let test_mutable_nonmut_value () =
-  test_exn "Cannot mutate non-mutable binding" "(val b 10) (set &b 14) b"
+  test_exn "Cannot mutate non-mutable binding" "(def b 10) (set &b 14) b"
 
 let test_mutable_nonmut_transitive () =
   test_exn "Cannot mutate non-mutable binding"
-    "(type foo { :x& int }) (val foo { :x 12 }) (set &(.x foo) 13)"
+    "(type foo { :x& int }) (def foo { :x 12 }) (set &(.x foo) 13)"
 
 let test_mutable_nonmut_transitive_inv () =
   test_exn "Cannot mutate non-mutable binding"
-    "(type foo { :x int }) (val foo& { :x 12 }) (set &(.x foo) 13)"
+    "(type foo { :x int }) (def foo& { :x 12 }) (set &(.x foo) 13)"
 
 let test_variants_option_none () =
   test_exn "Expression contains weak type variables: (option 'a)"
@@ -346,11 +346,11 @@ let test_variants_option_some () =
 
 let test_variants_option_some_some () =
   test "(option (option float))"
-    "(type (option 'a) (#none (#some 'a))) (val a (#some 1.0)) (#some a)"
+    "(type (option 'a) (#none (#some 'a))) (def a (#some 1.0)) (#some a)"
 
 let test_variants_option_annot () =
   test "(option (option float))"
-    "(type (option 'a) (#none (#some 'a))) (val (a (option float)) #none) \
+    "(type (option 'a) (#none (#some 'a))) (def (a (option float)) #none) \
      (#some a)"
 
 let test_variants_option_none_arg () =
@@ -512,35 +512,35 @@ let test_tuple_access () = test "int" "(.0 {1 2.0})"
 let test_tuple_access_out_of_bound () =
   test_exn "Unbound field :2 on tuple of size 2" "(.2 {1 2.0})"
 
-let test_pattern_decl_var () = test "int" "(val a 123) a"
-let test_pattern_decl_wildcard () = test "int" "(val _ 123) 0"
+let test_pattern_decl_var () = test "int" "(def a 123) a"
+let test_pattern_decl_wildcard () = test "int" "(def _ 123) 0"
 
 let test_pattern_decl_record () =
-  test "float" "(type foo {:i int :f float})(val {:i :f} {:i 12 :f 5.0}) f"
+  test "float" "(type foo {:i int :f float})(def {:i :f} {:i 12 :f 5.0}) f"
 
 let test_pattern_decl_record_wrong_field () =
   test_exn "Unbound field :y on record foo"
-    "(type foo {:i int :f float})(val {:y :f} {:i 12 :f 5.0}) f"
+    "(type foo {:i int :f float})(def {:y :f} {:i 12 :f 5.0}) f"
 
 let test_pattern_decl_record_missing () =
   test_exn "There are missing fields in record pattern, for instance :i"
-    "(type foo {:i int :f float})(val {:f} {:i 12 :f 5.0}) f"
+    "(type foo {:i int :f float})(def {:f} {:i 12 :f 5.0}) f"
 
 let test_pattern_decl_record_exhaust () =
   test_exn "Pattern match is not exhaustive. Missing cases: "
-    "(type foo {:i int :f float})(val {:i 1 :f} {:i 12 :f 5.0}) f"
+    "(type foo {:i int :f float})(def {:i 1 :f} {:i 12 :f 5.0}) f"
 
-let test_pattern_decl_tuple () = test "float" "(val {i f} {12 5.0}) f"
+let test_pattern_decl_tuple () = test "float" "(def {i f} {12 5.0}) f"
 
 let test_pattern_decl_tuple_missing () =
   test_exn
     "Tuple pattern has unexpected type: Wrong arity for tuple: Expected 3 but \
      got 2"
-    "(type foo {:i int :f float})(val {x f} {12 5.0 20}) f"
+    "(type foo {:i int :f float})(def {x f} {12 5.0 20}) f"
 
 let test_pattern_decl_tuple_exhaust () =
   test_exn "Pattern match is not exhaustive. Missing cases: "
-    "(val {1 f} {12 5.0}) f"
+    "(def {1 f} {12 5.0}) f"
 
 let case str test = test_case str `Quick test
 

@@ -1,12 +1,12 @@
 (type either ((#left 4) #right))
 
-(fun add_ints [a b] (+ a b))
+(defn add_ints [a b] (+ a b))
 
-(val a 12)
+(def a 12)
 
-(val b (add_ints 1 3))
+(def b (add_ints 1 3))
 
-(fun id [x] x)
+(defn id [x] x)
 
-(val vtest [0 1])
-(val vtest2 [3])
+(def vtest [0 1])
+(def vtest2 [3])

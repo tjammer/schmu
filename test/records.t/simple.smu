@@ -3,5 +3,5 @@
 (type foo {:x bool :y int})
 
 -- The fields don't need to be given in order
-(val a {:y 10 :x true})
+(def a {:y 10 :x true})
 (printi (.y a))

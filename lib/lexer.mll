@@ -108,15 +108,17 @@ rule read =
   | "'"      { Quote }
   | "if"     { If }
   | "else"   { Else }
+  | "def"    { Def }
+  | "defn"   { Defn }
+  | "fn"     { Fn }
   | "fun"    { Fun }
-  | "val"    { Val }
   | "let"    { Let }
   | "match"  { Match }
   | "do"     { Do }
   | "open"   { Open }
   | "type" { Type }
   | "external"{ Defexternal }
-  | "set"   { Set }
+  | "set"    { Set }
   | "cond"   { Cond }
   | "fmt-str"{ Fmt_str }
   | "rec"    { Rec }

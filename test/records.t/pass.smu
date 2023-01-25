@@ -2,8 +2,8 @@
 
 (type foo {:x int :y int})
 
-(fun pass_to_func [a]
+(defn pass_to_func [a]
   (printi (.y a)))
 
-(val a {:y 20 :x 10})
+(def a {:y 20 :x 10})
 (pass_to_func a)

@@ -1,9 +1,9 @@
 (type big { :a int :b float :c int :d int })
 
-(fun do_something [big] (+ (.a big) 1))
+(defn do_something [big] (+ (.a big) 1))
 
 (external printf (fun cstr int unit))
 
-(fun printi [i] (printf (array-data "%i\n") i))
+(defn printi [i] (printf (array-data "%i\n") i))
 
 (array-iter malloc_some/vtest printi)
