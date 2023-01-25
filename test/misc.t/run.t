@@ -5067,3 +5067,4 @@ Allow patterns in decls
   hello
   20
   30
+  lol

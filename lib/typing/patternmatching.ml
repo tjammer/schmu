@@ -1233,7 +1233,10 @@ module Make (C : Core) (R : Recs) = struct
               loop (env, nbinds @ binds) pats
           | Tp_var (loc, id) ->
               let env =
-                Env.(add_value id { def_value with typ = pat.ptyp } loc env)
+                Env.(
+                  add_value id
+                    { def_value with typ = pat.ptyp; param = true }
+                    loc env)
               in
               loop (env, (id, expr env path loc) :: binds) tl
           | Tp_wildcard _ -> loop (env, binds) tl

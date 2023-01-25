@@ -8,3 +8,9 @@
 
 (let [{f _} {30.0 20}]
   (print (fmt-str f)))
+
+-- pattern matched thing is a closure
+(fun hmm [{x _}]
+  (fun [] (x)))
+
+((hmm {(fun [] (print "lol")) 10}))
