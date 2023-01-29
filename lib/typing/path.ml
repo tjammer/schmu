@@ -3,6 +3,10 @@ type t = Pid of string | Pmod of string * t
 let rec show = function Pid s -> s | Pmod (n, p) -> n ^ "/" ^ show p
 let pp ppf p = Format.fprintf ppf "%s" (show p)
 
+(* Using "." here makes sure there is no clash to a user defined type which (by accident)
+   has matches a module type. "." is not allowed in type names *)
+let rec type_name = function Pid s -> s | Pmod (n, p) -> n ^ "." ^ type_name p
+
 open Sexplib0
 
 let sexp_of_t p = Sexp.Atom (show p)

@@ -65,7 +65,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %either = type { i32 }
+  %nonpoly_func.either = type { i32 }
   
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
@@ -93,8 +93,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str, align 8
-    %either = alloca %either, align 8
-    %tag2 = bitcast %either* %either to i32*
+    %either = alloca %nonpoly_func.either, align 8
+    %tag2 = bitcast %nonpoly_func.either* %either to i32*
     store i32 0, i32* %tag2, align 4
     %0 = tail call i64 @schmu_doo(i32 0)
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
