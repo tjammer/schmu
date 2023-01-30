@@ -59,15 +59,17 @@ val change_type : key -> typ -> t -> t
 
 val add_type : Path.t -> typ -> t -> t
 
-val add_record : Path.t -> params:typ list -> labels:field array -> t -> t
+val add_record :
+  Path.t -> ?modul:key option -> params:typ list -> labels:field array -> t -> t
 (** [add record record_name ~param ~labels env] returns an env with an added record named [record_name]
      optionally parametrized by [param] with typed [labels] *)
 
-val add_variant : Path.t -> params:typ list -> ctors:ctor array -> t -> t
+val add_variant :
+  Path.t -> ?modul:key option -> params:typ list -> ctors:ctor array -> t -> t
 (** [add_variant variant_name ~param ~ctors env] returns an env with an added variant named [variant_name]
     optionally parametrized by [param] with [ctors] *)
 
-val add_alias : Path.t -> typ -> t -> t
+val add_alias : Path.t -> ?modul:key option -> typ -> t -> t
 val open_function : t -> t
 
 val close_function : t -> t * closed list * unused

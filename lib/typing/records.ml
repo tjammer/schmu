@@ -185,7 +185,7 @@ module Make (C : Core) = struct
     | _ -> (
         match Env.find_label_opt id env with
         | Some { index; typename } -> (
-            let record_t = Env.find_type typename env |> instantiate in
+            let record_t = Env.query_type ~instantiate typename env in
             unify
               (loc, "Field access of record " ^ string_of_type record_t ^ ":")
               record_t expr.typ;

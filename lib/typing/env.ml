@@ -187,37 +187,48 @@ let add_type key t env =
   let types = Tmap.add key t env.types in
   { env with types }
 
-let add_record record ~params ~labels env =
+let add_record record ?(modul = None) ~params ~labels env =
   let typ = Trecord (params, Some record, labels) in
+  let name =
+    match modul with None -> record | Some m -> Path.rm_name m record
+  in
 
   let labelset =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
   in
-  let labelsets = Lmap.add labelset record env.labelsets in
+
+  let labelsets = Lmap.add labelset name env.labelsets in
 
   let _, labels =
     Array.fold_left
       (fun (index, labels) field ->
-        (index + 1, Map.add field.fname { index; typename = record } labels))
+        (index + 1, Map.add field.fname { index; typename = name } labels))
       (0, env.labels) labels
   in
-  let types = Tmap.add record typ env.types in
+  let types = Tmap.add name typ env.types in
   { env with labels; types; labelsets }
 
-let add_variant variant ~params ~ctors env =
+let add_variant variant ?(modul = None) ~params ~ctors env =
   let typ = Tvariant (params, variant, ctors) in
+  let name =
+    match modul with None -> variant | Some m -> Path.rm_name m variant
+  in
 
   let _, ctors =
     Array.fold_left
       (fun (index, ctors) (ctor : ctor) ->
-        (index + 1, Map.add ctor.cname { index; typename = variant } ctors))
+        (index + 1, Map.add ctor.cname { index; typename = name } ctors))
       (0, env.ctors) ctors
   in
-  let types = Tmap.add variant typ env.types in
+  let types = Tmap.add name typ env.types in
   { env with ctors; types }
 
-let add_alias name typ env =
-  let types = Tmap.add name (Talias (name, typ)) env.types in
+let add_alias alias ?(modul = None) typ env =
+  let name =
+    match modul with None -> alias | Some m -> Path.rm_name m alias
+  in
+  let typ = Talias (alias, typ) in
+  let types = Tmap.add name typ env.types in
   { env with types }
 
 let find_val_raw key env =

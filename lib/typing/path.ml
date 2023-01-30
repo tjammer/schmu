@@ -38,3 +38,5 @@ let only_hd = function
   | Pmod _ -> raise (Invalid_argument "not a local binding")
 
 let rec get_hd = function Pid s -> s | Pmod (_, p) -> get_hd p
+let rm_mod = function Pmod (_, t) -> t | Pid t -> Pid t
+let rm_name name = function Pmod (s, t) when String.equal s name -> t | p -> p

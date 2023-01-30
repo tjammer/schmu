@@ -1924,7 +1924,7 @@ Piping for ctors and field accessors
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %option_int = type { i32, i64 }
+  %prelude.option_int = type { i32, i64 }
   
   declare void @Printi(i64 %0)
   
@@ -1934,15 +1934,15 @@ Piping for ctors and field accessors
     ret i64 %add
   }
   
-  define i64 @schmu___fun1(%option_int* %x) {
+  define i64 @schmu___fun1(%prelude.option_int* %x) {
   entry:
-    %tag1 = bitcast %option_int* %x to i32*
+    %tag1 = bitcast %prelude.option_int* %x to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option_int, %option_int* %x, i32 0, i32 1
+    %data = getelementptr inbounds %prelude.option_int, %prelude.option_int* %x, i32 0, i32 1
     %0 = load i64, i64* %data, align 8
     br label %ifcont
   
@@ -1955,12 +1955,12 @@ Piping for ctors and field accessors
   entry:
     %0 = tail call i64 @schmu___fun0(i64 1)
     tail call void @Printi(i64 %0)
-    %option = alloca %option_int, align 8
-    %tag1 = bitcast %option_int* %option to i32*
+    %option = alloca %prelude.option_int, align 8
+    %tag1 = bitcast %prelude.option_int* %option to i32*
     store i32 0, i32* %tag1, align 4
-    %data = getelementptr inbounds %option_int, %option_int* %option, i32 0, i32 1
+    %data = getelementptr inbounds %prelude.option_int, %prelude.option_int* %option, i32 0, i32 1
     store i64 1, i64* %data, align 8
-    %1 = call i64 @schmu___fun1(%option_int* %option)
+    %1 = call i64 @schmu___fun1(%prelude.option_int* %option)
     call void @Printi(i64 %1)
     call void @Printi(i64 1)
     ret i64 0
@@ -3219,15 +3219,15 @@ Global lets with expressions
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %option_array_int = type { i32, i64* }
+  %prelude.option_array_int = type { i32, i64* }
   %r_array_int = type { i64* }
   
   @b = global i64* null, align 8
   @c = global i64 0, align 8
   
-  define void @schmu_ret-none(%option_array_int* %0) {
+  define void @schmu_ret-none(%prelude.option_array_int* %0) {
   entry:
-    %tag1 = bitcast %option_array_int* %0 to i32*
+    %tag1 = bitcast %prelude.option_array_int* %0 to i32*
     store i32 1, i32* %tag1, align 4
     ret void
   }
@@ -3261,15 +3261,15 @@ Global lets with expressions
   
   define i64 @main(i64 %arg) {
   entry:
-    %ret = alloca %option_array_int, align 8
-    call void @schmu_ret-none(%option_array_int* %ret)
-    %tag5 = bitcast %option_array_int* %ret to i32*
+    %ret = alloca %prelude.option_array_int, align 8
+    call void @schmu_ret-none(%prelude.option_array_int* %ret)
+    %tag5 = bitcast %prelude.option_array_int* %ret to i32*
     %index = load i32, i32* %tag5, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option_array_int, %option_array_int* %ret, i32 0, i32 1
+    %data = getelementptr inbounds %prelude.option_array_int, %prelude.option_array_int* %ret, i32 0, i32 1
     %0 = load i64*, i64** %data, align 8
     call void @__g.u_incr_rc_ai.u(i64* %0)
     br label %ifcont
@@ -3310,7 +3310,7 @@ Global lets with expressions
     call void @__g.u_decr_rc_ai.u(i64* %10)
     %11 = load i64*, i64** %iftmp, align 8
     call void @__g.u_decr_rc_ai.u(i64* %11)
-    call void @__g.u_decr_rc_optionai.u(%option_array_int* %ret)
+    call void @__g.u_decr_rc_prelude.optionai.u(%prelude.option_array_int* %ret)
     ret i64 0
   }
   
@@ -3369,15 +3369,15 @@ Global lets with expressions
     ret void
   }
   
-  define internal void @__g.u_decr_rc_optionai.u(%option_array_int* %0) {
+  define internal void @__g.u_decr_rc_prelude.optionai.u(%prelude.option_array_int* %0) {
   entry:
-    %tag2 = bitcast %option_array_int* %0 to i32*
+    %tag2 = bitcast %prelude.option_array_int* %0 to i32*
     %index = load i32, i32* %tag2, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option_array_int, %option_array_int* %0, i32 0, i32 1
+    %data = getelementptr inbounds %prelude.option_array_int, %prelude.option_array_int* %0, i32 0, i32 1
     %2 = load i64*, i64** %data, align 8
     %ref3 = bitcast i64* %2 to i64*
     %ref1 = load i64, i64* %ref3, align 8

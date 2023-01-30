@@ -386,12 +386,10 @@ let read_exn ~regeneralize name loc =
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Typed_tree.Error (loc, msg))
 
-type modif_kind = Add of string * S.t | Rem of string
+type modif_kind = Add of string * S.t
 
 let modif = function
   | Add (name, sub) -> fun p -> if S.mem p sub then Path.Pmod (name, p) else p
-  | Rem name -> (
-      function Path.Pmod (s, t) when String.equal s name -> t | p -> p)
 
 let rec mod_t mkind t =
   let nm = modif mkind in
@@ -447,6 +445,7 @@ and mod_body f e =
   | Unop (u, e) -> Unop (u, m e)
   | If (c, l, r) -> If (m c, m l, m r)
   | Let l -> Let { l with lhs = m l.lhs; cont = m l.cont }
+  | Bind (n, u, e, cont) -> Bind (n, u, m e, m cont)
   | Lambda (i, mn, abs) -> Lambda (i, mn, mod_abs f abs)
   | Function (n, i, abs, cont) -> Function (n, i, mod_abs f abs, m cont)
   | App { callee; args } ->
@@ -480,29 +479,17 @@ and mod_abs f abs =
   in
   { abs with body; func }
 
-let demake_module name = function
-  | Mtype t -> Mtype (mod_t (Rem name) t)
-  | Mfun (t, n) -> Mfun (mod_t (Rem name) t, n)
-  | Mext (t, n, c) -> Mext (mod_t (Rem name) t, n, c)
-  | Mpoly_fun (abs, n, u) -> Mpoly_fun (mod_abs (mod_t (Rem name)) abs, n, u)
-  | Mmutual_rec ds ->
-      let ds = List.map (fun (n, u, t) -> (n, u, mod_t (Rem name) t)) ds in
-      Mmutual_rec ds
-
-let add_to_env env ~toplvl mname m =
+let add_to_env env mname m =
+  let modul = Some mname in
   let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
-  let demk item =
-    (* Why only toplvl? *)
-    if toplvl then demake_module mname item else item
-  in
   List.fold_left
     (fun env item ->
-      match demk item with
+      match item with
       | Mtype (Trecord (params, Some name, labels)) ->
-          Env.add_record name ~params ~labels env
+          Env.add_record name ~modul ~params ~labels env
       | Mtype (Tvariant (params, name, ctors)) ->
-          Env.add_variant name ~params ~ctors env
-      | Mtype (Talias (name, t)) -> Env.add_alias name t env
+          Env.add_variant name ~modul ~params ~ctors env
+      | Mtype (Talias (name, t)) -> Env.add_alias ~modul name t env
       | Mtype t ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
       | Mfun (t, n) ->

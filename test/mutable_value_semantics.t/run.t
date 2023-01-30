@@ -2166,12 +2166,12 @@ Refcounts for members in arrays, records and variants
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %r = type { i64* }
-  %option_array_int = type { i32, i64* }
+  %prelude.option_array_int = type { i32, i64* }
   
   @a = global i64* null, align 8
   @r = global %r zeroinitializer, align 8
   @r__2 = global i64** null, align 8
-  @r__3 = global %option_array_int zeroinitializer, align 16
+  @r__3 = global %prelude.option_array_int zeroinitializer, align 16
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%li\00" }
   @1 = private unnamed_addr global { i64, i64, i64, [5 x i8] } { i64 2, i64 4, i64 4, [5 x i8] c"none\00" }
   
@@ -2265,24 +2265,24 @@ Refcounts for members in arrays, records and variants
     %str21 = alloca i8*, align 8
     store i8* %35, i8** %str21, align 8
     tail call void @prelude_print(i8* %35)
-    store i32 0, i32* getelementptr inbounds (%option_array_int, %option_array_int* @r__3, i32 0, i32 0), align 4
+    store i32 0, i32* getelementptr inbounds (%prelude.option_array_int, %prelude.option_array_int* @r__3, i32 0, i32 0), align 4
     %39 = load i64*, i64** @a, align 8
     tail call void @__g.u_incr_rc_ai.u(i64* %39)
     %40 = load i64*, i64** @a, align 8
-    store i64* %40, i64** getelementptr inbounds (%option_array_int, %option_array_int* @r__3, i32 0, i32 1), align 8
+    store i64* %40, i64** getelementptr inbounds (%prelude.option_array_int, %prelude.option_array_int* @r__3, i32 0, i32 1), align 8
     %41 = tail call i64* @__ag.ag_reloc_ai.ai(i64** @a)
     %42 = bitcast i64* %41 to i8*
     %43 = getelementptr i8, i8* %42, i64 24
     %data22 = bitcast i8* %43 to i64*
     store i64 40, i64* %data22, align 8
-    %index = load i32, i32* getelementptr inbounds (%option_array_int, %option_array_int* @r__3, i32 0, i32 0), align 4
+    %index = load i32, i32* getelementptr inbounds (%prelude.option_array_int, %prelude.option_array_int* @r__3, i32 0, i32 0), align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    %44 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @r__3, i32 0, i32 1), align 8
+    %44 = load i64*, i64** getelementptr inbounds (%prelude.option_array_int, %prelude.option_array_int* @r__3, i32 0, i32 1), align 8
     tail call void @__g.u_incr_rc_ai.u(i64* %44)
-    %45 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @r__3, i32 0, i32 1), align 8
+    %45 = load i64*, i64** getelementptr inbounds (%prelude.option_array_int, %prelude.option_array_int* @r__3, i32 0, i32 1), align 8
     %46 = bitcast i64* %45 to i8*
     %47 = getelementptr i8, i8* %46, i64 24
     %data23 = bitcast i8* %47 to i64*
@@ -2303,7 +2303,7 @@ Refcounts for members in arrays, records and variants
     %fmt29 = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %54, i64 %50, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i64 24), i64 %48)
     %str30 = alloca i8*, align 8
     store i8* %51, i8** %str30, align 8
-    %55 = load i64*, i64** getelementptr inbounds (%option_array_int, %option_array_int* @r__3, i32 0, i32 1), align 8
+    %55 = load i64*, i64** getelementptr inbounds (%prelude.option_array_int, %prelude.option_array_int* @r__3, i32 0, i32 1), align 8
     tail call void @__g.u_decr_rc_ai.u(i64* %55)
     br label %ifcont
   
@@ -2319,7 +2319,7 @@ Refcounts for members in arrays, records and variants
     tail call void @prelude_print(i8* %56)
     %57 = load i8*, i8** %iftmp, align 8
     tail call void @__g.u_decr_rc_ac.u(i8* %57)
-    tail call void @__g.u_decr_rc_optionai.u(%option_array_int* @r__3)
+    tail call void @__g.u_decr_rc_prelude.optionai.u(%prelude.option_array_int* @r__3)
     tail call void @__g.u_decr_rc_ac.u(i8* %35)
     %58 = load i64**, i64*** @r__2, align 8
     tail call void @__g.u_decr_rc_aai.u(i64** %58)
@@ -2436,15 +2436,15 @@ Refcounts for members in arrays, records and variants
     ret void
   }
   
-  define internal void @__g.u_decr_rc_optionai.u(%option_array_int* %0) {
+  define internal void @__g.u_decr_rc_prelude.optionai.u(%prelude.option_array_int* %0) {
   entry:
-    %tag2 = bitcast %option_array_int* %0 to i32*
+    %tag2 = bitcast %prelude.option_array_int* %0 to i32*
     %index = load i32, i32* %tag2, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option_array_int, %option_array_int* %0, i32 0, i32 1
+    %data = getelementptr inbounds %prelude.option_array_int, %prelude.option_array_int* %0, i32 0, i32 1
     %2 = load i64*, i64** %data, align 8
     %ref3 = bitcast i64* %2 to i64*
     %ref1 = load i64, i64* %ref3, align 8
