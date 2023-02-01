@@ -200,13 +200,13 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         Qvar (Path.get_hd id)
     | Ty_func l -> handle_func env l
     | Ty_list l -> type_list env l
-    | Ty_open_id (loc, path) -> import_path loc env path path
-  and import_path loc env full = function
-    | Path.Pid _ -> find env full ""
+    | Ty_open_id (loc, path) -> import_path loc env path
+  and import_path loc env = function
+    | Path.Pid _ as id -> find env id ""
     | Path.Pmod (md, tl) ->
         let modul = Module.read_exn ~regeneralize md loc in
         let env = Module.add_to_env env md modul in
-        import_path loc env full tl
+        import_path loc env tl
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
     | t :: tl -> (
