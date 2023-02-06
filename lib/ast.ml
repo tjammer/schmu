@@ -28,6 +28,7 @@ type type_spec =
   | Ty_list of type_spec list
   | Ty_func of (type_spec * bool) list
   | Ty_open_id of loc * Path.t
+  | Ty_tuple of type_spec list
 
 and decl = {
   loc : loc;

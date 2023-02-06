@@ -406,6 +406,34 @@ prog: Lpar Defexternal Kebab_id Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Defexternal Kebab_id Lbrac Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Defexternal Kebab_id Lbrac Kebab_id String_lit
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Defexternal Kebab_id Lbrac Kebab_id Kebab_id String_lit
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Defexternal Kebab_id Kebab_id Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Defexternal Kebab_id Kebab_id Div_i Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Defexternal Kebab_id Kebab_id Div_i Kebab_id Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Defexternal Kebab_id Kebab_id Div_i Kebab_id Div_i Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar Defexternal Kebab_id Lpar Fun Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -423,22 +451,6 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Lpar Fun Kebab_id Rpar Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Defexternal Kebab_id Lpar Fun Lpar Fun Kebab_id Rpar Ampersand Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defexternal Kebab_id Kebab_id Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defexternal Kebab_id Kebab_id Div_i Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defexternal Kebab_id Kebab_id Div_i Kebab_id Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Defexternal Kebab_id Kebab_id Div_i Kebab_id Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

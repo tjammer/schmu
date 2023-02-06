@@ -178,6 +178,15 @@ let test_annot_record_generic_multiple () =
   test_exn "Type a expects 2 type parameters"
     "(type (a 'a 'b) { :x 'a :y 'b }) (def (a a) { :x true }) a"
 
+let test_annot_tuple_simple () =
+  test "{int bool}" "(def (a {int bool}) {1 true}) a"
+
+let test_annot_tuple_generic () =
+  test "{int bool}" "(defn hmm [(a {int 'a})] a) (hmm {1 true})"
+
+let test_annot_array_arg_generic () =
+  test "(array int)" "(defn foo [(a (array 'a))] a) (foo [10])"
+
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
 
@@ -617,6 +626,9 @@ let () =
           case "record_let" test_annot_record_simple;
           case "record_let_gen" test_annot_record_generic;
           case "record_muliple" test_annot_record_generic_multiple;
+          case "tuple simple" test_annot_tuple_simple;
+          case "array arg generic" test_annot_array_arg_generic;
+          case "tuple generic" test_annot_tuple_generic;
         ] );
       ( "function sequencing",
         [

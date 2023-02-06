@@ -201,6 +201,16 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_func l -> handle_func env l
     | Ty_list l -> type_list env l
     | Ty_open_id (loc, path) -> import_path loc env path
+    | Ty_tuple ts ->
+        let fields =
+          List.mapi
+            (fun i t ->
+              let fname = string_of_int i in
+              let ftyp = concrete_type false env t in
+              { fname; ftyp; mut = false })
+            ts
+        in
+        Trecord ([], None, Array.of_list fields)
   and import_path loc env = function
     | Path.Pid _ as id -> find env id ""
     | Path.Pmod (md, tl) ->
@@ -299,7 +309,9 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
         | None ->
             let t = newvar () in
             (t, t)
-        | Some annot -> handle (typeof_annot ~param:true env loc annot)
+        | Some annot ->
+            let t, q = handle (typeof_annot ~param:true env loc annot) in
+            (instantiate t, q)
       in
       (* Might be const, but not important here *)
       ( ( Env.add_value id
