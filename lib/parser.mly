@@ -75,6 +75,7 @@
 %token Rpar
 %token Lbrac
 %token Rbrac
+%token Ldotbrack
 %token Lbrack
 %token Rbrack
 %token Ampersand
@@ -99,7 +100,7 @@
 %token Rec
 
 %nonassoc Minus_i Minus_f
-%left Accessor
+%left Accessor Ldotbrack
 %left Div_i
 
 %start <Ast.prog> prog
@@ -223,6 +224,9 @@ sexp_expr:
   | parens(sexp_lambda) { $1 }
   | parens(sexp_field_get) { $1 }
   | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
+  | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
+    {App ($loc, Var ($loc, "array-get"), [{amut = false; aloc = $loc(e); aexpr = e};
+                                  {amut = false; aloc = $loc(i); aexpr = i}])}
   | parens(sexp_pipe_head) { $1 }
   | parens(sexp_pipe_tail) { $1 }
   | parens(sexp_call) { $1 }

@@ -38,6 +38,14 @@ prog: Lbrac Keyword False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: False Ldotbrack Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Ldotbrack False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Kebab_id Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -818,6 +826,34 @@ prog: Lpar False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Kebab_id Ldotbrack Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Ldotbrack False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Ldotbrack False Rbrack Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Ldotbrack False Rbrack Ampersand Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Ldotbrack False Rbrack False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id False Ampersand Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id False False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar Kebab_id Accessor Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -827,14 +863,6 @@ prog: Lpar Kebab_id Accessor Ampersand Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Kebab_id Accessor False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Kebab_id False Ampersand Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Kebab_id False False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

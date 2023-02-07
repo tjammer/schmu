@@ -161,6 +161,7 @@ rule read =
   | ')'      { Rpar }
   | '{'      { Lbrac }
   | '}'      { Rbrac }
+  | ".["     { Ldotbrack }
   | '['      { Lbrack }
   | ']'      { Rbrack }
   | "->"     { Arrow_right }

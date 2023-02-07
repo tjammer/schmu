@@ -1,6 +1,6 @@
 (defn prnt [a]
   (print (fmt-str
-          (array-get (array-get a 0) 0)
+          a.[0].[0]
           ", "
           (array-get (array-get a 1) 0))))
 
