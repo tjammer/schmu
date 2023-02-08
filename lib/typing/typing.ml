@@ -980,7 +980,12 @@ end = struct
     in
 
     let rec to_expr env old_type = function
-      | ([ Ast.Let (loc, _, _) ] | [ Function (loc, _) ] | [ Rec (loc, _) ])
+      | [
+          ( Ast.Let (loc, _, _)
+          | Function (loc, _)
+          | Rec (loc, _)
+          | Open (loc, _) );
+        ]
         when ret ->
           raise (Error (loc, "Block must end with an expression"))
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
@@ -1038,6 +1043,11 @@ end = struct
           let cont, env = to_expr env (l1, expr.typ) tl in
           let expr = Sequence (expr, cont) in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
+      | Open (loc, mname) :: tl ->
+          let modul = Module.read_exn ~regeneralize mname loc in
+          let env = Module.add_to_env (Env.open_module env) mname modul in
+          let cont, env = to_expr env old_type tl in
+          (cont, Env.finish_module env)
     in
     to_expr env (loc, Tunit) stmts
 
@@ -1095,10 +1105,6 @@ let convert_prog env items modul =
         let env = type_variant env loc v in
         let m = Module.add_type (Env.find_type v.name.name env) m in
         (env, items, m)
-    | Open (loc, mname) ->
-        let modul = Module.read_exn ~regeneralize mname loc in
-        let env = Module.add_to_env (Env.open_module env) mname modul in
-        (Env.finish_module env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
@@ -1160,6 +1166,10 @@ let convert_prog env items modul =
           (fst old, "Left expression in sequence must be of type unit:")
           Tunit (snd old);
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
+    | Open (loc, mname) ->
+        let modul = Module.read_exn ~regeneralize mname loc in
+        let env = Module.add_to_env (Env.open_module env) mname modul in
+        (old, Env.finish_module env, items, m)
   in
 
   let env, items, m = List.fold_left aux (env, [], modul) items in

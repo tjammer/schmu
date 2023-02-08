@@ -67,11 +67,27 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   %nonpoly_func.either = type { i32 }
   
-  @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%i\0A\00" }
+  @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 3, i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare void @printf(i8* %0, i64 %1)
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
+  
+  define i64 @schmu_do2(i32 %0) {
+  entry:
+    %box = alloca i32, align 4
+    store i32 %0, i32* %box, align 4
+    %eq = icmp eq i32 %0, 0
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5)
+    ret i64 %1
+  
+  else:                                             ; preds = %entry
+    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5)
+    ret i64 %2
+  }
   
   define i64 @schmu_doo(i32 %0) {
   entry:
@@ -94,12 +110,20 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str, align 8
     %either = alloca %nonpoly_func.either, align 8
-    %tag2 = bitcast %nonpoly_func.either* %either to i32*
-    store i32 0, i32* %tag2, align 4
+    %tag7 = bitcast %nonpoly_func.either* %either to i32*
+    store i32 0, i32* %tag7, align 4
     %0 = tail call i64 @schmu_doo(i32 0)
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
+    %str2 = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str2, align 8
+    %either3 = alloca %nonpoly_func.either, align 8
+    %tag48 = bitcast %nonpoly_func.either* %either3 to i32*
+    store i32 0, i32* %tag48, align 4
+    %1 = tail call i64 @schmu_do2(i32 0)
+    tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
     ret i64 0
   }
+  5
   5
 
   $ schmu lets.smu -m --dump-llvm

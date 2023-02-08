@@ -113,7 +113,6 @@ top_item:
   | stmt = stmt { Stmt stmt }
   | decl = external_decl { Ext_decl decl }
   | def = typedef { Typedef ($loc, def) }
-  | open_ { Open ($loc, $1) }
 
 %inline external_decl:
   | parens(defexternal) { $1 }
@@ -182,6 +181,8 @@ stmt:
   | parens(sexp_fun) { Function (fst $1, snd $1) }
   | sexp_expr { Expr ($loc, $1) }
   | parens(sexp_rec) { $1}
+  | open_ { Open ($loc, $1) }
+
 
 %inline sexp_let:
   | Def; sexp_decl; sexp_expr { Let($loc, $2, $3) }

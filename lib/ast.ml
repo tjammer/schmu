@@ -97,6 +97,7 @@ and stmt =
   | Function of loc * func
   | Expr of (loc * expr)
   | Rec of (loc * (loc * func) list)
+  | Open of loc * string
 
 and block = stmt list
 
@@ -121,6 +122,5 @@ type top_item =
   | Stmt of stmt
   | Ext_decl of external_decl
   | Typedef of loc * typedef
-  | Open of loc * string
 
 type prog = top_item list
