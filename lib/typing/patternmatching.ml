@@ -1258,7 +1258,7 @@ module Make (C : Core) (R : Recs) = struct
           (env, i + 1, ret)
       | (Ptup (loc, _) | Precord (loc, _)) as p ->
           let env, binds = bind_pattern env loc i p in
-          (env, i + 1, binds)
+          (env, i + 1, binds @ ret)
       | Pctor ((loc, _), _)
       | Plit_int (loc, _)
       | Plit_char (loc, _)
