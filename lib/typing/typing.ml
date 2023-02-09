@@ -87,6 +87,8 @@ let string_of_bop = function
   | Div_i -> "/"
   | Less_i -> "<"
   | Greater_i -> ">"
+  | Less_eq_i -> "<="
+  | Greater_eq_i -> ">="
   | Equal_i -> ""
   | Minus_i -> "-"
   | Ast.Plus_f -> "+."
@@ -94,6 +96,8 @@ let string_of_bop = function
   | Div_f -> ">."
   | Less_f -> "<."
   | Greater_f -> ">."
+  | Less_eq_f -> "<=."
+  | Greater_eq_f -> ">=."
   | Equal_f -> "=."
   | Minus_f -> "-."
   | And -> "and"
@@ -790,9 +794,11 @@ end = struct
     let typ, (t1, t2, const) =
       match bop with
       | Ast.Plus_i | Mult_i | Minus_i | Div_i -> (Tint, check Tint)
-      | Less_i | Equal_i | Greater_i -> (Tbool, check Tint)
+      | Less_i | Equal_i | Greater_i | Less_eq_i | Greater_eq_i ->
+          (Tbool, check Tint)
       | Plus_f | Mult_f | Minus_f | Div_f -> (Tfloat, check Tfloat)
-      | Less_f | Equal_f | Greater_f -> (Tbool, check Tfloat)
+      | Less_f | Equal_f | Greater_f | Less_eq_f | Greater_eq_f ->
+          (Tbool, check Tfloat)
       | And | Or -> (Tbool, check Tbool)
     in
     { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const }; loc }

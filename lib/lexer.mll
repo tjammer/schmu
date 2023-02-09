@@ -157,6 +157,10 @@ rule read =
   | "<."     { Less_f }
   | '>'      { Greater_i }
   | ">."     { Greater_f }
+  | "<="     { Less_eq_i }
+  | "<=."    { Less_eq_f }
+  | ">="     { Greater_eq_i }
+  | ">=."    { Greater_eq_f }
   | '('      { Lpar }
   | ')'      { Rpar }
   | '{'      { Lbrac }

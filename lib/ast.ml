@@ -6,6 +6,8 @@ type bop =
   | Div_i
   | Less_i
   | Greater_i
+  | Less_eq_i
+  | Greater_eq_i
   | Equal_i
   | Minus_i
   | Plus_f
@@ -13,6 +15,8 @@ type bop =
   | Div_f
   | Less_f
   | Greater_f
+  | Less_eq_f
+  | Greater_eq_f
   | Equal_f
   | Minus_f
   | And

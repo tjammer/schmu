@@ -602,6 +602,14 @@ prog: Lpar Rec Lpar Defn Kebab_id Lbrack Rbrack Rpar Lpar Defn Kebab_id Lbrack R
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Open Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Open Kebab_id Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar Less_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -615,6 +623,22 @@ prog: Lpar Less_f Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Less_f False Rbrac
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Less_eq_i Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Less_eq_i False Rbrac
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Less_eq_f Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Less_eq_f False Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -647,6 +671,22 @@ prog: Lpar Greater_f Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Greater_f False Rbrac
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Greater_eq_i Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Greater_eq_i False Rbrac
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Greater_eq_f Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Greater_eq_f False Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1139,14 +1179,6 @@ prog: Lpar Type Kebab_id Lbrac Keyword Kebab_id Rbrac Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Type Kebab_id Constructor Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Open Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Open Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

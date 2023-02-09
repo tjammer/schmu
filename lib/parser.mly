@@ -68,6 +68,10 @@
 %token Less_f
 %token Greater_i
 %token Greater_f
+%token Less_eq_i
+%token Less_eq_f
+%token Greater_eq_i
+%token Greater_eq_f
 %token Bin_equal_f
 %token And
 %token Or
@@ -384,6 +388,8 @@ bool:
   | Div_i   { Div_i }
   | Less_i  { Less_i }
   | Greater_i { Greater_i }
+  | Less_eq_i  { Less_eq_i }
+  | Greater_eq_i { Greater_eq_i }
   | Equal { Equal_i }
   | Plus_f  { Plus_f }
   | Minus_f { Minus_f }
@@ -391,6 +397,8 @@ bool:
   | Div_f   { Div_f }
   | Less_f  { Less_f }
   | Greater_f { Greater_f }
+  | Less_eq_f  { Less_eq_f }
+  | Greater_eq_f { Greater_eq_f }
   | Bin_equal_f { Equal_f }
   | And     { And }
   | Or      { Or }

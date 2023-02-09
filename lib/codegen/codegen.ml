@@ -262,6 +262,12 @@ end = struct
     | Greater_i ->
         let value = bld (build_icmp Icmp.Sgt) "gt" in
         { value; typ = Tbool; lltyp = bool_t; kind = Imm }
+    | Less_eq_i ->
+        let value = bld (build_icmp Icmp.Sle) "le" in
+        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
+    | Greater_eq_i ->
+        let value = bld (build_icmp Icmp.Sge) "ge" in
+        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
     | Equal_i ->
         let value = bld (build_icmp Icmp.Eq) "eq" in
         { value; typ = Tbool; lltyp = bool_t; kind = Imm }
@@ -282,6 +288,12 @@ end = struct
         { value; typ = Tbool; lltyp = bool_t; kind = Imm }
     | Greater_f ->
         let value = bld (build_fcmp Fcmp.Ogt) "gt" in
+        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
+    | Less_eq_f ->
+        let value = bld (build_fcmp Fcmp.Ole) "le" in
+        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
+    | Greater_eq_f ->
+        let value = bld (build_fcmp Fcmp.Oge) "ge" in
         { value; typ = Tbool; lltyp = bool_t; kind = Imm }
     | Equal_f ->
         let value = bld (build_fcmp Fcmp.Oeq) "eq" in
