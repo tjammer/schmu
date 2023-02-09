@@ -2546,3 +2546,7 @@ Refcounts for members in arrays, records and variants
   10
   20
   30
+
+Make sure there are no hidden reference semantics in pattern matches
+  $ schmu hidden_match_reference.smu && ./hidden_match_reference
+  1

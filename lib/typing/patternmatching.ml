@@ -821,7 +821,9 @@ module Make (C : Core) (R : Recs) = struct
     in
     let typed_cases = List.concat typed_cases in
 
-    let cont = compile_matches env loc used_rows typed_cases ret in
+    let cont =
+      compile_matches env loc used_rows typed_cases ret expr.attr.mut
+    in
 
     (* Check for exhaustiveness *)
     (let patterns =
@@ -845,7 +847,7 @@ module Make (C : Core) (R : Recs) = struct
     let expr = Bind (expr_name path, None, expr, cont) in
     { cont with expr }
 
-  and compile_matches env all_loc used_rows cases ret_typ =
+  and compile_matches env all_loc used_rows cases ret_typ mut =
     (* We build the decision tree here.
        [match_cases] splits cases into ones that match and ones that don't.
        [compile_matches] then generates the tree for the cases.
@@ -896,10 +898,13 @@ module Make (C : Core) (R : Recs) = struct
             let d = { d with ret_env } in
             let cont =
               compile_matches env loc used_rows ((patterns, d) :: tl) ret_typ
+                mut
             in
 
             let lhs = expr path in
-            let expr = Let { id; uniq = None; rmut = false; lhs; cont } in
+            (* If the value we pattern match on is mutable, we have to mentio this
+               here in order to increase rc correctly. Otherwise, we had reference semantics*)
+            let expr = Let { id; uniq = None; rmut = mut; lhs; cont } in
             { typ = cont.typ; expr; attr = cont.attr; loc }
         | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
             let a, b =
@@ -907,7 +912,7 @@ module Make (C : Core) (R : Recs) = struct
             in
 
             let data, ifenv = ctorenv env param.cpat path loc in
-            let cont = compile_matches ifenv d.loc used_rows a ret_typ in
+            let cont = compile_matches ifenv d.loc used_rows a ret_typ mut in
             (* Make expr available in codegen *)
             let ifexpr =
               let id = expr_name path in
@@ -930,7 +935,9 @@ module Make (C : Core) (R : Recs) = struct
                   in
                   let cmp = gen_cmp loc index cind in
                   let if_ = { cont with expr = ifexpr } in
-                  let else_ = compile_matches env d.loc used_rows b ret_typ in
+                  let else_ =
+                    compile_matches env d.loc used_rows b ret_typ mut
+                  in
                   If (cmp, if_, else_)
             in
 
@@ -938,7 +945,7 @@ module Make (C : Core) (R : Recs) = struct
         | Lit_int ({ path; d; patterns; loc; _ }, i) ->
             let a, b = match_int (path, i) ((patterns, d) :: tl) [] [] in
 
-            let cont = compile_matches env d.loc used_rows a ret_typ in
+            let cont = compile_matches env d.loc used_rows a ret_typ mut in
 
             let expr =
               match b with
@@ -949,14 +956,16 @@ module Make (C : Core) (R : Recs) = struct
                     { typ = Tint; expr = Const (Int i); attr; loc }
                   in
                   let cmp = gen_cmp loc (expr path) cind in
-                  let else_ = compile_matches env d.loc used_rows b ret_typ in
+                  let else_ =
+                    compile_matches env d.loc used_rows b ret_typ mut
+                  in
                   If (cmp, cont, else_)
             in
             { typ = ret_typ; expr; attr = no_attr; loc }
         | Lit_char ({ path; d; patterns; loc; _ }, c) ->
             let a, b = match_char (path, c) ((patterns, d) :: tl) [] [] in
 
-            let cont = compile_matches env d.loc used_rows a ret_typ in
+            let cont = compile_matches env d.loc used_rows a ret_typ mut in
 
             let expr =
               match b with
@@ -968,7 +977,9 @@ module Make (C : Core) (R : Recs) = struct
                   in
                   (* i64 and u8 equal compare call the same llvm functions *)
                   let cmp = gen_cmp loc (expr path) cind in
-                  let else_ = compile_matches env d.loc used_rows b ret_typ in
+                  let else_ =
+                    compile_matches env d.loc used_rows b ret_typ mut
+                  in
                   If (cmp, cont, else_)
             in
             { typ = ret_typ; expr; attr = no_attr; loc }
@@ -990,6 +1001,7 @@ module Make (C : Core) (R : Recs) = struct
 
             let ret =
               compile_matches env loc used_rows ((patterns, d) :: tl) ret_typ
+                mut
             in
             let expr =
               List.fold_left
@@ -1024,6 +1036,7 @@ module Make (C : Core) (R : Recs) = struct
 
             let ret =
               compile_matches env loc used_rows ((patterns, d) :: tl) ret_typ
+                mut
             in
             let expr =
               List.fold_left

@@ -1,0 +1,11 @@
+(def op& (#some 1))
+
+(defn hidden-reference []
+  (match op
+    ((#some i)
+     -- set op. Depending on whether i behaves as a reference or value, return 1 or 2
+     (do (set &op (#some 2)) i))
+    (#none -1)))
+
+-- Should print 1 here, not 2
+(print (fmt-str (hidden-reference)))
