@@ -1,24 +1,28 @@
 open Types
 
+type loc = Typed_tree.loc
+
 type t = item list [@@deriving sexp]
 and name = { user : string; call : string }
 
 and item =
-  | Mtype of typ
-  | Mfun of typ * name
-  | Mext of typ * name * bool (* is closure *)
-  | Mpoly_fun of Typed_tree.abstraction * string * int option
-  | Mmutual_rec of (string * int option * typ) list
+  | Mtype of Typed_tree.loc * typ
+  | Mfun of Typed_tree.loc * typ * name
+  | Mext of Typed_tree.loc * typ * name * bool (* is closure *)
+  | Mpoly_fun of Typed_tree.loc * Typed_tree.abstraction * string * int option
+  | Mmutual_rec of loc * (loc * string * int option * typ) list
 
 val unique_name : string -> int option -> string
 val lambda_name : string option -> int -> string
-val add_type : typ -> t -> t
-val add_fun : string -> int option -> Typed_tree.abstraction -> t -> t
+val add_type : loc -> typ -> t -> t
+val add_fun : loc -> string -> int option -> Typed_tree.abstraction -> t -> t
 
 val add_rec_block :
-  (string * int option * Typed_tree.abstraction) list -> t -> t
+  loc -> (loc * string * int option * Typed_tree.abstraction) list -> t -> t
 
-val add_external : typ -> string -> string option -> closure:bool -> t -> t
+val add_external :
+  loc -> typ -> string -> string option -> closure:bool -> t -> t
+
 val module_cache : (string, (t, string) result) Hashtbl.t
 val poly_funcs : Typed_tree.toplevel_item list ref
 val paths : string list ref

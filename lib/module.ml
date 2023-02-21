@@ -3,15 +3,17 @@ module Sexp = Csexp.Make (Sexplib0.Sexp)
 open Sexplib0.Sexp_conv
 module S = Set.Make (Path)
 
+type loc = Typed_tree.loc [@@deriving sexp]
+
 type t = item list [@@deriving sexp]
 and name = { user : string; call : string }
 
 and item =
-  | Mtype of typ
-  | Mfun of typ * name
-  | Mext of typ * name * bool (* is closure *)
-  | Mpoly_fun of Typed_tree.abstraction * string * int option
-  | Mmutual_rec of (string * int option * typ) list
+  | Mtype of Typed_tree.loc * typ
+  | Mfun of Typed_tree.loc * typ * name
+  | Mext of Typed_tree.loc * typ * name * bool (* is closure *)
+  | Mpoly_fun of Typed_tree.loc * Typed_tree.abstraction * string * int option
+  | Mmutual_rec of loc * (loc * string * int option * typ) list
 (* TODO pattern binds *)
 
 (* Functions must be unique, so we add a number to each function if
@@ -32,33 +34,33 @@ let lambda_name mn id =
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
 
-let add_type t m = Mtype t :: m
+let add_type loc t m = Mtype (loc, t) :: m
 
 let type_of_func (func : Typed_tree.func) =
   Tfun (func.tparams, func.ret, func.kind)
 
-let add_fun name uniq (abs : Typed_tree.abstraction) m =
+let add_fun loc name uniq (abs : Typed_tree.abstraction) m =
   let call = unique_name name uniq in
   if is_polymorphic_func abs.func then
     (* failwith "polymorphic functions in modules are not supported yet TODO" *)
-    Mpoly_fun (abs, name, uniq) :: m
-  else Mfun (type_of_func abs.func, { user = name; call }) :: m
+    Mpoly_fun (loc, abs, name, uniq) :: m
+  else Mfun (loc, type_of_func abs.func, { user = name; call }) :: m
 
-let add_rec_block funs m =
+let add_rec_block loc funs m =
   let ms =
     List.filter_map
-      (fun (name, uniq, (abs : Typed_tree.abstraction)) ->
+      (fun (loc, name, uniq, (abs : Typed_tree.abstraction)) ->
         let typ = type_of_func abs.func in
-        if is_polymorphic typ then Some (name, uniq, typ) else None)
+        if is_polymorphic typ then Some (loc, name, uniq, typ) else None)
       funs
   in
-  let m = Mmutual_rec ms :: m in
-  List.fold_left (fun m (n, u, abs) -> add_fun n u abs m) m funs
+  let m = Mmutual_rec (loc, ms) :: m in
+  List.fold_left (fun m (loc, n, u, abs) -> add_fun loc n u abs m) m funs
 
-let add_external t name cname ~closure m =
+let add_external loc t name cname ~closure m =
   let closure = match clean t with Tfun _ -> closure | _ -> false in
   let call = match cname with Some s -> s | None -> name in
-  Mext (t, { user = name; call }, closure) :: m
+  Mext (loc, t, { user = name; call }, closure) :: m
 
 let module_cache = Hashtbl.create 64
 (* TODO sort by insertion order *)
@@ -306,11 +308,11 @@ and canonabs mname sub nsub abs =
   (sub, { abs with func; body })
 
 let map_item ~mname ~f = function
-  | Mtype t -> Mtype (f t)
-  | Mfun (t, n) -> Mfun (f t, n)
-  | Mext (t, n, c) when c -> Mext (f t, n, c)
-  | Mext (t, n, c) -> Mext (f t, n, c)
-  | Mpoly_fun (abs, n, u) ->
+  | Mtype (l, t) -> Mtype (l, f t)
+  | Mfun (l, t, n) -> Mfun (l, f t, n)
+  | Mext (l, t, n, c) when c -> Mext (l, f t, n, c)
+  | Mext (l, t, n, c) -> Mext (l, f t, n, c)
+  | Mpoly_fun (l, abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
       poly_funcs :=
@@ -318,51 +320,51 @@ let map_item ~mname ~f = function
            different modules *)
         Typed_tree.Tl_function (Env.mod_fn_name ~mname n, u, abs) :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
-      Mpoly_fun (abs, n, u)
-  | Mmutual_rec decls ->
-      let decls = List.map (fun (n, u, t) -> (n, u, f t)) decls in
+      Mpoly_fun (l, abs, n, u)
+  | Mmutual_rec (l, decls) ->
+      let decls = List.map (fun (l, n, u, t) -> (l, n, u, f t)) decls in
       let mname_decls =
         List.map
-          (fun (n, u, t) ->
+          (fun (_, n, u, t) ->
             let nn = Env.mod_fn_name ~mname n in
             (nn, u, t))
           decls
       in
       poly_funcs := Typed_tree.Tl_mutual_rec_decls mname_decls :: !poly_funcs;
-      Mmutual_rec decls
+      Mmutual_rec (l, decls)
 
 (* Number qvars from 0 and change names of Var-nodes to their unique form.
    _<module_name>_name*)
 let fold_canonize mname (ts_sub, nsub) = function
-  | Mtype t ->
+  | Mtype (l, t) ->
       let a, t = canonize ts_sub t in
-      ((a, nsub), Mtype t)
-  | Mfun (t, n) ->
-      let a, t = canonize ts_sub t in
-      let s = Smap.add n.user (Env.mod_fn_name ~mname n.user) nsub in
-      ((a, s), Mfun (t, n))
-  | Mext (t, n, c) ->
+      ((a, nsub), Mtype (l, t))
+  | Mfun (l, t, n) ->
       let a, t = canonize ts_sub t in
       let s = Smap.add n.user (Env.mod_fn_name ~mname n.user) nsub in
-      ((a, s), Mext (t, n, c))
-  | Mpoly_fun (abs, n, u) ->
+      ((a, s), Mfun (l, t, n))
+  | Mext (l, t, n, c) ->
+      let a, t = canonize ts_sub t in
+      let s = Smap.add n.user (Env.mod_fn_name ~mname n.user) nsub in
+      ((a, s), Mext (l, t, n, c))
+  | Mpoly_fun (l, abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
       (* Change Var-nodes in body here *)
       let s = Smap.add n (Env.mod_fn_name ~mname n) nsub in
       let a, abs = canonabs mname ts_sub s abs in
       (* This will be ignored in [add_to_env] *)
-      ((a, s), Mpoly_fun (abs, n, u))
-  | Mmutual_rec decls ->
+      ((a, s), Mpoly_fun (l, abs, n, u))
+  | Mmutual_rec (l, decls) ->
       let (a, nsub), decls =
         List.fold_left_map
-          (fun (ts_sub, nsub) (n, u, t) ->
+          (fun (ts_sub, nsub) (l, n, u, t) ->
             let a, t = canonize ts_sub t in
             let s = Smap.add n (Env.mod_fn_name ~mname n) nsub in
-            ((a, s), (n, u, t)))
+            ((a, s), (l, n, u, t)))
           (ts_sub, nsub) decls
       in
-      ((a, nsub), Mmutual_rec decls)
+      ((a, nsub), Mmutual_rec (l, decls))
 
 let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with
@@ -481,43 +483,42 @@ and mod_abs f abs =
 
 let add_to_env env mname m =
   let modul = Some mname in
-  let dummy_loc = Lexing.(dummy_pos, dummy_pos) in
   List.fold_left
     (fun env item ->
       match item with
-      | Mtype (Trecord (params, Some name, labels)) ->
+      | Mtype (_, Trecord (params, Some name, labels)) ->
           Env.add_record name ~modul ~params ~labels env
-      | Mtype (Tvariant (params, name, ctors)) ->
+      | Mtype (_, Tvariant (params, name, ctors)) ->
           Env.add_variant name ~modul ~params ~ctors env
-      | Mtype (Talias (name, t)) -> Env.add_alias ~modul name t env
-      | Mtype t ->
+      | Mtype (_, Talias (name, t)) -> Env.add_alias ~modul name t env
+      | Mtype (_, t) ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
-      | Mfun (t, n) ->
+      | Mfun (l, t, n) ->
           Env.add_external
             ~imported:(Some (mname, `Schmu))
             n.user
             ~cname:(Some (mname ^ "_" ^ n.call))
-            ~closure:false t dummy_loc env
-      | Mpoly_fun (abs, n, _) ->
+            ~closure:false t l env
+      | Mpoly_fun (l, abs, n, _) ->
           let imported = Some (mname, `Schmu) in
           let env =
             Env.(
               add_value n
                 { def_value with typ = type_of_func abs.func; imported }
-                dummy_loc env)
+                l env)
           in
           env
-      | Mext (t, n, closure) ->
+      | Mext (l, t, n, closure) ->
           Env.add_external ~closure
             ~imported:(Some (mname, `C))
-            n.user ~cname:(Some n.call) t dummy_loc env
-      | Mmutual_rec ds ->
+            n.user ~cname:(Some n.call) t l env
+      | Mmutual_rec (_, ds) ->
           List.fold_left
-            (fun env (name, _, typ) ->
+            (fun env (l, name, _, typ) ->
               Env.(
                 add_value name
                   { def_value with typ; imported = Some (mname, `Schmu) }
-                  dummy_loc env))
+                  l env))
             env ds)
     env m
 
@@ -526,27 +527,27 @@ let make_module sub name m =
     match extr_name t with Some p -> sub := S.add p !sub | None -> ()
   in
   match m with
-  | Mtype t ->
+  | Mtype (l, t) ->
       s t;
-      Mtype (mod_t (Add (name, !sub)) t)
-  | Mfun (t, n) ->
+      Mtype (l, mod_t (Add (name, !sub)) t)
+  | Mfun (l, t, n) ->
       sub := S.add (Path.Pid n.user) !sub;
-      Mfun (mod_t (Add (name, !sub)) t, n)
-  | Mext (t, n, c) ->
+      Mfun (l, mod_t (Add (name, !sub)) t, n)
+  | Mext (l, t, n, c) ->
       sub := S.add (Path.Pid n.user) !sub;
-      Mext (mod_t (Add (name, !sub)) t, n, c)
-  | Mpoly_fun (abs, n, u) ->
+      Mext (l, mod_t (Add (name, !sub)) t, n, c)
+  | Mpoly_fun (l, abs, n, u) ->
       sub := S.add (Path.Pid n) !sub;
-      Mpoly_fun (mod_abs (mod_t (Add (name, !sub))) abs, n, u)
-  | Mmutual_rec ds ->
+      Mpoly_fun (l, mod_abs (mod_t (Add (name, !sub))) abs, n, u)
+  | Mmutual_rec (l, ds) ->
       let ds =
         List.map
-          (fun (n, u, t) ->
+          (fun (l, n, u, t) ->
             sub := S.add (Path.Pid n) !sub;
-            (n, u, mod_t (Add (name, !sub)) t))
+            (l, n, u, mod_t (Add (name, !sub)) t))
           ds
       in
-      Mmutual_rec ds
+      Mmutual_rec (l, ds)
 
 let to_channel c ~outname m =
   let s = ref S.empty in

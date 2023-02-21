@@ -1095,21 +1095,21 @@ let convert_prog env items modul =
     | Ext_decl (loc, (idloc, id), typ, cname) ->
         let typ = typeof_annot env loc typ in
         block_external_name loc ~cname id;
-        let m = Module.add_external typ id cname ~closure:false m in
+        let m = Module.add_external loc typ id cname ~closure:false m in
         ( Env.add_external id ~cname typ ~imported:None idloc ~closure:false env,
           items,
           m )
     | Typedef (loc, Trecord t) ->
         let env = type_record env loc t in
-        let m = Module.add_type (Env.find_type t.name.name env) m in
+        let m = Module.add_type loc (Env.find_type t.name.name env) m in
         (env, items, m)
     | Typedef (loc, Talias (name, type_spec)) ->
         let env = type_alias env loc name type_spec in
-        let m = Module.add_type (Env.find_type name.name env) m in
+        let m = Module.add_type loc (Env.find_type name.name env) m in
         (env, items, m)
     | Typedef (loc, Tvariant v) ->
         let env = type_variant env loc v in
-        let m = Module.add_type (Env.find_type v.name.name env) m in
+        let m = Module.add_type loc (Env.find_type v.name.name env) m in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
@@ -1124,7 +1124,7 @@ let convert_prog env items modul =
           | None -> None
           | Some i -> Some (Module.unique_name id (Some i))
         in
-        let m = Module.add_external lhs.typ id uniq_name ~closure:true m in
+        let m = Module.add_external loc lhs.typ id uniq_name ~closure:true m in
         let expr =
           let expr = Tl_let (id, uniq, lhs) in
           match pats with
@@ -1137,7 +1137,7 @@ let convert_prog env items modul =
         let env, (name, unique, abs) =
           Core.convert_function env loc func false
         in
-        let m = Module.add_fun name unique abs m in
+        let m = Module.add_fun loc name unique abs m in
         (old, env, Tl_function (name, unique, abs) :: items, m)
     | Rec (loc, funcs) ->
         (* Collect function names *)
@@ -1149,10 +1149,13 @@ let convert_prog env items modul =
           Env.(add_value name { def_value with typ } nameloc env)
         in
         let env = List.fold_left collect env funcs in
-        let f env (_, func) = Core.convert_function env loc func true in
+        let f env (loc, func) =
+          let env, (n, u, abs) = Core.convert_function env loc func true in
+          (env, (loc, n, u, abs))
+        in
         let env, funcs = List.fold_left_map f env funcs in
         let rec aux env = function
-          | (n, u, abs) :: tl ->
+          | (_, n, u, abs) :: tl ->
               let t = Env.find_val n env in
               (* Generalize the functions *)
               let typ = generalize t.typ in
@@ -1163,7 +1166,7 @@ let convert_prog env items modul =
           | [] -> ([], [], env)
         in
         let decls, fitems, env = aux env (List.rev funcs) in
-        let m = Module.add_rec_block funcs m in
+        let m = Module.add_rec_block loc funcs m in
         (old, env, fitems @ (Tl_mutual_rec_decls decls :: items), m)
     | Expr (loc, expr) ->
         let expr = Core.convert env expr in
