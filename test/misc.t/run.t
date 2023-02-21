@@ -5068,3 +5068,8 @@ Allow patterns in decls
   20
   30
   lol
+
+Assertions
+  $ schmu assert.smu && ./assert | head -n 1 ; (exit ${PIPESTATUS[0]})
+  assert: assert.smu:5: main: Assertion `false' failed.
+  [134]

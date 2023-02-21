@@ -1,0 +1,7 @@
+(assert true)
+
+(print "hmm")
+
+(assert false)
+
+(print "lol")

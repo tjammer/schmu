@@ -157,7 +157,8 @@ end = struct
           match (typed_expr.return, callee.monomorph, param.rec_block) with
           | true, Recursive _, Some block ->
               gen_app_tailrec param callee args block typed_expr.typ
-          | _, Builtin (b, bfn), _ -> gen_app_builtin param (b, bfn) args alloca
+          | _, Builtin (b, bfn), _ ->
+              gen_app_builtin param (b, bfn) args alloca typed_expr.loc
           | _, Inline (pnames, tree), _ -> gen_app_inline param args pnames tree
           | _ -> gen_app param callee args alloca typed_expr.typ
         in
@@ -165,7 +166,7 @@ end = struct
         | Some id -> Strtbl.replace decr_tbl id value
         | None -> ());
         fin value
-    | Mif expr -> gen_if param expr typed_expr.return
+    | Mif expr -> gen_if param expr
     | Mrecord (labels, allocref, id, const) ->
         gen_record param typed_expr.typ labels allocref id const
           typed_expr.return
@@ -536,7 +537,7 @@ end = struct
     let value = Llvm.build_br rec_block.rec_ builder in
     { value; typ = Tpoly "tail"; lltyp; kind = default_kind ret }
 
-  and gen_app_builtin param (b, fnc) args allocref =
+  and gen_app_builtin param (b, fnc) args allocref loc =
     let handle_arg (arg, _) =
       let arg' = gen_expr param Monomorph_tree.(arg.ex) in
       let arg = get_mono_func arg' param arg.monomorph in
@@ -658,6 +659,29 @@ end = struct
         let true_value = Llvm.const_int bool_t (Bool.to_int true) in
         let value = Llvm.build_xor value true_value "" builder in
         { value; typ = Tbool; lltyp = bool_t; kind = Imm }
+    | Assert ->
+        let cond =
+          match args with
+          | [ cond ] -> bring_default cond
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        let start_bb = Llvm.insertion_block builder in
+        let parent = Llvm.block_parent start_bb in
+        let func = Llvm.value_name parent in
+        let text = get_snippet loc in
+        let loc = fst loc in
+
+        let success_bb = Llvm.append_block context "success" parent in
+        let fail_bb = Llvm.append_block context "fail" parent in
+
+        ignore (Llvm.build_cond_br cond success_bb fail_bb builder);
+
+        Llvm.position_at_end fail_bb builder;
+        ignore (assert_fail ~text ~file:loc.pos_fname ~line:loc.pos_lnum ~func);
+
+        Llvm.position_at_end success_bb builder;
+
+        { dummy_fn_value with lltyp = unit_t }
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)
@@ -671,12 +695,10 @@ end = struct
     let env = List.fold_left2 f param args names in
     gen_expr env tree
 
-  and gen_if param expr return =
+  and gen_if param expr =
     (* If a function ends in a if expression (and returns a struct),
        we pass in the finalize step. This allows us to handle the branches
        differently and enables tail call elimination *)
-    ignore return;
-
     let is_tailcall e =
       match e.typ with
       | Tpoly id when String.equal "tail" id -> true

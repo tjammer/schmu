@@ -63,6 +63,11 @@ module type S = sig
   val fmt_str : llvar -> string * Llvm.llvalue
   val set_in_init : bool -> unit
 
+  val assert_fail :
+    text:string -> file:string -> line:int -> func:string -> Llvm.llvalue
+
+  val get_snippet : Ast.loc -> string
+
   (* For reuse in arr.ml *)
   val var_index : llvar -> llvar
   val var_data : llvar -> typ -> llvar
@@ -83,6 +88,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
   let string_tbl = Strtbl.create 64
   let dtor_tbl = Strtbl.create 64
+  let src_tbl = Hashtbl.create 64
   let in_init = ref false
 
   let dummy_fn_value =
@@ -245,6 +251,45 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     | _ ->
         print_endline (show_typ value.typ);
         failwith "Internal Error: Impossible string format"
+
+  (* use [__assert_fail] from libc *)
+  let assert_fail ~text ~file ~line ~func =
+    let assert_fail_decl =
+      lazy
+        Llvm.(
+          let cptr = u8_t |> pointer_type in
+          let ft = function_type unit_t [| cptr; cptr; i32_t; cptr |] in
+          declare_function "__assert_fail" ft the_module)
+    in
+
+    let typ = Tarray Tu8 in
+    let lltyp = get_lltype_def typ in
+    let d txt =
+      let value = get_const_string txt in
+      (Arr.array_data [ { value; kind = Imm; typ; lltyp } ]).value
+    in
+    let args = [| d text; d file; Llvm.const_int i32_t line; d func |] in
+    ignore (Llvm.build_call (Lazy.force assert_fail_decl) args "" builder);
+    Llvm.build_unreachable builder
+
+  let get_snippet (lbeg, lend) =
+    let open Lexing in
+    (* Don't print the string 'assert ' *)
+    let start = lbeg.pos_cnum + 7 in
+    match Hashtbl.find_opt src_tbl lbeg.pos_fname with
+    | Some (Some str) -> String.sub str start (lend.pos_cnum - start)
+    | Some None -> "file not found"
+    | None -> (
+        (* Try to open file and read into lexbuf *)
+        try
+          let ic = In_channel.open_bin lbeg.pos_fname in
+          let str = In_channel.input_all ic in
+          In_channel.close ic;
+          Hashtbl.add src_tbl lbeg.pos_fname (Some str);
+          String.sub str start (lend.pos_cnum - start)
+        with _ ->
+          Hashtbl.replace src_tbl lbeg.pos_fname None;
+          "file not found")
 
   let llval_of_size size = Llvm.const_int int_t size
 
