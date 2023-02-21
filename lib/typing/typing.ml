@@ -1138,7 +1138,7 @@ let convert_prog env items modul =
           Core.convert_function env loc func false
         in
         let m = Module.add_fun loc name unique abs m in
-        (old, env, Tl_function (name, unique, abs) :: items, m)
+        (old, env, Tl_function (loc, name, unique, abs) :: items, m)
     | Rec (loc, funcs) ->
         (* Collect function names *)
         let collect env (_, (func : Ast.func)) =
@@ -1155,14 +1155,14 @@ let convert_prog env items modul =
         in
         let env, funcs = List.fold_left_map f env funcs in
         let rec aux env = function
-          | (_, n, u, abs) :: tl ->
+          | (l, n, u, abs) :: tl ->
               let t = Env.find_val n env in
               (* Generalize the functions *)
               let typ = generalize t.typ in
               let env = Env.change_type n typ env in
 
               let decls, fitems, env = aux env tl in
-              ((n, u, t.typ) :: decls, Tl_function (n, u, abs) :: fitems, env)
+              ((n, u, t.typ) :: decls, Tl_function (l, n, u, abs) :: fitems, env)
           | [] -> ([], [], env)
         in
         let decls, fitems, env = aux env (List.rev funcs) in
@@ -1187,7 +1187,7 @@ let convert_prog env items modul =
 let rec catch_weak_vars = function
   | Tl_let (_, _, e) | Tl_bind (_, e) | Tl_expr e ->
       catch_weak_expr Sset.empty e
-  | Tl_function (_, _, abs) -> catch_weak_body Sset.empty abs
+  | Tl_function (_, _, _, abs) -> catch_weak_body Sset.empty abs
   | Tl_mutual_rec_decls _ -> ()
 
 and catch_weak_body sub abs =

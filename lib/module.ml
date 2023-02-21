@@ -318,7 +318,8 @@ let map_item ~mname ~f = function
       poly_funcs :=
         (* Change name of poly func to module-unique name to prevent name clashes from
            different modules *)
-        Typed_tree.Tl_function (Env.mod_fn_name ~mname n, u, abs) :: !poly_funcs;
+        Typed_tree.Tl_function (l, Env.mod_fn_name ~mname n, u, abs)
+        :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
       Mpoly_fun (l, abs, n, u)
   | Mmutual_rec (l, decls) ->

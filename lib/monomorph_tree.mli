@@ -70,7 +70,7 @@ and call_name =
 (* Builtin function with special codegen *)
 
 and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
-and monod_tree = { typ : typ; expr : expr; return : bool }
+and monod_tree = { typ : typ; expr : expr; return : bool; loc : Ast.loc }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request

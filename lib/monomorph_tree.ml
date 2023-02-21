@@ -61,7 +61,7 @@ and call_name =
   | Inline of string list * monod_tree
 
 and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
-and monod_tree = { typ : typ; expr : expr; return : bool }
+and monod_tree = { typ : typ; expr : expr; return : bool; loc : Ast.loc }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
@@ -894,7 +894,9 @@ let rec_fs_to_env p (username, uniq, typ) =
   { p with vars }
 
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
-  let make expr return = { typ = cln param texpr.typ; expr; return } in
+  let make expr return =
+    { typ = cln param texpr.typ; expr; return; loc = texpr.loc }
+  in
   match texpr.expr with
   | Typed_tree.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
@@ -914,7 +916,12 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let vars = Vars.add uniq (Normal func) p.vars in
       let p, cont, func = morph_expr { p with ret = param.ret; vars } cont in
       ( p,
-        { typ = cont.typ; expr = Mbind (uniq, lhs, cont); return = param.ret },
+        {
+          typ = cont.typ;
+          expr = Mbind (uniq, lhs, cont);
+          return = param.ret;
+          loc = texpr.loc;
+        },
         func )
   | Record labels ->
       morph_record make param labels texpr.attr (cln param texpr.typ)
@@ -929,6 +936,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
           typ = cont.typ;
           expr = Mfunction (call, abs, cont, alloca);
           return = param.ret;
+          loc = texpr.loc;
         },
         func )
   | Mutual_rec_decls (decls, cont) ->
@@ -1581,13 +1589,15 @@ and morph_fmt mk p exprs =
 
 let morph_toplvl param items =
   let rec aux param = function
-    | [] -> (param, { typ = Tunit; expr = Mconst Unit; return = true }, no_var)
+    | [] ->
+        let loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
+        (param, { typ = Tunit; expr = Mconst Unit; return = true; loc }, no_var)
     | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
         let p, e1, gn, vid = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
         let p, e2 = make_e2 e1 e2 id gn expr.attr.mut false p vid in
         (p, e2, func)
-    | Tl_function (name, uniq, abs) :: tl ->
+    | Tl_function (loc, name, uniq, abs) :: tl ->
         let p, call, abs, alloca = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in
         ( p,
@@ -1595,6 +1605,7 @@ let morph_toplvl param items =
             typ = cont.typ;
             expr = Mfunction (call, abs, cont, alloca);
             return = param.ret;
+            loc;
           },
           func )
     | Tl_bind (id, expr) :: tl ->
@@ -1610,7 +1621,14 @@ let morph_toplvl param items =
     | Tl_expr e :: tl ->
         let p, e, _ = morph_expr param e in
         let p, cont, func = aux { p with ret = param.ret } tl in
-        (p, { typ = cont.typ; expr = Mseq (e, cont); return = param.ret }, func)
+        ( p,
+          {
+            typ = cont.typ;
+            expr = Mseq (e, cont);
+            return = param.ret;
+            loc = e.loc;
+          },
+          func )
   in
   aux param items
 

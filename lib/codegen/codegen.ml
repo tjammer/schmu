@@ -1240,8 +1240,9 @@ let generate ~target ~outname ~release ~modul
 
       (* Add frees to global dctors in reverse order *)
       if not (Seq.is_empty decrs) then
+        let loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
         let body =
-          Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true }
+          Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true; loc }
         in
         add_global_init no_param outname `Dtor (decr_refs body decrs)
   | Some _ -> ());

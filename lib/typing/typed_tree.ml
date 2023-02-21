@@ -60,7 +60,7 @@ and const =
 and toplevel_item =
   | Tl_let of string * int option * typed_expr
   | Tl_bind of string * typed_expr
-  | Tl_function of string * int option * abstraction
+  | Tl_function of loc * string * int option * abstraction
   | Tl_expr of typed_expr
   | Tl_mutual_rec_decls of (string * int option * typ) list
 
