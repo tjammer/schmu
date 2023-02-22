@@ -1,6 +1,10 @@
+(external stdout (raw_ptr u8))
+(external fflush (fun (raw_ptr u8) unit))
+
 (assert true)
 
 (print "hmm")
+(fflush stdout) -- flush to see it in testing
 
 (assert false)
 

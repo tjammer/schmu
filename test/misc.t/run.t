@@ -5070,6 +5070,10 @@ Allow patterns in decls
   lol
 
 Assertions
-  $ schmu assert.smu && ./assert | head -n 1 ; (exit ${PIPESTATUS[0]})
-  assert: assert.smu:5: main: Assertion `false' failed.
+  $ schmu assert.smu
+  $ ret=$(./assert 2> err) 2> /dev/null
   [134]
+  $ echo $ret
+  hmm
+  $ cat err | grep assert
+  assert: assert.smu:9: main: Assertion `false' failed.
