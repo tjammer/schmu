@@ -155,9 +155,28 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   @b = external global i64
   @a__2 = external global i64
-  @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 3, i64 3, i64 3, [4 x i8] c"%i\0A\00" }
+  @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 5, i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare void @printf(i8* %0, i64 %1)
+  
+  define void @schmu_inside-fn() {
+  entry:
+    tail call void @schmu_second()
+    ret void
+  }
+  
+  define void @schmu_second() {
+  entry:
+    %str = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str, align 8
+    %0 = load i64, i64* @a__2, align 8
+    tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
+    %str1 = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str1, align 8
+    %1 = load i64, i64* @b, align 8
+    tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
+    ret void
+  }
   
   define i64 @main(i64 %arg) {
   entry:
@@ -169,8 +188,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str1, align 8
     %1 = load i64, i64* @b, align 8
     tail call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
+    tail call void @schmu_inside-fn()
     ret i64 0
   }
+  11
+  21
   11
   21
 

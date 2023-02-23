@@ -2,3 +2,12 @@
 
 (printf (array-data "%i\n") a)
 (printf (array-data "%i\n") b)
+
+(defn inside-fn []
+  (open lets)
+  (defn second []
+    (printf (array-data "%i\n") a)
+    (printf (array-data "%i\n") b)  )
+  (second))
+
+(inside-fn)
