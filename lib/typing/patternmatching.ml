@@ -494,8 +494,6 @@ module Make (C : Core) (R : Recs) = struct
   open C
   open R
 
-  (* Internal expression values in codegen shouldn't trigger unused binding warnings.
-     `imported = true` makes sure no warning is issued *)
   let exprval = Env.def_value
 
   module Row = struct

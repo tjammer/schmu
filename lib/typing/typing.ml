@@ -1053,7 +1053,7 @@ end = struct
           let modul = Module.read_exn ~regeneralize mname loc in
           let env = Module.add_to_env (Env.open_module env) mname modul in
           let cont, env = to_expr (Env.finish_module env) old_type tl in
-          (cont, env)
+          (cont, Env.close_module env)
     in
     to_expr env (loc, Tunit) stmts
 

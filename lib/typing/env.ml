@@ -20,8 +20,6 @@ module Labelset = Set.Make (String)
 module Lmap = Map.Make (Labelset)
 module Tmap = Map.Make (Path)
 module Etbl = Hashtbl.Make (Type_key)
-
-(* TODO ord map  *)
 module Map = Map.Make (String)
 module Set = Set.Make (String)
 
@@ -67,14 +65,17 @@ type ext = {
   closure : bool;
 }
 
-type scope_kind = Sfunc | Smodule | Sfunc_cont
+type usage_tbl = (Path.t, usage) Hashtbl.t
+type scope_kind = Sfunc of usage_tbl | Smodule | Sfunc_cont of usage_tbl
 
 (* function scope *)
 type scope = {
   valmap : value Map.t;
   closed : Set.t ref;
-  used : (Path.t, usage) Hashtbl.t;
-  (* used_types : (Path.t, Ast.loc * bool ref) Hashtbl.t; *)
+  labels : label Map.t; (* For single labels (field access) *)
+  labelsets : Path.t Lmap.t; (* For finding the type of a record expression *)
+  ctors : label Map.t; (* Variant constructors *)
+  types : typ Tmap.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
 }
 
@@ -84,13 +85,6 @@ type scope = {
 
 type t = {
   values : scope list;
-  labels : label Map.t; (* For single labels (field access) *)
-  labelsets : Path.t Lmap.t; (* For finding the type of a record expression *)
-  ctors : label Map.t; (* Variant constructors *)
-  types : typ Tmap.t;
-  (* The record types are saved in their most general form.
-     For codegen, we also save the instances of generics. This
-     probably should go into another pass once we add it *)
   externals : ext Etbl.t;
       (* externals won't collide between scopes and modules, thus we keep a reference type here *)
   in_mut : int ref;
@@ -110,18 +104,27 @@ let def_value =
   }
 
 let empty_scope kind =
-  { valmap = Map.empty; closed = ref Set.empty; used = Hashtbl.create 64; kind }
-
-let empty () =
   {
-    values = [ empty_scope Sfunc ];
+    valmap = Map.empty;
+    closed = ref Set.empty;
     labels = Map.empty;
     labelsets = Lmap.empty;
     ctors = Map.empty;
     types = Tmap.empty;
+    kind;
+  }
+
+let empty () =
+  {
+    values = [ empty_scope (Sfunc (Hashtbl.create 64)) ];
     externals = Etbl.create 64;
     in_mut = ref 0;
   }
+
+let decap_exn env =
+  match env.values with
+  | [] -> failwith "Internal Error: Env empty"
+  | scope :: tl -> (scope, tl)
 
 let add_value key value loc env =
   match env.values with
@@ -129,19 +132,19 @@ let add_value key value loc env =
   | scope :: tl ->
       let valmap = Map.add key value scope.valmap in
 
-      (* Shadowed bindings stay in the Hashtbl, but are not reachable (I think).
+      (* Shadowed bindings stay in the Hashtbl, but are not reachable.
          Thus, warning for unused shadowed bindings works *)
-      (if Option.is_none value.imported then
-       let tbl = scope.used in
-       (* If the value is not mutable, we set it to mutated to let the later check pass *)
-       let mutated = if value.mut then ref false else ref true in
-       Hashtbl.add tbl (Path.Pid key)
-         {
-           loc;
-           used = ref false;
-           imported = Option.is_some value.imported;
-           mutated;
-         });
+      (match scope.kind with
+      | Sfunc tbl | Sfunc_cont tbl ->
+          let mutated = if value.mut then ref false else ref true in
+          Hashtbl.add tbl (Path.Pid key)
+            {
+              loc;
+              used = ref false;
+              imported = Option.is_some value.imported;
+              mutated;
+            }
+      | Smodule -> assert (Option.is_some value.imported));
 
       { env with values = { scope with valmap } :: tl }
 
@@ -157,12 +160,13 @@ let add_external ext_name ~cname typ ~imported ~closure loc env =
         in
 
         let used = ref false in
-        (* external things cannot be mutated right now *)
-        let mutated = ref true in
-        let tbl = scope.used in
-        if Option.is_none imported then
-          Hashtbl.add tbl (Path.Pid ext_name)
-            { loc; used; imported = Option.is_some imported; mutated };
+        (match scope.kind with
+        | Sfunc tbl | Sfunc_cont tbl ->
+            (* external things cannot be mutated right now *)
+            let mutated = ref true in
+            Hashtbl.add tbl (Path.Pid ext_name)
+              { loc; used; imported = Option.is_some imported; mutated }
+        | Smodule -> assert (Option.is_some imported));
 
         ({ env with values = { scope with valmap } :: tl }, used)
   in
@@ -184,10 +188,12 @@ let change_type key typ env =
       | None -> "Internal Error: Missing key for changing " ^ key |> failwith)
 
 let add_type key t env =
-  let types = Tmap.add key t env.types in
-  { env with types }
+  let scope, tl = decap_exn env in
+  let types = Tmap.add key t scope.types in
+  { env with values = { scope with types } :: tl }
 
 let add_record record ?(modul = None) ~params ~labels env =
+  let scope, tl = decap_exn env in
   let typ = Trecord (params, Some record, labels) in
   let name =
     match modul with None -> record | Some m -> Path.rm_name m record
@@ -197,18 +203,19 @@ let add_record record ?(modul = None) ~params ~labels env =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
   in
 
-  let labelsets = Lmap.add labelset name env.labelsets in
+  let labelsets = Lmap.add labelset name scope.labelsets in
 
   let _, labels =
     Array.fold_left
       (fun (index, labels) field ->
         (index + 1, Map.add field.fname { index; typename = name } labels))
-      (0, env.labels) labels
+      (0, scope.labels) labels
   in
-  let types = Tmap.add name typ env.types in
-  { env with labels; types; labelsets }
+  let types = Tmap.add name typ scope.types in
+  { env with values = { scope with labels; types; labelsets } :: tl }
 
 let add_variant variant ?(modul = None) ~params ~ctors env =
+  let scope, tl = decap_exn env in
   let typ = Tvariant (params, variant, ctors) in
   let name =
     match modul with None -> variant | Some m -> Path.rm_name m variant
@@ -218,18 +225,19 @@ let add_variant variant ?(modul = None) ~params ~ctors env =
     Array.fold_left
       (fun (index, ctors) (ctor : ctor) ->
         (index + 1, Map.add ctor.cname { index; typename = name } ctors))
-      (0, env.ctors) ctors
+      (0, scope.ctors) ctors
   in
-  let types = Tmap.add name typ env.types in
-  { env with ctors; types }
+  let types = Tmap.add name typ scope.types in
+  { env with values = { scope with ctors; types } :: tl }
 
 let add_alias alias ?(modul = None) typ env =
+  let scope, tl = decap_exn env in
   let name =
     match modul with None -> alias | Some m -> Path.rm_name m alias
   in
   let typ = Talias (alias, typ) in
-  let types = Tmap.add name typ env.types in
-  { env with types }
+  let types = Tmap.add name typ scope.types in
+  { env with values = { scope with types } :: tl }
 
 let find_val_raw key env =
   let rec aux = function
@@ -244,13 +252,13 @@ let find_val_raw key env =
 let open_function env =
   (* Due to the ref, we have to create a new object every time *)
   (match env.values with
-  | { kind = Sfunc | Sfunc_cont; _ } :: _ -> ()
+  | { kind = Sfunc _ | Sfunc_cont _; _ } :: _ -> ()
   | _ -> failwith "Internal Error: Module not finished in env (function)");
-  { env with values = empty_scope Sfunc :: env.values }
+  { env with values = empty_scope (Sfunc (Hashtbl.create 64)) :: env.values }
 
 let open_module env =
   (match env.values with
-  | { kind = Sfunc | Sfunc_cont; _ } :: _ -> ()
+  | { kind = Sfunc _ | Sfunc_cont _; _ } :: _ -> ()
   | _ -> failwith "Internal Error: Module not finished in env");
   { env with values = empty_scope Smodule :: env.values }
 
@@ -258,38 +266,38 @@ let finish_module env =
   (match env.values with
   | { kind = Smodule; _ } :: _ -> ()
   | _ -> failwith "Internal Error: Module not opened in env (cont)");
-  { env with values = empty_scope Sfunc_cont :: env.values }
+  let scope = empty_scope (Sfunc_cont (Hashtbl.create 64)) in
+  { env with values = scope :: env.values }
 
 let close_module env =
   (match env.values with
-  | { kind = Sfunc | Sfunc_cont; _ } :: _ -> ()
+  | { kind = Sfunc _ | Sfunc_cont _; _ } :: _ -> ()
   | _ -> failwith "Internal Error: Module not opened in env (close)");
   let rec aux before = function
     | { kind = Smodule; _ } :: tl ->
         (* Found the module *)
         (* TODO check for unused *)
         List.rev_append before tl
-    | ({ kind = Sfunc | Sfunc_cont; _ } as scope) :: tl ->
+    | ({ kind = Sfunc _ | Sfunc_cont _; _ } as scope) :: tl ->
         aux (scope :: before) tl
     | [] -> failwith "Internal Error: Empty scope on close_module"
   in
   { env with values = aux [] env.values }
 
 let find_unused ret tbl =
-  let ret =
-    Hashtbl.fold
-      (fun name (used : usage) acc ->
-        if used.imported then acc
-        else if not !(used.used) then (name, Unused, used.loc) :: acc
-        else if not !(used.mutated) then (name, Unmutated, used.loc) :: acc
-        else acc)
-      tbl ret
-  in
-  match ret with
+  Hashtbl.fold
+    (fun name (used : usage) acc ->
+      if used.imported then acc
+      else if not !(used.used) then (name, Unused, used.loc) :: acc
+      else if not !(used.mutated) then (name, Unmutated, used.loc) :: acc
+      else acc)
+    tbl ret
+
+let sort_unused = function
   | [] -> Ok ()
   | some ->
       (* Sort the warnings so the ones form the start of file are printed first *)
-      let some =
+      let s =
         List.sort
           (fun (_, _, ((lhs : Lexing.position), _)) (_, _, (rhs, _)) ->
             if lhs.pos_lnum <> rhs.pos_lnum then
@@ -297,32 +305,43 @@ let find_unused ret tbl =
             else Int.compare lhs.pos_cnum rhs.pos_cnum)
           some
       in
-      Error some
+      Error s
 
 let close_function env =
-  match env.values with
-  | [] -> failwith "Internal Error: Env empty"
-  | scope :: tl ->
-      let closed =
-        !(scope.closed) |> Set.to_seq |> List.of_seq
-        |> List.filter_map (fun clname ->
-               (* We only add functions to the closure if they are params
-                  Or: if they are closures *)
-               let { typ; param; const; global; imported; mut = clmut } =
-                 find_val_raw clname env
-               in
-               (* Const values (and imported ones) are not closed over, they exist module-wide *)
-               if const || global || Option.is_some imported then None
-               else
-                 match clean typ with
-                 | Tfun (_, _, Closure _) ->
-                     Some { clname; cltyp = typ; clmut; clparam = param }
-                 | Tfun _ when not param -> None
-                 | _ -> Some { clname; cltyp = typ; clmut; clparam = param })
-      in
+  (* Close scopes up to next function scope *)
+  let rec aux old_closed unused = function
+    | [] -> failwith "Internal Error: Env empty"
+    | scope :: tl -> (
+        let closed =
+          !(scope.closed) |> Set.to_seq |> List.of_seq
+          |> List.filter_map (fun clname ->
+                 (* We only add functions to the closure if they are params
+                    Or: if they are closures *)
+                 let { typ; param; const; global; imported; mut = clmut } =
+                   find_val_raw clname env
+                 in
+                 (* Const values (and imported ones) are not closed over, they exist module-wide *)
+                 if const || global || Option.is_some imported then None
+                 else
+                   match clean typ with
+                   | Tfun (_, _, Closure _) ->
+                       Some { clname; cltyp = typ; clmut; clparam = param }
+                   | Tfun _ when not param -> None
+                   | _ -> Some { clname; cltyp = typ; clmut; clparam = param })
+        in
 
-      let unused = find_unused [] scope.used in
-      ({ env with values = tl }, closed, unused)
+        match scope.kind with
+        | Sfunc usage ->
+            let unused = find_unused unused usage in
+            ({ env with values = tl }, closed @ old_closed, sort_unused unused)
+        | Sfunc_cont usage ->
+            let unused = find_unused unused usage in
+            aux (closed @ old_closed) unused tl
+        | Smodule ->
+            (* TODO track usage here *)
+            aux (closed @ old_closed) unused tl)
+  in
+  aux [] [] env.values
 
 let find_val_opt key env =
   let rec aux = function
@@ -346,12 +365,15 @@ let find_val_opt key env =
 let find_val key env =
   match find_val_opt key env with Some vl -> vl | None -> raise Not_found
 
-let mark_used name tbl mut =
-  match Hashtbl.find_opt tbl name with
-  | Some (used : usage) ->
-      if !mut > 0 then used.mutated := true;
-      used.used := true
-  | None -> ()
+let mark_used name kind mut =
+  match kind with
+  | Sfunc tbl | Sfunc_cont tbl -> (
+      match Hashtbl.find_opt tbl name with
+      | Some (used : usage) ->
+          if !mut > 0 then used.mutated := true;
+          used.used := true
+      | None -> ())
+  | Smodule -> ()
 
 let query_val_opt key env =
   (* Add str to closures, up to the level where the value originates from *)
@@ -369,10 +391,10 @@ let query_val_opt key env =
         match Map.find_opt key scope.valmap with
         | None -> (
             match scope.kind with
-            | Sfunc ->
+            | Sfunc _ ->
                 (* Increase scope level normally *)
                 aux (scope_lvl + 1) tl
-            | Sfunc_cont | Smodule ->
+            | Sfunc_cont _ | Smodule ->
                 (* We are still in the same functionlike scope *)
                 aux scope_lvl tl)
         | Some { typ; const; imported; global; mut; param = _ } ->
@@ -380,23 +402,54 @@ let query_val_opt key env =
             (match scope_lvl with 0 -> () | _ -> add scope_lvl key env.values);
             (* Mark value used, if it's not imported *)
             if Option.is_none imported then
-              mark_used (Path.Pid key) scope.used env.in_mut;
+              mark_used (Path.Pid key) scope.kind env.in_mut;
             let imported = Option.map fst imported in
             Some { typ; const; global; mut; imported })
   in
   aux 0 env.values
 
-let find_type_opt key env = Tmap.find_opt key env.types
-let find_type key env = Tmap.find key env.types
-let query_type ~instantiate key env = Tmap.find key env.types |> instantiate
-let find_label_opt key env = Map.find_opt key env.labels
+let find_type_opt key env =
+  let rec aux = function
+    | [] -> None
+    | scope :: tl -> (
+        match Tmap.find_opt key scope.types with
+        | Some t -> Some t
+        | None -> aux tl)
+  in
+  aux env.values
+
+let find_type key env = find_type_opt key env |> Option.get
+let query_type ~instantiate key env = find_type key env |> instantiate
+
+let find_label_opt key env =
+  let rec aux = function
+    | [] -> None
+    | scope :: tl -> (
+        match Map.find_opt key scope.labels with
+        | Some l -> Some l
+        | None -> aux tl)
+  in
+  aux env.values
 
 let find_labelset_opt labels env =
-  match Lmap.find_opt (Labelset.of_list labels) env.labelsets with
-  | Some name -> Some (find_type name env)
-  | None -> None
+  let rec aux = function
+    | [] -> None
+    | scope :: tl -> (
+        match Lmap.find_opt (Labelset.of_list labels) scope.labelsets with
+        | Some name -> Some (find_type name env)
+        | None -> aux tl)
+  in
+  aux env.values
 
-let find_ctor_opt name env = Map.find_opt name env.ctors
+let find_ctor_opt name env =
+  let rec aux = function
+    | [] -> None
+    | scope :: tl -> (
+        match Map.find_opt name scope.ctors with
+        | Some c -> Some c
+        | None -> aux tl)
+  in
+  aux env.values
 
 (* Copy in module *)
 let mod_fn_name ~mname fname = "_" ^ mname ^ "_" ^ fname
