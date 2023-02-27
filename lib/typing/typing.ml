@@ -72,11 +72,11 @@ let check_unused = function
       let err (name, kind, loc) =
         let warn_kind =
           match kind with
-          | Env.Unused -> "Unused"
-          | Unmutated -> "Unmutated mutable"
+          | Env.Unused -> "Unused binding "
+          | Unmutated -> "Unmutated mutable binding "
+          | Unused_mod -> "Unused module open "
         in
-        (Option.get !fmt_msg_fn) "warning" loc
-          (warn_kind ^ " binding " ^ Path.show name)
+        (Option.get !fmt_msg_fn) "warning" loc (warn_kind ^ Path.show name)
         |> print_endline
       in
       List.iter err errors
@@ -937,7 +937,8 @@ end = struct
   and convert_open env loc md expr =
     let modul = Module.read_exn ~regeneralize md loc in
     let env =
-      Module.add_to_env (Env.open_module env) md modul |> Env.finish_module
+      Module.add_to_env (Env.open_module env loc md) md modul
+      |> Env.finish_module
     in
     let r = convert env expr in
     ignore (Env.close_module env);
@@ -1051,7 +1052,9 @@ end = struct
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Open (loc, mname) :: tl ->
           let modul = Module.read_exn ~regeneralize mname loc in
-          let env = Module.add_to_env (Env.open_module env) mname modul in
+          let env =
+            Module.add_to_env (Env.open_module env loc mname) mname modul
+          in
           let cont, env = to_expr (Env.finish_module env) old_type tl in
           (cont, Env.close_module env)
     in
@@ -1177,7 +1180,9 @@ let convert_prog env items modul =
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
     | Open (loc, mname) ->
         let modul = Module.read_exn ~regeneralize mname loc in
-        let env = Module.add_to_env (Env.open_module env) mname modul in
+        let env =
+          Module.add_to_env (Env.open_module env loc mname) mname modul
+        in
         (old, Env.finish_module env, items, m)
   in
 

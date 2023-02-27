@@ -66,7 +66,12 @@ type ext = {
 }
 
 type usage_tbl = (Path.t, usage) Hashtbl.t
-type scope_kind = Sfunc of usage_tbl | Smodule | Sfunc_cont of usage_tbl
+type module_usage = { name : string; loc : Ast.loc; used : bool ref }
+
+type scope_kind =
+  | Sfunc of usage_tbl
+  | Smodule of module_usage
+  | Sfunc_cont of usage_tbl
 
 (* function scope *)
 type scope = {
@@ -90,7 +95,7 @@ type t = {
   in_mut : int ref;
 }
 
-type warn_kind = Unused | Unmutated
+type warn_kind = Unused | Unmutated | Unused_mod
 type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
 
 let def_value =
@@ -144,7 +149,7 @@ let add_value key value loc env =
               imported = Option.is_some value.imported;
               mutated;
             }
-      | Smodule -> assert (Option.is_some value.imported));
+      | Smodule _ -> assert (Option.is_some value.imported));
 
       { env with values = { scope with valmap } :: tl }
 
@@ -166,7 +171,7 @@ let add_external ext_name ~cname typ ~imported ~closure loc env =
             let mutated = ref true in
             Hashtbl.add tbl (Path.Pid ext_name)
               { loc; used; imported = Option.is_some imported; mutated }
-        | Smodule -> assert (Option.is_some imported));
+        | Smodule _ -> assert (Option.is_some imported));
 
         ({ env with values = { scope with valmap } :: tl }, used)
   in
@@ -256,15 +261,16 @@ let open_function env =
   | _ -> failwith "Internal Error: Module not finished in env (function)");
   { env with values = empty_scope (Sfunc (Hashtbl.create 64)) :: env.values }
 
-let open_module env =
+let open_module env loc name =
+  let used = ref false in
   (match env.values with
   | { kind = Sfunc _ | Sfunc_cont _; _ } :: _ -> ()
   | _ -> failwith "Internal Error: Module not finished in env");
-  { env with values = empty_scope Smodule :: env.values }
+  { env with values = empty_scope (Smodule { name; loc; used }) :: env.values }
 
 let finish_module env =
   (match env.values with
-  | { kind = Smodule; _ } :: _ -> ()
+  | { kind = Smodule _; _ } :: _ -> ()
   | _ -> failwith "Internal Error: Module not opened in env (cont)");
   let scope = empty_scope (Sfunc_cont (Hashtbl.create 64)) in
   { env with values = scope :: env.values }
@@ -274,7 +280,7 @@ let close_module env =
   | { kind = Sfunc _ | Sfunc_cont _; _ } :: _ -> ()
   | _ -> failwith "Internal Error: Module not opened in env (close)");
   let rec aux before = function
-    | { kind = Smodule; _ } :: tl ->
+    | { kind = Smodule _; _ } :: tl ->
         (* Found the module *)
         (* TODO check for unused *)
         List.rev_append before tl
@@ -337,8 +343,11 @@ let close_function env =
         | Sfunc_cont usage ->
             let unused = find_unused unused usage in
             aux (closed @ old_closed) unused tl
-        | Smodule ->
-            (* TODO track usage here *)
+        | Smodule { name; loc; used } ->
+            let unused =
+              if !used then unused
+              else (Path.Pid name, Unused_mod, loc) :: unused
+            in
             aux (closed @ old_closed) unused tl)
   in
   aux [] [] env.values
@@ -373,7 +382,7 @@ let mark_used name kind mut =
           if !mut > 0 then used.mutated := true;
           used.used := true
       | None -> ())
-  | Smodule -> ()
+  | Smodule usage -> usage.used := true
 
 let query_val_opt key env =
   (* Add str to closures, up to the level where the value originates from *)
@@ -394,15 +403,14 @@ let query_val_opt key env =
             | Sfunc _ ->
                 (* Increase scope level normally *)
                 aux (scope_lvl + 1) tl
-            | Sfunc_cont _ | Smodule ->
+            | Sfunc_cont _ | Smodule _ ->
                 (* We are still in the same functionlike scope *)
                 aux scope_lvl tl)
         | Some { typ; const; imported; global; mut; param = _ } ->
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
             (match scope_lvl with 0 -> () | _ -> add scope_lvl key env.values);
             (* Mark value used, if it's not imported *)
-            if Option.is_none imported then
-              mark_used (Path.Pid key) scope.kind env.in_mut;
+            mark_used (Path.Pid key) scope.kind env.in_mut;
             let imported = Option.map fst imported in
             Some { typ; const; global; mut; imported })
   in

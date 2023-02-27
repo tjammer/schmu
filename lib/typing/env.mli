@@ -14,7 +14,7 @@ type value = {
   mut : bool;
 }
 
-type warn_kind = Unused | Unmutated
+type warn_kind = Unused | Unmutated | Unused_mod
 type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
 
 type return = {
@@ -75,7 +75,7 @@ val open_function : t -> t
 val close_function : t -> t * closed list * unused
 (** Returns the variables captured in the closed function scope, and first unused var  *)
 
-val open_module : t -> t
+val open_module : t -> Ast.loc -> string -> t
 (** Doesn't actually open the module, but makes the env ready for matching the following adds to a module *)
 
 val finish_module : t -> t
