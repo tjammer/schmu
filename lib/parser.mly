@@ -99,6 +99,7 @@
 %token Open
 %token Type
 %token Defexternal
+%token Signature
 %token Set
 %token Fmt_str
 %token Rec
@@ -111,12 +112,23 @@
 
 %%
 
-prog: prog = list(top_item); Eof { prog }
+prog:
+  | s = parens(signature); prog = list(top_item); Eof { Some s, prog }
+  | prog = list(top_item); Eof { None, prog }
 
 top_item:
   | stmt = stmt { Stmt stmt }
   | decl = external_decl { Ext_decl decl }
   | def = typedef { Typedef ($loc, def) }
+
+signature: Signature; l = nonempty_list(sig_item) { l }
+
+%inline sig_item:
+  | def = typedef { Stypedef ($loc, def) }
+  | v = parens(sigvalue) { Svalue (fst v, snd v) }
+
+%inline sigvalue:
+  | Def; id = ident; t = sexp_type_expr { $loc, (id, t) }
 
 %inline external_decl:
   | parens(defexternal) { $1 }

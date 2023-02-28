@@ -1245,7 +1245,7 @@ and catch_weak_expr sub e =
       List.iter (function Fstr _ -> () | Fexpr e -> catch_weak_expr sub e) fmt
 
 (* Conversion to Typing.exr below *)
-let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (prog : Ast.prog) =
+let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (_, prog) =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 

@@ -551,6 +551,11 @@ let test_pattern_decl_tuple_exhaust () =
   test_exn "Pattern match is not exhaustive. Missing cases: "
     "(def {1 f} {12 5.0}) f"
 
+let test_signature_only () = test "unit" "(signature (type t int))"
+
+let test_signature_simple () =
+  test "unit" "(signature (type t int)) (type t int)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -743,4 +748,7 @@ let () =
           case "tuple missing" test_pattern_decl_tuple_missing;
           case "tuple exhaust" test_pattern_decl_tuple_exhaust;
         ] );
+      ( "signature",
+        [ case "only" test_signature_only; case "simple" test_signature_simple ]
+      );
     ]

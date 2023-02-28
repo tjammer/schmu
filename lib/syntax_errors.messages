@@ -1182,6 +1182,46 @@ prog: Lpar Type Kebab_id Constructor Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Signature Wildcard
+
+Expecting type or value declaration
+
+prog: Lpar Signature Lpar Wildcard
+
+Expecting type or value declaration
+
+prog: Lpar Signature Lpar Def Wildcard
+
+Expecting type or value declaration
+
+prog: Lpar Signature Lpar Def Kebab_id Wildcard
+
+Expecting type or value declaration
+
+prog: Lpar Signature Lpar Def Kebab_id Kebab_id String_lit
+
+Expecting type or value declaration
+
+prog: Lpar Signature Lpar Def Kebab_id Lpar Fun Kebab_id Rpar Wildcard
+
+Expecting ')'
+
+prog: Lpar Signature Lpar Def Kebab_id Kebab_id Rpar Wildcard
+
+Expecting ')'
+
+prog: Lpar Signature Lpar Type Kebab_id Constructor Rpar Wildcard
+
+Expecting ')'
+
+prog: Lpar Signature Lpar Type Kebab_id Lbrac Keyword Kebab_id Rbrac Rpar Wildcard
+
+Expecting ')'
+
+prog: Lpar Signature Lpar Type Kebab_id Kebab_id Rpar Wildcard
+
+Expecting ')'
+
 prog: Lpar Defexternal Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -1210,3 +1250,10 @@ prog: False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: False Lpar Wildcard
+
+Expecting top level item
+
+prog: Lpar Signature Lpar Type Kebab_id Kebab_id Rpar Rpar Wildcard
+
+Expecting top level item

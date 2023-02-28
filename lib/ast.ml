@@ -127,4 +127,8 @@ type top_item =
   | Ext_decl of external_decl
   | Typedef of loc * typedef
 
-type prog = top_item list
+type signature =
+  | Stypedef of loc * typedef
+  | Svalue of loc * ((loc * string) * type_spec)
+
+type prog = signature list option * top_item list

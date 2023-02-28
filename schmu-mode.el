@@ -123,6 +123,7 @@ the syntax table, so `forward-word' works as expected.")
     "and"
     "or"
     "rec"
+    "signature"
 
     ,@schmu-var-decl-forms
     ,@schmu-function-decl-forms)
@@ -381,6 +382,7 @@ STATE is the `parse-partial-sexp' state for that position."
           (varfn defun)
           (when 1)
           (when-let 1)
+          (signature 0)
           (while 1))))
 
 ;;;###autoload
