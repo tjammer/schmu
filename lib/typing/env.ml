@@ -80,7 +80,7 @@ type scope = {
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : Path.t Lmap.t; (* For finding the type of a record expression *)
   ctors : label Map.t; (* Variant constructors *)
-  types : typ Tmap.t;
+  types : (typ * bool) Tmap.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
 }
 
@@ -97,6 +97,7 @@ type t = {
 
 type warn_kind = Unused | Unmutated | Unused_mod
 type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
+type add_kind = Aimpl | Asignature | Amodule of string
 
 let def_value =
   {
@@ -192,16 +193,19 @@ let change_type key typ env =
           { env with values = { scope with valmap } :: tl }
       | None -> "Internal Error: Missing key for changing " ^ key |> failwith)
 
-let add_type key t env =
+let add_type key ~in_sig t env =
   let scope, tl = decap_exn env in
-  let types = Tmap.add key t scope.types in
+  let types = Tmap.add key (t, in_sig) scope.types in
   { env with values = { scope with types } :: tl }
 
-let add_record record ?(modul = None) ~params ~labels env =
+let add_record record add_kind ~params ~labels env =
   let scope, tl = decap_exn env in
   let typ = Trecord (params, Some record, labels) in
-  let name =
-    match modul with None -> record | Some m -> Path.rm_name m record
+  let name, in_sig =
+    match add_kind with
+    | Aimpl -> (record, false)
+    | Asignature -> (record, true)
+    | Amodule m -> (Path.rm_name m record, false)
   in
 
   let labelset =
@@ -216,14 +220,17 @@ let add_record record ?(modul = None) ~params ~labels env =
         (index + 1, Map.add field.fname { index; typename = name } labels))
       (0, scope.labels) labels
   in
-  let types = Tmap.add name typ scope.types in
+  let types = Tmap.add name (typ, in_sig) scope.types in
   { env with values = { scope with labels; types; labelsets } :: tl }
 
-let add_variant variant ?(modul = None) ~params ~ctors env =
+let add_variant variant add_kind ~params ~ctors env =
   let scope, tl = decap_exn env in
   let typ = Tvariant (params, variant, ctors) in
-  let name =
-    match modul with None -> variant | Some m -> Path.rm_name m variant
+  let name, in_sig =
+    match add_kind with
+    | Aimpl -> (variant, false)
+    | Asignature -> (variant, true)
+    | Amodule m -> (Path.rm_name m variant, false)
   in
 
   let _, ctors =
@@ -232,16 +239,19 @@ let add_variant variant ?(modul = None) ~params ~ctors env =
         (index + 1, Map.add ctor.cname { index; typename = name } ctors))
       (0, scope.ctors) ctors
   in
-  let types = Tmap.add name typ scope.types in
+  let types = Tmap.add name (typ, in_sig) scope.types in
   { env with values = { scope with ctors; types } :: tl }
 
-let add_alias alias ?(modul = None) typ env =
+let add_alias alias add_kind typ env =
   let scope, tl = decap_exn env in
-  let name =
-    match modul with None -> alias | Some m -> Path.rm_name m alias
+  let name, in_sig =
+    match add_kind with
+    | Aimpl -> (alias, false)
+    | Asignature -> (alias, true)
+    | Amodule m -> (Path.rm_name m alias, false)
   in
   let typ = Talias (alias, typ) in
-  let types = Tmap.add name typ scope.types in
+  let types = Tmap.add name (typ, in_sig) scope.types in
   { env with values = { scope with types } :: tl }
 
 let find_val_raw key env =
@@ -427,7 +437,7 @@ let find_type_opt key env =
   aux env.values
 
 let find_type key env = find_type_opt key env |> Option.get
-let query_type ~instantiate key env = find_type key env |> instantiate
+let query_type ~instantiate key env = find_type key env |> fst |> instantiate
 
 let find_label_opt key env =
   let rec aux = function
@@ -444,7 +454,7 @@ let find_labelset_opt labels env =
     | [] -> None
     | scope :: tl -> (
         match Lmap.find_opt (Labelset.of_list labels) scope.labelsets with
-        | Some name -> Some (find_type name env)
+        | Some name -> Some (find_type name env |> fst)
         | None -> aux tl)
   in
   aux env.values

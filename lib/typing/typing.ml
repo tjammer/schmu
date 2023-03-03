@@ -149,7 +149,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
 
   let find env t tick =
     match Env.find_type_opt t env with
-    | Some t -> t
+    | Some t -> fst t
     | None -> raise (Error (loc, "Unbound type " ^ tick ^ Path.show t ^ "."))
   in
 
@@ -336,16 +336,17 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
   let ret = Option.map (fun t -> typeof_annot env loc t) ret in
   (env, ids, qparams, ret)
 
-let check_type_unique env loc name =
+let check_type_unique env loc ~in_sig name =
   match Env.find_type_opt name env with
-  | Some _ ->
+  (* It's ok to have a type both in signature and impl *)
+  | Some (_, insig) when Bool.equal in_sig insig ->
       let msg =
         Printf.sprintf
           "Type names in a module must be unique. %s exists already"
           (Path.show name)
       in
       raise (Error (loc, msg))
-  | None -> ()
+  | Some _ | None -> ()
 
 let add_type_param env ts =
   List.fold_left_map
@@ -356,12 +357,13 @@ let add_type_param env ts =
       leave_level ();
       let t = generalize typ in
 
-      (Env.add_type name t env, t))
+      let in_sig = false in
+      (Env.add_type name ~in_sig t env, t))
     env ts
 
 let type_record env loc Ast.{ name = { poly_param; name }; labels } =
   (* Make sure that each type name only appears once per module *)
-  check_type_unique env loc name;
+  check_type_unique ~in_sig:false env loc name;
   let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let env, param = add_type_param env poly_param in
@@ -374,19 +376,19 @@ let type_record env loc Ast.{ name = { poly_param; name }; labels } =
     in
     (labels, param)
   in
-  Env.add_record name ~params ~labels env
+  Env.add_record name Aimpl ~params ~labels env
 
 let type_alias env loc { Ast.poly_param; name } type_spec =
   (* Make sure that each type name only appears once per module *)
-  check_type_unique env loc name;
+  check_type_unique ~in_sig:false env loc name;
   (* Temporarily add polymorphic type name to env *)
   let temp_env, _ = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
-  Env.add_alias name typ env
+  Env.add_alias name Aimpl typ env
 
 let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
   (* Make sure that each type name only appears once per module *)
-  check_type_unique env loc name;
+  check_type_unique ~in_sig:false env loc name;
   (* Temporarily add polymorphic type name to env *)
   let temp_env, params = add_type_param env poly_param in
 
@@ -435,7 +437,7 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
       ctors
     |> Array.of_list
   in
-  Env.add_variant name ~params ~ctors env
+  Env.add_variant name Aimpl ~params ~ctors env
 
 let rec param_funcs_as_closures = function
   (* Functions passed as parameters need to have an empty closure, otherwise they cannot
@@ -1104,15 +1106,15 @@ let convert_prog env items modul =
           m )
     | Typedef (loc, Trecord t) ->
         let env = type_record env loc t in
-        let m = Module.add_type loc (Env.find_type t.name.name env) m in
+        let m = Module.add_type loc (Env.find_type t.name.name env |> fst) m in
         (env, items, m)
     | Typedef (loc, Talias (name, type_spec)) ->
         let env = type_alias env loc name type_spec in
-        let m = Module.add_type loc (Env.find_type name.name env) m in
+        let m = Module.add_type loc (Env.find_type name.name env |> fst) m in
         (env, items, m)
     | Typedef (loc, Tvariant v) ->
         let env = type_variant env loc v in
-        let m = Module.add_type loc (Env.find_type v.name.name env) m in
+        let m = Module.add_type loc (Env.find_type v.name.name env |> fst) m in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
@@ -1272,9 +1274,8 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (_, prog) =
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
-  let last_type, env, items, m = convert_prog env prog [] in
-  (* TODO test wrong return type *)
-  let externals = Env.externals env in
+  let last_type, env, items, m = convert_prog env prog Module.empty in
+  let externals = Module.append_externals (Env.externals env) in
 
   (* Catch weak type variables *)
   List.iter catch_weak_vars items;

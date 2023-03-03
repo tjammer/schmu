@@ -35,6 +35,8 @@ type ext = {
 }
 (* return type for values *)
 
+type add_kind = Aimpl | Asignature | Amodule of string
+
 val def_value : value
 (** Default value, everything is false *)
 
@@ -57,19 +59,19 @@ val add_external :
 val change_type : key -> typ -> t -> t
 (** To give the generalized type with closure for functions *)
 
-val add_type : Path.t -> typ -> t -> t
+val add_type : Path.t -> in_sig:bool -> typ -> t -> t
 
 val add_record :
-  Path.t -> ?modul:key option -> params:typ list -> labels:field array -> t -> t
+  Path.t -> add_kind -> params:typ list -> labels:field array -> t -> t
 (** [add record record_name ~param ~labels env] returns an env with an added record named [record_name]
      optionally parametrized by [param] with typed [labels] *)
 
 val add_variant :
-  Path.t -> ?modul:key option -> params:typ list -> ctors:ctor array -> t -> t
+  Path.t -> add_kind -> params:typ list -> ctors:ctor array -> t -> t
 (** [add_variant variant_name ~param ~ctors env] returns an env with an added variant named [variant_name]
     optionally parametrized by [param] with [ctors] *)
 
-val add_alias : Path.t -> ?modul:key option -> typ -> t -> t
+val add_alias : Path.t -> add_kind -> typ -> t -> t
 val open_function : t -> t
 
 val close_function : t -> t * closed list * unused
@@ -89,8 +91,8 @@ val query_val_opt : key -> t -> return option
 
 val open_mutation : t -> unit
 val close_mutation : t -> unit
-val find_type_opt : Path.t -> t -> typ option
-val find_type : Path.t -> t -> typ
+val find_type_opt : Path.t -> t -> (typ * bool) option
+val find_type : Path.t -> t -> typ * bool
 
 val query_type : instantiate:(typ -> typ) -> Path.t -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)

@@ -2,10 +2,9 @@ open Types
 module Sexp = Csexp.Make (Sexplib0.Sexp)
 open Sexplib0.Sexp_conv
 module S = Set.Make (Path)
+module M = Map.Make (Path)
 
 type loc = Typed_tree.loc [@@deriving sexp]
-
-type t = item list [@@deriving sexp]
 and name = { user : string; call : string }
 
 and item =
@@ -14,13 +13,20 @@ and item =
   | Mext of Typed_tree.loc * typ * name * bool (* is closure *)
   | Mpoly_fun of Typed_tree.loc * Typed_tree.abstraction * string * int option
   | Mmutual_rec of loc * (loc * string * int option * typ) list
-(* TODO pattern binds *)
+[@@deriving sexp]
+
+type t = item list
+
+let t_of_sexp = list_of_sexp item_of_sexp
+let sexp_of_t = sexp_of_list sexp_of_item
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
    In local scope, our Map.t will resolve to the correct function.
    E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
    if the global function exists. *)
+
+let empty = []
 
 (* For named functions *)
 let unique_name name = function
@@ -41,9 +47,7 @@ let type_of_func (func : Typed_tree.func) =
 
 let add_fun loc name uniq (abs : Typed_tree.abstraction) m =
   let call = unique_name name uniq in
-  if is_polymorphic_func abs.func then
-    (* failwith "polymorphic functions in modules are not supported yet TODO" *)
-    Mpoly_fun (loc, abs, name, uniq) :: m
+  if is_polymorphic_func abs.func then Mpoly_fun (loc, abs, name, uniq) :: m
   else Mfun (loc, type_of_func abs.func, { user = name; call }) :: m
 
 let add_rec_block loc funs m =
@@ -67,7 +71,9 @@ let module_cache = Hashtbl.create 64
 
 (* Right now we only ever compile one module, so this can safely be global *)
 let poly_funcs = ref []
+let ext_funcs = ref []
 let paths = ref [ "." ]
+let append_externals l = List.rev_append !ext_funcs l
 
 (* We cache the prelude path for later *)
 let prelude_path = ref None
@@ -309,9 +315,34 @@ and canonabs mname sub nsub abs =
 
 let map_item ~mname ~f = function
   | Mtype (l, t) -> Mtype (l, f t)
-  | Mfun (l, t, n) -> Mfun (l, f t, n)
-  | Mext (l, t, n, c) when c -> Mext (l, f t, n, c)
-  | Mext (l, t, n, c) -> Mext (l, f t, n, c)
+  | Mfun (l, t, n) ->
+      let t = f t in
+      ext_funcs :=
+        Env.
+          {
+            ext_name = Env.(mod_fn_name ~mname n.user);
+            ext_typ = t;
+            ext_cname = Some (mname ^ "_" ^ n.call);
+            used = ref false;
+            closure = false;
+            imported = Some (mname, `Schmu);
+          }
+        :: !ext_funcs;
+      Mfun (l, t, n)
+  | Mext (l, t, n, c) ->
+      let t = f t in
+      ext_funcs :=
+        Env.
+          {
+            ext_name = Env.(mod_fn_name ~mname n.user);
+            ext_typ = t;
+            ext_cname = Some n.call;
+            used = ref false;
+            closure = c;
+            imported = Some (mname, `C);
+          }
+        :: !ext_funcs;
+      Mext (l, f t, n, c)
   | Mpoly_fun (l, abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
@@ -483,36 +514,28 @@ and mod_abs f abs =
   { abs with body; func }
 
 let add_to_env env mname m =
-  let modul = Some mname in
   List.fold_left
     (fun env item ->
       match item with
       | Mtype (_, Trecord (params, Some name, labels)) ->
-          Env.add_record name ~modul ~params ~labels env
+          Env.add_record name (Amodule mname) ~params ~labels env
       | Mtype (_, Tvariant (params, name, ctors)) ->
-          Env.add_variant name ~modul ~params ~ctors env
-      | Mtype (_, Talias (name, t)) -> Env.add_alias ~modul name t env
+          Env.add_variant name (Amodule mname) ~params ~ctors env
+      | Mtype (_, Talias (name, t)) -> Env.add_alias name (Amodule mname) t env
       | Mtype (_, t) ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
-      | Mfun (l, t, n) ->
-          Env.add_external
-            ~imported:(Some (mname, `Schmu))
-            n.user
-            ~cname:(Some (mname ^ "_" ^ n.call))
-            ~closure:false t l env
+      | Mfun (l, typ, n) ->
+          let imported = Some (mname, `Schmu) in
+          Env.(add_value n.user { def_value with typ; imported } l env)
       | Mpoly_fun (l, abs, n, _) ->
           let imported = Some (mname, `Schmu) in
-          let env =
-            Env.(
-              add_value n
-                { def_value with typ = type_of_func abs.func; imported }
-                l env)
-          in
-          env
-      | Mext (l, t, n, closure) ->
-          Env.add_external ~closure
-            ~imported:(Some (mname, `C))
-            n.user ~cname:(Some n.call) t l env
+          Env.(
+            add_value n
+              { def_value with typ = type_of_func abs.func; imported }
+              l env)
+      | Mext (l, typ, n, _) ->
+          let imported = Some (mname, `C) in
+          Env.(add_value n.user { def_value with typ; imported } l env)
       | Mmutual_rec (_, ds) ->
           List.fold_left
             (fun env (l, name, _, typ) ->

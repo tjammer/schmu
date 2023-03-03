@@ -69,9 +69,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 3, i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
-  declare void @printf(i8* %0, i64 %1)
-  
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
+  
+  declare void @printf(i8* %0, i64 %1)
   
   define i64 @schmu_do2(i32 %0) {
   entry:

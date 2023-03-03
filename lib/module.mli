@@ -1,17 +1,9 @@
 open Types
 
+type t
 type loc = Typed_tree.loc
 
-type t = item list [@@deriving sexp]
-and name = { user : string; call : string }
-
-and item =
-  | Mtype of Typed_tree.loc * typ
-  | Mfun of Typed_tree.loc * typ * name
-  | Mext of Typed_tree.loc * typ * name * bool (* is closure *)
-  | Mpoly_fun of Typed_tree.loc * Typed_tree.abstraction * string * int option
-  | Mmutual_rec of loc * (loc * string * int option * typ) list
-
+val empty : t
 val unique_name : string -> int option -> string
 val lambda_name : string option -> int -> string
 val add_type : loc -> typ -> t -> t
@@ -31,3 +23,4 @@ val find_file : string -> string -> string
 val read_exn : regeneralize:(typ -> typ) -> string -> Ast.loc -> t
 val add_to_env : Env.t -> string -> t -> Env.t
 val to_channel : out_channel -> outname:string -> t -> unit
+val append_externals : Env.ext list -> Env.ext list
