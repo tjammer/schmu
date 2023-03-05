@@ -6,6 +6,7 @@ type loc = Typed_tree.loc
 val empty : t
 val unique_name : string -> int option -> string
 val lambda_name : string option -> int -> string
+val add_type_sig : loc -> Path.t -> typ -> t -> t
 val add_type : loc -> typ -> t -> t
 val add_fun : loc -> string -> int option -> Typed_tree.abstraction -> t -> t
 

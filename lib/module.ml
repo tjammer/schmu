@@ -8,17 +8,32 @@ type loc = Typed_tree.loc [@@deriving sexp]
 and name = { user : string; call : string }
 
 and item =
-  | Mtype of Typed_tree.loc * typ
-  | Mfun of Typed_tree.loc * typ * name
-  | Mext of Typed_tree.loc * typ * name * bool (* is closure *)
-  | Mpoly_fun of Typed_tree.loc * Typed_tree.abstraction * string * int option
+  | Mtype of loc * typ
+  | Mfun of loc * typ * name
+  | Mext of loc * typ * name * bool (* is closure *)
+  | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
   | Mmutual_rec of loc * (loc * string * int option * typ) list
-[@@deriving sexp]
 
-type t = item list
+and sig_item = loc * typ [@@deriving sexp]
 
-let t_of_sexp = list_of_sexp item_of_sexp
-let sexp_of_t = sexp_of_list sexp_of_item
+type t = { s : sig_item M.t; i : item list }
+
+let t_of_sexp s =
+  pair_of_sexp
+    (fun s ->
+      list_of_sexp (pair_of_sexp Path.t_of_sexp sig_item_of_sexp) s
+      |> List.to_seq |> M.of_seq)
+    (list_of_sexp item_of_sexp)
+    s
+  |> fun (s, i) -> { s; i }
+
+let sexp_of_t m =
+  sexp_of_pair
+    (fun s ->
+      M.to_seq s |> List.of_seq
+      |> sexp_of_list (sexp_of_pair Path.sexp_of_t sexp_of_sig_item))
+    (sexp_of_list sexp_of_item)
+    (m.s, m.i)
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
@@ -26,7 +41,7 @@ let sexp_of_t = sexp_of_list sexp_of_item
    E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
    if the global function exists. *)
 
-let empty = []
+let empty = { s = M.empty; i = [] }
 
 (* For named functions *)
 let unique_name name = function
@@ -40,31 +55,39 @@ let lambda_name mn id =
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
 
-let add_type loc t m = Mtype (loc, t) :: m
+let add_type_sig loc name t m = { m with s = M.add name (loc, t) m.s }
+let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 
 let type_of_func (func : Typed_tree.func) =
   Tfun (func.tparams, func.ret, func.kind)
 
 let add_fun loc name uniq (abs : Typed_tree.abstraction) m =
   let call = unique_name name uniq in
-  if is_polymorphic_func abs.func then Mpoly_fun (loc, abs, name, uniq) :: m
-  else Mfun (loc, type_of_func abs.func, { user = name; call }) :: m
+  if is_polymorphic_func abs.func then
+    { m with i = Mpoly_fun (loc, abs, name, uniq) :: m.i }
+  else
+    {
+      m with
+      i = Mfun (loc, type_of_func abs.func, { user = name; call }) :: m.i;
+    }
 
 let add_rec_block loc funs m =
-  let ms =
+  let m's =
     List.filter_map
       (fun (loc, name, uniq, (abs : Typed_tree.abstraction)) ->
         let typ = type_of_func abs.func in
         if is_polymorphic typ then Some (loc, name, uniq, typ) else None)
       funs
   in
-  let m = Mmutual_rec (loc, ms) :: m in
-  List.fold_left (fun m (loc, n, u, abs) -> add_fun loc n u abs m) m funs
+  let i = Mmutual_rec (loc, m's) :: m.i in
+  List.fold_left
+    (fun m (loc, n, u, abs) -> add_fun loc n u abs m)
+    { m with i } funs
 
 let add_external loc t name cname ~closure m =
   let closure = match clean t with Tfun _ -> closure | _ -> false in
   let call = match cname with Some s -> s | None -> name in
-  Mext (loc, t, { user = name; call }, closure) :: m
+  { m with i = Mext (loc, t, { user = name; call }, closure) :: m.i }
 
 let module_cache = Hashtbl.create 64
 (* TODO sort by insertion order *)
@@ -365,9 +388,15 @@ let map_item ~mname ~f = function
       poly_funcs := Typed_tree.Tl_mutual_rec_decls mname_decls :: !poly_funcs;
       Mmutual_rec (l, decls)
 
+let map_t ~mname ~f m =
+  {
+    s = M.map (fun (l, t) -> (l, f t)) m.s;
+    i = List.map (map_item ~mname ~f) m.i;
+  }
+
 (* Number qvars from 0 and change names of Var-nodes to their unique form.
    _<module_name>_name*)
-let fold_canonize mname (ts_sub, nsub) = function
+let fold_canonize_item mname (ts_sub, nsub) = function
   | Mtype (l, t) ->
       let a, t = canonize ts_sub t in
       ((a, nsub), Mtype (l, t))
@@ -398,6 +427,21 @@ let fold_canonize mname (ts_sub, nsub) = function
       in
       ((a, nsub), Mmutual_rec (l, decls))
 
+let canonize_t mname m =
+  let (ts_sub, _), i =
+    List.fold_left_map (fold_canonize_item mname)
+      (Types.Smap.empty, Smap.empty)
+      m.i
+  in
+  let _, s =
+    M.fold
+      (fun key (l, t) (sub, newmap) ->
+        let sub, t = canonize sub t in
+        (sub, M.add key (l, t) newmap))
+      m.s (ts_sub, m.s)
+  in
+  { s; i }
+
 let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with
   | Some r -> r
@@ -406,7 +450,7 @@ let read_module ~regeneralize name =
         let c = open_in (find_file name ".smi") in
         let r =
           Result.map t_of_sexp (Sexp.input c)
-          |> Result.map (List.map (map_item ~mname:name ~f:regeneralize))
+          |> Result.map (map_t ~mname:name ~f:regeneralize)
         in
         close_in c;
         Hashtbl.add module_cache name r;
@@ -514,6 +558,7 @@ and mod_abs f abs =
   { abs with body; func }
 
 let add_to_env env mname m =
+  (* TODO add only signature to env and the rest to external and poly *)
   List.fold_left
     (fun env item ->
       match item with
@@ -544,38 +589,48 @@ let add_to_env env mname m =
                   { def_value with typ; imported = Some (mname, `Schmu) }
                   l env))
             env ds)
-    env m
+    env m.i
 
 let make_module sub name m =
   let s t =
     match extr_name t with Some p -> sub := S.add p !sub | None -> ()
   in
-  match m with
-  | Mtype (l, t) ->
-      s t;
-      Mtype (l, mod_t (Add (name, !sub)) t)
-  | Mfun (l, t, n) ->
-      sub := S.add (Path.Pid n.user) !sub;
-      Mfun (l, mod_t (Add (name, !sub)) t, n)
-  | Mext (l, t, n, c) ->
-      sub := S.add (Path.Pid n.user) !sub;
-      Mext (l, mod_t (Add (name, !sub)) t, n, c)
-  | Mpoly_fun (l, abs, n, u) ->
-      sub := S.add (Path.Pid n) !sub;
-      Mpoly_fun (l, mod_abs (mod_t (Add (name, !sub))) abs, n, u)
-  | Mmutual_rec (l, ds) ->
-      let ds =
-        List.map
-          (fun (l, n, u, t) ->
-            sub := S.add (Path.Pid n) !sub;
-            (l, n, u, mod_t (Add (name, !sub)) t))
-          ds
-      in
-      Mmutual_rec (l, ds)
+  let i =
+    (* Don't try to use rev_map. It won't work *)
+    List.rev m.i
+    |> List.map (function
+         | Mtype (l, t) ->
+             s t;
+             Mtype (l, mod_t (Add (name, !sub)) t)
+         | Mfun (l, t, n) ->
+             sub := S.add (Path.Pid n.user) !sub;
+             Mfun (l, mod_t (Add (name, !sub)) t, n)
+         | Mext (l, t, n, c) ->
+             sub := S.add (Path.Pid n.user) !sub;
+             Mext (l, mod_t (Add (name, !sub)) t, n, c)
+         | Mpoly_fun (l, abs, n, u) ->
+             sub := S.add (Path.Pid n) !sub;
+             Mpoly_fun (l, mod_abs (mod_t (Add (name, !sub))) abs, n, u)
+         | Mmutual_rec (l, ds) ->
+             let ds =
+               List.map
+                 (fun (l, n, u, t) ->
+                   sub := S.add (Path.Pid n) !sub;
+                   (l, n, u, mod_t (Add (name, !sub)) t))
+                 ds
+             in
+             Mmutual_rec (l, ds))
+  in
+  let s =
+    M.map
+      (fun (l, t) ->
+        s t;
+        (l, mod_t (Add (name, !sub)) t))
+      m.s
+  in
+  { s; i }
 
 let to_channel c ~outname m =
   let s = ref S.empty in
-  m |> List.rev
-  |> List.map (make_module s outname)
-  |> List.fold_left_map (fold_canonize outname) (Types.Smap.empty, Smap.empty)
-  |> snd |> sexp_of_t |> Sexp.to_channel c
+  m |> make_module s outname |> canonize_t outname |> sexp_of_t
+  |> Sexp.to_channel c
