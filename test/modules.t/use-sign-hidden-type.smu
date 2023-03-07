@@ -1,0 +1,4 @@
+(open sign)
+
+-- Cannot use hidden-type
+(def (i hidden-type) 10)

@@ -618,3 +618,23 @@ Use module name prefix for function names to prevent linker dups
 Distinguish closures and functions
   $ schmu decl_lambda.smu -m
   $ schmu use_lambda.smu && ./use_lambda
+
+
+Test signature
+  $ schmu -m sign.smu
+  $ schmu use-sign.smu && ./use-sign
+  hello 20
+  200
+  20.2
+  $ schmu use-sign-hidden.smu
+  use-sign-hidden.smu:4:2: error: No var named hidden
+  4 | (hidden 10)
+       ^^^^^^
+  
+  [1]
+  $ schmu use-sign-hidden-type.smu
+  use-sign-hidden-type.smu:4:2: error: Unbound type hidden-type.
+  4 | (def (i hidden-type) 10)
+       ^^^^^^^^^^^^^^^^^^^^^^
+  
+  [1]

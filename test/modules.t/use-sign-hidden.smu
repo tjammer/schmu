@@ -1,0 +1,4 @@
+(open sign)
+
+-- Cannot use hidden
+(hidden 10)

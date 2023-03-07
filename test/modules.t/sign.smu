@@ -1,0 +1,22 @@
+(signature
+  (type t int)
+
+  (def t int)
+  (def ext (fun cstr int unit))
+  (def int (fun int unit))
+  (def poly-int (fun 'a 'a)))
+
+(external ext (fun cstr int unit) "printf")
+
+(defn int [(i int)]
+  (print (fmt-str i)))
+
+(defn poly-int [a] a)
+
+-- type t is usable here
+(def (t t) 200)
+
+(defn hidden [a]
+  (print (fmt-str (+ 2 a))))
+
+(type hidden-type int)
