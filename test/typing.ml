@@ -556,6 +556,12 @@ let test_signature_only () = test "unit" "(signature (type t int))"
 let test_signature_simple () =
   test "unit" "(signature (type t int)) (type t int)"
 
+let test_signature_wrong_typedef () =
+  test_exn
+    "Mismatch between implementation and signature: Expected type t = int but \
+     got type t = float"
+    "(signature (type t int)) (type t float)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -749,6 +755,9 @@ let () =
           case "tuple exhaust" test_pattern_decl_tuple_exhaust;
         ] );
       ( "signature",
-        [ case "only" test_signature_only; case "simple" test_signature_simple ]
-      );
+        [
+          case "only" test_signature_only;
+          case "simple" test_signature_simple;
+          case "wrong type" test_signature_wrong_typedef;
+        ] );
     ]

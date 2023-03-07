@@ -113,8 +113,8 @@
 %%
 
 prog:
-  | s = parens(signature); prog = list(top_item); Eof { Some s, prog }
-  | prog = list(top_item); Eof { None, prog }
+  | s = parens(signature); prog = list(top_item); Eof { s, prog }
+  | prog = list(top_item); Eof { [], prog }
 
 top_item:
   | stmt = stmt { Stmt stmt }

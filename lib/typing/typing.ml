@@ -361,9 +361,9 @@ let add_type_param env ts =
       (Env.add_type name ~in_sig t env, t))
     env ts
 
-let type_record env loc Ast.{ name = { poly_param; name }; labels } =
+let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
   (* Make sure that each type name only appears once per module *)
-  check_type_unique ~in_sig:false env loc name;
+  check_type_unique ~in_sig env loc name;
   let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let env, param = add_type_param env poly_param in
@@ -376,19 +376,21 @@ let type_record env loc Ast.{ name = { poly_param; name }; labels } =
     in
     (labels, param)
   in
-  Env.add_record name Aimpl ~params ~labels env
+  let kind = if in_sig then Env.Asignature else Aimpl in
+  Env.add_record name kind ~params ~labels env
 
-let type_alias env loc { Ast.poly_param; name } type_spec =
+let type_alias env loc ~in_sig { Ast.poly_param; name } type_spec =
   (* Make sure that each type name only appears once per module *)
-  check_type_unique ~in_sig:false env loc name;
+  check_type_unique ~in_sig env loc name;
   (* Temporarily add polymorphic type name to env *)
   let temp_env, _ = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
-  Env.add_alias name Aimpl typ env
+  let kind = if in_sig then Env.Asignature else Aimpl in
+  Env.add_alias name kind typ env
 
-let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
+let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
   (* Make sure that each type name only appears once per module *)
-  check_type_unique ~in_sig:false env loc name;
+  check_type_unique ~in_sig env loc name;
   (* Temporarily add polymorphic type name to env *)
   let temp_env, params = add_type_param env poly_param in
 
@@ -437,7 +439,8 @@ let type_variant env loc { Ast.name = { poly_param; name }; ctors } =
       ctors
     |> Array.of_list
   in
-  Env.add_variant name Aimpl ~params ~ctors env
+  let kind = if in_sig then Env.Asignature else Aimpl in
+  Env.add_variant name kind ~params ~ctors env
 
 let rec param_funcs_as_closures = function
   (* Functions passed as parameters need to have an empty closure, otherwise they cannot
@@ -1105,15 +1108,15 @@ let convert_prog env items modul =
           items,
           m )
     | Typedef (loc, Trecord t) ->
-        let env = type_record env loc t in
+        let env = type_record ~in_sig:false env loc t in
         let m = Module.add_type loc (Env.find_type t.name.name env |> fst) m in
         (env, items, m)
     | Typedef (loc, Talias (name, type_spec)) ->
-        let env = type_alias env loc name type_spec in
+        let env = type_alias ~in_sig:false env loc name type_spec in
         let m = Module.add_type loc (Env.find_type name.name env |> fst) m in
         (env, items, m)
     | Typedef (loc, Tvariant v) ->
-        let env = type_variant env loc v in
+        let env = type_variant ~in_sig:false env loc v in
         let m = Module.add_type loc (Env.find_type v.name.name env |> fst) m in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
@@ -1191,6 +1194,36 @@ let convert_prog env items modul =
   let env, items, m = List.fold_left aux (env, [], modul) items in
   (snd !old, env, List.rev items, m)
 
+let add_signature (env, m) = function
+  | Ast.Stypedef (loc, Trecord t) ->
+      let env = type_record ~in_sig:true env loc t in
+      let m =
+        Module.add_type_sig loc t.name.name
+          (Env.find_type t.name.name env |> fst)
+          m
+      in
+      (env, m)
+  | Stypedef (loc, Talias (name, type_spec)) ->
+      let env = type_alias ~in_sig:true env loc name type_spec in
+      let m =
+        Module.add_type_sig loc name.name (Env.find_type name.name env |> fst) m
+      in
+      (env, m)
+  | Stypedef (loc, Tvariant v) ->
+      let env = type_variant ~in_sig:true env loc v in
+      let m =
+        Module.add_type_sig loc v.name.name
+          (Env.find_type v.name.name env |> fst)
+          m
+      in
+      (env, m)
+  | Svalue (loc, ((l, n), type_spec)) ->
+      (* Here, we don't add to env. We later check that the declaration is implemented correctly,
+         in [validate_signatur] *)
+      let typ = typeof_annot env l type_spec in
+      let m = Module.add_value_sig loc (Path.Pid n) typ m in
+      (env, m)
+
 let rec catch_weak_vars = function
   | Tl_let (_, _, e) | Tl_bind (_, e) | Tl_expr e ->
       catch_weak_expr Sset.empty e
@@ -1247,7 +1280,7 @@ and catch_weak_expr sub e =
       List.iter (function Fstr _ -> () | Fexpr e -> catch_weak_expr sub e) fmt
 
 (* Conversion to Typing.exr below *)
-let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (_, prog) =
+let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (sign, prog) =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 
@@ -1274,8 +1307,10 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (_, prog) =
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
-  let last_type, env, items, m = convert_prog env prog Module.empty in
+  let env, m = List.fold_left add_signature (env, Module.empty) sign in
+  let last_type, env, items, m = convert_prog env prog m in
   let externals = Module.append_externals (Env.externals env) in
+  let m = Module.validate_signature env m in
 
   (* Catch weak type variables *)
   List.iter catch_weak_vars items;

@@ -131,4 +131,4 @@ type signature =
   | Stypedef of loc * typedef
   | Svalue of loc * ((loc * string) * type_spec)
 
-type prog = signature list option * top_item list
+type prog = signature list * top_item list

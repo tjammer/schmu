@@ -14,7 +14,9 @@ and item =
   | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
   | Mmutual_rec of loc * (loc * string * int option * typ) list
 
-and sig_item = loc * typ [@@deriving sexp]
+(* TODO differentiate between typedef and value *)
+and sg_kind = Stypedef | Svalue
+and sig_item = loc * typ * sg_kind [@@deriving sexp]
 
 type t = { s : sig_item M.t; i : item list }
 
@@ -55,7 +57,8 @@ let lambda_name mn id =
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
 
-let add_type_sig loc name t m = { m with s = M.add name (loc, t) m.s }
+let add_type_sig loc name t m = { m with s = M.add name (loc, t, Stypedef) m.s }
+let add_value_sig loc name t m = { m with s = M.add name (loc, t, Svalue) m.s }
 let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 
 let type_of_func (func : Typed_tree.func) =
@@ -390,7 +393,7 @@ let map_item ~mname ~f = function
 
 let map_t ~mname ~f m =
   {
-    s = M.map (fun (l, t) -> (l, f t)) m.s;
+    s = M.map (fun (l, t, k) -> (l, f t, k)) m.s;
     i = List.map (map_item ~mname ~f) m.i;
   }
 
@@ -435,9 +438,9 @@ let canonize_t mname m =
   in
   let _, s =
     M.fold
-      (fun key (l, t) (sub, newmap) ->
+      (fun key (l, t, k) (sub, newmap) ->
         let sub, t = canonize sub t in
-        (sub, M.add key (l, t) newmap))
+        (sub, M.add key (l, t, k) newmap))
       m.s (ts_sub, m.s)
   in
   { s; i }
@@ -559,36 +562,48 @@ and mod_abs f abs =
 
 let add_to_env env mname m =
   (* TODO add only signature to env and the rest to external and poly *)
+  let nosig = M.is_empty m.s in
   List.fold_left
     (fun env item ->
       match item with
       | Mtype (_, Trecord (params, Some name, labels)) ->
-          Env.add_record name (Amodule mname) ~params ~labels env
+          if nosig then Env.add_record name (Amodule mname) ~params ~labels env
+          else env
       | Mtype (_, Tvariant (params, name, ctors)) ->
-          Env.add_variant name (Amodule mname) ~params ~ctors env
-      | Mtype (_, Talias (name, t)) -> Env.add_alias name (Amodule mname) t env
+          if nosig then Env.add_variant name (Amodule mname) ~params ~ctors env
+          else env
+      | Mtype (_, Talias (name, t)) ->
+          if nosig then Env.add_alias name (Amodule mname) t env else env
       | Mtype (_, t) ->
           failwith ("Internal Error: Unexpected type in module: " ^ show_typ t)
       | Mfun (l, typ, n) ->
           let imported = Some (mname, `Schmu) in
-          Env.(add_value n.user { def_value with typ; imported } l env)
+          if nosig then
+            Env.(add_value n.user { def_value with typ; imported } l env)
+          else env
       | Mpoly_fun (l, abs, n, _) ->
           let imported = Some (mname, `Schmu) in
-          Env.(
-            add_value n
-              { def_value with typ = type_of_func abs.func; imported }
-              l env)
+          if nosig then
+            Env.(
+              add_value n
+                { def_value with typ = type_of_func abs.func; imported }
+                l env)
+          else env
       | Mext (l, typ, n, _) ->
           let imported = Some (mname, `C) in
-          Env.(add_value n.user { def_value with typ; imported } l env)
+          if nosig then
+            Env.(add_value n.user { def_value with typ; imported } l env)
+          else env
       | Mmutual_rec (_, ds) ->
-          List.fold_left
-            (fun env (l, name, _, typ) ->
-              Env.(
-                add_value name
-                  { def_value with typ; imported = Some (mname, `Schmu) }
-                  l env))
-            env ds)
+          if nosig then
+            List.fold_left
+              (fun env (l, name, _, typ) ->
+                Env.(
+                  add_value name
+                    { def_value with typ; imported = Some (mname, `Schmu) }
+                    l env))
+              env ds
+          else env)
     env m.i
 
 let make_module sub name m =
@@ -623,9 +638,9 @@ let make_module sub name m =
   in
   let s =
     M.map
-      (fun (l, t) ->
+      (fun (l, t, k) ->
         s t;
-        (l, mod_t (Add (name, !sub)) t))
+        (l, mod_t (Add (name, !sub)) t, k))
       m.s
   in
   { s; i }
@@ -634,3 +649,61 @@ let to_channel c ~outname m =
   let s = ref S.empty in
   m |> make_module s outname |> canonize_t outname |> sexp_of_t
   |> Sexp.to_channel c
+
+let extract_name_type = function
+  | Mtype (l, t) -> (
+      match t with
+      | Trecord (_, Some n, _) | Tvariant (_, n, _) | Talias (n, _) ->
+          (Path.get_hd n, l, t, Stypedef)
+      | t ->
+          print_endline (string_of_type t);
+          failwith "Internal Error: Type does not have a name")
+  | Mfun (l, t, n) | Mext (l, t, n, _) -> (n.user, l, t, Svalue)
+  | Mpoly_fun (l, abs, n, _) -> (n, l, type_of_func abs.func, Svalue)
+  | Mmutual_rec _ -> failwith "Internal Error: How are mutual recs here?"
+
+let find_item name kind (n, _, _, tkind) =
+  match (kind, tkind) with
+  | (Svalue, Svalue | Stypedef, Stypedef) when String.equal name n -> true
+  | _ -> false
+
+open Typed_tree
+
+let validate_signature env m =
+  (* Go through signature and check that the implemented types match.
+     Implementation is appended to a list, so the most current bindings are the ones we pick.
+     That's exactly what we want. Also, set correct unique name to signature binding. *)
+  (* TODO we don't handle locally abstract types yet *)
+  if M.is_empty m.s then m
+  else
+    let impl = List.map extract_name_type m.i in
+    let f name (loc, styp, kind) =
+      match (List.find_opt (find_item (Path.get_hd name) kind) impl, kind) with
+      | Some (n, _, ityp, ikind), _ ->
+          let subst, b = Inference.types_match Smap.empty styp ityp in
+          if b then (
+            (* Query value to mark it as used in the env *)
+            (match ikind with
+            | Svalue -> ignore (Env.query_val_opt n env)
+            | Stypedef -> ());
+            (loc, ityp, kind))
+          else
+            let msg =
+              Printf.sprintf
+                "Mismatch between implementation and signature: Expected type \
+                 %s but got type %s"
+                (string_of_type_lit styp)
+                (string_of_type_subst subst ityp)
+            in
+            raise (Error (loc, msg))
+      | None, Stypedef -> (loc, styp, kind)
+      | None, Svalue ->
+          let msg =
+            Printf.sprintf
+              "Mismatch between implementation and signature: Missing \
+               implementation of %s %s"
+              (string_of_type styp) (Path.show name)
+          in
+          raise (Error (loc, msg))
+    in
+    { m with s = M.mapi f m.s }
