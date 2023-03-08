@@ -1230,8 +1230,7 @@ and prep_func p (username, uniq, abs) =
   let temp_p =
     recursion_stack := (call, recursive) :: !recursion_stack;
     let alloc =
-      if Types.is_struct abs.func.ret then Value (ref (request ()))
-      else No_value
+      if is_struct func.ret then Value (ref (request ())) else No_value
     in
     (* TODO make it impossible to recursively call an inline function *)
     let value = { no_var with fn = Forward_decl call; alloc } in

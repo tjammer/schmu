@@ -65,13 +65,6 @@ let rec clean = function
   | Traw_ptr t -> Traw_ptr (clean t)
   | t -> t
 
-let rec is_struct = function
-  | Tvar { contents = Link t } | Talias (_, t) -> is_struct t
-  | Trecord _ | Tvariant _ | Tfun _ | Qvar _ | Tvar { contents = Unbound _ } ->
-      true
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Traw_ptr _ | Tarray _ ->
-      false
-
 let pp_to_name name = "'" ^ name
 
 let string_of_type_raw get_name typ =

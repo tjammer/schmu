@@ -30,9 +30,6 @@ and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
 val clean : typ -> typ
 (** Follows links and aliases *)
 
-val is_struct : typ -> bool
-(** Same as [Cleaned_types.is_struct] *)
-
 val string_of_type : typ -> string
 (** Normal version, will name type vars starting from 'a *)
 
