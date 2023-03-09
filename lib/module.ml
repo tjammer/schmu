@@ -559,11 +559,11 @@ let add_to_env env mname m =
         (fun env item ->
           match item with
           | Mtype (_, Trecord (params, Some name, labels)) ->
-              Env.add_record name (Amodule mname) ~params ~labels env
+              Env.add_record name (Amodule mname) ~params ~labels env |> fst
           | Mtype (_, Tvariant (params, name, ctors)) ->
-              Env.add_variant name (Amodule mname) ~params ~ctors env
+              Env.add_variant name (Amodule mname) ~params ~ctors env |> fst
           | Mtype (_, Talias (name, t)) ->
-              Env.add_alias name (Amodule mname) t env
+              Env.add_alias name (Amodule mname) t env |> fst
           | Mtype (_, t) ->
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
@@ -593,11 +593,11 @@ let add_to_env env mname m =
         (fun env (name, loc, typ, kind) ->
           match (kind, typ) with
           | Stypedef, Trecord (params, Some name, labels) ->
-              Env.add_record name (Amodule mname) ~params ~labels env
+              Env.add_record name (Amodule mname) ~params ~labels env |> fst
           | Stypedef, Tvariant (params, name, ctors) ->
-              Env.add_variant name (Amodule mname) ~params ~ctors env
+              Env.add_variant name (Amodule mname) ~params ~ctors env |> fst
           | Stypedef, Talias (name, t) ->
-              Env.add_alias name (Amodule mname) t env
+              Env.add_alias name (Amodule mname) t env |> fst
           | Stypedef, _ -> failwith "Internal Error: Unknown type in typedef"
           | Svalue, _ ->
               (* The import kind (`C | `Schmu) is currently not used in the env implementation.

@@ -62,16 +62,16 @@ val change_type : key -> typ -> t -> t
 val add_type : Path.t -> in_sig:bool -> typ -> t -> t
 
 val add_record :
-  Path.t -> add_kind -> params:typ list -> labels:field array -> t -> t
+  Path.t -> add_kind -> params:typ list -> labels:field array -> t -> t * typ
 (** [add record record_name ~param ~labels env] returns an env with an added record named [record_name]
-     optionally parametrized by [param] with typed [labels] *)
+     optionally parametrized by [param] with typed [labels] plus the added type *)
 
 val add_variant :
-  Path.t -> add_kind -> params:typ list -> ctors:ctor array -> t -> t
+  Path.t -> add_kind -> params:typ list -> ctors:ctor array -> t -> t * typ
 (** [add_variant variant_name ~param ~ctors env] returns an env with an added variant named [variant_name]
-    optionally parametrized by [param] with [ctors] *)
+    optionally parametrized by [param] with [ctors] plus the added type *)
 
-val add_alias : Path.t -> add_kind -> typ -> t -> t
+val add_alias : Path.t -> add_kind -> typ -> t -> t * typ
 val open_function : t -> t
 
 val close_function : t -> t * closed list * unused
@@ -91,6 +91,8 @@ val query_val_opt : key -> t -> return option
 
 val open_mutation : t -> unit
 val close_mutation : t -> unit
+
+(* bool: in signature *)
 val find_type_opt : Path.t -> t -> (typ * bool) option
 val find_type : Path.t -> t -> typ * bool
 

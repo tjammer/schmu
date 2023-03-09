@@ -1108,16 +1108,16 @@ let convert_prog env items modul =
           items,
           m )
     | Typedef (loc, Trecord t) ->
-        let env = type_record ~in_sig:false env loc t in
-        let m = Module.add_type loc (Env.find_type t.name.name env |> fst) m in
+        let env, typ = type_record ~in_sig:false env loc t in
+        let m = Module.add_type loc typ m in
         (env, items, m)
     | Typedef (loc, Talias (name, type_spec)) ->
-        let env = type_alias ~in_sig:false env loc name type_spec in
-        let m = Module.add_type loc (Env.find_type name.name env |> fst) m in
+        let env, typ = type_alias ~in_sig:false env loc name type_spec in
+        let m = Module.add_type loc typ m in
         (env, items, m)
     | Typedef (loc, Tvariant v) ->
-        let env = type_variant ~in_sig:false env loc v in
-        let m = Module.add_type loc (Env.find_type v.name.name env |> fst) m in
+        let env, typ = type_variant ~in_sig:false env loc v in
+        let m = Module.add_type loc typ m in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
@@ -1196,26 +1196,16 @@ let convert_prog env items modul =
 
 let add_signature (env, m) = function
   | Ast.Stypedef (loc, Trecord t) ->
-      let env = type_record ~in_sig:true env loc t in
-      let m =
-        Module.add_type_sig loc t.name.name
-          (Env.find_type t.name.name env |> fst)
-          m
-      in
+      let env, typ = type_record ~in_sig:true env loc t in
+      let m = Module.add_type_sig loc t.name.name typ m in
       (env, m)
   | Stypedef (loc, Talias (name, type_spec)) ->
-      let env = type_alias ~in_sig:true env loc name type_spec in
-      let m =
-        Module.add_type_sig loc name.name (Env.find_type name.name env |> fst) m
-      in
+      let env, typ = type_alias ~in_sig:true env loc name type_spec in
+      let m = Module.add_type_sig loc name.name typ m in
       (env, m)
   | Stypedef (loc, Tvariant v) ->
-      let env = type_variant ~in_sig:true env loc v in
-      let m =
-        Module.add_type_sig loc v.name.name
-          (Env.find_type v.name.name env |> fst)
-          m
-      in
+      let env, typ = type_variant ~in_sig:true env loc v in
+      let m = Module.add_type_sig loc v.name.name typ m in
       (env, m)
   | Svalue (loc, ((l, n), type_spec)) ->
       (* Here, we don't add to env. We later check that the declaration is implemented correctly,

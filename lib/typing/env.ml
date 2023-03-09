@@ -221,7 +221,7 @@ let add_record record add_kind ~params ~labels env =
       (0, scope.labels) labels
   in
   let types = Tmap.add name (typ, in_sig) scope.types in
-  { env with values = { scope with labels; types; labelsets } :: tl }
+  ({ env with values = { scope with labels; types; labelsets } :: tl }, typ)
 
 let add_variant variant add_kind ~params ~ctors env =
   let scope, tl = decap_exn env in
@@ -240,7 +240,7 @@ let add_variant variant add_kind ~params ~ctors env =
       (0, scope.ctors) ctors
   in
   let types = Tmap.add name (typ, in_sig) scope.types in
-  { env with values = { scope with ctors; types } :: tl }
+  ({ env with values = { scope with ctors; types } :: tl }, typ)
 
 let add_alias alias add_kind typ env =
   let scope, tl = decap_exn env in
@@ -252,7 +252,7 @@ let add_alias alias add_kind typ env =
   in
   let typ = Talias (alias, typ) in
   let types = Tmap.add name (typ, in_sig) scope.types in
-  { env with values = { scope with types } :: tl }
+  ({ env with values = { scope with types } :: tl }, typ)
 
 let find_val_raw key env =
   let rec aux = function
