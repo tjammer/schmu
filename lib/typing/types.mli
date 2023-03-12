@@ -18,6 +18,7 @@ type typ =
   | Tvariant of typ list * Path.t * ctor array
   | Traw_ptr of typ
   | Tarray of typ
+  | Tabstract of typ list * string * typ (* TODO path *)
 [@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of closed list

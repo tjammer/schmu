@@ -679,6 +679,11 @@ let rec cln p = function
       Tvariant (ps, Path.type_name name, ctors)
   | Traw_ptr t -> Traw_ptr (cln p t)
   | Tarray t -> Tarray (cln p t)
+  | Tabstract (_, _, Tvar { contents = Unbound _ }) ->
+      failwith "Internal Error: How did this come through?"
+  | Tabstract (_, _, t) ->
+      (* Turn abstract type into its real representation for codegen *)
+      cln p t
 
 and cln_kind p = function
   | Simple -> Simple

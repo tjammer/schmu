@@ -263,7 +263,7 @@ let regeneralize typ =
 (* Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
    We need to match everything for weak vars though *)
-let rec types_match ?(strict = false) subst l r =
+let rec types_match ?(strict = false) ?(match_abstract = false) subst l r =
   if l == r then (subst, true)
   else
     match (l, r) with
@@ -281,7 +281,7 @@ let rec types_match ?(strict = false) subst l r =
     | l, Tvar { contents = Link r }
     | Talias (_, l), r
     | l, Talias (_, r) ->
-        types_match ~strict subst l r
+        types_match ~match_abstract ~strict subst l r
     | _, Tvar { contents = Unbound _ } ->
         failwith "Internal Error: Type comparison for non-generalized types"
     | Tfun (ps_l, l, _), Tfun (ps_r, r, _) -> (
@@ -289,13 +289,15 @@ let rec types_match ?(strict = false) subst l r =
           let subst, acc =
             List.fold_left2
               (fun (s, acc) l r ->
-                let subst, b = types_match ~strict:true s l.pt r.pt in
+                let subst, b =
+                  types_match ~match_abstract ~strict:true s l.pt r.pt
+                in
                 let b = b && Bool.equal l.pmut r.pmut in
                 (subst, acc && b))
               (subst, true) ps_l ps_r
           in
           (* We don't shortcut here to match the annotations for the error message *)
-          let subst, b = types_match ~strict:true subst l r in
+          let subst, b = types_match ~match_abstract ~strict:true subst l r in
           (subst, acc && b)
         with Invalid_argument _ -> (subst, false))
     | Trecord (_, None, l), Trecord (_, None, r) -> (
@@ -303,7 +305,7 @@ let rec types_match ?(strict = false) subst l r =
         try
           List.fold_left2
             (fun (s, acc) l r ->
-              let subst, b = types_match s l.ftyp r.ftyp in
+              let subst, b = types_match ~match_abstract s l.ftyp r.ftyp in
               (subst, acc && b))
             (subst, true) l r
         with Invalid_argument _ -> (subst, false))
@@ -314,10 +316,16 @@ let rec types_match ?(strict = false) subst l r =
         if Path.equal nl nr then
           List.fold_left2
             (fun (s, acc) l r ->
-              let subst, b = types_match ~strict s l r in
+              let subst, b = types_match ~match_abstract ~strict s l r in
               (subst, acc && b))
             (subst, true) pl pr
         else (subst, false)
     | Traw_ptr l, Traw_ptr r | Tarray l, Tarray r ->
-        types_match ~strict subst l r
+        types_match ~match_abstract ~strict subst l r
+    | Tabstract (_, l, lt), Tabstract (_, r, rt) ->
+        if String.equal l r then
+          types_match ~strict:true ~match_abstract subst lt rt
+        else (subst, false)
+    | (Tabstract (_, _, l), r | l, Tabstract (_, _, r)) when match_abstract ->
+        types_match ~strict ~match_abstract subst l r
     | _ -> (subst, false)

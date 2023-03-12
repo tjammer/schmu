@@ -336,7 +336,7 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
   let ret = Option.map (fun t -> typeof_annot env loc t) ret in
   (env, ids, qparams, ret)
 
-let check_type_unique env loc ~in_sig name =
+let check_type_unique env loc ~in_sig name typ =
   match Env.find_type_opt name env with
   (* It's ok to have a type both in signature and impl *)
   | Some (_, insig) when Bool.equal in_sig insig ->
@@ -346,24 +346,29 @@ let check_type_unique env loc ~in_sig name =
           (Path.show name)
       in
       raise (Error (loc, msg))
+  | Some (Tabstract (_, _, Tvar ({ contents = Unbound _ } as t)), _) ->
+      assert (not in_sig);
+      (* We have a concrete implemantion of an abstract type. Change the abstract one to carry its impl *)
+      t := Link typ
   | Some _ | None -> ()
+
+let make_type_param () =
+  enter_level ();
+  let typ = newvar () in
+  leave_level ();
+  generalize typ
 
 let add_type_param env ts =
   List.fold_left_map
     (fun env name ->
       (* Create general type *)
-      enter_level ();
-      let typ = newvar () in
-      leave_level ();
-      let t = generalize typ in
+      let t = make_type_param () in
 
       let in_sig = false in
       (Env.add_type name ~in_sig t env, t))
     env ts
 
 let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
-  (* Make sure that each type name only appears once per module *)
-  check_type_unique ~in_sig env loc name;
   let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let env, param = add_type_param env poly_param in
@@ -377,20 +382,37 @@ let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
     (labels, param)
   in
   let kind = if in_sig then Env.Asignature else Aimpl in
-  Env.add_record name kind ~params ~labels env
+
+  let typ = Trecord (params, Some name, labels) in
+  (* Make sure that each type name only appears once per module *)
+  check_type_unique ~in_sig env loc name typ;
+  (Env.add_record name kind ~params ~labels env, typ)
 
 let type_alias env loc ~in_sig { Ast.poly_param; name } type_spec =
-  (* Make sure that each type name only appears once per module *)
-  check_type_unique ~in_sig env loc name;
   (* Temporarily add polymorphic type name to env *)
   let temp_env, _ = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
   let kind = if in_sig then Env.Asignature else Aimpl in
-  Env.add_alias name kind typ env
+
+  let alias = Talias (name, typ) in
+  (* Make sure that each type name only appears once per module *)
+  check_type_unique ~in_sig env loc name alias;
+  (Env.add_alias name kind typ env, alias)
+
+let type_abstract env loc { Ast.poly_param; name } =
+  (* Make sure that each type name only appears once per module *)
+  (* Abstract types are only allowed in signatures *)
+  check_type_unique ~in_sig:true env loc name Tunit;
+  (* Tunit because we need to pass some type *)
+  (* Temporarily add polymorphic type name to env *)
+  let params = List.map (fun _ -> make_type_param ()) poly_param in
+  let typ = Tabstract (params, Path.only_hd name, newvar ()) in
+
+  (* TODO make abstract type unbound and bind correct type in impl.
+     We can check this with check_type_unique *)
+  (Env.add_type name ~in_sig:true typ env, typ)
 
 let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
-  (* Make sure that each type name only appears once per module *)
-  check_type_unique ~in_sig env loc name;
   (* Temporarily add polymorphic type name to env *)
   let temp_env, params = add_type_param env poly_param in
 
@@ -440,7 +462,11 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
     |> Array.of_list
   in
   let kind = if in_sig then Env.Asignature else Aimpl in
-  Env.add_variant name kind ~params ~ctors env
+
+  let typ = Tvariant (params, name, ctors) in
+  (* Make sure that each type name only appears once per module *)
+  check_type_unique ~in_sig env loc name typ;
+  (Env.add_variant name kind ~params ~ctors env, typ)
 
 let rec param_funcs_as_closures = function
   (* Functions passed as parameters need to have an empty closure, otherwise they cannot
@@ -1119,6 +1145,8 @@ let convert_prog env items modul =
         let env, typ = type_variant ~in_sig:false env loc v in
         let m = Module.add_type loc typ m in
         (env, items, m)
+    | Typedef (loc, Tabstract _) ->
+        raise (Error (loc, "Abstract types need a concrete implementation"))
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
@@ -1206,6 +1234,10 @@ let add_signature (env, m) = function
   | Stypedef (loc, Tvariant v) ->
       let env, typ = type_variant ~in_sig:true env loc v in
       let m = Module.add_type_sig loc v.name.name typ m in
+      (env, m)
+  | Stypedef (loc, Tabstract a) ->
+      let env, typ = type_abstract env loc a in
+      let m = Module.add_type_sig loc a.name typ m in
       (env, m)
   | Svalue (loc, ((l, n), type_spec)) ->
       (* Here, we don't add to env. We later check that the declaration is implemented correctly,

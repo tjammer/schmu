@@ -87,7 +87,8 @@ module Make (C : Core) = struct
 
     let (param, name, labels), labels_expr =
       match t with
-      | Trecord (param, Some name, ls) ->
+      | Trecord (param, Some name, ls)
+      | Talias (_, Trecord (param, Some name, ls)) ->
           let f (lname, expr) =
             let typ, expr =
               match array_assoc_opt lname ls with

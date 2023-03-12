@@ -186,6 +186,18 @@ let rec canonize sub = function
   | Tarray t ->
       let sub, t = canonize sub t in
       (sub, Tarray t)
+  | Tabstract (ps, n, t) ->
+      let sub, ps = List.fold_left_map (fun sub t -> canonize sub t) sub ps in
+      let sub, t =
+        match t with
+        | Tvar { contents = Unbound _ } ->
+            (* If it's still unbound, then there is no matching impl *)
+            failwith "Internal Error: Should this not have been caught before?"
+        | t ->
+            let sub, t = canonize sub t in
+            (sub, t)
+      in
+      (sub, Tabstract (ps, n, t))
 
 let rec canonbody mname nsub sub (e : Typed_tree.typed_expr) =
   let sub, typ = canonize sub e.typ in
@@ -559,11 +571,11 @@ let add_to_env env mname m =
         (fun env item ->
           match item with
           | Mtype (_, Trecord (params, Some name, labels)) ->
-              Env.add_record name (Amodule mname) ~params ~labels env |> fst
+              Env.add_record name (Amodule mname) ~params ~labels env
           | Mtype (_, Tvariant (params, name, ctors)) ->
-              Env.add_variant name (Amodule mname) ~params ~ctors env |> fst
+              Env.add_variant name (Amodule mname) ~params ~ctors env
           | Mtype (_, Talias (name, t)) ->
-              Env.add_alias name (Amodule mname) t env |> fst
+              Env.add_alias name (Amodule mname) t env
           | Mtype (_, t) ->
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
@@ -593,11 +605,11 @@ let add_to_env env mname m =
         (fun env (name, loc, typ, kind) ->
           match (kind, typ) with
           | Stypedef, Trecord (params, Some name, labels) ->
-              Env.add_record name (Amodule mname) ~params ~labels env |> fst
+              Env.add_record name (Amodule mname) ~params ~labels env
           | Stypedef, Tvariant (params, name, ctors) ->
-              Env.add_variant name (Amodule mname) ~params ~ctors env |> fst
+              Env.add_variant name (Amodule mname) ~params ~ctors env
           | Stypedef, Talias (name, t) ->
-              Env.add_alias name (Amodule mname) t env |> fst
+              Env.add_alias name (Amodule mname) t env
           | Stypedef, _ -> failwith "Internal Error: Unknown type in typedef"
           | Svalue, _ ->
               (* The import kind (`C | `Schmu) is currently not used in the env implementation.
@@ -688,7 +700,9 @@ let validate_signature env m =
           (List.find_opt (find_item (Path.get_hd name) kind) impl, kind)
         with
         | Some (n, _, ityp, ikind), _ ->
-            let subst, b = Inference.types_match Smap.empty styp ityp in
+            let subst, b =
+              Inference.types_match ~match_abstract:true Smap.empty styp ityp
+            in
             if b then (
               (* Query value to mark it as used in the env *)
               (match ikind with
@@ -704,7 +718,16 @@ let validate_signature env m =
                   (string_of_type_subst subst ityp)
               in
               raise (Error (loc, msg))
-        | None, Stypedef -> (name, loc, styp, kind)
+        | None, Stypedef -> (
+            (* Typedefs don't have to be given a second time. Except: When the initial type is abstract *)
+            match clean styp with
+            | Tabstract _ ->
+                raise
+                  (Error
+                     ( loc,
+                       "Abstract type " ^ string_of_type styp
+                       ^ " not implemented" ))
+            | _ -> (name, loc, styp, kind))
         | None, Svalue ->
             let msg =
               Printf.sprintf

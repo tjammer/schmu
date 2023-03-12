@@ -26,6 +26,7 @@ type typ =
   | Tvariant of typ list * Path.t * ctor array
   | Traw_ptr of typ
   | Tarray of typ
+  | Tabstract of typ list * string * typ
 [@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of closed list
@@ -101,6 +102,12 @@ let string_of_type_raw get_name typ =
             Printf.sprintf "(%s %s)" (Path.show str) arg)
     | Traw_ptr t -> Printf.sprintf "(raw_ptr %s)" (string_of_type t)
     | Tarray t -> Printf.sprintf "(array %s)" (string_of_type t)
+    | Tabstract (ps, name, _) -> (
+        match ps with
+        | [] -> name
+        | l ->
+            let arg = String.concat " " (List.map string_of_type l) in
+            Printf.sprintf "(%s %s)" name arg)
   in
 
   string_of_type typ
@@ -143,7 +150,8 @@ let is_polymorphic typ =
     | Tvar { contents = Link t } | Talias (_, t) -> inner acc t
     | Trecord (_, None, fs) ->
         Array.fold_left (fun acc f -> inner acc f.ftyp) acc fs
-    | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
+    | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
+        List.fold_left inner acc ps
     | Tfun (params, ret, _) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
         inner acc ret
@@ -158,7 +166,7 @@ let rec is_weak ~sub = function
       is_weak ~sub t
   | Tvar { contents = Unbound (id, _) } ->
       if Sset.mem id sub then false else true
-  | Trecord (ps, _, _) | Tvariant (ps, _, _) ->
+  | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
       List.fold_left (fun b t -> is_weak ~sub t || b) false ps
   | Tfun _ ->
       (* Function types can contain weak vars which will reify on call.

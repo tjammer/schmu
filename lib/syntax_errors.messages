@@ -1190,6 +1190,26 @@ prog: Lpar Signature Lpar Wildcard
 
 Expecting type or value declaration
 
+prog: Lpar Signature Lpar Type Wildcard
+
+Expecting type name
+
+prog: Lpar Signature Lpar Type Lpar Wildcard
+
+Expecting type name
+
+prog: Lpar Signature Lpar Type Lpar Kebab_id Wildcard
+
+Expecting type param
+
+prog: Lpar Signature Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Wildcard
+
+Expecting type declaration
+
+prog: Lpar Signature Lpar Type Kebab_id Wildcard
+
+Expecting alias declaration
+
 prog: Lpar Signature Lpar Def Wildcard
 
 Expecting type or value declaration
@@ -1221,6 +1241,10 @@ Expecting ')'
 prog: Lpar Signature Lpar Type Kebab_id Kebab_id Rpar Wildcard
 
 Expecting ')'
+
+prog: Lpar Signature Lpar Type Kebab_id Rpar Wildcard
+
+Expecting type or value declaration
 
 prog: Lpar Defexternal Wildcard
 
@@ -1254,6 +1278,6 @@ prog: False Lpar Wildcard
 
 Expecting top level item
 
-prog: Lpar Signature Lpar Type Kebab_id Kebab_id Rpar Rpar Wildcard
+prog: Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
 
 Expecting top level item

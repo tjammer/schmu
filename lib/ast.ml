@@ -121,6 +121,7 @@ type typedef =
   | Trecord of record
   | Talias of typename * type_spec
   | Tvariant of variant
+  | Tabstract of typename
 
 type top_item =
   | Stmt of stmt

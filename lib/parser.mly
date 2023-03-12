@@ -124,7 +124,7 @@ top_item:
 signature: Signature; l = nonempty_list(sig_item) { l }
 
 %inline sig_item:
-  | def = typedef { Stypedef ($loc, def) }
+  | def = sigtypedef { Stypedef ($loc, def) }
   | v = parens(sigvalue) { Svalue (fst v, snd v) }
 
 %inline sigvalue:
@@ -132,6 +132,12 @@ signature: Signature; l = nonempty_list(sig_item) { l }
 
 %inline external_decl:
   | parens(defexternal) { $1 }
+
+%inline sigtypedef:
+  | parens(defrecord) { $1 }
+  | parens(defalias) { $1 }
+  | parens(defvariant) { $1 }
+  | parens(defabstract) { $1 }
 
 %inline typedef:
   | parens(defrecord) { $1 }
@@ -150,6 +156,9 @@ signature: Signature; l = nonempty_list(sig_item) { l }
 
 %inline defvariant:
   | Type; sexp_typename; atom_or_list(sexp_ctordef) { Tvariant { name = $2; ctors = $3 } }
+
+%inline defabstract:
+  | Type; sexp_typename { Tabstract $2 }
 
 let atom_or_list(x) :=
   | atom = x; { [atom] }
