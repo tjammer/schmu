@@ -323,9 +323,115 @@ let rec types_match ?(strict = false) ?(match_abstract = false) subst l r =
     | Traw_ptr l, Traw_ptr r | Tarray l, Tarray r ->
         types_match ~match_abstract ~strict subst l r
     | Tabstract (_, l, lt), Tabstract (_, r, rt) ->
-        if String.equal l r then
+        if Path.equal l r then
           types_match ~strict:true ~match_abstract subst lt rt
         else (subst, false)
     | (Tabstract (_, _, l), r | l, Tabstract (_, _, r)) when match_abstract ->
         types_match ~strict ~match_abstract subst l r
     | _ -> (subst, false)
+
+let rec match_type_params params typ =
+  (* Take qvars from [params] and match them to the one found in [typ].
+     Assume they appear in the same order. E.g. If params = [A, B] and typ [C, B]
+     it probably won't work *)
+  let buildup_subst subst l r =
+    match (l, r) with
+    (* Qvar l, Qvar r when String.equal l r -> subst *)
+    | Qvar l, Qvar r -> (
+        match Smap.find_opt l subst with
+        | Some id when String.equal r id -> subst
+        | Some _ -> failwith "TODO err"
+        | None ->
+            (* We 'connect' right to left *)
+            Smap.add r l subst)
+    | _ -> failwith "TODO err"
+  in
+
+  let rec replace_qvar subst = function
+    | (Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32) as t -> t
+    | Qvar s -> (
+        match Smap.find_opt s subst with
+        | None -> failwith "TODO err what is this"
+        | Some str -> Qvar str)
+    | Tvar ({ contents = Link t } as l) as tvar ->
+        let t = replace_qvar subst t in
+        l := Link t;
+        tvar
+    | Tvar { contents = Unbound _ } -> failwith "TODO err unexpected unbound"
+    | Trecord (ps, n, fs) ->
+        let ps = List.map (replace_qvar subst) ps in
+        let fs =
+          Array.map
+            (fun f ->
+              let ftyp = (replace_qvar subst) f.ftyp in
+              { f with ftyp })
+            fs
+        in
+        Trecord (ps, n, fs)
+    | Tvariant (ps, n, cs) ->
+        let ps = List.map (replace_qvar subst) ps in
+        let cs =
+          Array.map
+            (fun c ->
+              let ctyp = Option.map (replace_qvar subst) c.ctyp in
+              { c with ctyp })
+            cs
+        in
+        Tvariant (ps, n, cs)
+    | Talias (n, t) -> Talias (n, replace_qvar subst t)
+    | Traw_ptr t -> Traw_ptr (replace_qvar subst t)
+    | Tarray t -> Tarray (replace_qvar subst t)
+    | Tabstract (ps, n, t) ->
+        let ps = List.map (replace_qvar subst) ps in
+        Tabstract (ps, n, replace_qvar subst t)
+    | Tfun (ps, r, kind) ->
+        let ps =
+          List.map
+            (fun p ->
+              let pt = replace_qvar subst p.pt in
+              { p with pt })
+            ps
+        in
+        let r = replace_qvar subst r in
+        let kind =
+          match kind with
+          | Simple -> Simple
+          | Closure cls ->
+              let cls =
+                List.map
+                  (fun c ->
+                    let cltyp = (replace_qvar subst) c.cltyp in
+                    { c with cltyp })
+                  cls
+              in
+              Closure cls
+        in
+        Tfun (ps, r, kind)
+  in
+
+  match typ with
+  | Trecord (ps, _, _) ->
+      let subst = List.fold_left2 buildup_subst Smap.empty params ps in
+      replace_qvar subst typ
+  | Tvariant (ps, _, _) ->
+      let subst = List.fold_left2 buildup_subst Smap.empty params ps in
+      replace_qvar subst typ
+  | Talias (n, t) -> Talias (n, match_type_params params t)
+  | (Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32) as t -> (
+      match params with
+      | [] -> t
+      | _ -> failwith "TODO err this is a simple type")
+  | Tvar { contents = Unbound _ } -> failwith "TODO err how is this unbound"
+  | Qvar _ -> (
+      match params with
+      | [ Qvar other ] -> Qvar other
+      | _ -> failwith "TODO err this is a qvar")
+  | Tvar ({ contents = Link t } as rf) ->
+      rf := Link (match_type_params params t);
+      typ
+  | Tarray t -> Tarray (match_type_params params t)
+  | Traw_ptr t -> Traw_ptr (match_type_params params t)
+  | Tabstract (ps, _, _) ->
+      let subst = List.fold_left2 buildup_subst Smap.empty params ps in
+      replace_qvar subst typ
+  | Tfun _ -> failwith "TODO abstract function types"

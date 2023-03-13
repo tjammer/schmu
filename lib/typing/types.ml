@@ -26,7 +26,7 @@ type typ =
   | Tvariant of typ list * Path.t * ctor array
   | Traw_ptr of typ
   | Tarray of typ
-  | Tabstract of typ list * string * typ
+  | Tabstract of typ list * Path.t * typ
 [@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of closed list
@@ -104,10 +104,10 @@ let string_of_type_raw get_name typ =
     | Tarray t -> Printf.sprintf "(array %s)" (string_of_type t)
     | Tabstract (ps, name, _) -> (
         match ps with
-        | [] -> name
+        | [] -> Path.show name
         | l ->
             let arg = String.concat " " (List.map string_of_type l) in
-            Printf.sprintf "(%s %s)" name arg)
+            Printf.sprintf "(%s %s)" (Path.show name) arg)
   in
 
   string_of_type typ

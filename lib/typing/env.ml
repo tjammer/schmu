@@ -193,11 +193,6 @@ let change_type key typ env =
           { env with values = { scope with valmap } :: tl }
       | None -> "Internal Error: Missing key for changing " ^ key |> failwith)
 
-let add_type key ~in_sig t env =
-  let scope, tl = decap_exn env in
-  let types = Tmap.add key (t, in_sig) scope.types in
-  { env with values = { scope with types } :: tl }
-
 let add_record record add_kind ~params ~labels env =
   let scope, tl = decap_exn env in
   let typ = Trecord (params, Some record, labels) in
@@ -253,6 +248,20 @@ let add_alias alias add_kind typ env =
   let typ = Talias (alias, typ) in
   let types = Tmap.add name (typ, in_sig) scope.types in
   { env with values = { scope with types } :: tl }
+
+let add_type name add_kind typ env =
+  match typ with
+  | Trecord (params, Some n, labels) ->
+      add_record n add_kind ~params ~labels env
+  | Tvariant (params, n, ctors) -> add_variant n add_kind ~params ~ctors env
+  | Talias (n, t) -> add_alias n add_kind t env
+  | t ->
+      let in_sig =
+        match add_kind with Aimpl | Amodule _ -> false | Asignature -> true
+      in
+      let scope, tl = decap_exn env in
+      let types = Tmap.add name (t, in_sig) scope.types in
+      { env with values = { scope with types } :: tl }
 
 let find_val_raw key env =
   let rec aux = function

@@ -346,11 +346,14 @@ let check_type_unique env loc ~in_sig name typ =
           (Path.show name)
       in
       raise (Error (loc, msg))
-  | Some (Tabstract (_, _, Tvar ({ contents = Unbound _ } as t)), _) ->
+  | Some (Tabstract (ps, _, Tvar ({ contents = Unbound _ } as t)), _) ->
       assert (not in_sig);
       (* We have a concrete implemantion of an abstract type. Change the abstract one to carry its impl *)
-      t := Link typ
-  | Some _ | None -> ()
+      (* Also adjust type params to match between abstract type and carried type *)
+      let typ = match_type_params ps typ in
+      t := Link typ;
+      typ
+  | Some _ | None -> typ
 
 let make_type_param () =
   enter_level ();
@@ -364,8 +367,7 @@ let add_type_param env ts =
       (* Create general type *)
       let t = make_type_param () in
 
-      let in_sig = false in
-      (Env.add_type name ~in_sig t env, t))
+      (Env.add_type name Aimpl t env, t))
     env ts
 
 let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
@@ -385,8 +387,8 @@ let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
 
   let typ = Trecord (params, Some name, labels) in
   (* Make sure that each type name only appears once per module *)
-  check_type_unique ~in_sig env loc name typ;
-  (Env.add_record name kind ~params ~labels env, typ)
+  let typ = check_type_unique ~in_sig env loc name typ in
+  (Env.add_type name kind typ env, typ)
 
 let type_alias env loc ~in_sig { Ast.poly_param; name } type_spec =
   (* Temporarily add polymorphic type name to env *)
@@ -396,21 +398,21 @@ let type_alias env loc ~in_sig { Ast.poly_param; name } type_spec =
 
   let alias = Talias (name, typ) in
   (* Make sure that each type name only appears once per module *)
-  check_type_unique ~in_sig env loc name alias;
-  (Env.add_alias name kind typ env, alias)
+  let typ = check_type_unique ~in_sig env loc name alias in
+  (Env.add_type name kind typ env, alias)
 
 let type_abstract env loc { Ast.poly_param; name } =
   (* Make sure that each type name only appears once per module *)
   (* Abstract types are only allowed in signatures *)
-  check_type_unique ~in_sig:true env loc name Tunit;
+  ignore (check_type_unique ~in_sig:true env loc name Tunit);
   (* Tunit because we need to pass some type *)
   (* Temporarily add polymorphic type name to env *)
   let params = List.map (fun _ -> make_type_param ()) poly_param in
-  let typ = Tabstract (params, Path.only_hd name, newvar ()) in
+  let typ = Tabstract (params, name, newvar ()) in
 
   (* TODO make abstract type unbound and bind correct type in impl.
      We can check this with check_type_unique *)
-  (Env.add_type name ~in_sig:true typ env, typ)
+  (Env.add_type name Asignature typ env, typ)
 
 let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
   (* Temporarily add polymorphic type name to env *)
@@ -465,8 +467,8 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
 
   let typ = Tvariant (params, name, ctors) in
   (* Make sure that each type name only appears once per module *)
-  check_type_unique ~in_sig env loc name typ;
-  (Env.add_variant name kind ~params ~ctors env, typ)
+  let typ = check_type_unique ~in_sig env loc name typ in
+  (Env.add_type name kind typ env, typ)
 
 let rec param_funcs_as_closures = function
   (* Functions passed as parameters need to have an empty closure, otherwise they cannot

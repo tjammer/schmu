@@ -512,6 +512,8 @@ let rec mod_t mkind t =
       in
       Tfun (ps, r, kind)
   | Tvar { contents = Link t } -> Tvar { contents = Link (mod_t mkind t) }
+  | Tabstract (ps, n, t) ->
+      Tabstract (List.map (mod_t mkind) ps, nm n, mod_t mkind t)
   | t -> t
 
 let extr_name = function
@@ -570,12 +572,12 @@ let add_to_env env mname m =
       List.fold_left
         (fun env item ->
           match item with
-          | Mtype (_, Trecord (params, Some name, labels)) ->
-              Env.add_record name (Amodule mname) ~params ~labels env
-          | Mtype (_, Tvariant (params, name, ctors)) ->
-              Env.add_variant name (Amodule mname) ~params ~ctors env
-          | Mtype (_, Talias (name, t)) ->
-              Env.add_alias name (Amodule mname) t env
+          | Mtype
+              ( _,
+                (( Trecord (_, Some name, _)
+                 | Tvariant (_, name, _)
+                 | Talias (name, _) ) as t) ) ->
+              Env.add_type name (Amodule mname) t env
           | Mtype (_, t) ->
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
@@ -603,15 +605,9 @@ let add_to_env env mname m =
   | l ->
       List.fold_left
         (fun env (name, loc, typ, kind) ->
-          match (kind, typ) with
-          | Stypedef, Trecord (params, Some name, labels) ->
-              Env.add_record name (Amodule mname) ~params ~labels env
-          | Stypedef, Tvariant (params, name, ctors) ->
-              Env.add_variant name (Amodule mname) ~params ~ctors env
-          | Stypedef, Talias (name, t) ->
-              Env.add_alias name (Amodule mname) t env
-          | Stypedef, _ -> failwith "Internal Error: Unknown type in typedef"
-          | Svalue, _ ->
+          match kind with
+          | Stypedef -> Env.add_type name (Amodule mname) typ env
+          | Svalue ->
               (* The import kind (`C | `Schmu) is currently not used in the env implementation.
                  This is good for us, so we don't have to keep track of what's external (C linkage)
                  vs internal (Schmu linkage) here. Once the env implementation does something with this
@@ -690,7 +686,6 @@ let validate_signature env m =
   (* Go through signature and check that the implemented types match.
      Implementation is appended to a list, so the most current bindings are the ones we pick.
      That's exactly what we want. Also, set correct unique name to signature binding. *)
-  (* TODO we don't handle locally abstract types yet *)
   match m.s with
   | [] -> m
   | _ ->
@@ -708,7 +703,7 @@ let validate_signature env m =
               (match ikind with
               | Svalue -> ignore (Env.query_val_opt n env)
               | Stypedef -> ());
-              (name, loc, ityp, kind))
+              (name, loc, styp, kind))
             else
               let msg =
                 Printf.sprintf
