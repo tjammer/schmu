@@ -39,6 +39,9 @@ let rec occurs tvr = function
       Array.iter
         (fun c -> match c.ctyp with None -> () | Some t -> occurs tvr t)
         cs
+  | Tabstract (ps, _, t) ->
+      List.iter (occurs tvr) ps;
+      occurs tvr t
   | Traw_ptr t | Tarray t -> occurs tvr t
   | _ -> ()
 
@@ -108,6 +111,13 @@ let rec unify down t1 t2 =
               ctors1 ctors2
           with Invalid_argument _ -> raise (Unify None)
         else raise (Unify None)
+    | Tabstract (psl, nl, l), Tabstract (psr, nr, r) ->
+        if Path.equal nl nr then
+          try
+            List.iter2 (unify true) psl psr;
+            unify true l r
+          with Invalid_argument _ -> raise (Unify None)
+        else raise (Unify None)
     | Traw_ptr l, Traw_ptr r -> unify true l r
     | Tarray l, Tarray r -> unify true l r
     | Qvar a, Qvar b when String.equal a b ->
@@ -154,6 +164,9 @@ let rec generalize = function
       let f c = Types.{ c with ctyp = Option.map generalize c.ctyp } in
       let ctors = Array.map f ctors in
       Tvariant (ps, name, ctors)
+  | Tabstract (ps, name, t) ->
+      let ps = List.map generalize ps in
+      Tabstract (ps, name, generalize t)
   | Traw_ptr t -> Traw_ptr (generalize t)
   | Tarray t -> Tarray (generalize t)
   | t -> t
@@ -243,6 +256,18 @@ let instantiate t =
             ctors
         in
         (Tvariant (ps, name, ctors), !subst)
+    | Tabstract (ps, name, t) ->
+        let subst = ref subst in
+        let ps =
+          List.map
+            (fun t ->
+              let t, subst' = aux !subst t in
+              subst := subst';
+              t)
+            ps
+        in
+        let t, subst = aux !subst t in
+        (Tabstract (ps, name, t), subst)
     | Traw_ptr t ->
         let t, subst = aux subst t in
         (Traw_ptr t, subst)
