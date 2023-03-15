@@ -562,6 +562,19 @@ let test_signature_wrong_typedef () =
      got type t = float"
     "(signature (type t int)) (type t float)"
 
+let test_signature_generic () =
+  test "unit"
+    {|(signature
+  (type (t 'a))
+  (def create (fun 'a (t 'a)))
+  (def create-int (fun int (t int))))
+
+(type (t 'a) {:x 'a})
+
+(defn create [x] {:x})
+(defn create-int [(x int)] {:x})
+|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -759,5 +772,6 @@ let () =
           case "only" test_signature_only;
           case "simple" test_signature_simple;
           case "wrong type" test_signature_wrong_typedef;
+          case "generic" test_signature_generic;
         ] );
     ]

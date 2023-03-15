@@ -1,5 +1,6 @@
 (signature
   (type t int)
+  (type abstr)
 
   (def t int)
   (def ext (fun cstr int unit))
@@ -20,3 +21,5 @@
   (print (fmt-str (+ 2 a))))
 
 (type hidden-type int)
+
+(type abstr int)
