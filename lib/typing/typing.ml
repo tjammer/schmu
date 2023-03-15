@@ -131,6 +131,10 @@ let rec subst_generic ~id typ = function
       in
       let ctors = Array.map f ctors in
       Tvariant (ps, name, ctors)
+  | Tabstract (ps, name, t) ->
+      let ps = List.map (subst_generic ~id typ) ps in
+      let t = subst_generic ~id typ t in
+      Tabstract (ps, name, t)
   | Traw_ptr t -> Traw_ptr (subst_generic ~id typ t)
   | Tarray t -> Tarray (subst_generic ~id typ t)
   | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
@@ -139,7 +143,7 @@ let rec subst_generic ~id typ = function
 and get_generic_ids = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
   | Tvar { contents = Link t } | Talias (_, t) -> get_generic_ids t
-  | Trecord (ps, _, _) | Tvariant (ps, _, _) ->
+  | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
       List.map get_generic_ids ps |> List.concat
   | Tarray t | Traw_ptr t -> get_generic_ids t
   | _ -> []
@@ -155,7 +159,9 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
 
   let rec is_quantified = function
     | Trecord ([], _, _) | Tvariant ([], _, _) -> None
-    | Trecord (ts, Some name, _) | Tvariant (ts, name, _) ->
+    | Trecord (ts, Some name, _)
+    | Tvariant (ts, name, _)
+    | Tabstract (ts, name, _) ->
         Some (name, List.length ts)
     | Traw_ptr _ -> Some (Path.Pid "raw_ptr", 1)
     | Tarray _ -> Some (Path.Pid "array", 1)
@@ -1224,7 +1230,7 @@ let convert_prog env items modul =
   let env, items, m = List.fold_left aux (env, [], modul) items in
   (snd !old, env, List.rev items, m)
 
-let add_signature (env, m) = function
+let add_signature_types (env, m) = function
   | Ast.Stypedef (loc, Trecord t) ->
       let env, typ = type_record ~in_sig:true env loc t in
       let m = Module.add_type_sig loc t.name.name typ m in
@@ -1241,12 +1247,16 @@ let add_signature (env, m) = function
       let env, typ = type_abstract env loc a in
       let m = Module.add_type_sig loc a.name typ m in
       (env, m)
-  | Svalue (loc, ((l, n), type_spec)) ->
+  | Svalue _ -> (env, m)
+
+let add_signature_vals env m = function
+  | Ast.Svalue (loc, ((l, n), type_spec)) ->
       (* Here, we don't add to env. We later check that the declaration is implemented correctly,
-         in [validate_signatur] *)
+         in [validate_signature] *)
       let typ = typeof_annot env l type_spec in
       let m = Module.add_value_sig loc (Path.Pid n) typ m in
-      (env, m)
+      m
+  | Stypedef _ -> m
 
 let rec catch_weak_vars = function
   | Tl_let (_, _, e) | Tl_bind (_, e) | Tl_expr e ->
@@ -1331,9 +1341,19 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (sign, prog) =
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
-  let env, m = List.fold_left add_signature (env, Module.empty) sign in
-  let last_type, env, items, m = convert_prog env prog m in
+  (* Add types from signature for two reasons:
+     1. In contrast to OCaml, we don't need to declare them two types,
+        so they have to be in env
+     2. We don't add vals because the implementation of abstract types is not
+        known at this point. Since we substitute generics naively in annots
+        (which val decls essentially are), we have to make sure the complete
+        implementation is available before. *)
+  let sigenv, m = List.fold_left add_signature_types (env, Module.empty) sign in
+  let last_type, env, items, m = convert_prog sigenv prog m in
   let externals = Module.append_externals (Env.externals env) in
+  (* Make sure to ose the signature env, not the impl one. Abstract types are
+     magically made complete by references. *)
+  let m = List.fold_left (add_signature_vals sigenv) m sign in
   let m = Module.validate_signature env m in
 
   (* Catch weak type variables *)
