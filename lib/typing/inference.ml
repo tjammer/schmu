@@ -355,7 +355,7 @@ let rec types_match ?(strict = false) ?(match_abstract = false) subst l r =
         types_match ~strict ~match_abstract subst l r
     | _ -> (subst, false)
 
-let rec match_type_params params typ =
+let rec match_type_params loc params typ =
   (* Take qvars from [params] and match them to the one found in [typ].
      Assume they appear in the same order. E.g. If params = [A, B] and typ [C, B]
      it probably won't work *)
@@ -365,24 +365,25 @@ let rec match_type_params params typ =
     | Qvar l, Qvar r -> (
         match Smap.find_opt l subst with
         | Some id when String.equal r id -> subst
-        | Some _ -> failwith "TODO err"
+        | Some _ -> failwith "Internal Error: No substitution"
         | None ->
             (* We 'connect' right to left *)
             Smap.add r l subst)
-    | _ -> failwith "TODO err"
+    | _ -> failwith "Internal Error: Strange type param"
   in
 
   let rec replace_qvar subst = function
     | (Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32) as t -> t
     | Qvar s -> (
         match Smap.find_opt s subst with
-        | None -> failwith "TODO err what is this"
+        | None -> failwith "Internal Error: Expected a substitution"
         | Some str -> Qvar str)
     | Tvar ({ contents = Link t } as l) as tvar ->
         let t = replace_qvar subst t in
         l := Link t;
         tvar
-    | Tvar { contents = Unbound _ } -> failwith "TODO err unexpected unbound"
+    | Tvar { contents = Unbound _ } ->
+        failwith "Internal Error: Type is unbound in impl"
     | Trecord (ps, n, fs) ->
         let ps = List.map (replace_qvar subst) ps in
         let fs =
@@ -434,29 +435,32 @@ let rec match_type_params params typ =
         Tfun (ps, r, kind)
   in
 
+  let msg i =
+    Printf.sprintf "Type parameters don't match: Expected %i, got %i"
+      (List.length params) i
+  in
+
   match typ with
-  | Trecord (ps, _, _) ->
-      let subst = List.fold_left2 buildup_subst Smap.empty params ps in
-      replace_qvar subst typ
-  | Tvariant (ps, _, _) ->
-      let subst = List.fold_left2 buildup_subst Smap.empty params ps in
-      replace_qvar subst typ
-  | Talias (n, t) -> Talias (n, match_type_params params t)
+  | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) -> (
+      try
+        let subst = List.fold_left2 buildup_subst Smap.empty params ps in
+        replace_qvar subst typ
+      with Invalid_argument _ -> raise (Error (loc, msg (List.length ps))))
+  | Talias (n, t) -> Talias (n, match_type_params loc params t)
   | (Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32) as t -> (
       match params with
       | [] -> t
-      | _ -> failwith "TODO err this is a simple type")
-  | Tvar { contents = Unbound _ } -> failwith "TODO err how is this unbound"
+      | _ -> raise (Error (loc, "Unparamatrized type in module implementation"))
+      )
+  | Tvar { contents = Unbound _ } ->
+      failwith "Internal Error: how is this unbound"
   | Qvar _ -> (
       match params with
       | [ Qvar other ] -> Qvar other
-      | _ -> failwith "TODO err this is a qvar")
+      | _ -> failwith "Internal Error: Type param is not qvar")
   | Tvar ({ contents = Link t } as rf) ->
-      rf := Link (match_type_params params t);
+      rf := Link (match_type_params loc params t);
       typ
-  | Tarray t -> Tarray (match_type_params params t)
-  | Traw_ptr t -> Traw_ptr (match_type_params params t)
-  | Tabstract (ps, _, _) ->
-      let subst = List.fold_left2 buildup_subst Smap.empty params ps in
-      replace_qvar subst typ
+  | Tarray t -> Tarray (match_type_params loc params t)
+  | Traw_ptr t -> Traw_ptr (match_type_params loc params t)
   | Tfun _ -> failwith "TODO abstract function types"

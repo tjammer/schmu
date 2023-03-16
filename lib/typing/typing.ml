@@ -356,7 +356,7 @@ let check_type_unique env loc ~in_sig name typ =
       assert (not in_sig);
       (* We have a concrete implemantion of an abstract type. Change the abstract one to carry its impl *)
       (* Also adjust type params to match between abstract type and carried type *)
-      let typ = match_type_params ps typ in
+      let typ = match_type_params loc ps typ in
       t := Link typ;
       typ
   | Some _ | None -> typ

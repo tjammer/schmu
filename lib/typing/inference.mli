@@ -22,4 +22,4 @@ val types_match :
    This is true for functions where we want to be as general as possible.
        We need to match everything for weak vars though *)
 
-val match_type_params : typ list -> typ -> typ
+val match_type_params : Ast.loc -> typ list -> typ -> typ

@@ -575,6 +575,22 @@ let test_signature_generic () =
 (defn create-int [(x int)] {:x})
 |}
 
+let test_signature_param_mismatch () =
+  test_exn
+    "Mismatch between implementation and signature: Expected type (fun int (t \
+     int)) but got type (fun int (t 'a))"
+    {|(signature
+  (type (t 'a))
+  (def create-int (fun int (t int))))
+(type (t 'a) {:x int})
+(defn create-int [(x int)] {:x})|}
+
+let test_signature_unparam_type () =
+  test_exn "Unparamatrized type in module implementation"
+    {|(signature
+  (type (t 'a)))
+(type (t 'a) int)|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -773,5 +789,7 @@ let () =
           case "simple" test_signature_simple;
           case "wrong type" test_signature_wrong_typedef;
           case "generic" test_signature_generic;
+          case "param mismatch" test_signature_param_mismatch;
+          case "unparam type" test_signature_unparam_type;
         ] );
     ]
