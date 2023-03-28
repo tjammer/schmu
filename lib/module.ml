@@ -199,6 +199,8 @@ let rec canonize sub = function
       in
       (sub, Tabstract (ps, n, t))
 
+let absolute_module_name ~mname fname = "_" ^ mname ^ "_" ^ fname
+
 let rec canonbody mname nsub sub (e : Typed_tree.typed_expr) =
   let sub, typ = canonize sub e.typ in
   let sub, expr = canonexpr mname nsub sub e.expr in
@@ -243,7 +245,7 @@ and canonexpr mname nsub sub = function
       let sub, abs = canonabs mname sub nsub abs in
       (sub, Lambda (i, Some mname, abs))
   | Function (n, u, abs, cont) ->
-      let nsub = Smap.add n (Env.mod_fn_name ~mname n) nsub in
+      let nsub = Smap.add n (absolute_module_name ~mname n) nsub in
       let sub, abs = canonabs mname sub nsub abs in
       let sub, cont = (canonbody mname nsub) sub cont in
       (sub, Function (change_name n nsub, u, abs, cont))
@@ -350,7 +352,7 @@ let map_item ~mname ~f = function
       ext_funcs :=
         Env.
           {
-            ext_name = Env.(mod_fn_name ~mname n.user);
+            ext_name = absolute_module_name ~mname n.user;
             ext_typ = t;
             ext_cname = Some (mname ^ "_" ^ n.call);
             used = ref false;
@@ -364,7 +366,7 @@ let map_item ~mname ~f = function
       ext_funcs :=
         Env.
           {
-            ext_name = Env.(mod_fn_name ~mname n.user);
+            ext_name = absolute_module_name ~mname n.user;
             ext_typ = t;
             ext_cname = Some n.call;
             used = ref false;
@@ -379,7 +381,7 @@ let map_item ~mname ~f = function
       poly_funcs :=
         (* Change name of poly func to module-unique name to prevent name clashes from
            different modules *)
-        Typed_tree.Tl_function (l, Env.mod_fn_name ~mname n, u, abs)
+        Typed_tree.Tl_function (l, absolute_module_name ~mname n, u, abs)
         :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
       Mpoly_fun (l, abs, n, u)
@@ -388,7 +390,7 @@ let map_item ~mname ~f = function
       let mname_decls =
         List.map
           (fun (_, n, u, t) ->
-            let nn = Env.mod_fn_name ~mname n in
+            let nn = absolute_module_name ~mname n in
             (nn, u, t))
           decls
       in
@@ -409,17 +411,17 @@ let fold_canonize_item mname (ts_sub, nsub) = function
       ((a, nsub), Mtype (l, t))
   | Mfun (l, t, n) ->
       let a, t = canonize ts_sub t in
-      let s = Smap.add n.user (Env.mod_fn_name ~mname n.user) nsub in
+      let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
       ((a, s), Mfun (l, t, n))
   | Mext (l, t, n, c) ->
       let a, t = canonize ts_sub t in
-      let s = Smap.add n.user (Env.mod_fn_name ~mname n.user) nsub in
+      let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
       ((a, s), Mext (l, t, n, c))
   | Mpoly_fun (l, abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
       (* Change Var-nodes in body here *)
-      let s = Smap.add n (Env.mod_fn_name ~mname n) nsub in
+      let s = Smap.add n (absolute_module_name ~mname n) nsub in
       let a, abs = canonabs mname ts_sub s abs in
       (* This will be ignored in [add_to_env] *)
       ((a, s), Mpoly_fun (l, abs, n, u))
@@ -428,7 +430,7 @@ let fold_canonize_item mname (ts_sub, nsub) = function
         List.fold_left_map
           (fun (ts_sub, nsub) (l, n, u, t) ->
             let a, t = canonize ts_sub t in
-            let s = Smap.add n (Env.mod_fn_name ~mname n) nsub in
+            let s = Smap.add n (absolute_module_name ~mname n) nsub in
             ((a, s), (l, n, u, t)))
           (ts_sub, nsub) decls
       in

@@ -478,17 +478,10 @@ let find_ctor_opt name env =
   in
   aux env.values
 
-(* Copy in module *)
-let mod_fn_name ~mname fname = "_" ^ mname ^ "_" ^ fname
-
 let externals env =
   Etbl.to_seq env.externals |> List.of_seq
   |> List.sort Type_key.cmp_map_sort
-  |> List.map (fun (_, e) ->
-         match e.imported with
-         | Some (mname, _) ->
-             { e with ext_name = mod_fn_name ~mname e.ext_name }
-         | _ -> e)
+  |> List.map snd
 
 let open_mutation env = incr env.in_mut
 let close_mutation env = decr env.in_mut

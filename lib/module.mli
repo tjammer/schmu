@@ -27,3 +27,4 @@ val add_to_env : Env.t -> string -> t -> Env.t
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
 val validate_signature : Env.t -> t -> t
+val absolute_module_name : mname:string -> string -> string

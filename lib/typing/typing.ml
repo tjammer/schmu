@@ -584,7 +584,7 @@ end = struct
         let attr = { const = t.const; global = t.global; mut = t.mut } in
         let id =
           match t.imported with
-          | Some mname -> Env.mod_fn_name ~mname id
+          | Some mname -> Module.absolute_module_name ~mname id
           | _ -> id
         in
         { typ; expr = Var id; attr; loc }

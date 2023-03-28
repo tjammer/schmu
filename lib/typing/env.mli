@@ -97,7 +97,5 @@ val find_ctor_opt : key -> t -> label option
 (** [find_ctor_opt cname env] returns the variant of which the ctor is part of
     as well as the type of the ctor if it has data *)
 
-val mod_fn_name : mname:key -> key -> key
-
 val externals : t -> ext list
 (** [externals env] returns a list of all external function declarations *)
