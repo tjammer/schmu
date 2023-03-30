@@ -30,7 +30,7 @@ type label = {
   typename : Path.t;
 }
 
-type imported = string * [ `C | `Schmu ]
+type imported = Path.t * [ `C | `Schmu ]
 
 type value = {
   typ : typ;
@@ -53,7 +53,7 @@ type return = {
   const : bool;
   global : bool;
   mut : bool;
-  imported : string option;
+  imported : Path.t option;
 }
 
 type ext = {
@@ -97,7 +97,7 @@ type t = {
 
 type warn_kind = Unused | Unmutated | Unused_mod
 type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
-type add_kind = Aimpl | Asignature | Amodule of string
+type add_kind = Aimpl | Asignature | Amodule of Path.t
 
 let def_value =
   {

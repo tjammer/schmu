@@ -3,7 +3,7 @@ open Types
 type key = string
 type label = { index : int; typename : Path.t }
 type t
-type imported = string * [ `C | `Schmu ]
+type imported = Path.t * [ `C | `Schmu ]
 
 type value = {
   typ : typ;
@@ -22,7 +22,7 @@ type return = {
   const : bool;
   global : bool;
   mut : bool;
-  imported : string option;
+  imported : Path.t option;
 }
 
 type ext = {
@@ -35,7 +35,7 @@ type ext = {
 }
 (* return type for values *)
 
-type add_kind = Aimpl | Asignature | Amodule of string
+type add_kind = Aimpl | Asignature | Amodule of Path.t
 
 val def_value : value
 (** Default value, everything is false *)

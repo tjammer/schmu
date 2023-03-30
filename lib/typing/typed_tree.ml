@@ -21,7 +21,7 @@ type expr =
   | If of typed_expr * typed_expr * typed_expr
   | Let of let_data
   | Bind of string * int option (* unique *) * typed_expr * typed_expr
-  | Lambda of int * string option * abstraction
+  | Lambda of int * string (* module name *) * abstraction
   | Function of string * int option * abstraction * typed_expr
   | Mutual_rec_decls of (string * int option * typ) list * typed_expr
   | App of { callee : typed_expr; args : arg list }

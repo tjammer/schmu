@@ -39,4 +39,15 @@ let only_hd = function
 
 let rec get_hd = function Pid s -> s | Pmod (_, p) -> get_hd p
 let rm_mod = function Pmod (_, t) -> t | Pid t -> Pid t
-let rm_name name = function Pmod (s, t) when String.equal s name -> t | p -> p
+
+let rec rm_name modpath to_rm =
+  match (modpath, to_rm) with
+  | Pid m, Pmod (s, t) when String.equal s m -> t
+  | Pmod (m, tl), Pmod (s, t) when String.equal m s -> rm_name tl t
+  | _, p -> p
+
+let rec mod_name = function Pid s -> s | Pmod (n, p) -> n ^ "_" ^ mod_name p
+
+let rec add_left p = function
+  | Pid n -> Pmod (n, p)
+  | Pmod (n, tl) -> Pmod (n, add_left p tl)

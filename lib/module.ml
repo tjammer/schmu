@@ -42,9 +42,8 @@ let unique_name name = function
   | None -> name
   | Some n -> name ^ "__" ^ string_of_int n
 
-let lambda_name mn id =
-  (match mn with Some mname -> "__" ^ mname | None -> "")
-  ^ "__fun" ^ string_of_int id
+let lambda_name mn id = mn ^ "__fun" ^ string_of_int id
+let absolute_module_name ~mname fname = "_" ^ Path.mod_name mname ^ "_" ^ fname
 
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
@@ -199,8 +198,6 @@ let rec canonize sub = function
       in
       (sub, Tabstract (ps, n, t))
 
-let absolute_module_name ~mname fname = "_" ^ mname ^ "_" ^ fname
-
 let rec canonbody mname nsub sub (e : Typed_tree.typed_expr) =
   let sub, typ = canonize sub e.typ in
   let sub, expr = canonexpr mname nsub sub e.expr in
@@ -243,7 +240,7 @@ and canonexpr mname nsub sub = function
       (sub, Bind (id, un, lhs, cont))
   | Lambda (i, _, abs) ->
       let sub, abs = canonabs mname sub nsub abs in
-      (sub, Lambda (i, Some mname, abs))
+      (sub, Lambda (i, "_" ^ Path.mod_name mname, abs))
   | Function (n, u, abs, cont) ->
       let nsub = Smap.add n (absolute_module_name ~mname n) nsub in
       let sub, abs = canonabs mname sub nsub abs in
@@ -354,7 +351,7 @@ let map_item ~mname ~f = function
           {
             ext_name = absolute_module_name ~mname n.user;
             ext_typ = t;
-            ext_cname = Some (mname ^ "_" ^ n.call);
+            ext_cname = Some (Path.mod_name mname ^ "_" ^ n.call);
             used = ref false;
             closure = false;
             imported = Some (mname, `Schmu);
@@ -459,7 +456,7 @@ let read_module ~regeneralize name =
         let c = open_in (find_file name ".smi") in
         let r =
           Result.map t_of_sexp (Sexp.input c)
-          |> Result.map (map_t ~mname:name ~f:regeneralize)
+          |> Result.map (map_t ~mname:(Path.Pid name) ~f:regeneralize)
         in
         close_in c;
         Hashtbl.add module_cache name r;
@@ -473,10 +470,10 @@ let read_exn ~regeneralize name loc =
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Typed_tree.Error (loc, msg))
 
-type modif_kind = Add of string * S.t
+type modif_kind = Add of Path.t * S.t
 
 let modif = function
-  | Add (name, sub) -> fun p -> if S.mem p sub then Path.Pmod (name, p) else p
+  | Add (name, sub) -> fun p -> if S.mem p sub then Path.add_left p name else p
 
 let rec mod_t mkind t =
   let nm = modif mkind in
@@ -569,6 +566,7 @@ and mod_abs f abs =
   { abs with body; func }
 
 let add_to_env env mname m =
+  let mname = Path.Pid mname in
   match m.s with
   | [] ->
       List.fold_left
@@ -662,8 +660,10 @@ let make_module sub name m =
 
 let to_channel c ~outname m =
   let s = ref S.empty in
-  m |> make_module s outname |> canonize_t outname |> sexp_of_t
-  |> Sexp.to_channel c
+  m
+  |> make_module s (Path.Pid outname)
+  |> canonize_t (Path.Pid outname)
+  |> sexp_of_t |> Sexp.to_channel c
 
 let extract_name_type = function
   | Mtype (l, t) -> (

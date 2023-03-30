@@ -685,7 +685,7 @@ end = struct
         let abs =
           { nparams; body = { body with typ = ret }; func; inline = false }
         in
-        let expr = Lambda (lambda_id (), None, abs) in
+        let expr = Lambda (lambda_id (), "", abs) in
         { typ; expr; attr = no_attr; loc }
     | _ -> failwith "Internal Error: generalize produces a new type?"
 
