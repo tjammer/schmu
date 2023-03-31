@@ -13,11 +13,11 @@ and item =
   | Mext of loc * typ * name * bool (* is closure *)
   | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
   | Mmutual_rec of loc * (loc * string * int option * typ) list
+  | Mmodule of loc * string * t
 
 and sg_kind = Stypedef | Svalue
 and sig_item = Path.t * loc * typ * sg_kind [@@deriving sexp]
-
-type t = { s : sig_item list; i : item list }
+and t = { s : sig_item list; i : item list }
 
 let t_of_sexp s =
   pair_of_sexp (list_of_sexp sig_item_of_sexp) (list_of_sexp item_of_sexp) s
@@ -342,7 +342,7 @@ and canonabs mname sub nsub abs =
   let sub, body = (canonbody mname nsub) sub abs.body in
   (sub, { abs with func; body })
 
-let map_item ~mname ~f = function
+let rec map_item ~mname ~f = function
   | Mtype (l, t) -> Mtype (l, f t)
   | Mfun (l, t, n) ->
       let t = f t in
@@ -393,8 +393,10 @@ let map_item ~mname ~f = function
       in
       poly_funcs := Typed_tree.Tl_mutual_rec_decls mname_decls :: !poly_funcs;
       Mmutual_rec (l, decls)
+  | Mmodule (l, name, t) ->
+      Mmodule (l, name, map_t ~mname:(Path.append name mname) ~f t)
 
-let map_t ~mname ~f m =
+and map_t ~mname ~f m =
   {
     s = List.map (fun (n, l, t, k) -> (n, l, f t, k)) m.s;
     i = List.map (map_item ~mname ~f) m.i;
@@ -402,7 +404,7 @@ let map_t ~mname ~f m =
 
 (* Number qvars from 0 and change names of Var-nodes to their unique form.
    _<module_name>_name*)
-let fold_canonize_item mname (ts_sub, nsub) = function
+let rec fold_canonize_item mname (ts_sub, nsub) = function
   | Mtype (l, t) ->
       let a, t = canonize ts_sub t in
       ((a, nsub), Mtype (l, t))
@@ -432,8 +434,11 @@ let fold_canonize_item mname (ts_sub, nsub) = function
           (ts_sub, nsub) decls
       in
       ((a, nsub), Mmutual_rec (l, decls))
+  | Mmodule (loc, n, t) ->
+      let t = canonize_t (Path.append n mname) t in
+      ((ts_sub, nsub), Mmodule (loc, n, t))
 
-let canonize_t mname m =
+and canonize_t mname m =
   let (ts_sub, _), i =
     List.fold_left_map (fold_canonize_item mname)
       (Types.Smap.empty, Smap.empty)
@@ -452,6 +457,7 @@ let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with
   | Some r -> r
   | None -> (
+      (* TODO figure out nested local opens *)
       try
         let c = open_in (find_file name ".smi") in
         let r =
@@ -600,7 +606,8 @@ let add_to_env env mname m =
                     add_value name
                       { def_value with typ; imported = Some (mname, `Schmu) }
                       l env))
-                env ds)
+                env ds
+          | Mmodule _ -> failwith "TODO module")
         env m.i
   | l ->
       List.fold_left
@@ -620,7 +627,7 @@ let add_to_env env mname m =
                   loc env))
         env l
 
-let make_module sub name m =
+let rec make_module sub name m =
   let s t =
     match extr_name t with Some p -> sub := S.add p !sub | None -> ()
   in
@@ -648,8 +655,12 @@ let make_module sub name m =
                    (l, n, u, mod_t (Add (name, !sub)) t))
                  ds
              in
-             Mmutual_rec (l, ds))
+             Mmutual_rec (l, ds)
+         | Mmodule (loc, n, t) ->
+             let t = make_module sub (Path.append n name) t in
+             Mmodule (loc, n, t))
   in
+
   let s =
     List.rev m.s
     |> List.map (fun (n, l, t, k) ->
@@ -676,6 +687,7 @@ let extract_name_type = function
   | Mfun (l, t, n) | Mext (l, t, n, _) -> (n.user, l, t, Svalue)
   | Mpoly_fun (l, abs, n, _) -> (n, l, type_of_func abs.func, Svalue)
   | Mmutual_rec _ -> failwith "Internal Error: How are mutual recs here?"
+  | Mmodule _ -> failwith "Internal Error: How are modules here?"
 
 let find_item name kind (n, _, _, tkind) =
   match (kind, tkind) with

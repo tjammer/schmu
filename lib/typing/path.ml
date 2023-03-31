@@ -51,3 +51,7 @@ let rec mod_name = function Pid s -> s | Pmod (n, p) -> n ^ "_" ^ mod_name p
 let rec add_left p = function
   | Pid n -> Pmod (n, p)
   | Pmod (n, tl) -> Pmod (n, add_left p tl)
+
+let rec append name = function
+  | Pid n -> Pmod (n, Pid name)
+  | Pmod (n, tl) -> Pmod (n, append name tl)
