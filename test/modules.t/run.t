@@ -622,6 +622,10 @@ Distinguish closures and functions
 
 Test signature
   $ schmu -m sign.smu
+  sign.smu:20:7: warning: Unused binding hidden
+  20 | (defn hidden [a]
+             ^^^^^^
+  
   $ schmu use-sign.smu && ./use-sign
   hello 20
   200

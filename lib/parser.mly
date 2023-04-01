@@ -100,6 +100,7 @@
 %token Type
 %token Defexternal
 %token Signature
+%token Module
 %token Set
 %token Fmt_str
 %token Rec
@@ -120,6 +121,7 @@ top_item:
   | stmt = stmt { Stmt stmt }
   | decl = external_decl { Ext_decl decl }
   | def = typedef { Typedef ($loc, def) }
+  | modul = parens(modul) { modul }
 
 signature: Signature; l = nonempty_list(sig_item) { l }
 
@@ -146,6 +148,10 @@ signature: Signature; l = nonempty_list(sig_item) { l }
 
 %inline defexternal:
   | Defexternal; ident; sexp_type_expr; option(String_lit) { $loc, $2, $3, $4 }
+
+%inline modul:
+  | Module; id = ident; m = list(top_item) { Module (id, [], m) }
+  | Module; id = ident; s = parens(signature); m = list(top_item) { Module (id, s, m) }
 
 %inline defrecord:
   | Type; sexp_typename; bracs(nonempty_list(sexp_type_decl))

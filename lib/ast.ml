@@ -127,9 +127,10 @@ type top_item =
   | Stmt of stmt
   | Ext_decl of external_decl
   | Typedef of loc * typedef
+  | Module of (loc * string) * signature list * top_item list
 
-type signature =
+and signature =
   | Stypedef of loc * typedef
   | Svalue of loc * ((loc * string) * type_spec)
 
-type prog = signature list * top_item list
+and prog = signature list * top_item list

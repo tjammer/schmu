@@ -1246,6 +1246,22 @@ prog: Lpar Signature Lpar Type Kebab_id Rpar Wildcard
 
 Expecting type or value declaration
 
+prog: Lpar Module Wildcard
+
+Expecting definition
+
+prog: Lpar Module Kebab_id Wildcard
+
+Expecting definition
+
+prog: Lpar Module Kebab_id Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Lpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar Defexternal Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -1270,14 +1286,27 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar String_lit Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Module Kebab_id Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Module Kebab_id Lpar Signature Lpar Type Kebab_id Rpar Rpar False Eof
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Module Kebab_id False Eof
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Signature Lpar Type Kebab_id Rpar Rpar False Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Lpar Wildcard
-
-Expecting top level item
-
-prog: Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
-
-Expecting top level item

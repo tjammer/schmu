@@ -1126,110 +1126,6 @@ let block_external_name loc ~cname id =
       in
       raise (Error (loc, msg))
 
-let convert_prog env items modul =
-  let old = ref (Lexing.(dummy_pos, dummy_pos), Tunit) in
-
-  let rec aux (env, items, m) = function
-    | Ast.Stmt stmt ->
-        let old', env, items, m = aux_stmt (!old, env, items, m) stmt in
-        old := old';
-        (env, items, m)
-    | Ext_decl (loc, (idloc, id), typ, cname) ->
-        let typ = typeof_annot env loc typ in
-        block_external_name loc ~cname id;
-        let m = Module.add_external loc typ id cname ~closure:false m in
-        ( Env.add_external id ~cname typ ~imported:None idloc ~closure:false env,
-          items,
-          m )
-    | Typedef (loc, Trecord t) ->
-        let env, typ = type_record ~in_sig:false env loc t in
-        let m = Module.add_type loc typ m in
-        (env, items, m)
-    | Typedef (loc, Talias (name, type_spec)) ->
-        let env, typ = type_alias ~in_sig:false env loc name type_spec in
-        let m = Module.add_type loc typ m in
-        (env, items, m)
-    | Typedef (loc, Tvariant v) ->
-        let env, typ = type_variant ~in_sig:false env loc v in
-        let m = Module.add_type loc typ m in
-        (env, items, m)
-    | Typedef (loc, Tabstract _) ->
-        raise (Error (loc, "Abstract types need a concrete implementation"))
-  and aux_stmt (old, env, items, m) = function
-    (* TODO dedup *)
-    | Ast.Let (loc, decl, block) ->
-        let env, id, lhs, _, pats =
-          Core.convert_let ~global:true env loc decl block
-        in
-        let uniq = uniq_name id in
-        (* Make string option out of int option for unique name *)
-        let uniq_name =
-          match uniq with
-          | None -> None
-          | Some i -> Some (Module.unique_name id (Some i))
-        in
-        let m = Module.add_external loc lhs.typ id uniq_name ~closure:true m in
-        let expr =
-          let expr = Tl_let (id, uniq, lhs) in
-          match pats with
-          (* Maybe add pattern expressions *)
-          | [] -> [ expr ]
-          | ps -> List.map (fun (id, e) -> Tl_bind (id, e)) ps @ [ expr ]
-        in
-        (old, env, expr @ items, m)
-    | Function (loc, func) ->
-        let env, (name, unique, abs) =
-          Core.convert_function env loc func false
-        in
-        let m = Module.add_fun loc name unique abs m in
-        (old, env, Tl_function (loc, name, unique, abs) :: items, m)
-    | Rec (loc, funcs) ->
-        (* Collect function names *)
-        let collect env (_, (func : Ast.func)) =
-          let nameloc, name = func.name in
-          enter_level ();
-          let typ = newvar () in
-          leave_level ();
-          Env.(add_value name { def_value with typ } nameloc env)
-        in
-        let env = List.fold_left collect env funcs in
-        let f env (loc, func) =
-          let env, (n, u, abs) = Core.convert_function env loc func true in
-          (env, (loc, n, u, abs))
-        in
-        let env, funcs = List.fold_left_map f env funcs in
-        let rec aux env = function
-          | (l, n, u, abs) :: tl ->
-              let t = Env.find_val n env in
-              (* Generalize the functions *)
-              let typ = generalize t.typ in
-              let env = Env.change_type n typ env in
-
-              let decls, fitems, env = aux env tl in
-              ((n, u, t.typ) :: decls, Tl_function (l, n, u, abs) :: fitems, env)
-          | [] -> ([], [], env)
-        in
-        let decls, fitems, env = aux env (List.rev funcs) in
-        let m = Module.add_rec_block loc funcs m in
-        (old, env, fitems @ (Tl_mutual_rec_decls decls :: items), m)
-    | Expr (loc, expr) ->
-        let expr = Core.convert env expr in
-        (* Only the last expression is allowed to return something *)
-        unify
-          (fst old, "Left expression in sequence must be of type unit:")
-          Tunit (snd old);
-        ((loc, expr.typ), env, Tl_expr expr :: items, m)
-    | Open (loc, mname) ->
-        let modul = Module.read_exn ~regeneralize mname loc in
-        let env =
-          Module.add_to_env (Env.open_module env loc mname) mname modul
-        in
-        (old, Env.finish_module env, items, m)
-  in
-
-  let env, items, m = List.fold_left aux (env, [], modul) items in
-  (snd !old, env, List.rev items, m)
-
 let add_signature_types (env, m) = function
   | Ast.Stypedef (loc, Trecord t) ->
       let env, typ = type_record ~in_sig:true env loc t in
@@ -1313,6 +1209,154 @@ and catch_weak_expr sub e =
   | Fmt fmt ->
       List.iter (function Fstr _ -> () | Fexpr e -> catch_weak_expr sub e) fmt
 
+let rec convert_module env sign prog check_ret modul =
+  (* We create a new scope so we don't warn on unused imports *)
+  let env = Env.open_function env in
+
+  (* Add types from signature for two reasons:
+     1. In contrast to OCaml, we don't need to declare them two types,
+        so they have to be in env
+     2. We don't add vals because the implementation of abstract types is not
+        known at this point. Since we substitute generics naively in annots
+        (which val decls essentially are), we have to make sure the complete
+        implementation is available before. *)
+  let sigenv, m = List.fold_left add_signature_types (env, Module.empty) sign in
+  let last_type, env, items, m = convert_prog sigenv prog m in
+  let externals = Module.append_externals (Env.externals env) in
+  (* Make sure to chose the signature env, not the impl one. Abstract types are
+     magically made complete by references. *)
+  let m = List.fold_left (add_signature_vals sigenv) m sign in
+  let m = Module.validate_signature env m in
+
+  (* Catch weak type variables *)
+  List.iter catch_weak_vars items;
+
+  (* Add polymorphic functions from imported modules *)
+  let items = List.rev !Module.poly_funcs @ items in
+
+  let _, _, unused = Env.close_function env in
+  let has_sign = match sign with [] -> false | _ -> true in
+  if (not modul) || has_sign then check_unused unused;
+
+  (* Program must evaluate to either int or unit *)
+  (if check_ret then
+   match clean last_type with
+   | Tunit | Tint -> ()
+   | _ ->
+       let msg =
+         "Module must return type int or unit, not " ^ string_of_type last_type
+       in
+       raise (Error (!last_loc, msg)));
+  (externals, items, m)
+
+and convert_prog env items modul =
+  let old = ref (Lexing.(dummy_pos, dummy_pos), Tunit) in
+
+  let rec aux (env, items, m) = function
+    | Ast.Stmt stmt ->
+        let old', env, items, m = aux_stmt (!old, env, items, m) stmt in
+        old := old';
+        (env, items, m)
+    | Ext_decl (loc, (idloc, id), typ, cname) ->
+        let typ = typeof_annot env loc typ in
+        block_external_name loc ~cname id;
+        let m = Module.add_external loc typ id cname ~closure:false m in
+        ( Env.add_external id ~cname typ ~imported:None idloc ~closure:false env,
+          items,
+          m )
+    | Typedef (loc, Trecord t) ->
+        let env, typ = type_record ~in_sig:false env loc t in
+        let m = Module.add_type loc typ m in
+        (env, items, m)
+    | Typedef (loc, Talias (name, type_spec)) ->
+        let env, typ = type_alias ~in_sig:false env loc name type_spec in
+        let m = Module.add_type loc typ m in
+        (env, items, m)
+    | Typedef (loc, Tvariant v) ->
+        let env, typ = type_variant ~in_sig:false env loc v in
+        let m = Module.add_type loc typ m in
+        (env, items, m)
+    | Typedef (loc, Tabstract _) ->
+        raise (Error (loc, "Abstract types need a concrete implementation"))
+    | Module (id, sign, prog) ->
+        let _, _, _ = convert_module env sign prog true true in
+        ignore id;
+        (env, items, m)
+  and aux_stmt (old, env, items, m) = function
+    (* TODO dedup *)
+    | Ast.Let (loc, decl, block) ->
+        let env, id, lhs, _, pats =
+          Core.convert_let ~global:true env loc decl block
+        in
+        let uniq = uniq_name id in
+        (* Make string option out of int option for unique name *)
+        let uniq_name =
+          match uniq with
+          | None -> None
+          | Some i -> Some (Module.unique_name id (Some i))
+        in
+        let m = Module.add_external loc lhs.typ id uniq_name ~closure:true m in
+        let expr =
+          let expr = Tl_let (id, uniq, lhs) in
+          match pats with
+          (* Maybe add pattern expressions *)
+          | [] -> [ expr ]
+          | ps -> List.map (fun (id, e) -> Tl_bind (id, e)) ps @ [ expr ]
+        in
+        (old, env, expr @ items, m)
+    | Function (loc, func) ->
+        let env, (name, unique, abs) =
+          Core.convert_function env loc func false
+        in
+        let m = Module.add_fun loc name unique abs m in
+        (old, env, Tl_function (loc, name, unique, abs) :: items, m)
+    | Rec (loc, funcs) ->
+        (* Collect function names *)
+        let collect env (_, (func : Ast.func)) =
+          let nameloc, name = func.name in
+          enter_level ();
+          let typ = newvar () in
+          leave_level ();
+          Env.(add_value name { def_value with typ } nameloc env)
+        in
+        let env = List.fold_left collect env funcs in
+        let f env (loc, func) =
+          let env, (n, u, abs) = Core.convert_function env loc func true in
+          (env, (loc, n, u, abs))
+        in
+        let env, funcs = List.fold_left_map f env funcs in
+        let rec aux env = function
+          | (l, n, u, abs) :: tl ->
+              let t = Env.find_val n env in
+              (* Generalize the functions *)
+              let typ = generalize t.typ in
+              let env = Env.change_type n typ env in
+
+              let decls, fitems, env = aux env tl in
+              ((n, u, t.typ) :: decls, Tl_function (l, n, u, abs) :: fitems, env)
+          | [] -> ([], [], env)
+        in
+        let decls, fitems, env = aux env (List.rev funcs) in
+        let m = Module.add_rec_block loc funcs m in
+        (old, env, fitems @ (Tl_mutual_rec_decls decls :: items), m)
+    | Expr (loc, expr) ->
+        let expr = Core.convert env expr in
+        (* Only the last expression is allowed to return something *)
+        unify
+          (fst old, "Left expression in sequence must be of type unit:")
+          Tunit (snd old);
+        ((loc, expr.typ), env, Tl_expr expr :: items, m)
+    | Open (loc, mname) ->
+        let modul = Module.read_exn ~regeneralize mname loc in
+        let env =
+          Module.add_to_env (Env.open_module env loc mname) mname modul
+        in
+        (old, Env.finish_module env, items, m)
+  in
+
+  let env, items, m = List.fold_left aux (env, [], modul) items in
+  (snd !old, env, List.rev items, m)
+
 (* Conversion to Typing.exr below *)
 let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (sign, prog) =
   fmt_msg_fn := Some msg_fn;
@@ -1338,42 +1382,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (sign, prog) =
     else env
   in
 
-  (* We create a new scope so we don't warn on unused imports *)
-  let env = Env.open_function env in
-
-  (* Add types from signature for two reasons:
-     1. In contrast to OCaml, we don't need to declare them two types,
-        so they have to be in env
-     2. We don't add vals because the implementation of abstract types is not
-        known at this point. Since we substitute generics naively in annots
-        (which val decls essentially are), we have to make sure the complete
-        implementation is available before. *)
-  let sigenv, m = List.fold_left add_signature_types (env, Module.empty) sign in
-  let last_type, env, items, m = convert_prog sigenv prog m in
-  let externals = Module.append_externals (Env.externals env) in
-  (* Make sure to ose the signature env, not the impl one. Abstract types are
-     magically made complete by references. *)
-  let m = List.fold_left (add_signature_vals sigenv) m sign in
-  let m = Module.validate_signature env m in
-
-  (* Catch weak type variables *)
-  List.iter catch_weak_vars items;
-
-  (* Add polymorphic functions from imported modules *)
-  let items = List.rev !Module.poly_funcs @ items in
-
-  let _, _, unused = Env.close_function env in
-  if not modul then check_unused unused;
-
-  (* Program must evaluate to either int or unit *)
-  (if check_ret then
-   match clean last_type with
-   | Tunit | Tint -> ()
-   | _ ->
-       let msg =
-         "Program must return type int or unit, not " ^ string_of_type last_type
-       in
-       raise (Error (!last_loc, msg)));
+  let externals, items, m = convert_module env sign prog check_ret modul in
 
   (* print_endline (String.concat ", " (List.map string_of_type typeinsts)); *)
   let m = if modul then Some m else None in

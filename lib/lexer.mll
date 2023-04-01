@@ -119,6 +119,7 @@ rule read =
   | "type" { Type }
   | "external"{ Defexternal }
   | "signature" { Signature }
+  | "module" { Module }
   | "set"    { Set }
   | "cond"   { Cond }
   | "fmt-str"{ Fmt_str }
