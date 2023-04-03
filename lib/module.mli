@@ -22,7 +22,7 @@ val poly_funcs : Typed_tree.toplevel_item list ref
 val paths : string list ref
 val prelude_path : string option ref
 val find_file : string -> string -> string
-val read_exn : regeneralize:(typ -> typ) -> string -> Ast.loc -> t
+val find_module : Env.t -> regeneralize:(typ -> typ) -> string -> Ast.loc -> t
 val add_to_env : Env.t -> string -> t -> Env.t
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list

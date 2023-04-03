@@ -224,7 +224,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   and import_path loc env = function
     | Path.Pid _ as id -> find env id ""
     | Path.Pmod (md, tl) ->
-        let modul = Module.read_exn ~regeneralize md loc in
+        let modul = Module.find_module env ~regeneralize md loc in
         let env = Module.add_to_env env md modul in
         import_path loc env tl
   and type_list env = function
@@ -974,7 +974,7 @@ end = struct
     | Pip_field field -> convert_field env loc e1.aexpr field
 
   and convert_open env loc md expr =
-    let modul = Module.read_exn ~regeneralize md loc in
+    let modul = Module.find_module env ~regeneralize md loc in
     let env =
       Module.add_to_env (Env.open_module env loc md) md modul
       |> Env.finish_module
@@ -1090,7 +1090,7 @@ end = struct
           let expr = Sequence (expr, cont) in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Open (loc, mname) :: tl ->
-          let modul = Module.read_exn ~regeneralize mname loc in
+          let modul = Module.find_module env ~regeneralize mname loc in
           let env =
             Module.add_to_env (Env.open_module env loc mname) mname modul
           in
@@ -1279,8 +1279,9 @@ and convert_prog env items modul =
     | Typedef (loc, Tabstract _) ->
         raise (Error (loc, "Abstract types need a concrete implementation"))
     | Module (id, sign, prog) ->
-        let _, _, _ = convert_module env sign prog true true in
-        ignore id;
+        let _, _, newm = convert_module env sign prog true true in
+        Hashtbl.add Module.module_cache (snd id) (Ok newm);
+        let env = Env.add_module (snd id) env in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
@@ -1347,7 +1348,7 @@ and convert_prog env items modul =
           Tunit (snd old);
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
     | Open (loc, mname) ->
-        let modul = Module.read_exn ~regeneralize mname loc in
+        let modul = Module.find_module env ~regeneralize mname loc in
         let env =
           Module.add_to_env (Env.open_module env loc mname) mname modul
         in
@@ -1377,7 +1378,7 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (sign, prog) =
   (* Open prelude *)
   let env =
     if prelude then
-      let prelude = Module.read_exn ~regeneralize "prelude" loc in
+      let prelude = Module.find_module env ~regeneralize "prelude" loc in
       Module.add_to_env env "prelude" prelude
     else env
   in

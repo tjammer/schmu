@@ -469,9 +469,23 @@ let read_module ~regeneralize name =
         r
       with Not_found -> Error ("Could not open file: " ^ name))
 
-let read_exn ~regeneralize name loc =
-  match read_module ~regeneralize name with
-  | Ok modul -> modul
+let find_module env ~regeneralize name loc =
+  (* We first search the env for local modules. Then we try read the module the normal way *)
+  let r =
+    match Env.find_module_opt name env with
+    | Some name -> (
+        match Hashtbl.find_opt module_cache name with
+        | Some r -> r
+        | None ->
+            let msg =
+              Printf.sprintf "Module %s should be local but cannot be found"
+                name
+            in
+            raise (Typed_tree.Error (loc, msg)))
+    | None -> read_module ~regeneralize name
+  in
+  match r with
+  | Ok m -> m
   | Error s ->
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Typed_tree.Error (loc, msg))
