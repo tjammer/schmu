@@ -36,13 +36,19 @@ let sexp_of_t m =
    if the global function exists. *)
 
 let empty = { s = []; i = [] }
+let generate_module_path = function Some m -> m | None -> Path.Pid "schmu"
 
 (* For named functions *)
-let unique_name name = function
-  | None -> name
-  | Some n -> name ^ "__" ^ string_of_int n
+let unique_name ~mname name uniq =
+  let mname = generate_module_path mname in
+  match uniq with
+  | None -> Path.mod_name mname ^ "_" ^ name
+  | Some n -> Path.mod_name mname ^ "_" ^ name ^ "__" ^ string_of_int n
 
-let lambda_name mn id = mn ^ "__fun" ^ string_of_int id
+let lambda_name ~mname id =
+  let mname = generate_module_path mname in
+  "__fun" ^ "_" ^ Path.mod_name mname ^ string_of_int id
+
 let absolute_module_name ~mname fname = "_" ^ Path.mod_name mname ^ "_" ^ fname
 
 let is_polymorphic_func (f : Typed_tree.func) =
@@ -55,17 +61,17 @@ let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 let type_of_func (func : Typed_tree.func) =
   Tfun (func.tparams, func.ret, func.kind)
 
-let add_fun loc name uniq (abs : Typed_tree.abstraction) m =
-  let call = unique_name name uniq in
+let add_fun loc ~mname name uniq (abs : Typed_tree.abstraction) m =
   if is_polymorphic_func abs.func then
     { m with i = Mpoly_fun (loc, abs, name, uniq) :: m.i }
   else
+    let call = unique_name ~mname name uniq in
     {
       m with
       i = Mfun (loc, type_of_func abs.func, { user = name; call }) :: m.i;
     }
 
-let add_rec_block loc funs m =
+let add_rec_block loc ~mname funs m =
   let m's =
     List.filter_map
       (fun (loc, name, uniq, (abs : Typed_tree.abstraction)) ->
@@ -75,7 +81,7 @@ let add_rec_block loc funs m =
   in
   let i = Mmutual_rec (loc, m's) :: m.i in
   List.fold_left
-    (fun m (loc, n, u, abs) -> add_fun loc n u abs m)
+    (fun m (loc, n, u, abs) -> add_fun ~mname loc n u abs m)
     { m with i } funs
 
 let add_external loc t name cname ~closure m =
@@ -233,14 +239,14 @@ and canonexpr mname nsub sub = function
       let nsub = Smap.remove d.id nsub in
       let sub, cont = (canonbody mname nsub) sub d.cont in
       (sub, Let { d with lhs; cont })
-  | Bind (id, un, lhs, cont) ->
+  | Bind (id, lhs, cont) ->
       let sub, lhs = (canonbody mname nsub) sub lhs in
       let nsub = Smap.remove id nsub in
       let sub, cont = (canonbody mname nsub) sub cont in
-      (sub, Bind (id, un, lhs, cont))
-  | Lambda (i, _, abs) ->
+      (sub, Bind (id, lhs, cont))
+  | Lambda (i, abs) ->
       let sub, abs = canonabs mname sub nsub abs in
-      (sub, Lambda (i, "_" ^ Path.mod_name mname, abs))
+      (sub, Lambda (i, abs))
   | Function (n, u, abs, cont) ->
       let nsub = Smap.add n (absolute_module_name ~mname n) nsub in
       let sub, abs = canonabs mname sub nsub abs in
@@ -351,7 +357,7 @@ let rec map_item ~mname ~f = function
           {
             ext_name = absolute_module_name ~mname n.user;
             ext_typ = t;
-            ext_cname = Some (Path.mod_name mname ^ "_" ^ n.call);
+            ext_cname = Some n.call;
             used = ref false;
             closure = false;
             imported = Some (mname, `Schmu);
@@ -551,8 +557,8 @@ and mod_body f e =
   | Unop (u, e) -> Unop (u, m e)
   | If (c, l, r) -> If (m c, m l, m r)
   | Let l -> Let { l with lhs = m l.lhs; cont = m l.cont }
-  | Bind (n, u, e, cont) -> Bind (n, u, m e, m cont)
-  | Lambda (i, mn, abs) -> Lambda (i, mn, mod_abs f abs)
+  | Bind (n, e, cont) -> Bind (n, m e, m cont)
+  | Lambda (i, abs) -> Lambda (i, mod_abs f abs)
   | Function (n, i, abs, cont) -> Function (n, i, mod_abs f abs, m cont)
   | App { callee; args } ->
       App

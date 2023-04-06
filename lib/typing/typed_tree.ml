@@ -20,8 +20,8 @@ type expr =
   | Unop of Ast.unop * typed_expr
   | If of typed_expr * typed_expr * typed_expr
   | Let of let_data
-  | Bind of string * int option (* unique *) * typed_expr * typed_expr
-  | Lambda of int * string (* module name *) * abstraction
+  | Bind of string * typed_expr * typed_expr
+  | Lambda of int * abstraction
   | Function of string * int option * abstraction * typed_expr
   | Mutual_rec_decls of (string * int option * typ) list * typed_expr
   | App of { callee : typed_expr; args : arg list }
@@ -63,6 +63,7 @@ and toplevel_item =
   | Tl_function of loc * string * int option * abstraction
   | Tl_expr of typed_expr
   | Tl_mutual_rec_decls of (string * int option * typ) list
+  | Tl_module of toplevel_item list
 
 and func = { tparams : param list; ret : typ; kind : fun_kind }
 and arg = typed_expr * bool

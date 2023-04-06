@@ -82,7 +82,7 @@ and ifexpr = {
   iid : int option;
 }
 
-and var_kind = Vnorm | Vconst | Vglobal
+and var_kind = Vnorm | Vconst | Vglobal of string
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
 and copy_kind = Cglobal of string | Cnormal of bool
@@ -115,5 +115,5 @@ type monomorphized_tree = {
 }
 
 val typ_of_abs : abstraction -> typ
-val monomorphize : Typed_tree.t -> monomorphized_tree
+val monomorphize : mname:Path.t option -> Typed_tree.t -> monomorphized_tree
 val get_mono_name : string -> poly:typ -> closure:bool -> typ -> string

@@ -73,7 +73,7 @@ and ifexpr = {
   iid : int option;
 }
 
-and var_kind = Vnorm | Vconst | Vglobal
+and var_kind = Vnorm | Vconst | Vglobal of string
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
 and copy_kind = Cglobal of string | Cnormal of bool
@@ -154,6 +154,7 @@ type morph_param = {
          If a value with allocation is returned, they are marked for the parent scope.
          Otherwise freed *)
   toplvl : bool;
+  mname : Path.t option; (* Module name *)
 }
 
 let no_var = { fn = No_function; alloc = No_value; id = None; tailrec = false }
@@ -170,12 +171,18 @@ let func_of_typ = function
   | _ -> failwith "Internal Error: Not a function type"
 
 let rec find_function_expr vars = function
-  | Mvar (id, _) -> (
+  | Mvar (_, Vglobal id) -> (
+      (* Use the id saved in Vglobal. The usual id is the call name / unique global name *)
       match Vars.find_opt id vars with
-      | Some (Normal thing | Param thing) -> thing.fn
       | Some (Global (_, thing, used)) ->
           used := true;
           thing.fn
+      | Some _ -> failwith "Internal Error: Unexpected nonglobal"
+      | None -> No_function)
+  | Mvar (id, _) -> (
+      match Vars.find_opt id vars with
+      | Some (Normal thing | Param thing) -> thing.fn
+      | Some (Global _) -> failwith "Internal Error: Unused global?"
       | Some (Const _) -> No_function
       | None -> (
           match Builtin.of_string id with
@@ -876,16 +883,17 @@ let copy_let lhs lmut rmut nm temporary =
       let expr = Mcopy { kind; temporary; expr = lhs; nm } in
       { lhs with expr }
 
-let make_e2 e1 e2 id gn lmut rmut p vid =
+let make_e2 e1 e2 id gn needs_init lmut rmut p vid =
   let temporary = is_temporary e1.expr in
-  match gn with
-  | Some n ->
-      let expr = Mcopy { kind = Cglobal n; temporary; expr = e1; nm = id } in
-      let e1 = { e1 with expr } in
-      (p, { e2 with expr = Mlet (id, e1, gn, vid, e2) })
-  | None ->
-      let e1 = copy_let e1 lmut rmut id temporary in
-      (p, { e2 with expr = Mlet (id, e1, gn, vid, e2) })
+  if needs_init then
+    let expr =
+      Mcopy { kind = Cglobal (Option.get gn); temporary; expr = e1; nm = id }
+    in
+    let e1 = { e1 with expr } in
+    (p, { e2 with expr = Mlet (id, e1, gn, vid, e2) })
+  else
+    let e1 = copy_let e1 lmut rmut id temporary in
+    (p, { e2 with expr = Mlet (id, e1, gn, vid, e2) })
 
 let mb_incr v =
   if not (is_temporary v.expr) then { v with expr = Mincr_ref v } else v
@@ -893,7 +901,7 @@ let mb_incr v =
 let rec_fs_to_env p (username, uniq, typ) =
   let ftyp = cln p typ in
 
-  let call = Module.unique_name username uniq in
+  let call = Module.unique_name ~mname:p.mname username uniq in
   let fn = Mutual_rec (call, ftyp) in
   let vars = Vars.add username (Normal { no_var with fn }) p.vars in
   { p with vars }
@@ -911,19 +919,18 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let { id; uniq; rmut; lhs; cont } ->
-      let p, e1, gn, vid = prep_let param id uniq lhs false in
+      let p, e1, gn, needs_init, vid = prep_let param id uniq lhs false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
-      let p, e2 = make_e2 e1 e2 id gn lhs.attr.mut rmut p vid in
+      let p, e2 = make_e2 e1 e2 id gn needs_init lhs.attr.mut rmut p vid in
       (p, e2, func)
-  | Bind (id, uniq, lhs, cont) ->
-      let uniq = Module.unique_name id uniq in
+  | Bind (id, lhs, cont) ->
       let p, lhs, func = morph_expr { param with ret = false } lhs in
-      let vars = Vars.add uniq (Normal func) p.vars in
+      let vars = Vars.add id (Normal func) p.vars in
       let p, cont, func = morph_expr { p with ret = param.ret; vars } cont in
       ( p,
         {
           typ = cont.typ;
-          expr = Mbind (uniq, lhs, cont);
+          expr = Mbind (id, lhs, cont);
           return = param.ret;
           loc = texpr.loc;
         },
@@ -947,7 +954,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Mutual_rec_decls (decls, cont) ->
       let p = List.fold_left rec_fs_to_env param decls in
       morph_expr p cont
-  | Lambda (id, mn, abs) -> morph_lambda make texpr.typ param id mn abs
+  | Lambda (id, abs) -> morph_lambda make texpr.typ param id abs
   | App { callee; args } ->
       morph_app make param callee args (cln param texpr.typ)
   | Ctor (variant, index, dataexpr) ->
@@ -981,7 +988,7 @@ and morph_var mk p v =
         | Some (Const thing) -> ((thing, Vconst), no_var)
         | Some (Global (id, thing, used)) ->
             used := true;
-            ((id, Vglobal), thing)
+            ((id, Vglobal v), thing)
         | None -> ((v, Vnorm), no_var))
   in
   let ex = mk (Mvar (v, kind)) p.ret in
@@ -1126,25 +1133,29 @@ and prep_let p id uniq e toplvl =
     else (func.id, p.ids)
   in
   let func = { func with id = vid } in
-  let p, gn =
+  let p, gn, needs_init =
     match e.attr with
     | { const = true; _ } ->
-        let uniq = Module.unique_name id uniq in
+        let uniq = Module.unique_name ~mname:p.mname id uniq in
         (* Maybe we have to generate a new name here *)
         let cnt = new_id constant_uniq_state in
         Hashtbl.add constant_tbl uniq (cnt, e1, toplvl);
-        ({ p with vars = Vars.add id (Const uniq) p.vars }, None)
+        ({ p with vars = Vars.add id (Const uniq) p.vars }, Some uniq, false)
     | { global = true; _ } ->
         (* Globals are 'preallocated' at module level *)
         set_alloca func.alloc;
-        let uniq = Module.unique_name id uniq in
+        let uniq = Module.unique_name ~mname:p.mname id uniq in
         let cnt = new_id constant_uniq_state in
         Hashtbl.add global_tbl uniq (cnt, e1.typ, toplvl);
-        let vars = Vars.add id (Global (uniq, func, ref false)) p.vars in
-        ({ p with vars; ids }, Some uniq)
-    | _ -> ({ p with vars = Vars.add id (Normal func) p.vars; ids }, None)
+        let used = ref false in
+        let vars = Vars.add id (Global (uniq, func, used)) p.vars in
+        (* Add global values to env with global id. That's how they might be queried,
+           and the function information is needed for monomorphization *)
+        let vars = Vars.add uniq (Global (uniq, func, used)) vars in
+        ({ p with vars; ids }, Some uniq, true)
+    | _ -> ({ p with vars = Vars.add id (Normal func) p.vars; ids }, None, false)
   in
-  (p, e1, gn, vid)
+  (p, e1, gn, needs_init, vid)
 
 and morph_record mk p labels is_const typ =
   let ret = p.ret in
@@ -1218,7 +1229,8 @@ and prep_func p (username, uniq, abs) =
     Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln p
   in
 
-  let call = Module.unique_name username uniq in
+  let call = Module.unique_name ~mname:p.mname username uniq in
+  (* Printf.printf "%s, %s\n%!" username call; *)
   let recursive = Rnormal in
   let inline = abs.inline in
 
@@ -1307,10 +1319,11 @@ and prep_func p (username, uniq, abs) =
   in
   (p, call, abs, alloca)
 
-and morph_lambda mk typ p id mn abs =
+and morph_lambda mk typ p id abs =
   let typ = cln p typ in
 
-  let name = Module.lambda_name mn id in
+  (* TODO fix lambdas for nested modules *)
+  let name = Module.lambda_name ~mname:p.mname id in
   let recursive = Rnone in
   let func =
     {
@@ -1591,15 +1604,15 @@ and morph_fmt mk p exprs =
     mk (Mfmt (es, alloca, id)) ret,
     { no_var with alloc = Value alloca; id = Some id } )
 
-let morph_toplvl param items =
+let rec morph_toplvl param items =
   let rec aux param = function
     | [] ->
         let loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
         (param, { typ = Tunit; expr = Mconst Unit; return = true; loc }, no_var)
     | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
-        let p, e1, gn, vid = prep_let param id uniq expr true in
+        let p, e1, gn, needs_init, vid = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        let p, e2 = make_e2 e1 e2 id gn expr.attr.mut false p vid in
+        let p, e2 = make_e2 e1 e2 id gn needs_init expr.attr.mut false p vid in
         (p, e2, func)
     | Tl_function (loc, name, uniq, abs) :: tl ->
         let p, call, abs, alloca = prep_func param (name, uniq, abs) in
@@ -1633,10 +1646,19 @@ let morph_toplvl param items =
             loc = e.loc;
           },
           func )
+    | Tl_module mitems :: tl ->
+        let p, _, _ = morph_toplvl param mitems in
+        aux
+          {
+            param with
+            funcs = Fset.union param.funcs p.funcs;
+            monomorphized = Set.union param.monomorphized p.monomorphized;
+          }
+          tl
   in
   aux param items
 
-let monomorphize { Typed_tree.externals; items; _ } =
+let monomorphize ~mname { Typed_tree.externals; items; _ } =
   reset ();
 
   (* External are globals. By marking them [Global] here, we don't have to
@@ -1662,6 +1684,7 @@ let monomorphize { Typed_tree.externals; items; _ } =
       ret = false;
       ids = [ (Id_func, iset) ];
       toplvl = true;
+      mname;
     }
   in
   let p, tree, _ = morph_toplvl param items in

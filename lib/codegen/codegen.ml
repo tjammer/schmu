@@ -13,9 +13,7 @@ let const_pass = ref true
 
 module rec Core : sig
   val gen_expr : param -> Monomorph_tree.monod_tree -> llvar
-
-  val gen_function :
-    param -> mangle:mangle_kind -> Monomorph_tree.to_gen_func -> param
+  val gen_function : param -> Monomorph_tree.to_gen_func -> param
 end = struct
   open T
   open A
@@ -24,13 +22,12 @@ end = struct
 
   let decr_tbl = Strtbl.create 64
 
-  let rec gen_function vars ~mangle
-      { Monomorph_tree.abs; name; recursive; upward } =
+  let rec gen_function vars { Monomorph_tree.abs; name; recursive; upward } =
     let typ = Monomorph_tree.typ_of_abs abs in
 
     match typ with
     | Tfun (tparams, ret_t, kind) as typ ->
-        let func = declare_function ~c_linkage:false mangle name.call typ in
+        let func = declare_function ~c_linkage:false name.call typ in
 
         let start_index, alloca =
           match ret_t with
@@ -237,7 +234,7 @@ end = struct
                 (* If the variable isn't bound, something went wrong before *)
                 failwith ("Internal Error: Could not find " ^ id ^ " in codegen")
             ))
-    | Vconst | Vglobal -> Strtbl.find const_tbl id
+    | Vconst | Vglobal _ -> Strtbl.find const_tbl id
 
   and gen_bop param e1 e2 bop =
     let gen = gen_expr param in
@@ -1112,7 +1109,7 @@ let def_globals globals =
 
 let decl_external ~c_linkage ~closure cname = function
   | Tfun _ as t when (not (is_type_polymorphic t)) && not closure ->
-      H.declare_function ~c_linkage C cname t
+      H.declare_function ~c_linkage cname t
   | typ ->
       let lltyp = T.get_lltype_def typ in
       let value = Llvm.declare_global lltyp cname the_module in
@@ -1147,7 +1144,7 @@ let add_global_init funcs outname kind body =
   in
   let p =
     let upward () = false in
-    Core.gen_function funcs ~mangle:C
+    Core.gen_function funcs
       {
         name = { Monomorph_tree.user = fname; call = fname };
         recursive = Rnone;
@@ -1174,7 +1171,6 @@ let add_global_init funcs outname kind body =
 
 let generate ~target ~outname ~release ~modul
     { Monomorph_tree.constants; globals; externals; tree; funcs; decrs } =
-  let mangle = match modul with None -> Schmu "schmu" | Some m -> Schmu m in
   let open Llvm_target in
   let triple =
     match target with
@@ -1210,9 +1206,7 @@ let generate ~target ~outname ~release ~modul
           let typ =
             Tfun (func.abs.func.params, func.abs.func.ret, func.abs.func.kind)
           in
-          let fnc =
-            H.declare_function ~c_linkage:false mangle func.name.call typ
-          in
+          let fnc = H.declare_function ~c_linkage:false func.name.call typ in
 
           (* Add to the normal variable environment *)
           Vars.add func.name.call fnc acc)
@@ -1221,7 +1215,7 @@ let generate ~target ~outname ~release ~modul
 
     (* Generate functions *)
     List.fold_left
-      (fun acc func -> Core.gen_function ~mangle acc func)
+      (fun acc func -> Core.gen_function acc func)
       { vars; alloca = None; finalize = None; rec_block = None; in_set = false }
       funcs
   in
@@ -1232,42 +1226,40 @@ let generate ~target ~outname ~release ~modul
       tree
   in
 
-  (match modul with
-  | None ->
-      (* Add main *)
-      let tree = decr_refs tree decrs in
-      let upward () = false in
-      Core.gen_function funcs ~mangle:C
-        {
-          name = { Monomorph_tree.user = "main"; call = "main" };
-          recursive = Rnone;
-          upward;
-          abs =
-            {
-              func =
-                {
-                  params = [ { pt = Tint; pmut = false } ];
-                  ret = Tint;
-                  kind = Simple;
-                };
-              pnames = [ "arg" ];
-              body = { tree with typ = Tint };
-            };
-        }
-      |> ignore
-  | Some _ when has_init_code tree ->
-      (* Or module init *)
-      H.set_in_init true;
-      add_global_init funcs outname `Ctor tree;
+  if not modul then
+    (* Add main *)
+    let tree = decr_refs tree decrs in
+    let upward () = false in
+    Core.gen_function funcs
+      {
+        name = { Monomorph_tree.user = "main"; call = "main" };
+        recursive = Rnone;
+        upward;
+        abs =
+          {
+            func =
+              {
+                params = [ { pt = Tint; pmut = false } ];
+                ret = Tint;
+                kind = Simple;
+              };
+            pnames = [ "arg" ];
+            body = { tree with typ = Tint };
+          };
+      }
+    |> ignore
+  else if has_init_code tree then (
+    (* Or module init *)
+    H.set_in_init true;
+    add_global_init funcs outname `Ctor tree;
 
-      (* Add frees to global dctors in reverse order *)
-      if not (Seq.is_empty decrs) then
-        let loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
-        let body =
-          Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true; loc }
-        in
-        add_global_init no_param outname `Dtor (decr_refs body decrs)
-  | Some _ -> ());
+    (* Add frees to global dctors in reverse order *)
+    if not (Seq.is_empty decrs) then
+      let loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
+      let body =
+        Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true; loc }
+      in
+      add_global_init no_param outname `Dtor (decr_refs body decrs));
   (* Generate internal helper functions for arrays *)
   Ar.gen_functions ();
 

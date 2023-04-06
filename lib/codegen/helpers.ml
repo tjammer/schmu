@@ -3,7 +3,7 @@ module type S = sig
   open Cleaned_types
 
   val dummy_fn_value : llvar
-  val declare_function : c_linkage:bool -> mangle_kind -> string -> typ -> llvar
+  val declare_function : c_linkage:bool -> string -> typ -> llvar
   val add_closure : llvar Vars.t -> llvar -> bool -> fun_kind -> llvar Vars.t
 
   val add_params :
@@ -312,10 +312,9 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         (* Printf.printf "unmangling %s to %s\n%!" name ret; *)
         sub name len (length name - len)
 
-  let declare_function ~c_linkage mangle_kind fun_name = function
+  let declare_function ~c_linkage name = function
     | Tfun (params, ret, kind) as typ ->
         let ft, byvals = typeof_func ~decl:true (params, ret, kind) in
-        let name = mangle fun_name mangle_kind in
         let value = Llvm.declare_function name ft the_module in
         if c_linkage then
           List.iter
@@ -324,7 +323,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         let llvar = { value; typ; lltyp = ft; kind = Imm } in
         llvar
     | _ ->
-        prerr_endline fun_name;
+        prerr_endline name;
         failwith "Internal Error: declaring non-function"
 
   let alloca param typ str =
@@ -714,7 +713,8 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
             print_endline (show_typ func.typ);
             failwith "Internal Error: What are we applying?")
     | Concrete name -> Vars.find name param.vars
-    | Default | Recursive _ -> func
+    | Recursive name -> Vars.find name param.vars
+    | Default -> func
     | Builtin _ -> failwith "Internal Error: Normally calling a builtin"
     | Inline _ -> failwith "Internal Error: Normally calling an inline func"
 

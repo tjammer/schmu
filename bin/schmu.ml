@@ -56,15 +56,14 @@ let run file
   try
     Parse.parse file >>= fun prog ->
     Ok
-      (let ttree, m = Typing.to_typed ~modul ~prelude fmt_msg_fn prog in
-
-       let md = if modul then Some outname else None in
+      (let mname = if modul then Some (Path.Pid outname) else None in
+       let ttree, m = Typing.to_typed ~mname ~prelude fmt_msg_fn prog in
 
        if check_only then ()
        else (
          (* TODO if a module has only forward decls, we don't need to codegen anything *)
-         Monomorph_tree.monomorphize ttree
-         |> Codegen.generate ~target ~outname ~release ~modul:md
+         Monomorph_tree.monomorphize ~mname ttree
+         |> Codegen.generate ~target ~outname ~release ~modul
          |> ignore;
          if dump_llvm then Llvm.dump_module Codegen.the_module;
          if modul then (

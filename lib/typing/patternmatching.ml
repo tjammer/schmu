@@ -842,7 +842,7 @@ module Make (C : Core) (R : Recs) = struct
     | Some { loc; cnt = _ } ->
         raise (Error (loc, "Pattern match case is redundant")));
 
-    let expr = Bind (expr_name path, None, expr, cont) in
+    let expr = Bind (expr_name path, expr, cont) in
     { cont with expr }
 
   and compile_matches env all_loc used_rows cases ret_typ mut =
@@ -914,7 +914,7 @@ module Make (C : Core) (R : Recs) = struct
             (* Make expr available in codegen *)
             let ifexpr =
               let id = expr_name path in
-              Bind (id, None, data, cont)
+              Bind (id, data, cont)
             in
 
             (* This is either an if-then-else or just an one ctor,
@@ -1010,7 +1010,7 @@ module Make (C : Core) (R : Recs) = struct
 
                   let expr =
                     let id = expr_name newcol in
-                    Bind (id, None, expr, cont)
+                    Bind (id, expr, cont)
                   in
                   { cont with expr })
                 ret fields
@@ -1044,7 +1044,7 @@ module Make (C : Core) (R : Recs) = struct
                   let expr = { typ = pat.ttyp; expr; attr = no_attr; loc } in
                   let expr =
                     let id = expr_name newcol in
-                    Bind (id, None, expr, cont)
+                    Bind (id, expr, cont)
                   in
                   { cont with expr })
                 ret fields

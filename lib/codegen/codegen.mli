@@ -4,6 +4,6 @@ val generate :
   target:string option ->
   outname:string ->
   release:bool ->
-  modul:string option ->
+  modul:bool ->
   Monomorph_tree.monomorphized_tree ->
   unit

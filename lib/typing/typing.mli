@@ -4,7 +4,7 @@ val typecheck : Ast.prog -> Types.typ
 
 val to_typed :
   ?check_ret:bool ->
-  modul:bool ->
+  mname:Path.t option ->
   msg_fn ->
   prelude:bool ->
   Ast.prog ->

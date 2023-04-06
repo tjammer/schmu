@@ -508,7 +508,7 @@ let rec builtins_hack callee args =
   | Let_e (__, _, _, cont) -> builtins_hack cont args
   | _ -> no_attr
 
-let fold_decl cont (id, e) = { cont with expr = Bind (id, None, e, cont) }
+let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }
 
 module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
@@ -685,7 +685,7 @@ end = struct
         let abs =
           { nparams; body = { body with typ = ret }; func; inline = false }
         in
-        let expr = Lambda (lambda_id (), "", abs) in
+        let expr = Lambda (lambda_id (), abs) in
         { typ; expr; attr = no_attr; loc }
     | _ -> failwith "Internal Error: generalize produces a new type?"
 
@@ -1159,6 +1159,7 @@ let rec catch_weak_vars = function
       catch_weak_expr Sset.empty e
   | Tl_function (_, _, _, abs) -> catch_weak_body Sset.empty abs
   | Tl_mutual_rec_decls _ -> ()
+  | Tl_module items -> List.iter catch_weak_vars items
 
 and catch_weak_body sub abs =
   (* Allow the types present in the function signature *)
@@ -1198,7 +1199,7 @@ and catch_weak_expr sub e =
       catch_weak_expr sub cond;
       catch_weak_expr sub e1;
       catch_weak_expr sub e2
-  | Let { lhs; cont; _ } | Bind (_, _, lhs, cont) ->
+  | Let { lhs; cont; _ } | Bind (_, lhs, cont) ->
       catch_weak_expr sub lhs;
       catch_weak_expr sub cont
   | App { callee; args } ->
@@ -1209,7 +1210,7 @@ and catch_weak_expr sub e =
   | Fmt fmt ->
       List.iter (function Fstr _ -> () | Fexpr e -> catch_weak_expr sub e) fmt
 
-let rec convert_module env sign prog check_ret modul =
+let rec convert_module env sign prog check_ret mname =
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
@@ -1221,7 +1222,7 @@ let rec convert_module env sign prog check_ret modul =
         (which val decls essentially are), we have to make sure the complete
         implementation is available before. *)
   let sigenv, m = List.fold_left add_signature_types (env, Module.empty) sign in
-  let last_type, env, items, m = convert_prog sigenv prog m in
+  let last_type, env, items, m = convert_prog ~mname sigenv prog m in
   let externals = Module.append_externals (Env.externals env) in
   (* Make sure to chose the signature env, not the impl one. Abstract types are
      magically made complete by references. *)
@@ -1236,7 +1237,7 @@ let rec convert_module env sign prog check_ret modul =
 
   let _, _, unused = Env.close_function env in
   let has_sign = match sign with [] -> false | _ -> true in
-  if (not modul) || has_sign then check_unused unused;
+  if (not (Option.is_some mname)) || has_sign then check_unused unused;
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
@@ -1249,7 +1250,7 @@ let rec convert_module env sign prog check_ret modul =
        raise (Error (!last_loc, msg)));
   (externals, items, m)
 
-and convert_prog env items modul =
+and convert_prog env items ~mname modul =
   let old = ref (Lexing.(dummy_pos, dummy_pos), Tunit) in
 
   let rec aux (env, items, m) = function
@@ -1279,9 +1280,16 @@ and convert_prog env items modul =
     | Typedef (loc, Tabstract _) ->
         raise (Error (loc, "Abstract types need a concrete implementation"))
     | Module (id, sign, prog) ->
-        let _, _, newm = convert_module env sign prog true true in
-        Hashtbl.add Module.module_cache (snd id) (Ok newm);
+        (* External function are added as side-effects, can be discarded here *)
+        let open Module in
+        let mname = Some (Path.append (snd id) (generate_module_path mname)) in
+        let _, moditems, newm = convert_module env sign prog true mname in
+        let s = ref S.empty in
+        let newm = make_module s (Path.Pid (snd id)) newm in
+        (* TODO Fix these modules names *)
+        Hashtbl.add module_cache (snd id) (Ok newm);
         let env = Env.add_module (snd id) env in
+        let items = Tl_module moditems :: items in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
@@ -1294,7 +1302,7 @@ and convert_prog env items modul =
         let uniq_name =
           match uniq with
           | None -> None
-          | Some i -> Some (Module.unique_name id (Some i))
+          | Some i -> Some (Module.unique_name ~mname id (Some i))
         in
         let m = Module.add_external loc lhs.typ id uniq_name ~closure:true m in
         let expr =
@@ -1309,7 +1317,7 @@ and convert_prog env items modul =
         let env, (name, unique, abs) =
           Core.convert_function env loc func false
         in
-        let m = Module.add_fun loc name unique abs m in
+        let m = Module.add_fun ~mname loc name unique abs m in
         (old, env, Tl_function (loc, name, unique, abs) :: items, m)
     | Rec (loc, funcs) ->
         (* Collect function names *)
@@ -1338,7 +1346,7 @@ and convert_prog env items modul =
           | [] -> ([], [], env)
         in
         let decls, fitems, env = aux env (List.rev funcs) in
-        let m = Module.add_rec_block loc funcs m in
+        let m = Module.add_rec_block ~mname loc funcs m in
         (old, env, fitems @ (Tl_mutual_rec_decls decls :: items), m)
     | Expr (loc, expr) ->
         let expr = Core.convert env expr in
@@ -1359,7 +1367,7 @@ and convert_prog env items modul =
   (snd !old, env, List.rev items, m)
 
 (* Conversion to Typing.exr below *)
-let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (sign, prog) =
+let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 
@@ -1383,24 +1391,26 @@ let to_typed ?(check_ret = true) ~modul msg_fn ~prelude (sign, prog) =
     else env
   in
 
-  let externals, items, m = convert_module env sign prog check_ret modul in
+  let externals, items, m = convert_module env sign prog check_ret mname in
 
   (* print_endline (String.concat ", " (List.map string_of_type typeinsts)); *)
-  let m = if modul then Some m else None in
+  let m = if Option.is_some mname then Some m else None in
   ({ externals; items }, m)
 
 let typecheck (prog : Ast.prog) =
   let rec get_last_type = function
     | Tl_expr expr :: _ -> expr.typ
-    | (Tl_function _ | Tl_let _ | Tl_bind _ | Tl_mutual_rec_decls _) :: tl ->
+    | ( Tl_function _ | Tl_let _ | Tl_bind _ | Tl_mutual_rec_decls _
+      | Tl_module _ )
+      :: tl ->
         get_last_type tl
     | [] -> Tunit
   in
 
   (* Ignore unused binding warnings *)
   let msg_fn _ _ _ = "" in
-  let modul = false in
-  let tree, _ = to_typed ~modul ~check_ret:false msg_fn ~prelude:false prog in
+  let mname = None in
+  let tree, _ = to_typed ~mname ~check_ret:false msg_fn ~prelude:false prog in
   let typ = get_last_type (List.rev tree.items) in
   print_endline (show_typ typ);
   typ
