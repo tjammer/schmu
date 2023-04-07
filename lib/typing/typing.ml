@@ -1299,11 +1299,7 @@ and convert_prog env items ~mname modul =
         in
         let uniq = uniq_name id in
         (* Make string option out of int option for unique name *)
-        let uniq_name =
-          match uniq with
-          | None -> None
-          | Some i -> Some (Module.unique_name ~mname id (Some i))
-        in
+        let uniq_name = Some (Module.unique_name ~mname id uniq) in
         let m = Module.add_external loc lhs.typ id uniq_name ~closure:true m in
         let expr =
           let expr = Tl_let (id, uniq, lhs) in
