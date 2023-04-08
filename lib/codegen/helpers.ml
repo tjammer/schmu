@@ -40,7 +40,6 @@ module type S = sig
   val box_const : Llvm_types.param -> llvar -> llvar
   val pass_value : bool -> llvar -> Llvm.llvalue * Llvm.llvalue option
   val func_to_closure : Llvm_types.param -> llvar -> llvar
-  val unmangle : mangle_kind -> string -> string
 
   val get_prealloc :
     Monomorph_tree.allocas ->
@@ -302,15 +301,6 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     | _ -> ignore (Llvm.build_store (bring_default value) ptr builder)
 
   let mangle name = function C -> name | Schmu n -> n ^ "_" ^ name
-
-  let unmangle kind name =
-    match kind with
-    | C -> name
-    | Schmu _ ->
-        let open String in
-        let len = String.index name '_' + 1 in
-        (* Printf.printf "unmangling %s to %s\n%!" name ret; *)
-        sub name len (length name - len)
 
   let declare_function ~c_linkage name = function
     | Tfun (params, ret, kind) as typ ->
@@ -713,7 +703,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
             print_endline (show_typ func.typ);
             failwith "Internal Error: What are we applying?")
     | Concrete name -> Vars.find name param.vars
-    | Recursive name -> Vars.find name param.vars
+    | Recursive name -> Vars.find name.call param.vars
     | Default -> func
     | Builtin _ -> failwith "Internal Error: Normally calling a builtin"
     | Inline _ -> failwith "Internal Error: Normally calling an inline func"

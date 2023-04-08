@@ -439,25 +439,13 @@ end = struct
       else
         match kind with
         | Simple -> (func.value, Seq.empty)
-        | Closure _ -> (
+        | Closure _ ->
             (* In this case we are in a recursive closure function.
                We get the closure env and add it to the arguments we pass *)
-            match
-              Vars.find_opt
-                (Llvm.value_name func.value |> unmangle (Schmu ""))
-                param.vars
-            with
-            | Some func ->
-                (* We do this to make sure it's a recursive function.
-                   If we cannot find something. there is an error somewhere *)
-                let closure_index =
-                  (Llvm.params func.value |> Array.length) - 1
-                in
+            let closure_index = (Llvm.params func.value |> Array.length) - 1 in
 
-                let env_ptr = (Llvm.params func.value).(closure_index) in
-                (func.value, Seq.return env_ptr)
-            | None ->
-                failwith "Internal Error: Not a recursive closure application")
+            let env_ptr = (Llvm.params func.value).(closure_index) in
+            (func.value, Seq.return env_ptr)
     in
 
     let value, lltyp =

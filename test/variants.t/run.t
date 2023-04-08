@@ -77,12 +77,12 @@ Basic pattern matching
   
   %prelude.option_int = type { i32, i64 }
   
-  @none_int = global %prelude.option_int zeroinitializer, align 16
+  @schmu_none_int = global %prelude.option_int zeroinitializer, align 16
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 9, i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare void @printf(i8* %0, i64 %1)
   
-  define i64 @schmu___prelude.optiong.i_none_all_prelude.optioni.i(%prelude.option_int* %p) {
+  define i64 @__prelude.optiong.i_schmu_none_all_prelude.optioni.i(%prelude.option_int* %p) {
   entry:
     %tag1 = bitcast %prelude.option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4
@@ -205,12 +205,12 @@ Basic pattern matching
     store i32 0, i32* %tag2029, align 4
     %data21 = getelementptr inbounds %prelude.option_int, %prelude.option_int* %option19, i32 0, i32 1
     store i64 1, i64* %data21, align 8
-    %6 = call i64 @schmu___prelude.optiong.i_none_all_prelude.optioni.i(%prelude.option_int* %option19)
+    %6 = call i64 @__prelude.optiong.i_schmu_none_all_prelude.optioni.i(%prelude.option_int* %option19)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %6)
-    store i32 1, i32* getelementptr inbounds (%prelude.option_int, %prelude.option_int* @none_int, i32 0, i32 0), align 4
+    store i32 1, i32* getelementptr inbounds (%prelude.option_int, %prelude.option_int* @schmu_none_int, i32 0, i32 0), align 4
     %str22 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str22, align 8
-    %7 = call i64 @schmu___prelude.optiong.i_none_all_prelude.optioni.i(%prelude.option_int* @none_int)
+    %7 = call i64 @__prelude.optiong.i_schmu_none_all_prelude.optioni.i(%prelude.option_int* @schmu_none_int)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %7)
     ret i64 0
   }
@@ -334,7 +334,7 @@ Match multiple columns
   %prelude.option_int = type { i32, i64 }
   %tuple_prelude.option_int_prelude.option_int = type { %prelude.option_int, %prelude.option_int }
   
-  @none_int = global %prelude.option_int zeroinitializer, align 16
+  @schmu_none_int = global %prelude.option_int zeroinitializer, align 16
   @0 = private unnamed_addr global { i64, i64, i64, [4 x i8] } { i64 2, i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare void @printf(i8* %0, i64 %1)
@@ -406,7 +406,7 @@ Match multiple columns
   
   define i64 @main(i64 %arg) {
   entry:
-    store i32 1, i32* getelementptr inbounds (%prelude.option_int, %prelude.option_int* @none_int, i32 0, i32 0), align 4
+    store i32 1, i32* getelementptr inbounds (%prelude.option_int, %prelude.option_int* @schmu_none_int, i32 0, i32 0), align 4
     %option = alloca %prelude.option_int, align 8
     %tag14 = bitcast %prelude.option_int* %option to i32*
     store i32 0, i32* %tag14, align 4
@@ -423,7 +423,7 @@ Match multiple columns
     store i32 0, i32* %tag516, align 4
     %data6 = getelementptr inbounds %prelude.option_int, %prelude.option_int* %option4, i32 0, i32 1
     store i64 2, i64* %data6, align 8
-    call void @schmu_doo(%prelude.option_int* @none_int, %prelude.option_int* %option4)
+    call void @schmu_doo(%prelude.option_int* @schmu_none_int, %prelude.option_int* %option4)
     %option7 = alloca %prelude.option_int, align 8
     %tag817 = bitcast %prelude.option_int* %option7 to i32*
     store i32 0, i32* %tag817, align 4
@@ -436,7 +436,7 @@ Match multiple columns
     %option12 = alloca %prelude.option_int, align 8
     %tag1319 = bitcast %prelude.option_int* %option12 to i32*
     store i32 1, i32* %tag1319, align 4
-    call void @schmu_doo(%prelude.option_int* @none_int, %prelude.option_int* %option12)
+    call void @schmu_doo(%prelude.option_int* @schmu_none_int, %prelude.option_int* %option12)
     ret i64 0
   }
   

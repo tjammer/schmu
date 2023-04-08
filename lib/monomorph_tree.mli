@@ -62,9 +62,9 @@ and call_name =
   | Mono of string (* Monomorphized fun call *)
   | Concrete of string (* Normal function call with unique name *)
   | Default (* std *)
-  | Recursive of string
+  | Recursive of { nonmono : string; call : string }
   (* Recursive function call.
-     The function name is only for housekeeping *)
+     The nonmono name is only for housekeeping *)
   | Builtin of Builtin.t * func
   | Inline of string list * monod_tree
 (* Builtin function with special codegen *)

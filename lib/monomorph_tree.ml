@@ -56,7 +56,7 @@ and call_name =
   | Mono of string
   | Concrete of string
   | Default
-  | Recursive of string
+  | Recursive of { nonmono : string; call : string }
   | Builtin of Builtin.t * func
   | Inline of string list * monod_tree
 
@@ -118,7 +118,7 @@ type to_gen_func_kind =
   (* TODO use a prefix *)
   | Concrete of To_gen_func.t * string
   | Polymorphic of string (* call name *)
-  | Forward_decl of string
+  | Forward_decl of string * typ
   | Mutual_rec of string * typ
   | Builtin of Builtin.t
   | Inline of string list * typ * monod_tree
@@ -585,10 +585,24 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
       else let p, tree = subst_body p subst tree in
 
            (p, Inline (ps, tree))
-  | Forward_decl name ->
-      (* We don't have to do anything, because the correct function will be called in the first place.
-         Except when it is called with different types recursively. We'll see *)
-      (p, Recursive name)
+  | Forward_decl (name, typ) ->
+      (* Generate the correct call name. If its mono, we have to recalculate it.
+         Closures are tricky, as the arguments are generally not closures, but the typ might.
+         We try to subst the (potential) closure by using the parent_sub if its available *)
+      if is_type_polymorphic typ then
+        (* Instead of directly generating the mono name from concrete type and expr,
+           we substitute the poly type and use the substituted one. This helps with some closures *)
+        let call =
+          match parent_sub with
+          | Some sub ->
+              let concrete = sub typ in
+              get_mono_name name ~closure:true ~poly:typ concrete
+          | None -> get_mono_name name ~closure:true ~poly:typ expr.typ
+        in
+        (* We still need to use the un-monomorphized callname for marking recursion *)
+        (p, Recursive { nonmono = name; call })
+        (* Make the name concrete so the correct call name is used *)
+      else (p, Recursive { nonmono = name; call = name })
   | Mutual_rec (name, typ) ->
       if is_type_polymorphic typ then (
         let call = get_mono_name name ~closure:true ~poly:typ expr.typ in
@@ -596,8 +610,9 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
           (* The function doesn't exist yet, will it ever exist? *)
           if not (Hashtbl.mem missing_polys_tbl call) then
             Hashtbl.add missing_polys_tbl name (p, expr.typ, parent_sub);
-        (p, Mono call))
-      else (p, Default)
+        (p, Mono call)
+        (* Make the name concrete so the correct call name is used *))
+      else (p, Concrete name)
   | _ when is_type_polymorphic expr.typ -> (p, Default)
   | Concrete (func, username) ->
       (* If a named function gets a generated name, the call site has to be made aware *)
@@ -646,7 +661,7 @@ let extract_callname default vars expr =
   | Builtin _ | Inline _ ->
       failwith "Internal error: Builtin or inline function captured in closure"
   | Mutual_rec _ -> failwith "TODO mutual rec"
-  | Forward_decl call | Polymorphic call -> call
+  | Forward_decl (call, _) | Polymorphic call -> call
   | Concrete (func, _) -> func.name.call
   | No_function -> default
 
@@ -1250,7 +1265,7 @@ and prep_func p (username, uniq, abs) =
       if is_struct func.ret then Value (ref (request ())) else No_value
     in
     (* TODO make it impossible to recursively call an inline function *)
-    let value = { no_var with fn = Forward_decl call; alloc } in
+    let value = { no_var with fn = Forward_decl (call, ftyp); alloc } in
     let vars = Vars.add username (Normal value) p.vars in
 
     (* Add parameters to env as normal values.
@@ -1410,7 +1425,7 @@ and morph_app mk p callee args ret_typ =
     if ret then
       match callee.monomorph with
       | Recursive name ->
-          set_tailrec name;
+          set_tailrec name.nonmono;
           true
       | _ -> false
     else false

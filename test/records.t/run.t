@@ -9,7 +9,7 @@ Simple record creation (out of order)
   
   %foo = type { i1, i64 }
   
-  @a = constant %foo { i1 true, i64 10 }
+  @schmu_a = constant %foo { i1 true, i64 10 }
   
   declare void @printi(i64 %0)
   
@@ -28,7 +28,7 @@ Pass record to function
   
   %foo = type { i64, i64 }
   
-  @a = constant %foo { i64 10, i64 20 }
+  @schmu_a = constant %foo { i64 10, i64 20 }
   
   declare void @printi(i64 %0)
   
@@ -101,12 +101,12 @@ Nested records
   %p_inner_innerst_int = type { %innerst_int }
   %innerst_int = type { i64 }
   
-  @f = global %closure zeroinitializer, align 16
-  @a = global %foo zeroinitializer, align 16
+  @schmu_f = global %closure zeroinitializer, align 16
+  @schmu_a = global %foo zeroinitializer, align 16
   
   declare void @printi(i64 %0)
   
-  define { i64, i64 } @schmu___g.g___fun0_ti.ti(i64 %0, i64 %1) {
+  define { i64, i64 } @__g.g___fun_schmu0_ti.ti(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst3 = bitcast { i64, i64 }* %box to i64*
@@ -128,11 +128,11 @@ Nested records
   
   define i64 @main(i64 %arg) {
   entry:
-    store i64 0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 0), align 8
+    store i64 0, i64* getelementptr inbounds (%foo, %foo* @schmu_a, i32 0, i32 0), align 8
     %0 = tail call i64 @schmu_inner()
-    store i64 %0, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 8
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%inner* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1) to i8*), i8* bitcast (i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0) to i8*), i64 8, i1 false)
-    %1 = load i64, i64* getelementptr inbounds (%foo, %foo* @a, i32 0, i32 1, i32 0), align 8
+    store i64 %0, i64* getelementptr inbounds (%foo, %foo* @schmu_a, i32 0, i32 1, i32 0), align 8
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%inner* getelementptr inbounds (%foo, %foo* @schmu_a, i32 0, i32 1) to i8*), i8* bitcast (i64* getelementptr inbounds (%foo, %foo* @schmu_a, i32 0, i32 1, i32 0) to i8*), i64 8, i1 false)
+    %1 = load i64, i64* getelementptr inbounds (%foo, %foo* @schmu_a, i32 0, i32 1, i32 0), align 8
     tail call void @printi(i64 %1)
     %boxconst = alloca %t_int, align 8
     store %t_int { i64 17, %p_inner_innerst_int { %innerst_int { i64 124 } } }, %t_int* %boxconst, align 8
@@ -142,7 +142,7 @@ Nested records
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox, i32 0, i32 1
     %snd2 = load i64, i64* %snd, align 8
     %ret = alloca %t_int, align 8
-    %2 = tail call { i64, i64 } @schmu___g.g___fun0_ti.ti(i64 %fst1, i64 %snd2)
+    %2 = tail call { i64, i64 } @__g.g___fun_schmu0_ti.ti(i64 %fst1, i64 %snd2)
     %box = bitcast %t_int* %ret to { i64, i64 }*
     store { i64, i64 } %2, { i64, i64 }* %box, align 8
     %3 = getelementptr inbounds %t_int, %t_int* %ret, i32 0, i32 1
@@ -170,11 +170,11 @@ Pass generic record
   %closure = type { i8*, i8* }
   %t_bool = type { i64, i1, i1 }
   
-  @int_t = constant %t_int { i64 700, i64 20, i1 false }
+  @schmu_int_t = constant %t_int { i64 700, i64 20, i1 false }
   
   declare void @printi(i64 %0)
   
-  define { i64, i16 } @schmu___g.gg.g_apply_tb.tbtb.tb(%closure* %f, i64 %0, i16 %1) {
+  define { i64, i16 } @__g.gg.g_schmu_apply_tb.tbtb.tb(%closure* %f, i64 %0, i16 %1) {
   entry:
     %box = alloca { i64, i16 }, align 8
     %fst11 = bitcast { i64, i16 }* %box to i64*
@@ -193,7 +193,7 @@ Pass generic record
     ret { i64, i16 } %2
   }
   
-  define void @schmu___g.gg.g_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
+  define void @__g.gg.g_schmu_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -204,7 +204,7 @@ Pass generic record
     ret void
   }
   
-  define { i64, i16 } @schmu___tg.tg_pass_tb.tb(i64 %0, i16 %1) {
+  define { i64, i16 } @__tg.tg_schmu_pass_tb.tb(i64 %0, i16 %1) {
   entry:
     %box = alloca { i64, i16 }, align 8
     %fst3 = bitcast { i64, i16 }* %box to i64*
@@ -229,7 +229,7 @@ Pass generic record
     ret { i64, i16 } %unbox2
   }
   
-  define void @schmu___tg.tg_pass_ti.ti(%t_int* %0, %t_int* %x) {
+  define void @__tg.tg_schmu_pass_ti.ti(%t_int* %0, %t_int* %x) {
   entry:
     %first1 = bitcast %t_int* %0 to i64*
     %1 = bitcast %t_int* %x to i64*
@@ -250,17 +250,17 @@ Pass generic record
   entry:
     %clstmp = alloca %closure, align 8
     %funptr8 = bitcast %closure* %clstmp to i8**
-    store i8* bitcast (void (%t_int*, %t_int*)* @schmu___tg.tg_pass_ti.ti to i8*), i8** %funptr8, align 8
+    store i8* bitcast (void (%t_int*, %t_int*)* @__tg.tg_schmu_pass_ti.ti to i8*), i8** %funptr8, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
     %ret = alloca %t_int, align 8
-    call void @schmu___g.gg.g_apply_ti.titi.ti(%t_int* %ret, %closure* %clstmp, %t_int* @int_t)
+    call void @__g.gg.g_schmu_apply_ti.titi.ti(%t_int* %ret, %closure* %clstmp, %t_int* @schmu_int_t)
     %0 = bitcast %t_int* %ret to i64*
     %1 = load i64, i64* %0, align 8
     call void @printi(i64 %1)
     %clstmp1 = alloca %closure, align 8
     %funptr29 = bitcast %closure* %clstmp1 to i8**
-    store i8* bitcast ({ i64, i16 } (i64, i16)* @schmu___tg.tg_pass_tb.tb to i8*), i8** %funptr29, align 8
+    store i8* bitcast ({ i64, i16 } (i64, i16)* @__tg.tg_schmu_pass_tb.tb to i8*), i8** %funptr29, align 8
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
     %boxconst = alloca %t_bool, align 8
@@ -271,7 +271,7 @@ Pass generic record
     %snd = getelementptr inbounds { i64, i16 }, { i64, i16 }* %unbox, i32 0, i32 1
     %snd5 = load i16, i16* %snd, align 2
     %ret6 = alloca %t_bool, align 8
-    %2 = call { i64, i16 } @schmu___g.gg.g_apply_tb.tbtb.tb(%closure* %clstmp1, i64 %fst4, i16 %snd5)
+    %2 = call { i64, i16 } @__g.gg.g_schmu_apply_tb.tbtb.tb(%closure* %clstmp1, i64 %fst4, i16 %snd5)
     %box = bitcast %t_bool* %ret6 to { i64, i16 }*
     store { i64, i16 } %2, { i64, i16 }* %box, align 8
     %3 = bitcast %t_bool* %ret6 to i64*
@@ -291,12 +291,12 @@ Access parametrized record fields
   %t_int = type { i64, i64, i64, i1 }
   %gen_first_int = type { i64, i1 }
   
-  @int_t = constant %t_int { i64 0, i64 700, i64 20, i1 true }
-  @f = constant %gen_first_int { i64 420, i1 false }
+  @schmu_int_t = constant %t_int { i64 0, i64 700, i64 20, i1 true }
+  @schmu_f = constant %gen_first_int { i64 420, i1 false }
   
   declare void @printi(i64 %0)
   
-  define i64 @schmu___gen_firstg.g_only_gen_firsti.i(i64 %0, i8 %1) {
+  define i64 @__gen_firstg.g_schmu_only_gen_firsti.i(i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst2 = bitcast { i64, i8 }* %box to i64*
@@ -306,7 +306,7 @@ Access parametrized record fields
     ret i64 %0
   }
   
-  define void @schmu___gen_firstg.u_is_gen_firsti.u(i64 %0, i8 %1) {
+  define void @__gen_firstg.u_schmu_is_gen_firsti.u(i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst2 = bitcast { i64, i8 }* %box to i64*
@@ -320,14 +320,14 @@ Access parametrized record fields
     ret void
   }
   
-  define i64 @schmu___tg.g_gen_ti.i(%t_int* %any) {
+  define i64 @__tg.g_schmu_gen_ti.i(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 2
     %1 = load i64, i64* %0, align 8
     ret i64 %1
   }
   
-  define void @schmu___tg.u_first_ti.u(%t_int* %any) {
+  define void @__tg.u_schmu_first_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 1
     %1 = load i64, i64* %0, align 8
@@ -335,7 +335,7 @@ Access parametrized record fields
     ret void
   }
   
-  define void @schmu___tg.u_third_ti.u(%t_int* %any) {
+  define void @__tg.u_schmu_third_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 3
     %1 = load i1, i1* %0, align 1
@@ -358,14 +358,14 @@ Access parametrized record fields
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @schmu___tg.u_first_ti.u(%t_int* @int_t)
-    tail call void @schmu___tg.u_third_ti.u(%t_int* @int_t)
-    %0 = tail call i64 @schmu___tg.g_gen_ti.i(%t_int* @int_t)
+    tail call void @__tg.u_schmu_first_ti.u(%t_int* @schmu_int_t)
+    tail call void @__tg.u_schmu_third_ti.u(%t_int* @schmu_int_t)
+    %0 = tail call i64 @__tg.g_schmu_gen_ti.i(%t_int* @schmu_int_t)
     tail call void @printi(i64 %0)
-    %snd = load i8, i8* getelementptr inbounds ({ i64, i8 }, { i64, i8 }* bitcast (%gen_first_int* @f to { i64, i8 }*), i32 0, i32 1), align 1
-    %1 = tail call i64 @schmu___gen_firstg.g_only_gen_firsti.i(i64 420, i8 %snd)
+    %snd = load i8, i8* getelementptr inbounds ({ i64, i8 }, { i64, i8 }* bitcast (%gen_first_int* @schmu_f to { i64, i8 }*), i32 0, i32 1), align 1
+    %1 = tail call i64 @__gen_firstg.g_schmu_only_gen_firsti.i(i64 420, i8 %snd)
     tail call void @printi(i64 %1)
-    tail call void @schmu___gen_firstg.u_is_gen_firsti.u(i64 420, i8 %snd)
+    tail call void @__gen_firstg.u_schmu_is_gen_firsti.u(i64 420, i8 %snd)
     ret i64 0
   }
   700
@@ -383,11 +383,11 @@ Make sure alignment of generic param works
   %misaligned_int = type { %inner, i64 }
   %inner = type { i64, i64 }
   
-  @m = constant %misaligned_int { %inner { i64 50, i64 40 }, i64 30 }
+  @schmu_m = constant %misaligned_int { %inner { i64 50, i64 40 }, i64 30 }
   
   declare void @printi(i64 %0)
   
-  define i64 @schmu___misalignedg.g_gen_misalignedi.i(%misaligned_int* %any) {
+  define i64 @__misalignedg.g_schmu_gen_misalignedi.i(%misaligned_int* %any) {
   entry:
     %0 = getelementptr inbounds %misaligned_int, %misaligned_int* %any, i32 0, i32 1
     %1 = load i64, i64* %0, align 8
@@ -396,7 +396,7 @@ Make sure alignment of generic param works
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i64 @schmu___misalignedg.g_gen_misalignedi.i(%misaligned_int* @m)
+    %0 = tail call i64 @__misalignedg.g_schmu_gen_misalignedi.i(%misaligned_int* @schmu_m)
     tail call void @printi(i64 %0)
     ret i64 0
   }
@@ -419,11 +419,11 @@ Support function/closure fields
   %state = type { i64, %closure }
   %closure = type { i8*, i8* }
   
-  @state = global %state zeroinitializer, align 16
+  @schmu_state = global %state zeroinitializer, align 16
   
   declare void @printi(i64 %0)
   
-  define i64 @schmu___fun0(i64 %x) {
+  define i64 @__fun_schmu0(i64 %x) {
   entry:
     %add = add i64 %x, 1
     ret i64 %add
@@ -574,11 +574,11 @@ Support function/closure fields
   
   define i64 @main(i64 %arg) {
   entry:
-    store i64 0, i64* getelementptr inbounds (%state, %state* @state, i32 0, i32 0), align 8
-    store i8* bitcast (i64 (i64)* @schmu___fun0 to i8*), i8** getelementptr inbounds (%state, %state* @state, i32 0, i32 1, i32 0), align 8
-    store i8* null, i8** getelementptr inbounds (%state, %state* @state, i32 0, i32 1, i32 1), align 8
-    tail call void @schmu_ten_times(%state* @state)
-    tail call void @__g.u_decr_rc_state.u(%state* @state)
+    store i64 0, i64* getelementptr inbounds (%state, %state* @schmu_state, i32 0, i32 0), align 8
+    store i8* bitcast (i64 (i64)* @__fun_schmu0 to i8*), i8** getelementptr inbounds (%state, %state* @schmu_state, i32 0, i32 1, i32 0), align 8
+    store i8* null, i8** getelementptr inbounds (%state, %state* @schmu_state, i32 0, i32 1, i32 1), align 8
+    tail call void @schmu_ten_times(%state* @schmu_state)
+    tail call void @__g.u_decr_rc_state.u(%state* @schmu_state)
     ret i64 0
   }
   
@@ -605,7 +605,7 @@ Regression test: Closures for records used to use store/load like for register v
   
   %foo = type { i64, i64 }
   
-  @foo = constant %foo { i64 12, i64 14 }
+  @schmu_foo = constant %foo { i64 12, i64 14 }
   
   declare void @printi(i64 %0)
   
@@ -638,17 +638,17 @@ This caused stores to a wrong pointer type in LLVM
   %foo = type { i64 }
   %ys = type { %foo, i64 }
   
-  @x = internal constant %foo { i64 12 }
-  @ret = internal constant %ys { %foo { i64 17 }, i64 9 }
-  @a = internal constant %ys { %foo { i64 1 }, i64 2 }
-  @ys = global %ys zeroinitializer, align 16
-  @ctrl__2 = global %ys zeroinitializer, align 16
+  @schmu_x = internal constant %foo { i64 12 }
+  @schmu_ret = internal constant %ys { %foo { i64 17 }, i64 9 }
+  @schmu_a = internal constant %ys { %foo { i64 1 }, i64 2 }
+  @schmu_ys = global %ys zeroinitializer, align 16
+  @schmu_ctrl__2 = global %ys zeroinitializer, align 16
   
   declare void @printi(i64 %0)
   
   define { i64, i64 } @schmu_ctrl() {
   entry:
-    %unbox = load { i64, i64 }, { i64, i64 }* bitcast (%ys* @ret to { i64, i64 }*), align 8
+    %unbox = load { i64, i64 }, { i64, i64 }* bitcast (%ys* @schmu_ret to { i64, i64 }*), align 8
     ret { i64, i64 } %unbox
   }
   
@@ -664,16 +664,16 @@ This caused stores to a wrong pointer type in LLVM
   define i64 @main(i64 %arg) {
   entry:
     %0 = tail call { i64, i64 } @schmu_record_with_laters()
-    store { i64, i64 } %0, { i64, i64 }* bitcast (%ys* @ys to { i64, i64 }*), align 8
-    %1 = load i64, i64* getelementptr inbounds (%ys, %ys* @ys, i32 0, i32 1), align 8
+    store { i64, i64 } %0, { i64, i64 }* bitcast (%ys* @schmu_ys to { i64, i64 }*), align 8
+    %1 = load i64, i64* getelementptr inbounds (%ys, %ys* @schmu_ys, i32 0, i32 1), align 8
     tail call void @printi(i64 %1)
-    %2 = load i64, i64* getelementptr inbounds (%ys, %ys* @ys, i32 0, i32 0, i32 0), align 8
+    %2 = load i64, i64* getelementptr inbounds (%ys, %ys* @schmu_ys, i32 0, i32 0, i32 0), align 8
     tail call void @printi(i64 %2)
     %3 = tail call { i64, i64 } @schmu_ctrl()
-    store { i64, i64 } %3, { i64, i64 }* bitcast (%ys* @ctrl__2 to { i64, i64 }*), align 8
-    %4 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl__2, i32 0, i32 0, i32 0), align 8
+    store { i64, i64 } %3, { i64, i64 }* bitcast (%ys* @schmu_ctrl__2 to { i64, i64 }*), align 8
+    %4 = load i64, i64* getelementptr inbounds (%ys, %ys* @schmu_ctrl__2, i32 0, i32 0, i32 0), align 8
     tail call void @printi(i64 %4)
-    %5 = load i64, i64* getelementptr inbounds (%ys, %ys* @ctrl__2, i32 0, i32 1), align 8
+    %5 = load i64, i64* getelementptr inbounds (%ys, %ys* @schmu_ctrl__2, i32 0, i32 1), align 8
     tail call void @printi(i64 %5)
     ret i64 0
   }
@@ -693,7 +693,7 @@ A return of a field should not be preallocated
   %mut_int_wrap = type { %int_wrap }
   %closure = type { i8*, i8* }
   
-  @test = internal constant %test_int_wrap { %int_wrap { i64 2, i64 0, i64 0 } }
+  @schmu_test = internal constant %test_int_wrap { %int_wrap { i64 2, i64 0, i64 0 } }
   
   declare void @printi(i64 %0)
   
@@ -708,18 +708,18 @@ A return of a field should not be preallocated
     %1 = alloca %mut_int_wrap, align 8
     %wrapped3 = bitcast %mut_int_wrap* %1 to %int_wrap*
     store %int_wrap { i64 2, i64 0, i64 0 }, %int_wrap* %wrapped3, align 8
-    %vector_loop__2 = alloca %closure, align 8
-    %funptr4 = bitcast %closure* %vector_loop__2 to i8**
+    %schmu_vector_loop__2 = alloca %closure, align 8
+    %funptr4 = bitcast %closure* %schmu_vector_loop__2 to i8**
     store i8* bitcast (void (i64, i8*)* @schmu_vector_loop__2 to i8*), i8** %funptr4, align 8
-    %clsr_vector_loop__2 = alloca { i64, i8*, %mut_int_wrap* }, align 8
-    %test = getelementptr inbounds { i64, i8*, %mut_int_wrap* }, { i64, i8*, %mut_int_wrap* }* %clsr_vector_loop__2, i32 0, i32 2
+    %clsr_schmu_vector_loop__2 = alloca { i64, i8*, %mut_int_wrap* }, align 8
+    %test = getelementptr inbounds { i64, i8*, %mut_int_wrap* }, { i64, i8*, %mut_int_wrap* }* %clsr_schmu_vector_loop__2, i32 0, i32 2
     store %mut_int_wrap* %1, %mut_int_wrap** %test, align 8
-    %rc5 = bitcast { i64, i8*, %mut_int_wrap* }* %clsr_vector_loop__2 to i64*
+    %rc5 = bitcast { i64, i8*, %mut_int_wrap* }* %clsr_schmu_vector_loop__2 to i64*
     store i64 2, i64* %rc5, align 8
-    %dtor = getelementptr inbounds { i64, i8*, %mut_int_wrap* }, { i64, i8*, %mut_int_wrap* }* %clsr_vector_loop__2, i32 0, i32 1
+    %dtor = getelementptr inbounds { i64, i8*, %mut_int_wrap* }, { i64, i8*, %mut_int_wrap* }* %clsr_schmu_vector_loop__2, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
-    %env = bitcast { i64, i8*, %mut_int_wrap* }* %clsr_vector_loop__2 to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %vector_loop__2, i32 0, i32 1
+    %env = bitcast { i64, i8*, %mut_int_wrap* }* %clsr_schmu_vector_loop__2 to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %schmu_vector_loop__2, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     call void @schmu_vector_loop__2(i64 0, i8* %env)
     %2 = bitcast %int_wrap* %0 to i8*
@@ -742,7 +742,7 @@ A return of a field should not be preallocated
   
   then:                                             ; preds = %rec
     %3 = bitcast %int_wrap* %0 to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* bitcast (%test_int_wrap* @test to i8*), i64 24, i1 false)
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* bitcast (%test_int_wrap* @schmu_test to i8*), i64 24, i1 false)
     ret void
   
   else:                                             ; preds = %rec
