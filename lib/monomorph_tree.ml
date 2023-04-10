@@ -155,6 +155,7 @@ type morph_param = {
          Otherwise freed *)
   toplvl : bool;
   mname : Path.t option; (* Module name *)
+  mainmodule : Path.t option;
 }
 
 let no_var = { fn = No_function; alloc = No_value; id = None; tailrec = false }
@@ -913,11 +914,25 @@ let make_e2 e1 e2 id gn needs_init lmut rmut p vid =
 let mb_incr v =
   if not (is_temporary v.expr) then { v with expr = Mincr_ref v } else v
 
+let reconstr_module_username ~mname ~mainmodule username =
+  (* Values queried from an imported module have a special name so they don't clash with
+     user-defined values. This name is calculated in [Module.absolute_module_name]. For functions,
+     polymorphic the [unique_name] also prepends the module. Their username will stay intact so we
+     don't create names like prelude_prelude_thing. In order to match their queried name, we
+     convert to the absolute_module_name before adding them to the environment. *)
+  let imported = Option.equal Path.equal mname mainmodule |> not in
+  match mname with
+  | Some mname when imported -> Module.absolute_module_name ~mname username
+  | None | Some _ -> username
+
 let rec_fs_to_env p (username, uniq, typ) =
   let ftyp = cln p typ in
 
   let call = Module.unique_name ~mname:p.mname username uniq in
   let fn = Mutual_rec (call, ftyp) in
+  let username =
+    reconstr_module_username ~mname:p.mname ~mainmodule:p.mainmodule username
+  in
   let vars = Vars.add username (Normal { no_var with fn }) p.vars in
   { p with vars }
 
@@ -1245,7 +1260,9 @@ and prep_func p (username, uniq, abs) =
   in
 
   let call = Module.unique_name ~mname:p.mname username uniq in
-  (* Printf.printf "%s, %s\n%!" username call; *)
+  let username =
+    reconstr_module_username ~mname:p.mname ~mainmodule:p.mainmodule username
+  in
   let recursive = Rnormal in
   let inline = abs.inline in
 
@@ -1624,12 +1641,19 @@ let rec morph_toplvl param items =
     | [] ->
         let loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
         (param, { typ = Tunit; expr = Mconst Unit; return = true; loc }, no_var)
-    | Typed_tree.Tl_let (id, uniq, expr) :: tl ->
+    | [ (mname, Typed_tree.Tl_expr e) ] ->
+        let param = { param with mname } in
+        morph_expr param e
+    | (mname, item) :: tl ->
+        let param = { param with mname } in
+        aux_impl param tl item
+  and aux_impl param tl = function
+    | Typed_tree.Tl_let (id, uniq, expr) ->
         let p, e1, gn, needs_init, vid = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
         let p, e2 = make_e2 e1 e2 id gn needs_init expr.attr.mut false p vid in
         (p, e2, func)
-    | Tl_function (loc, name, uniq, abs) :: tl ->
+    | Tl_function (loc, name, uniq, abs) ->
         let p, call, abs, alloca = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in
         ( p,
@@ -1640,17 +1664,16 @@ let rec morph_toplvl param items =
             loc;
           },
           func )
-    | Tl_bind (id, expr) :: tl ->
+    | Tl_bind (id, expr) ->
         let p, e1, func = morph_expr { param with ret = false } expr in
         let p, e2, func =
           aux { p with vars = Vars.add id (Normal func) p.vars } tl
         in
         (p, { e2 with expr = Mbind (id, e1, e2) }, func)
-    | Tl_mutual_rec_decls decls :: tl ->
+    | Tl_mutual_rec_decls decls ->
         let p = List.fold_left rec_fs_to_env param decls in
         aux { p with ret = param.ret } tl
-    | [ Tl_expr e ] -> morph_expr param e
-    | Tl_expr e :: tl ->
+    | Tl_expr e ->
         let p, e, _ = morph_expr param e in
         let p, cont, func = aux { p with ret = param.ret } tl in
         ( p,
@@ -1661,7 +1684,7 @@ let rec morph_toplvl param items =
             loc = e.loc;
           },
           func )
-    | Tl_module mitems :: tl ->
+    | Tl_module mitems ->
         let p, _, _ = morph_toplvl param mitems in
         aux
           {
@@ -1700,6 +1723,7 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
       ids = [ (Id_func, iset) ];
       toplvl = true;
       mname;
+      mainmodule = mname;
     }
   in
   let p, tree, _ = morph_toplvl param items in

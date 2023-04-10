@@ -2193,7 +2193,7 @@ The lamba passed as array-iter argument is polymorphic
     %env = bitcast { i64, i8*, i8**, i8* }* %clsr___ig.u-ac-ac___fun_schmu1_ii.u-ac-ac to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__ig.u-ac-ac___fun_schmu1_ii.u-ac-ac, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__agig.u.u_schmu__prelude_array-iteri_aiii.u.u(i64* %arr, %closure* %__ig.u-ac-ac___fun_schmu1_ii.u-ac-ac)
+    call void @__agig.u.u_prelude_array-iteri_aiii.u.u(i64* %arr, %closure* %__ig.u-ac-ac___fun_schmu1_ii.u-ac-ac)
     call void @schmu_string-add-null(i8** %acc)
     %2 = load i8*, i8** %acc, align 8
     ret i8* %2
@@ -2214,53 +2214,53 @@ The lamba passed as array-iter argument is polymorphic
     %env = bitcast { i64, i8*, i8** }* %clsr___g.u-ag___fun_schmu0_c.u-ac to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__g.u-ag___fun_schmu0_c.u-ac, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__agg.u.u_schmu__prelude_array-iter_acc.u.u(i8* %app, %closure* %__g.u-ag___fun_schmu0_c.u-ac)
+    call void @__agg.u.u_prelude_array-iter_acc.u.u(i8* %app, %closure* %__g.u-ag___fun_schmu0_c.u-ac)
     ret void
   }
   
-  define void @__agg.u.u_schmu__prelude_array-iter_acc.u.u(i8* %arr, %closure* %f) {
+  define void @__agg.u.u_prelude_array-iter_acc.u.u(i8* %arr, %closure* %f) {
   entry:
-    %__i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %__i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u to i8**
-    store i8* bitcast (void (i64, i8*)* @__i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u to i8*), i8** %funptr5, align 8
-    %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u = alloca { i64, i8*, i8*, %closure }, align 8
-    %arr1 = getelementptr inbounds { i64, i8*, i8*, %closure }, { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u, i32 0, i32 2
+    %__i.u-ag-g.u_prelude_inner_i.u-ac-c.u = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %__i.u-ag-g.u_prelude_inner_i.u-ac-c.u to i8**
+    store i8* bitcast (void (i64, i8*)* @__i.u-ag-g.u_prelude_inner_i.u-ac-c.u to i8*), i8** %funptr5, align 8
+    %clsr___i.u-ag-g.u_prelude_inner_i.u-ac-c.u = alloca { i64, i8*, i8*, %closure }, align 8
+    %arr1 = getelementptr inbounds { i64, i8*, i8*, %closure }, { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ac-c.u, i32 0, i32 2
     store i8* %arr, i8** %arr1, align 8
-    %f2 = getelementptr inbounds { i64, i8*, i8*, %closure }, { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u, i32 0, i32 3
+    %f2 = getelementptr inbounds { i64, i8*, i8*, %closure }, { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ac-c.u, i32 0, i32 3
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %rc6 = bitcast { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u to i64*
+    %rc6 = bitcast { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ac-c.u to i64*
     store i64 2, i64* %rc6, align 8
-    %dtor = getelementptr inbounds { i64, i8*, i8*, %closure }, { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u, i32 0, i32 1
+    %dtor = getelementptr inbounds { i64, i8*, i8*, %closure }, { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ac-c.u, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
-    %env = bitcast { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u, i32 0, i32 1
+    %env = bitcast { i64, i8*, i8*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ac-c.u to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u_prelude_inner_i.u-ac-c.u, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u(i64 0, i8* %env)
+    call void @__i.u-ag-g.u_prelude_inner_i.u-ac-c.u(i64 0, i8* %env)
     ret void
   }
   
-  define void @__agig.u.u_schmu__prelude_array-iteri_aiii.u.u(i64* %arr, %closure* %f) {
+  define void @__agig.u.u_prelude_array-iteri_aiii.u.u(i64* %arr, %closure* %f) {
   entry:
-    %__i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %__i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u to i8**
-    store i8* bitcast (void (i64, i8*)* @__i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u to i8*), i8** %funptr5, align 8
-    %clsr___i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u = alloca { i64, i8*, i64*, %closure }, align 8
-    %arr1 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u, i32 0, i32 2
+    %__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u to i8**
+    store i8* bitcast (void (i64, i8*)* @__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u to i8*), i8** %funptr5, align 8
+    %clsr___i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u = alloca { i64, i8*, i64*, %closure }, align 8
+    %arr1 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u, i32 0, i32 2
     store i64* %arr, i64** %arr1, align 8
-    %f2 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u, i32 0, i32 3
+    %f2 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u, i32 0, i32 3
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %rc6 = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u to i64*
+    %rc6 = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u to i64*
     store i64 2, i64* %rc6, align 8
-    %dtor = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u, i32 0, i32 1
+    %dtor = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
-    %env = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u, i32 0, i32 1
+    %env = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u(i64 0, i8* %env)
+    call void @__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u(i64 0, i8* %env)
     ret void
   }
   
@@ -2298,7 +2298,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define void @__i.u-ag-g.u_schmu__prelude_inner_i.u-ac-c.u(i64 %i, i8* %0) {
+  define void @__i.u-ag-g.u_prelude_inner_i.u-ac-c.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i64, i8*, i8*, %closure }*
     %arr = getelementptr inbounds { i64, i8*, i8*, %closure }, { i64, i8*, i8*, %closure }* %clsr, i32 0, i32 2
@@ -2335,7 +2335,7 @@ The lamba passed as array-iter argument is polymorphic
     br label %rec
   }
   
-  define void @__i.u-ag-ig.u_schmu__prelude_inner__2_i.u-ai-ii.u(i64 %i, i8* %0) {
+  define void @__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i64, i8*, i64*, %closure }*
     %arr = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr, i32 0, i32 2

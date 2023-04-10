@@ -33,7 +33,7 @@ val add_external :
   loc -> typ -> string -> string option -> closure:bool -> t -> t
 
 val module_cache : (string, (t, string) result) Hashtbl.t
-val poly_funcs : Typed_tree.toplevel_item list ref
+val poly_funcs : (Path.t option * Typed_tree.toplevel_item) list ref
 val paths : string list ref
 val prelude_path : string option ref
 val find_file : string -> string -> string

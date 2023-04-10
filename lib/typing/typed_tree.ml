@@ -63,7 +63,7 @@ and toplevel_item =
   | Tl_function of loc * string * int option * abstraction
   | Tl_expr of typed_expr
   | Tl_mutual_rec_decls of (string * int option * typ) list
-  | Tl_module of toplevel_item list
+  | Tl_module of (Path.t option * toplevel_item) list
 
 and func = { tparams : param list; ret : typ; kind : fun_kind }
 and arg = typed_expr * bool
@@ -83,4 +83,4 @@ let no_attr = { const = false; global = false; mut = false }
 
 exception Error of Ast.loc * string
 
-type t = { externals : Env.ext list; items : toplevel_item list }
+type t = { externals : Env.ext list; items : (Path.t option * toplevel_item) list }

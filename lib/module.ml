@@ -251,7 +251,7 @@ and canonexpr mname nsub sub = function
       let nsub = Smap.add n (absolute_module_name ~mname n) nsub in
       let sub, abs = canonabs mname sub nsub abs in
       let sub, cont = (canonbody mname nsub) sub cont in
-      (sub, Function (change_name n nsub, u, abs, cont))
+      (sub, Function (n, u, abs, cont))
   | Mutual_rec_decls (fs, cont) ->
       let sub, fs =
         List.fold_left_map
@@ -381,23 +381,17 @@ let rec map_item ~mname ~f = function
   | Mpoly_fun (l, abs, n, u) ->
       (* We ought to f here. Not only the type, but
          the body as well? *)
-      poly_funcs :=
-        (* Change name of poly func to module-unique name to prevent name clashes from
-           different modules *)
-        Typed_tree.Tl_function (l, absolute_module_name ~mname n, u, abs)
-        :: !poly_funcs;
+      (* Change name of poly func to module-unique name to prevent name clashes from
+         different modules *)
+      let item = (Some mname, Typed_tree.Tl_function (l, n, u, abs)) in
+      poly_funcs := item :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
       Mpoly_fun (l, abs, n, u)
   | Mmutual_rec (l, decls) ->
       let decls = List.map (fun (l, n, u, t) -> (l, n, u, f t)) decls in
-      let mname_decls =
-        List.map
-          (fun (_, n, u, t) ->
-            let nn = absolute_module_name ~mname n in
-            (nn, u, t))
-          decls
-      in
-      poly_funcs := Typed_tree.Tl_mutual_rec_decls mname_decls :: !poly_funcs;
+      let mname_decls = List.map (fun (_, n, u, t) -> (n, u, t)) decls in
+      let item = (Some mname, Typed_tree.Tl_mutual_rec_decls mname_decls) in
+      poly_funcs := item :: !poly_funcs;
       Mmutual_rec (l, decls)
   | Mmodule (l, name, t) ->
       Mmodule (l, name, map_t ~mname:(Path.append name mname) ~f t)

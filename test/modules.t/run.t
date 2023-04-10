@@ -255,7 +255,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optionf.i(%prelude.option_float* %thing) {
+  define i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* %thing) {
   entry:
     %tag1 = bitcast %prelude.option_float* %thing to i32*
     %index = load i32, i32* %tag1, align 4
@@ -271,7 +271,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optioni.i(%prelude.option_int* %thing) {
+  define i64 @__prelude.optiong.i_poly_func_classify_prelude.optioni.i(%prelude.option_int* %thing) {
   entry:
     %tag1 = bitcast %prelude.option_int* %thing to i32*
     %index = load i32, i32* %tag1, align 4
@@ -296,7 +296,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i32 0, i32* %tag6, align 4
     %data = getelementptr inbounds %prelude.option_int, %prelude.option_int* %option, i32 0, i32 1
     store i64 3, i64* %data, align 8
-    %0 = call i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optioni.i(%prelude.option_int* %option)
+    %0 = call i64 @__prelude.optiong.i_poly_func_classify_prelude.optioni.i(%prelude.option_int* %option)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
     %str1 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str1, align 8
@@ -305,12 +305,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i32 0, i32* %tag37, align 4
     %data4 = getelementptr inbounds %prelude.option_float, %prelude.option_float* %option2, i32 0, i32 1
     store double 3.000000e+00, double* %data4, align 8
-    %1 = call i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optionf.i(%prelude.option_float* %option2)
+    %1 = call i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* %option2)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
     store i32 1, i32* getelementptr inbounds (%prelude.option_float, %prelude.option_float* @schmu_none, i32 0, i32 0), align 4
     %str5 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str5, align 8
-    %2 = call i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optionf.i(%prelude.option_float* @schmu_none)
+    %2 = call i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* @schmu_none)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %2)
     ret i64 0
   }
@@ -331,7 +331,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optionf.i(%prelude.option_float* %thing) {
+  define i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* %thing) {
   entry:
     %tag1 = bitcast %prelude.option_float* %thing to i32*
     %index = load i32, i32* %tag1, align 4
@@ -347,7 +347,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optioni.i(%prelude.option_int* %thing) {
+  define i64 @__prelude.optiong.i_poly_func_classify_prelude.optioni.i(%prelude.option_int* %thing) {
   entry:
     %tag1 = bitcast %prelude.option_int* %thing to i32*
     %index = load i32, i32* %tag1, align 4
@@ -372,7 +372,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i32 0, i32* %tag6, align 4
     %data = getelementptr inbounds %prelude.option_int, %prelude.option_int* %option, i32 0, i32 1
     store i64 3, i64* %data, align 8
-    %0 = call i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optioni.i(%prelude.option_int* %option)
+    %0 = call i64 @__prelude.optiong.i_poly_func_classify_prelude.optioni.i(%prelude.option_int* %option)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %0)
     %str1 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str1, align 8
@@ -381,12 +381,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i32 0, i32* %tag37, align 4
     %data4 = getelementptr inbounds %prelude.option_float, %prelude.option_float* %option2, i32 0, i32 1
     store double 3.000000e+00, double* %data4, align 8
-    %1 = call i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optionf.i(%prelude.option_float* %option2)
+    %1 = call i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* %option2)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %1)
     store i32 1, i32* getelementptr inbounds (%prelude.option_float, %prelude.option_float* @schmu_none, i32 0, i32 0), align 4
     %str5 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %str5, align 8
-    %2 = call i64 @__prelude.optiong.i_schmu__poly_func_classify_prelude.optionf.i(%prelude.option_float* @schmu_none)
+    %2 = call i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* @schmu_none)
     call void @printf(i8* getelementptr inbounds ({ i64, i64, i64, [4 x i8] }, { i64, i64, i64, [4 x i8] }* @0, i64 0, i32 3, i64 0), i64 %2)
     ret i64 0
   }
@@ -498,30 +498,30 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define void @__agg.u.u_schmu__prelude_array-iter_aii.u.u(i64* %arr, %closure* %f) {
+  define void @__agg.u.u_prelude_array-iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
-    %__i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %__i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u to i8**
-    store i8* bitcast (void (i64, i8*)* @__i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
-    %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u = alloca { i64, i8*, i64*, %closure }, align 8
-    %arr1 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u, i32 0, i32 2
+    %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i8**
+    store i8* bitcast (void (i64, i8*)* @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
+    %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u = alloca { i64, i8*, i64*, %closure }, align 8
+    %arr1 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u, i32 0, i32 2
     store i64* %arr, i64** %arr1, align 8
-    %f2 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u, i32 0, i32 3
+    %f2 = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u, i32 0, i32 3
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %rc6 = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u to i64*
+    %rc6 = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i64*
     store i64 2, i64* %rc6, align 8
-    %dtor = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u, i32 0, i32 1
+    %dtor = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
-    %env = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u, i32 0, i32 1
+    %env = bitcast { i64, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u(i64 0, i8* %env)
+    call void @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u(i64 0, i8* %env)
     ret void
   }
   
-  define void @__i.u-ag-g.u_schmu__prelude_inner_i.u-ai-i.u(i64 %i, i8* %0) {
+  define void @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i64, i8*, i64*, %closure }*
     %arr = getelementptr inbounds { i64, i8*, i64*, %closure }, { i64, i8*, i64*, %closure }* %clsr, i32 0, i32 2
@@ -587,7 +587,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i8* bitcast (void (i64)* @schmu_printi to i8*), i8** %funptr1, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    call void @__agg.u.u_schmu__prelude_array-iter_aii.u.u(i64* %0, %closure* %clstmp)
+    call void @__agg.u.u_prelude_array-iter_aii.u.u(i64* %0, %closure* %clstmp)
     ret i64 0
   }
   
@@ -642,3 +642,7 @@ Test signature
        ^^^^^^^^^^^^^^^^^^^^^^
   
   [1]
+
+Polymorphic lambdas in modules
+  $ schmu -m poly_lambda.smu
+  $ schmu use_poly_lambda.smu

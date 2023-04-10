@@ -1159,7 +1159,7 @@ let rec catch_weak_vars = function
       catch_weak_expr Sset.empty e
   | Tl_function (_, _, _, abs) -> catch_weak_body Sset.empty abs
   | Tl_mutual_rec_decls _ -> ()
-  | Tl_module items -> List.iter catch_weak_vars items
+  | Tl_module items -> List.iter (fun (_, item) -> catch_weak_vars item) items
 
 and catch_weak_body sub abs =
   (* Allow the types present in the function signature *)
@@ -1232,9 +1232,6 @@ let rec convert_module env sign prog check_ret mname =
   (* Catch weak type variables *)
   List.iter catch_weak_vars items;
 
-  (* Add polymorphic functions from imported modules *)
-  let items = List.rev !Module.poly_funcs @ items in
-
   let _, _, unused = Env.close_function env in
   let has_sign = match sign with [] -> false | _ -> true in
   if (not (Option.is_some mname)) || has_sign then check_unused unused;
@@ -1289,6 +1286,7 @@ and convert_prog env items ~mname modul =
         (* TODO Fix these modules names *)
         Hashtbl.add module_cache (snd id) (Ok newm);
         let env = Env.add_module (snd id) env in
+        let moditems = List.map (fun item -> (mname, item)) moditems in
         let items = Tl_module moditems :: items in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
@@ -1389,15 +1387,20 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
 
   let externals, items, m = convert_module env sign prog check_ret mname in
 
+  (* Add polymorphic functions from imported modules *)
+  let items = List.map (fun item -> (mname, item)) items in
+  let items = List.rev !Module.poly_funcs @ items in
+
   (* print_endline (String.concat ", " (List.map string_of_type typeinsts)); *)
   let m = if Option.is_some mname then Some m else None in
   ({ externals; items }, m)
 
 let typecheck (prog : Ast.prog) =
   let rec get_last_type = function
-    | Tl_expr expr :: _ -> expr.typ
-    | ( Tl_function _ | Tl_let _ | Tl_bind _ | Tl_mutual_rec_decls _
-      | Tl_module _ )
+    | (_, Tl_expr expr) :: _ -> expr.typ
+    | ( _,
+        ( Tl_function _ | Tl_let _ | Tl_bind _ | Tl_mutual_rec_decls _
+        | Tl_module _ ) )
       :: tl ->
         get_last_type tl
     | [] -> Tunit
