@@ -1,0 +1,15 @@
+(def once& true)
+
+(defn black-box [f g]
+  (if once
+    (do (set &once false) f)
+    g))
+
+(def foo (fn [a] (print (fmt-str a " foo"))))
+(defn bar [a] (print (fmt-str a " bar")))
+
+-- function call returns a polymorphic function
+(def result (black-box foo bar))
+
+(result "a")
+(result 10)
