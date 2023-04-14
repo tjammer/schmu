@@ -169,7 +169,7 @@ end = struct
           typed_expr.return
         |> fin
     | Mfield (expr, index) -> gen_field param expr index |> fin
-    | Mset (expr, value) -> gen_set param expr value |> fin
+    | Mset (expr, value) -> gen_set param expr value
     | Mseq (expr, cont) -> gen_chain param expr cont
     | Mctor (ctor, allocref, id, const) ->
         gen_ctor param ctor typed_expr.typ allocref id const
@@ -177,13 +177,12 @@ end = struct
     | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
     | Mfmt (fmts, allocref, id) ->
         gen_fmt_str param fmts typed_expr.typ allocref id |> fin
-    | Mcopy { kind; temporary; expr; nm } ->
-        (match kind with
+    | Mcopy { kind; temporary; expr; nm } -> (
+        match kind with
         | Cglobal gn -> gen_copy_global param temporary gn expr
         | Cnormal mut -> gen_copy param temporary mut expr nm)
-        |> fin
-    | Mincr_ref expr -> gen_incr_ref param expr |> fin
-    | Mdecr_ref (id, expr) -> gen_decr_ref param id expr |> fin
+    | Mincr_ref expr -> gen_incr_ref param expr
+    | Mdecr_ref (id, expr) -> gen_decr_ref param id expr
 
   and gen_let param id equals cont vid =
     let expr_val = gen_expr param equals in

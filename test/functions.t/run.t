@@ -2830,7 +2830,6 @@ Function call returning a polymorphic function
     %3 = bitcast %closure* %f to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 16, i1 false)
     tail call void @__g.u_incr_rc_ac.u.u(%closure* %f)
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 16, i1 false)
     ret void
   
   else:                                             ; preds = %entry
@@ -2838,7 +2837,6 @@ Function call returning a polymorphic function
     %5 = bitcast %closure* %g to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 16, i1 false)
     tail call void @__g.u_incr_rc_ac.u.u(%closure* %g)
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 16, i1 false)
     ret void
   }
   
@@ -2853,7 +2851,6 @@ Function call returning a polymorphic function
     %3 = bitcast %closure* %f to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 16, i1 false)
     tail call void @__g.u_incr_rc_i.u.u(%closure* %f)
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 16, i1 false)
     ret void
   
   else:                                             ; preds = %entry
@@ -2861,7 +2858,6 @@ Function call returning a polymorphic function
     %5 = bitcast %closure* %g to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 16, i1 false)
     tail call void @__g.u_incr_rc_i.u.u(%closure* %g)
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 16, i1 false)
     ret void
   }
   
