@@ -629,12 +629,13 @@ module Make (C : Core) (R : Recs) = struct
 
     (* Make sure no fields are missing *)
     (if not (Set.is_empty !fset) then
-     let missing = Set.choose !fset in
-     let msg =
-       Printf.sprintf
-         "There are missing fields in record pattern, for instance :%s" missing
-     in
-     raise (Error (loc, msg)));
+       let missing = Set.choose !fset in
+       let msg =
+         Printf.sprintf
+           "There are missing fields in record pattern, for instance :%s"
+           missing
+       in
+       raise (Error (loc, msg)));
     index_fields
 
   (* from containers *)

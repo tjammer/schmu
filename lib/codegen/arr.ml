@@ -366,10 +366,10 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
       | Tarray _ ->
           let item_type = item_type v.typ in
           (if contains_refcount item_type then
-           let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
-           let sz = Llvm.build_load sz "size" builder in
+             let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
+             let sz = Llvm.build_load sz "size" builder in
 
-           iter_array_children v sz item_type decr_refcount);
+             iter_array_children v sz item_type decr_refcount);
 
           ignore (free int_ptr)
       | Tfun _ ->

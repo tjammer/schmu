@@ -83,4 +83,7 @@ let no_attr = { const = false; global = false; mut = false }
 
 exception Error of Ast.loc * string
 
-type t = { externals : Env.ext list; items : (Path.t option * toplevel_item) list }
+type t = {
+  externals : Env.ext list;
+  items : (Path.t option * toplevel_item) list;
+}

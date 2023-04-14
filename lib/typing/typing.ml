@@ -194,15 +194,15 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_id t ->
         let t = find env (Path.Pid t) "" in
         (if not in_list then
-         match is_quantified t with
-         | Some (name, n) ->
-             let msg =
-               Printf.sprintf "Type %s expects %i type parameter%s"
-                 (Path.show name) n
-                 (if n > 1 then "s" else "")
-             in
-             raise (Error (loc, msg))
-         | None -> ());
+           match is_quantified t with
+           | Some (name, n) ->
+               let msg =
+                 Printf.sprintf "Type %s expects %i type parameter%s"
+                   (Path.show name) n
+                   (if n > 1 then "s" else "")
+               in
+               raise (Error (loc, msg))
+           | None -> ());
         t
     | Ty_var id when typedef -> find env id "'"
     | Ty_var id ->
@@ -979,8 +979,8 @@ end = struct
     let valexpr = convert env value in
 
     (if not toset.attr.mut then
-     let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
-     raise (Error (eloc, msg)));
+       let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
+       raise (Error (eloc, msg)));
     unify (loc, "Mutate:") toset.typ valexpr.typ;
     { typ = Tunit; expr = Set (toset, valexpr); attr = no_attr; loc }
 
@@ -1283,13 +1283,14 @@ let rec convert_module env sign prog check_ret mname =
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
-   match clean last_type with
-   | Tunit | Tint -> ()
-   | _ ->
-       let msg =
-         "Module must return type int or unit, not " ^ string_of_type last_type
-       in
-       raise (Error (!last_loc, msg)));
+     match clean last_type with
+     | Tunit | Tint -> ()
+     | _ ->
+         let msg =
+           "Module must return type int or unit, not "
+           ^ string_of_type last_type
+         in
+         raise (Error (!last_loc, msg)));
   (externals, items, m)
 
 and convert_prog env items ~mname modul =
