@@ -19,6 +19,8 @@ and sg_kind = Stypedef | Svalue
 and sig_item = Path.t * loc * typ * sg_kind [@@deriving sexp]
 and t = { s : sig_item list; i : item list }
 
+type cache_kind = Cfile of string | Clocal of Path.t
+
 let t_of_sexp s =
   pair_of_sexp (list_of_sexp sig_item_of_sexp) (list_of_sexp item_of_sexp) s
   |> fun (s, i) -> { s; i }
@@ -108,7 +110,9 @@ let find_file name suffix =
     | p :: tl ->
         let file = p // name in
         if Sys.file_exists file then file else path tl
-    | [] -> raise Not_found
+    | [] ->
+        print_endline name;
+        raise Not_found
   in
   let file = path !paths in
   if String.starts_with ~prefix:"prelude" name then prelude_path := Some file;
@@ -455,19 +459,27 @@ and canonize_t mname m =
 
 let read_module ~regeneralize name =
   match Hashtbl.find_opt module_cache name with
-  | Some r -> r
+  | Some r -> Ok r
   | None -> (
       (* TODO figure out nested local opens *)
       try
         let c = open_in (find_file name ".smi") in
-        let r =
-          Result.map t_of_sexp (Sexp.input c)
-          |> Result.map (map_t ~mname:(Path.Pid name) ~f:regeneralize)
+        let m =
+          match Sexp.input c |> Result.map t_of_sexp with
+          | Ok t ->
+              close_in c;
+              let mname = Path.Pid name in
+              let m = (Cfile name, map_t ~mname ~f:regeneralize t) in
+              Hashtbl.add module_cache name m;
+              Ok m
+          | Error _ ->
+              close_in c;
+              Error ("Could not deserialize file: " ^ name)
         in
-        close_in c;
-        Hashtbl.add module_cache name r;
-        r
+        m
       with Not_found -> Error ("Could not open file: " ^ name))
+
+let modpath_of_kind = function Clocal p -> p | Cfile name -> Path.Pid name
 
 let find_module env ~regeneralize name loc =
   (* We first search the env for local modules. Then we try read the module the normal way *)
@@ -475,7 +487,7 @@ let find_module env ~regeneralize name loc =
     match Env.find_module_opt name env with
     | Some name -> (
         match Hashtbl.find_opt module_cache name with
-        | Some r -> r
+        | Some r -> Ok r
         | None ->
             let msg =
               Printf.sprintf "Module %s should be local but cannot be found"
@@ -485,7 +497,7 @@ let find_module env ~regeneralize name loc =
     | None -> read_module ~regeneralize name
   in
   match r with
-  | Ok m -> m
+  | Ok (kind, m) -> (modpath_of_kind kind, m)
   | Error s ->
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Typed_tree.Error (loc, msg))
@@ -585,8 +597,7 @@ and mod_abs f abs =
   in
   { abs with body; func }
 
-let add_to_env env mname m =
-  let mname = Path.Pid mname in
+let add_to_env env (mname, m) =
   match m.s with
   | [] ->
       List.fold_left

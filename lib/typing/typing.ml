@@ -225,7 +225,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Path.Pid _ as id -> find env id ""
     | Path.Pmod (md, tl) ->
         let modul = Module.find_module env ~regeneralize md loc in
-        let env = Module.add_to_env env md modul in
+        let env = Module.add_to_env env modul in
         import_path loc env tl
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
@@ -1021,8 +1021,7 @@ end = struct
   and convert_open env loc md expr =
     let modul = Module.find_module env ~regeneralize md loc in
     let env =
-      Module.add_to_env (Env.open_module env loc md) md modul
-      |> Env.finish_module
+      Module.add_to_env (Env.open_module env loc md) modul |> Env.finish_module
     in
     let r = convert env expr in
     ignore (Env.close_module env);
@@ -1136,9 +1135,7 @@ end = struct
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Open (loc, mname) :: tl ->
           let modul = Module.find_module env ~regeneralize mname loc in
-          let env =
-            Module.add_to_env (Env.open_module env loc mname) mname modul
-          in
+          let env = Module.add_to_env (Env.open_module env loc mname) modul in
           let cont, env = to_expr (Env.finish_module env) old_type tl in
           (cont, Env.close_module env)
     in
@@ -1326,11 +1323,11 @@ and convert_prog env items ~mname modul =
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
         let mname = Some (Path.append (snd id) (generate_module_path mname)) in
+        (match mname with
+        | Some p -> print_endline (Path.show p)
+        | None -> print_endline "none");
         let _, moditems, newm = convert_module env sign prog true mname in
-        let s = ref S.empty in
-        let newm = make_module s (Path.Pid (snd id)) newm in
-        (* TODO Fix these modules names *)
-        Hashtbl.add module_cache (snd id) (Ok newm);
+        Hashtbl.add module_cache (snd id) (Clocal (Option.get mname), newm);
         let env = Env.add_module (snd id) env in
         let moditems = List.map (fun item -> (mname, item)) moditems in
         let items = Tl_module moditems :: items in
@@ -1397,9 +1394,7 @@ and convert_prog env items ~mname modul =
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
     | Open (loc, mname) ->
         let modul = Module.find_module env ~regeneralize mname loc in
-        let env =
-          Module.add_to_env (Env.open_module env loc mname) mname modul
-        in
+        let env = Module.add_to_env (Env.open_module env loc mname) modul in
         (old, Env.finish_module env, items, m)
   in
 
@@ -1427,7 +1422,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
   let env =
     if prelude then
       let prelude = Module.find_module env ~regeneralize "prelude" loc in
-      Module.add_to_env env "prelude" prelude
+      Module.add_to_env env prelude
     else env
   in
 

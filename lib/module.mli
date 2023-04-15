@@ -32,14 +32,19 @@ val add_rec_block :
 val add_external :
   loc -> typ -> string -> string option -> closure:bool -> t -> t
 
-val module_cache : (string, (t, string) result) Hashtbl.t
+type cache_kind = Cfile of string | Clocal of Path.t
+
+val module_cache : (string, cache_kind * t) Hashtbl.t
 val poly_funcs : (Path.t option * Typed_tree.toplevel_item) list ref
 val paths : string list ref
 val prelude_path : string option ref
 val find_file : string -> string -> string
-val find_module : Env.t -> regeneralize:(typ -> typ) -> string -> Ast.loc -> t
+
+val find_module :
+  Env.t -> regeneralize:(typ -> typ) -> string -> Ast.loc -> Path.t * t
+
 val make_module : S.t ref -> Path.t -> t -> t
-val add_to_env : Env.t -> string -> t -> Env.t
+val add_to_env : Env.t -> Path.t * t -> Env.t
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
 val validate_signature : Env.t -> t -> t
