@@ -5,7 +5,7 @@ module S = Set.Make (Path)
 module M = Map.Make (Path)
 
 type loc = Typed_tree.loc [@@deriving sexp]
-and name = { user : string; call : string }
+and name = { user : string; call : string; module_var : string }
 
 and item =
   | Mtype of loc * typ
@@ -68,10 +68,11 @@ let add_fun loc ~mname name uniq (abs : Typed_tree.abstraction) m =
     { m with i = Mpoly_fun (loc, abs, name, uniq) :: m.i }
   else
     let call = unique_name ~mname name uniq in
-    {
-      m with
-      i = Mfun (loc, type_of_func abs.func, { user = name; call }) :: m.i;
-    }
+    let module_var =
+      absolute_module_name ~mname:(generate_module_path mname) name
+    in
+    let name = { user = name; call; module_var } in
+    { m with i = Mfun (loc, type_of_func abs.func, name) :: m.i }
 
 let add_rec_block loc ~mname funs m =
   let m's =
@@ -86,10 +87,14 @@ let add_rec_block loc ~mname funs m =
     (fun m (loc, n, u, abs) -> add_fun ~mname loc n u abs m)
     { m with i } funs
 
-let add_external loc t name cname ~closure m =
+let add_external loc t name ~mname cname ~closure m =
   let closure = match clean t with Tfun _ -> closure | _ -> false in
   let call = match cname with Some s -> s | None -> name in
-  { m with i = Mext (loc, t, { user = name; call }, closure) :: m.i }
+  let module_var =
+    absolute_module_name ~mname:(generate_module_path mname) name
+  in
+  let name = { user = name; call; module_var } in
+  { m with i = Mext (loc, t, name, closure) :: m.i }
 
 let module_cache = Hashtbl.create 64
 (* TODO sort by insertion order *)

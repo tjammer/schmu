@@ -1301,7 +1301,7 @@ and convert_prog env items ~mname modul =
     | Ext_decl (loc, (idloc, id), typ, cname) ->
         let typ = typeof_annot env loc typ in
         block_external_name loc ~cname id;
-        let m = Module.add_external loc typ id cname ~closure:false m in
+        let m = Module.add_external ~mname loc typ id cname ~closure:false m in
         ( Env.add_external id ~cname typ ~imported:None idloc ~closure:false env,
           items,
           m )
@@ -1323,10 +1323,9 @@ and convert_prog env items ~mname modul =
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
         let mname = Some (Path.append (snd id) (generate_module_path mname)) in
-        (match mname with
-        | Some p -> print_endline (Path.show p)
-        | None -> print_endline "none");
         let _, moditems, newm = convert_module env sign prog true mname in
+        let s = ref S.empty in
+        let newm = make_module s (Path.Pid (snd id)) newm in
         Hashtbl.add module_cache (snd id) (Clocal (Option.get mname), newm);
         let env = Env.add_module (snd id) env in
         let moditems = List.map (fun item -> (mname, item)) moditems in
@@ -1341,7 +1340,10 @@ and convert_prog env items ~mname modul =
         let uniq = uniq_name id in
         (* Make string option out of int option for unique name *)
         let uniq_name = Some (Module.unique_name ~mname id uniq) in
-        let m = Module.add_external loc lhs.typ id uniq_name ~closure:true m in
+        (* TODO special handling for lambdas *)
+        let m =
+          Module.add_external ~mname loc lhs.typ id uniq_name ~closure:true m
+        in
         let expr =
           let expr = Tl_let (id, uniq, lhs) in
           match pats with

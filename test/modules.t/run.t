@@ -16,7 +16,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %add
   }
   $ cat nonpoly_func.smi
-  (()((5:Mtype(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:28)))(8:Tvariant()19:nonpoly_func/either(((5:cname4:left)(4:ctyp())(5:index1:0))((5:cname5:right)(4:ctyp())(5:index1:1)))))(4:Mfun(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:30)(8:pos_cnum2:31))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:5)(7:pos_bol2:64)(8:pos_cnum2:73)))(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)((4:user8:add_ints)(4:call21:nonpoly_func_add_ints)))))
+  (()((5:Mtype(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:28)))(8:Tvariant()19:nonpoly_func/either(((5:cname4:left)(4:ctyp())(5:index1:0))((5:cname5:right)(4:ctyp())(5:index1:1)))))(4:Mfun(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:30)(8:pos_cnum2:31))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:5)(7:pos_bol2:64)(8:pos_cnum2:73)))(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)((4:user8:add_ints)(4:call21:nonpoly_func_add_ints)(10:module_var22:_nonpoly_func_add_ints)))))
 
   $ schmu open_nonpoly_func.smu --dump-llvm && ./open_nonpoly_func
   ; ModuleID = 'context'
@@ -197,7 +197,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   21
 
   $ cat lets.smi
-  (()((4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:1))((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:9)))4:Tint((4:user1:a)(4:call6:lets_a))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:13))((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:48)))(4:Tfun(((2:pt(6:Talias12:prelude/cstr(8:Traw_ptr3:Tu8)))(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))5:Tunit6:Simple)((4:user6:printf)(4:call6:printf))5:false)(4:Mfun(((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:52))((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:73)))(4:Tfun()4:Tint6:Simple)((4:user10:generate_b)(4:call15:lets_generate_b)))(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:77))((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:95)))4:Tint((4:user1:b)(4:call6:lets_b))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum2:99))((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum3:107)))4:Tint((4:user1:a)(4:call9:lets_a__2))5:false)))
+  (()((4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:1))((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:9)))4:Tint((4:user1:a)(4:call6:lets_a)(10:module_var7:_lets_a))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:13))((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:48)))(4:Tfun(((2:pt(6:Talias12:prelude/cstr(8:Traw_ptr3:Tu8)))(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))5:Tunit6:Simple)((4:user6:printf)(4:call6:printf)(10:module_var12:_lets_printf))5:false)(4:Mfun(((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:52))((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:73)))(4:Tfun()4:Tint6:Simple)((4:user10:generate_b)(4:call15:lets_generate_b)(10:module_var16:_lets_generate_b)))(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:77))((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:95)))4:Tint((4:user1:b)(4:call6:lets_b)(10:module_var7:_lets_b))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum2:99))((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum3:107)))4:Tint((4:user1:a)(4:call9:lets_a__2)(10:module_var7:_lets_a))5:false)))
 
   $ schmu local_open_lets.smu --dump-llvm && ./local_open_lets
   ; ModuleID = 'context'
@@ -479,7 +479,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   declare void @free(i8* %0)
 
   $ cat malloc_some.smi
-  (()((5:Mtype(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:32)))(8:Tvariant()18:malloc_some/either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:34)(8:pos_cnum2:35))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:34)(8:pos_cnum2:62)))(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)((4:user8:add_ints)(4:call20:malloc_some_add_ints)))(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:65)(8:pos_cnum2:66))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:65)(8:pos_cnum2:74)))4:Tint((4:user1:a)(4:call13:malloc_some_a))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:77)(8:pos_cnum2:78))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:77)(8:pos_cnum2:98)))4:Tint((4:user1:b)(4:call13:malloc_some_b))5:false)(9:Mpoly_fun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:102))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115)))((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(3:Var1:x))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:114))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115))))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(4:pmut5:false))))(3:ret(4:Qvar1:1))(4:kind6:Simple)))(6:inline5:false))2:id())(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:118)(8:pos_cnum3:119))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:118)(8:pos_cnum3:134)))(6:Tarray4:Tint)((4:user5:vtest)(4:call17:malloc_some_vtest))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:136)(8:pos_cnum3:137))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:136)(8:pos_cnum3:151)))(6:Tarray4:Tint)((4:user6:vtest2)(4:call18:malloc_some_vtest2))5:false)))
+  (()((5:Mtype(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:32)))(8:Tvariant()18:malloc_some/either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:34)(8:pos_cnum2:35))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:34)(8:pos_cnum2:62)))(4:Tfun(((2:pt4:Tint)(4:pmut5:false))((2:pt4:Tint)(4:pmut5:false)))4:Tint6:Simple)((4:user8:add_ints)(4:call20:malloc_some_add_ints)(10:module_var21:_malloc_some_add_ints)))(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:65)(8:pos_cnum2:66))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:65)(8:pos_cnum2:74)))4:Tint((4:user1:a)(4:call13:malloc_some_a)(10:module_var14:_malloc_some_a))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:77)(8:pos_cnum2:78))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:77)(8:pos_cnum2:98)))4:Tint((4:user1:b)(4:call13:malloc_some_b)(10:module_var14:_malloc_some_b))5:false)(9:Mpoly_fun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:102))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115)))((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(3:Var1:x))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:114))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115))))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(4:pmut5:false))))(3:ret(4:Qvar1:1))(4:kind6:Simple)))(6:inline5:false))2:id())(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:118)(8:pos_cnum3:119))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:118)(8:pos_cnum3:134)))(6:Tarray4:Tint)((4:user5:vtest)(4:call17:malloc_some_vtest)(10:module_var18:_malloc_some_vtest))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:136)(8:pos_cnum3:137))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:136)(8:pos_cnum3:151)))(6:Tarray4:Tint)((4:user6:vtest2)(4:call18:malloc_some_vtest2)(10:module_var19:_malloc_some_vtest2))5:false)))
 
   $ schmu use_malloc_some.smu --dump-llvm && ./use_malloc_some
   use_malloc_some.smu:3:7: warning: Unused binding do_something
@@ -646,3 +646,101 @@ Test signature
 Polymorphic lambdas in modules
   $ schmu -m poly_lambda.smu
   $ schmu use_poly_lambda.smu
+
+
+Local modules
+  $ schmu --dump-llvm local_module.smu && valgrind -q --leak-check=yes --show-reachable=yes ./local_module
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  @0 = private unnamed_addr global { i64, i64, i64, [12 x i8] } { i64 2, i64 11, i64 11, [12 x i8] c"hey poly %s\00" }
+  @1 = private unnamed_addr global { i64, i64, i64, [10 x i8] } { i64 2, i64 9, i64 9, [10 x i8] c"hey thing\00" }
+  @2 = private unnamed_addr global { i64, i64, i64, [9 x i8] } { i64 2, i64 8, i64 8, [9 x i8] c"hey test\00" }
+  @3 = private unnamed_addr global { i64, i64, i64, [5 x i8] } { i64 2, i64 4, i64 4, [5 x i8] c"test\00" }
+  
+  declare void @prelude_print(i8* %0)
+  
+  define void @__g.u_schmu_local_poly-test_ac.u(i8* %a) {
+  entry:
+    %0 = getelementptr i8, i8* %a, i64 24
+    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [12 x i8] }* @0 to i8*), i64 24), i8* %0)
+    %1 = add i32 %fmtsize, 25
+    %2 = sext i32 %1 to i64
+    %3 = tail call i8* @malloc(i64 %2)
+    %4 = bitcast i8* %3 to i64*
+    store i64 1, i64* %4, align 8
+    %size = getelementptr i64, i64* %4, i64 1
+    %5 = sext i32 %fmtsize to i64
+    store i64 %5, i64* %size, align 8
+    %cap = getelementptr i64, i64* %4, i64 2
+    store i64 %5, i64* %cap, align 8
+    %data = getelementptr i64, i64* %4, i64 3
+    %6 = bitcast i64* %data to i8*
+    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %6, i64 %2, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [12 x i8] }* @0 to i8*), i64 24), i8* %0)
+    %str = alloca i8*, align 8
+    store i8* %3, i8** %str, align 8
+    tail call void @prelude_print(i8* %3)
+    tail call void @__g.u_decr_rc_ac.u(i8* %3)
+    ret void
+  }
+  
+  define void @schmu_local_test__2() {
+  entry:
+    %str = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [10 x i8] }* @1 to i8*), i8** %str, align 8
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [10 x i8] }* @1 to i8*))
+    ret void
+  }
+  
+  define void @schmu_test() {
+  entry:
+    %str = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [9 x i8] }* @2 to i8*), i8** %str, align 8
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [9 x i8] }* @2 to i8*))
+    ret void
+  }
+  
+  declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
+  
+  declare i8* @malloc(i64 %0)
+  
+  define internal void @__g.u_decr_rc_ac.u(i8* %0) {
+  entry:
+    %ref = bitcast i8* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %1 = icmp eq i64 %ref2, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i8* %0 to i64*
+    %3 = bitcast i64* %2 to i64*
+    %4 = sub i64 %ref2, 1
+    store i64 %4, i64* %3, align 8
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %5 = bitcast i8* %0 to i64*
+    %6 = bitcast i64* %5 to i8*
+    call void @free(i8* %6)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
+    ret void
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    tail call void @schmu_test()
+    tail call void @schmu_local_test__2()
+    %str = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @3 to i8*), i8** %str, align 8
+    tail call void @__g.u_schmu_local_poly-test_ac.u(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @3 to i8*))
+    ret i64 0
+  }
+  
+  declare void @free(i8* %0)
+  hey test
+  hey thing
+  hey poly test

@@ -1686,13 +1686,7 @@ let rec morph_toplvl param items =
           func )
     | Tl_module mitems ->
         let p, _, _ = morph_toplvl param mitems in
-        aux
-          {
-            param with
-            funcs = Fset.union param.funcs p.funcs;
-            monomorphized = Set.union param.monomorphized p.monomorphized;
-          }
-          tl
+        aux p tl
   in
   aux param items
 

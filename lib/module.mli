@@ -30,7 +30,7 @@ val add_rec_block :
   t
 
 val add_external :
-  loc -> typ -> string -> string option -> closure:bool -> t -> t
+  loc -> typ -> string -> mname:Path.t option -> string option -> closure:bool -> t -> t
 
 type cache_kind = Cfile of string | Clocal of Path.t
 
