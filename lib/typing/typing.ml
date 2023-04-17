@@ -24,15 +24,15 @@ module Pm = Patternmatching
  *)
 
 let fmt_msg_fn : msg_fn option ref = ref None
-let uniq_tbl = Strtbl.create 1
+let uniq_tbl = ref (Strtbl.create 64)
 
 let uniq_name name =
-  match Strtbl.find_opt uniq_tbl name with
+  match Strtbl.find_opt !uniq_tbl name with
   | None ->
-      Strtbl.add uniq_tbl name 1;
+      Strtbl.add !uniq_tbl name 1;
       None
   | Some n ->
-      Strtbl.replace uniq_tbl name (n + 1);
+      Strtbl.replace !uniq_tbl name (n + 1);
       Some (n + 1)
 
 let lambda_id_state = ref 0
@@ -47,7 +47,7 @@ let reset_type_vars () =
   Inference.reset ();
   reset lambda_id_state;
   (* Not a type var, but needs resetting as well *)
-  Strtbl.clear uniq_tbl
+  Strtbl.clear !uniq_tbl
 
 let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
@@ -1155,10 +1155,10 @@ let block_external_name loc ~cname id =
      If there already is a function, there is nothing we can do right now,
      so we error *)
   let name = match cname with Some name -> name | None -> id in
-  match Strtbl.find_opt uniq_tbl name with
+  match Strtbl.find_opt !uniq_tbl name with
   | None ->
       (* Good, block this name. NOTE see [uniq_name] *)
-      Strtbl.add uniq_tbl name 1
+      Strtbl.add !uniq_tbl name 1
   | Some _ ->
       let msg =
         Printf.sprintf
@@ -1323,7 +1323,18 @@ and convert_prog env items ~mname modul =
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
         let mname = Some (Path.append (snd id) (generate_module_path mname)) in
+
+        (* Save uniq_tbl state as well as lambda state *)
+        let uniq_tbl_bk = !uniq_tbl in
+        uniq_tbl := Strtbl.create 64;
+        let lambda_id_state_bk = !lambda_id_state in
+        reset lambda_id_state;
+
         let _, moditems, newm = convert_module env sign prog true mname in
+
+        uniq_tbl := uniq_tbl_bk;
+        lambda_id_state := lambda_id_state_bk;
+
         let s = ref S.empty in
         let newm = make_module s (Path.Pid (snd id)) newm in
         Hashtbl.add module_cache (snd id) (Clocal (Option.get mname), newm);

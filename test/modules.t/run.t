@@ -685,7 +685,7 @@ Local modules
     ret void
   }
   
-  define void @schmu_local_test__2() {
+  define void @schmu_local_test() {
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [10 x i8] }* @1 to i8*), i8** %str, align 8
@@ -733,7 +733,7 @@ Local modules
   define i64 @main(i64 %arg) {
   entry:
     tail call void @schmu_test()
-    tail call void @schmu_local_test__2()
+    tail call void @schmu_local_test()
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @3 to i8*), i8** %str, align 8
     tail call void @__g.u_schmu_local_poly-test_ac.u(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @3 to i8*))
