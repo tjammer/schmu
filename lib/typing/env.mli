@@ -84,6 +84,7 @@ val close_mutation : t -> unit
 (* bool: in signature *)
 val find_type_opt : Path.t -> t -> (typ * bool) option
 val find_type : Path.t -> t -> typ * bool
+val find_type_same_module : Path.t -> t -> (typ * bool) option
 
 val query_type : instantiate:(typ -> typ) -> Path.t -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)

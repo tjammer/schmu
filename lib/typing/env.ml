@@ -453,6 +453,20 @@ let find_type_opt key env =
   aux env.values
 
 let find_type key env = find_type_opt key env |> Option.get
+
+let find_type_same_module key env =
+  (* Similar to [find_type_opt] but when we reach a Smodule scope and haven't found anything,
+     we return None. This only works because the toplevel has Sfunc instead of Smodule *)
+  let rec aux = function
+    | [] -> None
+    | scope :: tl -> (
+        match (Tmap.find_opt key scope.types, scope.kind) with
+        | None, Sfunc _ -> None
+        | None, _ -> aux tl
+        | Some t, _ -> Some t)
+  in
+  aux env.values
+
 let query_type ~instantiate key env = find_type key env |> fst |> instantiate
 
 let find_module_opt name env =

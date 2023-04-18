@@ -19,4 +19,17 @@
 (local/test)
 (local/poly-test "test")
 
--- (def (v local/t) 10)
+-- (module nosig
+--   (type t {:a float}))
+
+-- (def (test nosig/t) {:a 10.0})
+
+(module nosig
+  (type t {:a int})
+  (module nested
+    (type t u8)))
+
+(def (test nosig/t) {:a 10})
+(ignore test)
+-- (def (test nosig/nested/t) {:a 10})
+-- (ignore test)

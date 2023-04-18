@@ -30,7 +30,14 @@ val add_rec_block :
   t
 
 val add_external :
-  loc -> typ -> string -> mname:Path.t option -> string option -> closure:bool -> t -> t
+  loc ->
+  typ ->
+  string ->
+  mname:Path.t option ->
+  string option ->
+  closure:bool ->
+  t ->
+  t
 
 type cache_kind = Cfile of string | Clocal of Path.t
 
@@ -43,7 +50,7 @@ val find_file : string -> string -> string
 val find_module :
   Env.t -> regeneralize:(typ -> typ) -> string -> Ast.loc -> Path.t * t
 
-val make_module : S.t ref -> Path.t -> t -> t
+val adjust_type_names : S.t ref -> Path.t -> t -> t
 val add_to_env : Env.t -> Path.t * t -> Env.t
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list

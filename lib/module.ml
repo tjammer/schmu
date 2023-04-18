@@ -613,6 +613,8 @@ let add_to_env env (mname, m) =
                 (( Trecord (_, Some name, _)
                  | Tvariant (_, name, _)
                  | Talias (name, _) ) as t) ) ->
+              (* For local module, remove 'schmu' from path *)
+              let mname = Path.rm_name (generate_module_path None) mname in
               Env.add_type name (Amodule mname) t env
           | Mtype (_, t) ->
               failwith
@@ -657,7 +659,7 @@ let add_to_env env (mname, m) =
                   loc env))
         env l
 
-let rec make_module sub name m =
+let rec adjust_type_names sub name m =
   let s t =
     match extr_name t with Some p -> sub := S.add p !sub | None -> ()
   in
@@ -687,7 +689,7 @@ let rec make_module sub name m =
              in
              Mmutual_rec (l, ds)
          | Mmodule (loc, n, t) ->
-             let t = make_module sub (Path.append n name) t in
+             let t = adjust_type_names sub (Path.append n name) t in
              Mmodule (loc, n, t))
   in
 
@@ -702,7 +704,7 @@ let rec make_module sub name m =
 let to_channel c ~outname m =
   let s = ref S.empty in
   m
-  |> make_module s (Path.Pid outname)
+  |> adjust_type_names s (Path.Pid outname)
   |> canonize_t (Path.Pid outname)
   |> sexp_of_t |> Sexp.to_channel c
 

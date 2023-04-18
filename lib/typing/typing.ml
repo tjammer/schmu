@@ -343,7 +343,7 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
   (env, ids, qparams, ret)
 
 let check_type_unique env loc ~in_sig name typ =
-  match Env.find_type_opt name env with
+  match Env.find_type_same_module name env with
   (* It's ok to have a type both in signature and impl *)
   | Some (_, insig) when Bool.equal in_sig insig ->
       let msg =
@@ -1319,10 +1319,13 @@ and convert_prog env items ~mname modul =
         (env, items, m)
     | Typedef (loc, Tabstract _) ->
         raise (Error (loc, "Abstract types need a concrete implementation"))
-    | Module (id, sign, prog) ->
+    | Module ((_, id), sign, prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
-        let mname = Some (Path.append (snd id) (generate_module_path mname)) in
+        let adjust_name =
+          match mname with Some m -> Path.append id m | None -> Path.Pid id
+        in
+        let mname = Some (Path.append id (generate_module_path mname)) in
 
         (* Save uniq_tbl state as well as lambda state *)
         let uniq_tbl_bk = !uniq_tbl in
@@ -1330,15 +1333,16 @@ and convert_prog env items ~mname modul =
         let lambda_id_state_bk = !lambda_id_state in
         reset lambda_id_state;
 
-        let _, moditems, newm = convert_module env sign prog true mname in
+        let tempenv = Env.open_function env in
+        let _, moditems, newm = convert_module tempenv sign prog true mname in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
 
         let s = ref S.empty in
-        let newm = make_module s (Path.Pid (snd id)) newm in
-        Hashtbl.add module_cache (snd id) (Clocal (Option.get mname), newm);
-        let env = Env.add_module (snd id) env in
+        let newm = Module.adjust_type_names s adjust_name newm in
+        Hashtbl.add module_cache id (Clocal (Option.get mname), newm);
+        let env = Env.add_module id env in
         let moditems = List.map (fun item -> (mname, item)) moditems in
         let items = Tl_module moditems :: items in
         (env, items, m)

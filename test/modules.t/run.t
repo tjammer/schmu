@@ -654,6 +654,9 @@ Local modules
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %nosig.t = type { i64 }
+  
+  @schmu_test__2 = constant %nosig.t { i64 10 }
   @0 = private unnamed_addr global { i64, i64, i64, [12 x i8] } { i64 2, i64 11, i64 11, [12 x i8] c"hey poly %s\00" }
   @1 = private unnamed_addr global { i64, i64, i64, [10 x i8] } { i64 2, i64 9, i64 9, [10 x i8] c"hey thing\00" }
   @2 = private unnamed_addr global { i64, i64, i64, [9 x i8] } { i64 2, i64 8, i64 8, [9 x i8] c"hey test\00" }
