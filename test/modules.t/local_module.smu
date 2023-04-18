@@ -26,10 +26,11 @@
 
 (module nosig
   (type t {:a int})
+  (type other int)
   (module nested
-    (type t u8)))
+    (defn nested [] (print "i'm nested"))))
 
 (def (test nosig/t) {:a 10})
 (ignore test)
--- (def (test nosig/nested/t) {:a 10})
--- (ignore test)
+
+(nosig/nested/nested)

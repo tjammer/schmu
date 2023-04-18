@@ -210,7 +210,15 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         Qvar (Path.get_hd id)
     | Ty_func l -> handle_func env l
     | Ty_list l -> type_list env l
-    | Ty_open_id (loc, path) -> import_path loc env path
+    | Ty_open_id (loc, path) ->
+        let t = import_path loc env path in
+        (* Ensure that the whole path is used and not only a part of it *)
+        let name = extract_name_path t |> Option.get in
+        if not (Path.match_until_pid name path) then (
+          (* This should fail *)
+          ignore (find env path "");
+          failwith "Internal Error: Somehow the type is found");
+        t
     | Ty_tuple ts ->
         let fields =
           List.mapi
@@ -1322,9 +1330,6 @@ and convert_prog env items ~mname modul =
     | Module ((_, id), sign, prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
-        let adjust_name =
-          match mname with Some m -> Path.append id m | None -> Path.Pid id
-        in
         let mname = Some (Path.append id (generate_module_path mname)) in
 
         (* Save uniq_tbl state as well as lambda state *)
@@ -1340,7 +1345,7 @@ and convert_prog env items ~mname modul =
         lambda_id_state := lambda_id_state_bk;
 
         let s = ref S.empty in
-        let newm = Module.adjust_type_names s adjust_name newm in
+        let newm = Module.adjust_type_names s (Option.get mname) newm in
         Hashtbl.add module_cache id (Clocal (Option.get mname), newm);
         let env = Env.add_module id env in
         let moditems = List.map (fun item -> (mname, item)) moditems in

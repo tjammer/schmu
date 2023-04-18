@@ -659,8 +659,9 @@ Local modules
   @schmu_test__2 = constant %nosig.t { i64 10 }
   @0 = private unnamed_addr global { i64, i64, i64, [12 x i8] } { i64 2, i64 11, i64 11, [12 x i8] c"hey poly %s\00" }
   @1 = private unnamed_addr global { i64, i64, i64, [10 x i8] } { i64 2, i64 9, i64 9, [10 x i8] c"hey thing\00" }
-  @2 = private unnamed_addr global { i64, i64, i64, [9 x i8] } { i64 2, i64 8, i64 8, [9 x i8] c"hey test\00" }
-  @3 = private unnamed_addr global { i64, i64, i64, [5 x i8] } { i64 2, i64 4, i64 4, [5 x i8] c"test\00" }
+  @2 = private unnamed_addr global { i64, i64, i64, [11 x i8] } { i64 2, i64 10, i64 10, [11 x i8] c"i'm nested\00" }
+  @3 = private unnamed_addr global { i64, i64, i64, [9 x i8] } { i64 2, i64 8, i64 8, [9 x i8] c"hey test\00" }
+  @4 = private unnamed_addr global { i64, i64, i64, [5 x i8] } { i64 2, i64 4, i64 4, [5 x i8] c"test\00" }
   
   declare void @prelude_print(i8* %0)
   
@@ -696,11 +697,19 @@ Local modules
     ret void
   }
   
+  define void @schmu_nosig_nested_nested() {
+  entry:
+    %str = alloca i8*, align 8
+    store i8* bitcast ({ i64, i64, i64, [11 x i8] }* @2 to i8*), i8** %str, align 8
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [11 x i8] }* @2 to i8*))
+    ret void
+  }
+  
   define void @schmu_test() {
   entry:
     %str = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [9 x i8] }* @2 to i8*), i8** %str, align 8
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [9 x i8] }* @2 to i8*))
+    store i8* bitcast ({ i64, i64, i64, [9 x i8] }* @3 to i8*), i8** %str, align 8
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [9 x i8] }* @3 to i8*))
     ret void
   }
   
@@ -738,8 +747,9 @@ Local modules
     tail call void @schmu_test()
     tail call void @schmu_local_test()
     %str = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @3 to i8*), i8** %str, align 8
-    tail call void @__g.u_schmu_local_poly-test_ac.u(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @3 to i8*))
+    store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*), i8** %str, align 8
+    tail call void @__g.u_schmu_local_poly-test_ac.u(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*))
+    tail call void @schmu_nosig_nested_nested()
     ret i64 0
   }
   
@@ -747,3 +757,4 @@ Local modules
   hey test
   hey thing
   hey poly test
+  i'm nested

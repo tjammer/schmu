@@ -55,3 +55,10 @@ let rec add_left p = function
 let rec append name = function
   | Pid n -> Pmod (n, Pid name)
   | Pmod (n, tl) -> Pmod (n, append name tl)
+
+let rec match_until_pid l r =
+  match (l, r) with
+  | Pid _, Pid _ -> true
+  | Pmod (nl, pl), Pmod (nr, pr) when String.equal nl nr ->
+      match_until_pid pl pr
+  | Pmod _, Pmod _ | Pid _, Pmod _ | Pmod _, Pid _ -> false

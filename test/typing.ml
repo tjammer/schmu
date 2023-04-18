@@ -591,6 +591,24 @@ let test_signature_unparam_type () =
   (type (t 'a)))
 (type (t 'a) int)|}
 
+let local_module =
+  "(type t float) (module nosig (type t {:a int}) (type other int) (module \
+   nested (type t u8)))"
+
+let test_local_modules_find_local () =
+  test "unit" (local_module ^ " (def (test nosig/t) {:a 10})")
+
+let test_local_modules_find_nested () =
+  test "unit" (local_module ^ " (def (test nosig/nested/t) 0u8)")
+
+let test_local_modules_miss_local () =
+  test_exn "In let binding: Expected type float but got type nosig/t"
+    (local_module ^ " (def (test nosig/t) 10.0)")
+
+let test_nested_modules_miss_nested () =
+  test_exn "Expected a record type, not nosig/nested/t = u8"
+    (local_module ^ " (def (test nosig/nested/t) {:a 10})")
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -791,5 +809,12 @@ let () =
           case "generic" test_signature_generic;
           case "param mismatch" test_signature_param_mismatch;
           case "unparam type" test_signature_unparam_type;
+        ] );
+      ( "local modules",
+        [
+          case "find local" test_local_modules_find_local;
+          case "find nested" test_local_modules_find_nested;
+          case "miss local" test_local_modules_miss_local;
+          case "miss nested" test_nested_modules_miss_nested;
         ] );
     ]

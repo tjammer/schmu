@@ -660,6 +660,7 @@ let add_to_env env (mname, m) =
         env l
 
 let rec adjust_type_names sub name m =
+  let name = Path.rm_name (generate_module_path None) name in
   let s t =
     match extr_name t with Some p -> sub := S.add p !sub | None -> ()
   in
