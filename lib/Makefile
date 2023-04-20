@@ -15,7 +15,7 @@ libbyval.a: byval.o
 	${AR} rvs libbyval.a byval.o
 
 byval.o: byval.cpp configure.sh
-	${CXX} $(shell bash configure.sh 13) -I$(shell opam var ocaml:lib) -fPIC -c byval.cpp
+	${CXX} $(shell bash configure.sh 14) -I$(shell opam var ocaml:lib) -fPIC -c byval.cpp
 
 clean:
 	rm byval.o libbyval.a dllbyval.so

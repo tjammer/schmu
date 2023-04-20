@@ -5,41 +5,41 @@ description:
 maintainer: ["tobiasjammer@gmail.com"]
 authors: ["Tobias Mock"]
 depends: [
-  "base" {= "v0.15.0"}
+  "base" {= "v0.15.1"}
   "base-threads" {= "base"}
   "base-unix" {= "base"}
   "bigarray-compat" {= "1.1.0"}
+  "conf-bash" {= "1"}
   "conf-cmake" {= "1"}
-  "conf-llvm" {= "13.0.0"}
-  "conf-python-3" {= "1.0.0"}
+  "conf-llvm" {= "14.0.6"}
+  "conf-python-3" {= "9.0.0"}
   "cppo" {= "1.6.9"}
   "csexp" {= "1.5.1"}
-  "ctypes" {= "0.20.1"}
-  "dune" {= "3.3.1"}
-  "dune-configurator" {= "3.3.1"}
-  "dune-private-libs" {= "3.3.1"}
-  "dune-site" {= "3.3.1"}
-  "dyn" {= "3.3.1"}
+  "ctypes" {= "0.20.2"}
+  "dune" {= "3.7.1"}
+  "dune-configurator" {= "3.7.1"}
+  "dune-private-libs" {= "3.6.2"}
+  "dune-site" {= "3.6.2"}
+  "dyn" {= "3.6.2"}
   "integers" {= "0.7.0"}
-  "llvm" {= "13.0.0"}
+  "llvm" {= "14.0.6"}
   "menhir" {= "20220210"}
   "menhirLib" {= "20220210"}
   "menhirSdk" {= "20220210"}
   "ocaml" {= "4.14.0"}
   "ocaml-compiler-libs" {= "v0.12.4"}
-  "ocaml-config" {= "2"}
-  "ocamlfind" {= "1.9.5"}
-  "ordering" {= "3.3.1"}
+  "ocamlfind" {= "1.9.6"}
+  "ordering" {= "3.6.2"}
   "pp" {= "1.1.2"}
   "pp_loc" {= "2.1.0"}
   "ppx_derivers" {= "1.2.1"}
   "ppx_deriving" {= "5.2.1"}
   "ppx_sexp_conv" {= "v0.15.1"}
-  "ppxlib" {= "0.27.0"}
+  "ppxlib" {= "0.29.1"}
   "result" {= "1.5"}
   "sexplib0" {= "v0.15.1"}
   "stdlib-shims" {= "0.3.0"}
-  "stdune" {= "3.3.1"}
+  "stdune" {= "3.6.2"}
 ]
 build: [
   ["dune" "subst"] {dev}

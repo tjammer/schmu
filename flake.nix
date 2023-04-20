@@ -26,7 +26,7 @@
           packages = with pkgs; [
             gcc
             pkg-config
-            llvmPackages_13.libllvm
+            llvmPackages_14.libllvm
             cmake
             python38
             hyperfine
