@@ -341,11 +341,6 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     ignore (Llvm.build_store var.value value builder);
     { var with value }
 
-  (* [func_to_closure] but for function types *)
-  let tfun_to_closure = function
-    | Tfun (ps, ret, Simple) -> Tfun (ps, ret, Closure [])
-    | t -> t
-
   let is_prealloc allocref =
     match !allocref with Monomorph_tree.Preallocated -> true | _ -> false
 
@@ -507,9 +502,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
 
     (* Turn simple functions into empty closures, so they are handled correctly
        when passed *)
-    let typ = tfun_to_closure func.typ in
-
-    { value = clsr_struct; typ; lltyp = func.lltyp; kind = Ptr }
+    { value = clsr_struct; typ = func.typ; lltyp = func.lltyp; kind = Ptr }
 
   let add_closure vars func upward = function
     | Simple -> vars
@@ -680,28 +673,19 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         llvar
 
   let func_to_closure vars llvar =
-    (* TODO somewhere we don't convert into closure correctly. *)
-    if Llvm.type_of llvar.value = (closure_t |> Llvm.pointer_type) then llvar
-    else
-      match llvar.typ with
-      | Tfun (_, _, kind) -> pass_function vars llvar kind
-      | _ -> llvar
+    match (llvar.kind, llvar.typ) with
+    | Imm, Tfun (_, _, kind) -> pass_function vars llvar kind
+    | _ -> llvar
 
   (* Get monomorphized function *)
   let get_mono_func func param = function
     | Monomorph_tree.Mono name -> (
         let func = Vars.find name param.vars in
         (* Monomorphized functions are not yet converted to closures *)
-        match func.typ with
-        | Tfun (_, _, Closure assoc) ->
-            if Llvm.type_of func.value = (closure_t |> Llvm.pointer_type) then
-              func
-            else gen_closure_obj param assoc func "monoclstmp" no_prealloc
-        | Tfun (_, _, Simple) -> func
-        | _ ->
-            print_endline name;
-            print_endline (show_typ func.typ);
-            failwith "Internal Error: What are we applying?")
+        match (func.kind, func.typ) with
+        | Imm, Tfun (_, _, Closure assoc) ->
+            gen_closure_obj param assoc func "monoclstmp" no_prealloc
+        | _ -> func)
     | Concrete name -> Vars.find name param.vars
     | Recursive name -> Vars.find name.call param.vars
     | Default -> func
