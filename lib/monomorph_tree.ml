@@ -1690,8 +1690,16 @@ let rec morph_toplvl param items =
           },
           func )
     | Tl_module mitems ->
-        let p, _, _ = morph_toplvl param mitems in
-        aux p tl
+        let p, e, _ = morph_toplvl param mitems in
+        let p, cont, func = aux { p with ret = param.ret } tl in
+        ( p,
+          {
+            typ = cont.typ;
+            expr = Mseq (e, cont);
+            return = param.ret;
+            loc = e.loc;
+          },
+          func )
   in
   aux param items
 

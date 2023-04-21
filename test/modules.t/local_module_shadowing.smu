@@ -2,6 +2,7 @@
 
 (module a
   (type t int)
+  (print "i'm in a module")
   (module a
     (type t float)
     (def a 10)))

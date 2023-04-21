@@ -657,11 +657,12 @@ Local modules
   %nosig.t = type { i64 }
   
   @schmu_test__2 = constant %nosig.t { i64 10 }
+  @schmu_local_value = global i8* null, align 8
   @0 = private unnamed_addr global { i64, i64, i64, [12 x i8] } { i64 2, i64 11, i64 11, [12 x i8] c"hey poly %s\00" }
   @1 = private unnamed_addr global { i64, i64, i64, [10 x i8] } { i64 2, i64 9, i64 9, [10 x i8] c"hey thing\00" }
   @2 = private unnamed_addr global { i64, i64, i64, [11 x i8] } { i64 2, i64 10, i64 10, [11 x i8] c"i'm nested\00" }
   @3 = private unnamed_addr global { i64, i64, i64, [9 x i8] } { i64 2, i64 8, i64 8, [9 x i8] c"hey test\00" }
-  @4 = private unnamed_addr global { i64, i64, i64, [5 x i8] } { i64 2, i64 4, i64 4, [5 x i8] c"test\00" }
+  @4 = private unnamed_addr global { i64, i64, i64, [5 x i8] } { i64 3, i64 4, i64 4, [5 x i8] c"test\00" }
   
   declare void @prelude_print(i8* %0)
   
@@ -744,13 +745,27 @@ Local modules
   
   define i64 @main(i64 %arg) {
   entry:
+    store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*), i8** @schmu_local_value, align 8
+    tail call void @__g.u_incr_rc_ac.u(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*))
     tail call void @schmu_test()
     tail call void @schmu_local_test()
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*), i8** %str, align 8
     tail call void @__g.u_schmu_local_poly-test_ac.u(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*))
     tail call void @schmu_nosig_nested_nested()
+    %0 = load i8*, i8** @schmu_local_value, align 8
+    tail call void @__g.u_decr_rc_ac.u(i8* %0)
     ret i64 0
+  }
+  
+  define internal void @__g.u_incr_rc_ac.u(i8* %0) {
+  entry:
+    %ref = bitcast i8* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %1 = add i64 %ref2, 1
+    store i64 %1, i64* %ref13, align 8
+    ret void
   }
   
   declare void @free(i8* %0)
@@ -761,10 +776,11 @@ Local modules
 
 Fix shadowing for local modules
   $ schmu local_module_shadowing.smu && ./local_module_shadowing
-  local_module_shadowing.smu:11:1: warning: Unused module open a
-  11 | (open a)
+  local_module_shadowing.smu:12:1: warning: Unused module open a
+  12 | (open a)
        ^^^^^^^^
   
+  i'm in a module
   a
   a
   10

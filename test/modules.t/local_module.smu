@@ -5,24 +5,17 @@
     (type t)
     (def test (fun unit unit))
     (def poly-test (fun 'a unit))
-    --(def value string)
-    )
+    (def value string))
   (module nested)
   (type t int)
   (defn test [] (print "hey thing"))
   (defn poly-test [a] (print (fmt-str "hey poly " a)))
-  -- (def value "test")
-  )
+  (def value "test"))
 
 (test)
 
 (local/test)
 (local/poly-test "test")
-
--- (module nosig
---   (type t {:a float}))
-
--- (def (test nosig/t) {:a 10.0})
 
 (module nosig
   (type t {:a int})
