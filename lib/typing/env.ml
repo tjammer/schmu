@@ -82,7 +82,7 @@ type scope = {
   ctors : label Map.t; (* Variant constructors *)
   types : (typ * bool) Tmap.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
-  modules : Set.t; (* Locally declared modules *)
+  modules : Path.t Map.t; (* Locally declared modules *)
 }
 
 (* Reference types make it easy to track usage. As a consequence we have to keep the scopes themselves
@@ -119,7 +119,7 @@ let empty_scope kind =
     ctors = Map.empty;
     types = Tmap.empty;
     kind;
-    modules = Set.empty;
+    modules = Map.empty;
   }
 
 let empty () =
@@ -265,9 +265,9 @@ let add_type name add_kind typ env =
       let types = Tmap.add name (t, in_sig) scope.types in
       { env with values = { scope with types } :: tl }
 
-let add_module name env =
+let add_module ~key ~mname env =
   let scope, tl = decap_exn env in
-  let modules = Set.add name scope.modules in
+  let modules = Map.add key mname scope.modules in
   { env with values = { scope with modules } :: tl }
 
 let find_val_raw key env =
@@ -473,7 +473,7 @@ let find_module_opt name env =
   let rec aux = function
     | [] -> None
     | scope :: tl -> (
-        match Set.find_opt name scope.modules with
+        match Map.find_opt name scope.modules with
         | Some t -> Some t
         | None -> aux tl)
   in

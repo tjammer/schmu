@@ -47,7 +47,8 @@ let reset_type_vars () =
   Inference.reset ();
   reset lambda_id_state;
   (* Not a type var, but needs resetting as well *)
-  Strtbl.clear !uniq_tbl
+  Strtbl.clear !uniq_tbl;
+  Module.clear_cache ()
 
 let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
@@ -1327,7 +1328,7 @@ and convert_prog env items ~mname modul =
         (env, items, m)
     | Typedef (loc, Tabstract _) ->
         raise (Error (loc, "Abstract types need a concrete implementation"))
-    | Module ((_, id), sign, prog) ->
+    | Module ((loc, id), sign, prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
         let mname = Some (Path.append id (generate_module_path mname)) in
@@ -1340,14 +1341,28 @@ and convert_prog env items ~mname modul =
 
         let tempenv = Env.open_function env in
         let _, moditems, newm = convert_module tempenv sign prog true mname in
+        let _ = Env.close_function tempenv in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
 
         let s = ref S.empty in
-        let newm = Module.adjust_type_names s (Option.get mname) newm in
-        Hashtbl.add module_cache id (Clocal (Option.get mname), newm);
-        let env = Env.add_module id env in
+        let newm = adjust_type_names s (Option.get mname) newm in
+        let env =
+          match
+            register_module env (Option.get mname)
+              (Clocal (Option.get mname), newm)
+          with
+          | Ok env -> env
+          | Error () ->
+              let msg =
+                Printf.sprintf "Module names must be unique. %s exists already"
+                  id
+              in
+              raise (Error (loc, msg))
+        in
+        let m = add_module loc id newm ~into:m in
+
         let moditems = List.map (fun item -> (mname, item)) moditems in
         let items = Tl_module moditems :: items in
         (env, items, m)

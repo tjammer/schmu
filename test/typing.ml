@@ -592,8 +592,8 @@ let test_signature_unparam_type () =
 (type (t 'a) int)|}
 
 let local_module =
-  "(type t float) (module nosig (type t {:a int}) (type other int) (module \
-   nested (type t u8)))"
+  "(type t float) (type global int) (module nosig (type t {:a int}) (type \
+   other int) (module nested (type t u8)))"
 
 let test_local_modules_find_local () =
   test "unit" (local_module ^ " (def (test nosig/t) {:a 10})")
@@ -605,9 +605,17 @@ let test_local_modules_miss_local () =
   test_exn "In let binding: Expected type float but got type nosig/t"
     (local_module ^ " (def (test nosig/t) 10.0)")
 
-let test_nested_modules_miss_nested () =
+let test_local_modules_miss_nested () =
   test_exn "Expected a record type, not nosig/nested/t = u8"
     (local_module ^ " (def (test nosig/nested/t) {:a 10})")
+
+let test_local_modules_miss_local_dont_find_global () =
+  test_exn "Unbound type nosig/global."
+    (local_module ^ " (def (test nosig/global) {:a 10})")
+
+let test_local_module_unique_names () =
+  test_exn "Module names must be unique. nosig exists already"
+    (local_module ^ "(module nosig)")
 
 let case str test = test_case str `Quick test
 
@@ -815,6 +823,21 @@ let () =
           case "find local" test_local_modules_find_local;
           case "find nested" test_local_modules_find_nested;
           case "miss local" test_local_modules_miss_local;
-          case "miss nested" test_nested_modules_miss_nested;
+          case "miss nested" test_local_modules_miss_nested;
+          case "miss local don't find global"
+            test_local_modules_miss_local_dont_find_global;
+          case "unique names" test_local_module_unique_names;
         ] );
     ]
+
+module A = struct
+  type t = int
+
+  module A = struct
+    type t = float
+  end
+end
+
+open A
+
+let a : A.t = 20.0

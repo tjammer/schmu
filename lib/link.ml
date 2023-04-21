@@ -6,9 +6,9 @@ let link outname objects cargs =
   (* Invoke 'cc' with all the files here *)
   let objects =
     Hashtbl.fold
-      (fun name (kind, _) l ->
+      (fun _ (kind, _) l ->
         match kind with
-        | Module.Cfile _ ->
+        | Module.Cfile name ->
             let f = Module.find_file name ".o" in
             f :: l
         | Clocal _ -> l)

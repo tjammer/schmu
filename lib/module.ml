@@ -60,6 +60,9 @@ let add_type_sig loc name t m = { m with s = (name, loc, t, Stypedef) :: m.s }
 let add_value_sig loc name t m = { m with s = (name, loc, t, Svalue) :: m.s }
 let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 
+let add_module loc id newm ~into =
+  { into with i = Mmodule (loc, id, newm) :: into.i }
+
 let type_of_func (func : Typed_tree.func) =
   Tfun (func.tparams, func.ret, func.kind)
 
@@ -97,7 +100,7 @@ let add_external loc t name ~mname cname ~closure m =
   { m with i = Mext (loc, t, name, closure) :: m.i }
 
 let module_cache = Hashtbl.create 64
-(* TODO sort by insertion order *)
+let clear_cache () = Hashtbl.clear module_cache
 
 (* Right now we only ever compile one module, so this can safely be global *)
 let poly_funcs = ref []
@@ -463,7 +466,8 @@ and canonize_t mname m =
   { s; i }
 
 let read_module ~regeneralize name =
-  match Hashtbl.find_opt module_cache name with
+  let mname = Path.Pid name in
+  match Hashtbl.find_opt module_cache mname with
   | Some r -> Ok r
   | None -> (
       (* TODO figure out nested local opens *)
@@ -475,7 +479,7 @@ let read_module ~regeneralize name =
               close_in c;
               let mname = Path.Pid name in
               let m = (Cfile name, map_t ~mname ~f:regeneralize t) in
-              Hashtbl.add module_cache name m;
+              Hashtbl.add module_cache mname m;
               Ok m
           | Error _ ->
               close_in c;
@@ -485,6 +489,15 @@ let read_module ~regeneralize name =
       with Not_found -> Error ("Could not open file: " ^ name))
 
 let modpath_of_kind = function Clocal p -> p | Cfile name -> Path.Pid name
+
+let register_module env mname (kind, modul) =
+  (* Modules must be unique *)
+  if Hashtbl.mem module_cache mname then Error ()
+  else (
+    Hashtbl.add module_cache mname (kind, modul);
+    let key = Path.get_hd mname in
+    let env = Env.add_module ~key ~mname env in
+    Ok env)
 
 let find_module env ~regeneralize name loc =
   (* We first search the env for local modules. Then we try read the module the normal way *)
@@ -496,7 +509,7 @@ let find_module env ~regeneralize name loc =
         | None ->
             let msg =
               Printf.sprintf "Module %s should be local but cannot be found"
-                name
+                (Path.show name)
             in
             raise (Typed_tree.Error (loc, msg)))
     | None -> read_module ~regeneralize name
@@ -639,7 +652,10 @@ let add_to_env env (mname, m) =
                       { def_value with typ; imported = Some (mname, `Schmu) }
                       l env))
                 env ds
-          | Mmodule _ -> failwith "TODO module")
+          | Mmodule (_, key, _) ->
+              let mname = Path.append key mname in
+              assert (Hashtbl.mem module_cache mname);
+              Env.add_module ~key ~mname env)
         env m.i
   | l ->
       List.fold_left
@@ -720,7 +736,9 @@ let extract_name_type = function
   | Mfun (l, t, n) | Mext (l, t, n, _) -> (n.user, l, t, Svalue)
   | Mpoly_fun (l, abs, n, _) -> (n, l, type_of_func abs.func, Svalue)
   | Mmutual_rec _ -> failwith "Internal Error: How are mutual recs here?"
-  | Mmodule _ -> failwith "Internal Error: How are modules here?"
+  | Mmodule (l, n, _) ->
+      (* Do we have to deal with this? *)
+      (n, l, Tunit, Svalue)
 
 let find_item name kind (n, _, _, tkind) =
   match (kind, tkind) with

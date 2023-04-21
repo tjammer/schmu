@@ -60,7 +60,7 @@ val change_type : key -> typ -> t -> t
 (** To give the generalized type with closure for functions *)
 
 val add_type : Path.t -> add_kind -> typ -> t -> t
-val add_module : string -> t -> t
+val add_module : key:string -> mname:Path.t -> t -> t
 val open_function : t -> t
 
 val close_function : t -> t * closed list * unused
@@ -89,7 +89,7 @@ val find_type_same_module : Path.t -> t -> (typ * bool) option
 val query_type : instantiate:(typ -> typ) -> Path.t -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)
 
-val find_module_opt : string -> t -> string option
+val find_module_opt : string -> t -> Path.t option
 
 val find_label_opt : key -> t -> label option
 (** [find_label_opt labelname env] returns the name of first record with a matching label *)
