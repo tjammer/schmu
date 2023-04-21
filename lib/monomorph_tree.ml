@@ -1153,6 +1153,11 @@ and morph_if mk p cond e1 e2 =
     { a with alloc = Two_values (a.alloc, b.alloc); id = iid; tailrec } )
 
 and prep_let p id uniq e toplvl =
+  (* username *)
+  let un =
+    reconstr_module_username ~mname:p.mname ~mainmodule:p.mainmodule id
+  in
+
   let p, e1, func = morph_expr { p with ret = false } e in
   (* We add constants to the constant table, not the current env *)
   let temporary = is_temporary e1.expr in
@@ -1170,7 +1175,7 @@ and prep_let p id uniq e toplvl =
         (* Maybe we have to generate a new name here *)
         let cnt = new_id constant_uniq_state in
         Hashtbl.add constant_tbl uniq (cnt, e1, toplvl);
-        ({ p with vars = Vars.add id (Const uniq) p.vars }, Some uniq, false)
+        ({ p with vars = Vars.add un (Const uniq) p.vars }, Some uniq, false)
     | { global = true; _ } ->
         (* Globals are 'preallocated' at module level *)
         set_alloca func.alloc;
@@ -1178,12 +1183,12 @@ and prep_let p id uniq e toplvl =
         let cnt = new_id constant_uniq_state in
         Hashtbl.add global_tbl uniq (cnt, e1.typ, toplvl);
         let used = ref false in
-        let vars = Vars.add id (Global (uniq, func, used)) p.vars in
+        let vars = Vars.add un (Global (uniq, func, used)) p.vars in
         (* Add global values to env with global id. That's how they might be queried,
            and the function information is needed for monomorphization *)
         let vars = Vars.add uniq (Global (uniq, func, used)) vars in
         ({ p with vars; ids }, Some uniq, true)
-    | _ -> ({ p with vars = Vars.add id (Normal func) p.vars; ids }, None, false)
+    | _ -> ({ p with vars = Vars.add un (Normal func) p.vars; ids }, None, false)
   in
   (p, e1, gn, needs_init, vid)
 

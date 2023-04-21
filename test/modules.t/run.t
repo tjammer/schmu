@@ -758,3 +758,13 @@ Local modules
   hey thing
   hey poly test
   i'm nested
+
+Fix shadowing for local modules
+  $ schmu local_module_shadowing.smu && ./local_module_shadowing
+  local_module_shadowing.smu:11:1: warning: Unused module open a
+  11 | (open a)
+       ^^^^^^^^
+  
+  a
+  a
+  10
