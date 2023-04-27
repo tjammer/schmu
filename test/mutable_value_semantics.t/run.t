@@ -2550,3 +2550,6 @@ Refcounts for members in arrays, records and variants
 Make sure there are no hidden reference semantics in pattern matches
   $ schmu hidden_match_reference.smu && ./hidden_match_reference
   1
+
+Convert Const_ptr values to Ptr in copy
+  $ schmu ref_to_const.smu

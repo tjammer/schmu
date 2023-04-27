@@ -1019,7 +1019,7 @@ end = struct
           if mut && not temp then (
             let dst = alloca param (get_lltype_def v.typ) nm in
             memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
-            { v with value = dst })
+            { v with value = dst; kind = Ptr })
           else if mut then v
           else
             let value = Llvm.build_load v.value nm builder in
