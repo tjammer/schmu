@@ -388,7 +388,7 @@ let with_loc(x) :=
   | sexp_ctor; sexp_pattern { Pctor ($1, Some $2) }
 
 %inline sexp_pattern_tuple:
-  | with_loc(sexp_pattern); nonempty_list(with_loc(sexp_pattern))
+  | with_loc(sexp_pattern); list(with_loc(sexp_pattern))
     { Ptup ($loc, $1 :: $2) }
 
 %inline fmt_str:
