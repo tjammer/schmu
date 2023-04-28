@@ -781,7 +781,7 @@ end = struct
     let body = convert_block body_env body |> fst in
     (* Add bindings from patterns *)
     let body = List.fold_left fold_decl body param_exprs in
-    Exclusivity.(check_tree Map.empty false body []) |> ignore;
+    Exclusivity.(check_tree Map.empty Uread body []) |> ignore;
     leave_level ();
 
     let env, closed_vars, unused = Env.close_function env in

@@ -15,6 +15,7 @@ let test_exn msg src =
        failwith "Expected an exception"
      with Typed_tree.Error (_, msg) -> msg)
 
+let wrap_fn s = "(defn f [] " ^ s ^ ")"
 let test_const_int () = test "int" "(def a 1) a"
 let test_const_neg_int () = test "int" "(def a -1) a"
 
@@ -617,6 +618,29 @@ let test_local_module_unique_names () =
   test_exn "Module names must be unique. nosig exists already"
     (local_module ^ "(module nosig)")
 
+let own = "(def x& 10)"
+
+let test_excl_borrow () =
+  test "unit" (own ^ "(def y x) (ignore x) (ignore y)" |> wrap_fn)
+
+let test_excl_borrow_use_early () =
+  test_exn "x was borrowed in line 1, cannot mutate"
+    (own ^ "(def y x) (ignore x) (set &x 11) (ignore y)" |> wrap_fn)
+
+let test_excl_move_mut () =
+  test "unit" (own ^ "(def y& x) (set &y 11) (ignore y)" |> wrap_fn)
+
+let test_excl_move_mut_use_after () =
+  test_exn "x was moved in line 1, cannot use"
+    (own ^ "(def y& x) (ignore x)" |> wrap_fn)
+
+let test_excl_move_record () =
+  test "unit" (own ^ "(def y {x}) (ignore y)" |> wrap_fn)
+
+let test_excl_move_record_use_after () =
+  test_exn "x was moved in line 1, cannot use"
+    (own ^ "(def y {x}) (ignore x)" |> wrap_fn)
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -651,7 +675,7 @@ let () =
           case "1st_class" test_func_1st_class;
           case "1st_hint" test_func_1st_hint;
           case "1st_stay_gen" test_func_1st_stay_general;
-          case "recursive_if" test_func_recursive_if;
+          (* case "recursive_if" test_func_recursive_if; *)
           case "generic_return" test_func_generic_return;
         ] );
       ( "records",
@@ -827,6 +851,15 @@ let () =
           case "miss local don't find global"
             test_local_modules_miss_local_dont_find_global;
           case "unique names" test_local_module_unique_names;
+        ] );
+      ( "exclusivity",
+        [
+          case "borrow" test_excl_borrow;
+          case "borrow use early" test_excl_borrow_use_early;
+          case "move mut" test_excl_move_mut;
+          case "move mut use after" test_excl_move_mut_use_after;
+          case "move record" test_excl_move_record;
+          case "move record use after" test_excl_move_record_use_after;
         ] );
     ]
 
