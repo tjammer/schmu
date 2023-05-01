@@ -641,6 +641,10 @@ let test_excl_move_record_use_after () =
   test_exn "x was moved in line 1, cannot use"
     (own ^ "(def y {x}) (ignore x)" |> wrap_fn)
 
+let test_excl_borrow_then_move () =
+  test_exn "x was moved in line 3, cannot use"
+    ("(def x 10)\n (def y x)\n (ignore {y})\n x" |> wrap_fn)
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -860,17 +864,6 @@ let () =
           case "move mut use after" test_excl_move_mut_use_after;
           case "move record" test_excl_move_record;
           case "move record use after" test_excl_move_record_use_after;
+          case "borrow then move" test_excl_borrow_then_move;
         ] );
     ]
-
-module A = struct
-  type t = int
-
-  module A = struct
-    type t = float
-  end
-end
-
-open A
-
-let a : A.t = 20.0

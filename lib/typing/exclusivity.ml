@@ -107,7 +107,12 @@ let rec check_tree env mut tree borrows =
             in
             check_exclusivity b borrows;
             Some b
-        | Some ((Borrow_mut _ | Borrow _) as b) ->
+        | Some ((Borrow_mut b' | Borrow b') as b) ->
+            let b =
+              match mut with
+              | Usage.Umove -> Bmove { b' with loc = tree.loc }
+              | Umut | Uread -> b
+            in
             check_exclusivity b borrows;
             Some b
         | Some (Bmove m) ->
