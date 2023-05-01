@@ -645,6 +645,16 @@ let test_excl_borrow_then_move () =
   test_exn "x was moved in line 3, cannot use"
     ("(def x 10)\n (def y x)\n (ignore {y})\n x" |> wrap_fn)
 
+let test_excl_if_move_lit () =
+  test "unit" ("(def x 10) (def y& (if true x 10)) (ignore y)" |> wrap_fn)
+
+let test_excl_if_borrow_borrow () =
+  test "unit" ("(def x 10) (def y 10) (ignore (if true x y))" |> wrap_fn)
+
+let test_excl_if_lit_borrow () =
+  test_exn "Branches have different ownership: owned vs borrowed"
+    ("(def x 10) (ignore (if true 10 x))" |> wrap_fn)
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -865,5 +875,8 @@ let () =
           case "move record" test_excl_move_record;
           case "move record use after" test_excl_move_record_use_after;
           case "borrow then move" test_excl_borrow_then_move;
+          case "if move lit" test_excl_if_move_lit;
+          case "if borrow borrow" test_excl_if_borrow_borrow;
+          case "if lit borrow" test_excl_if_lit_borrow;
         ] );
     ]
