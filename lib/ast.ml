@@ -50,6 +50,7 @@ and func = {
 }
 
 and argument = { amut : bool; aloc : loc; aexpr : expr }
+and mb_mut_expr = { mmut : bool; mexpr : expr }
 
 and expr =
   | Var of loc * string
@@ -57,7 +58,7 @@ and expr =
   | Bop of loc * bop * expr list
   | Unop of loc * unop * expr
   | If of loc * expr * expr * expr option
-  | Let_e of loc * decl * expr * expr
+  | Let_e of loc * decl * mb_mut_expr * expr
   | Lambda of loc * decl list * block
   | App of loc * expr * argument list
   | Record of loc * (string * expr) list
@@ -97,7 +98,7 @@ and literal =
   | Unit
 
 and stmt =
-  | Let of loc * decl * expr
+  | Let of loc * decl * mb_mut_expr
   | Function of loc * func
   | Expr of (loc * expr)
   | Rec of (loc * (loc * func) list)

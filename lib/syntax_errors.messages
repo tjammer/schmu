@@ -238,7 +238,7 @@ prog: Lpar Def Lpar Or Kebab_id Kebab_id Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Lbrac Kebab_id Kebab_id Rbrac Type
+prog: Lpar Def Lpar Or Kebab_id Lbrac Kebab_id Rbrac Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -270,7 +270,7 @@ prog: Lpar Def Lpar Or Kebab_id Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Lbrac Kebab_id Kebab_id Rbrac Type
+prog: Lpar Def Lpar Or Lbrac Kebab_id Rbrac Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -310,7 +310,7 @@ prog: Lpar Def Lpar Constructor Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Constructor Lbrac Kebab_id Kebab_id Rbrac Wildcard
+prog: Lpar Def Lpar Constructor Lbrac Kebab_id Rbrac Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -358,11 +358,11 @@ prog: Lpar Match False Lpar Kebab_id False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Lbrac Kebab_id Kebab_id Rbrac Wildcard
+prog: Lpar Match False Lpar Lbrac Kebab_id Rbrac Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Lbrac Kebab_id Kebab_id Rbrac False Wildcard
+prog: Lpar Match False Lpar Lbrac Kebab_id Rbrac False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -490,6 +490,10 @@ prog: Lpar Let Lbrack Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Let Lbrack Kebab_id Ampersand Ampersand Wildcard
+
+Expecting expression to mutate
+
 prog: Lpar Let Lbrack Kebab_id False True
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -510,7 +514,7 @@ prog: Lpar Def Kebab_id Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrac Kebab_id Kebab_id Rbrac Type
+prog: Lpar Def Lbrac Kebab_id Rbrac Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -743,6 +747,34 @@ prog: Lpar Def Type
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Def Kebab_id Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Def Kebab_id Ampersand Ampersand Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Def Kebab_id Ampersand Ampersand False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Ldotbrack Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Ldotbrack False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Ldotbrack False Rbrack Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Accessor Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

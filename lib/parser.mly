@@ -105,6 +105,9 @@
 %token Fmt_str
 %token Rec
 
+%nonassoc below_Ampersand
+%left Ampersand
+
 %nonassoc Minus_i Minus_f
 %left Accessor Ldotbrack
 %left Div_i
@@ -214,15 +217,16 @@ stmt:
   | parens(sexp_rec) { $1}
   | open_ { Open ($loc, $1) }
 
-
 %inline sexp_let:
-  | Def; sexp_decl; sexp_expr { Let($loc, $2, $3) }
+  | Def; sexp_decl; mexpr = sexp_expr { Let($loc, $2, { mmut = false; mexpr }) }
+  | Def; sexp_decl; Ampersand; mexpr = mb_mut_expr { Let($loc, $2, { mmut = true; mexpr }) }
 
 sexp_decl:
-  /* | ident = ident; mut = boption(Ampersand) { { loc = $loc; ident; mut; annot = None; kind = Did } } */
   | parens(sexp_decl_typed) { $1 }
-  | pattern = sexp_pattern; mut = boption(Ampersand)
-    { {loc = $loc; pattern; mut; annot = None} }
+  | pattern = sexp_pattern; Ampersand
+    { {loc = $loc; pattern; mut = true; annot = None} }
+  | pattern = sexp_pattern; %prec below_Ampersand
+    { {loc = $loc; pattern; mut = false; annot = None} }
 
 %inline sexp_decl_typed:
   | id = ident; mut = boption(Ampersand); annot = sexp_type_expr
@@ -250,15 +254,11 @@ sexp_expr:
   | fmt = parens(fmt_str) { fmt }
 
 %inline callable_expr:
-  | ident { Var (fst $1, snd $1) }
+  | mb_mut_expr { $1 }
   | parens(lets) { $1 }
   | parens(sexp_if) { $1 }
   | parens(sexp_lambda) { $1 }
   | parens(sexp_field_get) { $1 }
-  | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
-  | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
-    {App ($loc, Var ($loc, "array-get"), [{amut = false; aloc = $loc(e); aexpr = e};
-                                  {amut = false; aloc = $loc(i); aexpr = i}])}
   | parens(sexp_pipe_head) { $1 }
   | parens(sexp_pipe_tail) { $1 }
   | parens(sexp_call) { $1 }
@@ -266,12 +266,19 @@ sexp_expr:
   | sexp_module_expr { $1 }
   | parens(sexp_match) { $1 }
 
+%inline mb_mut_expr:
+  | ident { Var (fst $1, snd $1) }
+  | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
+  | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
+    {App ($loc, Var ($loc, "array-get"), [{amut = false; aloc = $loc(e); aexpr = e};
+                                  {amut = false; aloc = $loc(i); aexpr = i}])}
+
 %inline lets:
   | Let; lets = maybe_bracks(nonempty_list(lets_let)); block = nonempty_list(stmt)
     { make_lets lets block }
 
 %inline lets_let:
-  | decl = sexp_decl; expr = sexp_expr { $loc, decl, expr }
+  | decl = sexp_decl; mmut = boption(Ampersand); mexpr = sexp_expr { $loc, decl, { mmut; mexpr } }
 
 %inline sexp_record_item:
   | Keyword; sexp_expr { $1, $2 }

@@ -575,7 +575,7 @@ module rec Core : sig
     Env.t ->
     Ast.loc ->
     Ast.decl ->
-    Ast.expr ->
+    Ast.mb_mut_expr ->
     Env.t * string * typed_expr * bool * (string * typed_expr) list
 
   val convert_function :
@@ -677,7 +677,8 @@ end = struct
     in
     if is_poly_call expr then wrap_in_lambda expr expr.typ else expr
 
-  and convert_let ~global env loc (decl : Ast.decl) block =
+  and convert_let ~global env loc (decl : Ast.decl)
+      { Ast.mmut = _; mexpr = block } =
     let id, idloc = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
     let mut = decl.mut in
