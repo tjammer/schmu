@@ -85,7 +85,7 @@ let rec check_exclusivity borrow borrows =
       raise (Typed_tree.Error (b.loc, msg))
   | Bmove m, (Borrow b | Borrow_mut b) :: _
     when String.equal m.borrowed b.borrowed ->
-      (* The moving value was borrewed correctly before *)
+      (* The moving value was borrowed correctly before *)
       ()
   | _, _ :: tl -> check_exclusivity borrow tl
 
@@ -125,14 +125,28 @@ let rec check_tree env mut tree borrows =
             in
             check_exclusivity b borrows;
             b
-        | (Borrow_mut b' | Borrow b') as b ->
-            let b =
-              match mut with
-              | Usage.Umove -> Bmove { b' with loc = tree.loc }
-              | Umut | Uread -> b
-            in
-            check_exclusivity b borrows;
-            b
+        | Borrow_mut b' as b -> (
+            match mut with
+            | Usage.Umove ->
+                (* Before moving, make sure the value was used correctly *)
+                check_exclusivity b borrows;
+                Bmove { b' with loc = tree.loc }
+            | Umut | Uread ->
+                check_exclusivity b borrows;
+                b)
+        | Borrow b' as b -> (
+            match mut with
+            | Usage.Umove ->
+                (* Before moving, make sure the value was used correctly *)
+                check_exclusivity b borrows;
+                Bmove { b' with loc = tree.loc }
+            | Umut ->
+                let b = Borrow_mut b' in
+                check_exclusivity b borrows;
+                b
+            | Uread ->
+                check_exclusivity b borrows;
+                b)
         | Bmove m ->
             assert (String.equal m.borrowed id);
             let msg =
@@ -150,9 +164,19 @@ let rec check_tree env mut tree borrows =
       (* Don't add to borrows here. Other expressions where the value is used
          will take care of this *)
       (borrow, borrows)
-  | Let { id; lhs; cont; _ } ->
-      let nmut = if lhs.attr.mut then Usage.Umove else Uread in
+  | Let { id; lhs; cont; mutly; rmut; _ } ->
+      let nmut =
+        match (lhs.attr.mut, mutly) with
+        | true, true when not rmut ->
+            raise
+              (Typed_tree.Error (lhs.loc, "Cannot project unmutable binding"))
+        | true, true -> Usage.Umut
+        | true, false -> Umove
+        | false, false -> Uread
+        | false, true -> failwith "unreachable"
+      in
       let rval, bs = check_tree env nmut lhs borrows in
+      let loc = tree.loc in
       let rec borrow bs = function
         | Bmove _ as b -> (Bown id, b :: bs)
         | Bmulti (a, b) ->
@@ -161,6 +185,8 @@ let rec check_tree env mut tree borrows =
             let b, bs = borrow bs b in
             let a, bs = borrow bs a in
             (Bmulti (a, b), bs)
+        | Borrow b -> (Borrow { b with loc }, bs)
+        | Borrow_mut b -> (Borrow_mut { b with loc }, bs)
         | b -> (b, bs)
       in
       let b, bs =

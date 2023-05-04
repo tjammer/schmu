@@ -655,6 +655,21 @@ let test_excl_if_lit_borrow () =
   test_exn "Branches have different ownership: owned vs borrowed"
     ("(def x 10) (ignore (if true 10 x))" |> wrap_fn)
 
+let test_excl_proj () =
+  test "unit" (own ^ "(def y& &x) (set &y 11) (ignore x)" |> wrap_fn)
+
+let test_excl_proj_immutable () =
+  test_exn "Cannot project unmutable binding"
+    ("(def x 10) (def y& &x) x" |> wrap_fn)
+
+let test_excl_proj_use_orig () =
+  test_exn "x was mutably borrowed in line 1, cannot borrow"
+    (own ^ "(def y& &x) (ignore x) (ignore y) x" |> wrap_fn)
+
+let test_excl_proj_move_after () =
+  test_exn "x was mutably borrowed in line 1, cannot borrow"
+    (own ^ "(def y& &x) (ignore x) {y}" |> wrap_fn)
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -878,5 +893,9 @@ let () =
           case "if move lit" test_excl_if_move_lit;
           case "if borrow borrow" test_excl_if_borrow_borrow;
           case "if lit borrow" test_excl_if_lit_borrow;
+          case "project" test_excl_proj;
+          case "project immutable" test_excl_proj_immutable;
+          case "proj use orig" test_excl_proj_use_orig;
+          case "proj use orig move" test_excl_proj_move_after;
         ] );
     ]

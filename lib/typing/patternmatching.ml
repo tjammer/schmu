@@ -903,7 +903,9 @@ module Make (C : Core) (R : Recs) = struct
             let lhs = expr path in
             (* If the value we pattern match on is mutable, we have to mentio this
                here in order to increase rc correctly. Otherwise, we had reference semantics*)
-            let expr = Let { id; uniq = None; rmut = mut; lhs; cont } in
+            let expr =
+              Let { id; uniq = None; rmut = mut; mutly = false; lhs; cont }
+            in
             { typ = cont.typ; expr; attr = cont.attr; loc }
         | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
             let a, b =

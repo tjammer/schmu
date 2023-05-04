@@ -219,7 +219,7 @@ stmt:
 
 %inline sexp_let:
   | Def; sexp_decl; mexpr = sexp_expr { Let($loc, $2, { mmut = false; mexpr }) }
-  | Def; sexp_decl; Ampersand; mexpr = mb_mut_expr { Let($loc, $2, { mmut = true; mexpr }) }
+  | Def; sexp_decl; Ampersand; mexpr = sexp_expr { Let($loc, $2, { mmut = true; mexpr }) }
 
 sexp_decl:
   | parens(sexp_decl_typed) { $1 }
@@ -254,7 +254,11 @@ sexp_expr:
   | fmt = parens(fmt_str) { fmt }
 
 %inline callable_expr:
-  | mb_mut_expr { $1 }
+  | ident { Var (fst $1, snd $1) }
+  | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
+  | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
+    {App ($loc, Var ($loc, "array-get"), [{amut = false; aloc = $loc(e); aexpr = e};
+                                  {amut = false; aloc = $loc(i); aexpr = i}])}
   | parens(lets) { $1 }
   | parens(sexp_if) { $1 }
   | parens(sexp_lambda) { $1 }
@@ -265,13 +269,6 @@ sexp_expr:
   | parens(do_block) { $1 }
   | sexp_module_expr { $1 }
   | parens(sexp_match) { $1 }
-
-%inline mb_mut_expr:
-  | ident { Var (fst $1, snd $1) }
-  | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
-  | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
-    {App ($loc, Var ($loc, "array-get"), [{amut = false; aloc = $loc(e); aexpr = e};
-                                  {amut = false; aloc = $loc(i); aexpr = i}])}
 
 %inline lets:
   | Let; lets = maybe_bracks(nonempty_list(lets_let)); block = nonempty_list(stmt)

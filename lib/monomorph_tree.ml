@@ -955,7 +955,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
-  | Let { id; uniq; rmut; lhs; cont } ->
+  | Let { id; uniq; rmut; lhs; cont; mutly = _ } ->
       let p, e1, gn, needs_init, vid = prep_let param id uniq lhs false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       let p, e2 = make_e2 e1 e2 id gn needs_init lhs.attr.mut rmut p vid in

@@ -41,7 +41,8 @@ and fmt = Fstr of string | Fexpr of typed_expr
 and let_data = {
   id : string;
   uniq : int option;
-  rmut : bool;
+  rmut : bool; (* is mutable generally *)
+  mutly : bool; (* is passed mutably *)
   lhs : typed_expr;
   cont : typed_expr;
 }

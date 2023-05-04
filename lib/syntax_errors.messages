@@ -758,26 +758,6 @@ prog: Lpar Def Kebab_id Ampersand Ampersand False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Ldotbrack Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Ldotbrack False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Ldotbrack False Rbrack Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Accessor Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Def Kebab_id Ampersand Ampersand Kebab_id Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Lpar Def Kebab_id False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>

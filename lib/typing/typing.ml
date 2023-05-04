@@ -699,7 +699,7 @@ end = struct
     let cont = convert env cont in
     let cont = List.fold_left fold_decl cont pats in
     let uniq = if lhs.attr.const then uniq_name id else None in
-    let expr = Let { id; uniq; rmut; lhs; cont } in
+    let expr = Let { id; uniq; rmut; mutly = expr.mmut; lhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr; loc }
 
   and convert_lambda env loc params body =
@@ -974,12 +974,8 @@ end = struct
 
     (* Would be interesting to evaluate this at compile time,
        but I think it's not that important right now *)
-    {
-      typ = type_e2.typ;
-      expr = If (type_cond, type_e1, type_e2);
-      attr = no_attr;
-      loc;
-    }
+    let attr = { no_attr with mut = type_e1.attr.mut && type_e2.attr.mut } in
+    { typ = type_e2.typ; expr = If (type_cond, type_e1, type_e2); attr; loc }
 
   and pipe_ctor_msg =
     "Constructor already has an argument, cannot pipe a second one"
@@ -1099,7 +1095,7 @@ end = struct
           let cont, env = to_expr env old_type tl in
           let cont = List.fold_left fold_decl cont pats in
           let uniq = if lhs.attr.const then uniq_name id else None in
-          let expr = Let { id; uniq; rmut; lhs; cont } in
+          let expr = Let { id; uniq; rmut; mutly = block.mmut; lhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, abs) = convert_function env loc func false in
