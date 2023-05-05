@@ -103,16 +103,27 @@ let rec new_elems nu keep old =
   | a :: tl, [ _ ] -> new_elems tl (a :: keep) old
   | _ -> failwith "Internal Error: Impossible"
 
+let rec check_excl_chain loc env borrow borrows =
+  match borrow with
+  | Bown _ -> ()
+  | Borrow b | Borrow_mut b | Bmove b -> (
+      check_exclusivity loc borrow borrows;
+      match Map.find_opt b.borrowed env with
+      | Some b -> check_excl_chain loc env b borrows
+      | None -> ())
+  | Bmulti (a, b) ->
+      check_excl_chain loc env a borrows;
+      check_excl_chain loc env b borrows
+
 let rec check_tree env mut tree borrows =
   match Typed_tree.(tree.expr) with
-  | Typed_tree.Var id ->
+  | Typed_tree.Var borrowed ->
       (* This is no rvalue, we borrow *)
+      let loc = tree.loc in
       let rec borrow = function
         | Bown _ ->
             incr borrow_state;
-            let borrow =
-              { ord = !borrow_state; loc = tree.loc; borrowed = id }
-            in
+            let borrow = { ord = !borrow_state; loc; borrowed } in
             (* Assmue it's the only borrow. This works because if it isn't, a borrowed binding
                will be used later and thin fail the check. Extra care has to be taken for
                arguments to functions *)
@@ -123,41 +134,43 @@ let rec check_tree env mut tree borrows =
               | Umut -> Borrow_mut borrow
               | Umove -> Bmove borrow
             in
-            check_exclusivity tree.loc b borrows;
+            check_excl_chain loc env b borrows;
             b
         | Borrow_mut b' as b -> (
             match mut with
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
-                check_exclusivity tree.loc b borrows;
-                Bmove { b' with loc = tree.loc }
+                check_excl_chain loc env b borrows;
+                Bmove { b' with loc }
             | Umut | Uread ->
-                check_exclusivity tree.loc b borrows;
-                b)
+                check_excl_chain loc env b borrows;
+                incr borrow_state;
+                Borrow_mut { loc; ord = !borrow_state; borrowed })
         | Borrow b' as b -> (
             match mut with
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
-                check_exclusivity tree.loc b borrows;
-                Bmove { b' with loc = tree.loc }
+                check_excl_chain loc env b borrows;
+                Bmove { b' with loc }
             | Umut ->
-                let b = Borrow_mut b' in
-                check_exclusivity tree.loc b borrows;
-                b
+                check_excl_chain loc env (Borrow_mut b') borrows;
+                incr borrow_state;
+                Borrow_mut { loc; ord = !borrow_state; borrowed }
             | Uread ->
-                check_exclusivity tree.loc b borrows;
-                b)
+                check_excl_chain loc env b borrows;
+                incr borrow_state;
+                Borrow { loc; ord = !borrow_state; borrowed })
         | Bmove m ->
-            assert (String.equal m.borrowed id);
+            assert (String.equal m.borrowed borrowed);
             let msg =
-              Printf.sprintf "%s was moved in line %i, cannot borrow" id
+              Printf.sprintf "%s was moved in line %i, cannot borrow" borrowed
                 (fst m.loc).pos_lnum
             in
             raise (Typed_tree.Error (m.loc, msg))
         | Bmulti (a, b) -> Bmulti (borrow a, borrow b)
       in
       let borrow =
-        match Map.find_opt id env with
+        match Map.find_opt borrowed env with
         | Some b -> Some (borrow b)
         | None -> None
       in

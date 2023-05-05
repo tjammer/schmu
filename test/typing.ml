@@ -671,8 +671,15 @@ let test_excl_proj_move_after () =
     (own ^ "(def y& &x)\n (ignore x)\n {y}" |> wrap_fn)
 
 let test_excl_proj_nest () =
-  test_exn "x was mutably borrowed in line 2, cannot borrow"
+  test_exn "y was mutably borrowed in line 3, cannot borrow"
     (own ^ "(def y& &x)\n (def z& &y)\n (ignore y)\n z" |> wrap_fn)
+
+let test_excl_proj_nest_orig () =
+  test_exn "x was mutably borrowed in line 2, cannot borrow"
+    (own ^ "(def y& &x)\n (def z& &y)\n (ignore x)\n z" |> wrap_fn)
+
+let test_excl_proj_nest_closed () =
+  test "unit" (own ^ "(def y& &x)\n (def z& &y)\n (ignore z)\n y" |> wrap_fn)
 
 let case str test = test_case str `Quick test
 
@@ -902,5 +909,7 @@ let () =
           case "proj use orig" test_excl_proj_use_orig;
           case "proj use orig move" test_excl_proj_move_after;
           case "proj nest" test_excl_proj_nest;
+          case "proj nest access orig" test_excl_proj_nest_orig;
+          case "proj nest close" test_excl_proj_nest_closed;
         ] );
     ]
