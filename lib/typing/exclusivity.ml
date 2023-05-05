@@ -28,24 +28,24 @@ let rec is_borrow = function
 
 module Map = Map.Make (String)
 
-let rec check_exclusivity borrow borrows =
+let rec check_exclusivity loc borrow borrows =
   let p = Printf.sprintf in
   match (borrow, borrows) with
   (* TODO only check String.equal once *)
   | _, [] -> failwith "Internal Error: Should never be empty"
   | Bown _, _ -> ()
   | Bmulti (a, b), _ ->
-      check_exclusivity a borrows;
-      check_exclusivity b borrows
+      check_exclusivity loc a borrows;
+      check_exclusivity loc b borrows
   | _, Bmulti (a, b) :: tl ->
-      check_exclusivity borrow (a :: tl);
-      check_exclusivity borrow (b :: tl)
+      check_exclusivity loc borrow (a :: tl);
+      check_exclusivity loc borrow (b :: tl)
   | (Borrow b | Borrow_mut b | Bmove b), Bown name :: _
     when String.equal b.borrowed name ->
       ()
   | Borrow l, Borrow r :: tl when String.equal l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
-      if Int.equal l.ord r.ord then () else check_exclusivity borrow tl
+      if Int.equal l.ord r.ord then () else check_exclusivity loc borrow tl
   | Borrow_mut l, Borrow_mut r :: tl when String.equal l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
       if Int.equal l.ord r.ord then ()
@@ -56,7 +56,7 @@ let rec check_exclusivity borrow borrows =
             (fst l.loc).pos_lnum
         in
         raise (Typed_tree.Error (r.loc, msg))
-      else check_exclusivity borrow tl
+      else check_exclusivity loc borrow tl
   | Borrow l, Borrow_mut r :: _ when String.equal l.borrowed r.borrowed ->
       (* TODO check if the cond is even meaningful here *)
       if l.ord < r.ord then
@@ -82,12 +82,12 @@ let rec check_exclusivity borrow borrows =
       let msg =
         p "%s was moved in line %i, cannot use" b.borrowed (fst m.loc).pos_lnum
       in
-      raise (Typed_tree.Error (b.loc, msg))
+      raise (Typed_tree.Error (loc, msg))
   | Bmove m, (Borrow b | Borrow_mut b) :: _
     when String.equal m.borrowed b.borrowed ->
       (* The moving value was borrowed correctly before *)
       ()
-  | _, _ :: tl -> check_exclusivity borrow tl
+  | _, _ :: tl -> check_exclusivity loc borrow tl
 
 let borrow_state = ref 0
 
@@ -123,29 +123,29 @@ let rec check_tree env mut tree borrows =
               | Umut -> Borrow_mut borrow
               | Umove -> Bmove borrow
             in
-            check_exclusivity b borrows;
+            check_exclusivity tree.loc b borrows;
             b
         | Borrow_mut b' as b -> (
             match mut with
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
-                check_exclusivity b borrows;
+                check_exclusivity tree.loc b borrows;
                 Bmove { b' with loc = tree.loc }
             | Umut | Uread ->
-                check_exclusivity b borrows;
+                check_exclusivity tree.loc b borrows;
                 b)
         | Borrow b' as b -> (
             match mut with
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
-                check_exclusivity b borrows;
+                check_exclusivity tree.loc b borrows;
                 Bmove { b' with loc = tree.loc }
             | Umut ->
                 let b = Borrow_mut b' in
-                check_exclusivity b borrows;
+                check_exclusivity tree.loc b borrows;
                 b
             | Uread ->
-                check_exclusivity b borrows;
+                check_exclusivity tree.loc b borrows;
                 b)
         | Bmove m ->
             assert (String.equal m.borrowed id);
@@ -177,6 +177,10 @@ let rec check_tree env mut tree borrows =
       in
       let rval, bs = check_tree env nmut lhs borrows in
       let loc = tree.loc in
+      let neword () =
+        incr borrow_state;
+        !borrow_state
+      in
       let rec borrow bs = function
         | Bmove _ as b -> (Bown id, b :: bs)
         | Bmulti (a, b) ->
@@ -185,9 +189,9 @@ let rec check_tree env mut tree borrows =
             let b, bs = borrow bs b in
             let a, bs = borrow bs a in
             (Bmulti (a, b), bs)
-        | Borrow b -> (Borrow { b with loc }, bs)
-        | Borrow_mut b -> (Borrow_mut { b with loc }, bs)
-        | b -> (b, bs)
+        | Borrow b -> (Borrow { b with loc; ord = neword () }, bs)
+        | Borrow_mut b -> (Borrow_mut { b with loc; ord = neword () }, bs)
+        | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"
       in
       let b, bs =
         match rval with
@@ -198,12 +202,17 @@ let rec check_tree env mut tree borrows =
       in
       let env = Map.add id b env in
       check_tree env mut cont (b :: bs)
-  | Const (Array _) -> failwith "TODO"
+  | Const (Array es) ->
+      let bs =
+        List.fold_left
+          (fun bs e ->
+            let v, bs = check_tree env Umove e bs in
+            mb_add v bs)
+          borrows es
+      in
+      (None, bs)
   | Const _ -> (None, borrows)
   | Record fs ->
-      (* TODO this currently only works for single field records, since we can
-         only return one borrow. The correct way would probably be to use a list
-         of borrows for each value *)
       let bs =
         List.fold_left
           (fun bs (_, field) ->

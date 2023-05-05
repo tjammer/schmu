@@ -618,27 +618,27 @@ let test_local_module_unique_names () =
   test_exn "Module names must be unique. nosig exists already"
     (local_module ^ "(module nosig)")
 
-let own = "(def x& 10)"
+let own = "(def x& 10)\n"
 
 let test_excl_borrow () =
   test "unit" (own ^ "(def y x) (ignore x) (ignore y)" |> wrap_fn)
 
 let test_excl_borrow_use_early () =
-  test_exn "x was borrowed in line 1, cannot mutate"
-    (own ^ "(def y x) (ignore x) (set &x 11) (ignore y)" |> wrap_fn)
+  test_exn "x was borrowed in line 2, cannot mutate"
+    (own ^ "(def y x)\n (ignore x)\n (set &x 11)\n (ignore y)" |> wrap_fn)
 
 let test_excl_move_mut () =
   test "unit" (own ^ "(def y& x) (set &y 11) (ignore y)" |> wrap_fn)
 
 let test_excl_move_mut_use_after () =
-  test_exn "x was moved in line 1, cannot use"
+  test_exn "x was moved in line 2, cannot use"
     (own ^ "(def y& x) (ignore x)" |> wrap_fn)
 
 let test_excl_move_record () =
   test "unit" (own ^ "(def y {x}) (ignore y)" |> wrap_fn)
 
 let test_excl_move_record_use_after () =
-  test_exn "x was moved in line 1, cannot use"
+  test_exn "x was moved in line 2, cannot use"
     (own ^ "(def y {x}) (ignore x)" |> wrap_fn)
 
 let test_excl_borrow_then_move () =
@@ -663,12 +663,16 @@ let test_excl_proj_immutable () =
     ("(def x 10) (def y& &x) x" |> wrap_fn)
 
 let test_excl_proj_use_orig () =
-  test_exn "x was mutably borrowed in line 1, cannot borrow"
-    (own ^ "(def y& &x) (ignore x) (ignore y) x" |> wrap_fn)
+  test_exn "x was mutably borrowed in line 2, cannot borrow"
+    (own ^ "(def y& &x)\n (ignore x)\n (ignore y)\n x" |> wrap_fn)
 
 let test_excl_proj_move_after () =
-  test_exn "x was mutably borrowed in line 1, cannot borrow"
-    (own ^ "(def y& &x) (ignore x) {y}" |> wrap_fn)
+  test_exn "x was mutably borrowed in line 2, cannot borrow"
+    (own ^ "(def y& &x)\n (ignore x)\n {y}" |> wrap_fn)
+
+let test_excl_proj_nest () =
+  test_exn "x was mutably borrowed in line 2, cannot borrow"
+    (own ^ "(def y& &x)\n (def z& &y)\n (ignore y)\n z" |> wrap_fn)
 
 let case str test = test_case str `Quick test
 
@@ -897,5 +901,6 @@ let () =
           case "project immutable" test_excl_proj_immutable;
           case "proj use orig" test_excl_proj_use_orig;
           case "proj use orig move" test_excl_proj_move_after;
+          case "proj nest" test_excl_proj_nest;
         ] );
     ]
