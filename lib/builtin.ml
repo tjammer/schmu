@@ -30,6 +30,7 @@ type t =
   | Unsafe_array_create
   | Unsafe_nullptr
   | Assert
+  | Copy
 [@@deriving show]
 
 let tbl =
@@ -133,6 +134,7 @@ let tbl =
       "__unsafe_array_create" );
     (Unsafe_nullptr, Tfun ([], Traw_ptr Tu8, Simple), "__unsafe_nullptr");
     (Assert, Tfun ([ { pmut; pt = Tbool } ], Tunit, Simple), "assert");
+    (Copy, Tfun ([ { pmut; pt = Qvar "0" } ], Qvar "0", Simple), "copy");
   ]
 
 let of_string = function
@@ -167,6 +169,7 @@ let of_string = function
   | "__unsafe_array_create" -> Some Unsafe_array_create
   | "__unsafe_nullptr" -> Some Unsafe_nullptr
   | "assert" -> Some Assert
+  | "copy" -> Some Copy
   | _ -> None
 
 let fold f init = List.fold_left f init tbl

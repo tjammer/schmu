@@ -34,6 +34,10 @@ let rec check_exclusivity loc borrow borrows =
   (* TODO only check String.equal once *)
   | _, [] -> failwith "Internal Error: Should never be empty"
   | Bown _, _ -> ()
+  | (Borrow b | Borrow_mut b | Bmove b), _
+    when String.starts_with ~prefix:"__string" b.borrowed ->
+      (* Strings literals can always be borrowed. For now also moved *)
+      ()
   | Bmulti (a, b), _ ->
       check_exclusivity loc a borrows;
       check_exclusivity loc b borrows
@@ -90,6 +94,19 @@ let rec check_exclusivity loc borrow borrows =
   | _, _ :: tl -> check_exclusivity loc borrow tl
 
 let borrow_state = ref 0
+let string_state = ref 0
+
+let string_lit_borrow loc mut =
+  incr string_state;
+  let borrowed = "__string" ^ string_of_int !string_state in
+  match mut with
+  | Usage.Uread ->
+      incr borrow_state;
+      Borrow { ord = !borrow_state; loc; borrowed }
+  | Umove ->
+      incr borrow_state;
+      Bmove { ord = !borrow_state; loc; borrowed }
+  | Umut -> failwith "Internal Error: Mutating string"
 
 (* For now, throw everything into one list of bindings.
    In the future, each owning binding could have its own list *)
@@ -100,7 +117,7 @@ let rec new_elems nu keep old =
   match (nu, old) with
   | _, [] -> nu
   | a :: _, b :: _ when a == b -> List.rev keep
-  | a :: tl, [ _ ] -> new_elems tl (a :: keep) old
+  | a :: tl, _ -> new_elems tl (a :: keep) old
   | _ -> failwith "Internal Error: Impossible"
 
 let rec check_excl_chain loc env borrow borrows =
@@ -225,6 +242,7 @@ let rec check_tree env bind mut tree borrows =
           borrows es
       in
       (None, bs)
+  | Const (String _) -> (Some (string_lit_borrow tree.loc mut), borrows)
   | Const _ -> (None, borrows)
   | Record fs ->
       let bs =
@@ -267,11 +285,11 @@ let rec check_tree env bind mut tree borrows =
   | Unop (_, e) ->
       let v, bs = check_tree env false Uread e borrows in
       (None, mb_add v bs)
-  | If (cond, a, b) ->
+  | If (cond, ae, be) ->
       let v, bs = check_tree env false Uread cond borrows in
       let bs = mb_add v bs in
-      let a, abs = check_tree env bind mut a bs in
-      let b, bbs = check_tree env bind mut b bs in
+      let a, abs = check_tree env bind mut ae bs in
+      let b, bbs = check_tree env bind mut be bs in
       (* Make sure borrow kind of both branches matches *)
       let _raise msg = raise (Typed_tree.Error (tree.loc, msg)) in
       let v =
@@ -280,9 +298,13 @@ let rec check_tree env bind mut tree borrows =
         (* Owning *)
         | None, None -> None
         | None, Some b when is_borrow b ->
-            _raise "Branches have different ownership: owned vs borrowed"
+            if Types.contains_allocation be.typ then
+              _raise "Branches have different ownership: owned vs borrowed"
+            else None
         | Some b, None when is_borrow b ->
-            _raise "Branches have different ownership: borrowed vs owned"
+            if Types.contains_allocation ae.typ then
+              _raise "Branches have different ownership: borrowed vs owned"
+            else None
         | None, a | a, None -> a
         (* If both branches are (Some _), they have to be both the same kind,
            because it was applied in Var.. above*)

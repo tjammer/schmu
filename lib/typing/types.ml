@@ -179,3 +179,23 @@ let rec extract_name_path = function
   | Trecord (_, Some n, _) | Tvariant (_, n, _) | Talias (n, _) -> Some n
   | Tvar { contents = Link t } -> extract_name_path t
   | _ -> None
+
+let rec contains_allocation = function
+  | Tvar { contents = Link t } | Traw_ptr t | Talias (_, t) | Tabstract (_, _, t)
+    ->
+      contains_allocation t
+  | Tarray _ -> true
+  | Trecord (_, _, fs) ->
+      Array.fold_left (fun ca f -> ca || contains_allocation f.ftyp) false fs
+  | Tvariant (_, _, ctors) ->
+      Array.fold_left
+        (fun ca c ->
+          match c.ctyp with Some t -> ca || contains_allocation t | None -> ca)
+        false ctors
+  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 -> false
+  | Qvar _ | Tvar { contents = Unbound _ } ->
+      (* We don't know yet *)
+      true
+  | Tfun _ ->
+      (* TODO *)
+      true
