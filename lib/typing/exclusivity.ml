@@ -28,11 +28,22 @@ let rec is_borrow = function
 
 module Map = Map.Make (String)
 
+let borrow_state = ref 0
+let string_state = ref 0
+let param_pass = ref false
+
+let reset () =
+  borrow_state := 0;
+  string_state := 0;
+  param_pass := false
+
 let rec check_exclusivity loc borrow borrows =
   let p = Printf.sprintf in
   match (borrow, borrows) with
   (* TODO only check String.equal once *)
-  | _, [] -> failwith "Internal Error: Should never be empty"
+  | _, [] ->
+      print_endline (show_binding borrow);
+      failwith "Internal Error: Should never be empty"
   | Bown _, _ -> ()
   | (Borrow b | Borrow_mut b | Bmove b), _
     when String.starts_with ~prefix:"__string" b.borrowed ->
@@ -83,8 +94,12 @@ let rec check_exclusivity loc borrow borrows =
   | (Borrow b | Bmove b | Borrow_mut b), Bmove m :: _
     when String.equal b.borrowed m.borrowed ->
       (* Accessing a moved value *)
-      let msg =
-        p "%s was moved in line %i, cannot use" b.borrowed (fst m.loc).pos_lnum
+      let loc, msg =
+        if not !param_pass then
+          ( loc,
+            p "%s was moved in line %i, cannot use" b.borrowed
+              (fst m.loc).pos_lnum )
+        else (m.loc, p "Borrowed parameter %s is moved" b.borrowed)
       in
       raise (Typed_tree.Error (loc, msg))
   | Bmove m, (Borrow b | Borrow_mut b) :: _
@@ -92,9 +107,6 @@ let rec check_exclusivity loc borrow borrows =
       (* The moving value was borrowed correctly before *)
       ()
   | _, _ :: tl -> check_exclusivity loc borrow tl
-
-let borrow_state = ref 0
-let string_state = ref 0
 
 let string_lit_borrow loc mut =
   incr string_state;
@@ -144,7 +156,6 @@ let rec check_tree env bind mut tree borrows =
             (* Assmue it's the only borrow. This works because if it isn't, a borrowed binding
                will be used later and thin fail the check. Extra care has to be taken for
                arguments to functions *)
-            (* TODO, moved bindings won't be detected *)
             let b =
               match mut with
               | Usage.Uread -> Borrow borrow
@@ -259,8 +270,7 @@ let rec check_tree env bind mut tree borrows =
   | Set (thing, value) ->
       let v, bs = check_tree env false Uread value borrows in
       let bs = mb_add v bs in
-      (* TODO do something with value here!
-         Track usage of values, but not the one being mutated. Actually, might already be fine *)
+      (* Track usage of values, but not the one being mutated *)
       let thing, bs = check_tree env bind Umut thing bs in
       (thing, mb_add thing bs)
   | Sequence (fst, snd) ->
@@ -314,8 +324,6 @@ let rec check_tree env bind mut tree borrows =
       in
       let abs = new_elems abs [] bs in
       let bbs = new_elems bbs [] bs in
-      (* TODO mutable borrows on both branches trigger an error. But only when mutable,
-         which we don't have in the grammar right nom *)
       (v, abs @ bbs @ bs)
   | Ctor (_, _, e) -> (
       match e with
@@ -343,7 +351,39 @@ let rec check_tree env bind mut tree borrows =
       (* TODO deal with captures *)
       (None, borrows)
   | Bind (name, expr, cont) ->
-      (* Bind must return the actual expression, not a borrow of it *)
       let b, borrows = check_tree env true mut expr borrows in
       let env = match b with Some b -> Map.add name b env | None -> env in
       check_tree env bind mut cont borrows
+
+let check_tree pts pns body =
+  (* Add parameters to initial environment *)
+  (* There's no support for moved params yet *)
+  reset ();
+  let borrow_of_param borrowed loc =
+    incr borrow_state;
+    { ord = !borrow_state; loc; borrowed }
+  in
+  let env, borrows =
+    List.fold_left
+      (fun (map, bs) (n, _) ->
+        (* Parameters are not owned, but using them as owned here makes it easier for
+           borrow checking. Correct usage of mutable parameters is already handled in typing.ml *)
+        let b = Bown n in
+        (Map.add n b map, b :: bs))
+      (Map.empty, []) pns
+  in
+
+  (* [Umove] because we want to move return values *)
+  let v, borrows = check_tree env false Umove body borrows in
+
+  (* Try to borrow the params again to make sure they haven't been moved *)
+  let borrows = mb_add v borrows in
+  param_pass := true;
+  List.iter2
+    (fun p (n, loc) ->
+      (* If there's no allocation, we copying and moving are the same thing *)
+      if Types.(contains_allocation p.pt) then
+        let borrow = borrow_of_param n loc in
+        let b = if Types.(p.pmut) then Borrow_mut borrow else Borrow borrow in
+        check_excl_chain loc env b borrows)
+    pts pns

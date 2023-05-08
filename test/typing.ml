@@ -681,6 +681,9 @@ let test_excl_proj_nest_orig () =
 let test_excl_proj_nest_closed () =
   test "unit" (own ^ "(def y& &x)\n (def z& &y)\n (ignore z)\n y" |> wrap_fn)
 
+let test_excl_moved_param () =
+  test_exn "Borrowed parameter x is moved" "(defn meh [x] x)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -911,5 +914,6 @@ let () =
           case "proj nest" test_excl_proj_nest;
           case "proj nest access orig" test_excl_proj_nest_orig;
           case "proj nest close" test_excl_proj_nest_closed;
+          case "moved parameter" test_excl_moved_param;
         ] );
     ]

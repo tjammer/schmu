@@ -777,17 +777,22 @@ end = struct
     let body_env, params_t, qparams, ret_annot =
       handle_params env loc params pattern_id return_annot
     in
+    let nparams =
+      List.mapi (fun i (d : Ast.decl) -> fst (pattern_id i d.pattern)) params
+    in
 
     let body_env, param_exprs = convert_decl body_env params in
 
     let body = convert_block body_env body |> fst in
     (* Add bindings from patterns *)
     let body = List.fold_left fold_decl body param_exprs in
-    (* [Umove] because we want to move return values *)
-    Exclusivity.(check_tree Map.empty false Umove body []) |> ignore;
     leave_level ();
 
     let env, closed_vars, unused = Env.close_function env in
+
+    Exclusivity.check_tree params_t
+      (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
+      body;
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
     check_unused unused;
@@ -817,11 +822,6 @@ end = struct
         let qtyp = Tfun (qparams, ret, kind) |> generalize in
         check_annot loc typ qtyp;
 
-        let nparams =
-          List.mapi
-            (fun i (d : Ast.decl) -> fst (pattern_id i d.pattern))
-            params
-        in
         let func = { tparams; ret; kind } in
         let lambda =
           { nparams; body = { body with typ = ret }; func; inline }
