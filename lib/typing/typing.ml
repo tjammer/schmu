@@ -513,6 +513,7 @@ let rec builtins_hack callee args =
             | _ -> false
           in
           { no_attr with mut }
+      | "copy" -> ( match args with (te, _, _) :: _ -> te.attr | _ -> no_attr)
       | _ -> no_attr)
   | Let_e (__, _, _, cont) -> builtins_hack cont args
   | _ -> no_attr

@@ -531,10 +531,13 @@ end = struct
   and gen_app_builtin param (b, fnc) args allocref loc =
     let handle_arg (arg, _) =
       let arg' = gen_expr param Monomorph_tree.(arg.ex) in
-      let arg = get_mono_func arg' param arg.monomorph in
 
       (* For [ignore], we don't really need to generate the closure objects here *)
-      match b with Ignore -> arg | _ -> func_to_closure param arg
+      match b with
+      | Ignore | Copy -> arg'
+      | _ ->
+          let arg = get_mono_func arg' param arg.monomorph in
+          func_to_closure param arg
     in
     let args = List.map handle_arg args in
 
