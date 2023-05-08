@@ -83,6 +83,7 @@
 %token Lbrack
 %token Rbrack
 %token Ampersand
+%token Caret
 %token At
 %token If
 %token Else
@@ -224,13 +225,18 @@ stmt:
 sexp_decl:
   | parens(sexp_decl_typed) { $1 }
   | pattern = sexp_pattern; Ampersand
-    { {loc = $loc; pattern; mut = true; annot = None} }
+    { {loc = $loc; pattern; dattr = Some Dmut; annot = None} }
+  | pattern = sexp_pattern; Caret
+    { {loc = $loc; pattern; dattr = Some Dmove; annot = None} }
   | pattern = sexp_pattern; %prec below_Ampersand
-    { {loc = $loc; pattern; mut = false; annot = None} }
+    { {loc = $loc; pattern; dattr = None; annot = None} }
 
 %inline sexp_decl_typed:
-  | id = ident; mut = boption(Ampersand); annot = sexp_type_expr
-    { { loc = $loc; pattern = Pvar (fst id, snd id); mut; annot = Some annot } }
+  | id = ident; dattr = option(decl_attr); annot = sexp_type_expr
+    { { loc = $loc; pattern = Pvar (fst id, snd id); dattr; annot = Some annot } }
+
+%inline decl_attr:
+  | Ampersand { Dmut } | Caret { Dmove }
 
 %inline sexp_fun:
   | Defn; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
@@ -449,7 +455,7 @@ array_lit:
   | Fun; nonempty_list(sexp_fun_param) { Ty_func $2 }
 
 %inline sexp_fun_param:
-  | spec = sexp_type_expr; mut = boption(Ampersand) { spec, mut }
+  | spec = sexp_type_expr; attr = option(decl_attr) { spec, attr }
 
 sexp_type_list:
   | Lpar; hd = type_spec; tl = nonempty_list(sexp_type_list); Rpar { Ty_list (hd :: tl) }

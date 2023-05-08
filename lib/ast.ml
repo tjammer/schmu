@@ -30,16 +30,18 @@ type type_spec =
   | Ty_id of string
   | Ty_var of Path.t
   | Ty_list of type_spec list
-  | Ty_func of (type_spec * bool) list
+  | Ty_func of (type_spec * decl_attr option) list
   | Ty_open_id of loc * Path.t
   | Ty_tuple of type_spec list
 
 and decl = {
   loc : loc;
   pattern : pattern;
-  mut : bool;
+  dattr : decl_attr option;
   annot : type_spec option;
 }
+
+and decl_attr = Dmut | Dmove
 
 and func = {
   name : loc * string;

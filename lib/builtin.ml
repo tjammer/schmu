@@ -34,107 +34,112 @@ type t =
 [@@deriving show]
 
 let tbl =
-  let pmut = false in
+  let p = { Types.pattr = None; pt = Tunit } in
   [
     ( Unsafe_ptr_get,
       Types.Tfun
-        ( [ { pt = Traw_ptr (Qvar "0"); pmut }; { pt = Tint; pmut } ],
+        ( [ { p with pt = Traw_ptr (Qvar "0") }; { p with pt = Tint } ],
           Qvar "0",
           Simple ),
       "__unsafe_ptr_get" );
     ( Unsafe_ptr_set,
       Tfun
         ( [
-            { pt = Traw_ptr (Qvar "0"); pmut = true };
-            { pt = Tint; pmut };
-            { pt = Qvar "0"; pmut };
+            { pt = Traw_ptr (Qvar "0"); pattr = Some Dmut };
+            { p with pt = Tint };
+            { p with pt = Qvar "0" };
           ],
           Tunit,
           Simple ),
       "__unsafe_ptr_set" );
     ( Unsafe_ptr_at,
       Tfun
-        ( [ { pt = Traw_ptr (Qvar "0"); pmut }; { pt = Tint; pmut } ],
+        ( [ { p with pt = Traw_ptr (Qvar "0") }; { p with pt = Tint } ],
           Traw_ptr (Qvar "0"),
           Simple ),
       "__unsafe_ptr_at" );
     ( Realloc,
       Tfun
-        ( [ { pmut = true; pt = Traw_ptr (Qvar "0") }; { pmut; pt = Tint } ],
+        ( [
+            { pt = Traw_ptr (Qvar "0"); pattr = Some Dmut }; { p with pt = Tint };
+          ],
           Tunit,
           Simple ),
       "__realloc" );
     ( Malloc,
-      Tfun ([ { pmut; pt = Tint } ], Traw_ptr (Qvar "0"), Simple),
+      Tfun ([ { p with pt = Tint } ], Traw_ptr (Qvar "0"), Simple),
       "__malloc" );
-    (Ignore, Tfun ([ { pmut; pt = Qvar "0" } ], Tunit, Simple), "ignore");
+    (Ignore, Tfun ([ { p with pt = Qvar "0" } ], Tunit, Simple), "ignore");
     ( Int_of_float,
-      Tfun ([ { pmut; pt = Tfloat } ], Tint, Simple),
+      Tfun ([ { p with pt = Tfloat } ], Tint, Simple),
       "int_of_float" );
-    (Int_of_i32, Tfun ([ { pmut; pt = Ti32 } ], Tint, Simple), "int_of_i32");
-    (Int_of_f32, Tfun ([ { pmut; pt = Tf32 } ], Tint, Simple), "int_of_f32");
+    (Int_of_i32, Tfun ([ { p with pt = Ti32 } ], Tint, Simple), "int_of_i32");
+    (Int_of_f32, Tfun ([ { p with pt = Tf32 } ], Tint, Simple), "int_of_f32");
     ( Float_of_int,
-      Tfun ([ { pmut; pt = Tint } ], Tfloat, Simple),
+      Tfun ([ { p with pt = Tint } ], Tfloat, Simple),
       "float_of_int" );
     ( Float_of_f32,
-      Tfun ([ { pmut; pt = Tf32 } ], Tfloat, Simple),
+      Tfun ([ { p with pt = Tf32 } ], Tfloat, Simple),
       "float_of_f32" );
     ( Float_of_i32,
-      Tfun ([ { pmut; pt = Ti32 } ], Tfloat, Simple),
+      Tfun ([ { p with pt = Ti32 } ], Tfloat, Simple),
       "float_of_i32" );
-    (I32_of_int, Tfun ([ { pmut; pt = Tint } ], Ti32, Simple), "i32_of_int");
+    (I32_of_int, Tfun ([ { p with pt = Tint } ], Ti32, Simple), "i32_of_int");
     ( I32_of_float,
-      Tfun ([ { pmut; pt = Tfloat } ], Ti32, Simple),
+      Tfun ([ { p with pt = Tfloat } ], Ti32, Simple),
       "i32_of_float" );
-    (I32_of_f32, Tfun ([ { pmut; pt = Tf32 } ], Ti32, Simple), "i32_of_f32");
+    (I32_of_f32, Tfun ([ { p with pt = Tf32 } ], Ti32, Simple), "i32_of_f32");
     ( F32_of_float,
-      Tfun ([ { pmut; pt = Tfloat } ], Tf32, Simple),
+      Tfun ([ { p with pt = Tfloat } ], Tf32, Simple),
       "f32_of_float" );
-    (F32_of_int, Tfun ([ { pmut; pt = Tint } ], Tf32, Simple), "f32_of_int");
-    (F32_of_i32, Tfun ([ { pmut; pt = Ti32 } ], Tf32, Simple), "f32_of_i32");
-    (U8_of_int, Tfun ([ { pmut; pt = Tint } ], Tu8, Simple), "u8_of_int");
-    (U8_to_int, Tfun ([ { pmut; pt = Tu8 } ], Tint, Simple), "u8_to_int");
-    (Not, Tfun ([ { pmut; pt = Tbool } ], Tbool, Simple), "not");
+    (F32_of_int, Tfun ([ { p with pt = Tint } ], Tf32, Simple), "f32_of_int");
+    (F32_of_i32, Tfun ([ { p with pt = Ti32 } ], Tf32, Simple), "f32_of_i32");
+    (U8_of_int, Tfun ([ { p with pt = Tint } ], Tu8, Simple), "u8_of_int");
+    (U8_to_int, Tfun ([ { p with pt = Tu8 } ], Tint, Simple), "u8_to_int");
+    (Not, Tfun ([ { p with pt = Tbool } ], Tbool, Simple), "not");
     ( Mod,
-      Tfun ([ { pmut; pt = Tint }; { pmut; pt = Tint } ], Tint, Simple),
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple),
       "mod" );
     ( Array_get,
       Tfun
-        ( [ { pmut; pt = Tarray (Qvar "0") }; { pmut; pt = Tint } ],
+        ( [ { p with pt = Tarray (Qvar "0") }; { p with pt = Tint } ],
           Qvar "0",
           Simple ),
       "array-get" );
     ( Array_set,
       Tfun
         ( [
-            { pmut = true; pt = Tarray (Qvar "0") };
-            { pmut; pt = Tint };
-            { pmut; pt = Qvar "0" };
+            { pt = Tarray (Qvar "0"); pattr = Some Dmut };
+            { p with pt = Tint };
+            { p with pt = Qvar "0" };
           ],
           Tunit,
           Simple ),
       "array-set" );
     ( Array_length,
-      Tfun ([ { pmut; pt = Tarray (Qvar "0") } ], Tint, Simple),
+      Tfun ([ { p with pt = Tarray (Qvar "0") } ], Tint, Simple),
       "array-length" );
     ( Array_push,
       Tfun
-        ( [ { pmut = true; pt = Tarray (Qvar "0") }; { pmut; pt = Qvar "0" } ],
+        ( [
+            { pt = Tarray (Qvar "0"); pattr = Some Dmut };
+            { p with pt = Qvar "0" };
+          ],
           Tunit,
           Simple ),
       "array-push" );
     ( Array_drop_back,
-      Tfun ([ { pmut = true; pt = Tarray (Qvar "0") } ], Tunit, Simple),
+      Tfun ([ { pt = Tarray (Qvar "0"); pattr = Some Dmut } ], Tunit, Simple),
       "array-drop-back" );
     ( Array_data,
-      Tfun ([ { pmut; pt = Tarray (Qvar "0") } ], Traw_ptr (Qvar "0"), Simple),
+      Tfun ([ { p with pt = Tarray (Qvar "0") } ], Traw_ptr (Qvar "0"), Simple),
       "array-data" );
     ( Unsafe_array_create,
-      Tfun ([ { pmut; pt = Tint } ], Tarray (Qvar "0"), Simple),
+      Tfun ([ { p with pt = Tint } ], Tarray (Qvar "0"), Simple),
       "__unsafe_array_create" );
     (Unsafe_nullptr, Tfun ([], Traw_ptr Tu8, Simple), "__unsafe_nullptr");
-    (Assert, Tfun ([ { pmut; pt = Tbool } ], Tunit, Simple), "assert");
-    (Copy, Tfun ([ { pmut; pt = Qvar "0" } ], Qvar "0", Simple), "copy");
+    (Assert, Tfun ([ { p with pt = Tbool } ], Tunit, Simple), "assert");
+    (Copy, Tfun ([ { p with pt = Qvar "0" } ], Qvar "0", Simple), "copy");
   ]
 
 let of_string = function

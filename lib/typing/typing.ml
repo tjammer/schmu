@@ -278,7 +278,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         | (last, _) :: head ->
             Tfun
               ( List.map
-                  (fun (s, pmut) -> { pt = concrete_type false env s; pmut })
+                  (fun (s, pattr) -> { pt = concrete_type false env s; pattr })
                   (List.rev head),
                 concrete_type false env last,
                 fn_kind )
@@ -321,7 +321,7 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
   in
 
   List.fold_left_map
-    (fun (env, i) { Ast.loc; pattern; mut; annot } ->
+    (fun (env, i) { Ast.loc; pattern; dattr; annot } ->
       let id, idloc = pattern_id i pattern in
       let type_id, qparams =
         match annot with
@@ -340,11 +340,11 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
               param = true;
               global = false;
               imported = None;
-              mut;
+              mut = mut_of_pattr dattr;
             }
             idloc env,
           i + 1 ),
-        ({ pt = type_id; pmut = mut }, { pt = qparams; pmut = mut }) ))
+        ({ pt = type_id; pattr = dattr }, { pt = qparams; pattr = dattr }) ))
     (env, 0) params
   |> fun ((env, _), lst) ->
   let ids, qparams = List.split lst in
@@ -543,15 +543,16 @@ let rec wrap_in_lambda texpr = function
       let args =
         List.mapi
           (fun i p ->
+            let mut = mut_of_pattr p.pattr in
             let texpr =
               {
                 typ = p.pt;
                 expr = Var (pn i 0);
-                attr = { no_attr with mut = p.pmut };
+                attr = { no_attr with mut };
                 loc = texpr.loc;
               }
             in
-            (texpr, p.pmut))
+            (texpr, mut))
           tparams
       in
       let body =
@@ -682,7 +683,7 @@ end = struct
       { Ast.mmut = _; mexpr = block } =
     let id, idloc = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
-    let mut = decl.mut in
+    let mut = mut_of_pattr decl.dattr in
     let const = e1.attr.const && not mut in
     let env =
       Env.add_value id
@@ -766,7 +767,7 @@ end = struct
       else
         (* Recursion allowed for named funcs *)
         let ps =
-          List.map (fun p -> Ast.{ pmut = p.mut; pt = newvar () }) params
+          List.map (fun p -> Ast.{ pattr = p.dattr; pt = newvar () }) params
         in
         let typ = Tfun (ps, newvar (), Simple) in
         Env.(add_value name { def_value with typ } nameloc env)
@@ -852,7 +853,11 @@ end = struct
         args
     in
     let args_t =
-      List.map (fun (a, pmut, _) -> { pmut; pt = a.typ }) typed_exprs
+      List.map
+        (fun (a, pmut, _) ->
+          let pattr = if pmut then Some Ast.Dmut else None in
+          { pattr; pt = a.typ })
+        typed_exprs
     in
     let res_t = newvar () in
     if switch_uni then

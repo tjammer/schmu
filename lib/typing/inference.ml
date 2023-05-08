@@ -55,6 +55,12 @@ let arity (loc, pre) thing la lb =
 exception Unify of (typ * typ) option
 exception Arity of string * int * int
 
+let mut_equal l r =
+  match (l, r) with
+  | Some Ast.Dmut, Some Ast.Dmut -> true
+  | Some Ast.Dmut, _ | _, Some Ast.Dmut -> false
+  | _ -> true
+
 let rec unify down t1 t2 =
   if t1 == t2 then ()
   else
@@ -72,7 +78,7 @@ let rec unify down t1 t2 =
         try
           List.iter2
             (fun left right ->
-              if not (Bool.equal left.pmut right.pmut) then raise (Unify None);
+              if not (mut_equal left.pattr right.pattr) then raise (Unify None);
               unify true left.pt right.pt)
             params_l params_r;
           unify true l r
@@ -317,7 +323,7 @@ let rec types_match ?(strict = false) ?(match_abstract = false) subst l r =
                 let subst, b =
                   types_match ~match_abstract ~strict:true s l.pt r.pt
                 in
-                let b = b && Bool.equal l.pmut r.pmut in
+                let b = b && l.pattr = r.pattr in
                 (subst, acc && b))
               (subst, true) ps_l ps_r
           in

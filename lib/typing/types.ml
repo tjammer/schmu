@@ -31,10 +31,11 @@ type typ =
 
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
-and param = { pt : typ; pmut : bool }
+and param = { pt : typ; pattr : dattr option }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
+and dattr = Ast.decl_attr = Dmut | Dmove
 
 let rec clean = function
   | Tvar { contents = Link t } -> clean t
@@ -78,11 +79,14 @@ let string_of_type_raw get_name typ =
     | Ti32 -> "i32"
     | Tf32 -> "f32"
     | Tfun (ts, t, _) ->
+        let pattr = function
+          | None -> ""
+          | Some Dmut -> "&"
+          | Some Dmove -> "^"
+        in
         let ps =
           String.concat " "
-            (List.map
-               (fun p -> string_of_type p.pt ^ if p.pmut then "&" else "")
-               ts)
+            (List.map (fun p -> string_of_type p.pt ^ pattr p.pattr) ts)
         in
         Printf.sprintf "(fun %s %s)" ps (string_of_type t)
     | Tvar { contents = Link t } -> string_of_type t
@@ -199,3 +203,5 @@ let rec contains_allocation = function
   | Tfun _ ->
       (* TODO *)
       true
+
+let mut_of_pattr = function Some Dmut -> true | None | Some Dmove -> false

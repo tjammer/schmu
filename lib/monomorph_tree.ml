@@ -734,7 +734,7 @@ and cln_kind p = function
 
 and cln_param param p =
   let pt = cln param Types.(p.pt) in
-  { pt; pmut = p.pmut }
+  { pt; pmut = Types.mut_of_pattr p.pattr }
 
 (* State *)
 
@@ -1561,7 +1561,7 @@ and morph_app mk p callee args ret_typ =
     (* array-get does not return a temporary. If its value is returned in a function,
        increase value's refcount so that it's really a temporary *)
     match callee.monomorph with
-    | Builtin (Array_get, _)  | Builtin (Copy, _)->
+    | Builtin (Array_get, _) | Builtin (Copy, _) ->
         let mk =
           if ret then fun app ->
             let app = mk app ret in

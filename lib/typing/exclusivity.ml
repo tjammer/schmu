@@ -357,7 +357,6 @@ let rec check_tree env bind mut tree borrows =
 
 let check_tree pts pns body =
   (* Add parameters to initial environment *)
-  (* There's no support for moved params yet *)
   reset ();
   let borrow_of_param borrowed loc =
     incr borrow_state;
@@ -384,6 +383,8 @@ let check_tree pts pns body =
       (* If there's no allocation, we copying and moving are the same thing *)
       if Types.(contains_allocation p.pt) then
         let borrow = borrow_of_param n loc in
-        let b = if Types.(p.pmut) then Borrow_mut borrow else Borrow borrow in
-        check_excl_chain loc env b borrows)
+        match p.pattr with
+        | None -> check_excl_chain loc env (Borrow borrow) borrows
+        | Some Dmut -> check_excl_chain loc env (Borrow_mut borrow) borrows
+        | Some Dmove -> ())
     pts pns

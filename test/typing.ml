@@ -144,20 +144,20 @@ let test_annot_concrete_fail () =
     "Var annotation: Expected type (fun bool int) but got type (fun int bool)"
     "(def (foo (fun bool int)) (fn (x) (< x 3))) foo"
 
-let test_annot_mix () = test "(fun 'a 'a)" "(defn pass [(x 'b)] x) pass"
+let test_annot_mix () = test "(fun 'a^ 'a)" "(defn pass [(x^ 'b)] x) pass"
 
 let test_annot_mix_fail () =
   test_exn "Var annotation: Expected type (fun 'b int) but got type (fun 'b 'b)"
     "(def (pass (fun 'b int)) (fn (x) x)) pass"
 
-let test_annot_generic () = test "(fun 'a 'a)" "(defn pass [(x 'b)] x) pass"
+let test_annot_generic () = test "(fun 'a^ 'a)" "(defn pass [(x^ 'b)] x) pass"
 
 let test_annot_generic_fail () =
   test_exn "Var annotation: Expected type (fun 'a 'b) but got type (fun 'a 'a)"
     "(def (pass (fun 'a 'b)) (fn (x) x)) pass"
 
 let test_annot_generic_mut () =
-  test "(fun 'a& 'a)" "(defn pass [(x& 'b)] x) pass"
+  test "(fun 'a& 'a)" "(defn pass [(x& 'b)] (copy x)) pass"
 
 let test_annot_fun_mut_param () =
   test "(fun int& unit)"
@@ -182,11 +182,11 @@ let test_annot_record_generic_multiple () =
 let test_annot_tuple_simple () =
   test "{int bool}" "(def (a {int bool}) {1 true}) a"
 
-let test_annot_tuple_generic () =
-  test "{int bool}" "(defn hmm [(a {int 'a})] a) (hmm {1 true})"
-
 let test_annot_array_arg_generic () =
-  test "(array int)" "(defn foo [(a (array 'a))] a) (foo [10])"
+  test "(array int)" "(defn foo [(a^ (array 'a))] a) (foo [10])"
+
+let test_annot_tuple_generic () =
+  test "{int bool}" "(defn hmm [(a^ {int 'a})] a) (hmm {1 true})"
 
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
@@ -203,15 +203,16 @@ let test_para_instantiate () =
 
 let test_para_gen_fun () =
   test "(fun (foo 'a) int)"
-    "(type (foo 'a) { :gen 'a :second int }) (defn get (foo) (.second foo)) get"
+    "(type (foo 'a) { :gen 'a :second int }) (defn get (foo) (copy (.second \
+     foo))) get"
 
 let test_para_gen_return () =
-  test "(fun (foo 'a) 'a)"
-    "(type (foo 'a) { :gen 'a }) (defn get (foo) (.gen foo)) get"
+  test "(fun (foo 'a)^ 'a)"
+    "(type (foo 'a) { :gen 'a }) (defn get (foo^) (.gen foo)) get"
 
 let test_para_multiple () =
   test "bool"
-    "(type (foo 'a) { :gen 'a }) (defn get (foo) (.gen foo)) (def a { :gen 12 \
+    "(type (foo 'a) { :gen 'a }) (defn get (foo^) (.gen foo)) (def a { :gen 12 \
      }) (def (b int) (get a)) (def c { :gen false }) (get c)"
 
 let test_para_instance_func () =
@@ -567,12 +568,12 @@ let test_signature_generic () =
   test "unit"
     {|(signature
   (type (t 'a))
-  (def create (fun 'a (t 'a)))
+  (def create (fun 'a^ (t 'a)))
   (def create-int (fun int (t int))))
 
 (type (t 'a) {:x 'a})
 
-(defn create [x] {:x})
+(defn create [x^] {:x})
 (defn create-int [(x int)] {:x})
 |}
 
@@ -653,7 +654,7 @@ let test_excl_if_borrow_borrow () =
 
 let test_excl_if_lit_borrow () =
   test_exn "Branches have different ownership: owned vs borrowed"
-    ("(def x 10) (ignore (if true 10 x))" |> wrap_fn)
+    ("(def x [10]) (ignore (if true [10] x))" |> wrap_fn)
 
 let test_excl_proj () =
   test "unit" (own ^ "(def y& &x) (set &y 11) (ignore x)" |> wrap_fn)
