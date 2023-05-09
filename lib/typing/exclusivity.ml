@@ -12,10 +12,37 @@ module Usage = struct
   let of_mut b = if b then Umut else Uread
 end
 
-type borrow = { ord : int; loc : Ast.loc; borrowed : string }
+module Id = struct
+  type t = Fst of string | Shadowed of string * int [@@deriving show]
+
+  let compare a b =
+    match (a, b) with
+    | Fst a, Fst b -> String.compare a b
+    | Shadowed (a, ai), Shadowed (b, bi) ->
+        let c = String.compare a b in
+        if c == 0 then Int.compare ai bi else c
+    | Fst a, Shadowed (b, bi) | Shadowed (b, bi), Fst a ->
+        let c = String.compare a b in
+        if c == 0 then bi else c
+
+  let equal a b =
+    match (a, b) with
+    | Fst a, Fst b -> String.equal a b
+    | Shadowed (a, ai), Shadowed (b, bi) ->
+        let c = String.equal a b in
+        if c then Int.equal ai bi else c
+    | Fst _, Shadowed _ | Shadowed _, Fst _ -> false
+
+  let is_string = function
+    | Fst s | Shadowed (s, _) -> String.starts_with ~prefix:"__string" s
+
+  let s = function Fst s -> s | Shadowed (s, _) -> s
+end
+
+type borrow = { ord : int; loc : Ast.loc; borrowed : Id.t }
 
 and binding =
-  | Bown of string
+  | Bown of Id.t
   | Borrow of borrow
   | Borrow_mut of borrow * Usage.set
   | Bmove of borrow
@@ -27,16 +54,32 @@ let rec is_borrow = function
   | Borrow _ | Borrow_mut _ -> true
   | Bmulti (a, b) -> is_borrow a && is_borrow b
 
-module Map = Map.Make (String)
+type bopt = binding option [@@deriving show]
+
+module Map = Map.Make (Id)
 
 let borrow_state = ref 0
-let string_state = ref 0
 let param_pass = ref false
+let shadow_tbl = Hashtbl.create 64
+
+let new_id str =
+  match Hashtbl.find_opt shadow_tbl str with
+  | Some i ->
+      Hashtbl.replace shadow_tbl str (i + 1);
+      Id.Shadowed (str, i)
+  | None ->
+      Hashtbl.replace shadow_tbl str 1;
+      Id.Fst str
+
+let get_id str =
+  match Hashtbl.find_opt shadow_tbl str with
+  | None | Some 1 -> Id.Fst str
+  | Some i -> Id.Shadowed (str, i - 1)
 
 let reset () =
   borrow_state := 0;
-  string_state := 0;
-  param_pass := false
+  param_pass := false;
+  Hashtbl.clear shadow_tbl
 
 let rec check_exclusivity loc borrow borrows =
   let p = Printf.sprintf in
@@ -46,8 +89,7 @@ let rec check_exclusivity loc borrow borrows =
       print_endline (show_binding borrow);
       failwith "Internal Error: Should never be empty"
   | Bown _, _ -> ()
-  | (Borrow b | Borrow_mut (b, _) | Bmove b), _
-    when String.starts_with ~prefix:"__string" b.borrowed ->
+  | (Borrow b | Borrow_mut (b, _) | Bmove b), _ when Id.is_string b.borrowed ->
       (* Strings literals can always be borrowed. For now also moved *)
       ()
   | Bmulti (a, b), _ ->
@@ -57,63 +99,62 @@ let rec check_exclusivity loc borrow borrows =
       check_exclusivity loc borrow (a :: tl);
       check_exclusivity loc borrow (b :: tl)
   | (Borrow b | Borrow_mut (b, _) | Bmove b), Bown name :: _
-    when String.equal b.borrowed name ->
+    when Id.equal b.borrowed name ->
       ()
-  | Borrow l, Borrow r :: tl when String.equal l.borrowed r.borrowed ->
+  | Borrow l, Borrow r :: tl when Id.equal l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
       if Int.equal l.ord r.ord then () else check_exclusivity loc borrow tl
   | Borrow_mut (l, _), Borrow_mut (r, _) :: tl
-    when String.equal l.borrowed r.borrowed ->
+    when Id.equal l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
       if Int.equal l.ord r.ord then ()
       else if l.ord < r.ord then
         (* Borrow is still active while mutable borrow occured *)
         let msg =
-          p "%s was mutably borrowed in line %i, cannot borrow" r.borrowed
-            (fst l.loc).pos_lnum
+          p "%s was mutably borrowed in line %i, cannot borrow"
+            (Id.s r.borrowed) (fst l.loc).pos_lnum
         in
         raise (Typed_tree.Error (r.loc, msg))
       else check_exclusivity loc borrow tl
-  | Borrow l, Borrow_mut (r, _) :: _ when String.equal l.borrowed r.borrowed ->
+  | Borrow l, Borrow_mut (r, _) :: _ when Id.equal l.borrowed r.borrowed ->
       (* TODO check if the cond is even meaningful here *)
       if l.ord < r.ord then
         (* Borrow is still active while mutable borrow occured *)
         let msg =
-          p "%s was borrowed in line %i, cannot mutate" r.borrowed
+          p "%s was borrowed in line %i, cannot mutate" (Id.s r.borrowed)
             (fst l.loc).pos_lnum
         in
         raise (Typed_tree.Error (r.loc, msg))
       else () (* failwith "Internal Error: Unexpected borrow order" *)
-  | Borrow_mut (l, _), Borrow r :: _ when String.equal l.borrowed r.borrowed ->
+  | Borrow_mut (l, _), Borrow r :: _ when Id.equal l.borrowed r.borrowed ->
       if l.ord < r.ord then
         (* Mutable borrow still active while borrow occured *)
         let msg =
-          p "%s was mutably borrowed in line %i, cannot borrow" r.borrowed
-            (fst l.loc).pos_lnum
+          p "%s was mutably borrowed in line %i, cannot borrow"
+            (Id.s r.borrowed) (fst l.loc).pos_lnum
         in
         raise (Typed_tree.Error (r.loc, msg))
       else () (* failwith "Internal Error: Unexpected mutable borrow order" *)
   | (Borrow b | Bmove b | Borrow_mut (b, Dont_set)), Bmove m :: _
   (* Allow mutable borrow for setting new values *)
-    when String.equal b.borrowed m.borrowed ->
+    when Id.equal b.borrowed m.borrowed ->
       (* Accessing a moved value *)
       let loc, msg =
         if not !param_pass then
           ( loc,
-            p "%s was moved in line %i, cannot use" b.borrowed
+            p "%s was moved in line %i, cannot use" (Id.s b.borrowed)
               (fst m.loc).pos_lnum )
-        else (m.loc, p "Borrowed parameter %s is moved" b.borrowed)
+        else (m.loc, p "Borrowed parameter %s is moved" (Id.s b.borrowed))
       in
       raise (Typed_tree.Error (loc, msg))
   | Bmove m, (Borrow b | Borrow_mut (b, _)) :: _
-    when String.equal m.borrowed b.borrowed ->
+    when Id.equal m.borrowed b.borrowed ->
       (* The moving value was borrowed correctly before *)
       ()
   | _, _ :: tl -> check_exclusivity loc borrow tl
 
 let string_lit_borrow loc mut =
-  incr string_state;
-  let borrowed = "__string" ^ string_of_int !string_state in
+  let borrowed = new_id "__string" in
   match mut with
   | Usage.Uread ->
       incr borrow_state;
@@ -151,6 +192,7 @@ let rec check_tree env bind mut tree borrows =
   match Typed_tree.(tree.expr) with
   | Typed_tree.Var borrowed ->
       (* This is no rvalue, we borrow *)
+      let borrowed = get_id borrowed in
       let loc = tree.loc in
       let rec borrow = function
         | Bown borrowed ->
@@ -203,10 +245,10 @@ let rec check_tree env bind mut tree borrows =
                 incr borrow_state;
                 Borrow { loc; ord = !borrow_state; borrowed })
         | Bmove m ->
-            assert (String.equal m.borrowed borrowed);
+            assert (Id.equal m.borrowed borrowed);
             let msg =
-              Printf.sprintf "%s was moved in line %i, cannot borrow" borrowed
-                (fst m.loc).pos_lnum
+              Printf.sprintf "%s was moved in line %i, cannot borrow"
+                (Id.s borrowed) (fst m.loc).pos_lnum
             in
             raise (Typed_tree.Error (m.loc, msg))
         | Bmulti (a, b) -> Bmulti (borrow a, borrow b)
@@ -237,6 +279,7 @@ let rec check_tree env bind mut tree borrows =
         incr borrow_state;
         !borrow_state
       in
+      let id = new_id id in
       let rec borrow bs = function
         | Bmove _ as b -> (Bown id, b :: bs)
         | Bmulti (a, b) ->
@@ -273,8 +316,11 @@ let rec check_tree env bind mut tree borrows =
   | Record fs ->
       let bs =
         List.fold_left
-          (fun bs (_, field) ->
-            let v, bs = check_tree env false Umove field bs in
+          (fun bs (_, (field : Typed_tree.typed_expr)) ->
+            let usage =
+              if Types.contains_allocation field.typ then Usage.Umove else Uread
+            in
+            let v, bs = check_tree env false usage field bs in
             mb_add v bs)
           borrows fs
       in
@@ -366,8 +412,9 @@ let rec check_tree env bind mut tree borrows =
       (* TODO deal with captures *)
       (None, borrows)
   | Bind (name, expr, cont) ->
-      let b, borrows = check_tree env true mut expr borrows in
-      let env = match b with Some b -> Map.add name b env | None -> env in
+      let b, borrows = check_tree env true Uread expr borrows in
+      let id = new_id name in
+      let env = match b with Some b -> Map.add id b env | None -> env in
       check_tree env bind mut cont borrows
 
 let check_tree pts pns body =
@@ -382,8 +429,10 @@ let check_tree pts pns body =
       (fun (map, bs) (n, _) ->
         (* Parameters are not owned, but using them as owned here makes it easier for
            borrow checking. Correct usage of mutable parameters is already handled in typing.ml *)
-        let b = Bown n in
-        (Map.add n b map, b :: bs))
+        let id = new_id n in
+        assert (Id.equal id (Fst n));
+        let b = Bown id in
+        (Map.add id b map, b :: bs))
       (Map.empty, []) pns
   in
 
@@ -397,7 +446,7 @@ let check_tree pts pns body =
     (fun p (n, loc) ->
       (* If there's no allocation, we copying and moving are the same thing *)
       if Types.(contains_allocation p.pt) then
-        let borrow = borrow_of_param n loc in
+        let borrow = borrow_of_param (Fst n) loc in
         match p.pattr with
         | None -> check_excl_chain loc env (Borrow borrow) borrows
         | Some Dmut ->

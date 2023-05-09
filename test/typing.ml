@@ -701,6 +701,9 @@ let test_excl_binds () =
     (#linear (ease-linear anim))
     (#circ-in (ease-circ-in anim))))|}
 
+let test_excl_shadowing () =
+  test_exn "Borrowed parameter a is moved" "(defn thing [a] (def a a) a)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -934,5 +937,6 @@ let () =
           case "moved parameter" test_excl_moved_param;
           case "set moved" test_excl_set_moved;
           case "binds" test_excl_binds;
+          case "shadowing" test_excl_shadowing;
         ] );
     ]
