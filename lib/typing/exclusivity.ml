@@ -6,7 +6,8 @@
 (* TODO handle projections / parts *)
 
 module Usage = struct
-  type t = Uread | Umut | Umove [@@deriving show]
+  type t = Uread | Umut | Umove | Uset [@@deriving show]
+  type set = Set | Dont_set [@@deriving show]
 
   let of_mut b = if b then Umut else Uread
 end
@@ -16,7 +17,7 @@ type borrow = { ord : int; loc : Ast.loc; borrowed : string }
 and binding =
   | Bown of string
   | Borrow of borrow
-  | Borrow_mut of borrow
+  | Borrow_mut of borrow * Usage.set
   | Bmove of borrow
   | Bmulti of binding * binding
 [@@deriving show]
@@ -45,7 +46,7 @@ let rec check_exclusivity loc borrow borrows =
       print_endline (show_binding borrow);
       failwith "Internal Error: Should never be empty"
   | Bown _, _ -> ()
-  | (Borrow b | Borrow_mut b | Bmove b), _
+  | (Borrow b | Borrow_mut (b, _) | Bmove b), _
     when String.starts_with ~prefix:"__string" b.borrowed ->
       (* Strings literals can always be borrowed. For now also moved *)
       ()
@@ -55,13 +56,14 @@ let rec check_exclusivity loc borrow borrows =
   | _, Bmulti (a, b) :: tl ->
       check_exclusivity loc borrow (a :: tl);
       check_exclusivity loc borrow (b :: tl)
-  | (Borrow b | Borrow_mut b | Bmove b), Bown name :: _
+  | (Borrow b | Borrow_mut (b, _) | Bmove b), Bown name :: _
     when String.equal b.borrowed name ->
       ()
   | Borrow l, Borrow r :: tl when String.equal l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
       if Int.equal l.ord r.ord then () else check_exclusivity loc borrow tl
-  | Borrow_mut l, Borrow_mut r :: tl when String.equal l.borrowed r.borrowed ->
+  | Borrow_mut (l, _), Borrow_mut (r, _) :: tl
+    when String.equal l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
       if Int.equal l.ord r.ord then ()
       else if l.ord < r.ord then
@@ -72,7 +74,7 @@ let rec check_exclusivity loc borrow borrows =
         in
         raise (Typed_tree.Error (r.loc, msg))
       else check_exclusivity loc borrow tl
-  | Borrow l, Borrow_mut r :: _ when String.equal l.borrowed r.borrowed ->
+  | Borrow l, Borrow_mut (r, _) :: _ when String.equal l.borrowed r.borrowed ->
       (* TODO check if the cond is even meaningful here *)
       if l.ord < r.ord then
         (* Borrow is still active while mutable borrow occured *)
@@ -82,7 +84,7 @@ let rec check_exclusivity loc borrow borrows =
         in
         raise (Typed_tree.Error (r.loc, msg))
       else () (* failwith "Internal Error: Unexpected borrow order" *)
-  | Borrow_mut l, Borrow r :: _ when String.equal l.borrowed r.borrowed ->
+  | Borrow_mut (l, _), Borrow r :: _ when String.equal l.borrowed r.borrowed ->
       if l.ord < r.ord then
         (* Mutable borrow still active while borrow occured *)
         let msg =
@@ -91,7 +93,8 @@ let rec check_exclusivity loc borrow borrows =
         in
         raise (Typed_tree.Error (r.loc, msg))
       else () (* failwith "Internal Error: Unexpected mutable borrow order" *)
-  | (Borrow b | Bmove b | Borrow_mut b), Bmove m :: _
+  | (Borrow b | Bmove b | Borrow_mut (b, Dont_set)), Bmove m :: _
+  (* Allow mutable borrow for setting new values *)
     when String.equal b.borrowed m.borrowed ->
       (* Accessing a moved value *)
       let loc, msg =
@@ -102,7 +105,7 @@ let rec check_exclusivity loc borrow borrows =
         else (m.loc, p "Borrowed parameter %s is moved" b.borrowed)
       in
       raise (Typed_tree.Error (loc, msg))
-  | Bmove m, (Borrow b | Borrow_mut b) :: _
+  | Bmove m, (Borrow b | Borrow_mut (b, _)) :: _
     when String.equal m.borrowed b.borrowed ->
       (* The moving value was borrowed correctly before *)
       ()
@@ -118,7 +121,7 @@ let string_lit_borrow loc mut =
   | Umove ->
       incr borrow_state;
       Bmove { ord = !borrow_state; loc; borrowed }
-  | Umut -> failwith "Internal Error: Mutating string"
+  | Umut | Uset -> failwith "Internal Error: Mutating string"
 
 (* For now, throw everything into one list of bindings.
    In the future, each owning binding could have its own list *)
@@ -135,7 +138,7 @@ let rec new_elems nu keep old =
 let rec check_excl_chain loc env borrow borrows =
   match borrow with
   | Bown _ -> ()
-  | Borrow b | Borrow_mut b | Bmove b -> (
+  | Borrow b | Borrow_mut (b, _) | Bmove b -> (
       check_exclusivity loc borrow borrows;
       match Map.find_opt b.borrowed env with
       | Some b -> check_excl_chain loc env b borrows
@@ -150,7 +153,9 @@ let rec check_tree env bind mut tree borrows =
       (* This is no rvalue, we borrow *)
       let loc = tree.loc in
       let rec borrow = function
-        | Bown _ ->
+        | Bown borrowed ->
+            (* For Binds, it's imported that we take the owned name, and not the one from Var.
+               Otherwise, the Bind name might be borrowed *)
             incr borrow_state;
             let borrow = { ord = !borrow_state; loc; borrowed } in
             (* Assmue it's the only borrow. This works because if it isn't, a borrowed binding
@@ -159,12 +164,13 @@ let rec check_tree env bind mut tree borrows =
             let b =
               match mut with
               | Usage.Uread -> Borrow borrow
-              | Umut -> Borrow_mut borrow
+              | Umut -> Borrow_mut (borrow, Dont_set)
+              | Uset -> Borrow_mut (borrow, Set)
               | Umove -> Bmove borrow
             in
             check_excl_chain loc env b borrows;
             b
-        | Borrow_mut b' as b -> (
+        | Borrow_mut (b', _) as b -> (
             match mut with
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
@@ -173,7 +179,11 @@ let rec check_tree env bind mut tree borrows =
             | Umut | Uread ->
                 check_excl_chain loc env b borrows;
                 incr borrow_state;
-                Borrow_mut { loc; ord = !borrow_state; borrowed })
+                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, Dont_set)
+            | Uset ->
+                check_excl_chain loc env b borrows;
+                incr borrow_state;
+                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, Set))
         | Borrow b' as b -> (
             match mut with
             | Usage.Umove ->
@@ -181,9 +191,13 @@ let rec check_tree env bind mut tree borrows =
                 check_excl_chain loc env b borrows;
                 Bmove { b' with loc }
             | Umut ->
-                check_excl_chain loc env (Borrow_mut b') borrows;
+                check_excl_chain loc env (Borrow_mut (b', Dont_set)) borrows;
                 incr borrow_state;
-                Borrow_mut { loc; ord = !borrow_state; borrowed }
+                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, Dont_set)
+            | Uset ->
+                check_excl_chain loc env (Borrow_mut (b', Set)) borrows;
+                incr borrow_state;
+                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, Set)
             | Uread ->
                 check_excl_chain loc env b borrows;
                 incr borrow_state;
@@ -232,7 +246,8 @@ let rec check_tree env bind mut tree borrows =
             let a, bs = borrow bs a in
             (Bmulti (a, b), bs)
         | Borrow b -> (Borrow { b with loc; ord = neword () }, bs)
-        | Borrow_mut b -> (Borrow_mut { b with loc; ord = neword () }, bs)
+        | Borrow_mut (b, _) ->
+            (Borrow_mut ({ b with loc; ord = neword () }, Dont_set), bs)
         | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"
       in
       let b, bs =
@@ -271,7 +286,7 @@ let rec check_tree env bind mut tree borrows =
       let v, bs = check_tree env false Uread value borrows in
       let bs = mb_add v bs in
       (* Track usage of values, but not the one being mutated *)
-      let thing, bs = check_tree env bind Umut thing bs in
+      let thing, bs = check_tree env bind Uset thing bs in
       (thing, mb_add thing bs)
   | Sequence (fst, snd) ->
       let _, bs = check_tree env false Uread fst borrows in
@@ -385,6 +400,7 @@ let check_tree pts pns body =
         let borrow = borrow_of_param n loc in
         match p.pattr with
         | None -> check_excl_chain loc env (Borrow borrow) borrows
-        | Some Dmut -> check_excl_chain loc env (Borrow_mut borrow) borrows
+        | Some Dmut ->
+            check_excl_chain loc env (Borrow_mut (borrow, Dont_set)) borrows
         | Some Dmove -> ())
     pts pns

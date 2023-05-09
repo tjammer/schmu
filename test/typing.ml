@@ -640,11 +640,11 @@ let test_excl_move_record () =
 
 let test_excl_move_record_use_after () =
   test_exn "x was moved in line 2, cannot use"
-    (own ^ "(def y {x}) (ignore x)" |> wrap_fn)
+    ("(def x& [10])\n (def y {x}) (ignore x)" |> wrap_fn)
 
 let test_excl_borrow_then_move () =
   test_exn "x was moved in line 3, cannot use"
-    ("(def x 10)\n (def y x)\n (ignore {y})\n x" |> wrap_fn)
+    ("(def x [10])\n (def y x)\n (ignore {y})\n x" |> wrap_fn)
 
 let test_excl_if_move_lit () =
   test "unit" ("(def x 10) (def y& (if true x 10)) (ignore y)" |> wrap_fn)
@@ -684,6 +684,22 @@ let test_excl_proj_nest_closed () =
 
 let test_excl_moved_param () =
   test_exn "Borrowed parameter x is moved" "(defn meh [x] x)"
+
+let test_excl_set_moved () =
+  test "unit" "(defn meh [a&] (ignore {a}) (set &a 10))"
+
+let test_excl_binds () =
+  test "unit"
+    {|
+(type ease-kind (#linear #circ-in))
+
+(defn ease-circ-in [_] 0.0)
+(defn ease-linear [_] 0.0)
+
+(defn ease [anim]
+  (match anim
+    (#linear (ease-linear anim))
+    (#circ-in (ease-circ-in anim))))|}
 
 let case str test = test_case str `Quick test
 
@@ -916,5 +932,7 @@ let () =
           case "proj nest access orig" test_excl_proj_nest_orig;
           case "proj nest close" test_excl_proj_nest_closed;
           case "moved parameter" test_excl_moved_param;
+          case "set moved" test_excl_set_moved;
+          case "binds" test_excl_binds;
         ] );
     ]
