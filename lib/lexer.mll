@@ -146,7 +146,7 @@ rule read =
        (['0'-'9' 'a'-'f' 'A'-'F'] as d) (['0'-'9' 'a'-'f' 'A'-'F'] as u) "'"
        { U8 (char_for_hexadecimal_code d u) }
   | '&'      { Ampersand }
-  | '^'      { Caret }
+  | '!'      { Exclamation }
   | '@'      { At }
   | '+'      { Plus_i }
   | min      { Minus_i }

@@ -22,7 +22,7 @@
     let make_pairs bin arg args aloc =
       let rec build = function
         | [ a ] -> bin arg a
-        | a :: tl -> bin {amut = false; aexpr = (build tl); aloc} a
+        | a :: tl -> bin {(*TODO allow mutating *) apass = Dnorm; aexpr = (build tl); aloc} a
         | [] -> failwith "unreachable"
       in
       build (List.rev args)
@@ -35,6 +35,11 @@
       in
       build lets
 
+    let pass_attr_of_opt = function
+      | Some Ast.Dmut -> Ast.Dmut
+      | Some Dmove -> Dmove
+      | Some Dnorm -> (* Won't happen but w/e *) Dnorm
+      | None -> Dnorm
 %}
 
 %token Equal
@@ -83,7 +88,7 @@
 %token Lbrack
 %token Rbrack
 %token Ampersand
-%token Caret
+%token Exclamation
 %token At
 %token If
 %token Else
@@ -225,18 +230,18 @@ stmt:
 sexp_decl:
   | parens(sexp_decl_typed) { $1 }
   | pattern = sexp_pattern; Ampersand
-    { {loc = $loc; pattern; dattr = Some Dmut; annot = None} }
-  | pattern = sexp_pattern; Caret
-    { {loc = $loc; pattern; dattr = Some Dmove; annot = None} }
+    { {loc = $loc; pattern; dattr = Dmut; annot = None} }
+  | pattern = sexp_pattern; Exclamation
+    { {loc = $loc; pattern; dattr = Dmove; annot = None} }
   | pattern = sexp_pattern; %prec below_Ampersand
-    { {loc = $loc; pattern; dattr = None; annot = None} }
+    { {loc = $loc; pattern; dattr = Dnorm; annot = None} }
 
 %inline sexp_decl_typed:
   | id = ident; dattr = option(decl_attr); annot = sexp_type_expr
-    { { loc = $loc; pattern = Pvar (fst id, snd id); dattr; annot = Some annot } }
+    { { loc = $loc; pattern = Pvar (fst id, snd id); dattr = pass_attr_of_opt dattr; annot = Some annot } }
 
 %inline decl_attr:
-  | Ampersand { Dmut } | Caret { Dmove }
+  | Ampersand { Dmut } | Exclamation { Dmove }
 
 %inline sexp_fun:
   | Defn; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
@@ -263,8 +268,8 @@ sexp_expr:
   | ident { Var (fst $1, snd $1) }
   | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
   | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
-    {App ($loc, Var ($loc, "array-get"), [{amut = false; aloc = $loc(e); aexpr = e};
-                                  {amut = false; aloc = $loc(i); aexpr = i}])}
+    {App ($loc, Var ($loc, "array-get"), [{apass = Dnorm; aloc = $loc(e); aexpr = e};
+                                  {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
   | parens(lets) { $1 }
   | parens(sexp_if) { $1 }
   | parens(sexp_lambda) { $1 }
@@ -357,7 +362,7 @@ pipeable:
   | Builtin_id; list(call_arg) { App ($loc, Var($loc, $1), $2) }
 
 %inline call_arg:
-  | amut = boption(Ampersand); aexpr = sexp_expr { {amut; aexpr; aloc = $loc} }
+  | amut = option(decl_attr); aexpr = sexp_expr { {apass = pass_attr_of_opt amut; aexpr; aloc = $loc} }
 
 %inline do_block:
   | Do; stmts = nonempty_list(stmt) { Do_block stmts }
@@ -455,7 +460,7 @@ array_lit:
   | Fun; nonempty_list(sexp_fun_param) { Ty_func $2 }
 
 %inline sexp_fun_param:
-  | spec = sexp_type_expr; attr = option(decl_attr) { spec, attr }
+  | spec = sexp_type_expr; attr = option(decl_attr) { spec, pass_attr_of_opt attr }
 
 sexp_type_list:
   | Lpar; hd = type_spec; tl = nonempty_list(sexp_type_list); Rpar { Ty_list (hd :: tl) }

@@ -552,7 +552,7 @@ let rec wrap_in_lambda texpr = function
                 loc = texpr.loc;
               }
             in
-            (texpr, mut))
+            (texpr, p.pattr))
           tparams
       in
       let body =
@@ -839,32 +839,34 @@ end = struct
       List.mapi
         (fun i (a : Ast.argument) ->
           let e =
-            if a.amut then Env.open_mutation env;
+            (match a.apass with
+            | Dmut -> Env.open_mutation env
+            | Dnorm | Dmove -> ());
             let e = convert_annot env (param_annot annots i) a.aexpr in
-            if a.amut then (
-              Env.close_mutation env;
-              if not e.attr.mut then
-                raise
-                  (Error (a.aloc, "Mutably passed expression is not mutable")));
+            (match a.apass with
+            | Dmut ->
+                Env.close_mutation env;
+                if not e.attr.mut then
+                  raise
+                    (Error (a.aloc, "Mutably passed expression is not mutable"))
+            | Dmove | Dnorm -> ());
             e
           in
           (* We also care about whether the argument _can_ be mutable, for array-get *)
-          (e, a.amut, e.attr.mut))
+          (e, a.apass, e.attr.mut))
         args
     in
     let args_t =
-      List.map
-        (fun (a, pmut, _) ->
-          let pattr = if pmut then Some Ast.Dmut else None in
-          { pattr; pt = a.typ })
-        typed_exprs
+      List.map (fun (a, pattr, _) -> { pattr; pt = a.typ }) typed_exprs
     in
     let res_t = newvar () in
     if switch_uni then
       unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ
     else unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple));
 
-    let apply param (texpr, mut, _) = ({ texpr with typ = param.pt }, mut) in
+    let apply param (texpr, _, _) =
+      ({ texpr with typ = param.pt }, param.pattr)
+    in
     let targs = List.map2 apply args_t typed_exprs in
 
     let attr = builtins_hack e1 typed_exprs in

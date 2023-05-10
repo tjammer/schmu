@@ -9,7 +9,7 @@ module Usage = struct
   type t = Uread | Umut | Umove | Uset [@@deriving show]
   type set = Set | Dont_set [@@deriving show]
 
-  let of_mut b = if b then Umut else Uread
+  let of_attr = function Ast.Dnorm -> Uread | Dmut -> Umut | Dmove -> Umove
 end
 
 module Id = struct
@@ -318,7 +318,9 @@ let rec check_tree env bind mut tree borrows =
         List.fold_left
           (fun bs (_, (field : Typed_tree.typed_expr)) ->
             let usage =
-              if Types.contains_allocation field.typ then Usage.Umove else Uread
+              (* if Types.contains_allocation field.typ then  *)
+              Usage.Umove
+              (* else Uread *)
             in
             let v, bs = check_tree env false usage field bs in
             mb_add v bs)
@@ -342,8 +344,8 @@ let rec check_tree env bind mut tree borrows =
       let _, bs = check_tree env false Uread callee borrows in
       let bs =
         List.fold_left
-          (fun bs (arg, mut) ->
-            let v, bs = check_tree env false (Usage.of_mut mut) arg bs in
+          (fun bs (arg, attr) ->
+            let v, bs = check_tree env false (Usage.of_attr attr) arg bs in
             mb_add v bs)
           bs args
       in
@@ -369,13 +371,13 @@ let rec check_tree env bind mut tree borrows =
         (* Owning *)
         | None, None -> None
         | None, Some b when is_borrow b ->
-            if Types.contains_allocation be.typ then
-              _raise "Branches have different ownership: owned vs borrowed"
-            else None
+            (* if Types.contains_allocation be.typ then *)
+            _raise "Branches have different ownership: owned vs borrowed"
+            (* else None *)
         | Some b, None when is_borrow b ->
-            if Types.contains_allocation ae.typ then
-              _raise "Branches have different ownership: borrowed vs owned"
-            else None
+            (* if Types.contains_allocation ae.typ then *)
+            _raise "Branches have different ownership: borrowed vs owned"
+            (* else None *)
         | None, a | a, None -> a
         (* If both branches are (Some _), they have to be both the same kind,
            because it was applied in Var.. above*)
@@ -447,9 +449,9 @@ let check_tree pts pns body =
       (* If there's no allocation, we copying and moving are the same thing *)
       if Types.(contains_allocation p.pt) then
         let borrow = borrow_of_param (Fst n) loc in
-        match p.pattr with
-        | None -> check_excl_chain loc env (Borrow borrow) borrows
-        | Some Dmut ->
+        match Types.(p.pattr) with
+        | Dnorm -> check_excl_chain loc env (Borrow borrow) borrows
+        | Dmut ->
             check_excl_chain loc env (Borrow_mut (borrow, Dont_set)) borrows
-        | Some Dmove -> ())
+        | Dmove -> ())
     pts pns

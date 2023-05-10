@@ -34,7 +34,7 @@ type t =
 [@@deriving show]
 
 let tbl =
-  let p = { Types.pattr = None; pt = Tunit } in
+  let p = { Types.pattr = Dnorm; pt = Tunit } in
   [
     ( Unsafe_ptr_get,
       Types.Tfun
@@ -45,7 +45,7 @@ let tbl =
     ( Unsafe_ptr_set,
       Tfun
         ( [
-            { pt = Traw_ptr (Qvar "0"); pattr = Some Dmut };
+            { pt = Traw_ptr (Qvar "0"); pattr = Dmut };
             { p with pt = Tint };
             { p with pt = Qvar "0" };
           ],
@@ -60,9 +60,7 @@ let tbl =
       "__unsafe_ptr_at" );
     ( Realloc,
       Tfun
-        ( [
-            { pt = Traw_ptr (Qvar "0"); pattr = Some Dmut }; { p with pt = Tint };
-          ],
+        ( [ { pt = Traw_ptr (Qvar "0"); pattr = Dmut }; { p with pt = Tint } ],
           Tunit,
           Simple ),
       "__realloc" );
@@ -109,7 +107,7 @@ let tbl =
     ( Array_set,
       Tfun
         ( [
-            { pt = Tarray (Qvar "0"); pattr = Some Dmut };
+            { pt = Tarray (Qvar "0"); pattr = Dmut };
             { p with pt = Tint };
             { p with pt = Qvar "0" };
           ],
@@ -122,14 +120,14 @@ let tbl =
     ( Array_push,
       Tfun
         ( [
-            { pt = Tarray (Qvar "0"); pattr = Some Dmut };
-            { p with pt = Qvar "0" };
+            { pt = Tarray (Qvar "0"); pattr = Dmut };
+            { pt = Qvar "0"; pattr = Dmove };
           ],
           Tunit,
           Simple ),
       "array-push" );
     ( Array_drop_back,
-      Tfun ([ { pt = Tarray (Qvar "0"); pattr = Some Dmut } ], Tunit, Simple),
+      Tfun ([ { pt = Tarray (Qvar "0"); pattr = Dmut } ], Tunit, Simple),
       "array-drop-back" );
     ( Array_data,
       Tfun ([ { p with pt = Tarray (Qvar "0") } ], Traw_ptr (Qvar "0"), Simple),
