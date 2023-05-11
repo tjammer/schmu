@@ -59,7 +59,14 @@ and const =
   | Unit
 
 and toplevel_item =
-  | Tl_let of string * int option * typed_expr
+  | Tl_let of {
+      loc : loc;
+      id : string;
+      uniq : int option;
+      rmut : bool;
+      mutly : bool;
+      lhs : typed_expr;
+    }
   | Tl_bind of string * typed_expr
   | Tl_function of loc * string * int option * abstraction
   | Tl_expr of typed_expr

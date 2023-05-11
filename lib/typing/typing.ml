@@ -710,6 +710,9 @@ end = struct
     let env, params_t, qparams, ret_annot =
       handle_params env loc params pattern_id None
     in
+    let nparams =
+      List.mapi (fun i (d : Ast.decl) -> fst (pattern_id i d.pattern)) params
+    in
 
     let env, param_exprs = convert_decl env params in
 
@@ -718,6 +721,11 @@ end = struct
 
     leave_level ();
     let _, closed_vars, unused = Env.close_function env in
+
+    Exclusivity.check_tree params_t
+      (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
+      body;
+
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
     check_unused unused;
 
@@ -733,11 +741,6 @@ end = struct
         let qtyp = Tfun (qparams, ret, kind) in
         check_annot loc typ qtyp;
 
-        let nparams =
-          List.mapi
-            (fun i (d : Ast.decl) -> fst (pattern_id i d.pattern))
-            params
-        in
         let func = { tparams; ret; kind } in
         let abs =
           { nparams; body = { body with typ = ret }; func; inline = false }
@@ -1214,7 +1217,7 @@ let add_signature_vals env m = function
   | Stypedef _ -> m
 
 let rec catch_weak_vars = function
-  | Tl_let (_, _, e) | Tl_bind (_, e) | Tl_expr e ->
+  | Tl_let { lhs = e; _ } | Tl_bind (_, e) | Tl_expr e ->
       catch_weak_expr Sset.empty e
   | Tl_function (_, _, _, abs) -> catch_weak_body Sset.empty abs
   | Tl_mutual_rec_decls _ -> ()
@@ -1294,6 +1297,8 @@ let rec convert_module env sign prog check_ret mname =
   let _, _, unused = Env.close_function env in
   let has_sign = match sign with [] -> false | _ -> true in
   if (not (Option.is_some mname)) || has_sign then check_unused unused;
+
+  Exclusivity.check_items items;
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
@@ -1377,7 +1382,7 @@ and convert_prog env items ~mname modul =
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
-        let env, id, lhs, _, pats =
+        let env, id, lhs, rmut, pats =
           Core.convert_let ~global:true env loc decl block
         in
         let uniq = uniq_name id in
@@ -1388,7 +1393,7 @@ and convert_prog env items ~mname modul =
           Module.add_external ~mname loc lhs.typ id uniq_name ~closure:true m
         in
         let expr =
-          let expr = Tl_let (id, uniq, lhs) in
+          let expr = Tl_let { loc; id; uniq; lhs; rmut; mutly = block.mmut } in
           match pats with
           (* Maybe add pattern expressions *)
           | [] -> [ expr ]

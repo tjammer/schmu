@@ -1685,7 +1685,7 @@ let rec morph_toplvl param items =
         let param = { param with mname } in
         aux_impl param tl item
   and aux_impl param tl = function
-    | Typed_tree.Tl_let (id, uniq, expr) ->
+    | Typed_tree.Tl_let { id; uniq; lhs = expr; _ } ->
         let p, e1, gn, needs_init, vid = prep_let param id uniq expr true in
         let p, e2, func = aux { p with ret = param.ret } tl in
         let p, e2 = make_e2 e1 e2 id gn needs_init expr.attr.mut false p vid in

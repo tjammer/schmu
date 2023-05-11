@@ -281,44 +281,7 @@ let rec check_tree env bind mut part tree borrows =
          will take care of this *)
       (borrow, borrows)
   | Let { id; lhs; cont; mutly; rmut; _ } ->
-      let nmut =
-        match (lhs.attr.mut, mutly) with
-        | true, true when not rmut ->
-            raise
-              (Typed_tree.Error (lhs.loc, "Cannot project unmutable binding"))
-        | true, true -> Usage.Umut
-        | true, false -> Umove
-        | false, false -> Uread
-        | false, true -> failwith "unreachable"
-      in
-      let rval, bs = check_tree env false nmut [] lhs borrows in
-      let loc = tree.loc in
-      let neword () =
-        incr borrow_state;
-        !borrow_state
-      in
-      let id = new_id id in
-      let rec borrow bs = function
-        | Bmove _ as b -> (Bown id, b :: bs)
-        | Bmulti (a, b) ->
-            (* Switch order so that first move appears near the head of borrow list.
-               This way, the first move is reported first (if both move the same thing) *)
-            let b, bs = borrow bs b in
-            let a, bs = borrow bs a in
-            (Bmulti (a, b), bs)
-        | Borrow b -> (Borrow { b with loc; ord = neword () }, bs)
-        | Borrow_mut (b, _) ->
-            (Borrow_mut ({ b with loc; ord = neword () }, Dont_set), bs)
-        | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"
-      in
-      let b, bs =
-        match rval with
-        | None ->
-            (* No borrow, original, owned value *)
-            (Bown id, bs)
-        | Some b -> borrow bs b
-      in
-      let env = Map.add id b env in
+      let env, b, bs = check_let tree.loc env id lhs rmut mutly borrows in
       check_tree env bind mut part cont (b :: bs)
   | Const (Array es) ->
       let bs =
@@ -387,13 +350,13 @@ let rec check_tree env bind mut part tree borrows =
         (* Owning *)
         | None, None -> None
         | None, Some b when is_borrow b ->
-            (* if Types.contains_allocation be.typ then *)
-            _raise "Branches have different ownership: owned vs borrowed"
-            (* else None *)
+            if Types.contains_allocation be.typ then
+              _raise "Branches have different ownership: owned vs borrowed"
+            else None
         | Some b, None when is_borrow b ->
-            (* if Types.contains_allocation ae.typ then *)
-            _raise "Branches have different ownership: borrowed vs owned"
-            (* else None *)
+            if Types.contains_allocation ae.typ then
+              _raise "Branches have different ownership: borrowed vs owned"
+            else None
         | None, a | a, None -> a
         (* If both branches are (Some _), they have to be both the same kind,
            because it was applied in Var.. above*)
@@ -430,10 +393,71 @@ let rec check_tree env bind mut part tree borrows =
       (* TODO deal with captures *)
       (None, borrows)
   | Bind (name, expr, cont) ->
-      let b, borrows = check_tree env true Uread [] expr borrows in
-      let id = new_id name in
-      let env = match b with Some b -> Map.add id b env | None -> env in
+      let env, borrows = check_bind env name expr borrows in
       check_tree env bind mut part cont borrows
+
+and check_let loc env id lhs rmut mutly borrows =
+  let nmut =
+    match Typed_tree.(lhs.attr.mut, mutly) with
+    | true, true when not rmut ->
+        raise (Typed_tree.Error (lhs.loc, "Cannot project unmutable binding"))
+    | true, true -> Usage.Umut
+    | true, false -> Umove
+    | false, false -> Uread
+    | false, true -> failwith "unreachable"
+  in
+  let rval, bs = check_tree env false nmut [] lhs borrows in
+  let loc = loc in
+  let neword () =
+    incr borrow_state;
+    !borrow_state
+  in
+  let id = new_id id in
+  let rec borrow bs = function
+    | Bmove _ as b -> (Bown id, b :: bs)
+    | Bmulti (a, b) ->
+        (* Switch order so that first move appears near the head of borrow list.
+           This way, the first move is reported first (if both move the same thing) *)
+        let b, bs = borrow bs b in
+        let a, bs = borrow bs a in
+        (Bmulti (a, b), bs)
+    | Borrow b -> (Borrow { b with loc; ord = neword () }, bs)
+    | Borrow_mut (b, _) ->
+        (Borrow_mut ({ b with loc; ord = neword () }, Dont_set), bs)
+    | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"
+  in
+  let b, bs =
+    match rval with
+    | None ->
+        (* No borrow, original, owned value *)
+        (Bown id, bs)
+    | Some b -> borrow bs b
+  in
+  let env = Map.add id b env in
+  (env, b, bs)
+
+and check_bind env name expr borrows =
+  let b, borrows = check_tree env true Uread [] expr borrows in
+  let id = new_id name in
+  let env = match b with Some b -> Map.add id b env | None -> env in
+  (env, borrows)
+
+let check_item (env, bind, mut, part, borrows) = function
+  | Typed_tree.Tl_let { loc; id; rmut; mutly; lhs; uniq = _ } ->
+      if mutly then
+        raise (Typed_tree.Error (lhs.loc, "Cannot use projection at top level"))
+      else
+        let env, b, bs = check_let loc env id lhs rmut mutly borrows in
+        (env, bind, mut, part, b :: bs)
+  | Tl_bind (name, expr) ->
+      let env, borrows = check_bind env name expr borrows in
+      (env, bind, mut, part, borrows)
+  | Tl_expr e ->
+      (* Basically a sequence *)
+      let b, bs = check_tree env false Uread [] e borrows in
+      (env, bind, mut, part, mb_add b bs)
+  | Tl_function _ | Tl_mutual_rec_decls _ | Tl_module _ ->
+      (env, bind, mut, part, borrows)
 
 let check_tree pts pns body =
   (* Add parameters to initial environment *)
@@ -471,3 +495,8 @@ let check_tree pts pns body =
             check_excl_chain loc env (Borrow_mut (borrow, Dont_set)) borrows
         | Dmove -> ())
     pts pns
+
+let check_items items =
+  reset ();
+  List.fold_left check_item (Map.empty, false, Usage.Uread, [], []) items
+  |> ignore

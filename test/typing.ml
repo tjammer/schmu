@@ -15,7 +15,13 @@ let test_exn msg src =
        failwith "Expected an exception"
      with Typed_tree.Error (_, msg) -> msg)
 
-let wrap_fn s = "(defn f [] " ^ s ^ ")"
+let wrap_fn ?(proj = false) t expect code =
+  (* toplevel *)
+  if not proj then t expect code
+  else test_exn "Cannot use projection at top level" code;
+  (* function *)
+  t expect ("(defn f [] " ^ code ^ ")")
+
 let test_const_int () = test "int" "(def a 1) a"
 let test_const_neg_int () = test "int" "(def a -1) a"
 
@@ -622,65 +628,66 @@ let test_local_module_unique_names () =
 let own = "(def x& 10)\n"
 
 let test_excl_borrow () =
-  test "unit" (own ^ "(def y x) (ignore x) (ignore y)" |> wrap_fn)
+  wrap_fn test "unit" (own ^ "(def y x) (ignore x) (ignore y)")
 
 let test_excl_borrow_use_early () =
-  test_exn "x was borrowed in line 2, cannot mutate"
-    (own ^ "(def y x)\n (ignore x)\n (set &x 11)\n (ignore y)" |> wrap_fn)
+  wrap_fn test_exn "x was borrowed in line 2, cannot mutate"
+    (own ^ "(def y x)\n (ignore x)\n (set &x 11)\n (ignore y)")
 
 let test_excl_move_mut () =
-  test "unit" (own ^ "(def y& x) (set &y 11) (ignore y)" |> wrap_fn)
+  wrap_fn test "unit" (own ^ "(def y& x) (set &y 11) (ignore y)")
 
 let test_excl_move_mut_use_after () =
-  test_exn "x was moved in line 2, cannot use"
-    (own ^ "(def y& x) (ignore x)" |> wrap_fn)
+  wrap_fn test_exn "x was moved in line 2, cannot use"
+    (own ^ "(def y& x) (ignore x)")
 
 let test_excl_move_record () =
-  test "unit" (own ^ "(def y {x}) (ignore y)" |> wrap_fn)
+  wrap_fn test "unit" (own ^ "(def y {x}) (ignore y)")
 
 let test_excl_move_record_use_after () =
-  test_exn "x was moved in line 2, cannot use"
-    ("(def x& [10])\n (def y {x}) (ignore x)" |> wrap_fn)
+  wrap_fn test_exn "x was moved in line 2, cannot use"
+    "(def x& [10])\n (def y {x}) (ignore x)"
 
 let test_excl_borrow_then_move () =
-  test_exn "x was moved in line 3, cannot use"
-    ("(def x [10])\n (def y x)\n (ignore {y})\n x" |> wrap_fn)
+  wrap_fn test_exn "x was moved in line 3, cannot use"
+    "(def x [10])\n (def y x)\n (ignore {y})\n x"
 
 let test_excl_if_move_lit () =
-  test "unit" ("(def x 10) (def y& (if true x 10)) (ignore y)" |> wrap_fn)
+  wrap_fn test "unit" "(def x 10) (def y& (if true x 10)) (ignore y)"
 
 let test_excl_if_borrow_borrow () =
-  test "unit" ("(def x 10) (def y 10) (ignore (if true x y))" |> wrap_fn)
+  wrap_fn test "unit" "(def x 10) (def y 10) (ignore (if true x y))"
 
 let test_excl_if_lit_borrow () =
-  test_exn "Branches have different ownership: owned vs borrowed"
-    ("(def x [10]) (ignore (if true [10] x))" |> wrap_fn)
+  wrap_fn test_exn "Branches have different ownership: owned vs borrowed"
+    "(def x [10]) (ignore (if true [10] x))"
 
 let test_excl_proj () =
-  test "unit" (own ^ "(def y& &x) (set &y 11) (ignore x)" |> wrap_fn)
+  wrap_fn ~proj:true test "unit" (own ^ "(def y& &x) (set &y 11) (ignore x)")
 
 let test_excl_proj_immutable () =
-  test_exn "Cannot project unmutable binding"
-    ("(def x 10) (def y& &x) x" |> wrap_fn)
+  wrap_fn ~proj:true test_exn "Cannot project unmutable binding"
+    "(def x 10) (def y& &x) x"
 
 let test_excl_proj_use_orig () =
-  test_exn "x was mutably borrowed in line 2, cannot borrow"
-    (own ^ "(def y& &x)\n (ignore x)\n (ignore y)\n x" |> wrap_fn)
+  wrap_fn ~proj:true test_exn "x was mutably borrowed in line 2, cannot borrow"
+    (own ^ "(def y& &x)\n (ignore x)\n (ignore y)\n x")
 
 let test_excl_proj_move_after () =
-  test_exn "x was mutably borrowed in line 2, cannot borrow"
-    (own ^ "(def y& &x)\n (ignore x)\n {y}" |> wrap_fn)
+  wrap_fn ~proj:true test_exn "x was mutably borrowed in line 2, cannot borrow"
+    (own ^ "(def y& &x)\n (ignore x)\n {y}")
 
 let test_excl_proj_nest () =
-  test_exn "y was mutably borrowed in line 3, cannot borrow"
-    (own ^ "(def y& &x)\n (def z& &y)\n (ignore y)\n z" |> wrap_fn)
+  wrap_fn ~proj:true test_exn "y was mutably borrowed in line 3, cannot borrow"
+    (own ^ "(def y& &x)\n (def z& &y)\n (ignore y)\n z")
 
 let test_excl_proj_nest_orig () =
-  test_exn "x was mutably borrowed in line 2, cannot borrow"
-    (own ^ "(def y& &x)\n (def z& &y)\n (ignore x)\n z" |> wrap_fn)
+  wrap_fn ~proj:true test_exn "x was mutably borrowed in line 2, cannot borrow"
+    (own ^ "(def y& &x)\n (def z& &y)\n (ignore x)\n z")
 
 let test_excl_proj_nest_closed () =
-  test "unit" (own ^ "(def y& &x)\n (def z& &y)\n (ignore z)\n y" |> wrap_fn)
+  wrap_fn ~proj:true test "unit"
+    (own ^ "(def y& &x)\n (def z& &y)\n (ignore z)\n y")
 
 let test_excl_moved_param () =
   test_exn "Borrowed parameter x is moved" "(defn meh [x] x)"
