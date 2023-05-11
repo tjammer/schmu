@@ -130,6 +130,8 @@ and tuple_field = {
   tpat : pathed_pattern;
 }
 
+let tuple_field_name i = "<" ^ string_of_int i ^ ">"
+
 let loc_of_pat = function
   | Tp_wildcard loc
   | Tp_var (loc, _)
@@ -1006,9 +1008,9 @@ module Make (C : Core) (R : Recs) = struct
             in
             let expr =
               List.fold_left
-                (fun cont { index; iftyp; _ } ->
+                (fun cont { index; iftyp; name; _ } ->
                   let newcol = index :: path in
-                  let expr = Field (expr path, index) in
+                  let expr = Field (expr path, index, name) in
                   let expr = { typ = iftyp; expr; attr = no_attr; loc } in
 
                   let expr =
@@ -1043,7 +1045,9 @@ module Make (C : Core) (R : Recs) = struct
               List.fold_left
                 (fun cont pat ->
                   let newcol = pat.tindex :: path in
-                  let expr = Field (expr path, pat.tindex) in
+                  let expr =
+                    Field (expr path, pat.tindex, tuple_field_name pat.tindex)
+                  in
                   let expr = { typ = pat.ttyp; expr; attr = no_attr; loc } in
                   let expr =
                     let id = expr_name newcol in
@@ -1211,7 +1215,7 @@ module Make (C : Core) (R : Recs) = struct
                   (fun env f ->
                     let col = f.index :: path in
 
-                    let expr = Field (expr env path f.floc, f.index) in
+                    let expr = Field (expr env path f.floc, f.index, f.name) in
                     let expr =
                       { typ = f.iftyp; expr; attr = no_attr; loc = f.floc }
                     in
@@ -1231,7 +1235,8 @@ module Make (C : Core) (R : Recs) = struct
                   (fun env f ->
                     let col = f.tindex :: path in
 
-                    let expr = Field (expr env path f.tloc, f.tindex) in
+                    let name = tuple_field_name f.tindex in
+                    let expr = Field (expr env path f.tloc, f.tindex, name) in
                     let expr =
                       { typ = f.ttyp; expr; attr = no_attr; loc = f.tloc }
                     in

@@ -3,8 +3,6 @@
    and using post processing, assume each binding is correct and unify
    binding-kind after the fact.*)
 
-(* TODO handle projections / parts *)
-
 module Usage = struct
   type t = Uread | Umut | Umove | Uset [@@deriving show]
   type set = Set | Dont_set [@@deriving show]
@@ -33,13 +31,18 @@ module Id = struct
         if c then Int.equal ai bi else c
     | Fst _, Shadowed _ | Shadowed _, Fst _ -> false
 
-  let is_string = function
+  let is_string s =
+    match fst s with
     | Fst s | Shadowed (s, _) -> String.starts_with ~prefix:"__string" s
 
-  let s = function Fst s -> s | Shadowed (s, _) -> s
+  let s (s, part) =
+    let name = match s with Fst s -> s | Shadowed (s, _) -> s in
+    match part with
+    | [] -> name
+    | l -> name ^ "." ^ String.concat "." (List.map snd l)
 end
 
-type borrow = { ord : int; loc : Ast.loc; borrowed : Id.t }
+type borrow = { ord : int; loc : Ast.loc; borrowed : Id.t * part_access }
 
 and binding =
   | Bown of Id.t
@@ -47,7 +50,19 @@ and binding =
   | Borrow_mut of borrow * Usage.set
   | Bmove of borrow
   | Bmulti of binding * binding
-[@@deriving show]
+
+and part_access = (int * string) list [@@deriving show]
+
+let id_matches a wth =
+  let rec parts_match = function
+    | (i, _) :: tl, (j, _) :: tr ->
+        if Int.equal i j then parts_match (tl, tr)
+        else (* Borrows concern different parts *) false
+    | [], _ -> true
+    | _, [] -> (* Borrows are not mutually exclusive *) false
+  in
+  if not (Id.equal (fst a) (fst wth)) then false
+  else parts_match (snd a, snd wth)
 
 let rec is_borrow = function
   | Bown _ | Bmove _ -> false
@@ -99,13 +114,13 @@ let rec check_exclusivity loc borrow borrows =
       check_exclusivity loc borrow (a :: tl);
       check_exclusivity loc borrow (b :: tl)
   | (Borrow b | Borrow_mut (b, _) | Bmove b), Bown name :: _
-    when Id.equal b.borrowed name ->
+    when Id.equal (fst b.borrowed) name ->
       ()
-  | Borrow l, Borrow r :: tl when Id.equal l.borrowed r.borrowed ->
+  | Borrow l, Borrow r :: tl when id_matches l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
       if Int.equal l.ord r.ord then () else check_exclusivity loc borrow tl
   | Borrow_mut (l, _), Borrow_mut (r, _) :: tl
-    when Id.equal l.borrowed r.borrowed ->
+    when id_matches l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
       if Int.equal l.ord r.ord then ()
       else if l.ord < r.ord then
@@ -116,8 +131,7 @@ let rec check_exclusivity loc borrow borrows =
         in
         raise (Typed_tree.Error (r.loc, msg))
       else check_exclusivity loc borrow tl
-  | Borrow l, Borrow_mut (r, _) :: _ when Id.equal l.borrowed r.borrowed ->
-      (* TODO check if the cond is even meaningful here *)
+  | Borrow l, Borrow_mut (r, _) :: _ when id_matches l.borrowed r.borrowed ->
       if l.ord < r.ord then
         (* Borrow is still active while mutable borrow occured *)
         let msg =
@@ -125,8 +139,8 @@ let rec check_exclusivity loc borrow borrows =
             (fst l.loc).pos_lnum
         in
         raise (Typed_tree.Error (r.loc, msg))
-      else () (* failwith "Internal Error: Unexpected borrow order" *)
-  | Borrow_mut (l, _), Borrow r :: _ when Id.equal l.borrowed r.borrowed ->
+      else ()
+  | Borrow_mut (l, _), Borrow r :: _ when id_matches l.borrowed r.borrowed ->
       if l.ord < r.ord then
         (* Mutable borrow still active while borrow occured *)
         let msg =
@@ -134,27 +148,27 @@ let rec check_exclusivity loc borrow borrows =
             (Id.s r.borrowed) (fst l.loc).pos_lnum
         in
         raise (Typed_tree.Error (r.loc, msg))
-      else () (* failwith "Internal Error: Unexpected mutable borrow order" *)
+      else ()
   | (Borrow b | Bmove b | Borrow_mut (b, Dont_set)), Bmove m :: _
   (* Allow mutable borrow for setting new values *)
-    when Id.equal b.borrowed m.borrowed ->
+    when id_matches b.borrowed m.borrowed ->
       (* Accessing a moved value *)
       let loc, msg =
         if not !param_pass then
           ( loc,
-            p "%s was moved in line %i, cannot use" (Id.s b.borrowed)
+            p "%s was moved in line %i, cannot use" (Id.s m.borrowed)
               (fst m.loc).pos_lnum )
         else (m.loc, p "Borrowed parameter %s is moved" (Id.s b.borrowed))
       in
       raise (Typed_tree.Error (loc, msg))
   | Bmove m, (Borrow b | Borrow_mut (b, _)) :: _
-    when Id.equal m.borrowed b.borrowed ->
+    when id_matches m.borrowed b.borrowed ->
       (* The moving value was borrowed correctly before *)
       ()
   | _, _ :: tl -> check_exclusivity loc borrow tl
 
 let string_lit_borrow loc mut =
-  let borrowed = new_id "__string" in
+  let borrowed = (new_id "__string", []) in
   match mut with
   | Usage.Uread ->
       incr borrow_state;
@@ -180,26 +194,30 @@ let rec check_excl_chain loc env borrow borrows =
   match borrow with
   | Bown _ -> ()
   | Borrow b | Borrow_mut (b, _) | Bmove b -> (
+      (* print_endline "---------------"; *)
+      (* print_endline (show_binding borrow); *)
+      (* print_newline (); *)
+      (* print_endline (String.concat "\n" (List.map show_binding borrows)); *)
       check_exclusivity loc borrow borrows;
-      match Map.find_opt b.borrowed env with
+      match Map.find_opt (fst b.borrowed) env with
       | Some b -> check_excl_chain loc env b borrows
       | None -> ())
   | Bmulti (a, b) ->
       check_excl_chain loc env a borrows;
       check_excl_chain loc env b borrows
 
-let rec check_tree env bind mut tree borrows =
+let rec check_tree env bind mut part tree borrows =
   match Typed_tree.(tree.expr) with
   | Typed_tree.Var borrowed ->
       (* This is no rvalue, we borrow *)
-      let borrowed = get_id borrowed in
+      let borrowed = (get_id borrowed, part) in
       let loc = tree.loc in
       let rec borrow = function
-        | Bown borrowed ->
+        | Bown b ->
             (* For Binds, it's imported that we take the owned name, and not the one from Var.
                Otherwise, the Bind name might be borrowed *)
             incr borrow_state;
-            let borrow = { ord = !borrow_state; loc; borrowed } in
+            let borrow = { ord = !borrow_state; loc; borrowed = (b, part) } in
             (* Assmue it's the only borrow. This works because if it isn't, a borrowed binding
                will be used later and thin fail the check. Extra care has to be taken for
                arguments to functions *)
@@ -245,7 +263,7 @@ let rec check_tree env bind mut tree borrows =
                 incr borrow_state;
                 Borrow { loc; ord = !borrow_state; borrowed })
         | Bmove m ->
-            assert (Id.equal m.borrowed borrowed);
+            assert (id_matches m.borrowed borrowed);
             let msg =
               Printf.sprintf "%s was moved in line %i, cannot borrow"
                 (Id.s borrowed) (fst m.loc).pos_lnum
@@ -254,7 +272,7 @@ let rec check_tree env bind mut tree borrows =
         | Bmulti (a, b) -> Bmulti (borrow a, borrow b)
       in
       let borrow =
-        match Map.find_opt borrowed env with
+        match Map.find_opt (fst borrowed) env with
         | Some b when bind -> Some b
         | Some b -> Some (borrow b)
         | None -> None
@@ -273,7 +291,7 @@ let rec check_tree env bind mut tree borrows =
         | false, false -> Uread
         | false, true -> failwith "unreachable"
       in
-      let rval, bs = check_tree env false nmut lhs borrows in
+      let rval, bs = check_tree env false nmut [] lhs borrows in
       let loc = tree.loc in
       let neword () =
         incr borrow_state;
@@ -301,12 +319,12 @@ let rec check_tree env bind mut tree borrows =
         | Some b -> borrow bs b
       in
       let env = Map.add id b env in
-      check_tree env bind mut cont (b :: bs)
+      check_tree env bind mut part cont (b :: bs)
   | Const (Array es) ->
       let bs =
         List.fold_left
           (fun bs e ->
-            let v, bs = check_tree env false Umove e bs in
+            let v, bs = check_tree env false Umove [] e bs in
             mb_add v bs)
           borrows es
       in
@@ -318,51 +336,49 @@ let rec check_tree env bind mut tree borrows =
         List.fold_left
           (fun bs (_, (field : Typed_tree.typed_expr)) ->
             let usage =
-              (* if Types.contains_allocation field.typ then  *)
-              Usage.Umove
-              (* else Uread *)
+              if Types.contains_allocation field.typ then Usage.Umove else Uread
             in
-            let v, bs = check_tree env false usage field bs in
+            let v, bs = check_tree env false usage [] field bs in
             mb_add v bs)
           borrows fs
       in
       (None, bs)
-  | Field (tree, _) ->
-      (* Currently, borrow the whole thing *)
-      check_tree env bind mut tree borrows
+  | Field (tree, i, name) ->
+      let b, bs = check_tree env bind mut ((i, name) :: part) tree borrows in
+      if Types.contains_allocation tree.typ then (b, bs) else (None, bs)
   | Set (thing, value) ->
-      let v, bs = check_tree env false Uread value borrows in
+      let v, bs = check_tree env false Uread [] value borrows in
       let bs = mb_add v bs in
       (* Track usage of values, but not the one being mutated *)
-      let thing, bs = check_tree env bind Uset thing bs in
+      let thing, bs = check_tree env bind Uset [] thing bs in
       (thing, mb_add thing bs)
   | Sequence (fst, snd) ->
-      let _, bs = check_tree env false Uread fst borrows in
-      check_tree env bind mut snd bs
+      let _, bs = check_tree env false Uread [] fst borrows in
+      check_tree env bind mut part snd bs
   | App { callee; args } ->
       (* The callee itself can be borrowed *)
-      let _, bs = check_tree env false Uread callee borrows in
+      let _, bs = check_tree env false Uread [] callee borrows in
       let bs =
         List.fold_left
           (fun bs (arg, attr) ->
-            let v, bs = check_tree env false (Usage.of_attr attr) arg bs in
+            let v, bs = check_tree env false (Usage.of_attr attr) [] arg bs in
             mb_add v bs)
           bs args
       in
       (* A function cannot return a borrowed value *)
       (None, bs)
   | Bop (_, fst, snd) ->
-      let v, bs = check_tree env false Uread fst borrows in
-      let v, bs = check_tree env false Uread snd (mb_add v bs) in
+      let v, bs = check_tree env false Uread [] fst borrows in
+      let v, bs = check_tree env false Uread [] snd (mb_add v bs) in
       (None, mb_add v bs)
   | Unop (_, e) ->
-      let v, bs = check_tree env false Uread e borrows in
+      let v, bs = check_tree env false Uread [] e borrows in
       (None, mb_add v bs)
   | If (cond, ae, be) ->
-      let v, bs = check_tree env false Uread cond borrows in
+      let v, bs = check_tree env false Uread [] cond borrows in
       let bs = mb_add v bs in
-      let a, abs = check_tree env bind mut ae bs in
-      let b, bbs = check_tree env bind mut be bs in
+      let a, abs = check_tree env bind mut part ae bs in
+      let b, bbs = check_tree env bind mut part be bs in
       (* Make sure borrow kind of both branches matches *)
       let _raise msg = raise (Typed_tree.Error (tree.loc, msg)) in
       let v =
@@ -391,22 +407,22 @@ let rec check_tree env bind mut tree borrows =
   | Ctor (_, _, e) -> (
       match e with
       | Some e ->
-          let v, bs = check_tree env false Umove e borrows in
+          let v, bs = check_tree env false Umove [] e borrows in
           (None, mb_add v bs)
       | None -> (None, borrows))
-  | Variant_index e | Variant_data e -> check_tree env bind mut e borrows
+  | Variant_index e | Variant_data e -> check_tree env bind mut part e borrows
   | Fmt fs ->
       let bs =
         List.fold_left
           (fun bs -> function
             | Typed_tree.Fstr _ -> bs
             | Fexpr e ->
-                let v, bs = check_tree env false Uread e bs in
+                let v, bs = check_tree env false Uread [] e bs in
                 mb_add v bs)
           borrows fs
       in
       (None, bs)
-  | Mutual_rec_decls (_, cont) -> check_tree env bind mut cont borrows
+  | Mutual_rec_decls (_, cont) -> check_tree env bind mut part cont borrows
   | Lambda _ ->
       (* TODO deal with captures *)
       (None, borrows)
@@ -414,10 +430,10 @@ let rec check_tree env bind mut tree borrows =
       (* TODO deal with captures *)
       (None, borrows)
   | Bind (name, expr, cont) ->
-      let b, borrows = check_tree env true Uread expr borrows in
+      let b, borrows = check_tree env true Uread [] expr borrows in
       let id = new_id name in
       let env = match b with Some b -> Map.add id b env | None -> env in
-      check_tree env bind mut cont borrows
+      check_tree env bind mut part cont borrows
 
 let check_tree pts pns body =
   (* Add parameters to initial environment *)
@@ -439,7 +455,7 @@ let check_tree pts pns body =
   in
 
   (* [Umove] because we want to move return values *)
-  let v, borrows = check_tree env false Umove body borrows in
+  let v, borrows = check_tree env false Umove [] body borrows in
 
   (* Try to borrow the params again to make sure they haven't been moved *)
   let borrows = mb_add v borrows in
@@ -448,7 +464,7 @@ let check_tree pts pns body =
     (fun p (n, loc) ->
       (* If there's no allocation, we copying and moving are the same thing *)
       if Types.(contains_allocation p.pt) then
-        let borrow = borrow_of_param (Fst n) loc in
+        let borrow = borrow_of_param (Fst n, []) loc in
         match Types.(p.pattr) with
         | Dnorm -> check_excl_chain loc env (Borrow borrow) borrows
         | Dmut ->

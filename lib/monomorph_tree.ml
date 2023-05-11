@@ -975,7 +975,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
         func )
   | Record labels ->
       morph_record make param labels texpr.attr (cln param texpr.typ)
-  | Field (expr, index) -> morph_field make param expr index
+  | Field (expr, index, _) -> morph_field make param expr index
   | Set (expr, value) -> morph_set make param expr value
   | Sequence (expr, cont) -> morph_seq make param expr cont
   | Function (name, uniq, abs, cont) ->
@@ -1513,7 +1513,8 @@ and morph_app mk p callee args ret_typ =
     | _ -> false
   in
   let rec fold_decr_last p args = function
-    | [ (arg, mut) ] ->
+    | [ (arg, attr) ] ->
+        let mut = Types.mut_of_pattr attr in
         let p, ex, monomorph, arg =
           if is_special then special_f p arg else f p arg
         in
@@ -1526,7 +1527,8 @@ and morph_app mk p callee args ret_typ =
           else p.ids
         in
         ({ p with ids }, ({ ex; monomorph; mut }, arg) :: args)
-    | (arg, mut) :: tl ->
+    | (arg, attr) :: tl ->
+        let mut = Types.mut_of_pattr attr in
         let p, ex, monomorph, arg = f p arg in
         fold_decr_last p (({ ex; monomorph; mut }, arg) :: args) tl
     | [] -> (p, [])

@@ -293,9 +293,9 @@ and canonexpr mname nsub sub = function
           sub fs
       in
       (sub, Record fs)
-  | Field (e, i) ->
+  | Field (e, i, n) ->
       let sub, e = (canonbody mname nsub) sub e in
-      (sub, Field (e, i))
+      (sub, Field (e, i, n))
   | Set (a, b) ->
       let sub, a = (canonbody mname nsub) sub a in
       let sub, b = (canonbody mname nsub) sub b in
@@ -588,7 +588,7 @@ and mod_body f e =
       App
         { callee = m callee; args = List.map (fun (e, mut) -> (m e, mut)) args }
   | Record ts -> Record (List.map (fun (n, e) -> (n, m e)) ts)
-  | Field (t, i) -> Field (m t, i)
+  | Field (t, i, n) -> Field (m t, i, n)
   | Set (l, r) -> Set (m l, m r)
   | Sequence (l, r) -> Sequence (m l, m r)
   | Ctor (n, i, t) -> Ctor (n, i, Option.map m t)

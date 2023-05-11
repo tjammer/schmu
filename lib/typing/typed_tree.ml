@@ -26,7 +26,7 @@ type expr =
   | Mutual_rec_decls of (string * int option * typ) list * typed_expr
   | App of { callee : typed_expr; args : arg list }
   | Record of (string * typed_expr) list
-  | Field of (typed_expr * int)
+  | Field of (typed_expr * int * string)
   | Set of (typed_expr * typed_expr)
   | Sequence of (typed_expr * typed_expr)
   | Ctor of (string * int * typed_expr option)

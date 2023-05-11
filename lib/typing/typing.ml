@@ -1245,7 +1245,7 @@ and catch_weak_expr sub e =
       catch_weak_expr sub e1;
       catch_weak_expr sub e2
   | Unop (_, e)
-  | Field (e, _)
+  | Field (e, _, _)
   | Ctor (_, _, Some e)
   | Variant_index e
   | Variant_data e

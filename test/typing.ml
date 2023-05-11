@@ -704,6 +704,18 @@ let test_excl_binds () =
 let test_excl_shadowing () =
   test_exn "Borrowed parameter a is moved" "(defn thing [a] (def a a) a)"
 
+let typ = "(type string (array u8))\n (type t {:a string :b string})\n"
+
+let test_excl_parts_success () =
+  test "unit" (typ ^ "(defn meh [a!]\n {:a a.a :b a.b})")
+
+let test_excl_parts_return_part () =
+  test "unit" (typ ^ "(defn meh [a!]\n (def c& a.a)\n a.b)")
+
+let test_excl_parts_return_whole () =
+  test_exn "a.a was moved in line 4, cannot use"
+    (typ ^ "(defn meh [a!]\n (def c& a.a)\n a)")
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -938,5 +950,8 @@ let () =
           case "set moved" test_excl_set_moved;
           case "binds" test_excl_binds;
           case "shadowing" test_excl_shadowing;
+          case "parts update" test_excl_parts_success;
+          case "parts return part" test_excl_parts_return_part;
+          case "parts return whole after part move" test_excl_parts_return_whole;
         ] );
     ]
