@@ -1,8 +1,15 @@
 open Types
+open Typed_tree
 (* Implements a borrow checker.
    We have to know the last usage for each binding. Instead of traversing once
    and using post processing, assume each binding is correct and unify
    binding-kind after the fact.*)
+
+(* TODO disallow at top level:
+   - projection
+   - moving
+   - mutable borrows (it's ok if the binding is not accessible, eg in functions)
+   - borrows to mutable bindings *)
 
 module Usage = struct
   type t = Uread | Umut | Umove | Uset [@@deriving show]
@@ -130,7 +137,7 @@ let rec check_exclusivity loc borrow hist =
           p "%s was mutably borrowed in line %i, cannot borrow"
             (Id.s r.borrowed) (fst l.loc).pos_lnum
         in
-        raise (Typed_tree.Error (r.loc, msg))
+        raise (Error (r.loc, msg))
       else check_exclusivity loc borrow tl
   | Borrow l, Borrow_mut (r, _) :: _ when parts_match l.borrowed r.borrowed ->
       if l.ord < r.ord then
@@ -139,7 +146,7 @@ let rec check_exclusivity loc borrow hist =
           p "%s was borrowed in line %i, cannot mutate" (Id.s r.borrowed)
             (fst l.loc).pos_lnum
         in
-        raise (Typed_tree.Error (r.loc, msg))
+        raise (Error (r.loc, msg))
       else ()
   | Borrow_mut (l, _), Borrow r :: _ when parts_match l.borrowed r.borrowed ->
       if l.ord < r.ord then
@@ -148,7 +155,7 @@ let rec check_exclusivity loc borrow hist =
           p "%s was mutably borrowed in line %i, cannot borrow"
             (Id.s r.borrowed) (fst l.loc).pos_lnum
         in
-        raise (Typed_tree.Error (r.loc, msg))
+        raise (Error (r.loc, msg))
       else ()
   | (Borrow b | Bmove b | Borrow_mut (b, Dont_set)), Bmove m :: _
   (* Allow mutable borrow for setting new values *)
@@ -161,7 +168,7 @@ let rec check_exclusivity loc borrow hist =
               (fst m.loc).pos_lnum )
         else (m.loc, p "Borrowed parameter %s is moved" (Id.s b.borrowed))
       in
-      raise (Typed_tree.Error (loc, msg))
+      raise (Error (loc, msg))
   | Bmove m, (Borrow b | Borrow_mut (b, _)) :: _
     when parts_match m.borrowed b.borrowed ->
       (* The moving value was borrowed correctly before *)
@@ -235,12 +242,11 @@ let rec check_excl_chain loc env borrow hist =
 and check_excl_chains loc env borrow hist =
   List.iter (fun b -> check_excl_chain loc env b hist) borrow
 
-let make_var loc name typ =
-  Typed_tree.{ typ; expr = Var name; attr = no_attr; loc }
+let make_var loc name typ = { typ; expr = Var name; attr = no_attr; loc }
 
 let rec check_tree env bind mut part tree hist =
-  match Typed_tree.(tree.expr) with
-  | Typed_tree.Var borrowed ->
+  match tree.expr with
+  | Var borrowed ->
       (* This is no rvalue, we borrow *)
       let borrowed = (get_id borrowed, part) in
       let loc = tree.loc in
@@ -326,7 +332,7 @@ let rec check_tree env bind mut part tree hist =
   | Record fs ->
       let hs =
         List.fold_left
-          (fun hs (_, (field : Typed_tree.typed_expr)) ->
+          (fun hs (_, (field : typed_expr)) ->
             let usage =
               if contains_allocation field.typ then Usage.Umove else Uread
             in
@@ -372,7 +378,7 @@ let rec check_tree env bind mut part tree hist =
       let a, abs = check_tree env bind mut part ae hs in
       let b, bbs = check_tree env bind mut part be hs in
       (* Make sure borrow kind of both branches matches *)
-      let _raise msg = raise (Typed_tree.Error (tree.loc, msg)) in
+      let _raise msg = raise (Error (tree.loc, msg)) in
       let v =
         match (a, b) with
         (* Ignore Bown _ cases, as it can't be returned. Would be borrowed *)
@@ -405,7 +411,7 @@ let rec check_tree env bind mut part tree hist =
       let hs =
         List.fold_left
           (fun hs -> function
-            | Typed_tree.Fstr _ -> hs
+            | Fstr _ -> hs
             | Fexpr e ->
                 let v, hs = check_tree env false Uread [] e hs in
                 mb_add v hs)
@@ -417,34 +423,7 @@ let rec check_tree env bind mut part tree hist =
       (* TODO deal with captures *)
       ([], hist)
   | Function (name, _, abs, cont) ->
-      (* let closed = *)
-      (*   match abs.func.kind with Simple -> [] | Closure cls -> cls *)
-      (* in *)
-
-      (* let bindings, hs = *)
-      (*   List.fold_left *)
-      (*     (fun (bindings, hist) cls -> *)
-      (*       (\* For moved values, don't check usage here. Instead, add them as *)
-      (*          bindings later so they get moved on first use *\) *)
-      (*       let usage = Usage.of_attr cls.usage in *)
-      (*       let borrowed = (get_id cls.clname, []) in *)
-      (*       match usage with *)
-      (*       | Umove -> *)
-      (*           incr borrow_state; *)
-      (*           let borrow = *)
-      (*             { ord = !borrow_state; loc = tree.loc; borrowed } *)
-      (*           in *)
-      (*           (Bmove borrow :: bindings, hist) *)
-      (*       | Uread | Umut | Uset -> *)
-      (*           let b, hs = *)
-      (*             check_tree env false usage [] *)
-      (*               (make_var tree.loc cls.clname cls.cltyp) *)
-      (*               hist *)
-      (*           in *)
-      (*           (b @ bindings, mb_add b hs)) *)
-      (*     ([], hist) closed *)
-      (* in *)
-      let bindings, hs = check_abstraction env tree.loc abs.func.kind hist in
+      let bindings, hs = check_abstraction env tree.loc abs.func.touched hist in
       let env =
         match List.rev bindings with
         | [] -> env
@@ -457,9 +436,9 @@ let rec check_tree env bind mut part tree hist =
 
 and check_let loc env id lhs rmut mutly hist =
   let nmut =
-    match Typed_tree.(lhs.attr.mut, mutly) with
+    match (lhs.attr.mut, mutly) with
     | true, true when not rmut ->
-        raise (Typed_tree.Error (lhs.loc, "Cannot project unmutable binding"))
+        raise (Error (lhs.loc, "Cannot project unmutable binding"))
     | true, true -> Usage.Umut
     | true, false -> Umove
     | false, false -> Uread
@@ -505,33 +484,31 @@ and check_bind env name expr hist =
   let env = match b with [] -> env | bs -> Map.add id bs env in
   (env, hist)
 
-and check_abstraction env loc kind hist =
-  let closed = match kind with Simple -> [] | Closure cls -> cls in
-
+and check_abstraction env loc touched hist =
   List.fold_left
-    (fun (bindings, hist) cls ->
-      (* For moved values, don't check usage here. Instead, add them as
+    (fun (bindings, hist) (use : touched) ->
+      (* For moved values, don't check touched here. Instead, add them as
          bindings later so they get moved on first use *)
-      let usage = Usage.of_attr cls.usage in
-      let borrowed = (get_id cls.clname, []) in
-      match usage with
+      let touched = Usage.of_attr use.tattr in
+      let borrowed = (get_id use.tname, []) in
+      match touched with
       | Umove ->
           incr borrow_state;
           let borrow = { ord = !borrow_state; loc; borrowed } in
           (Bmove borrow :: bindings, hist)
       | Uread | Umut | Uset ->
           let b, hs =
-            check_tree env false usage []
-              (make_var loc cls.clname cls.cltyp)
+            check_tree env false touched []
+              (make_var loc use.tname use.ttyp)
               hist
           in
           (b @ bindings, mb_add b hs))
-    ([], hist) closed
+    ([], hist) touched
 
 let check_item (env, bind, mut, part, hist) = function
-  | Typed_tree.Tl_let { loc; id; rmut; mutly; lhs; uniq = _ } ->
+  | Tl_let { loc; id; rmut; mutly; lhs; uniq = _ } ->
       if mutly then
-        raise (Typed_tree.Error (lhs.loc, "Cannot use projection at top level"))
+        raise (Error (lhs.loc, "Cannot use projection at top level"))
       else
         let env, b, hs = check_let loc env id lhs rmut mutly hist in
         (env, bind, mut, part, mb_add b hs)
@@ -543,7 +520,7 @@ let check_item (env, bind, mut, part, hist) = function
       let b, hs = check_tree env false Uread [] e hist in
       (env, bind, mut, part, mb_add b hs)
   | Tl_function (loc, name, _, abs) ->
-      let bindings, hist = check_abstraction env loc abs.func.kind hist in
+      let bindings, hist = check_abstraction env loc abs.func.touched hist in
       let env =
         match List.rev bindings with
         | [] -> env
@@ -565,7 +542,7 @@ let find_usage id hist =
   in
   Map.find id hist |> aux
 
-let check_tree pts pns closed body =
+let check_tree pts pns touched body =
   (* Add parameters to initial environment *)
   reset ();
   let borrow_of_param borrowed loc =
@@ -573,17 +550,17 @@ let check_tree pts pns closed body =
     { ord = !borrow_state; loc; borrowed }
   in
 
-  (* Shadowing between closed variables and parameters is impossible. If a parameter
-     exists with the same name, the variable would not have been closed over *)
-  (* closed variables *)
+  (* Shadowing between touched variables and parameters is impossible. If a parameter
+     exists with the same name, the variable would not have been closed over / touched *)
+  (* touched variables *)
   let env, hist =
     List.fold_left
-      (fun (map, hs) cls ->
-        let id = new_id cls.clname in
-        assert (Id.equal id (Fst cls.clname));
+      (fun (map, hs) t ->
+        let id = new_id t.tname in
+        assert (Id.equal id (Fst t.tname));
         let b = [ Bown id ] in
         (Map.add id b map, mb_add b hs))
-      (Map.empty, Map.empty) closed
+      (Map.empty, Map.empty) touched
   in
 
   (* parameters *)
@@ -616,16 +593,8 @@ let check_tree pts pns closed body =
         | Dmove -> ())
     pts pns;
 
-  (* Return closure with usage *)
-  match closed with
-  | [] -> Simple
-  | cls ->
-      let cls =
-        List.map
-          (fun c -> { c with usage = find_usage (Fst c.clname) hist })
-          cls
-      in
-      Closure cls
+  (* Return touched with usage *)
+  List.map (fun t -> { t with tattr = find_usage (Fst t.tname) hist }) touched
 
 let check_items items =
   reset ();

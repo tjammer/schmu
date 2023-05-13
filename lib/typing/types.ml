@@ -34,15 +34,7 @@ and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : dattr }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
-
-and closed = {
-  clname : string;
-  clmut : bool;
-  cltyp : typ;
-  clparam : bool;
-  usage : dattr;
-}
-
+and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm
 
 let rec clean = function

@@ -73,7 +73,23 @@ and toplevel_item =
   | Tl_mutual_rec_decls of (string * int option * typ) list
   | Tl_module of (Path.t option * toplevel_item) list
 
-and func = { tparams : param list; ret : typ; kind : fun_kind }
+and touched_kind = Env.touched_kind = Tnone | Tconst | Tglobal | Timported
+
+and touched = Env.touched = {
+  tname : string;
+  ttyp : typ;
+  tattr : dattr;
+  tkind : touched_kind;
+}
+
+and func = {
+  tparams : param list;
+  ret : typ;
+  kind : fun_kind;
+  touched : touched list;
+      (* Like closed variables but also includes globals, consts *)
+}
+
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm
 and arg = typed_expr * dattr
 

@@ -17,6 +17,15 @@ type value = {
 type warn_kind = Unused | Unmutated | Unused_mod
 type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
 
+type touched_kind = Tnone | Tconst | Tglobal | Timported
+
+and touched = {
+  tname : string;
+  ttyp : typ;
+  tattr : Ast.decl_attr;
+  tkind : touched_kind;
+}
+
 type return = {
   typ : typ;
   const : bool;
@@ -63,7 +72,7 @@ val add_type : Path.t -> add_kind -> typ -> t -> t
 val add_module : key:string -> mname:Path.t -> t -> t
 val open_function : t -> t
 
-val close_function : t -> t * closed list * unused
+val close_function : t -> t * closed list * touched list * unused
 (** Returns the variables captured in the closed function scope, and first unused var  *)
 
 val open_module : t -> Ast.loc -> string -> t

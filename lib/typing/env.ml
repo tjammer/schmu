@@ -68,6 +68,15 @@ type ext = {
 type usage_tbl = (Path.t, usage) Hashtbl.t
 type module_usage = { name : string; loc : Ast.loc; used : bool ref }
 
+type touched_kind = Tnone | Tconst | Tglobal | Timported
+
+and touched = {
+  tname : string;
+  ttyp : typ;
+  tattr : Ast.decl_attr;
+  tkind : touched_kind;
+}
+
 type scope_kind =
   | Sfunc of usage_tbl
   | Smodule of module_usage
@@ -340,58 +349,61 @@ let sort_unused = function
       Error s
 
 let close_function env =
+  let usage_kind_of_value ~global ~const imported =
+    if global then Tglobal
+    else if const then Tconst
+    else if imported then Timported
+    else Tnone
+  in
   (* Close scopes up to next function scope *)
-  let rec aux old_closed unused = function
+  let rec aux old_closed old_touched unused = function
     | [] -> failwith "Internal Error: Env empty"
     | scope :: tl -> (
-        let closed =
+        let closed_touched =
           !(scope.closed) |> Set.to_seq |> List.of_seq
-          |> List.filter_map (fun clname ->
+          |> List.map (fun clname ->
                  (* We only add functions to the closure if they are params
                     Or: if they are closures *)
                  let { typ; param; const; global; imported; mut = clmut } =
                    find_val_raw clname env
                  in
                  (* Const values (and imported ones) are not closed over, they exist module-wide *)
-                 if const || global || Option.is_some imported then None
-                 else
-                   match clean typ with
-                   | Tfun (_, _, Closure _) ->
-                       Some
-                         {
-                           clname;
-                           cltyp = typ;
-                           clmut;
-                           clparam = param;
-                           usage = Dnorm;
-                         }
-                   | Tfun _ when not param -> None
-                   | _ ->
-                       Some
-                         {
-                           clname;
-                           cltyp = typ;
-                           clmut;
-                           clparam = param;
-                           usage = Dnorm;
-                         })
+                 let cl =
+                   if const || global || Option.is_some imported then None
+                   else
+                     match clean typ with
+                     | Tfun (_, _, Closure _) ->
+                         Some { clname; cltyp = typ; clmut; clparam = param }
+                     | Tfun _ when not param -> None
+                     | _ -> Some { clname; cltyp = typ; clmut; clparam = param }
+                 in
+                 let tkind =
+                   usage_kind_of_value ~global ~const (Option.is_some imported)
+                 in
+                 let t = { tname = clname; ttyp = typ; tattr = Dnorm; tkind } in
+                 (cl, t))
         in
+        let closed, touched = List.split closed_touched in
+        let closed = List.filter_map Fun.id closed in
 
         match scope.kind with
         | Sfunc usage ->
             let unused = find_unused unused usage in
-            ({ env with values = tl }, closed @ old_closed, sort_unused unused)
+            ( { env with values = tl },
+              closed @ old_closed,
+              touched @ old_touched,
+              sort_unused unused )
         | Sfunc_cont usage ->
             let unused = find_unused unused usage in
-            aux (closed @ old_closed) unused tl
+            aux (closed @ old_closed) (touched @ old_touched) unused tl
         | Smodule { name; loc; used } ->
             let unused =
               if !used then unused
               else (Path.Pid name, Unused_mod, loc) :: unused
             in
-            aux (closed @ old_closed) unused tl)
+            aux (closed @ old_closed) (touched @ old_touched) unused tl)
   in
-  aux [] [] env.values
+  aux [] [] [] env.values
 
 let find_val_opt key env =
   let rec aux = function

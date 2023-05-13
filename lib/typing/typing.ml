@@ -537,7 +537,7 @@ let rec is_poly_call texpr =
 
 let rec wrap_in_lambda texpr = function
   | Tfun (tparams, ret, kind) ->
-      let func = { tparams; ret; kind } in
+      let func = { tparams; ret; kind; touched = [] } in
       let pn i _ = "_" ^ string_of_int i in
       let nparams = List.mapi pn tparams in
       let args =
@@ -720,14 +720,15 @@ end = struct
     let body = List.fold_left fold_decl body param_exprs in
 
     leave_level ();
-    let _, closed_vars, unused = Env.close_function env in
+    let _, closed_vars, touched, unused = Env.close_function env in
 
-    let kind =
+    let touched =
       Exclusivity.check_tree params_t
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
-        closed_vars body
+        touched body
     in
 
+    let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
     check_unused unused;
 
     (* For codegen: Mark functions in parameters closures *)
@@ -742,7 +743,7 @@ end = struct
         let qtyp = Tfun (qparams, ret, kind) in
         check_annot loc typ qtyp;
 
-        let func = { tparams; ret; kind } in
+        let func = { tparams; ret; kind; touched } in
         let abs =
           { nparams; body = { body with typ = ret }; func; inline = false }
         in
@@ -793,14 +794,15 @@ end = struct
     let body = List.fold_left fold_decl body param_exprs in
     leave_level ();
 
-    let env, closed_vars, unused = Env.close_function env in
+    let env, closed_vars, touched, unused = Env.close_function env in
 
-    let kind =
+    let touched =
       Exclusivity.check_tree params_t
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
-        closed_vars body
+        touched body
     in
 
+    let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
     check_unused unused;
 
     (* For codegen: Mark functions in parameters closures *)
@@ -828,7 +830,7 @@ end = struct
         let qtyp = Tfun (qparams, ret, kind) |> generalize in
         check_annot loc typ qtyp;
 
-        let func = { tparams; ret; kind } in
+        let func = { tparams; ret; kind; touched } in
         let lambda =
           { nparams; body = { body with typ = ret }; func; inline }
         in
@@ -1296,7 +1298,7 @@ let rec convert_module env sign prog check_ret mname =
   (* Catch weak type variables *)
   List.iter catch_weak_vars items;
 
-  let _, _, unused = Env.close_function env in
+  let _, _, _, unused = Env.close_function env in
   let has_sign = match sign with [] -> false | _ -> true in
   if (not (Option.is_some mname)) || has_sign then check_unused unused;
 

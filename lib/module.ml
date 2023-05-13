@@ -356,7 +356,14 @@ and canonabs mname sub nsub abs =
         in
         (sub, Closure l)
   in
-  let func = { Typed_tree.tparams; ret; kind } in
+  let sub, touched =
+    List.fold_left_map
+      (fun sub t ->
+        let sub, ttyp = canonize sub Typed_tree.(t.ttyp) in
+        (sub, { t with ttyp }))
+      sub abs.func.touched
+  in
+  let func = { Typed_tree.tparams; ret; kind; touched } in
   let sub, body = (canonbody mname nsub) sub abs.body in
   (sub, { abs with func; body })
 
@@ -611,7 +618,10 @@ and mod_abs f abs =
           let c = List.map (fun c -> { c with cltyp = f c.cltyp }) c in
           Closure c
     in
-    Typed_tree.{ tparams; ret; kind }
+    let touched =
+      List.map (fun t -> Typed_tree.{ t with ttyp = f t.ttyp }) abs.func.touched
+    in
+    Typed_tree.{ tparams; ret; kind; touched }
   in
   { abs with body; func }
 
