@@ -26,7 +26,14 @@ and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : Ast.decl_attr }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
-and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
+
+and closed = {
+  clname : string;
+  clmut : bool;
+  cltyp : typ;
+  clparam : bool;
+  usage : Ast.decl_attr;
+}
 
 val clean : typ -> typ
 (** Follows links and aliases *)
@@ -45,4 +52,3 @@ val is_weak : sub:Sset.t -> typ -> bool
 val extract_name_path : typ -> Path.t option
 val contains_allocation : typ -> bool
 val mut_of_pattr : Ast.decl_attr -> bool
-(* val and_mut : Ast.decl_attr option -> bool -> Ast.decl_attr option *)

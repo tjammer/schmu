@@ -357,9 +357,24 @@ let close_function env =
                  else
                    match clean typ with
                    | Tfun (_, _, Closure _) ->
-                       Some { clname; cltyp = typ; clmut; clparam = param }
+                       Some
+                         {
+                           clname;
+                           cltyp = typ;
+                           clmut;
+                           clparam = param;
+                           usage = Dnorm;
+                         }
                    | Tfun _ when not param -> None
-                   | _ -> Some { clname; cltyp = typ; clmut; clparam = param })
+                   | _ ->
+                       Some
+                         {
+                           clname;
+                           cltyp = typ;
+                           clmut;
+                           clparam = param;
+                           usage = Dnorm;
+                         })
         in
 
         match scope.kind with

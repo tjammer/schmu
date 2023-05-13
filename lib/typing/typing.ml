@@ -722,11 +722,12 @@ end = struct
     leave_level ();
     let _, closed_vars, unused = Env.close_function env in
 
-    Exclusivity.check_tree params_t
-      (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
-      body;
+    let kind =
+      Exclusivity.check_tree params_t
+        (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
+        closed_vars body
+    in
 
-    let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
     check_unused unused;
 
     (* For codegen: Mark functions in parameters closures *)
@@ -794,11 +795,12 @@ end = struct
 
     let env, closed_vars, unused = Env.close_function env in
 
-    Exclusivity.check_tree params_t
-      (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
-      body;
+    let kind =
+      Exclusivity.check_tree params_t
+        (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
+        closed_vars body
+    in
 
-    let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
     check_unused unused;
 
     (* For codegen: Mark functions in parameters closures *)

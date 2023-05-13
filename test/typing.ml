@@ -15,6 +15,9 @@ let test_exn msg src =
        failwith "Expected an exception"
      with Typed_tree.Error (_, msg) -> msg)
 
+let tase descr msg src = test_case descr `Quick (fun () -> test msg src)
+let tase_exn descr msg src = test_case descr `Quick (fun () -> test_exn msg src)
+
 let wrap_fn ?(proj = false) t expect code =
   (* toplevel *)
   if not proj then t expect code
@@ -960,5 +963,24 @@ let () =
           case "parts update" test_excl_parts_success;
           case "parts return part" test_excl_parts_return_part;
           case "parts return whole after part move" test_excl_parts_return_whole;
+          tase_exn "func mut borrow"
+            "a was mutably borrowed in line 4, cannot borrow"
+            {|
+(defn hmm []
+ (def a& 10)
+  (defn set-a []
+    (set &a 11))
+  (set &a 11)
+  (set-a)
+  (set &a 11))
+|};
+          tase_exn "func move" "a was moved in line 6, cannot use"
+            {|
+(defn hmm []
+  (def a& 10)
+  (defn move-a [] a)
+  (ignore a)
+  (ignore (move-a))
+  (ignore a))|};
         ] );
     ]
