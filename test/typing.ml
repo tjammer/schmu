@@ -974,11 +974,13 @@ let () =
   (set-a)
   (set &a 11))
 |};
-          tase_exn "func move" "a was moved in line 6, cannot use"
+          tase_exn "func move"
+            "a was moved in line 4, cannot use. Hint: Move occurs in line 5"
             {|
 (defn hmm []
   (def a& 10)
-  (defn move-a [] a)
+  (defn move-a []
+    a)
   (ignore a)
   (ignore (move-a))
   (ignore a))|};

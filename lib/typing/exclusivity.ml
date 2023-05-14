@@ -59,7 +59,7 @@ and binding =
   | Bown of Id.t
   | Borrow of borrow
   | Borrow_mut of borrow * Usage.set
-  | Bmove of borrow
+  | Bmove of borrow * Ast.loc option
 
 and part_access = (int * string) list [@@deriving show]
 
@@ -118,10 +118,11 @@ let rec check_exclusivity loc borrow hist =
       print_endline (show_binding borrow);
       failwith "Internal Error: Should never be empty"
   | Bown _, _ -> ()
-  | (Borrow b | Borrow_mut (b, _) | Bmove b), _ when Id.is_string b.borrowed ->
+  | (Borrow b | Borrow_mut (b, _) | Bmove (b, _)), _
+    when Id.is_string b.borrowed ->
       (* Strings literals can always be borrowed. For now also moved *)
       ()
-  | (Borrow b | Borrow_mut (b, _) | Bmove b), Bown name :: _
+  | (Borrow b | Borrow_mut (b, _) | Bmove (b, _)), Bown name :: _
     when Id.equal (fst b.borrowed) name ->
       ()
   | Borrow l, Borrow r :: tl when parts_match l.borrowed r.borrowed ->
@@ -157,19 +158,24 @@ let rec check_exclusivity loc borrow hist =
         in
         raise (Error (r.loc, msg))
       else ()
-  | (Borrow b | Bmove b | Borrow_mut (b, Dont_set)), Bmove m :: _
+  | (Borrow b | Bmove (b, _) | Borrow_mut (b, Dont_set)), Bmove (m, l) :: _
   (* Allow mutable borrow for setting new values *)
     when parts_match b.borrowed m.borrowed ->
       (* Accessing a moved value *)
       let loc, msg =
         if not !param_pass then
+          let hint =
+            match l with
+            | Some (l, _) -> p ". Hint: Move occurs in line %i" l.pos_lnum
+            | None -> ""
+          in
           ( loc,
-            p "%s was moved in line %i, cannot use" (Id.s m.borrowed)
-              (fst m.loc).pos_lnum )
+            p "%s was moved in line %i, cannot use%s" (Id.s m.borrowed)
+              (fst m.loc).pos_lnum hint )
         else (m.loc, p "Borrowed parameter %s is moved" (Id.s b.borrowed))
       in
       raise (Error (loc, msg))
-  | Bmove m, (Borrow b | Borrow_mut (b, _)) :: _
+  | Bmove (m, _), (Borrow b | Borrow_mut (b, _)) :: _
     when parts_match m.borrowed b.borrowed ->
       (* The moving value was borrowed correctly before *)
       ()
@@ -183,7 +189,7 @@ let string_lit_borrow loc mut =
       Borrow { ord = !borrow_state; loc; borrowed }
   | Umove ->
       incr borrow_state;
-      Bmove { ord = !borrow_state; loc; borrowed }
+      Bmove ({ ord = !borrow_state; loc; borrowed }, None)
   | Umut | Uset -> failwith "Internal Error: Mutating string"
 
 (* For now, throw everything into one list of bindings.
@@ -192,7 +198,7 @@ let string_lit_borrow loc mut =
 let add_binding b hist =
   let bind_name = function
     | Bown n -> n
-    | Borrow b | Borrow_mut (b, _) | Bmove b -> fst b.borrowed
+    | Borrow b | Borrow_mut (b, _) | Bmove (b, _) -> fst b.borrowed
   in
   let name = bind_name b in
   match Map.find_opt name hist with
@@ -229,7 +235,7 @@ let integrate_new_elems nu old integrated =
 let rec check_excl_chain loc env borrow hist =
   match borrow with
   | Bown _ -> ()
-  | Borrow b | Borrow_mut (b, _) | Bmove b -> (
+  | Borrow b | Borrow_mut (b, _) | Bmove (b, _) -> (
       (* print_endline "---------------"; *)
       (* print_endline (show_binding borrow); *)
       (* print_newline (); *)
@@ -264,7 +270,7 @@ let rec check_tree env bind mut part tree hist =
               | Usage.Uread -> Borrow borrow
               | Umut -> Borrow_mut (borrow, Dont_set)
               | Uset -> Borrow_mut (borrow, Set)
-              | Umove -> Bmove borrow
+              | Umove -> Bmove (borrow, None)
             in
             check_excl_chain loc env b hist;
             b
@@ -273,7 +279,7 @@ let rec check_tree env bind mut part tree hist =
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
                 check_excl_chain loc env b hist;
-                Bmove { b' with loc }
+                Bmove ({ b' with loc }, None)
             | Umut | Uread ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
@@ -287,7 +293,7 @@ let rec check_tree env bind mut part tree hist =
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
                 check_excl_chain loc env b hist;
-                Bmove { b' with loc }
+                Bmove ({ b' with loc }, None)
             | Umut ->
                 check_excl_chain loc env (Borrow_mut (b', Dont_set)) hist;
                 incr borrow_state;
@@ -300,10 +306,10 @@ let rec check_tree env bind mut part tree hist =
                 check_excl_chain loc env b hist;
                 incr borrow_state;
                 Borrow { loc; ord = !borrow_state; borrowed })
-        | Bmove m as b ->
+        | Bmove (m, l) as b ->
             (* The binding is about to be moved for the first time, e.g. in a function *)
             check_excl_chain loc env b hist;
-            Bmove { m with loc }
+            Bmove (m, l)
       in
 
       let borrow =
@@ -403,7 +409,10 @@ let rec check_tree env bind mut part tree hist =
   | Ctor (_, _, e) -> (
       match e with
       | Some e ->
-          let v, hs = check_tree env false Umove [] e hist in
+          (* let usage = *)
+          (*   if contains_allocation e.typ then Usage.Umove else Uread *)
+          (* in *)
+          let v, hs = check_tree env false Usage.Umove [] e hist in
           ([], mb_add v hs)
       | None -> ([], hist))
   | Variant_index e | Variant_data e -> check_tree env bind mut part e hist
@@ -489,14 +498,15 @@ and check_abstraction env loc touched hist =
     (fun (bindings, hist) (use : touched) ->
       (* For moved values, don't check touched here. Instead, add them as
          bindings later so they get moved on first use *)
-      let touched = Usage.of_attr use.tattr in
       let borrowed = (get_id use.tname, []) in
-      match touched with
-      | Umove ->
+      let touched = Usage.of_attr use.tattr in
+      match use.tattr with
+      | Dmove ->
           incr borrow_state;
+          let mloc = Option.get use.tattr_loc in
           let borrow = { ord = !borrow_state; loc; borrowed } in
-          (Bmove borrow :: bindings, hist)
-      | Uread | Umut | Uset ->
+          (Bmove (borrow, Some mloc) :: bindings, hist)
+      | Dnorm | Dmut ->
           let b, hs =
             check_tree env false touched []
               (make_var loc use.tname use.ttyp)
@@ -531,11 +541,11 @@ let check_item (env, bind, mut, part, hist) = function
 
 let find_usage id hist =
   (* The hierarchy is move > mut > read. Since we read from the end,
-     the first borrow means the binding was not moved*)
+     the first borrow means the binding was not moved *)
   let rec aux = function
-    | [ Bown _ ] -> Ast.Dnorm
-    | Borrow_mut _ :: _ -> Dmut
-    | Bmove _ :: _ -> Dmove
+    | [ Bown _ ] -> (Ast.Dnorm, None)
+    | Borrow_mut (b, _) :: _ -> (Dmut, Some b.loc)
+    | Bmove (b, _) :: _ -> (Dmove, Some b.loc)
     | Borrow _ :: tl -> aux tl
     | Bown _ :: _ -> failwith "Internal Error: Owned later?"
     | [] -> failwith "Internal Error: Should have been added as owned"
@@ -594,7 +604,11 @@ let check_tree pts pns touched body =
     pts pns;
 
   (* Return touched with usage *)
-  List.map (fun t -> { t with tattr = find_usage (Fst t.tname) hist }) touched
+  List.map
+    (fun t ->
+      let tattr, tattr_loc = find_usage (Fst t.tname) hist in
+      { t with tattr; tattr_loc })
+    touched
 
 let check_items items =
   reset ();

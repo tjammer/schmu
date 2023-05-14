@@ -79,6 +79,7 @@ and touched = Env.touched = {
   tname : string;
   ttyp : typ;
   tattr : dattr;
+  tattr_loc : loc option;
   tkind : touched_kind;
 }
 

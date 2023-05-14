@@ -74,6 +74,7 @@ and touched = {
   tname : string;
   ttyp : typ;
   tattr : Ast.decl_attr;
+  tattr_loc : Ast.loc option;
   tkind : touched_kind;
 }
 
@@ -380,7 +381,15 @@ let close_function env =
                  let tkind =
                    usage_kind_of_value ~global ~const (Option.is_some imported)
                  in
-                 let t = { tname = clname; ttyp = typ; tattr = Dnorm; tkind } in
+                 let t =
+                   {
+                     tname = clname;
+                     ttyp = typ;
+                     tattr = Dnorm;
+                     tkind;
+                     tattr_loc = None;
+                   }
+                 in
                  (cl, t))
         in
         let closed, touched = List.split closed_touched in

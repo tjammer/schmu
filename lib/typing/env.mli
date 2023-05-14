@@ -23,6 +23,7 @@ and touched = {
   tname : string;
   ttyp : typ;
   tattr : Ast.decl_attr;
+  tattr_loc : Ast.loc option;
   tkind : touched_kind;
 }
 
