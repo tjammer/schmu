@@ -91,7 +91,7 @@ and func = {
       (* Like closed variables but also includes globals, consts *)
 }
 
-and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm
+and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
 and arg = typed_expr * dattr
 
 and abstraction = {

@@ -35,7 +35,7 @@ and param = { pt : typ; pattr : dattr }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
-and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm
+and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
 
 let rec clean = function
   | Tvar { contents = Link t } -> clean t
@@ -79,7 +79,7 @@ let string_of_type_raw get_name typ =
     | Ti32 -> "i32"
     | Tf32 -> "f32"
     | Tfun (ts, t, _) ->
-        let pattr = function Dnorm -> "" | Dmut -> "&" | Dmove -> "!" in
+        let pattr = function Dnorm -> "" | Dmut -> "&" | Dmove -> "!" | Dset -> "&" in
         let ps =
           String.concat " "
             (List.map (fun p -> string_of_type p.pt ^ pattr p.pattr) ts)
@@ -200,4 +200,4 @@ let rec contains_allocation = function
       (* TODO *)
       true
 
-let mut_of_pattr = function Dmut -> true | Dnorm | Dmove -> false
+let mut_of_pattr = function Dmut | Dset -> true | Dnorm | Dmove -> false

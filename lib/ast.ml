@@ -41,7 +41,7 @@ and decl = {
   annot : type_spec option;
 }
 
-and decl_attr = Dmut | Dmove | Dnorm
+and decl_attr = Dmut | Dmove | Dnorm | Dset
 
 and func = {
   name : loc * string;

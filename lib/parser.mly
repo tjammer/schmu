@@ -36,7 +36,7 @@
       build lets
 
     let pass_attr_of_opt = function
-      | Some Ast.Dmut -> Ast.Dmut
+      | Some (Ast.Dmut | Dset) -> Ast.Dmut
       | Some Dmove -> Dmove
       | Some Dnorm -> (* Won't happen but w/e *) Dnorm
       | None -> Dnorm

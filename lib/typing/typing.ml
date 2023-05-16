@@ -847,11 +847,11 @@ end = struct
         (fun i (a : Ast.argument) ->
           let e =
             (match a.apass with
-            | Dmut -> Env.open_mutation env
+            | Dmut | Dset -> Env.open_mutation env
             | Dnorm | Dmove -> ());
             let e = convert_annot env (param_annot annots i) a.aexpr in
             (match a.apass with
-            | Dmut ->
+            | Dmut | Dset ->
                 Env.close_mutation env;
                 if not e.attr.mut then
                   raise
