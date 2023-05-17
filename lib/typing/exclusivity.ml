@@ -5,12 +5,6 @@ open Typed_tree
    and using post processing, assume each binding is correct and unify
    binding-kind after the fact.*)
 
-(* TODO disallow at top level:
-   - projection
-   - moving
-   - mutable borrows (it's ok if the binding is not accessible, eg in functions)
-   - borrows to mutable bindings *)
-
 module Usage = struct
   type t = Uread | Umut | Umove | Uset [@@deriving show]
   type set = Set | Dont_set [@@deriving show]
@@ -247,7 +241,7 @@ let rec check_excl_chain loc env borrow hist =
       (* print_endline (String.concat "\n" (List.map show_binding hist)); *)
       check_exclusivity loc borrow (Map.find (fst b.borrowed) hist);
       match Map.find_opt (fst b.borrowed) env with
-      | Some b -> check_excl_chains loc env b hist
+      | Some ((Default | Application), b) -> check_excl_chains loc env b hist
       | None -> ())
 
 and check_excl_chains loc env borrow hist =
@@ -350,7 +344,9 @@ let rec check_tree env bind mut part tree hist =
          will take care of this *)
       (borrow, hist)
   | Let { id; lhs; cont; mutly; rmut; _ } ->
-      let env, b, hs = check_let tree.loc env id lhs rmut mutly hist in
+      let env, b, hs =
+        check_let tree.loc env id lhs rmut mutly ~tl:false hist
+      in
       check_tree env bind mut part cont (mb_add b hs)
   | Const (Array es) ->
       let hs =
@@ -437,10 +433,10 @@ let rec check_tree env bind mut part tree hist =
   | Ctor (_, _, e) -> (
       match e with
       | Some e ->
-          (* let usage = *)
-          (*   if contains_allocation e.typ then Usage.Umove else Uread *)
-          (* in *)
-          let v, hs = check_tree env false Usage.Umove [] e hist in
+          let usage =
+            if contains_allocation e.typ then Usage.Umove else Uread
+          in
+          let v, hs = check_tree env false usage [] e hist in
           ([], mb_add v hs)
       | None -> ([], hist))
   | Variant_index e | Variant_data e -> check_tree env bind mut part e hist
@@ -457,10 +453,12 @@ let rec check_tree env bind mut part tree hist =
       ([], hs)
   | Mutual_rec_decls (_, cont) -> check_tree env bind mut part cont hist
   | Lambda _ ->
-      (* TODO deal with captures *)
+      (* TODO *)
       ([], hist)
   | Function (name, _, abs, cont) ->
-      let bindings = check_abstraction env tree.loc abs.func.touched hist in
+      let bindings, hist =
+        check_abstraction ~lambda:false env tree.loc abs.func.touched hist
+      in
       let env =
         match List.rev bindings with
         | [] -> env
@@ -471,14 +469,17 @@ let rec check_tree env bind mut part tree hist =
       let env, hist = check_bind env name expr hist in
       check_tree env bind mut part cont hist
 
-and check_let loc env id lhs rmut mutly hist =
+and check_let ~tl loc env id lhs rmut mutly hist =
   let nmut =
     match (lhs.attr.mut, mutly) with
     | true, true when not rmut ->
         raise (Error (lhs.loc, "Cannot project unmutable binding"))
     | true, true -> Usage.Umut
     | true, false -> Umove
-    | false, false -> Uread
+    | false, false ->
+        if rmut && tl then
+          raise (Error (lhs.loc, "Cannot borrow mutable binding at top level"));
+        Uread
     | false, true -> failwith "unreachable"
   in
   let rval, hs = check_tree env false nmut [] lhs hist in
@@ -521,34 +522,22 @@ and check_bind env name expr hist =
   let env = match b with [] -> env | bs -> Map.add id (Default, bs) env in
   (env, hist)
 
-and check_abstraction env loc touched hist =
+and check_abstraction env loc ~lambda touched hist =
   List.fold_left
-    (fun bindings (use : touched) ->
+    (fun (bindings, hist) (use : touched) ->
       (* For moved values, don't check touched here. Instead, add them as
          bindings later so they get moved on first use *)
-      let borrowed = (get_id use.tname, []) in
       let touched = Usage.of_attr use.tattr in
-      match use.tattr with
-      | Dmove ->
-          incr borrow_state;
-          let mloc = Option.get use.tattr_loc in
-          let borrow = { ord = !borrow_state; loc; borrowed } in
-          Bmove (borrow, Some mloc) :: bindings
-      | Dnorm | Dmut | Dset ->
-          let b, _ =
-            check_tree env false touched []
-              (make_var loc use.tname use.ttyp)
-              hist
-          in
-          b @ bindings)
-    [] touched
+      let var = make_var loc use.tname use.ttyp in
+      let b, nhist = check_tree env false touched [] var hist in
+      (b @ bindings, if lambda then nhist else hist))
+    ([], hist) touched
 
 let check_item (env, bind, mut, part, hist) = function
   | Tl_let { loc; id; rmut; mutly; lhs; uniq = _ } ->
-      if mutly then
-        raise (Error (lhs.loc, "Cannot use projection at top level"))
+      if mutly then raise (Error (lhs.loc, "Cannot project at top level"))
       else
-        let env, b, hs = check_let loc env id lhs rmut mutly hist in
+        let env, b, hs = check_let loc env id lhs rmut mutly ~tl:true hist in
         (env, bind, mut, part, mb_add b hs)
   | Tl_bind (name, expr) ->
       let env, hist = check_bind env name expr hist in
@@ -558,7 +547,9 @@ let check_item (env, bind, mut, part, hist) = function
       let b, hs = check_tree env false Uread [] e hist in
       (env, bind, mut, part, mb_add b hs)
   | Tl_function (loc, name, _, abs) ->
-      let bindings = check_abstraction env loc abs.func.touched hist in
+      let bindings, hist =
+        check_abstraction ~lambda:false env loc abs.func.touched hist
+      in
       let env =
         match List.rev bindings with
         | [] -> env
@@ -616,7 +607,8 @@ let check_tree pts pns touched body =
   in
 
   (* [Umove] because we want to move return values *)
-  let v, hist = check_tree env false Umove [] body hist in
+  let usage = if contains_allocation body.typ then Usage.Umove else Uread in
+  let v, hist = check_tree env false usage [] body hist in
 
   (* Try to borrow the params again to make sure they haven't been moved *)
   let hist = mb_add v hist in
@@ -633,14 +625,35 @@ let check_tree pts pns touched body =
         | Dmove -> ())
     pts pns;
 
-  (* Return touched with usage *)
   List.map
     (fun t ->
       let tattr, tattr_loc = find_usage (Fst t.tname) hist in
+      (match tattr with
+      | Dmove ->
+          let loc = Option.get tattr_loc in
+          raise (Error (loc, "Cannot move values from outer scope"))
+      | Dset | Dmut | Dnorm -> ());
       { t with tattr; tattr_loc })
     touched
 
 let check_items items =
   reset ();
-  List.fold_left check_item (Map.empty, false, Usage.Uread, [], Map.empty) items
-  |> ignore
+  let env, _, _, _, hist =
+    List.fold_left check_item
+      (Map.empty, false, Usage.Uread, [], Map.empty)
+      items
+  in
+
+  (* No moves at top level *)
+  Map.iter
+    (fun id (k, _) ->
+      match k with
+      | Default -> (
+          let tattr, tattr_loc = find_usage id hist in
+          match tattr with
+          | Dmove ->
+              let loc = Option.get tattr_loc in
+              raise (Error (loc, "Cannot move top level binding"))
+          | Dset | Dmut | Dnorm -> ())
+      | Application -> ())
+    env

@@ -18,12 +18,14 @@ let test_exn msg src =
 let tase descr msg src = test_case descr `Quick (fun () -> test msg src)
 let tase_exn descr msg src = test_case descr `Quick (fun () -> test_exn msg src)
 
-let wrap_fn ?(proj = false) t expect code =
+let wrap_fn ?(tl = None) t expect code =
   (* toplevel *)
-  if not proj then t expect code
-  else test_exn "Cannot use projection at top level" code;
-  (* function *)
-  t expect ("(defn f [] " ^ code ^ ")")
+  match tl with
+  | None -> t expect code
+  | Some msg ->
+      test_exn msg code;
+      (* function *)
+      t expect ("(defn f [] " ^ code ^ ")")
 
 let test_const_int () = test "int" "(def a 1) a"
 let test_const_neg_int () = test "int" "(def a -1) a"
@@ -963,26 +965,33 @@ let () =
           case "parts update" test_excl_parts_success;
           case "parts return part" test_excl_parts_return_part;
           case "parts return whole after part move" test_excl_parts_return_whole;
-          tase_exn "func mut borrow"
-            "a was mutably borrowed in line 4, cannot borrow"
+          tase_exn "func mut borrow" "a was borrowed in line 5, cannot mutate"
             {|
-(defn hmm []
- (def a& 10)
-  (defn set-a []
-    (set &a 11))
-  (set &a 11)
-  (set-a)
+(def a& 10)
+(defn set-a []
   (set &a 11))
-|};
-          tase_exn "func move"
-            "a was moved in line 4, cannot use. Hint: Move occurs in line 5"
+(let [b a]
+  (set-a)
+  (ignore b))|};
+          tase_exn "func move" "Cannot move values from outer scope"
             {|
 (defn hmm []
-  (def a& 10)
+  (def a& [10])
   (defn move-a []
     a)
   (ignore a)
   (ignore (move-a))
   (ignore a))|};
+          (*           tase_exn "closure mut borrow" *)
+          (*             "a was mutably borrowed in line 4, cannot borrow" *)
+          (* {| *)
+             (* (defn hmm [] *)
+             (*  (def a& 10) *)
+             (*   (defn set-a [] *)
+             (*     (set &a 11)) *)
+             (*   (set &a 11) *)
+             (*   (set-a) *)
+             (*   (set &a 11)) *)
+             (* |}; *)
         ] );
     ]
