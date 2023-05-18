@@ -993,5 +993,16 @@ let () =
              (*   (set-a) *)
              (*   (set &a 11)) *)
              (* |}; *)
+          tase_exn "excl 1" "a was mutably borrowed in line 1, cannot borrow"
+            "(def a& 10)(defn f [a& b] (set &a 11))(f &a a)";
+          tase_exn "excl 2" "a was borrowed in line 1, cannot mutate"
+            "(def a& 10)(defn f [a& b] (set &a 11))(let [b a] (f &a b))";
+          tase_exn "excl 3" "a was borrowed in line 1, cannot mutate"
+            "(def a& 10) (defn f [a b&] (set &b 11))(f a &a)";
+          tase_exn "excl 4" "a was borrowed in line 1, cannot mutate"
+            "(def a& 10)(defn f [a b&] (set &b 11)) (let [b a] (f b &a))";
+          tase "excl 5" "unit" "(def a& 10) (defn f [a b] ()) (f a a)";
+          tase_exn "excl 6" "a was mutably borrowed in line 1, cannot borrow"
+            "(def a& 10) (defn f [a& b&] ()) (f &a &a)";
         ] );
     ]

@@ -386,13 +386,26 @@ let rec check_tree env bind mut part tree hist =
   | App { callee; args } ->
       (* The callee itself can be borrowed *)
       let b, hs = check_tree env false Uread [] callee hist in
-      let hs =
+      let _, tmp, hs =
         List.fold_left
-          (fun hs (arg, attr) ->
+          (fun (i, tmp, hs) (arg, attr) ->
             let v, hs = check_tree env false (Usage.of_attr attr) [] arg hs in
-            mb_add v hs)
-          (mb_add b hs) args
+            let tmp = Map.add (Fst ("_" ^ string_of_int i)) (Default, v) tmp in
+            (i + 1, tmp, mb_add v hs))
+          (0, env, mb_add b hs)
+          args
       in
+      (* Check again to ensure exclusivity of arguments *)
+      List.iteri
+        (fun i (arg, attr) ->
+          match Usage.of_attr attr with
+          | Umove ->
+              (* Moved values can't have been used later *)
+              ()
+          | u ->
+              let arg = { arg with expr = Var ("_" ^ string_of_int i) } in
+              check_tree tmp false u [] arg hs |> ignore)
+        args;
       (* A function cannot return a borrowed value *)
       ([], hs)
   | Bop (_, fst, snd) ->
