@@ -982,17 +982,15 @@ let () =
   (ignore a)
   (ignore (move-a))
   (ignore a))|};
-          (*           tase_exn "closure mut borrow" *)
-          (*             "a was mutably borrowed in line 4, cannot borrow" *)
-          (* {| *)
-             (* (defn hmm [] *)
-             (*  (def a& 10) *)
-             (*   (defn set-a [] *)
-             (*     (set &a 11)) *)
-             (*   (set &a 11) *)
-             (*   (set-a) *)
-             (*   (set &a 11)) *)
-             (* |}; *)
+          tase_exn "closure mut borrow"
+            "a was mutably borrowed in line 3, cannot borrow"
+            {|(defn hmm []
+              (def a& 10)
+               (def set-a (fn [] (set &a 11)))
+               (set &a 11)
+               (set-a)
+               (set &a 11))
+             |};
           tase_exn "excl 1" "a was mutably borrowed in line 1, cannot borrow"
             "(def a& 10)(defn f [a& b] (set &a 11))(f &a a)";
           tase_exn "excl 2" "a was borrowed in line 1, cannot mutate"
