@@ -206,7 +206,6 @@ let add_binding b hist =
   | Some l -> Map.add name (b :: l) hist
   | None -> Map.add name (b :: []) hist
 
-(* TODO rename *)
 let add_hist v hs =
   match v.imm with
   | [] -> hs
@@ -276,7 +275,7 @@ let rec check_tree env bind mut part tree hist =
             let b = binding_of_borrow borrow mut in
             check_excl_chain loc env b hist;
             b
-        | Borrow_mut (b', _) as b -> (
+        | Borrow_mut (b', s) as b -> (
             match mut with
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
@@ -285,7 +284,7 @@ let rec check_tree env bind mut part tree hist =
             | Umut | Uread ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
-                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, Dont_set)
+                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, s)
             | Uset ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
@@ -507,8 +506,7 @@ and check_let ~tl loc env id lhs rmut mutly hist =
   let borrow hs = function
     | Bmove _ as b -> (Bown id, add_hist (imm [ b ]) hs)
     | Borrow b -> (Borrow { b with loc; ord = neword () }, hs)
-    | Borrow_mut (b, _) ->
-        (Borrow_mut ({ b with loc; ord = neword () }, Dont_set), hs)
+    | Borrow_mut (b, s) -> (Borrow_mut ({ b with loc; ord = neword () }, s), hs)
     | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"
   in
   let imm, hs =
