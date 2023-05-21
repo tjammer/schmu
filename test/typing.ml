@@ -1012,5 +1012,10 @@ let () =
           tase "excl 5" "unit" "(def a& 10) (defn f [a b] ()) (f a a)";
           tase_exn "excl 6" "a was mutably borrowed in line 1, cannot borrow"
             "(def a& 10) (defn f [a& b&] ()) (f &a &a)";
+          tase_exn "excl env" "a was mutably borrowed in line 4, cannot borrow"
+            {|(def a& [10])
+(defn set-a [b&]
+  (set &a [11]))
+(set-a &a)|};
         ] );
     ]

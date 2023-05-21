@@ -388,16 +388,20 @@ let rec check_tree env bind mut part tree hist =
   | App { callee; args } ->
       (* The callee itself can be borrowed *)
       let b, hs = check_tree env false Uread [] callee hist in
+      let tmp = Map.add (Fst "_env") b env in
       let _, tmp, hs =
         List.fold_left
           (fun (i, tmp, hs) (arg, attr) ->
             let v, hs = check_tree env false (Usage.of_attr attr) [] arg hs in
             let tmp = Map.add (Fst ("_" ^ string_of_int i)) v tmp in
             (i + 1, tmp, add_hist v hs))
-          (0, env, add_hist b hs)
+          (0, tmp, add_hist b hs)
           args
       in
-      (* Check again to ensure exclusivity of arguments *)
+      (* Check again to ensure exclusivity of arguments and closure *)
+      let c = { callee with expr = Var "_env" } in
+      check_tree tmp false Uread [] c hs |> ignore;
+      ignore (check_tree env false Uread [] callee hs);
       List.iteri
         (fun i (arg, attr) ->
           match Usage.of_attr attr with
