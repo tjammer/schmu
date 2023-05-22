@@ -526,16 +526,16 @@ let rec check_tree env bind mut part tree hist =
   | Move _ -> failwith "Internal Error: Nothing should have been moved here"
 
 and check_let ~tl loc env id lhs rmut mutly hist =
-  let nmut =
+  let nmut, tlborrow =
     match (lhs.attr.mut, mutly) with
     | true, true when not rmut ->
         raise (Error (lhs.loc, "Cannot project unmutable binding"))
-    | true, true -> Usage.Umut
-    | true, false -> Umove
+    | true, true -> (Usage.Umut, false)
+    | true, false -> (Umove, false)
     | false, false ->
-        if rmut && tl then
-          raise (Error (lhs.loc, "Cannot borrow mutable binding at top level"));
-        Uread
+        (* Cannot borrow mutable bindings at top level. We defer error generation until
+           we are sure the rhs is really borrowed *)
+        (Uread, rmut && tl)
     | false, true -> failwith "unreachable"
   in
   let rhs, rval, hs = check_tree env false nmut [] lhs hist in
@@ -552,6 +552,8 @@ and check_let ~tl loc env id lhs rmut mutly hist =
   let id = new_id id in
   let borrow hs = function
     | Bmove _ as b -> (Bown id, add_hist (imm [ b ]) hs)
+    | (Borrow _ | Borrow_mut _) when tlborrow ->
+        raise (Error (lhs.loc, "Cannot borrow mutable binding at top level"))
     | Borrow b -> (Borrow { b with loc; ord = neword () }, hs)
     | Borrow_mut (b, s) -> (Borrow_mut ({ b with loc; ord = neword () }, s), hs)
     | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"
