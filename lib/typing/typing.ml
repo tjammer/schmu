@@ -532,7 +532,8 @@ let rec is_poly_call texpr =
   | Bind (_, _, cont)
   | Function (_, _, _, cont)
   | Sequence (_, cont)
-  | Mutual_rec_decls (_, cont) ->
+  | Mutual_rec_decls (_, cont)
+  | Move cont ->
       is_poly_call cont
 
 let rec wrap_in_lambda texpr = function
@@ -722,7 +723,7 @@ end = struct
     leave_level ();
     let _, closed_vars, touched, unused = Env.close_function env in
 
-    let touched =
+    let touched, body =
       Exclusivity.check_tree params_t
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
@@ -796,7 +797,7 @@ end = struct
 
     let env, closed_vars, touched, unused = Env.close_function env in
 
-    let touched =
+    let touched, body =
       Exclusivity.check_tree params_t
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
@@ -1256,6 +1257,7 @@ and catch_weak_expr sub e =
   | Ctor (_, _, Some e)
   | Variant_index e
   | Variant_data e
+  | Move e
   | Mutual_rec_decls (_, e) ->
       catch_weak_expr sub e
   | Function (_, _, abs, e) ->
@@ -1302,7 +1304,7 @@ let rec convert_module env sign prog check_ret mname =
   let has_sign = match sign with [] -> false | _ -> true in
   if (not (Option.is_some mname)) || has_sign then check_unused unused;
 
-  Exclusivity.check_items items;
+  let items = Exclusivity.check_items items in
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then

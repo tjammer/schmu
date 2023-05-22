@@ -332,6 +332,9 @@ and canonexpr mname nsub sub = function
           sub fs
       in
       (sub, Fmt fs)
+  | Move e ->
+      let sub, e = (canonbody mname nsub) sub e in
+      (sub, Move e)
 
 and canonabs mname sub nsub abs =
   let sub, tparams =

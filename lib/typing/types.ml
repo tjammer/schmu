@@ -79,7 +79,12 @@ let string_of_type_raw get_name typ =
     | Ti32 -> "i32"
     | Tf32 -> "f32"
     | Tfun (ts, t, _) ->
-        let pattr = function Dnorm -> "" | Dmut -> "&" | Dmove -> "!" | Dset -> "&" in
+        let pattr = function
+          | Dnorm -> ""
+          | Dmut -> "&"
+          | Dmove -> "!"
+          | Dset -> "&"
+        in
         let ps =
           String.concat " "
             (List.map (fun p -> string_of_type p.pt ^ pattr p.pattr) ts)

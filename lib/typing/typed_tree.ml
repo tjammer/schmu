@@ -33,6 +33,7 @@ type expr =
   | Variant_index of typed_expr
   | Variant_data of typed_expr
   | Fmt of fmt list
+  | Move of typed_expr
 [@@deriving show, sexp]
 
 and typed_expr = { typ : typ; expr : expr; attr : attr; loc : loc }
