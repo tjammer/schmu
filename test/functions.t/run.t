@@ -1701,12 +1701,12 @@ Don't copy mutable types in setup of tailrecursive functions
     %arr4 = alloca i64*, align 8
     br label %rec.outer
   
-  rec.outer:                                        ; preds = %cont, %cont12, %entry
-    %.ph = phi i1 [ false, %entry ], [ true, %cont ], [ %12, %cont12 ]
-    %.ph31 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont12 ]
-    %.ph32 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont12 ]
-    %.ph33 = phi i64 [ %i, %entry ], [ 3, %cont ], [ 11, %cont12 ]
-    %.ph34 = phi i64** [ %a, %entry ], [ %arr, %cont ], [ %arr4, %cont12 ]
+  rec.outer:                                        ; preds = %cont, %cont13, %entry
+    %.ph = phi i1 [ false, %entry ], [ true, %cont ], [ %12, %cont13 ]
+    %.ph31 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont13 ]
+    %.ph32 = phi i1 [ false, %entry ], [ true, %cont ], [ true, %cont13 ]
+    %.ph33 = phi i64 [ %i, %entry ], [ 3, %cont ], [ 11, %cont13 ]
+    %.ph34 = phi i64** [ %a, %entry ], [ %arr, %cont ], [ %arr4, %cont13 ]
     %3 = add i64 %.ph33, 1
     br label %rec
   
@@ -1759,19 +1759,19 @@ Don't copy mutable types in setup of tailrecursive functions
     %10 = getelementptr i8, i8* %8, i64 24
     %data8 = bitcast i8* %10 to i64*
     store i64 10, i64* %data8, align 8
-    br i1 %.ph31, label %call_decr10, label %cookie11
+    br i1 %.ph31, label %call_decr11, label %cookie12
   
-  call_decr10:                                      ; preds = %then3
+  call_decr11:                                      ; preds = %then3
     %11 = load i64*, i64** %.ph34, align 8
     call void @__g.u_decr_rc_ai.u(i64* %11)
-    br label %cont12
+    br label %cont13
   
-  cookie11:                                         ; preds = %then3
+  cookie12:                                         ; preds = %then3
     store i1 true, i1* %1, align 1
-    br label %cont12
+    br label %cont13
   
-  cont12:                                           ; preds = %cookie11, %call_decr10
-    %12 = phi i1 [ true, %cookie11 ], [ %.ph, %call_decr10 ]
+  cont13:                                           ; preds = %cookie12, %call_decr11
+    %12 = phi i1 [ true, %cookie12 ], [ %.ph, %call_decr11 ]
     store i64** %arr4, i64*** %0, align 8
     store i64 11, i64* %2, align 8
     br label %rec.outer

@@ -495,24 +495,27 @@ end = struct
       | _ -> failwith "Internal Error: Not a func in gen app tailrec"
     in
 
-    let handle_arg i (oarg, is_arg) =
+    let calculate_arg i (oarg, is_arg) =
       let arg' = gen_expr param Monomorph_tree.(oarg.ex) in
       let arg = get_mono_func arg' param oarg.monomorph in
       let llvar = func_to_closure param arg in
 
       let i = get_index i oarg.mut arg.typ in
       let alloca = Vars.find (name_of_alloc_param i) param.vars in
-
-      if not is_arg then tail_decr_param param alloca i oarg.mut;
-
-      (* We store the params in pre-allocated variables *)
-      (if llvar.value <> alloca.value then
-         let store = if oarg.mut then tailrec_store else store_or_copy in
-         store ~src:llvar ~dst:alloca.value);
-      i + 1
+      (i + 1, (i, oarg.mut, alloca, llvar, is_arg))
     in
 
-    ignore (List.fold_left handle_arg start_index args);
+    let store_arg (i, mut, alloca, value, is_arg) =
+      if not is_arg then tail_decr_param param alloca i mut;
+
+      (* We store the params in pre-allocated variables *)
+      if value.value <> alloca.value then
+        let store = if mut then tailrec_store else store_or_copy in
+        store ~src:value ~dst:alloca.value
+    in
+
+    let _, margs = List.fold_left_map calculate_arg start_index args in
+    List.iter store_arg margs;
 
     let lltyp =
       (* TODO record *)

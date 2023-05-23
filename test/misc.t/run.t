@@ -3907,6 +3907,9 @@ Take/use not all allocations of a record in tailrec calls
     call void @__g.u_incr_rc_successview.u(%success_view* %data)
     %8 = bitcast %success_view* %data to %view*
     call void @__g.u_incr_rc_view.u(%view* %8)
+    %add = add i64 %7, 1
+    call void @__g.u_decr_rc_parse-resultview.u(%parse-result_view* %ret)
+    call void @__g.u_decr_rc_successview.u(%success_view* %data)
     br i1 %6, label %call_decr, label %cookie
   
   call_decr:                                        ; preds = %then
@@ -3922,9 +3925,6 @@ Take/use not all allocations of a record in tailrec calls
     %10 = bitcast %view* %1 to i8*
     %11 = bitcast %view* %9 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %10, i8* %11, i64 24, i1 false)
-    %add = add i64 %7, 1
-    call void @__g.u_decr_rc_parse-resultview.u(%parse-result_view* %ret)
-    call void @__g.u_decr_rc_successview.u(%success_view* %data)
     store i64 %add, i64* %5, align 8
     br label %rec
   
@@ -4072,33 +4072,6 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define internal void @__g.u_decr_rc_view.u(%view* %0) {
-  entry:
-    %1 = bitcast %view* %0 to i8**
-    %2 = load i8*, i8** %1, align 8
-    %ref = bitcast i8* %2 to i64*
-    %ref13 = bitcast i64* %ref to i64*
-    %ref2 = load i64, i64* %ref13, align 8
-    %3 = icmp eq i64 %ref2, 1
-    br i1 %3, label %free, label %decr
-  
-  decr:                                             ; preds = %entry
-    %4 = bitcast i8* %2 to i64*
-    %5 = bitcast i64* %4 to i64*
-    %6 = sub i64 %ref2, 1
-    store i64 %6, i64* %5, align 8
-    br label %merge
-  
-  free:                                             ; preds = %entry
-    %7 = bitcast i8* %2 to i64*
-    %8 = bitcast i64* %7 to i8*
-    call void @free(i8* %8)
-    br label %merge
-  
-  merge:                                            ; preds = %free, %decr
-    ret void
-  }
-  
   define internal void @__g.u_decr_rc_parse-resultview.u(%parse-result_view* %0) {
   entry:
     %tag18 = bitcast %parse-result_view* %0 to i32*
@@ -4234,6 +4207,33 @@ Take/use not all allocations of a record in tailrec calls
     br label %merge8
   
   merge8:                                           ; preds = %free7, %decr6
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_view.u(%view* %0) {
+  entry:
+    %1 = bitcast %view* %0 to i8**
+    %2 = load i8*, i8** %1, align 8
+    %ref = bitcast i8* %2 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %3 = icmp eq i64 %ref2, 1
+    br i1 %3, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %4 = bitcast i8* %2 to i64*
+    %5 = bitcast i64* %4 to i64*
+    %6 = sub i64 %ref2, 1
+    store i64 %6, i64* %5, align 8
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %7 = bitcast i8* %2 to i64*
+    %8 = bitcast i64* %7 to i8*
+    call void @free(i8* %8)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
     ret void
   }
   
@@ -4729,8 +4729,8 @@ Monomorphization in closures
     %9 = tail call i64 %casttmp(i64** %arr, i64 %5, i64 %hi, i8* %loadtmp3)
     %sub = sub i64 %9, 1
     tail call void @__agii.u-agii.i-gg.i_schmu_quicksort__2_aiii.u-aiii.i-ii.i(i64** %arr, i64 %5, i64 %sub, i8* %0)
-    store i64** %arr, i64*** %1, align 8
     %add = add i64 %9, 1
+    store i64** %arr, i64*** %1, align 8
     store i64 %add, i64* %3, align 8
     br label %rec
   }
@@ -4779,8 +4779,8 @@ Monomorphization in closures
     %9 = tail call i64 %casttmp(i64** %arr, i64 %5, i64 %hi, i8* %loadtmp3)
     %sub = sub i64 %9, 1
     tail call void @__agii.u-agii.i-gg.i_schmu_quicksort_aiii.u-aiii.i-ii.i(i64** %arr, i64 %5, i64 %sub, i8* %0)
-    store i64** %arr, i64*** %1, align 8
     %add = add i64 %9, 1
+    store i64** %arr, i64*** %1, align 8
     store i64 %add, i64* %3, align 8
     br label %rec
   }
