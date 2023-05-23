@@ -177,6 +177,7 @@ end = struct
     | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
     | Mfmt (fmts, allocref, id) ->
         gen_fmt_str param fmts typed_expr.typ allocref id |> fin
+    | Mprint_str fmts -> gen_print_str param fmts |> fin
     | Mcopy { kind; temporary; expr; nm } -> (
         match kind with
         | Cglobal gn -> gen_copy_global param temporary gn expr
@@ -1006,6 +1007,33 @@ end = struct
     let v = { value = string; typ; lltyp; kind = Ptr } in
     Hashtbl.replace decr_tbl id v;
     v
+
+  and gen_print_str param exprs =
+    let printf_decl =
+      lazy
+        Llvm.(
+          let ft = var_arg_function_type unit_t [| voidptr_t |] in
+          declare_function "printf" ft the_module)
+    in
+    let f (fmtstr, args) expr =
+      match expr with
+      | Monomorph_tree.Fstr s -> (fmtstr ^ s, args)
+      | Fexpr e ->
+          let value = gen_expr param e in
+          let str, value = fmt_str value in
+          (fmtstr ^ str, value :: args)
+    in
+    let fmt, args = List.fold_left f ("", []) exprs in
+    let fmtptr =
+      let typ = Tarray Tu8 in
+      let lltyp = get_lltype_def typ in
+      get_const_string (fmt ^ "\n") |> fun value ->
+      array_data [ { value; kind = Imm; typ; lltyp } ]
+    in
+    let itemargs = List.rev args in
+    let args = fmtptr.value :: itemargs |> Array.of_list in
+    Llvm.build_call (Lazy.force printf_decl) args "" builder |> ignore;
+    { dummy_fn_value with lltyp = unit_t }
 
   and gen_copy param temp mut expr nm =
     let v = gen_expr param expr in

@@ -28,6 +28,7 @@ type expr =
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
+  | Mprint_str of fmt list
   | Mcopy of {
       kind : copy_kind;
       temporary : bool;
@@ -518,6 +519,11 @@ and subst_body p subst tree =
           List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
         in
         { tree with expr = Mfmt (fmts, alloca, id) }
+    | Mprint_str fmts ->
+        let fmts =
+          List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
+        in
+        { tree with expr = Mprint_str fmts }
     | Mcopy c ->
         {
           tree with
@@ -867,7 +873,7 @@ let rec is_temporary = function
   | Mdecr_ref (_, cont)
   | Mincr_ref cont ->
       is_temporary cont.expr
-  | Mset _ -> failwith "Internal Error: Trying to copy unit"
+  | Mset _ | Mprint_str _ -> failwith "Internal Error: Trying to copy unit"
 
 let rec is_part = function
   | Mfield _ | Mvar_data _ -> true
@@ -877,7 +883,7 @@ let rec is_part = function
       | Builtin (Array_get, _) -> true
       | _ -> false)
   | Mvar _ | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _
-  | Mfmt _ | Mcopy _ | Mset _ ->
+  | Mfmt _ | Mcopy _ | Mset _ | Mprint_str _ ->
       false
   | Mif { e1; e2; _ } -> is_part e1.expr || is_part e2.expr
   | Mlet (_, _, _, _, cont)
@@ -985,6 +991,10 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p = List.fold_left rec_fs_to_env param decls in
       morph_expr p cont
   | Lambda (id, abs) -> morph_lambda make texpr.typ param id abs
+  | App { callee = { expr = Var id; _ }; args = [ ({ expr = Fmt es; _ }, _) ] }
+    when String.equal id
+           (Module.absolute_module_name ~mname:(Path.Pid "prelude") "print") ->
+      morph_print_str make param es
   | App { callee; args } ->
       morph_app make param callee args (cln param texpr.typ)
   | Ctor (variant, index, dataexpr) ->
@@ -1640,6 +1650,22 @@ and morph_fmt mk p exprs =
   ( { p with ret; ids },
     mk (Mfmt (es, alloca, id)) ret,
     { no_var with alloc = Value alloca; id = Some id } )
+
+and morph_print_str mk p exprs =
+  let ret = p.ret in
+  let p = { p with ret = false } in
+
+  let f p = function
+    | Typed_tree.Fexpr e ->
+        let p, e, _ = morph_expr p e in
+        (p, Fexpr e)
+    | Fstr s -> (p, Fstr s)
+  in
+  enter_level ();
+  let p, es = List.fold_left_map f p exprs in
+  leave_level ();
+
+  ({ p with ret }, mk (Mprint_str es) ret, no_var)
 
 let rec morph_toplvl param items =
   let rec aux param = function

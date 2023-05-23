@@ -658,7 +658,7 @@ Local modules
   
   @schmu_test__2 = constant %nosig.t { i64 10 }
   @schmu_local_value = global i8* null, align 8
-  @0 = private unnamed_addr global { i64, i64, i64, [12 x i8] } { i64 2, i64 11, i64 11, [12 x i8] c"hey poly %s\00" }
+  @0 = private unnamed_addr global { i64, i64, i64, [13 x i8] } { i64 2, i64 12, i64 12, [13 x i8] c"hey poly %s\0A\00" }
   @1 = private unnamed_addr global { i64, i64, i64, [10 x i8] } { i64 2, i64 9, i64 9, [10 x i8] c"hey thing\00" }
   @2 = private unnamed_addr global { i64, i64, i64, [11 x i8] } { i64 2, i64 10, i64 10, [11 x i8] c"i'm nested\00" }
   @3 = private unnamed_addr global { i64, i64, i64, [9 x i8] } { i64 2, i64 8, i64 8, [9 x i8] c"hey test\00" }
@@ -669,24 +669,7 @@ Local modules
   define void @__g.u_schmu_local_poly-test_ac.u(i8* %a) {
   entry:
     %0 = getelementptr i8, i8* %a, i64 24
-    %fmtsize = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* null, i64 0, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [12 x i8] }* @0 to i8*), i64 24), i8* %0)
-    %1 = add i32 %fmtsize, 25
-    %2 = sext i32 %1 to i64
-    %3 = tail call i8* @malloc(i64 %2)
-    %4 = bitcast i8* %3 to i64*
-    store i64 1, i64* %4, align 8
-    %size = getelementptr i64, i64* %4, i64 1
-    %5 = sext i32 %fmtsize to i64
-    store i64 %5, i64* %size, align 8
-    %cap = getelementptr i64, i64* %4, i64 2
-    store i64 %5, i64* %cap, align 8
-    %data = getelementptr i64, i64* %4, i64 3
-    %6 = bitcast i64* %data to i8*
-    %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %6, i64 %2, i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [12 x i8] }* @0 to i8*), i64 24), i8* %0)
-    %str = alloca i8*, align 8
-    store i8* %3, i8** %str, align 8
-    tail call void @prelude_print(i8* %3)
-    tail call void @__g.u_decr_rc_ac.u(i8* %3)
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [13 x i8] }* @0 to i8*), i64 24), i8* %0)
     ret void
   }
   
@@ -714,34 +697,7 @@ Local modules
     ret void
   }
   
-  declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
-  
-  declare i8* @malloc(i64 %0)
-  
-  define internal void @__g.u_decr_rc_ac.u(i8* %0) {
-  entry:
-    %ref = bitcast i8* %0 to i64*
-    %ref13 = bitcast i64* %ref to i64*
-    %ref2 = load i64, i64* %ref13, align 8
-    %1 = icmp eq i64 %ref2, 1
-    br i1 %1, label %free, label %decr
-  
-  decr:                                             ; preds = %entry
-    %2 = bitcast i8* %0 to i64*
-    %3 = bitcast i64* %2 to i64*
-    %4 = sub i64 %ref2, 1
-    store i64 %4, i64* %3, align 8
-    br label %merge
-  
-  free:                                             ; preds = %entry
-    %5 = bitcast i8* %0 to i64*
-    %6 = bitcast i64* %5 to i8*
-    call void @free(i8* %6)
-    br label %merge
-  
-  merge:                                            ; preds = %free, %decr
-    ret void
-  }
+  declare void @printf(i8* %0, ...)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -765,6 +721,31 @@ Local modules
     %ref2 = load i64, i64* %ref13, align 8
     %1 = add i64 %ref2, 1
     store i64 %1, i64* %ref13, align 8
+    ret void
+  }
+  
+  define internal void @__g.u_decr_rc_ac.u(i8* %0) {
+  entry:
+    %ref = bitcast i8* %0 to i64*
+    %ref13 = bitcast i64* %ref to i64*
+    %ref2 = load i64, i64* %ref13, align 8
+    %1 = icmp eq i64 %ref2, 1
+    br i1 %1, label %free, label %decr
+  
+  decr:                                             ; preds = %entry
+    %2 = bitcast i8* %0 to i64*
+    %3 = bitcast i64* %2 to i64*
+    %4 = sub i64 %ref2, 1
+    store i64 %4, i64* %3, align 8
+    br label %merge
+  
+  free:                                             ; preds = %entry
+    %5 = bitcast i8* %0 to i64*
+    %6 = bitcast i64* %5 to i8*
+    call void @free(i8* %6)
+    br label %merge
+  
+  merge:                                            ; preds = %free, %decr
     ret void
   }
   
