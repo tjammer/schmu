@@ -448,13 +448,13 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define internal void @__malloc_some_deinit() section ".text.startup" {
   entry:
     %0 = load i64*, i64** @malloc_some_vtest2, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %0)
+    tail call void @__decr_rc_ai(i64* %0)
     %1 = load i64*, i64** @malloc_some_vtest, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %1)
+    tail call void @__decr_rc_ai(i64* %1)
     ret void
   }
   
-  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  define internal void @__decr_rc_ai(i64* %0) {
   entry:
     %ref2 = bitcast i64* %0 to i64*
     %ref1 = load i64, i64* %ref2, align 8
@@ -702,7 +702,7 @@ Local modules
   define i64 @main(i64 %arg) {
   entry:
     store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*), i8** @schmu_local_value, align 8
-    tail call void @__g.u_incr_rc_ac.u(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*))
+    tail call void @__incr_rc_ac(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*))
     tail call void @schmu_test()
     tail call void @schmu_local_test()
     %str = alloca i8*, align 8
@@ -710,11 +710,11 @@ Local modules
     tail call void @__g.u_schmu_local_poly-test_ac.u(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @4 to i8*))
     tail call void @schmu_nosig_nested_nested()
     %0 = load i8*, i8** @schmu_local_value, align 8
-    tail call void @__g.u_decr_rc_ac.u(i8* %0)
+    tail call void @__decr_rc_ac(i8* %0)
     ret i64 0
   }
   
-  define internal void @__g.u_incr_rc_ac.u(i8* %0) {
+  define internal void @__incr_rc_ac(i8* %0) {
   entry:
     %ref = bitcast i8* %0 to i64*
     %ref13 = bitcast i64* %ref to i64*
@@ -724,7 +724,7 @@ Local modules
     ret void
   }
   
-  define internal void @__g.u_decr_rc_ac.u(i8* %0) {
+  define internal void @__decr_rc_ac(i8* %0) {
   entry:
     %ref = bitcast i8* %0 to i64*
     %ref13 = bitcast i64* %ref to i64*

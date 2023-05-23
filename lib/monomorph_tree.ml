@@ -222,40 +222,41 @@ let rec mb_contains_refcount = function
   | Tpoly _ -> true
   | _ -> false
 
+let rec short_name ~closure t =
+  let str = short_name ~closure in
+  let open Printf in
+  match t with
+  | Tint -> "i"
+  | Tbool -> "b"
+  | Tunit -> "u"
+  | Tu8 -> "c"
+  | Tfloat -> "f"
+  | Ti32 -> "i32"
+  | Tf32 -> "f32"
+  | Tfun (ps, r, k) ->
+      let k =
+        match k with
+        | Closure c when closure -> (
+            match c with
+            | [] -> ""
+            | c -> "-" ^ String.concat "-" (List.map (fun c -> str c.cltyp) c))
+        | Closure _ | Simple -> ""
+      in
+      sprintf "%s.%s%s"
+        (String.concat "" (List.map (fun p -> str p.pt) ps))
+        (str r) k
+  | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
+      sprintf "%s%s" name (String.concat "" (List.map str ps))
+  | Trecord (_, None, fs) ->
+      "tup-"
+      ^ (Array.to_list fs |> List.map (fun f -> str f.ftyp) |> String.concat "-")
+  | Tpoly _ -> "g"
+  | Traw_ptr t -> sprintf "p%s" (str t)
+  | Tarray t -> sprintf "a%s" (str t)
+
 let get_mono_name name ~poly ~closure concrete =
   let open Printf in
-  let rec str = function
-    | Tint -> "i"
-    | Tbool -> "b"
-    | Tunit -> "u"
-    | Tu8 -> "c"
-    | Tfloat -> "f"
-    | Ti32 -> "i32"
-    | Tf32 -> "f32"
-    | Tfun (ps, r, k) ->
-        let k =
-          match k with
-          | Closure c when closure -> (
-              match c with
-              | [] -> ""
-              | c -> "-" ^ String.concat "-" (List.map (fun c -> str c.cltyp) c)
-              )
-          | Closure _ | Simple -> ""
-        in
-        sprintf "%s.%s%s"
-          (String.concat "" (List.map (fun p -> str p.pt) ps))
-          (str r) k
-    | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
-        sprintf "%s%s" name (String.concat "" (List.map str ps))
-    | Trecord (_, None, fs) ->
-        "tup-"
-        ^ (Array.to_list fs
-          |> List.map (fun f -> str f.ftyp)
-          |> String.concat "-")
-    | Tpoly _ -> "g"
-    | Traw_ptr t -> sprintf "p%s" (str t)
-    | Tarray t -> sprintf "a%s" (str t)
-  in
+  let str = short_name ~closure in
   sprintf "__%s_%s_%s" (str poly) name (str concrete)
 
 let rec subst_type ~concrete poly parent =

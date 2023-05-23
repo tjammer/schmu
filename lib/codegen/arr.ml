@@ -221,10 +221,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
   let make_rc_fn v kind =
     (* TODO use only type *)
-    let name = name_of_func kind in
-    let poly = Tfun ([ { pmut = false; pt = Tpoly "0" } ], Tunit, Simple) in
-    let typ = Tfun ([ { pmut = false; pt = v.typ } ], Tunit, Simple) in
-    let name = Monomorph_tree.get_mono_name name ~closure:false ~poly typ in
+    let name = "__" ^ name_of_func kind ^ "_" in
+    let name = name ^ Monomorph_tree.short_name ~closure:false v.typ in
     match Hashtbl.find_opt func_tbl name with
     | Some (_, _, f) -> f
     | None ->

@@ -35,12 +35,12 @@ Basic variant ctors
     %data = getelementptr inbounds %prelude.option_array_u8, %prelude.option_array_u8* %0, i32 0, i32 1
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %str, align 8
-    tail call void @__g.u_incr_rc_ac.u(i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*))
+    tail call void @__incr_rc_ac(i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*))
     store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %data, align 8
     ret void
   }
   
-  define internal void @__g.u_incr_rc_ac.u(i8* %0) {
+  define internal void @__incr_rc_ac(i8* %0) {
   entry:
     %ref = bitcast i8* %0 to i64*
     %ref13 = bitcast i64* %ref to i64*

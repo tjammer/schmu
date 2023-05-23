@@ -1154,7 +1154,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  define internal void @__decr_rc_ai(i64* %0) {
   entry:
     %ref2 = bitcast i64* %0 to i64*
     %ref1 = load i64, i64* %ref2, align 8
@@ -1176,7 +1176,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define internal void @__g.u_decr_rc_i.u.u(%closure* %0) {
+  define internal void @__decr_rc_i.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -1376,7 +1376,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i8* null, i8** %envptr, align 8
     call void @__agg.u.u_schmu_array-iter_aii.u.u(i64* %53, %closure* %clstmp)
     %54 = load i64*, i64** @schmu_arr, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %54)
+    call void @__decr_rc_ai(i64* %54)
     ret i64 0
   }
   
@@ -1407,7 +1407,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i64* %6, i64** %0, align 8
     %ref35 = bitcast i64* %6 to i64*
     store i64 1, i64* %ref35, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %1)
+    call void @__decr_rc_ai(i64* %1)
     br label %merge
   
   merge:                                            ; preds = %relocate, %entry
@@ -1449,7 +1449,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i64* %11, i64** %0, align 8
     %ref46 = bitcast i64* %11 to i64*
     store i64 1, i64* %ref46, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %1)
+    call void @__decr_rc_ai(i64* %1)
     br label %merge
   
   merge:                                            ; preds = %malloc, %realloc
@@ -1729,7 +1729,7 @@ Don't copy mutable types in setup of tailrecursive functions
   
   call_decr:                                        ; preds = %then
     %7 = load i64*, i64** %.ph34, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %7)
+    call void @__decr_rc_ai(i64* %7)
     br label %cont
   
   cookie:                                           ; preds = %then
@@ -1761,7 +1761,7 @@ Don't copy mutable types in setup of tailrecursive functions
   
   call_decr11:                                      ; preds = %then3
     %11 = load i64*, i64** %.ph34, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %11)
+    call void @__decr_rc_ai(i64* %11)
     br label %cont13
   
   cookie12:                                         ; preds = %then3
@@ -1816,7 +1816,7 @@ Don't copy mutable types in setup of tailrecursive functions
   
   call_decr27:                                      ; preds = %then16
     %23 = load i64*, i64** %.ph34, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %23)
+    call void @__decr_rc_ai(i64* %23)
     br label %cont29
   
   cookie28:                                         ; preds = %then16
@@ -1852,7 +1852,7 @@ Don't copy mutable types in setup of tailrecursive functions
     store i64* %6, i64** %0, align 8
     %ref35 = bitcast i64* %6 to i64*
     store i64 1, i64* %ref35, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %1)
+    call void @__decr_rc_ai(i64* %1)
     br label %merge
   
   merge:                                            ; preds = %relocate, %entry
@@ -1860,7 +1860,7 @@ Don't copy mutable types in setup of tailrecursive functions
     ret i64* %11
   }
   
-  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  define internal void @__decr_rc_ai(i64* %0) {
   entry:
     %ref2 = bitcast i64* %0 to i64*
     %ref1 = load i64, i64* %ref2, align 8
@@ -1916,7 +1916,7 @@ Don't copy mutable types in setup of tailrecursive functions
     store i64* %11, i64** %0, align 8
     %ref46 = bitcast i64* %11 to i64*
     store i64 1, i64* %ref46, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %1)
+    call void @__decr_rc_ai(i64* %1)
     br label %merge
   
   merge:                                            ; preds = %malloc, %realloc
@@ -2000,9 +2000,9 @@ Don't copy mutable types in setup of tailrecursive functions
     %18 = load i64, i64* %len8, align 8
     call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [5 x i8] }* @3 to i8*), i64 24), i64 %18)
     %19 = load i64*, i64** %arr3, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %19)
+    call void @__decr_rc_ai(i64* %19)
     %20 = load i64*, i64** %arr, align 8
-    call void @__g.u_decr_rc_ai.u(i64* %20)
+    call void @__decr_rc_ai(i64* %20)
     ret i64 0
   }
   
@@ -2042,7 +2042,7 @@ The lamba passed as array-iter argument is polymorphic
   entry:
     %str = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, i64, [1 x [1 x i8]] }* @0 to i8*), i8** %str, align 8
-    tail call void @__g.u_incr_rc_ac.u(i8* bitcast ({ i64, i64, i64, [1 x [1 x i8]] }* @0 to i8*))
+    tail call void @__incr_rc_ac(i8* bitcast ({ i64, i64, i64, [1 x [1 x i8]] }* @0 to i8*))
     %acc = alloca i8*, align 8
     %0 = bitcast i8** %acc to i8*
     %1 = bitcast i8** %str to i8*
@@ -2275,7 +2275,7 @@ The lamba passed as array-iter argument is polymorphic
     %str = alloca i8*, align 8
     store i8* %3, i8** %str, align 8
     tail call void @__agag.u_schmu_string-append_acac.u(i8** %acc1, i8* %3)
-    tail call void @__g.u_decr_rc_ac.u(i8* %3)
+    tail call void @__decr_rc_ac(i8* %3)
     ret void
   }
   
@@ -2327,7 +2327,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define internal void @__g.u_incr_rc_ac.u(i8* %0) {
+  define internal void @__incr_rc_ac(i8* %0) {
   entry:
     %ref = bitcast i8* %0 to i64*
     %ref13 = bitcast i64* %ref to i64*
@@ -2365,7 +2365,7 @@ The lamba passed as array-iter argument is polymorphic
     %ref4 = bitcast i8* %6 to i64*
     %ref57 = bitcast i64* %ref4 to i64*
     store i64 1, i64* %ref57, align 8
-    call void @__g.u_decr_rc_ac.u(i8* %1)
+    call void @__decr_rc_ac(i8* %1)
     br label %merge
   
   merge:                                            ; preds = %relocate, %entry
@@ -2373,7 +2373,7 @@ The lamba passed as array-iter argument is polymorphic
     ret i8* %9
   }
   
-  define internal void @__g.u_decr_rc_ac.u(i8* %0) {
+  define internal void @__decr_rc_ac(i8* %0) {
   entry:
     %ref = bitcast i8* %0 to i64*
     %ref13 = bitcast i64* %ref to i64*
@@ -2430,7 +2430,7 @@ The lamba passed as array-iter argument is polymorphic
     %ref4 = bitcast i8* %10 to i64*
     %ref58 = bitcast i64* %ref4 to i64*
     store i64 1, i64* %ref58, align 8
-    call void @__g.u_decr_rc_ac.u(i8* %1)
+    call void @__decr_rc_ac(i8* %1)
     br label %merge
   
   merge:                                            ; preds = %malloc, %realloc
@@ -2482,13 +2482,13 @@ The lamba passed as array-iter argument is polymorphic
     store i8* bitcast ({ i64, i64, i64, [3 x i8] }* @2 to i8*), i8** %str, align 8
     %4 = tail call i8* @__agac.ac_schmu_string-concat_aiac.ac(i64* %3, i8* bitcast ({ i64, i64, i64, [3 x i8] }* @2 to i8*))
     tail call void @prelude_print(i8* %4)
-    tail call void @__g.u_decr_rc_ac.u(i8* %4)
+    tail call void @__decr_rc_ac(i8* %4)
     %5 = load i64*, i64** @schmu_arr, align 8
-    tail call void @__g.u_decr_rc_ai.u(i64* %5)
+    tail call void @__decr_rc_ai(i64* %5)
     ret i64 0
   }
   
-  define internal void @__g.u_decr_rc_ai.u(i64* %0) {
+  define internal void @__decr_rc_ai(i64* %0) {
   entry:
     %ref2 = bitcast i64* %0 to i64*
     %ref1 = load i64, i64* %ref2, align 8
@@ -2577,7 +2577,7 @@ Function call returning a polymorphic function
     %envptr4 = getelementptr inbounds %closure, %closure* %ret, i32 0, i32 1
     %loadtmp5 = load i8*, i8** %envptr4, align 8
     call void %casttmp(i8* %_0, i8* %loadtmp5)
-    call void @__g.u_decr_rc_ac.u.u(%closure* %ret)
+    call void @__decr_rc_ac.u(%closure* %ret)
     ret void
   }
   
@@ -2601,7 +2601,7 @@ Function call returning a polymorphic function
     %envptr4 = getelementptr inbounds %closure, %closure* %ret, i32 0, i32 1
     %loadtmp5 = load i8*, i8** %envptr4, align 8
     call void %casttmp(i64 %_0, i8* %loadtmp5)
-    call void @__g.u_decr_rc_i.u.u(%closure* %ret)
+    call void @__decr_rc_i.u(%closure* %ret)
     ret void
   }
   
@@ -2628,14 +2628,14 @@ Function call returning a polymorphic function
     %2 = bitcast %closure* %0 to i8*
     %3 = bitcast %closure* %f to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 16, i1 false)
-    tail call void @__g.u_incr_rc_ac.u.u(%closure* %f)
+    tail call void @__incr_rc_ac.u(%closure* %f)
     ret void
   
   else:                                             ; preds = %entry
     %4 = bitcast %closure* %0 to i8*
     %5 = bitcast %closure* %g to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 16, i1 false)
-    tail call void @__g.u_incr_rc_ac.u.u(%closure* %g)
+    tail call void @__incr_rc_ac.u(%closure* %g)
     ret void
   }
   
@@ -2649,20 +2649,20 @@ Function call returning a polymorphic function
     %2 = bitcast %closure* %0 to i8*
     %3 = bitcast %closure* %f to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 16, i1 false)
-    tail call void @__g.u_incr_rc_i.u.u(%closure* %f)
+    tail call void @__incr_rc_i.u(%closure* %f)
     ret void
   
   else:                                             ; preds = %entry
     %4 = bitcast %closure* %0 to i8*
     %5 = bitcast %closure* %g to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 16, i1 false)
-    tail call void @__g.u_incr_rc_i.u.u(%closure* %g)
+    tail call void @__incr_rc_i.u(%closure* %g)
     ret void
   }
   
   declare void @printf(i8* %0, ...)
   
-  define internal void @__g.u_decr_rc_ac.u.u(%closure* %0) {
+  define internal void @__decr_rc_ac.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -2708,7 +2708,7 @@ Function call returning a polymorphic function
     br label %ret
   }
   
-  define internal void @__g.u_decr_rc_i.u.u(%closure* %0) {
+  define internal void @__decr_rc_i.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -2757,7 +2757,7 @@ Function call returning a polymorphic function
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__g.u_incr_rc_ac.u.u(%closure* %0) {
+  define internal void @__incr_rc_ac.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -2776,7 +2776,7 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define internal void @__g.u_incr_rc_i.u.u(%closure* %0) {
+  define internal void @__incr_rc_i.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8

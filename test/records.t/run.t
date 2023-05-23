@@ -443,7 +443,7 @@ Support function/closure fields
     %4 = tail call i64 %casttmp(i64 %3, i8* %loadtmp1)
     store i64 %4, i64* %cnt2, align 8
     %next = getelementptr inbounds %state, %state* %0, i32 0, i32 1
-    tail call void @__g.u_incr_rc_i.i.u(%closure* %1)
+    tail call void @__incr_rc_i.i(%closure* %1)
     %5 = bitcast %closure* %next to i8*
     %6 = bitcast %closure* %1 to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 16, i1 false)
@@ -474,7 +474,7 @@ Support function/closure fields
     br i1 %4, label %call_decr, label %cookie
   
   call_decr:                                        ; preds = %then
-    call void @__g.u_decr_rc_state.u(%state* %0)
+    call void @__decr_rc_state(%state* %0)
     br label %cont
   
   cookie:                                           ; preds = %then
@@ -492,7 +492,7 @@ Support function/closure fields
     br i1 %4, label %call_decr1, label %cookie2
   
   call_decr1:                                       ; preds = %else
-    call void @__g.u_decr_rc_state.u(%state* %0)
+    call void @__decr_rc_state(%state* %0)
     br label %cont3
   
   cookie2:                                          ; preds = %else
@@ -503,7 +503,7 @@ Support function/closure fields
     ret void
   }
   
-  define internal void @__g.u_incr_rc_i.i.u(%closure* %0) {
+  define internal void @__incr_rc_i.i(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -525,7 +525,7 @@ Support function/closure fields
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__g.u_decr_rc_state.u(%state* %0) {
+  define internal void @__decr_rc_state(%state* %0) {
   entry:
     %1 = getelementptr inbounds %state, %state* %0, i32 0, i32 1
     %2 = getelementptr inbounds %closure, %closure* %1, i32 0, i32 1
@@ -578,7 +578,7 @@ Support function/closure fields
     store i8* bitcast (i64 (i64)* @__fun_schmu0 to i8*), i8** getelementptr inbounds (%state, %state* @schmu_state, i32 0, i32 1, i32 0), align 8
     store i8* null, i8** getelementptr inbounds (%state, %state* @schmu_state, i32 0, i32 1, i32 1), align 8
     tail call void @schmu_ten_times(%state* @schmu_state)
-    tail call void @__g.u_decr_rc_state.u(%state* @schmu_state)
+    tail call void @__decr_rc_state(%state* @schmu_state)
     ret i64 0
   }
   
