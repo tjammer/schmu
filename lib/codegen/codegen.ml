@@ -676,7 +676,7 @@ end = struct
         Llvm.position_at_end success_bb builder;
 
         { dummy_fn_value with lltyp = unit_t }
-    | Copy -> List.hd args
+    | Copy -> Auto.copy (List.hd args)
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)
@@ -1106,6 +1106,7 @@ and T : Lltypes_intf.S = Lltypes.Make (A)
 and A : Abi_intf.S = Abi.Make (T)
 and H : Helpers.S = Helpers.Make (T) (A) (Ar)
 and Ar : Arr_intf.S = Arr.Make (T) (H) (Core)
+and Auto : Autogen_intf.S = Autogen.Make (T) (H) (Ar)
 
 let fill_constants constants =
   let f (name, tree, toplvl) =
@@ -1287,6 +1288,7 @@ let generate ~target ~outname ~release ~modul
       add_global_init no_param outname `Dtor (decr_refs body decrs));
   (* Generate internal helper functions for arrays *)
   Ar.gen_functions ();
+  Auto.gen_functions ();
 
   (match Llvm_analysis.verify_module the_module with
   | Some output -> print_endline output

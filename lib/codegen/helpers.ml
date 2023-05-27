@@ -58,7 +58,7 @@ module type S = sig
   val malloc : size:Llvm.llvalue -> Llvm.llvalue
   val alloca : Llvm_types.param -> Llvm.lltype -> string -> Llvm.llvalue
   val get_const_string : ?rf:int ref option -> string -> Llvm.llvalue
-  val free : Llvm.llvalue -> Llvm.llvalue
+  val free_var : Llvm.llvalue -> Llvm.llvalue
   val fmt_str : llvar -> string * Llvm.llvalue
   val set_in_init : bool -> unit
 
@@ -170,7 +170,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     Llvm.build_bitcast ret (Llvm.type_of ptr) "" builder
 
   (* Frees a single pointer *)
-  let free ptr =
+  let free_var ptr =
     let free_decl =
       lazy
         Llvm.(

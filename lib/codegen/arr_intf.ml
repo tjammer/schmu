@@ -24,4 +24,7 @@ module type S = sig
   val gen_functions : unit -> unit
   val contains_refcount : typ -> bool
   val item_type_head_size : typ -> typ * Llvm.lltype * int * int
+
+  val iter_array_children :
+    llvar -> Llvm.llvalue -> typ -> (llvar -> unit) -> unit
 end

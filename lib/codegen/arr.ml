@@ -369,7 +369,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
              iter_array_children v sz item_type decr_refcount);
 
-          ignore (free int_ptr)
+          ignore (free_var int_ptr)
       | Tfun _ ->
           (* Call dtor of closure if it exists *)
           let start_bb = Llvm.insertion_block builder in
@@ -396,7 +396,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
           ignore (Llvm.build_br rly_free_bb builder);
 
           Llvm.position_at_end rly_free_bb builder;
-          ignore (free int_ptr)
+          ignore (free_var int_ptr)
       | _ -> failwith "Internal Error: What kind of ref is this?");
 
       ignore (Llvm.build_br merge_bb builder);
