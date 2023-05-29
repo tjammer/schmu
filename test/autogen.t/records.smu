@@ -1,0 +1,46 @@
+-- (def a 'a')
+
+-- (module a
+--   (type t int)
+--   (module a
+--     (type t float)
+--     (def a 10)))
+
+-- (print (fmt-str a))
+
+-- -- TODO This module was indeed used
+-- (open a)
+
+-- (print (fmt-str a))
+-- (print (fmt-str a/a))
+
+-- TODO nest mutable borrows test
+
+-- TODO allow all expressions for mutable bind, but check in type system
+-- (type ease-kind (#linear #circ-in))
+
+-- (defn ease-circ-in [_] 0.0)
+-- (defn ease-linear [_] 0.0)
+
+-- (defn ease [anim]
+--   (match anim
+--     (#linear (ease-linear anim))
+--     (#circ-in (ease-circ-in anim))))
+
+-- (defn anim
+--   "Progress animation of [ent] along delta time [dt]"
+--   [anim dt]
+--   (match anim
+--     ((#some anim)
+--      (copy anim)
+--      )
+--     (#none #none)))
+
+-- (print (fmt-str (copy "test ") 1))
+
+(type t {:c float :a string :b int :d (array int)})
+(type (cont 'a) {:a 'a})
+
+(def a {:a {:a "lul" :b 10 :c 10.0 :d [10 20 30]}})
+
+(print (copy a).a.a)

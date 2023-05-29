@@ -1,0 +1,1 @@
+(print (fmt-str (copy "test ") 1))

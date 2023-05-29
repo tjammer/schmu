@@ -49,7 +49,7 @@ let test_const_neg_i32 () = test "i32" "(def a -123i32) a"
 let test_const_f32 () = test "f32" "(def a 1.0f32) a"
 let test_const_neg_f32 () = test "f32" "(def a -1.0f32) a"
 let test_hint_int () = test "int" "(def (a int) 1) a"
-let test_func_id () = test "(fun 'a 'a)" "(fn (a) a)"
+let test_func_id () = test "(fun 'a 'a)" "(fn (a) (copy a))"
 let test_func_id_hint () = test "(fun int int)" "(fn ((a int)) a)"
 let test_func_int () = test "(fun int int)" "(fn (a) (+ a 1))"
 let test_func_bool () = test "(fun bool int)" "(fn (a) (if a 1  1))"
@@ -155,17 +155,17 @@ let test_annot_concrete_fail () =
     "Var annotation: Expected type (fun bool int) but got type (fun int bool)"
     "(def (foo (fun bool int)) (fn (x) (< x 3))) foo"
 
-let test_annot_mix () = test "(fun 'a^ 'a)" "(defn pass [(x^ 'b)] x) pass"
+let test_annot_mix () = test "(fun 'a! 'a)" "(defn pass [(x! 'b)] x) pass"
 
 let test_annot_mix_fail () =
   test_exn "Var annotation: Expected type (fun 'b int) but got type (fun 'b 'b)"
-    "(def (pass (fun 'b int)) (fn (x) x)) pass"
+    "(def (pass (fun 'b int)) (fn (x) (copy x))) pass"
 
-let test_annot_generic () = test "(fun 'a^ 'a)" "(defn pass [(x^ 'b)] x) pass"
+let test_annot_generic () = test "(fun 'a! 'a)" "(defn pass [(x! 'b)] x) pass"
 
 let test_annot_generic_fail () =
   test_exn "Var annotation: Expected type (fun 'a 'b) but got type (fun 'a 'a)"
-    "(def (pass (fun 'a 'b)) (fn (x) x)) pass"
+    "(def (pass (fun 'a 'b)) (fn (x) (copy x))) pass"
 
 let test_annot_generic_mut () =
   test "(fun 'a& 'a)" "(defn pass [(x& 'b)] (copy x)) pass"
@@ -194,10 +194,10 @@ let test_annot_tuple_simple () =
   test "{int bool}" "(def (a {int bool}) {1 true}) a"
 
 let test_annot_array_arg_generic () =
-  test "(array int)" "(defn foo [(a^ (array 'a))] a) (foo [10])"
+  test "(array int)" "(defn foo [(a! (array 'a))] a) (foo ![10])"
 
 let test_annot_tuple_generic () =
-  test "{int bool}" "(defn hmm [(a^ {int 'a})] a) (hmm {1 true})"
+  test "{int bool}" "(defn hmm [(a! {int 'a})] a) (hmm !{1 true})"
 
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
@@ -218,13 +218,13 @@ let test_para_gen_fun () =
      foo))) get"
 
 let test_para_gen_return () =
-  test "(fun (foo 'a)^ 'a)"
-    "(type (foo 'a) { :gen 'a }) (defn get (foo^) (.gen foo)) get"
+  test "(fun (foo 'a)! 'a)"
+    "(type (foo 'a) { :gen 'a }) (defn get (foo!) (.gen foo)) get"
 
 let test_para_multiple () =
   test "bool"
-    "(type (foo 'a) { :gen 'a }) (defn get (foo^) (.gen foo)) (def a { :gen 12 \
-     }) (def (b int) (get a)) (def c { :gen false }) (get c)"
+    "(type (foo 'a) { :gen 'a }) (defn get (foo) (copy (.gen foo))) (def a { \
+     :gen 12 }) (def (b int) (get a)) (def c { :gen false }) (get c)"
 
 let test_para_instance_func () =
   test "(fun (foo int) int)"
@@ -368,12 +368,12 @@ let test_variants_option_some () =
 
 let test_variants_option_some_some () =
   test "(option (option float))"
-    "(type (option 'a) (#none (#some 'a))) (def a (#some 1.0)) (#some a)"
+    "(type (option 'a) (#none (#some 'a))) (def a (#some 1.0)) (#some (copy a))"
 
 let test_variants_option_annot () =
   test "(option (option float))"
-    "(type (option 'a) (#none (#some 'a))) (def (a (option float)) #none) \
-     (#some a)"
+    "(type (option 'a) (#none (#some 'a))) (let [(a (option float)) #none] \
+     (#some a))"
 
 let test_variants_option_none_arg () =
   test_exn
@@ -579,12 +579,12 @@ let test_signature_generic () =
   test "unit"
     {|(signature
   (type (t 'a))
-  (def create (fun 'a^ (t 'a)))
+  (def create (fun 'a! (t 'a)))
   (def create-int (fun int (t int))))
 
 (type (t 'a) {:x 'a})
 
-(defn create [x^] {:x})
+(defn create [x!] {:x})
 (defn create-int [(x int)] {:x})
 |}
 
@@ -631,16 +631,19 @@ let test_local_module_unique_names () =
     (local_module ^ "(module nosig)")
 
 let own = "(def x& 10)\n"
+let tl = Some "Cannot borrow mutable binding at top level"
 
 let test_excl_borrow () =
-  wrap_fn test "unit" (own ^ "(def y x) (ignore x) (ignore y)")
+  wrap_fn ~tl test "unit" (own ^ "(def y x) (ignore x) (ignore y)")
 
 let test_excl_borrow_use_early () =
-  wrap_fn test_exn "x was borrowed in line 2, cannot mutate"
+  wrap_fn ~tl test_exn "x was borrowed in line 2, cannot mutate"
     (own ^ "(def y x)\n (ignore x)\n (set &x 11)\n (ignore y)")
 
+let tl = Some "Cannot move top level binding"
+
 let test_excl_move_mut () =
-  wrap_fn test "unit" (own ^ "(def y& x) (set &y 11) (ignore y)")
+  wrap_fn ~tl test "unit" (own ^ "(def y& x) (set &y 11) (ignore y)")
 
 let test_excl_move_mut_use_after () =
   wrap_fn test_exn "x was moved in line 2, cannot use"
@@ -658,7 +661,7 @@ let test_excl_borrow_then_move () =
     "(def x [10])\n (def y x)\n (ignore {y})\n x"
 
 let test_excl_if_move_lit () =
-  wrap_fn test "unit" "(def x 10) (def y& (if true x 10)) (ignore y)"
+  wrap_fn ~tl test "unit" "(def x 10) (def y& (if true x 10)) (ignore y)"
 
 let test_excl_if_borrow_borrow () =
   wrap_fn test "unit" "(def x 10) (def y 10) (ignore (if true x y))"
@@ -667,31 +670,37 @@ let test_excl_if_lit_borrow () =
   wrap_fn test_exn "Branches have different ownership: owned vs borrowed"
     "(def x [10]) (ignore (if true [10] x))"
 
+let proj_msg = Some "Cannot project at top level"
+
 let test_excl_proj () =
-  wrap_fn ~proj:true test "unit" (own ^ "(def y& &x) (set &y 11) (ignore x)")
+  wrap_fn ~tl:proj_msg test "unit" (own ^ "(def y& &x) (set &y 11) (ignore x)")
 
 let test_excl_proj_immutable () =
-  wrap_fn ~proj:true test_exn "Cannot project unmutable binding"
+  wrap_fn ~tl:proj_msg test_exn "Cannot project unmutable binding"
     "(def x 10) (def y& &x) x"
 
 let test_excl_proj_use_orig () =
-  wrap_fn ~proj:true test_exn "x was mutably borrowed in line 2, cannot borrow"
+  wrap_fn ~tl:proj_msg test_exn
+    "x was mutably borrowed in line 2, cannot borrow"
     (own ^ "(def y& &x)\n (ignore x)\n (ignore y)\n x")
 
 let test_excl_proj_move_after () =
-  wrap_fn ~proj:true test_exn "x was mutably borrowed in line 2, cannot borrow"
+  wrap_fn ~tl:proj_msg test_exn
+    "x was mutably borrowed in line 2, cannot borrow"
     (own ^ "(def y& &x)\n (ignore x)\n {y}")
 
 let test_excl_proj_nest () =
-  wrap_fn ~proj:true test_exn "y was mutably borrowed in line 3, cannot borrow"
+  wrap_fn ~tl:proj_msg test_exn
+    "y was mutably borrowed in line 3, cannot borrow"
     (own ^ "(def y& &x)\n (def z& &y)\n (ignore y)\n z")
 
 let test_excl_proj_nest_orig () =
-  wrap_fn ~proj:true test_exn "x was mutably borrowed in line 2, cannot borrow"
+  wrap_fn ~tl:proj_msg test_exn
+    "x was mutably borrowed in line 2, cannot borrow"
     (own ^ "(def y& &x)\n (def z& &y)\n (ignore x)\n z")
 
 let test_excl_proj_nest_closed () =
-  wrap_fn ~proj:true test "unit"
+  wrap_fn ~tl:proj_msg test "unit"
     (own ^ "(def y& &x)\n (def z& &y)\n (ignore z)\n y")
 
 let test_excl_moved_param () =
@@ -762,7 +771,7 @@ let () =
           case "1st_class" test_func_1st_class;
           case "1st_hint" test_func_1st_hint;
           case "1st_stay_gen" test_func_1st_stay_general;
-          (* case "recursive_if" test_func_recursive_if; *)
+          case "recursive_if" test_func_recursive_if;
           case "generic_return" test_func_generic_return;
         ] );
       ( "records",

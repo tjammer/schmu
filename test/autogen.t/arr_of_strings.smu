@@ -1,0 +1,2 @@
+(def a ["test" "toast"])
+(print (copy a).[1])
