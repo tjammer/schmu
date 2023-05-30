@@ -676,7 +676,7 @@ end = struct
         Llvm.position_at_end success_bb builder;
 
         { dummy_fn_value with lltyp = unit_t }
-    | Copy -> Auto.copy (List.hd args)
+    | Copy -> Auto.copy param allocref (List.hd args)
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)

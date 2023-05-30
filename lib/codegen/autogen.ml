@@ -43,10 +43,10 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         Hashtbl.replace func_tbl name (Copy, v, f);
         f
 
-  let copy_root_call v =
+  let copy_root_call param allocref v =
     let f = make_copy_fn v in
 
-    let value = Llvm.build_alloca (get_lltype_def v.typ) "" builder in
+    let value = get_prealloc allocref param (get_lltype_def v.typ) "" in
     (* Copy the inline part here. Recurse for allocations *)
     memcpy ~src:v ~dst:value ~size:(ci (sizeof_typ v.typ));
     Llvm.build_call f [| value |] "" builder |> ignore;
@@ -56,12 +56,12 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     let f = make_copy_fn v in
     Llvm.build_call f [| v.value |] "" builder |> ignore
 
-  let make_ptr v =
+  let make_ptr param v =
     let v = func_to_closure no_param v in
     match v.kind with
     | Const_ptr | Ptr -> v
     | Imm | Const ->
-        let value = Llvm.build_alloca (get_lltype_def v.typ) "" builder in
+        let value = alloca param (get_lltype_def v.typ) "" in
         { v with value; kind = Ptr }
 
   let rec decl_copy_children pseudovar t =
@@ -77,12 +77,11 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     in
     List.iter f ts
 
-  let copy v =
-    (* TODO use param for prealloc *)
+  let copy param allocref v =
     if contains_allocation v.typ then
       let () = decl_copy_children v v.typ in
       (* TODO empty closures should not need to be copied *)
-      make_ptr v |> copy_root_call
+      make_ptr param v |> copy_root_call param !allocref
     else v
 
   let copy_impl dst =
