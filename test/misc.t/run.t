@@ -4746,3 +4746,6 @@ Assertions
   hmm
   $ cat err | grep assert
   assert: assert.smu:9: main: Assertion `false' failed.
+
+Find function by callname even when not calling
+  $ schmu find_fn.smu

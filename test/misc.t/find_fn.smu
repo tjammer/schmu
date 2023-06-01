@@ -1,0 +1,6 @@
+(def a 1)
+
+(defn capture []
+  (+ a 1))
+
+(def _ {capture})

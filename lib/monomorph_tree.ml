@@ -1016,6 +1016,8 @@ and morph_var mk p v =
         ((v, Vnorm), var)
     | v -> (
         match Vars.find_opt v p.vars with
+        | Some (Normal ({ fn = Concrete (_, callname); _ } as thing)) ->
+            ((callname, Vnorm), thing)
         | Some (Normal thing) -> ((v, Vnorm), thing)
         | Some (Param thing) ->
             if p.ret then (
@@ -1360,7 +1362,7 @@ and prep_func p (username, uniq, abs) =
       Hashtbl.add poly_funcs_tbl call gen_func;
       { p with vars })
     else
-      let fn = Concrete (gen_func, username) in
+      let fn = Concrete (gen_func, call) in
       let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
       let funcs = Fset.add gen_func p.funcs in
       { p with vars; funcs }
