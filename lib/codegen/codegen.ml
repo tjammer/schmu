@@ -131,7 +131,7 @@ end = struct
         in
 
         gen_expr { param with vars = Vars.add name func param.vars } cont
-    | Mlet (id, equals, _, vid, let') -> gen_let param id equals let' vid
+    | Mlet (id, equals, gn, _, cont) -> gen_let param id equals gn cont
     | Mbind (id, equals, cont) -> gen_bind param id equals cont
     | Mlambda (name, abs, allocref) ->
         let func =
@@ -178,18 +178,29 @@ end = struct
     | Mfmt (fmts, allocref, id) ->
         gen_fmt_str param fmts typed_expr.typ allocref id |> fin
     | Mprint_str fmts -> gen_print_str param fmts |> fin
-    | Mcopy { kind; temporary; expr; nm } -> (
-        match kind with
-        | Cglobal gn -> gen_copy_global param temporary gn expr
-        | Cnormal mut -> gen_copy param temporary mut expr nm)
-    | Mincr_ref expr -> gen_incr_ref param expr
-    | Mdecr_ref (id, expr) -> gen_decr_ref param id expr
 
-  and gen_let param id equals cont vid =
-    let expr_val = gen_expr param equals in
-    (match vid with
-    | Some id -> Strtbl.replace decr_tbl id expr_val
-    | None -> ());
+  and gen_let param id equals gn cont =
+    let expr_val =
+      match gn with
+      | Some n -> (
+          let dst = Strtbl.find const_tbl n in
+          let v = gen_expr { param with alloca = Some dst.value } equals in
+          (* Bandaid for polymorphic first class functions. In monomorph pass, the
+             global is ignored. TODO. Here, we make sure that the dummy_fn_value is
+             not set to the global. The global will stay 0 forever *)
+          match (v.typ, dst.kind) with
+          | Tunit, _ | _, Const_ptr -> v
+          | _ ->
+              let src = bring_default_var v in
+
+              (* Only copy if the alloca was not used
+                 (for whatever reason; it should have been used) *)
+              if v.value <> dst.value then store_or_copy ~src ~dst:dst.value;
+              let v = { v with value = dst.value; kind = Ptr } in
+              Strtbl.replace const_tbl n v;
+              v)
+      | None -> gen_expr param equals
+    in
     gen_expr { param with vars = Vars.add id expr_val param.vars } cont
 
   and gen_bind param id equals cont =
@@ -1038,68 +1049,6 @@ end = struct
     let args = fmtptr.value :: itemargs |> Array.of_list in
     Llvm.build_call (Lazy.force printf_decl) args "" builder |> ignore;
     { dummy_fn_value with lltyp = unit_t }
-
-  and gen_copy param temp mut expr nm =
-    let v = gen_expr param expr in
-    if not temp then incr_refcount v;
-    if is_struct v.typ then
-      if not temp then (
-        let dst = alloca param (get_lltype_def v.typ) nm in
-        memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
-        { v with value = dst })
-      else v
-    else
-      match v.kind with
-      | Const_ptr | Ptr ->
-          if mut && not temp then (
-            let dst = alloca param (get_lltype_def v.typ) nm in
-            memcpy ~src:v ~dst ~size:(sizeof_typ v.typ |> llval_of_size);
-            { v with value = dst; kind = Ptr })
-          else if mut then v
-          else
-            let value = Llvm.build_load v.value nm builder in
-            { v with value; kind = Imm }
-      | Const | Imm ->
-          if mut then (
-            let dst = alloca param (get_lltype_def v.typ) nm in
-            ignore (Llvm.build_store v.value dst builder);
-            { v with value = dst; kind = Ptr })
-          else v
-
-  and gen_copy_global param temporary gn expr =
-    let dst = Strtbl.find const_tbl gn in
-    let v = gen_expr { param with alloca = Some dst.value } expr in
-    (* Bandaid for polymorphic first class functions. In monomorph pass, the
-       global is ignored. TODO. Here, we make sure that the dummy_fn_value is
-       not set to the global. The global will stay 0 forever *)
-    match v.typ with
-    | Tunit -> v
-    | _ ->
-        let src = bring_default_var v in
-        if not temporary then incr_refcount src;
-
-        (* Only copy if the alloca was not used
-           (for whatever reason; it should have been used) *)
-        if v.value <> dst.value then store_or_copy ~src ~dst:dst.value;
-        let v = { v with value = dst.value; kind = Ptr } in
-        Strtbl.replace const_tbl gn v;
-        v
-
-  and gen_incr_ref param expr =
-    let v = gen_expr param expr in
-    incr_refcount v;
-    v
-
-  and gen_decr_ref param id expr =
-    let v = gen_expr param expr in
-    match Hashtbl.find_opt decr_tbl id with
-    | Some id ->
-        decr_refcount id;
-        v
-    | None ->
-        print_int id;
-        print_newline ();
-        failwith "Internal Error: Nothing to decr"
 end
 
 and T : Lltypes_intf.S = Lltypes.Make (A)
@@ -1246,12 +1195,13 @@ let generate ~target ~outname ~release ~modul
       funcs
   in
 
-  let decr_refs tree =
-    Seq.fold_left
-      (fun tree id -> Monomorph_tree.{ tree with expr = Mdecr_ref (id, tree) })
-      tree
-  in
+  (* TODO free *)
+  let decr_refs tree _ = tree in
 
+  (*   Seq.fold_left *)
+  (*     (fun tree id -> Monomorph_tree.{ tree with expr = Mdecr_ref (id, tree) }) *)
+  (*     tree *)
+  (* in *)
   if not modul then
     (* Add main *)
     let tree = decr_refs tree decrs in
@@ -1287,7 +1237,6 @@ let generate ~target ~outname ~release ~modul
       in
       add_global_init no_param outname `Dtor (decr_refs body decrs));
   (* Generate internal helper functions for arrays *)
-  Ar.gen_functions ();
   Auto.gen_functions ();
 
   (match Llvm_analysis.verify_module the_module with

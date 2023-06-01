@@ -345,7 +345,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
     match !allocref with Monomorph_tree.Preallocated -> true | _ -> false
 
   let assoc_contains_ref assoc =
-    List.fold_left (fun b c -> b || Arr.contains_refcount c.cltyp) false assoc
+    List.fold_left (fun b c -> b || contains_allocation c.cltyp) false assoc
 
   let dtor_name assoc =
     let ts = List.map (fun cl -> struct_name cl.cltyp) assoc in
@@ -395,7 +395,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
           let upward = true in
           (* Otherwise we wouldn't be here *)
           let item = get_closure_item cl item_ptr upward in
-          if Arr.contains_refcount cl.cltyp then Arr.decr_refcount item;
+          if contains_allocation cl.cltyp then Arr.decr_refcount item;
           i + 1
         in
         (* [2] as starting index, because [0] is ref count, and [1] is dtor *)
@@ -619,7 +619,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
               in
               let env = Vars.add (name_of_alloc_param i) alloc env in
               let env =
-                if Arr.contains_refcount typ then (
+                if contains_allocation typ then (
                   (* Create flag to see if it was set to a temp value *)
                   let cookie = Llvm.build_alloca bool_t "" builder in
                   ignore
@@ -717,7 +717,7 @@ module Make (T : Lltypes_intf.S) (A : Abi_intf.S) (Arr : Arr_intf.S) = struct
         Llvm.build_ret value builder
 
   let tail_decr_param param alloca i mut =
-    if Arr.contains_refcount alloca.typ then (
+    if contains_allocation alloca.typ then (
       (* Set param to new value, deref the old one if the cookie was set *)
       let v = Vars.find (name_of_alloc_cookie i) param.vars in
       let cookie = Llvm.build_load v.value "" builder in

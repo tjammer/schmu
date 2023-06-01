@@ -82,8 +82,7 @@ let is_aggregate = function
 
 let rec contains_allocation = function
   | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 -> false
-  | Tpoly _ -> true
-  | Tfun _ -> failwith "TODO function"
+  | Tpoly _ | Tfun _ -> true
   | Trecord (_, _, fs) ->
       Array.fold_left (fun ca f -> ca || contains_allocation f.ftyp) false fs
   | Tvariant (_, _, ctors) ->

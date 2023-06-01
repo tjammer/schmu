@@ -29,14 +29,6 @@ type expr =
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
-  | Mcopy of {
-      kind : copy_kind;
-      temporary : bool;
-      expr : monod_tree;
-      nm : string;
-    }
-  | Mincr_ref of monod_tree
-  | Mdecr_ref of int * monod_tree
 [@@deriving show]
 
 and const =
@@ -172,7 +164,7 @@ let func_of_typ = function
   | Tfun (params, ret, kind) -> { params; ret; kind }
   | _ -> failwith "Internal Error: Not a function type"
 
-let rec find_function_expr vars = function
+let find_function_expr vars = function
   | Mvar (_, Vglobal id) -> (
       (* Use the id saved in Vglobal. The usual id is the call name / unique global name *)
       match Vars.find_opt id vars with
@@ -202,7 +194,6 @@ let rec find_function_expr vars = function
       | _ -> No_function)
   | Mlet _ | Mbind _ -> No_function (* TODO cont? Didn't work on quick test *)
   | Mfmt _ -> No_function
-  | Mincr_ref e | Mdecr_ref (_, e) -> find_function_expr vars e.expr
   | e ->
       print_endline (show_expr e);
       "Not supported: " ^ show_expr e |> failwith
@@ -525,17 +516,6 @@ and subst_body p subst tree =
           List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
         in
         { tree with expr = Mprint_str fmts }
-    | Mcopy c ->
-        {
-          tree with
-          typ = subst tree.typ;
-          expr = Mcopy { c with expr = sub c.expr };
-        }
-    | Mincr_ref c ->
-        { tree with typ = subst tree.typ; expr = Mincr_ref (sub c) }
-    | Mdecr_ref (id, cont) ->
-        let cont = sub cont in
-        { tree with typ = cont.typ; expr = Mdecr_ref (id, cont) }
   and mono_callable name typ tree =
     if is_type_polymorphic tree.typ then (
       match Apptbl.find_opt apptbl name with
@@ -771,27 +751,6 @@ let rec set_alloca = function
       set_alloca b
   | Value _ | No_value -> ()
 
-let decr_refs body = function
-  | [] -> body
-  | (_, s) :: _ ->
-      Iset.to_rev_seq s
-      |> Seq.fold_left
-           (fun body id -> { body with expr = Mdecr_ref (id, body) })
-           body
-
-let rec decr_all_refs body = function
-  | [] -> body
-  | (Id_local, s) :: tl ->
-      Iset.to_rev_seq s
-      |> Seq.fold_left
-           (fun body id -> { body with expr = Mdecr_ref (id, body) })
-           (decr_all_refs body tl)
-  | (Id_func, s) :: _ ->
-      Iset.to_rev_seq s
-      |> Seq.fold_left
-           (fun body id -> { body with expr = Mdecr_ref (id, body) })
-           body
-
 let rec remove_id ~id ids =
   match id with
   | Some sid -> (
@@ -856,7 +815,7 @@ let set_tailrec name =
 let rec is_temporary = function
   | Mvar _ | Mfield _ | Mvar_data _ | Mconst (String _) -> false
   | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _ | Mfmt _
-  | Mcopy _ ->
+    ->
       true
   | Mapp { callee; args; _ } -> (
       match callee.monomorph with
@@ -871,9 +830,7 @@ let rec is_temporary = function
   | Mlet (_, _, _, _, cont)
   | Mbind (_, _, cont)
   | Mfunction (_, _, cont, _)
-  | Mseq (_, cont)
-  | Mdecr_ref (_, cont)
-  | Mincr_ref cont ->
+  | Mseq (_, cont) ->
       is_temporary cont.expr
   | Mset _ | Mprint_str _ -> failwith "Internal Error: Trying to copy unit"
 
@@ -885,42 +842,15 @@ let rec is_part = function
       | Builtin (Array_get, _) -> true
       | _ -> false)
   | Mvar _ | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _
-  | Mfmt _ | Mcopy _ | Mset _ | Mprint_str _ ->
+  | Mfmt _ | Mset _ | Mprint_str _ ->
       false
   | Mif { e1; e2; _ } -> is_part e1.expr || is_part e2.expr
   | Mlet (_, _, _, _, cont)
   | Mbind (_, _, cont)
   | Mfunction (_, _, cont, _)
   | Mseq (_, cont)
-  | Mdecr_ref (_, cont)
-  | Mincr_ref cont
   | Munop (_, cont) ->
       is_part cont.expr
-
-let copy_let lhs lmut rmut nm temporary =
-  match (lmut, rmut) with
-  | false, false ->
-      (* We don't need to copy *)
-      if temporary then lhs else { lhs with expr = Mincr_ref lhs }
-  | _ ->
-      let kind = Cnormal lmut in
-      let expr = Mcopy { kind; temporary; expr = lhs; nm } in
-      { lhs with expr }
-
-let make_e2 e1 e2 id gn needs_init lmut rmut p vid =
-  let temporary = is_temporary e1.expr in
-  if needs_init then
-    let expr =
-      Mcopy { kind = Cglobal (Option.get gn); temporary; expr = e1; nm = id }
-    in
-    let e1 = { e1 with expr } in
-    (p, { e2 with expr = Mlet (id, e1, gn, vid, e2) })
-  else
-    let e1 = copy_let e1 lmut rmut id temporary in
-    (p, { e2 with expr = Mlet (id, e1, gn, vid, e2) })
-
-let mb_incr v =
-  if not (is_temporary v.expr) then { v with expr = Mincr_ref v } else v
 
 let reconstr_module_username ~mname ~mainmodule username =
   (* Values queried from an imported module have a special name so they don't clash with
@@ -958,9 +888,12 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let { id; uniq; rmut; lhs; cont; mutly = _ } ->
       let p, e1, gn, needs_init, vid = prep_let param id uniq lhs false in
+      (* TODO *)
+      ignore needs_init;
+      ignore rmut;
+      ignore vid;
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
-      let p, e2 = make_e2 e1 e2 id gn needs_init lhs.attr.mut rmut p vid in
-      (p, e2, func)
+      (p, { e2 with expr = Mlet (id, e1, gn, None, e2) }, func)
   | Bind (id, lhs, cont) ->
       let p, lhs, func = morph_expr { param with ret = false } lhs in
       let vars = Vars.add id (Normal func) p.vars in
@@ -1005,6 +938,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Variant_index expr -> morph_var_index make param expr
   | Variant_data expr -> morph_var_data make param expr
   | Fmt exprs -> morph_fmt make param exprs
+  | Move e -> (* TODO *) morph_expr param e
 
 and morph_var mk p v =
   let incr = ref false in
@@ -1036,7 +970,6 @@ and morph_var mk p v =
         | None -> ((v, Vnorm), no_var))
   in
   let ex = mk (Mvar (v, kind)) p.ret in
-  let ex = if not !incr then ex else { ex with expr = Mincr_ref ex } in
   (p, ex, var)
 
 and morph_string mk p s =
@@ -1066,7 +999,6 @@ and morph_array mk p a =
   let f param e =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
-    let e = mb_incr e in
     let ids =
       if is_temporary e.expr then remove_id ~id:var.id p.ids else p.ids
     in
@@ -1111,15 +1043,6 @@ and morph_if mk p cond e1 e2 =
   let oids = p.ids in
   let ids = (Id_local, Iset.empty) :: oids in
 
-  let incr_param e v =
-    match v.id with
-    (* If we return a parameter, we don't know if the value is allocated
-          or global. Since it's going to be deallocated later we have to increase
-       its ref count. *)
-    | Some -1 when mb_contains_refcount e.typ -> { e with expr = Mincr_ref e }
-    | _ -> e
-  in
-
   let p, e1, a = morph_expr { p with ret; ids } e1 in
   let e1 =
     match Option.map (classify_id oids) a.id with
@@ -1129,22 +1052,14 @@ and morph_if mk p cond e1 e2 =
            destroy a basic block in codegen. That's due to no merge blocks being
            created in that case *)
         e1
-    | None -> decr_refs (incr_param e1 a) p.ids
-    | Some Spid_unknown ->
-        decr_refs (incr_param e1 a) (remove_id ~id:a.id p.ids)
-    | Some (Spid_func | Spid_parent) ->
-        decr_refs { e1 with expr = Mincr_ref e1 } (remove_id ~id:a.id p.ids)
+    | _ -> e1 (* TODO *)
   in
 
   let p, e2, b = morph_expr { p with ret; ids } e2 in
   let e2 =
     match Option.map (classify_id oids) b.id with
     | _ when b.tailrec -> e2
-    | None -> decr_refs (incr_param e2 b) p.ids
-    | Some Spid_unknown ->
-        decr_refs (incr_param e2 b) (remove_id ~id:b.id p.ids)
-    | Some (Spid_func | Spid_parent) ->
-        decr_refs { e2 with expr = Mincr_ref e2 } (remove_id ~id:b.id p.ids)
+    | _ -> e2 (* TODO *)
   in
   let tailrec = a.tailrec && b.tailrec in
 
@@ -1217,7 +1132,6 @@ and morph_record mk p labels is_const typ =
   let f param (id, e) =
     let p, e, var = morph_expr param e in
     if is_struct e.typ then set_alloca var.alloc;
-    let e = mb_incr e in
     let ids =
       if is_temporary e.expr then remove_id ~id:var.id p.ids else p.ids
     in
@@ -1253,10 +1167,9 @@ and morph_set mk p expr value =
     morph_expr { p with ids = [ (Id_local, Iset.empty) ] } value
   in
 
-  let v = mb_incr v in
-
   let tree = mk (Mset (e, v)) ret in
-  let tree = decr_refs tree (remove_id ~id:func.id p.ids) in
+
+  (* TODO free the thing *)
 
   (* TODO handle this in morph_call, where realloc drops the old ptr and adds the new one to the free list *)
   (* If we mutate a ptr with realloced ptr, the old one is already freed and we drop it from
@@ -1328,16 +1241,7 @@ and prep_func p (username, uniq, abs) =
   if is_struct body.typ then set_alloca var.alloc;
   leave_level ();
 
-  let body =
-    match Option.map (classify_id temp_p.ids) var.id with
-    | None -> decr_refs body temp_p.ids
-    | Some (Spid_unknown | Spid_func) ->
-        decr_refs body (remove_id ~id:var.id temp_p.ids)
-    | Some Spid_parent ->
-        decr_refs
-          { body with expr = Mincr_ref body }
-          (remove_id ~id:var.id temp_p.ids)
-  in
+  (* TODO free body *)
   let recursive = pop_recursion_stack () in
 
   (* Collect functions from body *)
@@ -1412,7 +1316,7 @@ and morph_lambda mk typ p id abs =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
 
-  let body = decr_refs body (remove_id ~id:var.id temp_p.ids) in
+  (* TODO free body *)
 
   (* Why do we need this again in lambda? They can't recurse. *)
   (* But functions on the lambda body might *)
@@ -1484,7 +1388,8 @@ and morph_app mk p callee args ret_typ =
              In that case, only the passed one will eventually have it ref count decreased,
              causing a leak of the other record fields. This can be avoided if we decrease
              ref counts of the whole record and increase the passed fields's ref count before *)
-          (p.ids, { ex with expr = Mincr_ref ex })
+          (* TODO tailrec *)
+          (p.ids, ex)
         else (remove_id ~id:var.id p.ids, ex)
       else (p.ids, ex)
     in
@@ -1498,8 +1403,9 @@ and morph_app mk p callee args ret_typ =
     let p, v, var = morph_expr { p with ret = false } arg in
 
     let v, ids =
-      if not (is_temporary v.expr) then ({ v with expr = Mincr_ref v }, p.ids)
-      else (v, remove_id ~id:var.id p.ids)
+      ignore var;
+      (v, p.ids)
+      (* TODO do something *)
     in
 
     let p, monomorph = monomorphize_call { p with ids } v None in
@@ -1518,7 +1424,6 @@ and morph_app mk p callee args ret_typ =
         let p, ex, monomorph, arg =
           if is_special then special_f p arg else f p arg
         in
-        let ex = if tailrec then decr_all_refs ex p.ids else ex in
         let ids =
           if tailrec then
             (* In tailrec functions, we are always in an extra scope of an 'if' here.
@@ -1542,8 +1447,7 @@ and morph_app mk p callee args ret_typ =
            Essentially, we do the same work as in the last arg of [fold_decr_last]*)
         let ids = empty_ids p.ids in
         (* Note that we use the original p.ids for [decr_refs] *)
-        let ex = decr_all_refs callee.ex p.ids in
-        ({ p with ids }, { callee with ex })
+        ({ p with ids }, callee)
     | _ -> (p, callee)
   in
 
@@ -1567,7 +1471,8 @@ and morph_app mk p callee args ret_typ =
         let mk =
           if ret then fun app ->
             let app = mk app ret in
-            { app with expr = Mincr_ref app }
+            (* TODO move *)
+            app
           else fun app -> mk app ret
         in
         (mk, None, p.ids)
@@ -1592,7 +1497,6 @@ and morph_ctor mk p variant index expr is_const typ =
         (* Similar to [morph_record], collect mallocs in data *)
         let p, e, var = morph_expr p expr in
         if is_struct e.typ then set_alloca var.alloc;
-        let e = mb_incr e in
         let ids =
           if is_temporary e.expr then remove_id ~id:var.id p.ids else p.ids
         in
@@ -1687,9 +1591,11 @@ let rec morph_toplvl param items =
   and aux_impl param tl = function
     | Typed_tree.Tl_let { id; uniq; lhs = expr; _ } ->
         let p, e1, gn, needs_init, vid = prep_let param id uniq expr true in
+        (* TODO *)
+        ignore needs_init;
+        ignore vid;
         let p, e2, func = aux { p with ret = param.ret } tl in
-        let p, e2 = make_e2 e1 e2 id gn needs_init expr.attr.mut false p vid in
-        (p, e2, func)
+        (p, { e2 with expr = Mlet (id, e1, gn, None, e2) }, func)
     | Tl_function (loc, name, uniq, abs) ->
         let p, call, abs, alloca = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in

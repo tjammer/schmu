@@ -34,14 +34,6 @@ type expr =
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
-  | Mcopy of {
-      kind : copy_kind;
-      temporary : bool;
-      expr : monod_tree;
-      nm : string;
-    }
-  | Mincr_ref of monod_tree
-  | Mdecr_ref of int * monod_tree
 [@@deriving show]
 
 and const =
