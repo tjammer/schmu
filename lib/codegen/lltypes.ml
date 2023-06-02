@@ -60,21 +60,22 @@ module Make (A : Abi_intf.S) = struct
   and typeof_aggregate agg =
     Array.map get_lltype_def agg |> Llvm.struct_type context
 
-  and typeof_closure agg upward =
+  and prepend_closure_env agg =
+    let fs = List.map (fun cl -> { ftyp = cl.cltyp; mut = cl.clmut }) agg in
+    { mut = false; ftyp = Traw_ptr Tu8 }
+    :: { mut = false; ftyp = Traw_ptr Tu8 }
+    :: fs
+
+  and lltypeof_closure agg upward =
     List.map
-      (fun cl ->
-        if cl.clmut && not upward then
-          get_lltype_def cl.cltyp |> Llvm.pointer_type
-        else get_lltype_def cl.cltyp)
-      ({ clname = "rc"; clmut = false; cltyp = Tint; clparam = false }
-      :: {
-           clname = "dtor";
-           clmut = false;
-           cltyp = Traw_ptr Tu8;
-           clparam = false;
-         }
-      :: agg)
+      (fun f ->
+        if f.mut && not upward then get_lltype_def f.ftyp |> Llvm.pointer_type
+        else get_lltype_def f.ftyp)
+      (prepend_closure_env agg)
     |> Array.of_list |> Llvm.struct_type context
+
+  and typeof_closure agg =
+    Trecord ([], None, prepend_closure_env agg |> Array.of_list)
 
   and typeof_funclike = function
     (* Returns a LLVM function type to use far calling a closure *)

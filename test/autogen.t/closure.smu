@@ -1,0 +1,15 @@
+(defn hmm []
+  (def {a} {1})
+  (defn capture []
+    (+ a 1))
+  capture)
+
+
+(def _ {(copy (hmm))})
+
+(defn test []
+  (def a ["hello"])
+  (fn [] (print a.[0])))
+
+(def c (test))
+((copy c))

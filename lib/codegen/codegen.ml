@@ -1053,7 +1053,7 @@ end
 
 and T : Lltypes_intf.S = Lltypes.Make (A)
 and A : Abi_intf.S = Abi.Make (T)
-and H : Helpers.S = Helpers.Make (T) (A) (Ar)
+and H : Helpers.S = Helpers.Make (T) (A) (Ar) (Auto)
 and Ar : Arr_intf.S = Arr.Make (T) (H) (Core)
 and Auto : Autogen_intf.S = Autogen.Make (T) (H) (Ar)
 

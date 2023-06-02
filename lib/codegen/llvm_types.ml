@@ -70,4 +70,6 @@ let global_t =
     struct_type context
       [| i32_t; function_type unit_t [||] |> pointer_type; voidptr_t |])
 
+(* For closures. Ctor parameter is nonnull env ptr *)
+let ctor_t = Llvm.(function_type voidptr_t [| voidptr_t |])
 let dtor_t = Llvm.(function_type unit_t [| voidptr_t |])

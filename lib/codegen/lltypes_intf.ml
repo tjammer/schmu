@@ -7,7 +7,8 @@ module type S = sig
   val typeof_func :
     decl:bool -> param list * typ * fun_kind -> Llvm.lltype * (int * typ) list
 
-  val typeof_closure : closed list -> bool -> Llvm.lltype
+  val lltypeof_closure : closed list -> bool -> Llvm.lltype
+  val typeof_closure : closed list -> typ
   val get_lltype_param : bool -> typ -> Llvm.lltype
   val get_struct : typ -> Llvm.lltype
   val struct_name : typ -> string
