@@ -172,7 +172,10 @@ let of_string = function
   | "__unsafe_array_create" -> Some Unsafe_array_create
   | "__unsafe_nullptr" -> Some Unsafe_nullptr
   | "assert" -> Some Assert
-  | "copy" -> Some Copy
+  | "copy" | "__copy" ->
+      (* To make sure copy is not shadowed for string literals.
+         See exclusivity *)
+      Some Copy
   | _ -> None
 
 let fold f init = List.fold_left f init tbl

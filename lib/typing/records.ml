@@ -121,8 +121,16 @@ module Make (C : Core) = struct
             | Some thing -> thing
             | None -> raise_ "Missing" field.fname (Path.show name)
           in
+          let const =
+            (* There's a special case for string literals.
+               They will get copied here which makes them not const.
+               NOTE copy in convert_tuple *)
+            match expr.expr with
+            | Const (String _) -> false
+            | _ -> expr.attr.const
+          in
           (* Records with mutable fields cannot be const *)
-          (is_const && (not field.mut) && expr.attr.const, (field.fname, expr)))
+          (is_const && (not field.mut) && const, (field.fname, expr)))
         true (labels |> Array.to_list)
     in
     let typ = Trecord (param, Some name, labels) |> generalize in

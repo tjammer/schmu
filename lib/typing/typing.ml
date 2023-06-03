@@ -1057,7 +1057,15 @@ end = struct
       List.fold_left_map
         (fun (i, const) expr ->
           let expr = convert env expr in
-          let const = const && expr.attr.const in
+          let expr_const =
+            (* There's a special case for string literals.
+               They will get copied here which makes them not const.
+               NOTE copy in convert_record *)
+            match expr.expr with
+            | Const (String _) -> false
+            | _ -> expr.attr.const
+          in
+          let const = const && expr_const in
           ((i + 1, const), (string_of_int i, expr)))
         (0, true) exprs
     in

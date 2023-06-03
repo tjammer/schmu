@@ -191,13 +191,24 @@ let rec check_exclusivity loc borrow hist =
       ()
   | _, _ :: tl -> check_exclusivity loc borrow tl
 
-let string_lit_borrow loc mut =
+let string_lit_borrow tree mut =
+  let loc = Typed_tree.(tree.loc) in
+  let copy tree =
+    let typ =
+      Tfun ([ { pattr = Dnorm; pt = Tarray Tu8 } ], Tarray Tu8, Simple)
+    in
+    let callee = { typ; attr = no_attr; loc; expr = Var "__copy" } in
+    let expr = App { callee; args = [ (tree, Dnorm) ] } in
+    { tree with attr = no_attr; expr }
+  in
   let borrowed = (new_id "__string", []) in
   match mut with
   | Usage.Uread ->
       incr borrow_state;
-      Borrow { ord = !borrow_state; loc; borrowed }
-  | Umove -> raise (Error (loc, "Cannot move string literal. Use `copy`"))
+      (tree, Borrow { ord = !borrow_state; loc; borrowed })
+  | Umove ->
+      incr borrow_state;
+      (copy tree, Bmove ({ ord = !borrow_state; loc; borrowed }, None))
   | Umut | Uset -> failwith "Internal Error: Mutating string"
 
 (* For now, throw everything into one list of bindings.
@@ -374,7 +385,9 @@ let rec check_tree env bind mut part tree hist =
       in
       let expr = Const (Array es) in
       ({ tree with expr }, imm [], hs)
-  | Const (String _) -> (tree, imm [ string_lit_borrow tree.loc mut ], hist)
+  | Const (String _) ->
+      let tree, b = string_lit_borrow tree mut in
+      (tree, imm [ b ], hist)
   | Const _ -> (tree, imm [], hist)
   | Record fs ->
       let hs, fs =
