@@ -92,6 +92,19 @@ let borrow_state = ref 0
 let param_pass = ref false
 let shadow_tbl = Hashtbl.create 64
 
+let rec is_string b env =
+  if Id.is_string b then true
+  else
+    match Map.find_opt (fst b) env with
+    | Some { imm; _ } ->
+        List.fold_left
+          (fun str -> function
+            | Bown _ -> false
+            | Borrow b | Borrow_mut (b, _) | Bmove (b, _) ->
+                str || is_string b.borrowed env)
+          false imm
+    | None -> false
+
 let new_id str =
   match Hashtbl.find_opt shadow_tbl str with
   | Some i ->
@@ -119,10 +132,6 @@ let rec check_exclusivity loc borrow hist =
       print_endline (show_binding borrow);
       failwith "Internal Error: Should never be empty"
   | Bown _, _ -> ()
-  | (Borrow b | Borrow_mut (b, _) | Bmove (b, _)), _
-    when Id.is_string b.borrowed ->
-      (* Strings literals can always be borrowed. For now also moved *)
-      ()
   | (Borrow b | Borrow_mut (b, _) | Bmove (b, _)), Bown name :: _
     when Id.equal (fst b.borrowed) name ->
       ()
@@ -188,9 +197,7 @@ let string_lit_borrow loc mut =
   | Usage.Uread ->
       incr borrow_state;
       Borrow { ord = !borrow_state; loc; borrowed }
-  | Umove ->
-      incr borrow_state;
-      Bmove ({ ord = !borrow_state; loc; borrowed }, None)
+  | Umove -> raise (Error (loc, "Cannot move string literal. Use `copy`"))
   | Umut | Uset -> failwith "Internal Error: Mutating string"
 
 (* For now, throw everything into one list of bindings.
@@ -291,7 +298,11 @@ let rec check_tree env bind mut part tree hist =
                 Borrow_mut ({ loc; ord = !borrow_state; borrowed }, Set))
         | Borrow b' as b -> (
             match mut with
-            | Usage.Umove ->
+            | Usage.Umove when is_string b'.borrowed env ->
+                raise (Error (loc, "Cannot move string literal. Use `copy`"))
+            | (Uset | Umut) when is_string b'.borrowed env ->
+                raise (Error (loc, "Cannot mutate string literal. Use `copy`"))
+            | Umove ->
                 (* Before moving, make sure the value was used correctly *)
                 check_excl_chain loc env b hist;
                 Bmove ({ b' with loc }, None)
@@ -529,7 +540,7 @@ and check_let ~tl loc env id lhs rmut mutly hist =
   let nmut, tlborrow =
     match (lhs.attr.mut, mutly) with
     | true, true when not rmut ->
-        raise (Error (lhs.loc, "Cannot project unmutable binding"))
+        raise (Error (lhs.loc, "Cannot project immutable binding"))
     | true, true -> (Usage.Umut, false)
     | true, false -> (Umove, false)
     | false, false ->
@@ -627,6 +638,7 @@ let find_usage id hist =
      the first borrow means the binding was not moved *)
   let rec aux = function
     | [ Bown _ ] -> (Ast.Dnorm, None)
+    | [ Borrow _ ] -> (* String literals are owned by noone *) (Ast.Dnorm, None)
     | Borrow_mut (b, Dont_set) :: _ -> (Dmut, Some b.loc)
     | Borrow_mut (b, Set) :: _ -> (Dset, Some b.loc)
     | Bmove (b, _) :: _ -> (Dmove, Some b.loc)
@@ -634,7 +646,11 @@ let find_usage id hist =
     | Bown _ :: _ -> failwith "Internal Error: Owned later?"
     | [] -> failwith "Internal Error: Should have been added as owned"
   in
-  Map.find id hist |> aux
+  match Map.find_opt id hist with
+  | Some hist -> aux hist
+  | None ->
+      (* The binding was not used *)
+      (Ast.Dnorm, None)
 
 let check_tree pts pns touched body =
   (* Add parameters to initial environment *)

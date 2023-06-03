@@ -676,7 +676,7 @@ let test_excl_proj () =
   wrap_fn ~tl:proj_msg test "unit" (own ^ "(def y& &x) (set &y 11) (ignore x)")
 
 let test_excl_proj_immutable () =
-  wrap_fn ~tl:proj_msg test_exn "Cannot project unmutable binding"
+  wrap_fn ~tl:proj_msg test_exn "Cannot project immutable binding"
     "(def x 10) (def y& &x) x"
 
 let test_excl_proj_use_orig () =
@@ -1026,5 +1026,8 @@ let () =
 (defn set-a [b&]
   (set &a [11]))
 (set-a &a)|};
+          tase_exn "follow string literal"
+            "Cannot move string literal. Use `copy`"
+            "(def c \"aoeu\") (def d c) (def e& d)";
         ] );
     ]
