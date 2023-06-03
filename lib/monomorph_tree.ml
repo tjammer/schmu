@@ -38,7 +38,7 @@ and const =
   | Float of float
   | I32 of int
   | F32 of float
-  | String of string * alloca * int ref
+  | String of string
   | Array of monod_tree list * alloca * int
   | Unit
 
@@ -794,7 +794,6 @@ let recursion_stack = ref []
 let constant_uniq_state = ref 1
 let constant_tbl = Hashtbl.create 64
 let global_tbl = Hashtbl.create 64
-let stringlit_tbl = Hashtbl.create 64
 
 let pop_recursion_stack () =
   match !recursion_stack with
@@ -973,21 +972,9 @@ and morph_var mk p v =
   (p, ex, var)
 
 and morph_string mk p s =
-  let alloca = ref (request ()) in
-  let rf =
-    match Hashtbl.find_opt stringlit_tbl s with
-    | Some rf ->
-        incr rf;
-        rf
-    | None ->
-        let rf = ref 1 in
-        Hashtbl.add stringlit_tbl s rf;
-        rf
-  in
   ( p,
-    mk (Mconst (String (s, alloca, rf))) p.ret,
-    { no_var with fn = No_function; alloc = Value alloca; id = Some global_id }
-  )
+    mk (Mconst (String s)) p.ret,
+    { no_var with fn = No_function; id = Some global_id } )
 
 and morph_array mk p a =
   let ret = p.ret in

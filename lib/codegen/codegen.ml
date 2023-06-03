@@ -103,8 +103,7 @@ end = struct
     in
 
     match typed_expr.expr with
-    | Mconst (String (s, allocref, rf)) ->
-        gen_string_lit param s typed_expr.typ allocref rf
+    | Mconst (String s) -> gen_string_lit s typed_expr.typ
     | Mconst (Array (arr, allocref, id)) ->
         let v = gen_array_lit param arr typed_expr.typ allocref in
         Hashtbl.replace decr_tbl id v;
@@ -888,15 +887,10 @@ end = struct
     ignore (gen_expr param expr);
     gen_expr param cont
 
-  and gen_string_lit param s typ allocref rf =
+  and gen_string_lit s typ =
     let lltyp = get_lltype_def typ in
-    let ptr = get_const_string ~rf:(Some rf) s in
-
-    (* Check for preallocs *)
-    let string = get_prealloc !allocref param lltyp "str" in
-
-    ignore (Llvm.build_store ptr string builder);
-    { value = string; typ; lltyp; kind = Ptr }
+    let ptr = get_const_string s in
+    { value = ptr; typ; lltyp; kind = Const }
 
   and gen_ctor param (variant, tag, expr) typ allocref id const =
     ignore const;

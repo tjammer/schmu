@@ -68,6 +68,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     | Const_ptr | Ptr -> v
     | Imm | Const ->
         let value = alloca param (get_lltype_def v.typ) "" in
+        Llvm.build_store v.value value builder |> ignore;
         { v with value; kind = Ptr }
 
   let rec decl_children kind pseudovar t =

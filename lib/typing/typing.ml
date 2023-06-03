@@ -513,7 +513,6 @@ let rec builtins_hack callee args =
             | _ -> false
           in
           { no_attr with mut }
-      | "copy" -> ( match args with (te, _, _) :: _ -> te.attr | _ -> no_attr)
       | _ -> no_attr)
   | Let_e (__, _, _, cont) -> builtins_hack cont args
   | _ -> no_attr
@@ -605,8 +604,9 @@ end = struct
     | Lit (loc, F32 i) -> convert_simple_lit loc Tf32 (F32 i)
     | Lit (loc, String s) ->
         let typ = string_typ in
-        (* TODO is const, but handled differently right now *)
-        { typ; expr = Const (String s); attr = no_attr; loc }
+        (* The string literal itself is const, not handled within the const table *)
+        let attr = { no_attr with const = true } in
+        { typ; expr = Const (String s); attr; loc }
     | Lit (loc, Array arr) -> convert_array_lit env loc arr
     | Lit (loc, Unit) ->
         let attr = { no_attr with const = true } in

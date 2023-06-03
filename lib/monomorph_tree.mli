@@ -43,7 +43,7 @@ and const =
   | Float of float
   | I32 of int
   | F32 of float
-  | String of string * alloca * int ref
+  | String of string
   | Array of monod_tree list * alloca * int
   | Unit
 (* The int is the malloc id used for freeing later *)

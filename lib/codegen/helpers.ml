@@ -58,7 +58,7 @@ module type S = sig
   val realloc : Llvm.llvalue -> size:Llvm.llvalue -> Llvm.llvalue
   val malloc : size:Llvm.llvalue -> Llvm.llvalue
   val alloca : Llvm_types.param -> Llvm.lltype -> string -> Llvm.llvalue
-  val get_const_string : ?rf:int ref option -> string -> Llvm.llvalue
+  val get_const_string : string -> Llvm.llvalue
   val free_var : Llvm.llvalue -> Llvm.llvalue
   val fmt_str : llvar -> string * Llvm.llvalue
   val set_in_init : bool -> unit
@@ -189,7 +189,7 @@ struct
 
     Llvm.build_call (Lazy.force free_decl) [| ptr |] "" builder
 
-  let get_const_string ?(rf = None) s =
+  let get_const_string s =
     match Strtbl.find_opt string_tbl s with
     | Some ptr -> ptr
     | None ->
@@ -200,7 +200,7 @@ struct
           |> Seq.map u8 |> Array.of_seq
           |> Llvm.const_array (Llvm.array_type u8_t (String.length s + 1))
         in
-        let rf = match rf with Some rf -> !rf + 1 | None -> 2 in
+        let rf = 1 in
         let arr =
           List.to_seq [ rf; String.length s; Int.max 1 (String.length s) ]
           |> Seq.map (Llvm.const_int int_t)
@@ -210,10 +210,11 @@ struct
 
         let content = Llvm.const_struct context arr in
         let value = Llvm.define_global "" content the_module in
+        Llvm.set_global_constant true value;
         Llvm.set_linkage Llvm.Linkage.Private value;
         Llvm.set_unnamed_addr true value;
         let lltyp = get_lltype_def (Tarray Tu8) in
-        let ptr = bb value lltyp "" builder in
+        let ptr = Llvm.const_bitcast value lltyp in
 
         Strtbl.add string_tbl s ptr;
         ptr
