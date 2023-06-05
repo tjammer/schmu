@@ -90,4 +90,5 @@ let rec contains_allocation = function
         (fun ca c ->
           match c.ctyp with Some t -> ca || contains_allocation t | None -> ca)
         false ctors
-  | Traw_ptr _ | Tarray _ -> true
+  | Traw_ptr _ -> false
+  | Tarray _ -> true

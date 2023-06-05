@@ -148,7 +148,7 @@ end = struct
               dummy_fn_value
         in
         func |> fin
-    | Mapp { callee; args; alloca; id = _; vid } ->
+    | Mapp { callee; args; alloca; id = _; ms } ->
         let value =
           match (typed_expr.return, callee.monomorph, param.rec_block) with
           | true, Recursive _, Some block ->
@@ -158,9 +158,8 @@ end = struct
           | _, Inline (pnames, tree), _ -> gen_app_inline param args pnames tree
           | _ -> gen_app param callee args alloca typed_expr.typ
         in
-        (match vid with
-        | Some id -> Strtbl.replace decr_tbl id value
-        | None -> ());
+
+        List.iter (fun id -> Strtbl.replace decr_tbl id value) ms;
         fin value
     | Mif expr -> gen_if param expr
     | Mrecord (labels, allocref, id, const) ->
@@ -786,12 +785,12 @@ end = struct
 
     if Lazy.is_val merge_bb then
       Llvm.position_at_end (Lazy.force merge_bb) builder;
-    (match expr.iid with
-    | Some id -> Strtbl.replace decr_tbl id llvar
-    | None -> ());
+    (* (match expr.iid with *)
+    (* | Some id -> Strtbl.replace decr_tbl id llvar *)
+    (* | None -> ()) *)
     llvar
 
-  and gen_record param typ labels allocref id const return =
+  and gen_record param typ labels allocref ms const return =
     let lltyp = get_lltype_def typ in
 
     let value, kind =
@@ -843,7 +842,7 @@ end = struct
     in
 
     let v = { value; typ; lltyp; kind } in
-    (match id with Some id -> Strtbl.replace decr_tbl id v | None -> ());
+    List.iter (fun id -> Strtbl.replace decr_tbl id v) ms;
     v
 
   and gen_field param expr index =
@@ -892,7 +891,7 @@ end = struct
     let ptr = get_const_string s in
     { value = ptr; typ; lltyp; kind = Const }
 
-  and gen_ctor param (variant, tag, expr) typ allocref id const =
+  and gen_ctor param (variant, tag, expr) typ allocref ms const =
     ignore const;
 
     (* This approach means we alloca every time, even if the enum
@@ -930,7 +929,7 @@ end = struct
         set_struct_field data dataptr
     | None -> ());
     let v = { value = var; typ; lltyp; kind = Ptr } in
-    (match id with Some id -> Strtbl.replace decr_tbl id v | None -> ());
+    List.iter (fun id -> Strtbl.replace decr_tbl id v) ms;
     v
 
   and gen_var_index param expr =

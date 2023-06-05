@@ -10,7 +10,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * global_name * int option * monod_tree
+  | Mlet of string * monod_tree * global_name * int list * monod_tree
   | Mbind of string * monod_tree * monod_tree
   | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree * alloca
@@ -19,17 +19,14 @@ type expr =
       args : (monod_expr * bool) list;
       alloca : alloca;
       id : int; (* Internal id for nested monomorphization *)
-      vid : int option;
+      ms : int list;
     }
   | Mrecord of
-      (string * monod_tree) list
-      * alloca
-      * int option
-      * bool (* bool: is_const *)
+      (string * monod_tree) list * alloca * int list * bool (* bool: is_const *)
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)
-  | Mctor of (string * int * monod_tree option) * alloca * int option * bool
+  | Mctor of (string * int * monod_tree option) * alloca * int list * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
@@ -67,14 +64,7 @@ and monod_tree = { typ : typ; expr : expr; return : bool; loc : Ast.loc }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
-
-and ifexpr = {
-  cond : monod_tree;
-  e1 : monod_tree;
-  e2 : monod_tree;
-  iid : int option;
-}
-
+and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 and var_kind = Vnorm | Vconst | Vglobal of string
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree

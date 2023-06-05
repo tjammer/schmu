@@ -9,7 +9,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * global_name * int option * monod_tree
+  | Mlet of string * monod_tree * global_name * int list * monod_tree
   | Mbind of string * monod_tree * monod_tree
   | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree * alloca
@@ -18,13 +18,13 @@ type expr =
       args : (monod_expr * bool) list;
       alloca : alloca;
       id : int;
-      vid : int option;
+      ms : int list;
     }
-  | Mrecord of (string * monod_tree) list * alloca * int option * bool
+  | Mrecord of (string * monod_tree) list * alloca * int list * bool
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)
-  | Mctor of (string * int * monod_tree option) * alloca * int option * bool
+  | Mctor of (string * int * monod_tree option) * alloca * int list * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
@@ -58,14 +58,7 @@ and monod_tree = { typ : typ; expr : expr; return : bool; loc : Ast.loc }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
-
-and ifexpr = {
-  cond : monod_tree;
-  e1 : monod_tree;
-  e2 : monod_tree;
-  iid : int option;
-}
-
+and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
 and var_kind = Vnorm | Vconst | Vglobal of string
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
@@ -122,7 +115,7 @@ type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 type var_normal = {
   fn : to_gen_func_kind;
   alloc : alloc;
-  id : int option;
+  malloc : Iset.t;
   tailrec : bool;
 }
 
@@ -133,8 +126,6 @@ type var =
   | Global of string * var_normal * bool ref
   | Param of var_normal
 
-type id_kind = Id_func | Id_local
-
 type morph_param = {
   vars : var Vars.t;
   monomorphized : Set.t;
@@ -142,7 +133,7 @@ type morph_param = {
   ret : bool;
   (* Marks an expression where an if is the last piece which returns a record.
      Needed for tail call elim *)
-  ids : (id_kind * Iset.t) list;
+  mallocs : Iset.t list;
       (* Tracks all heap allocations in a scope.
          If a value with allocation is returned, they are marked for the parent scope.
          Otherwise freed *)
@@ -151,7 +142,9 @@ type morph_param = {
   mainmodule : Path.t option;
 }
 
-let no_var = { fn = No_function; alloc = No_value; id = None; tailrec = false }
+let no_var =
+  { fn = No_function; alloc = No_value; malloc = Iset.empty; tailrec = false }
+
 let apptbl = Apptbl.create 64
 let poly_funcs_tbl = Hashtbl.create 64
 let missing_polys_tbl = Hashtbl.create 64
@@ -197,21 +190,6 @@ let find_function_expr vars = function
   | e ->
       print_endline (show_expr e);
       "Not supported: " ^ show_expr e |> failwith
-
-let rec mb_contains_refcount = function
-  | Tarray _ | Tfun _ -> true
-  | Trecord (_, _, fields) ->
-      Array.fold_left
-        (fun b f -> f.ftyp |> mb_contains_refcount || b)
-        false fields
-  | Tvariant (_, _, ctors) ->
-      Array.fold_left
-        (fun b c ->
-          (match c.ctyp with Some t -> mb_contains_refcount t | None -> false)
-          || b)
-        false ctors
-  | Tpoly _ -> true
-  | _ -> false
 
 let rec short_name ~closure t =
   let str = short_name ~closure in
@@ -415,7 +393,7 @@ and subst_body p subst tree =
         let cond = sub expr.cond in
         let e1 = sub expr.e1 in
         let e2 = sub expr.e2 in
-        { tree with typ = e1.typ; expr = Mif { expr with cond; e1; e2 } }
+        { tree with typ = e1.typ; expr = Mif { cond; e1; e2 } }
     | Mlet (id, expr, gn, vid, cont) ->
         let expr = sub expr in
         let cont = sub cont in
@@ -446,7 +424,7 @@ and subst_body p subst tree =
 
         let cont = { (inner cont) with typ = subst cont.typ } in
         { tree with typ = cont.typ; expr = Mfunction (name, abs, cont, alloca) }
-    | Mapp { callee; args; alloca; id; vid } ->
+    | Mapp { callee; args; alloca; id; ms } ->
         let ex = sub callee.ex in
 
         (* We use the parameters at function creation time to deal with scope *)
@@ -480,7 +458,7 @@ and subst_body p subst tree =
         {
           tree with
           typ = func.ret;
-          expr = Mapp { callee; args; alloca; id; vid };
+          expr = Mapp { callee; args; alloca; id; ms };
         }
     | Mrecord (labels, alloca, id, const) ->
         let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
@@ -720,7 +698,7 @@ and cln_param param p =
 
 let alloc_lvl = ref 1
 let alloc_id = ref 1
-let var_id = ref 1
+let malloc_id = ref 1
 
 let new_id id =
   let ret_id = !id in
@@ -734,7 +712,7 @@ let request () = Request { id = new_id alloc_id; lvl = !alloc_lvl }
 let reset () =
   alloc_lvl := 1;
   alloc_id := 1;
-  var_id := 1
+  malloc_id := 1
 
 (* The first var_id is reserved for global values (such as string literals).
    In ifs where string literals can be returned, they will get decreased.
@@ -751,44 +729,20 @@ let rec set_alloca = function
       set_alloca b
   | Value _ | No_value -> ()
 
-let rec remove_id ~id ids =
-  match id with
-  | Some sid -> (
-      match ids with
-      | [] -> []
-      | (Id_local, s) :: tl -> (Id_local, Iset.remove sid s) :: remove_id ~id tl
-      | (Id_func, s) :: tl -> (Id_func, Iset.remove sid s) :: tl)
-  | None -> ids
-
-let rec empty_ids = function
-  | (Id_func, _) :: tl -> (Id_func, Iset.empty) :: tl
-  | (Id_local, _) :: tl -> (Id_local, Iset.empty) :: empty_ids tl
+let rec remove_malloc malloc = function
   | [] -> []
+  | s :: tl -> Iset.diff malloc s :: remove_malloc malloc tl
 
-type spec_id_kind = Spid_func | Spid_parent | Spid_unknown
-
-let classify_id ids id =
-  let rec aux = function
-    | ((Id_local | Id_func), s) :: _, Spid_func when Iset.mem id s -> Spid_func
-    | (Id_local, _) :: tl, Spid_func -> aux (tl, Spid_func)
-    | (Id_func, _) :: tl, Spid_func -> aux (tl, Spid_parent)
-    | (_, s) :: _, Spid_parent when Iset.mem id s -> Spid_parent
-    | _ :: tl, Spid_parent -> aux (tl, Spid_parent)
-    | [], _ -> Spid_unknown
-    | _, Spid_unknown -> Spid_unknown
-  in
-  aux (ids, Spid_func)
-
-let add_id ~id = function
+let add_malloc ~id = function
   | [] -> failwith "Internal Error: Empty ids"
-  | (k, s) :: tl -> (k, Iset.add id s) :: tl
+  | s :: tl -> Iset.add id s :: tl
 
-let mb_id ids typ =
-  if mb_contains_refcount typ then
-    let id = new_id var_id in
-    let ids = add_id ~id ids in
-    (Some id, ids)
-  else (None, ids)
+let mb_malloc ids typ =
+  if contains_allocation typ then
+    let id = new_id malloc_id in
+    let mallocs = add_malloc ~id ids in
+    (Iset.singleton id, mallocs)
+  else (Iset.empty, ids)
 
 let recursion_stack = ref []
 let constant_uniq_state = ref 1
@@ -810,28 +764,6 @@ let set_tailrec name =
       recursion_stack := (nm, Rtail) :: tl
   | _ :: _ -> ()
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
-
-let rec is_temporary = function
-  | Mvar _ | Mfield _ | Mvar_data _ | Mconst (String _) -> false
-  | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _ | Mfmt _
-    ->
-      true
-  | Mapp { callee; args; _ } -> (
-      match callee.monomorph with
-      | Inline (_, e) -> is_temporary e.expr
-      | Builtin (Unsafe_ptr_get, _) -> false
-      | Builtin (Array_get, _) -> false
-      | Builtin (Array_length, _) -> false
-      | Builtin (Copy, _) -> is_temporary (fst (List.hd args)).ex.expr
-      | _ -> true)
-  | Munop (_, t) -> is_temporary t.expr
-  | Mif { e1; e2; _ } -> is_temporary e1.expr && is_temporary e2.expr
-  | Mlet (_, _, _, _, cont)
-  | Mbind (_, _, cont)
-  | Mfunction (_, _, cont, _)
-  | Mseq (_, cont) ->
-      is_temporary cont.expr
-  | Mset _ | Mprint_str _ -> failwith "Internal Error: Trying to copy unit"
 
 let rec is_part = function
   | Mfield _ | Mvar_data _ -> true
@@ -886,13 +818,13 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (cond, e1, e2) -> morph_if make param cond e1 e2
   | Let { id; uniq; rmut; lhs; cont; mutly = _ } ->
-      let p, e1, gn, needs_init, vid = prep_let param id uniq lhs false in
+      let p, e1, gn, needs_init, m = prep_let param id uniq lhs false in
       (* TODO *)
       ignore needs_init;
       ignore rmut;
-      ignore vid;
+      let ms = Iset.to_seq m |> List.of_seq in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
-      (p, { e2 with expr = Mlet (id, e1, gn, None, e2) }, func)
+      (p, { e2 with expr = Mlet (id, e1, gn, ms, e2) }, func)
   | Bind (id, lhs, cont) ->
       let p, lhs, func = morph_expr { param with ret = false } lhs in
       let vars = Vars.add id (Normal func) p.vars in
@@ -937,16 +869,16 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Variant_index expr -> morph_var_index make param expr
   | Variant_data expr -> morph_var_data make param expr
   | Fmt exprs -> morph_fmt make param exprs
-  | Move e -> (* TODO *) morph_expr param e
+  | Move e ->
+      let p, e, func = morph_expr param e in
+      let mallocs = remove_malloc func.malloc p.mallocs in
+      ({ p with mallocs }, e, { func with malloc = Iset.empty })
 
 and morph_var mk p v =
-  let incr = ref false in
   let (v, kind), var =
     match v with
     | "__malloc" ->
-        let var =
-          { no_var with fn = Builtin Malloc; alloc = No_value; id = None }
-        in
+        let var = { no_var with fn = Builtin Malloc } in
         ((v, Vnorm), var)
     | v -> (
         match Vars.find_opt v p.vars with
@@ -954,14 +886,10 @@ and morph_var mk p v =
             ((callname, Vnorm), thing)
         | Some (Normal thing) -> ((v, Vnorm), thing)
         | Some (Param thing) ->
-            if p.ret then (
-              (* We return a parameter. Make sure to increase refcount here.
-                 Also, create an var id for it to deref later *)
-              incr := true;
-              ((v, Vnorm), thing))
+            if p.ret then ((v, Vnorm), thing)
             else
               (* Mark argument with a bogus id *)
-              ((v, Vnorm), { thing with id = Some (-1) })
+              ((v, Vnorm), { thing with malloc = Iset.singleton (-1) })
         | Some (Const thing) -> ((thing, Vconst), no_var)
         | Some (Global (id, thing, used)) ->
             used := true;
@@ -974,7 +902,7 @@ and morph_var mk p v =
 and morph_string mk p s =
   ( p,
     mk (Mconst (String s)) p.ret,
-    { no_var with fn = No_function; id = Some global_id } )
+    { no_var with fn = No_function; malloc = Iset.singleton global_id } )
 
 and morph_array mk p a =
   let ret = p.ret in
@@ -986,21 +914,25 @@ and morph_array mk p a =
   let f param e =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
-    let ids =
-      if is_temporary e.expr then remove_id ~id:var.id p.ids else p.ids
-    in
     set_alloca var.alloc;
-    ({ p with ids }, e)
+    (* Should have been moved *)
+    assert (Iset.is_empty var.malloc);
+    (p, e)
   in
   let p, a = List.fold_left_map f p a in
   leave_level ();
   let alloca = ref (request ()) in
-  let id = new_id var_id in
-  let ids = add_id ~id p.ids in
+  let id = new_id malloc_id in
+  let mallocs = add_malloc ~id p.mallocs in
 
-  ( { p with ret; ids },
+  ( { p with ret; mallocs },
     mk (Mconst (Array (a, alloca, id))) p.ret,
-    { no_var with fn = No_function; alloc = Value alloca; id = Some id } )
+    {
+      no_var with
+      fn = No_function;
+      alloc = Value alloca;
+      malloc = Iset.singleton id;
+    } )
 
 and morph_const = function
   | String _ | Array _ -> failwith "Internal Error: Const should be extra case"
@@ -1027,46 +959,31 @@ and morph_unop mk p unop expr =
 and morph_if mk p cond e1 e2 =
   let ret = p.ret in
   let p, cond, _ = morph_expr { p with ret = false } cond in
-  let oids = p.ids in
-  let ids = (Id_local, Iset.empty) :: oids in
+  let oids = p.mallocs in
+  let mallocs = Iset.empty :: oids in
 
-  let p, e1, a = morph_expr { p with ret; ids } e1 in
-  let e1 =
-    match Option.map (classify_id oids) a.id with
-    | _ when a.tailrec ->
-        (* For tailrecursive calls, every ref is already decreased in [morph_app].
-           Furthermore, if both branches are tailrecursive, calling decr_ref might
-           destroy a basic block in codegen. That's due to no merge blocks being
-           created in that case *)
-        e1
-    | _ -> e1 (* TODO *)
-  in
+  let p, e1, a = morph_expr { p with ret; mallocs } e1 in
 
-  let p, e2, b = morph_expr { p with ret; ids } e2 in
-  let e2 =
-    match Option.map (classify_id oids) b.id with
-    | _ when b.tailrec -> e2
-    | _ -> e2 (* TODO *)
-  in
+  (* TODO tail recursion *)
+  let p, e2, b = morph_expr { p with ret; mallocs } e2 in
   let tailrec = a.tailrec && b.tailrec in
 
   (* Remove returning ids from original id list as a new one is issued *)
   (* NOTE that might not work. The if-expr returns either [a] or [b], but here
      we remove both, unconditionally. That's probably wrong. *)
-  (* Have to look at different cases here:
-     1. Allocation is if-local. Here, it's enough to remove it from [a] and [b]
-        list.
-     2. Allocation are function-local. We want to remove the id from the function
-        scope id list, but we don't know which one is picked. --We can check if both are the same,
-        then remove from function scope (they are never the same).--
-        Otherwise we increase ref for both branches. --Maybe we can also not
-        generate a new id if both are the same--
-     3. If the variable comes from a parent scope (is closed over), we have to increase
-        ref count in each branch. *)
-  let iid, ids = mb_id oids e1.typ in
-  ( { p with ids },
-    mk (Mif { cond; e1; e2; iid }) ret,
-    { a with alloc = Two_values (a.alloc, b.alloc); id = iid; tailrec } )
+  (* Can we check whether we own or borrow? *)
+
+  (* TODO if we own, transform allocs into one.
+     But.. Do we really need this? Maybe it's enough to change to lists (sets?) to
+     allow accumulating allocations *)
+  (* TODO recursion. In the recursion case we want to free everything in local scope *)
+  (* TODO factor this out? *)
+  let malloc = Iset.union a.malloc b.malloc in
+
+  (* Keep mallocs from if branches (for now) *)
+  ( p,
+    mk (Mif { cond; e1; e2 }) ret,
+    { a with alloc = Two_values (a.alloc, b.alloc); malloc; tailrec } )
 
 and prep_let p id uniq e toplvl =
   (* username *)
@@ -1076,14 +993,14 @@ and prep_let p id uniq e toplvl =
 
   let p, e1, func = morph_expr { p with ret = false } e in
   (* We add constants to the constant table, not the current env *)
-  let temporary = is_temporary e1.expr in
-  let vid, ids =
-    if not temporary then
-      let id, ids = mb_id p.ids e1.typ in
-      (id, ids)
-    else (func.id, p.ids)
+  let malloc, mallocs =
+    if Iset.is_empty func.malloc && contains_allocation e1.typ then
+      (* e1 has been moved, we are the owner *)
+      mb_malloc p.mallocs e1.typ
+    else (func.malloc, p.mallocs)
   in
-  let func = { func with id = vid } in
+
+  let func = { func with malloc } in
   let p, gn, needs_init =
     match e.attr with
     | { const = true; _ } ->
@@ -1103,10 +1020,13 @@ and prep_let p id uniq e toplvl =
         (* Add global values to env with global id. That's how they might be queried,
            and the function information is needed for monomorphization *)
         let vars = Vars.add uniq (Global (uniq, func, used)) vars in
-        ({ p with vars; ids }, Some uniq, true)
-    | _ -> ({ p with vars = Vars.add un (Normal func) p.vars; ids }, None, false)
+        ({ p with vars; mallocs }, Some uniq, true)
+    | _ ->
+        ( { p with vars = Vars.add un (Normal func) p.vars; mallocs },
+          None,
+          false )
   in
-  (p, e1, gn, needs_init, vid)
+  (p, e1, gn, needs_init, malloc)
 
 and morph_record mk p labels is_const typ =
   let ret = p.ret in
@@ -1119,20 +1039,20 @@ and morph_record mk p labels is_const typ =
   let f param (id, e) =
     let p, e, var = morph_expr param e in
     if is_struct e.typ then set_alloca var.alloc;
-    let ids =
-      if is_temporary e.expr then remove_id ~id:var.id p.ids else p.ids
-    in
-    ({ p with ids }, (id, e))
+    (* Should have been moved *)
+    assert (Iset.is_empty var.malloc);
+    (p, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
   leave_level ();
 
-  let id, ids = mb_id p.ids typ in
+  let malloc, mallocs = mb_malloc p.mallocs typ in
+  let ms = Iset.to_seq malloc |> List.of_seq in
 
   let alloca = ref (request ()) in
-  ( { p with ret; ids },
-    mk (Mrecord (labels, alloca, id, is_const.const)) ret,
-    { no_var with fn = No_function; alloc = Value alloca; id } )
+  ( { p with ret; mallocs },
+    mk (Mrecord (labels, alloca, ms, is_const.const)) ret,
+    { no_var with fn = No_function; alloc = Value alloca; malloc } )
 
 and morph_field mk p expr index =
   let ret = p.ret in
@@ -1143,25 +1063,24 @@ and morph_field mk p expr index =
 
 and morph_set mk p expr value =
   let ret = p.ret in
-  let ids = p.ids in
+  let mallocs = p.mallocs in
   (* We don't track allocations in the to-set expr.
      This helps with nested allocated things.
      If we do, there are additional relocations happening and the wrong
      things are freed. If one were to force an allocation here,
      that's a leak*)
   let p, e, _ = morph_expr { p with ret = false } expr in
-  let p, v, func =
-    morph_expr { p with ids = [ (Id_local, Iset.empty) ] } value
-  in
+  let p, v, func = morph_expr { p with mallocs = [ Iset.empty ] } value in
 
   let tree = mk (Mset (e, v)) ret in
 
-  (* TODO free the thing *)
+  (* TODO free the thing. This is right now done in codegen by calling free manually.
+     Could also be added to the tree *)
 
   (* TODO handle this in morph_call, where realloc drops the old ptr and adds the new one to the free list *)
   (* If we mutate a ptr with realloced ptr, the old one is already freed and we drop it from
      the free list *)
-  ({ p with ret; ids }, tree, func)
+  ({ p with ret; mallocs }, tree, func)
 
 and morph_seq mk p expr cont =
   let ret = p.ret in
@@ -1212,12 +1131,12 @@ and prep_func p (username, uniq, abs) =
         vars pnames
     in
 
-    let ids = (Id_func, Iset.empty) :: p.ids in
+    let mallocs = Iset.empty :: p.mallocs in
     {
       p with
       vars;
       ret = (if not inline then true else p.ret);
-      ids;
+      mallocs;
       toplvl = false;
     }
   in
@@ -1288,8 +1207,8 @@ and morph_lambda mk typ p id abs =
         (fun vars name -> Vars.add name (Param no_var) vars)
         vars pnames
     in
-    let ids = (Id_func, Iset.empty) :: p.ids in
-    { p with vars; ret = true; ids; toplvl = false }
+    let mallocs = Iset.empty :: p.mallocs in
+    { p with vars; ret = true; mallocs; toplvl = false }
   in
 
   enter_level ();
@@ -1341,7 +1260,7 @@ and morph_lambda mk typ p id abs =
 
 and morph_app mk p callee args ret_typ =
   (* Save env for later monomorphization *)
-  let id = new_id var_id in
+  let id = new_id malloc_id in
 
   let ret = p.ret in
   let p, ex, _ = morph_expr { p with ret = false } callee in
@@ -1359,16 +1278,12 @@ and morph_app mk p callee args ret_typ =
   in
 
   let f p arg =
-    let is_arg = function
-      (* See morph_var *)
-      | Some i -> i < 0
-      | None -> false
-    in
+    let is_arg malloc = Iset.fold (fun i arg -> i < 0 || arg) malloc false in
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
-    let ids, ex =
+    let mallocs, ex =
       if tailrec then
-        if (not (is_arg var.id)) && is_part ex.expr then
+        if (not (is_arg var.malloc)) && is_part ex.expr then
           (* A new parameter is set (= not arg) and it's a partial access.
              We have to make sure we don't increase (or not decrease) the ref
              counts of the whole records, because there might be multiple allocated fields.
@@ -1376,12 +1291,12 @@ and morph_app mk p callee args ret_typ =
              causing a leak of the other record fields. This can be avoided if we decrease
              ref counts of the whole record and increase the passed fields's ref count before *)
           (* TODO tailrec *)
-          (p.ids, ex)
-        else (remove_id ~id:var.id p.ids, ex)
-      else (p.ids, ex)
+          (p.mallocs, ex)
+        else (remove_malloc var.malloc p.mallocs, ex)
+      else (p.mallocs, ex)
     in
-    let p, monomorph = monomorphize_call { p with ids } ex None in
-    ({ p with ret }, ex, monomorph, is_arg var.id)
+    let p, monomorph = monomorphize_call { p with mallocs } ex None in
+    ({ p with ret }, ex, monomorph, is_arg var.malloc)
   in
   (* array-push and array-set get special treatment.
      The thing to set should either be a temporary, or its ref counter needs to be increased. *)
@@ -1389,13 +1304,10 @@ and morph_app mk p callee args ret_typ =
     let ret = p.ret in
     let p, v, var = morph_expr { p with ret = false } arg in
 
-    let v, ids =
-      ignore var;
-      (v, p.ids)
-      (* TODO do something *)
-    in
+    (* TODO do something *)
+    ignore var;
 
-    let p, monomorph = monomorphize_call { p with ids } v None in
+    let p, monomorph = monomorphize_call p v None in
     ({ p with ret }, v, monomorph, false)
   in
   let is_special =
@@ -1411,14 +1323,16 @@ and morph_app mk p callee args ret_typ =
         let p, ex, monomorph, arg =
           if is_special then special_f p arg else f p arg
         in
-        let ids =
-          if tailrec then
-            (* In tailrec functions, we are always in an extra scope of an 'if' here.
-               Thus, it's ok if we free everything. *)
-            empty_ids p.ids
-          else p.ids
+        let mallocs =
+          (* if tailrec then *)
+          (* In tailrec functions, we are always in an extra scope of an 'if' here.
+             Thus, it's ok if we free everything. *)
+          (* TODO *)
+          (*   empty_ids p.ids *)
+          (* else p.ids *)
+          p.mallocs
         in
-        ({ p with ids }, ({ ex; monomorph; mut }, arg) :: args)
+        ({ p with mallocs }, ({ ex; monomorph; mut }, arg) :: args)
     | (arg, attr) :: tl ->
         let mut = Types.mut_of_pattr attr in
         let p, ex, monomorph, arg = f p arg in
@@ -1432,9 +1346,9 @@ and morph_app mk p callee args ret_typ =
     | [] when tailrec ->
         (* We haven't decreased references yet, because there is no last argument.
            Essentially, we do the same work as in the last arg of [fold_decr_last]*)
-        let ids = empty_ids p.ids in
+        (* let ids = empty_ids p.ids in *)
         (* Note that we use the original p.ids for [decr_refs] *)
-        ({ p with ids }, callee)
+        (p, callee)
     | _ -> (p, callee)
   in
 
@@ -1450,27 +1364,29 @@ and morph_app mk p callee args ret_typ =
     else (No_value, ref (request ()))
   in
 
-  let mkapp, vid, ids =
-    (* array-get does not return a temporary. If its value is returned in a function,
-       increase value's refcount so that it's really a temporary *)
-    match callee.monomorph with
-    | Builtin (Array_get, _) | Builtin (Copy, _) ->
-        let mk =
-          if ret then fun app ->
-            let app = mk app ret in
-            (* TODO move *)
-            app
-          else fun app -> mk app ret
-        in
-        (mk, None, p.ids)
-    | _ ->
-        let vid, ids = mb_id p.ids ret_typ in
-        ((fun app -> mk app ret), vid, ids)
-  in
+  (* let mkapp, vid, mallocs = *)
+  (*   (\* array-get does not return a temporary. If its value is returned in a function, *)
+  (*      increase value's refcount so that it's really a temporary *\) *)
+  (*   match callee.monomorph with *)
+  (*   | Builtin (Array_get, _) | Builtin (Copy, _) -> *)
+  (*       let mk = *)
+  (*         if ret then fun app -> *)
+  (*           let app = mk app ret in *)
+  (*           (\* TODO move *\) *)
+  (*           app *)
+  (*         else fun app -> mk app ret *)
+  (*       in *)
+  (*       (mk, None, p.mallocs) *)
+  (*   | _ -> *)
+  (*       let vid, ids = mb_id p.ids ret_typ in *)
+  (*       ((fun app -> mk app ret), vid, ids) *)
+  (* in *)
+  let malloc, mallocs = mb_malloc p.mallocs ret_typ in
+  let ms = Iset.to_seq malloc |> List.of_seq in
 
-  let app = Mapp { callee; args; alloca = alloc_ref; id; vid } in
+  let app = Mapp { callee; args; alloca = alloc_ref; id; ms } in
 
-  ({ p with ret; ids }, mkapp app, { no_var with alloc; id = vid; tailrec })
+  ({ p with ret; mallocs }, mk app ret, { no_var with alloc; malloc; tailrec })
 
 and morph_ctor mk p variant index expr is_const typ =
   let ret = p.ret in
@@ -1484,21 +1400,21 @@ and morph_ctor mk p variant index expr is_const typ =
         (* Similar to [morph_record], collect mallocs in data *)
         let p, e, var = morph_expr p expr in
         if is_struct e.typ then set_alloca var.alloc;
-        let ids =
-          if is_temporary e.expr then remove_id ~id:var.id p.ids else p.ids
-        in
-        ({ p with ids }, (variant, index, Some e))
+        (* Should have been moved *)
+        assert (Iset.is_empty var.malloc);
+        (p, (variant, index, Some e))
     | None -> (p, (variant, index, None))
   in
 
   leave_level ();
 
-  let id, ids = mb_id p.ids typ in
+  let malloc, mallocs = mb_malloc p.mallocs typ in
+  let ms = Iset.to_seq malloc |> List.of_seq in
 
   let alloca = ref (request ()) in
-  ( { p with ret; ids },
-    mk (Mctor (ctor, alloca, id, is_const.const)) ret,
-    { no_var with fn = No_function; alloc = Value alloca; id } )
+  ( { p with ret; mallocs },
+    mk (Mctor (ctor, alloca, ms, is_const.const)) ret,
+    { no_var with fn = No_function; alloc = Value alloca; malloc } )
 
 (* Both variant exprs are as default as possible.
    We handle everything in codegen *)
@@ -1541,12 +1457,13 @@ and morph_fmt mk p exprs =
   leave_level ();
 
   let alloca = ref (request ()) in
-  let id = new_id var_id in
-  let ids = add_id ~id p.ids in
+  let id = new_id malloc_id in
+  let malloc = Iset.singleton id in
+  let mallocs = add_malloc ~id p.mallocs in
 
-  ( { p with ret; ids },
+  ( { p with ret; mallocs },
     mk (Mfmt (es, alloca, id)) ret,
-    { no_var with alloc = Value alloca; id = Some id } )
+    { no_var with alloc = Value alloca; malloc } )
 
 and morph_print_str mk p exprs =
   let ret = p.ret in
@@ -1577,12 +1494,12 @@ let rec morph_toplvl param items =
         aux_impl param tl item
   and aux_impl param tl = function
     | Typed_tree.Tl_let { id; uniq; lhs = expr; _ } ->
-        let p, e1, gn, needs_init, vid = prep_let param id uniq expr true in
+        let p, e1, gn, needs_init, m = prep_let param id uniq expr true in
         (* TODO *)
         ignore needs_init;
-        ignore vid;
+        let ms = Iset.to_seq m |> List.of_seq in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        (p, { e2 with expr = Mlet (id, e1, gn, None, e2) }, func)
+        (p, { e2 with expr = Mlet (id, e1, gn, ms, e2) }, func)
     | Tl_function (loc, name, uniq, abs) ->
         let p, call, abs, alloca = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in
@@ -1645,14 +1562,14 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
 
   let param =
     (* Generate one toplevel id for global values. They won't be decreased *)
-    let iset = Iset.add (new_id var_id) Iset.empty in
-    let () = assert (!var_id = 2) in
+    let iset = Iset.singleton (new_id malloc_id) in
+    let () = assert (!malloc_id = 2) in
     {
       vars;
       monomorphized = Set.empty;
       funcs = Fset.empty;
       ret = false;
-      ids = [ (Id_func, iset) ];
+      mallocs = [ iset ];
       toplvl = true;
       mname;
       mainmodule = mname;
@@ -1685,10 +1602,11 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
   in
 
   let decrs =
-    match p.ids with
+    match p.mallocs with
     | [] -> Seq.empty
-    | (_, ids) :: _ ->
-        Iset.to_rev_seq ids |> Seq.filter (fun i -> not (Int.equal i global_id))
+    | mallocs :: _ ->
+        Iset.to_rev_seq mallocs
+        |> Seq.filter (fun i -> not (Int.equal i global_id))
   in
 
   let externals =
