@@ -10,10 +10,11 @@ module type S = sig
     llvar Vars.t ->
     llvar ->
     Monomorph_tree.func_name ->
-    string list ->
+    (string * int option) list ->
     param list ->
     int ->
     Monomorph_tree.recurs ->
+    (int, llvar) Hashtbl.t ->
     llvar Vars.t * rec_block option
 
   val llval_of_size : int -> Llvm.llvalue
@@ -502,7 +503,7 @@ struct
      In case the function is tailrecursive, it allocas each parameter in
      the entry block and creates a recursion block which starts off by loading
      each parameter. *)
-  let add_params vars f fname names params start_index recursive =
+  let add_params vars f fname names params start_index recursive free_tbl =
     (* We specially treat the case where a record is passed as two params *)
     let get_value i mut typ =
       match pkind_of_typ mut typ with
@@ -516,12 +517,16 @@ struct
     let add_simple vars =
       (* We simply add to env, no special handling for tailrecursion *)
       List.fold_left2
-        (fun (env, i) name p ->
+        (fun (env, i) (name, m) p ->
           let typ = p.pt in
           let value, i = get_value i p.pmut typ in
           let kind = if p.pmut then Ptr else default_kind typ in
           let param = { value; typ; lltyp = get_lltype_def typ; kind } in
           Llvm.set_value_name name value;
+          (* Add mallocs to free tbl so we can find them for freeing *)
+          (match m with
+          | Some id -> Hashtbl.replace free_tbl id param
+          | None -> ());
           (Vars.add name param env, i + 1))
         (vars, start_index) names params
       |> fst
@@ -565,7 +570,7 @@ struct
            real parameters *)
         let vars =
           List.fold_left2
-            (fun (env, i) name p ->
+            (fun (env, i) (name, _) p ->
               let typ = p.pt in
               let value, i = get_value i p.pmut typ in
               Llvm.set_value_name name value;
@@ -602,7 +607,7 @@ struct
 
         let vars, _ =
           List.fold_left2
-            (fun (env, i) name p ->
+            (fun (env, i) (name, _) p ->
               let typ = p.pt in
               let i = get_index i p.pmut typ in
               let llvar = Vars.find (name_of_alloc_param i) env in

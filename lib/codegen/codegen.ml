@@ -20,7 +20,7 @@ end = struct
   open H
   open Ar
 
-  let decr_tbl = Hashtbl.create 64
+  let free_tbl = Hashtbl.create 64
 
   let rec gen_function vars { Monomorph_tree.abs; name; recursive; upward } =
     let typ = Monomorph_tree.typ_of_abs abs in
@@ -53,6 +53,7 @@ end = struct
         (* Add parameters to env *)
         let tvars, rec_block =
           add_params tvars func name abs.pnames tparams start_index recursive
+            free_tbl
         in
 
         let fun_finalize ret =
@@ -106,7 +107,7 @@ end = struct
     | Mconst (String s) -> gen_string_lit s typed_expr.typ
     | Mconst (Array (arr, allocref, id)) ->
         let v = gen_array_lit param arr typed_expr.typ allocref in
-        Hashtbl.replace decr_tbl id v;
+        Hashtbl.replace free_tbl id v;
         v
     | Mconst c -> gen_const c |> fin
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
@@ -159,7 +160,7 @@ end = struct
           | _ -> gen_app param callee args alloca typed_expr.typ
         in
 
-        List.iter (fun id -> Strtbl.replace decr_tbl id value) ms;
+        List.iter (fun id -> Strtbl.replace free_tbl id value) ms;
         fin value
     | Mif expr -> gen_if param expr
     | Mrecord (labels, allocref, id, const) ->
@@ -690,7 +691,7 @@ end = struct
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)
-    let f env (arg, _) param =
+    let f env (arg, _) (param, _) =
       let arg' = gen_expr env Monomorph_tree.(arg.ex) in
       let arg = get_mono_func arg' env arg.monomorph in
 
@@ -843,7 +844,7 @@ end = struct
     in
 
     let v = { value; typ; lltyp; kind } in
-    List.iter (fun id -> Strtbl.replace decr_tbl id v) ms;
+    List.iter (fun id -> Strtbl.replace free_tbl id v) ms;
     v
 
   and gen_field param expr index =
@@ -930,7 +931,7 @@ end = struct
         set_struct_field data dataptr
     | None -> ());
     let v = { value = var; typ; lltyp; kind = Ptr } in
-    List.iter (fun id -> Strtbl.replace decr_tbl id v) ms;
+    List.iter (fun id -> Strtbl.replace free_tbl id v) ms;
     v
 
   and gen_var_index param expr =
@@ -1014,7 +1015,7 @@ end = struct
     ignore (Llvm.build_store arr_ptr string builder);
 
     let v = { value = string; typ; lltyp; kind = Ptr } in
-    Hashtbl.replace decr_tbl id v;
+    Hashtbl.replace free_tbl id v;
     v
 
   and gen_print_str param exprs =
@@ -1047,7 +1048,7 @@ end = struct
   and gen_free param expr fs =
     let expr = gen_expr param expr in
     List.iter
-      (fun i -> Option.iter (Auto.free param) (Hashtbl.find_opt decr_tbl i))
+      (fun i -> Option.iter (Auto.free param) (Hashtbl.find_opt free_tbl i))
       fs;
     expr
 end
@@ -1221,11 +1222,11 @@ let generate ~target ~outname ~release ~modul
           {
             func =
               {
-                params = [ { pt = Tint; pmut = false } ];
+                params = [ { pt = Tint; pmut = false; pmoved = false } ];
                 ret = Tint;
                 kind = Simple;
               };
-            pnames = [ "arg" ];
+            pnames = [ ("arg", None) ];
             body = { tree with typ = Tint };
           };
       }

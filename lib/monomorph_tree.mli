@@ -10,7 +10,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * global_name * int list * monod_tree
+  | Mlet of string * monod_tree * global_name * malloc_list * monod_tree
   | Mbind of string * monod_tree * monod_tree
   | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree * alloca
@@ -19,19 +19,22 @@ type expr =
       args : (monod_expr * bool) list;
       alloca : alloca;
       id : int; (* Internal id for nested monomorphization *)
-      ms : int list;
+      ms : malloc_list;
     }
   | Mrecord of
-      (string * monod_tree) list * alloca * int list * bool (* bool: is_const *)
+      (string * monod_tree) list
+      * alloca
+      * malloc_list
+      * bool (* bool: is_const *)
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)
-  | Mctor of (string * int * monod_tree option) * alloca * int list * bool
+  | Mctor of (string * int * monod_tree option) * alloca * malloc_list * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
-  | Mfree_after of monod_tree * int list
+  | Mfree_after of monod_tree * malloc_list
 [@@deriving show]
 
 and const =
@@ -47,7 +50,12 @@ and const =
 (* The int is the malloc id used for freeing later *)
 
 and func = { params : param list; ret : typ; kind : fun_kind }
-and abstraction = { func : func; pnames : string list; body : monod_tree }
+
+and abstraction = {
+  func : func;
+  pnames : (string * int option) list;
+  body : monod_tree;
+}
 
 and call_name =
   | Mono of string (* Monomorphized fun call *)
@@ -57,7 +65,7 @@ and call_name =
   (* Recursive function call.
      The nonmono name is only for housekeeping *)
   | Builtin of Builtin.t * func
-  | Inline of string list * monod_tree
+  | Inline of (string * int option) list * monod_tree
 (* Builtin function with special codegen *)
 
 and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
@@ -65,11 +73,19 @@ and monod_tree = { typ : typ; expr : expr; return : bool; loc : Ast.loc }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
-and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
+
+and ifexpr = {
+  cond : monod_tree;
+  owning : int option;
+  e1 : monod_tree;
+  e2 : monod_tree;
+}
+
 and var_kind = Vnorm | Vconst | Vglobal of string
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
 and copy_kind = Cglobal of string | Cnormal of bool
+and malloc_list = int list
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }

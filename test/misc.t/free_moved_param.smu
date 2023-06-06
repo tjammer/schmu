@@ -1,0 +1,5 @@
+(defn hm [a!]
+  (ignore a)
+  ())
+
+(hm !["aoeu"])

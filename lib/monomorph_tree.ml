@@ -9,7 +9,7 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * global_name * int list * monod_tree
+  | Mlet of string * monod_tree * global_name * malloc_list * monod_tree
   | Mbind of string * monod_tree * monod_tree
   | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree * alloca
@@ -18,18 +18,18 @@ type expr =
       args : (monod_expr * bool) list;
       alloca : alloca;
       id : int;
-      ms : int list;
+      ms : malloc_list;
     }
-  | Mrecord of (string * monod_tree) list * alloca * int list * bool
+  | Mrecord of (string * monod_tree) list * alloca * malloc_list * bool
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree)
   | Mseq of (monod_tree * monod_tree)
-  | Mctor of (string * int * monod_tree option) * alloca * int list * bool
+  | Mctor of (string * int * monod_tree option) * alloca * malloc_list * bool
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
-  | Mfree_after of monod_tree * int list
+  | Mfree_after of monod_tree * malloc_list
 [@@deriving show]
 
 and const =
@@ -44,7 +44,12 @@ and const =
   | Unit
 
 and func = { params : param list; ret : typ; kind : fun_kind }
-and abstraction = { func : func; pnames : string list; body : monod_tree }
+
+and abstraction = {
+  func : func;
+  pnames : (string * int option) list;
+  body : monod_tree;
+}
 
 and call_name =
   | Mono of string
@@ -52,18 +57,26 @@ and call_name =
   | Default
   | Recursive of { nonmono : string; call : string }
   | Builtin of Builtin.t * func
-  | Inline of string list * monod_tree
+  | Inline of (string * int option) list * monod_tree
 
 and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
 and monod_tree = { typ : typ; expr : expr; return : bool; loc : Ast.loc }
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
-and ifexpr = { cond : monod_tree; e1 : monod_tree; e2 : monod_tree }
+
+and ifexpr = {
+  cond : monod_tree;
+  owning : int option;
+  e1 : monod_tree;
+  e2 : monod_tree;
+}
+
 and var_kind = Vnorm | Vconst | Vglobal of string
 and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
 and copy_kind = Cglobal of string | Cnormal of bool
+and malloc_list = int list
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -108,7 +121,7 @@ type to_gen_func_kind =
   | Forward_decl of string * typ
   | Mutual_rec of string * typ
   | Builtin of Builtin.t
-  | Inline of string list * typ * monod_tree
+  | Inline of (string * int option) list * typ * monod_tree
   | No_function
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
@@ -696,7 +709,13 @@ and cln_kind p = function
 
 and cln_param param p =
   let pt = cln param Types.(p.pt) in
-  { pt; pmut = Types.mut_of_pattr p.pattr }
+  let pmut, pmoved =
+    match p.pattr with
+    | Dset | Dmut -> (true, false)
+    | Dmove -> (false, true)
+    | Dnorm -> (false, false)
+  in
+  { pt; pmut; pmoved }
 
 (* State *)
 
@@ -740,6 +759,19 @@ let mb_malloc ids typ =
     let mallocs = add_malloc ~id ids in
     (Iset.singleton id, mallocs)
   else (Iset.empty, ids)
+
+let add_params vars mallocs pnames =
+  (* Add parameters to the env and create malloc ids if they have been moved *)
+  List.fold_left
+    (fun (vars, mallocs) (name, malloc) ->
+      let malloc, mallocs =
+        match malloc with
+        | Some id -> (Iset.singleton id, add_malloc ~id mallocs)
+        | None -> (Iset.empty, mallocs)
+      in
+      let vars = Vars.add name (Param { no_var with malloc }) vars in
+      (vars, mallocs))
+    (vars, mallocs) pnames
 
 let recursion_stack = ref []
 let constant_uniq_state = ref 1
@@ -1096,7 +1128,13 @@ and prep_func p (username, uniq, abs) =
       kind = cln_kind p abs.func.kind;
     }
   in
-  let pnames = abs.nparams in
+  let pnames =
+    List.map2
+      (fun n p ->
+        let malloc = if p.pmoved then Some (new_id malloc_id) else None in
+        (n, malloc))
+      abs.nparams func.params
+  in
 
   (* Make sure recursion works and the current function can be used in its body *)
   let temp_p =
@@ -1110,13 +1148,9 @@ and prep_func p (username, uniq, abs) =
 
     (* Add parameters to env as normal values.
        The existing values might not be 'normal' *)
-    let vars =
-      List.fold_left
-        (fun vars name -> Vars.add name (Param no_var) vars)
-        vars pnames
-    in
-
     let mallocs = Iset.empty :: p.mallocs in
+    let vars, mallocs = add_params vars mallocs pnames in
+
     {
       p with
       vars;
@@ -1183,7 +1217,13 @@ and morph_lambda mk typ p id abs =
       kind = cln_kind p abs.func.kind;
     }
   in
-  let pnames = abs.nparams in
+  let pnames =
+    List.map2
+      (fun n p ->
+        let malloc = if p.pmoved then Some (new_id malloc_id) else None in
+        (n, malloc))
+      abs.nparams func.params
+  in
 
   let ret = p.ret in
   let vars = p.vars in
@@ -1192,12 +1232,9 @@ and morph_lambda mk typ p id abs =
   let temp_p =
     (* Add parameters to env as normal values.
        The existing values might not be 'normal' *)
-    let vars =
-      List.fold_left
-        (fun vars name -> Vars.add name (Param no_var) vars)
-        vars pnames
-    in
     let mallocs = Iset.empty :: p.mallocs in
+    let vars, mallocs = add_params vars mallocs pnames in
+
     { p with vars; ret = true; mallocs; toplvl = false }
   in
 
@@ -1212,7 +1249,12 @@ and morph_lambda mk typ p id abs =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
 
-  (* TODO free body *)
+  let frees =
+    match temp_p.mallocs with
+    | [] -> failwith "Internal Error: Empty malloc stack in fn"
+    | ms :: _ -> Iset.to_seq ms |> List.of_seq
+  in
+  let body = { body with expr = Mfree_after (body, frees) } in
 
   (* Why do we need this again in lambda? They can't recurse. *)
   (* But functions on the lambda body might *)
