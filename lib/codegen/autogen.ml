@@ -270,10 +270,10 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     let f = make_fn Free v in
     Llvm.build_call f [| v.value |] "" builder |> ignore
 
-  let free v =
+  let free param v =
     if contains_allocation v.typ then
       let () = decl_children Free v v.typ in
-      free_call v
+      make_ptr param v |> free_call
 
   let get_dtor assoc_type assoc =
     let name = cls_fn_name `Dtor assoc in
@@ -295,7 +295,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
              let value = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
              let lltyp = get_lltype_def cl.cltyp in
              let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
-             free item);
+             free_call item);
           i + 1
         in
         (* [2] as starting index, because [0] is ctor, and [1] is dtor *)
@@ -364,8 +364,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let v = bring_default_var v in
         let ptr = bb v.value (Llvm.pointer_type closure_t) "" builder in
         (* Pointer to environment *)
-        let env = Llvm.build_struct_gep ptr 1 "" builder in
-        let mb_null = Llvm.build_load env "" builder in
+        let env = Llvm.build_struct_gep ptr 1 "envptr" builder in
+        let mb_null = Llvm.build_load env "env" builder in
 
         (* Check for nullptr *)
         let start_bb = Llvm.insertion_block builder in
@@ -383,18 +383,17 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let dtor_bb = Llvm.append_block context "dtor" parent in
         let just_free_bb = Llvm.append_block context "just_free" parent in
 
-        let dtor_ptr = Llvm.build_gep mb_null [| ci 1 |] "dtor" builder in
+        let cls_t = lltypeof_closure [] true in
+        let env = bb mb_null (Llvm.pointer_type cls_t) "" builder in
+        let dtor_ptr = Llvm.build_struct_gep env 1 "" builder in
         let dtor_ptr = bb dtor_ptr (Llvm.pointer_type voidptr_t) "" builder in
+        let dtor_ptr = Llvm.build_load dtor_ptr "dtor" builder in
         let cmp = Llvm.(build_icmp Icmp.Eq dtor_ptr nullptr "") builder in
         Llvm.build_cond_br cmp just_free_bb dtor_bb builder |> ignore;
 
         Llvm.position_at_end dtor_bb builder;
-
-        let dtor_ptr = Llvm.build_load dtor_ptr "dtor" builder in
         let dtor = (bb dtor_ptr (Llvm.pointer_type dtor_t)) "dtor" builder in
-
         Llvm.build_call dtor [| mb_null |] "" builder |> ignore;
-
         Llvm.build_br ret_bb builder |> ignore;
 
         (* The dtor cleans up recursively.
@@ -404,7 +403,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         Llvm.build_br ret_bb builder |> ignore;
 
         Llvm.position_at_end ret_bb builder
-    | _ -> failwith "Internal Error: What are we freeing?"
+    | _ ->
+        print_endline (show_typ v.typ);
+        failwith "Internal Error: What are we freeing?"
 
   let gen_functions () =
     Hashtbl.iter
@@ -412,7 +413,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let bb = Llvm.append_block context "entry" ft in
         Llvm.position_at_end bb builder;
 
-        let v = { v with value = Llvm.param ft 0 } in
+        let v = { v with value = Llvm.param ft 0; kind = Ptr } in
         match kind with
         | Copy ->
             copy_impl v;

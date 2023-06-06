@@ -29,6 +29,7 @@ type expr =
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
+  | Mfree_after of monod_tree * int list
 [@@deriving show]
 
 and const =
@@ -97,7 +98,7 @@ type monomorphized_tree = {
   externals : external_decl list;
   tree : monod_tree;
   funcs : To_gen_func.t list;
-  decrs : int Seq.t;
+  frees : int Seq.t;
 }
 
 type to_gen_func_kind =
@@ -494,6 +495,9 @@ and subst_body p subst tree =
           List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
         in
         { tree with expr = Mprint_str fmts }
+    | Mfree_after (e, fs) ->
+        let e = sub e in
+        { tree with expr = Mfree_after (e, fs) }
   and mono_callable name typ tree =
     if is_type_polymorphic tree.typ then (
       match Apptbl.find_opt apptbl name with
@@ -714,13 +718,6 @@ let reset () =
   alloc_id := 1;
   malloc_id := 1
 
-(* The first var_id is reserved for global values (such as string literals).
-   In ifs where string literals can be returned, they will get decreased.
-   If this happens in function we could decrease string literals multiple times
-   and try to free them. To combat this, a global id is generated at top level,
-   which causes appropriate ref increases. See [morph_if] for details*)
-let global_id = 1
-
 let rec set_alloca = function
   | Value ({ contents = Request req } as a) when req.lvl >= !alloc_lvl ->
       a := Preallocated
@@ -731,7 +728,7 @@ let rec set_alloca = function
 
 let rec remove_malloc malloc = function
   | [] -> []
-  | s :: tl -> Iset.diff malloc s :: remove_malloc malloc tl
+  | s :: tl -> Iset.diff s malloc :: remove_malloc malloc tl
 
 let add_malloc ~id = function
   | [] -> failwith "Internal Error: Empty ids"
@@ -780,7 +777,8 @@ let rec is_part = function
   | Mbind (_, _, cont)
   | Mfunction (_, _, cont, _)
   | Mseq (_, cont)
-  | Munop (_, cont) ->
+  | Munop (_, cont)
+  | Mfree_after (cont, _) ->
       is_part cont.expr
 
 let reconstr_module_username ~mname ~mainmodule username =
@@ -902,7 +900,7 @@ and morph_var mk p v =
 and morph_string mk p s =
   ( p,
     mk (Mconst (String s)) p.ret,
-    { no_var with fn = No_function; malloc = Iset.singleton global_id } )
+    { no_var with fn = No_function; malloc = Iset.empty } )
 
 and morph_array mk p a =
   let ret = p.ret in
@@ -962,10 +960,9 @@ and morph_if mk p cond e1 e2 =
   let oids = p.mallocs in
   let mallocs = Iset.empty :: oids in
 
-  let p, e1, a = morph_expr { p with ret; mallocs } e1 in
 
-  (* TODO tail recursion *)
-  let p, e2, b = morph_expr { p with ret; mallocs } e2 in
+  let p, e1, a = morph_expr { p with ret } e1 in
+  let p, e2, b = morph_expr { p with ret } e2 in
   let tailrec = a.tailrec && b.tailrec in
 
   (* Remove returning ids from original id list as a new one is issued *)
@@ -992,15 +989,6 @@ and prep_let p id uniq e toplvl =
   in
 
   let p, e1, func = morph_expr { p with ret = false } e in
-  (* We add constants to the constant table, not the current env *)
-  let malloc, mallocs =
-    if Iset.is_empty func.malloc && contains_allocation e1.typ then
-      (* e1 has been moved, we are the owner *)
-      mb_malloc p.mallocs e1.typ
-    else (func.malloc, p.mallocs)
-  in
-
-  let func = { func with malloc } in
   let p, gn, needs_init =
     match e.attr with
     | { const = true; _ } ->
@@ -1020,13 +1008,10 @@ and prep_let p id uniq e toplvl =
         (* Add global values to env with global id. That's how they might be queried,
            and the function information is needed for monomorphization *)
         let vars = Vars.add uniq (Global (uniq, func, used)) vars in
-        ({ p with vars; mallocs }, Some uniq, true)
-    | _ ->
-        ( { p with vars = Vars.add un (Normal func) p.vars; mallocs },
-          None,
-          false )
+        ({ p with vars }, Some uniq, true)
+    | _ -> ({ p with vars = Vars.add un (Normal func) p.vars }, None, false)
   in
-  (p, e1, gn, needs_init, malloc)
+  (p, e1, gn, needs_init, func.malloc)
 
 and morph_record mk p labels is_const typ =
   let ret = p.ret in
@@ -1147,7 +1132,12 @@ and prep_func p (username, uniq, abs) =
   if is_struct body.typ then set_alloca var.alloc;
   leave_level ();
 
-  (* TODO free body *)
+  let frees =
+    match temp_p.mallocs with
+    | [] -> failwith "Internal Error: Empty malloc stack in fn"
+    | ms :: _ -> Iset.to_seq ms |> List.of_seq
+  in
+  let body = { body with expr = Mfree_after (body, frees) } in
   let recursive = pop_recursion_stack () in
 
   (* Collect functions from body *)
@@ -1364,24 +1354,14 @@ and morph_app mk p callee args ret_typ =
     else (No_value, ref (request ()))
   in
 
-  (* let mkapp, vid, mallocs = *)
-  (*   (\* array-get does not return a temporary. If its value is returned in a function, *)
-  (*      increase value's refcount so that it's really a temporary *\) *)
-  (*   match callee.monomorph with *)
-  (*   | Builtin (Array_get, _) | Builtin (Copy, _) -> *)
-  (*       let mk = *)
-  (*         if ret then fun app -> *)
-  (*           let app = mk app ret in *)
-  (*           (\* TODO move *\) *)
-  (*           app *)
-  (*         else fun app -> mk app ret *)
-  (*       in *)
-  (*       (mk, None, p.mallocs) *)
-  (*   | _ -> *)
-  (*       let vid, ids = mb_id p.ids ret_typ in *)
-  (*       ((fun app -> mk app ret), vid, ids) *)
-  (* in *)
-  let malloc, mallocs = mb_malloc p.mallocs ret_typ in
+  let malloc, mallocs =
+    (* array-get does not return a temporary. If its value is returned in a function,
+       increase value's refcount so that it's really a temporary *)
+    match callee.monomorph with
+    | Builtin (Array_get, _) -> (Iset.empty, p.mallocs)
+    | _ -> mb_malloc p.mallocs ret_typ
+  in
+
   let ms = Iset.to_seq malloc |> List.of_seq in
 
   let app = Mapp { callee; args; alloca = alloc_ref; id; ms } in
@@ -1601,12 +1581,10 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
       missing_polys_tbl p
   in
 
-  let decrs =
+  let frees =
     match p.mallocs with
     | [] -> Seq.empty
-    | mallocs :: _ ->
-        Iset.to_rev_seq mallocs
-        |> Seq.filter (fun i -> not (Int.equal i global_id))
+    | mallocs :: _ -> Iset.to_rev_seq mallocs
   in
 
   let externals =
@@ -1643,4 +1621,4 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
   in
 
   let funcs = Fset.to_seq p.funcs |> List.of_seq in
-  { constants; globals; externals; tree; funcs; decrs }
+  { constants; globals; externals; tree; funcs; frees }

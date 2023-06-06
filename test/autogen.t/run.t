@@ -19,6 +19,7 @@ Copy string literal
     %4 = load i8*, i8** %1, align 8
     %5 = getelementptr i8, i8* %4, i64 24
     call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*), i64 24), i8* %5, i64 1)
+    call void @__free_ac(i8** %1)
     ret i64 0
   }
   
@@ -45,15 +46,21 @@ Copy string literal
   
   declare void @printf(i8* %0, ...)
   
+  define internal void @__free_ac(i8** %0) {
+  entry:
+    %1 = load i8*, i8** %0, align 8
+    %ref = bitcast i8* %1 to i64*
+    %2 = bitcast i64* %ref to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
   declare i8* @malloc(i64 %0)
+  
+  declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
   test 1
-  ==16649== 30 bytes in 1 blocks are definitely lost in loss record 1 of 1
-  ==16649==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16649==    by 0x4011DE: __copy_ac (in $TESTCASE_ROOT/string_lit)
-  ==16649==    by 0x40118E: main (in $TESTCASE_ROOT/string_lit)
-  ==16649== 
 
 Copy array of strings
   $ schmu --dump-llvm arr_of_strings.smu && valgrind -q --leak-check=yes --show-reachable=yes ./arr_of_strings
@@ -102,6 +109,8 @@ Copy array of strings
     %data1 = bitcast i8* %13 to i8**
     %14 = load i8*, i8** %data1, align 8
     call void @prelude_print(i8* %14)
+    call void @__free_aac(i8*** %9)
+    call void @__free_aac(i8*** @schmu_a)
     ret i64 0
   }
   
@@ -170,33 +179,52 @@ Copy array of strings
     ret void
   }
   
+  define internal void @__free_ac(i8** %0) {
+  entry:
+    %1 = load i8*, i8** %0, align 8
+    %ref = bitcast i8* %1 to i64*
+    %2 = bitcast i64* %ref to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
+  define internal void @__free_aac(i8*** %0) {
+  entry:
+    %1 = load i8**, i8*** %0, align 8
+    %ref = bitcast i8** %1 to i64*
+    %sz = getelementptr i64, i64* %ref, i64 1
+    %size = load i64, i64* %sz, align 8
+    %cnt = alloca i64, align 8
+    store i64 0, i64* %cnt, align 8
+    br label %rec
+  
+  rec:                                              ; preds = %child, %entry
+    %2 = load i64, i64* %cnt, align 8
+    %3 = icmp slt i64 %2, %size
+    br i1 %3, label %child, label %cont
+  
+  child:                                            ; preds = %rec
+    %4 = bitcast i8** %1 to i8*
+    %5 = mul i64 8, %2
+    %6 = add i64 24, %5
+    %7 = getelementptr i8, i8* %4, i64 %6
+    %data = bitcast i8* %7 to i8**
+    call void @__free_ac(i8** %data)
+    %8 = add i64 %2, 1
+    store i64 %8, i64* %cnt, align 8
+    br label %rec
+  
+  cont:                                             ; preds = %rec
+    %9 = bitcast i8** %1 to i64*
+    %10 = bitcast i64* %9 to i8*
+    call void @free(i8* %10)
+    ret void
+  }
+  
+  declare void @free(i8* %0)
+  
   attributes #0 = { argmemonly nofree nounwind willreturn }
   toast
-  ==16660== 29 bytes in 1 blocks are indirectly lost in loss record 1 of 5
-  ==16660==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16660==    by 0x40120E: __copy_ac (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660==    by 0x4011AD: main (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660== 
-  ==16660== 30 bytes in 1 blocks are indirectly lost in loss record 2 of 5
-  ==16660==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16660==    by 0x40120E: __copy_ac (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660==    by 0x4011C9: main (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660== 
-  ==16660== 40 bytes in 1 blocks are still reachable in loss record 3 of 5
-  ==16660==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16660==    by 0x401170: main (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660== 
-  ==16660== 59 bytes in 2 blocks are still reachable in loss record 4 of 5
-  ==16660==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16660==    by 0x40120E: __copy_ac (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660==    by 0x4012A3: __copy_aac (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660==    by 0x4011D8: main (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660== 
-  ==16660== 99 (40 direct, 59 indirect) bytes in 1 blocks are definitely lost in loss record 5 of 5
-  ==16660==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16660==    by 0x401267: __copy_aac (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660==    by 0x4011D8: main (in $TESTCASE_ROOT/arr_of_strings)
-  ==16660== 
 
 Copy records
   $ schmu --dump-llvm records.smu && valgrind -q --leak-check=yes --show-reachable=yes ./records
@@ -250,6 +278,8 @@ Copy records
     %11 = getelementptr inbounds %t, %t* %10, i32 0, i32 1
     %12 = load i8*, i8** %11, align 8
     call void @prelude_print(i8* %12)
+    call void @__free_contt(%cont_t* %8)
+    call void @__free_contt(%cont_t* @schmu_a)
     ret i64 0
   }
   
@@ -312,31 +342,43 @@ Copy records
     ret void
   }
   
+  define internal void @__free_t(%t* %0) {
+  entry:
+    %1 = getelementptr inbounds %t, %t* %0, i32 0, i32 1
+    call void @__free_ac(i8** %1)
+    %2 = getelementptr inbounds %t, %t* %0, i32 0, i32 3
+    call void @__free_ai(i64** %2)
+    ret void
+  }
+  
+  define internal void @__free_ai(i64** %0) {
+  entry:
+    %1 = load i64*, i64** %0, align 8
+    %2 = bitcast i64* %1 to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
+  define internal void @__free_ac(i8** %0) {
+  entry:
+    %1 = load i8*, i8** %0, align 8
+    %ref = bitcast i8* %1 to i64*
+    %2 = bitcast i64* %ref to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
+  define internal void @__free_contt(%cont_t* %0) {
+  entry:
+    %1 = bitcast %cont_t* %0 to %t*
+    call void @__free_t(%t* %1)
+    ret void
+  }
+  
+  declare void @free(i8* %0)
+  
   attributes #0 = { argmemonly nofree nounwind willreturn }
   lul
-  ==16671== 28 bytes in 1 blocks are still reachable in loss record 1 of 4
-  ==16671==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16671==    by 0x40123E: __copy_ac (in $TESTCASE_ROOT/records)
-  ==16671==    by 0x401193: main (in $TESTCASE_ROOT/records)
-  ==16671== 
-  ==16671== 28 bytes in 1 blocks are definitely lost in loss record 2 of 4
-  ==16671==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16671==    by 0x40123E: __copy_ac (in $TESTCASE_ROOT/records)
-  ==16671==    by 0x40127C: __copy_t (in $TESTCASE_ROOT/records)
-  ==16671==    by 0x4012E5: __copy_contt (in $TESTCASE_ROOT/records)
-  ==16671==    by 0x40120A: main (in $TESTCASE_ROOT/records)
-  ==16671== 
-  ==16671== 48 bytes in 1 blocks are still reachable in loss record 3 of 4
-  ==16671==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16671==    by 0x4011AE: main (in $TESTCASE_ROOT/records)
-  ==16671== 
-  ==16671== 48 bytes in 1 blocks are definitely lost in loss record 4 of 4
-  ==16671==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16671==    by 0x4012B2: __copy_ai (in $TESTCASE_ROOT/records)
-  ==16671==    by 0x401288: __copy_t (in $TESTCASE_ROOT/records)
-  ==16671==    by 0x4012E5: __copy_contt (in $TESTCASE_ROOT/records)
-  ==16671==    by 0x40120A: main (in $TESTCASE_ROOT/records)
-  ==16671== 
 
 Copy variants
   $ schmu variants.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./variants
@@ -381,6 +423,8 @@ Copy variants
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
+    call void @__free_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %5)
+    call void @__free_prelude.optiontup-ac(%prelude.option_tuple_array_u8* @schmu_a)
     ret i64 0
   }
   
@@ -428,22 +472,44 @@ Copy variants
     ret void
   }
   
+  define internal void @__free_tup-ac(%tuple_array_u8* %0) {
+  entry:
+    %1 = bitcast %tuple_array_u8* %0 to i8**
+    call void @__free_ac(i8** %1)
+    ret void
+  }
+  
+  define internal void @__free_ac(i8** %0) {
+  entry:
+    %1 = load i8*, i8** %0, align 8
+    %ref = bitcast i8* %1 to i64*
+    %2 = bitcast i64* %ref to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
+  define internal void @__free_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %0) {
+  entry:
+    %tag1 = bitcast %prelude.option_tuple_array_u8* %0 to i32*
+    %index = load i32, i32* %tag1, align 4
+    %1 = icmp eq i32 %index, 0
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %prelude.option_tuple_array_u8, %prelude.option_tuple_array_u8* %0, i32 0, i32 1
+    call void @__free_tup-ac(%tuple_array_u8* %data)
+    br label %cont
+  
+  cont:                                             ; preds = %match, %entry
+    ret void
+  }
+  
   declare i8* @malloc(i64 %0)
+  
+  declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
   thing
-  ==16682== 30 bytes in 1 blocks are still reachable in loss record 1 of 2
-  ==16682==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16682==    by 0x4011EE: __copy_ac (in $TESTCASE_ROOT/variants)
-  ==16682==    by 0x40118C: main (in $TESTCASE_ROOT/variants)
-  ==16682== 
-  ==16682== 30 bytes in 1 blocks are definitely lost in loss record 2 of 2
-  ==16682==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16682==    by 0x4011EE: __copy_ac (in $TESTCASE_ROOT/variants)
-  ==16682==    by 0x401225: __copy_tup-ac (in $TESTCASE_ROOT/variants)
-  ==16682==    by 0x401240: __copy_prelude.optiontup-ac (in $TESTCASE_ROOT/variants)
-  ==16682==    by 0x4011B0: main (in $TESTCASE_ROOT/variants)
-  ==16682== 
 
 Copy closures
   $ schmu --dump-llvm closure.smu && valgrind -q --leak-check=yes --show-reachable=yes ./closure
@@ -488,7 +554,7 @@ Copy closures
   entry:
     %funptr1 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i8*)* @schmu_capture to i8*), i8** %funptr1, align 8
-    %1 = tail call i8* @malloc(i64 ptrtoint ({ i8*, i8*, i64 }* getelementptr ({ i8*, i8*, i64 }, { i8*, i8*, i64 }* null, i32 1) to i64))
+    %1 = tail call i8* @malloc(i64 24)
     %clsr_schmu_capture = bitcast i8* %1 to { i8*, i8*, i64 }*
     %a = getelementptr inbounds { i8*, i8*, i64 }, { i8*, i8*, i64 }* %clsr_schmu_capture, i32 0, i32 2
     store i64 1, i64* %a, align 8
@@ -522,7 +588,7 @@ Copy closures
     tail call void @__copy_ac(i8** %data)
     %funptr1 = bitcast %closure* %0 to i8**
     store i8* bitcast (void (i8*)* @__fun_schmu0 to i8*), i8** %funptr1, align 8
-    %7 = tail call i8* @malloc(i64 ptrtoint ({ i8*, i8*, i8** }* getelementptr ({ i8*, i8*, i8** }, { i8*, i8*, i8** }* null, i32 1) to i64))
+    %7 = tail call i8* @malloc(i64 24)
     %clsr___fun_schmu0 = bitcast i8* %7 to { i8*, i8*, i8** }*
     %8 = alloca i8**, align 8
     %9 = bitcast i8*** %8 to i8*
@@ -538,6 +604,7 @@ Copy closures
     store i8* bitcast (void (i8*)* @__dtor_tup-aac to i8*), i8** %dtor, align 8
     %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     store i8* %7, i8** %envptr, align 8
+    call void @__free_aac(i8*** %arr)
     ret void
   }
   
@@ -641,15 +708,6 @@ Copy closures
     ret void
   }
   
-  define internal void @__free_ac(i8** %0) {
-  entry:
-    %1 = load i8*, i8** %0, align 8
-    %ref = bitcast i8* %1 to i64*
-    %2 = bitcast i64* %ref to i8*
-    call void @free(i8* %2)
-    ret void
-  }
-  
   define internal void @__free_aac(i8*** %0) {
   entry:
     %1 = load i8**, i8*** %0, align 8
@@ -685,6 +743,15 @@ Copy closures
   
   declare void @free(i8* %0)
   
+  define internal void @__free_ac(i8** %0) {
+  entry:
+    %1 = load i8*, i8** %0, align 8
+    %ref = bitcast i8* %1 to i64*
+    %2 = bitcast i64* %ref to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
   define i64 @main(i64 %arg) {
   entry:
     %ret = alloca %closure, align 8
@@ -703,6 +770,10 @@ Copy closures
     %envptr = getelementptr inbounds %closure, %closure* %1, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
     call void %casttmp(i8* %loadtmp1)
+    call void @__free_.u(%closure* %1)
+    call void @__free_.u(%closure* @schmu_c)
+    call void @__free_tup-.i(%tuple_fn_.int* @schmu___expr0__2)
+    call void @__free_.i(%closure* %ret)
     ret i64 0
   }
   
@@ -752,69 +823,69 @@ Copy closures
     ret void
   }
   
+  define internal void @__free_.u(%closure* %0) {
+  entry:
+    %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
+    %env = load i8*, i8** %envptr, align 8
+    %1 = icmp eq i8* %env, null
+    br i1 %1, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %2 = bitcast i8* %env to { i8*, i8* }*
+    %3 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %2, i32 0, i32 1
+    %dtor1 = load i8*, i8** %3, align 8
+    %4 = icmp eq i8* %dtor1, null
+    br i1 %4, label %just_free, label %dtor
+  
+  ret:                                              ; preds = %just_free, %dtor, %entry
+    ret void
+  
+  dtor:                                             ; preds = %notnull
+    %dtor2 = bitcast i8* %dtor1 to void (i8*)*
+    call void %dtor2(i8* %env)
+    br label %ret
+  
+  just_free:                                        ; preds = %notnull
+    call void @free(i8* %env)
+    br label %ret
+  }
+  
+  define internal void @__free_.i(%closure* %0) {
+  entry:
+    %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
+    %env = load i8*, i8** %envptr, align 8
+    %1 = icmp eq i8* %env, null
+    br i1 %1, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %2 = bitcast i8* %env to { i8*, i8* }*
+    %3 = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %2, i32 0, i32 1
+    %dtor1 = load i8*, i8** %3, align 8
+    %4 = icmp eq i8* %dtor1, null
+    br i1 %4, label %just_free, label %dtor
+  
+  ret:                                              ; preds = %just_free, %dtor, %entry
+    ret void
+  
+  dtor:                                             ; preds = %notnull
+    %dtor2 = bitcast i8* %dtor1 to void (i8*)*
+    call void %dtor2(i8* %env)
+    br label %ret
+  
+  just_free:                                        ; preds = %notnull
+    call void @free(i8* %env)
+    br label %ret
+  }
+  
+  define internal void @__free_tup-.i(%tuple_fn_.int* %0) {
+  entry:
+    %1 = bitcast %tuple_fn_.int* %0 to %closure*
+    call void @__free_.i(%closure* %1)
+    ret void
+  }
+  
   attributes #0 = { argmemonly nofree nounwind willreturn }
   hello
-  ==16693== 24 bytes in 1 blocks are still reachable in loss record 1 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x40127D: __ctor_tup-i (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x40149E: __copy_.i (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x40145B: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
-  ==16693== 24 bytes in 1 blocks are still reachable in loss record 2 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x40122C: schmu_test (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x40146A: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
-  ==16693== 24 bytes in 1 blocks are definitely lost in loss record 3 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x4011A7: schmu_hmm (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x40143E: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
-  ==16693== 30 bytes in 1 blocks are still reachable in loss record 4 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x4012BE: __copy_ac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x401353: __copy_aac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x4013A2: __ctor_tup-aac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x4014BE: __copy_.u (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x401479: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
-  ==16693== 30 bytes in 1 blocks are indirectly lost in loss record 5 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x4012BE: __copy_ac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x401218: schmu_test (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x40146A: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
-  ==16693== 30 bytes in 1 blocks are indirectly lost in loss record 6 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x4012BE: __copy_ac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x401353: __copy_aac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x401240: schmu_test (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x40146A: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
-  ==16693== 32 bytes in 1 blocks are still reachable in loss record 7 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x401317: __copy_aac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x401240: schmu_test (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x40146A: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
-  ==16693== 32 bytes in 1 blocks are indirectly lost in loss record 8 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x401317: __copy_aac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x4013A2: __ctor_tup-aac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x4014BE: __copy_.u (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x401479: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
-  ==16693== 62 (32 direct, 30 indirect) bytes in 1 blocks are definitely lost in loss record 9 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x4011E3: schmu_test (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x40146A: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
-  ==16693== 86 (24 direct, 62 indirect) bytes in 1 blocks are definitely lost in loss record 10 of 10
-  ==16693==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==16693==    by 0x401380: __ctor_tup-aac (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x4014BE: __copy_.u (in $TESTCASE_ROOT/closure)
-  ==16693==    by 0x401479: main (in $TESTCASE_ROOT/closure)
-  ==16693== 
 
 Copy string literal on move
   $ schmu copy_string_lit.smu --dump-llvm
@@ -865,6 +936,8 @@ Copy string literal on move
     %data1 = bitcast i8* %16 to i8**
     %17 = load i8*, i8** %data1, align 8
     call void @prelude_print(i8* %17)
+    call void @__free_ac(i8** %7)
+    call void @__free_aac(i8*** @schmu_a)
     ret i64 0
   }
   
@@ -890,5 +963,49 @@ Copy string literal on move
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define internal void @__free_ac(i8** %0) {
+  entry:
+    %1 = load i8*, i8** %0, align 8
+    %ref = bitcast i8* %1 to i64*
+    %2 = bitcast i64* %ref to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
+  define internal void @__free_aac(i8*** %0) {
+  entry:
+    %1 = load i8**, i8*** %0, align 8
+    %ref = bitcast i8** %1 to i64*
+    %sz = getelementptr i64, i64* %ref, i64 1
+    %size = load i64, i64* %sz, align 8
+    %cnt = alloca i64, align 8
+    store i64 0, i64* %cnt, align 8
+    br label %rec
+  
+  rec:                                              ; preds = %child, %entry
+    %2 = load i64, i64* %cnt, align 8
+    %3 = icmp slt i64 %2, %size
+    br i1 %3, label %child, label %cont
+  
+  child:                                            ; preds = %rec
+    %4 = bitcast i8** %1 to i8*
+    %5 = mul i64 8, %2
+    %6 = add i64 24, %5
+    %7 = getelementptr i8, i8* %4, i64 %6
+    %data = bitcast i8* %7 to i8**
+    call void @__free_ac(i8** %data)
+    %8 = add i64 %2, 1
+    store i64 %8, i64* %cnt, align 8
+    br label %rec
+  
+  cont:                                             ; preds = %rec
+    %9 = bitcast i8** %1 to i64*
+    %10 = bitcast i64* %9 to i8*
+    call void @free(i8* %10)
+    ret void
+  }
+  
+  declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }

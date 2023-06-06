@@ -563,11 +563,6 @@ and check_let ~tl loc env id lhs rmut mutly hist =
     | false, true -> failwith "unreachable"
   in
   let rhs, rval, hs = check_tree env false nmut [] lhs hist in
-  let rhs =
-    match nmut with
-    | Umove -> { rhs with expr = Move rhs }
-    | Uread | Uset | Umut -> rhs
-  in
   let loc = loc in
   let neword () =
     incr borrow_state;

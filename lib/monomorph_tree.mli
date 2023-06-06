@@ -31,6 +31,7 @@ type expr =
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
+  | Mfree_after of monod_tree * int list
 [@@deriving show]
 
 and const =
@@ -94,7 +95,7 @@ type monomorphized_tree = {
   externals : external_decl list;
   tree : monod_tree;
   funcs : to_gen_func list;
-  decrs : int Seq.t;
+  frees : int Seq.t;
 }
 
 val typ_of_abs : abstraction -> typ

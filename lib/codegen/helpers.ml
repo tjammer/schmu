@@ -117,7 +117,9 @@ struct
     if is_struct value.typ then value.value
     else
       match value.kind with
-      | Const_ptr -> Llvm.global_initializer value.value |> Option.get
+      | Const_ptr ->
+          assert (Llvm.is_global_constant value.value);
+          Llvm.global_initializer value.value |> Option.get
       | Ptr -> Llvm.build_load value.value "" builder
       | Const | Imm -> value.value
 
@@ -421,7 +423,9 @@ struct
           let assoc_type = lltypeof_closure assoc upward in
           let clsr_ptr =
             if upward then
-              let size = Llvm.size_of assoc_type in
+              let size =
+                sizeof_typ (typeof_closure assoc) |> Llvm.const_int int_t
+              in
               let ptr = malloc ~size in
               bb ptr (Llvm.pointer_type assoc_type) ("clsr_" ^ name) builder
             else alloca param assoc_type ("clsr_" ^ name)

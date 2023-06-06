@@ -20,7 +20,7 @@ end = struct
   open H
   open Ar
 
-  let decr_tbl = Strtbl.create 64
+  let decr_tbl = Hashtbl.create 64
 
   let rec gen_function vars { Monomorph_tree.abs; name; recursive; upward } =
     let typ = Monomorph_tree.typ_of_abs abs in
@@ -176,6 +176,7 @@ end = struct
     | Mfmt (fmts, allocref, id) ->
         gen_fmt_str param fmts typed_expr.typ allocref id |> fin
     | Mprint_str fmts -> gen_print_str param fmts |> fin
+    | Mfree_after (expr, fs) -> gen_free param expr fs |> fin
 
   and gen_let param id equals gn cont =
     let expr_val =
@@ -1042,6 +1043,13 @@ end = struct
     let args = fmtptr.value :: itemargs |> Array.of_list in
     Llvm.build_call (Lazy.force printf_decl) args "" builder |> ignore;
     { dummy_fn_value with lltyp = unit_t }
+
+  and gen_free param expr fs =
+    let expr = gen_expr param expr in
+    List.iter
+      (fun i -> Option.iter (Auto.free param) (Hashtbl.find_opt decr_tbl i))
+      fs;
+    expr
 end
 
 and T : Lltypes_intf.S = Lltypes.Make (A)
@@ -1055,6 +1063,14 @@ let fill_constants constants =
     let init = Core.gen_expr no_param tree in
     (* We only add records to the global table, because they are expected as ptrs.
        For ints or floats, we just return the immediate value *)
+    let init =
+      match init.kind with
+      | Const_ptr ->
+          (* Don't store ptr to another global *)
+          let value = Llvm.global_initializer init.value |> Option.get in
+          { init with value; kind = Const }
+      | _ -> init
+    in
     let value = Llvm.define_global name init.value the_module in
     Llvm.set_global_constant true value;
     if not toplvl then Llvm.set_linkage Llvm.Linkage.Internal value;
@@ -1138,7 +1154,7 @@ let add_global_init funcs outname kind body =
   set_linkage Appending global
 
 let generate ~target ~outname ~release ~modul
-    { Monomorph_tree.constants; globals; externals; tree; funcs; decrs } =
+    { Monomorph_tree.constants; globals; externals; tree; funcs; frees } =
   let open Llvm_target in
   let triple =
     match target with
@@ -1188,16 +1204,13 @@ let generate ~target ~outname ~release ~modul
       funcs
   in
 
-  (* TODO free *)
-  let decr_refs tree _ = tree in
+  let free_mallocs tree frees =
+    Monomorph_tree.{ tree with expr = Mfree_after (tree, List.of_seq frees) }
+  in
 
-  (*   Seq.fold_left *)
-  (*     (fun tree id -> Monomorph_tree.{ tree with expr = Mdecr_ref (id, tree) }) *)
-  (*     tree *)
-  (* in *)
   if not modul then
     (* Add main *)
-    let tree = decr_refs tree decrs in
+    let tree = free_mallocs tree frees in
     let upward () = false in
     Core.gen_function funcs
       {
@@ -1223,12 +1236,12 @@ let generate ~target ~outname ~release ~modul
     add_global_init funcs outname `Ctor tree;
 
     (* Add frees to global dctors in reverse order *)
-    if not (Seq.is_empty decrs) then
+    if not (Seq.is_empty frees) then
       let loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
       let body =
         Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true; loc }
       in
-      add_global_init no_param outname `Dtor (decr_refs body decrs));
+      add_global_init no_param outname `Dtor (free_mallocs body frees));
   (* Generate internal helper functions for arrays *)
   Auto.gen_functions ();
 
