@@ -239,11 +239,11 @@ and canonexpr mname nsub sub = function
   | Unop (op, e) ->
       let sub, e = (canonbody mname nsub) sub e in
       (sub, Unop (op, e))
-  | If (cond, e1, e2) ->
+  | If (cond, o, e1, e2) ->
       let sub, cond = (canonbody mname nsub) sub cond in
       let sub, e1 = (canonbody mname nsub) sub e1 in
       let sub, e2 = (canonbody mname nsub) sub e2 in
-      (sub, If (cond, e1, e2))
+      (sub, If (cond, o, e1, e2))
   | Let d ->
       let sub, lhs = (canonbody mname nsub) sub d.lhs in
       (* Remove [id] from names map. If there is a function named [id],
@@ -589,7 +589,7 @@ and mod_body f e =
   | Const (Array ts) -> Const (Array (List.map m ts))
   | Bop (b, l, r) -> Bop (b, m l, m r)
   | Unop (u, e) -> Unop (u, m e)
-  | If (c, l, r) -> If (m c, m l, m r)
+  | If (c, o, l, r) -> If (m c, o, m l, m r)
   | Let l -> Let { l with lhs = m l.lhs; cont = m l.cont }
   | Bind (n, e, cont) -> Bind (n, m e, m cont)
   | Lambda (i, abs) -> Lambda (i, mod_abs f abs)

@@ -410,13 +410,16 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     (match orig.kind with
     | Ptr | Const_ptr -> ()
     | _ -> failwith "Internal Error: Not passed as mutable");
+    let pmoved = false in
     let poly =
       Tfun
-        ( [ { pmut = true; pt = Tarray (Tpoly "0") } ],
+        ( [ { pmut = true; pt = Tarray (Tpoly "0"); pmoved } ],
           Tarray (Tpoly "0"),
           Simple )
     in
-    let typ = Tfun ([ { pmut = true; pt = orig.typ } ], orig.typ, Simple) in
+    let typ =
+      Tfun ([ { pmut = true; pt = orig.typ; pmoved } ], orig.typ, Simple)
+    in
     let name =
       Monomorph_tree.get_mono_name (name_of_func kind) ~closure:false ~poly typ
     in

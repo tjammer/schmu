@@ -15,7 +15,7 @@ type typ =
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of closed list
-and param = { pt : typ; pmut : bool }
+and param = { pt : typ; pmut : bool; pmoved : bool }
 and field = { ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }

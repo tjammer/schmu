@@ -992,7 +992,8 @@ end = struct
     (* Would be interesting to evaluate this at compile time,
        but I think it's not that important right now *)
     let attr = { no_attr with mut = type_e1.attr.mut && type_e2.attr.mut } in
-    { typ = type_e2.typ; expr = If (type_cond, type_e1, type_e2); attr; loc }
+    let expr = If (type_cond, None, type_e1, type_e2) in
+    { typ = type_e2.typ; expr; attr; loc }
 
   and pipe_ctor_msg =
     "Constructor already has an argument, cannot pipe a second one"
@@ -1271,7 +1272,7 @@ and catch_weak_expr sub e =
   | Function (_, _, abs, e) ->
       catch_weak_body sub abs;
       catch_weak_expr sub e
-  | If (cond, e1, e2) ->
+  | If (cond, _, e1, e2) ->
       catch_weak_expr sub cond;
       catch_weak_expr sub e1;
       catch_weak_expr sub e2

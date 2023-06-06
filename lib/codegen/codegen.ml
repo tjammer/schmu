@@ -545,7 +545,8 @@ end = struct
 
       (* For [ignore], we don't really need to generate the closure objects here *)
       match b with
-      | Ignore | Copy -> arg'
+      | Ignore -> arg'
+      | Copy -> get_mono_func arg' param arg.monomorph
       | _ ->
           let arg = get_mono_func arg' param arg.monomorph in
           func_to_closure param arg
@@ -787,9 +788,9 @@ end = struct
 
     if Lazy.is_val merge_bb then
       Llvm.position_at_end (Lazy.force merge_bb) builder;
-    (* (match expr.iid with *)
-    (* | Some id -> Strtbl.replace decr_tbl id llvar *)
-    (* | None -> ()) *)
+    (match expr.owning with
+    | Some id -> Strtbl.replace free_tbl id llvar
+    | None -> ());
     llvar
 
   and gen_record param typ labels allocref ms const return =

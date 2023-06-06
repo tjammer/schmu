@@ -407,7 +407,7 @@ and subst_body p subst tree =
         let cond = sub expr.cond in
         let e1 = sub expr.e1 in
         let e2 = sub expr.e2 in
-        { tree with typ = e1.typ; expr = Mif { cond; e1; e2 } }
+        { tree with typ = e1.typ; expr = Mif { expr with cond; e1; e2 } }
     | Mlet (id, expr, gn, vid, cont) ->
         let expr = sub expr in
         let cont = sub cont in
@@ -846,7 +846,8 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
-  | If (cond, e1, e2) -> morph_if make param cond e1 e2
+  | If (_, None, _, _) -> failwith "Internal Error: Unset if owning"
+  | If (cond, Some owning, e1, e2) -> morph_if make param cond owning e1 e2
   | Let { id; uniq; rmut; lhs; cont; mutly = _ } ->
       let p, e1, gn, needs_init, m = prep_let param id uniq lhs false in
       (* TODO *)
@@ -986,15 +987,36 @@ and morph_unop mk p unop expr =
   let p, e, _ = morph_expr { p with ret = false } expr in
   ({ p with ret }, mk (Munop (unop, e)) ret, no_var)
 
-and morph_if mk p cond e1 e2 =
+and morph_if mk p cond owning e1 e2 =
   let ret = p.ret in
   let p, cond, _ = morph_expr { p with ret = false } cond in
-  let oids = p.mallocs in
-  let mallocs = Iset.empty :: oids in
+  let omallocs = p.mallocs in
+  let mallocs = Iset.empty :: omallocs in
 
+  let p, e1, a = morph_expr { p with ret; mallocs } e1 in
+  let e1 =
+    let ms = List.hd p.mallocs in
+    if not (Iset.is_empty ms) then
+      let frees =
+        Iset.fold (fun i set -> Iset.remove i set) a.malloc ms
+        |> Iset.to_seq |> List.of_seq
+      in
+      { e1 with expr = Mfree_after (e1, frees) }
+    else e1
+  in
 
-  let p, e1, a = morph_expr { p with ret } e1 in
-  let p, e2, b = morph_expr { p with ret } e2 in
+  let p, e2, b = morph_expr { p with ret; mallocs } e2 in
+  let e2 =
+    let ms = List.hd p.mallocs in
+    if not (Iset.is_empty ms) then
+      let frees =
+        Iset.fold (fun i set -> Iset.remove i set) b.malloc ms
+        |> Iset.to_seq |> List.of_seq
+      in
+      { e2 with expr = Mfree_after (e2, frees) }
+    else e2
+  in
+
   let tailrec = a.tailrec && b.tailrec in
 
   (* Remove returning ids from original id list as a new one is issued *)
@@ -1007,11 +1029,15 @@ and morph_if mk p cond e1 e2 =
      allow accumulating allocations *)
   (* TODO recursion. In the recursion case we want to free everything in local scope *)
   (* TODO factor this out? *)
-  let malloc = Iset.union a.malloc b.malloc in
+  (* let malloc = Iset.union a.malloc b.malloc in *)
+  let malloc, mallocs =
+    let omallocs = remove_malloc a.malloc omallocs |> remove_malloc b.malloc in
+    if owning then mb_malloc omallocs e1.typ else (Iset.empty, omallocs)
+  in
+  let owning = Iset.find_first_opt (fun _ -> true) malloc in
 
-  (* Keep mallocs from if branches (for now) *)
-  ( p,
-    mk (Mif { cond; e1; e2 }) ret,
+  ( { p with mallocs },
+    mk (Mif { cond; owning; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc); malloc; tailrec } )
 
 and prep_let p id uniq e toplvl =

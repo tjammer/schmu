@@ -258,7 +258,11 @@ let rec check_excl_chain loc env borrow hist =
       (* print_endline "---------------"; *)
       (* print_endline (show_binding borrow); *)
       (* print_newline (); *)
-      (* print_endline (String.concat "\n" (List.map show_binding hist)); *)
+      (* print_endline *)
+      (*   (String.concat "\n" *)
+      (*      (Map.to_seq hist |> List.of_seq *)
+      (*      |> List.map (fun (id, l) -> Id.show id ^ ": " ^ *)
+      (*           String.concat ", " (List.map show_binding l)))); *)
       check_exclusivity loc borrow (Map.find (fst b.borrowed) hist);
       match Map.find_opt (fst b.borrowed) env with
       | Some { imm; delayed = _ } -> check_excl_chains loc env imm hist
@@ -281,7 +285,7 @@ let rec check_tree env bind mut part tree hist =
       (* This is no rvalue, we borrow *)
       let borrowed = (get_id borrowed, part) in
       let loc = tree.loc in
-      let borrow = function
+      let borrow mut = function
         | Bown b ->
             (* For Binds, it's imported that we take the owned name, and not the one from Var.
                Otherwise, the Bind name might be borrowed *)
@@ -336,31 +340,32 @@ let rec check_tree env bind mut part tree hist =
       in
 
       let borrow_delayed delayed =
-        let update b =
-          incr borrow_state;
-          { b with ord = !borrow_state; loc }
+        let find_borrow usage b =
+          match Map.find_opt (fst b.borrowed) env with
+          | Some b when bind -> b.imm
+          | Some { imm; delayed = _ } -> List.map (borrow usage) imm
+          | None -> []
         in
-        let f b =
-          let b =
-            match b with
-            | Bmove (b, l) ->
-                (* We keep the current location for the move *)
-                Bmove (update b, l)
-            | Borrow b -> Borrow (update b)
-            | Borrow_mut (b, s) -> Borrow_mut (update b, s)
+        let f acc binding =
+          let bs =
+            match binding with
+            | Bmove (b, _) -> find_borrow Umove b
+            | Borrow b -> find_borrow Uread b
+            | Borrow_mut (b, Set) -> find_borrow Uset b
+            | Borrow_mut (b, Dont_set) -> find_borrow Umut b
             | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"
           in
-          check_excl_chain loc env b hist;
-          b
+          List.rev_append bs acc
         in
-        List.map f delayed
+        List.fold_left f [] delayed
       in
 
       let borrow =
         match Map.find_opt (fst borrowed) env with
         | Some b when bind -> b
         | Some { imm; delayed } ->
-            let imm = List.map borrow imm @ borrow_delayed delayed in
+            let delayed = borrow_delayed delayed in
+            let imm = List.map (borrow mut) imm @ delayed in
             { imm; delayed = [] }
         | None -> imm []
       in
@@ -441,7 +446,6 @@ let rec check_tree env bind mut part tree hist =
       (* Check again to ensure exclusivity of arguments and closure *)
       let c = { callee with expr = Var "_env" } in
       check_tree tmp false Uread [] c hs |> ignore;
-      ignore (check_tree env false Uread [] callee hs);
       List.iteri
         (fun i (arg, attr) ->
           match Usage.of_attr attr with
@@ -464,35 +468,35 @@ let rec check_tree env bind mut part tree hist =
       let e, v, hs = check_tree env false Uread [] e hist in
       let expr = Unop (op, e) in
       ({ tree with expr }, imm [], add_hist v hs)
-  | If (cond, ae, be) ->
+  | If (cond, _, ae, be) ->
       let cond, v, hs = check_tree env false Uread [] cond hist in
       let hs = add_hist v hs in
       let ae, a, abs = check_tree env bind mut part ae hs in
       let be, b, bbs = check_tree env bind mut part be hs in
       (* Make sure borrow kind of both branches matches *)
       let _raise msg = raise (Error (tree.loc, msg)) in
-      let imm =
+      let imm, owning =
         match (a.imm, b.imm) with
         (* Ignore Bown _ cases, as it can't be returned. Would be borrowed *)
         (* Owning *)
-        | [], [] -> []
+        | [], [] -> [], true
         | [], b when are_borrow b ->
             if contains_allocation be.typ then
               _raise "Branches have different ownership: owned vs borrowed"
-            else []
+            else [], false
         | b, [] when are_borrow b ->
             if contains_allocation ae.typ then
               _raise "Branches have different ownership: borrowed vs owned"
-            else []
-        | [], a | a, [] -> a
+            else [], false
+        | [], a | a, [] -> a, true
         (* If both branches are (Some _), they have to be both the same kind,
            because it was applied in Var.. above*)
         | a, b ->
             assert (are_borrow a == are_borrow b);
-            a @ b
+            a @ b, false
       in
       let delayed = a.delayed @ b.delayed in
-      let expr = If (cond, ae, be) in
+      let expr = If (cond, Some owning, ae, be) in
       ({ tree with expr }, { imm; delayed }, integrate_new_elems abs hs bbs)
   | Ctor (name, i, e) -> (
       match e with
