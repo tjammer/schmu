@@ -191,16 +191,15 @@ let rec check_exclusivity loc borrow hist =
       ()
   | _, _ :: tl -> check_exclusivity loc borrow tl
 
+let make_copy_call loc tree =
+  let typ = Tfun ([ { pattr = Dnorm; pt = tree.typ } ], tree.typ, Simple) in
+  let callee = { typ; attr = no_attr; loc; expr = Var "__copy" } in
+  let expr = App { callee; args = [ (tree, Dnorm) ] } in
+  { tree with attr = { tree.attr with const = false }; expr }
+
 let string_lit_borrow tree mut =
   let loc = Typed_tree.(tree.loc) in
-  let copy tree =
-    let typ =
-      Tfun ([ { pattr = Dnorm; pt = Tarray Tu8 } ], Tarray Tu8, Simple)
-    in
-    let callee = { typ; attr = no_attr; loc; expr = Var "__copy" } in
-    let expr = App { callee; args = [ (tree, Dnorm) ] } in
-    { tree with attr = no_attr; expr }
-  in
+  let copy tree = make_copy_call loc tree in
   let borrowed = (new_id "__string", []) in
   match mut with
   | Usage.Uread ->
@@ -372,12 +371,12 @@ let rec check_tree env bind mut part tree hist =
       (* Don't add to hist here. Other expressions where the value is used
          will take care of this *)
       (tree, borrow, hist)
-  | Let { id; lhs; cont; mutly; rmut; uniq } ->
-      let lhs, env, b, hs =
-        check_let tree.loc env id lhs rmut mutly ~tl:false hist
+  | Let { id; rhs; cont; mutly; rmut; uniq } ->
+      let rhs, env, b, hs =
+        check_let tree.loc env id rhs rmut mutly ~tl:false hist
       in
       let cont, v, hs = check_tree env bind mut part cont (add_hist b hs) in
-      let expr = Let { id; lhs; cont; mutly; rmut; uniq } in
+      let expr = Let { id; rhs; cont; mutly; rmut; uniq } in
       ({ tree with expr }, v, hs)
   | Const (Array es) ->
       let hs, es =
@@ -409,11 +408,15 @@ let rec check_tree env bind mut part tree hist =
       let expr = Record fs in
       ({ tree with expr }, imm [], hs)
   | Field (t, i, name) ->
+      (match mut with
+      | Umove when t.attr.const ->
+          raise (Error (tree.loc, "Cannot move out of constant"))
+      | _ -> ());
       let t, b, hs = check_tree env bind mut ((i, name) :: part) t hist in
       let tree = { tree with expr = Field (t, i, name) } in
       if contains_allocation tree.typ then (tree, b, hs) else (tree, imm [], hs)
   | Set (thing, value) ->
-      let value, v, hs = check_tree env false Uread [] value hist in
+      let value, v, hs = check_tree env false Umove [] value hist in
       let hs = add_hist v hs in
       (* Track usage of values, but not the one being mutated *)
       let thing, t, hs = check_tree env bind Uset [] thing hs in
@@ -479,21 +482,21 @@ let rec check_tree env bind mut part tree hist =
         match (a.imm, b.imm) with
         (* Ignore Bown _ cases, as it can't be returned. Would be borrowed *)
         (* Owning *)
-        | [], [] -> [], true
+        | [], [] -> ([], true)
         | [], b when are_borrow b ->
             if contains_allocation be.typ then
               _raise "Branches have different ownership: owned vs borrowed"
-            else [], false
+            else ([], false)
         | b, [] when are_borrow b ->
             if contains_allocation ae.typ then
               _raise "Branches have different ownership: borrowed vs owned"
-            else [], false
-        | [], a | a, [] -> a, true
+            else ([], false)
+        | [], a | a, [] -> (a, true)
         (* If both branches are (Some _), they have to be both the same kind,
            because it was applied in Var.. above*)
         | a, b ->
             assert (are_borrow a == are_borrow b);
-            a @ b, false
+            (a @ b, false)
       in
       let delayed = a.delayed @ b.delayed in
       let expr = If (cond, Some owning, ae, be) in

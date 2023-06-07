@@ -44,7 +44,7 @@ and let_data = {
   uniq : int option;
   rmut : bool; (* is mutable generally *)
   mutly : bool; (* is passed mutably *)
-  lhs : typed_expr;
+  rhs : typed_expr;
   cont : typed_expr;
 }
 

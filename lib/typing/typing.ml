@@ -696,13 +696,13 @@ end = struct
     (env, id, expr, e1.attr.mut, pat_exprs)
 
   and convert_let_e env loc decl expr cont =
-    let env, id, lhs, rmut, pats =
+    let env, id, rhs, rmut, pats =
       convert_let ~global:false env loc decl expr
     in
     let cont = convert env cont in
     let cont = List.fold_left fold_decl cont pats in
-    let uniq = if lhs.attr.const then uniq_name id else None in
-    let expr = Let { id; uniq; rmut; mutly = expr.mmut; lhs; cont } in
+    let uniq = if rhs.attr.const then uniq_name id else None in
+    let expr = Let { id; uniq; rmut; mutly = expr.mmut; rhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr; loc }
 
   and convert_lambda env loc params body =
@@ -1115,13 +1115,13 @@ end = struct
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, block) :: tl ->
-          let env, id, lhs, rmut, pats =
+          let env, id, rhs, rmut, pats =
             convert_let ~global:false env loc decl block
           in
           let cont, env = to_expr env old_type tl in
           let cont = List.fold_left fold_decl cont pats in
-          let uniq = if lhs.attr.const then uniq_name id else None in
-          let expr = Let { id; uniq; rmut; mutly = block.mmut; lhs; cont } in
+          let uniq = if rhs.attr.const then uniq_name id else None in
+          let expr = Let { id; uniq; rmut; mutly = block.mmut; rhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, abs) = convert_function env loc func false in
@@ -1276,8 +1276,8 @@ and catch_weak_expr sub e =
       catch_weak_expr sub cond;
       catch_weak_expr sub e1;
       catch_weak_expr sub e2
-  | Let { lhs; cont; _ } | Bind (_, lhs, cont) ->
-      catch_weak_expr sub lhs;
+  | Let { rhs; cont; _ } | Bind (_, rhs, cont) ->
+      catch_weak_expr sub rhs;
       catch_weak_expr sub cont
   | App { callee; args } ->
       catch_weak_expr sub callee;

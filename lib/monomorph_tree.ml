@@ -9,7 +9,13 @@ type expr =
   | Mbop of Ast.bop * monod_tree * monod_tree
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
-  | Mlet of string * monod_tree * global_name * malloc_list * monod_tree
+  | Mlet of
+      string
+      * monod_tree
+      * bool (* is projected *)
+      * global_name
+      * malloc_list
+      * monod_tree
   | Mbind of string * monod_tree * monod_tree
   | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree * alloca
@@ -408,10 +414,14 @@ and subst_body p subst tree =
         let e1 = sub expr.e1 in
         let e2 = sub expr.e2 in
         { tree with typ = e1.typ; expr = Mif { expr with cond; e1; e2 } }
-    | Mlet (id, expr, gn, vid, cont) ->
+    | Mlet (id, expr, proj, gn, vid, cont) ->
         let expr = sub expr in
         let cont = sub cont in
-        { tree with typ = cont.typ; expr = Mlet (id, expr, gn, vid, cont) }
+        {
+          tree with
+          typ = cont.typ;
+          expr = Mlet (id, expr, proj, gn, vid, cont);
+        }
     | Mbind (id, lhs, cont) ->
         let lhs = sub lhs in
         let cont = sub cont in
@@ -805,7 +815,7 @@ let rec is_part = function
   | Mfmt _ | Mset _ | Mprint_str _ ->
       false
   | Mif { e1; e2; _ } -> is_part e1.expr || is_part e2.expr
-  | Mlet (_, _, _, _, cont)
+  | Mlet (_, _, _, _, _, cont)
   | Mbind (_, _, cont)
   | Mfunction (_, _, cont, _)
   | Mseq (_, cont)
@@ -848,14 +858,11 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (_, None, _, _) -> failwith "Internal Error: Unset if owning"
   | If (cond, Some owning, e1, e2) -> morph_if make param cond owning e1 e2
-  | Let { id; uniq; rmut; lhs; cont; mutly = _ } ->
-      let p, e1, gn, needs_init, m = prep_let param id uniq lhs false in
-      (* TODO *)
-      ignore needs_init;
-      ignore rmut;
+  | Let { id; uniq; rhs; cont; mutly; rmut = _ } ->
+      let p, e1, gn, m = prep_let param id uniq rhs mutly false in
       let ms = Iset.to_seq m |> List.of_seq in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
-      (p, { e2 with expr = Mlet (id, e1, gn, ms, e2) }, func)
+      (p, { e2 with expr = Mlet (id, e1, mutly, gn, ms, e2) }, func)
   | Bind (id, lhs, cont) ->
       let p, lhs, func = morph_expr { param with ret = false } lhs in
       let vars = Vars.add id (Normal func) p.vars in
@@ -1040,21 +1047,21 @@ and morph_if mk p cond owning e1 e2 =
     mk (Mif { cond; owning; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc); malloc; tailrec } )
 
-and prep_let p id uniq e toplvl =
+and prep_let p id uniq e proj toplvl =
   (* username *)
   let un =
     reconstr_module_username ~mname:p.mname ~mainmodule:p.mainmodule id
   in
 
   let p, e1, func = morph_expr { p with ret = false } e in
-  let p, gn, needs_init =
+  let p, gn =
     match e.attr with
     | { const = true; _ } ->
         let uniq = Module.unique_name ~mname:p.mname id uniq in
         (* Maybe we have to generate a new name here *)
         let cnt = new_id constant_uniq_state in
         Hashtbl.add constant_tbl uniq (cnt, e1, toplvl);
-        ({ p with vars = Vars.add un (Const uniq) p.vars }, Some uniq, false)
+        ({ p with vars = Vars.add un (Const uniq) p.vars }, Some uniq)
     | { global = true; _ } ->
         (* Globals are 'preallocated' at module level *)
         set_alloca func.alloc;
@@ -1066,10 +1073,12 @@ and prep_let p id uniq e toplvl =
         (* Add global values to env with global id. That's how they might be queried,
            and the function information is needed for monomorphization *)
         let vars = Vars.add uniq (Global (uniq, func, used)) vars in
-        ({ p with vars }, Some uniq, true)
-    | _ -> ({ p with vars = Vars.add un (Normal func) p.vars }, None, false)
+        ({ p with vars }, Some uniq)
+    | _ ->
+        if not proj then set_alloca func.alloc;
+        ({ p with vars = Vars.add un (Normal func) p.vars }, None)
   in
-  (p, e1, gn, needs_init, func.malloc)
+  (p, e1, gn, func.malloc)
 
 and morph_record mk p labels is_const typ =
   let ret = p.ret in
@@ -1195,7 +1204,7 @@ and prep_func p (username, uniq, abs) =
   let frees =
     match temp_p.mallocs with
     | [] -> failwith "Internal Error: Empty malloc stack in fn"
-    | ms :: _ -> Iset.to_seq ms |> List.of_seq
+    | ms :: _ -> Iset.to_rev_seq ms |> List.of_seq
   in
   let body = { body with expr = Mfree_after (body, frees) } in
   let recursive = pop_recursion_stack () in
@@ -1278,7 +1287,7 @@ and morph_lambda mk typ p id abs =
   let frees =
     match temp_p.mallocs with
     | [] -> failwith "Internal Error: Empty malloc stack in fn"
-    | ms :: _ -> Iset.to_seq ms |> List.of_seq
+    | ms :: _ -> Iset.to_rev_seq ms |> List.of_seq
   in
   let body = { body with expr = Mfree_after (body, frees) } in
 
@@ -1542,12 +1551,10 @@ let rec morph_toplvl param items =
         aux_impl param tl item
   and aux_impl param tl = function
     | Typed_tree.Tl_let { id; uniq; lhs = expr; _ } ->
-        let p, e1, gn, needs_init, m = prep_let param id uniq expr true in
-        (* TODO *)
-        ignore needs_init;
+        let p, e1, gn, m = prep_let param id uniq expr false true in
         let ms = Iset.to_seq m |> List.of_seq in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        (p, { e2 with expr = Mlet (id, e1, gn, ms, e2) }, func)
+        (p, { e2 with expr = Mlet (id, e1, false, gn, ms, e2) }, func)
     | Tl_function (loc, name, uniq, abs) ->
         let p, call, abs, alloca = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in

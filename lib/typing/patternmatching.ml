@@ -902,11 +902,11 @@ module Make (C : Core) (R : Recs) = struct
                 mut
             in
 
-            let lhs = expr path in
+            let rhs = expr path in
             (* If the value we pattern match on is mutable, we have to mentio this
                here in order to increase rc correctly. Otherwise, we had reference semantics*)
             let expr =
-              Let { id; uniq = None; rmut = mut; mutly = false; lhs; cont }
+              Let { id; uniq = None; rmut = mut; mutly = false; rhs; cont }
             in
             { typ = cont.typ; expr; attr = cont.attr; loc }
         | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
@@ -941,7 +941,7 @@ module Make (C : Core) (R : Recs) = struct
                   let else_ =
                     compile_matches env d.loc used_rows b ret_typ mut
                   in
-                  If (cmp, if_, else_)
+                  If (cmp, None, if_, else_)
             in
 
             { typ = ret_typ; expr; attr = no_attr; loc }
@@ -962,7 +962,7 @@ module Make (C : Core) (R : Recs) = struct
                   let else_ =
                     compile_matches env d.loc used_rows b ret_typ mut
                   in
-                  If (cmp, cont, else_)
+                  If (cmp, None, cont, else_)
             in
             { typ = ret_typ; expr; attr = no_attr; loc }
         | Lit_char ({ path; d; patterns; loc; _ }, c) ->
@@ -983,7 +983,7 @@ module Make (C : Core) (R : Recs) = struct
                   let else_ =
                     compile_matches env d.loc used_rows b ret_typ mut
                   in
-                  If (cmp, cont, else_)
+                  If (cmp, None, cont, else_)
             in
             { typ = ret_typ; expr; attr = no_attr; loc }
         | Record (fields, { path; loc; d; patterns; _ }) ->

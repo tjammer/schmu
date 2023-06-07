@@ -245,12 +245,12 @@ and canonexpr mname nsub sub = function
       let sub, e2 = (canonbody mname nsub) sub e2 in
       (sub, If (cond, o, e1, e2))
   | Let d ->
-      let sub, lhs = (canonbody mname nsub) sub d.lhs in
+      let sub, rhs = (canonbody mname nsub) sub d.rhs in
       (* Remove [id] from names map. If there is a function named [id],
          we don't want to rename accesses to the here named variable. *)
       let nsub = Smap.remove d.id nsub in
       let sub, cont = (canonbody mname nsub) sub d.cont in
-      (sub, Let { d with lhs; cont })
+      (sub, Let { d with rhs; cont })
   | Bind (id, lhs, cont) ->
       let sub, lhs = (canonbody mname nsub) sub lhs in
       let nsub = Smap.remove id nsub in
@@ -590,7 +590,7 @@ and mod_body f e =
   | Bop (b, l, r) -> Bop (b, m l, m r)
   | Unop (u, e) -> Unop (u, m e)
   | If (c, o, l, r) -> If (m c, o, m l, m r)
-  | Let l -> Let { l with lhs = m l.lhs; cont = m l.cont }
+  | Let l -> Let { l with rhs = m l.rhs; cont = m l.cont }
   | Bind (n, e, cont) -> Bind (n, m e, m cont)
   | Lambda (i, abs) -> Lambda (i, mod_abs f abs)
   | Function (n, i, abs, cont) -> Function (n, i, mod_abs f abs, m cont)

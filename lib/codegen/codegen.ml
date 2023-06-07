@@ -131,7 +131,7 @@ end = struct
         in
 
         gen_expr { param with vars = Vars.add name func param.vars } cont
-    | Mlet (id, equals, gn, _, cont) -> gen_let param id equals gn cont
+    | Mlet (id, rhs, proj, gn, _, cont) -> gen_let param id rhs proj gn cont
     | Mbind (id, equals, cont) -> gen_bind param id equals cont
     | Mlambda (name, abs, allocref) ->
         let func =
@@ -179,12 +179,12 @@ end = struct
     | Mprint_str fmts -> gen_print_str param fmts |> fin
     | Mfree_after (expr, fs) -> gen_free param expr fs |> fin
 
-  and gen_let param id equals gn cont =
+  and gen_let param id rhs proj gn cont =
     let expr_val =
       match gn with
       | Some n -> (
           let dst = Strtbl.find const_tbl n in
-          let v = gen_expr { param with alloca = Some dst.value } equals in
+          let v = gen_expr { param with alloca = Some dst.value } rhs in
           (* Bandaid for polymorphic first class functions. In monomorph pass, the
              global is ignored. TODO. Here, we make sure that the dummy_fn_value is
              not set to the global. The global will stay 0 forever *)
@@ -199,7 +199,15 @@ end = struct
               let v = { v with value = dst.value; kind = Ptr } in
               Strtbl.replace const_tbl n v;
               v)
-      | None -> gen_expr param equals
+      | None ->
+          if not proj then (
+            let dst = alloca param (get_lltype_def rhs.typ) "" in
+            let v = gen_expr { param with alloca = Some dst } rhs in
+            let src = bring_default_var v in
+
+            if v.value <> dst then store_or_copy ~src ~dst;
+            { v with value = dst; kind = Ptr })
+          else gen_expr param rhs
     in
     gen_expr { param with vars = Vars.add id expr_val param.vars } cont
 
@@ -880,7 +888,7 @@ end = struct
   and gen_set param expr valexpr =
     let ptr = gen_expr { param with in_set = true } expr in
     let value = gen_expr param valexpr in
-    decr_refcount ptr;
+    Auto.free param ptr;
     (* We know that ptr cannot be a constant record, but value might *)
     set_struct_field value ptr.value;
     { dummy_fn_value with lltyp = unit_t }
@@ -1106,7 +1114,7 @@ let has_init_code tree =
   let rec aux = function
     (* We have to deal with 'toplevel' type nodes only *)
     (* TODO toplevel let expressions do not produce globals *)
-    | Monomorph_tree.Mlet (name, _, gname, _, cont) -> (
+    | Monomorph_tree.Mlet (name, _, _, gname, _, cont) -> (
         let name = match gname with Some name -> name | None -> name in
         match Strtbl.find_opt const_tbl name with
         | Some thing -> (

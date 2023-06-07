@@ -89,7 +89,24 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
       let () = decl_children Copy v v.typ in
       (* TODO empty closures should not need to be copied *)
       make_ptr param v |> copy_root_call param !allocref
-    else v
+    else
+      match v.kind with
+      | Ptr ->
+          let dst = get_prealloc !allocref param (get_lltype_def v.typ) "" in
+          store_or_copy ~src:v ~dst;
+          { v with value = dst; kind = Ptr }
+      | Const ->
+          let dst = get_prealloc !allocref param (get_lltype_def v.typ) "" in
+          Llvm.build_store v.value dst builder |> ignore;
+          { v with value = dst; kind = Ptr }
+      | Const_ptr ->
+          let dst = get_prealloc !allocref param (get_lltype_def v.typ) "" in
+          Llvm.build_store
+            (Llvm.global_initializer v.value |> Option.get)
+            dst builder
+          |> ignore;
+          { v with value = dst; kind = Ptr }
+      | _ -> v
 
   (* Copy for closures *)
   let cls_fn_name kind assoc =
