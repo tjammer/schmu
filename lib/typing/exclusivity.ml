@@ -427,6 +427,29 @@ let rec check_tree env bind mut part tree hist =
       let snd, v, hs = check_tree env bind mut part snd hs in
       let expr = Sequence (fst, snd) in
       ({ tree with expr }, v, hs)
+  | App
+      { callee = { expr = Var "array-get"; _ } as callee; args = [ arr; idx ] }
+    ->
+      (* Special case for array-get *)
+      let callee, b, hs = check_tree env false Uread [] callee hist in
+      let hs = add_hist b hs in
+      (* We don't check for exclusivity, because there are only two arguments
+           and the second is an int *)
+      let part, idx, hs =
+        match (fst idx).expr with
+        | Const (Int i) ->
+            let part = (i, Printf.sprintf "[%i]" i) :: part in
+            (part, idx, hs)
+        | _ ->
+            let usage = Usage.of_attr (snd idx) in
+            let arg, v, hs = check_tree env false usage [] (fst idx) hs in
+            (part, (arg, snd idx), add_hist v hs)
+      in
+      let ar, b, hs = check_tree env bind mut part (fst arr) hs in
+      let tree =
+        { tree with expr = App { callee; args = [ (ar, snd arr); idx ] } }
+      in
+      if contains_allocation tree.typ then (tree, b, hs) else (tree, imm [], hs)
   | App { callee; args } ->
       (* The callee itself can be borrowed *)
       let callee, b, hs = check_tree env false Uread [] callee hist in
