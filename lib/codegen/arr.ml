@@ -512,7 +512,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     Llvm.position_at_end merge_bb builder;
     bring_default_var orig
 
-  let array_get ~in_set args typ =
+  let array_get args typ =
     let arr, index =
       match args with
       | [ arr; index ] -> (arr, bring_default index)
@@ -520,7 +520,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     in
 
     (* If we are being set, it's similar to array_set *)
-    let arr = if in_set then maybe_relocate arr else bring_default_var arr in
+    let arr = bring_default_var arr in
 
     let lltyp = get_lltype_def typ in
     let value = data_get arr.value arr.typ (Idyn index) in

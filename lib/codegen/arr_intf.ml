@@ -9,7 +9,7 @@ module type S = sig
     Monomorph_tree.alloca ->
     llvar
 
-  val array_get : in_set:bool -> llvar list -> typ -> llvar
+  val array_get : llvar list -> typ -> llvar
   val array_set : llvar list -> llvar
   val array_length : llvar list -> llvar
   val array_push : llvar list -> llvar
@@ -19,8 +19,6 @@ module type S = sig
   val unsafe_array_create :
     param -> llvar list -> typ -> Monomorph_tree.alloca -> llvar
 
-  val incr_refcount : llvar -> unit
-  val decr_refcount : llvar -> unit
   val item_type_head_size : typ -> typ * Llvm.lltype * int * int
 
   val iter_array_children :

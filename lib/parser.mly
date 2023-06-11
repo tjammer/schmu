@@ -268,8 +268,9 @@ sexp_expr:
   | ident { Var (fst $1, snd $1) }
   | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
   | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
-    {App ($loc, Var ($loc, "array-get"), [{apass = Dnorm; aloc = $loc(e); aexpr = e};
-                                  {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
+    {App ($loc, Var ($loc, "array-get"),
+          [{apass = Dnorm; aloc = $loc(e); aexpr = e};
+           {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
   | parens(lets) { $1 }
   | parens(sexp_if) { $1 }
   | parens(sexp_lambda) { $1 }

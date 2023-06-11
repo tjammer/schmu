@@ -697,7 +697,7 @@ struct
         if mut then Llvm.build_load alloca.value "" builder else alloca.value
       in
       (* let kind = if mut then Ptr else default_kind alloca.typ in *)
-      Arr.decr_refcount { alloca with value };
+      Auto.free param { alloca with value };
       ignore (Llvm.build_br cont_bb builder);
 
       Llvm.position_at_end cookie_bb builder;
