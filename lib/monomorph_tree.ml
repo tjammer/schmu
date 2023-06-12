@@ -132,10 +132,111 @@ type to_gen_func_kind =
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 
+type malloc = Single of int | Oneof of malloc * malloc | No_malloc
+[@@deriving show]
+
+type malloc_scope = Mfunc | Mlocal
+
+let m_to_list = function
+  | No_malloc -> []
+  | Single i -> [ i ]
+  | Oneof _ -> (* Handled in Move *) []
+
+module Mallocs : sig
+  type t
+  type classification = Local | Outer | No_cls
+
+  val empty : malloc_scope -> t
+  val push : malloc_scope -> t -> t
+  val pop : t -> int list * t
+  val mem : malloc -> t -> bool
+  val add : malloc -> t -> t
+  val remove : malloc -> t -> t
+  val remove_local : malloc -> t -> t
+  val empty_func : monod_tree -> t -> t * monod_tree
+  val classify : malloc -> t -> classification
+end = struct
+  type t = (malloc_scope * Iset.t) list
+  type classification = Local | Outer | No_cls
+
+  let empty scope = [ (scope, Iset.empty) ]
+  let push kind ms = (kind, Iset.empty) :: ms
+
+  let pop = function
+    | (_, ms) :: tl -> (Iset.to_rev_seq ms |> List.of_seq, tl)
+    | [] -> ([], [])
+
+  let rec mem a ms =
+    match (a, ms) with
+    | _, [] -> false
+    | Oneof (b, c), _ -> mem b ms && mem c ms
+    | Single i, (_, ms) :: tl -> Iset.mem i ms || mem a tl
+    | No_malloc, _ -> false
+
+  let add a ms =
+    match (a, ms) with
+    | _, [] -> failwith "Internal Error: Empty ids"
+    | Oneof (b, c), _ ->
+        (* These are for borrowed values. Borrowed values should already be part of the
+           mallocs env. There maybe is a special case for string literals here *)
+        Printf.printf "%s, %s\n%!" (show_malloc b) (show_malloc c);
+        assert (mem b ms);
+        assert (mem c ms);
+        ms
+    | Single a, (scope, ms) :: tl -> (scope, Iset.add a ms) :: tl
+    | No_malloc, _ -> ms
+
+  let rec remove a ms =
+    match (a, ms) with
+    | _, [] -> []
+    | Oneof (b, c), _ -> remove b ms |> remove c
+    | Single i, (scope, ms) :: tl -> (scope, Iset.remove i ms) :: remove a tl
+    | No_malloc, _ -> ms
+
+  let rec remove_local a ms =
+    match (a, ms) with
+    | _, [] -> []
+    | Oneof (b, c), _ -> remove_local b ms |> remove_local c
+    | Single i, (scope, ms) :: tl -> (scope, Iset.remove i ms) :: tl
+    | No_malloc, _ -> ms
+
+  let rec empty_func body = function
+    | [] -> ([], body)
+    | (Mlocal, s) :: tl ->
+        let frees = Iset.to_rev_seq s |> List.of_seq in
+        let tl, body =
+          empty_func { body with expr = Mfree_after (body, frees) } tl
+        in
+        ((Mlocal, Iset.empty) :: tl, body)
+    | (Mfunc, s) :: tl ->
+        let frees = Iset.to_rev_seq s |> List.of_seq in
+        ( (Mfunc, Iset.empty) :: tl,
+          { body with expr = Mfree_after (body, frees) } )
+
+  let rec classify a ms =
+    (* Local means we don't have to free if the branch isn't taken.
+       But how are Oneof _ handled? If something is oneof, there is an
+       outer alloc. *)
+    match (a, ms) with
+    | No_malloc, _ -> No_cls
+    | Single a, (Mlocal, ms) :: _ when Iset.mem a ms -> Local
+    | Single _, (Mlocal, _) :: _ -> Outer
+    | Oneof (a, b), (Mlocal, _) :: _ -> (
+        match (classify a ms, classify b ms) with
+        | Local, Local -> Local
+        | Outer, Local | Local, Outer | Outer, Outer -> Outer
+        | No_cls, No_cls -> No_cls
+        | No_cls, _ | _, No_cls -> failwith "why no cls here?")
+    | _, (Mfunc, _) :: _ -> failwith "Internal Error: Unexpected function scope"
+    | _, [] -> No_cls
+end
+
+let () = ignore Mallocs.mem
+
 type var_normal = {
   fn : to_gen_func_kind;
   alloc : alloc;
-  malloc : Iset.t;
+  malloc : malloc;
   tailrec : bool;
 }
 
@@ -146,8 +247,6 @@ type var =
   | Global of string * var_normal * bool ref
   | Param of var_normal
 
-type malloc_scope = Mfunc | Mlocal
-
 type morph_param = {
   vars : var Vars.t;
   monomorphized : Set.t;
@@ -155,7 +254,7 @@ type morph_param = {
   ret : bool;
   (* Marks an expression where an if is the last piece which returns a record.
      Needed for tail call elim *)
-  mallocs : (malloc_scope * Iset.t) list;
+  mallocs : Mallocs.t;
       (* Tracks all heap allocations in a scope.
          If a value with allocation is returned, they are marked for the parent scope.
          Otherwise freed *)
@@ -165,7 +264,7 @@ type morph_param = {
 }
 
 let no_var =
-  { fn = No_function; alloc = No_value; malloc = Iset.empty; tailrec = false }
+  { fn = No_function; alloc = No_value; malloc = No_malloc; tailrec = false }
 
 let apptbl = Apptbl.create 64
 let poly_funcs_tbl = Hashtbl.create 64
@@ -757,32 +856,12 @@ let rec set_alloca = function
       set_alloca b
   | Value _ | No_value -> ()
 
-let rec remove_malloc malloc = function
-  | [] -> []
-  | (scope, s) :: tl -> (scope, Iset.diff s malloc) :: remove_malloc malloc tl
-
-let add_malloc ~id = function
-  | [] -> failwith "Internal Error: Empty ids"
-  | (scope, s) :: tl -> (scope, Iset.add id s) :: tl
-
 let mb_malloc ids typ =
   if contains_allocation typ then
-    let id = new_id malloc_id in
-    let mallocs = add_malloc ~id ids in
-    (Iset.singleton id, mallocs)
-  else (Iset.empty, ids)
-
-let rec empty_func_mallocs body = function
-  | [] -> ([], body)
-  | (Mlocal, s) :: tl ->
-      let frees = Iset.to_rev_seq s |> List.of_seq in
-      let tl, body =
-        empty_func_mallocs { body with expr = Mfree_after (body, frees) } tl
-      in
-      ((Mlocal, Iset.empty) :: tl, body)
-  | (Mfunc, s) :: tl ->
-      let frees = Iset.to_rev_seq s |> List.of_seq in
-      ((Mfunc, Iset.empty) :: tl, { body with expr = Mfree_after (body, frees) })
+    let id = Single (new_id malloc_id) in
+    let mallocs = Mallocs.add id ids in
+    (id, mallocs)
+  else (No_malloc, ids)
 
 let add_params vars mallocs pnames =
   (* Add parameters to the env and create malloc ids if they have been moved *)
@@ -790,8 +869,8 @@ let add_params vars mallocs pnames =
     (fun (vars, mallocs) (name, malloc) ->
       let malloc, mallocs =
         match malloc with
-        | Some id -> (Iset.singleton id, add_malloc ~id mallocs)
-        | None -> (Iset.empty, mallocs)
+        | Some id -> (Single id, Mallocs.add (Single id) mallocs)
+        | None -> (No_malloc, mallocs)
       in
       let vars = Vars.add name (Param { no_var with malloc }) vars in
       (vars, mallocs))
@@ -874,7 +953,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | If (cond, Some owning, e1, e2) -> morph_if make param cond owning e1 e2
   | Let { id; uniq; rhs; cont; mutly; rmut = _ } ->
       let p, e1, gn, m = prep_let param id uniq rhs mutly false in
-      let ms = Iset.to_seq m |> List.of_seq in
+      let ms = m_to_list m in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       (p, { e2 with expr = Mlet (id, e1, mutly, gn, ms, e2) }, func)
   | Bind (id, lhs, cont) ->
@@ -923,8 +1002,8 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Fmt exprs -> morph_fmt make param exprs
   | Move e ->
       let p, e, func = morph_expr param e in
-      let mallocs = remove_malloc func.malloc p.mallocs in
-      ({ p with mallocs }, e, { func with malloc = Iset.empty })
+      let mallocs = Mallocs.remove func.malloc p.mallocs in
+      ({ p with mallocs }, e, { func with malloc = No_malloc })
 
 and morph_var mk p v =
   let (v, kind), var =
@@ -941,7 +1020,7 @@ and morph_var mk p v =
             if p.ret then ((v, Vnorm), thing)
             else
               (* Mark argument with a bogus id *)
-              ((v, Vnorm), { thing with malloc = Iset.singleton (-1) })
+              ((v, Vnorm), { thing with malloc = Single (-1) })
         | Some (Const thing) -> ((thing, Vconst), no_var)
         | Some (Global (id, thing, used)) ->
             used := true;
@@ -954,7 +1033,7 @@ and morph_var mk p v =
 and morph_string mk p s =
   ( p,
     mk (Mconst (String s)) p.ret,
-    { no_var with fn = No_function; malloc = Iset.empty } )
+    { no_var with fn = No_function; malloc = No_malloc } )
 
 and morph_array mk p a =
   let ret = p.ret in
@@ -968,23 +1047,19 @@ and morph_array mk p a =
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
     set_alloca var.alloc;
     (* Should have been moved *)
-    assert (Iset.is_empty var.malloc);
+    assert (var.malloc = No_malloc);
     (p, e)
   in
   let p, a = List.fold_left_map f p a in
   leave_level ();
   let alloca = ref (request ()) in
   let id = new_id malloc_id in
-  let mallocs = add_malloc ~id p.mallocs in
+  let mallocs = Mallocs.add (Single id) p.mallocs in
 
   ( { p with ret; mallocs },
     mk (Mconst (Array (a, alloca, id))) p.ret,
-    {
-      no_var with
-      fn = No_function;
-      alloc = Value alloca;
-      malloc = Iset.singleton id;
-    } )
+    { no_var with fn = No_function; alloc = Value alloca; malloc = Single id }
+  )
 
 and morph_const = function
   | String _ | Array _ -> failwith "Internal Error: Const should be extra case"
@@ -1011,60 +1086,99 @@ and morph_unop mk p unop expr =
 and morph_if mk p cond owning e1 e2 =
   let ret = p.ret in
   let p, cond, _ = morph_expr { p with ret = false } cond in
-  let omallocs = p.mallocs in
-  let mallocs = (Mlocal, Iset.empty) :: omallocs in
+  let mallocs = Mallocs.push Mlocal p.mallocs in
 
+  (* If a malloc from a branch is local it is unique. We can savely add it
+     to mallocs and return it. For mallocs from the outer scope (function scope),
+     we need to be more careful. If outer scope mallocs are involved, we don't add
+     to mallocs to prevent aliasing, but return Oneof _. If such an expression
+     is returned from a function, we cannot be sure what to free in codegen. *)
+  (* The trick is that if local allocations appear, they must have been moved.
+     Due to this, the other branch also has been moved and a new malloc id can be
+     generated. So the Oneof _ only appears if both branches are borrows.
+     In this case, there are two cases to distinguish:
+     1. The borrows are moved (owning = true), which means all unused branches
+     can be freed immediately.
+     2. The borrows are not moved (owning = false). In this case, we don't know if
+     the borrows are returned later, so we keep an extra bool per taken branch
+     in codegen which can be queried to delete the correct things. TODO *)
   let p, e1, a = morph_expr { p with ret; mallocs } e1 in
-  let e1 =
+  let e1, a, mallocs, akind =
     (* For tailrecursive calls, every ref is already decreased in [morph_app].
            Furthermore, if both branches are tailrecursive, calling decr_ref might
            destroy a basic block in codegen. That's due to no merge blocks being
            created in that case *)
-    if a.tailrec then e1
+    if a.tailrec then
+      let _, mallocs = Mallocs.pop p.mallocs in
+      (e1, { a with malloc = No_malloc }, mallocs, Mallocs.No_cls)
     else
-      let ms = List.hd p.mallocs |> snd in
-      if not (Iset.is_empty ms) then
-        let frees =
-          Iset.fold (fun i set -> Iset.remove i set) a.malloc ms
-          |> Iset.to_seq |> List.of_seq
-        in
-        { e1 with expr = Mfree_after (e1, frees) }
-      else e1
+      (* Remove returning malloc *)
+      let cls = Mallocs.classify a.malloc p.mallocs in
+      let mallocs = Mallocs.remove_local a.malloc p.mallocs in
+      let frees, mallocs = Mallocs.pop mallocs in
+      ({ e1 with expr = Mfree_after (e1, frees) }, a, mallocs, cls)
   in
 
-  let p, e2, b = morph_expr { p with ret; mallocs } e2 in
-  let e2 =
-    if b.tailrec then e2
+  let p, e2, b =
+    morph_expr { p with ret; mallocs = Mallocs.push Mlocal mallocs } e2
+  in
+  let e2, b, mallocs, bkind =
+    if b.tailrec then
+      let _, mallocs = Mallocs.pop p.mallocs in
+      (e2, { b with malloc = No_malloc }, mallocs, Mallocs.No_cls)
     else
-      let ms = List.hd p.mallocs |> snd in
-      if not (Iset.is_empty ms) then
-        let frees =
-          Iset.fold (fun i set -> Iset.remove i set) b.malloc ms
-          |> Iset.to_seq |> List.of_seq
-        in
-        { e2 with expr = Mfree_after (e2, frees) }
-      else e2
+      let cls = Mallocs.classify b.malloc p.mallocs in
+      let mallocs = Mallocs.remove_local b.malloc p.mallocs in
+      let frees, mallocs = Mallocs.pop mallocs in
+      ({ e2 with expr = Mfree_after (e2, frees) }, b, mallocs, cls)
   in
 
   let tailrec = a.tailrec && b.tailrec in
 
-  (* Remove returning ids from original id list as a new one is issued *)
-  (* NOTE that might not work. The if-expr returns either [a] or [b], but here
-     we remove both, unconditionally. That's probably wrong. *)
-  (* Can we check whether we own or borrow? *)
-
-  (* TODO if we own, transform allocs into one.
-     But.. Do we really need this? Maybe it's enough to change to lists (sets?) to
-     allow accumulating allocations *)
-  (* TODO recursion. In the recursion case we want to free everything in local scope *)
-  (* TODO factor this out? *)
-  (* let malloc = Iset.union a.malloc b.malloc in *)
+  (* Find out what's local and what isn't *)
   let malloc, mallocs =
-    let omallocs = remove_malloc a.malloc omallocs |> remove_malloc b.malloc in
-    if owning then mb_malloc omallocs e1.typ else (Iset.empty, omallocs)
+    if contains_allocation e1.typ then
+      match (akind, bkind) with
+      (* If something is local, mallocs have been moved *)
+      | Local, Local -> mb_malloc mallocs e1.typ
+      | Local, Outer ->
+          (* Create new malloc, but delete old, moved ids *)
+          mb_malloc (Mallocs.remove b.malloc mallocs) e1.typ
+      | Outer, Local -> mb_malloc (Mallocs.remove a.malloc mallocs) e1.typ
+      | No_cls, No_cls -> (No_malloc, mallocs)
+      | No_cls, Local -> (b.malloc, Mallocs.add b.malloc mallocs)
+      | Local, No_cls -> (a.malloc, Mallocs.add a.malloc mallocs)
+      | No_cls, Outer -> (b.malloc, mallocs)
+      | Outer, No_cls -> (a.malloc, mallocs)
+      | Outer, Outer -> (Oneof (a.malloc, b.malloc), mallocs)
+    else (No_malloc, mallocs)
   in
-  let owning = Iset.find_first_opt (fun _ -> true) malloc in
 
+  (if contains_allocation e1.typ then
+     match (akind, bkind) with Local, _ | _, Local -> assert owning | _ -> ());
+
+  (* Free what can be freed *)
+  let e1, e2, malloc, mallocs =
+    match malloc with
+    | Oneof _ when owning ->
+        let mallocs = Mallocs.remove malloc mallocs in
+        let malloc, mallocs = mb_malloc mallocs e1.typ in
+        ( { e1 with expr = Mfree_after (e1, m_to_list b.malloc) },
+          { e2 with expr = Mfree_after (e2, m_to_list a.malloc) },
+          malloc,
+          mallocs )
+    | Oneof _ -> failwith "cursed case"
+    | _ -> (e1, e2, malloc, mallocs)
+  in
+
+  let owning =
+    if owning then
+      match malloc with
+      | Single id -> Some id
+      | No_malloc -> None
+      | Oneof _ -> None
+    else None
+  in
   ( { p with mallocs },
     mk (Mif { cond; owning; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc); malloc; tailrec } )
@@ -1114,14 +1228,14 @@ and morph_record mk p labels is_const typ =
     let p, e, var = morph_expr param e in
     if is_struct e.typ then set_alloca var.alloc;
     (* Should have been moved *)
-    assert (Iset.is_empty var.malloc);
+    assert (var.malloc = No_malloc);
     (p, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
   leave_level ();
 
   let malloc, mallocs = mb_malloc p.mallocs typ in
-  let ms = Iset.to_seq malloc |> List.of_seq in
+  let ms = m_to_list malloc in
 
   let alloca = ref (request ()) in
   ( { p with ret; mallocs },
@@ -1144,9 +1258,7 @@ and morph_set mk p expr value =
      things are freed. If one were to force an allocation here,
      that's a leak *)
   let p, e, _ = morph_expr { p with ret = false } expr in
-  let p, v, func =
-    morph_expr { p with mallocs = [ (Mlocal, Iset.empty) ] } value
-  in
+  let p, v, func = morph_expr { p with mallocs = Mallocs.empty Mlocal } value in
 
   let tree = mk (Mset (e, v)) ret in
 
@@ -1207,7 +1319,7 @@ and prep_func p (username, uniq, abs) =
 
     (* Add parameters to env as normal values.
        The existing values might not be 'normal' *)
-    let mallocs = (Mfunc, Iset.empty) :: p.mallocs in
+    let mallocs = Mallocs.push Mfunc p.mallocs in
     let vars, mallocs = add_params vars mallocs pnames in
 
     {
@@ -1225,11 +1337,7 @@ and prep_func p (username, uniq, abs) =
   if is_struct body.typ then set_alloca var.alloc;
   leave_level ();
 
-  let frees =
-    match temp_p.mallocs with
-    | [] -> failwith "Internal Error: Empty malloc stack in fn"
-    | (_, ms) :: _ -> Iset.to_rev_seq ms |> List.of_seq
-  in
+  let frees = Mallocs.pop temp_p.mallocs |> fst in
   let body = { body with expr = Mfree_after (body, frees) } in
   let recursive = pop_recursion_stack () in
 
@@ -1291,7 +1399,7 @@ and morph_lambda mk typ p id abs =
   let temp_p =
     (* Add parameters to env as normal values.
        The existing values might not be 'normal' *)
-    let mallocs = (Mfunc, Iset.empty) :: p.mallocs in
+    let mallocs = Mallocs.push Mfunc p.mallocs in
     let vars, mallocs = add_params vars mallocs pnames in
 
     { p with vars; ret = true; mallocs; toplvl = false }
@@ -1308,11 +1416,7 @@ and morph_lambda mk typ p id abs =
     { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
   in
 
-  let frees =
-    match temp_p.mallocs with
-    | [] -> failwith "Internal Error: Empty malloc stack in fn"
-    | (_, ms) :: _ -> Iset.to_rev_seq ms |> List.of_seq
-  in
+  let frees = Mallocs.pop temp_p.mallocs |> fst in
   let body = { body with expr = Mfree_after (body, frees) } in
 
   (* Why do we need this again in lambda? They can't recurse. *)
@@ -1369,7 +1473,12 @@ and morph_app mk p callee args ret_typ =
   in
 
   let f p arg =
-    let is_arg malloc = Iset.fold (fun i arg -> i < 0 || arg) malloc false in
+    let rec is_arg = function
+      | No_malloc -> false
+      | Single -1 -> true
+      | Oneof (a, b) -> is_arg a || is_arg b
+      | Single _ -> false
+    in
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
     let mallocs, ex =
@@ -1383,7 +1492,7 @@ and morph_app mk p callee args ret_typ =
              ref counts of the whole record and increase the passed fields's ref count before *)
           (* TODO tailrec *)
           (p.mallocs, ex)
-        else (remove_malloc var.malloc p.mallocs, ex)
+        else (Mallocs.remove var.malloc p.mallocs, ex)
       else (p.mallocs, ex)
     in
     let p, monomorph = monomorphize_call { p with mallocs } ex None in
@@ -1395,7 +1504,7 @@ and morph_app mk p callee args ret_typ =
         let mut = Types.mut_of_pattr attr in
         let p, ex, monomorph, arg = f p arg in
         let mallocs, ex =
-          if tailrec then empty_func_mallocs ex p.mallocs else (p.mallocs, ex)
+          if tailrec then Mallocs.empty_func ex p.mallocs else (p.mallocs, ex)
         in
         ({ p with mallocs }, ({ ex; monomorph; mut }, arg) :: args)
     | (arg, attr) :: tl ->
@@ -1412,7 +1521,7 @@ and morph_app mk p callee args ret_typ =
         (* We haven't decreased references yet, because there is no last argument.
            Essentially, we do the same work as in the last arg of [fold_decr_last]*)
         (* Note that we use the original p.ids for [decr_refs] *)
-        let mallocs, ex = empty_func_mallocs callee.ex p.mallocs in
+        let mallocs, ex = Mallocs.empty_func callee.ex p.mallocs in
         ({ p with mallocs }, { callee with ex })
     | _ -> (p, callee)
   in
@@ -1433,11 +1542,11 @@ and morph_app mk p callee args ret_typ =
     (* array-get does not return a temporary. If its value is returned in a function,
        increase value's refcount so that it's really a temporary *)
     match callee.monomorph with
-    | Builtin (Array_get, _) -> (Iset.empty, p.mallocs)
+    | Builtin (Array_get, _) -> (No_malloc, p.mallocs)
     | _ -> mb_malloc p.mallocs ret_typ
   in
 
-  let ms = Iset.to_seq malloc |> List.of_seq in
+  let ms = m_to_list malloc in
 
   let app = Mapp { callee; args; alloca = alloc_ref; id; ms } in
 
@@ -1456,7 +1565,7 @@ and morph_ctor mk p variant index expr is_const typ =
         let p, e, var = morph_expr p expr in
         if is_struct e.typ then set_alloca var.alloc;
         (* Should have been moved *)
-        assert (Iset.is_empty var.malloc);
+        assert (var.malloc = No_malloc);
         (p, (variant, index, Some e))
     | None -> (p, (variant, index, None))
   in
@@ -1464,7 +1573,7 @@ and morph_ctor mk p variant index expr is_const typ =
   leave_level ();
 
   let malloc, mallocs = mb_malloc p.mallocs typ in
-  let ms = Iset.to_seq malloc |> List.of_seq in
+  let ms = m_to_list malloc in
 
   let alloca = ref (request ()) in
   ( { p with ret; mallocs },
@@ -1513,8 +1622,8 @@ and morph_fmt mk p exprs =
 
   let alloca = ref (request ()) in
   let id = new_id malloc_id in
-  let malloc = Iset.singleton id in
-  let mallocs = add_malloc ~id p.mallocs in
+  let malloc = Single id in
+  let mallocs = Mallocs.add malloc p.mallocs in
 
   ( { p with ret; mallocs },
     mk (Mfmt (es, alloca, id)) ret,
@@ -1550,7 +1659,7 @@ let rec morph_toplvl param items =
   and aux_impl param tl = function
     | Typed_tree.Tl_let { id; uniq; lhs = expr; _ } ->
         let p, e1, gn, m = prep_let param id uniq expr false true in
-        let ms = Iset.to_seq m |> List.of_seq in
+        let ms = m_to_list m in
         let p, e2, func = aux { p with ret = param.ret } tl in
         (p, { e2 with expr = Mlet (id, e1, false, gn, ms, e2) }, func)
     | Tl_function (loc, name, uniq, abs) ->
@@ -1615,14 +1724,15 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
 
   let param =
     (* Generate one toplevel id for global values. They won't be decreased *)
-    let iset = (Mfunc, Iset.singleton (new_id malloc_id)) in
+    (* TODO do we even need this anymore? *)
+    let malloc = Single (new_id malloc_id) in
     let () = assert (!malloc_id = 2) in
     {
       vars;
       monomorphized = Set.empty;
       funcs = Fset.empty;
       ret = false;
-      mallocs = [ iset ];
+      mallocs = Mallocs.add malloc (Mallocs.empty Mfunc);
       toplvl = true;
       mname;
       mainmodule = mname;
@@ -1655,9 +1765,9 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
   in
 
   let frees =
-    match p.mallocs with
+    match Mallocs.pop p.mallocs |> fst with
     | [] -> Seq.empty
-    | (_, mallocs) :: _ -> Iset.to_rev_seq mallocs
+    | mallocs -> List.to_seq mallocs
   in
 
   let externals =

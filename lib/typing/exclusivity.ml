@@ -501,26 +501,27 @@ let rec check_tree env bind mut part tree hist =
       let be, b, bbs = check_tree env bind mut part be hs in
       (* Make sure borrow kind of both branches matches *)
       let _raise msg = raise (Error (tree.loc, msg)) in
-      let imm, owning =
+      let imm =
         match (a.imm, b.imm) with
         (* Ignore Bown _ cases, as it can't be returned. Would be borrowed *)
         (* Owning *)
-        | [], [] -> ([], true)
+        | [], [] -> []
         | [], b when are_borrow b ->
             if contains_allocation be.typ then
               _raise "Branches have different ownership: owned vs borrowed"
-            else ([], false)
+            else []
         | b, [] when are_borrow b ->
             if contains_allocation ae.typ then
               _raise "Branches have different ownership: borrowed vs owned"
-            else ([], false)
-        | [], a | a, [] -> (a, true)
+            else []
+        | [], a | a, [] -> a
         (* If both branches are (Some _), they have to be both the same kind,
            because it was applied in Var.. above*)
         | a, b ->
             assert (are_borrow a == are_borrow b);
-            (a @ b, false)
+            a @ b
       in
+      let owning = are_borrow a.imm |> not in
       let delayed = a.delayed @ b.delayed in
       let expr = If (cond, Some owning, ae, be) in
       ({ tree with expr }, { imm; delayed }, integrate_new_elems abs hs bbs)
