@@ -86,11 +86,12 @@ let are_borrow bs =
 
 type bopt = binding option [@@deriving show]
 
+module Smap = Map.Make (String)
 module Map = Map.Make (Id)
 
 let borrow_state = ref 0
 let param_pass = ref false
-let shadow_tbl = Hashtbl.create 64
+let shadowmap = ref Smap.empty
 
 let rec is_string b env =
   if Id.is_string b then true
@@ -106,23 +107,23 @@ let rec is_string b env =
     | None -> false
 
 let new_id str =
-  match Hashtbl.find_opt shadow_tbl str with
+  match Smap.find_opt str !shadowmap with
   | Some i ->
-      Hashtbl.replace shadow_tbl str (i + 1);
+      shadowmap := Smap.add str (i + 1) !shadowmap;
       Id.Shadowed (str, i)
   | None ->
-      Hashtbl.replace shadow_tbl str 1;
+      shadowmap := Smap.add str 1 !shadowmap;
       Id.Fst str
 
 let get_id str =
-  match Hashtbl.find_opt shadow_tbl str with
+  match Smap.find_opt str !shadowmap with
   | None | Some 1 -> Id.Fst str
   | Some i -> Id.Shadowed (str, i - 1)
 
 let reset () =
   borrow_state := 0;
   param_pass := false;
-  Hashtbl.clear shadow_tbl
+  shadowmap := Smap.empty
 
 let rec check_exclusivity loc borrow hist =
   let p = Printf.sprintf in
@@ -497,8 +498,12 @@ let rec check_tree env bind mut part tree hist =
   | If (cond, _, ae, be) ->
       let cond, v, hs = check_tree env false Uread [] cond hist in
       let hs = add_hist v hs in
+      let shadows = !shadowmap in
       let ae, a, abs = check_tree env bind mut part ae hs in
+
+      shadowmap := shadows;
       let be, b, bbs = check_tree env bind mut part be hs in
+      shadowmap := shadows;
       (* Make sure borrow kind of both branches matches *)
       let _raise msg = raise (Error (tree.loc, msg)) in
       let imm =
