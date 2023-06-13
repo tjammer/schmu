@@ -251,6 +251,15 @@ let integrate_new_elems nu old integrated =
           Map.add id toadd integrated)
     nu integrated
 
+let move_local_borrow bs env =
+  let rec aux = function
+    | [] -> bs
+    | (Borrow b | Borrow_mut (b, _)) :: tl ->
+        if Map.mem (fst b.borrowed) env |> not then imm [] else aux tl
+    | (Bown _ | Bmove _) :: tl -> aux tl
+  in
+  aux bs.imm
+
 let rec check_excl_chain loc env borrow hist =
   match borrow with
   | Bown _ -> ()
@@ -314,9 +323,10 @@ let rec check_tree env bind mut part tree hist =
         | Borrow b' as b -> (
             match mut with
             | Usage.Umove when is_string b'.borrowed env ->
-                raise (Error (loc, "Cannot move string literal. Use `copy`"))
+                raise (Error (b'.loc, "Cannot move string literal. Use `copy`"))
             | (Uset | Umut) when is_string b'.borrowed env ->
-                raise (Error (loc, "Cannot mutate string literal. Use `copy`"))
+                raise
+                  (Error (b'.loc, "Cannot mutate string literal. Use `copy`"))
             | Umove ->
                 (* Before moving, make sure the value was used correctly *)
                 check_excl_chain loc env b hist;
@@ -500,10 +510,12 @@ let rec check_tree env bind mut part tree hist =
       let hs = add_hist v hs in
       let shadows = !shadowmap in
       let ae, a, abs = check_tree env bind mut part ae hs in
+      let a = move_local_borrow a env in
 
       shadowmap := shadows;
       let be, b, bbs = check_tree env bind mut part be hs in
       shadowmap := shadows;
+      let b = move_local_borrow b env in
       (* Make sure borrow kind of both branches matches *)
       let _raise msg = raise (Error (tree.loc, msg)) in
       let imm =

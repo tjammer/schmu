@@ -1029,5 +1029,8 @@ let () =
           tase_exn "follow string literal"
             "Cannot move string literal. Use `copy`"
             "(def c \"aoeu\") (def d c) (def e& d)";
+          tase_exn "move local borrows"
+            "Branches have different ownership: owned vs borrowed"
+            "(def a [10]) (def c (if true (let [a [10]] a) a))";
         ] );
     ]
