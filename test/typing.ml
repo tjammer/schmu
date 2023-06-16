@@ -1032,5 +1032,10 @@ let () =
           tase_exn "move local borrows"
             "Branches have different ownership: owned vs borrowed"
             "(def a [10]) (def c (if true (let [a [10]] a) a))";
+          tase_exn "forbid move of cond borrow"
+            "Cannot move conditional borrow. Either copy or directly move \
+             conditional without borrowing"
+            "(defn test [] (def ai [10]) (def bi [11]) (def c (if false ai (if \
+             true bi (if true ai bi)))) c)";
         ] );
     ]

@@ -1127,7 +1127,7 @@ and morph_if mk p cond owning e1 e2 =
      the borrows are returned later, so we (could) keep an extra bool per taken
      branch in codegen which can be queried to delete the correct things.
      For now we prevent this situation completely with a check in exclusivity and
-     force a copy TODO *)
+     force a copy *)
   let p, e1, a = morph_expr { p with ret; mallocs } e1 in
   let e1, a, mallocs, akind =
     (* For tailrecursive calls, every ref is already decreased in [morph_app].
@@ -1199,7 +1199,6 @@ and morph_if mk p cond owning e1 e2 =
           { e2 with expr = Mfree_after (e2, frees_b) },
           malloc,
           mallocs )
-    | Oneof _ -> failwith "cursed case"
     | _ -> (e1, e2, malloc, mallocs)
   in
 

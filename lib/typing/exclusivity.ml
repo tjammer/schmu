@@ -125,6 +125,21 @@ let reset () =
   param_pass := false;
   shadowmap := Smap.empty
 
+let forbid_conditional_borrow loc imm mut =
+  let msg =
+    "Cannot move conditional borrow. Either copy or directly move conditional \
+     without borrowing"
+  in
+  match mut with
+  | Usage.Umove -> (
+      match imm with
+      | [] | [ _ ] -> ()
+      | _ :: _ ->
+          (* If it contains multiple borrows (from an if), we
+             don't know which one to free *)
+          if are_borrow imm then raise (Error (loc, msg)))
+  | _ -> ()
+
 let rec check_exclusivity loc borrow hist =
   let p = Printf.sprintf in
   match (borrow, hist) with
@@ -375,6 +390,7 @@ let rec check_tree env bind mut part tree hist =
         | Some b when bind -> b
         | Some { imm; delayed } ->
             let delayed = borrow_delayed delayed in
+            forbid_conditional_borrow loc imm mut;
             let imm = List.map (borrow mut) imm @ delayed in
             { imm; delayed = [] }
         | None -> imm []

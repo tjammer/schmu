@@ -4749,3 +4749,9 @@ Assertions
 
 Find function by callname even when not calling
   $ schmu find_fn.smu
+
+Free moved parameters
+  $ schmu free_moved_param.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_moved_param
+
+Free correctly when moving ifs with outer borrows
+  $ schmu free_cond.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_cond

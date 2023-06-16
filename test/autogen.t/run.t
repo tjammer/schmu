@@ -1008,6 +1008,3 @@ Copy string literal on move
   declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
-
-Free correctly when moving ifs with outer borrows
-  $ schmu free_cond.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_cond
