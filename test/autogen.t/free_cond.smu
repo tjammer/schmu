@@ -1,0 +1,8 @@
+(defn test []
+  (def ai [10])
+  (def bi [11])
+  (if false
+    [12]
+    (if false bi (if true ai [10]))))
+
+(ignore (test))

@@ -140,7 +140,32 @@ type malloc_scope = Mfunc | Mlocal
 let m_to_list = function
   | No_malloc -> []
   | Single i -> [ i ]
-  | Oneof _ -> (* Handled in Move *) []
+  | Oneof _ ->
+      (* Handled in If *)
+      []
+
+let prepare_filter malloc =
+  let rec aux acc = function
+    | No_malloc -> acc
+    | Single i -> Iset.add i acc
+    | Oneof (a, b) ->
+        let acc = aux acc a in
+        aux acc b
+  in
+  aux Iset.empty malloc
+
+let m_to_list_filtered ~filter malloc =
+  (* In Ifs with nested Oneofs, take care that branches with same potential
+     mallocs don't free aready freed mallocs. Therefor, remove the allocs in
+     [filter] from Oneof _ list. *)
+  let rec aux acc = function
+    | No_malloc -> acc
+    | Single i -> if Iset.mem i filter then acc else i :: acc
+    | Oneof (a, b) ->
+        let acc = aux acc a in
+        aux acc b
+  in
+  aux [] malloc
 
 module Mallocs : sig
   type t
@@ -226,7 +251,7 @@ end = struct
         | Local, Local -> Local
         | Outer, Local | Local, Outer | Outer, Outer -> Outer
         | No_cls, No_cls -> No_cls
-        | No_cls, _ | _, No_cls -> failwith "why no cls here?")
+        | No_cls, a | a, No_cls -> a)
     | _, (Mfunc, _) :: _ -> failwith "Internal Error: Unexpected function scope"
     | _, [] -> No_cls
 end
@@ -1093,15 +1118,16 @@ and morph_if mk p cond owning e1 e2 =
      we need to be more careful. If outer scope mallocs are involved, we don't add
      to mallocs to prevent aliasing, but return Oneof _. If such an expression
      is returned from a function, we cannot be sure what to free in codegen. *)
-  (* The trick is that if local allocations appear, they must have been moved.
-     Due to this, the other branch also has been moved and a new malloc id can be
-     generated. So the Oneof _ only appears if both branches are borrows.
-     In this case, there are two cases to distinguish:
+  (* There are two cases to distinguish:
      1. The borrows are moved (owning = true), which means all unused branches
-     can be freed immediately.
+     can be freed immediately. We still keep track of the Oneofs for nested ifs so
+     we prevent double-freeing an already freed branch. Local allocation are treated
+     as No_malloc, so they aren't freed from the other branch.
      2. The borrows are not moved (owning = false). In this case, we don't know if
-     the borrows are returned later, so we keep an extra bool per taken branch
-     in codegen which can be queried to delete the correct things. TODO *)
+     the borrows are returned later, so we (could) keep an extra bool per taken
+     branch in codegen which can be queried to delete the correct things.
+     For now we prevent this situation completely with a check in exclusivity and
+     force a copy TODO *)
   let p, e1, a = morph_expr { p with ret; mallocs } e1 in
   let e1, a, mallocs, akind =
     (* For tailrecursive calls, every ref is already decreased in [morph_app].
@@ -1141,10 +1167,8 @@ and morph_if mk p cond owning e1 e2 =
       match (akind, bkind) with
       (* If something is local, mallocs have been moved *)
       | Local, Local -> mb_malloc mallocs e1.typ
-      | Local, Outer ->
-          (* Create new malloc, but delete old, moved ids *)
-          mb_malloc (Mallocs.remove b.malloc mallocs) e1.typ
-      | Outer, Local -> mb_malloc (Mallocs.remove a.malloc mallocs) e1.typ
+      | Local, Outer -> (Oneof (No_malloc, b.malloc), mallocs)
+      | Outer, Local -> (Oneof (a.malloc, No_malloc), mallocs)
       | No_cls, No_cls -> (No_malloc, mallocs)
       | No_cls, Local -> (b.malloc, Mallocs.add b.malloc mallocs)
       | Local, No_cls -> (a.malloc, Mallocs.add a.malloc mallocs)
@@ -1160,11 +1184,19 @@ and morph_if mk p cond owning e1 e2 =
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     match malloc with
-    | Oneof _ when owning ->
+    | Oneof (a, b) when owning ->
         let mallocs = Mallocs.remove malloc mallocs in
-        let malloc, mallocs = mb_malloc mallocs e1.typ in
-        ( { e1 with expr = Mfree_after (e1, m_to_list b.malloc) },
-          { e2 with expr = Mfree_after (e2, m_to_list a.malloc) },
+        (* let malloc, mallocs = mb_malloc mallocs e1.typ in *)
+        let frees_a =
+          let filter = prepare_filter a in
+          m_to_list_filtered ~filter b
+        in
+        let frees_b =
+          let filter = prepare_filter b in
+          m_to_list_filtered ~filter a
+        in
+        ( { e1 with expr = Mfree_after (e1, frees_a) },
+          { e2 with expr = Mfree_after (e2, frees_b) },
           malloc,
           mallocs )
     | Oneof _ -> failwith "cursed case"
