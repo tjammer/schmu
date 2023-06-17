@@ -51,7 +51,13 @@ module Id = struct
     | l -> name ^ "." ^ String.concat "." (List.map snd l)
 end
 
-type borrow = { ord : int; loc : Ast.loc; borrowed : Id.t * part_access }
+type borrow = {
+  ord : int;
+  loc : Ast.loc;
+  borrowed : Id.t * part_access;
+  parent : Id.t;
+}
+
 and env_item = { imm : binding list; delayed : binding list }
 
 and binding =
@@ -217,13 +223,14 @@ let string_lit_borrow tree mut =
   let loc = Typed_tree.(tree.loc) in
   let copy tree = make_copy_call loc tree in
   let borrowed = (new_id "__string", []) in
+  let parent = fst borrowed in
   match mut with
   | Usage.Uread ->
       incr borrow_state;
-      (tree, Borrow { ord = !borrow_state; loc; borrowed })
+      (tree, Borrow { ord = !borrow_state; loc; borrowed; parent })
   | Umove ->
       incr borrow_state;
-      (copy tree, Bmove ({ ord = !borrow_state; loc; borrowed }, None))
+      (copy tree, Bmove ({ ord = !borrow_state; loc; borrowed; parent }, None))
   | Umut | Uset -> failwith "Internal Error: Mutating string"
 
 (* For now, throw everything into one list of bindings.
@@ -270,7 +277,7 @@ let move_local_borrow bs env =
   let rec aux = function
     | [] -> bs
     | (Borrow b | Borrow_mut (b, _)) :: tl ->
-        if Map.mem (fst b.borrowed) env |> not then imm [] else aux tl
+        if Map.mem b.parent env |> not then imm [] else aux tl
     | (Bown _ | Bmove _) :: tl -> aux tl
   in
   aux bs.imm
@@ -314,8 +321,10 @@ let rec check_tree env bind mut part tree hist =
             (* For Binds, it's imported that we take the owned name, and not the one from Var.
                Otherwise, the Bind name might be borrowed *)
             incr borrow_state;
-            let borrow = { ord = !borrow_state; loc; borrowed = (b, part) } in
-            (* Assmue it's the only borrow. This works because if it isn't, a borrowed binding
+            let borrow =
+              { ord = !borrow_state; loc; borrowed = (b, part); parent = b }
+            in
+            (* Assume it's the only borrow. This works because if it isn't, a borrowed binding
                will be used later and thin fail the check. Extra care has to be taken for
                arguments to functions *)
             let b = binding_of_borrow borrow mut in
@@ -330,11 +339,12 @@ let rec check_tree env bind mut part tree hist =
             | Umut | Uread ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
-                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, s)
+                Borrow_mut ({ b' with loc; ord = !borrow_state; borrowed }, s)
             | Uset ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
-                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, Set))
+                Borrow_mut ({ b' with loc; ord = !borrow_state; borrowed }, Set)
+            )
         | Borrow b' as b -> (
             match mut with
             | Usage.Umove when is_string b'.borrowed env ->
@@ -349,15 +359,16 @@ let rec check_tree env bind mut part tree hist =
             | Umut ->
                 check_excl_chain loc env (Borrow_mut (b', Dont_set)) hist;
                 incr borrow_state;
-                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, Dont_set)
+                Borrow_mut
+                  ({ b' with loc; ord = !borrow_state; borrowed }, Dont_set)
             | Uset ->
                 check_excl_chain loc env (Borrow_mut (b', Set)) hist;
                 incr borrow_state;
-                Borrow_mut ({ loc; ord = !borrow_state; borrowed }, Set)
+                Borrow_mut ({ b' with loc; ord = !borrow_state; borrowed }, Set)
             | Uread ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
-                Borrow { loc; ord = !borrow_state; borrowed })
+                Borrow { b' with loc; ord = !borrow_state; borrowed })
         | Bmove (m, l) as b ->
             (* The binding is about to be moved for the first time, e.g. in a function *)
             check_excl_chain loc env b hist;
@@ -607,8 +618,10 @@ let rec check_tree env bind mut part tree hist =
       let expr = Function (name, u, abs, cont) in
       ({ tree with expr }, v, hs)
   | Bind (name, expr, cont) ->
-      let e, env, hist = check_bind env name expr hist in
-      let cont, v, hs = check_tree env bind mut part cont hist in
+      let e, env, b, hist =
+        check_let ~tl:false tree.loc env name expr false false hist
+      in
+      let cont, v, hs = check_tree env bind mut part cont (add_hist b hist) in
       let expr = Bind (name, e, cont) in
       ({ tree with expr }, v, hs)
   | Move _ -> failwith "Internal Error: Nothing should have been moved here"
@@ -729,7 +742,8 @@ let check_tree pts pns touched body =
   reset ();
   let borrow_of_param borrowed loc =
     incr borrow_state;
-    { ord = !borrow_state; loc; borrowed }
+    let parent = fst borrowed in
+    { ord = !borrow_state; loc; borrowed; parent }
   in
 
   (* Shadowing between touched variables and parameters is impossible. If a parameter
