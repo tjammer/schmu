@@ -115,7 +115,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     let typ = Trecord ([], None, fs |> Array.of_list) in
     pre ^ Monomorph_tree.short_name ~closure:false typ
 
-  let get_ctor assoc_type assoc =
+  let get_ctor assoc_type assoc upward =
     let name = cls_fn_name `Ctor assoc in
     match Hashtbl.find_opt cls_func_tbl name with
     | Some f -> f
@@ -146,6 +146,13 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
           (if contains_allocation cl.cltyp then
              let value = Llvm.build_struct_gep newptr i cl.clname builder in
              let lltyp = get_lltype_def cl.cltyp in
+             let value =
+               if cl.clmut && not upward then
+                 (* There's an extra pointer here (ptr to ptr).
+                    Bitcast to silence LLVM warning *)
+                 bb value (Llvm.pointer_type lltyp) "" builder
+               else value
+             in
              let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
              copy_inner_call item);
           i + 1

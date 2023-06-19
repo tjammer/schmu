@@ -436,7 +436,9 @@ struct
 
           (* Add ctor function *)
           let ctor_ptr = Llvm.build_struct_gep clsr_ptr 0 "ctor" builder in
-          let ctor = bb (Auto.get_ctor assoc_type assoc) voidptr_t "" builder in
+          let ctor =
+            bb (Auto.get_ctor assoc_type assoc upward) voidptr_t "" builder
+          in
           Llvm.build_store ctor ctor_ptr builder |> ignore;
 
           (* Create dtor function if it does not exist yet *)
