@@ -30,7 +30,7 @@ module Id = struct
         if c == 0 then bi else c
     | Shadowed (a, ai), Fst b ->
         let c = String.compare a b in
-        if c == 0 then ai else c
+        if c == 0 then ai else -c
 
   let equal a b =
     match (a, b) with
@@ -227,10 +227,9 @@ let string_lit_borrow tree mut =
   match mut with
   | Usage.Uread ->
       incr borrow_state;
-      (tree, Borrow { ord = !borrow_state; loc; borrowed; parent })
-  | Umove ->
-      incr borrow_state;
-      (copy tree, Bmove ({ ord = !borrow_state; loc; borrowed; parent }, None))
+      let b = Borrow { ord = !borrow_state; loc; borrowed; parent } in
+      (tree, imm [ b ])
+  | Umove -> (copy tree, imm [])
   | Umut | Uset -> failwith "Internal Error: Mutating string"
 
 (* For now, throw everything into one list of bindings.
@@ -409,12 +408,12 @@ let rec check_tree env bind mut part tree hist =
       (* Don't add to hist here. Other expressions where the value is used
          will take care of this *)
       (tree, borrow, hist)
-  | Let { id; rhs; cont; mutly; rmut; uniq } ->
+  | Let { id; rhs; cont; pass; rmut; uniq } ->
       let rhs, env, b, hs =
-        check_let tree.loc env id rhs rmut mutly ~tl:false hist
+        check_let tree.loc env id rhs rmut pass ~tl:false hist
       in
       let cont, v, hs = check_tree env bind mut part cont (add_hist b hs) in
-      let expr = Let { id; rhs; cont; mutly; rmut; uniq } in
+      let expr = Let { id; rhs; cont; pass; rmut; uniq } in
       ({ tree with expr }, v, hs)
   | Const (Array es) ->
       let hs, es =
@@ -429,7 +428,7 @@ let rec check_tree env bind mut part tree hist =
       ({ tree with expr }, imm [], hs)
   | Const (String _) ->
       let tree, b = string_lit_borrow tree mut in
-      (tree, imm [ b ], hist)
+      (tree, b, hist)
   | Const _ -> (tree, imm [], hist)
   | Record fs ->
       let hs, fs =
@@ -541,8 +540,9 @@ let rec check_tree env bind mut part tree hist =
 
       shadowmap := shadows;
       let be, b, bbs = check_tree env bind mut part be hs in
-      shadowmap := shadows;
       let b = move_local_borrow b env in
+      shadowmap := shadows;
+
       (* Make sure borrow kind of both branches matches *)
       let _raise msg = raise (Error (tree.loc, msg)) in
       let imm =
@@ -619,25 +619,28 @@ let rec check_tree env bind mut part tree hist =
       ({ tree with expr }, v, hs)
   | Bind (name, expr, cont) ->
       let e, env, b, hist =
-        check_let ~tl:false tree.loc env name expr false false hist
+        check_let ~tl:false tree.loc env name expr false Dnorm hist
       in
       let cont, v, hs = check_tree env bind mut part cont (add_hist b hist) in
       let expr = Bind (name, e, cont) in
       ({ tree with expr }, v, hs)
   | Move _ -> failwith "Internal Error: Nothing should have been moved here"
 
-and check_let ~tl loc env id lhs rmut mutly hist =
-  let nmut, tlborrow =
-    match (lhs.attr.mut, mutly) with
-    | true, true when not rmut ->
+and check_let ~tl loc env id lhs rmut pass hist =
+  let nmut, tlborrow, unspec_passing =
+    match (lhs.attr.mut, pass) with
+    | _, Dset -> failwith "unreachable"
+    | true, Dmut when not rmut ->
         raise (Error (lhs.loc, "Cannot project immutable binding"))
-    | true, true -> (Usage.Umut, false)
-    | true, false -> (Umove, false)
-    | false, false ->
+    | true, Dmut -> (Usage.Umut, false, false)
+    | true, Dmove -> (Umove, false, false)
+    | true, Dnorm -> (* For rvalues, default to move *) (Umove, false, true)
+    | false, Dnorm ->
         (* Cannot borrow mutable bindings at top level. We defer error generation until
            we are sure the rhs is really borrowed *)
-        (Uread, rmut && tl)
-    | false, true -> failwith "unreachable"
+        (Uread, rmut && tl, false)
+    | false, Dmove -> (Umove, false, false)
+    | false, Dmut -> failwith "unreachable"
   in
   let rhs, rval, hs = check_tree env false nmut [] lhs hist in
   let loc = loc in
@@ -647,6 +650,12 @@ and check_let ~tl loc env id lhs rmut mutly hist =
   in
   let id = new_id id in
   let borrow hs = function
+    | Bmove _ when unspec_passing ->
+        raise
+          (Error
+             ( lhs.loc,
+               "Specify how rhs expression is passed. Either by move '!' or \
+                mutably '&'" ))
     | Bmove _ as b -> (Bown id, add_hist (imm [ b ]) hs)
     | (Borrow _ | Borrow_mut _) when tlborrow ->
         raise (Error (lhs.loc, "Cannot borrow mutable binding at top level"))
@@ -693,11 +702,11 @@ and check_abstraction env loc touched hist =
     [] touched
 
 let check_item (env, bind, mut, part, hist) = function
-  | Tl_let ({ loc; id; rmut; mutly; lhs; uniq = _ } as e) ->
-      if mutly then raise (Error (lhs.loc, "Cannot project at top level"))
+  | Tl_let ({ loc; id; rmut; pass; lhs; uniq = _ } as e) ->
+      if pass = Dmut then raise (Error (lhs.loc, "Cannot project at top level"))
       else
         let lhs, env, b, hs =
-          check_let loc env id lhs rmut mutly ~tl:true hist
+          check_let loc env id lhs rmut pass ~tl:true hist
         in
         ((env, bind, mut, part, add_hist b hs), Tl_let { e with lhs })
   | Tl_bind (name, expr) ->

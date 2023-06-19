@@ -643,11 +643,11 @@ let test_excl_borrow_use_early () =
 let tl = Some "Cannot move top level binding"
 
 let test_excl_move_mut () =
-  wrap_fn ~tl test "unit" (own ^ "(def y& x) (set &y 11) (ignore y)")
+  wrap_fn ~tl test "unit" (own ^ "(def y& !x) (set &y 11) (ignore y)")
 
 let test_excl_move_mut_use_after () =
   wrap_fn test_exn "x was moved in line 2, cannot use"
-    (own ^ "(def y& x) (ignore x)")
+    (own ^ "(def y& !x) (ignore x)")
 
 let test_excl_move_record () =
   wrap_fn test "unit" (own ^ "(def y {x}) (ignore y)")
@@ -661,7 +661,7 @@ let test_excl_borrow_then_move () =
     "(def x [10])\n (def y x)\n (ignore {y})\n x"
 
 let test_excl_if_move_lit () =
-  wrap_fn ~tl test "unit" "(def x 10) (def y& (if true x 10)) (ignore y)"
+  wrap_fn ~tl test "unit" "(def x 10) (def y& !(if true x 10)) (ignore y)"
 
 let test_excl_if_borrow_borrow () =
   wrap_fn test "unit" "(def x 10) (def y 10) (ignore (if true x y))"
@@ -731,11 +731,11 @@ let test_excl_parts_success () =
   test "unit" (typ ^ "(defn meh [a!]\n {:a a.a :b a.b})")
 
 let test_excl_parts_return_part () =
-  test "unit" (typ ^ "(defn meh [a!]\n (def c& a.a)\n a.b)")
+  test "unit" (typ ^ "(defn meh [a!]\n (def c& !a.a)\n a.b)")
 
 let test_excl_parts_return_whole () =
   test_exn "a.a was moved in line 4, cannot use"
-    (typ ^ "(defn meh [a!]\n (def c& a.a)\n a)")
+    (typ ^ "(defn meh [a!]\n (def c& !a.a)\n a)")
 
 let case str test = test_case str `Quick test
 
@@ -1008,7 +1008,7 @@ let () =
   (def a& [10])
   (def set-a (fn [] (set &a [11])))
   (set &a [11])
-  (def x& a)
+  (def x& !a)
   (set-a))|};
           tase_exn "excl 1" "a was mutably borrowed in line 1, cannot borrow"
             "(def a& 10)(defn f [a& b] (set &a 11))(f &a a)";
@@ -1028,7 +1028,7 @@ let () =
 (set-a &a)|};
           tase_exn "follow string literal"
             "Cannot move string literal. Use `copy`"
-            "(def c \"aoeu\") (def d c) (def e& d)";
+            "(def c \"aoeu\") (def d c) (def e& !d)";
           tase_exn "move local borrows"
             "Branches have different ownership: owned vs borrowed"
             "(def a [10]) (def c (if true (let [a [10]] a) a))";
@@ -1037,5 +1037,9 @@ let () =
              conditional without borrowing"
             "(defn test [] (def ai [10]) (def bi [11]) (def c (if false ai (if \
              true bi (if true ai bi)))) c)";
+          tase_exn "specify mut passing"
+            "Specify how rhs expression is passed. Either by move '!' or \
+             mutably '&'"
+            "(def a& [10]) (def b& a)";
         ] );
     ]

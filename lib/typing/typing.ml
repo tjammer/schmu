@@ -577,7 +577,7 @@ module rec Core : sig
     Env.t ->
     Ast.loc ->
     Ast.decl ->
-    Ast.mb_mut_expr ->
+    Ast.passed_expr ->
     Env.t * string * typed_expr * bool * (string * typed_expr) list
 
   val convert_function :
@@ -681,7 +681,7 @@ end = struct
     if is_poly_call expr then wrap_in_lambda expr expr.typ else expr
 
   and convert_let ~global env loc (decl : Ast.decl)
-      { Ast.mmut = _; mexpr = block } =
+      { Ast.pattr = _; pexpr = block } =
     let id, idloc = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
     let mut = mut_of_pattr decl.dattr in
@@ -702,7 +702,7 @@ end = struct
     let cont = convert env cont in
     let cont = List.fold_left fold_decl cont pats in
     let uniq = if rhs.attr.const then uniq_name id else None in
-    let expr = Let { id; uniq; rmut; mutly = expr.mmut; rhs; cont } in
+    let expr = Let { id; uniq; rmut; pass = expr.pattr; rhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr; loc }
 
   and convert_lambda env loc params body =
@@ -1121,7 +1121,7 @@ end = struct
           let cont, env = to_expr env old_type tl in
           let cont = List.fold_left fold_decl cont pats in
           let uniq = if rhs.attr.const then uniq_name id else None in
-          let expr = Let { id; uniq; rmut; mutly = block.mmut; rhs; cont } in
+          let expr = Let { id; uniq; rmut; pass = block.pattr; rhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, abs) = convert_function env loc func false in
@@ -1408,7 +1408,7 @@ and convert_prog env items ~mname modul =
           Module.add_external ~mname loc lhs.typ id uniq_name ~closure:true m
         in
         let expr =
-          let expr = Tl_let { loc; id; uniq; lhs; rmut; mutly = block.mmut } in
+          let expr = Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr } in
           match pats with
           (* Maybe add pattern expressions *)
           | [] -> [ expr ]

@@ -224,16 +224,22 @@ stmt:
   | open_ { Open ($loc, $1) }
 
 %inline sexp_let:
-  | Def; sexp_decl; mexpr = sexp_expr { Let($loc, $2, { mmut = false; mexpr }) }
-  | Def; sexp_decl; Ampersand; mexpr = sexp_expr { Let($loc, $2, { mmut = true; mexpr }) }
+  | Def; sexp_decl; pexpr = passed_expr { Let($loc, $2, pexpr ) }
 
 sexp_decl:
   | parens(sexp_decl_typed) { $1 }
   | pattern = sexp_pattern; Ampersand
     { {loc = $loc; pattern; dattr = Dmut; annot = None} }
+  | pattern = sexp_pattern; %prec below_Ampersand
+    { {loc = $loc; pattern; dattr = Dnorm; annot = None} }
+
+param:
+  | parens(sexp_decl_typed) { $1 }
+  | pattern = sexp_pattern; Ampersand
+    { {loc = $loc; pattern; dattr = Dmut; annot = None} }
   | pattern = sexp_pattern; Exclamation
     { {loc = $loc; pattern; dattr = Dmove; annot = None} }
-  | pattern = sexp_pattern; %prec below_Ampersand
+  | pattern = sexp_pattern;
     { {loc = $loc; pattern; dattr = Dnorm; annot = None} }
 
 %inline sexp_decl_typed:
@@ -244,7 +250,7 @@ sexp_decl:
   | Ampersand { Dmut } | Exclamation { Dmove }
 
 %inline sexp_fun:
-  | Defn; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(sexp_decl)); body = list(stmt)
+  | Defn; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(param)); body = list(stmt)
     { ($loc, { name; params; return_annot = None; body; attr }) }
 
 %inline attr:
@@ -287,7 +293,12 @@ sexp_expr:
     { make_lets lets block }
 
 %inline lets_let:
-  | decl = sexp_decl; mmut = boption(Ampersand); mexpr = sexp_expr { $loc, decl, { mmut; mexpr } }
+  | decl = sexp_decl; pexpr = passed_expr { $loc, decl, pexpr }
+
+%inline passed_expr:
+  | pexpr = sexp_expr { {pattr = Dnorm; pexpr} }
+  | Ampersand; pexpr = sexp_expr { {pattr = Dmut; pexpr} }
+  | Exclamation; pexpr = sexp_expr { {pattr = Dmove; pexpr} }
 
 %inline sexp_record_item:
   | Keyword; sexp_expr { $1, $2 }
@@ -332,7 +343,7 @@ sexp_cond:
   | else_ = option(parens(cond_else)) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
-  | Fn; params = maybe_bracks(list(sexp_decl)); body = list(stmt)
+  | Fn; params = maybe_bracks(list(param)); body = list(stmt)
     { Lambda ($loc, params, body) }
 
 %inline sexp_field_set:

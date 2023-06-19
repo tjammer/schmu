@@ -43,7 +43,7 @@ and let_data = {
   id : string;
   uniq : int option;
   rmut : bool; (* is mutable generally *)
-  mutly : bool; (* is passed mutably *)
+  pass : dattr; (* is passed mutably *)
   rhs : typed_expr;
   cont : typed_expr;
 }
@@ -65,7 +65,7 @@ and toplevel_item =
       id : string;
       uniq : int option;
       rmut : bool;
-      mutly : bool;
+      pass : dattr;
       lhs : typed_expr;
     }
   | Tl_bind of string * typed_expr

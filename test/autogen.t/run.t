@@ -888,7 +888,7 @@ Copy closures
   hello
 
 Copy string literal on move
-  $ schmu copy_string_lit.smu --dump-llvm
+  $ schmu copy_string_lit.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./copy_string_lit
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
