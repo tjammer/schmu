@@ -11,12 +11,7 @@ type expr =
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
   | Mlet of
-      string
-      * monod_tree
-      * bool (* is projected *)
-      * global_name
-      * malloc_list
-      * monod_tree
+      string * monod_tree * let_kind * global_name * malloc_list * monod_tree
   | Mbind of string * monod_tree * monod_tree
   | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree * alloca
@@ -92,6 +87,7 @@ and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
 and copy_kind = Cglobal of string | Cnormal of bool
 and malloc_list = int list
+and let_kind = Limmut | Lmut | Lproj
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }

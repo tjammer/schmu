@@ -179,7 +179,7 @@ end = struct
     | Mprint_str fmts -> gen_print_str param fmts |> fin
     | Mfree_after (expr, fs) -> gen_free param expr fs |> fin
 
-  and gen_let param id rhs proj gn cont =
+  and gen_let param id rhs kind gn cont =
     let expr_val =
       match gn with
       | Some n -> (
@@ -199,15 +199,16 @@ end = struct
               let v = { v with value = dst.value; kind = Ptr } in
               Strtbl.replace const_tbl n v;
               v)
-      | None ->
-          if not proj then (
-            let dst = alloca param (get_lltype_def rhs.typ) "" in
-            let v = gen_expr { param with alloca = Some dst } rhs in
-            let src = bring_default_var v in
+      | None -> (
+          match kind with
+          | Lproj | Limmut -> gen_expr param rhs
+          | Lmut ->
+              let dst = alloca param (get_lltype_def rhs.typ) "" in
+              let v = gen_expr { param with alloca = Some dst } rhs in
+              let src = bring_default_var v in
 
-            if v.value <> dst then store_or_copy ~src ~dst;
-            { v with value = dst; kind = Ptr })
-          else gen_expr param rhs
+              if v.value <> dst then store_or_copy ~src ~dst;
+              { v with value = dst; kind = Ptr })
     in
     gen_expr { param with vars = Vars.add id expr_val param.vars } cont
 

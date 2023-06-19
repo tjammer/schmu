@@ -10,12 +10,7 @@ type expr =
   | Munop of Ast.unop * monod_tree
   | Mif of ifexpr
   | Mlet of
-      string
-      * monod_tree
-      * bool (* is projected *)
-      * global_name
-      * malloc_list
-      * monod_tree
+      string * monod_tree * let_kind * global_name * malloc_list * monod_tree
   | Mbind of string * monod_tree * monod_tree
   | Mlambda of string * abstraction * alloca
   | Mfunction of string * abstraction * monod_tree * alloca
@@ -83,6 +78,7 @@ and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
 and copy_kind = Cglobal of string | Cnormal of bool
 and malloc_list = int list
+and let_kind = Limmut | Lmut | Lproj
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -976,6 +972,9 @@ let rec_fs_to_env p (username, uniq, typ) =
   let vars = Vars.add username (Normal { no_var with fn }) p.vars in
   { p with vars }
 
+let let_kind mut pass =
+  match pass with Ast.Dmut -> Lproj | _ -> if mut then Lmut else Limmut
+
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return =
     { typ = cln param texpr.typ; expr; return; loc = texpr.loc }
@@ -990,11 +989,11 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | If (_, None, _, _) -> failwith "Internal Error: Unset if owning"
   | If (cond, Some owning, e1, e2) -> morph_if make param cond owning e1 e2
   | Let { id; uniq; rhs; cont; pass; rmut = _ } ->
-      let mutly = pass = Dmut in
-      let p, e1, gn, m = prep_let param id uniq rhs mutly false in
+      let kind = let_kind rhs.attr.mut pass in
+      let p, e1, gn, m = prep_let param id uniq rhs kind false in
       let ms = m_to_list m in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
-      (p, { e2 with expr = Mlet (id, e1, mutly, gn, ms, e2) }, func)
+      (p, { e2 with expr = Mlet (id, e1, kind, gn, ms, e2) }, func)
   | Bind (id, lhs, cont) ->
       let p, lhs, func = morph_expr { param with ret = false } lhs in
       let vars = Vars.add id (Normal func) p.vars in
@@ -1233,7 +1232,7 @@ and morph_if mk p cond owning e1 e2 =
     mk (Mif { cond; owning; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc); malloc; tailrec } )
 
-and prep_let p id uniq e proj toplvl =
+and prep_let p id uniq e kind toplvl =
   (* username *)
   let un =
     reconstr_module_username ~mname:p.mname ~mainmodule:p.mainmodule id
@@ -1261,7 +1260,7 @@ and prep_let p id uniq e proj toplvl =
         let vars = Vars.add uniq (Global (uniq, func, used)) vars in
         ({ p with vars }, Some uniq)
     | _ ->
-        if not proj then set_alloca func.alloc;
+        (match kind with Lproj | Limmut -> () | Lmut -> set_alloca func.alloc);
         ({ p with vars = Vars.add un (Normal func) p.vars }, None)
   in
   (p, e1, gn, func.malloc)
@@ -1707,11 +1706,12 @@ let rec morph_toplvl param items =
         let param = { param with mname } in
         aux_impl param tl item
   and aux_impl param tl = function
-    | Typed_tree.Tl_let { id; uniq; lhs = expr; _ } ->
-        let p, e1, gn, m = prep_let param id uniq expr false true in
+    | Typed_tree.Tl_let { id; uniq; lhs = expr; pass; _ } ->
+        let kind = let_kind expr.attr.mut pass in
+        let p, e1, gn, m = prep_let param id uniq expr kind true in
         let ms = m_to_list m in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        (p, { e2 with expr = Mlet (id, e1, false, gn, ms, e2) }, func)
+        (p, { e2 with expr = Mlet (id, e1, kind, gn, ms, e2) }, func)
     | Tl_function (loc, name, uniq, abs) ->
         let p, call, abs, alloca = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in
