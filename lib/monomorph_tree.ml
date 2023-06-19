@@ -132,14 +132,17 @@ type to_gen_func_kind =
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 
-type malloc = Single of int | Oneof of malloc * malloc | No_malloc
-[@@deriving show]
+type malloc =
+  | Single of int
+  | Oneof of { own : int option; fst : malloc; snd : malloc }
+  | No_malloc
 
 type malloc_scope = Mfunc | Mlocal
 
 let m_to_list = function
   | No_malloc -> []
   | Single i -> [ i ]
+  | Oneof { own = Some i; _ } -> [ i ]
   | Oneof _ ->
       (* Handled in If *)
       []
@@ -148,9 +151,9 @@ let prepare_filter malloc =
   let rec aux acc = function
     | No_malloc -> acc
     | Single i -> Iset.add i acc
-    | Oneof (a, b) ->
-        let acc = aux acc a in
-        aux acc b
+    | Oneof { own = _; fst; snd } ->
+        let acc = aux acc fst in
+        aux acc snd
   in
   aux Iset.empty malloc
 
@@ -161,9 +164,9 @@ let m_to_list_filtered ~filter malloc =
   let rec aux acc = function
     | No_malloc -> acc
     | Single i -> if Iset.mem i filter then acc else i :: acc
-    | Oneof (a, b) ->
-        let acc = aux acc a in
-        aux acc b
+    | Oneof { own = _; fst; snd } ->
+        let acc = aux acc fst in
+        aux acc snd
   in
   aux [] malloc
 
@@ -194,34 +197,43 @@ end = struct
   let rec mem a ms =
     match (a, ms) with
     | _, [] -> false
-    | Oneof (b, c), _ -> mem b ms && mem c ms
+    | Oneof { own = Some own; _ }, (_, ms) :: tl -> Iset.mem own ms || mem a tl
+    | Oneof { own = None; fst; snd }, _ -> mem fst ms && mem snd ms
     | Single i, (_, ms) :: tl -> Iset.mem i ms || mem a tl
     | No_malloc, _ -> false
 
   let add a ms =
     match (a, ms) with
     | _, [] -> failwith "Internal Error: Empty ids"
-    | Oneof (b, c), _ ->
+    | Oneof { own = None; fst; snd }, _ ->
         (* These are for borrowed values. Borrowed values should already be part of the
            mallocs env. There maybe is a special case for string literals here *)
-        Printf.printf "%s, %s\n%!" (show_malloc b) (show_malloc c);
-        assert (mem b ms);
-        assert (mem c ms);
+        assert (mem fst ms);
+        assert (mem snd ms);
         ms
+    | Oneof { own = Some own; _ }, (scope, ms) :: tl ->
+        (scope, Iset.add own ms) :: tl
     | Single a, (scope, ms) :: tl -> (scope, Iset.add a ms) :: tl
     | No_malloc, _ -> ms
 
   let rec remove a ms =
     match (a, ms) with
     | _, [] -> []
-    | Oneof (b, c), _ -> remove b ms |> remove c
+    | Oneof { own = Some own; fst; snd }, (scope, ms) :: tl ->
+        (scope, Iset.remove own ms) :: remove (Single own) tl
+        |> remove fst |> remove snd
+    | Oneof { own = None; fst; snd }, _ -> remove fst ms |> remove snd
     | Single i, (scope, ms) :: tl -> (scope, Iset.remove i ms) :: remove a tl
     | No_malloc, _ -> ms
 
   let rec remove_local a ms =
     match (a, ms) with
     | _, [] -> []
-    | Oneof (b, c), _ -> remove_local b ms |> remove_local c
+    | Oneof { own = Some own; fst; snd }, (scope, ms) :: tl ->
+        (scope, Iset.remove own ms) :: tl
+        |> remove_local fst |> remove_local snd
+    | Oneof { own = None; fst; snd }, _ ->
+        remove_local fst ms |> remove_local snd
     | Single i, (scope, ms) :: tl -> (scope, Iset.remove i ms) :: tl
     | No_malloc, _ -> ms
 
@@ -246,8 +258,8 @@ end = struct
     | No_malloc, _ -> No_cls
     | Single a, (Mlocal, ms) :: _ when Iset.mem a ms -> Local
     | Single _, (Mlocal, _) :: _ -> Outer
-    | Oneof (a, b), (Mlocal, _) :: _ -> (
-        match (classify a ms, classify b ms) with
+    | Oneof { own = _; fst; snd }, (Mlocal, _) :: _ -> (
+        match (classify fst ms, classify snd ms) with
         | Local, Local -> Local
         | Outer, Local | Local, Outer | Outer, Outer -> Outer
         | No_cls, No_cls -> No_cls
@@ -303,7 +315,7 @@ let func_of_typ = function
   | Tfun (params, ret, kind) -> { params; ret; kind }
   | _ -> failwith "Internal Error: Not a function type"
 
-let find_function_expr vars = function
+let rec find_function_expr vars = function
   | Mvar (_, Vglobal id) -> (
       (* Use the id saved in Vglobal. The usual id is the call name / unique global name *)
       match Vars.find_opt id vars with
@@ -333,6 +345,7 @@ let find_function_expr vars = function
       | _ -> No_function)
   | Mlet _ | Mbind _ -> No_function (* TODO cont? Didn't work on quick test *)
   | Mfmt _ -> No_function
+  | Mfree_after (e, _) -> find_function_expr vars e.expr
   | e ->
       print_endline (show_expr e);
       "Not supported: " ^ show_expr e |> failwith
@@ -1165,17 +1178,18 @@ and morph_if mk p cond owning e1 e2 =
   (* Find out what's local and what isn't *)
   let malloc, mallocs =
     if contains_allocation e1.typ then
+      let own = None in
       match (akind, bkind) with
       (* If something is local, mallocs have been moved *)
       | Local, Local -> mb_malloc mallocs e1.typ
-      | Local, Outer -> (Oneof (No_malloc, b.malloc), mallocs)
-      | Outer, Local -> (Oneof (a.malloc, No_malloc), mallocs)
+      | Local, Outer -> (Oneof { own; fst = No_malloc; snd = b.malloc }, mallocs)
+      | Outer, Local -> (Oneof { own; fst = a.malloc; snd = No_malloc }, mallocs)
       | No_cls, No_cls -> (No_malloc, mallocs)
       | No_cls, Local -> (b.malloc, Mallocs.add b.malloc mallocs)
       | Local, No_cls -> (a.malloc, Mallocs.add a.malloc mallocs)
       | No_cls, Outer -> (b.malloc, mallocs)
       | Outer, No_cls -> (a.malloc, mallocs)
-      | Outer, Outer -> (Oneof (a.malloc, b.malloc), mallocs)
+      | Outer, Outer -> (Oneof { own; fst = a.malloc; snd = b.malloc }, mallocs)
     else (No_malloc, mallocs)
   in
 
@@ -1185,21 +1199,25 @@ and morph_if mk p cond owning e1 e2 =
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     match malloc with
-    | Oneof (a, b) when owning ->
+    | Oneof { own = None; fst; snd } when owning && contains_allocation e1.typ
+      ->
         let mallocs = Mallocs.remove malloc mallocs in
-        (* let malloc, mallocs = mb_malloc mallocs e1.typ in *)
+        let id = new_id malloc_id in
+        let mallocs = Mallocs.add (Single id) mallocs in
+        (* let own, mallocs = mb_malloc mallocs e1.typ in *)
         let frees_a =
-          let filter = prepare_filter a in
-          m_to_list_filtered ~filter b
+          let filter = prepare_filter fst in
+          m_to_list_filtered ~filter snd
         in
         let frees_b =
-          let filter = prepare_filter b in
-          m_to_list_filtered ~filter a
+          let filter = prepare_filter snd in
+          m_to_list_filtered ~filter fst
         in
         ( { e1 with expr = Mfree_after (e1, frees_a) },
           { e2 with expr = Mfree_after (e2, frees_b) },
-          malloc,
+          Oneof { own = Some id; fst; snd },
           mallocs )
+    | Oneof { own = Some _; _ } when owning -> failwith "TODO own"
     | _ -> (e1, e2, malloc, mallocs)
   in
 
@@ -1208,7 +1226,7 @@ and morph_if mk p cond owning e1 e2 =
       match malloc with
       | Single id -> Some id
       | No_malloc -> None
-      | Oneof _ -> None
+      | Oneof { own; _ } -> own
     else None
   in
   ( { p with mallocs },
@@ -1508,7 +1526,7 @@ and morph_app mk p callee args ret_typ =
     let rec is_arg = function
       | No_malloc -> false
       | Single -1 -> true
-      | Oneof (a, b) -> is_arg a || is_arg b
+      | Oneof { own = _; fst; snd } -> is_arg fst || is_arg snd
       | Single _ -> false
     in
     let ret = p.ret in
