@@ -486,7 +486,7 @@ let rec check_tree env bind mut part tree hist =
       let tree =
         { tree with expr = App { callee; args = [ (ar, snd arr); idx ] } }
       in
-      if contains_allocation tree.typ then (tree, b, hs) else (tree, imm [], hs)
+      (tree, b, hs)
   | App { callee; args } ->
       (* The callee itself can be borrowed *)
       let callee, b, hs = check_tree env false Uread [] callee hist in
