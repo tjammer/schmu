@@ -610,10 +610,9 @@ end = struct
             { value; typ = Tint; lltyp = int_t; kind = Imm }
         | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Array_get -> array_get args fnc.ret
-    | Array_set -> array_set args
     | Array_length -> array_length args
     | Array_push -> array_push args
-    | Array_drop_back -> array_drop_back args
+    | Array_drop_back -> array_drop_back param args
     | Array_data -> array_data args
     | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
     | Unsafe_nullptr ->
@@ -1067,7 +1066,7 @@ end
 and T : Lltypes_intf.S = Lltypes.Make (A)
 and A : Abi_intf.S = Abi.Make (T)
 and H : Helpers.S = Helpers.Make (T) (A) (Ar) (Auto)
-and Ar : Arr_intf.S = Arr.Make (T) (H) (Core)
+and Ar : Arr_intf.S = Arr.Make (T) (H) (Core) (Auto)
 and Auto : Autogen_intf.S = Autogen.Make (T) (H) (Ar)
 
 let fill_constants constants =
@@ -1255,6 +1254,7 @@ let generate ~target ~outname ~release ~modul
       in
       add_global_init no_param outname `Dtor (free_mallocs body frees));
   (* Generate internal helper functions for arrays *)
+  Ar.gen_functions ();
   Auto.gen_functions ();
 
   (match Llvm_analysis.verify_module the_module with

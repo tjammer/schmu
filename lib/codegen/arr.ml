@@ -4,7 +4,12 @@ module type Core = sig
   val gen_expr : param -> Monomorph_tree.monod_tree -> llvar
 end
 
-module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
+module Make
+    (T : Lltypes_intf.S)
+    (H : Helpers.S)
+    (C : Core)
+    (Auto : Autogen_intf.S) =
+struct
   open Cleaned_types
   open Llvm_types
   open Size_align
@@ -12,15 +17,10 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
   open H
   open C
 
-  type func = Incr_rc | Decr_rc | Reloc | Grow
+  type func = Grow
   type index = Iconst of int | Idyn of Llvm.llvalue
 
-  let name_of_func = function
-    | Incr_rc -> "incr_rc"
-    | Decr_rc -> "decr_rc"
-    | Reloc -> "reloc"
-    | Grow -> "grow"
-
+  let name_of_func = function Grow -> "grow"
   let func_tbl = Hashtbl.create 64
   let ci i = Llvm.const_int int_t i
 
@@ -245,8 +245,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
       Llvm.build_call f [| v.value |] "" builder |> ignore
 
-  let incr_refcount v = rc_fn v Incr_rc
-
   let get_ref_ptr impl var =
     match var.typ with
     | Tarray _ -> impl (bring_default_var var)
@@ -288,124 +286,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     in
     iter_array (get_ref_ptr f) v
 
-  let rec decl_decr_children pseudovar t =
-    (* The normal free function navigates to array children, but we
-       have to make sure the function for each type is available *)
-    let ts = refcount_types [] t in
-    let f typ =
-      (* value will be set correctly at [gen_functions].
-         Make sure the other field are correct *)
-      if contains_refcount typ then (
-        let kind = default_kind typ in
-        let lltyp =
-          match kind with
-          | Const_ptr | Ptr -> get_lltype_def typ |> Llvm.pointer_type
-          | Imm | Const -> get_lltype_def typ
-        in
-        let v = { pseudovar with typ; lltyp; kind } in
-        ignore (make_rc_fn v Decr_rc);
-        decl_decr_children pseudovar typ)
-    in
-
-    List.iter f ts
-
-  let decl_incr_children pseudovar t =
-    let ts = refcount_types [] t in
-    let f typ =
-      (* value will be set correctly at [gen_functions].
-         Make sure the other field are correct *)
-      if contains_refcount typ then
-        let kind = default_kind typ in
-        let lltyp =
-          match kind with
-          | Const_ptr | Ptr -> get_lltype_def typ |> Llvm.pointer_type
-          | Imm | Const -> get_lltype_def typ
-        in
-        let v = { pseudovar with typ; lltyp; kind } in
-        ignore (make_rc_fn v Incr_rc)
-    in
-    List.iter f ts
-
-  let decr_refcount v =
-    rc_fn v Decr_rc;
-    (* Recursively declare children decr functions for freeing *)
-    decl_decr_children v v.typ
-
-  let decr_rc_impl v =
-    let f v =
-      let int_ptr =
-        Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "ref" builder
-      in
-      let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-      let rc = Llvm.build_load dst "ref" builder in
-
-      (* Get current block *)
-      let start_bb = Llvm.insertion_block builder in
-      let parent = Llvm.block_parent start_bb in
-
-      let decr_bb = Llvm.append_block context "decr" parent in
-      let free_bb = Llvm.append_block context "free" parent in
-      let merge_bb = Llvm.append_block context "merge" parent in
-
-      let cmp =
-        Llvm.(build_icmp Icmp.Eq) rc (Llvm.const_int int_t 1) "" builder
-      in
-      ignore (Llvm.build_cond_br cmp free_bb decr_bb builder);
-
-      (* decr *)
-      Llvm.position_at_end decr_bb builder;
-      let added = Llvm.build_sub rc (Llvm.const_int int_t 1) "" builder in
-      ignore (Llvm.build_store added dst builder);
-      ignore (Llvm.build_br merge_bb builder);
-
-      (* free *)
-      Llvm.position_at_end free_bb builder;
-      (match v.typ with
-      | Tarray _ ->
-          let item_type = item_type v.typ in
-          (if contains_refcount item_type then
-             let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
-             let sz = Llvm.build_load sz "size" builder in
-
-             iter_array_children v sz item_type decr_refcount);
-
-          ignore (free_var int_ptr)
-      | Tfun _ ->
-          (* Call dtor of closure if it exists *)
-          let start_bb = Llvm.insertion_block builder in
-          let parent = Llvm.block_parent start_bb in
-
-          let dtor_bb = Llvm.append_block context "dtor" parent in
-          let rly_free_bb = Llvm.append_block context "rly_free" parent in
-          let nullptr = Llvm.(voidptr_t |> const_pointer_null) in
-          let dtor_ptr = Llvm.build_gep int_ptr [| ci 1 |] "dtor" builder in
-          let dtor_ptr =
-            Llvm.build_bitcast dtor_ptr (Llvm.pointer_type voidptr_t) "" builder
-          in
-          let dtor_ptr = Llvm.build_load dtor_ptr "dtor" builder in
-
-          let cmp = Llvm.(build_icmp Icmp.Eq dtor_ptr nullptr "") builder in
-          ignore (Llvm.build_cond_br cmp rly_free_bb dtor_bb builder);
-
-          Llvm.position_at_end dtor_bb builder;
-          let dtor =
-            Llvm.(build_bitcast dtor_ptr (pointer_type dtor_t)) "dtor" builder
-          in
-          let arg = [| Llvm.build_bitcast int_ptr voidptr_t "" builder |] in
-          ignore (Llvm.build_call dtor arg "" builder);
-          ignore (Llvm.build_br rly_free_bb builder);
-
-          Llvm.position_at_end rly_free_bb builder;
-          ignore (free_var int_ptr)
-      | _ -> failwith "Internal Error: What kind of ref is this?");
-
-      ignore (Llvm.build_br merge_bb builder);
-
-      Llvm.position_at_end merge_bb builder
-    in
-
-    iter_array (get_ref_ptr f) v
-
   let modify_arr_fn kind orig =
     (match orig.kind with
     | Ptr | Const_ptr -> ()
@@ -435,82 +315,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
           Hashtbl.replace func_tbl name (kind, orig, f);
           f
     in
-    (* We need to decrease inside relocate impl *)
-    let tmp = { orig with kind = Imm } in
-    ignore (make_rc_fn tmp Decr_rc);
     let value = Llvm.build_call f [| orig.value |] "" builder in
     (* For some reason, we default? *)
     { orig with value; kind = Imm }
-
-  let maybe_relocate orig =
-    let call = modify_arr_fn Reloc orig in
-    decl_incr_children orig orig.typ;
-    call
-
-  let relocate_impl orig =
-    (* Get current block *)
-    let start_bb = Llvm.insertion_block builder in
-    let parent = Llvm.block_parent start_bb in
-
-    let reloc_bb = Llvm.append_block context "relocate" parent in
-    let merge_bb = Llvm.append_block context "merge" parent in
-
-    let v = bring_default_var orig in
-    let int_ptr =
-      Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "ref" builder
-    in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-    let rc = Llvm.build_load dst "ref" builder in
-    let cmp =
-      Llvm.(build_icmp Icmp.Sgt) rc (Llvm.const_int int_t 1) "" builder
-    in
-
-    ignore (Llvm.build_cond_br cmp reloc_bb merge_bb builder);
-
-    Llvm.position_at_end reloc_bb builder;
-    (* Get new ptr *)
-    let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
-    let sz = Llvm.build_load sz "size" builder in
-
-    let cap = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
-    let cap = Llvm.build_load cap "cap" builder in
-
-    let item_type, _, head_size, item_size = item_type_head_size orig.typ in
-    let itemscap = Llvm.build_mul cap (ci item_size) "" builder in
-    (* Really capacity, not size *)
-    let size = Llvm.build_add itemscap (ci head_size) "" builder in
-
-    let lltyp = get_lltype_def orig.typ in
-    let ptr =
-      malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
-    in
-    let itemssize = Llvm.build_mul sz (ci item_size) "" builder in
-    let size = Llvm.build_add itemssize (ci head_size) "" builder in
-    ignore
-      (* Ptr is needed here to get a copy *)
-      (let src = { value = v.value; typ = orig.typ; kind = Ptr; lltyp } in
-       memcpy ~src ~dst:ptr ~size);
-    (* set orig pointer to new ptr *)
-    ignore (Llvm.build_store ptr orig.value builder);
-
-    (* We copied orig including refcount. Reset to 1 *)
-    let new_int_ptr =
-      Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "ref" builder
-    in
-    let new_dst = Llvm.build_gep new_int_ptr [| ci 0 |] "ref" builder in
-    ignore (Llvm.build_store (ci 1) new_dst builder);
-
-    (* Decrease orig refcount  *)
-    decr_refcount v;
-
-    (* Increase member refcount *)
-    if contains_refcount item_type then
-      iter_array_children v sz item_type incr_refcount;
-
-    ignore (Llvm.build_br merge_bb builder);
-
-    Llvm.position_at_end merge_bb builder;
-    bring_default_var orig
 
   let array_get args typ =
     let arr, index =
@@ -525,20 +332,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let lltyp = get_lltype_def typ in
     let value = data_get arr.value arr.typ (Idyn index) in
     { value; typ; lltyp; kind = Ptr }
-
-  let array_set args =
-    let arr, index, value =
-      match args with
-      | [ arr; index; value ] ->
-          (arr, bring_default index, bring_default_var value)
-      | _ -> failwith "Internal Error: Arity mismatch in builtin"
-    in
-    let arr = maybe_relocate arr in
-    let ptr = data_get arr.value arr.typ (Idyn index) in
-    decr_refcount { value with value = ptr; kind = Ptr };
-
-    set_struct_field value ptr;
-    { dummy_fn_value with lltyp = unit_t }
 
   let array_length args =
     let arr =
@@ -556,7 +349,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
   let grow orig =
     let call = modify_arr_fn Grow orig in
-    decl_incr_children orig orig.typ;
     call
 
   let grow_impl orig =
@@ -571,7 +363,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
     let rc = Llvm.build_load dst "ref" builder in
 
-    let item_type, _, head_size, item_size = item_type_head_size orig.typ in
+    let _, _, head_size, item_size = item_type_head_size orig.typ in
     let itemscap = Llvm.build_mul new_cap (ci item_size) "" builder in
     let size = Llvm.build_add itemscap (ci head_size) "" builder in
 
@@ -620,12 +412,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let new_dst = Llvm.build_gep new_int_ptr [| ci 0 |] "ref" builder in
     ignore (Llvm.build_store (ci 1) new_dst builder);
 
-    (* Decrease orig refcount  *)
-    decr_refcount v;
-
-    (* Increase member refcount *)
-    if contains_refcount item_type then
-      iter_array_children v sz item_type incr_refcount;
     let malloc_bb = Llvm.insertion_block builder in
 
     ignore (Llvm.build_br merge_bb builder);
@@ -671,7 +457,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     (* There is enough capacity *)
     Llvm.position_at_end keep_bb builder;
-    let keep_arr = maybe_relocate arr in
+    let keep_arr = bring_default_var arr in
     ignore (Llvm.build_br merge_bb builder);
 
     (* Not enough capacity, grow the array *)
@@ -697,13 +483,13 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
 
     { dummy_fn_value with lltyp = unit_t }
 
-  let array_drop_back args =
+  let array_drop_back param args =
     let arr =
       match args with
       | [ arr ] -> arr
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
-    let arr = maybe_relocate arr in
+    let arr = bring_default_var arr in
     let int_ptr =
       Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
     in
@@ -727,7 +513,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
     let item_typ = item_type arr.typ in
     let llitem_typ = get_lltype_def item_typ in
 
-    decr_refcount
+    Auto.free param
       { value = ptr; kind = Ptr; typ = item_typ; lltyp = llitem_typ };
 
     ignore (Llvm.build_store index dst builder);
@@ -794,15 +580,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (C : Core) = struct
         (* We saved typ and kind *)
         let v = { v with value } in
         match kind with
-        | Incr_rc ->
-            incr_rc_impl v;
-            ignore (Llvm.build_ret_void builder)
-        | Decr_rc ->
-            decr_rc_impl v;
-            ignore (Llvm.build_ret_void builder)
-        | Reloc ->
-            let v = relocate_impl v in
-            ignore (Llvm.build_ret v.value builder)
         | Grow ->
             let v = grow_impl v in
             ignore (Llvm.build_ret v.value builder))

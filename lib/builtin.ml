@@ -22,7 +22,6 @@ type t =
   | Not
   | Mod
   | Array_get
-  | Array_set
   | Array_length
   | Array_push
   | Array_drop_back
@@ -104,16 +103,6 @@ let tbl =
           Qvar "0",
           Simple ),
       "array-get" );
-    ( Array_set,
-      Tfun
-        ( [
-            { pt = Tarray (Qvar "0"); pattr = Dmut };
-            { p with pt = Tint };
-            { p with pt = Qvar "0" };
-          ],
-          Tunit,
-          Simple ),
-      "array-set" );
     ( Array_length,
       Tfun ([ { p with pt = Tarray (Qvar "0") } ], Tint, Simple),
       "array-length" );
@@ -164,7 +153,6 @@ let of_string = function
   | "not" -> Some Not
   | "mod" -> Some Mod
   | "array-get" -> Some Array_get
-  | "array-set" -> Some Array_set
   | "array-length" -> Some Array_length
   | "array-push" -> Some Array_push
   | "array-drop-back" -> Some Array_drop_back
