@@ -11,6 +11,6 @@
 
 (defn test [value]
   (ignore (if true
-            value
+            (copy value)
             (fmt-str "/" value))))
 (times 2 test)

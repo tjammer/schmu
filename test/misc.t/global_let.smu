@@ -1,7 +1,7 @@
 (defn ret-none []
   (def (a (option (array int))) #none)
   a)
-(def b (match (ret-none) ((#some a) a) (#none [1 2])))
+(def b !(match (ret-none) ((#some a) a) (#none [1 2])))
 (ignore b)
 
 (type (r 'a) {:a 'a})

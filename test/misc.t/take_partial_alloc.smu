@@ -3,19 +3,19 @@
 (type (parse-result 'a) ((#ok (success 'a)) (#err view)))
 
 (defn view-of-string [str]
-  {:buf str :start 0 :len (array-length str)})
+  {:buf (copy str) :start 0 :len (array-length str)})
 
 (defn ch [buf]
   (if (char-equal (array-get buf.buf buf.start) ' ')
-    (#ok {:mtch {@buf :len 1}
-          :rem {@buf :start (+ 1 buf.start) :len (- buf.len 1)}})
-    (#err buf)))
+    (#ok {:mtch {@buf :buf (copy buf.buf) :len 1}
+          :rem {:buf (copy buf.buf) :start (+ 1 buf.start) :len (- buf.len 1)}})
+    (#err (copy buf))))
 
 (defn many-count [buf]
   (defn aux [rem cnt]
     (match (ch rem)
       ((#ok r) (aux r.rem (+ cnt 1)))
-      ((#err _) (#ok {:rem :mtch cnt}))))
+      ((#err _) (#ok {:rem (copy rem) :mtch cnt}))))
   (aux buf 0))
 
 (def s (fmt-str " "))

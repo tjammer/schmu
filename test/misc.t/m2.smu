@@ -35,8 +35,8 @@
 
 (defn test [i]
   (print "wrong")
-  i)
+  (copy i))
 
 (defn test [i]
   (print "right")
-  i)
+  (copy i))

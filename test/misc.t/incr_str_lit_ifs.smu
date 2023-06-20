@@ -4,9 +4,9 @@
     #none))
 
 (defn try []
-  (print (match (ret-non)
-         ((#some j) (fmt-str j))
-         (#none "none"))))
+  (match (ret-non)
+    ((#some j) (print (fmt-str j)))
+    (#none (print "none"))))
 
 (try)
 (try)

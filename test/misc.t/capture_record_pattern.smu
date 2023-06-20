@@ -8,7 +8,7 @@
     ({bar foo} (bind (bar thing)
                      -- [foo] must be captured here
                      (fn [r] (bind (foo r)
-                     (fn [r] (print (fmt-str r)) (#some r))))))))
+                     (fn [r] (print (fmt-str r)) (#some (copy r)))))))))
 
 (ignore
  (use {(fn [i] (#some (+ i 1)))

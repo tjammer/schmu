@@ -7,8 +7,7 @@
       ai
      (if (= i 30)
        bi
-      (do
-         (inner (+ i 1))))))
+       (inner (+ i 1)))))
   (def io (inner 10))
   (ignore io)
   ret)
