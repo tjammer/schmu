@@ -713,7 +713,7 @@ struct
       let i = get_index i p.pmut p.pt in
       let alloca = Vars.find (name_of_alloc_param i) param.vars in
 
-      tail_decr_param param alloca i p.pmut;
+      if not p.pmoved then tail_decr_param param alloca i p.pmut;
       i + 1
     in
     ignore (List.fold_left f start_index params)

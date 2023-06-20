@@ -131,7 +131,7 @@ end = struct
         in
 
         gen_expr { param with vars = Vars.add name func param.vars } cont
-    | Mlet (id, rhs, proj, gn, _, cont) -> gen_let param id rhs proj gn cont
+    | Mlet (id, rhs, proj, gn, ms, cont) -> gen_let param id rhs proj gn ms cont
     | Mbind (id, equals, cont) -> gen_bind param id equals cont
     | Mlambda (name, abs, allocref) ->
         let func =
@@ -179,7 +179,7 @@ end = struct
     | Mprint_str fmts -> gen_print_str param fmts |> fin
     | Mfree_after (expr, fs) -> gen_free param expr fs |> fin
 
-  and gen_let param id rhs kind gn cont =
+  and gen_let param id rhs kind gn ms cont =
     let expr_val =
       match gn with
       | Some n -> (
@@ -210,6 +210,7 @@ end = struct
               if v.value <> dst then store_or_copy ~src ~dst;
               { v with value = dst; kind = Ptr })
     in
+    List.iter (fun id -> Strtbl.replace free_tbl id expr_val) ms;
     gen_expr { param with vars = Vars.add id expr_val param.vars } cont
 
   and gen_bind param id equals cont =

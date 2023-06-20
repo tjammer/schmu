@@ -179,6 +179,7 @@ module Mallocs : sig
   val remove_local : malloc -> t -> t
   val empty_func : monod_tree -> t -> t * monod_tree
   val classify : malloc -> t -> classification
+  val diff_func : t -> t -> Iset.t
 end = struct
   type t = (malloc_scope * Iset.t) list
   type classification = Local | Outer | No_cls
@@ -262,6 +263,16 @@ end = struct
         | No_cls, a | a, No_cls -> a)
     | _, (Mfunc, _) :: _ -> failwith "Internal Error: Unexpected function scope"
     | _, [] -> No_cls
+
+  let diff_func a b =
+    let rec aux acc a b =
+      match (a, b) with
+      | (Mlocal, a) :: atl, (Mlocal, b) :: btl ->
+          aux (Iset.union acc (Iset.diff a b)) atl btl
+      | (Mfunc, a) :: _, (Mfunc, b) :: _ -> Iset.union acc (Iset.diff a b)
+      | _ -> failwith "Internal Error: Mismatch n scoce"
+    in
+    aux Iset.empty a b
 end
 
 let () = ignore Mallocs.mem
@@ -901,12 +912,14 @@ let add_params vars mallocs pnames =
   (* Add parameters to the env and create malloc ids if they have been moved *)
   List.fold_left
     (fun (vars, mallocs) (name, malloc) ->
-      let malloc, mallocs =
+      let var, mallocs =
         match malloc with
-        | Some id -> (Single id, Mallocs.add (Single id) mallocs)
-        | None -> (No_malloc, mallocs)
+        | Some id ->
+            ( Normal { no_var with malloc = Single id },
+              Mallocs.add (Single id) mallocs )
+        | None -> (Param no_var, mallocs)
       in
-      let vars = Vars.add name (Param { no_var with malloc }) vars in
+      let vars = Vars.add name var vars in
       (vars, mallocs))
     (vars, mallocs) pnames
 
@@ -990,10 +1003,9 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | If (cond, Some owning, e1, e2) -> morph_if make param cond owning e1 e2
   | Let { id; uniq; rhs; cont; pass; rmut = _ } ->
       let kind = let_kind rhs.attr.mut pass in
-      let p, e1, gn, m = prep_let param id uniq rhs kind false in
-      let ms = m_to_list m in
+      let un, p, e1, gn, ms = prep_let param id uniq rhs pass false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
-      (p, { e2 with expr = Mlet (id, e1, kind, gn, ms, e2) }, func)
+      (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
   | Bind (id, lhs, cont) ->
       let p, lhs, func = morph_expr { param with ret = false } lhs in
       let vars = Vars.add id (Normal func) p.vars in
@@ -1124,7 +1136,7 @@ and morph_unop mk p unop expr =
 and morph_if mk p cond owning e1 e2 =
   let ret = p.ret in
   let p, cond, _ = morph_expr { p with ret = false } cond in
-  let mallocs = Mallocs.push Mlocal p.mallocs in
+  let oldmallocs = p.mallocs in
 
   (* If a malloc from a branch is local it is unique. We can savely add it
      to mallocs and return it. For mallocs from the outer scope (function scope),
@@ -1141,8 +1153,10 @@ and morph_if mk p cond owning e1 e2 =
      branch in codegen which can be queried to delete the correct things.
      For now we prevent this situation completely with a check in exclusivity and
      force a copy *)
-  let p, e1, a = morph_expr { p with ret; mallocs } e1 in
-  let e1, a, mallocs, akind =
+  let p, e1, a =
+    morph_expr { p with ret; mallocs = Mallocs.push Mlocal oldmallocs } e1
+  in
+  let e1, a, amallocs, akind =
     (* For tailrecursive calls, every ref is already decreased in [morph_app].
            Furthermore, if both branches are tailrecursive, calling decr_ref might
            destroy a basic block in codegen. That's due to no merge blocks being
@@ -1159,9 +1173,9 @@ and morph_if mk p cond owning e1 e2 =
   in
 
   let p, e2, b =
-    morph_expr { p with ret; mallocs = Mallocs.push Mlocal mallocs } e2
+    morph_expr { p with ret; mallocs = Mallocs.push Mlocal oldmallocs } e2
   in
-  let e2, b, mallocs, bkind =
+  let e2, b, bmallocs, bkind =
     if b.tailrec then
       let _, mallocs = Mallocs.pop p.mallocs in
       (e2, { b with malloc = No_malloc }, mallocs, Mallocs.No_cls)
@@ -1175,6 +1189,10 @@ and morph_if mk p cond owning e1 e2 =
   let tailrec = a.tailrec && b.tailrec in
 
   (* Find out what's local and what isn't *)
+  let amoved = Mallocs.diff_func oldmallocs amallocs in
+  let bmoved = Mallocs.diff_func oldmallocs bmallocs in
+
+  let mallocs = oldmallocs in
   let malloc, mallocs =
     if contains_allocation e1.typ then
       let own = None in
@@ -1200,23 +1218,49 @@ and morph_if mk p cond owning e1 e2 =
     match malloc with
     | Oneof { own = None; fst; snd } when owning && contains_allocation e1.typ
       ->
-        let mallocs = Mallocs.remove malloc mallocs in
         let id = new_id malloc_id in
         let mallocs = Mallocs.add (Single id) mallocs in
-        (* let own, mallocs = mb_malloc mallocs e1.typ in *)
+        let mallocs = Mallocs.remove malloc mallocs in
+
         let frees_a =
-          let filter = prepare_filter fst in
+          let filter = prepare_filter fst |> Iset.union amoved in
           m_to_list_filtered ~filter snd
         in
         let frees_b =
-          let filter = prepare_filter snd in
+          let filter = prepare_filter snd |> Iset.union bmoved in
           m_to_list_filtered ~filter fst
         in
+        let mallocs =
+          Iset.fold
+            (fun m ms -> Mallocs.remove (Single m) ms)
+            (Iset.union amoved bmoved) mallocs
+        in
+
         ( { e1 with expr = Mfree_after (e1, frees_a) },
           { e2 with expr = Mfree_after (e2, frees_b) },
           Oneof { own = Some id; fst; snd },
           mallocs )
     | Oneof { own = Some _; _ } when owning -> failwith "TODO own"
+    | _ when not (a.tailrec || b.tailrec) ->
+        (* Mallocs which were moved in one branch need to be freed in the other *)
+        let frees_a =
+          Iset.diff bmoved amoved |> Iset.to_rev_seq |> List.of_seq
+        in
+        let frees_b =
+          Iset.diff amoved bmoved |> Iset.to_rev_seq |> List.of_seq
+        in
+        let mallocs =
+          Iset.fold
+            (fun m ms -> Mallocs.remove (Single m) ms)
+            (Iset.union amoved bmoved) mallocs
+        in
+        let e1 =
+          if a.tailrec then e1 else { e1 with expr = Mfree_after (e1, frees_a) }
+        in
+        let e2 =
+          if b.tailrec then e2 else { e2 with expr = Mfree_after (e2, frees_b) }
+        in
+        (e1, e2, malloc, mallocs)
     | _ -> (e1, e2, malloc, mallocs)
   in
 
@@ -1232,13 +1276,23 @@ and morph_if mk p cond owning e1 e2 =
     mk (Mif { cond; owning; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc); malloc; tailrec } )
 
-and prep_let p id uniq e kind toplvl =
+and prep_let p id uniq e pass toplvl =
   (* username *)
   let un =
     reconstr_module_username ~mname:p.mname ~mainmodule:p.mainmodule id
   in
 
   let p, e1, func = morph_expr { p with ret = false } e in
+  let ms, malloc, mallocs =
+    match pass with
+    | Dmove ->
+        let id = new_id malloc_id in
+        ([ id ], Single id, Mallocs.add (Single id) p.mallocs)
+    | Dset | Dmut | Dnorm -> ([], func.malloc, p.mallocs)
+  in
+
+  let p, func = ({ p with mallocs }, { func with malloc }) in
+
   let p, gn =
     match e.attr with
     | { const = true; _ } ->
@@ -1260,10 +1314,11 @@ and prep_let p id uniq e kind toplvl =
         let vars = Vars.add uniq (Global (uniq, func, used)) vars in
         ({ p with vars }, Some uniq)
     | _ ->
+        let kind = let_kind e.attr.mut pass in
         (match kind with Lproj | Limmut -> () | Lmut -> set_alloca func.alloc);
         ({ p with vars = Vars.add un (Normal func) p.vars }, None)
   in
-  (p, e1, gn, func.malloc)
+  (un, p, e1, gn, ms)
 
 and morph_record mk p labels is_const typ =
   let ret = p.ret in
@@ -1521,7 +1576,7 @@ and morph_app mk p callee args ret_typ =
     else false
   in
 
-  let f p arg =
+  let f p (arg, attr) =
     let rec is_arg = function
       | No_malloc -> false
       | Single -1 -> true
@@ -1530,35 +1585,45 @@ and morph_app mk p callee args ret_typ =
     in
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
+    let is_moved =
+      match attr with Typed_tree.Dmove -> true | Dset | Dmut | Dnorm -> false
+    in
     let mallocs, ex =
-      if tailrec then
-        if (not (is_arg var.malloc)) && is_part ex.expr then
-          (* A new parameter is set (= not arg) and it's a partial access.
-             We have to make sure we don't increase (or not decrease) the ref
-             counts of the whole records, because there might be multiple allocated fields.
-             In that case, only the passed one will eventually have it ref count decreased,
-             causing a leak of the other record fields. This can be avoided if we decrease
-             ref counts of the whole record and increase the passed fields's ref count before *)
-          (* TODO tailrec *)
-          (p.mallocs, ex)
-        else (Mallocs.remove var.malloc p.mallocs, ex)
+      if tailrec then (
+        (* if (not (is_arg var.malloc)) && is_part ex.expr then *)
+        (* A new parameter is set (= not arg) and it's a partial access.
+           We have to make sure we don't increase (or not decrease) the ref
+           counts of the whole records, because there might be multiple allocated fields.
+           In that case, only the passed one will eventually have it ref count decreased,
+           causing a leak of the other record fields. This can be avoided if we decrease
+           ref counts of the whole record and increase the passed fields's ref count before *)
+        (* TODO tailrec *)
+        (* (p.mallocs, ex) *)
+        (* else *)
+        ignore is_part;
+        (Mallocs.remove var.malloc p.mallocs, ex))
       else (p.mallocs, ex)
     in
     let p, monomorph = monomorphize_call { p with mallocs } ex None in
-    ({ p with ret }, ex, monomorph, is_arg var.malloc)
+    ( { p with ret },
+      ex,
+      monomorph,
+      (* If an argument is passed by move this means the parameter is also owned
+         and will be freed in a tailrec call *)
+      is_arg var.malloc || is_moved )
   in
 
   let rec fold_decr_last p args = function
     | [ (arg, attr) ] ->
         let mut = Types.mut_of_pattr attr in
-        let p, ex, monomorph, arg = f p arg in
+        let p, ex, monomorph, arg = f p (arg, attr) in
         let mallocs, ex =
           if tailrec then Mallocs.empty_func ex p.mallocs else (p.mallocs, ex)
         in
         ({ p with mallocs }, ({ ex; monomorph; mut }, arg) :: args)
     | (arg, attr) :: tl ->
         let mut = Types.mut_of_pattr attr in
-        let p, ex, monomorph, arg = f p arg in
+        let p, ex, monomorph, arg = f p (arg, attr) in
         fold_decr_last p (({ ex; monomorph; mut }, arg) :: args) tl
     | [] -> (p, [])
   in
@@ -1708,10 +1773,9 @@ let rec morph_toplvl param items =
   and aux_impl param tl = function
     | Typed_tree.Tl_let { id; uniq; lhs = expr; pass; _ } ->
         let kind = let_kind expr.attr.mut pass in
-        let p, e1, gn, m = prep_let param id uniq expr kind true in
-        let ms = m_to_list m in
+        let un, p, e1, gn, ms = prep_let param id uniq expr pass true in
         let p, e2, func = aux { p with ret = param.ret } tl in
-        (p, { e2 with expr = Mlet (id, e1, kind, gn, ms, e2) }, func)
+        (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
     | Tl_function (loc, name, uniq, abs) ->
         let p, call, abs, alloca = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in

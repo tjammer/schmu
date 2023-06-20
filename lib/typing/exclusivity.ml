@@ -409,7 +409,7 @@ let rec check_tree env bind mut part tree hist =
          will take care of this *)
       (tree, borrow, hist)
   | Let { id; rhs; cont; pass; rmut; uniq } ->
-      let rhs, env, b, hs =
+      let rhs, env, b, hs, pass =
         check_let tree.loc env id rhs rmut pass ~tl:false hist
       in
       let cont, v, hs = check_tree env bind mut part cont (add_hist b hs) in
@@ -618,7 +618,7 @@ let rec check_tree env bind mut part tree hist =
       let expr = Function (name, u, abs, cont) in
       ({ tree with expr }, v, hs)
   | Bind (name, expr, cont) ->
-      let e, env, b, hist =
+      let e, env, b, hist, _ =
         check_let ~tl:false tree.loc env name expr false Dnorm hist
       in
       let cont, v, hs = check_tree env bind mut part cont (add_hist b hist) in
@@ -682,7 +682,16 @@ and check_let ~tl loc env id lhs rmut pass hist =
   in
   let b = { rval with imm } in
   let env = Map.add id b env in
-  (rhs, env, b, hs)
+  let rhs, pass =
+    match nmut with
+    | Umove ->
+        (* Literals are moved without having to specify move passing. To ensure
+           that mallocs are tracked correctly we change the passing to move to
+           match the tree with reality *)
+        ({ rhs with expr = Move rhs }, Dmove)
+    | Umut | Uset | Uread -> (rhs, pass)
+  in
+  (rhs, env, b, hs, pass)
 
 and check_bind env name expr hist =
   let e, b, hist = check_tree env true Uread [] expr hist in
@@ -705,10 +714,10 @@ let check_item (env, bind, mut, part, hist) = function
   | Tl_let ({ loc; id; rmut; pass; lhs; uniq = _ } as e) ->
       if pass = Dmut then raise (Error (lhs.loc, "Cannot project at top level"))
       else
-        let lhs, env, b, hs =
+        let lhs, env, b, hs, pass =
           check_let loc env id lhs rmut pass ~tl:true hist
         in
-        ((env, bind, mut, part, add_hist b hs), Tl_let { e with lhs })
+        ((env, bind, mut, part, add_hist b hs), Tl_let { e with lhs; pass })
   | Tl_bind (name, expr) ->
       let e, env, hist = check_bind env name expr hist in
       ((env, bind, mut, part, hist), Tl_bind (name, e))
