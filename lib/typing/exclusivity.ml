@@ -268,7 +268,11 @@ let integrate_new_elems nu old integrated =
           | Some l -> Map.add id (borrows @ l) integrated)
       | Some bs ->
           let nu = new_elems borrows [] bs in
-          let toadd = nu @ Map.find id integrated in
+          let toadd =
+            match Map.find_opt id integrated with
+            | Some integrated -> nu @ integrated
+            | None -> nu
+          in
           Map.add id toadd integrated)
     nu integrated
 

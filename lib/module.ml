@@ -246,14 +246,13 @@ and canonexpr mname nsub sub = function
       (sub, If (cond, o, e1, e2))
   | Let d ->
       let sub, rhs = (canonbody mname nsub) sub d.rhs in
-      (* Remove [id] from names map. If there is a function named [id],
-         we don't want to rename accesses to the here named variable. *)
-      let nsub = Smap.remove d.id nsub in
+      (* Change binding name as well *)
+      let nsub = Smap.add d.id (absolute_module_name ~mname d.id) nsub in
       let sub, cont = (canonbody mname nsub) sub d.cont in
       (sub, Let { d with rhs; cont })
   | Bind (id, lhs, cont) ->
       let sub, lhs = (canonbody mname nsub) sub lhs in
-      let nsub = Smap.remove id nsub in
+      let nsub = Smap.add id (absolute_module_name ~mname id) nsub in
       let sub, cont = (canonbody mname nsub) sub cont in
       (sub, Bind (id, lhs, cont))
   | Lambda (i, abs) ->
