@@ -177,7 +177,7 @@ end = struct
     | Mfmt (fmts, allocref, id) ->
         gen_fmt_str param fmts typed_expr.typ allocref id |> fin
     | Mprint_str fmts -> gen_print_str param fmts |> fin
-    | Mfree_after (expr, fs) -> gen_free param expr fs |> fin
+    | Mfree_after (expr, fs) -> gen_free param expr fs
 
   and gen_let param id rhs kind gn ms cont =
     let expr_val =
