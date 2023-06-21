@@ -15,3 +15,28 @@
 
 (def a (test 2))
 (ignore a)
+
+-- For these to pass, the moved bindings from other branches need to
+-- be freed correctly
+(defn test [a!]
+  (def ai [10])
+  (def bi [11])
+  (def _ !(if false
+            [12]
+            (if true
+              bi
+              (if true
+                (do
+                  (ignore {a})
+                  ai)
+                [10]))))
+  ())
+
+(ignore (test ![10]))
+
+(defn test [a!]
+  (if true
+    (ignore {a})
+    ()))
+
+(test ![10])
