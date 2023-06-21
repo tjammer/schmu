@@ -76,10 +76,22 @@ let parts_match a wth =
         if Int.equal i j then parts_match (tl, tr)
         else (* Borrows concern different parts *) false
     | [], _ -> true
-    | _, [] -> (* Borrows are not mutually exclusive *) false
+    | _, [] -> (* Borrows are not mutually exclusive *) true
   in
   assert (Id.equal (fst a) (fst wth));
   parts_match (snd a, snd wth)
+
+let parts_is_sub a wth =
+  (* Part goes deeper than the [wth] structure *)
+  let rec parts_sub = function
+    | (i, _) :: tl, (j, _) :: tr ->
+        if Int.equal i j then parts_sub (tl, tr)
+        else (* Borrows concern different parts *) false
+    | [], _ -> false
+    | _, [] -> (* Borrows are not mutually exclusive *) true
+  in
+  assert (Id.equal (fst a) (fst wth));
+  parts_sub (snd a, snd wth)
 
 let are_borrow bs =
   let is_borrow = function
@@ -204,6 +216,21 @@ let rec check_exclusivity loc borrow hist =
           ( loc,
             p "%s was moved in line %i, cannot use%s" (Id.s m.borrowed)
               (fst m.loc).pos_lnum hint )
+        else (m.loc, p "Borrowed parameter %s is moved" (Id.s b.borrowed))
+      in
+      raise (Error (loc, msg))
+  | Borrow_mut (b, Set), Bmove (m, l) :: _
+    when parts_is_sub b.borrowed m.borrowed ->
+      let loc, msg =
+        if not !param_pass then
+          let hint =
+            match l with
+            | Some (l, _) -> p ". Move occurs in line %i" l.pos_lnum
+            | None -> ""
+          in
+          ( loc,
+            p "%s was moved in line %i, cannot set %s%s" (Id.s m.borrowed)
+              (fst m.loc).pos_lnum (Id.s b.borrowed) hint )
         else (m.loc, p "Borrowed parameter %s is moved" (Id.s b.borrowed))
       in
       raise (Error (loc, msg))
@@ -448,14 +475,22 @@ let rec check_tree env bind mut part tree hist =
       in
       let expr = Record fs in
       ({ tree with expr }, imm [], hs)
-  | Field (t, i, name) ->
+  | Field (t, i, name) -> (
       (match mut with
       | Umove when t.attr.const ->
           raise (Error (tree.loc, "Cannot move out of constant"))
       | _ -> ());
       let t, b, hs = check_tree env bind mut ((i, name) :: part) t hist in
       let tree = { tree with expr = Field (t, i, name) } in
-      if contains_allocation tree.typ then (tree, b, hs) else (tree, imm [], hs)
+      match mut with
+      | Umut | Uset ->
+          (* On mutation, make sure that the borrow is tracked. In other instances, like
+             reading, it's fine to just return the value. But for in the mutation case
+             this can introduce aliasing bugs *)
+          (tree, b, hs)
+      | Uread | Umove ->
+          if contains_allocation tree.typ then (tree, b, hs)
+          else (tree, imm [], hs))
   | Set (thing, value) ->
       let value, v, hs = check_tree env false Umove [] value hist in
       let hs = add_hist v hs in

@@ -1041,5 +1041,8 @@ let () =
             "Specify how rhs expression is passed. Either by move '!' or \
              mutably '&'"
             "(def a& [10]) (def b& a)";
+          tase_exn "partially set moved"
+            "a was moved in line 2, cannot set a.[0]"
+            "(def a& [10])\n(def b {a})\n(set &(array-get a 0) 10)";
         ] );
     ]
