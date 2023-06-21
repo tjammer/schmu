@@ -37,7 +37,7 @@
   {:x (+ (.x t) 3)})
 
 -- A polymorphic function which will get monomorphized
-(def f (fn [x] x))
+(def f (fn [x] (copy x)))
 
 (printi (apply 20 add1))
 (printi (apply 20 add_closed))
@@ -47,5 +47,5 @@
 (printi (.x (f {:x 17})))
 -- inline polymorphic function
 (-> 18
-    (fn [x] x)
+    (fn [x] (copy x))
     printi)

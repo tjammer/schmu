@@ -2,7 +2,7 @@
   (ignore a))
 
 (defn do_mut [a& b]
-  (set &a b))
+  (set &a (copy b)))
 
 (def b& 0)
 (ignore b)

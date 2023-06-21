@@ -1,8 +1,8 @@
 (type foo {:a& int})
 
 (def f {:a 0})
-(def fst& f)
-(def snd fst)
+(def fst& (copy f))
+(def snd (copy fst))
 (set &(.a fst) 1)
 (print (fmt-str (.a fst)))
 (print (fmt-str (.a f)))
@@ -10,8 +10,8 @@
 
 (defn new-fun []
   (def f {:a 0})
-  (def fst& f)
-  (def snd fst)
+  (def fst& (copy f))
+  (def snd (copy fst))
   (set &(.a fst) 1)
   (print (fmt-str (.a fst)))
   (print (fmt-str (.a f)))

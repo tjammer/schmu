@@ -1,8 +1,8 @@
 (type arrec {:a& (array int)})
 
 (def a& {:a [10]})
-(def b a)
-(array-set &(.a a) 0 12)
+(def b (copy a))
+(set &a.a.[0] 12)
 
 (defn print-thing [a]
   (print (fmt-str (array-get (.a a) 0))))
@@ -14,8 +14,8 @@
 
 (defn in-fun []
   (def a& {:a [10]})
-  (def b a)
-  (array-set &(.a a) 0 12)
+  (def b (copy a))
+  (set &a.a.[0] 12)
 
   (print-thing a)
   (print-thing b))

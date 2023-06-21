@@ -145,7 +145,7 @@ module Make (C : Core) = struct
     let all_new = ref true in
     let name = ref (Path.Pid "") in
     let fields =
-      match record.typ with
+      match clean record.typ with
       | Trecord (_, Some n, fields) ->
           name := n;
           Array.map

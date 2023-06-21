@@ -3,7 +3,7 @@
   (set &(.a r) 30))
 
 (defn mod2 [a&]
-  (array-push &a 20))
+  (array-push &a !20))
 
 (def a& {:a 20})
 (modify &a)

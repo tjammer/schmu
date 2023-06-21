@@ -2,7 +2,7 @@
 -- this caused stack smashing
 (defn infunc []
   (def base-length 2.0)
-  (def length& base-length)
+  (def length& !base-length)
   (set &length (+. length 3.0)))
 
 (ignore infunc)

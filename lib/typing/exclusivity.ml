@@ -322,8 +322,9 @@ let rec check_excl_chain loc env borrow hist =
       (* print_endline *)
       (*   (String.concat "\n" *)
       (*      (Map.to_seq hist |> List.of_seq *)
-      (*      |> List.map (fun (id, l) -> Id.show id ^ ": " ^ *)
-      (*           String.concat ", " (List.map show_binding l)))); *)
+      (*      |> List.map (fun (id, l) -> *)
+      (*             Id.show id ^ ": " *)
+      (*             ^ String.concat ", " (List.map show_binding l)))); *)
       check_exclusivity loc borrow (Map.find (fst b.borrowed) hist);
       match Map.find_opt (fst b.borrowed) env with
       | Some { imm; delayed = _ } -> check_excl_chains loc env imm hist

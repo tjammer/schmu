@@ -1,17 +1,14 @@
-(external printi (fun int unit))
-
 (type state {:cnt int :next (fun int int)})
 
-(def state {:cnt 0 :next (fn [x] (+ x 1))})
-
-(defn advance [state]
+(defn advance [state!]
   {:cnt ((.next state) (.cnt state)) :next (.next state)})
 
-(defn ten_times [state]
+(defn ten_times [state!]
   (if (< (.cnt state) 10)
     (do
-      (printi (.cnt state))
-      (ten_times (advance state)))
-    (printi 100)))
+      (print (fmt-str (.cnt state)))
+      (ten_times !(advance !state)))
+    (print (fmt-str 100))))
 
-(ten_times state)
+(let [state {:cnt 0 :next (fn [x] (+ x 1))}]
+  (ten_times !state))

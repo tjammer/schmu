@@ -10,12 +10,12 @@
 (test-record-in-variant (#some 10))
 (test-record-in-variant #none)
 
-(defn test-nested-records [inner]
+(defn test-nested-records [inner!]
   (let [a (match {:a inner :b 45.0}
             ({:a {:a c :b _} :b _} c))]
     (print (fmt-str a))))
 
-(test-nested-records {:a 20 :b 30.0})
+(test-nested-records !{:a 20 :b 30.0})
 
 (defn test-record-wildcard [inner]
   (let [a (match (#some {:a inner :b 53.0})

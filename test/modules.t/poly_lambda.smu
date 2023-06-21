@@ -3,4 +3,4 @@
 (defn create [a]
   -- Create a polymorphic lambda and use it in this function.
   -- This will get processes in the user's monomorph_tree
-  ((fn [] {:a})))
+  ((fn [] {:a (copy a)})))

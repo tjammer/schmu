@@ -2,8 +2,8 @@
 
 (defn black-box [f g]
   (if once
-    (do (set &once false) f)
-    g))
+    (do (set &once false) (copy f))
+    (copy g)))
 
 (def foo (fn [a] (print (fmt-str a " foo"))))
 (defn bar [a] (print (fmt-str a " bar")))

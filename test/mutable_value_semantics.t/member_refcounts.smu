@@ -1,14 +1,14 @@
 (type r {:a (array int)})
 (def a& [10])
-(def r {:a a})
-(array-set &a 0 20)
+(def r {:a (copy a)})
+(set &(array-get a 0) 20)
 (print (fmt-str (array-get (.a r) 0)))
 
-(def r [a])
+(def r [(copy a)])
 (set &(array-get a 0) 30)
 (print (fmt-str (array-get (array-get r 0) 0)))
 
-(def r (#some a))
+(def r (#some (copy a)))
 (set &(array-get a 0) 40)
 (print
  (match r

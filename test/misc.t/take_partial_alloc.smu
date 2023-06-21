@@ -14,7 +14,10 @@
 (defn many-count [buf]
   (defn aux [rem cnt]
     (match (ch rem)
-      ((#ok r) (aux r.rem (+ cnt 1)))
+      ((#ok r)
+       -- r.rem is moved out of the result.
+       -- The mtch part is still alive and needs to be freed
+       (aux r.rem (+ cnt 1)))
       ((#err _) (#ok {:rem (copy rem) :mtch cnt}))))
   (aux buf 0))
 

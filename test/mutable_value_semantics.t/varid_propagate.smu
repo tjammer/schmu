@@ -1,6 +1,6 @@
 (defn f1 [acc v]
-  (let [tmp& acc]
-    (array-push &tmp v)
+  (let [tmp& (copy acc)]
+    (array-push &tmp !(copy v))
     tmp))
 
 (ignore (f1 [0] 0))

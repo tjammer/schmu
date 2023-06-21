@@ -2,7 +2,7 @@
 
 (type t {:i int :b bool})
 
-(defn pass [x] x)
+(defn pass [x] (copy x))
 
 (defn apply [f x] (f x))
 

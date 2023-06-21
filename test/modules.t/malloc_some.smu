@@ -6,7 +6,7 @@
 
 (def b (add_ints 1 3))
 
-(defn id [x] x)
+(defn id [x] (copy x))
 
 (def vtest [0 1])
 (def vtest2 [3])

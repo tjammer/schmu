@@ -3,7 +3,7 @@
 (type inner {:fst int :snd int})
 (type (misaligned 'a) {:fst inner :gen 'a})
 
-(defn gen [any] (.gen any))
+(defn gen [any] (copy (.gen any)))
 
 (def m {:fst {:fst 50 :snd 40} :gen 30})
 (printi (gen m))

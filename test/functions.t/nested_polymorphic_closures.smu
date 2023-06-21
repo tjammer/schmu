@@ -27,10 +27,10 @@
   (inner_cls_f 0 arr))
 
 (def arr& [])
-(array-push &arr 1)
-(array-push &arr 2)
-(array-push &arr 3)
-(array-push &arr 4)
-(array-push &arr 5)
+(array-push &arr !1)
+(array-push &arr !2)
+(array-push &arr !3)
+(array-push &arr !4)
+(array-push &arr !5)
 
 (array-iter arr (fn [x] (printi (* x 2))))

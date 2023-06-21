@@ -9,9 +9,9 @@
 (print (fmt-str (hmm)))
 
 (def a& [[10] [20]])
-(def b a)
+(def b (copy a))
 (ignore b)
 
 (def c [30])
-(set &(array-get a 0) c)
+(set &(array-get a 0) (copy c))
 (set &a.[0] [10])

@@ -12,7 +12,7 @@
 (defn int [(i int)]
   (print (fmt-str i)))
 
-(defn poly-int [a] a)
+(defn poly-int [a] (copy a))
 
 -- type t is usable here
 (def (t t) 200)

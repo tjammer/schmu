@@ -5,10 +5,10 @@
 (defn add1 [x] (+ x 1))
 
 -- We also pass polymorphic functions
-(defn pass [x] x)
+(defn pass [x] (copy x))
 
 -- ...and a lambda
-(def pass2 (fn [x] x))
+(def pass2 (fn [x] (copy x)))
 
 (defn makefalse [b]
   (if b
@@ -28,6 +28,6 @@
     (apply makefalse)
     int_of_bool
     printi)
-(printi (apply 3 (fn (x) x))) -- Shoulde be inferred with concrete type
+(printi (apply 3 (fn (x) (copy x)))) -- Shoulde be inferred with concrete type
 (printi (apply 4 pass))
 (printi (apply 5 pass2))
