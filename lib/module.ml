@@ -252,7 +252,7 @@ and canonexpr mname nsub sub = function
       (sub, Let { d with rhs; cont })
   | Bind (id, lhs, cont) ->
       let sub, lhs = (canonbody mname nsub) sub lhs in
-      let nsub = Smap.add id (absolute_module_name ~mname id) nsub in
+      let nsub = Smap.remove id nsub in
       let sub, cont = (canonbody mname nsub) sub cont in
       (sub, Bind (id, lhs, cont))
   | Lambda (i, abs) ->

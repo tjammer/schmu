@@ -657,8 +657,12 @@ let rec check_tree env bind mut part tree hist =
       let expr = Function (name, u, abs, cont) in
       ({ tree with expr }, v, hs)
   | Bind (name, expr, cont) ->
+      (* In Let expressions, the mut attribute indicates whether the binding is
+         mutable. In all other uses (including this one) it refers to the expression.
+         Change it to mut = false to be consistent with read only Binds *)
+      let tmpexpr = { expr with attr = { expr.attr with mut = false } } in
       let e, env, b, hist, _ =
-        check_let ~tl:false tree.loc env name expr false Dnorm hist
+        check_let ~tl:false tree.loc env name tmpexpr false Dnorm hist
       in
       let cont, v, hs = check_tree env bind mut part cont (add_hist b hist) in
       let expr = Bind (name, e, cont) in
