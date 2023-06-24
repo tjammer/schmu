@@ -130,7 +130,7 @@ type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 
 type malloc =
   | Single of int
-  | Oneof of { own : int option; fst : malloc; snd : malloc }
+  | Branch of { fst : malloc; snd : malloc }
   | No_malloc
 
 type malloc_scope = Mfunc | Mlocal
@@ -138,37 +138,12 @@ type malloc_scope = Mfunc | Mlocal
 let m_to_list = function
   | No_malloc -> []
   | Single i -> [ i ]
-  | Oneof { own = Some i; _ } -> [ i ]
-  | Oneof _ ->
+  | Branch _ ->
       (* Handled in If *)
       []
 
-let prepare_filter malloc =
-  let rec aux acc = function
-    | No_malloc -> acc
-    | Single i -> Iset.add i acc
-    | Oneof { own = _; fst; snd } ->
-        let acc = aux acc fst in
-        aux acc snd
-  in
-  aux Iset.empty malloc
-
-let m_to_list_filtered ~filter malloc =
-  (* In Ifs with nested Oneofs, take care that branches with same potential
-     mallocs don't free aready freed mallocs. Therefor, remove the allocs in
-     [filter] from Oneof _ list. *)
-  let rec aux acc = function
-    | No_malloc -> acc
-    | Single i -> if Iset.mem i filter then acc else i :: acc
-    | Oneof { own = _; fst; snd } ->
-        let acc = aux acc fst in
-        aux acc snd
-  in
-  aux [] malloc
-
 module Mallocs : sig
   type t
-  type classification = Local | Outer | No_cls
 
   val empty : malloc_scope -> t
   val push : malloc_scope -> t -> t
@@ -178,11 +153,9 @@ module Mallocs : sig
   val remove : malloc -> t -> t
   val remove_local : malloc -> t -> t
   val empty_func : monod_tree -> t -> t * monod_tree
-  val classify : malloc -> t -> classification
   val diff_func : t -> t -> Iset.t
 end = struct
   type t = (malloc_scope * Iset.t) list
-  type classification = Local | Outer | No_cls
 
   let empty scope = [ (scope, Iset.empty) ]
   let push kind ms = (kind, Iset.empty) :: ms
@@ -194,43 +167,33 @@ end = struct
   let rec mem a ms =
     match (a, ms) with
     | _, [] -> false
-    | Oneof { own = Some own; _ }, (_, ms) :: tl -> Iset.mem own ms || mem a tl
-    | Oneof { own = None; fst; snd }, _ -> mem fst ms && mem snd ms
+    | Branch { fst; snd }, _ -> mem fst ms && mem snd ms
     | Single i, (_, ms) :: tl -> Iset.mem i ms || mem a tl
     | No_malloc, _ -> false
 
   let add a ms =
     match (a, ms) with
     | _, [] -> failwith "Internal Error: Empty ids"
-    | Oneof { own = None; fst; snd }, _ ->
+    | Branch { fst; snd }, _ ->
         (* These are for borrowed values. Borrowed values should already be part of the
            mallocs env. There maybe is a special case for string literals here *)
         assert (mem fst ms);
         assert (mem snd ms);
         ms
-    | Oneof { own = Some own; _ }, (scope, ms) :: tl ->
-        (scope, Iset.add own ms) :: tl
     | Single a, (scope, ms) :: tl -> (scope, Iset.add a ms) :: tl
     | No_malloc, _ -> ms
 
   let rec remove a ms =
     match (a, ms) with
     | _, [] -> []
-    | Oneof { own = Some own; fst; snd }, (scope, ms) :: tl ->
-        (scope, Iset.remove own ms) :: remove (Single own) tl
-        |> remove fst |> remove snd
-    | Oneof { own = None; fst; snd }, _ -> remove fst ms |> remove snd
+    | Branch { fst; snd }, _ -> remove fst ms |> remove snd
     | Single i, (scope, ms) :: tl -> (scope, Iset.remove i ms) :: remove a tl
     | No_malloc, _ -> ms
 
   let rec remove_local a ms =
     match (a, ms) with
     | _, [] -> []
-    | Oneof { own = Some own; fst; snd }, (scope, ms) :: tl ->
-        (scope, Iset.remove own ms) :: tl
-        |> remove_local fst |> remove_local snd
-    | Oneof { own = None; fst; snd }, _ ->
-        remove_local fst ms |> remove_local snd
+    | Branch { fst; snd }, _ -> remove_local fst ms |> remove_local snd
     | Single i, (scope, ms) :: tl -> (scope, Iset.remove i ms) :: tl
     | No_malloc, _ -> ms
 
@@ -246,23 +209,6 @@ end = struct
         let frees = Iset.to_rev_seq s |> List.of_seq in
         ( (Mfunc, Iset.empty) :: tl,
           { body with expr = Mfree_after (body, frees) } )
-
-  let rec classify a ms =
-    (* Local means we don't have to free if the branch isn't taken.
-       But how are Oneof _ handled? If something is oneof, there is an
-       outer alloc. *)
-    match (a, ms) with
-    | No_malloc, _ -> No_cls
-    | Single a, (Mlocal, ms) :: _ when Iset.mem a ms -> Local
-    | Single _, (Mlocal, _) :: _ -> Outer
-    | Oneof { own = _; fst; snd }, (Mlocal, _) :: _ -> (
-        match (classify fst ms, classify snd ms) with
-        | Local, Local -> Local
-        | Outer, Local | Local, Outer | Outer, Outer -> Outer
-        | No_cls, No_cls -> No_cls
-        | No_cls, a | a, No_cls -> a)
-    | _, (Mfunc, _) :: _ -> failwith "Internal Error: Unexpected function scope"
-    | _, [] -> No_cls
 
   let diff_func a b =
     let rec aux acc a b =
@@ -1138,6 +1084,7 @@ and morph_if mk p cond owning e1 e2 =
   let p, cond, _ = morph_expr { p with ret = false } cond in
   let oldmallocs = p.mallocs in
 
+  (* TODO update this comment *)
   (* If a malloc from a branch is local it is unique. We can savely add it
      to mallocs and return it. For mallocs from the outer scope (function scope),
      we need to be more careful. If outer scope mallocs are involved, we don't add
@@ -1156,34 +1103,38 @@ and morph_if mk p cond owning e1 e2 =
   let p, e1, a =
     morph_expr { p with ret; mallocs = Mallocs.push Mlocal oldmallocs } e1
   in
-  let e1, a, amallocs, akind =
+  let e1, a, amallocs =
     (* For tailrecursive calls, every ref is already decreased in [morph_app].
            Furthermore, if both branches are tailrecursive, calling decr_ref might
            destroy a basic block in codegen. That's due to no merge blocks being
            created in that case *)
     if a.tailrec then
       let _, mallocs = Mallocs.pop p.mallocs in
-      (e1, { a with malloc = No_malloc }, mallocs, Mallocs.No_cls)
+      (e1, { a with malloc = No_malloc }, mallocs)
     else
       (* Remove returning malloc *)
-      let cls = Mallocs.classify a.malloc p.mallocs in
-      let mallocs = Mallocs.remove_local a.malloc p.mallocs in
+      let mallocs =
+        if owning then Mallocs.remove a.malloc p.mallocs
+        else Mallocs.remove_local a.malloc p.mallocs
+      in
       let frees, mallocs = Mallocs.pop mallocs in
-      ({ e1 with expr = Mfree_after (e1, frees) }, a, mallocs, cls)
+      ({ e1 with expr = Mfree_after (e1, frees) }, a, mallocs)
   in
 
   let p, e2, b =
     morph_expr { p with ret; mallocs = Mallocs.push Mlocal oldmallocs } e2
   in
-  let e2, b, bmallocs, bkind =
+  let e2, b, bmallocs =
     if b.tailrec then
       let _, mallocs = Mallocs.pop p.mallocs in
-      (e2, { b with malloc = No_malloc }, mallocs, Mallocs.No_cls)
+      (e2, { b with malloc = No_malloc }, mallocs)
     else
-      let cls = Mallocs.classify b.malloc p.mallocs in
-      let mallocs = Mallocs.remove_local b.malloc p.mallocs in
+      let mallocs =
+        if owning then Mallocs.remove b.malloc p.mallocs
+        else Mallocs.remove_local b.malloc p.mallocs
+      in
       let frees, mallocs = Mallocs.pop mallocs in
-      ({ e2 with expr = Mfree_after (e2, frees) }, b, mallocs, cls)
+      ({ e2 with expr = Mfree_after (e2, frees) }, b, mallocs)
   in
 
   let tailrec = a.tailrec && b.tailrec in
@@ -1193,83 +1144,37 @@ and morph_if mk p cond owning e1 e2 =
   let bmoved = Mallocs.diff_func oldmallocs bmallocs in
 
   let mallocs = oldmallocs in
-  let malloc, mallocs =
-    if contains_allocation e1.typ then
-      let own = None in
-      match (akind, bkind) with
-      (* If something is local, mallocs have been moved *)
-      | Local, Local -> mb_malloc mallocs e1.typ
-      | Local, Outer -> (Oneof { own; fst = No_malloc; snd = b.malloc }, mallocs)
-      | Outer, Local -> (Oneof { own; fst = a.malloc; snd = No_malloc }, mallocs)
-      | No_cls, No_cls -> (No_malloc, mallocs)
-      | No_cls, Local -> (b.malloc, Mallocs.add b.malloc mallocs)
-      | Local, No_cls -> (a.malloc, Mallocs.add a.malloc mallocs)
-      | No_cls, Outer -> (b.malloc, mallocs)
-      | Outer, No_cls -> (a.malloc, mallocs)
-      | Outer, Outer -> (Oneof { own; fst = a.malloc; snd = b.malloc }, mallocs)
-    else (No_malloc, mallocs)
-  in
-
-  (if contains_allocation e1.typ then
-     match (akind, bkind) with Local, _ | _, Local -> assert owning | _ -> ());
-
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
-    match malloc with
-    | Oneof { own = None; fst; snd } when owning && contains_allocation e1.typ
-      ->
-        let id = new_id malloc_id in
-        let mallocs = Mallocs.add (Single id) mallocs in
-        let mallocs = Mallocs.remove malloc mallocs in
+    (* Mallocs which were moved in one branch need to be freed in the other *)
+    let frees_a = Iset.diff bmoved amoved |> Iset.to_rev_seq |> List.of_seq in
+    let frees_b = Iset.diff amoved bmoved |> Iset.to_rev_seq |> List.of_seq in
 
-        let frees_a =
-          let filter = prepare_filter fst |> Iset.union amoved in
-          m_to_list_filtered ~filter snd
-        in
-        let frees_b =
-          let filter = prepare_filter snd |> Iset.union bmoved in
-          m_to_list_filtered ~filter fst
-        in
-        let mallocs =
-          Iset.fold
-            (fun m ms -> Mallocs.remove (Single m) ms)
-            (Iset.union amoved bmoved) mallocs
-        in
+    let mallocs =
+      Iset.fold
+        (fun m ms -> Mallocs.remove (Single m) ms)
+        (Iset.union amoved bmoved) mallocs
+    in
+    let e1 =
+      if a.tailrec then e1 else { e1 with expr = Mfree_after (e1, frees_a) }
+    in
+    let e2 =
+      if b.tailrec then e2 else { e2 with expr = Mfree_after (e2, frees_b) }
+    in
 
-        ( { e1 with expr = Mfree_after (e1, frees_a) },
-          { e2 with expr = Mfree_after (e2, frees_b) },
-          Oneof { own = Some id; fst; snd },
-          mallocs )
-    | Oneof { own = Some _; _ } when owning -> failwith "TODO own"
-    | _ when not (a.tailrec || b.tailrec) ->
-        (* Mallocs which were moved in one branch need to be freed in the other *)
-        let frees_a =
-          Iset.diff bmoved amoved |> Iset.to_rev_seq |> List.of_seq
-        in
-        let frees_b =
-          Iset.diff amoved bmoved |> Iset.to_rev_seq |> List.of_seq
-        in
-        let mallocs =
-          Iset.fold
-            (fun m ms -> Mallocs.remove (Single m) ms)
-            (Iset.union amoved bmoved) mallocs
-        in
-        let e1 =
-          if a.tailrec then e1 else { e1 with expr = Mfree_after (e1, frees_a) }
-        in
-        let e2 =
-          if b.tailrec then e2 else { e2 with expr = Mfree_after (e2, frees_b) }
-        in
-        (e1, e2, malloc, mallocs)
-    | _ -> (e1, e2, malloc, mallocs)
+    if owning && contains_allocation e1.typ then
+      let id = new_id malloc_id in
+      let mallocs = Mallocs.add (Single id) mallocs in
+      let mallocs =
+        Mallocs.remove a.malloc mallocs |> Mallocs.remove b.malloc
+      in
+      (e1, e2, Single id, mallocs)
+    else (e1, e2, Branch { fst = a.malloc; snd = b.malloc }, mallocs)
   in
 
   let owning =
     if owning then
-      match malloc with
-      | Single id -> Some id
-      | No_malloc -> None
-      | Oneof { own; _ } -> own
+      match malloc with Single id -> Some id | No_malloc | Branch _ -> None
     else None
   in
   ( { p with mallocs },
@@ -1580,7 +1485,7 @@ and morph_app mk p callee args ret_typ =
     let rec is_arg = function
       | No_malloc -> false
       | Single -1 -> true
-      | Oneof { own = _; fst; snd } -> is_arg fst || is_arg snd
+      | Branch { fst; snd } -> is_arg fst || is_arg snd
       | Single _ -> false
     in
     let ret = p.ret in
@@ -1617,10 +1522,10 @@ and morph_app mk p callee args ret_typ =
     | [ (arg, attr) ] ->
         let mut = Types.mut_of_pattr attr in
         let p, ex, monomorph, arg = f p (arg, attr) in
-        let mallocs, ex =
+        let _, ex =
           if tailrec then Mallocs.empty_func ex p.mallocs else (p.mallocs, ex)
         in
-        ({ p with mallocs }, ({ ex; monomorph; mut }, arg) :: args)
+        (p, ({ ex; monomorph; mut }, arg) :: args)
     | (arg, attr) :: tl ->
         let mut = Types.mut_of_pattr attr in
         let p, ex, monomorph, arg = f p (arg, attr) in
@@ -1635,8 +1540,8 @@ and morph_app mk p callee args ret_typ =
         (* We haven't decreased references yet, because there is no last argument.
            Essentially, we do the same work as in the last arg of [fold_decr_last]*)
         (* Note that we use the original p.ids for [decr_refs] *)
-        let mallocs, ex = Mallocs.empty_func callee.ex p.mallocs in
-        ({ p with mallocs }, { callee with ex })
+        let _, ex = Mallocs.empty_func callee.ex p.mallocs in
+        (p, { callee with ex })
     | _ -> (p, callee)
   in
 
