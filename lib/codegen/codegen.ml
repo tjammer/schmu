@@ -1216,7 +1216,8 @@ let generate ~target ~outname ~release ~modul
   in
 
   let free_mallocs tree frees =
-    Monomorph_tree.{ tree with expr = Mfree_after (tree, List.of_seq frees) }
+    Monomorph_tree.
+      { tree with expr = Mfree_after (tree, Except (List.of_seq frees)) }
   in
 
   if not modul then

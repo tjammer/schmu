@@ -1,4 +1,5 @@
 open Cleaned_types
+open Malloc_types
 module Vars = Map.Make (String)
 module Iset = Set.Make (Int)
 module Apptbl = Hashtbl
@@ -30,7 +31,7 @@ type expr =
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
-  | Mfree_after of monod_tree * malloc_list
+  | Mfree_after of monod_tree * free_list
 [@@deriving show]
 
 and const =
@@ -78,6 +79,7 @@ and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
 and copy_kind = Cglobal of string | Cnormal of bool
 and malloc_list = int list
+and free_list = Except of malloc_id list | Only of malloc_id list
 and let_kind = Limmut | Lmut | Lproj
 
 type recurs = Rnormal | Rtail | Rnone
@@ -105,7 +107,7 @@ module To_gen_func = struct
 end
 
 module Fset = Set.Make (To_gen_func)
-module Set = Set.Make (String)
+module Sset = Set.Make (String)
 
 type monomorphized_tree = {
   constants : (string * monod_tree * bool) list;
@@ -113,7 +115,7 @@ type monomorphized_tree = {
   externals : external_decl list;
   tree : monod_tree;
   funcs : To_gen_func.t list;
-  frees : int Seq.t;
+  frees : malloc_id Seq.t;
 }
 
 type to_gen_func_kind =
@@ -132,8 +134,14 @@ type malloc =
   | Single of int
   | Branch of { fst : malloc; snd : malloc }
   | No_malloc
+  | Path of malloc * Mpath.t
 
 type malloc_scope = Mfunc | Mlocal
+
+let malloc_add_index index = function
+  | No_malloc -> No_malloc
+  | Path (m, p) -> Path (m, index :: p)
+  | (Single _ | Branch _) as m -> Path (m, [ index ])
 
 let m_to_list = function
   | No_malloc -> []
@@ -141,35 +149,78 @@ let m_to_list = function
   | Branch _ ->
       (* Handled in If *)
       []
+  | Path _ -> failwith "Internal Error: Path not supported here"
+
+type pmap = Pset.t Imap.t
+
+let mlist_of_pmap m =
+  Imap.to_rev_seq m |> Seq.map (fun (id, paths) -> { id; paths }) |> List.of_seq
+
+let show_pmap m =
+  Imap.to_seq m
+  |> Seq.map (fun (i, set) -> Printf.sprintf "%i: (%s)" i (show_pset set))
+  |> List.of_seq |> String.concat "\n"
+
+let mapdiff a b =
+  ignore show_pmap;
+  Imap.merge
+    (fun _ a b ->
+      match (a, b) with
+      | Some a, Some b ->
+          (* The order here is switched, we want new moved things to appear *)
+          if Pset.is_empty b then None else Some (Pset.diff b a)
+      | None, Some _ | None, None -> None
+      | Some v, None -> Some v)
+    a b
+
+let mapunion a b =
+  Imap.merge
+    (fun _ a b ->
+      match (a, b) with
+      | Some a, Some b -> Some (Pset.union a b)
+      | Some a, None -> Some a
+      | None, Some b -> Some b
+      | None, None -> None)
+    a b
 
 module Mallocs : sig
   type t
 
   val empty : malloc_scope -> t
   val push : malloc_scope -> t -> t
-  val pop : t -> int list * t
-  val mem : malloc -> t -> bool
+  val pop : t -> malloc_id list * t
   val add : malloc -> t -> t
   val remove : malloc -> t -> t
   val remove_local : malloc -> t -> t
   val empty_func : monod_tree -> t -> t * monod_tree
-  val diff_func : t -> t -> Iset.t
+  val diff_func : t -> t -> Pset.t Imap.t
 end = struct
-  type t = (malloc_scope * Iset.t) list
+  (* type pmap = Pset.t Imap.t *)
+  type t = (malloc_scope * pmap) list
 
-  let empty scope = [ (scope, Iset.empty) ]
-  let push kind ms = (kind, Iset.empty) :: ms
+  let empty scope = [ (scope, Imap.empty) ]
+  let push kind ms = (kind, Imap.empty) :: ms
+  let pop = function (_, ms) :: tl -> (mlist_of_pmap ms, tl) | [] -> ([], [])
 
-  let pop = function
-    | (_, ms) :: tl -> (Iset.to_rev_seq ms |> List.of_seq, tl)
-    | [] -> ([], [])
-
-  let rec mem a ms =
-    match (a, ms) with
-    | _, [] -> false
-    | Branch { fst; snd }, _ -> mem fst ms && mem snd ms
-    | Single i, (_, ms) :: tl -> Iset.mem i ms || mem a tl
-    | No_malloc, _ -> false
+  let mem a ms =
+    let rec aux a ms path =
+      match (a, ms) with
+      | _, [] -> false
+      | Branch { fst; snd }, _ -> aux fst ms path && aux snd ms path
+      | Single i, (_, ms) :: tl ->
+          let mem =
+            match Imap.find_opt i ms with
+            | Some pset -> (
+                match path with [] -> true | path -> Pset.mem path pset)
+            | None -> false
+          in
+          mem || aux a tl path
+      | No_malloc, _ -> false
+      | Path (a, l), _ ->
+          (* Order of appending paths is important *)
+          aux a ms (l @ path)
+    in
+    aux a ms []
 
   let add a ms =
     match (a, ms) with
@@ -180,48 +231,78 @@ end = struct
         assert (mem fst ms);
         assert (mem snd ms);
         ms
-    | Single a, (scope, ms) :: tl -> (scope, Iset.add a ms) :: tl
+    | Single a, (scope, ms) :: tl -> (scope, Imap.add a Pset.empty ms) :: tl
     | No_malloc, _ -> ms
+    | Path _, _ -> failwith "Iternal Error: Trying to add pathed malloc"
 
-  let rec remove a ms =
-    match (a, ms) with
-    | _, [] -> []
-    | Branch { fst; snd }, _ -> remove fst ms |> remove snd
-    | Single i, (scope, ms) :: tl -> (scope, Iset.remove i ms) :: remove a tl
-    | No_malloc, _ -> ms
+  let remove a ms =
+    let rec aux a path ms =
+      match (a, ms) with
+      | _, [] -> []
+      | Branch { fst; snd }, _ -> aux fst path ms |> aux snd path
+      | Single i, (scope, ms) :: tl ->
+          let ms =
+            match path with
+            | [] -> Imap.remove i ms
+            | p -> (
+                match Imap.find_opt i ms with
+                | Some pset ->
+                    (* Malloc id was found, mark path as moved in set *)
+                    Imap.add i (Pset.add p pset) ms
+                | None ->
+                    (* Malloc id isn't part of this scope, do nothing *)
+                    ms)
+          in
+          (scope, ms) :: aux a path tl
+      | No_malloc, _ -> ms
+      | Path (a, l), _ -> aux a (l @ path) ms
+    in
+    aux a [] ms
 
   let rec remove_local a ms =
-    match (a, ms) with
-    | _, [] -> []
-    | Branch { fst; snd }, _ -> remove_local fst ms |> remove_local snd
-    | Single i, (scope, ms) :: tl -> (scope, Iset.remove i ms) :: tl
-    | No_malloc, _ -> ms
+    let rec aux a path ms =
+      match (a, ms) with
+      | _, [] -> []
+      | Branch { fst; snd }, _ -> remove_local fst ms |> remove_local snd
+      | Single i, (scope, ms) :: tl ->
+          let ms =
+            match path with
+            | [] -> Imap.remove i ms
+            | p -> (
+                match Imap.find_opt i ms with
+                | Some pset -> Imap.add i (Pset.add p pset) ms
+                | None -> ms)
+          in
+          (scope, ms) :: tl
+      | No_malloc, _ -> ms
+      | Path (a, l), _ -> aux a (l @ path) ms
+    in
+    aux a [] ms
 
   let rec empty_func body = function
     | [] -> ([], body)
     | (Mlocal, s) :: tl ->
-        let frees = Iset.to_rev_seq s |> List.of_seq in
+        let frees = mlist_of_pmap s in
         let tl, body =
-          empty_func { body with expr = Mfree_after (body, frees) } tl
+          empty_func { body with expr = Mfree_after (body, Except frees) } tl
         in
-        ((Mlocal, Iset.empty) :: tl, body)
+        ((Mlocal, Imap.empty) :: tl, body)
     | (Mfunc, s) :: tl ->
-        let frees = Iset.to_rev_seq s |> List.of_seq in
-        ( (Mfunc, Iset.empty) :: tl,
-          { body with expr = Mfree_after (body, frees) } )
+        let frees = mlist_of_pmap s in
+        ( (Mfunc, Imap.empty) :: tl,
+          { body with expr = Mfree_after (body, Except frees) } )
 
   let diff_func a b =
+    (* TODO take paths into account *)
     let rec aux acc a b =
       match (a, b) with
       | (Mlocal, a) :: atl, (Mlocal, b) :: btl ->
-          aux (Iset.union acc (Iset.diff a b)) atl btl
-      | (Mfunc, a) :: _, (Mfunc, b) :: _ -> Iset.union acc (Iset.diff a b)
-      | _ -> failwith "Internal Error: Mismatch n scoce"
+          aux (mapunion acc (mapdiff a b)) atl btl
+      | (Mfunc, a) :: _, (Mfunc, b) :: _ -> mapunion acc (mapdiff a b)
+      | _ -> failwith "Internal Error: Mismatch in scope"
     in
-    aux Iset.empty a b
+    aux Imap.empty a b
 end
-
-let () = ignore Mallocs.mem
 
 type var_normal = {
   fn : to_gen_func_kind;
@@ -239,7 +320,7 @@ type var =
 
 type morph_param = {
   vars : var Vars.t;
-  monomorphized : Set.t;
+  monomorphized : Sset.t;
   funcs : Fset.t; (* to generate in codegen *)
   ret : bool;
   (* Marks an expression where an if is the last piece which returns a record.
@@ -567,7 +648,7 @@ and subst_body p subst tree =
           {
             !p with
             funcs = Fset.union !p.funcs p2.funcs;
-            monomorphized = Set.union !p.monomorphized p2.monomorphized;
+            monomorphized = Sset.union !p.monomorphized p2.monomorphized;
           };
 
         let func = func_of_typ callee.ex.typ in
@@ -628,7 +709,7 @@ and subst_body p subst tree =
             {
               !p with
               funcs = Fset.union !p.funcs p2.funcs;
-              monomorphized = Set.union !p.monomorphized p2.monomorphized;
+              monomorphized = Sset.union !p.monomorphized p2.monomorphized;
             };
           name
       | None ->
@@ -647,7 +728,7 @@ and subst_body p subst tree =
               {
                 !p with
                 funcs = Fset.union !p.funcs p2.funcs;
-                monomorphized = Set.union !p.monomorphized p2.monomorphized;
+                monomorphized = Sset.union !p.monomorphized p2.monomorphized;
               };
 
             (* It's concrete, all good *) name)
@@ -691,7 +772,7 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
   | Mutual_rec (name, typ) ->
       if is_type_polymorphic typ then (
         let call = get_mono_name name ~closure:true ~poly:typ expr.typ in
-        if not (Set.mem call p.monomorphized) then
+        if not (Sset.mem call p.monomorphized) then
           (* The function doesn't exist yet, will it ever exist? *)
           if not (Hashtbl.mem missing_polys_tbl call) then
             Hashtbl.add missing_polys_tbl name (p, expr.typ, parent_sub);
@@ -715,7 +796,7 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
 and monomorphize p typ concrete func parent_sub =
   let call = get_mono_name func.name.call ~closure:true ~poly:typ concrete in
 
-  if Set.mem call p.monomorphized then
+  if Sset.mem call p.monomorphized then
     (* The function exists, we don't do anything right now *)
     (p, Mono call)
   else
@@ -738,7 +819,7 @@ and monomorphize p typ concrete func parent_sub =
           { func with abs = { func.abs with func = fnc; body }; name }
           p.funcs
       in
-      let monomorphized = Set.add call p.monomorphized in
+      let monomorphized = Sset.add call p.monomorphized in
       ({ p with funcs; monomorphized }, Mono call)
 
 let extract_callname default vars expr =
@@ -1118,7 +1199,7 @@ and morph_if mk p cond owning e1 e2 =
         else Mallocs.remove_local a.malloc p.mallocs
       in
       let frees, mallocs = Mallocs.pop mallocs in
-      ({ e1 with expr = Mfree_after (e1, frees) }, a, mallocs)
+      ({ e1 with expr = Mfree_after (e1, Except frees) }, a, mallocs)
   in
 
   let p, e2, b =
@@ -1134,7 +1215,7 @@ and morph_if mk p cond owning e1 e2 =
         else Mallocs.remove_local b.malloc p.mallocs
       in
       let frees, mallocs = Mallocs.pop mallocs in
-      ({ e2 with expr = Mfree_after (e2, frees) }, b, mallocs)
+      ({ e2 with expr = Mfree_after (e2, Except frees) }, b, mallocs)
   in
 
   let tailrec = a.tailrec && b.tailrec in
@@ -1147,19 +1228,26 @@ and morph_if mk p cond owning e1 e2 =
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     (* Mallocs which were moved in one branch need to be freed in the other *)
-    let frees_a = Iset.diff bmoved amoved |> Iset.to_rev_seq |> List.of_seq in
-    let frees_b = Iset.diff amoved bmoved |> Iset.to_rev_seq |> List.of_seq in
+    let frees_a = mapdiff bmoved amoved |> mlist_of_pmap in
+    let frees_b = mapdiff amoved bmoved |> mlist_of_pmap in
 
+    let rm_path m path ms = Mallocs.remove (Path (Single m, path)) ms in
     let mallocs =
-      Iset.fold
-        (fun m ms -> Mallocs.remove (Single m) ms)
-        (Iset.union amoved bmoved) mallocs
+      Imap.fold
+        (fun m pset ms ->
+          if Pset.is_empty pset then
+            (* Remove the whole malloc, not just a part *)
+            Mallocs.remove (Single m) ms
+          else Pset.fold (rm_path m) pset ms)
+        (mapunion amoved bmoved) mallocs
     in
     let e1 =
-      if a.tailrec then e1 else { e1 with expr = Mfree_after (e1, frees_a) }
+      if a.tailrec then e1
+      else { e1 with expr = Mfree_after (e1, Only frees_a) }
     in
     let e2 =
-      if b.tailrec then e2 else { e2 with expr = Mfree_after (e2, frees_b) }
+      if b.tailrec then e2
+      else { e2 with expr = Mfree_after (e2, Only frees_b) }
     in
 
     if owning && contains_allocation e1.typ then
@@ -1174,7 +1262,10 @@ and morph_if mk p cond owning e1 e2 =
 
   let owning =
     if owning then
-      match malloc with Single id -> Some id | No_malloc | Branch _ -> None
+      match malloc with
+      | Single id -> Some id
+      | No_malloc | Branch _ -> None
+      | Path _ -> failwith "todo path"
     else None
   in
   ( { p with mallocs },
@@ -1254,9 +1345,12 @@ and morph_record mk p labels is_const typ =
 and morph_field mk p expr index =
   let ret = p.ret in
   let p, e, func = morph_expr { p with ret = false } expr in
+  let malloc = malloc_add_index index func.malloc in
   (* Field should not inherit alloca of its parent.
      Otherwise codegen might use a nested type as its parent *)
-  ({ p with ret }, mk (Mfield (e, index)) ret, { func with alloc = No_value })
+  ( { p with ret },
+    mk (Mfield (e, index)) ret,
+    { func with alloc = No_value; malloc } )
 
 and morph_set mk p expr value =
   let ret = p.ret in
@@ -1347,7 +1441,7 @@ and prep_func p (username, uniq, abs) =
   leave_level ();
 
   let frees = Mallocs.pop temp_p.mallocs |> fst in
-  let body = { body with expr = Mfree_after (body, frees) } in
+  let body = { body with expr = Mfree_after (body, Except frees) } in
   let recursive = pop_recursion_stack () in
 
   (* Collect functions from body *)
@@ -1426,7 +1520,7 @@ and morph_lambda mk typ p id abs =
   in
 
   let frees = Mallocs.pop temp_p.mallocs |> fst in
-  let body = { body with expr = Mfree_after (body, frees) } in
+  let body = { body with expr = Mfree_after (body, Except frees) } in
 
   (* Why do we need this again in lambda? They can't recurse. *)
   (* But functions on the lambda body might *)
@@ -1487,6 +1581,7 @@ and morph_app mk p callee args ret_typ =
       | Single -1 -> true
       | Branch { fst; snd } -> is_arg fst || is_arg snd
       | Single _ -> false
+      | Path _ -> failwith "todo path in tailrec"
     in
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
@@ -1748,7 +1843,7 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
     let () = assert (!malloc_id = 2) in
     {
       vars;
-      monomorphized = Set.empty;
+      monomorphized = Sset.empty;
       funcs = Fset.empty;
       ret = false;
       mallocs = Mallocs.add malloc (Mallocs.empty Mfunc);
@@ -1778,7 +1873,7 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
         {
           realp with
           funcs = Fset.union p.funcs realp.funcs;
-          monomorphized = Set.union p.monomorphized realp.monomorphized;
+          monomorphized = Sset.union p.monomorphized realp.monomorphized;
         })
       missing_polys_tbl p
   in

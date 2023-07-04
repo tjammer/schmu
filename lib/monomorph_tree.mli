@@ -35,7 +35,7 @@ type expr =
   | Mvar_data of monod_tree
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
-  | Mfree_after of monod_tree * malloc_list
+  | Mfree_after of monod_tree * free_list
 [@@deriving show]
 
 and const =
@@ -87,6 +87,11 @@ and global_name = string option
 and fmt = Fstr of string | Fexpr of monod_tree
 and copy_kind = Cglobal of string | Cnormal of bool
 and malloc_list = int list
+
+and free_list =
+  | Except of Malloc_types.malloc_id list
+  | Only of Malloc_types.malloc_id list
+
 and let_kind = Limmut | Lmut | Lproj
 
 type recurs = Rnormal | Rtail | Rnone
@@ -113,7 +118,7 @@ type monomorphized_tree = {
   externals : external_decl list;
   tree : monod_tree;
   funcs : to_gen_func list;
-  frees : int Seq.t;
+  frees : Malloc_types.malloc_id Seq.t;
 }
 
 val typ_of_abs : abstraction -> typ
