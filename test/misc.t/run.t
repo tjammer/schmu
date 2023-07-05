@@ -4204,3 +4204,6 @@ Free moved parameters
 
 Free correctly when moving ifs with outer borrows
   $ schmu free_cond.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_cond
+
+Handle partial allocations
+  $ schmu partials.smu && valgrind -q --leak-check=yes --show-reachable=yes ./partials

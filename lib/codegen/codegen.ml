@@ -858,15 +858,17 @@ end = struct
     v
 
   and gen_field param expr index =
+    let value = gen_expr param expr in
+    follow_field value index
+
+  and follow_field value index =
     let typ =
-      match expr.typ with
+      match value.typ with
       | Trecord (_, _, fields) -> fields.(index).ftyp
       | _ ->
-          print_endline (show_typ expr.typ);
+          print_endline (show_typ value.typ);
           failwith "Internal Error: No record in fields"
     in
-
-    let value = gen_expr param expr in
 
     let value, kind =
       match value.kind with
@@ -1056,10 +1058,37 @@ end = struct
     { dummy_fn_value with lltyp = unit_t }
 
   and gen_free param expr fs =
+    let open Malloc_types in
     let expr = gen_expr param expr in
-    List.iter
-      (fun i -> Option.iter (Auto.free param) (Hashtbl.find_opt free_tbl i))
-      fs;
+    let get_path path init =
+      List.fold_right (fun index expr -> follow_field expr index) path init
+    in
+    (match fs with
+    | Except fs ->
+        List.iter
+          (fun i ->
+            Printf.printf "freeing except %i with paths %s\n" i.id
+              (show_pset i.paths);
+            Option.iter
+              (Auto.free_except param i.paths)
+              (Hashtbl.find_opt free_tbl i.id))
+          fs
+    | Only fs ->
+        List.iter
+          (fun i ->
+            Printf.printf "freeing only %i with paths %s\n" i.id
+              (show_pset i.paths);
+            Option.iter
+              (fun init ->
+                (* TODO check for empty in monomorph_tree *)
+                if Pset.is_empty i.paths then Auto.free param init
+                else
+                  Pset.iter
+                    (fun path -> get_path path init |> Auto.free param)
+                    i.paths)
+              (Hashtbl.find_opt free_tbl i.id))
+          fs);
+
     expr
 end
 

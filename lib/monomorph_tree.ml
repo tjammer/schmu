@@ -161,17 +161,22 @@ let show_pmap m =
   |> Seq.map (fun (i, set) -> Printf.sprintf "%i: (%s)" i (show_pset set))
   |> List.of_seq |> String.concat "\n"
 
-let mapdiff a b =
+let mapdiff ?(flip = true) a b =
   ignore show_pmap;
   Imap.merge
     (fun _ a b ->
       match (a, b) with
       | Some a, Some b ->
-          (* The order here is switched, we want new moved things to appear *)
-          if Pset.is_empty b then None else Some (Pset.diff b a)
+          if Pset.is_empty b then None
+          else
+            (* The order here is switched, we want new moved things to appear *)
+            let diff = if flip then Pset.diff b a else Pset.diff a b in
+            if Pset.is_empty diff then None else Some diff
       | None, Some _ | None, None -> None
       | Some v, None -> Some v)
     a b
+
+let mapdiff_flip a b = mapdiff ~flip:false a b
 
 let mapunion a b =
   Imap.merge
@@ -298,7 +303,8 @@ end = struct
       match (a, b) with
       | (Mlocal, a) :: atl, (Mlocal, b) :: btl ->
           aux (mapunion acc (mapdiff a b)) atl btl
-      | (Mfunc, a) :: _, (Mfunc, b) :: _ -> mapunion acc (mapdiff a b)
+      | (Mfunc, a) :: _, (Mfunc, b) :: _ ->
+          mapunion acc (mapdiff a b)
       | _ -> failwith "Internal Error: Mismatch in scope"
     in
     aux Imap.empty a b
@@ -1222,15 +1228,20 @@ and morph_if mk p cond owning e1 e2 =
 
   (* Find out what's local and what isn't *)
   let amoved = Mallocs.diff_func oldmallocs amallocs in
+  Printf.printf "amoved: %s\n" (show_pmap amoved);
   let bmoved = Mallocs.diff_func oldmallocs bmallocs in
+  Printf.printf "bmoved: %s\n" (show_pmap bmoved);
 
   let mallocs = oldmallocs in
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     (* Mallocs which were moved in one branch need to be freed in the other *)
-    let frees_a = mapdiff bmoved amoved |> mlist_of_pmap in
-    let frees_b = mapdiff amoved bmoved |> mlist_of_pmap in
+    Printf.printf "in inner\n";
+    let frees_a = mapdiff_flip bmoved amoved |> mlist_of_pmap in
+    let frees_b = mapdiff_flip amoved bmoved |> mlist_of_pmap in
 
+    Printf.printf "frees a: %s\n" (show_pmap (mapdiff_flip bmoved amoved));
+    Printf.printf "frees b: %s\n" (show_pmap (mapdiff_flip amoved bmoved));
     let rm_path m path ms = Mallocs.remove (Path (Single m, path)) ms in
     let mallocs =
       Imap.fold
@@ -1581,7 +1592,7 @@ and morph_app mk p callee args ret_typ =
       | Single -1 -> true
       | Branch { fst; snd } -> is_arg fst || is_arg snd
       | Single _ -> false
-      | Path _ -> failwith "todo path in tailrec"
+      | Path _ -> (* A path cannot be a passed argument *) false
     in
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in

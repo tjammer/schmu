@@ -5,8 +5,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
   open T
   open H
   open Arr
+  open Malloc_types
 
-  type func = Copy | Free
+  type func = Copy | Free | Free_except of Pset.t
 
   let func_tbl = Hashtbl.create 64
   let cls_func_tbl = Hashtbl.create 64
@@ -28,9 +29,16 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
           ts ctors
     | _ -> ts
 
+  let path_name pset =
+    let show_path path = String.concat "-" (List.map string_of_int path) in
+    String.concat "." (Pset.to_seq pset |> Seq.map show_path |> List.of_seq)
+
   let name typ = function
     | Copy -> "__copy_" ^ Monomorph_tree.short_name ~closure:false typ
     | Free -> "__free_" ^ Monomorph_tree.short_name ~closure:false typ
+    | Free_except pset ->
+        "__free_except" ^ path_name pset ^ "_1 "
+        ^ Monomorph_tree.short_name ~closure:false typ
 
   let make_fn kind v =
     let name = name v.typ kind in
@@ -294,10 +302,19 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     let f = make_fn Free v in
     Llvm.build_call f [| v.value |] "" builder |> ignore
 
+  let free_except_call pset v =
+    let f = make_fn (Free_except pset) v in
+    Llvm.build_call f [| v.value |] "" builder |> ignore
+
   let free param v =
     if contains_allocation v.typ then
       let () = decl_children Free v v.typ in
       make_ptr param v |> free_call
+
+  let free_except param pset v =
+    if Pset.is_empty pset then free param v
+    else if contains_allocation v.typ then
+      make_ptr param v |> free_except_call pset
 
   let get_dtor assoc_type assoc =
     let name = cls_fn_name `Dtor assoc in
@@ -431,6 +448,30 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         print_endline (show_typ v.typ);
         failwith "Internal Error: What are we freeing?"
 
+  let free_impl_except pset v =
+    match v.typ with
+    | Trecord (_, _, fs) ->
+        Array.iteri
+          (fun i f ->
+            if contains_allocation f.ftyp then
+              match pop_index_pset pset i with
+              | Not_excl ->
+                  (* Copy from [free_impl] *)
+                  let value = Llvm.build_struct_gep v.value i "" builder in
+                  let lltyp = get_lltype_def f.ftyp in
+                  let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
+                  free_call v
+              | Exhaust ->
+                  (* This field is excluded, do nothing *)
+                  ()
+              | Followup pset ->
+                  let value = Llvm.build_struct_gep v.value i "" builder in
+                  let lltyp = get_lltype_def f.ftyp in
+                  let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
+                  free_except_call pset v)
+          fs
+    | _ -> failwith "TODO free or not supported"
+
   let gen_functions () =
     Hashtbl.iter
       (fun _ (kind, v, ft) ->
@@ -444,6 +485,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
             Llvm.build_ret_void builder |> ignore
         | Free ->
             free_impl v;
+            Llvm.build_ret_void builder |> ignore
+        | Free_except pset ->
+            free_impl_except pset v;
             Llvm.build_ret_void builder |> ignore)
       func_tbl
 end
