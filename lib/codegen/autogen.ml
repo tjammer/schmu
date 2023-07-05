@@ -37,7 +37,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     | Copy -> "__copy_" ^ Monomorph_tree.short_name ~closure:false typ
     | Free -> "__free_" ^ Monomorph_tree.short_name ~closure:false typ
     | Free_except pset ->
-        "__free_except" ^ path_name pset ^ "_1 "
+        "__free_except" ^ path_name pset ^ "_"
         ^ Monomorph_tree.short_name ~closure:false typ
 
   let make_fn kind v =

@@ -24,7 +24,7 @@ type expr =
     }
   | Mrecord of (string * monod_tree) list * alloca * malloc_list * bool
   | Mfield of (monod_tree * int)
-  | Mset of (monod_tree * monod_tree)
+  | Mset of (monod_tree * monod_tree * bool)
   | Mseq of (monod_tree * monod_tree)
   | Mctor of (string * int * monod_tree option) * alloca * malloc_list * bool
   | Mvar_index of monod_tree
@@ -135,6 +135,7 @@ type malloc =
   | Branch of { fst : malloc; snd : malloc }
   | No_malloc
   | Path of malloc * Mpath.t
+[@@deriving show]
 
 type malloc_scope = Mfunc | Mlocal
 
@@ -194,8 +195,10 @@ module Mallocs : sig
   val empty : malloc_scope -> t
   val push : malloc_scope -> t -> t
   val pop : t -> malloc_id list * t
+  val mem : malloc -> t -> bool
   val add : malloc -> t -> t
   val remove : malloc -> t -> t
+  val reenter : malloc -> t -> t
   val remove_local : malloc -> t -> t
   val empty_func : monod_tree -> t -> t * monod_tree
   val diff_func : t -> t -> Pset.t Imap.t
@@ -238,7 +241,25 @@ end = struct
         ms
     | Single a, (scope, ms) :: tl -> (scope, Imap.add a Pset.empty ms) :: tl
     | No_malloc, _ -> ms
-    | Path _, _ -> failwith "Iternal Error: Trying to add pathed malloc"
+    | Path _, _ -> failwith "Internal Error: Trying to add pathed malloc"
+
+  let reenter a ms =
+    let rec aux a ms =
+      match (a, ms) with
+      | _, [] -> []
+      | Branch _, _ -> failwith "Internal Error: Reenter branch"
+      | Single a, (scope, ms) :: tl -> (scope, Imap.add a Pset.empty ms) :: tl
+      | No_malloc, _ -> ms
+      | Path (Single i, p), (scope, ms) :: tl ->
+          let found, ms =
+            match Imap.find_opt i ms with
+            | Some pset -> (true, Imap.add i (Pset.remove p pset) ms)
+            | None -> (false, ms)
+          in
+          if found then (scope, ms) :: tl else (scope, ms) :: aux a tl
+      | Path _, _ -> failwith "Internal Error: Unexpected path"
+    in
+    aux a ms
 
   let remove a ms =
     let rec aux a path ms =
@@ -303,8 +324,7 @@ end = struct
       match (a, b) with
       | (Mlocal, a) :: atl, (Mlocal, b) :: btl ->
           aux (mapunion acc (mapdiff a b)) atl btl
-      | (Mfunc, a) :: _, (Mfunc, b) :: _ ->
-          mapunion acc (mapdiff a b)
+      | (Mfunc, a) :: _, (Mfunc, b) :: _ -> mapunion acc (mapdiff a b)
       | _ -> failwith "Internal Error: Mismatch in scope"
     in
     aux Imap.empty a b
@@ -681,8 +701,9 @@ and subst_body p subst tree =
         { tree with typ = subst tree.typ; expr = Mvar_index (sub expr) }
     | Mvar_data expr ->
         { tree with typ = subst tree.typ; expr = Mvar_data (sub expr) }
-    | Mset (expr, value) ->
-        { tree with typ = subst tree.typ; expr = Mset (sub expr, sub value) }
+    | Mset (expr, value, moved) ->
+        let expr = Mset (sub expr, sub value, moved) in
+        { tree with typ = subst tree.typ; expr }
     | Mseq (expr, cont) ->
         let expr = sub expr in
         let cont = sub cont in
@@ -1228,20 +1249,15 @@ and morph_if mk p cond owning e1 e2 =
 
   (* Find out what's local and what isn't *)
   let amoved = Mallocs.diff_func oldmallocs amallocs in
-  Printf.printf "amoved: %s\n" (show_pmap amoved);
   let bmoved = Mallocs.diff_func oldmallocs bmallocs in
-  Printf.printf "bmoved: %s\n" (show_pmap bmoved);
 
   let mallocs = oldmallocs in
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     (* Mallocs which were moved in one branch need to be freed in the other *)
-    Printf.printf "in inner\n";
     let frees_a = mapdiff_flip bmoved amoved |> mlist_of_pmap in
     let frees_b = mapdiff_flip amoved bmoved |> mlist_of_pmap in
 
-    Printf.printf "frees a: %s\n" (show_pmap (mapdiff_flip bmoved amoved));
-    Printf.printf "frees b: %s\n" (show_pmap (mapdiff_flip amoved bmoved));
     let rm_path m path ms = Mallocs.remove (Path (Single m, path)) ms in
     let mallocs =
       Imap.fold
@@ -1371,10 +1387,18 @@ and morph_set mk p expr value =
      If we do, there are additional relocations happening and the wrong
      things are freed. If one were to force an allocation here,
      that's a leak *)
-  let p, e, _ = morph_expr { p with ret = false } expr in
+  let p, e, vfunc = morph_expr { p with ret = false } expr in
   let p, v, func = morph_expr { p with mallocs = Mallocs.empty Mlocal } value in
 
-  let tree = mk (Mset (e, v)) ret in
+  let moved = Mallocs.mem vfunc.malloc mallocs in
+  ignore show_malloc;
+  (* Printf.printf "moved: %b\n" moved; *)
+  (* Printf.printf "vmalloc: %s\n" (show_malloc vfunc.malloc); *)
+  let mallocs =
+    if moved then Mallocs.reenter vfunc.malloc mallocs else mallocs
+  in
+
+  let tree = mk (Mset (e, v, moved)) ret in
 
   (* TODO free the thing. This is right now done in codegen by calling free manually.
      Could also be added to the tree *)

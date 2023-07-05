@@ -168,7 +168,7 @@ end = struct
           typed_expr.return
         |> fin
     | Mfield (expr, index) -> gen_field param expr index |> fin
-    | Mset (expr, value) -> gen_set param expr value
+    | Mset (expr, value, moved) -> gen_set param expr value moved
     | Mseq (expr, cont) -> gen_chain param expr cont
     | Mctor (ctor, allocref, id, const) ->
         gen_ctor param ctor typed_expr.typ allocref id const
@@ -888,10 +888,10 @@ end = struct
 
     { value; typ; lltyp = get_lltype_def typ; kind }
 
-  and gen_set param expr valexpr =
+  and gen_set param expr valexpr moved =
     let ptr = gen_expr { param with in_set = true } expr in
     let value = gen_expr param valexpr in
-    Auto.free param ptr;
+    if not moved then Auto.free param ptr;
     (* We know that ptr cannot be a constant record, but value might *)
     set_struct_field value ptr.value;
     { dummy_fn_value with lltyp = unit_t }
@@ -1067,8 +1067,8 @@ end = struct
     | Except fs ->
         List.iter
           (fun i ->
-            Printf.printf "freeing except %i with paths %s\n" i.id
-              (show_pset i.paths);
+            (* Printf.printf "freeing except %i with paths %s\n" i.id *)
+            (*   (show_pset i.paths); *)
             Option.iter
               (Auto.free_except param i.paths)
               (Hashtbl.find_opt free_tbl i.id))
@@ -1076,8 +1076,8 @@ end = struct
     | Only fs ->
         List.iter
           (fun i ->
-            Printf.printf "freeing only %i with paths %s\n" i.id
-              (show_pset i.paths);
+            (* Printf.printf "freeing only %i with paths %s\n" i.id *)
+            (*   (show_pset i.paths); *)
             Option.iter
               (fun init ->
                 (* TODO check for empty in monomorph_tree *)

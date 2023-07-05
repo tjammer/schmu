@@ -28,7 +28,7 @@ type expr =
       * malloc_list
       * bool (* bool: is_const *)
   | Mfield of (monod_tree * int)
-  | Mset of (monod_tree * monod_tree)
+  | Mset of (monod_tree * monod_tree * bool (* is moved *))
   | Mseq of (monod_tree * monod_tree)
   | Mctor of (string * int * monod_tree option) * alloca * malloc_list * bool
   | Mvar_index of monod_tree
