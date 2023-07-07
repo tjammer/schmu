@@ -461,9 +461,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
                   let lltyp = get_lltype_def f.ftyp in
                   let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
                   free_call v
-              | Exhaust ->
-                  (* This field is excluded, do nothing *)
-                  ()
+              | Exhaust -> failwith "Internal Error: Exhausted path"
               | Followup pset ->
                   let value = Llvm.build_struct_gep v.value i "" builder in
                   let lltyp = get_lltype_def f.ftyp in

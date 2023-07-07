@@ -129,7 +129,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @lets_a__2 = constant i64 11
   @lets_b = global i64 0, align 8
   @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__lets_init, i8* null }]
-  @llvm.global_dtors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @__lets_deinit, i8* null }]
   
   define i64 @lets_generate_b() {
   entry:
@@ -140,11 +139,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   entry:
     %0 = tail call i64 @lets_generate_b()
     store i64 %0, i64* @lets_b, align 8
-    ret void
-  }
-  
-  define internal void @__lets_deinit() section ".text.startup" {
-  entry:
     ret void
   }
 

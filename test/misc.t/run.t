@@ -4206,4 +4206,157 @@ Free correctly when moving ifs with outer borrows
   $ schmu free_cond.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_cond
 
 Handle partial allocations
-  $ schmu partials.smu && valgrind -q --leak-check=yes --show-reachable=yes ./partials
+  $ schmu partials.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./partials
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %f_array_int = type { i64*, i64*, i64* }
+  %t_array_int = type { i64*, i64* }
+  %tuple_array_int = type { i64* }
+  
+  define i64* @schmu_inf() {
+  entry:
+    %0 = alloca %f_array_int, align 8
+    %a17 = bitcast %f_array_int* %0 to i64**
+    %1 = tail call i8* @malloc(i64 32)
+    %2 = bitcast i8* %1 to i64*
+    %arr = alloca i64*, align 8
+    store i64* %2, i64** %arr, align 8
+    store i64 1, i64* %2, align 8
+    %size = getelementptr i64, i64* %2, i64 1
+    store i64 1, i64* %size, align 8
+    %cap = getelementptr i64, i64* %2, i64 2
+    store i64 1, i64* %cap, align 8
+    %3 = getelementptr i8, i8* %1, i64 24
+    %data = bitcast i8* %3 to i64*
+    store i64 10, i64* %data, align 8
+    store i64* %2, i64** %a17, align 8
+    %b = getelementptr inbounds %f_array_int, %f_array_int* %0, i32 0, i32 1
+    %4 = tail call i8* @malloc(i64 32)
+    %5 = bitcast i8* %4 to i64*
+    %arr1 = alloca i64*, align 8
+    store i64* %5, i64** %arr1, align 8
+    store i64 1, i64* %5, align 8
+    %size3 = getelementptr i64, i64* %5, i64 1
+    store i64 1, i64* %size3, align 8
+    %cap4 = getelementptr i64, i64* %5, i64 2
+    store i64 1, i64* %cap4, align 8
+    %6 = getelementptr i8, i8* %4, i64 24
+    %data5 = bitcast i8* %6 to i64*
+    store i64 10, i64* %data5, align 8
+    store i64* %5, i64** %b, align 8
+    %c = getelementptr inbounds %f_array_int, %f_array_int* %0, i32 0, i32 2
+    %7 = tail call i8* @malloc(i64 32)
+    %8 = bitcast i8* %7 to i64*
+    %arr7 = alloca i64*, align 8
+    store i64* %8, i64** %arr7, align 8
+    store i64 1, i64* %8, align 8
+    %size9 = getelementptr i64, i64* %8, i64 1
+    store i64 1, i64* %size9, align 8
+    %cap10 = getelementptr i64, i64* %8, i64 2
+    store i64 1, i64* %cap10, align 8
+    %9 = getelementptr i8, i8* %7, i64 24
+    %data11 = bitcast i8* %9 to i64*
+    store i64 10, i64* %data11, align 8
+    store i64* %8, i64** %c, align 8
+    call void @__free_ai(i64** %c)
+    %10 = bitcast %f_array_int* %0 to i64**
+    call void @__free_ai(i64** %10)
+    %11 = bitcast %f_array_int* %0 to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %11, i64 8
+    %12 = bitcast i8* %sunkaddr to i64**
+    %13 = load i64*, i64** %12, align 8
+    ret i64* %13
+  }
+  
+  define void @schmu_set-moved() {
+  entry:
+    %0 = alloca %t_array_int, align 8
+    %a14 = bitcast %t_array_int* %0 to i64**
+    %1 = tail call i8* @malloc(i64 32)
+    %2 = bitcast i8* %1 to i64*
+    %arr = alloca i64*, align 8
+    store i64* %2, i64** %arr, align 8
+    store i64 1, i64* %2, align 8
+    %size = getelementptr i64, i64* %2, i64 1
+    store i64 1, i64* %size, align 8
+    %cap = getelementptr i64, i64* %2, i64 2
+    store i64 1, i64* %cap, align 8
+    %3 = getelementptr i8, i8* %1, i64 24
+    %data = bitcast i8* %3 to i64*
+    store i64 10, i64* %data, align 8
+    store i64* %2, i64** %a14, align 8
+    %b = getelementptr inbounds %t_array_int, %t_array_int* %0, i32 0, i32 1
+    %4 = tail call i8* @malloc(i64 32)
+    %5 = bitcast i8* %4 to i64*
+    %arr1 = alloca i64*, align 8
+    store i64* %5, i64** %arr1, align 8
+    store i64 1, i64* %5, align 8
+    %size3 = getelementptr i64, i64* %5, i64 1
+    store i64 1, i64* %size3, align 8
+    %cap4 = getelementptr i64, i64* %5, i64 2
+    store i64 1, i64* %cap4, align 8
+    %6 = getelementptr i8, i8* %4, i64 24
+    %data5 = bitcast i8* %6 to i64*
+    store i64 20, i64* %data5, align 8
+    store i64* %5, i64** %b, align 8
+    %7 = alloca %tuple_array_int, align 8
+    %"0715" = bitcast %tuple_array_int* %7 to i64**
+    %8 = load i64*, i64** %a14, align 8
+    store i64* %8, i64** %"0715", align 8
+    %9 = tail call i8* @malloc(i64 32)
+    %10 = bitcast i8* %9 to i64*
+    %arr8 = alloca i64*, align 8
+    store i64* %10, i64** %arr8, align 8
+    store i64 1, i64* %10, align 8
+    %size10 = getelementptr i64, i64* %10, i64 1
+    store i64 1, i64* %size10, align 8
+    %cap11 = getelementptr i64, i64* %10, i64 2
+    store i64 1, i64* %cap11, align 8
+    %11 = getelementptr i8, i8* %9, i64 24
+    %data12 = bitcast i8* %11 to i64*
+    store i64 20, i64* %data12, align 8
+    store i64* %10, i64** %a14, align 8
+    call void @__free_tup-ai(%tuple_array_int* %7)
+    call void @__free_tai(%t_array_int* %0)
+    ret void
+  }
+  
+  declare i8* @malloc(i64 %0)
+  
+  define internal void @__free_ai(i64** %0) {
+  entry:
+    %1 = load i64*, i64** %0, align 8
+    %2 = bitcast i64* %1 to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
+  define internal void @__free_tup-ai(%tuple_array_int* %0) {
+  entry:
+    %1 = bitcast %tuple_array_int* %0 to i64**
+    call void @__free_ai(i64** %1)
+    ret void
+  }
+  
+  define internal void @__free_tai(%t_array_int* %0) {
+  entry:
+    %1 = bitcast %t_array_int* %0 to i64**
+    call void @__free_ai(i64** %1)
+    %2 = getelementptr inbounds %t_array_int, %t_array_int* %0, i32 0, i32 1
+    call void @__free_ai(i64** %2)
+    ret void
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %0 = tail call i64* @schmu_inf()
+    tail call void @schmu_set-moved()
+    %1 = alloca i64*, align 8
+    store i64* %0, i64** %1, align 8
+    call void @__free_ai(i64** %1)
+    ret i64 0
+  }
+  
+  declare void @free(i8* %0)

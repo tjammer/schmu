@@ -12,7 +12,13 @@ module Mpath = struct
   let () = ignore pp
 end
 
-module Imap = Map.Make (Int)
+module Mid = struct
+  type t = { mid : int; typ : Cleaned_types.typ } [@@deriving show]
+
+  let compare a b = Int.compare a.mid b.mid
+end
+
+module Imap = Map.Make (Mid)
 module Pset = Set.Make (Mpath)
 
 type pset = Pset.t
@@ -48,6 +54,7 @@ let pop_index_pset pset index =
   else if Pset.is_empty popped then Exhaust
   else Followup popped
 
-type malloc_id = { id : int; paths : pset } [@@deriving show]
+type malloc_id = { id : int; mtyp : Cleaned_types.typ; paths : pset }
+[@@deriving show]
 
 let () = ignore pp_malloc_id

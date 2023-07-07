@@ -131,7 +131,7 @@ type to_gen_func_kind =
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
 
 type malloc =
-  | Single of int
+  | Single of Mid.t
   | Branch of { fst : malloc; snd : malloc }
   | No_malloc
   | Path of malloc * Mpath.t
@@ -146,7 +146,7 @@ let malloc_add_index index = function
 
 let m_to_list = function
   | No_malloc -> []
-  | Single i -> [ i ]
+  | Single i -> [ i.mid ]
   | Branch _ ->
       (* Handled in If *)
       []
@@ -155,11 +155,15 @@ let m_to_list = function
 type pmap = Pset.t Imap.t
 
 let mlist_of_pmap m =
-  Imap.to_rev_seq m |> Seq.map (fun (id, paths) -> { id; paths }) |> List.of_seq
+  Imap.to_rev_seq m
+  |> Seq.map (fun ((id : Mid.t), paths) ->
+         { id = id.mid; mtyp = id.typ; paths })
+  |> List.of_seq
 
 let show_pmap m =
   Imap.to_seq m
-  |> Seq.map (fun (i, set) -> Printf.sprintf "%i: (%s)" i (show_pset set))
+  |> Seq.map (fun ((i : Mid.t), set) ->
+         Printf.sprintf "%i: (%s)" i.mid (show_pset set))
   |> List.of_seq |> String.concat "\n"
 
 let mapdiff ?(flip = true) a b =
@@ -188,6 +192,66 @@ let mapunion a b =
       | None, Some b -> Some b
       | None, None -> None)
     a b
+
+let mk_free_after expr frees =
+  (* TODO for now, this only works for the except_ case *)
+  (* Recurse through frees and delete paths if:
+     1. a record remains without allocs
+     2. variant paths point to something without path *)
+  let rec is_exhaust frees typ =
+    if Pset.is_empty frees then (false, frees)
+    else
+      match typ with
+      | Trecord (_, _, fs) ->
+          let _, exh, pset =
+            Array.fold_left
+              (fun (i, exh, pset) f ->
+                if contains_allocation f.ftyp then
+                  match pop_index_pset frees i with
+                  | Not_excl -> (i + 1, false, pset)
+                  | Exhaust -> (i + 1, true, pset)
+                  | Followup frees ->
+                      let nexh, npset = is_exhaust frees f.ftyp in
+                      let npset =
+                        if nexh then npset else Pset.map (fun l -> i :: l) npset
+                      in
+                      (i + 1, exh && nexh, npset)
+                else (i + 1, exh, pset))
+              (0, true, Pset.empty) fs
+          in
+          (exh, pset)
+      | Tvariant (_, _, ctors) ->
+          let _, exh, pset =
+            Array.fold_left
+              (fun (i, exh, pset) c ->
+                match c.ctyp with
+                | Some t when contains_allocation t -> (
+                    match pop_index_pset frees i with
+                    | Not_excl -> (i + 1, false, pset)
+                    | Exhaust -> (i + 1, true, pset)
+                    | Followup frees ->
+                        let nexh, npset = is_exhaust frees t in
+                        let npset =
+                          if nexh then npset
+                          else Pset.map (fun l -> i :: l) npset
+                        in
+                        (i + 1, exh && nexh, npset))
+                | Some _ | None -> (i + 1, exh, pset))
+              (0, true, Pset.empty) ctors
+          in
+          (exh, pset)
+      | _ -> failwith "todo exh"
+  in
+  let frees =
+    List.filter_map
+      (fun free ->
+        let exh, paths = is_exhaust free.paths free.mtyp in
+        if not exh then Some { free with paths } else None)
+      frees
+  in
+  match frees with
+  | [] -> expr
+  | frees -> { expr with expr = Mfree_after (expr, Except frees) }
 
 module Mallocs : sig
   type t
@@ -309,14 +373,11 @@ end = struct
     | [] -> ([], body)
     | (Mlocal, s) :: tl ->
         let frees = mlist_of_pmap s in
-        let tl, body =
-          empty_func { body with expr = Mfree_after (body, Except frees) } tl
-        in
+        let tl, body = empty_func (mk_free_after body frees) tl in
         ((Mlocal, Imap.empty) :: tl, body)
     | (Mfunc, s) :: tl ->
         let frees = mlist_of_pmap s in
-        ( (Mfunc, Imap.empty) :: tl,
-          { body with expr = Mfree_after (body, Except frees) } )
+        ((Mfunc, Imap.empty) :: tl, mk_free_after body frees)
 
   let diff_func a b =
     (* TODO take paths into account *)
@@ -957,25 +1018,25 @@ let rec set_alloca = function
 
 let mb_malloc ids typ =
   if contains_allocation typ then
-    let id = Single (new_id malloc_id) in
+    let id = Single { mid = new_id malloc_id; typ } in
     let mallocs = Mallocs.add id ids in
     (id, mallocs)
   else (No_malloc, ids)
 
-let add_params vars mallocs pnames =
+let add_params vars mallocs pnames params =
   (* Add parameters to the env and create malloc ids if they have been moved *)
-  List.fold_left
-    (fun (vars, mallocs) (name, malloc) ->
+  List.fold_left2
+    (fun (vars, mallocs) (name, malloc) p ->
       let var, mallocs =
         match malloc with
-        | Some id ->
-            ( Normal { no_var with malloc = Single id },
-              Mallocs.add (Single id) mallocs )
+        | Some mid ->
+            ( Normal { no_var with malloc = Single { mid; typ = p.pt } },
+              Mallocs.add (Single { mid; typ = p.pt }) mallocs )
         | None -> (Param no_var, mallocs)
       in
       let vars = Vars.add name var vars in
       (vars, mallocs))
-    (vars, mallocs) pnames
+    (vars, mallocs) pnames params
 
 let recursion_stack = ref []
 let constant_uniq_state = ref 1
@@ -1049,7 +1110,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   match texpr.expr with
   | Typed_tree.Var v -> morph_var make param v
   | Const (String s) -> morph_string make param s
-  | Const (Array a) -> morph_array make param a
+  | Const (Array a) -> morph_array make param a (cln param texpr.typ)
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
@@ -1124,7 +1185,8 @@ and morph_var mk p v =
             if p.ret then ((v, Vnorm), thing)
             else
               (* Mark argument with a bogus id *)
-              ((v, Vnorm), { thing with malloc = Single (-1) })
+              ( (v, Vnorm),
+                { thing with malloc = Single { mid = -1; typ = Tunit } } )
         | Some (Const thing) -> ((thing, Vconst), no_var)
         | Some (Global (id, thing, used)) ->
             used := true;
@@ -1139,7 +1201,7 @@ and morph_string mk p s =
     mk (Mconst (String s)) p.ret,
     { no_var with fn = No_function; malloc = No_malloc } )
 
-and morph_array mk p a =
+and morph_array mk p a typ =
   let ret = p.ret in
   (* TODO save id list and pass empty one. Destroy temporary objects not directly used as member *)
   let p = { p with ret = false } in
@@ -1157,11 +1219,12 @@ and morph_array mk p a =
   let p, a = List.fold_left_map f p a in
   leave_level ();
   let alloca = ref (request ()) in
-  let id = new_id malloc_id in
+  let mid = new_id malloc_id in
+  let id = { Mid.mid; typ } in
   let mallocs = Mallocs.add (Single id) p.mallocs in
 
   ( { p with ret; mallocs },
-    mk (Mconst (Array (a, alloca, id))) p.ret,
+    mk (Mconst (Array (a, alloca, mid))) p.ret,
     { no_var with fn = No_function; alloc = Value alloca; malloc = Single id }
   )
 
@@ -1226,7 +1289,7 @@ and morph_if mk p cond owning e1 e2 =
         else Mallocs.remove_local a.malloc p.mallocs
       in
       let frees, mallocs = Mallocs.pop mallocs in
-      ({ e1 with expr = Mfree_after (e1, Except frees) }, a, mallocs)
+      (mk_free_after e1 frees, a, mallocs)
   in
 
   let p, e2, b =
@@ -1242,7 +1305,7 @@ and morph_if mk p cond owning e1 e2 =
         else Mallocs.remove_local b.malloc p.mallocs
       in
       let frees, mallocs = Mallocs.pop mallocs in
-      ({ e2 with expr = Mfree_after (e2, Except frees) }, b, mallocs)
+      (mk_free_after e2 frees, b, mallocs)
   in
 
   let tailrec = a.tailrec && b.tailrec in
@@ -1278,7 +1341,8 @@ and morph_if mk p cond owning e1 e2 =
     in
 
     if owning && contains_allocation e1.typ then
-      let id = new_id malloc_id in
+      let mid = new_id malloc_id in
+      let id = { Mid.mid; typ = e1.typ } in
       let mallocs = Mallocs.add (Single id) mallocs in
       let mallocs =
         Mallocs.remove a.malloc mallocs |> Mallocs.remove b.malloc
@@ -1290,7 +1354,7 @@ and morph_if mk p cond owning e1 e2 =
   let owning =
     if owning then
       match malloc with
-      | Single id -> Some id
+      | Single id -> Some id.mid
       | No_malloc | Branch _ -> None
       | Path _ -> failwith "todo path"
     else None
@@ -1309,8 +1373,9 @@ and prep_let p id uniq e pass toplvl =
   let ms, malloc, mallocs =
     match pass with
     | Dmove ->
-        let id = new_id malloc_id in
-        ([ id ], Single id, Mallocs.add (Single id) p.mallocs)
+        let mid = new_id malloc_id in
+        let id = Mid.{ mid; typ = e1.typ } in
+        ([ mid ], Single id, Mallocs.add (Single id) p.mallocs)
     | Dset | Dmut | Dnorm -> ([], func.malloc, p.mallocs)
   in
 
@@ -1458,7 +1523,7 @@ and prep_func p (username, uniq, abs) =
     (* Add parameters to env as normal values.
        The existing values might not be 'normal' *)
     let mallocs = Mallocs.push Mfunc p.mallocs in
-    let vars, mallocs = add_params vars mallocs pnames in
+    let vars, mallocs = add_params vars mallocs pnames func.params in
 
     {
       p with
@@ -1476,7 +1541,7 @@ and prep_func p (username, uniq, abs) =
   leave_level ();
 
   let frees = Mallocs.pop temp_p.mallocs |> fst in
-  let body = { body with expr = Mfree_after (body, Except frees) } in
+  let body = mk_free_after body frees in
   let recursive = pop_recursion_stack () in
 
   (* Collect functions from body *)
@@ -1538,7 +1603,7 @@ and morph_lambda mk typ p id abs =
     (* Add parameters to env as normal values.
        The existing values might not be 'normal' *)
     let mallocs = Mallocs.push Mfunc p.mallocs in
-    let vars, mallocs = add_params vars mallocs pnames in
+    let vars, mallocs = add_params vars mallocs pnames func.params in
 
     { p with vars; ret = true; mallocs; toplvl = false }
   in
@@ -1555,7 +1620,7 @@ and morph_lambda mk typ p id abs =
   in
 
   let frees = Mallocs.pop temp_p.mallocs |> fst in
-  let body = { body with expr = Mfree_after (body, Except frees) } in
+  let body = mk_free_after body frees in
 
   (* Why do we need this again in lambda? They can't recurse. *)
   (* But functions on the lambda body might *)
@@ -1613,7 +1678,7 @@ and morph_app mk p callee args ret_typ =
   let f p (arg, attr) =
     let rec is_arg = function
       | No_malloc -> false
-      | Single -1 -> true
+      | Single { mid = -1; _ } -> true
       | Branch { fst; snd } -> is_arg fst || is_arg snd
       | Single _ -> false
       | Path _ -> (* A path cannot be a passed argument *) false
@@ -1770,12 +1835,12 @@ and morph_fmt mk p exprs =
   leave_level ();
 
   let alloca = ref (request ()) in
-  let id = new_id malloc_id in
-  let malloc = Single id in
+  let mid = new_id malloc_id in
+  let malloc = Single { mid; typ = Tarray Tu8 } in
   let mallocs = Mallocs.add malloc p.mallocs in
 
   ( { p with ret; mallocs },
-    mk (Mfmt (es, alloca, id)) ret,
+    mk (Mfmt (es, alloca, mid)) ret,
     { no_var with alloc = Value alloca; malloc } )
 
 and morph_print_str mk p exprs =
@@ -1872,16 +1937,13 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
   in
 
   let param =
-    (* Generate one toplevel id for global values. They won't be decreased *)
-    (* TODO do we even need this anymore? *)
-    let malloc = Single (new_id malloc_id) in
-    let () = assert (!malloc_id = 2) in
+    let () = assert (!malloc_id = 1) in
     {
       vars;
       monomorphized = Sset.empty;
       funcs = Fset.empty;
       ret = false;
-      mallocs = Mallocs.add malloc (Mallocs.empty Mfunc);
+      mallocs = Mallocs.empty Mfunc;
       toplvl = true;
       mname;
       mainmodule = mname;

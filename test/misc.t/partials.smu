@@ -11,9 +11,9 @@
 
 (ignore (inf))
 
-(type (t 'a) {:a& 'a})
+(type (t 'a) {:a& 'a :b 'a})
 (defn set-moved ()
-  (def a& {:a [10]})
+  (def a& {:a [10] :b [20]})
   (ignore {a.a})
   (set &a.a [20])
   )
