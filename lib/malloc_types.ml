@@ -12,8 +12,30 @@ module Mpath = struct
   let () = ignore pp
 end
 
-module Mid = struct
-  type t = { mid : int; typ : Cleaned_types.typ } [@@deriving show]
+module rec Malloc : sig
+  type t =
+    | Single of Mid.t
+    | Branch of { fst : t; snd : t }
+    | No_malloc
+    | Path of t * Mpath.t
+  [@@deriving show]
+end = struct
+  type t =
+    | Single of Mid.t
+    | Branch of { fst : t; snd : t }
+    | No_malloc
+    | Path of t * Mpath.t
+  [@@deriving show]
+end
+
+and Mid : sig
+  type t = { mid : int; typ : Cleaned_types.typ; parent : Malloc.t option }
+  [@@deriving show]
+
+  val compare : t -> t -> int
+end = struct
+  type t = { mid : int; typ : Cleaned_types.typ; parent : Malloc.t option }
+  [@@deriving show]
 
   let compare a b = Int.compare a.mid b.mid
 end
@@ -30,7 +52,7 @@ let show_pset s =
 
 let pp_pset ppf s = Format.fprintf ppf "(%s)" (show_pset s)
 
-type pop_outcome = Not_excl | Exhaust | Followup of Pset.t
+type pop_outcome = Not_excl | Excl | Followup of Pset.t
 
 let pop_index_pset pset index =
   (* There are three outcomes when an index is popped:
@@ -51,7 +73,7 @@ let pop_index_pset pset index =
       pset (false, Pset.empty)
   in
   if not found then Not_excl
-  else if Pset.is_empty popped then Exhaust
+  else if Pset.is_empty popped then Excl
   else Followup popped
 
 type malloc_id = { id : int; mtyp : Cleaned_types.typ; paths : pset }

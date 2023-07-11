@@ -28,7 +28,7 @@ type expr =
   | Mseq of (monod_tree * monod_tree)
   | Mctor of (string * int * monod_tree option) * alloca * malloc_list * bool
   | Mvar_index of monod_tree
-  | Mvar_data of monod_tree
+  | Mvar_data of monod_tree * int option
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
   | Mfree_after of monod_tree * free_list
@@ -129,23 +129,15 @@ type to_gen_func_kind =
   | No_function
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
-
-type malloc =
-  | Single of Mid.t
-  | Branch of { fst : malloc; snd : malloc }
-  | No_malloc
-  | Path of malloc * Mpath.t
-[@@deriving show]
-
 type malloc_scope = Mfunc | Mlocal
 
 let malloc_add_index index = function
-  | No_malloc -> No_malloc
+  | Malloc.No_malloc -> Malloc.No_malloc
   | Path (m, p) -> Path (m, index :: p)
   | (Single _ | Branch _) as m -> Path (m, [ index ])
 
 let m_to_list = function
-  | No_malloc -> []
+  | Malloc.No_malloc -> []
   | Single i -> [ i.mid ]
   | Branch _ ->
       (* Handled in If *)
@@ -194,59 +186,37 @@ let mapunion a b =
     a b
 
 let mk_free_after expr frees =
-  (* TODO for now, this only works for the except_ case *)
-  (* Recurse through frees and delete paths if:
-     1. a record remains without allocs
-     2. variant paths point to something without path *)
-  let rec is_exhaust frees typ =
+  (* Delete paths if all allocating members are excluded *)
+  let rec is_excluded frees typ =
     if Pset.is_empty frees then (false, frees)
     else
       match typ with
       | Trecord (_, _, fs) ->
-          let _, exh, pset =
+          let _, excluded, pset =
             Array.fold_left
               (fun (i, exh, pset) f ->
                 if contains_allocation f.ftyp then
                   match pop_index_pset frees i with
                   | Not_excl -> (i + 1, false, pset)
-                  | Exhaust -> (i + 1, true, pset)
+                  | Excl -> (i + 1, true, Pset.add [ i ] pset)
                   | Followup frees ->
-                      let nexh, npset = is_exhaust frees f.ftyp in
+                      let nexcluded, npset = is_excluded frees f.ftyp in
                       let npset =
-                        if nexh then npset else Pset.map (fun l -> i :: l) npset
+                        if nexcluded then pset
+                        else Pset.map (fun l -> i :: l) npset
                       in
-                      (i + 1, exh && nexh, npset)
+                      (i + 1, exh && nexcluded, npset)
                 else (i + 1, exh, pset))
-              (0, true, Pset.empty) fs
+              (0, false, Pset.empty) fs
           in
-          (exh, pset)
-      | Tvariant (_, _, ctors) ->
-          let _, exh, pset =
-            Array.fold_left
-              (fun (i, exh, pset) c ->
-                match c.ctyp with
-                | Some t when contains_allocation t -> (
-                    match pop_index_pset frees i with
-                    | Not_excl -> (i + 1, false, pset)
-                    | Exhaust -> (i + 1, true, pset)
-                    | Followup frees ->
-                        let nexh, npset = is_exhaust frees t in
-                        let npset =
-                          if nexh then npset
-                          else Pset.map (fun l -> i :: l) npset
-                        in
-                        (i + 1, exh && nexh, npset))
-                | Some _ | None -> (i + 1, exh, pset))
-              (0, true, Pset.empty) ctors
-          in
-          (exh, pset)
+          (excluded, pset)
       | _ -> failwith "todo exh"
   in
   let frees =
     List.filter_map
       (fun free ->
-        let exh, paths = is_exhaust free.paths free.mtyp in
-        if not exh then Some { free with paths } else None)
+        let excluded, paths = is_excluded free.paths free.mtyp in
+        if excluded then None else Some { free with paths })
       frees
   in
   match frees with
@@ -259,15 +229,17 @@ module Mallocs : sig
   val empty : malloc_scope -> t
   val push : malloc_scope -> t -> t
   val pop : t -> malloc_id list * t
-  val mem : malloc -> t -> bool
-  val add : malloc -> t -> t
-  val remove : malloc -> t -> t
-  val reenter : malloc -> t -> t
-  val remove_local : malloc -> t -> t
+  val mem : Malloc.t -> t -> bool
+  val add : Malloc.t -> t -> t
+  val remove : Malloc.t -> t -> t
+  val reenter : Malloc.t -> t -> t
+  val remove_local : Malloc.t -> t -> t
   val empty_func : monod_tree -> t -> t * monod_tree
   val diff_func : t -> t -> Pset.t Imap.t
 end = struct
   (* type pmap = Pset.t Imap.t *)
+  open Malloc
+
   type t = (malloc_scope * pmap) list
 
   let empty scope = [ (scope, Imap.empty) ]
@@ -330,6 +302,11 @@ end = struct
       match (a, ms) with
       | _, [] -> []
       | Branch { fst; snd }, _ -> aux fst path ms |> aux snd path
+      | Single { parent = Some par; _ }, _
+        when (not (mem par ms)) && not (mem a ms) ->
+          (* Except when it has a parent and the parent is still part of the tail.
+             Then it's about to be removed and the child part has to be added here. *)
+          aux a path (add a ms)
       | Single i, (scope, ms) :: tl ->
           let ms =
             match path with
@@ -343,6 +320,11 @@ end = struct
                     (* Malloc id isn't part of this scope, do nothing *)
                     ms)
           in
+          (* If the malloc has a parent, it's a variant.
+             The variant must be removed as a whole from the tail *)
+          let tl =
+            match i.parent with Some par -> aux par [] tl | None -> tl
+          in
           (scope, ms) :: aux a path tl
       | No_malloc, _ -> ms
       | Path (a, l), _ -> aux a (l @ path) ms
@@ -354,6 +336,11 @@ end = struct
       match (a, ms) with
       | _, [] -> []
       | Branch { fst; snd }, _ -> remove_local fst ms |> remove_local snd
+      | Single ({ parent = Some par; _ } as i), (_, ms') :: _
+        when (not (mem par ms)) && not (Imap.mem i ms') ->
+          (* Except when it has a parent and the parent is still part of the tail.
+             Then it's about to be removed and the child part has to be added here. *)
+          aux a path (add a ms)
       | Single i, (scope, ms) :: tl ->
           let ms =
             match path with
@@ -362,6 +349,9 @@ end = struct
                 match Imap.find_opt i ms with
                 | Some pset -> Imap.add i (Pset.add p pset) ms
                 | None -> ms)
+          in
+          let tl =
+            match i.parent with Some par -> aux par [] tl | None -> tl
           in
           (scope, ms) :: tl
       | No_malloc, _ -> ms
@@ -394,7 +384,7 @@ end
 type var_normal = {
   fn : to_gen_func_kind;
   alloc : alloc;
-  malloc : malloc;
+  malloc : Malloc.t;
   tailrec : bool;
 }
 
@@ -760,8 +750,8 @@ and subst_body p subst tree =
         { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
     | Mvar_index expr ->
         { tree with typ = subst tree.typ; expr = Mvar_index (sub expr) }
-    | Mvar_data expr ->
-        { tree with typ = subst tree.typ; expr = Mvar_data (sub expr) }
+    | Mvar_data (expr, mid) ->
+        { tree with typ = subst tree.typ; expr = Mvar_data (sub expr, mid) }
     | Mset (expr, value, moved) ->
         let expr = Mset (sub expr, sub value, moved) in
         { tree with typ = subst tree.typ; expr }
@@ -1016,12 +1006,13 @@ let rec set_alloca = function
       set_alloca b
   | Value _ | No_value -> ()
 
-let mb_malloc ids typ =
+let mb_malloc parent ids typ =
   if contains_allocation typ then
-    let id = Single { mid = new_id malloc_id; typ } in
+    let mid = new_id malloc_id in
+    let id = Malloc.Single { mid; typ; parent } in
     let mallocs = Mallocs.add id ids in
-    (id, mallocs)
-  else (No_malloc, ids)
+    (Some mid, id, mallocs)
+  else (None, No_malloc, ids)
 
 let add_params vars mallocs pnames params =
   (* Add parameters to the env and create malloc ids if they have been moved *)
@@ -1030,8 +1021,9 @@ let add_params vars mallocs pnames params =
       let var, mallocs =
         match malloc with
         | Some mid ->
-            ( Normal { no_var with malloc = Single { mid; typ = p.pt } },
-              Mallocs.add (Single { mid; typ = p.pt }) mallocs )
+            let id = { Mid.mid; typ = p.pt; parent = None } in
+            ( Normal { no_var with malloc = Single id },
+              Mallocs.add (Single id) mallocs )
         | None -> (Param no_var, mallocs)
       in
       let vars = Vars.add name var vars in
@@ -1058,25 +1050,6 @@ let set_tailrec name =
       recursion_stack := (nm, Rtail) :: tl
   | _ :: _ -> ()
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
-
-let rec is_part = function
-  | Mfield _ | Mvar_data _ -> true
-  | Mapp { callee; _ } -> (
-      match callee.monomorph with
-      | Builtin (Unsafe_ptr_get, _) -> true
-      | Builtin (Array_get, _) -> true
-      | _ -> false)
-  | Mvar _ | Mconst _ | Mbop _ | Mlambda _ | Mrecord _ | Mctor _ | Mvar_index _
-  | Mfmt _ | Mset _ | Mprint_str _ ->
-      false
-  | Mif { e1; e2; _ } -> is_part e1.expr || is_part e2.expr
-  | Mlet (_, _, _, _, _, cont)
-  | Mbind (_, _, cont)
-  | Mfunction (_, _, cont, _)
-  | Mseq (_, cont)
-  | Munop (_, cont)
-  | Mfree_after (cont, _) ->
-      is_part cont.expr
 
 let reconstr_module_username ~mname ~mainmodule username =
   (* Values queried from an imported module have a special name so they don't clash with
@@ -1163,7 +1136,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       morph_ctor make param variant index dataexpr texpr.attr
         (cln param texpr.typ)
   | Variant_index expr -> morph_var_index make param expr
-  | Variant_data expr -> morph_var_data make param expr
+  | Variant_data expr -> morph_var_data make param expr (cln param texpr.typ)
   | Fmt exprs -> morph_fmt make param exprs
   | Move e ->
       let p, e, func = morph_expr param e in
@@ -1185,8 +1158,10 @@ and morph_var mk p v =
             if p.ret then ((v, Vnorm), thing)
             else
               (* Mark argument with a bogus id *)
-              ( (v, Vnorm),
-                { thing with malloc = Single { mid = -1; typ = Tunit } } )
+              let malloc =
+                Malloc.Single { mid = -1; typ = Tunit; parent = None }
+              in
+              ((v, Vnorm), { thing with malloc })
         | Some (Const thing) -> ((thing, Vconst), no_var)
         | Some (Global (id, thing, used)) ->
             used := true;
@@ -1220,7 +1195,7 @@ and morph_array mk p a typ =
   leave_level ();
   let alloca = ref (request ()) in
   let mid = new_id malloc_id in
-  let id = { Mid.mid; typ } in
+  let id = { Mid.mid; typ; parent = None } in
   let mallocs = Mallocs.add (Single id) p.mallocs in
 
   ( { p with ret; mallocs },
@@ -1342,12 +1317,12 @@ and morph_if mk p cond owning e1 e2 =
 
     if owning && contains_allocation e1.typ then
       let mid = new_id malloc_id in
-      let id = { Mid.mid; typ = e1.typ } in
+      let id = { Mid.mid; typ = e1.typ; parent = None } in
       let mallocs = Mallocs.add (Single id) mallocs in
       let mallocs =
         Mallocs.remove a.malloc mallocs |> Mallocs.remove b.malloc
       in
-      (e1, e2, Single id, mallocs)
+      (e1, e2, Malloc.Single id, mallocs)
     else (e1, e2, Branch { fst = a.malloc; snd = b.malloc }, mallocs)
   in
 
@@ -1374,8 +1349,8 @@ and prep_let p id uniq e pass toplvl =
     match pass with
     | Dmove ->
         let mid = new_id malloc_id in
-        let id = Mid.{ mid; typ = e1.typ } in
-        ([ mid ], Single id, Mallocs.add (Single id) p.mallocs)
+        let id = Mid.{ mid; typ = e1.typ; parent = None } in
+        ([ mid ], Malloc.Single id, Mallocs.add (Single id) p.mallocs)
     | Dset | Dmut | Dnorm -> ([], func.malloc, p.mallocs)
   in
 
@@ -1426,7 +1401,7 @@ and morph_record mk p labels is_const typ =
   let p, labels = List.fold_left_map f p labels in
   leave_level ();
 
-  let malloc, mallocs = mb_malloc p.mallocs typ in
+  let _, malloc, mallocs = mb_malloc None p.mallocs typ in
   let ms = m_to_list malloc in
 
   let alloca = ref (request ()) in
@@ -1456,9 +1431,6 @@ and morph_set mk p expr value =
   let p, v, func = morph_expr { p with mallocs = Mallocs.empty Mlocal } value in
 
   let moved = Mallocs.mem vfunc.malloc mallocs in
-  ignore show_malloc;
-  (* Printf.printf "moved: %b\n" moved; *)
-  (* Printf.printf "vmalloc: %s\n" (show_malloc vfunc.malloc); *)
   let mallocs =
     if moved then Mallocs.reenter vfunc.malloc mallocs else mallocs
   in
@@ -1677,7 +1649,7 @@ and morph_app mk p callee args ret_typ =
 
   let f p (arg, attr) =
     let rec is_arg = function
-      | No_malloc -> false
+      | Malloc.No_malloc -> false
       | Single { mid = -1; _ } -> true
       | Branch { fst; snd } -> is_arg fst || is_arg snd
       | Single _ -> false
@@ -1689,19 +1661,7 @@ and morph_app mk p callee args ret_typ =
       match attr with Typed_tree.Dmove -> true | Dset | Dmut | Dnorm -> false
     in
     let mallocs, ex =
-      if tailrec then (
-        (* if (not (is_arg var.malloc)) && is_part ex.expr then *)
-        (* A new parameter is set (= not arg) and it's a partial access.
-           We have to make sure we don't increase (or not decrease) the ref
-           counts of the whole records, because there might be multiple allocated fields.
-           In that case, only the passed one will eventually have it ref count decreased,
-           causing a leak of the other record fields. This can be avoided if we decrease
-           ref counts of the whole record and increase the passed fields's ref count before *)
-        (* TODO tailrec *)
-        (* (p.mallocs, ex) *)
-        (* else *)
-        ignore is_part;
-        (Mallocs.remove var.malloc p.mallocs, ex))
+      if tailrec then (Mallocs.remove var.malloc p.mallocs, ex)
       else (p.mallocs, ex)
     in
     let p, monomorph = monomorphize_call { p with mallocs } ex None in
@@ -1756,8 +1716,10 @@ and morph_app mk p callee args ret_typ =
     (* array-get does not return a temporary. If its value is returned in a function,
        increase value's refcount so that it's really a temporary *)
     match callee.monomorph with
-    | Builtin (Array_get, _) -> (No_malloc, p.mallocs)
-    | _ -> mb_malloc p.mallocs ret_typ
+    | Builtin (Array_get, _) -> (Malloc.No_malloc, p.mallocs)
+    | _ ->
+        let _, malloc, mallocs = mb_malloc None p.mallocs ret_typ in
+        (malloc, mallocs)
   in
 
   let ms = m_to_list malloc in
@@ -1786,7 +1748,7 @@ and morph_ctor mk p variant index expr is_const typ =
 
   leave_level ();
 
-  let malloc, mallocs = mb_malloc p.mallocs typ in
+  let _, malloc, mallocs = mb_malloc None p.mallocs typ in
   let ms = m_to_list malloc in
 
   let alloca = ref (request ()) in
@@ -1802,10 +1764,17 @@ and morph_var_index mk p expr =
   let p, e, func = morph_expr { p with ret = false } expr in
   ({ p with ret }, mk (Mvar_index e) ret, { func with alloc = No_value })
 
-and morph_var_data mk p expr =
+and morph_var_data mk p expr typ =
   let ret = p.ret in
   (* False because we only use it interally in if expr? *)
   let p, e, func = morph_expr { p with ret = false } expr in
+  let mid, malloc =
+    if contains_allocation typ then
+      let mid = new_id malloc_id in
+      let id = Malloc.Single { mid; typ; parent = Some func.malloc } in
+      (Some mid, id)
+    else (None, No_malloc)
+  in
   let func =
     (* Since we essentially change the datatype here, we have to be sure that
        the variant was allocated before. Usually it is, but in the case of toplevel
@@ -1818,7 +1787,7 @@ and morph_var_data mk p expr =
       { func with alloc }
     else func
   in
-  ({ p with ret }, mk (Mvar_data e) ret, func)
+  ({ p with ret }, mk (Mvar_data (e, mid)) ret, { func with malloc })
 
 and morph_fmt mk p exprs =
   let ret = p.ret in
@@ -1836,7 +1805,7 @@ and morph_fmt mk p exprs =
 
   let alloca = ref (request ()) in
   let mid = new_id malloc_id in
-  let malloc = Single { mid; typ = Tarray Tu8 } in
+  let malloc = Malloc.Single { mid; typ = Tarray Tu8; parent = None } in
   let mallocs = Mallocs.add malloc p.mallocs in
 
   ( { p with ret; mallocs },

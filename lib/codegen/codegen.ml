@@ -173,7 +173,7 @@ end = struct
     | Mctor (ctor, allocref, id, const) ->
         gen_ctor param ctor typed_expr.typ allocref id const
     | Mvar_index expr -> gen_var_index param expr |> fin
-    | Mvar_data expr -> gen_var_data param expr typed_expr.typ |> fin
+    | Mvar_data (expr, mid) -> gen_var_data param expr mid typed_expr.typ |> fin
     | Mfmt (fmts, allocref, id) ->
         gen_fmt_str param fmts typed_expr.typ allocref id |> fin
     | Mprint_str fmts -> gen_print_str param fmts |> fin
@@ -950,9 +950,11 @@ end = struct
     let var = gen_expr param expr in
     var_index var
 
-  and gen_var_data param expr typ =
+  and gen_var_data param expr mid typ =
     let var = gen_expr param expr in
-    var_data var typ
+    let llvar = var_data var typ in
+    (match mid with Some id -> Hashtbl.replace free_tbl id llvar | None -> ());
+    llvar
 
   and gen_fmt_str param exprs typ allocref id =
     let snprintf_decl =
@@ -1067,8 +1069,9 @@ end = struct
     | Except fs ->
         List.iter
           (fun i ->
-            (* Printf.printf "freeing except %i with paths %s\n" i.id *)
-            (*   (show_pset i.paths); *)
+            (* Printf.printf "freeing except %i with paths %s, is %b\n" i.id *)
+            (*   (show_pset i.paths) *)
+            (*   (Option.is_some (Hashtbl.find_opt free_tbl i.id)); *)
             Option.iter
               (Auto.free_except param i.paths)
               (Hashtbl.find_opt free_tbl i.id))

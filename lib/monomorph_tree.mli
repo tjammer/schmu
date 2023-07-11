@@ -32,7 +32,7 @@ type expr =
   | Mseq of (monod_tree * monod_tree)
   | Mctor of (string * int * monod_tree option) * alloca * malloc_list * bool
   | Mvar_index of monod_tree
-  | Mvar_data of monod_tree
+  | Mvar_data of monod_tree * int option
   | Mfmt of fmt list * alloca * int
   | Mprint_str of fmt list
   | Mfree_after of monod_tree * free_list

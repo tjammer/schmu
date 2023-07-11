@@ -2962,6 +2962,7 @@ Take/use not all allocations of a record in tailrec calls
   then:                                             ; preds = %rec
     %data = getelementptr inbounds %parse-result_view, %parse-result_view* %ret, i32 0, i32 1
     %add = add i64 %7, 1
+    call void @__free_except0_successview(%success_view* %data)
     br i1 %6, label %call_decr, label %cookie
   
   call_decr:                                        ; preds = %then
@@ -3103,6 +3104,13 @@ Take/use not all allocations of a record in tailrec calls
   
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define internal void @__free_except0_successview(%success_view* %0) {
+  entry:
+    %1 = getelementptr inbounds %success_view, %success_view* %0, i32 0, i32 1
+    call void @__free_view(%view* %1)
+    ret void
+  }
   
   define internal void @__free_ac(i8** %0) {
   entry:
@@ -3246,13 +3254,6 @@ Take/use not all allocations of a record in tailrec calls
   declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
-  ==10538== 26 bytes in 1 blocks are definitely lost in loss record 1 of 1
-  ==10538==    at 0x484382F: malloc (vg_replace_malloc.c:431)
-  ==10538==    by 0x4013EE: __copy_ac (in $TESTCASE_ROOT/take_partial_alloc)
-  ==10538==    by 0x4012E9: schmu_ch (in $TESTCASE_ROOT/take_partial_alloc)
-  ==10538==    by 0x4011F2: schmu_aux (in $TESTCASE_ROOT/take_partial_alloc)
-  ==10538==    by 0x401512: main (in $TESTCASE_ROOT/take_partial_alloc)
-  ==10538== 
 
 Increase refcount for returned params in ifs
   $ schmu --dump-llvm if_ret_param.smu && valgrind -q --leak-check=yes --show-reachable=yes ./if_ret_param
