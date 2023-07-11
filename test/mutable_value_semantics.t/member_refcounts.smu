@@ -10,7 +10,6 @@
 
 (def r (#some (copy a)))
 (set &(array-get a 0) 40)
-(print
- (match r
-   ((#some a) (fmt-str (array-get a 0)))
-   (#none "none")))
+(match r
+  ((#some a) (print (fmt-str (array-get a 0))))
+  (#none (print "none")))

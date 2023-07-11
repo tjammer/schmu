@@ -306,6 +306,7 @@ let integrate_new_elems nu old integrated =
 let move_local_borrow bs env =
   let rec aux = function
     | [] -> bs
+    | Borrow b :: _ when is_string b.borrowed env -> bs
     | (Borrow b | Borrow_mut (b, _)) :: tl ->
         if Map.mem b.parent env |> not then imm [] else aux tl
     | (Bown _ | Bmove _) :: tl -> aux tl

@@ -4361,3 +4361,6 @@ Handle partial allocations
   }
   
   declare void @free(i8* %0)
+
+Don't free string literals
+  $ schmu borrow_string_lit.smu && valgrind -q --leak-check=yes --show-reachable=yes ./borrow_string_lit
