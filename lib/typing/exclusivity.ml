@@ -509,6 +509,8 @@ let rec check_tree env bind mut part tree hist =
       { callee = { expr = Var "array-get"; _ } as callee; args = [ arr; idx ] }
     ->
       (* Special case for array-get *)
+      (* Partial moves for arrays are not yet supported in monomorph_tree, so we
+         do not allow them as a temporary workaround *)
       let callee, b, hs = check_tree env false Uread [] callee hist in
       let hs = add_hist b hs in
       (* We don't check for exclusivity, because there are only two arguments
@@ -523,6 +525,11 @@ let rec check_tree env bind mut part tree hist =
             let arg, v, hs = check_tree env false usage [] (fst idx) hs in
             (part, (arg, snd idx), add_hist v hs)
       in
+      (match mut with
+      | Umove ->
+          raise
+            (Error (tree.loc, "Moving out of arrays is not supported right now"))
+      | Uset | Uread | Umut -> ());
       let ar, b, hs = check_tree env bind mut part (fst arr) hs in
       let tree =
         { tree with expr = App { callee; args = [ (ar, snd arr); idx ] } }

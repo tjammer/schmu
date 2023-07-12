@@ -1439,10 +1439,6 @@ and morph_set mk p expr value =
 
   (* TODO free the thing. This is right now done in codegen by calling free manually.
      Could also be added to the tree *)
-
-  (* TODO handle this in morph_call, where realloc drops the old ptr and adds the new one to the free list *)
-  (* If we mutate a ptr with realloced ptr, the old one is already freed and we drop it from
-     the free list *)
   ({ p with ret; mallocs }, tree, func)
 
 and morph_seq mk p expr cont =
