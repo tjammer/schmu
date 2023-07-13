@@ -54,10 +54,12 @@ end
 type borrow = {
   ord : int;
   loc : Ast.loc;
-  borrowed : Id.t * part_access;
+  borrowed : borrowed;
   parent : Id.t;
+  special : special_case;
 }
 
+and borrowed = { bid : Id.t; bpart : part_access }
 and env_item = { imm : binding list; delayed : binding list }
 
 and binding =
@@ -66,7 +68,8 @@ and binding =
   | Borrow_mut of borrow * Usage.set
   | Bmove of borrow * Ast.loc option
 
-and part_access = (int * string) list [@@deriving show]
+and part_access = (int * string) list
+and special_case = Sp_no | Sp_string | Sp_array_get [@@deriving show]
 
 let imm imm = { imm; delayed = [] }
 
@@ -78,8 +81,8 @@ let parts_match a wth =
     | [], _ -> true
     | _, [] -> (* Borrows are not mutually exclusive *) true
   in
-  assert (Id.equal (fst a) (fst wth));
-  parts_match (snd a, snd wth)
+  assert (Id.equal a.bid wth.bid);
+  parts_match (a.bpart, wth.bpart)
 
 let parts_is_sub a wth =
   (* Part goes deeper than the [wth] structure *)
@@ -90,8 +93,8 @@ let parts_is_sub a wth =
     | [], _ -> false
     | _, [] -> (* Borrows are not mutually exclusive *) true
   in
-  assert (Id.equal (fst a) (fst wth));
-  parts_sub (snd a, snd wth)
+  assert (Id.equal a.bid wth.bid);
+  parts_sub (a.bpart, wth.bpart)
 
 let are_borrow bs =
   let is_borrow = function
@@ -110,19 +113,7 @@ module Map = Map.Make (Id)
 let borrow_state = ref 0
 let param_pass = ref false
 let shadowmap = ref Smap.empty
-
-let rec is_string b env =
-  if Id.is_string b then true
-  else
-    match Map.find_opt (fst b) env with
-    | Some { imm; _ } ->
-        List.fold_left
-          (fun str -> function
-            | Bown _ -> false
-            | Borrow b | Borrow_mut (b, _) | Bmove (b, _) ->
-                str || is_string b.borrowed env)
-          false imm
-    | None -> false
+let is_string = function Sp_string -> true | Sp_no | Sp_array_get -> false
 
 let new_id str =
   match Smap.find_opt str !shadowmap with
@@ -167,7 +158,7 @@ let rec check_exclusivity loc borrow hist =
       failwith "Internal Error: Should never be empty"
   | Bown _, _ -> ()
   | (Borrow b | Borrow_mut (b, _) | Bmove (b, _)), Bown name :: _
-    when Id.equal (fst b.borrowed) name ->
+    when Id.equal b.borrowed.bid name ->
       ()
   | Borrow l, Borrow r :: tl when parts_match l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
@@ -180,7 +171,8 @@ let rec check_exclusivity loc borrow hist =
         (* Borrow is still active while mutable borrow occured *)
         let msg =
           p "%s was mutably borrowed in line %i, cannot borrow"
-            (Id.s r.borrowed) (fst l.loc).pos_lnum
+            (Id.s (r.borrowed.bid, r.borrowed.bpart))
+            (fst l.loc).pos_lnum
         in
         raise (Error (r.loc, msg))
       else check_exclusivity loc borrow tl
@@ -188,7 +180,8 @@ let rec check_exclusivity loc borrow hist =
       if l.ord < r.ord then
         (* Borrow is still active while mutable borrow occured *)
         let msg =
-          p "%s was borrowed in line %i, cannot mutate" (Id.s r.borrowed)
+          p "%s was borrowed in line %i, cannot mutate"
+            (Id.s (r.borrowed.bid, r.borrowed.bpart))
             (fst l.loc).pos_lnum
         in
         raise (Error (r.loc, msg))
@@ -198,7 +191,8 @@ let rec check_exclusivity loc borrow hist =
         (* Mutable borrow still active while borrow occured *)
         let msg =
           p "%s was mutably borrowed in line %i, cannot borrow"
-            (Id.s r.borrowed) (fst l.loc).pos_lnum
+            (Id.s (r.borrowed.bid, r.borrowed.bpart))
+            (fst l.loc).pos_lnum
         in
         raise (Error (r.loc, msg))
       else ()
@@ -214,9 +208,13 @@ let rec check_exclusivity loc borrow hist =
             | None -> ""
           in
           ( loc,
-            p "%s was moved in line %i, cannot use%s" (Id.s m.borrowed)
+            p "%s was moved in line %i, cannot use%s"
+              (Id.s (m.borrowed.bid, m.borrowed.bpart))
               (fst m.loc).pos_lnum hint )
-        else (m.loc, p "Borrowed parameter %s is moved" (Id.s b.borrowed))
+        else
+          ( m.loc,
+            p "Borrowed parameter %s is moved"
+              (Id.s (b.borrowed.bid, b.borrowed.bpart)) )
       in
       raise (Error (loc, msg))
   | Borrow_mut (b, Set), Bmove (m, l) :: _
@@ -229,9 +227,15 @@ let rec check_exclusivity loc borrow hist =
             | None -> ""
           in
           ( loc,
-            p "%s was moved in line %i, cannot set %s%s" (Id.s m.borrowed)
-              (fst m.loc).pos_lnum (Id.s b.borrowed) hint )
-        else (m.loc, p "Borrowed parameter %s is moved" (Id.s b.borrowed))
+            p "%s was moved in line %i, cannot set %s%s"
+              (Id.s (m.borrowed.bid, m.borrowed.bpart))
+              (fst m.loc).pos_lnum
+              (Id.s (b.borrowed.bid, b.borrowed.bpart))
+              hint )
+        else
+          ( m.loc,
+            p "Borrowed parameter %s is moved"
+              (Id.s (b.borrowed.bid, b.borrowed.bpart)) )
       in
       raise (Error (loc, msg))
   | Bmove (m, _), (Borrow b | Borrow_mut (b, _)) :: _
@@ -249,12 +253,15 @@ let make_copy_call loc tree =
 let string_lit_borrow tree mut =
   let loc = Typed_tree.(tree.loc) in
   let copy tree = make_copy_call loc tree in
-  let borrowed = (new_id "__string", []) in
-  let parent = fst borrowed in
+  let borrowed = { bid = new_id "__string"; bpart = [] } in
+  let parent = borrowed.bid in
   match mut with
   | Usage.Uread ->
       incr borrow_state;
-      let b = Borrow { ord = !borrow_state; loc; borrowed; parent } in
+      let b =
+        Borrow
+          { ord = !borrow_state; loc; borrowed; parent; special = Sp_string }
+      in
       (tree, imm [ b ])
   | Umove -> (copy tree, imm [])
   | Umut | Uset -> failwith "Internal Error: Mutating string"
@@ -265,7 +272,7 @@ let string_lit_borrow tree mut =
 let add_binding b hist =
   let bind_name = function
     | Bown n -> n
-    | Borrow b | Borrow_mut (b, _) | Bmove (b, _) -> fst b.borrowed
+    | Borrow b | Borrow_mut (b, _) | Bmove (b, _) -> b.borrowed.bid
   in
   let name = bind_name b in
   match Map.find_opt name hist with
@@ -306,7 +313,7 @@ let integrate_new_elems nu old integrated =
 let move_local_borrow bs env =
   let rec aux = function
     | [] -> bs
-    | Borrow b :: _ when is_string b.borrowed env -> bs
+    | Borrow b :: _ when is_string b.special -> bs
     | (Borrow b | Borrow_mut (b, _)) :: tl ->
         if Map.mem b.parent env |> not then imm [] else aux tl
     | (Bown _ | Bmove _) :: tl -> aux tl
@@ -326,8 +333,8 @@ let rec check_excl_chain loc env borrow hist =
       (*      |> List.map (fun (id, l) -> *)
       (*             Id.show id ^ ": " *)
       (*             ^ String.concat ", " (List.map show_binding l)))); *)
-      check_exclusivity loc borrow (Map.find (fst b.borrowed) hist);
-      match Map.find_opt (fst b.borrowed) env with
+      check_exclusivity loc borrow (Map.find b.borrowed.bid hist);
+      match Map.find_opt b.borrowed.bid env with
       | Some { imm; delayed = _ } -> check_excl_chains loc env imm hist
       | None -> ())
 
@@ -342,19 +349,41 @@ let binding_of_borrow borrow = function
   | Uset -> Borrow_mut (borrow, Set)
   | Umove -> Bmove (borrow, None)
 
-let rec check_tree env bind mut part tree hist =
+let no_bdata = ([], Sp_no)
+
+let check_special loc usage special =
+  match (usage, special) with
+  | Usage.Umove, Sp_string ->
+      raise (Error (loc, "Cannot move string literal. Use `copy`"))
+  | (Uset | Umut), Sp_string ->
+      raise (Error (loc, "Cannot mutate string literal. Use `copy`"))
+  | Umove, Sp_array_get ->
+      raise (Error (loc, "Cannot move out of array. Use `copy`"))
+  | _, _ -> ()
+
+let move_b loc special b =
+  let special =
+    match (special, b.special) with
+    | Sp_array_get, Sp_string -> failwith "Internal Error: string lit array get"
+    | Sp_array_get, _ -> special
+    | _ -> b.special
+  in
+  { b with loc; special }
+
+let rec check_tree env bind mut ((bpart, special) as bdata) tree hist =
   match tree.expr with
   | Var borrowed ->
       (* This is no rvalue, we borrow *)
-      let borrowed = (get_id borrowed, part) in
+      let borrowed = { bid = get_id borrowed; bpart } in
       let loc = tree.loc in
       let borrow mut = function
-        | Bown b ->
+        | Bown bid ->
             (* For Binds, it's imported that we take the owned name, and not the one from Var.
                Otherwise, the Bind name might be borrowed *)
             incr borrow_state;
             let borrow =
-              { ord = !borrow_state; loc; borrowed = (b, part); parent = b }
+              let borrowed = { bid; bpart } in
+              { ord = !borrow_state; loc; borrowed; parent = bid; special }
             in
             (* Assume it's the only borrow. This works because if it isn't, a borrowed binding
                will be used later and thin fail the check. Extra care has to be taken for
@@ -363,14 +392,16 @@ let rec check_tree env bind mut part tree hist =
             check_excl_chain loc env b hist;
             b
         | Borrow_mut (b', s) as b -> (
+            check_special tree.loc mut b'.special;
             match mut with
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
                 check_excl_chain loc env b hist;
-                Bmove ({ b' with loc }, None)
+                Bmove (move_b loc special b', None)
             | Umut | Uread ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
+
                 Borrow_mut ({ b' with loc; ord = !borrow_state; borrowed }, s)
             | Uset ->
                 check_excl_chain loc env b hist;
@@ -378,16 +409,12 @@ let rec check_tree env bind mut part tree hist =
                 Borrow_mut ({ b' with loc; ord = !borrow_state; borrowed }, Set)
             )
         | Borrow b' as b -> (
+            check_special tree.loc mut b'.special;
             match mut with
-            | Usage.Umove when is_string b'.borrowed env ->
-                raise (Error (b'.loc, "Cannot move string literal. Use `copy`"))
-            | (Uset | Umut) when is_string b'.borrowed env ->
-                raise
-                  (Error (b'.loc, "Cannot mutate string literal. Use `copy`"))
             | Umove ->
                 (* Before moving, make sure the value was used correctly *)
                 check_excl_chain loc env b hist;
-                Bmove ({ b' with loc }, None)
+                Bmove (move_b loc special b', None)
             | Umut ->
                 check_excl_chain loc env (Borrow_mut (b', Dont_set)) hist;
                 incr borrow_state;
@@ -409,7 +436,7 @@ let rec check_tree env bind mut part tree hist =
 
       let borrow_delayed delayed =
         let find_borrow usage b =
-          match Map.find_opt (fst b.borrowed) env with
+          match Map.find_opt b.borrowed.bid env with
           | Some b when bind -> b.imm
           | Some { imm; delayed = _ } -> List.map (borrow usage) imm
           | None -> []
@@ -429,7 +456,7 @@ let rec check_tree env bind mut part tree hist =
       in
 
       let borrow =
-        match Map.find_opt (fst borrowed) env with
+        match Map.find_opt borrowed.bid env with
         | Some b when bind -> b
         | Some { imm; delayed } ->
             let delayed = borrow_delayed delayed in
@@ -445,14 +472,14 @@ let rec check_tree env bind mut part tree hist =
       let rhs, env, b, hs, pass =
         check_let tree.loc env id rhs rmut pass ~tl:false hist
       in
-      let cont, v, hs = check_tree env bind mut part cont (add_hist b hs) in
+      let cont, v, hs = check_tree env bind mut bdata cont (add_hist b hs) in
       let expr = Let { id; rhs; cont; pass; rmut; uniq } in
       ({ tree with expr }, v, hs)
   | Const (Array es) ->
       let hs, es =
         List.fold_left_map
           (fun hs e ->
-            let expr, v, hs = check_tree env false Umove [] e hs in
+            let expr, v, hs = check_tree env false Umove no_bdata e hs in
             let expr = { expr with expr = Move expr } in
             (add_hist v hs, expr))
           hist es
@@ -470,7 +497,7 @@ let rec check_tree env bind mut part tree hist =
             let usage =
               if contains_allocation field.typ then Usage.Umove else Uread
             in
-            let field, v, hs = check_tree env false usage [] field hs in
+            let field, v, hs = check_tree env false usage no_bdata field hs in
             let field = { field with expr = Move field } in
             (add_hist v hs, (n, field)))
           hist fs
@@ -482,7 +509,9 @@ let rec check_tree env bind mut part tree hist =
       | Umove when t.attr.const ->
           raise (Error (tree.loc, "Cannot move out of constant"))
       | _ -> ());
-      let t, b, hs = check_tree env bind mut ((i, name) :: part) t hist in
+      let t, b, hs =
+        check_tree env bind mut ((i, name) :: bpart, special) t hist
+      in
       let tree = { tree with expr = Field (t, i, name) } in
       match mut with
       | Umut | Uset ->
@@ -494,15 +523,15 @@ let rec check_tree env bind mut part tree hist =
           if contains_allocation tree.typ then (tree, b, hs)
           else (tree, imm [], hs))
   | Set (thing, value) ->
-      let value, v, hs = check_tree env false Umove [] value hist in
+      let value, v, hs = check_tree env false Umove no_bdata value hist in
       let hs = add_hist v hs in
       (* Track usage of values, but not the one being mutated *)
-      let thing, t, hs = check_tree env bind Uset [] thing hs in
+      let thing, t, hs = check_tree env bind Uset no_bdata thing hs in
       let expr = Set (thing, value) in
       ({ tree with expr }, t, add_hist t hs)
   | Sequence (fst, snd) ->
-      let fst, _, hs = check_tree env false Uread [] fst hist in
-      let snd, v, hs = check_tree env bind mut part snd hs in
+      let fst, _, hs = check_tree env false Uread no_bdata fst hist in
+      let snd, v, hs = check_tree env bind mut bdata snd hs in
       let expr = Sequence (fst, snd) in
       ({ tree with expr }, v, hs)
   | App
@@ -511,39 +540,41 @@ let rec check_tree env bind mut part tree hist =
       (* Special case for array-get *)
       (* Partial moves for arrays are not yet supported in monomorph_tree, so we
          do not allow them as a temporary workaround *)
-      let callee, b, hs = check_tree env false Uread [] callee hist in
+      let callee, b, hs = check_tree env false Uread no_bdata callee hist in
       let hs = add_hist b hs in
       (* We don't check for exclusivity, because there are only two arguments
            and the second is an int *)
-      let part, idx, hs =
+      let bpart, idx, hs =
         match (fst idx).expr with
         | Const (Int i) ->
-            let part = (i, Printf.sprintf "[%i]" i) :: part in
+            let part = (i, Printf.sprintf "[%i]" i) :: bpart in
             (part, idx, hs)
         | _ ->
             let usage = Usage.of_attr (snd idx) in
-            let arg, v, hs = check_tree env false usage [] (fst idx) hs in
-            (part, (arg, snd idx), add_hist v hs)
+            let arg, v, hs = check_tree env false usage no_bdata (fst idx) hs in
+            (bpart, (arg, snd idx), add_hist v hs)
       in
       (match mut with
       | Umove ->
           raise
             (Error (tree.loc, "Moving out of arrays is not supported right now"))
       | Uset | Uread | Umut -> ());
-      let ar, b, hs = check_tree env bind mut part (fst arr) hs in
+      let ar, b, hs =
+        check_tree env bind mut (bpart, Sp_array_get) (fst arr) hs
+      in
       let tree =
         { tree with expr = App { callee; args = [ (ar, snd arr); idx ] } }
       in
       (tree, b, hs)
   | App { callee; args } ->
       (* The callee itself can be borrowed *)
-      let callee, b, hs = check_tree env false Uread [] callee hist in
+      let callee, b, hs = check_tree env false Uread no_bdata callee hist in
       let tmp = Map.add (Fst "_env") b env in
       let (_, tmp, hs), args =
         List.fold_left_map
           (fun (i, tmp, hs) (arg, attr) ->
             let usage = Usage.of_attr attr in
-            let arg, v, hs = check_tree env false usage [] arg hs in
+            let arg, v, hs = check_tree env false usage no_bdata arg hs in
             let arg =
               match usage with
               | Umove -> { arg with expr = Move arg }
@@ -556,7 +587,7 @@ let rec check_tree env bind mut part tree hist =
       in
       (* Check again to ensure exclusivity of arguments and closure *)
       let c = { callee with expr = Var "_env" } in
-      check_tree tmp false Uread [] c hs |> ignore;
+      check_tree tmp false Uread no_bdata c hs |> ignore;
       List.iteri
         (fun i (arg, attr) ->
           match Usage.of_attr attr with
@@ -565,29 +596,31 @@ let rec check_tree env bind mut part tree hist =
               ()
           | u ->
               let arg = { arg with expr = Var ("_" ^ string_of_int i) } in
-              check_tree tmp false u [] arg hs |> ignore)
+              check_tree tmp false u no_bdata arg hs |> ignore)
         args;
       let expr = App { callee; args } in
       (* A function cannot return a borrowed value *)
       ({ tree with expr }, imm [], hs)
   | Bop (op, fst, snd) ->
-      let fst, v, hs = check_tree env false Uread [] fst hist in
-      let snd, v, hs = check_tree env false Uread [] snd (add_hist v hs) in
+      let fst, v, hs = check_tree env false Uread no_bdata fst hist in
+      let snd, v, hs =
+        check_tree env false Uread no_bdata snd (add_hist v hs)
+      in
       let expr = Bop (op, fst, snd) in
       ({ tree with expr }, imm [], add_hist v hs)
   | Unop (op, e) ->
-      let e, v, hs = check_tree env false Uread [] e hist in
+      let e, v, hs = check_tree env false Uread no_bdata e hist in
       let expr = Unop (op, e) in
       ({ tree with expr }, imm [], add_hist v hs)
   | If (cond, _, ae, be) ->
-      let cond, v, hs = check_tree env false Uread [] cond hist in
+      let cond, v, hs = check_tree env false Uread no_bdata cond hist in
       let hs = add_hist v hs in
       let shadows = !shadowmap in
-      let ae, a, abs = check_tree env bind mut part ae hs in
+      let ae, a, abs = check_tree env bind mut bdata ae hs in
       let a = move_local_borrow a env in
 
       shadowmap := shadows;
-      let be, b, bbs = check_tree env bind mut part be hs in
+      let be, b, bbs = check_tree env bind mut bdata be hs in
       let b = move_local_borrow b env in
       shadowmap := shadows;
 
@@ -623,17 +656,17 @@ let rec check_tree env bind mut part tree hist =
           let usage =
             if contains_allocation e.typ then Usage.Umove else Uread
           in
-          let e, v, hs = check_tree env false usage [] e hist in
+          let e, v, hs = check_tree env false usage no_bdata e hist in
           let e = { e with expr = Move e } in
           let expr = Ctor (name, i, Some e) in
           ({ tree with expr }, imm [], add_hist v hs)
       | None -> (tree, imm [], hist))
   | Variant_index e ->
-      let e, v, hs = check_tree env bind mut part e hist in
+      let e, v, hs = check_tree env bind mut bdata e hist in
       let expr = Variant_index e in
       ({ tree with expr }, v, hs)
   | Variant_data e ->
-      let e, v, hs = check_tree env bind mut part e hist in
+      let e, v, hs = check_tree env bind mut bdata e hist in
       let expr = Variant_data e in
       ({ tree with expr }, v, hs)
   | Fmt fs ->
@@ -642,14 +675,14 @@ let rec check_tree env bind mut part tree hist =
           (fun hs -> function
             | Fstr _ as str -> (hs, str)
             | Fexpr e ->
-                let e, v, hs = check_tree env false Uread [] e hs in
+                let e, v, hs = check_tree env false Uread no_bdata e hs in
                 (add_hist v hs, Fexpr e))
           hist fs
       in
       let expr = Fmt fs in
       ({ tree with expr }, imm [], hs)
   | Mutual_rec_decls (decls, cont) ->
-      let cont, v, hs = check_tree env bind mut part cont hist in
+      let cont, v, hs = check_tree env bind mut bdata cont hist in
       let expr = Mutual_rec_decls (decls, cont) in
       ({ tree with expr }, v, hs)
   | Lambda (_, abs) ->
@@ -662,7 +695,7 @@ let rec check_tree env bind mut part tree hist =
         | [] -> env
         | bs -> Map.add (Fst name) { imm = []; delayed = bs } env
       in
-      let cont, v, hs = check_tree env bind mut part cont hist in
+      let cont, v, hs = check_tree env bind mut bdata cont hist in
       let expr = Function (name, u, abs, cont) in
       ({ tree with expr }, v, hs)
   | Bind (name, expr, cont) ->
@@ -673,7 +706,7 @@ let rec check_tree env bind mut part tree hist =
       let e, env, b, hist, _ =
         check_let ~tl:false tree.loc env name tmpexpr false Dnorm hist
       in
-      let cont, v, hs = check_tree env bind mut part cont (add_hist b hist) in
+      let cont, v, hs = check_tree env bind mut bdata cont (add_hist b hist) in
       let expr = Bind (name, e, cont) in
       ({ tree with expr }, v, hs)
   | Move _ -> failwith "Internal Error: Nothing should have been moved here"
@@ -694,7 +727,7 @@ and check_let ~tl loc env id lhs rmut pass hist =
     | false, Dmove -> (Umove, false, false)
     | false, Dmut -> failwith "unreachable"
   in
-  let rhs, rval, hs = check_tree env false nmut [] lhs hist in
+  let rhs, rval, hs = check_tree env false nmut no_bdata lhs hist in
   let loc = loc in
   let neword () =
     incr borrow_state;
@@ -746,7 +779,7 @@ and check_let ~tl loc env id lhs rmut pass hist =
   (rhs, env, b, hs, pass)
 
 and check_bind env name expr hist =
-  let e, b, hist = check_tree env true Uread [] expr hist in
+  let e, b, hist = check_tree env true Uread no_bdata expr hist in
   let id = new_id name in
   let env = match b.imm with [] -> env | bs -> Map.add id (imm bs) env in
   (e, env, hist)
@@ -758,7 +791,7 @@ and check_abstraction env loc touched hist =
          bindings later so they get moved on first use *)
       let usage = Usage.of_attr use.tattr in
       let var = make_var loc use.tname use.ttyp in
-      let _, b, _ = check_tree env false usage [] var hist in
+      let _, b, _ = check_tree env false usage no_bdata var hist in
       b.imm @ bindings)
     [] touched
 
@@ -775,7 +808,7 @@ let check_item (env, bind, mut, part, hist) = function
       ((env, bind, mut, part, hist), Tl_bind (name, e))
   | Tl_expr e ->
       (* Basically a sequence *)
-      let e, b, hs = check_tree env false Uread [] e hist in
+      let e, b, hs = check_tree env false Uread no_bdata e hist in
       ((env, bind, mut, part, add_hist b hs), Tl_expr e)
   | Tl_function (loc, name, _, abs) as f ->
       let bindings = check_abstraction env loc abs.func.touched hist in
@@ -810,10 +843,10 @@ let find_usage id hist =
 let check_tree pts pns touched body =
   (* Add parameters to initial environment *)
   reset ();
-  let borrow_of_param borrowed loc =
+  let borrow_of_param bid loc =
     incr borrow_state;
-    let parent = fst borrowed in
-    { ord = !borrow_state; loc; borrowed; parent }
+    let borrowed = { bid; bpart = [] } in
+    { ord = !borrow_state; loc; borrowed; parent = bid; special = Sp_no }
   in
 
   (* Shadowing between touched variables and parameters is impossible. If a parameter
@@ -844,7 +877,7 @@ let check_tree pts pns touched body =
 
   (* [Umove] because we want to move return values *)
   let usage = if contains_allocation body.typ then Usage.Umove else Uread in
-  let body, v, hist = check_tree env false usage [] body hist in
+  let body, v, hist = check_tree env false usage no_bdata body hist in
   let body = { body with expr = Move body } in
 
   (* Try to borrow the params again to make sure they haven't been moved *)
@@ -854,7 +887,7 @@ let check_tree pts pns touched body =
     (fun p (n, loc) ->
       (* If there's no allocation, we copying and moving are the same thing *)
       if contains_allocation p.pt then
-        let borrow = borrow_of_param (Fst n, []) loc in
+        let borrow = borrow_of_param (Fst n) loc in
         match p.pattr with
         | Dnorm -> check_excl_chain loc env (Borrow borrow) hist
         | Dmut -> check_excl_chain loc env (Borrow_mut (borrow, Dont_set)) hist

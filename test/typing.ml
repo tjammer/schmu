@@ -1044,5 +1044,12 @@ let () =
           tase_exn "partially set moved"
             "a was moved in line 2, cannot set a.[0]"
             "(def a& [10])\n(def b {a})\n(set &(array-get a 0) 10)";
+          tase_exn "forbid move out of array"
+            "Cannot move out of array. Use `copy`"
+            "(defn set-moved ()\n\
+             (def a& [\"a\" \"b\"])\n\
+             (def b a.[0])\n\
+             (ignore {b})\n\
+             (set &a.[0] \"c\"))";
         ] );
     ]
