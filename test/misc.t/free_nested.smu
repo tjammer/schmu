@@ -1,0 +1,14 @@
+(type nested {:c string :d string})
+(type n {:a string :b nested})
+
+(defn test-nested ()
+  (def a {:a "a" :b {:c "c" :d "d"}})
+  (ignore {a.b.c}))
+
+(test-nested)
+
+(defn test-nested ()
+  (def a {:a "a" :b {:c "c" :d "d"}})
+  (ignore {a.b}))
+
+(test-nested)

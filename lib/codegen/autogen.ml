@@ -92,6 +92,26 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     in
     List.iter f ts
 
+  let rec decl_children_exc pset pseudovar typ =
+    match typ with
+    | Trecord (_, _, fs) ->
+        Array.iteri
+          (fun i f ->
+            if contains_allocation f.ftyp then
+              match pop_index_pset pset i with
+              | Not_excl ->
+                  make_fn Free { pseudovar with typ = f.ftyp; kind = Ptr }
+                  |> ignore;
+                  decl_children Free pseudovar f.ftyp
+              | Excl -> ()
+              | Followup pset ->
+                  make_fn (Free_except pset)
+                    { pseudovar with typ = f.ftyp; kind = Ptr }
+                  |> ignore;
+                  decl_children_exc pset pseudovar f.ftyp)
+          fs
+    | _ -> failwith "TODO decl free or not supported"
+
   let copy param allocref v =
     if contains_allocation v.typ then
       let () = decl_children Copy v v.typ in
@@ -314,6 +334,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
   let free_except param pset v =
     if Pset.is_empty pset then free param v
     else if contains_allocation v.typ then
+      let () = decl_children_exc pset v v.typ in
       make_ptr param v |> free_except_call pset
 
   let get_dtor assoc_type assoc =

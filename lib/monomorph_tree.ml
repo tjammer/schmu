@@ -133,7 +133,7 @@ type malloc_scope = Mfunc | Mlocal
 
 let malloc_add_index index = function
   | Malloc.No_malloc -> Malloc.No_malloc
-  | Path (m, p) -> Path (m, index :: p)
+  | Path (m, p) -> Path (m, p @ [ index ])
   | (Single _ | Branch _) as m -> Path (m, [ index ])
 
 let m_to_list = function
@@ -198,7 +198,7 @@ let mk_free_after expr frees =
                 if contains_allocation f.ftyp then
                   match pop_index_pset frees i with
                   | Not_excl -> (i + 1, false, pset)
-                  | Excl -> (i + 1, true, Pset.add [ i ] pset)
+                  | Excl -> (i + 1, exh && true, Pset.add [ i ] pset)
                   | Followup frees ->
                       let nexcluded, npset = is_excluded frees f.ftyp in
                       let npset =
@@ -207,7 +207,7 @@ let mk_free_after expr frees =
                       in
                       (i + 1, exh && nexcluded, npset)
                 else (i + 1, exh, pset))
-              (0, false, Pset.empty) fs
+              (0, true, Pset.empty) fs
           in
           (excluded, pset)
       | _ -> failwith "todo exh"

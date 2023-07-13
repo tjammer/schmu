@@ -3105,10 +3105,10 @@ Take/use not all allocations of a record in tailrec calls
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__free_except0_successview(%success_view* %0) {
+  define internal void @__free_view(%view* %0) {
   entry:
-    %1 = getelementptr inbounds %success_view, %success_view* %0, i32 0, i32 1
-    call void @__free_view(%view* %1)
+    %1 = bitcast %view* %0 to i8**
+    call void @__free_ac(i8** %1)
     ret void
   }
   
@@ -3121,10 +3121,10 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define internal void @__free_view(%view* %0) {
+  define internal void @__free_except0_successview(%success_view* %0) {
   entry:
-    %1 = bitcast %view* %0 to i8**
-    call void @__free_ac(i8** %1)
+    %1 = getelementptr inbounds %success_view, %success_view* %0, i32 0, i32 1
+    call void @__free_view(%view* %1)
     ret void
   }
   
@@ -4364,3 +4364,7 @@ Handle partial allocations
 
 Don't free string literals
   $ schmu borrow_string_lit.smu && valgrind -q --leak-check=yes --show-reachable=yes ./borrow_string_lit
+
+
+Free nested records
+  $ schmu free_nested.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_nested
