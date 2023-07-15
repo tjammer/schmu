@@ -1005,16 +1005,13 @@ end = struct
     let int_ptr =
       Llvm.build_bitcast arr_ptr (Llvm.pointer_type int_t) "" builder
     in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-    (* refcount of 1 *)
-    ignore (Llvm.build_store (ci 1) dst builder);
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
     let ssize = Llvm.build_intcast ssize int_t "" builder in
     ignore (Llvm.build_store ssize dst builder);
-    let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
     ignore (Llvm.build_store ssize dst builder);
     let ptr =
-      Llvm.build_gep int_ptr [| ci 3 |] "data" builder |> fun ptr ->
+      Llvm.build_gep int_ptr [| ci 2 |] "data" builder |> fun ptr ->
       Llvm.build_bitcast ptr (Llvm.pointer_type llitem_typ) "" builder
     in
 

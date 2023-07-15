@@ -439,7 +439,7 @@ Support function/closure fields
   %state = type { i64, %closure }
   %closure = type { i8*, i8* }
   
-  @0 = private unnamed_addr constant { i64, i64, i64, [5 x i8] } { i64 1, i64 4, i64 4, [5 x i8] c"%li\0A\00" }
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define i64 @__fun_schmu0(i64 %x) {
   entry:
@@ -486,14 +486,14 @@ Support function/closure fields
   
   then:                                             ; preds = %rec
     %6 = bitcast %state* %0 to i8*
-    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [5 x i8] }* @0 to i8*), i64 24), i64 %5)
+    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %5)
     call void @schmu_advance(%state* %ret, %state* %0)
     %7 = bitcast %state* %ret to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 24, i1 false)
     br label %rec
   
   else:                                             ; preds = %rec
-    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [5 x i8] }* @0 to i8*), i64 24), i64 100)
+    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 100)
     ret void
   }
   

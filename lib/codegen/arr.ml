@@ -39,14 +39,9 @@ struct
     let mut = false in
     let head_sz =
       sizeof_typ
-        (Trecord
-           ( [],
-             None,
-             [|
-               { ftyp = Tint; mut }; { ftyp = Tint; mut }; { ftyp = Tint; mut };
-             |] ))
+        (Trecord ([], None, [| { ftyp = Tint; mut }; { ftyp = Tint; mut } |]))
     in
-    assert (Int.equal head_sz 24);
+    assert (Int.equal head_sz 16);
     let head_sz = alignup ~size:head_sz ~upto:item_align in
 
     (item_typ, llitem_typ, head_sz, item_sz)
@@ -88,12 +83,9 @@ struct
 
     (* Initialize counts *)
     let int_ptr = Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "" builder in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-    (* refcount of 1 *)
-    ignore (Llvm.build_store (ci 1) dst builder);
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
     ignore (Llvm.build_store (ci vec_sz) dst builder);
-    let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
     ignore (Llvm.build_store (ci cap_sz) dst builder);
     let ptr = data_ptr ptr typ in
 
@@ -114,76 +106,6 @@ struct
         | Imm | Const -> ignore (Llvm.build_store src.value dst builder))
       exprs;
     { value = arr; typ; lltyp; kind = Ptr }
-
-  let rec contains_refcount = function
-    | Tarray _ | Tfun _ -> true
-    | Trecord (_, _, fields) ->
-        Array.fold_left
-          (fun b f -> f.ftyp |> contains_refcount || b)
-          false fields
-    | Tvariant (_, _, ctors) ->
-        Array.fold_left
-          (fun b c ->
-            (match c.ctyp with Some t -> contains_refcount t | None -> false)
-            || b)
-          false ctors
-    | _ -> false
-
-  let rec refcount_types ts = function
-    | Tarray t -> t :: ts
-    | Trecord (_, _, fields) ->
-        Array.fold_left (fun ts f -> refcount_types ts f.ftyp) ts fields
-    | Tvariant (_, _, ctors) ->
-        Array.fold_left
-          (fun ts c ->
-            match c.ctyp with Some t -> refcount_types ts t | None -> ts)
-          ts ctors
-    | _ -> ts
-
-  let rec iter_array fn v =
-    match v.typ with
-    | Tarray _ | Tfun _ -> fn v
-    | Trecord (_, _, fields) ->
-        Array.iteri
-          (fun i f ->
-            if contains_refcount f.ftyp then
-              let value = Llvm.build_struct_gep v.value i "" builder in
-              let lltyp = get_lltype_def f.ftyp in
-              iter_array fn { value; lltyp; kind = Ptr; typ = f.ftyp })
-          fields
-    | Tvariant (_, _, ctors) ->
-        if contains_refcount v.typ then
-          (* We check again to guard against getting the tag without needing it *)
-          let index = var_index v in
-          Array.iteri
-            (fun i c ->
-              match c.ctyp with
-              | None -> ()
-              | Some typ ->
-                  if contains_refcount typ then (
-                    (* Compare to tag *)
-                    let start_bb = Llvm.insertion_block builder in
-                    let parent = Llvm.block_parent start_bb in
-
-                    let match_bb = Llvm.append_block context "match" parent in
-                    let cont_bb = Llvm.append_block context "cont" parent in
-
-                    let cmp =
-                      Llvm.(
-                        build_icmp Icmp.Eq index.value (const_int i32_t i) "")
-                        builder
-                    in
-                    ignore (Llvm.build_cond_br cmp match_bb cont_bb builder);
-
-                    (* Get data and apply [fn] *)
-                    Llvm.position_at_end match_bb builder;
-                    let data = var_data v typ in
-                    iter_array fn data;
-                    ignore (Llvm.build_br cont_bb builder);
-
-                    Llvm.position_at_end cont_bb builder))
-            ctors
-    | _ -> ()
 
   let iter_array_children arr size typ f =
     let start_bb = Llvm.insertion_block builder in
@@ -218,73 +140,6 @@ struct
     ignore (Llvm.build_br rec_bb builder);
 
     Llvm.position_at_end cont_bb builder
-
-  let make_rc_fn v kind =
-    (* TODO use only type *)
-    let name = "__" ^ name_of_func kind ^ "_" in
-    let name = name ^ Monomorph_tree.short_name ~closure:false v.typ in
-    match Hashtbl.find_opt func_tbl name with
-    | Some (_, _, f) -> f
-    | None ->
-        let lltyp =
-          match default_kind v.typ with
-          | Const_ptr | Ptr -> get_lltype_def v.typ |> Llvm.pointer_type
-          | Imm | Const -> get_lltype_def v.typ
-        in
-        let ft = Llvm.function_type unit_t [| lltyp |] in
-        let f = Llvm.declare_function name ft the_module in
-        Llvm.set_linkage Llvm.Linkage.Internal f;
-        let v = { v with kind = default_kind v.typ } in
-        Hashtbl.replace func_tbl name (kind, v, f);
-        f
-
-  let rc_fn v kind =
-    if contains_refcount v.typ then
-      let f = make_rc_fn v kind in
-      let v = bring_default_var v |> func_to_closure no_param in
-
-      Llvm.build_call f [| v.value |] "" builder |> ignore
-
-  let get_ref_ptr impl var =
-    match var.typ with
-    | Tarray _ -> impl (bring_default_var var)
-    | Tfun _ ->
-        let ptr = bring_default var in
-        let ptr =
-          Llvm.(build_bitcast ptr (pointer_type closure_t)) "" builder
-        in
-        let value = Llvm.build_struct_gep ptr 1 "" builder in
-        let mb_null = Llvm.build_load value "" builder in
-
-        (* Closures can have no env at all -> nullptr *)
-        let start_bb = Llvm.insertion_block builder in
-        let parent = Llvm.block_parent start_bb in
-
-        let notnull_bb = Llvm.append_block context "nonnull" parent in
-        let ret_bb = Llvm.append_block context "ret" parent in
-        let nullptr = Llvm.(const_null (type_of mb_null)) in
-        let cmp = Llvm.(build_icmp Icmp.Eq mb_null nullptr "") builder in
-        ignore (Llvm.build_cond_br cmp ret_bb notnull_bb builder);
-
-        Llvm.position_at_end notnull_bb builder;
-
-        impl { var with value = mb_null };
-        ignore (Llvm.build_br ret_bb builder);
-
-        Llvm.position_at_end ret_bb builder
-    | _ -> failwith "Internal Error: What kind of ref is this?"
-
-  let incr_rc_impl v =
-    let f v =
-      let int_ptr =
-        Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "ref" builder
-      in
-      let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-      let value = Llvm.build_load dst "ref" builder in
-      let added = Llvm.build_add value (Llvm.const_int int_t 1) "" builder in
-      ignore (Llvm.build_store added dst builder)
-    in
-    iter_array (get_ref_ptr f) v
 
   let modify_arr_fn kind orig =
     (match orig.kind with
@@ -343,7 +198,7 @@ struct
     let int_ptr =
       Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
     in
-    let value = Llvm.build_gep int_ptr [| ci 1 |] "len" builder in
+    let value = Llvm.build_gep int_ptr [| ci 0 |] "len" builder in
 
     { value; typ = Tint; lltyp = int_t; kind = Ptr }
 
@@ -356,76 +211,22 @@ struct
     let int_ptr =
       Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "" builder
     in
-    let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
     let old_cap = Llvm.build_load dst "cap" builder in
     let new_cap = Llvm.build_mul old_cap (ci 2) "" builder in
-
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-    let rc = Llvm.build_load dst "ref" builder in
 
     let _, _, head_size, item_size = item_type_head_size orig.typ in
     let itemscap = Llvm.build_mul new_cap (ci item_size) "" builder in
     let size = Llvm.build_add itemscap (ci head_size) "" builder in
 
-    let start_bb = Llvm.insertion_block builder in
-    let parent = Llvm.block_parent start_bb in
-
-    let realloc_bb = Llvm.append_block context "realloc" parent in
-    let malloc_bb = Llvm.append_block context "malloc" parent in
-    let merge_bb = Llvm.append_block context "merge" parent in
-
-    let cmp = Llvm.(build_icmp Icmp.Eq) rc (ci 1) "" builder in
-
-    ignore (Llvm.build_cond_br cmp realloc_bb malloc_bb builder);
-
     (* Realloc *)
-    Llvm.position_at_end realloc_bb builder;
-
-    let rptr = realloc (bring_default orig) ~size in
-    ignore (Llvm.build_store rptr orig.value builder);
-    ignore (Llvm.build_br merge_bb builder);
-    let realloc_bb = Llvm.insertion_block builder in
-
-    (* malloc *)
-    Llvm.position_at_end malloc_bb builder;
-
-    let lltyp = get_lltype_def orig.typ in
-    let ptr =
-      malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
-    in
-
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
-    let sz = Llvm.build_load dst "size" builder in
-    let itemssize = Llvm.build_mul sz (ci item_size) "" builder in
-    let size = Llvm.build_add itemssize (ci head_size) "" builder in
-    ignore
-      (* Ptr is needed here to get a copy *)
-      (let src = { value = v.value; typ = orig.typ; kind = Ptr; lltyp } in
-       memcpy ~src ~dst:ptr ~size);
-    (* set orig pointer to new ptr *)
+    let ptr = realloc (bring_default orig) ~size in
     ignore (Llvm.build_store ptr orig.value builder);
 
-    (* We copied orig including refcount. Reset to 1 *)
-    let new_int_ptr =
-      Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "ref" builder
-    in
-    let new_dst = Llvm.build_gep new_int_ptr [| ci 0 |] "ref" builder in
-    ignore (Llvm.build_store (ci 1) new_dst builder);
-
-    let malloc_bb = Llvm.insertion_block builder in
-
-    ignore (Llvm.build_br merge_bb builder);
-
-    (* Merge *)
-    Llvm.position_at_end merge_bb builder;
-
-    let ptr =
-      Llvm.build_phi [ (rptr, realloc_bb); (ptr, malloc_bb) ] "" builder
-    in
     let new_int_ptr =
       Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "newcap" builder
     in
-    let new_dst = Llvm.build_gep new_int_ptr [| ci 2 |] "newcap" builder in
+    let new_dst = Llvm.build_gep new_int_ptr [| ci 1 |] "newcap" builder in
     ignore (Llvm.build_store new_cap new_dst builder);
     bring_default_var orig
 
@@ -439,9 +240,9 @@ struct
     let v = bring_default arr in
     let arrtyp = arr.typ in
     let int_ptr = Llvm.build_bitcast v (Llvm.pointer_type int_t) "" builder in
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
     let sz = Llvm.build_load dst "size" builder in
-    let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
     let cap = Llvm.build_load dst "cap" builder in
 
     (* Get current block *)
@@ -477,7 +278,7 @@ struct
 
     set_struct_field value ptr;
 
-    let szptr = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let szptr = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
     let new_sz = Llvm.build_add sz (ci 1) "" builder in
     ignore (Llvm.build_store new_sz szptr builder);
 
@@ -494,7 +295,7 @@ struct
       Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
     in
 
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
     let sz = Llvm.build_load dst "size" builder in
 
     let start_bb = Llvm.insertion_block builder in
@@ -560,12 +361,9 @@ struct
 
     (* Initialize counts *)
     let int_ptr = Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "" builder in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "ref" builder in
-    (* refcount of 1 *)
-    ignore (Llvm.build_store (ci 1) dst builder);
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "size" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
     ignore (Llvm.build_store sz dst builder);
-    let dst = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
     ignore (Llvm.build_store sz dst builder);
 
     { value = arr; typ; lltyp; kind = Ptr }

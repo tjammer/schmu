@@ -4,21 +4,21 @@ Copy string literal
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @0 = private unnamed_addr constant { i64, i64, i64, [6 x i8] } { i64 1, i64 5, i64 5, [6 x i8] c"test \00" }
-  @1 = private unnamed_addr constant { i64, i64, i64, [7 x i8] } { i64 1, i64 6, i64 6, [7 x i8] c"%s%li\0A\00" }
+  @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"test \00" }
+  @1 = private unnamed_addr constant { i64, i64, [7 x i8] } { i64 6, i64 6, [7 x i8] c"%s%li\0A\00" }
   
   define i64 @main(i64 %arg) {
   entry:
     %0 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %0, align 8
+    store i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*), i8** %0, align 8
     %1 = alloca i8*, align 8
     %2 = bitcast i8** %1 to i8*
     %3 = bitcast i8** %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     call void @__copy_ac(i8** %1)
     %4 = load i8*, i8** %1, align 8
-    %5 = getelementptr i8, i8* %4, i64 24
-    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, i64, [7 x i8] }* @1 to i8*), i64 24), i8* %5, i64 1)
+    %5 = getelementptr i8, i8* %4, i64 16
+    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [7 x i8] }* @1 to i8*), i64 16), i8* %5, i64 1)
     call void @__free_ac(i8** %1)
     ret i64 0
   }
@@ -27,13 +27,13 @@ Copy string literal
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
-    %cap = getelementptr i64, i64* %ref, i64 2
+    %sz2 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz2, align 8
+    %cap = getelementptr i64, i64* %ref, i64 1
     %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 25
+    %2 = add i64 %cap1, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 24
+    %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
@@ -69,32 +69,30 @@ Copy array of strings
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   @schmu_a = global i8** null, align 8
-  @0 = private unnamed_addr constant { i64, i64, i64, [5 x i8] } { i64 1, i64 4, i64 4, [5 x i8] c"test\00" }
-  @1 = private unnamed_addr constant { i64, i64, i64, [6 x i8] } { i64 1, i64 5, i64 5, [6 x i8] c"toast\00" }
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"test\00" }
+  @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"toast\00" }
   
   declare void @prelude_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i8* @malloc(i64 40)
+    %0 = tail call i8* @malloc(i64 32)
     %1 = bitcast i8* %0 to i8**
     store i8** %1, i8*** @schmu_a, align 8
     %2 = bitcast i8** %1 to i64*
-    store i64 1, i64* %2, align 8
-    %size = getelementptr i64, i64* %2, i64 1
-    store i64 2, i64* %size, align 8
-    %cap = getelementptr i64, i64* %2, i64 2
+    store i64 2, i64* %2, align 8
+    %cap = getelementptr i64, i64* %2, i64 1
     store i64 2, i64* %cap, align 8
-    %3 = getelementptr i8, i8* %0, i64 24
+    %3 = getelementptr i8, i8* %0, i64 16
     %data = bitcast i8* %3 to i8**
     %4 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @0 to i8*), i8** %4, align 8
+    store i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i8** %4, align 8
     %5 = bitcast i8** %4 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %5, i64 8, i1 false)
     tail call void @__copy_ac(i8** %data)
     %"1" = getelementptr i8*, i8** %data, i64 1
     %6 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @1 to i8*), i8** %6, align 8
+    store i8* bitcast ({ i64, i64, [6 x i8] }* @1 to i8*), i8** %6, align 8
     %7 = bitcast i8** %"1" to i8*
     %8 = bitcast i8** %6 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 8, i1 false)
@@ -105,7 +103,7 @@ Copy array of strings
     call void @__copy_aac(i8*** %9)
     %11 = load i8**, i8*** %9, align 8
     %12 = bitcast i8** %11 to i8*
-    %13 = getelementptr i8, i8* %12, i64 32
+    %13 = getelementptr i8, i8* %12, i64 24
     %data1 = bitcast i8* %13 to i8**
     %14 = load i8*, i8** %data1, align 8
     call void @prelude_print(i8* %14)
@@ -120,13 +118,13 @@ Copy array of strings
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
-    %cap = getelementptr i64, i64* %ref, i64 2
+    %sz2 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz2, align 8
+    %cap = getelementptr i64, i64* %ref, i64 1
     %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 25
+    %2 = add i64 %cap1, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 24
+    %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
@@ -141,16 +139,16 @@ Copy array of strings
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
-    %cap = getelementptr i64, i64* %ref, i64 2
+    %sz2 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz2, align 8
+    %cap = getelementptr i64, i64* %ref, i64 1
     %cap1 = load i64, i64* %cap, align 8
     %2 = mul i64 %cap1, 8
-    %3 = add i64 %2, 24
+    %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i8**
     %6 = mul i64 %size, 8
-    %7 = add i64 %6, 24
+    %7 = add i64 %6, 16
     %8 = bitcast i8** %5 to i8*
     %9 = bitcast i8** %1 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
@@ -167,7 +165,7 @@ Copy array of strings
   child:                                            ; preds = %rec
     %12 = bitcast i8** %1 to i8*
     %13 = mul i64 8, %10
-    %14 = add i64 24, %13
+    %14 = add i64 16, %13
     %15 = getelementptr i8, i8* %12, i64 %14
     %data = bitcast i8* %15 to i8**
     call void @__copy_ac(i8** %data)
@@ -192,8 +190,8 @@ Copy array of strings
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
     %cnt = alloca i64, align 8
     store i64 0, i64* %cnt, align 8
     br label %rec
@@ -206,7 +204,7 @@ Copy array of strings
   child:                                            ; preds = %rec
     %4 = bitcast i8** %1 to i8*
     %5 = mul i64 8, %2
-    %6 = add i64 24, %5
+    %6 = add i64 16, %5
     %7 = getelementptr i8, i8* %4, i64 %6
     %data = bitcast i8* %7 to i8**
     call void @__free_ac(i8** %data)
@@ -236,7 +234,7 @@ Copy records
   %t = type { double, i8*, i64, i64* }
   
   @schmu_a = global %cont_t zeroinitializer, align 32
-  @0 = private unnamed_addr constant { i64, i64, i64, [4 x i8] } { i64 1, i64 3, i64 3, [4 x i8] c"lul\00" }
+  @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"lul\00" }
   
   declare void @prelude_print(i8* %0)
   
@@ -244,7 +242,7 @@ Copy records
   entry:
     store double 1.000000e+01, double* getelementptr inbounds (%cont_t, %cont_t* @schmu_a, i32 0, i32 0, i32 0), align 8
     %0 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [4 x i8] }* @0 to i8*), i8** %0, align 8
+    store i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i8** %0, align 8
     %1 = alloca i8*, align 8
     %2 = bitcast i8** %1 to i8*
     %3 = bitcast i8** %0 to i8*
@@ -253,16 +251,14 @@ Copy records
     %4 = load i8*, i8** %1, align 8
     store i8* %4, i8** getelementptr inbounds (%cont_t, %cont_t* @schmu_a, i32 0, i32 0, i32 1), align 8
     store i64 10, i64* getelementptr inbounds (%cont_t, %cont_t* @schmu_a, i32 0, i32 0, i32 2), align 8
-    %5 = call i8* @malloc(i64 48)
+    %5 = call i8* @malloc(i64 40)
     %6 = bitcast i8* %5 to i64*
     %arr = alloca i64*, align 8
     store i64* %6, i64** %arr, align 8
-    store i64 1, i64* %6, align 8
-    %size = getelementptr i64, i64* %6, i64 1
-    store i64 3, i64* %size, align 8
-    %cap = getelementptr i64, i64* %6, i64 2
+    store i64 3, i64* %6, align 8
+    %cap = getelementptr i64, i64* %6, i64 1
     store i64 3, i64* %cap, align 8
-    %7 = getelementptr i8, i8* %5, i64 24
+    %7 = getelementptr i8, i8* %5, i64 16
     %data = bitcast i8* %7 to i64*
     store i64 10, i64* %data, align 8
     %"1" = getelementptr i64, i64* %data, i64 1
@@ -287,13 +283,13 @@ Copy records
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
-    %cap = getelementptr i64, i64* %ref, i64 2
+    %sz2 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz2, align 8
+    %cap = getelementptr i64, i64* %ref, i64 1
     %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 25
+    %2 = add i64 %cap1, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 24
+    %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
@@ -318,16 +314,16 @@ Copy records
   define internal void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
-    %sz = getelementptr i64, i64* %1, i64 1
-    %size = load i64, i64* %sz, align 8
-    %cap = getelementptr i64, i64* %1, i64 2
+    %sz2 = bitcast i64* %1 to i64*
+    %size = load i64, i64* %sz2, align 8
+    %cap = getelementptr i64, i64* %1, i64 1
     %cap1 = load i64, i64* %cap, align 8
     %2 = mul i64 %cap1, 8
-    %3 = add i64 %2, 24
+    %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
     %6 = mul i64 %size, 8
-    %7 = add i64 %6, 24
+    %7 = add i64 %6, 16
     %8 = bitcast i64* %5 to i8*
     %9 = bitcast i64* %1 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
@@ -390,7 +386,7 @@ Copy variants
   %tuple_array_u8 = type { i8* }
   
   @schmu_a = global %prelude.option_tuple_array_u8 zeroinitializer, align 16
-  @0 = private unnamed_addr constant { i64, i64, i64, [6 x i8] } { i64 1, i64 5, i64 5, [6 x i8] c"thing\00" }
+  @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
   declare void @prelude_print(i8* %0)
   
@@ -398,7 +394,7 @@ Copy variants
   entry:
     store i32 0, i32* getelementptr inbounds (%prelude.option_tuple_array_u8, %prelude.option_tuple_array_u8* @schmu_a, i32 0, i32 0), align 4
     %0 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %0, align 8
+    store i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*), i8** %0, align 8
     %1 = alloca i8*, align 8
     %2 = bitcast i8** %1 to i8*
     %3 = bitcast i8** %0 to i8*
@@ -432,13 +428,13 @@ Copy variants
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
-    %cap = getelementptr i64, i64* %ref, i64 2
+    %sz2 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz2, align 8
+    %cap = getelementptr i64, i64* %ref, i64 1
     %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 25
+    %2 = add i64 %cap1, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 24
+    %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
@@ -524,7 +520,7 @@ Copy closures
   @schmu___expr0 = internal constant %tuple_int { i64 1 }
   @schmu___expr0__2 = global %tuple_fn_.int zeroinitializer, align 16
   @schmu_c = global %closure zeroinitializer, align 16
-  @0 = private unnamed_addr constant { i64, i64, i64, [6 x i8] } { i64 1, i64 5, i64 5, [6 x i8] c"hello\00" }
+  @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
   
   declare void @prelude_print(i8* %0)
   
@@ -534,7 +530,7 @@ Copy closures
     %a = getelementptr inbounds { i8*, i8*, i8** }, { i8*, i8*, i8** }* %clsr, i32 0, i32 2
     %a1 = load i8**, i8*** %a, align 8
     %1 = bitcast i8** %a1 to i8*
-    %2 = getelementptr i8, i8* %1, i64 24
+    %2 = getelementptr i8, i8* %1, i64 16
     %data = bitcast i8* %2 to i8**
     %3 = load i8*, i8** %data, align 8
     tail call void @prelude_print(i8* %3)
@@ -571,20 +567,18 @@ Copy closures
   
   define void @schmu_test(%closure* %0) {
   entry:
-    %1 = tail call i8* @malloc(i64 32)
+    %1 = tail call i8* @malloc(i64 24)
     %2 = bitcast i8* %1 to i8**
     %arr = alloca i8**, align 8
     store i8** %2, i8*** %arr, align 8
     %3 = bitcast i8** %2 to i64*
     store i64 1, i64* %3, align 8
-    %size = getelementptr i64, i64* %3, i64 1
-    store i64 1, i64* %size, align 8
-    %cap = getelementptr i64, i64* %3, i64 2
+    %cap = getelementptr i64, i64* %3, i64 1
     store i64 1, i64* %cap, align 8
-    %4 = getelementptr i8, i8* %1, i64 24
+    %4 = getelementptr i8, i8* %1, i64 16
     %data = bitcast i8* %4 to i8**
     %5 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [6 x i8] }* @0 to i8*), i8** %5, align 8
+    store i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*), i8** %5, align 8
     %6 = bitcast i8** %5 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %6, i64 8, i1 false)
     tail call void @__copy_ac(i8** %data)
@@ -631,13 +625,13 @@ Copy closures
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
-    %cap = getelementptr i64, i64* %ref, i64 2
+    %sz2 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz2, align 8
+    %cap = getelementptr i64, i64* %ref, i64 1
     %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 25
+    %2 = add i64 %cap1, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 24
+    %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
@@ -649,16 +643,16 @@ Copy closures
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
-    %cap = getelementptr i64, i64* %ref, i64 2
+    %sz2 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz2, align 8
+    %cap = getelementptr i64, i64* %ref, i64 1
     %cap1 = load i64, i64* %cap, align 8
     %2 = mul i64 %cap1, 8
-    %3 = add i64 %2, 24
+    %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i8**
     %6 = mul i64 %size, 8
-    %7 = add i64 %6, 24
+    %7 = add i64 %6, 16
     %8 = bitcast i8** %5 to i8*
     %9 = bitcast i8** %1 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
@@ -675,7 +669,7 @@ Copy closures
   child:                                            ; preds = %rec
     %12 = bitcast i8** %1 to i8*
     %13 = mul i64 8, %10
-    %14 = add i64 24, %13
+    %14 = add i64 16, %13
     %15 = getelementptr i8, i8* %12, i64 %14
     %data = bitcast i8* %15 to i8**
     call void @__copy_ac(i8** %data)
@@ -714,8 +708,8 @@ Copy closures
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
     %cnt = alloca i64, align 8
     store i64 0, i64* %cnt, align 8
     br label %rec
@@ -728,7 +722,7 @@ Copy closures
   child:                                            ; preds = %rec
     %4 = bitcast i8** %1 to i8*
     %5 = mul i64 8, %2
-    %6 = add i64 24, %5
+    %6 = add i64 16, %5
     %7 = getelementptr i8, i8* %4, i64 %6
     %data = bitcast i8* %7 to i8**
     call void @__free_ac(i8** %data)
@@ -897,43 +891,41 @@ Copy string literal on move
   
   @schmu_a = global i8** null, align 8
   @schmu_b = global i8* null, align 8
-  @0 = private unnamed_addr constant { i64, i64, i64, [5 x i8] } { i64 1, i64 4, i64 4, [5 x i8] c"aoeu\00" }
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"aoeu\00" }
   
   declare void @prelude_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i8* @malloc(i64 32)
+    %0 = tail call i8* @malloc(i64 24)
     %1 = bitcast i8* %0 to i8**
     store i8** %1, i8*** @schmu_a, align 8
     %2 = bitcast i8** %1 to i64*
     store i64 1, i64* %2, align 8
-    %size = getelementptr i64, i64* %2, i64 1
-    store i64 1, i64* %size, align 8
-    %cap = getelementptr i64, i64* %2, i64 2
+    %cap = getelementptr i64, i64* %2, i64 1
     store i64 1, i64* %cap, align 8
-    %3 = getelementptr i8, i8* %0, i64 24
+    %3 = getelementptr i8, i8* %0, i64 16
     %data = bitcast i8* %3 to i8**
     %4 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @0 to i8*), i8** %4, align 8
+    store i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i8** %4, align 8
     %5 = bitcast i8** %4 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %5, i64 8, i1 false)
     tail call void @__copy_ac(i8** %data)
     %6 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, i64, [5 x i8] }* @0 to i8*), i8** %6, align 8
+    store i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i8** %6, align 8
     %7 = bitcast i8** %6 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (i8** @schmu_b to i8*), i8* %7, i64 8, i1 false)
     tail call void @__copy_ac(i8** @schmu_b)
     %8 = load i8*, i8** @schmu_b, align 8
-    %9 = getelementptr i8, i8* %8, i64 24
+    %9 = getelementptr i8, i8* %8, i64 16
     %10 = getelementptr inbounds i8, i8* %9, i64 1
     store i8 105, i8* %10, align 1
     %11 = load i8*, i8** @schmu_b, align 8
     tail call void @prelude_print(i8* %11)
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, i64, [5 x i8] }* @0 to i8*))
+    tail call void @prelude_print(i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*))
     %12 = load i8**, i8*** @schmu_a, align 8
     %13 = bitcast i8** %12 to i8*
-    %14 = getelementptr i8, i8* %13, i64 24
+    %14 = getelementptr i8, i8* %13, i64 16
     %data1 = bitcast i8* %14 to i8**
     %15 = load i8*, i8** %data1, align 8
     tail call void @prelude_print(i8* %15)
@@ -948,13 +940,13 @@ Copy string literal on move
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
-    %cap = getelementptr i64, i64* %ref, i64 2
+    %sz2 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz2, align 8
+    %cap = getelementptr i64, i64* %ref, i64 1
     %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 25
+    %2 = add i64 %cap1, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 24
+    %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
@@ -978,8 +970,8 @@ Copy string literal on move
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
-    %sz = getelementptr i64, i64* %ref, i64 1
-    %size = load i64, i64* %sz, align 8
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
     %cnt = alloca i64, align 8
     store i64 0, i64* %cnt, align 8
     br label %rec
@@ -992,7 +984,7 @@ Copy string literal on move
   child:                                            ; preds = %rec
     %4 = bitcast i8** %1 to i8*
     %5 = mul i64 8, %2
-    %6 = add i64 24, %5
+    %6 = add i64 16, %5
     %7 = getelementptr i8, i8* %4, i64 %6
     %data = bitcast i8* %7 to i8**
     call void @__free_ac(i8** %data)

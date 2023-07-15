@@ -205,9 +205,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     | Tarray t ->
         let v = bring_default_var dst in
         let int_ptr = bb v.value (Llvm.pointer_type int_t) "ref" builder in
-        let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
+        let sz = Llvm.build_gep int_ptr [| ci 0 |] "sz" builder in
         let sz = Llvm.build_load sz "size" builder in
-        let cap = Llvm.build_gep int_ptr [| ci 2 |] "cap" builder in
+        let cap = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
         let cap = Llvm.build_load cap "cap" builder in
 
         let item_type, _, head_size, item_size = item_type_head_size dst.typ in
@@ -378,7 +378,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
           Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "ref" builder
         in
         (if contains_allocation t then
-           let sz = Llvm.build_gep int_ptr [| ci 1 |] "sz" builder in
+           let sz = Llvm.build_gep int_ptr [| ci 0 |] "sz" builder in
            let sz = Llvm.build_load sz "size" builder in
 
            iter_array_children v sz t free_call);

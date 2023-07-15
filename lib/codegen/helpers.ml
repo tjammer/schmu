@@ -203,9 +203,8 @@ struct
           |> Seq.map u8 |> Array.of_seq
           |> Llvm.const_array (Llvm.array_type u8_t (String.length s + 1))
         in
-        let rf = 1 in
         let arr =
-          List.to_seq [ rf; String.length s; Int.max 1 (String.length s) ]
+          List.to_seq [ String.length s; Int.max 1 (String.length s) ]
           |> Seq.map (Llvm.const_int int_t)
           |> (fun s -> Seq.append s (Seq.return thing))
           |> Array.of_seq
