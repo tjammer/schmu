@@ -5,7 +5,9 @@ module type S = sig
   val typeof_funclike : typ -> Llvm.lltype
 
   val typeof_func :
-    decl:bool -> param list * typ * fun_kind -> Llvm.lltype * (int * typ) list
+    decl:bool ->
+    param list * typ * fun_kind ->
+    Llvm.lltype * (int * typ) list * int list
 
   val lltypeof_closure : closed list -> bool -> Llvm.lltype
   val typeof_closure : closed list -> typ

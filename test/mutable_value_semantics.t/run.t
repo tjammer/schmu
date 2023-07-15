@@ -238,9 +238,9 @@ Use mutable values as ptrs to C code
   @schmu_i = global i64 0, align 8
   @schmu_foo = global %foo zeroinitializer, align 8
   
-  declare void @mutate_int(i64* %0)
+  declare void @mutate_int(i64* noalias %0)
   
-  declare void @mutate_foo(%foo* %0)
+  declare void @mutate_foo(%foo* noalias %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -931,7 +931,7 @@ Modify in function
   @schmu_b = global i64* null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define void @schmu_mod2(i64** %a) {
+  define void @schmu_mod2(i64** noalias %a) {
   entry:
     %0 = load i64*, i64** %a, align 8
     %size1 = load i64, i64* %0, align 8
@@ -957,7 +957,7 @@ Modify in function
     ret void
   }
   
-  define void @schmu_modify(%f* %r) {
+  define void @schmu_modify(%f* noalias %r) {
   entry:
     %0 = bitcast %f* %r to i64*
     store i64 30, i64* %0, align 8

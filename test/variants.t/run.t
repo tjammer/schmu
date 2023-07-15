@@ -28,7 +28,7 @@ Basic variant ctors
     ret i32 2
   }
   
-  define void @schmu_wrap_option(%prelude.option_array_u8* %0) {
+  define void @schmu_wrap_option(%prelude.option_array_u8* noalias %0) {
   entry:
     %tag1 = bitcast %prelude.option_array_u8* %0 to i32*
     store i32 0, i32* %tag1, align 4

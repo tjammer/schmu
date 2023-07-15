@@ -311,15 +311,25 @@ struct
     | _ -> ignore (Llvm.build_store (bring_default value) ptr builder)
 
   let mangle name = function C -> name | Schmu n -> n ^ "_" ^ name
+  let noalias_attr = lazy (Llvm.create_enum_attr context "noalias" 0L)
 
   let declare_function ~c_linkage name = function
     | Tfun (params, ret, kind) as typ ->
-        let ft, byvals = typeof_func ~decl:true (params, ret, kind) in
+        let ft, byvals, noaliases =
+          typeof_func ~decl:true (params, ret, kind)
+        in
         let value = Llvm.declare_function name ft the_module in
         if c_linkage then
           List.iter
             (fun (i, typ) -> add_byval value i (get_lltype_def typ))
             byvals;
+        (* Hopefully [noalias] on return param does not mess with C ABI *)
+        List.iter
+          (fun i ->
+            Llvm.(
+              add_function_attr value (Lazy.force noalias_attr)
+                (AttrIndex.Param i)))
+          noaliases;
         let llvar = { value; typ; lltyp = ft; kind = Imm } in
         llvar
     | _ ->

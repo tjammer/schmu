@@ -193,7 +193,7 @@ Pass generic record
     ret { i64, i16 } %2
   }
   
-  define void @__g.gg.g_schmu_apply_ti.titi.ti(%t_int* %0, %closure* %f, %t_int* %x) {
+  define void @__g.gg.g_schmu_apply_ti.titi.ti(%t_int* noalias %0, %closure* %f, %t_int* %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -234,7 +234,7 @@ Pass generic record
     ret { i64, i16 } %unbox2
   }
   
-  define void @__tg.tg_schmu_pass_ti.ti(%t_int* %0, %t_int* %x) {
+  define void @__tg.tg_schmu_pass_ti.ti(%t_int* noalias %0, %t_int* %x) {
   entry:
     %1 = alloca %t_int, align 8
     %2 = bitcast %t_int* %1 to i8*
@@ -447,7 +447,7 @@ Support function/closure fields
     ret i64 %add
   }
   
-  define void @schmu_advance(%state* %0, %state* %state) {
+  define void @schmu_advance(%state* noalias %0, %state* %state) {
   entry:
     %cnt2 = bitcast %state* %0 to i64*
     %1 = getelementptr inbounds %state, %state* %state, i32 0, i32 1
@@ -629,13 +629,13 @@ A return of a field should not be preallocated
   
   declare void @printi(i64 %0)
   
-  define void @schmu_test_thing(%int_wrap* %0) {
+  define void @schmu_test_thing(%int_wrap* noalias %0) {
   entry:
     tail call void @schmu_vector_loop(%int_wrap* %0, i64 0)
     ret void
   }
   
-  define void @schmu_test_thing_mut(%int_wrap* %0) {
+  define void @schmu_test_thing_mut(%int_wrap* noalias %0) {
   entry:
     %1 = alloca %mut_int_wrap, align 8
     %wrapped3 = bitcast %mut_int_wrap* %1 to %int_wrap*
@@ -660,7 +660,7 @@ A return of a field should not be preallocated
     ret void
   }
   
-  define void @schmu_vector_loop(%int_wrap* %0, i64 %i) {
+  define void @schmu_vector_loop(%int_wrap* noalias %0, i64 %i) {
   entry:
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 8

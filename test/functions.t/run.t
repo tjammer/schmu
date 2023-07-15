@@ -1517,7 +1517,7 @@ Don't copy mutable types in setup of tailrecursive functions
   @2 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%s\0A\00" }
   @3 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define void @schmu_change-int(i64* %i, i64 %j) {
+  define void @schmu_change-int(i64* noalias %i, i64 %j) {
   entry:
     %0 = alloca i64*, align 8
     store i64* %i, i64** %0, align 8
@@ -1542,7 +1542,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   }
   
-  define void @schmu_dontmut-bref(i64 %i, %bref* %rf) {
+  define void @schmu_dontmut-bref(i64 %i, %bref* noalias %rf) {
   entry:
     %0 = alloca i64, align 8
     store i64 %i, i64* %0, align 8
@@ -1571,7 +1571,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   }
   
-  define void @schmu_mod-rec(%r* %r, i64 %i) {
+  define void @schmu_mod-rec(%r* noalias %r, i64 %i) {
   entry:
     %0 = alloca %r*, align 8
     store %r* %r, %r** %0, align 8
@@ -1597,7 +1597,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   }
   
-  define void @schmu_mut-bref(i64 %i, %bref* %rf) {
+  define void @schmu_mut-bref(i64 %i, %bref* noalias %rf) {
   entry:
     %0 = alloca i64, align 8
     store i64 %i, i64* %0, align 8
@@ -1622,7 +1622,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   }
   
-  define void @schmu_push-twice(i64** %a, i64 %i) {
+  define void @schmu_push-twice(i64** noalias %a, i64 %i) {
   entry:
     %0 = alloca i64**, align 8
     store i64** %a, i64*** %0, align 8
@@ -1670,7 +1670,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   }
   
-  define void @schmu_test(i64** %a, i64 %i) {
+  define void @schmu_test(i64** noalias %a, i64 %i) {
   entry:
     %0 = alloca i64**, align 8
     store i64** %a, i64*** %0, align 8
@@ -1952,7 +1952,7 @@ The lamba passed as array-iter argument is polymorphic
     ret i8* %4
   }
   
-  define void @__agag.u_schmu_string-append_acac.u(i8** %str, i8* %app) {
+  define void @__agag.u_schmu_string-append_acac.u(i8** noalias %str, i8* %app) {
   entry:
     %__g.u-ag___fun_schmu0_c.u-ac = alloca %closure, align 8
     %funptr2 = bitcast %closure* %__g.u-ag___fun_schmu0_c.u-ac to i8**
@@ -2153,7 +2153,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define void @schmu_string-add-null(i8** %str) {
+  define void @schmu_string-add-null(i8** noalias %str) {
   entry:
     %0 = load i8*, i8** %str, align 8
     %1 = bitcast i8* %0 to i64*
@@ -2532,7 +2532,7 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define void @__gg.g_schmu_black-box_ac.uac.u.ac.u(%closure* %0, %closure* %f, %closure* %g) {
+  define void @__gg.g_schmu_black-box_ac.uac.u.ac.u(%closure* noalias %0, %closure* %f, %closure* %g) {
   entry:
     %1 = load i1, i1* @schmu_once, align 1
     br i1 %1, label %then, label %else
@@ -2553,7 +2553,7 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define void @__gg.g_schmu_black-box_i.ui.u.i.u(%closure* %0, %closure* %f, %closure* %g) {
+  define void @__gg.g_schmu_black-box_i.ui.u.i.u(%closure* noalias %0, %closure* %f, %closure* %g) {
   entry:
     %1 = load i1, i1* @schmu_once, align 1
     br i1 %1, label %then, label %else

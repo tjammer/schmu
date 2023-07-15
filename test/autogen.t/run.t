@@ -546,7 +546,7 @@ Copy closures
     ret i64 %add
   }
   
-  define void @schmu_hmm(%closure* %0) {
+  define void @schmu_hmm(%closure* noalias %0) {
   entry:
     %funptr1 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i8*)* @schmu_capture to i8*), i8** %funptr1, align 8
@@ -565,7 +565,7 @@ Copy closures
     ret void
   }
   
-  define void @schmu_test(%closure* %0) {
+  define void @schmu_test(%closure* noalias %0) {
   entry:
     %1 = tail call i8* @malloc(i64 24)
     %2 = bitcast i8* %1 to i8**

@@ -79,7 +79,9 @@ module Make (A : Abi_intf.S) = struct
 
   and typeof_funclike = function
     (* Returns a LLVM function type to use far calling a closure *)
-    | Tfun (ps, ret, kind) -> typeof_func ~decl:false (ps, ret, kind) |> fst
+    | Tfun (ps, ret, kind) ->
+        let f, _, _ = typeof_func ~decl:false (ps, ret, kind) in
+        f
     | t -> failwith ("Internal Error: Cannot call " ^ string_of_type t)
 
   and typeof_func ~decl (params, ret, kind) =
@@ -87,10 +89,13 @@ module Make (A : Abi_intf.S) = struct
        a function or closure is being passed to another function.
        If a record is returned, we allocate it at the caller site and
        pass it as first argument to the function *)
+    let noaliases = ref [] in
     let prefix, ret_t =
       if is_struct ret then
         match pkind_of_typ false ret with
-        | Boxed -> (Seq.return (get_lltype_param false ret), unit_t)
+        | Boxed ->
+            noaliases := [ 0 ];
+            (Seq.return (get_lltype_param false ret), unit_t)
         | Unboxed size -> (Seq.empty, lltype_unboxed size)
       else (Seq.empty, get_lltype_param false ret)
     in
@@ -112,6 +117,7 @@ module Make (A : Abi_intf.S) = struct
       List.fold_left
         (fun ps p ->
           let typ = p.pt in
+          if p.pmut then noaliases := !i :: !noaliases;
           incr i;
           match pkind_of_typ p.pmut typ with
           | Unboxed (Two_params (fst, snd)) ->
@@ -126,7 +132,7 @@ module Make (A : Abi_intf.S) = struct
       |> fun seq -> prefix ++ seq ++ suffix |> Array.of_seq
     in
     let ft = Llvm.function_type ret_t params_t in
-    (ft, !byvals)
+    (ft, !byvals, !noaliases)
 
   and to_named_typedefs name = function
     | Trecord (_, _, labels) ->

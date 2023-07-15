@@ -755,15 +755,15 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   
   declare i64 @subi1(i64 %0)
   
-  declare void @subv3(%v3* %0, %v3* byval(%v3) %1)
+  declare void @subv3(%v3* noalias %0, %v3* byval(%v3) %1)
   
-  declare void @subi3(%i3* %0, %i3* byval(%i3) %1)
+  declare void @subi3(%i3* noalias %0, %i3* byval(%i3) %1)
   
-  declare void @subv4(%v4* %0, %v4* byval(%v4) %1)
+  declare void @subv4(%v4* noalias %0, %v4* byval(%v4) %1)
   
-  declare void @submixed4(%mixed4* %0, %mixed4* byval(%mixed4) %1)
+  declare void @submixed4(%mixed4* noalias %0, %mixed4* byval(%mixed4) %1)
   
-  declare void @subtrailv2(%trailv2* %0, %trailv2* byval(%trailv2) %1)
+  declare void @subtrailv2(%trailv2* noalias %0, %trailv2* byval(%trailv2) %1)
   
   declare <2 x float> @subf2s(<2 x float> %0)
   
@@ -847,7 +847,7 @@ Regression test for issue #19
   
   %v3 = type { double, double, double }
   
-  define void @schmu_v3_add(%v3* %0, %v3* %lhs, %v3* %rhs) {
+  define void @schmu_v3_add(%v3* noalias %0, %v3* %lhs, %v3* %rhs) {
   entry:
     %x3 = bitcast %v3* %0 to double*
     %1 = bitcast %v3* %lhs to double*
@@ -873,7 +873,7 @@ Regression test for issue #19
     ret void
   }
   
-  define void @schmu_v3_scale(%v3* %0, %v3* %v3, double %factor) {
+  define void @schmu_v3_scale(%v3* noalias %0, %v3* %v3, double %factor) {
   entry:
     %x3 = bitcast %v3* %0 to double*
     %1 = bitcast %v3* %v3 to double*
@@ -893,7 +893,7 @@ Regression test for issue #19
     ret void
   }
   
-  define void @schmu_wrap(%v3* %0) {
+  define void @schmu_wrap(%v3* noalias %0) {
   entry:
     %boxconst = alloca %v3, align 8
     store %v3 { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02 }, %v3* %boxconst, align 8
@@ -1493,13 +1493,13 @@ Make sure an if returns either Const or Const_ptr, but in a consistent way
   
   declare double @dot(%v* byval(%v) %0, %v* byval(%v) %1)
   
-  declare void @norm(%v* %0, %v* byval(%v) %1)
+  declare void @norm(%v* noalias %0, %v* byval(%v) %1)
   
-  declare void @scale(%v* %0, %v* byval(%v) %1, double %2)
+  declare void @scale(%v* noalias %0, %v* byval(%v) %1, double %2)
   
   declare i1 @maybe()
   
-  define void @schmu_calc_acc(%v* %0, %v* %vel) {
+  define void @schmu_calc_acc(%v* noalias %0, %v* %vel) {
   entry:
     %1 = tail call double @dot(%v* %vel, %v* %vel)
     %gt = fcmp ogt double %1, 1.000000e-01
@@ -2300,7 +2300,7 @@ Global lets with expressions
   @schmu_b = global i64* null, align 8
   @schmu_c = global i64 0, align 8
   
-  define void @schmu_ret-none(%prelude.option_array_int* %0) {
+  define void @schmu_ret-none(%prelude.option_array_int* noalias %0) {
   entry:
     %tag1 = bitcast %prelude.option_array_int* %0 to i32*
     store i32 1, i32* %tag1, align 4
@@ -2478,7 +2478,7 @@ Return nonclosure functions
     ret i64 %add
   }
   
-  define void @schmu_ret-fn(%closure* %0) {
+  define void @schmu_ret-fn(%closure* noalias %0) {
   entry:
     %funptr1 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i64)* @__fun_schmu0 to i8*), i8** %funptr1, align 8
@@ -2487,7 +2487,7 @@ Return nonclosure functions
     ret void
   }
   
-  define void @schmu_ret-named(%closure* %0) {
+  define void @schmu_ret-named(%closure* noalias %0) {
   entry:
     %funptr1 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i64)* @schmu_named to i8*), i8** %funptr1, align 8
@@ -2579,7 +2579,7 @@ Return closures
     ret i64 %add
   }
   
-  define void @schmu_ret-fn(%closure* %0, i64 %b) {
+  define void @schmu_ret-fn(%closure* noalias %0, i64 %b) {
   entry:
     %funptr2 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i64, i8*)* @schmu_bla to i8*), i8** %funptr2, align 8
@@ -2596,7 +2596,7 @@ Return closures
     ret void
   }
   
-  define void @schmu_ret-lambda(%closure* %0, i64 %b) {
+  define void @schmu_ret-lambda(%closure* noalias %0, i64 %b) {
   entry:
     %funptr2 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i64, i8*)* @__fun_schmu0 to i8*), i8** %funptr2, align 8
@@ -2729,7 +2729,7 @@ Take/use not all allocations of a record in tailrec calls
   
   declare i1 @prelude_char-equal(i8 %0, i8 %1)
   
-  define void @schmu_aux(%parse-result_int* %0, %view* %rem, i64 %cnt) {
+  define void @schmu_aux(%parse-result_int* noalias %0, %view* %rem, i64 %cnt) {
   entry:
     %1 = alloca %view, align 8
     %2 = bitcast %view* %1 to i8*
@@ -2800,7 +2800,7 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define void @schmu_ch(%parse-result_view* %0, %view* %buf) {
+  define void @schmu_ch(%parse-result_view* noalias %0, %view* %buf) {
   entry:
     %1 = bitcast %view* %buf to i8**
     %2 = getelementptr inbounds %view, %view* %buf, i32 0, i32 1
@@ -2866,13 +2866,13 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define void @schmu_many-count(%parse-result_int* %0, %view* %buf) {
+  define void @schmu_many-count(%parse-result_int* noalias %0, %view* %buf) {
   entry:
     tail call void @schmu_aux(%parse-result_int* %0, %view* %buf, i64 0)
     ret void
   }
   
-  define void @schmu_view-of-string(%view* %0, i8* %str) {
+  define void @schmu_view-of-string(%view* noalias %0, i8* %str) {
   entry:
     %buf2 = bitcast %view* %0 to i8**
     %1 = alloca i8*, align 8
@@ -3249,7 +3249,7 @@ Monomorphization in closures
     ret void
   }
   
-  define void @__aggg.i.u_schmu_sort__2_aiii.i.u(i64** %arr, %closure* %cmp) {
+  define void @__aggg.i.u_schmu_sort__2_aiii.i.u(i64** noalias %arr, %closure* %cmp) {
   entry:
     %__agii.i-gg.i_schmu_partition__2_aiii.i-ii.i = alloca %closure, align 8
     %funptr10 = bitcast %closure* %__agii.i-gg.i_schmu_partition__2_aiii.i-ii.i to i8**
@@ -3288,7 +3288,7 @@ Monomorphization in closures
     ret void
   }
   
-  define void @__aggg.i.u_schmu_sort_aiii.i.u(i64** %arr, %closure* %cmp) {
+  define void @__aggg.i.u_schmu_sort_aiii.i.u(i64** noalias %arr, %closure* %cmp) {
   entry:
     %__agii.i-gg.i_schmu_partition_aiii.i-ii.i = alloca %closure, align 8
     %funptr10 = bitcast %closure* %__agii.i-gg.i_schmu_partition_aiii.i-ii.i to i8**
@@ -3327,7 +3327,7 @@ Monomorphization in closures
     ret void
   }
   
-  define i64 @__agii.i-gg.i_schmu_partition__2_aiii.i-ii.i(i64** %arr, i64 %lo, i64 %hi, i8* %0) {
+  define i64 @__agii.i-gg.i_schmu_partition__2_aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, %closure }*
     %cmp = getelementptr inbounds { i8*, i8*, %closure }, { i8*, i8*, %closure }* %clsr, i32 0, i32 2
@@ -3371,7 +3371,7 @@ Monomorphization in closures
     ret i64 %add
   }
   
-  define i64 @__agii.i-gg.i_schmu_partition_aiii.i-ii.i(i64** %arr, i64 %lo, i64 %hi, i8* %0) {
+  define i64 @__agii.i-gg.i_schmu_partition_aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, %closure }*
     %cmp = getelementptr inbounds { i8*, i8*, %closure }, { i8*, i8*, %closure }* %clsr, i32 0, i32 2
@@ -3415,7 +3415,7 @@ Monomorphization in closures
     ret i64 %add
   }
   
-  define void @__agii.u-agii.i-gg.i_schmu_quicksort__2_aiii.u-aiii.i-ii.i(i64** %arr, i64 %lo, i64 %hi, i8* %0) {
+  define void @__agii.u-agii.i-gg.i_schmu_quicksort__2_aiii.u-aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
   entry:
     %1 = alloca i64**, align 8
     store i64** %arr, i64*** %1, align 8
@@ -3465,7 +3465,7 @@ Monomorphization in closures
     br label %rec
   }
   
-  define void @__agii.u-agii.i-gg.i_schmu_quicksort_aiii.u-aiii.i-ii.i(i64** %arr, i64 %lo, i64 %hi, i8* %0) {
+  define void @__agii.u-agii.i-gg.i_schmu_quicksort_aiii.u-aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
   entry:
     %1 = alloca i64**, align 8
     store i64** %arr, i64*** %1, align 8
@@ -3515,7 +3515,7 @@ Monomorphization in closures
     br label %rec
   }
   
-  define void @__agii.u_schmu_swap__2_aiii.u(i64** %arr, i64 %i, i64 %j) {
+  define void @__agii.u_schmu_swap__2_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
   entry:
     %0 = load i64*, i64** %arr, align 8
     %1 = bitcast i64* %0 to i8*
@@ -3534,15 +3534,11 @@ Monomorphization in closures
     %11 = load i64, i64* %data2, align 8
     store i64 %11, i64* %10, align 8
     store i64 %11, i64* %data, align 8
-    %12 = load i64*, i64** %arr, align 8
-    %13 = bitcast i64* %12 to i8*
-    %14 = getelementptr i8, i8* %13, i64 %8
-    %data3 = bitcast i8* %14 to i64*
-    store i64 %6, i64* %data3, align 8
+    store i64 %6, i64* %data2, align 8
     ret void
   }
   
-  define void @__agii.u_schmu_swap_aiii.u(i64** %arr, i64 %i, i64 %j) {
+  define void @__agii.u_schmu_swap_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
   entry:
     %0 = load i64*, i64** %arr, align 8
     %1 = bitcast i64* %0 to i8*
@@ -3561,11 +3557,7 @@ Monomorphization in closures
     %11 = load i64, i64* %data2, align 8
     store i64 %11, i64* %10, align 8
     store i64 %11, i64* %data, align 8
-    %12 = load i64*, i64** %arr, align 8
-    %13 = bitcast i64* %12 to i8*
-    %14 = getelementptr i8, i8* %13, i64 %8
-    %data3 = bitcast i8* %14 to i64*
-    store i64 %6, i64* %data3, align 8
+    store i64 %6, i64* %data2, align 8
     ret void
   }
   
