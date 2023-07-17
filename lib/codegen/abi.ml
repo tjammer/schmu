@@ -102,7 +102,7 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
       | Ints i ->
           "unsupported size for unboxed struct: " ^ string_of_int i |> failwith
     in
-    let anon_field_of_typ typ = { mut = false; ftyp = helper typ } in
+    let anon_field_of_typ typ = { own = true; mut = false; ftyp = helper typ } in
 
     match kind with
     | One_param a -> helper a

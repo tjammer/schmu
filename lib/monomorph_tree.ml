@@ -925,7 +925,15 @@ let rec cln p = function
       let ps = List.map (cln p) ps in
       let fields =
         Array.map
-          (fun field -> { ftyp = cln p Types.(field.ftyp); mut = field.mut })
+          (fun field ->
+            let mut, own =
+              match Types.(field.fattr) with
+              | Fdef -> (false, true)
+              | Fmut -> (true, true)
+              | Fref -> (false, false)
+              | Fptr -> (true, false)
+            in
+            { ftyp = cln p Types.(field.ftyp); mut; own })
           fields
       in
       let name = Option.map Path.type_name name in

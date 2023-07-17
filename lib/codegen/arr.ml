@@ -36,10 +36,11 @@ struct
     let llitem_typ = get_lltype_def item_typ in
     let item_sz, item_align = size_alignof_typ item_typ in
 
-    let mut = false in
+    let own = true and mut = false in
     let head_sz =
       sizeof_typ
-        (Trecord ([], None, [| { ftyp = Tint; mut }; { ftyp = Tint; mut } |]))
+        (Trecord
+           ([], None, [| { ftyp = Tint; own; mut }; { ftyp = Tint; own; mut } |]))
     in
     assert (Int.equal head_sz 16);
     let head_sz = alignup ~size:head_sz ~upto:item_align in

@@ -16,7 +16,7 @@ type typ =
 
 and fun_kind = Simple | Closure of closed list
 and param = { pt : typ; pmut : bool; pmoved : bool }
-and field = { ftyp : typ; mut : bool }
+and field = { ftyp : typ; mut : bool; own : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
 
@@ -28,3 +28,4 @@ val is_struct : typ -> bool
 
 val is_aggregate : typ -> bool
 val contains_allocation : typ -> bool
+val get_fields : typ -> field array

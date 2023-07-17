@@ -24,7 +24,7 @@ let f_of_string f str =
 let name_of_string str =
   String.sub str 1 (String.length str - 1)
 
-let mut_name_of_string str =
+let sp_name_of_string str =
   String.sub str 1 (String.length str - 2)
 
 let mut_of_string str =
@@ -82,7 +82,9 @@ let builtin_id = "__" lowercase_id
 let kebab_id = lowercase_alpha (lowercase_alpha|'-'|digit|'?')*
 let mut_id = (kebab_id)'&'
 let keyword = ':'(lowercase_id|kebab_id)
-let mut_kw = ':'(lowercase_id|kebab_id)'&'
+let mut_kw = (keyword)'&'
+let ref_kw = (keyword)'^'
+let ptr_kw = (keyword)'*'
 let constructor = '#'(lowercase_id|kebab_id)
 let accessor = '.'(lowercase_id|kebab_id|int)
 
@@ -127,7 +129,9 @@ rule read =
   | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
   | kebab_id { Kebab_id (Lexing.lexeme lexbuf) }
   | keyword  { Keyword (name_of_string (Lexing.lexeme lexbuf)) }
-  | mut_kw   { Mut_keyword (mut_name_of_string (Lexing.lexeme lexbuf)) }
+  | mut_kw   { Mut_keyword (sp_name_of_string (Lexing.lexeme lexbuf)) }
+  | ref_kw   { Ref_keyword (sp_name_of_string (Lexing.lexeme lexbuf)) }
+  | ptr_kw   { Ptr_keyword (sp_name_of_string (Lexing.lexeme lexbuf)) }
   | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }
   | constructor{ Constructor (name_of_string (Lexing.lexeme lexbuf)) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
@@ -146,6 +150,7 @@ rule read =
        (['0'-'9' 'a'-'f' 'A'-'F'] as d) (['0'-'9' 'a'-'f' 'A'-'F'] as u) "'"
        { U8 (char_for_hexadecimal_code d u) }
   | '&'      { Ampersand }
+  | '^'      { Caret }
   | '!'      { Exclamation }
   | '@'      { At }
   | '+'      { Plus_i }

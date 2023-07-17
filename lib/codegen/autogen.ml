@@ -139,7 +139,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
   (* Copy for closures *)
   let cls_fn_name kind assoc =
     let pre = match kind with `Dtor -> "__dtor_" | `Ctor -> "__ctor_" in
-    let fs = List.map (fun cl -> { ftyp = cl.cltyp; mut = cl.clmut }) assoc in
+    let fs =
+      List.map (fun cl -> { ftyp = cl.cltyp; own = true; mut = cl.clmut }) assoc
+    in
     let typ = Trecord ([], None, fs |> Array.of_list) in
     pre ^ Monomorph_tree.short_name ~closure:false typ
 

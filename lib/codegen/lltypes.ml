@@ -61,10 +61,11 @@ module Make (A : Abi_intf.S) = struct
     Array.map get_lltype_def agg |> Llvm.struct_type context
 
   and prepend_closure_env agg =
-    let fs = List.map (fun cl -> { ftyp = cl.cltyp; mut = cl.clmut }) agg in
-    { mut = false; ftyp = Traw_ptr Tu8 }
-    :: { mut = false; ftyp = Traw_ptr Tu8 }
-    :: fs
+    let own = true and mut = false in
+    let fs =
+      List.map (fun cl -> { ftyp = cl.cltyp; own; mut = cl.clmut }) agg
+    in
+    { own; mut; ftyp = Traw_ptr Tu8 } :: { own; mut; ftyp = Traw_ptr Tu8 } :: fs
 
   and lltypeof_closure agg upward =
     List.map
@@ -138,7 +139,9 @@ module Make (A : Abi_intf.S) = struct
     | Trecord (_, _, labels) ->
         let t = Llvm.named_struct_type context name in
         let lltyp =
-          Array.map (fun (f : field) -> f.ftyp) labels
+          Array.map
+            (fun (f : field) -> if f.own then f.ftyp else Traw_ptr f.ftyp)
+            labels
           |> typeof_aggregate |> Llvm.struct_element_types
         in
         Llvm.struct_set_body t lltyp false;
