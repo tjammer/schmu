@@ -1636,6 +1636,7 @@ Ensure global are loadad correctly when passed to functions
   }
 
 
+Array push
   $ schmu --dump-llvm array_push.smu && valgrind -q --leak-check=yes --show-reachable=yes ./array_push
   ; ModuleID = 'context'
   source_filename = "context"

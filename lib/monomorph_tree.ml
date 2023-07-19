@@ -255,7 +255,7 @@ end = struct
           let mem =
             match Imap.find_opt i ms with
             | Some pset -> (
-                match path with [] -> true | path -> Pset.mem path pset)
+                match path with [] -> true | path -> Pset.mem path pset |> not)
             | None -> false
           in
           mem || aux a tl path
@@ -1429,16 +1429,20 @@ and morph_field mk p expr index =
 
 and morph_set mk p expr value =
   let ret = p.ret in
-  let mallocs = p.mallocs in
   (* We don't track allocations in the to-set expr.
      This helps with nested allocated things.
      If we do, there are additional relocations happening and the wrong
      things are freed. If one were to force an allocation here,
      that's a leak *)
   let p, e, vfunc = morph_expr { p with ret = false } expr in
+  let mallocs = p.mallocs in
   let p, v, func = morph_expr { p with mallocs = Mallocs.empty Mlocal } value in
 
-  let moved = Mallocs.mem vfunc.malloc mallocs in
+  let moved =
+    match vfunc.malloc with
+    | No_malloc -> false
+    | malloc -> Mallocs.mem malloc mallocs |> not
+  in
   let mallocs =
     if moved then Mallocs.reenter vfunc.malloc mallocs else mallocs
   in
