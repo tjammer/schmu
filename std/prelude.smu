@@ -31,7 +31,7 @@
 (defn array-fold [arr f init]
   (defn inner [i acc!]
     (if (= i (array-length arr))
-      (copy acc)
+      acc
       (let [acc (f !acc (array-get arr i))]
         (inner (+ i 1) !acc))))
   (def acc (copy init))
