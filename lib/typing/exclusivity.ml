@@ -374,8 +374,13 @@ let rec check_tree env bind mut ((bpart, special) as bdata) tree hist =
   match tree.expr with
   | Var borrowed ->
       (* This is no rvalue, we borrow *)
-      let borrowed = { bid = get_id borrowed; bpart } in
+      let bid = get_id borrowed in
       let loc = tree.loc in
+      let make b =
+        let borrowed = { bid; bpart } in
+        if bind then { b with loc; ord = !borrow_state }
+        else { b with loc; ord = !borrow_state; borrowed }
+      in
       let borrow mut = function
         | Bown (bid, lifetime) ->
             (* For Binds, it's imported that we take the owned name, and not the one from Var.
@@ -409,12 +414,11 @@ let rec check_tree env bind mut ((bpart, special) as bdata) tree hist =
                 check_excl_chain loc env b hist;
                 incr borrow_state;
 
-                Borrow_mut ({ b' with loc; ord = !borrow_state; borrowed }, s)
+                Borrow_mut (make b', s)
             | Uset ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
-                Borrow_mut ({ b' with loc; ord = !borrow_state; borrowed }, Set)
-            )
+                Borrow_mut (make b', Set))
         | Borrow b' as b -> (
             check_special tree.loc mut b'.special;
             match mut with
@@ -425,16 +429,15 @@ let rec check_tree env bind mut ((bpart, special) as bdata) tree hist =
             | Umut ->
                 check_excl_chain loc env (Borrow_mut (b', Dont_set)) hist;
                 incr borrow_state;
-                Borrow_mut
-                  ({ b' with loc; ord = !borrow_state; borrowed }, Dont_set)
+                Borrow_mut (make b', Dont_set)
             | Uset ->
                 check_excl_chain loc env (Borrow_mut (b', Set)) hist;
                 incr borrow_state;
-                Borrow_mut ({ b' with loc; ord = !borrow_state; borrowed }, Set)
+                Borrow_mut (make b', Set)
             | Uread ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
-                Borrow { b' with loc; ord = !borrow_state; borrowed })
+                Borrow (make b'))
         | Bmove (m, l) as b ->
             (* The binding is about to be moved for the first time, e.g. in a function *)
             check_excl_chain loc env b hist;
@@ -463,7 +466,7 @@ let rec check_tree env bind mut ((bpart, special) as bdata) tree hist =
       in
 
       let borrow =
-        match Map.find_opt borrowed.bid env with
+        match Map.find_opt bid env with
         | Some b when bind -> b
         | Some { imm; delayed } ->
             let delayed = borrow_delayed delayed in
@@ -710,10 +713,7 @@ let rec check_tree env bind mut ((bpart, special) as bdata) tree hist =
       (* In Let expressions, the mut attribute indicates whether the binding is
          mutable. In all other uses (including this one) it refers to the expression.
          Change it to mut = false to be consistent with read only Binds *)
-      let tmpexpr = { expr with attr = { expr.attr with mut = false } } in
-      let e, env, b, hist, _ =
-        check_let ~tl:false tree.loc env name tmpexpr false Dnorm hist
-      in
+      let e, b, env, hist = check_bind env name expr hist in
       let cont, v, hs = check_tree env bind mut bdata cont (add_hist b hist) in
       let expr = Bind (name, e, cont) in
       ({ tree with expr }, v, hs)
@@ -790,7 +790,7 @@ and check_bind env name expr hist =
   let e, b, hist = check_tree env true Uread no_bdata expr hist in
   let id = new_id name in
   let env = match b.imm with [] -> env | bs -> Map.add id (imm bs) env in
-  (e, env, hist)
+  (e, b, env, hist)
 
 and check_abstraction env loc touched hist =
   List.fold_left
@@ -812,7 +812,7 @@ let check_item (env, bind, mut, part, hist) = function
         in
         ((env, bind, mut, part, add_hist b hs), Tl_let { e with lhs; pass })
   | Tl_bind (name, expr) ->
-      let e, env, hist = check_bind env name expr hist in
+      let e, _, env, hist = check_bind env name expr hist in
       ((env, bind, mut, part, hist), Tl_bind (name, e))
   | Tl_expr e ->
       (* Basically a sequence *)
@@ -839,7 +839,7 @@ let find_usage id hist =
     | Borrow_mut (b, Set) :: _ -> (Dset, Some b.loc)
     | Bmove (b, _) :: _ -> (Dmove, Some b.loc)
     | Borrow _ :: tl -> aux tl
-    | Bown _ :: _ -> failwith "Internal Error: Owned later?"
+    | Bown _ :: tl -> aux tl (* binds? *)
     | [] -> failwith "Internal Error: Should have been added as owned"
   in
   match Map.find_opt id hist with
