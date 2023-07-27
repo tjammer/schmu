@@ -92,7 +92,7 @@ and free_list =
   | Except of Malloc_types.malloc_id list
   | Only of Malloc_types.malloc_id list
 
-and let_kind = Limmut | Lmut | Lproj
+and let_kind = Lowned | Lborrow
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }

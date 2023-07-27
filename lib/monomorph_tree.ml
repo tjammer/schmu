@@ -80,7 +80,7 @@ and fmt = Fstr of string | Fexpr of monod_tree
 and copy_kind = Cglobal of string | Cnormal of bool
 and malloc_list = int list
 and free_list = Except of malloc_id list | Only of malloc_id list
-and let_kind = Limmut | Lmut | Lproj
+and let_kind = Lowned | Lborrow
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -1081,8 +1081,11 @@ let rec_fs_to_env p (username, uniq, typ) =
   let vars = Vars.add username (Normal { no_var with fn }) p.vars in
   { p with vars }
 
-let let_kind mut pass =
-  match pass with Ast.Dmut -> Lproj | _ -> if mut then Lmut else Limmut
+let let_kind pass =
+  match pass with
+  | Ast.Dmut | Dnorm -> Lborrow
+  | Dmove -> Lowned
+  | Dset -> failwith "Internal Error: no set here"
 
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return =
@@ -1098,7 +1101,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | If (_, None, _, _) -> failwith "Internal Error: Unset if owning"
   | If (cond, Some owning, e1, e2) -> morph_if make param cond owning e1 e2
   | Let { id; uniq; rhs; cont; pass; rmut = _ } ->
-      let kind = let_kind rhs.attr.mut pass in
+      let kind = let_kind pass in
       let un, p, e1, gn, ms = prep_let param id uniq rhs pass false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
@@ -1385,8 +1388,8 @@ and prep_let p id uniq e pass toplvl =
         let vars = Vars.add uniq (Global (uniq, func, used)) vars in
         ({ p with vars }, Some uniq)
     | _ ->
-        let kind = let_kind e.attr.mut pass in
-        (match kind with Lproj | Limmut -> () | Lmut -> set_alloca func.alloc);
+        let kind = let_kind pass in
+        (match kind with Lborrow -> () | Lowned -> set_alloca func.alloc);
         ({ p with vars = Vars.add un (Normal func) p.vars }, None)
   in
   (un, p, e1, gn, ms)
@@ -1434,24 +1437,30 @@ and morph_set mk p expr value =
      If we do, there are additional relocations happening and the wrong
      things are freed. If one were to force an allocation here,
      that's a leak *)
-  let p, e, vfunc = morph_expr { p with ret = false } expr in
   let mallocs = p.mallocs in
-  let p, v, func = morph_expr { p with mallocs = Mallocs.empty Mlocal } value in
+  let p, e, vfunc = morph_expr { p with ret = false } expr in
+  let p, v, _ =
+    morph_expr p (* { p with mallocs = Mallocs.empty Mlocal } *) value
+  in
 
+  (* TODO remove local allocs *)
   let moved =
     match vfunc.malloc with
     | No_malloc -> false
     | malloc -> Mallocs.mem malloc mallocs |> not
   in
+
   let mallocs =
-    if moved then Mallocs.reenter vfunc.malloc mallocs else mallocs
+    (* ignore func; *)
+    (* let mallocs = Mallocs.remove func.malloc p.mallocs in *)
+    if moved then Mallocs.reenter vfunc.malloc p.mallocs else p.mallocs
   in
 
   let tree = mk (Mset (e, v, moved)) ret in
 
   (* TODO free the thing. This is right now done in codegen by calling free manually.
      Could also be added to the tree *)
-  ({ p with ret; mallocs }, tree, func)
+  ({ p with ret; mallocs }, tree, no_var)
 
 and morph_seq mk p expr cont =
   let ret = p.ret in
@@ -1849,7 +1858,7 @@ let rec morph_toplvl param items =
         aux_impl param tl item
   and aux_impl param tl = function
     | Typed_tree.Tl_let { id; uniq; lhs = expr; pass; _ } ->
-        let kind = let_kind expr.attr.mut pass in
+        let kind = let_kind pass in
         let un, p, e1, gn, ms = prep_let param id uniq expr pass true in
         let p, e2, func = aux { p with ret = param.ret } tl in
         (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)

@@ -46,7 +46,7 @@ let tbl =
         ( [
             { pt = Traw_ptr (Qvar "0"); pattr = Dmut };
             { p with pt = Tint };
-            { p with pt = Qvar "0" };
+            { pt = Qvar "0"; pattr = Dmove };
           ],
           Tunit,
           Simple ),

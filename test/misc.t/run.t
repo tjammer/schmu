@@ -3993,7 +3993,7 @@ Handle partial allocations
   define i64* @schmu_inf() {
   entry:
     %0 = alloca %f_array_int, align 8
-    %a15 = bitcast %f_array_int* %0 to i64**
+    %a16 = bitcast %f_array_int* %0 to i64**
     %1 = tail call i8* @malloc(i64 24)
     %2 = bitcast i8* %1 to i64*
     %arr = alloca i64*, align 8
@@ -4004,7 +4004,7 @@ Handle partial allocations
     %3 = getelementptr i8, i8* %1, i64 16
     %data = bitcast i8* %3 to i64*
     store i64 10, i64* %data, align 8
-    store i64* %2, i64** %a15, align 8
+    store i64* %2, i64** %a16, align 8
     %b = getelementptr inbounds %f_array_int, %f_array_int* %0, i32 0, i32 1
     %4 = tail call i8* @malloc(i64 24)
     %5 = bitcast i8* %4 to i64*
@@ -4029,14 +4029,17 @@ Handle partial allocations
     %data9 = bitcast i8* %9 to i64*
     store i64 10, i64* %data9, align 8
     store i64* %8, i64** %c, align 8
+    %10 = alloca i64*, align 8
+    %11 = bitcast %f_array_int* %0 to i64**
     call void @__free_ai(i64** %c)
-    %10 = bitcast %f_array_int* %0 to i64**
+    %.pre.pre = load i64*, i64** %11, align 8
+    store i64* %.pre.pre, i64** %10, align 8
     call void @__free_ai(i64** %10)
-    %11 = bitcast %f_array_int* %0 to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %11, i64 8
-    %12 = bitcast i8* %sunkaddr to i64**
-    %13 = load i64*, i64** %12, align 8
-    ret i64* %13
+    %12 = bitcast %f_array_int* %0 to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %12, i64 8
+    %13 = bitcast i8* %sunkaddr to i64**
+    %14 = load i64*, i64** %13, align 8
+    ret i64* %14
   }
   
   define void @schmu_set-moved() {

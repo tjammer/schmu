@@ -1,6 +1,6 @@
 (def a ["aoeu"])
 (def b& "aoeu")
-(__unsafe_ptr_set &(array-data b) 1 'i')
+(__unsafe_ptr_set &(array-data b) 1 !'i')
 (print b)
 (print "aoeu")
 (print a.[0])

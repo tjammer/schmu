@@ -166,11 +166,10 @@ let rec check_exclusivity loc borrow hist =
   | Borrow l, Borrow r :: tl when parts_match l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
       if Int.equal l.ord r.ord then () else check_exclusivity loc borrow tl
-  | Borrow_mut (l, _), Borrow_mut (r, _) :: tl
+  | Borrow_mut (l, _), Borrow_mut (r, _) :: _
     when parts_match l.borrowed r.borrowed ->
       (* Continue until we find our same ord. Don't check further because that's already been checked *)
-      if Int.equal l.ord r.ord then ()
-      else if l.ord < r.ord then
+      if l.ord < r.ord then
         (* Borrow is still active while mutable borrow occured *)
         let msg =
           p "%s was mutably borrowed in line %i, cannot borrow"
@@ -178,7 +177,7 @@ let rec check_exclusivity loc borrow hist =
             (fst l.loc).pos_lnum
         in
         raise (Error (r.loc, msg))
-      else check_exclusivity loc borrow tl
+      else ()
   | Borrow l, Borrow_mut (r, _) :: _ when parts_match l.borrowed r.borrowed ->
       if l.ord < r.ord then
         (* Borrow is still active while mutable borrow occured *)
@@ -237,7 +236,7 @@ let rec check_exclusivity loc borrow hist =
               hint )
         else
           ( m.loc,
-            p "Borrowed parameter %s is moved"
+            p "Borrowed parameter %s is moved, cannot set"
               (Id.s (b.borrowed.bid, b.borrowed.bpart)) )
       in
       raise (Error (loc, msg))
@@ -532,6 +531,7 @@ let rec check_tree env bind mut ((bpart, special) as bdata) tree hist =
           else (tree, imm [], hs))
   | Set (thing, value) ->
       let value, v, hs = check_tree env false Umove no_bdata value hist in
+      let value = { value with expr = Move value } in
       let hs = add_hist v hs in
       (* Track usage of values, but not the one being mutated *)
       let thing, t, hs = check_tree env bind Uset no_bdata thing hs in

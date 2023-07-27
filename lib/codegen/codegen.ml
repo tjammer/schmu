@@ -201,8 +201,8 @@ end = struct
               v)
       | None -> (
           match kind with
-          | Lproj | Limmut -> gen_expr param rhs
-          | Lmut ->
+          | Lborrow -> gen_expr param rhs
+          | Lowned ->
               let dst = alloca param (get_lltype_def rhs.typ) "" in
               let v = gen_expr { param with alloca = Some dst } rhs in
               let src = bring_default_var v in
