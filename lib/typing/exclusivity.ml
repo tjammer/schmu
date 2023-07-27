@@ -51,22 +51,19 @@ module Id = struct
     | l -> name ^ "." ^ String.concat "." (List.map snd l)
 end
 
-type lifetime = Lstatic | Louter | Llocal
-
-and borrow = {
+type borrow = {
   ord : int;
   loc : Ast.loc;
   borrowed : borrowed;
   parent : Id.t;
   special : special_case;
-  lifetime : lifetime;
 }
 
 and borrowed = { bid : Id.t; bpart : part_access }
 and env_item = { imm : binding list; delayed : binding list }
 
 and binding =
-  | Bown of Id.t * lifetime
+  | Bown of Id.t
   | Borrow of borrow
   | Borrow_mut of borrow * Usage.set
   | Bmove of borrow * Ast.loc option
@@ -160,7 +157,7 @@ let rec check_exclusivity loc borrow hist =
       print_endline (show_binding borrow);
       failwith "Internal Error: Should never be empty"
   | Bown _, _ -> ()
-  | (Borrow b | Borrow_mut (b, _) | Bmove (b, _)), Bown (name, _) :: _
+  | (Borrow b | Borrow_mut (b, _) | Bmove (b, _)), Bown name :: _
     when Id.equal b.borrowed.bid name ->
       ()
   | Borrow l, Borrow r :: tl when parts_match l.borrowed r.borrowed ->
@@ -260,8 +257,10 @@ let string_lit_borrow tree mut =
   match mut with
   | Usage.Uread ->
       incr borrow_state;
-      let ord = !borrow_state and special = Sp_string and lifetime = Lstatic in
-      let b = Borrow { ord; loc; borrowed; parent; special; lifetime } in
+      let b =
+        Borrow
+          { ord = !borrow_state; loc; borrowed; parent; special = Sp_string }
+      in
       (tree, imm [ b ])
   | Umove -> (copy tree, imm [])
   | Umut | Uset -> failwith "Internal Error: Mutating string"
@@ -271,7 +270,7 @@ let string_lit_borrow tree mut =
 
 let add_binding b hist =
   let bind_name = function
-    | Bown (n, _) -> n
+    | Bown n -> n
     | Borrow b | Borrow_mut (b, _) | Bmove (b, _) -> b.borrowed.bid
   in
   let name = bind_name b in
@@ -382,20 +381,13 @@ let rec check_tree env bind mut ((bpart, special) as bdata) tree hist =
         else { b with loc; ord = !borrow_state; borrowed }
       in
       let borrow mut = function
-        | Bown (bid, lifetime) ->
+        | Bown bid ->
             (* For Binds, it's imported that we take the owned name, and not the one from Var.
                Otherwise, the Bind name might be borrowed *)
             incr borrow_state;
             let borrow =
               let borrowed = { bid; bpart } in
-              {
-                ord = !borrow_state;
-                loc;
-                borrowed;
-                parent = bid;
-                special;
-                lifetime;
-              }
+              { ord = !borrow_state; loc; borrowed; parent = bid; special }
             in
             (* Assume it's the only borrow. This works because if it isn't, a borrowed binding
                will be used later and thin fail the check. Extra care has to be taken for
@@ -749,7 +741,7 @@ and check_let ~tl loc env id lhs rmut pass hist =
              ( lhs.loc,
                "Specify how rhs expression is passed. Either by move '!' or \
                 mutably '&'" ))
-    | Bmove _ as b -> (Bown (id, Llocal), add_hist (imm [ b ]) hs)
+    | Bmove _ as b -> (Bown id, add_hist (imm [ b ]) hs)
     | (Borrow _ | Borrow_mut _) when tlborrow ->
         raise (Error (lhs.loc, "Cannot borrow mutable binding at top level"))
     | Borrow b -> (Borrow { b with loc; ord = neword () }, hs)
@@ -760,7 +752,7 @@ and check_let ~tl loc env id lhs rmut pass hist =
     match rval.imm with
     | [] ->
         (* No borrow, original, owned value *)
-        ([ Bown (id, Llocal) ], hs)
+        ([ Bown id ], hs)
     | b ->
         (* Switch order so that first move appears near the head of borrow list.
              This way, the first move is reported first (if both move the same thing) *)
@@ -854,14 +846,7 @@ let check_tree pts pns touched body =
   let borrow_of_param bid loc =
     incr borrow_state;
     let borrowed = { bid; bpart = [] } in
-    {
-      ord = !borrow_state;
-      loc;
-      borrowed;
-      parent = bid;
-      special = Sp_no;
-      lifetime = Louter;
-    }
+    { ord = !borrow_state; loc; borrowed; parent = bid; special = Sp_no }
   in
 
   (* Shadowing between touched variables and parameters is impossible. If a parameter
@@ -872,7 +857,7 @@ let check_tree pts pns touched body =
       (fun (map, hs) t ->
         let id = new_id t.tname in
         assert (Id.equal id (Fst t.tname));
-        let b = [ Bown (id, Louter) ] in
+        let b = [ Bown id ] in
         (Map.add id (imm b) map, add_hist (imm b) hs))
       (Map.empty, Map.empty) touched
   in
@@ -885,7 +870,7 @@ let check_tree pts pns touched body =
            borrow checking. Correct usage of mutable parameters is already handled in typing.ml *)
         let id = new_id n in
         assert (Id.equal id (Fst n));
-        let b = [ Bown (id, Louter) ] in
+        let b = [ Bown id ] in
         (Map.add id (imm b) map, add_hist (imm b) hs))
       (env, hist) pns
   in
@@ -895,8 +880,7 @@ let check_tree pts pns touched body =
   let body, v, hist = check_tree env false usage no_bdata body hist in
   let body = { body with expr = Move body } in
 
-  (* Try to borrow the params again to make sure they haven't been moved.
-     They can be moved and set again though *)
+  (* Try to borrow the params again to make sure they haven't been moved *)
   let hist = add_hist v hist in
   param_pass := true;
   List.iter2

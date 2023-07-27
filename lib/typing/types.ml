@@ -32,11 +32,10 @@ type typ =
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : dattr }
-and field = { fname : string; ftyp : typ; fattr : fattr }
+and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
-and fattr = Ast.field_attr = Fdef | Fmut | Fref | Fptr
 
 let rec clean = function
   | Tvar { contents = Link t } -> clean t
@@ -207,4 +206,3 @@ let rec contains_allocation = function
       true
 
 let mut_of_pattr = function Dmut | Dset -> true | Dnorm | Dmove -> false
-let fconst = function Fdef | Fref -> true | Fmut | Fptr -> false

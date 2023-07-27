@@ -729,7 +729,7 @@ module Make (C : Core) (R : Recs) = struct
             (fun p ->
               let p = List.hd p in
               let ftyp = p.ttyp in
-              { fname = string_of_int p.tindex; ftyp; fattr = Fdef })
+              { fname = string_of_int p.tindex; ftyp; mut = false })
             pats
           |> Array.of_list
         in

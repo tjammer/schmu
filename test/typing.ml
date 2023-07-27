@@ -737,9 +737,6 @@ let test_excl_parts_return_whole () =
   test_exn "a.a was moved in line 4, cannot use"
     (typ ^ "(defn meh [a!]\n (def c& !a.a)\n a)")
 
-let test_excl_record_pass_correct () =
-  test "unit" "(type t {:a* int})\n(def a& 10)\n(ignore {:a &a})"
-
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1054,13 +1051,5 @@ let () =
              (def b a.[0])\n\
              (ignore {b})\n\
              (set &a.[0] \"c\"))";
-          tase_exn "record pass wrong"
-            "In record expression: Field is passed differently to record: \
-             owning vs by mutable reference"
-            "(type t {:a* int})\n(def a 10)\n(ignore {:a})";
-          tase_exn "record pass wrong mut"
-            "Expression passed as mutable reference is not mutable"
-            "(type t {:a* int})\n(def a 10)\n(ignore {:a &a})";
-          case "record pass correct" test_excl_record_pass_correct;
         ] );
     ]

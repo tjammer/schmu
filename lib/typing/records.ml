@@ -14,7 +14,7 @@ module type S = sig
     Env.t ->
     Ast.loc ->
     Types.typ option ->
-    (string * Ast.field_attr * Ast.expr) list ->
+    (string * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_record_update :
@@ -22,7 +22,7 @@ module type S = sig
     Ast.loc ->
     Types.typ option ->
     Ast.expr ->
-    (string * Ast.field_attr * Ast.expr) list ->
+    (string * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_field :
@@ -41,8 +41,7 @@ let array_assoc_opt name arr =
     if i = Array.length arr then None
     else
       let field = arr.(i) in
-      if String.equal field.fname name then Some (field.ftyp, field.fattr)
-      else inner (i + 1)
+      if String.equal field.fname name then Some field.ftyp else inner (i + 1)
   in
   inner 0
 
@@ -77,54 +76,33 @@ module Make (C : Core) = struct
                 in
                 raise (Error (loc, msg))))
 
-  let show_passing = function
-    | Ast.Fdef | Fmut -> "owning"
-    | Fref -> "by const reference"
-    | Fptr -> "by mutable reference"
-
-  let check_passing loc pass emut tpass =
-    match (pass, tpass) with
-    | Ast.Fptr, Ast.Fptr when not emut ->
-        let msg = "Expression passed as mutable reference is not mutable" in
-        raise (Error (loc, msg))
-    | Ast.(Fdef | Fmut), (Ast.Fdef | Fmut) | Fref, Fref | Fptr, Fptr -> ()
-    | _ ->
-        let msg =
-          Printf.sprintf
-            "In record expression: Field is passed differently to record: %s \
-             vs %s"
-            (show_passing pass) (show_passing tpass)
-        in
-        raise (Error (loc, msg))
-
   let rec convert_record env loc annot labels =
     let raise_ msg lname rname =
       let msg = Printf.sprintf "%s field :%s on record %s" msg lname rname in
       raise (Error (loc, msg))
     in
 
-    let labelset = List.map (fun (n, _, _) -> n) labels in
+    let labelset = List.map fst labels in
     let t = get_record_type env loc labelset annot in
 
     let (param, name, labels), labels_expr =
       match t with
       | Trecord (param, Some name, ls)
       | Talias (_, Trecord (param, Some name, ls)) ->
-          let f (lname, pass, expr) =
-            let typ, tpass, expr =
+          let f (lname, expr) =
+            let typ, expr =
               match array_assoc_opt lname ls with
               | None -> raise_ "Unbound" lname (Path.show name)
-              | Some ((Tvar { contents = Unbound _ } as typ), tpass) ->
+              | Some (Tvar { contents = Unbound _ } as typ) ->
                   (* If the variable is generic, we figure the type out normally
                      and then unify for the later fields *)
-                  (typ, tpass, convert_annot env None expr)
-              | Some
-                  ((Tvar { contents = Link typ } | Talias (_, typ) | typ), tpass)
-                ->
-                  (typ, tpass, convert_annot env (Some typ) expr)
+                  (typ, convert_annot env None expr)
+              | Some (Tvar { contents = Link typ })
+              | Some (Talias (_, typ))
+              | Some typ ->
+                  (typ, convert_annot env (Some typ) expr)
             in
             unify (loc, "In record expression:") typ expr.typ;
-            check_passing loc pass expr.attr.mut tpass;
             (lname, expr)
           in
           let labels_expr = List.map f labels in
@@ -152,7 +130,7 @@ module Make (C : Core) = struct
             | _ -> expr.attr.const
           in
           (* Records with mutable fields cannot be const *)
-          (is_const && fconst field.fattr && const, (field.fname, expr)))
+          (is_const && (not field.mut) && const, (field.fname, expr)))
         true (labels |> Array.to_list)
     in
     let typ = Trecord (param, Some name, labels) |> generalize in
@@ -162,11 +140,7 @@ module Make (C : Core) = struct
     (* Implemented in terms of [convert_record] *)
     let record = convert env record_arg in
 
-    let updated =
-      List.to_seq items
-      |> Seq.map (fun (key, p, e) -> (key, (p, e)))
-      |> Hashtbl.of_seq
-    in
+    let updated = List.to_seq items |> Hashtbl.of_seq in
 
     let all_new = ref true in
     let name = ref (Path.Pid "") in
@@ -177,14 +151,14 @@ module Make (C : Core) = struct
           Array.map
             (fun field ->
               match Hashtbl.find_opt updated field.fname with
-              | Some (pass, expr) ->
+              | Some expr ->
                   Hashtbl.remove updated field.fname;
-                  (field.fname, pass, expr)
+                  (field.fname, expr)
               | None ->
                   (* There are some old fields. *)
                   all_new := false;
                   let expr = Ast.Field (loc, record_arg, field.fname) in
-                  (field.fname, field.fattr, expr))
+                  (field.fname, expr))
             fields
       | t ->
           let msg = "Expected a record type, not " ^ string_of_type t in
@@ -231,7 +205,7 @@ module Make (C : Core) = struct
 
   and convert_field env loc expr id =
     let field, expr, index = get_field env loc expr id in
-    let mut = expr.attr.mut && not (fconst field.fattr) in
+    let mut = expr.attr.mut && field.mut in
     let attr = { no_attr with const = expr.attr.const; mut } in
     { typ = field.ftyp; expr = Field (expr, index, id); attr; loc }
 end

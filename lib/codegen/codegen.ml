@@ -805,7 +805,6 @@ end = struct
   and gen_record param typ labels allocref ms const return =
     let lltyp = get_lltype_def typ in
 
-    let fields = get_fields typ in
     let value, kind =
       match const with
       | false ->
@@ -816,16 +815,9 @@ end = struct
               let ptr = Llvm.build_struct_gep record i name builder in
               let value =
                 gen_expr { param with alloca = Some ptr } expr
-                |> (fun v ->
-                     if fields.(i).own then bring_default_var v
-                     else (
-                       assert (v.kind = Ptr);
-                       (* By setting the kind to Imm, we make sure this pointer isn't
-                          loaded in a later call to [bring_default] *)
-                       { v with kind = Imm }))
-                (* Const records will stay const, no allocation done to lift
-                     it to Ptr. Thus, it stays Const*)
-                |> func_to_closure param
+                |> (* Const records will stay const, no allocation done to lift
+                      it to Ptr. Thus, it stays Const*)
+                bring_default_var |> func_to_closure param
               in
               set_struct_field value ptr)
             labels;
@@ -867,14 +859,12 @@ end = struct
 
   and gen_field param expr index =
     let value = gen_expr param expr in
-    follow_field param.in_set value index
+    follow_field value index
 
-  and follow_field in_set value index =
-    let typ, own =
+  and follow_field value index =
+    let typ =
       match value.typ with
-      | Trecord (_, _, fields) ->
-          let f = fields.(index) in
-          (f.ftyp, f.own)
+      | Trecord (_, _, fields) -> fields.(index).ftyp
       | _ ->
           print_endline (show_typ value.typ);
           failwith "Internal Error: No record in fields"
@@ -894,15 +884,6 @@ end = struct
           let p = Llvm.(const_extractvalue value.value [| index |]) in
           (p, Const)
       | Imm -> failwith "Internal Error: Did not expect Imm in field"
-    in
-
-    let value =
-      if in_set && not own then
-        (* If the field is not owned, then it's a pointer. If we want to set
-           a value, we have to first pointer to the record. This works because
-           non-owning values only happen in records *)
-        Llvm.build_load value "" builder
-      else value
     in
 
     { value; typ; lltyp = get_lltype_def typ; kind }
@@ -1079,14 +1060,15 @@ end = struct
     let open Malloc_types in
     let expr = gen_expr param expr in
     let get_path path init =
-      List.fold_right
-        (fun index expr -> follow_field false expr index)
-        path init
+      List.fold_right (fun index expr -> follow_field expr index) path init
     in
     (match fs with
     | Except fs ->
         List.iter
           (fun i ->
+            (* Printf.printf "freeing except %i with paths %s, is %b\n" i.id *)
+            (*   (show_pset i.paths) *)
+            (*   (Option.is_some (Hashtbl.find_opt free_tbl i.id)); *)
             Option.iter
               (Auto.free_except param i.paths)
               (Hashtbl.find_opt free_tbl i.id))
@@ -1094,8 +1076,11 @@ end = struct
     | Only fs ->
         List.iter
           (fun i ->
+            (* Printf.printf "freeing only %i with paths %s\n" i.id *)
+            (*   (show_pset i.paths); *)
             Option.iter
               (fun init ->
+                (* TODO check for empty in monomorph_tree *)
                 if Pset.is_empty i.paths then Auto.free param init
                 else
                   Pset.iter

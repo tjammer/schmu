@@ -63,9 +63,9 @@ and expr =
   | Let_e of loc * decl * passed_expr * expr
   | Lambda of loc * decl list * block
   | App of loc * expr * argument list
-  | Record of loc * (string * field_attr * expr) list
+  | Record of loc * (string * expr) list
   | Tuple of loc * expr list
-  | Record_update of loc * expr * (string * field_attr * expr) list
+  | Record_update of loc * expr * (string * expr) list
   | Field of loc * expr * string
   | Set of loc * (loc * expr) * expr
   | Do_block of block
@@ -107,15 +107,10 @@ and stmt =
   | Open of loc * string
 
 and block = stmt list
-and field_attr = Fdef | Fmut | Fref | Fptr
 
 type external_decl = loc * (loc * string) * type_spec * string option
 type typename = { name : Path.t; poly_param : Path.t list }
-
-type record = {
-  name : typename;
-  labels : (field_attr * string * type_spec) array;
-}
+type record = { name : typename; labels : (bool * string * type_spec) array }
 
 type ctor = {
   name : loc * string;

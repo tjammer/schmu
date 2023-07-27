@@ -50,8 +50,6 @@
 %token <string> Kebab_id
 %token <string> Keyword
 %token <string> Mut_keyword
-%token <string> Ref_keyword
-%token <string> Ptr_keyword
 %token <string> Constructor
 %token <string> Accessor
 %token <int> Int
@@ -90,7 +88,6 @@
 %token Lbrack
 %token Rbrack
 %token Ampersand
-%token Caret
 %token Exclamation
 %token At
 %token If
@@ -210,10 +207,8 @@ let bracks(x) :=
     { { name = (Path.Pid (snd $2)); poly_param = List.map path_of_ty_var polys } }
 
 %inline sexp_type_decl:
-  | name = Keyword; t = sexp_type_expr { Fdef, name, t }
-  | name = Mut_keyword; t = sexp_type_expr; { Fmut, name, t }
-  | name = Ref_keyword; t = sexp_type_expr; { Fref, name, t }
-  | name = Ptr_keyword; t = sexp_type_expr; { Fptr, name, t }
+  | name = Keyword; t = sexp_type_expr { false, name, t }
+  | name = Mut_keyword; t = sexp_type_expr; { true, name, t }
 
 %inline open_:
   | parens(sexp_open) { $1 }
@@ -306,10 +301,8 @@ sexp_expr:
   | Exclamation; pexpr = sexp_expr { {pattr = Dmove; pexpr} }
 
 %inline sexp_record_item:
-  | Keyword; sexp_expr { $1, Fdef, $2 }
-  | Keyword; Ampersand; sexp_expr { $1, Fptr, $3 }
-  | Keyword; Caret; sexp_expr { $1, Fref, $3 }
-  | Keyword { $1, Fdef, Var ($loc, $1) }
+  | Keyword; sexp_expr { $1, $2 }
+  | Keyword { $1, Var ($loc, $1) }
 
 %inline record_update:
   | At; record = sexp_expr; items = nonempty_list(sexp_record_item)

@@ -226,7 +226,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
             (fun i t ->
               let fname = string_of_int i in
               let ftyp = concrete_type false env t in
-              { fname; ftyp; fattr = Fdef })
+              { fname; ftyp; mut = false })
             ts
         in
         Trecord ([], None, Array.of_list fields)
@@ -391,9 +391,9 @@ let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
     let env, param = add_type_param env poly_param in
     let labels =
       Array.map
-        (fun (fattr, fname, type_expr) ->
+        (fun (mut, fname, type_expr) ->
           let ftyp = typeof_annot ~typedef:true env loc type_expr in
-          { fname; ftyp; fattr })
+          { fname; ftyp; mut })
         labels
     in
     (labels, param)
@@ -1071,7 +1071,7 @@ end = struct
         (0, true) exprs
     in
     let fields =
-      List.map (fun (fname, e) -> { fname; ftyp = e.typ; fattr = Fdef }) exprs
+      List.map (fun (fname, e) -> { fname; ftyp = e.typ; mut = false }) exprs
     in
     let typ = Trecord ([], None, Array.of_list fields) in
     let attr = { const; global = false; mut = false } in
