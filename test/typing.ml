@@ -1051,5 +1051,11 @@ let () =
              (def b a.[0])\n\
              (ignore {b})\n\
              (set &a.[0] \"c\"))";
+          tase_exn "track moved multi-borrow param"
+            "Borrowed parameter s is moved"
+            {|(defn test (s&)
+  (def a s)
+  (def c a)
+  (ignore {c}))|};
         ] );
     ]

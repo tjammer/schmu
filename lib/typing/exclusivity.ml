@@ -367,7 +367,9 @@ let move_b loc special b =
     | Sp_array_get, _ -> special
     | _ -> b.special
   in
-  { b with loc; special }
+  (* Use parent as borrowed to track accross multiple borrows *)
+  let borrowed = { b.borrowed with bid = b.parent } in
+  { b with loc; special; borrowed }
 
 let rec check_tree env bind mut ((bpart, special) as bdata) tree hist =
   match tree.expr with
