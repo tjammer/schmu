@@ -48,6 +48,9 @@ module Id = struct
     let name = match s with Fst s -> s | Shadowed (s, _) -> s in
     match part with
     | [] -> name
+    | l when String.starts_with ~prefix:"__expr" name ->
+        (* Special case for pattern matches in lets *)
+        String.concat "." (List.map snd l)
     | l -> name ^ "." ^ String.concat "." (List.map snd l)
 end
 

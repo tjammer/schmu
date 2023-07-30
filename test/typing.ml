@@ -1080,5 +1080,11 @@ let () =
          ))
     (#empty ())))
 |};
+          tase_exn "let pattern name" "key was moved in line 4, cannot use"
+            {|(type data {:key (array u8) :value (array u8)})
+(defn hmm ()
+  (def {:key :value} !{:key "key" :value "value"})
+  (ignore {key})
+  (ignore {key}))|};
         ] );
     ]
