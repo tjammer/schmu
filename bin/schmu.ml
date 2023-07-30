@@ -9,6 +9,7 @@ type opts = {
   objects : string list;
   check_only : bool;
   cargs : string list;
+  search_paths : string list;
 }
 
 let ( >>= ) = Result.bind
@@ -39,6 +40,7 @@ let run file
       objects;
       check_only;
       cargs;
+      search_paths = _;
     } =
   let fmt_msg_fn kind loc msg =
     let file = Lexing.((fst loc).pos_fname) in
@@ -76,7 +78,8 @@ let run file
 
 let run_file filename opts =
   (* Add sites to module search path *)
-  Schmulang.Module.paths := prelude_paths opts @ !Schmulang.Module.paths;
+  Schmulang.Module.paths :=
+    prelude_paths opts @ !Schmulang.Module.paths @ opts.search_paths;
 
   match run filename opts with
   | Ok () -> ()
@@ -102,6 +105,8 @@ let () =
   let check_only = ref false in
   let cargs = ref [] in
   let carg s = cargs := s :: !cargs in
+  let search_paths = ref [] in
+  let search_path s = search_paths := s :: !search_paths in
   let anon_fun fn =
     if Filename.check_suffix fn ".o" then objects := fn :: !objects
     else if Filename.check_suffix fn ".smu" then (
@@ -133,6 +138,7 @@ let () =
       ("--release", Arg.Set release, "Optimize");
       ("-m", Arg.Set modul, "Compile module");
       ("-c", Arg.Set compile_only, "Compile as main, but don't link");
+      ("-s", Arg.String search_path, "Additional module search path");
       ("--no-prelude", Arg.Set no_prelude, "Compile without prelude");
       ("--check", Arg.Set check_only, "Typecheck only");
       ("--cc", Arg.String carg, "Pass to C compiler");
@@ -167,4 +173,5 @@ let () =
       objects = List.rev !objects;
       check_only = !check_only;
       cargs = List.rev !cargs;
+      search_paths = List.rev !search_paths;
     }
