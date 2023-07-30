@@ -1057,5 +1057,28 @@ let () =
   (def a s)
   (def c a)
   (ignore {c}))|};
+          tase_exn "move binds individual"
+            "thing.value was moved in line 6, cannot use"
+            {|(type data {:key (array u8) :value (array u8)})
+(type data-container (#empty (#item data)))
+(defn hmm (thing&)
+  (match thing
+    ((#item {:key :value})
+     (do (ignore {key}) (ignore {value}) (ignore {value})
+         -- (set &thing #empty)
+         ))
+    (#empty ())))
+|};
+          tase_exn "move binds param" "Borrowed parameter thing is moved"
+            {|(type data {:key (array u8) :value (array u8)})
+(type data-container (#empty (#item data)))
+(defn hmm (thing&)
+  (match thing
+    ((#item {:key :value})
+     (do (ignore {key}) (ignore {value})
+         -- (set &thing #empty)
+         ))
+    (#empty ())))
+|};
         ] );
     ]
