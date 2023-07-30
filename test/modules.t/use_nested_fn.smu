@@ -1,0 +1,4 @@
+(open nested_fn)
+
+(def (a (thing int)) #empty)
+(classify a)

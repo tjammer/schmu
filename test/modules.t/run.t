@@ -719,3 +719,7 @@ Fix shadowing for local modules
   a
   a
   10
+
+Prefix type names in nested polymorphic functions
+  $ schmu -m nested_fn.smu
+  $ schmu use_nested_fn.smu

@@ -1,0 +1,8 @@
+(type (thing 'a) (#empty (#item 'a)))
+
+(defn classify [thing]
+  (defn inner (thing)
+    (match thing
+      ((#item _) 0)
+      (#empty 1)))
+  (inner thing))

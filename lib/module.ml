@@ -606,7 +606,8 @@ and mod_body f e =
   | Fmt fs ->
       let f = function Typed_tree.Fstr _ as f -> f | Fexpr t -> Fexpr (m t) in
       Fmt (List.map f fs)
-  | e -> e
+  | Const _ | Var _ | Mutual_rec_decls _ (* TODO *) -> e
+  | Move e -> Move (m e)
 
 and mod_abs f abs =
   let body = mod_expr f abs.body in
