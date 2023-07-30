@@ -102,6 +102,7 @@ type to_gen_func = {
   name : func_name;
   recursive : recurs;
   upward : unit -> bool;
+  monomorphized : bool;
 }
 
 type external_decl = {

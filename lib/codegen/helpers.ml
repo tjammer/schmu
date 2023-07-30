@@ -347,7 +347,7 @@ struct
       let value =
         Llvm.define_global "" (Llvm.const_bitcast null typ) the_module
       in
-      Llvm.(set_linkage Linkage.Internal value);
+      Llvm.(set_linkage Linkage.Link_once_odr value);
       value)
     else Llvm.build_alloca typ str builder
 

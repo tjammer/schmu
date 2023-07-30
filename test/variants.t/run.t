@@ -45,7 +45,7 @@ Basic variant ctors
     ret void
   }
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -102,7 +102,7 @@ Basic pattern matching
   
   declare void @printf(i8* %0, i64 %1)
   
-  define i64 @__prelude.optiong.i_schmu_none_all_prelude.optioni.i(%prelude.option_int* %p) {
+  define linkonce_odr i64 @__prelude.optiong.i_schmu_none_all_prelude.optioni.i(%prelude.option_int* %p) {
   entry:
     %tag1 = bitcast %prelude.option_int* %p to i32*
     %index = load i32, i32* %tag1, align 4

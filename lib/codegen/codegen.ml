@@ -22,12 +22,15 @@ end = struct
 
   let free_tbl = Hashtbl.create 64
 
-  let rec gen_function vars { Monomorph_tree.abs; name; recursive; upward } =
+  let rec gen_function vars
+      { Monomorph_tree.abs; name; recursive; upward; monomorphized } =
     let typ = Monomorph_tree.typ_of_abs abs in
 
     match typ with
     | Tfun (tparams, ret_t, kind) as typ ->
         let func = declare_function ~c_linkage:false name.call typ in
+        (if monomorphized then
+           Llvm.(set_linkage Linkage.Link_once_odr func.value));
 
         let start_index, alloca =
           match ret_t with
@@ -1168,17 +1171,14 @@ let add_global_init funcs outname kind body =
   in
   let p =
     let upward () = false in
+    let func = Monomorph_tree.{ params = []; ret = Tunit; kind = Simple } in
     Core.gen_function funcs
       {
         name = { Monomorph_tree.user = fname; call = fname };
         recursive = Rnone;
         upward;
-        abs =
-          {
-            func = { params = []; ret = Tunit; kind = Simple };
-            pnames = [];
-            body;
-          };
+        abs = { func; pnames = []; body };
+        monomorphized = false;
       }
   in
   let init = Vars.find fname p.vars in
@@ -1269,6 +1269,7 @@ let generate ~target ~outname ~release ~modul
             pnames = [ ("arg", None) ];
             body = { tree with typ = Tint };
           };
+        monomorphized = false;
       }
     |> ignore
   else if has_init_code tree then (

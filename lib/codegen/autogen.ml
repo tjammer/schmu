@@ -53,7 +53,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         in
         let ft = Llvm.function_type unit_t [| lltyp |] in
         let f = Llvm.declare_function name ft the_module in
-        Llvm.set_linkage Llvm.Linkage.Internal f;
+        Llvm.set_linkage Llvm.Linkage.Link_once_odr f;
         Hashtbl.replace func_tbl name (kind, v, f);
         f
 
@@ -152,7 +152,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let curr_bb = Llvm.insertion_block builder in
 
         let func = Llvm.declare_function name ctor_t the_module in
-        Llvm.(set_linkage Linkage.Internal) func;
+        Llvm.(set_linkage Linkage.Link_once_odr) func;
         let bblk = Llvm.append_block context "entry" func in
         Llvm.position_at_end bblk builder;
 
@@ -346,7 +346,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let curr_bb = Llvm.insertion_block builder in
 
         let func = Llvm.declare_function name dtor_t the_module in
-        Llvm.set_linkage Llvm.Linkage.Internal func;
+        Llvm.set_linkage Llvm.Linkage.Link_once_odr func;
         let bblk = Llvm.append_block context "entry" func in
         Llvm.position_at_end bblk builder;
 

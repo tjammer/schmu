@@ -106,7 +106,7 @@ Nested records
   
   declare void @printi(i64 %0)
   
-  define { i64, i64 } @__g.g___fun_schmu0_ti.ti(i64 %0, i64 %1) {
+  define linkonce_odr { i64, i64 } @__g.g___fun_schmu0_ti.ti(i64 %0, i64 %1) {
   entry:
     %box = alloca { i64, i64 }, align 8
     %fst3 = bitcast { i64, i64 }* %box to i64*
@@ -174,7 +174,7 @@ Pass generic record
   
   declare void @printi(i64 %0)
   
-  define { i64, i16 } @__g.gg.g_schmu_apply_tb.tbtb.tb(%closure* %f, i64 %0, i16 %1) {
+  define linkonce_odr { i64, i16 } @__g.gg.g_schmu_apply_tb.tbtb.tb(%closure* %f, i64 %0, i16 %1) {
   entry:
     %box = alloca { i64, i16 }, align 8
     %fst11 = bitcast { i64, i16 }* %box to i64*
@@ -193,7 +193,7 @@ Pass generic record
     ret { i64, i16 } %2
   }
   
-  define void @__g.gg.g_schmu_apply_ti.titi.ti(%t_int* noalias %0, %closure* %f, %t_int* %x) {
+  define linkonce_odr void @__g.gg.g_schmu_apply_ti.titi.ti(%t_int* noalias %0, %closure* %f, %t_int* %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -204,7 +204,7 @@ Pass generic record
     ret void
   }
   
-  define { i64, i16 } @__tg.tg_schmu_pass_tb.tb(i64 %0, i16 %1) {
+  define linkonce_odr { i64, i16 } @__tg.tg_schmu_pass_tb.tb(i64 %0, i16 %1) {
   entry:
     %box = alloca { i64, i16 }, align 8
     %fst3 = bitcast { i64, i16 }* %box to i64*
@@ -234,7 +234,7 @@ Pass generic record
     ret { i64, i16 } %unbox2
   }
   
-  define void @__tg.tg_schmu_pass_ti.ti(%t_int* noalias %0, %t_int* %x) {
+  define linkonce_odr void @__tg.tg_schmu_pass_ti.ti(%t_int* noalias %0, %t_int* %x) {
   entry:
     %1 = alloca %t_int, align 8
     %2 = bitcast %t_int* %1 to i8*
@@ -310,7 +310,7 @@ Access parametrized record fields
   
   declare void @printi(i64 %0)
   
-  define i64 @__gen_firstg.g_schmu_only_gen_firsti.i(i64 %0, i8 %1) {
+  define linkonce_odr i64 @__gen_firstg.g_schmu_only_gen_firsti.i(i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst2 = bitcast { i64, i8 }* %box to i64*
@@ -322,7 +322,7 @@ Access parametrized record fields
     ret i64 %0
   }
   
-  define void @__gen_firstg.u_schmu_is_gen_firsti.u(i64 %0, i8 %1) {
+  define linkonce_odr void @__gen_firstg.u_schmu_is_gen_firsti.u(i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst2 = bitcast { i64, i8 }* %box to i64*
@@ -336,7 +336,7 @@ Access parametrized record fields
     ret void
   }
   
-  define i64 @__tg.g_schmu_gen_ti.i(%t_int* %any) {
+  define linkonce_odr i64 @__tg.g_schmu_gen_ti.i(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 2
     %1 = alloca i64, align 8
@@ -345,7 +345,7 @@ Access parametrized record fields
     ret i64 %2
   }
   
-  define void @__tg.u_schmu_first_ti.u(%t_int* %any) {
+  define linkonce_odr void @__tg.u_schmu_first_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 1
     %1 = load i64, i64* %0, align 8
@@ -353,7 +353,7 @@ Access parametrized record fields
     ret void
   }
   
-  define void @__tg.u_schmu_third_ti.u(%t_int* %any) {
+  define linkonce_odr void @__tg.u_schmu_third_ti.u(%t_int* %any) {
   entry:
     %0 = getelementptr inbounds %t_int, %t_int* %any, i32 0, i32 3
     %1 = load i1, i1* %0, align 1
@@ -405,7 +405,7 @@ Make sure alignment of generic param works
   
   declare void @printi(i64 %0)
   
-  define i64 @__misalignedg.g_schmu_gen_misalignedi.i(%misaligned_int* %any) {
+  define linkonce_odr i64 @__misalignedg.g_schmu_gen_misalignedi.i(%misaligned_int* %any) {
   entry:
     %0 = getelementptr inbounds %misaligned_int, %misaligned_int* %any, i32 0, i32 1
     %1 = alloca i64, align 8
@@ -721,7 +721,7 @@ A return of a field should not be preallocated
     br label %rec
   }
   
-  define internal i8* @__ctor_tup-mutint_wrap(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-mutint_wrap(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, %mut_int_wrap* }*
     %2 = call i8* @malloc(i64 40)

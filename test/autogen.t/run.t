@@ -23,7 +23,7 @@ Copy string literal
     ret i64 0
   }
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -46,7 +46,7 @@ Copy string literal
   
   declare void @printf(i8* %0, ...)
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -114,7 +114,7 @@ Copy array of strings
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -135,7 +135,7 @@ Copy array of strings
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__copy_aac(i8*** %0) {
+  define linkonce_odr void @__copy_aac(i8*** %0) {
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
@@ -177,7 +177,7 @@ Copy array of strings
     ret void
   }
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -186,7 +186,7 @@ Copy array of strings
     ret void
   }
   
-  define internal void @__free_aac(i8*** %0) {
+  define linkonce_odr void @__free_aac(i8*** %0) {
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
@@ -279,7 +279,7 @@ Copy records
     ret i64 0
   }
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -302,7 +302,7 @@ Copy records
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_t(%t* %0) {
+  define linkonce_odr void @__copy_t(%t* %0) {
   entry:
     %1 = getelementptr inbounds %t, %t* %0, i32 0, i32 1
     call void @__copy_ac(i8** %1)
@@ -311,7 +311,7 @@ Copy records
     ret void
   }
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -331,14 +331,14 @@ Copy records
     ret void
   }
   
-  define internal void @__copy_contt(%cont_t* %0) {
+  define linkonce_odr void @__copy_contt(%cont_t* %0) {
   entry:
     %1 = bitcast %cont_t* %0 to %t*
     call void @__copy_t(%t* %1)
     ret void
   }
   
-  define internal void @__free_t(%t* %0) {
+  define linkonce_odr void @__free_t(%t* %0) {
   entry:
     %1 = getelementptr inbounds %t, %t* %0, i32 0, i32 1
     call void @__free_ac(i8** %1)
@@ -347,7 +347,7 @@ Copy records
     ret void
   }
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -355,7 +355,7 @@ Copy records
     ret void
   }
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -364,7 +364,7 @@ Copy records
     ret void
   }
   
-  define internal void @__free_contt(%cont_t* %0) {
+  define linkonce_odr void @__free_contt(%cont_t* %0) {
   entry:
     %1 = bitcast %cont_t* %0 to %t*
     call void @__free_t(%t* %1)
@@ -424,7 +424,7 @@ Copy variants
     ret i64 0
   }
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -445,14 +445,14 @@ Copy variants
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__copy_tup-ac(%tuple_array_u8* %0) {
+  define linkonce_odr void @__copy_tup-ac(%tuple_array_u8* %0) {
   entry:
     %1 = bitcast %tuple_array_u8* %0 to i8**
     call void @__copy_ac(i8** %1)
     ret void
   }
   
-  define internal void @__copy_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %0) {
+  define linkonce_odr void @__copy_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %0) {
   entry:
     %tag1 = bitcast %prelude.option_tuple_array_u8* %0 to i32*
     %index = load i32, i32* %tag1, align 4
@@ -468,14 +468,14 @@ Copy variants
     ret void
   }
   
-  define internal void @__free_tup-ac(%tuple_array_u8* %0) {
+  define linkonce_odr void @__free_tup-ac(%tuple_array_u8* %0) {
   entry:
     %1 = bitcast %tuple_array_u8* %0 to i8**
     call void @__free_ac(i8** %1)
     ret void
   }
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -484,7 +484,7 @@ Copy variants
     ret void
   }
   
-  define internal void @__free_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %0) {
+  define linkonce_odr void @__free_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %0) {
   entry:
     %tag1 = bitcast %prelude.option_tuple_array_u8* %0 to i32*
     %index = load i32, i32* %tag1, align 4
@@ -606,7 +606,7 @@ Copy closures
   
   declare i8* @malloc(i64 %0)
   
-  define internal i8* @__ctor_tup-i(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-i(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i64 }*
     %2 = call i8* @malloc(i64 24)
@@ -621,7 +621,7 @@ Copy closures
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -639,7 +639,7 @@ Copy closures
     ret void
   }
   
-  define internal void @__copy_aac(i8*** %0) {
+  define linkonce_odr void @__copy_aac(i8*** %0) {
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
@@ -681,7 +681,7 @@ Copy closures
     ret void
   }
   
-  define internal i8* @__ctor_tup-aac(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-aac(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i8** }*
     %2 = call i8* @malloc(i64 24)
@@ -695,7 +695,7 @@ Copy closures
     ret i8* %6
   }
   
-  define internal void @__dtor_tup-aac(i8* %0) {
+  define linkonce_odr void @__dtor_tup-aac(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i8** }*
     %a = getelementptr inbounds { i8*, i8*, i8** }, { i8*, i8*, i8** }* %1, i32 0, i32 2
@@ -704,7 +704,7 @@ Copy closures
     ret void
   }
   
-  define internal void @__free_aac(i8*** %0) {
+  define linkonce_odr void @__free_aac(i8*** %0) {
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
@@ -739,7 +739,7 @@ Copy closures
   
   declare void @free(i8* %0)
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -773,7 +773,7 @@ Copy closures
     ret i64 0
   }
   
-  define internal void @__copy_.i(%closure* %0) {
+  define linkonce_odr void @__copy_.i(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -796,7 +796,7 @@ Copy closures
     ret void
   }
   
-  define internal void @__copy_.u(%closure* %0) {
+  define linkonce_odr void @__copy_.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -819,7 +819,7 @@ Copy closures
     ret void
   }
   
-  define internal void @__free_.u(%closure* %0) {
+  define linkonce_odr void @__free_.u(%closure* %0) {
   entry:
     %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %env = load i8*, i8** %envptr, align 8
@@ -846,7 +846,7 @@ Copy closures
     br label %ret
   }
   
-  define internal void @__free_.i(%closure* %0) {
+  define linkonce_odr void @__free_.i(%closure* %0) {
   entry:
     %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %env = load i8*, i8** %envptr, align 8
@@ -873,7 +873,7 @@ Copy closures
     br label %ret
   }
   
-  define internal void @__free_tup-.i(%tuple_fn_.int* %0) {
+  define linkonce_odr void @__free_tup-.i(%tuple_fn_.int* %0) {
   entry:
     %1 = bitcast %tuple_fn_.int* %0 to %closure*
     call void @__free_.i(%closure* %1)
@@ -936,7 +936,7 @@ Copy string literal on move
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -957,7 +957,7 @@ Copy string literal on move
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -966,7 +966,7 @@ Copy string literal on move
     ret void
   }
   
-  define internal void @__free_aac(i8*** %0) {
+  define linkonce_odr void @__free_aac(i8*** %0) {
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*

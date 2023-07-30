@@ -98,6 +98,7 @@ type to_gen_func = {
   name : func_name;
   recursive : recurs;
   upward : unit -> bool;
+  monomorphized : bool;
 }
 
 module To_gen_func = struct
@@ -892,11 +893,9 @@ and monomorphize p typ concrete func parent_sub =
       let kind = subst_kind subst func.abs.func.kind in
       let fnc = { (func_of_typ typ) with kind } in
       let name = { func.name with call } in
-      let funcs =
-        Fset.add
-          { func with abs = { func.abs with func = fnc; body }; name }
-          p.funcs
-      in
+      let abs = { func.abs with func = fnc; body } in
+      let monomorphized = true in
+      let funcs = Fset.add { func with abs; name; monomorphized } p.funcs in
       let monomorphized = Sset.add call p.monomorphized in
       ({ p with funcs; monomorphized }, Mono call)
 
@@ -1535,7 +1534,7 @@ and prep_func p (username, uniq, abs) =
 
   let abs = { func; pnames; body } in
   let name = { user = username; call } in
-  let gen_func = { abs; name; recursive; upward } in
+  let gen_func = { abs; name; recursive; upward; monomorphized = false } in
 
   let p =
     if inline then
@@ -1615,7 +1614,8 @@ and morph_lambda mk typ p id abs =
   let abs = { func; pnames; body } in
   (* lambdas have no username, so we just repeat the call name *)
   let names = { call = name; user = name } in
-  let gen_func = { abs; name = names; recursive; upward } in
+  let monomorphized = false in
+  let gen_func = { abs; name = names; recursive; upward; monomorphized } in
 
   let p = { p with vars } in
   let p, fn =

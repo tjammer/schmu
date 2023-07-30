@@ -101,7 +101,7 @@ Test simple setting of mutable variables
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -121,7 +121,7 @@ Test simple setting of mutable variables
     ret void
   }
   
-  define internal void @__copy_aai(i64*** %0) {
+  define linkonce_odr void @__copy_aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
@@ -166,7 +166,7 @@ Test simple setting of mutable variables
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -174,7 +174,7 @@ Test simple setting of mutable variables
     ret void
   }
   
-  define internal void @__free_aai(i64*** %0) {
+  define linkonce_odr void @__free_aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
@@ -359,7 +359,7 @@ Const let
   
   declare void @printf(i8* %0, ...)
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -420,7 +420,7 @@ Copies, but with ref-counted arrays
   
   declare void @prelude_print(i8* %0)
   
-  define void @__ag.u_schmu_print-0th_ai.u(i64* %a) {
+  define linkonce_odr void @__ag.u_schmu_print-0th_ai.u(i64* %a) {
   entry:
     %0 = bitcast i64* %a to i8*
     %1 = getelementptr i8, i8* %0, i64 16
@@ -482,7 +482,7 @@ Copies, but with ref-counted arrays
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -505,7 +505,7 @@ Copies, but with ref-counted arrays
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -634,7 +634,7 @@ Arrays in records
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -654,7 +654,7 @@ Arrays in records
     ret void
   }
   
-  define internal void @__copy_arrec(%arrec* %0) {
+  define linkonce_odr void @__copy_arrec(%arrec* %0) {
   entry:
     %1 = bitcast %arrec* %0 to i64**
     call void @__copy_ai(i64** %1)
@@ -664,7 +664,7 @@ Arrays in records
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -672,7 +672,7 @@ Arrays in records
     ret void
   }
   
-  define internal void @__free_arrec(%arrec* %0) {
+  define linkonce_odr void @__free_arrec(%arrec* %0) {
   entry:
     %1 = bitcast %arrec* %0 to i64**
     call void @__free_ai(i64** %1)
@@ -731,7 +731,7 @@ Nested arrays
   @schmu_b = global i64** null, align 8
   @0 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"%li, %li\0A\00" }
   
-  define void @__aag.u_schmu_prnt_aai.u(i64** %a) {
+  define linkonce_odr void @__aag.u_schmu_prnt_aai.u(i64** %a) {
   entry:
     %0 = bitcast i64** %a to i8*
     %1 = getelementptr i8, i8* %0, i64 16
@@ -806,7 +806,7 @@ Nested arrays
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -826,7 +826,7 @@ Nested arrays
     ret void
   }
   
-  define internal void @__copy_aai(i64*** %0) {
+  define linkonce_odr void @__copy_aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
@@ -871,7 +871,7 @@ Nested arrays
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -879,7 +879,7 @@ Nested arrays
     ret void
   }
   
-  define internal void @__free_aai(i64*** %0) {
+  define linkonce_odr void @__free_aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
@@ -964,7 +964,7 @@ Modify in function
     ret void
   }
   
-  define internal i64* @__ag.ag_grow_ai.ai(i64** %0) {
+  define linkonce_odr i64* @__ag.ag_grow_ai.ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %cap = getelementptr i64, i64* %1, i64 1
@@ -1010,7 +1010,7 @@ Modify in function
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -1030,7 +1030,7 @@ Make sure variable ids are correctly propagated
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  define i64* @__agg.ag_schmu_f1_aii.ai(i64* %acc, i64 %v) {
+  define linkonce_odr i64* @__agg.ag_schmu_f1_aii.ai(i64* %acc, i64 %v) {
   entry:
     %0 = alloca i64*, align 8
     %1 = alloca i64*, align 8
@@ -1064,7 +1064,7 @@ Make sure variable ids are correctly propagated
     ret i64* %13
   }
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -1087,7 +1087,7 @@ Make sure variable ids are correctly propagated
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal i64* @__ag.ag_grow_ai.ai(i64** %0) {
+  define linkonce_odr i64* @__ag.ag_grow_ai.ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %cap = getelementptr i64, i64* %1, i64 1
@@ -1129,7 +1129,7 @@ Make sure variable ids are correctly propagated
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -1149,7 +1149,7 @@ Free array params correctly if they are returned
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  define i64* @__g.g_schmu_pass_ai.ai(i64* %x) {
+  define linkonce_odr i64* @__g.g_schmu_pass_ai.ai(i64* %x) {
   entry:
     ret i64* %x
   }
@@ -1181,7 +1181,7 @@ Free array params correctly if they are returned
     ret i64 0
   }
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -1302,7 +1302,7 @@ Refcounts for members in arrays, records and variants
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -1327,7 +1327,7 @@ Refcounts for members in arrays, records and variants
   
   declare void @printf(i8* %0, ...)
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -1335,7 +1335,7 @@ Refcounts for members in arrays, records and variants
     ret void
   }
   
-  define internal void @__free_prelude.optionai(%prelude.option_array_int* %0) {
+  define linkonce_odr void @__free_prelude.optionai(%prelude.option_array_int* %0) {
   entry:
     %tag1 = bitcast %prelude.option_array_int* %0 to i32*
     %index = load i32, i32* %tag1, align 4
@@ -1351,7 +1351,7 @@ Refcounts for members in arrays, records and variants
     ret void
   }
   
-  define internal void @__free_aai(i64*** %0) {
+  define linkonce_odr void @__free_aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
@@ -1384,7 +1384,7 @@ Refcounts for members in arrays, records and variants
     ret void
   }
   
-  define internal void @__free_r(%r* %0) {
+  define linkonce_odr void @__free_r(%r* %0) {
   entry:
     %1 = bitcast %r* %0 to i64**
     call void @__free_ai(i64** %1)

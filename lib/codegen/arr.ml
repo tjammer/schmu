@@ -166,7 +166,7 @@ struct
           let ps = ret |> Llvm.pointer_type in
           let ft = Llvm.function_type ret [| ps |] in
           let f = Llvm.declare_function name ft the_module in
-          Llvm.set_linkage Llvm.Linkage.Internal f;
+          Llvm.set_linkage Llvm.Linkage.Link_once_odr f;
           Hashtbl.replace func_tbl name (kind, orig, f);
           f
     in

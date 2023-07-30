@@ -233,7 +233,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* %thing) {
+  define linkonce_odr i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* %thing) {
   entry:
     %tag1 = bitcast %prelude.option_float* %thing to i32*
     %index = load i32, i32* %tag1, align 4
@@ -249,7 +249,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @__prelude.optiong.i_poly_func_classify_prelude.optioni.i(%prelude.option_int* %thing) {
+  define linkonce_odr i64 @__prelude.optiong.i_poly_func_classify_prelude.optioni.i(%prelude.option_int* %thing) {
   entry:
     %tag1 = bitcast %prelude.option_int* %thing to i32*
     %index = load i32, i32* %tag1, align 4
@@ -303,7 +303,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* %thing) {
+  define linkonce_odr i64 @__prelude.optiong.i_poly_func_classify_prelude.optionf.i(%prelude.option_float* %thing) {
   entry:
     %tag1 = bitcast %prelude.option_float* %thing to i32*
     %index = load i32, i32* %tag1, align 4
@@ -319,7 +319,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @__prelude.optiong.i_poly_func_classify_prelude.optioni.i(%prelude.option_int* %thing) {
+  define linkonce_odr i64 @__prelude.optiong.i_poly_func_classify_prelude.optioni.i(%prelude.option_int* %thing) {
   entry:
     %tag1 = bitcast %prelude.option_int* %thing to i32*
     %index = load i32, i32* %tag1, align 4
@@ -414,7 +414,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -444,7 +444,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define void @__agg.u.u_prelude_array-iter_aii.u.u(i64* %arr, %closure* %f) {
+  define linkonce_odr void @__agg.u.u_prelude_array-iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
     %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u = alloca %closure, align 8
     %funptr5 = bitcast %closure* %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i8**
@@ -467,7 +467,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define void @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u(i64 %i, i8* %0) {
+  define linkonce_odr void @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %arr = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr, i32 0, i32 2
@@ -521,7 +521,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal i8* @__ctor_tup-ai-i.u(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ai-i.u(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %2 = call i8* @malloc(i64 40)
@@ -539,7 +539,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -559,7 +559,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define internal void @__copy_i.u(%closure* %0) {
+  define linkonce_odr void @__copy_i.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -669,7 +669,7 @@ Local modules
   
   declare void @prelude_print(i8* %0)
   
-  define void @__g.u_schmu_local_poly-test_ac.u(i8* %a) {
+  define linkonce_odr void @__g.u_schmu_local_poly-test_ac.u(i8* %a) {
   entry:
     %0 = getelementptr i8, i8* %a, i64 16
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [13 x i8] }* @1 to i8*), i64 16), i8* %0)

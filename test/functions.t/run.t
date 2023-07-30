@@ -196,17 +196,17 @@ First class functions
     ret i64 %x
   }
   
-  define i64 @__g.g___fun_schmu0_i.i(i64 %x) {
+  define linkonce_odr i64 @__g.g___fun_schmu0_i.i(i64 %x) {
   entry:
     ret i64 %x
   }
   
-  define i64 @__g.g_schmu_pass_i.i(i64 %x) {
+  define linkonce_odr i64 @__g.g_schmu_pass_i.i(i64 %x) {
   entry:
     ret i64 %x
   }
   
-  define i1 @__gg.g.g_schmu_apply_bb.b.b(i1 %x, %closure* %f) {
+  define linkonce_odr i1 @__gg.g.g_schmu_apply_bb.b.b(i1 %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -217,7 +217,7 @@ First class functions
     ret i1 %0
   }
   
-  define i64 @__gg.g.g_schmu_apply_ii.i.i(i64 %x, %closure* %f) {
+  define linkonce_odr i64 @__gg.g.g_schmu_apply_ii.i.i(i64 %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -438,7 +438,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i64 %x
   }
   
-  define i64 @__g.g___fun_schmu0_ti.ti(i64 %0) {
+  define linkonce_odr i64 @__g.g___fun_schmu0_ti.ti(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
@@ -452,7 +452,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i64 %unbox2
   }
   
-  define i1 @__gg.g.g_schmu_apply_bb.b.b(i1 %x, %closure* %f) {
+  define linkonce_odr i1 @__gg.g.g_schmu_apply_bb.b.b(i1 %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -463,7 +463,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i1 %0
   }
   
-  define i64 @__gg.g.g_schmu_apply_ii.i.i(i64 %x, %closure* %f) {
+  define linkonce_odr i64 @__gg.g.g_schmu_apply_ii.i.i(i64 %x, %closure* %f) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -474,7 +474,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i64 %0
   }
   
-  define i8 @__gg.g.g_schmu_apply_tbtb.tb.tb(i8 %0, %closure* %f) {
+  define linkonce_odr i8 @__gg.g.g_schmu_apply_tbtb.tb.tb(i8 %0, %closure* %f) {
   entry:
     %box = alloca i8, align 1
     store i8 %0, i8* %box, align 1
@@ -490,7 +490,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     ret i8 %1
   }
   
-  define i64 @__gg.g.g_schmu_apply_titi.ti.ti(i64 %0, %closure* %f) {
+  define linkonce_odr i64 @__gg.g.g_schmu_apply_titi.ti.ti(i64 %0, %closure* %f) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
@@ -644,12 +644,12 @@ A generic pass function. This example is not 100% correct, but works due to call
   
   declare void @printi(i64 %0)
   
-  define i64 @__g.g_schmu_pass_i.i(i64 %x) {
+  define linkonce_odr i64 @__g.g_schmu_pass_i.i(i64 %x) {
   entry:
     ret i64 %x
   }
   
-  define { i64, i8 } @__g.g_schmu_pass_t.t(i64 %0, i8 %1) {
+  define linkonce_odr { i64, i8 } @__g.g_schmu_pass_t.t(i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst3 = bitcast { i64, i8 }* %box to i64*
@@ -666,7 +666,7 @@ A generic pass function. This example is not 100% correct, but works due to call
     ret { i64, i8 } %unbox2
   }
   
-  define i64 @__g.gg.g_schmu_apply_i.ii.i(%closure* %f, i64 %x) {
+  define linkonce_odr i64 @__g.gg.g_schmu_apply_i.ii.i(%closure* %f, i64 %x) {
   entry:
     %funcptr2 = bitcast %closure* %f to i8**
     %loadtmp = load i8*, i8** %funcptr2, align 8
@@ -677,7 +677,7 @@ A generic pass function. This example is not 100% correct, but works due to call
     ret i64 %0
   }
   
-  define { i64, i8 } @__g.gg.g_schmu_apply_t.tt.t(%closure* %f, i64 %0, i8 %1) {
+  define linkonce_odr { i64, i8 } @__g.gg.g_schmu_apply_t.tt.t(%closure* %f, i64 %0, i8 %1) {
   entry:
     %box = alloca { i64, i8 }, align 8
     %fst11 = bitcast { i64, i8 }* %box to i64*
@@ -750,7 +750,7 @@ a second function. Instead, the closure struct was being created again and the c
   
   declare void @printi(i64 %0)
   
-  define i64 @__ggg.g.gg.g.g_schmu_apply2_titii.i.tii.i.ti(i64 %0, %closure* %f, %closure* %env) {
+  define linkonce_odr i64 @__ggg.g.gg.g.g_schmu_apply2_titii.i.tii.i.ti(i64 %0, %closure* %f, %closure* %env) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
@@ -766,7 +766,7 @@ a second function. Instead, the closure struct was being created again and the c
     ret i64 %1
   }
   
-  define i64 @__ggg.gg.g_schmu_apply_titii.i.tii.i.ti(i64 %0, %closure* %f, %closure* %env) {
+  define linkonce_odr i64 @__ggg.gg.g_schmu_apply_titii.i.tii.i.ti(i64 %0, %closure* %f, %closure* %env) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
@@ -782,7 +782,7 @@ a second function. Instead, the closure struct was being created again and the c
     ret i64 %1
   }
   
-  define i64 @__tgg.g.tg_schmu_boxed2int_int_tii.i.ti(i64 %0, %closure* %env) {
+  define linkonce_odr i64 @__tgg.g.tg_schmu_boxed2int_int_tii.i.ti(i64 %0, %closure* %env) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
@@ -924,17 +924,17 @@ Support monomorphization of nested functions
   
   declare void @printi(i64 %0)
   
-  define i1 @__g.g_schmu_id_b.b(i1 %x) {
+  define linkonce_odr i1 @__g.g_schmu_id_b.b(i1 %x) {
   entry:
     ret i1 %x
   }
   
-  define i64 @__g.g_schmu_id_i.i(i64 %x) {
+  define linkonce_odr i64 @__g.g_schmu_id_i.i(i64 %x) {
   entry:
     ret i64 %x
   }
   
-  define i64 @__g.g_schmu_id_rc.rc(i64 %0) {
+  define linkonce_odr i64 @__g.g_schmu_id_rc.rc(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
@@ -948,19 +948,19 @@ Support monomorphization of nested functions
     ret i64 %unbox2
   }
   
-  define i1 @__g.g_schmu_wrapped_b.b(i1 %x) {
+  define linkonce_odr i1 @__g.g_schmu_wrapped_b.b(i1 %x) {
   entry:
     %0 = tail call i1 @__g.g_schmu_id_b.b(i1 %x)
     ret i1 %0
   }
   
-  define i64 @__g.g_schmu_wrapped_i.i(i64 %x) {
+  define linkonce_odr i64 @__g.g_schmu_wrapped_i.i(i64 %x) {
   entry:
     %0 = tail call i64 @__g.g_schmu_id_i.i(i64 %x)
     ret i64 %0
   }
   
-  define i64 @__g.g_schmu_wrapped_rc.rc(i64 %0) {
+  define linkonce_odr i64 @__g.g_schmu_wrapped_rc.rc(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
@@ -1003,7 +1003,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   declare void @printi(i64 %0)
   
-  define void @__agg.u.u_schmu_array-iter_aii.u.u(i64* %arr, %closure* %f) {
+  define linkonce_odr void @__agg.u.u_schmu_array-iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
     %__i.u-ag-g.u_schmu_inner_cls_both_i.u-ai-i.u = alloca %closure, align 8
     %funptr27 = bitcast %closure* %__i.u-ag-g.u_schmu_inner_cls_both_i.u-ai-i.u to i8**
@@ -1062,7 +1062,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define void @__i.u-ag-g.u_schmu_inner_cls_both_i.u-ai-i.u(i64 %i, i8* %0) {
+  define linkonce_odr void @__i.u-ag-g.u_schmu_inner_cls_both_i.u-ai-i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %arr = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr, i32 0, i32 2
@@ -1099,7 +1099,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   }
   
-  define void @__iag.u-g.u_schmu_inner_cls_f_iai.u-i.u(i64 %i, i64* %arr, i8* %0) {
+  define linkonce_odr void @__iag.u-g.u_schmu_inner_cls_f_iai.u-i.u(i64 %i, i64* %arr, i8* %0) {
   entry:
     %1 = alloca i64, align 8
     store i64 %i, i64* %1, align 8
@@ -1138,7 +1138,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %rec
   }
   
-  define void @__ig.u.u-ag_schmu_inner_cls_arr_ii.u.u-ai(i64 %i, %closure* %f, i8* %0) {
+  define linkonce_odr void @__ig.u.u-ag_schmu_inner_cls_arr_ii.u.u-ai(i64 %i, %closure* %f, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64* }*
     %arr = getelementptr inbounds { i8*, i8*, i64* }, { i8*, i8*, i64* }* %clsr, i32 0, i32 2
@@ -1183,7 +1183,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal i8* @__ctor_tup-ai-i.u(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ai-i.u(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %2 = call i8* @malloc(i64 40)
@@ -1201,7 +1201,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -1221,7 +1221,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define internal void @__copy_i.u(%closure* %0) {
+  define linkonce_odr void @__copy_i.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -1244,7 +1244,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define internal i8* @__ctor_tup-ai(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ai(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i64* }*
     %2 = call i8* @malloc(i64 24)
@@ -1258,7 +1258,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret i8* %6
   }
   
-  define internal i8* @__ctor_tup-i.u(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-i.u(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, %closure }*
     %2 = call i8* @malloc(i64 32)
@@ -1272,7 +1272,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret i8* %6
   }
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -1280,7 +1280,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define internal void @__free_i.u(%closure* %0) {
+  define linkonce_odr void @__free_i.u(%closure* %0) {
   entry:
     %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %env = load i8*, i8** %envptr, align 8
@@ -1432,7 +1432,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret i64 0
   }
   
-  define internal i64* @__ag.ag_grow_ai.ai(i64** %0) {
+  define linkonce_odr i64* @__ag.ag_grow_ai.ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %cap = getelementptr i64, i64* %1, i64 1
@@ -1797,7 +1797,7 @@ Don't copy mutable types in setup of tailrecursive functions
     ret void
   }
   
-  define internal i64* @__ag.ag_grow_ai.ai(i64** %0) {
+  define linkonce_odr i64* @__ag.ag_grow_ai.ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %cap = getelementptr i64, i64* %1, i64 1
@@ -1816,7 +1816,7 @@ Don't copy mutable types in setup of tailrecursive functions
     ret i64* %9
   }
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -1922,7 +1922,7 @@ The lamba passed as array-iter argument is polymorphic
   
   declare void @prelude_print(i8* %0)
   
-  define i8* @__agac.ac_schmu_string-concat_aiac.ac(i64* %arr, i8* %delim) {
+  define linkonce_odr i8* @__agac.ac_schmu_string-concat_aiac.ac(i64* %arr, i8* %delim) {
   entry:
     %0 = alloca i8*, align 8
     %1 = alloca i8*, align 8
@@ -1952,7 +1952,7 @@ The lamba passed as array-iter argument is polymorphic
     ret i8* %4
   }
   
-  define void @__agag.u_schmu_string-append_acac.u(i8** noalias %str, i8* %app) {
+  define linkonce_odr void @__agag.u_schmu_string-append_acac.u(i8** noalias %str, i8* %app) {
   entry:
     %__g.u-ag___fun_schmu0_c.u-ac = alloca %closure, align 8
     %funptr2 = bitcast %closure* %__g.u-ag___fun_schmu0_c.u-ac to i8**
@@ -1971,7 +1971,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define void @__agg.u.u_prelude_array-iter_acc.u.u(i8* %arr, %closure* %f) {
+  define linkonce_odr void @__agg.u.u_prelude_array-iter_acc.u.u(i8* %arr, %closure* %f) {
   entry:
     %__i.u-ag-g.u_prelude_inner_i.u-ac-c.u = alloca %closure, align 8
     %funptr5 = bitcast %closure* %__i.u-ag-g.u_prelude_inner_i.u-ac-c.u to i8**
@@ -1994,7 +1994,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define void @__agig.u.u_prelude_array-iteri_aiii.u.u(i64* %arr, %closure* %f) {
+  define linkonce_odr void @__agig.u.u_prelude_array-iteri_aiii.u.u(i64* %arr, %closure* %f) {
   entry:
     %__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u = alloca %closure, align 8
     %funptr5 = bitcast %closure* %__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u to i8**
@@ -2017,7 +2017,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define void @__g.u-ag___fun_schmu0_c.u-ac(i8 %char, i8* %0) {
+  define linkonce_odr void @__g.u-ag___fun_schmu0_c.u-ac(i8 %char, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i8** }*
     %str = getelementptr inbounds { i8*, i8*, i8** }, { i8*, i8*, i8** }* %clsr, i32 0, i32 2
@@ -2046,7 +2046,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define void @__i.u-ag-g.u_prelude_inner_i.u-ac-c.u(i64 %i, i8* %0) {
+  define linkonce_odr void @__i.u-ag-g.u_prelude_inner_i.u-ac-c.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i8*, %closure }*
     %arr = getelementptr inbounds { i8*, i8*, i8*, %closure }, { i8*, i8*, i8*, %closure }* %clsr, i32 0, i32 2
@@ -2082,7 +2082,7 @@ The lamba passed as array-iter argument is polymorphic
     br label %rec
   }
   
-  define void @__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u(i64 %i, i8* %0) {
+  define linkonce_odr void @__i.u-ag-ig.u_prelude_inner__2_i.u-ai-ii.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %arr = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr, i32 0, i32 2
@@ -2119,7 +2119,7 @@ The lamba passed as array-iter argument is polymorphic
     br label %rec
   }
   
-  define void @__ig.u-ac-ac___fun_schmu1_ii.u-ac-ac(i64 %i, i64 %v, i8* %0) {
+  define linkonce_odr void @__ig.u-ac-ac___fun_schmu1_ii.u-ac-ac(i64 %i, i64 %v, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i8**, i8* }*
     %acc = getelementptr inbounds { i8*, i8*, i8**, i8* }, { i8*, i8*, i8**, i8* }* %clsr, i32 0, i32 2
@@ -2194,7 +2194,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -2215,7 +2215,7 @@ The lamba passed as array-iter argument is polymorphic
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal i8* @__ctor_tup-ac-ac(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ac-ac(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i8**, i8* }*
     %2 = call i8* @malloc(i64 32)
@@ -2234,7 +2234,7 @@ The lamba passed as array-iter argument is polymorphic
   
   declare i8* @malloc(i64 %0)
   
-  define internal i8* @__ctor_tup-ac(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ac(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i8** }*
     %2 = call i8* @malloc(i64 24)
@@ -2249,7 +2249,7 @@ The lamba passed as array-iter argument is polymorphic
     ret i8* %7
   }
   
-  define internal i8* @__ctor_tup-ac-c.u(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ac-c.u(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i8*, %closure }*
     %2 = call i8* @malloc(i64 40)
@@ -2265,7 +2265,7 @@ The lamba passed as array-iter argument is polymorphic
     ret i8* %6
   }
   
-  define internal void @__copy_c.u(%closure* %0) {
+  define linkonce_odr void @__copy_c.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -2288,7 +2288,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define internal i8* @__ctor_tup-ai-ii.u(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ai-ii.u(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %2 = call i8* @malloc(i64 40)
@@ -2304,7 +2304,7 @@ The lamba passed as array-iter argument is polymorphic
     ret i8* %6
   }
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -2324,7 +2324,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define internal void @__copy_ii.u(%closure* %0) {
+  define linkonce_odr void @__copy_ii.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -2347,7 +2347,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define internal i8* @__ag.ag_grow_ac.ac(i8** %0) {
+  define linkonce_odr i8* @__ag.ag_grow_ac.ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %2 = bitcast i8* %1 to i64*
@@ -2368,7 +2368,7 @@ The lamba passed as array-iter argument is polymorphic
   
   declare i32 @snprintf(i8* %0, i64 %1, i8* %2, ...)
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -2416,7 +2416,7 @@ The lamba passed as array-iter argument is polymorphic
     ret i64 0
   }
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -2458,20 +2458,20 @@ Function call returning a polymorphic function
   @3 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"%li bar\0A\00" }
   @4 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c"a\00" }
   
-  define void @__g.u___fun_schmu0_ac.u(i8* %a) {
+  define linkonce_odr void @__g.u___fun_schmu0_ac.u(i8* %a) {
   entry:
     %0 = getelementptr i8, i8* %a, i64 16
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [8 x i8] }* @0 to i8*), i64 16), i8* %0)
     ret void
   }
   
-  define void @__g.u___fun_schmu0_i.u(i64 %a) {
+  define linkonce_odr void @__g.u___fun_schmu0_i.u(i64 %a) {
   entry:
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [9 x i8] }* @1 to i8*), i64 16), i64 %a)
     ret void
   }
   
-  define void @__g.u___fun_schmu1_ac.u(i8* %_0) {
+  define linkonce_odr void @__g.u___fun_schmu1_ac.u(i8* %_0) {
   entry:
     %clstmp = alloca %closure, align 8
     %funptr6 = bitcast %closure* %clstmp to i8**
@@ -2495,7 +2495,7 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define void @__g.u___fun_schmu1_i.u(i64 %_0) {
+  define linkonce_odr void @__g.u___fun_schmu1_i.u(i64 %_0) {
   entry:
     %clstmp = alloca %closure, align 8
     %funptr6 = bitcast %closure* %clstmp to i8**
@@ -2519,20 +2519,20 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define void @__g.u_schmu_bar_ac.u(i8* %a) {
+  define linkonce_odr void @__g.u_schmu_bar_ac.u(i8* %a) {
   entry:
     %0 = getelementptr i8, i8* %a, i64 16
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [8 x i8] }* @2 to i8*), i64 16), i8* %0)
     ret void
   }
   
-  define void @__g.u_schmu_bar_i.u(i64 %a) {
+  define linkonce_odr void @__g.u_schmu_bar_i.u(i64 %a) {
   entry:
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [9 x i8] }* @3 to i8*), i64 16), i64 %a)
     ret void
   }
   
-  define void @__gg.g_schmu_black-box_ac.uac.u.ac.u(%closure* noalias %0, %closure* %f, %closure* %g) {
+  define linkonce_odr void @__gg.g_schmu_black-box_ac.uac.u.ac.u(%closure* noalias %0, %closure* %f, %closure* %g) {
   entry:
     %1 = load i1, i1* @schmu_once, align 1
     br i1 %1, label %then, label %else
@@ -2553,7 +2553,7 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define void @__gg.g_schmu_black-box_i.ui.u.i.u(%closure* noalias %0, %closure* %f, %closure* %g) {
+  define linkonce_odr void @__gg.g_schmu_black-box_i.ui.u.i.u(%closure* noalias %0, %closure* %f, %closure* %g) {
   entry:
     %1 = load i1, i1* @schmu_once, align 1
     br i1 %1, label %then, label %else
@@ -2576,7 +2576,7 @@ Function call returning a polymorphic function
   
   declare void @printf(i8* %0, ...)
   
-  define internal void @__free_ac.u(%closure* %0) {
+  define linkonce_odr void @__free_ac.u(%closure* %0) {
   entry:
     %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %env = load i8*, i8** %envptr, align 8
@@ -2603,7 +2603,7 @@ Function call returning a polymorphic function
     br label %ret
   }
   
-  define internal void @__free_i.u(%closure* %0) {
+  define linkonce_odr void @__free_i.u(%closure* %0) {
   entry:
     %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %env = load i8*, i8** %envptr, align 8
@@ -2630,7 +2630,7 @@ Function call returning a polymorphic function
     br label %ret
   }
   
-  define internal void @__copy_ac.u(%closure* %0) {
+  define linkonce_odr void @__copy_ac.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -2656,7 +2656,7 @@ Function call returning a polymorphic function
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__copy_i.u(%closure* %0) {
+  define linkonce_odr void @__copy_i.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8

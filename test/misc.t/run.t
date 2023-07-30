@@ -343,7 +343,7 @@ Also mutable fields and 'realloc' builtin
   
   declare i8* @malloc(i64 %0)
   
-  define internal %foo* @__ag.ag_grow_afoo.afoo(%foo** %0) {
+  define linkonce_odr %foo* @__ag.ag_grow_afoo.afoo(%foo** %0) {
   entry:
     %1 = load %foo*, %foo** %0, align 8
     %2 = bitcast %foo* %1 to i64*
@@ -364,7 +364,7 @@ Also mutable fields and 'realloc' builtin
     ret %foo* %10
   }
   
-  define internal void @__free_afoo(%foo** %0) {
+  define linkonce_odr void @__free_afoo(%foo** %0) {
   entry:
     %1 = load %foo*, %foo** %0, align 8
     %ref = bitcast %foo* %1 to i64*
@@ -376,7 +376,7 @@ Also mutable fields and 'realloc' builtin
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -384,7 +384,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define internal void @__free_aai(i64*** %0) {
+  define linkonce_odr void @__free_aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
@@ -602,7 +602,7 @@ Also mutable fields and 'realloc' builtin
     ret i64 0
   }
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -620,7 +620,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define internal i64** @__ag.ag_grow_aai.aai(i64*** %0) {
+  define linkonce_odr i64** @__ag.ag_grow_aai.aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %2 = bitcast i64** %1 to i64*
@@ -641,14 +641,14 @@ Also mutable fields and 'realloc' builtin
     ret i64** %10
   }
   
-  define internal void @__free_container(%container* %0) {
+  define linkonce_odr void @__free_container(%container* %0) {
   entry:
     %1 = getelementptr inbounds %container, %container* %0, i32 0, i32 1
     call void @__free_ai(i64** %1)
     ret void
   }
   
-  define internal void @__free_acontainer(%container** %0) {
+  define linkonce_odr void @__free_acontainer(%container** %0) {
   entry:
     %1 = load %container*, %container** %0, align 8
     %ref = bitcast %container* %1 to i64*
@@ -681,7 +681,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -690,7 +690,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define internal void @__free_aac(i8*** %0) {
+  define linkonce_odr void @__free_aac(i8*** %0) {
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
@@ -1612,7 +1612,7 @@ Ensure global are loadad correctly when passed to functions
   @schmu_height = constant i64 720
   @schmu_world = global %bar zeroinitializer, align 32
   
-  define void @__g.u_schmu_get-seg_bar.u(%bar* %bar) {
+  define linkonce_odr void @__g.u_schmu_get-seg_bar.u(%bar* %bar) {
   entry:
     ret void
   }
@@ -1701,7 +1701,7 @@ Array push
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -1724,7 +1724,7 @@ Array push
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal i64* @__ag.ag_grow_ai.ai(i64** %0) {
+  define linkonce_odr i64* @__ag.ag_grow_ai.ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %cap = getelementptr i64, i64* %1, i64 1
@@ -1745,7 +1745,7 @@ Array push
   
   declare void @printf(i8* %0, ...)
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -1970,7 +1970,7 @@ Array push
     ret i64 0
   }
   
-  define internal i64** @__ag.ag_grow_aai.aai(i64*** %0) {
+  define linkonce_odr i64** @__ag.ag_grow_aai.aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %2 = bitcast i64** %1 to i64*
@@ -1991,7 +1991,7 @@ Array push
     ret i64** %10
   }
   
-  define internal void @__free_aai(i64*** %0) {
+  define linkonce_odr void @__free_aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
@@ -2099,7 +2099,7 @@ Decrease ref counts for local variables in if branches
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -2242,7 +2242,7 @@ Drop last element
   
   declare void @printf(i8* %0, ...)
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -2250,7 +2250,7 @@ Drop last element
     ret void
   }
   
-  define internal void @__free_aai(i64*** %0) {
+  define linkonce_odr void @__free_aai(i64*** %0) {
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
@@ -2380,7 +2380,7 @@ Global lets with expressions
     ret i64 0
   }
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -2388,7 +2388,7 @@ Global lets with expressions
     ret void
   }
   
-  define internal void @__free_prelude.optionai(%prelude.option_array_int* %0) {
+  define linkonce_odr void @__free_prelude.optionai(%prelude.option_array_int* %0) {
   entry:
     %tag1 = bitcast %prelude.option_array_int* %0 to i32*
     %index = load i32, i32* %tag1, align 4
@@ -2404,7 +2404,7 @@ Global lets with expressions
     ret void
   }
   
-  define internal void @__free_rai(%r_array_int* %0) {
+  define linkonce_odr void @__free_rai(%r_array_int* %0) {
   entry:
     %1 = bitcast %r_array_int* %0 to i64**
     call void @__free_ai(i64** %1)
@@ -2518,7 +2518,7 @@ Return nonclosure functions
   
   declare void @printf(i8* %0, ...)
   
-  define internal void @__free_i.i(%closure* %0) {
+  define linkonce_odr void @__free_i.i(%closure* %0) {
   entry:
     %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %env = load i8*, i8** %envptr, align 8
@@ -2616,7 +2616,7 @@ Return closures
   
   declare i8* @malloc(i64 %0)
   
-  define internal i8* @__ctor_tup-i(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-i(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i64 }*
     %2 = call i8* @malloc(i64 24)
@@ -2659,7 +2659,7 @@ Return closures
   
   declare void @printf(i8* %0, ...)
   
-  define internal void @__free_i.i(%closure* %0) {
+  define linkonce_odr void @__free_i.i(%closure* %0) {
   entry:
     %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %env = load i8*, i8** %envptr, align 8
@@ -2897,14 +2897,14 @@ Take/use not all allocations of a record in tailrec calls
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal void @__free_view(%view* %0) {
+  define linkonce_odr void @__free_view(%view* %0) {
   entry:
     %1 = bitcast %view* %0 to i8**
     call void @__free_ac(i8** %1)
     ret void
   }
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -2913,14 +2913,14 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define internal void @__free_except0_successview(%success_view* %0) {
+  define linkonce_odr void @__free_except0_successview(%success_view* %0) {
   entry:
     %1 = getelementptr inbounds %success_view, %success_view* %0, i32 0, i32 1
     call void @__free_view(%view* %1)
     ret void
   }
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -2938,14 +2938,14 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define internal void @__copy_view(%view* %0) {
+  define linkonce_odr void @__copy_view(%view* %0) {
   entry:
     %1 = bitcast %view* %0 to i8**
     call void @__copy_ac(i8** %1)
     ret void
   }
   
-  define internal void @__free_successview(%success_view* %0) {
+  define linkonce_odr void @__free_successview(%success_view* %0) {
   entry:
     %1 = bitcast %success_view* %0 to %view*
     call void @__free_view(%view* %1)
@@ -2954,7 +2954,7 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define internal void @__free_parse-resultview(%parse-result_view* %0) {
+  define linkonce_odr void @__free_parse-resultview(%parse-result_view* %0) {
   entry:
     %tag4 = bitcast %parse-result_view* %0 to i32*
     %index = load i32, i32* %tag4, align 4
@@ -3008,14 +3008,14 @@ Take/use not all allocations of a record in tailrec calls
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__free_successi(%success_int* %0) {
+  define linkonce_odr void @__free_successi(%success_int* %0) {
   entry:
     %1 = bitcast %success_int* %0 to %view*
     call void @__free_view(%view* %1)
     ret void
   }
   
-  define internal void @__free_parse-resulti(%parse-result_int* %0) {
+  define linkonce_odr void @__free_parse-resulti(%parse-result_int* %0) {
   entry:
     %tag4 = bitcast %parse-result_int* %0 to i32*
     %index = load i32, i32* %tag4, align 4
@@ -3127,7 +3127,7 @@ Increase refcount for returned params in ifs
     ret void
   }
   
-  define internal void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -3152,7 +3152,7 @@ Increase refcount for returned params in ifs
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -3161,7 +3161,7 @@ Increase refcount for returned params in ifs
     ret void
   }
   
-  define internal i8* @__ctor_tup-ac.u-i(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ac.u-i(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, %closure, i64 }*
     %2 = call i8* @malloc(i64 40)
@@ -3175,7 +3175,7 @@ Increase refcount for returned params in ifs
     ret i8* %6
   }
   
-  define internal void @__copy_ac.u(%closure* %0) {
+  define linkonce_odr void @__copy_ac.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -3227,7 +3227,7 @@ Monomorphization in closures
   
   declare void @prelude_iter-range(i64 %0, i64 %1, %closure* %2)
   
-  define void @__agg.u.u_prelude_array-iter_aii.u.u(i64* %arr, %closure* %f) {
+  define linkonce_odr void @__agg.u.u_prelude_array-iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
     %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u = alloca %closure, align 8
     %funptr5 = bitcast %closure* %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i8**
@@ -3250,7 +3250,7 @@ Monomorphization in closures
     ret void
   }
   
-  define void @__aggg.i.u_schmu_sort__2_aiii.i.u(i64** noalias %arr, %closure* %cmp) {
+  define linkonce_odr void @__aggg.i.u_schmu_sort__2_aiii.i.u(i64** noalias %arr, %closure* %cmp) {
   entry:
     %__agii.i-gg.i_schmu_partition__2_aiii.i-ii.i = alloca %closure, align 8
     %funptr10 = bitcast %closure* %__agii.i-gg.i_schmu_partition__2_aiii.i-ii.i to i8**
@@ -3289,7 +3289,7 @@ Monomorphization in closures
     ret void
   }
   
-  define void @__aggg.i.u_schmu_sort_aiii.i.u(i64** noalias %arr, %closure* %cmp) {
+  define linkonce_odr void @__aggg.i.u_schmu_sort_aiii.i.u(i64** noalias %arr, %closure* %cmp) {
   entry:
     %__agii.i-gg.i_schmu_partition_aiii.i-ii.i = alloca %closure, align 8
     %funptr10 = bitcast %closure* %__agii.i-gg.i_schmu_partition_aiii.i-ii.i to i8**
@@ -3328,7 +3328,7 @@ Monomorphization in closures
     ret void
   }
   
-  define i64 @__agii.i-gg.i_schmu_partition__2_aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
+  define linkonce_odr i64 @__agii.i-gg.i_schmu_partition__2_aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, %closure }*
     %cmp = getelementptr inbounds { i8*, i8*, %closure }, { i8*, i8*, %closure }* %clsr, i32 0, i32 2
@@ -3372,7 +3372,7 @@ Monomorphization in closures
     ret i64 %add
   }
   
-  define i64 @__agii.i-gg.i_schmu_partition_aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
+  define linkonce_odr i64 @__agii.i-gg.i_schmu_partition_aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, %closure }*
     %cmp = getelementptr inbounds { i8*, i8*, %closure }, { i8*, i8*, %closure }* %clsr, i32 0, i32 2
@@ -3416,7 +3416,7 @@ Monomorphization in closures
     ret i64 %add
   }
   
-  define void @__agii.u-agii.i-gg.i_schmu_quicksort__2_aiii.u-aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
+  define linkonce_odr void @__agii.u-agii.i-gg.i_schmu_quicksort__2_aiii.u-aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
   entry:
     %1 = alloca i64**, align 8
     store i64** %arr, i64*** %1, align 8
@@ -3466,7 +3466,7 @@ Monomorphization in closures
     br label %rec
   }
   
-  define void @__agii.u-agii.i-gg.i_schmu_quicksort_aiii.u-aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
+  define linkonce_odr void @__agii.u-agii.i-gg.i_schmu_quicksort_aiii.u-aiii.i-ii.i(i64** noalias %arr, i64 %lo, i64 %hi, i8* %0) {
   entry:
     %1 = alloca i64**, align 8
     store i64** %arr, i64*** %1, align 8
@@ -3516,7 +3516,7 @@ Monomorphization in closures
     br label %rec
   }
   
-  define void @__agii.u_schmu_swap__2_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
+  define linkonce_odr void @__agii.u_schmu_swap__2_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
   entry:
     %0 = load i64*, i64** %arr, align 8
     %1 = bitcast i64* %0 to i8*
@@ -3539,7 +3539,7 @@ Monomorphization in closures
     ret void
   }
   
-  define void @__agii.u_schmu_swap_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
+  define linkonce_odr void @__agii.u_schmu_swap_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
   entry:
     %0 = load i64*, i64** %arr, align 8
     %1 = bitcast i64* %0 to i8*
@@ -3586,7 +3586,7 @@ Monomorphization in closures
     ret void
   }
   
-  define void @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u(i64 %i, i8* %0) {
+  define linkonce_odr void @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %arr = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr, i32 0, i32 2
@@ -3623,7 +3623,7 @@ Monomorphization in closures
     br label %rec
   }
   
-  define void @__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i(i64 %j, i8* %0) {
+  define linkonce_odr void @__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i(i64 %j, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64**, %closure, i64*, i64 }*
     %arr = getelementptr inbounds { i8*, i8*, i64**, %closure, i64*, i64 }, { i8*, i8*, i64**, %closure, i64*, i64 }* %clsr, i32 0, i32 2
@@ -3660,7 +3660,7 @@ Monomorphization in closures
     ret void
   }
   
-  define void @__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i(i64 %j, i8* %0) {
+  define linkonce_odr void @__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i(i64 %j, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64**, %closure, i64*, i64 }*
     %arr = getelementptr inbounds { i8*, i8*, i64**, %closure, i64*, i64 }, { i8*, i8*, i64**, %closure, i64*, i64 }* %clsr, i32 0, i32 2
@@ -3700,7 +3700,7 @@ Monomorphization in closures
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define internal i8* @__ctor_tup-ai-i.u(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ai-i.u(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %2 = call i8* @malloc(i64 40)
@@ -3718,7 +3718,7 @@ Monomorphization in closures
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz2 = bitcast i64* %1 to i64*
@@ -3738,7 +3738,7 @@ Monomorphization in closures
     ret void
   }
   
-  define internal void @__copy_i.u(%closure* %0) {
+  define linkonce_odr void @__copy_i.u(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -3761,7 +3761,7 @@ Monomorphization in closures
     ret void
   }
   
-  define internal i8* @__ctor_tup-ii.i(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ii.i(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, %closure }*
     %2 = call i8* @malloc(i64 32)
@@ -3775,7 +3775,7 @@ Monomorphization in closures
     ret i8* %6
   }
   
-  define internal void @__copy_ii.i(%closure* %0) {
+  define linkonce_odr void @__copy_ii.i(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -3798,7 +3798,7 @@ Monomorphization in closures
     ret void
   }
   
-  define internal i8* @__ctor_tup-aiii.i(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-aiii.i(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, %closure }*
     %2 = call i8* @malloc(i64 32)
@@ -3812,7 +3812,7 @@ Monomorphization in closures
     ret i8* %6
   }
   
-  define internal void @__copy_aiii.i(%closure* %0) {
+  define linkonce_odr void @__copy_aiii.i(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -3835,7 +3835,7 @@ Monomorphization in closures
     ret void
   }
   
-  define internal i8* @__ctor_tup-ai-ii.i-i-i(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-ai-ii.i-i-i(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i64**, %closure, i64*, i64 }*
     %2 = call i8* @malloc(i64 56)
@@ -3852,7 +3852,7 @@ Monomorphization in closures
     ret i8* %7
   }
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -4091,7 +4091,7 @@ Handle partial allocations
   
   declare i8* @malloc(i64 %0)
   
-  define internal void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -4099,14 +4099,14 @@ Handle partial allocations
     ret void
   }
   
-  define internal void @__free_tup-ai(%tuple_array_int* %0) {
+  define linkonce_odr void @__free_tup-ai(%tuple_array_int* %0) {
   entry:
     %1 = bitcast %tuple_array_int* %0 to i64**
     call void @__free_ai(i64** %1)
     ret void
   }
   
-  define internal void @__free_tai(%t_array_int* %0) {
+  define linkonce_odr void @__free_tai(%t_array_int* %0) {
   entry:
     %1 = bitcast %t_array_int* %0 to i64**
     call void @__free_ai(i64** %1)
