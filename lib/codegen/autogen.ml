@@ -182,6 +182,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
                else value
              in
              let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
+             decl_children Copy item item.typ;
              copy_inner_call item);
           i + 1
         in
@@ -357,6 +358,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
              let value = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
              let lltyp = get_lltype_def cl.cltyp in
              let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
+             decl_children Free item item.typ;
              free_call item);
           i + 1
         in

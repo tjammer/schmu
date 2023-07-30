@@ -704,6 +704,15 @@ Copy closures
     ret void
   }
   
+  define linkonce_odr void @__free_ac(i8** %0) {
+  entry:
+    %1 = load i8*, i8** %0, align 8
+    %ref = bitcast i8* %1 to i64*
+    %2 = bitcast i64* %ref to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
   define linkonce_odr void @__free_aac(i8*** %0) {
   entry:
     %1 = load i8**, i8*** %0, align 8
@@ -738,15 +747,6 @@ Copy closures
   }
   
   declare void @free(i8* %0)
-  
-  define linkonce_odr void @__free_ac(i8** %0) {
-  entry:
-    %1 = load i8*, i8** %0, align 8
-    %ref = bitcast i8* %1 to i64*
-    %2 = bitcast i64* %ref to i8*
-    call void @free(i8* %2)
-    ret void
-  }
   
   define i64 @main(i64 %arg) {
   entry:
