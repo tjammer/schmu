@@ -742,16 +742,16 @@ let extract_name_type = function
   | Mtype (l, t) -> (
       match t with
       | Trecord (_, Some n, _) | Tvariant (_, n, _) | Talias (n, _) ->
-          (Path.get_hd n, l, t, Stypedef)
+          Some (Path.get_hd n, l, t, Stypedef)
       | t ->
           print_endline (string_of_type t);
           failwith "Internal Error: Type does not have a name")
-  | Mfun (l, t, n) | Mext (l, t, n, _) -> (n.user, l, t, Svalue)
-  | Mpoly_fun (l, abs, n, _) -> (n, l, type_of_func abs.func, Svalue)
-  | Mmutual_rec _ -> failwith "Internal Error: How are mutual recs here?"
+  | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Svalue)
+  | Mpoly_fun (l, abs, n, _) -> Some (n, l, type_of_func abs.func, Svalue)
+  | Mmutual_rec _ -> None
   | Mmodule (l, n, _) ->
       (* Do we have to deal with this? *)
-      (n, l, Tunit, Svalue)
+      Some (n, l, Tunit, Svalue)
 
 let find_item name kind (n, _, _, tkind) =
   match (kind, tkind) with
@@ -767,7 +767,7 @@ let validate_signature env m =
   match m.s with
   | [] -> m
   | _ ->
-      let impl = List.map extract_name_type m.i in
+      let impl = List.filter_map extract_name_type m.i in
       let f (name, loc, styp, kind) =
         match
           (List.find_opt (find_item (Path.get_hd name) kind) impl, kind)
@@ -781,7 +781,8 @@ let validate_signature env m =
               (match ikind with
               | Svalue -> ignore (Env.query_val_opt n env)
               | Stypedef -> ());
-              (name, loc, styp, kind))
+              (* Use implementation type to retain closures *)
+              (name, loc, ityp, kind))
             else
               let msg =
                 Printf.sprintf
