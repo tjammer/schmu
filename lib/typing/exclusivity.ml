@@ -27,7 +27,7 @@ module Id = struct
         if c == 0 then Int.compare ai bi else c
     | Fst a, Shadowed (b, bi) ->
         let c = String.compare a b in
-        if c == 0 then bi else c
+        if c == 0 then bi else -c
     | Shadowed (a, ai), Fst b ->
         let c = String.compare a b in
         if c == 0 then ai else -c
@@ -46,12 +46,23 @@ module Id = struct
 
   let s (s, part) =
     let name = match s with Fst s -> s | Shadowed (s, _) -> s in
+    let from_module name =
+      String.starts_with ~prefix:"_" name && String.contains_from name 1 '_'
+    in
+    let fmt name =
+      let start = if String.starts_with ~prefix:"_schmu" name then 7 else 1 in
+      String.sub name start (String.length name - start)
+      |> String.split_on_char '_' |> String.concat "/"
+    in
     match part with
-    | [] -> name
+    | [] -> if from_module name then fmt name else name
     | l when String.starts_with ~prefix:"__expr" name ->
         (* Special case for pattern matches in lets *)
         String.concat "." (List.map snd l)
-    | l -> name ^ "." ^ String.concat "." (List.map snd l)
+    | l ->
+        (if from_module name then fmt name else name)
+        ^ "."
+        ^ String.concat "." (List.map snd l)
 end
 
 type borrow = {
@@ -852,6 +863,11 @@ let find_usage id hist =
       (* The binding was not used *)
       (Ast.Dnorm, None)
 
+let touched_name t =
+  match t.tkind with
+  | Timported mname -> Module.absolute_module_name ~mname t.tname
+  | Tnone | Tconst | Tglobal -> t.tname
+
 let check_tree pts pns touched body =
   (* Add parameters to initial environment *)
   (* print_endline (show_expr body.expr); *)
@@ -868,8 +884,8 @@ let check_tree pts pns touched body =
   let env, hist =
     List.fold_left
       (fun (map, hs) t ->
-        let id = new_id t.tname in
-        assert (Id.equal id (Fst t.tname));
+        let id = touched_name t |> new_id in
+        assert (Id.equal id (Fst (touched_name t)));
         let b = [ Bown id ] in
         (Map.add id (imm b) map, add_hist (imm b) hs))
       (Map.empty, Map.empty) touched
@@ -911,7 +927,7 @@ let check_tree pts pns touched body =
   let touched =
     List.map
       (fun t ->
-        let tattr, tattr_loc = find_usage (Fst t.tname) hist in
+        let tattr, tattr_loc = find_usage (Fst (touched_name t)) hist in
         (match tattr with
         | Dmove ->
             let loc = Option.get tattr_loc in
@@ -922,12 +938,21 @@ let check_tree pts pns touched body =
   in
   (touched, body)
 
-let check_items items =
+let check_items touched items =
   reset ();
+
+  (* touched variables *)
+  let env, hist =
+    List.fold_left
+      (fun (map, hs) t ->
+        let id = touched_name t |> new_id in
+        let b = [ Bown id ] in
+        (Map.add id (imm b) map, add_hist (imm b) hs))
+      (Map.empty, Map.empty) touched
+  in
+
   let (env, _, _, _, hist), items =
-    List.fold_left_map check_item
-      (Map.empty, false, Usage.Uread, [], Map.empty)
-      items
+    List.fold_left_map check_item (env, false, Usage.Uread, [], hist) items
   in
 
   (* No moves at top level *)
@@ -943,5 +968,16 @@ let check_items items =
               raise (Error (loc, "Cannot move top level binding"))
           | Dset | Dmut | Dnorm -> ()))
     env;
+
+  reset ();
+  List.iter
+    (fun t ->
+      let tattr, tattr_loc = find_usage (Fst (touched_name t)) hist in
+      match tattr with
+      | Dmove ->
+          let loc = Option.get tattr_loc in
+          raise (Error (loc, "Cannot move values from outer scope"))
+      | Dset | Dmut | Dnorm -> ())
+    touched;
 
   items

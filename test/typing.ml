@@ -1086,5 +1086,13 @@ let () =
   (def {:key :value} !{:key "key" :value "value"})
   (ignore {key})
   (ignore {key}))|};
+          tase_exn "track module outer toplevel" "Cannot move top level binding"
+            "(def a [10]) (module inner (ignore {a}))";
+          tase_exn "track vars from inner module"
+            "Cannot move top level binding"
+            "(module fst (def a [20])) (ignore [fst/a])";
+          tase_exn "track vars from inner module use after move"
+            "fst/a was moved in line 1, cannot use"
+            "(module fst (def a [20])) (ignore [fst/a]) (ignore fst/a.[0])";
         ] );
     ]

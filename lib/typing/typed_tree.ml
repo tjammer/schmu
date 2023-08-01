@@ -74,7 +74,11 @@ and toplevel_item =
   | Tl_mutual_rec_decls of (string * int option * typ) list
   | Tl_module of (Path.t option * toplevel_item) list
 
-and touched_kind = Env.touched_kind = Tnone | Tconst | Tglobal | Timported
+and touched_kind = Env.touched_kind =
+  | Tnone
+  | Tconst
+  | Tglobal
+  | Timported of Path.t
 
 and touched = Env.touched = {
   tname : string;

@@ -1309,11 +1309,11 @@ let rec convert_module env sign prog check_ret mname =
   (* Catch weak type variables *)
   List.iter catch_weak_vars items;
 
-  let _, _, _, unused = Env.close_function env in
+  let _, _, touched, unused = Env.close_function env in
   let has_sign = match sign with [] -> false | _ -> true in
   if (not (Option.is_some mname)) || has_sign then check_unused unused;
 
-  let items = Exclusivity.check_items items in
+  let items = Exclusivity.check_items touched items in
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then

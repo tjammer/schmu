@@ -17,7 +17,7 @@ type value = {
 type warn_kind = Unused | Unmutated | Unused_mod
 type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
 
-type touched_kind = Tnone | Tconst | Tglobal | Timported
+type touched_kind = Tnone | Tconst | Tglobal | Timported of Path.t
 
 and touched = {
   tname : string;

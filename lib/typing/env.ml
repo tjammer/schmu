@@ -21,7 +21,6 @@ module Lmap = Map.Make (Labelset)
 module Tmap = Map.Make (Path)
 module Etbl = Hashtbl.Make (Type_key)
 module Map = Map.Make (String)
-module Set = Set.Make (String)
 
 type key = string
 
@@ -40,6 +39,17 @@ type value = {
   imported : imported option;
   mut : bool;
 }
+
+module Used_value = struct
+  type t = key * value
+
+  let compare (ak, av) (bk, bv) =
+    let p s = match s with Some (p, _) -> Path.show p | None -> "" in
+    String.compare (p av.imported ^ ak) (p bv.imported ^ bk)
+end
+
+module Closed_set = Set.Make (Used_value)
+module Set = Set.Make (String)
 
 type usage = {
   loc : Ast.loc;
@@ -68,7 +78,7 @@ type ext = {
 type usage_tbl = (Path.t, usage) Hashtbl.t
 type module_usage = { name : string; loc : Ast.loc; used : bool ref }
 
-type touched_kind = Tnone | Tconst | Tglobal | Timported
+type touched_kind = Tnone | Tconst | Tglobal | Timported of Path.t
 
 and touched = {
   tname : string;
@@ -86,7 +96,7 @@ type scope_kind =
 (* function scope *)
 type scope = {
   valmap : value Map.t;
-  closed : Set.t ref;
+  closed : Closed_set.t ref;
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : Path.t Lmap.t; (* For finding the type of a record expression *)
   ctors : label Map.t; (* Variant constructors *)
@@ -123,7 +133,7 @@ let def_value =
 let empty_scope kind =
   {
     valmap = Map.empty;
-    closed = ref Set.empty;
+    closed = ref Closed_set.empty;
     labels = Map.empty;
     labelsets = Lmap.empty;
     ctors = Map.empty;
@@ -280,16 +290,6 @@ let add_module ~key ~mname env =
   let modules = Map.add key mname scope.modules in
   { env with values = { scope with modules } :: tl }
 
-let find_val_raw key env =
-  let rec aux = function
-    | [] -> raise Not_found
-    | scope :: tl -> (
-        match Map.find_opt key scope.valmap with
-        | None -> aux tl
-        | Some vl -> vl)
-  in
-  aux env.values
-
 let open_function env =
   (* Due to the ref, we have to create a new object every time *)
   (match env.values with
@@ -353,21 +353,21 @@ let close_function env =
   let usage_kind_of_value ~global ~const imported =
     if global then Tglobal
     else if const then Tconst
-    else if imported then Timported
-    else Tnone
+    else match imported with Some (p, _) -> Timported p | None -> Tnone
   in
+
   (* Close scopes up to next function scope *)
   let rec aux old_closed old_touched unused = function
     | [] -> failwith "Internal Error: Env empty"
     | scope :: tl -> (
         let closed_touched =
-          !(scope.closed) |> Set.to_seq |> List.of_seq
-          |> List.map (fun clname ->
+          !(scope.closed) |> Closed_set.to_seq |> List.of_seq
+          |> List.map
+               (fun
+                 (clname, { typ; param; const; global; imported; mut = clmut })
+               ->
                  (* We only add functions to the closure if they are params
                     Or: if they are closures *)
-                 let { typ; param; const; global; imported; mut = clmut } =
-                   find_val_raw clname env
-                 in
                  (* Const values (and imported ones) are not closed over, they exist module-wide *)
                  let cl =
                    if const || global || Option.is_some imported then None
@@ -378,9 +378,7 @@ let close_function env =
                      | Tfun _ when not param -> None
                      | _ -> Some { clname; cltyp = typ; clmut; clparam = param }
                  in
-                 let tkind =
-                   usage_kind_of_value ~global ~const (Option.is_some imported)
-                 in
+                 let tkind = usage_kind_of_value ~global ~const imported in
                  let t =
                    {
                      tname = clname;
@@ -448,11 +446,14 @@ let mark_used name kind mut =
 
 let query_val_opt key env =
   (* Add str to closures, up to the level where the value originates from *)
-  let rec add lvl str values =
+  let rec add lvl value values =
     match values with
-    | scope :: tl when lvl > 0 ->
-        scope.closed := Set.add str !(scope.closed);
-        add (lvl - 1) str tl
+    | scope :: tl when lvl > 0 -> (
+        match scope.kind with
+        | Sfunc _ ->
+            scope.closed := Closed_set.add value !(scope.closed);
+            add (lvl - 1) value tl
+        | Sfunc_cont _ | Smodule _ -> add lvl value tl)
     | _ -> ()
   in
 
@@ -468,9 +469,16 @@ let query_val_opt key env =
             | Sfunc_cont _ | Smodule _ ->
                 (* We are still in the same functionlike scope *)
                 aux scope_lvl tl)
-        | Some { typ; const; imported; global; mut; param = _ } ->
+        | Some ({ typ; const; imported; global; mut; param = _ } as v) ->
             (* If something is closed over, add to all env above (if scope_lvl > 0) *)
-            (match scope_lvl with 0 -> () | _ -> add scope_lvl key env.values);
+            let in_module =
+              match scope.kind with
+              | Smodule _ -> true
+              | Sfunc _ | Sfunc_cont _ -> false
+            in
+            if scope_lvl > 0 then add scope_lvl (key, v) env.values
+            else if (* Add values in modules to scope list *)
+                    in_module then add 1 (key, v) env.values;
             (* Mark value used, if it's not imported *)
             mark_used (Path.Pid key) scope.kind env.in_mut;
             let imported = Option.map fst imported in

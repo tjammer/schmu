@@ -1,2 +1,2 @@
-(def arr [print])
+(def arr [(copy print)])
 (ignore arr)
