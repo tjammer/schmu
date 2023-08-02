@@ -73,6 +73,7 @@ and toplevel_item =
   | Tl_expr of typed_expr
   | Tl_mutual_rec_decls of (string * int option * typ) list
   | Tl_module of (Path.t option * toplevel_item) list
+  | Tl_module_alias of (loc * string) * Path.t
 
 and touched_kind = Env.touched_kind =
   | Tnone

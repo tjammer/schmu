@@ -40,6 +40,16 @@
       | Some Dmove -> Dmove
       | Some Dnorm -> (* Won't happen but w/e *) Dnorm
       | None -> Dnorm
+
+    let make_path head l =
+      let p =
+        match List.rev l with
+        | hd :: tl ->
+            List.fold_right (fun (_, id) path -> Path.Pmod (id, path)) tl (Pid (snd hd))
+        | [] -> failwith "unreachable"
+      in
+      Path.Pmod (snd head, p)
+
 %}
 
 %token Equal
@@ -127,7 +137,17 @@ prog:
   | prog = list(top_item); Eof { [], prog }
 
 top_item:
-  | stmt = stmt { Stmt stmt }
+/* Split top-level items into toplvl_items for files and module_items for
+   module expressions. That's useful to allow module aliases. Otherwise a module
+   alias would be parsed as a module with an ident expression */
+  | toplvl_item { $1 }
+  | module_item { $1 }
+
+%inline toplvl_item:
+  | stmt = toplvl_stmt { Stmt stmt }
+
+%inline module_item:
+  | stmt = module_stmt { Stmt stmt }
   | decl = external_decl { Ext_decl decl }
   | def = typedef { Typedef ($loc, def) }
   | modul = parens(modul) { modul }
@@ -158,9 +178,17 @@ signature: Signature; l = nonempty_list(sig_item) { l }
 %inline defexternal:
   | Defexternal; ident; sexp_type_expr; option(String_lit) { $loc, $2, $3, $4 }
 
-%inline modul:
-  | Module; id = ident; m = list(top_item) { Module (id, [], m) }
+modul:
+  | Module; id = ident { Module (id, [], []) } /* empty module */
+  | Module; id = ident; hd = module_item; m = list(top_item) { Module (id, [], hd :: m) }
   | Module; id = ident; s = parens(signature); m = list(top_item) { Module (id, s, m) }
+  | Module; id = ident; mname = path /* Use location of path */
+    { Module_alias ((fst mname, snd id), snd mname) }
+
+%inline path:
+  | id = ident { $loc, Path.Pid (snd id) }
+  | id = ident; Div_i; l = separated_nonempty_list(Div_i, ident)
+    { $loc, make_path id l }
 
 %inline defrecord:
   | Type; sexp_typename; bracs(nonempty_list(sexp_type_decl))
@@ -217,9 +245,15 @@ let bracks(x) :=
   | Open; ident { snd $2 }
 
 stmt:
+ | toplvl_stmt { $1 }
+ | module_stmt { $1 }
+
+%inline toplvl_stmt:
+  | sexp_expr { Expr ($loc, $1) }
+
+%inline module_stmt:
   | parens(sexp_let) { $1 }
   | parens(sexp_fun) { Function (fst $1, snd $1) }
-  | sexp_expr { Expr ($loc, $1) }
   | parens(sexp_rec) { $1}
   | open_ { Open ($loc, $1) }
 

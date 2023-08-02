@@ -1896,6 +1896,7 @@ let rec morph_toplvl param items =
             loc = e.loc;
           },
           func )
+    | Tl_module_alias _ -> aux param tl
   in
   aux param items
 

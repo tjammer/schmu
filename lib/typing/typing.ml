@@ -1234,7 +1234,7 @@ let rec catch_weak_vars = function
   | Tl_let { lhs = e; _ } | Tl_bind (_, e) | Tl_expr e ->
       catch_weak_expr Sset.empty e
   | Tl_function (_, _, _, abs) -> catch_weak_body Sset.empty abs
-  | Tl_mutual_rec_decls _ -> ()
+  | Tl_mutual_rec_decls _ | Tl_module_alias _ -> ()
   | Tl_module items -> List.iter (fun (_, item) -> catch_weak_vars item) items
 
 and catch_weak_body sub abs =
@@ -1359,7 +1359,7 @@ and convert_prog env items ~mname modul =
     | Module ((loc, id), sign, prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
-        let mname = Some (Path.append id (generate_module_path mname)) in
+        let mname = Path.append id (generate_module_path mname) in
 
         (* Save uniq_tbl state as well as lambda state *)
         let uniq_tbl_bk = !uniq_tbl in
@@ -1368,19 +1368,18 @@ and convert_prog env items ~mname modul =
         reset lambda_id_state;
 
         let tempenv = Env.open_function env in
-        let _, moditems, newm = convert_module tempenv sign prog true mname in
+        let _, moditems, newm =
+          convert_module tempenv sign prog true (Some mname)
+        in
         let _ = Env.close_function tempenv in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
 
         let s = ref S.empty in
-        let newm = adjust_type_names s (Option.get mname) newm in
+        let newm = adjust_type_names s mname newm in
         let env =
-          match
-            register_module env (Option.get mname)
-              (Clocal (Option.get mname), newm)
-          with
+          match register_module env mname (Clocal mname, newm) with
           | Ok env -> env
           | Error () ->
               let msg =
@@ -1391,9 +1390,19 @@ and convert_prog env items ~mname modul =
         in
         let m = add_module loc id newm ~into:m in
 
-        let moditems = List.map (fun item -> (mname, item)) moditems in
+        let moditems = List.map (fun item -> (Some mname, item)) moditems in
         let items = Tl_module moditems :: items in
         (env, items, m)
+    | Module_alias ((loc, key), mid) -> (
+        match Env.find_module_opt (Path.get_hd mid) env with
+        | Some mname -> (Env.add_module ~key ~mname env, items, m)
+        | None ->
+            (* Module hasn't been used before. Load here *)
+            let mname, _ =
+              Module.find_module env ~regeneralize (Path.get_hd mid) loc
+            in
+            (* TODO hmm how do we load nested modules from file? *)
+            (Env.add_module ~key ~mname env, items, m))
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
@@ -1506,7 +1515,7 @@ let typecheck (prog : Ast.prog) =
     | (_, Tl_expr expr) :: _ -> expr.typ
     | ( _,
         ( Tl_function _ | Tl_let _ | Tl_bind _ | Tl_mutual_rec_decls _
-        | Tl_module _ ) )
+        | Tl_module_alias _ | Tl_module _ ) )
       :: tl ->
         get_last_type tl
     | [] -> Tunit

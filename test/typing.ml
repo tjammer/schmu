@@ -1087,7 +1087,7 @@ let () =
   (ignore {key})
   (ignore {key}))|};
           tase_exn "track module outer toplevel" "Cannot move top level binding"
-            "(def a [10]) (module inner (ignore {a}))";
+            "(def a [10]) (module inner (def _ {a}))";
           tase_exn "track vars from inner module"
             "Cannot move top level binding"
             "(module fst (def a [20])) (ignore [fst/a])";

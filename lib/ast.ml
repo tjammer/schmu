@@ -131,6 +131,7 @@ type top_item =
   | Ext_decl of external_decl
   | Typedef of loc * typedef
   | Module of (loc * string) * signature list * top_item list
+  | Module_alias of (loc * string) * Path.t
 
 and signature =
   | Stypedef of loc * typedef

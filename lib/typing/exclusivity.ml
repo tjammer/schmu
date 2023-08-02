@@ -841,7 +841,7 @@ let check_item (env, bind, mut, part, hist) = function
             Map.add (Fst name) { imm = []; delayed = bs; bind_only = false } env
       in
       ((env, bind, mut, part, hist), f)
-  | (Tl_mutual_rec_decls _ | Tl_module _) as item ->
+  | (Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _) as item ->
       ((env, bind, mut, part, hist), item)
 
 let find_usage id hist =
