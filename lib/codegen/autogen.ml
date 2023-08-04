@@ -171,19 +171,19 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         (* Copy inner allocations *)
         (* TODO declare inner copy functions *)
         let f i cl =
-          (if contains_allocation cl.cltyp then
-             let value = Llvm.build_struct_gep newptr i cl.clname builder in
-             let lltyp = get_lltype_def cl.cltyp in
-             let value =
-               if cl.clmut && not upward then
-                 (* There's an extra pointer here (ptr to ptr).
-                    Bitcast to silence LLVM warning *)
-                 bb value (Llvm.pointer_type lltyp) "" builder
-               else value
-             in
-             let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
-             decl_children Copy item item.typ;
-             copy_inner_call item);
+          if contains_allocation cl.cltyp then (
+            let value = Llvm.build_struct_gep newptr i cl.clname builder in
+            let lltyp = get_lltype_def cl.cltyp in
+            let value =
+              if cl.clmut && not upward then
+                (* There's an extra pointer here (ptr to ptr).
+                   Bitcast to silence LLVM warning *)
+                bb value (Llvm.pointer_type lltyp) "" builder
+              else value
+            in
+            let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
+            decl_children Copy item item.typ;
+            copy_inner_call item);
           i + 1
         in
         (* [2] as starting index, because [0] is ctor, and [1] is dtor *)
@@ -354,12 +354,12 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let p0 = Llvm.param func 0 in
         let clsr_ptr = (bb p0 (Llvm.pointer_type assoc_type)) "" builder in
         let f i cl =
-          (if contains_allocation cl.cltyp then
-             let value = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
-             let lltyp = get_lltype_def cl.cltyp in
-             let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
-             decl_children Free item item.typ;
-             free_call item);
+          if contains_allocation cl.cltyp then (
+            let value = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
+            let lltyp = get_lltype_def cl.cltyp in
+            let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
+            decl_children Free item item.typ;
+            free_call item);
           i + 1
         in
         (* [2] as starting index, because [0] is ctor, and [1] is dtor *)
