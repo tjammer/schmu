@@ -213,12 +213,15 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_list l -> type_list env l
     | Ty_open_id (loc, path) ->
         let t = import_path loc env path in
+        (* Set the type name to path for error messages TODO *)
+
         (* Ensure that the whole path is used and not only a part of it *)
-        let name = extract_name_path t |> Option.get in
-        if not (Path.match_until_pid name path) then (
-          (* This should fail *)
-          ignore (find env path "");
-          failwith "Internal Error: Somehow the type is found");
+        (* let name = extract_name_path t |> Option.get in *)
+        (* if not (Path.match_until_pid name path) then ( *)
+        (*   Printf.printf "extracted name: %s vs original path: %s\n%!" (Path.show name) (Path.show path); *)
+        (*   (\* This should fail *\) *)
+        (*   ignore (find env path ""); *)
+        (*   failwith "Internal Error: Somehow the type is found"); *)
         t
     | Ty_tuple ts ->
         let fields =
@@ -1089,8 +1092,8 @@ end = struct
       | _, Tarray (Tvar { contents = Unbound _ }) ->
           Fexpr e (* Might be string later *)
       | _, _ ->
-          print_string (show_typ e.typ);
-          failwith "TODO not implemented yet "
+          raise
+            (Error (e.loc, "Don't know how to format " ^ string_of_type e.typ))
     in
     let exprs = List.map f exprs in
     let typ = string_typ in

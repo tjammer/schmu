@@ -46,6 +46,17 @@ let rec rm_name modpath to_rm =
   | Pmod (m, tl), Pmod (s, t) when String.equal m s -> rm_name tl t
   | _, p -> p
 
+let remove_prefix ~without ~with_prefix =
+  let rec aux wo wp =
+    match (wo, wp) with
+    | Pid w, Pid p when not (String.equal w p) -> with_prefix
+    | Pid _, Pid _ -> wo
+    | Pmod (w, _), (Pmod (wp', _) | Pid wp') when String.equal w wp' -> wp
+    | Pmod _, Pid _ -> with_prefix
+    | (Pmod _ | Pid _), Pmod (_, tl) -> aux wo tl
+  in
+  aux without with_prefix
+
 let rec mod_name = function Pid s -> s | Pmod (n, p) -> n ^ "_" ^ mod_name p
 
 let rec add_left p = function
@@ -62,3 +73,24 @@ let rec match_until_pid l r =
   | Pmod (nl, pl), Pmod (nr, pr) when String.equal nl nr ->
       match_until_pid pl pr
   | Pmod _, Pmod _ | Pid _, Pmod _ | Pmod _, Pid _ -> false
+
+(*  Fold over mod part, excluding Pid *)
+let fold_mod_left f init p =
+  let rec aux acc = function
+    | Pid _ -> acc
+    | Pmod (s, tl) -> aux (f acc s) tl
+  in
+  aux init p
+
+let fold_mod_right f init p =
+  let rec aux p acc =
+    match p with Pmod (s, tl) -> f s (aux tl acc) | Pid _ -> acc
+  in
+  aux p init
+
+(* let () = *)
+(*   let v = Pmod ("a", Pmod ("b", Pmod ("c", Pid "pid"))) in *)
+(*   let left = fold_mod_left (fun acc s -> acc ^ s) "" v in *)
+(*   assert (left = "abc"); *)
+(*   let right = fold_mod_right (fun s acc -> acc ^ s) "" v in *)
+(*   assert (right = "cba") *)

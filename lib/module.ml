@@ -639,9 +639,7 @@ let add_to_env env (mname, m) =
                 (( Trecord (_, Some name, _)
                  | Tvariant (_, name, _)
                  | Talias (name, _) ) as t) ) ->
-              (* For local module, remove 'schmu' from path *)
-              let mname = Path.rm_name (generate_module_path None) mname in
-              Env.add_type name (Amodule mname) t env
+              Env.add_type (Path.Pid (Path.get_hd name)) (Amodule mname) t env
           | Mtype (_, t) ->
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
@@ -665,10 +663,15 @@ let add_to_env env (mname, m) =
                       { def_value with typ; imported = Some (mname, `Schmu) }
                       l env))
                 env ds
-          | Mmodule (_, key, _) ->
+          | Mmodule (loc, key, m) ->
               let mname = Path.append key mname in
-              assert (Hashtbl.mem module_cache mname);
-              Env.add_module ~key ~mname env)
+              if not (Hashtbl.mem module_cache mname) then
+                (* Add to cache *)
+                match register_module env mname (Clocal mname, m) with
+                | Ok env -> env
+                | Error () ->
+                    raise (Typed_tree.Error (loc, "Cannot add module"))
+              else Env.add_module ~key ~mname env)
         env m.i
   | l ->
       List.fold_left
@@ -688,8 +691,7 @@ let add_to_env env (mname, m) =
                   loc env))
         env l
 
-let rec adjust_type_names sub name m =
-  let name = Path.rm_name (generate_module_path None) name in
+let adjust_type_names sub name m =
   let s t =
     match extr_name t with Some p -> sub := S.add p !sub | None -> ()
   in
@@ -718,9 +720,7 @@ let rec adjust_type_names sub name m =
                  ds
              in
              Mmutual_rec (l, ds)
-         | Mmodule (loc, n, t) ->
-             let t = adjust_type_names sub (Path.append n name) t in
-             Mmodule (loc, n, t))
+         | Mmodule (loc, n, t) -> Mmodule (loc, n, t))
   in
 
   let s =

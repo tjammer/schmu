@@ -18,7 +18,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   $ cat nonpoly_func.smi
   (()((5:Mtype(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:28)))(8:Tvariant()19:nonpoly_func/either(((5:cname4:left)(4:ctyp())(5:index1:0))((5:cname5:right)(4:ctyp())(5:index1:1)))))(4:Mfun(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:30)(8:pos_cnum2:31))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:5)(7:pos_bol2:64)(8:pos_cnum2:73)))(4:Tfun(((2:pt4:Tint)(5:pattr5:Dnorm))((2:pt4:Tint)(5:pattr5:Dnorm)))4:Tint6:Simple)((4:user8:add_ints)(4:call21:nonpoly_func_add_ints)(10:module_var22:_nonpoly_func_add_ints)))))
 
-  $ schmu open_nonpoly_func.smu --dump-llvm && ./open_nonpoly_func
+  $ schmu open_nonpoly_func.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -56,9 +56,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
     tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
     ret i64 0
   }
+  $ ./open_nonpoly_func
   5
 
-  $ schmu local_open_nonpoly_func.smu --dump-llvm && ./local_open_nonpoly_func
+  $ schmu local_open_nonpoly_func.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -117,6 +118,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
     ret i64 0
   }
+  $ ./local_open_nonpoly_func
   5
   5
 
@@ -142,7 +144,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
 
-  $ schmu open_lets.smu --dump-llvm && ./open_lets
+  $ schmu open_lets.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -177,15 +179,16 @@ Simplest module with 1 type and 1 nonpolymorphic function
     tail call void @schmu_inside-fn()
     ret i64 0
   }
+  $ ./open_lets
   11
   21
   11
   21
 
   $ cat lets.smi
-  (()((4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:1))((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:9)))4:Tint((4:user1:a)(4:call6:lets_a)(10:module_var7:_lets_a))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:13))((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:48)))(4:Tfun(((2:pt(6:Talias12:prelude/cstr(8:Traw_ptr3:Tu8)))(5:pattr5:Dnorm))((2:pt4:Tint)(5:pattr5:Dnorm)))5:Tunit6:Simple)((4:user6:printf)(4:call6:printf)(10:module_var12:_lets_printf))5:false)(4:Mfun(((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:52))((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:73)))(4:Tfun()4:Tint6:Simple)((4:user10:generate_b)(4:call15:lets_generate_b)(10:module_var16:_lets_generate_b)))(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:77))((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:95)))4:Tint((4:user1:b)(4:call6:lets_b)(10:module_var7:_lets_b))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum2:99))((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum3:107)))4:Tint((4:user1:a)(4:call9:lets_a__2)(10:module_var7:_lets_a))5:false)))
+  (()((4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:1))((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:9)))4:Tint((4:user1:a)(4:call6:lets_a)(10:module_var7:_lets_a))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:13))((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:48)))(4:Tfun(((2:pt(6:Talias12:prelude/cstr(6:Talias12:prelude/cstr(8:Traw_ptr3:Tu8))))(5:pattr5:Dnorm))((2:pt4:Tint)(5:pattr5:Dnorm)))5:Tunit6:Simple)((4:user6:printf)(4:call6:printf)(10:module_var12:_lets_printf))5:false)(4:Mfun(((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:52))((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:73)))(4:Tfun()4:Tint6:Simple)((4:user10:generate_b)(4:call15:lets_generate_b)(10:module_var16:_lets_generate_b)))(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:77))((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:95)))4:Tint((4:user1:b)(4:call6:lets_b)(10:module_var7:_lets_b))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum2:99))((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum3:107)))4:Tint((4:user1:a)(4:call9:lets_a__2)(10:module_var7:_lets_a))5:false)))
 
-  $ schmu local_open_lets.smu --dump-llvm && ./local_open_lets
+  $ schmu local_open_lets.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -208,6 +211,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %3)
     ret i64 0
   }
+  $ ./local_open_lets
   11
   21
   11
@@ -220,7 +224,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   $ cat poly_func.smi
   (()((9:Mpoly_fun(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:1))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:70)))((7:nparams(5:thing))(4:body((3:typ4:Tint)(4:expr(4:Move((3:typ4:Tint)(4:expr(4:Bind7:__expr0((3:typ(8:Tvariant((4:Qvar1:1))14:prelude/option(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var5:thing))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:32))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:37)))))((3:typ4:Tint)(4:expr(2:If((3:typ5:Tbool)(4:expr(3:Bop7:Equal_i((3:typ4:Ti32)(4:expr(13:Variant_index((3:typ(8:Tvariant((4:Qvar1:1))14:prelude/option(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:26))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:37)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))((3:typ4:Ti32)(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))(4:true)((3:typ4:Tint)(4:expr(4:Bind7:__expr0((3:typ(4:Qvar1:1))(4:expr(12:Variant_data((3:typ(8:Tvariant((4:Qvar1:1))14:prelude/option(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:26))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:37)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:53))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:54)))))))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:53))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:54)))))((3:typ4:Tint)(4:expr(4:Bind7:__expr0((3:typ(8:Tvariant((4:Qvar1:1))14:prelude/option(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:67))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:68)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:61))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:66)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49))))))(4:func((7:tparams(((2:pt(8:Tvariant((4:Qvar1:1))14:prelude/option(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(5:pattr5:Dnorm))))(3:ret4:Tint)(4:kind6:Simple)(7:touched())))(6:inline5:false))8:classify())))
 
-  $ schmu open_poly_func.smu --dump-llvm && ./open_poly_func
+  $ schmu open_poly_func.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -286,11 +290,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
     call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %2)
     ret i64 0
   }
+  $ ./open_poly_func
   0
   0
   1
 
-  $ schmu local_open_poly_func.smu --dump-llvm && ./local_open_poly_func
+  $ schmu local_open_poly_func.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -356,6 +361,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %2)
     ret i64 0
   }
+  $ ./local_open_poly_func
   0
   0
   1
@@ -427,7 +433,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   $ cat malloc_some.smi
   (()((5:Mtype(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:32)))(8:Tvariant()18:malloc_some/either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:34)(8:pos_cnum2:35))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:34)(8:pos_cnum2:62)))(4:Tfun(((2:pt4:Tint)(5:pattr5:Dnorm))((2:pt4:Tint)(5:pattr5:Dnorm)))4:Tint6:Simple)((4:user8:add_ints)(4:call20:malloc_some_add_ints)(10:module_var21:_malloc_some_add_ints)))(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:65)(8:pos_cnum2:66))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:65)(8:pos_cnum2:74)))4:Tint((4:user1:a)(4:call13:malloc_some_a)(10:module_var14:_malloc_some_a))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:77)(8:pos_cnum2:78))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:77)(8:pos_cnum2:98)))4:Tint((4:user1:b)(4:call13:malloc_some_b)(10:module_var14:_malloc_some_b))5:false)(9:Mpoly_fun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:102))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:122)))((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(4:Move((3:typ(4:Qvar1:1))(4:expr(3:App(6:callee((3:typ(4:Tfun(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm)))(4:Qvar1:1)6:Simple))(4:expr(3:Var4:copy))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:119))))))(4:args((((3:typ(4:Qvar1:1))(4:expr(3:Var1:x))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:120))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:121)))))5:Dnorm)))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:121)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:121))))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm))))(3:ret(4:Qvar1:1))(4:kind6:Simple)(7:touched(((5:tname4:copy)(4:ttyp(4:Tfun(((2:pt(4:Qvar1:2))(5:pattr5:Dnorm)))(4:Qvar1:2)6:Simple))(5:tattr5:Dnorm)(9:tattr_loc())(5:tkind5:Tnone))))))(6:inline5:false))2:id())(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:125)(8:pos_cnum3:126))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:125)(8:pos_cnum3:141)))(6:Tarray4:Tint)((4:user5:vtest)(4:call17:malloc_some_vtest)(10:module_var18:_malloc_some_vtest))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:143)(8:pos_cnum3:144))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:143)(8:pos_cnum3:158)))(6:Tarray4:Tint)((4:user6:vtest2)(4:call18:malloc_some_vtest2)(10:module_var19:_malloc_some_vtest2))5:false)))
 
-  $ schmu use_malloc_some.smu --dump-llvm && ./use_malloc_some
+  $ schmu use_malloc_some.smu --dump-llvm
   use_malloc_some.smu:3:7: warning: Unused binding do_something
   3 | (defn do_something [big] (+ (.a big) 1))
             ^^^^^^^^^^^^
@@ -595,16 +601,18 @@ Simplest module with 1 type and 1 nonpolymorphic function
   }
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
+  $ ./use_malloc_some
   0
   1
 
 Allocate and clean init code with refcounting
   $ schmu init.smu -m
-  $ schmu use_init.smu && ./use_init
+  $ schmu use_init.smu
   use_init.smu:1:1: warning: Unused module open init
   1 | (open init)
       ^^^^^^^^^^^
   
+  $ ./use_init
   hello from init
 
 Use module name prefix for function names to prevent linker dups
@@ -620,7 +628,8 @@ Use module name prefix for function names to prevent linker dups
   
 Distinguish closures and functions
   $ schmu decl_lambda.smu -m
-  $ schmu use_lambda.smu && ./use_lambda
+  $ schmu use_lambda.smu
+  $ ./use_lambda
 
 
 Test signature
@@ -629,7 +638,8 @@ Test signature
   20 | (defn hidden [a]
              ^^^^^^
   
-  $ schmu use-sign.smu && ./use-sign
+  $ schmu use-sign.smu
+  $ ./use-sign
   hello 20
   200
   20.2
@@ -652,16 +662,16 @@ Polymorphic lambdas in modules
 
 
 Local modules
-  $ schmu --dump-llvm local_module.smu && valgrind -q --leak-check=yes --show-reachable=yes ./local_module
+  $ schmu --dump-llvm local_module.smu
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %nosig.t = type { i64 }
+  %schmu.nosig.t = type { i64 }
   
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"test\00" }
   @schmu_local_value = constant i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*)
-  @schmu_test__2 = constant %nosig.t { i64 10 }
+  @schmu_test__2 = constant %schmu.nosig.t { i64 10 }
   @1 = private unnamed_addr constant { i64, i64, [13 x i8] } { i64 12, i64 12, [13 x i8] c"hey poly %s\0A\00" }
   @2 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"hey thing\00" }
   @3 = private unnamed_addr constant { i64, i64, [11 x i8] } { i64 10, i64 10, [11 x i8] c"i'm nested\00" }
@@ -704,17 +714,19 @@ Local modules
     tail call void @schmu_nosig_nested_nested()
     ret i64 0
   }
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./local_module
   hey test
   hey thing
   hey poly test
   i'm nested
 
 Fix shadowing for local modules
-  $ schmu local_module_shadowing.smu && ./local_module_shadowing
+  $ schmu local_module_shadowing.smu
   local_module_shadowing.smu:12:1: warning: Unused module open a
   12 | (open a)
        ^^^^^^^^
   
+  $ ./local_module_shadowing
   i'm in a module
   a
   a
@@ -723,3 +735,16 @@ Fix shadowing for local modules
 Prefix type names in nested polymorphic functions
   $ schmu -m nested_fn.smu
   $ schmu use_nested_fn.smu
+
+Use local module from other file
+  $ schmu -m local_otherfile.smu
+  $ schmu use_local_otherfile.smu
+  $ ./use_local_otherfile
+  hey test
+  hey thing
+  hey poly test
+  i'm nested
+  hey test
+  hey thing
+  hey poly test
+  i'm nested

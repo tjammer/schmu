@@ -215,15 +215,9 @@ let change_type key typ env =
           { env with values = { scope with valmap } :: tl }
       | None -> "Internal Error: Missing key for changing " ^ key |> failwith)
 
-let add_record record add_kind ~params ~labels env =
+let add_record name record in_sig ~params ~labels env =
   let scope, tl = decap_exn env in
   let typ = Trecord (params, Some record, labels) in
-  let name, in_sig =
-    match add_kind with
-    | Aimpl -> (record, false)
-    | Asignature -> (record, true)
-    | Amodule m -> (Path.rm_name m record, false)
-  in
 
   let labelset =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
@@ -240,15 +234,9 @@ let add_record record add_kind ~params ~labels env =
   let types = Tmap.add name (typ, in_sig) scope.types in
   { env with values = { scope with labels; types; labelsets } :: tl }
 
-let add_variant variant add_kind ~params ~ctors env =
+let add_variant name variant in_sig ~params ~ctors env =
   let scope, tl = decap_exn env in
   let typ = Tvariant (params, variant, ctors) in
-  let name, in_sig =
-    match add_kind with
-    | Aimpl -> (variant, false)
-    | Asignature -> (variant, true)
-    | Amodule m -> (Path.rm_name m variant, false)
-  in
 
   let _, ctors =
     Array.fold_left
@@ -259,28 +247,24 @@ let add_variant variant add_kind ~params ~ctors env =
   let types = Tmap.add name (typ, in_sig) scope.types in
   { env with values = { scope with ctors; types } :: tl }
 
-let add_alias alias add_kind typ env =
+let add_alias name alias in_sig typ env =
   let scope, tl = decap_exn env in
-  let name, in_sig =
-    match add_kind with
-    | Aimpl -> (alias, false)
-    | Asignature -> (alias, true)
-    | Amodule m -> (Path.rm_name m alias, false)
-  in
+
   let typ = Talias (alias, typ) in
   let types = Tmap.add name (typ, in_sig) scope.types in
   { env with values = { scope with types } :: tl }
 
 let add_type name add_kind typ env =
+  let in_sig =
+    match add_kind with Aimpl | Amodule _ -> false | Asignature -> true
+  in
+
   match typ with
   | Trecord (params, Some n, labels) ->
-      add_record n add_kind ~params ~labels env
-  | Tvariant (params, n, ctors) -> add_variant n add_kind ~params ~ctors env
-  | Talias (n, t) -> add_alias n add_kind t env
+      add_record name n in_sig ~params ~labels env
+  | Tvariant (params, n, ctors) -> add_variant name n in_sig ~params ~ctors env
+  | Talias (n, _) -> add_alias name n in_sig typ env
   | t ->
-      let in_sig =
-        match add_kind with Aimpl | Amodule _ -> false | Asignature -> true
-      in
       let scope, tl = decap_exn env in
       let types = Tmap.add name (t, in_sig) scope.types in
       { env with values = { scope with types } :: tl }
