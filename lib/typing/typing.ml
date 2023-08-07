@@ -213,6 +213,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_list l -> type_list env l
     | Ty_open_id (loc, path) ->
         let t = import_path loc env path in
+
         (* Set the type name to path for error messages TODO *)
 
         (* Ensure that the whole path is used and not only a part of it *)
@@ -389,6 +390,7 @@ let add_type_param env ts =
     env ts
 
 let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
+  let name = Path.Pid name in
   let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let env, param = add_type_param env poly_param in
@@ -409,6 +411,7 @@ let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
   (Env.add_type name kind typ env, typ)
 
 let type_alias env loc ~in_sig { Ast.poly_param; name } type_spec =
+  let name = Path.Pid name in
   (* Temporarily add polymorphic type name to env *)
   let temp_env, _ = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
@@ -420,6 +423,7 @@ let type_alias env loc ~in_sig { Ast.poly_param; name } type_spec =
   (Env.add_type name kind typ env, alias)
 
 let type_abstract env loc { Ast.poly_param; name } =
+  let name = Path.Pid name in
   (* Make sure that each type name only appears once per module *)
   (* Abstract types are only allowed in signatures *)
   ignore (check_type_unique ~in_sig:true env loc name Tunit);
@@ -433,6 +437,7 @@ let type_abstract env loc { Ast.poly_param; name } =
   (Env.add_type name Asignature typ env, typ)
 
 let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
+  let name = Path.Pid name in
   (* Temporarily add polymorphic type name to env *)
   let temp_env, params = add_type_param env poly_param in
 

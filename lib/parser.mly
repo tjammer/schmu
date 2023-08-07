@@ -230,9 +230,9 @@ let bracks(x) :=
   | sexp_ctor; Int { { name = $1; typ_annot = None; index = Some $2 } }
 
 %inline sexp_typename:
-  | ident { { name = Path.Pid (snd $1); poly_param = [] } }
+  | ident { { name = snd $1; poly_param = [] } }
   | Lpar; ident; polys = nonempty_list(poly_id); Rpar
-    { { name = (Path.Pid (snd $2)); poly_param = List.map path_of_ty_var polys } }
+    { { name = snd $2; poly_param = List.map path_of_ty_var polys } }
 
 %inline sexp_type_decl:
   | name = Keyword; t = sexp_type_expr { false, name, t }

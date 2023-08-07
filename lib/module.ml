@@ -56,7 +56,9 @@ let absolute_module_name ~mname fname = "_" ^ Path.mod_name mname ^ "_" ^ fname
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
 
-let add_type_sig loc name t m = { m with s = (name, loc, t, Stypedef) :: m.s }
+let add_type_sig loc name t m =
+  { m with s = (Path.Pid name, loc, t, Stypedef) :: m.s }
+
 let add_value_sig loc name t m = { m with s = (name, loc, t, Svalue) :: m.s }
 let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 

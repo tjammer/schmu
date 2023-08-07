@@ -109,7 +109,7 @@ and stmt =
 and block = stmt list
 
 type external_decl = loc * (loc * string) * type_spec * string option
-type typename = { name : Path.t; poly_param : Path.t list }
+type typename = { name : string; poly_param : Path.t list }
 type record = { name : typename; labels : (bool * string * type_spec) array }
 
 type ctor = {
