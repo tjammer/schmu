@@ -208,10 +208,10 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
                raise (Error (loc, msg))
            | None -> ());
         t
-    | Ty_var id when typedef -> find env id "'"
+    | Ty_var id when typedef -> find env (Path.Pid id) "'"
     | Ty_var id ->
         (* Type annotation in function *)
-        Qvar (Path.get_hd id)
+        Qvar id
     | Ty_func l -> handle_func env l
     | Ty_list l -> type_list env l
     | Ty_open_id (loc, path) ->
@@ -364,8 +364,7 @@ let check_type_unique env loc ~in_sig name typ =
   | Some (_, insig) when Bool.equal in_sig insig ->
       let msg =
         Printf.sprintf
-          "Type names in a module must be unique. %s exists already"
-          (Path.show name)
+          "Type names in a module must be unique. %s exists already" name
       in
       raise (Error (loc, msg))
   | Some (Tabstract (ps, _, Tvar ({ contents = Unbound _ } as t)), _) ->
@@ -389,11 +388,12 @@ let add_type_param env ts =
       (* Create general type *)
       let t = make_type_param () in
 
-      (Env.add_type name Aimpl t env, t))
+      (Env.add_type name ~in_sig:false t env, t))
     env ts
 
-let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
-  let name = Path.Pid name in
+let type_record env loc ~mname ~in_sig
+    Ast.{ name = { poly_param; name }; labels } =
+  let record = Path.append name mname in
   let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let env, param = add_type_param env poly_param in
@@ -406,41 +406,41 @@ let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
     in
     (labels, param)
   in
-  let kind = if in_sig then Env.Asignature else Aimpl in
 
-  let typ = Trecord (params, Some name, labels) in
+  let typ = Trecord (params, Some record, labels) in
   (* Make sure that each type name only appears once per module *)
   let typ = check_type_unique ~in_sig env loc name typ in
-  (Env.add_type name kind typ env, typ)
+  (Env.add_type name ~in_sig typ env, typ)
 
-let type_alias env loc ~in_sig { Ast.poly_param; name } type_spec =
-  let name = Path.Pid name in
+let type_alias env loc ~mname ~in_sig { Ast.poly_param; name } type_spec =
+  let alias = Path.append name mname in
   (* Temporarily add polymorphic type name to env *)
   let temp_env, _ = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
-  let kind = if in_sig then Env.Asignature else Aimpl in
 
-  let alias = Talias (name, typ) in
+
+  let alias = Talias (alias, typ) in
   (* Make sure that each type name only appears once per module *)
   let typ = check_type_unique ~in_sig env loc name alias in
-  (Env.add_type name kind typ env, alias)
+  (Env.add_type name ~in_sig typ env, alias)
 
-let type_abstract env loc { Ast.poly_param; name } =
-  let name = Path.Pid name in
+let type_abstract env loc ~mname { Ast.poly_param; name } =
+  let tname = Path.append name mname in
   (* Make sure that each type name only appears once per module *)
   (* Abstract types are only allowed in signatures *)
   ignore (check_type_unique ~in_sig:true env loc name Tunit);
   (* Tunit because we need to pass some type *)
   (* Temporarily add polymorphic type name to env *)
   let params = List.map (fun _ -> make_type_param ()) poly_param in
-  let typ = Tabstract (params, name, newvar ()) in
+  let typ = Tabstract (params, tname, newvar ()) in
 
   (* TODO make abstract type unbound and bind correct type in impl.
      We can check this with check_type_unique *)
-  (Env.add_type name Asignature typ env, typ)
+  (Env.add_type name ~in_sig:true typ env, typ)
 
-let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
-  let name = Path.Pid name in
+let type_variant env loc ~mname ~in_sig
+    { Ast.name = { poly_param; name }; ctors } =
+  let variant = Path.append name mname in
   (* Temporarily add polymorphic type name to env *)
   let temp_env, params = add_type_param env poly_param in
 
@@ -489,12 +489,11 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
       ctors
     |> Array.of_list
   in
-  let kind = if in_sig then Env.Asignature else Aimpl in
 
-  let typ = Tvariant (params, name, ctors) in
+  let typ = Tvariant (params, variant, ctors) in
   (* Make sure that each type name only appears once per module *)
   let typ = check_type_unique ~in_sig env loc name typ in
-  (Env.add_type name kind typ env, typ)
+  (Env.add_type name ~in_sig typ env, typ)
 
 let rec param_funcs_as_closures = function
   (* Functions passed as parameters need to have an empty closure, otherwise they cannot
@@ -1213,21 +1212,21 @@ let block_external_name loc ~cname id =
       in
       raise (Error (loc, msg))
 
-let add_signature_types (env, m) = function
+let add_signature_types ~mname (env, m) = function
   | Ast.Stypedef (loc, Trecord t) ->
-      let env, typ = type_record ~in_sig:true env loc t in
+      let env, typ = type_record ~mname ~in_sig:true env loc t in
       let m = Module.add_type_sig loc t.name.name typ m in
       (env, m)
   | Stypedef (loc, Talias (name, type_spec)) ->
-      let env, typ = type_alias ~in_sig:true env loc name type_spec in
+      let env, typ = type_alias ~mname ~in_sig:true env loc name type_spec in
       let m = Module.add_type_sig loc name.name typ m in
       (env, m)
   | Stypedef (loc, Tvariant v) ->
-      let env, typ = type_variant ~in_sig:true env loc v in
+      let env, typ = type_variant ~mname ~in_sig:true env loc v in
       let m = Module.add_type_sig loc v.name.name typ m in
       (env, m)
   | Stypedef (loc, Tabstract a) ->
-      let env, typ = type_abstract env loc a in
+      let env, typ = type_abstract ~mname env loc a in
       let m = Module.add_type_sig loc a.name typ m in
       (env, m)
   | Svalue _ -> (env, m)
@@ -1237,7 +1236,7 @@ let add_signature_vals env m = function
       (* Here, we don't add to env. We later check that the declaration is implemented correctly,
          in [validate_signature] *)
       let typ = typeof_annot env l type_spec in
-      let m = Module.add_value_sig loc (Path.Pid n) typ m in
+      let m = Module.add_value_sig loc n typ m in
       m
   | Stypedef _ -> m
 
@@ -1309,7 +1308,9 @@ let rec convert_module env sign prog check_ret mname =
         known at this point. Since we substitute generics naively in annots
         (which val decls essentially are), we have to make sure the complete
         implementation is available before. *)
-  let sigenv, m = List.fold_left add_signature_types (env, Module.empty) sign in
+  let sigenv, m =
+    List.fold_left (add_signature_types ~mname) (env, Module.empty) sign
+  in
   let last_type, env, items, m = convert_prog ~mname sigenv prog m in
   let externals = Module.append_externals (Env.externals env) in
   (* Make sure to chose the signature env, not the impl one. Abstract types are
@@ -1354,15 +1355,15 @@ and convert_prog env items ~mname modul =
           items,
           m )
     | Typedef (loc, Trecord t) ->
-        let env, typ = type_record ~in_sig:false env loc t in
+        let env, typ = type_record ~mname ~in_sig:false env loc t in
         let m = Module.add_type loc typ m in
         (env, items, m)
     | Typedef (loc, Talias (name, type_spec)) ->
-        let env, typ = type_alias ~in_sig:false env loc name type_spec in
+        let env, typ = type_alias ~mname ~in_sig:false env loc name type_spec in
         let m = Module.add_type loc typ m in
         (env, items, m)
     | Typedef (loc, Tvariant v) ->
-        let env, typ = type_variant ~in_sig:false env loc v in
+        let env, typ = type_variant ~mname ~in_sig:false env loc v in
         let m = Module.add_type loc typ m in
         (env, items, m)
     | Typedef (loc, Tabstract _) ->
@@ -1385,8 +1386,6 @@ and convert_prog env items ~mname modul =
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
 
-        let s = ref S.empty in
-        let newm = adjust_type_names s mname newm in
         let env =
           match register_module env mname (Clocal mname, newm) with
           | Ok env -> env

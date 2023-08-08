@@ -28,7 +28,7 @@ type unop = Uminus_i | Uminus_f [@@deriving show, sexp]
 
 type type_spec =
   | Ty_id of string
-  | Ty_var of Path.t
+  | Ty_var of string
   | Ty_list of type_spec list
   | Ty_func of (type_spec * decl_attr) list
   | Ty_open_id of loc * Path.t
@@ -109,7 +109,7 @@ and stmt =
 and block = stmt list
 
 type external_decl = loc * (loc * string) * type_spec * string option
-type typename = { name : string; poly_param : Path.t list }
+type typename = { name : string; poly_param : string list }
 type record = { name : typename; labels : (bool * string * type_spec) array }
 
 type ctor = {

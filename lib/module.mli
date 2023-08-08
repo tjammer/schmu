@@ -9,7 +9,7 @@ val unique_name : mname:Path.t -> string -> int option -> string
 val lambda_name : mname:Path.t -> int -> string
 val absolute_module_name : mname:Path.t -> string -> string
 val add_type_sig : loc -> string -> typ -> t -> t
-val add_value_sig : loc -> Path.t -> typ -> t -> t
+val add_value_sig : loc -> string -> typ -> t -> t
 val add_type : loc -> typ -> t -> t
 
 val add_fun :
@@ -53,7 +53,6 @@ val find_file : string -> string -> string
 val find_module :
   Env.t -> regeneralize:(typ -> typ) -> string -> Ast.loc -> Path.t * t
 
-val adjust_type_names : S.t ref -> Path.t -> t -> t
 val add_to_env : Env.t -> Path.t * t -> Env.t
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list

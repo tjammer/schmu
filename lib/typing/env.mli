@@ -45,8 +45,6 @@ type ext = {
 }
 (* return type for values *)
 
-type add_kind = Aimpl | Asignature | Amodule of Path.t
-
 val def_value : value
 (** Default value, everything is false *)
 
@@ -69,7 +67,7 @@ val add_external :
 val change_type : key -> typ -> t -> t
 (** To give the generalized type with closure for functions *)
 
-val add_type : Path.t -> add_kind -> typ -> t -> t
+val add_type : string -> in_sig:bool -> typ -> t -> t
 val add_module : key:string -> mname:Path.t -> t -> t
 val open_function : t -> t
 
@@ -94,7 +92,7 @@ val close_mutation : t -> unit
 (* bool: in signature *)
 val find_type_opt : Path.t -> t -> (typ * bool) option
 val find_type : Path.t -> t -> typ * bool
-val find_type_same_module : Path.t -> t -> (typ * bool) option
+val find_type_same_module : string -> t -> (typ * bool) option
 
 val query_type : instantiate:(typ -> typ) -> Path.t -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)

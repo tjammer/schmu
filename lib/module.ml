@@ -16,7 +16,7 @@ and item =
   | Mmodule of loc * string * t
 
 and sg_kind = Stypedef | Svalue
-and sig_item = Path.t * loc * typ * sg_kind [@@deriving sexp]
+and sig_item = string * loc * typ * sg_kind [@@deriving sexp]
 and t = { s : sig_item list; i : item list }
 
 type cache_kind = Cfile of string | Clocal of Path.t
@@ -53,9 +53,7 @@ let absolute_module_name ~mname fname = "_" ^ Path.mod_name mname ^ "_" ^ fname
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
 
-let add_type_sig loc name t m =
-  { m with s = (Path.Pid name, loc, t, Stypedef) :: m.s }
-
+let add_type_sig loc name t m = { m with s = (name, loc, t, Stypedef) :: m.s }
 let add_value_sig loc name t m = { m with s = (name, loc, t, Svalue) :: m.s }
 let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 
@@ -524,105 +522,6 @@ let find_module env ~regeneralize name loc =
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Typed_tree.Error (loc, msg))
 
-type modif_kind = Add of Path.t * S.t
-
-let modif = function
-  | Add (name, sub) -> fun p -> if S.mem p sub then Path.add_left p name else p
-
-let rec mod_t mkind t =
-  let nm = modif mkind in
-  match t with
-  | Talias (p, t) -> Talias (nm p, mod_t mkind t)
-  | Trecord (ps, n, fields) ->
-      let ps = List.map (mod_t mkind) ps in
-      let n = Option.map nm n in
-      let fields =
-        Array.map (fun f -> { f with ftyp = mod_t mkind f.ftyp }) fields
-      in
-      Trecord (ps, n, fields)
-  | Tvariant (ps, n, ctors) ->
-      let ps = List.map (mod_t mkind) ps in
-      let n = nm n in
-      let ctors =
-        Array.map
-          (fun c -> { c with ctyp = Option.map (mod_t mkind) c.ctyp })
-          ctors
-      in
-      Tvariant (ps, n, ctors)
-  | Traw_ptr t -> Traw_ptr (mod_t mkind t)
-  | Tarray t -> Tarray (mod_t mkind t)
-  | Tfun (ps, r, kind) ->
-      let ps = List.map (fun p -> { p with pt = mod_t mkind p.pt }) ps in
-      let r = mod_t mkind r in
-      let kind =
-        match kind with
-        | Simple -> kind
-        | Closure c ->
-            let c =
-              List.map (fun c -> { c with cltyp = mod_t mkind c.cltyp }) c
-            in
-            Closure c
-      in
-      Tfun (ps, r, kind)
-  | Tvar { contents = Link t } -> Tvar { contents = Link (mod_t mkind t) }
-  | Tabstract (ps, n, t) ->
-      Tabstract (List.map (mod_t mkind) ps, nm n, mod_t mkind t)
-  | t -> t
-
-let extr_name = function
-  | Trecord (_, n, _) -> n
-  | Talias (n, _) | Tvariant (_, n, _) -> Some n
-  | _ -> None
-
-let rec mod_expr f e =
-  Typed_tree.{ e with typ = f e.typ; expr = mod_body f e.expr }
-
-and mod_body f e =
-  let m = mod_expr f in
-  match e with
-  | Const (Array ts) -> Const (Array (List.map m ts))
-  | Bop (b, l, r) -> Bop (b, m l, m r)
-  | Unop (u, e) -> Unop (u, m e)
-  | If (c, o, l, r) -> If (m c, o, m l, m r)
-  | Let l -> Let { l with rhs = m l.rhs; cont = m l.cont }
-  | Bind (n, e, cont) -> Bind (n, m e, m cont)
-  | Lambda (i, abs) -> Lambda (i, mod_abs f abs)
-  | Function (n, i, abs, cont) -> Function (n, i, mod_abs f abs, m cont)
-  | App { callee; args } ->
-      App
-        { callee = m callee; args = List.map (fun (e, mut) -> (m e, mut)) args }
-  | Record ts -> Record (List.map (fun (n, e) -> (n, m e)) ts)
-  | Field (t, i, n) -> Field (m t, i, n)
-  | Set (l, r) -> Set (m l, m r)
-  | Sequence (l, r) -> Sequence (m l, m r)
-  | Ctor (n, i, t) -> Ctor (n, i, Option.map m t)
-  | Variant_index t -> Variant_index (m t)
-  | Variant_data t -> Variant_data (m t)
-  | Fmt fs ->
-      let f = function Typed_tree.Fstr _ as f -> f | Fexpr t -> Fexpr (m t) in
-      Fmt (List.map f fs)
-  | Const _ | Var _ | Mutual_rec_decls _ (* TODO *) -> e
-  | Move e -> Move (m e)
-
-and mod_abs f abs =
-  let body = mod_expr f abs.body in
-  let func =
-    let tparams = List.map (fun p -> { p with pt = f p.pt }) abs.func.tparams in
-    let ret = f abs.func.ret in
-    let kind =
-      match abs.func.kind with
-      | Simple -> Simple
-      | Closure c ->
-          let c = List.map (fun c -> { c with cltyp = f c.cltyp }) c in
-          Closure c
-    in
-    let touched =
-      List.map (fun t -> Typed_tree.{ t with ttyp = f t.ttyp }) abs.func.touched
-    in
-    Typed_tree.{ tparams; ret; kind; touched }
-  in
-  { abs with body; func }
-
 let add_to_env env (mname, m) =
   match m.s with
   | [] ->
@@ -634,7 +533,7 @@ let add_to_env env (mname, m) =
                 (( Trecord (_, Some name, _)
                  | Tvariant (_, name, _)
                  | Talias (name, _) ) as t) ) ->
-              Env.add_type (Path.Pid (Path.get_hd name)) (Amodule mname) t env
+              Env.add_type (Path.get_hd name) ~in_sig:false t env
           | Mtype (_, t) ->
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
@@ -672,7 +571,8 @@ let add_to_env env (mname, m) =
       List.fold_left
         (fun env (name, loc, typ, kind) ->
           match kind with
-          | Stypedef -> Env.add_type name (Amodule mname) typ env
+          (* Not in the signature of the module we add it to *)
+          | Stypedef -> Env.add_type name ~in_sig:false typ env
           | Svalue ->
               (* The import kind (`C | `Schmu) is currently not used in the env implementation.
                  This is good for us, so we don't have to keep track of what's external (C linkage)
@@ -680,58 +580,13 @@ let add_to_env env (mname, m) =
                  info, we have to change this here. This means tracking the origin of the value more
                  precisely. *)
               let imported = Some (mname, `Schmu) in
-              Env.(
-                add_value (Path.get_hd name)
-                  { def_value with typ; imported }
-                  loc env))
+              Env.(add_value name { def_value with typ; imported } loc env))
         env l
 
-let adjust_type_names sub name m =
-  let s t =
-    match extr_name t with Some p -> sub := S.add p !sub | None -> ()
-  in
-  let i =
-    (* Don't try to use rev_map. It won't work *)
-    List.rev m.i
-    |> List.map (function
-         | Mtype (l, t) ->
-             s t;
-             Mtype (l, mod_t (Add (name, !sub)) t)
-         | Mfun (l, t, n) ->
-             sub := S.add (Path.Pid n.user) !sub;
-             Mfun (l, mod_t (Add (name, !sub)) t, n)
-         | Mext (l, t, n, c) ->
-             sub := S.add (Path.Pid n.user) !sub;
-             Mext (l, mod_t (Add (name, !sub)) t, n, c)
-         | Mpoly_fun (l, abs, n, u) ->
-             sub := S.add (Path.Pid n) !sub;
-             Mpoly_fun (l, mod_abs (mod_t (Add (name, !sub))) abs, n, u)
-         | Mmutual_rec (l, ds) ->
-             let ds =
-               List.map
-                 (fun (l, n, u, t) ->
-                   sub := S.add (Path.Pid n) !sub;
-                   (l, n, u, mod_t (Add (name, !sub)) t))
-                 ds
-             in
-             Mmutual_rec (l, ds)
-         | Mmodule (loc, n, t) -> Mmodule (loc, n, t))
-  in
-
-  let s =
-    List.rev m.s
-    |> List.map (fun (n, l, t, k) ->
-           s t;
-           (n, l, mod_t (Add (name, !sub)) t, k))
-  in
-  { s; i }
+let rev { s; i } = { s = List.rev s; i = List.rev i }
 
 let to_channel c ~outname m =
-  let s = ref S.empty in
-  m
-  |> adjust_type_names s (Path.Pid outname)
-  |> canonize_t (Path.Pid outname)
-  |> sexp_of_t |> Sexp.to_channel c
+  rev m |> canonize_t (Path.Pid outname) |> sexp_of_t |> Sexp.to_channel c
 
 let extract_name_type = function
   | Mtype (l, t) -> (
@@ -764,9 +619,7 @@ let validate_signature env m =
   | _ ->
       let impl = List.filter_map extract_name_type m.i in
       let f (name, loc, styp, kind) =
-        match
-          (List.find_opt (find_item (Path.get_hd name) kind) impl, kind)
-        with
+        match (List.find_opt (find_item name kind) impl, kind) with
         | Some (n, _, ityp, ikind), _ ->
             let subst, b =
               Inference.types_match ~match_abstract:true Smap.empty styp ityp
@@ -802,7 +655,7 @@ let validate_signature env m =
               Printf.sprintf
                 "Mismatch between implementation and signature: Missing \
                  implementation of %s %s"
-                (string_of_type styp) (Path.show name)
+                (string_of_type styp) name
             in
             raise (Error (loc, msg))
       in

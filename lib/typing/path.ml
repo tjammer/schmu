@@ -5,7 +5,12 @@ let pp ppf p = Format.fprintf ppf "%s" (show p)
 
 (* Using "." here makes sure there is no clash to a user defined type which (by accident)
    has matches a module type. "." is not allowed in type names *)
-let rec type_name = function Pid s -> s | Pmod (n, p) -> n ^ "." ^ type_name p
+let rec type_name = function
+  | Pid s -> s
+  | Pmod ("schmu", p) ->
+      (* Don't prefix everything from the main module with "schmu" *)
+      type_name p
+  | Pmod (n, p) -> n ^ "." ^ type_name p
 
 open Sexplib0
 

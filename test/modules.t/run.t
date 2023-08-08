@@ -667,11 +667,11 @@ Local modules
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %schmu.nosig.t = type { i64 }
+  %nosig.t = type { i64 }
   
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"test\00" }
   @schmu_local_value = constant i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*)
-  @schmu_test__2 = constant %schmu.nosig.t { i64 10 }
+  @schmu_test__2 = constant %nosig.t { i64 10 }
   @1 = private unnamed_addr constant { i64, i64, [13 x i8] } { i64 12, i64 12, [13 x i8] c"hey poly %s\0A\00" }
   @2 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"hey thing\00" }
   @3 = private unnamed_addr constant { i64, i64, [11 x i8] } { i64 10, i64 10, [11 x i8] c"i'm nested\00" }
@@ -748,3 +748,27 @@ Use local module from other file
   hey thing
   hey poly test
   i'm nested
+
+
+Local modules can shadow types. Use unique type names in codegen
+  $ schmu local_module_type_shadowing.smu --dump-llvm
+  local_module_type_shadowing.smu:4:6: warning: Unused binding t
+  4 | (def t {:a 10})
+           ^
+  
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %t = type { i64 }
+  %nosig.t = type { i64, i64 }
+  %nosig.nested.t = type { i64, i64, i64 }
+  
+  @schmu_t = constant %t { i64 10 }
+  @schmu_nosig_t = constant %nosig.t { i64 10, i64 20 }
+  @schmu_nosig_nested_t = constant %nosig.nested.t { i64 10, i64 20, i64 30 }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    ret i64 0
+  }

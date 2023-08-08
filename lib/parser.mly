@@ -520,4 +520,4 @@ type_spec:
   | Lbrac; hd = type_spec; tl = nonempty_list(type_spec); Rbrac { Ty_tuple (hd :: tl)}
 
 %inline poly_id:
-  | Quote; Lowercase_id { Ty_var (Path.Pid $2) }
+  | Quote; Lowercase_id { Ty_var $2 }

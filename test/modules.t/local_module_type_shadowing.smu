@@ -1,0 +1,11 @@
+-- https://gallium.inria.fr/blog/generators-iterators-control-and-continuations/
+
+(type t {:a int})
+(def t {:a 10})
+(module nosig
+  (type t {:a int :b int})
+  (def t {:a 10 :b 20})
+  (module nested
+    (type t {:a int :b int :c int})
+    (def t {:a 10 :b 20 :c 30})))
+
