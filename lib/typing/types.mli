@@ -31,13 +31,13 @@ and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
 val clean : typ -> typ
 (** Follows links and aliases *)
 
-val string_of_type : typ -> string
+val string_of_type : typ -> Path.t -> string
 (** Normal version, will name type vars starting from 'a *)
 
-val string_of_type_lit : typ -> string
+val string_of_type_lit : typ -> Path.t -> string
 (** Version with literal type vars (for annotations) *)
 
-val string_of_type_subst : string Smap.t -> typ -> string
+val string_of_type_subst : string Smap.t -> typ -> Path.t -> string
 (** Version using the subst table created during comparison with annot *)
 
 val is_polymorphic : typ -> bool

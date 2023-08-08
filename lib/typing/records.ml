@@ -92,7 +92,9 @@ module Make (C : Core) = struct
           let f (lname, expr) =
             let typ, expr =
               match array_assoc_opt lname ls with
-              | None -> raise_ "Unbound" lname (Path.show name)
+              | None ->
+                  raise_ "Unbound" lname
+                    Path.(rm_name (Env.modpath env) name |> show)
               | Some (Tvar { contents = Unbound _ } as typ) ->
                   (* If the variable is generic, we figure the type out normally
                      and then unify for the later fields *)
@@ -102,13 +104,15 @@ module Make (C : Core) = struct
               | Some typ ->
                   (typ, convert_annot env (Some typ) expr)
             in
-            unify (loc, "In record expression:") typ expr.typ;
+            unify (loc, "In record expression:") typ expr.typ env;
             (lname, expr)
           in
           let labels_expr = List.map f labels in
           ((param, name, ls), labels_expr)
       | t ->
-          let msg = "Expected a record type, not " ^ string_of_type t in
+          let msg =
+            "Expected a record type, not " ^ string_of_type t (Env.modpath env)
+          in
           raise (Error (loc, msg))
     in
 
@@ -119,7 +123,9 @@ module Make (C : Core) = struct
           let expr =
             match List.assoc_opt field.fname labels_expr with
             | Some thing -> thing
-            | None -> raise_ "Missing" field.fname (Path.show name)
+            | None ->
+                raise_ "Missing" field.fname
+                  Path.(rm_name (Env.modpath env) name |> show)
           in
           let const =
             (* There's a special case for string literals.
@@ -161,7 +167,9 @@ module Make (C : Core) = struct
                   (field.fname, expr))
             fields
       | t ->
-          let msg = "Expected a record type, not " ^ string_of_type t in
+          let msg =
+            "Expected a record type, not " ^ string_of_type t (Env.modpath env)
+          in
           raise (Error (loc, msg))
     in
 
@@ -173,7 +181,10 @@ module Make (C : Core) = struct
     Hashtbl.iter
       (fun field _ ->
         raise
-          (Error (loc, "Unbound field :" ^ field ^ " on " ^ Path.show !name)))
+          (Error
+             ( loc,
+               "Unbound field :" ^ field ^ " on "
+               ^ Path.(rm_name (Env.modpath env) !name |> show) )))
       updated;
 
     convert_record env loc annot (Array.to_list fields)
@@ -187,7 +198,7 @@ module Make (C : Core) = struct
         | None ->
             let name =
               match name with
-              | Some n -> "record " ^ Path.show n
+              | Some n -> "record " ^ Path.(rm_name (Env.modpath env) n |> show)
               | None -> Printf.sprintf "tuple of size %i" (Array.length labels)
             in
             raise (Error (loc, "Unbound field :" ^ id ^ " on " ^ name)))
@@ -196,8 +207,11 @@ module Make (C : Core) = struct
         | Some { index; typename } -> (
             let record_t = Env.query_type ~instantiate typename env in
             unify
-              (loc, "Field access of record " ^ string_of_type record_t ^ ":")
-              record_t expr.typ;
+              ( loc,
+                "Field access of record "
+                ^ string_of_type record_t (Env.modpath env)
+                ^ ":" )
+              record_t expr.typ env;
             match record_t with
             | Trecord (_, _, labels) -> (labels.(index), expr, index)
             | _ -> failwith "nope")

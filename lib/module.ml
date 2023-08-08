@@ -588,13 +588,13 @@ let rev { s; i } = { s = List.rev s; i = List.rev i }
 let to_channel c ~outname m =
   rev m |> canonize_t (Path.Pid outname) |> sexp_of_t |> Sexp.to_channel c
 
-let extract_name_type = function
+let extract_name_type env = function
   | Mtype (l, t) -> (
       match t with
       | Trecord (_, Some n, _) | Tvariant (_, n, _) | Talias (n, _) ->
           Some (Path.get_hd n, l, t, Stypedef)
       | t ->
-          print_endline (string_of_type t);
+          print_endline (string_of_type t (Env.modpath env));
           failwith "Internal Error: Type does not have a name")
   | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Svalue)
   | Mpoly_fun (l, abs, n, _) -> Some (n, l, type_of_func abs.func, Svalue)
@@ -614,10 +614,11 @@ let validate_signature env m =
   (* Go through signature and check that the implemented types match.
      Implementation is appended to a list, so the most current bindings are the ones we pick.
      That's exactly what we want. Also, set correct unique name to signature binding. *)
+  let mn = Env.modpath env in
   match m.s with
   | [] -> m
   | _ ->
-      let impl = List.filter_map extract_name_type m.i in
+      let impl = List.filter_map (extract_name_type env) m.i in
       let f (name, loc, styp, kind) =
         match (List.find_opt (find_item name kind) impl, kind) with
         | Some (n, _, ityp, ikind), _ ->
@@ -636,8 +637,8 @@ let validate_signature env m =
                 Printf.sprintf
                   "Mismatch between implementation and signature: Expected \
                    type %s but got type %s"
-                  (string_of_type_lit styp)
-                  (string_of_type_subst subst ityp)
+                  (string_of_type_lit styp mn)
+                  (string_of_type_subst subst ityp mn)
               in
               raise (Error (loc, msg))
         | None, Stypedef -> (
@@ -647,7 +648,7 @@ let validate_signature env m =
                 raise
                   (Error
                      ( loc,
-                       "Abstract type " ^ string_of_type styp
+                       "Abstract type " ^ string_of_type styp mn
                        ^ " not implemented" ))
             | _ -> (name, loc, styp, kind))
         | None, Svalue ->
@@ -655,7 +656,7 @@ let validate_signature env m =
               Printf.sprintf
                 "Mismatch between implementation and signature: Missing \
                  implementation of %s %s"
-                (string_of_type styp) name
+                (string_of_type styp mn) name
             in
             raise (Error (loc, msg))
       in

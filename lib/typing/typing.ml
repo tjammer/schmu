@@ -56,21 +56,22 @@ let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
   Helper functions
 *)
 
-let check_annot loc l r =
+let check_annot env loc l r =
+  let mn = Env.modpath env in
   let subst, b = Inference.types_match Smap.empty l r in
   if b then ()
   else
     let msg =
       Printf.sprintf "Var annotation: Expected type %s but got type %s"
-        (string_of_type_lit r)
-        (string_of_type_subst subst l)
+        (string_of_type_lit r mn)
+        (string_of_type_subst subst l mn)
     in
     raise (Error (loc, msg))
 
 let main_path = Path.Pid "schmu"
 let is_module = function Path.Pid "schmu" -> false | Pid _ | Pmod _ -> true
 
-let check_unused = function
+let check_unused env = function
   | Ok () -> ()
   | Error errors ->
       let err (name, kind, loc) =
@@ -80,7 +81,8 @@ let check_unused = function
           | Unmutated -> "Unmutated mutable binding "
           | Unused_mod -> "Unused module open "
         in
-        (Option.get !fmt_msg_fn) "warning" loc (warn_kind ^ Path.show name)
+        (Option.get !fmt_msg_fn) "warning" loc
+          (warn_kind ^ Path.(rm_name (Env.modpath env) name |> show))
         |> print_endline
       in
       List.iter err errors
@@ -158,7 +160,13 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let find env t tick =
     match Env.find_type_opt t env with
     | Some t -> fst t
-    | None -> raise (Error (loc, "Unbound type " ^ tick ^ Path.show t ^ "."))
+    | None ->
+        raise
+          (Error
+             ( loc,
+               "Unbound type " ^ tick
+               ^ Path.(rm_name (Env.modpath env) t |> show)
+               ^ "." ))
   in
 
   let rec is_quantified = function
@@ -202,7 +210,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
            | Some (name, n) ->
                let msg =
                  Printf.sprintf "Type %s expects %i type parameter%s"
-                   (Path.show name) n
+                   Path.(rm_name (Env.modpath env) name |> show)
+                   n
                    (if n > 1 then "s" else "")
                in
                raise (Error (loc, msg))
@@ -216,8 +225,6 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_list l -> type_list env l
     | Ty_open_id (loc, path) ->
         let t = import_path loc env path in
-
-        (* Set the type name to path for error messages TODO *)
 
         (* Ensure that the whole path is used and not only a part of it *)
         (* let name = extract_name_path t |> Option.get in *)
@@ -253,7 +260,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
               match get_generic_ids t with
               | [] ->
                   let msg =
-                    "Expected a parametrized type, not " ^ string_of_type t
+                    "Expected a parametrized type, not "
+                    ^ string_of_type t (Env.modpath env)
                   in
                   raise (Error (loc, msg))
               | l ->
@@ -265,7 +273,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
             with Invalid_argument _ ->
               let msg =
                 Printf.sprintf "Type %s expects %i type parameter%s"
-                  (Path.show name) n
+                  Path.(rm_name (Env.modpath env) name |> show)
+                  n
                   (if n > 1 then "s" else "")
               in
               raise (Error (loc, msg)))
@@ -391,9 +400,8 @@ let add_type_param env ts =
       (Env.add_type name ~in_sig:false t env, t))
     env ts
 
-let type_record env loc ~mname ~in_sig
-    Ast.{ name = { poly_param; name }; labels } =
-  let record = Path.append name mname in
+let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
+  let record = Path.append name (Env.modpath env) in
   let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let env, param = add_type_param env poly_param in
@@ -412,20 +420,19 @@ let type_record env loc ~mname ~in_sig
   let typ = check_type_unique ~in_sig env loc name typ in
   (Env.add_type name ~in_sig typ env, typ)
 
-let type_alias env loc ~mname ~in_sig { Ast.poly_param; name } type_spec =
-  let alias = Path.append name mname in
+let type_alias env loc ~in_sig { Ast.poly_param; name } type_spec =
+  let alias = Path.append name (Env.modpath env) in
   (* Temporarily add polymorphic type name to env *)
   let temp_env, _ = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
-
 
   let alias = Talias (alias, typ) in
   (* Make sure that each type name only appears once per module *)
   let typ = check_type_unique ~in_sig env loc name alias in
   (Env.add_type name ~in_sig typ env, alias)
 
-let type_abstract env loc ~mname { Ast.poly_param; name } =
-  let tname = Path.append name mname in
+let type_abstract env loc { Ast.poly_param; name } =
+  let tname = Path.append name (Env.modpath env) in
   (* Make sure that each type name only appears once per module *)
   (* Abstract types are only allowed in signatures *)
   ignore (check_type_unique ~in_sig:true env loc name Tunit);
@@ -438,9 +445,8 @@ let type_abstract env loc ~mname { Ast.poly_param; name } =
      We can check this with check_type_unique *)
   (Env.add_type name ~in_sig:true typ env, typ)
 
-let type_variant env loc ~mname ~in_sig
-    { Ast.name = { poly_param; name }; ctors } =
-  let variant = Path.append name mname in
+let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
+  let variant = Path.append name (Env.modpath env) in
   (* Temporarily add polymorphic type name to env *)
   let temp_env, params = add_type_param env poly_param in
 
@@ -657,7 +663,7 @@ end = struct
   and convert_array_lit env loc arr =
     let f typ expr =
       let expr = convert env expr in
-      unify (loc, "In array literal:") typ expr.typ;
+      unify (loc, "In array literal:") typ expr.typ env;
       (typ, expr)
     in
     let typ, exprs = List.fold_left_map f (newvar ()) arr in
@@ -683,8 +689,8 @@ end = struct
           leave_level ();
 
           (match clean t.typ with
-          | Tfun _ -> check_annot loc t.typ t_annot
-          | _ -> unify (loc, "In let binding:") t.typ t_annot);
+          | Tfun _ -> check_annot env loc t.typ t_annot
+          | _ -> unify (loc, "In let binding:") t.typ t_annot env);
 
           { t with typ = t_annot }
     in
@@ -740,7 +746,7 @@ end = struct
     in
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-    check_unused unused;
+    check_unused env unused;
 
     (* For codegen: Mark functions in parameters closures *)
     let params_t =
@@ -752,7 +758,7 @@ end = struct
     | Tfun (tparams, ret, kind) ->
         let ret = match ret_annot with Some ret -> ret | None -> ret in
         let qtyp = Tfun (qparams, ret, kind) in
-        check_annot loc typ qtyp;
+        check_annot env loc typ qtyp;
 
         let func = { tparams; ret; kind; touched } in
         let abs =
@@ -814,7 +820,7 @@ end = struct
     in
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-    check_unused unused;
+    check_unused env unused;
 
     (* For codegen: Mark functions in parameters closures *)
     let params_t =
@@ -832,14 +838,14 @@ end = struct
     match typ with
     | Tfun (tparams, ret, kind) ->
         (* Make sure the types match *)
-        unify (loc, "Function") (Env.find_val name env).typ typ;
+        unify (loc, "Function") (Env.find_val name env).typ typ env;
 
         (* Add the generalized type to the env to keep the closure there *)
         let env = Env.change_type name typ env in
 
         let ret = match ret_annot with Some ret -> ret | None -> ret in
         let qtyp = Tfun (qparams, ret, kind) |> generalize in
-        check_annot loc typ qtyp;
+        check_annot env loc typ qtyp;
 
         let func = { tparams; ret; kind; touched } in
         let lambda =
@@ -879,8 +885,9 @@ end = struct
     in
     let res_t = newvar () in
     if switch_uni then
-      unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ
-    else unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple));
+      unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ env
+    else
+      unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple)) env;
 
     let apply param (texpr, _, _) =
       ({ texpr with typ = param.pt }, param.pattr)
@@ -909,8 +916,8 @@ end = struct
       let t1 = convert env e1 in
       let t2 = convert env e2 in
 
-      unify (loc, "Binary " ^ string_of_bop bop) typ t1.typ;
-      unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ;
+      unify (loc, "Binary " ^ string_of_bop bop) typ t1.typ env;
+      unify (loc, "Binary " ^ string_of_bop bop) t1.typ t2.typ env;
       (t1, t2, t1.attr.const && t2.attr.const)
     in
 
@@ -941,7 +948,7 @@ end = struct
     match unop with
     | Uminus_f ->
         let e = convert env expr in
-        unify (loc, "Unary -.:") Tfloat e.typ;
+        unify (loc, "Unary -.:") Tfloat e.typ env;
         { typ = Tfloat; expr = Unop (unop, e); attr = e.attr; loc }
     | Uminus_i -> (
         let e = convert env expr in
@@ -950,11 +957,11 @@ end = struct
 
         try
           (* We allow '-' to also work on float expressions *)
-          unify (loc, msg) Tfloat e.typ;
+          unify (loc, msg) Tfloat e.typ env;
           { typ = Tfloat; expr; attr = e.attr; loc }
         with Error _ -> (
           try
-            unify (loc, msg) Tint e.typ;
+            unify (loc, msg) Tint e.typ env;
             { typ = Tint; expr; attr = e.attr; loc }
           with Error (loc, errmsg) ->
             let pos = String.length msg + String.length ": Expected type int" in
@@ -966,7 +973,7 @@ end = struct
     (* We can assume pred evaluates to bool and both
        branches need to evaluate to the some type *)
     let type_cond = convert env cond in
-    unify (loc, "In condition") type_cond.typ Tbool;
+    unify (loc, "In condition") type_cond.typ Tbool env;
     let type_e1 = convert env e1 in
     let type_e2 =
       (* We unify in the pattern match to have different messages and unification order *)
@@ -974,7 +981,7 @@ end = struct
       | Some e2 ->
           let msg = "Branches have different type:" in
           let e2 = convert env e2 in
-          unify (loc, msg) type_e1.typ e2.typ;
+          unify (loc, msg) type_e1.typ e2.typ env;
           e2
       | None ->
           let msg =
@@ -984,7 +991,7 @@ end = struct
             let attr = { no_attr with const = true } in
             { typ = Tunit; expr = Const Unit; attr; loc }
           in
-          unify (loc, msg) e2.typ type_e1.typ;
+          unify (loc, msg) e2.typ type_e1.typ env;
           e2
     in
 
@@ -1017,7 +1024,7 @@ end = struct
     (if not toset.attr.mut then
        let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
        raise (Error (eloc, msg)));
-    unify (loc, "Mutate:") toset.typ valexpr.typ;
+    unify (loc, "Mutate:") toset.typ valexpr.typ env;
     { typ = Tunit; expr = Set (toset, valexpr); attr = no_attr; loc }
 
   and convert_pipe_head env loc e1 e2 =
@@ -1100,7 +1107,10 @@ end = struct
           Fexpr e (* Might be string later *)
       | _, _ ->
           raise
-            (Error (e.loc, "Don't know how to format " ^ string_of_type e.typ))
+            (Error
+               ( e.loc,
+                 "Don't know how to format "
+                 ^ string_of_type e.typ (Env.modpath env) ))
     in
     let exprs = List.map f exprs in
     let typ = string_typ in
@@ -1109,8 +1119,10 @@ end = struct
   and convert_block_annot ~ret env annot stmts =
     let loc = Lexing.(dummy_pos, dummy_pos) in
 
-    let check (loc, typ) =
-      unify (loc, "Left expression in sequence must be of type unit:") Tunit typ
+    let check env (loc, typ) =
+      unify
+        (loc, "Left expression in sequence must be of type unit:")
+        Tunit typ env
     in
 
     let rec to_expr env old_type = function
@@ -1169,10 +1181,10 @@ end = struct
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | [ Expr (loc, e) ] ->
           last_loc := loc;
-          check old_type;
+          check env old_type;
           (convert_annot env annot e, env)
       | Expr (l1, e1) :: tl ->
-          check old_type;
+          check env old_type;
           let expr = convert env e1 in
           let cont, env = to_expr env (l1, expr.typ) tl in
           let expr = Sequence (expr, cont) in
@@ -1212,21 +1224,21 @@ let block_external_name loc ~cname id =
       in
       raise (Error (loc, msg))
 
-let add_signature_types ~mname (env, m) = function
+let add_signature_types (env, m) = function
   | Ast.Stypedef (loc, Trecord t) ->
-      let env, typ = type_record ~mname ~in_sig:true env loc t in
+      let env, typ = type_record ~in_sig:true env loc t in
       let m = Module.add_type_sig loc t.name.name typ m in
       (env, m)
   | Stypedef (loc, Talias (name, type_spec)) ->
-      let env, typ = type_alias ~mname ~in_sig:true env loc name type_spec in
+      let env, typ = type_alias ~in_sig:true env loc name type_spec in
       let m = Module.add_type_sig loc name.name typ m in
       (env, m)
   | Stypedef (loc, Tvariant v) ->
-      let env, typ = type_variant ~mname ~in_sig:true env loc v in
+      let env, typ = type_variant ~in_sig:true env loc v in
       let m = Module.add_type_sig loc v.name.name typ m in
       (env, m)
   | Stypedef (loc, Tabstract a) ->
-      let env, typ = type_abstract ~mname env loc a in
+      let env, typ = type_abstract env loc a in
       let m = Module.add_type_sig loc a.name typ m in
       (env, m)
   | Svalue _ -> (env, m)
@@ -1240,37 +1252,40 @@ let add_signature_vals env m = function
       m
   | Stypedef _ -> m
 
-let rec catch_weak_vars = function
+let rec catch_weak_vars env = function
   | Tl_let { lhs = e; _ } | Tl_bind (_, e) | Tl_expr e ->
-      catch_weak_expr Sset.empty e
-  | Tl_function (_, _, _, abs) -> catch_weak_body Sset.empty abs
+      catch_weak_expr env Sset.empty e
+  | Tl_function (_, _, _, abs) -> catch_weak_body env Sset.empty abs
   | Tl_mutual_rec_decls _ | Tl_module_alias _ -> ()
-  | Tl_module items -> List.iter (fun (_, item) -> catch_weak_vars item) items
+  | Tl_module _ ->
+      (* Module already checks this *)
+      ()
 
-and catch_weak_body sub abs =
+and catch_weak_body env sub abs =
   (* Allow the types present in the function signature *)
   let ret = get_generic_ids abs.func.ret in
   let l =
     List.fold_left (fun s p -> get_generic_ids p.pt @ s) ret abs.func.tparams
   in
   let sub = Sset.union sub (Sset.of_list l) in
-  catch_weak_expr sub abs.body
+  catch_weak_expr env sub abs.body
 
-and catch_weak_expr sub e =
+and catch_weak_expr env sub e =
   let _raise () =
     (* print_endline (show_expr e.expr); *)
     (* print_endline (show_typ e.typ); *)
     raise
       (Error
          ( e.loc,
-           "Expression contains weak type variables: " ^ string_of_type e.typ ))
+           "Expression contains weak type variables: "
+           ^ string_of_type e.typ (Env.modpath env) ))
   in
   if is_weak ~sub e.typ then _raise ();
   match e.expr with
   | Var _ | Const _ | Lambda _ -> ()
   | Bop (_, e1, e2) | Set (e1, e2) | Sequence (e1, e2) ->
-      catch_weak_expr sub e1;
-      catch_weak_expr sub e2
+      catch_weak_expr env sub e1;
+      catch_weak_expr env sub e2
   | Unop (_, e)
   | Field (e, _, _)
   | Ctor (_, _, Some e)
@@ -1278,26 +1293,28 @@ and catch_weak_expr sub e =
   | Variant_data e
   | Move e
   | Mutual_rec_decls (_, e) ->
-      catch_weak_expr sub e
+      catch_weak_expr env sub e
   | Function (_, _, abs, e) ->
-      catch_weak_body sub abs;
-      catch_weak_expr sub e
+      catch_weak_body env sub abs;
+      catch_weak_expr env sub e
   | If (cond, _, e1, e2) ->
-      catch_weak_expr sub cond;
-      catch_weak_expr sub e1;
-      catch_weak_expr sub e2
+      catch_weak_expr env sub cond;
+      catch_weak_expr env sub e1;
+      catch_weak_expr env sub e2
   | Let { rhs; cont; _ } | Bind (_, rhs, cont) ->
-      catch_weak_expr sub rhs;
-      catch_weak_expr sub cont
+      catch_weak_expr env sub rhs;
+      catch_weak_expr env sub cont
   | App { callee; args } ->
-      catch_weak_expr sub callee;
-      List.iter (fun a -> catch_weak_expr sub (fst a)) args
-  | Record fs -> List.iter (fun f -> catch_weak_expr sub (snd f)) fs
+      catch_weak_expr env sub callee;
+      List.iter (fun a -> catch_weak_expr env sub (fst a)) args
+  | Record fs -> List.iter (fun f -> catch_weak_expr env sub (snd f)) fs
   | Ctor _ -> ()
   | Fmt fmt ->
-      List.iter (function Fstr _ -> () | Fexpr e -> catch_weak_expr sub e) fmt
+      List.iter
+        (function Fstr _ -> () | Fexpr e -> catch_weak_expr env sub e)
+        fmt
 
-let rec convert_module env sign prog check_ret mname =
+let rec convert_module env sign prog check_ret =
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_function env in
 
@@ -1308,10 +1325,8 @@ let rec convert_module env sign prog check_ret mname =
         known at this point. Since we substitute generics naively in annots
         (which val decls essentially are), we have to make sure the complete
         implementation is available before. *)
-  let sigenv, m =
-    List.fold_left (add_signature_types ~mname) (env, Module.empty) sign
-  in
-  let last_type, env, items, m = convert_prog ~mname sigenv prog m in
+  let sigenv, m = List.fold_left add_signature_types (env, Module.empty) sign in
+  let last_type, env, items, m = convert_prog sigenv prog m in
   let externals = Module.append_externals (Env.externals env) in
   (* Make sure to chose the signature env, not the impl one. Abstract types are
      magically made complete by references. *)
@@ -1319,11 +1334,12 @@ let rec convert_module env sign prog check_ret mname =
   let m = Module.validate_signature env m in
 
   (* Catch weak type variables *)
-  List.iter catch_weak_vars items;
+  List.iter (catch_weak_vars env) items;
 
   let _, _, touched, unused = Env.close_function env in
   let has_sign = match sign with [] -> false | _ -> true in
-  if (not (is_module mname)) || has_sign then check_unused unused;
+  if (not (is_module (Env.modpath env))) || has_sign then
+    check_unused env unused;
 
   let items = Exclusivity.check_items touched items in
 
@@ -1334,12 +1350,12 @@ let rec convert_module env sign prog check_ret mname =
      | _ ->
          let msg =
            "Module must return type int or unit, not "
-           ^ string_of_type last_type
+           ^ string_of_type last_type (Env.modpath env)
          in
          raise (Error (!last_loc, msg)));
   (externals, items, m)
 
-and convert_prog env items ~mname modul =
+and convert_prog env items modul =
   let old = ref (Lexing.(dummy_pos, dummy_pos), Tunit) in
 
   let rec aux (env, items, m) = function
@@ -1350,20 +1366,23 @@ and convert_prog env items ~mname modul =
     | Ext_decl (loc, (idloc, id), typ, cname) ->
         let typ = typeof_annot env loc typ in
         block_external_name loc ~cname id;
-        let m = Module.add_external ~mname loc typ id cname ~closure:false m in
+        let m =
+          Module.add_external ~mname:(Env.modpath env) loc typ id cname
+            ~closure:false m
+        in
         ( Env.add_external id ~cname typ ~imported:None idloc ~closure:false env,
           items,
           m )
     | Typedef (loc, Trecord t) ->
-        let env, typ = type_record ~mname ~in_sig:false env loc t in
+        let env, typ = type_record ~in_sig:false env loc t in
         let m = Module.add_type loc typ m in
         (env, items, m)
     | Typedef (loc, Talias (name, type_spec)) ->
-        let env, typ = type_alias ~mname ~in_sig:false env loc name type_spec in
+        let env, typ = type_alias ~in_sig:false env loc name type_spec in
         let m = Module.add_type loc typ m in
         (env, items, m)
     | Typedef (loc, Tvariant v) ->
-        let env, typ = type_variant ~mname ~in_sig:false env loc v in
+        let env, typ = type_variant ~in_sig:false env loc v in
         let m = Module.add_type loc typ m in
         (env, items, m)
     | Typedef (loc, Tabstract _) ->
@@ -1371,7 +1390,7 @@ and convert_prog env items ~mname modul =
     | Module ((loc, id), sign, prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
-        let mname = Path.append id mname in
+        let env = Env.open_module_scope id env in
 
         (* Save uniq_tbl state as well as lambda state *)
         let uniq_tbl_bk = !uniq_tbl in
@@ -1380,13 +1399,14 @@ and convert_prog env items ~mname modul =
         reset lambda_id_state;
 
         let tempenv = Env.open_function env in
-        let _, moditems, newm = convert_module tempenv sign prog true mname in
+        let _, moditems, newm = convert_module tempenv sign prog true in
         let _ = Env.close_function tempenv in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
 
         let env =
+          let mname = Env.modpath env in
           match register_module env mname (Clocal mname, newm) with
           | Ok env -> env
           | Error () ->
@@ -1398,9 +1418,11 @@ and convert_prog env items ~mname modul =
         in
         let m = add_module loc id newm ~into:m in
 
-        let moditems = List.map (fun item -> (mname, item)) moditems in
+        let moditems =
+          List.map (fun item -> (Env.modpath env, item)) moditems
+        in
         let items = Tl_module moditems :: items in
-        (env, items, m)
+        (Env.close_module_scope env, items, m)
     | Module_alias ((loc, key), mid) -> (
         match Env.find_module_opt (Path.get_hd mid) env with
         | Some mname -> (Env.add_module ~key ~mname env, items, m)
@@ -1419,10 +1441,13 @@ and convert_prog env items ~mname modul =
         in
         let uniq = uniq_name id in
         (* Make string option out of int option for unique name *)
-        let uniq_name = Some (Module.unique_name ~mname id uniq) in
+        let uniq_name =
+          Some (Module.unique_name ~mname:(Env.modpath env) id uniq)
+        in
         (* TODO special handling for lambdas *)
         let m =
-          Module.add_external ~mname loc lhs.typ id uniq_name ~closure:true m
+          Module.add_external ~mname:(Env.modpath env) loc lhs.typ id uniq_name
+            ~closure:true m
         in
         let expr =
           let expr = Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr } in
@@ -1436,7 +1461,7 @@ and convert_prog env items ~mname modul =
         let env, (name, unique, abs) =
           Core.convert_function env loc func false
         in
-        let m = Module.add_fun ~mname loc name unique abs m in
+        let m = Module.add_fun ~mname:(Env.modpath env) loc name unique abs m in
         (old, env, Tl_function (loc, name, unique, abs) :: items, m)
     | Rec (loc, funcs) ->
         (* Collect function names *)
@@ -1465,14 +1490,14 @@ and convert_prog env items ~mname modul =
           | [] -> ([], [], env)
         in
         let decls, fitems, env = aux env (List.rev funcs) in
-        let m = Module.add_rec_block ~mname loc funcs m in
+        let m = Module.add_rec_block ~mname:(Env.modpath env) loc funcs m in
         (old, env, fitems @ (Tl_mutual_rec_decls decls :: items), m)
     | Expr (loc, expr) ->
         let expr = Core.convert env expr in
         (* Only the last expression is allowed to return something *)
         unify
           (fst old, "Left expression in sequence must be of type unit:")
-          Tunit (snd old);
+          Tunit (snd old) env;
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
     | Open (loc, mname) ->
         let modul = Module.find_module env ~regeneralize mname loc in
@@ -1497,7 +1522,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
           let typ = instantiate typ in
           leave_level ();
           Env.(add_value str { def_value with typ = generalize typ } loc env)))
-      (Env.empty ())
+      (Env.empty mname)
   in
 
   (* Open prelude *)
@@ -1508,7 +1533,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
     else env
   in
 
-  let externals, items, m = convert_module env sign prog check_ret mname in
+  let externals, items, m = convert_module env sign prog check_ret in
 
   (* Add polymorphic functions from imported modules *)
   let items = List.map (fun item -> (mname, item)) items in

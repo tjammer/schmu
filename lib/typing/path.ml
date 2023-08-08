@@ -51,17 +51,6 @@ let rec rm_name modpath to_rm =
   | Pmod (m, tl), Pmod (s, t) when String.equal m s -> rm_name tl t
   | _, p -> p
 
-let remove_prefix ~without ~with_prefix =
-  let rec aux wo wp =
-    match (wo, wp) with
-    | Pid w, Pid p when not (String.equal w p) -> with_prefix
-    | Pid _, Pid _ -> wo
-    | Pmod (w, _), (Pmod (wp', _) | Pid wp') when String.equal w wp' -> wp
-    | Pmod _, Pid _ -> with_prefix
-    | (Pmod _ | Pid _), Pmod (_, tl) -> aux wo tl
-  in
-  aux without with_prefix
-
 let rec mod_name = function Pid s -> s | Pmod (n, p) -> n ^ "_" ^ mod_name p
 
 let rec add_left p = function
@@ -71,6 +60,11 @@ let rec add_left p = function
 let rec append name = function
   | Pid n -> Pmod (n, Pid name)
   | Pmod (n, tl) -> Pmod (n, append name tl)
+
+let rec pop = function
+  | Pid _ as p -> p
+  | Pmod (n, Pid _) -> Pid n
+  | Pmod (n, p) -> Pmod (n, pop p)
 
 let rec match_until_pid l r =
   match (l, r) with

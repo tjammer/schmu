@@ -66,14 +66,15 @@ let get_variant env loc (_, name) annot =
             | None ->
                 let msg =
                   Printf.sprintf "Unbound constructor %s on variant %s" name
-                    (Path.show typename)
+                    Path.(rm_name (Env.modpath env) typename |> show)
                 in
                 raise (Error (loc, msg))
           in
           (typename, ctor, variant)
       | t ->
           let msg =
-            Printf.sprintf "Expecting a variant type, not %s" (string_of_type t)
+            Printf.sprintf "Expecting a variant type, not %s"
+              (string_of_type t (Env.modpath env))
           in
           raise (Error (loc, msg)))
   | None -> (
@@ -87,7 +88,7 @@ let get_variant env loc (_, name) annot =
           in
 
           (match annot with
-          | Some t -> unify (loc, "In constructor " ^ name ^ ":") t variant
+          | Some t -> unify (loc, "In constructor " ^ name ^ ":") t variant env
           | None -> ());
           (typename, ctor, variant)
       | None ->
@@ -552,7 +553,7 @@ module Make (C : Core) (R : Recs) = struct
     match (ctor.ctyp, arg) with
     | Some typ, Some expr ->
         let texpr = convert env expr in
-        unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ;
+        unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ env;
         let expr = Ctor (Path.get_hd typename, ctor.index, Some texpr) in
 
         { typ = variant; expr; attr = no_attr; loc }
@@ -570,8 +571,9 @@ module Make (C : Core) (R : Recs) = struct
     | None -> { pat = Tp_wildcard loc; ptyp }
     | Some p -> snd p
 
-  let calc_index_fields loc fields t =
+  let calc_index_fields env loc fields t =
     let module Set = Set.Make (String) in
+    let mn = Env.modpath env in
     let rfields =
       let rec inner = function
         | Trecord (_, _, rfields) -> rfields
@@ -579,7 +581,9 @@ module Make (C : Core) (R : Recs) = struct
         | t ->
             raise
               (Error
-                 (loc, "Record pattern has unexpected type " ^ string_of_type t))
+                 ( loc,
+                   "Record pattern has unexpected type " ^ string_of_type t mn
+                 ))
       in
       inner t
     in
@@ -621,7 +625,7 @@ module Make (C : Core) (R : Recs) = struct
             | None ->
                 let msg =
                   Printf.sprintf "Unbound field :%s on record %s" name
-                    (string_of_type t)
+                    (string_of_type t mn)
                 in
                 raise (Error (loc, msg))
           in
@@ -673,7 +677,7 @@ module Make (C : Core) (R : Recs) = struct
         let _, ctor, variant = get_variant env loc (loc, name) annot in
         unify
           (loc, "Variant pattern has unexpected type:")
-          (path_typ env path) variant;
+          (path_typ env path) variant env;
         match (ctor.ctyp, payload) with
         | Some typ, Some p ->
             let env =
@@ -741,7 +745,7 @@ module Make (C : Core) (R : Recs) = struct
         unify
           (loc, "Tuple pattern has unexpected type:")
           (Trecord (ps, None, fields))
-          typ;
+          typ env;
         cartesian_product pats
         |> List.map (fun pats ->
                let pat = Tp_tuple (loc, pats) in
@@ -752,9 +756,9 @@ module Make (C : Core) (R : Recs) = struct
         let ptyp = get_record_type env loc labelset annot in
         unify
           (loc, "Record pattern has unexpected type:")
-          (path_typ env path) ptyp;
+          (path_typ env path) ptyp env;
 
-        let index_fields = calc_index_fields loc pats ptyp in
+        let index_fields = calc_index_fields env loc pats ptyp in
         let fields =
           List.map
             (fun (field, index, floc, name, pat) ->
@@ -786,10 +790,14 @@ module Make (C : Core) (R : Recs) = struct
                let pat = Tp_record (loc, fields) in
                (path, { ptyp; pat }))
     | Plit_int (loc, i) ->
-        unify (loc, "Int pattern has unexpected type:") (path_typ env path) Tint;
+        unify
+          (loc, "Int pattern has unexpected type:")
+          (path_typ env path) Tint env;
         [ (path, { ptyp = Tint; pat = Tp_int (loc, i) }) ]
     | Plit_char (loc, c) ->
-        unify (loc, "Char pattern has unexpected type:") (path_typ env path) Tu8;
+        unify
+          (loc, "Char pattern has unexpected type:")
+          (path_typ env path) Tu8 env;
         [ (path, { ptyp = Tu8; pat = Tp_char (loc, c) }) ]
     | Por (_, pats) ->
         (* Don't add to pattern *)
@@ -881,7 +889,9 @@ module Make (C : Core) (R : Recs) = struct
 
             let ret = convert d.ret_env d.ret_expr in
 
-            unify (d.loc, "Match expression does not match:") ret_typ ret.typ;
+            unify
+              (d.loc, "Match expression does not match:")
+              ret_typ ret.typ env;
             ret
         | Var ({ path; loc; d; patterns; pltyp }, id) ->
             (* Bind the variable *)

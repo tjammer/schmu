@@ -125,19 +125,20 @@ let rec unify down t1 t2 =
         ()
     | _ -> if down then raise (Unify (Some (t1, t2))) else raise (Unify None)
 
-let unify info t1 t2 =
+let unify info t1 t2 env =
+  let mn = Env.modpath env in
   try unify false t1 t2 with
   | Unify ts ->
       let loc, pre = info in
       let msg =
         Printf.sprintf "%s Expected type %s but got type %s" pre
-          (string_of_type t1) (string_of_type t2)
+          (string_of_type t1 mn) (string_of_type t2 mn)
       in
       let suffix =
         match ts with
         | Some (a, b) ->
-            Printf.sprintf ".\nCannot unify types %s and %s" (string_of_type a)
-              (string_of_type b)
+            Printf.sprintf ".\nCannot unify types %s and %s"
+              (string_of_type a mn) (string_of_type b mn)
         | None -> ""
       in
       raise (Error (loc, msg ^ suffix))

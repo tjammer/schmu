@@ -114,6 +114,7 @@ type t = {
   externals : ext Etbl.t;
       (* externals won't collide between scopes and modules, thus we keep a reference type here *)
   in_mut : int ref;
+  modpath : Path.t;
 }
 
 type warn_kind = Unused | Unmutated | Unused_mod
@@ -141,11 +142,12 @@ let empty_scope kind =
     modules = Map.empty;
   }
 
-let empty () =
+let empty modpath =
   {
     values = [ empty_scope (Sfunc (Hashtbl.create 64)) ];
     externals = Etbl.create 64;
     in_mut = ref 0;
+    modpath;
   }
 
 let decap_exn env =
@@ -540,3 +542,9 @@ let externals env =
 
 let open_mutation env = incr env.in_mut
 let close_mutation env = decr env.in_mut
+
+let open_module_scope name env =
+  { env with modpath = Path.append name env.modpath }
+
+let close_module_scope env = { env with modpath = Path.pop env.modpath }
+let modpath env = env.modpath

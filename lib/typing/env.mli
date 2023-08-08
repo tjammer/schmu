@@ -48,7 +48,7 @@ type ext = {
 val def_value : value
 (** Default value, everything is false *)
 
-val empty : unit -> t
+val empty : Path.t -> t
 
 val add_value : key -> value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
@@ -111,3 +111,7 @@ val find_ctor_opt : key -> t -> label option
 
 val externals : t -> ext list
 (** [externals env] returns a list of all external function declarations *)
+
+val open_module_scope : string -> t -> t
+val close_module_scope : t -> t
+val modpath : t -> Path.t
