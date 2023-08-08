@@ -67,6 +67,9 @@ let check_annot loc l r =
     in
     raise (Error (loc, msg))
 
+let main_path = Path.Pid "schmu"
+let is_module = function Path.Pid "schmu" -> false | Pid _ | Pmod _ -> true
+
 let check_unused = function
   | Ok () -> ()
   | Error errors ->
@@ -1319,7 +1322,7 @@ let rec convert_module env sign prog check_ret mname =
 
   let _, _, touched, unused = Env.close_function env in
   let has_sign = match sign with [] -> false | _ -> true in
-  if (not (Option.is_some mname)) || has_sign then check_unused unused;
+  if (not (is_module mname)) || has_sign then check_unused unused;
 
   let items = Exclusivity.check_items touched items in
 
@@ -1367,7 +1370,7 @@ and convert_prog env items ~mname modul =
     | Module ((loc, id), sign, prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
-        let mname = Path.append id (generate_module_path mname) in
+        let mname = Path.append id mname in
 
         (* Save uniq_tbl state as well as lambda state *)
         let uniq_tbl_bk = !uniq_tbl in
@@ -1376,9 +1379,7 @@ and convert_prog env items ~mname modul =
         reset lambda_id_state;
 
         let tempenv = Env.open_function env in
-        let _, moditems, newm =
-          convert_module tempenv sign prog true (Some mname)
-        in
+        let _, moditems, newm = convert_module tempenv sign prog true mname in
         let _ = Env.close_function tempenv in
 
         uniq_tbl := uniq_tbl_bk;
@@ -1398,7 +1399,7 @@ and convert_prog env items ~mname modul =
         in
         let m = add_module loc id newm ~into:m in
 
-        let moditems = List.map (fun item -> (Some mname, item)) moditems in
+        let moditems = List.map (fun item -> (mname, item)) moditems in
         let items = Tl_module moditems :: items in
         (env, items, m)
     | Module_alias ((loc, key), mid) -> (
@@ -1515,7 +1516,6 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
   let items = List.rev !Module.poly_funcs @ items in
 
   (* print_endline (String.concat ", " (List.map string_of_type typeinsts)); *)
-  let m = if Option.is_some mname then Some m else None in
   ({ externals; items }, m)
 
 let typecheck (prog : Ast.prog) =
@@ -1531,7 +1531,7 @@ let typecheck (prog : Ast.prog) =
 
   (* Ignore unused binding warnings *)
   let msg_fn _ _ _ = "" in
-  let mname = None in
+  let mname = main_path in
   let tree, _ = to_typed ~mname ~check_ret:false msg_fn ~prelude:false prog in
   let typ = get_last_type (List.rev tree.items) in
   print_endline (show_typ typ);

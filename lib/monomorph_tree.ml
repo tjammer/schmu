@@ -408,8 +408,8 @@ type morph_param = {
          If a value with allocation is returned, they are marked for the parent scope.
          Otherwise freed *)
   toplvl : bool;
-  mname : Path.t option; (* Module name *)
-  mainmodule : Path.t option;
+  mname : Path.t; (* Module name *)
+  mainmodule : Path.t;
 }
 
 let no_var =
@@ -1056,10 +1056,8 @@ let reconstr_module_username ~mname ~mainmodule username =
      polymorphic the [unique_name] also prepends the module. Their username will stay intact so we
      don't create names like prelude_prelude_thing. In order to match their queried name, we
      convert to the absolute_module_name before adding them to the environment. *)
-  let imported = Option.equal Path.equal mname mainmodule |> not in
-  match mname with
-  | Some mname when imported -> Module.absolute_module_name ~mname username
-  | None | Some _ -> username
+  let imported = Path.equal mname mainmodule |> not in
+  if imported then Module.absolute_module_name ~mname username else username
 
 let rec_fs_to_env p (username, uniq, typ) =
   let ftyp = cln p typ in

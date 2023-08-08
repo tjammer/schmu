@@ -58,7 +58,7 @@ let run file
   try
     Parse.parse file >>= fun prog ->
     Ok
-      (let mname = if modul then Some (Path.Pid outname) else None in
+      (let mname = if modul then Path.Pid outname else Typing.main_path in
        let ttree, m = Typing.to_typed ~mname ~prelude fmt_msg_fn prog in
 
        if check_only then ()
@@ -70,7 +70,7 @@ let run file
          if dump_llvm then Llvm.dump_module Codegen.the_module;
          if modul then (
            let modfile = open_out (outname ^ ".smi") in
-           Module.to_channel modfile ~outname (Option.get m);
+           Module.to_channel modfile ~outname m;
            close_out modfile)
          else if compile_only then ()
          else Link.link outname objects cargs))

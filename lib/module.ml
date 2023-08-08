@@ -38,17 +38,14 @@ let sexp_of_t m =
    if the global function exists. *)
 
 let empty = { s = []; i = [] }
-let generate_module_path = function Some m -> m | None -> Path.Pid "schmu"
 
 (* For named functions *)
 let unique_name ~mname name uniq =
-  let mname = generate_module_path mname in
   match uniq with
   | None -> Path.mod_name mname ^ "_" ^ name
   | Some n -> Path.mod_name mname ^ "_" ^ name ^ "__" ^ string_of_int n
 
 let lambda_name ~mname id =
-  let mname = generate_module_path mname in
   "__fun" ^ "_" ^ Path.mod_name mname ^ string_of_int id
 
 let absolute_module_name ~mname fname = "_" ^ Path.mod_name mname ^ "_" ^ fname
@@ -73,9 +70,7 @@ let add_fun loc ~mname name uniq (abs : Typed_tree.abstraction) m =
     { m with i = Mpoly_fun (loc, abs, name, uniq) :: m.i }
   else
     let call = unique_name ~mname name uniq in
-    let module_var =
-      absolute_module_name ~mname:(generate_module_path mname) name
-    in
+    let module_var = absolute_module_name ~mname name in
     let name = { user = name; call; module_var } in
     { m with i = Mfun (loc, type_of_func abs.func, name) :: m.i }
 
@@ -95,9 +90,7 @@ let add_rec_block loc ~mname funs m =
 let add_external loc t name ~mname cname ~closure m =
   let closure = match clean t with Tfun _ -> closure | _ -> false in
   let call = match cname with Some s -> s | None -> name in
-  let module_var =
-    absolute_module_name ~mname:(generate_module_path mname) name
-  in
+  let module_var = absolute_module_name ~mname name in
   let name = { user = name; call; module_var } in
   { m with i = Mext (loc, t, name, closure) :: m.i }
 
@@ -406,14 +399,14 @@ let rec map_item ~mname ~f = function
          the body as well? *)
       (* Change name of poly func to module-unique name to prevent name clashes from
          different modules *)
-      let item = (Some mname, Typed_tree.Tl_function (l, n, u, abs)) in
+      let item = (mname, Typed_tree.Tl_function (l, n, u, abs)) in
       poly_funcs := item :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
       Mpoly_fun (l, abs, n, u)
   | Mmutual_rec (l, decls) ->
       let decls = List.map (fun (l, n, u, t) -> (l, n, u, f t)) decls in
       let mname_decls = List.map (fun (_, n, u, t) -> (n, u, t)) decls in
-      let item = (Some mname, Typed_tree.Tl_mutual_rec_decls mname_decls) in
+      let item = (mname, Typed_tree.Tl_mutual_rec_decls mname_decls) in
       poly_funcs := item :: !poly_funcs;
       Mmutual_rec (l, decls)
   | Mmodule (l, name, t) ->
