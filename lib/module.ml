@@ -467,62 +467,9 @@ and canonize_t mname m =
   in
   { s; i }
 
-let read_module ~regeneralize name =
-  let mname = Path.Pid name in
-  match Hashtbl.find_opt module_cache mname with
-  | Some r -> Ok r
-  | None -> (
-      (* TODO figure out nested local opens *)
-      try
-        let c = open_in (find_file name ".smi") in
-        let m =
-          match Sexp.input c |> Result.map t_of_sexp with
-          | Ok t ->
-              close_in c;
-              let mname = Path.Pid name in
-              let m = (Cfile name, map_t ~mname ~f:regeneralize t) in
-              Hashtbl.add module_cache mname m;
-              Ok m
-          | Error _ ->
-              close_in c;
-              Error ("Could not deserialize file: " ^ name)
-        in
-        m
-      with Not_found -> Error ("Could not open file: " ^ name))
-
 let modpath_of_kind = function Clocal p -> p | Cfile name -> Path.Pid name
 
-let register_module env mname (kind, modul) =
-  (* Modules must be unique *)
-  if Hashtbl.mem module_cache mname then Error ()
-  else (
-    Hashtbl.add module_cache mname (kind, modul);
-    let key = Path.get_hd mname in
-    let env = Env.add_module ~key ~mname env in
-    Ok env)
-
-let find_module env ~regeneralize name loc =
-  (* We first search the env for local modules. Then we try read the module the normal way *)
-  let r =
-    match Env.find_module_opt name env with
-    | Some name -> (
-        match Hashtbl.find_opt module_cache name with
-        | Some r -> Ok r
-        | None ->
-            let msg =
-              Printf.sprintf "Module %s should be local but cannot be found"
-                (Path.show name)
-            in
-            raise (Typed_tree.Error (loc, msg)))
-    | None -> read_module ~regeneralize name
-  in
-  match r with
-  | Ok (kind, m) -> (modpath_of_kind kind, m)
-  | Error s ->
-      let msg = Printf.sprintf "Module %s: %s" name s in
-      raise (Typed_tree.Error (loc, msg))
-
-let add_to_env env (mname, m) =
+let rec add_to_env env (mname, m) =
   match m.s with
   | [] ->
       List.fold_left
@@ -557,15 +504,16 @@ let add_to_env env (mname, m) =
                       { def_value with typ; imported = Some (mname, `Schmu) }
                       l env))
                 env ds
-          | Mmodule (loc, key, m) ->
+          | Mmodule (loc, key, m) -> (
               let mname = Path.append key mname in
-              if not (Hashtbl.mem module_cache mname) then
-                (* Add to cache *)
-                match register_module env mname (Clocal mname, m) with
-                | Ok env -> env
-                | Error () ->
-                    raise (Typed_tree.Error (loc, "Cannot add module"))
-              else Env.add_module ~key ~mname env)
+              match Hashtbl.find_opt module_cache mname with
+              | None -> (
+                  (* Add to cache *)
+                  match register_module env loc mname (Clocal mname, m) with
+                  | Ok env -> env
+                  | Error () ->
+                      raise (Typed_tree.Error (loc, "Cannot add module")))
+              | Some (_, scope, _) -> Env.add_module ~key ~mname scope env))
         env m.i
   | l ->
       List.fold_left
@@ -582,6 +530,67 @@ let add_to_env env (mname, m) =
               let imported = Some (mname, `Schmu) in
               Env.(add_value name { def_value with typ; imported } loc env))
         env l
+
+and make_scope env loc mname m =
+  let env = Env.open_module_scope env loc (Path.get_hd mname) in
+  let env = add_to_env env (mname, m) in
+  Env.pop_scope env
+
+and read_module env loc ~regeneralize name =
+  let mname = Path.Pid name in
+  match Hashtbl.find_opt module_cache mname with
+  | Some r -> Ok r
+  | None -> (
+      (* TODO figure out nested local opens *)
+      try
+        let c = open_in (find_file name ".smi") in
+        let m =
+          match Sexp.input c |> Result.map t_of_sexp with
+          | Ok t ->
+              close_in c;
+              let mname = Path.Pid name in
+              let kind, m = (Cfile name, map_t ~mname ~f:regeneralize t) in
+              (* Make module scope *)
+              let scope = make_scope env loc mname m in
+              Hashtbl.add module_cache mname (kind, scope, m);
+              Ok (kind, scope, m)
+          | Error _ ->
+              close_in c;
+              Error ("Could not deserialize file: " ^ name)
+        in
+        m
+      with Not_found -> Error ("Could not open file: " ^ name))
+
+and register_module env loc mname (kind, modul) =
+  (* Modules must be unique *)
+  if Hashtbl.mem module_cache mname then Error ()
+  else
+    let scope = make_scope env loc mname modul in
+    Hashtbl.add module_cache mname (kind, scope, modul);
+    let key = Path.get_hd mname in
+    let env = Env.add_module ~key ~mname scope env in
+    Ok env
+
+let find_module env loc ~regeneralize name =
+  (* We first search the env for local modules. Then we try read the module the normal way *)
+  let r =
+    match Env.find_module_opt name env with
+    | Some name -> (
+        match Hashtbl.find_opt module_cache name with
+        | Some r -> Ok r
+        | None ->
+            let msg =
+              Printf.sprintf "Module %s should be local but cannot be found"
+                (Path.show name)
+            in
+            raise (Typed_tree.Error (loc, msg)))
+    | None -> read_module env loc ~regeneralize name
+  in
+  match r with
+  | Ok (kind, scope, m) -> (modpath_of_kind kind, scope, m)
+  | Error s ->
+      let msg = Printf.sprintf "Module %s: %s" name s in
+      raise (Typed_tree.Error (loc, msg))
 
 let rev { s; i } = { s = List.rev s; i = List.rev i }
 

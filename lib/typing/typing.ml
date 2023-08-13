@@ -247,7 +247,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   and import_path loc env = function
     | Path.Pid _ as id -> find env id ""
     | Path.Pmod (md, tl) ->
-        let modul = Module.find_module env ~regeneralize md loc in
+        let modul = Module.find_module env loc ~regeneralize md in
         let env = Module.add_to_env env modul in
         import_path loc env tl
   and type_list env = function
@@ -1390,7 +1390,7 @@ and convert_prog env items modul =
     | Module ((loc, id), sign, prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
-        let env = Env.open_module_scope id env in
+        let env = Env.append_modpath id env in
 
         (* Save uniq_tbl state as well as lambda state *)
         let uniq_tbl_bk = !uniq_tbl in
@@ -1422,7 +1422,7 @@ and convert_prog env items modul =
           List.map (fun item -> (Env.modpath env, item)) moditems
         in
         let items = Tl_module moditems :: items in
-        (Env.close_module_scope env, items, m)
+        (Env.pop_modpath env, items, m)
     | Module_alias ((loc, key), mid) -> (
         match Env.find_module_opt (Path.get_hd mid) env with
         | Some mname -> (Env.add_module ~key ~mname env, items, m)

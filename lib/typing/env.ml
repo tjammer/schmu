@@ -102,7 +102,7 @@ type scope = {
   ctors : label Map.t; (* Variant constructors *)
   types : (typ * bool) Map.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
-  modules : Path.t Map.t; (* Locally declared modules *)
+  modules : (Path.t * scope) Map.t; (* Locally declared modules *)
 }
 
 (* Reference types make it easy to track usage. As a consequence we have to keep the scopes themselves
@@ -266,9 +266,9 @@ let add_type name ~in_sig typ env =
       let types = Map.add name (t, in_sig) scope.types in
       { env with values = { scope with types } :: tl }
 
-let add_module ~key ~mname env =
+let add_module ~key ~mname scp env =
   let scope, tl = decap_exn env in
-  let modules = Map.add key mname scope.modules in
+  let modules = Map.add key (mname, scp) scope.modules in
   { env with values = { scope with modules } :: tl }
 
 let open_function env =
@@ -277,35 +277,6 @@ let open_function env =
   | { kind = Sfunc _ | Sfunc_cont _; _ } :: _ -> ()
   | _ -> failwith "Internal Error: Module not finished in env (function)");
   { env with values = empty_scope (Sfunc (Hashtbl.create 64)) :: env.values }
-
-let open_module env loc name =
-  let used = ref false in
-  (match env.values with
-  | { kind = Sfunc _ | Sfunc_cont _; _ } :: _ -> ()
-  | _ -> failwith "Internal Error: Module not finished in env");
-  { env with values = empty_scope (Smodule { name; loc; used }) :: env.values }
-
-let finish_module env =
-  (match env.values with
-  | { kind = Smodule _; _ } :: _ -> ()
-  | _ -> failwith "Internal Error: Module not opened in env (cont)");
-  let scope = empty_scope (Sfunc_cont (Hashtbl.create 64)) in
-  { env with values = scope :: env.values }
-
-let close_module env =
-  (match env.values with
-  | { kind = Sfunc _ | Sfunc_cont _; _ } :: _ -> ()
-  | _ -> failwith "Internal Error: Module not opened in env (close)");
-  let rec aux before = function
-    | { kind = Smodule _; _ } :: tl ->
-        (* Found the module *)
-        (* TODO check for unused *)
-        List.rev_append before tl
-    | ({ kind = Sfunc _ | Sfunc_cont _; _ } as scope) :: tl ->
-        aux (scope :: before) tl
-    | [] -> failwith "Internal Error: Empty scope on close_module"
-  in
-  { env with values = aux [] env.values }
 
 let find_unused ret tbl =
   Hashtbl.fold
@@ -500,7 +471,7 @@ let find_module_opt name env =
     | [] -> None
     | scope :: tl -> (
         match Map.find_opt name scope.modules with
-        | Some t -> Some t
+        | Some t -> Some (fst t)
         | None -> aux tl)
   in
   aux env.values
@@ -543,8 +514,23 @@ let externals env =
 let open_mutation env = incr env.in_mut
 let close_mutation env = decr env.in_mut
 
-let open_module_scope name env =
+let append_modpath name env =
   { env with modpath = Path.append name env.modpath }
 
-let close_module_scope env = { env with modpath = Path.pop env.modpath }
+let pop_modpath env = { env with modpath = Path.pop env.modpath }
 let modpath env = env.modpath
+
+let open_module_scope env loc name =
+  let used = ref false in
+  { env with values = empty_scope (Smodule { name; loc; used }) :: env.values }
+
+let pop_scope env =
+  match env.values with
+  | ({ kind = Smodule _; _ } as hd) :: _ -> hd
+  | _ -> failwith "Internal Error: Not a module scope in [pop_scope]"
+
+let open_module env name =
+  ignore (Sfunc_cont (Hashtbl.create 64));
+  ignore env;
+  ignore name;
+  failwith "TODO open module"

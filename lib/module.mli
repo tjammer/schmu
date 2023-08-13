@@ -42,16 +42,23 @@ val add_module : loc -> string -> t -> into:t -> t
 
 type cache_kind = Cfile of string | Clocal of Path.t
 
-val module_cache : (Path.t, cache_kind * t) Hashtbl.t
+val module_cache : (Path.t, cache_kind * Env.scope * t) Hashtbl.t
 val clear_cache : unit -> unit
-val register_module : Env.t -> Path.t -> cache_kind * t -> (Env.t, unit) result
+
+val register_module :
+  Env.t -> Ast.loc -> Path.t -> cache_kind * t -> (Env.t, unit) result
+
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
 val paths : string list ref
 val prelude_path : string option ref
 val find_file : string -> string -> string
 
 val find_module :
-  Env.t -> regeneralize:(typ -> typ) -> string -> Ast.loc -> Path.t * t
+  Env.t ->
+  Ast.loc ->
+  regeneralize:(typ -> typ) ->
+  string ->
+  Path.t * Env.scope * t
 
 val add_to_env : Env.t -> Path.t * t -> Env.t
 val to_channel : out_channel -> outname:string -> t -> unit
