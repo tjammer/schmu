@@ -644,7 +644,7 @@ end = struct
     | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, exprs, cases) -> convert_match env loc exprs cases
-    | Local_open (loc, modul, blk) -> convert_open env loc modul blk
+    | Local_open (loc, modul, expr) -> convert_open env loc modul expr
     | Fmt (loc, exprs) -> convert_fmt env loc exprs
 
   and convert_var env loc id =

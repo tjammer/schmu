@@ -40,16 +40,6 @@
       | Some Dmove -> Dmove
       | Some Dnorm -> (* Won't happen but w/e *) Dnorm
       | None -> Dnorm
-
-    let make_path head l =
-      let p =
-        match List.rev l with
-        | hd :: tl ->
-            List.fold_right (fun (_, id) path -> Path.Pmod (id, path)) tl (Pid (snd hd))
-        | [] -> failwith "unreachable"
-      in
-      Path.Pmod (snd head, p)
-
 %}
 
 %token Equal
@@ -187,8 +177,8 @@ modul:
 
 %inline path:
   | id = ident { $loc, Path.Pid (snd id) }
-  | id = ident; Div_i; l = separated_nonempty_list(Div_i, ident)
-    { $loc, make_path id l }
+  | id = ident; Div_i; lst = separated_nonempty_list(Div_i, ident)
+    { $loc, flatten_open (id :: lst) }
 
 %inline defrecord:
   | Type; sexp_typename; bracs(nonempty_list(sexp_type_decl))
