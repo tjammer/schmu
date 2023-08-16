@@ -158,7 +158,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let fn_kind = if param then Closure [] else Simple in
 
   let find env t tick =
-    match Env.find_type_opt t env with
+    match Env.find_type_opt loc t env with
     | Some t -> fst t
     | None ->
         raise
@@ -633,7 +633,7 @@ end = struct
     | Fmt (loc, exprs) -> convert_fmt env loc exprs
 
   and convert_var env loc id =
-    match Env.query_val_opt id env with
+    match Env.query_val_opt loc id env with
     | Some t ->
         let typ = instantiate t.typ in
         let attr = { const = t.const; global = t.global; mut = t.mut } in
@@ -825,7 +825,8 @@ end = struct
     match typ with
     | Tfun (tparams, ret, kind) ->
         (* Make sure the types match *)
-        unify (loc, "Function") (Env.find_val (Path.Pid name) env).typ typ env;
+        unify (loc, "Function") (Env.find_val loc (Path.Pid name) env).typ typ
+          env;
 
         (* Add the generalized type to the env to keep the closure there *)
         let env = Env.change_type name typ env in
@@ -1147,7 +1148,7 @@ end = struct
 
           let rec aux = function
             | (loc, (n, u, abs)) :: tl ->
-                let t = Env.find_val (Path.Pid n) env in
+                let t = Env.find_val loc (Path.Pid n) env in
                 let decls, cont = aux tl in
                 let expr = Function (n, u, abs, cont) in
                 ( (n, u, t.typ) :: decls,
@@ -1461,7 +1462,7 @@ and convert_prog env items modul =
         let env, funcs = List.fold_left_map f env funcs in
         let rec aux env = function
           | (l, n, u, abs) :: tl ->
-              let t = Env.find_val (Path.Pid n) env in
+              let t = Env.find_val loc (Path.Pid n) env in
               (* Generalize the functions *)
               let typ = generalize t.typ in
               let env = Env.change_type n typ env in

@@ -82,7 +82,7 @@ let get_variant env loc (_, name) annot =
       | Some { index; typename } ->
           (* We get the ctor type from the variant *)
           let ctor, variant =
-            match Env.query_type ~instantiate typename env with
+            match Env.query_type ~instantiate loc typename env with
             | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
             | _ -> failwith "Internal Error: Not a variant"
           in
@@ -660,10 +660,10 @@ module Make (C : Core) (R : Recs) = struct
 
   let add_ignore name value loc env =
     let env = Env.(add_value name value loc env) in
-    ignore (Env.query_val_opt (Path.Pid name) env);
+    ignore (Env.query_val_opt loc (Path.Pid name) env);
     env
 
-  let path_typ env p = Env.(find_val (Path.Pid (expr_name p)) env).typ
+  let path_typ loc env p = Env.(find_val loc (Path.Pid (expr_name p)) env).typ
 
   let rec type_pattern env (path, pat) =
     (* This function got a little more complicated since we expand or-patterns
@@ -673,11 +673,11 @@ module Make (C : Core) (R : Recs) = struct
        building the decision tree, record patterns (which add new columns) can
        be visited more efficiently *)
     | Ast.Pctor ((loc, name), payload) -> (
-        let annot = make_annot (path_typ env path) in
+        let annot = make_annot (path_typ loc env path) in
         let _, ctor, variant = get_variant env loc (loc, name) annot in
         unify
           (loc, "Variant pattern has unexpected type:")
-          (path_typ env path) variant env;
+          (path_typ loc env path) variant env;
         match (ctor.ctyp, payload) with
         | Some typ, Some p ->
             let env =
@@ -700,15 +700,15 @@ module Make (C : Core) (R : Recs) = struct
             [ (path, { ptyp = variant; pat }) ]
         | _ -> mismatch_err loc name ctor.ctyp payload)
     | Pvar (loc, name) ->
-        let ptyp = path_typ env path in
+        let ptyp = path_typ loc env path in
         let pat = Tp_var (loc, name) in
         [ (path, { ptyp; pat }) ]
     | Pwildcard loc ->
-        let ptyp = path_typ env path in
+        let ptyp = path_typ loc env path in
         let pat = Tp_wildcard loc in
         [ (path, { ptyp; pat }) ]
     | Ptup (loc, pats) ->
-        let typ = path_typ env path in
+        let typ = path_typ loc env path in
         let pats =
           List.mapi
             (fun i (tloc, pat) ->
@@ -752,11 +752,11 @@ module Make (C : Core) (R : Recs) = struct
                (path, { ptyp = typ; pat }))
     | Precord (loc, pats) ->
         let labelset = List.map (fun (_, name, _) -> name) pats in
-        let annot = make_annot (path_typ env path) in
+        let annot = make_annot (path_typ loc env path) in
         let ptyp = get_record_type env loc labelset annot in
         unify
           (loc, "Record pattern has unexpected type:")
-          (path_typ env path) ptyp env;
+          (path_typ loc env path) ptyp env;
 
         let index_fields = calc_index_fields env loc pats ptyp in
         let fields =
@@ -792,12 +792,12 @@ module Make (C : Core) (R : Recs) = struct
     | Plit_int (loc, i) ->
         unify
           (loc, "Int pattern has unexpected type:")
-          (path_typ env path) Tint env;
+          (path_typ loc env path) Tint env;
         [ (path, { ptyp = Tint; pat = Tp_int (loc, i) }) ]
     | Plit_char (loc, c) ->
         unify
           (loc, "Char pattern has unexpected type:")
-          (path_typ env path) Tu8 env;
+          (path_typ loc env path) Tu8 env;
         [ (path, { ptyp = Tu8; pat = Tp_char (loc, c) }) ]
     | Por (_, pats) ->
         (* Don't add to pattern *)
@@ -1280,10 +1280,10 @@ module Make (C : Core) (R : Recs) = struct
     let f (env, i, ret) decl =
       match Ast.(decl.pattern) with
       | Ast.Pvar _ -> (env, i + 1, ret)
-      | Pwildcard _ ->
+      | Pwildcard loc ->
           (* expr_name was added before to env in [handle_param].
              Make sure it's marked as used *)
-          ignore (Env.query_val_opt (Path.Pid (expr_name [ i ])) env);
+          ignore (Env.query_val_opt loc (Path.Pid (expr_name [ i ])) env);
           (env, i + 1, ret)
       | (Ptup (loc, _) | Precord (loc, _)) as p ->
           let env, binds = bind_pattern env loc i p in

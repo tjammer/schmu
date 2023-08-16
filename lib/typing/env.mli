@@ -80,10 +80,10 @@ val close_function : t -> t * closed list * touched list * unused
 val open_module : t -> Ast.loc -> string -> t
 (** Like OCaml open *)
 
-val find_val : Path.t -> t -> return
-val find_val_opt : Path.t -> t -> return option
+val find_val : Ast.loc -> Path.t -> t -> return
+val find_val_opt : Ast.loc -> Path.t -> t -> return option
 
-val query_val_opt : Path.t -> t -> return option
+val query_val_opt : Ast.loc -> Path.t -> t -> return option
 (** [query_opt key env] is like find_val_opt, but marks [key] as
      being used in the current scope (e.g. a closure) *)
 
@@ -91,11 +91,11 @@ val open_mutation : t -> unit
 val close_mutation : t -> unit
 
 (* bool: in signature *)
-val find_type_opt : Path.t -> t -> (typ * bool) option
-val find_type : Path.t -> t -> typ * bool
+val find_type_opt : Ast.loc -> Path.t -> t -> (typ * bool) option
+val find_type : Ast.loc -> Path.t -> t -> typ * bool
 val find_type_same_module : string -> t -> (typ * bool) option
 
-val query_type : instantiate:(typ -> typ) -> Path.t -> t -> typ
+val query_type : instantiate:(typ -> typ) -> Ast.loc -> Path.t -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)
 
 val find_module_opt : string -> t -> Path.t option
@@ -103,7 +103,7 @@ val find_module_opt : string -> t -> Path.t option
 val find_label_opt : key -> t -> label option
 (** [find_label_opt labelname env] returns the name of first record with a matching label *)
 
-val find_labelset_opt : string list -> t -> typ option
+val find_labelset_opt : Ast.loc -> string list -> t -> typ option
 (** [find_labelset_opt labelnames env] returns the first record type with a matching labelset *)
 
 val find_ctor_opt : key -> t -> label option

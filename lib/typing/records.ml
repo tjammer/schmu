@@ -61,14 +61,14 @@ module Make (C : Core) = struct
     match annot with
     | Some t -> t
     | None -> (
-        match Env.find_labelset_opt labelset env with
+        match Env.find_labelset_opt loc labelset env with
         | Some t -> instantiate t
         | None -> (
             (* There is a wrong label somewhere. We get the type of the first label and let
                it fail below.
                The list can never be empty due to the grammar *)
             match Env.find_label_opt (List.hd labelset) env with
-            | Some t -> Env.query_type ~instantiate t.typename env
+            | Some t -> Env.query_type ~instantiate loc t.typename env
             | None ->
                 let msg =
                   Printf.sprintf "Cannot find record with label %s"
@@ -205,7 +205,7 @@ module Make (C : Core) = struct
     | _ -> (
         match Env.find_label_opt id env with
         | Some { index; typename } -> (
-            let record_t = Env.query_type ~instantiate typename env in
+            let record_t = Env.query_type ~instantiate loc typename env in
             unify
               ( loc,
                 "Field access of record "

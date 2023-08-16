@@ -373,20 +373,17 @@ let close_function env =
   in
   aux [] [] [] env.values
 
-let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) key env
-    =
+let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) loc key
+    env =
   (* Find the start of the path in some scope. Then traverse modules until we find the type *)
   let key = Path.rm_name env.modpath key in
-  let dummy_loc =
-    (* TODO use a real loc here *) (Lexing.dummy_pos, Lexing.dummy_pos)
-  in
   let rec aux scopes = function
     | Path.Pid key -> find_value key scopes
     | Pmod (hd, tl) -> (
         match find_module hd scopes with
         | Some scope -> traverse_module scope tl
         | None ->
-            let _, scope = env.find_module env dummy_loc hd in
+            let _, scope = env.find_module env loc hd in
             traverse_module scope tl)
   and find_value key = function
     | [] -> None
@@ -409,7 +406,7 @@ let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) key env
   in
   aux env.values key
 
-let find_val_opt key env =
+let find_val_opt loc key env =
   find_general
     ~find:(fun key scope -> Map.find_opt key scope.valmap)
     ~found:(fun vl ->
@@ -422,10 +419,10 @@ let find_val_opt key env =
         mut = vl.mut;
         imported;
       })
-    key env
+    loc key env
 
-let find_val key env =
-  match find_val_opt key env with Some vl -> vl | None -> raise Not_found
+let find_val loc key env =
+  match find_val_opt loc key env with Some vl -> vl | None -> raise Not_found
 
 let mark_used name kind mut =
   match kind with
@@ -437,7 +434,7 @@ let mark_used name kind mut =
       | None -> ())
   | Smodule usage -> usage.used := true
 
-let query_val_opt key env =
+let query_val_opt loc key env =
   (* Copies some code from [find_general] *)
   let rec add lvl value values =
     match values with
@@ -475,16 +472,13 @@ let query_val_opt key env =
   in
 
   let key = Path.rm_name env.modpath key in
-  let dummy_loc =
-    (* TODO use a real loc here *) (Lexing.dummy_pos, Lexing.dummy_pos)
-  in
   let rec aux lvl scopes = function
     | Path.Pid key -> find_value lvl key scopes
     | Pmod (hd, tl) -> (
         match find_module lvl hd scopes with
         | Some scope -> traverse_module lvl scope tl
         | None ->
-            let _, scope = env.find_module env dummy_loc hd in
+            let _, scope = env.find_module env loc hd in
             traverse_module lvl scope tl)
   and find_value lvl key = function
     | [] -> None
@@ -511,12 +505,12 @@ let query_val_opt key env =
 
   aux 0 env.values key
 
-let find_type_opt key env =
+let find_type_opt loc key env =
   find_general
     ~find:(fun key scope -> Map.find_opt key scope.types)
-    ~found:Fun.id key env
+    ~found:Fun.id loc key env
 
-let find_type key env = find_type_opt key env |> Option.get
+let find_type loc key env = find_type_opt loc key env |> Option.get
 
 let find_type_same_module key env =
   (* Similar to [find_type_opt] but when we reach a Smodule scope and haven't found anything,
@@ -531,7 +525,8 @@ let find_type_same_module key env =
   in
   aux env.values
 
-let query_type ~instantiate key env = find_type key env |> fst |> instantiate
+let query_type ~instantiate loc key env =
+  find_type loc key env |> fst |> instantiate
 
 let find_module_opt name env =
   let rec aux = function
@@ -553,12 +548,12 @@ let find_label_opt key env =
   in
   aux env.values
 
-let find_labelset_opt labels env =
+let find_labelset_opt loc labels env =
   let rec aux = function
     | [] -> None
     | scope :: tl -> (
         match Lmap.find_opt (Labelset.of_list labels) scope.labelsets with
-        | Some name -> Some (find_type name env |> fst)
+        | Some name -> Some (find_type loc name env |> fst)
         | None -> aux tl)
   in
   aux env.values
