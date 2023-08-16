@@ -14,7 +14,7 @@ module Cmap = Map.Make (Col_path)
 
 module type Core = sig
   val convert : Env.t -> Ast.expr -> typed_expr
-  val convert_var : Env.t -> Ast.loc -> string -> typed_expr
+  val convert_var : Env.t -> Ast.loc -> Path.t -> typed_expr
   val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
 end
 
@@ -660,10 +660,10 @@ module Make (C : Core) (R : Recs) = struct
 
   let add_ignore name value loc env =
     let env = Env.(add_value name value loc env) in
-    ignore (Env.query_val_opt name env);
+    ignore (Env.query_val_opt (Path.Pid name) env);
     env
 
-  let path_typ env p = Env.(find_val (expr_name p) env).typ
+  let path_typ env p = Env.(find_val (Path.Pid (expr_name p)) env).typ
 
   let rec type_pattern env (path, pat) =
     (* This function got a little more complicated since we expand or-patterns
@@ -866,7 +866,7 @@ module Make (C : Core) (R : Recs) = struct
        be part of [compile_matches] eventually *)
 
     (* Magic value, see above *)
-    let expr i = convert_var env all_loc (expr_name i) in
+    let expr i = convert_var env all_loc (Path.Pid (expr_name i)) in
 
     let ctorenv env ctor i loc =
       match ctor with
@@ -1202,7 +1202,7 @@ module Make (C : Core) (R : Recs) = struct
         raise (Error (loc, "Unexpected pattern in declaration"))
 
   (* Magic value, see above *)
-  let expr env i loc = convert_var env loc (expr_name i)
+  let expr env i loc = convert_var env loc (Path.Pid (expr_name i))
 
   let bind_pattern env loc i p =
     let typed = type_pattern env ([ i ], p) in
@@ -1283,7 +1283,7 @@ module Make (C : Core) (R : Recs) = struct
       | Pwildcard _ ->
           (* expr_name was added before to env in [handle_param].
              Make sure it's marked as used *)
-          ignore (Env.query_val_opt (expr_name [ i ]) env);
+          ignore (Env.query_val_opt (Path.Pid (expr_name [ i ])) env);
           (env, i + 1, ret)
       | (Ptup (loc, _) | Precord (loc, _)) as p ->
           let env, binds = bind_pattern env loc i p in

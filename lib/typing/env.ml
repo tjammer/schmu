@@ -115,6 +115,7 @@ type t = {
       (* externals won't collide between scopes and modules, thus we keep a reference type here *)
   in_mut : int ref;
   modpath : Path.t;
+  find_module : t -> Ast.loc -> string -> Path.t * scope;
 }
 
 type warn_kind = Unused | Unmutated | Unused_mod
@@ -142,12 +143,13 @@ let empty_scope kind =
     modules = Map.empty;
   }
 
-let empty modpath =
+let empty find_module modpath =
   {
     values = [ empty_scope (Sfunc (Hashtbl.create 64)) ];
     externals = Etbl.create 64;
     in_mut = ref 0;
     modpath;
+    find_module;
   }
 
 let decap_exn env =
@@ -271,6 +273,13 @@ let add_module ~key ~mname scp env =
   let modules = Map.add key (mname, scp) scope.modules in
   { env with values = { scope with modules } :: tl }
 
+let add_module_alias loc ~key ~mname env =
+  ignore loc;
+  ignore key;
+  ignore mname;
+  ignore env;
+  failwith "TODO add module alias"
+
 let open_function env =
   (* Due to the ref, we have to create a new object every time *)
   (match env.values with
@@ -364,24 +373,56 @@ let close_function env =
   in
   aux [] [] [] env.values
 
-let find_val_opt key env =
-  let rec aux = function
+let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) key env
+    =
+  (* Find the start of the path in some scope. Then traverse modules until we find the type *)
+  let key = Path.rm_name env.modpath key in
+  let dummy_loc =
+    (* TODO use a real loc here *) (Lexing.dummy_pos, Lexing.dummy_pos)
+  in
+  let rec aux scopes = function
+    | Path.Pid key -> find_value key scopes
+    | Pmod (hd, tl) -> (
+        match find_module hd scopes with
+        | Some scope -> traverse_module scope tl
+        | None ->
+            let _, scope = env.find_module env dummy_loc hd in
+            traverse_module scope tl)
+  and find_value key = function
     | [] -> None
     | scope :: tl -> (
-        match Map.find_opt key scope.valmap with
-        | None -> aux tl
-        | Some vl ->
-            let imported = Option.map fst vl.imported in
-            Some
-              {
-                typ = vl.typ;
-                const = vl.const;
-                global = vl.global;
-                mut = vl.mut;
-                imported;
-              })
+        match find key scope with
+        | Some t -> Some (found t)
+        | None -> find_value key tl)
+  and find_module key = function
+    | [] -> None
+    | scope :: tl -> (
+        match Map.find_opt key scope.modules with
+        | Some (_, scope) -> Some scope
+        | None -> find_module key tl)
+  and traverse_module scope = function
+    | Path.Pid key -> Option.map found (find key scope)
+    | Pmod (hd, tl) -> (
+        match Map.find_opt hd scope.modules with
+        | Some (_, scope) -> traverse_module scope tl
+        | None -> None)
   in
-  aux env.values
+  aux env.values key
+
+let find_val_opt key env =
+  find_general
+    ~find:(fun key scope -> Map.find_opt key scope.valmap)
+    ~found:(fun vl ->
+      let imported = Option.map fst vl.imported in
+
+      {
+        typ = vl.typ;
+        const = vl.const;
+        global = vl.global;
+        mut = vl.mut;
+        imported;
+      })
+    key env
 
 let find_val key env =
   match find_val_opt key env with Some vl -> vl | None -> raise Not_found
@@ -397,7 +438,7 @@ let mark_used name kind mut =
   | Smodule usage -> usage.used := true
 
 let query_val_opt key env =
-  (* Add str to closures, up to the level where the value originates from *)
+  (* Copies some code from [find_general] *)
   let rec add lvl value values =
     match values with
     | scope :: tl when lvl > 0 -> (
@@ -409,45 +450,71 @@ let query_val_opt key env =
     | _ -> ()
   in
 
-  let rec aux scope_lvl = function
+  let found key lvl kind ({ typ; const; imported; global; mut; param = _ } as v)
+      =
+    let in_module =
+      match kind with Smodule _ -> true | Sfunc _ | Sfunc_cont _ -> false
+    in
+    if lvl > 0 then add lvl (key, v) env.values
+    else if (* Add values in modules to scope list *)
+            in_module then add 1 (key, v) env.values;
+    (* Mark value used, if it's not imported *)
+    mark_used (Path.Pid key) kind env.in_mut;
+    let imported = Option.map fst imported in
+    Some { typ; const; global; mut; imported }
+  in
+
+  let continue key lvl kind tl cont =
+    match kind with
+    | Sfunc _ ->
+        (* Increase scope level normally *)
+        cont (lvl + 1) key tl
+    | Sfunc_cont _ | Smodule _ ->
+        (* We are still in the same functionlike scope *)
+        cont lvl key tl
+  in
+
+  let key = Path.rm_name env.modpath key in
+  let dummy_loc =
+    (* TODO use a real loc here *) (Lexing.dummy_pos, Lexing.dummy_pos)
+  in
+  let rec aux lvl scopes = function
+    | Path.Pid key -> find_value lvl key scopes
+    | Pmod (hd, tl) -> (
+        match find_module lvl hd scopes with
+        | Some scope -> traverse_module lvl scope tl
+        | None ->
+            let _, scope = env.find_module env dummy_loc hd in
+            traverse_module lvl scope tl)
+  and find_value lvl key = function
     | [] -> None
     | scope :: tl -> (
         match Map.find_opt key scope.valmap with
-        | None -> (
-            match scope.kind with
-            | Sfunc _ ->
-                (* Increase scope level normally *)
-                aux (scope_lvl + 1) tl
-            | Sfunc_cont _ | Smodule _ ->
-                (* We are still in the same functionlike scope *)
-                aux scope_lvl tl)
-        | Some ({ typ; const; imported; global; mut; param = _ } as v) ->
-            (* If something is closed over, add to all env above (if scope_lvl > 0) *)
-            let in_module =
-              match scope.kind with
-              | Smodule _ -> true
-              | Sfunc _ | Sfunc_cont _ -> false
-            in
-            if scope_lvl > 0 then add scope_lvl (key, v) env.values
-            else if (* Add values in modules to scope list *)
-                    in_module then add 1 (key, v) env.values;
-            (* Mark value used, if it's not imported *)
-            mark_used (Path.Pid key) scope.kind env.in_mut;
-            let imported = Option.map fst imported in
-            Some { typ; const; global; mut; imported })
-  in
-  aux 0 env.values
-
-let find_type_opt key env =
-  (* TODO correct module? *)
-  let rec aux = function
+        | Some t -> found key lvl scope.kind t
+        | None -> continue key lvl scope.kind tl find_value)
+  and find_module lvl key = function
     | [] -> None
     | scope :: tl -> (
-        match Map.find_opt (Path.get_hd key) scope.types with
-        | Some t -> Some t
-        | None -> aux tl)
+        match Map.find_opt key scope.modules with
+        | Some (_, scope) -> Some scope
+        | None -> continue key lvl scope.kind tl find_module)
+  and traverse_module lvl scope = function
+    | Path.Pid key -> (
+        match Map.find_opt key scope.valmap with
+        | Some t -> found key lvl scope.kind t
+        | None -> None)
+    | Pmod (hd, tl) -> (
+        match Map.find_opt hd scope.modules with
+        | Some (_, scope) -> traverse_module lvl scope tl
+        | None -> None)
   in
-  aux env.values
+
+  aux 0 env.values key
+
+let find_type_opt key env =
+  find_general
+    ~find:(fun key scope -> Map.find_opt key scope.types)
+    ~found:Fun.id key env
 
 let find_type key env = find_type_opt key env |> Option.get
 
@@ -529,8 +596,15 @@ let pop_scope env =
   | ({ kind = Smodule _; _ } as hd) :: _ -> hd
   | _ -> failwith "Internal Error: Not a module scope in [pop_scope]"
 
-let open_module env name =
-  ignore (Sfunc_cont (Hashtbl.create 64));
-  ignore env;
-  ignore name;
-  failwith "TODO open module"
+let open_module env loc name =
+  let _, scope = env.find_module env loc name in
+  let cont = empty_scope (Sfunc_cont (Hashtbl.create 64)) in
+  { env with values = cont :: scope :: env.values }
+
+let fix_scope_loc scope loc =
+  let kind =
+    match scope.kind with
+    | Smodule usage -> Smodule { usage with loc }
+    | (Sfunc _ | Sfunc_cont _) as kind -> kind
+  in
+  { scope with kind }

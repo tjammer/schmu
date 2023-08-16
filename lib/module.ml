@@ -577,7 +577,7 @@ let find_module env loc ~regeneralize name =
     match Env.find_module_opt name env with
     | Some name -> (
         match Hashtbl.find_opt module_cache name with
-        | Some r -> Ok r
+        | Some (kind, scope, m) -> Ok (kind, Env.fix_scope_loc scope loc, m)
         | None ->
             let msg =
               Printf.sprintf "Module %s should be local but cannot be found"
@@ -637,7 +637,7 @@ let validate_signature env m =
             if b then (
               (* Query value to mark it as used in the env *)
               (match ikind with
-              | Svalue -> ignore (Env.query_val_opt n env)
+              | Svalue -> ignore (Env.query_val_opt (Path.Pid n) env)
               | Stypedef -> ());
               (* Use implementation type to retain closures *)
               (name, loc, ityp, kind))

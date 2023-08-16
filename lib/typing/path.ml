@@ -36,7 +36,7 @@ let rec equal l r =
 
 let compare l r = Stdlib.compare l r
 let imported = function Pid _ -> false | Pmod _ -> true
-let local = function Pid _ -> true | Pmod _ -> false
+let is_local = function Pid _ -> true | Pmod _ -> false
 
 let only_hd = function
   | Pid s -> s
@@ -50,6 +50,16 @@ let rec rm_name modpath to_rm =
   | Pid m, Pmod (s, t) when String.equal s m -> t
   | Pmod (m, tl), Pmod (s, t) when String.equal m s -> rm_name tl t
   | _, p -> p
+
+(* Like rm_name but report of something was removed *)
+let rm_path modpath to_rm =
+  let rec inner found modpath to_rm =
+    match (modpath, to_rm) with
+    | Pid m, Pmod (s, t) when String.equal s m -> (true, t)
+    | Pmod (m, tl), Pmod (s, t) when String.equal m s -> inner true tl t
+    | _, p -> (found, p)
+  in
+  inner false modpath to_rm
 
 let rec mod_name = function Pid s -> s | Pmod (n, p) -> n ^ "_" ^ mod_name p
 
@@ -76,16 +86,16 @@ let rec match_until_pid l r =
 (*  Fold over mod part, excluding Pid *)
 let fold_mod_left f init p =
   let rec aux acc = function
-    | Pid _ -> acc
+    | Pid last -> f acc last
     | Pmod (s, tl) -> aux (f acc s) tl
   in
   aux init p
 
-let fold_mod_right f init p =
-  let rec aux p acc =
-    match p with Pmod (s, tl) -> f s (aux tl acc) | Pid _ -> acc
-  in
-  aux p init
+(* let fold_mod_right f init p = *)
+(*   let rec aux p acc = *)
+(*     match p with Pmod (s, tl) -> f s (aux tl acc) | Pid _ -> acc *)
+(*   in *)
+(*   aux p init *)
 
 (* let () = *)
 (*   let v = Pmod ("a", Pmod ("b", Pmod ("c", Pid "pid"))) in *)

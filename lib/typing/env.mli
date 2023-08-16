@@ -50,7 +50,7 @@ type scope
 val def_value : value
 (** Default value, everything is false *)
 
-val empty : Path.t -> t
+val empty : (t -> Ast.loc -> key -> Path.t * scope) -> Path.t -> t
 
 val add_value : key -> value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
@@ -71,18 +71,19 @@ val change_type : key -> typ -> t -> t
 
 val add_type : string -> in_sig:bool -> typ -> t -> t
 val add_module : key:string -> mname:Path.t -> scope -> t -> t
+val add_module_alias : Ast.loc -> key:string -> mname:Path.t -> t -> t
 val open_function : t -> t
 
 val close_function : t -> t * closed list * touched list * unused
 (** Returns the variables captured in the closed function scope, and first unused var  *)
 
-val open_module : t -> string -> t
+val open_module : t -> Ast.loc -> string -> t
 (** Like OCaml open *)
 
-val find_val : key -> t -> return
-val find_val_opt : key -> t -> return option
+val find_val : Path.t -> t -> return
+val find_val_opt : Path.t -> t -> return option
 
-val query_val_opt : key -> t -> return option
+val query_val_opt : Path.t -> t -> return option
 (** [query_opt key env] is like find_val_opt, but marks [key] as
      being used in the current scope (e.g. a closure) *)
 
@@ -117,3 +118,4 @@ val pop_modpath : t -> t
 val modpath : t -> Path.t
 val open_module_scope : t -> Ast.loc -> string -> t
 val pop_scope : t -> scope
+val fix_scope_loc : scope -> Ast.loc -> scope

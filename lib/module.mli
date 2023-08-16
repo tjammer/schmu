@@ -60,7 +60,6 @@ val find_module :
   string ->
   Path.t * Env.scope * t
 
-val add_to_env : Env.t -> Path.t * t -> Env.t
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
 val validate_signature : Env.t -> t -> t

@@ -223,17 +223,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         Qvar id
     | Ty_func l -> handle_func env l
     | Ty_list l -> type_list env l
-    | Ty_open_id (loc, path) ->
-        let t = import_path loc env path in
-
-        (* Ensure that the whole path is used and not only a part of it *)
-        (* let name = extract_name_path t |> Option.get in *)
-        (* if not (Path.match_until_pid name path) then ( *)
-        (*   Printf.printf "extracted name: %s vs original path: %s\n%!" (Path.show name) (Path.show path); *)
-        (*   (\* This should fail *\) *)
-        (*   ignore (find env path ""); *)
-        (*   failwith "Internal Error: Somehow the type is found"); *)
-        t
+    | Ty_open_id (_, path) -> find env path ""
     | Ty_tuple ts ->
         let fields =
           List.mapi
@@ -244,12 +234,6 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
             ts
         in
         Trecord ([], None, Array.of_list fields)
-  and import_path loc env = function
-    | Path.Pid _ as id -> find env id ""
-    | Path.Pmod (md, tl) ->
-        let modul = Module.find_module env loc ~regeneralize md in
-        let env = Module.add_to_env env modul in
-        import_path loc env tl
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
     | t :: tl -> (
@@ -585,7 +569,7 @@ module rec Core : sig
   val convert_annot :
     Env.t -> Types.typ option -> Ast.expr -> Typed_tree.typed_expr
 
-  val convert_var : Env.t -> Ast.loc -> string -> typed_expr
+  val convert_var : Env.t -> Ast.loc -> Path.t -> typed_expr
   val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
 
   val convert_let :
@@ -611,7 +595,7 @@ end = struct
   let rec convert env expr = convert_annot env None expr
 
   and convert_annot env annot = function
-    | Ast.Var (loc, id) -> convert_var env loc id
+    | Ast.Var (loc, id) -> convert_var env loc (Path.Pid id)
     | Lit (loc, Int i) -> convert_simple_lit loc Tint (Int i)
     | Lit (loc, Bool b) -> convert_simple_lit loc Tbool (Bool b)
     | Lit (loc, U8 c) -> convert_simple_lit loc Tu8 (U8 c)
@@ -644,7 +628,8 @@ end = struct
     | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, exprs, cases) -> convert_match env loc exprs cases
-    | Local_open (loc, modul, expr) -> convert_open env loc modul expr
+    | Local_open (loc, name, expr) ->
+        disambiguate_opens env loc (Path.Pid name) expr
     | Fmt (loc, exprs) -> convert_fmt env loc exprs
 
   and convert_var env loc id =
@@ -654,11 +639,13 @@ end = struct
         let attr = { const = t.const; global = t.global; mut = t.mut } in
         let id =
           match t.imported with
-          | Some mname -> Module.absolute_module_name ~mname id
-          | _ -> id
+          | Some mname -> Module.absolute_module_name ~mname (Path.get_hd id)
+          | _ ->
+              assert (Path.is_local id);
+              Path.get_hd id
         in
         { typ; expr = Var id; attr; loc }
-    | None -> raise (Error (loc, "No var named " ^ id))
+    | None -> raise (Error (loc, "No var named " ^ Path.show id))
 
   and convert_array_lit env loc arr =
     let f typ expr =
@@ -838,7 +825,7 @@ end = struct
     match typ with
     | Tfun (tparams, ret, kind) ->
         (* Make sure the types match *)
-        unify (loc, "Function") (Env.find_val name env).typ typ env;
+        unify (loc, "Function") (Env.find_val (Path.Pid name) env).typ typ env;
 
         (* Add the generalized type to the env to keep the closure there *)
         let env = Env.change_type name typ env in
@@ -1061,15 +1048,6 @@ end = struct
         convert_app ~switch_uni env loc e2 [ e1 ]
     | Pip_field field -> convert_field env loc e1.aexpr field
 
-  and convert_open env loc md expr =
-    let modul = Module.find_module env ~regeneralize md loc in
-    let env =
-      Module.add_to_env (Env.open_module env loc md) modul |> Env.finish_module
-    in
-    let r = convert env expr in
-    ignore (Env.close_module env);
-    r
-
   and convert_tuple env loc exprs =
     let (_, const), exprs =
       List.fold_left_map
@@ -1169,7 +1147,7 @@ end = struct
 
           let rec aux = function
             | (loc, (n, u, abs)) :: tl ->
-                let t = Env.find_val n env in
+                let t = Env.find_val (Path.Pid n) env in
                 let decls, cont = aux tl in
                 let expr = Function (n, u, abs, cont) in
                 ( (n, u, t.typ) :: decls,
@@ -1190,15 +1168,26 @@ end = struct
           let expr = Sequence (expr, cont) in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Open (loc, mname) :: tl ->
-          let modul = Module.find_module env ~regeneralize mname loc in
-          let env = Module.add_to_env (Env.open_module env loc mname) modul in
-          let cont, env = to_expr (Env.finish_module env) old_type tl in
-          (cont, Env.close_module env)
+          let env = Env.open_module env loc mname in
+          let cont, env = to_expr env old_type tl in
+          (cont, env)
     in
     to_expr env (loc, Tunit) stmts
 
   and convert_block ?(ret = true) env stmts =
     convert_block_annot ~ret env None stmts
+
+  and disambiguate_opens env loc path = function
+    | Ast.Local_open (_, id, tl) ->
+        disambiguate_opens env loc (Path.append id path) tl
+    | Var (_, id) -> convert_var env loc (Path.append id path)
+    | expr ->
+        let env =
+          Path.fold_mod_left
+            (fun env name -> Env.open_module env loc name)
+            env path
+        in
+        convert env expr
 end
 
 and Records : Recs.S = Recs.Make (Core)
@@ -1407,7 +1396,7 @@ and convert_prog env items modul =
 
         let env =
           let mname = Env.modpath env in
-          match register_module env mname (Clocal mname, newm) with
+          match register_module env loc mname (Clocal mname, newm) with
           | Ok env -> env
           | Error () ->
               let msg =
@@ -1423,16 +1412,8 @@ and convert_prog env items modul =
         in
         let items = Tl_module moditems :: items in
         (Env.pop_modpath env, items, m)
-    | Module_alias ((loc, key), mid) -> (
-        match Env.find_module_opt (Path.get_hd mid) env with
-        | Some mname -> (Env.add_module ~key ~mname env, items, m)
-        | None ->
-            (* Module hasn't been used before. Load here *)
-            let mname, _ =
-              Module.find_module env ~regeneralize (Path.get_hd mid) loc
-            in
-            (* TODO hmm how do we load nested modules from file? *)
-            (Env.add_module ~key ~mname env, items, m))
+    | Module_alias ((loc, key), mname) ->
+        (Env.add_module_alias loc ~key ~mname env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
@@ -1480,7 +1461,7 @@ and convert_prog env items modul =
         let env, funcs = List.fold_left_map f env funcs in
         let rec aux env = function
           | (l, n, u, abs) :: tl ->
-              let t = Env.find_val n env in
+              let t = Env.find_val (Path.Pid n) env in
               (* Generalize the functions *)
               let typ = generalize t.typ in
               let env = Env.change_type n typ env in
@@ -1500,9 +1481,8 @@ and convert_prog env items modul =
           Tunit (snd old) env;
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
     | Open (loc, mname) ->
-        let modul = Module.find_module env ~regeneralize mname loc in
-        let env = Module.add_to_env (Env.open_module env loc mname) modul in
-        (old, Env.finish_module env, items, m)
+        let env = Env.open_module env loc mname in
+        (old, env, items, m)
   in
 
   let env, items, m = List.fold_left aux (env, [], modul) items in
@@ -1515,6 +1495,10 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
 
   let loc = Lexing.(dummy_pos, dummy_pos) in
   (* Add builtins to env *)
+  let find_module env loc name =
+    let path, scope, _ = Module.find_module ~regeneralize env loc name in
+    (path, scope)
+  in
   let env =
     Builtin.(
       fold (fun env (_, typ, str) ->
@@ -1522,16 +1506,11 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
           let typ = instantiate typ in
           leave_level ();
           Env.(add_value str { def_value with typ = generalize typ } loc env)))
-      (Env.empty mname)
+      (Env.empty find_module mname)
   in
 
   (* Open prelude *)
-  let env =
-    if prelude then
-      let prelude = Module.find_module env ~regeneralize "prelude" loc in
-      Module.add_to_env env prelude
-    else env
-  in
+  let env = if prelude then Env.open_module env loc "prelude" else env in
 
   let externals, items, m = convert_module env sign prog check_ret in
 
