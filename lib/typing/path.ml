@@ -90,16 +90,3 @@ let fold_mod_left f init p =
     | Pmod (s, tl) -> aux (f acc s) tl
   in
   aux init p
-
-(* let fold_mod_right f init p = *)
-(*   let rec aux p acc = *)
-(*     match p with Pmod (s, tl) -> f s (aux tl acc) | Pid _ -> acc *)
-(*   in *)
-(*   aux p init *)
-
-(* let () = *)
-(*   let v = Pmod ("a", Pmod ("b", Pmod ("c", Pid "pid"))) in *)
-(*   let left = fold_mod_left (fun acc s -> acc ^ s) "" v in *)
-(*   assert (left = "abc"); *)
-(*   let right = fold_mod_right (fun s acc -> acc ^ s) "" v in *)
-(*   assert (right = "cba") *)

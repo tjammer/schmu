@@ -631,6 +631,35 @@ let test_local_module_unique_names () =
   test_exn "Module names must be unique. nosig exists already"
     (local_module ^ "(module nosig)")
 
+let test_local_module_nested_module_alias () =
+  test "nosig/nested/t"
+    {|(module nosig
+  (type t {:a int :b int})
+  (def _ {:a 10 :b 20})
+  (module nested
+    (type t {:a int :b int :c int})
+    (def t {:a 10 :b 20 :c 30})))
+
+(module mm nosig/nested)
+nosig/nested/t|}
+
+let test_local_module_alias_dont () =
+  test_exn "Module nested: Could not open file: nested"
+    {|-- this shouldn't be found
+(module nested
+  (type t {:a int :b int :c int})
+    (def t {:a 11 :b 21 :c 31}))
+
+(module nosig
+  (type t {:a int :b int})
+  (def _ {:a 10 :b 20})
+  (module not-nested
+    (type t {:a int :b int :c int})
+    (def t {:a 10 :b 20 :c 30})))
+
+(module mm nosig/nested)
+nosig/nested.t|}
+
 let own = "(def x& 10)\n"
 let tl = Some "Cannot borrow mutable binding at top level"
 
@@ -948,6 +977,8 @@ let () =
           case "miss local don't find global"
             test_local_modules_miss_local_dont_find_global;
           case "unique names" test_local_module_unique_names;
+          case "nested module alias" test_local_module_nested_module_alias;
+          case "alias don't find outer" test_local_module_alias_dont;
         ] );
       ( "exclusivity",
         [

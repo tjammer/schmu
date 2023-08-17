@@ -274,11 +274,14 @@ let add_module ~key ~mname scp env =
   { env with values = { scope with modules } :: tl }
 
 let add_module_alias loc ~key ~mname env =
-  ignore loc;
-  ignore key;
-  ignore mname;
-  ignore env;
-  failwith "TODO add module alias"
+  let rec add env = function
+    | Path.Pid key -> env.find_module env loc key
+    | Pmod (key, tl) ->
+        let _, scope = env.find_module env loc key in
+        add { env with values = [ scope ] } tl
+  in
+  let mname, scope = add env mname in
+  add_module ~key ~mname scope env
 
 let open_function env =
   (* Due to the ref, we have to create a new object every time *)
@@ -379,24 +382,15 @@ let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) loc key
   let key = Path.rm_name env.modpath key in
   let rec aux scopes = function
     | Path.Pid key -> find_value key scopes
-    | Pmod (hd, tl) -> (
-        match find_module hd scopes with
-        | Some scope -> traverse_module scope tl
-        | None ->
-            let _, scope = env.find_module env loc hd in
-            traverse_module scope tl)
+    | Pmod (hd, tl) ->
+        let _, scope = env.find_module env loc hd in
+        traverse_module scope tl
   and find_value key = function
     | [] -> None
     | scope :: tl -> (
         match find key scope with
         | Some t -> Some (found t)
         | None -> find_value key tl)
-  and find_module key = function
-    | [] -> None
-    | scope :: tl -> (
-        match Map.find_opt key scope.modules with
-        | Some (_, scope) -> Some scope
-        | None -> find_module key tl)
   and traverse_module scope = function
     | Path.Pid key -> Option.map found (find key scope)
     | Pmod (hd, tl) -> (
