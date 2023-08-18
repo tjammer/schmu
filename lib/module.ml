@@ -93,7 +93,10 @@ let add_external loc t name ~mname cname ~closure m =
   let name = { user = name; call; module_var } in
   { m with i = Mext (loc, t, name, closure) :: m.i }
 
-let module_cache = Hashtbl.create 64
+(* type cached = Located of string | Cached of cache_kind * Env.scope * t *)
+let module_cache : (Path.t, cache_kind * Env.scope * t) Hashtbl.t =
+  Hashtbl.create 64
+
 let clear_cache () = Hashtbl.clear module_cache
 
 (* Right now we only ever compile one module, so this can safely be global *)
@@ -587,10 +590,14 @@ let find_module env loc ~regeneralize name =
     | None -> read_module env loc ~regeneralize name
   in
   match r with
-  | Ok (kind, scope, m) -> (modpath_of_kind kind, scope, m)
+  | Ok (kind, scope, _) -> Env.(Cm_cached (modpath_of_kind kind, scope))
   | Error s ->
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Error (loc, msg))
+
+let scope_of_located path =
+  let _, scope, _ = Hashtbl.find module_cache path in
+  scope
 
 let fold_cache_files f init =
   Hashtbl.fold

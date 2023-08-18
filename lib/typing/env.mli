@@ -46,11 +46,16 @@ type ext = {
 (* return type for values *)
 
 type scope
+type cached_module = Cm_located of Path.t | Cm_cached of Path.t * scope
 
 val def_value : value
 (** Default value, everything is false *)
 
-val empty : (t -> Ast.loc -> key -> Path.t * scope) -> Path.t -> t
+val empty :
+  find_module:(t -> Ast.loc -> key -> cached_module) ->
+  scope_of_located:(Path.t -> scope) ->
+  Path.t ->
+  t
 
 val add_value : key -> value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)

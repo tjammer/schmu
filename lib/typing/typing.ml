@@ -1497,10 +1497,9 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
 
   let loc = Lexing.(dummy_pos, dummy_pos) in
   (* Add builtins to env *)
-  let find_module env loc name =
-    let path, scope, _ = Module.find_module ~regeneralize env loc name in
-    (path, scope)
-  in
+  let find_module = Module.find_module ~regeneralize in
+  let scope_of_located = Module.scope_of_located in
+
   let env =
     Builtin.(
       fold (fun env (_, typ, str) ->
@@ -1508,7 +1507,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
           let typ = instantiate typ in
           leave_level ();
           Env.(add_value str { def_value with typ = generalize typ } loc env)))
-      (Env.empty find_module mname)
+      (Env.empty ~find_module ~scope_of_located mname)
   in
 
   (* Open prelude *)

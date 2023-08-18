@@ -102,8 +102,10 @@ type scope = {
   ctors : label Map.t; (* Variant constructors *)
   types : (typ * bool) Map.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
-  modules : (Path.t * scope) Map.t; (* Locally declared modules *)
+  modules : cached_module Map.t; (* Locally declared modules *)
 }
+
+and cached_module = Cm_located of Path.t | Cm_cached of Path.t * scope
 
 (* Reference types make it easy to track usage. As a consequence we have to keep the scopes themselves
    in another structure. Ie. the scope list. Labelset etc data is immutable and goes out of scope
@@ -115,7 +117,8 @@ type t = {
       (* externals won't collide between scopes and modules, thus we keep a reference type here *)
   in_mut : int ref;
   modpath : Path.t;
-  find_module : t -> Ast.loc -> string -> Path.t * scope;
+  find_module : t -> Ast.loc -> string -> cached_module;
+  scope_of_located : Path.t -> scope;
 }
 
 type warn_kind = Unused | Unmutated | Unused_mod
@@ -143,13 +146,14 @@ let empty_scope kind =
     modules = Map.empty;
   }
 
-let empty find_module modpath =
+let empty ~find_module ~scope_of_located modpath =
   {
     values = [ empty_scope (Sfunc (Hashtbl.create 64)) ];
     externals = Etbl.create 64;
     in_mut = ref 0;
     modpath;
     find_module;
+    scope_of_located;
   }
 
 let decap_exn env =
@@ -270,8 +274,14 @@ let add_type name ~in_sig typ env =
 
 let add_module ~key ~mname scp env =
   let scope, tl = decap_exn env in
-  let modules = Map.add key (mname, scp) scope.modules in
+  let modules = Map.add key (Cm_cached (mname, scp)) scope.modules in
   { env with values = { scope with modules } :: tl }
+
+let get_module env = function
+  | Cm_cached (path, scope) -> (path, scope)
+  | Cm_located path ->
+      let scope = env.scope_of_located path in
+      (path, scope)
 
 let add_module_alias loc ~key ~mname env =
   let rs key =
@@ -279,16 +289,20 @@ let add_module_alias loc ~key ~mname env =
     raise (Error.Error (loc, msg))
   in
   let rec start env = function
-    | Path.Pid key -> env.find_module env loc key
+    | Path.Pid key -> env.find_module env loc key |> get_module env
     | Pmod (key, tl) ->
-        let _, scope = env.find_module env loc key in
+        let scope = env.find_module env loc key |> get_module env |> snd in
         add scope tl
   and add scope = function
     | Path.Pid key -> (
-        match Map.find_opt key scope.modules with Some m -> m | None -> rs key)
+        match Map.find_opt key scope.modules with
+        | Some m -> get_module env m
+        | None -> rs key)
     | Pmod (key, tl) -> (
         match Map.find_opt key scope.modules with
-        | Some (_, scope) -> add scope tl
+        | Some cached ->
+            let scope = get_module env cached |> snd in
+            add scope tl
         | None -> rs key)
   in
   let mname, scope = start env mname in
@@ -394,7 +408,7 @@ let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) loc key
   let rec aux scopes = function
     | Path.Pid key -> find_value key scopes
     | Pmod (hd, tl) ->
-        let _, scope = env.find_module env loc hd in
+        let scope = env.find_module env loc hd |> get_module env |> snd in
         traverse_module scope tl
   and find_value key = function
     | [] -> None
@@ -406,7 +420,9 @@ let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) loc key
     | Path.Pid key -> Option.map found (find key scope)
     | Pmod (hd, tl) -> (
         match Map.find_opt hd scope.modules with
-        | Some (_, scope) -> traverse_module scope tl
+        | Some cached ->
+            let scope = get_module env cached |> snd in
+            traverse_module scope tl
         | None -> None)
   in
   aux env.values key
@@ -483,7 +499,7 @@ let query_val_opt loc key env =
         match find_module lvl hd scopes with
         | Some scope -> traverse_module lvl scope tl
         | None ->
-            let _, scope = env.find_module env loc hd in
+            let scope = env.find_module env loc hd |> get_module env |> snd in
             traverse_module lvl scope tl)
   and find_value lvl key = function
     | [] -> None
@@ -495,7 +511,9 @@ let query_val_opt loc key env =
     | [] -> None
     | scope :: tl -> (
         match Map.find_opt key scope.modules with
-        | Some (_, scope) -> Some scope
+        | Some cached ->
+            let scope = get_module env cached |> snd in
+            Some scope
         | None -> continue key lvl scope.kind tl find_module)
   and traverse_module lvl scope = function
     | Path.Pid key -> (
@@ -504,7 +522,9 @@ let query_val_opt loc key env =
         | None -> None)
     | Pmod (hd, tl) -> (
         match Map.find_opt hd scope.modules with
-        | Some (_, scope) -> traverse_module lvl scope tl
+        | Some cached ->
+            let scope = get_module env cached |> snd in
+            traverse_module lvl scope tl
         | None -> None)
   in
 
@@ -538,7 +558,7 @@ let find_module_opt name env =
     | [] -> None
     | scope :: tl -> (
         match Map.find_opt name scope.modules with
-        | Some t -> Some (fst t)
+        | Some (Cm_located path | Cm_cached (path, _)) -> Some path
         | None -> aux tl)
   in
   aux env.values
@@ -597,7 +617,7 @@ let pop_scope env =
   | _ -> failwith "Internal Error: Not a module scope in [pop_scope]"
 
 let open_module env loc name =
-  let _, scope = env.find_module env loc name in
+  let scope = env.find_module env loc name |> get_module env |> snd in
   let cont = empty_scope (Sfunc_cont (Hashtbl.create 64)) in
   { env with values = cont :: scope :: env.values }
 
