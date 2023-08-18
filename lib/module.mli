@@ -2,7 +2,7 @@ open Types
 module S : Set.S with type elt = Path.t
 
 type t
-type loc = Typed_tree.loc
+type loc = Ast.loc
 
 val empty : t
 val unique_name : mname:Path.t -> string -> int option -> string
@@ -39,19 +39,13 @@ val add_external :
   t
 
 val add_module : loc -> string -> t -> into:t -> t
-
-type cache_kind = Cfile of string | Clocal of Path.t
-
-val module_cache : (Path.t, cache_kind * Env.scope * t) Hashtbl.t
 val clear_cache : unit -> unit
-
-val register_module :
-  Env.t -> Ast.loc -> Path.t -> cache_kind * t -> (Env.t, unit) result
-
+val fold_cache_files : ('a -> string -> 'a) -> 'a -> 'a
+val register_module : Env.t -> Ast.loc -> Path.t -> t -> (Env.t, unit) result
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
 val paths : string list ref
 val prelude_path : string option ref
-val find_file : string -> string -> string
+val find_file : name:string -> suffix:string -> string
 
 val find_module :
   Env.t ->

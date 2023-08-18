@@ -5,14 +5,11 @@ let prelude_obj () =
 let link outname objects cargs =
   (* Invoke 'cc' with all the files here *)
   let objects =
-    Hashtbl.fold
-      (fun _ (kind, _, _) l ->
-        match kind with
-        | Module.Cfile name ->
-            let f = Module.find_file name ".o" in
-            f :: l
-        | Clocal _ -> l)
-      Module.module_cache objects
+    Module.fold_cache_files
+      (fun l name ->
+        let f = Module.find_file ~name ~suffix:".o" in
+        f :: l)
+      objects
   in
   let cmd =
     Printf.sprintf "cc -o %s %s.o %s" outname outname

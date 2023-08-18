@@ -105,7 +105,7 @@ let append_externals l = List.rev_append !ext_funcs l
 (* We cache the prelude path for later *)
 let prelude_path = ref None
 
-let find_file name suffix =
+let find_file ~name ~suffix =
   let name = String.lowercase_ascii (name ^ suffix) in
   let ( // ) = Filename.concat in
   let rec path = function
@@ -510,7 +510,7 @@ let rec add_to_env env (mname, m) =
               match Hashtbl.find_opt module_cache mname with
               | None -> (
                   (* Add to cache *)
-                  match register_module env loc mname (Clocal mname, m) with
+                  match register_module env loc mname m with
                   | Ok env -> env
                   | Error () -> raise (Error (loc, "Cannot add module")))
               | Some (_, scope, _) -> Env.add_module ~key ~mname scope env))
@@ -543,7 +543,7 @@ and read_module env loc ~regeneralize name =
   | None -> (
       (* TODO figure out nested local opens *)
       try
-        let c = open_in (find_file name ".smi") in
+        let c = open_in (find_file ~name ~suffix:".smi") in
         let m =
           match Sexp.input c |> Result.map t_of_sexp with
           | Ok t ->
@@ -561,12 +561,12 @@ and read_module env loc ~regeneralize name =
         m
       with Not_found -> Error ("Could not open file: " ^ name))
 
-and register_module env loc mname (kind, modul) =
+and register_module env loc mname modul =
   (* Modules must be unique *)
   if Hashtbl.mem module_cache mname then Error ()
   else
     let scope = make_scope env loc mname modul in
-    Hashtbl.add module_cache mname (kind, scope, modul);
+    Hashtbl.add module_cache mname (Clocal mname, scope, modul);
     let key = Path.get_hd mname in
     let env = Env.add_module ~key ~mname scope env in
     Ok env
@@ -591,6 +591,12 @@ let find_module env loc ~regeneralize name =
   | Error s ->
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Error (loc, msg))
+
+let fold_cache_files f init =
+  Hashtbl.fold
+    (fun _ (kind, _, _) l ->
+      match kind with Cfile name -> f l name | Clocal _ -> l)
+    module_cache init
 
 let rev { s; i } = { s = List.rev s; i = List.rev i }
 

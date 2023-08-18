@@ -1398,7 +1398,7 @@ and convert_prog env items modul =
 
         let env =
           let mname = Env.modpath env in
-          match register_module env loc mname (Clocal mname, newm) with
+          match register_module env loc mname newm with
           | Ok env -> env
           | Error () ->
               let msg =
