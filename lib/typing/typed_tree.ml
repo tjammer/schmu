@@ -113,6 +113,6 @@ and attr = { const : bool; global : bool; mut : bool }
 
 let no_attr = { const = false; global = false; mut = false }
 
-exception Error of Ast.loc * string
-
 type t = { externals : Env.ext list; items : (Path.t * toplevel_item) list }
+
+include Error

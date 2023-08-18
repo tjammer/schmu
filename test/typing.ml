@@ -644,7 +644,7 @@ let test_local_module_nested_module_alias () =
 nosig/nested/t|}
 
 let test_local_module_alias_dont () =
-  test_exn "Module nested: Could not open file: nested"
+  test_exn "Cannot finde module: nested in nosig/nested"
     {|-- this shouldn't be found
 (module nested
   (type t {:a int :b int :c int})

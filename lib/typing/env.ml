@@ -274,13 +274,24 @@ let add_module ~key ~mname scp env =
   { env with values = { scope with modules } :: tl }
 
 let add_module_alias loc ~key ~mname env =
-  let rec add env = function
+  let rs key =
+    let msg = "Cannot finde module: " ^ key ^ " in " ^ Path.show mname in
+    raise (Error.Error (loc, msg))
+  in
+  let rec start env = function
     | Path.Pid key -> env.find_module env loc key
     | Pmod (key, tl) ->
         let _, scope = env.find_module env loc key in
-        add { env with values = [ scope ] } tl
+        add scope tl
+  and add scope = function
+    | Path.Pid key -> (
+        match Map.find_opt key scope.modules with Some m -> m | None -> rs key)
+    | Pmod (key, tl) -> (
+        match Map.find_opt key scope.modules with
+        | Some (_, scope) -> add scope tl
+        | None -> rs key)
   in
-  let mname, scope = add env mname in
+  let mname, scope = start env mname in
   add_module ~key ~mname scope env
 
 let open_function env =
