@@ -1,5 +1,6 @@
 open Alcotest
 open Schmulang
+open Error
 
 let get_type src =
   let open Lexing in
@@ -14,7 +15,7 @@ let test_exn msg src =
     (try
        ignore (get_type src);
        failwith "Expected an exception"
-     with Typed_tree.Error (_, msg) -> msg)
+     with Error (_, msg) -> msg)
 
 let tase descr msg src = test_case descr `Quick (fun () -> test msg src)
 let tase_exn descr msg src = test_case descr `Quick (fun () -> test_exn msg src)

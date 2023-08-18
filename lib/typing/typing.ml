@@ -1,6 +1,7 @@
 open Types
 open Typed_tree
 open Inference
+open Error
 
 type msg_fn = string -> Ast.loc -> string -> string
 

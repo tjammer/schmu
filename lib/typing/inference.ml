@@ -1,5 +1,5 @@
 open Types
-open Typed_tree
+open Error
 
 type err = Ast.loc * string
 

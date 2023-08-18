@@ -1,6 +1,7 @@
 open Types
 open Typed_tree
 open Inference
+open Error
 
 module type Core = sig
   val convert : Env.t -> Ast.expr -> Typed_tree.typed_expr

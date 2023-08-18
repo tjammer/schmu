@@ -1,4 +1,5 @@
 open Types
+open Error
 module Sexp = Csexp.Make (Sexplib0.Sexp)
 open Sexplib0.Sexp_conv
 module S = Set.Make (Path)
@@ -511,8 +512,7 @@ let rec add_to_env env (mname, m) =
                   (* Add to cache *)
                   match register_module env loc mname (Clocal mname, m) with
                   | Ok env -> env
-                  | Error () ->
-                      raise (Typed_tree.Error (loc, "Cannot add module")))
+                  | Error () -> raise (Error (loc, "Cannot add module")))
               | Some (_, scope, _) -> Env.add_module ~key ~mname scope env))
         env m.i
   | l ->
@@ -583,14 +583,14 @@ let find_module env loc ~regeneralize name =
               Printf.sprintf "Module %s should be local but cannot be found"
                 (Path.show name)
             in
-            raise (Typed_tree.Error (loc, msg)))
+            raise (Error (loc, msg)))
     | None -> read_module env loc ~regeneralize name
   in
   match r with
   | Ok (kind, scope, m) -> (modpath_of_kind kind, scope, m)
   | Error s ->
       let msg = Printf.sprintf "Module %s: %s" name s in
-      raise (Typed_tree.Error (loc, msg))
+      raise (Error (loc, msg))
 
 let rev { s; i } = { s = List.rev s; i = List.rev i }
 
@@ -616,8 +616,6 @@ let find_item name kind (n, _, _, tkind) =
   match (kind, tkind) with
   | (Svalue, Svalue | Stypedef, Stypedef) when String.equal name n -> true
   | _ -> false
-
-open Typed_tree
 
 let validate_signature env m =
   (* Go through signature and check that the implemented types match.

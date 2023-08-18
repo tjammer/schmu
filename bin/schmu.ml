@@ -74,7 +74,7 @@ let run file
            close_out modfile)
          else if compile_only then ()
          else Link.link outname objects cargs))
-  with Typed_tree.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
+  with Error.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
   (* Add sites to module search path *)

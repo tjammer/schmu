@@ -1,5 +1,6 @@
 open Types
 open Typed_tree
+open Error
 (* Implements a borrow checker.
    We have to know the last usage for each binding. Instead of traversing once
    and using post processing, assume each binding is correct and unify

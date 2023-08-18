@@ -1,6 +1,7 @@
 open Types
 open Typed_tree
 open Inference
+open Error
 
 module Col_path = struct
   type t = int list
