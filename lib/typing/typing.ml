@@ -1407,7 +1407,7 @@ and convert_prog env items modul =
               in
               raise (Error (loc, msg))
         in
-        let m = add_module loc id newm ~into:m in
+        let m = add_local_module loc id newm ~into:m in
 
         let moditems =
           List.map (fun item -> (Env.modpath env, item)) moditems

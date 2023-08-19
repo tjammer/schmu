@@ -58,7 +58,7 @@ let add_type_sig loc name t m = { m with s = (name, loc, t, Stypedef) :: m.s }
 let add_value_sig loc name t m = { m with s = (name, loc, t, Svalue) :: m.s }
 let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 
-let add_module loc id newm ~into =
+let add_local_module loc id newm ~into =
   { into with i = Mmodule (loc, id, newm) :: into.i }
 
 let type_of_func (func : Typed_tree.func) =
@@ -93,10 +93,12 @@ let add_external loc t name ~mname cname ~closure m =
   let name = { user = name; call; module_var } in
   { m with i = Mext (loc, t, name, closure) :: m.i }
 
-(* type cached = Located of string | Cached of cache_kind * Env.scope * t *)
-let module_cache : (Path.t, cache_kind * Env.scope * t) Hashtbl.t =
-  Hashtbl.create 64
+type cached =
+  | Located of string * Ast.loc * (typ -> typ)
+  | Cached of cache_kind * Env.scope * t
+  | Imported of string
 
+let module_cache : (Path.t, cached) Hashtbl.t = Hashtbl.create 64
 let clear_cache () = Hashtbl.clear module_cache
 
 (* Right now we only ever compile one module, so this can safely be global *)
@@ -473,6 +475,10 @@ and canonize_t mname m =
 
 let modpath_of_kind = function Clocal p -> p | Cfile name -> Path.Pid name
 
+let envmodule_of_cached path = function
+  | Located _ | Imported _ -> Env.Cm_located path
+  | Cached (_, scope, _) -> Cm_cached (path, scope)
+
 let rec add_to_env env (mname, m) =
   match m.s with
   | [] ->
@@ -516,7 +522,8 @@ let rec add_to_env env (mname, m) =
                   match register_module env loc mname m with
                   | Ok env -> env
                   | Error () -> raise (Error (loc, "Cannot add module")))
-              | Some (_, scope, _) -> Env.add_module ~key ~mname scope env))
+              | Some cached ->
+                  Env.add_module ~key (envmodule_of_cached mname cached) env))
         env m.i
   | l ->
       List.fold_left
@@ -539,39 +546,44 @@ and make_scope env loc mname m =
   let env = add_to_env env (mname, m) in
   Env.pop_scope env
 
-and read_module env loc ~regeneralize name =
+and locate_module loc ~regeneralize name =
   let mname = Path.Pid name in
   match Hashtbl.find_opt module_cache mname with
-  | Some r -> Ok r
+  | Some r -> Ok (envmodule_of_cached mname r)
   | None -> (
-      (* TODO figure out nested local opens *)
       try
-        let c = open_in (find_file ~name ~suffix:".smi") in
-        let m =
-          match Sexp.input c |> Result.map t_of_sexp with
-          | Ok t ->
-              close_in c;
-              let mname = Path.Pid name in
-              let kind, m = (Cfile name, map_t ~mname ~f:regeneralize t) in
-              (* Make module scope *)
-              let scope = make_scope env loc mname m in
-              Hashtbl.add module_cache mname (kind, scope, m);
-              Ok (kind, scope, m)
-          | Error _ ->
-              close_in c;
-              Error ("Could not deserialize file: " ^ name)
-        in
-        m
+        let filename = find_file ~name ~suffix:".smi" in
+        Hashtbl.add module_cache mname (Located (filename, loc, regeneralize));
+        Ok (Env.Cm_located mname)
       with Not_found -> Error ("Could not open file: " ^ name))
+
+and read_module env filename loc ~regeneralize mname =
+  let c = open_in filename in
+  let name = Filename.(basename filename |> remove_extension) in
+  let m =
+    match Sexp.input c |> Result.map t_of_sexp with
+    | Ok t ->
+        close_in c;
+        let kind, m = (Cfile name, map_t ~mname ~f:regeneralize t) in
+        (* Make module scope *)
+        let scope = make_scope env loc mname m in
+        Hashtbl.add module_cache mname (Cached (kind, scope, m));
+        scope
+    | Error _ ->
+        close_in c;
+        raise (Error (loc, "Could not deserialize file: " ^ name))
+  in
+  m
 
 and register_module env loc mname modul =
   (* Modules must be unique *)
   if Hashtbl.mem module_cache mname then Error ()
   else
     let scope = make_scope env loc mname modul in
-    Hashtbl.add module_cache mname (Clocal mname, scope, modul);
+    let cached = Cached (Clocal mname, scope, modul) in
+    Hashtbl.add module_cache mname cached;
     let key = Path.get_hd mname in
-    let env = Env.add_module ~key ~mname scope env in
+    let env = Env.add_module ~key (envmodule_of_cached mname cached) env in
     Ok env
 
 let find_module env loc ~regeneralize name =
@@ -580,29 +592,42 @@ let find_module env loc ~regeneralize name =
     match Env.find_module_opt name env with
     | Some name -> (
         match Hashtbl.find_opt module_cache name with
-        | Some (kind, scope, m) -> Ok (kind, Env.fix_scope_loc scope loc, m)
+        | Some (Cached (kind, scope, _)) ->
+            Ok
+              Env.(
+                Cm_cached (modpath_of_kind kind, Env.fix_scope_loc scope loc))
+        | Some ((Imported _ | Located _) as cached) ->
+            Ok (envmodule_of_cached name cached)
         | None ->
             let msg =
               Printf.sprintf "Module %s should be local but cannot be found"
                 (Path.show name)
             in
             raise (Error (loc, msg)))
-    | None -> read_module env loc ~regeneralize name
+    | None -> locate_module loc ~regeneralize name
   in
   match r with
-  | Ok (kind, scope, _) -> Env.(Cm_cached (modpath_of_kind kind, scope))
+  | Ok m -> m
   | Error s ->
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Error (loc, msg))
 
-let scope_of_located path =
-  let _, scope, _ = Hashtbl.find module_cache path in
-  scope
+let scope_of_located env path =
+  match Hashtbl.find module_cache path with
+  | Cached (_, scope, _) -> scope
+  | Located (filename, loc, regeneralize) ->
+      read_module env filename loc ~regeneralize path
+  | _ ->
+      ignore (Imported "");
+      failwith "todo read in module"
 
 let fold_cache_files f init =
   Hashtbl.fold
-    (fun _ (kind, _, _) l ->
-      match kind with Cfile name -> f l name | Clocal _ -> l)
+    (fun _ cached l ->
+      match cached with
+      | Cached (Cfile name, _, _) -> f l name
+      | Cached (Clocal _, _, _) -> l
+      | Imported _ | Located _ -> l)
     module_cache init
 
 let rev { s; i } = { s = List.rev s; i = List.rev i }

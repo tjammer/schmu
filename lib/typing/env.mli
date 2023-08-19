@@ -53,7 +53,7 @@ val def_value : value
 
 val empty :
   find_module:(t -> Ast.loc -> key -> cached_module) ->
-  scope_of_located:(Path.t -> scope) ->
+  scope_of_located:(t -> Path.t -> scope) ->
   Path.t ->
   t
 
@@ -75,7 +75,7 @@ val change_type : key -> typ -> t -> t
 (** To give the generalized type with closure for functions *)
 
 val add_type : string -> in_sig:bool -> typ -> t -> t
-val add_module : key:string -> mname:Path.t -> scope -> t -> t
+val add_module : key:string -> cached_module -> t -> t
 val add_module_alias : Ast.loc -> key:string -> mname:Path.t -> t -> t
 val open_function : t -> t
 

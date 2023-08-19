@@ -118,7 +118,7 @@ type t = {
   in_mut : int ref;
   modpath : Path.t;
   find_module : t -> Ast.loc -> string -> cached_module;
-  scope_of_located : Path.t -> scope;
+  scope_of_located : t -> Path.t -> scope;
 }
 
 type warn_kind = Unused | Unmutated | Unused_mod
@@ -272,15 +272,15 @@ let add_type name ~in_sig typ env =
       let types = Map.add name (t, in_sig) scope.types in
       { env with values = { scope with types } :: tl }
 
-let add_module ~key ~mname scp env =
+let add_module ~key cached_module env =
   let scope, tl = decap_exn env in
-  let modules = Map.add key (Cm_cached (mname, scp)) scope.modules in
+  let modules = Map.add key cached_module scope.modules in
   { env with values = { scope with modules } :: tl }
 
 let get_module env = function
   | Cm_cached (path, scope) -> (path, scope)
   | Cm_located path ->
-      let scope = env.scope_of_located path in
+      let scope = env.scope_of_located env path in
       (path, scope)
 
 let add_module_alias loc ~key ~mname env =
@@ -289,15 +289,13 @@ let add_module_alias loc ~key ~mname env =
     raise (Error.Error (loc, msg))
   in
   let rec start env = function
-    | Path.Pid key -> env.find_module env loc key |> get_module env
+    | Path.Pid key -> env.find_module env loc key
     | Pmod (key, tl) ->
         let scope = env.find_module env loc key |> get_module env |> snd in
         add scope tl
   and add scope = function
     | Path.Pid key -> (
-        match Map.find_opt key scope.modules with
-        | Some m -> get_module env m
-        | None -> rs key)
+        match Map.find_opt key scope.modules with Some m -> m | None -> rs key)
     | Pmod (key, tl) -> (
         match Map.find_opt key scope.modules with
         | Some cached ->
@@ -305,8 +303,8 @@ let add_module_alias loc ~key ~mname env =
             add scope tl
         | None -> rs key)
   in
-  let mname, scope = start env mname in
-  add_module ~key ~mname scope env
+  let cached_module = start env mname in
+  add_module ~key cached_module env
 
 let open_function env =
   (* Due to the ref, we have to create a new object every time *)

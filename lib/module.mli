@@ -38,7 +38,7 @@ val add_external :
   t ->
   t
 
-val add_module : loc -> string -> t -> into:t -> t
+val add_local_module : loc -> string -> t -> into:t -> t
 val clear_cache : unit -> unit
 val fold_cache_files : ('a -> string -> 'a) -> 'a -> 'a
 val register_module : Env.t -> Ast.loc -> Path.t -> t -> (Env.t, unit) result
@@ -50,7 +50,7 @@ val find_file : name:string -> suffix:string -> string
 val find_module :
   Env.t -> Ast.loc -> regeneralize:(typ -> typ) -> string -> Env.cached_module
 
-val scope_of_located : Path.t -> Env.scope
+val scope_of_located : Env.t -> Path.t -> Env.scope
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
 val validate_signature : Env.t -> t -> t
