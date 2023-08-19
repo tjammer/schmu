@@ -45,7 +45,6 @@ val register_module : Env.t -> Ast.loc -> Path.t -> t -> (Env.t, unit) result
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
 val paths : string list ref
 val prelude_path : string option ref
-val find_file : name:string -> suffix:string -> string
 
 val find_module :
   Env.t -> Ast.loc -> regeneralize:(typ -> typ) -> string -> Env.cached_module

@@ -7,7 +7,7 @@ let link outname objects cargs =
   let objects =
     Module.fold_cache_files
       (fun l name ->
-        let f = Module.find_file ~name ~suffix:".o" in
+        let f = name ^ ".o" in
         f :: l)
       objects
   in

@@ -559,7 +559,7 @@ and locate_module loc ~regeneralize name =
 
 and read_module env filename loc ~regeneralize mname =
   let c = open_in filename in
-  let name = Filename.(basename filename |> remove_extension) in
+  let name = Filename.remove_extension filename in
   let m =
     match Sexp.input c |> Result.map t_of_sexp with
     | Ok t ->
@@ -571,7 +571,7 @@ and read_module env filename loc ~regeneralize mname =
         scope
     | Error _ ->
         close_in c;
-        raise (Error (loc, "Could not deserialize file: " ^ name))
+        raise (Error (loc, "Could not deserialize module: " ^ name))
   in
   m
 
