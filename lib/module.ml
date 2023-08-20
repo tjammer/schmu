@@ -600,7 +600,7 @@ and register_module env loc mname modul =
 let find_module env loc ~regeneralize name =
   (* We first search the env for local modules. Then we try read the module the normal way *)
   let r =
-    match Env.find_module_opt name env with
+    match Env.find_module_opt loc (Path.Pid name) env with
     | Some name -> (
         match Hashtbl.find_opt module_cache name with
         | Some (Cached (kind, scope, _)) ->

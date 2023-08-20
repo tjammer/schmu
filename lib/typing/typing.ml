@@ -646,7 +646,14 @@ end = struct
               Path.get_hd id
         in
         { typ; expr = Var id; attr; loc }
-    | None -> raise (Error (loc, "No var named " ^ Path.show id))
+    | None ->
+        let suff =
+          match Env.find_module_opt loc id env with
+          | Some _ -> ", but a module with the name exists"
+          | None -> ""
+        in
+        let msg = "No var named " ^ Path.show id ^ suff in
+        raise (Error (loc, msg))
 
   and convert_array_lit env loc arr =
     let f typ expr =
@@ -1416,7 +1423,7 @@ and convert_prog env items modul =
         (Env.pop_modpath env, items, m)
     | Module_alias ((loc, key), mname) ->
         let env = Env.add_module_alias loc ~key ~mname env in
-        let mname = Env.find_module_opt key env |> Option.get in
+        let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function

@@ -773,3 +773,11 @@ Local modules can shadow types. Use unique type names in codegen
   entry:
     ret i64 0
   }
+
+Search for modules when variables cannot be found
+  $ schmu err_local_otherfile.smu
+  err_local_otherfile.smu:1:2: error: No var named local_otherfile/aliased, but a module with the name exists
+  1 | (local_otherfile/aliased)
+       ^^^^^^^^^^^^^^^^^^^^^^^
+  
+  [1]

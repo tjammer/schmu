@@ -551,15 +551,11 @@ let find_type_same_module key env =
 let query_type ~instantiate loc key env =
   find_type loc key env |> fst |> instantiate
 
-let find_module_opt name env =
-  let rec aux = function
-    | [] -> None
-    | scope :: tl -> (
-        match Map.find_opt name scope.modules with
-        | Some (Cm_located path | Cm_cached (path, _)) -> Some path
-        | None -> aux tl)
-  in
-  aux env.values
+let find_module_opt loc name env =
+  find_general
+    ~find:(fun key scope -> Map.find_opt key scope.modules)
+    ~found:(function Cm_located path | Cm_cached (path, _) -> path)
+    loc name env
 
 let find_label_opt key env =
   let rec aux = function

@@ -103,7 +103,7 @@ val find_type_same_module : string -> t -> (typ * bool) option
 val query_type : instantiate:(typ -> typ) -> Ast.loc -> Path.t -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)
 
-val find_module_opt : string -> t -> Path.t option
+val find_module_opt : Ast.loc -> Path.t -> t -> Path.t option
 
 val find_label_opt : key -> t -> label option
 (** [find_label_opt labelname env] returns the name of first record with a matching label *)
