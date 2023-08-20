@@ -14,7 +14,8 @@ and item =
   | Mext of loc * typ * name * bool (* is closure *)
   | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
   | Mmutual_rec of loc * (loc * string * int option * typ) list
-  | Mmodule of loc * string * t
+  | Mlocal_module of loc * string * t
+  | Mmodule_alias of loc * string * Path.t
 
 and sg_kind = Stypedef | Svalue
 and sig_item = string * loc * typ * sg_kind [@@deriving sexp]
@@ -59,7 +60,10 @@ let add_value_sig loc name t m = { m with s = (name, loc, t, Svalue) :: m.s }
 let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 
 let add_local_module loc id newm ~into =
-  { into with i = Mmodule (loc, id, newm) :: into.i }
+  { into with i = Mlocal_module (loc, id, newm) :: into.i }
+
+let add_module_alias loc key mname ~into =
+  { into with i = Mmodule_alias (loc, key, mname) :: into.i }
 
 let type_of_func (func : Typed_tree.func) =
   Tfun (func.tparams, func.ret, func.kind)
@@ -413,8 +417,9 @@ let rec map_item ~mname ~f = function
       let item = (mname, Typed_tree.Tl_mutual_rec_decls mname_decls) in
       poly_funcs := item :: !poly_funcs;
       Mmutual_rec (l, decls)
-  | Mmodule (l, name, t) ->
-      Mmodule (l, name, map_t ~mname:(Path.append name mname) ~f t)
+  | Mlocal_module (l, name, t) ->
+      Mlocal_module (l, name, map_t ~mname:(Path.append name mname) ~f t)
+  | Mmodule_alias _ as m -> m
 
 and map_t ~mname ~f m =
   {
@@ -454,9 +459,10 @@ let rec fold_canonize_item mname (ts_sub, nsub) = function
           (ts_sub, nsub) decls
       in
       ((a, nsub), Mmutual_rec (l, decls))
-  | Mmodule (loc, n, t) ->
+  | Mlocal_module (loc, n, t) ->
       let t = canonize_t (Path.append n mname) t in
-      ((ts_sub, nsub), Mmodule (loc, n, t))
+      ((ts_sub, nsub), Mlocal_module (loc, n, t))
+  | Mmodule_alias _ as m -> ((ts_sub, nsub), m)
 
 and canonize_t mname m =
   let (ts_sub, _), i =
@@ -514,7 +520,7 @@ let rec add_to_env env (mname, m) =
                       { def_value with typ; imported = Some (mname, `Schmu) }
                       l env))
                 env ds
-          | Mmodule (loc, key, m) -> (
+          | Mlocal_module (loc, key, m) -> (
               let mname = Path.append key mname in
               match Hashtbl.find_opt module_cache mname with
               | None -> (
@@ -522,6 +528,11 @@ let rec add_to_env env (mname, m) =
                   match register_module env loc mname m with
                   | Ok env -> env
                   | Error () -> raise (Error (loc, "Cannot add module")))
+              | Some cached ->
+                  Env.add_module ~key (envmodule_of_cached mname cached) env)
+          | Mmodule_alias (_, key, mname) -> (
+              match Hashtbl.find_opt module_cache mname with
+              | None -> failwith ("TODO dont know " ^ Path.show mname)
               | Some cached ->
                   Env.add_module ~key (envmodule_of_cached mname cached) env))
         env m.i
@@ -646,9 +657,10 @@ let extract_name_type env = function
   | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Svalue)
   | Mpoly_fun (l, abs, n, _) -> Some (n, l, type_of_func abs.func, Svalue)
   | Mmutual_rec _ -> None
-  | Mmodule (l, n, _) ->
+  | Mlocal_module (l, n, _) ->
       (* Do we have to deal with this? *)
       Some (n, l, Tunit, Svalue)
+  | Mmodule_alias _ -> None
 
 let find_item name kind (n, _, _, tkind) =
   match (kind, tkind) with

@@ -25,6 +25,8 @@
     (type t float))
   (def (c nested/t) 10.0))
 
+(module aliased nosig/nested)
+
 (def (test nosig/t) {:a 10})
 (ignore test)
 

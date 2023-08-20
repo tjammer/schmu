@@ -39,6 +39,7 @@ val add_external :
   t
 
 val add_local_module : loc -> string -> t -> into:t -> t
+val add_module_alias : loc -> string -> Path.t -> into:t -> t
 val clear_cache : unit -> unit
 val fold_cache_files : ('a -> string -> 'a) -> 'a -> 'a
 val register_module : Env.t -> Ast.loc -> Path.t -> t -> (Env.t, unit) result

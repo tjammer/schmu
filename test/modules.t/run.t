@@ -748,6 +748,7 @@ Use local module from other file
   hey thing
   hey poly test
   i'm nested
+  i'm nested
 
 
 Local modules can shadow types. Use unique type names in codegen

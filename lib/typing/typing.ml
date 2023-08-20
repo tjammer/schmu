@@ -1415,7 +1415,10 @@ and convert_prog env items modul =
         let items = Tl_module moditems :: items in
         (Env.pop_modpath env, items, m)
     | Module_alias ((loc, key), mname) ->
-        (Env.add_module_alias loc ~key ~mname env, items, m)
+        let env = Env.add_module_alias loc ~key ~mname env in
+        let mname = Env.find_module_opt key env |> Option.get in
+        let m = Module.add_module_alias loc key mname ~into:m in
+        (env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->

@@ -18,3 +18,5 @@
 
 (def (t local_otherfile/nosig/nested/t) 10.0)
 (ignore t)
+
+(local_otherfile/aliased/nested)
