@@ -15,7 +15,7 @@ and item =
   | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
   | Mmutual_rec of loc * (loc * string * int option * typ) list
   | Mlocal_module of loc * string * t
-  | Mmodule_alias of loc * string * Path.t
+  | Mmodule_alias of loc * string * Path.t * string option (* filename option *)
 
 and sg_kind = Stypedef | Svalue
 and sig_item = string * loc * typ * sg_kind [@@deriving sexp]
@@ -32,6 +32,13 @@ let sexp_of_t m =
     (sexp_of_list sexp_of_sig_item)
     (sexp_of_list sexp_of_item)
     (m.s, m.i)
+
+type cached =
+  | Located of string * Ast.loc * (typ -> typ)
+  | Cached of cache_kind * Env.scope * t
+
+let module_cache : (Path.t, cached) Hashtbl.t = Hashtbl.create 64
+let clear_cache () = Hashtbl.clear module_cache
 
 (* Functions must be unique, so we add a number to each function if
    it already exists in the global scope.
@@ -63,7 +70,12 @@ let add_local_module loc id newm ~into =
   { into with i = Mlocal_module (loc, id, newm) :: into.i }
 
 let add_module_alias loc key mname ~into =
-  { into with i = Mmodule_alias (loc, key, mname) :: into.i }
+  let filename =
+    match Hashtbl.find_opt module_cache mname with
+    | None | Some (Cached (Clocal _, _, _)) -> None
+    | Some (Cached (Cfile f, _, _) | Located (f, _, _)) -> Some f
+  in
+  { into with i = Mmodule_alias (loc, key, mname, filename) :: into.i }
 
 let type_of_func (func : Typed_tree.func) =
   Tfun (func.tparams, func.ret, func.kind)
@@ -97,14 +109,6 @@ let add_external loc t name ~mname cname ~closure m =
   let name = { user = name; call; module_var } in
   { m with i = Mext (loc, t, name, closure) :: m.i }
 
-type cached =
-  | Located of string * Ast.loc * (typ -> typ)
-  | Cached of cache_kind * Env.scope * t
-  | Imported of string
-
-let module_cache : (Path.t, cached) Hashtbl.t = Hashtbl.create 64
-let clear_cache () = Hashtbl.clear module_cache
-
 (* Right now we only ever compile one module, so this can safely be global *)
 let poly_funcs = ref []
 let ext_funcs = ref []
@@ -115,18 +119,24 @@ let append_externals l = List.rev_append !ext_funcs l
 let prelude_path = ref None
 
 let find_file ~name ~suffix =
-  let name = String.lowercase_ascii (name ^ suffix) in
+  let fname = String.lowercase_ascii (name ^ suffix) in
   let ( // ) = Filename.concat in
   let rec path = function
     | p :: tl ->
-        let file = p // name in
-        if Sys.file_exists file then file else path tl
+        let file = p // fname in
+        let dir = p // name in
+        if Sys.file_exists file then file
+        else if
+          Sys.file_exists dir && Sys.is_directory dir
+          && Sys.file_exists (dir // fname)
+        then dir // fname
+        else path tl
     | [] ->
-        print_endline name;
+        print_endline fname;
         raise Not_found
   in
   let file = path !paths in
-  if String.starts_with ~prefix:"prelude" name then prelude_path := Some file;
+  if String.starts_with ~prefix:"prelude" fname then prelude_path := Some file;
   file
 
 let c = ref 1
@@ -482,10 +492,22 @@ and canonize_t mname m =
 let modpath_of_kind = function Clocal p -> p | Cfile name -> Path.Pid name
 
 let envmodule_of_cached path = function
-  | Located _ | Imported _ -> Env.Cm_located path
+  | Located _ -> Env.Cm_located path
   | Cached (_, scope, _) -> Cm_cached (path, scope)
 
-let rec add_to_env env (mname, m) =
+let make_path parent_mod_fname alias_fname =
+  (* Make path from parent module filename and (relative) alias filename *)
+  assert (Filename.is_relative alias_fname);
+  Filename.(concat (dirname parent_mod_fname) alias_fname)
+
+let load_foreign loc foreign fname mname =
+  match (foreign, fname) with
+  | Some (mod_fname, regeneralize), Some fname ->
+      let fname = make_path mod_fname fname in
+      Hashtbl.add module_cache mname (Located (fname, loc, regeneralize))
+  | _ -> failwith "Internal Error: Cannot read foreign module"
+
+let rec add_to_env env foreign (mname, m) =
   match m.s with
   | [] ->
       List.fold_left
@@ -511,7 +533,10 @@ let rec add_to_env env (mname, m) =
                   l env)
           | Mext (l, typ, n, _) ->
               let imported = Some (mname, `C) in
-              Env.(add_value n.user { def_value with typ; imported } l env)
+              Env.(
+                add_value n.user
+                  { def_value with typ; imported; global = true }
+                  l env)
           | Mmutual_rec (_, ds) ->
               List.fold_left
                 (fun env (l, name, _, typ) ->
@@ -530,10 +555,13 @@ let rec add_to_env env (mname, m) =
                   | Error () -> raise (Error (loc, "Cannot add module")))
               | Some cached ->
                   Env.add_module ~key (envmodule_of_cached mname cached) env)
-          | Mmodule_alias (_, key, mname) -> (
+          | Mmodule_alias (loc, key, mname, fname) -> (
               match Hashtbl.find_opt module_cache mname with
-              | None -> failwith ("TODO dont know " ^ Path.show mname)
+              | None ->
+                  load_foreign loc foreign fname mname;
+                  Env.add_module ~key (Env.Cm_located mname) env
               | Some cached ->
+                  print_endline ("cached: " ^ Path.show mname);
                   Env.add_module ~key (envmodule_of_cached mname cached) env))
         env m.i
   | l ->
@@ -552,9 +580,9 @@ let rec add_to_env env (mname, m) =
               Env.(add_value name { def_value with typ; imported } loc env))
         env l
 
-and make_scope env loc mname m =
+and make_scope env loc foreign mname m =
   let env = Env.open_module_scope env loc (Path.get_hd mname) in
-  let env = add_to_env env (mname, m) in
+  let env = add_to_env env foreign (mname, m) in
   Env.pop_scope env
 
 and locate_module loc ~regeneralize name =
@@ -577,7 +605,9 @@ and read_module env filename loc ~regeneralize mname =
         close_in c;
         let kind, m = (Cfile name, map_t ~mname ~f:regeneralize t) in
         (* Make module scope *)
-        let scope = make_scope env loc mname m in
+        let scope =
+          make_scope env loc (Some (filename, regeneralize)) mname m
+        in
         Hashtbl.add module_cache mname (Cached (kind, scope, m));
         scope
     | Error _ ->
@@ -590,7 +620,7 @@ and register_module env loc mname modul =
   (* Modules must be unique *)
   if Hashtbl.mem module_cache mname then Error ()
   else
-    let scope = make_scope env loc mname modul in
+    let scope = make_scope env loc None mname modul in
     let cached = Cached (Clocal mname, scope, modul) in
     Hashtbl.add module_cache mname cached;
     let key = Path.get_hd mname in
@@ -607,8 +637,7 @@ let find_module env loc ~regeneralize name =
             Ok
               Env.(
                 Cm_cached (modpath_of_kind kind, Env.fix_scope_loc scope loc))
-        | Some ((Imported _ | Located _) as cached) ->
-            Ok (envmodule_of_cached name cached)
+        | Some (Located _ as cached) -> Ok (envmodule_of_cached name cached)
         | None ->
             let msg =
               Printf.sprintf "Module %s should be local but cannot be found"
@@ -628,9 +657,6 @@ let scope_of_located env path =
   | Cached (_, scope, _) -> scope
   | Located (filename, loc, regeneralize) ->
       read_module env filename loc ~regeneralize path
-  | _ ->
-      ignore (Imported "");
-      failwith "todo read in module"
 
 let fold_cache_files f init =
   Hashtbl.fold
@@ -638,7 +664,7 @@ let fold_cache_files f init =
       match cached with
       | Cached (Cfile name, _, _) -> f l name
       | Cached (Clocal _, _, _) -> l
-      | Imported _ | Located _ -> l)
+      | Located _ -> l)
     module_cache init
 
 let rev { s; i } = { s = List.rev s; i = List.rev i }
