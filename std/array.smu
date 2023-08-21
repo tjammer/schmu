@@ -1,0 +1,48 @@
+(defn iter [arr f]
+  (defn inner [i]
+    (if (= i (array-length arr))
+      ()
+      (do
+        (f (array-get arr i))
+        (inner (+ i 1)))))
+  (inner 0))
+
+(defn iteri [arr f]
+  (defn inner [i]
+    (if (= i (array-length arr))
+      ()
+      (do
+        (f i (array-get arr i))
+        (inner (+ i 1)))))
+  (inner 0))
+
+(defn fold [arr f init]
+  (defn inner [i acc!]
+    (if (= i (array-length arr))
+      acc
+      (let [acc (f !acc (array-get arr i))]
+        (inner (+ i 1) !acc))))
+  (def acc (copy init))
+  (inner 0 !acc))
+
+(defn foldi [arr f init]
+  (defn inner [i acc!]
+    (if (= i (array-length arr))
+      acc
+      (let [acc (f i !acc (array-get arr i))]
+        (inner (+ i 1) !acc))))
+  (def acc (copy init))
+  (inner 0 !acc))
+
+(defn map [arr f]
+  (def ret& (__unsafe_array_create (array-length arr)))
+  (set &(array-length ret) 0)
+  -- TODO reserve
+  (defn inner [ret! i]
+    (def ret& !ret)
+    (if (= i (array-length arr))
+      ret
+      (do
+        (array-push &ret !(f (array-get arr i)))
+        (inner !ret (+ i 1)))))
+  (inner !ret 0))

@@ -450,30 +450,30 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define linkonce_odr void @__agg.u.u_std_array-iter_aii.u.u(i64* %arr, %closure* %f) {
+  define linkonce_odr void @__agg.u.u_array_iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
-    %__i.u-ag-g.u_std_inner_i.u-ai-i.u = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %__i.u-ag-g.u_std_inner_i.u-ai-i.u to i8**
-    store i8* bitcast (void (i64, i8*)* @__i.u-ag-g.u_std_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
-    %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u = alloca { i8*, i8*, i64*, %closure }, align 8
-    %arr1 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u, i32 0, i32 2
+    %__i.u-ag-g.u_array_inner_i.u-ai-i.u = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %__i.u-ag-g.u_array_inner_i.u-ai-i.u to i8**
+    store i8* bitcast (void (i64, i8*)* @__i.u-ag-g.u_array_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
+    %clsr___i.u-ag-g.u_array_inner_i.u-ai-i.u = alloca { i8*, i8*, i64*, %closure }, align 8
+    %arr1 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_array_inner_i.u-ai-i.u, i32 0, i32 2
     store i64* %arr, i64** %arr1, align 8
-    %f2 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u, i32 0, i32 3
+    %f2 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_array_inner_i.u-ai-i.u, i32 0, i32 3
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %ctor6 = bitcast { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u to i8**
+    %ctor6 = bitcast { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_array_inner_i.u-ai-i.u to i8**
     store i8* bitcast (i8* (i8*)* @__ctor_tup-ai-i.u to i8*), i8** %ctor6, align 8
-    %dtor = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u, i32 0, i32 1
+    %dtor = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_array_inner_i.u-ai-i.u, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
-    %env = bitcast { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u_std_inner_i.u-ai-i.u, i32 0, i32 1
+    %env = bitcast { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_array_inner_i.u-ai-i.u to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u_array_inner_i.u-ai-i.u, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__i.u-ag-g.u_std_inner_i.u-ai-i.u(i64 0, i8* %env)
+    call void @__i.u-ag-g.u_array_inner_i.u-ai-i.u(i64 0, i8* %env)
     ret void
   }
   
-  define linkonce_odr void @__i.u-ag-g.u_std_inner_i.u-ai-i.u(i64 %i, i8* %0) {
+  define linkonce_odr void @__i.u-ag-g.u_array_inner_i.u-ai-i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %arr = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr, i32 0, i32 2
@@ -596,7 +596,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i8* bitcast (void (i64)* @schmu_printi to i8*), i8** %funptr1, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    call void @__agg.u.u_std_array-iter_aii.u.u(i64* %0, %closure* %clstmp)
+    call void @__agg.u.u_array_iter_aii.u.u(i64* %0, %closure* %clstmp)
     ret i64 0
   }
   

@@ -35,7 +35,7 @@
 
 (def arr& [9 30 0 50 2030 34])
 (sort &arr (fn [a b ] (- a b)))
-(array-iter arr (fn [i] (print (fmt-str i))))
+(array/iter arr (fn [i] (print (fmt-str i))))
 
 -- These functions have different call names. Make sure this works as well
 (defn sort [arr& cmp]
@@ -68,4 +68,4 @@
 
 (def arr& [9 30 0 50 2030 34])
 (sort &arr (fn [a b ] (- a b)))
-(array-iter arr (fn [i] (print (fmt-str i))))
+(array/iter arr (fn [i] (print (fmt-str i))))
