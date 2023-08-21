@@ -7,6 +7,6 @@ val to_typed :
   ?check_ret:bool ->
   mname:Path.t ->
   msg_fn ->
-  prelude:bool ->
+  std:bool ->
   Ast.prog ->
   Typed_tree.t * Module.t

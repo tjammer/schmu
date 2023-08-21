@@ -1,11 +1,11 @@
 (rule
- (targets prelude.smi prelude.o)
- (deps prelude.smu %{bin:schmu})
+ (targets std.smi std.o)
+ (deps std.smu %{bin:schmu})
  (action
-  (run schmu -m --no-prelude prelude.smu)))
+  (run schmu -m --no-std std.smu)))
 
 (install
  (section
   (site
    (schmu std)))
- (files prelude.smu prelude.smi prelude.o))
+ (files std.smu std.smi std.o))

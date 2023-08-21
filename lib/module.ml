@@ -122,9 +122,6 @@ let ext_funcs = ref []
 let paths = ref [ "." ]
 let append_externals l = List.rev_append !ext_funcs l
 
-(* We cache the prelude path for later *)
-let prelude_path = ref None
-
 let find_file ~name ~suffix =
   let fname = String.lowercase_ascii (name ^ suffix) in
   let ( // ) = Filename.concat in
@@ -143,7 +140,6 @@ let find_file ~name ~suffix =
         raise Not_found
   in
   let file = path !paths in
-  if String.starts_with ~prefix:"prelude" fname then prelude_path := Some file;
   file
 
 let c = ref 1
@@ -694,7 +690,7 @@ let to_channel c ~outname m =
       (fun _ cached set ->
         match cached with
         | Cached (Cfile name, _, _) ->
-            if String.ends_with ~suffix:"prelude" name then set
+            if String.ends_with ~suffix:"std" name then set
             else Sset.add name set
         | _ -> set)
       module_cache Sset.empty

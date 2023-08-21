@@ -1501,7 +1501,7 @@ and convert_prog env items modul =
   (snd !old, env, List.rev items, m)
 
 (* Conversion to Typing.exr below *)
-let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
+let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 
@@ -1521,7 +1521,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~prelude (sign, prog) =
   in
 
   (* Open prelude *)
-  let env = if prelude then Env.open_module env loc "prelude" else env in
+  let env = if std then Env.open_module env loc "std" else env in
 
   let externals, items, m = convert_module env sign prog check_ret in
 
@@ -1546,7 +1546,7 @@ let typecheck (prog : Ast.prog) =
   (* Ignore unused binding warnings *)
   let msg_fn _ _ _ = "" in
   let mname = main_path in
-  let tree, _ = to_typed ~mname ~check_ret:false msg_fn ~prelude:false prog in
+  let tree, _ = to_typed ~mname ~check_ret:false msg_fn ~std:false prog in
   let typ = get_last_type (List.rev tree.items) in
   print_endline (show_typ typ);
   typ

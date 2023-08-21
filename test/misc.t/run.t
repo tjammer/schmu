@@ -928,23 +928,23 @@ Test 'and', 'or' and 'not'
   @5 = private unnamed_addr constant { i64, i64, [11 x i8] } { i64 10, i64 10, [11 x i8] c"test 'or':\00" }
   @6 = private unnamed_addr constant { i64, i64, [12 x i8] } { i64 11, i64 11, [12 x i8] c"test 'not':\00" }
   
-  declare void @prelude_print(i8* %0)
+  declare void @std_print(i8* %0)
   
   define i1 @schmu_false_() {
   entry:
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*))
     ret i1 false
   }
   
   define i1 @schmu_true_() {
   entry:
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*))
     ret i1 true
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [12 x i8] }* @2 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [12 x i8] }* @2 to i8*))
     %0 = tail call i1 @schmu_true_()
     br i1 %0, label %true1, label %cont
   
@@ -960,11 +960,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp, label %then, label %else
   
   then:                                             ; preds = %cont
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont
   
   else:                                             ; preds = %cont
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
@@ -983,11 +983,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp4, label %then5, label %else6
   
   then5:                                            ; preds = %cont3
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont7
   
   else6:                                            ; preds = %cont3
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont7
   
   ifcont7:                                          ; preds = %else6, %then5
@@ -1006,11 +1006,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp11, label %then12, label %else13
   
   then12:                                           ; preds = %cont10
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont14
   
   else13:                                           ; preds = %cont10
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont14
   
   ifcont14:                                         ; preds = %else13, %then12
@@ -1029,15 +1029,15 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp18, label %then19, label %else20
   
   then19:                                           ; preds = %cont17
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont21
   
   else20:                                           ; preds = %cont17
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont21
   
   ifcont21:                                         ; preds = %else20, %then19
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [11 x i8] }* @5 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [11 x i8] }* @5 to i8*))
     %8 = tail call i1 @schmu_true_()
     br i1 %8, label %cont22, label %false1
   
@@ -1053,11 +1053,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp23, label %then24, label %else25
   
   then24:                                           ; preds = %cont22
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont26
   
   else25:                                           ; preds = %cont22
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont26
   
   ifcont26:                                         ; preds = %else25, %then24
@@ -1076,11 +1076,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp30, label %then31, label %else32
   
   then31:                                           ; preds = %cont29
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont33
   
   else32:                                           ; preds = %cont29
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont33
   
   ifcont33:                                         ; preds = %else32, %then31
@@ -1099,11 +1099,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp37, label %then38, label %else39
   
   then38:                                           ; preds = %cont36
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont40
   
   else39:                                           ; preds = %cont36
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont40
   
   ifcont40:                                         ; preds = %else39, %then38
@@ -1122,25 +1122,25 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp44, label %then45, label %else46
   
   then45:                                           ; preds = %cont43
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont47
   
   else46:                                           ; preds = %cont43
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont47
   
   ifcont47:                                         ; preds = %else46, %then45
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [12 x i8] }* @6 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [12 x i8] }* @6 to i8*))
     %16 = tail call i1 @schmu_true_()
     %17 = xor i1 %16, true
     br i1 %17, label %then48, label %else49
   
   then48:                                           ; preds = %ifcont47
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont50
   
   else49:                                           ; preds = %ifcont47
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont50
   
   ifcont50:                                         ; preds = %else49, %then48
@@ -1149,11 +1149,11 @@ Test 'and', 'or' and 'not'
     br i1 %19, label %then51, label %else52
   
   then51:                                           ; preds = %ifcont50
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
     br label %ifcont53
   
   else52:                                           ; preds = %ifcont50
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
+    tail call void @std_print(i8* bitcast ({ i64, i64, [3 x i8] }* @4 to i8*))
     br label %ifcont53
   
   ifcont53:                                         ; preds = %else52, %then51
@@ -1551,7 +1551,7 @@ Piping for ctors and field accessors
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %prelude.option_int = type { i32, i64 }
+  %std.option_int = type { i32, i64 }
   
   declare void @Printi(i64 %0)
   
@@ -1561,15 +1561,15 @@ Piping for ctors and field accessors
     ret i64 %add
   }
   
-  define i64 @__fun_schmu1(%prelude.option_int* %x) {
+  define i64 @__fun_schmu1(%std.option_int* %x) {
   entry:
-    %tag1 = bitcast %prelude.option_int* %x to i32*
+    %tag1 = bitcast %std.option_int* %x to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %prelude.option_int, %prelude.option_int* %x, i32 0, i32 1
+    %data = getelementptr inbounds %std.option_int, %std.option_int* %x, i32 0, i32 1
     %0 = load i64, i64* %data, align 8
     br label %ifcont
   
@@ -1582,12 +1582,12 @@ Piping for ctors and field accessors
   entry:
     %0 = tail call i64 @__fun_schmu0(i64 1)
     tail call void @Printi(i64 %0)
-    %option = alloca %prelude.option_int, align 8
-    %tag1 = bitcast %prelude.option_int* %option to i32*
+    %option = alloca %std.option_int, align 8
+    %tag1 = bitcast %std.option_int* %option to i32*
     store i32 0, i32* %tag1, align 4
-    %data = getelementptr inbounds %prelude.option_int, %prelude.option_int* %option, i32 0, i32 1
+    %data = getelementptr inbounds %std.option_int, %std.option_int* %option, i32 0, i32 1
     store i64 1, i64* %data, align 8
-    %1 = call i64 @__fun_schmu1(%prelude.option_int* %option)
+    %1 = call i64 @__fun_schmu1(%std.option_int* %option)
     call void @Printi(i64 %1)
     call void @Printi(i64 1)
     ret i64 0
@@ -2295,15 +2295,15 @@ Global lets with expressions
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %prelude.option_array_int = type { i32, i64* }
+  %std.option_array_int = type { i32, i64* }
   %r_array_int = type { i64* }
   
   @schmu_b = global i64* null, align 8
   @schmu_c = global i64 0, align 8
   
-  define void @schmu_ret-none(%prelude.option_array_int* noalias %0) {
+  define void @schmu_ret-none(%std.option_array_int* noalias %0) {
   entry:
-    %tag1 = bitcast %prelude.option_array_int* %0 to i32*
+    %tag1 = bitcast %std.option_array_int* %0 to i32*
     store i32 1, i32* %tag1, align 4
     ret void
   }
@@ -2335,15 +2335,15 @@ Global lets with expressions
   
   define i64 @main(i64 %arg) {
   entry:
-    %ret = alloca %prelude.option_array_int, align 8
-    call void @schmu_ret-none(%prelude.option_array_int* %ret)
-    %tag5 = bitcast %prelude.option_array_int* %ret to i32*
+    %ret = alloca %std.option_array_int, align 8
+    call void @schmu_ret-none(%std.option_array_int* %ret)
+    %tag5 = bitcast %std.option_array_int* %ret to i32*
     %index = load i32, i32* %tag5, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %prelude.option_array_int, %prelude.option_array_int* %ret, i32 0, i32 1
+    %data = getelementptr inbounds %std.option_array_int, %std.option_array_int* %ret, i32 0, i32 1
     br label %ifcont
   
   else:                                             ; preds = %entry
@@ -2358,7 +2358,7 @@ Global lets with expressions
     store i64 1, i64* %data1, align 8
     %"1" = getelementptr i64, i64* %data1, i64 1
     store i64 2, i64* %"1", align 8
-    call void @__free_prelude.optionai(%prelude.option_array_int* %ret)
+    call void @__free_std.optionai(%std.option_array_int* %ret)
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
@@ -2388,15 +2388,15 @@ Global lets with expressions
     ret void
   }
   
-  define linkonce_odr void @__free_prelude.optionai(%prelude.option_array_int* %0) {
+  define linkonce_odr void @__free_std.optionai(%std.option_array_int* %0) {
   entry:
-    %tag1 = bitcast %prelude.option_array_int* %0 to i32*
+    %tag1 = bitcast %std.option_array_int* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %prelude.option_array_int, %prelude.option_array_int* %0, i32 0, i32 1
+    %data = getelementptr inbounds %std.option_array_int, %std.option_array_int* %0, i32 0, i32 1
     call void @__free_ai(i64** %data)
     br label %cont
   
@@ -2728,7 +2728,7 @@ Take/use not all allocations of a record in tailrec calls
   @schmu_inp = global %view zeroinitializer, align 16
   @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c" \00" }
   
-  declare i1 @prelude_char-equal(i8 %0, i8 %1)
+  declare i1 @std_char-equal(i8 %0, i8 %1)
   
   define void @schmu_aux(%parse-result_int* noalias %0, %view* %rem, i64 %cnt) {
   entry:
@@ -2810,7 +2810,7 @@ Take/use not all allocations of a record in tailrec calls
     %5 = add i64 16, %3
     %6 = getelementptr i8, i8* %4, i64 %5
     %7 = load i8, i8* %6, align 1
-    %8 = tail call i1 @prelude_char-equal(i8 %7, i8 32)
+    %8 = tail call i1 @std_char-equal(i8 %7, i8 32)
     br i1 %8, label %then, label %else
   
   then:                                             ; preds = %entry
@@ -3225,28 +3225,28 @@ Monomorphization in closures
   @schmu_arr__2 = global i64* null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  declare void @prelude_iter-range(i64 %0, i64 %1, %closure* %2)
+  declare void @std_iter-range(i64 %0, i64 %1, %closure* %2)
   
-  define linkonce_odr void @__agg.u.u_prelude_array-iter_aii.u.u(i64* %arr, %closure* %f) {
+  define linkonce_odr void @__agg.u.u_std_array-iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
-    %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i8**
-    store i8* bitcast (void (i64, i8*)* @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
-    %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u = alloca { i8*, i8*, i64*, %closure }, align 8
-    %arr1 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u, i32 0, i32 2
+    %__i.u-ag-g.u_std_inner_i.u-ai-i.u = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %__i.u-ag-g.u_std_inner_i.u-ai-i.u to i8**
+    store i8* bitcast (void (i64, i8*)* @__i.u-ag-g.u_std_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
+    %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u = alloca { i8*, i8*, i64*, %closure }, align 8
+    %arr1 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u, i32 0, i32 2
     store i64* %arr, i64** %arr1, align 8
-    %f2 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u, i32 0, i32 3
+    %f2 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u, i32 0, i32 3
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %ctor6 = bitcast { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i8**
+    %ctor6 = bitcast { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u to i8**
     store i8* bitcast (i8* (i8*)* @__ctor_tup-ai-i.u to i8*), i8** %ctor6, align 8
-    %dtor = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u, i32 0, i32 1
+    %dtor = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
-    %env = bitcast { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_prelude_inner_i.u-ai-i.u to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u_prelude_inner_i.u-ai-i.u, i32 0, i32 1
+    %env = bitcast { i8*, i8*, i64*, %closure }* %clsr___i.u-ag-g.u_std_inner_i.u-ai-i.u to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-g.u_std_inner_i.u-ai-i.u, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u(i64 0, i8* %env)
+    call void @__i.u-ag-g.u_std_inner_i.u-ai-i.u(i64 0, i8* %env)
     ret void
   }
   
@@ -3365,7 +3365,7 @@ Monomorphization in closures
     %env = bitcast { i8*, i8*, i64**, %closure, i64*, i64 }* %clsr___i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @prelude_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i)
+    call void @std_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i)
     %11 = load i64, i64* %8, align 8
     %add = add i64 %11, 1
     call void @__agii.u_schmu_swap__2_aiii.u(i64** %arr, i64 %add, i64 %hi)
@@ -3409,7 +3409,7 @@ Monomorphization in closures
     %env = bitcast { i8*, i8*, i64**, %closure, i64*, i64 }* %clsr___i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @prelude_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i)
+    call void @std_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i)
     %11 = load i64, i64* %8, align 8
     %add = add i64 %11, 1
     call void @__agii.u_schmu_swap_aiii.u(i64** %arr, i64 %add, i64 %hi)
@@ -3586,7 +3586,7 @@ Monomorphization in closures
     ret void
   }
   
-  define linkonce_odr void @__i.u-ag-g.u_prelude_inner_i.u-ai-i.u(i64 %i, i8* %0) {
+  define linkonce_odr void @__i.u-ag-g.u_std_inner_i.u-ai-i.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %arr = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr, i32 0, i32 2
@@ -3895,7 +3895,7 @@ Monomorphization in closures
     store i8* bitcast (void (i64)* @__fun_schmu2 to i8*), i8** %funptr220, align 8
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
-    call void @__agg.u.u_prelude_array-iter_aii.u.u(i64* %3, %closure* %clstmp1)
+    call void @__agg.u.u_std_array-iter_aii.u.u(i64* %3, %closure* %clstmp1)
     %4 = call i8* @malloc(i64 64)
     %5 = bitcast i8* %4 to i64*
     store i64* %5, i64** @schmu_arr__2, align 8
@@ -3927,7 +3927,7 @@ Monomorphization in closures
     store i8* bitcast (void (i64)* @__fun_schmu5 to i8*), i8** %funptr1722, align 8
     %envptr18 = getelementptr inbounds %closure, %closure* %clstmp16, i32 0, i32 1
     store i8* null, i8** %envptr18, align 8
-    call void @__agg.u.u_prelude_array-iter_aii.u.u(i64* %7, %closure* %clstmp16)
+    call void @__agg.u.u_std_array-iter_aii.u.u(i64* %7, %closure* %clstmp16)
     call void @__free_ai(i64** @schmu_arr__2)
     call void @__free_ai(i64** @schmu_arr)
     ret i64 0

@@ -1128,7 +1128,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Lambda (id, abs) -> morph_lambda make texpr.typ param id abs
   | App { callee = { expr = Var id; _ }; args = [ ({ expr = Fmt es; _ }, _) ] }
     when String.equal id
-           (Module.absolute_module_name ~mname:(Path.Pid "prelude") "print") ->
+           (Module.absolute_module_name ~mname:(Path.Pid "std") "print") ->
       morph_print_str make param es
   | App { callee; args } ->
       morph_app make param callee args (cln param texpr.typ)

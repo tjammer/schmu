@@ -5,7 +5,7 @@ type opts = {
   release : bool;
   modul : bool;
   compile_only : bool;
-  no_prelude : bool;
+  no_std : bool;
   objects : string list;
   check_only : bool;
   cargs : string list;
@@ -14,9 +14,9 @@ type opts = {
 
 let ( >>= ) = Result.bind
 
-let prelude_paths opts =
+let std_paths opts =
   (* In case we find nothing, we append the empty list *)
-  if opts.no_prelude then []
+  if opts.no_std then []
   else
     let ( // ) = Filename.concat in
     let file =
@@ -26,7 +26,7 @@ let prelude_paths opts =
           (Sys.argv.(0) |> Filename.dirname)
           // ".." // "lib" // "schmu" // "std"
     in
-    if Sys.file_exists (file // "prelude.smu") then [ file ] else []
+    if Sys.file_exists (file // "std.smu") then [ file ] else []
 
 let run file
     {
@@ -36,7 +36,7 @@ let run file
       release;
       modul;
       compile_only;
-      no_prelude;
+      no_std;
       objects;
       check_only;
       cargs;
@@ -53,13 +53,13 @@ let run file
       kind msg pp [ loc ]
   in
 
-  let prelude = not no_prelude in
+  let std = not no_std in
   let open Schmulang in
   try
     Parse.parse file >>= fun prog ->
     Ok
       (let mname = if modul then Path.Pid outname else Typing.main_path in
-       let ttree, m = Typing.to_typed ~mname ~prelude fmt_msg_fn prog in
+       let ttree, m = Typing.to_typed ~mname ~std fmt_msg_fn prog in
 
        if check_only then ()
        else (
@@ -79,7 +79,7 @@ let run file
 let run_file filename opts =
   (* Add sites to module search path *)
   Schmulang.Module.paths :=
-    prelude_paths opts @ !Schmulang.Module.paths @ opts.search_paths;
+    std_paths opts @ !Schmulang.Module.paths @ opts.search_paths;
 
   match run filename opts with
   | Ok () -> ()
@@ -101,7 +101,7 @@ let () =
   let release = ref false in
   let modul = ref false in
   let compile_only = ref false in
-  let no_prelude = ref false in
+  let no_std = ref false in
   let check_only = ref false in
   let cargs = ref [] in
   let carg s = cargs := s :: !cargs in
@@ -139,7 +139,7 @@ let () =
       ("-m", Arg.Set modul, "Compile module");
       ("-c", Arg.Set compile_only, "Compile as main, but don't link");
       ("-s", Arg.String search_path, "Additional module search path");
-      ("--no-prelude", Arg.Set no_prelude, "Compile without prelude");
+      ("--no-std", Arg.Set no_std, "Compile without std library");
       ("--check", Arg.Set check_only, "Typecheck only");
       ("--cc", Arg.String carg, "Pass to C compiler");
     ]
@@ -169,7 +169,7 @@ let () =
       release = !release;
       modul = !modul;
       compile_only = !compile_only;
-      no_prelude = !no_prelude;
+      no_std = !no_std;
       objects = List.rev !objects;
       check_only = !check_only;
       cargs = List.rev !cargs;

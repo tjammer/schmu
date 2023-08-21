@@ -72,7 +72,7 @@ Copy array of strings
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"test\00" }
   @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"toast\00" }
   
-  declare void @prelude_print(i8* %0)
+  declare void @std_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -106,7 +106,7 @@ Copy array of strings
     %13 = getelementptr i8, i8* %12, i64 24
     %data1 = bitcast i8* %13 to i8**
     %14 = load i8*, i8** %data1, align 8
-    call void @prelude_print(i8* %14)
+    call void @std_print(i8* %14)
     call void @__free_aac(i8*** %9)
     call void @__free_aac(i8*** @schmu_a)
     ret i64 0
@@ -236,7 +236,7 @@ Copy records
   @schmu_a = global %cont_t zeroinitializer, align 32
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"lul\00" }
   
-  declare void @prelude_print(i8* %0)
+  declare void @std_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -273,7 +273,7 @@ Copy records
     %10 = bitcast %cont_t* %8 to %t*
     %11 = getelementptr inbounds %t, %t* %10, i32 0, i32 1
     %12 = load i8*, i8** %11, align 8
-    call void @prelude_print(i8* %12)
+    call void @std_print(i8* %12)
     call void @__free_contt(%cont_t* %8)
     call void @__free_contt(%cont_t* @schmu_a)
     ret i64 0
@@ -382,17 +382,17 @@ Copy variants
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %prelude.option_tuple_array_u8 = type { i32, %tuple_array_u8 }
+  %std.option_tuple_array_u8 = type { i32, %tuple_array_u8 }
   %tuple_array_u8 = type { i8* }
   
-  @schmu_a = global %prelude.option_tuple_array_u8 zeroinitializer, align 16
+  @schmu_a = global %std.option_tuple_array_u8 zeroinitializer, align 16
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
-  declare void @prelude_print(i8* %0)
+  declare void @std_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    store i32 0, i32* getelementptr inbounds (%prelude.option_tuple_array_u8, %prelude.option_tuple_array_u8* @schmu_a, i32 0, i32 0), align 4
+    store i32 0, i32* getelementptr inbounds (%std.option_tuple_array_u8, %std.option_tuple_array_u8* @schmu_a, i32 0, i32 0), align 4
     %0 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*), i8** %0, align 8
     %1 = alloca i8*, align 8
@@ -401,26 +401,26 @@ Copy variants
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     call void @__copy_ac(i8** %1)
     %4 = load i8*, i8** %1, align 8
-    store i8* %4, i8** getelementptr inbounds (%prelude.option_tuple_array_u8, %prelude.option_tuple_array_u8* @schmu_a, i32 0, i32 1, i32 0), align 8
-    %5 = alloca %prelude.option_tuple_array_u8, align 8
-    %6 = bitcast %prelude.option_tuple_array_u8* %5 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* bitcast (%prelude.option_tuple_array_u8* @schmu_a to i8*), i64 16, i1 false)
-    call void @__copy_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %5)
-    %tag1 = bitcast %prelude.option_tuple_array_u8* %5 to i32*
+    store i8* %4, i8** getelementptr inbounds (%std.option_tuple_array_u8, %std.option_tuple_array_u8* @schmu_a, i32 0, i32 1, i32 0), align 8
+    %5 = alloca %std.option_tuple_array_u8, align 8
+    %6 = bitcast %std.option_tuple_array_u8* %5 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* bitcast (%std.option_tuple_array_u8* @schmu_a to i8*), i64 16, i1 false)
+    call void @__copy_std.optiontup-ac(%std.option_tuple_array_u8* %5)
+    %tag1 = bitcast %std.option_tuple_array_u8* %5 to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %prelude.option_tuple_array_u8, %prelude.option_tuple_array_u8* %5, i32 0, i32 1
+    %data = getelementptr inbounds %std.option_tuple_array_u8, %std.option_tuple_array_u8* %5, i32 0, i32 1
     %7 = bitcast %tuple_array_u8* %data to i8**
     %8 = load i8*, i8** %7, align 8
-    call void @prelude_print(i8* %8)
+    call void @std_print(i8* %8)
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
-    call void @__free_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %5)
-    call void @__free_prelude.optiontup-ac(%prelude.option_tuple_array_u8* @schmu_a)
+    call void @__free_std.optiontup-ac(%std.option_tuple_array_u8* %5)
+    call void @__free_std.optiontup-ac(%std.option_tuple_array_u8* @schmu_a)
     ret i64 0
   }
   
@@ -452,15 +452,15 @@ Copy variants
     ret void
   }
   
-  define linkonce_odr void @__copy_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %0) {
+  define linkonce_odr void @__copy_std.optiontup-ac(%std.option_tuple_array_u8* %0) {
   entry:
-    %tag1 = bitcast %prelude.option_tuple_array_u8* %0 to i32*
+    %tag1 = bitcast %std.option_tuple_array_u8* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %prelude.option_tuple_array_u8, %prelude.option_tuple_array_u8* %0, i32 0, i32 1
+    %data = getelementptr inbounds %std.option_tuple_array_u8, %std.option_tuple_array_u8* %0, i32 0, i32 1
     call void @__copy_tup-ac(%tuple_array_u8* %data)
     br label %cont
   
@@ -484,15 +484,15 @@ Copy variants
     ret void
   }
   
-  define linkonce_odr void @__free_prelude.optiontup-ac(%prelude.option_tuple_array_u8* %0) {
+  define linkonce_odr void @__free_std.optiontup-ac(%std.option_tuple_array_u8* %0) {
   entry:
-    %tag1 = bitcast %prelude.option_tuple_array_u8* %0 to i32*
+    %tag1 = bitcast %std.option_tuple_array_u8* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %prelude.option_tuple_array_u8, %prelude.option_tuple_array_u8* %0, i32 0, i32 1
+    %data = getelementptr inbounds %std.option_tuple_array_u8, %std.option_tuple_array_u8* %0, i32 0, i32 1
     call void @__free_tup-ac(%tuple_array_u8* %data)
     br label %cont
   
@@ -522,7 +522,7 @@ Copy closures
   @schmu_c = global %closure zeroinitializer, align 16
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
   
-  declare void @prelude_print(i8* %0)
+  declare void @std_print(i8* %0)
   
   define void @__fun_schmu0(i8* %0) {
   entry:
@@ -533,7 +533,7 @@ Copy closures
     %2 = getelementptr i8, i8* %1, i64 16
     %data = bitcast i8* %2 to i8**
     %3 = load i8*, i8** %data, align 8
-    tail call void @prelude_print(i8* %3)
+    tail call void @std_print(i8* %3)
     ret void
   }
   
@@ -893,7 +893,7 @@ Copy string literal on move
   @schmu_b = global i8* null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"aoeu\00" }
   
-  declare void @prelude_print(i8* %0)
+  declare void @std_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -921,14 +921,14 @@ Copy string literal on move
     %10 = getelementptr inbounds i8, i8* %9, i64 1
     store i8 105, i8* %10, align 1
     %11 = load i8*, i8** @schmu_b, align 8
-    tail call void @prelude_print(i8* %11)
-    tail call void @prelude_print(i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*))
+    tail call void @std_print(i8* %11)
+    tail call void @std_print(i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*))
     %12 = load i8**, i8*** @schmu_a, align 8
     %13 = bitcast i8** %12 to i8*
     %14 = getelementptr i8, i8* %13, i64 16
     %data1 = bitcast i8* %14 to i8**
     %15 = load i8*, i8** %data1, align 8
-    tail call void @prelude_print(i8* %15)
+    tail call void @std_print(i8* %15)
     tail call void @__free_ac(i8** @schmu_b)
     tail call void @__free_aac(i8*** @schmu_a)
     ret i64 0
