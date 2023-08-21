@@ -1,0 +1,2 @@
+: foreach *.smu ^modd.smu |> schmu -m %f |> %B.o %B.smi {smi}
+: modd.smu | {smi} |> schmu -m %f |> %B.o %B.smi

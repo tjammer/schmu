@@ -41,11 +41,10 @@ val add_external :
 val add_local_module : loc -> string -> t -> into:t -> t
 val add_module_alias : loc -> string -> Path.t -> into:t -> t
 val clear_cache : unit -> unit
-val fold_cache_files : ('a -> string -> 'a) -> 'a -> 'a
+val object_names : unit -> string list
 val register_module : Env.t -> Ast.loc -> Path.t -> t -> (Env.t, unit) result
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
 val paths : string list ref
-val prelude_path : string option ref
 
 val find_module :
   Env.t -> Ast.loc -> regeneralize:(typ -> typ) -> string -> Env.cached_module

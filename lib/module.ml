@@ -4,6 +4,7 @@ module Sexp = Csexp.Make (Sexplib0.Sexp)
 open Sexplib0.Sexp_conv
 module S = Set.Make (Path)
 module M = Map.Make (Path)
+module Sset = Set.Make (String)
 
 type loc = Typed_tree.loc [@@deriving sexp]
 and name = { user : string; call : string; module_var : string }
@@ -19,25 +20,31 @@ and item =
 
 and sg_kind = Stypedef | Svalue
 and sig_item = string * loc * typ * sg_kind [@@deriving sexp]
-and t = { s : sig_item list; i : item list }
+and t = { s : sig_item list; i : item list; objects : string list }
 
 type cache_kind = Cfile of string | Clocal of Path.t
 
 let t_of_sexp s =
-  pair_of_sexp (list_of_sexp sig_item_of_sexp) (list_of_sexp item_of_sexp) s
-  |> fun (s, i) -> { s; i }
+  triple_of_sexp
+    (list_of_sexp sig_item_of_sexp)
+    (list_of_sexp item_of_sexp)
+    (list_of_sexp string_of_sexp)
+    s
+  |> fun (s, i, objects) -> { s; i; objects }
 
 let sexp_of_t m =
-  sexp_of_pair
+  sexp_of_triple
     (sexp_of_list sexp_of_sig_item)
     (sexp_of_list sexp_of_item)
-    (m.s, m.i)
+    (sexp_of_list sexp_of_string)
+    (m.s, m.i, m.objects)
 
 type cached =
   | Located of string * Ast.loc * (typ -> typ)
   | Cached of cache_kind * Env.scope * t
 
 let module_cache : (Path.t, cached) Hashtbl.t = Hashtbl.create 64
+let object_cache = ref Sset.empty
 let clear_cache () = Hashtbl.clear module_cache
 
 (* Functions must be unique, so we add a number to each function if
@@ -46,7 +53,7 @@ let clear_cache () = Hashtbl.clear module_cache
    E.g. 'foo' will be 'foo' in global scope, but 'foo__<n>' in local scope
    if the global function exists. *)
 
-let empty = { s = []; i = [] }
+let empty = { s = []; i = []; objects = [] }
 
 (* For named functions *)
 let unique_name ~mname name uniq =
@@ -433,6 +440,7 @@ let rec map_item ~mname ~f = function
 
 and map_t ~mname ~f m =
   {
+    m with
     s = List.map (fun (n, l, t, k) -> (n, l, f t, k)) m.s;
     i = List.map (map_item ~mname ~f) m.i;
   }
@@ -487,7 +495,7 @@ and canonize_t mname m =
         (sub, (key, l, t, k)))
       ts_sub m.s
   in
-  { s; i }
+  { m with s; i }
 
 let modpath_of_kind = function Clocal p -> p | Cfile name -> Path.Pid name
 
@@ -497,8 +505,9 @@ let envmodule_of_cached path = function
 
 let make_path parent_mod_fname alias_fname =
   (* Make path from parent module filename and (relative) alias filename *)
-  assert (Filename.is_relative alias_fname);
-  Filename.(concat (dirname parent_mod_fname) alias_fname)
+  if Filename.is_relative alias_fname then
+    Filename.(concat (dirname parent_mod_fname) alias_fname)
+  else alias_fname
 
 let load_foreign loc foreign fname mname =
   match (foreign, fname) with
@@ -533,10 +542,7 @@ let rec add_to_env env foreign (mname, m) =
                   l env)
           | Mext (l, typ, n, _) ->
               let imported = Some (mname, `C) in
-              Env.(
-                add_value n.user
-                  { def_value with typ; imported; global = true }
-                  l env)
+              Env.(add_value n.user { def_value with typ; imported } l env)
           | Mmutual_rec (_, ds) ->
               List.fold_left
                 (fun env (l, name, _, typ) ->
@@ -561,7 +567,6 @@ let rec add_to_env env foreign (mname, m) =
                   load_foreign loc foreign fname mname;
                   Env.add_module ~key (Env.Cm_located mname) env
               | Some cached ->
-                  print_endline ("cached: " ^ Path.show mname);
                   Env.add_module ~key (envmodule_of_cached mname cached) env))
         env m.i
   | l ->
@@ -603,6 +608,7 @@ and read_module env filename loc ~regeneralize mname =
     match Sexp.input c |> Result.map t_of_sexp with
     | Ok t ->
         close_in c;
+        add_object_names filename t.objects;
         let kind, m = (Cfile name, map_t ~mname ~f:regeneralize t) in
         (* Make module scope *)
         let scope =
@@ -615,6 +621,16 @@ and read_module env filename loc ~regeneralize mname =
         raise (Error (loc, "Could not deserialize module: " ^ name))
   in
   m
+
+and add_object_names fname objects =
+  let objs =
+    List.fold_left
+      (fun set name ->
+        let o = make_path fname name ^ ".o" in
+        Sset.add o set)
+      Sset.empty objects
+  in
+  object_cache := Sset.union objs !object_cache
 
 and register_module env loc mname modul =
   (* Modules must be unique *)
@@ -658,19 +674,35 @@ let scope_of_located env path =
   | Located (filename, loc, regeneralize) ->
       read_module env filename loc ~regeneralize path
 
-let fold_cache_files f init =
-  Hashtbl.fold
-    (fun _ cached l ->
-      match cached with
-      | Cached (Cfile name, _, _) -> f l name
-      | Cached (Clocal _, _, _) -> l
-      | Located _ -> l)
-    module_cache init
+let object_names () =
+  let ours =
+    Hashtbl.fold
+      (fun _ cached set ->
+        match cached with
+        | Cached (Cfile name, _, _) -> Sset.add (name ^ ".o") set
+        | Cached (Clocal _, _, _) -> set
+        | Located _ -> set)
+      module_cache Sset.empty
+  in
+  Sset.union ours !object_cache |> Sset.to_seq |> List.of_seq
 
-let rev { s; i } = { s = List.rev s; i = List.rev i }
+let rev { s; i; objects } = { s = List.rev s; i = List.rev i; objects }
 
 let to_channel c ~outname m =
-  rev m |> canonize_t (Path.Pid outname) |> sexp_of_t |> Sexp.to_channel c
+  let objects =
+    Hashtbl.fold
+      (fun _ cached set ->
+        match cached with
+        | Cached (Cfile name, _, _) ->
+            if String.ends_with ~suffix:"prelude" name then set
+            else Sset.add name set
+        | _ -> set)
+      module_cache Sset.empty
+    |> Sset.to_seq |> List.of_seq
+  in
+  rev { m with objects }
+  |> canonize_t (Path.Pid outname)
+  |> sexp_of_t |> Sexp.to_channel c
 
 let extract_name_type env = function
   | Mtype (l, t) -> (

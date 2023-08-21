@@ -1,19 +1,10 @@
-let prelude_obj () =
-  (* If we made it to here, the prelude is found and available *)
-  Filename.remove_extension (Option.get !Module.prelude_path) ^ ".o"
-
 let link outname objects cargs =
   (* Invoke 'cc' with all the files here *)
-  let objects =
-    Module.fold_cache_files
-      (fun l name ->
-        let f = name ^ ".o" in
-        f :: l)
-      objects
-  in
+  let objects = objects @ Module.object_names () in
   let cmd =
-    Printf.sprintf "cc -o %s %s.o %s" outname outname
+    Printf.sprintf "cc -o %s %s %s.o" outname
       (String.concat " " (objects @ cargs))
+      outname
   in
   let ret = Sys.command cmd in
   if ret = 0 then (* Remove temp object file *)

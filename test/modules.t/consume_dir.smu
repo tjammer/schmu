@@ -1,0 +1,6 @@
+(open modd)
+
+(print a)
+(print b)
+
+(print modd/public/a)
