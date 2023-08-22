@@ -1,4 +1,4 @@
-(external printf (fun cstr int int int unit))
+(external printf (fun string/cstr int int int unit))
 
 (def limit 3)
 

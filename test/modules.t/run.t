@@ -185,9 +185,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   11
   21
 
-  $ cat lets.smi
-  (()((4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:1))((9:pos_fname8:lets.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:9)))4:Tint((4:user1:a)(4:call6:lets_a)(10:module_var7:_lets_a))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:13))((9:pos_fname8:lets.smu)(8:pos_lnum1:3)(7:pos_bol2:12)(8:pos_cnum2:48)))(4:Tfun(((2:pt(6:Talias8:std/cstr(6:Talias8:std/cstr(8:Traw_ptr3:Tu8))))(5:pattr5:Dnorm))((2:pt4:Tint)(5:pattr5:Dnorm)))5:Tunit6:Simple)((4:user6:printf)(4:call6:printf)(10:module_var12:_lets_printf))5:false)(4:Mfun(((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:52))((9:pos_fname8:lets.smu)(8:pos_lnum1:5)(7:pos_bol2:51)(8:pos_cnum2:73)))(4:Tfun()4:Tint6:Simple)((4:user10:generate_b)(4:call15:lets_generate_b)(10:module_var16:_lets_generate_b)))(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:77))((9:pos_fname8:lets.smu)(8:pos_lnum1:7)(7:pos_bol2:76)(8:pos_cnum2:95)))4:Tint((4:user1:b)(4:call6:lets_b)(10:module_var7:_lets_b))5:false)(4:Mext(((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum2:99))((9:pos_fname8:lets.smu)(8:pos_lnum1:9)(7:pos_bol2:98)(8:pos_cnum3:107)))4:Tint((4:user1:a)(4:call9:lets_a__2)(10:module_var7:_lets_a))5:false))())
-
   $ schmu local_open_lets.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"

@@ -2,7 +2,7 @@
 
 (defn do_something [big] (+ (.a big) 1))
 
-(external printf (fun cstr int unit))
+(external printf (fun string/cstr int unit))
 
 (defn printi [i] (printf (array-data "%i\n") i))
 

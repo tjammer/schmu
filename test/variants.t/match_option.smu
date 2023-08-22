@@ -1,4 +1,4 @@
-(external printf (fun cstr int unit))
+(external printf (fun string/cstr int unit))
 
 -- standard case
 (defn match_opt [p]

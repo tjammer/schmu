@@ -1,1 +1,4 @@
 (def a "indirect")
+
+(defn hmm ()
+  (array/iter [] (fn ((i int)) (ignore i))))

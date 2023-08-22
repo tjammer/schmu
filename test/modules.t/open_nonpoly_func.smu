@@ -1,6 +1,6 @@
 (open nonpoly_func)
 
-(external printf (fun cstr int unit))
+(external printf (fun string/cstr int unit))
 
 (defn doo [a]
   (match a

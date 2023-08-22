@@ -1,6 +1,6 @@
 (open poly_func)
 
-(external printf (fun cstr int unit))
+(external printf (fun string/cstr int unit))
 
 (->> (classify (#some 3)) (printf (array-data "%i\n")))
 (->> (classify (#some 3.0)) (printf (array-data "%i\n")))

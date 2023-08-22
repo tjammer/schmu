@@ -1,13 +1,6 @@
--- string
-(type cstr (raw_ptr u8))
+(type string string/t)
 
-(type string (array u8))
-
-(external puts (fun cstr unit))
-
-(defn print [str] (puts (array-data str)))
-
-(defn string-len [str] (array-length str))
+(defn print [str] (string/puts (array-data str)))
 
 -- option
 (type (option 'a) ((#some 'a) #none))

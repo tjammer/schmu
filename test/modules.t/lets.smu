@@ -1,6 +1,6 @@
 (def a 12)
 
-(external printf (fun cstr int unit))
+(external printf (fun string/cstr int unit))
 
 (defn generate_b [] 21)
 

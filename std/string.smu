@@ -1,0 +1,7 @@
+(type cstr (raw_ptr u8))
+
+(type t (array u8))
+
+(external puts (fun cstr unit))
+
+(defn len [str] (array-length str))
