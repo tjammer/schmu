@@ -222,6 +222,27 @@ let change_type key typ env =
           { env with values = { scope with valmap } :: tl }
       | None -> "Internal Error: Missing key for changing " ^ key |> failwith)
 
+let add_labels typename labelset labels scope =
+  let labelsets = Lmap.add labelset typename scope.labelsets in
+
+  let _, labels =
+    Array.fold_left
+      (fun (index, labels) field ->
+        (index + 1, Map.add field.fname { index; typename } labels))
+      (0, scope.labels) labels
+  in
+
+  (labelsets, labels)
+
+let add_ctors typename ctors scope =
+  let _, ctors =
+    Array.fold_left
+      (fun (index, ctors) (ctor : ctor) ->
+        (index + 1, Map.add ctor.cname { index; typename } ctors))
+      (0, scope.ctors) ctors
+  in
+  ctors
+
 let add_record name record in_sig ~params ~labels env =
   let scope, tl = decap_exn env in
   let typ = Trecord (params, Some record, labels) in
@@ -230,14 +251,8 @@ let add_record name record in_sig ~params ~labels env =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
   in
 
-  let labelsets = Lmap.add labelset record scope.labelsets in
+  let labelsets, labels = add_labels record labelset labels scope in
 
-  let _, labels =
-    Array.fold_left
-      (fun (index, labels) field ->
-        (index + 1, Map.add field.fname { index; typename = record } labels))
-      (0, scope.labels) labels
-  in
   let types = Map.add name (typ, in_sig) scope.types in
   { env with values = { scope with labels; types; labelsets } :: tl }
 
@@ -245,32 +260,9 @@ let add_variant name variant in_sig ~params ~ctors env =
   let scope, tl = decap_exn env in
   let typ = Tvariant (params, variant, ctors) in
 
-  let _, ctors =
-    Array.fold_left
-      (fun (index, ctors) (ctor : ctor) ->
-        (index + 1, Map.add ctor.cname { index; typename = variant } ctors))
-      (0, scope.ctors) ctors
-  in
+  let ctors = add_ctors variant ctors scope in
   let types = Map.add name (typ, in_sig) scope.types in
   { env with values = { scope with ctors; types } :: tl }
-
-let add_alias name alias in_sig typ env =
-  let scope, tl = decap_exn env in
-
-  let typ = Talias (alias, typ) in
-  let types = Map.add name (typ, in_sig) scope.types in
-  { env with values = { scope with types } :: tl }
-
-let add_type name ~in_sig typ env =
-  match typ with
-  | Trecord (params, Some n, labels) ->
-      add_record name n in_sig ~params ~labels env
-  | Tvariant (params, n, ctors) -> add_variant name n in_sig ~params ~ctors env
-  | Talias (n, _) -> add_alias name n in_sig typ env
-  | t ->
-      let scope, tl = decap_exn env in
-      let types = Map.add name (t, in_sig) scope.types in
-      { env with values = { scope with types } :: tl }
 
 let add_module ~key cached_module env =
   let scope, tl = decap_exn env in
@@ -586,6 +578,38 @@ let find_ctor_opt name env =
         | None -> aux tl)
   in
   aux env.values
+
+let rec make_alias_usable name scope = function
+  | Trecord (_, _, labels) ->
+      let labelset =
+        Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
+      in
+      let labelsets, labels = add_labels name labelset labels scope in
+      { scope with labelsets; labels }
+  | Tvariant (_, _, ctors) ->
+      let ctors = add_ctors name ctors scope in
+      { scope with ctors }
+  | Talias (_, typ) -> make_alias_usable name scope typ
+  | _ -> scope
+
+let add_alias name alias in_sig typ env =
+  let scope, tl = decap_exn env in
+
+  let scope = make_alias_usable (Path.Pid name) scope typ in
+  let typ = Talias (alias, typ) in
+  let types = Map.add name (typ, in_sig) scope.types in
+  { env with values = { scope with types } :: tl }
+
+let add_type name ~in_sig typ env =
+  match typ with
+  | Trecord (params, Some n, labels) ->
+      add_record name n in_sig ~params ~labels env
+  | Tvariant (params, n, ctors) -> add_variant name n in_sig ~params ~ctors env
+  | Talias (n, typ) -> add_alias name n in_sig typ env
+  | t ->
+      let scope, tl = decap_exn env in
+      let types = Map.add name (t, in_sig) scope.types in
+      { env with values = { scope with types } :: tl }
 
 let externals env =
   Etbl.to_seq env.externals |> List.of_seq

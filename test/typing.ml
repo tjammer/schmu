@@ -292,6 +292,21 @@ let test_alias_of_alias () =
   test "(fun bar = int foo = int)"
     "(type foo int) (type bar foo) (external f (fun bar foo)) f"
 
+let test_alias_labels () =
+  test "(inner/t int)"
+    {|(module inner
+  (type (t 'a) {:a 'a :b int}))
+(type (t 'a) (inner/t 'a))
+{:a 20 :b 10}
+|}
+
+let test_alias_ctors () =
+  test "(inner/t int)"
+    {|(module inner
+  (type (t 'a) (#noo (#yes 'a))))
+(type (t 'a) (inner/t 'a))
+(#yes 10)|}
+
 let test_array_lit () = test "(array int)" "[0 1]"
 
 let test_array_var () = test "(array int)" {|(def a [0 1])
@@ -881,6 +896,8 @@ let () =
           case "param_quant" test_alias_param_quant;
           case "param_missing" test_alias_param_missing;
           case "of_alias" test_alias_of_alias;
+          case "usable labels" test_alias_labels;
+          case "usable ctors" test_alias_ctors;
         ] );
       ( "array",
         [

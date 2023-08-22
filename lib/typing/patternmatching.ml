@@ -55,6 +55,8 @@ let array_assoc_opt name arr =
   in
   inner 0
 
+let rec follow_alias = function Talias (_, t) -> follow_alias t | t -> t
+
 let get_variant env loc (_, name) annot =
   (* Don't use clean directly, to keep integrity of link *)
   match annot with
@@ -83,7 +85,9 @@ let get_variant env loc (_, name) annot =
       | Some { index; typename } ->
           (* We get the ctor type from the variant *)
           let ctor, variant =
-            match Env.query_type ~instantiate loc typename env with
+            match
+              Env.query_type ~instantiate loc typename env |> follow_alias
+            with
             | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
             | _ -> failwith "Internal Error: Not a variant"
           in
