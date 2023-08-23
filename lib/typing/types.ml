@@ -183,7 +183,11 @@ let rec is_weak ~sub = function
       false
 
 let rec extract_name_path = function
-  | Trecord (_, Some n, _) | Tvariant (_, n, _) | Talias (n, _) -> Some n
+  | Trecord (_, Some n, _)
+  | Tvariant (_, n, _)
+  | Talias (n, _)
+  | Tabstract (_, n, _) ->
+      Some n
   | Tvar { contents = Link t } -> extract_name_path t
   | _ -> None
 

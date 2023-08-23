@@ -528,15 +528,21 @@ let find_type_opt loc key env =
 let find_type loc key env = find_type_opt loc key env |> Option.get
 
 let find_type_same_module key env =
-  (* Similar to [find_type_opt] but when we reach a Smodule scope and haven't found anything,
-     we return None. This only works because the toplevel has Sfunc instead of Smodule *)
+  (* Similar to [find_type_opt] but when we reach a Sfunc scope and haven't found
+     anything,we return None. This only works because the toplevel has Sfunc
+     instead of Smodule, and type declarations are only allowed at toplevel so no
+     function scope can be introduced*)
+  let full_name = Path.append key env.modpath in
   let rec aux = function
     | [] -> None
     | scope :: tl -> (
         match (Map.find_opt key scope.types, scope.kind) with
         | None, Sfunc _ -> None
         | None, _ -> aux tl
-        | Some t, _ -> Some t)
+        | Some t, _ ->
+            (* Only named types are in the env. Extracting names of named types should never fail *)
+            let path = extract_name_path (fst t) |> Option.get in
+            if Path.equal full_name path then Some t else aux tl)
   in
   aux env.values
 

@@ -783,6 +783,13 @@ let test_excl_parts_return_whole () =
   test_exn "a.a was moved in line 4, cannot use"
     (typ ^ "(defn meh [a!]\n (def c& !a.a)\n a)")
 
+let test_type_decl_not_unique () =
+  test_exn "Type names in a module must be unique. t exists already"
+    "(type t int) (type t float)"
+
+let test_type_decl_open_before () =
+  test "unit" "(module m (type t int)) (open m) (type t float)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1144,5 +1151,10 @@ let () =
           tase_exn "track vars from inner module use after move"
             "fst/a was moved in line 1, cannot use"
             "(module fst (def a [20])) (ignore [fst/a]) (ignore fst/a.[0])";
+        ] );
+      ( "type decl",
+        [
+          case "not unique" test_type_decl_not_unique;
+          case "open before" test_type_decl_open_before;
         ] );
     ]
