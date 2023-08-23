@@ -2,8 +2,7 @@
 
 (defn print [str] (string/puts (array-data str)))
 
--- option
-(type (option 'a) ((#some 'a) #none))
+(type (option 'a) (option/t 'a))
 
 -- char
 (defn char-equal [a b] (= (u8_to_int a) (u8_to_int b)))

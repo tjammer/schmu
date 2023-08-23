@@ -382,17 +382,17 @@ Copy variants
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %std.option_tuple_array_u8 = type { i32, %tuple_array_u8 }
+  %option.t_tuple_array_u8 = type { i32, %tuple_array_u8 }
   %tuple_array_u8 = type { i8* }
   
-  @schmu_a = global %std.option_tuple_array_u8 zeroinitializer, align 16
+  @schmu_a = global %option.t_tuple_array_u8 zeroinitializer, align 16
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
   declare void @std_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    store i32 0, i32* getelementptr inbounds (%std.option_tuple_array_u8, %std.option_tuple_array_u8* @schmu_a, i32 0, i32 0), align 4
+    store i32 0, i32* getelementptr inbounds (%option.t_tuple_array_u8, %option.t_tuple_array_u8* @schmu_a, i32 0, i32 0), align 4
     %0 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*), i8** %0, align 8
     %1 = alloca i8*, align 8
@@ -401,26 +401,26 @@ Copy variants
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     call void @__copy_ac(i8** %1)
     %4 = load i8*, i8** %1, align 8
-    store i8* %4, i8** getelementptr inbounds (%std.option_tuple_array_u8, %std.option_tuple_array_u8* @schmu_a, i32 0, i32 1, i32 0), align 8
-    %5 = alloca %std.option_tuple_array_u8, align 8
-    %6 = bitcast %std.option_tuple_array_u8* %5 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* bitcast (%std.option_tuple_array_u8* @schmu_a to i8*), i64 16, i1 false)
-    call void @__copy_std.optiontup-ac(%std.option_tuple_array_u8* %5)
-    %tag1 = bitcast %std.option_tuple_array_u8* %5 to i32*
+    store i8* %4, i8** getelementptr inbounds (%option.t_tuple_array_u8, %option.t_tuple_array_u8* @schmu_a, i32 0, i32 1, i32 0), align 8
+    %5 = alloca %option.t_tuple_array_u8, align 8
+    %6 = bitcast %option.t_tuple_array_u8* %5 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* bitcast (%option.t_tuple_array_u8* @schmu_a to i8*), i64 16, i1 false)
+    call void @__copy_option.ttup-ac(%option.t_tuple_array_u8* %5)
+    %tag1 = bitcast %option.t_tuple_array_u8* %5 to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %std.option_tuple_array_u8, %std.option_tuple_array_u8* %5, i32 0, i32 1
+    %data = getelementptr inbounds %option.t_tuple_array_u8, %option.t_tuple_array_u8* %5, i32 0, i32 1
     %7 = bitcast %tuple_array_u8* %data to i8**
     %8 = load i8*, i8** %7, align 8
     call void @std_print(i8* %8)
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
-    call void @__free_std.optiontup-ac(%std.option_tuple_array_u8* %5)
-    call void @__free_std.optiontup-ac(%std.option_tuple_array_u8* @schmu_a)
+    call void @__free_option.ttup-ac(%option.t_tuple_array_u8* %5)
+    call void @__free_option.ttup-ac(%option.t_tuple_array_u8* @schmu_a)
     ret i64 0
   }
   
@@ -452,15 +452,15 @@ Copy variants
     ret void
   }
   
-  define linkonce_odr void @__copy_std.optiontup-ac(%std.option_tuple_array_u8* %0) {
+  define linkonce_odr void @__copy_option.ttup-ac(%option.t_tuple_array_u8* %0) {
   entry:
-    %tag1 = bitcast %std.option_tuple_array_u8* %0 to i32*
+    %tag1 = bitcast %option.t_tuple_array_u8* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %std.option_tuple_array_u8, %std.option_tuple_array_u8* %0, i32 0, i32 1
+    %data = getelementptr inbounds %option.t_tuple_array_u8, %option.t_tuple_array_u8* %0, i32 0, i32 1
     call void @__copy_tup-ac(%tuple_array_u8* %data)
     br label %cont
   
@@ -484,15 +484,15 @@ Copy variants
     ret void
   }
   
-  define linkonce_odr void @__free_std.optiontup-ac(%std.option_tuple_array_u8* %0) {
+  define linkonce_odr void @__free_option.ttup-ac(%option.t_tuple_array_u8* %0) {
   entry:
-    %tag1 = bitcast %std.option_tuple_array_u8* %0 to i32*
+    %tag1 = bitcast %option.t_tuple_array_u8* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %std.option_tuple_array_u8, %std.option_tuple_array_u8* %0, i32 0, i32 1
+    %data = getelementptr inbounds %option.t_tuple_array_u8, %option.t_tuple_array_u8* %0, i32 0, i32 1
     call void @__free_tup-ac(%tuple_array_u8* %data)
     br label %cont
   

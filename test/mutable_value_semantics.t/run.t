@@ -1198,12 +1198,12 @@ Refcounts for members in arrays, records and variants
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %r = type { i64* }
-  %std.option_array_int = type { i32, i64* }
+  %option.t_array_int = type { i32, i64* }
   
   @schmu_a = global i64* null, align 8
   @schmu_r = global %r zeroinitializer, align 8
   @schmu_r__2 = global i64** null, align 8
-  @schmu_r__3 = global %std.option_array_int zeroinitializer, align 16
+  @schmu_r__3 = global %option.t_array_int zeroinitializer, align 16
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
   
@@ -1263,24 +1263,24 @@ Refcounts for members in arrays, records and variants
     %data9 = bitcast i8* %25 to i64*
     %26 = load i64, i64* %data9, align 8
     call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %26)
-    store i32 0, i32* getelementptr inbounds (%std.option_array_int, %std.option_array_int* @schmu_r__3, i32 0, i32 0), align 4
+    store i32 0, i32* getelementptr inbounds (%option.t_array_int, %option.t_array_int* @schmu_r__3, i32 0, i32 0), align 4
     %27 = alloca i64*, align 8
     %28 = bitcast i64** %27 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %28, i8* bitcast (i64** @schmu_a to i8*), i64 8, i1 false)
     call void @__copy_ai(i64** %27)
     %29 = load i64*, i64** %27, align 8
-    store i64* %29, i64** getelementptr inbounds (%std.option_array_int, %std.option_array_int* @schmu_r__3, i32 0, i32 1), align 8
+    store i64* %29, i64** getelementptr inbounds (%option.t_array_int, %option.t_array_int* @schmu_r__3, i32 0, i32 1), align 8
     %30 = load i64*, i64** @schmu_a, align 8
     %31 = bitcast i64* %30 to i8*
     %32 = getelementptr i8, i8* %31, i64 16
     %data10 = bitcast i8* %32 to i64*
     store i64 40, i64* %data10, align 8
-    %index = load i32, i32* getelementptr inbounds (%std.option_array_int, %std.option_array_int* @schmu_r__3, i32 0, i32 0), align 4
+    %index = load i32, i32* getelementptr inbounds (%option.t_array_int, %option.t_array_int* @schmu_r__3, i32 0, i32 0), align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    %33 = load i64*, i64** getelementptr inbounds (%std.option_array_int, %std.option_array_int* @schmu_r__3, i32 0, i32 1), align 8
+    %33 = load i64*, i64** getelementptr inbounds (%option.t_array_int, %option.t_array_int* @schmu_r__3, i32 0, i32 1), align 8
     %34 = bitcast i64* %33 to i8*
     %35 = getelementptr i8, i8* %34, i64 16
     %data11 = bitcast i8* %35 to i64*
@@ -1293,7 +1293,7 @@ Refcounts for members in arrays, records and variants
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
-    call void @__free_std.optionai(%std.option_array_int* @schmu_r__3)
+    call void @__free_option.tai(%option.t_array_int* @schmu_r__3)
     call void @__free_aai(i64*** @schmu_r__2)
     call void @__free_r(%r* @schmu_r)
     call void @__free_ai(i64** @schmu_a)
@@ -1335,15 +1335,15 @@ Refcounts for members in arrays, records and variants
     ret void
   }
   
-  define linkonce_odr void @__free_std.optionai(%std.option_array_int* %0) {
+  define linkonce_odr void @__free_option.tai(%option.t_array_int* %0) {
   entry:
-    %tag1 = bitcast %std.option_array_int* %0 to i32*
+    %tag1 = bitcast %option.t_array_int* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %std.option_array_int, %std.option_array_int* %0, i32 0, i32 1
+    %data = getelementptr inbounds %option.t_array_int, %option.t_array_int* %0, i32 0, i32 1
     call void @__free_ai(i64** %data)
     br label %cont
   

@@ -1,14 +1,38 @@
 (rule
- (targets std.smi std.o array.smi array.o string.smi string.o)
- (deps std.smu %{bin:schmu} array.smu string.smu)
+ (targets
+  std.smi
+  std.o
+  array.smi
+  array.o
+  string.smi
+  string.o
+  option.smi
+  option.o
+  ; hashtbl.smi hashtbl.o
+  )
+ (deps std.smu %{bin:schmu} array.smu string.smu hashtbl.smu)
  (action
   (progn
    (run schmu -m --no-std array.smu)
    (run schmu -m --no-std string.smu)
+   (run schmu -m --no-std option.smu)
+   ; (run schmu -m --no-std hashtbl.smu)
    (run schmu -m --no-std std.smu))))
 
 (install
  (section
   (site
    (schmu std)))
- (files std.smu std.smi std.o array.smu array.smi array.o string.smi string.o))
+ (files
+  std.smu
+  std.smi
+  std.o
+  array.smu
+  array.smi
+  array.o
+  string.smi
+  string.o
+  option.smi
+  option.o
+  ; hashtbl.smu hashtbl.smi hashtbl.o
+  ))
