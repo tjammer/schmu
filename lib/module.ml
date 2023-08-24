@@ -499,10 +499,26 @@ let envmodule_of_cached path = function
   | Located _ -> Env.Cm_located path
   | Cached (_, scope, _) -> Cm_cached (path, scope)
 
+let normalize_path path =
+  let rec normalize acc = function
+    | [] -> String.concat Filename.dir_sep (List.rev acc)
+    | ".." :: tl -> (
+        match acc with
+        | [] -> failwith "TODO start with relative up"
+        | _ :: acctl -> normalize acctl tl)
+    | "." :: tl -> normalize acc tl
+    | hd :: tl -> normalize (hd :: acc) tl
+  in
+  let sep =
+    if String.length Filename.dir_sep = 1 then String.get Filename.dir_sep 0
+    else failwith "What kind of dir sep is this?"
+  in
+  normalize [] (String.split_on_char sep path)
+
 let make_path parent_mod_fname alias_fname =
   (* Make path from parent module filename and (relative) alias filename *)
   if Filename.is_relative alias_fname then
-    Filename.(concat (dirname parent_mod_fname) alias_fname)
+    Filename.(concat (dirname parent_mod_fname) alias_fname) |> normalize_path
   else alias_fname
 
 let load_foreign loc foreign fname mname =
