@@ -8,15 +8,15 @@
   string.o
   option.smi
   option.o
-  ; hashtbl.smi hashtbl.o
-  )
+  hashtbl.smi
+  hashtbl.o)
  (deps std.smu %{bin:schmu} array.smu string.smu hashtbl.smu)
  (action
   (progn
    (run schmu -m --no-std array.smu)
    (run schmu -m --no-std string.smu)
    (run schmu -m --no-std option.smu)
-   ; (run schmu -m --no-std hashtbl.smu)
+   (run schmu -m --no-std hashtbl.smu)
    (run schmu -m --no-std std.smu))))
 
 (install
@@ -34,5 +34,6 @@
   string.o
   option.smi
   option.o
-  ; hashtbl.smu hashtbl.smi hashtbl.o
-  ))
+  hashtbl.smu
+  hashtbl.smi
+  hashtbl.o))

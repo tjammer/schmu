@@ -7,11 +7,11 @@
 -- char
 (defn char-equal [a b] (= (u8_to_int a) (u8_to_int b)))
 
-(module array array)
-
 (defn iter-range [from to f]
   (defn inner [i]
     (if (= i to)
       ()
       (do (f i) (inner (+ i 1)))))
   (inner from))
+
+(module array array)

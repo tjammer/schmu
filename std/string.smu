@@ -5,3 +5,22 @@
 (external puts (fun cstr unit))
 
 (defn len [str] (array-length str))
+
+(defn hash [str]
+  -- unsigned long
+  -- hash(unsigned char *str)
+  -- {
+  --     unsigned long hash = 5381;
+  --     int c;
+  --     while (c = *str++)
+  --         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+  --     return hash;
+  -- }
+  (array/fold str (fn [hash! c] (+ (* hash 33) (u8_to_int c))) 5381))
+
+(external strncmp (fun (raw_ptr u8) (raw_ptr u8) int i32))
+
+(defn equal [l r]
+  (if (= (len l) (len r))
+    (= 0 (int_of_i32 (strncmp (array-data l) (array-data r) (array-length l))))
+    false))

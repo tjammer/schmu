@@ -1,0 +1,15 @@
+(open hashtbl)
+
+(defn string []
+  (print "## string")
+  (def tbl& (create 64 !(copy string/hash) !(copy string/equal)))
+  (insert &tbl !"key" !1.1)
+  (defn find-print [key]
+    (match (find tbl key)
+      ((#some v) (print (fmt-str v)))
+      (#none (print "none"))))
+  (find-print "key")
+  (find-print "otherkey"))
+
+(print "# hashtbl")
+(string)
