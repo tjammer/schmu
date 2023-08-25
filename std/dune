@@ -25,15 +25,17 @@
    (schmu std)))
  (files
   std.smu
-  std.smi
-  std.o
+  (std.smi as std/std.smi)
+  (std.o as std/std.o)
   array.smu
-  array.smi
-  array.o
-  string.smi
-  string.o
-  option.smi
-  option.o
+  (array.smi as std/array.smi)
+  (array.o as std/array.o)
+  string.smu
+  (string.smi as std/string.smi)
+  (string.o as std/string.o)
+  option.smu
+  (option.smi as std/option.smi)
+  (option.o as std/option.o)
   hashtbl.smu
-  hashtbl.smi
-  hashtbl.o))
+  (hashtbl.smi as std/hashtbl.smi)
+  (hashtbl.o as std/hashtbl.o)))

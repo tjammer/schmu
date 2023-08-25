@@ -610,6 +610,7 @@ and locate_module loc ~regeneralize name =
   | None -> (
       try
         let filename = find_file ~name ~suffix:".smi" in
+        let filename = Filename.remove_extension filename in
         Hashtbl.add module_cache mname (Located (filename, loc, regeneralize));
         Ok (Env.Cm_located mname)
       with Not_found -> Error ("Could not open file: " ^ name))
@@ -623,13 +624,12 @@ and load_dep_modules env fname loc objects ~regeneralize =
       let mname = Path.Pid (module_name_of_path name) in
       if Hashtbl.mem module_cache mname then ()
       else
-        let filename = make_path fname name ^ ".smi" in
+        let filename = make_path fname name in
         read_module env filename loc ~regeneralize mname |> ignore)
     objects
 
 and read_module env filename loc ~regeneralize mname =
-  let c = open_in filename in
-  let name = Filename.remove_extension filename in
+  let c = open_in (filename ^ ".smi") in
   let m =
     match Sexp.input c |> Result.map t_of_sexp with
     | Ok t ->
@@ -637,7 +637,7 @@ and read_module env filename loc ~regeneralize mname =
         (* Load transitive modules. The interface files are the same as object files *)
         load_dep_modules env filename loc t.objects ~regeneralize;
         add_object_names filename t.objects;
-        let kind, m = (Cfile name, map_t ~mname ~f:regeneralize t) in
+        let kind, m = (Cfile filename, map_t ~mname ~f:regeneralize t) in
         (* Make module scope *)
         let scope =
           make_scope env loc (Some (filename, regeneralize)) mname m
@@ -646,7 +646,7 @@ and read_module env filename loc ~regeneralize mname =
         scope
     | Error _ ->
         close_in c;
-        raise (Error (loc, "Could not deserialize module: " ^ name))
+        raise (Error (loc, "Could not deserialize module: " ^ filename))
   in
   m
 

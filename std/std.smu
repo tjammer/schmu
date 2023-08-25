@@ -15,3 +15,6 @@
   (inner from))
 
 (module array array)
+(module hashtbl hashtbl)
+(module option option)
+(module string string)
