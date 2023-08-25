@@ -799,3 +799,28 @@ Use directory as module
              ^^^^^^^^^^
   
   [1]
+
+Transitive polymorphic dependency needs to be available
+  $ schmu -m transitive.smu
+  $ schmu -m direct_dep.smu
+  $ schmu use_dep.smu --dump-llvm
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  define linkonce_odr i64 @__g.g_direct_dep_id_i.i(i64 %a) {
+  entry:
+    %0 = tail call i64 @__g.g_transitive_id_i.i(i64 %a)
+    ret i64 %0
+  }
+  
+  define linkonce_odr i64 @__g.g_transitive_id_i.i(i64 %a) {
+  entry:
+    ret i64 %a
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %0 = tail call i64 @__g.g_direct_dep_id_i.i(i64 10)
+    ret i64 %0
+  }

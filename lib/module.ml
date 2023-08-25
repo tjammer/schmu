@@ -421,6 +421,7 @@ let rec map_item ~mname ~f = function
       (* Change name of poly func to module-unique name to prevent name clashes from
          different modules *)
       let item = (mname, Typed_tree.Tl_function (l, n, u, abs)) in
+      if String.contains (Path.show mname) '.' then failwith "hhh";
       poly_funcs := item :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
       Mpoly_fun (l, abs, n, u)
@@ -499,6 +500,10 @@ let envmodule_of_cached path = function
   | Located _ -> Env.Cm_located path
   | Cached (_, scope, _) -> Cm_cached (path, scope)
 
+let sep =
+  if String.length Filename.dir_sep = 1 then String.get Filename.dir_sep 0
+  else failwith "What kind of dir sep is this?"
+
 let normalize_path path =
   let rec normalize acc = function
     | [] -> String.concat Filename.dir_sep (List.rev acc)
@@ -508,10 +513,6 @@ let normalize_path path =
         | _ :: acctl -> normalize acctl tl)
     | "." :: tl -> normalize acc tl
     | hd :: tl -> normalize (hd :: acc) tl
-  in
-  let sep =
-    if String.length Filename.dir_sep = 1 then String.get Filename.dir_sep 0
-    else failwith "What kind of dir sep is this?"
   in
   normalize [] (String.split_on_char sep path)
 
@@ -613,6 +614,19 @@ and locate_module loc ~regeneralize name =
         Ok (Env.Cm_located mname)
       with Not_found -> Error ("Could not open file: " ^ name))
 
+and module_name_of_path p =
+  match String.split_on_char sep p with [] -> p | l -> List.rev l |> List.hd
+
+and load_dep_modules env fname loc objects ~regeneralize =
+  List.iter
+    (fun name ->
+      let mname = Path.Pid (module_name_of_path name) in
+      if Hashtbl.mem module_cache mname then ()
+      else
+        let filename = make_path fname name ^ ".smi" in
+        read_module env filename loc ~regeneralize mname |> ignore)
+    objects
+
 and read_module env filename loc ~regeneralize mname =
   let c = open_in filename in
   let name = Filename.remove_extension filename in
@@ -620,6 +634,8 @@ and read_module env filename loc ~regeneralize mname =
     match Sexp.input c |> Result.map t_of_sexp with
     | Ok t ->
         close_in c;
+        (* Load transitive modules. The interface files are the same as object files *)
+        load_dep_modules env filename loc t.objects ~regeneralize;
         add_object_names filename t.objects;
         let kind, m = (Cfile name, map_t ~mname ~f:regeneralize t) in
         (* Make module scope *)
@@ -707,7 +723,7 @@ let to_channel c ~outname m =
         match cached with
         | Cached (Cfile name, _, _) ->
             if String.ends_with ~suffix:"std" name then set
-            else Sset.add name set
+            else Sset.add (normalize_path name) set
         | _ -> set)
       module_cache Sset.empty
     |> Sset.to_seq |> List.of_seq
