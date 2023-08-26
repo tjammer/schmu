@@ -548,7 +548,7 @@ let rec wrap_in_lambda texpr = function
             let texpr =
               {
                 typ = p.pt;
-                expr = Var (pn i 0);
+                expr = Var (pn i 0, None);
                 attr = { no_attr with mut };
                 loc = texpr.loc;
               }
@@ -645,7 +645,7 @@ end = struct
               assert (Path.is_local id);
               Path.get_hd id
         in
-        { typ; expr = Var id; attr; loc }
+        { typ; expr = Var (id, t.imported); attr; loc }
     | None ->
         let suff =
           match Env.find_module_opt loc id env with

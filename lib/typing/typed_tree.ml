@@ -14,7 +14,7 @@ end
 type loc = Show.pos * Show.pos [@@deriving show, sexp]
 
 type expr =
-  | Var of string
+  | Var of string * Path.t option
   | Const of const
   | Bop of Ast.bop * typed_expr * typed_expr
   | Unop of Ast.unop * typed_expr

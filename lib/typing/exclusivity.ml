@@ -260,7 +260,7 @@ let rec check_exclusivity loc borrow hist =
 
 let make_copy_call loc tree =
   let typ = Tfun ([ { pattr = Dnorm; pt = tree.typ } ], tree.typ, Simple) in
-  let callee = { typ; attr = no_attr; loc; expr = Var "__copy" } in
+  let callee = { typ; attr = no_attr; loc; expr = Var ("__copy", None) } in
   let expr = App { callee; args = [ (tree, Dnorm) ] } in
   { tree with attr = { tree.attr with const = false }; expr }
 
@@ -356,7 +356,8 @@ let rec check_excl_chain loc env borrow hist =
 and check_excl_chains loc env borrow hist =
   List.iter (fun b -> check_excl_chain loc env b hist) borrow
 
-let make_var loc name typ = { typ; expr = Var name; attr = no_attr; loc }
+let make_var loc name typ =
+  { typ; expr = Var (name, None); attr = no_attr; loc }
 
 let binding_of_borrow borrow = function
   | Usage.Uread -> Borrow borrow
@@ -389,7 +390,7 @@ let move_b loc special b =
 
 let rec check_tree env mut ((bpart, special) as bdata) tree hist =
   match tree.expr with
-  | Var borrowed ->
+  | Var (borrowed, _) ->
       (* This is no rvalue, we borrow *)
       let bid = get_id borrowed in
       let loc = tree.loc in
@@ -558,8 +559,10 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let expr = Sequence (fst, snd) in
       ({ tree with expr }, v, hs)
   | App
-      { callee = { expr = Var "array-get"; _ } as callee; args = [ arr; idx ] }
-    ->
+      {
+        callee = { expr = Var ("array-get", None); _ } as callee;
+        args = [ arr; idx ];
+      } ->
       (* Special case for array-get *)
       (* Partial moves for arrays are not yet supported in monomorph_tree, so we
          do not allow them as a temporary workaround *)
@@ -607,7 +610,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
           args
       in
       (* Check again to ensure exclusivity of arguments and closure *)
-      let c = { callee with expr = Var "_env" } in
+      let c = { callee with expr = Var ("_env", None) } in
       check_tree tmp Uread no_bdata c hs |> ignore;
       List.iteri
         (fun i (arg, attr) ->
@@ -616,7 +619,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
               (* Moved values can't have been used later *)
               ()
           | u ->
-              let arg = { arg with expr = Var ("_" ^ string_of_int i) } in
+              let expr = Var ("_" ^ string_of_int i, None) in
+              let arg = { arg with expr } in
               check_tree tmp u no_bdata arg hs |> ignore)
         args;
       let expr = App { callee; args } in

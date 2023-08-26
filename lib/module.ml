@@ -20,15 +20,20 @@ and item =
 
 and sg_kind = Stypedef | Svalue
 and sig_item = string * loc * typ * sg_kind [@@deriving sexp]
-and t = { s : sig_item list; i : item list; objects : string list }
 
-type cache_kind = Cfile of string | Clocal of Path.t
+and t = {
+  s : sig_item list;
+  i : item list;
+  objects : (string * bool (* transitive dep needs load *)) list;
+}
+
+type cache_kind = Cfile of string * bool | Clocal of Path.t
 
 let t_of_sexp s =
   triple_of_sexp
     (list_of_sexp sig_item_of_sexp)
     (list_of_sexp item_of_sexp)
-    (list_of_sexp string_of_sexp)
+    (list_of_sexp (pair_of_sexp string_of_sexp bool_of_sexp))
     s
   |> fun (s, i, objects) -> { s; i; objects }
 
@@ -36,7 +41,7 @@ let sexp_of_t m =
   sexp_of_triple
     (sexp_of_list sexp_of_sig_item)
     (sexp_of_list sexp_of_item)
-    (sexp_of_list sexp_of_string)
+    (sexp_of_list (sexp_of_pair sexp_of_string sexp_of_bool))
     (m.s, m.i, m.objects)
 
 type cached =
@@ -80,7 +85,7 @@ let add_module_alias loc key mname ~into =
   let filename =
     match Hashtbl.find_opt module_cache mname with
     | None | Some (Cached (Clocal _, _, _)) -> None
-    | Some (Cached (Cfile f, _, _) | Located (f, _, _)) -> Some f
+    | Some (Cached (Cfile (f, _), _, _) | Located (f, _, _)) -> Some f
   in
   { into with i = Mmodule_alias (loc, key, mname, filename) :: into.i }
 
@@ -241,9 +246,20 @@ and change_name id nsub =
   match Smap.find_opt id nsub with None -> id | Some name -> name
 
 and canonexpr mname nsub sub = function
-  | Typed_tree.Var id ->
+  | Typed_tree.Var (id, m) ->
       let id = change_name id nsub in
-      (sub, Var id)
+      (match m with
+      | Some m when not (Path.share_base mname m) -> (
+          (* Make sure this is eagerly loaded on use *)
+          match Hashtbl.find_opt module_cache m with
+          | None | Some (Located _ | Cached (Clocal _, _, _)) ->
+              failwith "unreachable what is this module's path?"
+          | Some (Cached (Cfile (_, true), _, _)) -> ()
+          | Some (Cached (Cfile (name, false), scope, md)) ->
+              Hashtbl.replace module_cache m
+                (Cached (Cfile (name, true), scope, md)))
+      | None | Some _ -> ());
+      (sub, Var (id, m))
   | Const (Array a) ->
       let sub, a = List.fold_left_map (canonbody mname nsub) sub a in
       (sub, Const (Array a))
@@ -421,7 +437,6 @@ let rec map_item ~mname ~f = function
       (* Change name of poly func to module-unique name to prevent name clashes from
          different modules *)
       let item = (mname, Typed_tree.Tl_function (l, n, u, abs)) in
-      if String.contains (Path.show mname) '.' then failwith "hhh";
       poly_funcs := item :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
       Mpoly_fun (l, abs, n, u)
@@ -494,7 +509,9 @@ and canonize_t mname m =
   in
   { m with s; i }
 
-let modpath_of_kind = function Clocal p -> p | Cfile name -> Path.Pid name
+let modpath_of_kind = function
+  | Clocal p -> p
+  | Cfile (name, _) -> Path.Pid name
 
 let envmodule_of_cached path = function
   | Located _ -> Env.Cm_located path
@@ -620,12 +637,14 @@ and module_name_of_path p =
 
 and load_dep_modules env fname loc objects ~regeneralize =
   List.iter
-    (fun name ->
-      let mname = Path.Pid (module_name_of_path name) in
-      if Hashtbl.mem module_cache mname then ()
-      else
-        let filename = make_path fname name in
-        read_module env filename loc ~regeneralize mname |> ignore)
+    (fun (name, load) ->
+      if load then
+        let mname = Path.Pid (module_name_of_path name) in
+        if Hashtbl.mem module_cache mname then ()
+        else
+          let filename = make_path fname name in
+          read_module env filename loc ~regeneralize mname |> ignore
+      else ())
     objects
 
 and read_module env filename loc ~regeneralize mname =
@@ -637,7 +656,9 @@ and read_module env filename loc ~regeneralize mname =
         (* Load transitive modules. The interface files are the same as object files *)
         load_dep_modules env filename loc t.objects ~regeneralize;
         add_object_names filename t.objects;
-        let kind, m = (Cfile filename, map_t ~mname ~f:regeneralize t) in
+        let kind, m =
+          (Cfile (filename, false), map_t ~mname ~f:regeneralize t)
+        in
         (* Make module scope *)
         let scope =
           make_scope env loc (Some (filename, regeneralize)) mname m
@@ -653,7 +674,7 @@ and read_module env filename loc ~regeneralize mname =
 and add_object_names fname objects =
   let objs =
     List.fold_left
-      (fun set name ->
+      (fun set (name, _) ->
         let o = make_path fname name ^ ".o" in
         Sset.add o set)
       Sset.empty objects
@@ -707,7 +728,7 @@ let object_names () =
     Hashtbl.fold
       (fun _ cached set ->
         match cached with
-        | Cached (Cfile name, _, _) -> Sset.add (name ^ ".o") set
+        | Cached (Cfile (name, _), _, _) -> Sset.add (name ^ ".o") set
         | Cached (Clocal _, _, _) -> set
         | Located _ -> set)
       module_cache Sset.empty
@@ -717,20 +738,21 @@ let object_names () =
 let rev { s; i; objects } = { s = List.rev s; i = List.rev i; objects }
 
 let to_channel c ~outname m =
+  let module Smap = Map.Make (String) in
+  let m = rev m |> canonize_t (Path.Pid outname) in
+  (* Correct objects only exist after [canonize_t] *)
   let objects =
     Hashtbl.fold
       (fun _ cached set ->
         match cached with
-        | Cached (Cfile name, _, _) ->
+        | Cached (Cfile (name, load), _, _) ->
             if String.ends_with ~suffix:"std" name then set
-            else Sset.add (normalize_path name) set
+            else Smap.add (normalize_path name) load set
         | _ -> set)
-      module_cache Sset.empty
-    |> Sset.to_seq |> List.of_seq
+      module_cache Smap.empty
+    |> Smap.to_seq |> List.of_seq
   in
-  rev { m with objects }
-  |> canonize_t (Path.Pid outname)
-  |> sexp_of_t |> Sexp.to_channel c
+  { m with objects } |> sexp_of_t |> Sexp.to_channel c
 
 let extract_name_type env = function
   | Mtype (l, t) -> (

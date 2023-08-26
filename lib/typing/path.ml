@@ -71,6 +71,14 @@ let rec append name = function
   | Pid n -> Pmod (n, Pid name)
   | Pmod (n, tl) -> Pmod (n, append name tl)
 
+let share_base l r =
+  match (l, r) with
+  | Pid l, Pid r
+  | Pmod (l, _), Pid r
+  | Pmod (l, _), Pmod (r, _)
+  | Pid l, Pmod (r, _) ->
+      String.equal l r
+
 let rec pop = function
   | Pid _ as p -> p
   | Pmod (n, Pid _) -> Pid n

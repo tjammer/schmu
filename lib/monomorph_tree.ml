@@ -1081,7 +1081,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
     { typ = cln param texpr.typ; expr; return; loc = texpr.loc }
   in
   match texpr.expr with
-  | Typed_tree.Var v -> morph_var make param v
+  | Typed_tree.Var (v, _) -> morph_var make param v
   | Const (String s) -> morph_string make param s
   | Const (Array a) -> morph_array make param a (cln param texpr.typ)
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
@@ -1126,7 +1126,11 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p = List.fold_left rec_fs_to_env param decls in
       morph_expr p cont
   | Lambda (id, abs) -> morph_lambda make texpr.typ param id abs
-  | App { callee = { expr = Var id; _ }; args = [ ({ expr = Fmt es; _ }, _) ] }
+  | App
+      {
+        callee = { expr = Var (id, _); _ };
+        args = [ ({ expr = Fmt es; _ }, _) ];
+      }
     when String.equal id
            (Module.absolute_module_name ~mname:(Path.Pid "std") "print") ->
       morph_print_str make param es
