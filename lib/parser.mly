@@ -169,11 +169,11 @@ signature: Signature; l = nonempty_list(sig_item) { l }
   | Defexternal; ident; sexp_type_expr; option(String_lit) { $loc, $2, $3, $4 }
 
 modul:
-  | Module; id = ident { Module (id, [], []) } /* empty module */
-  | Module; id = ident; hd = module_item; m = list(top_item) { Module (id, [], hd :: m) }
-  | Module; id = ident; s = parens(signature); m = list(top_item) { Module (id, s, m) }
+  | Module; id = ident { Module_alias (id, Path.Pid (snd id)) }
   | Module; id = ident; mname = path /* Use location of path */
     { Module_alias ((fst mname, snd id), snd mname) }
+  | Module; id = ident; hd = module_item; m = list(top_item) { Module (id, [], hd :: m) }
+  | Module; id = ident; s = parens(signature); m = list(top_item) { Module (id, s, m) }
 
 %inline path:
   | id = ident { $loc, Path.Pid (snd id) }

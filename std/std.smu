@@ -14,7 +14,7 @@
       (do (f i) (inner (+ i 1)))))
   (inner from))
 
-(module array array)
-(module hashtbl hashtbl)
-(module option option)
-(module string string)
+(module array)
+(module hashtbl)
+(module option)
+(module string)

@@ -645,7 +645,7 @@ let test_local_modules_miss_local_dont_find_global () =
 
 let test_local_module_unique_names () =
   test_exn "Module names must be unique. nosig exists already"
-    (local_module ^ "(module nosig)")
+    (local_module ^ "(module nosig (type t unit))")
 
 let test_local_module_nested_module_alias () =
   test "nosig/nested/t"
