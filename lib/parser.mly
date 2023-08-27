@@ -107,6 +107,7 @@
 %token Defexternal
 %token Signature
 %token Module
+%token Module_type
 %token Set
 %token Fmt_str
 %token Rec
@@ -141,6 +142,7 @@ top_item:
   | decl = external_decl { Ext_decl decl }
   | def = typedef { Typedef ($loc, def) }
   | modul = parens(modul) { modul }
+  | module_type = parens(module_type) { module_type }
 
 signature: Signature; l = nonempty_list(sig_item) { l }
 
@@ -175,6 +177,9 @@ modul:
   | Module; id = ident; hd = module_item; m = list(top_item) { Module (id, [], hd :: m) }
   | Module; id = ident; s = parens(signature); m = list(top_item) { Module (id, s, m) }
 
+module_type:
+  | Module_type; id = ident; l = nonempty_list(sig_item) { Module_type (id, l) }
+
 %inline path:
   | id = ident { $loc, Path.Pid (snd id) }
   | id = ident; Div_i; lst = separated_nonempty_list(Div_i, ident)
@@ -196,10 +201,6 @@ modul:
 let atom_or_list(x) :=
   | atom = x; { [atom] }
   | list = parens(nonempty_list(x)); { list }
-
-let atom_or_tup_pattern(x) :=
-  | atom = x; { [atom] }
-  | Quote; list = bracs(nonempty_list(x)); { list }
 
 let bracs(x) :=
   | Lbrac; thing = x; Rbrac; { thing }
@@ -433,7 +434,7 @@ let with_loc(x) :=
     { Por ($loc, (head :: tail)) }
 
 %inline record_item_pattern:
-  | attr = attr; p = option(sexp_pattern) { fst attr, snd attr, p }
+  | attr = attr; p = option(sexp_pattern) { attr, p }
 
 %inline ctor_pattern_item:
   | sexp_ctor; sexp_pattern { Pctor ($1, Some $2) }

@@ -1,4 +1,5 @@
 type loc = (Lexing.position * Lexing.position[@opaque]) [@@deriving show]
+type ident = loc * string
 
 type bop =
   | Plus_i
@@ -44,18 +45,18 @@ and decl = {
 and decl_attr = Dmut | Dmove | Dnorm | Dset
 
 and func = {
-  name : loc * string;
+  name : ident;
   params : decl list;
   return_annot : type_spec option;
   body : block;
-  attr : (loc * string) option;
+  attr : ident option;
 }
 
 and argument = { apass : decl_attr; aloc : loc; aexpr : expr }
 and passed_expr = { pattr : decl_attr; pexpr : expr }
 
 and expr =
-  | Var of loc * string
+  | Var of ident
   | Lit of loc * literal
   | Bop of loc * bop * expr list
   | Unop of loc * unop * expr
@@ -71,7 +72,7 @@ and expr =
   | Do_block of block
   | Pipe_head of loc * argument * pipeable
   | Pipe_tail of loc * argument * pipeable
-  | Ctor of loc * (loc * string) * expr option
+  | Ctor of loc * ident * expr option
   | Match of loc * expr * (loc * pattern * expr) list
   | Local_open of loc * string * expr
   | Fmt of loc * expr list
@@ -79,11 +80,11 @@ and expr =
 and pipeable = Pip_expr of expr | Pip_field of string
 
 and pattern =
-  | Pctor of (loc * string) * pattern option
-  | Pvar of loc * string
+  | Pctor of ident * pattern option
+  | Pvar of ident
   | Ptup of loc * (loc * pattern) list
   | Pwildcard of loc
-  | Precord of loc * (loc * string * pattern option) list
+  | Precord of loc * (ident * pattern option) list
   | Plit_int of loc * int
   | Plit_char of loc * char
   | Por of loc * pattern list
@@ -104,20 +105,14 @@ and stmt =
   | Function of loc * func
   | Expr of (loc * expr)
   | Rec of (loc * (loc * func) list)
-  | Open of loc * string
+  | Open of ident
 
 and block = stmt list
 
-type external_decl = loc * (loc * string) * type_spec * string option
+type external_decl = loc * ident * type_spec * string option
 type typename = { name : string; poly_param : string list }
 type record = { name : typename; labels : (bool * string * type_spec) array }
-
-type ctor = {
-  name : loc * string;
-  typ_annot : type_spec option;
-  index : int option;
-}
-
+type ctor = { name : ident; typ_annot : type_spec option; index : int option }
 type variant = { name : typename; ctors : ctor list }
 
 type typedef =
@@ -130,11 +125,12 @@ type top_item =
   | Stmt of stmt
   | Ext_decl of external_decl
   | Typedef of loc * typedef
-  | Module of (loc * string) * signature list * top_item list
-  | Module_alias of (loc * string) * Path.t
+  | Module of ident * signature list * top_item list
+  | Module_alias of ident * Path.t
+  | Module_type of ident * signature list
 
 and signature =
   | Stypedef of loc * typedef
-  | Svalue of loc * ((loc * string) * type_spec)
+  | Svalue of loc * (ident * type_spec)
 
 and prog = signature list * top_item list

@@ -623,7 +623,7 @@ module Make (C : Core) (R : Recs) = struct
     (* Loop names list for better errors *)
     let index_fields =
       List.map
-        (fun (loc, name, pat) ->
+        (fun ((loc, name), pat) ->
           let field, index =
             match find_name loc name with
             | Some f -> f
@@ -756,7 +756,7 @@ module Make (C : Core) (R : Recs) = struct
                let pat = Tp_tuple (loc, pats) in
                (path, { ptyp = typ; pat }))
     | Precord (loc, pats) ->
-        let labelset = List.map (fun (_, name, _) -> name) pats in
+        let labelset = List.map (fun ((_, name), _) -> name) pats in
         let annot = make_annot (path_typ loc env path) in
         let ptyp = get_record_type env loc labelset annot in
         unify

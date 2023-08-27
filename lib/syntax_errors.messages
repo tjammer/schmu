@@ -1314,6 +1314,14 @@ prog: Lpar Signature Lpar Type Kebab_id Rpar Wildcard
 
 Expecting type or value declaration
 
+prog: Lpar Module_type Wildcard
+
+Expecting type or value declaration
+
+prog: Lpar Module_type Kebab_id Wildcard
+
+Expecting definition
+
 prog: Lpar Module Wildcard
 
 Expecting definition
@@ -1383,6 +1391,10 @@ prog: Lpar Module Kebab_id Lpar Def Kebab_id False Rpar Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Module Kebab_id Lpar Defn Kebab_id Lbrack Rbrack Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Module Kebab_id Lpar Module_type Kebab_id Lpar Type Kebab_id Rpar Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

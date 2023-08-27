@@ -1426,6 +1426,7 @@ and convert_prog env items modul =
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
+    | Module_type _ -> failwith "TODO module type"
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
