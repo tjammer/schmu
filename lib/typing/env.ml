@@ -547,7 +547,16 @@ let find_type_same_module key env =
   aux env.values
 
 let query_type ~instantiate loc key env =
-  find_type loc key env |> fst |> instantiate
+  find_general
+    ~find:(fun key scope ->
+      match (Map.find_opt key scope.types, scope.kind) with
+      | Some t, Smodule { used; _ } ->
+          used := true;
+          Some (fst t)
+      | Some t, (Sfunc _ | Sfunc_cont _) -> Some (fst t)
+      | None, _ -> None)
+    ~found:Fun.id loc key env
+  |> Option.get |> instantiate
 
 let find_module_opt loc name env =
   find_general
