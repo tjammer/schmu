@@ -5,7 +5,11 @@
   (print "i'm in a module")
   (module a
     (type t float)
-    (def a 10)))
+    (print (fmt-str a))
+    (assert (= (u8_to_int a) (u8_to_int 'a')))
+    (def a 10)
+    (print (fmt-str a))
+    (assert (= a 10))))
 
 (print (fmt-str a))
 

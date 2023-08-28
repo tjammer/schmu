@@ -562,24 +562,16 @@ let rec add_to_env env foreign (mname, m) =
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
           | Mfun (l, typ, n) ->
-              let imported = Some (mname, `Schmu) in
-              Env.(add_value n.user { def_value with typ; imported } l env)
+              Env.(add_value n.user { def_value with typ } l env)
           | Mpoly_fun (l, abs, n, _) ->
-              let imported = Some (mname, `Schmu) in
               Env.(
-                add_value n
-                  { def_value with typ = type_of_func abs.func; imported }
-                  l env)
+                add_value n { def_value with typ = type_of_func abs.func } l env)
           | Mext (l, typ, n, _) ->
-              let imported = Some (mname, `C) in
-              Env.(add_value n.user { def_value with typ; imported } l env)
+              Env.(add_value n.user { def_value with typ } l env)
           | Mmutual_rec (_, ds) ->
               List.fold_left
                 (fun env (l, name, _, typ) ->
-                  Env.(
-                    add_value name
-                      { def_value with typ; imported = Some (mname, `Schmu) }
-                      l env))
+                  Env.(add_value name { def_value with typ } l env))
                 env ds
           | Mlocal_module (loc, key, m) -> (
               let mname = Path.append key mname in
@@ -605,18 +597,11 @@ let rec add_to_env env foreign (mname, m) =
           match kind with
           (* Not in the signature of the module we add it to *)
           | Stypedef -> Env.add_type name ~in_sig:false typ env
-          | Svalue ->
-              (* The import kind (`C | `Schmu) is currently not used in the env implementation.
-                 This is good for us, so we don't have to keep track of what's external (C linkage)
-                 vs internal (Schmu linkage) here. Once the env implementation does something with this
-                 info, we have to change this here. This means tracking the origin of the value more
-                 precisely. *)
-              let imported = Some (mname, `Schmu) in
-              Env.(add_value name { def_value with typ; imported } loc env))
+          | Svalue -> Env.(add_value name { def_value with typ } loc env))
         env l
 
 and make_scope env loc foreign mname m =
-  let env = Env.open_module_scope env loc (Path.get_hd mname) in
+  let env = Env.open_module_scope env loc mname in
   let env = add_to_env env foreign (mname, m) in
   Env.pop_scope env
 

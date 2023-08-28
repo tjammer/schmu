@@ -560,7 +560,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       ({ tree with expr }, v, hs)
   | App
       {
-        callee = { expr = Var ("array-get", None); _ } as callee;
+        callee = { expr = Var ("array-get", _); _ } as callee;
         args = [ arr; idx ];
       } ->
       (* Special case for array-get *)
@@ -868,11 +868,6 @@ let find_usage id hist =
       (* The binding was not used *)
       (Ast.Dnorm, None)
 
-let touched_name t =
-  match t.tkind with
-  | Timported mname -> Module.absolute_module_name ~mname t.tname
-  | Tnone | Tconst | Tglobal -> t.tname
-
 let check_tree pts pns touched body =
   (* Add parameters to initial environment *)
   (* print_endline (show_expr body.expr); *)
@@ -889,8 +884,8 @@ let check_tree pts pns touched body =
   let env, hist =
     List.fold_left
       (fun (map, hs) t ->
-        let id = touched_name t |> new_id in
-        assert (Id.equal id (Fst (touched_name t)));
+        let id = t.tname |> new_id in
+        assert (Id.equal id (Fst t.tname));
         let b = [ Bown id ] in
         (Map.add id (imm b) map, add_hist (imm b) hs))
       (Map.empty, Map.empty) touched
@@ -932,7 +927,7 @@ let check_tree pts pns touched body =
   let touched =
     List.map
       (fun t ->
-        let tattr, tattr_loc = find_usage (Fst (touched_name t)) hist in
+        let tattr, tattr_loc = find_usage (Fst t.tname) hist in
         (match tattr with
         | Dmove ->
             let loc = Option.get tattr_loc in
@@ -950,7 +945,7 @@ let check_items touched items =
   let env, hist =
     List.fold_left
       (fun (map, hs) t ->
-        let id = touched_name t |> new_id in
+        let id = t.tname |> new_id in
         let b = [ Bown id ] in
         (Map.add id (imm b) map, add_hist (imm b) hs))
       (Map.empty, Map.empty) touched
@@ -977,7 +972,7 @@ let check_items touched items =
   reset ();
   List.iter
     (fun t ->
-      let tattr, tattr_loc = find_usage (Fst (touched_name t)) hist in
+      let tattr, tattr_loc = find_usage (Fst t.tname) hist in
       match tattr with
       | Dmove ->
           let loc = Option.get tattr_loc in

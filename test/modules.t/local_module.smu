@@ -10,7 +10,8 @@
   (type t int)
   (defn test [] (print "hey thing"))
   (defn poly-test [a] (print (fmt-str "hey poly " a)))
-  (def value "test"))
+  (def value "test")
+  (ignore value))
 
 (test)
 

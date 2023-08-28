@@ -75,18 +75,11 @@ and toplevel_item =
   | Tl_module of (Path.t * toplevel_item) list
   | Tl_module_alias of (loc * string) * Path.t
 
-and touched_kind = Env.touched_kind =
-  | Tnone
-  | Tconst
-  | Tglobal
-  | Timported of Path.t
-
 and touched = Env.touched = {
   tname : string;
   ttyp : typ;
   tattr : dattr;
   tattr_loc : loc option;
-  tkind : touched_kind;
 }
 
 and func = {

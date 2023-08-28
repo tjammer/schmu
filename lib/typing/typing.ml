@@ -340,7 +340,6 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
               const = false;
               param = true;
               global = false;
-              imported = None;
               mut = mut_of_pattr dattr;
             }
             idloc env,
@@ -635,16 +634,9 @@ end = struct
 
   and convert_var env loc id =
     match Env.query_val_opt loc id env with
-    | Some t ->
+    | Some (t, id) ->
         let typ = instantiate t.typ in
         let attr = { const = t.const; global = t.global; mut = t.mut } in
-        let id =
-          match t.imported with
-          | Some mname -> Module.absolute_module_name ~mname (Path.get_hd id)
-          | _ ->
-              assert (Path.is_local id);
-              Path.get_hd id
-        in
         { typ; expr = Var (id, t.imported); attr; loc }
     | None ->
         let suff =
@@ -1212,7 +1204,8 @@ let block_external_name loc ~cname id =
   match Strtbl.find_opt !uniq_tbl name with
   | None ->
       (* Good, block this name. NOTE see [uniq_name] *)
-      Strtbl.add !uniq_tbl name 1
+      Strtbl.add !uniq_tbl name 1;
+      Some name
   | Some _ ->
       let msg =
         Printf.sprintf
@@ -1363,7 +1356,9 @@ and convert_prog env items modul =
         (env, items, m)
     | Ext_decl (loc, (idloc, id), typ, cname) ->
         let typ = typeof_annot env loc typ in
-        block_external_name loc ~cname id;
+        (* Make cname explicit to link the correct name even if schmu identifier
+           has the module name prepended *)
+        let cname = block_external_name loc ~cname id in
         let m =
           Module.add_external ~mname:(Env.modpath env) loc typ id cname
             ~closure:false m
@@ -1503,6 +1498,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   (* Add builtins to env *)
   let find_module = Module.find_module ~regeneralize in
   let scope_of_located = Module.scope_of_located in
+  let abs_module_name = Module.absolute_module_name in
 
   let env =
     Builtin.(
@@ -1511,7 +1507,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
           let typ = instantiate typ in
           leave_level ();
           Env.(add_value str { def_value with typ = generalize typ } loc env)))
-      (Env.empty ~find_module ~scope_of_located mname)
+      (Env.empty ~find_module ~scope_of_located ~abs_module_name mname)
   in
 
   (* Open prelude *)

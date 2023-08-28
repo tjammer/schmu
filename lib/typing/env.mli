@@ -3,28 +3,24 @@ open Types
 type key = string
 type label = { index : int; typename : Path.t }
 type t
-type imported = Path.t * [ `C | `Schmu ]
 
-type value = {
+type add_value = {
   typ : typ;
   param : bool;
   const : bool;
   global : bool;
-  imported : imported option;
   mut : bool;
 }
 
 type warn_kind = Unused | Unmutated | Unused_mod
-type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
 
-type touched_kind = Tnone | Tconst | Tglobal | Timported of Path.t
+type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
 
 and touched = {
   tname : string;
   ttyp : typ;
   tattr : Ast.decl_attr;
   tattr_loc : Ast.loc option;
-  tkind : touched_kind;
 }
 
 type return = {
@@ -39,7 +35,7 @@ type ext = {
   ext_name : string;
   ext_typ : typ;
   ext_cname : string option;
-  imported : imported option;
+  imported : (Path.t * [ `C | `Schmu ]) option;
   used : bool ref;
   closure : bool;
 }
@@ -48,16 +44,17 @@ type ext = {
 type scope
 type cached_module = Cm_located of Path.t | Cm_cached of Path.t * scope
 
-val def_value : value
+val def_value : add_value
 (** Default value, everything is false *)
 
 val empty :
   find_module:(t -> Ast.loc -> key -> cached_module) ->
   scope_of_located:(t -> Path.t -> scope) ->
+  abs_module_name:(mname:Path.t -> string -> string) ->
   Path.t ->
   t
 
-val add_value : key -> value -> Ast.loc -> t -> t
+val add_value : key -> add_value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
 
 val add_external : key -> cname:string option -> typ -> Ast.loc -> t -> t
@@ -82,7 +79,7 @@ val open_module : t -> Ast.loc -> string -> t
 val find_val : Ast.loc -> Path.t -> t -> return
 val find_val_opt : Ast.loc -> Path.t -> t -> return option
 
-val query_val_opt : Ast.loc -> Path.t -> t -> return option
+val query_val_opt : Ast.loc -> Path.t -> t -> (return * string) option
 (** [query_opt key env] is like find_val_opt, but marks [key] as
      being used in the current scope (e.g. a closure) *)
 
@@ -113,6 +110,6 @@ val externals : t -> ext list
 (** [externals env] returns a list of all external function declarations *)
 
 val modpath : t -> Path.t
-val open_module_scope : t -> Ast.loc -> string -> t
+val open_module_scope : t -> Ast.loc -> Path.t -> t
 val pop_scope : t -> scope
 val fix_scope_loc : scope -> Ast.loc -> scope

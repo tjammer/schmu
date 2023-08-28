@@ -29,14 +29,20 @@ type label = {
   typename : Path.t;
 }
 
-type imported = Path.t * [ `C | `Schmu ]
+type add_value = {
+  typ : typ;
+  param : bool;
+  const : bool;
+  global : bool;
+  mut : bool;
+}
 
 type value = {
   typ : typ;
   param : bool;
   const : bool;
   global : bool;
-  imported : imported option;
+  imported : Path.t option;
   mut : bool;
 }
 
@@ -44,7 +50,7 @@ module Used_value = struct
   type t = key * value
 
   let compare (ak, av) (bk, bv) =
-    let p s = match s with Some (p, _) -> Path.show p | None -> "" in
+    let p s = match s with Some p -> Path.show p | None -> "" in
     String.compare (p av.imported ^ ak) (p bv.imported ^ bk)
 end
 
@@ -70,22 +76,20 @@ type ext = {
   ext_name : string;
   ext_typ : typ;
   ext_cname : string option;
-  imported : imported option;
+  imported : (Path.t * [ `C | `Schmu ]) option;
   used : bool ref;
   closure : bool;
 }
 
 type usage_tbl = (Path.t, usage) Hashtbl.t
-type module_usage = { name : string; loc : Ast.loc; used : bool ref }
 
-type touched_kind = Tnone | Tconst | Tglobal | Timported of Path.t
+type module_usage = { name : Path.t; loc : Ast.loc; used : bool ref }
 
 and touched = {
   tname : string;
   ttyp : typ;
   tattr : Ast.decl_attr;
   tattr_loc : Ast.loc option;
-  tkind : touched_kind;
 }
 
 type scope_kind =
@@ -120,20 +124,14 @@ type t = {
   modpath : Path.t;
   find_module : t -> Ast.loc -> string -> cached_module;
   scope_of_located : t -> Path.t -> scope;
+  abs_module_name : mname:Path.t -> string -> string;
 }
 
 type warn_kind = Unused | Unmutated | Unused_mod
 type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
 
 let def_value =
-  {
-    typ = Tunit;
-    param = false;
-    const = false;
-    global = false;
-    imported = None;
-    mut = false;
-  }
+  { typ = Tunit; param = false; const = false; global = false; mut = false }
 
 let empty_scope kind =
   {
@@ -147,7 +145,7 @@ let empty_scope kind =
     modules = Map.empty;
   }
 
-let empty ~find_module ~scope_of_located modpath =
+let empty ~find_module ~scope_of_located ~abs_module_name modpath =
   {
     values = [ empty_scope (Sfunc (Hashtbl.create 64)) ];
     externals = Etbl.create 64;
@@ -155,6 +153,7 @@ let empty ~find_module ~scope_of_located modpath =
     modpath;
     find_module;
     scope_of_located;
+    abs_module_name;
   }
 
 let decap_exn env =
@@ -162,10 +161,18 @@ let decap_exn env =
   | [] -> failwith "Internal Error: Env empty"
   | scope :: tl -> (scope, tl)
 
+let value_of_add imported ({ typ; param; const; global; mut } : add_value) =
+  { typ; param; const; global; imported; mut }
+
+let is_imported modpath = function
+  | None -> false
+  | Some mname -> Path.share_base mname modpath |> not
+
 let add_value key value loc env =
   match env.values with
   | [] -> failwith "Internal Error: Env empty"
   | scope :: tl ->
+      let value = value_of_add (Some env.modpath) value in
       let valmap = Map.add key value scope.valmap in
 
       (* Shadowed bindings stay in the Hashtbl, but are not reachable.
@@ -177,7 +184,7 @@ let add_value key value loc env =
             {
               loc;
               used = ref false;
-              imported = Option.is_some value.imported;
+              imported = is_imported env.modpath value.imported;
               mutated;
             }
       | Smodule _ -> assert (Option.is_some value.imported));
@@ -189,11 +196,17 @@ let add_external ext_name ~cname typ loc env =
     match env.values with
     | [] -> failwith "Internal Error: Env empty"
     | scope :: tl ->
-        let valmap =
-          Map.add ext_name
-            { def_value with typ; imported = None; global = true }
-            scope.valmap
+        let value =
+          {
+            typ;
+            imported = None;
+            global = true;
+            const = false;
+            mut = false;
+            param = false;
+          }
         in
+        let valmap = Map.add ext_name value scope.valmap in
 
         let used = ref false in
         (match scope.kind with
@@ -341,13 +354,22 @@ let sort_unused = function
       in
       Error s
 
-let close_thing is_same modpath env =
-  let usage_kind_of_value ~global ~const imported =
-    if global then Tglobal
-    else if const then Tconst
-    else match imported with Some (p, _) -> Timported p | None -> Tnone
-  in
+(* Construct a name with the absolute module path prepended.
+   This code was originally in [convert_var] in typing.ml, but it needs duplication
+   in exclusivity so we can track all values. Thus, it's moved here.
+   Names at the top level don't have their module names prepended, because it
+   makes builtin functions easier, since they don't have to care about module names*)
+let make_name id imported env =
+  match imported with
+  | Some mname ->
+      if Path.is_local mname && Path.share_base mname env.modpath then
+        Path.get_hd id
+      else env.abs_module_name ~mname (Path.get_hd id)
+  | _ ->
+      assert (Path.is_local id);
+      Path.get_hd id
 
+let close_thing is_same modpath env =
   (* Close scopes up to next function scope *)
   let rec aux old_closed old_touched unused = function
     | [] -> failwith "Internal Error: Env empty"
@@ -361,8 +383,9 @@ let close_thing is_same modpath env =
                  (* We only add functions to the closure if they are params
                     Or: if they are closures *)
                  (* Const values (and imported ones) are not closed over, they exist module-wide *)
+                 let is_imported = is_imported env.modpath imported in
                  let cl =
-                   if const || global || Option.is_some imported then None
+                   if const || global || is_imported then None
                    else
                      match clean typ with
                      | Tfun (_, _, Closure _) ->
@@ -370,15 +393,9 @@ let close_thing is_same modpath env =
                      | Tfun _ when not param -> None
                      | _ -> Some { clname; cltyp = typ; clmut; clparam = param }
                  in
-                 let tkind = usage_kind_of_value ~global ~const imported in
+                 let tname = make_name (Path.Pid clname) imported env in
                  let t =
-                   {
-                     tname = clname;
-                     ttyp = typ;
-                     tattr = Dnorm;
-                     tkind;
-                     tattr_loc = None;
-                   }
+                   { tname; ttyp = typ; tattr = Dnorm; tattr_loc = None }
                  in
                  (cl, t))
         in
@@ -399,8 +416,7 @@ let close_thing is_same modpath env =
             aux (closed @ old_closed) (touched @ old_touched) unused tl
         | Smodule { name; loc; used } ->
             let unused =
-              if !used then unused
-              else (Path.Pid name, Unused_mod, loc) :: unused
+              if !used then unused else (name, Unused_mod, loc) :: unused
             in
             aux (closed @ old_closed) (touched @ old_touched) unused tl)
   in
@@ -446,8 +462,7 @@ let find_val_opt loc key env =
   find_general
     ~find:(fun key scope -> Map.find_opt key scope.valmap)
     ~found:(fun vl ->
-      let imported = Option.map fst vl.imported in
-
+      let imported = if vl.param then None else vl.imported in
       {
         typ = vl.typ;
         const = vl.const;
@@ -470,7 +485,7 @@ let mark_used name kind mut =
       | None -> ())
   | Smodule usage -> usage.used := true
 
-let query_val_opt loc key env =
+let query_val_opt loc pkey env =
   (* Copies some code from [find_general] *)
   let rec add lvl value values =
     match values with
@@ -486,8 +501,7 @@ let query_val_opt loc key env =
     | _ -> ()
   in
 
-  let found key lvl kind ({ typ; const; imported; global; mut; param = _ } as v)
-      =
+  let found key lvl kind ({ typ; const; imported; global; mut; param } as v) =
     let in_module =
       match kind with
       | Smodule _ -> true
@@ -498,8 +512,8 @@ let query_val_opt loc key env =
             in_module then add 1 (key, v) env.values;
     (* Mark value used, if it's not imported *)
     mark_used (Path.Pid key) kind env.in_mut;
-    let imported = Option.map fst imported in
-    Some { typ; const; global; mut; imported }
+    let imported = if param then None else imported in
+    Some ({ typ; const; global; mut; imported }, make_name pkey imported env)
   in
 
   let continue key lvl kind tl cont =
@@ -512,7 +526,7 @@ let query_val_opt loc key env =
         cont lvl key tl
   in
 
-  let key = Path.rm_name env.modpath key in
+  let key = Path.rm_name env.modpath pkey in
   let rec aux lvl scopes = function
     | Path.Pid key -> find_value lvl key scopes
     | Pmod (hd, tl) -> (
@@ -667,7 +681,11 @@ let modpath env = env.modpath
 
 let open_module_scope env loc name =
   let used = ref false in
-  { env with values = empty_scope (Smodule { name; loc; used }) :: env.values }
+  {
+    env with
+    values = empty_scope (Smodule { name; loc; used }) :: env.values;
+    modpath = name;
+  }
 
 let pop_scope env =
   match env.values with
