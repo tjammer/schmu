@@ -60,15 +60,7 @@ val empty :
 val add_value : key -> value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
 
-val add_external :
-  key ->
-  cname:string option ->
-  typ ->
-  imported:imported option ->
-  closure:bool ->
-  Ast.loc ->
-  t ->
-  t
+val add_external : key -> cname:string option -> typ -> Ast.loc -> t -> t
 (** like [add_value], but keeps track of external declarations *)
 
 val change_type : key -> typ -> t -> t
@@ -78,8 +70,10 @@ val add_type : string -> in_sig:bool -> typ -> t -> t
 val add_module : key:string -> cached_module -> t -> t
 val add_module_alias : Ast.loc -> key:string -> mname:Path.t -> t -> t
 val open_function : t -> t
-
+val open_toplevel : Path.t -> t -> t
 val close_function : t -> t * closed list * touched list * unused
+
+val close_toplevel : t -> t * closed list * touched list * unused
 (** Returns the variables captured in the closed function scope, and first unused var  *)
 
 val open_module : t -> Ast.loc -> string -> t
@@ -118,8 +112,6 @@ val find_ctor_opt : key -> t -> label option
 val externals : t -> ext list
 (** [externals env] returns a list of all external function declarations *)
 
-val append_modpath : string -> t -> t
-val pop_modpath : t -> t
 val modpath : t -> Path.t
 val open_module_scope : t -> Ast.loc -> string -> t
 val pop_scope : t -> scope

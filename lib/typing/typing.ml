@@ -1312,9 +1312,9 @@ and catch_weak_expr env sub e =
         (function Fstr _ -> () | Fexpr e -> catch_weak_expr env sub e)
         fmt
 
-let rec convert_module env sign prog check_ret =
+let rec convert_module env mname sign prog check_ret =
   (* We create a new scope so we don't warn on unused imports *)
-  let env = Env.open_function env in
+  let env = Env.open_toplevel mname env in
 
   (* Add types from signature for two reasons:
      1. In contrast to OCaml, we don't need to declare them two types,
@@ -1334,7 +1334,7 @@ let rec convert_module env sign prog check_ret =
   (* Catch weak type variables *)
   List.iter (catch_weak_vars env) items;
 
-  let _, _, touched, unused = Env.close_function env in
+  let _, _, touched, unused = Env.close_toplevel env in
   let has_sign = match sign with [] -> false | _ -> true in
   if (not (is_module (Env.modpath env))) || has_sign then
     check_unused env unused;
@@ -1368,9 +1368,7 @@ and convert_prog env items modul =
           Module.add_external ~mname:(Env.modpath env) loc typ id cname
             ~closure:false m
         in
-        ( Env.add_external id ~cname typ ~imported:None idloc ~closure:false env,
-          items,
-          m )
+        (Env.add_external id ~cname typ idloc env, items, m)
     | Typedef (loc, Trecord t) ->
         let env, typ = type_record ~in_sig:false env loc t in
         let m = Module.add_type loc typ m in
@@ -1388,7 +1386,7 @@ and convert_prog env items modul =
     | Module ((loc, id), sign, prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
-        let env = Env.append_modpath id env in
+        let mname = Path.append id (Env.modpath env) in
 
         (* Save uniq_tbl state as well as lambda state *)
         let uniq_tbl_bk = !uniq_tbl in
@@ -1396,15 +1394,12 @@ and convert_prog env items modul =
         let lambda_id_state_bk = !lambda_id_state in
         reset lambda_id_state;
 
-        let tempenv = Env.open_function env in
-        let _, moditems, newm = convert_module tempenv sign prog true in
-        let _ = Env.close_function tempenv in
+        let _, moditems, newm = convert_module env mname sign prog true in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
 
         let env =
-          let mname = Env.modpath env in
           match register_module env loc mname newm with
           | Ok env -> env
           | Error () ->
@@ -1416,11 +1411,9 @@ and convert_prog env items modul =
         in
         let m = add_local_module loc id newm ~into:m in
 
-        let moditems =
-          List.map (fun item -> (Env.modpath env, item)) moditems
-        in
+        let moditems = List.map (fun item -> (mname, item)) moditems in
         let items = Tl_module moditems :: items in
-        (Env.pop_modpath env, items, m)
+        (env, items, m)
     | Module_alias ((loc, key), mname) ->
         let env = Env.add_module_alias loc ~key ~mname env in
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
@@ -1524,7 +1517,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   (* Open prelude *)
   let env = if std then Env.open_module env loc "std" else env in
 
-  let externals, items, m = convert_module env sign prog check_ret in
+  let externals, items, m = convert_module env mname sign prog check_ret in
 
   (* Add polymorphic functions from imported modules *)
   let items = List.map (fun item -> (mname, item)) items in

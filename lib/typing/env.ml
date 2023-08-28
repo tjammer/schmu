@@ -89,9 +89,10 @@ and touched = {
 }
 
 type scope_kind =
+  | Stoplevel of usage_tbl
   | Sfunc of usage_tbl
   | Smodule of module_usage
-  | Sfunc_cont of usage_tbl
+  | Scont of usage_tbl
 
 (* function scope *)
 type scope = {
@@ -170,7 +171,7 @@ let add_value key value loc env =
       (* Shadowed bindings stay in the Hashtbl, but are not reachable.
          Thus, warning for unused shadowed bindings works *)
       (match scope.kind with
-      | Sfunc tbl | Sfunc_cont tbl ->
+      | Stoplevel tbl | Sfunc tbl | Scont tbl ->
           let mutated = if value.mut then ref false else ref true in
           Hashtbl.add tbl (Path.Pid key)
             {
@@ -183,31 +184,38 @@ let add_value key value loc env =
 
       { env with values = { scope with valmap } :: tl }
 
-let add_external ext_name ~cname typ ~imported ~closure loc env =
+let add_external ext_name ~cname typ loc env =
   let env, used =
     match env.values with
     | [] -> failwith "Internal Error: Env empty"
     | scope :: tl ->
         let valmap =
           Map.add ext_name
-            { def_value with typ; imported; global = true }
+            { def_value with typ; imported = None; global = true }
             scope.valmap
         in
 
         let used = ref false in
         (match scope.kind with
-        | Sfunc tbl | Sfunc_cont tbl ->
+        | Stoplevel tbl | Sfunc tbl | Scont tbl ->
             (* external things cannot be mutated right now *)
             let mutated = ref true in
             Hashtbl.add tbl (Path.Pid ext_name)
-              { loc; used; imported = Option.is_some imported; mutated }
-        | Smodule _ -> assert (Option.is_some imported));
+              { loc; used; imported = false; mutated }
+        | Smodule _ -> failwith "Internal Error: add_external on Smodule");
 
         ({ env with values = { scope with valmap } :: tl }, used)
   in
   let tkey = Type_key.create ext_name in
   let vl =
-    { ext_name; ext_typ = typ; ext_cname = cname; imported; used; closure }
+    {
+      ext_name;
+      ext_typ = typ;
+      ext_cname = cname;
+      imported = None;
+      used;
+      closure = false;
+    }
   in
   Etbl.add env.externals tkey vl;
   env
@@ -298,12 +306,17 @@ let add_module_alias loc ~key ~mname env =
   let cached_module = start env mname in
   add_module ~key cached_module env
 
-let open_function env =
+let open_thing thing modpath env =
   (* Due to the ref, we have to create a new object every time *)
   (match env.values with
-  | { kind = Sfunc _ | Sfunc_cont _; _ } :: _ -> ()
+  | { kind = Sfunc _ | Scont _ | Stoplevel _; _ } :: _ -> ()
   | _ -> failwith "Internal Error: Module not finished in env (function)");
-  { env with values = empty_scope (Sfunc (Hashtbl.create 64)) :: env.values }
+  { env with values = empty_scope thing :: env.values; modpath }
+
+let open_function env = open_thing (Sfunc (Hashtbl.create 64)) env.modpath env
+
+let open_toplevel modpath env =
+  open_thing (Stoplevel (Hashtbl.create 64)) modpath env
 
 let find_unused ret tbl =
   Hashtbl.fold
@@ -328,7 +341,7 @@ let sort_unused = function
       in
       Error s
 
-let close_function env =
+let close_thing is_same modpath env =
   let usage_kind_of_value ~global ~const imported =
     if global then Tglobal
     else if const then Tconst
@@ -373,13 +386,15 @@ let close_function env =
         let closed = List.filter_map Fun.id closed in
 
         match scope.kind with
-        | Sfunc usage ->
+        | (Stoplevel usage | Sfunc usage) when is_same scope.kind ->
             let unused = find_unused unused usage in
-            ( { env with values = tl },
+            ( { env with values = tl; modpath },
               closed @ old_closed,
               touched @ old_touched,
               sort_unused unused )
-        | Sfunc_cont usage ->
+        | Stoplevel _ | Sfunc _ ->
+            failwith "Internal Error: Unexpected scope type"
+        | Scont usage ->
             let unused = find_unused unused usage in
             aux (closed @ old_closed) (touched @ old_touched) unused tl
         | Smodule { name; loc; used } ->
@@ -390,6 +405,16 @@ let close_function env =
             aux (closed @ old_closed) (touched @ old_touched) unused tl)
   in
   aux [] [] [] env.values
+
+let close_function env =
+  close_thing
+    (fun thing -> match thing with Sfunc _ -> true | _ -> false)
+    env.modpath env
+
+let close_toplevel env =
+  close_thing
+    (fun thing -> match thing with Stoplevel _ -> true | _ -> false)
+    (Path.pop env.modpath) env
 
 let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) loc key
     env =
@@ -437,7 +462,7 @@ let find_val loc key env =
 
 let mark_used name kind mut =
   match kind with
-  | Sfunc tbl | Sfunc_cont tbl -> (
+  | Stoplevel tbl | Sfunc tbl | Scont tbl -> (
       match Hashtbl.find_opt tbl name with
       | Some (used : usage) ->
           if !mut > 0 then used.mutated := true;
@@ -451,17 +476,22 @@ let query_val_opt loc key env =
     match values with
     | scope :: tl when lvl > 0 -> (
         match scope.kind with
+        | Stoplevel _ ->
+            scope.closed := Closed_set.add value !(scope.closed);
+            add (lvl - 1) value tl
         | Sfunc _ ->
             scope.closed := Closed_set.add value !(scope.closed);
             add (lvl - 1) value tl
-        | Sfunc_cont _ | Smodule _ -> add lvl value tl)
+        | Scont _ | Smodule _ -> add lvl value tl)
     | _ -> ()
   in
 
   let found key lvl kind ({ typ; const; imported; global; mut; param = _ } as v)
       =
     let in_module =
-      match kind with Smodule _ -> true | Sfunc _ | Sfunc_cont _ -> false
+      match kind with
+      | Smodule _ -> true
+      | Stoplevel _ | Sfunc _ | Scont _ -> false
     in
     if lvl > 0 then add lvl (key, v) env.values
     else if (* Add values in modules to scope list *)
@@ -474,10 +504,10 @@ let query_val_opt loc key env =
 
   let continue key lvl kind tl cont =
     match kind with
-    | Sfunc _ ->
+    | Stoplevel _ | Sfunc _ ->
         (* Increase scope level normally *)
         cont (lvl + 1) key tl
-    | Sfunc_cont _ | Smodule _ ->
+    | Scont _ | Smodule _ ->
         (* We are still in the same functionlike scope *)
         cont lvl key tl
   in
@@ -553,7 +583,7 @@ let query_type ~instantiate loc key env =
       | Some t, Smodule { used; _ } ->
           used := true;
           Some (fst t)
-      | Some t, (Sfunc _ | Sfunc_cont _) -> Some (fst t)
+      | Some t, (Stoplevel _ | Sfunc _ | Scont _) -> Some (fst t)
       | None, _ -> None)
     ~found:Fun.id loc key env
   |> Option.get |> instantiate
@@ -633,11 +663,6 @@ let externals env =
 
 let open_mutation env = incr env.in_mut
 let close_mutation env = decr env.in_mut
-
-let append_modpath name env =
-  { env with modpath = Path.append name env.modpath }
-
-let pop_modpath env = { env with modpath = Path.pop env.modpath }
 let modpath env = env.modpath
 
 let open_module_scope env loc name =
@@ -651,13 +676,13 @@ let pop_scope env =
 
 let open_module env loc name =
   let scope = env.find_module env loc name |> get_module env |> snd in
-  let cont = empty_scope (Sfunc_cont (Hashtbl.create 64)) in
+  let cont = empty_scope (Scont (Hashtbl.create 64)) in
   { env with values = cont :: scope :: env.values }
 
 let fix_scope_loc scope loc =
   let kind =
     match scope.kind with
     | Smodule usage -> Smodule { usage with loc }
-    | (Sfunc _ | Sfunc_cont _) as kind -> kind
+    | (Stoplevel _ | Sfunc _ | Scont _) as kind -> kind
   in
   { scope with kind }
