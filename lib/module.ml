@@ -284,7 +284,7 @@ and canonexpr mname nsub sub = function
       (sub, Let { d with rhs; cont })
   | Bind (id, lhs, cont) ->
       let sub, lhs = (canonbody mname nsub) sub lhs in
-      let nsub = Smap.remove id nsub in
+      let nsub = Smap.add id (absolute_module_name ~mname id) nsub in
       let sub, cont = (canonbody mname nsub) sub cont in
       (sub, Bind (id, lhs, cont))
   | Lambda (i, abs) ->
@@ -472,8 +472,6 @@ let rec fold_canonize_item mname (ts_sub, nsub) = function
       let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
       ((a, s), Mext (l, t, n, c))
   | Mpoly_fun (l, abs, n, u) ->
-      (* We ought to f here. Not only the type, but
-         the body as well? *)
       (* Change Var-nodes in body here *)
       let s = Smap.add n (absolute_module_name ~mname n) nsub in
       let a, abs = canonabs mname ts_sub s abs in
@@ -720,7 +718,15 @@ let object_names () =
   in
   Sset.union ours !object_cache |> Sset.to_seq |> List.of_seq
 
-let rev { s; i; objects } = { s = List.rev s; i = List.rev i; objects }
+let rec rev { s; i; objects } =
+  let i =
+    List.rev_map
+      (function
+        | Mlocal_module (loc, s, t) -> Mlocal_module (loc, s, rev t)
+        | item -> item)
+      i
+  in
+  { s = List.rev s; i; objects }
 
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in

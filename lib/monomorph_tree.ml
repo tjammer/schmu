@@ -1095,6 +1095,10 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
   | Bind (id, lhs, cont) ->
+      let id =
+        reconstr_module_username ~mname:param.mname ~mainmodule:param.mainmodule
+          id
+      in
       let p, lhs, func = morph_expr { param with ret = false } lhs in
       let vars = Vars.add id (Normal func) p.vars in
       let p, cont, func = morph_expr { p with ret = param.ret; vars } cont in
@@ -1868,6 +1872,10 @@ let rec morph_toplvl param items =
           },
           func )
     | Tl_bind (id, expr) ->
+        let id =
+          reconstr_module_username ~mname:param.mname
+            ~mainmodule:param.mainmodule id
+        in
         let p, e1, func = morph_expr { param with ret = false } expr in
         let p, e2, func =
           aux { p with vars = Vars.add id (Normal func) p.vars } tl
