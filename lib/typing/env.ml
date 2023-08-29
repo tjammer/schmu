@@ -692,11 +692,6 @@ let pop_scope env =
   | ({ kind = Smodule _; _ } as hd) :: _ -> hd
   | _ -> failwith "Internal Error: Not a module scope in [pop_scope]"
 
-let open_module env loc name =
-  let scope = env.find_module env loc name |> get_module env |> snd in
-  let cont = empty_scope (Scont (Hashtbl.create 64)) in
-  { env with values = cont :: scope :: env.values }
-
 let fix_scope_loc scope loc =
   let kind =
     match scope.kind with
@@ -704,3 +699,12 @@ let fix_scope_loc scope loc =
     | (Stoplevel _ | Sfunc _ | Scont _) as kind -> kind
   in
   { scope with kind }
+
+let open_module env loc name =
+  let scope =
+    env.find_module env loc name |> get_module env |> snd |> fun scope ->
+    fix_scope_loc scope loc
+  in
+
+  let cont = empty_scope (Scont (Hashtbl.create 64)) in
+  { env with values = cont :: scope :: env.values }
