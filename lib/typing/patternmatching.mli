@@ -27,7 +27,7 @@ module type S = sig
     (Ast.loc * Ast.pattern * Ast.expr) list ->
     Typed_tree.typed_expr
 
-  val pattern_id : int -> Ast.pattern -> string * Ast.loc
+  val pattern_id : int -> Ast.pattern -> string * Ast.loc * bool
 
   val convert_decl :
     Env.t -> Ast.decl list -> Env.t * (string * Typed_tree.typed_expr) list

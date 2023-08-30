@@ -323,7 +323,7 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
 
   List.fold_left_map
     (fun (env, i) { Ast.loc; pattern; dattr; annot } ->
-      let id, idloc = pattern_id i pattern in
+      let id, idloc, _ = pattern_id i pattern in
       let type_id, qparams =
         match annot with
         | None ->
@@ -685,10 +685,11 @@ end = struct
 
   and convert_let ~global env loc (decl : Ast.decl)
       { Ast.pattr = _; pexpr = block } =
-    let id, idloc = pattern_id 0 decl.pattern in
+    let id, idloc, has_exprname = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
     let mut = mut_of_pattr decl.dattr in
-    let const = e1.attr.const && not mut in
+    let const = if has_exprname then false else e1.attr.const && not mut in
+    let global = if has_exprname then false else global in
     let env =
       Env.add_value id
         { Env.def_value with typ = e1.typ; const; global; mut }
@@ -715,7 +716,11 @@ end = struct
       handle_params env loc params pattern_id None
     in
     let nparams =
-      List.mapi (fun i (d : Ast.decl) -> fst (pattern_id i d.pattern)) params
+      List.mapi
+        (fun i (d : Ast.decl) ->
+          let id, _, _ = pattern_id i d.pattern in
+          id)
+        params
     in
 
     let env, param_exprs = convert_decl env params in
@@ -788,7 +793,11 @@ end = struct
       handle_params env loc params pattern_id return_annot
     in
     let nparams =
-      List.mapi (fun i (d : Ast.decl) -> fst (pattern_id i d.pattern)) params
+      List.mapi
+        (fun i (d : Ast.decl) ->
+          let id, _, _ = pattern_id i d.pattern in
+          id)
+        params
     in
 
     let body_env, param_exprs = convert_decl body_env params in

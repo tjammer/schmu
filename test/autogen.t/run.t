@@ -513,12 +513,10 @@ Copy closures
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %closure = type { i8*, i8* }
   %tuple_int = type { i64 }
   %tuple_fn_.int = type { %closure }
-  %closure = type { i8*, i8* }
   
-  @schmu___expr0 = internal constant %tuple_int { i64 1 }
-  @schmu___expr0__2 = global %tuple_fn_.int zeroinitializer, align 16
   @schmu_c = global %closure zeroinitializer, align 16
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
   
@@ -548,20 +546,23 @@ Copy closures
   
   define void @schmu_hmm(%closure* noalias %0) {
   entry:
-    %funptr1 = bitcast %closure* %0 to i8**
-    store i8* bitcast (i64 (i8*)* @schmu_capture to i8*), i8** %funptr1, align 8
-    %1 = tail call i8* @malloc(i64 24)
-    %clsr_schmu_capture = bitcast i8* %1 to { i8*, i8*, i64 }*
-    %2 = alloca i64, align 8
-    store i64 1, i64* %2, align 8
+    %1 = alloca %tuple_int, align 8
+    %"01" = bitcast %tuple_int* %1 to i64*
+    store i64 1, i64* %"01", align 8
+    %funptr2 = bitcast %closure* %0 to i8**
+    store i8* bitcast (i64 (i8*)* @schmu_capture to i8*), i8** %funptr2, align 8
+    %2 = tail call i8* @malloc(i64 24)
+    %clsr_schmu_capture = bitcast i8* %2 to { i8*, i8*, i64 }*
+    %3 = alloca i64, align 8
+    store i64 1, i64* %3, align 8
     %a = getelementptr inbounds { i8*, i8*, i64 }, { i8*, i8*, i64 }* %clsr_schmu_capture, i32 0, i32 2
     store i64 1, i64* %a, align 8
-    %ctor2 = bitcast { i8*, i8*, i64 }* %clsr_schmu_capture to i8**
-    store i8* bitcast (i8* (i8*)* @__ctor_tup-i to i8*), i8** %ctor2, align 8
+    %ctor3 = bitcast { i8*, i8*, i64 }* %clsr_schmu_capture to i8**
+    store i8* bitcast (i8* (i8*)* @__ctor_tup-i to i8*), i8** %ctor3, align 8
     %dtor = getelementptr inbounds { i8*, i8*, i64 }, { i8*, i8*, i64 }* %clsr_schmu_capture, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
     %envptr = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
-    store i8* %1, i8** %envptr, align 8
+    store i8* %2, i8** %envptr, align 8
     ret void
   }
   
@@ -750,25 +751,28 @@ Copy closures
   
   define i64 @main(i64 %arg) {
   entry:
+    %0 = alloca %tuple_fn_.int, align 8
+    %"02" = bitcast %tuple_fn_.int* %0 to %closure*
     %ret = alloca %closure, align 8
     call void @schmu_hmm(%closure* %ret)
-    %0 = bitcast %closure* %ret to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%tuple_fn_.int* @schmu___expr0__2 to i8*), i8* %0, i64 16, i1 false)
-    call void @__copy_.i(%closure* getelementptr inbounds (%tuple_fn_.int, %tuple_fn_.int* @schmu___expr0__2, i32 0, i32 0))
+    %1 = bitcast %closure* %"02" to i8*
+    %2 = bitcast %closure* %ret to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 16, i1 false)
+    call void @__copy_.i(%closure* %"02")
     call void @schmu_test(%closure* @schmu_c)
-    %1 = alloca %closure, align 8
-    %2 = bitcast %closure* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* bitcast (%closure* @schmu_c to i8*), i64 16, i1 false)
-    call void @__copy_.u(%closure* %1)
-    %funcptr2 = bitcast %closure* %1 to i8**
-    %loadtmp = load i8*, i8** %funcptr2, align 8
+    %3 = alloca %closure, align 8
+    %4 = bitcast %closure* %3 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* bitcast (%closure* @schmu_c to i8*), i64 16, i1 false)
+    call void @__copy_.u(%closure* %3)
+    %funcptr3 = bitcast %closure* %3 to i8**
+    %loadtmp = load i8*, i8** %funcptr3, align 8
     %casttmp = bitcast i8* %loadtmp to void (i8*)*
-    %envptr = getelementptr inbounds %closure, %closure* %1, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, %closure* %3, i32 0, i32 1
     %loadtmp1 = load i8*, i8** %envptr, align 8
     call void %casttmp(i8* %loadtmp1)
-    call void @__free_.u(%closure* %1)
+    call void @__free_.u(%closure* %3)
     call void @__free_.u(%closure* @schmu_c)
-    call void @__free_tup-.i(%tuple_fn_.int* @schmu___expr0__2)
+    call void @__free_tup-.i(%tuple_fn_.int* %0)
     call void @__free_.i(%closure* %ret)
     ret i64 0
   }

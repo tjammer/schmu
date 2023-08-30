@@ -40,7 +40,8 @@ module type S = sig
     (Ast.loc * Ast.pattern * Ast.expr) list ->
     Typed_tree.typed_expr
 
-  val pattern_id : int -> Ast.pattern -> string * Ast.loc
+  val pattern_id :
+    int -> Ast.pattern -> string * Ast.loc * bool (* Is wildcard *)
 
   val convert_decl :
     Env.t -> Ast.decl list -> Env.t * (string * typed_expr) list
@@ -1200,8 +1201,9 @@ module Make (C : Core) (R : Recs) = struct
     | [] -> List.rev expanded
 
   let pattern_id i = function
-    | Ast.Pvar (loc, id) -> (id, loc)
-    | Ptup (loc, _) | Pwildcard loc | Precord (loc, _) -> (expr_name [ i ], loc)
+    | Ast.Pvar (loc, id) -> (id, loc, false)
+    | Ptup (loc, _) | Pwildcard loc | Precord (loc, _) ->
+        (expr_name [ i ], loc, true)
     | Pctor ((loc, _), _) | Plit_int (loc, _) | Plit_char (loc, _) | Por (loc, _)
       ->
         raise (Error (loc, "Unexpected pattern in declaration"))
