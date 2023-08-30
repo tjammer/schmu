@@ -233,7 +233,7 @@ let bracks(x) :=
   | parens(sexp_open) { $1 }
 
 %inline sexp_open:
-  | Open; ident { snd $2 }
+  | Open; mname = path { snd mname }
 
 stmt:
  | toplvl_stmt { $1 }

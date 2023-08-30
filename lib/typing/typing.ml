@@ -1192,11 +1192,7 @@ end = struct
         disambiguate_opens env loc (Path.append id path) tl
     | Var (_, id) -> convert_var env loc (Path.append id path)
     | expr ->
-        let env =
-          Path.fold_mod_left
-            (fun env name -> Env.open_module env loc name)
-            env path
-        in
+        let env = Env.open_module env loc path in
         convert env expr
 end
 
@@ -1520,7 +1516,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   in
 
   (* Open prelude *)
-  let env = if std then Env.open_module env loc "std" else env in
+  let env = if std then Env.open_module env loc (Path.Pid "std") else env in
 
   let externals, items, m = convert_module env mname sign prog check_ret in
 

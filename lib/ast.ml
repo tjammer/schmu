@@ -103,9 +103,9 @@ and literal =
 and stmt =
   | Let of loc * decl * passed_expr
   | Function of loc * func
-  | Expr of (loc * expr)
-  | Rec of (loc * (loc * func) list)
-  | Open of ident
+  | Expr of loc * expr
+  | Rec of loc * (loc * func) list
+  | Open of loc * Path.t
 
 and block = stmt list
 

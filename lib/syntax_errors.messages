@@ -434,11 +434,11 @@ prog: Lpar Defexternal Kebab_id Kebab_id Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Kebab_id Div_i Kebab_id Wildcard
+prog: Lpar Open Kebab_id Div_i Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Kebab_id Div_i Kebab_id Div_i Wildcard
+prog: Lpar Open Kebab_id Div_i Kebab_id Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -661,6 +661,14 @@ prog: Lpar Open Wildcard
 prog: Lpar Open Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Open Kebab_id Div_i Wildcard
+
+Expecting module indentifier
+
+prog: Lpar Open Kebab_id Div_i Kebab_id String_lit
+
+Expecting ')'
 
 prog: Lpar Less_i Wildcard
 

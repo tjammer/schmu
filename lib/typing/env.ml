@@ -731,8 +731,16 @@ let fix_scope_loc scope loc =
 
 let open_module env loc name =
   let scope =
-    env.find_module env loc name |> get_module env |> snd |> fun scope ->
-    fix_scope_loc scope loc
+    find_general
+      ~find:(fun key scope -> Map.find_opt key scope.modules)
+      ~found:(fun scope cached_module ->
+        mark_module_used scope;
+        cached_module)
+      loc name env
+    |> (function
+         | Some m -> m | None -> env.find_module env loc (Path.get_hd name))
+    |> get_module env |> snd
+    |> fun scope -> fix_scope_loc scope loc
   in
 
   let cont = empty_scope (Scont (Hashtbl.create 64)) in
