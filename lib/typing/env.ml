@@ -340,6 +340,20 @@ let find_unused ret tbl =
       else acc)
     tbl ret
 
+let rec is_module_used modules =
+  Map.fold
+    (fun _ kind used ->
+      match kind with
+      | Cm_located _ -> used
+      | Cm_cached (_, scope) -> (
+          if used then used
+          else
+            match scope.kind with
+            | Smodule usage ->
+                if !(usage.used) then true else is_module_used scope.modules
+            | _ -> failwith "unreachable"))
+    modules false
+
 let sort_unused = function
   | [] -> Ok ()
   | some ->
@@ -416,7 +430,8 @@ let close_thing is_same modpath env =
             aux (closed @ old_closed) (touched @ old_touched) unused tl
         | Smodule { name; loc; used } ->
             let unused =
-              if !used then unused else (name, Unused_mod, loc) :: unused
+              if !used || is_module_used scope.modules then unused
+              else (name, Unused_mod, loc) :: unused
             in
             aux (closed @ old_closed) (touched @ old_touched) unused tl)
   in
@@ -432,8 +447,8 @@ let close_toplevel env =
     (fun thing -> match thing with Stoplevel _ -> true | _ -> false)
     (Path.pop env.modpath) env
 
-let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) loc key
-    env =
+let find_general ~(find : key -> scope -> 'a option)
+    ~(found : scope_kind -> 'a -> 'b) loc key env =
   (* Find the start of the path in some scope. Then traverse modules until we find the type *)
   let key = Path.rm_name env.modpath key in
   let rec aux scopes = function
@@ -445,10 +460,10 @@ let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) loc key
     | [] -> None
     | scope :: tl -> (
         match find key scope with
-        | Some t -> Some (found t)
+        | Some t -> Some (found scope.kind t)
         | None -> find_value key tl)
   and traverse_module scope = function
-    | Path.Pid key -> Option.map found (find key scope)
+    | Path.Pid key -> Option.map (found scope.kind) (find key scope)
     | Pmod (hd, tl) -> (
         match Map.find_opt hd scope.modules with
         | Some cached ->
@@ -461,7 +476,7 @@ let find_general ~(find : key -> scope -> 'a option) ~(found : 'a -> 'b) loc key
 let find_val_opt loc key env =
   find_general
     ~find:(fun key scope -> Map.find_opt key scope.valmap)
-    ~found:(fun vl ->
+    ~found:(fun _ vl ->
       let imported = if vl.param then None else vl.imported in
       {
         typ = vl.typ;
@@ -567,7 +582,8 @@ let query_val_opt loc pkey env =
 let find_type_opt loc key env =
   find_general
     ~find:(fun key scope -> Map.find_opt key scope.types)
-    ~found:Fun.id loc key env
+    ~found:(fun _ f -> f)
+    loc key env
 
 let find_type loc key env = find_type_opt loc key env |> Option.get
 
@@ -590,6 +606,8 @@ let find_type_same_module key env =
   in
   aux env.values
 
+let mark_module_used = function Smodule usage -> usage.used := true | _ -> ()
+
 let query_type ~instantiate loc key env =
   find_general
     ~find:(fun key scope ->
@@ -599,13 +617,18 @@ let query_type ~instantiate loc key env =
           Some (fst t)
       | Some t, (Stoplevel _ | Sfunc _ | Scont _) -> Some (fst t)
       | None, _ -> None)
-    ~found:Fun.id loc key env
+    ~found:(fun kind f ->
+      mark_module_used kind;
+      f)
+    loc key env
   |> Option.get |> instantiate
 
-let find_module_opt loc name env =
+let find_module_opt ?(query = false) loc name env =
   find_general
     ~find:(fun key scope -> Map.find_opt key scope.modules)
-    ~found:(function Cm_located path | Cm_cached (path, _) -> path)
+    ~found:(fun scope kind ->
+      if query then mark_module_used scope;
+      match kind with Cm_located path | Cm_cached (path, _) -> path)
     loc name env
 
 let find_label_opt key env =
@@ -613,7 +636,9 @@ let find_label_opt key env =
     | [] -> None
     | scope :: tl -> (
         match Map.find_opt key scope.labels with
-        | Some l -> Some l
+        | Some l ->
+            mark_module_used scope.kind;
+            Some l
         | None -> aux tl)
   in
   aux env.values
@@ -623,7 +648,9 @@ let find_labelset_opt loc labels env =
     | [] -> None
     | scope :: tl -> (
         match Lmap.find_opt (Labelset.of_list labels) scope.labelsets with
-        | Some name -> Some (find_type loc name env |> fst)
+        | Some name ->
+            mark_module_used scope.kind;
+            Some (find_type loc name env |> fst)
         | None -> aux tl)
   in
   aux env.values
@@ -633,7 +660,9 @@ let find_ctor_opt name env =
     | [] -> None
     | scope :: tl -> (
         match Map.find_opt name scope.ctors with
-        | Some c -> Some c
+        | Some c ->
+            mark_module_used scope.kind;
+            Some c
         | None -> aux tl)
   in
   aux env.values
@@ -695,7 +724,7 @@ let pop_scope env =
 let fix_scope_loc scope loc =
   let kind =
     match scope.kind with
-    | Smodule usage -> Smodule { usage with loc }
+    | Smodule usage -> Smodule { usage with loc; used = ref false }
     | (Stoplevel _ | Sfunc _ | Scont _) as kind -> kind
   in
   { scope with kind }

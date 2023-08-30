@@ -719,10 +719,6 @@ Local modules
 
 Fix shadowing for local modules
   $ schmu local_module_shadowing.smu
-  local_module_shadowing.smu:16:1: warning: Unused module open a
-  16 | (open a)
-       ^^^^^^^^
-  
   $ ./local_module_shadowing
   i'm in a module
   a
