@@ -790,6 +790,9 @@ let test_type_decl_not_unique () =
 let test_type_decl_open_before () =
   test "unit" "(module m (type t int)) (open m) (type t float)"
 
+let test_mtype_define () =
+  test "unit" "(module-type tt (type t) (def random (fun unit int)))"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1157,4 +1160,5 @@ let () =
           case "not unique" test_type_decl_not_unique;
           case "open before" test_type_decl_open_before;
         ] );
+      ("module type", [ case "define" test_mtype_define ]);
     ]

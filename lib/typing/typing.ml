@@ -1419,7 +1419,21 @@ and convert_prog env items modul =
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
-    | Module_type _ -> failwith "TODO module type"
+    | Module_type ((loc, id), vals) ->
+        (* This look a bit awkward for this use case. The split of adding first
+           signature types and values after is from the way module signatures are used.
+           That is, the types don't need to be duplictated in the module proper. *)
+        let mname = Path.append id (Env.modpath env) in
+        let tmpenv = Env.open_toplevel mname env in
+        let sigenv, tmpm =
+          List.fold_left add_signature_types (tmpenv, Module.empty) vals
+        in
+        let tmpm = List.fold_left (add_signature_vals sigenv) tmpm vals in
+        let _ = Env.close_toplevel tmpenv in
+        let mt = Module.to_module_type tmpm in
+        let m = Module.add_module_type loc id mt m in
+        let env = Env.add_module_type id mt env in
+        (env, items, m)
   and aux_stmt (old, env, items, m) = function
     (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
@@ -1524,7 +1538,6 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   let items = List.map (fun item -> (mname, item)) items in
   let items = List.rev !Module.poly_funcs @ items in
 
-  (* print_endline (String.concat ", " (List.map string_of_type typeinsts)); *)
   ({ externals; items }, m)
 
 let typecheck (prog : Ast.prog) =

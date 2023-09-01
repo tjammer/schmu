@@ -40,6 +40,7 @@ val add_external :
 
 val add_local_module : loc -> string -> t -> into:t -> t
 val add_module_alias : loc -> string -> Path.t -> into:t -> t
+val add_module_type : loc -> string -> Module_type.t -> t -> t
 val clear_cache : unit -> unit
 val object_names : unit -> string list
 val register_module : Env.t -> Ast.loc -> Path.t -> t -> (Env.t, unit) result
@@ -52,4 +53,8 @@ val find_module :
 val scope_of_located : Env.t -> Path.t -> Env.scope
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
+val validate_intf : Env.t -> Module_type.t -> t -> unit
 val validate_signature : Env.t -> t -> t
+
+val to_module_type : t -> Module_type.t
+(** Throws if [t] isn't a pure module type *)

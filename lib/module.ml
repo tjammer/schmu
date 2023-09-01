@@ -17,13 +17,16 @@ and item =
   | Mmutual_rec of loc * (loc * string * int option * typ) list
   | Mlocal_module of loc * string * t
   | Mmodule_alias of loc * string * Path.t * string option (* filename option *)
+  | Mmodule_type of loc * string * intf
 
-and sg_kind = Stypedef | Svalue
+and sg_kind = Module_type.item_kind = Mtypedef | Mvalue
 and sig_item = string * loc * typ * sg_kind [@@deriving sexp]
+and intf = sig_item list
+and impl = item list
 
 and t = {
-  s : sig_item list;
-  i : item list;
+  s : intf; (* TODO use module_type.t here *)
+  i : impl;
   objects : (string * bool (* transitive dep needs load *)) list;
 }
 
@@ -74,8 +77,8 @@ let absolute_module_name ~mname fname = "_" ^ Path.mod_name mname ^ "_" ^ fname
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
 
-let add_type_sig loc name t m = { m with s = (name, loc, t, Stypedef) :: m.s }
-let add_value_sig loc name t m = { m with s = (name, loc, t, Svalue) :: m.s }
+let add_type_sig loc name t m = { m with s = (name, loc, t, Mtypedef) :: m.s }
+let add_value_sig loc name t m = { m with s = (name, loc, t, Mvalue) :: m.s }
 let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 
 let add_local_module loc id newm ~into =
@@ -88,6 +91,9 @@ let add_module_alias loc key mname ~into =
     | Some (Cached (Cfile (f, _), _, _) | Located (f, _, _)) -> Some f
   in
   { into with i = Mmodule_alias (loc, key, mname, filename) :: into.i }
+
+let add_module_type loc id mtype m =
+  { m with i = Mmodule_type (loc, id, mtype) :: m.i }
 
 let type_of_func (func : Typed_tree.func) =
   Tfun (func.tparams, func.ret, func.kind)
@@ -449,13 +455,12 @@ let rec map_item ~mname ~f = function
   | Mlocal_module (l, name, t) ->
       Mlocal_module (l, name, map_t ~mname:(Path.append name mname) ~f t)
   | Mmodule_alias _ as m -> m
+  | Mmodule_type (l, name, intf) -> Mmodule_type (l, name, map_intf ~f intf)
 
 and map_t ~mname ~f m =
-  {
-    m with
-    s = List.map (fun (n, l, t, k) -> (n, l, f t, k)) m.s;
-    i = List.map (map_item ~mname ~f) m.i;
-  }
+  { m with s = map_intf ~f m.s; i = List.map (map_item ~mname ~f) m.i }
+
+and map_intf ~f intf = List.map (fun (n, l, t, k) -> (n, l, f t, k)) intf
 
 (* Number qvars from 0 and change names of Var-nodes to their unique form.
    _<module_name>_name*)
@@ -491,6 +496,9 @@ let rec fold_canonize_item mname (ts_sub, nsub) = function
       let t = canonize_t (Path.append n mname) t in
       ((ts_sub, nsub), Mlocal_module (loc, n, t))
   | Mmodule_alias _ as m -> ((ts_sub, nsub), m)
+  | Mmodule_type (loc, n, intf) ->
+      let intf = canonize_intf Types.Smap.empty intf in
+      ((ts_sub, nsub), Mmodule_type (loc, n, intf))
 
 and canonize_t mname m =
   let (ts_sub, _), i =
@@ -498,14 +506,16 @@ and canonize_t mname m =
       (Types.Smap.empty, Smap.empty)
       m.i
   in
-  let _, s =
-    List.fold_left_map
-      (fun sub (key, l, t, k) ->
-        let sub, t = canonize sub t in
-        (sub, (key, l, t, k)))
-      ts_sub m.s
-  in
+  let s = canonize_intf ts_sub m.s in
   { m with s; i }
+
+and canonize_intf ts_sub intf =
+  List.fold_left_map
+    (fun sub (key, l, t, k) ->
+      let sub, t = canonize sub t in
+      (sub, (key, l, t, k)))
+    ts_sub intf
+  |> snd
 
 let modpath_of_kind = function
   | Clocal p -> p
@@ -587,15 +597,16 @@ let rec add_to_env env foreign (mname, m) =
                   load_foreign loc foreign fname mname;
                   Env.add_module ~key (Env.Cm_located mname) env
               | Some cached ->
-                  Env.add_module ~key (envmodule_of_cached mname cached) env))
+                  Env.add_module ~key (envmodule_of_cached mname cached) env)
+          | Mmodule_type (_, name, intf) -> Env.add_module_type name intf env)
         env m.i
   | l ->
       List.fold_left
         (fun env (name, loc, typ, kind) ->
           match kind with
           (* Not in the signature of the module we add it to *)
-          | Stypedef -> Env.add_type name ~in_sig:false typ env
-          | Svalue -> Env.(add_value name { def_value with typ } loc env))
+          | Mtypedef -> Env.add_type name ~in_sig:false typ env
+          | Mvalue -> Env.(add_value name { def_value with typ } loc env))
         env l
 
 and make_scope env loc foreign mname m =
@@ -749,32 +760,32 @@ let extract_name_type env = function
   | Mtype (l, t) -> (
       match t with
       | Trecord (_, Some n, _) | Tvariant (_, n, _) | Talias (n, _) ->
-          Some (Path.get_hd n, l, t, Stypedef)
+          Some (Path.get_hd n, l, t, Mtypedef)
       | t ->
           print_endline (string_of_type t (Env.modpath env));
           failwith "Internal Error: Type does not have a name")
-  | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Svalue)
-  | Mpoly_fun (l, abs, n, _) -> Some (n, l, type_of_func abs.func, Svalue)
+  | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Mvalue)
+  | Mpoly_fun (l, abs, n, _) -> Some (n, l, type_of_func abs.func, Mvalue)
   | Mmutual_rec _ -> None
   | Mlocal_module (l, n, _) ->
       (* Do we have to deal with this? *)
-      Some (n, l, Tunit, Svalue)
-  | Mmodule_alias _ -> None
+      Some (n, l, Tunit, Mvalue)
+  | Mmodule_alias _ | Mmodule_type _ -> None
 
 let find_item name kind (n, _, _, tkind) =
   match (kind, tkind) with
-  | (Svalue, Svalue | Stypedef, Stypedef) when String.equal name n -> true
+  | (Mvalue, Mvalue | Mtypedef, Mtypedef) when String.equal name n -> true
   | _ -> false
 
-let validate_signature env m =
+let validate_intf env intf impl =
   (* Go through signature and check that the implemented types match.
      Implementation is appended to a list, so the most current bindings are the ones we pick.
      That's exactly what we want. Also, set correct unique name to signature binding. *)
   let mn = Env.modpath env in
-  match m.s with
-  | [] -> m
+  match intf with
+  | [] -> intf
   | _ ->
-      let impl = List.filter_map (extract_name_type env) m.i in
+      let impl = List.filter_map (extract_name_type env) impl in
       let f (name, loc, styp, kind) =
         match (List.find_opt (find_item name kind) impl, kind) with
         | Some (n, loc, ityp, ikind), _ ->
@@ -784,8 +795,8 @@ let validate_signature env m =
             if b then (
               (* Query value to mark it as used in the env *)
               (match ikind with
-              | Svalue -> ignore (Env.query_val_opt loc (Path.Pid n) env)
-              | Stypedef -> ());
+              | Mvalue -> ignore (Env.query_val_opt loc (Path.Pid n) env)
+              | Mtypedef -> ());
               (* Use implementation type to retain closures *)
               (name, loc, ityp, kind))
             else
@@ -797,7 +808,7 @@ let validate_signature env m =
                   (string_of_type_subst subst ityp mn)
               in
               raise (Error (loc, msg))
-        | None, Stypedef -> (
+        | None, Mtypedef -> (
             (* Typedefs don't have to be given a second time. Except: When the initial type is abstract *)
             match clean styp with
             | Tabstract _ ->
@@ -807,7 +818,7 @@ let validate_signature env m =
                        "Abstract type " ^ string_of_type styp mn
                        ^ " not implemented" ))
             | _ -> (name, loc, styp, kind))
-        | None, Svalue ->
+        | None, Mvalue ->
             let msg =
               Printf.sprintf
                 "Mismatch between implementation and signature: Missing \
@@ -816,4 +827,19 @@ let validate_signature env m =
             in
             raise (Error (loc, msg))
       in
-      { m with s = List.map f m.s }
+      List.map f intf
+
+let validate_signature env m = { m with s = validate_intf env m.s m.i }
+
+let validate_intf env intf m =
+  match m.s with
+  | [] -> validate_intf env intf m.i |> ignore
+  | s ->
+      ignore s;
+      failwith "TODO"
+
+let to_module_type { s; i; _ } =
+  match (s, i) with
+  | [], _ -> failwith "Internal Error: Module type is empty"
+  | items, [] -> items
+  | _ -> failwith "Internal Error: Module type has an implementation"

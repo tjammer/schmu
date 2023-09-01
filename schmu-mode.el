@@ -125,6 +125,7 @@ the syntax table, so `forward-word' works as expected.")
     "rec"
     "signature"
     "module"
+    "module-type"
 
     ,@schmu-var-decl-forms
     ,@schmu-function-decl-forms)
@@ -385,6 +386,7 @@ STATE is the `parse-partial-sexp' state for that position."
           (when-let 1)
           (signature 0)
           (module 1)
+          (module-type 1)
           (while 1))))
 
 ;;;###autoload

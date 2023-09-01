@@ -108,6 +108,7 @@ type scope = {
   types : (typ * bool) Map.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
   modules : cached_module Map.t; (* Locally declared modules *)
+  module_types : Module_type.t Map.t;
 }
 
 and cached_module = Cm_located of Path.t | Cm_cached of Path.t * scope
@@ -143,6 +144,7 @@ let empty_scope kind =
     types = Map.empty;
     kind;
     modules = Map.empty;
+    module_types = Map.empty;
   }
 
 let empty ~find_module ~scope_of_located ~abs_module_name modpath =
@@ -318,6 +320,11 @@ let add_module_alias loc ~key ~mname env =
   in
   let cached_module = start env mname in
   add_module ~key cached_module env
+
+let add_module_type key mtype env =
+  let scope, tl = decap_exn env in
+  let module_types = Map.add key mtype scope.module_types in
+  { env with values = { scope with module_types } :: tl }
 
 let open_thing thing modpath env =
   (* Due to the ref, we have to create a new object every time *)
@@ -629,6 +636,14 @@ let find_module_opt ?(query = false) loc name env =
     ~found:(fun scope kind ->
       if query then mark_module_used scope;
       match kind with Cm_located path | Cm_cached (path, _) -> path)
+    loc name env
+
+let find_module_type_opt loc name env =
+  find_general
+    ~find:(fun key scope -> Map.find_opt key scope.module_types)
+    ~found:(fun scope mtype ->
+      mark_module_used scope;
+      mtype)
     loc name env
 
 let find_label_opt key env =

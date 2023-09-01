@@ -66,6 +66,7 @@ val change_type : key -> typ -> t -> t
 val add_type : string -> in_sig:bool -> typ -> t -> t
 val add_module : key:string -> cached_module -> t -> t
 val add_module_alias : Ast.loc -> key:string -> mname:Path.t -> t -> t
+val add_module_type : string -> Module_type.t -> t -> t
 val open_function : t -> t
 val open_toplevel : Path.t -> t -> t
 val close_function : t -> t * closed list * touched list * unused
@@ -95,6 +96,7 @@ val query_type : instantiate:(typ -> typ) -> Ast.loc -> Path.t -> t -> typ
 (** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)
 
 val find_module_opt : ?query:bool -> Ast.loc -> Path.t -> t -> Path.t option
+val find_module_type_opt : Ast.loc -> Path.t -> t -> Module_type.t option
 
 val find_label_opt : key -> t -> label option
 (** [find_label_opt labelname env] returns the name of first record with a matching label *)
