@@ -171,14 +171,21 @@ signature: Signature; l = nonempty_list(sig_item) { l }
   | Defexternal; ident; sexp_type_expr; option(String_lit) { $loc, $2, $3, $4 }
 
 modul:
-  | Module; id = ident { Module_alias (id, Path.Pid (snd id)) }
-  | Module; id = ident; mname = path /* Use location of path */
-    { Module_alias ((fst mname, snd id), snd mname) }
-  | Module; id = ident; hd = module_item; m = list(top_item) { Module (id, [], hd :: m) }
-  | Module; id = ident; s = parens(signature); m = list(top_item) { Module (id, s, m) }
+  | Module; id = module_decl { let _, alias, _ = id in Module_alias (id, Path.Pid alias) }
+  | Module; id = module_decl; mname = path /* Use location of path */
+    { let _, id, annot = id in Module_alias ((fst mname, id, annot), snd mname) }
+  | Module; id = module_decl; hd = module_item; m = list(top_item) { Module (id, [], hd :: m) }
+  | Module; id = module_decl; s = parens(signature); m = list(top_item) { Module (id, s, m) }
 
-module_type:
+%inline module_type:
   | Module_type; id = ident; l = nonempty_list(sig_item) { Module_type (id, l) }
+
+%inline module_decl:
+  | id = ident { fst id, snd id, None }
+  | decl = parens(module_annot) { decl}
+
+%inline module_annot:
+  | id = ident; annot = path { fst id, snd id, Some (snd annot) }
 
 %inline path:
   | id = ident { $loc, Path.Pid (snd id) }

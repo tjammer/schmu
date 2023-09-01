@@ -717,6 +717,13 @@ let scope_of_located env path =
   | Located (filename, loc, regeneralize) ->
       read_module env filename loc ~regeneralize path
 
+let rec of_located env path =
+  match Hashtbl.find module_cache path with
+  | Cached (_, _, m) -> m
+  | Located (filename, loc, regeneralize) ->
+      ignore (read_module env filename loc ~regeneralize path);
+      of_located env path
+
 let object_names () =
   let ours =
     Hashtbl.fold
@@ -777,18 +784,21 @@ let find_item name kind (n, _, _, tkind) =
   | (Mvalue, Mvalue | Mtypedef, Mtypedef) when String.equal name n -> true
   | _ -> false
 
-let validate_intf env intf impl =
+let validate_intf env loc intf impl =
   (* Go through signature and check that the implemented types match.
      Implementation is appended to a list, so the most current bindings are the ones we pick.
      That's exactly what we want. Also, set correct unique name to signature binding. *)
+  let mbloc otherloc = match loc with Some loc -> loc | None -> otherloc in
   let mn = Env.modpath env in
   match intf with
   | [] -> intf
   | _ ->
       let impl = List.filter_map (extract_name_type env) impl in
       let f (name, loc, styp, kind) =
+        let loc = mbloc loc in
         match (List.find_opt (find_item name kind) impl, kind) with
         | Some (n, loc, ityp, ikind), _ ->
+            let loc = mbloc loc in
             let subst, b =
               Inference.types_match ~match_abstract:true Smap.empty styp ityp
             in
@@ -829,11 +839,11 @@ let validate_intf env intf impl =
       in
       List.map f intf
 
-let validate_signature env m = { m with s = validate_intf env m.s m.i }
+let validate_signature env loc m = { m with s = validate_intf env loc m.s m.i }
 
-let validate_intf env intf m =
+let validate_intf env loc intf m =
   match m.s with
-  | [] -> validate_intf env intf m.i |> ignore
+  | [] -> validate_intf env loc intf m.i |> ignore
   | s ->
       ignore s;
       failwith "TODO"

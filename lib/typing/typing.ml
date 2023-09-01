@@ -1310,6 +1310,15 @@ and catch_weak_expr env sub e =
         (function Fstr _ -> () | Fexpr e -> catch_weak_expr env sub e)
         fmt
 
+let check_module_annot env loc m annot =
+  match annot with
+  | Some path -> (
+      match Env.find_module_type_opt loc path env with
+      | Some mtype -> Module.validate_intf env (Some loc) mtype m
+      | None -> raise (Error (loc, "Cannot find module type " ^ Path.show path))
+      )
+  | None -> ()
+
 let rec convert_module env mname sign prog check_ret =
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_toplevel mname env in
@@ -1327,7 +1336,7 @@ let rec convert_module env mname sign prog check_ret =
   (* Make sure to chose the signature env, not the impl one. Abstract types are
      magically made complete by references. *)
   let m = List.fold_left (add_signature_vals sigenv) m sign in
-  let m = Module.validate_signature env m in
+  let m = Module.validate_signature env None m in
 
   (* Catch weak type variables *)
   List.iter (catch_weak_vars env) items;
@@ -1383,7 +1392,7 @@ and convert_prog env items modul =
         (env, items, m)
     | Typedef (loc, Tabstract _) ->
         raise (Error (loc, "Abstract types need a concrete implementation"))
-    | Module ((loc, id), sign, prog) ->
+    | Module ((loc, id, annot), sign, prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
         let mname = Path.append id (Env.modpath env) in
@@ -1409,14 +1418,17 @@ and convert_prog env items modul =
               in
               raise (Error (loc, msg))
         in
+        check_module_annot env loc newm annot;
         let m = add_local_module loc id newm ~into:m in
 
         let moditems = List.map (fun item -> (mname, item)) moditems in
         let items = Tl_module moditems :: items in
         (env, items, m)
-    | Module_alias ((loc, key), mname) ->
+    | Module_alias ((loc, key, annot), mname) ->
         let env = Env.add_module_alias loc ~key ~mname env in
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
+        if Option.is_some annot then
+          check_module_annot env loc (Module.of_located env mname) annot;
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
     | Module_type ((loc, id), vals) ->

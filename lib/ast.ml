@@ -125,9 +125,11 @@ type top_item =
   | Stmt of stmt
   | Ext_decl of external_decl
   | Typedef of loc * typedef
-  | Module of ident * signature list * top_item list
-  | Module_alias of ident * Path.t
+  | Module of module_decl * signature list * top_item list
+  | Module_alias of module_decl * Path.t
   | Module_type of ident * signature list
+
+and module_decl = loc * string * Path.t option
 
 and signature =
   | Stypedef of loc * typedef
