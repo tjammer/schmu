@@ -86,8 +86,11 @@ let string_of_type_raw get_name typ mname =
           | Dset -> "&"
         in
         let ps =
-          String.concat " "
-            (List.map (fun p -> string_of_type p.pt ^ pattr p.pattr) ts)
+          match ts with
+          | [] -> "unit"
+          | ts ->
+              String.concat " "
+                (List.map (fun p -> string_of_type p.pt ^ pattr p.pattr) ts)
         in
         Printf.sprintf "(fun %s %s)" ps (string_of_type t)
     | Tvar { contents = Link t } -> string_of_type t
