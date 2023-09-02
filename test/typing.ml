@@ -794,17 +794,25 @@ let test_mtype_define () =
   test "unit" "(module-type tt (type t) (def random (fun unit int)))"
 
 let test_mtype_no_match () =
-  test_exn "Abstract type tt/t not implemented"
+  test_exn "Signatures don't match: Type tt/t is missing"
     {|(module-type tt (type t))
 (module (test tt)
  (type a unit))|}
 
 let test_mtype_no_match_alias () =
-  test_exn "Abstract type tt/t not implemented"
+  test_exn "Signatures don't match: Type tt/t is missing"
     {|(module-type tt (type t))
 (module test
  (type a unit))
 (module (other tt) test)|}
+
+let test_mtype_no_match_sign () =
+  test_exn "Signatures don't match: Type tt/t is missing"
+    {|(module-type tt (type t))
+(module (test tt)
+ (signature
+    (type a))
+ (type a unit))|}
 
 let case str test = test_case str `Quick test
 
@@ -1178,5 +1186,6 @@ let () =
           case "define" test_mtype_define;
           case "no match" test_mtype_no_match;
           case "no match alias" test_mtype_no_match_alias;
+          case "no match sign" test_mtype_no_match_sign;
         ] );
     ]

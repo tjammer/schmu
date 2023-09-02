@@ -784,21 +784,43 @@ let find_item name kind (n, _, _, tkind) =
   | (Mvalue, Mvalue | Mtypedef, Mtypedef) when String.equal name n -> true
   | _ -> false
 
-let validate_intf env loc intf impl =
+let validate_intf env loc (name, _, styp, kind) rhs =
+  let mn = Env.modpath env in
+  match (List.find_opt (find_item name kind) rhs, kind) with
+  | Some (_, _, ityp, _), _ ->
+      let subst, b =
+        Inference.types_match ~match_abstract:true Smap.empty styp ityp
+      in
+      if b then ()
+      else
+        let msg =
+          Printf.sprintf
+            "Signatures don't match for %s: Expected type %s but got type %s"
+            name
+            (string_of_type_lit styp mn)
+            (string_of_type_subst subst ityp mn)
+        in
+        raise (Error (loc, msg))
+  | None, kind ->
+      let msg =
+        Printf.sprintf "Signatures don't match: %s %s is missing"
+          (match kind with Mtypedef -> "Type" | Mvalue -> "Value " ^ name)
+          (string_of_type styp mn)
+      in
+      raise (Error (loc, msg))
+
+let validate_signature env m =
   (* Go through signature and check that the implemented types match.
      Implementation is appended to a list, so the most current bindings are the ones we pick.
      That's exactly what we want. Also, set correct unique name to signature binding. *)
-  let mbloc otherloc = match loc with Some loc -> loc | None -> otherloc in
   let mn = Env.modpath env in
-  match intf with
-  | [] -> intf
+  match m.s with
+  | [] -> m
   | _ ->
-      let impl = List.filter_map (extract_name_type env) impl in
+      let impl = List.filter_map (extract_name_type env) m.i in
       let f (name, loc, styp, kind) =
-        let loc = mbloc loc in
         match (List.find_opt (find_item name kind) impl, kind) with
         | Some (n, loc, ityp, ikind), _ ->
-            let loc = mbloc loc in
             let subst, b =
               Inference.types_match ~match_abstract:true Smap.empty styp ityp
             in
@@ -837,16 +859,15 @@ let validate_intf env loc intf impl =
             in
             raise (Error (loc, msg))
       in
-      List.map f intf
-
-let validate_signature env loc m = { m with s = validate_intf env loc m.s m.i }
+      let s = List.map f m.s in
+      { m with s }
 
 let validate_intf env loc intf m =
   match m.s with
-  | [] -> validate_intf env loc intf m.i |> ignore
-  | s ->
-      ignore s;
-      failwith "TODO"
+  | [] ->
+      let impl = List.filter_map (extract_name_type env) m.i in
+      List.iter (fun item -> validate_intf env loc item impl) intf
+  | s -> List.iter (fun item -> validate_intf env loc item s) intf
 
 let to_module_type { s; i; _ } =
   match (s, i) with

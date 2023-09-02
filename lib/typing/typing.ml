@@ -1314,7 +1314,7 @@ let check_module_annot env loc m annot =
   match annot with
   | Some path -> (
       match Env.find_module_type_opt loc path env with
-      | Some mtype -> Module.validate_intf env (Some loc) mtype m
+      | Some mtype -> Module.validate_intf env loc mtype m
       | None -> raise (Error (loc, "Cannot find module type " ^ Path.show path))
       )
   | None -> ()
@@ -1336,7 +1336,7 @@ let rec convert_module env mname sign prog check_ret =
   (* Make sure to chose the signature env, not the impl one. Abstract types are
      magically made complete by references. *)
   let m = List.fold_left (add_signature_vals sigenv) m sign in
-  let m = Module.validate_signature env None m in
+  let m = Module.validate_signature env m in
 
   (* Catch weak type variables *)
   List.iter (catch_weak_vars env) items;
