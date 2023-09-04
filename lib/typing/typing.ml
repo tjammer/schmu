@@ -1424,6 +1424,15 @@ and convert_prog env items modul =
         let moditems = List.map (fun item -> (mname, item)) moditems in
         let items = Tl_module moditems :: items in
         (env, items, m)
+    | Functor ((loc, id, annot), params, sign, prog) ->
+        ignore loc;
+        ignore annot;
+        ignore sign;
+        ignore prog;
+        Printf.printf "functor: %s with %s" id
+          (String.concat " and "
+             (List.map (fun (_, n, p) -> Path.show p ^ " as " ^ n) params));
+        failwith "TODO"
     | Module_alias ((loc, key, annot), mname) ->
         let env = Env.add_module_alias loc ~key ~mname env in
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in

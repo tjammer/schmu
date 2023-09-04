@@ -121,6 +121,7 @@ rule read =
   | "signature" { Signature }
   | "module" { Module }
   | "module-type" { Module_type }
+  | "functor" { Functor }
   | "set"    { Set }
   | "cond"   { Cond }
   | "fmt-str"{ Fmt_str }

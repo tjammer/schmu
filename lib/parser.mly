@@ -108,6 +108,7 @@
 %token Signature
 %token Module
 %token Module_type
+%token Functor
 %token Set
 %token Fmt_str
 %token Rec
@@ -176,6 +177,10 @@ modul:
     { let _, id, annot = id in Module_alias ((fst mname, id, annot), snd mname) }
   | Module; id = module_decl; hd = module_item; m = list(top_item) { Module (id, [], hd :: m) }
   | Module; id = module_decl; s = parens(signature); m = list(top_item) { Module (id, s, m) }
+  | Functor; id = module_decl; p = maybe_bracks(functor_params); hd = module_item; m = list(top_item)
+    { Functor (id, p, [], hd :: m) }
+  | Functor; id = module_decl; p = maybe_bracks(functor_params); s = parens(signature); m = list(top_item)
+    { Functor (id, p, s, m) }
 
 %inline module_type:
   | Module_type; id = ident; l = nonempty_list(sig_item) { Module_type (id, l) }
@@ -183,6 +188,12 @@ modul:
 %inline module_decl:
   | id = ident { fst id, snd id, None }
   | decl = parens(module_annot) { decl}
+
+%inline functor_params:
+  | nonempty_list(parens(functor_param)) { $1 }
+
+%inline functor_param:
+  | id = ident; param = path { $loc, snd id, snd param }
 
 %inline module_annot:
   | id = ident; annot = path { fst id, snd id, Some (snd annot) }

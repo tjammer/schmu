@@ -50,7 +50,7 @@ the syntax table, so `forward-word' works as expected.")
 
 (defconst schmu-macro-decl-forms '("defmacro" "defmacro-"))
 
-(defconst schmu-normal-function-decl-forms '("defn"))
+(defconst schmu-normal-function-decl-forms '("defn" "functor"))
 
 (defconst schmu-function-decl-forms
   `(,@schmu-normal-function-decl-forms ,@schmu-macro-decl-forms "varfn" "fn"))
@@ -62,7 +62,7 @@ the syntax table, so `forward-word' works as expected.")
   "The regex to identify schmu function names.")
 
 (defconst schmu-var-decl-forms
-  '("var" "var-" "def" "def-" "defglobal" "varglobal" "default" "dyn" "type"))
+  '("var" "var-" "def" "def-" "defglobal" "varglobal" "default" "dyn" "type" "module" "module-type"))
 
 (defconst schmu-variable-declaration-pattern
   (rx-to-string `(sequence ,@schmu-start-of-sexp
@@ -126,6 +126,7 @@ the syntax table, so `forward-word' works as expected.")
     "signature"
     "module"
     "module-type"
+    "functor"
 
     ,@schmu-var-decl-forms
     ,@schmu-function-decl-forms)
@@ -387,6 +388,7 @@ STATE is the `parse-partial-sexp' state for that position."
           (signature 0)
           (module 1)
           (module-type 1)
+          (functor defun)
           (while 1))))
 
 ;;;###autoload
