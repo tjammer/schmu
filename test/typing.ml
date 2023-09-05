@@ -645,7 +645,7 @@ let test_local_modules_miss_local_dont_find_global () =
 
 let test_local_module_unique_names () =
   test_exn "Module names must be unique. nosig exists already"
-    (local_module ^ "(module nosig (type t unit))")
+    (local_module ^ "(module nosig ())")
 
 let test_local_module_nested_module_alias () =
   test "nosig/nested/t"
@@ -815,10 +815,10 @@ let test_mtype_no_match_sign () =
  (type a unit))|}
 
 let test_functor_define () =
-  test "unit" "(module-type mt (type t)) (functor f [(p mt)] (type a unit))"
+  test "unit" "(module-type mt (type t)) (functor f [(p mt)] ())"
 
 let test_functor_module_type_not_found () =
-  test_exn "Cannot find module type mt" "(functor f [(p mt)] (type a unit))"
+  test_exn "Cannot find module type mt" "(functor f [(p mt)] ())"
 
 let test_functor_direct_access () =
   test_exn "The module f is a functor. It cannot be accessed directly"

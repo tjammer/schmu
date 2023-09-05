@@ -1358,9 +1358,17 @@ prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Wildcard
 
 Expecting type or value declaration
 
-prog: Lpar Module Kebab_id Lpar Wildcard
+prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Lpar Wildcard
 
-Expecting a definition as first module item, not an expression
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Lpar Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Lpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Functor Wildcard
 
@@ -1414,11 +1422,19 @@ prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpa
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Lpar Wildcard
+prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Module Kebab_id Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1450,11 +1466,7 @@ prog: Lpar Module Kebab_id Kebab_id Div_i Kebab_id String_lit
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Rpar Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Wildcard
+prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1503,6 +1515,14 @@ prog: Lpar Functor Kebab_id Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1603,6 +1623,14 @@ prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Kebab_id Div_i Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Module Kebab_id Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Module Kebab_id Lpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Module Kebab_id Lpar Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

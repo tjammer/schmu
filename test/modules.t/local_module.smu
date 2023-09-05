@@ -6,7 +6,7 @@
     (def test (fun unit unit))
     (def poly-test (fun 'a unit))
     (def value string))
-  (module nested (type t unit))
+  (module nested ())
   (type t int)
   (defn test [] (print "hey thing"))
   (defn poly-test [a] (print (fmt-str "hey poly " a)))

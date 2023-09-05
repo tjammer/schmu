@@ -145,6 +145,10 @@ top_item:
   | modul = parens(modul) { modul }
   | module_type = parens(module_type) { module_type }
 
+%inline first_module_item:
+  | module_item { $1 }
+  | Lpar; Rpar { Stmt (Expr ($loc, (Lit ($loc, Unit)))) }
+
 signature: Signature; l = nonempty_list(sig_item) { l }
 
 %inline sig_item:
@@ -175,9 +179,9 @@ modul:
   | Module; id = module_decl { let _, alias, _ = id in Module_alias (id, Path.Pid alias) }
   | Module; id = module_decl; mname = path /* Use location of path */
     { let _, id, annot = id in Module_alias ((fst mname, id, annot), snd mname) }
-  | Module; id = module_decl; hd = module_item; m = list(top_item) { Module (id, [], hd :: m) }
+  | Module; id = module_decl; hd = first_module_item; m = list(top_item) { Module (id, [], hd :: m) }
   | Module; id = module_decl; s = parens(signature); m = list(top_item) { Module (id, s, m) }
-  | Functor; id = module_decl; p = maybe_bracks(functor_params); hd = module_item; m = list(top_item)
+  | Functor; id = module_decl; p = maybe_bracks(functor_params); hd = first_module_item; m = list(top_item)
     { Functor (id, p, [], hd :: m) }
   | Functor; id = module_decl; p = maybe_bracks(functor_params); s = parens(signature); m = list(top_item)
     { Functor (id, p, s, m) }
