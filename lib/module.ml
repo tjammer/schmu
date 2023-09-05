@@ -16,6 +16,7 @@ and item =
   | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
   | Mmutual_rec of loc * (loc * string * int option * typ) list
   | Mlocal_module of loc * string * t
+  | Mfunctor of loc * string * (string * intf) list * t
   | Mmodule_alias of loc * string * Path.t * string option (* filename option *)
   | Mmodule_type of loc * string * intf
 
@@ -30,7 +31,10 @@ and t = {
   objects : (string * bool (* transitive dep needs load *)) list;
 }
 
-type cache_kind = Cfile of string * bool | Clocal of Path.t
+type cache_kind =
+  | Cfile of string * bool
+  | Clocal of Path.t
+  | Cfunctor of Path.t * (string * intf) list
 
 let t_of_sexp s =
   triple_of_sexp
@@ -74,6 +78,9 @@ let lambda_name ~mname id =
 
 let absolute_module_name ~mname fname = "_" ^ Path.mod_name mname ^ "_" ^ fname
 
+let functor_param_name ~mname name =
+  absolute_module_name ~mname ("fparam_" ^ name)
+
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
 
@@ -87,13 +94,16 @@ let add_local_module loc id newm ~into =
 let add_module_alias loc key mname ~into =
   let filename =
     match Hashtbl.find_opt module_cache mname with
-    | None | Some (Cached (Clocal _, _, _)) -> None
+    | None | Some (Cached ((Clocal _ | Cfunctor _), _, _)) -> None
     | Some (Cached (Cfile (f, _), _, _) | Located (f, _, _)) -> Some f
   in
   { into with i = Mmodule_alias (loc, key, mname, filename) :: into.i }
 
 let add_module_type loc id mtype m =
   { m with i = Mmodule_type (loc, id, mtype) :: m.i }
+
+let add_functor loc id params body ~into =
+  { into with i = Mfunctor (loc, id, params, body) :: into.i }
 
 let type_of_func (func : Typed_tree.func) =
   Tfun (func.tparams, func.ret, func.kind)
@@ -258,7 +268,7 @@ and canonexpr mname nsub sub = function
       | Some m when not (Path.share_base mname m) -> (
           (* Make sure this is eagerly loaded on use *)
           match Hashtbl.find_opt module_cache m with
-          | None | Some (Located _ | Cached (Clocal _, _, _)) ->
+          | None | Some (Located _ | Cached ((Clocal _ | Cfunctor _), _, _)) ->
               failwith "unreachable what is this module's path?"
           | Some (Cached (Cfile (_, true), _, _)) -> ()
           | Some (Cached (Cfile (name, false), scope, md)) ->
@@ -454,6 +464,10 @@ let rec map_item ~mname ~f = function
       Mmutual_rec (l, decls)
   | Mlocal_module (l, name, t) ->
       Mlocal_module (l, name, map_t ~mname:(Path.append name mname) ~f t)
+  | Mfunctor (l, name, ps, t) ->
+      let ps = List.map (fun (n, intf) -> (n, map_intf ~f intf)) ps in
+      let mname = Path.append name mname in
+      Mfunctor (l, name, ps, map_t ~mname ~f t)
   | Mmodule_alias _ as m -> m
   | Mmodule_type (l, name, intf) -> Mmodule_type (l, name, map_intf ~f intf)
 
@@ -495,6 +509,11 @@ let rec fold_canonize_item mname (ts_sub, nsub) = function
   | Mlocal_module (loc, n, t) ->
       let t = canonize_t (Path.append n mname) t in
       ((ts_sub, nsub), Mlocal_module (loc, n, t))
+  | Mfunctor (loc, n, ps, t) ->
+      let f (n, intf) = (n, canonize_intf Types.Smap.empty intf) in
+      let ps = List.map f ps in
+      let t = canonize_t (Path.append n mname) t in
+      ((ts_sub, nsub), Mfunctor (loc, n, ps, t))
   | Mmodule_alias _ as m -> ((ts_sub, nsub), m)
   | Mmodule_type (loc, n, intf) ->
       let intf = canonize_intf Types.Smap.empty intf in
@@ -518,7 +537,7 @@ and canonize_intf ts_sub intf =
   |> snd
 
 let modpath_of_kind = function
-  | Clocal p -> p
+  | Clocal p | Cfunctor (p, _) -> p
   | Cfile (name, _) -> Path.Pid name
 
 let envmodule_of_cached path = function
@@ -591,6 +610,12 @@ let rec add_to_env env foreign (mname, m) =
                   | Error () -> raise (Error (loc, "Cannot add module")))
               | Some cached ->
                   Env.add_module ~key (envmodule_of_cached mname cached) env)
+          | Mfunctor (loc, key, ps, m) ->
+              ignore loc;
+              ignore key;
+              ignore ps;
+              ignore m;
+              failwith "TODO add functor to env"
           | Mmodule_alias (loc, key, mname, fname) -> (
               match Hashtbl.find_opt module_cache mname with
               | None ->
@@ -686,6 +711,18 @@ and register_module env loc mname modul =
     let env = Env.add_module ~key (envmodule_of_cached mname cached) env in
     Ok env
 
+and register_functor env loc mname params body : (Env.t, unit) Result.t =
+  if Hashtbl.mem module_cache mname then Error ()
+  else
+    (* Make an empty scope *)
+    let scope = Env.open_module_scope env loc mname |> Env.pop_scope in
+    let cached = Cached (Cfunctor (mname, params), scope, body) in
+    Hashtbl.add module_cache mname cached;
+    let key = Path.get_hd mname in
+    (* Use located here, so the scope isn't accessed in env *)
+    let env = Env.add_module ~key (Cm_located mname) env in
+    Ok env
+
 let find_module env loc ~regeneralize name =
   (* We first search the env for local modules. Then we try read the module the normal way *)
   let r =
@@ -711,11 +748,34 @@ let find_module env loc ~regeneralize name =
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Error (loc, msg))
 
-let scope_of_located env path =
+let scope_of_located env loc path =
   match Hashtbl.find module_cache path with
+  | Cached (Cfunctor _, _, _) ->
+      let msg =
+        Printf.sprintf
+          "The module %s is a functor. It cannot be accessed directly"
+          (Path.get_hd path)
+      in
+      raise (Error (loc, msg))
   | Cached (_, scope, _) -> scope
   | Located (filename, loc, regeneralize) ->
       read_module env filename loc ~regeneralize path
+
+let scope_of_functor_param env loc (id, mt) =
+  (* A part of add_to_env for intf is copied here *)
+  let path = Path.Pid id in
+  let env = Env.open_module_scope env loc path in
+  let env =
+    List.fold_left
+      (fun env (name, loc, typ, kind) ->
+        match kind with
+        (* Not in the signature of the module we add it to *)
+        | Mtypedef -> Env.add_type name ~in_sig:false typ env
+        | Mvalue -> Env.(add_value name { def_value with typ } loc env))
+      env mt
+  in
+  let scope = Env.pop_scope env in
+  Env.Cm_cached (path, scope)
 
 let rec of_located env path =
   match Hashtbl.find module_cache path with
@@ -730,7 +790,7 @@ let object_names () =
       (fun _ cached set ->
         match cached with
         | Cached (Cfile (name, _), _, _) -> Sset.add (name ^ ".o") set
-        | Cached (Clocal _, _, _) -> set
+        | Cached ((Clocal _ | Cfunctor _), _, _) -> set
         | Located _ -> set)
       module_cache Sset.empty
   in
@@ -777,7 +837,7 @@ let extract_name_type env = function
   | Mlocal_module (l, n, _) ->
       (* Do we have to deal with this? *)
       Some (n, l, Tunit, Mvalue)
-  | Mmodule_alias _ | Mmodule_type _ -> None
+  | Mmodule_alias _ | Mmodule_type _ | Mfunctor _ -> None
 
 let find_item name kind (n, _, _, tkind) =
   match (kind, tkind) with

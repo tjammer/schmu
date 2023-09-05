@@ -8,6 +8,7 @@ val empty : t
 val unique_name : mname:Path.t -> string -> int option -> string
 val lambda_name : mname:Path.t -> int -> string
 val absolute_module_name : mname:Path.t -> string -> string
+val functor_param_name : mname:Path.t -> string -> string
 val add_type_sig : loc -> string -> typ -> t -> t
 val add_value_sig : loc -> string -> typ -> t -> t
 val add_type : loc -> typ -> t -> t
@@ -41,16 +42,33 @@ val add_external :
 val add_local_module : loc -> string -> t -> into:t -> t
 val add_module_alias : loc -> string -> Path.t -> into:t -> t
 val add_module_type : loc -> string -> Module_type.t -> t -> t
+
+val add_functor :
+  loc -> string -> (string * Module_type.t) list -> t -> into:t -> t
+
 val clear_cache : unit -> unit
 val object_names : unit -> string list
 val register_module : Env.t -> Ast.loc -> Path.t -> t -> (Env.t, unit) result
+
+val register_functor :
+  Env.t ->
+  Ast.loc ->
+  Path.t ->
+  (string * Module_type.t) list ->
+  t ->
+  (Env.t, unit) result
+
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
 val paths : string list ref
 
 val find_module :
   Env.t -> Ast.loc -> regeneralize:(typ -> typ) -> string -> Env.cached_module
 
-val scope_of_located : Env.t -> Path.t -> Env.scope
+val scope_of_functor_param :
+  Env.t -> loc -> string * Module_type.t -> Env.cached_module
+(** Make scopes out of a functor param to add it to the env *)
+
+val scope_of_located : Env.t -> loc -> Path.t -> Env.scope
 val of_located : Env.t -> Path.t -> t
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list

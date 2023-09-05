@@ -1425,14 +1425,55 @@ and convert_prog env items modul =
         let items = Tl_module moditems :: items in
         (env, items, m)
     | Functor ((loc, id, annot), params, sign, prog) ->
-        ignore loc;
-        ignore annot;
-        ignore sign;
-        ignore prog;
-        Printf.printf "functor: %s with %s" id
-          (String.concat " and "
-             (List.map (fun (_, n, p) -> Path.show p ^ " as " ^ n) params));
-        failwith "TODO"
+        let open Module in
+        let mname = Path.append id (Env.modpath env) in
+
+        (* Save uniq_tbl state as well as lambda state *)
+        let uniq_tbl_bk = !uniq_tbl in
+        uniq_tbl := Strtbl.create 64;
+        let lambda_id_state_bk = !lambda_id_state in
+        reset lambda_id_state;
+
+        (* TODO correct names of params? *)
+        let params =
+          List.map
+            (fun (loc, id, path) ->
+              match Env.find_module_type_opt loc path env with
+              | Some mtype -> (id, mtype)
+              | None ->
+                  raise
+                    (Error (loc, "Cannot find module type " ^ Path.show path)))
+            params
+        in
+        let tmpenv =
+          List.fold_left
+            (fun env (key, mt) ->
+              let param = (functor_param_name ~mname key, mt) in
+              let cm = scope_of_functor_param env loc param in
+              Env.add_module ~key cm env)
+            env params
+        in
+        let _, _, newm = convert_module tmpenv mname sign prog true in
+
+        uniq_tbl := uniq_tbl_bk;
+        lambda_id_state := lambda_id_state_bk;
+
+        let env =
+          (* TODO not local module, but functor *)
+          match register_functor env loc mname params newm with
+          | Ok env -> env
+          | Error () ->
+              let msg =
+                Printf.sprintf "Module names must be unique. %s exists already"
+                  id
+              in
+              raise (Error (loc, msg))
+        in
+        check_module_annot env loc newm annot;
+        let m = add_functor loc id params newm ~into:m in
+
+        (* Don't add moditems to items here. We add items of the applied functor *)
+        (env, items, m)
     | Module_alias ((loc, key, annot), mname) ->
         let env = Env.add_module_alias loc ~key ~mname env in
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in

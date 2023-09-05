@@ -814,6 +814,16 @@ let test_mtype_no_match_sign () =
     (type a))
  (type a unit))|}
 
+let test_functor_define () =
+  test "unit" "(module-type mt (type t)) (functor f [(p mt)] (type a unit))"
+
+let test_functor_module_type_not_found () =
+  test_exn "Cannot find module type mt" "(functor f [(p mt)] (type a unit))"
+
+let test_functor_direct_access () =
+  test_exn "The module f is a functor. It cannot be accessed directly"
+    "(module-type mt (type t)) (functor f [(p mt)] (type a unit)) (ignore f/a)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1187,5 +1197,11 @@ let () =
           case "no match" test_mtype_no_match;
           case "no match alias" test_mtype_no_match_alias;
           case "no match sign" test_mtype_no_match_sign;
+        ] );
+      ( "functor",
+        [
+          case "define" test_functor_define;
+          case "module type not found" test_functor_module_type_not_found;
+          case "direct access" test_functor_direct_access;
         ] );
     ]
