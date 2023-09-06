@@ -49,7 +49,7 @@ val def_value : add_value
 
 val empty :
   find_module:(t -> Ast.loc -> key -> cached_module) ->
-  scope_of_located:(t -> Ast.loc -> Path.t -> scope) ->
+  scope_of_located:(t -> Path.t -> (scope, string) result) ->
   abs_module_name:(mname:Path.t -> string -> string) ->
   Path.t ->
   t

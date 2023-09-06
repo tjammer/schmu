@@ -1412,7 +1412,7 @@ prog: Lpar Functor Kebab_id Lpar Lpar Kebab_id Kebab_id Rpar Rbrack
 
 prog: Lpar Functor Kebab_id Lbrack Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Functor parameters need module type constraints
 
 prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rpar
 

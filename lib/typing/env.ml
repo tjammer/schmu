@@ -124,7 +124,7 @@ type t = {
   in_mut : int ref;
   modpath : Path.t;
   find_module : t -> Ast.loc -> string -> cached_module;
-  scope_of_located : t -> Ast.loc -> Path.t -> scope;
+  scope_of_located : t -> Path.t -> (scope, string) result;
   abs_module_name : mname:Path.t -> string -> string;
 }
 
@@ -294,9 +294,10 @@ let add_module ~key cached_module env =
 
 let get_module env loc = function
   | Cm_cached (path, scope) -> (path, scope)
-  | Cm_located path ->
-      let scope = env.scope_of_located env loc path in
-      (path, scope)
+  | Cm_located path -> (
+      match env.scope_of_located env path with
+      | Ok scope -> (path, scope)
+      | Error s -> raise (Error.Error (loc, s)))
 
 let add_module_alias loc ~key ~mname env =
   let rs key =

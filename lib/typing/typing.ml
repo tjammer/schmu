@@ -1477,8 +1477,10 @@ and convert_prog env items modul =
     | Module_alias ((loc, key, annot), mname) ->
         let env = Env.add_module_alias loc ~key ~mname env in
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
-        if Option.is_some annot then
-          check_module_annot env loc (Module.of_located env mname) annot;
+        (if Option.is_some annot then
+           match Module.of_located env mname with
+           | Ok m -> check_module_annot env loc m annot
+           | Error s -> raise (Error (loc, s)));
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
     | Module_type ((loc, id), vals) ->

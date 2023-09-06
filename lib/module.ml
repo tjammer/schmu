@@ -668,27 +668,20 @@ and load_dep_modules env fname loc objects ~regeneralize =
 
 and read_module env filename loc ~regeneralize mname =
   let c = open_in (filename ^ ".smi") in
-  let m =
-    match Sexp.input c |> Result.map t_of_sexp with
-    | Ok t ->
-        close_in c;
-        (* Load transitive modules. The interface files are the same as object files *)
-        load_dep_modules env filename loc t.objects ~regeneralize;
-        add_object_names filename t.objects;
-        let kind, m =
-          (Cfile (filename, false), map_t ~mname ~f:regeneralize t)
-        in
-        (* Make module scope *)
-        let scope =
-          make_scope env loc (Some (filename, regeneralize)) mname m
-        in
-        Hashtbl.add module_cache mname (Cached (kind, scope, m));
-        scope
-    | Error _ ->
-        close_in c;
-        raise (Error (loc, "Could not deserialize module: " ^ filename))
-  in
-  m
+  match Sexp.input c |> Result.map t_of_sexp with
+  | Ok t ->
+      close_in c;
+      (* Load transitive modules. The interface files are the same as object files *)
+      load_dep_modules env filename loc t.objects ~regeneralize;
+      add_object_names filename t.objects;
+      let kind, m = (Cfile (filename, false), map_t ~mname ~f:regeneralize t) in
+      (* Make module scope *)
+      let scope = make_scope env loc (Some (filename, regeneralize)) mname m in
+      Hashtbl.add module_cache mname (Cached (kind, scope, m));
+      Ok scope
+  | Error _ ->
+      close_in c;
+      Error ("Could not deserialize module: " ^ filename)
 
 and add_object_names fname objects =
   let objs =
@@ -748,16 +741,14 @@ let find_module env loc ~regeneralize name =
       let msg = Printf.sprintf "Module %s: %s" name s in
       raise (Error (loc, msg))
 
-let scope_of_located env loc path =
+let functor_msg path =
+  Printf.sprintf "The module %s is a functor. It cannot be accessed directly"
+    (Path.get_hd path)
+
+let scope_of_located env path =
   match Hashtbl.find module_cache path with
-  | Cached (Cfunctor _, _, _) ->
-      let msg =
-        Printf.sprintf
-          "The module %s is a functor. It cannot be accessed directly"
-          (Path.get_hd path)
-      in
-      raise (Error (loc, msg))
-  | Cached (_, scope, _) -> scope
+  | Cached (Cfunctor _, _, _) -> Result.Error (functor_msg path)
+  | Cached (_, scope, _) -> Ok scope
   | Located (filename, loc, regeneralize) ->
       read_module env filename loc ~regeneralize path
 
@@ -779,7 +770,8 @@ let scope_of_functor_param env loc (id, mt) =
 
 let rec of_located env path =
   match Hashtbl.find module_cache path with
-  | Cached (_, _, m) -> m
+  | Cached (Cfunctor _, _, _) -> Result.Error (functor_msg path)
+  | Cached (_, _, m) -> Ok m
   | Located (filename, loc, regeneralize) ->
       ignore (read_module env filename loc ~regeneralize path);
       of_located env path

@@ -68,8 +68,8 @@ val scope_of_functor_param :
   Env.t -> loc -> string * Module_type.t -> Env.cached_module
 (** Make scopes out of a functor param to add it to the env *)
 
-val scope_of_located : Env.t -> loc -> Path.t -> Env.scope
-val of_located : Env.t -> Path.t -> t
+val scope_of_located : Env.t -> Path.t -> (Env.scope, string) Result.t
+val of_located : Env.t -> Path.t -> (t, string) Result.t
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
 val validate_intf : Env.t -> loc -> Module_type.t -> t -> unit

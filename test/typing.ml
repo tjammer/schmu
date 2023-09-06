@@ -824,6 +824,11 @@ let test_functor_direct_access () =
   test_exn "The module f is a functor. It cannot be accessed directly"
     "(module-type mt (type t)) (functor f [(p mt)] (type a unit)) (ignore f/a)"
 
+let test_functor_checked_alias () =
+  test_exn "The module f is a functor. It cannot be accessed directly"
+    "(module-type mt (type t)) (functor f [(p mt)] (type a unit)) (module (hmm \
+     mt) f)"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1203,5 +1208,6 @@ let () =
           case "define" test_functor_define;
           case "module type not found" test_functor_module_type_not_found;
           case "direct access" test_functor_direct_access;
+          case "checked alias" test_functor_checked_alias;
         ] );
     ]
