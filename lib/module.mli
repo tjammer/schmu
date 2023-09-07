@@ -44,7 +44,12 @@ val add_module_alias : loc -> string -> Path.t -> into:t -> t
 val add_module_type : loc -> string -> Module_type.t -> t -> t
 
 val add_functor :
-  loc -> string -> (string * Module_type.t) list -> t -> into:t -> t
+  loc ->
+  string ->
+  (string * Module_type.t) list ->
+  Typed_tree.toplevel_item list ->
+  into:t ->
+  t
 
 val clear_cache : unit -> unit
 val object_names : unit -> string list
@@ -70,6 +75,10 @@ val scope_of_functor_param :
 
 val scope_of_located : Env.t -> Path.t -> (Env.scope, string) Result.t
 val of_located : Env.t -> Path.t -> (t, string) Result.t
+
+val functor_params :
+  Env.t -> loc -> Path.t -> ((string * Module_type.t) list, string) Result.t
+
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
 val validate_intf : Env.t -> loc -> Module_type.t -> t -> unit

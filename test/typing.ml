@@ -829,6 +829,16 @@ let test_functor_checked_alias () =
     "(module-type mt (type t)) (functor f [(p mt)] (type a unit)) (module (hmm \
      mt) f)"
 
+let test_functor_wrong_arity () =
+  test_exn "Wrong arity for functor f: Expecting 1 but got 2"
+    "(module-type mt (type t)) (functor f [(p mt)] ()) (module a (type t \
+     unit)) (module hmm (f a a))"
+
+let test_functor_wrong_module_type () =
+  test_exn "Signatures don't match: Type mt/t is missing"
+    "(module-type mt (type t)) (functor f [(p mt)] ()) (module a ()) (module \
+     hmm (f a))"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1209,5 +1219,7 @@ let () =
           case "module type not found" test_functor_module_type_not_found;
           case "direct access" test_functor_direct_access;
           case "checked alias" test_functor_checked_alias;
+          case "wrong arity" test_functor_wrong_arity;
+          case "wrong module type" test_functor_wrong_module_type;
         ] );
     ]

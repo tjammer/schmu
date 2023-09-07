@@ -127,11 +127,13 @@ type top_item =
   | Typedef of loc * typedef
   | Module of module_decl * signature list * top_item list
   | Functor of module_decl * functor_param list * signature list * top_item list
-  | Module_alias of module_decl * Path.t
+  | Module_alias of module_decl * alias_kind
   | Module_type of ident * signature list
 
 and module_decl = loc * string * Path.t option
 and functor_param = loc * string * Path.t
+and alias_kind = Amodule of path | Afunctor_app of path * path list
+and path = loc * Path.t
 
 and signature =
   | Stypedef of loc * typedef

@@ -1570,6 +1570,30 @@ prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Type 
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Module Kebab_id Lpar Kebab_id Wildcard
+
+Expecting module name
+
+prog: Lpar Module Kebab_id Lpar Kebab_id Div_i Wildcard
+
+Expecting functor name
+
+prog: Lpar Module Kebab_id Lpar Kebab_id Div_i Kebab_id String_lit
+
+Expecting module name
+
+prog: Lpar Module Kebab_id Lpar Kebab_id Kebab_id Wildcard
+
+Expecting ')'
+
+prog: Lpar Module Kebab_id Lpar Kebab_id Kebab_id Div_i Wildcard
+
+Expecting module name
+
+prog: Lpar Module Kebab_id Lpar Kebab_id Kebab_id Div_i Kebab_id String_lit
+
+Expecting module name
+
 prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>

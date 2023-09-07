@@ -16,7 +16,8 @@ and item =
   | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
   | Mmutual_rec of loc * (loc * string * int option * typ) list
   | Mlocal_module of loc * string * t
-  | Mfunctor of loc * string * (string * intf) list * t
+  | Mfunctor of
+      loc * string * (string * intf) list * Typed_tree.toplevel_item list
   | Mmodule_alias of loc * string * Path.t * string option (* filename option *)
   | Mmodule_type of loc * string * intf
 
@@ -26,7 +27,7 @@ and intf = sig_item list
 and impl = item list
 
 and t = {
-  s : intf; (* TODO use module_type.t here *)
+  s : intf;
   i : impl;
   objects : (string * bool (* transitive dep needs load *)) list;
 }
@@ -417,6 +418,35 @@ and canonabs mname sub nsub abs =
   let sub, body = (canonbody mname nsub) sub abs.body in
   (sub, { abs with func; body })
 
+and canon_tl_items mname nsub sub items =
+  let (_, sub), items =
+    List.fold_left_map
+      (fun (nsub, sub) item -> canon_tl_item mname nsub sub item)
+      (nsub, sub) items
+  in
+  (sub, items)
+
+and canon_tl_item mname nsub sub = function
+  | Typed_tree.Tl_let d ->
+      let sub, lhs = (canonbody mname nsub) sub d.lhs in
+      (* Change binding name *)
+      (* Is absolute module name correct for functor bodies? *)
+      let nsub = Smap.add d.id (absolute_module_name ~mname d.id) nsub in
+      ((nsub, sub), Typed_tree.Tl_let { d with lhs })
+  | Tl_bind (id, rhs) ->
+      let sub, rhs = (canonbody mname nsub) sub rhs in
+      let nsub = Smap.add id (absolute_module_name ~mname id) nsub in
+      ((nsub, sub), Tl_bind (id, rhs))
+  | Tl_function (loc, n, u, abs) ->
+      let nsub' = Smap.add n (absolute_module_name ~mname n) nsub in
+      let sub, abs = canonabs mname sub nsub' abs in
+      ((nsub, sub), Tl_function (loc, n, u, abs))
+  | Tl_expr e ->
+      let sub, e = canonbody mname nsub sub e in
+      ((nsub, sub), Tl_expr e)
+  | (Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _) as todo ->
+      ((nsub, sub), todo)
+
 let rec map_item ~mname ~f = function
   | Mtype (l, t) -> Mtype (l, f t)
   | Mfun (l, t, n) ->
@@ -466,8 +496,9 @@ let rec map_item ~mname ~f = function
       Mlocal_module (l, name, map_t ~mname:(Path.append name mname) ~f t)
   | Mfunctor (l, name, ps, t) ->
       let ps = List.map (fun (n, intf) -> (n, map_intf ~f intf)) ps in
-      let mname = Path.append name mname in
-      Mfunctor (l, name, ps, map_t ~mname ~f t)
+      (* let mname = Path.append name mname in *)
+      (* Regeneralize on substitution with correct module *)
+      Mfunctor (l, name, ps, t)
   | Mmodule_alias _ as m -> m
   | Mmodule_type (l, name, intf) -> Mmodule_type (l, name, map_intf ~f intf)
 
@@ -512,7 +543,7 @@ let rec fold_canonize_item mname (ts_sub, nsub) = function
   | Mfunctor (loc, n, ps, t) ->
       let f (n, intf) = (n, canonize_intf Types.Smap.empty intf) in
       let ps = List.map f ps in
-      let t = canonize_t (Path.append n mname) t in
+      let ts_sub, t = canon_tl_items (Path.append n mname) nsub ts_sub t in
       ((ts_sub, nsub), Mfunctor (loc, n, ps, t))
   | Mmodule_alias _ as m -> ((ts_sub, nsub), m)
   | Mmodule_type (loc, n, intf) ->
@@ -775,6 +806,15 @@ let rec of_located env path =
   | Located (filename, loc, regeneralize) ->
       ignore (read_module env filename loc ~regeneralize path);
       of_located env path
+
+let functor_params env loc mname =
+  match Env.find_module_opt ~query:true loc mname env with
+  | Some name -> (
+      match Hashtbl.find_opt module_cache name with
+      | Some (Cached (Cfunctor (_, params), _, _)) -> Ok params
+      | Some _ -> Error ("Module " ^ Path.show mname ^ " is not a functor")
+      | None -> Error ("Module " ^ Path.show mname ^ " cannot be found"))
+  | None -> Error ("Module " ^ Path.show mname ^ " cannot be found")
 
 let object_names () =
   let ours =

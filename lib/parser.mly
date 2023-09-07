@@ -176,9 +176,9 @@ signature: Signature; l = nonempty_list(sig_item) { l }
   | Defexternal; ident; sexp_type_expr; option(String_lit) { $loc, $2, $3, $4 }
 
 modul:
-  | Module; id = module_decl { let _, alias, _ = id in Module_alias (id, Path.Pid alias) }
-  | Module; id = module_decl; mname = path /* Use location of path */
-    { let _, id, annot = id in Module_alias ((fst mname, id, annot), snd mname) }
+  | Module; id = module_decl { let loc, alias, _ = id in Module_alias (id, Amodule (loc, Path.Pid alias)) }
+  | Module; id = module_decl; alias = aliased_module /* Use location of alias */
+    { let _, id, annot = id in Module_alias (($loc(alias), id, annot), alias) }
   | Module; id = module_decl; hd = first_module_item; m = list(top_item) { Module (id, [], hd :: m) }
   | Module; id = module_decl; s = parens(signature); m = list(top_item) { Module (id, s, m) }
   | Functor; id = module_decl; p = maybe_bracks(functor_params); hd = first_module_item; m = list(top_item)
@@ -206,6 +206,14 @@ modul:
   | id = ident { $loc, Path.Pid (snd id) }
   | id = ident; Div_i; lst = separated_nonempty_list(Div_i, ident)
     { $loc, flatten_open (id :: lst) }
+
+%inline aliased_module:
+/* Partial functor applications are not supported */
+  | m = path { Amodule m }
+  | parens(functor_app) { $1 }
+
+%inline functor_app:
+  | f = path; args = nonempty_list(path) { Afunctor_app (f, args) }
 
 %inline defrecord:
   | Type; sexp_typename; bracs(nonempty_list(sexp_type_decl))

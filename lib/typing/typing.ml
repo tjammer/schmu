@@ -1453,7 +1453,9 @@ and convert_prog env items modul =
               Env.add_module ~key cm env)
             env params
         in
-        let _, _, newm = convert_module tmpenv mname sign prog true in
+        let _, functor_items, newm =
+          convert_module tmpenv mname sign prog true
+        in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
@@ -1470,19 +1472,41 @@ and convert_prog env items modul =
               raise (Error (loc, msg))
         in
         check_module_annot env loc newm annot;
-        let m = add_functor loc id params newm ~into:m in
+        let m = add_functor loc id params functor_items ~into:m in
 
         (* Don't add moditems to items here. We add items of the applied functor *)
         (env, items, m)
-    | Module_alias ((loc, key, annot), mname) ->
+    | Module_alias ((loc, key, annot), Amodule (aloc, mname)) ->
         let env = Env.add_module_alias loc ~key ~mname env in
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
         (if Option.is_some annot then
            match Module.of_located env mname with
-           | Ok m -> check_module_annot env loc m annot
+           | Ok m -> check_module_annot env aloc m annot
            | Error s -> raise (Error (loc, s)));
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
+    | Module_alias ((loc, key, annot), Afunctor_app ((floc, ftor), args)) ->
+        (match Module.functor_params env floc ftor with
+        | Ok params -> (
+            try
+              List.iter2
+                (fun (aloc, arg) param ->
+                  let mname = Env.find_module_opt aloc arg env |> Option.get in
+                  match Module.of_located env mname with
+                  | Ok m -> Module.validate_intf env loc (snd param) m
+                  | Error s -> raise (Error (loc, s)))
+                args params
+            with Invalid_argument _ ->
+              let msg =
+                Printf.sprintf
+                  "Wrong arity for functor %s: Expecting %i but got %i"
+                  (Path.show ftor) (List.length params) (List.length args)
+              in
+              raise (Error (loc, msg)))
+        | Error s -> raise (Error (loc, s)));
+        ignore key;
+        ignore annot;
+        failwith "TODO"
     | Module_type ((loc, id), vals) ->
         (* This look a bit awkward for this use case. The split of adding first
            signature types and values after is from the way module signatures are used.
