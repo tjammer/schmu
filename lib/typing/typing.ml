@@ -639,10 +639,16 @@ end = struct
         let attr = { const = t.const; global = t.global; mut = t.mut } in
         { typ; expr = Var (id, t.imported); attr; loc }
     | None ->
+        (* Functor parameters are not local modules and will raise an [Error] in module.ml.
+           That's by accident, and the error message is abysmal and mentions internals, thus
+           we catch this [Error] and print the proper error. If we are here, it's an error
+           anyway, so fishing for exceptions is ok in this case. *)
         let suff =
-          match Env.find_module_opt loc id env with
-          | Some _ -> ", but a module with the name exists"
-          | None -> ""
+          try
+            match Env.find_module_opt loc id env with
+            | Some _ -> ", but a module with the name exists"
+            | None -> ""
+          with Error _ -> ""
         in
         let msg = "No var named " ^ Path.show id ^ suff in
         raise (Error (loc, msg))

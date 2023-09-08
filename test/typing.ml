@@ -839,6 +839,10 @@ let test_functor_wrong_module_type () =
     "(module-type mt (type t)) (functor f [(p mt)] ()) (module a ()) (module \
      hmm (f a))"
 
+let test_functor_no_var_param () =
+  test_exn "No var named p/a"
+    "(module-type mt (type t)) (functor f [(p mt)] (def _ (ignore p/a)))"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1221,5 +1225,6 @@ let () =
           case "checked alias" test_functor_checked_alias;
           case "wrong arity" test_functor_wrong_arity;
           case "wrong module type" test_functor_wrong_module_type;
+          case "no var param" test_functor_no_var_param;
         ] );
     ]
