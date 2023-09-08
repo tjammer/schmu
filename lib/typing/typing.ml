@@ -171,7 +171,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
 
   let rec is_quantified = function
-    | Trecord ([], _, _) | Tvariant ([], _, _) -> None
+    | Trecord ([], _, _) | Tvariant ([], _, _) | Tabstract ([], _, _) -> None
     | Trecord (ts, Some name, _)
     | Tvariant (ts, name, _)
     | Tabstract (ts, name, _) ->
@@ -213,7 +213,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
                  Printf.sprintf "Type %s expects %i type parameter%s"
                    Path.(rm_name (Env.modpath env) name |> show)
                    n
-                   (if n > 1 then "s" else "")
+                   (if n <> 1 then "s" else "")
                in
                raise (Error (loc, msg))
            | None -> ());
