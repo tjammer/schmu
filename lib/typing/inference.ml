@@ -289,72 +289,71 @@ let regeneralize typ =
 (* Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
    We need to match everything for weak vars though *)
-let rec types_match ?(strict = false) ?(match_abstract = false) subst l r =
-  if l == r then (subst, true)
-  else
-    match (l, r) with
-    | Tvar { contents = Unbound _ }, _ when not strict ->
-        (* Unbound vars match every type *) (subst, true)
-    | Qvar l, Qvar r | Tvar { contents = Unbound (l, _) }, Qvar r -> (
-        (* We always map from left to right *)
-        match Smap.find_opt l subst with
-        | Some id when String.equal r id -> (subst, true)
-        | Some _ -> (subst, false)
-        | None ->
-            (* We 'connect' left to right *)
-            (Smap.add l r subst, true))
-    | Tvar { contents = Link l }, r
-    | l, Tvar { contents = Link r }
-    | Talias (_, l), r
-    | l, Talias (_, r) ->
-        types_match ~match_abstract ~strict subst l r
-    | _, Tvar { contents = Unbound _ } ->
-        failwith "Internal Error: Type comparison for non-generalized types"
-    | Tfun (ps_l, l, _), Tfun (ps_r, r, _) -> (
-        try
-          let subst, acc =
+let types_match l r =
+  let rec aux ~strict qsubst l r =
+    if l == r then (qsubst, true)
+    else
+      match (l, r) with
+      | Tvar { contents = Unbound _ }, _ when not strict ->
+          (* Unbound vars match every type *) (qsubst, true)
+      | Qvar l, Qvar r | Tvar { contents = Unbound (l, _) }, Qvar r -> (
+          (* We always map from left to right *)
+          match Smap.find_opt l qsubst with
+          | Some id when String.equal r id -> (qsubst, true)
+          | Some _ -> (qsubst, false)
+          | None ->
+              (* We 'connect' left to right *)
+              (Smap.add l r qsubst, true))
+      | Tvar { contents = Link l }, r
+      | l, Tvar { contents = Link r }
+      | Talias (_, l), r
+      | l, Talias (_, r) ->
+          aux ~strict qsubst l r
+      | _, Tvar { contents = Unbound _ } ->
+          failwith "Internal Error: Type comparison for non-generalized types"
+      | Tfun (ps_l, l, _), Tfun (ps_r, r, _) -> (
+          try
+            let qsubst, acc =
+              List.fold_left2
+                (fun (s, acc) l r ->
+                  let qsubst, b = aux ~strict:true s l.pt r.pt in
+                  let b = b && l.pattr = r.pattr in
+                  (qsubst, acc && b))
+                (qsubst, true) ps_l ps_r
+            in
+            (* We don't shortcut here to match the annotations for the error message *)
+            let qsubst, b = aux ~strict:true qsubst l r in
+            (qsubst, acc && b)
+          with Invalid_argument _ -> (qsubst, false))
+      | Trecord (_, None, l), Trecord (_, None, r) -> (
+          let l = Array.to_list l and r = Array.to_list r in
+          try
             List.fold_left2
               (fun (s, acc) l r ->
-                let subst, b =
-                  types_match ~match_abstract ~strict:true s l.pt r.pt
-                in
-                let b = b && l.pattr = r.pattr in
-                (subst, acc && b))
-              (subst, true) ps_l ps_r
-          in
-          (* We don't shortcut here to match the annotations for the error message *)
-          let subst, b = types_match ~match_abstract ~strict:true subst l r in
-          (subst, acc && b)
-        with Invalid_argument _ -> (subst, false))
-    | Trecord (_, None, l), Trecord (_, None, r) -> (
-        let l = Array.to_list l and r = Array.to_list r in
-        try
-          List.fold_left2
-            (fun (s, acc) l r ->
-              let subst, b = types_match ~match_abstract s l.ftyp r.ftyp in
-              (subst, acc && b))
-            (subst, true) l r
-        with Invalid_argument _ -> (subst, false))
-    | Trecord (pl, Some nl, _), Trecord (pr, Some nr, _)
-    | Tvariant (pl, nl, _), Tvariant (pr, nr, _) ->
-        (* It should be enough to compare the name (rather, the name's repr)
-           and the param type *)
-        if Path.equal nl nr then
-          List.fold_left2
-            (fun (s, acc) l r ->
-              let subst, b = types_match ~match_abstract ~strict s l r in
-              (subst, acc && b))
-            (subst, true) pl pr
-        else (subst, false)
-    | Traw_ptr l, Traw_ptr r | Tarray l, Tarray r ->
-        types_match ~match_abstract ~strict subst l r
-    | Tabstract (_, l, lt), Tabstract (_, r, rt) ->
-        if Path.equal l r then
-          types_match ~strict:true ~match_abstract subst lt rt
-        else (subst, false)
-    | (Tabstract (_, _, l), r | l, Tabstract (_, _, r)) when match_abstract ->
-        types_match ~strict ~match_abstract subst l r
-    | _ -> (subst, false)
+                let qsubst, b = aux ~strict s l.ftyp r.ftyp in
+                (qsubst, acc && b))
+              (qsubst, true) l r
+          with Invalid_argument _ -> (qsubst, false))
+      | Trecord (pl, Some nl, _), Trecord (pr, Some nr, _)
+      | Tvariant (pl, nl, _), Tvariant (pr, nr, _) ->
+          (* It should be enough to compare the name (rather, the name's repr)
+             and the param type *)
+          if Path.equal nl nr then
+            List.fold_left2
+              (fun (s, acc) l r ->
+                let qsubst, b = aux ~strict s l r in
+                (qsubst, acc && b))
+              (qsubst, true) pl pr
+          else (qsubst, false)
+      | Traw_ptr l, Traw_ptr r | Tarray l, Tarray r -> aux ~strict qsubst l r
+      | Tabstract (_, l, lt), Tabstract (_, r, rt) ->
+          if Path.equal l r then aux ~strict:true qsubst lt rt
+          else (qsubst, false)
+      | Tabstract (_, _, l), r | l, Tabstract (_, _, r) ->
+          aux ~strict qsubst l r
+      | _ -> (qsubst, false)
+  in
+  aux ~strict:false Smap.empty l r
 
 let rec match_type_params loc params typ =
   (* Take qvars from [params] and match them to the one found in [typ].

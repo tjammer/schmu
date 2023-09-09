@@ -59,7 +59,7 @@ let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
 let check_annot env loc l r =
   let mn = Env.modpath env in
-  let subst, b = Inference.types_match Smap.empty l r in
+  let subst, b = Inference.types_match l r in
   if b then ()
   else
     let msg =

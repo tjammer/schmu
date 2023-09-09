@@ -11,13 +11,7 @@ val generalize : typ -> typ
 val instantiate : typ -> typ
 val regeneralize : typ -> typ
 
-val types_match :
-  ?strict:bool ->
-  ?match_abstract:bool ->
-  string Smap.t ->
-  typ ->
-  typ ->
-  string Smap.t * bool
+val types_match : typ -> typ -> string Smap.t * bool
 (** Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
        We need to match everything for weak vars though *)
