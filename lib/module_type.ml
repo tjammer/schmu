@@ -1,3 +1,110 @@
+open Types
+module Smap = Map.Make (String)
+module Pmap = Map.Make (Path)
+
 type item_kind = Mtypedef | Mvalue
-type item = string * Ast.loc * Types.typ * item_kind
+type item = string * Ast.loc * typ * item_kind
 type t = item list
+
+let gensym newvar =
+  match newvar () with
+  | Tvar { contents = Unbound (sym, _) } -> sym
+  | _ -> failwith "unreachable"
+
+let subst_name ~mname pathsub p inner =
+  if inner then
+    match Pmap.find_opt p pathsub with
+    | Some p -> (pathsub, p)
+    | None -> (pathsub, p)
+  else
+    (* This path needs to be substituted *)
+    let newp = Path.append (Path.get_hd p) mname in
+    let pathsub = Pmap.add p newp pathsub in
+    (pathsub, newp)
+
+let adjust_type ~mname ~newvar pathsub ubsub inner typ =
+  let rec aux pathsub ubsub inner = function
+    | Tabstract (ps, p, Tvar { contents = Unbound (sym, l) }) ->
+        let ubsub, t =
+          match Smap.find_opt sym ubsub with
+          | Some t -> (ubsub, t)
+          | None ->
+              (* Generate a new type *)
+              let t = Tvar (ref (Unbound (gensym newvar, l))) in
+              (Smap.add sym t ubsub, t)
+        in
+        (* [ps] will be matched later in [match_type_params] *)
+        (* NOTE I'm note sure if we should apply name substitutions to [ps] also *)
+        let pathsub, newp = subst_name ~mname pathsub p inner in
+        (pathsub, ubsub, Tabstract (ps, newp, t))
+    | Tabstract _ -> failwith "What is this?"
+    | Talias (p, t) ->
+        let pathsub, newp = subst_name ~mname pathsub p inner in
+        let pathsub, ubsub, t = aux pathsub ubsub true t in
+        (pathsub, ubsub, Talias (newp, t))
+    | Trecord (ps, p, fs) ->
+        let pathsub, newp =
+          match p with
+          | Some p ->
+              let pathsub, p = subst_name ~mname pathsub p inner in
+              (pathsub, Some p)
+          | None -> (pathsub, None)
+        in
+        let (pathsub, ubsub), fs =
+          Array.fold_left_map
+            (fun (pathsub, ubsub) f ->
+              let pathsub, ubsub, ftyp = aux pathsub ubsub true f.ftyp in
+              ((pathsub, ubsub), { f with ftyp }))
+            (pathsub, ubsub) fs
+        in
+        (pathsub, ubsub, Trecord (ps, newp, fs))
+    | Tvariant (ps, p, cts) ->
+        let pathsub, newp = subst_name ~mname pathsub p inner in
+        let (pathsub, ubsub), cts =
+          Array.fold_left_map
+            (fun (pathsub, ubsub) c ->
+              let pathsub, ubsub, ctyp =
+                match c.ctyp with
+                | Some t ->
+                    let p, u, t = aux pathsub ubsub true t in
+                    (p, u, Some t)
+                | None -> (pathsub, ubsub, None)
+              in
+              ((pathsub, ubsub), { c with ctyp }))
+            (pathsub, ubsub) cts
+        in
+        (pathsub, ubsub, Tvariant (ps, newp, cts))
+    | Tfun (ps, r, kind) ->
+        (match kind with
+        | Simple -> ()
+        | Closure _ ->
+            (* Module types should not specify closures *)
+            failwith "Unexpected closure");
+        let (pathsub, ubsub), ps =
+          List.fold_left_map
+            (fun (pathsub, ubsub) p ->
+              let pathsub, ubsub, pt = aux pathsub ubsub true p.pt in
+              ((pathsub, ubsub), { p with pt }))
+            (pathsub, ubsub) ps
+        in
+        let pathsub, ubsub, r = aux pathsub ubsub true r in
+        (pathsub, ubsub, Tfun (ps, r, kind))
+    | Tarray t ->
+        let pathsub, ubsub, t = aux pathsub ubsub true t in
+        (pathsub, ubsub, Tarray t)
+    | Traw_ptr t ->
+        let pathsub, ubsub, t = aux pathsub ubsub true t in
+        (pathsub, ubsub, Traw_ptr t)
+    | t -> (pathsub, ubsub, t)
+  in
+  aux pathsub ubsub inner typ
+
+let adjust_for_checking ~mname ~newvar mtype =
+  List.fold_left_map
+    (fun (pathsub, ubsub) (name, loc, typ, kind) ->
+      let pathsub, ubsub, typ =
+        adjust_type ~mname ~newvar pathsub ubsub false typ
+      in
+      ((pathsub, ubsub), (name, loc, typ, kind)))
+    (Pmap.empty, Smap.empty) mtype
+  |> snd

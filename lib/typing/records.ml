@@ -205,7 +205,7 @@ module Make (C : Core) = struct
             raise (Error (loc, "Unbound field :" ^ id ^ " on " ^ name)))
     | _ -> (
         match Env.find_label_opt id env with
-        | Some { index; typename } -> (
+        | Some { index; typename } ->
             let record_t = Env.query_type ~instantiate loc typename env in
             unify
               ( loc,
@@ -213,10 +213,17 @@ module Make (C : Core) = struct
                 ^ string_of_type record_t (Env.modpath env)
                 ^ ":" )
               record_t expr.typ env;
-            match record_t with
-            | Trecord (_, _, labels) -> (labels.(index), expr, index)
-            | _ -> failwith "nope")
+            let labels = get_labels record_t in
+            (labels.(index), expr, index)
         | None -> raise (Error (loc, "Unbound field :" ^ id)))
+
+  and get_labels = function
+    | Trecord (_, _, labels) -> labels
+    | Talias (_, t) | Tabstract (_, _, t) | Tvar { contents = Link t } ->
+        get_labels t
+    | t ->
+        print_endline (show_typ t);
+        failwith "nope"
 
   and convert_field env loc expr id =
     let field, expr, index = get_field env loc expr id in

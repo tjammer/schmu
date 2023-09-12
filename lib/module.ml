@@ -32,10 +32,7 @@ and t = {
   objects : (string * bool (* transitive dep needs load *)) list;
 }
 
-type cache_kind =
-  | Cfile of string * bool
-  | Clocal of Path.t
-  | Cfunctor of Path.t * (string * intf) list
+type cache_kind = Cfile of string * bool | Clocal of Path.t
 
 let t_of_sexp s =
   triple_of_sexp
@@ -55,6 +52,7 @@ let sexp_of_t m =
 type cached =
   | Located of string * Ast.loc * (typ -> typ)
   | Cached of cache_kind * Env.scope * t
+  | Functor of Env.scope * (string * intf) list * Typed_tree.toplevel_item list
 
 let module_cache : (Path.t, cached) Hashtbl.t = Hashtbl.create 64
 let object_cache = ref Sset.empty
@@ -95,7 +93,7 @@ let add_local_module loc id newm ~into =
 let add_module_alias loc key mname ~into =
   let filename =
     match Hashtbl.find_opt module_cache mname with
-    | None | Some (Cached ((Clocal _ | Cfunctor _), _, _)) -> None
+    | None | Some (Cached (Clocal _, _, _) | Functor _) -> None
     | Some (Cached (Cfile (f, _), _, _) | Located (f, _, _)) -> Some f
   in
   { into with i = Mmodule_alias (loc, key, mname, filename) :: into.i }
@@ -269,7 +267,7 @@ and canonexpr mname nsub sub = function
       | Some m when not (Path.share_base mname m) -> (
           (* Make sure this is eagerly loaded on use *)
           match Hashtbl.find_opt module_cache m with
-          | None | Some (Located _ | Cached ((Clocal _ | Cfunctor _), _, _)) ->
+          | None | Some (Located _ | Cached (Clocal _, _, _) | Functor _) ->
               failwith "unreachable what is this module's path?"
           | Some (Cached (Cfile (_, true), _, _)) -> ()
           | Some (Cached (Cfile (name, false), scope, md)) ->
@@ -568,12 +566,13 @@ and canonize_intf ts_sub intf =
   |> snd
 
 let modpath_of_kind = function
-  | Clocal p | Cfunctor (p, _) -> p
+  | Clocal p -> p
   | Cfile (name, _) -> Path.Pid name
 
 let envmodule_of_cached path = function
   | Located _ -> Env.Cm_located path
   | Cached (_, scope, _) -> Cm_cached (path, scope)
+  | Functor (scope, _, _) -> Cm_cached (path, scope)
 
 let sep =
   if String.length Filename.dir_sep = 1 then String.get Filename.dir_sep 0
@@ -740,7 +739,7 @@ and register_functor env loc mname params body : (Env.t, unit) Result.t =
   else
     (* Make an empty scope *)
     let scope = Env.open_module_scope env loc mname |> Env.pop_scope in
-    let cached = Cached (Cfunctor (mname, params), scope, body) in
+    let cached = Functor (scope, params, body) in
     Hashtbl.add module_cache mname cached;
     let key = Path.get_hd mname in
     (* Use located here, so the scope isn't accessed in env *)
@@ -757,7 +756,8 @@ let find_module env loc ~regeneralize name =
             Ok
               Env.(
                 Cm_cached (modpath_of_kind kind, Env.fix_scope_loc scope loc))
-        | Some (Located _ as cached) -> Ok (envmodule_of_cached name cached)
+        | Some ((Located _ | Functor _) as cached) ->
+            Ok (envmodule_of_cached name cached)
         | None ->
             let msg =
               Printf.sprintf "Module %s should be local but cannot be found"
@@ -778,7 +778,7 @@ let functor_msg path =
 
 let scope_of_located env path =
   match Hashtbl.find module_cache path with
-  | Cached (Cfunctor _, _, _) -> Result.Error (functor_msg path)
+  | Functor _ -> Result.Error (functor_msg path)
   | Cached (_, scope, _) -> Ok scope
   | Located (filename, loc, regeneralize) ->
       read_module env filename loc ~regeneralize path
@@ -801,17 +801,17 @@ let scope_of_functor_param env loc (id, mt) =
 
 let rec of_located env path =
   match Hashtbl.find module_cache path with
-  | Cached (Cfunctor _, _, _) -> Result.Error (functor_msg path)
+  | Functor _ -> Result.Error (functor_msg path)
   | Cached (_, _, m) -> Ok m
   | Located (filename, loc, regeneralize) ->
       ignore (read_module env filename loc ~regeneralize path);
       of_located env path
 
-let functor_params env loc mname =
+let functor_data env loc mname =
   match Env.find_module_opt ~query:true loc mname env with
   | Some name -> (
       match Hashtbl.find_opt module_cache name with
-      | Some (Cached (Cfunctor (_, params), _, _)) -> Ok params
+      | Some (Functor (_, params, body)) -> Ok (params, body)
       | Some _ -> Error ("Module " ^ Path.show mname ^ " is not a functor")
       | None -> Error ("Module " ^ Path.show mname ^ " cannot be found"))
   | None -> Error ("Module " ^ Path.show mname ^ " cannot be found")
@@ -822,7 +822,7 @@ let object_names () =
       (fun _ cached set ->
         match cached with
         | Cached (Cfile (name, _), _, _) -> Sset.add (name ^ ".o") set
-        | Cached ((Clocal _ | Cfunctor _), _, _) -> set
+        | Cached (Clocal _, _, _) | Functor _ -> set
         | Located _ -> set)
       module_cache Sset.empty
   in
@@ -880,9 +880,13 @@ let validate_intf env loc (name, _, styp, kind) rhs =
   let mn = Env.modpath env in
   match (List.find_opt (find_item name kind) rhs, kind) with
   | Some (_, _, ityp, _), _ ->
-      let subst, b =
-        Inference.types_match ~match_abstract:true Smap.empty styp ityp
-      in
+      (match styp with
+      | Tabstract (ps, _, Tvar ({ contents = Unbound _ } as t)) ->
+          (* Match abstract type *)
+          let typ = Inference.match_type_params loc ps ityp in
+          t := Link typ
+      | _ -> ());
+      let subst, b = Inference.types_match styp ityp in
       if b then ()
       else
         let msg =
@@ -913,16 +917,18 @@ let validate_signature env m =
       let f (name, loc, styp, kind) =
         match (List.find_opt (find_item name kind) impl, kind) with
         | Some (n, loc, ityp, ikind), _ ->
-            let subst, b =
-              Inference.types_match ~match_abstract:true Smap.empty styp ityp
-            in
+            let subst, b = Inference.types_match styp ityp in
             if b then (
               (* Query value to mark it as used in the env *)
               (match ikind with
               | Mvalue -> ignore (Env.query_val_opt loc (Path.Pid n) env)
               | Mtypedef -> ());
-              (* Use implementation type to retain closures *)
-              (name, loc, ityp, kind))
+              (* Use implementation type to retain closures, but only if the type
+                 is not abstract. Otherwise, the abstract type goes away. *)
+              let typ =
+                match clean styp with Tabstract _ -> styp | _ -> ityp
+              in
+              (name, loc, typ, kind))
             else
               let msg =
                 Printf.sprintf
@@ -951,15 +957,15 @@ let validate_signature env m =
             in
             raise (Error (loc, msg))
       in
-      let s = List.map f m.s in
+      let s = List.rev_map f (List.rev m.s) in
       { m with s }
 
 let validate_intf env loc intf m =
   match m.s with
   | [] ->
       let impl = List.filter_map (extract_name_type env) m.i in
-      List.iter (fun item -> validate_intf env loc item impl) intf
-  | s -> List.iter (fun item -> validate_intf env loc item s) intf
+      List.iter (fun item -> validate_intf env loc item impl) (List.rev intf)
+  | s -> List.iter (fun item -> validate_intf env loc item s) (List.rev intf)
 
 let to_module_type { s; i; _ } =
   match (s, i) with

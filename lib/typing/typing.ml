@@ -1316,11 +1316,13 @@ and catch_weak_expr env sub e =
         (function Fstr _ -> () | Fexpr e -> catch_weak_expr env sub e)
         fmt
 
-let check_module_annot env loc m annot =
+let check_module_annot env loc ~mname m annot =
   match annot with
   | Some path -> (
       match Env.find_module_type_opt loc path env with
-      | Some mtype -> Module.validate_intf env loc mtype m
+      | Some mtype ->
+          let mtype = Module_type.adjust_for_checking ~mname ~newvar mtype in
+          Module.validate_intf env loc mtype m
       | None -> raise (Error (loc, "Cannot find module type " ^ Path.show path))
       )
   | None -> ()
@@ -1424,7 +1426,7 @@ and convert_prog env items modul =
               in
               raise (Error (loc, msg))
         in
-        check_module_annot env loc newm annot;
+        check_module_annot env loc ~mname newm annot;
         let m = add_local_module loc id newm ~into:m in
 
         let moditems = List.map (fun item -> (mname, item)) moditems in
@@ -1468,7 +1470,7 @@ and convert_prog env items modul =
 
         let env =
           (* TODO not local module, but functor *)
-          match register_functor env loc mname params newm with
+          match register_functor env loc mname params functor_items with
           | Ok env -> env
           | Error () ->
               let msg =
@@ -1477,7 +1479,7 @@ and convert_prog env items modul =
               in
               raise (Error (loc, msg))
         in
-        check_module_annot env loc newm annot;
+        check_module_annot env loc ~mname newm annot;
         let m = add_functor loc id params functor_items ~into:m in
 
         (* Don't add moditems to items here. We add items of the applied functor *)
@@ -1487,32 +1489,41 @@ and convert_prog env items modul =
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
         (if Option.is_some annot then
            match Module.of_located env mname with
-           | Ok m -> check_module_annot env aloc m annot
+           | Ok m -> check_module_annot env aloc ~mname m annot
            | Error s -> raise (Error (loc, s)));
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
-    | Module_alias ((loc, key, annot), Afunctor_app ((floc, ftor), args)) ->
-        (match Module.functor_params env floc ftor with
-        | Ok params -> (
-            try
-              List.iter2
-                (fun (aloc, arg) param ->
-                  let mname = Env.find_module_opt aloc arg env |> Option.get in
-                  match Module.of_located env mname with
-                  | Ok m -> Module.validate_intf env loc (snd param) m
-                  | Error s -> raise (Error (loc, s)))
-                args params
-            with Invalid_argument _ ->
-              let msg =
-                Printf.sprintf
-                  "Wrong arity for functor %s: Expecting %i but got %i"
-                  (Path.show ftor) (List.length params) (List.length args)
-              in
-              raise (Error (loc, msg)))
-        | Error s -> raise (Error (loc, s)));
+    | Module_alias ((loc, key, annot), Afunctor_app ((floc, ftor), args)) -> (
         ignore key;
         ignore annot;
-        failwith "TODO"
+        match Module.functor_data env floc ftor with
+        | Ok (params, body) ->
+            (try
+               List.iter2
+                 (fun (aloc, arg) param ->
+                   match Env.find_module_opt aloc arg env with
+                   | Some mname -> (
+                       match Module.of_located env mname with
+                       | Ok m ->
+                           let mtype =
+                             Module_type.adjust_for_checking ~mname ~newvar
+                               (snd param)
+                           in
+                           Module.validate_intf env loc mtype m
+                       | Error s -> raise (Error (loc, s)))
+                   | None ->
+                       raise
+                         (Error (aloc, "Cannot find module " ^ Path.show arg)))
+                 args params
+             with Invalid_argument _ ->
+               let msg =
+                 Printf.sprintf
+                   "Wrong arity for functor %s: Expecting %i but got %i"
+                   (Path.show ftor) (List.length params) (List.length args)
+               in
+               raise (Error (loc, msg)));
+            (env, body @ items, m)
+        | Error s -> raise (Error (loc, s)))
     | Module_type ((loc, id), vals) ->
         (* This look a bit awkward for this use case. The split of adding first
            signature types and values after is from the way module signatures are used.

@@ -794,25 +794,58 @@ let test_mtype_define () =
   test "unit" "(module-type tt (type t) (def random (fun unit int)))"
 
 let test_mtype_no_match () =
-  test_exn "Signatures don't match: Type tt/t is missing"
+  test_exn "Signatures don't match: Type test/t is missing"
     {|(module-type tt (type t))
 (module (test tt)
  (type a unit))|}
 
 let test_mtype_no_match_alias () =
-  test_exn "Signatures don't match: Type tt/t is missing"
+  test_exn "Signatures don't match: Type test/t is missing"
     {|(module-type tt (type t))
 (module test
  (type a unit))
 (module (other tt) test)|}
 
 let test_mtype_no_match_sign () =
-  test_exn "Signatures don't match: Type tt/t is missing"
+  test_exn "Signatures don't match: Type test/t is missing"
     {|(module-type tt (type t))
 (module (test tt)
  (signature
     (type a))
  (type a unit))|}
+
+let test_mtype_abstracts () =
+  test "unit"
+    {|(module outer
+  (type t {:i int}))
+
+(module-type sig
+  (type t)
+  (def add (fun t t t)))
+
+(functor make [(m sig)]
+  (defn add-twice (a b)
+    (m/add (m/add a b) b)))
+
+(module (outa sig)
+  (type t outer/t)
+  (defn add (a b) {:i (+ a.i b.i)}))
+
+(module (inta sig)
+  (type t int)
+  (defn add (a b) (+ a b)))
+
+(module (floata sig)
+  (signature
+    (type t)
+    (def add (fun t t t)))
+  (type t float)
+  (defn add (a b) (+. a b)))
+
+(module (somerec sig)
+  (type t {:a int :b int})
+  (defn add (a b) {:a (+ a.a b.a) :b (+ a.b b.b)}))
+|}
 
 let test_functor_define () =
   test "unit" "(module-type mt (type t)) (functor f [(p mt)] ())"
@@ -835,7 +868,7 @@ let test_functor_wrong_arity () =
      unit)) (module hmm (f a a))"
 
 let test_functor_wrong_module_type () =
-  test_exn "Signatures don't match: Type mt/t is missing"
+  test_exn "Signatures don't match: Type a/t is missing"
     "(module-type mt (type t)) (functor f [(p mt)] ()) (module a ()) (module \
      hmm (f a))"
 
@@ -1216,6 +1249,7 @@ let () =
           case "no match" test_mtype_no_match;
           case "no match alias" test_mtype_no_match_alias;
           case "no match sign" test_mtype_no_match_sign;
+          case "abstracts" test_mtype_abstracts;
         ] );
       ( "functor",
         [
