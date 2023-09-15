@@ -1,11 +1,18 @@
 open Types
 
 module type Map_tree = sig
-  val change_var : mname:Path.t -> Path.t option -> unit
+  type sub
+
+  val empty_sub : sub
+
+  val change_var :
+    mname:Path.t -> string -> Path.t option -> string Smap.t -> sub -> string
+
   val absolute_module_name : mname:Path.t -> string -> string
+  val change_type : sub -> typ -> sub * typ
 end
 
-module Make (C : Map_tree) = struct
+module Canonize = struct
   let c = ref 1
 
   let rec canonize sub = function
@@ -96,19 +103,19 @@ module Make (C : Map_tree) = struct
               (sub, t)
         in
         (sub, Tabstract (ps, n, t))
+end
+
+module Make (C : Map_tree) = struct
+  let canonize = C.change_type
 
   let rec canonbody mname nsub sub (e : Typed_tree.typed_expr) =
     let sub, typ = canonize sub e.typ in
     let sub, expr = canonexpr mname nsub sub e.expr in
     (sub, Typed_tree.{ e with typ; expr })
 
-  and change_name id nsub =
-    match Smap.find_opt id nsub with None -> id | Some name -> name
-
   and canonexpr mname nsub sub = function
     | Typed_tree.Var (id, m) ->
-        let id = change_name id nsub in
-        C.change_var ~mname m;
+        let id = C.change_var ~mname id m nsub sub in
         (sub, Var (id, m))
     | Const (Array a) ->
         let sub, a = List.fold_left_map (canonbody mname nsub) sub a in
@@ -234,7 +241,7 @@ module Make (C : Map_tree) = struct
             List.fold_left_map
               (fun sub c ->
                 let sub, cltyp = canonize sub c.cltyp in
-                let clname = change_name c.clname nsub in
+                let clname = C.change_var ~mname c.clname None nsub sub in
                 (sub, { c with cltyp; clname }))
               sub l
           in

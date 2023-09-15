@@ -52,7 +52,8 @@ let sexp_of_t m =
 type cached =
   | Located of string * Ast.loc * (typ -> typ)
   | Cached of cache_kind * Env.scope * t
-  | Functor of Env.scope * (string * intf) list * Typed_tree.toplevel_item list
+  | Functor of
+      Env.scope * Path.t * (string * intf) list * Typed_tree.toplevel_item list
 
 let module_cache : (Path.t, cached) Hashtbl.t = Hashtbl.create 64
 let object_cache = ref Sset.empty
@@ -78,7 +79,7 @@ let lambda_name ~mname id =
 let absolute_module_name ~mname fname = "_" ^ Path.mod_name mname ^ "_" ^ fname
 
 let functor_param_name ~mname name =
-  absolute_module_name ~mname ("fparam_" ^ name)
+  Path.append_path (Pmod ("fparam", Pid name)) mname
 
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
@@ -163,8 +164,16 @@ let find_file ~name ~suffix =
   file
 
 module Map_canon : Map_ttree.Map_tree = struct
-  let change_var ~mname m =
-    match m with
+  type sub = string Smap.t
+
+  let empty_sub = Smap.empty
+
+  let change_name id nsub =
+    match Smap.find_opt id nsub with None -> id | Some name -> name
+
+  let change_var ~mname id m nsub _ =
+    let id = change_name id nsub in
+    (match m with
     | Some m when not (Path.share_base mname m) -> (
         (* Make sure this is eagerly loaded on use *)
         match Hashtbl.find_opt module_cache m with
@@ -174,9 +183,11 @@ module Map_canon : Map_ttree.Map_tree = struct
         | Some (Cached (Cfile (name, false), scope, md)) ->
             Hashtbl.replace module_cache m
               (Cached (Cfile (name, true), scope, md)))
-    | None | Some _ -> ()
+    | None | Some _ -> ());
+    id
 
   let absolute_module_name = absolute_module_name
+  let change_type = Map_ttree.Canonize.canonize
 end
 
 module Canon = Map_ttree.Make (Map_canon)
@@ -277,7 +288,7 @@ let rec fold_canonize_item mname (ts_sub, nsub) = function
       let t = canonize_t (Path.append n mname) t in
       ((ts_sub, nsub), Mlocal_module (loc, n, t))
   | Mfunctor (loc, n, ps, t) ->
-      let f (n, intf) = (n, canonize_intf Types.Smap.empty intf) in
+      let f (n, intf) = (n, canonize_intf Map_canon.empty_sub intf) in
       let ps = List.map f ps in
       let ts_sub, t =
         Canon.canon_tl_items (Path.append n mname) nsub ts_sub t
@@ -285,13 +296,13 @@ let rec fold_canonize_item mname (ts_sub, nsub) = function
       ((ts_sub, nsub), Mfunctor (loc, n, ps, t))
   | Mmodule_alias _ as m -> ((ts_sub, nsub), m)
   | Mmodule_type (loc, n, intf) ->
-      let intf = canonize_intf Types.Smap.empty intf in
+      let intf = canonize_intf Map_canon.empty_sub intf in
       ((ts_sub, nsub), Mmodule_type (loc, n, intf))
 
 and canonize_t mname m =
   let (ts_sub, _), i =
     List.fold_left_map (fold_canonize_item mname)
-      (Types.Smap.empty, Smap.empty)
+      (Map_canon.empty_sub, Smap.empty)
       m.i
   in
   let s = canonize_intf ts_sub m.s in
@@ -312,7 +323,7 @@ let modpath_of_kind = function
 let envmodule_of_cached path = function
   | Located _ -> Env.Cm_located path
   | Cached (_, scope, _) -> Cm_cached (path, scope)
-  | Functor (scope, _, _) -> Cm_cached (path, scope)
+  | Functor (scope, _, _, _) -> Cm_cached (path, scope)
 
 let sep =
   if String.length Filename.dir_sep = 1 then String.get Filename.dir_sep 0
@@ -479,7 +490,7 @@ and register_functor env loc mname params body : (Env.t, unit) Result.t =
   else
     (* Make an empty scope *)
     let scope = Env.open_module_scope env loc mname |> Env.pop_scope in
-    let cached = Functor (scope, params, body) in
+    let cached = Functor (scope, mname, params, body) in
     Hashtbl.add module_cache mname cached;
     let key = Path.get_hd mname in
     (* Use located here, so the scope isn't accessed in env *)
@@ -523,9 +534,8 @@ let scope_of_located env path =
   | Located (filename, loc, regeneralize) ->
       read_module env filename loc ~regeneralize path
 
-let scope_of_functor_param env loc (id, mt) =
+let scope_of_functor_param env loc (path, mt) =
   (* A part of add_to_env for intf is copied here *)
-  let path = Path.Pid id in
   let env = Env.open_module_scope env loc path in
   let env =
     List.fold_left
@@ -551,7 +561,7 @@ let functor_data env loc mname =
   match Env.find_module_opt ~query:true loc mname env with
   | Some name -> (
       match Hashtbl.find_opt module_cache name with
-      | Some (Functor (_, params, body)) -> Ok (params, body)
+      | Some (Functor (_, mname, params, body)) -> Ok (mname, params, body)
       | Some _ -> Error ("Module " ^ Path.show mname ^ " is not a functor")
       | None -> Error ("Module " ^ Path.show mname ^ " cannot be found"))
   | None -> Error ("Module " ^ Path.show mname ^ " cannot be found")

@@ -425,8 +425,6 @@ let type_abstract env loc { Ast.poly_param; name } =
   let params = List.map (fun _ -> make_type_param ()) poly_param in
   let typ = Tabstract (params, tname, newvar ()) in
 
-  (* TODO make abstract type unbound and bind correct type in impl.
-     We can check this with check_type_unique *)
   (Env.add_type name ~in_sig:true typ env, typ)
 
 let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
@@ -1321,11 +1319,51 @@ let check_module_annot env loc ~mname m annot =
   | Some path -> (
       match Env.find_module_type_opt loc path env with
       | Some mtype ->
-          let mtype = Module_type.adjust_for_checking ~mname ~newvar mtype in
+          let _, mtype = Module_type.adjust_for_checking ~mname ~newvar mtype in
           Module.validate_intf env loc mtype m
       | None -> raise (Error (loc, "Cannot find module type " ^ Path.show path))
       )
   | None -> ()
+
+module Subst_functor = struct
+  open Module_type
+
+  type sub = Path.t Pmap.t * Types.typ Smap.t
+
+  let empty_sub = (Pmap.empty, Smap.empty)
+
+  let change_var ~mname id m nsub (psub, _) =
+    let id, m =
+      match m with
+      | Some m as old -> (
+          match Pmap.find_opt m psub with
+          | Some mname ->
+              (* Replace the module part in id *)
+              let pre = Module.absolute_module_name ~mname:m "" in
+              let post =
+                String.sub id (String.length pre)
+                  (String.length id - String.length pre)
+              in
+              print_endline ("pre: " ^ pre);
+              print_endline ("post: " ^ post);
+              let id = Module.absolute_module_name ~mname post in
+              print_endline ("id: " ^ id);
+              (id, Some m)
+          | None -> (id, old))
+      | None -> (id, m)
+    in
+    ignore mname;
+    ignore nsub;
+    (match m with
+    | Some p -> print_endline ("in var " ^ Path.show p)
+    | None -> ());
+    id
+
+  let absolute_module_name = Module.absolute_module_name
+  let change_type subs typ = (subs, apply_subs subs typ)
+end
+
+module Subst = Map_ttree.Make (Subst_functor)
 
 let rec convert_module env mname sign prog check_ret =
   (* We create a new scope so we don't warn on unused imports *)
@@ -1442,7 +1480,6 @@ and convert_prog env items modul =
         let lambda_id_state_bk = !lambda_id_state in
         reset lambda_id_state;
 
-        (* TODO correct names of params? *)
         let params =
           List.map
             (fun (loc, id, path) ->
@@ -1469,7 +1506,6 @@ and convert_prog env items modul =
         lambda_id_state := lambda_id_state_bk;
 
         let env =
-          (* TODO not local module, but functor *)
           match register_functor env loc mname params functor_items with
           | Ok env -> env
           | Error () ->
@@ -1497,32 +1533,75 @@ and convert_prog env items modul =
         ignore key;
         ignore annot;
         match Module.functor_data env floc ftor with
-        | Ok (params, body) ->
-            (try
-               List.iter2
-                 (fun (aloc, arg) param ->
-                   match Env.find_module_opt aloc arg env with
-                   | Some mname -> (
-                       match Module.of_located env mname with
-                       | Ok m ->
-                           let mtype =
-                             Module_type.adjust_for_checking ~mname ~newvar
-                               (snd param)
-                           in
-                           Module.validate_intf env loc mtype m
-                       | Error s -> raise (Error (loc, s)))
-                   | None ->
-                       raise
-                         (Error (aloc, "Cannot find module " ^ Path.show arg)))
-                 args params
-             with Invalid_argument _ ->
-               let msg =
-                 Printf.sprintf
-                   "Wrong arity for functor %s: Expecting %i but got %i"
-                   (Path.show ftor) (List.length params) (List.length args)
-               in
-               raise (Error (loc, msg)));
-            (env, body @ items, m)
+        | Ok (mname, params, body) ->
+            let param_arg_map = ref Module_type.Pmap.empty in
+            let names =
+              try
+                List.map2
+                  (fun (aloc, arg) param ->
+                    let key = Module.functor_param_name ~mname (fst param) in
+                    print_endline
+                      ("param " ^ Path.show
+                      @@ Module.functor_param_name ~mname (fst param));
+                    match Env.find_module_opt aloc arg env with
+                    | Some mname -> (
+                        match Module.of_located env mname with
+                        | Ok m ->
+                            print_endline ("arg " ^ Path.show mname);
+                            param_arg_map :=
+                              Module_type.Pmap.add key mname !param_arg_map;
+                            let subs, mtype =
+                              Module_type.adjust_for_checking ~mname ~newvar
+                                (snd param)
+                            in
+                            Module.validate_intf env loc mtype m;
+                            (mname, subs)
+                        | Error s -> raise (Error (loc, s)))
+                    | None ->
+                        raise
+                          (Error (aloc, "Cannot find module " ^ Path.show arg)))
+                  args params
+              with Invalid_argument _ ->
+                let msg =
+                  Printf.sprintf
+                    "Wrong arity for functor %s: Expecting %i but got %i"
+                    (Path.show ftor) (List.length params) (List.length args)
+                in
+                raise (Error (loc, msg))
+            in
+            let names, subs = List.split names in
+            let merged_subs =
+              List.fold_left
+                (fun acc sub ->
+                  match Module_type.merge_subs sub acc with
+                  | Ok sub -> sub
+                  | Error s ->
+                      let msg =
+                        Printf.sprintf
+                          "Path %s appears in multiple functor params" s
+                      in
+                      raise (Error (loc, msg)))
+                Subst_functor.empty_sub subs
+            in
+            let merged_subs =
+              Module_type.Pmap.fold
+                (fun key value (psub, tsub) ->
+                  (Module_type.Pmap.add key value psub, tsub))
+                !param_arg_map merged_subs
+            in
+
+            let applied_name =
+              List.fold_left (fun acc p -> Path.append_path p acc) mname names
+            in
+            let body =
+              Subst.canon_tl_items applied_name Smap.empty merged_subs body
+              |> snd
+            in
+
+            let moditems = List.map (fun item -> (applied_name, item)) body in
+            let items = Tl_module moditems :: items in
+            print_endline ("applied path: " ^ Path.mod_name applied_name);
+            (env, items, m)
         | Error s -> raise (Error (loc, s)))
     | Module_type ((loc, id), vals) ->
         (* This look a bit awkward for this use case. The split of adding first

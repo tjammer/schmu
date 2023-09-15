@@ -2,6 +2,8 @@ open Types
 module Smap = Map.Make (String)
 module Pmap = Map.Make (Path)
 
+type psub = Path.t Pmap.t
+type tsub = Types.typ Smap.t
 type item_kind = Mtypedef | Mvalue
 type item = string * Ast.loc * typ * item_kind
 type t = item list
@@ -21,6 +23,47 @@ let subst_name ~mname pathsub p inner =
     let newp = Path.append (Path.get_hd p) mname in
     let pathsub = Pmap.add p newp pathsub in
     (pathsub, newp)
+
+let apply_subs (psub, tsub) typ =
+  let subst p = match Pmap.find_opt p psub with Some p -> p | None -> p in
+  let rec aux = function
+    | Tabstract (ps, p, Tvar { contents = Unbound (sym, _) }) ->
+        let t =
+          match Smap.find_opt sym tsub with
+          | Some t -> t
+          | None -> failwith "unreachable"
+        in
+        Tabstract (ps, subst p, t)
+    | Tabstract (ps, p, t) -> Tabstract (ps, subst p, aux t)
+    | Talias (p, t) -> Talias (subst p, aux t)
+    | Trecord (ps, p, fs) ->
+        let fs = Array.map (fun f -> { f with ftyp = aux f.ftyp }) fs in
+        Trecord (ps, Option.map subst p, fs)
+    | Tvariant (ps, p, cts) ->
+        let cts =
+          Array.map (fun c -> { c with ctyp = Option.map aux c.ctyp }) cts
+        in
+        Tvariant (ps, subst p, cts)
+    | Tfun (ps, r, kind) ->
+        let ps = List.map (fun p -> { p with pt = aux p.pt }) ps in
+        let kind =
+          match kind with
+          | Simple -> kind
+          | Closure cls ->
+              let cls =
+                List.map (fun c -> { c with cltyp = aux c.cltyp }) cls
+              in
+              Closure cls
+        in
+        Tfun (ps, aux r, kind)
+    | Tarray t -> Tarray (aux t)
+    | Traw_ptr t -> Traw_ptr (aux t)
+    | Tvar ({ contents = Link t } as tref) as typ ->
+        tref := Link (aux t);
+        typ
+    | t -> t
+  in
+  aux typ
 
 let adjust_type ~mname ~newvar pathsub ubsub inner typ =
   let rec aux pathsub ubsub inner = function
@@ -107,4 +150,16 @@ let adjust_for_checking ~mname ~newvar mtype =
       in
       ((pathsub, ubsub), (name, loc, typ, kind)))
     (Pmap.empty, Smap.empty) mtype
-  |> snd
+
+exception Merge_error of string
+
+let merge_subs (ap, at) (bp, bt) =
+  let merge pp p a b =
+    match (a, b) with
+    | Some _, Some _ -> raise (Merge_error (pp p))
+    | None, Some t | Some t, None -> Some t
+    | None, None -> None
+  in
+
+  try Ok (Pmap.merge (merge Path.show) ap bp, Smap.merge (merge Fun.id) at bt)
+  with Merge_error s -> Error s

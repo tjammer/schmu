@@ -66,9 +66,11 @@ let rec add_left p = function
   | Pid n -> Pmod (n, p)
   | Pmod (n, tl) -> Pmod (n, add_left p tl)
 
-let rec append name = function
-  | Pid n -> Pmod (n, Pid name)
-  | Pmod (n, tl) -> Pmod (n, append name tl)
+let rec append_path p = function
+  | Pid n -> Pmod (n, p)
+  | Pmod (n, tl) -> Pmod (n, append_path p tl)
+
+let append name = append_path (Pid name)
 
 let share_base l r =
   match (l, r) with
