@@ -1,53 +1,15 @@
 open Types
 open Error
-module Sexp = Csexp.Make (Sexplib0.Sexp)
-open Sexplib0.Sexp_conv
 module S = Set.Make (Path)
 module M = Map.Make (Path)
 module Sset = Set.Make (String)
 
-type loc = Typed_tree.loc [@@deriving sexp]
-and name = { user : string; call : string; module_var : string }
+type loc = Module_common.loc
+type t = Module_common.t
 
-and item =
-  | Mtype of loc * typ
-  | Mfun of loc * typ * name
-  | Mext of loc * typ * name * bool (* is closure *)
-  | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
-  | Mmutual_rec of loc * (loc * string * int option * typ) list
-  | Mlocal_module of loc * string * t
-  | Mfunctor of
-      loc * string * (string * intf) list * Typed_tree.toplevel_item list
-  | Mmodule_alias of loc * string * Path.t * string option (* filename option *)
-  | Mmodule_type of loc * string * intf
-
-and sg_kind = Module_type.item_kind = Mtypedef | Mvalue
-and sig_item = string * loc * typ * sg_kind [@@deriving sexp]
-and intf = sig_item list
-and impl = item list
-
-and t = {
-  s : intf;
-  i : impl;
-  objects : (string * bool (* transitive dep needs load *)) list;
-}
+open Module_common
 
 type cache_kind = Cfile of string * bool | Clocal of Path.t
-
-let t_of_sexp s =
-  triple_of_sexp
-    (list_of_sexp sig_item_of_sexp)
-    (list_of_sexp item_of_sexp)
-    (list_of_sexp (pair_of_sexp string_of_sexp bool_of_sexp))
-    s
-  |> fun (s, i, objects) -> { s; i; objects }
-
-let sexp_of_t m =
-  sexp_of_triple
-    (sexp_of_list sexp_of_sig_item)
-    (sexp_of_list sexp_of_item)
-    (sexp_of_list (sexp_of_pair sexp_of_string sexp_of_bool))
-    (m.s, m.i, m.objects)
 
 type cached =
   | Located of string * Ast.loc * (typ -> typ)
@@ -68,21 +30,14 @@ let clear_cache () = Hashtbl.clear module_cache
 let empty = { s = []; i = []; objects = [] }
 
 (* For named functions *)
-let unique_name ~mname name uniq =
-  match uniq with
-  | None -> Path.mod_name mname ^ "_" ^ name
-  | Some n -> Path.mod_name mname ^ "_" ^ name ^ "__" ^ string_of_int n
+let unique_name = unique_name
+let absolute_module_name = absolute_module_name
 
 let lambda_name ~mname id =
   "__fun" ^ "_" ^ Path.mod_name mname ^ string_of_int id
 
-let absolute_module_name ~mname fname = "_" ^ Path.mod_name mname ^ "_" ^ fname
-
 let functor_param_name ~mname name =
   Path.append_path (Pmod ("fparam", Pid name)) mname
-
-let is_polymorphic_func (f : Typed_tree.func) =
-  is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
 
 let add_type_sig loc name t m = { m with s = (name, loc, t, Mtypedef) :: m.s }
 let add_value_sig loc name t m = { m with s = (name, loc, t, Mvalue) :: m.s }
@@ -105,17 +60,8 @@ let add_module_type loc id mtype m =
 let add_functor loc id params body ~into =
   { into with i = Mfunctor (loc, id, params, body) :: into.i }
 
-let type_of_func (func : Typed_tree.func) =
-  Tfun (func.tparams, func.ret, func.kind)
-
-let add_fun loc ~mname name uniq (abs : Typed_tree.abstraction) m =
-  if is_polymorphic_func abs.func then
-    { m with i = Mpoly_fun (loc, abs, name, uniq) :: m.i }
-  else
-    let call = unique_name ~mname name uniq in
-    let module_var = absolute_module_name ~mname name in
-    let name = { user = name; call; module_var } in
-    { m with i = Mfun (loc, type_of_func abs.func, name) :: m.i }
+let add_fun loc ~mname name uniq abs m =
+  { m with i = make_fun loc ~mname name uniq abs :: m.i }
 
 let add_rec_block loc ~mname funs m =
   let m's =
@@ -163,7 +109,9 @@ let find_file ~name ~suffix =
   let file = path !paths in
   file
 
-module Map_canon : Map_ttree.Map_tree = struct
+(* Number qvars from 0 and change names of Var-nodes to their unique form.
+   _<module_name>_name*)
+module Map_canon : Map_module.Map_tree = struct
   type sub = string Smap.t
 
   let empty_sub = Smap.empty
@@ -187,10 +135,10 @@ module Map_canon : Map_ttree.Map_tree = struct
     id
 
   let absolute_module_name = absolute_module_name
-  let change_type = Map_ttree.Canonize.canonize
+  let change_type = Map_module.Canonize.canonize
 end
 
-module Canon = Map_ttree.Make (Map_canon)
+module Canon = Map_module.Make (Map_canon)
 
 let rec map_item ~mname ~f = function
   | Mtype (l, t) -> Mtype (l, f t)
@@ -251,70 +199,6 @@ and map_t ~mname ~f m =
   { m with s = map_intf ~f m.s; i = List.map (map_item ~mname ~f) m.i }
 
 and map_intf ~f intf = List.map (fun (n, l, t, k) -> (n, l, f t, k)) intf
-
-let canonize = Canon.canonize
-
-(* Number qvars from 0 and change names of Var-nodes to their unique form.
-   _<module_name>_name*)
-let rec fold_canonize_item mname (ts_sub, nsub) = function
-  | Mtype (l, t) ->
-      let a, t = canonize ts_sub t in
-      ((a, nsub), Mtype (l, t))
-  | Mfun (l, t, n) ->
-      let a, t = canonize ts_sub t in
-      let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
-      ((a, s), Mfun (l, t, n))
-  | Mext (l, t, n, c) ->
-      let a, t = canonize ts_sub t in
-      let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
-      ((a, s), Mext (l, t, n, c))
-  | Mpoly_fun (l, abs, n, u) ->
-      (* Change Var-nodes in body here *)
-      let s = Smap.add n (absolute_module_name ~mname n) nsub in
-      let a, abs = Canon.canonabs mname ts_sub s abs in
-      (* This will be ignored in [add_to_env] *)
-      ((a, s), Mpoly_fun (l, abs, n, u))
-  | Mmutual_rec (l, decls) ->
-      let (a, nsub), decls =
-        List.fold_left_map
-          (fun (ts_sub, nsub) (l, n, u, t) ->
-            let a, t = canonize ts_sub t in
-            let s = Smap.add n (absolute_module_name ~mname n) nsub in
-            ((a, s), (l, n, u, t)))
-          (ts_sub, nsub) decls
-      in
-      ((a, nsub), Mmutual_rec (l, decls))
-  | Mlocal_module (loc, n, t) ->
-      let t = canonize_t (Path.append n mname) t in
-      ((ts_sub, nsub), Mlocal_module (loc, n, t))
-  | Mfunctor (loc, n, ps, t) ->
-      let f (n, intf) = (n, canonize_intf Map_canon.empty_sub intf) in
-      let ps = List.map f ps in
-      let ts_sub, t =
-        Canon.canon_tl_items (Path.append n mname) nsub ts_sub t
-      in
-      ((ts_sub, nsub), Mfunctor (loc, n, ps, t))
-  | Mmodule_alias _ as m -> ((ts_sub, nsub), m)
-  | Mmodule_type (loc, n, intf) ->
-      let intf = canonize_intf Map_canon.empty_sub intf in
-      ((ts_sub, nsub), Mmodule_type (loc, n, intf))
-
-and canonize_t mname m =
-  let (ts_sub, _), i =
-    List.fold_left_map (fold_canonize_item mname)
-      (Map_canon.empty_sub, Smap.empty)
-      m.i
-  in
-  let s = canonize_intf ts_sub m.s in
-  { m with s; i }
-
-and canonize_intf ts_sub intf =
-  List.fold_left_map
-    (fun sub (key, l, t, k) ->
-      let sub, t = canonize sub t in
-      (sub, (key, l, t, k)))
-    ts_sub intf
-  |> snd
 
 let modpath_of_kind = function
   | Clocal p -> p
@@ -590,7 +474,7 @@ let rec rev { s; i; objects } =
 
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in
-  let m = rev m |> canonize_t (Path.Pid outname) in
+  let m = rev m |> Canon.canonize_t (Path.Pid outname) in
   (* Correct objects only exist after [canonize_t] *)
   let objects =
     Hashtbl.fold

@@ -1363,7 +1363,7 @@ module Subst_functor = struct
   let change_type subs typ = (subs, apply_subs subs typ)
 end
 
-module Subst = Map_ttree.Make (Subst_functor)
+module Subst = Map_module.Make (Subst_functor)
 
 let rec convert_module env mname sign prog check_ret =
   (* We create a new scope so we don't warn on unused imports *)
