@@ -289,22 +289,22 @@ module Make (C : Map_tree) = struct
 
   open Module_common
 
-  let rec fold_canonize_item mname (ts_sub, nsub) = function
+  let rec fold_canonize_item mname (sub, nsub) = function
     | Mtype (l, t) ->
-        let a, t = canonize ts_sub t in
+        let a, t = canonize sub t in
         ((a, nsub), Mtype (l, t))
     | Mfun (l, t, n) ->
-        let a, t = canonize ts_sub t in
+        let a, t = canonize sub t in
         let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
         ((a, s), Mfun (l, t, n))
     | Mext (l, t, n, c) ->
-        let a, t = canonize ts_sub t in
+        let a, t = canonize sub t in
         let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
         ((a, s), Mext (l, t, n, c))
     | Mpoly_fun (l, abs, n, u) ->
         (* Change Var-nodes in body here *)
         let s = Smap.add n (absolute_module_name ~mname n) nsub in
-        let a, abs = canonabs mname ts_sub s abs in
+        let a, abs = canonabs mname sub s abs in
         (* This allows changes from poly fun to concrete fun for functors *)
         let fun_ = make_fun l ~mname n u abs in
         (* This will be ignored in [add_to_env] *)
@@ -312,39 +312,42 @@ module Make (C : Map_tree) = struct
     | Mmutual_rec (l, decls) ->
         let (a, nsub), decls =
           List.fold_left_map
-            (fun (ts_sub, nsub) (l, n, u, t) ->
-              let a, t = canonize ts_sub t in
+            (fun (sub, nsub) (l, n, u, t) ->
+              let a, t = canonize sub t in
               let s = Smap.add n (absolute_module_name ~mname n) nsub in
               ((a, s), (l, n, u, t)))
-            (ts_sub, nsub) decls
+            (sub, nsub) decls
         in
         ((a, nsub), Mmutual_rec (l, decls))
     | Mlocal_module (loc, n, t) ->
-        let t = canonize_t (Path.append n mname) t in
-        ((ts_sub, nsub), Mlocal_module (loc, n, t))
+        let t = canonize_t (Path.append n mname) sub t in
+        ((sub, nsub), Mlocal_module (loc, n, t))
+    | Mapplied_functor (loc, n, p, t) ->
+      let t = canonize_t p sub t in
+      ((sub, nsub), Mapplied_functor(loc, n, p, t))
     | Mfunctor (loc, n, ps, t) ->
         let f (n, intf) = (n, canonize_intf C.empty_sub intf) in
         let ps = List.map f ps in
-        let ts_sub, t = canon_tl_items (Path.append n mname) nsub ts_sub t in
-        ((ts_sub, nsub), Mfunctor (loc, n, ps, t))
-    | Mmodule_alias _ as m -> ((ts_sub, nsub), m)
+        let sub, t = canon_tl_items (Path.append n mname) nsub sub t in
+        ((sub, nsub), Mfunctor (loc, n, ps, t))
+    | Mmodule_alias _ as m -> ((sub, nsub), m)
     | Mmodule_type (loc, n, intf) ->
         let intf = canonize_intf C.empty_sub intf in
-        ((ts_sub, nsub), Mmodule_type (loc, n, intf))
+        ((sub, nsub), Mmodule_type (loc, n, intf))
 
-  and canonize_t mname m =
-    let (ts_sub, _), i =
-      List.fold_left_map (fold_canonize_item mname) (C.empty_sub, Smap.empty)
+  and canonize_t mname sub m =
+    let (sub, _), i =
+      List.fold_left_map (fold_canonize_item mname) (sub, Smap.empty)
         m.i
     in
-    let s = canonize_intf ts_sub m.s in
+    let s = canonize_intf sub m.s in
     { m with s; i }
 
-  and canonize_intf ts_sub intf =
+  and canonize_intf sub intf =
     List.fold_left_map
       (fun sub (key, l, t, k) ->
         let sub, t = canonize sub t in
         (sub, (key, l, t, k)))
-      ts_sub intf
+      sub intf
     |> snd
 end

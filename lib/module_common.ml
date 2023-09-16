@@ -15,6 +15,10 @@ and item =
   | Mlocal_module of loc * string * t
   | Mfunctor of
       loc * string * (string * intf) list * Typed_tree.toplevel_item list
+  | Mapplied_functor of loc * string * Path.t * t
+    (* Special treatment as the name is a path, not a string.
+       Theoretically, this could be merged with local_module if we convert the name
+       in the correct places *)
   | Mmodule_alias of loc * string * Path.t * string option (* filename option *)
   | Mmodule_type of loc * string * intf
 

@@ -15,7 +15,11 @@ type cached =
   | Located of string * Ast.loc * (typ -> typ)
   | Cached of cache_kind * Env.scope * t
   | Functor of
-      Env.scope * Path.t * (string * intf) list * Typed_tree.toplevel_item list
+      Env.scope
+      * Path.t
+      * (string * intf) list
+      * Typed_tree.toplevel_item list
+      * t
 
 let module_cache : (Path.t, cached) Hashtbl.t = Hashtbl.create 64
 let object_cache = ref Sset.empty
@@ -59,6 +63,9 @@ let add_module_type loc id mtype m =
 
 let add_functor loc id params body ~into =
   { into with i = Mfunctor (loc, id, params, body) :: into.i }
+
+let add_applied_functor loc id mname m ~into =
+  { into with i = Mapplied_functor (loc, id, mname, m) :: into.i }
 
 let add_fun loc ~mname name uniq abs m =
   { m with i = make_fun loc ~mname name uniq abs :: m.i }
@@ -187,6 +194,8 @@ let rec map_item ~mname ~f = function
       Mmutual_rec (l, decls)
   | Mlocal_module (l, name, t) ->
       Mlocal_module (l, name, map_t ~mname:(Path.append name mname) ~f t)
+  | Mapplied_functor (l, n, mname, t) ->
+      Mapplied_functor (l, n, mname, map_t ~mname ~f t)
   | Mfunctor (l, name, ps, t) ->
       let ps = List.map (fun (n, intf) -> (n, map_intf ~f intf)) ps in
       (* let mname = Path.append name mname in *)
@@ -207,7 +216,7 @@ let modpath_of_kind = function
 let envmodule_of_cached path = function
   | Located _ -> Env.Cm_located path
   | Cached (_, scope, _) -> Cm_cached (path, scope)
-  | Functor (scope, _, _, _) -> Cm_cached (path, scope)
+  | Functor (scope, _, _, _, _) -> Cm_cached (path, scope)
 
 let sep =
   if String.length Filename.dir_sep = 1 then String.get Filename.dir_sep 0
@@ -254,6 +263,7 @@ let rec add_to_env env foreign (mname, m) =
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
           | Mfun (l, typ, n) ->
+            print_endline ("add to env: " ^ n.call ^ " as " ^ n.user ^ ": " ^ show_typ typ);
               Env.(add_value n.user { def_value with typ } l env)
           | Mpoly_fun (l, abs, n, _) ->
               Env.(
@@ -275,6 +285,8 @@ let rec add_to_env env foreign (mname, m) =
                   | Error () -> raise (Error (loc, "Cannot add module")))
               | Some cached ->
                   Env.add_module ~key (envmodule_of_cached mname cached) env)
+          | Mapplied_functor (loc, key, p, m) ->
+              register_applied_functor env loc key p m
           | Mfunctor (loc, key, ps, m) ->
               ignore loc;
               ignore key;
@@ -369,17 +381,30 @@ and register_module env loc mname modul =
     let env = Env.add_module ~key (envmodule_of_cached mname cached) env in
     Ok env
 
-and register_functor env loc mname params body : (Env.t, unit) Result.t =
+and register_functor env loc mname params body modul : (Env.t, unit) Result.t =
   if Hashtbl.mem module_cache mname then Error ()
   else
     (* Make an empty scope *)
     let scope = Env.open_module_scope env loc mname |> Env.pop_scope in
-    let cached = Functor (scope, mname, params, body) in
+    let cached = Functor (scope, mname, params, body, modul) in
     Hashtbl.add module_cache mname cached;
     let key = Path.get_hd mname in
     (* Use located here, so the scope isn't accessed in env *)
     let env = Env.add_module ~key (Cm_located mname) env in
     Ok env
+
+and register_applied_functor env loc key mname modul =
+  (* It's okay to apply a functor multiple times *)
+  let cached =
+    match Hashtbl.find_opt module_cache mname with
+    | Some cached -> envmodule_of_cached mname cached
+    | None ->
+        let scope = make_scope env loc None mname modul in
+        let cached = Cached (Clocal mname, scope, modul) in
+        Hashtbl.add module_cache mname cached;
+        envmodule_of_cached mname cached
+  in
+  Env.add_module ~key cached env
 
 let find_module env loc ~regeneralize name =
   (* We first search the env for local modules. Then we try read the module the normal way *)
@@ -388,6 +413,7 @@ let find_module env loc ~regeneralize name =
     | Some name -> (
         match Hashtbl.find_opt module_cache name with
         | Some (Cached (kind, scope, _)) ->
+          print_endline ("found cached module " ^ Path.show name);
             Ok
               Env.(
                 Cm_cached (modpath_of_kind kind, Env.fix_scope_loc scope loc))
@@ -441,11 +467,15 @@ let rec of_located env path =
       ignore (read_module env filename loc ~regeneralize path);
       of_located env path
 
+type functor_data =
+  Path.t * (string * Module_type.t) list * Typed_tree.toplevel_item list * t
+
 let functor_data env loc mname =
   match Env.find_module_opt ~query:true loc mname env with
   | Some name -> (
       match Hashtbl.find_opt module_cache name with
-      | Some (Functor (_, mname, params, body)) -> Ok (mname, params, body)
+      | Some (Functor (_, mname, params, body, modul)) ->
+          Ok (mname, params, body, modul)
       | Some _ -> Error ("Module " ^ Path.show mname ^ " is not a functor")
       | None -> Error ("Module " ^ Path.show mname ^ " cannot be found"))
   | None -> Error ("Module " ^ Path.show mname ^ " cannot be found")
@@ -474,7 +504,7 @@ let rec rev { s; i; objects } =
 
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in
-  let m = rev m |> Canon.canonize_t (Path.Pid outname) in
+  let m = rev m |> Canon.canonize_t (Path.Pid outname) Map_canon.empty_sub in
   (* Correct objects only exist after [canonize_t] *)
   let objects =
     Hashtbl.fold
@@ -503,7 +533,7 @@ let extract_name_type env = function
   | Mlocal_module (l, n, _) ->
       (* Do we have to deal with this? *)
       Some (n, l, Tunit, Mvalue)
-  | Mmodule_alias _ | Mmodule_type _ | Mfunctor _ -> None
+  | Mmodule_alias _ | Mmodule_type _ | Mfunctor _ | Mapplied_functor _ -> None
 
 let find_item name kind (n, _, _, tkind) =
   match (kind, tkind) with

@@ -1333,31 +1333,22 @@ module Subst_functor = struct
   let empty_sub = (Pmap.empty, Smap.empty)
 
   let change_var ~mname id m nsub (psub, _) =
-    let id, m =
-      match m with
-      | Some m as old -> (
-          match Pmap.find_opt m psub with
-          | Some mname ->
-              (* Replace the module part in id *)
-              let pre = Module.absolute_module_name ~mname:m "" in
-              let post =
-                String.sub id (String.length pre)
-                  (String.length id - String.length pre)
-              in
-              print_endline ("pre: " ^ pre);
-              print_endline ("post: " ^ post);
-              let id = Module.absolute_module_name ~mname post in
-              print_endline ("id: " ^ id);
-              (id, Some m)
-          | None -> (id, old))
-      | None -> (id, m)
-    in
     ignore mname;
     ignore nsub;
-    (match m with
-    | Some p -> print_endline ("in var " ^ Path.show p)
-    | None -> ());
-    id
+    match m with
+    | Some m -> (
+        match Pmap.find_opt m psub with
+        | Some mname ->
+            (* Replace the module part in id *)
+            let pre = Module.absolute_module_name ~mname:m "" in
+            let post =
+              String.sub id (String.length pre)
+                (String.length id - String.length pre)
+            in
+            let id = Module.absolute_module_name ~mname post in
+            id
+        | None -> id)
+    | None -> id
 
   let absolute_module_name = Module.absolute_module_name
   let change_type subs typ = (subs, apply_subs subs typ)
@@ -1506,7 +1497,7 @@ and convert_prog env items modul =
         lambda_id_state := lambda_id_state_bk;
 
         let env =
-          match register_functor env loc mname params functor_items with
+          match register_functor env loc mname params functor_items newm with
           | Ok env -> env
           | Error () ->
               let msg =
@@ -1529,25 +1520,19 @@ and convert_prog env items modul =
            | Error s -> raise (Error (loc, s)));
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
-    | Module_alias ((loc, key, annot), Afunctor_app ((floc, ftor), args)) -> (
-        ignore key;
-        ignore annot;
+    | Module_alias ((loc, id, annot), Afunctor_app ((floc, ftor), args)) -> (
         match Module.functor_data env floc ftor with
-        | Ok (mname, params, body) ->
+        | Ok (mname, params, body, modul) ->
             let param_arg_map = ref Module_type.Pmap.empty in
             let names =
               try
                 List.map2
                   (fun (aloc, arg) param ->
                     let key = Module.functor_param_name ~mname (fst param) in
-                    print_endline
-                      ("param " ^ Path.show
-                      @@ Module.functor_param_name ~mname (fst param));
                     match Env.find_module_opt aloc arg env with
                     | Some mname -> (
                         match Module.of_located env mname with
                         | Ok m ->
-                            print_endline ("arg " ^ Path.show mname);
                             param_arg_map :=
                               Module_type.Pmap.add key mname !param_arg_map;
                             let subs, mtype =
@@ -1597,9 +1582,17 @@ and convert_prog env items modul =
               Subst.canon_tl_items applied_name Smap.empty merged_subs body
               |> snd
             in
-
             let moditems = List.map (fun item -> (applied_name, item)) body in
             let items = Tl_module moditems :: items in
+            let modul = Subst.canonize_t applied_name merged_subs modul in
+            let env =
+              Module.register_applied_functor env loc id applied_name modul
+            in
+            check_module_annot env loc ~mname:applied_name modul annot;
+            let m =
+              Module.add_applied_functor loc id applied_name modul ~into:m
+            in
+
             print_endline ("applied path: " ^ Path.mod_name applied_name);
             (env, items, m)
         | Error s -> raise (Error (loc, s)))
