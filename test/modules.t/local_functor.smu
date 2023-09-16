@@ -1,0 +1,37 @@
+(module outer
+  (type t {:i int}))
+
+(module-type sig
+  (type t)
+  (def add (fun t t t)))
+
+(functor make [(m sig)]
+  (defn add-twice (a b)
+    (m/add (m/add a b) b)))
+
+(module (outa sig)
+  (type t outer/t)
+  (defn add (a b) {:i (+ a.i b.i)}))
+
+(module (inta sig)
+  (type t int)
+  (defn add (a b) (+ a b)))
+
+(module (floata sig)
+  (signature
+    (type t float)
+    (def add (fun t t t)))
+  (type t float)
+  (defn add (a b) (+. a b)))
+
+(module (somerec sig)
+  (type t {:a int :b int})
+  (defn add (a b) {:a (+ a.a b.a) :b (+ a.b b.b)}))
+
+(module intadder (make inta))
+(module floatadder (make floata))
+(module recadder (make somerec))
+(module outeradder (make outa))
+
+(print (fmt-str (intadder/add-twice 1 2)))
+(print (fmt-str (floatadder/add-twice 1.0 2.0)))

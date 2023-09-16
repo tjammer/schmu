@@ -61,10 +61,11 @@ val register_functor :
   Ast.loc ->
   Path.t ->
   (string * Module_type.t) list ->
-  Typed_tree.toplevel_item list -> t ->
+  Typed_tree.toplevel_item list ->
+  t ->
   (Env.t, unit) result
 
-val register_applied_functor:
+val register_applied_functor :
   Env.t -> Ast.loc -> string -> Path.t -> t -> Env.t
 
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
@@ -80,15 +81,10 @@ val scope_of_functor_param :
 val scope_of_located : Env.t -> Path.t -> (Env.scope, string) Result.t
 val of_located : Env.t -> Path.t -> (t, string) Result.t
 
-type functor_data = Path.t * (string * Module_type.t) list * Typed_tree.toplevel_item list * t
-val functor_data :
-  Env.t ->
-  loc ->
-  Path.t ->
-  (functor_data,
-    string )
-  result
+type functor_data =
+  Path.t * (string * Module_type.t) list * Typed_tree.toplevel_item list * t
 
+val functor_data : Env.t -> loc -> Path.t -> (functor_data, string) result
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
 val validate_intf : Env.t -> loc -> Module_type.t -> t -> unit

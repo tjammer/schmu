@@ -822,3 +822,140 @@ Transitive polymorphic dependency needs to be available
     %0 = tail call i64 @__g.g_direct_dep_id_i.i(i64 10)
     ret i64 %0
   }
+
+Apply local functors
+  $ schmu --dump-llvm local_functor.smu
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %outer.t = type { i64 }
+  %somerec.t = type { i64, i64 }
+  
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
+  @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"%.9g\0A\00" }
+  
+  define double @schmu_floata_add(double %a, double %b) {
+  entry:
+    %add = fadd double %a, %b
+    ret double %add
+  }
+  
+  define i64 @schmu_inta_add(i64 %a, i64 %b) {
+  entry:
+    %add = add i64 %a, %b
+    ret i64 %add
+  }
+  
+  define double @schmu_make_schmu_floata_add-twice(double %a, double %b) {
+  entry:
+    %0 = tail call double @schmu_floata_add(double %a, double %b)
+    %1 = tail call double @schmu_floata_add(double %0, double %b)
+    ret double %1
+  }
+  
+  define i64 @schmu_make_schmu_inta_add-twice(i64 %a, i64 %b) {
+  entry:
+    %0 = tail call i64 @schmu_inta_add(i64 %a, i64 %b)
+    %1 = tail call i64 @schmu_inta_add(i64 %0, i64 %b)
+    ret i64 %1
+  }
+  
+  define i64 @schmu_make_schmu_outa_add-twice(i64 %0, i64 %1) {
+  entry:
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 8
+    %box2 = alloca i64, align 8
+    store i64 %1, i64* %box2, align 8
+    %ret = alloca %outer.t, align 8
+    %2 = tail call i64 @schmu_outa_add(i64 %0, i64 %1)
+    %box7 = bitcast %outer.t* %ret to i64*
+    store i64 %2, i64* %box7, align 8
+    %ret13 = alloca %outer.t, align 8
+    %3 = tail call i64 @schmu_outa_add(i64 %2, i64 %1)
+    %box14 = bitcast %outer.t* %ret13 to i64*
+    store i64 %3, i64* %box14, align 8
+    ret i64 %3
+  }
+  
+  define { i64, i64 } @schmu_make_schmu_somerec_add-twice(i64 %0, i64 %1, i64 %2, i64 %3) {
+  entry:
+    %box = alloca { i64, i64 }, align 8
+    %fst32 = bitcast { i64, i64 }* %box to i64*
+    store i64 %0, i64* %fst32, align 8
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
+    store i64 %1, i64* %snd, align 8
+    %box2 = alloca { i64, i64 }, align 8
+    %fst333 = bitcast { i64, i64 }* %box2 to i64*
+    store i64 %2, i64* %fst333, align 8
+    %snd4 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box2, i32 0, i32 1
+    store i64 %3, i64* %snd4, align 8
+    %ret = alloca %somerec.t, align 8
+    %4 = tail call { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3)
+    %box15 = bitcast %somerec.t* %ret to { i64, i64 }*
+    store { i64, i64 } %4, { i64, i64 }* %box15, align 8
+    %fst1834 = bitcast { i64, i64 }* %box15 to i64*
+    %fst19 = load i64, i64* %fst1834, align 8
+    %snd20 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box15, i32 0, i32 1
+    %snd21 = load i64, i64* %snd20, align 8
+    %ret27 = alloca %somerec.t, align 8
+    %5 = tail call { i64, i64 } @schmu_somerec_add(i64 %fst19, i64 %snd21, i64 %2, i64 %3)
+    %box28 = bitcast %somerec.t* %ret27 to { i64, i64 }*
+    store { i64, i64 } %5, { i64, i64 }* %box28, align 8
+    ret { i64, i64 } %5
+  }
+  
+  define i64 @schmu_outa_add(i64 %0, i64 %1) {
+  entry:
+    %box = alloca i64, align 8
+    store i64 %0, i64* %box, align 8
+    %box2 = alloca i64, align 8
+    store i64 %1, i64* %box2, align 8
+    %2 = alloca %outer.t, align 8
+    %i5 = bitcast %outer.t* %2 to i64*
+    %add = add i64 %0, %1
+    store i64 %add, i64* %i5, align 8
+    ret i64 %add
+  }
+  
+  define { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3) {
+  entry:
+    %box = alloca { i64, i64 }, align 8
+    %fst10 = bitcast { i64, i64 }* %box to i64*
+    store i64 %0, i64* %fst10, align 8
+    %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
+    store i64 %1, i64* %snd, align 8
+    %a = bitcast { i64, i64 }* %box to %somerec.t*
+    %box2 = alloca { i64, i64 }, align 8
+    %fst311 = bitcast { i64, i64 }* %box2 to i64*
+    store i64 %2, i64* %fst311, align 8
+    %snd4 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box2, i32 0, i32 1
+    store i64 %3, i64* %snd4, align 8
+    %b = bitcast { i64, i64 }* %box2 to %somerec.t*
+    %4 = alloca %somerec.t, align 8
+    %a612 = bitcast %somerec.t* %4 to i64*
+    %add = add i64 %0, %2
+    store i64 %add, i64* %a612, align 8
+    %b7 = getelementptr inbounds %somerec.t, %somerec.t* %4, i32 0, i32 1
+    %5 = getelementptr inbounds %somerec.t, %somerec.t* %a, i32 0, i32 1
+    %6 = getelementptr inbounds %somerec.t, %somerec.t* %b, i32 0, i32 1
+    %add8 = add i64 %1, %3
+    store i64 %add8, i64* %b7, align 8
+    %unbox = bitcast %somerec.t* %4 to { i64, i64 }*
+    %unbox9 = load { i64, i64 }, { i64, i64 }* %unbox, align 8
+    ret { i64, i64 } %unbox9
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %0 = tail call i64 @schmu_make_schmu_inta_add-twice(i64 1, i64 2)
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %0)
+    %1 = tail call double @schmu_make_schmu_floata_add-twice(double 1.000000e+00, double 2.000000e+00)
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [6 x i8] }* @1 to i8*), i64 16), double %1)
+    ret i64 0
+  }
+  
+  declare void @printf(i8* %0, ...)
+  $ ./local_functor
+  5
+  5

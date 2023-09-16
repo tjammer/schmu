@@ -27,13 +27,10 @@ let subst_name ~mname pathsub p inner =
 let apply_subs (psub, tsub) typ =
   let subst p = match Pmap.find_opt p psub with Some p -> p | None -> p in
   let rec aux = function
-    | Tabstract (ps, p, Tvar { contents = Unbound (sym, _) }) ->
-        let t =
-          match Smap.find_opt sym tsub with
-          | Some t -> t
-          | None -> failwith "unreachable"
-        in
-        Tabstract (ps, subst p, t)
+    | Tabstract (_, _, Tvar { contents = Unbound (sym, _) }) -> (
+        match Smap.find_opt sym tsub with
+        | Some t -> t
+        | None -> failwith "unreachable")
     | Tabstract (ps, p, t) -> Tabstract (ps, subst p, aux t)
     | Talias (p, t) -> Talias (subst p, aux t)
     | Trecord (ps, p, fs) ->

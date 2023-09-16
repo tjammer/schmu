@@ -876,6 +876,48 @@ let test_functor_no_var_param () =
   test_exn "No var named p/a"
     "(module-type mt (type t)) (functor f [(p mt)] (def _ (ignore p/a)))"
 
+let test_functor_apply_use () =
+  test "inta/t = int"
+    {|(module-type sig
+  (type t)
+  (def add (fun t t t)))
+
+(functor make [(m sig)]
+  (defn add-twice (a b)
+    (m/add (m/add a b) b)))
+
+(module (inta sig)
+  (type t int)
+  (defn add (a b) (+ a b)))
+
+(module intadder (make inta))
+(intadder/add-twice 1 2)
+|}
+
+let test_functor_abstract_param () =
+  test_exn
+    "Application: Expected type (fun inta/t inta/t inta/t) but got type (fun \
+     int int 'a).\n\
+     Cannot unify types inta/t and int"
+    {|(module-type sig
+  (type t)
+  (def add (fun t t t)))
+
+(functor make [(m sig)]
+  (defn add-twice (a b)
+    (m/add (m/add a b) b)))
+
+(module (inta sig)
+  (signature
+    (type t)
+    (def add (fun t t t)))
+  (type t int)
+  (defn add (a b) (+ a b)))
+
+(module intadder (make inta))
+(intadder/add-twice 1 2)
+|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1260,5 +1302,7 @@ let () =
           case "wrong arity" test_functor_wrong_arity;
           case "wrong module type" test_functor_wrong_module_type;
           case "no var param" test_functor_no_var_param;
+          case "apply use" test_functor_apply_use;
+          case "abstract param" test_functor_abstract_param;
         ] );
     ]

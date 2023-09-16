@@ -1588,12 +1588,13 @@ and convert_prog env items modul =
             let env =
               Module.register_applied_functor env loc id applied_name modul
             in
-            check_module_annot env loc ~mname:applied_name modul annot;
+
+            if Option.is_some annot then raise (Error (loc, "TODO annotation checking for applied functors"));
+            (* check_module_annot env loc ~mname:applied_name modul annot; *)
             let m =
               Module.add_applied_functor loc id applied_name modul ~into:m
             in
 
-            print_endline ("applied path: " ^ Path.mod_name applied_name);
             (env, items, m)
         | Error s -> raise (Error (loc, s)))
     | Module_type ((loc, id), vals) ->

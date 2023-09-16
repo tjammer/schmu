@@ -263,7 +263,6 @@ let rec add_to_env env foreign (mname, m) =
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
           | Mfun (l, typ, n) ->
-            print_endline ("add to env: " ^ n.call ^ " as " ^ n.user ^ ": " ^ show_typ typ);
               Env.(add_value n.user { def_value with typ } l env)
           | Mpoly_fun (l, abs, n, _) ->
               Env.(
@@ -413,7 +412,6 @@ let find_module env loc ~regeneralize name =
     | Some name -> (
         match Hashtbl.find_opt module_cache name with
         | Some (Cached (kind, scope, _)) ->
-          print_endline ("found cached module " ^ Path.show name);
             Ok
               Env.(
                 Cm_cached (modpath_of_kind kind, Env.fix_scope_loc scope loc))
