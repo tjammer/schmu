@@ -1351,7 +1351,7 @@ module Subst_functor = struct
     | None -> id
 
   let absolute_module_name = Module.absolute_module_name
-  let change_type subs typ = (subs, apply_subs subs typ)
+  let map_type subs typ = (subs, apply_subs subs typ)
 end
 
 module Subst = Map_module.Make (Subst_functor)
@@ -1579,17 +1579,18 @@ and convert_prog env items modul =
               List.fold_left (fun acc p -> Path.append_path p acc) mname names
             in
             let body =
-              Subst.canon_tl_items applied_name Smap.empty merged_subs body
-              |> snd
+              Subst.map_tl_items applied_name Smap.empty merged_subs body |> snd
             in
             let moditems = List.map (fun item -> (applied_name, item)) body in
             let items = Tl_module moditems :: items in
-            let modul = Subst.canonize_t applied_name merged_subs modul in
+            let modul = Subst.map_module applied_name merged_subs modul in
             let env =
               Module.register_applied_functor env loc id applied_name modul
             in
 
-            if Option.is_some annot then raise (Error (loc, "TODO annotation checking for applied functors"));
+            if Option.is_some annot then
+              raise
+                (Error (loc, "TODO annotation checking for applied functors"));
             (* check_module_annot env loc ~mname:applied_name modul annot; *)
             let m =
               Module.add_applied_functor loc id applied_name modul ~into:m

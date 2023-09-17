@@ -142,7 +142,7 @@ module Map_canon : Map_module.Map_tree = struct
     id
 
   let absolute_module_name = absolute_module_name
-  let change_type = Map_module.Canonize.canonize
+  let map_type = Map_module.Canonize.canonize
 end
 
 module Canon = Map_module.Make (Map_canon)
@@ -502,7 +502,7 @@ let rec rev { s; i; objects } =
 
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in
-  let m = rev m |> Canon.canonize_t (Path.Pid outname) Map_canon.empty_sub in
+  let m = rev m |> Canon.map_module (Path.Pid outname) Map_canon.empty_sub in
   (* Correct objects only exist after [canonize_t] *)
   let objects =
     Hashtbl.fold

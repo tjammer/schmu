@@ -9,10 +9,11 @@ module type Map_tree = sig
     mname:Path.t -> string -> Path.t option -> string Smap.t -> sub -> string
 
   val absolute_module_name : mname:Path.t -> string -> string
-  val change_type : sub -> typ -> sub * typ
+  val map_type : sub -> typ -> sub * typ
 end
 
 module Canonize = struct
+  (* This is the original conanize impl from old module.ml *)
   let c = ref 1
 
   let rec canonize sub = function
@@ -106,68 +107,66 @@ module Canonize = struct
 end
 
 module Make (C : Map_tree) = struct
-  let canonize = C.change_type
-
-  let rec canonbody mname nsub sub (e : Typed_tree.typed_expr) =
-    let sub, typ = canonize sub e.typ in
-    let sub, expr = canonexpr mname nsub sub e.expr in
+  let rec map_body mname nsub sub (e : Typed_tree.typed_expr) =
+    let sub, typ = C.map_type sub e.typ in
+    let sub, expr = map_expr mname nsub sub e.expr in
     (sub, Typed_tree.{ e with typ; expr })
 
-  and canonexpr mname nsub sub = function
+  and map_expr mname nsub sub = function
     | Typed_tree.Var (id, m) ->
         let id = C.change_var ~mname id m nsub sub in
         (sub, Var (id, m))
     | Const (Array a) ->
-        let sub, a = List.fold_left_map (canonbody mname nsub) sub a in
+        let sub, a = List.fold_left_map (map_body mname nsub) sub a in
         (sub, Const (Array a))
     | Const c -> (sub, Const c)
     | Bop (op, e1, e2) ->
-        let sub, e1 = (canonbody mname nsub) sub e1 in
-        let sub, e2 = (canonbody mname nsub) sub e2 in
+        let sub, e1 = (map_body mname nsub) sub e1 in
+        let sub, e2 = (map_body mname nsub) sub e2 in
         (sub, Bop (op, e1, e2))
     | Unop (op, e) ->
-        let sub, e = (canonbody mname nsub) sub e in
+        let sub, e = (map_body mname nsub) sub e in
         (sub, Unop (op, e))
     | If (cond, o, e1, e2) ->
-        let sub, cond = (canonbody mname nsub) sub cond in
-        let sub, e1 = (canonbody mname nsub) sub e1 in
-        let sub, e2 = (canonbody mname nsub) sub e2 in
+        let sub, cond = (map_body mname nsub) sub cond in
+        let sub, e1 = (map_body mname nsub) sub e1 in
+        let sub, e2 = (map_body mname nsub) sub e2 in
         (sub, If (cond, o, e1, e2))
     | Let d ->
-        let sub, rhs = (canonbody mname nsub) sub d.rhs in
+        let sub, rhs = (map_body mname nsub) sub d.rhs in
         (* Change binding name as well *)
         let nsub = Smap.add d.id (C.absolute_module_name ~mname d.id) nsub in
-        let sub, cont = (canonbody mname nsub) sub d.cont in
+        let sub, cont = (map_body mname nsub) sub d.cont in
         (sub, Let { d with rhs; cont })
     | Bind (id, lhs, cont) ->
-        let sub, lhs = (canonbody mname nsub) sub lhs in
+        let sub, lhs = (map_body mname nsub) sub lhs in
         let nsub = Smap.add id (C.absolute_module_name ~mname id) nsub in
-        let sub, cont = (canonbody mname nsub) sub cont in
+        let sub, cont = (map_body mname nsub) sub cont in
         (sub, Bind (id, lhs, cont))
     | Lambda (i, abs) ->
-        let sub, abs = canonabs mname sub nsub abs in
+        let sub, abs = map_abs mname sub nsub abs in
         (sub, Lambda (i, abs))
     | Function (n, u, abs, cont) ->
         let nsub = Smap.add n (C.absolute_module_name ~mname n) nsub in
-        let sub, abs = canonabs mname sub nsub abs in
-        let sub, cont = (canonbody mname nsub) sub cont in
+        let sub, abs = map_abs mname sub nsub abs in
+        let sub, cont = (map_body mname nsub) sub cont in
         (sub, Function (n, u, abs, cont))
     | Mutual_rec_decls (fs, cont) ->
         let sub, fs =
           List.fold_left_map
             (fun sub (n, u, t) ->
-              let sub, t = canonize sub t in
+              let sub, t = C.map_type sub t in
               (sub, (n, u, t)))
             sub fs
         in
-        let sub, cont = (canonbody mname nsub) sub cont in
+        let sub, cont = (map_body mname nsub) sub cont in
         (sub, Mutual_rec_decls (fs, cont))
     | App { callee; args } ->
-        let sub, callee = (canonbody mname nsub) sub callee in
+        let sub, callee = (map_body mname nsub) sub callee in
         let sub, args =
           List.fold_left_map
             (fun sub (e, mut) ->
-              let sub, e = (canonbody mname nsub) sub e in
+              let sub, e = (map_body mname nsub) sub e in
               (sub, (e, mut)))
             sub args
         in
@@ -176,36 +175,36 @@ module Make (C : Map_tree) = struct
         let sub, fs =
           List.fold_left_map
             (fun sub (n, e) ->
-              let sub, e = (canonbody mname nsub) sub e in
+              let sub, e = (map_body mname nsub) sub e in
               (sub, (n, e)))
             sub fs
         in
         (sub, Record fs)
     | Field (e, i, n) ->
-        let sub, e = (canonbody mname nsub) sub e in
+        let sub, e = (map_body mname nsub) sub e in
         (sub, Field (e, i, n))
     | Set (a, b) ->
-        let sub, a = (canonbody mname nsub) sub a in
-        let sub, b = (canonbody mname nsub) sub b in
+        let sub, a = (map_body mname nsub) sub a in
+        let sub, b = (map_body mname nsub) sub b in
         (sub, Set (a, b))
     | Sequence (a, b) ->
-        let sub, a = (canonbody mname nsub) sub a in
-        let sub, b = (canonbody mname nsub) sub b in
+        let sub, a = (map_body mname nsub) sub a in
+        let sub, b = (map_body mname nsub) sub b in
         (sub, Sequence (a, b))
     | Ctor (n, i, e) ->
         let sub, e =
           match e with
           | Some e ->
-              let sub, e = (canonbody mname nsub) sub e in
+              let sub, e = (map_body mname nsub) sub e in
               (sub, Some e)
           | None -> (sub, None)
         in
         (sub, Ctor (n, i, e))
     | Variant_index e ->
-        let sub, e = (canonbody mname nsub) sub e in
+        let sub, e = (map_body mname nsub) sub e in
         (sub, Variant_index e)
     | Variant_data e ->
-        let sub, e = (canonbody mname nsub) sub e in
+        let sub, e = (map_body mname nsub) sub e in
         (sub, Variant_data e)
     | Fmt fs ->
         let sub, fs =
@@ -215,24 +214,24 @@ module Make (C : Map_tree) = struct
                 match e with
                 | Fstr s -> (sub, Fstr s)
                 | Fexpr e ->
-                    let sub, e = (canonbody mname nsub) sub e in
+                    let sub, e = (map_body mname nsub) sub e in
                     (sub, Fexpr e))
             sub fs
         in
         (sub, Fmt fs)
     | Move e ->
-        let sub, e = (canonbody mname nsub) sub e in
+        let sub, e = (map_body mname nsub) sub e in
         (sub, Move e)
 
-  and canonabs mname sub nsub abs =
+  and map_abs mname sub nsub abs =
     let sub, tparams =
       List.fold_left_map
         (fun sub p ->
-          let sub, pt = canonize sub p.pt in
+          let sub, pt = C.map_type sub p.pt in
           (sub, { p with pt }))
         sub abs.func.tparams
     in
-    let sub, ret = canonize sub abs.func.ret in
+    let sub, ret = C.map_type sub abs.func.ret in
     let sub, kind =
       match abs.func.kind with
       | Simple -> (sub, Simple)
@@ -240,7 +239,7 @@ module Make (C : Map_tree) = struct
           let sub, l =
             List.fold_left_map
               (fun sub c ->
-                let sub, cltyp = canonize sub c.cltyp in
+                let sub, cltyp = C.map_type sub c.cltyp in
                 let clname = C.change_var ~mname c.clname None nsub sub in
                 (sub, { c with cltyp; clname }))
               sub l
@@ -250,61 +249,61 @@ module Make (C : Map_tree) = struct
     let sub, touched =
       List.fold_left_map
         (fun sub t ->
-          let sub, ttyp = canonize sub Typed_tree.(t.ttyp) in
+          let sub, ttyp = C.map_type sub Typed_tree.(t.ttyp) in
           (sub, { t with ttyp }))
         sub abs.func.touched
     in
     let func = { Typed_tree.tparams; ret; kind; touched } in
-    let sub, body = (canonbody mname nsub) sub abs.body in
+    let sub, body = (map_body mname nsub) sub abs.body in
     (sub, { abs with func; body })
 
-  and canon_tl_items mname nsub sub items =
+  and map_tl_items mname nsub sub items =
     let (_, sub), items =
       List.fold_left_map
-        (fun (nsub, sub) item -> canon_tl_item mname nsub sub item)
+        (fun (nsub, sub) item -> map_tl_item mname nsub sub item)
         (nsub, sub) items
     in
     (sub, items)
 
-  and canon_tl_item mname nsub sub = function
+  and map_tl_item mname nsub sub = function
     | Typed_tree.Tl_let d ->
-        let sub, lhs = (canonbody mname nsub) sub d.lhs in
+        let sub, lhs = (map_body mname nsub) sub d.lhs in
         (* Change binding name *)
         (* Is absolute module name correct for functor bodies? *)
         let nsub = Smap.add d.id (C.absolute_module_name ~mname d.id) nsub in
         ((nsub, sub), Typed_tree.Tl_let { d with lhs })
     | Tl_bind (id, rhs) ->
-        let sub, rhs = (canonbody mname nsub) sub rhs in
+        let sub, rhs = (map_body mname nsub) sub rhs in
         let nsub = Smap.add id (C.absolute_module_name ~mname id) nsub in
         ((nsub, sub), Tl_bind (id, rhs))
     | Tl_function (loc, n, u, abs) ->
         let nsub' = Smap.add n (C.absolute_module_name ~mname n) nsub in
-        let sub, abs = canonabs mname sub nsub' abs in
+        let sub, abs = map_abs mname sub nsub' abs in
         ((nsub, sub), Tl_function (loc, n, u, abs))
     | Tl_expr e ->
-        let sub, e = canonbody mname nsub sub e in
+        let sub, e = map_body mname nsub sub e in
         ((nsub, sub), Tl_expr e)
     | (Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _) as todo ->
         ((nsub, sub), todo)
 
   open Module_common
 
-  let rec fold_canonize_item mname (sub, nsub) = function
+  let rec fold_map_type_item mname (sub, nsub) = function
     | Mtype (l, t) ->
-        let a, t = canonize sub t in
+        let a, t = C.map_type sub t in
         ((a, nsub), Mtype (l, t))
     | Mfun (l, t, n) ->
-        let a, t = canonize sub t in
+        let a, t = C.map_type sub t in
         let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
         ((a, s), Mfun (l, t, n))
     | Mext (l, t, n, c) ->
-        let a, t = canonize sub t in
+        let a, t = C.map_type sub t in
         let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
         ((a, s), Mext (l, t, n, c))
     | Mpoly_fun (l, abs, n, u) ->
         (* Change Var-nodes in body here *)
         let s = Smap.add n (absolute_module_name ~mname n) nsub in
-        let a, abs = canonabs mname sub s abs in
+        let a, abs = map_abs mname sub s abs in
         (* This allows changes from poly fun to concrete fun for functors *)
         let fun_ = make_fun l ~mname n u abs in
         (* This will be ignored in [add_to_env] *)
@@ -313,40 +312,39 @@ module Make (C : Map_tree) = struct
         let (a, nsub), decls =
           List.fold_left_map
             (fun (sub, nsub) (l, n, u, t) ->
-              let a, t = canonize sub t in
+              let a, t = C.map_type sub t in
               let s = Smap.add n (absolute_module_name ~mname n) nsub in
               ((a, s), (l, n, u, t)))
             (sub, nsub) decls
         in
         ((a, nsub), Mmutual_rec (l, decls))
     | Mlocal_module (loc, n, t) ->
-        let t = canonize_t (Path.append n mname) sub t in
+        let t = map_module (Path.append n mname) sub t in
         ((sub, nsub), Mlocal_module (loc, n, t))
     | Mapplied_functor (loc, n, p, t) ->
-      let t = canonize_t p sub t in
-      ((sub, nsub), Mapplied_functor(loc, n, p, t))
+        let t = map_module p sub t in
+        ((sub, nsub), Mapplied_functor (loc, n, p, t))
     | Mfunctor (loc, n, ps, t) ->
-        let f (n, intf) = (n, canonize_intf C.empty_sub intf) in
+        let f (n, intf) = (n, map_intf C.empty_sub intf) in
         let ps = List.map f ps in
-        let sub, t = canon_tl_items (Path.append n mname) nsub sub t in
+        let sub, t = map_tl_items (Path.append n mname) nsub sub t in
         ((sub, nsub), Mfunctor (loc, n, ps, t))
     | Mmodule_alias _ as m -> ((sub, nsub), m)
     | Mmodule_type (loc, n, intf) ->
-        let intf = canonize_intf C.empty_sub intf in
+        let intf = map_intf C.empty_sub intf in
         ((sub, nsub), Mmodule_type (loc, n, intf))
 
-  and canonize_t mname sub m =
+  and map_module mname sub m =
     let (sub, _), i =
-      List.fold_left_map (fold_canonize_item mname) (sub, Smap.empty)
-        m.i
+      List.fold_left_map (fold_map_type_item mname) (sub, Smap.empty) m.i
     in
-    let s = canonize_intf sub m.s in
+    let s = map_intf sub m.s in
     { m with s; i }
 
-  and canonize_intf sub intf =
+  and map_intf sub intf =
     List.fold_left_map
       (fun sub (key, l, t, k) ->
-        let sub, t = canonize sub t in
+        let sub, t = C.map_type sub t in
         (sub, (key, l, t, k)))
       sub intf
     |> snd
