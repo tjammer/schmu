@@ -461,15 +461,28 @@ let find_general ~(find : key -> scope -> 'a option)
   let key = Path.rm_name env.modpath key in
   let rec aux scopes = function
     | Path.Pid key -> find_value key scopes
-    | Pmod (hd, tl) ->
-        let scope = env.find_module env loc hd |> get_module env loc |> snd in
-        traverse_module scope tl
+    | Pmod (hd, tl) -> (
+        match find_module hd scopes with
+        | Some scope -> traverse_module scope tl
+        | None ->
+            let scope =
+              env.find_module env loc hd |> get_module env loc |> snd
+            in
+            traverse_module scope tl)
   and find_value key = function
     | [] -> None
     | scope :: tl -> (
         match find key scope with
         | Some t -> Some (found scope.kind t)
         | None -> find_value key tl)
+  and find_module key = function
+    | [] -> None
+    | scope :: tl -> (
+        match Map.find_opt key scope.modules with
+        | Some cached ->
+            let scope = get_module env loc cached |> snd in
+            Some scope
+        | None -> find_module key tl)
   and traverse_module scope = function
     | Path.Pid key -> Option.map (found scope.kind) (find key scope)
     | Pmod (hd, tl) -> (

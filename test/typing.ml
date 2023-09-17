@@ -918,6 +918,14 @@ let test_functor_abstract_param () =
 (intadder/add-twice 1 2)
 |}
 
+let test_functor_use_param_type () =
+  test "unit"
+    {|(module-type sig
+  (type t))
+
+(functor make [(m sig)]
+  (type t m/t))|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1304,5 +1312,6 @@ let () =
           case "no var param" test_functor_no_var_param;
           case "apply use" test_functor_apply_use;
           case "abstract param" test_functor_abstract_param;
+          case "use param type" test_functor_use_param_type;
         ] );
     ]
