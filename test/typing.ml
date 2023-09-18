@@ -926,6 +926,37 @@ let test_functor_use_param_type () =
 (functor make [(m sig)]
   (type t m/t))|}
 
+let test_functor_poly_function () =
+  test "unit"
+    {|(module-type poly
+  (def id (fun 'a! 'a)))
+
+(functor makeid [(m poly)]
+  (defn newid (p!) (m/id !p)))
+
+(module some
+  (defn id [p!] p))
+
+(module polyappl (makeid some))
+
+(ignore (polyappl/newid !1))
+(ignore (polyappl/newid !1.2))|}
+
+let test_functor_poly_mismatch () =
+  test_exn
+    "Signatures don't match for id: Expected type (fun 'a! 'a) but got type \
+     (fun int! int)"
+    {|(module-type poly
+  (def id (fun 'a! 'a)))
+
+(functor makeid [(m poly)]
+  (defn newid (p!) (m/id !p)))
+
+(module someint
+  (defn id [(p! int)] p))
+
+(module intappl (makeid someint))|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1313,5 +1344,7 @@ let () =
           case "apply use" test_functor_apply_use;
           case "abstract param" test_functor_abstract_param;
           case "use param type" test_functor_use_param_type;
+          case "poly function" test_functor_poly_function;
+          case "poly mismatch" test_functor_poly_mismatch;
         ] );
     ]
