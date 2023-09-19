@@ -83,11 +83,9 @@ let add_rec_block loc ~mname funs m =
     (fun m (loc, n, u, abs) -> add_fun ~mname loc n u abs m)
     { m with i } funs
 
-let add_external loc t name ~mname cname ~closure m =
+let add_external loc t name call ~closure m =
   let closure = match clean t with Tfun _ -> closure | _ -> false in
-  let call = match cname with Some s -> s | None -> name in
-  let module_var = absolute_module_name ~mname name in
-  let name = { user = name; call; module_var } in
+  let name = { user = name; call } in
   { m with i = Mext (loc, t, name, closure) :: m.i }
 
 (* Right now we only ever compile one module, so this can safely be global *)
@@ -123,24 +121,10 @@ module Map_canon : Map_module.Map_tree = struct
 
   let empty_sub = Smap.empty
 
-  let change_name id nsub =
-    match Smap.find_opt id nsub with None -> id | Some name -> name
+  (* let change_name id nsub = *)
+  (*   match Smap.find_opt id nsub with None -> id | Some name -> name *)
 
-  let change_var ~mname id m nsub _ =
-    let id = change_name id nsub in
-    (match m with
-    | Some m when not (Path.share_base mname m) -> (
-        (* Make sure this is eagerly loaded on use *)
-        match Hashtbl.find_opt module_cache m with
-        | None | Some (Located _ | Cached (Clocal _, _, _) | Functor _) ->
-            failwith "unreachable what is this module's path?"
-        | Some (Cached (Cfile (_, true), _, _)) -> ()
-        | Some (Cached (Cfile (name, false), scope, md)) ->
-            Hashtbl.replace module_cache m
-              (Cached (Cfile (name, true), scope, md)))
-    | None | Some _ -> ());
-    id
-
+  let change_var ~mname:_ id _ _ _ = id
   let absolute_module_name = absolute_module_name
   let map_type = Map_module.Canonize.canonize
 end
@@ -154,9 +138,9 @@ let rec map_item ~mname ~f = function
       ext_funcs :=
         Env.
           {
-            ext_name = absolute_module_name ~mname n.user;
+            ext_name = n.user;
             ext_typ = t;
-            ext_cname = Some n.call;
+            ext_cname = n.call;
             used = ref false;
             closure = false;
             imported = Some (mname, `Schmu);
@@ -168,9 +152,9 @@ let rec map_item ~mname ~f = function
       ext_funcs :=
         Env.
           {
-            ext_name = absolute_module_name ~mname n.user;
+            ext_name = n.user;
             ext_typ = t;
-            ext_cname = Some n.call;
+            ext_cname = n.call;
             used = ref false;
             closure = c;
             imported = Some (mname, `C);
@@ -249,6 +233,7 @@ let load_foreign loc foreign fname mname =
   | _ -> failwith "Internal Error: Cannot read foreign module"
 
 let rec add_to_env env foreign (mname, m) =
+  let def_val = Env.def_mname mname in
   match m.s with
   | [] ->
       List.fold_left
@@ -264,16 +249,16 @@ let rec add_to_env env foreign (mname, m) =
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
           | Mfun (l, typ, n) ->
-              Env.(add_value n.user { def_value with typ } l env)
+              Env.(add_value n.user { def_val with typ } l env)
           | Mpoly_fun (l, abs, n, _) ->
               Env.(
-                add_value n { def_value with typ = type_of_func abs.func } l env)
+                add_value n { def_val with typ = type_of_func abs.func } l env)
           | Mext (l, typ, n, _) ->
-              Env.(add_value n.user { def_value with typ } l env)
+              Env.(add_value n.user { def_val with typ } l env)
           | Mmutual_rec (_, ds) ->
               List.fold_left
                 (fun env (l, name, _, typ) ->
-                  Env.(add_value name { def_value with typ } l env))
+                  Env.(add_value name { def_val with typ } l env))
                 env ds
           | Mlocal_module (loc, key, m) -> (
               let mname = Path.append key mname in
@@ -307,7 +292,7 @@ let rec add_to_env env foreign (mname, m) =
           match kind with
           (* Not in the signature of the module we add it to *)
           | Mtypedef -> Env.add_type name ~in_sig:false typ env
-          | Mvalue -> Env.(add_value name { def_value with typ } loc env))
+          | Mvalue -> Env.(add_value name { def_val with typ } loc env))
         env l
 
 and make_scope env loc foreign mname m =
@@ -451,7 +436,7 @@ let scope_of_functor_param env loc (path, mt) =
         match kind with
         (* Not in the signature of the module we add it to *)
         | Mtypedef -> Env.add_type name ~in_sig:false typ env
-        | Mvalue -> Env.(add_value name { def_value with typ } loc env))
+        | Mvalue -> Env.(add_value name { (def_mname path) with typ } loc env))
       env mt
   in
   let scope = Env.pop_scope env in

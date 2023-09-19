@@ -4,7 +4,7 @@ open Sexplib0.Sexp_conv
 
 type loc = Typed_tree.loc [@@deriving sexp]
 
-type name = { user : string; call : string; module_var : string }
+type name = { user : string; call : string option }
 
 and item =
   | Mtype of loc * typ
@@ -65,6 +65,5 @@ let make_fun loc ~mname name uniq (abs : Typed_tree.abstraction) =
   if is_polymorphic_func abs.func then Mpoly_fun (loc, abs, name, uniq)
   else
     let call = unique_name ~mname name uniq in
-    let module_var = absolute_module_name ~mname name in
-    let name = { user = name; call; module_var } in
+    let name = { user = name; call = Some call } in
     Mfun (loc, type_of_func abs.func, name)

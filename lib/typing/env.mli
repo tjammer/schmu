@@ -4,12 +4,13 @@ type key = string
 type label = { index : int; typename : Path.t }
 type t
 
-type add_value = {
+type value = {
   typ : typ;
   param : bool;
   const : bool;
   global : bool;
   mut : bool;
+  mname : Path.t option;
 }
 
 type warn_kind = Unused | Unmutated | Unused_mod
@@ -21,14 +22,7 @@ and touched = {
   ttyp : typ;
   tattr : Ast.decl_attr;
   tattr_loc : Ast.loc option;
-}
-
-type return = {
-  typ : typ;
-  const : bool;
-  global : bool;
-  mut : bool;
-  imported : Path.t option;
+  tmname : Path.t option;
 }
 
 type ext = {
@@ -44,17 +38,19 @@ type ext = {
 type scope
 type cached_module = Cm_located of Path.t | Cm_cached of Path.t * scope
 
-val def_value : add_value
+val def_value : t -> value
 (** Default value, everything is false *)
+
+val def_mname : Path.t -> value
+(** Default value, everything is false with Path arg is mname *)
 
 val empty :
   find_module:(t -> Ast.loc -> key -> cached_module) ->
   scope_of_located:(t -> Path.t -> (scope, string) result) ->
-  abs_module_name:(mname:Path.t -> string -> string) ->
   Path.t ->
   t
 
-val add_value : key -> add_value -> Ast.loc -> t -> t
+val add_value : key -> value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
 
 val add_external : key -> cname:string option -> typ -> Ast.loc -> t -> t
@@ -77,10 +73,10 @@ val close_toplevel : t -> t * closed list * touched list * unused
 val open_module : t -> Ast.loc -> Path.t -> t
 (** Like OCaml open *)
 
-val find_val : Ast.loc -> Path.t -> t -> return
-val find_val_opt : Ast.loc -> Path.t -> t -> return option
+val find_val : Ast.loc -> Path.t -> t -> value
+val find_val_opt : Ast.loc -> Path.t -> t -> value option
 
-val query_val_opt : Ast.loc -> Path.t -> t -> (return * string) option
+val query_val_opt : Ast.loc -> Path.t -> t -> value option
 (** [query_opt key env] is like find_val_opt, but marks [key] as
      being used in the current scope (e.g. a closure) *)
 

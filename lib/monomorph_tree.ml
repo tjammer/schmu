@@ -1051,13 +1051,13 @@ let set_tailrec name =
   | _ :: _ -> ()
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
-let reconstr_module_username ~mname ~mainmodule username =
+let reconstr_module_username ~mname ~mainmod username =
   (* Values queried from an imported module have a special name so they don't clash with
      user-defined values. This name is calculated in [Module.absolute_module_name]. For functions,
      polymorphic the [unique_name] also prepends the module. Their username will stay intact so we
      don't create names like prelude_prelude_thing. In order to match their queried name, we
      convert to the absolute_module_name before adding them to the environment. *)
-  let imported = Path.equal mname mainmodule |> not in
+  let imported = Path.equal mname mainmod |> not in
   if imported then Module.absolute_module_name ~mname username else username
 
 let rec_fs_to_env p (username, uniq, typ) =
@@ -1066,7 +1066,7 @@ let rec_fs_to_env p (username, uniq, typ) =
   let call = Module.unique_name ~mname:p.mname username uniq in
   let fn = Mutual_rec (call, ftyp) in
   let username =
-    reconstr_module_username ~mname:p.mname ~mainmodule:p.mainmodule username
+    reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule username
   in
   let vars = Vars.add username (Normal { no_var with fn }) p.vars in
   { p with vars }
@@ -1082,7 +1082,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
     { typ = cln param texpr.typ; expr; return; loc = texpr.loc }
   in
   match texpr.expr with
-  | Typed_tree.Var (v, _) -> morph_var make param v
+  | Typed_tree.Var (v, mname) -> morph_var make param v mname
   | Const (String s) -> morph_string make param s
   | Const (Array a) -> morph_array make param a (cln param texpr.typ)
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
@@ -1097,8 +1097,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
   | Bind (id, lhs, cont) ->
       let id =
-        reconstr_module_username ~mname:param.mname ~mainmodule:param.mainmodule
-          id
+        reconstr_module_username ~mname:param.mname ~mainmod:param.mainmodule id
       in
       let p, lhs, func = morph_expr { param with ret = false } lhs in
       let vars = Vars.add id (Normal func) p.vars in
@@ -1133,11 +1132,9 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Lambda (id, abs) -> morph_lambda make texpr.typ param id abs
   | App
       {
-        callee = { expr = Var (id, _); _ };
+        callee = { expr = Var ("print", Some (Path.Pid "std")); _ };
         args = [ ({ expr = Fmt es; _ }, _) ];
-      }
-    when String.equal id
-           (Module.absolute_module_name ~mname:(Path.Pid "std") "print") ->
+      } ->
       morph_print_str make param es
   | App { callee; args } ->
       morph_app make param callee args (cln param texpr.typ)
@@ -1152,8 +1149,16 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let mallocs = Mallocs.remove func.malloc p.mallocs in
       ({ p with mallocs }, e, { func with malloc = No_malloc })
 
-and morph_var mk p v =
+and morph_var mk p v mname =
   let (v, kind), var =
+    let v =
+      match mname with
+      | Some mname ->
+          let v = reconstr_module_username ~mname ~mainmod:p.mainmodule v in
+          print_endline ("change in var: " ^ v);
+          v
+      | None -> v
+    in
     match v with
     | "__malloc" ->
         let var = { no_var with fn = Builtin Malloc } in
@@ -1173,9 +1178,12 @@ and morph_var mk p v =
               ((v, Vnorm), { thing with malloc })
         | Some (Const thing) -> ((thing, Vconst), no_var)
         | Some (Global (id, thing, used)) ->
+            print_endline ("global: " ^ id ^ " and " ^ v);
             used := true;
             ((id, Vglobal v), thing)
-        | None -> ((v, Vnorm), no_var))
+        | None ->
+            print_endline ("not found: " ^ v);
+            ((v, Vnorm), no_var))
   in
   let ex = mk (Mvar (v, kind)) p.ret in
   (p, ex, var)
@@ -1349,9 +1357,7 @@ and morph_if mk p cond owning e1 e2 =
 
 and prep_let p id uniq e pass toplvl =
   (* username *)
-  let un =
-    reconstr_module_username ~mname:p.mname ~mainmodule:p.mainmodule id
-  in
+  let un = reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule id in
 
   let p, e1, func = morph_expr { p with ret = false } e in
   let ms, malloc, mallocs =
@@ -1477,7 +1483,7 @@ and prep_func p (username, uniq, abs) =
 
   let call = Module.unique_name ~mname:p.mname username uniq in
   let username =
-    reconstr_module_username ~mname:p.mname ~mainmodule:p.mainmodule username
+    reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule username
   in
   let recursive = Rnormal in
   let inline = abs.inline in
@@ -1874,8 +1880,8 @@ let rec morph_toplvl param items =
           func )
     | Tl_bind (id, expr) ->
         let id =
-          reconstr_module_username ~mname:param.mname
-            ~mainmodule:param.mainmodule id
+          reconstr_module_username ~mname:param.mname ~mainmod:param.mainmodule
+            id
         in
         let p, e1, func = morph_expr { param with ret = false } expr in
         let p, e2, func =
@@ -1918,10 +1924,17 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
      introduce a special case in codegen, or mark them Const_ptr when they are not *)
   let vars =
     List.fold_left
-      (fun vars { Env.ext_cname; ext_name; used; _ } ->
+      (fun vars { Env.ext_cname; ext_name; used; imported; _ } ->
         let cname =
           match ext_cname with None -> ext_name | Some cname -> cname
         in
+        let ext_name =
+          match imported with
+          | Some (mname', _) ->
+              reconstr_module_username ~mname:mname' ~mainmod:mname ext_name
+          | None -> ext_name
+        in
+        print_endline ("add ext_name: " ^ ext_name ^ ", " ^ cname);
         Vars.add ext_name (Global (cname, no_var, used)) vars)
       Vars.empty externals
   in

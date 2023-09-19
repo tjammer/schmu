@@ -341,6 +341,7 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
               param = true;
               global = false;
               mut = mut_of_pattr dattr;
+              mname = None;
             }
             idloc env,
           i + 1 ),
@@ -632,10 +633,10 @@ end = struct
 
   and convert_var env loc id =
     match Env.query_val_opt loc id env with
-    | Some (t, id) ->
+    | Some t ->
         let typ = instantiate t.typ in
         let attr = { const = t.const; global = t.global; mut = t.mut } in
-        { typ; expr = Var (id, t.imported); attr; loc }
+        { typ; expr = Var (Path.get_hd id, t.mname); attr; loc }
     | None ->
         (* Functor parameters are not local modules and will raise an [Error] in module.ml.
            That's by accident, and the error message is abysmal and mentions internals, thus
@@ -694,9 +695,10 @@ end = struct
     let mut = mut_of_pattr decl.dattr in
     let const = if has_exprname then false else e1.attr.const && not mut in
     let global = if has_exprname then false else global in
+    let mname = Some (Env.modpath env) in
     let env =
       Env.add_value id
-        { Env.def_value with typ = e1.typ; const; global; mut }
+        { (Env.def_value env) with typ = e1.typ; const; global; mut; mname }
         idloc env
     in
     let env, pat_exprs = convert_decl env [ decl ] in
@@ -788,7 +790,7 @@ end = struct
           List.map (fun p -> Ast.{ pattr = p.dattr; pt = newvar () }) params
         in
         let typ = Tfun (ps, newvar (), Simple) in
-        Env.(add_value name { def_value with typ } nameloc env)
+        Env.(add_value name { (def_value env) with typ } nameloc env)
     in
 
     (* We duplicate some lambda code due to naming *)
@@ -1149,7 +1151,7 @@ end = struct
             enter_level ();
             let typ = newvar () in
             leave_level ();
-            Env.(add_value name { def_value with typ } nameloc env)
+            Env.(add_value name { (def_value env) with typ } nameloc env)
           in
           let env = List.fold_left collect env funcs in
           let f env (loc, func) =
@@ -1339,6 +1341,8 @@ module Subst_functor = struct
     | Some m -> (
         match Pmap.find_opt m psub with
         | Some mname ->
+            (* It's wrong to rename every var. Only the ones which
+               come from the origin functor should be renamed *)
             (* Replace the module part in id *)
             let pre = Module.absolute_module_name ~mname:m "" in
             let post =
@@ -1410,10 +1414,7 @@ and convert_prog env items modul =
         (* Make cname explicit to link the correct name even if schmu identifier
            has the module name prepended *)
         let cname = block_external_name loc ~cname id in
-        let m =
-          Module.add_external ~mname:(Env.modpath env) loc typ id cname
-            ~closure:false m
-        in
+        let m = Module.add_external loc typ id cname ~closure:false m in
         (Env.add_external id ~cname typ idloc env, items, m)
     | Typedef (loc, Trecord t) ->
         let env, typ = type_record ~in_sig:false env loc t in
@@ -1588,9 +1589,6 @@ and convert_prog env items modul =
               Module.register_applied_functor env loc id applied_name modul
             in
 
-            (* if Option.is_some annot then *)
-            (*   raise *)
-            (*     (Error (loc, "TODO annotation checking for applied functors")); *)
             check_module_annot env loc ~mname:applied_name modul annot;
             let m =
               Module.add_applied_functor loc id applied_name modul ~into:m
@@ -1625,10 +1623,7 @@ and convert_prog env items modul =
           Some (Module.unique_name ~mname:(Env.modpath env) id uniq)
         in
         (* TODO special handling for lambdas *)
-        let m =
-          Module.add_external ~mname:(Env.modpath env) loc lhs.typ id uniq_name
-            ~closure:true m
-        in
+        let m = Module.add_external loc lhs.typ id uniq_name ~closure:true m in
         let expr =
           let expr = Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr } in
           match pats with
@@ -1650,7 +1645,7 @@ and convert_prog env items modul =
           enter_level ();
           let typ = newvar () in
           leave_level ();
-          Env.(add_value name { def_value with typ } nameloc env)
+          Env.(add_value name { (def_value env) with typ } nameloc env)
         in
         let env = List.fold_left collect env funcs in
         let f env (loc, func) =
@@ -1696,7 +1691,6 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   (* Add builtins to env *)
   let find_module = Module.find_module ~regeneralize in
   let scope_of_located = Module.scope_of_located in
-  let abs_module_name = Module.absolute_module_name in
 
   let env =
     Builtin.(
@@ -1704,8 +1698,11 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
           enter_level ();
           let typ = instantiate typ in
           leave_level ();
-          Env.(add_value str { def_value with typ = generalize typ } loc env)))
-      (Env.empty ~find_module ~scope_of_located ~abs_module_name mname)
+          Env.(
+            add_value str
+              { (def_value env) with typ = generalize typ; mname = None }
+              loc env)))
+      (Env.empty ~find_module ~scope_of_located mname)
   in
 
   (* Open prelude *)

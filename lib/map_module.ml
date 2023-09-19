@@ -140,19 +140,16 @@ module Make (C : Map_tree) = struct
     | Let d ->
         let sub, rhs = (map_body mname nsub) sub d.rhs in
         (* Change binding name as well *)
-        let nsub = Smap.add d.id (C.absolute_module_name ~mname d.id) nsub in
         let sub, cont = (map_body mname nsub) sub d.cont in
         (sub, Let { d with rhs; cont })
     | Bind (id, lhs, cont) ->
         let sub, lhs = (map_body mname nsub) sub lhs in
-        let nsub = Smap.add id (C.absolute_module_name ~mname id) nsub in
         let sub, cont = (map_body mname nsub) sub cont in
         (sub, Bind (id, lhs, cont))
     | Lambda (i, abs) ->
         let sub, abs = map_abs mname sub nsub abs in
         (sub, Lambda (i, abs))
     | Function (n, u, abs, cont) ->
-        let nsub = Smap.add n (C.absolute_module_name ~mname n) nsub in
         let sub, abs = map_abs mname sub nsub abs in
         let sub, cont = (map_body mname nsub) sub cont in
         (sub, Function (n, u, abs, cont))
@@ -275,15 +272,12 @@ module Make (C : Map_tree) = struct
         let sub, lhs = (map_body mname nsub) sub d.lhs in
         (* Change binding name *)
         (* Is absolute module name correct for functor bodies? *)
-        let nsub = Smap.add d.id (C.absolute_module_name ~mname d.id) nsub in
         ((nsub, sub), Typed_tree.Tl_let { d with lhs })
     | Tl_bind (id, rhs) ->
         let sub, rhs = (map_body mname nsub) sub rhs in
-        let nsub = Smap.add id (C.absolute_module_name ~mname id) nsub in
         ((nsub, sub), Tl_bind (id, rhs))
     | Tl_function (loc, n, u, abs) ->
-        let nsub' = Smap.add n (C.absolute_module_name ~mname n) nsub in
-        let sub, abs = map_abs mname sub nsub' abs in
+        let sub, abs = map_abs mname sub nsub abs in
         ((nsub, sub), Tl_function (loc, n, u, abs))
     | Tl_expr e ->
         let sub, e = map_body mname nsub sub e in
@@ -307,27 +301,23 @@ module Make (C : Map_tree) = struct
         ((a, nsub), Mtype (l, t))
     | Mfun (l, t, n) ->
         let a, t = C.map_type sub t in
-        let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
-        ((a, s), Mfun (l, t, n))
+        ((a, nsub), Mfun (l, t, n))
     | Mext (l, t, n, c) ->
         let a, t = C.map_type sub t in
-        let s = Smap.add n.user (absolute_module_name ~mname n.user) nsub in
-        ((a, s), Mext (l, t, n, c))
+        ((a, nsub), Mext (l, t, n, c))
     | Mpoly_fun (l, abs, n, u) ->
         (* Change Var-nodes in body here *)
-        let s = Smap.add n (absolute_module_name ~mname n) nsub in
-        let a, abs = map_abs mname sub s abs in
+        let a, abs = map_abs mname sub nsub abs in
         (* This allows changes from poly fun to concrete fun for functors *)
         let fun_ = make_fun l ~mname n u abs in
         (* This will be ignored in [add_to_env] *)
-        ((a, s), fun_)
+        ((a, nsub), fun_)
     | Mmutual_rec (l, decls) ->
         let (a, nsub), decls =
           List.fold_left_map
             (fun (sub, nsub) (l, n, u, t) ->
               let a, t = C.map_type sub t in
-              let s = Smap.add n (absolute_module_name ~mname n) nsub in
-              ((a, s), (l, n, u, t)))
+              ((a, nsub), (l, n, u, t)))
             (sub, nsub) decls
         in
         ((a, nsub), Mmutual_rec (l, decls))

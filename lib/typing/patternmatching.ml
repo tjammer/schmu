@@ -503,7 +503,7 @@ module Make (C : Core) (R : Recs) = struct
   open C
   open R
 
-  let exprval = Env.def_value
+  let exprval env = Env.def_value env
 
   module Row = struct
     type t = { loc : Ast.loc; cnt : int }
@@ -687,7 +687,7 @@ module Make (C : Core) (R : Recs) = struct
         match (ctor.ctyp, payload) with
         | Some typ, Some p ->
             let env =
-              add_ignore (expr_name path) { exprval with typ } loc env
+              add_ignore (expr_name path) { (exprval env) with typ } loc env
             in
             (* Inherit ctor path, and specialize *)
             let lst = type_pattern env (path, p) in
@@ -721,7 +721,7 @@ module Make (C : Core) (R : Recs) = struct
               let path = i :: path in
               let env =
                 add_ignore (expr_name path)
-                  { exprval with typ = newvar () }
+                  { (exprval env) with typ = newvar () }
                   loc env
               in
               let tpats = type_pattern env (path, pat) in
@@ -771,7 +771,7 @@ module Make (C : Core) (R : Recs) = struct
               let path = index :: path in
               let env =
                 add_ignore (expr_name path)
-                  { exprval with typ = field.ftyp }
+                  { (exprval env) with typ = field.ftyp }
                   loc env
               in
               match pat with
@@ -814,7 +814,7 @@ module Make (C : Core) (R : Recs) = struct
     let path = [ 0 ] in
     let env, expr =
       let e = convert env expr in
-      (add_ignore (expr_name path) { exprval with typ = e.typ } loc env, e)
+      (add_ignore (expr_name path) { (exprval env) with typ = e.typ } loc env, e)
     in
 
     let ret = newvar () in
@@ -880,7 +880,9 @@ module Make (C : Core) (R : Recs) = struct
           let typ = (snd p).ptyp and expr = Variant_data (expr i) in
           let data = { typ; expr; attr = no_attr; loc } in
           let env =
-            add_ignore (expr_name i) { exprval with typ = data.typ } loc env
+            add_ignore (expr_name i)
+              { (exprval env) with typ = data.typ }
+              loc env
           in
           (data, env)
       | None -> (expr i, env)
@@ -908,7 +910,7 @@ module Make (C : Core) (R : Recs) = struct
                      it needs to be captured in closures and cannot be called directly,
                      because it might be a record field. Marking it param works fine
                      in this case *)
-                  { def_value with typ = pltyp; param = true }
+                  { (def_value env) with typ = pltyp; param = true }
                   loc d.ret_env)
             in
             (* Continue with expression *)
@@ -1008,7 +1010,7 @@ module Make (C : Core) (R : Recs) = struct
                 (fun env field ->
                   let col = field.index :: path in
                   add_ignore (expr_name col)
-                    { exprval with typ = field.iftyp }
+                    { (exprval env) with typ = field.iftyp }
                     loc env)
                 env fields
             in
@@ -1043,7 +1045,7 @@ module Make (C : Core) (R : Recs) = struct
                 (fun env pat ->
                   let col = pat.tindex :: path in
                   add_ignore (expr_name col)
-                    { exprval with typ = pat.ttyp }
+                    { (exprval env) with typ = pat.ttyp }
                     loc env)
                 env fields
             in
@@ -1239,7 +1241,7 @@ module Make (C : Core) (R : Recs) = struct
                     let id = expr_name col in
 
                     ( add_ignore (expr_name col)
-                        { exprval with typ = f.iftyp }
+                        { (exprval env) with typ = f.iftyp }
                         loc env,
                       (id, expr) ))
                   env fields
@@ -1260,7 +1262,7 @@ module Make (C : Core) (R : Recs) = struct
                     let id = expr_name col in
 
                     ( add_ignore (expr_name col)
-                        { exprval with typ = f.ttyp }
+                        { (exprval env) with typ = f.ttyp }
                         loc env,
                       (id, expr) ))
                   env fields
@@ -1271,7 +1273,7 @@ module Make (C : Core) (R : Recs) = struct
               let env =
                 Env.(
                   add_value id
-                    { def_value with typ = pat.ptyp; param = true }
+                    { (def_value env) with typ = pat.ptyp; param = true }
                     loc env)
               in
               loop (env, (id, expr env path loc) :: binds) tl

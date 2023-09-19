@@ -30,14 +30,7 @@ val add_rec_block :
   t
 
 val add_external :
-  loc ->
-  typ ->
-  string ->
-  mname:Path.t ->
-  string option ->
-  closure:bool ->
-  t ->
-  t
+  loc -> typ -> string -> string option -> closure:bool -> t -> t
 
 val add_local_module : loc -> string -> t -> into:t -> t
 val add_module_alias : loc -> string -> Path.t -> into:t -> t

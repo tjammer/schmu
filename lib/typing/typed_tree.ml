@@ -80,6 +80,7 @@ and touched = Env.touched = {
   ttyp : typ;
   tattr : dattr;
   tattr_loc : loc option;
+  tmname : Path.t option;
 }
 
 and func = {
