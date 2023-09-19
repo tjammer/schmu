@@ -959,3 +959,9 @@ Apply local functors
   $ ./local_functor
   5
   5
+
+Simple functor
+  $ schmu -m simple_functor.smu
+  $ schmu use_simple_functor.smu
+  $ ./use_simple_functor
+  create: this other

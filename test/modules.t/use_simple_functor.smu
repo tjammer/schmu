@@ -1,0 +1,3 @@
+(module s (simple_functor/make string))
+
+(ignore (s/create !"this" !"other"))

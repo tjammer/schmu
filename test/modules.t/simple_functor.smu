@@ -1,0 +1,10 @@
+(module-type sig
+  (type t)
+  (def hash (fun t int)))
+
+(functor make [(m sig)]
+  (type (other 'a) {:this m/t :other 'a})
+
+  (defn create [this! other!]
+    (print (fmt-str "create: " this " " other))
+    {:this :other}))

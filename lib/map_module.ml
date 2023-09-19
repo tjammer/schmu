@@ -95,10 +95,15 @@ module Canonize = struct
         let sub, ps = List.fold_left_map (fun sub t -> canonize sub t) sub ps in
         let sub, t =
           match t with
-          | Tvar { contents = Unbound _ } ->
-              (* If it's still unbound, then there is no matching impl *)
-              failwith
-                "Internal Error: Should this not have been caught before?"
+          | Tvar { contents = Unbound (sym, l) } -> (
+              (* If it's still unbound, then it belongs to a module-type.
+                 Use the same mechanism as for Qvar ids to create something sensible *)
+              match Smap.find_opt sym sub with
+              | Some s -> (sub, Tvar (ref (Unbound (s, l))))
+              | None ->
+                  let ns = string_of_int !c in
+                  incr c;
+                  (Smap.add sym ns sub, Tvar (ref (Unbound (ns, l)))))
           | t ->
               let sub, t = canonize sub t in
               (sub, t)
@@ -283,8 +288,16 @@ module Make (C : Map_tree) = struct
     | Tl_expr e ->
         let sub, e = map_body mname nsub sub e in
         ((nsub, sub), Tl_expr e)
-    | (Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _) as todo ->
-        ((nsub, sub), todo)
+    | Tl_mutual_rec_decls decls ->
+        let sub, decls =
+          List.fold_left_map
+            (fun sub (n, u, t) ->
+              let sub, t = C.map_type sub t in
+              (sub, (n, u, t)))
+            sub decls
+        in
+        ((nsub, sub), Tl_mutual_rec_decls decls)
+    | (Tl_module _ | Tl_module_alias _) as todo -> ((nsub, sub), todo)
 
   open Module_common
 
@@ -318,28 +331,35 @@ module Make (C : Map_tree) = struct
             (sub, nsub) decls
         in
         ((a, nsub), Mmutual_rec (l, decls))
+    (* Substitutions from inner modules shouldn't be carried outward *)
     | Mlocal_module (loc, n, t) ->
-        let t = map_module (Path.append n mname) sub t in
+        let _, t = map_module (Path.append n mname) sub t in
         ((sub, nsub), Mlocal_module (loc, n, t))
     | Mapplied_functor (loc, n, p, t) ->
-        let t = map_module p sub t in
+        let _, t = map_module p sub t in
         ((sub, nsub), Mapplied_functor (loc, n, p, t))
-    | Mfunctor (loc, n, ps, t) ->
-        let f (n, intf) = (n, map_intf C.empty_sub intf) in
-        let ps = List.map f ps in
-        let sub, t = map_tl_items (Path.append n mname) nsub sub t in
-        ((sub, nsub), Mfunctor (loc, n, ps, t))
+    | Mfunctor (loc, n, ps, t, m) ->
+        let mname = Path.append n mname in
+        let f sub (n, intf) =
+          let sub, intf = map_intf sub intf in
+          (sub, (n, intf))
+        in
+        let osub = sub in
+        let sub, ps = List.fold_left_map f sub ps in
+        let sub, t = map_tl_items mname nsub sub t in
+        let _, m = map_module mname sub m in
+        ((osub, nsub), Mfunctor (loc, n, ps, t, m))
     | Mmodule_alias _ as m -> ((sub, nsub), m)
     | Mmodule_type (loc, n, intf) ->
-        let intf = map_intf C.empty_sub intf in
+        let _, intf = map_intf sub intf in
         ((sub, nsub), Mmodule_type (loc, n, intf))
 
   and map_module mname sub m =
     let (sub, _), i =
       List.fold_left_map (fold_map_type_item mname) (sub, Smap.empty) m.i
     in
-    let s = map_intf sub m.s in
-    { m with s; i }
+    let sub, s = map_intf sub m.s in
+    (sub, { m with s; i })
 
   and map_intf sub intf =
     List.fold_left_map
@@ -347,5 +367,4 @@ module Make (C : Map_tree) = struct
         let sub, t = C.map_type sub t in
         (sub, (key, l, t, k)))
       sub intf
-    |> snd
 end

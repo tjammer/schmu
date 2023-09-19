@@ -49,6 +49,7 @@ val add_functor :
   string ->
   (string * Module_type.t) list ->
   Typed_tree.toplevel_item list ->
+  t ->
   into:t ->
   t
 

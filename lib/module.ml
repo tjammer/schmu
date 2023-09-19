@@ -61,8 +61,8 @@ let add_module_alias loc key mname ~into =
 let add_module_type loc id mtype m =
   { m with i = Mmodule_type (loc, id, mtype) :: m.i }
 
-let add_functor loc id params body ~into =
-  { into with i = Mfunctor (loc, id, params, body) :: into.i }
+let add_functor loc id params body m ~into =
+  { into with i = Mfunctor (loc, id, params, body, m) :: into.i }
 
 let add_applied_functor loc id mname m ~into =
   { into with i = Mapplied_functor (loc, id, mname, m) :: into.i }
@@ -196,11 +196,12 @@ let rec map_item ~mname ~f = function
       Mlocal_module (l, name, map_t ~mname:(Path.append name mname) ~f t)
   | Mapplied_functor (l, n, mname, t) ->
       Mapplied_functor (l, n, mname, map_t ~mname ~f t)
-  | Mfunctor (l, name, ps, t) ->
+  | Mfunctor (l, name, ps, t, m) ->
       let ps = List.map (fun (n, intf) -> (n, map_intf ~f intf)) ps in
-      (* let mname = Path.append name mname in *)
       (* Regeneralize on substitution with correct module *)
-      Mfunctor (l, name, ps, t)
+      (* Mapping here isn't needed. The correct values will be filled when the functor is applied *)
+      (* let m = map_t ~mname:(Path.append name mname) ~f m in *)
+      Mfunctor (l, name, ps, t, m)
   | Mmodule_alias _ as m -> m
   | Mmodule_type (l, name, intf) -> Mmodule_type (l, name, map_intf ~f intf)
 
@@ -286,12 +287,11 @@ let rec add_to_env env foreign (mname, m) =
                   Env.add_module ~key (envmodule_of_cached mname cached) env)
           | Mapplied_functor (loc, key, p, m) ->
               register_applied_functor env loc key p m
-          | Mfunctor (loc, key, ps, m) ->
-              ignore loc;
-              ignore key;
-              ignore ps;
-              ignore m;
-              failwith "TODO add functor to env"
+          | Mfunctor (loc, key, ps, items, m) -> (
+              let mname = Path.append key mname in
+              match register_functor env loc mname ps items m with
+              | Ok env -> env
+              | Error () -> raise (Error (loc, "Cannot add functor")))
           | Mmodule_alias (loc, key, mname, fname) -> (
               match Hashtbl.find_opt module_cache mname with
               | None ->
@@ -502,7 +502,7 @@ let rec rev { s; i; objects } =
 
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in
-  let m = rev m |> Canon.map_module (Path.Pid outname) Map_canon.empty_sub in
+  let _, m = rev m |> Canon.map_module (Path.Pid outname) Map_canon.empty_sub in
   (* Correct objects only exist after [canonize_t] *)
   let objects =
     Hashtbl.fold

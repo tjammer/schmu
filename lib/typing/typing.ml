@@ -1507,7 +1507,7 @@ and convert_prog env items modul =
               raise (Error (loc, msg))
         in
         check_module_annot env loc ~mname newm annot;
-        let m = add_functor loc id params functor_items ~into:m in
+        let m = add_functor loc id params functor_items newm ~into:m in
 
         (* Don't add moditems to items here. We add items of the applied functor *)
         (env, items, m)
@@ -1583,7 +1583,7 @@ and convert_prog env items modul =
             in
             let moditems = List.map (fun item -> (applied_name, item)) body in
             let items = Tl_module moditems :: items in
-            let modul = Subst.map_module applied_name merged_subs modul in
+            let _, modul = Subst.map_module applied_name merged_subs modul in
             let env =
               Module.register_applied_functor env loc id applied_name modul
             in

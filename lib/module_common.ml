@@ -14,7 +14,7 @@ and item =
   | Mmutual_rec of loc * (loc * string * int option * typ) list
   | Mlocal_module of loc * string * t
   | Mfunctor of
-      loc * string * (string * intf) list * Typed_tree.toplevel_item list
+      loc * string * (string * intf) list * Typed_tree.toplevel_item list * t
   | Mapplied_functor of loc * string * Path.t * t
     (* Special treatment as the name is a path, not a string.
        Theoretically, this could be merged with local_module if we convert the name
