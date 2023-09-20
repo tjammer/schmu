@@ -34,6 +34,7 @@ type label = {
 type value = {
   typ : typ;
   param : bool;
+  (* More like force-capture *)
   const : bool;
   global : bool;
   mut : bool;
@@ -199,7 +200,8 @@ let add_external ext_name ~cname typ loc env =
         let value =
           {
             typ;
-            mname = None;
+            mname = Some env.modpath;
+            (* Give externals a modpath for name resolution across modules *)
             global = true;
             const = false;
             mut = false;
@@ -391,11 +393,12 @@ let close_thing is_same modpath env =
                  let cl =
                    if const || global || is_imported then None
                    else
+                     let cltyp = typ and clparam = param and clmname = mname in
                      match clean typ with
                      | Tfun (_, _, Closure _) ->
-                         Some { clname; cltyp = typ; clmut; clparam = param }
+                         Some { clname; cltyp; clmut; clparam; clmname }
                      | Tfun _ when not param -> None
-                     | _ -> Some { clname; cltyp = typ; clmut; clparam = param }
+                     | _ -> Some { clname; cltyp; clmut; clparam; clmname }
                  in
 
                  let t =
@@ -537,7 +540,6 @@ let query_val_opt loc pkey env =
             in_module then add 1 (key, v) env.values;
     (* Mark value used, if it's not imported *)
     mark_used (Path.Pid key) kind env.in_mut;
-    let mname = if param then None else mname in
     Some { typ; const; global; mut; mname; param }
   in
 

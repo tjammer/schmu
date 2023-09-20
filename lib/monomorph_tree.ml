@@ -908,6 +908,15 @@ let extract_callname default vars expr =
   | Concrete (func, _) -> func.name.call
   | No_function -> default
 
+let reconstr_module_username ~mname ~mainmod username =
+  (* Values queried from an imported module have a special name so they don't clash with
+     user-defined values. This name is calculated in [Module.absolute_module_name]. For functions,
+     polymorphic the [unique_name] also prepends the module. Their username will stay intact so we
+     don't create names like prelude_prelude_thing. In order to match their queried name, we
+     convert to the absolute_module_name before adding them to the environment. *)
+  let imported = Path.equal mname mainmod |> not in
+  if imported then Module.absolute_module_name ~mname username else username
+
 let rec cln p = function
   | Types.Tvar { contents = Link t } | Talias (_, t) -> cln p t
   | Tint -> Tint
@@ -958,10 +967,17 @@ and cln_kind p = function
         List.map
           (fun (cl : Types.closed) ->
             let typ = cln p cl.cltyp in
+            let modded_name =
+              match cl.clmname with
+              | Some mname ->
+                  reconstr_module_username ~mname ~mainmod:p.mainmodule
+                    cl.clname
+              | None -> cl.clname
+            in
             let clname =
               if not cl.clparam then
-                extract_callname cl.clname p.vars (Mvar (cl.clname, Vnorm))
-              else cl.clname
+                extract_callname modded_name p.vars (Mvar (cl.clname, Vnorm))
+              else modded_name
             in
             { clname; cltyp = typ; clmut = cl.clmut; clparam = cl.clparam })
           vals
@@ -1050,15 +1066,6 @@ let set_tailrec name =
       recursion_stack := (nm, Rtail) :: tl
   | _ :: _ -> ()
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
-
-let reconstr_module_username ~mname ~mainmod username =
-  (* Values queried from an imported module have a special name so they don't clash with
-     user-defined values. This name is calculated in [Module.absolute_module_name]. For functions,
-     polymorphic the [unique_name] also prepends the module. Their username will stay intact so we
-     don't create names like prelude_prelude_thing. In order to match their queried name, we
-     convert to the absolute_module_name before adding them to the environment. *)
-  let imported = Path.equal mname mainmod |> not in
-  if imported then Module.absolute_module_name ~mname username else username
 
 let rec_fs_to_env p (username, uniq, typ) =
   let ftyp = cln p typ in
@@ -1153,10 +1160,7 @@ and morph_var mk p v mname =
   let (v, kind), var =
     let v =
       match mname with
-      | Some mname ->
-          let v = reconstr_module_username ~mname ~mainmod:p.mainmodule v in
-          print_endline ("change in var: " ^ v);
-          v
+      | Some mname -> reconstr_module_username ~mname ~mainmod:p.mainmodule v
       | None -> v
     in
     match v with
@@ -1178,12 +1182,9 @@ and morph_var mk p v mname =
               ((v, Vnorm), { thing with malloc })
         | Some (Const thing) -> ((thing, Vconst), no_var)
         | Some (Global (id, thing, used)) ->
-            print_endline ("global: " ^ id ^ " and " ^ v);
             used := true;
             ((id, Vglobal v), thing)
-        | None ->
-            print_endline ("not found: " ^ v);
-            ((v, Vnorm), no_var))
+        | None -> ((v, Vnorm), no_var))
   in
   let ex = mk (Mvar (v, kind)) p.ret in
   (p, ex, var)
@@ -1934,7 +1935,6 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
               reconstr_module_username ~mname:mname' ~mainmod:mname ext_name
           | None -> ext_name
         in
-        print_endline ("add ext_name: " ^ ext_name ^ ", " ^ cname);
         Vars.add ext_name (Global (cname, no_var, used)) vars)
       Vars.empty externals
   in

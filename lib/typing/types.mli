@@ -26,7 +26,14 @@ and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : Ast.decl_attr }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
-and closed = { clname : string; clmut : bool; cltyp : typ; clparam : bool }
+
+and closed = {
+  clname : string;
+  clmut : bool;
+  cltyp : typ;
+  clparam : bool;
+  clmname : Path.t option;
+}
 
 val clean : typ -> typ
 (** Follows links and aliases *)

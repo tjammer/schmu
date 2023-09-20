@@ -17,53 +17,76 @@ module Usage = struct
     | Dset -> Uset
 end
 
+let current_module = ref None
+
 module Id = struct
-  type t = Fst of string | Shadowed of string * int [@@deriving show]
+  module Pathid = struct
+    type t = string * Path.t option
+
+    let show (s, p) =
+      match p with Some p -> Path.show (Path.append s p) | None -> s
+
+    let pp ppf p = Format.fprintf ppf "%s" (show p)
+
+    let equal (a, ap) (b, bp) =
+      match (ap, bp) with
+      | Some ap, Some bp -> String.equal a b && Path.equal ap bp
+      | None, None -> String.equal a b
+      | None, Some _ | Some _, None -> false
+
+    let compare (a, ap) (b, bp) =
+      match (ap, bp) with
+      | Some ap, Some bp ->
+          let c = String.compare a b in
+          if c == 0 then Path.compare ap bp else c
+      | None, None -> String.compare a b
+      | None, Some _ | Some _, None -> Stdlib.compare (a, ap) (b, bp)
+
+    let startswith ~prefix (a, _) = String.starts_with ~prefix a
+  end
+
+  type t = Fst of Pathid.t | Shadowed of Pathid.t * int [@@deriving show]
 
   let compare a b =
     match (a, b) with
-    | Fst a, Fst b -> String.compare a b
+    | Fst a, Fst b -> Pathid.compare a b
     | Shadowed (a, ai), Shadowed (b, bi) ->
-        let c = String.compare a b in
+        let c = Pathid.compare a b in
         if c == 0 then Int.compare ai bi else c
     | Fst a, Shadowed (b, bi) ->
-        let c = String.compare a b in
+        let c = Pathid.compare a b in
         if c == 0 then bi else -c
     | Shadowed (a, ai), Fst b ->
-        let c = String.compare a b in
+        let c = Pathid.compare a b in
         if c == 0 then ai else -c
 
   let equal a b =
     match (a, b) with
-    | Fst a, Fst b -> String.equal a b
+    | Fst a, Fst b -> Pathid.equal a b
     | Shadowed (a, ai), Shadowed (b, bi) ->
-        let c = String.equal a b in
+        let c = Pathid.equal a b in
         if c then Int.equal ai bi else c
     | Fst _, Shadowed _ | Shadowed _, Fst _ -> false
 
   let is_string s =
     match fst s with
-    | Fst s | Shadowed (s, _) -> String.starts_with ~prefix:"__string" s
+    | Fst s | Shadowed (s, _) -> Pathid.startswith ~prefix:"__string" s
 
   let s (s, part) =
     let name = match s with Fst s -> s | Shadowed (s, _) -> s in
-    let from_module name =
-      String.starts_with ~prefix:"_" name && String.contains_from name 1 '_'
-    in
-    let fmt name =
-      let start = if String.starts_with ~prefix:"_schmu" name then 7 else 1 in
-      String.sub name start (String.length name - start)
-      |> String.split_on_char '_' |> String.concat "/"
+    let fmt (name, p) =
+      match p with
+      | Some p ->
+          let mname = Option.get !current_module in
+          Path.(rm_name mname (append name p) |> show)
+      | None -> name
     in
     match part with
-    | [] -> if from_module name then fmt name else name
-    | l when String.starts_with ~prefix:"__expr" name ->
+    | [] -> fmt name
+    | l when Pathid.startswith ~prefix:"__expr" name ->
         (* Special case for pattern matches in lets *)
         String.concat "." (List.map snd l)
-    | l ->
-        (if from_module name then fmt name else name)
-        ^ "."
-        ^ String.concat "." (List.map snd l)
+    | l -> fmt name ^ "." ^ String.concat "." (List.map snd l)
 end
 
 type borrow = {
@@ -122,7 +145,7 @@ let are_borrow bs =
 
 type bopt = binding option [@@deriving show]
 
-module Smap = Map.Make (String)
+module Smap = Map.Make (Id.Pathid)
 module Map = Map.Make (Id)
 
 let borrow_state = ref 0
@@ -130,7 +153,8 @@ let param_pass = ref false
 let shadowmap = ref Smap.empty
 let is_string = function Sp_string -> true | Sp_no | Sp_array_get -> false
 
-let new_id str =
+let new_id str mname =
+  let str = (str, mname) in
   match Smap.find_opt str !shadowmap with
   | Some i ->
       shadowmap := Smap.add str (i + 1) !shadowmap;
@@ -267,7 +291,7 @@ let make_copy_call loc tree =
 let string_lit_borrow tree mut =
   let loc = Typed_tree.(tree.loc) in
   let copy tree = make_copy_call loc tree in
-  let borrowed = { bid = new_id "__string"; bpart = [] } in
+  let borrowed = { bid = new_id "__string" None; bpart = [] } in
   let parent = borrowed.bid in
   match mut with
   | Usage.Uread ->
@@ -356,8 +380,8 @@ let rec check_excl_chain loc env borrow hist =
 and check_excl_chains loc env borrow hist =
   List.iter (fun b -> check_excl_chain loc env b hist) borrow
 
-let make_var loc name typ =
-  { typ; expr = Var (name, None); attr = no_attr; loc }
+let make_var loc name mname typ =
+  { typ; expr = Var (name, mname); attr = no_attr; loc }
 
 let binding_of_borrow borrow = function
   | Usage.Uread -> Borrow borrow
@@ -390,9 +414,9 @@ let move_b loc special b =
 
 let rec check_tree env mut ((bpart, special) as bdata) tree hist =
   match tree.expr with
-  | Var (borrowed, _) ->
+  | Var (borrowed, mname) ->
       (* This is no rvalue, we borrow *)
-      let bid = get_id borrowed in
+      let bid = get_id (borrowed, mname) in
       let loc = tree.loc in
       let make bind_only b =
         if bind_only then
@@ -593,7 +617,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
   | App { callee; args } ->
       (* The callee itself can be borrowed *)
       let callee, b, hs = check_tree env Uread no_bdata callee hist in
-      let tmp = Map.add (Fst "_env") b env in
+      let tmp = Map.add (Fst ("_env", None)) b env in
       let (_, tmp, hs), args =
         List.fold_left_map
           (fun (i, tmp, hs) (arg, attr) ->
@@ -604,7 +628,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
               | Umove -> { arg with expr = Move arg }
               | Uread | Umut | Uset -> arg
             in
-            let tmp = Map.add (Fst ("_" ^ string_of_int i)) v tmp in
+            let tmp = Map.add (Fst ("_" ^ string_of_int i, None)) v tmp in
             ((i + 1, tmp, add_hist v hs), (arg, attr)))
           (0, tmp, add_hist b hs)
           args
@@ -719,7 +743,10 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
         match List.rev bindings with
         | [] -> env
         | bs ->
-            Map.add (Fst name) { imm = []; delayed = bs; bind_only = false } env
+            Map.add
+              (Fst (name, !current_module))
+              { imm = []; delayed = bs; bind_only = false }
+              env
       in
       let cont, v, hs = check_tree env mut bdata cont hist in
       let expr = Function (name, u, abs, cont) in
@@ -756,7 +783,7 @@ and check_let ~tl loc env id lhs rmut pass hist =
     incr borrow_state;
     !borrow_state
   in
-  let id = new_id id in
+  let id = new_id id !current_module in
   let borrow hs = function
     | Bmove _ when unspec_passing ->
         raise
@@ -803,7 +830,7 @@ and check_let ~tl loc env id lhs rmut pass hist =
 
 and check_bind env name expr hist =
   let e, b, hist = check_tree env Uread no_bdata expr hist in
-  let id = new_id name in
+  let id = new_id name !current_module in
   let env =
     match b.imm with
     | [] -> env
@@ -817,7 +844,7 @@ and check_abstraction env loc touched hist =
       (* For moved values, don't check touched here. Instead, add them as
          bindings later so they get moved on first use *)
       let usage = Usage.of_attr use.tattr in
-      let var = make_var loc use.tname use.ttyp in
+      let var = make_var loc use.tname use.tmname use.ttyp in
       let _, b, _ = check_tree env usage no_bdata var hist in
       b.imm @ bindings)
     [] touched
@@ -843,7 +870,10 @@ let check_item (env, bind, mut, part, hist) = function
         match List.rev bindings with
         | [] -> env
         | bs ->
-            Map.add (Fst name) { imm = []; delayed = bs; bind_only = false } env
+            Map.add
+              (Fst (name, !current_module))
+              { imm = []; delayed = bs; bind_only = false }
+              env
       in
       ((env, bind, mut, part, hist), f)
   | (Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _) as item ->
@@ -868,10 +898,11 @@ let find_usage id hist =
       (* The binding was not used *)
       (Ast.Dnorm, None)
 
-let check_tree pts pns touched body =
-  (* Add parameters to initial environment *)
-  (* print_endline (show_expr body.expr); *)
+let check_tree ~mname pts pns touched body =
   reset ();
+  current_module := Some mname;
+
+  (* Add parameters to initial environment *)
   let borrow_of_param bid loc =
     incr borrow_state;
     let borrowed = { bid; bpart = [] } in
@@ -884,8 +915,8 @@ let check_tree pts pns touched body =
   let env, hist =
     List.fold_left
       (fun (map, hs) t ->
-        let id = t.tname |> new_id in
-        assert (Id.equal id (Fst t.tname));
+        let id = new_id t.tname t.tmname in
+        assert (Id.equal id (Fst (t.tname, t.tmname)));
         let b = [ Bown id ] in
         (Map.add id (imm b) map, add_hist (imm b) hs))
       (Map.empty, Map.empty) touched
@@ -897,8 +928,9 @@ let check_tree pts pns touched body =
       (fun (map, hs) (n, _) ->
         (* Parameters are not owned, but using them as owned here makes it easier for
            borrow checking. Correct usage of mutable parameters is already handled in typing.ml *)
-        let id = new_id n in
-        assert (Id.equal id (Fst n));
+        let id = new_id n None in
+        (* Parameters get no mname *)
+        assert (Id.equal id (Fst (n, None)));
         let b = [ Bown id ] in
         (Map.add id (imm b) map, add_hist (imm b) hs))
       (env, hist) pns
@@ -914,6 +946,7 @@ let check_tree pts pns touched body =
   param_pass := true;
   List.iter2
     (fun p (n, loc) ->
+      let n = (n, None) in
       (* If there's no allocation, we copying and moving are the same thing *)
       if contains_allocation p.pt then
         let borrow = borrow_of_param (Fst n) loc in
@@ -927,7 +960,7 @@ let check_tree pts pns touched body =
   let touched =
     List.map
       (fun t ->
-        let tattr, tattr_loc = find_usage (Fst t.tname) hist in
+        let tattr, tattr_loc = find_usage (Fst (t.tname, t.tmname)) hist in
         (match tattr with
         | Dmove ->
             let loc = Option.get tattr_loc in
@@ -938,14 +971,15 @@ let check_tree pts pns touched body =
   in
   (touched, body)
 
-let check_items touched items =
+let check_items ~mname touched items =
   reset ();
+  current_module := Some mname;
 
   (* touched variables *)
   let env, hist =
     List.fold_left
       (fun (map, hs) t ->
-        let id = t.tname |> new_id in
+        let id = new_id t.tname t.tmname in
         let b = [ Bown id ] in
         (Map.add id (imm b) map, add_hist (imm b) hs))
       (Map.empty, Map.empty) touched
@@ -972,7 +1006,7 @@ let check_items touched items =
   reset ();
   List.iter
     (fun t ->
-      let tattr, tattr_loc = find_usage (Fst t.tname) hist in
+      let tattr, tattr_loc = find_usage (Fst (t.tname, t.tmname)) hist in
       match tattr with
       | Dmove ->
           let loc = Option.get tattr_loc in

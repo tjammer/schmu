@@ -121,10 +121,20 @@ module Map_canon : Map_module.Map_tree = struct
 
   let empty_sub = Smap.empty
 
-  (* let change_name id nsub = *)
-  (*   match Smap.find_opt id nsub with None -> id | Some name -> name *)
+  let change_var ~mname id m _ _ =
+    (match m with
+    | Some m when not (Path.share_base mname m) -> (
+        (* Make sure this is eagerly loaded on use *)
+        match Hashtbl.find_opt module_cache m with
+        | None | Some (Located _ | Cached (Clocal _, _, _) | Functor _) ->
+            failwith "unreachable what is this module's path?"
+        | Some (Cached (Cfile (_, true), _, _)) -> ()
+        | Some (Cached (Cfile (name, false), scope, md)) ->
+            Hashtbl.replace module_cache m
+              (Cached (Cfile (name, true), scope, md)))
+    | None | Some _ -> ());
+    id
 
-  let change_var ~mname:_ id _ _ _ = id
   let absolute_module_name = absolute_module_name
   let map_type = Map_module.Canonize.canonize
 end

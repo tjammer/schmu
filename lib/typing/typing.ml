@@ -738,7 +738,7 @@ end = struct
     let _, closed_vars, touched, unused = Env.close_function env in
 
     let touched, body =
-      Exclusivity.check_tree params_t
+      Exclusivity.check_tree params_t ~mname:(Env.modpath env)
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
     in
@@ -816,7 +816,7 @@ end = struct
     let env, closed_vars, touched, unused = Env.close_function env in
 
     let touched, body =
-      Exclusivity.check_tree params_t
+      Exclusivity.check_tree params_t ~mname:(Env.modpath env)
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
     in
@@ -1387,7 +1387,7 @@ let rec convert_module env mname sign prog check_ret =
   if (not (is_module (Env.modpath env))) || has_sign then
     check_unused env unused;
 
-  let items = Exclusivity.check_items touched items in
+  let items = Exclusivity.check_items ~mname touched items in
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
