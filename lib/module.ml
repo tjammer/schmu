@@ -133,7 +133,7 @@ module Map_canon : Map_module.Map_tree = struct
             Hashtbl.replace module_cache m
               (Cached (Cfile (name, true), scope, md)))
     | None | Some _ -> ());
-    id
+    (id, m)
 
   let absolute_module_name = absolute_module_name
   let map_type = Map_module.Canonize.canonize

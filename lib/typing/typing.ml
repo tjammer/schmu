@@ -1338,21 +1338,15 @@ module Subst_functor = struct
     ignore mname;
     ignore nsub;
     match m with
-    | Some m -> (
-        match Pmap.find_opt m psub with
+    | Some m' -> (
+        match Pmap.find_opt m' psub with
         | Some mname ->
             (* It's wrong to rename every var. Only the ones which
                come from the origin functor should be renamed *)
             (* Replace the module part in id *)
-            let pre = Module.absolute_module_name ~mname:m "" in
-            let post =
-              String.sub id (String.length pre)
-                (String.length id - String.length pre)
-            in
-            let id = Module.absolute_module_name ~mname post in
-            id
-        | None -> id)
-    | None -> id
+            (id, Some mname)
+        | None -> (id, m))
+    | None -> (id, m)
 
   let absolute_module_name = Module.absolute_module_name
   let map_type subs typ = (subs, apply_subs subs typ)
@@ -1569,16 +1563,20 @@ and convert_prog env items modul =
                       raise (Error (loc, msg)))
                 Subst_functor.empty_sub subs
             in
-            let merged_subs =
+            let mfst, msnd =
               Module_type.Pmap.fold
                 (fun key value (psub, tsub) ->
                   (Module_type.Pmap.add key value psub, tsub))
                 !param_arg_map merged_subs
             in
-
             let applied_name =
               List.fold_left (fun acc p -> Path.append_path p acc) mname names
             in
+            (* Add functor -> applied functor mapping *)
+            let merged_subs =
+              (Module_type.Pmap.add mname applied_name mfst, msnd)
+            in
+
             let body =
               Subst.map_tl_items applied_name Smap.empty merged_subs body |> snd
             in
