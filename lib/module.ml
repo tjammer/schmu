@@ -141,6 +141,19 @@ end
 
 module Canon = Map_module.Make (Map_canon)
 
+let add_ext_item ~mname t n c =
+  ext_funcs :=
+    Env.
+      {
+        ext_name = n.user;
+        ext_typ = t;
+        ext_cname = n.call;
+        used = ref false;
+        closure = c;
+        imported = Some (mname, `C);
+      }
+    :: !ext_funcs
+
 let rec map_item ~mname ~f = function
   | Mtype (l, t) -> Mtype (l, f t)
   | Mfun (l, t, n) ->
@@ -158,18 +171,8 @@ let rec map_item ~mname ~f = function
         :: !ext_funcs;
       Mfun (l, t, n)
   | Mext (l, t, n, c) ->
+      add_ext_item ~mname t n c;
       let t = f t in
-      ext_funcs :=
-        Env.
-          {
-            ext_name = n.user;
-            ext_typ = t;
-            ext_cname = n.call;
-            used = ref false;
-            closure = c;
-            imported = Some (mname, `C);
-          }
-        :: !ext_funcs;
       Mext (l, f t, n, c)
   | Mpoly_fun (l, abs, n, u) ->
       (* We ought to f here. Not only the type, but
@@ -394,6 +397,10 @@ and register_applied_functor env loc key mname modul =
     | Some cached -> envmodule_of_cached mname cached
     | None ->
         let scope = make_scope env loc None mname modul in
+        (* Externals need to be added again with the correct user name *)
+        List.iter
+          (function Mext (_, t, n, c) -> add_ext_item ~mname t n c | _ -> ())
+          modul.i;
         let cached = Cached (Clocal mname, scope, modul) in
         Hashtbl.add module_cache mname cached;
         envmodule_of_cached mname cached

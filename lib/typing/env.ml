@@ -1,5 +1,3 @@
-(* TODO can we ditch param and use not mname *)
-
 open Types
 
 module Type_key = struct
