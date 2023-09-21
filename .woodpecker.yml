@@ -1,0 +1,7 @@
+steps:
+  build-test:
+    image: tjammer/ocaml-llvm
+    commands:
+      - opam install . -y --deps-only --with-test
+      - opam exec -- dune build
+      - opam exec -- dune runtest -f
