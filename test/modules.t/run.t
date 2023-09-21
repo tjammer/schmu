@@ -792,7 +792,7 @@ Use directory as module
   $ echo "(print indirect/a)" > err.smu
   $ schmu err.smu
   indirect.smi
-  err.smu:1:8: error: Module indirect: Could not open file: indirect
+  err.smu:1:8: error: Module indirect: Cannot find module: indirect
   1 | (print indirect/a)
              ^^^^^^^^^^
   

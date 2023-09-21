@@ -323,7 +323,7 @@ and locate_module loc ~regeneralize name =
         let filename = Filename.remove_extension filename in
         Hashtbl.add module_cache mname (Located (filename, loc, regeneralize));
         Ok (Env.Cm_located mname)
-      with Not_found -> Error ("Could not open file: " ^ name))
+      with Not_found -> Error ("Cannot find module: " ^ name))
 
 and module_name_of_path p =
   match String.split_on_char sep p with [] -> p | l -> List.rev l |> List.hd
