@@ -6,3 +6,5 @@
 
 -- This should not raise an llvm warning
 (def func indirect/hmm)
+
+(def lambda indirect/some-lambda)

@@ -94,14 +94,12 @@ Nested records
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
   %foo = type { i64, %inner }
   %inner = type { i64 }
   %t_int = type { i64, %p_inner_innerst_int }
   %p_inner_innerst_int = type { %innerst_int }
   %innerst_int = type { i64 }
   
-  @schmu_f = global %closure zeroinitializer, align 16
   @schmu_a = global %foo zeroinitializer, align 16
   
   declare void @printi(i64 %0)

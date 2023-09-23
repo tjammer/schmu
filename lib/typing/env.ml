@@ -95,6 +95,7 @@ type scope = {
   kind : scope_kind; (* Another list for local scopes (like in if) *)
   modules : cached_module Map.t; (* Locally declared modules *)
   module_types : Module_type.t Map.t;
+  cnames : string Map.t; (* callnames for functions *)
 }
 
 and cached_module = Cm_located of Path.t | Cm_cached of Path.t * scope
@@ -147,6 +148,7 @@ let empty_scope kind =
     kind;
     modules = Map.empty;
     module_types = Map.empty;
+    cnames = Map.empty;
   }
 
 let empty ~find_module ~scope_of_located modpath =
@@ -765,3 +767,17 @@ let open_module env loc name =
 
   let cont = empty_scope (Scont (Hashtbl.create 64)) in
   { env with values = cont :: scope :: env.values }
+
+let add_callname ~key cname env =
+  let scope, tl = decap_exn env in
+  let cnames = Map.add key cname scope.cnames in
+  { env with values = { scope with cnames } :: tl }
+
+let find_callname loc path env =
+  find_general
+    ~find:(fun key scope -> Map.find_opt key scope.cnames)
+    ~found:(fun _ cname -> cname)
+    loc path env
+  |> function
+  | None -> failwith "Internal Error: Could not find callname"
+  | Some cname -> cname

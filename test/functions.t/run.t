@@ -181,8 +181,6 @@ First class functions
   
   %closure = type { i8*, i8* }
   
-  @schmu_pass2 = global %closure zeroinitializer, align 16
-  
   declare void @printi(i64 %0)
   
   define i64 @__fun_schmu1(i64 %x) {
@@ -424,12 +422,11 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %closure = type { i8*, i8* }
   %t_int = type { i64 }
+  %closure = type { i8*, i8* }
   %t_bool = type { i1 }
   
   @schmu_a = constant i64 2
-  @schmu_f = global %closure zeroinitializer, align 16
   
   declare void @printi(i64 %0)
   
@@ -2450,7 +2447,6 @@ Function call returning a polymorphic function
   %closure = type { i8*, i8* }
   
   @schmu_once = global i1 false, align 1
-  @schmu_foo = global %closure zeroinitializer, align 16
   @schmu_result = global %closure zeroinitializer, align 16
   @0 = private unnamed_addr constant { i64, i64, [8 x i8] } { i64 7, i64 7, [8 x i8] c"%s foo\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"%li foo\0A\00" }

@@ -111,3 +111,9 @@ val modpath : t -> Path.t
 val open_module_scope : t -> Ast.loc -> Path.t -> t
 val pop_scope : t -> scope
 val fix_scope_loc : scope -> Ast.loc -> scope
+
+(* Call names*)
+val add_callname : key:string -> string -> t -> t
+
+val find_callname : Ast.loc -> Path.t -> t -> string
+(** Don't return option because if a callname isn't found it's an internal error *)

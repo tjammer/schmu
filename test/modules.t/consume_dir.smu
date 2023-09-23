@@ -4,3 +4,6 @@
 (print b)
 
 (print modd/public/a)
+
+(modd/func)
+(print (modd/lambda))

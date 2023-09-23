@@ -789,6 +789,7 @@ Use directory as module
   modd
   indirect
   public
+  lol
   $ echo "(print indirect/a)" > err.smu
   $ schmu err.smu
   indirect.smi

@@ -94,20 +94,6 @@ let ext_funcs = ref []
 let paths = ref [ "." ]
 let append_externals l = List.rev_append !ext_funcs l
 
-let get_external_callname ~mname id =
-  List.find_map
-    (fun (ext : Env.ext) ->
-      if
-        String.equal id ext.ext_name
-        &&
-        match ext.imported with
-        | Some (m, _) when Path.equal m mname -> true
-        | Some _ | None -> false
-      then Some ext.ext_name
-      else None)
-    !ext_funcs
-  |> Option.get
-
 let find_file ~name ~suffix =
   let fname = String.lowercase_ascii (name ^ suffix) in
   let ( // ) = Filename.concat in
@@ -261,6 +247,7 @@ let load_foreign loc foreign fname mname =
 
 let rec add_to_env env foreign (mname, m) =
   let def_val = Env.def_mname mname in
+  let cname name = function Some cname -> cname | None -> name in
   match m.s with
   | [] ->
       List.fold_left
@@ -276,12 +263,16 @@ let rec add_to_env env foreign (mname, m) =
               failwith
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
           | Mfun (l, typ, n) ->
-              Env.(add_value n.user { def_val with typ } l env)
+              Env.(
+                add_value n.user { def_val with typ } l env
+                |> add_callname ~key:n.user (cname n.user n.call))
           | Mpoly_fun (l, abs, n, _) ->
               Env.(
                 add_value n { def_val with typ = type_of_func abs.func } l env)
           | Mext (l, typ, n, _) ->
-              Env.(add_value n.user { def_val with typ } l env)
+              Env.(
+                add_value n.user { def_val with typ } l env
+                |> add_callname ~key:n.user (cname n.user n.call))
           | Mmutual_rec (_, ds) ->
               List.fold_left
                 (fun env (l, name, _, typ) ->

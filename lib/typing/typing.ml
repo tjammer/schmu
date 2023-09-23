@@ -790,7 +790,10 @@ end = struct
           List.map (fun p -> Ast.{ pattr = p.dattr; pt = newvar () }) params
         in
         let typ = Tfun (ps, newvar (), Simple) in
-        Env.(add_value name { (def_value env) with typ } nameloc env)
+        Env.(
+          add_value name { (def_value env) with typ } nameloc env
+          |> add_callname ~key:name
+               (Module_common.unique_name ~mname:(modpath env) name unique))
     in
 
     (* We duplicate some lambda code due to naming *)
@@ -1354,12 +1357,17 @@ end
 
 module Subst = Map_module.Make (Subst_functor)
 
-let to_foreign_function ~mname expr =
-  match (expr.typ, Typed_tree.follow_expr expr.expr) with
-  | Tfun (_, _, Simple), Some (Var (id, Some md)) ->
-      if (not (Path.share_base mname md)) && not (is_polymorphic expr.typ) then
-        Some (id, md)
-      else None
+let find_fn_callname env loc expr =
+  match expr.typ with
+  | Tfun (_, _, Simple) -> (
+      match Typed_tree.follow_expr expr.expr with
+      | Some (Var (id, Some md)) ->
+          if not (is_polymorphic expr.typ) then
+            Some (Env.find_callname loc (Path.append id md) env)
+          else None
+      | Some (Lambda (uniq, _)) ->
+          Some (Module.lambda_name ~mname:(Env.modpath env) uniq)
+      | _ -> None)
   | _ -> None
 
 let rec convert_module env mname sign prog check_ret =
@@ -1417,7 +1425,11 @@ and convert_prog env items modul =
            has the module name prepended *)
         let cname = block_external_name loc ~cname id in
         let m = Module.add_external loc typ id cname ~closure:false m in
-        (Env.add_external id ~cname typ idloc env, items, m)
+        let env =
+          Env.add_external id ~cname typ idloc env
+          |> Env.add_callname ~key:id (Option.get cname)
+        in
+        (env, items, m)
     | Typedef (loc, Trecord t) ->
         let env, typ = type_record ~in_sig:false env loc t in
         let m = Module.add_type loc typ m in
@@ -1623,12 +1635,12 @@ and convert_prog env items modul =
           Core.convert_let ~global:true env loc decl block
         in
         let uniq = uniq_name id in
-        let expr, m =
-          match to_foreign_function ~mname:(Env.modpath env) lhs with
-          | Some (id, mname) ->
-              let callname = Some (Module.get_external_callname ~mname id) in
+        let env, expr, m =
+          match find_fn_callname env loc lhs with
+          | Some callname ->
               let m =
-                Module.add_external loc lhs.typ id callname ~closure:false m
+                Module.add_external loc lhs.typ id (Some callname)
+                  ~closure:false m
               in
               let expr =
                 match block.pattr with
@@ -1639,7 +1651,8 @@ and convert_prog env items modul =
                        fail in the exclusivity check *)
                     Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr }
               in
-              (expr, m)
+              let env = Env.add_callname ~key:id callname env in
+              (env, expr, m)
           | None ->
               let uniq_name =
                 Some (Module.unique_name ~mname:(Env.modpath env) id uniq)
@@ -1647,7 +1660,7 @@ and convert_prog env items modul =
               let m =
                 Module.add_external loc lhs.typ id uniq_name ~closure:true m
               in
-              (Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr }, m)
+              (env, Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr }, m)
         in
         let expr =
           match pats with
