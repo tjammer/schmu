@@ -3,3 +3,6 @@
 (def b indirect/a)
 
 (module public public)
+
+-- This should not raise an llvm warning
+(def func indirect/hmm)

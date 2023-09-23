@@ -108,3 +108,16 @@ and attr = { const : bool; global : bool; mut : bool }
 let no_attr = { const = false; global = false; mut = false }
 
 type t = { externals : Env.ext list; items : (Path.t * toplevel_item) list }
+
+let rec follow_expr = function
+  | ( Var _ | Const _ | Bop _ | Unop _ | Lambda _ | App _ | Record _ | Field _
+    | Set _ | Ctor _ | Variant_index _ | Variant_data _ | Fmt _ | Move _ ) as e
+    ->
+      Some e
+  | If _ -> None
+  | Let l -> follow_expr l.cont.expr
+  | Bind (_, _, cont)
+  | Function (_, _, _, cont)
+  | Mutual_rec_decls (_, cont)
+  | Sequence (_, cont) ->
+      follow_expr cont.expr

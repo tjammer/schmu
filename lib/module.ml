@@ -94,6 +94,20 @@ let ext_funcs = ref []
 let paths = ref [ "." ]
 let append_externals l = List.rev_append !ext_funcs l
 
+let get_external_callname ~mname id =
+  List.find_map
+    (fun (ext : Env.ext) ->
+      if
+        String.equal id ext.ext_name
+        &&
+        match ext.imported with
+        | Some (m, _) when Path.equal m mname -> true
+        | Some _ | None -> false
+      then Some ext.ext_name
+      else None)
+    !ext_funcs
+  |> Option.get
+
 let find_file ~name ~suffix =
   let fname = String.lowercase_ascii (name ^ suffix) in
   let ( // ) = Filename.concat in

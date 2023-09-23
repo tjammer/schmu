@@ -1354,6 +1354,14 @@ end
 
 module Subst = Map_module.Make (Subst_functor)
 
+let to_foreign_function ~mname expr =
+  match (expr.typ, Typed_tree.follow_expr expr.expr) with
+  | Tfun (_, _, Simple), Some (Var (id, Some md)) ->
+      if (not (Path.share_base mname md)) && not (is_polymorphic expr.typ) then
+        Some (id, md)
+      else None
+  | _ -> None
+
 let rec convert_module env mname sign prog check_ret =
   (* We create a new scope so we don't warn on unused imports *)
   let env = Env.open_toplevel mname env in
@@ -1610,20 +1618,38 @@ and convert_prog env items modul =
         let env = Env.add_module_type id mt env in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
-    (* TODO dedup *)
     | Ast.Let (loc, decl, block) ->
         let env, id, lhs, rmut, pats =
           Core.convert_let ~global:true env loc decl block
         in
         let uniq = uniq_name id in
-        (* Make string option out of int option for unique name *)
-        let uniq_name =
-          Some (Module.unique_name ~mname:(Env.modpath env) id uniq)
+        let expr, m =
+          match to_foreign_function ~mname:(Env.modpath env) lhs with
+          | Some (id, mname) ->
+              let callname = Some (Module.get_external_callname ~mname id) in
+              let m =
+                Module.add_external loc lhs.typ id callname ~closure:false m
+              in
+              let expr =
+                match block.pattr with
+                | Dnorm -> Tl_bind (id, lhs)
+                | Dset | Dmut | Dmove ->
+                    (* We are using another module's toplevel binding. All of
+                       this should be forbidden. So we set let and let it
+                       fail in the exclusivity check *)
+                    Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr }
+              in
+              (expr, m)
+          | None ->
+              let uniq_name =
+                Some (Module.unique_name ~mname:(Env.modpath env) id uniq)
+              in
+              let m =
+                Module.add_external loc lhs.typ id uniq_name ~closure:true m
+              in
+              (Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr }, m)
         in
-        (* TODO special handling for lambdas *)
-        let m = Module.add_external loc lhs.typ id uniq_name ~closure:true m in
         let expr =
-          let expr = Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr } in
           match pats with
           (* Maybe add pattern expressions *)
           | [] -> [ expr ]
