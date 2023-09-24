@@ -46,3 +46,10 @@
         (array-push &ret !(f (array-get arr i)))
         (inner !ret (+ i 1)))))
   (inner !ret 0))
+
+(defn swap-items [arr& i j]
+  (if (= i j)
+    ()
+    (let [tmp! (__unsafe_ptr_get (array-data arr) i)]
+      (__unsafe_ptr_set &(array-data arr) i !(__unsafe_ptr_get (array-data arr) j))
+      (__unsafe_ptr_set  &(array-data arr) j !tmp))))

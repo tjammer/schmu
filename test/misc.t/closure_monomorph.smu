@@ -1,8 +1,4 @@
 (defn sort [arr& cmp]
-  (defn swap [arr& i j]
-    (def tmp (copy (array-get arr i)))
-    (set &(array-get arr i) (copy (array-get arr j)))
-    (set &(array-get arr j) tmp))
   (defn partition [arr& lo hi]
     (def pivot (copy (array-get arr hi)))
     (def i& (- lo 1))
@@ -12,9 +8,9 @@
                   (if (< (cmp (array-get arr j) pivot) 0)
                     (do
                       (set &i (+ i 1))
-                      (swap &arr i j)))))
+                      (array/swap-items &arr i j)))))
     (def i (+ i 1))
-    (swap &arr i hi)
+    (array/swap-items &arr i hi)
     i)
   -- quicksort is a closure, as it closes over partition. partition itself
   -- is polymorphic. Before this change, quicksort would close over the dummy
@@ -39,10 +35,6 @@
 
 -- These functions have different call names. Make sure this works as well
 (defn sort [arr& cmp]
-  (defn swap [arr& i j]
-    (def tmp (copy (array-get arr i)))
-    (set &(array-get arr i) (copy (array-get arr j)))
-    (set &(array-get arr j) tmp))
   (defn partition [arr& lo hi]
     (def pivot (copy (array-get arr hi)))
     (def i& (- lo 1))
@@ -52,9 +44,9 @@
                   (if (< (cmp (array-get arr j) pivot) 0)
                     (do
                       (set &i (+ i 1))
-                      (swap &arr i j)))))
+                      (array/swap-items &arr i j)))))
     (def i (+ i 1))
-    (swap &arr i hi)
+    (array/swap-items &arr i hi)
     i)
   (defn quicksort [arr& lo hi]
     (if (or (not (< lo hi)) (< lo 0))

@@ -19,18 +19,10 @@
   (type (slot 'a) (#empty #tombstone (#item (item 'a))))
   (type (t 'a) {:data& (array (slot 'a)) :nitems& int})
 
-  -- copied from std
-  (defn iter-range [from to f]
-    (defn inner [i]
-      (if (= i to)
-        ()
-        (do (f i) (inner (+ i 1)))))
-    (inner from))
-
   (defn create [size]
     (def data& (__unsafe_array_create size))
-    (iter-range 0 size
-                (fn [i] (__unsafe_ptr_set &(array-data data) i !#empty)))
+    (prelude/iter-range 0 size
+                        (fn [i] (__unsafe_ptr_set &(array-data data) i !#empty)))
     {:data :nitems 0})
 
   (external abs (fun int int))
@@ -95,8 +87,8 @@
    (defn grow [tbl&]
      (def size (* 2 (array-length tbl.data)))
      (def data& (__unsafe_array_create size))
-     (iter-range 0 size
-                 (fn [i] (__unsafe_ptr_set &(array-data data) i !#empty)))
+     (prelude/iter-range 0 size
+                         (fn [i] (__unsafe_ptr_set &(array-data data) i !#empty)))
      (def old-data& !tbl.data)
      (set &tbl.data data)
      (set &tbl.nitems 0)
@@ -120,5 +112,4 @@
     (set &(array-length arr) 0)
     (iter-data tbl.data
                (fn [key value] (array-push &arr !{(copy key) (copy value)})))
-    arr)
-  )
+    arr))

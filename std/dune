@@ -1,18 +1,21 @@
 (rule
  (targets
-  std.smi
-  std.o
-  array.smi
   array.o
-  string.smi
-  string.o
-  option.smi
-  option.o
+  array.smi
+  hashtbl.o
   hashtbl.smi
-  hashtbl.o)
- (deps std.smu %{bin:schmu} array.smu string.smu hashtbl.smu)
+  option.o
+  option.smi
+  prelude.o
+  prelude.smi
+  std.o
+  std.smi
+  string.o
+  string.smi)
+ (deps std.smu %{bin:schmu} array.smu string.smu hashtbl.smu prelude.smu)
  (action
   (progn
+   (run schmu -m --no-std prelude.smu)
    (run schmu -m --no-std array.smu)
    (run schmu -m --no-std string.smu)
    (run schmu -m --no-std option.smu)
@@ -38,4 +41,7 @@
   (option.o as std/option.o)
   hashtbl.smu
   (hashtbl.smi as std/hashtbl.smi)
-  (hashtbl.o as std/hashtbl.o)))
+  (hashtbl.o as std/hashtbl.o)
+  prelude.smu
+  (prelude.smi as std/prelude.smi)
+  (prelude.o as std/prelude.o)))

@@ -3225,7 +3225,7 @@ Monomorphization in closures
   @schmu_arr__2 = global i64* null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  declare void @std_iter-range(i64 %0, i64 %1, %closure* %2)
+  declare void @prelude_iter-range(i64 %0, i64 %1, %closure* %2)
   
   define linkonce_odr void @__agg.u.u_array_iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
@@ -3365,10 +3365,10 @@ Monomorphization in closures
     %env = bitcast { i8*, i8*, i64**, %closure, i64*, i64 }* %clsr___i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @std_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i)
+    call void @prelude_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i)
     %11 = load i64, i64* %8, align 8
     %add = add i64 %11, 1
-    call void @__agii.u_schmu_swap__2_aiii.u(i64** %arr, i64 %add, i64 %hi)
+    call void @__agii.u_array_swap-items_aiii.u(i64** %arr, i64 %add, i64 %hi)
     ret i64 %add
   }
   
@@ -3409,10 +3409,10 @@ Monomorphization in closures
     %env = bitcast { i8*, i8*, i64**, %closure, i64*, i64 }* %clsr___i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @std_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i)
+    call void @prelude_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i)
     %11 = load i64, i64* %8, align 8
     %add = add i64 %11, 1
-    call void @__agii.u_schmu_swap_aiii.u(i64** %arr, i64 %add, i64 %hi)
+    call void @__agii.u_array_swap-items_aiii.u(i64** %arr, i64 %add, i64 %hi)
     ret i64 %add
   }
   
@@ -3516,49 +3516,27 @@ Monomorphization in closures
     br label %rec
   }
   
-  define linkonce_odr void @__agii.u_schmu_swap__2_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
+  define linkonce_odr void @__agii.u_array_swap-items_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
   entry:
-    %0 = load i64*, i64** %arr, align 8
-    %1 = bitcast i64* %0 to i8*
-    %2 = mul i64 8, %i
-    %3 = add i64 16, %2
-    %4 = getelementptr i8, i8* %1, i64 %3
-    %data = bitcast i8* %4 to i64*
-    %5 = alloca i64, align 8
-    %6 = load i64, i64* %data, align 8
-    store i64 %6, i64* %5, align 8
-    %7 = mul i64 8, %j
-    %8 = add i64 16, %7
-    %9 = getelementptr i8, i8* %1, i64 %8
-    %data2 = bitcast i8* %9 to i64*
-    %10 = alloca i64, align 8
-    %11 = load i64, i64* %data2, align 8
-    store i64 %11, i64* %10, align 8
-    store i64 %11, i64* %data, align 8
-    store i64 %6, i64* %data2, align 8
-    ret void
-  }
+    %eq = icmp eq i64 %i, %j
+    br i1 %eq, label %ifcont, label %else
   
-  define linkonce_odr void @__agii.u_schmu_swap_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
-  entry:
-    %0 = load i64*, i64** %arr, align 8
-    %1 = bitcast i64* %0 to i8*
-    %2 = mul i64 8, %i
-    %3 = add i64 16, %2
-    %4 = getelementptr i8, i8* %1, i64 %3
-    %data = bitcast i8* %4 to i64*
-    %5 = alloca i64, align 8
-    %6 = load i64, i64* %data, align 8
-    store i64 %6, i64* %5, align 8
-    %7 = mul i64 8, %j
-    %8 = add i64 16, %7
-    %9 = getelementptr i8, i8* %1, i64 %8
-    %data2 = bitcast i8* %9 to i64*
-    %10 = alloca i64, align 8
-    %11 = load i64, i64* %data2, align 8
-    store i64 %11, i64* %10, align 8
-    store i64 %11, i64* %data, align 8
-    store i64 %6, i64* %data2, align 8
+  else:                                             ; preds = %entry
+    %0 = alloca i64, align 8
+    %1 = load i64*, i64** %arr, align 8
+    %2 = bitcast i64* %1 to i8*
+    %3 = getelementptr i8, i8* %2, i64 16
+    %data = bitcast i8* %3 to i64*
+    %4 = getelementptr inbounds i64, i64* %data, i64 %i
+    %5 = load i64, i64* %4, align 8
+    store i64 %5, i64* %0, align 8
+    %6 = getelementptr inbounds i64, i64* %data, i64 %j
+    %7 = load i64, i64* %6, align 8
+    store i64 %7, i64* %4, align 8
+    store i64 %5, i64* %6, align 8
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %else
     ret void
   }
   
@@ -3653,7 +3631,7 @@ Monomorphization in closures
     %8 = load i64, i64* %i2, align 8
     %add = add i64 %8, 1
     store i64 %add, i64* %i2, align 8
-    tail call void @__agii.u_schmu_swap_aiii.u(i64** %arr1, i64 %add, i64 %j)
+    tail call void @__agii.u_array_swap-items_aiii.u(i64** %arr1, i64 %add, i64 %j)
     ret void
   
   ifcont:                                           ; preds = %entry
@@ -3690,7 +3668,7 @@ Monomorphization in closures
     %8 = load i64, i64* %i2, align 8
     %add = add i64 %8, 1
     store i64 %add, i64* %i2, align 8
-    tail call void @__agii.u_schmu_swap__2_aiii.u(i64** %arr1, i64 %add, i64 %j)
+    tail call void @__agii.u_array_swap-items_aiii.u(i64** %arr1, i64 %add, i64 %j)
     ret void
   
   ifcont:                                           ; preds = %entry

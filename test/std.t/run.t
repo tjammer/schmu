@@ -4,10 +4,10 @@ Test hashtbl
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %closure = type { i8*, i8* }
   %hashtbl.make.t_float = type { %hashtbl.make.slot_float*, i64 }
   %hashtbl.make.slot_float = type { i32, %hashtbl.make.item_float }
   %hashtbl.make.item_float = type { i8*, double }
-  %closure = type { i8*, i8* }
   %option.t_float = type { i32, double }
   
   @hashtbl_make_string_load-limit = constant double 7.500000e-01
@@ -19,6 +19,8 @@ Test hashtbl
   @5 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"# hashtbl\00" }
   
   declare void @std_print(i8* %0)
+  
+  declare void @prelude_iter-range(i64 %0, i64 %1, %closure* %2)
   
   declare i64 @string_hash(i8* %0)
   
@@ -37,24 +39,24 @@ Test hashtbl
   
   define linkonce_odr void @__ahashtbl.make.slotgacg.u.u_hashtbl_make_string_iter-data-move_ahashtbl.make.slotfacf.u.u(%hashtbl.make.slot_float** noalias %data, %closure* %f) {
   entry:
-    %__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u to i8**
-    store i8* bitcast (void (i64, i8*)* @__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u to i8*), i8** %funptr5, align 8
-    %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u = alloca { i8*, i8*, %hashtbl.make.slot_float**, %closure }, align 8
-    %data1 = getelementptr inbounds { i8*, i8*, %hashtbl.make.slot_float**, %closure }, { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u, i32 0, i32 2
+    %__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u to i8**
+    store i8* bitcast (void (i64, i8*)* @__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u to i8*), i8** %funptr5, align 8
+    %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u = alloca { i8*, i8*, %hashtbl.make.slot_float**, %closure }, align 8
+    %data1 = getelementptr inbounds { i8*, i8*, %hashtbl.make.slot_float**, %closure }, { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u, i32 0, i32 2
     store %hashtbl.make.slot_float** %data, %hashtbl.make.slot_float*** %data1, align 8
-    %f2 = getelementptr inbounds { i8*, i8*, %hashtbl.make.slot_float**, %closure }, { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u, i32 0, i32 3
+    %f2 = getelementptr inbounds { i8*, i8*, %hashtbl.make.slot_float**, %closure }, { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u, i32 0, i32 3
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %ctor6 = bitcast { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u to i8**
+    %ctor6 = bitcast { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u to i8**
     store i8* bitcast (i8* (i8*)* @__ctor_tup-ahashtbl.make.slotf-acf.u to i8*), i8** %ctor6, align 8
-    %dtor = getelementptr inbounds { i8*, i8*, %hashtbl.make.slot_float**, %closure }, { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u, i32 0, i32 1
+    %dtor = getelementptr inbounds { i8*, i8*, %hashtbl.make.slot_float**, %closure }, { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
-    %env = bitcast { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u, i32 0, i32 1
+    %env = bitcast { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr___i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u(i64 0, i8* %env)
+    call void @__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u(i64 0, i8* %env)
     ret void
   }
   
@@ -106,7 +108,7 @@ Test hashtbl
     %env = bitcast { i8*, i8*, %hashtbl.make.slot_float** }* %clsr___i.u-ahashtbl.make.slotg___fun_hashtbl_make_string1_i.u-ahashtbl.make.slotf to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__i.u-ahashtbl.make.slotg___fun_hashtbl_make_string1_i.u-ahashtbl.make.slotf, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @hashtbl_make_string_iter-range(i64 0, i64 %mul, %closure* %__i.u-ahashtbl.make.slotg___fun_hashtbl_make_string1_i.u-ahashtbl.make.slotf)
+    call void @prelude_iter-range(i64 0, i64 %mul, %closure* %__i.u-ahashtbl.make.slotg___fun_hashtbl_make_string1_i.u-ahashtbl.make.slotf)
     %10 = alloca %hashtbl.make.slot_float*, align 8
     %11 = load %hashtbl.make.slot_float*, %hashtbl.make.slot_float** %0, align 8
     store %hashtbl.make.slot_float* %11, %hashtbl.make.slot_float** %10, align 8
@@ -309,7 +311,7 @@ Test hashtbl
     %env = bitcast { i8*, i8*, %hashtbl.make.slot_float** }* %clsr___i.u-ahashtbl.make.slotg___fun_hashtbl_make_string0_i.u-ahashtbl.make.slotf to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__i.u-ahashtbl.make.slotg___fun_hashtbl_make_string0_i.u-ahashtbl.make.slotf, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @hashtbl_make_string_iter-range(i64 0, i64 %size, %closure* %__i.u-ahashtbl.make.slotg___fun_hashtbl_make_string0_i.u-ahashtbl.make.slotf)
+    call void @prelude_iter-range(i64 0, i64 %size, %closure* %__i.u-ahashtbl.make.slotg___fun_hashtbl_make_string0_i.u-ahashtbl.make.slotf)
     %6 = alloca %hashtbl.make.t_float, align 8
     %data5 = bitcast %hashtbl.make.t_float* %6 to %hashtbl.make.slot_float**
     %7 = load %hashtbl.make.slot_float*, %hashtbl.make.slot_float** %0, align 8
@@ -321,7 +323,7 @@ Test hashtbl
     ret { i64, i64 } %unbox2
   }
   
-  define linkonce_odr void @__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__3_i.u-ahashtbl.make.slotf-acf.u(i64 %i, i8* %0) {
+  define linkonce_odr void @__i.u-ahashtbl.make.slotg-acg.u_hashtbl_make_string_inner__2_i.u-ahashtbl.make.slotf-acf.u(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, %hashtbl.make.slot_float**, %closure }*
     %data = getelementptr inbounds { i8*, i8*, %hashtbl.make.slot_float**, %closure }, { i8*, i8*, %hashtbl.make.slot_float**, %closure }* %clsr, i32 0, i32 2
@@ -487,60 +489,6 @@ Test hashtbl
   
   ifcont17:                                         ; preds = %then6, %else9, %rec
     ret i64 %3
-  }
-  
-  define void @hashtbl_make_string_inner(i64 %i, i8* %0) {
-  entry:
-    %clsr = bitcast i8* %0 to { i8*, i8*, %closure, i64 }*
-    %to = getelementptr inbounds { i8*, i8*, %closure, i64 }, { i8*, i8*, %closure, i64 }* %clsr, i32 0, i32 3
-    %to1 = load i64, i64* %to, align 8
-    %1 = alloca i64, align 8
-    store i64 %i, i64* %1, align 8
-    br label %rec
-  
-  rec:                                              ; preds = %else, %entry
-    %2 = phi i64 [ %add, %else ], [ %i, %entry ]
-    %eq = icmp eq i64 %to1, %2
-    br i1 %eq, label %then, label %else
-  
-  then:                                             ; preds = %rec
-    ret void
-  
-  else:                                             ; preds = %rec
-    %sunkaddr = getelementptr inbounds i8, i8* %0, i64 16
-    %3 = bitcast i8* %sunkaddr to i8**
-    %loadtmp = load i8*, i8** %3, align 8
-    %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
-    %sunkaddr4 = getelementptr inbounds i8, i8* %0, i64 24
-    %4 = bitcast i8* %sunkaddr4 to i8**
-    %loadtmp2 = load i8*, i8** %4, align 8
-    tail call void %casttmp(i64 %2, i8* %loadtmp2)
-    %add = add i64 %2, 1
-    store i64 %add, i64* %1, align 8
-    br label %rec
-  }
-  
-  define void @hashtbl_make_string_iter-range(i64 %from, i64 %to, %closure* %f) {
-  entry:
-    %hashtbl_make_string_inner = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %hashtbl_make_string_inner to i8**
-    store i8* bitcast (void (i64, i8*)* @hashtbl_make_string_inner to i8*), i8** %funptr5, align 8
-    %clsr_hashtbl_make_string_inner = alloca { i8*, i8*, %closure, i64 }, align 8
-    %f1 = getelementptr inbounds { i8*, i8*, %closure, i64 }, { i8*, i8*, %closure, i64 }* %clsr_hashtbl_make_string_inner, i32 0, i32 2
-    %0 = bitcast %closure* %f1 to i8*
-    %1 = bitcast %closure* %f to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %to2 = getelementptr inbounds { i8*, i8*, %closure, i64 }, { i8*, i8*, %closure, i64 }* %clsr_hashtbl_make_string_inner, i32 0, i32 3
-    store i64 %to, i64* %to2, align 8
-    %ctor6 = bitcast { i8*, i8*, %closure, i64 }* %clsr_hashtbl_make_string_inner to i8**
-    store i8* bitcast (i8* (i8*)* @__ctor_tup-i.u-i to i8*), i8** %ctor6, align 8
-    %dtor = getelementptr inbounds { i8*, i8*, %closure, i64 }, { i8*, i8*, %closure, i64 }* %clsr_hashtbl_make_string_inner, i32 0, i32 1
-    store i8* null, i8** %dtor, align 8
-    %env = bitcast { i8*, i8*, %closure, i64 }* %clsr_hashtbl_make_string_inner to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %hashtbl_make_string_inner, i32 0, i32 1
-    store i8* %env, i8** %envptr, align 8
-    call void @hashtbl_make_string_inner(i64 %from, i8* %env)
-    ret void
   }
   
   define void @schmu_find-print(i8* %key, i8* %0) {
@@ -855,43 +803,6 @@ Test hashtbl
     call void @__copy_hashtbl.make.tf(%hashtbl.make.t_float* %tbl)
     %6 = bitcast { i8*, i8*, i1, i8*, %hashtbl.make.t_float }* %3 to i8*
     ret i8* %6
-  }
-  
-  define linkonce_odr i8* @__ctor_tup-i.u-i(i8* %0) {
-  entry:
-    %1 = bitcast i8* %0 to { i8*, i8*, %closure, i64 }*
-    %2 = call i8* @malloc(i64 40)
-    %3 = bitcast i8* %2 to { i8*, i8*, %closure, i64 }*
-    %4 = bitcast { i8*, i8*, %closure, i64 }* %3 to i8*
-    %5 = bitcast { i8*, i8*, %closure, i64 }* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 40, i1 false)
-    %f = getelementptr inbounds { i8*, i8*, %closure, i64 }, { i8*, i8*, %closure, i64 }* %3, i32 0, i32 2
-    call void @__copy_i.u(%closure* %f)
-    %6 = bitcast { i8*, i8*, %closure, i64 }* %3 to i8*
-    ret i8* %6
-  }
-  
-  define linkonce_odr void @__copy_i.u(%closure* %0) {
-  entry:
-    %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
-    %2 = load i8*, i8** %1, align 8
-    %3 = icmp eq i8* %2, null
-    br i1 %3, label %ret, label %notnull
-  
-  notnull:                                          ; preds = %entry
-    %ctor3 = bitcast i8* %2 to i8*
-    %4 = bitcast i8* %ctor3 to i8**
-    %ctor1 = load i8*, i8** %4, align 8
-    %ctor2 = bitcast i8* %ctor1 to i8* (i8*)*
-    %5 = call i8* %ctor2(i8* %2)
-    %6 = bitcast %closure* %0 to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %6, i64 8
-    %7 = bitcast i8* %sunkaddr to i8**
-    store i8* %5, i8** %7, align 8
-    br label %ret
-  
-  ret:                                              ; preds = %notnull, %entry
-    ret void
   }
   
   declare void @printf(i8* %0, ...)

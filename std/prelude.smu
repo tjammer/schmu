@@ -1,0 +1,8 @@
+-- common functionality used by the stdlib
+
+(defn iter-range [from to f]
+  (defn inner [i]
+    (if (= i to)
+      ()
+      (do (f i) (inner (+ i 1)))))
+  (inner from))

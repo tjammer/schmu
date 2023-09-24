@@ -7,12 +7,9 @@
 -- char
 (defn char-equal [a b] (= (u8_to_int a) (u8_to_int b)))
 
-(defn iter-range [from to f]
-  (defn inner [i]
-    (if (= i to)
-      ()
-      (do (f i) (inner (+ i 1)))))
-  (inner from))
+-- prelude re-exports
+(def iter-range prelude/iter-range)
+-- TODO this does not yet work for polymorphic functions (def swap prelude/swap)
 
 (module array)
 (module hashtbl)
