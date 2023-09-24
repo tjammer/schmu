@@ -264,14 +264,19 @@ let rec add_to_env env foreign (mname, m) =
                 ("Internal Error: Unexpected type in module: " ^ show_typ t)
           | Mfun (l, typ, n) ->
               Env.(
-                add_value n.user { def_val with typ } l env
+                add_value n.user { def_val with typ; global = true } l env
                 |> add_callname ~key:n.user (cname n.user n.call))
           | Mpoly_fun (l, abs, n, _) ->
               Env.(
                 add_value n { def_val with typ = type_of_func abs.func } l env)
           | Mext (l, typ, n, _) ->
+              let const =
+                match clean typ with Tfun (_, _, Simple) -> true | _ -> false
+              in
               Env.(
-                add_value n.user { def_val with typ } l env
+                add_value n.user
+                  { def_val with typ; global = true; const }
+                  l env
                 |> add_callname ~key:n.user (cname n.user n.call))
           | Mmutual_rec (_, ds) ->
               List.fold_left

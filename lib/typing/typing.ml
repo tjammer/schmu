@@ -1358,15 +1358,25 @@ end
 module Subst = Map_module.Make (Subst_functor)
 
 let find_fn_callname env loc expr =
+  let mname = Env.modpath env in
   match expr.typ with
   | Tfun (_, _, Simple) -> (
       match Typed_tree.follow_expr expr.expr with
       | Some (Var (id, Some md)) ->
           if not (is_polymorphic expr.typ) then
-            Some (Env.find_callname loc (Path.append id md) env)
+            Some (Env.find_callname loc (Path.append id md) env, false)
           else None
-      | Some (Lambda (uniq, _)) ->
-          Some (Module.lambda_name ~mname:(Env.modpath env) uniq)
+      | Some (Lambda (uniq, _)) -> Some (Module.lambda_name ~mname uniq, false)
+      | _ -> None)
+  | Tfun (_, _, Closure _) -> (
+      (* If the closure is from a different module, we can use it directly *)
+      match follow_expr expr.expr with
+      | Some (Var (id, Some md)) ->
+          if (not (is_polymorphic expr.typ)) && not (Path.share_base md mname)
+          then
+            let callname = Env.find_callname loc (Path.append id md) env in
+            Some (callname, true)
+          else None
       | _ -> None)
   | _ -> None
 
@@ -1637,18 +1647,17 @@ and convert_prog env items modul =
         let uniq = uniq_name id in
         let env, expr, m =
           match find_fn_callname env loc lhs with
-          | Some callname ->
+          | Some (callname, closure) ->
               let m =
-                Module.add_external loc lhs.typ id (Some callname)
-                  ~closure:false m
+                Module.add_external loc lhs.typ id (Some callname) ~closure m
               in
               let expr =
                 match block.pattr with
                 | Dnorm -> Tl_bind (id, lhs)
                 | Dset | Dmut | Dmove ->
                     (* We are using another module's toplevel binding. All of
-                       this should be forbidden. So we set let and let it
-                       fail in the exclusivity check *)
+                         this should be forbidden. So we set let and let it
+                         fail in the exclusivity check *)
                     Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr }
               in
               let env = Env.add_callname ~key:id callname env in

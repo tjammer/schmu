@@ -1210,17 +1210,17 @@ let generate ~target ~outname ~release ~modul
 
   Llvm.set_data_layout layout the_module;
 
-  (* Fill const_tbl *)
-  fill_constants constants;
-  def_globals globals;
-  const_pass := false;
-
   (* External declarations *)
   List.iter
     (fun { Monomorph_tree.ext_name = _; ext_typ; cname; c_linkage; closure } ->
       let v = decl_external cname ext_typ ~closure ~c_linkage in
       Strtbl.add const_tbl cname v)
     externals;
+
+  (* Fill const_tbl *)
+  fill_constants constants;
+  def_globals globals;
+  const_pass := false;
 
   (* Factor out functions for llvm *)
   let funcs =

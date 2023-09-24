@@ -790,6 +790,7 @@ Use directory as module
   indirect
   public
   lol
+  lol
   $ echo "(print indirect/a)" > err.smu
   $ schmu err.smu
   indirect.smi

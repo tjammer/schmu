@@ -7,3 +7,4 @@
 
 (modd/func)
 (print (modd/lambda))
+(print (modd/closure))

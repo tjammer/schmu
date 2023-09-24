@@ -8,3 +8,6 @@
 (def func indirect/hmm)
 
 (def lambda indirect/some-lambda)
+
+-- Use closure directly
+(def closure indirect/some-closure)
