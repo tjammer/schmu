@@ -11,3 +11,5 @@
 
 -- Use closure directly
 (def closure indirect/some-closure)
+
+(def swap indirect/swap)

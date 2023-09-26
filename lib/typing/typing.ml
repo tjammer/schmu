@@ -1357,28 +1357,35 @@ end
 
 module Subst = Map_module.Make (Subst_functor)
 
-let find_fn_callname env loc expr =
+type fn_let_kind =
+  | Callname of string * bool
+  (* is closure *)
+  | Alias
+  | Not
+
+let let_fn_alias env loc expr =
   let mname = Env.modpath env in
   match expr.typ with
   | Tfun (_, _, Simple) -> (
       match Typed_tree.follow_expr expr.expr with
       | Some (Var (id, Some md)) ->
-          if not (is_polymorphic expr.typ) then
-            Some (Env.find_callname loc (Path.append id md) env, false)
-          else None
-      | Some (Lambda (uniq, _)) -> Some (Module.lambda_name ~mname uniq, false)
-      | _ -> None)
+          if is_polymorphic expr.typ then Alias
+          else Callname (Env.find_callname loc (Path.append id md) env, false)
+      | Some (Lambda (uniq, _)) ->
+          Callname (Module.lambda_name ~mname uniq, false)
+      | _ -> Not)
   | Tfun (_, _, Closure _) -> (
+      (* Maybe alias could also be used here. Check with other special case *)
       (* If the closure is from a different module, we can use it directly *)
       match follow_expr expr.expr with
       | Some (Var (id, Some md)) ->
           if (not (is_polymorphic expr.typ)) && not (Path.share_base md mname)
           then
             let callname = Env.find_callname loc (Path.append id md) env in
-            Some (callname, true)
-          else None
-      | _ -> None)
-  | _ -> None
+            Callname (callname, true)
+          else Not
+      | _ -> Not)
+  | _ -> Not
 
 let rec convert_module env mname sign prog check_ret =
   (* We create a new scope so we don't warn on unused imports *)
@@ -1646,8 +1653,8 @@ and convert_prog env items modul =
         in
         let uniq = uniq_name id in
         let env, expr, m =
-          match find_fn_callname env loc lhs with
-          | Some (callname, closure) ->
+          match let_fn_alias env loc lhs with
+          | Callname (callname, closure) ->
               let m =
                 Module.add_external loc lhs.typ id (Some callname) ~closure m
               in
@@ -1662,7 +1669,10 @@ and convert_prog env items modul =
               in
               let env = Env.add_callname ~key:id callname env in
               (env, expr, m)
-          | None ->
+          | Alias ->
+              let m = Module.add_alias loc id lhs m in
+              (env, Tl_bind (id, lhs), m)
+          | Not ->
               let uniq_name =
                 Some (Module.unique_name ~mname:(Env.modpath env) id uniq)
               in

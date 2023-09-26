@@ -8,3 +8,11 @@
 (modd/func)
 (print (modd/lambda))
 (print (modd/closure))
+
+-- use polymorphic aliased function from another module
+(defn swapped (a! i j)
+  (let [a& !a]
+    (swap &a i j)
+    a))
+
+(array/iter (swapped !["world" "hello"] 0 1) (fn (s) (print s)))

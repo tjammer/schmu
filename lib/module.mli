@@ -32,6 +32,7 @@ val add_rec_block :
 val add_external :
   loc -> typ -> string -> string option -> closure:bool -> t -> t
 
+val add_alias : loc -> string -> Typed_tree.typed_expr -> t -> t
 val add_local_module : loc -> string -> t -> into:t -> t
 val add_module_alias : loc -> string -> Path.t -> into:t -> t
 val add_module_type : loc -> string -> Module_type.t -> t -> t

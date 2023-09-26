@@ -88,6 +88,8 @@ let add_external loc t name call ~closure m =
   let name = { user = name; call } in
   { m with i = Mext (loc, t, name, closure) :: m.i }
 
+let add_alias loc name tree m = { m with i = Malias (loc, name, tree) :: m.i }
+
 (* Right now we only ever compile one module, so this can safely be global *)
 let poly_funcs = ref []
 let ext_funcs = ref []
@@ -175,10 +177,6 @@ let rec map_item ~mname ~f = function
       let t = f t in
       Mext (l, f t, n, c)
   | Mpoly_fun (l, abs, n, u) ->
-      (* We ought to f here. Not only the type, but
-         the body as well? *)
-      (* Change name of poly func to module-unique name to prevent name clashes from
-         different modules *)
       let item = (mname, Typed_tree.Tl_function (l, n, u, abs)) in
       poly_funcs := item :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
@@ -189,6 +187,10 @@ let rec map_item ~mname ~f = function
       let item = (mname, Typed_tree.Tl_mutual_rec_decls mname_decls) in
       poly_funcs := item :: !poly_funcs;
       Mmutual_rec (l, decls)
+  | Malias (l, n, tree) ->
+      let item = (mname, Typed_tree.Tl_bind (n, tree)) in
+      poly_funcs := item :: !poly_funcs;
+      Malias (l, n, tree)
   | Mlocal_module (l, name, t) ->
       Mlocal_module (l, name, map_t ~mname:(Path.append name mname) ~f t)
   | Mapplied_functor (l, n, mname, t) ->
@@ -283,6 +285,11 @@ let rec add_to_env env foreign (mname, m) =
                 (fun env (l, name, _, typ) ->
                   Env.(add_value name { def_val with typ } l env))
                 env ds
+          | Malias (loc, n, tree) ->
+              Env.(
+                add_value n
+                  { def_val with typ = tree.typ; global = true }
+                  loc env)
           | Mlocal_module (loc, key, m) -> (
               let mname = Path.append key mname in
               match Hashtbl.find_opt module_cache mname with
@@ -343,10 +350,12 @@ and load_dep_modules env fname loc objects ~regeneralize =
     (fun (name, load) ->
       if load then
         let mname = Path.Pid (module_name_of_path name) in
-        if Hashtbl.mem module_cache mname then ()
-        else
-          let filename = make_path fname name in
-          read_module env filename loc ~regeneralize mname |> ignore
+        match Hashtbl.find_opt module_cache mname with
+        | None | Some (Located _) ->
+            (* Being located isn't enough, we need the module to be loaded *)
+            let filename = make_path fname name in
+            read_module env filename loc ~regeneralize mname |> ignore
+        | Some (Cached _ | Functor _) -> ()
       else ())
     objects
 
@@ -540,6 +549,7 @@ let extract_name_type env = function
   | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Mvalue)
   | Mpoly_fun (l, abs, n, _) -> Some (n, l, type_of_func abs.func, Mvalue)
   | Mmutual_rec _ -> None
+  | Malias (l, n, tree) -> Some (n, l, tree.typ, Mvalue)
   | Mlocal_module (l, n, _) ->
       (* Do we have to deal with this? *)
       Some (n, l, Tunit, Mvalue)

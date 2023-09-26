@@ -328,6 +328,9 @@ module Make (C : Map_tree) = struct
             (sub, nsub) decls
         in
         ((a, nsub), Mmutual_rec (l, decls))
+    | Malias (l, n, tree) ->
+        let sub, tree = map_body mname nsub sub tree in
+        ((sub, nsub), Malias (l, n, tree))
     (* Substitutions from inner modules shouldn't be carried outward *)
     | Mlocal_module (loc, n, t) ->
         let _, t = map_module (Path.append n mname) sub t in

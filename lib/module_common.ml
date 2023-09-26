@@ -12,6 +12,7 @@ and item =
   | Mext of loc * typ * name * bool (* is closure *)
   | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
   | Mmutual_rec of loc * (loc * string * int option * typ) list
+  | Malias of loc * string * Typed_tree.typed_expr
   | Mlocal_module of loc * string * t
   | Mfunctor of
       loc * string * (string * intf) list * Typed_tree.toplevel_item list * t

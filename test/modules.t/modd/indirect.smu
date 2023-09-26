@@ -3,8 +3,13 @@
 (defn hmm ()
   (array/iter [] (fn ((i int)) (ignore i))))
 
-(def some-lambda (let [a "lol"]
-                   (fn () (copy a))))
+(def some-lambda
+     (let [a "lol"]
+       (fn () (copy a))))
 
-(def some-closure (let [a (fmt-str "lol")]
-                    (fn () (copy a))))
+(def some-closure
+     (let [a (fmt-str "lol")]
+       (fn () (copy a))))
+
+-- polymorphic alias
+(def swap array/swap-items)

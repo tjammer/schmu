@@ -791,6 +791,8 @@ Use directory as module
   public
   lol
   lol
+  hello
+  world
   $ echo "(print indirect/a)" > err.smu
   $ schmu err.smu
   indirect.smi
