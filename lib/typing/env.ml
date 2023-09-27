@@ -553,7 +553,6 @@ let query_val_opt loc pkey env =
         cont lvl key tl
   in
 
-  let key = Path.rm_name env.modpath pkey in
   let rec aux lvl scopes = function
     | Path.Pid key -> find_value lvl key scopes
     | Pmod (hd, tl) -> (
@@ -591,7 +590,7 @@ let query_val_opt loc pkey env =
         | None -> None)
   in
 
-  aux 0 env.values key
+  aux 0 env.values pkey
 
 let find_type_opt loc key env =
   find_general

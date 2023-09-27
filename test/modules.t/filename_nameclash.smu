@@ -1,0 +1,4 @@
+(module filename_nameclash
+  (defn greet () (print "hi from nameclash")))
+
+(filename_nameclash/greet)

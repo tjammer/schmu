@@ -1066,3 +1066,6 @@ Simple functor
   attributes #0 = { argmemonly nofree nounwind willreturn }
   $ ./use_simple_functor
   create: this other
+
+Nameclashes with filename
+  $ schmu -m filename_nameclash.smu
