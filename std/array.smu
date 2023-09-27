@@ -16,23 +16,21 @@
         (inner (+ i 1)))))
   (inner 0))
 
-(defn fold [arr f init]
+(defn fold [arr f init!]
   (defn inner [i acc!]
     (if (= i (array-length arr))
       acc
       (let [acc (f !acc (array-get arr i))]
         (inner (+ i 1) !acc))))
-  (def acc (copy init))
-  (inner 0 !acc))
+  (inner 0 !init))
 
-(defn foldi [arr f init]
+(defn foldi [arr f init!]
   (defn inner [i acc!]
     (if (= i (array-length arr))
       acc
       (let [acc (f i !acc (array-get arr i))]
         (inner (+ i 1) !acc))))
-  (def acc (copy init))
-  (inner 0 !acc))
+  (inner 0 !init))
 
 (defn map [arr f]
   (def ret& (__unsafe_array_create (array-length arr)))

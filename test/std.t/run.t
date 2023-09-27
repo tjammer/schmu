@@ -829,3 +829,8 @@ Test hashtbl
   ## string
   1.1
   none
+
+String module test
+  $ schmu string.smu
+  $ ./string
+  hello, world, :)
