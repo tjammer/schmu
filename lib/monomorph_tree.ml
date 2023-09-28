@@ -271,8 +271,9 @@ end = struct
     match (a, ms) with
     | _, [] -> failwith "Internal Error: Empty ids"
     | Branch { fst; snd }, _ ->
-        (* These are for borrowed values. Borrowed values should already be part of the
-           mallocs env. There maybe is a special case for string literals here *)
+        (* These are for borrowed values. Borrowed values should already be part
+           of the mallocs env. There maybe is a special case for string literals
+           here *)
         assert (mem fst ms);
         assert (mem snd ms);
         ms
@@ -305,8 +306,9 @@ end = struct
       | Branch { fst; snd }, _ -> aux fst path ms |> aux snd path
       | Single { parent = Some par; _ }, _
         when (not (mem par ms)) && not (mem a ms) ->
-          (* Except when it has a parent and the parent is still part of the tail.
-             Then it's about to be removed and the child part has to be added here. *)
+          (* Except when it has a parent and the parent is still part of the
+             tail. Then it's about to be removed and the child part has to be
+             added here. *)
           aux a path (add a ms)
       | Single i, (scope, ms) :: tl ->
           let ms =
@@ -321,8 +323,8 @@ end = struct
                     (* Malloc id isn't part of this scope, do nothing *)
                     ms)
           in
-          (* If the malloc has a parent, it's a variant.
-             The variant must be removed as a whole from the tail *)
+          (* If the malloc has a parent, it's a variant. The variant must be
+             removed as a whole from the tail *)
           let tl =
             match i.parent with Some par -> aux par [] tl | None -> tl
           in
@@ -339,8 +341,9 @@ end = struct
       | Branch { fst; snd }, _ -> remove_local fst ms |> remove_local snd
       | Single ({ parent = Some par; _ } as i), (_, ms') :: _
         when (not (mem par ms)) && not (Imap.mem i ms') ->
-          (* Except when it has a parent and the parent is still part of the tail.
-             Then it's about to be removed and the child part has to be added here. *)
+          (* Except when it has a parent and the parent is still part of the
+             tail. Then it's about to be removed and the child part has to be
+             added here. *)
           aux a path (add a ms)
       | Single i, (scope, ms) :: tl ->
           let ms =
@@ -404,9 +407,8 @@ type morph_param = {
   (* Marks an expression where an if is the last piece which returns a record.
      Needed for tail call elim *)
   mallocs : Mallocs.t;
-      (* Tracks all heap allocations in a scope.
-         If a value with allocation is returned, they are marked for the parent scope.
-         Otherwise freed *)
+      (* Tracks all heap allocations in a scope. If a value with allocation is
+         returned, they are marked for the parent scope. Otherwise freed *)
   toplvl : bool;
   mname : Path.t; (* Module name *)
   mainmodule : Path.t;
@@ -429,7 +431,8 @@ let func_of_typ = function
 
 let rec find_function_expr vars = function
   | Mvar (_, Vglobal id) -> (
-      (* Use the id saved in Vglobal. The usual id is the call name / unique global name *)
+      (* Use the id saved in Vglobal. The usual id is the call name / unique
+         global name *)
       match Vars.find_opt id vars with
       | Some (Global (_, thing, used)) ->
           used := true;
@@ -448,8 +451,8 @@ let rec find_function_expr vars = function
   | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ | Munop _ | Mctor _ ->
       No_function
   | Mif _ ->
-      (* We are not allowing to return functions in ifs,
-         b/c we cannot codegen anyway *)
+      (* We are not allowing to return functions in ifs, b/c we cannot codegen
+         anyway *)
       No_function
   | Mlambda (name, _, _) -> (
       match Vars.find_opt name vars with
@@ -683,8 +686,8 @@ and subst_body p subst tree =
         in
         let typ = typ_of_abs abs in
 
-        (* We may have to monomorphize. For instance if the lambda returned
-           from a polymorphic function *)
+        (* We may have to monomorphize. For instance if the lambda returned from
+           a polymorphic function *)
         let name = mono_callable name typ tree in
 
         { tree with typ; expr = Mlambda (name, abs, alloca) }
@@ -693,8 +696,8 @@ and subst_body p subst tree =
         let abs =
           { abs with func = subst_func abs.func; body = sub abs.body }
         in
-        (* We may have to monomorphize. For instance if the lambda returned
-           from a polymorphic function *)
+        (* We may have to monomorphize. For instance if the lambda returned from
+           a polymorphic function *)
         let name = mono_callable name (typ_of_abs abs) { tree with typ } in
 
         let cont = { (inner cont) with typ = subst cont.typ } in
@@ -821,8 +824,8 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
   | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
   | Inline (ps, typ, tree) ->
       (* Copied from Polymorphic below *)
-      (* The parent substitution is threaded through to its children.
-         This deals with nested closures *)
+      (* The parent substitution is threaded through to its children. This deals
+         with nested closures *)
       let subst, typ = subst_type ~concrete:expr.typ typ parent_sub in
 
       (* If the type is still polymorphic, we cannot generate it *)
@@ -832,11 +835,13 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
            (p, Inline (ps, tree))
   | Forward_decl (name, typ) ->
       (* Generate the correct call name. If its mono, we have to recalculate it.
-         Closures are tricky, as the arguments are generally not closures, but the typ might.
-         We try to subst the (potential) closure by using the parent_sub if its available *)
+         Closures are tricky, as the arguments are generally not closures, but
+         the typ might. We try to subst the (potential) closure by using the
+         parent_sub if its available *)
       if is_type_polymorphic typ then
-        (* Instead of directly generating the mono name from concrete type and expr,
-           we substitute the poly type and use the substituted one. This helps with some closures *)
+        (* Instead of directly generating the mono name from concrete type and
+           expr, we substitute the poly type and use the substituted one. This
+           helps with some closures *)
         let call =
           match parent_sub with
           | Some sub ->
@@ -880,9 +885,8 @@ and monomorphize p typ concrete func parent_sub =
     (p, Mono call)
   else
     (* We generate the function *)
-
-    (* The parent substitution is threaded through to its children.
-       This deals with nested closures *)
+    (* The parent substitution is threaded through to its children. This deals
+       with nested closures *)
     let subst, typ = subst_type ~concrete typ parent_sub in
 
     (* If the type is still polymorphic, we cannot generate it *)
@@ -909,11 +913,13 @@ let extract_callname default vars expr =
   | No_function -> default
 
 let reconstr_module_username ~mname ~mainmod username =
-  (* Values queried from an imported module have a special name so they don't clash with
-     user-defined values. This name is calculated in [Module.absolute_module_name]. For functions,
-     polymorphic the [unique_name] also prepends the module. Their username will stay intact so we
-     don't create names like prelude_prelude_thing. In order to match their queried name, we
-     convert to the absolute_module_name before adding them to the environment. *)
+  (* Values queried from an imported module have a special name so they don't
+     clash with user-defined values. This name is calculated in
+     [Module.absolute_module_name]. For functions, polymorphic the [unique_name]
+     also prepends the module. Their username will stay intact so we don't
+     create names like prelude_prelude_thing. In order to match their queried
+     name, we convert to the absolute_module_name before adding them to the
+     environment. *)
   let imported = Path.equal mname mainmod |> not in
   if imported then Module.absolute_module_name ~mname username else username
 
@@ -1060,8 +1066,8 @@ let pop_recursion_stack () =
 
 let set_tailrec name =
   match !recursion_stack with
-  (* We have to check the name (of the function) here, because
-     a nested function could call recursively its parent *)
+  (* We have to check the name (of the function) here, because a nested function
+     could call recursively its parent *)
   | (nm, _) :: tl when String.equal name nm ->
       recursion_stack := (nm, Rtail) :: tl
   | _ :: _ -> ()
@@ -1196,7 +1202,8 @@ and morph_string mk p s =
 
 and morph_array mk p a typ =
   let ret = p.ret in
-  (* TODO save id list and pass empty one. Destroy temporary objects not directly used as member *)
+  (* TODO save id list and pass empty one. Destroy temporary objects not
+     directly used as member *)
   let p = { p with ret = false } in
 
   (* ret = false is threaded through p *)
@@ -1249,29 +1256,30 @@ and morph_if mk p cond owning e1 e2 =
   let oldmallocs = p.mallocs in
 
   (* TODO update this comment *)
-  (* If a malloc from a branch is local it is unique. We can savely add it
-     to mallocs and return it. For mallocs from the outer scope (function scope),
-     we need to be more careful. If outer scope mallocs are involved, we don't add
-     to mallocs to prevent aliasing, but return Oneof _. If such an expression
-     is returned from a function, we cannot be sure what to free in codegen. *)
+  (* If a malloc from a branch is local it is unique. We can savely add it to
+     mallocs and return it. For mallocs from the outer scope (function scope),
+     we need to be more careful. If outer scope mallocs are involved, we don't
+     add to mallocs to prevent aliasing, but return Oneof _. If such an
+     expression is returned from a function, we cannot be sure what to free in
+     codegen. *)
   (* There are two cases to distinguish:
      1. The borrows are moved (owning = true), which means all unused branches
-     can be freed immediately. We still keep track of the Oneofs for nested ifs so
-     we prevent double-freeing an already freed branch. Local allocation are treated
-     as No_malloc, so they aren't freed from the other branch.
-     2. The borrows are not moved (owning = false). In this case, we don't know if
-     the borrows are returned later, so we (could) keep an extra bool per taken
-     branch in codegen which can be queried to delete the correct things.
-     For now we prevent this situation completely with a check in exclusivity and
-     force a copy *)
+     can be freed immediately. We still keep track of the Oneofs for nested ifs
+     so we prevent double-freeing an already freed branch. Local allocation are
+     treated as No_malloc, so they aren't freed from the other branch.
+     2. The borrows are not moved (owning = false). In this case, we don't know
+     if the borrows are returned later, so we (could) keep an extra bool per
+     taken branch in codegen which can be queried to delete the correct things.
+     For now we prevent this situation completely with a check in exclusivity
+     and force a copy *)
   let p, e1, a =
     morph_expr { p with ret; mallocs = Mallocs.push Mlocal oldmallocs } e1
   in
   let e1, a, amallocs =
     (* For tailrecursive calls, every ref is already decreased in [morph_app].
-           Furthermore, if both branches are tailrecursive, calling decr_ref might
-           destroy a basic block in codegen. That's due to no merge blocks being
-           created in that case *)
+       Furthermore, if both branches are tailrecursive, calling decr_ref might
+       destroy a basic block in codegen. That's due to no merge blocks being
+       created in that case *)
     if a.tailrec then
       let _, mallocs = Mallocs.pop p.mallocs in
       (e1, { a with malloc = No_malloc }, mallocs)
@@ -1388,8 +1396,9 @@ and prep_let p id uniq e pass toplvl =
         Hashtbl.add global_tbl uniq (cnt, e1.typ, toplvl);
         let used = ref false in
         let vars = Vars.add un (Global (uniq, func, used)) p.vars in
-        (* Add global values to env with global id. That's how they might be queried,
-           and the function information is needed for monomorphization *)
+        (* Add global values to env with global id. That's how they might be
+           queried, and the function information is needed for
+           monomorphization *)
         let vars = Vars.add uniq (Global (uniq, func, used)) vars in
         ({ p with vars }, Some uniq)
     | _ ->
@@ -1429,19 +1438,18 @@ and morph_field mk p expr index =
   let ret = p.ret in
   let p, e, func = morph_expr { p with ret = false } expr in
   let malloc = malloc_add_index index func.malloc in
-  (* Field should not inherit alloca of its parent.
-     Otherwise codegen might use a nested type as its parent *)
+  (* Field should not inherit alloca of its parent. Otherwise codegen might use
+     a nested type as its parent *)
   ( { p with ret },
     mk (Mfield (e, index)) ret,
     { func with alloc = No_value; malloc } )
 
 and morph_set mk p expr value =
   let ret = p.ret in
-  (* We don't track allocations in the to-set expr.
-     This helps with nested allocated things.
-     If we do, there are additional relocations happening and the wrong
-     things are freed. If one were to force an allocation here,
-     that's a leak *)
+  (* We don't track allocations in the to-set expr. This helps with nested
+     allocated things. If we do, there are additional relocations happening and
+     the wrong things are freed. If one were to force an allocation here, that's
+     a leak *)
   let mallocs = p.mallocs in
   let p, e, vfunc = morph_expr { p with ret = false } expr in
   let p, v, _ =
@@ -1463,8 +1471,8 @@ and morph_set mk p expr value =
 
   let tree = mk (Mset (e, v, moved)) ret in
 
-  (* TODO free the thing. This is right now done in codegen by calling free manually.
-     Could also be added to the tree *)
+  (* TODO free the thing. This is right now done in codegen by calling free
+     manually. Could also be added to the tree *)
   ({ p with ret; mallocs }, tree, no_var)
 
 and morph_seq mk p expr cont =
@@ -1474,10 +1482,10 @@ and morph_seq mk p expr cont =
   (p, mk (Mseq (expr, cont)) ret, func)
 
 and prep_func p (username, uniq, abs) =
-  (* If the function is concretely typed, we add it to the function list and
-     add the usercode name to the bound variables. In the polymorphic case,
-     we add the function to the bound variables, but not to the function list.
-     Instead, the monomorphized instance will be added later *)
+  (* If the function is concretely typed, we add it to the function list and add
+     the usercode name to the bound variables. In the polymorphic case, we add
+     the function to the bound variables, but not to the function list. Instead,
+     the monomorphized instance will be added later *)
   let ftyp =
     Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln p
   in
@@ -1620,8 +1628,8 @@ and morph_lambda mk typ p id abs =
   (* But functions on the lambda body might *)
   ignore (pop_recursion_stack ());
 
-  (* Function can be returned themselves. In that case, a closure object will be generated,
-     so treat it the same as any local allocation *)
+  (* Function can be returned themselves. In that case, a closure object will be
+     generated, so treat it the same as any local allocation *)
   let alloca = ref (request ()) in
   let upward () = match !alloca with Preallocated -> true | _ -> false in
 
@@ -1715,8 +1723,9 @@ and morph_app mk p callee args ret_typ =
   let p, callee =
     match args with
     | [] when tailrec ->
-        (* We haven't decreased references yet, because there is no last argument.
-           Essentially, we do the same work as in the last arg of [fold_decr_last]*)
+        (* We haven't decreased references yet, because there is no last
+           argument. Essentially, we do the same work as in the last arg of
+           [fold_decr_last]*)
         (* Note that we use the original p.ids for [decr_refs] *)
         let _, ex = Mallocs.empty_func callee.ex p.mallocs in
         (p, { callee with ex })
@@ -1727,17 +1736,17 @@ and morph_app mk p callee args ret_typ =
 
   let alloc, alloc_ref =
     if is_struct callee.ex.typ then
-      (* For every call, we make a new request. If the call is the return
-         value of a function, the request will be change to [Preallocated]
-         in [morph_func] or [morph_lambda] above. *)
+      (* For every call, we make a new request. If the call is the return value
+         of a function, the request will be change to [Preallocated] in
+         [morph_func] or [morph_lambda] above. *)
       let req = ref (request ()) in
       (Value req, req)
     else (No_value, ref (request ()))
   in
 
   let malloc, mallocs =
-    (* array-get does not return a temporary. If its value is returned in a function,
-       increase value's refcount so that it's really a temporary *)
+    (* array-get does not return a temporary. If its value is returned in a
+       function, increase value's refcount so that it's really a temporary *)
     match callee.monomorph with
     | Builtin (Array_get, _) -> (Malloc.No_malloc, p.mallocs)
     | _ ->

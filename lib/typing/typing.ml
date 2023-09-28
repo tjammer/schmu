@@ -638,10 +638,11 @@ end = struct
         let attr = { const = t.const; global = t.global; mut = t.mut } in
         { typ; expr = Var (Path.get_hd id, t.mname); attr; loc }
     | None ->
-        (* Functor parameters are not local modules and will raise an [Error] in module.ml.
-           That's by accident, and the error message is abysmal and mentions internals, thus
-           we catch this [Error] and print the proper error. If we are here, it's an error
-           anyway, so fishing for exceptions is ok in this case. *)
+        (* Functor parameters are not local modules and will raise an [Error] in
+           module.ml. That's by accident, and the error message is abysmal and
+           mentions internals, thus we catch this [Error] and print the proper
+           error. If we are here, it's an error anyway, so fishing for
+           exceptions is ok in this case. *)
         let suff =
           try
             match Env.find_module_opt loc id env with
@@ -835,8 +836,9 @@ end = struct
     let typ =
       Tfun (params_t, body.typ, kind)
       |>
-      (* For mutually recursive functions, we generalize at the end of the rec block.
-         Otherwise calls to the not-last function in the set will not work*)
+      (* For mutually recursive functions, we generalize at the end of the rec
+         block. Otherwise calls to the not-last function in the set will not
+         work*)
       fun t -> if inrec then t else generalize t
     in
 
@@ -903,8 +905,8 @@ end = struct
     let attr = builtins_hack e1 typed_exprs in
 
     (* Extract the returning type from the callee, because it's properly
-       generalized and linked. This way, everything in a function body
-       should be generalized and we can easily catch weak type variables *)
+       generalized and linked. This way, everything in a function body should be
+       generalized and we can easily catch weak type variables *)
     let typ =
       let rec extract_typ = function
         | Tfun (_, t, _) -> t
@@ -976,8 +978,8 @@ end = struct
         )
 
   and convert_if env loc cond e1 e2 =
-    (* We can assume pred evaluates to bool and both
-       branches need to evaluate to the some type *)
+    (* We can assume pred evaluates to bool and both branches need to evaluate
+       to the some type *)
     let type_cond = convert env cond in
     unify (loc, "In condition") type_cond.typ Tbool env;
     let type_e1 = convert env e1 in
@@ -1012,8 +1014,8 @@ end = struct
                 concretely though." ))
     | _ -> ());
 
-    (* Would be interesting to evaluate this at compile time,
-       but I think it's not that important right now *)
+    (* Would be interesting to evaluate this at compile time, but I think it's
+       not that important right now *)
     let attr = { no_attr with mut = type_e1.attr.mut && type_e2.attr.mut } in
     let expr = If (type_cond, None, type_e1, type_e2) in
     { typ = type_e2.typ; expr; attr; loc }
@@ -1073,9 +1075,8 @@ end = struct
         (fun (i, const) expr ->
           let expr = convert env expr in
           let expr_const =
-            (* There's a special case for string literals.
-               They will get copied here which makes them not const.
-               NOTE copy in convert_record *)
+            (* There's a special case for string literals. They will get copied
+               here which makes them not const. NOTE copy in convert_record *)
             match expr.expr with
             | Const (String _) -> false
             | _ -> expr.attr.const
@@ -1209,11 +1210,10 @@ and Records : Recs.S = Recs.Make (Core)
 and Patternmatch : Pm.S = Pm.Make (Core) (Records)
 
 let block_external_name loc ~cname id =
-  (* We have to deal with shadowing:
-     If there is no function with the same name, we make sure
-     all future function use different names internally (via [uniq_tbl]).
-     If there already is a function, there is nothing we can do right now,
-     so we error *)
+  (* We have to deal with shadowing: If there is no function with the same name,
+     we make sure all future function use different names internally (via
+     [uniq_tbl]). If there already is a function, there is nothing we can do
+     right now, so we error *)
   let name = match cname with Some name -> name | None -> id in
   match Strtbl.find_opt !uniq_tbl name with
   | None ->
@@ -1250,8 +1250,8 @@ let add_signature_types (env, m) = function
 
 let add_signature_vals env m = function
   | Ast.Svalue (loc, ((l, n), type_spec)) ->
-      (* Here, we don't add to env. We later check that the declaration is implemented correctly,
-         in [validate_signature] *)
+      (* Here, we don't add to env. We later check that the declaration is
+         implemented correctly, in [validate_signature] *)
       let typ = typeof_annot env l type_spec in
       let m = Module.add_value_sig loc n typ m in
       m
@@ -1344,9 +1344,8 @@ module Subst_functor = struct
     | Some m' -> (
         match Pmap.find_opt m' psub with
         | Some mname ->
-            (* It's wrong to rename every var. Only the ones which
-               come from the origin functor should be renamed *)
-            (* Replace the module part in id *)
+            (* It's wrong to rename every var. Only the ones which come from the
+               origin functor should be renamed. Replace the module part in id *)
             (id, Some mname)
         | None -> (id, m))
     | None -> (id, m)
@@ -1392,12 +1391,12 @@ let rec convert_module env mname sign prog check_ret =
   let env = Env.open_toplevel mname env in
 
   (* Add types from signature for two reasons:
-     1. In contrast to OCaml, we don't need to declare them two types,
-        so they have to be in env
+     1. In contrast to OCaml, we don't need to declare them two types, so they
+     have to be in env
      2. We don't add vals because the implementation of abstract types is not
-        known at this point. Since we substitute generics naively in annots
-        (which val decls essentially are), we have to make sure the complete
-        implementation is available before. *)
+     known at this point. Since we substitute generics naively in annots (which
+     val decls essentially are), we have to make sure the complete
+     implementation is available before. *)
   let sigenv, m = List.fold_left add_signature_types (env, Module.empty) sign in
   let last_type, env, items, m = convert_prog sigenv prog m in
   let externals = Module.append_externals (Env.externals env) in
@@ -1633,8 +1632,9 @@ and convert_prog env items modul =
         | Error s -> raise (Error (loc, s)))
     | Module_type ((loc, id), vals) ->
         (* This look a bit awkward for this use case. The split of adding first
-           signature types and values after is from the way module signatures are used.
-           That is, the types don't need to be duplictated in the module proper. *)
+           signature types and values after is from the way module signatures
+           are used. That is, the types don't need to be duplictated in the
+           module proper. *)
         let mname = Path.append id (Env.modpath env) in
         let tmpenv = Env.open_toplevel mname env in
         let sigenv, tmpm =
@@ -1663,8 +1663,8 @@ and convert_prog env items modul =
                 | Dnorm -> Tl_bind (id, lhs)
                 | Dset | Dmut | Dmove ->
                     (* We are using another module's toplevel binding. All of
-                         this should be forbidden. So we set let and let it
-                         fail in the exclusivity check *)
+                       this should be forbidden. So we set let and let it fail
+                       in the exclusivity check *)
                     Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr }
               in
               let env = Env.add_callname ~key:id callname env in
