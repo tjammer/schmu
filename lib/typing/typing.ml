@@ -1370,6 +1370,9 @@ let let_fn_alias env loc expr =
       | Some (Var (id, Some md)) ->
           if is_polymorphic expr.typ then Alias
           else Callname (Env.find_callname loc (Path.append id md) env, false)
+      | Some (Var (id, None)) ->
+          (* Treat builtins as aliases *)
+          if Builtin.of_string id |> Option.is_some then Alias else Not
       | Some (Lambda (uniq, _)) ->
           Callname (Module.lambda_name ~mname uniq, false)
       | _ -> Not)

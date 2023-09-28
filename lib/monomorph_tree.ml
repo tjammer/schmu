@@ -1930,6 +1930,13 @@ let rec morph_toplvl param items =
 let monomorphize ~mname { Typed_tree.externals; items; _ } =
   reset ();
 
+  let vars =
+    Builtin.(
+      fold (fun vars (kind, _, str) ->
+          Vars.add str (Normal { no_var with fn = Builtin kind }) vars))
+      Vars.empty
+  in
+
   (* External are globals. By marking them [Global] here, we don't have to
      introduce a special case in codegen, or mark them Const_ptr when they are not *)
   let vars =
@@ -1945,7 +1952,7 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
           | None -> ext_name
         in
         Vars.add ext_name (Global (cname, no_var, used)) vars)
-      Vars.empty externals
+      vars externals
   in
 
   let param =
