@@ -4,7 +4,7 @@
 
 (external puts (fun cstr unit))
 
-(defn len [str] (array-length str))
+(defn len [str] (array/length str))
 
 (defn hash [str]
   -- unsigned long
@@ -22,18 +22,18 @@
 
 (defn equal [l r]
   (if (= (len l) (len r))
-    (= 0 (int_of_i32 (strncmp (array-data l) (array-data r) (array-length l))))
+    (= 0 (int_of_i32 (strncmp (array/data l) (array/data r) (array/length l))))
     false))
 
 (defn append (str& other)
-  (array/iter other (fn ((c u8)) (array-push &str !c))))
+  (array/iter other (fn ((c u8)) (array/push &str !c))))
 
 (defn concat [delim strings]
   (let [ret& (__unsafe_array_create 32)]
-    (set &(array-length ret) 0)
+    (__unsafe_array_set_length &ret 0)
     (array/iteri strings
                  (fn [i str]
                    (if (not (= i 0)) (append &ret delim))
                    (append &ret str)))
-    (array-push &ret !'\000')
+    (array/push &ret !'\000')
     ret))

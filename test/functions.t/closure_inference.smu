@@ -5,22 +5,22 @@
 
 (defn char [c]
   (fn [buf]
-    (if (char-equal (array-get buf.buf buf.curr) c)
+    (if (char-equal buf.buf.[buf.curr] c)
       (#ok {:mtch {:pbuf (copy buf.buf) :start buf.curr :len 1}
             :rem {@(copy buf) :curr (+ 1 buf.curr)}})
       (#err (copy buf)))))
 
 (defn string-of-view [view]
   (def ret& (__unsafe_array_create (+ 1 view.len)))
-  (set &(array-length ret) 0)
+  (__unsafe_array_set_length &ret 0)
   (iter-range (.start view) (+ view.start view.len)
-              (fn [c] (array-push &ret !(copy view.pbuf.[c]))))
-  (array-push &ret !'\000')
-  (array-drop-back &ret)
+              (fn [c] (array/push &ret !(copy view.pbuf.[c]))))
+  (array/push &ret !'\000')
+  (array/drop-back &ret)
   ret)
 
 (defn view-of-lexbuf [lb]
-  {:pbuf (copy lb.buf) :start lb.curr :len (- (array-length lb.buf) lb.curr)})
+  {:pbuf (copy lb.buf) :start lb.curr :len (- (array/length lb.buf) lb.curr)})
 
 (defn print-result [res]
   (-> (match res

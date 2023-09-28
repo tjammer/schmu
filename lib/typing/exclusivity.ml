@@ -584,10 +584,10 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       ({ tree with expr }, v, hs)
   | App
       {
-        callee = { expr = Var ("array-get", _); _ } as callee;
+        callee = { expr = Var ("__array_get", _); _ } as callee;
         args = [ arr; idx ];
       } ->
-      (* Special case for array-get *)
+      (* Special case for __array_get *)
       (* Partial moves for arrays are not yet supported in monomorph_tree, so we
          do not allow them as a temporary workaround *)
       let callee, b, hs = check_tree env Uread no_bdata callee hist in

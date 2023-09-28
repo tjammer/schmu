@@ -6,7 +6,7 @@
          ({#none (#some b)} b)
          ({(#some a) #none} a)
          ({_ #none} 0))
-       (printf (array-data "%i\n"))))
+       (printf (array/data "%i\n"))))
 
 (def (none_int (option int)) #none)
 

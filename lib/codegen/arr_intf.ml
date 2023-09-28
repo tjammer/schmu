@@ -18,6 +18,7 @@ module type S = sig
   val unsafe_array_create :
     param -> llvar list -> typ -> Monomorph_tree.alloca -> llvar
 
+  val unsafe_array_set_length : llvar list -> llvar
   val item_type_head_size : typ -> typ * Llvm.lltype * int * int
 
   val iter_array_children :

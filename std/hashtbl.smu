@@ -22,18 +22,18 @@
   (defn create [size]
     (def data& (__unsafe_array_create size))
     (prelude/iter-range 0 size
-                        (fn [i] (__unsafe_ptr_set &(array-data data) i !#empty)))
+                        (fn [i] (__unsafe_ptr_set &(array/data data) i !#empty)))
     {:data :nitems 0})
 
   (external abs (fun int int))
 
   (defn idx [tbl key]
     (let [hash (m/hash key)]
-      (mod (abs hash) (array-length tbl.data))))
+      (mod (abs hash) (array/length tbl.data))))
 
   (defn probe-linear [tbl key insert?]
     (defn probe [i size]
-      (match (array-get tbl.data i)
+      (match tbl.data.[i]
         (#empty i)
         (#tombstone (if insert? i (probe (mod (+ i 1) size) size)))
         ((#item {:key k :value _})
@@ -42,13 +42,13 @@
              i                    -- Overwrite the same key
              (probe (mod (+ i 1) size) size))))))
     (let [idx (idx tbl key)]
-      (probe idx (array-length tbl.data))))
+      (probe idx (array/length tbl.data))))
 
   (defn iter-data [data f]
     (defn inner [i]
-      (if (= i (array-length data))
+      (if (= i (array/length data))
         ()
-        (match (array-get data i)
+        (match data.[i]
           ((or #empty #tombstone) (inner (+ i 1)))
           ((#item {:key :value})
            (do
@@ -58,9 +58,9 @@
 
   (defn iter-data-move [data& f]
     (defn inner [i]
-      (if (= i (array-length data))
-        (set &(array-length data) 0)
-        (match (__unsafe_ptr_get (array-data data) i)
+      (if (= i (array/length data))
+        (__unsafe_array_set_length &data 0)
+        (match (__unsafe_ptr_get (array/data data) i)
           ((or #empty #tombstone) (inner (+ i 1)))
           ((#item {:key :value})
            (do
@@ -70,9 +70,9 @@
 
   (defn fold [tbl init! f]
     (defn inner [i acc!]
-      (if (= i (array-length tbl.data))
+      (if (= i (array/length tbl.data))
         acc
-        (match (array-get tbl.data i)
+        (match tbl.data.[i]
           ((or #empty #tombstone) (inner (+ i 1) !acc))
           ((#item {:key :value})
            (inner (+ i 1) !(f !acc key value))))))
@@ -81,14 +81,14 @@
   (def load-limit 0.75)
 
   (defn load-factor [tbl]
-    (/. (float_of_int tbl.nitems) (float_of_int (array-length tbl.data))))
+    (/. (float_of_int tbl.nitems) (float_of_int (array/length tbl.data))))
 
   (rec
    (defn grow [tbl&]
-     (def size (* 2 (array-length tbl.data)))
+     (def size (* 2 (array/length tbl.data)))
      (def data& (__unsafe_array_create size))
      (prelude/iter-range 0 size
-                         (fn [i] (__unsafe_ptr_set &(array-data data) i !#empty)))
+                         (fn [i] (__unsafe_ptr_set &(array/data data) i !#empty)))
      (def old-data& !tbl.data)
      (set &tbl.data data)
      (set &tbl.nitems 0)
@@ -98,18 +98,18 @@
      (if (>. (load-factor tbl) load-limit)
        (grow &tbl))
      (let [idx (probe-linear tbl key true)]
-       (set &(array-get tbl.data idx) (#item {:key :value}))
+       (set &tbl.data.[idx] (#item {:key :value}))
        (set &tbl.nitems (+ 1 tbl.nitems)))))
 
   (defn find [tbl key]
     (let [idx (probe-linear tbl key false)]
-      (match (array-get tbl.data idx)
+      (match tbl.data.[idx]
         ((#item i) (#some (copy i.value)))
         ((or #empty #tombstone) #none))))
 
   (defn to-array [tbl]
     (def arr& (__unsafe_array_create tbl.nitems))
-    (set &(array-length arr) 0)
+    (__unsafe_array_set_length &arr 0)
     (iter-data tbl.data
-               (fn [key value] (array-push &arr !{(copy key) (copy value)})))
+               (fn [key value] (array/push &arr !{(copy key) (copy value)})))
     arr))

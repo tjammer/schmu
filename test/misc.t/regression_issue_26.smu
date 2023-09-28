@@ -8,12 +8,12 @@
     ((= b limit) (nested (+ a 1) 0))
     ((= a limit) ())
     (else (do
-            (printf (array-data "%i, %i\n") a b 0)
+            (printf (array/data "%i, %i\n") a b 0)
             (nested a (+ b 1))))))
 
 (nested 0 0)
 
-(printf (array-data "\n") 0 0 0)
+(printf (array/data "\n") 0 0 0)
 
 (defn nested [a b c]
   (cond
@@ -21,7 +21,7 @@
     ((= c limit) (nested a (+ b 1) 0))
     ((= a limit) ())
     (else (do
-            (printf (array-data "%i, %i, %i\n") a b c)
+            (printf (array/data "%i, %i, %i\n") a b c)
             (nested a b (+ c 1))))))
 
 (nested 0 0 0)
@@ -32,7 +32,7 @@
     ((= a limit) ())
     ((= c limit) (nested a (+ b 1) 0))
     (else (do
-            (printf (array-data "%i, %i, %i\n") a b c)
+            (printf (array/data "%i, %i, %i\n") a b c)
             (nested a b (+ c 1))))))
 
 0

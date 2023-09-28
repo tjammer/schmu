@@ -1,53 +1,58 @@
+(def data __array_data)
+(def drop-back __array_drop_back)
+(def length __array_length)
+(def push __array_push)
+
 (defn iter [arr f]
   (defn inner [i]
-    (if (= i (array-length arr))
+    (if (= i (length arr))
       ()
       (do
-        (f (array-get arr i))
+        (f arr.[i])
         (inner (+ i 1)))))
   (inner 0))
 
 (defn iteri [arr f]
   (defn inner [i]
-    (if (= i (array-length arr))
+    (if (= i (length arr))
       ()
       (do
-        (f i (array-get arr i))
+        (f i arr.[i])
         (inner (+ i 1)))))
   (inner 0))
 
 (defn fold [arr f init!]
   (defn inner [i acc!]
-    (if (= i (array-length arr))
+    (if (= i (length arr))
       acc
-      (let [acc (f !acc (array-get arr i))]
+      (let [acc (f !acc arr.[i])]
         (inner (+ i 1) !acc))))
   (inner 0 !init))
 
 (defn foldi [arr f init!]
   (defn inner [i acc!]
-    (if (= i (array-length arr))
+    (if (= i (length arr))
       acc
-      (let [acc (f i !acc (array-get arr i))]
+      (let [acc (f i !acc arr.[i])]
         (inner (+ i 1) !acc))))
   (inner 0 !init))
 
 (defn map [arr f]
-  (def ret& (__unsafe_array_create (array-length arr)))
-  (set &(array-length ret) 0)
+  (def ret& (__unsafe_array_create (length arr)))
+  (__unsafe_array_set_length &ret 0)
   -- TODO reserve
   (defn inner [ret! i]
     (def ret& !ret)
-    (if (= i (array-length arr))
+    (if (= i (length arr))
       ret
       (do
-        (array-push &ret !(f (array-get arr i)))
+        (push &ret !(f arr.[i]))
         (inner !ret (+ i 1)))))
   (inner !ret 0))
 
 (defn swap-items [arr& i j]
   (if (= i j)
     ()
-    (let [tmp! (__unsafe_ptr_get (array-data arr) i)]
-      (__unsafe_ptr_set &(array-data arr) i !(__unsafe_ptr_get (array-data arr) j))
-      (__unsafe_ptr_set  &(array-data arr) j !tmp))))
+    (let [tmp! (__unsafe_ptr_get (data arr) i)]
+      (__unsafe_ptr_set &(data arr) i !(__unsafe_ptr_get (data arr) j))
+      (__unsafe_ptr_set &(data arr) j !tmp))))

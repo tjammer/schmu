@@ -486,7 +486,7 @@ prog: Lpar Def Int Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Let Lbrack Kebab_id Ampersand Wildcard
+prog: Lpar Let Lbrack Kebab_id Builtin_id
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -813,6 +813,10 @@ prog: Lpar Def Kebab_id Exclamation Wildcard
 prog: Lpar Def Kebab_id Exclamation False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Def Kebab_id Builtin_id Wildcard
+
+Expecting ')'
 
 prog: Lpar Def Kebab_id Ampersand Ampersand Wildcard
 

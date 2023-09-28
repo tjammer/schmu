@@ -1,28 +1,28 @@
 (def a& [10 20])
 (def b (copy a))
 
-(array-push &a !30)
+(array/push &a !30)
 
-(print (fmt-str (array-length a)))
-(print (fmt-str (array-length b)))
+(print (fmt-str (array/length a)))
+(print (fmt-str (array/length b)))
 
 
 (defn in-fun []
   (def a& [10 20])
   (def b (copy a))
 
-  (array-push &a !30)
+  (array/push &a !30)
 
-  (print (fmt-str (array-length a)))
-  (print (fmt-str (array-length b))))
+  (print (fmt-str (array/length a)))
+  (print (fmt-str (array/length b))))
 
 (in-fun)
 
 (def nested& [[0 1] [2 3]])
 (def a [4 5])
-(array-push &nested !(copy a))
-(set &(array-get nested 1) (copy a))
-(set &(array-get nested 1) (copy a))
-(array-push &nested ![4 5])
-(set &(array-get nested 1) [4 5])
-(set &(array-get nested 1) [4 5])
+(array/push &nested !(copy a))
+(set & nested.[1] (copy a))
+(set &nested.[1] (copy a))
+(array/push &nested ![4 5])
+(set &nested.[1] [4 5])
+(set &nested.[1] [4 5])

@@ -13,5 +13,5 @@
 (ignore b)
 
 (def c [30])
-(set &(array-get a 0) (copy c))
+(set &a.[0] (copy c))
 (set &a.[0] [10])

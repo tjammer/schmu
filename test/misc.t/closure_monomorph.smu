@@ -1,11 +1,11 @@
 (defn sort [arr& cmp]
   (defn partition [arr& lo hi]
-    (def pivot (copy (array-get arr hi)))
+    (def pivot (copy arr.[hi]))
     (def i& (- lo 1))
     (iter-range lo hi
                 (fn [j]
                   -- TODO cannot capture [cmp] here
-                  (if (< (cmp (array-get arr j) pivot) 0)
+                  (if (< (cmp arr.[j] pivot) 0)
                     (do
                       (set &i (+ i 1))
                       (array/swap-items &arr i j)))))
@@ -26,7 +26,7 @@
         (quicksort &arr lo (- p 1))
         (quicksort &arr (+ p 1) hi))))
 
-  (let [len (- (array-length arr) 1)]
+  (let [len (- (array/length arr) 1)]
     (quicksort &arr 0 len)))
 
 (def arr& [9 30 0 50 2030 34])
@@ -36,12 +36,12 @@
 -- These functions have different call names. Make sure this works as well
 (defn sort [arr& cmp]
   (defn partition [arr& lo hi]
-    (def pivot (copy (array-get arr hi)))
+    (def pivot (copy arr.[hi]))
     (def i& (- lo 1))
     (iter-range lo hi
                 (fn [j]
                   -- TODO cannot capture [cmp] here
-                  (if (< (cmp (array-get arr j) pivot) 0)
+                  (if (< (cmp arr.[j] pivot) 0)
                     (do
                       (set &i (+ i 1))
                       (array/swap-items &arr i j)))))
@@ -55,7 +55,7 @@
         (quicksort &arr lo (- p 1))
         (quicksort &arr (+ p 1) hi))))
 
-  (let [len (- (array-length arr) 1)]
+  (let [len (- (array/length arr) 1)]
     (quicksort &arr 0 len)))
 
 (def arr& [9 30 0 50 2030 34])

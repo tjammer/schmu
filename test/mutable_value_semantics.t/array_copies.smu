@@ -1,5 +1,5 @@
 (defn print-0th [a]
-  (print (fmt-str (array-get a 0))))
+  (print (fmt-str a.[0])))
 
 (def a& [10])
 (def b (copy a))

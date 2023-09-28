@@ -199,8 +199,9 @@ struct
       Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
     in
     let value = Llvm.build_gep int_ptr [| ci 0 |] "len" builder in
+    let value = Llvm.build_load value "" builder in
 
-    { value; typ = Tint; lltyp = int_t; kind = Ptr }
+    { value; typ = Tint; lltyp = int_t; kind = Imm }
 
   let grow orig =
     let call = modify_arr_fn Grow orig in
@@ -367,6 +368,19 @@ struct
     ignore (Llvm.build_store sz dst builder);
 
     { value = arr; typ; lltyp; kind = Ptr }
+
+  let unsafe_array_set_length args =
+    let arr, sz =
+      match args with
+      | [ arr; sz ] -> (bring_default_var arr, bring_default sz)
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    in
+    let int_ptr =
+      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
+    in
+    let dst = Llvm.build_gep int_ptr [| ci 0 |] "len" builder in
+    ignore (Llvm.build_store sz dst builder);
+    { dummy_fn_value with lltyp = unit_t }
 
   let gen_functions () =
     Hashtbl.iter

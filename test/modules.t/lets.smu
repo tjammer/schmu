@@ -8,4 +8,4 @@
 
 (def a 11)
 
--- printf("hello from Lets\n"array-data, 0)
+-- printf("hello from Lets\n"array/data, 0)

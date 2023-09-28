@@ -4,6 +4,6 @@
 
 (external printf (fun string/cstr int unit))
 
-(defn printi [i] (printf (array-data "%i\n") i))
+(defn printi [i] (printf (array/data "%i\n") i))
 
 (array/iter malloc_some/vtest printi)

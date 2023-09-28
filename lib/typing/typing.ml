@@ -496,25 +496,24 @@ let rec param_funcs_as_closures = function
 let convert_simple_lit loc typ expr =
   { typ; expr = Const expr; attr = { no_attr with const = true }; loc }
 
-let rec builtins_hack callee args =
+let builtins_hack callee args =
   (* return of __unsafe_ptr_get should be marked mut, otherwise it won't be copied
      correctly later in codegen. *)
-  (* NOTE is_temporary is monomorph_tree also needs to be updated *)
-  match callee with
-  | Ast.Var (_, id) -> (
+  let mut =
+    match args with
+    (* We only care about the first arg, ie the array *)
+    | (_, _, mut) :: _ -> mut
+    | _ -> false
+  in
+  match Typed_tree.follow_expr callee.expr with
+  | Some (Var (id, None)) -> (
       match id with
       | "__unsafe_ptr_get" -> { no_attr with mut = true }
-      | "array-get" | "array-data" | "array-length" ->
-          let mut =
-            match args with
-            (* We only care about the first arg, ie the array *)
-            | (_, _, mut) :: _ -> mut
-            | _ -> false
-          in
-          { no_attr with mut }
+      | "__array_get" | "__array_data" -> { no_attr with mut }
       | _ -> no_attr)
-  | Let_e (__, _, _, cont) -> builtins_hack cont args
-  | _ -> no_attr
+  | Some (Var (id, Some (Path.Pid "array"))) -> (
+      match id with "data" -> { no_attr with mut } | _ -> no_attr)
+  | Some _ | None -> no_attr
 
 let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }
 
@@ -902,7 +901,7 @@ end = struct
     in
     let targs = List.map2 apply args_t typed_exprs in
 
-    let attr = builtins_hack e1 typed_exprs in
+    let attr = builtins_hack callee typed_exprs in
 
     (* Extract the returning type from the callee, because it's properly
        generalized and linked. This way, everything in a function body should be

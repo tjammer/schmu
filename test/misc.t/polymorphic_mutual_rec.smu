@@ -7,17 +7,17 @@ m2/(do
      (pop &arr)
      (def arr& [0 1 2 3])
      (pop-all &arr)
-     (print (fmt-str (array-length arr)))
+     (print (fmt-str (array/length arr)))
 
      (print (fmt-str cnt)))
 
 (rec
  (defn pop [arr&]
    (print "pop")
-   (array-drop-back &arr)
+   (array/drop-back &arr)
    (pop-all &arr))
  (defn pop-all [arr&]
-   (if (= (array-length arr) 0)
+   (if (= (array/length arr) 0)
      ()
      (pop &arr))))
 
@@ -25,7 +25,7 @@ m2/(do
 (pop &arr)
 (def arr& [0 1 2 3])
 (pop-all &arr)
-(print (fmt-str (array-length arr)))
+(print (fmt-str (array/length arr)))
 
 (print (fmt-str m2/cnt))
 

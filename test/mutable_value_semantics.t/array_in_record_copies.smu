@@ -5,7 +5,7 @@
 (set &a.a.[0] 12)
 
 (defn print-thing [a]
-  (print (fmt-str (array-get (.a a) 0))))
+  (print (fmt-str (.a a).[0])))
 
 (print-thing a)
 (print-thing b)

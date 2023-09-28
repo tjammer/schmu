@@ -11,7 +11,7 @@
 (defn arr_inside []
   (def arr& [(copy x) {:x 2} {:x 3}])
   -- Make sure we can call realloc
-  (array-push &arr !{:x 12}))
+  (array/push &arr !{:x 12}))
 
 -- Arr is returned and should be freed in its parent scope
 (defn make_arr []
@@ -51,7 +51,7 @@
 (def normal (nest_fns))
 
 (def nested& [[0 1] [2 3]])
-(array-push &nested ![4 5])
+(array/push &nested ![4 5])
 (def nested (make_nested_arr))
 (def nested (nest_allocs))
 (nest_local)

@@ -5,7 +5,7 @@
 (ignore use-t)
 
 -- Use ext
-(ext (array-data "hello %i\n") 20)
+(ext (array/data "hello %i\n") 20)
 
 -- Use t
 (assert (= t 200))

@@ -27,6 +27,7 @@ type t =
   | Array_drop_back
   | Array_data
   | Unsafe_array_create
+  | Unsafe_array_set_length
   | Unsafe_nullptr
   | Assert
   | Copy
@@ -102,10 +103,10 @@ let tbl =
         ( [ { p with pt = Tarray (Qvar "0") }; { p with pt = Tint } ],
           Qvar "0",
           Simple ),
-      "array-get" );
+      "__array_get" );
     ( Array_length,
       Tfun ([ { p with pt = Tarray (Qvar "0") } ], Tint, Simple),
-      "array-length" );
+      "__array_length" );
     ( Array_push,
       Tfun
         ( [
@@ -114,16 +115,22 @@ let tbl =
           ],
           Tunit,
           Simple ),
-      "array-push" );
+      "__array_push" );
     ( Array_drop_back,
       Tfun ([ { pt = Tarray (Qvar "0"); pattr = Dmut } ], Tunit, Simple),
-      "array-drop-back" );
+      "__array_drop_back" );
     ( Array_data,
       Tfun ([ { p with pt = Tarray (Qvar "0") } ], Traw_ptr (Qvar "0"), Simple),
-      "array-data" );
+      "__array_data" );
     ( Unsafe_array_create,
       Tfun ([ { p with pt = Tint } ], Tarray (Qvar "0"), Simple),
       "__unsafe_array_create" );
+    ( Unsafe_array_set_length,
+      Tfun
+        ( [ { pt = Tarray (Qvar "0"); pattr = Dmut }; { p with pt = Tint } ],
+          Tunit,
+          Simple ),
+      "__unsafe_array_set_length" );
     (Unsafe_nullptr, Tfun ([], Traw_ptr Tu8, Simple), "__unsafe_nullptr");
     (Assert, Tfun ([ { p with pt = Tbool } ], Tunit, Simple), "assert");
     (Copy, Tfun ([ { p with pt = Qvar "0" } ], Qvar "0", Simple), "copy");
@@ -152,12 +159,13 @@ let of_string = function
   | "u8_to_int" -> Some U8_to_int
   | "not" -> Some Not
   | "mod" -> Some Mod
-  | "array-get" -> Some Array_get
-  | "array-length" -> Some Array_length
-  | "array-push" -> Some Array_push
-  | "array-drop-back" -> Some Array_drop_back
-  | "array-data" -> Some Array_data
+  | "__array_get" -> Some Array_get
+  | "__array_length" -> Some Array_length
+  | "__array_push" -> Some Array_push
+  | "__array_drop_back" -> Some Array_drop_back
+  | "__array_data" -> Some Array_data
   | "__unsafe_array_create" -> Some Unsafe_array_create
+  | "__unsafe_array_set_length" -> Some Unsafe_array_set_length
   | "__unsafe_nullptr" -> Some Unsafe_nullptr
   | "assert" -> Some Assert
   | "copy" | "__copy" ->

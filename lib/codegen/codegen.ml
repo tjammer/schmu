@@ -618,6 +618,7 @@ end = struct
     | Array_drop_back -> array_drop_back param args
     | Array_data -> array_data args
     | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
+    | Unsafe_array_set_length -> unsafe_array_set_length args
     | Unsafe_nullptr ->
         let value = Llvm.const_null voidptr_t in
         { value; typ = Traw_ptr Tunit; lltyp = voidptr_t; kind = Const }
@@ -1159,6 +1160,9 @@ let has_init_code tree =
         | None -> failwith "Internal Error: global value not found")
     | Mfunction (_, _, cont, _) -> aux cont.expr
     | Mconst Unit -> false
+    | Mbind (_, _, cont) ->
+        (* Bind itself does not need init *)
+        aux cont.expr
     | _ -> true
   in
   aux Monomorph_tree.(tree.expr)

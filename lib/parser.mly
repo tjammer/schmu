@@ -280,6 +280,8 @@ stmt:
 
 %inline sexp_let:
   | Def; sexp_decl; pexpr = passed_expr { Let($loc, $2, pexpr ) }
+  /* Allow toplevel defs to alias builtins (to give them a better name) */
+  | Def; sexp_decl; pexpr = Builtin_id { Let($loc, $2, {pattr = Dnorm; pexpr = Var($loc(pexpr), pexpr)}) }
 
 sexp_decl:
   | parens(sexp_decl_typed) { $1 }
@@ -329,7 +331,7 @@ sexp_expr:
   | ident { Var (fst $1, snd $1) }
   | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
   | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
-    {App ($loc, Var ($loc, "array-get"),
+    {App ($loc, Var ($loc, "__array_get"),
           [{apass = Dnorm; aloc = $loc(e); aexpr = e};
            {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
   | parens(lets) { $1 }

@@ -2,7 +2,7 @@
 
 (external printf (fun string/cstr int unit))
 
-(->> (classify (#some 3)) (printf (array-data "%i\n")))
-(->> (classify (#some 3.0)) (printf (array-data "%i\n")))
+(->> (classify (#some 3)) (printf (array/data "%i\n")))
+(->> (classify (#some 3.0)) (printf (array/data "%i\n")))
 (def (none (option float)) #none)
-(->> (classify none) (printf (array-data "%i\n")))
+(->> (classify none) (printf (array/data "%i\n")))

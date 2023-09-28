@@ -6,5 +6,5 @@
 
 (type (r 'a) {:a 'a})
 (defn ret-rec [] {:a [10 20 30]})
-(def c (let [a (ret-rec)] (array-get (.a a) 1)))
+(def c (let [a (ret-rec)] (.a a).[1]))
 (ignore c)
