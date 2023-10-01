@@ -7,7 +7,7 @@
                   -- TODO cannot capture [cmp] here
                   (if (< (cmp arr.[j] pivot) 0)
                     (do
-                      (set &i (+ i 1))
+                      (set &i !(+ i 1))
                       (array/swap-items &arr i j)))))
     (def i (+ i 1))
     (array/swap-items &arr i hi)
@@ -43,7 +43,7 @@
                   -- TODO cannot capture [cmp] here
                   (if (< (cmp arr.[j] pivot) 0)
                     (do
-                      (set &i (+ i 1))
+                      (set &i !(+ i 1))
                       (array/swap-items &arr i j)))))
     (def i (+ i 1))
     (array/swap-items &arr i hi)

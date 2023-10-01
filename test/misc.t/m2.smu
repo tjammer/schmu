@@ -21,7 +21,7 @@
 (rec
  (defn pop [arr&]
    (print "pop")
-   (set &cnt (+ cnt 1))
+   (set &cnt !(+ cnt 1))
    (array/drop-back &arr)
    (pop-all &arr))
  (defn pop-all [arr&]

@@ -15,7 +15,6 @@
 (defn set-moved ()
   (def a& {:a [10] :b [20]})
   (ignore {a.a})
-  (set &a.a [20])
-  )
+  (set &a.a ![20]))
 
 (set-moved)

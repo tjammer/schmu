@@ -353,28 +353,28 @@ let test_array_different_weak () =
 let test_mutable_declare () = test "int" "(type foo { :x& int }) 0"
 
 let test_mutable_set () =
-  test "unit" "(type foo { :x& int }) (def foo& { :x 12 }) (set &(.x foo) 13)"
+  test "unit" "(type foo { :x& int }) (def foo& { :x 12 }) (set &(.x foo) !13)"
 
 let test_mutable_set_wrong_type () =
   test_exn "Mutate: Expected type int but got type bool"
-    "(type foo { :x& int }) (def foo& { :x 12 }) (set &(.x foo) true)"
+    "(type foo { :x& int }) (def foo& { :x 12 }) (set &(.x foo) !true)"
 
 let test_mutable_set_non_mut () =
   test_exn "Cannot mutate non-mutable binding"
-    "(type foo { :x int }) (def foo { :x 12}) (set &(.x foo) 13)"
+    "(type foo { :x int }) (def foo { :x 12}) (set &(.x foo) !13)"
 
-let test_mutable_value () = test "int" "(def b& 10) (set &b 14) b"
+let test_mutable_value () = test "int" "(def b& 10) (set &b !14) b"
 
 let test_mutable_nonmut_value () =
-  test_exn "Cannot mutate non-mutable binding" "(def b 10) (set &b 14) b"
+  test_exn "Cannot mutate non-mutable binding" "(def b 10) (set &b !14) b"
 
 let test_mutable_nonmut_transitive () =
   test_exn "Cannot mutate non-mutable binding"
-    "(type foo { :x& int }) (def foo { :x 12 }) (set &(.x foo) 13)"
+    "(type foo { :x& int }) (def foo { :x 12 }) (set &(.x foo) !13)"
 
 let test_mutable_nonmut_transitive_inv () =
   test_exn "Cannot mutate non-mutable binding"
-    "(type foo { :x int }) (def foo& { :x 12 }) (set &(.x foo) 13)"
+    "(type foo { :x int }) (def foo& { :x 12 }) (set &(.x foo) !13)"
 
 let test_variants_option_none () =
   test_exn "Expression contains weak type variables: (option 'a)"
@@ -684,12 +684,12 @@ let test_excl_borrow () =
 
 let test_excl_borrow_use_early () =
   wrap_fn ~tl test_exn "x was borrowed in line 2, cannot mutate"
-    (own ^ "(def y x)\n (ignore x)\n (set &x 11)\n (ignore y)")
+    (own ^ "(def y x)\n (ignore x)\n (set &x !11)\n (ignore y)")
 
 let tl = Some "Cannot move top level binding"
 
 let test_excl_move_mut () =
-  wrap_fn ~tl test "unit" (own ^ "(def y& !x) (set &y 11) (ignore y)")
+  wrap_fn ~tl test "unit" (own ^ "(def y& !x) (set &y !11) (ignore y)")
 
 let test_excl_move_mut_use_after () =
   wrap_fn test_exn "x was moved in line 2, cannot use"
@@ -719,7 +719,7 @@ let test_excl_if_lit_borrow () =
 let proj_msg = Some "Cannot project at top level"
 
 let test_excl_proj () =
-  wrap_fn ~tl:proj_msg test "unit" (own ^ "(def y& &x) (set &y 11) (ignore x)")
+  wrap_fn ~tl:proj_msg test "unit" (own ^ "(def y& &x) (set &y !11) (ignore x)")
 
 let test_excl_proj_immutable () =
   wrap_fn ~tl:proj_msg test_exn "Cannot project immutable binding"
@@ -753,7 +753,7 @@ let test_excl_moved_param () =
   test_exn "Borrowed parameter x is moved" "(defn meh [x] x)"
 
 let test_excl_set_moved () =
-  test "unit" "(defn meh [a&] (ignore {a}) (set &a 10))"
+  test "unit" "(defn meh [a&] (ignore {a}) (set &a !10))"
 
 let test_excl_binds () =
   test "unit"
@@ -1240,7 +1240,7 @@ let () =
             {|
 (def a& 10)
 (defn set-a []
-  (set &a 11))
+  (set &a !11))
 (let [b a]
   (set-a)
   (ignore b))|};
@@ -1257,10 +1257,10 @@ let () =
             "a was mutably borrowed in line 3, cannot borrow"
             {|(defn hmm []
               (def a& 10)
-               (def set-a (fn [] (set &a 11)))
-               (set &a 11)
+               (def set-a (fn [] (set &a !11)))
+               (set &a !11)
                (set-a)
-               (set &a 11))
+               (set &a !11))
              |};
           tase_exn "closure carry set"
             "a was mutably borrowed in line 3, cannot borrow"
@@ -1268,25 +1268,25 @@ let () =
                and a different error occurs *)
             {|(defn hmm []
   (def a& [10])
-  (def set-a (fn [] (set &a [11])))
-  (set &a [11])
+  (def set-a (fn [] (set &a ![11])))
+  (set &a ![11])
   (def x& !a)
   (set-a))|};
           tase_exn "excl 1" "a was mutably borrowed in line 1, cannot borrow"
-            "(def a& 10)(defn f [a& b] (set &a 11))(f &a a)";
+            "(def a& 10)(defn f [a& b] (set &a !11))(f &a a)";
           tase_exn "excl 2" "a was borrowed in line 1, cannot mutate"
-            "(def a& 10)(defn f [a& b] (set &a 11))(let [b a] (f &a b))";
+            "(def a& 10)(defn f [a& b] (set &a !11))(let [b a] (f &a b))";
           tase_exn "excl 3" "a was borrowed in line 1, cannot mutate"
-            "(def a& 10) (defn f [a b&] (set &b 11))(f a &a)";
+            "(def a& 10) (defn f [a b&] (set &b !11))(f a &a)";
           tase_exn "excl 4" "a was borrowed in line 1, cannot mutate"
-            "(def a& 10)(defn f [a b&] (set &b 11)) (let [b a] (f b &a))";
+            "(def a& 10)(defn f [a b&] (set &b !11)) (let [b a] (f b &a))";
           tase "excl 5" "unit" "(def a& 10) (defn f [a b] ()) (f a a)";
           tase_exn "excl 6" "a was mutably borrowed in line 1, cannot borrow"
             "(def a& 10) (defn f [a& b&] ()) (f &a &a)";
           tase_exn "excl env" "a was mutably borrowed in line 4, cannot borrow"
             {|(def a& [10])
 (defn set-a [b&]
-  (set &a [11]))
+  (set &a ![11]))
 (set-a &a)|};
           tase_exn "follow string literal"
             "Cannot move string literal. Use `copy`"
@@ -1305,14 +1305,14 @@ let () =
             "(def a& [10]) (def b& a)";
           tase_exn "partially set moved"
             "a was moved in line 2, cannot set a.[0]"
-            "(def a& [10])\n(def b {a})\n(set &a.[0] 10)";
+            "(def a& [10])\n(def b {a})\n(set &a.[0] !10)";
           tase_exn "forbid move out of array"
             "Cannot move out of array. Use `copy`"
             "(defn set-moved ()\n\
              (def a& [\"a\" \"b\"])\n\
              (def b a.[0])\n\
              (ignore {b})\n\
-             (set &a.[0] \"c\"))";
+             (set &a.[0] !\"!c\"))";
           tase_exn "track moved multi-borrow param"
             "Borrowed parameter s is moved"
             {|(defn test (s&)
@@ -1327,7 +1327,7 @@ let () =
   (match thing
     ((#item {:key :value})
      (do (ignore {key}) (ignore {value}) (ignore {value})
-         -- (set &thing #empty)
+         -- (set &thing !#!empty)
          ))
     (#empty ())))
 |};
@@ -1338,7 +1338,7 @@ let () =
   (match thing
     ((#item {:key :value})
      (do (ignore {key}) (ignore {value})
-         -- (set &thing #empty)
+         -- (set &thing !#!empty)
          ))
     (#empty ())))
 |};

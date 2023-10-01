@@ -1,6 +1,6 @@
 (type f {:a& int})
 (defn modify [r&]
-  (set &(.a r) 30))
+  (set &(.a r) !30))
 
 (defn mod2 [a&]
   (array/push &a !20))

@@ -80,9 +80,13 @@ prog: Lbrack False Rpar
 
 prog: Lpar Set Ampersand False Wildcard
 
+Expecting '!' to indicate move of to-set expression
+
+prog: Lpar Set Ampersand False Exclamation Wildcard
+
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Set Ampersand False False Wildcard
+prog: Lpar Set Ampersand False Exclamation False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

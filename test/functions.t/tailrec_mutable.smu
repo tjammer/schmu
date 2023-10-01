@@ -2,12 +2,12 @@
 
 (defn mut-bref [i rf&]
   (if (> i 0)
-    (set &(.a rf) true)
+    (set &(.a rf) !true)
     (mut-bref (+ i 1) &rf)))
 
 (defn dontmut-bref [i rf&]
   (if (> i 0)
-    (set &(.a rf) false)
+    (set &(.a rf) !false)
     -- introduce a new object, so the old one won't get mutated
     (do
       (def rf2& {:a true})
@@ -30,7 +30,7 @@
 
 (defn mod-rec [r& i]
   (if (= i 2)
-    (set &(.a r) i)
+    (set &(.a r) !i)
     (mod-rec &r (+ i 1))))
 
 (let [ar& {:a 20}]
@@ -52,7 +52,7 @@
 -- int
 (defn change-int [i& j]
   (if (= j 100)
-    (set &i j)
+    (set &i !j)
     (change-int &i (+ j 1))))
 
 (let [i& 0]

@@ -92,16 +92,16 @@
      (prelude/iter-range 0 size
                          (fn [i] (__unsafe_ptr_set &(array/data data) i !#empty)))
      (def old-data& !tbl.data)
-     (set &tbl.data data)
-     (set &tbl.nitems 0)
+     (set &tbl.data !data)
+     (set &tbl.nitems !0)
      (iter-data-move &old-data (fn [key! value!] (insert &tbl !key !value))))
 
    (defn insert [tbl& key! value!]
      (if (>. (load-factor tbl) load-limit)
        (grow &tbl))
      (let [idx (probe-linear tbl key true)]
-       (set &tbl.data.[idx] (#item {:key :value}))
-       (set &tbl.nitems (+ 1 tbl.nitems)))))
+       (set &tbl.data.[idx] !(#item {:key :value}))
+       (set &tbl.nitems !(+ 1 tbl.nitems)))))
 
   (defn find [tbl key]
     (let [idx (probe-linear tbl key false)]

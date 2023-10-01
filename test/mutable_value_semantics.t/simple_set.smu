@@ -1,10 +1,10 @@
 (def b& 10)
-(set &b 14)
+(set &b !14)
 (print (fmt-str b))
 
 (defn hmm []
   (def b& 10)
-  (set &b 15)
+  (set &b !15)
   b)
 (print (fmt-str (hmm)))
 
@@ -13,5 +13,5 @@
 (ignore b)
 
 (def c [30])
-(set &a.[0] (copy c))
-(set &a.[0] [10])
+(set &a.[0] !(copy c))
+(set &a.[0] ![10])

@@ -20,7 +20,7 @@
     (if (= i 10)
       ()
       (do
-        (set &(.wrapped test) {:dat (+ (.dat (.wrapped test)) 1) :b 0 :c 0})
+        (set &(.wrapped test) !{:dat (+ (.dat (.wrapped test)) 1) :b 0 :c 0})
         (vector_loop (+ i 1)))))
   (vector_loop 0)
   (.wrapped test))
