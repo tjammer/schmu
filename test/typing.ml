@@ -957,6 +957,44 @@ let test_functor_poly_mismatch () =
 
 (module intappl (makeid someint))|}
 
+(* Copied from hashtbl *)
+let check_sig_test thing =
+  {|(module-type key
+  (type t))
+
+(module-type sig
+  (type key)
+  (type (t 'value))
+
+  (def create (fun int (t |}
+  ^ thing
+  ^ {|))))
+
+(functor (make sig) [(m key)]
+ (type key m/t)
+ (type (item 'a) {:key m/t :value 'a})
+ (type (slot 'a) (#empty #tombstone (#item (item 'a))))
+ (type (t 'a) {:data& (array (slot 'a)) :nitems& int})
+
+  (defn create [(size int)]
+    (ignore size)
+    (def data [])
+    {:data :nitems 0}))|}
+
+let test_functor_check_sig () = test "unit" (check_sig_test "'value")
+
+let test_functor_check_param () =
+  test_exn
+    "Signatures don't match for create: Expected type (fun int (sig/t \
+     sig/key)) but got type (fun int (make/t 'a))"
+    (check_sig_test "key")
+
+let test_functor_check_concrete () =
+  test_exn
+    "Signatures don't match for create: Expected type (fun int (sig/t int)) \
+     but got type (fun int (make/t 'a))"
+    (check_sig_test "int")
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1346,5 +1384,8 @@ let () =
           case "use param type" test_functor_use_param_type;
           case "poly function" test_functor_poly_function;
           case "poly mismatch" test_functor_poly_mismatch;
+          case "check sig" test_functor_check_sig;
+          case "check sig param" test_functor_check_param;
+          case "check sig concrete" test_functor_check_concrete;
         ] );
     ]

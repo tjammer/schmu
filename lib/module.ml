@@ -560,17 +560,26 @@ let find_item name kind (n, _, _, tkind) =
   | (Mvalue, Mvalue | Mtypedef, Mtypedef) when String.equal name n -> true
   | _ -> false
 
-let validate_intf env loc (name, _, styp, kind) rhs =
+let validate_intf env loc ~in_functor (name, _, styp, kind) rhs =
   let mn = Env.modpath env in
   match (List.find_opt (find_item name kind) rhs, kind) with
   | Some (_, _, ityp, _), _ ->
       (match styp with
       | Tabstract (ps, _, Tvar ({ contents = Unbound _ } as t)) ->
           (* Match abstract type *)
-          let typ = Inference.match_type_params loc ps ityp in
+          let typ =
+            match Inference.match_type_params ~in_functor ps ityp with
+            | Ok typ -> typ
+            | Error _ ->
+                (* This could have multiple reasons, but we throw this error for
+                   now to let a test pass and because no other error came up in
+                   testing *)
+                raise
+                  (Error (loc, "Unparamatrized type in module implementation"))
+          in
           t := Link typ
       | _ -> ());
-      let subst, b = Inference.types_match styp ityp in
+      let subst, b = Inference.types_match ~in_functor styp ityp in
       if b then ()
       else
         let msg =
@@ -601,7 +610,7 @@ let validate_signature env m =
       let f (name, loc, styp, kind) =
         match (List.find_opt (find_item name kind) impl, kind) with
         | Some (n, loc, ityp, ikind), _ ->
-            let subst, b = Inference.types_match styp ityp in
+            let subst, b = Inference.types_match ~in_functor:false styp ityp in
             if b then (
               (* Query value to mark it as used in the env *)
               (match ikind with
@@ -644,12 +653,17 @@ let validate_signature env m =
       let s = List.rev_map f (List.rev m.s) in
       { m with s }
 
-let validate_intf env loc intf m =
+let validate_intf env loc ~in_functor intf m =
   match m.s with
   | [] ->
       let impl = List.filter_map (extract_name_type env) m.i in
-      List.iter (fun item -> validate_intf env loc item impl) (List.rev intf)
-  | s -> List.iter (fun item -> validate_intf env loc item s) (List.rev intf)
+      List.iter
+        (fun item -> validate_intf env loc ~in_functor item impl)
+        (List.rev intf)
+  | s ->
+      List.iter
+        (fun item -> validate_intf env loc ~in_functor item s)
+        (List.rev intf)
 
 let to_module_type { s; i; _ } =
   match (s, i) with

@@ -1,20 +1,22 @@
-(module-type tbl-key
+(module-type key
   (type t)
   (def hash (fun t int))
   (def equal (fun t t bool)))
 
--- (signature
---   (type (t 'key 'value))
+(module-type sig
+  (type key)
+  (type (t 'value))
 
---   (def create (fun int (fun 'key int)! (fun 'key 'key bool)! (t 'key 'value)))
---   (def insert (fun (t 'key 'value)& 'key! 'value! unit))
---   (def find (fun (t 'key 'value) 'key (option/t 'value)))
---   (def fold (fun (t 'key 'value) 'c! (fun 'c! 'key 'value 'c) 'c))
---   (def to-array (fun (t 'key 'value) (array {'key 'value}))))
+  (def create (fun int (t 'value)))
+  (def insert (fun (t 'value)& key! 'value! unit))
+  (def find (fun (t 'value) key (option/t 'value)))
+  (def fold (fun (t 'value) 'c! (fun 'c! key 'value 'c) 'c))
+  (def to-array (fun (t 'value) (array {key 'value}))))
 
-(functor make [(m tbl-key)]
+(functor (make sig) [(m key)]
   (open option)
 
+  (type key m/t)
   (type (item 'a) {:key m/t :value 'a})
   (type (slot 'a) (#empty #tombstone (#item (item 'a))))
   (type (t 'a) {:data& (array (slot 'a)) :nitems& int})

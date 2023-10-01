@@ -59,7 +59,7 @@ let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
 let check_annot env loc l r =
   let mn = Env.modpath env in
-  let subst, b = Inference.types_match l r in
+  let subst, b = Inference.types_match ~in_functor:false l r in
   if b then ()
   else
     let msg =
@@ -365,7 +365,16 @@ let check_type_unique env loc ~in_sig name typ =
       assert (not in_sig);
       (* We have a concrete implemantion of an abstract type. Change the abstract one to carry its impl *)
       (* Also adjust type params to match between abstract type and carried type *)
-      let typ = match_type_params loc ps typ in
+      let typ =
+        match match_type_params ~in_functor:false ps typ with
+        | Ok typ -> typ
+        | Error _ ->
+            (* This could have multiple reasons, but we throw this error for now
+               to let a test pass and because no other error came up in
+               testing *)
+            raise (Error (loc, "Unparamatrized type in module implementation"))
+      in
+
       t := Link typ;
       typ
   | Some _ | None -> typ
@@ -1318,13 +1327,13 @@ and catch_weak_expr env sub e =
         (function Fstr _ -> () | Fexpr e -> catch_weak_expr env sub e)
         fmt
 
-let check_module_annot env loc ~mname m annot =
+let check_module_annot env loc ~in_functor ~mname m annot =
   match annot with
   | Some path -> (
       match Env.find_module_type_opt loc path env with
       | Some mtype ->
           let _, mtype = Module_type.adjust_for_checking ~mname ~newvar mtype in
-          Module.validate_intf env loc mtype m
+          Module.validate_intf env loc ~in_functor mtype m
       | None -> raise (Error (loc, "Cannot find module type " ^ Path.show path))
       )
   | None -> ()
@@ -1488,7 +1497,7 @@ and convert_prog env items modul =
               in
               raise (Error (loc, msg))
         in
-        check_module_annot env loc ~mname newm annot;
+        check_module_annot env loc ~in_functor:false ~mname newm annot;
         let m = add_local_module loc id newm ~into:m in
 
         let moditems = List.map (fun item -> (mname, item)) moditems in
@@ -1539,7 +1548,7 @@ and convert_prog env items modul =
               in
               raise (Error (loc, msg))
         in
-        check_module_annot env loc ~mname newm annot;
+        check_module_annot env loc ~in_functor:true ~mname newm annot;
         let m = add_functor loc id params functor_items newm ~into:m in
 
         (* Don't add moditems to items here. We add items of the applied functor *)
@@ -1549,7 +1558,8 @@ and convert_prog env items modul =
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
         (if Option.is_some annot then
            match Module.of_located env mname with
-           | Ok m -> check_module_annot env aloc ~mname m annot
+           | Ok m ->
+               check_module_annot env aloc ~in_functor:false ~mname m annot
            | Error s -> raise (Error (loc, s)));
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
@@ -1572,7 +1582,8 @@ and convert_prog env items modul =
                               Module_type.adjust_for_checking ~mname ~newvar
                                 (snd param)
                             in
-                            Module.validate_intf env loc mtype m;
+                            Module.validate_intf env loc ~in_functor:false mtype
+                              m;
                             (mname, subs)
                         | Error s -> raise (Error (loc, s)))
                     | None ->
@@ -1625,7 +1636,8 @@ and convert_prog env items modul =
               Module.register_applied_functor env loc id applied_name modul
             in
 
-            check_module_annot env loc ~mname:applied_name modul annot;
+            check_module_annot env loc ~in_functor:false ~mname:applied_name
+              modul annot;
             let m =
               Module.add_applied_functor loc id applied_name modul ~into:m
             in

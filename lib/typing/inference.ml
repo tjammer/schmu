@@ -286,16 +286,43 @@ let regeneralize typ =
   let typ = generalize typ in
   typ
 
+module Nameset = Set.Make (Path)
+
 (* Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
    We need to match everything for weak vars though *)
-let types_match l r =
-  let rec aux ~strict qsubst l r =
+let rec types_match ~in_functor l r =
+  let rec collect_names acc = function
+    | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Qvar _ | Tfun _
+    | Traw_ptr _ | Tarray _
+    | Tvar { contents = Unbound _ }
+    | Trecord (_, None, _) ->
+        acc
+    | Talias (p, t) | Tabstract (_, p, t) -> collect_names (Nameset.add p acc) t
+    | Trecord (_, Some p, _) | Tvariant (_, p, _) -> Nameset.add p acc
+    | Tvar { contents = Link t } -> collect_names acc t
+  in
+
+  let nss_of_types l r =
+    let lns = collect_names Nameset.empty l
+    and rns = collect_names Nameset.empty r in
+    ((lns, l), (rns, r))
+  in
+
+  let rec aux ~strict qsubst (lns, l) (rns, r) =
     if l == r then (qsubst, true)
     else
       match (l, r) with
-      | Tvar { contents = Unbound _ }, _ when not strict ->
-          (* Unbound vars match every type *) (qsubst, true)
+      | Tvar { contents = Unbound (l, _) }, Tvar { contents = Unbound (r, _) }
+      | Qvar l, Tvar { contents = Unbound (r, _) }
+        when in_functor -> (
+          (* We always map from left to right *)
+          match Smap.find_opt l qsubst with
+          | Some id when String.equal r id -> (qsubst, true)
+          | Some _ -> (qsubst, false)
+          | None ->
+              (* We 'connect' left to right *)
+              (Smap.add l r qsubst, true))
       | Qvar l, Qvar r | Tvar { contents = Unbound (l, _) }, Qvar r -> (
           (* We always map from left to right *)
           match Smap.find_opt l qsubst with
@@ -304,24 +331,27 @@ let types_match l r =
           | None ->
               (* We 'connect' left to right *)
               (Smap.add l r qsubst, true))
+      | Tvar { contents = Unbound _ }, _ when not strict ->
+          (* Unbound vars match every type *) (qsubst, true)
       | Tvar { contents = Link l }, r
       | l, Tvar { contents = Link r }
       | Talias (_, l), r
       | l, Talias (_, r) ->
-          aux ~strict qsubst l r
-      | _, Tvar { contents = Unbound _ } ->
-          failwith "Internal Error: Type comparison for non-generalized types"
+          aux ~strict qsubst (lns, l) (rns, r)
+      | _, Tvar { contents = Unbound _ } when not in_functor -> (qsubst, false)
       | Tfun (ps_l, l, _), Tfun (ps_r, r, _) -> (
           try
             let qsubst, acc =
               List.fold_left2
-                (fun (s, acc) l r ->
-                  let qsubst, b = aux ~strict:true s l.pt r.pt in
-                  let b = b && l.pattr = r.pattr in
+                (fun (s, acc) pl pr ->
+                  let l, r = nss_of_types pl.pt pr.pt in
+                  let qsubst, b = aux ~strict:true s l r in
+                  let b = b && pl.pattr = pr.pattr in
                   (qsubst, acc && b))
                 (qsubst, true) ps_l ps_r
             in
             (* We don't shortcut here to match the annotations for the error message *)
+            let l, r = nss_of_types l r in
             let qsubst, b = aux ~strict:true qsubst l r in
             (qsubst, acc && b)
           with Invalid_argument _ -> (qsubst, false))
@@ -330,60 +360,77 @@ let types_match l r =
           try
             List.fold_left2
               (fun (s, acc) l r ->
-                let qsubst, b = aux ~strict s l.ftyp r.ftyp in
+                let l, r = nss_of_types l.ftyp r.ftyp in
+                let qsubst, b = aux ~strict s l r in
                 (qsubst, acc && b))
               (qsubst, true) l r
           with Invalid_argument _ -> (qsubst, false))
-      | Trecord (pl, Some nl, _), Trecord (pr, Some nr, _)
-      | Tvariant (pl, nl, _), Tvariant (pr, nr, _) ->
+      | Trecord (pl, Some _, _), Trecord (pr, Some _, _)
+      | Tvariant (pl, _, _), Tvariant (pr, _, _) ->
           (* It should be enough to compare the name (rather, the name's repr)
              and the param type *)
-          if Path.equal nl nr then
+          if not (Nameset.disjoint lns rns) then
             List.fold_left2
               (fun (s, acc) l r ->
+                let l, r = nss_of_types l r in
                 let qsubst, b = aux ~strict s l r in
                 (qsubst, acc && b))
               (qsubst, true) pl pr
           else (qsubst, false)
-      | Traw_ptr l, Traw_ptr r | Tarray l, Tarray r -> aux ~strict qsubst l r
-      | Tabstract (_, l, lt), Tabstract (_, r, rt) ->
-          if Path.equal l r then aux ~strict:true qsubst lt rt
-          else (qsubst, false)
-      | Tabstract (_, _, l), r | l, Tabstract (_, _, r) ->
+      | Traw_ptr l, Traw_ptr r | Tarray l, Tarray r ->
+          let l, r = nss_of_types l r in
           aux ~strict qsubst l r
+      | Tabstract (_, _, lt), Tabstract (_, _, rt) ->
+          if not (Nameset.disjoint lns rns) then
+            aux ~strict:true qsubst (lns, lt) (rns, rt)
+          else (qsubst, false)
+      | Tabstract (ps, _, l), r -> (
+          match match_type_params ~in_functor ps l with
+          | Ok l -> aux ~strict qsubst (lns, l) (rns, r)
+          | Error _ -> (qsubst, false))
+      | l, Tabstract (ps, _, r) -> (
+          match match_type_params ~in_functor ps r with
+          | Ok r -> aux ~strict qsubst (lns, l) (rns, r)
+          | Error _ -> (qsubst, false))
       | _ -> (qsubst, false)
   in
+  let l, r = nss_of_types l r in
   aux ~strict:false Smap.empty l r
 
-let rec match_type_params loc params typ =
+and match_type_params ~in_functor params typ =
   (* Take qvars from [params] and match them to the one found in [typ].
      Assume they appear in the same order. E.g. If params = [A, B] and typ [C, B]
      it probably won't work *)
   let buildup_subst subst l r =
-    match (l, r) with
-    (* Qvar l, Qvar r when String.equal l r -> subst *)
-    | Qvar l, Qvar r -> (
-        match Smap.find_opt l subst with
-        | Some id when String.equal r id -> subst
-        | Some _ -> failwith "Internal Error: No substitution"
-        | None ->
-            (* We 'connect' right to left *)
-            Smap.add r l subst)
-    | _ -> failwith "Internal Error: Strange type param"
+    let smap, mtch = types_match ~in_functor:false r l in
+    if mtch then
+      Smap.merge
+        (fun _ a b ->
+          match (a, b) with
+          | Some a, None -> Some a
+          | None, None -> None
+          | None, Some b -> Some b
+          | Some a, Some b when String.equal a b -> Some a
+          | Some a, Some b -> failwith (a ^ " vs " ^ b))
+        subst smap
+    else raise (Invalid_argument "")
   in
 
   let rec replace_qvar subst = function
     | (Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32) as t -> t
     | Qvar s -> (
         match Smap.find_opt s subst with
-        | None -> failwith "Internal Error: Expected a substitution"
+        | None -> Qvar s
+        (*   print_endline ("search for: " ^ s); *)
+        (* failwith "Internal Error: Expected a substitution" *)
         | Some str -> Qvar str)
     | Tvar ({ contents = Link t } as l) as tvar ->
         let t = replace_qvar subst t in
         l := Link t;
         tvar
-    | Tvar { contents = Unbound _ } ->
+    | Tvar { contents = Unbound _ } when not in_functor ->
         failwith "Internal Error: Type is unbound in impl"
+    | Tvar { contents = Unbound _ } as t -> t
     | Trecord (ps, n, fs) ->
         let ps = List.map (replace_qvar subst) ps in
         let fs =
@@ -435,32 +482,32 @@ let rec match_type_params loc params typ =
         Tfun (ps, r, kind)
   in
 
-  let msg i =
-    Printf.sprintf "Type parameters don't match: Expected %i, got %i"
-      (List.length params) i
-  in
-
+  let ( let* ) = Result.bind in
   match typ with
   | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) -> (
       try
         let subst = List.fold_left2 buildup_subst Smap.empty params ps in
-        replace_qvar subst typ
-      with Invalid_argument _ -> raise (Error (loc, msg (List.length ps))))
-  | Talias (n, t) -> Talias (n, match_type_params loc params t)
+        Ok (replace_qvar subst typ)
+      with Invalid_argument _ -> Error ())
+  | Talias (n, t) ->
+      let* t = match_type_params ~in_functor params t in
+      Ok (Talias (n, t))
   | (Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32) as t -> (
-      match params with
-      | [] -> t
-      | _ -> raise (Error (loc, "Unparamatrized type in module implementation"))
-      )
-  | Tvar { contents = Unbound _ } ->
-      failwith "Internal Error: how is this unbound"
+      match params with [] -> Ok t | _ -> Error ())
+  | Tvar { contents = Unbound _ } as t ->
+      (* failwith "Internal Error: how is this unbound" *) Ok t
   | Qvar _ -> (
       match params with
-      | [ Qvar other ] -> Qvar other
+      | [ Qvar other ] -> Ok (Qvar other)
       | _ -> failwith "Internal Error: Type param is not qvar")
   | Tvar ({ contents = Link t } as rf) ->
-      rf := Link (match_type_params loc params t);
-      typ
-  | Tarray t -> Tarray (match_type_params loc params t)
-  | Traw_ptr t -> Traw_ptr (match_type_params loc params t)
+      let* t = match_type_params ~in_functor params t in
+      rf := Link t;
+      Ok typ
+  | Tarray t ->
+      let* t = match_type_params ~in_functor params t in
+      Ok (Tarray t)
+  | Traw_ptr t ->
+      let* t = match_type_params ~in_functor params t in
+      Ok (Traw_ptr t)
   | Tfun _ -> failwith "TODO abstract function types"
