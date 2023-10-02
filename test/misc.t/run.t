@@ -1,5 +1,7 @@
 Compile stubs
   $ cc -c stub.c
+  $ ar rs libstub.a stub.o
+  ar: creating libstub.a
 
 Test elif
   $ schmu --dump-llvm stub.o elseif.smu && ./elseif
@@ -4111,3 +4113,6 @@ Don't free string literals
 
 Free nested records
   $ schmu free_nested.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_nested
+
+Correct link order for cc flags
+  $ schmu piping.smu --cc -L. --cc -lstub
