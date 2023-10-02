@@ -1356,6 +1356,20 @@ let () =
           tase_exn "track vars from inner module use after move"
             "fst/a was moved in line 1, cannot use"
             "(module fst (def a [20])) (ignore [fst/a]) (ignore fst/a.[0])";
+          tase_exn "always borrow field"
+            "sm.free-hd was borrowed in line 6, cannot mutate"
+            {|(type key {:idx int :gen int})
+(type t {:slots& (array key) :data& (array int) :free-hd& int :erase& (array int)})
+
+(let [sm& {:slots [] :data [] :free-hd -1 :erase []}
+      idx 0
+      slot-idx sm.free-hd
+      free-key sm.slots.[slot-idx]
+      free-hd (copy free-key.idx)
+      nextgen (+ free-key.gen 1)]
+  (set &sm.slots.[slot-idx] !{:idx :gen nextgen})
+  (set &sm.free-hd !free-hd)
+  (ignore {:gen nextgen :idx slot-idx}))|};
         ] );
       ( "type decl",
         [

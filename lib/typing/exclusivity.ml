@@ -567,8 +567,9 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
              this can introduce aliasing bugs *)
           (tree, b, hs)
       | Uread | Umove ->
-          if contains_allocation tree.typ then (tree, b, hs)
-          else (tree, imm [], hs))
+          (* Always borrow correctly here, otherwise we might introduce
+             aliasing. Even for non-alloc types *)
+          (tree, b, hs))
   | Set (thing, value) ->
       let value, v, hs = check_tree env Umove no_bdata value hist in
       let value = { value with expr = Move value } in
