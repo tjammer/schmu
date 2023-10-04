@@ -29,8 +29,7 @@
   (array/iter other (fn ((c u8)) (array/push &str !c))))
 
 (defn concat [delim strings]
-  (let [ret& (__unsafe_array_create 32)]
-    (__unsafe_array_set_length &ret 0)
+  (let [ret& (array/create 32)]
     (array/iteri strings
                  (fn [i str]
                    (if (not (= i 0)) (append &ret delim))

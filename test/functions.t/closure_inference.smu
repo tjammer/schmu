@@ -11,13 +11,12 @@
       (#err (copy buf)))))
 
 (defn string-of-view [view]
-  (def ret& (__unsafe_array_create (+ 1 view.len)))
-  (__unsafe_array_set_length &ret 0)
-  (iter-range (.start view) (+ view.start view.len)
-              (fn [c] (array/push &ret !(copy view.pbuf.[c]))))
-  (array/push &ret !'\000')
-  (array/drop-back &ret)
-  ret)
+  (let (ret& (array/create (+ 1 view.len)))
+    (iter-range (.start view) (+ view.start view.len)
+                (fn [c] (array/push &ret !(copy view.pbuf.[c]))))
+    (array/push &ret !'\000')
+    (array/drop-back &ret)
+    ret))
 
 (defn view-of-lexbuf [lb]
   {:pbuf (copy lb.buf) :start lb.curr :len (- (array/length lb.buf) lb.curr)})

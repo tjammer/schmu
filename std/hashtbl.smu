@@ -61,7 +61,7 @@
   (defn iter-data-move [data& f]
     (defn inner [i]
       (if (= i (array/length data))
-        (__unsafe_array_set_length &data 0)
+        (set &(__unsafe_array_length data) !0)
         (match (__unsafe_ptr_get (array/data data) i)
           ((or #empty #tombstone) (inner (+ i 1)))
           ((#item {:key :value})
@@ -110,8 +110,7 @@
         ((or #empty #tombstone) #none))))
 
   (defn to-array [tbl]
-    (def arr& (__unsafe_array_create tbl.nitems))
-    (__unsafe_array_set_length &arr 0)
-    (iter-data tbl.data
-               (fn [key value] (array/push &arr !{(copy key) (copy value)})))
-    arr))
+    (let [arr& (array/create tbl.nitems)]
+      (iter-data tbl.data
+                 (fn [key value] (array/push &arr !{(copy key) (copy value)})))
+      arr)))

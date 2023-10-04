@@ -17,11 +17,8 @@ struct
   open H
   open C
 
-  type func = Grow
   type index = Iconst of int | Idyn of Llvm.llvalue
 
-  let name_of_func = function Grow -> "grow"
-  let func_tbl = Hashtbl.create 64
   let ci i = Llvm.const_int int_t i
 
   let item_type = function
@@ -141,39 +138,6 @@ struct
 
     Llvm.position_at_end cont_bb builder
 
-  let modify_arr_fn kind orig =
-    (match orig.kind with
-    | Ptr | Const_ptr -> ()
-    | _ -> failwith "Internal Error: Not passed as mutable");
-    let pmoved = false in
-    let poly =
-      Tfun
-        ( [ { pmut = true; pt = Tarray (Tpoly "0"); pmoved } ],
-          Tarray (Tpoly "0"),
-          Simple )
-    in
-    let typ =
-      Tfun ([ { pmut = true; pt = orig.typ; pmoved } ], orig.typ, Simple)
-    in
-    let name =
-      Monomorph_tree.get_mono_name (name_of_func kind) ~closure:false ~poly typ
-    in
-    let f =
-      match Hashtbl.find_opt func_tbl name with
-      | Some (_, _, f) -> f
-      | None ->
-          let ret = get_lltype_def orig.typ in
-          let ps = ret |> Llvm.pointer_type in
-          let ft = Llvm.function_type ret [| ps |] in
-          let f = Llvm.declare_function name ft the_module in
-          Llvm.set_linkage Llvm.Linkage.Link_once_odr f;
-          Hashtbl.replace func_tbl name (kind, orig, f);
-          f
-    in
-    let value = Llvm.build_call f [| orig.value |] "" builder in
-    (* For some reason, we default? *)
-    { orig with value; kind = Imm }
-
   let array_get args typ =
     let arr, index =
       match args with
@@ -188,7 +152,7 @@ struct
     let value = data_get arr.value arr.typ (Idyn index) in
     { value; typ; lltyp; kind = Ptr }
 
-  let array_length args =
+  let array_length ~unsafe args =
     let arr =
       match args with
       | [ arr ] -> arr
@@ -199,28 +163,37 @@ struct
       Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
     in
     let value = Llvm.build_gep int_ptr [| ci 0 |] "len" builder in
-    let value = Llvm.build_load value "" builder in
+    let value, kind =
+      if unsafe then (value, Ptr) else (Llvm.build_load value "" builder, Imm)
+    in
 
+    { value; typ = Tint; lltyp = int_t; kind }
+
+  let array_capacity args =
+    let arr =
+      match args with
+      | [ arr ] -> arr
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    in
+    let arr = bring_default_var arr in
+    let int_ptr =
+      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
+    in
+    let value = Llvm.build_gep int_ptr [| ci 1 |] "capacity" builder in
+    let value = Llvm.build_load value "" builder in
     { value; typ = Tint; lltyp = int_t; kind = Imm }
 
-  let grow orig =
-    let call = modify_arr_fn Grow orig in
-    call
-
-  let grow_impl orig =
-    let v = bring_default_var orig in
-    let int_ptr =
-      Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "" builder
+  let array_realloc args =
+    let orig, new_cap =
+      match args with
+      | [ arr; value ] -> (arr, bring_default value)
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
-    let old_cap = Llvm.build_load dst "cap" builder in
-    let new_cap = Llvm.build_mul old_cap (ci 2) "" builder in
 
     let _, _, head_size, item_size = item_type_head_size orig.typ in
     let itemscap = Llvm.build_mul new_cap (ci item_size) "" builder in
     let size = Llvm.build_add itemscap (ci head_size) "" builder in
 
-    (* Realloc *)
     let ptr = realloc (bring_default orig) ~size in
     ignore (Llvm.build_store ptr orig.value builder);
 
@@ -229,59 +202,6 @@ struct
     in
     let new_dst = Llvm.build_gep new_int_ptr [| ci 1 |] "newcap" builder in
     ignore (Llvm.build_store new_cap new_dst builder);
-    bring_default_var orig
-
-  let array_push args =
-    let arr, value =
-      match args with
-      | [ arr; value ] -> (arr, bring_default_var value)
-      | _ -> failwith "Internal Error: Arity mismatch in builtin"
-    in
-
-    let v = bring_default arr in
-    let arrtyp = arr.typ in
-    let int_ptr = Llvm.build_bitcast v (Llvm.pointer_type int_t) "" builder in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
-    let sz = Llvm.build_load dst "size" builder in
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
-    let cap = Llvm.build_load dst "cap" builder in
-
-    (* Get current block *)
-    let start_bb = Llvm.insertion_block builder in
-    let parent = Llvm.block_parent start_bb in
-
-    let keep_bb = Llvm.append_block context "keep" parent in
-    let grow_bb = Llvm.append_block context "grow" parent in
-    let merge_bb = Llvm.append_block context "merge" parent in
-
-    let cmp = Llvm.(build_icmp Icmp.Eq) cap sz "" builder in
-    ignore (Llvm.build_cond_br cmp grow_bb keep_bb builder);
-
-    (* There is enough capacity *)
-    Llvm.position_at_end keep_bb builder;
-    let keep_arr = bring_default_var arr in
-    ignore (Llvm.build_br merge_bb builder);
-
-    (* Not enough capacity, grow the array *)
-    Llvm.position_at_end grow_bb builder;
-    let grow_arr = grow arr in
-    ignore (Llvm.build_br merge_bb builder);
-
-    (* Merge *)
-    Llvm.position_at_end merge_bb builder;
-    let arr =
-      Llvm.build_phi
-        [ (keep_arr.value, keep_bb); (grow_arr.value, grow_bb) ]
-        "" builder
-    in
-    let int_ptr = Llvm.build_bitcast arr (Llvm.pointer_type int_t) "" builder in
-    let ptr = data_get arr arrtyp (Idyn sz) in
-
-    set_struct_field value ptr;
-
-    let szptr = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
-    let new_sz = Llvm.build_add sz (ci 1) "" builder in
-    ignore (Llvm.build_store new_sz szptr builder);
 
     { dummy_fn_value with lltyp = unit_t }
 
@@ -368,32 +288,4 @@ struct
     ignore (Llvm.build_store sz dst builder);
 
     { value = arr; typ; lltyp; kind = Ptr }
-
-  let unsafe_array_set_length args =
-    let arr, sz =
-      match args with
-      | [ arr; sz ] -> (bring_default_var arr, bring_default sz)
-      | _ -> failwith "Internal Error: Arity mismatch in builtin"
-    in
-    let int_ptr =
-      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
-    in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "len" builder in
-    ignore (Llvm.build_store sz dst builder);
-    { dummy_fn_value with lltyp = unit_t }
-
-  let gen_functions () =
-    Hashtbl.iter
-      (fun _ (kind, v, ft) ->
-        let bb = Llvm.append_block context "entry" ft in
-        Llvm.position_at_end bb builder;
-
-        let value = Llvm.param ft 0 in
-        (* We saved typ and kind *)
-        let v = { v with value } in
-        match kind with
-        | Grow ->
-            let v = grow_impl v in
-            ignore (Llvm.build_ret v.value builder))
-      func_tbl
 end

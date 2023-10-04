@@ -931,29 +931,42 @@ Modify in function
   @schmu_b = global i64* null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
+  define linkonce_odr void @__agg.u_array_push_aii.u(i64** noalias %arr, i64 %value) {
+  entry:
+    %0 = load i64*, i64** %arr, align 8
+    %capacity = getelementptr i64, i64* %0, i64 1
+    %1 = load i64, i64* %capacity, align 8
+    %2 = load i64, i64* %0, align 8
+    %eq = icmp eq i64 %1, %2
+    br i1 %eq, label %then, label %ifcont
+  
+  then:                                             ; preds = %entry
+    %mul = mul i64 2, %1
+    %3 = mul i64 %mul, 8
+    %4 = add i64 %3, 16
+    %5 = bitcast i64* %0 to i8*
+    %6 = tail call i8* @realloc(i8* %5, i64 %4)
+    %7 = bitcast i8* %6 to i64*
+    store i64* %7, i64** %arr, align 8
+    %newcap = getelementptr i64, i64* %7, i64 1
+    store i64 %mul, i64* %newcap, align 8
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    %8 = phi i64* [ %7, %then ], [ %0, %entry ]
+    %9 = bitcast i64* %8 to i8*
+    %10 = getelementptr i8, i8* %9, i64 16
+    %data = bitcast i8* %10 to i64*
+    %11 = getelementptr inbounds i64, i64* %data, i64 %2
+    store i64 %value, i64* %11, align 8
+    %add = add i64 1, %2
+    store i64 %add, i64* %8, align 8
+    ret void
+  }
+  
   define void @schmu_mod2(i64** noalias %a) {
   entry:
-    %0 = load i64*, i64** %a, align 8
-    %size1 = load i64, i64* %0, align 8
-    %cap = getelementptr i64, i64* %0, i64 1
-    %cap2 = load i64, i64* %cap, align 8
-    %1 = icmp eq i64 %cap2, %size1
-    br i1 %1, label %grow, label %merge
-  
-  grow:                                             ; preds = %entry
-    %2 = tail call i64* @__ag.ag_grow_ai.ai(i64** %a)
-    br label %merge
-  
-  merge:                                            ; preds = %entry, %grow
-    %3 = phi i64* [ %2, %grow ], [ %0, %entry ]
-    %4 = bitcast i64* %3 to i8*
-    %5 = mul i64 8, %size1
-    %6 = add i64 16, %5
-    %7 = getelementptr i8, i8* %4, i64 %6
-    %data = bitcast i8* %7 to i64*
-    store i64 20, i64* %data, align 8
-    %8 = add i64 %size1, 1
-    store i64 %8, i64* %3, align 8
+    tail call void @__agg.u_array_push_aii.u(i64** %a, i64 20)
     ret void
   }
   
@@ -964,24 +977,7 @@ Modify in function
     ret void
   }
   
-  define linkonce_odr i64* @__ag.ag_grow_ai.ai(i64** %0) {
-  entry:
-    %1 = load i64*, i64** %0, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 2
-    %3 = mul i64 %2, 8
-    %4 = add i64 %3, 16
-    %5 = load i64*, i64** %0, align 8
-    %6 = bitcast i64* %5 to i8*
-    %7 = call i8* @realloc(i8* %6, i64 %4)
-    %8 = bitcast i8* %7 to i64*
-    store i64* %8, i64** %0, align 8
-    %newcap = getelementptr i64, i64* %8, i64 1
-    store i64 %2, i64* %newcap, align 8
-    %9 = load i64*, i64** %0, align 8
-    ret i64* %9
-  }
+  declare i8* @realloc(i8* %0, i64 %1)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -1018,8 +1014,6 @@ Modify in function
     ret void
   }
   
-  declare i8* @realloc(i8* %0, i64 %1)
-  
   declare void @free(i8* %0)
   30
   2
@@ -1039,29 +1033,42 @@ Make sure variable ids are correctly propagated
     %3 = bitcast i64** %1 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     call void @__copy_ai(i64** %0)
+    call void @__agg.u_array_push_aii.u(i64** %0, i64 %v)
     %4 = load i64*, i64** %0, align 8
-    %size1 = load i64, i64* %4, align 8
-    %cap = getelementptr i64, i64* %4, i64 1
-    %cap2 = load i64, i64* %cap, align 8
-    %5 = icmp eq i64 %cap2, %size1
-    br i1 %5, label %grow, label %merge
+    ret i64* %4
+  }
   
-  grow:                                             ; preds = %entry
-    %6 = call i64* @__ag.ag_grow_ai.ai(i64** %0)
-    br label %merge
+  define linkonce_odr void @__agg.u_array_push_aii.u(i64** noalias %arr, i64 %value) {
+  entry:
+    %0 = load i64*, i64** %arr, align 8
+    %capacity = getelementptr i64, i64* %0, i64 1
+    %1 = load i64, i64* %capacity, align 8
+    %2 = load i64, i64* %0, align 8
+    %eq = icmp eq i64 %1, %2
+    br i1 %eq, label %then, label %ifcont
   
-  merge:                                            ; preds = %entry, %grow
-    %7 = phi i64* [ %6, %grow ], [ %4, %entry ]
-    %8 = bitcast i64* %7 to i8*
-    %9 = mul i64 8, %size1
-    %10 = add i64 16, %9
-    %11 = getelementptr i8, i8* %8, i64 %10
-    %data = bitcast i8* %11 to i64*
-    store i64 %v, i64* %data, align 8
-    %12 = add i64 %size1, 1
-    store i64 %12, i64* %7, align 8
-    %13 = load i64*, i64** %0, align 8
-    ret i64* %13
+  then:                                             ; preds = %entry
+    %mul = mul i64 2, %1
+    %3 = mul i64 %mul, 8
+    %4 = add i64 %3, 16
+    %5 = bitcast i64* %0 to i8*
+    %6 = tail call i8* @realloc(i8* %5, i64 %4)
+    %7 = bitcast i8* %6 to i64*
+    store i64* %7, i64** %arr, align 8
+    %newcap = getelementptr i64, i64* %7, i64 1
+    store i64 %mul, i64* %newcap, align 8
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    %8 = phi i64* [ %7, %then ], [ %0, %entry ]
+    %9 = bitcast i64* %8 to i8*
+    %10 = getelementptr i8, i8* %9, i64 16
+    %data = bitcast i8* %10 to i64*
+    %11 = getelementptr inbounds i64, i64* %data, i64 %2
+    store i64 %value, i64* %11, align 8
+    %add = add i64 1, %2
+    store i64 %add, i64* %8, align 8
+    ret void
   }
   
   define linkonce_odr void @__copy_ai(i64** %0) {
@@ -1087,24 +1094,7 @@ Make sure variable ids are correctly propagated
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr i64* @__ag.ag_grow_ai.ai(i64** %0) {
-  entry:
-    %1 = load i64*, i64** %0, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 2
-    %3 = mul i64 %2, 8
-    %4 = add i64 %3, 16
-    %5 = load i64*, i64** %0, align 8
-    %6 = bitcast i64* %5 to i8*
-    %7 = call i8* @realloc(i8* %6, i64 %4)
-    %8 = bitcast i8* %7 to i64*
-    store i64* %8, i64** %0, align 8
-    %newcap = getelementptr i64, i64* %8, i64 1
-    store i64 %2, i64* %newcap, align 8
-    %9 = load i64*, i64** %0, align 8
-    ret i64* %9
-  }
+  declare i8* @realloc(i8* %0, i64 %1)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -1136,8 +1126,6 @@ Make sure variable ids are correctly propagated
     call void @free(i8* %2)
     ret void
   }
-  
-  declare i8* @realloc(i8* %0, i64 %1)
   
   declare void @free(i8* %0)
   

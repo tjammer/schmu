@@ -23,11 +23,12 @@ type t =
   | Mod
   | Array_get
   | Array_length
-  | Array_push
   | Array_drop_back
   | Array_data
+  | Array_capacity
+  | Unsafe_array_realloc
   | Unsafe_array_create
-  | Unsafe_array_set_length
+  | Unsafe_array_length
   | Unsafe_nullptr
   | Assert
   | Copy
@@ -107,30 +108,27 @@ let tbl =
     ( Array_length,
       Tfun ([ { p with pt = Tarray (Qvar "0") } ], Tint, Simple),
       "__array_length" );
-    ( Array_push,
-      Tfun
-        ( [
-            { pt = Tarray (Qvar "0"); pattr = Dmut };
-            { pt = Qvar "0"; pattr = Dmove };
-          ],
-          Tunit,
-          Simple ),
-      "__array_push" );
     ( Array_drop_back,
       Tfun ([ { pt = Tarray (Qvar "0"); pattr = Dmut } ], Tunit, Simple),
       "__array_drop_back" );
     ( Array_data,
       Tfun ([ { p with pt = Tarray (Qvar "0") } ], Traw_ptr (Qvar "0"), Simple),
       "__array_data" );
-    ( Unsafe_array_create,
-      Tfun ([ { p with pt = Tint } ], Tarray (Qvar "0"), Simple),
-      "__unsafe_array_create" );
-    ( Unsafe_array_set_length,
+    ( Array_capacity,
+      Tfun ([ { p with pt = Tarray (Qvar "0") } ], Tint, Simple),
+      "__array_capacity" );
+    ( Unsafe_array_realloc,
       Tfun
         ( [ { pt = Tarray (Qvar "0"); pattr = Dmut }; { p with pt = Tint } ],
           Tunit,
           Simple ),
-      "__unsafe_array_set_length" );
+      "__unsafe_array_realloc" );
+    ( Unsafe_array_create,
+      Tfun ([ { p with pt = Tint } ], Tarray (Qvar "0"), Simple),
+      "__unsafe_array_create" );
+    ( Unsafe_array_length,
+      Tfun ([ { p with pt = Tarray (Qvar "0") } ], Tint, Simple),
+      "__unsafe_array_length" );
     (Unsafe_nullptr, Tfun ([], Traw_ptr Tu8, Simple), "__unsafe_nullptr");
     (Assert, Tfun ([ { p with pt = Tbool } ], Tunit, Simple), "assert");
     (Copy, Tfun ([ { p with pt = Qvar "0" } ], Qvar "0", Simple), "copy");
@@ -161,11 +159,12 @@ let of_string = function
   | "mod" -> Some Mod
   | "__array_get" -> Some Array_get
   | "__array_length" -> Some Array_length
-  | "__array_push" -> Some Array_push
   | "__array_drop_back" -> Some Array_drop_back
   | "__array_data" -> Some Array_data
+  | "__unsafe_array_capacity" -> Some Array_capacity
+  | "__unsafe_array_realloc" -> Some Unsafe_array_realloc
   | "__unsafe_array_create" -> Some Unsafe_array_create
-  | "__unsafe_array_set_length" -> Some Unsafe_array_set_length
+  | "__unsafe_array_length" -> Some Unsafe_array_length
   | "__unsafe_nullptr" -> Some Unsafe_nullptr
   | "assert" -> Some Assert
   | "copy" | "__copy" ->

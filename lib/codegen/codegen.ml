@@ -613,12 +613,13 @@ end = struct
             { value; typ = Tint; lltyp = int_t; kind = Imm }
         | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Array_get -> array_get args fnc.ret
-    | Array_length -> array_length args
-    | Array_push -> array_push args
+    | Array_length -> array_length ~unsafe:false args
+    | Unsafe_array_length -> array_length ~unsafe:true args
     | Array_drop_back -> array_drop_back param args
     | Array_data -> array_data args
+    | Array_capacity -> array_capacity args
+    | Unsafe_array_realloc -> array_realloc args
     | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
-    | Unsafe_array_set_length -> unsafe_array_set_length args
     | Unsafe_nullptr ->
         let value = Llvm.const_null voidptr_t in
         { value; typ = Traw_ptr Tunit; lltyp = voidptr_t; kind = Const }
@@ -1289,7 +1290,6 @@ let generate ~target ~outname ~release ~modul
       in
       add_global_init no_param outname `Dtor (free_mallocs body frees));
   (* Generate internal helper functions for arrays *)
-  Ar.gen_functions ();
   Auto.gen_functions ();
 
   (match Llvm_analysis.verify_module the_module with
