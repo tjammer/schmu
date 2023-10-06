@@ -77,9 +77,7 @@ end = struct
         in
 
         let finalize = Some fun_finalize in
-        let param =
-          { vars = tvars; alloca; finalize; rec_block; in_set = false }
-        in
+        let param = { vars = tvars; alloca; finalize; rec_block } in
         let ret = gen_expr param abs.body in
 
         (match recursive with
@@ -894,7 +892,7 @@ end = struct
     { value; typ; lltyp = get_lltype_def typ; kind }
 
   and gen_set param expr valexpr moved =
-    let ptr = gen_expr { param with in_set = true } expr in
+    let ptr = gen_expr param expr in
     let value = gen_expr param valexpr in
     if not moved then Auto.free param ptr;
     (* We know that ptr cannot be a constant record, but value might *)
@@ -1245,7 +1243,7 @@ let generate ~target ~outname ~release ~modul
     (* Generate functions *)
     List.fold_left
       (fun acc func -> Core.gen_function acc func)
-      { vars; alloca = None; finalize = None; rec_block = None; in_set = false }
+      { vars; alloca = None; finalize = None; rec_block = None }
       funcs
   in
 
