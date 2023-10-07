@@ -985,7 +985,13 @@ and cln_kind p = function
                 extract_callname modded_name p.vars (Mvar (cl.clname, Vnorm))
               else modded_name
             in
-            { clname; cltyp = typ; clmut = cl.clmut; clparam = cl.clparam })
+            {
+              clname;
+              cltyp = typ;
+              clmut = cl.clmut;
+              clparam = cl.clparam;
+              clcopy = cl.clcopy;
+            })
           vals
       in
       Closure vals

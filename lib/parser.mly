@@ -307,11 +307,13 @@ param:
   | Ampersand { Dmut } | Exclamation { Dmove }
 
 %inline sexp_fun:
-  | Defn; name = ident; attr = option(attr); option(String_lit); params = maybe_bracks(list(param)); body = list(stmt)
+  | Defn; name = ident; attr = list(attr); option(String_lit);
+      params = maybe_bracks(list(param)); body = list(stmt)
     { ($loc, { name; params; return_annot = None; body; attr }) }
 
 %inline attr:
-  | kw = Keyword { $loc, kw }
+  | kw = Keyword { Fa_single ($loc, kw) }
+  | kw = Keyword; lst = nonempty_list(ident) { Fa_param (($loc(kw), kw), lst) }
 
 %inline sexp_rec:
   | Rec; fst = parens(sexp_fun); tl = nonempty_list(parens(sexp_fun)) { Rec ($loc, fst :: tl) }
@@ -400,8 +402,8 @@ sexp_cond:
   | else_ = option(parens(cond_else)) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
-  | Fn; params = maybe_bracks(list(param)); body = list(stmt)
-    { Lambda ($loc, params, body) }
+  | Fn; attr = list(attr); params = maybe_bracks(list(param)); body = list(stmt)
+    { Lambda ($loc, params, attr, body) }
 
 %inline sexp_field_set:
   | Set; Ampersand; var = sexp_expr; Exclamation; value = sexp_expr
@@ -466,7 +468,7 @@ let with_loc(x) :=
     { Por ($loc, (head :: tail)) }
 
 %inline record_item_pattern:
-  | attr = attr; p = option(sexp_pattern) { attr, p }
+  | attr = Keyword; p = option(sexp_pattern) { ($loc(attr), attr), p }
 
 %inline ctor_pattern_item:
   | sexp_ctor; sexp_pattern { Pctor ($1, Some $2) }

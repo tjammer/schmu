@@ -619,7 +619,7 @@ end = struct
     | Lit (loc, Unit) ->
         let attr = { no_attr with const = true } in
         { typ = Tunit; expr = Const Unit; attr; loc }
-    | Lambda (loc, id, e) -> convert_lambda env loc id e
+    | Lambda (loc, id, attr, e) -> convert_lambda env loc id attr e
     | Let_e (loc, decl, expr, cont) -> convert_let_e env loc decl expr cont
     | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
     | Bop (loc, bop, es) -> convert_bop env loc bop es
@@ -725,7 +725,7 @@ end = struct
     let expr = Let { id; uniq; rmut; pass = expr.pattr; rhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr; loc }
 
-  and convert_lambda env loc params body =
+  and convert_lambda env loc params attr body =
     let env = Env.open_function env in
     enter_level ();
     let env, params_t, qparams, ret_annot =
@@ -751,6 +751,28 @@ end = struct
       Exclusivity.check_tree params_t ~mname:(Env.modpath env)
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
+    in
+
+    (* Copied from function below *)
+    let closed_vars =
+      List.fold_left
+        (fun clsd -> function
+          | Ast.Fa_single (loc, attr) ->
+              raise (Error (loc, "Unknown attribute: " ^ attr))
+          | Fa_param ((_, "copy"), lst) ->
+              List.fold_left
+                (fun clsd (loc, id) ->
+                  match add_closure_copy clsd id with
+                  | Some c -> c
+                  | None ->
+                      let msg =
+                        "Value " ^ id ^ " is not captured, cannot copy"
+                      in
+                      raise (Error (loc, msg)))
+                clsd lst
+          | Fa_param ((loc, attr), _) ->
+              raise (Error (loc, "Unknown attribute: " ^ attr)))
+        closed_vars attr
     in
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
@@ -781,13 +803,6 @@ end = struct
     (* Create a fresh type var for the function name
        and use it in the function body *)
     let unique = uniq_name name in
-
-    let inline =
-      match attr with
-      | Some (_, "inline") -> true
-      | Some (loc, attr) -> raise (Error (loc, "Unknown attribute: " ^ attr))
-      | None -> false
-    in
 
     enter_level ();
     let env =
@@ -832,6 +847,29 @@ end = struct
       Exclusivity.check_tree params_t ~mname:(Env.modpath env)
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
+    in
+
+    let inline, closed_vars =
+      List.fold_left
+        (fun (inl, clsd) -> function
+          | Ast.Fa_single (_, "inline") -> (true, clsd)
+          | Fa_single (loc, attr) ->
+              raise (Error (loc, "Unknown attribute: " ^ attr))
+          | Fa_param ((_, "copy"), lst) ->
+              ( inl,
+                List.fold_left
+                  (fun clsd (loc, id) ->
+                    match add_closure_copy clsd id with
+                    | Some c -> c
+                    | None ->
+                        let msg =
+                          "Value " ^ id ^ " is not captured, cannot copy"
+                        in
+                        raise (Error (loc, msg)))
+                  clsd lst )
+          | Fa_param ((loc, attr), _) ->
+              raise (Error (loc, "Unknown attribute: " ^ attr)))
+        (false, closed_vars) attr
     in
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in

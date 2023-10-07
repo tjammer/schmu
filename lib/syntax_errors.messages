@@ -574,9 +574,13 @@ prog: Lpar Defn Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defn Kebab_id Keyword Wildcard
+prog: Lpar Fn Keyword Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fn Keyword Kebab_id Wildcard
+
+Expecting parameter list
 
 prog: Lpar Defn Kebab_id String_lit Wildcard
 
@@ -757,6 +761,10 @@ prog: Lpar Greater_eq_f False Rbrac
 prog: Lpar Fn Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Fn Keyword String_lit
+
+Expecting parameter list
 
 prog: Lpar Fn Lbrack Rbrack Wildcard
 

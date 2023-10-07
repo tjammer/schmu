@@ -43,13 +43,14 @@ and decl = {
 }
 
 and decl_attr = Dmut | Dmove | Dnorm | Dset
+and func_attr = Fa_single of ident | Fa_param of ident * ident list
 
 and func = {
   name : ident;
   params : decl list;
   return_annot : type_spec option;
   body : block;
-  attr : ident option;
+  attr : func_attr list;
 }
 
 and argument = { apass : decl_attr; aloc : loc; aexpr : expr }
@@ -62,7 +63,7 @@ and expr =
   | Unop of loc * unop * expr
   | If of loc * expr * expr * expr option
   | Let_e of loc * decl * passed_expr * expr
-  | Lambda of loc * decl list * block
+  | Lambda of loc * decl list * func_attr list * block
   | App of loc * expr * argument list
   | Record of loc * (string * expr) list
   | Tuple of loc * expr list

@@ -41,6 +41,7 @@ and closed = {
   cltyp : typ;
   clparam : bool;
   clmname : Path.t option;
+  clcopy : bool; (* otherwise move *)
 }
 
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
@@ -223,3 +224,13 @@ let rec contains_allocation = function
       true
 
 let mut_of_pattr = function Dmut | Dset -> true | Dnorm | Dmove -> false
+
+let add_closure_copy clsd id =
+  let changed, clsd =
+    List.fold_left_map
+      (fun changed c ->
+        if String.equal c.clname id then (true, { c with clcopy = true })
+        else (changed, c))
+      false clsd
+  in
+  if changed then Some clsd else None

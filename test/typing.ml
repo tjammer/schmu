@@ -78,6 +78,14 @@ let test_func_recursive_if () =
 let test_func_generic_return () =
   test "int" "(defn apply [f x] (f x)) (defn add1 [x] (+ x 1)) (apply add1 1)"
 
+let test_func_capture_annot () =
+  test "unit"
+    "(external somefn (fun unit int)) (defn wrapper () (def a (somefn)) (defn \
+     captured :copy a () (+ 1 a)) ()) ()"
+
+let test_func_capture_annot_wrong () =
+  test_exn "Value a is not captured, cannot copy" "(defn somefn :copy a () ())"
+
 let test_record_clear () = test "t" "(type t { :x int :y int }) { :x 2 :y 2 }"
 
 let test_record_false () =
@@ -1031,6 +1039,8 @@ let () =
           case "1st_stay_gen" test_func_1st_stay_general;
           case "recursive_if" test_func_recursive_if;
           case "generic_return" test_func_generic_return;
+          case "capture annot" test_func_capture_annot;
+          case "capture annot wrong" test_func_capture_annot_wrong;
         ] );
       ( "records",
         [

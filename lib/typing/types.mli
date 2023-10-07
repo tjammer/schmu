@@ -33,6 +33,7 @@ and closed = {
   cltyp : typ;
   clparam : bool;
   clmname : Path.t option;
+  clcopy : bool; (* otherwise move *)
 }
 
 val clean : typ -> typ
@@ -52,3 +53,4 @@ val is_weak : sub:Sset.t -> typ -> bool
 val extract_name_path : typ -> Path.t option
 val contains_allocation : typ -> bool
 val mut_of_pattr : Ast.decl_attr -> bool
+val add_closure_copy : closed list -> string -> closed list option
