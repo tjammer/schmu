@@ -188,6 +188,10 @@ let forbid_conditional_borrow loc imm mut =
           if are_borrow imm then raise (Error (loc, msg)))
   | _ -> ()
 
+let dont_surface_internals borrowed =
+  let s = Id.s (borrowed.bid, borrowed.bpart) in
+  if String.starts_with ~prefix:"__" s then "" else " " ^ s
+
 let rec check_exclusivity loc borrow hist =
   let p = Printf.sprintf in
   match (borrow, hist) with
@@ -251,8 +255,8 @@ let rec check_exclusivity loc borrow hist =
               (fst m.loc).pos_lnum hint )
         else
           ( m.loc,
-            p "Borrowed parameter %s is moved"
-              (Id.s (b.borrowed.bid, b.borrowed.bpart)) )
+            p "Borrowed parameter%s is moved"
+              (dont_surface_internals b.borrowed) )
       in
       raise (Error (loc, msg))
   | Borrow_mut (b, Set), Bmove (m, l) :: _
@@ -272,8 +276,8 @@ let rec check_exclusivity loc borrow hist =
               hint )
         else
           ( m.loc,
-            p "Borrowed parameter %s is moved, cannot set"
-              (Id.s (b.borrowed.bid, b.borrowed.bpart)) )
+            p "Borrowed parameter%s is moved, cannot set"
+              (dont_surface_internals b.borrowed) )
       in
       raise (Error (loc, msg))
   | Bmove (m, _), (Borrow b | Borrow_mut (b, _)) :: _
@@ -420,6 +424,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let loc = tree.loc in
       let make bind_only b =
         if bind_only then
+          (* For Binds, it's imported that we take the owned name, and not the one from Var.
+             Otherwise, the Bind name might be borrowed *)
           let borrowed = { b.borrowed with bpart = bpart @ b.borrowed.bpart } in
           { b with loc; ord = !borrow_state; borrowed }
         else
@@ -428,8 +434,6 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       in
       let borrow bind_only mut = function
         | Bown bid ->
-            (* For Binds, it's imported that we take the owned name, and not the one from Var.
-               Otherwise, the Bind name might be borrowed *)
             incr borrow_state;
             let borrow =
               let borrowed = { bid; bpart } in
@@ -965,7 +969,8 @@ let check_tree ~mname pts pns touched body =
         (match tattr with
         | Dmove ->
             let loc = Option.get tattr_loc in
-            raise (Error (loc, "Cannot move values from outer scope"))
+            raise
+              (Error (loc, "Cannot move value " ^ t.tname ^ " from outer scope"))
         | Dset | Dmut | Dnorm -> ());
         { t with tattr; tattr_loc })
       touched
@@ -1011,7 +1016,8 @@ let check_items ~mname touched items =
       match tattr with
       | Dmove ->
           let loc = Option.get tattr_loc in
-          raise (Error (loc, "Cannot move values from outer scope"))
+          raise
+            (Error (loc, "Cannot move value " ^ t.tname ^ " from outer scope"))
       | Dset | Dmut | Dnorm -> ())
     touched;
 

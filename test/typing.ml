@@ -1244,7 +1244,7 @@ let () =
 (let [b a]
   (set-a)
   (ignore b))|};
-          tase_exn "func move" "Cannot move values from outer scope"
+          tase_exn "func move" "Cannot move value a from outer scope"
             {|
 (defn hmm []
   (def a& [10])
