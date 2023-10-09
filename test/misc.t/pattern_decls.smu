@@ -11,6 +11,7 @@
 
 -- pattern matched thing is a closure
 (defn hmm [{x _}]
-  (fn [] (x)))
+  (fn :copy x [] (x)))
 
+-- this case is strange. The tuple needs to be moved right now
 ((hmm {(fn [] (print "lol")) 10}))

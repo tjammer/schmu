@@ -2548,3 +2548,9 @@ Function call returning a polymorphic function
   attributes #0 = { argmemonly nofree nounwind willreturn }
   a foo
   10 bar
+
+Check allocations of nested closures
+  $ schmu nested_closure_allocs.smu
+  $ valgrind ./nested_closure_allocs 2>&1 | grep allocs | cut -f 5- -d '='
+   Command: ./nested_closure_allocs
+     total heap usage: 8 allocs, 8 frees, 240 bytes allocated

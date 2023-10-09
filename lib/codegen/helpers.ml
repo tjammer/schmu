@@ -409,7 +409,9 @@ struct
               ("Internal Error: Cannot find closed variable: " ^ cl.clname)
       in
       (* TODO use dst as prealloc *)
-      let src = if upward then Auto.copy no_param allocref src else src in
+      let src =
+        if upward && cl.clcopy then Auto.copy no_param allocref src else src
+      in
       let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
       (match cl.cltyp with
       | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut && not upward ->

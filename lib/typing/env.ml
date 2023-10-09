@@ -390,30 +390,44 @@ let close_thing is_same modpath env =
                     Or: if they are closures *)
                  (* Const values (and imported ones) are not closed over, they exist module-wide *)
                  let is_imported = is_imported env.modpath mname in
+                 let cleantyp = clean typ in
                  let cl =
                    if const || global || is_imported then None
                    else
-                     let cltyp = typ and clparam = param and clmname = mname in
-                     match clean typ with
+                     let cltyp = typ
+                     and clparam = param
+                     and clmname = mname
+                     and clcopy = false in
+                     (* clcopy will be changed it typing *)
+                     match cleantyp with
                      | Tfun (_, _, Closure _) ->
-                         Some { clname; cltyp; clmut; clparam; clmname }
+                         Some { clname; cltyp; clmut; clparam; clmname; clcopy }
                      | Tfun _ when not param -> None
-                     | _ -> Some { clname; cltyp; clmut; clparam; clmname }
+                     | _ ->
+                         Some { clname; cltyp; clmut; clparam; clmname; clcopy }
                  in
 
                  let t =
-                   {
-                     tname = clname;
-                     ttyp = typ;
-                     tattr = Dnorm;
-                     tattr_loc = None;
-                     tmname = mname;
-                   }
+                   let t =
+                     {
+                       tname = clname;
+                       ttyp = typ;
+                       tattr = Dnorm;
+                       tattr_loc = None;
+                       tmname = mname;
+                     }
+                   in
+                   match cleantyp with
+                   | Tfun (_, _, Closure _) -> Some t
+                   | Tfun _ when not param -> None
+                   | _ -> Some t
                  in
+
                  (cl, t))
         in
         let closed, touched = List.split closed_touched in
         let closed = List.filter_map Fun.id closed in
+        let touched = List.filter_map Fun.id touched in
 
         match scope.kind with
         | (Stoplevel usage | Sfunc usage) when is_same scope.kind ->

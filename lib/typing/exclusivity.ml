@@ -87,6 +87,8 @@ module Id = struct
         (* Special case for pattern matches in lets *)
         String.concat "." (List.map snd l)
     | l -> fmt name ^ "." ^ String.concat "." (List.map snd l)
+
+  let only_id = function Fst (id, _) -> id | Shadowed ((id, _), _) -> id
 end
 
 type borrow = {
@@ -416,6 +418,48 @@ let move_b loc special b =
   let borrowed = { b.borrowed with bid = b.parent } in
   { b with loc; special; borrowed }
 
+let move_closed (tree : Typed_tree.typed_expr) c =
+  (* Prepend a move of closure [c] to [tree] *)
+  let var = make_var tree.loc c.clname c.clmname c.cltyp in
+  let move = { var with expr = Move var } in
+  { tree with expr = Sequence (move, tree) }
+
+let get_closed_make_usage usage tree (use : touched) =
+  match usage with
+  | Usage.Uread -> (tree, Usage.of_attr use.tattr)
+  | Umove -> (
+      match clean tree.typ with
+      | Tfun (_, _, Closure cls) -> (
+          match
+            List.find_opt (fun c -> String.equal c.clname use.tname) cls
+          with
+          | Some c ->
+              if c.clcopy then (tree, Uread)
+              else
+                (* Move the closed variable into the closure *)
+                (move_closed tree c, Umove)
+          | None -> (* Touched but not closed? Let's read it *) (tree, Uread))
+      | Tfun _ -> (tree, Uread)
+      | _ -> failwith "Internal Error: Not a function type")
+  | Uset | Umut -> failwith "unreachable"
+
+let get_closed_make_usage_delayed tree b =
+  (* Compared to above, we are implicitly in the [Umove] usage *)
+  match clean tree.typ with
+  | Tfun (_, _, Closure cls) -> (
+      let id = Id.only_id b.borrowed.bid in
+      match List.find_opt (fun c -> String.equal c.clname id) cls with
+      | Some c ->
+          if c.clcopy then (tree, Usage.Uread)
+          else
+            (* Move the closed variable into the closure *)
+            (move_closed tree c, Umove)
+      | None -> (* Touched but not closed? Let's read it *) (tree, Uread))
+  | Tfun _ -> failwith "Oh really?!"
+  | _ -> failwith "Internal Error: Not a function type"
+
+let make_usage tree (use : touched) = (tree, Usage.of_attr use.tattr)
+
 let rec check_tree env mut ((bpart, special) as bdata) tree hist =
   match tree.expr with
   | Var (borrowed, mname) ->
@@ -486,37 +530,51 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
             Bmove (m, l)
       in
 
-      let borrow_delayed delayed =
+      let borrow_delayed delayed tree usage =
         let find_borrow usage b =
           match Map.find_opt b.borrowed.bid env with
-          (* | Some b when bind -> b.imm *)
           | Some { imm; delayed = _; bind_only } ->
-              List.map (borrow bind_only usage) imm
+              List.map (fun b -> borrow bind_only usage b) imm
           | None -> []
         in
-        let f acc binding =
-          let bs =
-            match binding with
-            | Bmove (b, _) -> find_borrow Umove b
-            | Borrow b -> find_borrow Uread b
-            | Borrow_mut (b, Set) -> find_borrow Uset b
-            | Borrow_mut (b, Dont_set) -> find_borrow Umut b
-            | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"
+        (* Delayed things only appear in functions. And functions are either
+           used = Uread or moved = Umove. They should never be mutated. We
+           mutate the [tree] to add the moves of moved bindings captured by the
+           closure which is being read *)
+        let f (tree, acc) binding =
+          let tree, bs =
+            match usage with
+            | Usage.Uread -> (
+                ( tree,
+                  match binding with
+                  | Bmove (b, _) -> find_borrow Umove b
+                  | Borrow b -> find_borrow Uread b
+                  | Borrow_mut (b, Set) -> find_borrow Uset b
+                  | Borrow_mut (b, Dont_set) -> find_borrow Umut b
+                  | Bown _ ->
+                      failwith "Internal Error: A borrowed thing isn't owned" ))
+            | Umove -> (
+                match binding with
+                | Bmove (b, _) | Borrow b | Borrow_mut (b, _) ->
+                    let tree, usage = get_closed_make_usage_delayed tree b in
+                    (tree, find_borrow usage b)
+                | Bown _ ->
+                    failwith "Internal Error: A borrowed thing isn't owned")
+            | Uset | Umut -> failwith "hmm"
           in
-          List.rev_append bs acc
+          (tree, List.rev_append bs acc)
         in
-        List.fold_left f [] delayed
+        List.fold_left f (tree, []) delayed
       in
 
-      let borrow =
+      let tree, borrow =
         match Map.find_opt bid env with
-        (* | Some b when bind -> b *)
         | Some { imm; delayed; bind_only } ->
-            let delayed = borrow_delayed delayed in
+            let tree, delayed = borrow_delayed delayed tree mut in
             forbid_conditional_borrow loc imm mut;
             let imm = List.map (borrow bind_only mut) imm @ delayed in
-            { imm; delayed = []; bind_only = false }
-        | None -> imm []
+            (tree, { imm; delayed = []; bind_only = false })
+        | None -> (tree, imm [])
       in
       (* Don't add to hist here. Other expressions where the value is used
          will take care of this *)
@@ -740,10 +798,17 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let expr = Mutual_rec_decls (decls, cont) in
       ({ tree with expr }, v, hs)
   | Lambda (_, abs) ->
-      let imm = check_abstraction env tree.loc abs.func.touched hist in
+      let usage = get_closed_make_usage mut in
+      (* Lambdas immediately borrow (and capture) their closed objects, so we
+         return a modified [tree] here which contains the needed moves *)
+      let tree, imm = check_abstraction env tree usage abs.func.touched hist in
       (tree, { imm; delayed = []; bind_only = false }, hist)
   | Function (name, u, abs, cont) ->
-      let bindings = check_abstraction env tree.loc abs.func.touched hist in
+      (* Uread means it's not moved. The function is defined here, it might be
+         moved later, but not here *)
+      let _, bindings =
+        check_abstraction env tree make_usage abs.func.touched hist
+      in
       let env =
         match List.rev bindings with
         | [] -> env
@@ -776,8 +841,8 @@ and check_let ~tl loc env id lhs rmut pass hist =
     | true, Dmove -> (Umove, false, false)
     | true, Dnorm -> (* For rvalues, default to move *) (Umove, false, true)
     | false, Dnorm ->
-        (* Cannot borrow mutable bindings at top level. We defer error generation until
-           we are sure the rhs is really borrowed *)
+        (* Cannot borrow mutable bindings at top level. We defer error
+           generation until we are sure the rhs is really borrowed *)
         (Uread, rmut && tl, false)
     | false, Dmove -> (Umove, false, false)
     | false, Dmut -> failwith "unreachable"
@@ -810,7 +875,8 @@ and check_let ~tl loc env id lhs rmut pass hist =
         ([ Bown id ], hs)
     | b ->
         (* Switch order so that first move appears near the head of borrow list.
-             This way, the first move is reported first (if both move the same thing) *)
+           This way, the first move is reported first (if both move the same
+           thing) *)
         let bindings, hist =
           List.fold_right
             (fun b (bindings, hist) ->
@@ -843,16 +909,16 @@ and check_bind env name expr hist =
   in
   (e, b, env, hist)
 
-and check_abstraction env loc touched hist =
+and check_abstraction env tree usage touched hist =
   List.fold_left
-    (fun bindings (use : touched) ->
+    (fun (tree, bindings) (use : touched) ->
       (* For moved values, don't check touched here. Instead, add them as
          bindings later so they get moved on first use *)
-      let usage = Usage.of_attr use.tattr in
-      let var = make_var loc use.tname use.tmname use.ttyp in
+      let tree, usage = usage tree use in
+      let var = make_var tree.loc use.tname use.tmname use.ttyp in
       let _, b, _ = check_tree env usage no_bdata var hist in
-      b.imm @ bindings)
-    [] touched
+      (tree, b.imm @ bindings))
+    (tree, []) touched
 
 let check_item (env, bind, mut, part, hist) = function
   | Tl_let ({ loc; id; rmut; pass; lhs; uniq = _ } as e) ->
@@ -869,8 +935,16 @@ let check_item (env, bind, mut, part, hist) = function
       (* Basically a sequence *)
       let e, b, hs = check_tree env Uread no_bdata e hist in
       ((env, bind, mut, part, add_hist b hs), Tl_expr e)
-  | Tl_function (loc, name, _, abs) as f ->
-      let bindings = check_abstraction env loc abs.func.touched hist in
+  | Tl_function (_, name, _, abs) as f ->
+      (* Functions don't caputure on definition, but on first usage. This comes
+         in handy here as we don't have a correct tree to pass to
+         [check_abstraction]. Passing [abs.body] doesn't make any sense here.
+         The returned modified tree is discareded anyway so no harm is done. But
+         this only works if the assumption holds that capture happens later,
+         through the delayed bindings. See also [Function] above *)
+      let _, bindings =
+        check_abstraction env abs.body make_usage abs.func.touched hist
+      in
       let env =
         match List.rev bindings with
         | [] -> env
@@ -914,8 +988,9 @@ let check_tree ~mname pts pns touched body =
     { ord = !borrow_state; loc; borrowed; parent = bid; special = Sp_no }
   in
 
-  (* Shadowing between touched variables and parameters is impossible. If a parameter
-     exists with the same name, the variable would not have been closed over / touched *)
+  (* Shadowing between touched variables and parameters is impossible. If a
+     parameter exists with the same name, the variable would not have been
+     closed over / touched *)
   (* touched variables *)
   let env, hist =
     List.fold_left
@@ -931,8 +1006,9 @@ let check_tree ~mname pts pns touched body =
   let env, hist =
     List.fold_left
       (fun (map, hs) (n, _) ->
-        (* Parameters are not owned, but using them as owned here makes it easier for
-           borrow checking. Correct usage of mutable parameters is already handled in typing.ml *)
+        (* Parameters are not owned, but using them as owned here makes it
+           easier for borrow checking. Correct usage of mutable parameters is
+           already handled in typing.ml *)
         let id = new_id n None in
         (* Parameters get no mname *)
         assert (Id.equal id (Fst (n, None)));

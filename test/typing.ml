@@ -791,6 +791,24 @@ let test_excl_parts_return_whole () =
   test_exn "a.a was moved in line 4, cannot use"
     (typ ^ "(defn meh [a!]\n (def c& !a.a)\n a)")
 
+let test_excl_lambda_copy_capture () =
+  test "unit" "(defn alt [alts] (fn :copy alts () (ignore alts.[0])))"
+
+let test_excl_lambda_copy_capture_nonalloc () =
+  test "unit" "(defn alt [alts] (fn :copy alts () (ignore (+ 1 alts))))"
+
+let test_excl_lambda_not_copy_capture () =
+  test_exn "Borrowed parameter alts is moved"
+    "(defn alt [alts] (fn () (ignore alts.[0])))"
+
+let test_excl_fn_copy_capture () =
+  test "unit"
+    "(defn alt (alts) (defn named :copy alts () (ignore alts.[0])) named)"
+
+let test_excl_fn_not_copy_capture () =
+  test_exn "Borrowed parameter alts is moved"
+    "(defn alt (alts) (defn named () (ignore alts.[0])) named)"
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "(type t int) (type t float)"
@@ -1380,6 +1398,12 @@ let () =
   (set &sm.slots.[slot-idx] !{:idx :gen nextgen})
   (set &sm.free-hd !free-hd)
   (ignore {:gen nextgen :idx slot-idx}))|};
+          case "lambda copy capture" test_excl_lambda_copy_capture;
+          case "lambda copy capture nonalloc"
+            test_excl_lambda_copy_capture_nonalloc;
+          case "lambda not copy capture" test_excl_lambda_not_copy_capture;
+          case "fn copy capture" test_excl_fn_copy_capture;
+          case "fn not copy capture" test_excl_fn_not_copy_capture;
         ] );
       ( "type decl",
         [

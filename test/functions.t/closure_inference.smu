@@ -31,7 +31,7 @@
       print))
 
 (defn alt [a b]
- (fn [buf] -- This variable is polymorphic
+ (fn :copy a b [buf] -- This variable is polymorphic
    (match (a buf)
      ((#ok r) (#ok r))
      ((#err _) (b buf)))))

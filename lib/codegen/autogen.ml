@@ -285,8 +285,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         in
         Array.iteri f ctors
     | Tfun _ ->
-        (* We can assume this is a closure structure.
-             The global function case has been filtered in [copy] above. *)
+        (* We can assume this is a closure structure. The global function case
+           has been filtered in [copy] above. *)
         let v = bring_default_var dst in
         let ptr = bb v.value (Llvm.pointer_type closure_t) "" builder in
         (* Pointer to environment *)
