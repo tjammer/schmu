@@ -1,10 +1,12 @@
 Basic variant ctors
   $ schmu basic.smu --dump-llvm
-  basic.smu:12.7-17: warning: Unused binding wrap_clike
+  basic.smu:12.7-17: warning: Unused binding wrap_clike.
+  
   12 | (defn wrap_clike [] #c)
              ^^^^^^^^^^
   
-  basic.smu:14.7-18: warning: Unused binding wrap_option
+  basic.smu:14.7-18: warning: Unused binding wrap_option.
+  
   14 | (defn wrap_option [] (#some "hello"))
              ^^^^^^^^^^^
   
@@ -441,7 +443,8 @@ Match multiple columns
   0
 
   $ schmu custom_tag_reuse.smu
-  custom_tag_reuse.smu:1.28-30: error: Tag 1 already used for constructor a
+  custom_tag_reuse.smu:1.28-30: error: Tag 1 already used for constructor a.
+  
   1 | (type tags ((#a 1) (#b 0) (#c int)))
                                  ^^
   
@@ -449,11 +452,13 @@ Match multiple columns
 
 Record literals in pattern matches
   $ schmu match_record.smu && valgrind -q --leak-check=yes --show-reachable=yes ./match_record
-  match_record.smu:5.35-37: warning: Unused binding b
+  match_record.smu:5.35-37: warning: Unused binding b.
+  
   5 |             ((#some {:a (#some a) :b}) a)
                                         ^^
   
-  match_record.smu:6.31-33: warning: Unused binding b
+  match_record.smu:6.31-33: warning: Unused binding b.
+  
   6 |             ((#some {:a #none :b}) -1)
                                     ^^
   

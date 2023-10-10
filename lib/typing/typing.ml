@@ -64,8 +64,8 @@ let check_annot env loc l r =
   else
     let msg =
       Printf.sprintf "Var annotation: Expected type %s but got type %s"
-        (string_of_type_lit r mn)
-        (string_of_type_subst subst l mn)
+        (string_of_type_lit mn r)
+        (string_of_type_subst subst mn l)
     in
     raise (Error (loc, msg))
 
@@ -246,7 +246,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
               | [] ->
                   let msg =
                     "Expected a parametrized type, not "
-                    ^ string_of_type t (Env.modpath env)
+                    ^ string_of_type (Env.modpath env) t
                   in
                   raise (Error (loc, msg))
               | l ->
@@ -665,7 +665,7 @@ end = struct
   and convert_array_lit env loc arr =
     let f typ expr =
       let expr = convert env expr in
-      unify (loc, "In array literal:") typ expr.typ env;
+      unify (loc, "In array literal") typ expr.typ env;
       (typ, expr)
     in
     let typ, exprs = List.fold_left_map f (newvar ()) arr in
@@ -692,7 +692,7 @@ end = struct
 
           (match clean t.typ with
           | Tfun _ -> check_annot env loc t.typ t_annot
-          | _ -> unify (loc, "In let binding:") t.typ t_annot env);
+          | _ -> unify (loc, "In let binding") t.typ t_annot env);
 
           { t with typ = t_annot }
     in
@@ -940,9 +940,13 @@ end = struct
     in
     let res_t = newvar () in
     if switch_uni then
-      unify (loc, "Application:") (Tfun (args_t, res_t, Simple)) callee.typ env
+      unify (loc, "In application")
+        (Tfun (args_t, res_t, Simple))
+        callee.typ env
     else
-      unify (loc, "Application:") callee.typ (Tfun (args_t, res_t, Simple)) env;
+      unify (loc, "In application") callee.typ
+        (Tfun (args_t, res_t, Simple))
+        env;
 
     let apply param (texpr, _, _) =
       ({ texpr with typ = param.pt }, param.pattr)
@@ -1003,11 +1007,11 @@ end = struct
     match unop with
     | Uminus_f ->
         let e = convert env expr in
-        unify (loc, "Unary -.:") Tfloat e.typ env;
+        unify (loc, "In unary -.") Tfloat e.typ env;
         { typ = Tfloat; expr = Unop (unop, e); attr = e.attr; loc }
     | Uminus_i -> (
         let e = convert env expr in
-        let msg = "Unary -:" in
+        let msg = "In unary -" in
         let expr = Unop (unop, e) in
 
         try
@@ -1018,11 +1022,11 @@ end = struct
           try
             unify (loc, msg) Tint e.typ env;
             { typ = Tint; expr; attr = e.attr; loc }
-          with Error (loc, errmsg) ->
-            let pos = String.length msg + String.length ": Expected type int" in
-            let post = String.sub errmsg pos (String.length errmsg - pos) in
-            raise (Error (loc, "Unary -: Expected types int or float " ^ post)))
-        )
+          with Error _ ->
+            unify (loc, msg)
+              (Tabstract ([], Path.Pid "int or float", Tunit))
+              e.typ env;
+            failwith "unreachable"))
 
   and convert_if env loc cond e1 e2 =
     (* We can assume pred evaluates to bool and both branches need to evaluate
@@ -1079,7 +1083,7 @@ end = struct
     (if not toset.attr.mut then
        let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
        raise (Error (eloc, msg)));
-    unify (loc, "Mutate:") toset.typ valexpr.typ env;
+    unify (loc, "In mutation") toset.typ valexpr.typ env;
     { typ = Tunit; expr = Set (toset, valexpr); attr = no_attr; loc }
 
   and convert_pipe_head env loc e1 e2 =
@@ -1155,7 +1159,7 @@ end = struct
             (Error
                ( e.loc,
                  "Don't know how to format "
-                 ^ string_of_type e.typ (Env.modpath env) ))
+                 ^ string_of_type (Env.modpath env) e.typ ))
     in
     let exprs = List.map f exprs in
     let typ = string_typ in
@@ -1166,7 +1170,7 @@ end = struct
 
     let check env (loc, typ) =
       unify
-        (loc, "Left expression in sequence must be of type unit:")
+        (loc, "Left expression in sequence must be of type unit,")
         Tunit typ env
     in
 
@@ -1330,7 +1334,7 @@ and catch_weak_expr env sub e =
       (Error
          ( e.loc,
            "Expression contains weak type variables: "
-           ^ string_of_type e.typ (Env.modpath env) ))
+           ^ string_of_type (Env.modpath env) e.typ ))
   in
   if is_weak ~sub e.typ then _raise ();
   match e.expr with
@@ -1472,7 +1476,7 @@ let rec convert_module env mname sign prog check_ret =
      | _ ->
          let msg =
            "Module must return type int or unit, not "
-           ^ string_of_type last_type (Env.modpath env)
+           ^ string_of_type (Env.modpath env) last_type
          in
          raise (Error (!last_loc, msg)));
   (externals, items, m)
@@ -1780,7 +1784,7 @@ and convert_prog env items modul =
         let expr = Core.convert env expr in
         (* Only the last expression is allowed to return something *)
         unify
-          (fst old, "Left expression in sequence must be of type unit:")
+          (fst old, "Left expression in sequence must be of type unit,")
           Tunit (snd old) env;
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
     | Open (loc, mname) ->

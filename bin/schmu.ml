@@ -53,11 +53,11 @@ let run file
     and cend = nnd.pos_cnum - nnd.pos_bol + 1 in
     if Int.equal beg.pos_lnum nnd.pos_lnum then
       (* Fits on one line *)
-      Format.asprintf "%s:%d.%d-%d: %s: %s\n%!%a" file beg.pos_lnum cbeg cend
+      Format.asprintf "%s:%d.%d-%d: %s: %s.\n\n%!%a" file beg.pos_lnum cbeg cend
         kind msg pp [ loc ]
     else
       (* Spans multiple lines *)
-      Format.asprintf "%s:%d.%d-%d.%d: %s: %s\n%!%a" file beg.pos_lnum cbeg
+      Format.asprintf "%s:%d.%d-%d.%d: %s: %s.\n\n%!%a" file beg.pos_lnum cbeg
         nnd.pos_lnum cend kind msg pp [ loc ]
   in
 

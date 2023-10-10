@@ -544,7 +544,7 @@ let extract_name_type env = function
       | Trecord (_, Some n, _) | Tvariant (_, n, _) | Talias (n, _) ->
           Some (Path.get_hd n, l, t, Mtypedef)
       | t ->
-          print_endline (string_of_type t (Env.modpath env));
+          print_endline (string_of_type (Env.modpath env) t);
           failwith "Internal Error: Type does not have a name")
   | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Mvalue)
   | Mpoly_fun (l, abs, n, _) -> Some (n, l, type_of_func abs.func, Mvalue)
@@ -579,22 +579,20 @@ let validate_intf env loc ~in_functor (name, _, styp, kind) rhs =
           in
           t := Link typ
       | _ -> ());
-      let subst, b = Inference.types_match ~in_functor styp ityp in
+      let _, b = Inference.types_match ~in_functor styp ityp in
       if b then ()
       else
         let msg =
-          Printf.sprintf
-            "Signatures don't match for %s: Expected type %s but got type %s"
-            name
-            (string_of_type_lit styp mn)
-            (string_of_type_subst subst ityp mn)
+          Error.format_type_err
+            ("Signatures don't match for " ^ name)
+            mn styp ityp
         in
         raise (Error (loc, msg))
   | None, kind ->
       let msg =
         Printf.sprintf "Signatures don't match: %s %s is missing"
           (match kind with Mtypedef -> "Type" | Mvalue -> "Value " ^ name)
-          (string_of_type styp mn)
+          (string_of_type mn styp)
       in
       raise (Error (loc, msg))
 
@@ -610,7 +608,7 @@ let validate_signature env m =
       let f (name, loc, styp, kind) =
         match (List.find_opt (find_item name kind) impl, kind) with
         | Some (n, loc, ityp, ikind), _ ->
-            let subst, b = Inference.types_match ~in_functor:false styp ityp in
+            let _, b = Inference.types_match ~in_functor:false styp ityp in
             if b then (
               (* Query value to mark it as used in the env *)
               (match ikind with
@@ -624,11 +622,8 @@ let validate_signature env m =
               (name, loc, typ, kind))
             else
               let msg =
-                Printf.sprintf
-                  "Mismatch between implementation and signature: Expected \
-                   type %s but got type %s"
-                  (string_of_type_lit styp mn)
-                  (string_of_type_subst subst ityp mn)
+                Error.format_type_err
+                  "Mismatch between implementation and signature" mn styp ityp
               in
               raise (Error (loc, msg))
         | None, Mtypedef -> (
@@ -638,7 +633,7 @@ let validate_signature env m =
                 raise
                   (Error
                      ( loc,
-                       "Abstract type " ^ string_of_type styp mn
+                       "Abstract type " ^ string_of_type mn styp
                        ^ " not implemented" ))
             | _ -> (name, loc, styp, kind))
         | None, Mvalue ->
@@ -646,7 +641,7 @@ let validate_signature env m =
               Printf.sprintf
                 "Mismatch between implementation and signature: Missing \
                  implementation of %s %s"
-                (string_of_type styp mn) name
+                (string_of_type mn styp) name
             in
             raise (Error (loc, msg))
       in

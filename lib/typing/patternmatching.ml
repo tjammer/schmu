@@ -78,7 +78,7 @@ let get_variant env loc (_, name) annot =
       | t ->
           let msg =
             Printf.sprintf "Expecting a variant type, not %s"
-              (string_of_type t (Env.modpath env))
+              (string_of_type (Env.modpath env) t)
           in
           raise (Error (loc, msg)))
   | None -> (
@@ -588,7 +588,7 @@ module Make (C : Core) (R : Recs) = struct
             raise
               (Error
                  ( loc,
-                   "Record pattern has unexpected type " ^ string_of_type t mn
+                   "Record pattern has unexpected type " ^ string_of_type mn t
                  ))
       in
       inner t
@@ -631,7 +631,7 @@ module Make (C : Core) (R : Recs) = struct
             | None ->
                 let msg =
                   Printf.sprintf "Unbound field :%s on record %s" name
-                    (string_of_type t mn)
+                    (string_of_type mn t)
                 in
                 raise (Error (loc, msg))
           in
@@ -750,8 +750,9 @@ module Make (C : Core) (R : Recs) = struct
         in
         unify
           (loc, "Tuple pattern has unexpected type:")
+          typ
           (Trecord (ps, None, fields))
-          typ env;
+          env;
         cartesian_product pats
         |> List.map (fun pats ->
                let pat = Tp_tuple (loc, pats) in

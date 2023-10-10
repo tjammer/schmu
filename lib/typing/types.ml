@@ -155,12 +155,12 @@ let string_of_type_get_name subst =
         Strtbl.add tbl name s;
         pp_to_name s
 
-let string_of_type typ mname =
+let string_of_type mname typ =
   string_of_type_raw (string_of_type_get_name Smap.empty) typ mname
 
-let string_of_type_lit typ mname = string_of_type_raw pp_to_name typ mname
+let string_of_type_lit mname typ = string_of_type_raw pp_to_name typ mname
 
-let string_of_type_subst subst typ mname =
+let string_of_type_subst subst mname typ =
   string_of_type_raw (string_of_type_get_name subst) typ mname
 
 let is_polymorphic typ =

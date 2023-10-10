@@ -105,14 +105,14 @@ module Make (C : Core) = struct
               | Some typ ->
                   (typ, convert_annot env (Some typ) expr)
             in
-            unify (loc, "In record expression:") typ expr.typ env;
+            unify (loc, "In record expression") typ expr.typ env;
             (lname, expr)
           in
           let labels_expr = List.map f labels in
           ((param, name, ls), labels_expr)
       | t ->
           let msg =
-            "Expected a record type, not " ^ string_of_type t (Env.modpath env)
+            "Expected a record type, not " ^ string_of_type (Env.modpath env) t
           in
           raise (Error (loc, msg))
     in
@@ -169,7 +169,7 @@ module Make (C : Core) = struct
             fields
       | t ->
           let msg =
-            "Expected a record type, not " ^ string_of_type t (Env.modpath env)
+            "Expected a record type, not " ^ string_of_type (Env.modpath env) t
           in
           raise (Error (loc, msg))
     in
@@ -210,8 +210,7 @@ module Make (C : Core) = struct
             unify
               ( loc,
                 "Field access of record "
-                ^ string_of_type record_t (Env.modpath env)
-                ^ ":" )
+                ^ string_of_type (Env.modpath env) record_t )
               record_t expr.typ env;
             let labels = get_labels record_t in
             (labels.(index), expr, index)

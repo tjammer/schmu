@@ -45,17 +45,9 @@ let rec occurs tvr = function
   | Traw_ptr t | Tarray t -> occurs tvr t
   | _ -> ()
 
-let arity (loc, pre) thing la lb =
-  let msg =
-    Printf.sprintf "%s Wrong arity for %s: Expected %i but got %i" pre thing lb
-      la
-  in
-  raise (Error (loc, msg))
+exception Unify
 
-exception Unify of (typ * typ) option
-exception Arity of string * int * int
-
-let rec unify down t1 t2 =
+let rec unify t1 t2 =
   if t1 == t2 then ()
   else
     match (t1, t2) with
@@ -63,7 +55,7 @@ let rec unify down t1 t2 =
     | t1, Tvar { contents = Link t2 }
     | Talias (_, t1), t2
     | t1, Talias (_, t2) ->
-        unify true t1 t2
+        unify t1 t2
     | Tvar ({ contents = Unbound _ } as tv), t
     | t, Tvar ({ contents = Unbound _ } as tv) ->
         occurs tv t;
@@ -72,77 +64,57 @@ let rec unify down t1 t2 =
         try
           List.iter2
             (fun left right ->
-              if not (left.pattr = right.pattr) then raise (Unify None);
-              unify true left.pt right.pt)
+              if not (left.pattr = right.pattr) then raise Unify;
+              unify left.pt right.pt)
             params_l params_r;
-          unify true l r
-        with Invalid_argument _ ->
-          raise (Arity ("function", List.length params_l, List.length params_r))
-        )
+          unify l r
+        with Invalid_argument _ -> raise Unify)
     | Trecord (_, None, labels1), Trecord (_, None, labels2) -> (
-        try
-          Array.iter2
-            (fun a b -> Types.(unify true a.ftyp b.ftyp))
-            labels1 labels2
-        with Invalid_argument _ ->
-          raise (Arity ("tuple", Array.length labels1, Array.length labels2)))
+        try Array.iter2 (fun a b -> Types.(unify a.ftyp b.ftyp)) labels1 labels2
+        with Invalid_argument _ -> raise Unify)
     | Trecord (ps1, Some n1, labels1), Trecord (ps2, Some n2, labels2) ->
         if Path.equal n1 n2 then
           try
-            List.iter2 (unify true) ps1 ps2;
+            List.iter2 unify ps1 ps2;
             (* We ignore the label names for now *)
-            Array.iter2
-              (fun a b -> Types.(unify true a.ftyp b.ftyp))
-              labels1 labels2
-          with Invalid_argument _ ->
-            raise (Arity ("record", Array.length labels1, Array.length labels2))
-        else raise (Unify None)
+            Array.iter2 (fun a b -> Types.(unify a.ftyp b.ftyp)) labels1 labels2
+          with Invalid_argument _ -> raise Unify
+        else raise Unify
     | Tvariant (ps1, n1, ctors1), Tvariant (ps2, n2, ctors2) ->
         if Path.equal n1 n2 then
           try
-            List.iter2 (unify true) ps1 ps2;
+            List.iter2 unify ps1 ps2;
             (* We ignore the ctor names for now *)
             Array.iter2
               (fun a b ->
                 match (a.ctyp, b.ctyp) with
-                | Some a, Some b -> unify true a b
+                | Some a, Some b -> unify a b
                 | None, None -> ()
-                | Some _, None | None, Some _ -> raise (Unify None))
+                | Some _, None | None, Some _ -> raise Unify)
               ctors1 ctors2
-          with Invalid_argument _ -> raise (Unify None)
-        else raise (Unify None)
+          with Invalid_argument _ -> raise Unify
+        else raise Unify
     | Tabstract (psl, nl, l), Tabstract (psr, nr, r) ->
         if Path.equal nl nr then
           try
-            List.iter2 (unify true) psl psr;
-            unify true l r
-          with Invalid_argument _ -> raise (Unify None)
-        else raise (Unify None)
-    | Traw_ptr l, Traw_ptr r -> unify true l r
-    | Tarray l, Tarray r -> unify true l r
+            List.iter2 unify psl psr;
+            unify l r
+          with Invalid_argument _ -> raise Unify
+        else raise Unify
+    | Traw_ptr l, Traw_ptr r -> unify l r
+    | Tarray l, Tarray r -> unify l r
     | Qvar a, Qvar b when String.equal a b ->
         (* We should not need this. Anyway *)
         ()
-    | _ -> if down then raise (Unify (Some (t1, t2))) else raise (Unify None)
+    | _ -> raise Unify
 
 let unify info t1 t2 env =
   let mn = Env.modpath env in
-  try unify false t1 t2 with
-  | Unify ts ->
-      let loc, pre = info in
-      let msg =
-        Printf.sprintf "%s Expected type %s but got type %s" pre
-          (string_of_type t1 mn) (string_of_type t2 mn)
-      in
-      let suffix =
-        match ts with
-        | Some (a, b) ->
-            Printf.sprintf ".\nCannot unify types %s and %s"
-              (string_of_type a mn) (string_of_type b mn)
-        | None -> ""
-      in
-      raise (Error (loc, msg ^ suffix))
-  | Arity (thing, l1, l2) -> arity info thing l1 l2
+  let loc, pre = info in
+  try unify t1 t2
+  with Unify ->
+    let msg = Error.format_type_err pre mn t1 t2 in
+    raise (Error (loc, msg))
 
 let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id

@@ -1,6 +1,7 @@
 Simplest module with 1 type and 1 nonpolymorphic function
   $ schmu nonpoly_func.smu -m --dump-llvm
-  nonpoly_func.smu:4.8-9: warning: Unused binding c
+  nonpoly_func.smu:4.8-9: warning: Unused binding c.
+  
   4 |   (def c 10)
              ^
   
@@ -431,7 +432,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   (()((5:Mtype(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:32)))(8:Tvariant()18:malloc_some/either(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(4:Mfun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:34)(8:pos_cnum2:35))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:34)(8:pos_cnum2:62)))(4:Tfun(((2:pt4:Tint)(5:pattr5:Dnorm))((2:pt4:Tint)(5:pattr5:Dnorm)))4:Tint6:Simple)((4:user8:add_ints)(4:call(20:malloc_some_add_ints))))(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:65)(8:pos_cnum2:66))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:65)(8:pos_cnum2:74)))4:Tint((4:user1:a)(4:call(13:malloc_some_a)))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:77)(8:pos_cnum2:78))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:77)(8:pos_cnum2:98)))4:Tint((4:user1:b)(4:call(13:malloc_some_b)))5:false)(9:Mpoly_fun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:102))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:122)))((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(4:Move((3:typ(4:Qvar1:1))(4:expr(3:App(6:callee((3:typ(4:Tfun(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm)))(4:Qvar1:1)6:Simple))(4:expr(3:Var4:copy()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:119))))))(4:args((((3:typ(4:Qvar1:1))(4:expr(3:Var1:x()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:120))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:121)))))5:Dnorm)))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:121)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:115))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol3:101)(8:pos_cnum3:121))))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm))))(3:ret(4:Qvar1:1))(4:kind6:Simple)(7:touched())))(6:inline5:false))2:id())(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:125)(8:pos_cnum3:126))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:125)(8:pos_cnum3:141)))(6:Tarray4:Tint)((4:user5:vtest)(4:call(17:malloc_some_vtest)))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:143)(8:pos_cnum3:144))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:143)(8:pos_cnum3:158)))(6:Tarray4:Tint)((4:user6:vtest2)(4:call(18:malloc_some_vtest2)))5:false))())
 
   $ schmu use_malloc_some.smu --dump-llvm
-  use_malloc_some.smu:3.7-19: warning: Unused binding do_something
+  use_malloc_some.smu:3.7-19: warning: Unused binding do_something.
+  
   3 | (defn do_something [big] (+ (.a big) 1))
             ^^^^^^^^^^^^
   
@@ -605,7 +607,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
 Allocate and clean init code with refcounting
   $ schmu init.smu -m
   $ schmu use_init.smu
-  use_init.smu:1.1-12: warning: Unused module open init
+  use_init.smu:1.1-12: warning: Unused module open init.
+  
   1 | (open init)
       ^^^^^^^^^^^
   
@@ -615,11 +618,13 @@ Allocate and clean init code with refcounting
 Use module name prefix for function names to prevent linker dups
   $ schmu nameclash_mod.smu -m
   $ schmu nameclash_use.smu
-  nameclash_use.smu:1.1-21: warning: Unused module open nameclash_mod
+  nameclash_use.smu:1.1-21: warning: Unused module open nameclash_mod.
+  
   1 | (open nameclash_mod)
       ^^^^^^^^^^^^^^^^^^^^
   
-  nameclash_use.smu:2.7-20: warning: Unused binding specific_name
+  nameclash_use.smu:2.7-20: warning: Unused binding specific_name.
+  
   2 | (defn specific_name [] ())
             ^^^^^^^^^^^^^
   
@@ -631,7 +636,8 @@ Distinguish closures and functions
 
 Test signature
   $ schmu -m sign.smu
-  sign.smu:20.7-13: warning: Unused binding hidden
+  sign.smu:20.7-13: warning: Unused binding hidden.
+  
   20 | (defn hidden [a]
              ^^^^^^
   
@@ -641,13 +647,15 @@ Test signature
   200
   20.2
   $ schmu use-sign-hidden.smu
-  use-sign-hidden.smu:4.2-8: error: No var named hidden
+  use-sign-hidden.smu:4.2-8: error: No var named hidden.
+  
   4 | (hidden 10)
        ^^^^^^
   
   [1]
   $ schmu use-sign-hidden-type.smu
-  use-sign-hidden-type.smu:4.2-24: error: Unbound type hidden-type.
+  use-sign-hidden-type.smu:4.2-24: error: Unbound type hidden-type..
+  
   4 | (def (i hidden-type) 10)
        ^^^^^^^^^^^^^^^^^^^^^^
   
@@ -748,7 +756,8 @@ Use local module from other file
 
 Local modules can shadow types. Use unique type names in codegen
   $ schmu local_module_type_shadowing.smu --dump-llvm
-  local_module_type_shadowing.smu:4.6-7: warning: Unused binding t
+  local_module_type_shadowing.smu:4.6-7: warning: Unused binding t.
+  
   4 | (def t {:a 10})
            ^
   
@@ -771,7 +780,8 @@ Local modules can shadow types. Use unique type names in codegen
 
 Search for modules when variables cannot be found
   $ schmu err_local_otherfile.smu
-  err_local_otherfile.smu:1.2-25: error: No var named local_otherfile/aliased, but a module with the name exists
+  err_local_otherfile.smu:1.2-25: error: No var named local_otherfile/aliased, but a module with the name exists.
+  
   1 | (local_otherfile/aliased)
        ^^^^^^^^^^^^^^^^^^^^^^^
   
@@ -796,7 +806,8 @@ Use directory as module
   $ echo "(print indirect/a)" > err.smu
   $ schmu err.smu
   indirect.smi
-  err.smu:1.8-18: error: Module indirect: Cannot find module: indirect
+  err.smu:1.8-18: error: Module indirect: Cannot find module: indirect.
+  
   1 | (print indirect/a)
              ^^^^^^^^^^
   

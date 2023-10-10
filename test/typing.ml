@@ -6,7 +6,7 @@ let get_type src =
   let open Lexing in
   let lexbuf = from_string src in
   Parser.prog Lexer.read lexbuf |> Typing.typecheck |> fun t ->
-  Types.string_of_type t Typing.main_path
+  Types.string_of_type Typing.main_path t
 
 let test a src = (check string) "" a (get_type src)
 
@@ -33,7 +33,7 @@ let test_const_int () = test "int" "(def a 1) a"
 let test_const_neg_int () = test "int" "(def a -1) a"
 
 let test_const_neg_int_wrong () =
-  test_exn "Unary -: Expected types int or float but got type bool"
+  test_exn "In unary - expecting [int or float] but found [bool]"
     "(def a -true) a"
 
 let test_const_neg_int2 () = test "int" "(def a - 1) a"
@@ -41,7 +41,7 @@ let test_const_float () = test "float" "(def a 1.0) a"
 let test_const_neg_float () = test "float" "(def a -1.0) a"
 
 let test_const_neg_float_wrong () =
-  test_exn "Unary -.: Expected type float but got type bool" "(def a -.true) a"
+  test_exn "In unary -. expecting [float] but found [bool]" "(def a -.true) a"
 
 let test_const_neg_float2 () = test "float" "(def a -.1.0) a"
 let test_const_bool () = test "bool" "(def a true) a"
@@ -102,11 +102,11 @@ let test_record_create_return () =
   test "t" "(type t {:x int}) (defn a [] 10) { :x (a) }"
 
 let test_record_wrong_type () =
-  test_exn "In record expression: Expected type int but got type bool"
+  test_exn "In record expression expecting [int] but found [bool]"
     "(type t {:x int}) {:x true}"
 
 let test_record_wrong_choose () =
-  test_exn "In record expression: Expected type int but got type bool"
+  test_exn "In record expression expecting [int] but found [bool]"
     "(type t1 {:x int :y int}) (type t2 {:x int :z int}) {:x 2 :y true}"
 
 let test_record_field_simple () =
@@ -129,11 +129,11 @@ let test_record_nested_field_generic () =
      :x 12 :y { :x 12 } }"
 
 let test_record_field_no_record () =
-  test_exn "Field access of record t: Expected type t but got type int"
+  test_exn "Field access of record t expecting [t] but found [int]"
     "(type t {:x int}) (def a 10) (.x a)"
 
 let test_record_field_wrong_record () =
-  test_exn "Application: Expected type (fun t1 int) but got type (fun t2 'a)"
+  test_exn "In application expecting (fun [t1] _) but found (fun [t2] _)"
     "(type t1 {:x int}) (type t2 {:y int}) (defn foo (a) (.x a)) (def b {:y \
      10}) (foo b)"
 
@@ -214,8 +214,8 @@ let test_sequence () =
 
 let test_sequence_fail () =
   test_exn
-    "Left expression in sequence must be of type unit: Expected type unit but \
-     got type int"
+    "Left expression in sequence must be of type unit, expecting [unit] but \
+     found [int]"
     "(defn add1 (x) (+ x 1)) (add1 20) (+ 1 1)"
 
 let test_para_instantiate () =
@@ -242,7 +242,7 @@ let test_para_instance_func () =
      :gen 17 }) use"
 
 let test_para_instance_wrong_func () =
-  test_exn "In record expression: Expected type int but got type bool"
+  test_exn "In record expression expecting [int] but found [bool]"
     "(type (foo 'a) { :gen 'a }) (defn use (foo) (+ (.gen foo) 17)) (def foo { \
      :gen 17 }) (use { :gen true } )"
 
@@ -255,14 +255,14 @@ let test_pipe_head_multi_call () =
   test "int" "(defn add1(a) (+ a 1)) (-> 10 add1 add1)"
 
 let test_pipe_head_single_wrong_type () =
-  test_exn "Application: Expected type (fun int 'a) but got type int"
+  test_exn "In application expecting [(fun int 'a)] but found [int]"
     "(def add1 1) (-> 10 add1)"
 
 let test_pipe_head_mult () =
   test "int" "(defn add (a b) (+ a b)) (-> 10 (add 12))"
 
 let test_pipe_head_mult_wrong_type () =
-  test_exn "Application: Wrong arity for function: Expected 1 but got 2"
+  test_exn "In application expecting (fun [int int] _) but found (fun [int] _)"
     "(defn add1(a) (+ a 1)) (-> 10 (add1 12))"
 
 let test_pipe_tail_single () = test "int" "(defn add1(a) (+ a 1)) (->> 10 add1)"
@@ -271,14 +271,14 @@ let test_pipe_tail_single_call () =
   test "int" "(defn add1(a) (+ a 1)) (->> 10 (add1))"
 
 let test_pipe_tail_single_wrong_type () =
-  test_exn "Application: Expected type (fun int 'a) but got type int"
+  test_exn "In application expecting [(fun int 'a)] but found [int]"
     "(def add1 1) (->> 10 add1)"
 
 let test_pipe_tail_mult () =
   test "int" "(defn add (a b) (+ a b)) (->> 10 (add 12))"
 
 let test_pipe_tail_mult_wrong_type () =
-  test_exn "Application: Wrong arity for function: Expected 1 but got 2"
+  test_exn "In application expecting (fun [int int] _) but found (fun [int] _)"
     "(defn add1(a) (+ a 1)) (->> 10 (add1 12))"
 
 let test_alias_simple () =
@@ -328,31 +328,21 @@ let test_array_weak () =
     a|}
 
 let test_array_different_types () =
-  test_exn
-    "In array literal: Expected type int but got type bool.\n\
-     Cannot unify types int and bool" "[0 true]"
+  test_exn "In array literal expecting [int] but found [bool]" "[0 true]"
 
 let test_array_different_annot () =
-  test_exn
-    "In let binding: Expected type (array int) but got type (array bool).\n\
-     Cannot unify types int and bool"
+  test_exn "In let binding expecting (array [int]) but found (array [bool])"
     {|(def (a (array bool)) [0 1])
     a|}
 
 let test_array_different_annot_weak () =
-  test_exn
-    "Application: Expected type (fun (array bool) bool unit) but got type (fun \
-     (array bool) int 'a).\n\
-     Cannot unify types bool and int"
+  test_exn "In application expecting (fun _ [bool] _) but found (fun _ [int] _)"
     {|(external setf (fun (array 'a) 'a unit))
     (def (a (array bool)) [])
     (setf a 2)|}
 
 let test_array_different_weak () =
-  test_exn
-    "Application: Expected type (fun (array int) int unit) but got type (fun \
-     (array int) bool 'a).\n\
-     Cannot unify types int and bool"
+  test_exn "In application expecting (fun _ [int] _) but found (fun _ [bool] _)"
     {|(external setf (fun (array 'a) 'a unit))
     (def a [])
     (setf a 2)
@@ -364,7 +354,7 @@ let test_mutable_set () =
   test "unit" "(type foo { :x& int }) (def foo& { :x 12 }) (set &(.x foo) !13)"
 
 let test_mutable_set_wrong_type () =
-  test_exn "Mutate: Expected type int but got type bool"
+  test_exn "In mutation expecting [int] but found [bool]"
     "(type foo { :x& int }) (def foo& { :x 12 }) (set &(.x foo) !true)"
 
 let test_mutable_set_non_mut () =
@@ -484,8 +474,8 @@ let test_match_wildcard_nested () =
 
 let test_match_column_arity () =
   test_exn
-    "Tuple pattern has unexpected type: Wrong arity for tuple: Expected 2 but \
-     got 3"
+    "Tuple pattern has unexpected type: expecting [{int int}] but found [{'a \
+     'a 'a}]"
     {|(type (option 'a) (#none (#some 'a)))
     (match {1 2}
       ({a b c} a))
@@ -581,8 +571,8 @@ let test_pattern_decl_tuple () = test "float" "(def {i f} {12 5.0}) f"
 
 let test_pattern_decl_tuple_missing () =
   test_exn
-    "Tuple pattern has unexpected type: Wrong arity for tuple: Expected 3 but \
-     got 2"
+    "Tuple pattern has unexpected type: expecting [{int float int}] but found \
+     [{'a 'a}]"
     "(type foo {:i int :f float})(def {x f} {12 5.0 20}) f"
 
 let test_pattern_decl_tuple_exhaust () =
@@ -596,8 +586,8 @@ let test_signature_simple () =
 
 let test_signature_wrong_typedef () =
   test_exn
-    "Mismatch between implementation and signature: Expected type t = int but \
-     got type t = float"
+    "Mismatch between implementation and signature expecting [int] but found \
+     [float]"
     "(signature (type t int)) (type t float)"
 
 let test_signature_generic () =
@@ -615,8 +605,9 @@ let test_signature_generic () =
 
 let test_signature_param_mismatch () =
   test_exn
-    "Mismatch between implementation and signature: Expected type (fun int (t \
-     int)) but got type (fun int (t 'a))"
+    "Mismatch between implementation and signature\n\
+     expecting (fun _ [(t int)])\n\
+     but found (fun _ [(t 'a)])"
     {|(signature
   (type (t 'a))
   (def create-int (fun int (t int))))
@@ -640,7 +631,7 @@ let test_local_modules_find_nested () =
   test "unit" (local_module ^ " (def (test nosig/nested/t) 0u8)")
 
 let test_local_modules_miss_local () =
-  test_exn "In let binding: Expected type float but got type nosig/t"
+  test_exn "In let binding expecting [float] but found [nosig/t]"
     (local_module ^ " (def (test nosig/t) 10.0)")
 
 let test_local_modules_miss_nested () =
@@ -922,9 +913,8 @@ let test_functor_apply_use () =
 
 let test_functor_abstract_param () =
   test_exn
-    "Application: Expected type (fun inta/t inta/t inta/t) but got type (fun \
-     int int 'a).\n\
-     Cannot unify types inta/t and int"
+    "In application expecting (fun [inta/t] [inta/t] _) but found (fun [int] \
+     [int] _)"
     {|(module-type sig
   (type t)
   (def add (fun t t t)))
@@ -970,8 +960,8 @@ let test_functor_poly_function () =
 
 let test_functor_poly_mismatch () =
   test_exn
-    "Signatures don't match for id: Expected type (fun 'a! 'a) but got type \
-     (fun int! int)"
+    "Signatures don't match for id expecting (fun ['a]! _) but found (fun \
+     [int]! _)"
     {|(module-type poly
   (def id (fun 'a! 'a)))
 
@@ -1011,15 +1001,15 @@ let test_functor_check_sig () = test "unit" (check_sig_test "'value")
 
 let test_functor_check_param () =
   test_exn
-    "Signatures don't match for create: Expected type (fun int (sig/t \
-     sig/key)) but got type (fun int (make/t 'a))"
-    (check_sig_test "key")
+    "Signatures don't match for create\n\
+     expecting (fun _ [(sig/t sig/key)])\n\
+     but found (fun _ [(make/t 'a)])" (check_sig_test "key")
 
 let test_functor_check_concrete () =
   test_exn
-    "Signatures don't match for create: Expected type (fun int (sig/t int)) \
-     but got type (fun int (make/t 'a))"
-    (check_sig_test "int")
+    "Signatures don't match for create\n\
+     expecting (fun _ [(sig/t int)])\n\
+     but found (fun _ [(make/t 'a)])" (check_sig_test "int")
 
 let case str test = test_case str `Quick test
 
