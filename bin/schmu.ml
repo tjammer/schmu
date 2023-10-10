@@ -45,12 +45,20 @@ let run file
   let fmt_msg_fn kind loc msg =
     let file = Lexing.((fst loc).pos_fname) in
     let pp = Pp_loc.(pp ~max_lines:5 ~input:(Input.file file)) in
-    let errloc = fst loc in
+    let beg = fst loc in
+    let nnd = snd loc in
     let loc = Pp_loc.Position.(of_lexing (fst loc), of_lexing (snd loc)) in
 
-    Format.asprintf "%s:%d:%d: %s: %s\n%!%a" file errloc.pos_lnum
-      (errloc.pos_cnum - errloc.pos_bol + 1)
-      kind msg pp [ loc ]
+    let cbeg = beg.pos_cnum - beg.pos_bol + 1
+    and cend = nnd.pos_cnum - nnd.pos_bol + 1 in
+    if Int.equal beg.pos_lnum nnd.pos_lnum then
+      (* Fits on one line *)
+      Format.asprintf "%s:%d.%d-%d: %s: %s\n%!%a" file beg.pos_lnum cbeg cend
+        kind msg pp [ loc ]
+    else
+      (* Spans multiple lines *)
+      Format.asprintf "%s:%d.%d-%d.%d: %s: %s\n%!%a" file beg.pos_lnum cbeg
+        nnd.pos_lnum cend kind msg pp [ loc ]
   in
 
   let std = not no_std in

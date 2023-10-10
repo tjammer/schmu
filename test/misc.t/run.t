@@ -51,7 +51,7 @@ Test elif
 
 Test simple typedef
   $ schmu --dump-llvm stub.o simple_typealias.smu && ./simple_typealias
-  simple_typealias.smu:2:11: warning: Unused binding puts
+  simple_typealias.smu:2.11-15: warning: Unused binding puts
   2 | (external puts (fun foo unit))
                 ^^^^
   
@@ -67,43 +67,43 @@ Test simple typedef
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
   $ schmu --dump-llvm stub.o free_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_array
-  free_array.smu:7:6: warning: Unused binding arr
+  free_array.smu:7.6-9: warning: Unused binding arr
   7 | (def arr ["hey" "young" "world"])
            ^^^
   
-  free_array.smu:8:6: warning: Unused binding arr
+  free_array.smu:8.6-9: warning: Unused binding arr
   8 | (def arr [(copy x) {:x 2} {:x 3}])
            ^^^
   
-  free_array.smu:48:6: warning: Unused binding arr
+  free_array.smu:48.6-9: warning: Unused binding arr
   48 | (def arr (make_arr))
             ^^^
   
-  free_array.smu:51:6: warning: Unused binding normal
+  free_array.smu:51.6-12: warning: Unused binding normal
   51 | (def normal (nest_fns))
             ^^^^^^
   
-  free_array.smu:55:6: warning: Unused binding nested
+  free_array.smu:55.6-12: warning: Unused binding nested
   55 | (def nested (make_nested_arr))
             ^^^^^^
   
-  free_array.smu:56:6: warning: Unused binding nested
+  free_array.smu:56.6-12: warning: Unused binding nested
   56 | (def nested (nest_allocs))
             ^^^^^^
   
-  free_array.smu:59:6: warning: Unused binding rec_of_arr
+  free_array.smu:59.6-16: warning: Unused binding rec_of_arr
   59 | (def rec_of_arr {:index 12 :arr [1 2]})
             ^^^^^^^^^^
   
-  free_array.smu:60:6: warning: Unused binding rec_of_arr
+  free_array.smu:60.6-16: warning: Unused binding rec_of_arr
   60 | (def rec_of_arr (record_of_arrs))
             ^^^^^^^^^^
   
-  free_array.smu:62:6: warning: Unused binding arr_of_rec
+  free_array.smu:62.6-16: warning: Unused binding arr_of_rec
   62 | (def arr_of_rec [(record_of_arrs) (record_of_arrs)])
             ^^^^^^^^^^
   
-  free_array.smu:63:6: warning: Unused binding arr_of_rec
+  free_array.smu:63.6-16: warning: Unused binding arr_of_rec
   63 | (def arr_of_rec (arr_of_records))
             ^^^^^^^^^^
   
@@ -1179,19 +1179,19 @@ Test 'and', 'or' and 'not'
 
 
   $ schmu --dump-llvm stub.o unary_minus.smu && ./unary_minus
-  unary_minus.smu:1:6: warning: Unused binding a
+  unary_minus.smu:1.6-7: warning: Unused binding a
   1 | (def a -1.0)
            ^
   
-  unary_minus.smu:2:6: warning: Unused binding a
+  unary_minus.smu:2.6-7: warning: Unused binding a
   2 | (def a -.1.0)
            ^
   
-  unary_minus.smu:3:6: warning: Unused binding a
+  unary_minus.smu:3.6-7: warning: Unused binding a
   3 | (def a - 1.0)
            ^
   
-  unary_minus.smu:4:6: warning: Unused binding a
+  unary_minus.smu:4.6-7: warning: Unused binding a
   4 | (def a -. 1.0)
            ^
   
@@ -1214,31 +1214,31 @@ Test 'and', 'or' and 'not'
 
 Test unused binding warning
   $ schmu unused.smu stub.o
-  unused.smu:2:6: warning: Unused binding unused1
+  unused.smu:2.6-13: warning: Unused binding unused1
   2 | (def unused1 0)
            ^^^^^^^
   
-  unused.smu:5:6: warning: Unused binding unused2
+  unused.smu:5.6-13: warning: Unused binding unused2
   5 | (def unused2 0)
            ^^^^^^^
   
-  unused.smu:12:7: warning: Unused binding use_unused3
+  unused.smu:12.7-18: warning: Unused binding use_unused3
   12 | (defn use_unused3 []
              ^^^^^^^^^^^
   
-  unused.smu:19:11: warning: Unused binding unused4
+  unused.smu:19.11-18: warning: Unused binding unused4
   19 |      (def unused4 0)
                  ^^^^^^^
   
-  unused.smu:23:11: warning: Unused binding unused5
+  unused.smu:23.11-18: warning: Unused binding unused5
   23 |      (def unused5 0)
                  ^^^^^^^
   
-  unused.smu:38:13: warning: Unused binding usedlater
+  unused.smu:38.13-22: warning: Unused binding usedlater
   38 |        (def usedlater 0)
                    ^^^^^^^^^
   
-  unused.smu:52:13: warning: Unused binding usedlater
+  unused.smu:52.13-22: warning: Unused binding usedlater
   52 |        (def usedlater 0)
                    ^^^^^^^^^
   
@@ -1249,7 +1249,7 @@ Allow declaring a c function with a different name
 
 We can have if without else
   $ schmu if_no_else.smu
-  if_no_else.smu:2:2: error: A conditional without else branch should evaluato to type unit. Expected type unit but got type int
+  if_no_else.smu:2.2-11: error: A conditional without else branch should evaluato to type unit. Expected type unit but got type int
   2 | (if true 2)
        ^^^^^^^^^
   
@@ -1469,7 +1469,7 @@ Tailcall loops
 
 Make sure an if returns either Const or Const_ptr, but in a consistent way
   $ schmu -c --dump-llvm regression_issue_30.smu
-  regression_issue_30.smu:8:7: warning: Unused binding calc_acc
+  regression_issue_30.smu:8.7-15: warning: Unused binding calc_acc
   8 | (defn calc_acc [vel]
             ^^^^^^^^
   
@@ -1968,7 +1968,7 @@ Array push
 
 Decrease ref counts for local variables in if branches
   $ schmu --dump-llvm decr_rc_if.smu && valgrind -q --leak-check=yes --show-reachable=yes ./decr_rc_if
-  decr_rc_if.smu:5:10: warning: Unused binding a
+  decr_rc_if.smu:5.10-11: warning: Unused binding a
   5 |    (let [a [10]]
                ^
   
