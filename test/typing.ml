@@ -214,9 +214,9 @@ let test_sequence () =
 
 let test_sequence_fail () =
   test_exn
-    "Left expression in sequence must be of type unit, expecting [unit] but \
-     found [int]"
-    "(defn add1 (x) (+ x 1)) (add1 20) (+ 1 1)"
+    "Left expression in sequence must be of type unit,\n\
+     expecting [unit]\n\
+     but found [int]" "(defn add1 (x) (+ x 1)) (add1 20) (+ 1 1)"
 
 let test_para_instantiate () =
   test "(foo int)"
@@ -474,8 +474,9 @@ let test_match_wildcard_nested () =
 
 let test_match_column_arity () =
   test_exn
-    "Tuple pattern has unexpected type: expecting [{int int}] but found [{'a \
-     'a 'a}]"
+    "Tuple pattern has unexpected type:\n\
+     expecting [{int int}]\n\
+     but found [{'a 'a 'a}]"
     {|(type (option 'a) (#none (#some 'a)))
     (match {1 2}
       ({a b c} a))
@@ -571,8 +572,9 @@ let test_pattern_decl_tuple () = test "float" "(def {i f} {12 5.0}) f"
 
 let test_pattern_decl_tuple_missing () =
   test_exn
-    "Tuple pattern has unexpected type: expecting [{int float int}] but found \
-     [{'a 'a}]"
+    "Tuple pattern has unexpected type:\n\
+     expecting [{int float int}]\n\
+     but found [{'a 'a}]"
     "(type foo {:i int :f float})(def {x f} {12 5.0 20}) f"
 
 let test_pattern_decl_tuple_exhaust () =
@@ -586,9 +588,9 @@ let test_signature_simple () =
 
 let test_signature_wrong_typedef () =
   test_exn
-    "Mismatch between implementation and signature expecting [int] but found \
-     [float]"
-    "(signature (type t int)) (type t float)"
+    "Mismatch between implementation and signature\n\
+     expecting [t = int]\n\
+     but found [t = float]" "(signature (type t int)) (type t float)"
 
 let test_signature_generic () =
   test "unit"
@@ -913,8 +915,9 @@ let test_functor_apply_use () =
 
 let test_functor_abstract_param () =
   test_exn
-    "In application expecting (fun [inta/t] [inta/t] _) but found (fun [int] \
-     [int] _)"
+    "In application\n\
+     expecting (fun [inta/t] [inta/t] _)\n\
+     but found (fun [int] [int] _)"
     {|(module-type sig
   (type t)
   (def add (fun t t t)))
@@ -960,8 +963,9 @@ let test_functor_poly_function () =
 
 let test_functor_poly_mismatch () =
   test_exn
-    "Signatures don't match for id expecting (fun ['a]! _) but found (fun \
-     [int]! _)"
+    "Signatures don't match for id\n\
+     expecting (fun ['a]! _)\n\
+     but found (fun [int]! _)"
     {|(module-type poly
   (def id (fun 'a! 'a)))
 

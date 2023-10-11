@@ -62,12 +62,15 @@ let rec unify t1 t2 =
         tv := Link t
     | Tfun (params_l, l, _), Tfun (params_r, r, _) -> (
         try
+          let attr_mismatch = ref false in
           List.iter2
             (fun left right ->
-              if not (left.pattr = right.pattr) then raise Unify;
+              (* Continue with unification to generate better type errors *)
+              if not (left.pattr = right.pattr) then attr_mismatch := true;
               unify left.pt right.pt)
             params_l params_r;
-          unify l r
+          unify l r;
+          if !attr_mismatch then raise Unify
         with Invalid_argument _ -> raise Unify)
     | Trecord (_, None, labels1), Trecord (_, None, labels2) -> (
         try Array.iter2 (fun a b -> Types.(unify a.ftyp b.ftyp)) labels1 labels2
@@ -83,6 +86,7 @@ let rec unify t1 t2 =
     | Tvariant (ps1, n1, ctors1), Tvariant (ps2, n2, ctors2) ->
         if Path.equal n1 n2 then
           try
+            let err = ref false in
             List.iter2 unify ps1 ps2;
             (* We ignore the ctor names for now *)
             Array.iter2
@@ -90,8 +94,11 @@ let rec unify t1 t2 =
                 match (a.ctyp, b.ctyp) with
                 | Some a, Some b -> unify a b
                 | None, None -> ()
-                | Some _, None | None, Some _ -> raise Unify)
-              ctors1 ctors2
+                | Some _, None | None, Some _ ->
+                    (* Continue with unification to generate better type errors *)
+                    err := true)
+              ctors1 ctors2;
+            if !err then raise Unify
           with Invalid_argument _ -> raise Unify
         else raise Unify
     | Tabstract (psl, nl, l), Tabstract (psr, nr, r) ->
@@ -103,9 +110,6 @@ let rec unify t1 t2 =
         else raise Unify
     | Traw_ptr l, Traw_ptr r -> unify l r
     | Tarray l, Tarray r -> unify l r
-    | Qvar a, Qvar b when String.equal a b ->
-        (* We should not need this. Anyway *)
-        ()
     | _ -> raise Unify
 
 let unify info t1 t2 env =

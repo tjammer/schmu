@@ -98,7 +98,7 @@ let format_type_err pre mname t1 t2 =
         if String.equal l r then (false, l, r)
         else (true, "[" ^ l ^ "]", "[" ^ r ^ "]")
   in
-  let _, l, r = aux (clean t1) (clean t2) in
-  if String.length l + String.length r + String.length pre < 70 then
+  let _, l, r = aux t1 t2 in
+  if String.length l + String.length r + String.length pre < 50 then
     Printf.sprintf "%s expecting %s but found %s" pre l r
   else Printf.sprintf "%s\nexpecting %s\nbut found %s" pre l r
