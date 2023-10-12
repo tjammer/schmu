@@ -110,6 +110,8 @@ end = struct
         let v = gen_array_lit param arr typed_expr.typ allocref in
         Hashtbl.replace free_tbl id v;
         v
+    | Mconst (Fixed_array (arr, allocref)) ->
+        gen_fixed_array_lit param arr typed_expr.typ allocref
     | Mconst c -> gen_const c |> fin
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
@@ -238,7 +240,7 @@ end = struct
         let value = Llvm.const_float f32_t f in
         { value; typ = Tf32; lltyp = f32_t; kind = Const }
     | Unit -> dummy_fn_value
-    | String _ | Array _ -> failwith "In other branch"
+    | String _ | Array _ | Fixed_array _ -> failwith "In other branch"
 
   and gen_var vars typ id kind =
     match kind with

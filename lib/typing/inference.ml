@@ -110,6 +110,25 @@ let rec unify t1 t2 =
         else raise Unify
     | Traw_ptr l, Traw_ptr r -> unify l r
     | Tarray l, Tarray r -> unify l r
+    | Tfixed_array ({ contents = Linked l }, lt), (Tfixed_array _ as r) ->
+        unify (Tfixed_array (l, lt)) r
+    | (Tfixed_array _ as l), Tfixed_array ({ contents = Linked r }, rt) ->
+        unify l (Tfixed_array (r, rt))
+    | ( Tfixed_array (({ contents = Unknown (id, li) } as tv), l),
+        Tfixed_array (other, r) )
+    | ( Tfixed_array (other, l),
+        Tfixed_array (({ contents = Unknown (id, li) } as tv), r) ) ->
+        (* We need to find the minimum level, like in the occurs check *)
+        (let lvl =
+           match !other with Unknown (_, lvl) -> min lvl li | _ -> li
+         in
+         other := Unknown (id, lvl));
+        tv := Linked other;
+        unify l r
+    | ( Tfixed_array ({ contents = Known li }, l),
+        Tfixed_array ({ contents = Known ri }, r) ) ->
+        unify l r;
+        if not (Int.equal li ri) then raise Unify
     | _ -> raise Unify
 
 let unify info t1 t2 env =
@@ -146,6 +165,11 @@ let rec generalize = function
       Tabstract (ps, name, generalize t)
   | Traw_ptr t -> Traw_ptr (generalize t)
   | Tarray t -> Tarray (generalize t)
+  | Tfixed_array ({ contents = Unknown (id, li) }, l) when li > !current_level
+    ->
+      Tfixed_array (ref (Generalized id), generalize l)
+  | Tfixed_array ({ contents = Linked l }, t) ->
+      generalize (Tfixed_array (l, t))
   | t -> t
 
 and generalize_closure = function
@@ -251,8 +275,21 @@ let instantiate t =
     | Tarray t ->
         let t, subst = aux subst t in
         (Tarray t, subst)
+    | Tfixed_array ({ contents = Generalized id }, t) -> (
+        let t, subst = aux subst t in
+        match Smap.find_opt ("fa" ^ id) subst with
+        | Some (Tfixed_array (i, _)) -> (Tfixed_array (i, t), subst)
+        | Some _ -> failwith "Internal Error: What else?"
+        | None ->
+            let t =
+              Tfixed_array (ref (Unknown (gensym (), !current_level)), t)
+            in
+            (t, Smap.add id t subst))
+    | Tfixed_array ({ contents = Linked l }, t) ->
+        aux subst (Tfixed_array (l, t))
     | t -> (t, subst)
   in
+
   aux Smap.empty t |> fst
 
 let regeneralize typ =
@@ -272,7 +309,8 @@ let rec types_match ~in_functor l r =
     | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Qvar _ | Tfun _
     | Traw_ptr _ | Tarray _
     | Tvar { contents = Unbound _ }
-    | Trecord (_, None, _) ->
+    | Trecord (_, None, _)
+    | Tfixed_array _ ->
         acc
     | Talias (p, t) | Tabstract (_, p, t) -> collect_names (Nameset.add p acc) t
     | Trecord (_, Some p, _) | Tvariant (_, p, _) -> Nameset.add p acc
@@ -356,6 +394,21 @@ let rec types_match ~in_functor l r =
       | Traw_ptr l, Traw_ptr r | Tarray l, Tarray r ->
           let l, r = nss_of_types l r in
           aux ~strict qsubst l r
+      | ( Tfixed_array ({ contents = Generalized l }, lt),
+          Tfixed_array ({ contents = Generalized r }, rt) )
+      | ( Tfixed_array ({ contents = Unknown (l, _) }, lt),
+          Tfixed_array ({ contents = Generalized r }, rt) ) ->
+          (* Prepend with fa for fixed array so not clash with Qvar strings *)
+          let subst, pre =
+            match Smap.find_opt ("fa" ^ l) qsubst with
+            | Some id when String.equal ("fa" ^ r) id -> (qsubst, true)
+            | Some _ -> (qsubst, false)
+            | None -> (Smap.add ("fa" ^ l) ("fa" ^ r) qsubst, true)
+          in
+          if pre then
+            let l, r = nss_of_types lt rt in
+            aux ~strict subst l r
+          else (subst, false)
       | Tabstract (_, _, lt), Tabstract (_, _, rt) ->
           if not (Nameset.disjoint lns rns) then
             aux ~strict:true qsubst (lns, lt) (rns, rt)
@@ -430,6 +483,7 @@ and match_type_params ~in_functor params typ =
     | Talias (n, t) -> Talias (n, replace_qvar subst t)
     | Traw_ptr t -> Traw_ptr (replace_qvar subst t)
     | Tarray t -> Tarray (replace_qvar subst t)
+    | Tfixed_array (iv, t) -> Tfixed_array (iv, replace_qvar subst t)
     | Tabstract (ps, n, t) ->
         let ps = List.map (replace_qvar subst) ps in
         Tabstract (ps, n, replace_qvar subst t)
@@ -486,4 +540,7 @@ and match_type_params ~in_functor params typ =
   | Traw_ptr t ->
       let* t = match_type_params ~in_functor params t in
       Ok (Traw_ptr t)
+  | Tfixed_array (iv, t) ->
+      let* t = match_type_params ~in_functor params t in
+      Ok (Tfixed_array (iv, t))
   | Tfun _ -> failwith "TODO abstract function types"

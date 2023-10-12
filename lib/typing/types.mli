@@ -19,6 +19,7 @@ type typ =
   | Traw_ptr of typ
   | Tarray of typ
   | Tabstract of typ list * Path.t * typ
+  | Tfixed_array of iv ref * typ
 [@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of closed list
@@ -26,6 +27,12 @@ and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : Ast.decl_attr }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
+
+and iv =
+  | Unknown of string * int
+  | Known of int
+  | Generalized of string
+  | Linked of iv ref
 
 and closed = {
   clname : string;

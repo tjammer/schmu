@@ -27,6 +27,7 @@ type typ =
   | Traw_ptr of typ
   | Tarray of typ
   | Tabstract of typ list * Path.t * typ
+  | Tfixed_array of iv ref * typ
 [@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of closed list
@@ -34,6 +35,12 @@ and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : dattr }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
+
+and iv =
+  | Unknown of string * int
+  | Known of int
+  | Generalized of string
+  | Linked of iv ref
 
 and closed = {
   clname : string;
@@ -74,11 +81,14 @@ let rec clean = function
             ctors )
   | Talias (_, t) -> clean t
   | Traw_ptr t -> Traw_ptr (clean t)
-  | t -> t
+  | ( Tvar _ | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Qvar _
+    | Tabstract _ | Tarray _ | Tfixed_array _ ) as t ->
+      t
 
 let pp_to_name name = "'" ^ name
 
 let string_of_type_raw get_name typ mname =
+  let open Printf in
   let rec string_of_type = function
     | Tint -> "int"
     | Tbool -> "bool"
@@ -121,6 +131,14 @@ let string_of_type_raw get_name typ mname =
             Printf.sprintf "(%s %s)" Path.(rm_name mname str |> show) arg)
     | Traw_ptr t -> Printf.sprintf "(raw_ptr %s)" (string_of_type t)
     | Tarray t -> Printf.sprintf "(array %s)" (string_of_type t)
+    | Tfixed_array ({ contents = sz }, t) ->
+        let rec size = function
+          | Unknown _ -> "??"
+          | Generalized _ -> "?"
+          | Known i -> string_of_int i
+          | Linked iv -> size !iv
+        in
+        sprintf "(array#%s %s)" (size sz) (string_of_type t)
     | Tabstract (ps, name, _) -> (
         match ps with
         | [] -> Path.(rm_name mname name |> show)
@@ -176,6 +194,10 @@ let is_polymorphic typ =
         inner acc ret
     | Tbool | Tunit | Tint | Tu8 | Tfloat | Ti32 | Tf32 -> acc
     | Traw_ptr t | Tarray t -> inner acc t
+    | Tfixed_array ({ contents = Unknown _ | Generalized _ }, _) -> true
+    | Tfixed_array ({ contents = Known _ }, t) -> inner acc t
+    | Tfixed_array ({ contents = Linked iv }, t) ->
+        inner acc (Tfixed_array (iv, t))
   in
   inner false typ
 
@@ -187,6 +209,8 @@ let rec is_weak ~sub = function
       if Sset.mem id sub then false else true
   | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
       List.fold_left (fun b t -> is_weak ~sub t || b) false ps
+  | Tfixed_array ({ contents = Unknown _ | Generalized _ }, _) -> true
+  | Tfixed_array (_, t) -> is_weak ~sub t
   | Tfun _ ->
       (* Function types can contain weak vars which will reify on call.
          Thus we skip functions here.
@@ -219,6 +243,7 @@ let rec contains_allocation = function
   | Qvar _ | Tvar { contents = Unbound _ } ->
       (* We don't know yet *)
       true
+  | Tfixed_array (_, t) -> contains_allocation t
   | Tfun _ ->
       (* TODO *)
       true

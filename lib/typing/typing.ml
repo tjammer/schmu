@@ -616,6 +616,7 @@ end = struct
         let attr = { no_attr with const = true } in
         { typ; expr = Const (String s); attr; loc }
     | Lit (loc, Array arr) -> convert_array_lit env loc arr
+    | Lit (loc, Fixed_array arr) -> convert_fixed_array_lit env loc arr
     | Lit (loc, Unit) ->
         let attr = { no_attr with const = true } in
         { typ = Tunit; expr = Const Unit; attr; loc }
@@ -672,6 +673,21 @@ end = struct
 
     let typ = Tarray typ in
     { typ; expr = Const (Array exprs); attr = no_attr; loc }
+
+  and convert_fixed_array_lit env loc arr =
+    let f (typ, const) expr =
+      let expr = convert env expr in
+      unify (loc, "In fixed-size array literal") typ expr.typ env;
+      let const = const && expr.attr.const in
+      ((typ, const), expr)
+    in
+    let (typ, const), exprs = List.fold_left_map f (newvar (), true) arr in
+
+    let typ = Tfixed_array (ref (Known (List.length arr)), typ) in
+    ignore const;
+    (* TODO check mut for const and introduce constexpr *)
+    let attr = { no_attr with const = false } in
+    { typ; expr = Const (Fixed_array exprs); attr; loc }
 
   and typeof_annot_decl env loc annot block =
     enter_level ();

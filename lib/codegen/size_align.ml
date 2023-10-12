@@ -50,6 +50,10 @@ let rec size_align_impl size_pr typ =
   | Traw_ptr _ | Tarray _ ->
       (* TODO pass in triple. Until then, assume 64bit *)
       add_size_align ~upto:8 ~sz:8 size_pr
+  | Tfixed_array (i, t) ->
+      let { size; align = upto } = size_align_impl { size = 0; align = 1 } t in
+      let items_sz = alignup ~size ~upto * i in
+      add_size_align ~upto ~sz:items_sz size_pr
 
 and sizeof_typ typ =
   let { size; align = upto } = size_align_impl { size = 0; align = 1 } typ in

@@ -42,6 +42,7 @@ module Make (A : Abi_intf.S) = struct
     | (Trecord _ as t) | (Tvariant _ as t) -> get_struct t
     | Tfun _ -> closure_t
     | Traw_ptr t | Tarray t -> get_lltype_def t |> Llvm.pointer_type
+    | Tfixed_array (i, t) -> Llvm.array_type (get_lltype_def t) i
 
   and get_lltype_param mut = function
     | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _
@@ -51,7 +52,7 @@ module Make (A : Abi_intf.S) = struct
     | Tfun _ as t ->
         let t = get_lltype_def t |> Llvm.pointer_type in
         if mut then t |> Llvm.pointer_type else t
-    | (Trecord _ | Tvariant _) as t -> (
+    | (Trecord _ | Tvariant _ | Tfixed_array _) as t -> (
         match pkind_of_typ mut t with
         | Boxed -> get_lltype_def t |> Llvm.pointer_type
         | Unboxed size -> lltype_unboxed size)

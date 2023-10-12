@@ -99,6 +99,7 @@ and literal =
   | F32 of float
   | String of string
   | Array of expr list
+  | Fixed_array of expr list
   | Unit
 
 and stmt =

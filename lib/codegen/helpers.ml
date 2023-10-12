@@ -110,7 +110,7 @@ struct
 
   let default_kind = function
     | Tint | Tbool | Tfloat | Tu8 | Ti32 | Tf32 | Tunit | Traw_ptr _ | Tarray _
-      ->
+    | Tfixed_array _ ->
         Imm
     | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ -> Ptr
 
@@ -347,7 +347,7 @@ struct
       let value =
         Llvm.define_global "" (Llvm.const_bitcast null typ) the_module
       in
-      Llvm.(set_linkage Linkage.Link_once_odr value);
+      Llvm.(set_linkage Linkage.Internal value);
       value)
     else Llvm.build_alloca typ str builder
 

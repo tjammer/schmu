@@ -288,4 +288,28 @@ struct
     ignore (Llvm.build_store sz dst builder);
 
     { value = arr; typ; lltyp; kind = Ptr }
+
+  let gen_fixed_array_lit param exprs typ allocref =
+    let item_size = sizeof_typ typ in
+    let lltyp = get_lltype_def typ in
+
+    print_endline "before alloc";
+    let arr = get_prealloc !allocref param lltyp "arr" in
+
+    List.iteri
+      (fun i expr ->
+        let dst = Llvm.build_gep arr [| ci 0; ci i |] "" builder in
+        let src =
+          gen_expr { param with alloca = Some dst } expr
+          |> func_to_closure param
+        in
+
+        match src.kind with
+        | Ptr | Const_ptr ->
+            if dst <> src.value then
+              memcpy ~dst ~src ~size:(Llvm.const_int int_t item_size)
+            else (* The record was constructed inplace *) ()
+        | Imm | Const -> ignore (Llvm.build_store src.value dst builder))
+      exprs;
+    { value = arr; typ; lltyp; kind = Ptr }
 end

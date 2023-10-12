@@ -173,6 +173,7 @@ rule read =
   | ".["     { Ldotbrack }
   | '['      { Lbrack }
   | ']'      { Rbrack }
+  | "#["     { Hashtag_brack }
   | "->"     { Arrow_right }
   | "->>"    { Arrow_righter }
   | "--"     { line_comment lexbuf }

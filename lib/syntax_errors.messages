@@ -34,9 +34,13 @@ prog: Lbrac Keyword Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Keyword False Wildcard
+prog: Hashtag_brack Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting expression
+
+prog: Hashtag_brack False Wildcard
+
+Expecting expression
 
 prog: False Ldotbrack Wildcard
 
@@ -54,15 +58,19 @@ prog: Kebab_id Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Hashtag_brack False Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lbrac Keyword False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lbrac At Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lbrac At False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lbrac False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -94,7 +102,7 @@ prog: Lpar Plus_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Plus_i False Rbrac
+prog: Lpar Plus_i False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -102,7 +110,7 @@ prog: Lpar Plus_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Plus_f False Rbrac
+prog: Lpar Plus_f False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -110,7 +118,7 @@ prog: Lpar Or Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Or False Rbrac
+prog: Lpar Or False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -118,7 +126,7 @@ prog: Lpar Mult_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Mult_i False Rbrac
+prog: Lpar Mult_i False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -126,7 +134,7 @@ prog: Lpar Mult_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Mult_f False Rbrac
+prog: Lpar Mult_f False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -138,7 +146,7 @@ prog: Lpar Minus_i False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Minus_i False False Rbrac
+prog: Lpar Minus_i False False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -150,7 +158,7 @@ prog: Lpar Minus_f False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Minus_f False False Rbrac
+prog: Lpar Minus_f False False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -682,7 +690,7 @@ prog: Lpar Less_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Less_i False Rbrac
+prog: Lpar Less_i False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -690,7 +698,7 @@ prog: Lpar Less_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Less_f False Rbrac
+prog: Lpar Less_f False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -698,7 +706,7 @@ prog: Lpar Less_eq_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Less_eq_i False Rbrac
+prog: Lpar Less_eq_i False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -706,7 +714,7 @@ prog: Lpar Less_eq_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Less_eq_f False Rbrac
+prog: Lpar Less_eq_f False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -730,7 +738,7 @@ prog: Lpar Greater_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Greater_i False Rbrac
+prog: Lpar Greater_i False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -738,7 +746,7 @@ prog: Lpar Greater_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Greater_f False Rbrac
+prog: Lpar Greater_f False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -746,7 +754,7 @@ prog: Lpar Greater_eq_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Greater_eq_i False Rbrac
+prog: Lpar Greater_eq_i False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -754,7 +762,7 @@ prog: Lpar Greater_eq_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Greater_eq_f False Rbrac
+prog: Lpar Greater_eq_f False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -782,7 +790,7 @@ prog: Lpar Equal Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Equal False Rbrac
+prog: Lpar Equal False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -798,7 +806,7 @@ prog: Lpar Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Div_i False Rbrac
+prog: Lpar Div_i False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -806,7 +814,7 @@ prog: Lpar Div_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Div_f False Rbrac
+prog: Lpar Div_f False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -898,7 +906,7 @@ prog: Lpar Bin_equal_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Bin_equal_f False Rbrac
+prog: Lpar Bin_equal_f False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -942,7 +950,7 @@ prog: Lpar And Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar And False Rbrac
+prog: Lpar And False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

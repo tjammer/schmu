@@ -71,6 +71,7 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
           | None -> [ Ti32 ]
         in
         aux typ types
+    | Tfixed_array (i, t) when not mut -> aux typ (List.init i (fun _ -> t))
     | _ -> Boxed
 
   let lltype_unbox = function

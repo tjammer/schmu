@@ -9,6 +9,13 @@ module type S = sig
     Monomorph_tree.alloca ->
     llvar
 
+  val gen_fixed_array_lit :
+    Llvm_types.param ->
+    Monomorph_tree.monod_tree list ->
+    typ ->
+    Monomorph_tree.allocas ref ->
+    llvar
+
   val array_get : llvar list -> typ -> llvar
   val array_length : unsafe:bool -> llvar list -> llvar
   val array_capacity : llvar list -> llvar

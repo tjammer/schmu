@@ -43,6 +43,7 @@ and const =
   | F32 of float
   | String of string
   | Array of monod_tree list * alloca * int
+  | Fixed_array of monod_tree list * alloca
   | Unit
 
 and func = { params : param list; ret : typ; kind : fun_kind }
@@ -496,6 +497,7 @@ let rec short_name ~closure t =
   | Tpoly _ -> "g"
   | Traw_ptr t -> sprintf "p%s" (str t)
   | Tarray t -> sprintf "a%s" (str t)
+  | Tfixed_array (i, t) -> sprintf "a%i%s" i (str t)
 
 let get_mono_name name ~poly ~closure concrete =
   let open Printf in
@@ -959,6 +961,11 @@ let rec cln p = function
       Tvariant (ps, Path.type_name name, ctors)
   | Traw_ptr t -> Traw_ptr (cln p t)
   | Tarray t -> Tarray (cln p t)
+  | Tfixed_array ({ contents = Unknown (id, _) | Generalized id }, _) ->
+      Tpoly id
+  | Tfixed_array ({ contents = Known i }, t) -> Tfixed_array (i, cln p t)
+  | Tfixed_array ({ contents = Linked iv }, t) ->
+      cln p Types.(Tfixed_array (iv, t))
   | Tabstract (_, _, Tvar { contents = Unbound _ }) as t ->
       print_endline (Types.show_typ t);
       failwith "Internal Error: How did this come through?"
@@ -1104,6 +1111,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Typed_tree.Var (v, mname) -> morph_var make param v mname
   | Const (String s) -> morph_string make param s
   | Const (Array a) -> morph_array make param a (cln param texpr.typ)
+  | Const (Fixed_array a) -> morph_fixed_array make param a
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
@@ -1234,8 +1242,28 @@ and morph_array mk p a typ =
     { no_var with fn = No_function; alloc = Value alloca; malloc = Single id }
   )
 
+and morph_fixed_array mk p a =
+  let ret = p.ret in
+  let p = { p with ret = false } in
+
+  enter_level ();
+  let f param e =
+    let p, e, var = morph_expr param e in
+    set_alloca var.alloc;
+    (* Should have been moved *)
+    assert (var.malloc = No_malloc);
+    (p, e)
+  in
+  let p, a = List.fold_left_map f p a in
+  leave_level ();
+  let alloca = ref (request ()) in
+  ( { p with ret },
+    mk (Mconst (Fixed_array (a, alloca))) p.ret,
+    { no_var with fn = No_function; alloc = Value alloca } )
+
 and morph_const = function
-  | String _ | Array _ -> failwith "Internal Error: Const should be extra case"
+  | String _ | Array _ | Fixed_array _ ->
+      failwith "Internal Error: Const should be extra case"
   | Int i -> Int i
   | Bool b -> Bool b
   | Float f -> Float f
