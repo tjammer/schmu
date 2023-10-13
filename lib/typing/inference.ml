@@ -119,10 +119,9 @@ let rec unify t1 t2 =
     | ( Tfixed_array (other, l),
         Tfixed_array (({ contents = Unknown (id, li) } as tv), r) ) ->
         (* We need to find the minimum level, like in the occurs check *)
-        (let lvl =
-           match !other with Unknown (_, lvl) -> min lvl li | _ -> li
-         in
-         other := Unknown (id, lvl));
+        (match !other with
+        | Unknown (_, lvl) -> other := Unknown (id, min lvl li)
+        | _ -> ());
         tv := Linked other;
         unify l r
     | ( Tfixed_array ({ contents = Known li }, l),
@@ -170,6 +169,7 @@ let rec generalize = function
       Tfixed_array (ref (Generalized id), generalize l)
   | Tfixed_array ({ contents = Linked l }, t) ->
       generalize (Tfixed_array (l, t))
+  | Tfixed_array (i, t) -> Tfixed_array (i, generalize t)
   | t -> t
 
 and generalize_closure = function
@@ -284,9 +284,12 @@ let instantiate t =
             let t =
               Tfixed_array (ref (Unknown (gensym (), !current_level)), t)
             in
-            (t, Smap.add id t subst))
+            (t, Smap.add ("fa" ^ id) t subst))
     | Tfixed_array ({ contents = Linked l }, t) ->
         aux subst (Tfixed_array (l, t))
+    | Tfixed_array (i, t) ->
+        let t, subst = aux subst t in
+        (Tfixed_array (i, t), subst)
     | t -> (t, subst)
   in
 

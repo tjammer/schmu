@@ -518,7 +518,8 @@ let builtins_hack callee args =
   | Some (Var (id, None)) -> (
       match id with
       | "__unsafe_ptr_get" -> { no_attr with mut = true }
-      | "__array_get" | "__array_data" | "__unsafe_array_length" ->
+      | "__array_get" | "__fixed_array_get" | "__array_data"
+      | "__unsafe_array_length" ->
           { no_attr with mut }
       | _ -> no_attr)
   | Some (Var (id, Some (Path.Pid "array"))) -> (

@@ -209,7 +209,9 @@ let rec is_weak ~sub = function
       if Sset.mem id sub then false else true
   | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
       List.fold_left (fun b t -> is_weak ~sub t || b) false ps
-  | Tfixed_array ({ contents = Unknown _ | Generalized _ }, _) -> true
+  | Tfixed_array ({ contents = Unknown _ }, _) -> true
+  | Tfixed_array ({ contents = Linked l }, t) ->
+      is_weak ~sub (Tfixed_array (l, t))
   | Tfixed_array (_, t) -> is_weak ~sub t
   | Tfun _ ->
       (* Function types can contain weak vars which will reify on call.

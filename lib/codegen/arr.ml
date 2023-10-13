@@ -293,7 +293,6 @@ struct
     let item_size = sizeof_typ typ in
     let lltyp = get_lltype_def typ in
 
-    print_endline "before alloc";
     let arr = get_prealloc !allocref param lltyp "arr" in
 
     List.iteri

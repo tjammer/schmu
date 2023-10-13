@@ -618,6 +618,17 @@ end = struct
     | Array_drop_back -> array_drop_back param args
     | Array_data -> array_data args
     | Array_capacity -> array_capacity args
+    | Fixed_array_get -> (
+        match args with
+        | [ arr; idx ] ->
+            let value =
+              Llvm.build_gep arr.value
+                [| Llvm.const_int int_t 0; bring_default idx |]
+                "" builder
+            in
+            let lltyp = get_lltype_def fnc.ret in
+            { value; typ = fnc.ret; lltyp; kind = Ptr }
+        | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Unsafe_array_realloc -> array_realloc args
     | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
     | Unsafe_nullptr ->

@@ -171,6 +171,7 @@ rule read =
   | '{'      { Lbrac }
   | '}'      { Rbrac }
   | ".["     { Ldotbrack }
+  | ".("     { Ldotparen }
   | '['      { Lbrack }
   | ']'      { Rbrack }
   | "#["     { Hashtag_brack }

@@ -1015,6 +1015,14 @@ let test_functor_check_concrete () =
      expecting (fun _ [(sig/t int)])\n\
      but found (fun _ [(make/t 'a)])" (check_sig_test "int")
 
+let test_farray_lit () = test "unit" "(def arr #[1 2 3])"
+let test_farray_nested_lit () = test "unit" "(def arr #[#[1 2 3] #[3 4 5]])"
+
+let test_farray_inference () =
+  test "unit"
+    "(defn print-snd [arr] (ignore (fmt-str arr.(1)))) (print-snd #[1 3 2]) \
+     (print-snd #[\"hey\" \"hi\"])"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1429,5 +1437,11 @@ let () =
           case "check sig" test_functor_check_sig;
           case "check sig param" test_functor_check_param;
           case "check sig concrete" test_functor_check_concrete;
+        ] );
+      ( "fixed-size array",
+        [
+          case "lit" test_farray_lit;
+          case "nested lit" test_farray_nested_lit;
+          case "generalize / instantiate" test_farray_inference;
         ] );
     ]

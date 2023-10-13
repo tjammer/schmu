@@ -10,7 +10,7 @@ prog: Minus_f Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Lpar Wildcard
+prog: Hashtag_brack Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -41,6 +41,14 @@ Expecting expression
 prog: Hashtag_brack False Wildcard
 
 Expecting expression
+
+prog: False Ldotparen Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Ldotparen False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Ldotbrack Wildcard
 
@@ -966,6 +974,34 @@ prog: Lpar False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Kebab_id Ldotparen Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Ldotparen False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Ldotparen False Rpar Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Ldotparen False Rpar Ampersand Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id Ldotparen False Rpar False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id False Ampersand Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Kebab_id False False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lpar Kebab_id Ldotbrack Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -983,14 +1019,6 @@ prog: Lpar Kebab_id Ldotbrack False Rbrack Ampersand Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Kebab_id Ldotbrack False Rbrack False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Kebab_id False Ampersand Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Kebab_id False False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

@@ -85,6 +85,7 @@
 %token Lbrac
 %token Rbrac
 %token Ldotbrack
+%token Ldotparen
 %token Lbrack
 %token Rbrack
 %token Hashtag_brack
@@ -118,7 +119,7 @@
 %left Ampersand
 
 %nonassoc Minus_i Minus_f
-%left Accessor Ldotbrack
+%left Accessor Ldotbrack Ldotparen
 %left Div_i
 
 %start <Ast.prog> prog
@@ -335,6 +336,10 @@ sexp_expr:
   | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
   | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
     {App ($loc, Var ($loc, "__array_get"),
+          [{apass = Dnorm; aloc = $loc(e); aexpr = e};
+           {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
+  | e = sexp_expr; Ldotparen; i = sexp_expr; Rpar
+    {App ($loc, Var ($loc, "__fixed_array_get"),
           [{apass = Dnorm; aloc = $loc(e); aexpr = e};
            {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
   | parens(lets) { $1 }

@@ -44,6 +44,7 @@ let is_type_polymorphic typ =
         in
         inner acc ret
     | Tbool | Tunit | Tint | Tu8 | Tfloat | Ti32 | Tf32 -> acc
+    | Tfixed_array (i, _) when i < 0 -> true
     | Traw_ptr t | Tarray t | Tfixed_array (_, t) -> inner acc t
   in
   inner false typ

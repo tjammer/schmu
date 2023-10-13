@@ -590,6 +590,20 @@ let rec subst_type ~concrete poly parent =
     | Tarray l, Tarray r ->
         let subst, t = inner subst (l, r) in
         (subst, Tarray t)
+    | Tfixed_array (i, l), Tfixed_array (j, r) ->
+        let i, subst =
+          if i < 0 then
+            let id = "fa" ^ string_of_int i in
+            match Vars.find_opt id subst with
+            | Some (Tfixed_array (i, _)) -> (i, subst)
+            | Some _ -> failwith "Internal Error: What else? in monomorph"
+            | None ->
+                let t = Tfixed_array (j, Tunit) in
+                (j, Vars.add id t subst)
+          else (i, subst)
+        in
+        let subst, t = inner subst (l, r) in
+        (subst, Tfixed_array (i, t))
     | t, _ -> (subst, t)
   in
   let vars, typ = inner Vars.empty (poly, concrete) in
@@ -615,6 +629,14 @@ let rec subst_type ~concrete poly parent =
         Tvariant (ps, variant, ctors)
     | Traw_ptr t -> Traw_ptr (subst t)
     | Tarray t -> Tarray (subst t)
+    | Tfixed_array (i, t) ->
+        let i =
+          match Vars.find_opt ("fa" ^ string_of_int i) vars with
+          | Some (Tfixed_array (i, _)) -> i
+          | Some _ -> failwith "Internal Error: What else? in monomorph"
+          | None -> i
+        in
+        Tfixed_array (i, subst t)
     | t -> t
   in
 
@@ -961,8 +983,16 @@ let rec cln p = function
       Tvariant (ps, Path.type_name name, ctors)
   | Traw_ptr t -> Traw_ptr (cln p t)
   | Tarray t -> Tarray (cln p t)
-  | Tfixed_array ({ contents = Unknown (id, _) | Generalized id }, _) ->
-      Tpoly id
+  | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
+      (* That's a hack. We know the unknown number is a string of an int. This is
+         due to an implementation detail in [gen_var] in inference. We need a
+         proper size here, but for these types we don't know yet. The type will be
+         substituted though. So we use the negative of the string-number as a way
+         to mark this case. Luckily, a negative number will raise expcetions or
+         even segfault in codegen. If we don't substitute, it won't go unnoticed.
+         Furthermore, fixed-size arrays with negative indices must recognized as
+         polymorphic*)
+      Tfixed_array (-int_of_string i, cln p t)
   | Tfixed_array ({ contents = Known i }, t) -> Tfixed_array (i, cln p t)
   | Tfixed_array ({ contents = Linked iv }, t) ->
       cln p Types.(Tfixed_array (iv, t))
