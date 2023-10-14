@@ -370,21 +370,19 @@ struct
   let get_closure_item cl item_ptr upward =
     let typ = cl.cltyp in
     let value, lltyp =
-      match typ with
-      (* No need for C interop with closures *)
-      | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut && not upward ->
-          (* Mutable records are passed as pointers into the env *)
-          let value = Llvm.build_load item_ptr cl.clname builder in
+      if is_struct typ && cl.clmut && not upward then
+        (* Mutable records are passed as pointers into the env *)
+        let value = Llvm.build_load item_ptr cl.clname builder in
 
-          (value, get_lltype_def typ |> Llvm.pointer_type)
-      | Trecord _ | Tvariant _ | Tfun _ ->
-          (* For records we want a ptr so that gep and memcpy work *)
-          (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
-      | _ when cl.clmut && upward ->
-          (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
-      | _ ->
-          let value = Llvm.build_load item_ptr cl.clname builder in
-          (value, get_lltype_def typ)
+        (value, get_lltype_def typ |> Llvm.pointer_type)
+      else if is_struct typ then
+        (* For records we want a ptr so that gep and memcpy work *)
+        (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
+      else if cl.clmut && upward then
+        (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
+      else
+        let value = Llvm.build_load item_ptr cl.clname builder in
+        (value, get_lltype_def typ)
     in
     let kind = if cl.clmut then Ptr else default_kind typ in
     { value; typ; lltyp; kind }
@@ -413,17 +411,15 @@ struct
         if upward && cl.clcopy then Auto.copy no_param allocref src else src
       in
       let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
-      (match cl.cltyp with
-      | (Trecord _ | Tvariant _ | Tfun _) when cl.clmut && not upward ->
-          ignore (Llvm.build_store src.value dst builder)
-      | Trecord _ | Tvariant _ | Tfun _ ->
-          (* For records, we just memcpy
-             TODO don't use types here, but type kinds*)
-          let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
-          memcpy ~src ~dst ~size
-      | _ when cl.clmut && not upward ->
-          ignore (Llvm.build_store src.value dst builder)
-      | _ -> ignore (Llvm.build_store (bring_default src) dst builder));
+      if is_struct cl.cltyp && cl.clmut && not upward then
+        ignore (Llvm.build_store src.value dst builder)
+      else if is_struct cl.cltyp then
+        (* For records, we just memcpy *)
+        let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
+        memcpy ~src ~dst ~size
+      else if cl.clmut && not upward then
+        ignore (Llvm.build_store src.value dst builder)
+      else ignore (Llvm.build_store (bring_default src) dst builder);
       i + 1
     in
 
