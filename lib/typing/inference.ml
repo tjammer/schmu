@@ -43,6 +43,12 @@ let rec occurs tvr = function
       List.iter (occurs tvr) ps;
       occurs tvr t
   | Traw_ptr t | Tarray t -> occurs tvr t
+  | Tfixed_array (({ contents = Unknown (id, lvl) } as tv), t) ->
+      (* Also adjust level of array size *)
+      let min_lvl = match !tvr with Unbound (_, l) -> min lvl l | _ -> lvl in
+      tv := Unknown (id, min_lvl);
+      occurs tvr t
+  | Tfixed_array (_, t) -> occurs tvr t
   | _ -> ()
 
 exception Unify
@@ -164,9 +170,10 @@ let rec generalize = function
       Tabstract (ps, name, generalize t)
   | Traw_ptr t -> Traw_ptr (generalize t)
   | Tarray t -> Tarray (generalize t)
-  | Tfixed_array ({ contents = Unknown (id, li) }, l) when li > !current_level
-    ->
-      Tfixed_array (ref (Generalized id), generalize l)
+  | Tfixed_array (({ contents = Unknown (id, li) } as tv), l)
+    when li > !current_level ->
+      tv := Generalized id;
+      Tfixed_array (tv, generalize l)
   | Tfixed_array ({ contents = Linked l }, t) ->
       generalize (Tfixed_array (l, t))
   | Tfixed_array (i, t) -> Tfixed_array (i, generalize t)
