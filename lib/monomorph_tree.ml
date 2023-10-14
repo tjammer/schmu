@@ -43,7 +43,7 @@ and const =
   | F32 of float
   | String of string
   | Array of monod_tree list * alloca * int
-  | Fixed_array of monod_tree list * alloca
+  | Fixed_array of monod_tree list * alloca * int list
   | Unit
 
 and func = { params : param list; ret : typ; kind : fun_kind }
@@ -1141,7 +1141,8 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Typed_tree.Var (v, mname) -> morph_var make param v mname
   | Const (String s) -> morph_string make param s
   | Const (Array a) -> morph_array make param a (cln param texpr.typ)
-  | Const (Fixed_array a) -> morph_fixed_array make param a
+  | Const (Fixed_array a) ->
+      morph_fixed_array make param a (cln param texpr.typ)
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
@@ -1272,7 +1273,7 @@ and morph_array mk p a typ =
     { no_var with fn = No_function; alloc = Value alloca; malloc = Single id }
   )
 
-and morph_fixed_array mk p a =
+and morph_fixed_array mk p a typ =
   let ret = p.ret in
   let p = { p with ret = false } in
 
@@ -1286,10 +1287,14 @@ and morph_fixed_array mk p a =
   in
   let p, a = List.fold_left_map f p a in
   leave_level ();
+
+  let _, malloc, mallocs = mb_malloc None p.mallocs typ in
+  let ms = m_to_list malloc in
+
   let alloca = ref (request ()) in
-  ( { p with ret },
-    mk (Mconst (Fixed_array (a, alloca))) p.ret,
-    { no_var with fn = No_function; alloc = Value alloca } )
+  ( { p with ret; mallocs },
+    mk (Mconst (Fixed_array (a, alloca, ms))) p.ret,
+    { no_var with fn = No_function; alloc = Value alloca; malloc } )
 
 and morph_const = function
   | String _ | Array _ | Fixed_array _ ->
@@ -1812,7 +1817,7 @@ and morph_app mk p callee args ret_typ =
     (* array-get does not return a temporary. If its value is returned in a
        function, increase value's refcount so that it's really a temporary *)
     match callee.monomorph with
-    | Builtin (Array_get, _) -> (Malloc.No_malloc, p.mallocs)
+    | Builtin ((Array_get | Fixed_array_get), _) -> (Malloc.No_malloc, p.mallocs)
     | _ ->
         let _, malloc, mallocs = mb_malloc None p.mallocs ret_typ in
         (malloc, mallocs)

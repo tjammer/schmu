@@ -30,4 +30,6 @@ module type S = sig
 
   val iter_array_children :
     llvar -> Llvm.llvalue -> typ -> (llvar -> unit) -> unit
+
+  val iter_fixed_array_children : llvar -> int -> typ -> (llvar -> unit) -> unit
 end

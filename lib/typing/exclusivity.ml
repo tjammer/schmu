@@ -597,6 +597,17 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       in
       let expr = Const (Array es) in
       ({ tree with expr }, imm [], hs)
+  | Const (Fixed_array es) ->
+      let hs, es =
+        List.fold_left_map
+          (fun hs e ->
+            let expr, v, hs = check_tree env Umove no_bdata e hs in
+            let expr = { expr with expr = Move expr } in
+            (add_hist v hs, expr))
+          hist es
+      in
+      let expr = Const (Fixed_array es) in
+      ({ tree with expr }, imm [], hs)
   | Const (String _) ->
       let tree, b = string_lit_borrow tree mut in
       (tree, b, hist)
@@ -647,7 +658,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       ({ tree with expr }, v, hs)
   | App
       {
-        callee = { expr = Var ("__array_get", _); _ } as callee;
+        callee =
+          { expr = Var (("__array_get" | "__fixed_array_get"), _); _ } as callee;
         args = [ arr; idx ];
       } ->
       (* Special case for __array_get *)

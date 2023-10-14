@@ -110,9 +110,9 @@ struct
 
   let default_kind = function
     | Tint | Tbool | Tfloat | Tu8 | Ti32 | Tf32 | Tunit | Traw_ptr _ | Tarray _
-    | Tfixed_array _ ->
+      ->
         Imm
-    | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ -> Ptr
+    | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ -> Ptr
 
   let bring_default value =
     if is_struct value.typ then value.value

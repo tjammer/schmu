@@ -110,8 +110,10 @@ end = struct
         let v = gen_array_lit param arr typed_expr.typ allocref in
         Hashtbl.replace free_tbl id v;
         v
-    | Mconst (Fixed_array (arr, allocref)) ->
-        gen_fixed_array_lit param arr typed_expr.typ allocref
+    | Mconst (Fixed_array (arr, allocref, ms)) ->
+        let v = gen_fixed_array_lit param arr typed_expr.typ allocref in
+        List.iter (fun id -> Strtbl.replace free_tbl id v) ms;
+        v
     | Mconst c -> gen_const c |> fin
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin

@@ -131,8 +131,7 @@ struct
     let temp = { value; typ; lltyp; kind = Ptr } in
     f temp;
 
-    let one = Llvm.const_int int_t 1 in
-    let next = Llvm.build_add cnt_loaded one "" builder in
+    let next = Llvm.build_add cnt_loaded (ci 1) "" builder in
     ignore (Llvm.build_store next cnt builder);
     ignore (Llvm.build_br rec_bb builder);
 
@@ -311,4 +310,38 @@ struct
         | Imm | Const -> ignore (Llvm.build_store src.value dst builder))
       exprs;
     { value = arr; typ; lltyp; kind = Ptr }
+
+  let iter_fixed_array_children arr size child_typ f =
+    let arr = bring_default arr in
+    let start_bb = Llvm.insertion_block builder in
+    let parent = Llvm.block_parent start_bb in
+
+    (* Simply loop over array *)
+    let cnt = Llvm.build_alloca int_t "cnt" builder in
+    ignore (Llvm.build_store (Llvm.const_int int_t 0) cnt builder);
+
+    let rec_bb = Llvm.append_block context "rec" parent in
+    let child_bb = Llvm.append_block context "child" parent in
+    let cont_bb = Llvm.append_block context "cont" parent in
+
+    ignore (Llvm.build_br rec_bb builder);
+    Llvm.position_at_end rec_bb builder;
+
+    (* Check if we are done *)
+    let cnt_loaded = Llvm.build_load cnt "" builder in
+    let cmp = Llvm.(build_icmp Icmp.Slt) cnt_loaded (ci size) "" builder in
+    ignore (Llvm.build_cond_br cmp child_bb cont_bb builder);
+
+    Llvm.position_at_end child_bb builder;
+    (* The ptr has the correct type, no need to multiply size *)
+    let value = Llvm.build_gep arr [| ci 0; cnt_loaded |] "" builder in
+    let lltyp = get_lltype_def child_typ in
+    let temp = { value; typ = child_typ; lltyp; kind = Ptr } in
+    f temp;
+
+    let next = Llvm.build_add cnt_loaded (ci 1) "" builder in
+    ignore (Llvm.build_store next cnt builder);
+    ignore (Llvm.build_br rec_bb builder);
+
+    Llvm.position_at_end cont_bb builder
 end

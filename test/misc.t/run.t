@@ -4065,11 +4065,31 @@ Handle partial allocations
   declare void @free(i8* %0)
 
 Don't free string literals
-  $ schmu borrow_string_lit.smu && valgrind -q --leak-check=yes --show-reachable=yes ./borrow_string_lit
+  $ schmu borrow_string_lit.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_string_lit
 
 
 Free nested records
-  $ schmu free_nested.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_nested
+  $ schmu free_nested.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./free_nested
 
 Correct link order for cc flags
   $ schmu piping.smu --cc -L. --cc -lstub
+
+Check allocs in fixed array
+  $ schmu fixed_array_allocs.smu
+  fixed_array_allocs.smu:1.6-9: warning: Unused binding arr.
+  
+  1 | (def arr #[#[1 2 3] #[3 4 5]])
+           ^^^
+  
+  fixed_array_allocs.smu:8.6-9: warning: Unmutated mutable binding arr.
+  
+  8 | (def arr& #["hey" "hie"]) -- correctly free as mut
+           ^^^
+  
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./fixed_array_allocs
+  3
+  hi
+  hie
+  oho

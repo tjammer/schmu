@@ -27,6 +27,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
             | Some t -> if contains_allocation t then t :: ts else ts
             | None -> ts)
           ts ctors
+    | Tfixed_array (_, t) -> if contains_allocation t then t :: ts else ts
     | _ -> ts
 
   let path_name pset =
@@ -317,6 +318,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
 
         Llvm.build_br ret_bb builder |> ignore;
         Llvm.position_at_end ret_bb builder
+    | Tfixed_array (i, t) ->
+        if contains_allocation t then
+          iter_fixed_array_children dst i t copy_inner_call
     | _ -> failwith "Internal Error: What are we copying?"
 
   let free_call v =
@@ -467,6 +471,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         Llvm.build_br ret_bb builder |> ignore;
 
         Llvm.position_at_end ret_bb builder
+    | Tfixed_array (i, t) ->
+        if contains_allocation t then iter_fixed_array_children v i t free_call
     | _ ->
         print_endline (show_typ v.typ);
         failwith "Internal Error: What are we freeing?"
