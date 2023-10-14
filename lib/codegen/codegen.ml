@@ -631,6 +631,16 @@ end = struct
             let lltyp = get_lltype_def fnc.ret in
             { value; typ = fnc.ret; lltyp; kind = Ptr }
         | _ -> failwith "Internal Error: Arity mismatch in builtin")
+    | Fixed_array_length -> (
+        match args with
+        | [ arr ] -> (
+            match arr.typ with
+            | Tfixed_array (i, _) ->
+                assert (i > 0);
+                let value = Llvm.const_int int_t i in
+                { value; typ = Tint; lltyp = int_t; kind = Const }
+            | _ -> failwith "Internal Error: Not a fixed-size array")
+        | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Unsafe_array_realloc -> array_realloc args
     | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
     | Unsafe_nullptr ->
