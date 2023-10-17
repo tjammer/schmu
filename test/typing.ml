@@ -1023,6 +1023,14 @@ let test_farray_inference () =
     "(defn print-snd [arr] (ignore (fmt-str arr.(1)))) (print-snd #[1 3 2]) \
      (print-snd #[\"hey\" \"hi\"])"
 
+let test_partial_move_outer_imm () =
+  test_exn "Cannot move string literal. Use `copy`"
+    "(def a \"hii\") (defn move-a [_ a!] a) (ignore ((move-a 0) !a))"
+
+let test_partial_move_outer_delayed () =
+  test_exn "Cannot move string literal. Use `copy`"
+    "(def a \"hii\") (defn move-a [a! _] a) (ignore ((move-a !a) 0))"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1443,5 +1451,10 @@ let () =
           case "lit" test_farray_lit;
           case "nested lit" test_farray_nested_lit;
           case "generalize / instantiate" test_farray_inference;
+        ] );
+      ( "partial application",
+        [
+          case "move outer imm" test_partial_move_outer_imm;
+          case "move outer delayed" test_partial_move_outer_delayed;
         ] );
     ]

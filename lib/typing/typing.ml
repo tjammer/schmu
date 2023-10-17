@@ -601,6 +601,117 @@ end = struct
 
   let string_typ = Talias (Path.Pid "string", Tarray Tu8)
 
+  let partially_apply_call ~switch_uni loc env callee typed_exprs =
+    (* Partial application only applies if we know the calle and can tell we
+       don't apply all arguments. In these cases we create for the return type a
+       new function which has the un-applied parameters of [callee] prepended *)
+    let args =
+      List.map (fun (a, pattr, _) -> { pattr; pt = a.typ }) typed_exprs
+    in
+    let apply param (texpr, _, _) =
+      ({ texpr with typ = param.pt }, param.pattr)
+    in
+    let targs = List.map2 apply args typed_exprs in
+
+    (* We can't use clean here, because we don't want to mess with linked
+       types *)
+    let rec is_partial = function
+      | Tfun (ps, ret, kind) ->
+          let rec find_rem used_ps args ps =
+            match (args, ps) with
+            | _, [] ->
+                (* Either the argument number matches param numbers or is more. In
+                   either case, we unify normally *)
+                None
+            | [], _ :: _ ->
+                (* The callee has more params than we supply arguments. Define type
+                   of the returned function *)
+                Some (List.rev used_ps, ps, ret, kind)
+            | _ :: atl, p :: ptl -> find_rem (p :: used_ps) atl ptl
+          in
+          find_rem [] args ps
+      | Tvar { contents = Link t } | Talias (_, t) -> is_partial t
+      | _ -> None
+    in
+
+    match is_partial callee.typ with
+    | None ->
+        let res_t = newvar () in
+        if switch_uni then
+          unify (loc, "In application")
+            (Tfun (args, res_t, Simple))
+            callee.typ env
+        else
+          unify (loc, "In application") callee.typ
+            (Tfun (args, res_t, Simple))
+            env;
+
+        (* Extract the returning type from the callee, because it's properly
+           generalized and linked. This way, everything in a function body should be
+           generalized and we can easily catch weak type variables *)
+        let rec extract_typ = function
+          | Tfun (_, t, _) -> t
+          | Talias (_, t) | Tvar { contents = Link t } -> extract_typ t
+          | t -> t
+        in
+        let typ = extract_typ callee.typ in
+        let attr = builtins_hack callee typed_exprs in
+
+        (* For now, we don't support const functions *)
+        { typ; expr = App { callee; args = targs }; attr; loc }
+    | Some (used_ps, missing_ps, eventual_ret, kind) ->
+        let res_t = newvar () in
+        let this_ret = Tfun (missing_ps, eventual_ret, kind) in
+        if switch_uni then
+          unify (loc, "In application")
+            (Tfun (args, res_t, Simple))
+            (Tfun (used_ps, this_ret, Simple))
+            env
+        else
+          unify (loc, "In application")
+            (Tfun (used_ps, this_ret, Simple))
+            (Tfun (args, res_t, Simple))
+            env;
+        (* Construct a lambda expression with the remaining call. See
+           [wrap_in_lambda] for a similar function *)
+        let pn i _ = "_" ^ string_of_int i in
+        let nparams = List.mapi pn missing_ps in
+
+        (* Get touched values. Hopefully we don't miss any here. This isn't
+           properly tested yet. By using [follow_expr] we might miss used values
+           in rhs of lets *)
+        let touched =
+          List.filter_map
+            (fun (t, tattr, _) ->
+              match Typed_tree.follow_expr t.expr with
+              | Some (Var (tname, tmname)) ->
+                  let tattr_loc = Some t.loc in
+                  Some { tname; tmname; ttyp = t.typ; tattr; tattr_loc }
+              | _ -> None)
+            typed_exprs
+        in
+
+        let func =
+          { tparams = missing_ps; ret = eventual_ret; touched; kind }
+        in
+        let args =
+          (* These args and generated ones from param *)
+          targs
+          @ List.mapi
+              (fun i p ->
+                let mut = mut_of_pattr p.pattr in
+                let attr = { no_attr with mut } and expr = Var (pn i 0, None) in
+                let expr = { typ = p.pt; expr; attr; loc } in
+                (expr, p.pattr))
+              missing_ps
+        in
+        let attr = builtins_hack callee typed_exprs in
+        let body =
+          { typ = eventual_ret; expr = App { callee; args }; attr; loc }
+        in
+        let abs = { nparams; body; func; inline = false } in
+        { typ = this_ret; expr = Lambda (lambda_id (), abs); loc; attr }
+
   let rec convert env expr = convert_annot env None expr
 
   and convert_annot env annot = function
@@ -952,40 +1063,8 @@ end = struct
           (e, a.apass, e.attr.mut))
         args
     in
-    let args_t =
-      List.map (fun (a, pattr, _) -> { pattr; pt = a.typ }) typed_exprs
-    in
-    let res_t = newvar () in
-    if switch_uni then
-      unify (loc, "In application")
-        (Tfun (args_t, res_t, Simple))
-        callee.typ env
-    else
-      unify (loc, "In application") callee.typ
-        (Tfun (args_t, res_t, Simple))
-        env;
 
-    let apply param (texpr, _, _) =
-      ({ texpr with typ = param.pt }, param.pattr)
-    in
-    let targs = List.map2 apply args_t typed_exprs in
-
-    let attr = builtins_hack callee typed_exprs in
-
-    (* Extract the returning type from the callee, because it's properly
-       generalized and linked. This way, everything in a function body should be
-       generalized and we can easily catch weak type variables *)
-    let typ =
-      let rec extract_typ = function
-        | Tfun (_, t, _) -> t
-        | Talias (_, t) | Tvar { contents = Link t } -> extract_typ t
-        | t -> t
-      in
-      extract_typ callee.typ
-    in
-
-    (* For now, we don't support const functions *)
-    { typ; expr = App { callee; args = targs }; attr; loc }
+    partially_apply_call ~switch_uni loc env callee typed_exprs
 
   and convert_bop_impl env loc bop e1 e2 =
     let check typ =
