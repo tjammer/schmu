@@ -22,11 +22,11 @@ type expr =
       id : int;
       ms : malloc_list;
     }
-  | Mrecord of (string * monod_tree) list * alloca * malloc_list * bool
+  | Mrecord of (string * monod_tree) list * alloca * malloc_list
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree * bool)
   | Mseq of (monod_tree * monod_tree)
-  | Mctor of (string * int * monod_tree option) * alloca * malloc_list * bool
+  | Mctor of (string * int * monod_tree option) * alloca * malloc_list
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree * int option
   | Mfmt of fmt list * alloca * int
@@ -63,7 +63,15 @@ and call_name =
   | Inline of (string * int option) list * monod_tree
 
 and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
-and monod_tree = { typ : typ; expr : expr; return : bool; loc : Ast.loc }
+
+and monod_tree = {
+  typ : typ;
+  expr : expr;
+  return : bool;
+  loc : Ast.loc;
+  const : const_kind;
+}
+
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
@@ -82,6 +90,7 @@ and copy_kind = Cglobal of string | Cnormal of bool
 and malloc_list = int list
 and free_list = Except of malloc_id list | Only of malloc_id list
 and let_kind = Lowned | Lborrow
+and const_kind = Const | Cnot (* | Constexpr *)
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }
@@ -762,17 +771,11 @@ and subst_body p subst tree =
           typ = func.ret;
           expr = Mapp { callee; args; alloca; id; ms };
         }
-    | Mrecord (labels, alloca, id, const) ->
+    | Mrecord (labels, alloca, id) ->
         let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
-        {
-          tree with
-          typ = subst tree.typ;
-          expr = Mrecord (labels, alloca, id, const);
-        }
-    | Mctor ((var, index, expr), alloca, id, const) ->
-        let expr =
-          Mctor ((var, index, Option.map sub expr), alloca, id, const)
-        in
+        { tree with typ = subst tree.typ; expr = Mrecord (labels, alloca, id) }
+    | Mctor ((var, index, expr), alloca, id) ->
+        let expr = Mctor ((var, index, Option.map sub expr), alloca, id) in
         { tree with typ = subst tree.typ; expr }
     | Mfield (expr, index) ->
         { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
@@ -1133,9 +1136,12 @@ let let_kind pass =
   | Dmove -> Lowned
   | Dset -> failwith "Internal Error: no set here"
 
+let const (e : Typed_tree.typed_expr) = if not e.attr.const then Cnot else Const
+
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return =
-    { typ = cln param texpr.typ; expr; return; loc = texpr.loc }
+    let (const : const_kind) = if texpr.attr.const then Const else Cnot in
+    { typ = cln param texpr.typ; expr; return; loc = texpr.loc; const }
   in
   match texpr.expr with
   | Typed_tree.Var (v, mname) -> morph_var make param v mname
@@ -1153,35 +1159,36 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let un, p, e1, gn, ms = prep_let param id uniq rhs pass false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
-  | Bind (id, lhs, cont) ->
+  | Bind (id, lhs, ocont) ->
       let id =
         reconstr_module_username ~mname:param.mname ~mainmod:param.mainmodule id
       in
       let p, lhs, func = morph_expr { param with ret = false } lhs in
       let vars = Vars.add id (Normal func) p.vars in
-      let p, cont, func = morph_expr { p with ret = param.ret; vars } cont in
+      let p, cont, func = morph_expr { p with ret = param.ret; vars } ocont in
       ( p,
         {
           typ = cont.typ;
           expr = Mbind (id, lhs, cont);
           return = param.ret;
           loc = texpr.loc;
+          const = const ocont;
         },
         func )
-  | Record labels ->
-      morph_record make param labels texpr.attr (cln param texpr.typ)
+  | Record labels -> morph_record make param labels (cln param texpr.typ)
   | Field (expr, index, _) -> morph_field make param expr index
   | Set (expr, value) -> morph_set make param expr value
   | Sequence (expr, cont) -> morph_seq make param expr cont
-  | Function (name, uniq, abs, cont) ->
+  | Function (name, uniq, abs, ocont) ->
       let p, call, abs, alloca = prep_func param (name, uniq, abs) in
-      let p, cont, func = morph_expr { p with ret = param.ret } cont in
+      let p, cont, func = morph_expr { p with ret = param.ret } ocont in
       ( p,
         {
           typ = cont.typ;
           expr = Mfunction (call, abs, cont, alloca);
           return = param.ret;
           loc = texpr.loc;
+          const = const ocont;
         },
         func )
   | Mutual_rec_decls (decls, cont) ->
@@ -1197,8 +1204,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | App { callee; args } ->
       morph_app make param callee args (cln param texpr.typ)
   | Ctor (variant, index, dataexpr) ->
-      morph_ctor make param variant index dataexpr texpr.attr
-        (cln param texpr.typ)
+      morph_ctor make param variant index dataexpr (cln param texpr.typ)
   | Variant_index expr -> morph_var_index make param expr
   | Variant_data expr -> morph_var_data make param expr (cln param texpr.typ)
   | Fmt exprs -> morph_fmt make param exprs
@@ -1477,7 +1483,7 @@ and prep_let p id uniq e pass toplvl =
   in
   (un, p, e1, gn, ms)
 
-and morph_record mk p labels is_const typ =
+and morph_record mk p labels typ =
   let ret = p.ret in
   let p = { p with ret = false } in
 
@@ -1500,7 +1506,7 @@ and morph_record mk p labels is_const typ =
 
   let alloca = ref (request ()) in
   ( { p with ret; mallocs },
-    mk (Mrecord (labels, alloca, ms, is_const.const)) ret,
+    mk (Mrecord (labels, alloca, ms)) ret,
     { no_var with fn = No_function; alloc = Value alloca; malloc } )
 
 and morph_field mk p expr index =
@@ -1829,7 +1835,7 @@ and morph_app mk p callee args ret_typ =
 
   ({ p with ret; mallocs }, mk app ret, { no_var with alloc; malloc; tailrec })
 
-and morph_ctor mk p variant index expr is_const typ =
+and morph_ctor mk p variant index expr typ =
   let ret = p.ret in
   let p = { p with ret = false } in
 
@@ -1854,7 +1860,7 @@ and morph_ctor mk p variant index expr is_const typ =
 
   let alloca = ref (request ()) in
   ( { p with ret; mallocs },
-    mk (Mctor (ctor, alloca, ms, is_const.const)) ret,
+    mk (Mctor (ctor, alloca, ms)) ret,
     { no_var with fn = No_function; alloc = Value alloca; malloc } )
 
 (* Both variant exprs are as default as possible.
@@ -1933,7 +1939,9 @@ let rec morph_toplvl param items =
   let rec aux param = function
     | [] ->
         let loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
-        (param, { typ = Tunit; expr = Mconst Unit; return = true; loc }, no_var)
+        ( param,
+          { typ = Tunit; expr = Mconst Unit; return = true; loc; const = Cnot },
+          no_var )
     | [ (mname, Typed_tree.Tl_expr e) ] ->
         let param = { param with mname } in
         morph_expr param e
@@ -1955,6 +1963,7 @@ let rec morph_toplvl param items =
             expr = Mfunction (call, abs, cont, alloca);
             return = param.ret;
             loc;
+            const = Cnot;
           },
           func )
     | Tl_bind (id, expr) ->
@@ -1979,6 +1988,7 @@ let rec morph_toplvl param items =
             expr = Mseq (e, cont);
             return = param.ret;
             loc = e.loc;
+            const = Cnot;
           },
           func )
     | Tl_module mitems ->
@@ -1990,6 +2000,7 @@ let rec morph_toplvl param items =
             expr = Mseq (e, cont);
             return = param.ret;
             loc = e.loc;
+            const = Cnot;
           },
           func )
     | Tl_module_alias _ -> aux param tl

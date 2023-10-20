@@ -1,0 +1,5 @@
+(def a 17)
+(def arr #[1 a 3])
+
+(print (fmt-str arr.(1)))
+(def _ {10 a})

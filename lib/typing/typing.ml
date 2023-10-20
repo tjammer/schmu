@@ -790,15 +790,21 @@ end = struct
     let f (typ, const) expr =
       let expr = convert env expr in
       unify (loc, "In fixed-size array literal") typ expr.typ env;
-      let const = const && expr.attr.const in
+      let const =
+        const
+        &&
+        (* There's a special case for string literals.
+           They will get copied here which makes them not const.
+           NOTE copy in convert_tuple *)
+        match expr.expr with Const (String _) -> false | _ -> expr.attr.const
+      in
       ((typ, const), expr)
     in
     let (typ, const), exprs = List.fold_left_map f (newvar (), true) arr in
 
     let typ = Tfixed_array (ref (Known (List.length arr)), typ) in
-    ignore const;
     (* TODO check mut for const and introduce constexpr *)
-    let attr = { no_attr with const = false } in
+    let attr = { no_attr with const } in
     { typ; expr = Const (Fixed_array exprs); attr; loc }
 
   and typeof_annot_decl env loc annot block =

@@ -4093,3 +4093,30 @@ Check allocs in fixed array
   hi
   hie
   oho
+
+Const fixed array
+  $ schmu --dump-llvm const_fixed_arr.smu
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %tuple_int_int = type { i64, i64 }
+  
+  @schmu_a = constant i64 17
+  @schmu_arr = constant [3 x i64] [i64 1, i64 17, i64 3]
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 17)
+    %0 = alloca %tuple_int_int, align 8
+    %"01" = bitcast %tuple_int_int* %0 to i64*
+    store i64 10, i64* %"01", align 8
+    %"1" = getelementptr inbounds %tuple_int_int, %tuple_int_int* %0, i32 0, i32 1
+    store i64 17, i64* %"1", align 8
+    ret i64 0
+  }
+  
+  declare void @printf(i8* %0, ...)
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./const_fixed_arr
+  17

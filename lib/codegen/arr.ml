@@ -2,6 +2,7 @@ module type Core = sig
   open Llvm_types
 
   val gen_expr : param -> Monomorph_tree.monod_tree -> llvar
+  val gen_constexpr : param -> Monomorph_tree.monod_tree -> llvar
 end
 
 module Make
@@ -288,28 +289,51 @@ struct
 
     { value = arr; typ; lltyp; kind = Ptr }
 
-  let gen_fixed_array_lit param exprs typ allocref =
+  let gen_fixed_array_lit param exprs typ allocref const return =
     let item_size = sizeof_typ typ in
     let lltyp = get_lltype_def typ in
 
-    let arr = get_prealloc !allocref param lltyp "arr" in
+    let value, kind =
+      match const with
+      | Monomorph_tree.Cnot ->
+          let arr = get_prealloc !allocref param lltyp "arr" in
 
-    List.iteri
-      (fun i expr ->
-        let dst = Llvm.build_gep arr [| ci 0; ci i |] "" builder in
-        let src =
-          gen_expr { param with alloca = Some dst } expr
-          |> func_to_closure param
-        in
+          List.iteri
+            (fun i expr ->
+              let dst = Llvm.build_gep arr [| ci 0; ci i |] "" builder in
+              let src =
+                gen_expr { param with alloca = Some dst } expr
+                |> func_to_closure param
+              in
 
-        match src.kind with
-        | Ptr | Const_ptr ->
-            if dst <> src.value then
-              memcpy ~dst ~src ~size:(Llvm.const_int int_t item_size)
-            else (* The record was constructed inplace *) ()
-        | Imm | Const -> ignore (Llvm.build_store src.value dst builder))
-      exprs;
-    { value = arr; typ; lltyp; kind = Ptr }
+              match src.kind with
+              | Ptr | Const_ptr ->
+                  if dst <> src.value then
+                    memcpy ~dst ~src ~size:(Llvm.const_int int_t item_size)
+                  else (* The record was constructed inplace *) ()
+              | Imm | Const -> ignore (Llvm.build_store src.value dst builder))
+            exprs;
+          (arr, Ptr)
+      | Const ->
+          let values =
+            List.map (fun expr -> (gen_constexpr param expr).value) exprs
+            |> Array.of_list
+          in
+          let lltyp =
+            match typ with
+            | Tfixed_array (_, t) -> get_lltype_def t
+            | _ -> failwith "unreachable"
+          in
+          let value = Llvm.(const_array lltyp values) in
+          (* The value might be returned, thus boxed, so we wrap it in an automatic var *)
+          if return then (
+            let record = get_prealloc !allocref param lltyp "" in
+            ignore (Llvm.build_store value record builder);
+            (record, Const_ptr))
+          else (value, Const)
+    in
+
+    { value; typ; lltyp; kind }
 
   let iter_fixed_array_children arr size child_typ f =
     let arr = bring_default arr in

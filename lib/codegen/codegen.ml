@@ -9,10 +9,10 @@ module Ptrtbl = Hashtbl
 let the_module = Llvm_types.the_module
 let ( ++ ) = Seq.append
 let const_tbl = Strtbl.create 64
-let const_pass = ref true
 
 module rec Core : sig
   val gen_expr : param -> Monomorph_tree.monod_tree -> llvar
+  val gen_constexpr : param -> Monomorph_tree.monod_tree -> llvar
   val gen_function : param -> Monomorph_tree.to_gen_func -> param
 end = struct
   open T
@@ -77,7 +77,9 @@ end = struct
         in
 
         let finalize = Some fun_finalize in
-        let param = { vars = tvars; alloca; finalize; rec_block } in
+        let param =
+          { vars = tvars; alloca; finalize; rec_block; const_pass = false }
+        in
         let ret = gen_expr param abs.body in
 
         (match recursive with
@@ -95,6 +97,15 @@ end = struct
         prerr_endline name.call;
         failwith "Interal Error: generating non-function"
 
+  and gen_constexpr param expr =
+    let e = gen_expr param expr in
+    match e.kind with
+    | Const_ptr ->
+        (* The global value is a ptr, we need to 'deref' it *)
+        let value = Llvm.global_initializer e.value |> Option.get in
+        { e with value; kind = Const }
+    | _ -> e
+
   and gen_expr param typed_expr =
     let fin e =
       match (typed_expr.return, param.finalize) with
@@ -111,7 +122,10 @@ end = struct
         Hashtbl.replace free_tbl id v;
         v
     | Mconst (Fixed_array (arr, allocref, ms)) ->
-        let v = gen_fixed_array_lit param arr typed_expr.typ allocref in
+        let v =
+          gen_fixed_array_lit param arr typed_expr.typ allocref typed_expr.const
+            typed_expr.return
+        in
         List.iter (fun id -> Strtbl.replace free_tbl id v) ms;
         v
     | Mconst c -> gen_const c |> fin
@@ -168,15 +182,15 @@ end = struct
         List.iter (fun id -> Strtbl.replace free_tbl id value) ms;
         fin value
     | Mif expr -> gen_if param expr
-    | Mrecord (labels, allocref, id, const) ->
-        gen_record param typed_expr.typ labels allocref id const
+    | Mrecord (labels, allocref, id) ->
+        gen_record param typed_expr.typ labels allocref id typed_expr.const
           typed_expr.return
         |> fin
     | Mfield (expr, index) -> gen_field param expr index |> fin
     | Mset (expr, value, moved) -> gen_set param expr value moved
     | Mseq (expr, cont) -> gen_chain param expr cont
-    | Mctor (ctor, allocref, id, const) ->
-        gen_ctor param ctor typed_expr.typ allocref id const
+    | Mctor (ctor, allocref, id) ->
+        gen_ctor param ctor typed_expr.typ allocref id
     | Mvar_index expr -> gen_var_index param expr |> fin
     | Mvar_data (expr, mid) -> gen_var_data param expr mid typed_expr.typ |> fin
     | Mfmt (fmts, allocref, id) ->
@@ -427,11 +441,11 @@ end = struct
              a pointer. This isn't pretty, but will do for now. For the single
              param, unboxed case we can skip boxing *)
           let arg =
-            match (arg'.typ, pkind_of_typ oarg.mut arg'.typ, arg'.kind) with
+            match (pkind_of_typ oarg.mut arg'.typ, arg'.kind) with
             (* The [Two_params] case is tricky to do using only consts,
                so we box and use the standard runtime version *)
-            | (Trecord _ | Tvariant _), Boxed, Const
-            | (Trecord _ | Tvariant _), Unboxed (Two_params _), Const ->
+            | (Boxed, Const | Unboxed (Two_params _), Const)
+              when is_struct arg'.typ ->
                 box_const param arg'
             | _ -> get_mono_func arg' param oarg.monomorph
           in
@@ -835,7 +849,7 @@ end = struct
 
     let value, kind =
       match const with
-      | false ->
+      | Cnot ->
           let record = get_prealloc !allocref param lltyp "" in
 
           List.iteri
@@ -850,19 +864,12 @@ end = struct
               set_struct_field value ptr)
             labels;
           (record, Ptr)
-      | true when not !const_pass ->
+      | Const ->
           (* We generate the const for runtime use. An addition to
              re-generating the constants, there are immediate literals.
              We have to take care that some global constants are pointers now *)
           let value =
-            let f (_, expr) =
-              let e = gen_expr param expr in
-              match e.kind with
-              | Const_ptr ->
-                  (* The global value is a ptr, we need to 'deref' it *)
-                  Llvm.global_initializer e.value |> Option.get
-              | _ -> e.value
-            in
+            let f (_, expr) = (gen_constexpr param expr).value in
             let values = List.map f labels |> Array.of_list in
             Llvm.const_named_struct lltyp values
           in
@@ -872,13 +879,13 @@ end = struct
             ignore (Llvm.build_store value record builder);
             (record, Const_ptr))
           else (value, Const)
-      | true ->
-          let values =
-            List.map (fun (_, expr) -> (gen_expr param expr).value) labels
-            |> Array.of_list
-          in
-          let ret = Llvm.const_named_struct lltyp values in
-          (ret, Const)
+      (* | Const -> *)
+      (*     let values = *)
+      (*       List.map (fun (_, expr) -> (gen_expr param expr).value) labels *)
+      (*       |> Array.of_list *)
+      (*     in *)
+      (*     let ret = Llvm.const_named_struct lltyp values in *)
+      (*     (ret, Const) *)
     in
 
     let v = { value; typ; lltyp; kind } in
@@ -933,9 +940,7 @@ end = struct
     let ptr = get_const_string s in
     { value = ptr; typ; lltyp; kind = Const }
 
-  and gen_ctor param (variant, tag, expr) typ allocref ms const =
-    ignore const;
-
+  and gen_ctor param (variant, tag, expr) typ allocref ms =
     (* This approach means we alloca every time, even if the enum
        ends up being a clike constant. There's room for improvement here *)
     let lltyp = get_struct typ in
@@ -1128,7 +1133,7 @@ and Auto : Autogen_intf.S = Autogen.Make (T) (H) (Ar)
 
 let fill_constants constants =
   let f (name, tree, toplvl) =
-    let init = Core.gen_expr no_param tree in
+    let init = Core.gen_expr { no_param with const_pass = true } tree in
     (* We only add records to the global table, because they are expected as ptrs.
        For ints or floats, we just return the immediate value *)
     let init =
@@ -1248,9 +1253,7 @@ let generate ~target ~outname ~release ~modul
   (* Fill const_tbl *)
   fill_constants constants;
   def_globals globals;
-  const_pass := false;
 
-  (* Factor out functions for llvm *)
   let funcs =
     let vars =
       List.fold_left
@@ -1268,8 +1271,7 @@ let generate ~target ~outname ~release ~modul
     (* Generate functions *)
     List.fold_left
       (fun acc func -> Core.gen_function acc func)
-      { vars; alloca = None; finalize = None; rec_block = None }
-      funcs
+      { no_param with vars } funcs
   in
 
   let free_mallocs tree frees =
@@ -1309,7 +1311,8 @@ let generate ~target ~outname ~release ~modul
     if not (Seq.is_empty frees) then
       let loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
       let body =
-        Monomorph_tree.{ typ = Tunit; expr = Mconst Unit; return = true; loc }
+        Monomorph_tree.
+          { typ = Tunit; expr = Mconst Unit; return = true; loc; const = Cnot }
       in
       add_global_init no_param outname `Dtor (free_mallocs body frees));
   (* Generate internal helper functions for arrays *)

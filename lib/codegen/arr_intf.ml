@@ -14,6 +14,8 @@ module type S = sig
     Monomorph_tree.monod_tree list ->
     typ ->
     Monomorph_tree.allocas ref ->
+    Monomorph_tree.const_kind ->
+    bool ->
     llvar
 
   val array_get : llvar list -> typ -> llvar

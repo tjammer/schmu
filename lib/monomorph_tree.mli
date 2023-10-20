@@ -22,15 +22,11 @@ type expr =
       id : int; (* Internal id for nested monomorphization *)
       ms : malloc_list;
     }
-  | Mrecord of
-      (string * monod_tree) list
-      * alloca
-      * malloc_list
-      * bool (* bool: is_const *)
+  | Mrecord of (string * monod_tree) list * alloca * malloc_list
   | Mfield of (monod_tree * int)
   | Mset of (monod_tree * monod_tree * bool (* is moved *))
   | Mseq of (monod_tree * monod_tree)
-  | Mctor of (string * int * monod_tree option) * alloca * malloc_list * bool
+  | Mctor of (string * int * monod_tree option) * alloca * malloc_list
   | Mvar_index of monod_tree
   | Mvar_data of monod_tree * int option
   | Mfmt of fmt list * alloca * int
@@ -71,7 +67,15 @@ and call_name =
 (* Builtin function with special codegen *)
 
 and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
-and monod_tree = { typ : typ; expr : expr; return : bool; loc : Ast.loc }
+
+and monod_tree = {
+  typ : typ;
+  expr : expr;
+  return : bool;
+  loc : Ast.loc;
+  const : const_kind;
+}
+
 and alloca = allocas ref
 and request = { id : int; lvl : int }
 and allocas = Preallocated | Request of request
@@ -94,6 +98,7 @@ and free_list =
   | Only of Malloc_types.malloc_id list
 
 and let_kind = Lowned | Lborrow
+and const_kind = Const | Cnot (* | Constexpr *)
 
 type recurs = Rnormal | Rtail | Rnone
 type func_name = { user : string; call : string }

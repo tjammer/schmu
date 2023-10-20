@@ -601,7 +601,10 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let hs, es =
         List.fold_left_map
           (fun hs e ->
-            let expr, v, hs = check_tree env Umove no_bdata e hs in
+            let usage =
+              if contains_allocation e.typ then Usage.Umove else Uread
+            in
+            let expr, v, hs = check_tree env usage no_bdata e hs in
             let expr = { expr with expr = Move expr } in
             (add_hist v hs, expr))
           hist es
