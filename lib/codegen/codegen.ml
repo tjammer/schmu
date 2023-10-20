@@ -34,7 +34,7 @@ end = struct
 
         let start_index, alloca =
           match ret_t with
-          | (Trecord _ | Tvariant _ | Tfun _) as t -> (
+          | t when is_struct t -> (
               match pkind_of_typ false t with
               | Boxed ->
                   (* Whenever the return type is boxed, we add the prealloc to the environment *)
@@ -63,7 +63,8 @@ end = struct
           (* If we want to return a struct, we copy the struct to
               its ptr (1st parameter) and return void *)
           match ret.typ with
-          | (Trecord _ | Tvariant _ | Tfun _) as t -> (
+          | Tpoly _ -> ()
+          | t when is_struct t -> (
               match pkind_of_typ false t with
               | Boxed ->
                   (* Since we only have POD records, we can safely memcpy here *)
@@ -77,9 +78,7 @@ end = struct
         in
 
         let finalize = Some fun_finalize in
-        let param =
-          { vars = tvars; alloca; finalize; rec_block; const_pass = false }
-        in
+        let param = { vars = tvars; alloca; finalize; rec_block } in
         let ret = gen_expr param abs.body in
 
         (match recursive with
@@ -493,7 +492,7 @@ end = struct
 
     let value, lltyp =
       match ret_t with
-      | (Trecord _ | Tvariant _ | Tfun _) as t -> (
+      | t when is_struct t -> (
           let lltyp = get_lltype_def ret_t in
           match pkind_of_typ false t with
           | Boxed ->
@@ -526,7 +525,7 @@ end = struct
 
     let start_index, ret =
       match func.typ with
-      | Tfun (_, (Trecord _ as r), _) | Tfun (_, (Tvariant _ as r), _) -> (
+      | Tfun (_, r, _) when is_struct r -> (
           match pkind_of_typ false r with
           | Boxed -> (1, r)
           | Unboxed size -> (0, type_unboxed size))
@@ -559,10 +558,7 @@ end = struct
     List.iter store_arg margs;
 
     let lltyp =
-      (* TODO record *)
-      match ret with
-      | Trecord _ | Tvariant _ -> get_lltype_def ret_t
-      | t -> get_lltype_param false t
+      if is_struct ret then get_lltype_def ret_t else get_lltype_param false ret
     in
 
     let value = Llvm.build_br rec_block.rec_ builder in
@@ -879,13 +875,6 @@ end = struct
             ignore (Llvm.build_store value record builder);
             (record, Const_ptr))
           else (value, Const)
-      (* | Const -> *)
-      (*     let values = *)
-      (*       List.map (fun (_, expr) -> (gen_expr param expr).value) labels *)
-      (*       |> Array.of_list *)
-      (*     in *)
-      (*     let ret = Llvm.const_named_struct lltyp values in *)
-      (*     (ret, Const) *)
     in
 
     let v = { value; typ; lltyp; kind } in
@@ -1133,7 +1122,7 @@ and Auto : Autogen_intf.S = Autogen.Make (T) (H) (Ar)
 
 let fill_constants constants =
   let f (name, tree, toplvl) =
-    let init = Core.gen_expr { no_param with const_pass = true } tree in
+    let init = Core.gen_expr no_param tree in
     (* We only add records to the global table, because they are expected as ptrs.
        For ints or floats, we just return the immediate value *)
     let init =

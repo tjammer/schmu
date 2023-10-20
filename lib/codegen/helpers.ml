@@ -109,10 +109,12 @@ struct
   let bb = Llvm.build_bitcast
 
   let default_kind = function
+    | t when is_struct t -> Ptr
     | Tint | Tbool | Tfloat | Tu8 | Ti32 | Tf32 | Tunit | Traw_ptr _ | Tarray _
       ->
         Imm
-    | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ -> Ptr
+    | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ ->
+        failwith "unreachable"
 
   let bring_default value =
     if is_struct value.typ then value.value
@@ -304,7 +306,7 @@ struct
 
   let set_struct_field value ptr =
     match value.typ with
-    | Trecord _ | Tvariant _ | Tfun _ ->
+    | t when is_struct t ->
         if value.value <> ptr then
           let size = sizeof_typ value.typ |> llval_of_size in
           memcpy ~dst:ptr ~src:value ~size
@@ -547,7 +549,7 @@ struct
         if mut then tailrec_store ~src ~dst else store_or_copy ~src ~dst
       in
       match src.typ with
-      | Trecord _ | Tvariant _ | Tfun _ ->
+      | t when is_struct t ->
           let typ = get_lltype_def src.typ |> m in
           let dst = Llvm.build_alloca typ "" builder in
           store dst;
@@ -665,16 +667,16 @@ struct
 
   let fun_return name ret =
     match ret.typ with
-    | (Trecord _ | Tvariant _ | Tfun _) as t -> (
+    | Tpoly id when String.equal id "tail" ->
+        (* This magic id is used to mark a tailrecursive call *)
+        Llvm.build_ret_void builder
+    | Tpoly _ -> failwith "Internal Error: Generic return"
+    | t when is_struct t -> (
         match pkind_of_typ false t with
         | Boxed -> (* Default record case *) Llvm.build_ret_void builder
         | Unboxed kind ->
             let unboxed, _ = unbox_record ~kind ~ret:true ret in
             Llvm.build_ret unboxed builder)
-    | Tpoly id when String.equal id "tail" ->
-        (* This magic id is used to mark a tailrecursive call *)
-        Llvm.build_ret_void builder
-    | Tpoly _ -> failwith "Internal Error: Generic return"
     | Tunit ->
         if String.equal name "main" then
           Llvm.(build_ret (const_int int_t 0)) builder

@@ -18,17 +18,10 @@ type param = {
   alloca : Llvm.llvalue option;
   finalize : (llvar -> unit) option;
   rec_block : rec_block option;
-  const_pass : bool;
 }
 
 let no_param =
-  {
-    vars = Vars.empty;
-    alloca = None;
-    finalize = None;
-    rec_block = None;
-    const_pass = false;
-  }
+  { vars = Vars.empty; alloca = None; finalize = None; rec_block = None }
 
 let context = Llvm.global_context ()
 let the_module = Llvm.create_module context "context"
