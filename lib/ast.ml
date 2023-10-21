@@ -100,6 +100,7 @@ and literal =
   | String of string
   | Array of expr list
   | Fixed_array of expr list
+  | Fixed_array_num of int * expr
   | Unit
 
 and stmt =

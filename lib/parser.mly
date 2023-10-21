@@ -89,6 +89,7 @@
 %token Lbrack
 %token Rbrack
 %token Hashtag_brack
+%token <int> Hashnum_brack
 %token Ampersand
 %token Exclamation
 %token At
@@ -390,7 +391,7 @@ sexp_expr:
   | String_lit { Lit($loc, String $1) }
   | array_lit { Lit($loc, Array $1) }
   | Lpar; Rpar { Lit($loc, Unit) }
-  | fixed_array_lit { Lit($loc, Fixed_array $1) }
+  | fixed_array_lit { Lit($loc, $1) }
 
 %inline sexp_if:
   | If; sexp_expr; sexp_expr; option(sexp_expr) { If ($loc, $2, $3, $4) }
@@ -531,7 +532,8 @@ array_lit:
   | Lbrack; list(sexp_expr); Rbrack { $2 }
 
 fixed_array_lit:
-  | Hashtag_brack; items = nonempty_list(sexp_expr); Rbrack { items }
+  | Hashtag_brack; items = nonempty_list(sexp_expr); Rbrack { Fixed_array items }
+  | num = Hashnum_brack; item = sexp_expr; Rbrack { Fixed_array_num (num, item) }
 
 %inline sexp_type_expr:
   | sexp_type_list { $1 }

@@ -63,6 +63,8 @@ let char_for_backslash = function
   | 't' -> '\009'
   | c   -> c
 
+let int_of_hexnum s = String.sub s 1 (String.length s - 2) |> int_of_string
+
 }
 
 let digit = ['0'-'9']
@@ -89,6 +91,8 @@ let accessor = '.'(lowercase_id|kebab_id|int)
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
 let backslash_escapes = ['\\' '\'' '"' 'n' 't' 'b' 'r' ' ']
+
+let hashnumbrack = '#' int '['
 
 rule read =
   parse
@@ -175,6 +179,7 @@ rule read =
   | '['      { Lbrack }
   | ']'      { Rbrack }
   | "#["     { Hashtag_brack }
+  | hashnumbrack { Hashnum_brack (int_of_hexnum (Lexing.lexeme lexbuf)) }
   | "->"     { Arrow_right }
   | "->>"    { Arrow_righter }
   | "--"     { line_comment lexbuf }

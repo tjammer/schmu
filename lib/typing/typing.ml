@@ -729,6 +729,8 @@ end = struct
         { typ; expr = Const (String s); attr; loc }
     | Lit (loc, Array arr) -> convert_array_lit env loc arr
     | Lit (loc, Fixed_array arr) -> convert_fixed_array_lit env loc arr
+    | Lit (loc, Fixed_array_num (num, item)) ->
+        convert_fixed_array_num_lit env loc num item
     | Lit (loc, Unit) ->
         let attr = { no_attr with const = true } in
         { typ = Tunit; expr = Const Unit; attr; loc }
@@ -805,6 +807,13 @@ end = struct
     let typ = Tfixed_array (ref (Known (List.length arr)), typ) in
     (* TODO check mut for const and introduce constexpr *)
     let attr = { no_attr with const } in
+    { typ; expr = Const (Fixed_array exprs); attr; loc }
+
+  and convert_fixed_array_num_lit env loc num item =
+    let exprs = List.init num (fun _ -> convert env item) in
+    let expr = List.hd exprs in
+    let typ = Tfixed_array (ref (Known num), expr.typ) in
+    let attr = { no_attr with const = expr.attr.const } in
     { typ; expr = Const (Fixed_array exprs); attr; loc }
 
   and typeof_annot_decl env loc annot block =
