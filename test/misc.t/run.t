@@ -1598,12 +1598,9 @@ Piping for ctors and field accessors
   entry:
     %0 = tail call i64 @__fun_schmu0(i64 1)
     tail call void @Printi(i64 %0)
-    %option = alloca %option.t_int, align 8
-    %tag1 = bitcast %option.t_int* %option to i32*
-    store i32 0, i32* %tag1, align 4
-    %data = getelementptr inbounds %option.t_int, %option.t_int* %option, i32 0, i32 1
-    store i64 1, i64* %data, align 8
-    %1 = call i64 @__fun_schmu1(%option.t_int* %option)
+    %boxconst = alloca %option.t_int, align 8
+    store %option.t_int { i32 0, i64 1 }, %option.t_int* %boxconst, align 8
+    %1 = call i64 @__fun_schmu1(%option.t_int* %boxconst)
     call void @Printi(i64 %1)
     call void @Printi(i64 1)
     ret i64 0
@@ -2257,13 +2254,14 @@ Global lets with expressions
   %option.t_array_int = type { i32, i64* }
   %r_array_int = type { i64* }
   
+  @schmu_a = internal constant %option.t_array_int { i32 1, i64* undef }
   @schmu_b = global i64* null, align 8
   @schmu_c = global i64 0, align 8
   
   define void @schmu_ret-none(%option.t_array_int* noalias %0) {
   entry:
-    %tag1 = bitcast %option.t_array_int* %0 to i32*
-    store i32 1, i32* %tag1, align 4
+    %1 = bitcast %option.t_array_int* %0 to i8*
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* bitcast (%option.t_array_int* @schmu_a to i8*), i64 16, i1 false)
     ret void
   }
   
@@ -2289,6 +2287,9 @@ Global lets with expressions
     %4 = ptrtoint i64* %2 to i64
     ret i64 %4
   }
+  
+  ; Function Attrs: argmemonly nofree nounwind willreturn
+  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   declare i8* @malloc(i64 %0)
   
@@ -2371,6 +2372,8 @@ Global lets with expressions
   }
   
   declare void @free(i8* %0)
+  
+  attributes #0 = { argmemonly nofree nounwind willreturn }
 
 Mutual recursive function
   $ schmu mutual_rec.smu && ./mutual_rec

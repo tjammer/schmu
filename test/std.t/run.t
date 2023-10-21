@@ -153,8 +153,8 @@ Test hashtbl
   define linkonce_odr void @__hashtbl.make.tgac.option.tg_hashtbl_make_string_find_hashtbl.make.tfac.option.tf(%option.t_float* noalias %0, i64 %1, i64 %2, i8* %key) {
   entry:
     %box = alloca { i64, i64 }, align 8
-    %fst17 = bitcast { i64, i64 }* %box to i64*
-    store i64 %1, i64* %fst17, align 8
+    %fst15 = bitcast { i64, i64 }* %box to i64*
+    store i64 %1, i64* %fst15, align 8
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
     store i64 %2, i64* %snd, align 8
     %3 = tail call i64 @__hashtbl.make.tgacb.i_hashtbl_make_string_probe-linear_hashtbl.make.tfacb.i(i64 %1, i64 %2, i8* %key, i1 false)
@@ -164,40 +164,38 @@ Test hashtbl
     %7 = add i64 16, %6
     %8 = getelementptr i8, i8* %5, i64 %7
     %data = bitcast i8* %8 to %hashtbl.make.slot_float*
-    %tag18 = bitcast %hashtbl.make.slot_float* %data to i32*
-    %index = load i32, i32* %tag18, align 4
+    %tag16 = bitcast %hashtbl.make.slot_float* %data to i32*
+    %index = load i32, i32* %tag16, align 4
     %eq = icmp eq i32 %index, 2
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    %tag719 = bitcast %option.t_float* %0 to i32*
-    store i32 0, i32* %tag719, align 4
+    %tag717 = bitcast %option.t_float* %0 to i32*
+    store i32 0, i32* %tag717, align 4
     %data8 = getelementptr inbounds %option.t_float, %option.t_float* %0, i32 0, i32 1
     %sunkaddr = inttoptr i64 %1 to double*
     %9 = bitcast double* %sunkaddr to i8*
-    %sunkaddr20 = getelementptr i8, i8* %9, i64 %6
-    %sunkaddr21 = getelementptr i8, i8* %sunkaddr20, i64 32
-    %10 = bitcast i8* %sunkaddr21 to double*
+    %sunkaddr18 = getelementptr i8, i8* %9, i64 %6
+    %sunkaddr19 = getelementptr i8, i8* %sunkaddr18, i64 32
+    %10 = bitcast i8* %sunkaddr19 to double*
     %11 = load double, double* %10, align 8
     store double %11, double* %data8, align 8
     store double %11, double* %data8, align 8
-    br label %ifcont16
+    br label %ifcont14
   
   else:                                             ; preds = %entry
     %eq11 = icmp eq i32 %index, 0
-    br i1 %eq11, label %then12, label %else14
+    br i1 %eq11, label %then12, label %else13
   
   then12:                                           ; preds = %else
-    %tag1322 = bitcast %option.t_float* %0 to i32*
-    store i32 1, i32* %tag1322, align 4
-    br label %ifcont16
+    store %option.t_float { i32 1, double undef }, %option.t_float* %0, align 8
+    br label %ifcont14
   
-  else14:                                           ; preds = %else
-    %tag1523 = bitcast %option.t_float* %0 to i32*
-    store i32 1, i32* %tag1523, align 4
-    br label %ifcont16
+  else13:                                           ; preds = %else
+    store %option.t_float { i32 1, double undef }, %option.t_float* %0, align 8
+    br label %ifcont14
   
-  ifcont16:                                         ; preds = %then12, %else14, %then
+  ifcont14:                                         ; preds = %then12, %else13, %then
     ret void
   }
   
@@ -399,13 +397,8 @@ Test hashtbl
     %2 = bitcast %hashtbl.make.slot_float* %1 to i8*
     %3 = getelementptr i8, i8* %2, i64 16
     %data = bitcast i8* %3 to %hashtbl.make.slot_float*
-    %slot = alloca %hashtbl.make.slot_float, align 8
-    %tag2 = bitcast %hashtbl.make.slot_float* %slot to i32*
-    store i32 0, i32* %tag2, align 4
     %4 = getelementptr inbounds %hashtbl.make.slot_float, %hashtbl.make.slot_float* %data, i64 %i
-    %5 = bitcast %hashtbl.make.slot_float* %4 to i8*
-    %6 = bitcast %hashtbl.make.slot_float* %slot to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 24, i1 false)
+    store %hashtbl.make.slot_float { i32 0, %hashtbl.make.item_float undef }, %hashtbl.make.slot_float* %4, align 8
     ret void
   }
   
@@ -418,13 +411,8 @@ Test hashtbl
     %2 = bitcast %hashtbl.make.slot_float* %1 to i8*
     %3 = getelementptr i8, i8* %2, i64 16
     %data = bitcast i8* %3 to %hashtbl.make.slot_float*
-    %slot = alloca %hashtbl.make.slot_float, align 8
-    %tag2 = bitcast %hashtbl.make.slot_float* %slot to i32*
-    store i32 0, i32* %tag2, align 4
     %4 = getelementptr inbounds %hashtbl.make.slot_float, %hashtbl.make.slot_float* %data, i64 %i
-    %5 = bitcast %hashtbl.make.slot_float* %4 to i8*
-    %6 = bitcast %hashtbl.make.slot_float* %slot to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 24, i1 false)
+    store %hashtbl.make.slot_float { i32 0, %hashtbl.make.item_float undef }, %hashtbl.make.slot_float* %4, align 8
     ret void
   }
   

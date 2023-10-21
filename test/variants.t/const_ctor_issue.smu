@@ -1,0 +1,16 @@
+(type thing {:i int :b {int int int int int}})
+
+(type var ((#float float) (#thing thing)))
+
+(def var (#float 10.0))
+
+(match var
+  ((#float _) (print "float"))
+  ((#thing _) (print "thing")))
+
+(defn dynamic (var)
+  (match var
+    ((#float _) (print "float"))
+    ((#thing _) (print "thing")))  )
+
+(dynamic var)

@@ -158,6 +158,7 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
             match value.typ with
             | Trecord (_, _, fields) -> (
                 match fields.(0).ftyp with Tbool -> false | _ -> true)
+            | Tvariant _ -> true
             | _ -> failwith "Internal Error: Not a record to unbox"
           in
           let value = Llvm.const_extractvalue value.value [| 0 |] in

@@ -188,8 +188,11 @@ end = struct
     | Mfield (expr, index) -> gen_field param expr index |> fin
     | Mset (expr, value, moved) -> gen_set param expr value moved
     | Mseq (expr, cont) -> gen_chain param expr cont
-    | Mctor (ctor, allocref, id) ->
-        gen_ctor param ctor typed_expr.typ allocref id
+    | Mctor (ctor, allocref, id) -> (
+        match typed_expr.const with
+        | Cnot -> gen_ctor param ctor typed_expr.typ allocref id
+        | Const ->
+            gen_ctor_const param ctor typed_expr.typ allocref typed_expr.return)
     | Mvar_index expr -> gen_var_index param expr |> fin
     | Mvar_data (expr, mid) -> gen_var_data param expr mid typed_expr.typ |> fin
     | Mfmt (fmts, allocref, id) ->
@@ -967,6 +970,52 @@ end = struct
     let v = { value = var; typ; lltyp; kind = Ptr } in
     List.iter (fun id -> Strtbl.replace free_tbl id v) ms;
     v
+
+  and gen_ctor_const param (variant, tag, expr) typ allocref return =
+    let lltyp = get_struct typ in
+    let elems = Llvm.struct_element_types lltyp in
+
+    let tag = Llvm.const_int i32_t tag in
+    let value =
+      match expr with
+      | Some expr ->
+          (* Get largest ctor to figure out the size of the variant and pad
+             accordingly *)
+          let largestsize =
+            match typ with
+            | Tvariant (_, _, ctors) ->
+                variant_get_largest ctors |> Option.get |> sizeof_typ
+            | _ -> failwith "unreachable"
+          in
+          let data = gen_constexpr param expr in
+          (* Change to the type of the greatest payload, or construct a type
+             with needed padding *)
+          let oursize = sizeof_typ data.typ in
+          if largestsize > oursize then
+            let padding =
+              let padtype = Llvm.array_type u8_t (largestsize - oursize) in
+              Llvm.undef padtype
+            in
+            let value = Llvm.(const_struct context [| data.value; padding |]) in
+            Llvm.const_named_struct lltyp [| tag; value |]
+          else
+            let data = Llvm.const_bitcast data.value elems.(1) in
+            Llvm.const_named_struct lltyp [| tag; data |]
+      | None ->
+          (* We might need a payload type *)
+          if Array.length elems > 1 then
+            let null = Llvm.undef elems.(1) in
+            Llvm.const_named_struct lltyp [| tag; null |]
+          else Llvm.const_named_struct lltyp [| tag |]
+    in
+    let value, kind =
+      if return then (
+        let variant = get_prealloc !allocref param lltyp variant in
+        ignore (Llvm.build_store value variant builder);
+        (variant, Const_ptr))
+      else (value, Const)
+    in
+    { value; typ; lltyp; kind }
 
   and gen_var_index param expr =
     let var = gen_expr param expr in

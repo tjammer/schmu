@@ -560,13 +560,21 @@ module Make (C : Core) (R : Recs) = struct
     | Some typ, Some expr ->
         let texpr = convert env expr in
         unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ env;
-        let expr = Ctor (Path.get_hd typename, ctor.index, Some texpr) in
-
-        { typ = variant; expr; attr = no_attr; loc }
+        let expr = Ctor (Path.get_hd typename, ctor.index, Some texpr)
+        and const =
+          (* There's a special case for string literals.
+             They will get copied here which makes them not const.
+             NOTE copy in convert_tuple *)
+          match texpr.expr with
+          | Const (String _) -> false
+          | _ -> texpr.attr.const
+        in
+        let attr = { no_attr with const } in
+        { typ = variant; expr; attr; loc }
     | None, None ->
-        let expr = Ctor (Path.get_hd typename, ctor.index, None) in
-        (* NOTE: Const handling for ctors is disabled, see #23 *)
-        { typ = variant; expr; attr = no_attr; loc }
+        let expr = Ctor (Path.get_hd typename, ctor.index, None)
+        and attr = { no_attr with const = true } in
+        { typ = variant; expr; attr; loc }
     | _ -> mismatch_err (fst name) (snd name) ctor.ctyp arg
 
   (* We want to be able to reference the exprs in the pattern match without

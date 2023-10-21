@@ -24,8 +24,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %nonpoly_func.either = type { i32 }
-  
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
@@ -50,9 +48,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %either = alloca %nonpoly_func.either, align 8
-    %tag2 = bitcast %nonpoly_func.either* %either to i32*
-    store i32 0, i32* %tag2, align 4
     %0 = tail call i64 @schmu_doo(i32 0)
     tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
     ret i64 0
@@ -64,8 +59,6 @@ Simplest module with 1 type and 1 nonpolymorphic function
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-  
-  %nonpoly_func.either = type { i32 }
   
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
@@ -107,14 +100,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %either = alloca %nonpoly_func.either, align 8
-    %tag6 = bitcast %nonpoly_func.either* %either to i32*
-    store i32 0, i32* %tag6, align 4
     %0 = tail call i64 @schmu_doo(i32 0)
     tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %either2 = alloca %nonpoly_func.either, align 8
-    %tag37 = bitcast %nonpoly_func.either* %either2 to i32*
-    store i32 0, i32* %tag37, align 4
     %1 = tail call i64 @schmu_do2(i32 0)
     tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
     ret i64 0
@@ -230,7 +217,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   %option.t_float = type { i32, double }
   %option.t_int = type { i32, i64 }
   
-  @schmu_none = global %option.t_float zeroinitializer, align 16
+  @schmu_none = constant %option.t_float { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare void @printf(i8* %0, i64 %1)
@@ -269,21 +256,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %t = alloca %option.t_int, align 8
-    %tag4 = bitcast %option.t_int* %t to i32*
-    store i32 0, i32* %tag4, align 4
-    %data = getelementptr inbounds %option.t_int, %option.t_int* %t, i32 0, i32 1
-    store i64 3, i64* %data, align 8
-    %0 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %t)
+    %boxconst = alloca %option.t_int, align 8
+    store %option.t_int { i32 0, i64 3 }, %option.t_int* %boxconst, align 8
+    %0 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %boxconst)
     call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %t1 = alloca %option.t_float, align 8
-    %tag25 = bitcast %option.t_float* %t1 to i32*
-    store i32 0, i32* %tag25, align 4
-    %data3 = getelementptr inbounds %option.t_float, %option.t_float* %t1, i32 0, i32 1
-    store double 3.000000e+00, double* %data3, align 8
-    %1 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %t1)
+    %boxconst1 = alloca %option.t_float, align 8
+    store %option.t_float { i32 0, double 3.000000e+00 }, %option.t_float* %boxconst1, align 8
+    %1 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %boxconst1)
     call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
-    store i32 1, i32* getelementptr inbounds (%option.t_float, %option.t_float* @schmu_none, i32 0, i32 0), align 4
     %2 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* @schmu_none)
     call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %2)
     ret i64 0
@@ -301,7 +281,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   %option.t_float = type { i32, double }
   %option.t_int = type { i32, i64 }
   
-  @schmu_none = global %option.t_float zeroinitializer, align 16
+  @schmu_none = constant %option.t_float { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare void @printf(i8* %0, i64 %1)
@@ -340,21 +320,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %t = alloca %option.t_int, align 8
-    %tag4 = bitcast %option.t_int* %t to i32*
-    store i32 0, i32* %tag4, align 4
-    %data = getelementptr inbounds %option.t_int, %option.t_int* %t, i32 0, i32 1
-    store i64 3, i64* %data, align 8
-    %0 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %t)
+    %boxconst = alloca %option.t_int, align 8
+    store %option.t_int { i32 0, i64 3 }, %option.t_int* %boxconst, align 8
+    %0 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %boxconst)
     call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %t1 = alloca %option.t_float, align 8
-    %tag25 = bitcast %option.t_float* %t1 to i32*
-    store i32 0, i32* %tag25, align 4
-    %data3 = getelementptr inbounds %option.t_float, %option.t_float* %t1, i32 0, i32 1
-    store double 3.000000e+00, double* %data3, align 8
-    %1 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %t1)
+    %boxconst1 = alloca %option.t_float, align 8
+    store %option.t_float { i32 0, double 3.000000e+00 }, %option.t_float* %boxconst1, align 8
+    %1 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %boxconst1)
     call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
-    store i32 1, i32* getelementptr inbounds (%option.t_float, %option.t_float* @schmu_none, i32 0, i32 0), align 4
     %2 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* @schmu_none)
     call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %2)
     ret i64 0
