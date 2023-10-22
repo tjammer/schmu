@@ -205,21 +205,24 @@ end = struct
       match gn with
       | Some n -> (
           let dst = Strtbl.find const_tbl n in
-          let v = gen_expr { param with alloca = Some dst.value } rhs in
-          (* Bandaid for polymorphic first class functions. In monomorph pass, the
-             global is ignored. TODO. Here, we make sure that the dummy_fn_value is
-             not set to the global. The global will stay 0 forever *)
-          match (v.typ, dst.kind) with
-          | Tunit, _ | _, Const_ptr -> v
-          | _ ->
-              let src = bring_default_var v in
+          match rhs.const with
+          | Cnot -> (
+              let v = gen_expr { param with alloca = Some dst.value } rhs in
+              (* Bandaid for polymorphic first class functions. In monomorph pass, the
+                 global is ignored. TODO. Here, we make sure that the dummy_fn_value is
+                 not set to the global. The global will stay 0 forever *)
+              match (v.typ, dst.kind) with
+              | Tunit, _ | _, Const_ptr -> v
+              | _ ->
+                  let src = bring_default_var v in
 
-              (* Only copy if the alloca was not used
-                 (for whatever reason; it should have been used) *)
-              if v.value <> dst.value then store_or_copy ~src ~dst:dst.value;
-              let v = { v with value = dst.value; kind = Ptr } in
-              Strtbl.replace const_tbl n v;
-              v)
+                  (* Only copy if the alloca was not used
+                     (for whatever reason; it should have been used) *)
+                  if v.value <> dst.value then store_or_copy ~src ~dst:dst.value;
+                  let v = { v with value = dst.value; kind = Ptr } in
+                  Strtbl.replace const_tbl n v;
+                  v)
+          | Const -> dst)
       | None -> (
           match kind with
           | Lborrow -> gen_expr param rhs
@@ -1190,15 +1193,25 @@ let fill_constants constants =
   List.iter f constants
 
 let def_globals globals =
-  let f (name, typ, toplvl) =
-    let lltyp = T.get_lltype_def typ in
-    let null = Llvm.const_int int_t 0 in
+  let f (name, expr, toplvl) =
+    let lltyp = T.get_lltype_def Monomorph_tree.(expr.typ) in
     let value =
-      Llvm.define_global name (Llvm.const_bitcast null lltyp) the_module
+      match expr.const with
+      | Cnot -> Llvm.const_bitcast (Llvm.const_int int_t 0) lltyp
+      | Const -> (
+          let v = Core.gen_expr no_param expr in
+          match v.kind with
+          (* A global might point to another global or const. In this case, we
+             don't want to global ptr to point to another pointer. Instead, we
+             use the const value directly *)
+          | Const_ptr -> Llvm.global_initializer v.value |> Option.get
+          | _ -> v.value)
     in
-    Llvm.set_alignment (sizeof_typ typ) value;
+    let value = Llvm.define_global name value the_module in
+    Llvm.set_alignment (sizeof_typ expr.typ) value;
+    (* TODO fix align *)
     if not toplvl then Llvm.set_linkage Llvm.Linkage.Internal value;
-    Strtbl.add const_tbl name { value; lltyp; typ; kind = Ptr }
+    Strtbl.add const_tbl name { value; lltyp; typ = expr.typ; kind = Ptr }
   in
   List.iter f globals
 
@@ -1215,7 +1228,7 @@ let has_init_code tree =
   let rec aux = function
     (* We have to deal with 'toplevel' type nodes only *)
     (* TODO toplevel let expressions do not produce globals *)
-    | Monomorph_tree.Mlet (name, _, _, gname, _, cont) -> (
+    | Monomorph_tree.Mlet (name, e, _, gname, _, cont) -> (
         let name = match gname with Some name -> name | None -> name in
         match Strtbl.find_opt const_tbl name with
         | Some thing -> (
@@ -1223,7 +1236,7 @@ let has_init_code tree =
             | Const | Const_ptr ->
                 (* is const, so no need to initialize *)
                 aux cont.expr
-            | Ptr | Imm -> true)
+            | Ptr | Imm -> ( match e.const with Cnot -> true | Const -> false))
         | None -> failwith "Internal Error: global value not found")
     | Mfunction (_, _, cont, _) -> aux cont.expr
     | Mconst Unit -> false

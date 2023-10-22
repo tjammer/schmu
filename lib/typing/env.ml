@@ -392,7 +392,7 @@ let close_thing is_same modpath env =
                  let is_imported = is_imported env.modpath mname in
                  let cleantyp = clean typ in
                  let cl =
-                   if const || global || is_imported then None
+                   if (const && not clmut) || global || is_imported then None
                    else
                      let cltyp = typ
                      and clparam = param

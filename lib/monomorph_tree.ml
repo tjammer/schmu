@@ -122,7 +122,7 @@ module Sset = Set.Make (String)
 
 type monomorphized_tree = {
   constants : (string * monod_tree * bool) list;
-  globals : (string * typ * bool) list;
+  globals : (string * monod_tree * bool) list;
   externals : external_decl list;
   tree : monod_tree;
   funcs : To_gen_func.t list;
@@ -452,7 +452,10 @@ let rec find_function_expr vars = function
   | Mvar (id, _) -> (
       match Vars.find_opt id vars with
       | Some (Normal thing | Param thing) -> thing.fn
-      | Some (Global _) -> failwith "Internal Error: Unused global?"
+      | Some (Global (_, thing, _)) ->
+          (* Usually globals should be read as Vglobal, but for constexprs it
+             might be different *)
+          thing.fn
       | Some (Const _) -> No_function
       | None -> (
           match Builtin.of_string id with
@@ -1457,18 +1460,18 @@ and prep_let p id uniq e pass toplvl =
 
   let p, gn =
     match e.attr with
-    | { const = true; _ } ->
+    | { const = true; mut = false; _ } ->
         let uniq = Module.unique_name ~mname:p.mname id uniq in
         (* Maybe we have to generate a new name here *)
         let cnt = new_id constant_uniq_state in
         Hashtbl.add constant_tbl uniq (cnt, e1, toplvl);
         ({ p with vars = Vars.add un (Const uniq) p.vars }, Some uniq)
-    | { global = true; _ } ->
+    | { global = true; _ } | { const = true; _ } ->
         (* Globals are 'preallocated' at module level *)
         set_alloca func.alloc;
         let uniq = Module.unique_name ~mname:p.mname id uniq in
         let cnt = new_id constant_uniq_state in
-        Hashtbl.add global_tbl uniq (cnt, e1.typ, toplvl);
+        Hashtbl.add global_tbl uniq (cnt, e1, toplvl);
         let used = ref false in
         let vars = Vars.add un (Global (uniq, func, used)) p.vars in
         (* Add global values to env with global id. That's how they might be

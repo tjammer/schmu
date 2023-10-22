@@ -4,23 +4,21 @@ Test simple setting of mutable variables
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @schmu_b = global i64 0, align 8
+  @schmu_b = global i64 10, align 8
+  @schmu_b__2 = internal global i64 10, align 8
   @schmu_a = global i64** null, align 8
-  @schmu_b__2 = global i64** null, align 8
+  @schmu_b__3 = global i64** null, align 8
   @schmu_c = global i64* null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define i64 @schmu_hmm() {
   entry:
-    %0 = alloca i64, align 8
-    store i64 10, i64* %0, align 8
-    store i64 15, i64* %0, align 8
+    store i64 15, i64* @schmu_b__2, align 8
     ret i64 15
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    store i64 10, i64* @schmu_b, align 8
     store i64 14, i64* @schmu_b, align 8
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 14)
     %0 = tail call i64 @schmu_hmm()
@@ -53,8 +51,8 @@ Test simple setting of mutable variables
     %10 = getelementptr i8, i8* %8, i64 16
     %data7 = bitcast i8* %10 to i64*
     store i64 20, i64* %data7, align 8
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (i64*** @schmu_b__2 to i8*), i8* bitcast (i64*** @schmu_a to i8*), i64 8, i1 false)
-    tail call void @__copy_aai(i64*** @schmu_b__2)
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (i64*** @schmu_b__3 to i8*), i8* bitcast (i64*** @schmu_a to i8*), i64 8, i1 false)
+    tail call void @__copy_aai(i64*** @schmu_b__3)
     %11 = tail call i8* @malloc(i64 24)
     %12 = bitcast i8* %11 to i64*
     store i64* %12, i64** @schmu_c, align 8
@@ -92,7 +90,7 @@ Test simple setting of mutable variables
     call void @__free_ai(i64** %data14)
     store i64* %24, i64** %data14, align 8
     call void @__free_ai(i64** @schmu_c)
-    call void @__free_aai(i64*** @schmu_b__2)
+    call void @__free_aai(i64*** @schmu_b__3)
     call void @__free_aai(i64*** @schmu_a)
     ret i64 0
   }
@@ -247,9 +245,7 @@ Use mutable values as ptrs to C code
   
   define i64 @main(i64 %arg) {
   entry:
-    store i64 0, i64* @schmu_i, align 8
     tail call void @mutate_int(i64* @schmu_i)
-    store i64 0, i64* getelementptr inbounds (%foo, %foo* @schmu_foo, i32 0, i32 0), align 8
     tail call void @mutate_foo(%foo* @schmu_foo)
     ret i64 0
   }
