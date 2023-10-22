@@ -588,7 +588,6 @@ end = struct
       match args with
       | [ value ] ->
           let value = f (bring_default value) lltyp "" builder in
-          (* TODO Not always int. That's a bug *)
           { value; typ; lltyp; kind = Imm }
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
@@ -1208,8 +1207,7 @@ let def_globals globals =
           | _ -> v.value)
     in
     let value = Llvm.define_global name value the_module in
-    Llvm.set_alignment (sizeof_typ expr.typ) value;
-    (* TODO fix align *)
+    Llvm.set_alignment (size_alignof_typ expr.typ |> snd) value;
     if not toplvl then Llvm.set_linkage Llvm.Linkage.Internal value;
     Strtbl.add const_tbl name { value; lltyp; typ = expr.typ; kind = Ptr }
   in

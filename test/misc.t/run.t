@@ -134,8 +134,8 @@ Also mutable fields and 'realloc' builtin
   @schmu_nested = global i64** null, align 8
   @schmu_nested__2 = global i64** null, align 8
   @schmu_nested__3 = global i64** null, align 8
-  @schmu_rec_of_arr = global %container zeroinitializer, align 16
-  @schmu_rec_of_arr__2 = global %container zeroinitializer, align 16
+  @schmu_rec_of_arr = global %container zeroinitializer, align 8
+  @schmu_rec_of_arr__2 = global %container zeroinitializer, align 8
   @schmu_arr_of_rec = global %container* null, align 8
   @schmu_arr_of_rec__2 = global %container* null, align 8
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"hey\00" }
@@ -1623,7 +1623,7 @@ Ensure global are loadad correctly when passed to functions
   %bar = type { double, double, i64, double, double, float }
   
   @schmu_height = constant i64 720
-  @schmu_world = global %bar zeroinitializer, align 32
+  @schmu_world = global %bar zeroinitializer, align 8
   
   define linkonce_odr void @__g.u_schmu_get-seg_bar.u(%bar* %bar) {
   entry:
@@ -2425,8 +2425,8 @@ Return nonclosure functions
   
   %closure = type { i8*, i8* }
   
-  @schmu_f = global %closure zeroinitializer, align 16
-  @schmu_f__2 = global %closure zeroinitializer, align 16
+  @schmu_f = global %closure zeroinitializer, align 8
+  @schmu_f__2 = global %closure zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define i64 @__fun_schmu0(i64 %a) {
@@ -2519,9 +2519,9 @@ Return closures
   
   %closure = type { i8*, i8* }
   
-  @schmu_f = global %closure zeroinitializer, align 16
-  @schmu_f2 = global %closure zeroinitializer, align 16
-  @schmu_f__2 = global %closure zeroinitializer, align 16
+  @schmu_f = global %closure zeroinitializer, align 8
+  @schmu_f2 = global %closure zeroinitializer, align 8
+  @schmu_f__2 = global %closure zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define i64 @__fun_schmu0(i64 %a, i8* %0) {
@@ -2687,7 +2687,7 @@ Take/use not all allocations of a record in tailrec calls
   %success_view = type { %view, %view }
   
   @schmu_s = global i8* null, align 8
-  @schmu_inp = global %view zeroinitializer, align 16
+  @schmu_inp = global %view zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c" \00" }
   
   declare i1 @std_char-equal(i8 %0, i8 %1)

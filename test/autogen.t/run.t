@@ -233,7 +233,7 @@ Copy records
   %cont_t = type { %t }
   %t = type { double, i8*, i64, i64* }
   
-  @schmu_a = global %cont_t zeroinitializer, align 32
+  @schmu_a = global %cont_t zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"lul\00" }
   
   declare void @std_print(i8* %0)
@@ -385,7 +385,7 @@ Copy variants
   %option.t_tuple_array_u8 = type { i32, %tuple_array_u8 }
   %tuple_array_u8 = type { i8* }
   
-  @schmu_a = global %option.t_tuple_array_u8 zeroinitializer, align 16
+  @schmu_a = global %option.t_tuple_array_u8 zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
   declare void @std_print(i8* %0)
@@ -517,7 +517,7 @@ Copy closures
   %tuple_int = type { i64 }
   %tuple_fn_.int = type { %closure }
   
-  @schmu_c = global %closure zeroinitializer, align 16
+  @schmu_c = global %closure zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
   
   declare void @std_print(i8* %0)

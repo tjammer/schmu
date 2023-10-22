@@ -2307,7 +2307,7 @@ Function call returning a polymorphic function
   %closure = type { i8*, i8* }
   
   @schmu_once = global i1 true, align 1
-  @schmu_result = global %closure zeroinitializer, align 16
+  @schmu_result = global %closure zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [8 x i8] } { i64 7, i64 7, [8 x i8] c"%s foo\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"%li foo\0A\00" }
   @2 = private unnamed_addr constant { i64, i64, [8 x i8] } { i64 7, i64 7, [8 x i8] c"%s bar\0A\00" }

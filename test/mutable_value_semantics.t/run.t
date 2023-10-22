@@ -1190,7 +1190,7 @@ Refcounts for members in arrays, records and variants
   @schmu_a = global i64* null, align 8
   @schmu_r = global %r zeroinitializer, align 8
   @schmu_r__2 = global i64** null, align 8
-  @schmu_r__3 = global %option.t_array_int zeroinitializer, align 16
+  @schmu_r__3 = global %option.t_array_int zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
   

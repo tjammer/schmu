@@ -100,7 +100,7 @@ Nested records
   %p_inner_innerst_int = type { %innerst_int }
   %innerst_int = type { i64 }
   
-  @schmu_a = global %foo zeroinitializer, align 16
+  @schmu_a = global %foo zeroinitializer, align 8
   
   declare void @printi(i64 %0)
   
@@ -573,8 +573,8 @@ This caused stores to a wrong pointer type in LLVM
   @schmu_x = internal constant %foo { i64 12 }
   @schmu_ret = internal constant %ys { %foo { i64 17 }, i64 9 }
   @schmu_a = internal constant %ys { %foo { i64 1 }, i64 2 }
-  @schmu_ys = global %ys zeroinitializer, align 16
-  @schmu_ctrl__2 = global %ys zeroinitializer, align 16
+  @schmu_ys = global %ys zeroinitializer, align 8
+  @schmu_ctrl__2 = global %ys zeroinitializer, align 8
   
   declare void @printi(i64 %0)
   
