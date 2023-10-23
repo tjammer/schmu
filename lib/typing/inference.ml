@@ -134,6 +134,7 @@ let rec unify t1 t2 =
         Tfixed_array ({ contents = Known ri }, r) ) ->
         unify l r;
         if not (Int.equal li ri) then raise Unify
+    | Tfixed_array (li, l), Tfixed_array (ri, r) when li == ri -> unify l r
     | _ -> raise Unify
 
 let unify info t1 t2 env =
@@ -419,6 +420,15 @@ let rec types_match ~in_functor l r =
             let l, r = nss_of_types lt rt in
             aux ~strict subst l r
           else (subst, false)
+      | Tfixed_array ({ contents = Linked l }, lt), r ->
+          aux ~strict qsubst (lns, Tfixed_array (l, lt)) (rns, r)
+      | l, Tfixed_array ({ contents = Linked r }, rt) ->
+          aux ~strict qsubst (lns, l) (rns, Tfixed_array (r, rt))
+      | ( Tfixed_array ({ contents = Known ls }, lt),
+          Tfixed_array ({ contents = Known rs }, rt) ) ->
+          let l, r = nss_of_types lt rt in
+          let subst, b = aux ~strict qsubst l r in
+          (subst, b && Int.equal ls rs)
       | Tabstract (_, _, lt), Tabstract (_, _, rt) ->
           if not (Nameset.disjoint lns rns) then
             aux ~strict:true qsubst (lns, lt) (rns, rt)

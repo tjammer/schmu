@@ -209,6 +209,9 @@ let test_annot_array_arg_generic () =
 let test_annot_tuple_generic () =
   test "{int bool}" "(defn hmm [(a! {int 'a})] a) (hmm !{1 true})"
 
+let test_annot_fixed_size_array () =
+  test "(array#32 int)" "(defn hmm [(a! (array#32 'a))] a) (hmm !#32[0])"
+
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
 
@@ -1111,6 +1114,7 @@ let () =
           case "tuple simple" test_annot_tuple_simple;
           case "array arg generic" test_annot_array_arg_generic;
           case "tuple generic" test_annot_tuple_generic;
+          case "fixed-size array" test_annot_fixed_size_array;
         ] );
       ( "function sequencing",
         [

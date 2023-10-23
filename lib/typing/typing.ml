@@ -152,7 +152,7 @@ and get_generic_ids = function
   | Tvar { contents = Link t } | Talias (_, t) -> get_generic_ids t
   | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
       List.map get_generic_ids ps |> List.concat
-  | Tarray t | Traw_ptr t -> get_generic_ids t
+  | Tarray t | Traw_ptr t | Tfixed_array (_, t) -> get_generic_ids t
   | _ -> []
 
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
@@ -178,6 +178,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         Some (name, List.length ts)
     | Traw_ptr _ -> Some (Path.Pid "raw_ptr", 1)
     | Tarray _ -> Some (Path.Pid "array", 1)
+    | Tfixed_array _ -> Some (Path.Pid "array#?", 1)
     | Talias (name, t) -> (
         let cleaned = clean t in
         match is_quantified cleaned with
@@ -204,6 +205,11 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         if not in_list then
           raise (Error (loc, "Type raw_ptr expects 1 type parameter"));
         Traw_ptr (Qvar "o")
+    | Ty_id id when String.starts_with ~prefix:"array#" id ->
+        let size = String.sub id 6 (String.length id - 6) |> int_of_string in
+        if not in_list then
+          raise (Error (loc, "Type " ^ id ^ " expects 1 type parameter"));
+        Tfixed_array (ref (Known size), Qvar "o")
     | Ty_id t ->
         let t = find env (Path.Pid t) "" in
         (if not in_list then
