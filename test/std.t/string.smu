@@ -1,2 +1,8 @@
 (def arr ["hello" "world" ":)"])
 (print (string/concat ", " arr))
+
+(def haystack "this haystack contains a needle")
+(assert
+ (= 25 (match (string/boyer-moore-horspool "needle" haystack)
+         ((#some i) i)
+         (#none -1))))

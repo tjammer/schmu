@@ -5,7 +5,7 @@
 (type (option 'a) (option/t 'a))
 
 -- char
-(defn char-equal [a b] (= (u8_to_int a) (u8_to_int b)))
+(def char-equal prelude/char-equal)
 
 -- prelude re-exports
 (def iter-range prelude/iter-range)

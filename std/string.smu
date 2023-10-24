@@ -1,10 +1,19 @@
-(type cstr (raw_ptr u8))
+(signature
+  (type cstr (raw_ptr u8))
+  (type t (array u8))
 
-(type t (array u8))
+  (def len (fun t int))
+  (def hash (fun t int))
+  (def equal (fun t t bool))
+  (def append (fun t& t unit))
+  (def concat (fun t (array t) t))
+  (def boyer-moore-horspool (fun t t (option/t int)))
+
+  (def puts (fun cstr unit)))
 
 (external puts (fun cstr unit))
 
-(defn len [str] (array/length str))
+(defn len [(str t)] (array/length str))
 
 (defn hash [str]
   -- unsigned long
@@ -18,11 +27,11 @@
   -- }
   (array/fold str (fn [hash! c] (+ (* hash 33) (u8_to_int c))) !5381))
 
-(external strncmp (fun (raw_ptr u8) (raw_ptr u8) int i32))
+(external memcmp (fun (raw_ptr u8) (raw_ptr u8) int i32))
 
 (defn equal [l r]
   (if (= (len l) (len r))
-    (= 0 (int_of_i32 (strncmp (array/data l) (array/data r) (array/length l))))
+    (= 0 (int_of_i32 (memcmp (array/data l) (array/data r) (array/length l))))
     false))
 
 (defn append (str& other)
@@ -36,3 +45,37 @@
                    (append &ret str)))
     (array/push &ret !'\000')
     ret))
+
+(defn make-skips [pattern]
+  (let [len (array/length pattern)
+        skips& #256[len]]
+    (array/iteri pattern
+                 (fn [i c]
+                   (if (not (= i (- len 1))) -- ignore last char
+                     (set &skips.((u8_to_int c)) !(- (- len 1) i)))))
+    skips))
+
+(defn boyer-moore-horspool [pattern str]
+  (open prelude)
+  (open option)
+  (def patlen1 (- (len pattern) 1))
+  (def strptr (array/data str))
+  (def last-patchar pattern.[patlen1])
+
+  (defn find [skips istr]
+    (def last-windowchar str.[(+ istr patlen1)])
+    (if (<= (+ istr (len pattern)) (len str))
+      (if (and (char-equal last-patchar last-windowchar)
+               (= 0 (-> (memcmp (array/data pattern)
+                                 (__unsafe_ptr_at strptr istr)
+                                 patlen1)
+                        int_of_i32)))
+        (#some istr)
+        (let [skip skips.((u8_to_int last-windowchar))]
+          (find skips (+ istr skip))))
+      #none))
+
+  (if (< (len pattern) (len pattern))
+    #none
+    (let [skips (make-skips pattern)]
+      (find skips 0))))

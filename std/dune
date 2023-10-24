@@ -17,8 +17,8 @@
   (progn
    (run schmu -m --no-std prelude.smu)
    (run schmu -m --no-std array.smu)
-   (run schmu -m --no-std string.smu)
    (run schmu -m --no-std option.smu)
+   (run schmu -m --no-std string.smu)
    (run schmu -m --no-std hashtbl.smu)
    (run schmu -m --no-std std.smu))))
 

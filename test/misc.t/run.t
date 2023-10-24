@@ -2690,7 +2690,7 @@ Take/use not all allocations of a record in tailrec calls
   @schmu_inp = global %view zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c" \00" }
   
-  declare i1 @std_char-equal(i8 %0, i8 %1)
+  declare i1 @prelude_char-equal(i8 %0, i8 %1)
   
   define void @schmu_aux(%parse-result_int* noalias %0, %view* %rem, i64 %cnt) {
   entry:
@@ -2772,7 +2772,7 @@ Take/use not all allocations of a record in tailrec calls
     %5 = add i64 16, %3
     %6 = getelementptr i8, i8* %4, i64 %5
     %7 = load i8, i8* %6, align 1
-    %8 = tail call i1 @std_char-equal(i8 %7, i8 32)
+    %8 = tail call i1 @prelude_char-equal(i8 %7, i8 32)
     br i1 %8, label %then, label %else
   
   then:                                             ; preds = %entry
