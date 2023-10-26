@@ -579,7 +579,7 @@ let validate_intf env loc ~in_functor (name, _, styp, kind) rhs =
           in
           t := Link typ
       | _ -> ());
-      let _, b = Inference.types_match ~in_functor styp ityp in
+      let _, _, b = Inference.types_match ~in_functor styp ityp in
       if b then ()
       else
         let msg =
@@ -608,17 +608,14 @@ let validate_signature env m =
       let f (name, loc, styp, kind) =
         match (List.find_opt (find_item name kind) impl, kind) with
         | Some (n, loc, ityp, ikind), _ ->
-            let _, b = Inference.types_match ~in_functor:false styp ityp in
+            let typ, _, b = Inference.types_match ~in_functor:false styp ityp in
             if b then (
               (* Query value to mark it as used in the env *)
               (match ikind with
               | Mvalue -> ignore (Env.query_val_opt loc (Path.Pid n) env)
               | Mtypedef -> ());
-              (* Use implementation type to retain closures, but only if the type
-                 is not abstract. Otherwise, the abstract type goes away. *)
-              let typ =
-                match clean styp with Tabstract _ -> styp | _ -> ityp
-              in
+              (* [typ] maintains abstract types, but uses the implementation
+                 types otherwise. This is needed for closures *)
               (name, loc, typ, kind))
             else
               let msg =

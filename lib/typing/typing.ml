@@ -59,8 +59,8 @@ let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
 let check_annot env loc l r =
   let mn = Env.modpath env in
-  let subst, b = Inference.types_match ~in_functor:false l r in
-  if b then ()
+  let typ, subst, b = Inference.types_match ~in_functor:false l r in
+  if b then typ
   else
     let msg =
       Printf.sprintf "Var annotation: Expected type %s but got type %s"
@@ -839,11 +839,15 @@ end = struct
           let t = convert_annot env (Some t_annot) block in
           leave_level ();
 
-          (match clean t.typ with
-          | Tfun _ -> check_annot env loc t.typ t_annot
-          | _ -> unify (loc, "In let binding") t.typ t_annot env);
+          let typ =
+            match clean t.typ with
+            | Tfun _ -> check_annot env loc t.typ t_annot
+            | _ ->
+                unify (loc, "In let binding") t.typ t_annot env;
+                t_annot
+          in
 
-          { t with typ = t_annot }
+          { t with typ }
     in
     if is_poly_call expr then wrap_in_lambda expr expr.typ else expr
 
@@ -937,7 +941,7 @@ end = struct
     | Tfun (tparams, ret, kind) ->
         let ret = match ret_annot with Some ret -> ret | None -> ret in
         let qtyp = Tfun (qparams, ret, kind) in
-        check_annot env loc typ qtyp;
+        let typ = check_annot env loc typ qtyp in
 
         let func = { tparams; ret; kind; touched } in
         let abs =
@@ -1049,7 +1053,7 @@ end = struct
 
         let ret = match ret_annot with Some ret -> ret | None -> ret in
         let qtyp = Tfun (qparams, ret, kind) |> generalize in
-        check_annot env loc typ qtyp;
+        check_annot env loc typ qtyp |> ignore;
 
         let func = { tparams; ret; kind; touched } in
         let lambda =

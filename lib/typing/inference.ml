@@ -335,113 +335,136 @@ let rec types_match ~in_functor l r =
   in
 
   let rec aux ~strict qsubst (lns, l) (rns, r) =
-    if l == r then (qsubst, true)
+    if l == r then (r, qsubst, true)
     else
       match (l, r) with
-      | Tvar { contents = Unbound (l, _) }, Tvar { contents = Unbound (r, _) }
-      | Qvar l, Tvar { contents = Unbound (r, _) }
+      | Tvar { contents = Unbound (l, _) }, Tvar { contents = Unbound (rid, _) }
+      | Qvar l, Tvar { contents = Unbound (rid, _) }
         when in_functor -> (
           (* We always map from left to right *)
           match Smap.find_opt l qsubst with
-          | Some id when String.equal r id -> (qsubst, true)
-          | Some _ -> (qsubst, false)
+          | Some id when String.equal rid id -> (r, qsubst, true)
+          | Some _ -> (r, qsubst, false)
           | None ->
               (* We 'connect' left to right *)
-              (Smap.add l r qsubst, true))
-      | Qvar l, Qvar r | Tvar { contents = Unbound (l, _) }, Qvar r -> (
+              (r, Smap.add l rid qsubst, true))
+      | Qvar l, Qvar rid | Tvar { contents = Unbound (l, _) }, Qvar rid -> (
           (* We always map from left to right *)
           match Smap.find_opt l qsubst with
-          | Some id when String.equal r id -> (qsubst, true)
-          | Some _ -> (qsubst, false)
+          | Some id when String.equal rid id -> (r, qsubst, true)
+          | Some _ -> (r, qsubst, false)
           | None ->
               (* We 'connect' left to right *)
-              (Smap.add l r qsubst, true))
+              (r, Smap.add l rid qsubst, true))
       | Tvar { contents = Unbound _ }, _ when not strict ->
-          (* Unbound vars match every type *) (qsubst, true)
+          (* Unbound vars match every type *) (r, qsubst, true)
       | Tvar { contents = Link l }, r
       | l, Tvar { contents = Link r }
-      | Talias (_, l), r
       | l, Talias (_, r) ->
           aux ~strict qsubst (lns, l) (rns, r)
-      | _, Tvar { contents = Unbound _ } when not in_functor -> (qsubst, false)
-      | Tfun (ps_l, l, _), Tfun (ps_r, r, _) -> (
+      | Talias (n, l), r ->
+          let t, s, b = aux ~strict qsubst (lns, l) (rns, r) in
+          (Talias (n, t), s, b)
+      | _, Tvar { contents = Unbound _ } when not in_functor ->
+          (r, qsubst, false)
+      | Tfun (ps_l, l, _), Tfun (ps_r, r, kind) -> (
           try
-            let qsubst, acc =
+            let ps, qsubst, acc =
               List.fold_left2
-                (fun (s, acc) pl pr ->
+                (fun (ts, s, acc) pl pr ->
                   let l, r = nss_of_types pl.pt pr.pt in
-                  let qsubst, b = aux ~strict:true s l r in
+                  let pt, qsubst, b = aux ~strict:true s l r in
                   let b = b && pl.pattr = pr.pattr in
-                  (qsubst, acc && b))
-                (qsubst, true) ps_l ps_r
+                  ({ pr with pt } :: ts, qsubst, acc && b))
+                ([], qsubst, true) ps_l ps_r
             in
+            let ps = List.rev ps in
             (* We don't shortcut here to match the annotations for the error message *)
             let l, r = nss_of_types l r in
-            let qsubst, b = aux ~strict:true qsubst l r in
-            (qsubst, acc && b)
-          with Invalid_argument _ -> (qsubst, false))
-      | Trecord (_, None, l), Trecord (_, None, r) -> (
+            let ret, qsubst, b = aux ~strict:true qsubst l r in
+            (Tfun (ps, ret, kind), qsubst, acc && b)
+          with Invalid_argument _ -> (r, qsubst, false))
+      | Trecord (_, None, l), (Trecord (ps, None, r) as r') -> (
           let l = Array.to_list l and r = Array.to_list r in
           try
-            List.fold_left2
-              (fun (s, acc) l r ->
-                let l, r = nss_of_types l.ftyp r.ftyp in
-                let qsubst, b = aux ~strict s l r in
-                (qsubst, acc && b))
-              (qsubst, true) l r
-          with Invalid_argument _ -> (qsubst, false))
+            let fs, s, acc =
+              List.fold_left2
+                (fun (fs, s, acc) l rf ->
+                  let l, r = nss_of_types l.ftyp rf.ftyp in
+                  let ftyp, qsubst, b = aux ~strict s l r in
+                  ({ rf with ftyp } :: fs, qsubst, acc && b))
+                ([], qsubst, true) l r
+            in
+            (Trecord (ps, None, List.rev fs |> Array.of_list), s, acc)
+          with Invalid_argument _ -> (r', qsubst, false))
       | Trecord (pl, Some _, _), Trecord (pr, Some _, _)
       | Tvariant (pl, _, _), Tvariant (pr, _, _) ->
           (* It should be enough to compare the name (rather, the name's repr)
              and the param type *)
           if not (Nameset.disjoint lns rns) then
-            List.fold_left2
-              (fun (s, acc) l r ->
-                let l, r = nss_of_types l r in
-                let qsubst, b = aux ~strict s l r in
-                (qsubst, acc && b))
-              (qsubst, true) pl pr
-          else (qsubst, false)
-      | Traw_ptr l, Traw_ptr r | Tarray l, Tarray r ->
+            let qs, b =
+              List.fold_left2
+                (fun (s, acc) l r ->
+                  let l, r = nss_of_types l r in
+                  let _, qsubst, b = aux ~strict s l r in
+                  (qsubst, acc && b))
+                (qsubst, true) pl pr
+            in
+            (r, qs, b)
+          else (r, qsubst, false)
+      | Traw_ptr l, Traw_ptr r ->
           let l, r = nss_of_types l r in
-          aux ~strict qsubst l r
+          let t, s, b = aux ~strict qsubst l r in
+          (Traw_ptr t, s, b)
+      | Tarray l, Tarray r ->
+          let l, r = nss_of_types l r in
+          let t, s, b = aux ~strict qsubst l r in
+          (Tarray t, s, b)
       | ( Tfixed_array ({ contents = Generalized l }, lt),
-          Tfixed_array ({ contents = Generalized r }, rt) )
+          Tfixed_array (({ contents = Generalized ri } as i), rt) )
       | ( Tfixed_array ({ contents = Unknown (l, _) }, lt),
-          Tfixed_array ({ contents = Generalized r }, rt) ) ->
+          Tfixed_array (({ contents = Generalized ri } as i), rt) ) ->
           (* Prepend with fa for fixed array so not clash with Qvar strings *)
           let subst, pre =
             match Smap.find_opt ("fa" ^ l) qsubst with
-            | Some id when String.equal ("fa" ^ r) id -> (qsubst, true)
+            | Some id when String.equal ("fa" ^ ri) id -> (qsubst, true)
             | Some _ -> (qsubst, false)
-            | None -> (Smap.add ("fa" ^ l) ("fa" ^ r) qsubst, true)
+            | None -> (Smap.add ("fa" ^ l) ("fa" ^ ri) qsubst, true)
           in
           if pre then
             let l, r = nss_of_types lt rt in
-            aux ~strict subst l r
-          else (subst, false)
+            let t, s, b = aux ~strict subst l r in
+            (Tfixed_array (i, t), s, b)
+          else (r, subst, false)
       | Tfixed_array ({ contents = Linked l }, lt), r ->
           aux ~strict qsubst (lns, Tfixed_array (l, lt)) (rns, r)
       | l, Tfixed_array ({ contents = Linked r }, rt) ->
           aux ~strict qsubst (lns, l) (rns, Tfixed_array (r, rt))
       | ( Tfixed_array ({ contents = Known ls }, lt),
-          Tfixed_array ({ contents = Known rs }, rt) ) ->
+          Tfixed_array (({ contents = Known rs } as i), rt) ) ->
           let l, r = nss_of_types lt rt in
-          let subst, b = aux ~strict qsubst l r in
-          (subst, b && Int.equal ls rs)
-      | Tabstract (_, _, lt), Tabstract (_, _, rt) ->
+          let t, subst, b = aux ~strict qsubst l r in
+          (Tfixed_array (i, t), subst, b && Int.equal ls rs)
+      | Tabstract (_, _, lt), Tabstract (ps, n, rt) ->
           if not (Nameset.disjoint lns rns) then
-            aux ~strict:true qsubst (lns, lt) (rns, rt)
-          else (qsubst, false)
-      | Tabstract (ps, _, l), r -> (
+            (* TODO params *)
+            let t, s, b = aux ~strict:true qsubst (lns, lt) (rns, rt) in
+            (Tabstract (ps, n, t), s, b)
+          else (r, qsubst, false)
+      | Tabstract (ps, n, l), r -> (
           match match_type_params ~in_functor ps l with
-          | Ok l -> aux ~strict qsubst (lns, l) (rns, r)
-          | Error _ -> (qsubst, false))
-      | l, Tabstract (ps, _, r) -> (
-          match match_type_params ~in_functor ps r with
-          | Ok r -> aux ~strict qsubst (lns, l) (rns, r)
-          | Error _ -> (qsubst, false))
-      | _ -> (qsubst, false)
+          | Ok l ->
+              (* TODO params *)
+              let t, s, b = aux ~strict qsubst (lns, l) (rns, r) in
+              (Tabstract (ps, n, t), s, b)
+          | Error _ -> (r, qsubst, false))
+      | l, Tabstract (_, _, r) ->
+          aux ~strict qsubst (lns, l) (rns, r)
+          (* ( *)
+          (*   match match_type_params ~in_functor ps r with *)
+          (*   | Ok r ->  *)
+          (*   | Error _ -> (qsubst, false)) *)
+      | _ -> (r, qsubst, false)
   in
   let l, r = nss_of_types l r in
   aux ~strict:false Smap.empty l r
@@ -451,7 +474,7 @@ and match_type_params ~in_functor params typ =
      Assume they appear in the same order. E.g. If params = [A, B] and typ [C, B]
      it probably won't work *)
   let buildup_subst subst l r =
-    let smap, mtch = types_match ~in_functor:false r l in
+    let _, smap, mtch = types_match ~in_functor:false r l in
     if mtch then
       Smap.merge
         (fun _ a b ->
