@@ -447,23 +447,21 @@ let rec types_match ~in_functor l r =
           (Tfixed_array (i, t), subst, b && Int.equal ls rs)
       | Tabstract (_, _, lt), Tabstract (ps, n, rt) ->
           if not (Nameset.disjoint lns rns) then
-            (* TODO params *)
             let t, s, b = aux ~strict:true qsubst (lns, lt) (rns, rt) in
             (Tabstract (ps, n, t), s, b)
           else (r, qsubst, false)
       | Tabstract (ps, n, l), r -> (
           match match_type_params ~in_functor ps l with
           | Ok l ->
-              (* TODO params *)
               let t, s, b = aux ~strict qsubst (lns, l) (rns, r) in
-              (Tabstract (ps, n, t), s, b)
+              let t =
+                match ps with
+                | [] -> Tabstract (ps, n, t)
+                | _ -> replace_qvar ~in_functor s (Tabstract (ps, n, t))
+              in
+              (t, s, b)
           | Error _ -> (r, qsubst, false))
-      | l, Tabstract (_, _, r) ->
-          aux ~strict qsubst (lns, l) (rns, r)
-          (* ( *)
-          (*   match match_type_params ~in_functor ps r with *)
-          (*   | Ok r ->  *)
-          (*   | Error _ -> (qsubst, false)) *)
+      | l, Tabstract (_, _, r) -> aux ~strict qsubst (lns, l) (rns, r)
       | _ -> (r, qsubst, false)
   in
   let l, r = nss_of_types l r in
@@ -488,79 +486,12 @@ and match_type_params ~in_functor params typ =
     else raise (Invalid_argument "")
   in
 
-  let rec replace_qvar subst = function
-    | (Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32) as t -> t
-    | Qvar s -> (
-        match Smap.find_opt s subst with
-        | None -> Qvar s
-        (*   print_endline ("search for: " ^ s); *)
-        (* failwith "Internal Error: Expected a substitution" *)
-        | Some str -> Qvar str)
-    | Tvar ({ contents = Link t } as l) as tvar ->
-        let t = replace_qvar subst t in
-        l := Link t;
-        tvar
-    | Tvar { contents = Unbound _ } when not in_functor ->
-        failwith "Internal Error: Type is unbound in impl"
-    | Tvar { contents = Unbound _ } as t -> t
-    | Trecord (ps, n, fs) ->
-        let ps = List.map (replace_qvar subst) ps in
-        let fs =
-          Array.map
-            (fun f ->
-              let ftyp = (replace_qvar subst) f.ftyp in
-              { f with ftyp })
-            fs
-        in
-        Trecord (ps, n, fs)
-    | Tvariant (ps, n, cs) ->
-        let ps = List.map (replace_qvar subst) ps in
-        let cs =
-          Array.map
-            (fun c ->
-              let ctyp = Option.map (replace_qvar subst) c.ctyp in
-              { c with ctyp })
-            cs
-        in
-        Tvariant (ps, n, cs)
-    | Talias (n, t) -> Talias (n, replace_qvar subst t)
-    | Traw_ptr t -> Traw_ptr (replace_qvar subst t)
-    | Tarray t -> Tarray (replace_qvar subst t)
-    | Tfixed_array (iv, t) -> Tfixed_array (iv, replace_qvar subst t)
-    | Tabstract (ps, n, t) ->
-        let ps = List.map (replace_qvar subst) ps in
-        Tabstract (ps, n, replace_qvar subst t)
-    | Tfun (ps, r, kind) ->
-        let ps =
-          List.map
-            (fun p ->
-              let pt = replace_qvar subst p.pt in
-              { p with pt })
-            ps
-        in
-        let r = replace_qvar subst r in
-        let kind =
-          match kind with
-          | Simple -> Simple
-          | Closure cls ->
-              let cls =
-                List.map
-                  (fun c ->
-                    let cltyp = (replace_qvar subst) c.cltyp in
-                    { c with cltyp })
-                  cls
-              in
-              Closure cls
-        in
-        Tfun (ps, r, kind)
-  in
-
   let ( let* ) = Result.bind in
   match typ with
   | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) -> (
       try
         let subst = List.fold_left2 buildup_subst Smap.empty params ps in
-        Ok (replace_qvar subst typ)
+        Ok (replace_qvar ~in_functor subst typ)
       with Invalid_argument _ -> Error ())
   | Talias (n, t) ->
       let* t = match_type_params ~in_functor params t in
@@ -587,3 +518,69 @@ and match_type_params ~in_functor params typ =
       let* t = match_type_params ~in_functor params t in
       Ok (Tfixed_array (iv, t))
   | Tfun _ -> failwith "TODO abstract function types"
+
+and replace_qvar ~in_functor subst = function
+  | (Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32) as t -> t
+  | Qvar s -> (
+      match Smap.find_opt s subst with
+      | None -> Qvar s
+      (*   print_endline ("search for: " ^ s); *)
+      (* failwith "Internal Error: Expected a substitution" *)
+      | Some str -> Qvar str)
+  | Tvar ({ contents = Link t } as l) as tvar ->
+      let t = replace_qvar ~in_functor subst t in
+      l := Link t;
+      tvar
+  | Tvar { contents = Unbound _ } when not in_functor ->
+      failwith "Internal Error: Type is unbound in impl"
+  | Tvar { contents = Unbound _ } as t -> t
+  | Trecord (ps, n, fs) ->
+      let ps = List.map (replace_qvar ~in_functor subst) ps in
+      let fs =
+        Array.map
+          (fun f ->
+            let ftyp = (replace_qvar ~in_functor subst) f.ftyp in
+            { f with ftyp })
+          fs
+      in
+      Trecord (ps, n, fs)
+  | Tvariant (ps, n, cs) ->
+      let ps = List.map (replace_qvar ~in_functor subst) ps in
+      let cs =
+        Array.map
+          (fun c ->
+            let ctyp = Option.map (replace_qvar ~in_functor subst) c.ctyp in
+            { c with ctyp })
+          cs
+      in
+      Tvariant (ps, n, cs)
+  | Talias (n, t) -> Talias (n, replace_qvar ~in_functor subst t)
+  | Traw_ptr t -> Traw_ptr (replace_qvar ~in_functor subst t)
+  | Tarray t -> Tarray (replace_qvar ~in_functor subst t)
+  | Tfixed_array (iv, t) -> Tfixed_array (iv, replace_qvar ~in_functor subst t)
+  | Tabstract (ps, n, t) ->
+      let ps = List.map (replace_qvar ~in_functor subst) ps in
+      Tabstract (ps, n, replace_qvar ~in_functor subst t)
+  | Tfun (ps, r, kind) ->
+      let ps =
+        List.map
+          (fun p ->
+            let pt = replace_qvar ~in_functor subst p.pt in
+            { p with pt })
+          ps
+      in
+      let r = replace_qvar ~in_functor subst r in
+      let kind =
+        match kind with
+        | Simple -> Simple
+        | Closure cls ->
+            let cls =
+              List.map
+                (fun c ->
+                  let cltyp = (replace_qvar ~in_functor subst) c.cltyp in
+                  { c with cltyp })
+                cls
+            in
+            Closure cls
+      in
+      Tfun (ps, r, kind)
