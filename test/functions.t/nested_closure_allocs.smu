@@ -4,7 +4,7 @@
 
 (defn char [c]
   (fn [buf view]
-    (if (char-equal buf.[view.start] c)
+    (if (char-equal (string/get buf view.start) c)
       (#ok {:mtch {@view :len 1}
             :rem {:start (+ 1 view.start) :len (- view.len 1)}})
       (#err view))))
@@ -32,7 +32,7 @@
     named3)
 
 (defn view-of-string [str]
-  {:start 0 :len (array/length str)})
+  {:start 0 :len (string/len str)})
 
 (def x "x")
 (def lx (view-of-string x))

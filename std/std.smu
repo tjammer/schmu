@@ -1,6 +1,6 @@
 (type string string/t)
 
-(defn print [str] (string/puts (array/data str)))
+(def print string/print)
 
 (type (option 'a) (option/t 'a))
 

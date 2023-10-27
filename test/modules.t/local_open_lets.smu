@@ -1,6 +1,6 @@
-(lets/printf (array/data "%i\n") lets/a)
-lets/(printf (array/data "%i\n") b)
+(lets/printf (string/data "%i\n") lets/a)
+lets/(printf (string/data "%i\n") b)
 
 lets/(do
-  (printf (array/data "%i\n") a)
-  (printf (array/data "%i\n") b))
+  (printf (string/data "%i\n") a)
+  (printf (string/data "%i\n") b))

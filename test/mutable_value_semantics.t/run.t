@@ -417,7 +417,7 @@ Copies, but with ref-counted arrays
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [7 x i8] } { i64 6, i64 6, [7 x i8] c"in fun\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   define linkonce_odr void @__ag.u_schmu_print-0th_ai.u(i64* %a) {
   entry:
@@ -431,7 +431,7 @@ Copies, but with ref-counted arrays
   
   define void @schmu_in-fun() {
   entry:
-    tail call void @std_print(i8* bitcast ({ i64, i64, [7 x i8] }* @1 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [7 x i8] }* @1 to i8*))
     %0 = alloca i64*, align 8
     %1 = tail call i8* @malloc(i64 24)
     %2 = bitcast i8* %1 to i64*
@@ -584,7 +584,7 @@ Arrays in records
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [7 x i8] } { i64 6, i64 6, [7 x i8] c"in fun\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   define void @schmu_in-fun() {
   entry:
@@ -704,7 +704,7 @@ Arrays in records
     tail call void @schmu_print-thing(i64 %unbox)
     %unbox2 = load i64, i64* bitcast (%arrec* @schmu_b to i64*), align 8
     tail call void @schmu_print-thing(i64 %unbox2)
-    tail call void @std_print(i8* bitcast ({ i64, i64, [7 x i8] }* @1 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [7 x i8] }* @1 to i8*))
     tail call void @schmu_in-fun()
     tail call void @__free_arrec(%arrec* @schmu_b)
     tail call void @__free_arrec(%arrec* @schmu_a)
@@ -1194,7 +1194,7 @@ Refcounts for members in arrays, records and variants
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -1276,7 +1276,7 @@ Refcounts for members in arrays, records and variants
     br label %ifcont
   
   else:                                             ; preds = %entry
-    call void @std_print(i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*))
+    call void @string_print(i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*))
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then

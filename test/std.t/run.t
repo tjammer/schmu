@@ -18,7 +18,7 @@ Test hashtbl
   @4 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"otherkey\00" }
   @5 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"# hashtbl\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   declare void @prelude_iter-range(i64 %0, i64 %1, %closure* %2)
   
@@ -503,7 +503,7 @@ Test hashtbl
     br label %ifcont
   
   else:                                             ; preds = %entry
-    call void @std_print(i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*))
+    call void @string_print(i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*))
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
@@ -512,7 +512,7 @@ Test hashtbl
   
   define void @schmu_string() {
   entry:
-    tail call void @std_print(i8* bitcast ({ i64, i64, [10 x i8] }* @2 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [10 x i8] }* @2 to i8*))
     %0 = alloca %hashtbl.make.t_float, align 8
     %1 = tail call { i64, i64 } @__i.hashtbl.make.tg_hashtbl_make_string_create_i.hashtbl.make.tf(i64 64)
     %box = bitcast %hashtbl.make.t_float* %0 to { i64, i64 }*
@@ -804,7 +804,7 @@ Test hashtbl
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @std_print(i8* bitcast ({ i64, i64, [10 x i8] }* @5 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [10 x i8] }* @5 to i8*))
     tail call void @schmu_string()
     ret i64 0
   }

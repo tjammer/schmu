@@ -86,6 +86,8 @@ Basic pattern matching
   @schmu_none_int = constant %option.t_int { i32 1, i64 undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
+  declare i8* @string_data(i8* %0)
+  
   declare void @printf(i8* %0, i64 %1)
   
   define linkonce_odr i64 @__option.tg.i_schmu_none_all_option.ti.i(%option.t_int* %p) {
@@ -156,36 +158,44 @@ Basic pattern matching
   
   define i64 @main(i64 %arg) {
   entry:
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst = alloca %option.t_int, align 8
     store %option.t_int { i32 0, i64 1 }, %option.t_int* %boxconst, align 8
-    %0 = call i64 @schmu_match_opt(%option.t_int* %boxconst)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
+    %1 = call i64 @schmu_match_opt(%option.t_int* %boxconst)
+    call void @printf(i8* %0, i64 %1)
+    %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst1 = alloca %option.t_int, align 8
     store %option.t_int { i32 1, i64 undef }, %option.t_int* %boxconst1, align 8
-    %1 = call i64 @schmu_match_opt(%option.t_int* %boxconst1)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
+    %3 = call i64 @schmu_match_opt(%option.t_int* %boxconst1)
+    call void @printf(i8* %2, i64 %3)
+    %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst2 = alloca %option.t_int, align 8
     store %option.t_int { i32 0, i64 1 }, %option.t_int* %boxconst2, align 8
-    %2 = call i64 @schmu_opt_match(%option.t_int* %boxconst2)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %2)
+    %5 = call i64 @schmu_opt_match(%option.t_int* %boxconst2)
+    call void @printf(i8* %4, i64 %5)
+    %6 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst3 = alloca %option.t_int, align 8
     store %option.t_int { i32 1, i64 undef }, %option.t_int* %boxconst3, align 8
-    %3 = call i64 @schmu_opt_match(%option.t_int* %boxconst3)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %3)
+    %7 = call i64 @schmu_opt_match(%option.t_int* %boxconst3)
+    call void @printf(i8* %6, i64 %7)
+    %8 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst4 = alloca %option.t_int, align 8
     store %option.t_int { i32 0, i64 1 }, %option.t_int* %boxconst4, align 8
-    %4 = call i64 @schmu_some_all(%option.t_int* %boxconst4)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %4)
+    %9 = call i64 @schmu_some_all(%option.t_int* %boxconst4)
+    call void @printf(i8* %8, i64 %9)
+    %10 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst5 = alloca %option.t_int, align 8
     store %option.t_int { i32 1, i64 undef }, %option.t_int* %boxconst5, align 8
-    %5 = call i64 @schmu_some_all(%option.t_int* %boxconst5)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %5)
+    %11 = call i64 @schmu_some_all(%option.t_int* %boxconst5)
+    call void @printf(i8* %10, i64 %11)
+    %12 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst6 = alloca %option.t_int, align 8
     store %option.t_int { i32 0, i64 1 }, %option.t_int* %boxconst6, align 8
-    %6 = call i64 @__option.tg.i_schmu_none_all_option.ti.i(%option.t_int* %boxconst6)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %6)
-    %7 = call i64 @__option.tg.i_schmu_none_all_option.ti.i(%option.t_int* @schmu_none_int)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %7)
+    %13 = call i64 @__option.tg.i_schmu_none_all_option.ti.i(%option.t_int* %boxconst6)
+    call void @printf(i8* %12, i64 %13)
+    %14 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %15 = call i64 @__option.tg.i_schmu_none_all_option.ti.i(%option.t_int* @schmu_none_int)
+    call void @printf(i8* %14, i64 %15)
     ret i64 0
   }
   1
@@ -207,6 +217,8 @@ Nested pattern matching
   %test = type { i32, double }
   
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
+  
+  declare i8* @string_data(i8* %0)
   
   declare void @printf(i8* %0, i64 %1)
   
@@ -250,22 +262,26 @@ Nested pattern matching
   
   define i64 @main(i64 %arg) {
   entry:
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst = alloca %option.t_test, align 8
     store %option.t_test { i32 0, %test { i32 0, double 3.000000e+00 } }, %option.t_test* %boxconst, align 8
-    %0 = call i64 @schmu_doo(%option.t_test* %boxconst)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
+    %1 = call i64 @schmu_doo(%option.t_test* %boxconst)
+    call void @printf(i8* %0, i64 %1)
+    %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst1 = alloca %option.t_test, align 8
     store %option.t_test { i32 0, %test { i32 1, double 9.881310e-324 } }, %option.t_test* %boxconst1, align 8
-    %1 = call i64 @schmu_doo(%option.t_test* %boxconst1)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
+    %3 = call i64 @schmu_doo(%option.t_test* %boxconst1)
+    call void @printf(i8* %2, i64 %3)
+    %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst2 = alloca %option.t_test, align 8
     store %option.t_test { i32 0, %test { i32 2, double undef } }, %option.t_test* %boxconst2, align 8
-    %2 = call i64 @schmu_doo(%option.t_test* %boxconst2)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %2)
+    %5 = call i64 @schmu_doo(%option.t_test* %boxconst2)
+    call void @printf(i8* %4, i64 %5)
+    %6 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst3 = alloca %option.t_test, align 8
     store %option.t_test { i32 1, %test undef }, %option.t_test* %boxconst3, align 8
-    %3 = call i64 @schmu_doo(%option.t_test* %boxconst3)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %3)
+    %7 = call i64 @schmu_doo(%option.t_test* %boxconst3)
+    call void @printf(i8* %6, i64 %7)
     ret i64 0
   }
   3
@@ -285,65 +301,68 @@ Match multiple columns
   @schmu_none_int = constant %option.t_int { i32 1, i64 undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
+  declare i8* @string_data(i8* %0)
+  
   declare void @printf(i8* %0, i64 %1)
   
   define void @schmu_doo(%option.t_int* %a, %option.t_int* %b) {
   entry:
-    %0 = alloca %tuple_option.t_int_option.t_int, align 8
-    %"017" = bitcast %tuple_option.t_int_option.t_int* %0 to %option.t_int*
-    %1 = bitcast %option.t_int* %"017" to i8*
-    %2 = bitcast %option.t_int* %a to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 16, i1 false)
-    %"1" = getelementptr inbounds %tuple_option.t_int_option.t_int, %tuple_option.t_int_option.t_int* %0, i32 0, i32 1
-    %3 = bitcast %option.t_int* %"1" to i8*
-    %4 = bitcast %option.t_int* %b to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 16, i1 false)
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %1 = alloca %tuple_option.t_int_option.t_int, align 8
+    %"017" = bitcast %tuple_option.t_int_option.t_int* %1 to %option.t_int*
+    %2 = bitcast %option.t_int* %"017" to i8*
+    %3 = bitcast %option.t_int* %a to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 16, i1 false)
+    %"1" = getelementptr inbounds %tuple_option.t_int_option.t_int, %tuple_option.t_int_option.t_int* %1, i32 0, i32 1
+    %4 = bitcast %option.t_int* %"1" to i8*
+    %5 = bitcast %option.t_int* %b to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 16, i1 false)
     %tag18 = bitcast %option.t_int* %"1" to i32*
     %index = load i32, i32* %tag18, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else6
   
   then:                                             ; preds = %entry
-    %5 = bitcast %tuple_option.t_int_option.t_int* %0 to %option.t_int*
-    %tag119 = bitcast %option.t_int* %5 to i32*
+    %6 = bitcast %tuple_option.t_int_option.t_int* %1 to %option.t_int*
+    %tag119 = bitcast %option.t_int* %6 to i32*
     %index2 = load i32, i32* %tag119, align 4
     %eq3 = icmp eq i32 %index2, 0
     br i1 %eq3, label %then4, label %else
   
   then4:                                            ; preds = %then
-    %6 = bitcast %tuple_option.t_int_option.t_int* %0 to %option.t_int*
-    %data5 = getelementptr inbounds %option.t_int, %option.t_int* %6, i32 0, i32 1
-    %7 = load i64, i64* %data5, align 8
-    %8 = bitcast %tuple_option.t_int_option.t_int* %0 to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %8, i64 24
-    %9 = bitcast i8* %sunkaddr to i64*
-    %10 = load i64, i64* %9, align 8
-    %add = add i64 %7, %10
+    %7 = bitcast %tuple_option.t_int_option.t_int* %1 to %option.t_int*
+    %data5 = getelementptr inbounds %option.t_int, %option.t_int* %7, i32 0, i32 1
+    %8 = load i64, i64* %data5, align 8
+    %9 = bitcast %tuple_option.t_int_option.t_int* %1 to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %9, i64 24
+    %10 = bitcast i8* %sunkaddr to i64*
+    %11 = load i64, i64* %10, align 8
+    %add = add i64 %8, %11
     br label %ifcont15
   
   else:                                             ; preds = %then
-    %11 = bitcast %tuple_option.t_int_option.t_int* %0 to i8*
-    %sunkaddr20 = getelementptr inbounds i8, i8* %11, i64 24
-    %12 = bitcast i8* %sunkaddr20 to i64*
-    %13 = load i64, i64* %12, align 8
+    %12 = bitcast %tuple_option.t_int_option.t_int* %1 to i8*
+    %sunkaddr20 = getelementptr inbounds i8, i8* %12, i64 24
+    %13 = bitcast i8* %sunkaddr20 to i64*
+    %14 = load i64, i64* %13, align 8
     br label %ifcont15
   
   else6:                                            ; preds = %entry
-    %14 = bitcast %tuple_option.t_int_option.t_int* %0 to %option.t_int*
-    %tag721 = bitcast %option.t_int* %14 to i32*
+    %15 = bitcast %tuple_option.t_int_option.t_int* %1 to %option.t_int*
+    %tag721 = bitcast %option.t_int* %15 to i32*
     %index8 = load i32, i32* %tag721, align 4
     %eq9 = icmp eq i32 %index8, 0
     br i1 %eq9, label %then10, label %ifcont15
   
   then10:                                           ; preds = %else6
-    %15 = bitcast %tuple_option.t_int_option.t_int* %0 to %option.t_int*
-    %data11 = getelementptr inbounds %option.t_int, %option.t_int* %15, i32 0, i32 1
-    %16 = load i64, i64* %data11, align 8
+    %16 = bitcast %tuple_option.t_int_option.t_int* %1 to %option.t_int*
+    %data11 = getelementptr inbounds %option.t_int, %option.t_int* %16, i32 0, i32 1
+    %17 = load i64, i64* %data11, align 8
     br label %ifcont15
   
   ifcont15:                                         ; preds = %then10, %else6, %then4, %else
-    %iftmp16 = phi i64 [ %add, %then4 ], [ %13, %else ], [ %16, %then10 ], [ 0, %else6 ]
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %iftmp16)
+    %iftmp16 = phi i64 [ %add, %then4 ], [ %14, %else ], [ %17, %then10 ], [ 0, %else6 ]
+    tail call void @printf(i8* %0, i64 %iftmp16)
     ret void
   }
   
@@ -417,7 +436,7 @@ Const ctors
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"float\00" }
   @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   define void @schmu_dynamic(%var* %var) {
   entry:
@@ -428,18 +447,18 @@ Const ctors
   
   then:                                             ; preds = %entry
     %data = getelementptr inbounds %var, %var* %var, i32 0, i32 1
-    tail call void @std_print(i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*))
     ret void
   
   else:                                             ; preds = %entry
     %data1 = getelementptr inbounds %var, %var* %var, i32 0, i32 1
-    tail call void @std_print(i8* bitcast ({ i64, i64, [6 x i8] }* @1 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [6 x i8] }* @1 to i8*))
     ret void
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @std_print(i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*))
     tail call void @schmu_dynamic(%var* @schmu_var)
     ret i64 0
   }

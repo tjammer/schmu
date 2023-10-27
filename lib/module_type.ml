@@ -4,7 +4,7 @@ module Pmap = Map.Make (Path)
 
 type psub = Path.t Pmap.t
 type tsub = Types.typ Smap.t
-type item_kind = Mtypedef | Mvalue
+type item_kind = Mtypedef | Mvalue of string option
 type item = string * Ast.loc * typ * item_kind
 type t = item list
 

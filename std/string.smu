@@ -1,19 +1,30 @@
 (signature
   (type cstr (raw_ptr u8))
-  (type t (array u8))
+  (type t)
 
   (def len (fun t int))
+  (def data (fun t cstr))
+  (def get (fun t int u8))
   (def hash (fun t int))
   (def equal (fun t t bool))
   (def append (fun t& t unit))
   (def concat (fun t (array t) t))
   (def boyer-moore-horspool (fun t t (option/t int)))
 
+  (def modify-buf (fun t& (fun (array u8)& unit) unit))
+
+  (def print (fun t unit))
   (def puts (fun cstr unit)))
 
 (external puts (fun cstr unit))
 
+(type t (array u8))
+
 (defn len [(str t)] (array/length str))
+
+(defn data [(str t)] (array/data str))
+
+(defn get [(str t) i] str.[i])
 
 (defn hash [str]
   -- unsigned long
@@ -79,3 +90,10 @@
     #none
     (let [skips (make-skips pattern)]
       (find skips 0))))
+
+(defn modify-buf [(str& t) f]
+  (f &str)
+  -- return type needs to be inferred as unit
+  ())
+
+(defn print [(str t)] (puts (array/data str)))

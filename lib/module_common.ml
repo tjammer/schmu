@@ -23,7 +23,10 @@ and item =
   | Mmodule_alias of loc * string * Path.t * string option (* filename option *)
   | Mmodule_type of loc * string * intf
 
-and sg_kind = Module_type.item_kind = Mtypedef | Mvalue
+and sg_kind = Module_type.item_kind =
+  | Mtypedef
+  | Mvalue of string option (* call name *)
+
 and sig_item = string * loc * typ * sg_kind [@@deriving sexp]
 and intf = sig_item list
 and impl = item list

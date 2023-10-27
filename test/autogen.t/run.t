@@ -72,7 +72,7 @@ Copy array of strings
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"test\00" }
   @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"toast\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -106,7 +106,7 @@ Copy array of strings
     %13 = getelementptr i8, i8* %12, i64 24
     %data1 = bitcast i8* %13 to i8**
     %14 = load i8*, i8** %data1, align 8
-    call void @std_print(i8* %14)
+    call void @string_print(i8* %14)
     call void @__free_aac(i8*** %9)
     call void @__free_aac(i8*** @schmu_a)
     ret i64 0
@@ -236,7 +236,7 @@ Copy records
   @schmu_a = global %cont_t zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"lul\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -273,7 +273,7 @@ Copy records
     %10 = bitcast %cont_t* %8 to %t*
     %11 = getelementptr inbounds %t, %t* %10, i32 0, i32 1
     %12 = load i8*, i8** %11, align 8
-    call void @std_print(i8* %12)
+    call void @string_print(i8* %12)
     call void @__free_contt(%cont_t* %8)
     call void @__free_contt(%cont_t* @schmu_a)
     ret i64 0
@@ -388,7 +388,7 @@ Copy variants
   @schmu_a = global %option.t_tuple_array_u8 zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -415,7 +415,7 @@ Copy variants
     %data = getelementptr inbounds %option.t_tuple_array_u8, %option.t_tuple_array_u8* %5, i32 0, i32 1
     %7 = bitcast %tuple_array_u8* %data to i8**
     %8 = load i8*, i8** %7, align 8
-    call void @std_print(i8* %8)
+    call void @string_print(i8* %8)
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -520,7 +520,7 @@ Copy closures
   @schmu_c = global %closure zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   define void @__fun_schmu0(i8* %0) {
   entry:
@@ -531,7 +531,7 @@ Copy closures
     %2 = getelementptr i8, i8* %1, i64 16
     %data = bitcast i8* %2 to i8**
     %3 = load i8*, i8** %data, align 8
-    tail call void @std_print(i8* %3)
+    tail call void @string_print(i8* %3)
     ret void
   }
   
@@ -924,11 +924,24 @@ Copy string literal on move
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %closure = type { i8*, i8* }
+  
   @schmu_a = global i8** null, align 8
   @schmu_b = global i8* null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"aoeu\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
+  
+  declare void @string_modify-buf(i8** noalias %0, %closure* %1)
+  
+  define void @__fun_schmu0(i8** noalias %arr) {
+  entry:
+    %0 = load i8*, i8** %arr, align 8
+    %1 = getelementptr i8, i8* %0, i64 16
+    %2 = getelementptr inbounds i8, i8* %1, i64 1
+    store i8 105, i8* %2, align 1
+    ret void
+  }
   
   define i64 @main(i64 %arg) {
   entry:
@@ -951,21 +964,23 @@ Copy string literal on move
     %7 = bitcast i8** %6 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (i8** @schmu_b to i8*), i8* %7, i64 8, i1 false)
     tail call void @__copy_ac(i8** @schmu_b)
+    %clstmp = alloca %closure, align 8
+    %funptr2 = bitcast %closure* %clstmp to i8**
+    store i8* bitcast (void (i8**)* @__fun_schmu0 to i8*), i8** %funptr2, align 8
+    %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
+    store i8* null, i8** %envptr, align 8
+    call void @string_modify-buf(i8** @schmu_b, %closure* %clstmp)
     %8 = load i8*, i8** @schmu_b, align 8
-    %9 = getelementptr i8, i8* %8, i64 16
-    %10 = getelementptr inbounds i8, i8* %9, i64 1
-    store i8 105, i8* %10, align 1
-    %11 = load i8*, i8** @schmu_b, align 8
-    tail call void @std_print(i8* %11)
-    tail call void @std_print(i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*))
-    %12 = load i8**, i8*** @schmu_a, align 8
-    %13 = bitcast i8** %12 to i8*
-    %14 = getelementptr i8, i8* %13, i64 16
-    %data1 = bitcast i8* %14 to i8**
-    %15 = load i8*, i8** %data1, align 8
-    tail call void @std_print(i8* %15)
-    tail call void @__free_ac(i8** @schmu_b)
-    tail call void @__free_aac(i8*** @schmu_a)
+    call void @string_print(i8* %8)
+    call void @string_print(i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*))
+    %9 = load i8**, i8*** @schmu_a, align 8
+    %10 = bitcast i8** %9 to i8*
+    %11 = getelementptr i8, i8* %10, i64 16
+    %data1 = bitcast i8* %11 to i8**
+    %12 = load i8*, i8** %data1, align 8
+    call void @string_print(i8* %12)
+    call void @__free_ac(i8** @schmu_b)
+    call void @__free_aac(i8*** @schmu_a)
     ret i64 0
   }
   

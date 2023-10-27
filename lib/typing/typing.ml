@@ -605,7 +605,12 @@ end = struct
   open Records
   open Patternmatch
 
-  let string_typ = Talias (Path.Pid "string", Tarray Tu8)
+  let string_typ =
+    (* Talias (Path.Pid "string", Tarray Tu8) *)
+    Tabstract
+      ( [],
+        Path.Pmod ("string", Path.Pid "t"),
+        Talias (Path.Pmod ("string", Path.Pid "t"), Tarray Tu8) )
 
   let partially_apply_call ~switch_uni loc env callee typed_exprs =
     (* Partial application only applies if we know the calle and can tell we
@@ -1269,7 +1274,7 @@ end = struct
       let e = convert env expr in
       match (e.expr, clean e.typ) with
       | Const (String s), _ -> Fstr s
-      | _, Tarray Tu8 -> Fexpr e
+      | _, (Tarray Tu8 | Tabstract ([], _, Tarray Tu8)) -> Fexpr e
       | _, (Tint | Tfloat | Tbool | Tu8 | Ti32 | Tf32) -> Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)

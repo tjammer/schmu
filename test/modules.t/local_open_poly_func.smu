@@ -1,9 +1,9 @@
 (external printf (fun string/cstr int unit))
 
 (->> (poly_func/classify (#some 3))
-    (printf (array/data "%i\n")))
+     (printf (string/data "%i\n")))
 (->> (poly_func/classify (#some 3.0))
-    (printf (array/data "%i\n")))
+     (printf (string/data "%i\n")))
 (def (none (option float)) #none)
 poly_func/(->> (classify none)
-              (printf (array/data "%i\n")))
+               (printf (string/data "%i\n")))

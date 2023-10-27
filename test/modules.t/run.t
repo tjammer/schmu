@@ -28,6 +28,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
   
+  declare i8* @string_data(i8* %0)
+  
   declare void @printf(i8* %0, i64 %1)
   
   define i64 @schmu_doo(i32 %0) {
@@ -48,8 +50,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i64 @schmu_doo(i32 0)
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %1 = tail call i64 @schmu_doo(i32 0)
+    tail call void @printf(i8* %0, i64 %1)
     ret i64 0
   }
   $ ./open_nonpoly_func
@@ -61,6 +64,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
+  
+  declare i8* @string_data(i8* %0)
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
   
@@ -100,10 +105,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i64 @schmu_doo(i32 0)
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %1 = tail call i64 @schmu_do2(i32 0)
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %1 = tail call i64 @schmu_doo(i32 0)
+    tail call void @printf(i8* %0, i64 %1)
+    %2 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %3 = tail call i64 @schmu_do2(i32 0)
+    tail call void @printf(i8* %2, i64 %3)
     ret i64 0
   }
   $ ./local_open_nonpoly_func
@@ -143,6 +150,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
+  declare i8* @string_data(i8* %0)
+  
   define void @schmu_inside-fn() {
   entry:
     tail call void @schmu_second()
@@ -151,19 +160,23 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define void @schmu_second() {
   entry:
-    %0 = load i64, i64* @lets_a__2, align 8
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %1 = load i64, i64* @lets_b, align 8
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %1 = load i64, i64* @lets_a__2, align 8
+    tail call void @printf(i8* %0, i64 %1)
+    %2 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %3 = load i64, i64* @lets_b, align 8
+    tail call void @printf(i8* %2, i64 %3)
     ret void
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = load i64, i64* @lets_a__2, align 8
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %1 = load i64, i64* @lets_b, align 8
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %1 = load i64, i64* @lets_a__2, align 8
+    tail call void @printf(i8* %0, i64 %1)
+    %2 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %3 = load i64, i64* @lets_b, align 8
+    tail call void @printf(i8* %2, i64 %3)
     tail call void @schmu_inside-fn()
     ret i64 0
   }
@@ -184,16 +197,22 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
+  declare i8* @string_data(i8* %0)
+  
   define i64 @main(i64 %arg) {
   entry:
-    %0 = load i64, i64* @lets_a__2, align 8
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %1 = load i64, i64* @lets_b, align 8
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
-    %2 = load i64, i64* @lets_a__2, align 8
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %2)
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %1 = load i64, i64* @lets_a__2, align 8
+    tail call void @printf(i8* %0, i64 %1)
+    %2 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %3 = load i64, i64* @lets_b, align 8
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %3)
+    tail call void @printf(i8* %2, i64 %3)
+    %4 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %5 = load i64, i64* @lets_a__2, align 8
+    tail call void @printf(i8* %4, i64 %5)
+    %6 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %7 = load i64, i64* @lets_b, align 8
+    tail call void @printf(i8* %6, i64 %7)
     ret i64 0
   }
   $ ./local_open_lets
@@ -220,6 +239,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @schmu_none = constant %option.t_float { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
+  declare i8* @string_data(i8* %0)
+  
   declare void @printf(i8* %0, i64 %1)
   
   define linkonce_odr i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %thing) {
@@ -256,16 +277,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst = alloca %option.t_int, align 8
     store %option.t_int { i32 0, i64 3 }, %option.t_int* %boxconst, align 8
-    %0 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %boxconst)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
+    %1 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %boxconst)
+    call void @printf(i8* %0, i64 %1)
+    %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst1 = alloca %option.t_float, align 8
     store %option.t_float { i32 0, double 3.000000e+00 }, %option.t_float* %boxconst1, align 8
-    %1 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %boxconst1)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
-    %2 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* @schmu_none)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %2)
+    %3 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %boxconst1)
+    call void @printf(i8* %2, i64 %3)
+    %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %5 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* @schmu_none)
+    call void @printf(i8* %4, i64 %5)
     ret i64 0
   }
   $ ./open_poly_func
@@ -284,6 +308,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @schmu_none = constant %option.t_float { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
+  declare i8* @string_data(i8* %0)
+  
   declare void @printf(i8* %0, i64 %1)
   
   define linkonce_odr i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %thing) {
@@ -320,16 +346,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst = alloca %option.t_int, align 8
     store %option.t_int { i32 0, i64 3 }, %option.t_int* %boxconst, align 8
-    %0 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %boxconst)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %0)
+    %1 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %boxconst)
+    call void @printf(i8* %0, i64 %1)
+    %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst1 = alloca %option.t_float, align 8
     store %option.t_float { i32 0, double 3.000000e+00 }, %option.t_float* %boxconst1, align 8
-    %1 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %boxconst1)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %1)
-    %2 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* @schmu_none)
-    call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %2)
+    %3 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %boxconst1)
+    call void @printf(i8* %2, i64 %3)
+    %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %5 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* @schmu_none)
+    call void @printf(i8* %4, i64 %5)
     ret i64 0
   }
   $ ./local_open_poly_func
@@ -420,6 +449,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @malloc_some_vtest = external global i64*
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
+  declare i8* @string_data(i8* %0)
+  
   declare void @printf(i8* %0, i64 %1)
   
   define linkonce_odr void @__agg.u.u_array_iter_aii.u.u(i64* %arr, %closure* %f) {
@@ -492,7 +523,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define void @schmu_printi(i64 %i) {
   entry:
-    tail call void @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i64 16), i64 %i)
+    %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    tail call void @printf(i8* %0, i64 %i)
     ret void
   }
   
@@ -655,7 +687,7 @@ Local modules
   @3 = private unnamed_addr constant { i64, i64, [11 x i8] } { i64 10, i64 10, [11 x i8] c"i'm nested\00" }
   @4 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"hey test\00" }
   
-  declare void @std_print(i8* %0)
+  declare void @string_print(i8* %0)
   
   define linkonce_odr void @__g.u_schmu_local_poly-test_ac.u(i8* %a) {
   entry:
@@ -666,19 +698,19 @@ Local modules
   
   define void @schmu_local_test() {
   entry:
-    tail call void @std_print(i8* bitcast ({ i64, i64, [10 x i8] }* @2 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [10 x i8] }* @2 to i8*))
     ret void
   }
   
   define void @schmu_nosig_nested_nested() {
   entry:
-    tail call void @std_print(i8* bitcast ({ i64, i64, [11 x i8] }* @3 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [11 x i8] }* @3 to i8*))
     ret void
   }
   
   define void @schmu_test() {
   entry:
-    tail call void @std_print(i8* bitcast ({ i64, i64, [9 x i8] }* @4 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [9 x i8] }* @4 to i8*))
     ret void
   }
   

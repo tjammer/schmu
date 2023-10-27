@@ -44,7 +44,10 @@ let functor_param_name ~mname name =
   Path.append_path (Pmod ("fparam", Pid name)) mname
 
 let add_type_sig loc name t m = { m with s = (name, loc, t, Mtypedef) :: m.s }
-let add_value_sig loc name t m = { m with s = (name, loc, t, Mvalue) :: m.s }
+
+let add_value_sig loc name t m =
+  { m with s = (name, loc, t, Mvalue None) :: m.s }
+
 let add_type loc t m = { m with i = Mtype (loc, t) :: m.i }
 
 let add_local_module loc id newm ~into =
@@ -322,7 +325,11 @@ let rec add_to_env env foreign (mname, m) =
           match kind with
           (* Not in the signature of the module we add it to *)
           | Mtypedef -> Env.add_type name ~in_sig:false typ env
-          | Mvalue -> Env.(add_value name { def_val with typ } loc env))
+          | Mvalue cn -> (
+              Env.(add_value name { def_val with typ } loc env) |> fun env ->
+              match cn with
+              | None -> env
+              | Some cn -> Env.add_callname ~key:name cn env))
         env l
 
 and make_scope env loc foreign mname m =
@@ -472,7 +479,7 @@ let scope_of_functor_param env loc (path, mt) =
         match kind with
         (* Not in the signature of the module we add it to *)
         | Mtypedef -> Env.add_type name ~in_sig:false typ env
-        | Mvalue -> Env.(add_value name { (def_mname path) with typ } loc env))
+        | Mvalue _ -> Env.(add_value name { (def_mname path) with typ } loc env))
       env mt
   in
   let scope = Env.pop_scope env in
@@ -546,18 +553,18 @@ let extract_name_type env = function
       | t ->
           print_endline (string_of_type (Env.modpath env) t);
           failwith "Internal Error: Type does not have a name")
-  | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Mvalue)
-  | Mpoly_fun (l, abs, n, _) -> Some (n, l, type_of_func abs.func, Mvalue)
+  | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Mvalue n.call)
+  | Mpoly_fun (l, abs, n, _) -> Some (n, l, type_of_func abs.func, Mvalue None)
   | Mmutual_rec _ -> None
-  | Malias (l, n, tree) -> Some (n, l, tree.typ, Mvalue)
+  | Malias (l, n, tree) -> Some (n, l, tree.typ, Mvalue None)
   | Mlocal_module (l, n, _) ->
       (* Do we have to deal with this? *)
-      Some (n, l, Tunit, Mvalue)
+      Some (n, l, Tunit, Mvalue None)
   | Mmodule_alias _ | Mmodule_type _ | Mfunctor _ | Mapplied_functor _ -> None
 
 let find_item name kind (n, _, _, tkind) =
   match (kind, tkind) with
-  | (Mvalue, Mvalue | Mtypedef, Mtypedef) when String.equal name n -> true
+  | (Mvalue _, Mvalue _ | Mtypedef, Mtypedef) when String.equal name n -> true
   | _ -> false
 
 let validate_intf env loc ~in_functor (name, _, styp, kind) rhs =
@@ -591,7 +598,7 @@ let validate_intf env loc ~in_functor (name, _, styp, kind) rhs =
   | None, kind ->
       let msg =
         Printf.sprintf "Signatures don't match: %s %s is missing"
-          (match kind with Mtypedef -> "Type" | Mvalue -> "Value " ^ name)
+          (match kind with Mtypedef -> "Type" | Mvalue _ -> "Value " ^ name)
           (string_of_type mn styp)
       in
       raise (Error (loc, msg))
@@ -612,11 +619,11 @@ let validate_signature env m =
             if b then (
               (* Query value to mark it as used in the env *)
               (match ikind with
-              | Mvalue -> ignore (Env.query_val_opt loc (Path.Pid n) env)
+              | Mvalue _ -> ignore (Env.query_val_opt loc (Path.Pid n) env)
               | Mtypedef -> ());
               (* [typ] maintains abstract types, but uses the implementation
                  types otherwise. This is needed for closures *)
-              (name, loc, typ, kind))
+              (name, loc, typ, ikind))
             else
               let msg =
                 Error.format_type_err
@@ -633,7 +640,7 @@ let validate_signature env m =
                        "Abstract type " ^ string_of_type mn styp
                        ^ " not implemented" ))
             | _ -> (name, loc, styp, kind))
-        | None, Mvalue ->
+        | None, Mvalue _ ->
             let msg =
               Printf.sprintf
                 "Mismatch between implementation and signature: Missing \

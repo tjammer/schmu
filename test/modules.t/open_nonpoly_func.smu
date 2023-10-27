@@ -8,4 +8,4 @@
    (#right (add_ints 0 -5))))
 
 (->> (doo #left)
-     (printf (array/data "%i\n")))
+     (printf (string/data "%i\n")))
