@@ -69,13 +69,13 @@ let rec unify t1 t2 =
     | Tfun (params_l, l, _), Tfun (params_r, r, _) -> (
         try
           let attr_mismatch = ref false in
+          unify l r;
           List.iter2
             (fun left right ->
               (* Continue with unification to generate better type errors *)
               if not (left.pattr = right.pattr) then attr_mismatch := true;
               unify left.pt right.pt)
             params_l params_r;
-          unify l r;
           if !attr_mismatch then raise Unify
         with Invalid_argument _ -> raise Unify)
     | Trecord (_, None, labels1), Trecord (_, None, labels2) -> (

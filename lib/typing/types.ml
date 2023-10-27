@@ -81,8 +81,11 @@ let rec clean = function
             ctors )
   | Talias (_, t) -> clean t
   | Traw_ptr t -> Traw_ptr (clean t)
-  | ( Tvar _ | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Qvar _
-    | Tabstract _ | Tarray _ | Tfixed_array _ ) as t ->
+  | Tabstract (ps, n, t) -> Tabstract (List.map clean ps, n, clean t)
+  | Tarray t -> Tarray (clean t)
+  | Tfixed_array (n, t) -> Tfixed_array (n, clean t)
+  | (Tvar _ | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Qvar _) as t
+    ->
       t
 
 let pp_to_name name = "'" ^ name

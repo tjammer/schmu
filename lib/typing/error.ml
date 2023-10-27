@@ -73,7 +73,12 @@ let format_type_err pre mname t1 t2 =
             if String.equal ls rs then
               (* Return type could be different *)
               (rfound, "(fun _ " ^ l ^ ")", "(fun _ " ^ r ^ ")")
-            else (found, "(fun " ^ ls ^ " _)", "(fun " ^ rs ^ " _)")
+            else if String.equal l r then
+              (found, "(fun " ^ ls ^ " _)", "(fun " ^ rs ^ " _)")
+            else
+              ( found || rfound,
+                "(fun " ^ ls ^ " " ^ l ^ ")",
+                "(fun " ^ rs ^ " " ^ r ^ ")" )
           in
           (* This could be an inner function. If the strings are the same, we only
              return a placeholder *)

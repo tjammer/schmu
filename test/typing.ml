@@ -967,8 +967,8 @@ let test_functor_poly_function () =
 let test_functor_poly_mismatch () =
   test_exn
     "Signatures don't match for id\n\
-     expecting (fun ['a]! _)\n\
-     but found (fun [int]! _)"
+     expecting (fun ['a]! ['a])\n\
+     but found (fun [int]! [int])"
     {|(module-type poly
   (def id (fun 'a! 'a)))
 
