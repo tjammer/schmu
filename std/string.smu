@@ -13,10 +13,7 @@
 
   (def modify-buf (fun t& (fun (array u8)& unit) unit))
 
-  (def print (fun t unit))
-  (def puts (fun cstr unit)))
-
-(external puts (fun cstr unit))
+  (def print (fun t unit)))
 
 (type t (array u8))
 
@@ -54,7 +51,6 @@
                  (fn [i str]
                    (if (not (= i 0)) (append &ret delim))
                    (append &ret str)))
-    (array/push &ret !'\000')
     ret))
 
 (defn make-skips [pattern]
@@ -96,4 +92,13 @@
   -- return type needs to be inferred as unit
   ())
 
-(defn print [(str t)] (puts (array/data str)))
+(type file (raw_ptr u8))
+(external stdout file)
+(external fwrite (fun cstr int int file unit))
+
+(def newline #['\n'])
+
+(defn print [(str t)]
+  -- TODO should be named println, but (print (fmt-str ...)) also adds newline
+  (fwrite (array/data str) (array/length str) 1 stdout)
+  (fwrite (__fixed_array_data newline) 1 1 stdout))
