@@ -656,6 +656,19 @@ end = struct
                 { value; typ = Tint; lltyp = int_t; kind = Const }
             | _ -> failwith "Internal Error: Not a fixed-size array")
         | _ -> failwith "Internal Error: Arity mismatch in builtin")
+    | Fixed_array_data -> (
+        match args with
+        | [ arr ] -> (
+            match (arr.kind, arr.typ) with
+            | (Ptr | Const_ptr), Tfixed_array (_, t) ->
+                let lltyp = get_lltype_def t |> Llvm.pointer_type in
+                let value = Llvm.build_bitcast arr.value lltyp "" builder in
+                { value; kind = Imm; typ = Traw_ptr t; lltyp }
+            | (Ptr | Const_ptr), _ ->
+                failwith "Internal Error: Not a fixed-size array"
+            | (Const | Imm), _ ->
+                failwith "Internal Error: Taking address of immediate")
+        | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Unsafe_array_realloc -> array_realloc args
     | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
     | Unsafe_nullptr ->

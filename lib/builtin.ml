@@ -28,6 +28,7 @@ type t =
   | Array_capacity
   | Fixed_array_get
   | Fixed_array_length
+  | Fixed_array_data
   | Unsafe_array_realloc
   | Unsafe_array_create
   | Unsafe_array_length
@@ -136,6 +137,14 @@ let tbl =
           Tint,
           Simple ),
       "__fixed_array_length" );
+    ( Fixed_array_data,
+      Tfun
+        ( [
+            { p with pt = Tfixed_array (ref (Types.Generalized "0"), Qvar "0") };
+          ],
+          Traw_ptr (Qvar "0"),
+          Simple ),
+      "__fixed_array_data" );
     ( Unsafe_array_realloc,
       Tfun
         ( [ { pt = Tarray (Qvar "0"); pattr = Dmut }; { p with pt = Tint } ],
@@ -182,6 +191,7 @@ let of_string = function
   | "__array_data" -> Some Array_data
   | "__fixed_array_get" -> Some Fixed_array_get
   | "__fixed_array_length" -> Some Fixed_array_length
+  | "__fixed_array_data" -> Some Fixed_array_data
   | "__unsafe_array_capacity" -> Some Array_capacity
   | "__unsafe_array_realloc" -> Some Unsafe_array_realloc
   | "__unsafe_array_create" -> Some Unsafe_array_create
