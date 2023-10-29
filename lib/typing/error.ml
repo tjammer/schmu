@@ -8,10 +8,11 @@ let format_type_err pre mname t1 t2 =
      highlight the differences with [<type>]. We can afford to write this in a
      naive way like using string comparisons etc. It will only be called if an
      error has been raised *)
+  let sotl = create_string_of_type mname in
+  let sotr = create_string_of_type mname in
   let rec aux t1 t2 =
-    let sot = string_of_type mname in
-    let plist ps = String.concat " " (List.map (fun p -> sot p.pt) ps) in
-    let flist fs =
+    let plist sot ps = String.concat " " (List.map (fun p -> sot p.pt) ps) in
+    let flist sot fs =
       String.concat " " (Array.map (fun f -> sot f.ftyp) fs |> Array.to_list)
     in
     (* TODO parameter version with passing *)
@@ -59,16 +60,16 @@ let format_type_err pre mname t1 t2 =
     | Tfun (ls, l, _), Tfun (rs, r, _) ->
         (* If the number of arguments doesn't match, highlight the whole list *)
         if List.length rs <> List.length ls then
-          let ls = "(fun [" ^ plist ls ^ "] _)"
-          and rs = "(fun [" ^ plist rs ^ "] _)" in
+          let ls = "(fun [" ^ plist sotl ls ^ "] _)"
+          and rs = "(fun [" ^ plist sotr rs ^ "] _)" in
           (true, ls, rs)
         else
-          (* Check if return type matches *)
-          let rfound, l, r = aux l r in
           let found, ls, rs =
             (* Find different argument types *)
             pdifflist ls rs
           in
+          (* Check if return type matches *)
+          let rfound, l, r = aux l r in
           let found, l, r =
             if String.equal ls rs then
               (* Return type could be different *)
@@ -85,7 +86,8 @@ let format_type_err pre mname t1 t2 =
           if String.equal l r then (found, "_", "_") else (found, l, r)
     | Trecord (_, None, ls), Trecord (_, None, rs) ->
         if Array.length ls <> Array.length rs then
-          let ls = "[{" ^ flist ls ^ "}]" and rs = "[{" ^ flist rs ^ "}]" in
+          let ls = "[{" ^ flist sotl ls ^ "}]"
+          and rs = "[{" ^ flist sotr rs ^ "}]" in
           (true, ls, rs)
         else
           let ls = Array.to_list ls |> List.map (fun f -> f.ftyp)
@@ -99,7 +101,7 @@ let format_type_err pre mname t1 t2 =
         else if found then (found, "(array " ^ l ^ ")", "(array " ^ r ^ ")")
         else (found, "(array [" ^ l ^ "])", "(array [" ^ r ^ "])")
     | l, r ->
-        let l = sot l and r = sot r in
+        let l = sotl l and r = sotr r in
         if String.equal l r then (false, l, r)
         else (true, "[" ^ l ^ "]", "[" ^ r ^ "]")
   in

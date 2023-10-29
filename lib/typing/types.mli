@@ -55,6 +55,9 @@ val string_of_type_lit : Path.t -> typ -> string
 val string_of_type_subst : string Smap.t -> Path.t -> typ -> string
 (** Version using the subst table created during comparison with annot *)
 
+val create_string_of_type : Path.t -> typ -> string
+(** Used for creating the subst function, for printing error messages *)
+
 val is_polymorphic : typ -> bool
 val is_weak : sub:Sset.t -> typ -> bool
 val extract_name_path : typ -> Path.t option

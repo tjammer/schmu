@@ -162,19 +162,19 @@ let test_annot_concrete () = test "(fun int bool)" "(defn foo (x) (< x 3)) foo"
 
 let test_annot_concrete_fail () =
   test_exn
-    "Var annotation: Expected type (fun bool int) but got type (fun int bool)"
+    "Var annotation\nexpecting (fun [bool] [int])\nbut found (fun [int] [bool])"
     "(def (foo (fun bool int)) (fn (x) (< x 3))) foo"
 
 let test_annot_mix () = test "(fun 'a! 'a)" "(defn pass [(x! 'b)] x) pass"
 
 let test_annot_mix_fail () =
-  test_exn "Var annotation: Expected type (fun 'b int) but got type (fun 'b 'b)"
+  test_exn "Var annotation expecting (fun _ [int]) but found (fun _ ['a])"
     "(def (pass (fun 'b int)) (fn (x) (copy x))) pass"
 
 let test_annot_generic () = test "(fun 'a! 'a)" "(defn pass [(x! 'b)] x) pass"
 
 let test_annot_generic_fail () =
-  test_exn "Var annotation: Expected type (fun 'a 'b) but got type (fun 'a 'a)"
+  test_exn "Var annotation expecting (fun _ ['b]) but found (fun _ ['a])"
     "(def (pass (fun 'a 'b)) (fn (x) (copy x))) pass"
 
 let test_annot_generic_mut () =
@@ -479,7 +479,7 @@ let test_match_column_arity () =
   test_exn
     "Tuple pattern has unexpected type:\n\
      expecting [{int int}]\n\
-     but found [{'a 'a 'a}]"
+     but found [{'a 'b 'c}]"
     {|(type (option 'a) (#none (#some 'a)))
     (match {1 2}
       ({a b c} a))
@@ -577,7 +577,7 @@ let test_pattern_decl_tuple_missing () =
   test_exn
     "Tuple pattern has unexpected type:\n\
      expecting [{int float int}]\n\
-     but found [{'a 'a}]"
+     but found [{'a 'b}]"
     "(type foo {:i int :f float})(def {x f} {12 5.0 20}) f"
 
 let test_pattern_decl_tuple_exhaust () =

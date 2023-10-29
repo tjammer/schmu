@@ -184,6 +184,10 @@ let string_of_type_lit mname typ = string_of_type_raw pp_to_name typ mname
 let string_of_type_subst subst mname typ =
   string_of_type_raw (string_of_type_get_name subst) typ mname
 
+let create_string_of_type mname =
+  let subst = string_of_type_get_name Smap.empty in
+  fun typ -> string_of_type_raw subst typ mname
+
 let is_polymorphic typ =
   let rec inner acc = function
     | Qvar _ | Tvar { contents = Unbound _ } -> true

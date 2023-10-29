@@ -59,14 +59,10 @@ let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
 let check_annot env loc l r =
   let mn = Env.modpath env in
-  let typ, subst, b = Inference.types_match ~in_functor:false l r in
+  let typ, _, b = Inference.types_match ~in_functor:false l r in
   if b then typ
   else
-    let msg =
-      Printf.sprintf "Var annotation: Expected type %s but got type %s"
-        (string_of_type_lit mn r)
-        (string_of_type_subst subst mn l)
-    in
+    let msg = Error.format_type_err "Var annotation" mn r l in
     raise (Error (loc, msg))
 
 let main_path = Path.Pid "schmu"
