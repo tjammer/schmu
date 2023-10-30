@@ -91,6 +91,7 @@
 %token Hashtag_brack
 %token <int> Hashnum_brack
 %token <string> Sized_ident
+%token <string> Unknown_sized_ident
 %token Ampersand
 %token Exclamation
 %token At
@@ -553,6 +554,7 @@ sexp_type_list:
 type_spec:
   | ident { Ty_id (snd $1) }
   | id = Sized_ident { Ty_id id }
+  | id = Unknown_sized_ident { Ty_id id }
   | poly_id { $1 }
   | fst = ident; Div_i; lst = separated_nonempty_list(Div_i, ident)
     { Ty_open_id ($loc, flatten_open (fst :: lst) ) }

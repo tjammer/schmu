@@ -140,6 +140,7 @@ let rec subst_generic ~id typ = function
       Tabstract (ps, name, t)
   | Traw_ptr t -> Traw_ptr (subst_generic ~id typ t)
   | Tarray t -> Tarray (subst_generic ~id typ t)
+  | Tfixed_array (i, t) -> Tfixed_array (i, subst_generic ~id typ t)
   | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
   | t -> t
 
@@ -201,6 +202,10 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         if not in_list then
           raise (Error (loc, "Type raw_ptr expects 1 type parameter"));
         Traw_ptr (Qvar "o")
+    | Ty_id "array#?" ->
+        if not in_list then
+          raise (Error (loc, "Type array#? expects 1 type parameter"));
+        Tfixed_array (ref (Generalized "u"), Qvar "o")
     | Ty_id id when String.starts_with ~prefix:"array#" id ->
         let size = String.sub id 6 (String.length id - 6) |> int_of_string in
         if not in_list then

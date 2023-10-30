@@ -212,6 +212,15 @@ let test_annot_tuple_generic () =
 let test_annot_fixed_size_array () =
   test "(array#32 int)" "(defn hmm [(a! (array#32 'a))] a) (hmm !#32[0])"
 
+let test_annot_fixed_unknown_size_array () =
+  test "(array#32 int)" "(defn hmm [(a! (array#? 'a))] a) (hmm !#32[0])"
+
+let test_annot_fixed_unknown_size_array_fn () =
+  (* The function is instantiated so the size is not generalized. That's why
+     there are two question marks. *)
+  test "(fun (array#?? 'a)! (array#?? 'a))"
+    "(defn hmm [(a! (array#? 'a))] a) hmm"
+
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
 
@@ -1115,6 +1124,9 @@ let () =
           case "array arg generic" test_annot_array_arg_generic;
           case "tuple generic" test_annot_tuple_generic;
           case "fixed-size array" test_annot_fixed_size_array;
+          case "fixed-size unknown array" test_annot_fixed_unknown_size_array;
+          case "fixed-size unknown array fn"
+            test_annot_fixed_unknown_size_array_fn;
         ] );
       ( "function sequencing",
         [

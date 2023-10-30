@@ -614,12 +614,12 @@ let validate_signature env m =
       let impl = List.filter_map (extract_name_type env) m.i in
       let f (name, loc, styp, kind) =
         match (List.find_opt (find_item name kind) impl, kind) with
-        | Some (n, loc, ityp, ikind), _ ->
+        | Some (n, iloc, ityp, ikind), _ ->
             let typ, _, b = Inference.types_match ~in_functor:false styp ityp in
             if b then (
               (* Query value to mark it as used in the env *)
               (match ikind with
-              | Mvalue _ -> ignore (Env.query_val_opt loc (Path.Pid n) env)
+              | Mvalue _ -> ignore (Env.query_val_opt iloc (Path.Pid n) env)
               | Mtypedef -> ());
               (* [typ] maintains abstract types, but uses the implementation
                  types otherwise. This is needed for closures *)

@@ -95,6 +95,8 @@ let backslash_escapes = ['\\' '\'' '"' 'n' 't' 'b' 'r' ' ']
 let hashnum = '#' int
 let hashnumbrack = hashnum '['
 let sized_id = lowercase_alpha+ hashnum
+let hashquest = '#' '?'
+let unknown_sized_id = lowercase_alpha+ hashquest
 
 rule read =
   parse
@@ -183,6 +185,7 @@ rule read =
   | "#["     { Hashtag_brack }
   | hashnumbrack { Hashnum_brack (int_of_hashnum (Lexing.lexeme lexbuf)) }
   | sized_id  { Sized_ident (Lexing.lexeme lexbuf) }
+  | unknown_sized_id { Unknown_sized_ident (Lexing.lexeme lexbuf) }
   | "->"     { Arrow_right }
   | "->>"    { Arrow_righter }
   | "--"     { line_comment lexbuf }

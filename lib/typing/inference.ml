@@ -420,17 +420,13 @@ let rec types_match ~in_functor l r =
           let l, r = nss_of_types l r in
           let t, s, b = aux ~strict qsubst l r in
           (Tarray t, s, b)
-      | ( Tfixed_array ({ contents = Generalized l }, lt),
-          Tfixed_array (({ contents = Generalized ri } as i), rt) )
-      | ( Tfixed_array ({ contents = Unknown (l, _) }, lt),
-          Tfixed_array (({ contents = Generalized ri } as i), rt) ) ->
+      | ( Tfixed_array (({ contents = Generalized l } as rl), lt),
+          Tfixed_array (({ contents = Generalized ri } as rr), rt) )
+      | ( Tfixed_array (({ contents = Unknown (l, _) } as rl), lt),
+          Tfixed_array (({ contents = Generalized ri } as rr), rt) ) ->
+          (* TODO check for same generalized things. Would be nice if something could be generalized *)
           (* Prepend with fa for fixed array so not clash with Qvar strings *)
-          let subst, pre =
-            match Smap.find_opt ("fa" ^ l) qsubst with
-            | Some id when String.equal ("fa" ^ ri) id -> (qsubst, true)
-            | Some _ -> (qsubst, false)
-            | None -> (Smap.add ("fa" ^ l) ("fa" ^ ri) qsubst, true)
-          in
+          let i, subst, pre = aux_sizes qsubst rl rr l ri in
           if pre then
             let l, r = nss_of_types lt rt in
             let t, s, b = aux ~strict subst l r in
@@ -463,6 +459,16 @@ let rec types_match ~in_functor l r =
           | Error _ -> (r, qsubst, false))
       | l, Tabstract (_, _, r) -> aux ~strict qsubst (lns, l) (rns, r)
       | _ -> (r, qsubst, false)
+  and aux_sizes subst refl refr l r =
+    if refl == refr then (refr, subst, true)
+    else
+      let subst, pre =
+        match Smap.find_opt ("fa" ^ l) subst with
+        | Some id when String.equal ("fa" ^ r) id -> (subst, true)
+        | Some _ -> (subst, false)
+        | None -> (Smap.add ("fa" ^ l) ("fa" ^ r) subst, true)
+      in
+      (refr, subst, pre)
   in
   let l, r = nss_of_types l r in
   aux ~strict:false Smap.empty l r
