@@ -13,8 +13,8 @@ type expr =
   | Mlet of
       string * monod_tree * let_kind * global_name * malloc_list * monod_tree
   | Mbind of string * monod_tree * monod_tree
-  | Mlambda of string * abstraction * alloca
-  | Mfunction of string * abstraction * monod_tree * alloca
+  | Mlambda of string * fun_kind * typ * alloca
+  | Mfunction of string * fun_kind * typ * monod_tree * alloca
   | Mapp of {
       callee : monod_expr;
       args : (monod_expr * bool) list;
@@ -422,6 +422,8 @@ type morph_param = {
   toplvl : bool;
   mname : Path.t; (* Module name *)
   mainmodule : Path.t;
+  alloc_lvl : int;
+  recursion_stack : (string * recurs) list;
 }
 
 let no_var =
@@ -430,6 +432,7 @@ let no_var =
 let apptbl = Apptbl.create 64
 let poly_funcs_tbl = Hashtbl.create 64
 let missing_polys_tbl = Hashtbl.create 64
+let deferredfunc_tbl = Hashtbl.create 64
 
 (* Monomorphization *)
 
@@ -467,7 +470,7 @@ let rec find_function_expr vars = function
       (* We are not allowing to return functions in ifs, b/c we cannot codegen
          anyway *)
       No_function
-  | Mlambda (name, _, _) -> (
+  | Mlambda (name, _, _, _) -> (
       match Vars.find_opt name vars with
       | Some (Normal thing) -> thing.fn
       | _ -> No_function)
@@ -685,13 +688,6 @@ and subst_kind subst = function
 and subst_body p subst tree =
   let p = ref p in
 
-  let subst_func { params; ret; kind } =
-    let params = List.map (fun p -> { p with pt = subst p.pt }) params in
-    let ret = subst ret in
-    let kind = subst_kind subst kind in
-    { params; ret; kind }
-  in
-
   let rec inner tree =
     let sub t = { (inner t) with typ = subst t.typ } in
     match tree.expr with
@@ -716,28 +712,25 @@ and subst_body p subst tree =
         let lhs = sub lhs in
         let cont = sub cont in
         { tree with typ = cont.typ; expr = Mbind (id, lhs, cont) }
-    | Mlambda (name, abs, alloca) ->
-        let abs =
-          { abs with func = subst_func abs.func; body = sub abs.body }
-        in
-        let typ = typ_of_abs abs in
+    | Mlambda (name, kind, typ, alloca) ->
+        let styp = subst typ and kind = subst_kind subst kind in
 
         (* We may have to monomorphize. For instance if the lambda returned from
            a polymorphic function *)
-        let name = mono_callable name typ tree in
+        let name = mono_callable name styp tree in
 
-        { tree with typ; expr = Mlambda (name, abs, alloca) }
-    | Mfunction (name, abs, cont, alloca) ->
-        let typ = typ_of_abs abs in
-        let abs =
-          { abs with func = subst_func abs.func; body = sub abs.body }
-        in
+        { tree with typ; expr = Mlambda (name, kind, styp, alloca) }
+    | Mfunction (name, kind, typ, cont, alloca) ->
+        let styp = subst typ and kind = subst_kind subst kind in
         (* We may have to monomorphize. For instance if the lambda returned from
            a polymorphic function *)
-        let name = mono_callable name (typ_of_abs abs) { tree with typ } in
-
+        let name = mono_callable name styp { tree with typ } in
         let cont = { (inner cont) with typ = subst cont.typ } in
-        { tree with typ = cont.typ; expr = Mfunction (name, abs, cont, alloca) }
+        {
+          tree with
+          typ = cont.typ;
+          expr = Mfunction (name, kind, styp, cont, alloca);
+        }
     | Mapp { callee; args; alloca; id; ms } ->
         let ex = sub callee.ex in
 
@@ -829,10 +822,12 @@ and subst_body p subst tree =
           if is_type_polymorphic typ then name
           else
             let p2, monomorph =
-              match Hashtbl.find_opt poly_funcs_tbl name with
-              | Some func -> monomorphize !p tree.typ typ func (Some subst)
-              | None ->
-                  failwith "Internal Error: Poly function not registered yet"
+              let p, func = get_poly_func !p name in
+              monomorphize p tree.typ typ func (Some subst)
+              (* match Hashtbl.find_opt poly_funcs_tbl name with *)
+              (* | Some func -> monomorphize !p tree.typ typ func (Some subst) *)
+              (* | None -> *)
+              (*     failwith "Internal Error: Poly function not registered yet" *)
             in
 
             let name = match monomorph with Mono name -> name | _ -> name in
@@ -899,13 +894,27 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
       if not (String.equal func.name.call username) then
         (p, Concrete func.name.call)
       else (p, Default)
-  | Polymorphic call -> (
-      match Hashtbl.find_opt poly_funcs_tbl call with
-      | Some func ->
-          let typ = typ_of_abs func.abs in
-          monomorphize p typ expr.typ func parent_sub
-      | None -> failwith "Internal Error: Poly function not registered yet")
+  | Polymorphic call ->
+      let p, func = get_poly_func p call in
+      let typ = typ_of_abs func.abs in
+      monomorphize p typ expr.typ func parent_sub
   | No_function -> (p, Default)
+
+and get_poly_func p callname =
+  match Hashtbl.find_opt poly_funcs_tbl callname with
+  | Some func -> (p, func)
+  | None -> (
+      match Hashtbl.find_opt deferredfunc_tbl callname with
+      | Some make_func ->
+          (* Which param do we want to use? The original *)
+          let np = make_func () in
+          (* Should exist now *)
+          let func = Hashtbl.find poly_funcs_tbl callname in
+          let funcs = Fset.union np.funcs p.funcs
+          and monomorphized = Sset.union np.monomorphized p.monomorphized in
+          let p = { p with funcs; monomorphized } in
+          (p, func)
+      | None -> failwith "Internal Error: Poly function not registered yet")
 
 and monomorphize p typ concrete func parent_sub =
   let call = get_mono_name func.name.call ~closure:true ~poly:typ concrete in
@@ -1051,7 +1060,6 @@ and cln_param param p =
 
 (* State *)
 
-let alloc_lvl = ref 1
 let alloc_id = ref 1
 let malloc_id = ref 1
 
@@ -1060,21 +1068,20 @@ let new_id id =
   incr id;
   ret_id
 
-let enter_level () = incr alloc_lvl
-let leave_level () = decr alloc_lvl
-let request () = Request { id = new_id alloc_id; lvl = !alloc_lvl }
+let enter_level p = { p with alloc_lvl = p.alloc_lvl + 1 }
+let leave_level p = { p with alloc_lvl = p.alloc_lvl - 1 }
+let request p = Request { id = new_id alloc_id; lvl = p.alloc_lvl }
 
 let reset () =
-  alloc_lvl := 1;
   alloc_id := 1;
   malloc_id := 1
 
-let rec set_alloca = function
-  | Value ({ contents = Request req } as a) when req.lvl >= !alloc_lvl ->
+let rec set_alloca p = function
+  | Value ({ contents = Request req } as a) when req.lvl >= p.alloc_lvl ->
       a := Preallocated
   | Two_values (a, b) ->
-      set_alloca a;
-      set_alloca b
+      set_alloca p a;
+      set_alloca p b
   | Value _ | No_value -> ()
 
 let mb_malloc parent ids typ =
@@ -1101,25 +1108,22 @@ let add_params vars mallocs pnames params =
       (vars, mallocs))
     (vars, mallocs) pnames params
 
-let recursion_stack = ref []
 let constant_uniq_state = ref 1
 let constant_tbl = Hashtbl.create 64
 let global_tbl = Hashtbl.create 64
 
-let pop_recursion_stack () =
-  match !recursion_stack with
-  | hd :: tl ->
-      recursion_stack := tl;
-      snd hd
+let pop_recursion_stack p =
+  match p.recursion_stack with
+  | hd :: _ -> snd hd
   | [] -> failwith "Internal Error: Recursion stack empty (pop)"
 
-let set_tailrec name =
-  match !recursion_stack with
+let set_tailrec p name =
+  match p.recursion_stack with
   (* We have to check the name (of the function) here, because a nested function
      could call recursively its parent *)
   | (nm, _) :: tl when String.equal name nm ->
-      recursion_stack := (nm, Rtail) :: tl
-  | _ :: _ -> ()
+      { p with recursion_stack = (nm, Rtail) :: tl }
+  | _ :: _ -> p
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
 let rec_fs_to_env p (username, uniq, typ) =
@@ -1183,12 +1187,12 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Set (expr, value) -> morph_set make param expr value
   | Sequence (expr, cont) -> morph_seq make param expr cont
   | Function (name, uniq, abs, ocont) ->
-      let p, call, abs, alloca = prep_func param (name, uniq, abs) in
+      let p, (call, kind, ftyp, alloca) = prep_func param (name, uniq, abs) in
       let p, cont, func = morph_expr { p with ret = param.ret } ocont in
       ( p,
         {
           typ = cont.typ;
-          expr = Mfunction (call, abs, cont, alloca);
+          expr = Mfunction (call, kind, ftyp, cont, alloca);
           return = param.ret;
           loc = texpr.loc;
           const = const ocont;
@@ -1261,18 +1265,18 @@ and morph_array mk p a typ =
   let p = { p with ret = false } in
 
   (* ret = false is threaded through p *)
-  enter_level ();
+  let p = enter_level p in
   let f param e =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
-    set_alloca var.alloc;
+    set_alloca p var.alloc;
     (* Should have been moved *)
     assert (var.malloc = No_malloc);
     (p, e)
   in
   let p, a = List.fold_left_map f p a in
-  leave_level ();
-  let alloca = ref (request ()) in
+  let p = leave_level p in
+  let alloca = ref (request p) in
   let mid = new_id malloc_id in
   let id = { Mid.mid; typ; parent = None } in
   let mallocs = Mallocs.add (Single id) p.mallocs in
@@ -1286,21 +1290,21 @@ and morph_fixed_array mk p a typ =
   let ret = p.ret in
   let p = { p with ret = false } in
 
-  enter_level ();
+  let p = enter_level p in
   let f param e =
     let p, e, var = morph_expr param e in
-    set_alloca var.alloc;
+    set_alloca p var.alloc;
     (* Should have been moved *)
     assert (var.malloc = No_malloc);
     (p, e)
   in
   let p, a = List.fold_left_map f p a in
-  leave_level ();
+  let p = leave_level p in
 
   let _, malloc, mallocs = mb_malloc None p.mallocs typ in
   let ms = m_to_list malloc in
 
-  let alloca = ref (request ()) in
+  let alloca = ref (request p) in
   ( { p with ret; mallocs },
     mk (Mconst (Fixed_array (a, alloca, ms))) p.ret,
     { no_var with fn = No_function; alloc = Value alloca; malloc } )
@@ -1468,7 +1472,7 @@ and prep_let p id uniq e pass toplvl =
         ({ p with vars = Vars.add un (Const uniq) p.vars }, Some uniq)
     | { global = true; _ } | { const = true; _ } ->
         (* Globals are 'preallocated' at module level *)
-        set_alloca func.alloc;
+        set_alloca p func.alloc;
         let uniq = Module.unique_name ~mname:p.mname id uniq in
         let cnt = new_id constant_uniq_state in
         Hashtbl.add global_tbl uniq (cnt, e1, toplvl);
@@ -1481,7 +1485,7 @@ and prep_let p id uniq e pass toplvl =
         ({ p with vars }, Some uniq)
     | _ ->
         let kind = let_kind pass in
-        (match kind with Lborrow -> () | Lowned -> set_alloca func.alloc);
+        (match kind with Lborrow -> () | Lowned -> set_alloca p func.alloc);
         ({ p with vars = Vars.add un (Normal func) p.vars }, None)
   in
   (un, p, e1, gn, ms)
@@ -1491,23 +1495,23 @@ and morph_record mk p labels typ =
   let p = { p with ret = false } in
 
   (* ret = false is threaded through p *)
-  enter_level ();
+  let p = enter_level p in
 
   (* Collect mallocs in initializer *)
   let f param (id, e) =
     let p, e, var = morph_expr param e in
-    if is_struct e.typ then set_alloca var.alloc;
+    if is_struct e.typ then set_alloca p var.alloc;
     (* Should have been moved *)
     assert (var.malloc = No_malloc);
     (p, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
-  leave_level ();
+  let p = leave_level p in
 
   let _, malloc, mallocs = mb_malloc None p.mallocs typ in
   let ms = m_to_list malloc in
 
-  let alloca = ref (request ()) in
+  let alloca = ref (request p) in
   ( { p with ret; mallocs },
     mk (Mrecord (labels, alloca, ms)) ret,
     { no_var with fn = No_function; alloc = Value alloca; malloc } )
@@ -1559,7 +1563,7 @@ and morph_seq mk p expr cont =
   let p, cont, func = morph_expr { p with ret } cont in
   (p, mk (Mseq (expr, cont)) ret, func)
 
-and prep_func p (username, uniq, abs) =
+and prep_func ?(gen_body = false) p (usrname, uniq, abs) =
   (* If the function is concretely typed, we add it to the function list and add
      the usercode name to the bound variables. In the polymorphic case, we add
      the function to the bound variables, but not to the function list. Instead,
@@ -1568,174 +1572,205 @@ and prep_func p (username, uniq, abs) =
     Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln p
   in
 
-  let call = Module.unique_name ~mname:p.mname username uniq in
+  let call = Module.unique_name ~mname:p.mname usrname uniq in
   let username =
-    reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule username
-  in
-  let recursive = Rnormal in
-  let inline = abs.inline in
-
-  let func =
-    {
-      params = List.map (cln_param p) abs.func.tparams;
-      ret = cln p abs.func.ret;
-      kind = cln_kind p abs.func.kind;
-    }
-  in
-  let pnames =
-    List.map2
-      (fun n p ->
-        let malloc = if p.pmoved then Some (new_id malloc_id) else None in
-        (n, malloc))
-      abs.nparams func.params
+    reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule usrname
   in
 
-  (* Make sure recursion works and the current function can be used in its body *)
-  let temp_p =
-    recursion_stack := (call, recursive) :: !recursion_stack;
-    let alloc =
-      if is_struct func.ret then Value (ref (request ())) else No_value
-    in
-    (* TODO make it impossible to recursively call an inline function *)
-    let value = { no_var with fn = Forward_decl (call, ftyp); alloc } in
-    let vars = Vars.add username (Normal value) p.vars in
-
-    (* Add parameters to env as normal values.
-       The existing values might not be 'normal' *)
-    let mallocs = Mallocs.push Mfunc p.mallocs in
-    let vars, mallocs = add_params vars mallocs pnames func.params in
-
-    {
-      p with
-      vars;
-      ret = (if not inline then true else p.ret);
-      mallocs;
-      toplvl = false;
-    }
-  in
-
-  enter_level ();
-  let temp_p, body, var = morph_expr temp_p abs.body in
-  (* Set alloca in lower level. This deals with closed over allocas which are returned *)
-  if is_struct body.typ then set_alloca var.alloc;
-  leave_level ();
-
-  let frees = Mallocs.pop temp_p.mallocs |> fst in
-  let body = mk_free_after body frees in
-  let recursive = pop_recursion_stack () in
-
-  (* Collect functions from body *)
-  let p =
-    { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
-  in
-  let alloca = ref (request ()) in
+  let alloca = ref (request p) in
   let alloc = Value alloca in
-  let upward () = match !alloca with Preallocated -> true | _ -> false in
 
-  let abs = { func; pnames; body } in
-  let name = { user = username; call } in
-  let gen_func = { abs; name; recursive; upward; monomorphized = false } in
+  let kind = cln_kind p abs.func.kind in
+  if (not gen_body) && is_type_polymorphic ftyp then (
+    let fn = Polymorphic call in
+    let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
+    let fn () =
+      let p, _ = prep_func ~gen_body:true p (usrname, uniq, abs) in
+      p
+    in
+    Hashtbl.add deferredfunc_tbl call fn;
+    ({ p with vars }, (call, kind, ftyp, alloca)))
+  else
+    let recursive = Rnormal in
+    let inline = abs.inline in
 
-  let p =
-    if inline then
-      let fn = Inline (pnames, ftyp, body) in
-      let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
-      { p with vars }
-    else if is_type_polymorphic ftyp then (
-      let fn = Polymorphic call in
-      let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
-      Hashtbl.add poly_funcs_tbl call gen_func;
-      { p with vars })
-    else
-      let fn = Concrete (gen_func, call) in
-      let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
-      let funcs = Fset.add gen_func p.funcs in
-      { p with vars; funcs }
-  in
-  (p, call, abs, alloca)
+    let func =
+      {
+        params = List.map (cln_param p) abs.func.tparams;
+        ret = cln p abs.func.ret;
+        kind;
+      }
+    in
+    let pnames =
+      List.map2
+        (fun n p ->
+          let malloc = if p.pmoved then Some (new_id malloc_id) else None in
+          (n, malloc))
+        abs.nparams func.params
+    in
 
-and morph_lambda mk typ p id abs =
-  let typ = cln p typ in
+    (* Make sure recursion works and the current function can be used in its body *)
+    let temp_p =
+      let alloc =
+        if is_struct func.ret then Value (ref (request p)) else No_value
+      in
+      (* TODO make it impossible to recursively call an inline function *)
+      let value = { no_var with fn = Forward_decl (call, ftyp); alloc } in
+      let vars = Vars.add username (Normal value) p.vars in
+
+      (* Add parameters to env as normal values.
+         The existing values might not be 'normal' *)
+      let mallocs = Mallocs.push Mfunc p.mallocs in
+      let vars, mallocs = add_params vars mallocs pnames func.params
+      and recursion_stack = (call, recursive) :: p.recursion_stack in
+
+      {
+        p with
+        vars;
+        ret = (if not inline then true else p.ret);
+        mallocs;
+        toplvl = false;
+        recursion_stack;
+      }
+    in
+
+    let temp_p = enter_level temp_p in
+    let temp_p, body, var = morph_expr temp_p abs.body in
+    (* Set alloca in lower level. This deals with closed over allocas which are returned *)
+    if is_struct body.typ then set_alloca p var.alloc;
+    let temp_p = leave_level temp_p in
+
+    let frees = Mallocs.pop temp_p.mallocs |> fst in
+    let body = mk_free_after body frees in
+    let recursive = pop_recursion_stack temp_p in
+
+    (* Collect functions from body *)
+    let p =
+      { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
+    in
+    let upward () = match !alloca with Preallocated -> true | _ -> false in
+
+    let abs = { func; pnames; body } in
+    let name = { user = username; call } in
+    let gen_func = { abs; name; recursive; upward; monomorphized = false } in
+
+    let p =
+      if inline then
+        let fn = Inline (pnames, ftyp, body) in
+        let vars =
+          Vars.add username (Normal { no_var with fn; alloc }) p.vars
+        in
+        { p with vars }
+      else if is_type_polymorphic ftyp then (
+        let fn = Polymorphic call in
+        let vars =
+          Vars.add username (Normal { no_var with fn; alloc }) p.vars
+        in
+        Hashtbl.add poly_funcs_tbl call gen_func;
+        { p with vars })
+      else
+        let fn = Concrete (gen_func, call) in
+        let vars =
+          Vars.add username (Normal { no_var with fn; alloc }) p.vars
+        in
+        let funcs = Fset.add gen_func p.funcs in
+        { p with vars; funcs }
+    in
+    (p, (call, func.kind, ftyp, alloca))
+
+and morph_lambda ?(gen_body = false) mk typ p id abs =
+  let ftyp = cln p typ in
 
   (* TODO fix lambdas for nested modules *)
   let name = Module.lambda_name ~mname:p.mname id in
-  let recursive = Rnone in
-  let func =
-    {
-      params = List.map (cln_param p) abs.func.tparams;
-      ret = cln p abs.func.ret;
-      kind = cln_kind p abs.func.kind;
-    }
-  in
-  let pnames =
-    List.map2
-      (fun n p ->
-        let malloc = if p.pmoved then Some (new_id malloc_id) else None in
-        (n, malloc))
-      abs.nparams func.params
-  in
-
-  let ret = p.ret in
-  let vars = p.vars in
-  (* lambdas don't recurse, but functions inside the body might *)
-  recursion_stack := (name, recursive) :: !recursion_stack;
-  let temp_p =
-    (* Add parameters to env as normal values.
-       The existing values might not be 'normal' *)
-    let mallocs = Mallocs.push Mfunc p.mallocs in
-    let vars, mallocs = add_params vars mallocs pnames func.params in
-
-    { p with vars; ret = true; mallocs; toplvl = false }
-  in
-
-  enter_level ();
-  let temp_p, body, var = morph_expr temp_p abs.body in
-  (* Set alloca in lower level. This deals with closed over allocas which are returned *)
-  if is_struct body.typ then set_alloca var.alloc;
-  leave_level ();
-
-  (* Collect functions from body *)
-  let p =
-    { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
-  in
-
-  let frees = Mallocs.pop temp_p.mallocs |> fst in
-  let body = mk_free_after body frees in
-
-  (* Why do we need this again in lambda? They can't recurse. *)
-  (* But functions on the lambda body might *)
-  ignore (pop_recursion_stack ());
 
   (* Function can be returned themselves. In that case, a closure object will be
      generated, so treat it the same as any local allocation *)
-  let alloca = ref (request ()) in
-  let upward () = match !alloca with Preallocated -> true | _ -> false in
+  let alloca = ref (request p) in
+  let ret = p.ret in
 
-  let abs = { func; pnames; body } in
-  (* lambdas have no username, so we just repeat the call name *)
-  let names = { call = name; user = name } in
-  let monomorphized = false in
-  let gen_func = { abs; name = names; recursive; upward; monomorphized } in
+  let kind = cln_kind p abs.func.kind in
+  if (not gen_body) && is_type_polymorphic ftyp then (
+    let fn = Polymorphic name in
+    let vars = Vars.add name (Normal { no_var with fn }) p.vars in
+    let genfn () =
+      let p, _, _ = morph_lambda ~gen_body:true mk typ p id abs in
+      p
+    in
+    Hashtbl.add deferredfunc_tbl name genfn;
+    ( { p with vars; ret },
+      mk (Mlambda (name, kind, ftyp, alloca)) ret,
+      { no_var with fn; alloc = Value alloca } ))
+  else
+    let recursive = Rnone in
+    let func =
+      {
+        params = List.map (cln_param p) abs.func.tparams;
+        ret = cln p abs.func.ret;
+        kind;
+      }
+    in
+    let pnames =
+      List.map2
+        (fun n p ->
+          let malloc = if p.pmoved then Some (new_id malloc_id) else None in
+          (n, malloc))
+        abs.nparams func.params
+    in
 
-  let p = { p with vars } in
-  let p, fn =
-    if is_type_polymorphic typ then (
-      (* Add fun to env so we can query it later for monomorphization *)
-      let fn = Polymorphic name in
-      let vars = Vars.add name (Normal { no_var with fn }) p.vars in
-      Hashtbl.add poly_funcs_tbl name gen_func;
-      ({ p with vars }, Polymorphic name))
-    else
-      let funcs = Fset.add gen_func p.funcs in
-      ({ p with funcs }, Concrete (gen_func, name))
-  in
+    let vars = p.vars in
+    (* lambdas don't recurse, but functions inside the body might *)
+    let recursion_stack = (name, recursive) :: p.recursion_stack in
+    let temp_p =
+      (* Add parameters to env as normal values.
+         The existing values might not be 'normal' *)
+      let mallocs = Mallocs.push Mfunc p.mallocs in
+      let vars, mallocs = add_params vars mallocs pnames func.params in
 
-  (* Save fake env with call name for monomorphization *)
-  Apptbl.add apptbl name p;
+      { p with vars; ret = true; mallocs; toplvl = false; recursion_stack }
+    in
 
-  ( { p with ret },
-    mk (Mlambda (name, abs, alloca)) ret,
-    { no_var with fn; alloc = Value alloca } )
+    let temp_p = enter_level temp_p in
+    let temp_p, body, var = morph_expr temp_p abs.body in
+    (* Set alloca in lower level. This deals with closed over allocas which are returned *)
+    if is_struct body.typ then set_alloca p var.alloc;
+    let temp_p = leave_level temp_p in
+
+    (* Collect functions from body *)
+    let p =
+      { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
+    in
+
+    let frees = Mallocs.pop temp_p.mallocs |> fst in
+    let body = mk_free_after body frees in
+
+    let upward () = match !alloca with Preallocated -> true | _ -> false in
+
+    let abs = { func; pnames; body } in
+    (* lambdas have no username, so we just repeat the call name *)
+    let names = { call = name; user = name } in
+    let monomorphized = false in
+    let gen_func = { abs; name = names; recursive; upward; monomorphized } in
+
+    let p = { p with vars } in
+    let p, fn =
+      if is_type_polymorphic ftyp then (
+        (* Add fun to env so we can query it later for monomorphization *)
+        let fn = Polymorphic name in
+        let vars = Vars.add name (Normal { no_var with fn }) p.vars in
+        Hashtbl.add poly_funcs_tbl name gen_func;
+        ({ p with vars }, Polymorphic name))
+      else
+        let funcs = Fset.add gen_func p.funcs in
+        ({ p with funcs }, Concrete (gen_func, name))
+    in
+
+    (* Save fake env with call name for monomorphization *)
+    Apptbl.add apptbl name p;
+
+    ( { p with ret },
+      mk (Mlambda (name, func.kind, ftyp, alloca)) ret,
+      { no_var with fn; alloc = Value alloca } )
 
 and morph_app mk p callee args ret_typ =
   (* Save env for later monomorphization *)
@@ -1746,14 +1781,14 @@ and morph_app mk p callee args ret_typ =
   let p, monomorph = monomorphize_call p ex None in
   let callee = { ex; monomorph; mut = false } in
 
-  let tailrec =
+  let tailrec, p =
     if ret then
       match callee.monomorph with
       | Recursive name ->
-          set_tailrec name.nonmono;
-          true
-      | _ -> false
-    else false
+          let p = set_tailrec p name.nonmono in
+          (true, p)
+      | _ -> (false, p)
+    else (false, p)
   in
 
   let f p (arg, attr) =
@@ -1817,9 +1852,9 @@ and morph_app mk p callee args ret_typ =
       (* For every call, we make a new request. If the call is the return value
          of a function, the request will be change to [Preallocated] in
          [morph_func] or [morph_lambda] above. *)
-      let req = ref (request ()) in
+      let req = ref (request p) in
       (Value req, req)
-    else (No_value, ref (request ()))
+    else (No_value, ref (request p))
   in
 
   let malloc, mallocs =
@@ -1842,26 +1877,26 @@ and morph_ctor mk p variant index expr typ =
   let ret = p.ret in
   let p = { p with ret = false } in
 
-  enter_level ();
+  let p = enter_level p in
 
   let p, ctor =
     match expr with
     | Some expr ->
         (* Similar to [morph_record], collect mallocs in data *)
         let p, e, var = morph_expr p expr in
-        if is_struct e.typ then set_alloca var.alloc;
+        if is_struct e.typ then set_alloca p var.alloc;
         (* Should have been moved *)
         assert (var.malloc = No_malloc);
         (p, (variant, index, Some e))
     | None -> (p, (variant, index, None))
   in
 
-  leave_level ();
+  let p = leave_level p in
 
   let _, malloc, mallocs = mb_malloc None p.mallocs typ in
   let ms = m_to_list malloc in
 
-  let alloca = ref (request ()) in
+  let alloca = ref (request p) in
   ( { p with ret; mallocs },
     mk (Mctor (ctor, alloca, ms)) ret,
     { no_var with fn = No_function; alloc = Value alloca; malloc } )
@@ -1893,7 +1928,7 @@ and morph_var_data mk p expr typ =
        the parent (option t) will try to initialize into the global value, which is t,
        another type.*)
     if p.toplvl then
-      let alloc = Value (ref (request ())) in
+      let alloc = Value (ref (request p)) in
       { func with alloc }
     else func
   in
@@ -1909,11 +1944,11 @@ and morph_fmt mk p exprs =
         (p, Fexpr e)
     | Fstr s -> (p, Fstr s)
   in
-  enter_level ();
+  let p = enter_level p in
   let p, es = List.fold_left_map f p exprs in
-  leave_level ();
+  let p = leave_level p in
 
-  let alloca = ref (request ()) in
+  let alloca = ref (request p) in
   let mid = new_id malloc_id in
   let malloc = Malloc.Single { mid; typ = Tarray Tu8; parent = None } in
   let mallocs = Mallocs.add malloc p.mallocs in
@@ -1932,9 +1967,9 @@ and morph_print_str mk p exprs =
         (p, Fexpr e)
     | Fstr s -> (p, Fstr s)
   in
-  enter_level ();
+  let p = enter_level p in
   let p, es = List.fold_left_map f p exprs in
-  leave_level ();
+  let p = leave_level p in
 
   ({ p with ret }, mk (Mprint_str es) ret, no_var)
 
@@ -1958,12 +1993,12 @@ let rec morph_toplvl param items =
         let p, e2, func = aux { p with ret = param.ret } tl in
         (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
     | Tl_function (loc, name, uniq, abs) ->
-        let p, call, abs, alloca = prep_func param (name, uniq, abs) in
+        let p, (call, kind, ftyp, alloca) = prep_func param (name, uniq, abs) in
         let p, cont, func = aux { p with ret = param.ret } tl in
         ( p,
           {
             typ = cont.typ;
-            expr = Mfunction (call, abs, cont, alloca);
+            expr = Mfunction (call, kind, ftyp, cont, alloca);
             return = param.ret;
             loc;
             const = Cnot;
@@ -2049,6 +2084,8 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
       toplvl = true;
       mname;
       mainmodule = mname;
+      alloc_lvl = 1;
+      recursion_stack = [];
     }
   in
   let p, tree, _ = morph_toplvl param items in

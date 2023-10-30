@@ -131,31 +131,30 @@ end = struct
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
     | Mvar (id, kind) -> gen_var param.vars typed_expr.typ id kind |> fin
-    | Mfunction (name, abs, cont, allocref) ->
+    | Mfunction (name, kind, _, cont, allocref) -> (
         (* The functions are already generated *)
-        let func =
-          match Vars.find_opt name param.vars with
-          | Some func -> (
-              match abs.func.kind with
+        match Vars.find_opt name param.vars with
+        | Some func ->
+            let func =
+              match kind with
               | Closure assoc -> gen_closure_obj param assoc func name allocref
               | Simple when is_prealloc allocref ->
                   gen_closure_obj param [] func name allocref
-              | Simple -> func)
-          | None ->
-              (* The function is polymorphic and monomorphized versions are generated. *)
-              (* We just return some bogus value, it will never be applied anyway
-                 (and if it will, LLVM will fail) *)
-              dummy_fn_value
-        in
-
-        gen_expr { param with vars = Vars.add name func param.vars } cont
+              | Simple -> func
+            in
+            gen_expr { param with vars = Vars.add name func param.vars } cont
+        | None ->
+            (* The function is polymorphic and monomorphized versions are generated. *)
+            (* We just return some bogus value, it will never be applied anyway
+               (and if it will, LLVM will fail) *)
+            gen_expr param cont)
     | Mlet (id, rhs, proj, gn, ms, cont) -> gen_let param id rhs proj gn ms cont
     | Mbind (id, equals, cont) -> gen_bind param id equals cont
-    | Mlambda (name, abs, allocref) ->
+    | Mlambda (name, kind, _, allocref) ->
         let func =
           match Vars.find_opt name param.vars with
           | Some func -> (
-              match abs.func.kind with
+              match kind with
               | Closure assoc -> gen_closure_obj param assoc func name allocref
               | Simple when is_prealloc allocref ->
                   gen_closure_obj param [] func name allocref
@@ -1249,7 +1248,7 @@ let has_init_code tree =
                 aux cont.expr
             | Ptr | Imm -> ( match e.const with Cnot -> true | Const -> false))
         | None -> failwith "Internal Error: global value not found")
-    | Mfunction (_, _, cont, _) -> aux cont.expr
+    | Mfunction (_, _, _, cont, _) -> aux cont.expr
     | Mconst Unit -> false
     | Mbind (_, _, cont) ->
         (* Bind itself does not need init *)

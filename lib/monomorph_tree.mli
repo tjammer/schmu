@@ -13,8 +13,8 @@ type expr =
   | Mlet of
       string * monod_tree * let_kind * global_name * malloc_list * monod_tree
   | Mbind of string * monod_tree * monod_tree
-  | Mlambda of string * abstraction * alloca
-  | Mfunction of string * abstraction * monod_tree * alloca
+  | Mlambda of string * fun_kind * typ * alloca
+  | Mfunction of string * fun_kind * typ * monod_tree * alloca
   | Mapp of {
       callee : monod_expr;
       args : (monod_expr * bool) list;
