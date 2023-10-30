@@ -12,6 +12,9 @@
   (def boyer-moore-horspool (fun t t (option/t int)))
 
   (def modify-buf (fun t& (fun (array u8)& unit) unit))
+  (def of-array (fun (array u8)! t))
+  (def to-array (fun t! (array u8)))
+  (def of-fixed-array (fun (array#? u8) t))
 
   (def print (fun t unit)))
 
@@ -91,6 +94,16 @@
   (f &str)
   -- return type needs to be inferred as unit
   ())
+
+(defn of-array [(arr! (array u8))] arr)
+(defn to-array [(str! t)] str)
+
+(external memcpy (fun (raw_ptr u8) (raw_ptr u8) int unit))
+
+(defn of-fixed-array [(arr (array#? u8))]
+  (def ret (array/create (__fixed_array_length arr)))
+  (memcpy (array/data ret) (__fixed_array_data arr) (__fixed_array_length arr))
+  ret)
 
 (type file (raw_ptr u8))
 (external stdout file)
