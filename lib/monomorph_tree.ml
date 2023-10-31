@@ -424,6 +424,7 @@ type morph_param = {
   mainmodule : Path.t;
   alloc_lvl : int;
   recursion_stack : (string * recurs) list;
+  gen_poly_bodies : bool;
 }
 
 let no_var =
@@ -1563,7 +1564,7 @@ and morph_seq mk p expr cont =
   let p, cont, func = morph_expr { p with ret } cont in
   (p, mk (Mseq (expr, cont)) ret, func)
 
-and prep_func ?(gen_body = false) p (usrname, uniq, abs) =
+and prep_func p (usrname, uniq, abs) =
   (* If the function is concretely typed, we add it to the function list and add
      the usercode name to the bound variables. In the polymorphic case, we add
      the function to the bound variables, but not to the function list. Instead,
@@ -1581,11 +1582,12 @@ and prep_func ?(gen_body = false) p (usrname, uniq, abs) =
   let alloc = Value alloca in
 
   let kind = cln_kind p abs.func.kind in
-  if (not gen_body) && is_type_polymorphic ftyp then (
+  if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic call in
     let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
     let fn () =
-      let p, _ = prep_func ~gen_body:true p (usrname, uniq, abs) in
+      let p = { p with gen_poly_bodies = true } in
+      let p, _ = prep_func p (usrname, uniq, abs) in
       p
     in
     Hashtbl.add deferredfunc_tbl call fn;
@@ -1678,7 +1680,7 @@ and prep_func ?(gen_body = false) p (usrname, uniq, abs) =
     in
     (p, (call, func.kind, ftyp, alloca))
 
-and morph_lambda ?(gen_body = false) mk typ p id abs =
+and morph_lambda mk typ p id abs =
   let ftyp = cln p typ in
 
   (* TODO fix lambdas for nested modules *)
@@ -1690,11 +1692,12 @@ and morph_lambda ?(gen_body = false) mk typ p id abs =
   let ret = p.ret in
 
   let kind = cln_kind p abs.func.kind in
-  if (not gen_body) && is_type_polymorphic ftyp then (
+  if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic name in
     let vars = Vars.add name (Normal { no_var with fn }) p.vars in
     let genfn () =
-      let p, _, _ = morph_lambda ~gen_body:true mk typ p id abs in
+      let p = { p with gen_poly_bodies = true } in
+      let p, _, _ = morph_lambda mk typ p id abs in
       p
     in
     Hashtbl.add deferredfunc_tbl name genfn;
@@ -2086,6 +2089,7 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
       mainmodule = mname;
       alloc_lvl = 1;
       recursion_stack = [];
+      gen_poly_bodies = false;
     }
   in
   let p, tree, _ = morph_toplvl param items in
