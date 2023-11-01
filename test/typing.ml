@@ -818,8 +818,8 @@ let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "(type t int) (type t float)"
 
-let test_type_decl_open_before () =
-  test "unit" "(module m (type t int)) (open m) (type t float)"
+let test_type_decl_import_before () =
+  test "unit" "(module m (type t int)) (import m) (type t float)"
 
 let test_mtype_define () =
   test "unit" "(module-type tt (type t) (def random (fun unit int)))"
@@ -1434,7 +1434,7 @@ let () =
       ( "type decl",
         [
           case "not unique" test_type_decl_not_unique;
-          case "open before" test_type_decl_open_before;
+          case "import before" test_type_decl_import_before;
         ] );
       ( "module type",
         [

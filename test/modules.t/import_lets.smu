@@ -1,10 +1,10 @@
-(open lets)
+(import lets)
 
 (printf (string/data "%i\n") a)
 (printf (string/data "%i\n") b)
 
 (defn inside-fn []
-  (open lets)
+  (import lets)
   (defn second []
     (printf (string/data "%i\n") a)
     (printf (string/data "%i\n") b)  )

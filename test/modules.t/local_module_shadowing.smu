@@ -13,7 +13,7 @@
 
 (print (fmt-str a))
 
-(open a)
+(import a)
 
 (print (fmt-str a))
 (print (fmt-str a/a))

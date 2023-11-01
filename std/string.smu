@@ -66,8 +66,8 @@
     skips))
 
 (defn boyer-moore-horspool [pattern str]
-  (open prelude)
-  (open option)
+  (import prelude)
+  (import option)
   (def patlen1 (- (len pattern) 1))
   (def strptr (array/data str))
   (def last-patchar pattern.[patlen1])

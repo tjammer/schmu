@@ -1,13 +1,13 @@
 (external printf (fun string/cstr int unit))
 
 (defn doo [a]
--- TODO open modules for patterns
+-- TODO import modules for patterns
    nonpoly_func/(match a
     (#left  (add_ints 0 5))
     (#right (add_ints 0 -5))))
 
 (defn do2 [a]
-  (open nonpoly_func)
+  (import nonpoly_func)
   (match a
     (#left  (add_ints 0 5))
     (#right (add_ints 0 -5))))

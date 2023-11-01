@@ -32,7 +32,7 @@ type type_spec =
   | Ty_var of string
   | Ty_list of type_spec list
   | Ty_func of (type_spec * decl_attr) list
-  | Ty_open_id of loc * Path.t
+  | Ty_import_id of loc * Path.t
   | Ty_tuple of type_spec list
 
 and decl = {
@@ -75,7 +75,7 @@ and expr =
   | Pipe_tail of loc * argument * pipeable
   | Ctor of loc * ident * expr option
   | Match of loc * expr * (loc * pattern * expr) list
-  | Local_open of loc * string * expr
+  | Local_import of loc * string * expr
   | Fmt of loc * expr list
 
 and pipeable = Pip_expr of expr | Pip_field of string
@@ -108,7 +108,7 @@ and stmt =
   | Function of loc * func
   | Expr of loc * expr
   | Rec of loc * (loc * func) list
-  | Open of loc * Path.t
+  | Import of loc * Path.t
 
 and block = stmt list
 

@@ -117,7 +117,7 @@ the syntax table, so `forward-word' works as expected.")
     "else"
     "external"
     "do"
-    "open"
+    "import"
     "type"
     "match"
     "and"

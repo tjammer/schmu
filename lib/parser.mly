@@ -5,10 +5,10 @@
       | Ty_var s -> s
       | _ -> failwith "Internal Error: Should have been a type var"
 
-    let rec flatten_open  = function
+    let rec flatten_import  = function
       | [] -> failwith "Internal Error: nonempty"
       | [ last ] -> Path.Pid (snd last)
-      | hd :: tl -> Path.Pmod (snd hd, flatten_open tl)
+      | hd :: tl -> Path.Pmod (snd hd, flatten_import tl)
 
     let parse_cond loc fst then_ conds =
       let rec aux = function
@@ -107,7 +107,7 @@
 %token Quote
 %token Match
 %token Wildcard
-%token Open
+%token Import
 %token Type
 %token Defexternal
 %token Signature
@@ -210,7 +210,7 @@ modul:
 %inline path:
   | id = ident { $loc, Path.Pid (snd id) }
   | id = ident; Div_i; lst = separated_nonempty_list(Div_i, ident)
-    { $loc, flatten_open (id :: lst) }
+    { $loc, flatten_import (id :: lst) }
 
 %inline aliased_module:
 /* Partial functor applications are not supported */
@@ -264,11 +264,11 @@ let bracks(x) :=
   | name = Keyword; t = sexp_type_expr { false, name, t }
   | name = Mut_keyword; t = sexp_type_expr; { true, name, t }
 
-%inline open_:
-  | parens(sexp_open) { $1 }
+%inline import_:
+  | parens(sexp_import) { $1 }
 
-%inline sexp_open:
-  | Open; mname = path { snd mname }
+%inline sexp_import:
+  | Import; mname = path { snd mname }
 
 stmt:
  | toplvl_stmt { $1 }
@@ -281,7 +281,7 @@ stmt:
   | parens(sexp_let) { $1 }
   | parens(sexp_fun) { Function (fst $1, snd $1) }
   | parens(sexp_rec) { $1}
-  | open_ { Open ($loc, $1) }
+  | import_ { Import ($loc, $1) }
 
 %inline sexp_let:
   | Def; sexp_decl; pexpr = passed_expr { Let($loc, $2, pexpr ) }
@@ -449,7 +449,7 @@ pipeable:
   | Do; stmts = nonempty_list(stmt) { Do_block stmts }
 
 %inline sexp_module_expr:
-  | ident; Div_i; sexp_expr { Local_open ($loc, snd $1, $3) }
+  | ident; Div_i; sexp_expr { Local_import ($loc, snd $1, $3) }
 
 %inline sexp_match:
   | Match; expr = sexp_expr; nonempty_list(parens(sexp_clause))
@@ -557,7 +557,7 @@ type_spec:
   | id = Unknown_sized_ident { Ty_id id }
   | poly_id { $1 }
   | fst = ident; Div_i; lst = separated_nonempty_list(Div_i, ident)
-    { Ty_open_id ($loc, flatten_open (fst :: lst) ) }
+    { Ty_import_id ($loc, flatten_import (fst :: lst) ) }
   | Lbrac; hd = type_spec; tl = nonempty_list(type_spec); Rbrac { Ty_tuple (hd :: tl)}
 
 %inline poly_id:

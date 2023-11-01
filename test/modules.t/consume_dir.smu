@@ -1,4 +1,4 @@
-(open modd)
+(import modd)
 
 (print a)
 (print b)

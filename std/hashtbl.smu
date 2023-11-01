@@ -14,7 +14,7 @@
   (def to-array (fun (t 'value) (array {key 'value}))))
 
 (functor (make sig) [(m key)]
-  (open option)
+  (import option)
 
   (type key m/t)
   (type (item 'a) {:key m/t :value 'a})

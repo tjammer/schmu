@@ -1,4 +1,4 @@
-(open poly_func)
+(import poly_func)
 
 (external printf (fun string/cstr int unit))
 

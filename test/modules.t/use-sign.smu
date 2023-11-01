@@ -1,4 +1,4 @@
-(open sign)
+(import sign)
 
 -- Use type t
 (def (use-t t) 20)

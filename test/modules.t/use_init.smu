@@ -1,1 +1,1 @@
-(open init)
+(import init)

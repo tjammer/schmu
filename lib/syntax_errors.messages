@@ -62,7 +62,7 @@ prog: False Ldotbrack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Kebab_id Type
+prog: Kebab_id Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -186,7 +186,7 @@ prog: Lpar Match False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Type
+prog: Lpar Match False Lpar Unknown_sized_ident
 
 Expecting pattern
 
@@ -210,27 +210,27 @@ prog: Lpar Def Lbrac Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Type
+prog: Lpar Def Lpar Or Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Wildcard Type
+prog: Lpar Def Lpar Or Wildcard Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Wildcard Type
+prog: Lpar Def Lpar Or Kebab_id Wildcard Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id U8 Type
+prog: Lpar Def Lpar Or Kebab_id U8 Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrac Type
+prog: Lpar Def Lbrac Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrac Keyword Type
+prog: Lpar Def Lbrac Keyword Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -238,75 +238,75 @@ prog: Lpar Def Lbrac Keyword Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrac Kebab_id Type
+prog: Lpar Def Lbrac Kebab_id Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrac Kebab_id Kebab_id Type
+prog: Lpar Def Lbrac Kebab_id Kebab_id Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Int Type
+prog: Lpar Def Lpar Or Kebab_id Int Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Constructor Type
+prog: Lpar Def Lpar Or Kebab_id Constructor Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Lpar Or Kebab_id Kebab_id Rpar Type
+prog: Lpar Def Lpar Or Kebab_id Lpar Or Kebab_id Kebab_id Rpar Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Lpar Constructor Kebab_id Rpar Type
+prog: Lpar Def Lpar Or Kebab_id Lpar Constructor Kebab_id Rpar Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Kebab_id Type
+prog: Lpar Def Lpar Or Kebab_id Kebab_id Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Lbrac Kebab_id Rbrac Type
+prog: Lpar Def Lpar Or Kebab_id Lbrac Kebab_id Rbrac Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Lbrac Keyword Rbrac Type
+prog: Lpar Def Lpar Or Kebab_id Lbrac Keyword Rbrac Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or U8 Type
+prog: Lpar Def Lpar Or U8 Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Int Type
+prog: Lpar Def Lpar Or Int Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Constructor Type
+prog: Lpar Def Lpar Or Constructor Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Lpar Or Kebab_id Kebab_id Rpar Type
+prog: Lpar Def Lpar Or Lpar Or Kebab_id Kebab_id Rpar Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Lpar Constructor Kebab_id Rpar Type
+prog: Lpar Def Lpar Or Lpar Constructor Kebab_id Rpar Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Type
+prog: Lpar Def Lpar Or Kebab_id Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Lbrac Kebab_id Rbrac Type
+prog: Lpar Def Lpar Or Lbrac Kebab_id Rbrac Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Lbrac Keyword Rbrac Type
+prog: Lpar Def Lpar Or Lbrac Keyword Rbrac Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Constructor Type
+prog: Lpar Def Lpar Constructor Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -410,7 +410,7 @@ prog: Lpar Let Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Let Lpar Type
+prog: Lpar Let Lpar Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -446,11 +446,11 @@ prog: Lpar Defexternal Kebab_id Lbrac Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lbrac Kebab_id String_lit
+prog: Lpar Defexternal Kebab_id Lbrac Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lbrac Kebab_id Kebab_id String_lit
+prog: Lpar Defexternal Kebab_id Lbrac Kebab_id Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -462,11 +462,11 @@ prog: Lpar Defexternal Kebab_id Kebab_id Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Open Kebab_id Div_i Kebab_id Wildcard
+prog: Lpar Import Kebab_id Div_i Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Open Kebab_id Div_i Kebab_id Div_i Wildcard
+prog: Lpar Import Kebab_id Div_i Kebab_id Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -474,7 +474,7 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id String_lit
+prog: Lpar Defexternal Kebab_id Lpar Fun Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -490,7 +490,7 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Lpar Fun Kebab_id Rpar Ampersand Wildca
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Kebab_id String_lit
+prog: Lpar Defexternal Kebab_id Lpar Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -498,11 +498,11 @@ prog: Lpar Defexternal Kebab_id Lpar Kebab_id Lpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Kebab_id Kebab_id String_lit
+prog: Lpar Defexternal Kebab_id Lpar Kebab_id Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Kebab_id Kebab_id String_lit
+prog: Lpar Def Lpar Kebab_id Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -566,7 +566,7 @@ prog: Lpar Let Lpar Kebab_id False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Let Lbrack Type
+prog: Lpar Let Lbrack Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -610,47 +610,47 @@ prog: Lpar Defn Kebab_id String_lit Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lpar Type
+prog: Lpar Fn Lpar Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Wildcard Type
+prog: Lpar Fn Lbrack Wildcard Unknown_sized_ident
 
 Expecting ']' or another parameter
 
-prog: Lpar Fn Lbrack U8 Type
+prog: Lpar Fn Lbrack U8 Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Int Type
+prog: Lpar Fn Lbrack Int Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Constructor Type
+prog: Lpar Fn Lbrack Constructor Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Lpar Or Kebab_id Kebab_id Rpar Type
+prog: Lpar Fn Lbrack Lpar Or Kebab_id Kebab_id Rpar Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Lpar Constructor Kebab_id Rpar Type
+prog: Lpar Fn Lbrack Lpar Constructor Kebab_id Rpar Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Kebab_id Ampersand Type
+prog: Lpar Fn Lbrack Kebab_id Ampersand Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Kebab_id Type
+prog: Lpar Fn Lbrack Kebab_id Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Lbrac Kebab_id Rbrac Type
+prog: Lpar Fn Lbrack Lbrac Kebab_id Rbrac Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Lbrac Keyword Rbrac Type
+prog: Lpar Fn Lbrack Lbrac Keyword Rbrac Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -658,7 +658,7 @@ prog: Lpar Fn Lpar Kebab_id Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Type
+prog: Lpar Fn Lbrack Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -670,7 +670,7 @@ prog: Lpar Defn Kebab_id Lbrack Rbrack Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lbrack Rbrack Lpar Open Kebab_id Rpar Wildcard
+prog: Lpar Fn Lbrack Rbrack Lpar Import Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -686,22 +686,6 @@ prog: Lpar Rec Lpar Defn Kebab_id Lbrack Rbrack Rpar Lpar Defn Kebab_id Lbrack R
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Open Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Open Kebab_id Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Open Kebab_id Div_i Wildcard
-
-Expecting module indentifier
-
-prog: Lpar Open Kebab_id Div_i Kebab_id String_lit
-
-Expecting ')'
-
 prog: Lpar Less_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -712,11 +696,11 @@ prog: Lpar Less_i False Rbrack
 
 prog: Lpar Less_f Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting module indentifier
 
 prog: Lpar Less_f False Rbrack
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting ')'
 
 prog: Lpar Less_eq_i Wildcard
 
@@ -731,6 +715,22 @@ prog: Lpar Less_eq_f Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Less_eq_f False Rbrack
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Import Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Import Kebab_id Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Import Kebab_id Div_i Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lpar Import Kebab_id Div_i Kebab_id Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -814,7 +814,7 @@ prog: Lpar Do Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Do Lpar Open Kebab_id Rpar Wildcard
+prog: Lpar Do Lpar Import Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -834,7 +834,7 @@ prog: Lpar Div_f False Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Type
+prog: Lpar Def Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1190,11 +1190,11 @@ prog: Lpar Accessor Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Minus_f False Type
+prog: Minus_f False Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Minus_i False Type
+prog: Minus_i False Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1242,7 +1242,7 @@ prog: Lpar Type Kebab_id Lpar Constructor Int Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lpar Constructor Kebab_id String_lit
+prog: Lpar Type Kebab_id Lpar Constructor Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1270,7 +1270,7 @@ prog: Lpar Type Kebab_id Lbrac Mut_keyword Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Mut_keyword Kebab_id String_lit
+prog: Lpar Type Kebab_id Lbrac Mut_keyword Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1278,7 +1278,7 @@ prog: Lpar Type Kebab_id Lbrac Keyword Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Keyword Kebab_id String_lit
+prog: Lpar Type Kebab_id Lbrac Keyword Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1290,7 +1290,7 @@ prog: Lpar Type Kebab_id Lbrac Mut_keyword Lpar Fun Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Kebab_id String_lit
+prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Rpar Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1306,7 +1306,7 @@ prog: Lpar Type Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Kebab_id String_lit
+prog: Lpar Type Kebab_id Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1354,7 +1354,7 @@ prog: Lpar Signature Lpar Def Kebab_id Wildcard
 
 Expecting type or value declaration
 
-prog: Lpar Signature Lpar Def Kebab_id Kebab_id String_lit
+prog: Lpar Signature Lpar Def Kebab_id Sized_ident Wildcard
 
 Expecting type or value declaration
 
@@ -1410,7 +1410,7 @@ prog: Lpar Functor Lpar Kebab_id Kebab_id Div_i Wildcard
 
 Expecting module type name
 
-prog: Lpar Functor Lpar Kebab_id Kebab_id Div_i Kebab_id String_lit
+prog: Lpar Functor Lpar Kebab_id Kebab_id Div_i Kebab_id Unknown_sized_ident
 
 Expecting module type name
 
@@ -1458,7 +1458,7 @@ prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Div_i Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Div_i Kebab_id String_lit
+prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Div_i Kebab_id Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1472,7 +1472,7 @@ prog: Lpar Functor Kebab_id Lpar Lpar Kebab_id Kebab_id Rpar Rbrack
 
 prog: Lpar Functor Kebab_id Lbrack Wildcard
 
-Functor parameters need module type constraints
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rpar
 
@@ -1506,7 +1506,7 @@ prog: Lpar Defexternal Kebab_id Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Kebab_id Rbrac
+prog: Lpar Defexternal Kebab_id Sized_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1522,7 +1522,7 @@ prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar String_lit Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Kebab_id Div_i Kebab_id String_lit
+prog: Lpar Module Kebab_id Kebab_id Div_i Kebab_id Unknown_sized_ident
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1534,11 +1534,11 @@ prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpa
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Open Kebab_id Rpar Wildcard
+prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Def Kebab_id False Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Def Kebab_id False Rpar Wildcard
+prog: Lpar Functor Lpar Kebab_id Kebab_id Rpar Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Import Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1594,11 +1594,11 @@ prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Rec L
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Open Kebab_id Rpar Wildcard
+prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Def Kebab_id False Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Def Kebab_id False Rpar Wildcard
+prog: Lpar Functor Kebab_id Lbrack Lpar Kebab_id Kebab_id Rpar Rbrack Lpar Import Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1638,7 +1638,7 @@ prog: Lpar Module Kebab_id Lpar Kebab_id Div_i Wildcard
 
 Expecting functor name
 
-prog: Lpar Module Kebab_id Lpar Kebab_id Div_i Kebab_id String_lit
+prog: Lpar Module Kebab_id Lpar Kebab_id Div_i Kebab_id Unknown_sized_ident
 
 Expecting module name
 
@@ -1650,7 +1650,7 @@ prog: Lpar Module Kebab_id Lpar Kebab_id Kebab_id Div_i Wildcard
 
 Expecting module name
 
-prog: Lpar Module Kebab_id Lpar Kebab_id Kebab_id Div_i Kebab_id String_lit
+prog: Lpar Module Kebab_id Lpar Kebab_id Kebab_id Div_i Kebab_id Unknown_sized_ident
 
 Expecting module name
 
@@ -1662,11 +1662,11 @@ prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Lpar Rec Lpar Defn Kebab_id Lbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Lpar Open Kebab_id Rpar Wildcard
+prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Lpar Def Kebab_id False Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Lpar Def Kebab_id False Rpar Wildcard
+prog: Lpar Module Lpar Kebab_id Kebab_id Rpar Lpar Import Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1726,11 +1726,11 @@ prog: Lpar Module Kebab_id Lpar Rec Lpar Defn Kebab_id Lbrack Rbrack Rpar Lpar D
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Open Kebab_id Rpar Wildcard
+prog: Lpar Module Kebab_id Lpar Def Kebab_id False Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Def Kebab_id False Rpar Wildcard
+prog: Lpar Module Kebab_id Lpar Import Kebab_id Rpar Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
