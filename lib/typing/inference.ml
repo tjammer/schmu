@@ -385,32 +385,76 @@ let rec types_match ~in_functor l r =
             (Tfun (ps, ret, kind), qsubst, acc && b)
           with Invalid_argument _ -> (r, qsubst, false))
       | Trecord (_, None, l), (Trecord (ps, None, r) as r') -> (
-          let l = Array.to_list l and r = Array.to_list r in
+          let fs = Array.copy r in
           try
-            let fs, s, acc =
-              List.fold_left2
-                (fun (fs, s, acc) l rf ->
+            let _, s, acc =
+              Array.fold_left
+                (fun (i, s, acc) l ->
+                  let rf = Array.get r i in
                   let l, r = nss_of_types l.ftyp rf.ftyp in
                   let ftyp, qsubst, b = aux ~strict s l r in
-                  ({ rf with ftyp } :: fs, qsubst, acc && b))
-                ([], qsubst, true) l r
+                  Array.set fs i { rf with ftyp };
+                  (i + 1, qsubst, acc && b))
+                (0, qsubst, true) l
             in
-            (Trecord (ps, None, List.rev fs |> Array.of_list), s, acc)
+            (Trecord (ps, None, fs), s, acc)
           with Invalid_argument _ -> (r', qsubst, false))
-      | Trecord (pl, Some _, _), Trecord (pr, Some _, _)
-      | Tvariant (pl, _, _), Tvariant (pr, _, _) ->
+      | Trecord (pl, Some name, fl), Trecord (pr, Some _, fr) ->
           (* It should be enough to compare the name (rather, the name's repr)
              and the param type *)
           if not (Nameset.disjoint lns rns) then
-            let qs, b =
+            let ps, qs, b =
               List.fold_left2
-                (fun (s, acc) l r ->
+                (fun (ps, s, acc) l r ->
                   let l, r = nss_of_types l r in
-                  let _, qsubst, b = aux ~strict s l r in
-                  (qsubst, acc && b))
-                (qsubst, true) pl pr
+                  let t, qsubst, b = aux ~strict s l r in
+                  (t :: ps, qsubst, acc && b))
+                ([], qsubst, true) pl pr
             in
-            (r, qs, b)
+            let fs = Array.copy fr in
+            let _, qs, b =
+              Array.fold_left
+                (fun (i, s, acc) l ->
+                  let rf = Array.get fr i in
+                  let l, r = nss_of_types l.ftyp rf.ftyp in
+                  let ftyp, qsubst, b = aux ~strict s l r in
+                  Array.set fs i { rf with ftyp };
+                  (i + 1, qsubst, acc && b))
+                (0, qs, b) fl
+            in
+            (Trecord (List.rev ps, Some name, fs), qs, b)
+          else (r, qsubst, false)
+      | Tvariant (pl, name, cl), Tvariant (pr, _, cr) ->
+          (* It should be enough to compare the name (rather, the name's repr)
+             and the param type *)
+          if not (Nameset.disjoint lns rns) then
+            let ps, qs, b =
+              List.fold_left2
+                (fun (ps, s, acc) l r ->
+                  let l, r = nss_of_types l r in
+                  let t, qsubst, b = aux ~strict s l r in
+                  (t :: ps, qsubst, acc && b))
+                ([], qsubst, true) pl pr
+            in
+            let cs = Array.copy cr in
+            let _, qs, b =
+              Array.fold_left
+                (fun (i, s, acc) l ->
+                  let r = Array.get cr i in
+                  let ctyp, qsubst, b =
+                    match (l.ctyp, r.ctyp) with
+                    | Some l, Some r ->
+                        let l, r = nss_of_types l r in
+                        let typ, qsubst, b = aux ~strict s l r in
+                        (Some typ, qsubst, b)
+                    | None, None -> (None, qsubst, acc)
+                    | _ -> (None, qsubst, false)
+                  in
+                  Array.set cs i { r with ctyp };
+                  (i + 1, qsubst, acc && b))
+                (0, qs, b) cl
+            in
+            (Tvariant (ps, name, cs), qs, b)
           else (r, qsubst, false)
       | Traw_ptr l, Traw_ptr r ->
           let l, r = nss_of_types l r in
