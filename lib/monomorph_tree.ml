@@ -1451,6 +1451,12 @@ and prep_let p id uniq e pass toplvl =
   (* username *)
   let un = reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule id in
 
+  (* For owned values, increase alloc level so they get preallocated correctly.
+     It's important we don't do this for borrowed values, because a borrowed
+     value might be (partly) owned later, for instance in a ctor pattern. There,
+     the level must not be increased, otherwise this borrowed value will be
+     preallocated at its creation. *)
+  let p = match pass with Dmove -> enter_level p | Dset | Dmut | Dnorm -> p in
   let p, e1, func = morph_expr { p with ret = false } e in
   let ms, malloc, mallocs =
     match pass with
@@ -1485,10 +1491,12 @@ and prep_let p id uniq e pass toplvl =
         let vars = Vars.add uniq (Global (uniq, func, used)) vars in
         ({ p with vars }, Some uniq)
     | _ ->
-        let kind = let_kind pass in
-        (match kind with Lborrow -> () | Lowned -> set_alloca p func.alloc);
+        (match pass with
+        | Dmove -> set_alloca p func.alloc
+        | Dset | Dmut | Dnorm -> ());
         ({ p with vars = Vars.add un (Normal func) p.vars }, None)
   in
+  let p = match pass with Dmove -> leave_level p | Dset | Dmut | Dnorm -> p in
   (un, p, e1, gn, ms)
 
 and morph_record mk p labels typ =
