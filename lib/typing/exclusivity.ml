@@ -47,18 +47,7 @@ module Id = struct
 
   type t = Fst of Pathid.t | Shadowed of Pathid.t * int [@@deriving show]
 
-  let compare a b =
-    match (a, b) with
-    | Fst a, Fst b -> Pathid.compare a b
-    | Shadowed (a, ai), Shadowed (b, bi) ->
-        let c = Pathid.compare a b in
-        if c == 0 then Int.compare ai bi else c
-    | Fst a, Shadowed (b, bi) ->
-        let c = Pathid.compare a b in
-        if c == 0 then bi else -c
-    | Shadowed (a, ai), Fst b ->
-        let c = Pathid.compare a b in
-        if c == 0 then ai else -c
+  let compare a b = Stdlib.compare a b
 
   let equal a b =
     match (a, b) with
@@ -493,7 +482,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
             check_special tree.loc mut b'.special;
             match mut with
             | Usage.Umove ->
-                (* Before moving, make bind_only sure the value was used correctly *)
+                (* Before moving, make sure the value was used correctly *)
                 check_excl_chain loc env b hist;
                 Bmove (move_b loc special b', None)
             | Umut | Uread ->
@@ -509,7 +498,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
             check_special tree.loc mut b'.special;
             match mut with
             | Umove ->
-                (* Before moving, make bind_only sure the value was used correctly *)
+                (* Before moving, make sure the value was used correctly *)
                 check_excl_chain loc env b hist;
                 Bmove (move_b loc special b', None)
             | Umut ->
@@ -741,11 +730,11 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let cond, v, hs = check_tree env Uread no_bdata cond hist in
       let hs = add_hist v hs in
       let shadows = !shadowmap in
-      let ae, a, abs = check_tree env mut bdata ae hs in
+      let ae, a, ahs = check_tree env mut bdata ae hs in
       let a = move_local_borrow a env in
 
       shadowmap := shadows;
-      let be, b, bbs = check_tree env mut bdata be hs in
+      let be, b, bhs = check_tree env mut bdata be hs in
       let b = move_local_borrow b env in
       shadowmap := shadows;
 
@@ -776,7 +765,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let expr = If (cond, Some owning, ae, be) in
       ( { tree with expr },
         { imm; delayed; bind_only = false },
-        integrate_new_elems abs hs bbs )
+        integrate_new_elems ahs hs bhs )
   | Ctor (name, i, e) -> (
       match e with
       | Some e ->
