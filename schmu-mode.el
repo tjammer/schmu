@@ -123,6 +123,7 @@ the syntax table, so `forward-word' works as expected.")
     "and"
     "or"
     "rec"
+    "cond"
     "signature"
     "module"
     "module-type"
@@ -376,6 +377,7 @@ STATE is the `parse-partial-sexp' state for that position."
           (if-let 1)
           (if-not 1)
           (let 1)
+          (def 1)
           (loop 1)
           (match 1)
           (or 0)
