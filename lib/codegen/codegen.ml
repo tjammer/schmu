@@ -729,6 +729,16 @@ end = struct
         let true_value = Llvm.const_int bool_t (Bool.to_int true) in
         let value = Llvm.build_xor value true_value "" builder in
         { value; typ = Tbool; lltyp = bool_t; kind = Imm }
+    | Is_nullptr ->
+        let ptr =
+          match args with
+          | [ ptr ] -> bring_default ptr
+          | _ -> failwith "Internal Error: Arity mismatch in builder"
+        in
+        let value =
+          Llvm.(build_icmp Icmp.Eq) ptr (Llvm.const_null voidptr_t) "" builder
+        in
+        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
     | Assert ->
         let cond =
           match args with

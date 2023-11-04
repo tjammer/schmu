@@ -33,6 +33,7 @@ type t =
   | Unsafe_array_create
   | Unsafe_array_length
   | Unsafe_nullptr
+  | Is_nullptr
   | Assert
   | Copy
 [@@deriving show]
@@ -158,6 +159,9 @@ let tbl =
       Tfun ([ { p with pt = Tarray (Qvar "0") } ], Tint, Simple),
       "__unsafe_array_length" );
     (Unsafe_nullptr, Tfun ([], Traw_ptr Tu8, Simple), "__unsafe_nullptr");
+    ( Is_nullptr,
+      Tfun ([ { p with pt = Traw_ptr (Qvar "0") } ], Tbool, Simple),
+      "nullptr?" );
     (Assert, Tfun ([ { p with pt = Tbool } ], Tunit, Simple), "assert");
     (Copy, Tfun ([ { p with pt = Qvar "0" } ], Qvar "0", Simple), "copy");
   ]
@@ -197,6 +201,7 @@ let of_string = function
   | "__unsafe_array_create" -> Some Unsafe_array_create
   | "__unsafe_array_length" -> Some Unsafe_array_length
   | "__unsafe_nullptr" -> Some Unsafe_nullptr
+  | "nullptr?" -> Some Is_nullptr
   | "assert" -> Some Assert
   | "copy" | "__copy" ->
       (* To make sure copy is not shadowed for string literals.
