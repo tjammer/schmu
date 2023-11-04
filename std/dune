@@ -11,8 +11,17 @@
   std.o
   std.smi
   string.o
-  string.smi)
- (deps std.smu %{bin:schmu} array.smu string.smu hashtbl.smu prelude.smu)
+  string.smi
+  in_channel.o
+  in_channel.smi)
+ (deps
+  std.smu
+  %{bin:schmu}
+  array.smu
+  string.smu
+  hashtbl.smu
+  prelude.smu
+  in_channel.smu)
  (action
   (progn
    (run schmu -m --no-std prelude.smu)
@@ -20,6 +29,7 @@
    (run schmu -m --no-std option.smu)
    (run schmu -m --no-std string.smu)
    (run schmu -m --no-std hashtbl.smu)
+   (run schmu -m --no-std in_channel.smu)
    (run schmu -m --no-std std.smu))))
 
 (install
@@ -44,4 +54,7 @@
   (hashtbl.o as std/hashtbl.o)
   prelude.smu
   (prelude.smi as std/prelude.smi)
-  (prelude.o as std/prelude.o)))
+  (prelude.o as std/prelude.o)
+  in_channel.smu
+  (in_channel.smi as std/in_channel.smi)
+  (in_channel.o as std/in_channel.o)))

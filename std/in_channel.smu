@@ -1,0 +1,146 @@
+(signature
+  (type t)
+
+  (def open (fun string/t (option/t t)))
+  (def close (fun t unit))
+
+  -- high level interface
+  (def readall (fun t& string/t))
+  (def lines (fun t& (fun string/t unit) unit))
+
+  -- low level interface
+  (type buf (array u8))
+  (def readbuf (fun t& buf& (option/t int)))
+  (def readn (fun t& buf& int (option/t int)))
+  (def readline (fun t& buf& (option/t int)))
+  (def readrem (fun t& buf& (option/t int))))
+
+(type file (raw_ptr u8))
+
+(type t {:buf& (array#4096 u8) :head& int :unseen& int :file file})
+
+(type cstr (raw_ptr u8))
+(external fread (fun cstr int int file int))
+--  (external fgets (fun buf int file unit))
+(external fopen (fun cstr cstr file))
+(external fclose (fun cstr int))
+
+-- importing doesn't work, but aliasing somehow works. This is a bug
+(type option option/t)
+
+(def bufsize 4096)
+
+(defn open [name]
+  (let [file (fopen (string/data name) (string/data "r"))]
+    (if (nullptr? file)
+      #none
+      (#some {:buf #4096[0u8] :head 0 :unseen 0 :file}))))
+
+(defn close [ic] (ignore (fclose ic.file)))
+
+(defn fill [buf& icbuf lower upper]
+  (prelude/iter-range lower upper
+                      (fn [i] (array/push &buf !(copy icbuf.(i))))))
+
+(defn readbuf [ic& buf&]
+  (def {lower upper}
+       (if (> ic.unseen 0)
+         -- use buffered content which hasn't been seen yet
+         {ic.head (+ ic.head ic.unseen)}
+         {0 (fread (__fixed_array_data ic.buf) 1 bufsize ic.file)}))
+  -- copy content to [buf]
+  (fill &buf ic.buf lower upper)
+  (set &ic.head !0)
+  (set &ic.unseen !0)
+  (#some (- upper lower)))
+
+(defn readn-impl [ic& buf& n readacc]
+  (cond
+    ((>= ic.unseen n)
+     -- completely use already buffered content
+     (do
+       (fill &buf ic.buf ic.head (+ ic.head n))
+       (set &ic.head !(+ ic.head n))
+       (set &ic.unseen !(- ic.unseen n))
+       (#some (+ readacc n))))
+    ((> ic.unseen 0)
+     -- not enough buffered, use buffered content first
+     (match (readbuf &ic &buf)
+       ((#some nread) (do
+                        (assert (> (- n nread) 0))
+                        (readn-impl &ic &buf (- n nread) (+ nread readacc))))
+       (#none (do (assert false) #none))))
+    (else
+     -- nothing buffered, re-read file, then recurse
+     (let [nread (fread (__fixed_array_data ic.buf) 1 bufsize ic.file)]
+       (set &ic.head !0)
+       (set &ic.unseen !(copy nread))
+       (if (= nread 0)
+         (if (= readacc 0) #none (#some readacc))
+         (readn-impl &ic &buf n readacc))))))
+
+(defn readn [ic& buf& n] (readn-impl &ic &buf n 0))
+
+(defn readall-impl [ic& buf& acc]
+  -- assumes ic.unseen = 0
+  (let [nread (fread (__fixed_array_data ic.buf) 1 bufsize ic.file)]
+    (if (= nread 0)
+      (if (= acc 0) #none (#some acc))
+      (do
+        (fill &buf ic.buf 0 nread)
+        (readall-impl &ic &buf (+ nread acc))))))
+
+(defn readrem [ic& buf&]
+  (def ret
+    (match (readbuf &ic &buf)
+      ((#some nread)
+       (do
+         (fill &buf ic.buf ic.head (+ ic.head ic.unseen))
+         (readall-impl &ic &buf nread)))
+      (#none #none)))
+  -- make other [read] calls fail after this
+  (set &ic.unseen !0)
+  (set &ic.head !0)
+  ret)
+
+(defn readline [ic& buf&]
+  (defn find-newline [acc]
+    (if (> ic.unseen 0)
+      (if (prelude/char-equal '\n' ic.buf.(ic.head))
+        -- found newline, advance head past it
+        (do
+          (set &ic.unseen !(- ic.unseen 1))
+          (set &ic.head !(+ ic.head 1))
+          (#some acc))
+        (do
+          (array/push &buf !(copy ic.buf.(ic.head)))
+          (set &ic.unseen !(- ic.unseen 1))
+          (set &ic.head !(+ ic.head 1))
+          (find-newline (+ acc 1))))
+      -- re-read file, then recurse, copied from readn-impl
+      (let [nread (fread (__fixed_array_data ic.buf) 1 bufsize ic.file)]
+       (set &ic.head !0)
+       (set &ic.unseen !(copy nread))
+       (if (= nread 0)
+         (if (= acc 0) #none (#some acc))
+         (find-newline acc)))))
+  (find-newline 0))
+
+(defn readall [ic&]
+  (def buf& (array/create bufsize))
+  (match (readrem &ic &buf)
+    ((#some _) (string/of-array !buf))
+    (#none "")))
+
+(defn lines [ic& f]
+  (def buf& (array/create bufsize))
+  (defn aux []
+    (match (readline &ic &buf)
+      ((#some _)
+       (let [str (string/of-array !buf)]
+         (f str)
+         (set &buf !(string/to-array !str))
+         (array/clear &buf)
+         (aux)))
+      (#none ())))
+  (aux))

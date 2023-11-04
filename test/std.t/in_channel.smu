@@ -1,0 +1,69 @@
+(match (in_channel/open "in_channel.smu")
+  ((#some ic)
+   (let [ic& !ic
+         buf& (array/create 4096)]
+     (ignore (in_channel/readn &ic &buf 50))
+     (def str& !(string/of-array !buf))
+     (print str)
+
+     (set &buf !(string/to-array !str))
+     (array/clear &buf)
+     (ignore (in_channel/readn &ic &buf 6))
+     (set &str !(string/of-array !buf))
+     (print str)
+
+     (set &buf !(string/to-array !str))
+     (array/clear &buf)
+     (match (in_channel/readline &ic &buf)
+       ((#some n) (print (fmt-str "read " n " bytes")))
+       (#none (print "read nothing")))
+     (set &str !(string/of-array !buf))
+     (print str)
+
+     (set &buf !(string/to-array !str))
+     (array/clear &buf)
+     (match (in_channel/readline &ic &buf)
+       ((#some n) (print (fmt-str "read " n " bytes")))
+       (#none (print "read nothing")))
+     (set &str !(string/of-array !buf))
+     (print str)
+
+     (set &buf !(string/to-array !str))
+     (array/clear &buf)
+     (match (in_channel/readline &ic &buf)
+       ((#some n) (print (fmt-str "read " n " bytes")))
+       (#none (print "read nothing")))
+     (set &str !(string/of-array !buf))
+     (print str)
+
+     (set &buf !(string/to-array !str))
+     (array/clear &buf)
+     (match (in_channel/readline &ic &buf)
+       ((#some n) (print (fmt-str "read " n " bytes")))
+       (#none (print "read nothing")))
+     (set &str !(string/of-array !buf))
+     (print str)
+
+     (set &buf !(string/to-array !str))
+     (array/clear &buf)
+     (match (in_channel/readrem &ic &buf)
+       ((#some n) (print (fmt-str "read " n " bytes")))
+       (#none (print "read nothing")))
+     (print (string/of-array !buf))
+
+     (in_channel/close ic)))
+  (#none ()))
+
+(match (in_channel/open "in_channel.smu")
+  ((#some ic)
+   (let [ic& !ic]
+     (print (in_channel/readall &ic))
+     (in_channel/close ic)))
+  (#none ()))
+
+(match (in_channel/open "in_channel.smu")
+  ((#some ic)
+   (let [ic& !ic]
+     (in_channel/lines &ic (fn [line] (print line)))
+     (in_channel/close ic)))
+  (#none ()))

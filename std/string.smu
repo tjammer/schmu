@@ -113,5 +113,5 @@
 
 (defn print [(str t)]
   -- TODO should be named println, but (print (fmt-str ...)) also adds newline
-  (fwrite (array/data str) (array/length str) 1 stdout)
+  (fwrite (array/data str) 1 (array/length str) stdout)
   (fwrite (__fixed_array_data newline) 1 1 stdout))
