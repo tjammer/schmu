@@ -462,10 +462,12 @@ let close_toplevel env =
 
 let find_general ~(find : key -> scope -> 'a option)
     ~(found : scope_kind -> 'a -> 'b) loc key env =
-  (* Find the start of the path in some scope. Then traverse modules until we find the type *)
-  let key = Path.rm_name env.modpath key in
+  (* Find the start of the path in some scope. Then traverse modules until we
+     find the type. If we remove the modpath we make sure to not find the value
+     in a imported module *)
+  let of_base, key = Path.rm_path env.modpath key in
   let rec aux scopes = function
-    | Path.Pid key -> find_value key scopes
+    | Path.Pid key -> find_value ~of_base key scopes
     | Pmod (hd, tl) -> (
         match find_module hd scopes with
         | Some scope -> traverse_module scope tl
@@ -474,12 +476,17 @@ let find_general ~(find : key -> scope -> 'a option)
               env.find_module env loc hd |> get_module env loc |> snd
             in
             traverse_module scope tl)
-  and find_value key = function
+  and find_value ~of_base key = function
     | [] -> None
     | scope :: tl -> (
         match find key scope with
-        | Some t -> Some (found scope.kind t)
-        | None -> find_value key tl)
+        | Some t -> (
+            (* If the value comes from base module, we must not find it in a
+               module type scope *)
+            match scope.kind with
+            | Smodule _ when of_base -> find_value ~of_base key tl
+            | _ -> Some (found scope.kind t))
+        | None -> find_value ~of_base key tl)
   and find_module key = function
     | [] -> None
     | scope :: tl -> (
