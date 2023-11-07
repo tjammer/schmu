@@ -5,6 +5,7 @@
   (def close (fun t unit))
 
   -- high level interface
+  (def with-open (fun string/t (fun t& 'a) (option/t 'a)))
   (def readall (fun t& string/t))
   (def lines (fun t& (fun string/t unit) unit))
 
@@ -36,6 +37,11 @@
       (#some {:buf #4096[0u8] :head 0 :unseen 0 :file}))))
 
 (defn close [ic] (ignore (fclose ic.file)))
+
+(defn with-open [name f]
+  (match (open name)
+    ((#some ic) (let [ic& !ic ret (f &ic)] (close ic) (#some ret)))
+    (#none #none)))
 
 (defn fill [buf& icbuf lower upper]
   (prelude/iter-range lower upper
