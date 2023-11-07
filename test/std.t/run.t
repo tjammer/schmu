@@ -596,11 +596,9 @@ Test hashtbl
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 17
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
     %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
@@ -614,11 +612,9 @@ Test hashtbl
   entry:
     %1 = load %hashtbl.make.slot_float*, %hashtbl.make.slot_float** %0, align 8
     %ref = bitcast %hashtbl.make.slot_float* %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 24
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 24
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to %hashtbl.make.slot_float*

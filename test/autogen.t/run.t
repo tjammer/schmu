@@ -27,11 +27,9 @@ Copy string literal
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 17
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
     %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
@@ -118,11 +116,9 @@ Copy array of strings
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 17
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
     %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
@@ -139,11 +135,9 @@ Copy array of strings
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i8**
@@ -283,11 +277,9 @@ Copy records
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 17
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
     %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
@@ -314,11 +306,9 @@ Copy records
   define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
-    %sz2 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %1 to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
@@ -428,11 +418,9 @@ Copy variants
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 17
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
     %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
@@ -653,11 +641,9 @@ Copy closures
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 17
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
     %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
@@ -671,11 +657,9 @@ Copy closures
   entry:
     %1 = load i8**, i8*** %0, align 8
     %ref = bitcast i8** %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i8**
@@ -990,11 +974,9 @@ Copy string literal on move
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = add i64 %cap1, 17
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
     %4 = add i64 %size, 16
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)

@@ -102,11 +102,9 @@ Test simple setting of mutable variables
   define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
-    %sz2 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %1 to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
@@ -123,11 +121,9 @@ Test simple setting of mutable variables
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64**
@@ -484,11 +480,9 @@ Copies, but with ref-counted arrays
   define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
-    %sz2 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %1 to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
@@ -636,11 +630,9 @@ Arrays in records
   define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
-    %sz2 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %1 to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
@@ -808,11 +800,9 @@ Nested arrays
   define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
-    %sz2 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %1 to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
@@ -829,11 +819,9 @@ Nested arrays
   entry:
     %1 = load i64**, i64*** %0, align 8
     %ref = bitcast i64** %1 to i64*
-    %sz2 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %ref, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %ref to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64**
@@ -1073,11 +1061,9 @@ Make sure variable ids are correctly propagated
   define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
-    %sz2 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %1 to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
@@ -1292,11 +1278,9 @@ Refcounts for members in arrays, records and variants
   define linkonce_odr void @__copy_ai(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
-    %sz2 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz2, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    %cap1 = load i64, i64* %cap, align 8
-    %2 = mul i64 %cap1, 8
+    %sz1 = bitcast i64* %1 to i64*
+    %size = load i64, i64* %sz1, align 8
+    %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*

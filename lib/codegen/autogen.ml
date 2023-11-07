@@ -209,8 +209,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let int_ptr = bb v.value (Llvm.pointer_type int_t) "ref" builder in
         let sz = Llvm.build_gep int_ptr [| ci 0 |] "sz" builder in
         let sz = Llvm.build_load sz "size" builder in
-        let cap = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
-        let cap = Llvm.build_load cap "cap" builder in
 
         let item_type, _, head_size, item_size = item_type_head_size dst.typ in
         let is_string = match t with Tu8 -> true | _ -> false in
@@ -219,8 +217,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
 
         let itemscap =
           (* Don't multiply by 1 *)
-          if item_size <> 1 then Llvm.build_mul cap (ci item_size) "" builder
-          else cap
+          if item_size <> 1 then Llvm.build_mul sz (ci item_size) "" builder
+          else sz
         in
         (* Really capacity, not size *)
         let size = Llvm.build_add itemscap (ci cap_size) "" builder in
