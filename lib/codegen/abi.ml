@@ -46,7 +46,7 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
        And obviously all of this is hardcoded for x86_64-linux-gnu *)
     let aux typ types =
       let size = sizeof_typ typ in
-      if size > 16 then Boxed
+      if size > 16 || size = 0 then Boxed
       else
         let fst, tail, size = get_word ~size:0 [] types in
         let fst = extract_word ~size fst in

@@ -59,7 +59,10 @@ module Make (A : Abi_intf.S) = struct
 
   (* LLVM type of closure struct and records *)
   and typeof_aggregate agg =
-    Array.map get_lltype_def agg |> Llvm.struct_type context
+    List.filter_map
+      (function Tunit -> None | t -> Some (get_lltype_def t))
+      agg
+    |> Array.of_list |> Llvm.struct_type context
 
   and prepend_closure_env agg =
     let fs = List.map (fun cl -> { ftyp = cl.cltyp; mut = cl.clmut }) agg in
@@ -118,16 +121,19 @@ module Make (A : Abi_intf.S) = struct
       List.fold_left
         (fun ps p ->
           let typ = p.pt in
-          if p.pmut then noaliases := !i :: !noaliases;
-          incr i;
-          match pkind_of_typ p.pmut typ with
-          | Unboxed (Two_params (fst, snd)) ->
-              (* snd before fst b/c we rev later *)
-              lltype_unbox snd :: lltype_unbox fst :: ps
-          | Boxed when is_aggregate typ ->
-              if not p.pmut then byvals := (!i, typ) :: !byvals;
-              get_lltype_param p.pmut typ :: ps
-          | _ -> get_lltype_param p.pmut typ :: ps)
+          match typ with
+          | Tunit -> ps
+          | _ -> (
+              if p.pmut then noaliases := !i :: !noaliases;
+              incr i;
+              match pkind_of_typ p.pmut typ with
+              | Unboxed (Two_params (fst, snd)) ->
+                  (* snd before fst b/c we rev later *)
+                  lltype_unbox snd :: lltype_unbox fst :: ps
+              | Boxed when is_aggregate typ ->
+                  if not p.pmut then byvals := (!i, typ) :: !byvals;
+                  get_lltype_param p.pmut typ :: ps
+              | _ -> get_lltype_param p.pmut typ :: ps))
         [] params
       |> List.rev |> List.to_seq
       |> fun seq -> prefix ++ seq ++ suffix |> Array.of_seq
@@ -139,7 +145,8 @@ module Make (A : Abi_intf.S) = struct
     | Trecord (_, _, labels) ->
         let t = Llvm.named_struct_type context name in
         let lltyp =
-          Array.map (fun (f : field) -> f.ftyp) labels
+          Array.to_list labels
+          |> List.map (fun (f : field) -> f.ftyp)
           |> typeof_aggregate |> Llvm.struct_element_types
         in
         Llvm.struct_set_body t lltyp false;

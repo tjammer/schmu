@@ -4120,3 +4120,141 @@ Const fixed array
   declare void @printf(i8* %0, ...)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./const_fixed_arr
   17
+
+Using unit values
+  $ schmu unit_values.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./unit_values
+  unit_values.smu:3.6-7: warning: Unused binding b.
+  
+  3 | (def b (#some a))
+           ^
+  
+  unit_values.smu:8.11-12: warning: Unused binding a.
+  
+  8 |   ((#some a) (print "some"))
+                ^
+  
+  unit_values.smu:14.6-7: warning: Unused binding u.
+  
+  14 | (def u t.u)
+            ^
+  
+  unit_values.smu:18.6-8: warning: Unused binding u2.
+  
+  18 | (def u2 t2.u)
+            ^^
+  
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %option.t_unit = type { i32 }
+  %thing = type {}
+  %inrec = type { i64, double }
+  
+  @schmu_a = constant i8 0
+  @schmu_b = constant %option.t_unit zeroinitializer
+  @schmu_t = constant %thing zeroinitializer
+  @schmu_u = constant i8 0
+  @schmu_t__3 = constant %inrec { i64 10, double 9.990000e+01 }
+  @schmu_arr__2 = constant i8 0
+  @schmu_b__2 = global %option.t_unit zeroinitializer, align 4
+  @schmu_t2 = global %thing zeroinitializer, align 1
+  @schmu_u2 = global i8 0, align 1
+  @schmu_arr = global void* null, align 8
+  @schmu_u__2 = global i8 0, align 1
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"some\00" }
+  @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
+  @2 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"%.9g\0A\00" }
+  @3 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
+  
+  declare void @string_print(i8* %0)
+  
+  define linkonce_odr void @__agg.u_array_push_auu.u(void** noalias %arr) {
+  entry:
+    %0 = load void*, void** %arr, align 8
+    %1 = bitcast void* %0 to i64*
+    %capacity = getelementptr i64, i64* %1, i64 1
+    %2 = load i64, i64* %capacity, align 8
+    %3 = load i64, i64* %1, align 8
+    %eq = icmp eq i64 %2, %3
+    br i1 %eq, label %then, label %ifcont
+  
+  then:                                             ; preds = %entry
+    %mul = mul i64 2, %2
+    %4 = bitcast void* %0 to i8*
+    %5 = tail call i8* @realloc(i8* %4, i64 16)
+    %6 = bitcast i8* %5 to void*
+    store void* %6, void** %arr, align 8
+    %newcap = bitcast void* %6 to i64*
+    %newcap1 = getelementptr i64, i64* %newcap, i64 1
+    store i64 %mul, i64* %newcap1, align 8
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    %.pre-phi = phi i64* [ %newcap, %then ], [ %1, %entry ]
+    %7 = phi void* [ %6, %then ], [ %0, %entry ]
+    %8 = bitcast void* %7 to i8*
+    %9 = getelementptr i8, i8* %8, i64 16
+    %add = add i64 1, %3
+    store i64 %add, i64* %.pre-phi, align 8
+    ret void
+  }
+  
+  define void @schmu_a__2() {
+  entry:
+    ret void
+  }
+  
+  define void @schmu_t__2(%thing* noalias %0) {
+  entry:
+    store %thing zeroinitializer, %thing* %0, align 1
+    ret void
+  }
+  
+  declare i8* @realloc(i8* %0, i64 %1)
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    store i32 0, i32* getelementptr inbounds (%option.t_unit, %option.t_unit* @schmu_b__2, i32 0, i32 0), align 4
+    tail call void @string_print(i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*))
+    tail call void @schmu_t__2(%thing* @schmu_t2)
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [6 x i8] }* @2 to i8*), i64 16), double 9.990000e+01)
+    %0 = tail call i8* @malloc(i64 16)
+    %1 = bitcast i8* %0 to void*
+    store void* %1, void** @schmu_arr, align 8
+    %2 = bitcast void* %1 to i64*
+    store i64 2, i64* %2, align 8
+    %cap = getelementptr i64, i64* %2, i64 1
+    store i64 2, i64* %cap, align 8
+    %3 = getelementptr i8, i8* %0, i64 16
+    tail call void @__agg.u_array_push_auu.u(void** @schmu_arr)
+    %4 = load void*, void** @schmu_arr, align 8
+    %5 = bitcast void* %4 to i64*
+    %6 = load i64, i64* %5, align 8
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %6)
+    %7 = alloca %thing, align 8
+    %8 = load void*, void** @schmu_arr, align 8
+    %9 = bitcast void* %8 to i8*
+    %10 = getelementptr i8, i8* %9, i64 16
+    %11 = alloca %thing, align 8
+    tail call void @__free_au(void** @schmu_arr)
+    ret i64 0
+  }
+  
+  declare void @printf(i8* %0, ...)
+  
+  declare i8* @malloc(i64 %0)
+  
+  define linkonce_odr void @__free_au(void** %0) {
+  entry:
+    %1 = load void*, void** %0, align 8
+    %ref = bitcast void* %1 to i64*
+    %2 = bitcast i64* %ref to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
+  declare void @free(i8* %0)
+  some
+  99.9
+  3

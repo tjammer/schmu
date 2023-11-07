@@ -20,7 +20,7 @@ let rec size_align_impl size_pr typ =
   | Tbool | Tu8 ->
       (* No need to align one byte *)
       { size_pr with size = size_pr.size + 1 }
-  | Tunit -> failwith "Does this make sense?"
+  | Tunit -> add_size_align ~upto:1 ~sz:0 size_pr
   | Tfun _ ->
       (* A closure, 2 ptrs. Assume 64bit *)
       add_size_align ~upto:8 ~sz:16 size_pr

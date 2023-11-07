@@ -99,12 +99,7 @@ struct
   let dummy_fn_value =
     (* When we need something in the env for a function which will only be called
        in a monomorphized version *)
-    {
-      typ = Tunit;
-      value = Llvm.const_int i32_t (-1);
-      lltyp = i32_t;
-      kind = Ptr;
-    }
+    { typ = Tunit; value = Llvm.const_null u8_t; lltyp = unit_t; kind = Imm }
 
   let bb = Llvm.build_bitcast
 
@@ -495,8 +490,11 @@ struct
       if src.value = dst then ()
       else memcpy ~dst ~src ~size:(sizeof_typ src.typ |> llval_of_size)
     else
-      (* Simple type *)
-      ignore (Llvm.build_store (bring_default src) dst builder)
+      match src.typ with
+      | Tunit -> ()
+      | _ ->
+          (* Simple type *)
+          ignore (Llvm.build_store (bring_default src) dst builder)
 
   let tailrec_store ~src ~dst =
     (* Used to have special handling for mutable vars,
@@ -530,15 +528,18 @@ struct
       List.fold_left2
         (fun (env, i) (name, m) p ->
           let typ = p.pt in
-          let value, i = get_value i p.pmut typ in
-          let kind = if p.pmut then Ptr else default_kind typ in
-          let param = { value; typ; lltyp = get_lltype_def typ; kind } in
-          Llvm.set_value_name name value;
-          (* Add mallocs to free tbl so we can find them for freeing *)
-          (match m with
-          | Some id -> Hashtbl.replace free_tbl id param
-          | None -> ());
-          (Vars.add name param env, i + 1))
+          match typ with
+          | Tunit -> (Vars.add name dummy_fn_value env, i + 1)
+          | _ ->
+              let value, i = get_value i p.pmut typ in
+              let kind = if p.pmut then Ptr else default_kind typ in
+              let param = { value; typ; lltyp = get_lltype_def typ; kind } in
+              Llvm.set_value_name name value;
+              (* Add mallocs to free tbl so we can find them for freeing *)
+              (match m with
+              | Some id -> Hashtbl.replace free_tbl id param
+              | None -> ());
+              (Vars.add name param env, i + 1))
         (vars, start_index) names params
       |> fst
     in
@@ -583,27 +584,32 @@ struct
           List.fold_left2
             (fun (env, i) (name, _) p ->
               let typ = p.pt in
-              let value, i = get_value i p.pmut typ in
-              Llvm.set_value_name name value;
-              let kind = if p.pmut then Ptr else default_kind typ in
-              let value = { value; typ; lltyp = get_lltype_def typ; kind } in
-              let alloc =
-                { value with value = alloca_copy p.pmut value; kind = Ptr }
-              in
-              let env = Vars.add (name_of_alloc_param i) alloc env in
-              let env =
-                if contains_allocation typ then (
-                  (* Create flag to see if it was set to a temp value *)
-                  let cookie = Llvm.build_alloca bool_t "" builder in
-                  ignore
-                    (Llvm.build_store (Llvm.const_int bool_t 0) cookie builder);
-                  let llvar =
-                    { value = cookie; lltyp = bool_t; typ = Tbool; kind = Ptr }
+              match typ with
+              | Tunit -> (env, i)
+              | _ ->
+                  let value, i = get_value i p.pmut typ in
+                  Llvm.set_value_name name value;
+                  let kind = if p.pmut then Ptr else default_kind typ in
+                  let value =
+                    { value; typ; lltyp = get_lltype_def typ; kind }
                   in
-                  Vars.add (name_of_alloc_cookie i) llvar env)
-                else env
-              in
-              (env, i + 1))
+                  let alloc =
+                    { value with value = alloca_copy p.pmut value; kind = Ptr }
+                  in
+                  let env = Vars.add (name_of_alloc_param i) alloc env in
+                  let env =
+                    if contains_allocation typ then (
+                      (* Create flag to see if it was set to a temp value *)
+                      let cookie = Llvm.build_alloca bool_t "" builder in
+                      ignore
+                        (Llvm.build_store (Llvm.const_int bool_t 0) cookie
+                           builder);
+                      let value = cookie and lltyp = bool_t in
+                      let llvar = { value; lltyp; typ = Tbool; kind = Ptr } in
+                      Vars.add (name_of_alloc_cookie i) llvar env)
+                    else env
+                  in
+                  (env, i + 1))
             (vars, start_index) names params
           |> fst
         in
@@ -620,14 +626,17 @@ struct
           List.fold_left2
             (fun (env, i) (name, _) p ->
               let typ = p.pt in
-              let i = get_index i p.pmut typ in
-              let llvar = Vars.find (name_of_alloc_param i) env in
-              let value =
-                if p.pmut then Llvm.build_load llvar.value name builder
-                else llvar.value
-              in
-              (* let kind = if p.pmut then Ptr else default_kind typ in *)
-              (Vars.add name { llvar with value } env, i + 1))
+              match typ with
+              | Tunit -> (env, i)
+              | _ ->
+                  let i = get_index i p.pmut typ in
+                  let llvar = Vars.find (name_of_alloc_param i) env in
+                  let value =
+                    if p.pmut then Llvm.build_load llvar.value name builder
+                    else llvar.value
+                  in
+                  (* let kind = if p.pmut then Ptr else default_kind typ in *)
+                  (Vars.add name { llvar with value } env, i + 1))
             (vars, start_index) names params
         in
 
@@ -733,10 +742,13 @@ struct
     { value; typ = Ti32; lltyp = i32_t; kind = Imm }
 
   let var_data var typ =
-    let dataptr = Llvm.build_struct_gep var.value 1 "data" builder in
-    let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
-    let value = bb dataptr ptr_t "" builder in
-    { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
+    match typ with
+    | Tunit -> dummy_fn_value
+    | _ ->
+        let dataptr = Llvm.build_struct_gep var.value 1 "data" builder in
+        let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
+        let value = bb dataptr ptr_t "" builder in
+        { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
 
   let set_in_init b = in_init := b
 end

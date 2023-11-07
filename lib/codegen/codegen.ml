@@ -446,22 +446,25 @@ end = struct
              param, unboxed case we can skip boxing *)
           let arg =
             match (pkind_of_typ oarg.mut arg'.typ, arg'.kind) with
-            (* The [Two_params] case is tricky to do using only consts,
-               so we box and use the standard runtime version *)
+            (* The [Two_params] case is tricky to do using only consts, so
+               we box and use the standard runtime version *)
             | (Boxed, Const | Unboxed (Two_params _), Const)
               when is_struct arg'.typ ->
                 box_const param arg'
             | _ -> get_mono_func arg' param oarg.monomorph
           in
 
-          match pass_value oarg.mut arg with
-          | fst, Some snd ->
-              (* We can skip [func_to_closure] in this case *)
-              (* snd before fst, b/c we rev at the end *)
-              snd :: fst :: args
-          | value, None ->
-              let arg = { arg with value } in
-              (func_to_closure param arg).value :: args)
+          match arg.typ with
+          | Tunit -> args
+          | _ -> (
+              match pass_value oarg.mut arg with
+              | fst, Some snd ->
+                  (* We can skip [func_to_closure] in this case *)
+                  (* snd before fst, b/c we rev at the end *)
+                  snd :: fst :: args
+              | value, None ->
+                  let arg = { arg with value } in
+                  (func_to_closure param arg).value :: args))
         [] args
       |> List.rev |> List.to_seq
     in
@@ -543,11 +546,14 @@ end = struct
     let calculate_arg i (oarg, is_arg) =
       let arg' = gen_expr param Monomorph_tree.(oarg.ex) in
       let arg = get_mono_func arg' param oarg.monomorph in
-      let llvar = func_to_closure param arg in
+      match arg.typ with
+      | Tunit -> (i, None)
+      | _ ->
+          let llvar = func_to_closure param arg in
 
-      let i = get_index i oarg.mut arg.typ in
-      let alloca = Vars.find (name_of_alloc_param i) param.vars in
-      (i + 1, (i, oarg.mut, alloca, llvar, is_arg))
+          let i = get_index i oarg.mut arg.typ in
+          let alloca = Vars.find (name_of_alloc_param i) param.vars in
+          (i + 1, Some (i, oarg.mut, alloca, llvar, is_arg))
     in
 
     let store_arg (i, mut, alloca, value, is_arg) =
@@ -559,7 +565,10 @@ end = struct
         store ~src:value ~dst:alloca.value
     in
 
-    let _, margs = List.fold_left_map calculate_arg start_index args in
+    let margs =
+      List.fold_left_map calculate_arg start_index args
+      |> snd |> List.filter_map Fun.id
+    in
     List.iter store_arg margs;
 
     let lltyp =
@@ -592,25 +601,32 @@ end = struct
     in
 
     match b with
-    | Builtin.Unsafe_ptr_get ->
-        let ptr, index =
-          match args with
-          | [ ptr; index ] -> (bring_default ptr, bring_default index)
-          | _ -> failwith "Internal Error: Arity mismatch in builtin"
-        in
-        let value = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
-        { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Ptr }
-    | Unsafe_ptr_set ->
-        let ptr, index, value =
-          match args with
-          | [ ptr; index; value ] ->
-              (bring_default ptr, bring_default index, bring_default_var value)
-          | _ -> failwith "Internal Error: Arity mismatch in builtin"
-        in
-        let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
+    | Builtin.Unsafe_ptr_get -> (
+        match fnc.ret with
+        | Tunit -> dummy_fn_value
+        | _ ->
+            let ptr, index =
+              match args with
+              | [ ptr; index ] -> (bring_default ptr, bring_default index)
+              | _ -> failwith "Internal Error: Arity mismatch in builtin"
+            in
+            let value = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
+            { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Ptr }
+        )
+    | Unsafe_ptr_set -> (
+        match args with
+        | [ ptr; index; value ] -> (
+            match value.typ with
+            | Tunit -> { dummy_fn_value with lltyp = unit_t }
+            | _ ->
+                let ptr = bring_default ptr
+                and index = bring_default index
+                and value = bring_default_var value in
+                let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
 
-        set_struct_field value ptr;
-        { dummy_fn_value with lltyp = unit_t }
+                set_struct_field value ptr;
+                { dummy_fn_value with lltyp = unit_t })
+        | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Unsafe_ptr_at ->
         let ptr, index =
           match args with
@@ -636,14 +652,17 @@ end = struct
     | Array_capacity -> array_capacity args
     | Fixed_array_get -> (
         match args with
-        | [ arr; idx ] ->
-            let value =
-              Llvm.build_gep arr.value
-                [| Llvm.const_int int_t 0; bring_default idx |]
-                "" builder
-            in
-            let lltyp = get_lltype_def fnc.ret in
-            { value; typ = fnc.ret; lltyp; kind = Ptr }
+        | [ arr; idx ] -> (
+            match arr.typ with
+            | Tfixed_array (_, Tunit) -> dummy_fn_value
+            | _ ->
+                let value =
+                  Llvm.build_gep arr.value
+                    [| Llvm.const_int int_t 0; bring_default idx |]
+                    "" builder
+                in
+                let lltyp = get_lltype_def fnc.ret in
+                { value; typ = fnc.ret; lltyp; kind = Ptr })
         | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Fixed_array_length -> (
         match args with
@@ -659,6 +678,9 @@ end = struct
         match args with
         | [ arr ] -> (
             match (arr.kind, arr.typ) with
+            | _, Tfixed_array (_, Tunit) ->
+                let value = Llvm.const_null voidptr_t in
+                { value; kind = Imm; typ = Traw_ptr Tunit; lltyp = voidptr_t }
             | (Ptr | Const_ptr), Tfixed_array (_, t) ->
                 let lltyp = get_lltype_def t |> Llvm.pointer_type in
                 let value = Llvm.build_bitcast arr.value lltyp "" builder in
@@ -769,9 +791,11 @@ end = struct
     let f env (arg, _) (param, _) =
       let arg' = gen_expr env Monomorph_tree.(arg.ex) in
       let arg = get_mono_func arg' env arg.monomorph in
-
-      let vars = Vars.add param arg env.vars in
-      { env with vars }
+      match arg.typ with
+      | Tunit -> env
+      | _ ->
+          let vars = Vars.add param arg env.vars in
+          { env with vars }
     in
     let env = List.fold_left2 f param args names in
     gen_expr env tree
@@ -875,25 +899,39 @@ end = struct
       | Cnot ->
           let record = get_prealloc !allocref param lltyp "" in
 
-          List.iteri
+          List.fold_left
             (fun i (name, expr) ->
-              let ptr = Llvm.build_struct_gep record i name builder in
-              let value =
-                gen_expr { param with alloca = Some ptr } expr
-                |> (* Const records will stay const, no allocation done to lift
-                      it to Ptr. Thus, it stays Const*)
-                bring_default_var |> func_to_closure param
-              in
-              set_struct_field value ptr)
-            labels;
+              match Monomorph_tree.(expr.typ) with
+              | Tunit ->
+                  gen_expr param expr |> ignore;
+                  i
+              | _ ->
+                  let ptr = Llvm.build_struct_gep record i name builder in
+                  let value =
+                    gen_expr { param with alloca = Some ptr } expr
+                    |> (* Const records will stay const, no allocation done to lift
+                          it to Ptr. Thus, it stays Const*)
+                    bring_default_var |> func_to_closure param
+                  in
+                  set_struct_field value ptr;
+                  i + 1)
+            0 labels
+          |> ignore;
           (record, Ptr)
       | Const ->
           (* We generate the const for runtime use. An addition to
              re-generating the constants, there are immediate literals.
              We have to take care that some global constants are pointers now *)
           let value =
-            let f (_, expr) = (gen_constexpr param expr).value in
-            let values = List.map f labels |> Array.of_list in
+            let f (_, expr) =
+              match Monomorph_tree.(expr.typ) with
+              | Tunit ->
+                  (* The expression is const, so cannot have side-effects. No
+                     need to evaluate it *)
+                  None
+              | _ -> Some (gen_constexpr param expr).value
+            in
+            let values = List.filter_map f labels |> Array.of_list in
             Llvm.const_named_struct lltyp values
           in
           (* The value might be returned, thus boxed, so we wrap it in an automatic var *)
@@ -913,31 +951,46 @@ end = struct
     follow_field value index
 
   and follow_field value index =
-    let typ =
+    let find_real_index fs =
+      (* Without unit fields *)
+      let i = ref None in
+      Array.fold_left
+        (fun (acc, tempi) f ->
+          if tempi = index then i := Some acc;
+          ((match f.ftyp with Tunit -> acc | _ -> acc + 1), tempi + 1))
+        (0, 0) fs
+      |> ignore;
+      Option.get !i
+    in
+
+    let typ, index =
       match value.typ with
-      | Trecord (_, _, fields) -> fields.(index).ftyp
+      | Trecord (_, _, fields) -> (fields.(index).ftyp, find_real_index fields)
       | _ ->
           print_endline (show_typ value.typ);
           failwith "Internal Error: No record in fields"
     in
 
-    let value, kind =
-      match value.kind with
-      | Const_ptr | Ptr ->
-          let p = Llvm.build_struct_gep value.value index "" builder in
-          (* In case we return a record, we don't load, but return the pointer.
-             The idea is that this will be used either as a return value for a function (where it is copied),
-             or for another field, where the pointer is needed.
-             We should distinguish between structs and pointers somehow *)
-          (p, Ptr)
-      | Const ->
-          (* If the record is const, we use extractvalue and propagate the constness *)
-          let p = Llvm.(const_extractvalue value.value [| index |]) in
-          (p, Const)
-      | Imm -> failwith "Internal Error: Did not expect Imm in field"
-    in
+    match typ with
+    | Tunit -> dummy_fn_value
+    | typ ->
+        let value, kind =
+          match value.kind with
+          | Const_ptr | Ptr ->
+              let p = Llvm.build_struct_gep value.value index "" builder in
+              (* In case we return a record, we don't load, but return the pointer.
+                 The idea is that this will be used either as a return value for a function (where it is copied),
+                 or for another field, where the pointer is needed.
+                 We should distinguish between structs and pointers somehow *)
+              (p, Ptr)
+          | Const ->
+              (* If the record is const, we use extractvalue and propagate the constness *)
+              let p = Llvm.(const_extractvalue value.value [| index |]) in
+              (p, Const)
+          | Imm -> failwith "Internal Error: Did not expect Imm in field"
+        in
 
-    { value; typ; lltyp = get_lltype_def typ; kind }
+        { value; typ; lltyp = get_lltype_def typ; kind }
 
   and gen_set param expr valexpr moved =
     let ptr = gen_expr param expr in
@@ -957,8 +1010,6 @@ end = struct
     { value = ptr; typ; lltyp; kind = Const }
 
   and gen_ctor param (variant, tag, expr) typ allocref ms =
-    (* This approach means we alloca every time, even if the enum
-       ends up being a clike constant. There's room for improvement here *)
     let lltyp = get_struct typ in
     let var = get_prealloc !allocref param lltyp variant in
 
@@ -976,20 +1027,24 @@ end = struct
 
     (* Set data *)
     (match expr with
-    | Some expr ->
-        let dataptr = Llvm.build_struct_gep var 1 "data" builder in
-        let ptr_t = get_lltype_def expr.typ |> Llvm.pointer_type in
-        let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
-        let data =
-          gen_expr { param with alloca = Some ptr } expr |> bring_default_var
-        in
+    | Some expr -> (
+        match expr.typ with
+        | Tunit -> ()
+        | _ ->
+            let dataptr = Llvm.build_struct_gep var 1 "data" builder in
+            let ptr_t = get_lltype_def expr.typ |> Llvm.pointer_type in
+            let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
+            let data =
+              gen_expr { param with alloca = Some ptr } expr
+              |> bring_default_var
+            in
 
-        let dataptr =
-          Llvm.build_bitcast dataptr
-            (data.lltyp |> Llvm.pointer_type)
-            "data" builder
-        in
-        set_struct_field data dataptr
+            let dataptr =
+              Llvm.build_bitcast dataptr
+                (data.lltyp |> Llvm.pointer_type)
+                "data" builder
+            in
+            set_struct_field data dataptr)
     | None -> ());
     let v = { value = var; typ; lltyp; kind = Ptr } in
     List.iter (fun id -> Strtbl.replace free_tbl id v) ms;
@@ -1007,15 +1062,18 @@ end = struct
              accordingly *)
           let largestsize =
             match typ with
-            | Tvariant (_, _, ctors) ->
-                variant_get_largest ctors |> Option.get |> sizeof_typ
+            | Tvariant (_, _, ctors) -> (
+                match variant_get_largest ctors with
+                | Some typ -> sizeof_typ typ
+                | None -> 0)
             | _ -> failwith "unreachable"
           in
           let data = gen_constexpr param expr in
           (* Change to the type of the greatest payload, or construct a type
              with needed padding *)
           let oursize = sizeof_typ data.typ in
-          if largestsize > oursize then
+          if largestsize = 0 then Llvm.const_named_struct lltyp [| tag |]
+          else if largestsize > oursize then
             let padding =
               let padtype = Llvm.array_type u8_t (largestsize - oursize) in
               Llvm.undef padtype
@@ -1215,10 +1273,14 @@ let fill_constants constants =
 
 let def_globals globals =
   let f (name, expr, toplvl) =
-    let lltyp = T.get_lltype_def Monomorph_tree.(expr.typ) in
+    let typ = Monomorph_tree.(expr.typ) in
+    let lltyp = T.get_lltype_def typ in
     let value =
       match expr.const with
-      | Cnot -> Llvm.const_bitcast (Llvm.const_int int_t 0) lltyp
+      | Cnot -> (
+          match typ with
+          | Tunit -> H.dummy_fn_value.value
+          | _ -> Llvm.const_bitcast (Llvm.const_int int_t 0) lltyp)
       | Const -> (
           let v = Core.gen_expr no_param expr in
           match v.kind with
