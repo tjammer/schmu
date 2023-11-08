@@ -199,7 +199,7 @@ modul:
   | decl = parens(module_annot) { decl}
 
 %inline functor_params:
-  | nonempty_list(parens(functor_param)) { $1 }
+  | nonempty_list(bracks(functor_param)) { $1 }
 
 %inline functor_param:
   | id = ident; param = path { $loc, snd id, snd param }
@@ -296,7 +296,7 @@ sexp_decl:
     { {loc = $loc; pattern; dattr = Dnorm; annot = None} }
 
 param:
-  | parens(sexp_decl_typed) { $1 }
+  | bracks(sexp_decl_typed) { $1 }
   | pattern = sexp_pattern; Ampersand
     { {loc = $loc; pattern; dattr = Dmut; annot = None} }
   | pattern = sexp_pattern; Exclamation

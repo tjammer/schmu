@@ -3,7 +3,7 @@
 (type (t 'a) {:x 'a})
 
 -- This fn is generic
-(defn apply [(x 'a) (f (fun 'a 'b))]
+(defn apply [[x 'a] [f (fun 'a 'b)]]
   (f x))
 
 (def a 2)

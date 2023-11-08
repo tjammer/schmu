@@ -52,7 +52,7 @@ let test_const_f32 () = test "f32" "(def a 1.0f32) a"
 let test_const_neg_f32 () = test "f32" "(def a -1.0f32) a"
 let test_hint_int () = test "int" "(def (a int) 1) a"
 let test_func_id () = test "(fun 'a 'a)" "(fn (a) (copy a))"
-let test_func_id_hint () = test "(fun int int)" "(fn ((a int)) a)"
+let test_func_id_hint () = test "(fun int int)" "(fn ([a int]) a)"
 let test_func_int () = test "(fun int int)" "(fn (a) (+ a 1))"
 let test_func_bool () = test "(fun bool int)" "(fn (a) (if a 1  1))"
 
@@ -60,15 +60,15 @@ let test_func_external () =
   test "(fun int unit)" "(external func (fun int unit)) func"
 
 let test_func_1st_class () =
-  test "(fun (fun int 'a) int 'a)" "(fn (func (arg int)) (func arg))"
+  test "(fun (fun int 'a) int 'a)" "(fn (func [arg int]) (func arg))"
 
 let test_func_1st_hint () =
-  test "(fun (fun int unit) int unit)" "(fn [(f (fun int unit)) arg] (f arg))"
+  test "(fun (fun int unit) int unit)" "(fn [[f (fun int unit)] arg] (f arg))"
 
 let test_func_1st_stay_general () =
   test "(fun 'a (fun 'a 'b) 'b)"
     "(defn foo [x f] (f x)) (defn add1 [x] (+ x 1)) (def a (foo 1 add1)) (defn \
-     boolean [(x bool)] x) (def b (foo true boolean)) foo"
+     boolean [[x bool]] x) (def b (foo true boolean)) foo"
 
 let test_func_recursive_if () =
   test "(fun int unit)"
@@ -165,20 +165,20 @@ let test_annot_concrete_fail () =
     "Var annotation\nexpecting (fun [bool] [int])\nbut found (fun [int] [bool])"
     "(def (foo (fun bool int)) (fn (x) (< x 3))) foo"
 
-let test_annot_mix () = test "(fun 'a! 'a)" "(defn pass [(x! 'b)] x) pass"
+let test_annot_mix () = test "(fun 'a! 'a)" "(defn pass [[x! 'b]] x) pass"
 
 let test_annot_mix_fail () =
   test_exn "Var annotation expecting (fun _ [int]) but found (fun _ ['a])"
     "(def (pass (fun 'b int)) (fn (x) (copy x))) pass"
 
-let test_annot_generic () = test "(fun 'a! 'a)" "(defn pass [(x! 'b)] x) pass"
+let test_annot_generic () = test "(fun 'a! 'a)" "(defn pass [[x! 'b]] x) pass"
 
 let test_annot_generic_fail () =
   test_exn "Var annotation expecting (fun _ ['b]) but found (fun _ ['a])"
     "(def (pass (fun 'a 'b)) (fn (x) (copy x))) pass"
 
 let test_annot_generic_mut () =
-  test "(fun 'a& 'a)" "(defn pass [(x& 'b)] (copy x)) pass"
+  test "(fun 'a& 'a)" "(defn pass [[x& 'b]] (copy x)) pass"
 
 let test_annot_fun_mut_param () =
   test "(fun int& unit)"
@@ -204,22 +204,22 @@ let test_annot_tuple_simple () =
   test "{int bool}" "(def (a {int bool}) {1 true}) a"
 
 let test_annot_array_arg_generic () =
-  test "(array int)" "(defn foo [(a! (array 'a))] a) (foo ![10])"
+  test "(array int)" "(defn foo [[a! (array 'a)]] a) (foo ![10])"
 
 let test_annot_tuple_generic () =
-  test "{int bool}" "(defn hmm [(a! {int 'a})] a) (hmm !{1 true})"
+  test "{int bool}" "(defn hmm [[a! {int 'a}]] a) (hmm !{1 true})"
 
 let test_annot_fixed_size_array () =
-  test "(array#32 int)" "(defn hmm [(a! (array#32 'a))] a) (hmm !#32[0])"
+  test "(array#32 int)" "(defn hmm [[a! (array#32 'a)]] a) (hmm !#32[0])"
 
 let test_annot_fixed_unknown_size_array () =
-  test "(array#32 int)" "(defn hmm [(a! (array#? 'a))] a) (hmm !#32[0])"
+  test "(array#32 int)" "(defn hmm [[a! (array#? 'a)]] a) (hmm !#32[0])"
 
 let test_annot_fixed_unknown_size_array_fn () =
   (* The function is instantiated so the size is not generalized. That's why
      there are two question marks. *)
   test "(fun (array#?? 'a)! (array#?? 'a))"
-    "(defn hmm [(a! (array#? 'a))] a) hmm"
+    "(defn hmm [[a! (array#? 'a)]] a) hmm"
 
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
@@ -614,7 +614,7 @@ let test_signature_generic () =
 (type (t 'a) {:x 'a})
 
 (defn create [x!] {:x})
-(defn create-int [(x int)] {:x})
+(defn create-int [[x int]] {:x})
 |}
 
 let test_signature_param_mismatch () =
@@ -626,7 +626,7 @@ let test_signature_param_mismatch () =
   (type (t 'a))
   (def create-int (fun int (t int))))
 (type (t 'a) {:x int})
-(defn create-int [(x int)] {:x})|}
+(defn create-int [[x int]] {:x})|}
 
 let test_signature_unparam_type () =
   test_exn "Unparamatrized type in module implementation"
@@ -854,7 +854,7 @@ let test_mtype_abstracts () =
   (type t)
   (def add (fun t t t)))
 
-(functor make [(m sig)]
+(functor make [[m sig]]
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
@@ -879,33 +879,33 @@ let test_mtype_abstracts () =
 |}
 
 let test_functor_define () =
-  test "unit" "(module-type mt (type t)) (functor f [(p mt)] ())"
+  test "unit" "(module-type mt (type t)) (functor f [[p mt]] ())"
 
 let test_functor_module_type_not_found () =
-  test_exn "Cannot find module type mt" "(functor f [(p mt)] ())"
+  test_exn "Cannot find module type mt" "(functor f [[p mt]] ())"
 
 let test_functor_direct_access () =
   test_exn "The module f is a functor. It cannot be accessed directly"
-    "(module-type mt (type t)) (functor f [(p mt)] (type a unit)) (ignore f/a)"
+    "(module-type mt (type t)) (functor f [[p mt]] (type a unit)) (ignore f/a)"
 
 let test_functor_checked_alias () =
   test_exn "The module f is a functor. It cannot be accessed directly"
-    "(module-type mt (type t)) (functor f [(p mt)] (type a unit)) (module (hmm \
+    "(module-type mt (type t)) (functor f [[p mt]] (type a unit)) (module (hmm \
      mt) f)"
 
 let test_functor_wrong_arity () =
   test_exn "Wrong arity for functor f: Expecting 1 but got 2"
-    "(module-type mt (type t)) (functor f [(p mt)] ()) (module a (type t \
+    "(module-type mt (type t)) (functor f [[p mt]] ()) (module a (type t \
      unit)) (module hmm (f a a))"
 
 let test_functor_wrong_module_type () =
   test_exn "Signatures don't match: Type a/t is missing"
-    "(module-type mt (type t)) (functor f [(p mt)] ()) (module a ()) (module \
+    "(module-type mt (type t)) (functor f [[p mt]] ()) (module a ()) (module \
      hmm (f a))"
 
 let test_functor_no_var_param () =
   test_exn "No var named p/a"
-    "(module-type mt (type t)) (functor f [(p mt)] (def _ (ignore p/a)))"
+    "(module-type mt (type t)) (functor f [[p mt]] (def _ (ignore p/a)))"
 
 let test_functor_apply_use () =
   test "inta/t = int"
@@ -913,7 +913,7 @@ let test_functor_apply_use () =
   (type t)
   (def add (fun t t t)))
 
-(functor make [(m sig)]
+(functor make [[m sig]]
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
@@ -934,7 +934,7 @@ let test_functor_abstract_param () =
   (type t)
   (def add (fun t t t)))
 
-(functor make [(m sig)]
+(functor make [[m sig]]
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
@@ -954,7 +954,7 @@ let test_functor_use_param_type () =
     {|(module-type sig
   (type t))
 
-(functor make [(m sig)]
+(functor make [[m sig]]
   (type t m/t))|}
 
 let test_functor_poly_function () =
@@ -962,7 +962,7 @@ let test_functor_poly_function () =
     {|(module-type poly
   (def id (fun 'a! 'a)))
 
-(functor makeid [(m poly)]
+(functor makeid [[m poly]]
   (defn newid (p!) (m/id !p)))
 
 (module some
@@ -981,11 +981,11 @@ let test_functor_poly_mismatch () =
     {|(module-type poly
   (def id (fun 'a! 'a)))
 
-(functor makeid [(m poly)]
+(functor makeid [[m poly]]
   (defn newid (p!) (m/id !p)))
 
 (module someint
-  (defn id [(p! int)] p))
+  (defn id [[p! int]] p))
 
 (module intappl (makeid someint))|}
 
@@ -1002,13 +1002,13 @@ let check_sig_test thing =
   ^ thing
   ^ {|))))
 
-(functor (make sig) [(m key)]
+(functor (make sig) [[m key]]
  (type key m/t)
  (type (item 'a) {:key m/t :value 'a})
  (type (slot 'a) (#empty #tombstone (#item (item 'a))))
  (type (t 'a) {:data& (array (slot 'a)) :nitems& int})
 
-  (defn create [(size int)]
+  (defn create [[size int]]
     (ignore size)
     (def data [])
     {:data :nitems 0}))|}
@@ -1070,15 +1070,15 @@ let () =
       ( "funcs",
         [
           case "id" test_func_id;
-          case "id_hint" test_func_id_hint;
+          case "id hint" test_func_id_hint;
           case "int" test_func_int;
           case "bool" test_func_bool;
           case "ext" test_func_external;
-          case "1st_class" test_func_1st_class;
-          case "1st_hint" test_func_1st_hint;
-          case "1st_stay_gen" test_func_1st_stay_general;
-          case "recursive_if" test_func_recursive_if;
-          case "generic_return" test_func_generic_return;
+          case "1st class" test_func_1st_class;
+          case "1st hint" test_func_1st_hint;
+          case "1st stay gen" test_func_1st_stay_general;
+          case "recursive if" test_func_recursive_if;
+          case "generic return" test_func_generic_return;
           case "capture annot" test_func_capture_annot;
           case "capture annot wrong" test_func_capture_annot_wrong;
         ] );
@@ -1088,17 +1088,17 @@ let () =
           case "false" test_record_false;
           case "choose" test_record_choose;
           case "reorder" test_record_reorder;
-          case "create_if" test_record_create_if;
-          case "create_return" test_record_create_return;
-          case "wrong_type" test_record_wrong_type;
-          case "wrong_choose" test_record_wrong_choose;
-          case "field_simple" test_record_field_simple;
-          case "field_infer" test_record_field_infer;
-          case "same_field_infer" test_record_same_field_infer;
-          case "nested_field_infer" test_record_nested_field_infer;
-          case "nested_field_infer_generic" test_record_nested_field_generic;
-          case "field_no_record" test_record_field_no_record;
-          case "field_wrong_record" test_record_field_wrong_record;
+          case "create if" test_record_create_if;
+          case "create return" test_record_create_return;
+          case "wrong type" test_record_wrong_type;
+          case "wrong choose" test_record_wrong_choose;
+          case "field simple" test_record_field_simple;
+          case "field infer" test_record_field_infer;
+          case "same field_infer" test_record_same_field_infer;
+          case "nested field infer" test_record_nested_field_infer;
+          case "nested field infer generic" test_record_nested_field_generic;
+          case "field no record" test_record_field_no_record;
+          case "field wrong record" test_record_field_wrong_record;
           case "update" test_record_update;
           case "update poly" test_record_update_poly_same;
           case "update poly_change" test_record_update_poly_change;

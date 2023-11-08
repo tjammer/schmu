@@ -1,6 +1,7 @@
 (type string string/t)
 
 (def print string/print)
+(def cstr string/data)
 
 (type (option 'a) (option/t 'a))
 

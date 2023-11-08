@@ -20,11 +20,11 @@
 
 (type t (array u8))
 
-(defn len [(str t)] (array/length str))
+(defn len [[str t]] (array/length str))
 
-(defn data [(str t)] (array/data str))
+(defn data [[str t]] (array/data str))
 
-(defn get [(str t) i] str.[i])
+(defn get [[str t] i] str.[i])
 
 (defn hash [str]
   -- unsigned long
@@ -46,7 +46,7 @@
     false))
 
 (defn append (str& other)
-  (array/iter other (fn ((c u8)) (array/push &str !c))))
+  (array/iter other (fn ([c u8]) (array/push &str !c))))
 
 (defn concat [delim strings]
   (let [ret& (array/create 32)]
@@ -90,17 +90,17 @@
     (let [skips (make-skips pattern)]
       (find skips 0))))
 
-(defn modify-buf [(str& t) f]
+(defn modify-buf [[str& t] f]
   (f &str)
   -- return type needs to be inferred as unit
   ())
 
-(defn of-array [(arr! (array u8))] arr)
-(defn to-array [(str! t)] str)
+(defn of-array [[arr! (array u8)]] arr)
+(defn to-array [[str! t]] str)
 
 (external memcpy (fun (raw_ptr u8) (raw_ptr u8) int unit))
 
-(defn of-fixed-array [(arr (array#? u8))]
+(defn of-fixed-array [[arr (array#? u8)]]
   (def ret (array/create (__fixed_array_length arr)))
   (memcpy (array/data ret) (__fixed_array_data arr) (__fixed_array_length arr))
   ret)
@@ -111,7 +111,7 @@
 
 (def newline #['\n'])
 
-(defn print [(str t)]
+(defn print [[str t]]
   -- TODO should be named println, but (print (fmt-str ...)) also adds newline
   (fwrite (array/data str) 1 (array/length str) stdout)
   (fwrite (__fixed_array_data newline) 1 1 stdout))

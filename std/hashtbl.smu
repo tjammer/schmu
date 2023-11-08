@@ -13,7 +13,7 @@
   (def fold (fun (t 'value) 'c! (fun 'c! key 'value 'c) 'c))
   (def to-array (fun (t 'value) (array {key 'value}))))
 
-(functor (make sig) [(m key)]
+(functor (make sig) [[m key]]
   (import option)
 
   (type key m/t)

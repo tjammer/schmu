@@ -2,7 +2,7 @@
 
 (type (t 'a) {:first int :gen 'a :third bool})
 
-(defn apply [(f (fun 'b 'a)) (x 'b)] (f x))
+(defn apply [[f (fun 'b 'a)] [x 'b]] (f x))
 
 (defn pass [x]
   -- We have to use the record somehow, otherwise it's passed

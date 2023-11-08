@@ -9,7 +9,7 @@
 
 (external ext (fun string/cstr int unit) "printf")
 
-(defn int [(i int)]
+(defn int [[i int]]
   (print (fmt-str i)))
 
 (defn poly-int [a] (copy a))
