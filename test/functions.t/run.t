@@ -2424,3 +2424,8 @@ Check allocations of nested closures
   $ valgrind ./nested_closure_allocs 2>&1 | grep allocs | cut -f 5- -d '='
    Command: ./nested_closure_allocs
      total heap usage: 8 allocs, 8 frees, 240 bytes allocated
+
+Check that binops with multiple argument works
+  $ schmu binop.smu && ./binop
+  1
+  19

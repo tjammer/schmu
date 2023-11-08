@@ -1123,12 +1123,14 @@ end = struct
     let rec build = function
       | [ _ ] | [] ->
           raise (Error (loc, "Binary operator needs at least two operands"))
-      | [ a; b ] -> convert_bop_impl env loc bop a b
+      | [ a; b ] ->
+          (* The list is reversed, b is the first operand *)
+          convert_bop_impl env loc bop b a
       | a :: tl ->
           let tl = build tl in
           { tl with expr = Bop (bop, tl, convert env a) }
     in
-    build es
+    build (List.rev es)
 
   and convert_unop env loc unop expr =
     match unop with
