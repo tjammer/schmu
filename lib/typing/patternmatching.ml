@@ -819,6 +819,8 @@ module Make (C : Core) (R : Recs) = struct
         let pats = List.map (fun p -> type_pattern env (path, p)) pats in
         cartesian_product pats |> List.concat
 
+  let make_var_expr_fn env loc i = convert_var env loc (Path.Pid (expr_name i))
+
   let rec convert_match env loc expr cases =
     let path = [ 0 ] in
     let env, expr =
@@ -881,7 +883,7 @@ module Make (C : Core) (R : Recs) = struct
        be part of [compile_matches] eventually *)
 
     (* Magic value, see above *)
-    let expr i = convert_var env all_loc (Path.Pid (expr_name i)) in
+    let expr i = make_var_expr_fn env all_loc i in
 
     let ctorenv env ctor i loc =
       match ctor with
@@ -1220,7 +1222,7 @@ module Make (C : Core) (R : Recs) = struct
         raise (Error (loc, "Unexpected pattern in declaration"))
 
   (* Magic value, see above *)
-  let expr env i loc = convert_var env loc (Path.Pid (expr_name i))
+  let expr env i loc = make_var_expr_fn env loc i
 
   let bind_pattern env loc i p =
     let typed = type_pattern env ([ i ], p) in

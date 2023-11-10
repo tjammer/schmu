@@ -150,6 +150,10 @@ and get_generic_ids = function
   | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
       List.map get_generic_ids ps |> List.concat
   | Tarray t | Traw_ptr t | Tfixed_array (_, t) -> get_generic_ids t
+  | Tfun (ps, ret, _) ->
+      List.fold_left
+        (fun l p -> get_generic_ids p.pt @ l)
+        (get_generic_ids ret) ps
   | _ -> []
 
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =

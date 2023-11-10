@@ -411,6 +411,16 @@ let test_variants_option_some_arg () =
   test_exn "The constructor some expects arguments, but none are provided"
     "(type (option 'a) (#none (#some 'a))) #some"
 
+let test_variants_correct_inference () =
+  test "unit"
+    {|(type view {:start int :len int})
+(type (success 'a) {:rem view :mtch 'a})
+(type (parse-result 'a) ((#ok (success 'a)) (#err view)))
+(defn map [p f buf view]
+  (match (p buf view)
+    ((#ok ok) (#ok {@ok :mtch (f ok.mtch)}))
+    ((#err view) (#err view))))|}
+
 let test_match_all () =
   test "int"
     "(type (option 'a) (#none (#some 'a))) (match (#some 1) ((#some a) a)  \
@@ -1194,6 +1204,7 @@ let () =
           case "option_annot" test_variants_option_annot;
           case "option_none_arg" test_variants_option_none_arg;
           case "option_some_arg" test_variants_option_some_arg;
+          case "correct inference" test_variants_correct_inference;
         ] );
       ( "match",
         [

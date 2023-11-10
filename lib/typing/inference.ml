@@ -147,9 +147,7 @@ let unify info t1 t2 env =
 
 let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
-  | Tvar ({ contents = Link t } as tv) ->
-      tv := Link (generalize t);
-      Tvar tv
+  | Tvar { contents = Link t } -> generalize t
   | Talias (n, t) -> Talias (n, generalize t)
   | Tfun (t1, t2, k) ->
       let gen p = { p with pt = generalize p.pt } in
