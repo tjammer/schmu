@@ -2425,6 +2425,11 @@ Check allocations of nested closures
      total heap usage: 8 allocs, 8 frees, 240 bytes allocated
 
 Check that binops with multiple argument works
-  $ schmu binop.smu && ./binop
+  $ schmu binop.smu
+  $ ./binop
   1
   19
+
+Partial application
+  $ schmu partial_application.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_application

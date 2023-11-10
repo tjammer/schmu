@@ -1,0 +1,3 @@
+(defn partial (a b) (fmt-str a " and " b))
+(def p (partial "lol"))
+(ignore (p "rofl"))

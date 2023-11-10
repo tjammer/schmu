@@ -725,6 +725,7 @@ end = struct
         let body =
           { typ = eventual_ret; expr = App { callee; args }; attr; loc }
         in
+        let body = { body with expr = Move body } in
         let abs = { nparams; body; func; inline = false } in
         { typ = this_ret; expr = Lambda (lambda_id (), abs); loc; attr }
 
