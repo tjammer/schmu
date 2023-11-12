@@ -744,7 +744,7 @@ end = struct
     | Not ->
         let value =
           match args with
-          | [ value ] -> value.value
+          | [ value ] -> bring_default value
           | _ -> failwith "Interal Error: Arity mismatch in builder"
         in
 
