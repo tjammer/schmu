@@ -196,7 +196,7 @@ modul:
 
 %inline module_decl:
   | id = ident { fst id, snd id, None }
-  | decl = parens(module_annot) { decl}
+  | decl = bracks(module_annot) { decl }
 
 %inline functor_params:
   | nonempty_list(bracks(functor_param)) { $1 }

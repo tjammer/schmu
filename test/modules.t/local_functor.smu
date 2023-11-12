@@ -9,22 +9,22 @@
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
-(module (outa sig)
+(module [outa sig]
   (type t outer/t)
   (defn add (a b) {:i (+ a.i b.i)}))
 
-(module (inta sig)
+(module [inta sig]
   (type t int)
   (defn add (a b) (+ a b)))
 
-(module (floata sig)
+(module [floata sig]
   (signature
     (type t float)
     (def add (fun t t t)))
   (type t float)
   (defn add (a b) (+. a b)))
 
-(module (somerec sig)
+(module [somerec sig]
   (type t {:a int :b int})
   (defn add (a b) {:a (+ a.a b.a) :b (+ a.b b.b)}))
 

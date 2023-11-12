@@ -837,7 +837,7 @@ let test_mtype_define () =
 let test_mtype_no_match () =
   test_exn "Signatures don't match: Type test/t is missing"
     {|(module-type tt (type t))
-(module (test tt)
+(module [test tt]
  (type a unit))|}
 
 let test_mtype_no_match_alias () =
@@ -845,12 +845,12 @@ let test_mtype_no_match_alias () =
     {|(module-type tt (type t))
 (module test
  (type a unit))
-(module (other tt) test)|}
+(module [other tt] test)|}
 
 let test_mtype_no_match_sign () =
   test_exn "Signatures don't match: Type test/t is missing"
     {|(module-type tt (type t))
-(module (test tt)
+(module [test tt]
  (signature
     (type a))
  (type a unit))|}
@@ -868,22 +868,22 @@ let test_mtype_abstracts () =
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
-(module (outa sig)
+(module [outa sig]
   (type t outer/t)
   (defn add (a b) {:i (+ a.i b.i)}))
 
-(module (inta sig)
+(module [inta sig]
   (type t int)
   (defn add (a b) (+ a b)))
 
-(module (floata sig)
+(module [floata sig]
   (signature
     (type t)
     (def add (fun t t t)))
   (type t float)
   (defn add (a b) (+. a b)))
 
-(module (somerec sig)
+(module [somerec sig]
   (type t {:a int :b int})
   (defn add (a b) {:a (+ a.a b.a) :b (+ a.b b.b)}))
 |}
@@ -900,8 +900,8 @@ let test_functor_direct_access () =
 
 let test_functor_checked_alias () =
   test_exn "The module f is a functor. It cannot be accessed directly"
-    "(module-type mt (type t)) (functor f [[p mt]] (type a unit)) (module (hmm \
-     mt) f)"
+    "(module-type mt (type t)) (functor f [[p mt]] (type a unit)) (module [hmm \
+     mt] f)"
 
 let test_functor_wrong_arity () =
   test_exn "Wrong arity for functor f: Expecting 1 but got 2"
@@ -927,7 +927,7 @@ let test_functor_apply_use () =
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
-(module (inta sig)
+(module [inta sig]
   (type t int)
   (defn add (a b) (+ a b)))
 
@@ -948,7 +948,7 @@ let test_functor_abstract_param () =
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
-(module (inta sig)
+(module [inta sig]
   (signature
     (type t)
     (def add (fun t t t)))
@@ -1012,7 +1012,7 @@ let check_sig_test thing =
   ^ thing
   ^ {|))))
 
-(functor (make sig) [[m key]]
+(functor [make sig] [[m key]]
  (type key m/t)
  (type (item 'a) {:key m/t :value 'a})
  (type (slot 'a) (#empty #tombstone (#item (item 'a))))
