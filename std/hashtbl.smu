@@ -9,6 +9,7 @@
 
   (def create (fun int (t 'value)))
   (def insert (fun (t 'value)& key! 'value! unit))
+  (def remove (fun (t 'value)& key unit))
   (def find (fun (t 'value) key (option/t 'value)))
   (def fold (fun (t 'value) 'c! (fun 'c! key 'value 'c) 'c))
   (def to-array (fun (t 'value) (array {key 'value}))))
@@ -35,13 +36,14 @@
 
   (defn probe-linear [tbl key insert?]
     (defn probe [i size]
+      (def occupied true)
       (match tbl.data.[i]
-        (#empty i)
-        (#tombstone (if insert? i (probe (mod (+ i 1) size) size)))
+        (#empty {i (not occupied)})
+        (#tombstone (if insert? {i (not occupied)} (probe (mod (+ i 1) size) size)))
         ((#item {:key k :value _})
          (do
            (if (m/equal key k)
-             i                    -- Overwrite the same key
+             {i occupied} -- Overwrite the same key
              (probe (mod (+ i 1) size) size))))))
     (let [idx (idx tbl key)]
       (probe idx (array/length tbl.data))))
@@ -99,12 +101,18 @@
    (defn insert [tbl& key! value!]
      (if (>. (load-factor tbl) load-limit)
        (grow &tbl))
-     (let [idx (probe-linear tbl key true)]
-       (set &tbl.data.[idx] !(#item {:key :value}))
-       (set &tbl.nitems !(+ 1 tbl.nitems)))))
+     (let [{idx occupied?} (probe-linear tbl key true)]
+       (if (not occupied?) (set &tbl.nitems !(+ 1 tbl.nitems)))
+       (set &tbl.data.[idx] !(#item {:key :value})))))
+
+  (defn remove [tbl& key]
+    (let [{idx occupied?} (probe-linear tbl key false)]
+      (if occupied?
+        (do (set &tbl.data.[idx] !#tombstone)
+            (set &tbl.nitems !(- tbl.nitems 1))))))
 
   (defn find [tbl key]
-    (let [idx (probe-linear tbl key false)]
+    (let [{idx _} (probe-linear tbl key false)]
       (match tbl.data.[idx]
         ((#item i) (#some (copy i.value)))
         ((or #empty #tombstone) #none))))
