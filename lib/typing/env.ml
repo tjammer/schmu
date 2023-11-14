@@ -709,23 +709,23 @@ let find_ctor_opt name env =
   in
   aux env.values
 
-let rec make_alias_usable name scope = function
-  | Trecord (_, _, labels) ->
+let rec make_alias_usable scope = function
+  | Trecord (_, Some name, labels) ->
       let labelset =
         Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
       in
       let labelsets, labels = add_labels name labelset labels scope in
       { scope with labelsets; labels }
-  | Tvariant (_, _, ctors) ->
+  | Tvariant (_, name, ctors) ->
       let ctors = add_ctors name ctors scope in
       { scope with ctors }
-  | Talias (_, typ) -> make_alias_usable name scope typ
+  | Talias (_, typ) -> make_alias_usable scope typ
   | _ -> scope
 
 let add_alias name alias in_sig typ env =
   let scope, tl = decap_exn env in
 
-  let scope = make_alias_usable (Path.Pid name) scope typ in
+  let scope = make_alias_usable scope typ in
   let typ = Talias (alias, typ) in
   let types = Map.add name (typ, in_sig) scope.types in
   { env with values = { scope with types } :: tl }

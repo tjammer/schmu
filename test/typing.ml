@@ -327,6 +327,18 @@ let test_alias_ctors () =
 (type (t 'a) (inner/t 'a))
 (#yes 10)|}
 
+let test_alias_ctors_dont_overwrite () =
+  test "(fun (option (item 'a)) (option 'a))"
+    {|(type (option 'a) ((#some 'a) #none))
+(type (item 'a) {:value 'a})
+(type (slot 'a) (option (item 'a)))
+
+(defn get-item (slot)
+  (match slot
+    ((#some item) (#some (copy item.value)))
+    (#none #none)))
+get-item|}
+
 let test_array_lit () = test "(array int)" "[0 1]"
 
 let test_array_var () = test "(array int)" {|(def a [0 1])
@@ -1174,6 +1186,7 @@ let () =
           case "of_alias" test_alias_of_alias;
           case "usable labels" test_alias_labels;
           case "usable ctors" test_alias_ctors;
+          case "usable ctors dont overwrite" test_alias_ctors_dont_overwrite;
         ] );
       ( "array",
         [
