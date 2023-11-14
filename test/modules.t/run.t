@@ -226,32 +226,32 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   $ cat poly_func.smi
-  (()((9:Mpoly_fun(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:1))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:70)))((7:nparams(5:thing))(4:body((3:typ4:Tint)(4:expr(4:Move((3:typ4:Tint)(4:expr(4:Bind7:__expr0((3:typ(8:Tvariant((4:Qvar1:1))8:option/t(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var5:thing()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:32))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:37)))))((3:typ4:Tint)(4:expr(2:If((3:typ5:Tbool)(4:expr(3:Bop7:Equal_i((3:typ4:Ti32)(4:expr(13:Variant_index((3:typ(8:Tvariant((4:Qvar1:1))8:option/t(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:26))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:37)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))((3:typ4:Ti32)(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))(4:true)((3:typ4:Tint)(4:expr(4:Bind7:__expr0((3:typ(4:Qvar1:1))(4:expr(12:Variant_data((3:typ(8:Tvariant((4:Qvar1:1))8:option/t(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:26))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:23)(8:pos_cnum2:37)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:53))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:54)))))))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:53))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:54)))))((3:typ4:Tint)(4:expr(4:Bind7:__expr0((3:typ(8:Tvariant((4:Qvar1:1))8:option/t(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:67))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:68)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:61))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol2:56)(8:pos_cnum2:66)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:44))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:38)(8:pos_cnum2:49))))))(4:func((7:tparams(((2:pt(8:Tvariant((4:Qvar1:1))8:option/t(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(5:pattr5:Dnorm))))(3:ret4:Tint)(4:kind6:Simple)(7:touched())))(6:inline5:false))8:classify()))((77:/home/tobi/projects/schmulang/_build/install/default/lib/schmu/std/std/option5:false)))
+  (()((5:Mtype(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:80)(8:pos_cnum2:80))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:80)(8:pos_cnum3:117)))(8:Tvariant((4:Qvar1:1))16:poly_func/option(((5:cname4:some)(4:ctyp((4:Qvar1:1)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(9:Mpoly_fun(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:3)(7:pos_bol3:118)(8:pos_cnum3:119))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:174)(8:pos_cnum3:188)))((7:nparams(5:thing))(4:body((3:typ4:Tint)(4:expr(4:Move((3:typ4:Tint)(4:expr(4:Bind7:__expr0((3:typ(8:Tvariant((4:Qvar1:2))16:poly_func/option(((5:cname4:some)(4:ctyp((4:Qvar1:2)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var5:thing()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol3:141)(8:pos_cnum3:150))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol3:141)(8:pos_cnum3:155)))))((3:typ4:Tint)(4:expr(2:If((3:typ5:Tbool)(4:expr(3:Bop7:Equal_i((3:typ4:Ti32)(4:expr(13:Variant_index((3:typ(8:Tvariant((4:Qvar1:2))16:poly_func/option(((5:cname4:some)(4:ctyp((4:Qvar1:2)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol3:141)(8:pos_cnum3:144))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol3:141)(8:pos_cnum3:155)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:162))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:167)))))((3:typ4:Ti32)(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:162))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:167)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:162))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:167)))))(4:true)((3:typ4:Tint)(4:expr(4:Bind7:__expr0((3:typ(4:Qvar1:2))(4:expr(12:Variant_data((3:typ(8:Tvariant((4:Qvar1:2))16:poly_func/option(((5:cname4:some)(4:ctyp((4:Qvar1:2)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol3:141)(8:pos_cnum3:144))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol3:141)(8:pos_cnum3:155)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:162))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:167)))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:171))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:172)))))))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:171))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:172)))))((3:typ4:Tint)(4:expr(4:Bind7:__expr0((3:typ(8:Tvariant((4:Qvar1:2))16:poly_func/option(((5:cname4:some)(4:ctyp((4:Qvar1:2)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:162))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:167)))))((3:typ4:Tint)(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:174)(8:pos_cnum3:185))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:174)(8:pos_cnum3:186)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:174)(8:pos_cnum3:179))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:174)(8:pos_cnum3:184)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:162))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:167)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:162))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:167)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:162))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:156)(8:pos_cnum3:167))))))(4:func((7:tparams(((2:pt(8:Tvariant((4:Qvar1:2))16:poly_func/option(((5:cname4:some)(4:ctyp((4:Qvar1:2)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(5:pattr5:Dnorm))))(3:ret4:Tint)(4:kind6:Simple)(7:touched())))(6:inline5:false))8:classify()))())
 
   $ schmu import_poly_func.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %option.t_float = type { i32, double }
-  %option.t_int = type { i32, i64 }
+  %poly_func.option_float = type { i32, double }
+  %poly_func.option_int = type { i32, i64 }
   
-  @schmu_none = constant %option.t_float { i32 1, double undef }
+  @schmu_none = constant %poly_func.option_float { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare i8* @string_data(i8* %0)
   
   declare void @printf(i8* %0, i64 %1)
   
-  define linkonce_odr i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %thing) {
+  define linkonce_odr i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optionf.i(%poly_func.option_float* %thing) {
   entry:
-    %tag1 = bitcast %option.t_float* %thing to i32*
+    %tag1 = bitcast %poly_func.option_float* %thing to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option.t_float, %option.t_float* %thing, i32 0, i32 1
+    %data = getelementptr inbounds %poly_func.option_float, %poly_func.option_float* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -259,15 +259,15 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %thing) {
+  define linkonce_odr i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optioni.i(%poly_func.option_int* %thing) {
   entry:
-    %tag1 = bitcast %option.t_int* %thing to i32*
+    %tag1 = bitcast %poly_func.option_int* %thing to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option.t_int, %option.t_int* %thing, i32 0, i32 1
+    %data = getelementptr inbounds %poly_func.option_int, %poly_func.option_int* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -278,17 +278,17 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define i64 @main(i64 %arg) {
   entry:
     %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst = alloca %option.t_int, align 8
-    store %option.t_int { i32 0, i64 3 }, %option.t_int* %boxconst, align 8
-    %1 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %boxconst)
+    %boxconst = alloca %poly_func.option_int, align 8
+    store %poly_func.option_int { i32 0, i64 3 }, %poly_func.option_int* %boxconst, align 8
+    %1 = call i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optioni.i(%poly_func.option_int* %boxconst)
     call void @printf(i8* %0, i64 %1)
     %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst1 = alloca %option.t_float, align 8
-    store %option.t_float { i32 0, double 3.000000e+00 }, %option.t_float* %boxconst1, align 8
-    %3 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %boxconst1)
+    %boxconst1 = alloca %poly_func.option_float, align 8
+    store %poly_func.option_float { i32 0, double 3.000000e+00 }, %poly_func.option_float* %boxconst1, align 8
+    %3 = call i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optionf.i(%poly_func.option_float* %boxconst1)
     call void @printf(i8* %2, i64 %3)
     %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %5 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* @schmu_none)
+    %5 = call i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optionf.i(%poly_func.option_float* @schmu_none)
     call void @printf(i8* %4, i64 %5)
     ret i64 0
   }
@@ -302,25 +302,25 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %option.t_float = type { i32, double }
-  %option.t_int = type { i32, i64 }
+  %poly_func.option_float = type { i32, double }
+  %poly_func.option_int = type { i32, i64 }
   
-  @schmu_none = constant %option.t_float { i32 1, double undef }
+  @schmu_none = constant %poly_func.option_float { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare i8* @string_data(i8* %0)
   
   declare void @printf(i8* %0, i64 %1)
   
-  define linkonce_odr i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %thing) {
+  define linkonce_odr i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optionf.i(%poly_func.option_float* %thing) {
   entry:
-    %tag1 = bitcast %option.t_float* %thing to i32*
+    %tag1 = bitcast %poly_func.option_float* %thing to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option.t_float, %option.t_float* %thing, i32 0, i32 1
+    %data = getelementptr inbounds %poly_func.option_float, %poly_func.option_float* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -328,15 +328,15 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %thing) {
+  define linkonce_odr i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optioni.i(%poly_func.option_int* %thing) {
   entry:
-    %tag1 = bitcast %option.t_int* %thing to i32*
+    %tag1 = bitcast %poly_func.option_int* %thing to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option.t_int, %option.t_int* %thing, i32 0, i32 1
+    %data = getelementptr inbounds %poly_func.option_int, %poly_func.option_int* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -347,17 +347,17 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define i64 @main(i64 %arg) {
   entry:
     %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst = alloca %option.t_int, align 8
-    store %option.t_int { i32 0, i64 3 }, %option.t_int* %boxconst, align 8
-    %1 = call i64 @__option.tg.i_poly_func_classify_option.ti.i(%option.t_int* %boxconst)
+    %boxconst = alloca %poly_func.option_int, align 8
+    store %poly_func.option_int { i32 0, i64 3 }, %poly_func.option_int* %boxconst, align 8
+    %1 = call i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optioni.i(%poly_func.option_int* %boxconst)
     call void @printf(i8* %0, i64 %1)
     %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst1 = alloca %option.t_float, align 8
-    store %option.t_float { i32 0, double 3.000000e+00 }, %option.t_float* %boxconst1, align 8
-    %3 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* %boxconst1)
+    %boxconst1 = alloca %poly_func.option_float, align 8
+    store %poly_func.option_float { i32 0, double 3.000000e+00 }, %poly_func.option_float* %boxconst1, align 8
+    %3 = call i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optionf.i(%poly_func.option_float* %boxconst1)
     call void @printf(i8* %2, i64 %3)
     %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %5 = call i64 @__option.tg.i_poly_func_classify_option.tf.i(%option.t_float* @schmu_none)
+    %5 = call i64 @__poly_func.optiong.i_poly_func_classify_poly_func.optionf.i(%poly_func.option_float* @schmu_none)
     call void @printf(i8* %4, i64 %5)
     ret i64 0
   }
