@@ -1044,21 +1044,18 @@ end = struct
       List.map (fun p -> { p with pt = param_funcs_as_closures p.pt }) params_t
     in
 
-    let typ =
-      Tfun (params_t, body.typ, kind)
-      |>
-      (* For mutually recursive functions, we generalize at the end of the rec
-         block. Otherwise calls to the not-last function in the set will not
-         work*)
-      fun t -> if inrec then t else generalize t
-    in
+    let typ = Tfun (params_t, body.typ, kind) in
+
+    (* Make sure the types match *)
+    unify (loc, "Function") (Env.find_val loc (Path.Pid name) env).typ typ env;
+
+    (* For mutually recursive functions, we generalize at the end of the rec
+       block. Otherwise calls to the not-last function in the set will not
+       work*)
+    let typ = if inrec then typ else generalize typ in
 
     match typ with
     | Tfun (tparams, ret, kind) ->
-        (* Make sure the types match *)
-        unify (loc, "Function") (Env.find_val loc (Path.Pid name) env).typ typ
-          env;
-
         (* Add the generalized type to the env to keep the closure there *)
         let env = Env.change_type name typ env in
 

@@ -55,9 +55,7 @@ let apply_subs (psub, tsub) typ =
         Tfun (ps, aux r, kind)
     | Tarray t -> Tarray (aux t)
     | Traw_ptr t -> Traw_ptr (aux t)
-    | Tvar ({ contents = Link t } as tref) as typ ->
-        tref := Link (aux t);
-        typ
+    | Tvar { contents = Link t } -> aux t
     | t -> t
   in
   aux typ

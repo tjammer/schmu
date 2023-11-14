@@ -125,10 +125,12 @@ let rec unify t1 t2 =
     | ( Tfixed_array (other, l),
         Tfixed_array (({ contents = Unknown (id, li) } as tv), r) ) ->
         (* We need to find the minimum level, like in the occurs check *)
-        (match !other with
-        | Unknown (_, lvl) -> other := Unknown (id, min lvl li)
-        | _ -> ());
-        tv := Linked other;
+        (if not (other == tv) then
+           match !other with
+           | Unknown (_, lvl) -> other := Unknown (id, min lvl li)
+           | _ ->
+               ();
+               tv := Linked other);
         unify l r
     | ( Tfixed_array ({ contents = Known li }, l),
         Tfixed_array ({ contents = Known ri }, r) ) ->
@@ -552,10 +554,9 @@ and match_type_params ~in_functor params typ =
       match params with
       | [ Qvar other ] -> Ok (Qvar other)
       | _ -> failwith "Internal Error: Type param is not qvar")
-  | Tvar ({ contents = Link t } as rf) ->
+  | Tvar { contents = Link t } ->
       let* t = match_type_params ~in_functor params t in
-      rf := Link t;
-      Ok typ
+      Ok t
   | Tarray t ->
       let* t = match_type_params ~in_functor params t in
       Ok (Tarray t)
@@ -575,10 +576,7 @@ and replace_qvar ~in_functor subst = function
       (*   print_endline ("search for: " ^ s); *)
       (* failwith "Internal Error: Expected a substitution" *)
       | Some str -> Qvar str)
-  | Tvar ({ contents = Link t } as l) as tvar ->
-      let t = replace_qvar ~in_functor subst t in
-      l := Link t;
-      tvar
+  | Tvar { contents = Link t } -> replace_qvar ~in_functor subst t
   | Tvar { contents = Unbound _ } when not in_functor ->
       failwith "Internal Error: Type is unbound in impl"
   | Tvar { contents = Unbound _ } as t -> t
