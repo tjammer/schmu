@@ -1351,16 +1351,18 @@ let () =
   (def x& !a)
   (set-a))|};
           tase_exn "excl 1" "a was mutably borrowed in line 1, cannot borrow"
+            "(def a& [10])(defn f [a& b] (set &a ![11]))(f &a a)";
+          tase "excl 1 nonalloc" "unit"
             "(def a& 10)(defn f [a& b] (set &a !11))(f &a a)";
           tase_exn "excl 2" "a was borrowed in line 1, cannot mutate"
-            "(def a& 10)(defn f [a& b] (set &a !11))(let [b a] (f &a b))";
+            "(def a& [10])(defn f [a& b] (set &a ![11]))(let [b a] (f &a b))";
           tase_exn "excl 3" "a was borrowed in line 1, cannot mutate"
-            "(def a& 10) (defn f [a b&] (set &b !11))(f a &a)";
+            "(def a& [10]) (defn f [a b&] (set &b ![11]))(f a &a)";
           tase_exn "excl 4" "a was borrowed in line 1, cannot mutate"
-            "(def a& 10)(defn f [a b&] (set &b !11)) (let [b a] (f b &a))";
-          tase "excl 5" "unit" "(def a& 10) (defn f [a b] ()) (f a a)";
+            "(def a& [10])(defn f [a b&] (set &b ![11])) (let [b a] (f b &a))";
+          tase "excl 5" "unit" "(def a& [10]) (defn f [a b] ()) (f a a)";
           tase_exn "excl 6" "a was mutably borrowed in line 1, cannot borrow"
-            "(def a& 10) (defn f [a& b&] ()) (f &a &a)";
+            "(def a& [10]) (defn f [a& b&] ()) (f &a &a)";
           tase_exn "excl env" "a was mutably borrowed in line 4, cannot borrow"
             {|(def a& [10])
 (defn set-a [b&]

@@ -449,6 +449,9 @@ let get_closed_make_usage_delayed tree b =
 
 let make_usage tree (use : touched) = (tree, Usage.of_attr use.tattr)
 
+let cond_usage typ then_ else_ =
+  if contains_allocation typ then then_ else else_
+
 let rec check_tree env mut ((bpart, special) as bdata) tree hist =
   match tree.expr with
   | Var (borrowed, mname) ->
@@ -579,7 +582,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let hs, es =
         List.fold_left_map
           (fun hs e ->
-            let expr, v, hs = check_tree env Umove no_bdata e hs in
+            let usage = cond_usage e.typ Usage.Umove Uread in
+            let expr, v, hs = check_tree env usage no_bdata e hs in
             let expr = { expr with expr = Move expr } in
             (add_hist v hs, expr))
           hist es
@@ -590,9 +594,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let hs, es =
         List.fold_left_map
           (fun hs e ->
-            let usage =
-              if contains_allocation e.typ then Usage.Umove else Uread
-            in
+            let usage = cond_usage e.typ Usage.Umove Uread in
             let expr, v, hs = check_tree env usage no_bdata e hs in
             let expr = { expr with expr = Move expr } in
             (add_hist v hs, expr))
@@ -608,9 +610,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let hs, fs =
         List.fold_left_map
           (fun hs (n, (field : typed_expr)) ->
-            let usage =
-              if contains_allocation field.typ then Usage.Umove else Uread
-            in
+            let usage = cond_usage field.typ Usage.Umove Uread in
             let field, v, hs = check_tree env usage no_bdata field hs in
             let field = { field with expr = Move field } in
             (add_hist v hs, (n, field)))
@@ -636,7 +636,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
              aliasing. Even for non-alloc types *)
           (tree, b, hs))
   | Set (thing, value) ->
-      let value, v, hs = check_tree env Umove no_bdata value hist in
+      let usage = cond_usage value.typ Usage.Umove Uread in
+      let value, v, hs = check_tree env usage no_bdata value hist in
       let value = { value with expr = Move value } in
       let hs = add_hist v hs in
       (* Track usage of values, but not the one being mutated *)
@@ -688,7 +689,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let (_, tmp, hs), args =
         List.fold_left_map
           (fun (i, tmp, hs) (arg, attr) ->
-            let usage = Usage.of_attr attr in
+            let usage = cond_usage arg.typ (Usage.of_attr attr) Uread in
             let arg, v, hs = check_tree env usage no_bdata arg hs in
             let arg =
               match usage with
@@ -705,7 +706,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       check_tree tmp Uread no_bdata c hs |> ignore;
       List.iteri
         (fun i (arg, attr) ->
-          match Usage.of_attr attr with
+          let usage = cond_usage arg.typ (Usage.of_attr attr) Uread in
+          match usage with
           | Umove ->
               (* Moved values can't have been used later *)
               ()
@@ -769,9 +771,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
   | Ctor (name, i, e) -> (
       match e with
       | Some e ->
-          let usage =
-            if contains_allocation e.typ then Usage.Umove else Uread
-          in
+          let usage = cond_usage e.typ Usage.Umove Uread in
           let e, v, hs = check_tree env usage no_bdata e hist in
           let e = { e with expr = Move e } in
           let expr = Ctor (name, i, Some e) in
@@ -1022,7 +1022,7 @@ let check_tree ~mname pts pns touched body =
   in
 
   (* [Umove] because we want to move return values *)
-  let usage = if contains_allocation body.typ then Usage.Umove else Uread in
+  let usage = cond_usage body.typ Usage.Umove Uread in
   let body, v, hist = check_tree env usage no_bdata body hist in
   let body = { body with expr = Move body } in
 

@@ -99,7 +99,7 @@
        (match tbl.data.[i]
          (#none
           (do (set &tbl.data.[i]
-                   !(#some {:key :value :hash (copy hash) :wrapped}))
+                   !(#some {:key :value :hash :wrapped}))
               (set &tbl.nitems !(+ 1 tbl.nitems))))
          ((#some other)
           (if (m/equal key other.key)
