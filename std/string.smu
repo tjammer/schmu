@@ -54,6 +54,8 @@
                  (fn [i str]
                    (if (not (= i 0)) (append &ret delim))
                    (append &ret str)))
+    (array/push &ret !'\000')
+    (array/drop-back &ret)
     ret))
 
 (defn make-skips [pattern]

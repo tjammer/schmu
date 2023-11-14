@@ -31,12 +31,14 @@ let apply_subs (psub, tsub) typ =
         match Smap.find_opt sym tsub with
         | Some t -> t
         | None -> failwith "unreachable")
-    | Tabstract (ps, p, t) -> Tabstract (ps, subst p, aux t)
+    | Tabstract (ps, p, t) -> Tabstract (List.map aux ps, subst p, aux t)
     | Talias (p, t) -> Talias (subst p, aux t)
     | Trecord (ps, p, fs) ->
+        let ps = List.map aux ps in
         let fs = Array.map (fun f -> { f with ftyp = aux f.ftyp }) fs in
         Trecord (ps, Option.map subst p, fs)
     | Tvariant (ps, p, cts) ->
+        let ps = List.map aux ps in
         let cts =
           Array.map (fun c -> { c with ctyp = Option.map aux c.ctyp }) cts
         in
