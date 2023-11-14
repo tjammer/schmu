@@ -700,7 +700,7 @@ prog: Lpar Do False Wildcard
 
 prog: Lpar Rec Lpar Defn Kebab_id Lbrack Rbrack Rpar Wildcard
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting a second function definition
 
 prog: Lpar Rec Lpar Defn Kebab_id Lbrack Rbrack Rpar Lpar Defn Kebab_id Lbrack Rbrack Rpar Wildcard
 
