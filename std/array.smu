@@ -2,21 +2,21 @@
 (def drop-back __array_drop_back)
 (def length __array_length)
 
-(defn create [len]
+(defn create (len)
   (def ret& (__unsafe_array_create len))
   (set &(__unsafe_array_length ret) !0)
   ret)
 
-(defn push [arr& value!]
-  (let [capacity (__array_capacity arr)
-        length (length arr)]
+(defn push (arr& value!)
+  (let ((capacity (__array_capacity arr))
+        (length (length arr)))
     (if (= capacity length)
       (__unsafe_array_realloc &arr (* 2 capacity)))
     (__unsafe_ptr_set &(data arr) length !value)
     (set &(__unsafe_array_length arr) !(+ 1 length))))
 
-(defn iter [arr f]
-  (defn inner [i]
+(defn iter (arr f)
+  (defn inner (i)
     (if (= i (length arr))
       ()
       (do
@@ -24,8 +24,8 @@
         (inner (+ i 1)))))
   (inner 0))
 
-(defn iteri [arr f]
-  (defn inner [i]
+(defn iteri (arr f)
+  (defn inner (i)
     (if (= i (length arr))
       ()
       (do
@@ -33,25 +33,25 @@
         (inner (+ i 1)))))
   (inner 0))
 
-(defn fold [arr f init!]
-  (defn inner [i acc!]
+(defn fold (arr f init!)
+  (defn inner (i acc!)
     (if (= i (length arr))
       acc
-      (let [acc (f !acc arr.[i])]
+      (let ((acc (f !acc arr.[i])))
         (inner (+ i 1) !acc))))
   (inner 0 !init))
 
-(defn foldi [arr f init!]
-  (defn inner [i acc!]
+(defn foldi (arr f init!)
+  (defn inner (i acc!)
     (if (= i (length arr))
       acc
-      (let [acc (f i !acc arr.[i])]
+      (let ((acc (f i !acc arr.[i])))
         (inner (+ i 1) !acc))))
   (inner 0 !init))
 
-(defn map [arr f]
+(defn map (arr f)
   (def ret (create (length arr)))
-  (defn inner [ret! i]
+  (defn inner (ret! i)
     (def ret& !ret)
     (if (= i (length arr))
       ret
@@ -60,21 +60,21 @@
         (inner !ret (+ i 1)))))
   (inner !ret 0))
 
-(defn swap-items [arr& i j]
+(defn swap-items (arr& i j)
   (if (= i j)
     ()
-    (let [tmp! (__unsafe_ptr_get (data arr) i)]
+    (let ((tmp! (__unsafe_ptr_get (data arr) i)))
       (__unsafe_ptr_set &(data arr) i !(__unsafe_ptr_get (data arr) j))
       (__unsafe_ptr_set &(data arr) j !tmp))))
 
-(defn clear [arr&]
-  (defn inner []
+(defn clear (arr&)
+  (defn inner ()
     (if (= 0 (length arr))
       ()
       (do (drop-back &arr)
           (inner))))
   (inner))
 
-(defn reserve [arr& size]
+(defn reserve (arr& size)
   (if (< (__array_capacity arr) size)
    (__unsafe_array_realloc &arr size)))

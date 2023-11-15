@@ -1,7 +1,7 @@
-(defn ret-true [] true)
+(defn ret-true () true)
 
 (ignore
  (if (ret-true)
-   (let [a [10]]
+   (let ((_ [10]))
      [10])
    [0]))

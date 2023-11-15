@@ -2,9 +2,9 @@
 
 (type t {:i int :b bool})
 
-(defn pass [x] (copy x))
+(defn pass (x) (copy x))
 
-(defn apply [f x] (f x))
+(defn apply (f x) (f x))
 
 -- printi(apply(pass, 20))
 (-> (apply pass 20)

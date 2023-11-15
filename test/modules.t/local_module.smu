@@ -1,4 +1,4 @@
-(defn test [] (print "hey test"))
+(defn test () (print "hey test"))
 
 (module local
   (signature
@@ -8,8 +8,8 @@
     (def value string))
   (module nested ())
   (type t int)
-  (defn test [] (print "hey thing"))
-  (defn poly-test [a] (print (fmt-str "hey poly " a)))
+  (defn test () (print "hey thing"))
+  (defn poly-test (a) (print (fmt-str "hey poly " a)))
   (def value "test")
   (ignore value))
 
@@ -22,9 +22,9 @@
   (type t {:a int})
   (type other int)
   (module nested
-    (defn nested [] (print "i'm nested"))))
+    (defn nested () (print "i'm nested"))))
 
-(def (test nosig/t) {:a 10})
+(def [test nosig/t] {:a 10})
 (ignore test)
 
 (nosig/nested/nested)

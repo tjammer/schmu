@@ -16,7 +16,7 @@
 
   (def print-impl (fun (t 'value) unit)))
 
-(functor [make sig] [[m key]]
+(functor [make sig] ([m key])
   (import option)
 
   (type key m/t)
@@ -24,16 +24,16 @@
   (type (slot 'a) (option/t (item 'a)))
   (type (t 'a) {:data& (array (slot 'a)) :nitems& int})
 
-  (defn create [size]
+  (defn create (size)
     (def data& (__unsafe_array_create size))
     (prelude/iter-range 0 size
-                        (fn [i] (__unsafe_ptr_set &(array/data data) i !#none)))
+                        (fn (i) (__unsafe_ptr_set &(array/data data) i !#none)))
     {:data :nitems 0})
 
   (external abs (fun int int))
 
-  (defn idx [tbl key]
-    (let [hash (m/hash key)]
+  (defn idx (tbl key)
+    (let ((hash (m/hash key)))
       (mod (abs hash) (array/length tbl.data))))
 
   (defn greater-wrapped (other-hash other-wrapped hash wrapped size)
@@ -48,14 +48,14 @@
   (defn next-wrapped (curr size)
     (if (= (+ curr 1) size) {0 true} {(+ curr 1) false}))
 
-  (defn redist [tbl& wrapped old curr hash]
+  (defn redist (tbl& wrapped old curr hash)
     (def size (array/length tbl.data))
     (match tbl.data.[curr]
       (#none (array/swap-items &tbl.data old curr))
       ((#some other)
-       (let [other-hash (copy other.hash)
-             other-wrapped (copy other.wrapped)
-             {next nwrapped} (next-wrapped curr size)]
+       (let ((other-hash (copy other.hash))
+             (other-wrapped (copy other.wrapped))
+             ({next nwrapped} (next-wrapped curr size)))
          (if (greater-wrapped other.hash other.wrapped hash wrapped size)
            (do (redist &tbl (or other-wrapped nwrapped) curr next other-hash)
                (redist &tbl nwrapped old curr hash))
@@ -63,11 +63,11 @@
 
   (def load-limit 0.75)
 
-  (defn load-factor [tbl]
+  (defn load-factor (tbl)
     (/. (float_of_int tbl.nitems) (float_of_int (array/length tbl.data))))
 
-  (defn iter-data-move [data& f]
-    (defn inner [i]
+  (defn iter-data-move (data& f)
+    (defn inner (i)
       (if (= i (array/length data))
         (set &(__unsafe_array_length data) !0)
         (match (__unsafe_ptr_get (array/data data) i)
@@ -79,23 +79,23 @@
     (inner 0))
 
   (rec
-   (defn grow [tbl&]
+   (defn grow (tbl&)
      (def size (* 2 (array/length tbl.data)))
      (def data& (__unsafe_array_create size))
      (prelude/iter-range 0 size
-                         (fn [i] (__unsafe_ptr_set &(array/data data) i !#none)))
+                         (fn (i) (__unsafe_ptr_set &(array/data data) i !#none)))
      (def old-data& !tbl.data)
      (set &tbl.data !data)
      (set &tbl.nitems !0)
-     (iter-data-move &old-data (fn [key! value!] (insert &tbl !key !value))))
+     (iter-data-move &old-data (fn (key! value!) (insert &tbl !key !value))))
 
-   (defn insert [tbl& key! value!]
+   (defn insert (tbl& key! value!)
      (if (>. (load-factor tbl) load-limit)
        (grow &tbl))
      (def hash (idx tbl key))
      (def size (array/length tbl.data))
 
-     (defn insert [i wrapped key! value!]
+     (defn insert (i wrapped key! value!)
        (match tbl.data.[i]
          (#none
           (do (set &tbl.data.[i]
@@ -105,11 +105,11 @@
           (if (m/equal key other.key)
             -- overwrite
             (set &tbl.data.[i] !(#some {:key :value :hash :wrapped}))
-            (let [{next nwrapped} (next-wrapped i size)]
+            (let (({next nwrapped} (next-wrapped i size)))
               (if (greater-wrapped other.hash other.wrapped
                                    hash wrapped size)
-                (let [other-hash (copy other.hash)
-                      other-wrapped (copy other.wrapped)]
+                (let ((other-hash (copy other.hash))
+                      (other-wrapped (copy other.wrapped)))
                   -- probe sequence length of new value is large. robin hood
                   (redist &tbl (or other-wrapped nwrapped) i next other-hash)
                   (assert (match tbl.data.[i] (#none true) ((#some _) false)))
@@ -118,7 +118,7 @@
 
      (insert hash false !key !value)))
 
-  (defn find-index [i tbl key hash wrapped]
+  (defn find-index (i tbl key hash wrapped)
     (match tbl.data.[i]
       ((#some item)
        (if (m/equal key item.key)
@@ -126,11 +126,11 @@
          (if (greater-wrapped item.hash item.wrapped
                               hash wrapped (array/length tbl.data))
            #none
-           (let [{next wrapped} (next-wrapped i (array/length tbl.data))]
+           (let (({next wrapped} (next-wrapped i (array/length tbl.data))))
             (find-index next tbl key hash wrapped)))))
       (#none #none)))
 
-  (defn find [tbl key]
+  (defn find (tbl key)
     (def hash (idx tbl key))
     (match (find-index hash tbl key hash false)
       ((#some i) (match tbl.data.[i]
@@ -152,10 +152,10 @@
                  -- This is a clown fiesta. Moving out of arrays with a known
                  -- variable would make this more bearable. Better yet, moves
                  -- in pattern matches
-                 (let [item !(__unsafe_ptr_get (array/data data) next)]
+                 (let ((item !(__unsafe_ptr_get (array/data data) next)))
                    (match item
                      ((#some item)
-                      (let [item !item]
+                      (let ((item !item))
                         (__unsafe_ptr_set &(array/data data) next
                                           !(#some {@item :wrapped false}))))
                      (#none (assert false))))))
@@ -172,8 +172,8 @@
            (fixup &tbl.data i)))
       (#none ())))
 
-  (defn fold [tbl init! f]
-    (defn inner [i acc!]
+  (defn fold (tbl init! f)
+    (defn inner (i acc!)
       (if (= i (array/length tbl.data))
         acc
         (match tbl.data.[i]
@@ -182,8 +182,8 @@
            (inner (+ i 1) !(f !acc key value))))))
     (inner 0 !init))
 
-    (defn iter-data [data f]
-    (defn inner [i]
+  (defn iter-data (data f)
+    (defn inner (i)
       (if (= i (array/length data))
         ()
         (match data.[i]
@@ -194,10 +194,10 @@
              (inner (+ i 1)))))))
     (inner 0))
 
-  (defn to-array [tbl]
-    (let [arr& (array/create tbl.nitems)]
+  (defn to-array (tbl)
+    (let ((arr& (array/create tbl.nitems)))
       (iter-data tbl.data
-                 (fn [key value] (array/push &arr !{(copy key) (copy value)})))
+                 (fn (key value) (array/push &arr !{(copy key) (copy value)})))
       arr))
 
   (defn print-impl (tbl)
@@ -205,5 +205,5 @@
       (match slot
         ((#some item) (fmt-str "(some " item.value " " item.hash ")"))
         (#none "none")))
-    (let [lst (string/concat " " (array/map tbl.data string-of-slot))]
+    (let ((lst (string/concat " " (array/map tbl.data string-of-slot))))
       (string/print (fmt-str "[" lst "]")))))

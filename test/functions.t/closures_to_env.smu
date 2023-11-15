@@ -2,9 +2,9 @@
 
 (def a 20)
 
-(defn close_over_a [] a)
+(defn close_over_a () a)
 
-(defn use_above []
+(defn use_above ()
   (printf (string/data "%i\n") (close_over_a)))
 
 (use_above)

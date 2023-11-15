@@ -1,4 +1,4 @@
-(defn hmm [{_ {x _}}]
+(defn hmm ({_ {x _}})
   (print x))
 
 (hmm {10 {"hello" 20.0}})
@@ -6,12 +6,12 @@
 (def {i _} {20 30.0})
 (print (fmt-str i))
 
-(let [{f _} {30.0 20}]
+(let (({f _} {30.0 20}))
   (print (fmt-str f)))
 
 -- pattern matched thing is a closure
-(defn hmm [{x _}]
-  (fn :copy x [] (x)))
+(defn hmm ({x _})
+  (fn :copy x () (x)))
 
 -- this case is strange. The tuple needs to be moved right now
-((hmm {(fn [] (print "lol")) 10}))
+((hmm {(fn () (print "lol")) 10}))

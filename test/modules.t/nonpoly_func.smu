@@ -1,5 +1,5 @@
 (type either (#left #right))
 
-(defn add_ints [a b]
+(defn add_ints (a b)
   (def c 10)
   (+ a b))

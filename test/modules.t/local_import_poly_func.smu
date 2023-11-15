@@ -4,6 +4,6 @@
      (printf (string/data "%i\n")))
 (->> (poly_func/classify (#some 3.0))
      (printf (string/data "%i\n")))
-(def (none (poly_func/option float)) #none)
+(def [none (poly_func/option float)] #none)
 poly_func/(->> (classify none)
                (printf (string/data "%i\n")))

@@ -11,7 +11,7 @@
 
 -- use polymorphic aliased function from another module
 (defn swapped (a! i j)
-  (let [a& !a]
+  (let ((a& !a))
     (swap &a i j)
     a))
 

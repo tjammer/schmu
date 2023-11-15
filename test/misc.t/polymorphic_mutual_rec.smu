@@ -12,11 +12,11 @@ m2/(do
      (print (fmt-str cnt)))
 
 (rec
- (defn pop [arr&]
+ (defn pop (arr&)
    (print "pop")
    (array/drop-back &arr)
    (pop-all &arr))
- (defn pop-all [arr&]
+ (defn pop-all (arr&)
    (if (= (array/length arr) 0)
      ()
      (pop &arr))))

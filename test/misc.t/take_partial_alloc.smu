@@ -2,17 +2,17 @@
 (type (success 'a) {:rem view :mtch 'a})
 (type (parse-result 'a) ((#ok (success 'a)) (#err view)))
 
-(defn view-of-string [str]
+(defn view-of-string (str)
   {:buf (copy str) :start 0 :len (string/len str)})
 
-(defn ch [buf]
+(defn ch (buf)
   (if (char-equal (string/get buf.buf buf.start) ' ')
     (#ok {:mtch {@buf :buf (copy buf.buf) :len 1}
           :rem {:buf (copy buf.buf) :start (+ 1 buf.start) :len (- buf.len 1)}})
     (#err (copy buf))))
 
-(defn many-count [buf]
-  (defn aux [rem cnt]
+(defn many-count (buf)
+  (defn aux (rem cnt)
     (match (ch rem)
       ((#ok r)
        -- r.rem is moved out of the result.

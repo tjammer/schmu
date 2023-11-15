@@ -9,7 +9,7 @@
 -- use in closure
 (def used3 0)
 
-(defn use_unused3 []
+(defn use_unused3 ()
   -- TODO Should we mark this as used only if the function is used?
   (ignore used3))
 

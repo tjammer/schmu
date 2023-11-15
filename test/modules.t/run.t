@@ -436,7 +436,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   $ schmu use_malloc_some.smu --dump-llvm
   use_malloc_some.smu:3.7-19: warning: Unused binding do_something.
   
-  3 | (defn do_something [big] (+ (.a big) 1))
+  3 | (defn do_something (big) (+ (.a big) 1))
             ^^^^^^^^^^^^
   
   ; ModuleID = 'context'
@@ -628,7 +628,7 @@ Use module name prefix for function names to prevent linker dups
   
   nameclash_use.smu:2.7-20: warning: Unused binding specific_name.
   
-  2 | (defn specific_name [] ())
+  2 | (defn specific_name () ())
             ^^^^^^^^^^^^^
   
 Distinguish closures and functions
@@ -641,7 +641,7 @@ Test signature
   $ schmu -m sign.smu
   sign.smu:20.7-13: warning: Unused binding hidden.
   
-  20 | (defn hidden [a]
+  20 | (defn hidden (a)
              ^^^^^^
   
   $ schmu use-sign.smu
@@ -659,7 +659,7 @@ Test signature
   $ schmu use-sign-hidden-type.smu
   use-sign-hidden-type.smu:4.2-24: error: Unbound type hidden-type..
   
-  4 | (def (i hidden-type) 10)
+  4 | (def [i hidden-type] 10)
        ^^^^^^^^^^^^^^^^^^^^^^
   
   [1]

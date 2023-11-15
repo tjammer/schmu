@@ -13,10 +13,10 @@
 
 (defn get-seg
   "Get segment [i] of [bar]"
-  [bar]
+  (bar)
   (ignore bar))
 
-(defn wrap-seg []
+(defn wrap-seg ()
   (get-seg world))
 
 (wrap-seg)

@@ -1,4 +1,4 @@
-(defn test [] (print "hey test"))
+(defn test () (print "hey test"))
 
 (test)
 
@@ -9,14 +9,14 @@
   (type t {:a int})
   (type other int)
   (module nested
-    (defn nested [] (print "i'm nested"))))
+    (defn nested () (print "i'm nested"))))
 
-(def (test local_otherfile/nosig/t) {:a 10})
+(def [test local_otherfile/nosig/t] {:a 10})
 (ignore test)
 
 (local_otherfile/nosig/nested/nested)
 
-(def (t local_otherfile/nosig/nested/t) 10.0)
+(def [t local_otherfile/nosig/nested/t] 10.0)
 (ignore t)
 
 (local_otherfile/aliased/nested)

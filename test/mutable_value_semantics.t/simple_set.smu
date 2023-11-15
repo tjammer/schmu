@@ -2,7 +2,7 @@
 (set &b !14)
 (print (fmt-str b))
 
-(defn hmm []
+(defn hmm ()
   (def b& 10)
   (set &b !15)
   b)

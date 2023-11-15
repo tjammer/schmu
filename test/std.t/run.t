@@ -1403,15 +1403,15 @@ In channel module test
     ((#som
   e ic)
   
-  read 16 bytes
-     (let [ic& !ic
-  read 34 bytes
-           buf& (array/create 4096)]
+  read 18 bytes
+     (let ((ic& !ic)
+  read 36 bytes
+           (buf& (array/create 4096)))
   read 44 bytes
        (ignore (in_channel/readn &ic &buf 50))
   read 39 bytes
        (def str& !(string/of-array !buf))
-  read 1832 bytes
+  read 1836 bytes
        (print str)
   
        (set &buf !(string/to-array !str))
@@ -1464,22 +1464,22 @@ In channel module test
   
   (match (in_channel/open "in_channel.smu")
     ((#some ic)
-     (let [ic& !ic]
+     (let ((ic& !ic))
        (print (in_channel/readall &ic))
        (in_channel/close ic)))
     (#none ()))
   
   (match (in_channel/open "in_channel.smu")
     ((#some ic)
-     (let [ic& !ic]
-       (in_channel/lines &ic (fn [line] (print line)))
+     (let ((ic& !ic))
+       (in_channel/lines &ic (fn (line) (print line)))
        (in_channel/close ic)))
     (#none ()))
   
   (match (in_channel/open "in_channel.smu")
     ((#some ic)
-     (let [ic& !ic
-           buf& (array/create 4096)]
+     (let ((ic& !ic)
+           (buf& (array/create 4096)))
        (ignore (in_channel/readn &ic &buf 50))
        (def str& !(string/of-array !buf))
        (print str)
@@ -1534,22 +1534,22 @@ In channel module test
   
   (match (in_channel/open "in_channel.smu")
     ((#some ic)
-     (let [ic& !ic]
+     (let ((ic& !ic))
        (print (in_channel/readall &ic))
        (in_channel/close ic)))
     (#none ()))
   
   (match (in_channel/open "in_channel.smu")
     ((#some ic)
-     (let [ic& !ic]
-       (in_channel/lines &ic (fn [line] (print line)))
+     (let ((ic& !ic))
+       (in_channel/lines &ic (fn (line) (print line)))
        (in_channel/close ic)))
     (#none ()))
   
   (match (in_channel/open "in_channel.smu")
     ((#some ic)
-     (let [ic& !ic
-           buf& (array/create 4096)]
+     (let ((ic& !ic)
+           (buf& (array/create 4096)))
        (ignore (in_channel/readn &ic &buf 50))
        (def str& !(string/of-array !buf))
        (print str)
@@ -1604,14 +1604,14 @@ In channel module test
   
   (match (in_channel/open "in_channel.smu")
     ((#some ic)
-     (let [ic& !ic]
+     (let ((ic& !ic))
        (print (in_channel/readall &ic))
        (in_channel/close ic)))
     (#none ()))
   
   (match (in_channel/open "in_channel.smu")
     ((#some ic)
-     (let [ic& !ic]
-       (in_channel/lines &ic (fn [line] (print line)))
+     (let ((ic& !ic))
+       (in_channel/lines &ic (fn (line) (print line)))
        (in_channel/close ic)))
     (#none ()))

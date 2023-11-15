@@ -20,13 +20,13 @@
 
 (type t (array u8))
 
-(defn len [[str t]] (array/length str))
+(defn len ([str t]) (array/length str))
 
-(defn data [[str t]] (array/data str))
+(defn data ([str t]) (array/data str))
 
-(defn get [[str t] i] str.[i])
+(defn get ([str t] i) str.[i])
 
-(defn hash [str]
+(defn hash (str)
   -- unsigned long
   -- hash(unsigned char *str)
   -- {
@@ -36,11 +36,11 @@
   --         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
   --     return hash;
   -- }
-  (array/fold str (fn [hash! c] (+ (* hash 33) (u8_to_int c))) !5381))
+  (array/fold str (fn (hash! c) (+ (* hash 33) (u8_to_int c))) !5381))
 
 (external memcmp (fun (raw_ptr u8) (raw_ptr u8) int i32))
 
-(defn equal [l r]
+(defn equal (l r)
   (if (= (len l) (len r))
     (= 0 (int_of_i32 (memcmp (array/data l) (array/data r) (array/length l))))
     false))
@@ -48,33 +48,33 @@
 (defn append (str& other)
   (array/iter other (fn ([c u8]) (array/push &str !c))))
 
-(defn concat [delim strings]
-  (let [ret& (array/create 32)]
+(defn concat (delim strings)
+  (let ((ret& (array/create 32)))
     (array/iteri strings
-                 (fn [i str]
+                 (fn (i str)
                    (if (not (= i 0)) (append &ret delim))
                    (append &ret str)))
     (array/push &ret !'\000')
     (array/drop-back &ret)
     ret))
 
-(defn make-skips [pattern]
-  (let [len (array/length pattern)
-        skips& #256[len]]
+(defn make-skips (pattern)
+  (let ((len (array/length pattern))
+        (skips& #256[len]))
     (array/iteri pattern
-                 (fn [i c]
+                 (fn (i c)
                    (if (not (= i (- len 1))) -- ignore last char
                      (set &skips.((u8_to_int c)) !(- (- len 1) i)))))
     skips))
 
-(defn boyer-moore-horspool [pattern str]
+(defn boyer-moore-horspool (pattern str)
   (import prelude)
   (import option)
   (def patlen1 (- (len pattern) 1))
   (def strptr (array/data str))
   (def last-patchar pattern.[patlen1])
 
-  (defn find [skips istr]
+  (defn find (skips istr)
     (def last-windowchar str.[(+ istr patlen1)])
     (if (<= (+ istr (len pattern)) (len str))
       (if (and (char-equal last-patchar last-windowchar)
@@ -83,26 +83,26 @@
                                  patlen1)
                         int_of_i32)))
         (#some istr)
-        (let [skip skips.((u8_to_int last-windowchar))]
+        (let ((skip skips.((u8_to_int last-windowchar))))
           (find skips (+ istr skip))))
       #none))
 
   (if (< (len pattern) (len pattern))
     #none
-    (let [skips (make-skips pattern)]
+    (let ((skips (make-skips pattern)))
       (find skips 0))))
 
-(defn modify-buf [[str& t] f]
+(defn modify-buf ([str& t] f)
   (f &str)
   -- return type needs to be inferred as unit
   ())
 
-(defn of-array [[arr! (array u8)]] arr)
-(defn to-array [[str! t]] str)
+(defn of-array ([arr! (array u8)]) arr)
+(defn to-array ([str! t]) str)
 
 (external memcpy (fun (raw_ptr u8) (raw_ptr u8) int unit))
 
-(defn of-fixed-array [[arr (array#? u8)]]
+(defn of-fixed-array ([arr (array#? u8)])
   (def ret (array/create (__fixed_array_length arr)))
   (memcpy (array/data ret) (__fixed_array_data arr) (__fixed_array_length arr))
   ret)
@@ -113,7 +113,7 @@
 
 (def newline #['\n'])
 
-(defn print [[str t]]
+(defn print ([str t])
   -- TODO should be named println, but (print (fmt-str ...)) also adds newline
   (fwrite (array/data str) 1 (array/length str) stdout)
   (fwrite (__fixed_array_data newline) 1 1 stdout))

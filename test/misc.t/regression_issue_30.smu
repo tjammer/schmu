@@ -5,7 +5,7 @@
 (external scale (fun v float v))
 (external maybe (fun unit bool))
 
-(defn calc_acc [vel]
+(defn calc_acc (vel)
   (def vunit (if (>. (dot vel vel) 0.1)
               (norm vel)
               {:x 1.0 :y 0.0 :z 0.0}))
@@ -15,3 +15,5 @@
              ((maybe) (scale vunit - (*. acc_force 3.0)))
              (else (scale vunit 0.1))))
   acc)
+
+(ignore calc_acc)

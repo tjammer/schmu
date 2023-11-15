@@ -1,1 +1,1 @@
-(def lambda (fn [x] (+ x 1)))
+(def lambda (fn (x) (+ x 1)))

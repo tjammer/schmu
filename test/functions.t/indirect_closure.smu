@@ -2,16 +2,16 @@
 
 (type (t 'a) {:x 'a})
 
-(defn apply [x f env]
+(defn apply (x f env)
   (f x env))
 
-(defn apply2 [[x 'a] [f (fun 'a (fun 'a 'b) 'b)] [env (fun 'a 'b)]]
+(defn apply2 ([x 'a] [f (fun 'a (fun 'a 'b) 'b)] [env (fun 'a 'b)])
   (f x env))
 
-(defn add1 [[x int]]
+(defn add1 ([x int])
   (+ x 1))
 
-(defn boxed2int_int [t env]
+(defn boxed2int_int (t env)
   (def a (env (.x t)))
   {:x a})
 

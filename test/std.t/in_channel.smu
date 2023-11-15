@@ -1,7 +1,7 @@
 (match (in_channel/open "in_channel.smu")
   ((#some ic)
-   (let [ic& !ic
-         buf& (array/create 4096)]
+   (let ((ic& !ic)
+         (buf& (array/create 4096)))
      (ignore (in_channel/readn &ic &buf 50))
      (def str& !(string/of-array !buf))
      (print str)
@@ -56,14 +56,14 @@
 
 (match (in_channel/open "in_channel.smu")
   ((#some ic)
-   (let [ic& !ic]
+   (let ((ic& !ic))
      (print (in_channel/readall &ic))
      (in_channel/close ic)))
   (#none ()))
 
 (match (in_channel/open "in_channel.smu")
   ((#some ic)
-   (let [ic& !ic]
-     (in_channel/lines &ic (fn [line] (print line)))
+   (let ((ic& !ic))
+     (in_channel/lines &ic (fn (line) (print line)))
      (in_channel/close ic)))
   (#none ()))

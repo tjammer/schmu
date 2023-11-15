@@ -2,11 +2,11 @@
 
 (def b 2)
 
-(defn one [] 1)
+(defn one () 1)
 
-(defn two [] b)
+(defn two () b)
 
-(defn add [a b]
+(defn add (a b)
   -- b should be a function, not captured value
   (+ (a) (b)))
 

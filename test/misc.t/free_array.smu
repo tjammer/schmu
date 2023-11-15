@@ -8,41 +8,41 @@
 (def arr [(copy x) {:x 2} {:x 3}])
 
 -- Arr is only alive inside the function and should be freed there
-(defn arr_inside []
+(defn arr_inside ()
   (def arr& [(copy x) {:x 2} {:x 3}])
   -- Make sure we can call realloc
   (array/push &arr !{:x 12}))
 
 -- Arr is returned and should be freed in its parent scope
-(defn make_arr []
+(defn make_arr ()
   (def x {:x 23})
   [x {:x 2} {:x 3}])
 
-(defn inner_parent_scope []
+(defn inner_parent_scope ()
   (ignore (make_arr)))
 
 -- Arr can be propagated out through multiple function calls
-(defn nest_fns []
+(defn nest_fns ()
   (make_arr))
 
-(defn make_nested_arr []
+(defn make_nested_arr ()
   (def nested [[0 1] [2 3]])
   nested)
 
-(defn nest_allocs []
+(defn nest_allocs ()
   (make_nested_arr))
 
 -- Should be freed locally
-(defn nest_local []
+(defn nest_local ()
   (ignore [[0 1] [2 3]]))
 
 -- Records of arrtors
-(defn record_of_arrs []
+(defn record_of_arrs ()
   (def arr [1 2])
   {:index 1 :arr})
 
 -- Arrtors of records (of arrtors)
-(defn arr_of_records []
+(defn arr_of_records ()
   [(record_of_arrs) (record_of_arrs)])
 
 (def arr (make_arr))

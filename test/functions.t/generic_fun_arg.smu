@@ -3,41 +3,41 @@
 (type (t 'a) {:x 'a})
 
 -- This fn is generic
-(defn apply [[x 'a] [f (fun 'a 'b)]]
+(defn apply ([x 'a] [f (fun 'a 'b)])
   (f x))
 
 (def a 2)
 
-(defn add_closed [x]
+(defn add_closed (x)
   -- we close over
   (+ x a))
 
 -- simple int -> int
-(defn add1 [x] (+ x 1))
+(defn add1 (x) (+ x 1))
 
-(defn print_bool [b]
+(defn print_bool (b)
   (if b
     (printi 1)
     (printi 0)))
 
 -- simple bool -> bool
-(defn makefalse [b]
+(defn makefalse (b)
   (if b
     false
     b))
 
 -- bool t -> bool t
-(defn make_rec_false [r]
+(defn make_rec_false (r)
   (if (.x r)
     {:x false}
     r))
 
 -- simple t -> t
-(defn add3_rec [t]
+(defn add3_rec (t)
   {:x (+ (.x t) 3)})
 
 -- A polymorphic function which will get monomorphized
-(def f (fn [x] (copy x)))
+(def f (fn (x) (copy x)))
 
 (printi (apply 20 add1))
 (printi (apply 20 add_closed))
@@ -47,5 +47,5 @@
 (printi (.x (f {:x 17})))
 -- inline polymorphic function
 (-> 18
-    (fn [x] (copy x))
+    (fn (x) (copy x))
     printi)

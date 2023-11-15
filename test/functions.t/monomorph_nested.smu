@@ -2,8 +2,8 @@
 
 (type rc {:x int})
 
-(defn wrapped [x]
-  (defn id [x] (copy x))
+(defn wrapped (x)
+  (defn id (x) (copy x))
   (id x))
 
 (printi (wrapped 12))

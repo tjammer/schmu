@@ -4,20 +4,20 @@
 
 (type (gen_first 'a) {:only 'a :is bool})
 
-(defn print_bool [b]
+(defn print_bool (b)
   (if b (printi 1) (printi 0)))
 
-(defn first [any]
+(defn first (any)
   (printi (.first any)))
 
-(defn gen [any] (copy (.gen any)))
+(defn gen (any) (copy (.gen any)))
 
-(defn third [any]
+(defn third (any)
   (print_bool (.third any)))
 
-(defn only [any] (copy (.only any)))
+(defn only (any) (copy (.only any)))
 
-(defn is [any]
+(defn is (any)
   (print_bool (.is any)))
 
 (def int_t {:null 0 :first 700 :gen 20 :third true})

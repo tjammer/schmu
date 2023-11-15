@@ -1,23 +1,23 @@
-(defn hmm []
+(defn hmm ()
   (def {a} {1})
-  (defn capture []
+  (defn capture ()
     (+ a 1))
   capture)
 
 (def _ {(copy (hmm))})
 
-(defn hmm-move []
+(defn hmm-move ()
   (def {a} {1})
   -- a is not explicitly copied, thus moved
-  (defn capture []
+  (defn capture ()
     (+ a 1))
   capture)
 
 (def _ {(hmm-move)})
 
-(defn test []
+(defn test ()
   (def a ["hello"])
-  (fn :copy a [] (print a.[0])))
+  (fn :copy a () (print a.[0])))
 
 (def c (test))
 ((copy c))

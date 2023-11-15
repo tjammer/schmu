@@ -4,7 +4,7 @@
 (print (fmt-str v.[0]))
 (print (fmt-str const))
 
-(defn in-fun []
+(defn in-fun ()
   (def v& [0])
   (def const (copy v.[0]))
   (set &v.[0] !1)

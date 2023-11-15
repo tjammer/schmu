@@ -1,16 +1,16 @@
 (def arr [1 2 3 4 5 6 7 8 9 10])
 
-(defn string-add-null [str&]
+(defn string-add-null (str&)
   (string/modify-buf &str
-   (fn [arr&]
+                     (fn (arr&)
      (array/push &arr !0u8)
      (array/drop-back &arr))))
 
-(defn string-concat [arr delim]
+(defn string-concat (arr delim)
   (def acc& "")
   (array/iteri
    arr
-   (fn [i v]
+   (fn (i v)
      (if (> i 0)
        (string/append &acc delim))
      (string/append &acc (fmt-str v))))

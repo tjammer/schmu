@@ -1,7 +1,7 @@
-(defn do_nothing [a&]
+(defn do_nothing (a&)
   (ignore a))
 
-(defn do_mut [a& b]
+(defn do_mut (a& b)
   (set &a !(copy b)))
 
 (def b& 0)

@@ -1,4 +1,4 @@
 (import nested_fn)
 
-(def (a (thing int)) #empty)
+(def [a (thing int)] #empty)
 (classify a)

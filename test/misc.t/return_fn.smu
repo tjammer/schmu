@@ -1,8 +1,8 @@
-(defn ret-fn []
-  (fn [a] (+ a 12)))
+(defn ret-fn ()
+  (fn (a) (+ a 12)))
 
-(defn ret-named []
-  (defn named [a]
+(defn ret-named ()
+  (defn named (a)
     (+ a 13))
   named)
 

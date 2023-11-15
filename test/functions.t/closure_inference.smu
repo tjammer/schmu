@@ -3,25 +3,25 @@
 (type ok {:rem lexbuf :mtch view})
 (type parse-result ((#ok ok) (#err lexbuf)))
 
-(defn char [c]
-  (fn [buf]
+(defn char (c)
+  (fn (buf)
     (if (char-equal (string/get buf.buf buf.curr) c)
       (#ok {:mtch {:pbuf (copy buf.buf) :start buf.curr :len 1}
             :rem {@(copy buf) :curr (+ 1 buf.curr)}})
       (#err (copy buf)))))
 
-(defn string-of-view [view]
-  (let (ret& (array/create (+ 1 view.len)))
+(defn string-of-view (view)
+  (let ((ret& (array/create (+ 1 view.len))))
     (iter-range (.start view) (+ view.start view.len)
-                (fn [c] (array/push &ret !(string/get view.pbuf c))))
+                (fn (c) (array/push &ret !(string/get view.pbuf c))))
     (array/push &ret !'\000')
     (array/drop-back &ret)
     ret))
 
-(defn view-of-lexbuf [lb]
+(defn view-of-lexbuf (lb)
   {:pbuf (copy lb.buf) :start lb.curr :len (- (string/len lb.buf) lb.curr)})
 
-(defn print-result [res]
+(defn print-result (res)
   (-> (match res
         ((#ok {:rem :mtch})
          (fmt-str "(\"" (string-of-view (view-of-lexbuf rem))
@@ -30,8 +30,8 @@
          (fmt-str "(\"" (string-of-view (view-of-lexbuf lexbuf)) "\", \"\")")))
       print))
 
-(defn alt [a b]
- (fn :copy a b [buf] -- This variable is polymorphic
+(defn alt (a b)
+  (fn :copy a b (buf) -- This variable is polymorphic
    (match (a buf)
      ((#ok r) (#ok r))
      ((#err _) (b buf)))))

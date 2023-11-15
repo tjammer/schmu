@@ -1,4 +1,4 @@
-(defn test []
+(defn test ()
   (def ai [10])
   (def bi [11])
   (if false

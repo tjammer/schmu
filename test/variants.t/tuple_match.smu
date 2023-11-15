@@ -1,6 +1,6 @@
 (external printf (fun string/cstr int unit))
 
-(defn doo [a b]
+(defn doo (a b)
   (->> (match {a b}
          ({(#some a) (#some b)} (+ a b))
          ({#none (#some b)} b)
@@ -8,7 +8,7 @@
          ({_ #none} 0))
        (printf (string/data "%i\n"))))
 
-(def (none_int (option int)) #none)
+(def [none_int (option int)] #none)
 
 (doo (#some 1) (#some 2))
 (doo none_int (#some 2))

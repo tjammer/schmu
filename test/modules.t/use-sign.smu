@@ -1,7 +1,7 @@
 (import sign)
 
 -- Use type t
-(def (use-t t) 20)
+(def [use-t t] 20)
 (ignore use-t)
 
 -- Use ext

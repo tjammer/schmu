@@ -1,26 +1,26 @@
-(defn bind [res f]
+(defn bind (res f)
   (match res
     ((#some r) (f r))
     (#none #none)))
 
-(defn use [param thing]
+(defn use (param thing)
   (match param
     ({bar foo} (bind (bar thing)
-                     -- [foo] must be captured here
-                     (fn [r] (bind (foo r)
-                     (fn [r] (print (fmt-str r)) (#some (copy r)))))))))
+                     -- (foo) must be captured here
+                     (fn (r) (bind (foo r)
+                                   (fn (r) (print (fmt-str r)) (#some (copy r)))))))))
 
 (ignore
- (use {(fn [i] (#some (+ i 1)))
-       (fn [i] (#some (+ i 2)))}
+ (use {(fn (i) (#some (+ i 1)))
+       (fn (i) (#some (+ i 2)))}
       0))
 
 -- This here is just a test to make sure that we can alias normal,
 -- monomorphized functions
-(defn f [i]
+(defn f (i)
   (print (fmt-str "printing " i)))
 
-(defn print-poly [to-print]
+(defn print-poly (to-print)
   (match f
     (foo (foo to-print))))
 

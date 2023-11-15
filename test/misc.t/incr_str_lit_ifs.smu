@@ -1,9 +1,9 @@
-(defn ret-non []
+(defn ret-non ()
   (if false
     (#some 20)
     #none))
 
-(defn try []
+(defn try ()
   (match (ret-non)
     ((#some j) (print (fmt-str j)))
     (#none (print "none"))))

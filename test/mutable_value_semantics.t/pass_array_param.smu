@@ -1,6 +1,6 @@
-(defn pass [x!] x)
+(defn pass (x!) x)
 
-(defn create []
+(defn create ()
   (def arr [10])
   (pass !arr))
 

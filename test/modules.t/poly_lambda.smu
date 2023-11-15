@@ -1,6 +1,6 @@
 (type (t 'a) {:a 'a})
 
-(defn create [a]
+(defn create (a)
   -- Create a polymorphic lambda and use it in this function.
   -- This will get processes in the user's monomorph_tree
-  ((fn [] {:a (copy a)})))
+  ((fn () {:a (copy a)})))

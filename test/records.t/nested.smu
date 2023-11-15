@@ -30,9 +30,9 @@
 
 (type foo {:a int :b inner})
 
-(defn inner [] {:a 3})
+(defn inner () {:a 3})
 
-(def f (fn [x!] x))
+(def f (fn (x!) x))
 
 (def a {:a 0 :b (inner)})
 

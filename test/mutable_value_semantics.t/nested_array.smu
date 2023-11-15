@@ -1,4 +1,4 @@
-(defn prnt [a]
+(defn prnt (a)
   (print (fmt-str
           a.[0].[0]
           ", "

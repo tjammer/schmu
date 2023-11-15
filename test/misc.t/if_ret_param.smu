@@ -1,7 +1,7 @@
 (def s "/")
 
-(defn times [limit f]
-  (defn inner [i]
+(defn times (limit f)
+  (defn inner (i)
     (if (= i limit)
       ()
       (do
@@ -9,7 +9,7 @@
         (inner (+ i 1)))))
   (inner 0))
 
-(defn test [value]
+(defn test (value)
   (ignore (if true
             (copy value)
             (fmt-str "/" value))))

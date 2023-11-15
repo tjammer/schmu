@@ -1,10 +1,10 @@
 (rec
- (defn even? [i]
+ (defn even? (i)
    (match i
      (0 true)
      (1 false)
      (n (odd? (- n 1)))))
- (defn odd? [i]
+ (defn odd? (i)
    (match i
      (0 false)
      (1 true)

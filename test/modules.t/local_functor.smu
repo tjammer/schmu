@@ -5,7 +5,7 @@
   (type t)
   (def add (fun t t t)))
 
-(functor make [[m sig]]
+(functor make ([m sig])
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 

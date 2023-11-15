@@ -1,28 +1,28 @@
 (external printi (fun int unit))
 
-(defn apply [x f] (f x))
+(defn apply (x f) (f x))
 
-(defn add1 [x] (+ x 1))
+(defn add1 (x) (+ x 1))
 
 -- We also pass polymorphic functions
-(defn pass [x] (copy x))
+(defn pass (x) (copy x))
 
 -- ...and a lambda
-(def pass2 (fn [x] (copy x)))
+(def pass2 (fn (x) (copy x)))
 
-(defn makefalse [b]
+(defn makefalse (b)
   (if b
     false
     b))
 
-(defn int_of_bool [b]
+(defn int_of_bool (b)
   (if b 1 0))
 
 -- TODO polymorphic recursion example
 
 (-> (apply 0 add1)
     printi)
-(-> (apply 1 (fn [x] (+ x 1)))
+(-> (apply 1 (fn (x) (+ x 1)))
     printi)
 (-> true
     (apply makefalse)

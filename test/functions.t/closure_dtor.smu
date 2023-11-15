@@ -1,7 +1,7 @@
-(defn return-closure [name]
+(defn return-closure (name)
   -- create object on heap
   (def n (fmt-str "++" name))
-  (fn [] (print n )))
+  (fn () (print n )))
 
 (def f (return-closure "aoeu"))
 (f)

@@ -2,7 +2,7 @@
 (def a ())
 (def b (#some a))
 
-(defn a [] ())
+(defn a () ())
 (def b (#some (a)))
 (match b
   ((#some a) (print "some"))
@@ -13,7 +13,7 @@
 (def t {:u ()})
 (def u t.u)
 
-(defn t [] {:u ()})
+(defn t () {:u ()})
 (def t2 (t))
 (def u2 t2.u)
 

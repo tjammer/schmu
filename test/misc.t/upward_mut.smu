@@ -1,8 +1,8 @@
 (type c {:c& int})
 
-(defn counter []
+(defn counter ()
   (def cnt& 0)
-  (fn [] (set &cnt !(+ cnt 1))
+  (fn () (set &cnt !(+ cnt 1))
     cnt))
 
 (def c (counter))
@@ -11,9 +11,9 @@
 (print (fmt-str (c)))
 (print (fmt-str (c)))
 
-(defn counter []
+(defn counter ()
   (def cnt& {:c 0})
-  (fn [] (set &cnt !{:c (+ (.c cnt) 1)})
+  (fn () (set &cnt !{:c (+ (.c cnt) 1)})
     cnt))
 
 (def c (counter))

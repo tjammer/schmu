@@ -1,4 +1,4 @@
 (import poly_lambda)
 -- Create lambda with different arity
-(ignore (fn [_ _ _] ()))
+(ignore (fn (_ _ _) ()))
 (print (fmt-str (.a (create 10))))

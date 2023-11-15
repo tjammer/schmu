@@ -27,7 +27,7 @@ let wrap_fn ?(tl = None) t expect code =
   | Some msg ->
       test_exn msg code;
       (* function *)
-      t expect ("(defn f [] " ^ code ^ ")")
+      t expect ("(defn f () " ^ code ^ ")")
 
 let test_const_int () = test "int" "(def a 1) a"
 let test_const_neg_int () = test "int" "(def a -1) a"
@@ -50,7 +50,7 @@ let test_const_i32 () = test "i32" "(def a 123i32) a"
 let test_const_neg_i32 () = test "i32" "(def a -123i32) a"
 let test_const_f32 () = test "f32" "(def a 1.0f32) a"
 let test_const_neg_f32 () = test "f32" "(def a -1.0f32) a"
-let test_hint_int () = test "int" "(def (a int) 1) a"
+let test_hint_int () = test "int" "(def [a int] 1) a"
 let test_func_id () = test "(fun 'a 'a)" "(fn (a) (copy a))"
 let test_func_id_hint () = test "(fun int int)" "(fn ([a int]) a)"
 let test_func_int () = test "(fun int int)" "(fn (a) (+ a 1))"
@@ -63,20 +63,20 @@ let test_func_1st_class () =
   test "(fun (fun int 'a) int 'a)" "(fn (func [arg int]) (func arg))"
 
 let test_func_1st_hint () =
-  test "(fun (fun int unit) int unit)" "(fn [[f (fun int unit)] arg] (f arg))"
+  test "(fun (fun int unit) int unit)" "(fn ([f (fun int unit)] arg) (f arg))"
 
 let test_func_1st_stay_general () =
   test "(fun 'a (fun 'a 'b) 'b)"
-    "(defn foo [x f] (f x)) (defn add1 [x] (+ x 1)) (def a (foo 1 add1)) (defn \
-     boolean [[x bool]] x) (def b (foo true boolean)) foo"
+    "(defn foo (x f) (f x)) (defn add1 (x) (+ x 1)) (def a (foo 1 add1)) (defn \
+     boolean ([x bool]) x) (def b (foo true boolean)) foo"
 
 let test_func_recursive_if () =
   test "(fun int unit)"
-    "(external ext (fun unit unit)) (defn foo [i] (if (< i 2) (ext)  (foo (- i \
+    "(external ext (fun unit unit)) (defn foo (i) (if (< i 2) (ext)  (foo (- i \
      1)))) foo"
 
 let test_func_generic_return () =
-  test "int" "(defn apply [f x] (f x)) (defn add1 [x] (+ x 1)) (apply add1 1)"
+  test "int" "(defn apply (f x) (f x)) (defn add1 (x) (+ x 1)) (apply add1 1)"
 
 let test_func_capture_annot () =
   test "unit"
@@ -99,7 +99,7 @@ let test_record_reorder () = test "t" "(type t {:x int :y int}) { :y 10 :x 2 }"
 let test_record_create_if () = test "t" "(type t {:x int}) { :x (if true 1 0) }"
 
 let test_record_create_return () =
-  test "t" "(type t {:x int}) (defn a [] 10) { :x (a) }"
+  test "t" "(type t {:x int}) (defn a () 10) { :x (a) }"
 
 let test_record_wrong_type () =
   test_exn "In record expression expecting [int] but found [bool]"
@@ -163,63 +163,63 @@ let test_annot_concrete () = test "(fun int bool)" "(defn foo (x) (< x 3)) foo"
 let test_annot_concrete_fail () =
   test_exn
     "Var annotation\nexpecting (fun [bool] [int])\nbut found (fun [int] [bool])"
-    "(def (foo (fun bool int)) (fn (x) (< x 3))) foo"
+    "(def [foo (fun bool int)] (fn (x) (< x 3))) foo"
 
-let test_annot_mix () = test "(fun 'a! 'a)" "(defn pass [[x! 'b]] x) pass"
+let test_annot_mix () = test "(fun 'a! 'a)" "(defn pass ([x! 'b]) x) pass"
 
 let test_annot_mix_fail () =
   test_exn "Var annotation expecting (fun _ [int]) but found (fun _ ['a])"
-    "(def (pass (fun 'b int)) (fn (x) (copy x))) pass"
+    "(def [pass (fun 'b int)] (fn (x) (copy x))) pass"
 
-let test_annot_generic () = test "(fun 'a! 'a)" "(defn pass [[x! 'b]] x) pass"
+let test_annot_generic () = test "(fun 'a! 'a)" "(defn pass ([x! 'b]) x) pass"
 
 let test_annot_generic_fail () =
   test_exn "Var annotation expecting (fun _ ['b]) but found (fun _ ['a])"
-    "(def (pass (fun 'a 'b)) (fn (x) (copy x))) pass"
+    "(def [pass (fun 'a 'b)] (fn (x) (copy x))) pass"
 
 let test_annot_generic_mut () =
-  test "(fun 'a& 'a)" "(defn pass [[x& 'b]] (copy x)) pass"
+  test "(fun 'a& 'a)" "(defn pass ([x& 'b]) (copy x)) pass"
 
 let test_annot_fun_mut_param () =
   test "(fun int& unit)"
-    "(external f (fun int& unit)) (def (a (fun int& unit)) f) a"
+    "(external f (fun int& unit)) (def [a (fun int& unit)] f) a"
 
 let test_annot_generic_fun_mut_param () =
   test "(fun 'a& unit)"
-    "(external f (fun 'a& unit)) (def (a (fun 'a& unit)) f) a"
+    "(external f (fun 'a& unit)) (def [a (fun 'a& unit)] f) a"
 
 let test_annot_record_simple () =
-  test "a" "(type a { :x int }) (type b { :x int }) (def (a a) { :x 12 }) a"
+  test "a" "(type a { :x int }) (type b { :x int }) (def [a a] { :x 12 }) a"
 
 let test_annot_record_generic () =
   test "(a bool)"
-    "(type (a 'a) { :x 'a }) (type b { :x int }) (def (a (a bool)) { :x true \
+    "(type (a 'a) { :x 'a }) (type b { :x int }) (def [a (a bool)] { :x true \
      }) a"
 
 let test_annot_record_generic_multiple () =
   test_exn "Type a expects 2 type parameters"
-    "(type (a 'a 'b) { :x 'a :y 'b }) (def (a a) { :x true }) a"
+    "(type (a 'a 'b) { :x 'a :y 'b }) (def [a a] { :x true }) a"
 
 let test_annot_tuple_simple () =
-  test "{int bool}" "(def (a {int bool}) {1 true}) a"
+  test "{int bool}" "(def [a {int bool}] {1 true}) a"
 
 let test_annot_array_arg_generic () =
-  test "(array int)" "(defn foo [[a! (array 'a)]] a) (foo ![10])"
+  test "(array int)" "(defn foo ([a! (array 'a)]) a) (foo ![10])"
 
 let test_annot_tuple_generic () =
-  test "{int bool}" "(defn hmm [[a! {int 'a}]] a) (hmm !{1 true})"
+  test "{int bool}" "(defn hmm ([a! {int 'a}]) a) (hmm !{1 true})"
 
 let test_annot_fixed_size_array () =
-  test "(array#32 int)" "(defn hmm [[a! (array#32 'a)]] a) (hmm !#32[0])"
+  test "(array#32 int)" "(defn hmm ([a! (array#32 'a)]) a) (hmm !#32[0])"
 
 let test_annot_fixed_unknown_size_array () =
-  test "(array#32 int)" "(defn hmm [[a! (array#? 'a)]] a) (hmm !#32[0])"
+  test "(array#32 int)" "(defn hmm ([a! (array#? 'a)]) a) (hmm !#32[0])"
 
 let test_annot_fixed_unknown_size_array_fn () =
   (* The function is instantiated so the size is not generalized. That's why
      there are two question marks. *)
   test "(fun (array#?? 'a)! (array#?? 'a))"
-    "(defn hmm [[a! (array#? 'a)]] a) hmm"
+    "(defn hmm ([a! (array#? 'a)]) a) hmm"
 
 let test_sequence () =
   test "int" "(external printi (fun int unit)) (printi 20) (+ 1 1)"
@@ -246,7 +246,7 @@ let test_para_gen_return () =
 let test_para_multiple () =
   test "bool"
     "(type (foo 'a) { :gen 'a }) (defn get (foo) (copy (.gen foo))) (def a { \
-     :gen 12 }) (def (b int) (get a)) (def c { :gen false }) (get c)"
+     :gen 12 }) (def [b int] (get a)) (def c { :gen false }) (get c)"
 
 let test_para_instance_func () =
   test "(fun (foo int) int)"
@@ -356,13 +356,13 @@ let test_array_different_types () =
 
 let test_array_different_annot () =
   test_exn "In let binding expecting (array [int]) but found (array [bool])"
-    {|(def (a (array bool)) [0 1])
+    {|(def [a (array bool)] [0 1])
     a|}
 
 let test_array_different_annot_weak () =
   test_exn "In application expecting (fun _ [bool] _) but found (fun _ [int] _)"
     {|(external setf (fun (array 'a) 'a unit))
-    (def (a (array bool)) [])
+    (def [a (array bool)] [])
     (setf a 2)|}
 
 let test_array_different_weak () =
@@ -411,7 +411,7 @@ let test_variants_option_some_some () =
 
 let test_variants_option_annot () =
   test "(option (option float))"
-    "(type (option 'a) (#none (#some 'a))) (let [(a (option float)) #none] \
+    "(type (option 'a) (#none (#some 'a))) (let (([a (option float)] #none)) \
      (#some a))"
 
 let test_variants_option_none_arg () =
@@ -428,7 +428,7 @@ let test_variants_correct_inference () =
     {|(type view {:start int :len int})
 (type (success 'a) {:rem view :mtch 'a})
 (type (parse-result 'a) ((#ok (success 'a)) (#err view)))
-(defn map [p f buf view]
+(defn map (p f buf view)
   (match (p buf view)
     ((#ok ok) (#ok {@ok :mtch (f ok.mtch)}))
     ((#err view) (#err view))))|}
@@ -635,8 +635,8 @@ let test_signature_generic () =
 
 (type (t 'a) {:x 'a})
 
-(defn create [x!] {:x})
-(defn create-int [[x int]] {:x})
+(defn create (x!) {:x})
+(defn create-int ([x int]) {:x})
 |}
 
 let test_signature_param_mismatch () =
@@ -648,7 +648,7 @@ let test_signature_param_mismatch () =
   (type (t 'a))
   (def create-int (fun int (t int))))
 (type (t 'a) {:x int})
-(defn create-int [[x int]] {:x})|}
+(defn create-int ([x int]) {:x})|}
 
 let test_signature_unparam_type () =
   test_exn "Unparamatrized type in module implementation"
@@ -661,22 +661,22 @@ let local_module =
    other int) (module nested (type t u8)))"
 
 let test_local_modules_find_local () =
-  test "unit" (local_module ^ " (def (test nosig/t) {:a 10})")
+  test "unit" (local_module ^ " (def [test nosig/t] {:a 10})")
 
 let test_local_modules_find_nested () =
-  test "unit" (local_module ^ " (def (test nosig/nested/t) 0u8)")
+  test "unit" (local_module ^ " (def [test nosig/nested/t] 0u8)")
 
 let test_local_modules_miss_local () =
   test_exn "In let binding expecting [float] but found [nosig/t]"
-    (local_module ^ " (def (test nosig/t) 10.0)")
+    (local_module ^ " (def [test nosig/t] 10.0)")
 
 let test_local_modules_miss_nested () =
   test_exn "Expected a record type, not nosig/nested/t = u8"
-    (local_module ^ " (def (test nosig/nested/t) {:a 10})")
+    (local_module ^ " (def [test nosig/nested/t] {:a 10})")
 
 let test_local_modules_miss_local_dont_find_global () =
   test_exn "Unbound type nosig/global."
-    (local_module ^ " (def (test nosig/global) {:a 10})")
+    (local_module ^ " (def [test nosig/global] {:a 10})")
 
 let test_local_module_unique_names () =
   test_exn "Module names must be unique. nosig exists already"
@@ -785,48 +785,48 @@ let test_excl_proj_nest_closed () =
     (own ^ "(def y& &x)\n (def z& &y)\n (ignore z)\n y")
 
 let test_excl_moved_param () =
-  test_exn "Borrowed parameter x is moved" "(defn meh [x] x)"
+  test_exn "Borrowed parameter x is moved" "(defn meh (x) x)"
 
 let test_excl_set_moved () =
-  test "unit" "(defn meh [a&] (ignore {a}) (set &a !10))"
+  test "unit" "(defn meh (a&) (ignore {a}) (set &a !10))"
 
 let test_excl_binds () =
   test "unit"
     {|
 (type ease-kind (#linear #circ-in))
 
-(defn ease-circ-in [_] 0.0)
-(defn ease-linear [_] 0.0)
+(defn ease-circ-in (_) 0.0)
+(defn ease-linear (_) 0.0)
 
-(defn ease [anim]
+(defn ease (anim)
   (match anim
     (#linear (ease-linear anim))
     (#circ-in (ease-circ-in anim))))|}
 
 let test_excl_shadowing () =
-  test_exn "Borrowed parameter a is moved" "(defn thing [a] (def a a) a)"
+  test_exn "Borrowed parameter a is moved" "(defn thing (a) (def a a) a)"
 
 let typ = "(type string (array u8))\n (type t {:a string :b string})\n"
 
 let test_excl_parts_success () =
-  test "unit" (typ ^ "(defn meh [a!]\n {:a a.a :b a.b})")
+  test "unit" (typ ^ "(defn meh (a!)\n {:a a.a :b a.b})")
 
 let test_excl_parts_return_part () =
-  test "unit" (typ ^ "(defn meh [a!]\n (def c& !a.a)\n a.b)")
+  test "unit" (typ ^ "(defn meh (a!)\n (def c& !a.a)\n a.b)")
 
 let test_excl_parts_return_whole () =
   test_exn "a.a was moved in line 4, cannot use"
-    (typ ^ "(defn meh [a!]\n (def c& !a.a)\n a)")
+    (typ ^ "(defn meh (a!)\n (def c& !a.a)\n a)")
 
 let test_excl_lambda_copy_capture () =
-  test "unit" "(defn alt [alts] (fn :copy alts () (ignore alts.[0])))"
+  test "unit" "(defn alt (alts) (fn :copy alts () (ignore alts.[0])))"
 
 let test_excl_lambda_copy_capture_nonalloc () =
-  test "unit" "(defn alt [alts] (fn :copy alts () (ignore (+ 1 alts))))"
+  test "unit" "(defn alt (alts) (fn :copy alts () (ignore (+ 1 alts))))"
 
 let test_excl_lambda_not_copy_capture () =
   test_exn "Borrowed parameter alts is moved"
-    "(defn alt [alts] (fn () (ignore alts.[0])))"
+    "(defn alt (alts) (fn () (ignore alts.[0])))"
 
 let test_excl_fn_copy_capture () =
   test "unit"
@@ -876,7 +876,7 @@ let test_mtype_abstracts () =
   (type t)
   (def add (fun t t t)))
 
-(functor make [[m sig]]
+(functor make ([m sig])
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
@@ -901,33 +901,33 @@ let test_mtype_abstracts () =
 |}
 
 let test_functor_define () =
-  test "unit" "(module-type mt (type t)) (functor f [[p mt]] ())"
+  test "unit" "(module-type mt (type t)) (functor f ([p mt]) ())"
 
 let test_functor_module_type_not_found () =
-  test_exn "Cannot find module type mt" "(functor f [[p mt]] ())"
+  test_exn "Cannot find module type mt" "(functor f ([p mt]) ())"
 
 let test_functor_direct_access () =
   test_exn "The module f is a functor. It cannot be accessed directly"
-    "(module-type mt (type t)) (functor f [[p mt]] (type a unit)) (ignore f/a)"
+    "(module-type mt (type t)) (functor f ([p mt]) (type a unit)) (ignore f/a)"
 
 let test_functor_checked_alias () =
   test_exn "The module f is a functor. It cannot be accessed directly"
-    "(module-type mt (type t)) (functor f [[p mt]] (type a unit)) (module [hmm \
+    "(module-type mt (type t)) (functor f ([p mt]) (type a unit)) (module [hmm \
      mt] f)"
 
 let test_functor_wrong_arity () =
   test_exn "Wrong arity for functor f: Expecting 1 but got 2"
-    "(module-type mt (type t)) (functor f [[p mt]] ()) (module a (type t \
+    "(module-type mt (type t)) (functor f ([p mt]) ()) (module a (type t \
      unit)) (module hmm (f a a))"
 
 let test_functor_wrong_module_type () =
   test_exn "Signatures don't match: Type a/t is missing"
-    "(module-type mt (type t)) (functor f [[p mt]] ()) (module a ()) (module \
+    "(module-type mt (type t)) (functor f ([p mt]) ()) (module a ()) (module \
      hmm (f a))"
 
 let test_functor_no_var_param () =
   test_exn "No var named p/a"
-    "(module-type mt (type t)) (functor f [[p mt]] (def _ (ignore p/a)))"
+    "(module-type mt (type t)) (functor f ([p mt]) (def _ (ignore p/a)))"
 
 let test_functor_apply_use () =
   test "inta/t = int"
@@ -935,7 +935,7 @@ let test_functor_apply_use () =
   (type t)
   (def add (fun t t t)))
 
-(functor make [[m sig]]
+(functor make ([m sig])
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
@@ -956,7 +956,7 @@ let test_functor_abstract_param () =
   (type t)
   (def add (fun t t t)))
 
-(functor make [[m sig]]
+(functor make ([m sig])
   (defn add-twice (a b)
     (m/add (m/add a b) b)))
 
@@ -976,7 +976,7 @@ let test_functor_use_param_type () =
     {|(module-type sig
   (type t))
 
-(functor make [[m sig]]
+(functor make ([m sig])
   (type t m/t))|}
 
 let test_functor_poly_function () =
@@ -984,11 +984,11 @@ let test_functor_poly_function () =
     {|(module-type poly
   (def id (fun 'a! 'a)))
 
-(functor makeid [[m poly]]
+(functor makeid ([m poly])
   (defn newid (p!) (m/id !p)))
 
 (module some
-  (defn id [p!] p))
+  (defn id (p!) p))
 
 (module polyappl (makeid some))
 
@@ -1003,11 +1003,11 @@ let test_functor_poly_mismatch () =
     {|(module-type poly
   (def id (fun 'a! 'a)))
 
-(functor makeid [[m poly]]
+(functor makeid ([m poly])
   (defn newid (p!) (m/id !p)))
 
 (module someint
-  (defn id [[p! int]] p))
+  (defn id ([p! int]) p))
 
 (module intappl (makeid someint))|}
 
@@ -1024,13 +1024,13 @@ let check_sig_test thing =
   ^ thing
   ^ {|))))
 
-(functor [make sig] [[m key]]
+(functor [make sig] ([m key])
  (type key m/t)
  (type (item 'a) {:key m/t :value 'a})
  (type (slot 'a) (#empty #tombstone (#item (item 'a))))
  (type (t 'a) {:data& (array (slot 'a)) :nitems& int})
 
-  (defn create [[size int]]
+  (defn create ([size int])
     (ignore size)
     (def data [])
     {:data :nitems 0}))|}
@@ -1054,16 +1054,16 @@ let test_farray_nested_lit () = test "unit" "(def arr #[#[1 2 3] #[3 4 5]])"
 
 let test_farray_inference () =
   test "unit"
-    "(defn print-snd [arr] (ignore (fmt-str arr.(1)))) (print-snd #[1 3 2]) \
+    "(defn print-snd (arr) (ignore (fmt-str arr.(1)))) (print-snd #[1 3 2]) \
      (print-snd #[\"hey\" \"hi\"])"
 
 let test_partial_move_outer_imm () =
   test_exn "Cannot move string literal. Use `copy`"
-    "(def a \"hii\") (defn move-a [_ a!] a) (ignore ((move-a 0) !a))"
+    "(def a \"hii\") (defn move-a (_ a!) a) (ignore ((move-a 0) !a))"
 
 let test_partial_move_outer_delayed () =
   test_exn "Cannot move string literal. Use `copy`"
-    "(def a \"hii\") (defn move-a [a! _] a) (ignore ((move-a !a) 0))"
+    "(def a \"hii\") (defn move-a (a! _) a) (ignore ((move-a !a) 0))"
 
 let case str test = test_case str `Quick test
 
@@ -1317,25 +1317,25 @@ let () =
           tase_exn "func mut borrow" "a was borrowed in line 5, cannot mutate"
             {|
 (def a& 10)
-(defn set-a []
+(defn set-a ()
   (set &a !11))
-(let [b a]
+(let ((b a))
   (set-a)
   (ignore b))|};
           tase_exn "func move" "Cannot move value a from outer scope"
             {|
-(defn hmm []
+(defn hmm ()
   (def a& [10])
-  (defn move-a []
+  (defn move-a ()
     a)
   (ignore a)
   (ignore (move-a))
   (ignore a))|};
           tase_exn "closure mut borrow"
             "a was mutably borrowed in line 3, cannot borrow"
-            {|(defn hmm []
+            {|(defn hmm ()
               (def a& 10)
-               (def set-a (fn [] (set &a !11)))
+               (def set-a (fn () (set &a !11)))
                (set &a !11)
                (set-a)
                (set &a !11))
@@ -1344,28 +1344,28 @@ let () =
             "a was mutably borrowed in line 3, cannot borrow"
             (* If the 'set' attribute isn't carried, (set-a) cannot be called
                and a different error occurs *)
-            {|(defn hmm []
+            {|(defn hmm ()
   (def a& [10])
-  (def set-a (fn [] (set &a ![11])))
+  (def set-a (fn () (set &a ![11])))
   (set &a ![11])
   (def x& !a)
   (set-a))|};
           tase_exn "excl 1" "a was mutably borrowed in line 1, cannot borrow"
-            "(def a& [10])(defn f [a& b] (set &a ![11]))(f &a a)";
+            "(def a& [10])(defn f (a& b) (set &a ![11]))(f &a a)";
           tase "excl 1 nonalloc" "unit"
-            "(def a& 10)(defn f [a& b] (set &a !11))(f &a a)";
+            "(def a& 10)(defn f (a& b) (set &a !11))(f &a a)";
           tase_exn "excl 2" "a was borrowed in line 1, cannot mutate"
-            "(def a& [10])(defn f [a& b] (set &a ![11]))(let [b a] (f &a b))";
+            "(def a& [10])(defn f (a& b) (set &a ![11]))(let ((b a)) (f &a b))";
           tase_exn "excl 3" "a was borrowed in line 1, cannot mutate"
-            "(def a& [10]) (defn f [a b&] (set &b ![11]))(f a &a)";
+            "(def a& [10]) (defn f (a b&) (set &b ![11]))(f a &a)";
           tase_exn "excl 4" "a was borrowed in line 1, cannot mutate"
-            "(def a& [10])(defn f [a b&] (set &b ![11])) (let [b a] (f b &a))";
-          tase "excl 5" "unit" "(def a& [10]) (defn f [a b] ()) (f a a)";
+            "(def a& [10])(defn f (a b&) (set &b ![11])) (let ((b a)) (f b &a))";
+          tase "excl 5" "unit" "(def a& [10]) (defn f (a b) ()) (f a a)";
           tase_exn "excl 6" "a was mutably borrowed in line 1, cannot borrow"
-            "(def a& [10]) (defn f [a& b&] ()) (f &a &a)";
+            "(def a& [10]) (defn f (a& b&) ()) (f &a &a)";
           tase_exn "excl env" "a was mutably borrowed in line 4, cannot borrow"
             {|(def a& [10])
-(defn set-a [b&]
+(defn set-a (b&)
   (set &a ![11]))
 (set-a &a)|};
           tase_exn "follow string literal"
@@ -1373,11 +1373,11 @@ let () =
             "(def c \"aoeu\") (def d c) (def e& !d)";
           tase_exn "move local borrows"
             "Branches have different ownership: owned vs borrowed"
-            "(def a [10]) (def c (if true (let [a [10]] a) a))";
+            "(def a [10]) (def c (if true (let ((a [10])) a) a))";
           tase_exn "forbid move of cond borrow"
             "Cannot move conditional borrow. Either copy or directly move \
              conditional without borrowing"
-            "(defn test [] (def ai [10]) (def bi [11]) (def c (if false ai (if \
+            "(defn test () (def ai [10]) (def bi [11]) (def c (if false ai (if \
              true bi (if true ai bi)))) c)";
           tase_exn "specify mut passing"
             "Specify how rhs expression is passed. Either by move '!' or \
@@ -1441,12 +1441,12 @@ let () =
             {|(type key {:idx int :gen int})
 (type t {:slots& (array key) :data& (array int) :free-hd& int :erase& (array int)})
 
-(let [sm& {:slots [] :data [] :free-hd -1 :erase []}
-      idx 0
-      slot-idx sm.free-hd
-      free-key sm.slots.[slot-idx]
-      free-hd (copy free-key.idx)
-      nextgen (+ free-key.gen 1)]
+(let ((sm& {:slots [] :data [] :free-hd -1 :erase []})
+      (idx 0)
+      (slot-idx sm.free-hd)
+      (free-key sm.slots.[slot-idx])
+      (free-hd (copy free-key.idx))
+      (nextgen (+ free-key.gen 1)))
   (set &sm.slots.[slot-idx] !{:idx :gen nextgen})
   (set &sm.free-hd !free-hd)
   (ignore {:gen nextgen :idx slot-idx}))|};

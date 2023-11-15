@@ -2,16 +2,16 @@
 (type (success 'a) {:rem view :mtch 'a})
 (type (parse-result 'a) ((#ok (success 'a)) (#err view)))
 
-(defn char [c]
-  (fn [buf view]
+(defn char (c)
+  (fn (buf view)
     (if (char-equal (string/get buf view.start) c)
       (#ok {:mtch {@view :len 1}
             :rem {:start (+ 1 view.start) :len (- view.len 1)}})
       (#err view))))
 
-(defn alt [alts!]
-  (fn [buf view]
-    (defn aux [i]
+(defn alt (alts!)
+  (fn (buf view)
+    (defn aux (i)
       (if (= i (array/length alts))
         (#err view)
         (match (alts.[i] buf view)
@@ -20,9 +20,9 @@
     (aux 0)))
 
 -- same thing with a named function
-(defn alt-named [alts!]
-  (defn named3 [buf view]
-    (defn aux [i]
+(defn alt-named (alts!)
+  (defn named3 (buf view)
+    (defn aux (i)
       (if (= i (array/length alts))
         (#err view)
         (match (alts.[i] buf view)
@@ -31,7 +31,7 @@
     (aux 0))
     named3)
 
-(defn view-of-string [str]
+(defn view-of-string (str)
   {:start 0 :len (string/len str)})
 
 (def x "x")

@@ -2,7 +2,7 @@
 
 (type foo {:x int :y int})
 
-(defn pass_to_func [a]
+(defn pass_to_func (a)
   (printi (.y a)))
 
 (def a {:y 20 :x 10})

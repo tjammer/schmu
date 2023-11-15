@@ -1,8 +1,8 @@
-(defn test [b]
-  (def (ret (array int)) [])
-  (defn inner [i]
-    (def (ai (array int)) [])
-    (def (bi (array int)) [])
+(defn test (b)
+  (def [ret (array int)] [])
+  (defn inner (i)
+    (def [ai (array int)] [])
+    (def [bi (array int)] [])
     (if (= i b)
       ai
      (if (= i 30)
@@ -18,7 +18,7 @@
 
 -- For these to pass, the moved bindings from other branches need to
 -- be freed correctly
-(defn test [a!]
+(defn test (a!)
   (def ai [10])
   (def bi [11])
   (def _ !(if false
@@ -34,7 +34,7 @@
 
 (ignore (test ![10]))
 
-(defn test [a!]
+(defn test (a!)
   (if true
     (ignore {a})
     ()))

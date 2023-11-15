@@ -1,9 +1,9 @@
-(defn ret-fn [b]
-  (defn bla [a] (+ a b))
+(defn ret-fn (b)
+  (defn bla (a) (+ a b))
   bla)
 
-(defn ret-lambda [b]
-  (fn [a] (+ a b)))
+(defn ret-lambda (b)
+  (fn (a) (+ a b)))
 
 
 (def f (ret-fn 13))

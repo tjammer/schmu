@@ -2,7 +2,7 @@
 
 (type test ((#float float) (#int int) #none))
 
-(defn doo [m]
+(defn doo (m)
   (match m
     ((#some (#float f)) (int_of_float f))
     ((#some (#int i)) i)

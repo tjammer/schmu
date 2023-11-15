@@ -1,10 +1,10 @@
 (module stbl (hashtbl/make string))
 
-(defn string []
+(defn string ()
   (print "## string")
   (def tbl& (stbl/create 2))
   (stbl/insert &tbl !"key" !1.1)
-  (defn find-print [key]
+  (defn find-print (key)
     (match (stbl/find tbl key)
       ((#some v) (print (fmt-str v)))
       (#none (print "none"))))

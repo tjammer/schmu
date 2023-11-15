@@ -1239,7 +1239,7 @@ Test unused binding warning
   
   unused.smu:12.7-18: warning: Unused binding use_unused3.
   
-  12 | (defn use_unused3 []
+  12 | (defn use_unused3 ()
              ^^^^^^^^^^^
   
   unused.smu:19.11-18: warning: Unused binding unused4.
@@ -1498,11 +1498,6 @@ Tailcall loops
 
 Make sure an if returns either Const or Const_ptr, but in a consistent way
   $ schmu -c --dump-llvm regression_issue_30.smu
-  regression_issue_30.smu:8.7-15: warning: Unused binding calc_acc.
-  
-  8 | (defn calc_acc [vel]
-            ^^^^^^^^
-  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1993,11 +1988,6 @@ Array push
 
 Decrease ref counts for local variables in if branches
   $ schmu --dump-llvm decr_rc_if.smu && valgrind -q --leak-check=yes --show-reachable=yes ./decr_rc_if
-  decr_rc_if.smu:5.10-11: warning: Unused binding a.
-  
-  5 |    (let [a [10]]
-               ^
-  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

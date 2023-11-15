@@ -1,12 +1,12 @@
 -- (mod/extr-a {:b 10})
 
 (rec
- (defn even? [i]
+ (defn even? (i)
    (match i
      (0 true)
      (1 false)
      (n (odd? (- n 1)))))
- (defn odd? [i]
+ (defn odd? (i)
    (match i
      (0 false)
      (1 true)
@@ -19,24 +19,24 @@
 (def cnt& 0)
 
 (rec
- (defn pop [arr&]
+ (defn pop (arr&)
    (print "pop")
    (set &cnt !(+ cnt 1))
    (array/drop-back &arr)
    (pop-all &arr))
- (defn pop-all [arr&]
+ (defn pop-all (arr&)
    (if (= (array/length arr) 0)
      ()
      (pop &arr))))
 
--- (val arr& [0 1 2 3])
+-- (val arr& (0 1 2 3))
 -- (pop-all &arr)
 -- (print (fmt-str (array/length arr)))
 
-(defn test [i]
+(defn test (i)
   (print "wrong")
   (copy i))
 
-(defn test [i]
+(defn test (i)
   (print "right")
   (copy i))

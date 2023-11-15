@@ -1,6 +1,6 @@
 -- don't use option because it will show up in the smi and make diffs difficult
 (type (option 'a) ((#some 'a) #none))
-(defn classify [thing]
+(defn classify (thing)
   (match thing
     ((#some _) 0)
     (#none 1)))

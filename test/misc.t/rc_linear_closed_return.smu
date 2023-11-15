@@ -1,6 +1,6 @@
-(defn test []
-  (def (ret (array int)) [])
-  (defn inner [i]
+(defn test ()
+  (def [ret (array int)] [])
+  (defn inner (i)
     (ignore i)
     (copy ret))
   (def io (inner 10))

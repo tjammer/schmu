@@ -2,7 +2,7 @@
 
 (external printf (fun string/cstr int unit))
 
-(defn doo [a]
+(defn doo (a)
   (match a
    (#left (add_ints 0 5))
    (#right (add_ints 0 -5))))

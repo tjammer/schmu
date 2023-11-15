@@ -893,7 +893,7 @@ Print error when returning a polymorphic lambda in an if expression
   $ schmu --dump-llvm stub.o no_lambda_let_poly_monomorph.smu
   no_lambda_let_poly_monomorph.smu:5.9-52: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though..
   
-  5 | (def f (if true (fn [x] (copy x)) (fn [x] (copy x))))
+  5 | (def f (if true (fn (x) (copy x)) (fn (x) (copy x))))
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
   [1]

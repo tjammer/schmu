@@ -1,27 +1,27 @@
 (type (foo 'a) {:a 'a :b float})
 
-(defn test-record-in-variant [inner]
-  (let [a (match (#some {:a inner :b 53.0})
-            ((#some {:a (#some a) :b}) a)
-            ((#some {:a #none :b}) -1)
-            (#none 0))]
+(defn test-record-in-variant (inner)
+  (let ((a (match (#some {:a inner :b 53.0})
+             ((#some {:a (#some a) :b}) a)
+             ((#some {:a #none :b}) -1)
+             (#none 0))))
     (print (fmt-str a))))
 
 (test-record-in-variant (#some 10))
 (test-record-in-variant #none)
 
-(defn test-nested-records [inner!]
-  (let [a (match {:a inner :b 45.0}
-            ({:a {:a c :b _} :b _} c))]
+(defn test-nested-records (inner!)
+  (let ((a (match {:a inner :b 45.0}
+             ({:a {:a c :b _} :b _} c))))
     (print (fmt-str a))))
 
 (test-nested-records !{:a 20 :b 30.0})
 
-(defn test-record-wildcard [inner]
-  (let [a (match (#some {:a inner :b 53.0})
-            ((#some {:a (#some a) :b _}) a)
-            ((#some _) -2)
-            (#none 0))]
+(defn test-record-wildcard (inner)
+  (let ((a (match (#some {:a inner :b 53.0})
+             ((#some {:a (#some a) :b _}) a)
+             ((#some _) -2)
+             (#none 0))))
     (print (fmt-str a))))
 
 (test-record-wildcard #none)

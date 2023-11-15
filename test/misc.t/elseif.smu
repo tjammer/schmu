@@ -1,6 +1,6 @@
 (external assert (fun bool unit))
 
-(defn test [n]
+(defn test (n)
   (cond
     ((= n 10) 1)
     ((< n 1) 2)

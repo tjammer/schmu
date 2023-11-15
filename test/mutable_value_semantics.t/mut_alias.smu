@@ -8,7 +8,7 @@
 (print (fmt-str (.a f)))
 (print (fmt-str (.a snd)))
 
-(defn new-fun []
+(defn new-fun ()
   (def f {:a 0})
   (def fst& (copy f))
   (def snd (copy fst))

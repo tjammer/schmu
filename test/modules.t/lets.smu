@@ -2,7 +2,7 @@
 
 (external printf (fun string/cstr int unit))
 
-(defn generate_b [] 21)
+(defn generate_b () 21)
 
 (def b (generate_b))
 

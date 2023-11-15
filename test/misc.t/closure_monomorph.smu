@@ -1,10 +1,10 @@
-(defn sort [arr& cmp]
-  (defn partition [arr& lo hi]
+(defn sort (arr& cmp)
+  (defn partition (arr& lo hi)
     (def pivot (copy arr.[hi]))
     (def i& (- lo 1))
     (iter-range lo hi
-                (fn [j]
-                  -- TODO cannot capture [cmp] here
+                (fn (j)
+                  -- TODO cannot capture (cmp) here
                   (if (< (cmp arr.[j] pivot) 0)
                     (do
                       (set &i !(+ i 1))
@@ -19,28 +19,28 @@
   -- Instead, quicksort now closes over the already monomorphized partition.
   -- Functions in closures are now mention the monomorphized name instead
   -- of the lexical one
-  (defn quicksort [arr& lo hi]
+  (defn quicksort (arr& lo hi)
     (if (or (not (< lo hi)) (< lo 0))
       ()
-      (let [p (partition &arr lo hi)]
+      (let ((p (partition &arr lo hi)))
         (quicksort &arr lo (- p 1))
         (quicksort &arr (+ p 1) hi))))
 
-  (let [len (- (array/length arr) 1)]
+  (let ((len (- (array/length arr) 1)))
     (quicksort &arr 0 len)))
 
 (def arr& [9 30 0 50 2030 34])
-(sort &arr (fn [a b ] (- a b)))
-(array/iter arr (fn [i] (print (fmt-str i))))
+(sort &arr (fn (a b ) (- a b)))
+(array/iter arr (fn (i) (print (fmt-str i))))
 
 -- These functions have different call names. Make sure this works as well
-(defn sort [arr& cmp]
-  (defn partition [arr& lo hi]
+(defn sort (arr& cmp)
+  (defn partition (arr& lo hi)
     (def pivot (copy arr.[hi]))
     (def i& (- lo 1))
     (iter-range lo hi
-                (fn [j]
-                  -- TODO cannot capture [cmp] here
+                (fn (j)
+                  -- TODO cannot capture (cmp) here
                   (if (< (cmp arr.[j] pivot) 0)
                     (do
                       (set &i !(+ i 1))
@@ -48,16 +48,16 @@
     (def i (+ i 1))
     (array/swap-items &arr i hi)
     i)
-  (defn quicksort [arr& lo hi]
+  (defn quicksort (arr& lo hi)
     (if (or (not (< lo hi)) (< lo 0))
       ()
-      (let [p (partition &arr lo hi)]
+      (let ((p (partition &arr lo hi)))
         (quicksort &arr lo (- p 1))
         (quicksort &arr (+ p 1) hi))))
 
-  (let [len (- (array/length arr) 1)]
+  (let ((len (- (array/length arr) 1)))
     (quicksort &arr 0 len)))
 
 (def arr& [9 30 0 50 2030 34])
-(sort &arr (fn [a b ] (- a b)))
-(array/iter arr (fn [i] (print (fmt-str i))))
+(sort &arr (fn (a b ) (- a b)))
+(array/iter arr (fn (i) (print (fmt-str i))))

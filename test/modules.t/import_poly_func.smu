@@ -4,5 +4,5 @@
 
 (->> (classify (#some 3)) (printf (string/data "%i\n")))
 (->> (classify (#some 3.0)) (printf (string/data "%i\n")))
-(def (none (option float)) #none)
+(def [none (option float)] #none)
 (->> (classify none) (printf (string/data "%i\n")))

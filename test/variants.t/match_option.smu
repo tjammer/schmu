@@ -1,7 +1,7 @@
 (external printf (fun string/cstr int unit))
 
 -- standard case
-(defn match_opt [p]
+(defn match_opt (p)
   (match p
     ((#some thing) thing)
     (#none 0)))
@@ -12,7 +12,7 @@
      (printf (cstr "%i\n")))
 
 -- switch ctors
-(defn opt_match [p]
+(defn opt_match (p)
   (match p
     (#none 0)
     ((#some thing) thing)))
@@ -23,7 +23,7 @@
      (printf (cstr "%i\n")))
 
 -- some, catchall
-(defn some_all [p]
+(defn some_all (p)
   (match p
     ((#some thing) thing)
     (_ 0)))
@@ -34,13 +34,13 @@
      (printf (cstr "%i\n")))
 
 
-(defn none_all [p]
+(defn none_all (p)
   (match p
     (#none 0)
     (_ 1)))
 
 (->> (none_all (#some 1))
      (printf (cstr "%i\n")))
-(def (none_int (option int)) #none)
+(def [none_int (option int)] #none)
 (->> (none_all none_int)
      (printf (cstr "%i\n")))

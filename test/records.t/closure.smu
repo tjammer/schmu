@@ -4,7 +4,7 @@
 
 (def foo {:x 12 :y 14})
 
-(defn print_foo []
+(defn print_foo ()
   (printi (.x foo))
   (printi (.y foo)))
 

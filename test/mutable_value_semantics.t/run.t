@@ -211,12 +211,12 @@ Warn on unneeded mutable bindings
   $ schmu unneeded_mut.smu
   unneeded_mut.smu:1.19-20: warning: Unmutated mutable binding a.
   
-  1 | (defn do_nothing [a&]
+  1 | (defn do_nothing (a&)
                         ^
   
   unneeded_mut.smu:1.7-17: warning: Unused binding do_nothing.
   
-  1 | (defn do_nothing [a&]
+  1 | (defn do_nothing (a&)
             ^^^^^^^^^^
   
   unneeded_mut.smu:7.6-7: warning: Unmutated mutable binding b.

@@ -186,9 +186,9 @@ modul:
     { let _, id, annot = id in Module_alias (($loc(alias), id, annot), alias) }
   | Module; id = module_decl; hd = first_module_item; m = list(top_item) { Module (id, [], hd :: m) }
   | Module; id = module_decl; s = parens(signature); m = list(top_item) { Module (id, s, m) }
-  | Functor; id = module_decl; p = maybe_bracks(functor_params); hd = first_module_item; m = list(top_item)
+  | Functor; id = module_decl; p = parens(functor_params); hd = first_module_item; m = list(top_item)
     { Functor (id, p, [], hd :: m) }
-  | Functor; id = module_decl; p = maybe_bracks(functor_params); s = parens(signature); m = list(top_item)
+  | Functor; id = module_decl; p = parens(functor_params); s = parens(signature); m = list(top_item)
     { Functor (id, p, s, m) }
 
 %inline module_type:
@@ -240,10 +240,6 @@ let atom_or_list(x) :=
 let bracs(x) :=
   | Lbrac; thing = x; Rbrac; { thing }
 
-let maybe_bracks(x) :=
-  | Lpar; thing = x; Rpar; { thing }
-  | Lbrack; thing = x; Rbrack; { thing }
-
 let bracks(x) :=
   | Lbrack; thing = x; Rbrack; { thing }
 
@@ -289,7 +285,7 @@ stmt:
   | Def; sexp_decl; pexpr = Builtin_id { Let($loc, $2, {pattr = Dnorm; pexpr = Var($loc(pexpr), pexpr)}) }
 
 sexp_decl:
-  | parens(sexp_decl_typed) { $1 }
+  | bracks(sexp_decl_typed) { $1 }
   | pattern = sexp_pattern; Ampersand
     { {loc = $loc; pattern; dattr = Dmut; annot = None} }
   | pattern = sexp_pattern; %prec below_Ampersand
@@ -313,7 +309,7 @@ param:
 
 %inline sexp_fun:
   | Defn; name = ident; attr = list(attr); option(String_lit);
-      params = maybe_bracks(list(param)); body = list(stmt)
+      params = parens(list(param)); body = list(stmt)
     { ($loc, { name; params; return_annot = None; body; attr }) }
 
 %inline attr:
@@ -357,7 +353,7 @@ sexp_expr:
   | parens(sexp_match) { $1 }
 
 %inline lets:
-  | Let; lets = maybe_bracks(nonempty_list(lets_let)); block = nonempty_list(stmt)
+  | Let; lets = parens(nonempty_list(parens(lets_let))); block = nonempty_list(stmt)
     { make_lets lets block }
 
 %inline lets_let:
@@ -412,7 +408,7 @@ sexp_cond:
   | else_ = option(parens(cond_else)) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
-  | Fn; attr = list(attr); params = maybe_bracks(list(param)); body = list(stmt)
+  | Fn; attr = list(attr); params = parens(list(param)); body = list(stmt)
     { Lambda ($loc, params, attr, body) }
 
 %inline sexp_field_set:

@@ -2,7 +2,7 @@
 
 (def outer 10)
 
-(defn loop [i]
+(defn loop (i)
   -- we capture outer here
   (if (< i outer)
     (do

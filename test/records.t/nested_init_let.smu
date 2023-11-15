@@ -4,11 +4,11 @@
 
 (external printi (fun int unit))
 
-(defn record_with_laters []
+(defn record_with_laters ()
   (def x {:x 12})
   {:y x :z 15})
 
-(defn ctrl []
+(defn ctrl ()
   (def ret {:y {:x 17} :z 9})
   (def a {:y {:x 1} :z 2})
   ret)

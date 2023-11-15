@@ -2,12 +2,12 @@ Basic variant ctors
   $ schmu basic.smu --dump-llvm
   basic.smu:12.7-17: warning: Unused binding wrap_clike.
   
-  12 | (defn wrap_clike [] #c)
+  12 | (defn wrap_clike () #c)
              ^^^^^^^^^^
   
   basic.smu:14.7-18: warning: Unused binding wrap_option.
   
-  14 | (defn wrap_option [] (#some "hello"))
+  14 | (defn wrap_option () (#some "hello"))
              ^^^^^^^^^^^
   
   ; ModuleID = 'context'
@@ -404,15 +404,15 @@ Match multiple columns
 
 Record literals in pattern matches
   $ schmu match_record.smu
-  match_record.smu:5.35-37: warning: Unused binding b.
+  match_record.smu:5.36-38: warning: Unused binding b.
   
-  5 |             ((#some {:a (#some a) :b}) a)
-                                        ^^
+  5 |              ((#some {:a (#some a) :b}) a)
+                                         ^^
   
-  match_record.smu:6.31-33: warning: Unused binding b.
+  match_record.smu:6.32-34: warning: Unused binding b.
   
-  6 |             ((#some {:a #none :b}) -1)
-                                    ^^
+  6 |              ((#some {:a #none :b}) -1)
+                                     ^^
   
   $ valgrind -q --leak-check=yes --show-reachable=yes ./match_record
   10
