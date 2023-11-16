@@ -333,8 +333,8 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
   in
 
   List.fold_left_map
-    (fun (env, i) { Ast.loc; pattern; dattr; annot } ->
-      let id, idloc, _ = pattern_id i pattern in
+    (fun (env, i) { Ast.loc; pattern; annot } ->
+      let id, idloc, _, pattr = pattern_id i pattern in
       let type_id, qparams =
         match annot with
         | None ->
@@ -351,12 +351,12 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
               const = false;
               param = true;
               global = false;
-              mut = mut_of_pattr dattr;
+              mut = mut_of_pattr pattr;
               mname = None;
             }
             idloc env,
           i + 1 ),
-        ({ pt = type_id; pattr = dattr }, { pt = qparams; pattr = dattr }) ))
+        ({ pt = type_id; pattr }, { pt = qparams; pattr }) ))
     (env, 0) params
   |> fun ((env, _), lst) ->
   let ids, qparams = List.split lst in
@@ -592,6 +592,9 @@ module rec Core : sig
   val convert_var : Env.t -> Ast.loc -> Path.t -> typed_expr
   val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
 
+  val pass_mut_helper :
+    Env.t -> Ast.loc -> dattr -> (unit -> typed_expr) -> typed_expr
+
   val convert_let :
     global:bool ->
     Env.t ->
@@ -767,7 +770,7 @@ end = struct
     | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
     | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
-    | Match (loc, exprs, cases) -> convert_match env loc exprs cases
+    | Match (loc, pass, expr, cases) -> convert_match env loc pass expr cases
     | Local_import (loc, name, expr) ->
         disambiguate_imports env loc (Path.Pid name) expr
     | Fmt (loc, exprs) -> convert_fmt env loc exprs
@@ -864,9 +867,9 @@ end = struct
 
   and convert_let ~global env loc (decl : Ast.decl)
       { Ast.pattr = _; pexpr = block } =
-    let id, idloc, has_exprname = pattern_id 0 decl.pattern in
+    let id, idloc, has_exprname, attr = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
-    let mut = mut_of_pattr decl.dattr in
+    let mut = mut_of_pattr attr in
     let const = if has_exprname then false else e1.attr.const in
     let global = if has_exprname then false else global in
     let mname = Some (Env.modpath env) in
@@ -898,7 +901,7 @@ end = struct
     let nparams =
       List.mapi
         (fun i (d : Ast.decl) ->
-          let id, _, _ = pattern_id i d.pattern in
+          let id, _, _, _ = pattern_id i d.pattern in
           id)
         params
     in
@@ -969,33 +972,37 @@ end = struct
     let unique = uniq_name name in
 
     enter_level ();
-    let env =
+    let env, nparams =
       if inrec then
         (* Function is already part of env with a fresh variable *)
-        env
+        ( env,
+          List.mapi
+            (fun i (d : Ast.decl) ->
+              let id, _, _, _ = pattern_id i d.pattern in
+              id)
+            params )
       else
         (* Recursion allowed for named funcs *)
-        let ps =
-          List.map (fun p -> Ast.{ pattr = p.dattr; pt = newvar () }) params
+        let ps, nparams =
+          List.mapi
+            (fun i p ->
+              let id, _, _, pattr = pattern_id i Ast.(p.pattern) in
+              ({ pattr; pt = newvar () }, id))
+            params
+          |> List.split
         in
         let typ = Tfun (ps, newvar (), Simple) in
-        Env.(
-          add_value name { (def_value env) with typ } nameloc env
-          |> add_callname ~key:name
-               (Module_common.unique_name ~mname:(modpath env) name unique))
+        ( Env.(
+            add_value name { (def_value env) with typ } nameloc env
+            |> add_callname ~key:name
+                 (Module_common.unique_name ~mname:(modpath env) name unique)),
+          nparams )
     in
 
     (* We duplicate some lambda code due to naming *)
     let env = Env.open_function env in
     let body_env, params_t, qparams, ret_annot =
       handle_params env loc params pattern_id return_annot
-    in
-    let nparams =
-      List.mapi
-        (fun i (d : Ast.decl) ->
-          let id, _, _ = pattern_id i d.pattern in
-          id)
-        params
     in
 
     let body_env, param_exprs = convert_decl body_env params in
@@ -1071,6 +1078,19 @@ end = struct
         (env, (name, unique, lambda))
     | _ -> failwith "Internal Error: generalize produces a new type?"
 
+  and pass_mut_helper env loc pass convert =
+    (match pass with
+    | Dmut | Dset -> Env.open_mutation env
+    | Dnorm | Dmove -> ());
+    let e = convert () in
+    (match pass with
+    | Dmut | Dset ->
+        Env.close_mutation env;
+        if not e.attr.mut then
+          raise (Error (loc, "Mutably passed expression is not mutable"))
+    | Dmove | Dnorm -> ());
+    e
+
   and convert_app ~switch_uni env loc e1 args =
     let callee = convert env e1 in
 
@@ -1079,18 +1099,8 @@ end = struct
       List.mapi
         (fun i (a : Ast.argument) ->
           let e =
-            (match a.apass with
-            | Dmut | Dset -> Env.open_mutation env
-            | Dnorm | Dmove -> ());
-            let e = convert_annot env (param_annot annots i) a.aexpr in
-            (match a.apass with
-            | Dmut | Dset ->
-                Env.close_mutation env;
-                if not e.attr.mut then
-                  raise
-                    (Error (a.aloc, "Mutably passed expression is not mutable"))
-            | Dmove | Dnorm -> ());
-            e
+            pass_mut_helper env a.aloc a.apass (fun () ->
+                convert_annot env (param_annot annots i) a.aexpr)
           in
           (* We also care about whether the argument _can_ be mutable, for array-get *)
           (e, a.apass, e.attr.mut))

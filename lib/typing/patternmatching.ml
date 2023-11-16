@@ -17,6 +17,9 @@ module type Core = sig
   val convert : Env.t -> Ast.expr -> typed_expr
   val convert_var : Env.t -> Ast.loc -> Path.t -> typed_expr
   val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
+
+  val pass_mut_helper :
+    Env.t -> Ast.loc -> dattr -> (unit -> typed_expr) -> typed_expr
 end
 
 module type Recs = sig
@@ -36,12 +39,15 @@ module type S = sig
   val convert_match :
     Env.t ->
     Ast.loc ->
+    Ast.decl_attr ->
     Ast.expr ->
     (Ast.loc * Ast.pattern * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val pattern_id :
-    int -> Ast.pattern -> string * Ast.loc * bool (* Is wildcard *)
+    int ->
+    Ast.pattern ->
+    string * Ast.loc * bool (* Is wildcard *) * Ast.decl_attr
 
   val convert_decl :
     Env.t -> Ast.decl list -> Env.t * (string * typed_expr) list
@@ -113,7 +119,7 @@ and pathed_pattern = int list * typed_pattern
 
 and tpat =
   | Tp_ctor of Ast.loc * ctor_param
-  | Tp_var of Ast.loc * string
+  | Tp_var of Ast.loc * string * Ast.decl_attr
   | Tp_wildcard of Ast.loc
   | Tp_record of Ast.loc * record_field list
   | Tp_tuple of Ast.loc * tuple_field list
@@ -141,7 +147,7 @@ let tuple_field_name i = "<" ^ string_of_int i ^ ">"
 
 let loc_of_pat = function
   | Tp_wildcard loc
-  | Tp_var (loc, _)
+  | Tp_var (loc, _, _)
   | Tp_record (loc, _)
   | Tp_tuple (loc, _)
   | Tp_ctor (loc, _)
@@ -160,7 +166,7 @@ module Tup = struct
   }
 
   type ret =
-    | Var of payload * string
+    | Var of payload * string * Ast.decl_attr
     | Ctor of payload * ctor_param
     | Lit_int of payload * int
     | Lit_char of payload * char
@@ -248,9 +254,9 @@ module Tup = struct
         | Tp_char (loc, c) ->
             Lit_char ({ path; loc; d; patterns = sorted; pltyp = ptyp }, c)
         | _ -> failwith "Internal Error: Not an int pattern")
-    | (path, { pat = Tp_var (loc, name); ptyp }) :: patterns ->
+    | (path, { pat = Tp_var (loc, name, dattr); ptyp }) :: patterns ->
         (* Drop var from patterns list *)
-        Var ({ path; loc; d; patterns; pltyp = ptyp }, name)
+        Var ({ path; loc; d; patterns; pltyp = ptyp }, name, dattr)
     | (_, { pat = Tp_wildcard _; _ }) :: _ ->
         failwith "Internal Error: Unexpected sorted pattern"
     | (path, { pat = Tp_record (loc, fields); ptyp }) :: patterns ->
@@ -713,9 +719,9 @@ module Make (C : Core) (R : Recs) = struct
             in
             [ (path, { ptyp = variant; pat }) ]
         | _ -> mismatch_err loc name ctor.ctyp payload)
-    | Pvar (loc, name) ->
+    | Pvar ((loc, name), dattr) ->
         let ptyp = path_typ loc env path in
-        let pat = Tp_var (loc, name) in
+        let pat = Tp_var (loc, name, dattr) in
         [ (path, { ptyp; pat }) ]
     | Pwildcard loc ->
         let ptyp = path_typ loc env path in
@@ -821,10 +827,10 @@ module Make (C : Core) (R : Recs) = struct
 
   let make_var_expr_fn env loc i = convert_var env loc (Path.Pid (expr_name i))
 
-  let rec convert_match env loc expr cases =
+  let rec convert_match env loc pass expr cases =
     let path = [ 0 ] in
     let env, expr =
-      let e = convert env expr in
+      let e = pass_mut_helper env loc pass (fun () -> convert env expr) in
       (add_ignore (expr_name path) { (exprval env) with typ = e.typ } loc env, e)
     in
 
@@ -848,7 +854,7 @@ module Make (C : Core) (R : Recs) = struct
     let typed_cases = List.concat typed_cases in
 
     let cont =
-      compile_matches env loc used_rows typed_cases ret expr.attr.mut
+      compile_matches env loc used_rows typed_cases ret expr.attr.mut pass
     in
 
     (* Check for exhaustiveness *)
@@ -873,7 +879,7 @@ module Make (C : Core) (R : Recs) = struct
     let expr = Bind (expr_name path, expr, cont) in
     { cont with expr }
 
-  and compile_matches env all_loc used_rows cases ret_typ mut =
+  and compile_matches env all_loc used_rows cases ret_typ rmut pass =
     (* We build the decision tree here.
        [match_cases] splits cases into ones that match and ones that don't.
        [compile_matches] then generates the tree for the cases.
@@ -912,8 +918,9 @@ module Make (C : Core) (R : Recs) = struct
               (d.loc, "Match expression does not match:")
               ret_typ ret.typ env;
             ret
-        | Var ({ path; loc; d; patterns; pltyp }, id) ->
+        | Var ({ path; loc; d; patterns; pltyp }, id, dattr) ->
             (* Bind the variable *)
+            let mut = mut_of_pattr dattr in
             let ret_env =
               Env.(
                 add_value id
@@ -921,22 +928,21 @@ module Make (C : Core) (R : Recs) = struct
                      it needs to be captured in closures and cannot be called directly,
                      because it might be a record field. Marking it param works fine
                      in this case *)
-                  { (def_value env) with typ = pltyp; param = true }
+                  { (def_value env) with typ = pltyp; param = true; mut }
                   loc d.ret_env)
             in
             (* Continue with expression *)
             let d = { d with ret_env } in
             let cont =
               compile_matches env loc used_rows ((patterns, d) :: tl) ret_typ
-                mut
+                rmut pass
             in
 
             let rhs = expr path in
+            let rhs = { rhs with attr = { rhs.attr with mut } } in
             (* If the value we pattern match on is mutable, we have to mentio this
                here in order to increase rc correctly. Otherwise, we had reference semantics*)
-            let expr =
-              Let { id; uniq = None; rmut = mut; pass = Dnorm; rhs; cont }
-            in
+            let expr = Let { id; uniq = None; rmut; pass; rhs; cont } in
             { typ = cont.typ; expr; attr = cont.attr; loc }
         | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
             let a, b =
@@ -944,7 +950,9 @@ module Make (C : Core) (R : Recs) = struct
             in
 
             let data, ifenv = ctorenv env param.cpat path loc in
-            let cont = compile_matches ifenv d.loc used_rows a ret_typ mut in
+            let cont =
+              compile_matches ifenv d.loc used_rows a ret_typ rmut pass
+            in
             (* Make expr available in codegen *)
             let ifexpr =
               let id = expr_name path in
@@ -968,7 +976,7 @@ module Make (C : Core) (R : Recs) = struct
                   let cmp = gen_cmp loc index cind in
                   let if_ = { cont with expr = ifexpr } in
                   let else_ =
-                    compile_matches env d.loc used_rows b ret_typ mut
+                    compile_matches env d.loc used_rows b ret_typ rmut pass
                   in
                   If (cmp, None, if_, else_)
             in
@@ -977,7 +985,9 @@ module Make (C : Core) (R : Recs) = struct
         | Lit_int ({ path; d; patterns; loc; _ }, i) ->
             let a, b = match_int (path, i) ((patterns, d) :: tl) [] [] in
 
-            let cont = compile_matches env d.loc used_rows a ret_typ mut in
+            let cont =
+              compile_matches env d.loc used_rows a ret_typ rmut pass
+            in
 
             let expr =
               match b with
@@ -989,7 +999,7 @@ module Make (C : Core) (R : Recs) = struct
                   in
                   let cmp = gen_cmp loc (expr path) cind in
                   let else_ =
-                    compile_matches env d.loc used_rows b ret_typ mut
+                    compile_matches env d.loc used_rows b ret_typ rmut pass
                   in
                   If (cmp, None, cont, else_)
             in
@@ -997,7 +1007,9 @@ module Make (C : Core) (R : Recs) = struct
         | Lit_char ({ path; d; patterns; loc; _ }, c) ->
             let a, b = match_char (path, c) ((patterns, d) :: tl) [] [] in
 
-            let cont = compile_matches env d.loc used_rows a ret_typ mut in
+            let cont =
+              compile_matches env d.loc used_rows a ret_typ rmut pass
+            in
 
             let expr =
               match b with
@@ -1010,7 +1022,7 @@ module Make (C : Core) (R : Recs) = struct
                   (* i64 and u8 equal compare call the same llvm functions *)
                   let cmp = gen_cmp loc (expr path) cind in
                   let else_ =
-                    compile_matches env d.loc used_rows b ret_typ mut
+                    compile_matches env d.loc used_rows b ret_typ rmut pass
                   in
                   If (cmp, None, cont, else_)
             in
@@ -1033,7 +1045,7 @@ module Make (C : Core) (R : Recs) = struct
 
             let ret =
               compile_matches env loc used_rows ((patterns, d) :: tl) ret_typ
-                mut
+                rmut pass
             in
             let expr =
               List.fold_left
@@ -1068,7 +1080,7 @@ module Make (C : Core) (R : Recs) = struct
 
             let ret =
               compile_matches env loc used_rows ((patterns, d) :: tl) ret_typ
-                mut
+                rmut pass
             in
             let expr =
               List.fold_left
@@ -1162,7 +1174,7 @@ module Make (C : Core) (R : Recs) = struct
         let pat =
           match fpat with
           | Some p -> snd p
-          | None -> { ptyp = iftyp; pat = Tp_var (floc, name) }
+          | None -> { ptyp = iftyp; pat = Tp_var (floc, name, Dnorm) }
         in
         (col, pat) :: pats)
       patterns fields
@@ -1214,9 +1226,9 @@ module Make (C : Core) (R : Recs) = struct
     | [] -> List.rev expanded
 
   let pattern_id i = function
-    | Ast.Pvar (loc, id) -> (id, loc, false)
+    | Ast.Pvar ((loc, id), dattr) -> (id, loc, false, dattr)
     | Ptup (loc, _) | Pwildcard loc | Precord (loc, _) ->
-        (expr_name [ i ], loc, true)
+        (expr_name [ i ], loc, true, Dnorm)
     | Pctor ((loc, _), _) | Plit_int (loc, _) | Plit_char (loc, _) | Por (loc, _)
       ->
         raise (Error (loc, "Unexpected pattern in declaration"))
@@ -1280,7 +1292,11 @@ module Make (C : Core) (R : Recs) = struct
               in
               let pats = expand_tuple path fields tl in
               loop (env, nbinds @ binds) pats
-          | Tp_var (loc, id) ->
+          | Tp_var (loc, id, dattr) ->
+              (match dattr with
+              | Dnorm -> ()
+              | Dset | Dmut | Dmove ->
+                  raise (Error (loc, "Mutation not supported here yet")));
               let env =
                 Env.(
                   add_value id

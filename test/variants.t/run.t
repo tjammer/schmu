@@ -463,3 +463,9 @@ Const ctors
   $ valgrind -q --leak-check=yes --show-reachable=yes ./const_ctor_issue
   float
   float
+
+Mutate in pattern matches
+  $ schmu mutate.smu
+  $ ./mutate
+  11
+  12

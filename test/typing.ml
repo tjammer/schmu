@@ -615,6 +615,10 @@ let test_pattern_decl_tuple_exhaust () =
   test_exn "Pattern match is not exhaustive. Missing cases: "
     "(def {1 f} {12 5.0}) f"
 
+let test_pattern_decl_nested_mutation () =
+  test_exn "Mutation not supported here yet"
+    "(type record {:a& int :b float}) (def {:a c& :b} {:a 20 :b 17.0})"
+
 let test_signature_only () = test "unit" "(signature (type t int))"
 
 let test_signature_simple () =
@@ -1266,6 +1270,7 @@ let () =
           case "tuple" test_pattern_decl_tuple;
           case "tuple missing" test_pattern_decl_tuple_missing;
           case "tuple exhaust" test_pattern_decl_tuple_exhaust;
+          case "nested mutation" test_pattern_decl_nested_mutation;
         ] );
       ( "signature",
         [

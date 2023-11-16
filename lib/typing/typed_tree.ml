@@ -43,8 +43,8 @@ and let_data = {
   id : string;
   uniq : int option;
   rmut : bool; (* is mutable generally *)
-  pass : dattr; (* is passed mutably *)
-  rhs : typed_expr;
+  pass : dattr; (* is passed mutably on the rhs (def b& -> &a) *)
+  rhs : typed_expr; (* attr.mut is the passing on the binder site (def b& <-) *)
   cont : typed_expr;
 }
 

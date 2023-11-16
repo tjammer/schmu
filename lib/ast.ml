@@ -35,13 +35,7 @@ type type_spec =
   | Ty_import_id of loc * Path.t
   | Ty_tuple of type_spec list
 
-and decl = {
-  loc : loc;
-  pattern : pattern;
-  dattr : decl_attr;
-  annot : type_spec option;
-}
-
+and decl = { loc : loc; pattern : pattern; annot : type_spec option }
 and decl_attr = Dmut | Dmove | Dnorm | Dset
 and func_attr = Fa_single of ident | Fa_param of ident * ident list
 
@@ -74,7 +68,7 @@ and expr =
   | Pipe_head of loc * argument * pipeable
   | Pipe_tail of loc * argument * pipeable
   | Ctor of loc * ident * expr option
-  | Match of loc * expr * (loc * pattern * expr) list
+  | Match of loc * decl_attr * expr * (loc * pattern * expr) list
   | Local_import of loc * string * expr
   | Fmt of loc * expr list
 
@@ -82,7 +76,7 @@ and pipeable = Pip_expr of expr | Pip_field of string
 
 and pattern =
   | Pctor of ident * pattern option
-  | Pvar of ident
+  | Pvar of ident * decl_attr
   | Ptup of loc * (loc * pattern) list
   | Pwildcard of loc
   | Precord of loc * (ident * pattern option) list

@@ -40,6 +40,14 @@
       | Some Dmove -> Dmove
       | Some Dnorm -> (* Won't happen but w/e *) Dnorm
       | None -> Dnorm
+
+    let move_excl_to_right = function
+      (* Exclamation to mark moves is parsed at the identifier on the left side.
+         This is needed for function params but moves in lets we need it at the
+         passed expression, meaning the right side. This function achieves that. *)
+      | { loc; pattern = Pvar (id, Dmove); annot }, { pattr = Dnorm; pexpr } ->
+          ({ loc; pattern = Pvar (id, Dnorm); annot }, { pattr = Dmove; pexpr })
+      | pattern, passed_expr -> (pattern, passed_expr)
 %}
 
 %token Equal
@@ -119,7 +127,7 @@
 %token Rec
 
 %nonassoc below_Ampersand
-%left Ampersand
+%nonassoc Ampersand Exclamation
 
 %nonassoc Minus_i Minus_f
 %left Accessor Ldotbrack Ldotparen
@@ -247,16 +255,16 @@ let bracks(x) :=
   | parens(sexp_ctordef_item) { $1 }
   | sexp_ctor { { name = $1; typ_annot = None; index = None } }
 
-%inline sexp_ctordef_item:
+sexp_ctordef_item:
   | sexp_ctor; sexp_type_list { { name = $1; typ_annot = Some $2; index = None } }
   | sexp_ctor; Int { { name = $1; typ_annot = None; index = Some $2 } }
 
-%inline sexp_typename:
+sexp_typename:
   | ident { { name = snd $1; poly_param = [] } }
   | Lpar; ident; polys = nonempty_list(poly_id); Rpar
     { { name = snd $2; poly_param = List.map path_of_ty_var polys } }
 
-%inline sexp_type_decl:
+sexp_type_decl:
   | name = Keyword; t = sexp_type_expr { false, name, t }
   | name = Mut_keyword; t = sexp_type_expr; { true, name, t }
 
@@ -280,29 +288,22 @@ stmt:
   | import_ { Import ($loc, $1) }
 
 %inline sexp_let:
-  | Def; sexp_decl; pexpr = passed_expr { Let($loc, $2, pexpr ) }
+  | Def; decl = sexp_decl; pexpr = passed_expr
+    { let decl, pexpr = move_excl_to_right (decl, pexpr) in Let($loc, decl, pexpr ) }
   /* Allow toplevel defs to alias builtins (to give them a better name) */
   | Def; sexp_decl; pexpr = Builtin_id { Let($loc, $2, {pattr = Dnorm; pexpr = Var($loc(pexpr), pexpr)}) }
 
 sexp_decl:
   | bracks(sexp_decl_typed) { $1 }
-  | pattern = sexp_pattern; Ampersand
-    { {loc = $loc; pattern; dattr = Dmut; annot = None} }
-  | pattern = sexp_pattern; %prec below_Ampersand
-    { {loc = $loc; pattern; dattr = Dnorm; annot = None} }
+  | pattern = sexp_pattern { {loc = $loc; pattern; annot = None} }
 
 param:
   | bracks(sexp_decl_typed) { $1 }
-  | pattern = sexp_pattern; Ampersand
-    { {loc = $loc; pattern; dattr = Dmut; annot = None} }
-  | pattern = sexp_pattern; Exclamation
-    { {loc = $loc; pattern; dattr = Dmove; annot = None} }
-  | pattern = sexp_pattern;
-    { {loc = $loc; pattern; dattr = Dnorm; annot = None} }
+  | pattern = sexp_pattern; { {loc = $loc; pattern; annot = None} }
 
-%inline sexp_decl_typed:
-  | id = ident; dattr = option(decl_attr); annot = sexp_type_expr
-    { { loc = $loc; pattern = Pvar (fst id, snd id); dattr = pass_attr_of_opt dattr; annot = Some annot } }
+sexp_decl_typed:
+  | pattern = sexp_pattern; annot = sexp_type_expr
+    { { loc = $loc; pattern; annot = Some annot } }
 
 %inline decl_attr:
   | Ampersand { Dmut } | Exclamation { Dmove }
@@ -330,7 +331,7 @@ sexp_expr:
   | parens(sexp_field_set) { $1 }
   | fmt = parens(fmt_str) { fmt }
 
-%inline callable_expr:
+callable_expr:
   | ident { Var (fst $1, snd $1) }
   | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
   | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
@@ -357,12 +358,11 @@ sexp_expr:
     { make_lets lets block }
 
 %inline lets_let:
-  | decl = sexp_decl; pexpr = passed_expr { $loc, decl, pexpr }
+  | decl = sexp_decl; pexpr = passed_expr
+    { let decl, pexpr = move_excl_to_right (decl, pexpr) in $loc, decl, pexpr }
 
 %inline passed_expr:
-  | pexpr = sexp_expr { {pattr = Dnorm; pexpr} }
-  | Ampersand; pexpr = sexp_expr { {pattr = Dmut; pexpr} }
-  | Exclamation; pexpr = sexp_expr { {pattr = Dmove; pexpr} }
+  | attr = option(decl_attr); pexpr = sexp_expr { {pattr = pass_attr_of_opt attr; pexpr} }
 
 %inline sexp_record_item:
   | Keyword; sexp_expr { $1, $2 }
@@ -431,14 +431,14 @@ pipeable:
   | Fmt_str { Pip_expr (Fmt ($loc, [])) }
   | f = parens(Accessor) { Pip_field f }
 
-%inline sexp_call:
+sexp_call:
   | callable_expr { App ($loc, $1, []) }
   | callable_expr; call_arg { App ($loc, $1, [$2]) }
   | callable_expr; a1 = call_arg; args = nonempty_list(call_arg) { App ($loc, $1, a1 :: args) }
   | op = binop; exprs = nonempty_list(sexp_expr) { Bop ($loc, op, exprs) }
   | Builtin_id; list(call_arg) { App ($loc, Var($loc, $1), $2) }
 
-%inline call_arg:
+call_arg:
   | amut = option(decl_attr); aexpr = sexp_expr { {apass = pass_attr_of_opt amut; aexpr; aloc = $loc} }
 
 %inline do_block:
@@ -448,8 +448,8 @@ pipeable:
   | ident; Div_i; sexp_expr { Local_import ($loc, snd $1, $3) }
 
 %inline sexp_match:
-  | Match; expr = sexp_expr; nonempty_list(parens(sexp_clause))
-    { Match (($startpos, $endpos(expr)), expr, $3) }
+  | Match; amut = option(decl_attr); expr = sexp_expr; clauses = nonempty_list(parens(sexp_clause))
+    { Match (($startpos, $endpos(expr)), pass_attr_of_opt amut, expr, clauses) }
 
 %inline sexp_clause:
   | sexp_pattern; sexp_expr { $loc($1), $1, $2 }
@@ -457,17 +457,18 @@ pipeable:
 let with_loc(x) :=
   | item = x; { $loc, item }
 
-%inline sexp_pattern:
+sexp_pattern:
   | sexp_ctor { Pctor ($1, None) }
   | parens(ctor_pattern_item) { $1 }
-  | ident { Pvar(fst $1, snd $1) }
+  | ident; %prec below_Ampersand { Pvar ((fst $1, snd $1), Dnorm) }
+  | ident; Ampersand { Pvar ((fst $1, snd $1), Dmut) }
+  | ident; Exclamation { Pvar ((fst $1, snd $1), Dmove) }
   | Wildcard { Pwildcard $loc }
   | items = bracs(nonempty_list(record_item_pattern)) { Precord ($loc, items) }
   | i = Int { Plit_int ($loc, i) }
   | c = U8 {Plit_char ($loc, c)}
   | tup = bracs(sexp_pattern_tuple) { tup }
   | parens(or_pattern) { $1 }
-
 
 %inline or_pattern:
   | Or; head = sexp_pattern; tail = nonempty_list(sexp_pattern)
@@ -476,7 +477,7 @@ let with_loc(x) :=
 %inline record_item_pattern:
   | attr = Keyword; p = option(sexp_pattern) { ($loc(attr), attr), p }
 
-%inline ctor_pattern_item:
+ctor_pattern_item:
   | sexp_ctor; sexp_pattern { Pctor ($1, Some $2) }
 
 %inline sexp_pattern_tuple:
@@ -540,7 +541,7 @@ fixed_array_lit:
 %inline sexp_type_func:
   | Fun; nonempty_list(sexp_fun_param) { Ty_func $2 }
 
-%inline sexp_fun_param:
+sexp_fun_param:
   | spec = sexp_type_expr; attr = option(decl_attr) { spec, pass_attr_of_opt attr }
 
 sexp_type_list:

@@ -835,12 +835,12 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       ({ tree with expr }, v, hs)
   | Move _ -> failwith "Internal Error: Nothing should have been moved here"
 
-and check_let ~tl loc env id lhs rmut pass hist =
+and check_let ~tl loc env id rhs rmut pass hist =
   let nmut, tlborrow, unspec_passing =
-    match (lhs.attr.mut, pass) with
+    match (rhs.attr.mut, pass) with
     | _, Dset -> failwith "unreachable"
     | true, Dmut when not rmut ->
-        raise (Error (lhs.loc, "Cannot project immutable binding"))
+        raise (Error (rhs.loc, "Cannot project immutable binding"))
     | true, Dmut -> (Usage.Umut, false, false)
     | true, Dmove -> (Umove, false, false)
     | true, Dnorm -> (* For rvalues, default to move *) (Umove, false, true)
@@ -851,7 +851,7 @@ and check_let ~tl loc env id lhs rmut pass hist =
     | false, Dmove -> (Umove, false, false)
     | false, Dmut -> failwith "unreachable"
   in
-  let rhs, rval, hs = check_tree env nmut no_bdata lhs hist in
+  let rhs, rval, hs = check_tree env nmut no_bdata rhs hist in
   let loc = loc in
   let neword () =
     incr borrow_state;
@@ -862,12 +862,12 @@ and check_let ~tl loc env id lhs rmut pass hist =
     | Bmove _ when unspec_passing ->
         raise
           (Error
-             ( lhs.loc,
+             ( rhs.loc,
                "Specify how rhs expression is passed. Either by move '!' or \
                 mutably '&'" ))
     | Bmove _ as b -> (Bown id, add_hist (imm [ b ]) hs)
     | (Borrow _ | Borrow_mut _) when tlborrow ->
-        raise (Error (lhs.loc, "Cannot borrow mutable binding at top level"))
+        raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
     | Borrow b -> (Borrow { b with loc; ord = neword () }, hs)
     | Borrow_mut (b, s) -> (Borrow_mut ({ b with loc; ord = neword () }, s), hs)
     | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"

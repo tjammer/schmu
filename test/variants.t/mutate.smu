@@ -1,0 +1,13 @@
+(def a& 10)
+(match &a
+  (b& (set &b !11)))
+(print (fmt-str a))
+
+(type record {:a& int :b float})
+(def a& (#some 10))
+(match &a
+  ((#some b&) (set &b !12))
+  (#none ()))
+(match a
+  ((#some a) (print (fmt-str a)))
+  (#none (print "none")))

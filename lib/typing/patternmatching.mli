@@ -4,6 +4,13 @@ module type Core = sig
 
   val convert_block :
     ?ret:bool -> Env.t -> Ast.block -> Typed_tree.typed_expr * Env.t
+
+  val pass_mut_helper :
+    Env.t ->
+    Ast.loc ->
+    Ast.decl_attr ->
+    (unit -> Typed_tree.typed_expr) ->
+    Typed_tree.typed_expr
 end
 
 module type Recs = sig
@@ -23,11 +30,12 @@ module type S = sig
   val convert_match :
     Env.t ->
     Ast.loc ->
+    Ast.decl_attr ->
     Ast.expr ->
     (Ast.loc * Ast.pattern * Ast.expr) list ->
     Typed_tree.typed_expr
 
-  val pattern_id : int -> Ast.pattern -> string * Ast.loc * bool
+  val pattern_id : int -> Ast.pattern -> string * Ast.loc * bool * Ast.decl_attr
 
   val convert_decl :
     Env.t -> Ast.decl list -> Env.t * (string * Typed_tree.typed_expr) list
