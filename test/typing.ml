@@ -840,6 +840,14 @@ let test_excl_fn_not_copy_capture () =
   test_exn "Borrowed parameter alts is moved"
     "(defn alt (alts) (defn named () (ignore alts.[0])) named)"
 
+let test_excl_partial_move_reset () =
+  test_exn "Cannot move top level binding"
+    {|(type tt {:a& (array int) :b& (array int)})
+(def a& {:a [] :b []})
+(def _ !a.a)
+(def _ !a.b)
+(set &a.b ![])|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "(type t int) (type t float)"
@@ -1461,6 +1469,7 @@ let () =
           case "lambda not copy capture" test_excl_lambda_not_copy_capture;
           case "fn copy capture" test_excl_fn_copy_capture;
           case "fn not copy capture" test_excl_fn_not_copy_capture;
+          case "partial move re-set" test_excl_partial_move_reset;
         ] );
       ( "type decl",
         [

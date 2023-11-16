@@ -138,6 +138,7 @@ type bopt = binding option [@@deriving show]
 
 module Smap = Map.Make (Id.Pathid)
 module Map = Map.Make (Id)
+module Iset = Set.Make (Int)
 
 let borrow_state = ref 0
 let param_pass = ref false
@@ -965,18 +966,34 @@ let check_item (env, bind, mut, part, hist) = function
 let find_usage id hist =
   (* The hierarchy is move > mut > read. Since we read from the end,
      the first borrow means the binding was not moved *)
-  let rec aux = function
+  let rec aux parts_set = function
     | [ Bown _ ] -> (Ast.Dnorm, None)
     | [ Borrow _ ] -> (* String literals are owned by noone *) (Ast.Dnorm, None)
     | Borrow_mut (b, Dont_set) :: _ -> (Dmut, Some b.loc)
-    | Borrow_mut (b, Set) :: _ -> (Dset, Some b.loc)
-    | Bmove (b, _) :: _ -> (Dmove, Some b.loc)
-    | Borrow _ :: tl -> aux tl
-    | Bown _ :: tl -> aux tl (* binds? *)
+    | Borrow_mut (b, Set) :: tl -> (
+        match b.borrowed.bpart with
+        | [] ->
+            (* Set the whole thing, that's our usage *)
+            (Dset, Some b.loc)
+        | part ->
+            (* Only parts are set, other parts could still be moved *)
+            aux (Iset.add (Hashtbl.hash part) parts_set) tl)
+    | Bmove (b, _) :: tl -> (
+        match b.borrowed.bpart with
+        | [] -> (* Moved the whole thing *) (Dmove, Some b.loc)
+        | part -> (
+            let hash = Hashtbl.hash part in
+            match Iset.find_opt hash parts_set with
+            | Some hash ->
+                (* This has been re-set after, we continue *)
+                aux (Iset.remove hash parts_set) tl
+            | None -> (* Moved and never was re-set *) (Dmove, Some b.loc)))
+    | Borrow _ :: tl -> aux parts_set tl
+    | Bown _ :: tl -> aux parts_set tl (* binds? *)
     | [] -> failwith "Internal Error: Should have been added as owned"
   in
   match Map.find_opt id hist with
-  | Some hist -> aux hist
+  | Some hist -> aux Iset.empty hist
   | None ->
       (* The binding was not used *)
       (Ast.Dnorm, None)
