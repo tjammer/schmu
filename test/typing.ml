@@ -776,12 +776,12 @@ let test_excl_proj_move_after () =
 
 let test_excl_proj_nest () =
   wrap_fn ~tl:proj_msg test_exn
-    "y was mutably borrowed in line 3, cannot borrow"
+    "x was mutably borrowed as y in line 3, cannot borrow"
     (own ^ "(def y& &x)\n (def z& &y)\n (ignore y)\n z")
 
 let test_excl_proj_nest_orig () =
   wrap_fn ~tl:proj_msg test_exn
-    "x was mutably borrowed in line 2, cannot borrow"
+    "x was mutably borrowed in line 3, cannot borrow"
     (own ^ "(def y& &x)\n (def z& &y)\n (ignore x)\n z")
 
 let test_excl_proj_nest_closed () =
