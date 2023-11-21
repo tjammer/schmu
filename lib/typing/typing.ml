@@ -865,12 +865,15 @@ end = struct
     in
     if is_poly_call expr then wrap_in_lambda expr expr.typ else expr
 
-  and convert_let ~global env loc (decl : Ast.decl)
-      { Ast.pattr = _; pexpr = block } =
+  and convert_let ~global env loc (decl : Ast.decl) { Ast.pattr; pexpr = block }
+      =
     let id, idloc, has_exprname, attr = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
     let mut = mut_of_pattr attr in
-    let const = if has_exprname then false else e1.attr.const in
+    let projected = mut && mut_of_pattr pattr in
+    let const =
+      if has_exprname then false else e1.attr.const && not projected
+    in
     let global = if has_exprname then false else global in
     let mname = Some (Env.modpath env) in
     let env =

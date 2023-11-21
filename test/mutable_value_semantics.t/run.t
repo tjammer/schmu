@@ -1375,3 +1375,37 @@ Make sure there are no hidden reference semantics in pattern matches
 
 Convert Const_ptr values to Ptr in copy
   $ schmu ref_to_const.smu
+
+Fix codegen
+  $ schmu --dump-llvm codegen_nested_projections.smu
+  codegen_nested_projections.smu:2.8-9: warning: Unmutated mutable binding x.
+  
+  2 |   (def x& 10)
+             ^
+  
+  codegen_nested_projections.smu:4.8-9: warning: Unused binding z.
+  
+  4 |   (def z& &y)
+             ^
+  
+  codegen_nested_projections.smu:1.7-8: warning: Unused binding t.
+  
+  1 | (defn t ()
+            ^
+  
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  @schmu_x = internal global i64 10, align 8
+  
+  define i64 @schmu_t() {
+  entry:
+    store i64 11, i64* @schmu_x, align 8
+    ret i64 11
+  }
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    ret i64 0
+  }

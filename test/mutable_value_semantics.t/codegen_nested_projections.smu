@@ -1,0 +1,6 @@
+(defn t ()
+  (def x& 10)
+  (def y& &x)
+  (def z& &y)
+  (set &y !11)
+  y)
