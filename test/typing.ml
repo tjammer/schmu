@@ -848,6 +848,18 @@ let test_excl_partial_move_reset () =
 (def _ !a.b)
 (set &a.b ![])|}
 
+let test_excl_projections_partial_moves () =
+  test "(array int)"
+    {|(type t {:a& (array int) :b& (array int)})
+(def a& {:a [] :b []})
+(let ((a& &a)
+      (tmp !a.a)
+      (tmp2 !a.b))
+  (set &a.a !tmp2)
+  (set &a.b !tmp)
+  (ignore a.a)
+  a.a)|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "(type t int) (type t float)"
@@ -1470,6 +1482,7 @@ let () =
           case "fn copy capture" test_excl_fn_copy_capture;
           case "fn not copy capture" test_excl_fn_not_copy_capture;
           case "partial move re-set" test_excl_partial_move_reset;
+          case "projections partias moves" test_excl_projections_partial_moves;
         ] );
       ( "type decl",
         [

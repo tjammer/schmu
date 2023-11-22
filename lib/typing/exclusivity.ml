@@ -477,6 +477,10 @@ let get_repr_ord ~borrows repr =
       Hashtbl.replace borrows repr ctr;
       ctr
 
+let add_part part b =
+  let borrowed = { b.borrowed with bpart = part @ b.borrowed.bpart } in
+  { b with borrowed }
+
 let rec check_tree env mut ((bpart, special) as bdata) tree hist =
   match tree.expr with
   | Var (borrowed, mname) ->
@@ -484,9 +488,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let repr = get_id (borrowed, mname) in
       let loc = tree.loc in
       let make b =
-        let borrowed = { b.borrowed with bpart = bpart @ b.borrowed.bpart }
-        and repr_ord = get_repr_ord ~borrows:b.borrowed.borrows repr in
-        { b with loc; ord = !borrow_state; borrowed; repr; repr_ord }
+        let repr_ord = get_repr_ord ~borrows:b.borrowed.borrows repr in
+        { b with loc; ord = !borrow_state; repr; repr_ord }
       in
       (* TODO add parts to checks *)
       let borrow mut = function
@@ -504,8 +507,10 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
             let b = binding_of_borrow borrow mut in
             check_excl_chain loc env b hist;
             b
-        | Borrow_mut (b', s) as b -> (
-            check_special tree.loc mut b'.special;
+        | Borrow_mut (b, s) -> (
+            check_special tree.loc mut b.special;
+            let b' = add_part bpart b in
+            let b = Borrow_mut (b', s) in
             match mut with
             | Usage.Umove ->
                 (* Before moving, make sure the value was used correctly *)
@@ -514,34 +519,35 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
             | Umut | Uread ->
                 check_excl_chain loc env b hist;
                 incr borrow_state;
-
                 Borrow_mut (make b', s)
-            | Uset ->
-                check_excl_chain loc env b hist;
-                incr borrow_state;
-                Borrow_mut (make b', Set))
-        | Borrow b' as b -> (
-            check_special tree.loc mut b'.special;
-            match mut with
-            | Umove ->
-                (* Before moving, make sure the value was used correctly *)
-                check_excl_chain loc env b hist;
-                Bmove (move_b loc special b', None)
-            | Umut ->
-                check_excl_chain loc env (Borrow_mut (b', Dont_set)) hist;
-                incr borrow_state;
-                Borrow_mut (make b', Dont_set)
             | Uset ->
                 check_excl_chain loc env (Borrow_mut (b', Set)) hist;
                 incr borrow_state;
-                Borrow_mut (make b', Set)
-            | Uread ->
-                check_excl_chain loc env b hist;
+                Borrow_mut (make b', Set))
+        | Borrow b -> (
+            check_special tree.loc mut b.special;
+            let b = add_part bpart b in
+            match mut with
+            | Umove ->
+                (* Before moving, make sure the value was used correctly *)
+                check_excl_chain loc env (Borrow b) hist;
+                Bmove (move_b loc special b, None)
+            | Umut ->
+                check_excl_chain loc env (Borrow_mut (b, Dont_set)) hist;
                 incr borrow_state;
-                Borrow (make b'))
-        | Bmove (m, l) as b ->
+                Borrow_mut (make b, Dont_set)
+            | Uset ->
+                check_excl_chain loc env (Borrow_mut (b, Set)) hist;
+                incr borrow_state;
+                Borrow_mut (make b, Set)
+            | Uread ->
+                check_excl_chain loc env (Borrow b) hist;
+                incr borrow_state;
+                Borrow (make b))
+        | Bmove (m, l) ->
             (* The binding is about to be moved for the first time, e.g. in a function *)
-            check_excl_chain loc env b hist;
+            let m = add_part bpart m in
+            check_excl_chain loc env (Bmove (m, l)) hist;
             Bmove (m, l)
       in
 
