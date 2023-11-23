@@ -477,6 +477,24 @@ let get_repr_ord ~borrows repr =
       Hashtbl.replace borrows repr ctr;
       ctr
 
+let get_moved_in_set env_item hist =
+  let rec usage b = function
+    | [ (Bown _ | Borrow _) ] -> false
+    | (Borrow_mut (other, _) | Borrow other) :: tl ->
+        (* Either it has been set, so not moved, or used thus not moved *)
+        if parts_match b.borrowed other.borrowed then false else usage b tl
+    | Bmove (other, _) :: tl ->
+        if parts_match b.borrowed other.borrowed then true else usage b tl
+    | Bown _ :: _ | [] -> failwith "unreachable"
+  in
+
+  match env_item.imm with
+  | [] -> false
+  | [ Borrow_mut (b, Set) ] -> usage b (Map.find b.borrowed.id hist)
+  | _ ->
+      print_endline (show_env_item env_item);
+      failwith "Internal Error: What happened here?"
+
 let add_part part b =
   let borrowed = { b.borrowed with bpart = part @ b.borrowed.bpart } in
   { b with borrowed }
@@ -663,14 +681,15 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
           (* Always borrow correctly here, otherwise we might introduce
              aliasing. Even for non-alloc types *)
           (tree, b, hs))
-  | Set (thing, value) ->
+  | Set (thing, value, _) ->
       let usage = cond_usage value.typ Usage.Umove Uread in
       let value, v, hs = check_tree env usage no_bdata value hist in
       let value = { value with expr = Move value } in
       let hs = add_hist v hs in
       (* Track usage of values, but not the one being mutated *)
       let thing, t, hs = check_tree env Uset no_bdata thing hs in
-      let expr = Set (thing, value) in
+      let moved = get_moved_in_set t hs in
+      let expr = Set (thing, value, moved) in
       ({ tree with expr }, t, add_hist t hs)
   | Sequence (fst, snd) ->
       let fst, _, hs = check_tree env Uread no_bdata fst hist in

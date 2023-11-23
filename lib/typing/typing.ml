@@ -1228,7 +1228,8 @@ end = struct
        let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
        raise (Error (eloc, msg)));
     unify (loc, "In mutation") toset.typ valexpr.typ env;
-    { typ = Tunit; expr = Set (toset, valexpr); attr = no_attr; loc }
+    let moved = false (* will be set in excl pass *) in
+    { typ = Tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
   and convert_pipe_head env loc e1 e2 =
     let switch_uni = true in
@@ -1483,7 +1484,7 @@ and catch_weak_expr env sub e =
   if is_weak ~sub e.typ then _raise ();
   match e.expr with
   | Var _ | Const _ | Lambda _ -> ()
-  | Bop (_, e1, e2) | Set (e1, e2) | Sequence (e1, e2) ->
+  | Bop (_, e1, e2) | Set (e1, e2, _) | Sequence (e1, e2) ->
       catch_weak_expr env sub e1;
       catch_weak_expr env sub e2
   | Unop (_, e)

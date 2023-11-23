@@ -193,10 +193,10 @@ module Make (C : Map_tree) = struct
     | Field (e, i, n) ->
         let sub, e = (map_body mname nsub) sub e in
         (sub, Field (e, i, n))
-    | Set (a, b) ->
+    | Set (a, b, m) ->
         let sub, a = (map_body mname nsub) sub a in
         let sub, b = (map_body mname nsub) sub b in
-        (sub, Set (a, b))
+        (sub, Set (a, b, m))
     | Sequence (a, b) ->
         let sub, a = (map_body mname nsub) sub a in
         let sub, b = (map_body mname nsub) sub b in

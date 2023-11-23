@@ -27,7 +27,10 @@ type expr =
   | App of { callee : typed_expr; args : arg list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int * string)
-  | Set of (typed_expr * typed_expr)
+  | Set of
+      (typed_expr
+      * typed_expr
+      * bool (* item has been moved and is being re-set *))
   | Sequence of (typed_expr * typed_expr)
   | Ctor of (string * int * typed_expr option)
   | Variant_index of typed_expr

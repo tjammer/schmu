@@ -1165,7 +1165,7 @@ Free array params correctly if they are returned
   declare void @free(i8* %0)
 
 Refcounts for members in arrays, records and variants
-  $ schmu --dump-llvm member_refcounts.smu && valgrind -q --leak-check=yes --show-reachable=yes ./member_refcounts
+  $ schmu --dump-llvm member_refcounts.smu
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1365,6 +1365,7 @@ Refcounts for members in arrays, records and variants
   declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./member_refcounts
   10
   20
   30
@@ -1409,3 +1410,7 @@ Fix codegen
   entry:
     ret i64 0
   }
+
+Partiall move parameter
+  $ schmu partially_move_parameter.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./partially_move_parameter

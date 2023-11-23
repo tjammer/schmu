@@ -240,7 +240,6 @@ module Mallocs : sig
   val empty : malloc_scope -> t
   val push : malloc_scope -> t -> t
   val pop : t -> malloc_id list * t
-  val mem : Malloc.t -> t -> bool
   val add : Malloc.t -> t -> t
   val remove : Malloc.t -> t -> t
   val reenter : Malloc.t -> t -> t
@@ -1185,7 +1184,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
         func )
   | Record labels -> morph_record make param labels (cln param texpr.typ)
   | Field (expr, index, _) -> morph_field make param expr index
-  | Set (expr, value) -> morph_set make param expr value
+  | Set (expr, value, moved) -> morph_set make param expr value moved
   | Sequence (expr, cont) -> morph_seq make param expr cont
   | Function (name, uniq, abs, ocont) ->
       let p, (call, kind, ftyp, alloca) = prep_func param (name, uniq, abs) in
@@ -1535,25 +1534,18 @@ and morph_field mk p expr index =
     mk (Mfield (e, index)) ret,
     { func with alloc = No_value; malloc } )
 
-and morph_set mk p expr value =
+and morph_set mk p expr value moved =
   let ret = p.ret in
   (* We don't track allocations in the to-set expr. This helps with nested
      allocated things. If we do, there are additional relocations happening and
      the wrong things are freed. If one were to force an allocation here, that's
      a leak *)
-  let mallocs = p.mallocs in
   let p, e, vfunc = morph_expr { p with ret = false } expr in
   let p, v, _ =
     morph_expr p (* { p with mallocs = Mallocs.empty Mlocal } *) value
   in
 
   (* TODO remove local allocs *)
-  let moved =
-    match vfunc.malloc with
-    | No_malloc -> false
-    | malloc -> Mallocs.mem malloc mallocs |> not
-  in
-
   let mallocs =
     (* ignore func; *)
     (* let mallocs = Mallocs.remove func.malloc p.mallocs in *)
