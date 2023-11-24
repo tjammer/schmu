@@ -1429,7 +1429,7 @@ let generate ~target ~outname ~release ~modul
                 ret = Tint;
                 kind = Simple;
               };
-            pnames = [ ("arg", None) ];
+            pnames = [ ("arg", -1) ];
             body = { tree with typ = Tint };
           };
         monomorphized = false;

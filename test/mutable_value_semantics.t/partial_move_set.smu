@@ -1,0 +1,11 @@
+(type rr {:a (array int) :b (array int)})
+
+(def a& {:a [] :b []})
+(ignore {a.a})
+(set &a !{:a [] :b []})
+
+(defn hmm (a&)
+  (ignore {a.b})
+  (set &a !{:a [] :b []}))
+
+(hmm &a)

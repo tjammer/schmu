@@ -1411,6 +1411,10 @@ Fix codegen
     ret i64 0
   }
 
-Partiall move parameter
+Partial move parameter
   $ schmu partially_move_parameter.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./partially_move_parameter
+
+Partial move set
+  $ schmu partial_move_set.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_move_set

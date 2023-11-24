@@ -27,10 +27,7 @@ type expr =
   | App of { callee : typed_expr; args : arg list }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int * string)
-  | Set of
-      (typed_expr
-      * typed_expr
-      * bool (* item has been moved and is being re-set *))
+  | Set of (typed_expr * typed_expr * set_move_kind)
   | Sequence of (typed_expr * typed_expr)
   | Ctor of (string * int * typed_expr option)
   | Variant_index of typed_expr
@@ -108,6 +105,7 @@ and abstraction = {
 (* TODO function data *)
 and generic_fun = { concrete : func; generic : func }
 and attr = { const : bool; global : bool; mut : bool }
+and set_move_kind = Snot_moved | Spartially_moved | Smoved
 
 let no_attr = { const = false; global = false; mut = false }
 

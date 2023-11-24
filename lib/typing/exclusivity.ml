@@ -479,17 +479,20 @@ let get_repr_ord ~borrows repr =
 
 let get_moved_in_set env_item hist =
   let rec usage b = function
-    | [ (Bown _ | Borrow _) ] -> false
+    | [ (Bown _ | Borrow _) ] -> Snot_moved
     | (Borrow_mut (other, _) | Borrow other) :: tl ->
         (* Either it has been set, so not moved, or used thus not moved *)
-        if parts_match b.borrowed other.borrowed then false else usage b tl
+        if parts_match b.borrowed other.borrowed then Snot_moved else usage b tl
     | Bmove (other, _) :: tl ->
-        if parts_match b.borrowed other.borrowed then true else usage b tl
+        if parts_match b.borrowed other.borrowed then
+          if parts_is_sub other.borrowed b.borrowed then Spartially_moved
+          else Smoved
+        else usage b tl
     | Bown _ :: _ | [] -> failwith "unreachable"
   in
 
   match env_item.imm with
-  | [] -> false
+  | [] -> Snot_moved
   | [ Borrow_mut (b, Set) ] -> usage b (Map.find b.borrowed.id hist)
   | _ ->
       print_endline (show_env_item env_item);

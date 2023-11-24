@@ -15,6 +15,7 @@ end
 module rec Malloc : sig
   type t =
     | Single of Mid.t
+    | Param of Mid.t
     | Branch of { fst : t; snd : t }
     | No_malloc
     | Path of t * Mpath.t
@@ -22,6 +23,7 @@ module rec Malloc : sig
 end = struct
   type t =
     | Single of Mid.t
+    | Param of Mid.t
     | Branch of { fst : t; snd : t }
     | No_malloc
     | Path of t * Mpath.t

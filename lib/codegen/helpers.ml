@@ -10,7 +10,7 @@ module type S = sig
     llvar Vars.t ->
     llvar ->
     Monomorph_tree.func_name ->
-    (string * int option) list ->
+    (string * int) list ->
     param list ->
     int ->
     Monomorph_tree.recurs ->
@@ -526,7 +526,7 @@ struct
     let add_simple vars =
       (* We simply add to env, no special handling for tailrecursion *)
       List.fold_left2
-        (fun (env, i) (name, m) p ->
+        (fun (env, i) (name, id) p ->
           let typ = p.pt in
           match typ with
           | Tunit -> (Vars.add name dummy_fn_value env, i + 1)
@@ -536,9 +536,7 @@ struct
               let param = { value; typ; lltyp = get_lltype_def typ; kind } in
               Llvm.set_value_name name value;
               (* Add mallocs to free tbl so we can find them for freeing *)
-              (match m with
-              | Some id -> Hashtbl.replace free_tbl id param
-              | None -> ());
+              Hashtbl.replace free_tbl id param;
               (Vars.add name param env, i + 1))
         (vars, start_index) names params
       |> fst

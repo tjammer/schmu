@@ -1228,7 +1228,7 @@ end = struct
        let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
        raise (Error (eloc, msg)));
     unify (loc, "In mutation") toset.typ valexpr.typ env;
-    let moved = false (* will be set in excl pass *) in
+    let moved = Snot_moved (* will be set in excl pass *) in
     { typ = Tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
   and convert_pipe_head env loc e1 e2 =

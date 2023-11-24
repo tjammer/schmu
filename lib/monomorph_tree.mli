@@ -51,7 +51,7 @@ and func = { params : param list; ret : typ; kind : fun_kind }
 
 and abstraction = {
   func : func;
-  pnames : (string * int option) list;
+  pnames : (string * int) list;
   body : monod_tree;
 }
 
@@ -63,7 +63,7 @@ and call_name =
   (* Recursive function call.
      The nonmono name is only for housekeeping *)
   | Builtin of Builtin.t * func
-  | Inline of (string * int option) list * monod_tree
+  | Inline of (string * int) list * monod_tree
 (* Builtin function with special codegen *)
 
 and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
