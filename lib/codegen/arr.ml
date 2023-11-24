@@ -51,17 +51,14 @@ struct
     Llvm.build_bitcast ptr (Llvm.pointer_type llitem_typ) "data" builder
 
   let data_get ptr arrtyp index =
-    let _, llitem_typ, head_size, item_sz = item_type_head_size arrtyp in
-    let ptr = Llvm.build_bitcast ptr (Llvm.pointer_type u8_t) "" builder in
-    let idx =
-      match index with
-      | Iconst i -> (i * item_sz) + head_size |> ci
-      | Idyn i ->
-          let items = Llvm.build_mul (ci item_sz) i "" builder in
-          Llvm.build_add (ci head_size) items "" builder
-    in
-    let data = Llvm.build_gep ptr [| idx |] "" builder in
-    Llvm.build_bitcast data (Llvm.pointer_type llitem_typ) "data" builder
+    let item_typ, llitem_typ, _, _ = item_type_head_size arrtyp in
+    match item_typ with
+    | Tunit -> dummy_fn_value.value
+    | _ ->
+        let ptr = data_ptr ptr arrtyp in
+        let idx = match index with Iconst i -> ci i | Idyn i -> i in
+        let data = Llvm.build_gep ptr [| idx |] "" builder in
+        Llvm.build_bitcast data (Llvm.pointer_type llitem_typ) "data" builder
 
   let gen_array_lit param exprs typ allocref =
     let vec_sz = List.length exprs in

@@ -101,10 +101,11 @@ Copy array of strings
     call void @__copy_aac(i8*** %9)
     %11 = load i8**, i8*** %9, align 8
     %12 = bitcast i8** %11 to i8*
-    %13 = getelementptr i8, i8* %12, i64 24
+    %13 = getelementptr i8, i8* %12, i64 16
     %data1 = bitcast i8* %13 to i8**
-    %14 = load i8*, i8** %data1, align 8
-    call void @string_print(i8* %14)
+    %14 = getelementptr i8*, i8** %data1, i64 1
+    %15 = load i8*, i8** %14, align 8
+    call void @string_print(i8* %15)
     call void @__free_aac(i8*** %9)
     call void @__free_aac(i8*** @schmu_a)
     ret i64 0
@@ -158,13 +159,12 @@ Copy array of strings
   
   child:                                            ; preds = %rec
     %12 = bitcast i8** %1 to i8*
-    %13 = mul i64 8, %10
-    %14 = add i64 16, %13
-    %15 = getelementptr i8, i8* %12, i64 %14
-    %data = bitcast i8* %15 to i8**
-    call void @__copy_ac(i8** %data)
-    %16 = add i64 %10, 1
-    store i64 %16, i64* %cnt, align 8
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to i8**
+    %14 = getelementptr i8*, i8** %data, i64 %10
+    call void @__copy_ac(i8** %14)
+    %15 = add i64 %10, 1
+    store i64 %15, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -197,19 +197,18 @@ Copy array of strings
   
   child:                                            ; preds = %rec
     %4 = bitcast i8** %1 to i8*
-    %5 = mul i64 8, %2
-    %6 = add i64 16, %5
-    %7 = getelementptr i8, i8* %4, i64 %6
-    %data = bitcast i8* %7 to i8**
-    call void @__free_ac(i8** %data)
-    %8 = add i64 %2, 1
-    store i64 %8, i64* %cnt, align 8
+    %5 = getelementptr i8, i8* %4, i64 16
+    %data = bitcast i8* %5 to i8**
+    %6 = getelementptr i8*, i8** %data, i64 %2
+    call void @__free_ac(i8** %6)
+    %7 = add i64 %2, 1
+    store i64 %7, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    %9 = bitcast i8** %1 to i64*
-    %10 = bitcast i64* %9 to i8*
-    call void @free(i8* %10)
+    %8 = bitcast i8** %1 to i64*
+    %9 = bitcast i64* %8 to i8*
+    call void @free(i8* %9)
     ret void
   }
   
@@ -680,13 +679,12 @@ Copy closures
   
   child:                                            ; preds = %rec
     %12 = bitcast i8** %1 to i8*
-    %13 = mul i64 8, %10
-    %14 = add i64 16, %13
-    %15 = getelementptr i8, i8* %12, i64 %14
-    %data = bitcast i8* %15 to i8**
-    call void @__copy_ac(i8** %data)
-    %16 = add i64 %10, 1
-    store i64 %16, i64* %cnt, align 8
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to i8**
+    %14 = getelementptr i8*, i8** %data, i64 %10
+    call void @__copy_ac(i8** %14)
+    %15 = add i64 %10, 1
+    store i64 %15, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -742,19 +740,18 @@ Copy closures
   
   child:                                            ; preds = %rec
     %4 = bitcast i8** %1 to i8*
-    %5 = mul i64 8, %2
-    %6 = add i64 16, %5
-    %7 = getelementptr i8, i8* %4, i64 %6
-    %data = bitcast i8* %7 to i8**
-    call void @__free_ac(i8** %data)
-    %8 = add i64 %2, 1
-    store i64 %8, i64* %cnt, align 8
+    %5 = getelementptr i8, i8* %4, i64 16
+    %data = bitcast i8* %5 to i8**
+    %6 = getelementptr i8*, i8** %data, i64 %2
+    call void @__free_ac(i8** %6)
+    %7 = add i64 %2, 1
+    store i64 %7, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    %9 = bitcast i8** %1 to i64*
-    %10 = bitcast i64* %9 to i8*
-    call void @free(i8* %10)
+    %8 = bitcast i8** %1 to i64*
+    %9 = bitcast i64* %8 to i8*
+    call void @free(i8* %9)
     ret void
   }
   
@@ -1015,19 +1012,18 @@ Copy string literal on move
   
   child:                                            ; preds = %rec
     %4 = bitcast i8** %1 to i8*
-    %5 = mul i64 8, %2
-    %6 = add i64 16, %5
-    %7 = getelementptr i8, i8* %4, i64 %6
-    %data = bitcast i8* %7 to i8**
-    call void @__free_ac(i8** %data)
-    %8 = add i64 %2, 1
-    store i64 %8, i64* %cnt, align 8
+    %5 = getelementptr i8, i8* %4, i64 16
+    %data = bitcast i8* %5 to i8**
+    %6 = getelementptr i8*, i8** %data, i64 %2
+    call void @__free_ac(i8** %6)
+    %7 = add i64 %2, 1
+    store i64 %7, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    %9 = bitcast i8** %1 to i64*
-    %10 = bitcast i64* %9 to i8*
-    call void @free(i8* %10)
+    %8 = bitcast i8** %1 to i64*
+    %9 = bitcast i64* %8 to i8*
+    call void @free(i8* %9)
     ret void
   }
   

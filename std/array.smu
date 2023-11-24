@@ -61,11 +61,10 @@
   (inner !ret 0))
 
 (defn swap-items (arr& i j)
-  (if (= i j)
-    ()
-    (let ((tmp! (__unsafe_ptr_get (data arr) i)))
-      (__unsafe_ptr_set &(data arr) i !(__unsafe_ptr_get (data arr) j))
-      (__unsafe_ptr_set &(data arr) j !tmp))))
+  (if (not (= i j))
+    (let ((itmp !arr.[i]))
+      (set &arr.[i] !arr.[j])
+      (set &arr.[j] !itmp))))
 
 (defn clear (arr&)
   (defn inner ()

@@ -144,13 +144,12 @@ Test simple setting of mutable variables
   
   child:                                            ; preds = %rec
     %12 = bitcast i64** %1 to i8*
-    %13 = mul i64 8, %10
-    %14 = add i64 16, %13
-    %15 = getelementptr i8, i8* %12, i64 %14
-    %data = bitcast i8* %15 to i64**
-    call void @__copy_ai(i64** %data)
-    %16 = add i64 %10, 1
-    store i64 %16, i64* %cnt, align 8
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to i64**
+    %14 = getelementptr i64*, i64** %data, i64 %10
+    call void @__copy_ai(i64** %14)
+    %15 = add i64 %10, 1
+    store i64 %15, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -185,19 +184,18 @@ Test simple setting of mutable variables
   
   child:                                            ; preds = %rec
     %4 = bitcast i64** %1 to i8*
-    %5 = mul i64 8, %2
-    %6 = add i64 16, %5
-    %7 = getelementptr i8, i8* %4, i64 %6
-    %data = bitcast i8* %7 to i64**
-    call void @__free_ai(i64** %data)
-    %8 = add i64 %2, 1
-    store i64 %8, i64* %cnt, align 8
+    %5 = getelementptr i8, i8* %4, i64 16
+    %data = bitcast i8* %5 to i64**
+    %6 = getelementptr i64*, i64** %data, i64 %2
+    call void @__free_ai(i64** %6)
+    %7 = add i64 %2, 1
+    store i64 %7, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    %9 = bitcast i64** %1 to i64*
-    %10 = bitcast i64* %9 to i8*
-    call void @free(i8* %10)
+    %8 = bitcast i64** %1 to i64*
+    %9 = bitcast i64* %8 to i8*
+    call void @free(i8* %9)
     ret void
   }
   
@@ -732,9 +730,8 @@ Nested arrays
     %4 = getelementptr i8, i8* %3, i64 16
     %data1 = bitcast i8* %4 to i64*
     %5 = load i64, i64* %data1, align 8
-    %6 = getelementptr i8, i8* %0, i64 24
-    %data2 = bitcast i8* %6 to i64**
-    %7 = load i64*, i64** %data2, align 8
+    %6 = getelementptr i64*, i64** %data, i64 1
+    %7 = load i64*, i64** %6, align 8
     %8 = bitcast i64* %7 to i8*
     %9 = getelementptr i8, i8* %8, i64 16
     %data3 = bitcast i8* %9 to i64*
@@ -842,13 +839,12 @@ Nested arrays
   
   child:                                            ; preds = %rec
     %12 = bitcast i64** %1 to i8*
-    %13 = mul i64 8, %10
-    %14 = add i64 16, %13
-    %15 = getelementptr i8, i8* %12, i64 %14
-    %data = bitcast i8* %15 to i64**
-    call void @__copy_ai(i64** %data)
-    %16 = add i64 %10, 1
-    store i64 %16, i64* %cnt, align 8
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to i64**
+    %14 = getelementptr i64*, i64** %data, i64 %10
+    call void @__copy_ai(i64** %14)
+    %15 = add i64 %10, 1
+    store i64 %15, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -883,19 +879,18 @@ Nested arrays
   
   child:                                            ; preds = %rec
     %4 = bitcast i64** %1 to i8*
-    %5 = mul i64 8, %2
-    %6 = add i64 16, %5
-    %7 = getelementptr i8, i8* %4, i64 %6
-    %data = bitcast i8* %7 to i64**
-    call void @__free_ai(i64** %data)
-    %8 = add i64 %2, 1
-    store i64 %8, i64* %cnt, align 8
+    %5 = getelementptr i8, i8* %4, i64 16
+    %data = bitcast i8* %5 to i64**
+    %6 = getelementptr i64*, i64** %data, i64 %2
+    call void @__free_ai(i64** %6)
+    %7 = add i64 %2, 1
+    store i64 %7, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    %9 = bitcast i64** %1 to i64*
-    %10 = bitcast i64* %9 to i8*
-    call void @free(i8* %10)
+    %8 = bitcast i64** %1 to i64*
+    %9 = bitcast i64* %8 to i8*
+    call void @free(i8* %9)
     ret void
   }
   
@@ -1339,19 +1334,18 @@ Refcounts for members in arrays, records and variants
   
   child:                                            ; preds = %rec
     %4 = bitcast i64** %1 to i8*
-    %5 = mul i64 8, %2
-    %6 = add i64 16, %5
-    %7 = getelementptr i8, i8* %4, i64 %6
-    %data = bitcast i8* %7 to i64**
-    call void @__free_ai(i64** %data)
-    %8 = add i64 %2, 1
-    store i64 %8, i64* %cnt, align 8
+    %5 = getelementptr i8, i8* %4, i64 16
+    %data = bitcast i8* %5 to i64**
+    %6 = getelementptr i64*, i64** %data, i64 %2
+    call void @__free_ai(i64** %6)
+    %7 = add i64 %2, 1
+    store i64 %7, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    %9 = bitcast i64** %1 to i64*
-    %10 = bitcast i64* %9 to i8*
-    call void @free(i8* %10)
+    %8 = bitcast i64** %1 to i64*
+    %9 = bitcast i64* %8 to i8*
+    call void @free(i8* %9)
     ret void
   }
   

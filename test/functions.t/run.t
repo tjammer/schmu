@@ -1908,8 +1908,8 @@ The lamba passed as array-iter argument is polymorphic
   drop_last:                                        ; preds = %entry
     %3 = bitcast i8* %0 to i64*
     %4 = sub i64 %size1, 1
-    %5 = add i64 16, %4
-    %6 = getelementptr i8, i8* %0, i64 %5
+    %5 = getelementptr i8, i8* %0, i64 16
+    %6 = getelementptr i8, i8* %5, i64 %4
     store i64 %4, i64* %3, align 8
     br label %cont
   
