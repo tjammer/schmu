@@ -860,6 +860,38 @@ let test_excl_projections_partial_moves () =
   (ignore a.a)
   a.a)|}
 
+let test_excl_array_move_const () =
+  test "unit" {|(def a& [0])
+(def _ !a.[1])
+(set &a.[1] !1)|}
+
+let test_excl_array_move_var () =
+  test "unit"
+    {|(def a& [0])
+(def index 1)
+(def _ !a.[index])
+(set &a.[index] !1)|}
+
+let test_excl_array_move_mixed () =
+  test_exn "Cannot move out of array without re-setting"
+    {|(def a& [0])
+(def index 1)
+(def _ !a.[1])
+(set &a.[index] !1)|}
+
+let test_excl_array_move_wrong_index () =
+  test_exn "Cannot move out of array with this index"
+    {|(def a& [0])
+(defn index () 1)
+(def _ !a.[(index)])
+(set &a.[(index)] !1)|}
+
+let test_excl_array_move_dyn_index () =
+  test_exn "Cannot move out of array without re-setting"
+    {|(def a& [0])
+(let ((tmp !a.[0]))
+    (set &a.[(+ 0 0)] !0))|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "(type t int) (type t float)"
@@ -1483,6 +1515,11 @@ let () =
           case "fn not copy capture" test_excl_fn_not_copy_capture;
           case "partial move re-set" test_excl_partial_move_reset;
           case "projections partias moves" test_excl_projections_partial_moves;
+          case "array move const" test_excl_array_move_const;
+          case "array move var" test_excl_array_move_var;
+          case "array move mixed" test_excl_array_move_mixed;
+          case "array move wrong index" test_excl_array_move_wrong_index;
+          case "array move dyn index" test_excl_array_move_dyn_index;
         ] );
       ( "type decl",
         [

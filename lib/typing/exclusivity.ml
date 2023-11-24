@@ -104,15 +104,22 @@ and binding =
   | Borrow_mut of borrow * Usage.set
   | Bmove of borrow * Ast.loc option
 
-and part_access = (int * string) list
+and part_access = (access_kind * string) list
+and access_kind = Aconst of int | Avar of Id.t | Adyn
 and special_case = Sp_no | Sp_string | Sp_array_get [@@deriving show]
 
 let imm imm = { imm; delayed = [] }
 
+let part_equal a b =
+  match (a, b) with
+  | Aconst a, Aconst b -> Int.equal a b
+  | Avar a, Avar b -> Id.equal a b
+  | _ -> false
+
 let parts_match a wth =
   let rec parts_match = function
     | (i, _) :: tl, (j, _) :: tr ->
-        if Int.equal i j then parts_match (tl, tr)
+        if part_equal i j then parts_match (tl, tr)
         else (* Borrows concern different parts *) false
     | [], _ -> true
     | _, [] -> (* Borrows are not mutually exclusive *) true
@@ -126,7 +133,7 @@ let parts_is_sub a wth =
   (* Part goes deeper than the [wth] structure *)
   let rec parts_sub = function
     | (i, _) :: tl, (j, _) :: tr ->
-        if Int.equal i j then parts_sub (tl, tr)
+        if part_equal i j then parts_sub (tl, tr)
         else (* Borrows concern different parts *) false
     | [], _ -> false
     | _, [] -> (* Borrows are not mutually exclusive *) true
@@ -153,6 +160,7 @@ module Idset = Set.Make (Id)
 let borrow_state = ref 0
 let param_pass = ref false
 let shadowmap = ref Smap.empty
+let array_bindings = ref Idset.empty
 let is_string = function Sp_string -> true | Sp_no | Sp_array_get -> false
 
 let new_id str mname =
@@ -173,7 +181,8 @@ let get_id str =
 let reset () =
   borrow_state := 0;
   param_pass := false;
-  shadowmap := Smap.empty
+  shadowmap := Smap.empty;
+  array_bindings := Idset.empty
 
 let forbid_conditional_borrow loc imm mut =
   let msg =
@@ -498,6 +507,13 @@ let get_moved_in_set env_item hist =
       print_endline (show_env_item env_item);
       failwith "Internal Error: What happened here?"
 
+let collect_array_move env_item =
+  match env_item.imm with
+  | [] -> failwith "unreachable"
+  | [ Bmove (b, _) ] ->
+      array_bindings := Idset.add b.borrowed.id !array_bindings
+  | _ -> failwith "what else?!"
+
 let add_part part b =
   let borrowed = { b.borrowed with bpart = part @ b.borrowed.bpart } in
   { b with borrowed }
@@ -672,7 +688,9 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       | Umove when t.attr.const ->
           raise (Error (tree.loc, "Cannot move out of constant"))
       | _ -> ());
-      let t, b, hs = check_tree env mut ((i, name) :: bpart, special) t hist in
+      let t, b, hs =
+        check_tree env mut ((Aconst i, name) :: bpart, special) t hist
+      in
       let tree = { tree with expr = Field (t, i, name) } in
       match mut with
       | Umut | Uset ->
@@ -706,28 +724,39 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
         args = [ arr; idx ];
       } ->
       (* Special case for __array_get *)
-      (* Partial moves for arrays are not yet supported in monomorph_tree, so we
-         do not allow them as a temporary workaround *)
+      (* Partial moves for arrays are only supported in a very limited way.
+         Either by a constant index or by a variable. The same index or variable
+         needs to be used to re-set the item otherwise it won't compile. In
+         contrast to partial moves in records, arrays need to be re-set at the
+         end of scope. This is because we cannot partially free them. *)
       let callee, b, hs = check_tree env Uread no_bdata callee hist in
       let hs = add_hist b hs in
       (* We don't check for exclusivity, because there are only two arguments
            and the second is an int *)
-      let bpart, idx, hs =
+      let bpart, idx, hs, is_part =
         match (fst idx).expr with
         | Const (Int i) ->
-            let part = (i, Printf.sprintf "[%i]" i) :: bpart in
-            (part, idx, hs)
-        | _ ->
+            let part = (Aconst i, Printf.sprintf "[%i]" i) :: bpart in
+            (part, idx, hs, true)
+        | Var (name, mname) ->
+            let part_id = get_id (name, mname) in
+            let part = (Avar part_id, Printf.sprintf "[%s]" name) :: bpart in
             let usage = Usage.of_attr (snd idx) in
             let arg, v, hs = check_tree env usage no_bdata (fst idx) hs in
-            (bpart, (arg, snd idx), add_hist v hs)
+            (part, (arg, snd idx), add_hist v hs, true)
+        | _ ->
+            (* Depending on hashes here is bound to break sometime *)
+            let part = (Adyn, Printf.sprintf "[<expr>]") :: bpart in
+            let usage = Usage.of_attr (snd idx) in
+            let arg, v, hs = check_tree env usage no_bdata (fst idx) hs in
+            (part, (arg, snd idx), add_hist v hs, false)
       in
-      (match mut with
-      | Umove ->
-          raise
-            (Error (tree.loc, "Moving out of arrays is not supported right now"))
-      | Uset | Uread | Umut -> ());
       let ar, b, hs = check_tree env mut (bpart, Sp_array_get) (fst arr) hs in
+      (match mut with
+      | Umove when is_part -> collect_array_move b
+      | Umove ->
+          raise (Error (tree.loc, "Cannot move out of array with this index"))
+      | Uset | Uread | Umut -> ());
       let tree =
         { tree with expr = App { callee; args = [ (ar, snd arr); idx ] } }
       in
@@ -1038,6 +1067,17 @@ let find_usage id hist =
       (* The binding was not used *)
       (Ast.Dnorm, None)
 
+let check_array_moves hist =
+  Idset.iter
+    (fun b ->
+      let attr, loc = find_usage b hist in
+      match attr with
+      | Dmove ->
+          let loc = Option.get loc in
+          raise (Error (loc, "Cannot move out of array without re-setting"))
+      | Dset | Dmut | Dnorm -> ())
+    !array_bindings
+
 let check_tree ~mname pts pns touched body =
   reset ();
   current_module := Some mname;
@@ -1087,6 +1127,7 @@ let check_tree ~mname pts pns touched body =
   let body, v, hist = check_tree env usage no_bdata body hist in
   let body = { body with expr = Move body } in
 
+  check_array_moves hist;
   (* Try to borrow the params again to make sure they haven't been moved *)
   let hist = add_hist v hist in
   param_pass := true;
@@ -1138,6 +1179,7 @@ let check_items ~mname touched items =
     List.fold_left_map check_item (env, false, Usage.Uread, [], hist) items
   in
 
+  check_array_moves hist;
   (* No moves at top level *)
   Map.iter
     (fun id b ->
