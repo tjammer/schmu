@@ -7,22 +7,17 @@ Test hashtbl
   %closure = type { i8*, i8* }
   %hashtbl.make.t_float = type { %option.t_hashtbl.make.item_float*, i64 }
   %option.t_hashtbl.make.item_float = type { i32, %hashtbl.make.item_float }
-  %hashtbl.make.item_float = type { i8*, double, i64, i1 }
-  %tuple_int_bool = type { i64, i1 }
+  %hashtbl.make.item_float = type { i8*, double, i64 }
   %option.t_float = type { i32, double }
   %option.t_int = type { i32, i64 }
   
   @hashtbl_make_string_load-limit = constant double 7.500000e-01
-  @0 = private unnamed_addr constant { i64, i64, [90 x i8] } { i64 89, i64 89, [90 x i8] c"__aoption.thashtbl.make.itemgi.u_hashtbl_make_string_fixup_aoption.thashtbl.make.itemfi.u\00" }
-  @1 = private unnamed_addr constant { i64, i64, [12 x i8] } { i64 11, i64 11, [12 x i8] c"hashtbl.smu\00" }
-  @2 = private unnamed_addr constant { i64, i64, [15 x i8] } { i64 14, i64 14, [15 x i8] c"file not found\00" }
-  @3 = private unnamed_addr constant { i64, i64, [88 x i8] } { i64 87, i64 87, [88 x i8] c"__ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf\00" }
-  @4 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"%.9g\0A\00" }
-  @5 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
-  @6 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"## string\00" }
-  @7 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"key\00" }
-  @8 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"otherkey\00" }
-  @9 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"# hashtbl\00" }
+  @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"%.9g\0A\00" }
+  @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
+  @2 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"## string\00" }
+  @3 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"key\00" }
+  @4 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"otherkey\00" }
+  @5 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"# hashtbl\00" }
   
   declare void @string_print(i8* %0)
   
@@ -58,11 +53,11 @@ Test hashtbl
     %5 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data, i64 %i
     %6 = bitcast %option.t_hashtbl.make.item_float* %1 to i8*
     %7 = bitcast %option.t_hashtbl.make.item_float* %5 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 40, i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 32, i1 false)
     %8 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data, i64 %j
     %9 = bitcast %option.t_hashtbl.make.item_float* %8 to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %9, i64 40, i1 false)
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* %6, i64 40, i1 false)
+    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %9, i64 32, i1 false)
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* %6, i64 32, i1 false)
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -100,104 +95,44 @@ Test hashtbl
     store i1 false, i1* %1, align 1
     %2 = alloca i64, align 8
     store i64 %old, i64* %2, align 8
-    %ret = alloca %tuple_int_bool, align 8
-    %3 = alloca %option.t_hashtbl.make.item_float, align 8
-    %4 = alloca %hashtbl.make.item_float, align 8
-    %t = alloca %option.t_hashtbl.make.item_float, align 8
     br label %rec
   
-  rec:                                              ; preds = %ifcont21, %entry
-    %5 = phi i64 [ %11, %ifcont21 ], [ %old, %entry ]
-    %6 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %data, align 8
-    %7 = bitcast %option.t_hashtbl.make.item_float* %6 to i64*
-    %8 = load i64, i64* %7, align 8
-    %9 = call { i64, i8 } @hashtbl_make_string_next-wrapped(i64 %5, i64 %8)
-    %box = bitcast %tuple_int_bool* %ret to { i64, i8 }*
-    store { i64, i8 } %9, { i64, i8 }* %box, align 8
-    %10 = bitcast %tuple_int_bool* %ret to i64*
-    %11 = load i64, i64* %10, align 8
-    %12 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %data, align 8
-    %13 = bitcast %option.t_hashtbl.make.item_float* %12 to i8*
-    %14 = getelementptr i8, i8* %13, i64 16
-    %data3 = bitcast i8* %14 to %option.t_hashtbl.make.item_float*
-    %15 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data3, i64 %11
-    %tag26 = bitcast %option.t_hashtbl.make.item_float* %15 to i32*
-    %index = load i32, i32* %tag26, align 4
+  rec:                                              ; preds = %then5, %entry
+    %3 = phi i64 [ %7, %then5 ], [ %old, %entry ]
+    %4 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %data, align 8
+    %5 = bitcast %option.t_hashtbl.make.item_float* %4 to i64*
+    %6 = load i64, i64* %5, align 8
+    %7 = tail call i64 @hashtbl_make_string_next-wrapped(i64 %3, i64 %6)
+    %8 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %data, align 8
+    %9 = bitcast %option.t_hashtbl.make.item_float* %8 to i8*
+    %10 = getelementptr i8, i8* %9, i64 16
+    %data2 = bitcast i8* %10 to %option.t_hashtbl.make.item_float*
+    %11 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data2, i64 %7
+    %tag9 = bitcast %option.t_hashtbl.make.item_float* %11 to i32*
+    %index = load i32, i32* %tag9, align 4
     %eq = icmp eq i32 %index, 0
-    br i1 %eq, label %then, label %ifcont24
+    br i1 %eq, label %then, label %ifcont7
   
   then:                                             ; preds = %rec
-    %data4 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %15, i32 0, i32 1
-    %16 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data4, i32 0, i32 2
-    %17 = load i64, i64* %16, align 8
-    %eq5 = icmp eq i64 %17, %11
-    br i1 %eq5, label %ifcont24, label %else
+    %data3 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %11, i32 0, i32 1
+    %12 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data3, i32 0, i32 2
+    %13 = load i64, i64* %12, align 8
+    %eq4 = icmp eq i64 %13, 0
+    %14 = xor i1 %eq4, true
+    br i1 %14, label %then5, label %ifcont7
   
-  else:                                             ; preds = %then
-    %18 = bitcast %tuple_int_bool* %ret to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %18, i64 8
-    %19 = bitcast i8* %sunkaddr to i1*
-    %20 = load i1, i1* %19, align 1
-    br i1 %20, label %then7, label %ifcont21
-  
-  then7:                                            ; preds = %else
-    %21 = bitcast %option.t_hashtbl.make.item_float* %15 to i8*
-    %sunkaddr27 = getelementptr inbounds i8, i8* %21, i64 32
-    %22 = bitcast i8* %sunkaddr27 to i1*
-    %23 = load i1, i1* %22, align 1
-    br i1 %23, label %success, label %fail
-  
-  success:                                          ; preds = %then7
-    %24 = bitcast %option.t_hashtbl.make.item_float* %3 to i8*
-    %25 = bitcast %option.t_hashtbl.make.item_float* %15 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %24, i8* %25, i64 40, i1 false)
-    %tag928 = bitcast %option.t_hashtbl.make.item_float* %3 to i32*
-    %index10 = load i32, i32* %tag928, align 4
-    %eq11 = icmp eq i32 %index10, 0
-    br i1 %eq11, label %then12, label %else17
-  
-  fail:                                             ; preds = %then7
-    call void @__assert_fail(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [15 x i8] }* @2 to i8*), i64 16), i8* getelementptr (i8, i8* bitcast ({ i64, i64, [12 x i8] }* @1 to i8*), i64 16), i32 150, i8* getelementptr (i8, i8* bitcast ({ i64, i64, [90 x i8] }* @0 to i8*), i64 16))
-    unreachable
-  
-  then12:                                           ; preds = %success
-    %26 = bitcast %option.t_hashtbl.make.item_float* %15 to i8*
-    %data13 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %3, i32 0, i32 1
-    %27 = bitcast %hashtbl.make.item_float* %4 to i8*
-    %28 = bitcast %hashtbl.make.item_float* %data13 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %27, i8* %28, i64 32, i1 false)
-    %tag1529 = bitcast %option.t_hashtbl.make.item_float* %t to i32*
-    store i32 0, i32* %tag1529, align 4
-    %data16 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %t, i32 0, i32 1
-    %key30 = bitcast %hashtbl.make.item_float* %data16 to i8**
-    %29 = bitcast %hashtbl.make.item_float* %4 to i8**
-    %30 = load i8*, i8** %29, align 8
-    store i8* %30, i8** %key30, align 8
-    %value = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data16, i32 0, i32 1
-    %31 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %4, i32 0, i32 1
-    %32 = load double, double* %31, align 8
-    store double %32, double* %value, align 8
-    %hash = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data16, i32 0, i32 2
-    %33 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %4, i32 0, i32 2
-    %34 = load i64, i64* %33, align 8
-    store i64 %34, i64* %hash, align 8
-    %wrapped = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data16, i32 0, i32 3
-    store i1 false, i1* %wrapped, align 1
-    %35 = bitcast %option.t_hashtbl.make.item_float* %t to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %26, i8* %35, i64 40, i1 false)
-    br label %ifcont21
-  
-  else17:                                           ; preds = %success
-    call void @__assert_fail(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [15 x i8] }* @2 to i8*), i64 16), i8* getelementptr (i8, i8* bitcast ({ i64, i64, [12 x i8] }* @1 to i8*), i64 16), i32 161, i8* getelementptr (i8, i8* bitcast ({ i64, i64, [90 x i8] }* @0 to i8*), i64 16))
-    unreachable
-  
-  ifcont21:                                         ; preds = %else, %then12
-    call void @__agii.u_array_swap-items_aoption.thashtbl.make.itemfii.u(%option.t_hashtbl.make.item_float** %data, i64 %5, i64 %11)
+  then5:                                            ; preds = %then
+    %sub = sub i64 %13, 1
+    %15 = bitcast %option.t_hashtbl.make.item_float* %11 to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %15, i64 24
+    %16 = bitcast i8* %sunkaddr to i64*
+    store i64 %sub, i64* %16, align 8
+    tail call void @__agii.u_array_swap-items_aoption.thashtbl.make.itemfii.u(%option.t_hashtbl.make.item_float** %data, i64 %3, i64 %7)
     store %option.t_hashtbl.make.item_float** %data, %option.t_hashtbl.make.item_float*** %0, align 8
-    store i64 %11, i64* %2, align 8
+    store i64 %7, i64* %2, align 8
     br label %rec
   
-  ifcont24:                                         ; preds = %rec, %then
+  ifcont7:                                          ; preds = %rec, %then
     store i1 true, i1* %1, align 1
     ret void
   }
@@ -228,7 +163,7 @@ Test hashtbl
     %3 = load i64, i64* %2, align 8
     %mul = mul i64 2, %3
     %4 = alloca %option.t_hashtbl.make.item_float*, align 8
-    %5 = mul i64 %mul, 40
+    %5 = mul i64 %mul, 32
     %6 = add i64 16, %5
     %7 = tail call i8* @malloc(i64 %6)
     %8 = bitcast i8* %7 to %option.t_hashtbl.make.item_float*
@@ -301,7 +236,7 @@ Test hashtbl
     store i64 %2, i64* %snd, align 8
     %3 = tail call i64 @__hashtbl.make.tgac.i_hashtbl_make_string_idx_hashtbl.make.tfac.i(i64 %1, i64 %2, i8* %key)
     %ret = alloca %option.t_int, align 8
-    call void @__ihashtbl.make.tgacib.option.ti_hashtbl_make_string_find-index_ihashtbl.make.tfacib.option.ti(%option.t_int* %ret, i64 %3, i64 %1, i64 %2, i8* %key, i64 %3, i1 false)
+    call void @__ihashtbl.make.tgaci.option.ti_hashtbl_make_string_find-index_ihashtbl.make.tfaci.option.ti(%option.t_int* %ret, i64 %3, i64 %1, i64 %2, i8* %key, i64 0)
     %tag22 = bitcast %option.t_int* %ret to i32*
     %index = load i32, i32* %tag22, align 4
     %eq = icmp eq i32 %index, 0
@@ -352,7 +287,7 @@ Test hashtbl
     %snd2 = load i64, i64* %snd, align 8
     %0 = tail call i64 @__hashtbl.make.tgac.i_hashtbl_make_string_idx_hashtbl.make.tfac.i(i64 %fst1, i64 %snd2, i8* %key)
     %ret = alloca %option.t_int, align 8
-    call void @__ihashtbl.make.tgacib.option.ti_hashtbl_make_string_find-index_ihashtbl.make.tfacib.option.ti(%option.t_int* %ret, i64 %0, i64 %fst1, i64 %snd2, i8* %key, i64 %0, i1 false)
+    call void @__ihashtbl.make.tgaci.option.ti_hashtbl_make_string_find-index_ihashtbl.make.tfaci.option.ti(%option.t_int* %ret, i64 %0, i64 %fst1, i64 %snd2, i8* %key, i64 0)
     %tag10 = bitcast %option.t_int* %ret to i32*
     %index = load i32, i32* %tag10, align 4
     %eq = icmp eq i32 %index, 0
@@ -410,135 +345,134 @@ Test hashtbl
     %6 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %5, align 8
     %7 = bitcast %option.t_hashtbl.make.item_float* %6 to i64*
     %8 = load i64, i64* %7, align 8
-    %__ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf = alloca %closure, align 8
-    %funptr14 = bitcast %closure* %__ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf to i8**
-    store i8* bitcast (void (i64, i1, i8*, double, i8*)* @__ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf to i8*), i8** %funptr14, align 8
-    %clsr___ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf = alloca { i8*, i8*, i64, i64, %hashtbl.make.t_float* }, align 8
-    %_hashtbl_make_string_hash = getelementptr inbounds { i8*, i8*, i64, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %clsr___ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf, i32 0, i32 2
-    store i64 %4, i64* %_hashtbl_make_string_hash, align 8
-    %_hashtbl_make_string_size = getelementptr inbounds { i8*, i8*, i64, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %clsr___ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf, i32 0, i32 3
+    %__iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf = alloca %closure, align 8
+    %funptr14 = bitcast %closure* %__iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf to i8**
+    store i8* bitcast (void (i64, i64, i8*, double, i8*)* @__iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf to i8*), i8** %funptr14, align 8
+    %clsr___iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf = alloca { i8*, i8*, i64, %hashtbl.make.t_float* }, align 8
+    %_hashtbl_make_string_size = getelementptr inbounds { i8*, i8*, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, %hashtbl.make.t_float* }* %clsr___iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf, i32 0, i32 2
     store i64 %8, i64* %_hashtbl_make_string_size, align 8
-    %tbl8 = getelementptr inbounds { i8*, i8*, i64, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %clsr___ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf, i32 0, i32 4
+    %tbl8 = getelementptr inbounds { i8*, i8*, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, %hashtbl.make.t_float* }* %clsr___iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf, i32 0, i32 3
     store %hashtbl.make.t_float* %tbl, %hashtbl.make.t_float** %tbl8, align 8
-    %ctor15 = bitcast { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %clsr___ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf to i8**
-    store i8* bitcast (i8* (i8*)* @__ctor_tup-i-i-hashtbl.make.tf to i8*), i8** %ctor15, align 8
-    %dtor = getelementptr inbounds { i8*, i8*, i64, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %clsr___ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf, i32 0, i32 1
+    %ctor15 = bitcast { i8*, i8*, i64, %hashtbl.make.t_float* }* %clsr___iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf to i8**
+    store i8* bitcast (i8* (i8*)* @__ctor_tup-i-hashtbl.make.tf to i8*), i8** %ctor15, align 8
+    %dtor = getelementptr inbounds { i8*, i8*, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, %hashtbl.make.t_float* }* %clsr___iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
-    %env = bitcast { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %clsr___ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %__ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf, i32 0, i32 1
+    %env = bitcast { i8*, i8*, i64, %hashtbl.make.t_float* }* %clsr___iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf(i64 %4, i1 false, i8* %key, double %value, i8* %env)
+    call void @__iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf(i64 %4, i64 0, i8* %key, double %value, i8* %env)
     ret void
   }
   
-  define linkonce_odr void @__hashtbl.make.tgbiii.u_hashtbl_make_string_redist_hashtbl.make.tfbiii.u(%hashtbl.make.t_float* noalias %tbl, i1 %wrapped, i64 %old, i64 %curr, i64 %hash) {
+  define linkonce_odr void @__hashtbl.make.tghashtbl.make.itemgii.u_hashtbl_make_string_redist_hashtbl.make.tfhashtbl.make.itemfii.u(%hashtbl.make.t_float* noalias %tbl, %hashtbl.make.item_float* %item, i64 %curr, i64 %pathlen) {
   entry:
     %0 = alloca %hashtbl.make.t_float*, align 8
     store %hashtbl.make.t_float* %tbl, %hashtbl.make.t_float** %0, align 8
     %1 = alloca i1, align 1
     store i1 false, i1* %1, align 1
-    %2 = alloca i1, align 1
-    store i1 %wrapped, i1* %2, align 1
-    %3 = alloca i64, align 8
-    store i64 %old, i64* %3, align 8
-    %4 = alloca i64, align 8
-    store i64 %curr, i64* %4, align 8
-    %5 = alloca i64, align 8
-    store i64 %hash, i64* %5, align 8
+    %2 = alloca %hashtbl.make.item_float, align 8
+    %3 = bitcast %hashtbl.make.item_float* %2 to i8*
+    %4 = bitcast %hashtbl.make.item_float* %item to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %4, i64 24, i1 false)
+    %5 = alloca i1, align 1
+    store i1 false, i1* %5, align 1
     %6 = alloca i64, align 8
-    %7 = alloca i1, align 1
-    %ret = alloca %tuple_int_bool, align 8
-    br label %rec.outer
-  
-  rec.outer:                                        ; preds = %entry, %else5
-    %.ph = phi i64 [ %curr, %entry ], [ %37, %else5 ]
-    %.ph8 = phi i1 [ %wrapped, %entry ], [ %36, %else5 ]
+    store i64 %curr, i64* %6, align 8
+    %7 = alloca i64, align 8
+    store i64 %pathlen, i64* %7, align 8
+    %8 = alloca %hashtbl.make.item_float, align 8
+    %t = alloca %option.t_hashtbl.make.item_float, align 8
+    %9 = alloca %hashtbl.make.item_float, align 8
+    %10 = alloca i64, align 8
+    %11 = alloca %hashtbl.make.item_float, align 8
+    %t8 = alloca %option.t_hashtbl.make.item_float, align 8
     br label %rec
   
-  rec:                                              ; preds = %rec.outer, %cont
-    %8 = phi i1 [ %30, %cont ], [ %.ph8, %rec.outer ]
-    %9 = bitcast %hashtbl.make.t_float* %tbl to %option.t_hashtbl.make.item_float**
-    %10 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %9, align 8
-    %11 = bitcast %option.t_hashtbl.make.item_float* %10 to i64*
-    %12 = load i64, i64* %11, align 8
-    %13 = bitcast %option.t_hashtbl.make.item_float* %10 to i8*
-    %14 = getelementptr i8, i8* %13, i64 16
-    %data = bitcast i8* %14 to %option.t_hashtbl.make.item_float*
-    %15 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data, i64 %.ph
-    %tag9 = bitcast %option.t_hashtbl.make.item_float* %15 to i32*
-    %index = load i32, i32* %tag9, align 4
+  rec:                                              ; preds = %else11, %then6, %entry
+    %12 = phi i64 [ %pathlen, %entry ], [ %add12, %else11 ], [ %add, %then6 ]
+    %13 = phi i64 [ %curr, %entry ], [ %27, %else11 ], [ %27, %then6 ]
+    %14 = bitcast %hashtbl.make.t_float* %tbl to %option.t_hashtbl.make.item_float**
+    %15 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %14, align 8
+    %16 = bitcast %option.t_hashtbl.make.item_float* %15 to i64*
+    %17 = load i64, i64* %16, align 8
+    %18 = bitcast %option.t_hashtbl.make.item_float* %15 to i8*
+    %19 = getelementptr i8, i8* %18, i64 16
+    %data = bitcast i8* %19 to %option.t_hashtbl.make.item_float*
+    %20 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data, i64 %13
+    %tag15 = bitcast %option.t_hashtbl.make.item_float* %20 to i32*
+    %index = load i32, i32* %tag15, align 4
     %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
-    %16 = bitcast %hashtbl.make.t_float* %tbl to %option.t_hashtbl.make.item_float**
-    tail call void @__agii.u_array_swap-items_aoption.thashtbl.make.itemfii.u(%option.t_hashtbl.make.item_float** %16, i64 %old, i64 %.ph)
+    %21 = bitcast %hashtbl.make.item_float* %2 to i8*
+    %22 = bitcast %hashtbl.make.item_float* %8 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %22, i8* %21, i64 24, i1 false)
+    %23 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %8, i32 0, i32 2
+    store i64 %12, i64* %23, align 8
+    %tag316 = bitcast %option.t_hashtbl.make.item_float* %t to i32*
+    store i32 0, i32* %tag316, align 4
+    %data4 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %t, i32 0, i32 1
+    %24 = bitcast %hashtbl.make.item_float* %data4 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %24, i8* %22, i64 24, i1 false)
+    tail call void @__free_option.thashtbl.make.itemf(%option.t_hashtbl.make.item_float* %20)
+    %25 = bitcast %option.t_hashtbl.make.item_float* %20 to i8*
+    %26 = bitcast %option.t_hashtbl.make.item_float* %t to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %25, i8* %26, i64 32, i1 false)
     store i1 true, i1* %1, align 1
     ret void
   
   else:                                             ; preds = %rec
-    %data2 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %15, i32 0, i32 1
-    %17 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data2, i32 0, i32 2
-    %18 = load i64, i64* %17, align 8
-    store i64 %18, i64* %6, align 8
-    %19 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data2, i32 0, i32 3
-    %20 = load i1, i1* %19, align 1
-    store i1 %20, i1* %7, align 1
-    %21 = tail call { i64, i8 } @hashtbl_make_string_next-wrapped(i64 %.ph, i64 %12)
-    %box = bitcast %tuple_int_bool* %ret to { i64, i8 }*
-    store { i64, i8 } %21, { i64, i8 }* %box, align 8
-    %22 = load i64, i64* %17, align 8
-    %23 = load i1, i1* %19, align 1
-    %24 = tail call i1 @hashtbl_make_string_greater-wrapped(i64 %22, i1 %23, i64 %hash, i1 %8, i64 %12)
-    br i1 %24, label %then4, label %else5
+    %data5 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %20, i32 0, i32 1
+    %27 = tail call i64 @hashtbl_make_string_next-wrapped(i64 %13, i64 %17)
+    %28 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data5, i32 0, i32 2
+    %29 = load i64, i64* %28, align 8
+    %gt = icmp sgt i64 %12, %29
+    br i1 %gt, label %then6, label %else11
   
-  then4:                                            ; preds = %else
-    br i1 %20, label %then4.cont_crit_edge, label %false1
-  
-  then4.cont_crit_edge:                             ; preds = %then4
-    %25 = bitcast %tuple_int_bool* %ret to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %25, i64 8
-    %26 = bitcast i8* %sunkaddr to i1*
-    %.pre = load i1, i1* %26, align 1
-    br label %cont
-  
-  false1:                                           ; preds = %then4
-    %27 = bitcast %tuple_int_bool* %ret to i8*
-    %sunkaddr10 = getelementptr inbounds i8, i8* %27, i64 8
-    %28 = bitcast i8* %sunkaddr10 to i1*
-    %29 = load i1, i1* %28, align 1
-    br i1 %29, label %cont, label %false2
-  
-  false2:                                           ; preds = %false1
-    br label %cont
-  
-  cont:                                             ; preds = %then4.cont_crit_edge, %false2, %false1
-    %30 = phi i1 [ %.pre, %then4.cont_crit_edge ], [ true, %false1 ], [ false, %false2 ]
-    %andtmp = phi i1 [ true, %then4.cont_crit_edge ], [ true, %false1 ], [ false, %false2 ]
-    %31 = bitcast %tuple_int_bool* %ret to i64*
-    %32 = load i64, i64* %31, align 8
-    tail call void @__hashtbl.make.tgbiii.u_hashtbl_make_string_redist_hashtbl.make.tfbiii.u(%hashtbl.make.t_float* %tbl, i1 %andtmp, i64 %.ph, i64 %32, i64 %18)
+  then6:                                            ; preds = %else
+    %30 = bitcast %hashtbl.make.t_float* %tbl to %option.t_hashtbl.make.item_float**
+    %31 = bitcast %hashtbl.make.item_float* %2 to i8*
+    %32 = bitcast %hashtbl.make.item_float* %9 to i8*
+    %33 = bitcast %hashtbl.make.item_float* %data5 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %32, i8* %33, i64 24, i1 false)
+    store i64 %29, i64* %10, align 8
+    %34 = bitcast %hashtbl.make.item_float* %11 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %34, i8* %31, i64 24, i1 false)
+    %35 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %11, i32 0, i32 2
+    store i64 %12, i64* %35, align 8
+    %36 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %30, align 8
+    %37 = bitcast %option.t_hashtbl.make.item_float* %36 to i8*
+    %38 = getelementptr i8, i8* %37, i64 16
+    %data7 = bitcast i8* %38 to %option.t_hashtbl.make.item_float*
+    %39 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data7, i64 %13
+    %tag917 = bitcast %option.t_hashtbl.make.item_float* %t8 to i32*
+    store i32 0, i32* %tag917, align 4
+    %data10 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %t8, i32 0, i32 1
+    %40 = bitcast %hashtbl.make.item_float* %data10 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %40, i8* %34, i64 24, i1 false)
+    %41 = bitcast %option.t_hashtbl.make.item_float* %39 to i8*
+    %42 = bitcast %option.t_hashtbl.make.item_float* %t8 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %41, i8* %42, i64 32, i1 false)
+    %add = add i64 %29, 1
     store %hashtbl.make.t_float* %tbl, %hashtbl.make.t_float** %0, align 8
-    store i1 %30, i1* %2, align 1
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %31, i8* %32, i64 24, i1 false)
+    store i64 %27, i64* %6, align 8
+    store i64 %add, i64* %7, align 8
     br label %rec
   
-  else5:                                            ; preds = %else
-    %33 = bitcast %tuple_int_bool* %ret to i64*
+  else11:                                           ; preds = %else
+    %add12 = add i64 %12, 1
     store %hashtbl.make.t_float* %tbl, %hashtbl.make.t_float** %0, align 8
-    %34 = bitcast %tuple_int_bool* %ret to i8*
-    %sunkaddr11 = getelementptr inbounds i8, i8* %34, i64 8
-    %35 = bitcast i8* %sunkaddr11 to i1*
-    %36 = load i1, i1* %35, align 1
-    store i1 %36, i1* %2, align 1
-    %37 = load i64, i64* %33, align 8
-    store i64 %37, i64* %4, align 8
-    br label %rec.outer
+    store i64 %27, i64* %6, align 8
+    store i64 %add12, i64* %7, align 8
+    br label %rec
   }
   
   define linkonce_odr { i64, i64 } @__i.hashtbl.make.tg_hashtbl_make_string_create_i.hashtbl.make.tf(i64 %size) {
   entry:
     %0 = alloca %option.t_hashtbl.make.item_float*, align 8
-    %1 = mul i64 %size, 40
+    %1 = mul i64 %size, 32
     %2 = add i64 16, %1
     %3 = tail call i8* @malloc(i64 %2)
     %4 = bitcast i8* %3 to %option.t_hashtbl.make.item_float*
@@ -612,20 +546,19 @@ Test hashtbl
   
   else6:                                            ; preds = %else
     %data7 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %9, i32 0, i32 1
-    %10 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data7, i32 0, i32 3
-    %11 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data7, i32 0, i32 2
-    %12 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data7, i32 0, i32 1
-    %13 = bitcast %hashtbl.make.item_float* %data7 to i8**
-    %14 = load i8*, i8** %13, align 8
-    %15 = load double, double* %12, align 8
+    %10 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data7, i32 0, i32 2
+    %11 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data7, i32 0, i32 1
+    %12 = bitcast %hashtbl.make.item_float* %data7 to i8**
+    %13 = load i8*, i8** %12, align 8
+    %14 = load double, double* %11, align 8
     %sunkaddr = getelementptr inbounds i8, i8* %0, i64 24
-    %16 = bitcast i8* %sunkaddr to i8**
-    %loadtmp = load i8*, i8** %16, align 8
+    %15 = bitcast i8* %sunkaddr to i8**
+    %loadtmp = load i8*, i8** %15, align 8
     %casttmp = bitcast i8* %loadtmp to void (i8*, double, i8*)*
     %sunkaddr12 = getelementptr inbounds i8, i8* %0, i64 32
-    %17 = bitcast i8* %sunkaddr12 to i8**
-    %loadtmp8 = load i8*, i8** %17, align 8
-    tail call void %casttmp(i8* %14, double %15, i8* %loadtmp8)
+    %16 = bitcast i8* %sunkaddr12 to i8**
+    %loadtmp8 = load i8*, i8** %16, align 8
+    tail call void %casttmp(i8* %13, double %14, i8* %loadtmp8)
     %add9 = add i64 %2, 1
     store i64 %add9, i64* %1, align 8
     br label %rec
@@ -659,206 +592,13 @@ Test hashtbl
     ret void
   }
   
-  define linkonce_odr void @__ibacg.u-i-i-hashtbl.make.tg_hashtbl_make_string_insert__2_ibacf.u-i-i-hashtbl.make.tf(i64 %i, i1 %wrapped, i8* %key, double %value, i8* %0) {
-  entry:
-    %clsr = bitcast i8* %0 to { i8*, i8*, i64, i64, %hashtbl.make.t_float* }*
-    %_hashtbl_make_string_hash = getelementptr inbounds { i8*, i8*, i64, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %clsr, i32 0, i32 2
-    %_hashtbl_make_string_hash1 = load i64, i64* %_hashtbl_make_string_hash, align 8
-    %_hashtbl_make_string_size = getelementptr inbounds { i8*, i8*, i64, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %clsr, i32 0, i32 3
-    %_hashtbl_make_string_size2 = load i64, i64* %_hashtbl_make_string_size, align 8
-    %tbl = getelementptr inbounds { i8*, i8*, i64, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %clsr, i32 0, i32 4
-    %tbl3 = load %hashtbl.make.t_float*, %hashtbl.make.t_float** %tbl, align 8
-    %1 = alloca i64, align 8
-    store i64 %i, i64* %1, align 8
-    %2 = alloca i1, align 1
-    store i1 %wrapped, i1* %2, align 1
-    %3 = alloca i8*, align 8
-    store i8* %key, i8** %3, align 8
-    %4 = alloca i1, align 1
-    store i1 false, i1* %4, align 1
-    %5 = alloca double, align 8
-    store double %value, double* %5, align 8
-    %t = alloca %option.t_hashtbl.make.item_float, align 8
-    %t13 = alloca %option.t_hashtbl.make.item_float, align 8
-    %ret = alloca %tuple_int_bool, align 8
-    %6 = alloca i64, align 8
-    %7 = alloca i1, align 1
-    %t31 = alloca %option.t_hashtbl.make.item_float, align 8
-    br label %rec
-  
-  rec:                                              ; preds = %else38, %entry
-    %8 = phi i1 [ %59, %else38 ], [ %wrapped, %entry ]
-    %9 = phi i64 [ %56, %else38 ], [ %i, %entry ]
-    %10 = bitcast %hashtbl.make.t_float* %tbl3 to %option.t_hashtbl.make.item_float**
-    %11 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %10, align 8
-    %12 = bitcast %option.t_hashtbl.make.item_float* %11 to i8*
-    %13 = getelementptr i8, i8* %12, i64 16
-    %data = bitcast i8* %13 to %option.t_hashtbl.make.item_float*
-    %14 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data, i64 %9
-    %tag42 = bitcast %option.t_hashtbl.make.item_float* %14 to i32*
-    %index = load i32, i32* %tag42, align 4
-    %eq = icmp eq i32 %index, 1
-    br i1 %eq, label %then, label %else
-  
-  then:                                             ; preds = %rec
-    %tag543 = bitcast %option.t_hashtbl.make.item_float* %t to i32*
-    store i32 0, i32* %tag543, align 4
-    %data6 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %t, i32 0, i32 1
-    %key744 = bitcast %hashtbl.make.item_float* %data6 to i8**
-    store i8* %key, i8** %key744, align 8
-    %value8 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data6, i32 0, i32 1
-    store double %value, double* %value8, align 8
-    %hash = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data6, i32 0, i32 2
-    store i64 %_hashtbl_make_string_hash1, i64* %hash, align 8
-    %wrapped9 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data6, i32 0, i32 3
-    store i1 %8, i1* %wrapped9, align 1
-    tail call void @__free_option.thashtbl.make.itemf(%option.t_hashtbl.make.item_float* %14)
-    %15 = bitcast %option.t_hashtbl.make.item_float* %14 to i8*
-    %16 = bitcast %option.t_hashtbl.make.item_float* %t to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %15, i8* %16, i64 40, i1 false)
-    %17 = getelementptr inbounds %hashtbl.make.t_float, %hashtbl.make.t_float* %tbl3, i32 0, i32 1
-    %18 = load i64, i64* %17, align 8
-    %add = add i64 1, %18
-    store i64 %add, i64* %17, align 8
-    br label %ifcont41
-  
-  else:                                             ; preds = %rec
-    %data10 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %14, i32 0, i32 1
-    %19 = bitcast %hashtbl.make.item_float* %data10 to i8**
-    %20 = load i8*, i8** %19, align 8
-    %21 = tail call i1 @string_equal(i8* %key, i8* %20)
-    br i1 %21, label %then11, label %else20
-  
-  then11:                                           ; preds = %else
-    %22 = bitcast %hashtbl.make.t_float* %tbl3 to %option.t_hashtbl.make.item_float**
-    %23 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %22, align 8
-    %24 = bitcast %option.t_hashtbl.make.item_float* %23 to i8*
-    %25 = getelementptr i8, i8* %24, i64 16
-    %data12 = bitcast i8* %25 to %option.t_hashtbl.make.item_float*
-    %26 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data12, i64 %9
-    %tag1445 = bitcast %option.t_hashtbl.make.item_float* %t13 to i32*
-    store i32 0, i32* %tag1445, align 4
-    %data15 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %t13, i32 0, i32 1
-    %key1646 = bitcast %hashtbl.make.item_float* %data15 to i8**
-    store i8* %key, i8** %key1646, align 8
-    %value17 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data15, i32 0, i32 1
-    store double %value, double* %value17, align 8
-    %hash18 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data15, i32 0, i32 2
-    store i64 %_hashtbl_make_string_hash1, i64* %hash18, align 8
-    %wrapped19 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data15, i32 0, i32 3
-    store i1 %8, i1* %wrapped19, align 1
-    tail call void @__free_option.thashtbl.make.itemf(%option.t_hashtbl.make.item_float* %26)
-    %27 = bitcast %option.t_hashtbl.make.item_float* %26 to i8*
-    %28 = bitcast %option.t_hashtbl.make.item_float* %t13 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %27, i8* %28, i64 40, i1 false)
-    br label %ifcont41
-  
-  else20:                                           ; preds = %else
-    %29 = tail call { i64, i8 } @hashtbl_make_string_next-wrapped(i64 %9, i64 %_hashtbl_make_string_size2)
-    %box = bitcast %tuple_int_bool* %ret to { i64, i8 }*
-    store { i64, i8 } %29, { i64, i8 }* %box, align 8
-    %30 = bitcast %option.t_hashtbl.make.item_float* %14 to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %30, i64 24
-    %31 = bitcast i8* %sunkaddr to i64*
-    %32 = load i64, i64* %31, align 8
-    %33 = bitcast %option.t_hashtbl.make.item_float* %14 to i8*
-    %sunkaddr47 = getelementptr inbounds i8, i8* %33, i64 32
-    %34 = bitcast i8* %sunkaddr47 to i1*
-    %35 = load i1, i1* %34, align 1
-    %36 = tail call i1 @hashtbl_make_string_greater-wrapped(i64 %32, i1 %35, i64 %_hashtbl_make_string_hash1, i1 %8, i64 %_hashtbl_make_string_size2)
-    br i1 %36, label %then22, label %else38
-  
-  then22:                                           ; preds = %else20
-    %37 = bitcast %option.t_hashtbl.make.item_float* %14 to i8*
-    %sunkaddr48 = getelementptr inbounds i8, i8* %37, i64 24
-    %38 = bitcast i8* %sunkaddr48 to i64*
-    %39 = load i64, i64* %38, align 8
-    store i64 %39, i64* %6, align 8
-    %40 = bitcast %option.t_hashtbl.make.item_float* %14 to i8*
-    %sunkaddr49 = getelementptr inbounds i8, i8* %40, i64 32
-    %41 = bitcast i8* %sunkaddr49 to i1*
-    %42 = load i1, i1* %41, align 1
-    store i1 %42, i1* %7, align 1
-    br i1 %42, label %cont, label %false1
-  
-  false1:                                           ; preds = %then22
-    %43 = bitcast %tuple_int_bool* %ret to i8*
-    %sunkaddr50 = getelementptr inbounds i8, i8* %43, i64 8
-    %44 = bitcast i8* %sunkaddr50 to i1*
-    %45 = load i1, i1* %44, align 1
-    br i1 %45, label %cont, label %false2
-  
-  false2:                                           ; preds = %false1
-    br label %cont
-  
-  cont:                                             ; preds = %false2, %false1, %then22
-    %andtmp = phi i1 [ true, %then22 ], [ true, %false1 ], [ false, %false2 ]
-    %46 = bitcast %tuple_int_bool* %ret to i64*
-    %47 = bitcast %hashtbl.make.t_float* %tbl3 to %option.t_hashtbl.make.item_float**
-    %48 = load i64, i64* %46, align 8
-    tail call void @__hashtbl.make.tgbiii.u_hashtbl_make_string_redist_hashtbl.make.tfbiii.u(%hashtbl.make.t_float* %tbl3, i1 %andtmp, i64 %9, i64 %48, i64 %39)
-    %49 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %47, align 8
-    %50 = bitcast %option.t_hashtbl.make.item_float* %49 to i8*
-    %51 = getelementptr i8, i8* %50, i64 16
-    %data23 = bitcast i8* %51 to %option.t_hashtbl.make.item_float*
-    %52 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data23, i64 %9
-    %tag2451 = bitcast %option.t_hashtbl.make.item_float* %52 to i32*
-    %index25 = load i32, i32* %tag2451, align 4
-    %eq26 = icmp eq i32 %index25, 1
-    br i1 %eq26, label %ifcont, label %else28
-  
-  else28:                                           ; preds = %cont
-    %data29 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %52, i32 0, i32 1
-    br label %ifcont
-  
-  ifcont:                                           ; preds = %cont, %else28
-    %iftmp = phi i1 [ false, %else28 ], [ true, %cont ]
-    br i1 %iftmp, label %success, label %fail
-  
-  success:                                          ; preds = %ifcont
-    %tag3252 = bitcast %option.t_hashtbl.make.item_float* %t31 to i32*
-    store i32 0, i32* %tag3252, align 4
-    %data33 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %t31, i32 0, i32 1
-    %key3453 = bitcast %hashtbl.make.item_float* %data33 to i8**
-    store i8* %key, i8** %key3453, align 8
-    %value35 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data33, i32 0, i32 1
-    store double %value, double* %value35, align 8
-    %hash36 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data33, i32 0, i32 2
-    store i64 %_hashtbl_make_string_hash1, i64* %hash36, align 8
-    %wrapped37 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data33, i32 0, i32 3
-    store i1 %8, i1* %wrapped37, align 1
-    tail call void @__free_option.thashtbl.make.itemf(%option.t_hashtbl.make.item_float* %52)
-    %53 = bitcast %option.t_hashtbl.make.item_float* %52 to i8*
-    %54 = bitcast %option.t_hashtbl.make.item_float* %t31 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %53, i8* %54, i64 40, i1 false)
-    br label %ifcont41
-  
-  fail:                                             ; preds = %ifcont
-    tail call void @__assert_fail(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [15 x i8] }* @2 to i8*), i64 16), i8* getelementptr (i8, i8* bitcast ({ i64, i64, [12 x i8] }* @1 to i8*), i64 16), i32 115, i8* getelementptr (i8, i8* bitcast ({ i64, i64, [88 x i8] }* @3 to i8*), i64 16))
-    unreachable
-  
-  else38:                                           ; preds = %else20
-    %55 = bitcast %tuple_int_bool* %ret to i64*
-    %56 = load i64, i64* %55, align 8
-    store i64 %56, i64* %1, align 8
-    %57 = bitcast %tuple_int_bool* %ret to i8*
-    %sunkaddr54 = getelementptr inbounds i8, i8* %57, i64 8
-    %58 = bitcast i8* %sunkaddr54 to i1*
-    %59 = load i1, i1* %58, align 1
-    store i1 %59, i1* %2, align 1
-    br label %rec
-  
-  ifcont41:                                         ; preds = %then11, %success, %then
-    ret void
-  }
-  
-  define linkonce_odr void @__ihashtbl.make.tgacib.option.ti_hashtbl_make_string_find-index_ihashtbl.make.tfacib.option.ti(%option.t_int* noalias %0, i64 %i, i64 %1, i64 %2, i8* %key, i64 %hash, i1 %wrapped) {
+  define linkonce_odr void @__ihashtbl.make.tgaci.option.ti_hashtbl_make_string_find-index_ihashtbl.make.tfaci.option.ti(%option.t_int* noalias %0, i64 %i, i64 %1, i64 %2, i8* %key, i64 %pathlen) {
   entry:
     %3 = alloca i64, align 8
     store i64 %i, i64* %3, align 8
     %box = alloca { i64, i64 }, align 8
-    %fst17 = bitcast { i64, i64 }* %box to i64*
-    store i64 %1, i64* %fst17, align 8
+    %fst14 = bitcast { i64, i64 }* %box to i64*
+    store i64 %1, i64* %fst14, align 8
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
     store i64 %2, i64* %snd, align 8
     %tbl = bitcast { i64, i64 }* %box to %hashtbl.make.t_float*
@@ -873,79 +613,196 @@ Test hashtbl
     %9 = alloca i1, align 1
     store i1 false, i1* %9, align 1
     %10 = alloca i64, align 8
-    store i64 %hash, i64* %10, align 8
-    %11 = alloca i1, align 1
-    store i1 %wrapped, i1* %11, align 1
-    %ret = alloca %tuple_int_bool, align 8
-    %.phi.trans.insert18 = bitcast %hashtbl.make.t_float* %4 to %option.t_hashtbl.make.item_float**
-    %.pre = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %.phi.trans.insert18, align 8
+    store i64 %pathlen, i64* %10, align 8
+    %.phi.trans.insert15 = bitcast %hashtbl.make.t_float* %4 to %option.t_hashtbl.make.item_float**
+    %.pre = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %.phi.trans.insert15, align 8
     br label %rec
   
   rec:                                              ; preds = %else7, %entry
-    %12 = phi i1 [ %35, %else7 ], [ %wrapped, %entry ]
-    %13 = phi i64 [ %34, %else7 ], [ %i, %entry ]
-    %14 = bitcast %option.t_hashtbl.make.item_float* %.pre to i8*
-    %15 = getelementptr i8, i8* %14, i64 16
-    %data = bitcast i8* %15 to %option.t_hashtbl.make.item_float*
-    %16 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data, i64 %13
-    %tag19 = bitcast %option.t_hashtbl.make.item_float* %16 to i32*
-    %index = load i32, i32* %tag19, align 4
+    %11 = phi i64 [ %add, %else7 ], [ %pathlen, %entry ]
+    %12 = phi i64 [ %24, %else7 ], [ %i, %entry ]
+    %13 = bitcast %option.t_hashtbl.make.item_float* %.pre to i8*
+    %14 = getelementptr i8, i8* %13, i64 16
+    %data = bitcast i8* %14 to %option.t_hashtbl.make.item_float*
+    %15 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data, i64 %12
+    %tag16 = bitcast %option.t_hashtbl.make.item_float* %15 to i32*
+    %index = load i32, i32* %tag16, align 4
     %eq = icmp eq i32 %index, 0
-    br i1 %eq, label %then, label %else12
+    br i1 %eq, label %then, label %else9
   
   then:                                             ; preds = %rec
-    %data2 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %16, i32 0, i32 1
-    %17 = bitcast %hashtbl.make.item_float* %data2 to i8**
-    %18 = load i8*, i8** %17, align 8
-    %19 = tail call i1 @string_equal(i8* %key, i8* %18)
-    br i1 %19, label %then3, label %else
+    %data2 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %15, i32 0, i32 1
+    %16 = bitcast %hashtbl.make.item_float* %data2 to i8**
+    %17 = load i8*, i8** %16, align 8
+    %18 = tail call i1 @string_equal(i8* %key, i8* %17)
+    br i1 %18, label %then3, label %else
   
   then3:                                            ; preds = %then
-    %tag420 = bitcast %option.t_int* %0 to i32*
-    store i32 0, i32* %tag420, align 4
+    %tag417 = bitcast %option.t_int* %0 to i32*
+    store i32 0, i32* %tag417, align 4
     %data5 = getelementptr inbounds %option.t_int, %option.t_int* %0, i32 0, i32 1
-    store i64 %13, i64* %data5, align 8
-    br label %ifcont13
+    store i64 %12, i64* %data5, align 8
+    br label %ifcont10
   
   else:                                             ; preds = %then
-    %20 = bitcast %option.t_hashtbl.make.item_float* %16 to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %20, i64 24
-    %21 = bitcast i8* %sunkaddr to i64*
-    %22 = load i64, i64* %21, align 8
-    %23 = bitcast %option.t_hashtbl.make.item_float* %16 to i8*
-    %sunkaddr21 = getelementptr inbounds i8, i8* %23, i64 32
-    %24 = bitcast i8* %sunkaddr21 to i1*
-    %25 = load i1, i1* %24, align 1
-    %26 = bitcast %option.t_hashtbl.make.item_float* %.pre to i64*
-    %27 = load i64, i64* %26, align 8
-    %28 = tail call i1 @hashtbl_make_string_greater-wrapped(i64 %22, i1 %25, i64 %hash, i1 %12, i64 %27)
-    br i1 %28, label %then6, label %else7
+    %19 = bitcast %option.t_hashtbl.make.item_float* %15 to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %19, i64 24
+    %20 = bitcast i8* %sunkaddr to i64*
+    %21 = load i64, i64* %20, align 8
+    %gt = icmp sgt i64 %11, %21
+    br i1 %gt, label %then6, label %else7
   
   then6:                                            ; preds = %else
     store %option.t_int { i32 1, i64 undef }, %option.t_int* %0, align 8
-    br label %ifcont13
+    br label %ifcont10
   
   else7:                                            ; preds = %else
-    %29 = bitcast %option.t_hashtbl.make.item_float* %.pre to i64*
-    %30 = load i64, i64* %29, align 8
-    %31 = tail call { i64, i8 } @hashtbl_make_string_next-wrapped(i64 %13, i64 %30)
-    %box9 = bitcast %tuple_int_bool* %ret to { i64, i8 }*
-    store { i64, i8 } %31, { i64, i8 }* %box9, align 8
-    %32 = getelementptr inbounds %tuple_int_bool, %tuple_int_bool* %ret, i32 0, i32 1
-    %33 = bitcast %tuple_int_bool* %ret to i64*
-    %34 = load i64, i64* %33, align 8
-    store i64 %34, i64* %3, align 8
-    %35 = load i1, i1* %32, align 1
-    store i1 %35, i1* %11, align 1
+    %22 = bitcast %option.t_hashtbl.make.item_float* %.pre to i64*
+    %23 = load i64, i64* %22, align 8
+    %24 = tail call i64 @hashtbl_make_string_next-wrapped(i64 %12, i64 %23)
+    %add = add i64 %11, 1
+    store i64 %24, i64* %3, align 8
+    store i64 %add, i64* %10, align 8
     br label %rec
   
-  else12:                                           ; preds = %rec
+  else9:                                            ; preds = %rec
     store %option.t_int { i32 1, i64 undef }, %option.t_int* %0, align 8
-    br label %ifcont13
+    br label %ifcont10
   
-  ifcont13:                                         ; preds = %then3, %then6, %else12
+  ifcont10:                                         ; preds = %then3, %then6, %else9
     store i1 true, i1* %7, align 1
     store i1 true, i1* %9, align 1
+    ret void
+  }
+  
+  define linkonce_odr void @__iiacg.u-i-hashtbl.make.tg_hashtbl_make_string_insert__2_iiacf.u-i-hashtbl.make.tf(i64 %i, i64 %pathlen, i8* %key, double %value, i8* %0) {
+  entry:
+    %clsr = bitcast i8* %0 to { i8*, i8*, i64, %hashtbl.make.t_float* }*
+    %_hashtbl_make_string_size = getelementptr inbounds { i8*, i8*, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, %hashtbl.make.t_float* }* %clsr, i32 0, i32 2
+    %_hashtbl_make_string_size1 = load i64, i64* %_hashtbl_make_string_size, align 8
+    %tbl = getelementptr inbounds { i8*, i8*, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, %hashtbl.make.t_float* }* %clsr, i32 0, i32 3
+    %tbl2 = load %hashtbl.make.t_float*, %hashtbl.make.t_float** %tbl, align 8
+    %1 = alloca i64, align 8
+    store i64 %i, i64* %1, align 8
+    %2 = alloca i64, align 8
+    store i64 %pathlen, i64* %2, align 8
+    %3 = alloca i8*, align 8
+    store i8* %key, i8** %3, align 8
+    %4 = alloca i1, align 1
+    store i1 false, i1* %4, align 1
+    %5 = alloca double, align 8
+    store double %value, double* %5, align 8
+    %t = alloca %option.t_hashtbl.make.item_float, align 8
+    %t12 = alloca %option.t_hashtbl.make.item_float, align 8
+    %6 = alloca i64, align 8
+    %7 = alloca %hashtbl.make.item_float, align 8
+    %t21 = alloca %option.t_hashtbl.make.item_float, align 8
+    br label %rec
+  
+  rec:                                              ; preds = %else28, %entry
+    %8 = phi i64 [ %add29, %else28 ], [ %pathlen, %entry ]
+    %9 = phi i64 [ %29, %else28 ], [ %i, %entry ]
+    %10 = bitcast %hashtbl.make.t_float* %tbl2 to %option.t_hashtbl.make.item_float**
+    %11 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %10, align 8
+    %12 = bitcast %option.t_hashtbl.make.item_float* %11 to i8*
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to %option.t_hashtbl.make.item_float*
+    %14 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data, i64 %9
+    %tag32 = bitcast %option.t_hashtbl.make.item_float* %14 to i32*
+    %index = load i32, i32* %tag32, align 4
+    %eq = icmp eq i32 %index, 1
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %rec
+    %tag433 = bitcast %option.t_hashtbl.make.item_float* %t to i32*
+    store i32 0, i32* %tag433, align 4
+    %data5 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %t, i32 0, i32 1
+    %key634 = bitcast %hashtbl.make.item_float* %data5 to i8**
+    store i8* %key, i8** %key634, align 8
+    %value7 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data5, i32 0, i32 1
+    store double %value, double* %value7, align 8
+    %pathlen8 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data5, i32 0, i32 2
+    store i64 %8, i64* %pathlen8, align 8
+    tail call void @__free_option.thashtbl.make.itemf(%option.t_hashtbl.make.item_float* %14)
+    %15 = bitcast %option.t_hashtbl.make.item_float* %14 to i8*
+    %16 = bitcast %option.t_hashtbl.make.item_float* %t to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %15, i8* %16, i64 32, i1 false)
+    %17 = getelementptr inbounds %hashtbl.make.t_float, %hashtbl.make.t_float* %tbl2, i32 0, i32 1
+    %18 = load i64, i64* %17, align 8
+    %add = add i64 1, %18
+    store i64 %add, i64* %17, align 8
+    br label %ifcont31
+  
+  else:                                             ; preds = %rec
+    %data9 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %14, i32 0, i32 1
+    %19 = bitcast %hashtbl.make.item_float* %data9 to i8**
+    %20 = load i8*, i8** %19, align 8
+    %21 = tail call i1 @string_equal(i8* %key, i8* %20)
+    br i1 %21, label %then10, label %else18
+  
+  then10:                                           ; preds = %else
+    %22 = bitcast %hashtbl.make.t_float* %tbl2 to %option.t_hashtbl.make.item_float**
+    %23 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %22, align 8
+    %24 = bitcast %option.t_hashtbl.make.item_float* %23 to i8*
+    %25 = getelementptr i8, i8* %24, i64 16
+    %data11 = bitcast i8* %25 to %option.t_hashtbl.make.item_float*
+    %26 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data11, i64 %9
+    %tag1335 = bitcast %option.t_hashtbl.make.item_float* %t12 to i32*
+    store i32 0, i32* %tag1335, align 4
+    %data14 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %t12, i32 0, i32 1
+    %key1536 = bitcast %hashtbl.make.item_float* %data14 to i8**
+    store i8* %key, i8** %key1536, align 8
+    %value16 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data14, i32 0, i32 1
+    store double %value, double* %value16, align 8
+    %pathlen17 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data14, i32 0, i32 2
+    store i64 %8, i64* %pathlen17, align 8
+    tail call void @__free_option.thashtbl.make.itemf(%option.t_hashtbl.make.item_float* %26)
+    %27 = bitcast %option.t_hashtbl.make.item_float* %26 to i8*
+    %28 = bitcast %option.t_hashtbl.make.item_float* %t12 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %27, i8* %28, i64 32, i1 false)
+    br label %ifcont31
+  
+  else18:                                           ; preds = %else
+    %29 = tail call i64 @hashtbl_make_string_next-wrapped(i64 %9, i64 %_hashtbl_make_string_size1)
+    %30 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data9, i32 0, i32 2
+    %31 = load i64, i64* %30, align 8
+    %gt = icmp sgt i64 %8, %31
+    br i1 %gt, label %then19, label %else28
+  
+  then19:                                           ; preds = %else18
+    %32 = bitcast %hashtbl.make.t_float* %tbl2 to %option.t_hashtbl.make.item_float**
+    store i64 %31, i64* %6, align 8
+    %33 = bitcast %hashtbl.make.item_float* %7 to i8*
+    %34 = bitcast %hashtbl.make.item_float* %data9 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %33, i8* %34, i64 24, i1 false)
+    %35 = load %option.t_hashtbl.make.item_float*, %option.t_hashtbl.make.item_float** %32, align 8
+    %36 = bitcast %option.t_hashtbl.make.item_float* %35 to i8*
+    %37 = getelementptr i8, i8* %36, i64 16
+    %data20 = bitcast i8* %37 to %option.t_hashtbl.make.item_float*
+    %38 = getelementptr %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %data20, i64 %9
+    %tag2237 = bitcast %option.t_hashtbl.make.item_float* %t21 to i32*
+    store i32 0, i32* %tag2237, align 4
+    %data23 = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %t21, i32 0, i32 1
+    %key2438 = bitcast %hashtbl.make.item_float* %data23 to i8**
+    store i8* %key, i8** %key2438, align 8
+    %value25 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data23, i32 0, i32 1
+    store double %value, double* %value25, align 8
+    %pathlen26 = getelementptr inbounds %hashtbl.make.item_float, %hashtbl.make.item_float* %data23, i32 0, i32 2
+    store i64 %8, i64* %pathlen26, align 8
+    %39 = bitcast %option.t_hashtbl.make.item_float* %38 to i8*
+    %40 = bitcast %option.t_hashtbl.make.item_float* %t21 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %39, i8* %40, i64 32, i1 false)
+    %add27 = add i64 %31, 1
+    call void @__hashtbl.make.tghashtbl.make.itemgii.u_hashtbl_make_string_redist_hashtbl.make.tfhashtbl.make.itemfii.u(%hashtbl.make.t_float* %tbl2, %hashtbl.make.item_float* %7, i64 %29, i64 %add27)
+    br label %ifcont31
+  
+  else28:                                           ; preds = %else18
+    %add29 = add i64 %8, 1
+    store i64 %29, i64* %1, align 8
+    store i64 %add29, i64* %2, align 8
+    br label %rec
+  
+  ifcont31:                                         ; preds = %then10, %then19, %then
     ret void
   }
   
@@ -1007,30 +864,18 @@ Test hashtbl
     ret i1 %iftmp13
   }
   
-  define { i64, i8 } @hashtbl_make_string_next-wrapped(i64 %curr, i64 %size) {
+  define i64 @hashtbl_make_string_next-wrapped(i64 %curr, i64 %size) {
   entry:
     %add = add i64 %curr, 1
     %eq = icmp eq i64 %add, %size
-    br i1 %eq, label %then, label %else
-  
-  then:                                             ; preds = %entry
-    %0 = alloca %tuple_int_bool, align 8
-    store %tuple_int_bool { i64 0, i1 true }, %tuple_int_bool* %0, align 8
-    br label %ifcont
+    br i1 %eq, label %ifcont, label %else
   
   else:                                             ; preds = %entry
-    %1 = alloca %tuple_int_bool, align 8
-    %"03" = bitcast %tuple_int_bool* %1 to i64*
-    store i64 %add, i64* %"03", align 8
-    %"1" = getelementptr inbounds %tuple_int_bool, %tuple_int_bool* %1, i32 0, i32 1
-    store i1 false, i1* %"1", align 1
     br label %ifcont
   
-  ifcont:                                           ; preds = %else, %then
-    %iftmp = phi %tuple_int_bool* [ %0, %then ], [ %1, %else ]
-    %unbox = bitcast %tuple_int_bool* %iftmp to { i64, i8 }*
-    %unbox2 = load { i64, i8 }, { i64, i8 }* %unbox, align 8
-    ret { i64, i8 } %unbox2
+  ifcont:                                           ; preds = %entry, %else
+    %iftmp = phi i64 [ %add, %else ], [ 0, %entry ]
+    ret i64 %iftmp
   }
   
   define void @schmu_find-print(i8* %key, i8* %0) {
@@ -1053,11 +898,11 @@ Test hashtbl
   then:                                             ; preds = %entry
     %data = getelementptr inbounds %option.t_float, %option.t_float* %ret, i32 0, i32 1
     %1 = load double, double* %data, align 8
-    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [6 x i8] }* @4 to i8*), i64 16), double %1)
+    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*), i64 16), double %1)
     br label %ifcont
   
   else:                                             ; preds = %entry
-    call void @string_print(i8* bitcast ({ i64, i64, [5 x i8] }* @5 to i8*))
+    call void @string_print(i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*))
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
@@ -1066,7 +911,7 @@ Test hashtbl
   
   define void @schmu_string() {
   entry:
-    tail call void @string_print(i8* bitcast ({ i64, i64, [10 x i8] }* @6 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [10 x i8] }* @2 to i8*))
     %0 = alloca %hashtbl.make.t_float, align 8
     %1 = tail call { i64, i64 } @__i.hashtbl.make.tg_hashtbl_make_string_create_i.hashtbl.make.tf(i64 2)
     %box = bitcast %hashtbl.make.t_float* %0 to { i64, i64 }*
@@ -1074,7 +919,7 @@ Test hashtbl
     %2 = bitcast %hashtbl.make.t_float* %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %2, i64 16, i1 false)
     %3 = alloca i8*, align 8
-    store i8* bitcast ({ i64, i64, [4 x i8] }* @7 to i8*), i8** %3, align 8
+    store i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*), i8** %3, align 8
     %4 = alloca i8*, align 8
     %5 = bitcast i8** %4 to i8*
     %6 = bitcast i8** %3 to i8*
@@ -1095,10 +940,10 @@ Test hashtbl
     %env = bitcast { i8*, i8*, %hashtbl.make.t_float* }* %clsr_schmu_find-print to i8*
     %envptr = getelementptr inbounds %closure, %closure* %schmu_find-print, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @schmu_find-print(i8* bitcast ({ i64, i64, [4 x i8] }* @7 to i8*), i8* %env)
-    call void @schmu_find-print(i8* bitcast ({ i64, i64, [9 x i8] }* @8 to i8*), i8* %env)
-    call void @__hashtbl.make.tgac.u_hashtbl_make_string_remove_hashtbl.make.tfac.u(%hashtbl.make.t_float* %0, i8* bitcast ({ i64, i64, [4 x i8] }* @7 to i8*))
-    call void @schmu_find-print(i8* bitcast ({ i64, i64, [4 x i8] }* @7 to i8*), i8* %env)
+    call void @schmu_find-print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*), i8* %env)
+    call void @schmu_find-print(i8* bitcast ({ i64, i64, [9 x i8] }* @4 to i8*), i8* %env)
+    call void @__hashtbl.make.tgac.u_hashtbl_make_string_remove_hashtbl.make.tfac.u(%hashtbl.make.t_float* %0, i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*))
+    call void @schmu_find-print(i8* bitcast ({ i64, i64, [4 x i8] }* @3 to i8*), i8* %env)
     call void @__free_hashtbl.make.tf(%hashtbl.make.t_float* %0)
     ret void
   }
@@ -1170,11 +1015,11 @@ Test hashtbl
     %ref = bitcast %option.t_hashtbl.make.item_float* %1 to i64*
     %sz1 = bitcast i64* %ref to i64*
     %size = load i64, i64* %sz1, align 8
-    %2 = mul i64 %size, 40
+    %2 = mul i64 %size, 32
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to %option.t_hashtbl.make.item_float*
-    %6 = mul i64 %size, 40
+    %6 = mul i64 %size, 32
     %7 = add i64 %6, 16
     %8 = bitcast %option.t_hashtbl.make.item_float* %5 to i8*
     %9 = bitcast %option.t_hashtbl.make.item_float* %1 to i8*
@@ -1226,7 +1071,21 @@ Test hashtbl
     ret void
   }
   
-  declare void @__assert_fail(i8* %0, i8* %1, i32 %2, i8* %3)
+  define linkonce_odr void @__free_option.thashtbl.make.itemf(%option.t_hashtbl.make.item_float* %0) {
+  entry:
+    %tag1 = bitcast %option.t_hashtbl.make.item_float* %0 to i32*
+    %index = load i32, i32* %tag1, align 4
+    %1 = icmp eq i32 %index, 0
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %0, i32 0, i32 1
+    call void @__free_hashtbl.make.itemf(%hashtbl.make.item_float* %data)
+    br label %cont
+  
+  cont:                                             ; preds = %match, %entry
+    ret void
+  }
   
   define linkonce_odr void @__free_hashtbl.make.itemf(%hashtbl.make.item_float* %0) {
   entry:
@@ -1241,22 +1100,6 @@ Test hashtbl
     %ref = bitcast i8* %1 to i64*
     %2 = bitcast i64* %ref to i8*
     call void @free(i8* %2)
-    ret void
-  }
-  
-  define linkonce_odr void @__free_option.thashtbl.make.itemf(%option.t_hashtbl.make.item_float* %0) {
-  entry:
-    %tag1 = bitcast %option.t_hashtbl.make.item_float* %0 to i32*
-    %index = load i32, i32* %tag1, align 4
-    %1 = icmp eq i32 %index, 0
-    br i1 %1, label %match, label %cont
-  
-  match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option.t_hashtbl.make.item_float, %option.t_hashtbl.make.item_float* %0, i32 0, i32 1
-    call void @__free_hashtbl.make.itemf(%hashtbl.make.item_float* %data)
-    br label %cont
-  
-  cont:                                             ; preds = %match, %entry
     ret void
   }
   
@@ -1329,18 +1172,18 @@ Test hashtbl
     ret void
   }
   
-  define linkonce_odr i8* @__ctor_tup-i-i-hashtbl.make.tf(i8* %0) {
+  define linkonce_odr i8* @__ctor_tup-i-hashtbl.make.tf(i8* %0) {
   entry:
-    %1 = bitcast i8* %0 to { i8*, i8*, i64, i64, %hashtbl.make.t_float* }*
-    %2 = call i8* @malloc(i64 48)
-    %3 = bitcast i8* %2 to { i8*, i8*, i64, i64, %hashtbl.make.t_float* }*
-    %4 = bitcast { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %3 to i8*
-    %5 = bitcast { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 48, i1 false)
-    %tbl = getelementptr inbounds { i8*, i8*, i64, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %3, i32 0, i32 4
+    %1 = bitcast i8* %0 to { i8*, i8*, i64, %hashtbl.make.t_float* }*
+    %2 = call i8* @malloc(i64 40)
+    %3 = bitcast i8* %2 to { i8*, i8*, i64, %hashtbl.make.t_float* }*
+    %4 = bitcast { i8*, i8*, i64, %hashtbl.make.t_float* }* %3 to i8*
+    %5 = bitcast { i8*, i8*, i64, %hashtbl.make.t_float* }* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 40, i1 false)
+    %tbl = getelementptr inbounds { i8*, i8*, i64, %hashtbl.make.t_float* }, { i8*, i8*, i64, %hashtbl.make.t_float* }* %3, i32 0, i32 3
     %6 = bitcast %hashtbl.make.t_float** %tbl to %hashtbl.make.t_float*
     call void @__copy_hashtbl.make.tf(%hashtbl.make.t_float* %6)
-    %7 = bitcast { i8*, i8*, i64, i64, %hashtbl.make.t_float* }* %3 to i8*
+    %7 = bitcast { i8*, i8*, i64, %hashtbl.make.t_float* }* %3 to i8*
     ret i8* %7
   }
   
@@ -1355,7 +1198,7 @@ Test hashtbl
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @string_print(i8* bitcast ({ i64, i64, [10 x i8] }* @9 to i8*))
+    tail call void @string_print(i8* bitcast ({ i64, i64, [10 x i8] }* @5 to i8*))
     tail call void @schmu_string()
     ret i64 0
   }

@@ -20,7 +20,7 @@
   (import option)
 
   (type key m/t)
-  (type (item 'a) {:key m/t :value 'a :hash int :wrapped bool})
+  (type (item 'a) {:key m/t :value 'a :pathlen& int})
   (type (slot 'a) (option/t (item 'a)))
   (type (t 'a) {:data& (array (slot 'a)) :nitems& int})
 
@@ -46,20 +46,24 @@
         (> other-hash (- hash size)))))
 
   (defn next-wrapped (curr size)
-    (if (= (+ curr 1) size) {0 true} {(+ curr 1) false}))
+    (if (= (+ curr 1) size) 0 (+ curr 1)))
 
-  (defn redist (tbl& wrapped old curr hash)
+  (defn redist (tbl& item! curr pathlen)
     (def size (array/length tbl.data))
     (match tbl.data.[curr]
-      (#none (array/swap-items &tbl.data old curr))
+      (#none (let ((item& !item))
+               (set &item.pathlen !pathlen)
+               (set &tbl.data.[curr] !(#some item))))
       ((#some other)
-       (let ((other-hash (copy other.hash))
-             (other-wrapped (copy other.wrapped))
-             ({next nwrapped} (next-wrapped curr size)))
-         (if (greater-wrapped other.hash other.wrapped hash wrapped size)
-           (do (redist &tbl (or other-wrapped nwrapped) curr next other-hash)
-               (redist &tbl nwrapped old curr hash))
-           (redist &tbl nwrapped old next hash))))))
+       (let ((next (next-wrapped curr size)))
+         (if (> pathlen other.pathlen)
+           (let ((new-item !other)
+                 (other-pathlen (copy other.pathlen))
+                 (item& !item))
+             (set &item.pathlen !pathlen)
+             (set &tbl.data.[curr] !(#some item))
+             (redist &tbl !new-item next (+ other-pathlen 1)))
+           (redist &tbl !item next (+ pathlen 1)))))))
 
   (def load-limit 0.75)
 
@@ -72,7 +76,7 @@
         (set &(__unsafe_array_length data) !0)
         (match (__unsafe_ptr_get (array/data data) i)
           (#none (inner (+ i 1)))
-          ((#some {:key :value :hash _ :wrapped _})
+          ((#some {:key :value :pathlen _})
            (do
              (f !key !value)
              (inner (+ i 1)))))))
@@ -95,77 +99,60 @@
      (def hash (idx tbl key))
      (def size (array/length tbl.data))
 
-     (defn insert (i wrapped key! value!)
+     (defn insert (i pathlen key! value!)
        (match tbl.data.[i]
          (#none
           (do (set &tbl.data.[i]
-                   !(#some {:key :value :hash :wrapped}))
+                   !(#some {:key :value :pathlen}))
               (set &tbl.nitems !(+ 1 tbl.nitems))))
          ((#some other)
           (if (m/equal key other.key)
             -- overwrite
-            (set &tbl.data.[i] !(#some {:key :value :hash :wrapped}))
-            (let (({next nwrapped} (next-wrapped i size)))
-              (if (greater-wrapped other.hash other.wrapped
-                                   hash wrapped size)
-                (let ((other-hash (copy other.hash))
-                      (other-wrapped (copy other.wrapped)))
-                  -- probe sequence length of new value is large. robin hood
-                  (redist &tbl (or other-wrapped nwrapped) i next other-hash)
-                  (assert (match tbl.data.[i] (#none true) ((#some _) false)))
-                  (set &tbl.data.[i] !(#some {:key :value :hash :wrapped})))
-                (insert next nwrapped !key !value)))))))
+            (set &tbl.data.[i] !(#some {:key :value :pathlen}))
+            (let ((next (next-wrapped i size)))
+              (if (> pathlen other.pathlen)
+                (let ((other-pathlen (copy other.pathlen))
+                      -- probe sequence length of new value is larger. robin hood
+                      (other-item !other))
+                  (set &tbl.data.[i] !(#some {:key :value :pathlen}))
+                  (redist &tbl !other-item next (+ other-pathlen 1)))
+                (insert next (+ pathlen 1) !key !value)))))))
 
-     (insert hash false !key !value)))
+     (insert hash 0 !key !value)))
 
-  (defn find-index (i tbl key hash wrapped)
+  (defn find-index (i tbl key pathlen)
     (match tbl.data.[i]
       ((#some item)
        (if (m/equal key item.key)
          (#some i)
-         (if (greater-wrapped item.hash item.wrapped
-                              hash wrapped (array/length tbl.data))
+         (if (> pathlen item.pathlen)
            #none
-           (let (({next wrapped} (next-wrapped i (array/length tbl.data))))
-            (find-index next tbl key hash wrapped)))))
+           (let ((next (next-wrapped i (array/length tbl.data))))
+            (find-index next tbl key (+ pathlen 1))))))
       (#none #none)))
 
   (defn find (tbl key)
     (def hash (idx tbl key))
-    (match (find-index hash tbl key hash false)
+    (match (find-index hash tbl key 0)
       ((#some i) (match tbl.data.[i]
                   ((#some item) (#some (copy item.value)))
                   (#none #none)))
       (#none #none)))
 
   (defn fixup (data& old)
-    (def {next wrapped} (next-wrapped old (array/length data)))
-    (match data.[next]
-      ((#some item)
-       (if (= item.hash next)
-         ()
-         (do
-           -- swap with old slot
-           (if wrapped
-             (do (assert item.wrapped)
-                 -- item is not wrapped anymore
-                 -- This is a clown fiesta. Moving out of arrays with a known
-                 -- variable would make this more bearable. Better yet, moves
-                 -- in pattern matches
-                 (let ((item !(__unsafe_ptr_get (array/data data) next)))
-                   (match item
-                     ((#some item)
-                      (let ((item !item))
-                        (__unsafe_ptr_set &(array/data data) next
-                                          !(#some {@item :wrapped false}))))
-                     (#none (assert false))))))
-           (array/swap-items &data old next)
-           (fixup &data next))))
+    (def next (next-wrapped old (array/length data)))
+    (match &data.[next]
+      ((#some item&)
+       (if (not (= item.pathlen 0))
+         (do (set &item.pathlen !(- item.pathlen 1))
+             -- swap with old slot
+             (array/swap-items &data old next)
+             (fixup &data next))))
       (#none ())))
 
   (defn remove (tbl& key)
     (def hash (idx tbl key))
-    (match (find-index hash tbl key hash false)
+    (match (find-index hash tbl key 0)
       ((#some i)
        (do (set &tbl.data.[i] !#none)
            (set &tbl.nitems !(- tbl.nitems 1))
@@ -178,7 +165,7 @@
         acc
         (match tbl.data.[i]
           (#none (inner (+ i 1) !acc))
-          ((#some {:key :value :hash _ :wrapped _})
+          ((#some {:key :value :pathlen _})
            (inner (+ i 1) !(f !acc key value))))))
     (inner 0 !init))
 
@@ -188,7 +175,7 @@
         ()
         (match data.[i]
           (#none (inner (+ i 1)))
-          ((#some {:key :value :hash _ :wrapped _})
+          ((#some {:key :value :pathlen _})
            (do
              (f key value)
              (inner (+ i 1)))))))
@@ -203,7 +190,7 @@
   (defn print-impl (tbl)
     (defn string-of-slot (slot)
       (match slot
-        ((#some item) (fmt-str "(some " item.value " " item.hash ")"))
+        ((#some item) (fmt-str "(some " item.value " " item.pathlen ")"))
         (#none "none")))
     (let ((lst (string/concat " " (array/map tbl.data string-of-slot))))
       (string/print (fmt-str "[" lst "]")))))
