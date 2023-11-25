@@ -420,8 +420,6 @@ let check_special loc usage special =
       raise (Error (loc, "Cannot move string literal. Use `copy`"))
   | (Uset | Umut), Sp_string ->
       raise (Error (loc, "Cannot mutate string literal. Use `copy`"))
-  | Umove, Sp_array_get ->
-      raise (Error (loc, "Cannot move out of array. Use `copy`"))
   | _, _ -> ()
 
 let move_b loc special b =
