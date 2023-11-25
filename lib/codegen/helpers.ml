@@ -403,11 +403,12 @@ struct
             failwith
               ("Internal Error: Cannot find closed variable: " ^ cl.clname)
       in
-      (* TODO use dst as prealloc *)
-      let src =
-        if upward && cl.clcopy then Auto.copy no_param allocref src else src
-      in
       let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
+      let src =
+        if upward && cl.clcopy then
+          Auto.copy { no_param with alloca = Some dst } allocref src
+        else src
+      in
       if is_struct cl.cltyp && cl.clmut && not upward then
         ignore (Llvm.build_store src.value dst builder)
       else if is_struct cl.cltyp then

@@ -601,14 +601,13 @@ Copy closures
     store i8* bitcast (void (i8*)* @__fun_schmu0 to i8*), i8** %funptr1, align 8
     %7 = tail call i8* @malloc(i64 24)
     %clsr___fun_schmu0 = bitcast i8* %7 to { i8*, i8*, i8** }*
-    %8 = alloca i8**, align 8
-    %9 = bitcast i8*** %8 to i8*
-    %10 = bitcast i8*** %arr to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* %10, i64 8, i1 false)
-    call void @__copy_aac(i8*** %8)
     %a = getelementptr inbounds { i8*, i8*, i8** }, { i8*, i8*, i8** }* %clsr___fun_schmu0, i32 0, i32 2
-    %11 = load i8**, i8*** %8, align 8
-    store i8** %11, i8*** %a, align 8
+    %8 = bitcast i8*** %a to i8*
+    %9 = bitcast i8*** %arr to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 8, i1 false)
+    tail call void @__copy_aac(i8*** %a)
+    %10 = load i8**, i8*** %a, align 8
+    store i8** %10, i8*** %a, align 8
     %ctor2 = bitcast { i8*, i8*, i8** }* %clsr___fun_schmu0 to i8**
     store i8* bitcast (i8* (i8*)* @__ctor_tup-aac to i8*), i8** %ctor2, align 8
     %dtor = getelementptr inbounds { i8*, i8*, i8** }, { i8*, i8*, i8** }* %clsr___fun_schmu0, i32 0, i32 1
