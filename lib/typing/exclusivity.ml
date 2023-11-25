@@ -921,7 +921,9 @@ and check_let ~tl loc env id rhs rmut pass hist =
            generation until we are sure the rhs is really borrowed *)
         (Uread, rmut && tl, false)
     | false, Dmove -> (Umove, false, false)
-    | false, Dmut -> failwith "unreachable"
+    | false, Dmut ->
+        (* This is actually reachable in pattern matches. Treat it as read-only *)
+        (Uread, false, false)
   in
   let rhs, rval, hs = check_tree env nmut no_bdata rhs hist in
   let loc = loc in
