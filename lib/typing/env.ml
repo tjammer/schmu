@@ -115,7 +115,7 @@ type t = {
 }
 
 type warn_kind = Unused | Unmutated | Unused_mod
-type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
+type unused = (Path.t * warn_kind * Ast.loc) list
 
 let def_value env =
   {
@@ -362,19 +362,13 @@ let rec is_module_used modules =
             | _ -> failwith "unreachable"))
     modules false
 
-let sort_unused = function
-  | [] -> Ok ()
-  | some ->
-      (* Sort the warnings so the ones form the start of file are printed first *)
-      let s =
-        List.sort
-          (fun (_, _, ((lhs : Lexing.position), _)) (_, _, (rhs, _)) ->
-            if lhs.pos_lnum <> rhs.pos_lnum then
-              Int.compare lhs.pos_lnum rhs.pos_lnum
-            else Int.compare lhs.pos_cnum rhs.pos_cnum)
-          some
-      in
-      Error s
+let sort_unused unused =
+  (* Sort the warnings so the ones form the start of file are printed first *)
+  List.sort
+    (fun (_, _, ((lhs : Lexing.position), _)) (_, _, (rhs, _)) ->
+      if lhs.pos_lnum <> rhs.pos_lnum then Int.compare lhs.pos_lnum rhs.pos_lnum
+      else Int.compare lhs.pos_cnum rhs.pos_cnum)
+    unused
 
 let close_thing is_same modpath env =
   (* Close scopes up to next function scope *)

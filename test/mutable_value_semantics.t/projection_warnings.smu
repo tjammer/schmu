@@ -1,0 +1,10 @@
+(let ((x& [0])
+      (y& &x)
+      (z& &y))
+  (def w& &y)
+  (def ii& &w)
+  (set &ii ![2]))
+
+(defn testfn (a& [b& int])
+  (let ((c& &a))
+    (set &c !123)))

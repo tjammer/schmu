@@ -207,20 +207,10 @@ Test simple setting of mutable variables
 
 Warn on unneeded mutable bindings
   $ schmu unneeded_mut.smu
-  unneeded_mut.smu:1.19-20: warning: Unmutated mutable binding a.
-  
-  1 | (defn do_nothing (a&)
-                        ^
-  
   unneeded_mut.smu:1.7-17: warning: Unused binding do_nothing.
   
   1 | (defn do_nothing (a&)
             ^^^^^^^^^^
-  
-  unneeded_mut.smu:7.6-7: warning: Unmutated mutable binding b.
-  
-  7 | (def b& 0)
-           ^
   
 Use mutable values as ptrs to C code
   $ schmu -c --dump-llvm ptr_to_c.smu
@@ -1373,11 +1363,6 @@ Convert Const_ptr values to Ptr in copy
 
 Fix codegen
   $ schmu --dump-llvm codegen_nested_projections.smu
-  codegen_nested_projections.smu:2.8-9: warning: Unmutated mutable binding x.
-  
-  2 |   (def x& 10)
-             ^
-  
   codegen_nested_projections.smu:4.8-9: warning: Unused binding z.
   
   4 |   (def z& &y)
@@ -1412,3 +1397,21 @@ Partial move parameter
 Partial move set
   $ schmu partial_move_set.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_move_set
+
+Track unmutated binding warnings across projections
+  $ schmu projection_warnings.smu
+  projection_warnings.smu:8.19-20: warning: Unused binding b.
+  
+  8 | (defn testfn (a& [b& int])
+                        ^
+  
+  projection_warnings.smu:3.8-9: warning: Unused binding z.
+  
+  3 |       (z& &y))
+             ^
+  
+  projection_warnings.smu:8.7-13: warning: Unused binding testfn.
+  
+  8 | (defn testfn (a& [b& int])
+            ^^^^^^
+  

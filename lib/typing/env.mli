@@ -15,7 +15,7 @@ type value = {
 
 type warn_kind = Unused | Unmutated | Unused_mod
 
-type unused = (unit, (Path.t * warn_kind * Ast.loc) list) result
+type unused = (Path.t * warn_kind * Ast.loc) list
 
 and touched = {
   tname : string;

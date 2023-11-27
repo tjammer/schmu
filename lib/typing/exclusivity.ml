@@ -161,6 +161,7 @@ let borrow_state = ref 0
 let param_pass = ref false
 let shadowmap = ref Smap.empty
 let array_bindings = ref Idset.empty
+let mutables = ref Map.empty
 let is_string = function Sp_string -> true | Sp_no | Sp_array_get -> false
 
 let new_id str mname =
@@ -182,7 +183,8 @@ let reset () =
   borrow_state := 0;
   param_pass := false;
   shadowmap := Smap.empty;
-  array_bindings := Idset.empty
+  array_bindings := Idset.empty;
+  mutables := Map.empty
 
 let forbid_conditional_borrow loc imm mut =
   let msg =
@@ -484,6 +486,32 @@ let get_repr_ord ~borrows repr =
       Hashtbl.replace borrows repr ctr;
       ctr
 
+let mark_mutated env_item =
+  let rec mark_mutated id =
+    match Map.find_opt id !mutables with
+    | Some parent ->
+        (match parent with Some p, _ -> mark_mutated p | None, _ -> ());
+        mutables := Map.remove id !mutables
+    | None ->
+        (* It has already been marked as mutated. Nothing more to do *)
+        ()
+  in
+
+  match env_item.imm with
+  | [] -> ()
+  | [ Borrow_mut (b, _) ] -> mark_mutated b.repr
+  | _ ->
+      print_endline (show_env_item env_item);
+      failwith "Internal Error: What happened here?"
+
+let check_mutated () =
+  Map.fold
+    (fun _ (_, loc) acc ->
+      (* Mutated bindings have been removed. All remaining ones have not been mutated. *)
+      loc :: acc)
+    !mutables []
+  |> List.rev
+
 let get_moved_in_set env_item hist =
   let rec usage b = function
     | [ (Bown _ | Borrow _) ] -> Snot_moved
@@ -708,6 +736,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       (* Track usage of values, but not the one being mutated *)
       let thing, t, hs = check_tree env Uset no_bdata thing hs in
       let moved = get_moved_in_set t hs in
+      mark_mutated t;
       let expr = Set (thing, value, moved) in
       ({ tree with expr }, t, add_hist t hs)
   | Sequence (fst, snd) ->
@@ -939,16 +968,21 @@ and check_let ~tl loc env id rhs rmut pass hist =
              ( rhs.loc,
                "Specify how rhs expression is passed. Either by move '!' or \
                 mutably '&'" ))
-    | Bmove _ as b -> (Bown (id, Hashtbl.create 32), add_hist (imm [ b ]) hs)
+    | Bmove _ as b ->
+        if rhs.attr.mut then mutables := Map.add id (None, loc) !mutables;
+        (Bown (id, Hashtbl.create 32), add_hist (imm [ b ]) hs)
     | (Borrow _ | Borrow_mut _) when tlborrow ->
         raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
     | Borrow b -> (Borrow { b with loc; ord = neword () }, hs)
-    | Borrow_mut (b, s) -> (Borrow_mut ({ b with loc; ord = neword () }, s), hs)
+    | Borrow_mut (b, s) ->
+        mutables := Map.add id (Some b.repr, loc) !mutables;
+        (Borrow_mut ({ b with loc; ord = neword () }, s), hs)
     | Bown _ -> failwith "Internal Error: A borrowed thing isn't owned"
   in
   let imm, hs =
     match rval.imm with
     | [] ->
+        if rhs.attr.mut then mutables := Map.add id (None, loc) !mutables;
         (* No borrow, original, owned value *)
         ([ Bown (id, Hashtbl.create 32) ], hs)
     | b ->
@@ -1108,18 +1142,22 @@ let check_tree ~mname pts pns touched body =
   (* parameters *)
   let i = ref 0 in
   let env, hist =
-    List.fold_left
-      (fun (map, hs) (n, _) ->
+    List.fold_left2
+      (fun (map, hs) p (n, loc) ->
         (* Parameters are not owned, but using them as owned here makes it
            easier for borrow checking. Correct usage of mutable parameters is
            already handled in typing.ml *)
         let id = new_id n None in
         (* Parameters get no mname *)
         assert (Id.equal id (Fst (n, None)));
+        (* Register mutable variables *)
+        (match p.pattr with
+        | Dmut -> mutables := Map.add id (None, loc) !mutables
+        | _ -> ());
         let b = [ Bown (id, List.nth param_borrows !i) ] in
         incr i;
         (Map.add id (imm b) map, add_hist (imm b) hs))
-      (env, hist) pns
+      (env, hist) pts pns
   in
 
   (* [Umove] because we want to move return values *)
@@ -1159,7 +1197,7 @@ let check_tree ~mname pts pns touched body =
         { t with tattr; tattr_loc })
       touched
   in
-  (touched, body)
+  (check_mutated (), touched, body)
 
 let check_items ~mname touched items =
   reset ();
@@ -1178,6 +1216,8 @@ let check_items ~mname touched items =
   let (env, _, _, _, hist), items =
     List.fold_left_map check_item (env, false, Usage.Uread, [], hist) items
   in
+
+  let unmutated = check_mutated () in
 
   check_array_moves hist;
   (* No moves at top level *)
@@ -1206,4 +1246,4 @@ let check_items ~mname touched items =
       | Dset | Dmut | Dnorm -> ())
     touched;
 
-  items
+  (unmutated, items)

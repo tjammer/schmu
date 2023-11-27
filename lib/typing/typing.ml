@@ -68,21 +68,35 @@ let check_annot env loc l r =
 let main_path = Path.Pid "schmu"
 let is_module = function Path.Pid "schmu" -> false | Pid _ | Pmod _ -> true
 
-let check_unused env = function
-  | Ok () -> ()
-  | Error errors ->
-      let err (name, kind, loc) =
-        let warn_kind =
-          match kind with
-          | Env.Unused -> "Unused binding "
-          | Unmutated -> "Unmutated mutable binding "
-          | Unused_mod -> "Unused module import "
-        in
-        (Option.get !fmt_msg_fn) "warning" loc
-          (warn_kind ^ Path.(rm_name (Env.modpath env) name |> show))
-        |> print_endline
-      in
-      List.iter err errors
+let loc_equal (af, asnd) (bf, bsnd) =
+  let open Lexing in
+  String.equal af.pos_fname bf.pos_fname
+  && Int.equal af.pos_lnum bf.pos_lnum
+  && Int.equal af.pos_cnum bf.pos_cnum
+  && Int.equal asnd.pos_cnum bsnd.pos_cnum
+
+let check_unused env unused unmutated =
+  let err (name, kind, loc) =
+    let warn_kind =
+      match kind with
+      | Env.Unused -> "Unused binding "
+      | Unmutated -> "Unmutated mutable binding "
+      | Unused_mod -> "Unused module import "
+    in
+
+    (* We need to use the location to match the errors because the two systems
+       deal with shadowing in a different way *)
+    let print =
+      match kind with
+      | Env.Unmutated -> List.exists (fun l -> loc_equal l loc) unmutated
+      | Unused | Unused_mod -> true
+    in
+    if print then
+      (Option.get !fmt_msg_fn) "warning" loc
+        (warn_kind ^ Path.(rm_name (Env.modpath env) name |> show))
+      |> print_endline
+  in
+  List.iter err unused
 
 let string_of_bop = function
   | Ast.Plus_i -> "+"
@@ -917,7 +931,7 @@ end = struct
     leave_level ();
     let _, closed_vars, touched, unused = Env.close_function env in
 
-    let touched, body =
+    let unmutated, touched, body =
       Exclusivity.check_tree params_t ~mname:(Env.modpath env)
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
@@ -946,7 +960,7 @@ end = struct
     in
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-    check_unused env unused;
+    check_unused env unused unmutated;
 
     (* For codegen: Mark functions in parameters closures *)
     let params_t =
@@ -1017,7 +1031,7 @@ end = struct
 
     let env, closed_vars, touched, unused = Env.close_function env in
 
-    let touched, body =
+    let unmutated, touched, body =
       Exclusivity.check_tree params_t ~mname:(Env.modpath env)
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
@@ -1047,7 +1061,7 @@ end = struct
     in
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-    check_unused env unused;
+    check_unused env unused unmutated;
 
     (* For codegen: Mark functions in parameters closures *)
     let params_t =
@@ -1608,11 +1622,12 @@ let rec convert_module env mname sign prog check_ret =
   List.iter (catch_weak_vars env) items;
 
   let _, _, touched, unused = Env.close_toplevel env in
+
+  let unmutated, items = Exclusivity.check_items ~mname touched items in
+
   let has_sign = match sign with [] -> false | _ -> true in
   if (not (is_module (Env.modpath env))) || has_sign then
-    check_unused env unused;
-
-  let items = Exclusivity.check_items ~mname touched items in
+    check_unused env unused unmutated;
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
