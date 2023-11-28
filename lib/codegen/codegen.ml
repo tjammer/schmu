@@ -635,6 +635,15 @@ end = struct
         in
         let value = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
         { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Imm }
+    | Unsafe_ptr_reinterpret ->
+        let ptr =
+          match args with
+          | [ ptr ] -> bring_default ptr
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        let lltyp = get_lltype_def fnc.ret in
+        let value = Llvm.build_bitcast ptr lltyp "" builder in
+        { value; lltyp; typ = fnc.ret; kind = Ptr }
     | Mod -> (
         match args with
         | [ value; md ] ->
@@ -785,6 +794,54 @@ end = struct
 
         { dummy_fn_value with lltyp = unit_t }
     | Copy -> Auto.copy param allocref (List.hd args)
+    | Land ->
+        let a, b =
+          match args with
+          | [ a; b ] -> (bring_default a, bring_default b)
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        let value = Llvm.build_and a b "land" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Lor ->
+        let a, b =
+          match args with
+          | [ a; b ] -> (bring_default a, bring_default b)
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        let value = Llvm.build_or a b "lor" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Lxor ->
+        let a, b =
+          match args with
+          | [ a; b ] -> (bring_default a, bring_default b)
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        let value = Llvm.build_xor a b "lor" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Lshl ->
+        let a, b =
+          match args with
+          | [ a; b ] -> (bring_default a, bring_default b)
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        let value = Llvm.build_shl a b "lshl" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Lshr ->
+        let a, b =
+          match args with
+          | [ a; b ] -> (bring_default a, bring_default b)
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        let value = Llvm.build_lshr a b "lshr" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Ashr ->
+        let a, b =
+          match args with
+          | [ a; b ] -> (bring_default a, bring_default b)
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        let value = Llvm.build_ashr a b "ashr" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)

@@ -2,6 +2,7 @@ type t =
   | Unsafe_ptr_get
   | Unsafe_ptr_set
   | Unsafe_ptr_at
+  | Unsafe_ptr_reinterpret
   | Realloc
   | Malloc
   | Ignore
@@ -36,6 +37,12 @@ type t =
   | Is_nullptr
   | Assert
   | Copy
+  | Land
+  | Lor
+  | Lxor
+  | Lshl
+  | Lshr
+  | Ashr
 [@@deriving show]
 
 let tbl =
@@ -63,6 +70,9 @@ let tbl =
           Traw_ptr (Qvar "0"),
           Simple ),
       "__unsafe_ptr_at" );
+    ( Unsafe_ptr_reinterpret,
+      Tfun ([ { p with pt = Traw_ptr (Qvar "0") } ], Traw_ptr (Qvar "1"), Simple),
+      "__unsafe_ptr_reinterpret" );
     ( Realloc,
       Tfun
         ( [ { pt = Traw_ptr (Qvar "0"); pattr = Dmut }; { p with pt = Tint } ],
@@ -164,12 +174,31 @@ let tbl =
       "nullptr?" );
     (Assert, Tfun ([ { p with pt = Tbool } ], Tunit, Simple), "assert");
     (Copy, Tfun ([ { p with pt = Qvar "0" } ], Qvar "0", Simple), "copy");
+    ( Land,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple),
+      "land" );
+    ( Lor,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple),
+      "lor" );
+    ( Lxor,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple),
+      "lxor" );
+    ( Lshl,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple),
+      "lshl" );
+    ( Lshr,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple),
+      "lshr" );
+    ( Ashr,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple),
+      "ashr" );
   ]
 
 let of_string = function
   | "__unsafe_ptr_get" -> Some Unsafe_ptr_get
   | "__unsafe_ptr_set" -> Some Unsafe_ptr_set
   | "__unsafe_ptr_at" -> Some Unsafe_ptr_at
+  | "__unsafe_ptr_reinterpret" -> Some Unsafe_ptr_reinterpret
   | "__realloc" -> Some Realloc
   | "__malloc" -> Some Malloc
   | "ignore" -> Some Ignore
@@ -207,6 +236,12 @@ let of_string = function
       (* To make sure copy is not shadowed for string literals.
          See exclusivity *)
       Some Copy
+  | "land" -> Some Land
+  | "lor" -> Some Lor
+  | "lxor" -> Some Lxor
+  | "lshl" -> Some Lshl
+  | "lshr" -> Some Lshr
+  | "ashr" -> Some Ashr
   | _ -> None
 
 let fold f init = List.fold_left f init tbl
