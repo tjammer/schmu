@@ -63,7 +63,10 @@ let char_for_backslash = function
   | 't' -> '\009'
   | c   -> c
 
-let int_of_hashnum s = String.sub s 1 (String.length s - 2) |> int_of_string
+let int_of_intlit lit =
+  String.split_on_char '\'' lit |> String.concat "" |> Int64.of_string |> Int64.to_int
+
+let int_of_hashnum s = String.sub s 1 (String.length s - 2) |> int_of_intlit
 
 }
 
@@ -71,11 +74,19 @@ let digit = ['0'-'9']
 let lowercase_alpha = ['a'-'z']
 let uppercase_alpha = ['A'-'Z']
 let min = '-'
+let hex_literal =
+  '0' ['x' 'X'] ['0'-'9' 'A'-'F' 'a'-'f']['0'-'9' 'A'-'F' 'a'-'f' '_']*
+let oct_literal =
+  '0' ['o' 'O'] ['0'-'7'] ['0'-'7' '_']*
+let bin_literal =
+  '0' ['b' 'B'] ['0'-'1'] ['0'-'1' '_']*
+let digits = digit (digit | ('_' | digit))*
+let int_lit = (digits | hex_literal | oct_literal | bin_literal)
 
-let int = digit+
+let int = int_lit
 let u8 = digit+ "u8"
 let float = digit+ '.' digit+
-let i32 = min? digit+ "i32"
+let i32 = min? int_lit "i32"
 let f32 = min? float "f32"
 
 let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
@@ -102,10 +113,10 @@ rule read =
   parse
   | white    { read lexbuf }
   | newline  { next_line lexbuf; read lexbuf }
-  | int      { Int (int_of_string (Lexing.lexeme lexbuf)) }
+  | int      { Int (int_of_intlit (Lexing.lexeme lexbuf)) }
   | float    { Float (float_of_string (Lexing.lexeme lexbuf)) }
   | u8       { U8 (u8_of_string (Lexing.lexeme lexbuf)) }
-  | i32      { I32 (f_of_string int_of_string (Lexing.lexeme lexbuf)) }
+  | i32      { I32 (f_of_string int_of_intlit (Lexing.lexeme lexbuf)) }
   | f32      { F32 (f_of_string float_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { True }
   | "false"  { False }
