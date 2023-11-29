@@ -1,35 +1,72 @@
 (rule
- (targets
-  array.o
-  array.smi
-  hashtbl.o
-  hashtbl.smi
-  option.o
-  option.smi
-  prelude.o
-  prelude.smi
-  std.o
-  std.smi
-  string.o
-  string.smi
-  in_channel.o
-  in_channel.smi)
- (deps
-  std.smu
-  %{bin:schmu}
-  array.smu
-  string.smu
-  hashtbl.smu
-  prelude.smu
-  in_channel.smu)
+ (targets string.o string.smi)
+ (deps %{bin:schmu} string.smu prelude.smi array.smi option.smi)
  (action
   (progn
-   (run schmu -m --no-std prelude.smu)
-   (run schmu -m --no-std array.smu)
-   (run schmu -m --no-std option.smu)
-   (run schmu -m --no-std string.smu)
-   (run schmu -m --no-std hashtbl.smu)
-   (run schmu -m --no-std in_channel.smu)
+   (run schmu -m --no-std string.smu))))
+
+(rule
+ (targets array.o array.smi)
+ (deps %{bin:schmu} array.smu)
+ (action
+  (progn
+   (run schmu -m --no-std array.smu))))
+
+(rule
+ (targets int.o int.smi)
+ (deps %{bin:schmu} int.smu)
+ (action
+  (progn
+   (run schmu -m --no-std int.smu))))
+
+(rule
+ (targets prelude.o prelude.smi)
+ (deps %{bin:schmu} prelude.smu)
+ (action
+  (progn
+   (run schmu -m --no-std prelude.smu))))
+
+(rule
+ (targets hashtbl.o hashtbl.smi)
+ (deps %{bin:schmu} hashtbl.smu option.smi prelude.smi array.smi string.smi)
+ (action
+  (progn
+   (run schmu -m --no-std hashtbl.smu))))
+
+(rule
+ (targets in_channel.o in_channel.smi)
+ (deps
+  %{bin:schmu}
+  in_channel.smu
+  string.smi
+  option.smi
+  prelude.smi
+  array.smi)
+ (action
+  (progn
+   (run schmu -m --no-std in_channel.smu))))
+
+(rule
+ (targets option.o option.smi)
+ (deps %{bin:schmu} option.smu)
+ (action
+  (progn
+   (run schmu -m --no-std option.smu))))
+
+(rule
+  (alias stdlib)
+ (targets std.o std.smi)
+ (deps
+  %{bin:schmu}
+  std.smu
+  array.smi
+  string.smi
+  hashtbl.smi
+  prelude.smi
+  int.smi
+  in_channel.smi)
+ (action
+  (progn
    (run schmu -m --no-std std.smu))))
 
 (install
@@ -57,4 +94,7 @@
   (prelude.o as std/prelude.o)
   in_channel.smu
   (in_channel.smi as std/in_channel.smi)
-  (in_channel.o as std/in_channel.o)))
+  (in_channel.o as std/in_channel.o)
+  int.smu
+  (int.smi as std/int.smi)
+  (int.o as std/int.o)))

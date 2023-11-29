@@ -24,26 +24,23 @@
   (type (slot 'a) (option/t (item 'a)))
   (type (t 'a) {:data& (array (slot 'a)) :nitems& int})
 
+  (defn power-2-above (x n)
+    (if (>= x n)
+      x
+      (if (< (* x 2) 0)
+        x
+        (power-2-above (* x 2) n))))
+
   (defn create (size)
+    (def size (power-2-above 16 size))
     (def data& (__unsafe_array_create size))
     (prelude/iter-range 0 size
                         (fn (i) (__unsafe_ptr_set &(array/data data) i !#none)))
     {:data :nitems 0})
 
-  (external abs (fun int int))
-
   (defn idx (tbl key)
     (let ((hash (m/hash key)))
-      (mod (abs hash) (array/length tbl.data))))
-
-  (defn greater-wrapped (other-hash other-wrapped hash wrapped size)
-    (if (or (and (not other-wrapped) (not wrapped))
-            (and other-wrapped wrapped))
-      -- if both or none have wrapped, we can simply compare
-      (> other-hash hash)
-      (if other-wrapped
-        (> (- other-hash size) hash)
-        (> other-hash (- hash size)))))
+      (land hash (- (array/length tbl.data) 1))))
 
   (defn next-wrapped (curr size)
     (if (= (+ curr 1) size) 0 (+ curr 1)))
@@ -115,6 +112,7 @@
                       -- probe sequence length of new value is larger. robin hood
                       (other-item !other))
                   (set &tbl.data.[i] !(#some {:key :value :pathlen}))
+                  (set &tbl.nitems !(+ 1 tbl.nitems))
                   (redist &tbl !other-item next (+ other-pathlen 1)))
                 (insert next (+ pathlen 1) !key !value)))))))
 
@@ -145,8 +143,10 @@
       ((#some item&)
        (if (not (= item.pathlen 0))
          (do (set &item.pathlen !(- item.pathlen 1))
-             -- swap with old slot
-             (array/swap-items &data old next)
+             -- swap with old slot, inline
+             (let ((oldtmp !data.[old]))
+               (set &data.[old] !data.[next])
+               (set &data.[next] !oldtmp))
              (fixup &data next))))
       (#none ())))
 

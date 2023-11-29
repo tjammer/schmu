@@ -15,5 +15,6 @@
 (module array)
 (module hashtbl)
 (module in_channel)
+(module int)
 (module option)
 (module string)

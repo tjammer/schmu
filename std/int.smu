@@ -1,0 +1,25 @@
+(signature
+  (type t int)
+
+  (def hash (fun t int))
+  (def equal (fun t t bool)))
+
+(defn hash (i)
+  -- basically murmurhash
+  (let ((m 0xc6a4a7935bd1e995)
+        (r 47)
+        (h& (lxor 0 (* 8 m)))
+        (k& !i))
+    (set &k !(* k m))
+    (set &k !(lxor k (lshr k r)))
+    (set &k !(* k m))
+
+    (set &h !(lxor h k))
+    (set &h !(* h m))
+
+    (set &h !(lxor h (lshr h r)))
+    (set &h !(* h m))
+    (set &h !(lxor h (lshr h r)))
+    h))
+
+(defn equal (a b) (= a b))
