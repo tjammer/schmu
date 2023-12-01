@@ -1,0 +1,6 @@
+(defn dont-be-global (_)
+  (let ((localmut& false))
+    (print (fmt-str localmut))
+    (if (not localmut) (set &localmut !true))))
+
+(iter-range 0 3 dont-be-global)

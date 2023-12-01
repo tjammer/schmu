@@ -1425,7 +1425,6 @@ Don't copy mutable types in setup of tailrecursive functions
   %r = type { i64 }
   
   @schmu_rf = global %bref zeroinitializer, align 1
-  @schmu_i = internal global i64 0, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"false\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"true\00" }
   @2 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%s\0A\00" }
@@ -1763,22 +1762,24 @@ Don't copy mutable types in setup of tailrecursive functions
     %12 = load i64*, i64** %8, align 8
     %13 = load i64, i64* %12, align 8
     call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %13)
-    call void @schmu_change-int(i64* @schmu_i, i64 0)
-    %14 = load i64, i64* @schmu_i, align 8
-    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %14)
-    %15 = alloca i64*, align 8
-    %16 = call i8* @malloc(i64 24)
-    %17 = bitcast i8* %16 to i64*
-    store i64* %17, i64** %15, align 8
-    store i64 0, i64* %17, align 8
-    %cap4 = getelementptr i64, i64* %17, i64 1
+    %14 = alloca i64, align 8
+    store i64 0, i64* %14, align 8
+    call void @schmu_change-int(i64* %14, i64 0)
+    %15 = load i64, i64* %14, align 8
+    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %15)
+    %16 = alloca i64*, align 8
+    %17 = call i8* @malloc(i64 24)
+    %18 = bitcast i8* %17 to i64*
+    store i64* %18, i64** %16, align 8
+    store i64 0, i64* %18, align 8
+    %cap4 = getelementptr i64, i64* %18, i64 1
     store i64 1, i64* %cap4, align 8
-    %18 = getelementptr i8, i8* %16, i64 16
-    call void @schmu_test(i64** %15, i64 0)
-    %19 = load i64*, i64** %15, align 8
-    %20 = load i64, i64* %19, align 8
-    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %20)
-    call void @__free_ai(i64** %15)
+    %19 = getelementptr i8, i8* %17, i64 16
+    call void @schmu_test(i64** %16, i64 0)
+    %20 = load i64*, i64** %16, align 8
+    %21 = load i64, i64* %20, align 8
+    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %21)
+    call void @__free_ai(i64** %16)
     call void @__free_ai(i64** %8)
     ret i64 0
   }
