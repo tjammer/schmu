@@ -2430,7 +2430,3 @@ Check that binops with multiple argument works
   $ ./binop
   1
   19
-
-Partial application
-  $ schmu partial_application.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_application

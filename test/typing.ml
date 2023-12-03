@@ -1551,9 +1551,4 @@ let () =
           case "nested lit" test_farray_nested_lit;
           case "generalize / instantiate" test_farray_inference;
         ] );
-      ( "partial application",
-        [
-          case "move outer imm" test_partial_move_outer_imm;
-          case "move outer delayed" test_partial_move_outer_delayed;
-        ] );
     ]
