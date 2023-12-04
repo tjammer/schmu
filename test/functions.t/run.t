@@ -1060,29 +1060,42 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %1 = load i64, i64* %capacity, align 8
     %2 = load i64, i64* %0, align 8
     %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont5
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %1
-    %3 = mul i64 %mul, 8
-    %4 = add i64 %3, 16
-    %5 = bitcast i64* %0 to i8*
-    %6 = tail call i8* @realloc(i8* %5, i64 %4)
-    %7 = bitcast i8* %6 to i64*
-    store i64* %7, i64** %arr, align 8
-    %newcap = getelementptr i64, i64* %7, i64 1
-    store i64 %mul, i64* %newcap, align 8
-    br label %ifcont
+    %eq1 = icmp eq i64 %1, 0
+    br i1 %eq1, label %then2, label %else
   
-  ifcont:                                           ; preds = %entry, %then
-    %8 = phi i64* [ %7, %then ], [ %0, %entry ]
-    %9 = bitcast i64* %8 to i8*
-    %10 = getelementptr i8, i8* %9, i64 16
-    %data = bitcast i8* %10 to i64*
-    %11 = getelementptr inbounds i64, i64* %data, i64 %2
-    store i64 %value, i64* %11, align 8
+  then2:                                            ; preds = %then
+    %3 = bitcast i64* %0 to i8*
+    %4 = tail call i8* @realloc(i8* %3, i64 48)
+    %5 = bitcast i8* %4 to i64*
+    store i64* %5, i64** %arr, align 8
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 4, i64* %newcap, align 8
+    br label %ifcont5
+  
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %1
+    %6 = mul i64 %mul, 8
+    %7 = add i64 %6, 16
+    %8 = bitcast i64* %0 to i8*
+    %9 = tail call i8* @realloc(i8* %8, i64 %7)
+    %10 = bitcast i8* %9 to i64*
+    store i64* %10, i64** %arr, align 8
+    %newcap3 = getelementptr i64, i64* %10, i64 1
+    store i64 %mul, i64* %newcap3, align 8
+    br label %ifcont5
+  
+  ifcont5:                                          ; preds = %entry, %then2, %else
+    %11 = phi i64* [ %10, %else ], [ %5, %then2 ], [ %0, %entry ]
+    %12 = bitcast i64* %11 to i8*
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to i64*
+    %14 = getelementptr inbounds i64, i64* %data, i64 %2
+    store i64 %value, i64* %14, align 8
     %add = add i64 1, %2
-    store i64 %add, i64* %8, align 8
+    store i64 %add, i64* %11, align 8
     ret void
   }
   
@@ -1241,11 +1254,11 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }
@@ -1437,29 +1450,42 @@ Don't copy mutable types in setup of tailrecursive functions
     %1 = load i64, i64* %capacity, align 8
     %2 = load i64, i64* %0, align 8
     %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont5
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %1
-    %3 = mul i64 %mul, 8
-    %4 = add i64 %3, 16
-    %5 = bitcast i64* %0 to i8*
-    %6 = tail call i8* @realloc(i8* %5, i64 %4)
-    %7 = bitcast i8* %6 to i64*
-    store i64* %7, i64** %arr, align 8
-    %newcap = getelementptr i64, i64* %7, i64 1
-    store i64 %mul, i64* %newcap, align 8
-    br label %ifcont
+    %eq1 = icmp eq i64 %1, 0
+    br i1 %eq1, label %then2, label %else
   
-  ifcont:                                           ; preds = %entry, %then
-    %8 = phi i64* [ %7, %then ], [ %0, %entry ]
-    %9 = bitcast i64* %8 to i8*
-    %10 = getelementptr i8, i8* %9, i64 16
-    %data = bitcast i8* %10 to i64*
-    %11 = getelementptr inbounds i64, i64* %data, i64 %2
-    store i64 %value, i64* %11, align 8
+  then2:                                            ; preds = %then
+    %3 = bitcast i64* %0 to i8*
+    %4 = tail call i8* @realloc(i8* %3, i64 48)
+    %5 = bitcast i8* %4 to i64*
+    store i64* %5, i64** %arr, align 8
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 4, i64* %newcap, align 8
+    br label %ifcont5
+  
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %1
+    %6 = mul i64 %mul, 8
+    %7 = add i64 %6, 16
+    %8 = bitcast i64* %0 to i8*
+    %9 = tail call i8* @realloc(i8* %8, i64 %7)
+    %10 = bitcast i8* %9 to i64*
+    store i64* %10, i64** %arr, align 8
+    %newcap3 = getelementptr i64, i64* %10, i64 1
+    store i64 %mul, i64* %newcap3, align 8
+    br label %ifcont5
+  
+  ifcont5:                                          ; preds = %entry, %then2, %else
+    %11 = phi i64* [ %10, %else ], [ %5, %then2 ], [ %0, %entry ]
+    %12 = bitcast i64* %11 to i8*
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to i64*
+    %14 = getelementptr inbounds i64, i64* %data, i64 %2
+    store i64 %value, i64* %14, align 8
     %add = add i64 1, %2
-    store i64 %add, i64* %8, align 8
+    store i64 %add, i64* %11, align 8
     ret void
   }
   
@@ -1851,24 +1877,36 @@ The lamba passed as array-iter argument is polymorphic
     %2 = load i64, i64* %capacity, align 8
     %3 = load i64, i64* %1, align 8
     %eq = icmp eq i64 %2, %3
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont7
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %2
-    %4 = add i64 %mul, 16
-    %5 = tail call i8* @realloc(i8* %0, i64 %4)
-    store i8* %5, i8** %arr, align 8
-    %newcap = bitcast i8* %5 to i64*
-    %newcap1 = getelementptr i64, i64* %newcap, i64 1
-    store i64 %mul, i64* %newcap1, align 8
-    br label %ifcont
+    %eq1 = icmp eq i64 %2, 0
+    br i1 %eq1, label %then2, label %else
   
-  ifcont:                                           ; preds = %entry, %then
-    %.pre-phi = phi i64* [ %newcap, %then ], [ %1, %entry ]
-    %6 = phi i8* [ %5, %then ], [ %0, %entry ]
-    %7 = getelementptr i8, i8* %6, i64 16
-    %8 = getelementptr inbounds i8, i8* %7, i64 %3
-    store i8 %value, i8* %8, align 1
+  then2:                                            ; preds = %then
+    %4 = tail call i8* @realloc(i8* %0, i64 20)
+    store i8* %4, i8** %arr, align 8
+    %newcap = bitcast i8* %4 to i64*
+    %newcap3 = getelementptr i64, i64* %newcap, i64 1
+    store i64 4, i64* %newcap3, align 8
+    br label %ifcont7
+  
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %2
+    %5 = add i64 %mul, 16
+    %6 = tail call i8* @realloc(i8* %0, i64 %5)
+    store i8* %6, i8** %arr, align 8
+    %newcap4 = bitcast i8* %6 to i64*
+    %newcap5 = getelementptr i64, i64* %newcap4, i64 1
+    store i64 %mul, i64* %newcap5, align 8
+    br label %ifcont7
+  
+  ifcont7:                                          ; preds = %entry, %then2, %else
+    %.pre-phi = phi i64* [ %newcap4, %else ], [ %newcap, %then2 ], [ %1, %entry ]
+    %7 = phi i8* [ %6, %else ], [ %4, %then2 ], [ %0, %entry ]
+    %8 = getelementptr i8, i8* %7, i64 16
+    %9 = getelementptr inbounds i8, i8* %8, i64 %3
+    store i8 %value, i8* %9, align 1
     %add = add i64 1, %3
     store i64 %add, i64* %.pre-phi, align 8
     ret void
@@ -2008,8 +2046,11 @@ The lamba passed as array-iter argument is polymorphic
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -2065,11 +2106,11 @@ The lamba passed as array-iter argument is polymorphic
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }

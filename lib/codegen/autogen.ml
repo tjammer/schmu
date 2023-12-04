@@ -224,17 +224,20 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let size = Llvm.build_add itemscap (ci cap_size) "" builder in
 
         let lltyp = get_lltype_def dst.typ in
-        let ptr = malloc ~size |> fun ptr -> bb ptr lltyp "" builder in
-        let itemssize =
-          (* Don't multiply by 1 *)
-          if item_size <> 1 then Llvm.build_mul sz (ci item_size) "" builder
-          else sz
-        in
-        let size = Llvm.build_add itemssize (ci head_size) "" builder in
+        let ptr = bb (malloc ~size) lltyp "" builder in
+
+        (* Don't write to null terminator *)
+        let size = if is_string then Llvm.build_sub size (ci 1) "" builder else size in
         ignore
           (* Ptr is needed here to get a copy *)
           (let src = { value = v.value; typ = dst.typ; kind = Ptr; lltyp } in
            memcpy ~src ~dst:ptr ~size);
+
+        (* Set new capacity since we only malloced [size] *)
+        let int_ptr = bb ptr (Llvm.pointer_type int_t) "newref" builder in
+        let cap = Llvm.build_gep int_ptr [| ci 1 |] "newcap" builder in
+        Llvm.build_store sz cap builder |> ignore;
+
         (if is_string then
            (* Set null terminator *)
            let last = Llvm.build_gep ptr [| size |] "" builder in

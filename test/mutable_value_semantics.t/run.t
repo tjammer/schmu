@@ -109,11 +109,11 @@ Test simple setting of mutable variables
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }
@@ -128,29 +128,30 @@ Test simple setting of mutable variables
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64**
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64** %5 to i8*
-    %9 = bitcast i64** %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64** %5 to i8*
+    %7 = bitcast i64** %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newref = bitcast i64** %5 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64** %5, i64*** %0, align 8
     %cnt = alloca i64, align 8
     store i64 0, i64* %cnt, align 8
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %10 = load i64, i64* %cnt, align 8
-    %11 = icmp slt i64 %10, %size
-    br i1 %11, label %child, label %cont
+    %8 = load i64, i64* %cnt, align 8
+    %9 = icmp slt i64 %8, %size
+    br i1 %9, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %12 = bitcast i64** %1 to i8*
-    %13 = getelementptr i8, i8* %12, i64 16
-    %data = bitcast i8* %13 to i64**
-    %14 = getelementptr i64*, i64** %data, i64 %10
-    call void @__copy_ai(i64** %14)
-    %15 = add i64 %10, 1
-    store i64 %15, i64* %cnt, align 8
+    %10 = bitcast i64** %1 to i8*
+    %11 = getelementptr i8, i8* %10, i64 16
+    %data = bitcast i8* %11 to i64**
+    %12 = getelementptr i64*, i64** %data, i64 %8
+    call void @__copy_ai(i64** %12)
+    %13 = add i64 %8, 1
+    store i64 %13, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -475,11 +476,11 @@ Copies, but with ref-counted arrays
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }
@@ -625,11 +626,11 @@ Arrays in records
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }
@@ -794,11 +795,11 @@ Nested arrays
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }
@@ -813,29 +814,30 @@ Nested arrays
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64**
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64** %5 to i8*
-    %9 = bitcast i64** %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64** %5 to i8*
+    %7 = bitcast i64** %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newref = bitcast i64** %5 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64** %5, i64*** %0, align 8
     %cnt = alloca i64, align 8
     store i64 0, i64* %cnt, align 8
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %10 = load i64, i64* %cnt, align 8
-    %11 = icmp slt i64 %10, %size
-    br i1 %11, label %child, label %cont
+    %8 = load i64, i64* %cnt, align 8
+    %9 = icmp slt i64 %8, %size
+    br i1 %9, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %12 = bitcast i64** %1 to i8*
-    %13 = getelementptr i8, i8* %12, i64 16
-    %data = bitcast i8* %13 to i64**
-    %14 = getelementptr i64*, i64** %data, i64 %10
-    call void @__copy_ai(i64** %14)
-    %15 = add i64 %10, 1
-    store i64 %15, i64* %cnt, align 8
+    %10 = bitcast i64** %1 to i8*
+    %11 = getelementptr i8, i8* %10, i64 16
+    %data = bitcast i8* %11 to i64**
+    %12 = getelementptr i64*, i64** %data, i64 %8
+    call void @__copy_ai(i64** %12)
+    %13 = add i64 %8, 1
+    store i64 %13, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -911,29 +913,42 @@ Modify in function
     %1 = load i64, i64* %capacity, align 8
     %2 = load i64, i64* %0, align 8
     %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont5
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %1
-    %3 = mul i64 %mul, 8
-    %4 = add i64 %3, 16
-    %5 = bitcast i64* %0 to i8*
-    %6 = tail call i8* @realloc(i8* %5, i64 %4)
-    %7 = bitcast i8* %6 to i64*
-    store i64* %7, i64** %arr, align 8
-    %newcap = getelementptr i64, i64* %7, i64 1
-    store i64 %mul, i64* %newcap, align 8
-    br label %ifcont
+    %eq1 = icmp eq i64 %1, 0
+    br i1 %eq1, label %then2, label %else
   
-  ifcont:                                           ; preds = %entry, %then
-    %8 = phi i64* [ %7, %then ], [ %0, %entry ]
-    %9 = bitcast i64* %8 to i8*
-    %10 = getelementptr i8, i8* %9, i64 16
-    %data = bitcast i8* %10 to i64*
-    %11 = getelementptr inbounds i64, i64* %data, i64 %2
-    store i64 %value, i64* %11, align 8
+  then2:                                            ; preds = %then
+    %3 = bitcast i64* %0 to i8*
+    %4 = tail call i8* @realloc(i8* %3, i64 48)
+    %5 = bitcast i8* %4 to i64*
+    store i64* %5, i64** %arr, align 8
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 4, i64* %newcap, align 8
+    br label %ifcont5
+  
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %1
+    %6 = mul i64 %mul, 8
+    %7 = add i64 %6, 16
+    %8 = bitcast i64* %0 to i8*
+    %9 = tail call i8* @realloc(i8* %8, i64 %7)
+    %10 = bitcast i8* %9 to i64*
+    store i64* %10, i64** %arr, align 8
+    %newcap3 = getelementptr i64, i64* %10, i64 1
+    store i64 %mul, i64* %newcap3, align 8
+    br label %ifcont5
+  
+  ifcont5:                                          ; preds = %entry, %then2, %else
+    %11 = phi i64* [ %10, %else ], [ %5, %then2 ], [ %0, %entry ]
+    %12 = bitcast i64* %11 to i8*
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to i64*
+    %14 = getelementptr inbounds i64, i64* %data, i64 %2
+    store i64 %value, i64* %14, align 8
     %add = add i64 1, %2
-    store i64 %add, i64* %8, align 8
+    store i64 %add, i64* %11, align 8
     ret void
   }
   
@@ -1018,29 +1033,42 @@ Make sure variable ids are correctly propagated
     %1 = load i64, i64* %capacity, align 8
     %2 = load i64, i64* %0, align 8
     %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont5
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %1
-    %3 = mul i64 %mul, 8
-    %4 = add i64 %3, 16
-    %5 = bitcast i64* %0 to i8*
-    %6 = tail call i8* @realloc(i8* %5, i64 %4)
-    %7 = bitcast i8* %6 to i64*
-    store i64* %7, i64** %arr, align 8
-    %newcap = getelementptr i64, i64* %7, i64 1
-    store i64 %mul, i64* %newcap, align 8
-    br label %ifcont
+    %eq1 = icmp eq i64 %1, 0
+    br i1 %eq1, label %then2, label %else
   
-  ifcont:                                           ; preds = %entry, %then
-    %8 = phi i64* [ %7, %then ], [ %0, %entry ]
-    %9 = bitcast i64* %8 to i8*
-    %10 = getelementptr i8, i8* %9, i64 16
-    %data = bitcast i8* %10 to i64*
-    %11 = getelementptr inbounds i64, i64* %data, i64 %2
-    store i64 %value, i64* %11, align 8
+  then2:                                            ; preds = %then
+    %3 = bitcast i64* %0 to i8*
+    %4 = tail call i8* @realloc(i8* %3, i64 48)
+    %5 = bitcast i8* %4 to i64*
+    store i64* %5, i64** %arr, align 8
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 4, i64* %newcap, align 8
+    br label %ifcont5
+  
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %1
+    %6 = mul i64 %mul, 8
+    %7 = add i64 %6, 16
+    %8 = bitcast i64* %0 to i8*
+    %9 = tail call i8* @realloc(i8* %8, i64 %7)
+    %10 = bitcast i8* %9 to i64*
+    store i64* %10, i64** %arr, align 8
+    %newcap3 = getelementptr i64, i64* %10, i64 1
+    store i64 %mul, i64* %newcap3, align 8
+    br label %ifcont5
+  
+  ifcont5:                                          ; preds = %entry, %then2, %else
+    %11 = phi i64* [ %10, %else ], [ %5, %then2 ], [ %0, %entry ]
+    %12 = bitcast i64* %11 to i8*
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to i64*
+    %14 = getelementptr inbounds i64, i64* %data, i64 %2
+    store i64 %value, i64* %14, align 8
     %add = add i64 1, %2
-    store i64 %add, i64* %8, align 8
+    store i64 %add, i64* %11, align 8
     ret void
   }
   
@@ -1053,11 +1081,11 @@ Make sure variable ids are correctly propagated
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }
@@ -1270,11 +1298,11 @@ Refcounts for members in arrays, records and variants
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }

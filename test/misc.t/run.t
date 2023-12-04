@@ -150,29 +150,43 @@ Also mutable fields and 'realloc' builtin
     %2 = load i64, i64* %capacity, align 8
     %3 = load i64, i64* %1, align 8
     %eq = icmp eq i64 %2, %3
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont7
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %2
-    %4 = mul i64 %mul, 8
-    %5 = add i64 %4, 16
-    %6 = bitcast i64** %0 to i8*
-    %7 = tail call i8* @realloc(i8* %6, i64 %5)
-    %8 = bitcast i8* %7 to i64**
-    store i64** %8, i64*** %arr, align 8
-    %newcap = bitcast i64** %8 to i64*
-    %newcap1 = getelementptr i64, i64* %newcap, i64 1
-    store i64 %mul, i64* %newcap1, align 8
-    br label %ifcont
+    %eq1 = icmp eq i64 %2, 0
+    br i1 %eq1, label %then2, label %else
   
-  ifcont:                                           ; preds = %entry, %then
-    %.pre-phi = phi i64* [ %newcap, %then ], [ %1, %entry ]
-    %9 = phi i64** [ %8, %then ], [ %0, %entry ]
-    %10 = bitcast i64** %9 to i8*
-    %11 = getelementptr i8, i8* %10, i64 16
-    %data = bitcast i8* %11 to i64**
-    %12 = getelementptr inbounds i64*, i64** %data, i64 %3
-    store i64* %value, i64** %12, align 8
+  then2:                                            ; preds = %then
+    %4 = bitcast i64** %0 to i8*
+    %5 = tail call i8* @realloc(i8* %4, i64 48)
+    %6 = bitcast i8* %5 to i64**
+    store i64** %6, i64*** %arr, align 8
+    %newcap = bitcast i64** %6 to i64*
+    %newcap3 = getelementptr i64, i64* %newcap, i64 1
+    store i64 4, i64* %newcap3, align 8
+    br label %ifcont7
+  
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %2
+    %7 = mul i64 %mul, 8
+    %8 = add i64 %7, 16
+    %9 = bitcast i64** %0 to i8*
+    %10 = tail call i8* @realloc(i8* %9, i64 %8)
+    %11 = bitcast i8* %10 to i64**
+    store i64** %11, i64*** %arr, align 8
+    %newcap4 = bitcast i64** %11 to i64*
+    %newcap5 = getelementptr i64, i64* %newcap4, i64 1
+    store i64 %mul, i64* %newcap5, align 8
+    br label %ifcont7
+  
+  ifcont7:                                          ; preds = %entry, %then2, %else
+    %.pre-phi = phi i64* [ %newcap4, %else ], [ %newcap, %then2 ], [ %1, %entry ]
+    %12 = phi i64** [ %11, %else ], [ %6, %then2 ], [ %0, %entry ]
+    %13 = bitcast i64** %12 to i8*
+    %14 = getelementptr i8, i8* %13, i64 16
+    %data = bitcast i8* %14 to i64**
+    %15 = getelementptr inbounds i64*, i64** %data, i64 %3
+    store i64* %value, i64** %15, align 8
     %add = add i64 1, %3
     store i64 %add, i64* %.pre-phi, align 8
     ret void
@@ -188,32 +202,46 @@ Also mutable fields and 'realloc' builtin
     %3 = load i64, i64* %capacity, align 8
     %4 = load i64, i64* %2, align 8
     %eq = icmp eq i64 %3, %4
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont8
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %3
-    %5 = mul i64 %mul, 8
-    %6 = add i64 %5, 16
-    %7 = bitcast %foo* %1 to i8*
-    %8 = tail call i8* @realloc(i8* %7, i64 %6)
-    %9 = bitcast i8* %8 to %foo*
-    store %foo* %9, %foo** %arr, align 8
-    %newcap = bitcast %foo* %9 to i64*
-    %newcap2 = getelementptr i64, i64* %newcap, i64 1
-    store i64 %mul, i64* %newcap2, align 8
-    br label %ifcont
+    %eq2 = icmp eq i64 %3, 0
+    br i1 %eq2, label %then3, label %else
   
-  ifcont:                                           ; preds = %entry, %then
-    %.pre-phi = phi i64* [ %newcap, %then ], [ %2, %entry ]
-    %10 = phi %foo* [ %9, %then ], [ %1, %entry ]
-    %11 = bitcast i64* %box to %foo*
-    %12 = bitcast %foo* %10 to i8*
-    %13 = getelementptr i8, i8* %12, i64 16
-    %data = bitcast i8* %13 to %foo*
-    %14 = getelementptr inbounds %foo, %foo* %data, i64 %4
-    %15 = bitcast %foo* %14 to i8*
-    %16 = bitcast %foo* %11 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %15, i8* %16, i64 8, i1 false)
+  then3:                                            ; preds = %then
+    %5 = bitcast %foo* %1 to i8*
+    %6 = tail call i8* @realloc(i8* %5, i64 48)
+    %7 = bitcast i8* %6 to %foo*
+    store %foo* %7, %foo** %arr, align 8
+    %newcap = bitcast %foo* %7 to i64*
+    %newcap4 = getelementptr i64, i64* %newcap, i64 1
+    store i64 4, i64* %newcap4, align 8
+    br label %ifcont8
+  
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %3
+    %8 = mul i64 %mul, 8
+    %9 = add i64 %8, 16
+    %10 = bitcast %foo* %1 to i8*
+    %11 = tail call i8* @realloc(i8* %10, i64 %9)
+    %12 = bitcast i8* %11 to %foo*
+    store %foo* %12, %foo** %arr, align 8
+    %newcap5 = bitcast %foo* %12 to i64*
+    %newcap6 = getelementptr i64, i64* %newcap5, i64 1
+    store i64 %mul, i64* %newcap6, align 8
+    br label %ifcont8
+  
+  ifcont8:                                          ; preds = %entry, %then3, %else
+    %.pre-phi = phi i64* [ %newcap5, %else ], [ %newcap, %then3 ], [ %2, %entry ]
+    %13 = phi %foo* [ %12, %else ], [ %7, %then3 ], [ %1, %entry ]
+    %14 = bitcast i64* %box to %foo*
+    %15 = bitcast %foo* %13 to i8*
+    %16 = getelementptr i8, i8* %15, i64 16
+    %data = bitcast i8* %16 to %foo*
+    %17 = getelementptr inbounds %foo, %foo* %data, i64 %4
+    %18 = bitcast %foo* %17 to i8*
+    %19 = bitcast %foo* %14 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %18, i8* %19, i64 8, i1 false)
     %add = add i64 1, %4
     store i64 %add, i64* %.pre-phi, align 8
     ret void
@@ -633,8 +661,11 @@ Also mutable fields and 'realloc' builtin
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -1665,29 +1696,43 @@ Array push
     %2 = load i64, i64* %capacity, align 8
     %3 = load i64, i64* %1, align 8
     %eq = icmp eq i64 %2, %3
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont7
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %2
-    %4 = mul i64 %mul, 8
-    %5 = add i64 %4, 16
-    %6 = bitcast i64** %0 to i8*
-    %7 = tail call i8* @realloc(i8* %6, i64 %5)
-    %8 = bitcast i8* %7 to i64**
-    store i64** %8, i64*** %arr, align 8
-    %newcap = bitcast i64** %8 to i64*
-    %newcap1 = getelementptr i64, i64* %newcap, i64 1
-    store i64 %mul, i64* %newcap1, align 8
-    br label %ifcont
+    %eq1 = icmp eq i64 %2, 0
+    br i1 %eq1, label %then2, label %else
   
-  ifcont:                                           ; preds = %entry, %then
-    %.pre-phi = phi i64* [ %newcap, %then ], [ %1, %entry ]
-    %9 = phi i64** [ %8, %then ], [ %0, %entry ]
-    %10 = bitcast i64** %9 to i8*
-    %11 = getelementptr i8, i8* %10, i64 16
-    %data = bitcast i8* %11 to i64**
-    %12 = getelementptr inbounds i64*, i64** %data, i64 %3
-    store i64* %value, i64** %12, align 8
+  then2:                                            ; preds = %then
+    %4 = bitcast i64** %0 to i8*
+    %5 = tail call i8* @realloc(i8* %4, i64 48)
+    %6 = bitcast i8* %5 to i64**
+    store i64** %6, i64*** %arr, align 8
+    %newcap = bitcast i64** %6 to i64*
+    %newcap3 = getelementptr i64, i64* %newcap, i64 1
+    store i64 4, i64* %newcap3, align 8
+    br label %ifcont7
+  
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %2
+    %7 = mul i64 %mul, 8
+    %8 = add i64 %7, 16
+    %9 = bitcast i64** %0 to i8*
+    %10 = tail call i8* @realloc(i8* %9, i64 %8)
+    %11 = bitcast i8* %10 to i64**
+    store i64** %11, i64*** %arr, align 8
+    %newcap4 = bitcast i64** %11 to i64*
+    %newcap5 = getelementptr i64, i64* %newcap4, i64 1
+    store i64 %mul, i64* %newcap5, align 8
+    br label %ifcont7
+  
+  ifcont7:                                          ; preds = %entry, %then2, %else
+    %.pre-phi = phi i64* [ %newcap4, %else ], [ %newcap, %then2 ], [ %1, %entry ]
+    %12 = phi i64** [ %11, %else ], [ %6, %then2 ], [ %0, %entry ]
+    %13 = bitcast i64** %12 to i8*
+    %14 = getelementptr i8, i8* %13, i64 16
+    %data = bitcast i8* %14 to i64**
+    %15 = getelementptr inbounds i64*, i64** %data, i64 %3
+    store i64* %value, i64** %15, align 8
     %add = add i64 1, %3
     store i64 %add, i64* %.pre-phi, align 8
     ret void
@@ -1700,29 +1745,42 @@ Array push
     %1 = load i64, i64* %capacity, align 8
     %2 = load i64, i64* %0, align 8
     %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont5
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %1
-    %3 = mul i64 %mul, 8
-    %4 = add i64 %3, 16
-    %5 = bitcast i64* %0 to i8*
-    %6 = tail call i8* @realloc(i8* %5, i64 %4)
-    %7 = bitcast i8* %6 to i64*
-    store i64* %7, i64** %arr, align 8
-    %newcap = getelementptr i64, i64* %7, i64 1
-    store i64 %mul, i64* %newcap, align 8
-    br label %ifcont
+    %eq1 = icmp eq i64 %1, 0
+    br i1 %eq1, label %then2, label %else
   
-  ifcont:                                           ; preds = %entry, %then
-    %8 = phi i64* [ %7, %then ], [ %0, %entry ]
-    %9 = bitcast i64* %8 to i8*
-    %10 = getelementptr i8, i8* %9, i64 16
-    %data = bitcast i8* %10 to i64*
-    %11 = getelementptr inbounds i64, i64* %data, i64 %2
-    store i64 %value, i64* %11, align 8
+  then2:                                            ; preds = %then
+    %3 = bitcast i64* %0 to i8*
+    %4 = tail call i8* @realloc(i8* %3, i64 48)
+    %5 = bitcast i8* %4 to i64*
+    store i64* %5, i64** %arr, align 8
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 4, i64* %newcap, align 8
+    br label %ifcont5
+  
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %1
+    %6 = mul i64 %mul, 8
+    %7 = add i64 %6, 16
+    %8 = bitcast i64* %0 to i8*
+    %9 = tail call i8* @realloc(i8* %8, i64 %7)
+    %10 = bitcast i8* %9 to i64*
+    store i64* %10, i64** %arr, align 8
+    %newcap3 = getelementptr i64, i64* %10, i64 1
+    store i64 %mul, i64* %newcap3, align 8
+    br label %ifcont5
+  
+  ifcont5:                                          ; preds = %entry, %then2, %else
+    %11 = phi i64* [ %10, %else ], [ %5, %then2 ], [ %0, %entry ]
+    %12 = bitcast i64* %11 to i8*
+    %13 = getelementptr i8, i8* %12, i64 16
+    %data = bitcast i8* %13 to i64*
+    %14 = getelementptr inbounds i64, i64* %data, i64 %2
+    store i64 %value, i64* %14, align 8
     %add = add i64 1, %2
-    store i64 %add, i64* %8, align 8
+    store i64 %add, i64* %11, align 8
     ret void
   }
   
@@ -1770,11 +1828,11 @@ Array push
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }
@@ -2880,8 +2938,11 @@ Take/use not all allocations of a record in tailrec calls
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -3085,8 +3146,11 @@ Increase refcount for returned params in ifs
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -3650,11 +3714,11 @@ Monomorphization in closures
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }
@@ -4156,22 +4220,36 @@ Using unit values
     %2 = load i64, i64* %capacity, align 8
     %3 = load i64, i64* %1, align 8
     %eq = icmp eq i64 %2, %3
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont7
   
   then:                                             ; preds = %entry
-    %mul = mul i64 2, %2
+    %eq1 = icmp eq i64 %2, 0
+    br i1 %eq1, label %then2, label %else
+  
+  then2:                                            ; preds = %then
     %4 = bitcast void* %0 to i8*
     %5 = tail call i8* @realloc(i8* %4, i64 16)
     %6 = bitcast i8* %5 to void*
     store void* %6, void** %arr, align 8
     %newcap = bitcast void* %6 to i64*
-    %newcap1 = getelementptr i64, i64* %newcap, i64 1
-    store i64 %mul, i64* %newcap1, align 8
-    br label %ifcont
+    %newcap3 = getelementptr i64, i64* %newcap, i64 1
+    store i64 4, i64* %newcap3, align 8
+    br label %ifcont7
   
-  ifcont:                                           ; preds = %entry, %then
-    %.pre-phi = phi i64* [ %newcap, %then ], [ %1, %entry ]
-    %7 = phi void* [ %6, %then ], [ %0, %entry ]
+  else:                                             ; preds = %then
+    %mul = mul i64 2, %2
+    %7 = bitcast void* %0 to i8*
+    %8 = tail call i8* @realloc(i8* %7, i64 16)
+    %9 = bitcast i8* %8 to void*
+    store void* %9, void** %arr, align 8
+    %newcap4 = bitcast void* %9 to i64*
+    %newcap5 = getelementptr i64, i64* %newcap4, i64 1
+    store i64 %mul, i64* %newcap5, align 8
+    br label %ifcont7
+  
+  ifcont7:                                          ; preds = %entry, %then2, %else
+    %.pre-phi = phi i64* [ %newcap4, %else ], [ %newcap, %then2 ], [ %1, %entry ]
+    %10 = phi void* [ %9, %else ], [ %6, %then2 ], [ %0, %entry ]
     %add = add i64 1, %3
     store i64 %add, i64* %.pre-phi, align 8
     ret void

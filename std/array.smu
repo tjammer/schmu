@@ -11,7 +11,9 @@
   (let ((capacity (__array_capacity arr))
         (length (length arr)))
     (if (= capacity length)
-      (__unsafe_array_realloc &arr (* 2 capacity)))
+      (if (= capacity 0)
+        (__unsafe_array_realloc &arr 4)
+        (__unsafe_array_realloc &arr (* 2 capacity))))
     (__unsafe_ptr_set &(data arr) length !value)
     (set &(__unsafe_array_length arr) !(+ 1 length))))
 

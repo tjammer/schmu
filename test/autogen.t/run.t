@@ -31,8 +31,11 @@ Copy string literal
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -121,8 +124,11 @@ Copy array of strings
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -142,29 +148,30 @@ Copy array of strings
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i8**
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i8** %5 to i8*
-    %9 = bitcast i8** %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i8** %5 to i8*
+    %7 = bitcast i8** %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newref = bitcast i8** %5 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i8** %5, i8*** %0, align 8
     %cnt = alloca i64, align 8
     store i64 0, i64* %cnt, align 8
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %10 = load i64, i64* %cnt, align 8
-    %11 = icmp slt i64 %10, %size
-    br i1 %11, label %child, label %cont
+    %8 = load i64, i64* %cnt, align 8
+    %9 = icmp slt i64 %8, %size
+    br i1 %9, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %12 = bitcast i8** %1 to i8*
-    %13 = getelementptr i8, i8* %12, i64 16
-    %data = bitcast i8* %13 to i8**
-    %14 = getelementptr i8*, i8** %data, i64 %10
-    call void @__copy_ac(i8** %14)
-    %15 = add i64 %10, 1
-    store i64 %15, i64* %cnt, align 8
+    %10 = bitcast i8** %1 to i8*
+    %11 = getelementptr i8, i8* %10, i64 16
+    %data = bitcast i8* %11 to i8**
+    %12 = getelementptr i8*, i8** %data, i64 %8
+    call void @__copy_ac(i8** %12)
+    %13 = add i64 %8, 1
+    store i64 %13, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -280,8 +287,11 @@ Copy records
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -311,11 +321,11 @@ Copy records
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i64*
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %5 to i8*
-    %9 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i64* %5 to i8*
+    %7 = bitcast i64* %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newcap = getelementptr i64, i64* %5, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i64* %5, i64** %0, align 8
     ret void
   }
@@ -421,8 +431,11 @@ Copy variants
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -643,8 +656,11 @@ Copy closures
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -661,29 +677,30 @@ Copy closures
     %3 = add i64 %2, 16
     %4 = call i8* @malloc(i64 %3)
     %5 = bitcast i8* %4 to i8**
-    %6 = mul i64 %size, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i8** %5 to i8*
-    %9 = bitcast i8** %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %9, i64 %7, i1 false)
+    %6 = bitcast i8** %5 to i8*
+    %7 = bitcast i8** %1 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
+    %newref = bitcast i8** %5 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     store i8** %5, i8*** %0, align 8
     %cnt = alloca i64, align 8
     store i64 0, i64* %cnt, align 8
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %10 = load i64, i64* %cnt, align 8
-    %11 = icmp slt i64 %10, %size
-    br i1 %11, label %child, label %cont
+    %8 = load i64, i64* %cnt, align 8
+    %9 = icmp slt i64 %8, %size
+    br i1 %9, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %12 = bitcast i8** %1 to i8*
-    %13 = getelementptr i8, i8* %12, i64 16
-    %data = bitcast i8* %13 to i8**
-    %14 = getelementptr i8*, i8** %data, i64 %10
-    call void @__copy_ac(i8** %14)
-    %15 = add i64 %10, 1
-    store i64 %15, i64* %cnt, align 8
+    %10 = bitcast i8** %1 to i8*
+    %11 = getelementptr i8, i8* %10, i64 16
+    %data = bitcast i8* %11 to i8**
+    %12 = getelementptr i8*, i8** %data, i64 %8
+    call void @__copy_ac(i8** %12)
+    %13 = add i64 %8, 1
+    store i64 %13, i64* %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -974,8 +991,11 @@ Copy string literal on move
     %size = load i64, i64* %sz1, align 8
     %2 = add i64 %size, 17
     %3 = call i8* @malloc(i64 %2)
-    %4 = add i64 %size, 16
+    %4 = sub i64 %2, 1
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %3, i8* %1, i64 %4, i1 false)
+    %newref = bitcast i8* %3 to i64*
+    %newcap = getelementptr i64, i64* %newref, i64 1
+    store i64 %size, i64* %newcap, align 8
     %5 = getelementptr i8, i8* %3, i64 %4
     store i8 0, i8* %5, align 1
     store i8* %3, i8** %0, align 8
@@ -1032,3 +1052,7 @@ Copy string literal on move
   aieu
   aoeu
   aoeu
+
+Correctly copy array
+  $ schmu copy_array.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./copy_array
