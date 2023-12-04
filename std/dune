@@ -54,7 +54,7 @@
    (run schmu -m --no-std option.smu))))
 
 (rule
-  (alias stdlib)
+ (alias stdlib)
  (targets std.o std.smi)
  (deps
   %{bin:schmu}

@@ -627,7 +627,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
         let f (tree, acc) binding =
           let tree, bs =
             match usage with
-            | Usage.Uread -> (
+            | Usage.Uread ->
                 ( tree,
                   match binding with
                   | Bmove (b, _) -> find_borrow Umove b
@@ -635,7 +635,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
                   | Borrow_mut (b, Set) -> find_borrow Uset b
                   | Borrow_mut (b, Dont_set) -> find_borrow Umut b
                   | Bown _ ->
-                      failwith "Internal Error: A borrowed thing isn't owned" ))
+                      failwith "Internal Error: A borrowed thing isn't owned" )
             | Umove -> (
                 match binding with
                 | Bmove (b, _) | Borrow b | Borrow_mut (b, _) ->

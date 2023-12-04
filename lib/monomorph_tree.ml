@@ -1513,7 +1513,7 @@ and prep_let p id uniq e pass toplvl =
         let cnt = new_id constant_uniq_state in
         Hashtbl.add constant_tbl uniq (cnt, e1, toplvl);
         ({ p with vars = Vars.add un (Const uniq) p.vars }, Some uniq)
-    | { global = true; _ } | { const = true; _ } when toplvl ->
+    | ({ global = true; _ } | { const = true; _ }) when toplvl ->
         (* Globals are 'preallocated' at module level *)
         set_alloca p func.alloc;
         let uniq = Module.unique_name ~mname:p.mname id uniq in

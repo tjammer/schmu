@@ -227,7 +227,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let ptr = bb (malloc ~size) lltyp "" builder in
 
         (* Don't write to null terminator *)
-        let size = if is_string then Llvm.build_sub size (ci 1) "" builder else size in
+        let size =
+          if is_string then Llvm.build_sub size (ci 1) "" builder else size
+        in
         ignore
           (* Ptr is needed here to get a copy *)
           (let src = { value = v.value; typ = dst.typ; kind = Ptr; lltyp } in
