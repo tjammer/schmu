@@ -121,8 +121,8 @@ and tpat =
   | Tp_ctor of Ast.loc * ctor_param
   | Tp_var of Ast.loc * string * Ast.decl_attr
   | Tp_wildcard of Ast.loc
-  | Tp_record of Ast.loc * record_field list
-  | Tp_tuple of Ast.loc * tuple_field list
+  | Tp_record of Ast.loc * record_field list * Ast.decl_attr
+  | Tp_tuple of Ast.loc * tuple_field list * Ast.decl_attr
   | Tp_int of Ast.loc * int
   | Tp_char of Ast.loc * char
 
@@ -148,8 +148,8 @@ let tuple_field_name i = "<" ^ string_of_int i ^ ">"
 let loc_of_pat = function
   | Tp_wildcard loc
   | Tp_var (loc, _, _)
-  | Tp_record (loc, _)
-  | Tp_tuple (loc, _)
+  | Tp_record (loc, _, _)
+  | Tp_tuple (loc, _, _)
   | Tp_ctor (loc, _)
   | Tp_int (loc, _)
   | Tp_char (loc, _) ->
@@ -171,8 +171,8 @@ module Tup = struct
     | Lit_int of payload * int
     | Lit_char of payload * char
     | Bare of pattern_data
-    | Record of record_field list * payload
-    | Tuple of tuple_field list * payload
+    | Record of record_field list * payload * Ast.decl_attr
+    | Tuple of tuple_field list * payload * Ast.decl_attr
 
   let choose_column ctors tl =
     (* Count wildcards and vars per column. They lead to duplicated branches *)
@@ -259,12 +259,12 @@ module Tup = struct
         Var ({ path; loc; d; patterns; pltyp = ptyp }, name, dattr)
     | (_, { pat = Tp_wildcard _; _ }) :: _ ->
         failwith "Internal Error: Unexpected sorted pattern"
-    | (path, { pat = Tp_record (loc, fields); ptyp }) :: patterns ->
+    | (path, { pat = Tp_record (loc, fields, dattr); ptyp }) :: patterns ->
         (* Drop record from patterns list *)
-        Record (fields, { path; loc; d; patterns; pltyp = ptyp })
-    | (path, { pat = Tp_tuple (loc, fields); ptyp }) :: patterns ->
+        Record (fields, { path; loc; d; patterns; pltyp = ptyp }, dattr)
+    | (path, { pat = Tp_tuple (loc, fields, dattr); ptyp }) :: patterns ->
         (* Drop tuple from patterns list *)
-        Tuple (fields, { path; loc; d; patterns; pltyp = ptyp })
+        Tuple (fields, { path; loc; d; patterns; pltyp = ptyp }, dattr)
     | [] -> Bare d
 end
 
@@ -483,7 +483,7 @@ module Exhaustiveness = struct
 
     let f = function
       | [] -> failwith "Internal Error: There are so empty records"
-      | { pat = Tp_record (_, fields); _ } :: tl ->
+      | { pat = Tp_record (_, fields, _); _ } :: tl ->
           let fields =
             List.map
               (fun f ->
@@ -493,7 +493,7 @@ module Exhaustiveness = struct
               fields
           in
           fields @ tl
-      | { pat = Tp_tuple (_, fields); _ } :: tl ->
+      | { pat = Tp_tuple (_, fields, _); _ } :: tl ->
           let fields = List.map (fun f -> snd f.tpat) fields in
           fields @ tl
       | p :: tl ->
@@ -727,7 +727,7 @@ module Make (C : Core) (R : Recs) = struct
         let ptyp = path_typ loc env path in
         let pat = Tp_wildcard loc in
         [ (path, { ptyp; pat }) ]
-    | Ptup (loc, pats) ->
+    | Ptup (loc, pats, dattr) ->
         let typ = path_typ loc env path in
         let pats =
           List.mapi
@@ -769,9 +769,9 @@ module Make (C : Core) (R : Recs) = struct
           env;
         cartesian_product pats
         |> List.map (fun pats ->
-               let pat = Tp_tuple (loc, pats) in
+               let pat = Tp_tuple (loc, pats, dattr) in
                (path, { ptyp = typ; pat }))
-    | Precord (loc, pats) ->
+    | Precord (loc, pats, dattr) ->
         let labelset = List.map (fun ((_, name), _) -> name) pats in
         let annot = make_annot (path_typ loc env path) in
         let ptyp = get_record_type env loc labelset annot in
@@ -808,7 +808,7 @@ module Make (C : Core) (R : Recs) = struct
         in
         cartesian_product fields
         |> List.map (fun fields ->
-               let pat = Tp_record (loc, fields) in
+               let pat = Tp_record (loc, fields, dattr) in
                (path, { ptyp; pat }))
     | Plit_int (loc, i) ->
         unify
@@ -1027,13 +1027,14 @@ module Make (C : Core) (R : Recs) = struct
                   If (cmp, None, cont, else_)
             in
             { typ = ret_typ; expr; attr = no_attr; loc }
-        | Record (fields, { path; loc; d; patterns; _ }) ->
+        | Record (fields, { path; loc; d; patterns; _ }, dattr) ->
+            let mut = mut_of_pattr dattr in
             let env =
               List.fold_left
                 (fun env field ->
                   let col = field.index :: path in
                   add_ignore (expr_name col)
-                    { (exprval env) with typ = field.iftyp }
+                    { (exprval env) with typ = field.iftyp; mut }
                     loc env)
                 env fields
             in
@@ -1062,13 +1063,14 @@ module Make (C : Core) (R : Recs) = struct
                 ret fields
             in
             expr
-        | Tuple (fields, { path; loc; d; patterns; _ }) ->
+        | Tuple (fields, { path; loc; d; patterns; _ }, dattr) ->
+            let mut = mut_of_pattr dattr in
             let env =
               List.fold_left
                 (fun env pat ->
                   let col = pat.tindex :: path in
                   add_ignore (expr_name col)
-                    { (exprval env) with typ = pat.ttyp }
+                    { (exprval env) with typ = pat.ttyp; mut }
                     loc env)
                 env fields
             in
@@ -1191,7 +1193,7 @@ module Make (C : Core) (R : Recs) = struct
     match patterns with
     | (patterns, d) :: tl -> (
         match List.assoc_opt path patterns with
-        | Some { pat = Tp_record (_, fields); _ } ->
+        | Some { pat = Tp_record (_, fields, _); _ } ->
             (* First, remove current record pattern *)
             let patterns =
               assoc_remove path patterns |> expand_record path fields
@@ -1210,7 +1212,7 @@ module Make (C : Core) (R : Recs) = struct
     match patterns with
     | (patterns, d) :: tl -> (
         match List.assoc_opt path patterns with
-        | Some { pat = Tp_tuple (_, fields); _ } ->
+        | Some { pat = Tp_tuple (_, fields, _); _ } ->
             (* First, remove current record pattern *)
             let patterns =
               assoc_remove path patterns |> expand_tuple path fields
@@ -1227,8 +1229,9 @@ module Make (C : Core) (R : Recs) = struct
 
   let pattern_id i = function
     | Ast.Pvar ((loc, id), dattr) -> (id, loc, false, dattr)
-    | Ptup (loc, _) | Pwildcard loc | Precord (loc, _) ->
-        (expr_name [ i ], loc, true, Dnorm)
+    | Ptup (loc, _, dattr) | Precord (loc, _, dattr) ->
+        (expr_name [ i ], loc, true, dattr)
+    | Pwildcard loc -> (expr_name [ i ], loc, true, Dnorm)
     | Pctor ((loc, _), _) | Plit_int (loc, _) | Plit_char (loc, _) | Por (loc, _)
       ->
         raise (Error (loc, "Unexpected pattern in declaration"))
@@ -1251,41 +1254,49 @@ module Make (C : Core) (R : Recs) = struct
     let rec loop (env, binds) = function
       | (path, pat) :: tl -> (
           match pat.pat with
-          | Tp_record (loc, fields) ->
+          | Tp_record (loc, fields, dattr) ->
               let env, nbinds =
+                (match dattr with
+                | Dnorm | Dmove -> ()
+                | Dset | Dmut ->
+                    raise (Error (loc, "Mutation not supported here yet")));
+                let mut = mut_of_pattr dattr in
                 List.fold_left_map
                   (fun env f ->
                     let col = f.index :: path in
 
-                    let expr = Field (expr env path f.floc, f.index, f.name) in
-                    let expr =
-                      { typ = f.iftyp; expr; attr = no_attr; loc = f.floc }
-                    in
+                    let expr = Field (expr env path f.floc, f.index, f.name)
+                    and attr = { no_attr with mut } in
+                    let expr = { typ = f.iftyp; expr; attr; loc = f.floc } in
                     let id = expr_name col in
 
                     ( add_ignore (expr_name col)
-                        { (exprval env) with typ = f.iftyp }
+                        { (exprval env) with typ = f.iftyp; mut }
                         loc env,
                       (id, expr) ))
                   env fields
               in
               let pats = expand_record path fields tl in
               loop (env, nbinds @ binds) pats
-          | Tp_tuple (loc, fields) ->
+          | Tp_tuple (loc, fields, dattr) ->
+              (match dattr with
+              | Dnorm | Dmove -> ()
+              | Dset | Dmut ->
+                  raise (Error (loc, "Mutation not supported here yet")));
+              let mut = mut_of_pattr dattr in
               let env, nbinds =
                 List.fold_left_map
                   (fun env f ->
                     let col = f.tindex :: path in
 
                     let name = tuple_field_name f.tindex in
-                    let expr = Field (expr env path f.tloc, f.tindex, name) in
-                    let expr =
-                      { typ = f.ttyp; expr; attr = no_attr; loc = f.tloc }
-                    in
+                    let expr = Field (expr env path f.tloc, f.tindex, name)
+                    and attr = { no_attr with mut } in
+                    let expr = { typ = f.ttyp; expr; attr; loc = f.tloc } in
                     let id = expr_name col in
 
                     ( add_ignore (expr_name col)
-                        { (exprval env) with typ = f.ttyp }
+                        { (exprval env) with typ = f.ttyp; mut }
                         loc env,
                       (id, expr) ))
                   env fields
@@ -1321,7 +1332,7 @@ module Make (C : Core) (R : Recs) = struct
              Make sure it's marked as used *)
           ignore (Env.query_val_opt loc (Path.Pid (expr_name [ i ])) env);
           (env, i + 1, ret)
-      | (Ptup (loc, _) | Precord (loc, _)) as p ->
+      | (Ptup (loc, _, _) | Precord (loc, _, _)) as p ->
           let env, binds = bind_pattern env loc i p in
           (env, i + 1, binds @ ret)
       | Pctor ((loc, _), _)

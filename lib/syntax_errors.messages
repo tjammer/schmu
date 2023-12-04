@@ -190,6 +190,14 @@ prog: Lpar Def Kebab_id Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lpar Def Lbrac Kebab_id Rbrac Type
+
+Expecting expression or '!'
+
+prog: Lpar Def Lbrac Keyword Rbrac Type
+
+Expecting expression or '!'
+
 prog: Lpar Def Lbrac Constructor Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -318,7 +326,7 @@ prog: Lpar Let Lpar Lpar Constructor Type
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Let Lpar Lpar Constructor Ampersand Wildcard
+prog: Lpar Let Lpar Lpar Constructor Exclamation Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -510,7 +518,7 @@ prog: Lpar Def Kebab_id Builtin_id Wildcard
 
 Expecting ')'
 
-prog: Lpar Def Constructor Ampersand Wildcard
+prog: Lpar Def Constructor Exclamation Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

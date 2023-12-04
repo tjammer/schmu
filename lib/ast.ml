@@ -77,9 +77,9 @@ and pipeable = Pip_expr of expr | Pip_field of string
 and pattern =
   | Pctor of ident * pattern option
   | Pvar of ident * decl_attr
-  | Ptup of loc * (loc * pattern) list
+  | Ptup of loc * (loc * pattern) list * decl_attr
   | Pwildcard of loc
-  | Precord of loc * (ident * pattern option) list
+  | Precord of loc * (ident * pattern option) list * decl_attr
   | Plit_int of loc * int
   | Plit_char of loc * char
   | Por of loc * pattern list

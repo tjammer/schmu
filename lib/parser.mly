@@ -464,10 +464,12 @@ sexp_pattern:
   | ident; Ampersand { Pvar ((fst $1, snd $1), Dmut) }
   | ident; Exclamation { Pvar ((fst $1, snd $1), Dmove) }
   | Wildcard { Pwildcard $loc }
-  | items = bracs(nonempty_list(record_item_pattern)) { Precord ($loc, items) }
+  | items = bracs(nonempty_list(record_item_pattern)); %prec below_Ampersand { Precord ($loc, items, Dnorm) }
+  | items = bracs(nonempty_list(record_item_pattern)); Exclamation { Precord ($loc, items, Dmove) }
   | i = Int { Plit_int ($loc, i) }
   | c = U8 {Plit_char ($loc, c)}
-  | tup = bracs(sexp_pattern_tuple) { tup }
+  | tup = bracs(sexp_pattern_tuple); %prec below_Ampersand { Ptup (fst tup, snd tup, Dnorm) }
+  | tup = bracs(sexp_pattern_tuple); Exclamation { Ptup (fst tup, snd tup, Dmove) }
   | parens(or_pattern) { $1 }
 
 %inline or_pattern:
@@ -482,7 +484,7 @@ ctor_pattern_item:
 
 %inline sexp_pattern_tuple:
   | with_loc(sexp_pattern); list(with_loc(sexp_pattern))
-    { Ptup ($loc, $1 :: $2) }
+    { $loc, $1 :: $2 }
 
 %inline fmt_str:
   | Fmt_str; lst = list(sexp_expr) { Fmt ($loc, lst) }
