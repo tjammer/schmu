@@ -1084,24 +1084,22 @@ end = struct
 
     (* Set data *)
     (match expr with
-    | Some expr -> (
-        match expr.typ with
-        | Tunit -> ()
-        | _ ->
-            let dataptr = Llvm.build_struct_gep var 1 "data" builder in
-            let ptr_t = get_lltype_def expr.typ |> Llvm.pointer_type in
-            let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
-            let data =
-              gen_expr { param with alloca = Some ptr } expr
-              |> bring_default_var
-            in
+    | Some expr ->
+        if sizeof_typ expr.typ = 0 then ()
+        else
+          let dataptr = Llvm.build_struct_gep var 1 "data" builder in
+          let ptr_t = get_lltype_def expr.typ |> Llvm.pointer_type in
+          let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
+          let data =
+            gen_expr { param with alloca = Some ptr } expr |> bring_default_var
+          in
 
-            let dataptr =
-              Llvm.build_bitcast dataptr
-                (data.lltyp |> Llvm.pointer_type)
-                "data" builder
-            in
-            set_struct_field data dataptr)
+          let dataptr =
+            Llvm.build_bitcast dataptr
+              (data.lltyp |> Llvm.pointer_type)
+              "data" builder
+          in
+          set_struct_field data dataptr
     | None -> ());
     let v = { value = var; typ; lltyp; kind = Ptr } in
     List.iter (fun id -> Strtbl.replace free_tbl id v) ms;
