@@ -13,20 +13,10 @@ module Mpath = struct
 end
 
 module rec Malloc : sig
-  type t =
-    | Single of Mid.t
-    | Param of Mid.t
-    | Branch of { fst : t; snd : t }
-    | No_malloc
-    | Path of t * Mpath.t
+  type t = Single of Mid.t | Param of Mid.t | No_malloc | Path of t * Mpath.t
   [@@deriving show]
 end = struct
-  type t =
-    | Single of Mid.t
-    | Param of Mid.t
-    | Branch of { fst : t; snd : t }
-    | No_malloc
-    | Path of t * Mpath.t
+  type t = Single of Mid.t | Param of Mid.t | No_malloc | Path of t * Mpath.t
   [@@deriving show]
 end
 

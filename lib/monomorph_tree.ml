@@ -145,15 +145,12 @@ type malloc_scope = Mfunc | Mlocal
 let malloc_add_index index = function
   | Malloc.No_malloc -> Malloc.No_malloc
   | Path (m, p) -> Path (m, p @ [ index ])
-  | (Single _ | Branch _ | Param _) as m -> Path (m, [ index ])
+  | (Single _ | Param _) as m -> Path (m, [ index ])
 
 let m_to_list = function
   | Malloc.No_malloc -> []
   | Single i -> [ i.mid ]
   | Param _ -> []
-  | Branch _ ->
-      (* Handled in If *)
-      []
   | Path _ -> failwith "Internal Error: Path not supported here"
 
 type pmap = Pset.t Imap.t
@@ -262,24 +259,6 @@ end = struct
     let rec aux a ms path =
       match (a, ms) with
       | _, [] -> None
-      | Branch { fst; snd }, _ -> (
-          match aux fst ms path with
-          | Some map -> (
-              match aux snd ms path with
-              | Some other ->
-                  let map =
-                    Imap.merge
-                      (fun _ a b ->
-                        match (a, b) with
-                        | Some _, None -> a
-                        | None, Some _ -> b
-                        | None, None | Some _, Some _ ->
-                            failwith "Internal Error: Think about this more")
-                      map other
-                  in
-                  Some map
-              | None -> Some map)
-          | None -> aux snd ms path)
       | (Single i | Param i), (_, ms) :: tl ->
           let mem =
             match Imap.find_opt i ms with
@@ -304,7 +283,6 @@ end = struct
     let rec aux a ms path =
       match (a, ms) with
       | _, [] -> false
-      | Branch { fst; snd }, _ -> aux fst ms path && aux snd ms path
       | (Single i | Param i), (_, ms) :: tl ->
           let mem =
             match Imap.find_opt i ms with
@@ -323,13 +301,6 @@ end = struct
   let add a ms =
     match (a, ms) with
     | _, [] -> failwith "Internal Error: Empty ids"
-    | Branch { fst; snd }, _ ->
-        (* These are for borrowed values. Borrowed values should already be part
-           of the mallocs env. There maybe is a special case for string literals
-           here *)
-        assert (mem fst ms);
-        assert (mem snd ms);
-        ms
     | (Single a | Param a), (scope, ms) :: tl ->
         (scope, Imap.add a Pset.empty ms) :: tl
     | No_malloc, _ -> ms
@@ -339,7 +310,6 @@ end = struct
     let rec aux a ms =
       match (a, ms) with
       | _, [] -> []
-      | Branch _, _ -> failwith "Internal Error: Reenter branch"
       | (Single a | Param a), (scope, ms) :: tl ->
           (scope, Imap.add a Pset.empty ms) :: tl
       | No_malloc, _ -> ms
@@ -358,7 +328,6 @@ end = struct
     let rec aux a path ms =
       match (a, ms) with
       | _, [] -> []
-      | Branch { fst; snd }, _ -> aux fst path ms |> aux snd path
       | (Single { parent = Some par; _ }, _ | Param { parent = Some par; _ }, _)
         when (not (mem par ms)) && not (mem a ms) ->
           (* Except when it has a parent and the parent is still part of the
@@ -389,11 +358,10 @@ end = struct
     in
     aux a [] ms
 
-  let rec remove_local a ms =
+  let remove_local a ms =
     let rec aux a path ms =
       match (a, ms) with
       | _, [] -> []
-      | Branch { fst; snd }, _ -> remove_local fst ms |> remove_local snd
       | Single ({ parent = Some par; _ } as i), (_, ms') :: _
       | Param ({ parent = Some par; _ } as i), (_, ms') :: _
         when (not (mem par ms)) && not (Imap.mem i ms') ->
@@ -1468,14 +1436,14 @@ and morph_if mk p cond owning e1 e2 =
         Mallocs.remove a.malloc mallocs |> Mallocs.remove b.malloc
       in
       (e1, e2, Malloc.Single id, mallocs)
-    else (e1, e2, Branch { fst = a.malloc; snd = b.malloc }, mallocs)
+    else (e1, e2, No_malloc, mallocs)
   in
 
   let owning =
     if owning then
       match malloc with
       | Single id -> Some id.mid
-      | No_malloc | Branch _ | Param _ -> None
+      | No_malloc | Param _ -> None
       | Path _ -> failwith "todo path"
     else None
   in
@@ -1866,11 +1834,10 @@ and morph_app mk p callee args ret_typ =
   in
 
   let f p (arg, attr) =
-    let rec is_arg = function
+    let is_arg = function
       | Malloc.No_malloc -> false
       | Param _ -> true
       | Single { mid = -1; _ } -> true
-      | Branch { fst; snd } -> is_arg fst || is_arg snd
       | Single _ -> false
       | Path _ -> (* A path cannot be a passed argument *) false
     in
