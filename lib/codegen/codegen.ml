@@ -1267,9 +1267,11 @@ end = struct
   and gen_free param expr fs =
     let open Malloc_types in
     let expr = gen_expr param expr in
-    let get_path path init =
-      List.fold_right (fun index expr -> follow_field expr index) path init
-    in
+    (* let get_path path init = *)
+    (*   List.fold_right *)
+    (*     (fun index expr -> follow_field expr index) *)
+    (*     (Mpart.to_ints path) init *)
+    (* in *)
     (match fs with
     | Except fs ->
         List.iter
@@ -1289,11 +1291,12 @@ end = struct
             Option.iter
               (fun init ->
                 (* TODO check for empty in monomorph_tree *)
-                if Pset.is_empty i.paths then Auto.free param init
+                if Part_set.is_empty i.paths then Auto.free param init
                 else
-                  Pset.iter
-                    (fun path -> get_path path init |> Auto.free param)
-                    i.paths)
+                  (* Pset.iter *)
+                  (*   (fun path -> get_path path init |> Auto.free param) *)
+                  (*   i.paths *)
+                  ())
               (Hashtbl.find_opt free_tbl i.id))
           fs);
 

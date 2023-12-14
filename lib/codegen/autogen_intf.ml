@@ -3,7 +3,7 @@ module type S = sig
 
   val copy : param -> Monomorph_tree.alloca -> llvar -> llvar
   val free : param -> llvar -> unit
-  val free_except : param -> Malloc_types.Pset.t -> llvar -> unit
+  val free_except : param -> Malloc_types.Part_set.t -> llvar -> unit
   val gen_functions : unit -> unit
 
   (* Closures *)
