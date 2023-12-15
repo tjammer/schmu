@@ -30,18 +30,15 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     | Tfixed_array (_, t) -> if contains_allocation t then t :: ts else ts
     | _ -> ts
 
-  (* let path_name pset = *)
-  (*   let show_path path = *)
-  (*     String.concat "-" (List.map string_of_int (Mpart.to_ints path)) *)
-  (*   in *)
-  (*   String.concat "." (Pset.to_seq pset |> Seq.map show_path |> List.of_seq) *)
+  let path_name pset =
+    let show_path path = String.concat "-" (List.map string_of_int path) in
+    String.concat "." (Part_set.ints pset |> Seq.map show_path |> List.of_seq)
 
   let name typ = function
     | Copy -> "__copy_" ^ Monomorph_tree.short_name ~closure:false typ
     | Free -> "__free_" ^ Monomorph_tree.short_name ~closure:false typ
     | Free_except pset ->
-        ignore pset;
-        "__free_except" (* ^ path_name pset *) ^ "_"
+        "__free_except" ^ path_name pset ^ "_"
         ^ Monomorph_tree.short_name ~closure:false typ
 
   let make_fn kind v =
@@ -96,24 +93,23 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     in
     List.iter f ts
 
-  let decl_children_exc pset pseudovar typ =
+  let rec decl_children_exc pset pseudovar typ =
     match typ with
     | Trecord (_, _, fs) ->
         Array.iteri
           (fun i f ->
-            ignore pset;
-            ignore i;
             if contains_allocation f.ftyp then
-              (* match pop_index_pset pset i with *)
-              (* | Not_excl -> *)
-              make_fn Free { pseudovar with typ = f.ftyp; kind = Ptr } |> ignore;
-            decl_children Free pseudovar f.ftyp
-            (* | Excl -> () *)
-            (* | Followup pset -> *)
-            (*     make_fn (Free_except pset) *)
-            (*       { pseudovar with typ = f.ftyp; kind = Ptr } *)
-            (*     |> ignore; *)
-            (*     decl_children_exc pset pseudovar f.ftyp *))
+              match pop_index_pset pset i with
+              | Not_excl ->
+                  make_fn Free { pseudovar with typ = f.ftyp; kind = Ptr }
+                  |> ignore;
+                  decl_children Free pseudovar f.ftyp
+              | Excl -> ()
+              | Followup pset ->
+                  make_fn (Free_except pset)
+                    { pseudovar with typ = f.ftyp; kind = Ptr }
+                  |> ignore;
+                  decl_children_exc pset pseudovar f.ftyp)
           fs
     | _ -> failwith "TODO decl free or not supported"
 
@@ -489,21 +485,20 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     | Trecord (_, _, fs) ->
         Array.iteri
           (fun i f ->
-            ignore pset;
-            (* if contains_allocation f.ftyp then *)
-            (*   match pop_index_pset pset i with *)
-            (*   | Not_excl -> *)
-            (* Copy from [free_impl] *)
-            let value = Llvm.build_struct_gep v.value i "" builder in
-            let lltyp = get_lltype_def f.ftyp in
-            let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
-            free_call v
-            (* | Excl -> (\* field is excluded, do nothing *\) () *)
-            (* | Followup pset -> *)
-            (*     let value = Llvm.build_struct_gep v.value i "" builder in *)
-            (*     let lltyp = get_lltype_def f.ftyp in *)
-            (*     let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in *)
-            (*     free_except_call pset v *))
+            if contains_allocation f.ftyp then
+              match pop_index_pset pset i with
+              | Not_excl ->
+                  (* Copy from [free_impl] *)
+                  let value = Llvm.build_struct_gep v.value i "" builder in
+                  let lltyp = get_lltype_def f.ftyp in
+                  let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
+                  free_call v
+              | Excl -> (* field is excluded, do nothing *) ()
+              | Followup pset ->
+                  let value = Llvm.build_struct_gep v.value i "" builder in
+                  let lltyp = get_lltype_def f.ftyp in
+                  let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
+                  free_except_call pset v)
           fs
     | _ -> failwith "TODO free or not supported"
 

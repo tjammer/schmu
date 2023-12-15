@@ -189,38 +189,41 @@ let mapunion a b =
 
 let mk_free_after expr frees =
   (* Delete paths if all allocating members are excluded *)
-  (* let rec is_excluded frees typ = *)
-  (*   if Pset.is_empty frees then (false, frees) *)
-  (*   else *)
-  (*     match typ with *)
-  (*     | Trecord (_, _, fs) -> *)
-  (*         let _, excluded, pset = *)
-  (*           Array.fold_left *)
-  (*             (fun (i, exh, pset) f -> *)
-  (*               if contains_allocation f.ftyp then *)
-  (*                 match pop_index_pset frees i with *)
-  (*                 | Not_excl -> (i + 1, false, pset) *)
-  (*                 | Excl -> (i + 1, exh && true, Pset.add [ Mindex i ] pset) *)
-  (*                 | Followup frees -> *)
-  (*                     let nexcluded, npset = is_excluded frees f.ftyp in *)
-  (*                     let npset = *)
-  (*                       if nexcluded then pset *)
-  (*                       else Pset.map (fun l -> Mindex i :: l) npset *)
-  (*                     in *)
-  (*                     (i + 1, exh && nexcluded, npset) *)
-  (*               else (i + 1, exh, pset)) *)
-  (*             (0, true, Pset.empty) fs *)
-  (*         in *)
-  (*         (excluded, pset) *)
-  (*     | _ -> failwith "todo exh" *)
-  (* in *)
+  let rec is_excluded frees typ =
+    if Part_set.is_empty frees then (false, frees)
+    else
+      match typ with
+      | Trecord (_, _, fs) ->
+          let _, excluded, pset =
+            Array.fold_left
+              (fun (i, exh, pset) f ->
+                if contains_allocation f.ftyp then
+                  match pop_index_pset frees i with
+                  | Not_excl -> (i + 1, false, pset)
+                  | Excl ->
+                      ( i + 1,
+                        exh && true,
+                        Part_set.move_out pset (Part.of_head (Mindex i)) )
+                  | Followup frees ->
+                      let nexcluded, npset = is_excluded frees f.ftyp in
+                      let npset =
+                        if nexcluded then pset
+                        else
+                          (* TODO do we really discard [pset] here? *)
+                          Part_set.move_add_head npset (Mindex i)
+                      in
+                      (i + 1, exh && nexcluded, npset)
+                else (i + 1, exh, pset))
+              (0, true, Part_set.empty) fs
+          in
+          (excluded, pset)
+      | _ -> failwith "todo exh"
+  in
   let frees =
     List.filter_map
       (fun free ->
-        ignore free;
-        (* let excluded, paths = is_excluded free.paths free.mtyp in *)
-        (* if excluded then None else Some { free with paths } *)
-        None)
+        let excluded, paths = is_excluded free.paths free.mtyp in
+        if excluded then None else Some { free with paths })
       frees
   in
   match frees with

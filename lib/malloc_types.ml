@@ -22,6 +22,7 @@ module Part : sig
   val head : t -> Part_kind.t
   val head_tl : t -> Part_kind.t * t option
   val of_head : Part_kind.t -> t
+  val ints : t -> int list
 end = struct
   type t = { head : Part_kind.t; tl : Part_kind.t list } [@@deriving show]
 
@@ -39,6 +40,16 @@ end = struct
     match tl with Some next -> append old ~next | None -> old
 
   let of_head head = { head; tl = [] }
+
+  let ints { head; tl } =
+    let rec aux acc = function
+      | [] -> List.rev acc
+      | hd :: tl -> (
+          match hd with
+          | Part_kind.Mvariant _ -> aux acc tl
+          | Mindex i -> aux (i :: acc) tl)
+    in
+    match head with Mvariant _ -> aux [] tl | Mindex i -> aux [ i ] tl
 end
 
 module Part_set : sig
@@ -52,6 +63,8 @@ module Part_set : sig
   val union : t -> t -> t
   val mem : t -> Part.t -> bool
   val fold : (Part.t -> 'a -> 'a) -> t -> 'a -> 'a
+  val move_add_head : t -> Part_kind.t -> t
+  val ints : t -> int list Seq.t
 end = struct
   module Head = struct
     type t = Part_kind.t
@@ -177,6 +190,9 @@ end = struct
             map acc
     in
     aux None acc set
+
+  let move_add_head set hd = Parts (Pmap.add hd set Pmap.empty)
+  let ints set = fold (fun p seq -> Seq.cons (Part.ints p) seq) set Seq.empty
 end
 
 module Malloc = struct
@@ -186,31 +202,34 @@ end
 
 module Imap = Map.Make (Mid)
 
-(* type pop_outcome = Not_excl | Excl | Followup of Pset.t *)
+type pop_outcome = Not_excl | Excl | Followup of Part_set.t
 
-(* let pop_index_pset pset index = *)
-(*   (\* There are three outcomes when an index is popped: *)
-(*      1. The index isn't part of the path-set, hence we delete it normally *)
-(*         Not_excl *)
-(*      2. The path is exhausted, in which case we do nothing *)
-(*         Exhaust *)
-(*      3. There is a follow-up path, we need to recurse *)
-(*         Followup *\) *)
-(*   let found, popped *)
-
-(*   let found, popped = *)
-(*     Pset.fold *)
-(*       (fun path (found, popped) -> *)
-(*         match path with *)
-(*         | Mindex (i, Mno_part) when Int.equal i index -> (true, popped) *)
-(*         | Mindex (i, tl) when Int.equal i index -> (true, Pset.add tl popped) *)
-(*         | Mno_part -> failwith "Internal Error: Empty part" *)
-(*         | _ -> (found, popped)) *)
-(*       pset (false, Pset.empty) *)
-(*   in *)
-(*   if not found then Not_excl *)
-(*   else if Pset.is_empty popped then Excl *)
-(*   else Followup popped *)
+let pop_index_pset pset index =
+  (* There are three outcomes when an index is popped:
+     1. The index isn't part of the path-set, hence we delete it normally
+        Not_excl
+     2. The path is exhausted, in which case we do nothing
+        Exhaust
+     3. There is a follow-up path, we need to recurse
+        Followup *)
+  let found, popped =
+    Part_set.fold
+      (fun part (found, popped) ->
+        let hd, tl = Part.head_tl part in
+        match hd with
+        | Mvariant _ -> failwith "TODO variant"
+        | Mindex i when Int.equal i index -> (
+            match tl with
+            | Some tl ->
+                (* We move out the tail to make this a follow-up later. *)
+                (true, Part_set.move_out popped tl)
+            | None -> (true, popped))
+        | Mindex _ -> (found, popped))
+      pset (false, Part_set.empty)
+  in
+  if not found then Not_excl
+  else if Part_set.is_empty popped then Excl
+  else Followup popped
 
 type malloc_id = {
   id : int;
