@@ -18,7 +18,6 @@ module Part : sig
   type t [@@deriving show]
 
   val add_part : t -> Part_kind.t -> t
-  val append : t -> next:t -> t
   val head : t -> Part_kind.t
   val head_tl : t -> Part_kind.t * t option
   val of_head : Part_kind.t -> t
@@ -33,11 +32,6 @@ end = struct
     match part.tl with
     | [] -> (part.head, None)
     | head :: tl -> (part.head, Some { head; tl })
-
-  let rec append old ~next =
-    let hd, tl = head_tl next in
-    let old = { old with tl = old.tl @ [ hd ] } in
-    match tl with Some next -> append old ~next | None -> old
 
   let of_head head = { head; tl = [] }
 
@@ -196,7 +190,12 @@ end = struct
 end
 
 module Malloc = struct
-  type t = Single of Mid.t | Param of Mid.t | No_malloc | Part of t * Part.t
+  type id_kind = Single | Param
+
+  and t =
+    | Whole of Mid.t * id_kind
+    | No_malloc
+    | Part of Mid.t * id_kind * Part.t
   [@@deriving show]
 end
 
