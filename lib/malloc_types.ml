@@ -56,9 +56,12 @@ module Part_set : sig
   val diff : t -> t -> t
   val union : t -> t -> t
   val mem : t -> Part.t -> bool
+  val find : t -> Part.t -> t
   val fold : (Part.t -> 'a -> 'a) -> t -> 'a -> 'a
   val move_add_head : t -> Part_kind.t -> t
   val ints : t -> int list Seq.t
+  val show : t -> string
+  val pp : Format.formatter -> t -> unit
 end = struct
   module Head = struct
     type t = Part_kind.t
@@ -131,7 +134,8 @@ end = struct
     (* Which items would I need to add to [b] to get [a]? Also, remove
        intersection of [a] and [b] from [a] *)
     match (a, b) with
-    | Whole, (Parts _ | Whole) -> Whole
+    | Whole, Whole -> Whole
+    | Whole, Parts _ -> b
     | Parts _, Whole -> a
     | Parts a, Parts b ->
         Parts
@@ -140,7 +144,12 @@ end = struct
                match (a, b) with
                | Some _, None -> a
                | None, (Some _ | None) -> a
-               | Some a, Some b -> Some (diff a b))
+               | Some a, Some b -> (
+                   match diff a b with
+                   (* [Whole] means the diff is empty, so a and b are the same.
+                      This is a diff, so we remove this case. *)
+                   | Whole -> None
+                   | Parts _ as diff -> Some diff))
              a b)
 
   let rec union a b =
@@ -171,6 +180,16 @@ end = struct
             | Some part -> mem tail part
             | None -> ( match tail with Whole -> true | Parts _ -> false)))
 
+  let rec find set part =
+    match set with
+    | Whole -> set
+    | Parts map -> (
+        let hd, tl = Part.head_tl part in
+        match Pmap.find_opt hd map with
+        | None -> Whole
+        | Some tail -> (
+            match tl with Some part -> find tail part | None -> tail))
+
   let fold f set acc =
     let rec aux path acc set =
       match set with
@@ -187,6 +206,19 @@ end = struct
 
   let move_add_head set hd = Parts (Pmap.add hd set Pmap.empty)
   let ints set = fold (fun p seq -> Seq.cons (Part.ints p) seq) set Seq.empty
+
+  let rec show = function
+    | Whole -> "Whole"
+    | Parts map ->
+        let map =
+          Pmap.fold
+            (fun kind set acc ->
+              acc ^ " (" ^ Part_kind.show kind ^ ": " ^ show set ^ ")")
+            map ""
+        in
+        "(Parts " ^ map ^ ")"
+
+  let pp ppf p = Format.fprintf ppf "%s" (show p)
 end
 
 module Malloc = struct
@@ -230,11 +262,7 @@ let pop_index_pset pset index =
   else if Part_set.is_empty popped then Excl
   else Followup popped
 
-type malloc_id = {
-  id : int;
-  mtyp : Cleaned_types.typ;
-  paths : Part_set.t; [@opaque]
-}
+type malloc_id = { id : int; mtyp : Cleaned_types.typ; paths : Part_set.t }
 [@@deriving show]
 
 let () = ignore pp_malloc_id

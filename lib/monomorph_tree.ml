@@ -140,12 +140,12 @@ type to_gen_func_kind =
   | No_function
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
-type malloc_scope = Mfunc | Mlocal
+type malloc_scope = Mfunc | Mlocal [@@deriving show]
 
-let malloc_add_index index = function
+let malloc_add_part index = function
   | Malloc.No_malloc -> Malloc.No_malloc
-  | Part (m, kind, p) -> Part (m, kind, Part.add_part p (Mindex index))
-  | Whole (m, kind) -> Part (m, kind, Part.of_head (Mindex index))
+  | Part (m, kind, p) -> Part (m, kind, Part.add_part p index)
+  | Whole (m, kind) -> Part (m, kind, Part.of_head index)
 
 let m_to_list = function
   | Malloc.No_malloc -> []
@@ -161,21 +161,21 @@ let mlist_of_pmap m =
          { id = id.mid; mtyp = id.typ; paths })
   |> List.of_seq
 
-let mapdiff ?(flip = true) a b =
+let mapdiff a b =
   Imap.merge
     (fun _ a b ->
       match (a, b) with
       | Some a, Some b ->
+          (* print_endline ("both see: " ^ Mid.show key); *)
           if Part_set.is_empty b then None
           else
-            (* The order here is switched, we want new moved things to appear *)
-            let diff = if flip then Part_set.diff b a else Part_set.diff a b in
+            let diff = Part_set.diff a b in
             if Part_set.is_empty diff then None else Some diff
       | None, Some _ | None, None -> None
       | Some v, None -> Some v)
     a b
 
-let mapdiff_flip a b = mapdiff ~flip:false a b
+(* let mapdiff_flip a b = mapdiff ~flip:false a b *)
 
 let mapunion a b =
   Imap.merge
@@ -242,6 +242,9 @@ module Mallocs : sig
   val remove_local : Malloc.t -> t -> t
   val empty_func : monod_tree -> t -> t * monod_tree
   val diff_func : t -> t -> Part_set.t Imap.t
+  val find : Malloc.t -> t -> Part_set.t Imap.t option
+  val show_item : Part_set.t Imap.t -> string
+  val show : t -> string
 end = struct
   (* type pmap = Pset.t Imap.t *)
   open Malloc
@@ -252,27 +255,6 @@ end = struct
   let push kind ms = (kind, Imap.empty) :: ms
   let pop = function (_, ms) :: tl -> (mlist_of_pmap ms, tl) | [] -> ([], [])
 
-  (* let mem a ms = *)
-  (*   let rec aux a ms part = *)
-  (*     match (a, ms) with *)
-  (*     | _, [] -> false *)
-  (*     | (Single i | Param i), (_, ms) :: tl -> *)
-  (*         let mem = *)
-  (*           match (Imap.find_opt i ms, part) with *)
-  (*           | Some _, None -> true *)
-  (*           | Some pset, Some part -> Part_set.mem pset part |> not *)
-  (*           | None, _ -> false *)
-  (*         in *)
-  (*         mem || aux a tl part *)
-  (*     | No_malloc, _ -> false *)
-  (*     | Part (a, l), _ -> ( *)
-  (*         (\* Order of appending paths is important *\) *)
-  (*         match part with *)
-  (*         | Some part -> aux a ms (Some (Part.append part ~next:l)) *)
-  (*         | None -> aux a ms (Some l)) *)
-  (*   in *)
-  (*   aux a ms None *)
-
   let add a ms =
     match (a, ms) with
     | _, [] -> failwith "Internal Error: Empty ids"
@@ -280,6 +262,21 @@ end = struct
         (scope, Imap.add a Part_set.empty ms) :: tl
     | No_malloc, _ -> ms
     | Part _, _ -> failwith "Internal Error: Trying to add pathed malloc"
+
+  let rec find a ms =
+    match (a, ms) with
+    | _, [] -> None
+    | No_malloc, _ -> None
+    | Whole (i, _), (_, ms) :: tl -> (
+        match Imap.find_opt i ms with
+        | Some pset -> Some (Imap.add i pset Imap.empty)
+        | None -> find a tl)
+    | Part (i, _, path), (_, ms) :: tl -> (
+        match Imap.find_opt i ms with
+        | Some pset ->
+            let pset = Part_set.find pset path in
+            Some (Imap.add i pset Imap.empty)
+        | None -> find a tl)
 
   let reenter a ms =
     let rec aux a ms =
@@ -299,6 +296,7 @@ end = struct
     aux a ms
 
   let remove a ms =
+    (* print_endline ("removing: " ^ Malloc.show a); *)
     let rec aux a ms =
       match (a, ms) with
       | _, [] -> []
@@ -368,7 +366,21 @@ end = struct
       | _ -> failwith "Internal Error: Mismatch in scope"
     in
     aux Imap.empty a b
+
+  let show_item a =
+    Imap.fold
+      (fun mid item acc ->
+        acc ^ Mid.show mid ^ ": " ^ Part_set.show item ^ "\n")
+      a ""
+
+  let show ms =
+    let inner (scope, a) =
+      "(" ^ show_malloc_scope scope ^ ":" ^ show_item a ^ ")"
+    in
+    "(" ^ String.concat ", " (List.map inner ms) ^ ")\n\n"
 end
+
+let () = ignore Mallocs.show
 
 type var_normal = {
   fn : to_gen_func_kind;
@@ -1193,6 +1205,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Fmt exprs -> morph_fmt make param exprs
   | Move e ->
       let p, e, func = morph_expr param e in
+      print_endline ("moved: " ^ Malloc.show func.malloc);
       let mallocs = Mallocs.remove func.malloc p.mallocs in
       ({ p with mallocs }, e, { func with malloc = No_malloc })
 
@@ -1343,6 +1356,8 @@ and morph_if mk p cond owning e1 e2 =
       (mk_free_after e1 frees, a, mallocs)
   in
 
+  (* print_endline "amallocs: "; *)
+  (* print_endline (Mallocs.show amallocs); *)
   let p, e2, b =
     morph_expr { p with ret; mallocs = Mallocs.push Mlocal oldmallocs } e2
   in
@@ -1359,18 +1374,28 @@ and morph_if mk p cond owning e1 e2 =
       (mk_free_after e2 frees, b, mallocs)
   in
 
+  (* print_endline "bmallocs: "; *)
+  (* print_endline (Mallocs.show bmallocs); *)
   let tailrec = a.tailrec && b.tailrec in
 
   (* Find out what's local and what isn't *)
   let amoved = Mallocs.diff_func oldmallocs amallocs in
+  print_endline "amoved";
+  print_endline (Mallocs.show_item amoved);
   let bmoved = Mallocs.diff_func oldmallocs bmallocs in
+  print_endline "bmoved";
+  print_endline (Mallocs.show_item bmoved);
 
   let mallocs = oldmallocs in
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     (* Mallocs which were moved in one branch need to be freed in the other *)
-    let frees_a = mapdiff_flip bmoved amoved |> mlist_of_pmap in
-    let frees_b = mapdiff_flip amoved bmoved |> mlist_of_pmap in
+    let frees_a = mapdiff bmoved amoved |> mlist_of_pmap in
+    print_endline "frees a:";
+    print_endline (String.concat ", " (List.map show_malloc_id frees_a));
+    let frees_b = mapdiff amoved bmoved |> mlist_of_pmap in
+    print_endline "frees b:";
+    print_endline (String.concat ", " (List.map show_malloc_id frees_b));
 
     let rm_path m part ms = Mallocs.remove (Part (m, Single, part)) ms in
     let mallocs =
@@ -1497,7 +1522,7 @@ and morph_record mk p labels typ =
 and morph_field mk p expr index =
   let ret = p.ret in
   let p, e, func = morph_expr { p with ret = false } expr in
-  let malloc = malloc_add_index index func.malloc in
+  let malloc = malloc_add_part (Mindex index) func.malloc in
   (* Field should not inherit alloca of its parent. Otherwise codegen might use
      a nested type as its parent *)
   ( { p with ret },
@@ -1510,27 +1535,25 @@ and morph_set mk p expr value moved =
      allocated things. If we do, there are additional relocations happening and
      the wrong things are freed. If one were to force an allocation here, that's
      a leak *)
-  (* let mallocs = p.mallocs in *)
+  let mallocs = p.mallocs in
   let p, e, vfunc = morph_expr { p with ret = false } expr in
   let p, v, _ =
     morph_expr p (* { p with mallocs = Mallocs.empty Mlocal } *) value
   in
 
   (* For codegen, we report partial moves as not moved, because we generate the
-     freeing code here. It's possibly to also generate the freeing code here,
-     but the way parts are tracked makes it a bit cumbersome: Parts track what
-     is moved and here we want to free the inverse of that. *)
+     freeing code here. It's possibly to also generate the freeing code in the
+     front end, but the way parts are tracked makes it a bit cumbersome: Parts
+     track what is moved and here we want to free the inverse of that. *)
   let codegen_moved, v =
     match moved with
     | Snot_moved -> (false, v)
-    | Spartially_moved ->
-        (* ( *)
-        (* match Mallocs.find vfunc.malloc mallocs with *)
-        (* | Some pmap -> *)
-        (*     let frees = mlist_of_pmap pmap in *)
-        (*     (true, mk_free_after v frees) *)
-        (* | None -> (true, v)) *)
-        (false, v)
+    | Spartially_moved -> (
+        match Mallocs.find vfunc.malloc mallocs with
+        | Some pmap ->
+            let frees = mlist_of_pmap pmap in
+            (true, mk_free_after v frees)
+        | None -> (true, v))
     | Smoved -> (true, v)
   in
 
@@ -1924,8 +1947,8 @@ and morph_var_data mk p expr typ =
   let mid, malloc =
     if contains_allocation typ then
       let mid = new_id malloc_id in
-      let id = Malloc.Whole ({ mid; typ }, Single) in
-      (Some mid, id)
+      let malloc = malloc_add_part (Mvariant { mid; typ }) func.malloc in
+      (Some mid, malloc)
     else (None, No_malloc)
   in
   let func =
