@@ -1,0 +1,7 @@
+(type (record 'a) {:int int :thing 'a})
+
+(ignore
+ (let ((r {:int 0 :thing {[0 1 2]}}))
+   (match (#some r)
+     ((#some r) {:int r.int :thing 0})
+     (#none {:int 0 :thing 0}))))

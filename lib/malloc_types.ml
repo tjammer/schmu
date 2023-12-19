@@ -60,6 +60,7 @@ module Part_set : sig
   val fold : (Part.t -> 'a -> 'a) -> t -> 'a -> 'a
   val move_add_head : t -> Part_kind.t -> t
   val ints : t -> int list Seq.t
+  val split_variants : t -> t option * (Mid.t * t) list
   val show : t -> string
   val pp : Format.formatter -> t -> unit
 end = struct
@@ -130,27 +131,60 @@ end = struct
   let is_empty set = match set with Whole -> true | Parts p -> Pmap.is_empty p
   let empty = Whole
 
+  let rec show = function
+    | Whole -> "Whole"
+    | Parts map ->
+        let map =
+          Pmap.fold
+            (fun kind set acc ->
+              acc ^ " (" ^ Part_kind.show kind ^ ": " ^ show set ^ ")")
+            map ""
+        in
+        "(Parts " ^ map ^ ")"
+
+  let pp ppf p = Format.fprintf ppf "%s" (show p)
+
+  let rec prune_variants = function
+    | Whole -> Whole
+    | Parts map ->
+        let map =
+          Pmap.filter_map
+            (fun head set ->
+              match head with
+              | Mindex _ -> Some (prune_variants set)
+              | Mvariant _ -> None)
+            map
+        in
+        if Pmap.is_empty map then Whole else Parts map
+
   let rec diff a b =
     (* Which items would I need to add to [b] to get [a]? Also, remove
        intersection of [a] and [b] from [a] *)
     match (a, b) with
     | Whole, Whole -> Whole
-    | Whole, Parts _ -> b
+    | Whole, Parts _ ->
+        (* Don't take the complete part of [b], but only until next Mvariant
+           (excluding). If a is Whole, it might not know about the variant, and in
+           pattern matches, the a branch must not try to free a pattern matched in
+           another branch. *)
+        prune_variants b
     | Parts _, Whole -> a
     | Parts a, Parts b ->
-        Parts
-          (Pmap.merge
-             (fun _ a b ->
-               match (a, b) with
-               | Some _, None -> a
-               | None, (Some _ | None) -> a
-               | Some a, Some b -> (
-                   match diff a b with
-                   (* [Whole] means the diff is empty, so a and b are the same.
-                      This is a diff, so we remove this case. *)
-                   | Whole -> None
-                   | Parts _ as diff -> Some diff))
-             a b)
+        let map =
+          Pmap.merge
+            (fun _ a b ->
+              match (a, b) with
+              | Some _, None -> a
+              | None, (Some _ | None) -> a
+              | Some a, Some b -> (
+                  match diff a b with
+                  (* [Whole] means the diff is empty, so a and b are the same.
+                     This is a diff, so we remove this case. *)
+                  | Whole -> None
+                  | Parts _ as diff -> Some diff))
+            a b
+        in
+        Parts map
 
   let rec union a b =
     match (a, b) with
@@ -207,18 +241,48 @@ end = struct
   let move_add_head set hd = Parts (Pmap.add hd set Pmap.empty)
   let ints set = fold (fun p seq -> Seq.cons (Part.ints p) seq) set Seq.empty
 
-  let rec show = function
-    | Whole -> "Whole"
-    | Parts map ->
-        let map =
-          Pmap.fold
-            (fun kind set acc ->
-              acc ^ " (" ^ Part_kind.show kind ^ ": " ^ show set ^ ")")
-            map ""
-        in
-        "(Parts " ^ map ^ ")"
-
-  let pp ppf p = Format.fprintf ppf "%s" (show p)
+  let split_variants set =
+    (* Pick out all paths of the set containing a variant and return the set
+       without the variant (if there is anything left) and for each variant a
+       new set with the variant Mid.t as a head. *)
+    let rec aux found_variant variants = function
+      | Whole -> (Whole, found_variant, variants)
+      | Parts map ->
+          let map, found, variants =
+            Pmap.fold
+              (fun head set (map, found_variant, variants) ->
+                match head with
+                | Mvariant mid ->
+                    let set, found, vars = aux false variants set in
+                    if found then
+                      (* Don't add this one to the variants list, because
+                         children have been added.*)
+                      if is_empty set then
+                        (* All children have been removed, do nothing *)
+                        (map, true, vars)
+                      else (Pmap.add head set map, true, vars)
+                    else
+                      (* No children variants were found, add this one. And
+                         discard the item from the remaining map. *)
+                      (map, found_variant, (mid, set) :: variants)
+                | Mindex _ ->
+                    let set, found, vars = aux false variants set in
+                    if found && is_empty set then
+                      (* All children have been removed, do nothing *)
+                      let () = print_endline "children have been moved" in
+                      (map, found, vars)
+                    else (Pmap.add head set map, found_variant, variants))
+              map
+              (Pmap.empty, false, variants)
+          in
+          if Pmap.is_empty map then (Whole, found_variant || found, variants)
+          else (Parts map, found_variant || found, variants)
+    in
+    let new_set, _, variants = aux false [] set in
+    match (set, new_set) with
+    | Whole, Whole -> (Some set, variants)
+    | Parts _, Whole -> (None, variants)
+    | _, Parts _ -> (Some set, variants)
 end
 
 module Malloc = struct

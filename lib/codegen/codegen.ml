@@ -1275,7 +1275,7 @@ end = struct
         List.iter
           (fun i ->
             (* Printf.printf "freeing except %i with paths %s, is %b\n" i.id *)
-            (*   (show_pset i.paths) *)
+            (*   (Part_set.show i.paths) *)
             (*   (Option.is_some (Hashtbl.find_opt free_tbl i.id)); *)
             Option.iter
               (Auto.free_except param i.paths)
@@ -1284,8 +1284,9 @@ end = struct
     | Only fs ->
         List.iter
           (fun i ->
+
             (* Printf.printf "freeing only %i with paths %s\n" i.id *)
-            (*   (show_pset i.paths); *)
+            (*   (Part_set.show i.paths); *)
             Option.iter
               (fun init ->
                 (* TODO check for empty in monomorph_tree *)

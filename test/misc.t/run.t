@@ -2722,7 +2722,7 @@ Functions in arrays
   $ schmu function_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./function_array
 
 Take/use not all allocations of a record in tailrec calls
-  $ schmu --dump-llvm take_partial_alloc.smu && valgrind -q --leak-check=yes --show-reachable=yes ./take_partial_alloc
+  $ schmu --dump-llvm take_partial_alloc.smu
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -3055,6 +3055,11 @@ Take/use not all allocations of a record in tailrec calls
   declare void @free(i8* %0)
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./take_partial_alloc
+
+Take/use not all allocations of a record in tailrec calls, different order for pattern matches
+  $ schmu take_partial_alloc_reorder.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./take_partial_alloc_reorder
 
 Increase refcount for returned params in ifs
   $ schmu --dump-llvm if_ret_param.smu && valgrind -q --leak-check=yes --show-reachable=yes ./if_ret_param
@@ -4115,11 +4120,6 @@ Handle partial allocations
 Don't free string literals
   $ schmu borrow_string_lit.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_string_lit
-
-
-Free nested records
-  $ schmu free_nested.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./free_nested
 
 Correct link order for cc flags
   $ schmu piping.smu --cc -L. --cc -lstub

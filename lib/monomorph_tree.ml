@@ -156,9 +156,20 @@ let m_to_list = function
 type pmap = Part_set.t Imap.t
 
 let mlist_of_pmap m =
-  Imap.to_rev_seq m
-  |> Seq.map (fun ((id : Mid.t), paths) ->
-         { id = id.mid; mtyp = id.typ; paths })
+  Imap.to_seq m
+  |> Seq.fold_left
+       (fun seq ((id : Mid.t), paths) ->
+         let orig, variants = Part_set.split_variants paths in
+         let seq =
+           match orig with
+           | None -> seq
+           | Some paths -> Seq.cons { id = id.mid; mtyp = id.typ; paths } seq
+         in
+         List.fold_left
+           (fun seq ((id : Mid.t), paths) ->
+             Seq.cons { id = id.mid; mtyp = id.typ; paths } seq)
+           seq variants)
+       Seq.empty
   |> List.of_seq
 
 let mapdiff a b =
@@ -166,11 +177,10 @@ let mapdiff a b =
     (fun _ a b ->
       match (a, b) with
       | Some a, Some b ->
-          (* print_endline ("both see: " ^ Mid.show key); *)
           if Part_set.is_empty b then None
           else
             let diff = Part_set.diff a b in
-            if Part_set.is_empty diff then None else Some diff
+            Some diff
       | None, Some _ | None, None -> None
       | Some v, None -> Some v)
     a b
@@ -296,7 +306,6 @@ end = struct
     aux a ms
 
   let remove a ms =
-    (* print_endline ("removing: " ^ Malloc.show a); *)
     let rec aux a ms =
       match (a, ms) with
       | _, [] -> []
@@ -380,7 +389,9 @@ end = struct
     "(" ^ String.concat ", " (List.map inner ms) ^ ")\n\n"
 end
 
-let () = ignore Mallocs.show
+let () =
+  ignore Mallocs.show;
+  ignore Mallocs.show_item
 
 type var_normal = {
   fn : to_gen_func_kind;
@@ -885,7 +896,8 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
       let p, func = get_poly_func p call in
       let typ = typ_of_abs func.abs in
       monomorphize p typ expr.typ func parent_sub
-  | No_function -> (p, Default)
+  | No_function ->
+      (p, Default)
 
 and get_poly_func p callname =
   match Hashtbl.find_opt poly_funcs_tbl callname with
@@ -1205,8 +1217,10 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Fmt exprs -> morph_fmt make param exprs
   | Move e ->
       let p, e, func = morph_expr param e in
-      print_endline ("moved: " ^ Malloc.show func.malloc);
-      let mallocs = Mallocs.remove func.malloc p.mallocs in
+      let mallocs =
+        if contains_allocation e.typ then Mallocs.remove func.malloc p.mallocs
+        else p.mallocs
+      in
       ({ p with mallocs }, e, { func with malloc = No_malloc })
 
 and morph_var mk p v mname =
@@ -1316,7 +1330,7 @@ and morph_unop mk p unop expr =
 and morph_if mk p cond owning e1 e2 =
   let ret = p.ret in
   let p, cond, _ = morph_expr { p with ret = false } cond in
-  let oldmallocs = p.mallocs in
+  let oldmallocs = p.mallocs and vars = p.vars in
 
   (* TODO update this comment *)
   (* If a malloc from a branch is local it is unique. We can savely add it to
@@ -1356,10 +1370,8 @@ and morph_if mk p cond owning e1 e2 =
       (mk_free_after e1 frees, a, mallocs)
   in
 
-  (* print_endline "amallocs: "; *)
-  (* print_endline (Mallocs.show amallocs); *)
   let p, e2, b =
-    morph_expr { p with ret; mallocs = Mallocs.push Mlocal oldmallocs } e2
+    morph_expr { p with ret; mallocs = Mallocs.push Mlocal oldmallocs; vars } e2
   in
   let e2, b, bmallocs =
     if b.tailrec then
@@ -1374,28 +1386,18 @@ and morph_if mk p cond owning e1 e2 =
       (mk_free_after e2 frees, b, mallocs)
   in
 
-  (* print_endline "bmallocs: "; *)
-  (* print_endline (Mallocs.show bmallocs); *)
   let tailrec = a.tailrec && b.tailrec in
 
   (* Find out what's local and what isn't *)
   let amoved = Mallocs.diff_func oldmallocs amallocs in
-  print_endline "amoved";
-  print_endline (Mallocs.show_item amoved);
   let bmoved = Mallocs.diff_func oldmallocs bmallocs in
-  print_endline "bmoved";
-  print_endline (Mallocs.show_item bmoved);
 
   let mallocs = oldmallocs in
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     (* Mallocs which were moved in one branch need to be freed in the other *)
     let frees_a = mapdiff bmoved amoved |> mlist_of_pmap in
-    print_endline "frees a:";
-    print_endline (String.concat ", " (List.map show_malloc_id frees_a));
     let frees_b = mapdiff amoved bmoved |> mlist_of_pmap in
-    print_endline "frees b:";
-    print_endline (String.concat ", " (List.map show_malloc_id frees_b));
 
     let rm_path m part ms = Mallocs.remove (Part (m, Single, part)) ms in
     let mallocs =
@@ -1436,7 +1438,7 @@ and morph_if mk p cond owning e1 e2 =
       | Part _ -> failwith "todo part"
     else None
   in
-  ( { p with mallocs },
+  ( { p with mallocs; vars },
     mk (Mif { cond; owning; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc); malloc; tailrec } )
 
@@ -1945,10 +1947,10 @@ and morph_var_data mk p expr typ =
   (* False because we only use it interally in if expr? *)
   let p, e, func = morph_expr { p with ret = false } expr in
   let mid, malloc =
-    if contains_allocation typ then
+    if contains_allocation typ then (
       let mid = new_id malloc_id in
       let malloc = malloc_add_part (Mvariant { mid; typ }) func.malloc in
-      (Some mid, malloc)
+      (Some mid, malloc))
     else (None, No_malloc)
   in
   let func =

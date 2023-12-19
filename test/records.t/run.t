@@ -756,3 +756,11 @@ A return of a field should not be preallocated
   attributes #0 = { argmemonly nofree nounwind willreturn }
   2
   12
+
+Free nested records
+  $ schmu free_nested.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./free_nested
+
+Free missing record fields
+  $ schmu free_missing_fields.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./free_missing_fields
