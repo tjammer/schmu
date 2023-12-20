@@ -7,7 +7,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
   open Arr
   open Malloc_types
 
-  type func = Copy | Free | Free_except of Part_set.t
+  type func = Copy | Free | Free_except of Pset.t
 
   let func_tbl = Hashtbl.create 64
   let cls_func_tbl = Hashtbl.create 64
@@ -32,7 +32,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
 
   let path_name pset =
     let show_path path = String.concat "-" (List.map string_of_int path) in
-    String.concat "." (Part_set.ints pset |> Seq.map show_path |> List.of_seq)
+    String.concat "." (Pset.to_seq pset |> Seq.map show_path |> List.of_seq)
 
   let name typ = function
     | Copy -> "__copy_" ^ Monomorph_tree.short_name ~closure:false typ
@@ -338,7 +338,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
       make_ptr param v |> free_call
 
   let free_except param pset v =
-    if Part_set.is_empty pset then free param v
+    if Pset.is_empty pset then free param v
     else if contains_allocation v.typ then
       let () = decl_children_exc pset v v.typ in
       make_ptr param v |> free_except_call pset

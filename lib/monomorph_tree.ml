@@ -140,58 +140,55 @@ type to_gen_func_kind =
   | No_function
 
 type alloc = Value of alloca | Two_values of alloc * alloc | No_value
-type malloc_scope = Mfunc | Mlocal [@@deriving show]
+type malloc_scope = Mfunc | Mlocal
 
-let malloc_add_part index = function
+let malloc_add_index index = function
   | Malloc.No_malloc -> Malloc.No_malloc
-  | Part (m, kind, p) -> Part (m, kind, Part.add_part p index)
-  | Whole (m, kind) -> Part (m, kind, Part.of_head index)
+  | Path (m, p) -> Path (m, p @ [ index ])
+  | (Single _ | Param _) as m -> Path (m, [ index ])
 
 let m_to_list = function
   | Malloc.No_malloc -> []
-  | Whole (i, Single) -> [ i.mid ]
-  | Whole (_, Param) -> []
-  | Part _ -> failwith "Internal Error: Part not supported here"
+  | Single i -> [ i.mid ]
+  | Param _ -> []
+  | Path _ -> failwith "Internal Error: Path not supported here"
 
-type pmap = Part_set.t Imap.t
+type pmap = Pset.t Imap.t
 
 let mlist_of_pmap m =
-  Imap.to_seq m
-  |> Seq.fold_left
-       (fun seq ((id : Mid.t), paths) ->
-         let orig, variants = Part_set.split_variants paths in
-         let seq =
-           match orig with
-           | None -> seq
-           | Some paths -> Seq.cons { id = id.mid; mtyp = id.typ; paths } seq
-         in
-         List.fold_left
-           (fun seq ((id : Mid.t), paths) ->
-             Seq.cons { id = id.mid; mtyp = id.typ; paths } seq)
-           seq variants)
-       Seq.empty
+  Imap.to_rev_seq m
+  |> Seq.map (fun ((id : Mid.t), paths) ->
+         { id = id.mid; mtyp = id.typ; paths })
   |> List.of_seq
 
-let mapdiff a b =
+let show_pmap m =
+  Imap.to_seq m
+  |> Seq.map (fun ((i : Mid.t), set) ->
+         Printf.sprintf "%i: (%s)" i.mid (show_pset set))
+  |> List.of_seq |> String.concat "\n"
+
+let mapdiff ?(flip = true) a b =
+  ignore show_pmap;
   Imap.merge
     (fun _ a b ->
       match (a, b) with
       | Some a, Some b ->
-          if Part_set.is_empty b then None
+          if Pset.is_empty b then None
           else
-            let diff = Part_set.diff a b in
-            Some diff
+            (* The order here is switched, we want new moved things to appear *)
+            let diff = if flip then Pset.diff b a else Pset.diff a b in
+            if Pset.is_empty diff then None else Some diff
       | None, Some _ | None, None -> None
       | Some v, None -> Some v)
     a b
 
-(* let mapdiff_flip a b = mapdiff ~flip:false a b *)
+let mapdiff_flip a b = mapdiff ~flip:false a b
 
 let mapunion a b =
   Imap.merge
     (fun _ a b ->
       match (a, b) with
-      | Some a, Some b -> Some (Part_set.union a b)
+      | Some a, Some b -> Some (Pset.union a b)
       | Some a, None -> Some a
       | None, Some b -> Some b
       | None, None -> None)
@@ -200,7 +197,7 @@ let mapunion a b =
 let mk_free_after expr frees =
   (* Delete paths if all allocating members are excluded *)
   let rec is_excluded frees typ =
-    if Part_set.is_empty frees then (false, frees)
+    if Pset.is_empty frees then (false, frees)
     else
       match typ with
       | Trecord (_, _, fs) ->
@@ -210,21 +207,16 @@ let mk_free_after expr frees =
                 if contains_allocation f.ftyp then
                   match pop_index_pset frees i with
                   | Not_excl -> (i + 1, false, pset)
-                  | Excl ->
-                      ( i + 1,
-                        exh && true,
-                        Part_set.move_out pset (Part.of_head (Mindex i)) )
+                  | Excl -> (i + 1, exh && true, Pset.add [ i ] pset)
                   | Followup frees ->
                       let nexcluded, npset = is_excluded frees f.ftyp in
                       let npset =
                         if nexcluded then pset
-                        else
-                          (* TODO do we really discard [pset] here? *)
-                          Part_set.move_add_head npset (Mindex i)
+                        else Pset.map (fun l -> i :: l) npset
                       in
                       (i + 1, exh && nexcluded, npset)
                 else (i + 1, exh, pset))
-              (0, true, Part_set.empty) fs
+              (0, true, Pset.empty) fs
           in
           (excluded, pset)
       | _ -> failwith "todo exh"
@@ -246,15 +238,13 @@ module Mallocs : sig
   val empty : malloc_scope -> t
   val push : malloc_scope -> t -> t
   val pop : t -> malloc_id list * t
+  val find : Malloc.t -> t -> pset Imap.t option
   val add : Malloc.t -> t -> t
   val remove : Malloc.t -> t -> t
   val reenter : Malloc.t -> t -> t
   val remove_local : Malloc.t -> t -> t
   val empty_func : monod_tree -> t -> t * monod_tree
-  val diff_func : t -> t -> Part_set.t Imap.t
-  val find : Malloc.t -> t -> Part_set.t Imap.t option
-  val show_item : Part_set.t Imap.t -> string
-  val show : t -> string
+  val diff_func : t -> t -> Pset.t Imap.t
 end = struct
   (* type pmap = Pset.t Imap.t *)
   open Malloc
@@ -265,95 +255,137 @@ end = struct
   let push kind ms = (kind, Imap.empty) :: ms
   let pop = function (_, ms) :: tl -> (mlist_of_pmap ms, tl) | [] -> ([], [])
 
+  let find a ms =
+    let rec aux a ms path =
+      match (a, ms) with
+      | _, [] -> None
+      | (Single i | Param i), (_, ms) :: tl ->
+          let mem =
+            match Imap.find_opt i ms with
+            | Some pset -> (
+                match path with
+                | [] -> Some (Imap.add i pset Imap.empty)
+                | path ->
+                    if Pset.mem path pset then None
+                    else Some (Imap.add i pset Imap.empty))
+            | None -> None
+          in
+          if Option.is_some mem then mem else aux a tl path
+      | No_malloc, _ -> None
+      | Path (a, l), _ ->
+          print_endline ("it's a path: " ^ Mpath.show l);
+          (* Order of appending paths is important *)
+          aux a ms (l @ path)
+    in
+    aux a ms []
+
+  let mem a ms =
+    let rec aux a ms path =
+      match (a, ms) with
+      | _, [] -> false
+      | (Single i | Param i), (_, ms) :: tl ->
+          let mem =
+            match Imap.find_opt i ms with
+            | Some pset -> (
+                match path with [] -> true | path -> Pset.mem path pset |> not)
+            | None -> false
+          in
+          mem || aux a tl path
+      | No_malloc, _ -> false
+      | Path (a, l), _ ->
+          (* Order of appending paths is important *)
+          aux a ms (l @ path)
+    in
+    aux a ms []
+
   let add a ms =
     match (a, ms) with
     | _, [] -> failwith "Internal Error: Empty ids"
-    | Whole (a, _), (scope, ms) :: tl ->
-        (scope, Imap.add a Part_set.empty ms) :: tl
+    | (Single a | Param a), (scope, ms) :: tl ->
+        (scope, Imap.add a Pset.empty ms) :: tl
     | No_malloc, _ -> ms
-    | Part _, _ -> failwith "Internal Error: Trying to add pathed malloc"
-
-  let rec find a ms =
-    match (a, ms) with
-    | _, [] -> None
-    | No_malloc, _ -> None
-    | Whole (i, _), (_, ms) :: tl -> (
-        match Imap.find_opt i ms with
-        | Some pset -> Some (Imap.add i pset Imap.empty)
-        | None -> find a tl)
-    | Part (i, _, path), (_, ms) :: tl -> (
-        match Imap.find_opt i ms with
-        | Some pset ->
-            let pset = Part_set.find pset path in
-            Some (Imap.add i pset Imap.empty)
-        | None -> find a tl)
+    | Path _, _ -> failwith "Internal Error: Trying to add pathed malloc"
 
   let reenter a ms =
     let rec aux a ms =
       match (a, ms) with
       | _, [] -> []
-      | Whole (a, _), (scope, ms) :: tl ->
-          (scope, Imap.add a Part_set.empty ms) :: tl
+      | (Single a | Param a), (scope, ms) :: tl ->
+          (scope, Imap.add a Pset.empty ms) :: tl
       | No_malloc, _ -> ms
-      | Part (i, _, p), (scope, ms) :: tl ->
+      | Path ((Single i | Param i), p), (scope, ms) :: tl ->
           let found, ms =
             match Imap.find_opt i ms with
-            | Some pset -> (true, Imap.add i (Part_set.reenter pset p) ms)
+            | Some pset -> (true, Imap.add i (Pset.remove p pset) ms)
             | None -> (false, ms)
           in
           if found then (scope, ms) :: tl else (scope, ms) :: aux a tl
+      | Path _, _ -> failwith "Internal Error: Unexpected path"
     in
     aux a ms
 
   let remove a ms =
-    let rec aux a ms =
+    let rec aux a path ms =
       match (a, ms) with
       | _, [] -> []
-      | Whole (i, _), (scope, ms) :: tl ->
+      | (Single { parent = Some par; _ }, _ | Param { parent = Some par; _ }, _)
+        when (not (mem par ms)) && not (mem a ms) ->
+          (* Except when it has a parent and the parent is still part of the
+             tail. Then it's about to be removed and the child part has to be
+             added here. *)
+          aux a path (add a ms)
+      | (Single i | Param i), (scope, ms) :: tl ->
           let ms =
-            match Imap.find_opt i ms with
-            | Some _ -> Imap.remove i ms
-            | None ->
-                (* Malloc id isn't part of this scope, do nothing *)
-                (* TODO only recurse here, not in [Some] case *)
-                ms
+            match path with
+            | [] -> Imap.remove i ms
+            | p -> (
+                match Imap.find_opt i ms with
+                | Some pset ->
+                    (* Malloc id was found, mark path as moved in set *)
+                    Imap.add i (Pset.add p pset) ms
+                | None ->
+                    (* Malloc id isn't part of this scope, do nothing *)
+                    ms)
           in
-          (scope, ms) :: aux a tl
+          (* If the malloc has a parent, it's a variant. The variant must be
+             removed as a whole from the tail *)
+          let tl =
+            match i.parent with Some par -> aux par [] tl | None -> tl
+          in
+          (scope, ms) :: aux a path tl
       | No_malloc, _ -> ms
-      | Part (i, _, path), (scope, ms) :: tl ->
-          let ms =
-            match Imap.find_opt i ms with
-            | Some pset -> Imap.add i (Part_set.move_out pset path) ms
-            | None ->
-                (* Malloc id isn't part of this scope, do nothing *)
-                ms
-          in
-          (scope, ms) :: aux a tl
+      | Path (a, l), _ -> aux a (l @ path) ms
     in
-    aux a ms
+    aux a [] ms
 
   let remove_local a ms =
-    let aux a ms =
+    let rec aux a path ms =
       match (a, ms) with
       | _, [] -> []
-      | Whole (i, _), (scope, ms) :: tl ->
+      | Single ({ parent = Some par; _ } as i), (_, ms') :: _
+      | Param ({ parent = Some par; _ } as i), (_, ms') :: _
+        when (not (mem par ms)) && not (Imap.mem i ms') ->
+          (* Except when it has a parent and the parent is still part of the
+             tail. Then it's about to be removed and the child part has to be
+             added here. *)
+          aux a path (add a ms)
+      | (Single i | Param i), (scope, ms) :: tl ->
           let ms =
-            match Imap.find_opt i ms with
-            | Some _ -> Imap.remove i ms
-            | None -> ms
+            match path with
+            | [] -> Imap.remove i ms
+            | p -> (
+                match Imap.find_opt i ms with
+                | Some pset -> Imap.add i (Pset.add p pset) ms
+                | None -> ms)
+          in
+          let tl =
+            match i.parent with Some par -> aux par [] tl | None -> tl
           in
           (scope, ms) :: tl
       | No_malloc, _ -> ms
-      | Part (i, _, path), (scope, ms) :: tl ->
-          let ms =
-            match Imap.find_opt i ms with
-            | Some pset -> Imap.add i (Part_set.move_out pset path) ms
-            | None -> ms
-          in
-          (scope, ms) :: tl
+      | Path (a, l), _ -> aux a (l @ path) ms
     in
-
-    aux a ms
+    aux a [] ms
 
   let rec empty_func body = function
     | [] -> ([], body)
@@ -375,23 +407,7 @@ end = struct
       | _ -> failwith "Internal Error: Mismatch in scope"
     in
     aux Imap.empty a b
-
-  let show_item a =
-    Imap.fold
-      (fun mid item acc ->
-        acc ^ Mid.show mid ^ ": " ^ Part_set.show item ^ "\n")
-      a ""
-
-  let show ms =
-    let inner (scope, a) =
-      "(" ^ show_malloc_scope scope ^ ":" ^ show_item a ^ ")"
-    in
-    "(" ^ String.concat ", " (List.map inner ms) ^ ")\n\n"
 end
-
-let () =
-  ignore Mallocs.show;
-  ignore Mallocs.show_item
 
 type var_normal = {
   fn : to_gen_func_kind;
@@ -896,8 +912,7 @@ and monomorphize_call p expr parent_sub : morph_param * call_name =
       let p, func = get_poly_func p call in
       let typ = typ_of_abs func.abs in
       monomorphize p typ expr.typ func parent_sub
-  | No_function ->
-      (p, Default)
+  | No_function -> (p, Default)
 
 and get_poly_func p callname =
   match Hashtbl.find_opt poly_funcs_tbl callname with
@@ -1083,15 +1098,15 @@ let rec set_alloca p = function
       set_alloca p b
   | Value _ | No_value -> ()
 
-let mb_malloc ids typ =
+let mb_malloc parent ids typ =
   if contains_allocation typ then
     let mid = new_id malloc_id in
-    let id = Malloc.(Whole ({ mid; typ }, Single)) in
+    let id = Malloc.Single { mid; typ; parent } in
     let mallocs = Mallocs.add id ids in
     (Some mid, id, mallocs)
   else (None, No_malloc, ids)
 
-let malloc_id_of_param mid p = { Mid.mid; typ = p.pt }
+let malloc_id_of_param mid p = { Mid.mid; typ = p.pt; parent = None }
 
 let add_params vars mallocs pnames params =
   (* Add parameters to the env and create malloc ids if they have been moved *)
@@ -1099,9 +1114,7 @@ let add_params vars mallocs pnames params =
     (fun (vars, mallocs) (name, mid) p ->
       let var, mallocs =
         let id = malloc_id_of_param mid p in
-        let malloc =
-          if p.pmoved then Malloc.Whole (id, Single) else Whole (id, Param)
-        in
+        let malloc = if p.pmoved then Malloc.Single id else Param id in
         (Normal { no_var with malloc }, Mallocs.add malloc mallocs)
       in
       let vars = Vars.add name var vars in
@@ -1273,13 +1286,13 @@ and morph_array mk p a typ =
   let p = leave_level p in
   let alloca = ref (request p) in
   let mid = new_id malloc_id in
-  let id = { Mid.mid; typ } in
-  let malloc = Malloc.Whole (id, Single) in
-  let mallocs = Mallocs.add malloc p.mallocs in
+  let id = { Mid.mid; typ; parent = None } in
+  let mallocs = Mallocs.add (Single id) p.mallocs in
 
   ( { p with ret; mallocs },
     mk (Mconst (Array (a, alloca, mid))) p.ret,
-    { no_var with fn = No_function; alloc = Value alloca; malloc } )
+    { no_var with fn = No_function; alloc = Value alloca; malloc = Single id }
+  )
 
 and morph_fixed_array mk p a typ =
   let ret = p.ret in
@@ -1296,7 +1309,7 @@ and morph_fixed_array mk p a typ =
   let p, a = List.fold_left_map f p a in
   let p = leave_level p in
 
-  let _, malloc, mallocs = mb_malloc p.mallocs typ in
+  let _, malloc, mallocs = mb_malloc None p.mallocs typ in
   let ms = m_to_list malloc in
 
   let alloca = ref (request p) in
@@ -1396,17 +1409,17 @@ and morph_if mk p cond owning e1 e2 =
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     (* Mallocs which were moved in one branch need to be freed in the other *)
-    let frees_a = mapdiff bmoved amoved |> mlist_of_pmap in
-    let frees_b = mapdiff amoved bmoved |> mlist_of_pmap in
+    let frees_a = mapdiff_flip bmoved amoved |> mlist_of_pmap in
+    let frees_b = mapdiff_flip amoved bmoved |> mlist_of_pmap in
 
-    let rm_path m part ms = Mallocs.remove (Part (m, Single, part)) ms in
+    let rm_path m path ms = Mallocs.remove (Path (Single m, path)) ms in
     let mallocs =
       Imap.fold
         (fun m pset ms ->
-          if Part_set.is_empty pset then
+          if Pset.is_empty pset then
             (* Remove the whole malloc, not just a part *)
-            Mallocs.remove (Whole (m, Single)) ms
-          else Part_set.fold (rm_path m) pset ms)
+            Mallocs.remove (Single m) ms
+          else Pset.fold (rm_path m) pset ms)
         (mapunion amoved bmoved) mallocs
     in
     let e1 =
@@ -1420,22 +1433,21 @@ and morph_if mk p cond owning e1 e2 =
 
     if owning && contains_allocation e1.typ then
       let mid = new_id malloc_id in
-      let id = { Mid.mid; typ = e1.typ } in
-      let malloc = Malloc.(Whole (id, Single)) in
-      let mallocs = Mallocs.add malloc mallocs in
+      let id = { Mid.mid; typ = e1.typ; parent = None } in
+      let mallocs = Mallocs.add (Single id) mallocs in
       let mallocs =
         Mallocs.remove a.malloc mallocs |> Mallocs.remove b.malloc
       in
-      (e1, e2, malloc, mallocs)
+      (e1, e2, Malloc.Single id, mallocs)
     else (e1, e2, No_malloc, mallocs)
   in
 
   let owning =
     if owning then
       match malloc with
-      | Whole (id, Single) -> Some id.mid
-      | No_malloc | Whole (_, Param) -> None
-      | Part _ -> failwith "todo part"
+      | Single id -> Some id.mid
+      | No_malloc | Param _ -> None
+      | Path _ -> failwith "todo path"
     else None
   in
   ( { p with mallocs; vars },
@@ -1457,9 +1469,8 @@ and prep_let p id uniq e pass toplvl =
     match pass with
     | Dmove ->
         let mid = new_id malloc_id in
-        let id = Mid.{ mid; typ = e1.typ } in
-        let malloc = Malloc.Whole (id, Single) in
-        ([ mid ], malloc, Mallocs.add malloc p.mallocs)
+        let id = Mid.{ mid; typ = e1.typ; parent = None } in
+        ([ mid ], Malloc.Single id, Mallocs.add (Single id) p.mallocs)
     | Dset | Dmut | Dnorm -> ([], func.malloc, p.mallocs)
   in
 
@@ -1513,7 +1524,7 @@ and morph_record mk p labels typ =
   let p, labels = List.fold_left_map f p labels in
   let p = leave_level p in
 
-  let _, malloc, mallocs = mb_malloc p.mallocs typ in
+  let _, malloc, mallocs = mb_malloc None p.mallocs typ in
   let ms = m_to_list malloc in
 
   let alloca = ref (request p) in
@@ -1524,7 +1535,7 @@ and morph_record mk p labels typ =
 and morph_field mk p expr index =
   let ret = p.ret in
   let p, e, func = morph_expr { p with ret = false } expr in
-  let malloc = malloc_add_part (Mindex index) func.malloc in
+  let malloc = malloc_add_index index func.malloc in
   (* Field should not inherit alloca of its parent. Otherwise codegen might use
      a nested type as its parent *)
   ( { p with ret },
@@ -1660,7 +1671,7 @@ and prep_func p (usrname, uniq, abs) =
       List.fold_left2
         (fun acc (_, mid) p ->
           let id = malloc_id_of_param mid p in
-          if not p.pmoved then Mallocs.remove (Whole (id, Param)) acc else acc)
+          if not p.pmoved then Mallocs.remove (Param id) acc else acc)
         temp_p.mallocs pnames func.params
     in
 
@@ -1771,7 +1782,7 @@ and morph_lambda mk typ p id abs =
       List.fold_left2
         (fun acc (_, mid) p ->
           let id = malloc_id_of_param mid p in
-          if not p.pmoved then Mallocs.remove (Whole (id, Param)) acc else acc)
+          if not p.pmoved then Mallocs.remove (Param id) acc else acc)
         temp_p.mallocs pnames func.params
     in
 
@@ -1828,9 +1839,9 @@ and morph_app mk p callee args ret_typ =
   let f p (arg, attr) =
     let is_arg = function
       | Malloc.No_malloc -> false
-      | Whole (_, Param) -> true
-      | Whole (_, Single) -> false
-      | Part _ -> (* A path cannot be a passed argument *) false
+      | Param _ -> true
+      | Single _ -> false
+      | Path _ -> (* A path cannot be a passed argument *) false
     in
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
@@ -1896,7 +1907,7 @@ and morph_app mk p callee args ret_typ =
     match callee.monomorph with
     | Builtin ((Array_get | Fixed_array_get), _) -> (Malloc.No_malloc, p.mallocs)
     | _ ->
-        let _, malloc, mallocs = mb_malloc p.mallocs ret_typ in
+        let _, malloc, mallocs = mb_malloc None p.mallocs ret_typ in
         (malloc, mallocs)
   in
 
@@ -1926,7 +1937,7 @@ and morph_ctor mk p variant index expr typ =
 
   let p = leave_level p in
 
-  let _, malloc, mallocs = mb_malloc p.mallocs typ in
+  let _, malloc, mallocs = mb_malloc None p.mallocs typ in
   let ms = m_to_list malloc in
 
   let alloca = ref (request p) in
@@ -1947,10 +1958,10 @@ and morph_var_data mk p expr typ =
   (* False because we only use it interally in if expr? *)
   let p, e, func = morph_expr { p with ret = false } expr in
   let mid, malloc =
-    if contains_allocation typ then (
+    if contains_allocation typ then
       let mid = new_id malloc_id in
-      let malloc = malloc_add_part (Mvariant { mid; typ }) func.malloc in
-      (Some mid, malloc))
+      let id = Malloc.Single { mid; typ; parent = Some func.malloc } in
+      (Some mid, id)
     else (None, No_malloc)
   in
   let func =
@@ -1983,7 +1994,7 @@ and morph_fmt mk p exprs =
 
   let alloca = ref (request p) in
   let mid = new_id malloc_id in
-  let malloc = Malloc.Whole ({ mid; typ = Tarray Tu8 }, Single) in
+  let malloc = Malloc.Single { mid; typ = Tarray Tu8; parent = None } in
   let mallocs = Mallocs.add malloc p.mallocs in
 
   ( { p with ret; mallocs },
