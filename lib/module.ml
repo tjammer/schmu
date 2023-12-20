@@ -511,7 +511,8 @@ let object_names () =
     Hashtbl.fold
       (fun _ cached set ->
         match cached with
-        | Cached (Cfile (name, _), _, _) -> Sset.add (name ^ ".o") set
+        | Cached (Cfile (name, _), _, _) ->
+            Sset.add (normalize_path (name ^ ".o")) set
         | Cached (Clocal _, _, _) | Functor _ -> set
         | Located _ -> set)
       module_cache Sset.empty
