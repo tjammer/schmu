@@ -254,9 +254,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
           (fun i f ->
             if contains_allocation f.ftyp then
               (* Copy allocation part *)
-              let value = Llvm.build_struct_gep dst.value i "" builder in
-              let lltyp = get_lltype_def f.ftyp in
-              let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
+              let v = follow_field dst i in
               copy_inner_call v)
           fs
     | Tvariant (_, _, ctors) ->
@@ -397,9 +395,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         Array.iteri
           (fun i f ->
             if contains_allocation f.ftyp then
-              let value = Llvm.build_struct_gep v.value i "" builder in
-              let lltyp = get_lltype_def f.ftyp in
-              let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
+              let v = follow_field v i in
               free_call v)
           fs
     | Tvariant (_, _, ctors) ->
@@ -489,15 +485,11 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
               match pop_index_pset pset i with
               | Not_excl ->
                   (* Copy from [free_impl] *)
-                  let value = Llvm.build_struct_gep v.value i "" builder in
-                  let lltyp = get_lltype_def f.ftyp in
-                  let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
+                  let v = follow_field v i in
                   free_call v
               | Excl -> (* field is excluded, do nothing *) ()
               | Followup pset ->
-                  let value = Llvm.build_struct_gep v.value i "" builder in
-                  let lltyp = get_lltype_def f.ftyp in
-                  let v = { value; typ = f.ftyp; lltyp; kind = Ptr } in
+                  let v = follow_field v i in
                   free_except_call pset v)
           fs
     | _ -> failwith "TODO free or not supported"

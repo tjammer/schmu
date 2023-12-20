@@ -1007,48 +1007,6 @@ end = struct
     let value = gen_expr param expr in
     follow_field value index
 
-  and follow_field value index =
-    let find_real_index fs =
-      (* Without unit fields *)
-      let i = ref None in
-      Array.fold_left
-        (fun (acc, tempi) f ->
-          if tempi = index then i := Some acc;
-          ((match f.ftyp with Tunit -> acc | _ -> acc + 1), tempi + 1))
-        (0, 0) fs
-      |> ignore;
-      Option.get !i
-    in
-
-    let typ, index =
-      match value.typ with
-      | Trecord (_, _, fields) -> (fields.(index).ftyp, find_real_index fields)
-      | _ ->
-          print_endline (show_typ value.typ);
-          failwith "Internal Error: No record in fields"
-    in
-
-    match typ with
-    | Tunit -> dummy_fn_value
-    | typ ->
-        let value, kind =
-          match value.kind with
-          | Const_ptr | Ptr ->
-              let p = Llvm.build_struct_gep value.value index "" builder in
-              (* In case we return a record, we don't load, but return the pointer.
-                 The idea is that this will be used either as a return value for a function (where it is copied),
-                 or for another field, where the pointer is needed.
-                 We should distinguish between structs and pointers somehow *)
-              (p, Ptr)
-          | Const ->
-              (* If the record is const, we use extractvalue and propagate the constness *)
-              let p = Llvm.(const_extractvalue value.value [| index |]) in
-              (p, Const)
-          | Imm -> failwith "Internal Error: Did not expect Imm in field"
-        in
-
-        { value; typ; lltyp = get_lltype_def typ; kind }
-
   and gen_set param expr valexpr moved =
     let ptr = gen_expr param expr in
     let value = gen_expr param valexpr in
@@ -1284,7 +1242,6 @@ end = struct
     | Only fs ->
         List.iter
           (fun i ->
-
             (* Printf.printf "freeing only %i with paths %s\n" i.id *)
             (*   (Part_set.show i.paths); *)
             Option.iter
