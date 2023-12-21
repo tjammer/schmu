@@ -723,7 +723,7 @@ module Make (C : Core) (R : Recs) = struct
         let ptyp = path_typ loc env path in
         let pat = Tp_var (loc, name, dattr) in
         [ (path, { ptyp; pat }) ]
-    | Pwildcard loc ->
+    | Pwildcard (loc, _) ->
         let ptyp = path_typ loc env path in
         let pat = Tp_wildcard loc in
         [ (path, { ptyp; pat }) ]
@@ -1231,7 +1231,7 @@ module Make (C : Core) (R : Recs) = struct
     | Ast.Pvar ((loc, id), dattr) -> (id, loc, false, dattr)
     | Ptup (loc, _, dattr) | Precord (loc, _, dattr) ->
         (expr_name [ i ], loc, true, dattr)
-    | Pwildcard loc -> (expr_name [ i ], loc, true, Dnorm)
+    | Pwildcard (loc, dattr) -> (expr_name [ i ], loc, true, dattr)
     | Pctor ((loc, _), _) | Plit_int (loc, _) | Plit_char (loc, _) | Por (loc, _)
       ->
         raise (Error (loc, "Unexpected pattern in declaration"))
@@ -1327,7 +1327,7 @@ module Make (C : Core) (R : Recs) = struct
     let f (env, i, ret) decl =
       match Ast.(decl.pattern) with
       | Ast.Pvar _ -> (env, i + 1, ret)
-      | Pwildcard loc ->
+      | Pwildcard (loc, _) ->
           (* expr_name was added before to env in [handle_param].
              Make sure it's marked as used *)
           ignore (Env.query_val_opt loc (Path.Pid (expr_name [ i ])) env);

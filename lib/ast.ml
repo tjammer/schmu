@@ -78,7 +78,7 @@ and pattern =
   | Pctor of ident * pattern option
   | Pvar of ident * decl_attr
   | Ptup of loc * (loc * pattern) list * decl_attr
-  | Pwildcard of loc
+  | Pwildcard of loc * decl_attr
   | Precord of loc * (ident * pattern option) list * decl_attr
   | Plit_int of loc * int
   | Plit_char of loc * char

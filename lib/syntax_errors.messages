@@ -166,6 +166,10 @@ prog: Lpar Match False Lpar Unknown_sized_ident
 
 Expecting pattern
 
+prog: Lpar Def Wildcard Type
+
+Expecting expression
+
 prog: Lpar Def Lpar Wildcard
 
 Expecting a pattern

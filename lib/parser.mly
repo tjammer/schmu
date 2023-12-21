@@ -47,6 +47,8 @@
          passed expression, meaning the right side. This function achieves that. *)
       | { loc; pattern = Pvar (id, Dmove); annot }, { pattr = Dnorm; pexpr } ->
           ({ loc; pattern = Pvar (id, Dnorm); annot }, { pattr = Dmove; pexpr })
+      | { loc; pattern = Pwildcard (l, Dmove); annot }, { pattr = Dnorm; pexpr } ->
+         ({ loc; pattern = Pwildcard (l, Dnorm); annot }, { pattr = Dmove; pexpr })
       | pattern, passed_expr -> (pattern, passed_expr)
 %}
 
@@ -297,10 +299,6 @@ sexp_decl:
   | bracks(sexp_decl_typed) { $1 }
   | pattern = sexp_pattern { {loc = $loc; pattern; annot = None} }
 
-param:
-  | bracks(sexp_decl_typed) { $1 }
-  | pattern = sexp_pattern; { {loc = $loc; pattern; annot = None} }
-
 sexp_decl_typed:
   | pattern = sexp_pattern; annot = sexp_type_expr
     { { loc = $loc; pattern; annot = Some annot } }
@@ -310,7 +308,7 @@ sexp_decl_typed:
 
 %inline sexp_fun:
   | Defn; name = ident; attr = list(attr); option(String_lit);
-      params = parens(list(param)); body = list(stmt)
+      params = parens(list(sexp_decl)); body = list(stmt)
     { ($loc, { name; params; return_annot = None; body; attr }) }
 
 %inline attr:
@@ -408,7 +406,7 @@ sexp_cond:
   | else_ = option(parens(cond_else)) { [$loc, Lit($loc, Unit), else_] }
 
 %inline sexp_lambda:
-  | Fn; attr = list(attr); params = parens(list(param)); body = list(stmt)
+  | Fn; attr = list(attr); params = parens(list(sexp_decl)); body = list(stmt)
     { Lambda ($loc, params, attr, body) }
 
 %inline sexp_field_set:
@@ -463,7 +461,9 @@ sexp_pattern:
   | ident; %prec below_Ampersand { Pvar ((fst $1, snd $1), Dnorm) }
   | ident; Ampersand { Pvar ((fst $1, snd $1), Dmut) }
   | ident; Exclamation { Pvar ((fst $1, snd $1), Dmove) }
-  | Wildcard { Pwildcard $loc }
+  | Wildcard; %prec below_Ampersand { Pwildcard ($loc, Dnorm) }
+  | Wildcard; Exclamation { Pwildcard ($loc, Dmove) }
+  | Wildcard; Ampersand { Pwildcard ($loc, Dmut) }
   | items = bracs(nonempty_list(record_item_pattern)); %prec below_Ampersand { Precord ($loc, items, Dnorm) }
   | items = bracs(nonempty_list(record_item_pattern)); Exclamation { Precord ($loc, items, Dmove) }
   | i = Int { Plit_int ($loc, i) }
