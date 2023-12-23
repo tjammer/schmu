@@ -1782,6 +1782,8 @@ and convert_prog env items modul =
         let env, id, lhs, rmut, pats =
           Core.convert_let ~global:true env loc decl block
         in
+        if is_module (Env.modpath env) && lhs.attr.mut then
+          raise (Error (loc, "Mutable top level bindings are not allowed in modules"));
         let uniq = uniq_name id in
         let env, expr, m =
           match let_fn_alias env loc lhs with

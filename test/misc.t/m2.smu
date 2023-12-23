@@ -16,12 +16,10 @@
 -- (print (fmt-str (odd? 100)))
 -- (print (fmt-str (even? 100)))
 
-(def cnt& 0)
 
 (rec
  (defn pop (arr&)
    (print "pop")
-   (set &cnt !(+ cnt 1))
    (array/drop-back &arr)
    (pop-all &arr))
  (defn pop-all (arr&)

@@ -1,0 +1,2 @@
+(module mm
+  (def _& 0))

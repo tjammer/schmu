@@ -1084,3 +1084,21 @@ Simple functor
 
 Nameclashes with filename
   $ schmu -m filename_nameclash.smu
+
+No mutable global state in modules
+  $ schmu -m mutable_global_state.smu
+  mutable_global_state.smu:1.2-10: error: Mutable top level bindings are not allowed in modules.
+  
+  1 | (def _& 0)
+       ^^^^^^^^
+  
+  [1]
+
+No mutable global state in submodules
+  $ schmu mutable_global_state_submodule.smu
+  mutable_global_state_submodule.smu:2.4-12: error: Mutable top level bindings are not allowed in modules.
+  
+  2 |   (def _& 0))
+         ^^^^^^^^
+  
+  [1]

@@ -2443,7 +2443,6 @@ Polymorphic mutual recursive function
   pop
   pop
   0
-  8
   pop
   pop
   pop
@@ -2453,7 +2452,6 @@ Polymorphic mutual recursive function
   pop
   pop
   0
-  8
   right
 
 
