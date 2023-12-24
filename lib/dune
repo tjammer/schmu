@@ -31,6 +31,10 @@
  (modules parser)
  (flags --explain --strict))
 
+(menhir
+ (modules newsyntax)
+ (flags --explain --strict --no-dollars))
+
 (ocamllex
  (modules lexer))
 
