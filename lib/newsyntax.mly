@@ -10,6 +10,11 @@
         | [] -> Option.map (fun b -> Do_block b) else_
       in
       If (loc, cond, Do_block then_, aux elseifs)
+
+    let pass_attr_of_opt = function
+      | Some (Ast.Dmut | Dset) -> Ast.Dmut
+      | Some Dmove -> Dmove
+      | Some Dnorm | None -> Dnorm
 %}
 
 %token Eof
@@ -22,12 +27,27 @@
 %token End
 %token Rpar
 %token Lpar
+%token Lbrack
+%token Rbrack
 %token <string> Upcase_ident
 %token Dot
 %token Import
 %token If
 %token Elseif
 %token Else
+%token Ampersand
+%token Exclamation
+%token <int> Int
+%token <char> U8
+%token <float> Float
+%token <int> I32
+%token <float> F32
+%token <string> String_lit
+%token True
+%token False
+%token Hashtag_brack
+%token <int> Hashnum_brack
+%token Newline
 
 /* ops  */
 %token Equal_binop
@@ -59,13 +79,14 @@
 %left Plus_i Plus_f Minus_i Minus_f
 %left Mult_i Mult_f Div_i Div_f
 %left Equal_binop Bin_equal_f
+%left Lpar
 
 %start <Ast.prog> prog
 
 %%
 
 prog:
-  | prog = list(top_item); Eof { [], prog }
+  | prog = separated_list(Newline, top_item); Eof { [], prog }
 
 top_item:
   | stmt = stmt { Stmt stmt }
@@ -79,7 +100,7 @@ stmt:
 
 block:
   | expr = expr; %prec If_no_else { [Expr ($loc, expr)] }
-  | Begin; stmts = nonempty_list(stmt); End { stmts }
+  | Begin; stmts = separated_nonempty_list(Newline, stmt); End { stmts }
 
 decl:
   | id = ident { {loc = $loc; pattern = Pvar (id, Dnorm); annot = None } }
@@ -89,23 +110,59 @@ ident:
 
 expr:
   | ident = ident { Var ident }
+  | lit = lit { Lit ($loc, lit) }
   | a = expr; bop = binop; b = expr { Bop ($loc, bop, [a; b]) }
   | If; cond = expr; Colon; then_ = then_
     { let then_, elifs, else_ = then_ in parse_elseifs $loc cond then_ elifs else_ }
+  | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
+  | Fun; params = parens(decl); Colon; body = block
+    { Lambda ($loc, params, [], body) }
+
+lit:
+  | lit = Int { Int lit }
+  | lit = U8  { U8 lit }
+  | lit = bool { Bool  lit }
+  | lit = Float { Float lit }
+  | lit = I32 { I32 lit }
+  | lit = F32 { F32 lit }
+  | lit = String_lit { String lit }
+  | lit = array_lit { Array lit }
+  | Lpar; Rpar { Unit }
+  | lit = fixed_array_lit { lit }
+
+bool:
+  | True { true }
+  | False { false }
+
+array_lit:
+  | Lbrack; exprs = separated_list(Comma, expr); Rbrack { exprs }
+
+fixed_array_lit:
+  | Hashtag_brack; items = separated_nonempty_list(Comma, expr); Rbrack { Fixed_array items }
+  | num = Hashnum_brack; item = expr; Rbrack { Fixed_array_num (num, item) }
+
+call_arg:
+  | attr = option(decl_attr); aexpr = expr { {apass = pass_attr_of_opt attr; aexpr; aloc = $loc} }
+
+decl_attr:
+  | Ampersand { Dmut } | Exclamation { Dmove }
 
 then_:
   | block = block; %prec If_no_else { block, [], None }
   | block = block; elifs = elifs { let elifs, else_ = elifs in block, elifs, Some else_ }
 
 elifs:
-  | elifs = nonempty_list(elif); else_ = elseitem(block) { elifs, else_ }
-  | else_ = elseitem(block) { [], else_ }
+  | elifs = nonempty_list(elif); else_ = else_ { elifs, else_ }
+  | else_ = else_ { [], else_ }
 
 passed_expr:
   | pexpr = expr { {pattr = Dnorm; pexpr} }
 
 elif:
   | Elseif; cond = expr; Colon; elseblk = block { ($loc, cond, elseblk) }
+
+else_:
+  | Else; Colon; item = block; { item }
 
 import_path:
   | id = Upcase_ident { Path.Pid (id) }
@@ -136,5 +193,3 @@ import_path:
 let parens(x) :=
   | Lpar; items = separated_list(Comma, x); Rpar; { items }
 
-let elseitem(x) :=
-  | Else; Colon; item = x; { item }
