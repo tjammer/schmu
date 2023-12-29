@@ -18,6 +18,7 @@
 %}
 
 %token Eof
+%token Let
 %token Fun
 %token <string> Ident
 %token Equal
@@ -57,6 +58,8 @@
 %token With
 %token Do
 %token Fmt
+%token Hbar
+%token Match
 
 /* ops  */
 %token Equal_binop
@@ -79,6 +82,9 @@
 %token Bin_equal_f
 %token And
 %token Or
+
+%nonassoc Below_hbar
+%nonassoc Hbar
 
 %left Pipe_head Pipe_tail
 %nonassoc If_no_else
@@ -104,8 +110,8 @@ top_item:
   | stmt = stmt { Stmt stmt }
 
 stmt:
-  | decl = decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
-  | Fun; name = ident; params = parens(decl); Colon; body = block
+  | Let; decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
+  | Fun; name = ident; params = parens(param_decl); Colon; body = block
     { Function ($loc, { name; params; return_annot = None; body; attr = [] }) }
   | expr = expr { Expr ($loc, expr) }
   | Ampersand; expr = expr; Left_arrow; newval = expr
@@ -116,10 +122,13 @@ block:
   | expr = expr; %prec If_no_else { [Expr ($loc, expr)] }
   | Begin; stmts = separated_nonempty_list(Newline, stmt); End { stmts }
 
-decl:
-  | pattern = pattern { {loc = $loc; pattern; annot = None } }
+let_decl:
+  | pattern = let_pattern { {loc = $loc; pattern; annot = None } }
 
-pattern:
+param_decl:
+  | pattern = param_pattern { {loc = $loc; pattern; annot = None} }
+
+basic_pattern:
   | id = ident { Pvar ((fst id, snd id), Dnorm) }
   | id = ident; Ampersand { Pvar ((fst id, snd id), Dmut) }
   | id = ident; Exclamation { Pvar ((fst id, snd id), Dmove) }
@@ -127,8 +136,34 @@ pattern:
   | Wildcard; Exclamation { Pwildcard ($loc, Dmove) }
   | Wildcard; Ampersand { Pwildcard ($loc, Dmut) }
   | id = upcase_ident { Pctor (id, None) }
-  | id = upcase_ident; pattern = pattern { Pctor (id, Some pattern)  }
-/* TODO tup pattern */
+  | id = upcase_ident; Lpar; pattern = basic_pattern; Rpar { Pctor (id, Some pattern)  }
+  | id = upcase_ident; Lpar; pattern = tup_pattern; Rpar { Pctor (id, Some pattern)  }
+
+match_pattern:
+  | basic = basic_pattern { basic }
+  | tup = tup_pattern { tup }
+  | head = basic_pattern; Hbar; tail = separated_nonempty_list(Hbar, basic_pattern)
+    { Por ($loc, head :: tail) }
+
+let_pattern:
+  | basic = basic_pattern { basic }
+  | tup = tup_pattern { tup }
+
+param_pattern:
+  | basic = basic_pattern { basic }
+  | Lpar; tups = tup_tups; Rpar { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
+  | Lpar; tups = tup_tups; Rpar; Ampersand { let loc, tups = tups in Ptup (loc, tups, Dmut) }
+  | Lpar; tups = tup_tups; Rpar; Exclamation { let loc, tups = tups in Ptup (loc, tups, Dmove) }
+
+tup_pattern:
+  | tups = tup_tups { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
+
+tup_tups:
+  | head = pattern_with_loc; Comma; tail = separated_nonempty_list(Comma, pattern_with_loc)
+    { $loc, head :: tail }
+
+pattern_with_loc:
+  | pat = basic_pattern { $loc, pat }
 
 ident:
   | id = Ident { $loc, id }
@@ -145,7 +180,7 @@ expr:
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
   | Fmt; args = parens(expr) { Fmt ($loc, args) }
   | special = special_builtins { special }
-  | Fun; params = parens(decl); Colon; body = block
+  | Fun; params = parens(param_decl); Colon; body = block
     { Lambda ($loc, params, [], body) }
   | Lbrac; items = separated_nonempty_list(Comma, record_item); Rbrac
     { Record ($loc, items) }
@@ -157,9 +192,20 @@ expr:
     { Record_update ($loc, record, items) }
   | Do; Colon; block = block { Do_block block }
   | aexpr = expr; Pipe_head; pipeable = expr
-    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in Pipe_head ($loc, arg, Pip_expr pipeable) }
+    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
+      Pipe_head ($loc, arg, Pip_expr pipeable) }
   | aexpr = expr; Pipe_tail; pipeable = expr
-    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in Pipe_tail ($loc, arg, Pip_expr pipeable) }
+    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
+      Pipe_tail ($loc, arg, Pip_expr pipeable) }
+   | Match; expr = passed_expr; Colon; clauses = clauses
+    { Match ($loc, expr.pattr, expr.pexpr, clauses) }
+
+clauses:
+  | clause = clause; %prec Below_hbar { clause :: [] }
+  | clause = clause; Hbar; tail = clauses { clause :: tail }
+
+clause:
+  | pattern = match_pattern; Colon; block = block { $loc, pattern, Do_block block }
 
 special_builtins:
   | e = expr; Dot; Lbrack; i = expr; Rbrack
