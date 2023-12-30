@@ -53,6 +53,7 @@
 %token <int> Hashnum_brack
 %token Newline
 %token Left_arrow
+%token Right_arrow
 %token Pipe_head
 %token Pipe_tail
 %token With
@@ -60,6 +61,9 @@
 %token Fmt
 %token Hbar
 %token Match
+%token Quote
+%token Type
+%token External
 
 /* ops  */
 %token Equal_binop
@@ -82,6 +86,10 @@
 %token Bin_equal_f
 %token And
 %token Or
+%token <string> Sized_ident
+%token <string> Unknown_sized_ident
+
+%nonassoc Type_application
 
 %nonassoc Below_hbar
 %nonassoc Hbar
@@ -108,15 +116,44 @@ prog:
 
 top_item:
   | stmt = stmt { Stmt stmt }
+  | typedef = typedef { Typedef ($loc, typedef) }
+  | ext = ext { Ext_decl ext }
 
 stmt:
   | Let; decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
-  | Fun; name = ident; params = parens(param_decl); Colon; body = block
-    { Function ($loc, { name; params; return_annot = None; body; attr = [] }) }
+  | Fun; name = ident; params = parens(param_decl); return_annot = option(return_annot); Colon; body = block
+    { Function ($loc, { name; params; return_annot; body; attr = [] }) }
   | expr = expr { Expr ($loc, expr) }
   | Ampersand; expr = expr; Left_arrow; newval = expr
     { Expr ($loc, Set ($loc, ($loc(expr), expr), newval)) }
   | Import; path = import_path { Import ($loc(path), path) }
+
+typedef:
+  | Type; name = decl_typename; Equal; Lbrack; labels = nonempty_list(record_item_decl); Rbrack
+    { Trecord ({name; labels = Array.of_list labels}) }
+  | Type; name = decl_typename; Equal; spec = type_spec { Talias (name, spec) }
+  | Type; name = decl_typename; Equal; ctors = separated_nonempty_list(Hbar, ctor)
+    { Tvariant ({name; ctors}) }
+  | Type; name = decl_typename; Equal; Hbar; ctors = separated_nonempty_list(Hbar, ctor)
+    { Tvariant ({name; ctors}) }
+  | Type; name = decl_typename { Tabstract name }
+
+ext:
+  | External; id = ident; spec = type_spec { $loc, id, spec, None }
+  | External; id = ident; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
+
+ctor:
+  | name = upcase_ident { {name; typ_annot = None; index = None} }
+  | name = upcase_ident; Lpar; annot = ctor_type_spec; Rpar
+    { {name; typ_annot = Some annot; index = None} }
+  | name = upcase_ident; Lpar; index = Int; Rpar { {name; typ_annot = None; index = Some index} }
+
+record_item_decl:
+  | name = Ident; mut = boption(Ampersand); Colon; spec = type_spec { mut, name, spec }
+
+decl_typename:
+  | name = Ident { { name; poly_param = [] } }
+  | name = Ident; Lpar; poly_param = nonempty_list(poly_id); Rpar { { name; poly_param } }
 
 block:
   | expr = expr; %prec If_no_else { [Expr ($loc, expr)] }
@@ -124,9 +161,14 @@ block:
 
 let_decl:
   | pattern = let_pattern { {loc = $loc; pattern; annot = None } }
+  | pattern = let_pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
 
 param_decl:
   | pattern = param_pattern { {loc = $loc; pattern; annot = None} }
+  | pattern = param_pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
+
+return_annot:
+   | Right_arrow; annot = type_spec { annot }
 
 basic_pattern:
   | id = ident { Pvar ((fst id, snd id), Dnorm) }
@@ -197,7 +239,7 @@ expr:
   | aexpr = expr; Pipe_tail; pipeable = expr
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_tail ($loc, arg, Pip_expr pipeable) }
-   | Match; expr = passed_expr; Colon; clauses = clauses
+   | Match; expr = passed_expr; Colon; option(Hbar); clauses = clauses
     { Match ($loc, expr.pattr, expr.pexpr, clauses) }
 
 clauses:
@@ -309,3 +351,25 @@ import_path:
 let parens(x) :=
   | Lpar; items = separated_list(Comma, x); Rpar; { items }
 
+type_spec:
+  | id = Ident { Ty_id id }
+  | id = poly_id { Ty_var id }
+  | id = Sized_ident { Ty_id id }
+  | id = Unknown_sized_ident { Ty_id id }
+  | path = import_path; id = Ident { Ty_import_id ($loc, Path.Pmod(id, path)) }
+  | head = type_spec; Lpar; tail = separated_nonempty_list(Comma, type_spec); Rpar
+    { Ty_list (head :: tail) }
+  | Fun; params = parens(type_param); Right_arrow; ret = type_spec; %prec Type_application
+    { Ty_func (params @ [ret, Dnorm]) }
+  | tup = parens(type_spec) { Ty_tuple tup }
+
+ctor_type_spec:
+  | normal = type_spec { normal }
+  | head = type_spec; Comma; tail = separated_nonempty_list(Comma, type_spec)
+    { Ty_tuple (head :: tail) }
+
+type_param:
+  | spec = type_spec; attr = option(decl_attr) { spec, pass_attr_of_opt attr }
+
+poly_id:
+  | Quote; id = Ident { id }
