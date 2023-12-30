@@ -64,6 +64,10 @@
 %token Quote
 %token Type
 %token External
+%token Module
+%token Signature
+%token Functor
+%token Module_type
 
 /* ops  */
 %token Equal_binop
@@ -118,6 +122,9 @@ top_item:
   | stmt = stmt { Stmt stmt }
   | typedef = typedef { Typedef ($loc, typedef) }
   | ext = ext { Ext_decl ext }
+  | modul = modul { modul }
+  | functor_ = functor_ { functor_ }
+  | modtype = modtype { modtype }
 
 stmt:
   | Let; decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
@@ -136,11 +143,34 @@ typedef:
     { Tvariant ({name; ctors}) }
   | Type; name = decl_typename; Equal; Hbar; ctors = separated_nonempty_list(Hbar, ctor)
     { Tvariant ({name; ctors}) }
-  | Type; name = decl_typename { Tabstract name }
 
 ext:
   | External; id = ident; spec = type_spec { $loc, id, spec, None }
   | External; id = ident; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
+
+modtype:
+  | Module_type; name = ident; Colon; Begin; sgn = signature; End { Module_type (name, sgn) }
+
+modul:
+  | Module; name = module_decl; Colon; Begin; sgn = signature; items = separated_nonempty_list(Newline, top_item); End
+    { Module (name, sgn, items) }
+  | Module; name = module_decl; Equal; path = path_with_loc { Module_alias (name, Amodule path) }
+  | Module; name = module_decl; Equal; app = module_application
+    { let p, args = app in Module_alias (name, Afunctor_app (p, args)) }
+
+module_application:
+  | path = path_with_loc; args = parens(path_with_loc) { path, args }
+
+path_with_loc:
+  | path = import_path { $loc, path }
+
+functor_:
+  | Functor; name = module_decl; Lpar; params = separated_nonempty_list(Comma, functor_param); Rpar; Colon;
+    Begin; sgn = signature; items = separated_nonempty_list(Newline, top_item); End
+    { Functor (name, params, sgn, items) }
+
+functor_param:
+  | name = upcase_ident; Colon; path = import_path { let loc, name = name in loc, name, path }
 
 ctor:
   | name = upcase_ident { {name; typ_annot = None; index = None} }
@@ -154,6 +184,17 @@ record_item_decl:
 decl_typename:
   | name = Ident { { name; poly_param = [] } }
   | name = Ident; Lpar; poly_param = nonempty_list(poly_id); Rpar { { name; poly_param } }
+
+%inline module_decl:
+  | name = upcase_ident { let loc, name = name in loc, name, None }
+  | name = upcase_ident; Colon; path = import_path { let loc, name = name in loc, name, Some path }
+
+signature:
+  | Signature; Colon; Begin; items = separated_nonempty_list(Newline, sig_item); End { items }
+
+sig_item:
+  | typedef = typedef { Stypedef ($loc, typedef) }
+  | Type; name = decl_typename { Stypedef ($loc, Tabstract name) }
 
 block:
   | expr = expr; %prec If_no_else { [Expr ($loc, expr)] }
