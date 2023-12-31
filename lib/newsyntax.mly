@@ -258,6 +258,7 @@ expr:
   | ident = ident { Var ident }
   | lit = lit { Lit ($loc, lit) }
   | a = expr; bop = binop; b = expr { Bop ($loc, bop, [a; b]) }
+  | unop = unop; expr = expr { Unop ($loc, unop, expr) }
   | If; cond = expr; Colon; then_ = then_
     { let then_, elifs, else_ = then_ in parse_elseifs $loc cond then_ elifs else_ }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
@@ -365,6 +366,10 @@ else_:
 import_path:
   | id = Upcase_ident { Path.Pid (id) }
   | id = Upcase_ident; Dot; path = import_path { Path.Pmod (id, path)  }
+
+%inline unop:
+  | Minus_i { Uminus_i }
+  | Minus_f { Uminus_f }
 
 %inline binop:
   | Equal_binop { Equal_i }
