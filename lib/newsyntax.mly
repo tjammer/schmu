@@ -145,8 +145,8 @@ typedef:
     { Tvariant ({name; ctors}) }
 
 ext:
-  | External; id = ident; spec = type_spec { $loc, id, spec, None }
-  | External; id = ident; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
+  | External; id = ident; Equal; spec = type_spec { $loc, id, spec, None }
+  | External; id = ident; Equal; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
 
 modtype:
   | Module_type; name = ident; Colon; Begin; sgn = signature; End { Module_type (name, sgn) }
@@ -311,7 +311,6 @@ upcases:
 tuple:
   | Lpar; head = expr; Comma; tail = separated_nonempty_list(Comma, expr); Rpar
     { head :: tail }
-  | Lpar; item = expr; Comma; Rpar { [item] }
 
 record_item:
   | ident = ident; Equal; expr = expr { snd ident, expr }
@@ -400,17 +399,37 @@ type_spec:
   | path = import_path; id = Ident { Ty_import_id ($loc, Path.Pmod(id, path)) }
   | head = type_spec; Lpar; tail = separated_nonempty_list(Comma, type_spec); Rpar
     { Ty_list (head :: tail) }
-  | Fun; params = parens(type_param); Right_arrow; ret = type_spec; %prec Type_application
-    { Ty_func (params @ [ret, Dnorm]) }
-  | tup = parens(type_spec) { Ty_tuple tup }
+  | Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
+    { Ty_func ([ret, Dnorm]) }
+  | Lpar; spec = tup_or_fun { spec }
+
+tup_or_fun:
+  /* One param function */
+  | spec = type_spec; Rpar; Right_arrow; ret = type_spec; %prec Type_application { Ty_func ([spec, Dnorm; ret, Dnorm]) }
+  /* decl_attr means it's a function */
+  | spec = type_spec; attr = decl_attr; cont = continue_fun { Ty_func ((spec, attr) :: cont) }
+  /* More than one param, either function or tuple */
+  | one = type_spec; Comma; two = type_spec; attr = decl_attr; cont = continue_fun
+    { Ty_func ((one, Dnorm) :: (two, attr) :: cont) }
+  | one = type_spec; Comma; two = type_spec; cont = continue_tup_or_fun
+    { let func, params = cont in
+      if func then Ty_func ((one, Dnorm) :: (two, Dnorm) :: params)
+      else Ty_tuple (one :: two :: (List.map fst params))}
+
+continue_tup_or_fun:
+  | Rpar { false, [] }
+  | Rpar; Right_arrow; ret = type_spec; %prec Type_application { true, [ret, Dnorm] }
+  | Comma; spec = type_spec; cont = continue_tup_or_fun { let kind, cont = cont in kind, ((spec, Dnorm) :: cont) }
+  | Comma; spec = type_spec; attr = decl_attr; cont = continue_fun { true, ((spec, attr) :: cont) }
+
+continue_fun:
+  | Rpar; Right_arrow; ret = type_spec; %prec Type_application { [ret, Dnorm] }
+  | Comma; spec = type_spec; attr = option(decl_attr); cont = continue_fun { (spec, pass_attr_of_opt attr) :: cont }
 
 ctor_type_spec:
   | normal = type_spec { normal }
   | head = type_spec; Comma; tail = separated_nonempty_list(Comma, type_spec)
     { Ty_tuple (head :: tail) }
-
-type_param:
-  | spec = type_spec; attr = option(decl_attr) { spec, pass_attr_of_opt attr }
 
 poly_id:
   | Quote; id = Ident { id }
