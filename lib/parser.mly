@@ -1,76 +1,76 @@
 %{
     open Ast
 
-    let path_of_ty_var = function
-      | Ty_var s -> s
-      | _ -> failwith "Internal Error: Should have been a type var"
-
-    let rec flatten_import  = function
-      | [] -> failwith "Internal Error: nonempty"
-      | [ last ] -> Path.Pid (snd last)
-      | hd :: tl -> Path.Pmod (snd hd, flatten_import tl)
-
-    let parse_cond loc fst then_ conds =
+    let parse_elseifs loc cond then_ elseifs else_ =
       let rec aux = function
-        | [ (_, _, blk) ] -> blk
-        | (loc, cond, blk) :: tl ->
-            Some (If (loc, cond, Option.get blk, aux tl))
-        | [] -> failwith "Menhir, this list should be nonempty"
+        | [ (loc, cond, blk) ] ->
+            let else_ = Option.map (fun b -> Do_block b) else_ in
+            Some (If (loc, cond, Do_block blk, else_))
+        | (loc, cond, blk) :: tl -> Some (If (loc, cond, Do_block blk, aux tl))
+        | [] -> Option.map (fun b -> Do_block b) else_
       in
-      Ast.If (loc, fst, then_, aux conds)
-
-    let make_pairs bin arg args aloc =
-      let rec build = function
-        | [ a ] -> bin arg a
-        | a :: tl -> bin {(*TODO allow mutating *) apass = Dnorm; aexpr = (build tl); aloc} a
-        | [] -> failwith "unreachable"
-      in
-      build (List.rev args)
-
-    let make_lets lets cont =
-      let rec build = function
-        | [ loc, name, expr ] -> Let_e (loc, name, expr, Do_block cont)
-        | (loc, name, expr) :: tl -> Let_e (loc, name, expr, build tl)
-        | [] -> failwith "unreachable"
-      in
-      build lets
+      If (loc, cond, Do_block then_, aux elseifs)
 
     let pass_attr_of_opt = function
       | Some (Ast.Dmut | Dset) -> Ast.Dmut
       | Some Dmove -> Dmove
-      | Some Dnorm -> (* Won't happen but w/e *) Dnorm
-      | None -> Dnorm
-
-    let move_excl_to_right = function
-      (* Exclamation to mark moves is parsed at the identifier on the left side.
-         This is needed for function params but moves in lets we need it at the
-         passed expression, meaning the right side. This function achieves that. *)
-      | { loc; pattern = Pvar (id, Dmove); annot }, { pattr = Dnorm; pexpr } ->
-          ({ loc; pattern = Pvar (id, Dnorm); annot }, { pattr = Dmove; pexpr })
-      | { loc; pattern = Pwildcard (l, Dmove); annot }, { pattr = Dnorm; pexpr } ->
-         ({ loc; pattern = Pwildcard (l, Dnorm); annot }, { pattr = Dmove; pexpr })
-      | pattern, passed_expr -> (pattern, passed_expr)
+      | Some Dnorm | None -> Dnorm
 %}
 
+%token Eof
+%token Let
+%token Fun
+%token <string> Ident
 %token Equal
-%token Arrow_right
-%token Arrow_righter
-%token Do
-%token <string> Lowercase_id
-%token <string> Kebab_id
-%token <string> Keyword
-%token <string> Mut_keyword
-%token <string> Constructor
-%token <string> Accessor
+%token Colon
+%token Comma
+%token Begin
+%token End
+%token Rpar
+%token Lpar
+%token Lbrack
+%token Rbrack
+%token Lbrac
+%token Rbrac
+%token <string> Upcase_ident
+%token Dot
+%token Import
+%token If
+%token Elseif
+%token Else
+%token Ampersand
+%token Exclamation
+%token Wildcard
 %token <int> Int
 %token <char> U8
 %token <float> Float
 %token <int> I32
 %token <float> F32
 %token <string> String_lit
-%token <string> Builtin_id
 %token True
 %token False
+%token Hashtag_brack
+%token <int> Hashnum_brack
+%token Newline
+%token Left_arrow
+%token Right_arrow
+%token Pipe_tail
+%token With
+%token Do
+%token Fmt
+%token Hbar
+%token Match
+%token Quote
+%token Type
+%token External
+%token Module
+%token Signature
+%token Functor
+%token Module_type
+%token <string> Builtin_id
+
+/* ops  */
+%token Equal_binop
 %token Plus_i
 %token Minus_i
 %token Mult_i
@@ -90,420 +90,291 @@
 %token Bin_equal_f
 %token And
 %token Or
-%token Lpar
-%token Rpar
-%token Lbrac
-%token Rbrac
-%token Ldotbrack
-%token Ldotparen
-%token Lbrack
-%token Rbrack
-%token Hashtag_brack
-%token <int> Hashnum_brack
 %token <string> Sized_ident
 %token <string> Unknown_sized_ident
-%token Ampersand
-%token Exclamation
-%token At
-%token If
-%token Else
-%token Cond
-%token Eof
-%token Def
-%token Defn
-%token Fn
-%token Fun
-%token Let
-%token Quote
-%token Match
-%token Wildcard
-%token Import
-%token Type
-%token Defexternal
-%token Signature
-%token Module
-%token Module_type
-%token Functor
-%token Set
-%token Fmt_str
-%token Rec
 
-%nonassoc below_Ampersand
-%nonassoc Ampersand Exclamation
+%nonassoc Type_application
 
-%nonassoc Minus_i Minus_f
-%left Accessor Ldotbrack Ldotparen
-%left Div_i
+%nonassoc Below_hbar
+%nonassoc Hbar
+
+%left Left_arrow Pipe_tail
+%nonassoc If_no_else
+%nonassoc Elseif
+%nonassoc Else
+%left And Or
+%nonassoc Less_i Less_f Greater_i Greater_f Less_eq_i Greater_eq_i Greater_eq_f Less_eq_f
+%left Plus_i Plus_f Minus_i Minus_f
+%left Mult_i Mult_f Div_i Div_f
+%left Equal_binop Bin_equal_f
+%left Lpar
+%nonassoc Ctor
+%left Dot Path Hashtag_brack
 
 %start <Ast.prog> prog
 
 %%
 
 prog:
-  | s = parens(signature); prog = list(top_item); Eof { s, prog }
-  | prog = list(top_item); Eof { [], prog }
+  | prog = separated_list(Newline, top_item); Eof { [], prog }
 
 top_item:
-/* Split top-level items into toplvl_items for files and module_items for
-   module expressions. That's useful to allow module aliases. Otherwise a module
-   alias would be parsed as a module with an ident expression */
-  | toplvl_item { $1 }
-  | module_item { $1 }
-
-%inline toplvl_item:
-  | stmt = toplvl_stmt { Stmt stmt }
-
-%inline module_item:
-  | stmt = module_stmt { Stmt stmt }
-  | decl = external_decl { Ext_decl decl }
-  | def = typedef { Typedef ($loc, def) }
-  | modul = parens(modul) { modul }
-  | module_type = parens(module_type) { module_type }
-
-%inline first_module_item:
-  | module_item { $1 }
-  | Lpar; Rpar { Stmt (Expr ($loc, (Lit ($loc, Unit)))) }
-
-signature: Signature; l = nonempty_list(sig_item) { l }
-
-%inline sig_item:
-  | def = sigtypedef { Stypedef ($loc, def) }
-  | v = parens(sigvalue) { Svalue (fst v, snd v) }
-
-%inline sigvalue:
-  | Def; id = ident; t = sexp_type_expr { $loc, (id, t) }
-
-%inline external_decl:
-  | parens(defexternal) { $1 }
-
-%inline sigtypedef:
-  | parens(defrecord) { $1 }
-  | parens(defalias) { $1 }
-  | parens(defvariant) { $1 }
-  | parens(defabstract) { $1 }
-
-%inline typedef:
-  | parens(defrecord) { $1 }
-  | parens(defalias) { $1 }
-  | parens(defvariant) { $1 }
-
-%inline defexternal:
-  | Defexternal; ident; sexp_type_expr; option(String_lit) { $loc, $2, $3, $4 }
-
-modul:
-  | Module; id = module_decl { let loc, alias, _ = id in Module_alias (id, Amodule (loc, Path.Pid alias)) }
-  | Module; id = module_decl; alias = aliased_module /* Use location of alias */
-    { let _, id, annot = id in Module_alias (($loc(alias), id, annot), alias) }
-  | Module; id = module_decl; hd = first_module_item; m = list(top_item) { Module (id, [], hd :: m) }
-  | Module; id = module_decl; s = parens(signature); m = list(top_item) { Module (id, s, m) }
-  | Functor; id = module_decl; p = parens(functor_params); hd = first_module_item; m = list(top_item)
-    { Functor (id, p, [], hd :: m) }
-  | Functor; id = module_decl; p = parens(functor_params); s = parens(signature); m = list(top_item)
-    { Functor (id, p, s, m) }
-
-%inline module_type:
-  | Module_type; id = ident; l = nonempty_list(sig_item) { Module_type (id, l) }
-
-%inline module_decl:
-  | id = ident { fst id, snd id, None }
-  | decl = bracks(module_annot) { decl }
-
-%inline functor_params:
-  | nonempty_list(bracks(functor_param)) { $1 }
-
-%inline functor_param:
-  | id = ident; param = path { $loc, snd id, snd param }
-
-%inline module_annot:
-  | id = ident; annot = path { fst id, snd id, Some (snd annot) }
-
-%inline path:
-  | id = ident { $loc, Path.Pid (snd id) }
-  | id = ident; Div_i; lst = separated_nonempty_list(Div_i, ident)
-    { $loc, flatten_import (id :: lst) }
-
-%inline aliased_module:
-/* Partial functor applications are not supported */
-  | m = path { Amodule m }
-  | parens(functor_app) { $1 }
-
-%inline functor_app:
-  | f = path; args = nonempty_list(path) { Afunctor_app (f, args) }
-
-%inline defrecord:
-  | Type; sexp_typename; bracs(nonempty_list(sexp_type_decl))
-    { Trecord { name = $2; labels = Array.of_list $3 } }
-
-%inline defalias:
-  | Type; sexp_typename; sexp_type_list { Talias ($2, $3 ) }
-
-%inline defvariant:
-  | Type; sexp_typename; atom_or_list(sexp_ctordef) { Tvariant { name = $2; ctors = $3 } }
-
-%inline defabstract:
-  | Type; sexp_typename { Tabstract $2 }
-
-let atom_or_list(x) :=
-  | atom = x; { [atom] }
-  | list = parens(nonempty_list(x)); { list }
-
-let bracs(x) :=
-  | Lbrac; thing = x; Rbrac; { thing }
-
-let bracks(x) :=
-  | Lbrack; thing = x; Rbrack; { thing }
-
-%inline sexp_ctordef:
-  | parens(sexp_ctordef_item) { $1 }
-  | sexp_ctor { { name = $1; typ_annot = None; index = None } }
-
-sexp_ctordef_item:
-  | sexp_ctor; sexp_type_list { { name = $1; typ_annot = Some $2; index = None } }
-  | sexp_ctor; Int { { name = $1; typ_annot = None; index = Some $2 } }
-
-sexp_typename:
-  | ident { { name = snd $1; poly_param = [] } }
-  | Lpar; ident; polys = nonempty_list(poly_id); Rpar
-    { { name = snd $2; poly_param = List.map path_of_ty_var polys } }
-
-sexp_type_decl:
-  | name = Keyword; t = sexp_type_expr { false, name, t }
-  | name = Mut_keyword; t = sexp_type_expr; { true, name, t }
-
-%inline import_:
-  | parens(sexp_import) { $1 }
-
-%inline sexp_import:
-  | Import; mname = path { snd mname }
+  | stmt = stmt { Stmt stmt }
+  | typedef = typedef { Typedef ($loc, typedef) }
+  | ext = ext { Ext_decl ext }
+  | modul = modul { modul }
+  | functor_ = functor_ { functor_ }
+  | modtype = modtype { modtype }
 
 stmt:
- | toplvl_stmt { $1 }
- | module_stmt { $1 }
+  | Let; decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
+  /* | Let; decl = let_decl; Equal; ident = Builtin_id { Let($loc, decl, Var ($loc(ident), ident))  } */
+  | Fun; name = ident; params = parens(param_decl); return_annot = option(return_annot); Colon; body = block
+    { Function ($loc, { name; params; return_annot; body; attr = [] }) }
+  | expr = expr { Expr ($loc, expr) }
+  | Ampersand; expr = expr; Right_arrow; newval = expr
+    { Expr ($loc, Set ($loc, ($loc(expr), expr), newval)) }
+  | Import; path = import_path { Import ($loc(path), path) }
 
-%inline toplvl_stmt:
-  | sexp_expr { Expr ($loc, $1) }
+typedef:
+  | Type; name = decl_typename; Equal; Lbrack; labels = nonempty_list(record_item_decl); Rbrack
+    { Trecord ({name; labels = Array.of_list labels}) }
+  | Type; name = decl_typename; Equal; spec = type_spec { Talias (name, spec) }
+  | Type; name = decl_typename; Equal; ctors = separated_nonempty_list(Hbar, ctor)
+    { Tvariant ({name; ctors}) }
+  | Type; name = decl_typename; Equal; Hbar; ctors = separated_nonempty_list(Hbar, ctor)
+    { Tvariant ({name; ctors}) }
 
-%inline module_stmt:
-  | parens(sexp_let) { $1 }
-  | parens(sexp_fun) { Function (fst $1, snd $1) }
-  | parens(sexp_rec) { $1}
-  | import_ { Import ($loc, $1) }
+ext:
+  | External; id = ident; Equal; spec = type_spec { $loc, id, spec, None }
+  | External; id = ident; Equal; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
 
-%inline sexp_let:
-  | Def; decl = sexp_decl; pexpr = passed_expr
-    { let decl, pexpr = move_excl_to_right (decl, pexpr) in Let($loc, decl, pexpr ) }
-  /* Allow toplevel defs to alias builtins (to give them a better name) */
-  | Def; sexp_decl; pexpr = Builtin_id { Let($loc, $2, {pattr = Dnorm; pexpr = Var($loc(pexpr), pexpr)}) }
+modtype:
+  | Module_type; name = ident; Colon; Begin; sgn = signature; End { Module_type (name, sgn) }
 
-sexp_decl:
-  | bracks(sexp_decl_typed) { $1 }
-  | pattern = sexp_pattern { {loc = $loc; pattern; annot = None} }
+modul:
+  | Module; name = module_decl; Colon; Begin; sgn = signature; items = separated_nonempty_list(Newline, top_item); End
+    { Module (name, sgn, items) }
+  | Module; name = module_decl; Equal; path = path_with_loc { Module_alias (name, Amodule path) }
+  | Module; name = module_decl; Equal; app = module_application
+    { let p, args = app in Module_alias (name, Afunctor_app (p, args)) }
 
-sexp_decl_typed:
-  | pattern = sexp_pattern; annot = sexp_type_expr
-    { { loc = $loc; pattern; annot = Some annot } }
+module_application:
+  | path = path_with_loc; args = parens(path_with_loc) { path, args }
 
-%inline decl_attr:
-  | Ampersand { Dmut } | Exclamation { Dmove }
+path_with_loc:
+  | path = import_path { $loc, path }
 
-%inline sexp_fun:
-  | Defn; name = ident; attr = list(attr); option(String_lit);
-      params = parens(list(sexp_decl)); body = list(stmt)
-    { ($loc, { name; params; return_annot = None; body; attr }) }
+functor_:
+  | Functor; name = module_decl; Lpar; params = separated_nonempty_list(Comma, functor_param); Rpar; Colon;
+    Begin; sgn = signature; items = separated_nonempty_list(Newline, top_item); End
+    { Functor (name, params, sgn, items) }
 
-%inline attr:
-  | kw = Keyword { Fa_single ($loc, kw) }
-  | kw = Keyword; lst = nonempty_list(ident) { Fa_param (($loc(kw), kw), lst) }
+functor_param:
+  | name = upcase_ident; Colon; path = import_path { let loc, name = name in loc, name, path }
 
-%inline sexp_rec:
-  | Rec; fst = parens(sexp_fun); tl = nonempty_list(parens(sexp_fun)) { Rec ($loc, fst :: tl) }
+ctor:
+  | name = upcase_ident { {name; typ_annot = None; index = None} }
+  | name = upcase_ident; Lpar; annot = ctor_type_spec; Rpar
+    { {name; typ_annot = Some annot; index = None} }
+  | name = upcase_ident; Lpar; index = Int; Rpar { {name; typ_annot = None; index = Some index} }
 
-sexp_expr:
-  | sexp_ctor_inst { $1 }
-  | bracs(nonempty_list(sexp_record_item)) { Record ($loc, $1) }
-  | exprs = bracs(nonempty_list(sexp_expr)) { Tuple ($loc, exprs) }
-  | upd = bracs(record_update) { upd }
-  | sexp_lit { $1 }
-  | callable = callable_expr { callable }
-  | unop; sexp_expr { Unop ($loc, $1, $2) }
-  | parens(sexp_field_set) { $1 }
-  | fmt = parens(fmt_str) { fmt }
+record_item_decl:
+  | name = Ident; mut = boption(Ampersand); Colon; spec = type_spec { mut, name, spec }
 
-callable_expr:
-  | ident { Var (fst $1, snd $1) }
-  | e = sexp_expr; f = Accessor {Field ($loc, e, f)}
-  | e = sexp_expr; Ldotbrack; i = sexp_expr; Rbrack
+decl_typename:
+  | name = Ident { { name; poly_param = [] } }
+  | name = Ident; Lpar; poly_param = nonempty_list(poly_id); Rpar { { name; poly_param } }
+
+%inline module_decl:
+  | name = upcase_ident { let loc, name = name in loc, name, None }
+  | name = upcase_ident; Colon; path = import_path { let loc, name = name in loc, name, Some path }
+
+signature:
+  | Signature; Colon; Begin; items = separated_nonempty_list(Newline, sig_item); End { items }
+
+sig_item:
+  | typedef = typedef { Stypedef ($loc, typedef) }
+  | Type; name = decl_typename { Stypedef ($loc, Tabstract name) }
+
+block:
+  | expr = expr; %prec If_no_else { [Expr ($loc, expr)] }
+  | Begin; stmts = separated_nonempty_list(Newline, stmt); End { stmts }
+
+let_decl:
+  | pattern = let_pattern { {loc = $loc; pattern; annot = None } }
+  | pattern = let_pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
+
+param_decl:
+  | pattern = param_pattern { {loc = $loc; pattern; annot = None} }
+  | pattern = param_pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
+
+return_annot:
+   | Right_arrow; annot = type_spec { annot }
+
+basic_pattern:
+  | id = ident { Pvar ((fst id, snd id), Dnorm) }
+  | id = ident; Ampersand { Pvar ((fst id, snd id), Dmut) }
+  | id = ident; Exclamation { Pvar ((fst id, snd id), Dmove) }
+  | Wildcard; { Pwildcard ($loc, Dnorm) }
+  | Wildcard; Exclamation { Pwildcard ($loc, Dmove) }
+  | Wildcard; Ampersand { Pwildcard ($loc, Dmut) }
+  | id = upcase_ident { Pctor (id, None) }
+  | id = upcase_ident; Lpar; pattern = basic_pattern; Rpar { Pctor (id, Some pattern)  }
+  | id = upcase_ident; Lpar; pattern = tup_pattern; Rpar { Pctor (id, Some pattern)  }
+
+match_pattern:
+  | basic = basic_pattern { basic }
+  | tup = tup_pattern { tup }
+  | head = basic_pattern; Hbar; tail = separated_nonempty_list(Hbar, basic_pattern)
+    { Por ($loc, head :: tail) }
+
+let_pattern:
+  | basic = basic_pattern { basic }
+  | tup = tup_pattern { tup }
+
+param_pattern:
+  | basic = basic_pattern { basic }
+  | Lpar; tups = tup_tups; Rpar { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
+  | Lpar; tups = tup_tups; Rpar; Ampersand { let loc, tups = tups in Ptup (loc, tups, Dmut) }
+  | Lpar; tups = tup_tups; Rpar; Exclamation { let loc, tups = tups in Ptup (loc, tups, Dmove) }
+
+tup_pattern:
+  | tups = tup_tups { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
+
+tup_tups:
+  | head = pattern_with_loc; Comma; tail = separated_nonempty_list(Comma, pattern_with_loc)
+    { $loc, head :: tail }
+
+pattern_with_loc:
+  | pat = basic_pattern { $loc, pat }
+
+ident:
+  | id = Ident { $loc, id }
+
+upcase_ident:
+  | id = Upcase_ident { $loc, id }
+
+expr:
+  | ident = ident { Var ident }
+  | lit = lit { Lit ($loc, lit) }
+  | a = expr; bop = binop; b = expr { Bop ($loc, bop, [a; b]) }
+  | unop = unop; expr = expr { Unop ($loc, unop, expr) }
+  | If; cond = expr; Colon; then_ = then_
+    { let then_, elifs, else_ = then_ in parse_elseifs $loc cond then_ elifs else_ }
+  | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
+  | callee = Builtin_id; args = parens(call_arg) { App ($loc, Var($loc(callee), callee), args) }
+  | Fmt; args = parens(expr) { Fmt ($loc, args) }
+  | special = special_builtins { special }
+  | Fun; params = parens(param_decl); Colon; body = block
+    { Lambda ($loc, params, [], body) }
+  | Lbrac; items = separated_nonempty_list(Comma, record_item); Rbrac
+    { Record ($loc, items) }
+  | tuple = tuple { Tuple ($loc, tuple) }
+  | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
+  | Lpar; expr = expr; Rpar { expr }
+  | upcases = upcases { upcases }
+  | Lbrac; record = expr; With; items = separated_nonempty_list(Comma, record_item); Rbrac
+    { Record_update ($loc, record, items) }
+  | Do; Colon; block = block { Do_block block }
+  | aexpr = expr; Left_arrow; pipeable = expr
+    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
+      Pipe_head ($loc, arg, Pip_expr pipeable) }
+  | aexpr = expr; Pipe_tail; pipeable = expr
+    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
+      Pipe_tail ($loc, arg, Pip_expr pipeable) }
+   | Match; expr = passed_expr; Colon; option(Hbar); clauses = clauses
+    { Match ($loc, expr.pattr, expr.pexpr, clauses) }
+
+clauses:
+  | clause = clause; %prec Below_hbar { clause :: [] }
+  | clause = clause; Hbar; tail = clauses { clause :: tail }
+
+clause:
+  | pattern = match_pattern; Colon; block = block { $loc, pattern, Do_block block }
+
+special_builtins:
+  | e = expr; Dot; Lbrack; i = expr; Rbrack
     {App ($loc, Var ($loc, "__array_get"),
           [{apass = Dnorm; aloc = $loc(e); aexpr = e};
            {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
-  | e = sexp_expr; Ldotparen; i = sexp_expr; Rpar
+  | e = expr; Hashtag_brack; i = expr; Rbrack
     {App ($loc, Var ($loc, "__fixed_array_get"),
           [{apass = Dnorm; aloc = $loc(e); aexpr = e};
            {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
-  | parens(lets) { $1 }
-  | parens(sexp_if) { $1 }
-  | parens(sexp_lambda) { $1 }
-  | parens(sexp_field_get) { $1 }
-  | parens(sexp_pipe_head) { $1 }
-  | parens(sexp_pipe_tail) { $1 }
-  | parens(sexp_call) { $1 }
-  | parens(do_block) { $1 }
-  | sexp_module_expr { $1 }
-  | parens(sexp_match) { $1 }
 
-%inline lets:
-  | Let; lets = parens(nonempty_list(parens(lets_let))); block = nonempty_list(stmt)
-    { make_lets lets block }
+local_import:
+  | id = Upcase_ident; Dot; expr = expr; %prec Path { Local_import ($loc, id, expr) }
 
-%inline lets_let:
-  | decl = sexp_decl; pexpr = passed_expr
-    { let decl, pexpr = move_excl_to_right (decl, pexpr) in $loc, decl, pexpr }
+upcases:
+  | id = upcase_ident; %prec Ctor { Ctor ($loc, id, None) }
+  | id = upcase_ident; expr = expr; %prec Ctor { Ctor ($loc, id, Some expr) }
+  | id = upcase_ident; Dot; path = local_import { Local_import ($loc, snd id, path) }
 
-%inline passed_expr:
-  | attr = option(decl_attr); pexpr = sexp_expr { {pattr = pass_attr_of_opt attr; pexpr} }
+tuple:
+  | Lpar; head = expr; Comma; tail = separated_nonempty_list(Comma, expr); Rpar
+    { head :: tail }
 
-%inline sexp_record_item:
-  | Keyword; sexp_expr { $1, $2 }
-  | Keyword { $1, Var ($loc, $1) }
+record_item:
+  | ident = ident; Equal; expr = expr { snd ident, expr }
+  | ident = ident { snd ident, Var ($loc, snd ident) }
 
-%inline record_update:
-  | At; record = sexp_expr; items = nonempty_list(sexp_record_item)
-    { Record_update ($loc, record, items) }
-
-%inline sexp_ctor_inst:
-  | sexp_ctor { Ctor ($loc, $1, None) }
-  | parens(sexp_ctor_item) { $1 }
-
-%inline sexp_ctor_item:
-  | sexp_ctor; sexp_expr { Ctor ($loc, $1, Some $2) }
-
-%inline sexp_lit:
-  | Int { Lit($loc, Int $1) }
-  | U8  { Lit($loc, U8 $1) }
-  | bool { Lit($loc, Bool  $1) }
-  | Float { Lit($loc, Float $1) }
-  | I32 { Lit($loc, I32 $1) }
-  | F32 { Lit($loc, F32 $1) }
-  | String_lit { Lit($loc, String $1) }
-  | array_lit { Lit($loc, Array $1) }
-  | Lpar; Rpar { Lit($loc, Unit) }
-  | fixed_array_lit { Lit($loc, $1) }
-
-%inline sexp_if:
-  | If; sexp_expr; sexp_expr; option(sexp_expr) { If ($loc, $2, $3, $4) }
-  | Cond; cond = parens(cond_item) conds = sexp_cond
-    { let loc, fst, then_ = cond in
-      parse_cond loc fst (Option.get then_) conds }
-
-%inline cond_item:
-  | cond = sexp_expr; expr = sexp_expr { ($loc, cond, Some expr) }
-
-%inline cond_else:
-  | Else; e = sexp_expr { e }
-
-sexp_cond:
-  | cond = parens(cond_item); tl = sexp_cond { cond :: tl }
-  | else_ = option(parens(cond_else)) { [$loc, Lit($loc, Unit), else_] }
-
-%inline sexp_lambda:
-  | Fn; attr = list(attr); params = parens(list(sexp_decl)); body = list(stmt)
-    { Lambda ($loc, params, attr, body) }
-
-%inline sexp_field_set:
-  | Set; Ampersand; var = sexp_expr; Exclamation; value = sexp_expr
-    { Set ($loc, ($loc(var), var), value) }
-
-%inline sexp_field_get:
-  | Accessor; sexp_expr { Field ($loc, $2, $1) }
-
-%inline sexp_pipe_head:
-  | Arrow_right; call_arg; nonempty_list(pipeable)
-    { make_pairs (fun a b -> Ast.Pipe_head ($loc, a, b)) $2 $3 $loc }
-
-%inline sexp_pipe_tail:
-  | Arrow_righter; call_arg; nonempty_list(pipeable)
-    { make_pairs (fun a b -> Ast.Pipe_tail ($loc, a, b)) $2 $3 $loc }
-
-pipeable:
-  | expr = sexp_expr { Pip_expr expr }
-  | Fmt_str { Pip_expr (Fmt ($loc, [])) }
-  | f = parens(Accessor) { Pip_field f }
-
-sexp_call:
-  | callable_expr { App ($loc, $1, []) }
-  | callable_expr; call_arg { App ($loc, $1, [$2]) }
-  | callable_expr; a1 = call_arg; args = nonempty_list(call_arg) { App ($loc, $1, a1 :: args) }
-  | op = binop; exprs = nonempty_list(sexp_expr) { Bop ($loc, op, exprs) }
-  | Builtin_id; list(call_arg) { App ($loc, Var($loc, $1), $2) }
-
-call_arg:
-  | amut = option(decl_attr); aexpr = sexp_expr { {apass = pass_attr_of_opt amut; aexpr; aloc = $loc} }
-
-%inline do_block:
-  | Do; stmts = nonempty_list(stmt) { Do_block stmts }
-
-%inline sexp_module_expr:
-  | ident; Div_i; sexp_expr { Local_import ($loc, snd $1, $3) }
-
-%inline sexp_match:
-  | Match; amut = option(decl_attr); expr = sexp_expr; clauses = nonempty_list(parens(sexp_clause))
-    { Match (($startpos, $endpos(expr)), pass_attr_of_opt amut, expr, clauses) }
-
-%inline sexp_clause:
-  | sexp_pattern; sexp_expr { $loc($1), $1, $2 }
-
-let with_loc(x) :=
-  | item = x; { $loc, item }
-
-sexp_pattern:
-  | sexp_ctor { Pctor ($1, None) }
-  | parens(ctor_pattern_item) { $1 }
-  | ident; %prec below_Ampersand { Pvar ((fst $1, snd $1), Dnorm) }
-  | ident; Ampersand { Pvar ((fst $1, snd $1), Dmut) }
-  | ident; Exclamation { Pvar ((fst $1, snd $1), Dmove) }
-  | Wildcard; %prec below_Ampersand { Pwildcard ($loc, Dnorm) }
-  | Wildcard; Exclamation { Pwildcard ($loc, Dmove) }
-  | Wildcard; Ampersand { Pwildcard ($loc, Dmut) }
-  | items = bracs(nonempty_list(record_item_pattern)); %prec below_Ampersand { Precord ($loc, items, Dnorm) }
-  | items = bracs(nonempty_list(record_item_pattern)); Exclamation { Precord ($loc, items, Dmove) }
-  | i = Int { Plit_int ($loc, i) }
-  | c = U8 {Plit_char ($loc, c)}
-  | tup = bracs(sexp_pattern_tuple); %prec below_Ampersand { Ptup (fst tup, snd tup, Dnorm) }
-  | tup = bracs(sexp_pattern_tuple); Exclamation { Ptup (fst tup, snd tup, Dmove) }
-  | parens(or_pattern) { $1 }
-
-%inline or_pattern:
-  | Or; head = sexp_pattern; tail = nonempty_list(sexp_pattern)
-    { Por ($loc, (head :: tail)) }
-
-%inline record_item_pattern:
-  | attr = Keyword; p = option(sexp_pattern) { ($loc(attr), attr), p }
-
-ctor_pattern_item:
-  | sexp_ctor; sexp_pattern { Pctor ($1, Some $2) }
-
-%inline sexp_pattern_tuple:
-  | with_loc(sexp_pattern); list(with_loc(sexp_pattern))
-    { $loc, $1 :: $2 }
-
-%inline fmt_str:
-  | Fmt_str; lst = list(sexp_expr) { Fmt ($loc, lst) }
-
-ident:
-  | Lowercase_id { ($loc, $1) }
-  | Kebab_id { ($loc, $1) }
-
-sexp_ctor:
-  | Constructor { $loc, $1 }
-
-let parens(x) :=
-  | Lpar; item = x; Rpar; { item }
+lit:
+  | lit = Int { Int lit }
+  | lit = U8  { U8 lit }
+  | lit = bool { Bool  lit }
+  | lit = Float { Float lit }
+  | lit = I32 { I32 lit }
+  | lit = F32 { F32 lit }
+  | lit = String_lit { String lit }
+  | lit = array_lit { Array lit }
+  | Lpar; Rpar { Unit }
+  | lit = fixed_array_lit { lit }
 
 bool:
   | True { true }
   | False { false }
 
+array_lit:
+  | Lbrack; exprs = separated_list(Comma, expr); Rbrack { exprs }
+
+fixed_array_lit:
+  | Hashtag_brack; items = separated_nonempty_list(Comma, expr); Rbrack { Fixed_array items }
+  | num = Hashnum_brack; item = expr; Rbrack { Fixed_array_num (num, item) }
+
+call_arg:
+  | attr = option(decl_attr); aexpr = expr { {apass = pass_attr_of_opt attr; aexpr; aloc = $loc} }
+
+decl_attr:
+  | Ampersand { Dmut } | Exclamation { Dmove }
+
+then_:
+  | block = block; %prec If_no_else { block, [], None }
+  | block = block; elifs = elifs { let elifs, else_ = elifs in block, elifs, Some else_ }
+
+elifs:
+  | elifs = nonempty_list(elif); else_ = else_ { elifs, else_ }
+  | else_ = else_ { [], else_ }
+
+passed_expr:
+  | pexpr = expr { {pattr = Dnorm; pexpr} }
+
+elif:
+  | Elseif; cond = expr; Colon; elseblk = block { ($loc, cond, elseblk) }
+
+else_:
+  | Else; Colon; item = block; { item }
+
+import_path:
+  | id = Upcase_ident { Path.Pid (id) }
+  | id = Upcase_ident; Dot; path = import_path { Path.Pmod (id, path)  }
+
+%inline unop:
+  | Minus_i { Uminus_i }
+  | Minus_f { Uminus_f }
+
 %inline binop:
+  | Equal_binop { Equal_i }
   | Plus_i  { Plus_i }
   | Minus_i { Minus_i }
   | Mult_i  { Mult_i }
@@ -512,7 +383,6 @@ bool:
   | Greater_i { Greater_i }
   | Less_eq_i  { Less_eq_i }
   | Greater_eq_i { Greater_eq_i }
-  | Equal { Equal_i }
   | Plus_f  { Plus_f }
   | Minus_f { Minus_f }
   | Mult_f  { Mult_f }
@@ -525,39 +395,48 @@ bool:
   | And     { And }
   | Or      { Or }
 
-%inline unop:
-  | Minus_i { Uminus_i }
-  | Minus_f { Uminus_f }
-
-array_lit:
-  | Lbrack; list(sexp_expr); Rbrack { $2 }
-
-fixed_array_lit:
-  | Hashtag_brack; items = nonempty_list(sexp_expr); Rbrack { Fixed_array items }
-  | num = Hashnum_brack; item = sexp_expr; Rbrack { Fixed_array_num (num, item) }
-
-%inline sexp_type_expr:
-  | sexp_type_list { $1 }
-  | parens(sexp_type_func) { $1 }
-
-%inline sexp_type_func:
-  | Fun; nonempty_list(sexp_fun_param) { Ty_func $2 }
-
-sexp_fun_param:
-  | spec = sexp_type_expr; attr = option(decl_attr) { spec, pass_attr_of_opt attr }
-
-sexp_type_list:
-  | Lpar; hd = type_spec; tl = nonempty_list(sexp_type_list); Rpar { Ty_list (hd :: tl) }
-  | type_spec { $1 }
+let parens(x) :=
+  | Lpar; items = separated_list(Comma, x); Rpar; { items }
 
 type_spec:
-  | ident { Ty_id (snd $1) }
+  | id = Ident { Ty_id id }
+  | id = poly_id { Ty_var id }
   | id = Sized_ident { Ty_id id }
   | id = Unknown_sized_ident { Ty_id id }
-  | poly_id { $1 }
-  | fst = ident; Div_i; lst = separated_nonempty_list(Div_i, ident)
-    { Ty_import_id ($loc, flatten_import (fst :: lst) ) }
-  | Lbrac; hd = type_spec; tl = nonempty_list(type_spec); Rbrac { Ty_tuple (hd :: tl)}
+  | path = import_path; id = Ident { Ty_import_id ($loc, Path.Pmod(id, path)) }
+  | head = type_spec; Lpar; tail = separated_nonempty_list(Comma, type_spec); Rpar
+    { Ty_list (head :: tail) }
+  | Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
+    { Ty_func ([ret, Dnorm]) }
+  | Lpar; spec = tup_or_fun { spec }
 
-%inline poly_id:
-  | Quote; Lowercase_id { Ty_var $2 }
+tup_or_fun:
+  /* One param function */
+  | spec = type_spec; Rpar; Right_arrow; ret = type_spec; %prec Type_application { Ty_func ([spec, Dnorm; ret, Dnorm]) }
+  /* decl_attr means it's a function */
+  | spec = type_spec; attr = decl_attr; cont = continue_fun { Ty_func ((spec, attr) :: cont) }
+  /* More than one param, either function or tuple */
+  | one = type_spec; Comma; two = type_spec; attr = decl_attr; cont = continue_fun
+    { Ty_func ((one, Dnorm) :: (two, attr) :: cont) }
+  | one = type_spec; Comma; two = type_spec; cont = continue_tup_or_fun
+    { let func, params = cont in
+      if func then Ty_func ((one, Dnorm) :: (two, Dnorm) :: params)
+      else Ty_tuple (one :: two :: (List.map fst params))}
+
+continue_tup_or_fun:
+  | Rpar { false, [] }
+  | Rpar; Right_arrow; ret = type_spec; %prec Type_application { true, [ret, Dnorm] }
+  | Comma; spec = type_spec; cont = continue_tup_or_fun { let kind, cont = cont in kind, ((spec, Dnorm) :: cont) }
+  | Comma; spec = type_spec; attr = decl_attr; cont = continue_fun { true, ((spec, attr) :: cont) }
+
+continue_fun:
+  | Rpar; Right_arrow; ret = type_spec; %prec Type_application { [ret, Dnorm] }
+  | Comma; spec = type_spec; attr = option(decl_attr); cont = continue_fun { (spec, pass_attr_of_opt attr) :: cont }
+
+ctor_type_spec:
+  | normal = type_spec { normal }
+  | head = type_spec; Comma; tail = separated_nonempty_list(Comma, type_spec)
+    { Ty_tuple (head :: tail) }
+
+poly_id:
+  | Quote; id = Ident { id }

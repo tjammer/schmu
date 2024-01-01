@@ -1,1200 +1,1060 @@
-prog: Wildcard
+prog: With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Minus_i Wildcard
+prog: Type With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Minus_f Wildcard
+prog: Type Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashnum_brack Lpar Wildcard
+prog: Type Ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Set Wildcard
+prog: External Ident Equal Quote With
 
-Expecting '&' to indicate mutation
-
-prog: Lpar Set Ampersand Wildcard
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrack Wildcard
+prog: Type Ident Lpar Quote Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Wildcard
+prog: Type Ident Newline
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Keyword Wildcard
+prog: Type Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Hashtag_brack Wildcard
-
-Expecting expression
-
-prog: Hashnum_brack Wildcard
-
-Expecting expression
 
-prog: Hashnum_brack False U8
+prog: Type Ident Equal Upcase_ident With
 
-Expecting ']'
-
-prog: False Ldotparen Wildcard
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Ldotparen False U8
+prog: Import Upcase_ident Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Ldotbrack Wildcard
+prog: Import Upcase_ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Ldotbrack False U8
+prog: External Ident Equal Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Kebab_id Wildcard
+prog: External Ident Equal Lpar Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Kebab_id Div_i Wildcard
+prog: External Ident Equal Lpar Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Hashtag_brack False Keyword
 
-Expecting expression
+prog: External Ident Equal Lpar Rpar Right_arrow Ident With
 
-prog: Hashtag_brack False Rpar
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Keyword False U8
+prog: External Ident Equal Ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac At Wildcard
+prog: External Ident Equal Ident Lpar Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac At False U8
+prog: External Ident Equal Ident Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac False Rpar
+prog: External Ident Equal Upcase_ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrack False Rbrac
+prog: External Ident Equal Lpar Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrack False Rpar
+prog: External Ident Equal Lpar Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Set Ampersand False U8
-
-Expecting '!' to indicate move of to-set expression
 
-prog: Lpar Set Ampersand False Exclamation Wildcard
+prog: External Ident Equal Lpar Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Set Ampersand False Exclamation False U8
+prog: External Ident Equal Lpar Ident Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Plus_i Wildcard
+prog: External Ident Equal Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Plus_f Wildcard
+prog: External Ident Equal Lpar Ident Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Or Wildcard
+prog: External Ident Equal Lpar Ident Comma Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Mult_i Wildcard
+prog: External Ident Equal Lpar Ident Comma Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Mult_f Wildcard
+prog: External Ident Equal Lpar Ident Comma Ident Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Minus_i Wildcard
+prog: External Ident Equal Lpar Ident Comma Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Minus_i False Rbrack
+prog: External Ident Equal Lpar Ident Comma Ident Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Minus_f Wildcard
+prog: External Ident Equal Lpar Ident Comma Ident Comma Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Minus_f False Rbrack
+prog: External Ident Equal Lpar Ident Ampersand Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match Wildcard
+prog: External Ident Equal Lpar Ident Ampersand Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match Ampersand Wildcard
+prog: External Ident Equal Lpar Ident Ampersand Rpar Right_arrow Ident With
 
-Expecting passed expression
-
-prog: Lpar Match False U8
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Match False Lpar Unknown_sized_ident
-
-Expecting pattern
-
-prog: Lpar Def Wildcard Type
-
-Expecting expression
 
-prog: Lpar Def Lpar Wildcard
+prog: External Ident Equal Lpar Ident Ampersand Comma With
 
-Expecting a pattern
-
-prog: Lpar Def Lpar Or Unknown_sized_ident
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrac Unknown_sized_ident
+prog: External Ident Equal Lpar Ident Ampersand Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrac Keyword Unknown_sized_ident
+prog: External Ident Equal Lpar Ident Ampersand Comma Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrac Keyword Constructor Type
+prog: External Ident Equal Lpar Ident Comma Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Kebab_id Type
+prog: External Ident Equal Lpar Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Def Lbrac Kebab_id Rbrac Type
-
-Expecting expression or '!'
-
-prog: Lpar Def Lbrac Keyword Rbrac Type
-
-Expecting expression or '!'
 
-prog: Lpar Def Lbrac Constructor Type
+prog: Type Ident Equal Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrac Kebab_id Constructor Type
+prog: Type Ident Equal Lbrack Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Unknown_sized_ident
+prog: Type Ident Equal Lbrack Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Or Kebab_id Kebab_id Unknown_sized_ident
+prog: Type Ident Equal Lbrack Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Constructor Unknown_sized_ident
+prog: Type Ident Equal Lbrack Ident Colon Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lpar Constructor Constructor Type
+prog: Type Ident Equal Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Kebab_id Wildcard
+prog: Type Ident Equal Hbar Upcase_ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Kebab_id False U8
+prog: Type Ident Equal Upcase_ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Match False Lpar Kebab_id False Rpar Wildcard
+prog: Type Ident Equal Upcase_ident Lpar Int With
 
-Expecting (pattern expression)
-
-prog: Lpar Let Wildcard
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Let Lpar Wildcard
 
-Expecting binding list (binder expression)
+prog: Type Ident Equal Upcase_ident Lpar Ident Rbrack
 
-prog: Lpar Let Lpar Lpar Unknown_sized_ident
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrack Unknown_sized_ident
+prog: Type Ident Equal Upcase_ident Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrack Kebab_id Wildcard
+prog: Type Ident Equal Upcase_ident Lpar Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Quote Wildcard
+prog: Type Ident Equal Upcase_ident Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Wildcard
+prog: Type Ident Equal Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lbrac Wildcard
+prog: Module_type With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lbrac Sized_ident Wildcard
+prog: Module_type Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lbrac Kebab_id Sized_ident Wildcard
+prog: Module_type Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Kebab_id Wildcard
+prog: Module_type Ident Colon Begin With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Kebab_id Div_i Wildcard
+prog: Module Upcase_ident Colon Begin Signature With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Import Kebab_id Div_i Kebab_id Wildcard
+prog: Module Upcase_ident Colon Begin Signature Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Import Kebab_id Div_i Kebab_id Div_i Wildcard
+prog: Module Upcase_ident Colon Begin Signature Colon Begin With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Fun Wildcard
+prog: Module Upcase_ident Colon Begin Signature Colon Begin Type With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Fun Sized_ident Wildcard
+prog: Module Upcase_ident Colon Begin Signature Colon Begin Type Ident Lpar Quote Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Ampersand Wildcard
+prog: Module Upcase_ident Colon Begin Signature Colon Begin Type Ident Equal Upcase_ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Fun Lpar Fun Kebab_id Rpar Wildcard
+prog: Module Upcase_ident Colon Begin Signature Colon Begin Type Ident Newline With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Sized_ident Wildcard
+prog: Module_type Ident Colon Begin Signature Colon Begin Type Ident End With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Kebab_id Lpar Wildcard
+prog: Module With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Kebab_id Sized_ident Wildcard
+prog: Module Upcase_ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Lbrack Kebab_id Sized_ident Wildcard
+prog: Module Upcase_ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Let Lpar Lpar Constructor Type
+prog: Module Upcase_ident Equal Upcase_ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Let Lpar Lpar Constructor Exclamation Wildcard
+prog: Module Upcase_ident Equal Upcase_ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Let Lpar Lpar Kebab_id False U8
+prog: Module Upcase_ident Equal Upcase_ident Lpar Upcase_ident Newline
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Let Lpar Lpar Kebab_id False Rpar Wildcard
+prog: Module Upcase_ident Equal Upcase_ident Lpar Upcase_ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Let Lpar Lpar Kebab_id False Rpar Rpar Wildcard
+prog: Module Upcase_ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Do Lpar Wildcard
+prog: Module Upcase_ident Colon Begin With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Rec Wildcard
+prog: Module Upcase_ident Colon Begin Signature Colon Begin Type Ident End With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Rec Lpar Wildcard
-
-Expecting function definition
 
-prog: Lpar Defn Wildcard
+prog: Minus_i With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defn Kebab_id Wildcard
+prog: Minus_f With
 
-Expecting parameter list: (params...)
-
-prog: Lpar Fn Keyword Wildcard
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fn Keyword Kebab_id Wildcard
 
-Expecting parameter list
+prog: Match With
 
-prog: Lpar Defn Kebab_id String_lit Wildcard
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lpar Unknown_sized_ident
+prog: Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lpar Constructor Type
+prog: Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defn Kebab_id Lpar Rpar Wildcard
+prog: Lbrac With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fn Lpar Rpar Lpar Import Kebab_id Rpar Wildcard
+prog: If With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Do False Rbrack
+prog: Hashtag_brack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Rec Lpar Defn Kebab_id Lpar Rpar Rpar Wildcard
-
-Expecting a second function definition
 
-prog: Lpar Rec Lpar Defn Kebab_id Lpar Rpar Rpar Lpar Defn Kebab_id Lpar Rpar Rpar Wildcard
+prog: Hashnum_brack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Less_i Wildcard
+prog: Upcase_ident Fun With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Less_f Wildcard
+prog: Fun Lpar With
 
-Expecting module indentifier
-
-prog: Lpar Less_eq_i Wildcard
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Less_eq_f Wildcard
+prog: Let Wildcard With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Import Wildcard
+prog: Fun Lpar Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Import Kebab_id Wildcard
+prog: Let Upcase_ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Import Kebab_id Div_i Wildcard
+prog: Let Upcase_ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Import Kebab_id Div_i Kebab_id Unknown_sized_ident
+prog: Let Upcase_ident Lpar Ident Comma Ident Equal
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar If Wildcard
+prog: Fun Lpar Lpar Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar If False Rpar
+prog: Let Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar If False False Rbrack
+prog: Let Ident Comma Ident Hbar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar If False False False U8
+prog: Let Ident Comma Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Greater_i Wildcard
+prog: Let Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Greater_f Wildcard
+prog: Let Upcase_ident Lpar Ident Hbar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Greater_eq_i Wildcard
+prog: Fun Lpar Lpar Ident Comma Ident Equal
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Greater_eq_f Wildcard
+prog: Fun Lpar Lpar Ident Comma Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Fn Wildcard
-
-Expecting parameter list: (params...)
-
-prog: Lpar Fn Keyword String_lit
-
-Expecting parameter list
 
-prog: Lpar Fn Lpar Rpar Wildcard
+prog: Fun Lpar Ident Hbar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fmt_str Wildcard
+prog: Fun Lpar Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Fmt_str False Rbrack
+prog: Fun Lpar Ident Colon Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Equal Wildcard
+prog: Fun Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Do Wildcard
+prog: Fun Lpar Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Do Lpar Import Kebab_id Rpar Wildcard
+prog: Fun Lpar Rpar Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Div_i Wildcard
+prog: Fmt With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Div_f Wildcard
+prog: Fmt Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Unknown_sized_ident
+prog: Do With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Constructor Type
+prog: Do Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Kebab_id Builtin_id Wildcard
+prog: Builtin_id With
 
-Expecting ')'
-
-prog: Lpar Def Constructor Exclamation Wildcard
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Def Kebab_id False U8
+prog: Ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Cond Wildcard
-
-Expecting expression
-
-prog: Lpar Cond Lpar Wildcard
-
-Expecting (condition expression)
 
-prog: Lpar Cond Lpar False Rpar
+prog: Ident Lpar Ampersand With
 
-Expecting expression
-
-prog: Lpar Cond Lpar False False U8
-
-Expecting only one expression per condition
-
-prog: Lpar Cond Lpar False False Rpar Wildcard
-
-Expecting (condition expression)
-
-prog: Lpar Cond Lpar False False Rpar Lpar Wildcard
-
-Expecting condition
-
-prog: Lpar Cond Lpar False False Rpar Lpar Else Wildcard
-
-Expecting expression
-
-prog: Lpar Cond Lpar False False Rpar Lpar Else False U8
-
-Expecting only one expression in 'else' case
-
-prog: Lpar Cond Lpar False False Rpar Lpar Else False Rpar Wildcard
-
-Expecting no condition after 'else'
-
-prog: Lpar Cond Lpar False False Rpar Lpar False False Rpar Wildcard
-
-Expecting (condition expression)
-
-prog: Lpar Builtin_id Wildcard
-
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Kebab_id Ampersand Wildcard
+prog: Upcase_ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Kebab_id False Rbrack
+prog: Upcase_ident Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Builtin_id False Fmt_str
+prog: Upcase_ident Dot Upcase_ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Bin_equal_f Wildcard
+prog: Upcase_ident Dot Upcase_ident Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Arrow_righter Wildcard
+prog: Upcase_ident Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Arrow_righter False Rpar
+prog: Ident Hashtag_brack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Arrow_right False Lpar Wildcard
+prog: Ident Hashtag_brack Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Arrow_right Wildcard
+prog: Ident Plus_i With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Arrow_right False Rpar
+prog: Ident Plus_i Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Arrow_right False False Rbrack
+prog: Ident Mult_i With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Arrow_right False Fmt_str Wildcard
+prog: Ident Mult_i Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar And Wildcard
+prog: Ident Equal_binop With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Arrow_right False Lpar Accessor Wildcard
+prog: Ident Equal_binop Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Accessor False U8
+prog: Ident Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar False Wildcard
+prog: Ident Dot Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Constructor Wildcard
+prog: Ident Dot Lbrack Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Constructor False U8
+prog: Ident Plus_f With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar And False Rbrack
+prog: Ident Plus_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Kebab_id Rbrack
+prog: Ident Mult_f With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Kebab_id False Fmt_str
+prog: Ident Mult_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Kebab_id False False Fmt_str
+prog: Ident Bin_equal_f With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Accessor Wildcard
+prog: Ident Bin_equal_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Minus_f False Wildcard
+prog: Ident Div_i With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Minus_i False Wildcard
+prog: Ident Div_i Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Wildcard
+prog: Ident Div_f With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Wildcard
+prog: Ident Div_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Lpar Wildcard
+prog: Ident Pipe_tail With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Lpar Kebab_id Wildcard
+prog: Ident Pipe_tail Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Lpar Kebab_id Quote Wildcard
+prog: Ident Or With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Lpar Kebab_id Quote Lowercase_id Wildcard
+prog: Ident Or Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Wildcard
+prog: Ident Minus_i With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lpar Wildcard
+prog: Ident Minus_i Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lpar Lpar Wildcard
+prog: Ident Minus_f With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lpar Constructor Sized_ident Wildcard
+prog: Ident Minus_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lpar Lpar Constructor Wildcard
+prog: Ident Less_i With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lpar Constructor Wildcard
+prog: Ident Less_i Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lpar Constructor Lpar Wildcard
+prog: Ident Less_f With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lpar Constructor Constructor Wildcard
+prog: Ident Less_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lpar Lpar Constructor Kebab_id Rpar Wildcard
+prog: Ident Less_eq_i With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Wildcard
+prog: Ident Less_eq_i Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Mut_keyword Wildcard
+prog: Ident Less_eq_f With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Keyword Wildcard
+prog: Ident Less_eq_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Keyword Sized_ident Wildcard
+prog: Ident Greater_i With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Sized_ident Wildcard
+prog: Ident Greater_i Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Lbrac Keyword Kebab_id Rbrac Wildcard
+prog: Ident Greater_f With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Type Kebab_id Constructor Wildcard
+prog: Ident Greater_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Signature Wildcard
-
-Expecting type or value declaration
 
-prog: Lpar Signature Lpar Wildcard
+prog: Ident Greater_eq_i With
 
-Expecting type or value declaration
-
-prog: Lpar Signature Lpar Type Wildcard
-
-Expecting type name
-
-prog: Lpar Signature Lpar Type Kebab_id Wildcard
-
-Expecting alias declaration
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Def Wildcard
+prog: Ident Greater_eq_i Ident Wildcard
 
-Expecting type or value declaration
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Def Kebab_id Wildcard
+prog: Ident Greater_eq_f With
 
-Expecting type or value declaration
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Def Kebab_id Sized_ident Wildcard
+prog: Ident Greater_eq_f Ident Wildcard
 
-Expecting type or value declaration
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Def Kebab_id Lpar Fun Kebab_id Rpar Wildcard
+prog: Ident And With
 
-Expecting ')'
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Def Kebab_id Kebab_id Rpar Wildcard
+prog: Ident And Ident Wildcard
 
-Expecting ')'
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Type Kebab_id Constructor Rpar Wildcard
+prog: Ident Left_arrow With
 
-Expecting ')'
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Type Kebab_id Lbrac Keyword Kebab_id Rbrac Rpar Wildcard
+prog: Ident Left_arrow Ident Wildcard
 
-Expecting ')'
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Type Kebab_id Kebab_id Rpar Wildcard
+prog: Ident Lpar Ident Wildcard
 
-Expecting ')'
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Type Kebab_id Rpar Wildcard
+prog: Ident Lpar Ident Comma With
 
-Expecting type or value declaration
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module_type Wildcard
+prog: Do Colon Begin With
 
-Expecting type or value declaration
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module_type Kebab_id Wildcard
+prog: Let With
 
-Expecting definition
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Wildcard
+prog: Let Ident Comma Ident Rpar
 
-Expecting definition
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Wildcard
+prog: Let Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Wildcard
+prog: Let Ident Colon Ident Rpar
 
-Expecting module type constraint
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Wildcard
+prog: Let Ident Equal With
 
-Expecting ')'
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Div_i Wildcard
+prog: Match Ident Wildcard
 
-Expecting module type name
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Div_i Kebab_id Unknown_sized_ident
+prog: Let Ident Rpar
 
-Expecting module type name
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Wildcard
+prog: Import With
 
-Expecting type or value declaration
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Wildcard
+prog: Fun With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Rpar Wildcard
+prog: Fun Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Lpar Wildcard
+prog: Fun Ident Lpar Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Wildcard
+prog: Fun Ident Lpar Rpar Right_arrow With
 
-Expecting functor name
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Wildcard
+prog: Fun Ident Lpar Rpar Right_arrow Ident Rpar
 
-Execting functor parameters
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Wildcard
+prog: Fun Ident Lpar Rpar Colon With
 
-Expecting a functor parameter: [name module-type]
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Wildcard
+prog: Do Colon Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Wildcard
+prog: Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Wildcard
+prog: Ampersand Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Div_i Wildcard
+prog: Ampersand Ident Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Div_i Kebab_id Unknown_sized_ident
+prog: Ampersand Ident Right_arrow Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Wildcard
+prog: Do Colon Begin Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Wildcard
+prog: Do Colon Begin Ident Newline With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Wildcard
+prog: Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Rpar Wildcard
+prog: Fmt Lpar Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Rpar Wildcard
+prog: Hashtag_brack Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Rbrack
+prog: Hashtag_brack Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Wildcard
+prog: Hashnum_brack Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Wildcard
+prog: Hashtag_brack Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Sized_ident Wildcard
+prog: If Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Kebab_id String_lit Wildcard
+prog: If Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar Wildcard
+prog: If Ident Colon Begin Ident End Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Defexternal Kebab_id Lpar Fun Kebab_id Rpar String_lit Wildcard
+prog: If Ident Colon Ident Elseif With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Kebab_id Div_i Kebab_id Unknown_sized_ident
+prog: If Ident Colon Ident Elseif Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: If Ident Colon Ident Elseif Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Rec Lpar Defn Kebab_id Lpar Rpar Rpar Lpar Defn Kebab_id Lpar Rpar Rpar Rpar Wildcard
+prog: If Ident Colon Ident Else With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Def Kebab_id False Rpar Wildcard
+prog: If Ident Colon Ident Else Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Import Kebab_id Rpar Wildcard
+prog: If Ident Colon Ident Elseif Ident Colon Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Defn Kebab_id Lpar Rpar Rpar Wildcard
+prog: Lbrac Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Module_type Kebab_id Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: Lbrac Ident With Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Module Kebab_id Rpar Wildcard
+prog: Lbrac Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Type Kebab_id Constructor Rpar Wildcard
+prog: Lbrac Ident Equal Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Type Kebab_id Lbrac Keyword Kebab_id Rbrac Rpar Wildcard
+prog: Lbrac Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Defexternal Kebab_id Kebab_id Rpar Wildcard
+prog: Lbrac False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Kebab_id Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Type Kebab_id Kebab_id Rpar Wildcard
+prog: Lbrac Ident With With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Wildcard
+prog: Lbrack Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Wildcard
+prog: Lpar Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Wildcard
+prog: Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Rpar Wildcard
+prog: Lpar Ident Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: Match Ident Newline
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Rec Lpar Defn Kebab_id Lpar Rpar Rpar Lpar Defn Kebab_id Lpar Rpar Rpar Rpar Wildcard
+prog: Match Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Def Kebab_id False Rpar Wildcard
+prog: Match Ident Colon Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Import Kebab_id Rpar Wildcard
+prog: Match Ident Colon Ident Comma Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Defn Kebab_id Lpar Rpar Rpar Wildcard
+prog: Match Ident Colon Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Module_type Kebab_id Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: Match Ident Colon Ident Colon Begin Ident End Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Module Kebab_id Rpar Wildcard
+prog: Match Ident Colon Ident Colon Ident Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Type Kebab_id Constructor Rpar Wildcard
+prog: Match Ident Colon Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Type Kebab_id Lbrac Keyword Kebab_id Rbrac Rpar Wildcard
+prog: Match Ident Colon Ident Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Defexternal Kebab_id Kebab_id Rpar Wildcard
+prog: Match Ident Colon Ident Hbar Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Functor Lbrack Kebab_id Kebab_id Rbrack Lpar Lbrack Kebab_id Kebab_id Rbrack Rpar Lpar Type Kebab_id Kebab_id Rpar Wildcard
+prog: Match Ident Colon Ident Hbar Ident Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Kebab_id Wildcard
+prog: Minus_f Ident Wildcard
 
-Expecting module name
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Kebab_id Div_i Wildcard
+prog: Minus_i Ident Wildcard
 
-Expecting functor name
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Kebab_id Div_i Kebab_id Unknown_sized_ident
+prog: Functor With
 
-Expecting module name
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Kebab_id Kebab_id Wildcard
+prog: Functor Upcase_ident With
 
-Expecting ')'
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Kebab_id Kebab_id Div_i Wildcard
+prog: Functor Upcase_ident Lpar With
 
-Expecting module name
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Kebab_id Kebab_id Div_i Kebab_id Unknown_sized_ident
+prog: Functor Upcase_ident Lpar Upcase_ident With
 
-Expecting module name
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: Functor Upcase_ident Lpar Upcase_ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Rec Lpar Defn Kebab_id Lpar Rpar Rpar Lpar Defn Kebab_id Lpar Rpar Rpar Rpar Wildcard
+prog: Functor Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Def Kebab_id False Rpar Wildcard
+prog: Functor Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Import Kebab_id Rpar Wildcard
+prog: Functor Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar Colon Begin With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Defn Kebab_id Lpar Rpar Rpar Wildcard
+prog: Functor Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar Colon Begin Signature Colon Begin Type Ident End With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Module_type Kebab_id Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: External With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Module Kebab_id Rpar Wildcard
+prog: External Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Type Kebab_id Constructor Rpar Wildcard
+prog: External Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Type Kebab_id Lbrac Keyword Kebab_id Rbrac Rpar Wildcard
+prog: External Ident Equal Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Defexternal Kebab_id Kebab_id Rpar Wildcard
+prog: External Ident Equal Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Lpar Type Kebab_id Kebab_id Rpar Wildcard
+prog: Import Upcase_ident Colon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Kebab_id Wildcard
+prog: Ident Newline With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Kebab_id Kebab_id Div_i Wildcard
+prog: Functor Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar Colon Begin Signature Colon Begin Type Ident End Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Wildcard
+prog: Functor Upcase_ident Lpar Upcase_ident Colon Upcase_ident Newline
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Wildcard
+prog: Functor Upcase_ident Lpar Upcase_ident Colon Upcase_ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Rpar Wildcard
+prog: Functor Upcase_ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: Functor Upcase_ident Colon Upcase_ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Rec Lpar Defn Kebab_id Lpar Rpar Rpar Lpar Defn Kebab_id Lpar Rpar Rpar Rpar Wildcard
+prog: Functor Upcase_ident Colon Upcase_ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Def Kebab_id False Rpar Wildcard
+prog: Functor Upcase_ident Colon Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Import Kebab_id Rpar Wildcard
+prog: Functor Upcase_ident Colon Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Defn Kebab_id Lpar Rpar Rpar Wildcard
+prog: Functor Upcase_ident Colon Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar Colon Begin With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Module_type Kebab_id Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: Functor Upcase_ident Colon Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar Colon Begin Signature Colon Begin Type Ident End With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Module Kebab_id Rpar Wildcard
+prog: Functor Upcase_ident Colon Upcase_ident Lpar Upcase_ident Colon Upcase_ident Rpar Colon Begin Signature Colon Begin Type Ident End Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Type Kebab_id Constructor Rpar Wildcard
+prog: Module Upcase_ident Colon Begin Signature Colon Begin Type Ident End Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Type Kebab_id Lbrac Keyword Kebab_id Rbrac Rpar Wildcard
+prog: Module Upcase_ident Colon Upcase_ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Defexternal Kebab_id Kebab_id Rpar Wildcard
+prog: Module Upcase_ident Colon Upcase_ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Lpar Type Kebab_id Kebab_id Rpar Wildcard
+prog: Module Upcase_ident Colon Upcase_ident Equal Upcase_ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Kebab_id Wildcard
+prog: Module Upcase_ident Colon Upcase_ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Module Lbrack Kebab_id Kebab_id Rbrack Kebab_id Div_i Wildcard
+prog: Module Upcase_ident Colon Upcase_ident Colon Begin With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Type Kebab_id Rpar Rpar Wildcard
+prog: Module Upcase_ident Colon Upcase_ident Colon Begin Signature Colon Begin Type Ident End With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Signature Lpar Type Kebab_id Rpar Rpar False Rpar
+prog: Module Upcase_ident Colon Upcase_ident Colon Begin Signature Colon Begin Type Ident End Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Rpar
+prog: Ident End
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

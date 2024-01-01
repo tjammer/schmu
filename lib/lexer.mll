@@ -91,13 +91,7 @@ let f32 = min? float "f32"
 
 let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
 let builtin_id = "__" lowercase_id
-
-let kebab_id = lowercase_alpha (lowercase_alpha|'-'|digit|'?')*
-let mut_id = (kebab_id)'&'
-let keyword = ':'(lowercase_id|kebab_id)
-let mut_kw = ':'(lowercase_id|kebab_id)'&'
-let constructor = '#'(lowercase_id|kebab_id)
-let accessor = '.'(lowercase_id|kebab_id|int)
+let upcase_id = uppercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -123,35 +117,31 @@ rule read =
   | "and"    { And }
   | "or"     { Or }
   | '='      { Equal }
-  | "=."     { Bin_equal_f }
+  | ':'      { Colon }
+  | ','      { Comma }
+  | '.'      { Dot }
+  | "=="     { Equal_binop }
+  | "==."     { Bin_equal_f }
   | "'"      { Quote }
   | "if"     { If }
   | "else"   { Else }
-  | "def"    { Def }
-  | "defn"   { Defn }
-  | "fn"     { Fn }
+  | "else if" { Elseif }
   | "fun"    { Fun }
   | "let"    { Let }
   | "match"  { Match }
   | "do"     { Do }
-  | "import"   { Import }
-  | "type" { Type }
-  | "external"{ Defexternal }
+  | "import" { Import }
+  | "type"   { Type }
+  | "external"{ External }
   | "signature" { Signature }
   | "module" { Module }
-  | "module-type" { Module_type }
+  | "module type" { Module_type }
   | "functor" { Functor }
-  | "set"    { Set }
-  | "cond"   { Cond }
-  | "fmt-str"{ Fmt_str }
-  | "rec"    { Rec }
-  | lowercase_id { Lowercase_id (Lexing.lexeme lexbuf) }
-  | kebab_id { Kebab_id (Lexing.lexeme lexbuf) }
-  | keyword  { Keyword (name_of_string (Lexing.lexeme lexbuf)) }
-  | mut_kw   { Mut_keyword (mut_name_of_string (Lexing.lexeme lexbuf)) }
-  | accessor { Accessor (name_of_string (Lexing.lexeme lexbuf)) }
-  | constructor{ Constructor (name_of_string (Lexing.lexeme lexbuf)) }
+  | "fmt"    { Fmt }
+  | '|'      { Hbar }
+  | lowercase_id { Ident (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
+  | upcase_id { Upcase_ident (Lexing.lexeme lexbuf |> String.lowercase_ascii) }
   | '_'      { Wildcard }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | "'" [^ '\\'] "'" { U8 (Lexing.lexeme_char lexbuf 1) }
@@ -168,7 +158,6 @@ rule read =
        { U8 (char_for_hexadecimal_code d u) }
   | '&'      { Ampersand }
   | '!'      { Exclamation }
-  | '@'      { At }
   | '+'      { Plus_i }
   | min      { Minus_i }
   | '*'      { Mult_i }
@@ -189,17 +178,16 @@ rule read =
   | ')'      { Rpar }
   | '{'      { Lbrac }
   | '}'      { Rbrac }
-  | ".["     { Ldotbrack }
-  | ".("     { Ldotparen }
   | '['      { Lbrack }
   | ']'      { Rbrack }
   | "#["     { Hashtag_brack }
   | hashnumbrack { Hashnum_brack (int_of_hashnum (Lexing.lexeme lexbuf)) }
   | sized_id  { Sized_ident (Lexing.lexeme lexbuf) }
   | unknown_sized_id { Unknown_sized_ident (Lexing.lexeme lexbuf) }
-  | "->"     { Arrow_right }
-  | "->>"    { Arrow_righter }
-  | "--"     { line_comment lexbuf }
+  | "->"     { Left_arrow }
+  | "<-"     { Right_arrow }
+  | "|>"     { Pipe_tail }
+  | "#"      { line_comment lexbuf }
   | eof      { Eof }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 
