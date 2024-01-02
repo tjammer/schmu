@@ -111,10 +111,10 @@ let string_of_type_raw get_name typ mname =
           match ts with
           | [] -> "unit"
           | ts ->
-              String.concat " "
+              String.concat ", "
                 (List.map (fun p -> string_of_type p.pt ^ pattr p.pattr) ts)
         in
-        Printf.sprintf "(fun %s %s)" ps (string_of_type t)
+        Printf.sprintf "(%s) -> %s" ps (string_of_type t)
     | Tvar { contents = Link t } -> string_of_type t
     | Talias (name, t) ->
         Printf.sprintf "%s = %s"
@@ -125,15 +125,15 @@ let string_of_type_raw get_name typ mname =
         let lst =
           Array.to_list fs |> List.map (fun f -> string_of_type f.ftyp)
         in
-        Printf.sprintf "{%s}" (String.concat " " lst)
+        Printf.sprintf "(%s)" (String.concat ", " lst)
     | Trecord (ps, Some str, _) | Tvariant (ps, str, _) -> (
         match ps with
         | [] -> Path.(rm_name mname str |> show)
         | l ->
             let arg = String.concat " " (List.map string_of_type l) in
-            Printf.sprintf "(%s %s)" Path.(rm_name mname str |> show) arg)
-    | Traw_ptr t -> Printf.sprintf "(raw_ptr %s)" (string_of_type t)
-    | Tarray t -> Printf.sprintf "(array %s)" (string_of_type t)
+            Printf.sprintf "%s(%s)" Path.(rm_name mname str |> show) arg)
+    | Traw_ptr t -> Printf.sprintf "raw_ptr (%s)" (string_of_type t)
+    | Tarray t -> Printf.sprintf "array(%s)" (string_of_type t)
     | Tfixed_array ({ contents = sz }, t) ->
         let rec size = function
           | Unknown _ -> "??"
@@ -141,13 +141,13 @@ let string_of_type_raw get_name typ mname =
           | Known i -> string_of_int i
           | Linked iv -> size !iv
         in
-        sprintf "(array#%s %s)" (size sz) (string_of_type t)
+        sprintf "array#%s(%s)" (size sz) (string_of_type t)
     | Tabstract (ps, name, _) -> (
         match ps with
         | [] -> Path.(rm_name mname name |> show)
         | l ->
             let arg = String.concat " " (List.map string_of_type l) in
-            Printf.sprintf "(%s %s)" Path.(rm_name mname name |> show) arg)
+            Printf.sprintf "%s(%s)" Path.(rm_name mname name |> show) arg)
   in
 
   string_of_type typ
