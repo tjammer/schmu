@@ -127,7 +127,6 @@ rule read =
   | "else"   { Else }
   | "else if" { Elseif }
   | "fun"    { Fun }
-  | "let"    { Let }
   | "match"  { Match }
   | "do"     { Do }
   | "import" { Import }
@@ -184,8 +183,8 @@ rule read =
   | hashnumbrack { Hashnum_brack (int_of_hashnum (Lexing.lexeme lexbuf)) }
   | sized_id  { Sized_ident (Lexing.lexeme lexbuf) }
   | unknown_sized_id { Unknown_sized_ident (Lexing.lexeme lexbuf) }
-  | "->"     { Left_arrow }
-  | "<-"     { Right_arrow }
+  | "<-"     { Left_arrow }
+  | "->"     { Right_arrow }
   | "|>"     { Pipe_tail }
   | "#"      { line_comment lexbuf }
   | eof      { Eof }

@@ -35,8 +35,8 @@ let emit lexbuf (token : Parser.token) =
 let maybe_newline lexbuf =
   match !cached_token with
   | Some
-      ((Parser.Rbrac | Rbrack | Rpar | Right_arrow | Else | Elseif | Eof) as
-       token) ->
+      (( Parser.Rbrac | Rbrack | Rpar | Right_arrow | Pipe_tail | Else | Elseif
+       | Eof ) as token) ->
       (* These tokes should be able to be placed on the outer indent without
          starting a new line. *)
       state := Default;

@@ -18,7 +18,6 @@
 %}
 
 %token Eof
-%token Let
 %token Fun
 %token <string> Ident
 %token Equal
@@ -98,7 +97,9 @@
 %nonassoc Below_hbar
 %nonassoc Hbar
 
-%left Left_arrow Pipe_tail
+%nonassoc Ctor
+
+%left Right_arrow Pipe_tail
 %nonassoc If_no_else
 %nonassoc Elseif
 %nonassoc Else
@@ -108,7 +109,6 @@
 %left Mult_i Mult_f Div_i Div_f
 %left Equal_binop Bin_equal_f
 %left Lpar
-%nonassoc Ctor
 %left Dot Path Hashtag_brack
 
 %start <Ast.prog> prog
@@ -127,17 +127,17 @@ top_item:
   | modtype = modtype { modtype }
 
 stmt:
-  | Let; decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
-  /* | Let; decl = let_decl; Equal; ident = Builtin_id { Let($loc, decl, Var ($loc(ident), ident))  } */
-  | Fun; name = ident; params = parens(param_decl); return_annot = option(return_annot); Colon; body = block
-    { Function ($loc, { name; params; return_annot; body; attr = [] }) }
+  | decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
+  | Fun; name = ident; params = parens(param_decl); attr = loption(capture_copies);
+      return_annot = option(return_annot); Colon; body = block
+    { Function ($loc, { name; params; return_annot; body; attr }) }
   | expr = expr { Expr ($loc, expr) }
-  | Ampersand; expr = expr; Right_arrow; newval = expr
+  | Ampersand; expr = expr; Left_arrow; newval = expr
     { Expr ($loc, Set ($loc, ($loc(expr), expr), newval)) }
   | Import; path = import_path { Import ($loc(path), path) }
 
 typedef:
-  | Type; name = decl_typename; Equal; Lbrack; labels = nonempty_list(record_item_decl); Rbrack
+  | Type; name = decl_typename; Equal; Lbrac; labels = separated_nonempty_list(Comma, record_item_decl); Rbrac
     { Trecord ({name; labels = Array.of_list labels}) }
   | Type; name = decl_typename; Equal; spec = type_spec { Talias (name, spec) }
   | Type; name = decl_typename; Equal; ctors = separated_nonempty_list(Hbar, ctor)
@@ -212,6 +212,10 @@ param_decl:
 return_annot:
    | Right_arrow; annot = type_spec { annot }
 
+capture_copies:
+  | Lbrack; copies = separated_nonempty_list(Comma, ident); Rbrack
+    { let hd = List.hd copies in [Fa_param ((fst hd, "copy"), copies)] }
+
 basic_pattern:
   | id = ident { Pvar ((fst id, snd id), Dnorm) }
   | id = ident; Ampersand { Pvar ((fst id, snd id), Dmut) }
@@ -219,35 +223,38 @@ basic_pattern:
   | Wildcard; { Pwildcard ($loc, Dnorm) }
   | Wildcard; Exclamation { Pwildcard ($loc, Dmove) }
   | Wildcard; Ampersand { Pwildcard ($loc, Dmut) }
+
+non_or_match_pattern:
+  | basic = basic_pattern { basic }
   | id = upcase_ident { Pctor (id, None) }
-  | id = upcase_ident; Lpar; pattern = basic_pattern; Rpar { Pctor (id, Some pattern)  }
-  | id = upcase_ident; Lpar; pattern = tup_pattern; Rpar { Pctor (id, Some pattern)  }
+  | id = upcase_ident; Lpar; pattern = match_pattern; Rpar { Pctor (id, Some pattern)  }
+  | id = upcase_ident; Lpar; pattern = tup_pattern(match_pattern); Rpar { Pctor (id, Some pattern)  }
+  | Lpar; tup = tup_pattern(match_pattern); Rpar { tup }
 
 match_pattern:
-  | basic = basic_pattern { basic }
-  | tup = tup_pattern { tup }
-  | head = basic_pattern; Hbar; tail = separated_nonempty_list(Hbar, basic_pattern)
+  | pat = non_or_match_pattern { pat }
+  | head = non_or_match_pattern; Hbar; tail = separated_nonempty_list(Hbar, non_or_match_pattern)
     { Por ($loc, head :: tail) }
 
 let_pattern:
   | basic = basic_pattern { basic }
-  | tup = tup_pattern { tup }
+  | tup = tup_pattern(basic_pattern) { tup }
 
 param_pattern:
   | basic = basic_pattern { basic }
-  | Lpar; tups = tup_tups; Rpar { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
-  | Lpar; tups = tup_tups; Rpar; Ampersand { let loc, tups = tups in Ptup (loc, tups, Dmut) }
-  | Lpar; tups = tup_tups; Rpar; Exclamation { let loc, tups = tups in Ptup (loc, tups, Dmove) }
+  | Lpar; tups = tup_tups(param_pattern); Rpar { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
+  | Lpar; tups = tup_tups(param_pattern); Rpar; Ampersand { let loc, tups = tups in Ptup (loc, tups, Dmut) }
+  | Lpar; tups = tup_tups(param_pattern); Rpar; Exclamation { let loc, tups = tups in Ptup (loc, tups, Dmove) }
 
-tup_pattern:
-  | tups = tup_tups { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
+let tup_pattern(x) :=
+  | tups = tup_tups(x); { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
 
-tup_tups:
-  | head = pattern_with_loc; Comma; tail = separated_nonempty_list(Comma, pattern_with_loc)
+let tup_tups(x) :=
+  | head = with_loc(x); Comma; tail = separated_nonempty_list(Comma, with_loc(x));
     { $loc, head :: tail }
 
-pattern_with_loc:
-  | pat = basic_pattern { $loc, pat }
+let with_loc(x) :=
+  | pat = x; { $loc, pat }
 
 ident:
   | id = Ident { $loc, id }
@@ -266,18 +273,18 @@ expr:
   | callee = Builtin_id; args = parens(call_arg) { App ($loc, Var($loc(callee), callee), args) }
   | Fmt; args = parens(expr) { Fmt ($loc, args) }
   | special = special_builtins { special }
-  | Fun; params = parens(param_decl); Colon; body = block
-    { Lambda ($loc, params, [], body) }
+  | Fun; params = parens(param_decl); attr = loption(capture_copies); Colon; body = block
+    { Lambda ($loc, params, attr, body) }
   | Lbrac; items = separated_nonempty_list(Comma, record_item); Rbrac
     { Record ($loc, items) }
-  | tuple = tuple { Tuple ($loc, tuple) }
+  | Lpar; tuple = tuple; Rpar { Tuple ($loc, tuple) }
   | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
   | Lpar; expr = expr; Rpar { expr }
   | upcases = upcases { upcases }
   | Lbrac; record = expr; With; items = separated_nonempty_list(Comma, record_item); Rbrac
     { Record_update ($loc, record, items) }
   | Do; Colon; block = block { Do_block block }
-  | aexpr = expr; Left_arrow; pipeable = expr
+  | aexpr = expr; Right_arrow; pipeable = expr
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr pipeable) }
   | aexpr = expr; Pipe_tail; pipeable = expr
@@ -285,10 +292,15 @@ expr:
       Pipe_tail ($loc, arg, Pip_expr pipeable) }
    | Match; expr = passed_expr; Colon; option(Hbar); clauses = clauses
     { Match ($loc, expr.pattr, expr.pexpr, clauses) }
+   | Match; expr = passed_expr; Colon; clauses = block_clauses
+    { Match ($loc, expr.pattr, expr.pexpr, clauses) }
 
 clauses:
   | clause = clause; %prec Below_hbar { clause :: [] }
   | clause = clause; Hbar; tail = clauses { clause :: tail }
+
+block_clauses:
+  | Begin; clauses = separated_nonempty_list(Newline, clause); End { clauses }
 
 clause:
   | pattern = match_pattern; Colon; block = block { $loc, pattern, Do_block block }
@@ -308,11 +320,12 @@ local_import:
 
 upcases:
   | id = upcase_ident; %prec Ctor { Ctor ($loc, id, None) }
-  | id = upcase_ident; expr = expr; %prec Ctor { Ctor ($loc, id, Some expr) }
+  | id = upcase_ident; Lpar; expr = expr; Rpar { Ctor ($loc, id, Some expr) }
+  | id = upcase_ident; Lpar; tup = tuple; Rpar {Ctor ($loc, id, Some (Tuple ($loc(tup), tup)))}
   | id = upcase_ident; Dot; path = local_import { Local_import ($loc, snd id, path) }
 
 tuple:
-  | Lpar; head = expr; Comma; tail = separated_nonempty_list(Comma, expr); Rpar
+  | head = expr; Comma; tail = separated_nonempty_list(Comma, expr)
     { head :: tail }
 
 record_item:
@@ -358,6 +371,8 @@ elifs:
 
 passed_expr:
   | pexpr = expr { {pattr = Dnorm; pexpr} }
+  | Ampersand; pexpr = expr { {pattr = Dmut; pexpr} }
+  | Exclamation; pexpr = expr { {pattr = Dmove; pexpr} }
 
 elif:
   | Elseif; cond = expr; Colon; elseblk = block { ($loc, cond, elseblk) }
@@ -368,6 +383,14 @@ else_:
 import_path:
   | id = Upcase_ident { Path.Pid (id) }
   | id = Upcase_ident; Dot; path = import_path { Path.Pmod (id, path)  }
+
+type_path:
+  | id = Upcase_ident; Dot; path = type_path_cont { Path.Pmod (id, path)  }
+
+type_path_cont:
+  | id = Upcase_ident; Dot; path = type_path { Path.Pmod (id, path)  }
+  | id = Upcase_ident { Path.Pid (id) }
+  | id = Ident { Path.Pid (id) }
 
 %inline unop:
   | Minus_i { Uminus_i }
@@ -403,11 +426,11 @@ type_spec:
   | id = poly_id { Ty_var id }
   | id = Sized_ident { Ty_id id }
   | id = Unknown_sized_ident { Ty_id id }
-  | path = import_path; id = Ident { Ty_import_id ($loc, Path.Pmod(id, path)) }
+  | path = type_path { Ty_import_id ($loc, path) }
   | head = type_spec; Lpar; tail = separated_nonempty_list(Comma, type_spec); Rpar
     { Ty_list (head :: tail) }
   | Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
-    { Ty_func ([ret, Dnorm]) }
+    { Ty_func ([Ty_id "unit", Dnorm; ret, Dnorm]) }
   | Lpar; spec = tup_or_fun { spec }
 
 tup_or_fun:
