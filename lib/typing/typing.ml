@@ -1857,6 +1857,7 @@ and convert_prog env items modul =
         let m = Module.add_rec_block ~mname:(Env.modpath env) loc funcs m in
         (old, env, fitems @ (Tl_mutual_rec_decls decls :: items), m)
     | Expr (loc, expr) ->
+        last_loc := loc;
         let expr = Core.convert env expr in
         (* Only the last expression is allowed to return something *)
         unify

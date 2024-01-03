@@ -2,10 +2,6 @@ prog: With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Wildcard With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Type With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -18,11 +14,15 @@ prog: Type Ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Quote With
+prog: External Ident Equal Quote With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Type Ident Lpar Quote Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Ident Lpar Quote Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -38,127 +38,127 @@ prog: Type Ident Equal Upcase_ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Upcase_ident Dot With
+prog: External Ident Equal Upcase_ident Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Upcase_ident Dot Upcase_ident With
+prog: External Ident Equal Upcase_ident Dot Upcase_ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Upcase_ident Dot Upcase_ident Dot With
+prog: External Ident Equal Upcase_ident Dot Upcase_ident Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Upcase_ident With
+prog: External Ident Equal Upcase_ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar With
+prog: External Ident Equal Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Rpar With
+prog: External Ident Equal Lpar Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Rpar Right_arrow With
+prog: External Ident Equal Lpar Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Rpar Right_arrow Ident With
+prog: External Ident Equal Lpar Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Ident Lpar With
+prog: External Ident Equal Ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Ident Lpar Ident Rbrac
+prog: External Ident Equal Ident Lpar Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Ident Lpar Ident Comma With
+prog: External Ident Equal Ident Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Rbrac
+prog: External Ident Equal Lpar Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Rpar With
+prog: External Ident Equal Lpar Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Rpar Right_arrow With
+prog: External Ident Equal Lpar Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Rpar Right_arrow Ident With
+prog: External Ident Equal Lpar Ident Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Comma With
+prog: External Ident Equal Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Comma Ident Rbrac
+prog: External Ident Equal Lpar Ident Comma Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Comma Ident Rpar With
+prog: External Ident Equal Lpar Ident Comma Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Comma Ident Rpar Right_arrow With
+prog: External Ident Equal Lpar Ident Comma Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Comma Ident Rpar Right_arrow Ident With
+prog: External Ident Equal Lpar Ident Comma Ident Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Comma Ident Comma With
+prog: External Ident Equal Lpar Ident Comma Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Comma Ident Comma Ident Rbrac
+prog: External Ident Equal Lpar Ident Comma Ident Comma Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Comma Ident Comma Ident Ampersand With
+prog: External Ident Equal Lpar Ident Comma Ident Comma Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Ampersand Rpar With
+prog: External Ident Equal Lpar Ident Ampersand Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Ampersand Rpar Right_arrow With
+prog: External Ident Equal Lpar Ident Ampersand Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Ampersand Rpar Right_arrow Ident With
+prog: External Ident Equal Lpar Ident Ampersand Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Ampersand Comma With
+prog: External Ident Equal Lpar Ident Ampersand Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Ampersand Comma Ident Rbrac
+prog: External Ident Equal Lpar Ident Ampersand Comma Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Ampersand Comma Ident Ampersand With
+prog: External Ident Equal Lpar Ident Ampersand Comma Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Comma Ident Ampersand With
+prog: External Ident Equal Lpar Ident Comma Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon Lpar Ident Ampersand With
+prog: External Ident Equal Lpar Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -358,11 +358,39 @@ prog: Ampersand Fun With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Fun Wildcard With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Fun Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Fun Lpar Lpar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Lpar Lbrac With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Lpar Lbrac Ident Equal Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Lpar Lbrac Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Lpar Lbrac Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Lpar Lbrac Ident Equal With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -374,7 +402,7 @@ prog: Fun Lpar Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Lpar Ident Comma Ident Colon
+prog: Fun Lpar Lpar Ident Comma Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -382,15 +410,11 @@ prog: Fun Lpar Lpar Ident Comma Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Comma Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Fun Lpar Lpar Ident Comma Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Ident Hbar
+prog: Fun Lpar Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -410,15 +434,15 @@ prog: Fun Lpar Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Rpar Lbrack With
+prog: Fun Ident Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Rpar Lbrack Ident With
+prog: Fun Ident Lbrack Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Rpar Lbrack Ident Comma With
+prog: Fun Ident Lbrack Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -706,11 +730,103 @@ prog: Do Colon Begin With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Let With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Lbrac With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Lbrac Ident Equal Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Lbrac Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Lbrac Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Lbrac Ident Equal With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Ident Comma Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Ident Comma Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Lbrac Ident Rbrac With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Ident Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Ident Colon Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Ident Equal With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Exclamation With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Exclamation Ident Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ampersand With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ampersand Ident Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ident Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Import With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Fun With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Wildcard Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Lbrack Ident Rbrack With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Do Colon Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -738,10 +854,6 @@ prog: Fun Ident Lpar Rpar Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Do Colon Ident Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -758,18 +870,6 @@ prog: Ampersand Ident Left_arrow Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident Comma Ident Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident Comma Ident Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Do Colon Begin Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -778,47 +878,7 @@ prog: Do Colon Begin Ident Newline With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Colon With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident Colon Ident Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident Equal With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Exclamation With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Exclamation Ident Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Ampersand With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Ampersand Ident Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Ident Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Wildcard Rpar
+prog: Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -926,19 +986,23 @@ prog: Match Ident Colon Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ident Colon Lpar Ident Rpar
+prog: Match Ident Colon Lbrac With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ident Colon Lpar Ident Comma With
+prog: Match Ident Colon Lbrac Ident Equal Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ident Colon Lpar Ident Comma Ident Colon
+prog: Match Ident Colon Lbrac Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ident Colon Lpar Ident Comma Ident Comma With
+prog: Match Ident Colon Lbrac Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ident Colon Lbrac Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -950,7 +1014,23 @@ prog: Match Ident Colon Upcase_ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ident Colon Ident Equal
+prog: Match Ident Colon Lpar Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ident Colon Lpar Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ident Colon Lpar Ident Comma Ident Rbrac
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ident Colon Lpar Ident Comma Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ident Colon Ident Lbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -958,7 +1038,7 @@ prog: Match Ident Colon Ident Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ident Colon Ident Hbar Ident Equal
+prog: Match Ident Colon Ident Hbar Ident Lbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -966,7 +1046,7 @@ prog: Match Ident Colon Ident Hbar Ident Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ident Colon Upcase_ident Lpar Ident Colon
+prog: Match Ident Colon Upcase_ident Lpar Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1114,7 +1194,7 @@ prog: Functor Upcase_ident Colon Upcase_ident Lpar Upcase_ident Colon Upcase_ide
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Module Upcase_ident Colon Begin Signature Colon Begin Type Ident End Ident Eof
+prog: Module Upcase_ident Colon Begin Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1142,7 +1222,7 @@ prog: Module Upcase_ident Colon Upcase_ident Colon Begin Signature Colon Begin T
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Module Upcase_ident Colon Upcase_ident Colon Begin Signature Colon Begin Type Ident End Ident Eof
+prog: Module Upcase_ident Colon Upcase_ident Colon Begin Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

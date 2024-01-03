@@ -127,6 +127,7 @@ rule read =
   | "else"   { Else }
   | "else if" { Elseif }
   | "fun"    { Fun }
+  | "let"    { Let }
   | "match"  { Match }
   | "do"     { Do }
   | "import" { Import }
@@ -137,6 +138,7 @@ rule read =
   | "module type" { Module_type }
   | "functor" { Functor }
   | "fmt"    { Fmt }
+  | "with"   { With }
   | '|'      { Hbar }
   | lowercase_id { Ident (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }

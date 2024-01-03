@@ -55,7 +55,6 @@ let dedent lexbuf cnum =
         indents := tl;
         Parser.(End))
       else if cnum = column then
-        let () = print_endline "same" in
         (* We have reached the correct indent *)
         maybe_newline lexbuf
       else
@@ -66,9 +65,6 @@ let indent lexbuf =
   (* The indentation happens in [read_marked], we just emit the cached token *)
   state := Default;
   match !cached_token with
-  | Some Colon ->
-      print_endline "colon";
-      emit lexbuf Colon
   | Some token -> emit lexbuf token
   | None -> failwith "Internal indent error"
 

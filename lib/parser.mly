@@ -19,6 +19,7 @@
 
 %token Eof
 %token Fun
+%token Let
 %token <string> Ident
 %token Equal
 %token Colon
@@ -99,10 +100,10 @@
 
 %nonassoc Ctor
 
-%left Right_arrow Pipe_tail
 %nonassoc If_no_else
 %nonassoc Elseif
 %nonassoc Else
+%left Right_arrow Pipe_tail
 %left And Or
 %nonassoc Less_i Less_f Greater_i Greater_f Less_eq_i Greater_eq_i Greater_eq_f Less_eq_f
 %left Plus_i Plus_f Minus_i Minus_f
@@ -127,7 +128,7 @@ top_item:
   | modtype = modtype { modtype }
 
 stmt:
-  | decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
+  | Let; decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
   | Fun; name = ident; params = parens(param_decl); attr = loption(capture_copies);
       return_annot = option(return_annot); Colon; body = block
     { Function ($loc, { name; params; return_annot; body; attr }) }
@@ -153,7 +154,7 @@ modtype:
   | Module_type; name = ident; Colon; Begin; sgn = signature; End { Module_type (name, sgn) }
 
 modul:
-  | Module; name = module_decl; Colon; Begin; sgn = signature; items = separated_nonempty_list(Newline, top_item); End
+  | Module; name = module_decl; Colon; Begin; sgn = loption(signature); items = separated_nonempty_list(Newline, top_item); End
     { Module (name, sgn, items) }
   | Module; name = module_decl; Equal; path = path_with_loc { Module_alias (name, Amodule path) }
   | Module; name = module_decl; Equal; app = module_application
@@ -184,7 +185,7 @@ record_item_decl:
 
 decl_typename:
   | name = Ident { { name; poly_param = [] } }
-  | name = Ident; Lpar; poly_param = nonempty_list(poly_id); Rpar { { name; poly_param } }
+  | name = Ident; Lpar; poly_param = separated_nonempty_list(Comma, poly_id); Rpar { { name; poly_param } }
 
 %inline module_decl:
   | name = upcase_ident { let loc, name = name in loc, name, None }
@@ -204,6 +205,9 @@ block:
 let_decl:
   | pattern = let_pattern { {loc = $loc; pattern; annot = None } }
   | pattern = let_pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
+
+only_one_param:
+  | pattern = basic_pattern { {loc = $loc; pattern; annot = None} }
 
 param_decl:
   | pattern = param_pattern { {loc = $loc; pattern; annot = None} }
@@ -230,6 +234,7 @@ non_or_match_pattern:
   | id = upcase_ident; Lpar; pattern = match_pattern; Rpar { Pctor (id, Some pattern)  }
   | id = upcase_ident; Lpar; pattern = tup_pattern(match_pattern); Rpar { Pctor (id, Some pattern)  }
   | Lpar; tup = tup_pattern(match_pattern); Rpar { tup }
+  | rec_ = record_pattern(match_pattern) { rec_ }
 
 match_pattern:
   | pat = non_or_match_pattern { pat }
@@ -239,9 +244,11 @@ match_pattern:
 let_pattern:
   | basic = basic_pattern { basic }
   | tup = tup_pattern(basic_pattern) { tup }
+  | rec_ = record_pattern(basic_pattern) { rec_ }
 
 param_pattern:
   | basic = basic_pattern { basic }
+  | rec_ = record_pattern(param_pattern) { rec_ }
   | Lpar; tups = tup_tups(param_pattern); Rpar { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
   | Lpar; tups = tup_tups(param_pattern); Rpar; Ampersand { let loc, tups = tups in Ptup (loc, tups, Dmut) }
   | Lpar; tups = tup_tups(param_pattern); Rpar; Exclamation { let loc, tups = tups in Ptup (loc, tups, Dmove) }
@@ -252,6 +259,14 @@ let tup_pattern(x) :=
 let tup_tups(x) :=
   | head = with_loc(x); Comma; tail = separated_nonempty_list(Comma, with_loc(x));
     { $loc, head :: tail }
+
+let record_pattern(x) :=
+  | Lbrac; items = separated_nonempty_list(Comma, record_item_pattern(x)); Rbrac;
+    { Precord ($loc, items, Dnorm) }
+
+let record_item_pattern(x) :=
+  | ident = ident; Equal; pat = x; { ident, Some pat }
+  | ident = ident; { ident, None }
 
 let with_loc(x) :=
   | pat = x; { $loc, pat }
@@ -275,6 +290,8 @@ expr:
   | special = special_builtins { special }
   | Fun; params = parens(param_decl); attr = loption(capture_copies); Colon; body = block
     { Lambda ($loc, params, attr, body) }
+  | Fun; param = only_one_param; attr = loption(capture_copies); Colon; body = block
+    { Lambda ($loc, [param], attr, body) }
   | Lbrac; items = separated_nonempty_list(Comma, record_item); Rbrac
     { Record ($loc, items) }
   | Lpar; tuple = tuple; Rpar { Tuple ($loc, tuple) }
@@ -290,9 +307,9 @@ expr:
   | aexpr = expr; Pipe_tail; pipeable = expr
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_tail ($loc, arg, Pip_expr pipeable) }
-   | Match; expr = passed_expr; Colon; option(Hbar); clauses = clauses
+  | Match; expr = passed_expr; Colon; option(Hbar); clauses = clauses
     { Match ($loc, expr.pattr, expr.pexpr, clauses) }
-   | Match; expr = passed_expr; Colon; clauses = block_clauses
+  | Match; expr = passed_expr; Colon; clauses = block_clauses
     { Match ($loc, expr.pattr, expr.pexpr, clauses) }
 
 clauses:
