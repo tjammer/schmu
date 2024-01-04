@@ -139,10 +139,11 @@ rule read =
   | "functor" { Functor }
   | "fmt"    { Fmt }
   | "with"   { With }
+  | "val"    { Val }
   | '|'      { Hbar }
   | lowercase_id { Ident (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
-  | upcase_id { Upcase_ident (Lexing.lexeme lexbuf |> String.lowercase_ascii) }
+  | upcase_id { Upcase_ident (Lexing.lexeme lexbuf |> String.uncapitalize_ascii) }
   | '_'      { Wildcard }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | "'" [^ '\\'] "'" { U8 (Lexing.lexeme_char lexbuf 1) }
@@ -188,7 +189,7 @@ rule read =
   | "<-"     { Left_arrow }
   | "->"     { Right_arrow }
   | "|>"     { Pipe_tail }
-  | "#"      { line_comment lexbuf }
+  | "--"      { line_comment lexbuf }
   | eof      { Eof }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 

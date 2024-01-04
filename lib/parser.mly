@@ -68,6 +68,7 @@
 %token Functor
 %token Module_type
 %token <string> Builtin_id
+%token Val
 
 /* ops  */
 %token Equal_binop
@@ -93,6 +94,8 @@
 %token <string> Sized_ident
 %token <string> Unknown_sized_ident
 
+%nonassoc Below_Ampersand
+
 %nonassoc Type_application
 
 %nonassoc Below_hbar
@@ -117,7 +120,7 @@
 %%
 
 prog:
-  | prog = separated_list(Newline, top_item); Eof { [], prog }
+  | sgn = loption(signature); prog = separated_list(Newline, top_item); Eof { sgn, prog }
 
 top_item:
   | stmt = stmt { Stmt stmt }
@@ -133,8 +136,6 @@ stmt:
       return_annot = option(return_annot); Colon; body = block
     { Function ($loc, { name; params; return_annot; body; attr }) }
   | expr = expr { Expr ($loc, expr) }
-  | Ampersand; expr = expr; Left_arrow; newval = expr
-    { Expr ($loc, Set ($loc, ($loc(expr), expr), newval)) }
   | Import; path = import_path { Import ($loc(path), path) }
 
 typedef:
@@ -151,7 +152,7 @@ ext:
   | External; id = ident; Equal; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
 
 modtype:
-  | Module_type; name = ident; Colon; Begin; sgn = signature; End { Module_type (name, sgn) }
+  | Module_type; name = upcase_ident; Colon; Begin; sgn = sig_items; End { Module_type (name, sgn) }
 
 modul:
   | Module; name = module_decl; Colon; Begin; sgn = loption(signature); items = separated_nonempty_list(Newline, top_item); End
@@ -168,7 +169,7 @@ path_with_loc:
 
 functor_:
   | Functor; name = module_decl; Lpar; params = separated_nonempty_list(Comma, functor_param); Rpar; Colon;
-    Begin; sgn = signature; items = separated_nonempty_list(Newline, top_item); End
+    Begin; sgn = loption(signature); items = separated_nonempty_list(Newline, top_item); End
     { Functor (name, params, sgn, items) }
 
 functor_param:
@@ -192,11 +193,15 @@ decl_typename:
   | name = upcase_ident; Colon; path = import_path { let loc, name = name in loc, name, Some path }
 
 signature:
-  | Signature; Colon; Begin; items = separated_nonempty_list(Newline, sig_item); End { items }
+  | Signature; Colon; Begin; items = sig_items ; End; option(Newline) { items }
+
+sig_items:
+  | items = separated_nonempty_list(Newline, sig_item) { items }
 
 sig_item:
   | typedef = typedef { Stypedef ($loc, typedef) }
   | Type; name = decl_typename { Stypedef ($loc, Tabstract name) }
+  | Val; id = ident; Colon; spec = type_spec { Svalue ($loc, (id, spec)) }
 
 block:
   | expr = expr; %prec If_no_else { [Expr ($loc, expr)] }
@@ -235,6 +240,8 @@ non_or_match_pattern:
   | id = upcase_ident; Lpar; pattern = tup_pattern(match_pattern); Rpar { Pctor (id, Some pattern)  }
   | Lpar; tup = tup_pattern(match_pattern); Rpar { tup }
   | rec_ = record_pattern(match_pattern) { rec_ }
+  | i = Int { Plit_int($loc, i) }
+  | c = U8 { Plit_char($loc, c) }
 
 match_pattern:
   | pat = non_or_match_pattern { pat }
@@ -311,6 +318,8 @@ expr:
     { Match ($loc, expr.pattr, expr.pexpr, clauses) }
   | Match; expr = passed_expr; Colon; clauses = block_clauses
     { Match ($loc, expr.pattr, expr.pexpr, clauses) }
+  | Ampersand; expr = expr; Left_arrow; newval = expr; %prec Below_Ampersand
+    { Set ($loc, ($loc(expr), expr), newval) }
 
 clauses:
   | clause = clause; %prec Below_hbar { clause :: [] }
@@ -332,14 +341,11 @@ special_builtins:
           [{apass = Dnorm; aloc = $loc(e); aexpr = e};
            {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
 
-local_import:
-  | id = Upcase_ident; Dot; expr = expr; %prec Path { Local_import ($loc, id, expr) }
-
 upcases:
   | id = upcase_ident; %prec Ctor { Ctor ($loc, id, None) }
   | id = upcase_ident; Lpar; expr = expr; Rpar { Ctor ($loc, id, Some expr) }
   | id = upcase_ident; Lpar; tup = tuple; Rpar {Ctor ($loc, id, Some (Tuple ($loc(tup), tup)))}
-  | id = upcase_ident; Dot; path = local_import { Local_import ($loc, snd id, path) }
+  | id = upcase_ident; Dot; expr = expr; %prec Path { Local_import ($loc, snd id, expr) }
 
 tuple:
   | head = expr; Comma; tail = separated_nonempty_list(Comma, expr)
@@ -373,9 +379,10 @@ fixed_array_lit:
   | num = Hashnum_brack; item = expr; Rbrack { Fixed_array_num (num, item) }
 
 call_arg:
-  | attr = option(decl_attr); aexpr = expr { {apass = pass_attr_of_opt attr; aexpr; aloc = $loc} }
+  | aexpr = expr { {apass = Dnorm; aexpr; aloc = $loc} }
+  | apass = decl_attr; aexpr = expr { {apass; aexpr; aloc = $loc} }
 
-decl_attr:
+%inline decl_attr:
   | Ampersand { Dmut } | Exclamation { Dmove }
 
 then_:
@@ -405,7 +412,7 @@ type_path:
   | id = Upcase_ident; Dot; path = type_path_cont { Path.Pmod (id, path)  }
 
 type_path_cont:
-  | id = Upcase_ident; Dot; path = type_path { Path.Pmod (id, path)  }
+  | id = Upcase_ident; Dot; path = type_path_cont { Path.Pmod (id, path)  }
   | id = Upcase_ident { Path.Pid (id) }
   | id = Ident { Path.Pid (id) }
 
