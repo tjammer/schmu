@@ -16,8 +16,8 @@
 
 (defconst schmu-keywords-regexp
   (rx symbol-start
-      (or "fun" "type" "if" "then" "else" "elseif" "and" "or" "external"
-          "match" "with" "module" "module_type" "signature")
+      (or "fun" "type" "if" "then" "else" "elseif" "and" "or" "external" "let"
+          "match" "with" "module" "module_type" "signature" "val" "functor" "do")
       symbol-end)
   "Schmu language keywords.")
 
@@ -34,19 +34,28 @@
   "Schmu language builtin types.")
 
 (defconst schmu-function-pattern
-  (rx symbol-start "fun" (1+ space) (group (seq (any letter ?_) (* (any word ?_))))))
+  (rx symbol-start "fun" (1+ space) (group (seq (any lower ?_) (* (any word ?_))))))
+
+(defconst schmu-call-pattern
+  (rx symbol-start (group (seq (any lower ?_) (* (any word ?_))))
+      (* space) "("))
+
+(defconst schmu-upcase-pattern
+  (rx symbol-start (group (seq (any upper ?_) (* (any word ?_))))))
 
 (defconst schmu-variable-pattern
-  (rx symbol-start (group (seq (any letter ?_) (* (any word ?_)))) (1+ space)
-      (or (seq "=" (1+ space))
-          (seq (\:) (* anything) "=" (1+ space)))))
+  (rx symbol-start "let" (1+ space)
+      (group (seq (any lower ?_) (* (any word ?_)) (opt (or ?& ?!))))
+      (1+ space)))
 
 (defvar schmu-font-lock-keywords
-  `((,schmu-function-pattern 1 font-lock-function-name-face)
-    (,schmu-variable-pattern 1 font-lock-variable-name-face)
-    (,schmu-keywords-regexp . font-lock-keyword-face)
+  `((,schmu-keywords-regexp . font-lock-keyword-face)
     (,schmu-constants-regexp . font-lock-constant-face)
-    (,schmu-types-regexp . font-lock-type-face))
+    (,schmu-function-pattern 1 font-lock-function-name-face)
+    (,schmu-types-regexp . font-lock-type-face)
+    (,schmu-variable-pattern 1 font-lock-variable-name-face)
+    (, schmu-call-pattern 1 font-lock-function-name-face)
+    (,schmu-upcase-pattern 1 font-lock-type-face))
   "Schmu keywords highlighting.")
 
 ;;;###autoload
@@ -57,17 +66,16 @@
     (modify-syntax-entry i "." schmu-mode-syntax-table))
 
   ;; Strings
-  (modify-syntax-entry ?\' "\"" schmu-mode-syntax-table)
   (modify-syntax-entry ?\" "\"" schmu-mode-syntax-table)
   (modify-syntax-entry ?\\ "\\" schmu-mode-syntax-table)
 
   ;; Comments
-  (modify-syntax-entry ?#  "<" schmu-mode-syntax-table)
+  (modify-syntax-entry ?- "_. 12" schmu-mode-syntax-table)
   (modify-syntax-entry ?\n ">"    schmu-mode-syntax-table)
 
   (setq font-lock-defaults '((schmu-font-lock-keywords)))
 
-  (set (make-local-variable 'comment-start) "#"))
+  (set (make-local-variable 'comment-start) "--"))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.smu\\'" . schmu-mode))
