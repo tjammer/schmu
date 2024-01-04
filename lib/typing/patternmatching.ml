@@ -424,7 +424,10 @@ module Exhaustiveness = struct
                    temporary ones. So we can continue with exprstl *)
                 match is_exhaustive false patterns with
                 | Ok () -> Ok ()
-                | Error _ -> Error (kind, List.map (fun s -> "#" ^ s) ctors)))
+                | Error _ ->
+                    Error
+                      (kind, List.map (fun s -> String.capitalize_ascii s) ctors)
+                ))
         | Expand_record fields -> expand_record fields patterns
         | Infi -> (
             match default patterns with
@@ -461,7 +464,10 @@ module Exhaustiveness = struct
         | New_column ->
             List.map (fun str -> Printf.sprintf "%s, %s" ctor str) strs
         | Specialization ->
-            List.map (fun str -> Printf.sprintf "(#%s %s)" ctor str) strs
+            List.map
+              (fun str ->
+                Printf.sprintf "%s(%s)" (String.capitalize_ascii ctor) str)
+              strs
       in
 
       Error (kind, strs)
@@ -626,7 +632,7 @@ module Make (C : Core) (R : Recs) = struct
             else
               let msg =
                 Printf.sprintf
-                  "Field :%s appears multiple times in record pattern" name
+                  "Field %s appears multiple times in record pattern" name
               in
               raise (Error (loc, msg))
           else inner (i + 1)
@@ -644,7 +650,7 @@ module Make (C : Core) (R : Recs) = struct
             | Some f -> f
             | None ->
                 let msg =
-                  Printf.sprintf "Unbound field :%s on record %s" name
+                  Printf.sprintf "Unbound field %s on record %s" name
                     (string_of_type mn t)
                 in
                 raise (Error (loc, msg))
@@ -658,7 +664,7 @@ module Make (C : Core) (R : Recs) = struct
        let missing = Set.choose !fset in
        let msg =
          Printf.sprintf
-           "There are missing fields in record pattern, for instance :%s"
+           "There are missing fields in record pattern, for instance %s"
            missing
        in
        raise (Error (loc, msg)));

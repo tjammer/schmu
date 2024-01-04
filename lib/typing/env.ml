@@ -301,7 +301,11 @@ let get_module env loc = function
 
 let add_module_alias loc ~key ~mname env =
   let rs key =
-    let msg = "Cannot find module: " ^ key ^ " in " ^ Path.show mname in
+    let msg =
+      "Cannot find module: "
+      ^ String.capitalize_ascii key
+      ^ " in " ^ Path.show_upcase mname
+    in
     raise (Error.Error (loc, msg))
   in
   let rec start env = function
@@ -378,8 +382,8 @@ let close_thing is_same modpath env =
         let closed_touched =
           !(scope.closed) |> Closed_set.to_seq |> List.of_seq
           |> List.map
-               (fun
-                 (clname, { typ; param; const; global; mname; mut = clmut }) ->
+               (fun (clname, { typ; param; const; global; mname; mut = clmut })
+               ->
                  (* We only add functions to the closure if they are params
                     Or: if they are closures *)
                  (* Const values (and imported ones) are not closed over, they exist module-wide *)

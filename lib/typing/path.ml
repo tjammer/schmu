@@ -1,6 +1,13 @@
 type t = Pid of string | Pmod of string * t
 
-let rec show = function Pid s -> s | Pmod (n, p) -> n ^ "/" ^ show p
+let rec show = function
+  | Pid s -> s
+  | Pmod (n, p) -> String.capitalize_ascii n ^ "." ^ show p
+
+let rec show_upcase = function
+  | Pid s -> StringLabels.capitalize_ascii s
+  | Pmod (n, p) -> String.capitalize_ascii n ^ "." ^ show_upcase p
+
 let pp ppf p = Format.fprintf ppf "%s" (show p)
 
 (* Using "." here makes sure there is no clash to a user defined type which (by accident)

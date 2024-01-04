@@ -130,9 +130,9 @@ let string_of_type_raw get_name typ mname =
         match ps with
         | [] -> Path.(rm_name mname str |> show)
         | l ->
-            let arg = String.concat " " (List.map string_of_type l) in
+            let arg = String.concat ", " (List.map string_of_type l) in
             Printf.sprintf "%s(%s)" Path.(rm_name mname str |> show) arg)
-    | Traw_ptr t -> Printf.sprintf "raw_ptr (%s)" (string_of_type t)
+    | Traw_ptr t -> Printf.sprintf "raw_ptr(%s)" (string_of_type t)
     | Tarray t -> Printf.sprintf "array(%s)" (string_of_type t)
     | Tfixed_array ({ contents = sz }, t) ->
         let rec size = function
@@ -146,7 +146,7 @@ let string_of_type_raw get_name typ mname =
         match ps with
         | [] -> Path.(rm_name mname name |> show)
         | l ->
-            let arg = String.concat " " (List.map string_of_type l) in
+            let arg = String.concat ", " (List.map string_of_type l) in
             Printf.sprintf "%s(%s)" Path.(rm_name mname name |> show) arg)
   in
 

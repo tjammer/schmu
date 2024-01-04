@@ -79,7 +79,7 @@ module Make (C : Core) = struct
 
   let rec convert_record env loc annot labels =
     let raise_ msg lname rname =
-      let msg = Printf.sprintf "%s field :%s on record %s" msg lname rname in
+      let msg = Printf.sprintf "%s field %s on record %s" msg lname rname in
       raise (Error (loc, msg))
     in
 
@@ -184,7 +184,7 @@ module Make (C : Core) = struct
         raise
           (Error
              ( loc,
-               "Unbound field :" ^ field ^ " on "
+               "Unbound field " ^ field ^ " on "
                ^ Path.(rm_name (Env.modpath env) !name |> show) )))
       updated;
 
@@ -202,7 +202,7 @@ module Make (C : Core) = struct
               | Some n -> "record " ^ Path.(rm_name (Env.modpath env) n |> show)
               | None -> Printf.sprintf "tuple of size %i" (Array.length labels)
             in
-            raise (Error (loc, "Unbound field :" ^ id ^ " on " ^ name)))
+            raise (Error (loc, "Unbound field " ^ id ^ " on " ^ name)))
     | _ -> (
         match Env.find_label_opt id env with
         | Some { index; typename } ->
@@ -214,7 +214,7 @@ module Make (C : Core) = struct
               record_t expr.typ env;
             let labels = get_labels record_t in
             (labels.(index), expr, index)
-        | None -> raise (Error (loc, "Unbound field :" ^ id)))
+        | None -> raise (Error (loc, "Unbound field " ^ id)))
 
   and get_labels = function
     | Trecord (_, _, labels) -> labels

@@ -11,9 +11,9 @@ let format_type_err pre mname t1 t2 =
   let sotl = create_string_of_type mname in
   let sotr = create_string_of_type mname in
   let rec aux t1 t2 =
-    let plist sot ps = String.concat " " (List.map (fun p -> sot p.pt) ps) in
+    let plist sot ps = String.concat ", " (List.map (fun p -> sot p.pt) ps) in
     let flist sot fs =
-      String.concat " " (Array.map (fun f -> sot f.ftyp) fs |> Array.to_list)
+      String.concat ", " (Array.map (fun f -> sot f.ftyp) fs |> Array.to_list)
     in
     (* TODO parameter version with passing *)
     let difflist l r =
@@ -49,7 +49,7 @@ let format_type_err pre mname t1 t2 =
               else if found then (found, ls, rs)
               else (true, "[" ^ ls ^ "]", "[" ^ rs ^ "]")
             in
-            if i <> 0 then (i + 1, found || accfound, l ^ " " ^ ls, r ^ " " ^ rs)
+            if i <> 0 then (i + 1, found || accfound, l ^ ", " ^ ls, r ^ ", " ^ rs)
             else (i + 1, found || accfound, l ^ ls, r ^ rs))
           (0, false, "", "") l r
       in
@@ -60,8 +60,8 @@ let format_type_err pre mname t1 t2 =
     | Tfun (ls, l, _), Tfun (rs, r, _) ->
         (* If the number of arguments doesn't match, highlight the whole list *)
         if List.length rs <> List.length ls then
-          let ls = "(fun [" ^ plist sotl ls ^ "] _)"
-          and rs = "(fun [" ^ plist sotr rs ^ "] _)" in
+          let ls = "([" ^ plist sotl ls ^ "]) -> _"
+          and rs = "([" ^ plist sotr rs ^ "]) -> _" in
           (true, ls, rs)
         else
           let found, ls, rs =
@@ -73,33 +73,31 @@ let format_type_err pre mname t1 t2 =
           let found, l, r =
             if String.equal ls rs then
               (* Return type could be different *)
-              (rfound, "(fun _ " ^ l ^ ")", "(fun _ " ^ r ^ ")")
+              (rfound, "(_) -> " ^ l, "(_) -> " ^ r)
             else if String.equal l r then
-              (found, "(fun " ^ ls ^ " _)", "(fun " ^ rs ^ " _)")
+              (found, "(" ^ ls ^ ") -> _", "(" ^ rs ^ ") -> _")
             else
-              ( found || rfound,
-                "(fun " ^ ls ^ " " ^ l ^ ")",
-                "(fun " ^ rs ^ " " ^ r ^ ")" )
+              (found || rfound, "(" ^ ls ^ ") -> " ^ l, "(" ^ rs ^ ") -> " ^ r)
           in
           (* This could be an inner function. If the strings are the same, we only
              return a placeholder *)
           if String.equal l r then (found, "_", "_") else (found, l, r)
     | Trecord (_, None, ls), Trecord (_, None, rs) ->
         if Array.length ls <> Array.length rs then
-          let ls = "[{" ^ flist sotl ls ^ "}]"
-          and rs = "[{" ^ flist sotr rs ^ "}]" in
+          let ls = "[(" ^ flist sotl ls ^ ")]"
+          and rs = "[(" ^ flist sotr rs ^ ")]" in
           (true, ls, rs)
         else
           let ls = Array.to_list ls |> List.map (fun f -> f.ftyp)
           and rs = Array.to_list rs |> List.map (fun f -> f.ftyp) in
           let found, l, r = difflist ls rs in
           if String.equal l r then (found, "_", "_")
-          else (found, "{" ^ l ^ "}", "{" ^ r ^ "}")
+          else (found, "(" ^ l ^ ")", "(" ^ r ^ ")")
     | Tarray l, Tarray r ->
         let found, l, r = aux l r in
         if String.equal l r then (found, "_", "_")
-        else if found then (found, "(array " ^ l ^ ")", "(array " ^ r ^ ")")
-        else (found, "(array [" ^ l ^ "])", "(array [" ^ r ^ "])")
+        else if found then (found, "array(" ^ l ^ ")", "array(" ^ r ^ ")")
+        else (found, "array([" ^ l ^ "])", "array([" ^ r ^ "])")
     | l, r ->
         let l = sotl l and r = sotr r in
         if String.equal l r then (false, l, r)
