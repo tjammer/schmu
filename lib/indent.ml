@@ -25,14 +25,23 @@ let get_cnum lexbuf =
   let pos = Lexing.(lexbuf.lex_start_p) in
   pos.pos_cnum - pos.pos_bol
 
-let emit lexbuf (token : Parser.token) =
+let rec emit lexbuf (token : Parser.token) =
   match token with
   | Colon ->
       state := Marked Lexing.(lexbuf.lex_curr_p.pos_lnum);
       token
+  | Eof -> (
+      (* Insert dedents before Eof if there still is indentation *)
+      match !indents with
+      | [] -> raise (Error "Inconsistent indentation")
+      | [ _ ] -> token
+      | _ :: _ ->
+          cached_token := Some token;
+          state := Dedent 0;
+          dedent lexbuf 0)
   | token -> token
 
-let maybe_newline lexbuf =
+and maybe_newline lexbuf =
   match !cached_token with
   | Some
       (( Parser.Rbrac | Rbrack | Rpar | Right_arrow | Pipe_tail | Else | Elseif
@@ -45,7 +54,7 @@ let maybe_newline lexbuf =
       state := Newline;
       Newline
 
-let dedent lexbuf cnum =
+and dedent lexbuf cnum =
   (* We emit [End] until we found the matching indentation *)
   match !indents with
   | [] -> raise (Error "Inconsintent indentation")
