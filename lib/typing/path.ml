@@ -21,12 +21,16 @@ let rec type_name = function
 
 open Sexplib0
 
-let sexp_of_t p = Sexp.Atom (show p)
+let rec show_lowercase = function
+  | Pid s -> String.lowercase_ascii s
+  | Pmod (n, p) -> String.lowercase_ascii n ^ "." ^ show_lowercase p
+
+let sexp_of_t p = Sexp.Atom (show_lowercase p)
 
 let t_of_sexp p =
   match p with
   | Sexp.Atom p ->
-      let parts = String.split_on_char '/' p in
+      let parts = String.split_on_char '.' p in
       let rec build = function
         | [ s ] -> Pid s
         | n :: tl -> Pmod (n, build tl)
