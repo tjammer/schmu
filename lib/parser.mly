@@ -69,6 +69,7 @@
 %token Module_type
 %token <string> Builtin_id
 %token Val
+%token Rec
 
 /* ops  */
 %token Equal_binop
@@ -108,10 +109,10 @@
 %nonassoc Else
 %left Right_arrow Pipe_tail
 %left And Or
+%left Equal_binop Bin_equal_f
 %nonassoc Less_i Less_f Greater_i Greater_f Less_eq_i Greater_eq_i Greater_eq_f Less_eq_f
 %left Plus_i Plus_f Minus_i Minus_f
 %left Mult_i Mult_f Div_i Div_f
-%left Equal_binop Bin_equal_f
 %left Lpar
 %left Dot Path Hashtag_brack
 
@@ -132,11 +133,18 @@ top_item:
 
 stmt:
   | Let; decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
-  | Fun; name = ident; params = parens(param_decl); attr = loption(capture_copies);
-      return_annot = option(return_annot); Colon; body = block
-    { Function ($loc, { name; params; return_annot; body; attr }) }
+  | Let; decl = let_decl; Equal; id = Builtin_id
+    { let expr = {pattr = Dnorm; pexpr = Var($loc(id), id)} in Let($loc, decl, expr) }
+  | Fun; func = func { let loc, func = func in Function (loc, func) }
+  | Fun; Rec; func = func; And; tail = separated_nonempty_list(And, func)
+    { Rec($loc, func :: tail) }
   | expr = expr { Expr ($loc, expr) }
   | Import; path = import_path { Import ($loc(path), path) }
+
+func:
+  | name = ident; params = parens(param_decl); attr = loption(capture_copies);
+      return_annot = option(return_annot); Colon; body = block
+    { ($loc, { name; params; return_annot; body; attr }) }
 
 typedef:
   | Type; name = decl_typename; Equal; Lbrac; labels = separated_nonempty_list(Comma, record_item_decl); Rbrac

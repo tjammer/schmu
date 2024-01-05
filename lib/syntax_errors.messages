@@ -582,14 +582,6 @@ prog: Ident Mult_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Equal_binop With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident Equal_binop Ident Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Ident Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -631,14 +623,6 @@ prog: Ident Div_i With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Ident Div_i Ident Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident Bin_equal_f With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident Bin_equal_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -719,6 +703,22 @@ prog: Ident Greater_eq_f With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Ident Greater_eq_f Ident Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Equal_binop With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Equal_binop Ident Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Bin_equal_f With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Bin_equal_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -842,6 +842,10 @@ prog: Match Exclamation Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Let Ident Equal Builtin_id With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Match Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -866,23 +870,11 @@ prog: Fun With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Wildcard Rpar
+prog: Fun Rec With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Ident Lbrack Ident Rbrack With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Ident Colon With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Do Colon Ident Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Ident With
+prog: Fun Rec Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -903,6 +895,42 @@ prog: Fun Ident Lpar Rpar Right_arrow Ident Rpar
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Fun Ident Lpar Rpar Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Do Colon Ident Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec Ident Lpar Rpar Colon Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec Ident Lpar Rpar Colon Begin Ident End And With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec Ident Lpar Rpar Colon Begin Ident End And Ident Lpar Rpar Colon Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec Ident Lpar Rpar Colon Begin Ident End And Ident Lpar Rpar Colon Begin Ident End And With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Wildcard Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Lbrack Ident Rbrack With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

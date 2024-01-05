@@ -89,9 +89,9 @@ let float = digit+ '.' digit+
 let i32 = min? int_lit "i32"
 let f32 = min? float "f32"
 
-let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
+let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_'|'?')*
 let builtin_id = "__" lowercase_id
-let upcase_id = uppercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_')*
+let upcase_id = uppercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_'|'?')*
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -140,6 +140,7 @@ rule read =
   | "fmt"    { Fmt }
   | "with"   { With }
   | "val"    { Val }
+  | "rec"    { Rec }
   | '|'      { Hbar }
   | lowercase_id { Ident (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
