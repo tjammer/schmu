@@ -1,25 +1,24 @@
-(signature
-  (type t int)
+signature:
+  type t = int
+  val hash : (t) -> int
+  val equal : (t, t) -> bool
 
-  (def hash (fun t int))
-  (def equal (fun t t bool)))
-
-(defn hash (i)
+fun hash(i):
   -- basically murmurhash
-  (let ((m 0xc6a4a7935bd1e995)
-        (r 47)
-        (h& (lxor 0 (* 8 m)))
-        (k& !i))
-    (set &k !(* k m))
-    (set &k !(lxor k (lshr k r)))
-    (set &k !(* k m))
+  let m = 0xc6a4a7935bd1e995
+  let r = 47
+  let h& = lxor(0, 8 * m)
+  let k& = !i
+  &k <- k * m
+  &k <- lxor(k, lshr(k, r))
+  &k <- k * m
 
-    (set &h !(lxor h k))
-    (set &h !(* h m))
+  &h <- lxor(h, k)
+  &h <- h * m
 
-    (set &h !(lxor h (lshr h r)))
-    (set &h !(* h m))
-    (set &h !(lxor h (lshr h r)))
-    h))
+  &h <- lxor(h, lshr(h, r))
+  &h <- h * m
+  &h <- lxor(h, lshr(h, r))
+  h
 
-(defn equal (a b) (= a b))
+fun equal(a, b): a == b

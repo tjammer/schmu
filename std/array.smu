@@ -1,81 +1,77 @@
-(def data __array_data)
-(def drop-back __array_drop_back)
-(def length __array_length)
+let data = __array_data
+let drop_back = __array_drop_back
+let length = __array_length
 
-(defn create (len)
-  (def ret& (__unsafe_array_create len))
-  (set &(__unsafe_array_length ret) !0)
-  ret)
+fun create(len):
+  let ret& = __unsafe_array_create(len)
+  &__unsafe_array_length(ret) <- 0
+  ret
 
-(defn push (arr& value!)
-  (let ((capacity (__array_capacity arr))
-        (length (length arr)))
-    (if (= capacity length)
-      (if (= capacity 0)
-        (__unsafe_array_realloc &arr 4)
-        (__unsafe_array_realloc &arr (* 2 capacity))))
-    (__unsafe_ptr_set &(data arr) length !value)
-    (set &(__unsafe_array_length arr) !(+ 1 length))))
+fun push(arr&, value!):
+  let capacity = __array_capacity(arr)
+  let length = length(arr)
 
-(defn iter (arr f)
-  (defn inner (i)
-    (if (= i (length arr))
-      ()
-      (do
-        (f arr.[i])
-        (inner (+ i 1)))))
-  (inner 0))
+  if capacity == length:
+    if capacity == 0:
+      __unsafe_array_realloc(&arr, 4)
+    else:
+      __unsafe_array_realloc(&arr, 2 * capacity)
 
-(defn iteri (arr f)
-  (defn inner (i)
-    (if (= i (length arr))
-      ()
-      (do
-        (f i arr.[i])
-        (inner (+ i 1)))))
-  (inner 0))
+  __unsafe_ptr_set(&data(arr), length, !value)
+  &__unsafe_array_length(arr) <- length + 1
 
-(defn fold (arr f init!)
-  (defn inner (i acc!)
-    (if (= i (length arr))
-      acc
-      (let ((acc (f !acc arr.[i])))
-        (inner (+ i 1) !acc))))
-  (inner 0 !init))
+fun iter(arr, f):
+  fun inner(i):
+    if i == length(arr): () else:
+      f(arr.[i])
+      inner(i + 1)
+  inner(0)
 
-(defn foldi (arr f init!)
-  (defn inner (i acc!)
-    (if (= i (length arr))
-      acc
-      (let ((acc (f i !acc arr.[i])))
-        (inner (+ i 1) !acc))))
-  (inner 0 !init))
+fun iteri(arr, f):
+  fun inner(i):
+    if i == length(arr): () else:
+      f(i, arr.[i])
+      inner(i + 1)
+  inner(0)
 
-(defn map (arr f)
-  (def ret (create (length arr)))
-  (defn inner (ret! i)
-    (def ret& !ret)
-    (if (= i (length arr))
-      ret
-      (do
-        (push &ret !(f arr.[i]))
-        (inner !ret (+ i 1)))))
-  (inner !ret 0))
+fun fold(arr, init!, f):
+  fun inner(i, acc!):
+    if i == length(arr): acc else:
+      let acc = f(!acc, arr.[i])
+      inner(i + 1, !acc)
+  inner(0, !init)
 
-(defn swap-items (arr& i j)
-  (if (not (= i j))
-    (let ((itmp !arr.[i]))
-      (set &arr.[i] !arr.[j])
-      (set &arr.[j] !itmp))))
+fun foldi(arr, init!, f):
+  fun inner(i, acc!):
+    if i == length(arr): acc else:
+      let acc = f(i, !acc, arr.[i])
+      inner(i + 1, !acc)
+  inner(0, !init)
 
-(defn clear (arr&)
-  (defn inner ()
-    (if (= 0 (length arr))
-      ()
-      (do (drop-back &arr)
-          (inner))))
-  (inner))
+fun map(arr, f):
+  let ret = create(length(arr))
+  fun inner(ret!, i):
+    let ret& = !ret
+    if i == length(arr): ret else:
+      push(&ret, !f(arr.[i]))
+      inner(!ret, i + 1)
+  inner(!ret, 0)
 
-(defn reserve (arr& size)
-  (if (< (__array_capacity arr) size)
-   (__unsafe_array_realloc &arr size)))
+fun swap_items(arr&, i, j):
+  if not (i == j):
+    let itmp = !arr.[i]
+    &arr.[i] <- arr.[j]
+    &arr.[j] <- itmp
+
+
+fun clear(arr&):
+  fun inner():
+    if 0 == length(arr): () else:
+      drop_back(&arr)
+      inner()
+  inner()
+
+fun reserve(arr&, size):
+  if __array_capacity(arr) < size:
+    __unsafe_array_realloc(&arr, size)
+

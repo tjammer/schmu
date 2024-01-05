@@ -1,196 +1,183 @@
-(module-type key
-  (type t)
-  (def hash (fun t int))
-  (def equal (fun t t bool)))
+module type Key:
+  type t
+  val hash : (t) -> int
+  val equal : (t, t) -> bool
 
-(module-type sig
-  (type key)
-  (type (t 'value))
+module type Sig:
+  type key
+  type t('value)
 
-  (def create (fun int (t 'value)))
-  (def insert (fun (t 'value)& key! 'value! unit))
-  (def remove (fun (t 'value)& key unit))
-  (def find (fun (t 'value) key (option/t 'value)))
-  (def fold (fun (t 'value) 'c! (fun 'c! key 'value 'c) 'c))
-  (def to-array (fun (t 'value) (array {key 'value})))
+  val create : (int) -> t('value)
+  val insert : (t('value)&, key!, 'value!) -> unit
+  val remove : (t('value)&, key) -> unit
+  val find : (t('value), key) -> Option.t('value)
+  val fold : (t('value), 'b!, ('b!, key, 'value) -> 'c) -> 'c
+  val to_array : (t('value)) -> array((key, 'value))
 
-  (def print-impl (fun (t 'value) unit)))
+functor Make : Sig(M : Key):
+  import Option
 
-(functor [make sig] ([m key])
-  (import option)
+  type key = M.t
+  type item('a) = {key : M.t, value : 'a, pathlen& : int}
+  type slot('a) = Option.t(item('a))
+  type t('a) = {data& : array(slot('a)), nitems& : int}
 
-  (type key m/t)
-  (type (item 'a) {:key m/t :value 'a :pathlen& int})
-  (type (slot 'a) (option/t (item 'a)))
-  (type (t 'a) {:data& (array (slot 'a)) :nitems& int})
+  fun power_2_above(x, n):
+    if x >= n: x else:
+      if (x * 2) < 0: x else:
+        power_2_above(x * 2, n)
 
-  (defn power-2-above (x n)
-    (if (>= x n)
-      x
-      (if (< (* x 2) 0)
-        x
-        (power-2-above (* x 2) n))))
+  fun create(size):
+    let size = power_2_above(16, size)
+    let data& = __unsafe_array_create(size)
+    Prelude.iter_range(0, size, fun i:
+      __unsafe_ptr_set(&Array.data(data), i, !None))
+    {data, nitems = 0}
 
-  (defn create (size)
-    (def size (power-2-above 16 size))
-    (def data& (__unsafe_array_create size))
-    (prelude/iter-range 0 size
-                        (fn (i) (__unsafe_ptr_set &(array/data data) i !#none)))
-    {:data :nitems 0})
+  fun idx(tbl, key):
+    let hash = M.hash(key)
+    land(hash, Array.length(tbl.data) - 1)
 
-  (defn idx (tbl key)
-    (let ((hash (m/hash key)))
-      (land hash (- (array/length tbl.data) 1))))
+  fun next_wrapped(curr, size):
+    if (curr + 1) == size: 0 else: curr + 1
 
-  (defn next-wrapped (curr size)
-    (if (= (+ curr 1) size) 0 (+ curr 1)))
+  fun redist(tbl&, item!, curr, pathlen):
+    let size = Array.length(tbl.data)
+    match tbl.data.[curr]:
+      None:
+        let item& = !item
+        &item.pathlen <- pathlen
+        &tbl.data.[curr] <- Some(item)
+      Some(other):
+        let next = next_wrapped(curr, size)
+        if pathlen > other.pathlen:
+          let new_item = !other
+          let other_pathlen = copy(other.pathlen)
+          let item& = !item
+          &item.pathlen <- pathlen
+          &tbl.data.[curr] <- Some(item)
+          redist(&tbl, !new_item, next, other_pathlen + 1)
+        else:
+          redist(&tbl, !item, next, pathlen + 1)
 
-  (defn redist (tbl& item! curr pathlen)
-    (def size (array/length tbl.data))
-    (match tbl.data.[curr]
-      (#none (let ((item& !item))
-               (set &item.pathlen !pathlen)
-               (set &tbl.data.[curr] !(#some item))))
-      ((#some other)
-       (let ((next (next-wrapped curr size)))
-         (if (> pathlen other.pathlen)
-           (let ((new-item !other)
-                 (other-pathlen (copy other.pathlen))
-                 (item& !item))
-             (set &item.pathlen !pathlen)
-             (set &tbl.data.[curr] !(#some item))
-             (redist &tbl !new-item next (+ other-pathlen 1)))
-           (redist &tbl !item next (+ pathlen 1)))))))
+  let load_limit = 0.75
 
-  (def load-limit 0.75)
+  fun load_factor(tbl):
+    float_of_int(tbl.nitems) /. float_of_int(Array.length(tbl.data))
 
-  (defn load-factor (tbl)
-    (/. (float_of_int tbl.nitems) (float_of_int (array/length tbl.data))))
+  fun iter_data_move(data&, f):
+    fun inner(i):
+      if i == Array.length(data):
+        &__unsafe_array_length(data) <- 0
+        match __unsafe_ptr_get(Array.data(data), i):
+          None: inner(i + 1)
+          Some({key, value, pathlen = _}):
+            f(!key, !value)
+            inner(i + 1)
+    inner(0)
 
-  (defn iter-data-move (data& f)
-    (defn inner (i)
-      (if (= i (array/length data))
-        (set &(__unsafe_array_length data) !0)
-        (match (__unsafe_ptr_get (array/data data) i)
-          (#none (inner (+ i 1)))
-          ((#some {:key :value :pathlen _})
-           (do
-             (f !key !value)
-             (inner (+ i 1)))))))
-    (inner 0))
+  fun rec grow(tbl&):
+    let size = 2 * Array.length(tbl.data)
+    let data& = __unsafe_array_create(size)
+    Prelude.iter_range(0, size, fun i:
+      __unsafe_ptr_set(&Array.data(data), i, !None))
+    let old_data& = !tbl.data
+    &tbl.data <- data
+    &tbl.nitems <- 0
+    iter_data_move(&old_data, fun(key!, value!):
+      insert(&tbl, !key, !value))
 
-  (rec
-   (defn grow (tbl&)
-     (def size (* 2 (array/length tbl.data)))
-     (def data& (__unsafe_array_create size))
-     (prelude/iter-range 0 size
-                         (fn (i) (__unsafe_ptr_set &(array/data data) i !#none)))
-     (def old-data& !tbl.data)
-     (set &tbl.data !data)
-     (set &tbl.nitems !0)
-     (iter-data-move &old-data (fn (key! value!) (insert &tbl !key !value))))
+  and insert(tbl&, key!, value!):
+    if load_factor(tbl) >. load_limit: grow(&tbl)
+    let hash = idx(tbl, key)
+    let size = Array.length(tbl.data)
 
-   (defn insert (tbl& key! value!)
-     (if (>. (load-factor tbl) load-limit)
-       (grow &tbl))
-     (def hash (idx tbl key))
-     (def size (array/length tbl.data))
-
-     (defn insert (i pathlen key! value!)
-       (match tbl.data.[i]
-         (#none
-          (do (set &tbl.data.[i]
-                   !(#some {:key :value :pathlen}))
-              (set &tbl.nitems !(+ 1 tbl.nitems))))
-         ((#some other)
-          (if (m/equal key other.key)
+    fun insert(i, pathlen, key!, value!):
+      match tbl.data.[i]:
+        None:
+          &tbl.data.[i] <- Some({key, value, pathlen})
+          &tbl.nitems <- tbl.nitems + 1
+        Some(other):
+          if M.equal(key, other.key):
             -- overwrite
-            (set &tbl.data.[i] !(#some {:key :value :pathlen}))
-            (let ((next (next-wrapped i size)))
-              (if (> pathlen other.pathlen)
-                (let ((other-pathlen (copy other.pathlen))
-                      -- probe sequence length of new value is larger. robin hood
-                      (other-item !other))
-                  (set &tbl.data.[i] !(#some {:key :value :pathlen}))
-                  (set &tbl.nitems !(+ 1 tbl.nitems))
-                  (redist &tbl !other-item next (+ other-pathlen 1)))
-                (insert next (+ pathlen 1) !key !value)))))))
+            &tbl.data.[i] <- Some({key, value, pathlen})
+          else:
+            let next = next_wrapped(i, size)
+            if pathlen > other.pathlen:
+              let other_pathlen = copy(other.pathlen)
+              -- probe sequence length of new value is larger. robin hood
+              let other_item = !other
+              &tbl.data.[i] <- Some({key, value, pathlen})
+              &tbl.nitems <- tbl.nitems + 1
+              redist(&tbl, !other_item, next, other_pathlen + 1)
+            else:
+              insert(next, pathlen + 1, !key, !value)
 
-     (insert hash 0 !key !value)))
+    insert(hash, 0, !key, !value)
 
-  (defn find-index (i tbl key pathlen)
-    (match tbl.data.[i]
-      ((#some item)
-       (if (m/equal key item.key)
-         (#some i)
-         (if (> pathlen item.pathlen)
-           #none
-           (let ((next (next-wrapped i (array/length tbl.data))))
-            (find-index next tbl key (+ pathlen 1))))))
-      (#none #none)))
+  fun find_index(i, tbl, key, pathlen):
+    match tbl.data.[i]:
+      Some(item):
+        if M.equal(key, item.key): Some(i)
+        else:
+          if pathlen > item.pathlen: None
+          else:
+            let next = next_wrapped(i, Array.length(tbl.data))
+            find_index(next, tbl, key, pathlen + 1)
+      None: None
 
-  (defn find (tbl key)
-    (def hash (idx tbl key))
-    (match (find-index hash tbl key 0)
-      ((#some i) (match tbl.data.[i]
-                  ((#some item) (#some (copy item.value)))
-                  (#none #none)))
-      (#none #none)))
+  fun find(tbl, key):
+    let hash = idx(tbl, key)
+    match find_index(hash, tbl, key, 0):
+      Some(i): match tbl.data.[i]:
+        Some(item): Some(copy(item.value))
+        None: None
+      None: None
 
-  (defn fixup (data& old)
-    (def next (next-wrapped old (array/length data)))
-    (match &data.[next]
-      ((#some item&)
-       (if (not (= item.pathlen 0))
-         (do (set &item.pathlen !(- item.pathlen 1))
-             -- swap with old slot, inline
-             (let ((oldtmp !data.[old]))
-               (set &data.[old] !data.[next])
-               (set &data.[next] !oldtmp))
-             (fixup &data next))))
-      (#none ())))
+  fun fixup(data&, old):
+    let next = next_wrapped(old, Array.length(data))
+    match &data.[next]:
+      Some(item&):
+        if not(item.pathlen == 0):
+          &item.pathlen <- item.pathlen - 1
+          -- swap with old slot, inline
+          let oldtmp = !data.[old]
+          &data.[old] <- data.[next]
+          &data.[next] <- oldtmp
+          fixup(&data, next)
+      None: ()
 
-  (defn remove (tbl& key)
-    (def hash (idx tbl key))
-    (match (find-index hash tbl key 0)
-      ((#some i)
-       (do (set &tbl.data.[i] !#none)
-           (set &tbl.nitems !(- tbl.nitems 1))
-           (fixup &tbl.data i)))
-      (#none ())))
+  fun remove(tbl&, key):
+    let hash = idx(tbl, key)
+    match find_index(hash, tbl, key, 0):
+      Some(i):
+        &tbl.data.[i] <- None
+        &tbl.nitems <- tbl.nitems - 1
+        fixup(&tbl.data, i)
+      None: ()
 
-  (defn fold (tbl init! f)
-    (defn inner (i acc!)
-      (if (= i (array/length tbl.data))
-        acc
-        (match tbl.data.[i]
-          (#none (inner (+ i 1) !acc))
-          ((#some {:key :value :pathlen _})
-           (inner (+ i 1) !(f !acc key value))))))
-    (inner 0 !init))
+  fun fold(tbl, init!, f):
+    fun inner(i, acc!):
+      if Array.length(tbl.data) == i: acc
+      else: match tbl.data.[i]:
+        None: inner(i + 1, !acc)
+        Some({key, value, pathlen = _}):
+          inner(i + 1, !f(!acc, key, value))
+    inner(0, !init)
 
-  (defn iter-data (data f)
-    (defn inner (i)
-      (if (= i (array/length data))
-        ()
-        (match data.[i]
-          (#none (inner (+ i 1)))
-          ((#some {:key :value :pathlen _})
-           (do
-             (f key value)
-             (inner (+ i 1)))))))
-    (inner 0))
+  fun iter_data(data, f):
+    fun inner(i):
+      if Array.length(data) == i: ()
+      else: match data.[i]:
+        None: inner(i + 1)
+        Some({key, value, pathlen = _}):
+          f(key, value)
+          inner(i + 1)
+    inner(0)
 
-  (defn to-array (tbl)
-    (let ((arr& (array/create tbl.nitems)))
-      (iter-data tbl.data
-                 (fn (key value) (array/push &arr !{(copy key) (copy value)})))
-      arr))
+  fun to_array(tbl):
+    let arr& = Array.create(tbl.nitems)
+    iter_data(tbl.data, fun(key, value):
+      Array.push(&arr, !(copy(key), copy(value))))
+    arr
 
-  (defn print-impl (tbl)
-    (defn string-of-slot (slot)
-      (match slot
-        ((#some item) (fmt-str "(some " item.value " " item.pathlen ")"))
-        (#none "none")))
-    (let ((lst (string/concat " " (array/map tbl.data string-of-slot))))
-      (string/print (fmt-str "[" lst "]")))))
