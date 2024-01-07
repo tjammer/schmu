@@ -156,8 +156,8 @@ typedef:
     { Tvariant ({name; ctors}) }
 
 ext:
-  | External; id = ident; Equal; spec = type_spec { $loc, id, spec, None }
-  | External; id = ident; Equal; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
+  | External; id = ident; Colon; spec = type_spec { $loc, id, spec, None }
+  | External; id = ident; Colon; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
 
 modtype:
   | Module_type; name = upcase_ident; Colon; Begin; sgn = sig_items; End { Module_type (name, sgn) }

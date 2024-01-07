@@ -60,7 +60,7 @@ let test_func_int () = test "(int) -> int" "fun (a): a + 1"
 let test_func_bool () = test "(bool) -> int" "fun (a): if a: 1 else: 1"
 
 let test_func_external () =
-  test "(int) -> unit" "external func = (int) -> unit\nfunc"
+  test "(int) -> unit" "external func : (int) -> unit\nfunc"
 
 let test_func_1st_class () =
   test "((int) -> 'a, int) -> 'a" "fun (func, arg : int): func(arg)"
@@ -79,7 +79,7 @@ let test_func_1st_stay_general () =
 
 let test_func_recursive_if () =
   test "(int) -> unit"
-    "external ext = () -> unit\n\
+    "external ext : () -> unit\n\
      fun foo(i): if i < 2: ext() else: foo(i - 1)\n\
      foo"
 
@@ -88,7 +88,7 @@ let test_func_generic_return () =
 
 let test_func_capture_annot () =
   test "unit"
-    "external somefn = () -> int\n\
+    "external somefn : () -> int\n\
      fun wrapper(s):\n\
     \  let a = somefn()\n\
     \  fun captured() [a]: a + 1\n\
@@ -215,11 +215,11 @@ let test_annot_generic_mut () =
 
 let test_annot_fun_mut_param () =
   test "(int&) -> unit"
-    "external f = (int&) -> unit\nlet a : (int&) -> unit = f\na"
+    "external f : (int&) -> unit\nlet a : (int&) -> unit = f\na"
 
 let test_annot_generic_fun_mut_param () =
   test "('a&) -> unit"
-    "external f = ('a&) -> unit\nlet a : ('a&) -> unit = f\na"
+    "external f : ('a&) -> unit\nlet a : ('a&) -> unit = f\na"
 
 let test_annot_record_simple () =
   test "a" "type a = {x : int}\ntype b = {x : int}\nlet a : a = {x = 12}\na"
@@ -253,7 +253,7 @@ let test_annot_fixed_unknown_size_array_fn () =
   test "(array#??('a)!) -> array#??('a)" "fun hmm(a! : array#?('a)): a\nhmm"
 
 let test_sequence () =
-  test "int" "external printi = (int) -> unit\nprinti(20)\n1 + 1"
+  test "int" "external printi : (int) -> unit\nprinti(20)\n1 + 1"
 
 let test_sequence_fail () =
   test_exn
@@ -334,23 +334,23 @@ let test_pipe_tail_mult_wrong_type () =
     "fun add1(a): a + 1\n10 |> add1(12)"
 
 let test_alias_simple () =
-  test "(foo = int) -> unit" "type foo = int\nexternal f = (foo) -> unit\nf"
+  test "(foo = int) -> unit" "type foo = int\nexternal f : (foo) -> unit\nf"
 
 let test_alias_param_concrete () =
   test "(foo = raw_ptr(u8)) -> unit"
-    "type foo = raw_ptr(u8)\nexternal f = (foo) -> unit\nf"
+    "type foo = raw_ptr(u8)\nexternal f : (foo) -> unit\nf"
 
 let test_alias_param_quant () =
   test "(foo = raw_ptr('a)) -> unit"
-    "type foo('a) = raw_ptr('a)\nexternal f = (foo('a)) -> unit\nf"
+    "type foo('a) = raw_ptr('a)\nexternal f : (foo('a)) -> unit\nf"
 
 let test_alias_param_missing () =
   test_exn "Type foo expects 1 type parameter"
-    "type foo('a) = raw_ptr('a)\nexternal f = (foo) -> unit\nf"
+    "type foo('a) = raw_ptr('a)\nexternal f : (foo) -> unit\nf"
 
 let test_alias_of_alias () =
   test "(bar = int) -> foo = int"
-    "type foo = int\ntype bar = foo\nexternal f = (bar) -> foo\nf"
+    "type foo = int\ntype bar = foo\nexternal f : (bar) -> foo\nf"
 
 let test_alias_labels () =
   test "Inner.t(int)"
@@ -386,7 +386,7 @@ a|}
 
 let test_array_weak () =
   test "array(int)"
-    {|external setf = (array('a), 'a) -> unit
+    {|external setf : (array('a), 'a) -> unit
 let a = []
 setf(a, 2)
 a|}
@@ -400,13 +400,13 @@ let test_array_different_annot () =
 
 let test_array_different_annot_weak () =
   test_exn "In application expecting (_, [bool]) -> _ but found (_, [int]) -> _"
-    "external setf = (array('a), 'a) -> unit\n\
+    "external setf : (array('a), 'a) -> unit\n\
      let a : array(bool) = []\n\
      setf(a, 2)"
 
 let test_array_different_weak () =
   test_exn "In application expecting (_, [int]) -> _ but found (_, [bool]) -> _"
-    {|external setf = (array('a), 'a) -> unit
+    {|external setf : (array('a), 'a) -> unit
 let a = []
 setf(a, 2)
 setf(a, true)|}
