@@ -1,9 +1,8 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(type foo {:x int :y int})
+type foo = {x : int, y : int}
 
-(defn pass_to_func (a)
-  (printi (.y a)))
+fun pass_to_func(a): printi(a.y)
 
-(def a {:y 20 :x 10})
-(pass_to_func a)
+let a = {y = 20, x = 10}
+pass_to_func(a)

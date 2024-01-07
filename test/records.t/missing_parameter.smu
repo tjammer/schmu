@@ -1,5 +1,5 @@
-(type (t 'a) {:t 'a})
+type t('a) = {t : 'a}
 
-(defn correct ([t (t int)]) (.t t))
+fun correct(t : t(int)): t.t
 
-(fn ([t t]) (.t t))
+fun (t : t): t.t

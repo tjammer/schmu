@@ -664,8 +664,7 @@ module Make (C : Core) (R : Recs) = struct
        let missing = Set.choose !fset in
        let msg =
          Printf.sprintf
-           "There are missing fields in record pattern, for instance %s"
-           missing
+           "There are missing fields in record pattern, for instance %s" missing
        in
        raise (Error (loc, msg)));
     index_fields

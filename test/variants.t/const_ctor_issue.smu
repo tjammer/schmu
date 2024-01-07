@@ -1,16 +1,14 @@
-(type thing {:i int :b {int int int int int}})
+type thing = {i : int, b : (int, int, int, int, int)}
+type var = Float(float) | Thing(thing)
 
-(type var ((#float float) (#thing thing)))
+let var = Float(10.0)
+match var:
+  Float(_): print("float")
+  Thing(_): print("thing")
 
-(def var (#float 10.0))
+fun dynamic(var):
+  match var:
+    Float(_): print("float")
+    Thing(_): print("thing")
 
-(match var
-  ((#float _) (print "float"))
-  ((#thing _) (print "thing")))
-
-(defn dynamic (var)
-  (match var
-    ((#float _) (print "float"))
-    ((#thing _) (print "thing")))  )
-
-(dynamic var)
+dynamic(var)

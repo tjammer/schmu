@@ -38,7 +38,7 @@ fun hash(str):
   Array.fold(str, !5381, fun (hash!, c):
     (hash * 33) + u8_to_int(c))
 
-external memcmp = (raw_ptr(u8), raw_ptr(u8), int) -> i32
+external memcmp : (raw_ptr(u8), raw_ptr(u8), int) -> i32
 
 fun equal(l, r):
   if len(l) == len(r):
@@ -99,7 +99,7 @@ fun modify_buf(str& : t, f):
 fun of_array(arr! : array(u8)): arr
 fun to_array(str! : t): str
 
-external memcpy = (raw_ptr(u8), raw_ptr(u8), int) -> unit
+external memcpy : (raw_ptr(u8), raw_ptr(u8), int) -> unit
 
 fun of_fixed_array(arr : array#?(u8)):
   let ret = Array.create(__fixed_array_length(arr))
@@ -107,8 +107,8 @@ fun of_fixed_array(arr : array#?(u8)):
   ret
 
 type file = raw_ptr(u8)
-external stdout = file
-external fwrite = (cstr, int, int, file) -> unit
+external stdout : file
+external fwrite : (cstr, int, int, file) -> unit
 
 let newline = #['\n']
 

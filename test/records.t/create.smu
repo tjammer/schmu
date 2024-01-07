@@ -1,8 +1,5 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
+type foo = {x : int, y : int}
 
-(type foo {:x int :y int})
-
-(defn create_record (x y)
-  {:x :y})
-
-(printi (.x (create_record 8 0)))
+fun create_record(x, y): {x, y}
+printi(create_record(8, 0).x)

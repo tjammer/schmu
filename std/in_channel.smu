@@ -21,9 +21,9 @@ type file = raw_ptr(u8)
 type t = {buf& : array#4096(u8), head& : int, unseen& : int, file : file}
 
 type cstr = raw_ptr(u8)
-external fread = (cstr, int, int, file) -> int
-external fopen = (cstr, cstr) -> file
-external fclose = (cstr) -> int
+external fread : (cstr, int, int, file) -> int
+external fopen : (cstr, cstr) -> file
+external fclose : (cstr) -> int
 
 import Option
 

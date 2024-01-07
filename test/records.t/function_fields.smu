@@ -1,14 +1,15 @@
-(type state {:cnt int :next (fun int int)})
+type state = {cnt : int, next : (int) -> int}
 
-(defn advance (state!)
-  {:cnt ((.next state) (.cnt state)) :next (.next state)})
+fun advance(state!):
+  {cnt = state.next(state.cnt), next = state.next}
 
-(defn ten_times (state!)
-  (if (< (.cnt state) 10)
-    (do
-      (print (fmt-str (.cnt state)))
-      (ten_times !(advance !state)))
-    (print (fmt-str 100))))
+fun ten_times(state!):
+  if state.cnt < 10:
+    print(fmt(state.cnt))
+    ten_times(!advance(!state))
+  else:
+    print(fmt(100))
 
-(let ((state {:cnt 0 :next (fn (x) (+ x 1))}))
-  (ten_times !state))
+do:
+  let state = {cnt = 0, next = fun x: x + 1}
+  ten_times(!state)

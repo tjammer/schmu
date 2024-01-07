@@ -476,7 +476,8 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
     match Hashtbl.find_opt indices !next with
     | Some (name, pl) when has_payload || pl ->
         let msg =
-          Printf.sprintf "Tag %i already used for constructor %s" !next name
+          Printf.sprintf "Tag %i already used for constructor %s" !next
+            (String.uppercase_ascii name)
         in
         raise (Error (loc, msg))
     | Some _ | None ->
@@ -1783,7 +1784,8 @@ and convert_prog env items modul =
           Core.convert_let ~global:true env loc decl block
         in
         if is_module (Env.modpath env) && lhs.attr.mut then
-          raise (Error (loc, "Mutable top level bindings are not allowed in modules"));
+          raise
+            (Error (loc, "Mutable top level bindings are not allowed in modules"));
         let uniq = uniq_name id in
         let env, expr, m =
           match let_fn_alias env loc lhs with

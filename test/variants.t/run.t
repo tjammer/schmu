@@ -1,14 +1,14 @@
 Basic variant ctors
   $ schmu basic.smu --dump-llvm
-  basic.smu:12.7-17: warning: Unused binding wrap_clike.
+  basic.smu:12.5-15: warning: Unused binding wrap_clike.
   
-  12 | (defn wrap_clike () #c)
-             ^^^^^^^^^^
+  12 | fun wrap_clike(): C
+           ^^^^^^^^^^
   
-  basic.smu:14.7-18: warning: Unused binding wrap_option.
+  basic.smu:14.5-16: warning: Unused binding wrap_option.
   
-  14 | (defn wrap_option () (#some "hello"))
-             ^^^^^^^^^^^
+  14 | fun wrap_option(): Some("hello")
+           ^^^^^^^^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -76,7 +76,7 @@ Basic variant ctors
   
   attributes #0 = { argmemonly nofree nounwind willreturn }
 
-Basic pattern matching
+Match option
   $ schmu match_option.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./match_option
   ; ModuleID = 'context'
   source_filename = "context"
@@ -398,24 +398,29 @@ Match multiple columns
   0
 
   $ schmu custom_tag_reuse.smu
-  custom_tag_reuse.smu:1.28-30: error: Tag 1 already used for constructor a.
+  custom_tag_reuse.smu:1.27-28: error: Tag 1 already used for constructor A.
   
-  1 | (type tags ((#a 1) (#b 0) (#c int)))
-                                 ^^
+  1 | type tags = A(1) | B(0) | C(int)
+                                ^
   
   [1]
 
 Record literals in pattern matches
   $ schmu match_record.smu
-  match_record.smu:5.36-38: warning: Unused binding b.
+  match_record.smu:5.24-25: warning: Unused binding b.
   
-  5 |              ((#some {:a (#some a) :b}) a)
-                                         ^^
+  5 |     Some({a = Some(a), b}): a
+                             ^
   
-  match_record.smu:6.32-34: warning: Unused binding b.
+  match_record.smu:6.21-22: warning: Unused binding b.
   
-  6 |              ((#some {:a #none :b}) -1)
-                                     ^^
+  6 |     Some({a = None, b}): -1
+                          ^
+  
+  match_record.smu:15.18-19: warning: Unused binding b.
+  
+  15 |     {a = {a = c, b}, b = _}: c
+                        ^
   
   $ valgrind -q --leak-check=yes --show-reachable=yes ./match_record
   10

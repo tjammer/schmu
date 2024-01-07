@@ -1,30 +1,27 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(type (t 'a) {:null int :first int :gen 'a :third bool})
+type t('a) = {null : int, first : int, gen : 'a, third : bool}
+type gen_first('a) = {only : 'a, is : bool}
 
-(type (gen_first 'a) {:only 'a :is bool})
+fun print_bool(b):
+  if b: printi(1) else: printi(0)
 
-(defn print_bool (b)
-  (if b (printi 1) (printi 0)))
+fun first(any):
+  printi(any.first)
 
-(defn first (any)
-  (printi (.first any)))
+fun gen(any): copy(any.gen)
 
-(defn gen (any) (copy (.gen any)))
+fun third(any): print_bool(any.third)
 
-(defn third (any)
-  (print_bool (.third any)))
+fun only(any): copy(any.only)
 
-(defn only (any) (copy (.only any)))
+fun is(any): print_bool(any.is)
 
-(defn is (any)
-  (print_bool (.is any)))
+let int_t = {null = 0, first = 700, gen = 20, third = true}
+let f = {only = 420, is = false}
 
-(def int_t {:null 0 :first 700 :gen 20 :third true})
-(def f {:only 420 :is false})
-
-(first int_t)
-(third int_t)
-(printi (gen int_t))
-(printi (only f))
-(is f)
+first(int_t)
+third(int_t)
+printi(gen(int_t))
+printi(only(f))
+is(f)

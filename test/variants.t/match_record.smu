@@ -1,27 +1,27 @@
-(type (foo 'a) {:a 'a :b float})
+type foo('a) = {a : 'a, b : float}
 
-(defn test-record-in-variant (inner)
-  (let ((a (match (#some {:a inner :b 53.0})
-             ((#some {:a (#some a) :b}) a)
-             ((#some {:a #none :b}) -1)
-             (#none 0))))
-    (print (fmt-str a))))
+fun test_record_in_variant(inner):
+  let a = match(Some({a = inner, b = 53.0})):
+    Some({a = Some(a), b}): a
+    Some({a = None, b}): -1
+    None: 0
+  print(fmt(a))
 
-(test-record-in-variant (#some 10))
-(test-record-in-variant #none)
+test_record_in_variant(Some(10))
+test_record_in_variant(None)
 
-(defn test-nested-records (inner!)
-  (let ((a (match {:a inner :b 45.0}
-             ({:a {:a c :b _} :b _} c))))
-    (print (fmt-str a))))
+fun test_nested_records(inner!):
+  let a = match {a = inner, b = 45.0}:
+    {a = {a = c, b}, b = _}: c
+  print(fmt(a))
 
-(test-nested-records !{:a 20 :b 30.0})
+test_nested_records(!{a = 20, b = 30.0})
 
-(defn test-record-wildcard (inner)
-  (let ((a (match (#some {:a inner :b 53.0})
-             ((#some {:a (#some a) :b _}) a)
-             ((#some _) -2)
-             (#none 0))))
-    (print (fmt-str a))))
+fun test_record_wildcard(inner):
+  let a = match(Some({a = inner, b = 53.0})):
+    Some({a = Some(a), b = _}): a
+    Some(_): -2
+    None: 0
+  print(fmt(a))
 
-(test-record-wildcard #none)
+test_record_wildcard(None)

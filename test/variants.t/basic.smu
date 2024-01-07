@@ -1,16 +1,16 @@
-(ignore (#some 1))
+ignore(Some(1))
 
-(type foo {:x float :y float})
-(type larger (#one (#two foo) (#three int)))
+type foo = {x : float, y : float}
+type larger = One | Two(foo) | Three(int)
 
-(ignore (#three 3))
+ignore(Three(3))
 
-(type clike (#a #b #c #d #e))
+type clike = A | B | C | D | E
 
-(ignore #c)
+ignore(C)
 
-(defn wrap_clike () #c)
+fun wrap_clike(): C
 
-(defn wrap_option () (#some "hello"))
+fun wrap_option(): Some("hello")
 
 0

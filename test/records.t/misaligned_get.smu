@@ -1,9 +1,9 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(type inner {:fst int :snd int})
-(type (misaligned 'a) {:fst inner :gen 'a})
+type inner = {fst : int, snd : int}
+type misaligned('a) = {fst : inner, gen : 'a}
 
-(defn gen (any) (copy (.gen any)))
+fun gen(any): copy(any.gen)
 
-(def m {:fst {:fst 50 :snd 40} :gen 30})
-(printi (gen m))
+let m = {fst = {fst = 50, snd = 40}, gen = 30}
+printi(gen(m))

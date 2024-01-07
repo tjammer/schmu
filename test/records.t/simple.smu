@@ -1,7 +1,7 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(type foo {:x bool :y int})
+type foo = {x : bool, y : int}
 
 -- The fields don't need to be given in order
-(def a {:y 10 :x true})
-(printi (.y a))
+let a = {y = 10, x = true}
+printi(a.y)

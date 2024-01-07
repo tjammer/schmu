@@ -1,19 +1,14 @@
-(external printf (fun string/cstr int unit))
+external printf : (String.cstr, int) -> unit
 
-(type test ((#float float) (#int int) #none))
+type test = Float(float) | Int(int) | None
 
-(defn doo (m)
-  (match m
-    ((#some (#float f)) (int_of_float f))
-    ((#some (#int i)) i)
-    ((#some #none) 1)
-    (#none 0)))
+fun doo(m): match m:
+  Some(Float(f)): int_of_float(f)
+  Some(Int(i)): i
+  Some(None): 1
+  None: 0
 
-(->> (doo (#some (#float 3.0)))
-     (printf (string/data "%i\n")))
-(->> (doo (#some (#int 2)))
-     (printf (string/data "%i\n")))
-(->> (doo (#some #none))
-     (printf (string/data "%i\n")))
-(->> (doo #none)
-     (printf (string/data "%i\n")))
+doo(Some(Float(3.0))) |> printf(String.data("%i\n"))
+doo(Some(Int(2))) |> printf(String.data("%i\n"))
+doo(Some(None)) |> printf(String.data("%i\n"))
+doo(None) |> printf(String.data("%i\n"))

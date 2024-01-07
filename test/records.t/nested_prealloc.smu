@@ -1,31 +1,23 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(type int_wrap {:dat int :b int :c int})
+type int_wrap = {dat : int, b : int, c : int}
+type test('a) = {int_wrap : 'a}
+type mut('a) = {wrapped& : 'a}
 
-(type (test 'a) {:int_wrap 'a})
+fun test_thing():
+    let test = {int_wrap = {dat = 2, b = 0, c = 0}}
+    fun vector_loop(i):
+        if i == 10: test.int_wrap else: vector_loop(i + 1)
+    vector_loop(0)
 
-(type (mut 'a) {:wrapped& 'a})
+fun test_thing_mut():
+    let test& = {wrapped = {dat = 2, b = 0, c = 0}}
+    fun vector_loop(i):
+        if i == 10: () else:
+            &test.wrapped <- {dat = test.wrapped.dat + 1, b = 0, c = 0}
+            vector_loop(i + 1)
+    vector_loop(0)
+    test.wrapped
 
-(defn test_thing ()
-  (def test {:int_wrap {:dat 2 :b 0 :c 0}})
-  (defn vector_loop (i)
-    (if (= i 10)
-      (.int_wrap test)
-      (vector_loop (+ i 1))))
-  (vector_loop 0))
-
-(defn test_thing_mut ()
-  (def test& {:wrapped {:dat 2 :b 0 :c 0}})
-  (defn vector_loop (i)
-    (if (= i 10)
-      ()
-      (do
-        (set &(.wrapped test) !{:dat (+ (.dat (.wrapped test)) 1) :b 0 :c 0})
-        (vector_loop (+ i 1)))))
-  (vector_loop 0)
-  (.wrapped test))
-
-(-> (.dat (test_thing))
-    printi)
-(-> (.dat (test_thing_mut))
-    printi)
+test_thing().dat -> printi
+test_thing_mut().dat -> printi

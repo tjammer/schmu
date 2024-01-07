@@ -1,46 +1,31 @@
-(external printf (fun string/cstr int unit))
+external printf : (String.cstr, int) -> unit
 
 -- standard case
-(defn match_opt (p)
-  (match p
-    ((#some thing) thing)
-    (#none 0)))
+fun match_opt(p):
+  match p:
+    Some(thing): thing
+    None: 0
 
-(->> (match_opt (#some 1))
-     (printf (cstr "%i\n")))
-(->> (match_opt #none)
-     (printf (cstr "%i\n")))
+match_opt(Some(1)) |> printf(cstr("%i\n"))
+match_opt(None) |> printf(cstr("%i\n"))
 
 -- switch ctors
-(defn opt_match (p)
-  (match p
-    (#none 0)
-    ((#some thing) thing)))
+fun opt_match(p): match p: None: 0 | Some(thing): thing
 
-(->> (opt_match (#some 1))
-     (printf (cstr "%i\n")))
-(->> (opt_match #none)
-     (printf (cstr "%i\n")))
+opt_match(Some(1)) |> printf(cstr("%i\n"))
+opt_match(None) |> printf(cstr("%i\n"))
 
 -- some, catchall
-(defn some_all (p)
-  (match p
-    ((#some thing) thing)
-    (_ 0)))
+fun some_all(p):
+  match p:
+    Some(thing): thing
+    _: 0
 
-(->> (some_all (#some 1))
-     (printf (cstr "%i\n")))
-(->> (some_all #none)
-     (printf (cstr "%i\n")))
+some_all(Some(1)) |> printf(cstr("%i\n"))
+some_all(None) |> printf(cstr("%i\n"))
 
+fun none_all(p): match p: None: 0 | _: 1
 
-(defn none_all (p)
-  (match p
-    (#none 0)
-    (_ 1)))
-
-(->> (none_all (#some 1))
-     (printf (cstr "%i\n")))
-(def [none_int (option int)] #none)
-(->> (none_all none_int)
-     (printf (cstr "%i\n")))
+none_all(Some(1)) |> printf(cstr("%i\n"))
+let none_int : option(int) = None
+none_all(none_int) |> printf(cstr("%i\n"))

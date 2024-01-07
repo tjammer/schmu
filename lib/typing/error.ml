@@ -49,7 +49,8 @@ let format_type_err pre mname t1 t2 =
               else if found then (found, ls, rs)
               else (true, "[" ^ ls ^ "]", "[" ^ rs ^ "]")
             in
-            if i <> 0 then (i + 1, found || accfound, l ^ ", " ^ ls, r ^ ", " ^ rs)
+            if i <> 0 then
+              (i + 1, found || accfound, l ^ ", " ^ ls, r ^ ", " ^ rs)
             else (i + 1, found || accfound, l ^ ls, r ^ rs))
           (0, false, "", "") l r
       in

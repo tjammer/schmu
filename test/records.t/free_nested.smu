@@ -1,14 +1,14 @@
-(type nested {:c string :d string})
-(type n {:a string :b nested})
+type nested = {c : string, d : string}
+type n = {a : string, b : nested}
 
-(defn test-nested ()
-  (def a {:a "a" :b {:c "c" :d "d"}})
-  (ignore {a.b.c}))
+fun test_nested():
+  let a = {a = "a", b = {c = "c", d = "d"}}
+  ignore((a.b.c, 0))
 
-(test-nested)
+test_nested()
 
-(defn test-nested ()
-  (def a {:a "a" :b {:c "c" :d "d"}})
-  (ignore {a.b}))
+fun test_nested():
+  let a = {a = "a", b = {c = "c", d = "d"}}
+  ignore((a.b.c, 0))
 
-(test-nested)
+test_nested()
