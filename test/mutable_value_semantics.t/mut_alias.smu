@@ -1,20 +1,20 @@
-(type foo {:a& int})
+type foo = {a& : int}
 
-(def f {:a 0})
-(def fst& (copy f))
-(def snd (copy fst))
-(set &(.a fst) !1)
-(print (fmt-str (.a fst)))
-(print (fmt-str (.a f)))
-(print (fmt-str (.a snd)))
+let f = {a = 0}
+let fst& = copy(f)
+let snd = copy(fst)
+&fst.a <- 1
+print(fmt(fst.a))
+print(fmt(f.a))
+print(fmt(snd.a))
 
-(defn new-fun ()
-  (def f {:a 0})
-  (def fst& (copy f))
-  (def snd (copy fst))
-  (set &(.a fst) !1)
-  (print (fmt-str (.a fst)))
-  (print (fmt-str (.a f)))
-  (print (fmt-str (.a snd))))
+fun new_fun():
+  let f = {a = 0}
+  let fst& = copy(f)
+  let snd = copy(fst)
+  &fst.a <- 1
+  print(fmt(fst.a))
+  print(fmt(f.a))
+  print(fmt(snd.a))
 
-(new-fun)
+new_fun()

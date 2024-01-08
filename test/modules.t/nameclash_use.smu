@@ -1,2 +1,2 @@
-(import nameclash_mod)
-(defn specific_name () ())
+import Nameclash_mod
+fun specific_name(): ()

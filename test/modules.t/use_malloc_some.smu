@@ -1,9 +1,11 @@
-(type big { :a int :b float :c int :d int })
+type big = {a : int, b : float, c : int, d : int}
 
-(defn do_something (big) (+ (.a big) 1))
+fun do_something(big):
+  big.a + 1
 
-(external printf (fun string/cstr int unit))
+external printf : (String.cstr, int) -> unit
 
-(defn printi (i) (printf (string/data "%i\n") i))
+fun printi(i):
+  printf(String.data("%i\n"), i)
 
-(array/iter malloc_some/vtest printi)
+Array.iter(Malloc_some.vtest, printi)

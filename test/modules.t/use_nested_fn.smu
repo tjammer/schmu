@@ -1,4 +1,4 @@
-(import nested_fn)
+import Nested_fn
 
-(def [a (thing int)] #empty)
-(classify a)
+let a : thing(int) = Empty
+classify(a)

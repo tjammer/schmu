@@ -1,4 +1,4 @@
-(import sign)
+import Sign
 
 -- Cannot use hidden
-(hidden 10)
+hidde(10)

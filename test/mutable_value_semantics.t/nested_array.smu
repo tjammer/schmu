@@ -1,12 +1,12 @@
-(defn prnt (a)
-  (print (fmt-str
-          a.[0].[0]
-          ", "
-          a.[1].[0])))
+fun prnt(a):
+  print(fmt(
+    a.[0].[0],
+    ", ",
+    a.[1].[0]))
 
-(def a& [[10] [20]])
-(def b (copy a))
+let a& = [[10], [20]]
+let b = copy(a)
 
-(set &a.[0].[0] !15)
-(prnt a)
-(prnt b)
+&a.[0].[0] <- 15
+prnt(a)
+prnt(b)

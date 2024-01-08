@@ -1,4 +1,5 @@
-(module filename_nameclash
-  (defn greet () (print "hi from nameclash")))
+module Filename_nameclash:
+  fun greet():
+    print("hi from nameclash")
 
-(filename_nameclash/greet)
+Filename_nameclash.greet()

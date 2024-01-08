@@ -38,9 +38,9 @@
 
 -- (print (fmt-str (copy "test ") 1))
 
-(type t {:c float :a string :b int :d (array int)})
-(type (cont 'a) {:a 'a})
+type t = {c : float, a : string, b : int, d : array(int)}
+type cont('a) = {a : 'a}
 
-(def a {:a {:a "lul" :b 10 :c 10.0 :d [10 20 30]}})
+let a = {a = {a = "lul", b = 10, c = 10.0, d = [10, 20, 30]}}
 
-(print (copy a).a.a)
+print(copy(a).a.a)

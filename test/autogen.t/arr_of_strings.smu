@@ -1,2 +1,2 @@
-(def a ["test" "toast"])
-(print (copy a).[1])
+let a = ["test", "toast"]
+print(copy(a).[1])

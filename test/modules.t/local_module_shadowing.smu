@@ -1,19 +1,19 @@
-(def a 'a')
+let a = 'a'
 
-(module a
-  (type t int)
-  (print "i'm in a module")
-  (module a
-    (type t float)
-    (print (fmt-str a))
-    (assert (= (u8_to_int a) (u8_to_int 'a')))
-    (def a 10)
-    (print (fmt-str a))
-    (assert (= a 10))))
+module A:
+  type t = int
+  print("i'm in a module")
+  module A:
+    type t = float
+    print(fmt(a))
+    assert(u8_to_int(a) == u8_to_int('a'))
+    let a = 10
+    print(fmt(a))
+    assert(a == 10)
 
-(print (fmt-str a))
+print(fmt(a))
 
-(import a)
+import A
 
-(print (fmt-str a))
-(print (fmt-str a/a))
+print(fmt(a))
+print(fmt(A.a))

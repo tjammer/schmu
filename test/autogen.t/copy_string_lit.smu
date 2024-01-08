@@ -1,6 +1,7 @@
-(def a ["aoeu"])
-(def b& "aoeu")
-(string/modify-buf &b (fn (arr&) (__unsafe_ptr_set &(array/data arr) 1 !'i')))
-(print b)
-(print "aoeu")
-(print a.[0])
+let a = ["aoeu"]
+let b& = "aoeu"
+String.modify_buf(&b, fun(arr&):
+  __unsafe_ptr_set(&Array.data(arr), 1, !'i'))
+print(b)
+print("aoeu")
+print(a.[0])

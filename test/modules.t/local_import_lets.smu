@@ -1,6 +1,5 @@
-(lets/printf (string/data "%i\n") lets/a)
-lets/(printf (string/data "%i\n") b)
-
-lets/(do
-  (printf (string/data "%i\n") a)
-  (printf (string/data "%i\n") b))
+Lets.printf(String.data("%i\n"), Lets.a)
+Lets.(printf(String.data("%i\n"), b))
+Lets.(do:
+  printf(String.data("%i\n"), a)
+  printf(String.data("%i\n"), b))

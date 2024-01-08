@@ -1,6 +1,6 @@
-(defn f1 (acc v)
-  (let ((tmp& (copy acc)))
-    (array/push &tmp !(copy v))
-    tmp))
+fun f1(acc, v):
+  let tmp& = copy(acc)
+  Array.push(&tmp, !copy(v))
+  tmp
 
-(ignore (f1 [0] 0))
+ignore(f1([0], 0))

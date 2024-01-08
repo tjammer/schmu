@@ -1,1 +1,1 @@
-(print (fmt-str "hello from init"))
+print(fmt("hello from init"))

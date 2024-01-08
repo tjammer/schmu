@@ -1,1 +1,1 @@
-(defn id (a!) a)
+fun id(a!): a

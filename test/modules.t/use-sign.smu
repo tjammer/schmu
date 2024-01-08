@@ -1,17 +1,17 @@
-(import sign)
+import Sign
 
 -- Use type t
-(def [use-t t] 20)
-(ignore use-t)
+let use_t : t = 20
+ignore(use_t)
 
 -- Use ext
-(ext (string/data "hello %i\n") 20)
+ext(String.data("hello %i\n"), 20)
 
 -- Use t
-(assert (= t 200))
+assert(t == 200)
 
 -- Use int
-(int t)
+int(t)
 
--- Use poly-int
-(print (fmt-str (poly-int 20.2)))
+-- Use poly_int
+print(fmt(poly_int(20.2)))

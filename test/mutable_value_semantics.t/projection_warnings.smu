@@ -1,10 +1,11 @@
-(let ((x& [0])
-      (y& &x)
-      (z& &y))
-  (def w& &y)
-  (def ii& &w)
-  (set &ii ![2]))
+do:
+  let x& = [0]
+  let y& = &x
+  let z& = &y
+  let w& = &y
+  let ii& = &w
+  &ii <- [2]
 
-(defn testfn (a& [b& int])
-  (let ((c& &a))
-    (set &c !123)))
+fun testfn(a&, b& : int):
+  let c& = &a
+  &c <- 123

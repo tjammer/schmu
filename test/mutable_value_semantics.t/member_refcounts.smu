@@ -1,15 +1,14 @@
-(type r {:a (array int)})
-(def a& [10])
-(def r {:a (copy a)})
-(set &a.[0] !20)
-(print (fmt-str (.a r).[0]))
+type r = {a : array(int)}
+let a& = [10]
+let r = {a = copy(a)}
+&a.[0] <- 20
+print(fmt(r.a.[0]))
 
-(def r [(copy a)])
-(set &a.[0] !30)
-(print (fmt-str r.[0].[0]))
 
-(def r (#some (copy a)))
-(set & a.[0] !40)
-(match r
-  ((#some a) (print (fmt-str a.[0])))
-  (#none (print "none")))
+let r = [copy(a)]
+&a.[0] <- 30
+print(fmt(r.[0].[0]))
+
+let r = Some(copy(a))
+&a.[0] <- 40
+match r: Some(a): print(fmt(a.[0])) | None: print("none")

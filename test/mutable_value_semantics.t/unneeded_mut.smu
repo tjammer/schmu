@@ -1,10 +1,8 @@
-(defn do_nothing (a&)
-  (ignore a))
+fun do_nothing(a&): ignore(a)
 
-(defn do_mut (a& b)
-  (set &a !(copy b)))
+fun do_mut(a&, b): &a <- copy(b)
 
-(def b& 0)
-(ignore b)
-(def a& 0)
-(do_mut &a 1)
+let b& = 0
+ignore(b)
+let a& = 0
+do_mut(&a, 1)

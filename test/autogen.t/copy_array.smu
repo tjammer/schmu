@@ -1,3 +1,3 @@
-(def [a (array u8)] [])
-(def b& (copy a))
-(array/push &b !'2')
+let a : array(u8) = []
+let b& = copy(a)
+Array.push(&b, !'2')

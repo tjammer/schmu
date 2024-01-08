@@ -1,11 +1,12 @@
-(type rr {:a (array int) :b (array int)})
+type rr = {a : array(int), b : array(int)}
 
-(def a& {:a [] :b []})
-(ignore {a.a})
-(set &a !{:a [] :b []})
+let a& = {a = [], b = []}
+ignore((a.a, 0))
+&a <- {a = [], b = []}
 
-(defn hmm (a&)
-  (ignore {a.b})
-  (set &a !{:a [] :b []}))
 
-(hmm &a)
+fun hmm(a&):
+  ignore((a.b, 0))
+  &a <- {a = [], b = []}
+
+hmm(&a)

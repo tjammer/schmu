@@ -1,33 +1,38 @@
-(defn test () (print "hey test"))
+fun test():
+  print("hey test")
 
-(module local
-  (signature
-    (type t)
-    (def test (fun unit unit))
-    (def poly-test (fun 'a unit))
-    (def value string))
-  (module nested ())
-  (type t int)
-  (defn test () (print "hey thing"))
-  (defn poly-test (a) (print (fmt-str "hey poly " a)))
-  (def value "test"))
+module Local:
+  signature:
+    type t
+    val test : () -> unit
+    val poly_test : ('a) -> unit
+    val value : string
+  module Nested:
+    type t = unit
+  type t = int
+  fun test():
+    print("hey thing")
+  fun poly_test(a):
+    print(fmt("hey poly ", a))
+  let value = "test"
 
-(test)
+test()
 
-(local/test)
-(local/poly-test "test")
+Local.test()
+Local.poly_test("test")
 
-(module nosig
-  (type t {:a int})
-  (type other int)
-  (module nested
-    (defn nested () (print "i'm nested"))
-    (type t float))
-  (def [c nested/t] 10.0))
+module Nosig:
+  type t = {a : int}
+  type other = int
+  module Nested:
+    fun nested():
+      print("i'm nested")
+    type t = float
+  let c : Nested.t = 10.0
 
-(module aliased nosig/nested)
+module Aliased = Nosig.Nested
 
-(def [test nosig/t] {:a 10})
-(ignore test)
+let test : Nosig.t = {a = 10}
+ignore(test)
 
-(nosig/nested/nested)
+Nosig.Nested.nested()

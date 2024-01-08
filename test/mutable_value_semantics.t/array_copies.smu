@@ -1,37 +1,31 @@
-(defn print-0th (a)
-  (print (fmt-str a.[0])))
+fun print_0th(a): print(fmt(a.[0]))
 
-(def a& [10])
-(def b (copy a))
-(def c& (copy a))
-(def d b)
+let a& = [10]
+let b = copy(a)
+let c& = copy(a)
+let d = b
 
--- (set &(array-get a 0) 12)
-(set &a.[0] !12)
-(print-0th a)
--- (set &(array-get c 0) 15)
-(set &c.[0] !15)
-(print-0th a)
-(print-0th b)
-(print-0th c)
-(print-0th d)
+&a.[0] <- 12
+print_0th(a)
+&c.[0] <- 15
+print_0th(a)
+print_0th(b)
+print_0th(c)
+print_0th(d)
 
+fun in_fun():
+  print("in fun")
+  let a& = [10]
+  let b = copy(a)
+  let c& = copy(a)
+  let d = b
 
-(defn in-fun ()
-  (print "in fun")
-  (def a& [10])
-  (def b (copy a))
-  (def c& (copy a))
-  (def d b)
+  &a.[0] <- 12
+  print_0th(a)
+  &c.[0] <- 15
+  print_0th(a)
+  print_0th(b)
+  print_0th(c)
+  print_0th(d)
 
-  -- (set &(array-get a 0) 12)
-  (set &a.[0] !12)
-  (print-0th a)
-  -- (set &(array-get c 0) 15)
-  (set &c.[0] !15)
-  (print-0th a)
-  (print-0th b)
-  (print-0th c)
-  (print-0th d))
-
-(in-fun)
+in_fun()

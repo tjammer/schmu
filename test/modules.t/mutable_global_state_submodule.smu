@@ -1,2 +1,2 @@
-(module mm
-  (def _& 0))
+module Mm:
+  let _& = 0

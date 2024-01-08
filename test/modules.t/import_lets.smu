@@ -1,13 +1,13 @@
-(import lets)
+import Lets
 
-(printf (string/data "%i\n") a)
-(printf (string/data "%i\n") b)
+printf(String.data("%i\n"), a)
+printf(String.data("%i\n"), b)
 
-(defn inside-fn ()
-  (import lets)
-  (defn second ()
-    (printf (string/data "%i\n") a)
-    (printf (string/data "%i\n") b)  )
-  (second))
+fun inside_fn():
+  import Lets
+  fun second():
+    printf(String.data("%i\n"), a)
+    printf(String.data("%i\n"), b)
+  second()
 
-(inside-fn)
+inside_fn()

@@ -1,5 +1,5 @@
-(type either (#left #right))
+type either = Left | Right
 
-(defn add_ints (a b)
-  (def c 10)
-  (+ a b))
+fun add_ints(a, b):
+  let c = 10
+  a + b

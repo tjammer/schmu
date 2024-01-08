@@ -209,10 +209,10 @@ Test simple setting of mutable variables
 
 Warn on unneeded mutable bindings
   $ schmu unneeded_mut.smu
-  unneeded_mut.smu:1.7-17: warning: Unused binding do_nothing.
+  unneeded_mut.smu:1.5-15: warning: Unused binding do_nothing.
   
-  1 | (defn do_nothing (a&)
-            ^^^^^^^^^^
+  1 | fun do_nothing(a&): ignore(a)
+          ^^^^^^^^^^
   
 Use mutable values as ptrs to C code
   $ schmu -c --dump-llvm ptr_to_c.smu
@@ -249,7 +249,7 @@ Check aliasing
   @schmu_snd = global %foo zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define void @schmu_new-fun() {
+  define void @schmu_new_fun() {
   entry:
     %0 = alloca %foo, align 8
     %a1 = bitcast %foo* %0 to i64*
@@ -287,7 +287,7 @@ Check aliasing
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %0)
     %1 = load i64, i64* getelementptr inbounds (%foo, %foo* @schmu_snd, i32 0, i32 0), align 8
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %1)
-    tail call void @schmu_new-fun()
+    tail call void @schmu_new_fun()
     ret i64 0
   }
   
@@ -309,7 +309,7 @@ Const let
   @schmu_const = global i64 0, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define void @schmu_in-fun() {
+  define void @schmu_in_fun() {
   entry:
     %0 = alloca i64*, align 8
     %1 = tail call i8* @malloc(i64 24)
@@ -378,7 +378,7 @@ Const let
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %10)
     %11 = load i64, i64* @schmu_const, align 8
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %11)
-    tail call void @schmu_in-fun()
+    tail call void @schmu_in_fun()
     tail call void @__free_ai(i64** @schmu_v)
     ret i64 0
   }
@@ -405,7 +405,7 @@ Copies, but with ref-counted arrays
   
   declare void @string_print(i8* %0)
   
-  define linkonce_odr void @__ag.u_schmu_print-0th_ai.u(i64* %a) {
+  define linkonce_odr void @__ag.u_schmu_print_0th_ai.u(i64* %a) {
   entry:
     %0 = bitcast i64* %a to i8*
     %1 = getelementptr i8, i8* %0, i64 16
@@ -415,7 +415,7 @@ Copies, but with ref-counted arrays
     ret void
   }
   
-  define void @schmu_in-fun() {
+  define void @schmu_in_fun() {
   entry:
     tail call void @string_print(i8* bitcast ({ i64, i64, [7 x i8] }* @1 to i8*))
     %0 = alloca i64*, align 8
@@ -443,20 +443,20 @@ Copies, but with ref-counted arrays
     %data1 = bitcast i8* %11 to i64*
     store i64 12, i64* %data1, align 8
     %12 = load i64*, i64** %0, align 8
-    call void @__ag.u_schmu_print-0th_ai.u(i64* %12)
+    call void @__ag.u_schmu_print_0th_ai.u(i64* %12)
     %13 = load i64*, i64** %7, align 8
     %14 = bitcast i64* %13 to i8*
     %15 = getelementptr i8, i8* %14, i64 16
     %data2 = bitcast i8* %15 to i64*
     store i64 15, i64* %data2, align 8
     %16 = load i64*, i64** %0, align 8
-    call void @__ag.u_schmu_print-0th_ai.u(i64* %16)
+    call void @__ag.u_schmu_print_0th_ai.u(i64* %16)
     %17 = load i64*, i64** %4, align 8
-    call void @__ag.u_schmu_print-0th_ai.u(i64* %17)
+    call void @__ag.u_schmu_print_0th_ai.u(i64* %17)
     %18 = load i64*, i64** %7, align 8
-    call void @__ag.u_schmu_print-0th_ai.u(i64* %18)
+    call void @__ag.u_schmu_print_0th_ai.u(i64* %18)
     %19 = load i64*, i64** %4, align 8
-    call void @__ag.u_schmu_print-0th_ai.u(i64* %19)
+    call void @__ag.u_schmu_print_0th_ai.u(i64* %19)
     call void @__free_ai(i64** %7)
     call void @__free_ai(i64** %4)
     call void @__free_ai(i64** %0)
@@ -519,21 +519,21 @@ Copies, but with ref-counted arrays
     %data1 = bitcast i8* %6 to i64*
     store i64 12, i64* %data1, align 8
     %7 = load i64*, i64** @schmu_a, align 8
-    tail call void @__ag.u_schmu_print-0th_ai.u(i64* %7)
+    tail call void @__ag.u_schmu_print_0th_ai.u(i64* %7)
     %8 = load i64*, i64** @schmu_c, align 8
     %9 = bitcast i64* %8 to i8*
     %10 = getelementptr i8, i8* %9, i64 16
     %data2 = bitcast i8* %10 to i64*
     store i64 15, i64* %data2, align 8
     %11 = load i64*, i64** @schmu_a, align 8
-    tail call void @__ag.u_schmu_print-0th_ai.u(i64* %11)
+    tail call void @__ag.u_schmu_print_0th_ai.u(i64* %11)
     %12 = load i64*, i64** @schmu_b, align 8
-    tail call void @__ag.u_schmu_print-0th_ai.u(i64* %12)
+    tail call void @__ag.u_schmu_print_0th_ai.u(i64* %12)
     %13 = load i64*, i64** @schmu_c, align 8
-    tail call void @__ag.u_schmu_print-0th_ai.u(i64* %13)
+    tail call void @__ag.u_schmu_print_0th_ai.u(i64* %13)
     %14 = load i64*, i64** @schmu_d, align 8
-    tail call void @__ag.u_schmu_print-0th_ai.u(i64* %14)
-    tail call void @schmu_in-fun()
+    tail call void @__ag.u_schmu_print_0th_ai.u(i64* %14)
+    tail call void @schmu_in_fun()
     tail call void @__free_ai(i64** @schmu_c)
     tail call void @__free_ai(i64** @schmu_b)
     tail call void @__free_ai(i64** @schmu_a)
@@ -570,7 +570,7 @@ Arrays in records
   
   declare void @string_print(i8* %0)
   
-  define void @schmu_in-fun() {
+  define void @schmu_in_fun() {
   entry:
     %0 = alloca %arrec, align 8
     %a5 = bitcast %arrec* %0 to i64**
@@ -593,16 +593,16 @@ Arrays in records
     store i64 12, i64* %data, align 8
     %unbox = bitcast %arrec* %0 to i64*
     %unbox2 = load i64, i64* %unbox, align 8
-    call void @schmu_print-thing(i64 %unbox2)
+    call void @schmu_print_thing(i64 %unbox2)
     %unbox3 = bitcast %arrec* %4 to i64*
     %unbox4 = load i64, i64* %unbox3, align 8
-    call void @schmu_print-thing(i64 %unbox4)
+    call void @schmu_print_thing(i64 %unbox4)
     call void @__free_arrec(%arrec* %4)
     call void @__free_arrec(%arrec* %0)
     ret void
   }
   
-  define void @schmu_print-thing(i64 %0) {
+  define void @schmu_print_thing(i64 %0) {
   entry:
     %box = alloca i64, align 8
     store i64 %0, i64* %box, align 8
@@ -683,11 +683,11 @@ Arrays in records
     %data1 = bitcast i8* %5 to i64*
     store i64 12, i64* %data1, align 8
     %unbox = load i64, i64* bitcast (%arrec* @schmu_a to i64*), align 8
-    tail call void @schmu_print-thing(i64 %unbox)
+    tail call void @schmu_print_thing(i64 %unbox)
     %unbox2 = load i64, i64* bitcast (%arrec* @schmu_b to i64*), align 8
-    tail call void @schmu_print-thing(i64 %unbox2)
+    tail call void @schmu_print_thing(i64 %unbox2)
     tail call void @string_print(i8* bitcast ({ i64, i64, [7 x i8] }* @1 to i8*))
-    tail call void @schmu_in-fun()
+    tail call void @schmu_in_fun()
     tail call void @__free_arrec(%arrec* @schmu_b)
     tail call void @__free_arrec(%arrec* @schmu_a)
     ret i64 0
@@ -947,7 +947,7 @@ Modify in function
     %data = bitcast i8* %13 to i64*
     %14 = getelementptr inbounds i64, i64* %data, i64 %2
     store i64 %value, i64* %14, align 8
-    %add = add i64 1, %2
+    %add = add i64 %2, 1
     store i64 %add, i64* %11, align 8
     ret void
   }
@@ -1067,7 +1067,7 @@ Make sure variable ids are correctly propagated
     %data = bitcast i8* %13 to i64*
     %14 = getelementptr inbounds i64, i64* %data, i64 %2
     store i64 %value, i64* %14, align 8
-    %add = add i64 1, %2
+    %add = add i64 %2, 1
     store i64 %add, i64* %11, align 8
     ret void
   }
@@ -1392,15 +1392,15 @@ Convert Const_ptr values to Ptr in copy
 
 Fix codegen
   $ schmu --dump-llvm codegen_nested_projections.smu
-  codegen_nested_projections.smu:4.8-9: warning: Unused binding z.
+  codegen_nested_projections.smu:4.7-8: warning: Unused binding z.
   
-  4 |   (def z& &y)
-             ^
-  
-  codegen_nested_projections.smu:1.7-8: warning: Unused binding t.
-  
-  1 | (defn t ()
+  4 |   let z& = &y
             ^
+  
+  codegen_nested_projections.smu:1.5-6: warning: Unused binding t.
+  
+  1 | fun t():
+          ^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -1429,20 +1429,20 @@ Partial move set
 
 Track unmutated binding warnings across projections
   $ schmu projection_warnings.smu
-  projection_warnings.smu:8.19-20: warning: Unused binding b.
+  projection_warnings.smu:9.16-17: warning: Unused binding b.
   
-  8 | (defn testfn (a& [b& int])
-                        ^
+  9 | fun testfn(a&, b& : int):
+                     ^
   
-  projection_warnings.smu:3.8-9: warning: Unused binding z.
+  projection_warnings.smu:4.7-8: warning: Unused binding z.
   
-  3 |       (z& &y))
-             ^
+  4 |   let z& = &y
+            ^
   
-  projection_warnings.smu:8.7-13: warning: Unused binding testfn.
+  projection_warnings.smu:9.5-11: warning: Unused binding testfn.
   
-  8 | (defn testfn (a& [b& int])
-            ^^^^^^
+  9 | fun testfn(a&, b& : int):
+          ^^^^^^
   
 Mutable locals must not be globals even if constexpr
   $ schmu mutable_locals.smu

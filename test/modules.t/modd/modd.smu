@@ -1,15 +1,15 @@
-(def a "modd")
+let a = "modd"
 
-(def b indirect/a)
+let b = Indirect.a
 
-(module public public)
+module Public = Public
 
 -- This should not raise an llvm warning
-(def func indirect/hmm)
+let func = Indirect.hmm
 
-(def lambda indirect/some-lambda)
+let lambda = Indirect.some_lambda
 
 -- Use closure directly
-(def closure indirect/some-closure)
+let closure = Indirect.some_closure
 
-(def swap indirect/swap)
+let swap = Indirect.swap

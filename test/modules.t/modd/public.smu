@@ -1,1 +1,1 @@
-(def a "public")
+let a = "public"

@@ -1,4 +1,4 @@
-(import sign)
+import Sign
 
--- Cannot use hidden-type
-(def [i hidden-type] 10)
+-- Cannot use hidden_type
+let i : hidden_type = 10

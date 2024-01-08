@@ -1,1 +1,1 @@
-(defn id (a!) (transitive/id !a))
+fun id(a!): Transitive.id(!a)

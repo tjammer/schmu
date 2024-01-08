@@ -1,23 +1,23 @@
-(type arrec {:a& (array int)})
+type arrec = {a& : array(int)}
 
-(def a& {:a [10]})
-(def b (copy a))
-(set &a.a.[0] !12)
+let a& = {a = [10]}
+let b = copy(a)
+&a.a.[0] <- 12
 
-(defn print-thing (a)
-  (print (fmt-str (.a a).[0])))
+fun print_thing(a): print(fmt(a.a.[0]))
 
-(print-thing a)
-(print-thing b)
+print_thing(a)
+print_thing(b)
 
-(print "in fun")
+print("in fun")
 
-(defn in-fun ()
-  (def a& {:a [10]})
-  (def b (copy a))
-  (set &a.a.[0] !12)
 
-  (print-thing a)
-  (print-thing b))
+fun in_fun():
+  let a& = {a = [10]}
+  let b = copy(a)
+  &a.a.[0] <- 12
 
-(in-fun)
+  print_thing(a)
+  print_thing(b)
+
+in_fun()

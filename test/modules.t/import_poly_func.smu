@@ -1,8 +1,8 @@
-(import poly_func)
+import Poly_func
 
-(external printf (fun string/cstr int unit))
+external printf : (String.cstr, int) -> unit
 
-(->> (classify (#some 3)) (printf (string/data "%i\n")))
-(->> (classify (#some 3.0)) (printf (string/data "%i\n")))
-(def [none (option float)] #none)
-(->> (classify none) (printf (string/data "%i\n")))
+classify(Some(3)) |> printf(String.data("%i\n"))
+classify(Some(3.0)) |> printf(String.data("%i\n"))
+let none : option(float) = None
+classify(none) |> printf(String.data("%i\n"))

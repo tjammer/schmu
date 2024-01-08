@@ -1,25 +1,24 @@
-(signature
-  (type t int)
-  (type abstr)
+signature:
+  type t = int
+  type abstr
 
-  (def t int)
-  (def ext (fun string/cstr int unit))
-  (def int (fun int unit))
-  (def poly-int (fun 'a 'a)))
+  val t : int
+  val ext : (String.cstr, int) -> unit
+  val int : (int) -> unit
+  val poly_int : ('a) -> 'a
 
-(external ext (fun string/cstr int unit) "printf")
+external ext : (String.cstr, int) -> unit = "printf"
 
-(defn int ([i int])
-  (print (fmt-str i)))
+fun int(i : int):
+  print(fmt(i))
 
-(defn poly-int (a) (copy a))
+fun poly_int(a): copy(a)
 
 -- type t is usable here
-(def [t t] 200)
+let t : t = 200
 
-(defn hidden (a)
-  (print (fmt-str (+ 2 a))))
+fun hidden(a):
+  print(fmt(a + 2))
 
-(type hidden-type int)
-
-(type abstr int)
+type hidden_type = int
+type abstr = int

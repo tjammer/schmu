@@ -1,10 +1,10 @@
-(module-type sig
-  (type t)
-  (def hash (fun t int)))
+module type Sig:
+  type t
+  val hash : (t) -> int
 
-(functor make ([m sig])
-  (type (other 'a) {:this m/t :other 'a})
+functor Make(M : Sig):
+  type other('a) = {this : M.t, other : 'a}
 
-  (defn create (this! other!)
-    (print (fmt-str "create: " this " " other))
-    {:this :other}))
+  fun create(this!, other!):
+    print(fmt("create: ", this, " ", other))
+    {this, other}

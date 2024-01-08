@@ -1,18 +1,18 @@
-(import modd)
+import Modd
 
-(print a)
-(print b)
+print(a)
+print(b)
 
-(print modd/public/a)
+print(Modd.Public.a)
 
-(modd/func)
-(print (modd/lambda))
-(print (modd/closure))
+Modd.func()
+print(Modd.lambda())
+print(Modd.closure())
 
--- use polymorphic aliased function from another module
-(defn swapped (a! i j)
-  (let ((a& !a))
-    (swap &a i j)
-    a))
+-- use polymoorphic aliased function from another module
+fun swapped(a!, i, j):
+  let a& = !a
+  swap(&a, i, j)
+  a
 
-(array/iter (swapped !["world" "hello"] 0 1) (fn (s) (print s)))
+Array.iter(swapped(!["world", "hello"], 0, 1), fun s: print(s))

@@ -1,23 +1,21 @@
-(defn hmm ()
-  (def {a} {1})
-  (defn capture ()
-    (+ a 1))
-  capture)
+fun hmm():
+  let a, _ = (1, 0)
+  fun capture(): a + 1
+  capture
 
-(def _ {(copy (hmm))})
+let _, _ = (copy(hmm), 0)
 
-(defn hmm-move ()
-  (def {a} {1})
+fun hmm_move():
+  let a, _ = (1, 0)
   -- a is not explicitly copied, thus moved
-  (defn capture ()
-    (+ a 1))
-  capture)
+  fun capture(): a + 1
+  capture
 
-(def _ {(hmm-move)})
+let _, _ = (copy(hmm_move), 0)
 
-(defn test ()
-  (def a ["hello"])
-  (fn :copy a () (print a.[0])))
+fun test():
+  let a = ["hello"]
+  fun () [a]: print(a.[0])
 
-(def c (test))
-((copy c))
+let c = test()
+copy(c)()

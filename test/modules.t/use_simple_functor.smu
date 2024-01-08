@@ -1,3 +1,3 @@
-(module s (simple_functor/make string))
+module S = Simple_functor.Make(String)
 
-(ignore (s/create !"this" !"other"))
+ignore(S.create(!"this", !"other"))

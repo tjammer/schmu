@@ -1,14 +1,14 @@
-(def v& [0])
-(def const (copy v.[0]))
-(set &v.[0] !1)
-(print (fmt-str v.[0]))
-(print (fmt-str const))
+let v& = [0]
+let const = copy(v.[0])
+&v.[0] <- 1
+print(fmt(v.[0]))
+print(fmt(const))
 
-(defn in-fun ()
-  (def v& [0])
-  (def const (copy v.[0]))
-  (set &v.[0] !1)
-  (print (fmt-str v.[0]))
-  (print (fmt-str const)))
+fun in_fun():
+  let v& = [0]
+  let const = copy(v.[0])
+  &v.[0] <- 1
+  print(fmt(v.[0]))
+  print(fmt(const))
 
-(in-fun)
+in_fun()

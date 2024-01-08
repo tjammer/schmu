@@ -1,22 +1,24 @@
-(defn test () (print "hey test"))
+fun test():
+  print("hey test")
 
-(test)
+test()
 
-(local_otherfile/local/test)
-(local_otherfile/local/poly-test "test")
+Local_otherfile.Local.test()
+Local_otherfile.Local.poly_test("test")
 
-(module nosig
-  (type t {:a int})
-  (type other int)
-  (module nested
-    (defn nested () (print "i'm nested"))))
+module Nosig:
+  type t = {a : int}
+  type other = int
+  module Nested:
+    fun nested():
+      print("i'm nested")
 
-(def [test local_otherfile/nosig/t] {:a 10})
-(ignore test)
+let test : Local_otherfile.Nosig.t = {a = 10}
+ignore(test)
 
-(local_otherfile/nosig/nested/nested)
+Local_otherfile.Nosig.Nested.nested()
 
-(def [t local_otherfile/nosig/nested/t] 10.0)
-(ignore t)
+let t : Local_otherfile.Nosig.Nested.t = 10.0
+ignore(t)
 
-(local_otherfile/aliased/nested)
+Local_otherfile.Aliased.nested()

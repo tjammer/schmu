@@ -1,11 +1,9 @@
-(import nonpoly_func)
+import Nonpoly_func
 
-(external printf (fun string/cstr int unit))
+external printf : (String.cstr, int) -> unit
 
-(defn doo (a)
-  (match a
-   (#left (add_ints 0 5))
-   (#right (add_ints 0 -5))))
+fun doo(a): match a:
+  Left: add_ints(0, 5)
+  Right: add_ints(0, -5)
 
-(->> (doo #left)
-     (printf (string/data "%i\n")))
+doo(Left) |> printf(String.data("%i\n"))

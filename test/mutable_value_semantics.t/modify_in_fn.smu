@@ -1,14 +1,13 @@
-(type f {:a& int})
-(defn modify (r&)
-  (set &(.a r) !30))
+type f = {a& : int}
 
-(defn mod2 (a&)
-  (array/push &a !20))
+fun modify(r&): &r.a <- 30
 
-(def a& {:a 20})
-(modify &a)
-(print (fmt-str (.a a)))
+fun mod2(a&): Array.push(&a, !20)
 
-(def b& [10])
-(mod2 &b)
-(print (fmt-str (array/length b)))
+let a& = {a = 20}
+modify(&a)
+print(fmt(a.a))
+
+let b& = [10]
+mod2(&b)
+print(fmt(Array.length(b)))

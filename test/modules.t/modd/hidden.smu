@@ -1,1 +1,1 @@
-(def a "hidden")
+let a = "hidden"

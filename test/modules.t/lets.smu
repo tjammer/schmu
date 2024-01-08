@@ -1,11 +1,11 @@
-(def a 12)
+let a = 12
 
-(external printf (fun string/cstr int unit))
+external printf : (String.cstr, int) -> unit
 
-(defn generate_b () 21)
+fun generate_b(): 21
 
-(def b (generate_b))
+let b = generate_b()
 
-(def a 11)
+let a = 11
 
 -- printf("hello from Lets\n"array/data, 0)
