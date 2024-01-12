@@ -1,7 +1,7 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(type t {:x int})
+type t = {x : int}
 -- A polymorphic anonymous function which can not be resolved in the backend (yet)
-(def f (if true (fn (x) (copy x)) (fn (x) (copy x))))
+let f = if true: fun(x): copy(x) else: fun(x): copy(x)
 
-(printi (.x (f {:x 17})))
+printi(f({x = 17}).x)

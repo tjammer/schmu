@@ -1,16 +1,9 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(type t {:i int :b bool})
+type t = {i : int, b : bool}
 
-(defn pass (x) (copy x))
+fun pass(x): copy(x)
+fun apply(f, x): f(x)
 
-(defn apply (f x) (f x))
-
--- printi(apply(pass, 20))
-(-> (apply pass 20)
-    printi)
--- printi(apply(pass, { i = 700, b = false }).i)
-(->> {:i 700 :b false}
-        (apply pass)
-        (.i)
-        printi)
+printi(apply(pass, 20))
+({i = 700, b = false} |> apply(pass)).i -> printi

@@ -1,51 +1,46 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(type (t 'a) {:x 'a})
+type t('a) = {x : 'a}
 
 -- This fn is generic
-(defn apply ([x 'a] [f (fun 'a 'b)])
-  (f x))
+fun apply(x : 'a, f : ('a) -> 'b):
+  f(x)
 
-(def a 2)
+let a = 2
 
-(defn add_closed (x)
+fun add_closed(x):
   -- we close over
-  (+ x a))
+  x + a
 
--- simple int -> int
-(defn add1 (x) (+ x 1))
+-- simple (int) -> int
+fun add1(x): x + 1
 
-(defn print_bool (b)
-  (if b
-    (printi 1)
-    (printi 0)))
+fun print_bool(b):
+  if b: printi(1)
+  else: printi(0)
 
--- simple bool -> bool
-(defn makefalse (b)
-  (if b
-    false
-    b))
+-- simple (bool) -> bool
+fun makefalse(b):
+  if b: false else: b
 
 -- bool t -> bool t
-(defn make_rec_false (r)
-  (if (.x r)
-    {:x false}
-    r))
+fun make_rec_false(r):
+  if r.x:
+    {x = false}
+  else: r
 
 -- simple t -> t
-(defn add3_rec (t)
-  {:x (+ (.x t) 3)})
+fun add3_rec(t):
+  {x = t.x + 3}
 
 -- A polymorphic function which will get monomorphized
-(def f (fn (x) (copy x)))
+let f = fun x : copy(x)
 
-(printi (apply 20 add1))
-(printi (apply 20 add_closed))
-(printi (.x (apply {:x 20} add3_rec)))
-(print_bool (.x (apply {:x true} make_rec_false)))
-(print_bool (apply true makefalse))
-(printi (.x (f {:x 17})))
+printi(apply(20, add1))
+printi(apply(20, add_closed))
+printi(apply({x = 20}, add3_rec).x)
+print_bool(apply({x = true}, make_rec_false).x)
+print_bool(apply(true, makefalse))
+printi(f({x = 17}).x)
 -- inline polymorphic function
-(-> 18
-    (fn (x) (copy x))
-    printi)
+18 -> (fun x: copy(x)) -> printi

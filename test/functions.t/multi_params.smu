@@ -1,11 +1,8 @@
-(defn one () 1)
+fun one(): 1
 
-(defn add ([a int] [b int]) (+ a b))
+fun add(a : int, b : int): a + b
 
-(defn doiflesselse
-  ([a int] [b int] [greater int] [less int])
-  (if (< a b)
-      less
-      greater))
+fun doiflesselse(a : int, b : int, greater : int, less : int):
+  if a < b: less else: greater
 
-(doiflesselse (add (one) 1) 0 1 2)
+doiflesselse(add(one(), 1), 0, 1, 2)

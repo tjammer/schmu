@@ -1,7 +1,7 @@
-(defn return-closure (name)
+fun return_closure(name):
   -- create object on heap
-  (def n (fmt-str "++" name))
-  (fn () (print n )))
+  let n = fmt("++", name)
+  fun (): print(n)
 
-(def f (return-closure "aoeu"))
-(f)
+let f = return_closure("aoeu")
+f()

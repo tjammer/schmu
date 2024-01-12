@@ -1,13 +1,12 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(def outer 10)
+let outer = 10
 
-(defn loop (i)
+fun loop(i):
   -- we capture outer here
-  (if (< i outer)
-    (do
-      (printi i)
-      (loop (+ i 1))) -- and recurse here
-    (printi i)))
+  if i < outer:
+    printi(i)
+    loop(i + 1)
+  else: printi(i)
 
-(loop 0)
+loop(0)

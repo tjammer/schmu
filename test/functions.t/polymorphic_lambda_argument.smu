@@ -1,20 +1,16 @@
-(def arr [1 2 3 4 5 6 7 8 9 10])
+let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-(defn string-add-null (str&)
-  (string/modify-buf &str
-                     (fn (arr&)
-     (array/push &arr !0u8)
-     (array/drop-back &arr))))
+fun string_add_null(str&):
+  String.modify_buf(&str, fun(arr&):
+    Array.push(&arr, !0u8)
+    Array.drop_back(&arr))
 
-(defn string-concat (arr delim)
-  (def acc& "")
-  (array/iteri
-   arr
-   (fn (i v)
-     (if (> i 0)
-       (string/append &acc delim))
-     (string/append &acc (fmt-str v))))
-  (string-add-null &acc)
-  acc)
+fun string_concat(arr, delim):
+  let acc& = ""
+  Array.iteri(arr, fun(i, v):
+    if i > 0: String.append(&acc, delim)
+    String.append(&acc, fmt(v)))
+  string_add_null(&acc)
+  acc
 
-(print (string-concat arr ", "))
+print(string_concat(arr, ", "))

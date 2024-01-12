@@ -1,14 +1,13 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(defn fib (n)
-  (if (< n 2)
-    n
+fun fib(n):
+  if n < 2: n
+  else:
     -- local function
-    (do
-      (defn fibn2 (n) (fib (- n 2)))
-      -- anonymous function
-      -- shadow fib. Since the function is anonymous, the inner fib call still calls the outer fib
-      (def fib (fn (n) (fib (- n 1))))
-      (+ (fibn2 n) (fib n)))))
+    fun fibn2(n): fib(n - 2)
+    -- anonymous function
+    -- shadow fib. Since the function is anonymous, the inner fib call still calls out the outer fib
+    let fib = fun n: fib(n - 1)
+    fibn2(n) + fib(n)
 
-(printi (fib 30))
+printi(fib(30))

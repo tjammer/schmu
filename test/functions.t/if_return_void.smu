@@ -1,12 +1,10 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(defn foo (i)
-  (if (< i 2)
-    (printi (- i 1))
-    (do
-      (if (< i 400)
-        (printi i)
-        (printi (+ i 1)))
-      (foo (- i 1)))))
+fun foo(i):
+  if i < 2: printi(i - 1)
+  else:
+    if i < 400: printi(i)
+    else: printi(i + 1)
+    foo(i - 1)
 
-(foo 4)
+foo(4)

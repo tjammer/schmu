@@ -1,48 +1,45 @@
-(type view {:start int :len int})
-(type (success 'a) {:rem view :mtch 'a})
-(type (parse-result 'a) ((#ok (success 'a)) (#err view)))
+type view = {start : int, len : int}
+type success('a) = {rem : view, mtch : 'a}
+type parse_result('a) = Ok(success('a)) | Err(view)
 
-(defn char (c)
-  (fn (buf view)
-    (if (char-equal (string/get buf view.start) c)
-      (#ok {:mtch {@view :len 1}
-            :rem {:start (+ 1 view.start) :len (- view.len 1)}})
-      (#err view))))
+fun char(c):
+  fun (buf, view):
+    if char_equal(String.get(buf, view.start), c):
+      Ok({mtch = {view with len = 1}, rem = {start = view.start + 1, len = view.len - 1}})
+    else:
+      Err(view)
 
-(defn alt (alts!)
-  (fn (buf view)
-    (defn aux (i)
-      (if (= i (array/length alts))
-        (#err view)
-        (match (alts.[i] buf view)
-          ((#ok r) (#ok r))
-          ((#err _) (aux (+ i 1))))))
-    (aux 0)))
+fun alt(alts!):
+  fun(buf, view):
+    fun aux(i):
+      if Array.length(alts) == i: Err(view)
+      else: match alts.[i](buf, view):
+        Ok(r): Ok(r)
+        Err(_): aux(i + 1)
+    aux(0)
 
 -- same thing with a named function
-(defn alt-named (alts!)
-  (defn named3 (buf view)
-    (defn aux (i)
-      (if (= i (array/length alts))
-        (#err view)
-        (match (alts.[i] buf view)
-          ((#ok r) (#ok r))
-          ((#err _) (aux (+ i 1))))))
-    (aux 0))
-    named3)
+fun alt_named(alts!):
+  fun named3(buf, view):
+    fun aux(i):
+      if Array.length(alts) == i: Err(view)
+      else: match alts.[i](buf, view):
+        Ok(r): Ok(r)
+        Err(_): aux(i + 1)
+    aux(0)
+  named3
 
-(defn view-of-string (str)
-  {:start 0 :len (string/len str)})
+fun view_of_string(str): {start = 0, len = String.len(str)}
 
-(def x "x")
-(def lx (view-of-string x))
-(def ix "ix")
-(def li (view-of-string ix))
-(def xi "xi")
-(def l0 (view-of-string xi))
+let x = "x"
+let lx = view_of_string(x)
+let ix = "ix"
+let li = view_of_string(ix)
+let xi = "xi"
+let l0 = view_of_string(xi)
 
-(ignore (alt-named ![(char 'x') (char 'i')]))
-(def c (alt ![(char 'x') (char 'i')]))
-(ignore (c x lx))
-(ignore (c ix li))
-(ignore (c xi l0))
+ignore(alt_named(![char('x'), char('i')]))
+let c = alt(![char('x'), char('i')])
+ignore(c(x, lx))
+ignore(c(ix, li))
+ignore(c(xi, l0))

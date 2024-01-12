@@ -1,13 +1,12 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(def b 2)
+let b = 2
 
-(defn one () 1)
+fun one(): 1
+fun two(): b
 
-(defn two () b)
-
-(defn add (a b)
+fun add(a, b):
   -- b should be a function, not captured value
-  (+ (a) (b)))
+  a() + b()
 
-(printi (add one two))
+printi(add(one, two))

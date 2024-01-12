@@ -1,36 +1,33 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(defn array-iter (arr f)
-  (defn inner_cls_both (i)
-    (if (= i (array/length arr))
-      ()
-      (do
-        (f arr.[i])
-        (inner_cls_both (+ i 1)))))
+fun array_iter(arr, f):
+  fun inner_cls_both(i):
+    if Array.length(arr) == i: ()
+    else:
+      f(arr.[i])
+      inner_cls_both(i + 1)
 
-  (defn inner_cls_arr (i f)
-    (if (= i (array/length arr))
-      ()
-      (do
-        (f arr.[i])
-        (inner_cls_arr (+ i 1) f))))
+  fun inner_cls_arr(i, f):
+    if Array.length(arr) == i: ()
+    else:
+      f(arr.[i])
+      inner_cls_arr(i + 1, f)
 
-  (defn inner_cls_f (i arr)
-    (if (= i (array/length arr))
-      ()
-      (do
-        (f arr.[i])
-        (inner_cls_f (+ i 1) arr))))
+  fun inner_cls_f(i, arr):
+    if Array.length(arr) == i: ()
+    else:
+      f(arr.[i])
+      inner_cls_f(i + 1, arr)
 
-  (inner_cls_both 0)
-  (inner_cls_arr 0 f)
-  (inner_cls_f 0 arr))
+  inner_cls_both(0)
+  inner_cls_arr(0, f)
+  inner_cls_f(0, arr)
 
-(def arr& [])
-(array/push &arr !1)
-(array/push &arr !2)
-(array/push &arr !3)
-(array/push &arr !4)
-(array/push &arr !5)
+let arr& = []
+Array.push(&arr, !1)
+Array.push(&arr, !2)
+Array.push(&arr, !3)
+Array.push(&arr, !4)
+Array.push(&arr, !5)
 
-(array-iter arr (fn (x) (printi (* x 2))))
+array_iter(arr, fun x: printi(x * 2))

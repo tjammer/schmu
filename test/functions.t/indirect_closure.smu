@@ -1,21 +1,19 @@
-(external printi (fun int unit))
+external printi : (int) -> unit
 
-(type (t 'a) {:x 'a})
+type t('a) = {x : 'a}
 
-(defn apply (x f env)
-  (f x env))
+fun apply(x, f, env): f(x, env)
 
-(defn apply2 ([x 'a] [f (fun 'a (fun 'a 'b) 'b)] [env (fun 'a 'b)])
-  (f x env))
+fun apply2(x : 'a, f : ('a, ('a) -> 'b) -> 'b, env : ('a) -> 'b):
+  f(x, env)
 
-(defn add1 ([x int])
-  (+ x 1))
+fun add1(x : int): x + 1
 
-(defn boxed2int_int (t env)
-  (def a (env (.x t)))
-  {:x a})
+fun boxed2int_int(t, env):
+  let a = env(t.x)
+  {x = a}
 
-(def a (.x (apply {:x 15} boxed2int_int add1)))
-(printi a)
-(def b (.x (apply2 {:x 15} boxed2int_int add1)))
-(printi b)
+let a = apply({x = 15}, boxed2int_int, add1).x
+printi(a)
+let b = apply2({x = 15}, boxed2int_int, add1).x
+printi(b)

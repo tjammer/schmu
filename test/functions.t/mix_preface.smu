@@ -1,11 +1,10 @@
-(type first { :a int })
-(external dummy_call (fun unit first))
+type first = {a : int}
+external dummy_call : () -> first
 
-(ignore dummy_call)
+ignore(dummy_call)
 
-(type second { :a int })
-(external print_2nd (fun second unit))
+type second = {a : int}
+external print_2nd : (second) -> unit
 
-(ignore print_2nd)
-
+ignore(print_2nd)
 0

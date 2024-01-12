@@ -11,7 +11,7 @@ Simple fibonacci
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  declare void @printi(i64 %0)
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define i64 @schmu_fib(i64 %n) {
   entry:
@@ -38,9 +38,11 @@ Simple fibonacci
   define i64 @main(i64 %arg) {
   entry:
     %0 = tail call i64 @schmu_fib(i64 30)
-    tail call void @printi(i64 %0)
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %0)
     ret i64 0
   }
+  
+  declare void @printf(i8* %0, ...)
   832040
 
 Fibonacci, but we shadow a bunch
@@ -891,10 +893,10 @@ Closures can recurse too
 
 Print error when returning a polymorphic lambda in an if expression
   $ schmu --dump-llvm stub.o no_lambda_let_poly_monomorph.smu
-  no_lambda_let_poly_monomorph.smu:5.9-52: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though..
+  no_lambda_let_poly_monomorph.smu:5.9-55: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though..
   
-  5 | (def f (if true (fn (x) (copy x)) (fn (x) (copy x))))
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 | let f = if true: fun(x): copy(x) else: fun(x): copy(x)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
   [1]
 Allow mixing of typedefs and external decls in the preface
@@ -1001,7 +1003,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   declare void @printi(i64 %0)
   
-  define linkonce_odr void @__agg.u.u_schmu_array-iter_aii.u.u(i64* %arr, %closure* %f) {
+  define linkonce_odr void @__agg.u.u_schmu_array_iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
     %__i.u-ag-g.u_schmu_inner_cls_both_i.u-ai-i.u = alloca %closure, align 8
     %funptr27 = bitcast %closure* %__i.u-ag-g.u_schmu_inner_cls_both_i.u-ai-i.u to i8**
@@ -1094,7 +1096,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     %data = bitcast i8* %13 to i64*
     %14 = getelementptr inbounds i64, i64* %data, i64 %2
     store i64 %value, i64* %14, align 8
-    %add = add i64 1, %2
+    %add = add i64 %2, 1
     store i64 %add, i64* %11, align 8
     ret void
   }
@@ -1371,7 +1373,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     store i8* bitcast (void (i64)* @__fun_schmu0 to i8*), i8** %funptr1, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    call void @__agg.u.u_schmu_array-iter_aii.u.u(i64* %3, %closure* %clstmp)
+    call void @__agg.u.u_schmu_array_iter_aii.u.u(i64* %3, %closure* %clstmp)
     call void @__free_ai(i64** @schmu_arr)
     ret i64 0
   }
@@ -1484,12 +1486,12 @@ Don't copy mutable types in setup of tailrecursive functions
     %data = bitcast i8* %13 to i64*
     %14 = getelementptr inbounds i64, i64* %data, i64 %2
     store i64 %value, i64* %14, align 8
-    %add = add i64 1, %2
+    %add = add i64 %2, 1
     store i64 %add, i64* %11, align 8
     ret void
   }
   
-  define void @schmu_change-int(i64* noalias %i, i64 %j) {
+  define void @schmu_change_int(i64* noalias %i, i64 %j) {
   entry:
     %0 = alloca i64*, align 8
     store i64* %i, i64** %0, align 8
@@ -1514,7 +1516,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   }
   
-  define void @schmu_dontmut-bref(i64 %i, %bref* noalias %rf) {
+  define void @schmu_dontmut_bref(i64 %i, %bref* noalias %rf) {
   entry:
     %0 = alloca i64, align 8
     store i64 %i, i64* %0, align 8
@@ -1543,7 +1545,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   }
   
-  define void @schmu_mod-rec(%r* noalias %r, i64 %i) {
+  define void @schmu_mod_rec(%r* noalias %r, i64 %i) {
   entry:
     %0 = alloca %r*, align 8
     store %r* %r, %r** %0, align 8
@@ -1569,7 +1571,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   }
   
-  define void @schmu_mut-bref(i64 %i, %bref* noalias %rf) {
+  define void @schmu_mut_bref(i64 %i, %bref* noalias %rf) {
   entry:
     %0 = alloca i64, align 8
     store i64 %i, i64* %0, align 8
@@ -1594,7 +1596,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %rec
   }
   
-  define void @schmu_push-twice(i64** noalias %a, i64 %i) {
+  define void @schmu_push_twice(i64** noalias %a, i64 %i) {
   entry:
     %0 = alloca i64**, align 8
     store i64** %a, i64*** %0, align 8
@@ -1744,7 +1746,7 @@ Don't copy mutable types in setup of tailrecursive functions
   define i64 @main(i64 %arg) {
   entry:
     store i1 false, i1* getelementptr inbounds (%bref, %bref* @schmu_rf, i32 0, i32 0), align 1
-    tail call void @schmu_mut-bref(i64 0, %bref* @schmu_rf)
+    tail call void @schmu_mut_bref(i64 0, %bref* @schmu_rf)
     %0 = load i1, i1* getelementptr inbounds (%bref, %bref* @schmu_rf, i32 0, i32 0), align 1
     br i1 %0, label %cont, label %free
   
@@ -1755,7 +1757,7 @@ Don't copy mutable types in setup of tailrecursive functions
     %1 = phi i8* [ bitcast ({ i64, i64, [5 x i8] }* @1 to i8*), %entry ], [ bitcast ({ i64, i64, [6 x i8] }* @0 to i8*), %free ]
     %2 = getelementptr i8, i8* %1, i64 16
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @2 to i8*), i64 16), i8* %2)
-    tail call void @schmu_dontmut-bref(i64 0, %bref* @schmu_rf)
+    tail call void @schmu_dontmut_bref(i64 0, %bref* @schmu_rf)
     %3 = load i1, i1* getelementptr inbounds (%bref, %bref* @schmu_rf, i32 0, i32 0), align 1
     br i1 %3, label %cont2, label %free1
   
@@ -1769,7 +1771,7 @@ Don't copy mutable types in setup of tailrecursive functions
     %6 = alloca %r, align 8
     %a7 = bitcast %r* %6 to i64*
     store i64 20, i64* %a7, align 8
-    call void @schmu_mod-rec(%r* %6, i64 0)
+    call void @schmu_mod_rec(%r* %6, i64 0)
     %7 = load i64, i64* %a7, align 8
     call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %7)
     %8 = alloca i64*, align 8
@@ -1784,13 +1786,13 @@ Don't copy mutable types in setup of tailrecursive functions
     store i64 10, i64* %data, align 8
     %"1" = getelementptr i64, i64* %data, i64 1
     store i64 20, i64* %"1", align 8
-    call void @schmu_push-twice(i64** %8, i64 0)
+    call void @schmu_push_twice(i64** %8, i64 0)
     %12 = load i64*, i64** %8, align 8
     %13 = load i64, i64* %12, align 8
     call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %13)
     %14 = alloca i64, align 8
     store i64 0, i64* %14, align 8
-    call void @schmu_change-int(i64* %14, i64 0)
+    call void @schmu_change_int(i64* %14, i64 0)
     %15 = load i64, i64* %14, align 8
     call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %15)
     %16 = alloca i64*, align 8
@@ -1837,9 +1839,9 @@ The lamba passed as array-iter argument is polymorphic
   
   declare void @string_append(i8** noalias %0, i8* %1)
   
-  declare void @string_modify-buf(i8** noalias %0, %closure* %1)
+  declare void @string_modify_buf(i8** noalias %0, %closure* %1)
   
-  define linkonce_odr i8* @__agac.ac_schmu_string-concat_aiac.ac(i64* %arr, i8* %delim) {
+  define linkonce_odr i8* @__agac.ac_schmu_string_concat_aiac.ac(i64* %arr, i8* %delim) {
   entry:
     %0 = alloca i8*, align 8
     %1 = alloca i8*, align 8
@@ -1864,7 +1866,7 @@ The lamba passed as array-iter argument is polymorphic
     %envptr = getelementptr inbounds %closure, %closure* %__ig.u-ac-ac___fun_schmu1_ii.u-ac-ac, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
     call void @__agig.u.u_array_iteri_aiii.u.u(i64* %arr, %closure* %__ig.u-ac-ac___fun_schmu1_ii.u-ac-ac)
-    call void @schmu_string-add-null(i8** %0)
+    call void @schmu_string_add_null(i8** %0)
     %4 = load i8*, i8** %0, align 8
     ret i8* %4
   }
@@ -1907,7 +1909,7 @@ The lamba passed as array-iter argument is polymorphic
     %8 = getelementptr i8, i8* %7, i64 16
     %9 = getelementptr inbounds i8, i8* %8, i64 %3
     store i8 %value, i8* %9, align 1
-    %add = add i64 1, %3
+    %add = add i64 %3, 1
     store i64 %add, i64* %.pre-phi, align 8
     ret void
   }
@@ -2027,14 +2029,14 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define void @schmu_string-add-null(i8** noalias %str) {
+  define void @schmu_string_add_null(i8** noalias %str) {
   entry:
     %clstmp = alloca %closure, align 8
     %funptr1 = bitcast %closure* %clstmp to i8**
     store i8* bitcast (void (i8**)* @__fun_schmu0 to i8*), i8** %funptr1, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    call void @string_modify-buf(i8** %str, %closure* %clstmp)
+    call void @string_modify_buf(i8** %str, %closure* %clstmp)
     ret void
   }
   
@@ -2179,7 +2181,7 @@ The lamba passed as array-iter argument is polymorphic
     %"9" = getelementptr i64, i64* %data, i64 9
     store i64 10, i64* %"9", align 8
     %3 = load i64*, i64** @schmu_arr, align 8
-    %4 = tail call i8* @__agac.ac_schmu_string-concat_aiac.ac(i64* %3, i8* bitcast ({ i64, i64, [3 x i8] }* @2 to i8*))
+    %4 = tail call i8* @__agac.ac_schmu_string_concat_aiac.ac(i64* %3, i8* bitcast ({ i64, i64, [3 x i8] }* @2 to i8*))
     tail call void @string_print(i8* %4)
     %5 = alloca i8*, align 8
     store i8* %4, i8** %5, align 8
@@ -2252,7 +2254,7 @@ Function call returning a polymorphic function
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
     %ret = alloca %closure, align 8
-    call void @__gg.g_schmu_black-box_ac.uac.u.ac.u(%closure* %ret, %closure* %clstmp, %closure* %clstmp1)
+    call void @__gg.g_schmu_black_box_ac.uac.u.ac.u(%closure* %ret, %closure* %clstmp, %closure* %clstmp1)
     %funcptr8 = bitcast %closure* %ret to i8**
     %loadtmp = load i8*, i8** %funcptr8, align 8
     %casttmp = bitcast i8* %loadtmp to void (i8*, i8*)*
@@ -2276,7 +2278,7 @@ Function call returning a polymorphic function
     %envptr3 = getelementptr inbounds %closure, %closure* %clstmp1, i32 0, i32 1
     store i8* null, i8** %envptr3, align 8
     %ret = alloca %closure, align 8
-    call void @__gg.g_schmu_black-box_i.ui.u.i.u(%closure* %ret, %closure* %clstmp, %closure* %clstmp1)
+    call void @__gg.g_schmu_black_box_i.ui.u.i.u(%closure* %ret, %closure* %clstmp, %closure* %clstmp1)
     %funcptr8 = bitcast %closure* %ret to i8**
     %loadtmp = load i8*, i8** %funcptr8, align 8
     %casttmp = bitcast i8* %loadtmp to void (i64, i8*)*
@@ -2300,7 +2302,7 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define linkonce_odr void @__gg.g_schmu_black-box_ac.uac.u.ac.u(%closure* noalias %0, %closure* %f, %closure* %g) {
+  define linkonce_odr void @__gg.g_schmu_black_box_ac.uac.u.ac.u(%closure* noalias %0, %closure* %f, %closure* %g) {
   entry:
     %1 = load i1, i1* @schmu_once, align 1
     br i1 %1, label %then, label %else
@@ -2321,7 +2323,7 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define linkonce_odr void @__gg.g_schmu_black-box_i.ui.u.i.u(%closure* noalias %0, %closure* %f, %closure* %g) {
+  define linkonce_odr void @__gg.g_schmu_black_box_i.ui.u.i.u(%closure* noalias %0, %closure* %f, %closure* %g) {
   entry:
     %1 = load i1, i1* @schmu_once, align 1
     br i1 %1, label %then, label %else
