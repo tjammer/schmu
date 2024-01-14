@@ -1,5 +1,5 @@
-(defn hm (a!)
-  (ignore a)
-  ())
+fun hm(a!):
+  ignore(a)
+  ()
 
-(hm !["aoeu"])
+hm(!["aoeu"])

@@ -1,12 +1,11 @@
-(defn test ()
-  (def [ret (array int)] [])
-  (defn inner (i)
-    (ignore i)
-    (copy ret))
-  (def io (inner 10))
-  (ignore io)
-  ret)
+fun test():
+  let ret : array(int) = []
+  fun inner(i):
+    ignore(i)
+    copy(ret)
+  let io = inner(10)
+  ignore(io)
+  ret
 
-
-(def a (test))
-(ignore a)
+let a = test()
+ignore(a)

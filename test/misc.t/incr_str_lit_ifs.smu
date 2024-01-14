@@ -1,12 +1,11 @@
-(defn ret-non ()
-  (if false
-    (#some 20)
-    #none))
+fun ret_non():
+  if false: Some(20)
+  else: None
 
-(defn try ()
-  (match (ret-non)
-    ((#some j) (print (fmt-str j)))
-    (#none (print "none"))))
+fun try():
+  match ret_non():
+    Some(j): print(fmt(j))
+    None: print("none")
 
-(try)
-(try)
+try()
+try()

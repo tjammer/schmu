@@ -51,10 +51,10 @@ Test elif
 
 Test simple typedef
   $ schmu --dump-llvm stub.o simple_typealias.smu && ./simple_typealias
-  simple_typealias.smu:2.11-15: warning: Unused binding puts.
+  simple_typealias.smu:2.10-14: warning: Unused binding puts.
   
-  2 | (external puts (fun foo unit))
-                ^^^^
+  2 | external puts : (foo) -> unit
+               ^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -68,55 +68,55 @@ Test simple typedef
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
   $ schmu --dump-llvm stub.o free_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_array
-  free_array.smu:7.6-9: warning: Unused binding arr.
+  free_array.smu:7.5-8: warning: Unused binding arr.
   
-  7 | (def arr ["hey" "young" "world"])
+  7 | let arr = ["hey", "young", "world"]
+          ^^^
+  
+  free_array.smu:8.5-8: warning: Unused binding arr.
+  
+  8 | let arr = [copy(x), {x = 2}, {x = 3}]
+          ^^^
+  
+  free_array.smu:47.5-8: warning: Unused binding arr.
+  
+  47 | let arr = make_arr()
            ^^^
   
-  free_array.smu:8.6-9: warning: Unused binding arr.
+  free_array.smu:50.5-11: warning: Unused binding normal.
   
-  8 | (def arr [(copy x) {:x 2} {:x 3}])
-           ^^^
+  50 | let normal = nest_fns()
+           ^^^^^^
   
-  free_array.smu:48.6-9: warning: Unused binding arr.
+  free_array.smu:54.5-11: warning: Unused binding nested.
   
-  48 | (def arr (make_arr))
-            ^^^
+  54 | let nested = make_nested_arr()
+           ^^^^^^
   
-  free_array.smu:51.6-12: warning: Unused binding normal.
+  free_array.smu:55.5-11: warning: Unused binding nested.
   
-  51 | (def normal (nest_fns))
-            ^^^^^^
+  55 | let nested = nest_allocs()
+           ^^^^^^
   
-  free_array.smu:55.6-12: warning: Unused binding nested.
+  free_array.smu:58.5-15: warning: Unused binding rec_of_arr.
   
-  55 | (def nested (make_nested_arr))
-            ^^^^^^
+  58 | let rec_of_arr = {index = 12, arr = [1, 2]}
+           ^^^^^^^^^^
   
-  free_array.smu:56.6-12: warning: Unused binding nested.
+  free_array.smu:59.5-15: warning: Unused binding rec_of_arr.
   
-  56 | (def nested (nest_allocs))
-            ^^^^^^
+  59 | let rec_of_arr = record_of_arrs()
+           ^^^^^^^^^^
   
-  free_array.smu:59.6-16: warning: Unused binding rec_of_arr.
+  free_array.smu:61.5-15: warning: Unused binding arr_of_rec.
   
-  59 | (def rec_of_arr {:index 12 :arr [1 2]})
-            ^^^^^^^^^^
+  61 | let arr_of_rec = [record_of_arrs(), record_of_arrs()]
+           ^^^^^^^^^^
   
-  free_array.smu:60.6-16: warning: Unused binding rec_of_arr.
+  free_array.smu:62.5-15: warning: Unused binding arr_of_rec.
   
-  60 | (def rec_of_arr (record_of_arrs))
-            ^^^^^^^^^^
-  
-  free_array.smu:62.6-16: warning: Unused binding arr_of_rec.
-  
-  62 | (def arr_of_rec [(record_of_arrs) (record_of_arrs)])
-            ^^^^^^^^^^
-  
-  free_array.smu:63.6-16: warning: Unused binding arr_of_rec.
-  
-  63 | (def arr_of_rec (arr_of_records))
-            ^^^^^^^^^^
+  62 | let arr_of_rec = arr_of_records()
+           ^^^^^^^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -187,7 +187,7 @@ Also mutable fields and 'realloc' builtin
     %data = bitcast i8* %14 to i64**
     %15 = getelementptr inbounds i64*, i64** %data, i64 %3
     store i64* %value, i64** %15, align 8
-    %add = add i64 1, %3
+    %add = add i64 %3, 1
     store i64 %add, i64* %.pre-phi, align 8
     ret void
   }
@@ -242,7 +242,7 @@ Also mutable fields and 'realloc' builtin
     %18 = bitcast %foo* %17 to i8*
     %19 = bitcast %foo* %14 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %18, i8* %19, i64 8, i1 false)
-    %add = add i64 1, %4
+    %add = add i64 %4, 1
     store i64 %add, i64* %.pre-phi, align 8
     ret void
   }
@@ -1216,25 +1216,25 @@ Test 'and', 'or' and 'not'
 
 
   $ schmu --dump-llvm stub.o unary_minus.smu && ./unary_minus
-  unary_minus.smu:1.6-7: warning: Unused binding a.
+  unary_minus.smu:1.5-6: warning: Unused binding a.
   
-  1 | (def a -1.0)
-           ^
+  1 | let a = -1.0
+          ^
   
-  unary_minus.smu:2.6-7: warning: Unused binding a.
+  unary_minus.smu:2.5-6: warning: Unused binding a.
   
-  2 | (def a -.1.0)
-           ^
+  2 | let a = -.1.0
+          ^
   
-  unary_minus.smu:3.6-7: warning: Unused binding a.
+  unary_minus.smu:3.5-6: warning: Unused binding a.
   
-  3 | (def a - 1.0)
-           ^
+  3 | let a = - 1.0
+          ^
   
-  unary_minus.smu:4.6-7: warning: Unused binding a.
+  unary_minus.smu:4.5-6: warning: Unused binding a.
   
-  4 | (def a -. 1.0)
-           ^
+  4 | let a = -. 1.0
+          ^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -1255,40 +1255,40 @@ Test 'and', 'or' and 'not'
 
 Test unused binding warning
   $ schmu unused.smu stub.o
-  unused.smu:2.6-13: warning: Unused binding unused1.
+  unused.smu:2.5-12: warning: Unused binding unused1.
   
-  2 | (def unused1 0)
-           ^^^^^^^
+  2 | let unused1 = 0
+          ^^^^^^^
   
-  unused.smu:5.6-13: warning: Unused binding unused2.
+  unused.smu:5.5-12: warning: Unused binding unused2.
   
-  5 | (def unused2 0)
-           ^^^^^^^
+  5 | let unused2 = 0
+          ^^^^^^^
   
-  unused.smu:12.7-18: warning: Unused binding use_unused3.
+  unused.smu:12.5-16: warning: Unused binding use_unused3.
   
-  12 | (defn use_unused3 ()
-             ^^^^^^^^^^^
+  12 | fun use_unused3():
+           ^^^^^^^^^^^
   
-  unused.smu:19.11-18: warning: Unused binding unused4.
+  unused.smu:17.9-16: warning: Unused binding unused4.
   
-  19 |      (def unused4 0)
-                 ^^^^^^^
+  17 |     let unused4 = 0
+               ^^^^^^^
   
-  unused.smu:23.11-18: warning: Unused binding unused5.
+  unused.smu:20.9-16: warning: Unused binding unused5.
   
-  23 |      (def unused5 0)
-                 ^^^^^^^
+  20 |     let unused5 = 0
+               ^^^^^^^
   
-  unused.smu:38.13-22: warning: Unused binding usedlater.
+  unused.smu:33.9-18: warning: Unused binding usedlater.
   
-  38 |        (def usedlater 0)
-                   ^^^^^^^^^
+  33 |     let usedlater = 0
+               ^^^^^^^^^
   
-  unused.smu:52.13-22: warning: Unused binding usedlater.
+  unused.smu:46.9-18: warning: Unused binding usedlater.
   
-  52 |        (def usedlater 0)
-                   ^^^^^^^^^
+  46 |     let usedlater = 0
+               ^^^^^^^^^
   
 Allow declaring a c function with a different name
   $ schmu stub.o cname_decl.smu && ./cname_decl
@@ -1297,12 +1297,12 @@ Allow declaring a c function with a different name
 
 We can have if without else
   $ schmu if_no_else.smu
-  if_no_else.smu:2.2-11: error: A conditional without else branch should evaluato to type unit.
+  if_no_else.smu:2.1-11: error: A conditional without else branch should evaluato to type unit.
   expecting [unit]
   but found [int].
   
-  2 | (if true 2)
-       ^^^^^^^^^
+  2 | if true: 2
+      ^^^^^^^^^^
   
   [1]
 
@@ -1652,14 +1652,14 @@ Ensure global are loadad correctly when passed to functions
   @schmu_height = constant i64 720
   @schmu_world = global %bar zeroinitializer, align 8
   
-  define linkonce_odr void @__g.u_schmu_get-seg_bar.u(%bar* %bar) {
+  define linkonce_odr void @__g.u_schmu_get_seg_bar.u(%bar* %bar) {
   entry:
     ret void
   }
   
-  define void @schmu_wrap-seg() {
+  define void @schmu_wrap_seg() {
   entry:
-    tail call void @__g.u_schmu_get-seg_bar.u(%bar* @schmu_world)
+    tail call void @__g.u_schmu_get_seg_bar.u(%bar* @schmu_world)
     ret void
   }
   
@@ -1671,7 +1671,7 @@ Ensure global are loadad correctly when passed to functions
     store double 1.000000e-01, double* getelementptr inbounds (%bar, %bar* @schmu_world, i32 0, i32 3), align 8
     store double 5.400000e+02, double* getelementptr inbounds (%bar, %bar* @schmu_world, i32 0, i32 4), align 8
     store float 5.000000e+00, float* getelementptr inbounds (%bar, %bar* @schmu_world, i32 0, i32 5), align 4
-    tail call void @schmu_wrap-seg()
+    tail call void @schmu_wrap_seg()
     ret i64 0
   }
 
@@ -1733,7 +1733,7 @@ Array push
     %data = bitcast i8* %14 to i64**
     %15 = getelementptr inbounds i64*, i64** %data, i64 %3
     store i64* %value, i64** %15, align 8
-    %add = add i64 1, %3
+    %add = add i64 %3, 1
     store i64 %add, i64* %.pre-phi, align 8
     ret void
   }
@@ -1779,12 +1779,12 @@ Array push
     %data = bitcast i8* %13 to i64*
     %14 = getelementptr inbounds i64, i64* %data, i64 %2
     store i64 %value, i64* %14, align 8
-    %add = add i64 1, %2
+    %add = add i64 %2, 1
     store i64 %add, i64* %11, align 8
     ret void
   }
   
-  define void @schmu_in-fun() {
+  define void @schmu_in_fun() {
   entry:
     %0 = alloca i64*, align 8
     %1 = tail call i8* @malloc(i64 32)
@@ -1872,7 +1872,7 @@ Array push
     %5 = load i64*, i64** @schmu_b, align 8
     %6 = load i64, i64* %5, align 8
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %6)
-    tail call void @schmu_in-fun()
+    tail call void @schmu_in_fun()
     %7 = tail call i8* @malloc(i64 32)
     %8 = bitcast i8* %7 to i64**
     store i64** %8, i64*** @schmu_nested, align 8
@@ -2050,14 +2050,14 @@ Decrease ref counts for local variables in if branches
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  define i1 @schmu_ret-true() {
+  define i1 @schmu_ret_true() {
   entry:
     ret i1 true
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i1 @schmu_ret-true()
+    %0 = tail call i1 @schmu_ret_true()
     br i1 %0, label %then, label %else
   
   then:                                             ; preds = %entry
@@ -2304,14 +2304,14 @@ Global lets with expressions
   @schmu_b = global i64* null, align 8
   @schmu_c = global i64 0, align 8
   
-  define void @schmu_ret-none(%option.t_array_int* noalias %0) {
+  define void @schmu_ret_none(%option.t_array_int* noalias %0) {
   entry:
     %1 = bitcast %option.t_array_int* %0 to i8*
     tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* bitcast (%option.t_array_int* @schmu_a to i8*), i64 16, i1 false)
     ret void
   }
   
-  define i64 @schmu_ret-rec() {
+  define i64 @schmu_ret_rec() {
   entry:
     %0 = alloca %r_array_int, align 8
     %a2 = bitcast %r_array_int* %0 to i64**
@@ -2342,7 +2342,7 @@ Global lets with expressions
   define i64 @main(i64 %arg) {
   entry:
     %ret = alloca %option.t_array_int, align 8
-    call void @schmu_ret-none(%option.t_array_int* %ret)
+    call void @schmu_ret_none(%option.t_array_int* %ret)
     %tag5 = bitcast %option.t_array_int* %ret to i32*
     %index = load i32, i32* %tag5, align 4
     %eq = icmp eq i32 %index, 0
@@ -2372,7 +2372,7 @@ Global lets with expressions
     %3 = load i64*, i64** %iftmp, align 8
     store i64* %3, i64** @schmu_b, align 8
     %ret2 = alloca %r_array_int, align 8
-    %4 = call i64 @schmu_ret-rec()
+    %4 = call i64 @schmu_ret_rec()
     %box = bitcast %r_array_int* %ret2 to i64*
     store i64 %4, i64* %box, align 8
     %5 = inttoptr i64 %4 to i64*
@@ -2486,7 +2486,7 @@ Return nonclosure functions
     ret i64 %add
   }
   
-  define void @schmu_ret-fn(%closure* noalias %0) {
+  define void @schmu_ret_fn(%closure* noalias %0) {
   entry:
     %funptr1 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i64)* @__fun_schmu0 to i8*), i8** %funptr1, align 8
@@ -2495,7 +2495,7 @@ Return nonclosure functions
     ret void
   }
   
-  define void @schmu_ret-named(%closure* noalias %0) {
+  define void @schmu_ret_named(%closure* noalias %0) {
   entry:
     %funptr1 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i64)* @schmu_named to i8*), i8** %funptr1, align 8
@@ -2506,13 +2506,13 @@ Return nonclosure functions
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @schmu_ret-fn(%closure* @schmu_f)
+    tail call void @schmu_ret_fn(%closure* @schmu_f)
     %loadtmp = load i8*, i8** getelementptr inbounds (%closure, %closure* @schmu_f, i32 0, i32 0), align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
     %loadtmp1 = load i8*, i8** getelementptr inbounds (%closure, %closure* @schmu_f, i32 0, i32 1), align 8
     %0 = tail call i64 %casttmp(i64 12, i8* %loadtmp1)
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %0)
-    tail call void @schmu_ret-named(%closure* @schmu_f__2)
+    tail call void @schmu_ret_named(%closure* @schmu_f__2)
     %loadtmp2 = load i8*, i8** getelementptr inbounds (%closure, %closure* @schmu_f__2, i32 0, i32 0), align 8
     %casttmp3 = bitcast i8* %loadtmp2 to i64 (i64, i8*)*
     %loadtmp4 = load i8*, i8** getelementptr inbounds (%closure, %closure* @schmu_f__2, i32 0, i32 1), align 8
@@ -2587,7 +2587,7 @@ Return closures
     ret i64 %add
   }
   
-  define void @schmu_ret-fn(%closure* noalias %0, i64 %b) {
+  define void @schmu_ret_fn(%closure* noalias %0, i64 %b) {
   entry:
     %funptr2 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i64, i8*)* @schmu_bla to i8*), i8** %funptr2, align 8
@@ -2604,7 +2604,7 @@ Return closures
     ret void
   }
   
-  define void @schmu_ret-lambda(%closure* noalias %0, i64 %b) {
+  define void @schmu_ret_lambda(%closure* noalias %0, i64 %b) {
   entry:
     %funptr2 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i64, i8*)* @__fun_schmu0 to i8*), i8** %funptr2, align 8
@@ -2640,8 +2640,8 @@ Return closures
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @schmu_ret-fn(%closure* @schmu_f, i64 13)
-    tail call void @schmu_ret-fn(%closure* @schmu_f2, i64 35)
+    tail call void @schmu_ret_fn(%closure* @schmu_f, i64 13)
+    tail call void @schmu_ret_fn(%closure* @schmu_f2, i64 35)
     %loadtmp = load i8*, i8** getelementptr inbounds (%closure, %closure* @schmu_f, i32 0, i32 0), align 8
     %casttmp = bitcast i8* %loadtmp to i64 (i64, i8*)*
     %loadtmp1 = load i8*, i8** getelementptr inbounds (%closure, %closure* @schmu_f, i32 0, i32 1), align 8
@@ -2652,7 +2652,7 @@ Return closures
     %loadtmp4 = load i8*, i8** getelementptr inbounds (%closure, %closure* @schmu_f2, i32 0, i32 1), align 8
     %1 = tail call i64 %casttmp3(i64 12, i8* %loadtmp4)
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %1)
-    tail call void @schmu_ret-lambda(%closure* @schmu_f__2, i64 134)
+    tail call void @schmu_ret_lambda(%closure* @schmu_f__2, i64 134)
     %loadtmp5 = load i8*, i8** getelementptr inbounds (%closure, %closure* @schmu_f__2, i32 0, i32 0), align 8
     %casttmp6 = bitcast i8* %loadtmp5 to i64 (i64, i8*)*
     %loadtmp7 = load i8*, i8** getelementptr inbounds (%closure, %closure* @schmu_f__2, i32 0, i32 1), align 8
@@ -2726,22 +2726,22 @@ Take/use not all allocations of a record in tailrec calls
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %view = type { i8*, i64, i64 }
-  %parse-result_int = type { i32, %success_int }
+  %parse_result_int = type { i32, %success_int }
   %success_int = type { %view, i64 }
-  %parse-result_view = type { i32, %success_view }
+  %parse_result_view = type { i32, %success_view }
   %success_view = type { %view, %view }
   
   @schmu_s = global i8* null, align 8
   @schmu_inp = global %view zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c" \00" }
   
-  declare i1 @prelude_char-equal(i8 %0, i8 %1)
+  declare i1 @prelude_char_equal(i8 %0, i8 %1)
   
   declare i64 @string_len(i8* %0)
   
   declare i8 @string_get(i8* %0, i64 %1)
   
-  define void @schmu_aux(%parse-result_int* noalias %0, %view* %rem, i64 %cnt) {
+  define void @schmu_aux(%parse_result_int* noalias %0, %view* %rem, i64 %cnt) {
   entry:
     %1 = alloca %view, align 8
     %2 = bitcast %view* %1 to i8*
@@ -2751,20 +2751,20 @@ Take/use not all allocations of a record in tailrec calls
     store i1 false, i1* %4, align 1
     %5 = alloca i64, align 8
     store i64 %cnt, i64* %5, align 8
-    %ret = alloca %parse-result_view, align 8
+    %ret = alloca %parse_result_view, align 8
     br label %rec
   
   rec:                                              ; preds = %cont, %entry
     %6 = phi i1 [ true, %cont ], [ false, %entry ]
     %7 = phi i64 [ %add, %cont ], [ %cnt, %entry ]
-    call void @schmu_ch(%parse-result_view* %ret, %view* %1)
-    %tag8 = bitcast %parse-result_view* %ret to i32*
+    call void @schmu_ch(%parse_result_view* %ret, %view* %1)
+    %tag8 = bitcast %parse_result_view* %ret to i32*
     %index = load i32, i32* %tag8, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %rec
-    %data = getelementptr inbounds %parse-result_view, %parse-result_view* %ret, i32 0, i32 1
+    %data = getelementptr inbounds %parse_result_view, %parse_result_view* %ret, i32 0, i32 1
     %add = add i64 %7, 1
     call void @__free_except0_successview(%success_view* %data)
     br i1 %6, label %call_decr, label %cookie
@@ -2787,17 +2787,17 @@ Take/use not all allocations of a record in tailrec calls
   
   else:                                             ; preds = %rec
     %11 = bitcast %view* %1 to i8*
-    %data1 = getelementptr inbounds %parse-result_view, %parse-result_view* %ret, i32 0, i32 1
-    %tag29 = bitcast %parse-result_int* %0 to i32*
+    %data1 = getelementptr inbounds %parse_result_view, %parse_result_view* %ret, i32 0, i32 1
+    %tag29 = bitcast %parse_result_int* %0 to i32*
     store i32 0, i32* %tag29, align 4
-    %data3 = getelementptr inbounds %parse-result_int, %parse-result_int* %0, i32 0, i32 1
+    %data3 = getelementptr inbounds %parse_result_int, %parse_result_int* %0, i32 0, i32 1
     %rem410 = bitcast %success_int* %data3 to %view*
     %12 = bitcast %view* %rem410 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %12, i8* %11, i64 24, i1 false)
     call void @__copy_view(%view* %rem410)
     %mtch = getelementptr inbounds %success_int, %success_int* %data3, i32 0, i32 1
     store i64 %7, i64* %mtch, align 8
-    call void @__free_parse-resultview(%parse-result_view* %ret)
+    call void @__free_parse_resultview(%parse_result_view* %ret)
     br i1 %6, label %call_decr5, label %cookie6
   
   call_decr5:                                       ; preds = %else
@@ -2812,21 +2812,21 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define void @schmu_ch(%parse-result_view* noalias %0, %view* %buf) {
+  define void @schmu_ch(%parse_result_view* noalias %0, %view* %buf) {
   entry:
     %1 = bitcast %view* %buf to i8**
     %2 = load i8*, i8** %1, align 8
     %3 = getelementptr inbounds %view, %view* %buf, i32 0, i32 1
     %4 = load i64, i64* %3, align 8
     %5 = tail call i8 @string_get(i8* %2, i64 %4)
-    %6 = tail call i1 @prelude_char-equal(i8 %5, i8 32)
+    %6 = tail call i1 @prelude_char_equal(i8 %5, i8 32)
     br i1 %6, label %then, label %else
   
   then:                                             ; preds = %entry
     %7 = bitcast %view* %buf to i8**
-    %tag8 = bitcast %parse-result_view* %0 to i32*
+    %tag8 = bitcast %parse_result_view* %0 to i32*
     store i32 0, i32* %tag8, align 4
-    %data = getelementptr inbounds %parse-result_view, %parse-result_view* %0, i32 0, i32 1
+    %data = getelementptr inbounds %parse_result_view, %parse_result_view* %0, i32 0, i32 1
     %rem9 = bitcast %success_view* %data to %view*
     %buf110 = bitcast %view* %rem9 to i8**
     %8 = alloca i8*, align 8
@@ -2841,7 +2841,7 @@ Take/use not all allocations of a record in tailrec calls
     %sunkaddr = getelementptr inbounds i8, i8* %12, i64 8
     %13 = bitcast i8* %sunkaddr to i64*
     %14 = load i64, i64* %13, align 8
-    %add = add i64 1, %14
+    %add = add i64 %14, 1
     store i64 %add, i64* %start, align 8
     %len = getelementptr inbounds %view, %view* %rem9, i32 0, i32 2
     %15 = getelementptr inbounds %view, %view* %buf, i32 0, i32 2
@@ -2864,9 +2864,9 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   
   else:                                             ; preds = %entry
-    %tag512 = bitcast %parse-result_view* %0 to i32*
+    %tag512 = bitcast %parse_result_view* %0 to i32*
     store i32 1, i32* %tag512, align 4
-    %data6 = getelementptr inbounds %parse-result_view, %parse-result_view* %0, i32 0, i32 1
+    %data6 = getelementptr inbounds %parse_result_view, %parse_result_view* %0, i32 0, i32 1
     %21 = bitcast %success_view* %data6 to %view*
     %22 = bitcast %view* %21 to i8*
     %23 = bitcast %view* %buf to i8*
@@ -2876,13 +2876,13 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define void @schmu_many-count(%parse-result_int* noalias %0, %view* %buf) {
+  define void @schmu_many_count(%parse_result_int* noalias %0, %view* %buf) {
   entry:
-    tail call void @schmu_aux(%parse-result_int* %0, %view* %buf, i64 0)
+    tail call void @schmu_aux(%parse_result_int* %0, %view* %buf, i64 0)
     ret void
   }
   
-  define void @schmu_view-of-string(%view* noalias %0, i8* %str) {
+  define void @schmu_view_of_string(%view* noalias %0, i8* %str) {
   entry:
     %buf1 = bitcast %view* %0 to i8**
     %1 = alloca i8*, align 8
@@ -2963,15 +2963,15 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define linkonce_odr void @__free_parse-resultview(%parse-result_view* %0) {
+  define linkonce_odr void @__free_parse_resultview(%parse_result_view* %0) {
   entry:
-    %tag4 = bitcast %parse-result_view* %0 to i32*
+    %tag4 = bitcast %parse_result_view* %0 to i32*
     %index = load i32, i32* %tag4, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %parse-result_view, %parse-result_view* %0, i32 0, i32 1
+    %data = getelementptr inbounds %parse_result_view, %parse_result_view* %0, i32 0, i32 1
     call void @__free_successview(%success_view* %data)
     br label %cont
   
@@ -2980,7 +2980,7 @@ Take/use not all allocations of a record in tailrec calls
     br i1 %2, label %match1, label %cont2
   
   match1:                                           ; preds = %cont
-    %data3 = getelementptr inbounds %parse-result_view, %parse-result_view* %0, i32 0, i32 1
+    %data3 = getelementptr inbounds %parse_result_view, %parse_result_view* %0, i32 0, i32 1
     %3 = bitcast %success_view* %data3 to %view*
     call void @__free_view(%view* %3)
     br label %cont2
@@ -3004,10 +3004,10 @@ Take/use not all allocations of a record in tailrec calls
     %5 = bitcast i64* %data to i8*
     %fmt = tail call i32 (i8*, i64, i8*, ...) @snprintf(i8* %5, i64 %1, i8* getelementptr (i8, i8* bitcast ({ i64, i64, [2 x i8] }* @0 to i8*), i64 16))
     store i8* %2, i8** @schmu_s, align 8
-    tail call void @schmu_view-of-string(%view* @schmu_inp, i8* %2)
-    %ret = alloca %parse-result_int, align 8
-    call void @schmu_many-count(%parse-result_int* %ret, %view* @schmu_inp)
-    call void @__free_parse-resulti(%parse-result_int* %ret)
+    tail call void @schmu_view_of_string(%view* @schmu_inp, i8* %2)
+    %ret = alloca %parse_result_int, align 8
+    call void @schmu_many_count(%parse_result_int* %ret, %view* @schmu_inp)
+    call void @__free_parse_resulti(%parse_result_int* %ret)
     call void @__free_view(%view* @schmu_inp)
     call void @__free_ac(i8** @schmu_s)
     ret i64 0
@@ -3024,15 +3024,15 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define linkonce_odr void @__free_parse-resulti(%parse-result_int* %0) {
+  define linkonce_odr void @__free_parse_resulti(%parse_result_int* %0) {
   entry:
-    %tag4 = bitcast %parse-result_int* %0 to i32*
+    %tag4 = bitcast %parse_result_int* %0 to i32*
     %index = load i32, i32* %tag4, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %parse-result_int, %parse-result_int* %0, i32 0, i32 1
+    %data = getelementptr inbounds %parse_result_int, %parse_result_int* %0, i32 0, i32 1
     call void @__free_successi(%success_int* %data)
     br label %cont
   
@@ -3041,7 +3041,7 @@ Take/use not all allocations of a record in tailrec calls
     br i1 %2, label %match1, label %cont2
   
   match1:                                           ; preds = %cont
-    %data3 = getelementptr inbounds %parse-result_int, %parse-result_int* %0, i32 0, i32 1
+    %data3 = getelementptr inbounds %parse_result_int, %parse_result_int* %0, i32 0, i32 1
     %3 = bitcast %success_int* %data3 to %view*
     call void @__free_view(%view* %3)
     br label %cont2
@@ -3240,7 +3240,7 @@ Monomorphization in closures
   @schmu_arr__2 = global i64* null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  declare void @prelude_iter-range(i64 %0, i64 %1, %closure* %2)
+  declare void @prelude_iter_range(i64 %0, i64 %1, %closure* %2)
   
   define linkonce_odr void @__agg.u.u_array_iter_aii.u.u(i64* %arr, %closure* %f) {
   entry:
@@ -3379,10 +3379,10 @@ Monomorphization in closures
     %env = bitcast { i8*, i8*, i64**, %closure, i64*, i64 }* %clsr___i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @prelude_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i)
+    call void @prelude_iter_range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu3_i.u-ai-ii.i-i-i)
     %10 = load i64, i64* %7, align 8
     %add = add i64 %10, 1
-    call void @__agii.u_array_swap-items_aiii.u(i64** %arr, i64 %add, i64 %hi)
+    call void @__agii.u_array_swap_items_aiii.u(i64** %arr, i64 %add, i64 %hi)
     ret i64 %add
   }
   
@@ -3422,10 +3422,10 @@ Monomorphization in closures
     %env = bitcast { i8*, i8*, i64**, %closure, i64*, i64 }* %clsr___i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i to i8*
     %envptr = getelementptr inbounds %closure, %closure* %__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @prelude_iter-range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i)
+    call void @prelude_iter_range(i64 %lo, i64 %hi, %closure* %__i.u-ag-gg.i-i-g___fun_schmu0_i.u-ai-ii.i-i-i)
     %10 = load i64, i64* %7, align 8
     %add = add i64 %10, 1
-    call void @__agii.u_array_swap-items_aiii.u(i64** %arr, i64 %add, i64 %hi)
+    call void @__agii.u_array_swap_items_aiii.u(i64** %arr, i64 %add, i64 %hi)
     ret i64 %add
   }
   
@@ -3529,7 +3529,7 @@ Monomorphization in closures
     br label %rec
   }
   
-  define linkonce_odr void @__agii.u_array_swap-items_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
+  define linkonce_odr void @__agii.u_array_swap_items_aiii.u(i64** noalias %arr, i64 %i, i64 %j) {
   entry:
     %eq = icmp eq i64 %i, %j
     %0 = xor i1 %eq, true
@@ -3644,7 +3644,7 @@ Monomorphization in closures
     %7 = load i64, i64* %i2, align 8
     %add = add i64 %7, 1
     store i64 %add, i64* %i2, align 8
-    tail call void @__agii.u_array_swap-items_aiii.u(i64** %arr1, i64 %add, i64 %j)
+    tail call void @__agii.u_array_swap_items_aiii.u(i64** %arr1, i64 %add, i64 %j)
     ret void
   
   ifcont:                                           ; preds = %entry
@@ -3680,7 +3680,7 @@ Monomorphization in closures
     %7 = load i64, i64* %i2, align 8
     %add = add i64 %7, 1
     store i64 %add, i64* %i2, align 8
-    tail call void @__agii.u_array_swap-items_aiii.u(i64** %arr1, i64 %add, i64 %j)
+    tail call void @__agii.u_array_swap_items_aiii.u(i64** %arr1, i64 %add, i64 %j)
     ret void
   
   ifcont:                                           ; preds = %entry
@@ -3976,7 +3976,7 @@ Handle partial allocations
   
   %f_array_int = type { i64*, i64*, i64* }
   %t_array_int = type { i64*, i64* }
-  %tuple_array_int = type { i64* }
+  %tuple_array_int_int = type { i64*, i64 }
   
   define i64* @schmu_inf() {
   entry:
@@ -4030,7 +4030,7 @@ Handle partial allocations
     ret i64* %14
   }
   
-  define void @schmu_set-moved() {
+  define void @schmu_set_moved() {
   entry:
     %0 = alloca %t_array_int, align 8
     %a12 = bitcast %t_array_int* %0 to i64**
@@ -4057,10 +4057,12 @@ Handle partial allocations
     %data4 = bitcast i8* %6 to i64*
     store i64 20, i64* %data4, align 8
     store i64* %5, i64** %b, align 8
-    %7 = alloca %tuple_array_int, align 8
-    %"0613" = bitcast %tuple_array_int* %7 to i64**
+    %7 = alloca %tuple_array_int_int, align 8
+    %"0613" = bitcast %tuple_array_int_int* %7 to i64**
     %8 = load i64*, i64** %a12, align 8
     store i64* %8, i64** %"0613", align 8
+    %"1" = getelementptr inbounds %tuple_array_int_int, %tuple_array_int_int* %7, i32 0, i32 1
+    store i64 0, i64* %"1", align 8
     %9 = tail call i8* @malloc(i64 24)
     %10 = bitcast i8* %9 to i64*
     %arr7 = alloca i64*, align 8
@@ -4072,7 +4074,7 @@ Handle partial allocations
     %data10 = bitcast i8* %11 to i64*
     store i64 20, i64* %data10, align 8
     store i64* %10, i64** %a12, align 8
-    call void @__free_tup-ai(%tuple_array_int* %7)
+    call void @__free_tup-ai-i(%tuple_array_int_int* %7)
     call void @__free_tai(%t_array_int* %0)
     ret void
   }
@@ -4087,9 +4089,9 @@ Handle partial allocations
     ret void
   }
   
-  define linkonce_odr void @__free_tup-ai(%tuple_array_int* %0) {
+  define linkonce_odr void @__free_tup-ai-i(%tuple_array_int_int* %0) {
   entry:
-    %1 = bitcast %tuple_array_int* %0 to i64**
+    %1 = bitcast %tuple_array_int_int* %0 to i64**
     call void @__free_ai(i64** %1)
     ret void
   }
@@ -4106,7 +4108,7 @@ Handle partial allocations
   define i64 @main(i64 %arg) {
   entry:
     %0 = tail call i64* @schmu_inf()
-    tail call void @schmu_set-moved()
+    tail call void @schmu_set_moved()
     %1 = alloca i64*, align 8
     store i64* %0, i64** %1, align 8
     call void @__free_ai(i64** %1)
@@ -4124,10 +4126,10 @@ Correct link order for cc flags
 
 Check allocs in fixed array
   $ schmu fixed_array_allocs.smu
-  fixed_array_allocs.smu:1.6-9: warning: Unused binding arr.
+  fixed_array_allocs.smu:1.5-8: warning: Unused binding arr.
   
-  1 | (def arr #[#[1 2 3] #[3 4 5]])
-           ^^^
+  1 | let arr = #[#[1, 2, 3], #[3, 4, 5]]
+          ^^^
   
   $ valgrind -q --leak-check=yes --show-reachable=yes ./fixed_array_allocs
   3
@@ -4164,25 +4166,25 @@ Const fixed array
 
 Using unit values
   $ schmu unit_values.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./unit_values
-  unit_values.smu:3.6-7: warning: Unused binding b.
+  unit_values.smu:3.5-6: warning: Unused binding b.
   
-  3 | (def b (#some a))
+  3 | let b = Some(a)
+          ^
+  
+  unit_values.smu:8.8-9: warning: Unused binding a.
+  
+  8 |   Some(a): print("some")
+             ^
+  
+  unit_values.smu:14.5-6: warning: Unused binding u.
+  
+  14 | let u = t.u
            ^
   
-  unit_values.smu:8.11-12: warning: Unused binding a.
+  unit_values.smu:18.5-7: warning: Unused binding u2.
   
-  8 |   ((#some a) (print "some"))
-                ^
-  
-  unit_values.smu:14.6-7: warning: Unused binding u.
-  
-  14 | (def u t.u)
-            ^
-  
-  unit_values.smu:18.6-8: warning: Unused binding u2.
-  
-  18 | (def u2 t2.u)
-            ^^
+  18 | let u2 = t2.u
+           ^^
   
   ; ModuleID = 'context'
   source_filename = "context"
@@ -4248,7 +4250,7 @@ Using unit values
   ifcont7:                                          ; preds = %entry, %then2, %else
     %.pre-phi = phi i64* [ %newcap4, %else ], [ %newcap, %then2 ], [ %1, %entry ]
     %10 = phi void* [ %9, %else ], [ %6, %then2 ], [ %0, %entry ]
-    %add = add i64 1, %3
+    %add = add i64 %3, 1
     store i64 %add, i64* %.pre-phi, align 8
     ret void
   }

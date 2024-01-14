@@ -1,23 +1,25 @@
-(type c {:c& int})
+type c = {c& : int}
 
-(defn counter ()
-  (def cnt& 0)
-  (fn () (set &cnt !(+ cnt 1))
-    cnt))
+fun counter():
+  let cnt& = 0
+  fun ():
+    &cnt <- cnt + 1
+    cnt
 
-(def c (counter))
-(print (fmt-str (c)))
-(print (fmt-str (c)))
-(print (fmt-str (c)))
-(print (fmt-str (c)))
+let c = counter()
+print(fmt(c()))
+print(fmt(c()))
+print(fmt(c()))
+print(fmt(c()))
 
-(defn counter ()
-  (def cnt& {:c 0})
-  (fn () (set &cnt !{:c (+ (.c cnt) 1)})
-    cnt))
+fun counter():
+  let cnt& = {c = 0}
+  fun ():
+    &cnt <- {c = cnt.c + 1}
+    cnt
 
-(def c (counter))
-(print (fmt-str (.c (c))))
-(print (fmt-str (.c (c))))
-(print (fmt-str (.c (c))))
-(print (fmt-str (.c (c))))
+let c = counter()
+print(fmt(c().c))
+print(fmt(c().c))
+print(fmt(c().c))
+print(fmt(c().c))

@@ -1,64 +1,63 @@
-(type foo {:x int})
-(type container {:index int :arr (array int)})
+type foo = {x : int}
+type container = {index : int, arr : array(int)}
 
-(def x {:x 1})
+let x = {x = 1}
 
 -- These are freed at the end of the program
-(def arr ["hey" "young" "world"])
-(def arr [(copy x) {:x 2} {:x 3}])
+let arr = ["hey", "young", "world"]
+let arr = [copy(x), {x = 2}, {x = 3}]
 
 -- Arr is only alive inside the function and should be freed there
-(defn arr_inside ()
-  (def arr& [(copy x) {:x 2} {:x 3}])
+fun arr_inside():
+  let arr& = [copy(x), {x = 2}, {x = 3}]
   -- Make sure we can call realloc
-  (array/push &arr !{:x 12}))
+  Array.push(&arr, !{x = 12})
 
 -- Arr is returned and should be freed in its parent scope
-(defn make_arr ()
-  (def x {:x 23})
-  [x {:x 2} {:x 3}])
+fun make_arr():
+  let x = {x = 23}
+  [x, {x = 2}, {x = 3}]
 
-(defn inner_parent_scope ()
-  (ignore (make_arr)))
+fun inner_parent_scope():
+  ignore(make_arr())
 
 -- Arr can be propagated out through multiple function calls
-(defn nest_fns ()
-  (make_arr))
+fun nest_fns(): make_arr()
 
-(defn make_nested_arr ()
-  (def nested [[0 1] [2 3]])
-  nested)
+fun make_nested_arr():
+  let nested = [[0, 1], [2, 3]]
+  nested
 
-(defn nest_allocs ()
-  (make_nested_arr))
+fun nest_allocs():
+  make_nested_arr()
 
--- Should be freed locally
-(defn nest_local ()
-  (ignore [[0 1] [2 3]]))
+-- Should be freed locall
+fun nest_local():
+  ignore([[0, 1], [2, 3]])
 
 -- Records of arrtors
-(defn record_of_arrs ()
-  (def arr [1 2])
-  {:index 1 :arr})
+fun record_of_arrs():
+  let arr = [1, 2]
+  {index = 1, arr}
 
 -- Arrtors of records (of arrtors)
-(defn arr_of_records ()
-  [(record_of_arrs) (record_of_arrs)])
+fun arr_of_records():
+  [record_of_arrs(), record_of_arrs()]
 
-(def arr (make_arr))
-(arr_inside)
-(inner_parent_scope)
-(def normal (nest_fns))
+let arr = make_arr()
+arr_inside()
+inner_parent_scope()
+let normal = nest_fns()
 
-(def nested& [[0 1] [2 3]])
-(array/push &nested ![4 5])
-(def nested (make_nested_arr))
-(def nested (nest_allocs))
-(nest_local)
+let nested& = [[0, 1], [2, 3]]
+Array.push(&nested, ![4, 5])
+let nested = make_nested_arr()
+let nested = nest_allocs()
+nest_local()
 
-(def rec_of_arr {:index 12 :arr [1 2]})
-(def rec_of_arr (record_of_arrs))
+let rec_of_arr = {index = 12, arr = [1, 2]}
+let rec_of_arr = record_of_arrs()
 
-(def arr_of_rec [(record_of_arrs) (record_of_arrs)])
-(def arr_of_rec (arr_of_records))
+let arr_of_rec = [record_of_arrs(), record_of_arrs()]
+let arr_of_rec = arr_of_records()
 0

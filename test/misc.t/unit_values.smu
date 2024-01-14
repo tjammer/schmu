@@ -1,34 +1,34 @@
 -- variants
-(def a ())
-(def b (#some a))
+let a = ()
+let b = Some(a)
 
-(defn a () ())
-(def b (#some (a)))
-(match b
-  ((#some a) (print "some"))
-  (#none (print "none")))
+fun a(): ()
+let b = Some(a())
+match b:
+  Some(a): print("some")
+  None: print("none")
 
 -- records
-(type thing {:u unit})
-(def t {:u ()})
-(def u t.u)
+type thing = {u : unit}
+let t = { u = () }
+let u = t.u
 
-(defn t () {:u ()})
-(def t2 (t))
-(def u2 t2.u)
+fun t(): {u = ()}
+let t2 = t()
+let u2 = t2.u
 
-(type inrec {:i int :u unit :f float})
-(def t {:i 10 :u () :f 99.9})
-(ignore t.u)
-(print (fmt-str t.f))
+type inrec = {i : int, u : unit, f : float}
+let t = {i = 10, u = (), f = 99.9}
+ignore(t.u)
+print(fmt(t.f))
 
 -- arrays
-(def arr& [() ()])
-(array/push &arr !())
-(print (fmt-str (array/length arr)))
-(ignore {:u arr.[2]})
+let arr& = [(), ()]
+Array.push(&arr, !())
+print(fmt(Array.length(arr)))
+ignore({u = arr.[2]})
 
 -- fixed arrays
-(def arr #[() ()])
-(def u arr.(1))
-(ignore {:u})
+let arr = #[(), ()]
+let u = arr#[1]
+ignore({u})

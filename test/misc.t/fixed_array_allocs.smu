@@ -1,11 +1,11 @@
-(def arr #[#[1 2 3] #[3 4 5]])
+let arr = #[#[1, 2, 3], #[3, 4, 5]]
 
-(defn print-snd (arr)
-  (print (fmt-str arr.(1))))
+fun print_snd(arr):
+  print(fmt(arr#[1]))
 
-(print-snd #[1 3 2])
-(print-snd #["hey" "hi"]) -- correctly free
-(def arr& #["hey" "hie"]) -- correctly free as mut
-(ignore (copy arr))
-(print-snd arr)
-(print (fmt-str #[#["oho"]].(0).(0)))
+print_snd(#[1, 3, 2])
+print_snd(#["hey", "hi"]) -- correctly free
+let arr& = #["hey", "hie"] -- correctly free as mut
+ignore(copy(arr))
+print_snd(arr)
+print(fmt(#[#["oho"]]#[0]#[0]))

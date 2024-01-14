@@ -1,9 +1,9 @@
-(def a -1.0)
-(def a -.1.0)
-(def a - 1.0)
-(def a -. 1.0)
+let a = -1.0
+let a = -.1.0
+let a = - 1.0
+let a = -. 1.0
 
-(def a - 1)
-(def b -1)
+let a = - 1
+let b = -1
 
-(+ a b)
+a + b

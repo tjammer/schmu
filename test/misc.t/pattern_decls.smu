@@ -1,17 +1,17 @@
-(defn hmm ({_ {x _}})
-  (print x))
+fun hmm((_, (x, _))): print(x)
 
-(hmm {10 {"hello" 20.0}})
+hmm((10, ("hello", 20.0)))
 
-(def {i _} {20 30.0})
-(print (fmt-str i))
+let i, _ = (20, 30.0)
+print(fmt(i))
 
-(let (({f _} {30.0 20}))
-  (print (fmt-str f)))
+do:
+  let f, _ = (30.0, 20)
+  print(fmt(f))
 
--- pattern matched thing is a closure
-(defn hmm ({x _})
-  (fn :copy x () (x)))
+-- pattern matched thing as a closure
+fun hmm((x, _)):
+  fun ()[x]:  x()
 
 -- this case is strange. The tuple needs to be moved right now
-((hmm {(fn () (print "lol")) 10}))
+hmm((fun (): print("lol"), 10))()

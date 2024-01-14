@@ -1,53 +1,48 @@
 -- default unused
-(def unused1 0)
+let unused1 = 0
 
 -- will be shadowed before usage
-(def unused2 0)
-(def unused2 0)
-(ignore unused2)
+let unused2 = 0
+let unused2 = 0
+ignore(unused2)
 
 -- use in closure
-(def used3 0)
+let used3 = 0
 
-(defn use_unused3 ()
+fun use_unused3():
   -- TODO Should we mark this as used only if the function is used?
-  (ignore used3))
+  ignore(used3)
 
-(ignore
- (if true
-   (do
-     (def unused4 0)
-     0)
+ignore(if true:
+    let unused4 = 0
+    0
+else:
+    let unused5 = 0
+    0
+)
 
-   (do
-     (def unused5 0)
-     0)))
+if true:
+  let used1 = 0
+  ignore(used1)
+else:
+  let used2 = 0
+  ignore(used2)
 
-(if true
-    (do
-      (def used1 0)
-      (ignore used1))
-    (do
-      (def used2 0)
-         (ignore used2)))
+ignore(if true:
+    -- unused here, should be warned
+    let usedlater = 0
+    0
+else:
+    let usedlater = 0
+    ignore(usedlater)
+    0
+)
 
-(ignore
- (if true
-     -- unused here, should be warned
-     (do
-       (def usedlater 0)
-       0)
-     (do
-       (def usedlater 0)
-       (ignore usedlater)
-       0)))
-
-(ignore
- (if true
-     (do
-       (def usedlater 0)
-       (ignore usedlater)
-       0)
-     (do -- unused here, should be warned
-       (def usedlater 0)
-       0)))
+ignore(if true:
+    let usedlater = 0
+    ignore(usedlater)
+    0
+else:
+    let usedlater = 0
+    0
+)

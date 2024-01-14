@@ -1,16 +1,13 @@
-(def s "/")
+let s = "/"
 
-(defn times (limit f)
-  (defn inner (i)
-    (if (= i limit)
-      ()
-      (do
-        (f s)
-        (inner (+ i 1)))))
-  (inner 0))
+fun times(limit, f):
+  fun inner(i):
+    if i == limit: ()
+    else:
+      f(s)
+      inner(i + 1)
+  inner(0)
 
-(defn test (value)
-  (ignore (if true
-            (copy value)
-            (fmt-str "/" value))))
-(times 2 test)
+fun test(value):
+  ignore(if true: copy(value) else: fmt("/", value))
+times(2, test)

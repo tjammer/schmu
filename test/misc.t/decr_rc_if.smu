@@ -1,7 +1,6 @@
-(defn ret-true () true)
+fun ret_true(): true
 
-(ignore
- (if (ret-true)
-   (let ((_ [10]))
-     [10])
-   [0]))
+(if ret_true():
+  let _ = [10]
+  [10]
+else: [0]) -> ignore

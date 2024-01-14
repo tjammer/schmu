@@ -284,7 +284,7 @@ struct
     (* Don't print the string 'assert ' *)
     let start = lbeg.pos_cnum + 7 in
     match Hashtbl.find_opt src_tbl lbeg.pos_fname with
-    | Some (Some str) -> String.sub str start (lend.pos_cnum - start)
+    | Some (Some str) -> String.sub str start (lend.pos_cnum - start - 1)
     | Some None -> "file not found"
     | None -> (
         (* Try to open file and read into lexbuf *)
@@ -293,7 +293,7 @@ struct
           let str = In_channel.input_all ic in
           In_channel.close ic;
           Hashtbl.add src_tbl lbeg.pos_fname (Some str);
-          String.sub str start (lend.pos_cnum - start)
+          String.sub str start (lend.pos_cnum - start - 1)
         with _ ->
           Hashtbl.replace src_tbl lbeg.pos_fname None;
           "file not found")

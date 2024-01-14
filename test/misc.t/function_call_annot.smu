@@ -1,14 +1,14 @@
-(type a {:field int})
-(type b {:field int})
-(type c (#ctor))
-(type d (#ctor))
+type a = {field : int}
+type b = {field : int}
+type c = Ctor
+type d = Ctor
 
-(defn take-a ([a a]) (ignore a))
-(defn take-b ([b b]) (ignore b))
-(defn take-c ([c c]) (ignore c))
-(defn take-d ([d d]) (ignore d))
+fun take_a(a : a): ignore(a)
+fun take_b(b : b): ignore(b)
+fun take_c(c : c): ignore(c)
+fun take_d(d : d): ignore(d)
 
-(take-a {:field 0})
-(take-b {:field 0})
-(take-c #ctor)
-(take-d #ctor)
+take_a({field = 0})
+take_b({field = 0})
+take_c(Ctor)
+take_d(Ctor)

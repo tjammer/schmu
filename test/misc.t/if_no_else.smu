@@ -1,2 +1,2 @@
-(if true ())
-(if true 2)
+if true: ()
+if true: 2

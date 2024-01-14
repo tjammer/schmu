@@ -1,21 +1,14 @@
-(external printi (fun int unit) "Printi")
+external printi : (int) -> unit = "Printi"
 
 -- pipe into normal function
-(-> 1
-    (fn (x) (+ x 1))
-    printi)
+1 -> (fun x: x + 1) -> printi
 
 -- pipe into ctor
-(-> 1
-    #some
-    (fn (x)
-      (match x
-        ((#some a) a)
-        (#none 0)))
-    printi)
+1 -> Some -> (fun x: match x:
+  Some(a): a
+  None: 0)
+-> printi
 
--- pipe field accessor
-(type foo {:x int})
-(-> {:x 1}
-    .x
-    printi)
+-- pipe field accessor (this isn't supported anymore, but works naturally with .x)
+type foo = {x : int}
+{x = 1}.x -> printi

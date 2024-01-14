@@ -1,15 +1,14 @@
-(defn ret-fn (b)
-  (defn bla (a) (+ a b))
-  bla)
+fun ret_fn(b):
+  fun bla(a): a + b
+  bla
 
-(defn ret-lambda (b)
-  (fn (a) (+ a b)))
+fun ret_lambda(b):
+  fun a: a + b
 
+let f = ret_fn(13)
+let f2 = ret_fn(35)
+print(fmt(f(12)))
+print(fmt(f2(12)))
 
-(def f (ret-fn 13))
-(def f2 (ret-fn 35))
-(print (fmt-str (f 12)))
-(print (fmt-str (f2 12)))
-
-(def f (ret-lambda 134))
-(print (fmt-str (f 12)))
+let f = ret_lambda(134)
+print(fmt(f(12)))

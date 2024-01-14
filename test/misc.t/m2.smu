@@ -1,40 +1,30 @@
 -- (mod/extr-a {:b 10})
 
-(rec
- (defn even? (i)
-   (match i
-     (0 true)
-     (1 false)
-     (n (odd? (- n 1)))))
- (defn odd? (i)
-   (match i
-     (0 false)
-     (1 true)
-     (n (even? (- n 1))))))
+fun rec even(i):
+  match i:
+    0: true
+    1: false
+    n: odd(n - 1)
 
--- (print (fmt-str (odd? 1)))
--- (print (fmt-str (odd? 100)))
--- (print (fmt-str (even? 100)))
+and odd(i):
+  match i:
+    0: true
+    1: true
+    n: even(n - 1)
 
+fun rec pop(arr&):
+  print("pop")
+  Array.drop_back(&arr)
+  pop_all(&arr)
 
-(rec
- (defn pop (arr&)
-   (print "pop")
-   (array/drop-back &arr)
-   (pop-all &arr))
- (defn pop-all (arr&)
-   (if (= (array/length arr) 0)
-     ()
-     (pop &arr))))
+and pop_all(arr&):
+  if Array.length(arr) == 0: ()
+  else: pop(&arr)
 
--- (val arr& (0 1 2 3))
--- (pop-all &arr)
--- (print (fmt-str (array/length arr)))
+fun test(i):
+  print("wrong")
+  copy(i)
 
-(defn test (i)
-  (print "wrong")
-  (copy i))
-
-(defn test (i)
-  (print "right")
-  (copy i))
+fun test(i):
+  print("right")
+  copy(i)

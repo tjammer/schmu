@@ -1,53 +1,63 @@
-(defn true_ ()
-  (print "true")
-  true)
+fun true_():
+  print("true")
+  true
 
-(defn false_ ()
-  (print "false")
-  false)
+fun false_():
+  print("false")
+  false
 
-(print "test 'and':")
+print("test 'and':")
 
-(if (and (true_) (true_))
-  (print "yes")
-  (print "no"))
+if true_() and true_():
+  print("yes")
+else:
+  print("no")
 
-(if (and (true_) (false_))
-  (print "yes")
-  (print "no"))
+if true_() and false_():
+  print("yes")
+else:
+  print("no")
 
-(if (and (false_) (true_))
-  (print "yes")
-  (print "no"))
+if false_() and true_():
+  print("yes")
+else:
+  print("no")
 
-(if (and (false_) (false_))
-  (print "yes")
-  (print "no"))
+if false_() and false_():
+  print("yes")
+else:
+  print("no")
 
-(print "test 'or':")
+print ("test 'or':")
 
-(if (or (true_) (true_))
-  (print "yes")
-  (print "no"))
+if true_() or true_():
+  print("yes")
+else:
+  print("no")
 
-(if (or (true_) (false_))
-  (print "yes")
-  (print "no"))
+if true_() or false_():
+  print("yes")
+else:
+  print("no")
 
-(if (or (false_) (true_))
-  (print "yes")
-  (print "no"))
+if false_() or true_():
+  print("yes")
+else:
+  print("no")
 
-(if (or (false_) (false_))
-  (print "yes")
-  (print "no"))
+if false_() or false_():
+  print("yes")
+else:
+  print("no")
 
-(print "test 'not':")
+print("test 'not':")
 
-(if (not (true_))
-  (print "yes")
-  (print "no"))
+if not(true_()):
+  print("yes")
+else:
+  print("no")
 
-(if (not (false_))
-  (print "yes")
-  (print "no"))
+if not(false_()):
+  print("yes")
+else:
+  print("no")

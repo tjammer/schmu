@@ -1,6 +1,5 @@
-(def a 1)
+let a = 1
 
-(defn capture ()
-  (+ a 1))
+fun capture(): a + 1
 
-(def _ {(copy capture)})
+let _ = (copy(capture), 0)

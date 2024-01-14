@@ -1,2 +1,2 @@
-(def arr [(copy print)])
-(ignore arr)
+let arr = [copy(print)]
+ignore(arr)

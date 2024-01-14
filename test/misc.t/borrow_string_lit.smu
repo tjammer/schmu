@@ -1,1 +1,1 @@
-(ignore (if true "ok" "err"))
+ignore(if true: "ok" else: "err")
