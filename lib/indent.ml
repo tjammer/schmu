@@ -64,7 +64,7 @@ and maybe_newline state lexbuf =
   match state.cached with
   | Some
       (( Parser.Rbrac | Rbrack | Rpar | Right_arrow | Pipe_tail | Else | Elseif
-       | And | Eof ) as token) ->
+       | And | Eof | Comma ) as token) ->
       (* These tokes should be able to be placed on the outer indent without
          starting a new line. *)
       emit { state with kind = Default } lexbuf token
