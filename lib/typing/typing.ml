@@ -248,7 +248,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         (* Type annotation in function *)
         Qvar id
     | Ty_func l -> handle_func env l
-    | Ty_list l -> type_list env l
+    | Ty_applied l -> type_list env l
     | Ty_import_id (_, path) -> find env path ""
     | Ty_tuple ts ->
         let fields =
@@ -294,7 +294,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | [ (t, _) ] -> concrete_type false env t
     | [ (Ast.Ty_id "unit", _); (t, _) ] ->
         Tfun ([], concrete_type false env t, fn_kind)
-    | [ (Ast.Ty_list [ Ast.Ty_id "unit" ], _); (t, _) ] ->
+    | [ (Ast.Ty_applied [ Ast.Ty_id "unit" ], _); (t, _) ] ->
         Tfun ([], concrete_type false env t, fn_kind)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)
@@ -657,10 +657,10 @@ end = struct
     | Lit (loc, Unit) ->
         let attr = { no_attr with const = true } in
         { typ = Tunit; expr = Const Unit; attr; loc }
-    | Lambda (loc, id, attr, e) -> convert_lambda env loc id attr e
+    | Lambda (loc, id, attr, ret, e) -> convert_lambda env loc id attr ret e
     | Let_e (loc, decl, expr, cont) -> convert_let_e env loc decl expr cont
     | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
-    | Bop (loc, bop, es) -> convert_bop env loc bop es
+    | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
     | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
     | Record (loc, labels) -> convert_record env loc annot labels
@@ -798,11 +798,11 @@ end = struct
     let expr = Let { id; uniq; rmut; pass = expr.pattr; rhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr; loc }
 
-  and convert_lambda env loc params attr body =
+  and convert_lambda env loc params attr ret_annot body =
     let env = Env.open_function env in
     enter_level ();
     let env, params_t, qparams, ret_annot =
-      handle_params env loc params pattern_id None
+      handle_params env loc params pattern_id ret_annot
     in
     let nparams =
       List.mapi
@@ -1063,18 +1063,7 @@ end = struct
     in
     { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const }; loc }
 
-  and convert_bop env loc bop es =
-    let rec build = function
-      | [ _ ] | [] ->
-          raise (Error (loc, "Binary operator needs at least two operands"))
-      | [ a; b ] ->
-          (* The list is reversed, b is the first operand *)
-          convert_bop_impl env loc bop b a
-      | a :: tl ->
-          let tl = build tl in
-          { tl with expr = Bop (bop, tl, convert env a) }
-    in
-    build (List.rev es)
+  and convert_bop env loc bop a b = convert_bop_impl env loc bop a b
 
   and convert_unop env loc unop expr =
     match unop with
@@ -1169,13 +1158,10 @@ end = struct
     | Pip_expr (Ctor (loc, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
-    | Pip_expr (Bop (loc, op, exprs)) ->
-        convert_bop env loc op (e1.aexpr :: exprs)
     | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (e1.aexpr :: l)
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
-    | Pip_field field -> convert_field env loc e1.aexpr field
 
   and convert_pipe_tail env loc e1 e2 =
     let switch_uni = true in
@@ -1186,13 +1172,10 @@ end = struct
     | Pip_expr (Ctor (loc, name, expr)) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
-    | Pip_expr (Bop (loc, op, exprs)) ->
-        convert_bop env loc op (exprs @ [ e1.aexpr ])
     | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (l @ [ e1.aexpr ])
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
-    | Pip_field field -> convert_field env loc e1.aexpr field
 
   and convert_tuple env loc exprs =
     let (_, const), exprs =

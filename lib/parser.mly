@@ -295,7 +295,7 @@ upcase_ident:
 expr:
   | ident = ident { Var ident }
   | lit = lit { Lit ($loc, lit) }
-  | a = expr; bop = binop; b = expr { Bop ($loc, bop, [a; b]) }
+  | a = expr; bop = binop; b = expr { Bop ($loc, bop, a, b) }
   | unop = unop; expr = expr { Unop ($loc, unop, expr) }
   | If; cond = expr; Colon; then_ = then_
     { let then_, elifs, else_ = then_ in parse_elseifs $loc cond then_ elifs else_ }
@@ -303,10 +303,11 @@ expr:
   | callee = Builtin_id; args = parens(call_arg) { App ($loc, Var($loc(callee), callee), args) }
   | Fmt; args = parens(expr) { Fmt ($loc, args) }
   | special = special_builtins { special }
-  | Fun; params = parens(param_decl); attr = loption(capture_copies); Colon; body = block
-    { Lambda ($loc, params, attr, body) }
+  | Fun; params = parens(param_decl); attr = loption(capture_copies);
+      return_annot = option(return_annot); Colon; body = block
+    { Lambda ($loc, params, attr, return_annot, body) }
   | Fun; param = only_one_param; attr = loption(capture_copies); Colon; body = block
-    { Lambda ($loc, [param], attr, body) }
+    { Lambda ($loc, [param], attr, None, body) }
   | Lbrac; items = separated_nonempty_list(Comma, record_item); Rbrac
     { Record ($loc, items) }
   | Lpar; tuple = tuple; Rpar { Tuple ($loc, tuple) }
@@ -460,7 +461,7 @@ type_spec:
   | id = Unknown_sized_ident { Ty_id id }
   | path = type_path { Ty_import_id ($loc, path) }
   | head = type_spec; Lpar; tail = separated_nonempty_list(Comma, type_spec); Rpar
-    { Ty_list (head :: tail) }
+    { Ty_applied (head :: tail) }
   | Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
     { Ty_func ([Ty_id "unit", Dnorm; ret, Dnorm]) }
   | Lpar; spec = tup_or_fun { spec }

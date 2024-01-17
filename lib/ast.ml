@@ -30,7 +30,7 @@ type unop = Uminus_i | Uminus_f [@@deriving show, sexp]
 type type_spec =
   | Ty_id of string
   | Ty_var of string
-  | Ty_list of type_spec list
+  | Ty_applied of type_spec list
   | Ty_func of (type_spec * decl_attr) list
   | Ty_import_id of loc * Path.t
   | Ty_tuple of type_spec list
@@ -53,11 +53,11 @@ and passed_expr = { pattr : decl_attr; pexpr : expr }
 and expr =
   | Var of ident
   | Lit of loc * literal
-  | Bop of loc * bop * expr list
+  | Bop of loc * bop * expr * expr
   | Unop of loc * unop * expr
   | If of loc * expr * expr * expr option
   | Let_e of loc * decl * passed_expr * expr
-  | Lambda of loc * decl list * func_attr list * block
+  | Lambda of loc * decl list * func_attr list * type_spec option * block
   | App of loc * expr * argument list
   | Record of loc * (string * expr) list
   | Tuple of loc * expr list
@@ -72,7 +72,7 @@ and expr =
   | Local_import of loc * string * expr
   | Fmt of loc * expr list
 
-and pipeable = Pip_expr of expr | Pip_field of string
+and pipeable = Pip_expr of expr
 
 and pattern =
   | Pctor of ident * pattern option
