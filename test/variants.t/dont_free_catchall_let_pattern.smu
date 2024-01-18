@@ -1,0 +1,9 @@
+fun alt(a, b):
+  match a():
+    None:
+      match b():
+        None: Some([0])
+        some: some
+    some: some
+
+alt((fun (): None), fun (): None) -> ignore

@@ -477,3 +477,7 @@ Mutate in pattern matches
   $ ./mutate
   11
   12
+
+Don't free catchall let pattern in other branch
+  $ schmu dont_free_catchall_let_pattern.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./dont_free_catchall_let_pattern

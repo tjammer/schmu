@@ -519,15 +519,6 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
   let typ = check_type_unique ~in_sig env loc name typ in
   (Env.add_type name ~in_sig typ env, typ)
 
-let rec param_funcs_as_closures = function
-  (* Functions passed as parameters need to have an empty closure, otherwise they cannot
-     be captured (see above). Kind of sucks *)
-  | Tvar { contents = Link t } | Talias (_, t) ->
-      (* This shouldn't break type inference *) param_funcs_as_closures t
-  | Tfun (_, _, Closure _) as t -> t
-  | Tfun (params, ret, _) -> Tfun (params, ret, Closure [])
-  | t -> t
-
 let convert_simple_lit loc typ expr =
   { typ; expr = Const expr; attr = { no_attr with const = true }; loc }
 
@@ -851,11 +842,6 @@ end = struct
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
     check_unused env unused unmutated;
 
-    (* For codegen: Mark functions in parameters closures *)
-    let params_t =
-      List.map (fun p -> { p with pt = param_funcs_as_closures p.pt }) params_t
-    in
-
     let typ = Tfun (params_t, body.typ, kind) in
     match typ with
     | Tfun (tparams, ret, kind) ->
@@ -951,11 +937,6 @@ end = struct
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
     check_unused env unused unmutated;
-
-    (* For codegen: Mark functions in parameters closures *)
-    let params_t =
-      List.map (fun p -> { p with pt = param_funcs_as_closures p.pt }) params_t
-    in
 
     let typ = Tfun (params_t, body.typ, kind) in
 

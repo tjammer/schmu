@@ -1158,6 +1158,33 @@ let let_kind pass =
 
 let const (e : Typed_tree.typed_expr) = if not e.attr.const then Cnot else Const
 
+let is_ctor_check = function
+  | Mbop (Ast.Equal_i, { expr = Mvar_index expr; _ }, _) ->
+      (* This depends on the fact that in pattern matching we always construct the
+         check with the current pattern path. This path can be used to query the
+         alloca and malloc ids. *)
+      Some expr
+  | _ -> None
+
+let find_var v vars =
+  match Vars.find_opt v vars with
+  | Some (Normal ({ fn = Concrete (_, callname); _ } as thing)) ->
+      ((callname, Vnorm), thing)
+  | Some (Normal thing) -> ((v, Vnorm), thing)
+  | Some (Const thing) -> ((thing, Vconst), no_var)
+  | Some (Global (id, thing, used)) ->
+      used := true;
+      ((id, Vglobal v), thing)
+  | None -> ((v, Vnorm), no_var)
+
+let rec equal_alloc a b =
+  match (a, b) with
+  | Value a, Value b -> a == b
+  | Two_values (lfst, lsnd), Two_values (rfst, rsnd) ->
+      equal_alloc lfst rfst && equal_alloc lsnd rsnd
+  | No_value, No_value -> false
+  | _ -> false
+
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return =
     let (const : const_kind) = if texpr.attr.const then Const else Cnot in
@@ -1247,16 +1274,7 @@ and morph_var mk p v mname =
     | "__malloc" ->
         let var = { no_var with fn = Builtin Malloc } in
         ((v, Vnorm), var)
-    | v -> (
-        match Vars.find_opt v p.vars with
-        | Some (Normal ({ fn = Concrete (_, callname); _ } as thing)) ->
-            ((callname, Vnorm), thing)
-        | Some (Normal thing) -> ((v, Vnorm), thing)
-        | Some (Const thing) -> ((thing, Vconst), no_var)
-        | Some (Global (id, thing, used)) ->
-            used := true;
-            ((id, Vglobal v), thing)
-        | None -> ((v, Vnorm), no_var))
+    | v -> find_var v p.vars
   in
   let ex = mk (Mvar (v, kind)) p.ret in
   (p, ex, var)
@@ -1424,7 +1442,36 @@ and morph_if mk p cond owning e1 e2 =
     in
     let e1 =
       if a.tailrec then e1
-      else { e1 with expr = Mfree_after (e1, Only frees_a) }
+      else
+        let frees =
+          match is_ctor_check cond.expr with
+          (* Special case for pattern matches where the last clause is a let
+             that returns the matched value as a whole. If the if-expression
+             is moved, we would free the matched value here. Freeing isn't
+             necessary, because we are in another branch here, meaning another
+             ctor. Calling the free function is thus redundant. If,
+             additionally, the if-expression is pre-allocated then we would
+             free the returned-to value, which is a bug. This only happens if
+             the condition is a ctor check and the 'b' clause returns the same
+             value which is matched. We can check this using the alloc
+             values. *)
+          | Some expr ->
+              let id =
+                match expr.expr with
+                | Mvar (id, _) -> id
+                | _ -> failwith "Intenal Error: Not a variable expression"
+              in
+              let _, func = find_var id p.vars in
+              if equal_alloc func.alloc b.alloc then
+                match func.malloc with
+                | Single a | Param a ->
+                    List.filter (fun (i : malloc_id) -> i.id <> a.mid) frees_a
+                | No_malloc -> frees_a
+                | Path _ -> failwith "TODO path case"
+              else frees_a
+          | None -> frees_a
+        in
+        { e1 with expr = Mfree_after (e1, Only frees) }
     in
     let e2 =
       if b.tailrec then e2
