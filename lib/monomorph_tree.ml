@@ -1,960 +1,137 @@
 open Cleaned_types
 open Malloc_types
-module Vars = Map.Make (String)
 module Iset = Set.Make (Int)
-module Apptbl = Hashtbl
 
-type expr =
-  | Mvar of string * var_kind
-  | Mconst of const
-  | Mbop of Ast.bop * monod_tree * monod_tree
-  | Munop of Ast.unop * monod_tree
-  | Mif of ifexpr
-  | Mlet of
-      string * monod_tree * let_kind * global_name * malloc_list * monod_tree
-  | Mbind of string * monod_tree * monod_tree
-  | Mlambda of string * fun_kind * typ * alloca
-  | Mfunction of string * fun_kind * typ * monod_tree * alloca
-  | Mapp of {
-      callee : monod_expr;
-      args : (monod_expr * bool) list;
-      alloca : alloca;
-      id : int;
-      ms : malloc_list;
-    }
-  | Mrecord of (string * monod_tree) list * alloca * malloc_list
-  | Mfield of (monod_tree * int)
-  | Mset of (monod_tree * monod_tree * bool)
-  | Mseq of (monod_tree * monod_tree)
-  | Mctor of (string * int * monod_tree option) * alloca * malloc_list
-  | Mvar_index of monod_tree
-  | Mvar_data of monod_tree * int option
-  | Mfmt of fmt list * alloca * int
-  | Mprint_str of fmt list
-  | Mfree_after of monod_tree * free_list
-[@@deriving show]
+module Mtree = struct
+  type expr =
+    | Mvar of string * var_kind
+    | Mconst of const
+    | Mbop of Ast.bop * monod_tree * monod_tree
+    | Munop of Ast.unop * monod_tree
+    | Mif of ifexpr
+    | Mlet of
+        string * monod_tree * let_kind * global_name * malloc_list * monod_tree
+    | Mbind of string * monod_tree * monod_tree
+    | Mlambda of string * fun_kind * typ * alloca
+    | Mfunction of string * fun_kind * typ * monod_tree * alloca
+    | Mapp of {
+        callee : monod_expr;
+        args : (monod_expr * bool) list;
+        alloca : alloca;
+        id : int;
+        ms : malloc_list;
+      }
+    | Mrecord of (string * monod_tree) list * alloca * malloc_list
+    | Mfield of (monod_tree * int)
+    | Mset of (monod_tree * monod_tree * bool)
+    | Mseq of (monod_tree * monod_tree)
+    | Mctor of (string * int * monod_tree option) * alloca * malloc_list
+    | Mvar_index of monod_tree
+    | Mvar_data of monod_tree * int option
+    | Mfmt of fmt list * alloca * int
+    | Mprint_str of fmt list
+    | Mfree_after of monod_tree * free_list
+  [@@deriving show]
 
-and const =
-  | Int of int
-  | Bool of bool
-  | U8 of char
-  | Float of float
-  | I32 of int
-  | F32 of float
-  | String of string
-  | Array of monod_tree list * alloca * int
-  | Fixed_array of monod_tree list * alloca * int list
-  | Unit
+  and const =
+    | Int of int
+    | Bool of bool
+    | U8 of char
+    | Float of float
+    | I32 of int
+    | F32 of float
+    | String of string
+    | Array of monod_tree list * alloca * int
+    | Fixed_array of monod_tree list * alloca * int list
+    | Unit
 
-and func = { params : param list; ret : typ; kind : fun_kind }
+  and func = { params : param list; ret : typ; kind : fun_kind }
 
-and abstraction = {
-  func : func;
-  pnames : (string * int) list;
-  body : monod_tree;
-}
+  and abstraction = {
+    func : func;
+    pnames : (string * int) list;
+    body : monod_tree;
+  }
 
-and call_name =
-  | Mono of string
-  | Concrete of string
-  | Default
-  | Recursive of { nonmono : string; call : string }
-  | Builtin of Builtin.t * func
-  | Inline of (string * int) list * monod_tree
+  and call_name =
+    | Mono of string
+    | Concrete of string
+    | Default
+    | Recursive of { nonmono : string; call : string }
+    | Builtin of Builtin.t * func
+    | Inline of (string * int) list * monod_tree
 
-and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
+  and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
 
-and monod_tree = {
-  typ : typ;
-  expr : expr;
-  return : bool;
-  loc : Ast.loc;
-  const : const_kind;
-}
+  and monod_tree = {
+    typ : typ;
+    expr : expr;
+    return : bool;
+    loc : Ast.loc;
+    const : const_kind;
+  }
 
-and alloca = allocas ref
-and request = { id : int; lvl : int }
-and allocas = Preallocated | Request of request
+  and alloca = allocas ref
+  and request = { id : int; lvl : int }
+  and allocas = Preallocated | Request of request
 
-and ifexpr = {
-  cond : monod_tree;
-  owning : int option;
-  e1 : monod_tree;
-  e2 : monod_tree;
-}
+  and ifexpr = {
+    cond : monod_tree;
+    owning : int option;
+    e1 : monod_tree;
+    e2 : monod_tree;
+  }
 
-and var_kind = Vnorm | Vconst | Vglobal of string
-and global_name = string option
-and fmt = Fstr of string | Fexpr of monod_tree
-and copy_kind = Cglobal of string | Cnormal of bool
-and malloc_list = int list
-and free_list = Except of malloc_id list | Only of malloc_id list
-and let_kind = Lowned | Lborrow
-and const_kind = Const | Cnot (* | Constexpr *)
+  and var_kind = Vnorm | Vconst | Vglobal of string
+  and global_name = string option
+  and fmt = Fstr of string | Fexpr of monod_tree
+  and copy_kind = Cglobal of string | Cnormal of bool
+  and malloc_list = int list
+  and free_list = Except of malloc_id list | Only of malloc_id list
+  and let_kind = Lowned | Lborrow
+  and const_kind = Const | Cnot (* | Constexpr *)
 
-type recurs = Rnormal | Rtail | Rnone
-type func_name = { user : string; call : string }
+  type recurs = Rnormal | Rtail | Rnone
+  type func_name = { user : string; call : string }
 
-type external_decl = {
-  ext_name : string;
-  ext_typ : typ;
-  cname : string;
-  c_linkage : bool;
-  closure : bool;
-}
+  type external_decl = {
+    ext_name : string;
+    ext_typ : typ;
+    cname : string;
+    c_linkage : bool;
+    closure : bool;
+  }
 
-type to_gen_func = {
-  abs : abstraction;
-  name : func_name;
-  recursive : recurs;
-  upward : unit -> bool;
-  monomorphized : bool;
-}
+  type to_gen_func = {
+    abs : abstraction;
+    name : func_name;
+    recursive : recurs;
+    upward : unit -> bool;
+    monomorphized : bool;
+  }
 
-module To_gen_func = struct
-  type t = to_gen_func
-
-  let compare a b = String.compare a.name.call b.name.call
+  type monomorphized_tree = {
+    constants : (string * monod_tree * bool) list;
+    globals : (string * monod_tree * bool) list;
+    externals : external_decl list;
+    tree : monod_tree;
+    funcs : to_gen_func list;
+    frees : malloc_id Seq.t;
+  }
 end
 
-module Fset = Set.Make (To_gen_func)
-module Sset = Set.Make (String)
+include Mtree
+module Monomorph_impl = Monomorph.Make (Mtree)
+open Monomorph_impl
+open Monomorph_impl.Mallocs_ipml
 
-type monomorphized_tree = {
-  constants : (string * monod_tree * bool) list;
-  globals : (string * monod_tree * bool) list;
-  externals : external_decl list;
-  tree : monod_tree;
-  funcs : To_gen_func.t list;
-  frees : malloc_id Seq.t;
-}
-
-type to_gen_func_kind =
-  (* TODO use a prefix *)
-  | Concrete of To_gen_func.t * string
-  | Polymorphic of string (* call name *)
-  | Forward_decl of string * typ
-  | Mutual_rec of string * typ
-  | Builtin of Builtin.t
-  | Inline of (string * int) list * typ * monod_tree
-  | No_function
-
-type alloc = Value of alloca | Two_values of alloc * alloc | No_value
-type malloc_scope = Mfunc | Mlocal
-
-let malloc_add_index index = function
-  | Malloc.No_malloc -> Malloc.No_malloc
-  | Path (m, p) -> Path (m, p @ [ index ])
-  | (Single _ | Param _) as m -> Path (m, [ index ])
-
-let m_to_list = function
-  | Malloc.No_malloc -> []
-  | Single i -> [ i.mid ]
-  | Param _ -> []
-  | Path _ -> failwith "Internal Error: Path not supported here"
-
-type pmap = Pset.t Imap.t
-
-let mlist_of_pmap m =
-  Imap.to_rev_seq m
-  |> Seq.map (fun ((id : Mid.t), paths) ->
-         { id = id.mid; mtyp = id.typ; paths })
-  |> List.of_seq
-
-let show_pmap m =
-  Imap.to_seq m
-  |> Seq.map (fun ((i : Mid.t), set) ->
-         Printf.sprintf "%i: (%s)" i.mid (show_pset set))
-  |> List.of_seq |> String.concat "\n"
-
-let mapdiff ?(flip = true) a b =
-  ignore show_pmap;
-  Imap.merge
-    (fun _ a b ->
-      match (a, b) with
-      | Some a, Some b ->
-          if Pset.is_empty b then None
-          else
-            (* The order here is switched, we want new moved things to appear *)
-            let diff = if flip then Pset.diff b a else Pset.diff a b in
-            if Pset.is_empty diff then None else Some diff
-      | None, Some _ | None, None -> None
-      | Some v, None -> Some v)
-    a b
-
-let mapdiff_flip a b = mapdiff ~flip:false a b
-
-let mapunion a b =
-  Imap.merge
-    (fun _ a b ->
-      match (a, b) with
-      | Some a, Some b -> Some (Pset.union a b)
-      | Some a, None -> Some a
-      | None, Some b -> Some b
-      | None, None -> None)
-    a b
-
-let mk_free_after expr frees =
-  (* Delete paths if all allocating members are excluded *)
-  let rec is_excluded frees typ =
-    if Pset.is_empty frees then (false, frees)
-    else
-      match typ with
-      | Trecord (_, _, fs) ->
-          let _, excluded, pset =
-            Array.fold_left
-              (fun (i, exh, pset) f ->
-                if contains_allocation f.ftyp then
-                  match pop_index_pset frees i with
-                  | Not_excl -> (i + 1, false, pset)
-                  | Excl -> (i + 1, exh && true, Pset.add [ i ] pset)
-                  | Followup frees ->
-                      let nexcluded, npset = is_excluded frees f.ftyp in
-                      let npset =
-                        if nexcluded then pset
-                        else Pset.map (fun l -> i :: l) npset
-                      in
-                      (i + 1, exh && nexcluded, npset)
-                else (i + 1, exh, pset))
-              (0, true, Pset.empty) fs
-          in
-          (excluded, pset)
-      | _ -> failwith "todo exh"
-  in
-  let frees =
-    List.filter_map
-      (fun free ->
-        let excluded, paths = is_excluded free.paths free.mtyp in
-        if excluded then None else Some { free with paths })
-      frees
-  in
-  match frees with
-  | [] -> expr
-  | frees -> { expr with expr = Mfree_after (expr, Except frees) }
-
-module Mallocs : sig
-  type t
-
-  val empty : malloc_scope -> t
-  val push : malloc_scope -> t -> t
-  val pop : t -> malloc_id list * t
-  val find : Malloc.t -> t -> pset Imap.t option
-  val add : Malloc.t -> t -> t
-  val remove : Malloc.t -> t -> t
-  val reenter : Malloc.t -> t -> t
-  val remove_local : Malloc.t -> t -> t
-  val empty_func : monod_tree -> t -> t * monod_tree
-  val diff_func : t -> t -> Pset.t Imap.t
-end = struct
-  (* type pmap = Pset.t Imap.t *)
-  open Malloc
-
-  type t = (malloc_scope * pmap) list
-
-  let empty scope = [ (scope, Imap.empty) ]
-  let push kind ms = (kind, Imap.empty) :: ms
-  let pop = function (_, ms) :: tl -> (mlist_of_pmap ms, tl) | [] -> ([], [])
-
-  let find a ms =
-    let rec aux a ms path =
-      match (a, ms) with
-      | _, [] -> None
-      | (Single i | Param i), (_, ms) :: tl ->
-          let mem =
-            match Imap.find_opt i ms with
-            | Some pset -> (
-                match path with
-                | [] -> Some (Imap.add i pset Imap.empty)
-                | path ->
-                    if Pset.mem path pset then None
-                    else Some (Imap.add i pset Imap.empty))
-            | None -> None
-          in
-          if Option.is_some mem then mem else aux a tl path
-      | No_malloc, _ -> None
-      | Path (a, l), _ ->
-          print_endline ("it's a path: " ^ Mpath.show l);
-          (* Order of appending paths is important *)
-          aux a ms (l @ path)
-    in
-    aux a ms []
-
-  let mem a ms =
-    let rec aux a ms path =
-      match (a, ms) with
-      | _, [] -> false
-      | (Single i | Param i), (_, ms) :: tl ->
-          let mem =
-            match Imap.find_opt i ms with
-            | Some pset -> (
-                match path with [] -> true | path -> Pset.mem path pset |> not)
-            | None -> false
-          in
-          mem || aux a tl path
-      | No_malloc, _ -> false
-      | Path (a, l), _ ->
-          (* Order of appending paths is important *)
-          aux a ms (l @ path)
-    in
-    aux a ms []
-
-  let add a ms =
-    match (a, ms) with
-    | _, [] -> failwith "Internal Error: Empty ids"
-    | (Single a | Param a), (scope, ms) :: tl ->
-        (scope, Imap.add a Pset.empty ms) :: tl
-    | No_malloc, _ -> ms
-    | Path _, _ -> failwith "Internal Error: Trying to add pathed malloc"
-
-  let reenter a ms =
-    let rec aux a ms =
-      match (a, ms) with
-      | _, [] -> []
-      | (Single a | Param a), (scope, ms) :: tl ->
-          (scope, Imap.add a Pset.empty ms) :: tl
-      | No_malloc, _ -> ms
-      | Path ((Single i | Param i), p), (scope, ms) :: tl ->
-          let found, ms =
-            match Imap.find_opt i ms with
-            | Some pset -> (true, Imap.add i (Pset.remove p pset) ms)
-            | None -> (false, ms)
-          in
-          if found then (scope, ms) :: tl else (scope, ms) :: aux a tl
-      | Path _, _ -> failwith "Internal Error: Unexpected path"
-    in
-    aux a ms
-
-  let remove a ms =
-    let rec aux a path ms =
-      match (a, ms) with
-      | _, [] -> []
-      | (Single { parent = Some par; _ }, _ | Param { parent = Some par; _ }, _)
-        when (not (mem par ms)) && not (mem a ms) ->
-          (* Except when it has a parent and the parent is still part of the
-             tail. Then it's about to be removed and the child part has to be
-             added here. *)
-          aux a path (add a ms)
-      | (Single i | Param i), (scope, ms) :: tl ->
-          let ms =
-            match path with
-            | [] -> Imap.remove i ms
-            | p -> (
-                match Imap.find_opt i ms with
-                | Some pset ->
-                    (* Malloc id was found, mark path as moved in set *)
-                    Imap.add i (Pset.add p pset) ms
-                | None ->
-                    (* Malloc id isn't part of this scope, do nothing *)
-                    ms)
-          in
-          (* If the malloc has a parent, it's a variant. The variant must be
-             removed as a whole from the tail *)
-          let tl =
-            match i.parent with Some par -> aux par [] tl | None -> tl
-          in
-          (scope, ms) :: aux a path tl
-      | No_malloc, _ -> ms
-      | Path (a, l), _ -> aux a (l @ path) ms
-    in
-    aux a [] ms
-
-  let remove_local a ms =
-    let rec aux a path ms =
-      match (a, ms) with
-      | _, [] -> []
-      | Single ({ parent = Some par; _ } as i), (_, ms') :: _
-      | Param ({ parent = Some par; _ } as i), (_, ms') :: _
-        when (not (mem par ms)) && not (Imap.mem i ms') ->
-          (* Except when it has a parent and the parent is still part of the
-             tail. Then it's about to be removed and the child part has to be
-             added here. *)
-          aux a path (add a ms)
-      | (Single i | Param i), (scope, ms) :: tl ->
-          let ms =
-            match path with
-            | [] -> Imap.remove i ms
-            | p -> (
-                match Imap.find_opt i ms with
-                | Some pset -> Imap.add i (Pset.add p pset) ms
-                | None -> ms)
-          in
-          let tl =
-            match i.parent with Some par -> aux par [] tl | None -> tl
-          in
-          (scope, ms) :: tl
-      | No_malloc, _ -> ms
-      | Path (a, l), _ -> aux a (l @ path) ms
-    in
-    aux a [] ms
-
-  let rec empty_func body = function
-    | [] -> ([], body)
-    | (Mlocal, s) :: tl ->
-        let frees = mlist_of_pmap s in
-        let tl, body = empty_func (mk_free_after body frees) tl in
-        ((Mlocal, Imap.empty) :: tl, body)
-    | (Mfunc, s) :: tl ->
-        let frees = mlist_of_pmap s in
-        ((Mfunc, Imap.empty) :: tl, mk_free_after body frees)
-
-  let diff_func a b =
-    (* TODO take paths into account *)
-    let rec aux acc a b =
-      match (a, b) with
-      | (Mlocal, a) :: atl, (Mlocal, b) :: btl ->
-          aux (mapunion acc (mapdiff a b)) atl btl
-      | (Mfunc, a) :: _, (Mfunc, b) :: _ -> mapunion acc (mapdiff a b)
-      | _ -> failwith "Internal Error: Mismatch in scope"
-    in
-    aux Imap.empty a b
-end
-
-type var_normal = {
-  fn : to_gen_func_kind;
-  alloc : alloc;
-  malloc : Malloc.t;
-  tailrec : bool;
-}
-
-(* TODO could be used for Builtin as well *)
-type var =
-  | Normal of var_normal
-  | Const of string
-  | Global of string * var_normal * bool ref
-
-type morph_param = {
-  vars : var Vars.t;
-  monomorphized : Sset.t;
-  funcs : Fset.t; (* to generate in codegen *)
-  ret : bool;
-  (* Marks an expression where an if is the last piece which returns a record.
-     Needed for tail call elim *)
-  mallocs : Mallocs.t;
-      (* Tracks all heap allocations in a scope. If a value with allocation is
-         returned, they are marked for the parent scope. Otherwise freed *)
-  toplvl : bool;
-  mname : Path.t; (* Module name *)
-  mainmodule : Path.t;
-  alloc_lvl : int;
-  recursion_stack : (string * recurs) list;
-  gen_poly_bodies : bool;
-}
+(* Re-exports from monomorph *)
+let typ_of_abs = typ_of_abs
+let get_mono_name = get_mono_name
+let short_name = short_name
 
 let no_var =
   { fn = No_function; alloc = No_value; malloc = No_malloc; tailrec = false }
-
-let apptbl = Apptbl.create 64
-let poly_funcs_tbl = Hashtbl.create 64
-let missing_polys_tbl = Hashtbl.create 64
-let deferredfunc_tbl = Hashtbl.create 64
-
-(* Monomorphization *)
-
-let typ_of_abs abs = Tfun (abs.func.params, abs.func.ret, abs.func.kind)
-
-let func_of_typ = function
-  | Tfun (params, ret, kind) -> { params; ret; kind }
-  | _ -> failwith "Internal Error: Not a function type"
-
-let rec find_function_expr vars = function
-  | Mvar (_, Vglobal id) -> (
-      (* Use the id saved in Vglobal. The usual id is the call name / unique
-         global name *)
-      match Vars.find_opt id vars with
-      | Some (Global (_, thing, used)) ->
-          used := true;
-          thing.fn
-      | Some _ -> failwith "Internal Error: Unexpected nonglobal"
-      | None -> No_function)
-  | Mvar (id, _) -> (
-      match Vars.find_opt id vars with
-      | Some (Normal thing) -> thing.fn
-      | Some (Global (_, thing, _)) ->
-          (* Usually globals should be read as Vglobal, but for constexprs it
-             might be different *)
-          thing.fn
-      | Some (Const _) -> No_function
-      | None -> (
-          match Builtin.of_string id with
-          | Some b -> Builtin b
-          | None -> No_function))
-  | Mconst _ | Mapp _ | Mrecord _ | Mfield _ | Mbop _ | Munop _ | Mctor _ ->
-      No_function
-  | Mif _ ->
-      (* We are not allowing to return functions in ifs, b/c we cannot codegen
-         anyway *)
-      No_function
-  | Mlambda (name, _, _, _) -> (
-      match Vars.find_opt name vars with
-      | Some (Normal thing) -> thing.fn
-      | _ -> No_function)
-  | Mlet _ | Mbind _ -> No_function (* TODO cont? Didn't work on quick test *)
-  | Mfmt _ -> No_function
-  | Mfree_after (e, _) -> find_function_expr vars e.expr
-  | e ->
-      print_endline (show_expr e);
-      "Not supported: " ^ show_expr e |> failwith
-
-let rec short_name ~closure t =
-  let str = short_name ~closure in
-  let open Printf in
-  match t with
-  | Tint -> "i"
-  | Tbool -> "b"
-  | Tunit -> "u"
-  | Tu8 -> "c"
-  | Tfloat -> "f"
-  | Ti32 -> "i32"
-  | Tf32 -> "f32"
-  | Tfun (ps, r, k) ->
-      let k =
-        match k with
-        | Closure c when closure -> (
-            match c with
-            | [] -> ""
-            | c -> "-" ^ String.concat "-" (List.map (fun c -> str c.cltyp) c))
-        | Closure _ | Simple -> ""
-      in
-      sprintf "%s.%s%s"
-        (String.concat "" (List.map (fun p -> str p.pt) ps))
-        (str r) k
-  | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
-      sprintf "%s%s" name (String.concat "" (List.map str ps))
-  | Trecord (_, None, fs) ->
-      "tup-"
-      ^ (Array.to_list fs |> List.map (fun f -> str f.ftyp) |> String.concat "-")
-  | Tpoly _ -> "g"
-  | Traw_ptr t -> sprintf "p%s" (str t)
-  | Tarray t -> sprintf "a%s" (str t)
-  | Tfixed_array (i, t) -> sprintf "a%i%s" i (str t)
-
-let get_mono_name name ~poly ~closure concrete =
-  let open Printf in
-  let str = short_name ~closure in
-  sprintf "__%s_%s_%s" (str poly) name (str concrete)
-
-let rec subst_type ~concrete poly parent =
-  let rec inner subst = function
-    | Tpoly id, t -> (
-        match Vars.find_opt id subst with
-        | Some _ -> (* Already in tbl*) (subst, t)
-        | None -> (Vars.add id t subst, t))
-    | Tfun (ps1, r1, k1), Tfun (ps2, r2, k2) ->
-        let subst, ps =
-          List.fold_left_map
-            (fun subst (l, r) ->
-              let s, pt = inner subst (l.pt, r.pt) in
-              (s, { l with pt }))
-            subst (List.combine ps1 ps2)
-        in
-        let subst, r = inner subst (r1, r2) in
-        let subst, kind =
-          match (k1, k2) with
-          | Simple, Simple -> (subst, Simple)
-          | Closure c1, Closure c2 ->
-              let s, c =
-                List.fold_left_map
-                  (fun subst (l, r) ->
-                    let s, cltyp = inner subst (l.cltyp, r.cltyp) in
-                    (* Copied from [subst_kind] *)
-                    let is_function =
-                      match cltyp with Tfun _ -> true | _ -> false
-                    in
-                    let clname =
-                      if
-                        is_function && (not l.clparam)
-                        && is_type_polymorphic l.cltyp
-                        && not (is_type_polymorphic cltyp)
-                      then
-                        get_mono_name l.clname ~closure:true ~poly:l.cltyp cltyp
-                      else l.clname
-                    in
-                    (s, { l with cltyp; clname }))
-                  subst (List.combine c1 c2)
-              in
-              (s, Closure c)
-          | _ ->
-              failwith "Internal Error: Unexpected Simple-Closure combination"
-        in
-        (subst, Tfun (ps, r, kind))
-    | (Trecord (i, record, l1) as l), Trecord (j, _, l2)
-      when is_type_polymorphic l ->
-        let labels = Array.copy l1 in
-        let f (subst, i) (label : Cleaned_types.field) =
-          let subst, ftyp = inner subst (label.ftyp, l2.(i).ftyp) in
-          labels.(i) <- Cleaned_types.{ (labels.(i)) with ftyp };
-          (subst, i + 1)
-        in
-        let subst, _ = Array.fold_left f (subst, 0) l1 in
-        let subst, ps =
-          List.fold_left_map
-            (fun subst (l, r) -> inner subst (l, r))
-            subst (List.combine i j)
-        in
-        (subst, Trecord (ps, record, labels))
-    | (Tvariant (i, variant, l1) as l), Tvariant (j, _, l2)
-      when is_type_polymorphic l ->
-        let ctors = Array.copy l1 in
-        let f (subst, i) (ctor : Cleaned_types.ctor) =
-          let subst, ctyp =
-            match (ctor.ctyp, l2.(i).ctyp) with
-            | Some l, Some r ->
-                let subst, t = (inner subst) (l, r) in
-                (subst, Some t)
-            | _ -> (subst, None)
-          in
-          ctors.(i) <- Cleaned_types.{ (ctors.(i)) with ctyp };
-          (subst, i + 1)
-        in
-        let subst, _ = Array.fold_left f (subst, 0) l1 in
-        let subst, ps =
-          List.fold_left_map
-            (fun subst (l, r) -> inner subst (l, r))
-            subst (List.combine i j)
-        in
-        (subst, Tvariant (ps, variant, ctors))
-    | Traw_ptr l, Traw_ptr r ->
-        let subst, t = inner subst (l, r) in
-        (subst, Traw_ptr t)
-    | Tarray l, Tarray r ->
-        let subst, t = inner subst (l, r) in
-        (subst, Tarray t)
-    | Tfixed_array (i, l), Tfixed_array (j, r) ->
-        let i, subst =
-          if i < 0 then
-            let id = "fa" ^ string_of_int i in
-            match Vars.find_opt id subst with
-            | Some (Tfixed_array (i, _)) -> (i, subst)
-            | Some _ -> failwith "Internal Error: What else? in monomorph"
-            | None ->
-                let t = Tfixed_array (j, Tunit) in
-                (j, Vars.add id t subst)
-          else (i, subst)
-        in
-        let subst, t = inner subst (l, r) in
-        (subst, Tfixed_array (i, t))
-    | t, _ -> (subst, t)
-  in
-  let vars, typ = inner Vars.empty (poly, concrete) in
-
-  let rec subst = function
-    | Tpoly id as old -> (
-        match Vars.find_opt id vars with Some t -> t | None -> old)
-    | Tfun (ps, r, kind) ->
-        let ps = List.map (fun p -> { p with pt = subst p.pt }) ps in
-        let kind = subst_kind subst kind in
-        Tfun (ps, subst r, kind)
-    | Trecord (ps, record, labels) as t when is_type_polymorphic t ->
-        let ps = List.map subst ps in
-        let f field = Cleaned_types.{ field with ftyp = subst field.ftyp } in
-        let labels = Array.map f labels in
-        Trecord (ps, record, labels)
-    | Tvariant (ps, variant, ctors) as t when is_type_polymorphic t ->
-        let ps = List.map subst ps in
-        let f ctor =
-          Cleaned_types.{ ctor with ctyp = Option.map subst ctor.ctyp }
-        in
-        let ctors = Array.map f ctors in
-        Tvariant (ps, variant, ctors)
-    | Traw_ptr t -> Traw_ptr (subst t)
-    | Tarray t -> Tarray (subst t)
-    | Tfixed_array (i, t) ->
-        let i =
-          match Vars.find_opt ("fa" ^ string_of_int i) vars with
-          | Some (Tfixed_array (i, _)) -> i
-          | Some _ -> failwith "Internal Error: What else? in monomorph"
-          | None -> i
-        in
-        Tfixed_array (i, subst t)
-    | t -> t
-  in
-
-  (* We might have to substitute other types (in closures) from an outer scope *)
-  let subst, typ =
-    match parent with
-    | Some sub -> ((fun t -> sub t |> subst), sub typ)
-    | None -> (subst, typ)
-  in
-
-  (subst, typ)
-
-and subst_kind subst = function
-  | Simple -> Simple
-  | Closure cls ->
-      let cls =
-        List.map
-          (fun cl ->
-            let cltyp = subst cl.cltyp in
-            let is_function = match cltyp with Tfun _ -> true | _ -> false in
-            let clname =
-              if
-                is_function && (not cl.clparam)
-                && is_type_polymorphic cl.cltyp
-                && not (is_type_polymorphic cltyp)
-              then get_mono_name cl.clname ~closure:true ~poly:cl.cltyp cltyp
-              else cl.clname
-            in
-            { cl with cltyp; clname })
-          cls
-      in
-      Closure cls
-
-and subst_body p subst tree =
-  let p = ref p in
-
-  let rec inner tree =
-    let sub t = { (inner t) with typ = subst t.typ } in
-    match tree.expr with
-    | Mvar _ -> { tree with typ = subst tree.typ }
-    | Mconst _ -> tree
-    | Mbop (bop, l, r) -> { tree with expr = Mbop (bop, sub l, sub r) }
-    | Munop (unop, e) -> { tree with expr = Munop (unop, sub e) }
-    | Mif expr ->
-        let cond = sub expr.cond in
-        let e1 = sub expr.e1 in
-        let e2 = sub expr.e2 in
-        { tree with typ = e1.typ; expr = Mif { expr with cond; e1; e2 } }
-    | Mlet (id, expr, proj, gn, vid, cont) ->
-        let expr = sub expr in
-        let cont = sub cont in
-        {
-          tree with
-          typ = cont.typ;
-          expr = Mlet (id, expr, proj, gn, vid, cont);
-        }
-    | Mbind (id, lhs, cont) ->
-        let lhs = sub lhs in
-        let cont = sub cont in
-        { tree with typ = cont.typ; expr = Mbind (id, lhs, cont) }
-    | Mlambda (name, kind, typ, alloca) ->
-        let styp = subst typ and kind = subst_kind subst kind in
-
-        (* We may have to monomorphize. For instance if the lambda returned from
-           a polymorphic function *)
-        let name = mono_callable name styp tree in
-
-        { tree with typ; expr = Mlambda (name, kind, styp, alloca) }
-    | Mfunction (name, kind, typ, cont, alloca) ->
-        let styp = subst typ and kind = subst_kind subst kind in
-        (* We may have to monomorphize. For instance if the lambda returned from
-           a polymorphic function *)
-        let name = mono_callable name styp { tree with typ } in
-        let cont = { (inner cont) with typ = subst cont.typ } in
-        {
-          tree with
-          typ = cont.typ;
-          expr = Mfunction (name, kind, styp, cont, alloca);
-        }
-    | Mapp { callee; args; alloca; id; ms } ->
-        let ex = sub callee.ex in
-
-        (* We use the parameters at function creation time to deal with scope *)
-        let old_p =
-          match Apptbl.find_opt apptbl (string_of_int id) with
-          | Some old ->
-              { old with funcs = !p.funcs; monomorphized = !p.monomorphized }
-          | None -> failwith "Internal Error: No old param"
-        in
-
-        let p2, monomorph = monomorphize_call old_p ex (Some subst) in
-
-        let callee = { callee with ex; monomorph } in
-
-        let p2, args =
-          List.fold_left_map
-            (fun p2 (arg, a) ->
-              let ex = sub arg.ex in
-              let p2, monomorph = monomorphize_call p2 ex (Some subst) in
-              (p2, ({ arg with ex; monomorph }, a)))
-            p2 args
-        in
-        p :=
-          {
-            !p with
-            funcs = Fset.union !p.funcs p2.funcs;
-            monomorphized = Sset.union !p.monomorphized p2.monomorphized;
-          };
-
-        let func = func_of_typ callee.ex.typ in
-        {
-          tree with
-          typ = func.ret;
-          expr = Mapp { callee; args; alloca; id; ms };
-        }
-    | Mrecord (labels, alloca, id) ->
-        let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
-        { tree with typ = subst tree.typ; expr = Mrecord (labels, alloca, id) }
-    | Mctor ((var, index, expr), alloca, id) ->
-        let expr = Mctor ((var, index, Option.map sub expr), alloca, id) in
-        { tree with typ = subst tree.typ; expr }
-    | Mfield (expr, index) ->
-        { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
-    | Mvar_index expr ->
-        { tree with typ = subst tree.typ; expr = Mvar_index (sub expr) }
-    | Mvar_data (expr, mid) ->
-        { tree with typ = subst tree.typ; expr = Mvar_data (sub expr, mid) }
-    | Mset (expr, value, moved) ->
-        let expr = Mset (sub expr, sub value, moved) in
-        { tree with typ = subst tree.typ; expr }
-    | Mseq (expr, cont) ->
-        let expr = sub expr in
-        let cont = sub cont in
-        { tree with typ = cont.typ; expr = Mseq (expr, cont) }
-    | Mfmt (fmts, alloca, id) ->
-        let fmts =
-          List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
-        in
-        { tree with expr = Mfmt (fmts, alloca, id) }
-    | Mprint_str fmts ->
-        let fmts =
-          List.map (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s) fmts
-        in
-        { tree with expr = Mprint_str fmts }
-    | Mfree_after (e, fs) ->
-        let e = sub e in
-        { tree with expr = Mfree_after (e, fs) }
-  and mono_callable name typ tree =
-    if is_type_polymorphic tree.typ then (
-      match Apptbl.find_opt apptbl name with
-      | Some old ->
-          let old =
-            { old with funcs = !p.funcs; monomorphized = !p.monomorphized }
-          in
-          let p2, monomorph =
-            monomorphize_call old { tree with typ } (Some subst)
-          in
-          let name = match monomorph with Mono name -> name | _ -> name in
-          p :=
-            {
-              !p with
-              funcs = Fset.union !p.funcs p2.funcs;
-              monomorphized = Sset.union !p.monomorphized p2.monomorphized;
-            };
-          name
-      | None ->
-          (* Partly copied from [monomorphize_call] *)
-          if is_type_polymorphic typ then name
-          else
-            let p2, monomorph =
-              let p, func = get_poly_func !p name in
-              monomorphize p tree.typ typ func (Some subst)
-              (* match Hashtbl.find_opt poly_funcs_tbl name with *)
-              (* | Some func -> monomorphize !p tree.typ typ func (Some subst) *)
-              (* | None -> *)
-              (*     failwith "Internal Error: Poly function not registered yet" *)
-            in
-
-            let name = match monomorph with Mono name -> name | _ -> name in
-            p :=
-              {
-                !p with
-                funcs = Fset.union !p.funcs p2.funcs;
-                monomorphized = Sset.union !p.monomorphized p2.monomorphized;
-              };
-
-            (* It's concrete, all good *) name)
-    else name
-  in
-
-  (!p, inner tree)
-
-and monomorphize_call p expr parent_sub : morph_param * call_name =
-  match find_function_expr p.vars expr.expr with
-  | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
-  | Inline (ps, typ, tree) ->
-      (* Copied from Polymorphic below *)
-      (* The parent substitution is threaded through to its children. This deals
-         with nested closures *)
-      let subst, typ = subst_type ~concrete:expr.typ typ parent_sub in
-
-      (* If the type is still polymorphic, we cannot generate it *)
-      if is_type_polymorphic typ then (p, Default)
-      else let p, tree = subst_body p subst tree in
-
-           (p, Inline (ps, tree))
-  | Forward_decl (name, typ) ->
-      (* Generate the correct call name. If its mono, we have to recalculate it.
-         Closures are tricky, as the arguments are generally not closures, but
-         the typ might. We try to subst the (potential) closure by using the
-         parent_sub if its available *)
-      if is_type_polymorphic typ then
-        (* Instead of directly generating the mono name from concrete type and
-           expr, we substitute the poly type and use the substituted one. This
-           helps with some closures *)
-        let call =
-          match parent_sub with
-          | Some sub ->
-              let concrete = sub typ in
-              get_mono_name name ~closure:true ~poly:typ concrete
-          | None -> get_mono_name name ~closure:true ~poly:typ expr.typ
-        in
-        (* We still need to use the un-monomorphized callname for marking recursion *)
-        (p, Recursive { nonmono = name; call })
-        (* Make the name concrete so the correct call name is used *)
-      else (p, Recursive { nonmono = name; call = name })
-  | Mutual_rec (name, typ) ->
-      if is_type_polymorphic typ then (
-        let call = get_mono_name name ~closure:true ~poly:typ expr.typ in
-        if not (Sset.mem call p.monomorphized) then
-          (* The function doesn't exist yet, will it ever exist? *)
-          if not (Hashtbl.mem missing_polys_tbl call) then
-            Hashtbl.add missing_polys_tbl name (p, expr.typ, parent_sub);
-        (p, Mono call)
-        (* Make the name concrete so the correct call name is used *))
-      else (p, Concrete name)
-  | _ when is_type_polymorphic expr.typ -> (p, Default)
-  | Concrete (func, username) ->
-      (* If a named function gets a generated name, the call site has to be made aware *)
-      if not (String.equal func.name.call username) then
-        (p, Concrete func.name.call)
-      else (p, Default)
-  | Polymorphic call ->
-      let p, func = get_poly_func p call in
-      let typ = typ_of_abs func.abs in
-      monomorphize p typ expr.typ func parent_sub
-  | No_function -> (p, Default)
-
-and get_poly_func p callname =
-  match Hashtbl.find_opt poly_funcs_tbl callname with
-  | Some func -> (p, func)
-  | None -> (
-      match Hashtbl.find_opt deferredfunc_tbl callname with
-      | Some make_func ->
-          (* Which param do we want to use? The original *)
-          let np = make_func () in
-          (* Should exist now *)
-          let func = Hashtbl.find poly_funcs_tbl callname in
-          let funcs = Fset.union np.funcs p.funcs
-          and monomorphized = Sset.union np.monomorphized p.monomorphized in
-          let p = { p with funcs; monomorphized } in
-          (p, func)
-      | None -> failwith "Internal Error: Poly function not registered yet")
-
-and monomorphize p typ concrete func parent_sub =
-  let call = get_mono_name func.name.call ~closure:true ~poly:typ concrete in
-
-  if Sset.mem call p.monomorphized then
-    (* The function exists, we don't do anything right now *)
-    (p, Mono call)
-  else
-    (* We generate the function *)
-    (* The parent substitution is threaded through to its children. This deals
-       with nested closures *)
-    let subst, typ = subst_type ~concrete typ parent_sub in
-
-    (* If the type is still polymorphic, we cannot generate it *)
-    if is_type_polymorphic typ then (p, Default)
-    else
-      let p, body = subst_body p subst func.abs.body in
-
-      let kind = subst_kind subst func.abs.func.kind in
-      let fnc = { (func_of_typ typ) with kind } in
-      let name = { func.name with call } in
-      let abs = { func.abs with func = fnc; body } in
-      let monomorphized = true in
-      let funcs = Fset.add { func with abs; name; monomorphized } p.funcs in
-      let monomorphized = Sset.add call p.monomorphized in
-      ({ p with funcs; monomorphized }, Mono call)
 
 let extract_callname default vars expr =
   match find_function_expr vars expr with
