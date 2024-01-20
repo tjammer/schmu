@@ -127,7 +127,6 @@ open Monomorph_impl.Mallocs_ipml
 
 (* Re-exports from monomorph *)
 let typ_of_abs = typ_of_abs
-let get_mono_name = get_mono_name
 let short_name = short_name
 
 let no_var =

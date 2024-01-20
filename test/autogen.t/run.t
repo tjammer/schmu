@@ -230,17 +230,17 @@ Copy records
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %cont_t = type { %t }
+  %contt = type { %t }
   %t = type { double, i8*, i64, i64* }
   
-  @schmu_a = global %cont_t zeroinitializer, align 8
+  @schmu_a = global %contt zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"lul\00" }
   
   declare void @string_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    store double 1.000000e+01, double* getelementptr inbounds (%cont_t, %cont_t* @schmu_a, i32 0, i32 0, i32 0), align 8
+    store double 1.000000e+01, double* getelementptr inbounds (%contt, %contt* @schmu_a, i32 0, i32 0, i32 0), align 8
     %0 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i8** %0, align 8
     %1 = alloca i8*, align 8
@@ -249,8 +249,8 @@ Copy records
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     call void @__copy_ac(i8** %1)
     %4 = load i8*, i8** %1, align 8
-    store i8* %4, i8** getelementptr inbounds (%cont_t, %cont_t* @schmu_a, i32 0, i32 0, i32 1), align 8
-    store i64 10, i64* getelementptr inbounds (%cont_t, %cont_t* @schmu_a, i32 0, i32 0, i32 2), align 8
+    store i8* %4, i8** getelementptr inbounds (%contt, %contt* @schmu_a, i32 0, i32 0, i32 1), align 8
+    store i64 10, i64* getelementptr inbounds (%contt, %contt* @schmu_a, i32 0, i32 0, i32 2), align 8
     %5 = call i8* @malloc(i64 40)
     %6 = bitcast i8* %5 to i64*
     %arr = alloca i64*, align 8
@@ -265,17 +265,17 @@ Copy records
     store i64 20, i64* %"1", align 8
     %"2" = getelementptr i64, i64* %data, i64 2
     store i64 30, i64* %"2", align 8
-    store i64* %6, i64** getelementptr inbounds (%cont_t, %cont_t* @schmu_a, i32 0, i32 0, i32 3), align 8
-    %8 = alloca %cont_t, align 8
-    %9 = bitcast %cont_t* %8 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* bitcast (%cont_t* @schmu_a to i8*), i64 32, i1 false)
-    call void @__copy_contt(%cont_t* %8)
-    %10 = bitcast %cont_t* %8 to %t*
+    store i64* %6, i64** getelementptr inbounds (%contt, %contt* @schmu_a, i32 0, i32 0, i32 3), align 8
+    %8 = alloca %contt, align 8
+    %9 = bitcast %contt* %8 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* bitcast (%contt* @schmu_a to i8*), i64 32, i1 false)
+    call void @__copy_contt(%contt* %8)
+    %10 = bitcast %contt* %8 to %t*
     %11 = getelementptr inbounds %t, %t* %10, i32 0, i32 1
     %12 = load i8*, i8** %11, align 8
     call void @string_print(i8* %12)
-    call void @__free_contt(%cont_t* %8)
-    call void @__free_contt(%cont_t* @schmu_a)
+    call void @__free_contt(%contt* %8)
+    call void @__free_contt(%contt* @schmu_a)
     ret i64 0
   }
   
@@ -330,9 +330,9 @@ Copy records
     ret void
   }
   
-  define linkonce_odr void @__copy_contt(%cont_t* %0) {
+  define linkonce_odr void @__copy_contt(%contt* %0) {
   entry:
-    %1 = bitcast %cont_t* %0 to %t*
+    %1 = bitcast %contt* %0 to %t*
     call void @__copy_t(%t* %1)
     ret void
   }
@@ -363,9 +363,9 @@ Copy records
     ret void
   }
   
-  define linkonce_odr void @__free_contt(%cont_t* %0) {
+  define linkonce_odr void @__free_contt(%contt* %0) {
   entry:
-    %1 = bitcast %cont_t* %0 to %t*
+    %1 = bitcast %contt* %0 to %t*
     call void @__free_t(%t* %1)
     ret void
   }
@@ -381,17 +381,17 @@ Copy variants
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %option.t_tuple_array_u8_int = type { i32, %tuple_array_u8_int }
-  %tuple_array_u8_int = type { i8*, i64 }
+  %option.ttup-ac-i = type { i32, %tup-ac-i }
+  %tup-ac-i = type { i8*, i64 }
   
-  @schmu_a = global %option.t_tuple_array_u8_int zeroinitializer, align 8
+  @schmu_a = global %option.ttup-ac-i zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
   declare void @string_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    store i32 0, i32* getelementptr inbounds (%option.t_tuple_array_u8_int, %option.t_tuple_array_u8_int* @schmu_a, i32 0, i32 0), align 4
+    store i32 0, i32* getelementptr inbounds (%option.ttup-ac-i, %option.ttup-ac-i* @schmu_a, i32 0, i32 0), align 4
     %0 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*), i8** %0, align 8
     %1 = alloca i8*, align 8
@@ -400,28 +400,28 @@ Copy variants
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     call void @__copy_ac(i8** %1)
     %4 = load i8*, i8** %1, align 8
-    store i8* %4, i8** getelementptr inbounds (%option.t_tuple_array_u8_int, %option.t_tuple_array_u8_int* @schmu_a, i32 0, i32 1, i32 0), align 8
-    store i64 0, i64* getelementptr inbounds (%option.t_tuple_array_u8_int, %option.t_tuple_array_u8_int* @schmu_a, i32 0, i32 1, i32 1), align 8
-    %5 = alloca %option.t_tuple_array_u8_int, align 8
-    %6 = bitcast %option.t_tuple_array_u8_int* %5 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* bitcast (%option.t_tuple_array_u8_int* @schmu_a to i8*), i64 24, i1 false)
-    call void @__copy_option.ttup-ac-i(%option.t_tuple_array_u8_int* %5)
-    %tag1 = bitcast %option.t_tuple_array_u8_int* %5 to i32*
+    store i8* %4, i8** getelementptr inbounds (%option.ttup-ac-i, %option.ttup-ac-i* @schmu_a, i32 0, i32 1, i32 0), align 8
+    store i64 0, i64* getelementptr inbounds (%option.ttup-ac-i, %option.ttup-ac-i* @schmu_a, i32 0, i32 1, i32 1), align 8
+    %5 = alloca %option.ttup-ac-i, align 8
+    %6 = bitcast %option.ttup-ac-i* %5 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* bitcast (%option.ttup-ac-i* @schmu_a to i8*), i64 24, i1 false)
+    call void @__copy_option.ttup-ac-i(%option.ttup-ac-i* %5)
+    %tag1 = bitcast %option.ttup-ac-i* %5 to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option.t_tuple_array_u8_int, %option.t_tuple_array_u8_int* %5, i32 0, i32 1
-    %7 = getelementptr inbounds %tuple_array_u8_int, %tuple_array_u8_int* %data, i32 0, i32 1
-    %8 = bitcast %tuple_array_u8_int* %data to i8**
+    %data = getelementptr inbounds %option.ttup-ac-i, %option.ttup-ac-i* %5, i32 0, i32 1
+    %7 = getelementptr inbounds %tup-ac-i, %tup-ac-i* %data, i32 0, i32 1
+    %8 = bitcast %tup-ac-i* %data to i8**
     %9 = load i8*, i8** %8, align 8
     call void @string_print(i8* %9)
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
-    call void @__free_option.ttup-ac-i(%option.t_tuple_array_u8_int* %5)
-    call void @__free_option.ttup-ac-i(%option.t_tuple_array_u8_int* @schmu_a)
+    call void @__free_option.ttup-ac-i(%option.ttup-ac-i* %5)
+    call void @__free_option.ttup-ac-i(%option.ttup-ac-i* @schmu_a)
     ret i64 0
   }
   
@@ -447,32 +447,32 @@ Copy variants
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__copy_tup-ac-i(%tuple_array_u8_int* %0) {
+  define linkonce_odr void @__copy_tup-ac-i(%tup-ac-i* %0) {
   entry:
-    %1 = bitcast %tuple_array_u8_int* %0 to i8**
+    %1 = bitcast %tup-ac-i* %0 to i8**
     call void @__copy_ac(i8** %1)
     ret void
   }
   
-  define linkonce_odr void @__copy_option.ttup-ac-i(%option.t_tuple_array_u8_int* %0) {
+  define linkonce_odr void @__copy_option.ttup-ac-i(%option.ttup-ac-i* %0) {
   entry:
-    %tag1 = bitcast %option.t_tuple_array_u8_int* %0 to i32*
+    %tag1 = bitcast %option.ttup-ac-i* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option.t_tuple_array_u8_int, %option.t_tuple_array_u8_int* %0, i32 0, i32 1
-    call void @__copy_tup-ac-i(%tuple_array_u8_int* %data)
+    %data = getelementptr inbounds %option.ttup-ac-i, %option.ttup-ac-i* %0, i32 0, i32 1
+    call void @__copy_tup-ac-i(%tup-ac-i* %data)
     br label %cont
   
   cont:                                             ; preds = %match, %entry
     ret void
   }
   
-  define linkonce_odr void @__free_tup-ac-i(%tuple_array_u8_int* %0) {
+  define linkonce_odr void @__free_tup-ac-i(%tup-ac-i* %0) {
   entry:
-    %1 = bitcast %tuple_array_u8_int* %0 to i8**
+    %1 = bitcast %tup-ac-i* %0 to i8**
     call void @__free_ac(i8** %1)
     ret void
   }
@@ -486,16 +486,16 @@ Copy variants
     ret void
   }
   
-  define linkonce_odr void @__free_option.ttup-ac-i(%option.t_tuple_array_u8_int* %0) {
+  define linkonce_odr void @__free_option.ttup-ac-i(%option.ttup-ac-i* %0) {
   entry:
-    %tag1 = bitcast %option.t_tuple_array_u8_int* %0 to i32*
+    %tag1 = bitcast %option.ttup-ac-i* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option.t_tuple_array_u8_int, %option.t_tuple_array_u8_int* %0, i32 0, i32 1
-    call void @__free_tup-ac-i(%tuple_array_u8_int* %data)
+    %data = getelementptr inbounds %option.ttup-ac-i, %option.ttup-ac-i* %0, i32 0, i32 1
+    call void @__free_tup-ac-i(%tup-ac-i* %data)
     br label %cont
   
   cont:                                             ; preds = %match, %entry
@@ -516,8 +516,8 @@ Copy closures
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %closure = type { i8*, i8* }
-  %tuple_int_int = type { i64, i64 }
-  %tuple_fn_.fn_.int_int = type { %closure, i64 }
+  %tup-i-i = type { i64, i64 }
+  %tup-..i-i = type { %closure, i64 }
   
   @schmu_c = global %closure zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
@@ -557,10 +557,10 @@ Copy closures
   
   define void @schmu_hmm(%closure* noalias %0) {
   entry:
-    %1 = alloca %tuple_int_int, align 8
-    %"01" = bitcast %tuple_int_int* %1 to i64*
+    %1 = alloca %tup-i-i, align 8
+    %"01" = bitcast %tup-i-i* %1 to i64*
     store i64 1, i64* %"01", align 8
-    %"1" = getelementptr inbounds %tuple_int_int, %tuple_int_int* %1, i32 0, i32 1
+    %"1" = getelementptr inbounds %tup-i-i, %tup-i-i* %1, i32 0, i32 1
     store i64 0, i64* %"1", align 8
     %funptr2 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i8*)* @schmu_capture to i8*), i8** %funptr2, align 8
@@ -579,10 +579,10 @@ Copy closures
   
   define void @schmu_hmm_move(%closure* noalias %0) {
   entry:
-    %1 = alloca %tuple_int_int, align 8
-    %"01" = bitcast %tuple_int_int* %1 to i64*
+    %1 = alloca %tup-i-i, align 8
+    %"01" = bitcast %tup-i-i* %1 to i64*
     store i64 1, i64* %"01", align 8
-    %"1" = getelementptr inbounds %tuple_int_int, %tuple_int_int* %1, i32 0, i32 1
+    %"1" = getelementptr inbounds %tup-i-i, %tup-i-i* %1, i32 0, i32 1
     store i64 0, i64* %"1", align 8
     %funptr2 = bitcast %closure* %0 to i8**
     store i8* bitcast (i64 (i8*)* @schmu_capture__2 to i8*), i8** %funptr2, align 8
@@ -781,8 +781,8 @@ Copy closures
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = alloca %tuple_fn_.fn_.int_int, align 8
-    %"08" = bitcast %tuple_fn_.fn_.int_int* %0 to %closure*
+    %0 = alloca %tup-..i-i, align 8
+    %"08" = bitcast %tup-..i-i* %0 to %closure*
     %clstmp = alloca %closure, align 8
     %funptr9 = bitcast %closure* %clstmp to i8**
     store i8* bitcast (void (%closure*)* @schmu_hmm to i8*), i8** %funptr9, align 8
@@ -792,10 +792,10 @@ Copy closures
     %2 = bitcast %closure* %clstmp to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* %2, i64 16, i1 false)
     call void @__copy_..i(%closure* %"08")
-    %"1" = getelementptr inbounds %tuple_fn_.fn_.int_int, %tuple_fn_.fn_.int_int* %0, i32 0, i32 1
+    %"1" = getelementptr inbounds %tup-..i-i, %tup-..i-i* %0, i32 0, i32 1
     store i64 0, i64* %"1", align 8
-    %3 = alloca %tuple_fn_.fn_.int_int, align 8
-    %"0110" = bitcast %tuple_fn_.fn_.int_int* %3 to %closure*
+    %3 = alloca %tup-..i-i, align 8
+    %"0110" = bitcast %tup-..i-i* %3 to %closure*
     %clstmp2 = alloca %closure, align 8
     %funptr311 = bitcast %closure* %clstmp2 to i8**
     store i8* bitcast (void (%closure*)* @schmu_hmm_move to i8*), i8** %funptr311, align 8
@@ -805,7 +805,7 @@ Copy closures
     %5 = bitcast %closure* %clstmp2 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 16, i1 false)
     call void @__copy_..i(%closure* %"0110")
-    %"15" = getelementptr inbounds %tuple_fn_.fn_.int_int, %tuple_fn_.fn_.int_int* %3, i32 0, i32 1
+    %"15" = getelementptr inbounds %tup-..i-i, %tup-..i-i* %3, i32 0, i32 1
     store i64 0, i64* %"15", align 8
     call void @schmu_test(%closure* @schmu_c)
     %6 = alloca %closure, align 8
@@ -820,8 +820,8 @@ Copy closures
     call void %casttmp(i8* %loadtmp7)
     call void @__free_.u(%closure* %6)
     call void @__free_.u(%closure* @schmu_c)
-    call void @__free_tup-..i-i(%tuple_fn_.fn_.int_int* %3)
-    call void @__free_tup-..i-i(%tuple_fn_.fn_.int_int* %0)
+    call void @__free_tup-..i-i(%tup-..i-i* %3)
+    call void @__free_tup-..i-i(%tup-..i-i* %0)
     ret i64 0
   }
   
@@ -925,9 +925,9 @@ Copy closures
     br label %ret
   }
   
-  define linkonce_odr void @__free_tup-..i-i(%tuple_fn_.fn_.int_int* %0) {
+  define linkonce_odr void @__free_tup-..i-i(%tup-..i-i* %0) {
   entry:
-    %1 = bitcast %tuple_fn_.fn_.int_int* %0 to %closure*
+    %1 = bitcast %tup-..i-i* %0 to %closure*
     call void @__free_..i(%closure* %1)
     ret void
   }

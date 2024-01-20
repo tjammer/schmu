@@ -108,46 +108,48 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         print_endline (show_expr e);
         "Not supported: " ^ show_expr e |> failwith
 
-  let rec short_name ~closure t =
-    let str = short_name ~closure in
-    let open Printf in
-    match t with
-    | Tint -> "i"
-    | Tbool -> "b"
-    | Tunit -> "u"
-    | Tu8 -> "c"
-    | Tfloat -> "f"
-    | Ti32 -> "i32"
-    | Tf32 -> "f32"
-    | Tfun (ps, r, k) ->
-        let k =
-          match k with
-          | Closure c when closure -> (
-              match c with
-              | [] -> ""
-              | c -> "-" ^ String.concat "-" (List.map (fun c -> str c.cltyp) c)
-              )
-          | Closure _ | Simple -> ""
-        in
-        sprintf "%s.%s%s"
-          (String.concat "" (List.map (fun p -> str p.pt) ps))
-          (str r) k
-    | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
-        sprintf "%s%s" name (String.concat "" (List.map str ps))
-    | Trecord (_, None, fs) ->
-        "tup-"
-        ^ (Array.to_list fs
-          |> List.map (fun f -> str f.ftyp)
-          |> String.concat "-")
-    | Tpoly _ -> "g"
-    | Traw_ptr t -> sprintf "p%s" (str t)
-    | Tarray t -> sprintf "a%s" (str t)
-    | Tfixed_array (i, t) -> sprintf "a%i%s" i (str t)
+  let short_name ~closure t =
+    let rec aux t =
+      let open Printf in
+      match t with
+      | Tint -> "i"
+      | Tbool -> "b"
+      | Tunit -> "u"
+      | Tu8 -> "c"
+      | Tfloat -> "f"
+      | Ti32 -> "i32"
+      | Tf32 -> "f32"
+      | Tfun (ps, r, k) ->
+          let k =
+            match k with
+            | Closure c when closure -> (
+                match c with
+                | [] -> ""
+                | c ->
+                    "-" ^ String.concat "-" (List.map (fun c -> aux c.cltyp) c))
+            | Closure _ | Simple -> ""
+          in
+          sprintf "%s.%s%s"
+            (String.concat "" (List.map (fun p -> aux p.pt) ps))
+            (aux r) k
+      | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
+          sprintf "%s%s" name (String.concat "" (List.map aux ps))
+      | Trecord (_, None, fs) ->
+          "tup-"
+          ^ (Array.to_list fs
+            |> List.map (fun f -> aux f.ftyp)
+            |> String.concat "-")
+      | Tpoly _ -> "g"
+      | Traw_ptr t -> sprintf "p%s" (aux t)
+      | Tarray t -> sprintf "a%s" (aux t)
+      | Tfixed_array (i, t) -> sprintf "a%i%s" i (aux t)
+    in
+    aux t
 
-  let get_mono_name name ~poly ~closure concrete =
+  let get_mono_name name ~closure concrete =
     let open Printf in
     let str = short_name ~closure in
-    sprintf "__%s_%s_%s" (str poly) name (str concrete)
+    sprintf "__%s_%s" name (str concrete)
 
   let rec subst_type ~concrete poly parent =
     let rec inner subst = function
@@ -181,9 +183,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                           is_function && (not l.clparam)
                           && is_type_polymorphic l.cltyp
                           && not (is_type_polymorphic cltyp)
-                        then
-                          get_mono_name l.clname ~closure:true ~poly:l.cltyp
-                            cltyp
+                        then get_mono_name l.clname ~closure:true cltyp
                         else l.clname
                       in
                       (s, { l with cltyp; clname }))
@@ -310,7 +310,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                   is_function && (not cl.clparam)
                   && is_type_polymorphic cl.cltyp
                   && not (is_type_polymorphic cltyp)
-                then get_mono_name cl.clname ~closure:true ~poly:cl.cltyp cltyp
+                then get_mono_name cl.clname ~closure:true cltyp
                 else cl.clname
               in
               { cl with cltyp; clname })
@@ -512,8 +512,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             match parent_sub with
             | Some sub ->
                 let concrete = sub typ in
-                get_mono_name name ~closure:true ~poly:typ concrete
-            | None -> get_mono_name name ~closure:true ~poly:typ expr.typ
+                get_mono_name name ~closure:true concrete
+            | None -> get_mono_name name ~closure:true expr.typ
           in
           (* We still need to use the un-monomorphized callname for marking recursion *)
           (p, Recursive { nonmono = name; call })
@@ -521,7 +521,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         else (p, Recursive { nonmono = name; call = name })
     | Mutual_rec (name, typ) ->
         if is_type_polymorphic typ then (
-          let call = get_mono_name name ~closure:true ~poly:typ expr.typ in
+          let call = get_mono_name name ~closure:true expr.typ in
           if not (Sset.mem call p.monomorphized) then
             (* The function doesn't exist yet, will it ever exist? *)
             if not (Hashtbl.mem missing_polys_tbl call) then
@@ -558,7 +558,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         | None -> failwith "Internal Error: Poly function not registered yet")
 
   and monomorphize p typ concrete func parent_sub =
-    let call = get_mono_name func.name.call ~closure:true ~poly:typ concrete in
+    let call = get_mono_name func.name.call ~closure:true concrete in
 
     if Sset.mem call p.monomorphized then
       (* The function exists, we don't do anything right now *)

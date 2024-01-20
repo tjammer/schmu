@@ -10,22 +10,7 @@ module Make (A : Abi_intf.S) = struct
 
   (* Named structs for typedefs *)
 
-  let rec struct_name = function
-    (* We match on each type here to allow for nested parametrization like [int foo bar].
-       [poly] argument will create a name used for a poly var, ie spell out the generic name *)
-    | Trecord (param, Some name, _) | Tvariant (param, name, _) ->
-        let some t = match t with Tpoly _ -> "generic" | t -> struct_name t in
-        String.concat "_" (name :: List.map some param)
-    | Trecord (_, None, fs) ->
-        let ts = Array.to_list fs |> List.map (fun f -> struct_name f.ftyp) in
-        "tuple_" ^ String.concat "_" ts
-    | Tarray t -> "array_" ^ struct_name t
-    | Traw_ptr t -> "raw_ptr_" ^ struct_name t
-    | Tfun (ps, r, _) ->
-        "fn_"
-        ^ String.concat "." (List.map (fun p -> struct_name p.pt) ps)
-        ^ "." ^ struct_name r
-    | t -> string_of_type t
+  let struct_name t = Monomorph_tree.short_name ~closure:false t
 
   (** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to
