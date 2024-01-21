@@ -112,13 +112,13 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     let rec aux t =
       let open Printf in
       match t with
-      | Tint -> "i"
+      | Tint -> "l"
       | Tbool -> "b"
       | Tunit -> "u"
       | Tu8 -> "c"
-      | Tfloat -> "f"
-      | Ti32 -> "i32"
-      | Tf32 -> "f32"
+      | Tfloat -> "d"
+      | Ti32 -> "i"
+      | Tf32 -> "f"
       | Tfun (ps, r, k) ->
           let k =
             match k with
@@ -126,25 +126,51 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                 match c with
                 | [] -> ""
                 | c ->
-                    "-" ^ String.concat "-" (List.map (fun c -> aux c.cltyp) c))
+                    "C" ^ String.concat "" (List.map (fun c -> aux c.cltyp) c))
             | Closure _ | Simple -> ""
           in
-          sprintf "%s.%s%s"
+          sprintf "%sr%s%s_"
             (String.concat "" (List.map (fun p -> aux p.pt) ps))
             (aux r) k
-      | Trecord (ps, Some name, _) | Tvariant (ps, name, _) ->
-          sprintf "%s%s" name (String.concat "" (List.map aux ps))
-      | Trecord (_, None, fs) ->
-          "tup-"
-          ^ (Array.to_list fs
-            |> List.map (fun f -> aux f.ftyp)
-            |> String.concat "-")
+      | Tvariant (_, _, ctors) -> (
+          let ctors =
+            Array.to_list ctors
+            |> List.filter_map (fun ct -> Option.map aux ct.ctyp)
+          in
+          match ctors with
+          | [] -> (* C-like enum, which is represented as int32 *) aux Ti32
+          | l -> sprintf "v%s_" (String.concat "" l))
+      | Trecord (_, _, fs) ->
+          (Array.to_list fs
+          |> List.map (fun f -> aux f.ftyp)
+          |> String.concat "")
+          ^ "_"
       | Tpoly _ -> "g"
-      | Traw_ptr t -> sprintf "p%s" (aux t)
-      | Tarray t -> sprintf "a%s" (aux t)
-      | Tfixed_array (i, t) -> sprintf "a%i%s" i (aux t)
+      | Traw_ptr t -> sprintf "p%s_" (aux t)
+      | Tarray t -> sprintf "a%s_" (aux t)
+      | Tfixed_array (i, t) -> sprintf "A%i%s_" i (aux t)
     in
-    aux t
+    let name = aux t in
+    (* Run length encode *)
+    let buf = Buffer.create (String.length name) in
+    let i, last =
+      String.fold_left
+        (fun (i, last) c ->
+          if Char.equal last c then (i + 1, last)
+          else (
+            if i > 1 then (
+              Buffer.add_char buf (Char.chr (i + Char.code '0'));
+              Buffer.add_char buf last)
+            else if i = 1 then Buffer.add_char buf last;
+            (1, c)))
+        (0, '\000') name
+    in
+    if i > 1 then (
+      Buffer.add_char buf (Char.chr (i + Char.code '0'));
+      Buffer.add_char buf last)
+    else if i = 1 then Buffer.add_char buf last;
+
+    Buffer.contents buf
 
   let get_mono_name name ~closure concrete =
     let open Printf in

@@ -233,25 +233,25 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %poly_func.optionf = type { i32, double }
-  %poly_func.optioni = type { i32, i64 }
+  %vd_ = type { i32, double }
+  %vl_ = type { i32, i64 }
   
-  @schmu_none = constant %poly_func.optionf { i32 1, double undef }
+  @schmu_none = constant %vd_ { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare i8* @string_data(i8* %0)
   
   declare void @printf(i8* %0, i64 %1)
   
-  define linkonce_odr i64 @__poly_func_classify_poly_func.optionf.i(%poly_func.optionf* %thing) {
+  define linkonce_odr i64 @__poly_func_classify_vd_rl_(%vd_* %thing) {
   entry:
-    %tag1 = bitcast %poly_func.optionf* %thing to i32*
+    %tag1 = bitcast %vd_* %thing to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %poly_func.optionf, %poly_func.optionf* %thing, i32 0, i32 1
+    %data = getelementptr inbounds %vd_, %vd_* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -259,15 +259,15 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_poly_func.optioni.i(%poly_func.optioni* %thing) {
+  define linkonce_odr i64 @__poly_func_classify_vl_rl_(%vl_* %thing) {
   entry:
-    %tag1 = bitcast %poly_func.optioni* %thing to i32*
+    %tag1 = bitcast %vl_* %thing to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %poly_func.optioni, %poly_func.optioni* %thing, i32 0, i32 1
+    %data = getelementptr inbounds %vl_, %vl_* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -278,17 +278,17 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define i64 @main(i64 %arg) {
   entry:
     %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst = alloca %poly_func.optioni, align 8
-    store %poly_func.optioni { i32 0, i64 3 }, %poly_func.optioni* %boxconst, align 8
-    %1 = call i64 @__poly_func_classify_poly_func.optioni.i(%poly_func.optioni* %boxconst)
+    %boxconst = alloca %vl_, align 8
+    store %vl_ { i32 0, i64 3 }, %vl_* %boxconst, align 8
+    %1 = call i64 @__poly_func_classify_vl_rl_(%vl_* %boxconst)
     call void @printf(i8* %0, i64 %1)
     %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst1 = alloca %poly_func.optionf, align 8
-    store %poly_func.optionf { i32 0, double 3.000000e+00 }, %poly_func.optionf* %boxconst1, align 8
-    %3 = call i64 @__poly_func_classify_poly_func.optionf.i(%poly_func.optionf* %boxconst1)
+    %boxconst1 = alloca %vd_, align 8
+    store %vd_ { i32 0, double 3.000000e+00 }, %vd_* %boxconst1, align 8
+    %3 = call i64 @__poly_func_classify_vd_rl_(%vd_* %boxconst1)
     call void @printf(i8* %2, i64 %3)
     %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %5 = call i64 @__poly_func_classify_poly_func.optionf.i(%poly_func.optionf* @schmu_none)
+    %5 = call i64 @__poly_func_classify_vd_rl_(%vd_* @schmu_none)
     call void @printf(i8* %4, i64 %5)
     ret i64 0
   }
@@ -302,25 +302,25 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %poly_func.optionf = type { i32, double }
-  %poly_func.optioni = type { i32, i64 }
+  %vd_ = type { i32, double }
+  %vl_ = type { i32, i64 }
   
-  @schmu_none = constant %poly_func.optionf { i32 1, double undef }
+  @schmu_none = constant %vd_ { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
   
   declare i8* @string_data(i8* %0)
   
   declare void @printf(i8* %0, i64 %1)
   
-  define linkonce_odr i64 @__poly_func_classify_poly_func.optionf.i(%poly_func.optionf* %thing) {
+  define linkonce_odr i64 @__poly_func_classify_vd_rl_(%vd_* %thing) {
   entry:
-    %tag1 = bitcast %poly_func.optionf* %thing to i32*
+    %tag1 = bitcast %vd_* %thing to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %poly_func.optionf, %poly_func.optionf* %thing, i32 0, i32 1
+    %data = getelementptr inbounds %vd_, %vd_* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -328,15 +328,15 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_poly_func.optioni.i(%poly_func.optioni* %thing) {
+  define linkonce_odr i64 @__poly_func_classify_vl_rl_(%vl_* %thing) {
   entry:
-    %tag1 = bitcast %poly_func.optioni* %thing to i32*
+    %tag1 = bitcast %vl_* %thing to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %poly_func.optioni, %poly_func.optioni* %thing, i32 0, i32 1
+    %data = getelementptr inbounds %vl_, %vl_* %thing, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -347,17 +347,17 @@ Simplest module with 1 type and 1 nonpolymorphic function
   define i64 @main(i64 %arg) {
   entry:
     %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst = alloca %poly_func.optioni, align 8
-    store %poly_func.optioni { i32 0, i64 3 }, %poly_func.optioni* %boxconst, align 8
-    %1 = call i64 @__poly_func_classify_poly_func.optioni.i(%poly_func.optioni* %boxconst)
+    %boxconst = alloca %vl_, align 8
+    store %vl_ { i32 0, i64 3 }, %vl_* %boxconst, align 8
+    %1 = call i64 @__poly_func_classify_vl_rl_(%vl_* %boxconst)
     call void @printf(i8* %0, i64 %1)
     %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst1 = alloca %poly_func.optionf, align 8
-    store %poly_func.optionf { i32 0, double 3.000000e+00 }, %poly_func.optionf* %boxconst1, align 8
-    %3 = call i64 @__poly_func_classify_poly_func.optionf.i(%poly_func.optionf* %boxconst1)
+    %boxconst1 = alloca %vd_, align 8
+    store %vd_ { i32 0, double 3.000000e+00 }, %vd_* %boxconst1, align 8
+    %3 = call i64 @__poly_func_classify_vd_rl_(%vd_* %boxconst1)
     call void @printf(i8* %2, i64 %3)
     %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %5 = call i64 @__poly_func_classify_poly_func.optionf.i(%poly_func.optionf* @schmu_none)
+    %5 = call i64 @__poly_func_classify_vd_rl_(%vd_* @schmu_none)
     call void @printf(i8* %4, i64 %5)
     ret i64 0
   }
@@ -415,12 +415,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define internal void @__malloc_some_deinit() section ".text.startup" {
   entry:
-    tail call void @__free_ai(i64** @malloc_some_vtest2)
-    tail call void @__free_ai(i64** @malloc_some_vtest)
+    tail call void @__free_al_(i64** @malloc_some_vtest2)
+    tail call void @__free_al_(i64** @malloc_some_vtest)
     ret void
   }
   
-  define linkonce_odr void @__free_ai(i64** %0) {
+  define linkonce_odr void @__free_al_(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %2 = bitcast i64* %1 to i8*
@@ -444,7 +444,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %closure = type { i8*, i8* }
-  %big = type { i64, double, i64, i64 }
+  %ld2l_ = type { i64, double, i64, i64 }
   
   @malloc_some_vtest = external global i64*
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
@@ -453,7 +453,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define linkonce_odr void @__array_inner_i.u-ai-i.u(i64 %i, i8* %0) {
+  define linkonce_odr void @__array_inner_lruCal_lru2_(i64 %i, i8* %0) {
   entry:
     %clsr = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %arr = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr, i32 0, i32 2
@@ -490,32 +490,32 @@ Simplest module with 1 type and 1 nonpolymorphic function
     br label %rec
   }
   
-  define linkonce_odr void @__array_iter_aii.u.u(i64* %arr, %closure* %f) {
+  define linkonce_odr void @__array_iter_al_lru_ru_(i64* %arr, %closure* %f) {
   entry:
-    %__array_inner_i.u-ai-i.u = alloca %closure, align 8
-    %funptr5 = bitcast %closure* %__array_inner_i.u-ai-i.u to i8**
-    store i8* bitcast (void (i64, i8*)* @__array_inner_i.u-ai-i.u to i8*), i8** %funptr5, align 8
-    %clsr___array_inner_i.u-ai-i.u = alloca { i8*, i8*, i64*, %closure }, align 8
-    %arr1 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___array_inner_i.u-ai-i.u, i32 0, i32 2
+    %__array_inner_lruCal_lru2_ = alloca %closure, align 8
+    %funptr5 = bitcast %closure* %__array_inner_lruCal_lru2_ to i8**
+    store i8* bitcast (void (i64, i8*)* @__array_inner_lruCal_lru2_ to i8*), i8** %funptr5, align 8
+    %clsr___array_inner_lruCal_lru2_ = alloca { i8*, i8*, i64*, %closure }, align 8
+    %arr1 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___array_inner_lruCal_lru2_, i32 0, i32 2
     store i64* %arr, i64** %arr1, align 8
-    %f2 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___array_inner_i.u-ai-i.u, i32 0, i32 3
+    %f2 = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___array_inner_lruCal_lru2_, i32 0, i32 3
     %0 = bitcast %closure* %f2 to i8*
     %1 = bitcast %closure* %f to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* %1, i64 16, i1 false)
-    %ctor6 = bitcast { i8*, i8*, i64*, %closure }* %clsr___array_inner_i.u-ai-i.u to i8**
-    store i8* bitcast (i8* (i8*)* @__ctor_tup-ai-i.u to i8*), i8** %ctor6, align 8
-    %dtor = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___array_inner_i.u-ai-i.u, i32 0, i32 1
+    %ctor6 = bitcast { i8*, i8*, i64*, %closure }* %clsr___array_inner_lruCal_lru2_ to i8**
+    store i8* bitcast (i8* (i8*)* @__ctor_al_lru2_ to i8*), i8** %ctor6, align 8
+    %dtor = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %clsr___array_inner_lruCal_lru2_, i32 0, i32 1
     store i8* null, i8** %dtor, align 8
-    %env = bitcast { i8*, i8*, i64*, %closure }* %clsr___array_inner_i.u-ai-i.u to i8*
-    %envptr = getelementptr inbounds %closure, %closure* %__array_inner_i.u-ai-i.u, i32 0, i32 1
+    %env = bitcast { i8*, i8*, i64*, %closure }* %clsr___array_inner_lruCal_lru2_ to i8*
+    %envptr = getelementptr inbounds %closure, %closure* %__array_inner_lruCal_lru2_, i32 0, i32 1
     store i8* %env, i8** %envptr, align 8
-    call void @__array_inner_i.u-ai-i.u(i64 0, i8* %env)
+    call void @__array_inner_lruCal_lru2_(i64 0, i8* %env)
     ret void
   }
   
-  define i64 @schmu_do_something(%big* %big) {
+  define i64 @schmu_do_something(%ld2l_* %big) {
   entry:
-    %0 = bitcast %big* %big to i64*
+    %0 = bitcast %ld2l_* %big to i64*
     %1 = load i64, i64* %0, align 8
     %add = add i64 %1, 1
     ret i64 %add
@@ -531,7 +531,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr i8* @__ctor_tup-ai-i.u(i8* %0) {
+  define linkonce_odr i8* @__ctor_al_lru2_(i8* %0) {
   entry:
     %1 = bitcast i8* %0 to { i8*, i8*, i64*, %closure }*
     %2 = call i8* @malloc(i64 40)
@@ -540,16 +540,16 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %5 = bitcast { i8*, i8*, i64*, %closure }* %1 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* %5, i64 40, i1 false)
     %arr = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %3, i32 0, i32 2
-    call void @__copy_ai(i64** %arr)
+    call void @__copy_al_(i64** %arr)
     %f = getelementptr inbounds { i8*, i8*, i64*, %closure }, { i8*, i8*, i64*, %closure }* %3, i32 0, i32 3
-    call void @__copy_i.u(%closure* %f)
+    call void @__copy_lru_(%closure* %f)
     %6 = bitcast { i8*, i8*, i64*, %closure }* %3 to i8*
     ret i8* %6
   }
   
   declare i8* @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_ai(i64** %0) {
+  define linkonce_odr void @__copy_al_(i64** %0) {
   entry:
     %1 = load i64*, i64** %0, align 8
     %sz1 = bitcast i64* %1 to i64*
@@ -567,7 +567,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define linkonce_odr void @__copy_i.u(%closure* %0) {
+  define linkonce_odr void @__copy_lru_(%closure* %0) {
   entry:
     %1 = getelementptr inbounds %closure, %closure* %0, i32 0, i32 1
     %2 = load i8*, i8** %1, align 8
@@ -598,7 +598,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store i8* bitcast (void (i64)* @schmu_printi to i8*), i8** %funptr1, align 8
     %envptr = getelementptr inbounds %closure, %closure* %clstmp, i32 0, i32 1
     store i8* null, i8** %envptr, align 8
-    call void @__array_iter_aii.u.u(i64* %0, %closure* %clstmp)
+    call void @__array_iter_al_lru_ru_(i64* %0, %closure* %clstmp)
     ret i64 0
   }
   
@@ -675,11 +675,11 @@ Local modules
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %nosig.t = type { i64 }
+  %l_ = type { i64 }
   
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"test\00" }
   @schmu_local_value = constant i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*)
-  @schmu_test__2 = constant %nosig.t { i64 10 }
+  @schmu_test__2 = constant %l_ { i64 10 }
   @1 = private unnamed_addr constant { i64, i64, [13 x i8] } { i64 12, i64 12, [13 x i8] c"hey poly %s\0A\00" }
   @2 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"hey thing\00" }
   @3 = private unnamed_addr constant { i64, i64, [11 x i8] } { i64 10, i64 10, [11 x i8] c"i'm nested\00" }
@@ -687,7 +687,7 @@ Local modules
   
   declare void @string_print(i8* %0)
   
-  define linkonce_odr void @__schmu_local_poly_test_ac.u(i8* %a) {
+  define linkonce_odr void @__schmu_local_poly_test_ac_ru_(i8* %a) {
   entry:
     %0 = getelementptr i8, i8* %a, i64 16
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [13 x i8] }* @1 to i8*), i64 16), i8* %0)
@@ -718,7 +718,7 @@ Local modules
   entry:
     tail call void @schmu_test()
     tail call void @schmu_local_test()
-    tail call void @__schmu_local_poly_test_ac.u(i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*))
+    tail call void @__schmu_local_poly_test_ac_ru_(i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*))
     tail call void @schmu_nosig_nested_nested()
     ret i64 0
   }
@@ -768,13 +768,13 @@ Local modules can shadow types. Use unique type names in codegen
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %t = type { i64 }
-  %nosig.t = type { i64, i64 }
-  %nosig.nested.t = type { i64, i64, i64 }
+  %l_ = type { i64 }
+  %"2l_" = type { i64, i64 }
+  %"3l_" = type { i64, i64, i64 }
   
-  @schmu_t = constant %t { i64 10 }
-  @schmu_nosig_t = constant %nosig.t { i64 10, i64 20 }
-  @schmu_nosig_nested_t = constant %nosig.nested.t { i64 10, i64 20, i64 30 }
+  @schmu_t = constant %l_ { i64 10 }
+  @schmu_nosig_t = constant %"2l_" { i64 10, i64 20 }
+  @schmu_nosig_nested_t = constant %"3l_" { i64 10, i64 20, i64 30 }
   
   define i64 @main(i64 %arg) {
   entry:
@@ -824,20 +824,20 @@ Transitive polymorphic dependency needs to be available
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  define linkonce_odr i64 @__direct_dep_id_i.i(i64 %a) {
+  define linkonce_odr i64 @__direct_dep_id_lrl_(i64 %a) {
   entry:
-    %0 = tail call i64 @__transitive_id_i.i(i64 %a)
+    %0 = tail call i64 @__transitive_id_lrl_(i64 %a)
     ret i64 %0
   }
   
-  define linkonce_odr i64 @__transitive_id_i.i(i64 %a) {
+  define linkonce_odr i64 @__transitive_id_lrl_(i64 %a) {
   entry:
     ret i64 %a
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i64 @__direct_dep_id_i.i(i64 10)
+    %0 = tail call i64 @__direct_dep_id_lrl_(i64 10)
     ret i64 %0
   }
 
@@ -847,8 +847,8 @@ Apply local functors
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %outer.t = type { i64 }
-  %somerec.t = type { i64, i64 }
+  %l_ = type { i64 }
+  %"2l_" = type { i64, i64 }
   
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"%.9g\0A\00" }
@@ -885,13 +885,13 @@ Apply local functors
     store i64 %0, i64* %box, align 8
     %box2 = alloca i64, align 8
     store i64 %1, i64* %box2, align 8
-    %ret = alloca %outer.t, align 8
+    %ret = alloca %l_, align 8
     %2 = tail call i64 @schmu_outa_add(i64 %0, i64 %1)
-    %box7 = bitcast %outer.t* %ret to i64*
+    %box7 = bitcast %l_* %ret to i64*
     store i64 %2, i64* %box7, align 8
-    %ret13 = alloca %outer.t, align 8
+    %ret13 = alloca %l_, align 8
     %3 = tail call i64 @schmu_outa_add(i64 %2, i64 %1)
-    %box14 = bitcast %outer.t* %ret13 to i64*
+    %box14 = bitcast %l_* %ret13 to i64*
     store i64 %3, i64* %box14, align 8
     ret i64 %3
   }
@@ -908,17 +908,17 @@ Apply local functors
     store i64 %2, i64* %fst333, align 8
     %snd4 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box2, i32 0, i32 1
     store i64 %3, i64* %snd4, align 8
-    %ret = alloca %somerec.t, align 8
+    %ret = alloca %"2l_", align 8
     %4 = tail call { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3)
-    %box15 = bitcast %somerec.t* %ret to { i64, i64 }*
+    %box15 = bitcast %"2l_"* %ret to { i64, i64 }*
     store { i64, i64 } %4, { i64, i64 }* %box15, align 8
     %fst1834 = bitcast { i64, i64 }* %box15 to i64*
     %fst19 = load i64, i64* %fst1834, align 8
     %snd20 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box15, i32 0, i32 1
     %snd21 = load i64, i64* %snd20, align 8
-    %ret27 = alloca %somerec.t, align 8
+    %ret27 = alloca %"2l_", align 8
     %5 = tail call { i64, i64 } @schmu_somerec_add(i64 %fst19, i64 %snd21, i64 %2, i64 %3)
-    %box28 = bitcast %somerec.t* %ret27 to { i64, i64 }*
+    %box28 = bitcast %"2l_"* %ret27 to { i64, i64 }*
     store { i64, i64 } %5, { i64, i64 }* %box28, align 8
     ret { i64, i64 } %5
   }
@@ -929,8 +929,8 @@ Apply local functors
     store i64 %0, i64* %box, align 8
     %box2 = alloca i64, align 8
     store i64 %1, i64* %box2, align 8
-    %2 = alloca %outer.t, align 8
-    %i5 = bitcast %outer.t* %2 to i64*
+    %2 = alloca %l_, align 8
+    %i5 = bitcast %l_* %2 to i64*
     %add = add i64 %0, %1
     store i64 %add, i64* %i5, align 8
     ret i64 %add
@@ -943,23 +943,23 @@ Apply local functors
     store i64 %0, i64* %fst10, align 8
     %snd = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box, i32 0, i32 1
     store i64 %1, i64* %snd, align 8
-    %a = bitcast { i64, i64 }* %box to %somerec.t*
+    %a = bitcast { i64, i64 }* %box to %"2l_"*
     %box2 = alloca { i64, i64 }, align 8
     %fst311 = bitcast { i64, i64 }* %box2 to i64*
     store i64 %2, i64* %fst311, align 8
     %snd4 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %box2, i32 0, i32 1
     store i64 %3, i64* %snd4, align 8
-    %b = bitcast { i64, i64 }* %box2 to %somerec.t*
-    %4 = alloca %somerec.t, align 8
-    %a612 = bitcast %somerec.t* %4 to i64*
+    %b = bitcast { i64, i64 }* %box2 to %"2l_"*
+    %4 = alloca %"2l_", align 8
+    %a612 = bitcast %"2l_"* %4 to i64*
     %add = add i64 %0, %2
     store i64 %add, i64* %a612, align 8
-    %b7 = getelementptr inbounds %somerec.t, %somerec.t* %4, i32 0, i32 1
-    %5 = getelementptr inbounds %somerec.t, %somerec.t* %a, i32 0, i32 1
-    %6 = getelementptr inbounds %somerec.t, %somerec.t* %b, i32 0, i32 1
+    %b7 = getelementptr inbounds %"2l_", %"2l_"* %4, i32 0, i32 1
+    %5 = getelementptr inbounds %"2l_", %"2l_"* %a, i32 0, i32 1
+    %6 = getelementptr inbounds %"2l_", %"2l_"* %b, i32 0, i32 1
     %add8 = add i64 %1, %3
     store i64 %add8, i64* %b7, align 8
-    %unbox = bitcast %somerec.t* %4 to { i64, i64 }*
+    %unbox = bitcast %"2l_"* %4 to { i64, i64 }*
     %unbox9 = load { i64, i64 }, { i64, i64 }* %unbox, align 8
     ret { i64, i64 } %unbox9
   }
@@ -985,23 +985,23 @@ Simple functor
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %simple_functor.make.otherac = type { i8*, i8* }
+  %ac_ac2_ = type { i8*, i8* }
   
   @0 = private unnamed_addr constant { i64, i64, [15 x i8] } { i64 14, i64 14, [15 x i8] c"create: %s %s\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"this\00" }
   @2 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"other\00" }
   
-  define linkonce_odr { i64, i64 } @__simple_functor_make_string_create_acac.simple_functor.make.otherac(i8* %this, i8* %other) {
+  define linkonce_odr { i64, i64 } @__simple_functor_make_string_create_ac_ac_rac_ac3_(i8* %this, i8* %other) {
   entry:
     %0 = getelementptr i8, i8* %this, i64 16
     %1 = getelementptr i8, i8* %other, i64 16
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [15 x i8] }* @0 to i8*), i64 16), i8* %0, i8* %1)
-    %2 = alloca %simple_functor.make.otherac, align 8
-    %this14 = bitcast %simple_functor.make.otherac* %2 to i8**
+    %2 = alloca %ac_ac2_, align 8
+    %this14 = bitcast %ac_ac2_* %2 to i8**
     store i8* %this, i8** %this14, align 8
-    %other2 = getelementptr inbounds %simple_functor.make.otherac, %simple_functor.make.otherac* %2, i32 0, i32 1
+    %other2 = getelementptr inbounds %ac_ac2_, %ac_ac2_* %2, i32 0, i32 1
     store i8* %other, i8** %other2, align 8
-    %unbox = bitcast %simple_functor.make.otherac* %2 to { i64, i64 }*
+    %unbox = bitcast %ac_ac2_* %2 to { i64, i64 }*
     %unbox3 = load { i64, i64 }, { i64, i64 }* %unbox, align 8
     ret { i64, i64 } %unbox3
   }
@@ -1016,7 +1016,7 @@ Simple functor
     %2 = bitcast i8** %1 to i8*
     %3 = bitcast i8** %0 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
-    call void @__copy_ac(i8** %1)
+    call void @__copy_ac_(i8** %1)
     %4 = load i8*, i8** %1, align 8
     %5 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, [6 x i8] }* @2 to i8*), i8** %5, align 8
@@ -1024,17 +1024,17 @@ Simple functor
     %7 = bitcast i8** %6 to i8*
     %8 = bitcast i8** %5 to i8*
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %7, i8* %8, i64 8, i1 false)
-    call void @__copy_ac(i8** %6)
+    call void @__copy_ac_(i8** %6)
     %9 = load i8*, i8** %6, align 8
-    %ret = alloca %simple_functor.make.otherac, align 8
-    %10 = call { i64, i64 } @__simple_functor_make_string_create_acac.simple_functor.make.otherac(i8* %4, i8* %9)
-    %box = bitcast %simple_functor.make.otherac* %ret to { i64, i64 }*
+    %ret = alloca %ac_ac2_, align 8
+    %10 = call { i64, i64 } @__simple_functor_make_string_create_ac_ac_rac_ac3_(i8* %4, i8* %9)
+    %box = bitcast %ac_ac2_* %ret to { i64, i64 }*
     store { i64, i64 } %10, { i64, i64 }* %box, align 8
-    call void @__free_simple_functor.make.otherac(%simple_functor.make.otherac* %ret)
+    call void @__free_ac_ac2_(%ac_ac2_* %ret)
     ret i64 0
   }
   
-  define linkonce_odr void @__copy_ac(i8** %0) {
+  define linkonce_odr void @__copy_ac_(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -1056,7 +1056,7 @@ Simple functor
   ; Function Attrs: argmemonly nofree nounwind willreturn
   declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__free_ac(i8** %0) {
+  define linkonce_odr void @__free_ac_(i8** %0) {
   entry:
     %1 = load i8*, i8** %0, align 8
     %ref = bitcast i8* %1 to i64*
@@ -1065,12 +1065,12 @@ Simple functor
     ret void
   }
   
-  define linkonce_odr void @__free_simple_functor.make.otherac(%simple_functor.make.otherac* %0) {
+  define linkonce_odr void @__free_ac_ac2_(%ac_ac2_* %0) {
   entry:
-    %1 = bitcast %simple_functor.make.otherac* %0 to i8**
-    call void @__free_ac(i8** %1)
-    %2 = getelementptr inbounds %simple_functor.make.otherac, %simple_functor.make.otherac* %0, i32 0, i32 1
-    call void @__free_ac(i8** %2)
+    %1 = bitcast %ac_ac2_* %0 to i8**
+    call void @__free_ac_(i8** %1)
+    %2 = getelementptr inbounds %ac_ac2_, %ac_ac2_* %0, i32 0, i32 1
+    call void @__free_ac_(i8** %2)
     ret void
   }
   
