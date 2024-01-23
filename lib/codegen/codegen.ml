@@ -643,7 +643,7 @@ end = struct
         in
         let lltyp = get_lltype_def fnc.ret in
         let value = Llvm.build_bitcast ptr lltyp "" builder in
-        { value; lltyp; typ = fnc.ret; kind = Ptr }
+        { value; lltyp; typ = fnc.ret; kind = Imm }
     | Mod -> (
         match args with
         | [ value; md ] ->
