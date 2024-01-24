@@ -15,6 +15,7 @@ type typ =
   | Tbool
   | Tunit
   | Tu8
+  | Tu16
   | Tfloat
   | Ti32
   | Tf32
@@ -84,8 +85,8 @@ let rec clean = function
   | Tabstract (ps, n, t) -> Tabstract (List.map clean ps, n, clean t)
   | Tarray t -> Tarray (clean t)
   | Tfixed_array (n, t) -> Tfixed_array (n, clean t)
-  | (Tvar _ | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Qvar _) as t
-    ->
+  | (Tvar _ | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Qvar _)
+    as t ->
       t
 
 let pp_to_name name = "'" ^ name
@@ -98,6 +99,7 @@ let string_of_type_raw get_name typ mname =
     | Tunit -> "unit"
     | Tfloat -> "float"
     | Tu8 -> "u8"
+    | Tu16 -> "u16"
     | Ti32 -> "i32"
     | Tf32 -> "f32"
     | Tfun (ts, t, _) ->
@@ -199,7 +201,7 @@ let is_polymorphic typ =
     | Tfun (params, ret, _) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
         inner acc ret
-    | Tbool | Tunit | Tint | Tu8 | Tfloat | Ti32 | Tf32 -> acc
+    | Tbool | Tunit | Tint | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 -> acc
     | Traw_ptr t | Tarray t -> inner acc t
     | Tfixed_array ({ contents = Unknown _ | Generalized _ }, _) -> true
     | Tfixed_array ({ contents = Known _ }, t) -> inner acc t
@@ -209,7 +211,7 @@ let is_polymorphic typ =
   inner false typ
 
 let rec is_weak ~sub = function
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Qvar _ -> false
+  | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Qvar _ -> false
   | Tvar { contents = Link t } | Talias (_, t) | Tarray t | Traw_ptr t ->
       is_weak ~sub t
   | Tvar { contents = Unbound (id, _) } ->
@@ -248,7 +250,7 @@ let rec contains_allocation = function
         (fun ca c ->
           match c.ctyp with Some t -> ca || contains_allocation t | None -> ca)
         false ctors
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 -> false
+  | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 -> false
   | Qvar _ | Tvar { contents = Unbound _ } ->
       (* We don't know yet *)
       true

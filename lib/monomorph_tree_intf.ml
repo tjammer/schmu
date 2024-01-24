@@ -38,6 +38,7 @@ module type S = sig
     | Int of int
     | Bool of bool
     | U8 of char
+    | U16 of int
     | Float of float
     | I32 of int
     | F32 of float

@@ -17,6 +17,8 @@ type t =
   | I32_of_f32
   | U8_of_int
   | U8_to_int
+  | U16_of_int
+  | U16_to_int
   | F32_of_float
   | F32_of_int
   | F32_of_i32
@@ -109,6 +111,8 @@ let tbl =
     (F32_of_i32, Tfun ([ { p with pt = Ti32 } ], Tf32, Simple), "f32_of_i32");
     (U8_of_int, Tfun ([ { p with pt = Tint } ], Tu8, Simple), "u8_of_int");
     (U8_to_int, Tfun ([ { p with pt = Tu8 } ], Tint, Simple), "u8_to_int");
+    (U16_of_int, Tfun ([ { p with pt = Tint } ], Tu16, Simple), "u16_of_int");
+    (U16_to_int, Tfun ([ { p with pt = Tu16 } ], Tint, Simple), "u16_to_int");
     (Not, Tfun ([ { p with pt = Tbool } ], Tbool, Simple), "not");
     ( Mod,
       Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple),
@@ -216,6 +220,8 @@ let of_string = function
   | "f32_of_float" -> Some F32_of_float
   | "u8_of_int" -> Some U8_of_int
   | "u8_to_int" -> Some U8_to_int
+  | "u16_of_int" -> Some U16_of_int
+  | "u16_to_int" -> Some U16_to_int
   | "not" -> Some Not
   | "mod" -> Some Mod
   | "__array_get" -> Some Array_get

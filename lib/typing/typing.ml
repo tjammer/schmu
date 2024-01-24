@@ -208,6 +208,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_id "bool" -> Tbool
     | Ty_id "unit" -> Tunit
     | Ty_id "u8" -> Tu8
+    | Ty_id "u16" -> Tu16
     | Ty_id "float" -> Tfloat
     | Ty_id "i32" -> Ti32
     | Ty_id "f32" -> Tf32
@@ -633,6 +634,7 @@ end = struct
     | Lit (loc, Int i) -> convert_simple_lit loc Tint (Int i)
     | Lit (loc, Bool b) -> convert_simple_lit loc Tbool (Bool b)
     | Lit (loc, U8 c) -> convert_simple_lit loc Tu8 (U8 c)
+    | Lit (loc, U16 s) -> convert_simple_lit loc Tu16 (U16 s)
     | Lit (loc, Float f) -> convert_simple_lit loc Tfloat (Float f)
     | Lit (loc, I32 i) -> convert_simple_lit loc Ti32 (I32 i)
     | Lit (loc, F32 i) -> convert_simple_lit loc Tf32 (F32 i)

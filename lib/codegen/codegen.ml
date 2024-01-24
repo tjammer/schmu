@@ -250,6 +250,9 @@ end = struct
     | U8 c ->
         let value = Llvm.const_int u8_t (Char.code c) in
         { value; typ = Tu8; lltyp = u8_t; kind = Const }
+    | U16 s ->
+        let value = Llvm.const_int u16_t s in
+        { value; typ = Tu16; lltyp = u16_t; kind = Const }
     | Float f ->
         let value = Llvm.const_float float_t f in
         { value; typ = Tfloat; lltyp = float_t; kind = Const }
@@ -749,7 +752,9 @@ end = struct
     | F32_of_int | F32_of_i32 -> cast Llvm.build_sitofp f32_t Tf32
     | F32_of_float -> cast Llvm.build_fpcast f32_t Tf32
     | U8_of_int -> cast Llvm.build_intcast u8_t Tu8
-    | U8_to_int -> cast Llvm.build_intcast int_t Tu8
+    | U8_to_int -> cast Llvm.build_intcast int_t Tint
+    | U16_of_int -> cast Llvm.build_intcast u16_t Tu16
+    | U16_to_int -> cast Llvm.build_intcast int_t Tint
     | Not ->
         let value =
           match args with

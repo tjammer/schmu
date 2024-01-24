@@ -43,6 +43,7 @@
 %token Wildcard
 %token <int> Int
 %token <char> U8
+%token <int> U16
 %token <float> Float
 %token <int> I32
 %token <float> F32
@@ -367,6 +368,7 @@ record_item:
 lit:
   | lit = Int { Int lit }
   | lit = U8  { U8 lit }
+  | lit = U16  { U16 lit }
   | lit = bool { Bool  lit }
   | lit = Float { Float lit }
   | lit = I32 { I32 lit }

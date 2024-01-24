@@ -19,6 +19,7 @@ module Make (A : Abi_intf.S) = struct
     | Tint -> int_t
     | Tbool -> bool_t
     | Tu8 -> u8_t
+    | Tu16 -> u16_t
     | Tfloat -> float_t
     | Ti32 -> i32_t
     | Tf32 -> f32_t
@@ -30,8 +31,8 @@ module Make (A : Abi_intf.S) = struct
     | Tfixed_array (i, t) -> Llvm.array_type (get_lltype_def t) i
 
   and get_lltype_param mut = function
-    | ( Tint | Tbool | Tu8 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _ | Traw_ptr _
-      | Tarray _ ) as t ->
+    | ( Tint | Tbool | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _
+      | Traw_ptr _ | Tarray _ ) as t ->
         let t = get_lltype_def t in
         if mut then t |> Llvm.pointer_type else t
     | Tfun _ as t ->

@@ -37,6 +37,7 @@ module Mtree = struct
     | Int of int
     | Bool of bool
     | U8 of char
+    | U16 of int
     | Float of float
     | I32 of int
     | F32 of float
@@ -158,6 +159,7 @@ let rec cln p = function
   | Tbool -> Tbool
   | Tunit -> Tunit
   | Tu8 -> Tu8
+  | Tu16 -> Tu16
   | Tfloat -> Tfloat
   | Ti32 -> Ti32
   | Tf32 -> Tf32
@@ -519,6 +521,7 @@ and morph_const = function
   | Float f -> Float f
   | Unit -> Unit
   | U8 c -> U8 c
+  | U16 s -> U16 s
   | I32 i -> I32 i
   | F32 f -> F32 f
 

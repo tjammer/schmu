@@ -17,6 +17,10 @@ let u8_of_string str =
     |> int_of_string
     |> Char.chr
 
+let u16_of_string str =
+  String.sub str 0 (String.length str - 2)
+    |> int_of_string
+
 let f_of_string f str =
   String.sub str 0 (String.length str - 3)
   |> f
@@ -85,6 +89,7 @@ let int_lit = (digits | hex_literal | oct_literal | bin_literal)
 
 let int = int_lit
 let u8 = digit+ "u8"
+let u16 = digit+ "u16"
 let float = digit+ '.' digit+
 let i32 = min? int_lit "i32"
 let f32 = min? float "f32"
@@ -110,6 +115,7 @@ rule read =
   | int      { Int (int_of_intlit (Lexing.lexeme lexbuf)) }
   | float    { Float (float_of_string (Lexing.lexeme lexbuf)) }
   | u8       { U8 (u8_of_string (Lexing.lexeme lexbuf)) }
+  | u16      { U16 (u16_of_string (Lexing.lexeme lexbuf)) }
   | i32      { I32 (f_of_string int_of_intlit (Lexing.lexeme lexbuf)) }
   | f32      { F32 (f_of_string float_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { True }

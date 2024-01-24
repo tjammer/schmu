@@ -7,6 +7,7 @@ type typ =
   | Tbool
   | Tunit
   | Tu8
+  | Tu16
   | Tfloat
   | Ti32
   | Tf32

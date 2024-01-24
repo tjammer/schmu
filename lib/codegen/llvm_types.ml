@@ -43,6 +43,7 @@ let builder = Llvm.builder context
 let int_t = Llvm.i64_type context
 let bool_t = Llvm.i1_type context
 let u8_t = Llvm.i8_type context
+let u16_t = Llvm.i16_type context
 let i16_t = Llvm.i16_type context
 let i32_t = Llvm.i32_type context
 let float_t = Llvm.double_type context

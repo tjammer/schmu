@@ -116,6 +116,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       | Tbool -> "b"
       | Tunit -> "u"
       | Tu8 -> "c"
+      | Tu16 -> "s"
       | Tfloat -> "d"
       | Ti32 -> "i"
       | Tf32 -> "f"

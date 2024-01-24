@@ -3,6 +3,7 @@ type typ =
   | Tbool
   | Tunit
   | Tu8
+  | Tu16
   | Tfloat
   | Ti32
   | Tf32
@@ -43,7 +44,7 @@ let is_type_polymorphic typ =
               List.fold_left (fun acc cl -> inner acc cl.cltyp) acc cls
         in
         inner acc ret
-    | Tbool | Tunit | Tint | Tu8 | Tfloat | Ti32 | Tf32 -> acc
+    | Tbool | Tunit | Tint | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 -> acc
     | Tfixed_array (i, _) when i < 0 -> true
     | Traw_ptr t | Tarray t | Tfixed_array (_, t) -> inner acc t
   in
@@ -54,6 +55,7 @@ let rec string_of_type = function
   | Tbool -> "bool"
   | Tunit -> "unit"
   | Tu8 -> "u8"
+  | Tu16 -> "u16"
   | Tfloat -> "float"
   | Ti32 -> "i32"
   | Tf32 -> "f32"
@@ -81,17 +83,18 @@ let rec string_of_type = function
 
 let is_struct = function
   | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ -> true
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Traw_ptr _ | Tarray _ ->
+  | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Traw_ptr _
+  | Tarray _ ->
       false
 
 let is_aggregate = function
   | Trecord _ | Tvariant _ | Tfixed_array _ -> true
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 | Traw_ptr _ | Tfun _
-  | Tpoly _ | Tarray _ ->
+  | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Traw_ptr _
+  | Tfun _ | Tpoly _ | Tarray _ ->
       false
 
 let rec contains_allocation = function
-  | Tint | Tbool | Tunit | Tu8 | Tfloat | Ti32 | Tf32 -> false
+  | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 -> false
   | Tpoly _ | Tfun _ -> true
   | Trecord (_, _, fs) ->
       Array.fold_left (fun ca f -> ca || contains_allocation f.ftyp) false fs
