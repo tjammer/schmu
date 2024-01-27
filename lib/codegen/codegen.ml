@@ -751,10 +751,10 @@ end = struct
     | I32_of_int -> cast Llvm.build_intcast i32_t Ti32
     | F32_of_int | F32_of_i32 -> cast Llvm.build_sitofp f32_t Tf32
     | F32_of_float -> cast Llvm.build_fpcast f32_t Tf32
-    | U8_of_int -> cast Llvm.build_intcast u8_t Tu8
-    | U8_to_int -> cast Llvm.build_intcast int_t Tint
-    | U16_of_int -> cast Llvm.build_intcast u16_t Tu16
-    | U16_to_int -> cast Llvm.build_intcast int_t Tint
+    | U8_of_int -> cast Llvm.build_trunc u8_t Tu8
+    | U8_to_int -> cast Llvm.build_zext int_t Tint
+    | U16_of_int -> cast Llvm.build_trunc u16_t Tu16
+    | U16_to_int -> cast Llvm.build_zext int_t Tint
     | Not ->
         let value =
           match args with
