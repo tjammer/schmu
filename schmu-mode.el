@@ -47,6 +47,12 @@
 (defconst schmu-path-pattern
   (rx symbol-start (group (seq (any word ?_) (* (any word ?_)))) ?/))
 
+(defconst schmu-ctor-pattern
+  (rx symbol-start (group (seq ?# (any word ?_) (* (any word ?_))))))
+
+(defconst schmu-fixed-array-pattern
+  (rx symbol-start (group (seq ?# (any word ?_) (* (any word ?_)))) ?\[))
+
 (defconst schmu-upcase-pattern
   (rx symbol-start (group (seq (any upper ?_) (* (any word ?_))))))
 
@@ -59,6 +65,8 @@
   `((,schmu-keywords-regexp . font-lock-keyword-face)
     (,schmu-constants-regexp . font-lock-constant-face)
     (,schmu-module-pattern 1 font-lock-type-face)
+    (,schmu-fixed-array-pattern 1 font-lock-constant-face)
+    (,schmu-ctor-pattern 1 font-lock-type-face)
     (,schmu-function-pattern 1 font-lock-function-name-face)
     (,schmu-types-regexp . font-lock-type-face)
     (,schmu-variable-pattern 1 font-lock-variable-name-face)
@@ -81,6 +89,8 @@
   ;; Comments
   (modify-syntax-entry ?- "_. 12" schmu-mode-syntax-table)
   (modify-syntax-entry ?\n ">"    schmu-mode-syntax-table)
+
+  (modify-syntax-entry ?# "_" schmu-mode-syntax-table)
 
   (setq font-lock-defaults '((schmu-font-lock-keywords)))
 

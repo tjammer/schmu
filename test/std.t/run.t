@@ -16,14 +16,14 @@ In channel module test
   $ schmu in_channel.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./in_channel
   match in_channel/open("in_channel.smu"):
-    Some(ic
-  ):
-     
-  read 14 bytes
-   let ic& = !ic
+    #some(i
+  c):
+    
+  read 15 bytes
+    let ic& = !ic
   read 33 bytes
       let buf& = array/create(4096)
-  read 1277 bytes
+  read 1288 bytes
       in_channel/readn(&ic, &buf, 50) -> ignore
       let str& = !string/of_array(!buf)
       print(str)
@@ -37,47 +37,47 @@ In channel module test
       &buf <- string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        Some(n): print(fmt("read ", n, " bytes"))
-        None: print("read nothing")
+        #some(n): print(fmt("read ", n, " bytes"))
+        #none: print("read nothing")
       &str <- string/of_array(!buf)
       print(str)
   
       &buf <- string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        Some(n): print(fmt("read ", n, " bytes"))
-        None: print("read nothing")
+        #some(n): print(fmt("read ", n, " bytes"))
+        #none: print("read nothing")
       &str <- string/of_array(!buf)
       print(str)
   
       &buf <- string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf):
-        Some(n): print(fmt("read ", n, " bytes"))
-        None: print("read nothing")
+        #some(n): print(fmt("read ", n, " bytes"))
+        #none: print("read nothing")
       &str <- string/of_array(!buf)
       print(str)
   
       in_channel/close(ic)
-    None: ()
+    #none: ()
   
   match in_channel/open("in_channel.smu"):
-    Some(ic):
+    #some(ic):
       let ic& = !ic
       print(in_channel/readall(&ic))
       in_channel/close(ic)
-    None: ()
+    #none: ()
   
   
   match in_channel/open("in_channel.smu"):
-    Some(ic):
+    #some(ic):
       let ic& = !ic
       in_channel/lines(&ic, fun line: print(line))
       in_channel/close(ic)
-    None: ()
+    #none: ()
   
   match in_channel/open("in_channel.smu"):
-    Some(ic):
+    #some(ic):
       let ic& = !ic
       let buf& = array/create(4096)
       in_channel/readn(&ic, &buf, 50) -> ignore
@@ -93,47 +93,47 @@ In channel module test
       &buf <- string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        Some(n): print(fmt("read ", n, " bytes"))
-        None: print("read nothing")
+        #some(n): print(fmt("read ", n, " bytes"))
+        #none: print("read nothing")
       &str <- string/of_array(!buf)
       print(str)
   
       &buf <- string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        Some(n): print(fmt("read ", n, " bytes"))
-        None: print("read nothing")
+        #some(n): print(fmt("read ", n, " bytes"))
+        #none: print("read nothing")
       &str <- string/of_array(!buf)
       print(str)
   
       &buf <- string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf):
-        Some(n): print(fmt("read ", n, " bytes"))
-        None: print("read nothing")
+        #some(n): print(fmt("read ", n, " bytes"))
+        #none: print("read nothing")
       &str <- string/of_array(!buf)
       print(str)
   
       in_channel/close(ic)
-    None: ()
+    #none: ()
   
   match in_channel/open("in_channel.smu"):
-    Some(ic):
+    #some(ic):
       let ic& = !ic
       print(in_channel/readall(&ic))
       in_channel/close(ic)
-    None: ()
+    #none: ()
   
   
   match in_channel/open("in_channel.smu"):
-    Some(ic):
+    #some(ic):
       let ic& = !ic
       in_channel/lines(&ic, fun line: print(line))
       in_channel/close(ic)
-    None: ()
+    #none: ()
   
   match in_channel/open("in_channel.smu"):
-    Some(ic):
+    #some(ic):
       let ic& = !ic
       let buf& = array/create(4096)
       in_channel/readn(&ic, &buf, 50) -> ignore
@@ -149,41 +149,41 @@ In channel module test
       &buf <- string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        Some(n): print(fmt("read ", n, " bytes"))
-        None: print("read nothing")
+        #some(n): print(fmt("read ", n, " bytes"))
+        #none: print("read nothing")
       &str <- string/of_array(!buf)
       print(str)
   
       &buf <- string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        Some(n): print(fmt("read ", n, " bytes"))
-        None: print("read nothing")
+        #some(n): print(fmt("read ", n, " bytes"))
+        #none: print("read nothing")
       &str <- string/of_array(!buf)
       print(str)
   
       &buf <- string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf):
-        Some(n): print(fmt("read ", n, " bytes"))
-        None: print("read nothing")
+        #some(n): print(fmt("read ", n, " bytes"))
+        #none: print("read nothing")
       &str <- string/of_array(!buf)
       print(str)
   
       in_channel/close(ic)
-    None: ()
+    #none: ()
   
   match in_channel/open("in_channel.smu"):
-    Some(ic):
+    #some(ic):
       let ic& = !ic
       print(in_channel/readall(&ic))
       in_channel/close(ic)
-    None: ()
+    #none: ()
   
   
   match in_channel/open("in_channel.smu"):
-    Some(ic):
+    #some(ic):
       let ic& = !ic
       in_channel/lines(&ic, fun line: print(line))
       in_channel/close(ic)
-    None: ()
+    #none: ()

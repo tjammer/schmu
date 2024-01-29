@@ -1,14 +1,14 @@
 type thing = {i : int, b : (int, int, int, int, int)}
-type var = Float(float) | Thing(thing)
+type var = #float(float) | #thing(thing)
 
-let var = Float(10.0)
+let var = #float(10.0)
 match var:
-  Float(_): print("float")
-  Thing(_): print("thing")
+  #float(_): print("float")
+  #thing(_): print("thing")
 
 fun dynamic(var):
   match var:
-    Float(_): print("float")
-    Thing(_): print("thing")
+    #float(_): print("float")
+    #thing(_): print("thing")
 
 dynamic(var)

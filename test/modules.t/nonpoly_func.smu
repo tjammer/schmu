@@ -1,4 +1,4 @@
-type either = Left | Right
+type either = #left | #right
 
 fun add_ints(a, b):
   let c = 10

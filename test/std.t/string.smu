@@ -4,6 +4,6 @@ print(string/concat(", ", arr))
 let haystack = "this haystack contains a needle"
 assert(
   25 == match string/boyer_moore_horspool("needle", haystack):
-    Some(i): i
-    None: -1
+    #some(i): i
+    #none: -1
 )

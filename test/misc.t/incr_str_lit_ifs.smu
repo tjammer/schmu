@@ -1,11 +1,11 @@
 fun ret_non():
-  if false: Some(20)
-  else: None
+  if false: #some(20)
+  else: #none
 
 fun try():
   match ret_non():
-    Some(j): print(fmt(j))
-    None: print("none")
+    #some(j): print(fmt(j))
+    #none: print("none")
 
 try()
 try()

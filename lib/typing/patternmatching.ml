@@ -424,10 +424,7 @@ module Exhaustiveness = struct
                    temporary ones. So we can continue with exprstl *)
                 match is_exhaustive false patterns with
                 | Ok () -> Ok ()
-                | Error _ ->
-                    Error
-                      (kind, List.map (fun s -> String.capitalize_ascii s) ctors)
-                ))
+                | Error _ -> Error (kind, List.map (fun s -> "#" ^ s) ctors)))
         | Expand_record fields -> expand_record fields patterns
         | Infi -> (
             match default patterns with
@@ -464,10 +461,7 @@ module Exhaustiveness = struct
         | New_column ->
             List.map (fun str -> Printf.sprintf "%s, %s" ctor str) strs
         | Specialization ->
-            List.map
-              (fun str ->
-                Printf.sprintf "%s(%s)" (String.capitalize_ascii ctor) str)
-              strs
+            List.map (fun str -> Printf.sprintf "%s(%s)" ("#" ^ ctor) str) strs
       in
 
       Error (kind, strs)

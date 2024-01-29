@@ -1,12 +1,12 @@
-let op& = Some(1)
+let op& = #some(1)
 
 fun hidden_reference(): match op:
-  Some(i):
+  #some(i):
      -- set op. Depending on whether i behaves as a reference or value, return 1 or 2
      let i = copy(i)
-     &op <- Some(2)
+     &op <- #some(2)
      i
-  None: -1
+  #none: -1
 
 -- Should print 1 here, not 2
 print(fmt(hidden_reference()))

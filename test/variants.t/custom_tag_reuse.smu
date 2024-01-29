@@ -1,1 +1,1 @@
-type tags = A(1) | B(0) | C(int)
+type tags = #a(1) | #b(0) | #c(int)

@@ -96,8 +96,8 @@ let f32 = min? float "f32"
 
 let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_'|'?')*
 let builtin_id = "__" lowercase_id
-let upcase_id = uppercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_'|'?')*
 let path_id = lowercase_id '/'
+let hash_id = '#' lowercase_id
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -151,8 +151,8 @@ rule read =
   | '|'      { Hbar }
   | lowercase_id { Ident (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
-  | path_id  { Path_id (Lexing.lexeme lexbuf |> String.uncapitalize_ascii |> mut_of_string) }
-  | upcase_id { Upcase_ident (Lexing.lexeme lexbuf |> String.uncapitalize_ascii) }
+  | path_id  { Path_id (Lexing.lexeme lexbuf |> mut_of_string) }
+  | hash_id  { Ctor (Lexing.lexeme lexbuf |> name_of_string) }
   | '_'      { Wildcard }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | "'" [^ '\\'] "'" { U8 (Lexing.lexeme_char lexbuf 1) }

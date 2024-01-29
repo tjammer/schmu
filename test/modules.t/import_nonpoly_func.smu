@@ -3,7 +3,7 @@ import nonpoly_func
 external printf : (string/cstr, int) -> unit
 
 fun doo(a): match a:
-  Left: add_ints(0, 5)
-  Right: add_ints(0, -5)
+  #left: add_ints(0, 5)
+  #right: add_ints(0, -5)
 
-doo(Left) |> printf(string/data("%i\n"))
+doo(#left) |> printf(string/data("%i\n"))

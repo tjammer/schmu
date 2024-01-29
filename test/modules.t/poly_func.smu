@@ -1,7 +1,7 @@
 -- don't use option because it will show up in the smi and make diffs difficult
-type option('a) = Some('a) | None
+type option('a) = #some('a) | #none
 
 fun classify(thing):
   match thing:
-    Some(_): 0
-    None: 1
+    #some(_): 0
+    #none: 1

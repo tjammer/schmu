@@ -3,14 +3,14 @@ external printf : (string/cstr, int) -> unit
 fun doo(a):
   -- TODO import modules for patterns
   nonpoly_func/(match a:
-    Left: add_ints(0, 5)
-    Right: add_ints(0, -5))
+    #left: add_ints(0, 5)
+    #right: add_ints(0, -5))
 
 fun do2(a):
   import nonpoly_func
   match a:
-    Left: add_ints(0, 5)
-    Right: add_ints(0, -5)
+    #left: add_ints(0, 5)
+    #right: add_ints(0, -5)
 
-doo(nonpoly_func/Left) |> printf(string/data("%i\n"))
-do2(nonpoly_func/Left) |> printf(string/data("%i\n"))
+doo(nonpoly_func/#left) |> printf(string/data("%i\n"))
+do2(nonpoly_func/#left) |> printf(string/data("%i\n"))

@@ -31,7 +31,7 @@ functor make : sig(m : key):
     let size = power_2_above(16, size)
     let data& = __unsafe_array_create(size)
     prelude/iter_range(0, size, fun i:
-      __unsafe_ptr_set(&array/data(data), i, !None))
+      __unsafe_ptr_set(&array/data(data), i, !#none))
     {data, nitems = 0}
 
   fun idx(tbl, key):
@@ -44,18 +44,18 @@ functor make : sig(m : key):
   fun redist(tbl&, item!, curr, pathlen):
     let size = array/length(tbl.data)
     match tbl.data.[curr]:
-      None:
+      #none:
         let item& = !item
         &item.pathlen <- pathlen
-        &tbl.data.[curr] <- Some(item)
-      Some(other):
+        &tbl.data.[curr] <- #some(item)
+      #some(other):
         let next = next_wrapped(curr, size)
         if pathlen > other.pathlen:
           let new_item = !other
           let other_pathlen = copy(other.pathlen)
           let item& = !item
           &item.pathlen <- pathlen
-          &tbl.data.[curr] <- Some(item)
+          &tbl.data.[curr] <- #some(item)
           redist(&tbl, !new_item, next, other_pathlen + 1)
         else:
           redist(&tbl, !item, next, pathlen + 1)
@@ -70,8 +70,8 @@ functor make : sig(m : key):
       if i == array/length(data):
         &__unsafe_array_length(data) <- 0
         match __unsafe_ptr_get(array/data(data), i):
-          None: inner(i + 1)
-          Some({key, value, pathlen = _}):
+          #none: inner(i + 1)
+          #some({key, value, pathlen = _}):
             f(!key, !value)
             inner(i + 1)
     inner(0)
@@ -80,7 +80,7 @@ functor make : sig(m : key):
     let size = 2 * array/length(tbl.data)
     let data& = __unsafe_array_create(size)
     prelude/iter_range(0, size, fun i:
-      __unsafe_ptr_set(&array/data(data), i, !None))
+      __unsafe_ptr_set(&array/data(data), i, !#none))
     let old_data& = !tbl.data
     &tbl.data <- data
     &tbl.nitems <- 0
@@ -94,20 +94,20 @@ functor make : sig(m : key):
 
     fun insert(i, pathlen, key!, value!):
       match tbl.data.[i]:
-        None:
-          &tbl.data.[i] <- Some({key, value, pathlen})
+        #none:
+          &tbl.data.[i] <- #some({key, value, pathlen})
           &tbl.nitems <- tbl.nitems + 1
-        Some(other):
+        #some(other):
           if m/equal(key, other.key):
             -- overwrite
-            &tbl.data.[i] <- Some({key, value, pathlen})
+            &tbl.data.[i] <- #some({key, value, pathlen})
           else:
             let next = next_wrapped(i, size)
             if pathlen > other.pathlen:
               let other_pathlen = copy(other.pathlen)
               -- probe sequence length of new value is larger. robin hood
               let other_item = !other
-              &tbl.data.[i] <- Some({key, value, pathlen})
+              &tbl.data.[i] <- #some({key, value, pathlen})
               &tbl.nitems <- tbl.nitems + 1
               redist(&tbl, !other_item, next, other_pathlen + 1)
             else:
@@ -117,27 +117,27 @@ functor make : sig(m : key):
 
   fun find_index(i, tbl, key, pathlen):
     match tbl.data.[i]:
-      Some(item):
-        if m/equal(key, item.key): Some(i)
+      #some(item):
+        if m/equal(key, item.key): #some(i)
         else:
-          if pathlen > item.pathlen: None
+          if pathlen > item.pathlen: #none
           else:
             let next = next_wrapped(i, array/length(tbl.data))
             find_index(next, tbl, key, pathlen + 1)
-      None: None
+      #none: #none
 
   fun find(tbl, key):
     let hash = idx(tbl, key)
     match find_index(hash, tbl, key, 0):
-      Some(i): match tbl.data.[i]:
-        Some(item): Some(copy(item.value))
-        None: None
-      None: None
+      #some(i): match tbl.data.[i]:
+        #some(item): #some(copy(item.value))
+        #none: #none
+      #none: #none
 
   fun fixup(data&, old):
     let next = next_wrapped(old, array/length(data))
     match &data.[next]:
-      Some(item&):
+      #some(item&):
         if not(item.pathlen == 0):
           &item.pathlen <- item.pathlen - 1
           -- swap with old slot, inline
@@ -145,23 +145,23 @@ functor make : sig(m : key):
           &data.[old] <- data.[next]
           &data.[next] <- oldtmp
           fixup(&data, next)
-      None: ()
+      #none: ()
 
   fun remove(tbl&, key):
     let hash = idx(tbl, key)
     match find_index(hash, tbl, key, 0):
-      Some(i):
-        &tbl.data.[i] <- None
+      #some(i):
+        &tbl.data.[i] <- #none
         &tbl.nitems <- tbl.nitems - 1
         fixup(&tbl.data, i)
-      None: ()
+      #none: ()
 
   fun fold(tbl, init!, f):
     fun inner(i, acc!):
       if array/length(tbl.data) == i: acc
       else: match tbl.data.[i]:
-        None: inner(i + 1, !acc)
-        Some({key, value, pathlen = _}):
+        #none: inner(i + 1, !acc)
+        #some({key, value, pathlen = _}):
           inner(i + 1, !f(!acc, key, value))
     inner(0, !init)
 
@@ -169,8 +169,8 @@ functor make : sig(m : key):
     fun inner(i):
       if array/length(data) == i: ()
       else: match data.[i]:
-        None: inner(i + 1)
-        Some({key, value, pathlen = _}):
+        #none: inner(i + 1)
+        #some({key, value, pathlen = _}):
           f(key, value)
           inner(i + 1)
     inner(0)

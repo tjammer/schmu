@@ -1,4 +1,4 @@
 import nested_fn
 
-let a : thing(int) = Empty
+let a : thing(int) = #empty
 classify(a)

@@ -1,7 +1,7 @@
 type a = {field : int}
 type b = {field : int}
-type c = Ctor
-type d = Ctor
+type c = #ctor
+type d = #ctor
 
 fun take_a(a : a): ignore(a)
 fun take_b(b : b): ignore(b)
@@ -10,5 +10,5 @@ fun take_d(d : d): ignore(d)
 
 take_a({field = 0})
 take_b({field = 0})
-take_c(Ctor)
-take_d(Ctor)
+take_c(#ctor)
+take_d(#ctor)

@@ -32,7 +32,7 @@
 %token Rbrack
 %token Lbrac
 %token Rbrac
-%token <string> Upcase_ident
+%token <string> Ctor
 %token <string> Path_id
 %token Dot
 %token Import
@@ -186,10 +186,10 @@ functor_param:
   | name = ident; Colon; path = import_path { let loc, name = name in loc, name, path }
 
 ctor:
-  | name = upcase_ident { {name; typ_annot = None; index = None} }
-  | name = upcase_ident; Lpar; annot = ctor_type_spec; Rpar
+  | name = ctor_ident { {name; typ_annot = None; index = None} }
+  | name = ctor_ident; Lpar; annot = ctor_type_spec; Rpar
     { {name; typ_annot = Some annot; index = None} }
-  | name = upcase_ident; Lpar; index = Int; Rpar { {name; typ_annot = None; index = Some index} }
+  | name = ctor_ident; Lpar; index = Int; Rpar { {name; typ_annot = None; index = Some index} }
 
 record_item_decl:
   | name = Ident; mut = boption(Ampersand); Colon; spec = type_spec { mut, name, spec }
@@ -245,9 +245,9 @@ basic_pattern:
 
 non_or_match_pattern:
   | basic = basic_pattern { basic }
-  | id = upcase_ident { Pctor (id, None) }
-  | id = upcase_ident; Lpar; pattern = match_pattern; Rpar { Pctor (id, Some pattern)  }
-  | id = upcase_ident; Lpar; pattern = tup_pattern(match_pattern); Rpar { Pctor (id, Some pattern)  }
+  | id = ctor_ident { Pctor (id, None) }
+  | id = ctor_ident; Lpar; pattern = match_pattern; Rpar { Pctor (id, Some pattern)  }
+  | id = ctor_ident; Lpar; pattern = tup_pattern(match_pattern); Rpar { Pctor (id, Some pattern)  }
   | Lpar; tup = tup_pattern(match_pattern); Rpar { tup }
   | rec_ = record_pattern(match_pattern) { rec_ }
   | i = Int { Plit_int($loc, i) }
@@ -291,8 +291,8 @@ let with_loc(x) :=
 ident:
   | id = Ident { $loc, id }
 
-upcase_ident:
-  | id = Upcase_ident { $loc, id }
+ctor_ident:
+  | id = Ctor { $loc, id }
 
 expr:
   | ident = ident { Var ident }
@@ -331,6 +331,7 @@ expr:
     { Match ($loc, expr.pattr, expr.pexpr, clauses) }
   | Ampersand; expr = expr; Left_arrow; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
+  | id = Path_id; expr = expr; %prec Path { Local_import ($loc, id, expr) }
 
 clauses:
   | clause = clause; %prec Below_hbar { clause :: [] }
@@ -353,10 +354,9 @@ special_builtins:
            {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
 
 upcases:
-  | id = upcase_ident; %prec Ctor { Ctor ($loc, id, None) }
-  | id = upcase_ident; Lpar; expr = expr; Rpar { Ctor ($loc, id, Some expr) }
-  | id = upcase_ident; Lpar; tup = tuple; Rpar {Ctor ($loc, id, Some (Tuple ($loc(tup), tup)))}
-  | id = Path_id; expr = expr; %prec Path { Local_import ($loc, id, expr) }
+  | id = ctor_ident; %prec Ctor { Ctor ($loc, id, None) }
+  | id = ctor_ident; Lpar; expr = expr; Rpar { Ctor ($loc, id, Some expr) }
+  | id = ctor_ident; Lpar; tup = tuple; Rpar {Ctor ($loc, id, Some (Tuple ($loc(tup), tup)))}
 
 tuple:
   | head = expr; Comma; tail = separated_nonempty_list(Comma, expr)

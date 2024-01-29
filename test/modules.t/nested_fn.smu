@@ -1,7 +1,7 @@
-type thing('a) = Empty | Item('a)
+type thing('a) = #empty | #item('a)
 
 fun classify(thing):
   fun inner(thing): match thing:
-    Item(_): 0
-    Empty: 1
+    #item(_): 0
+    #empty: 1
   inner(thing)

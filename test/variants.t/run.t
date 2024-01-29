@@ -2,12 +2,12 @@ Basic variant ctors
   $ schmu basic.smu --dump-llvm
   basic.smu:12.5-15: warning: Unused binding wrap_clike.
   
-  12 | fun wrap_clike(): C
+  12 | fun wrap_clike(): #c
            ^^^^^^^^^^
   
   basic.smu:14.5-16: warning: Unused binding wrap_option.
   
-  14 | fun wrap_option(): Some("hello")
+  14 | fun wrap_option(): #some("hello")
            ^^^^^^^^^^^
   
   ; ModuleID = 'context'
@@ -398,24 +398,24 @@ Match multiple columns
   0
 
   $ schmu custom_tag_reuse.smu
-  custom_tag_reuse.smu:1.27-28: error: Tag 1 already used for constructor A.
+  custom_tag_reuse.smu:1.29-31: error: Tag 1 already used for constructor A.
   
-  1 | type tags = A(1) | B(0) | C(int)
-                                ^
+  1 | type tags = #a(1) | #b(0) | #c(int)
+                                  ^^
   
   [1]
 
 Record literals in pattern matches
   $ schmu match_record.smu
-  match_record.smu:5.24-25: warning: Unused binding b.
+  match_record.smu:5.26-27: warning: Unused binding b.
   
-  5 |     Some({a = Some(a), b}): a
-                             ^
+  5 |     #some({a = #some(a), b}): a
+                               ^
   
-  match_record.smu:6.21-22: warning: Unused binding b.
+  match_record.smu:6.23-24: warning: Unused binding b.
   
-  6 |     Some({a = None, b}): -1
-                          ^
+  6 |     #some({a = #none, b}): -1
+                            ^
   
   match_record.smu:15.18-19: warning: Unused binding b.
   

@@ -4168,13 +4168,13 @@ Using unit values
   $ schmu unit_values.smu --dump-llvm && valgrind -q --leak-check=yes --show-reachable=yes ./unit_values
   unit_values.smu:3.5-6: warning: Unused binding b.
   
-  3 | let b = Some(a)
+  3 | let b = #some(a)
           ^
   
-  unit_values.smu:8.8-9: warning: Unused binding a.
+  unit_values.smu:8.9-10: warning: Unused binding a.
   
-  8 |   Some(a): print("some")
-             ^
+  8 |   #some(a): print("some")
+              ^
   
   unit_values.smu:14.5-6: warning: Unused binding u.
   

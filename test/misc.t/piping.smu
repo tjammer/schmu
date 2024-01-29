@@ -4,9 +4,9 @@ external printi : (int) -> unit = "Printi"
 1 -> (fun x: x + 1) -> printi
 
 -- pipe into ctor
-1 -> Some -> (fun x: match x:
-  Some(a): a
-  None: 0)
+1 -> #some -> (fun x: match x:
+  #some(a): a
+  #none: 0)
 -> printi
 
 -- pipe field accessor (this isn't supported anymore, but works naturally with .x)

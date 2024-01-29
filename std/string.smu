@@ -79,15 +79,15 @@ fun boyer_moore_horspool(pattern, str):
       if char_equal(last_patchar, last_windowchar) and
         (memcmp(array/data(pattern), __unsafe_ptr_at(strptr, istr), patlen1)
           -> int_of_i32) == 0:
-        Some(istr)
+        #some(istr)
       else:
         let skip = skips#[u8_to_int(last_windowchar)]
         find(skips, istr + skip)
     else:
-      None
+      #none
 
   -- what's going on here?
-  if len(pattern) < len(pattern): None else:
+  if len(pattern) < len(pattern): #none else:
     let skips = make_skips(pattern)
     find(skips, 0)
 

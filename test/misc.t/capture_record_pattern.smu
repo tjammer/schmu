@@ -1,17 +1,17 @@
 fun bind(res, f):
   match res:
-    Some(r): f(r)
-    None: None
+    #some(r): f(r)
+    #none: #none
 
 fun use(param, thing):
   match param:
     (bar, foo): bind(bar(thing), fun r:
       bind(foo(r), fun r:
         print(fmt(r))
-        Some(copy(r))))
+        #some(copy(r))))
 
-ignore(use((fun i: Some(i + 1),
-            fun i: Some(i + 2)),
+ignore(use((fun i: #some(i + 1),
+            fun i: #some(i + 2)),
            0))
 
 -- This here is just a test to make sure that we can alias normal, monomorphized

@@ -6,8 +6,8 @@ fun string():
     stbl/insert(&tbl, !"key", !1.1)
     fun find_print(key):
         match stbl/find(tbl, key):
-            Some(v): print(fmt(v))
-            None: print("none")
+            #some(v): print(fmt(v))
+            #none: print("none")
     find_print("key")
     find_print("otherkey")
     stbl/remove(&tbl, "key")

@@ -1,9 +1,9 @@
 fun alt(a, b):
   match a():
-    None:
+    #none:
       match b():
-        None: Some([0])
+        #none: #some([0])
         some: some
     some: some
 
-alt((fun (): None), fun (): None) -> ignore
+alt((fun (): #none), fun (): #none) -> ignore

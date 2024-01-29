@@ -4,10 +4,10 @@ match &a:
 print(fmt(a))
 
 type record = {a& : int, b : float}
-let a& = Some(10)
+let a& = #some(10)
 match &a:
-  Some(b&): &b <- 12
-  None: ()
+  #some(b&): &b <- 12
+  #none: ()
 match a:
-  Some(a): print(fmt(a))
-  None: print("none")
+  #some(a): print(fmt(a))
+  #none: print("none")
