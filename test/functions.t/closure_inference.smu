@@ -5,22 +5,22 @@ type parse_result = Ok(ok) | Err(lexbuf)
 
 fun char(c):
   fun buf:
-    if char_equal(String.get(buf.buf, buf.curr), c):
+    if char_equal(string/get(buf.buf, buf.curr), c):
       Ok({mtch = {pbuf = copy(buf.buf), start = buf.curr, len = 1},
           rem = {copy(buf) with curr = buf.curr + 1}})
     else:
       Err(copy(buf))
 
 fun string_of_view(view):
-  let ret& = Array.create(view.len + 1)
+  let ret& = array/create(view.len + 1)
   iter_range(view.start, view.start + view.len, fun c:
-    Array.push(&ret, !String.get(view.pbuf, c)))
-  Array.push(&ret, !'\000')
-  Array.drop_back(&ret)
+    array/push(&ret, !string/get(view.pbuf, c)))
+  array/push(&ret, !'\000')
+  array/drop_back(&ret)
   ret
 
 fun view_of_lexbuf(lb):
-  {pbuf = copy(lb.buf), start = lb.curr, len = String.len(lb.buf) - lb.curr}
+  {pbuf = copy(lb.buf), start = lb.curr, len = string/len(lb.buf) - lb.curr}
 
 fun print_result(res):
   match res:

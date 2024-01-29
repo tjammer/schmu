@@ -1,11 +1,11 @@
-import Sign
+import sign
 
 -- Use type t
 let use_t : t = 20
 ignore(use_t)
 
 -- Use ext
-ext(String.data("hello %i\n"), 20)
+ext(string/data("hello %i\n"), 20)
 
 -- Use t
 assert(t == 200)

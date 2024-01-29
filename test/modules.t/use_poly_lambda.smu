@@ -1,4 +1,4 @@
-import Poly_lambda
+import poly_lambda
 -- Create lambda with different arity
 ignore(fun (_, _, _): ())
 print(fmt(create(10).a))

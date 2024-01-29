@@ -1,4 +1,4 @@
-external printf : (String.cstr, int) -> unit
+external printf : (string/cstr, int) -> unit
 
 -- standard case
 fun match_opt(p):

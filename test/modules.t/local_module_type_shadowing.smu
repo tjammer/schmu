@@ -3,9 +3,9 @@
 type t = {a : int}
 
 let t = {a = 10}
-module Nosig:
+module nosig:
   type t = {a : int, b : int}
   let t = {a = 10, b = 20}
-  module Nested:
+  module nested:
     type t = {a : int, b : int, c : int}
     let t = {a = 10, b = 20, c = 30}

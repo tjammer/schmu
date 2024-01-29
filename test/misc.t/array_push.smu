@@ -1,27 +1,27 @@
 let a& = [10, 20]
 let b = copy(a)
 
-Array.push(&a, !30)
+array/push(&a, !30)
 
-print(fmt(Array.length(a)))
-print(fmt(Array.length(b)))
+print(fmt(array/length(a)))
+print(fmt(array/length(b)))
 
 fun in_fun():
   let a& = [10, 20]
   let b = copy(a)
 
-  Array.push(&a, !30)
+  array/push(&a, !30)
 
-  print(fmt(Array.length(a)))
-  print(fmt(Array.length(b)))
+  print(fmt(array/length(a)))
+  print(fmt(array/length(b)))
 
 in_fun()
 
 let nested& = [[0, 1], [2, 3]]
 let a = [4, 5]
-Array.push(&nested, !copy(a))
+array/push(&nested, !copy(a))
 &nested.[1] <- copy(a)
 &nested.[1] <- copy(a)
-Array.push(&nested, ![4, 5])
+array/push(&nested, ![4, 5])
 &nested.[1] <- [4, 5]
 &nested.[1] <- [4, 5]

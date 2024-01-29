@@ -1,2 +1,2 @@
-module Mm:
+module mm:
   let _& = 0

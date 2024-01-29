@@ -1,1 +1,1 @@
-fun id(a!): Transitive.id(!a)
+fun id(a!): transitive/id(!a)

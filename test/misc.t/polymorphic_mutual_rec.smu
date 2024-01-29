@@ -1,4 +1,4 @@
-M2.do:
+m2/do:
   print(fmt(odd(1)))
   print(fmt(odd(100)))
   print(fmt(even(100)))
@@ -7,15 +7,15 @@ M2.do:
   pop(&arr)
   let arr& = [0, 1, 2, 3]
   pop_all(&arr)
-  print(fmt(Array.length(arr)))
+  print(fmt(array/length(arr)))
 
 fun rec pop(arr&):
   print("pop")
-  Array.drop_back(&arr)
+  array/drop_back(&arr)
   pop_all(&arr)
 
 and pop_all(arr&):
-  if Array.length(arr) == 0: ()
+  if array/length(arr) == 0: ()
   else: pop(&arr)
 
 
@@ -23,6 +23,6 @@ let arr& = [0, 1, 2, 3]
 pop(&arr)
 let arr& = [0, 1, 2, 3]
 pop_all(&arr)
-print(fmt(Array.length(arr)))
+print(fmt(array/length(arr)))
 
-ignore(M2.test(1))
+ignore(m2/test(1))

@@ -1,4 +1,4 @@
-external printf : (String.cstr, int, int, int) -> unit
+external printf : (string/cstr, int, int, int) -> unit
 
 let limit = 3
 
@@ -7,19 +7,19 @@ fun nested(a, b):
   if b == limit: nested(a + 1, 0)
   else if a == limit: ()
   else:
-    printf(String.data("%i, %i\n"), a, b, 0)
+    printf(string/data("%i, %i\n"), a, b, 0)
     nested(a, b + 1)
 
 nested(0, 0)
 
-printf(String.data("\n"), 0, 0, 0)
+printf(string/data("\n"), 0, 0, 0)
 
 fun nested(a, b, c):
   if b == limit: nested(a + 1, 0, c)
   else if c == limit: nested(a, b + 1, 0)
   else if a == limit: ()
   else:
-    printf(String.data("%i, %i, %i\n"), a, b, c)
+    printf(string/data("%i, %i, %i\n"), a, b, c)
     nested(a, b, c + 1)
 
 nested(0, 0, 0)
@@ -29,7 +29,7 @@ fun nested(a, b, c):
   else if a == limit: ()
   else if c == limit: nested(a, b + 1, 0)
   else:
-    printf(String.data("%i, %i, %i\n"), a, b, c)
+    printf(string/data("%i, %i, %i\n"), a, b, c)
     nested(a, b, c + 1)
 
 0

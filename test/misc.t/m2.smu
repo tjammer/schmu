@@ -14,11 +14,11 @@ and odd(i):
 
 fun rec pop(arr&):
   print("pop")
-  Array.drop_back(&arr)
+  array/drop_back(&arr)
   pop_all(&arr)
 
 and pop_all(arr&):
-  if Array.length(arr) == 0: ()
+  if array/length(arr) == 0: ()
   else: pop(&arr)
 
 fun test(i):

@@ -1,13 +1,6 @@
 type t = Pid of string | Pmod of string * t
 
-let rec show = function
-  | Pid s -> s
-  | Pmod (n, p) -> String.capitalize_ascii n ^ "." ^ show p
-
-let rec show_upcase = function
-  | Pid s -> StringLabels.capitalize_ascii s
-  | Pmod (n, p) -> String.capitalize_ascii n ^ "." ^ show_upcase p
-
+let rec show = function Pid s -> s | Pmod (n, p) -> n ^ "/" ^ show p
 let pp ppf p = Format.fprintf ppf "%s" (show p)
 
 (* Using "." here makes sure there is no clash to a user defined type which (by accident)
@@ -17,20 +10,16 @@ let rec type_name = function
   | Pmod ("schmu", p) ->
       (* Don't prefix everything from the main module with "schmu" *)
       type_name p
-  | Pmod (n, p) -> n ^ "." ^ type_name p
+  | Pmod (n, p) -> n ^ "/" ^ type_name p
 
 open Sexplib0
 
-let rec show_lowercase = function
-  | Pid s -> String.lowercase_ascii s
-  | Pmod (n, p) -> String.lowercase_ascii n ^ "." ^ show_lowercase p
-
-let sexp_of_t p = Sexp.Atom (show_lowercase p)
+let sexp_of_t p = Sexp.Atom (show p)
 
 let t_of_sexp p =
   match p with
   | Sexp.Atom p ->
-      let parts = String.split_on_char '.' p in
+      let parts = String.split_on_char '/' p in
       let rec build = function
         | [ s ] -> Pid s
         | n :: tl -> Pmod (n, build tl)

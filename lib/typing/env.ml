@@ -301,11 +301,7 @@ let get_module env loc = function
 
 let add_module_alias loc ~key ~mname env =
   let rs key =
-    let msg =
-      "Cannot find module: "
-      ^ String.capitalize_ascii key
-      ^ " in " ^ Path.show_upcase mname
-    in
+    let msg = "Cannot find module: " ^ key ^ " in " ^ Path.show mname in
     raise (Error.Error (loc, msg))
   in
   let rec start env = function

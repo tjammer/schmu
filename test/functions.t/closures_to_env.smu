@@ -1,10 +1,10 @@
-external printf : (String.cstr, int) -> unit
+external printf : (string/cstr, int) -> unit
 
 let a = 20
 
 fun close_over_a(): a
 
 fun use_above():
-  printf(String.data("%i\n"), close_over_a())
+  printf(string/data("%i\n"), close_over_a())
 
 use_above()

@@ -1,12 +1,12 @@
 fun test(): print("hey test")
 
-module Local:
+module local:
   signature:
     type t
     val test : () -> unit
     val poly_test : ('a) -> unit
     val value : string
-  module Nested:
+  module nested:
     type t = unit
   type t = int
   fun test():
@@ -18,17 +18,17 @@ module Local:
 
 test()
 
-Local.test()
-Local.poly_test("test")
+local/test()
+local/poly_test("test")
 
-module Nosig:
+module nosig:
   type t = {a : int}
   type other = int
-  module Nested:
+  module nested:
     fun nested():
       print("i'm nested")
 
-let test : Nosig.t = {a = 10}
+let test : nosig/t = {a = 10}
 ignore(test)
 
-Nosig.Nested.nested()
+nosig/nested/nested()

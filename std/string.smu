@@ -9,7 +9,7 @@ signature:
   val equal: (t, t) -> bool
   val append : (t&, t) -> unit
   val concat : (t, array(t)) -> t
-  val boyer_moore_horspool : (t, t) -> Option.t(int)
+  val boyer_moore_horspool : (t, t) -> option/t(int)
 
   val modify_buf : (t&, (array(u8)&) -> unit) -> unit
   val of_array : (array(u8)!) -> t
@@ -21,8 +21,8 @@ signature:
 type t = array(u8)
 
 -- TODO use aliases
-fun len(str : t): Array.length(str)
-fun data(str : t): Array.data(str)
+fun len(str : t): array/length(str)
+fun data(str : t): array/data(str)
 fun get(str : t, i): str.[i]
 
 fun hash(str):
@@ -35,49 +35,49 @@ fun hash(str):
   --         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
   --     return hash;
   -- }
-  Array.fold(str, !5381, fun (hash!, c):
+  array/fold(str, !5381, fun (hash!, c):
     (hash * 33) + u8_to_int(c))
 
 external memcmp : (raw_ptr(u8), raw_ptr(u8), int) -> i32
 
 fun equal(l, r):
   if len(l) == len(r):
-    int_of_i32(memcmp(Array.data(l), Array.data(r), Array.length(l))) == 0
+    int_of_i32(memcmp(array/data(l), array/data(r), array/length(l))) == 0
   else:
     false
 
 fun append(str&, other):
-  Array.iter(other, fun(c : u8): Array.push(&str, !c))
+  array/iter(other, fun(c : u8): array/push(&str, !c))
 
 fun concat(delim, strings):
-  let ret& = Array.create(32)
-  Array.iteri(strings, fun(i, str):
+  let ret& = array/create(32)
+  array/iteri(strings, fun(i, str):
     if not(i == 0): append(&ret, delim)
     append(&ret, str))
-  Array.push(&ret, !'\000')
-  Array.drop_back(&ret)
+  array/push(&ret, !'\000')
+  array/drop_back(&ret)
   ret
 
 fun make_skips(pattern):
-  let len = Array.length(pattern)
+  let len = array/length(pattern)
   let skips& = #256[len]
-  Array.iteri(pattern, fun(i, c):
+  array/iteri(pattern, fun(i, c):
     if not(i == len - 1): -- ignore last char
       &skips#[u8_to_int(c)] <- len - 1 - i)
   skips
 
 fun boyer_moore_horspool(pattern, str):
-  import Prelude
-  import Option
+  import prelude
+  import option
   let patlen1 = len(pattern) - 1
-  let strptr = Array.data(str)
+  let strptr = array/data(str)
   let last_patchar = pattern.[patlen1]
 
   fun find(skips, istr):
     let last_windowchar = str.[istr + patlen1]
     if (istr + len(pattern)) <= len(str):
       if char_equal(last_patchar, last_windowchar) and
-        (memcmp(Array.data(pattern), __unsafe_ptr_at(strptr, istr), patlen1)
+        (memcmp(array/data(pattern), __unsafe_ptr_at(strptr, istr), patlen1)
           -> int_of_i32) == 0:
         Some(istr)
       else:
@@ -102,8 +102,8 @@ fun to_array(str! : t): str
 external memcpy : (raw_ptr(u8), raw_ptr(u8), int) -> unit
 
 fun of_fixed_array(arr : array#?(u8)):
-  let ret = Array.create(__fixed_array_length(arr))
-  memcpy(Array.data(ret), __fixed_array_data(arr), __fixed_array_length(arr))
+  let ret = array/create(__fixed_array_length(arr))
+  memcpy(array/data(ret), __fixed_array_data(arr), __fixed_array_length(arr))
   ret
 
 type file = raw_ptr(u8)
@@ -114,5 +114,5 @@ let newline = #['\n']
 
 fun print(str : t):
   -- TODO should be named println, but (print (fmt-str ...)) also adds newline
-  fwrite(Array.data(str), 1, Array.length(str), stdout)
+  fwrite(array/data(str), 1, array/length(str), stdout)
   fwrite(__fixed_array_data(newline), 1, 1, stdout)

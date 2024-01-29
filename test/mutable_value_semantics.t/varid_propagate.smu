@@ -1,6 +1,6 @@
 fun f1(acc, v):
   let tmp& = copy(acc)
-  Array.push(&tmp, !copy(v))
+  array/push(&tmp, !copy(v))
   tmp
 
 ignore(f1([0], 0))

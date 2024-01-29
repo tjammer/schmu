@@ -1,15 +1,15 @@
 let a = "modd"
 
-let b = Indirect.a
+let b = indirect/a
 
-module Public = Public
+module public = public
 
 -- This should not raise an llvm warning
-let func = Indirect.hmm
+let func = indirect/hmm
 
-let lambda = Indirect.some_lambda
+let lambda = indirect/some_lambda
 
 -- Use closure directly
-let closure = Indirect.some_closure
+let closure = indirect/some_closure
 
-let swap = Indirect.swap
+let swap = indirect/swap

@@ -5,9 +5,9 @@ fun sort(arr&, cmp):
     iter_range(lo, hi, fun j:
       if cmp(arr.[j], pivot) < 0:
         &i <- i + 1
-        Array.swap_items(&arr, i, j))
+        array/swap_items(&arr, i, j))
     let i = i + 1
-    Array.swap_items(&arr, i, hi)
+    array/swap_items(&arr, i, hi)
     i
   -- quicksort is a closure, as it closes over partition. partition itself
   -- is polymorphic. Before this change, quicksort would close over the dummy
@@ -23,12 +23,12 @@ fun sort(arr&, cmp):
       quicksort(&arr, lo, p - 1)
       quicksort(&arr, p + 1, hi)
 
-  let len = Array.length(arr) - 1
+  let len = array/length(arr) - 1
   quicksort(&arr, 0, len)
 
 let arr& = [9, 30, 0, 50, 2030, 34]
 sort(&arr, fun(a, b): a - b)
-Array.iter(arr, fun i: print(fmt(i)))
+array/iter(arr, fun i: print(fmt(i)))
 
 -- These functions have different call names. Make sure this works as well
 fun sort(arr&, cmp):
@@ -38,9 +38,9 @@ fun sort(arr&, cmp):
     iter_range(lo, hi, fun j:
       if cmp(arr.[j], pivot) < 0:
         &i <- i + 1
-        Array.swap_items(&arr, i, j))
+        array/swap_items(&arr, i, j))
     let i = i + 1
-    Array.swap_items(&arr, i, hi)
+    array/swap_items(&arr, i, hi)
     i
   -- quicksort is a closure, as it closes over partition. partition itself
   -- is polymorphic. Before this change, quicksort would close over the dummy
@@ -56,9 +56,9 @@ fun sort(arr&, cmp):
       quicksort(&arr, lo, p - 1)
       quicksort(&arr, p + 1, hi)
 
-  let len = Array.length(arr) - 1
+  let len = array/length(arr) - 1
   quicksort(&arr, 0, len)
 
 let arr& = [9, 30, 0, 50, 2030, 34]
 sort(&arr, fun(a, b): a - b)
-Array.iter(arr, fun i: print(fmt(i)))
+array/iter(arr, fun i: print(fmt(i)))

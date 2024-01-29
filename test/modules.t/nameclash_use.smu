@@ -1,2 +1,2 @@
-import Nameclash_mod
+import nameclash_mod
 fun specific_name(): ()

@@ -1,4 +1,4 @@
-import Sign
+import sign
 
 -- Cannot use hidden_type
 let i : hidden_type = 10

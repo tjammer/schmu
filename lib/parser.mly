@@ -33,6 +33,7 @@
 %token Lbrac
 %token Rbrac
 %token <string> Upcase_ident
+%token <string> Path_id
 %token Dot
 %token Import
 %token If
@@ -161,7 +162,7 @@ ext:
   | External; id = ident; Colon; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
 
 modtype:
-  | Module_type; name = upcase_ident; Colon; Begin; sgn = sig_items; End { Module_type (name, sgn) }
+  | Module_type; name = ident; Colon; Begin; sgn = sig_items; End { Module_type (name, sgn) }
 
 modul:
   | Module; name = module_decl; Colon; Begin; sgn = loption(signature); items = separated_nonempty_list(Newline, top_item); End
@@ -182,7 +183,7 @@ functor_:
     { Functor (name, params, sgn, items) }
 
 functor_param:
-  | name = upcase_ident; Colon; path = import_path { let loc, name = name in loc, name, path }
+  | name = ident; Colon; path = import_path { let loc, name = name in loc, name, path }
 
 ctor:
   | name = upcase_ident { {name; typ_annot = None; index = None} }
@@ -198,8 +199,8 @@ decl_typename:
   | name = Ident; Lpar; poly_param = separated_nonempty_list(Comma, poly_id); Rpar { { name; poly_param } }
 
 %inline module_decl:
-  | name = upcase_ident { let loc, name = name in loc, name, None }
-  | name = upcase_ident; Colon; path = import_path { let loc, name = name in loc, name, Some path }
+  | name = ident { let loc, name = name in loc, name, None }
+  | name = ident; Colon; path = import_path { let loc, name = name in loc, name, Some path }
 
 signature:
   | Signature; Colon; Begin; items = sig_items ; End; option(Newline) { items }
@@ -355,7 +356,7 @@ upcases:
   | id = upcase_ident; %prec Ctor { Ctor ($loc, id, None) }
   | id = upcase_ident; Lpar; expr = expr; Rpar { Ctor ($loc, id, Some expr) }
   | id = upcase_ident; Lpar; tup = tuple; Rpar {Ctor ($loc, id, Some (Tuple ($loc(tup), tup)))}
-  | id = upcase_ident; Dot; expr = expr; %prec Path { Local_import ($loc, snd id, expr) }
+  | id = Path_id; expr = expr; %prec Path { Local_import ($loc, id, expr) }
 
 tuple:
   | head = expr; Comma; tail = separated_nonempty_list(Comma, expr)
@@ -416,15 +417,14 @@ else_:
   | Else; Colon; item = block; { item }
 
 import_path:
-  | id = Upcase_ident { Path.Pid (id) }
-  | id = Upcase_ident; Dot; path = import_path { Path.Pmod (id, path)  }
+  | id = Ident { Path.Pid (id) }
+  | id = Path_id; path = import_path { Path.Pmod (id, path)  }
 
 type_path:
-  | id = Upcase_ident; Dot; path = type_path_cont { Path.Pmod (id, path)  }
+  | id = Path_id; path = type_path_cont { Path.Pmod (id, path)  }
 
 type_path_cont:
-  | id = Upcase_ident; Dot; path = type_path_cont { Path.Pmod (id, path)  }
-  | id = Upcase_ident { Path.Pid (id) }
+  | id = Path_id; path = type_path_cont { Path.Pmod (id, path)  }
   | id = Ident { Path.Pid (id) }
 
 %inline unop:

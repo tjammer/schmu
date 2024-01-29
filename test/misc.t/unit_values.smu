@@ -24,8 +24,8 @@ print(fmt(t.f))
 
 -- arrays
 let arr& = [(), ()]
-Array.push(&arr, !())
-print(fmt(Array.length(arr)))
+array/push(&arr, !())
+print(fmt(array/length(arr)))
 ignore({u = arr.[2]})
 
 -- fixed arrays

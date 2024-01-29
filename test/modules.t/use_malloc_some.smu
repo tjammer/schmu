@@ -3,9 +3,9 @@ type big = {a : int, b : float, c : int, d : int}
 fun do_something(big):
   big.a + 1
 
-external printf : (String.cstr, int) -> unit
+external printf : (string/cstr, int) -> unit
 
 fun printi(i):
-  printf(String.data("%i\n"), i)
+  printf(string/data("%i\n"), i)
 
-Array.iter(Malloc_some.vtest, printi)
+array/iter(malloc_some/vtest, printi)

@@ -3,11 +3,11 @@ signature:
   type abstr
 
   val t : int
-  val ext : (String.cstr, int) -> unit
+  val ext : (string/cstr, int) -> unit
   val int : (int) -> unit
   val poly_int : ('a) -> 'a
 
-external ext : (String.cstr, int) -> unit = "printf"
+external ext : (string/cstr, int) -> unit = "printf"
 
 fun int(i : int):
   print(fmt(i))

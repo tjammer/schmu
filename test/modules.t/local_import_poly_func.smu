@@ -1,6 +1,6 @@
-external printf : (String.cstr, int) -> unit
+external printf : (string/cstr, int) -> unit
 
-Poly_func.classify(Some(3)) |> printf(String.data("%i\n"))
-Poly_func.classify(Some(3.0)) |> printf(String.data("%i\n"))
-let none : Poly_func.option(float) = None
-Poly_func.(classify(none) |> printf(String.data("%i\n")))
+poly_func/classify(Some(3)) |> printf(string/data("%i\n"))
+poly_func/classify(Some(3.0)) |> printf(string/data("%i\n"))
+let none : poly_func/option(float) = None
+poly_func/(classify(none) |> printf(string/data("%i\n")))

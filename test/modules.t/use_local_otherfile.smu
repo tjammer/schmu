@@ -3,22 +3,22 @@ fun test():
 
 test()
 
-Local_otherfile.Local.test()
-Local_otherfile.Local.poly_test("test")
+local_otherfile/local/test()
+local_otherfile/local/poly_test("test")
 
-module Nosig:
+module nosig:
   type t = {a : int}
   type other = int
-  module Nested:
+  module nested:
     fun nested():
       print("i'm nested")
 
-let test : Local_otherfile.Nosig.t = {a = 10}
+let test : local_otherfile/nosig/t = {a = 10}
 ignore(test)
 
-Local_otherfile.Nosig.Nested.nested()
+local_otherfile/nosig/nested/nested()
 
-let t : Local_otherfile.Nosig.Nested.t = 10.0
+let t : local_otherfile/nosig/nested/t = 10.0
 ignore(t)
 
-Local_otherfile.Aliased.nested()
+local_otherfile/aliased/nested()

@@ -1,37 +1,37 @@
-module Outer:
+module outer:
   type t = {i : int}
 
-module type Sig:
+module type sig:
   type t
   val add : (t, t) -> t
 
-functor Make(M : Sig):
-  fun add_twice(a, b): M.add(M.add(a, b), b)
+functor make(m : sig):
+  fun add_twice(a, b): m/add(m/add(a, b), b)
 
-module Outa : Sig:
-  type t = Outer.t
+module outa : sig:
+  type t = outer/t
   fun add(a, b): {i = a.i + b.i}
 
-module Inta : Sig:
+module inta : sig:
   type t = int
   fun add(a, b): a + b
 
-module Floata : Sig:
+module floata : sig:
   signature:
     type t = float
     val add : (t, t) -> t
   type t = float
   fun add(a, b): a +. b
 
-module Somerec : Sig:
+module somerec : sig:
   type t = {a : int, b : int}
   fun add(a, b):
     {a = a.a + b.a, b = a.b + b.b}
 
-module Intadder = Make(Inta)
-module Floatadder = Make(Floata)
-module Recadder = Make(Somerec)
-module Outeradder = Make(Outa)
+module intadder = make(inta)
+module floatadder = make(floata)
+module recadder = make(somerec)
+module outeradder = make(outa)
 
-print(fmt(Intadder.add_twice(1, 2)))
-print(fmt(Floatadder.add_twice(1.0, 2.0)))
+print(fmt(intadder/add_twice(1, 2)))
+print(fmt(floatadder/add_twice(1.0, 2.0)))

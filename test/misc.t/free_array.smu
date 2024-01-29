@@ -11,7 +11,7 @@ let arr = [copy(x), {x = 2}, {x = 3}]
 fun arr_inside():
   let arr& = [copy(x), {x = 2}, {x = 3}]
   -- Make sure we can call realloc
-  Array.push(&arr, !{x = 12})
+  array/push(&arr, !{x = 12})
 
 -- Arr is returned and should be freed in its parent scope
 fun make_arr():
@@ -50,7 +50,7 @@ inner_parent_scope()
 let normal = nest_fns()
 
 let nested& = [[0, 1], [2, 3]]
-Array.push(&nested, ![4, 5])
+array/push(&nested, ![4, 5])
 let nested = make_nested_arr()
 let nested = nest_allocs()
 nest_local()

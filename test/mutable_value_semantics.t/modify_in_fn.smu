@@ -2,7 +2,7 @@ type f = {a& : int}
 
 fun modify(r&): &r.a <- 30
 
-fun mod2(a&): Array.push(&a, !20)
+fun mod2(a&): array/push(&a, !20)
 
 let a& = {a = 20}
 modify(&a)
@@ -10,4 +10,4 @@ print(fmt(a.a))
 
 let b& = [10]
 mod2(&b)
-print(fmt(Array.length(b)))
+print(fmt(array/length(b)))

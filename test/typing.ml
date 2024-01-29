@@ -353,18 +353,18 @@ let test_alias_of_alias () =
     "type foo = int\ntype bar = foo\nexternal f : (bar) -> foo\nf"
 
 let test_alias_labels () =
-  test "Inner.t(int)"
-    {|module Inner:
+  test "inner/t(int)"
+    {|module inner:
   type t('a) = {a : 'a, b : int}
-type t('a) = Inner.t('a)
+type t('a) = inner/t('a)
 {a = 20, b = 10}
 |}
 
 let test_alias_ctors () =
-  test "Inner.t(int)"
-    {|module Inner:
+  test "inner/t(int)"
+    {|module inner:
   type t('a) = Noo | Yes('a)
-type t('a) = Inner.t('a)
+type t('a) = inner/t('a)
 Yes(10)|}
 
 let test_alias_ctors_dont_overwrite () =
@@ -706,62 +706,62 @@ type t('a) = int|}
 let local_module =
   {|type t = float
 type global = int
-module Nosig:
+module nosig:
   type t = {a : int}
   type other = int
-  module Nested:
+  module nested:
     type t = u8
 |}
 
 let test_local_modules_find_local () =
-  test "unit" (local_module ^ "let test : Nosig.t = { a = 10 }")
+  test "unit" (local_module ^ "let test : nosig/t = { a = 10 }")
 
 let test_local_modules_find_nested () =
-  test "unit" (local_module ^ "let test : Nosig.Nested.t = 0u8")
+  test "unit" (local_module ^ "let test : nosig/nested/t = 0u8")
 
 let test_local_modules_miss_local () =
-  test_exn "In let binding expecting [float] but found [Nosig.t]"
-    (local_module ^ "let test : Nosig.t = 10.0")
+  test_exn "In let binding expecting [float] but found [nosig/t]"
+    (local_module ^ "let test : nosig/t = 10.0")
 
 let test_local_modules_miss_nested () =
-  test_exn "Expected a record type, not Nosig.Nested.t = u8"
-    (local_module ^ "let test : Nosig.Nested.t = {a = 10}")
+  test_exn "Expected a record type, not nosig/nested/t = u8"
+    (local_module ^ "let test : nosig/nested/t = {a = 10}")
 
 let test_local_modules_miss_local_dont_find_global () =
-  test_exn "Unbound type Nosig.global."
-    (local_module ^ "let test : Nosig.global = { a = 10 }")
+  test_exn "Unbound type nosig/global."
+    (local_module ^ "let test : nosig/global = { a = 10 }")
 
 let test_local_module_unique_names () =
   test_exn "Module names must be unique. nosig exists already"
-    (local_module ^ "module Nosig:\n   type t = int")
+    (local_module ^ "module nosig:\n   type t = int")
 
 let test_local_module_nested_module_alias () =
-  test "Nosig.Nested.t"
-    {|module Nosig:
+  test "nosig/nested/t"
+    {|module nosig:
   type t = { a : int, b : int }
   let _ = { a = 10, b = 20 }
-  module Nested:
+  module nested:
     type t = {a : int, b : int, c : int}
     let t = {a = 10, b = 20, c = 30}
-module Mm = Nosig.Nested
-Nosig.Nested.t|}
+module mm = nosig/nested
+nosig/nested/t|}
 
 let test_local_module_alias_dont () =
-  test_exn "Cannot find module: Nested in Nosig.Nested"
+  test_exn "Cannot find module: nested in nosig/nested"
     {|
 -- this shouln't be found
-module Nested:
+module nested:
   type t = {a : int, b : int, c : int}
   let t = { a = 11, b = 21, c = 31 }
 
-module Nosig:
+module nosig:
   type t = {a : int, b : int}
   let _ = {a = 10, b = 20}
-  module NotNested:
+  module notnested:
     type t = {a : int, b : int, c : int}
     let t = {a = 10, b = 20, c = 30}
 
-module Mm = Nosig.Nested
+module mm = nosig/nested
 |}
 
 let own = "let x& = 10"
@@ -947,210 +947,210 @@ let test_type_decl_not_unique () =
     "type t = int\ntype t = float"
 
 let test_type_decl_import_before () =
-  test "unit" "module M:\n  type t = int\nimport M\ntype t = float"
+  test "unit" "module m:\n  type t = int\nimport m\ntype t = float"
 
 let test_mtype_define () =
-  test "unit" {|module type Tt:
+  test "unit" {|module type tt:
   type t
   val random : () -> int|}
 
 let test_mtype_no_match () =
-  test_exn "Signatures don't match: Type Test.t is missing"
+  test_exn "Signatures don't match: Type test/t is missing"
     {|
-module type Tt:
+module type tt:
   type t
 
-module Test : Tt:
+module test : tt:
   type a = unit
 |}
 
 let test_mtype_no_match_alias () =
-  test_exn "Signatures don't match: Type Test.t is missing"
-    {|module type Tt:
+  test_exn "Signatures don't match: Type test/t is missing"
+    {|module type tt:
   type t
 
-module Test:
+module test:
   type a = unit
 
-module Other : Tt = Test
+module other : tt = test
 |}
 
 let test_mtype_no_match_sign () =
-  test_exn "Signatures don't match: Type Test.t is missing"
-    {|module type Tt:
+  test_exn "Signatures don't match: Type test/t is missing"
+    {|module type tt:
   type t
-module Test : Tt:
+module test : tt:
   signature:
     type a
   type a = unit|}
 
 let test_mtype_abstracts () =
   test "unit"
-    {|module Outer:
+    {|module outer:
   type t = {i : int}
 
-module type Sig:
+module type sig:
   type t
   val add : (t, t) -> t
 
-functor Make(M : Sig):
+functor make(m : sig):
   fun add_twice(a, b):
-    M.add(M.add(a, b), b)
+    m/add(m/add(a, b), b)
 
-module Outa : Sig:
-  type t = Outer.t
+module outa : sig:
+  type t = outer/t
   fun add(a, b): {i = a.i + b.i}
 
-module Inta : Sig:
+module inta : sig:
   type t = int
   fun add(a, b): a + b
 
-module Floata : Sig:
+module floata : sig:
   signature:
     type t
     val add : (t, t) -> t
   type t = float
   fun add(a, b): a +. b
 
-module Somerec : Sig:
+module somerec : sig:
   type t = {a : int, b : int}
   fun add(a, b): {a = a.a + a.b, b = a.b + b.b}
 |}
 
 let test_functor_define () =
-  test "unit" "module type Mt:\n type t\nfunctor F(P : Mt):\n ()"
+  test "unit" "module type mt:\n type t\nfunctor f(p : mt):\n ()"
 
 let test_functor_module_type_not_found () =
-  test_exn "Cannot find module type mt" "functor F(P : Mt):\n ()"
+  test_exn "Cannot find module type mt" "functor f(p : mt):\n ()"
 
 let test_functor_direct_access () =
   test_exn "The module f is a functor. It cannot be accessed directly"
-    "module type Mt:\n type t\nfunctor F(P : Mt):\n type a = unit\nignore(F.a)"
+    "module type mt:\n type t\nfunctor f(p : mt):\n type a = unit\nignore(f/a)"
 
 let test_functor_checked_alias () =
   test_exn "The module f is a functor. It cannot be accessed directly"
-    "module type Mt:\n\
+    "module type mt:\n\
     \ type t\n\
-     functor F(P : Mt):\n\
+     functor f(p : mt):\n\
     \ type a = unit\n\
-     module Hmm : Mt = F"
+     module hmm : mt = f"
 
 let test_functor_wrong_arity () =
   test_exn "Wrong arity for functor f: Expecting 1 but got 2"
-    "module type Mt:\n\
+    "module type mt:\n\
     \ type t\n\
-     functor F(P : Mt):\n\
+     functor f(p : mt):\n\
     \ ()\n\
-     module A:\n\
+     module a:\n\
     \ type t = unit\n\
-     module Hmm = F(A, A)"
+     module hmm = f(a, a)"
 
 let test_functor_wrong_module_type () =
-  test_exn "Signatures don't match: Type A.t is missing"
-    "module type Mt:\n\
+  test_exn "Signatures don't match: Type a/t is missing"
+    "module type mt:\n\
     \ type t\n\
-     functor F(P : Mt):\n\
+     functor f(p : mt):\n\
     \ ()\n\
-     module A:\n\
+     module a:\n\
     \ ()\n\
-     module Hmm = F(A)"
+     module hmm = f(a)"
 
 let test_functor_no_var_param () =
-  test_exn "No var named P.a"
-    "module type Mt:\n type t\nfunctor F(P : Mt):\n let _ = ignore(P.a)"
+  test_exn "No var named p/a"
+    "module type mt:\n type t\nfunctor f(p : mt):\n let _ = ignore(p/a)"
 
 let test_functor_apply_use () =
-  test "Inta.t = int"
-    {|module type Sig:
+  test "inta/t = int"
+    {|module type sig:
   type t
   val add : (t, t) -> t
-functor Make(M : Sig):
+functor make(m : sig):
   fun add_twice(a, b):
-    M.add(M.add(a, b), b)
-module Inta : Sig:
+    m/add(m/add(a, b), b)
+module inta : sig:
   type t = int
   fun add(a, b): a + b
-module Intadder = Make(Inta)
-Intadder.add_twice(1, 2)|}
+module intadder = make(inta)
+intadder/add_twice(1, 2)|}
 
 let test_functor_abstract_param () =
   test_exn
     "In application\n\
-     expecting ([Inta.t], [Inta.t]) -> _\n\
+     expecting ([inta/t], [inta/t]) -> _\n\
      but found ([int], [int]) -> _"
-    {|module type Sig:
+    {|module type sig:
   type t
   val add : (t, t) -> t
 
-functor Make(M : Sig):
-  fun add_twice(a, b): M.add(M.add(a, b), b)
+functor make(m : sig):
+  fun add_twice(a, b): m/add(m/add(a, b), b)
 
-module Inta : Sig:
+module inta : sig:
   signature:
     type t
     val add : (t, t) -> t
   type t = int
   fun add(a, b): a + b
 
-module Intadder = Make(Inta)
-Intadder.add_twice(1, 2)|}
+module intadder = make(inta)
+intadder/add_twice(1, 2)|}
 
 let test_functor_use_param_type () =
   test "unit"
-    {|module type Sig:
+    {|module type sig:
   type t
 
-functor Make(M : Sig):
-  type t = M.t|}
+functor make(m : sig):
+  type t = m/t|}
 
 let test_functor_poly_function () =
   test "unit"
     {|
-module type Poly:
+module type poly:
   val id : ('a!) -> 'a
 
-functor MakeId(M : Poly):
-  fun newid(p!): M.id(!p)
+functor makeid(m : poly):
+  fun newid(p!): m/id(!p)
 
-module Some:
+module some:
   fun id(p!): p
 
-module Polyappl = MakeId(Some)
+module polyappl = makeid(some)
 
-ignore(Polyappl.newid(!1))
-ignore(Polyappl.newid(!1.2))|}
+ignore(polyappl/newid(!1))
+ignore(polyappl/newid(!1.2))|}
 
 let test_functor_poly_mismatch () =
   test_exn
     "Signatures don't match for id\n\
      expecting (['a]!) -> ['a]\n\
      but found ([int]!) -> [int]"
-    {|module type Poly:
+    {|module type poly:
   val id : ('a!) -> 'a
 
-functor MakeId(M : Poly):
-  fun newid(p!): M.id(!p)
+functor makeid(m : poly):
+  fun newid(p!): m/id(!p)
 
-module Someint:
+module someint:
   fun id(p! : int): p
 
-module IntAppl = MakeId(Someint)|}
+module intappl = makeid(someint)|}
 
 (* Copied from hashtbl *)
 let check_sig_test thing =
-  {|module type Key:
+  {|module type key:
   type t
 
-module type Sig:
+module type sig:
   type key
   type t('value)
 
   val create : (int) -> t(|}
   ^ thing
   ^ {|)
-functor Make : Sig (M : Key):
-  type key = M.t
-  type item('a) = {key : M.t, value : 'a}
+functor make : sig (m : key):
+  type key = m/t
+  type item('a) = {key : m/t, value : 'a}
   type slot('a) = Empty | Tombstone | Item(item('a))
   type t('a) = {data& : array(slot('a)), nitems& : int}
 
@@ -1164,14 +1164,14 @@ let test_functor_check_sig () = test "unit" (check_sig_test "'value")
 let test_functor_check_param () =
   test_exn
     "Signatures don't match for create\n\
-     expecting (_) -> [Sig.t(Sig.key)]\n\
-     but found (_) -> [Make.t('a)]" (check_sig_test "key")
+     expecting (_) -> [sig/t(sig/key)]\n\
+     but found (_) -> [make/t('a)]" (check_sig_test "key")
 
 let test_functor_check_concrete () =
   test_exn
     "Signatures don't match for create\n\
-     expecting (_) -> [Sig.t(int)]\n\
-     but found (_) -> [Make.t('a)]" (check_sig_test "int")
+     expecting (_) -> [sig/t(int)]\n\
+     but found (_) -> [make/t('a)]" (check_sig_test "int")
 
 let test_farray_lit () = test "unit" "let arr = #[1, 2, 3]"
 
@@ -1555,13 +1555,13 @@ fun hmm():
   ignore((key, 0))
   ignore((key, 0))|};
           tase_exn "track module outer toplevel" "Cannot move top level binding"
-            "let a = [10]\nmodule Inner:\n let _ = (a, 0)";
+            "let a = [10]\nmodule inner:\n let _ = (a, 0)";
           tase_exn "track vars from inner module"
             "Cannot move top level binding"
-            "module Fst:\n let a = [20]\nignore([Fst.a])";
+            "module fst:\n let a = [20]\nignore([fst/a])";
           tase_exn "track vars from inner module use after move"
-            "Fst.a was moved in line 3, cannot use"
-            "module Fst:\n let a = [20]\nignore([Fst.a])\nignore(Fst.a.[0])";
+            "fst/a was moved in line 3, cannot use"
+            "module fst:\n let a = [20]\nignore([fst/a])\nignore(fst/a.[0])";
           tase_exn "always borrow field"
             "sm.free_hd was borrowed in line 7, cannot mutate"
             {|type key = {idx : int, gen : int}

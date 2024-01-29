@@ -1,4 +1,4 @@
-external printf : (String.cstr, int) -> unit
+external printf : (string/cstr, int) -> unit
 
 fun doo(a, b):
   match(a, b):
@@ -6,7 +6,7 @@ fun doo(a, b):
     (None, Some(b)): b
     (Some(a), None): a
     (_, None): 0
-  |> printf(String.data("%i\n"))
+  |> printf(string/data("%i\n"))
 
 let none_int : option(int) = None
 

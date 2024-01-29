@@ -1,4 +1,4 @@
-import Sign
+import sign
 
 -- Cannot use hidden
 hidde(10)

@@ -1,18 +1,18 @@
-type string = String.t
+type string = string/t
 
-let print = String.print
-let cstr = String.data
+let print = string/print
+let cstr = string/data
 
-type option('a) = Option.t('a)
+type option('a) = option/t('a)
 
 -- prelude re-exports
-let char_equal = Prelude.char_equal
-let iter_range = Prelude.iter_range
+let char_equal = prelude/char_equal
+let iter_range = prelude/iter_range
 -- TODO this does not yet work for polymorphic functions (def swap prelude/swap)
 
-module Array = Array
-module Hashtbl = Hashtbl
-module In_channel = In_channel
-module Int = Int
-module Option = Option
-module String = String
+module array = array
+module hashtbl = hashtbl
+module in_channel = in_channel
+module int = int
+module option = option
+module string = string

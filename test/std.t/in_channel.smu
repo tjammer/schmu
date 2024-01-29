@@ -1,55 +1,55 @@
-match In_channel.open("in_channel.smu"):
+match in_channel/open("in_channel.smu"):
   Some(ic):
     let ic& = !ic
-    let buf& = Array.create(4096)
-    In_channel.readn(&ic, &buf, 50) -> ignore
-    let str& = !String.of_array(!buf)
+    let buf& = array/create(4096)
+    in_channel/readn(&ic, &buf, 50) -> ignore
+    let str& = !string/of_array(!buf)
     print(str)
 
-    &buf <- String.to_array(!str)
-    Array.clear(&buf)
-    In_channel.readn(&ic, &buf, 6) -> ignore
-    &str <- String.of_array(!buf)
+    &buf <- string/to_array(!str)
+    array/clear(&buf)
+    in_channel/readn(&ic, &buf, 6) -> ignore
+    &str <- string/of_array(!buf)
     print(str)
 
-    &buf <- String.to_array(!str)
-    Array.clear(&buf)
-    match In_channel.readline(&ic, &buf):
+    &buf <- string/to_array(!str)
+    array/clear(&buf)
+    match in_channel/readline(&ic, &buf):
       Some(n): print(fmt("read ", n, " bytes"))
       None: print("read nothing")
-    &str <- String.of_array(!buf)
+    &str <- string/of_array(!buf)
     print(str)
 
-    &buf <- String.to_array(!str)
-    Array.clear(&buf)
-    match In_channel.readline(&ic, &buf):
+    &buf <- string/to_array(!str)
+    array/clear(&buf)
+    match in_channel/readline(&ic, &buf):
       Some(n): print(fmt("read ", n, " bytes"))
       None: print("read nothing")
-    &str <- String.of_array(!buf)
+    &str <- string/of_array(!buf)
     print(str)
 
-    &buf <- String.to_array(!str)
-    Array.clear(&buf)
-    match In_channel.readrem(&ic, &buf):
+    &buf <- string/to_array(!str)
+    array/clear(&buf)
+    match in_channel/readrem(&ic, &buf):
       Some(n): print(fmt("read ", n, " bytes"))
       None: print("read nothing")
-    &str <- String.of_array(!buf)
+    &str <- string/of_array(!buf)
     print(str)
 
-    In_channel.close(ic)
+    in_channel/close(ic)
   None: ()
 
-match In_channel.open("in_channel.smu"):
+match in_channel/open("in_channel.smu"):
   Some(ic):
     let ic& = !ic
-    print(In_channel.readall(&ic))
-    In_channel.close(ic)
+    print(in_channel/readall(&ic))
+    in_channel/close(ic)
   None: ()
 
 
-match In_channel.open("in_channel.smu"):
+match in_channel/open("in_channel.smu"):
   Some(ic):
     let ic& = !ic
-    In_channel.lines(&ic, fun line: print(line))
-    In_channel.close(ic)
+    in_channel/lines(&ic, fun line: print(line))
+    in_channel/close(ic)
   None: ()

@@ -1,7 +1,7 @@
 let a = "indirect"
 
 fun hmm():
-  Array.iter([], fun(i : int): ignore(i))
+  array/iter([], fun(i : int): ignore(i))
 
 let some_lambda = do:
   let a = "lol"
@@ -12,4 +12,4 @@ let some_closure = do:
   fun (): copy(a)
 
 -- polymorphic alias
-let swap = Array.swap_items
+let swap = array/swap_items

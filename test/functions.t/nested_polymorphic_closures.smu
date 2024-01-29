@@ -2,19 +2,19 @@ external printi : (int) -> unit
 
 fun array_iter(arr, f):
   fun inner_cls_both(i):
-    if Array.length(arr) == i: ()
+    if array/length(arr) == i: ()
     else:
       f(arr.[i])
       inner_cls_both(i + 1)
 
   fun inner_cls_arr(i, f):
-    if Array.length(arr) == i: ()
+    if array/length(arr) == i: ()
     else:
       f(arr.[i])
       inner_cls_arr(i + 1, f)
 
   fun inner_cls_f(i, arr):
-    if Array.length(arr) == i: ()
+    if array/length(arr) == i: ()
     else:
       f(arr.[i])
       inner_cls_f(i + 1, arr)
@@ -24,10 +24,10 @@ fun array_iter(arr, f):
   inner_cls_f(0, arr)
 
 let arr& = []
-Array.push(&arr, !1)
-Array.push(&arr, !2)
-Array.push(&arr, !3)
-Array.push(&arr, !4)
-Array.push(&arr, !5)
+array/push(&arr, !1)
+array/push(&arr, !2)
+array/push(&arr, !3)
+array/push(&arr, !4)
+array/push(&arr, !5)
 
 array_iter(arr, fun x: printi(x * 2))

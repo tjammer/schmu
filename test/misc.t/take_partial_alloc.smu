@@ -3,10 +3,10 @@ type success('a) = {rem : view, mtch : 'a}
 type parse_result('a) = Ok(success('a)) | Err(view)
 
 fun view_of_string(str):
-  {buf = copy(str), start = 0, len = String.len(str)}
+  {buf = copy(str), start = 0, len = string/len(str)}
 
 fun ch(buf):
-  if char_equal(String.get(buf.buf, buf.start), ' '):
+  if char_equal(string/get(buf.buf, buf.start), ' '):
     Ok({mtch = {buf with buf = copy(buf.buf), len = 1},
         rem = {buf = copy(buf.buf), start = buf.start + 1, len = buf.len - 1}})
   else:

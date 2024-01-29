@@ -1,20 +1,20 @@
 signature:
   type t
 
-  val open : (String.t) -> Option.t(t)
+  val open : (string/t) -> option/t(t)
   val close : (t) -> unit
 
   -- high level interface
-  val with_open : (String.t, (t&) -> 'a) -> Option.t('a)
-  val readall : (t&) -> String.t
-  val lines : (t&, (String.t) -> unit) -> unit
+  val with_open : (string/t, (t&) -> 'a) -> option/t('a)
+  val readall : (t&) -> string/t
+  val lines : (t&, (string/t) -> unit) -> unit
 
   -- low level interface
   type buf = array(u8)
-  val readbuf : (t&, buf&) -> Option.t(int)
-  val readn : (t&, buf&, int) -> Option.t(int)
-  val readline : (t&, buf&) -> Option.t(int)
-  val readrem : (t&, buf&) -> Option.t(int)
+  val readbuf : (t&, buf&) -> option/t(int)
+  val readn : (t&, buf&, int) -> option/t(int)
+  val readline : (t&, buf&) -> option/t(int)
+  val readrem : (t&, buf&) -> option/t(int)
 
 type file = raw_ptr(u8)
 
@@ -25,12 +25,12 @@ external fread : (cstr, int, int, file) -> int
 external fopen : (cstr, cstr) -> file
 external fclose : (cstr) -> int
 
-import Option
+import option
 
 let bufsize = 4096
 
 fun open(name):
-  let file = fopen(String.data(name), String.data("r"))
+  let file = fopen(string/data(name), string/data("r"))
   if nullptr?(file): None else:
     Some({buf = #4096[0u8], head = 0, unseen = 0, file})
 
@@ -47,8 +47,8 @@ fun with_open(name, f):
     None: None
 
 fun fill(buf&, icbuf, lower, upper):
-  Prelude.iter_range(lower, upper, fun i:
-    Array.push(&buf, !copy(icbuf#[i])))
+  prelude/iter_range(lower, upper, fun i:
+    array/push(&buf, !copy(icbuf#[i])))
 
 fun readbuf(ic&, buf&):
   let lower, upper = do:
@@ -111,12 +111,12 @@ fun readrem(ic&, buf&):
 fun readline(ic&, buf&):
   fun find_newline(acc):
     if ic.unseen > 0:
-      if Prelude.char_equal('\n', ic.buf#[ic.head]):
+      if prelude/char_equal('\n', ic.buf#[ic.head]):
         &ic.unseen <- ic.unseen - 1
         &ic.head <- ic.head + 1
         Some(acc)
       else:
-        Array.push(&buf, !copy(ic.buf#[ic.head]))
+        array/push(&buf, !copy(ic.buf#[ic.head]))
         &ic.unseen <- ic.unseen - 1
         &ic.head <- ic.head + 1
         find_newline(acc + 1)
@@ -131,20 +131,20 @@ fun readline(ic&, buf&):
   find_newline(0)
 
 fun readall(ic&):
-  let buf& = Array.create(bufsize)
+  let buf& = array/create(bufsize)
   match readrem(&ic, &buf):
-    Some(_): String.of_array(!buf)
+    Some(_): string/of_array(!buf)
     None: ""
 
 fun lines(ic&, f):
-  let buf& = Array.create(bufsize)
+  let buf& = array/create(bufsize)
   fun aux():
     match readline(&ic, &buf):
       Some(_):
-        let str = String.of_array(!buf)
+        let str = string/of_array(!buf)
         f(str)
-        &buf <- String.to_array(!str)
-        Array.clear(&buf)
+        &buf <- string/to_array(!str)
+        array/clear(&buf)
         aux()
       None: ()
   aux()

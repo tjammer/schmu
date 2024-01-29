@@ -1,9 +1,9 @@
-import Nonpoly_func
+import nonpoly_func
 
-external printf : (String.cstr, int) -> unit
+external printf : (string/cstr, int) -> unit
 
 fun doo(a): match a:
   Left: add_ints(0, 5)
   Right: add_ints(0, -5)
 
-doo(Left) |> printf(String.data("%i\n"))
+doo(Left) |> printf(string/data("%i\n"))

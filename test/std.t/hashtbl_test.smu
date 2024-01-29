@@ -1,16 +1,16 @@
-module Stbl = Hashtbl.Make(String)
+module stbl = hashtbl/make(string)
 
 fun string():
     print("## string")
-    let tbl& = Stbl.create(2)
-    Stbl.insert(&tbl, !"key", !1.1)
+    let tbl& = stbl/create(2)
+    stbl/insert(&tbl, !"key", !1.1)
     fun find_print(key):
-        match Stbl.find(tbl, key):
+        match stbl/find(tbl, key):
             Some(v): print(fmt(v))
             None: print("none")
     find_print("key")
     find_print("otherkey")
-    Stbl.remove(&tbl, "key")
+    stbl/remove(&tbl, "key")
     find_print("key")
 
 print("# hashtbl")

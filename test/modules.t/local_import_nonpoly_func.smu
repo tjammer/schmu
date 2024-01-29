@@ -1,16 +1,16 @@
-external printf : (String.cstr, int) -> unit
+external printf : (string/cstr, int) -> unit
 
 fun doo(a):
   -- TODO import modules for patterns
-  Nonpoly_func.(match a:
+  nonpoly_func/(match a:
     Left: add_ints(0, 5)
     Right: add_ints(0, -5))
 
 fun do2(a):
-  import Nonpoly_func
+  import nonpoly_func
   match a:
     Left: add_ints(0, 5)
     Right: add_ints(0, -5)
 
-doo(Nonpoly_func.Left) |> printf(String.data("%i\n"))
-do2(Nonpoly_func.Left) |> printf(String.data("%i\n"))
+doo(nonpoly_func/Left) |> printf(string/data("%i\n"))
+do2(nonpoly_func/Left) |> printf(string/data("%i\n"))
