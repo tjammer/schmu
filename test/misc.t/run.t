@@ -773,6 +773,12 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   %l_ = type { i64 }
   %"2f_" = type { float, float }
   %"3f_" = type { float, float, float }
+  %ipi2_ = type { i32, i32* }
+  
+  @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c"a\00" }
+  @1 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c"b\00" }
+  
+  declare i8* @string_data(i8* %0)
   
   declare { double, double } @subv2(double %0, double %1)
   
@@ -796,13 +802,15 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   
   declare { <2 x float>, float } @subf3s(<2 x float> %0, float %1)
   
+  declare { i32, i64 } @load_shader(i8* %0, i8* %1)
+  
   define i64 @main(i64 %arg) {
   entry:
     %boxconst = alloca %"2d_", align 8
     store %"2d_" { double 1.000000e+00, double 1.000000e+01 }, %"2d_"* %boxconst, align 8
     %unbox = bitcast %"2d_"* %boxconst to { double, double }*
-    %fst41 = bitcast { double, double }* %unbox to double*
-    %fst1 = load double, double* %fst41, align 8
+    %fst44 = bitcast { double, double }* %unbox to double*
+    %fst1 = load double, double* %fst44, align 8
     %snd = getelementptr inbounds { double, double }, { double, double }* %unbox, i32 0, i32 1
     %snd2 = load double, double* %snd, align 8
     %ret = alloca %"2d_", align 8
@@ -812,8 +820,8 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %boxconst4 = alloca %"2l_", align 8
     store %"2l_" { i64 1, i64 10 }, %"2l_"* %boxconst4, align 8
     %unbox5 = bitcast %"2l_"* %boxconst4 to { i64, i64 }*
-    %fst642 = bitcast { i64, i64 }* %unbox5 to i64*
-    %fst7 = load i64, i64* %fst642, align 8
+    %fst645 = bitcast { i64, i64 }* %unbox5 to i64*
+    %fst7 = load i64, i64* %fst645, align 8
     %snd8 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox5, i32 0, i32 1
     %snd9 = load i64, i64* %snd8, align 8
     %ret10 = alloca %"2l_", align 8
@@ -855,14 +863,20 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %boxconst32 = alloca %"3f_", align 8
     store %"3f_" { float 2.000000e+00, float 3.000000e+00, float 5.000000e+00 }, %"3f_"* %boxconst32, align 4
     %unbox33 = bitcast %"3f_"* %boxconst32 to { <2 x float>, float }*
-    %fst3443 = bitcast { <2 x float>, float }* %unbox33 to <2 x float>*
-    %fst35 = load <2 x float>, <2 x float>* %fst3443, align 8
+    %fst3446 = bitcast { <2 x float>, float }* %unbox33 to <2 x float>*
+    %fst35 = load <2 x float>, <2 x float>* %fst3446, align 8
     %snd36 = getelementptr inbounds { <2 x float>, float }, { <2 x float>, float }* %unbox33, i32 0, i32 1
     %snd37 = load float, float* %snd36, align 4
     %ret38 = alloca %"3f_", align 8
     %5 = call { <2 x float>, float } @subf3s(<2 x float> %fst35, float %snd37)
     %box39 = bitcast %"3f_"* %ret38 to { <2 x float>, float }*
     store { <2 x float>, float } %5, { <2 x float>, float }* %box39, align 8
+    %6 = call i8* @string_data(i8* bitcast ({ i64, i64, [2 x i8] }* @0 to i8*))
+    %7 = call i8* @string_data(i8* bitcast ({ i64, i64, [2 x i8] }* @1 to i8*))
+    %ret41 = alloca %ipi2_, align 8
+    %8 = call { i32, i64 } @load_shader(i8* %6, i8* %7)
+    %box42 = bitcast %ipi2_* %ret41 to { i32, i64 }*
+    store { i32, i64 } %8, { i32, i64 }* %box42, align 8
     ret i64 0
   }
 
@@ -1604,20 +1618,23 @@ Piping for ctors and field accessors
     ret i64 %add
   }
   
-  define i64 @__fun_schmu1(%vl_* %x) {
+  define i64 @__fun_schmu1(i32 %0, i64 %1) {
   entry:
-    %tag1 = bitcast %vl_* %x to i32*
-    %index = load i32, i32* %tag1, align 4
-    %eq = icmp eq i32 %index, 0
+    %box = alloca { i32, i64 }, align 8
+    %fst2 = bitcast { i32, i64 }* %box to i32*
+    store i32 %0, i32* %fst2, align 4
+    %snd = getelementptr inbounds { i32, i64 }, { i32, i64 }* %box, i32 0, i32 1
+    store i64 %1, i64* %snd, align 8
+    %eq = icmp eq i32 %0, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %vl_, %vl_* %x, i32 0, i32 1
-    %0 = load i64, i64* %data, align 8
+    %2 = bitcast { i32, i64 }* %box to %vl_*
+    %data = getelementptr inbounds %vl_, %vl_* %2, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
-    %iftmp = phi i64 [ %0, %then ], [ 0, %entry ]
+    %iftmp = phi i64 [ %1, %then ], [ 0, %entry ]
     ret i64 %iftmp
   }
   
@@ -1627,9 +1644,14 @@ Piping for ctors and field accessors
     tail call void @Printi(i64 %0)
     %boxconst = alloca %vl_, align 8
     store %vl_ { i32 0, i64 1 }, %vl_* %boxconst, align 8
-    %1 = call i64 @__fun_schmu1(%vl_* %boxconst)
-    call void @Printi(i64 %1)
-    call void @Printi(i64 1)
+    %unbox = bitcast %vl_* %boxconst to { i32, i64 }*
+    %fst3 = bitcast { i32, i64 }* %unbox to i32*
+    %fst1 = load i32, i32* %fst3, align 4
+    %snd = getelementptr inbounds { i32, i64 }, { i32, i64 }* %unbox, i32 0, i32 1
+    %snd2 = load i64, i64* %snd, align 8
+    %1 = tail call i64 @__fun_schmu1(i32 %fst1, i64 %snd2)
+    tail call void @Printi(i64 %1)
+    tail call void @Printi(i64 1)
     ret i64 0
   }
   
@@ -2304,11 +2326,10 @@ Global lets with expressions
   @schmu_b = global i64* null, align 8
   @schmu_c = global i64 0, align 8
   
-  define void @schmu_ret_none(%val2_* noalias %0) {
+  define { i32, i64 } @schmu_ret_none() {
   entry:
-    %1 = bitcast %val2_* %0 to i8*
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* %1, i8* bitcast (%val2_* @schmu_a to i8*), i64 16, i1 false)
-    ret void
+    %unbox = load { i32, i64 }, { i32, i64 }* bitcast (%val2_* @schmu_a to { i32, i64 }*), align 8
+    ret { i32, i64 } %unbox
   }
   
   define i64 @schmu_ret_rec() {
@@ -2334,17 +2355,16 @@ Global lets with expressions
     ret i64 %4
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
   declare i8* @malloc(i64 %0)
   
   define i64 @main(i64 %arg) {
   entry:
     %ret = alloca %val2_, align 8
-    call void @schmu_ret_none(%val2_* %ret)
-    %tag5 = bitcast %val2_* %ret to i32*
-    %index = load i32, i32* %tag5, align 4
+    %0 = tail call { i32, i64 } @schmu_ret_none()
+    %box = bitcast %val2_* %ret to { i32, i64 }*
+    store { i32, i64 } %0, { i32, i64 }* %box, align 8
+    %tag7 = bitcast %val2_* %ret to i32*
+    %index = load i32, i32* %tag7, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else
   
@@ -2353,36 +2373,36 @@ Global lets with expressions
     br label %ifcont
   
   else:                                             ; preds = %entry
-    %0 = call i8* @malloc(i64 32)
-    %1 = bitcast i8* %0 to i64*
-    store i64* %1, i64** @schmu_b, align 8
-    store i64 2, i64* %1, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
+    %1 = tail call i8* @malloc(i64 32)
+    %2 = bitcast i8* %1 to i64*
+    store i64* %2, i64** @schmu_b, align 8
+    store i64 2, i64* %2, align 8
+    %cap = getelementptr i64, i64* %2, i64 1
     store i64 2, i64* %cap, align 8
-    %2 = getelementptr i8, i8* %0, i64 16
-    %data1 = bitcast i8* %2 to i64*
-    store i64 1, i64* %data1, align 8
-    %"1" = getelementptr i64, i64* %data1, i64 1
+    %3 = getelementptr i8, i8* %1, i64 16
+    %data2 = bitcast i8* %3 to i64*
+    store i64 1, i64* %data2, align 8
+    %"1" = getelementptr i64, i64* %data2, i64 1
     store i64 2, i64* %"1", align 8
     call void @__free_val2_(%val2_* %ret)
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
     %iftmp = phi i64** [ %data, %then ], [ @schmu_b, %else ]
-    %3 = load i64*, i64** %iftmp, align 8
-    store i64* %3, i64** @schmu_b, align 8
-    %ret2 = alloca %al2_, align 8
-    %4 = call i64 @schmu_ret_rec()
-    %box = bitcast %al2_* %ret2 to i64*
-    store i64 %4, i64* %box, align 8
-    %5 = inttoptr i64 %4 to i64*
-    %6 = bitcast i64* %5 to i8*
-    %7 = getelementptr i8, i8* %6, i64 16
-    %data4 = bitcast i8* %7 to i64*
-    %8 = getelementptr i64, i64* %data4, i64 1
-    %9 = load i64, i64* %8, align 8
-    store i64 %9, i64* @schmu_c, align 8
-    call void @__free_al2_(%al2_* %ret2)
+    %4 = load i64*, i64** %iftmp, align 8
+    store i64* %4, i64** @schmu_b, align 8
+    %ret3 = alloca %al2_, align 8
+    %5 = call i64 @schmu_ret_rec()
+    %box4 = bitcast %al2_* %ret3 to i64*
+    store i64 %5, i64* %box4, align 8
+    %6 = inttoptr i64 %5 to i64*
+    %7 = bitcast i64* %6 to i8*
+    %8 = getelementptr i8, i8* %7, i64 16
+    %data6 = bitcast i8* %8 to i64*
+    %9 = getelementptr i64, i64* %data6, i64 1
+    %10 = load i64, i64* %9, align 8
+    store i64 %10, i64* @schmu_c, align 8
+    call void @__free_al2_(%al2_* %ret3)
     call void @__free_al_(i64** @schmu_b)
     ret i64 0
   }
@@ -2419,8 +2439,6 @@ Global lets with expressions
   }
   
   declare void @free(i8* %0)
-  
-  attributes #0 = { argmemonly nofree nounwind willreturn }
 
 Mutual recursive function
   $ schmu mutual_rec.smu && ./mutual_rec

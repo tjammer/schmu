@@ -243,15 +243,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define linkonce_odr i64 @__poly_func_classify_vd_rl_(%vd_* %thing) {
+  define linkonce_odr i64 @__poly_func_classify_vd_rl_(i32 %0, double %1) {
   entry:
-    %tag1 = bitcast %vd_* %thing to i32*
-    %index = load i32, i32* %tag1, align 4
-    %eq = icmp eq i32 %index, 0
+    %box = alloca { i32, double }, align 8
+    %fst2 = bitcast { i32, double }* %box to i32*
+    store i32 %0, i32* %fst2, align 4
+    %snd = getelementptr inbounds { i32, double }, { i32, double }* %box, i32 0, i32 1
+    store double %1, double* %snd, align 8
+    %eq = icmp eq i32 %0, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %vd_, %vd_* %thing, i32 0, i32 1
+    %2 = bitcast { i32, double }* %box to %vd_*
+    %data = getelementptr inbounds %vd_, %vd_* %2, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -259,15 +263,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_vl_rl_(%vl_* %thing) {
+  define linkonce_odr i64 @__poly_func_classify_vl_rl_(i32 %0, i64 %1) {
   entry:
-    %tag1 = bitcast %vl_* %thing to i32*
-    %index = load i32, i32* %tag1, align 4
-    %eq = icmp eq i32 %index, 0
+    %box = alloca { i32, i64 }, align 8
+    %fst2 = bitcast { i32, i64 }* %box to i32*
+    store i32 %0, i32* %fst2, align 4
+    %snd = getelementptr inbounds { i32, i64 }, { i32, i64 }* %box, i32 0, i32 1
+    store i64 %1, i64* %snd, align 8
+    %eq = icmp eq i32 %0, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %vl_, %vl_* %thing, i32 0, i32 1
+    %2 = bitcast { i32, i64 }* %box to %vl_*
+    %data = getelementptr inbounds %vl_, %vl_* %2, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -280,16 +288,26 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst = alloca %vl_, align 8
     store %vl_ { i32 0, i64 3 }, %vl_* %boxconst, align 8
-    %1 = call i64 @__poly_func_classify_vl_rl_(%vl_* %boxconst)
-    call void @printf(i8* %0, i64 %1)
-    %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst1 = alloca %vd_, align 8
-    store %vd_ { i32 0, double 3.000000e+00 }, %vd_* %boxconst1, align 8
-    %3 = call i64 @__poly_func_classify_vd_rl_(%vd_* %boxconst1)
-    call void @printf(i8* %2, i64 %3)
-    %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %5 = call i64 @__poly_func_classify_vd_rl_(%vd_* @schmu_none)
-    call void @printf(i8* %4, i64 %5)
+    %unbox = bitcast %vl_* %boxconst to { i32, i64 }*
+    %fst11 = bitcast { i32, i64 }* %unbox to i32*
+    %fst1 = load i32, i32* %fst11, align 4
+    %snd = getelementptr inbounds { i32, i64 }, { i32, i64 }* %unbox, i32 0, i32 1
+    %snd2 = load i64, i64* %snd, align 8
+    %1 = tail call i64 @__poly_func_classify_vl_rl_(i32 %fst1, i64 %snd2)
+    tail call void @printf(i8* %0, i64 %1)
+    %2 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %boxconst3 = alloca %vd_, align 8
+    store %vd_ { i32 0, double 3.000000e+00 }, %vd_* %boxconst3, align 8
+    %unbox4 = bitcast %vd_* %boxconst3 to { i32, double }*
+    %fst512 = bitcast { i32, double }* %unbox4 to i32*
+    %fst6 = load i32, i32* %fst512, align 4
+    %snd7 = getelementptr inbounds { i32, double }, { i32, double }* %unbox4, i32 0, i32 1
+    %snd8 = load double, double* %snd7, align 8
+    %3 = tail call i64 @__poly_func_classify_vd_rl_(i32 %fst6, double %snd8)
+    tail call void @printf(i8* %2, i64 %3)
+    %4 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %5 = tail call i64 @__poly_func_classify_vd_rl_(i32 1, double undef)
+    tail call void @printf(i8* %4, i64 %5)
     ret i64 0
   }
   $ ./import_poly_func
@@ -312,15 +330,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(i8* %0, i64 %1)
   
-  define linkonce_odr i64 @__poly_func_classify_vd_rl_(%vd_* %thing) {
+  define linkonce_odr i64 @__poly_func_classify_vd_rl_(i32 %0, double %1) {
   entry:
-    %tag1 = bitcast %vd_* %thing to i32*
-    %index = load i32, i32* %tag1, align 4
-    %eq = icmp eq i32 %index, 0
+    %box = alloca { i32, double }, align 8
+    %fst2 = bitcast { i32, double }* %box to i32*
+    store i32 %0, i32* %fst2, align 4
+    %snd = getelementptr inbounds { i32, double }, { i32, double }* %box, i32 0, i32 1
+    store double %1, double* %snd, align 8
+    %eq = icmp eq i32 %0, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %vd_, %vd_* %thing, i32 0, i32 1
+    %2 = bitcast { i32, double }* %box to %vd_*
+    %data = getelementptr inbounds %vd_, %vd_* %2, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -328,15 +350,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_vl_rl_(%vl_* %thing) {
+  define linkonce_odr i64 @__poly_func_classify_vl_rl_(i32 %0, i64 %1) {
   entry:
-    %tag1 = bitcast %vl_* %thing to i32*
-    %index = load i32, i32* %tag1, align 4
-    %eq = icmp eq i32 %index, 0
+    %box = alloca { i32, i64 }, align 8
+    %fst2 = bitcast { i32, i64 }* %box to i32*
+    store i32 %0, i32* %fst2, align 4
+    %snd = getelementptr inbounds { i32, i64 }, { i32, i64 }* %box, i32 0, i32 1
+    store i64 %1, i64* %snd, align 8
+    %eq = icmp eq i32 %0, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %vl_, %vl_* %thing, i32 0, i32 1
+    %2 = bitcast { i32, i64 }* %box to %vl_*
+    %data = getelementptr inbounds %vl_, %vl_* %2, i32 0, i32 1
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -349,16 +375,26 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %0 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
     %boxconst = alloca %vl_, align 8
     store %vl_ { i32 0, i64 3 }, %vl_* %boxconst, align 8
-    %1 = call i64 @__poly_func_classify_vl_rl_(%vl_* %boxconst)
-    call void @printf(i8* %0, i64 %1)
-    %2 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %boxconst1 = alloca %vd_, align 8
-    store %vd_ { i32 0, double 3.000000e+00 }, %vd_* %boxconst1, align 8
-    %3 = call i64 @__poly_func_classify_vd_rl_(%vd_* %boxconst1)
-    call void @printf(i8* %2, i64 %3)
-    %4 = call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
-    %5 = call i64 @__poly_func_classify_vd_rl_(%vd_* @schmu_none)
-    call void @printf(i8* %4, i64 %5)
+    %unbox = bitcast %vl_* %boxconst to { i32, i64 }*
+    %fst11 = bitcast { i32, i64 }* %unbox to i32*
+    %fst1 = load i32, i32* %fst11, align 4
+    %snd = getelementptr inbounds { i32, i64 }, { i32, i64 }* %unbox, i32 0, i32 1
+    %snd2 = load i64, i64* %snd, align 8
+    %1 = tail call i64 @__poly_func_classify_vl_rl_(i32 %fst1, i64 %snd2)
+    tail call void @printf(i8* %0, i64 %1)
+    %2 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %boxconst3 = alloca %vd_, align 8
+    store %vd_ { i32 0, double 3.000000e+00 }, %vd_* %boxconst3, align 8
+    %unbox4 = bitcast %vd_* %boxconst3 to { i32, double }*
+    %fst512 = bitcast { i32, double }* %unbox4 to i32*
+    %fst6 = load i32, i32* %fst512, align 4
+    %snd7 = getelementptr inbounds { i32, double }, { i32, double }* %unbox4, i32 0, i32 1
+    %snd8 = load double, double* %snd7, align 8
+    %3 = tail call i64 @__poly_func_classify_vd_rl_(i32 %fst6, double %snd8)
+    tail call void @printf(i8* %2, i64 %3)
+    %4 = tail call i8* @string_data(i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*))
+    %5 = tail call i64 @__poly_func_classify_vd_rl_(i32 1, double undef)
+    tail call void @printf(i8* %4, i64 %5)
     ret i64 0
   }
   $ ./local_import_poly_func

@@ -24,6 +24,13 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
         else if size = 8 then
           (* We are at a word boundary. Return what we have so far *)
           (List.rev (typ :: items), tl, size)
+        else if
+          let align = align_tail size tl in
+          align = 8
+        then
+          (* We could be less than 8 bypes but hit 8 with alignment to the next
+             type *)
+          (List.rev (typ :: items), tl, size)
         else get_word ~size (typ :: items) tl
 
   and extract_word ~size = function
@@ -34,6 +41,12 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
     | _ ->
         let size = match size with 1 -> 1 | 2 -> 2 | 3 | 4 -> 4 | _ -> 8 in
         Some (Ints size)
+
+  and align_tail size = function
+    | [] -> 0
+    | t :: _ ->
+        let _, upto = size_alignof_typ t in
+        alignup ~size ~upto
 
   and pkind_of_typ mut typ =
     (* We destruct the type into words of 8 byte.
