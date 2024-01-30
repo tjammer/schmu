@@ -115,8 +115,9 @@
 %nonassoc Less_i Less_f Greater_i Greater_f Less_eq_i Greater_eq_i Greater_eq_f Less_eq_f
 %left Plus_i Plus_f Minus_i Minus_f
 %left Mult_i Mult_f Div_i Div_f
+%left Dot
 %left Lpar
-%left Dot Path Hashtag_brack
+%left Path Hashtag_brack
 
 %start <Ast.prog> prog
 
@@ -303,6 +304,10 @@ expr:
     { let then_, elifs, else_ = then_ in parse_elseifs $loc cond then_ elifs else_ }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
   | callee = Builtin_id; args = parens(call_arg) { App ($loc, Var($loc(callee), callee), args) }
+  | aexpr = expr; Dot; callee = ident; args = parens(call_arg)
+    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
+      Pipe_head ($loc, arg, Pip_expr (App ($loc, Var callee, args)))}
+  | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
   | Fmt; args = parens(expr) { Fmt ($loc, args) }
   | special = special_builtins { special }
   | Fun; params = parens(param_decl); attr = loption(capture_copies);
@@ -313,7 +318,6 @@ expr:
   | Lbrac; items = separated_nonempty_list(Comma, record_item); Rbrac
     { Record ($loc, items) }
   | Lpar; tuple = tuple; Rpar { Tuple ($loc, tuple) }
-  | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
   | Lpar; expr = expr; Rpar { expr }
   | upcases = upcases { upcases }
   | Lbrac; record = expr; With; items = separated_nonempty_list(Comma, record_item); Rbrac
