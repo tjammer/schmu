@@ -1610,6 +1610,11 @@ Piping for ctors and field accessors
   
   %vl_ = type { i32, i64 }
   
+  @0 = private unnamed_addr constant { i64, i64, [1 x [1 x i8]] } { i64 0, i64 1, [1 x [1 x i8]] zeroinitializer }
+  @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
+  
+  declare void @string_print(i8* %0)
+  
   declare void @Printi(i64 %0)
   
   define i64 @__fun_schmu0(i64 %x) {
@@ -1652,12 +1657,17 @@ Piping for ctors and field accessors
     %1 = tail call i64 @__fun_schmu1(i32 %fst1, i64 %snd2)
     tail call void @Printi(i64 %1)
     tail call void @Printi(i64 1)
+    tail call void @string_print(i8* bitcast ({ i64, i64, [1 x [1 x i8]] }* @0 to i8*))
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*), i64 16), i64 10)
     ret i64 0
   }
+  
+  declare void @printf(i8* %0, ...)
   
   2
   1
   1
+  10
 
 Function calls for known functions act as annotations to decide which ctor or record to use.
 Prints nothing, just works

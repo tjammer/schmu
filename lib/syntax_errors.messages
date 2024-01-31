@@ -682,6 +682,10 @@ prog: Ident And Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Ident Dot Fmt With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Ident Dot Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>

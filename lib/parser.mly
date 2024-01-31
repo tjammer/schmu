@@ -307,6 +307,8 @@ expr:
   | aexpr = expr; Dot; callee = ident; args = parens(call_arg)
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, Var callee, args)))}
+  | expr = expr; Dot; Fmt; args = parens(expr)
+    { Fmt ($loc, expr :: args) }
   | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
   | Fmt; args = parens(expr) { Fmt ($loc, args) }
   | special = special_builtins { special }
