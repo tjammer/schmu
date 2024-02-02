@@ -115,7 +115,7 @@
 %nonassoc Less_i Less_f Greater_i Greater_f Less_eq_i Greater_eq_i Greater_eq_f Less_eq_f
 %left Plus_i Plus_f Minus_i Minus_f
 %left Mult_i Mult_f Div_i Div_f
-%left Dot
+%left Dot Ampersand Exclamation
 %left Lpar
 %left Path Hashtag_brack
 
@@ -307,6 +307,15 @@ expr:
   | aexpr = expr; Dot; callee = ident; args = parens(call_arg)
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, Var callee, args)))}
+  | aexpr = expr; apass = decl_attr; callee = ident; args = parens(call_arg)
+    { let arg = {apass; aexpr; aloc = $loc(aexpr)} in
+      Pipe_head ($loc, arg, Pip_expr (App ($loc, Var callee, args)))}
+  | aexpr = expr; Dot; callee = path_ident; args = parens(call_arg)
+    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
+      Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
+  | aexpr = expr; apass = decl_attr; callee = path_ident; args = parens(call_arg)
+    { let arg = {apass; aexpr; aloc = $loc(aexpr)} in
+      Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
   | expr = expr; Dot; Fmt; args = parens(expr)
     { Fmt ($loc, expr :: args) }
   | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
@@ -338,6 +347,9 @@ expr:
   | Ampersand; expr = expr; Left_arrow; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
   | id = Path_id; expr = expr; %prec Path { Local_import ($loc, id, expr) }
+
+path_ident:
+  | paths = nonempty_list(Path_id); callee = ident { List.fold_right (fun path expr -> Local_import ($loc, path, expr)) paths (Var callee) }
 
 clauses:
   | clause = clause; %prec Below_hbar { clause :: [] }

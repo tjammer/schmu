@@ -454,7 +454,7 @@ prog: Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ampersand Ident Wildcard
+prog: Ampersand Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -486,7 +486,7 @@ prog: Ident Hashtag_brack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Hashtag_brack Ident Wildcard
+prog: Ident Hashtag_brack Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -506,6 +506,22 @@ prog: Ident Mult_f Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Ident Exclamation With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Ampersand Path_id With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Exclamation Path_id Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Exclamation Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Ident Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -514,7 +530,7 @@ prog: Ident Dot Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Dot Lbrack Ident Wildcard
+prog: Ident Dot Lbrack Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -550,6 +566,18 @@ prog: Ident Div_i Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Ident Ampersand With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Ampersand Path_id Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Ampersand Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Ctor Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -562,7 +590,7 @@ prog: Ctor Lpar Ident Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ctor Lpar Ident Wildcard
+prog: Ctor Lpar Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -658,7 +686,7 @@ prog: Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashtag_brack Ident Wildcard
+prog: Hashtag_brack Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -686,6 +714,10 @@ prog: Ident Dot Fmt With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Ident Dot Path_id Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Ident Dot Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -698,7 +730,7 @@ prog: Ampersand Ident Left_arrow Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Lpar Exclamation Ident Wildcard
+prog: Ident Lpar Exclamation Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -706,11 +738,11 @@ prog: Ident Lpar Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Lpar Ampersand Ident Wildcard
+prog: Ident Lpar Ampersand Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Lpar Ident Wildcard
+prog: Ident Lpar Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -778,7 +810,7 @@ prog: Match Exclamation With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Exclamation Ident Wildcard
+prog: Match Exclamation Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -790,11 +822,11 @@ prog: Match Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ampersand Ident Wildcard
+prog: Match Ampersand Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ident Wildcard
+prog: Match Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -878,7 +910,7 @@ prog: Do Colon Begin Ident Newline With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Wildcard
+prog: Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -886,7 +918,7 @@ prog: Fmt Lpar Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashnum_brack Ident Wildcard
+prog: Hashnum_brack Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -894,7 +926,7 @@ prog: Hashtag_brack Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If Ident Wildcard
+prog: If Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -910,7 +942,7 @@ prog: If Ident Colon Ident Elseif With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If Ident Colon Ident Elseif Ident Wildcard
+prog: If Ident Colon Ident Elseif Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -942,7 +974,7 @@ prog: Lbrac Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac Ident Equal Ident Wildcard
+prog: Lbrac Ident Equal Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -950,7 +982,7 @@ prog: Lbrac Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lbrac False Wildcard
+prog: Lbrac False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -966,7 +998,7 @@ prog: Lpar Ident Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lpar Ident Wildcard
+prog: Lpar Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

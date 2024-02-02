@@ -1612,8 +1612,13 @@ Piping for ctors and field accessors
   
   @0 = private unnamed_addr constant { i64, i64, [1 x [1 x i8]] } { i64 0, i64 1, [1 x [1 x i8]] zeroinitializer }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
+  @2 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%c\0A\00" }
   
   declare void @string_print(i8* %0)
+  
+  declare i8 @string_get(i8* %0, i64 %1)
+  
+  declare i8* @string_of_array(i8* %0)
   
   declare void @Printi(i64 %0)
   
@@ -1659,15 +1664,48 @@ Piping for ctors and field accessors
     tail call void @Printi(i64 1)
     tail call void @string_print(i8* bitcast ({ i64, i64, [1 x [1 x i8]] }* @0 to i8*))
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*), i64 16), i64 10)
+    %2 = tail call i8* @malloc(i64 19)
+    %arr = alloca i8*, align 8
+    store i8* %2, i8** %arr, align 8
+    %3 = bitcast i8* %2 to i64*
+    store i64 3, i64* %3, align 8
+    %cap = getelementptr i64, i64* %3, i64 1
+    store i64 3, i64* %cap, align 8
+    %4 = getelementptr i8, i8* %2, i64 16
+    store i8 97, i8* %4, align 1
+    %"1" = getelementptr i8, i8* %4, i64 1
+    store i8 98, i8* %"1", align 1
+    %"2" = getelementptr i8, i8* %4, i64 2
+    store i8 99, i8* %"2", align 1
+    %5 = tail call i8* @string_of_array(i8* %2)
+    %6 = tail call i8 @string_get(i8* %5, i64 1)
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [4 x i8] }* @2 to i8*), i64 16), i8 %6)
+    %7 = alloca i8*, align 8
+    store i8* %5, i8** %7, align 8
+    call void @__free_ac_(i8** %7)
     ret i64 0
   }
   
   declare void @printf(i8* %0, ...)
   
+  declare i8* @malloc(i64 %0)
+  
+  define linkonce_odr void @__free_ac_(i8** %0) {
+  entry:
+    %1 = load i8*, i8** %0, align 8
+    %ref = bitcast i8* %1 to i64*
+    %2 = bitcast i64* %ref to i8*
+    call void @free(i8* %2)
+    ret void
+  }
+  
+  declare void @free(i8* %0)
+  
   2
   1
   1
   10
+  b
 
 Function calls for known functions act as annotations to decide which ctor or record to use.
 Prints nothing, just works

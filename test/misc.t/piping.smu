@@ -13,3 +13,4 @@ type foo = {x : int}
 {x = 1}.x.printi()
 print("")
 10.fmt().print()
+['a', 'b', 'c']!string/of_array().string/get(1).fmt().print()
