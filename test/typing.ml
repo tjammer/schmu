@@ -191,6 +191,12 @@ let test_record_update_wrong_field () =
   test_exn "Unbound field z on a"
     "type a('a) = {x : 'a, y : int}\nlet a = {x = 10, y = 20}\n{a with z = 20}"
 
+let test_record_update_unknown_polymorphic () =
+  test "unit"
+    {|type record = {x : int, y : int}
+fun update(record): {record with x = 10}
+ignore(update)|}
+
 let test_annot_concrete () = test "(int) -> bool" "fun foo(x): x < 3\nfoo"
 
 let test_annot_concrete_fail () =
@@ -1258,6 +1264,8 @@ let () =
           case "update useless" test_record_update_useless;
           case "update expr" test_record_update_expr;
           case "update wrong field" test_record_update_wrong_field;
+          case "update unknown polymorphic"
+            test_record_update_unknown_polymorphic;
         ] );
       ( "annotations",
         [

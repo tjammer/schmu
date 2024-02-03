@@ -151,22 +151,35 @@ module Make (C : Core) = struct
 
     let all_new = ref true in
     let name = ref (Path.Pid "") in
+    let get_fields n fields =
+      name := n;
+      Array.map
+        (fun field ->
+          match Hashtbl.find_opt updated field.fname with
+          | Some expr ->
+              Hashtbl.remove updated field.fname;
+              (field.fname, expr)
+          | None ->
+              (* There are some old fields. *)
+              all_new := false;
+              let expr = Ast.Field (loc, record_arg, field.fname) in
+              (field.fname, expr))
+        fields
+    in
+
     let fields =
       match clean record.typ with
-      | Trecord (_, Some n, fields) ->
-          name := n;
-          Array.map
-            (fun field ->
-              match Hashtbl.find_opt updated field.fname with
-              | Some expr ->
-                  Hashtbl.remove updated field.fname;
-                  (field.fname, expr)
-              | None ->
-                  (* There are some old fields. *)
-                  all_new := false;
-                  let expr = Ast.Field (loc, record_arg, field.fname) in
-                  (field.fname, expr))
-            fields
+      | Trecord (_, Some n, fields) -> get_fields n fields
+      | Qvar _ | Tvar { contents = Unbound _ } -> (
+          (* Take first updated field to figure out the correct record type *)
+          let label = List.hd items |> fst in
+          match Env.find_label_opt label env with
+          | Some t -> (
+              match Env.query_type ~instantiate loc t.typename env with
+              | Trecord (_, Some n, fields) -> get_fields n fields
+              | _ -> failwith "Internal Error: Unreachable")
+          | None ->
+              raise (Error (loc, "Cannot not find record for label " ^ label)))
       | t ->
           let msg =
             "Expected a record type, not " ^ string_of_type (Env.modpath env) t
