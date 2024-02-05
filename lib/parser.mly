@@ -381,8 +381,8 @@ tuple:
     { head :: tail }
 
 record_item:
-  | ident = ident; Equal; expr = expr { snd ident, expr }
-  | ident = ident { snd ident, Var ($loc, snd ident) }
+  | ident = ident; Equal; expr = expr { ident, expr }
+  | ident = ident { ident, Var ($loc, snd ident) }
 
 lit:
   | lit = Int { Int lit }

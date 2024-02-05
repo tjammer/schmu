@@ -59,9 +59,9 @@ and expr =
   | Let_e of loc * decl * passed_expr * expr
   | Lambda of loc * decl list * func_attr list * type_spec option * block
   | App of loc * expr * argument list
-  | Record of loc * (string * expr) list
+  | Record of loc * (ident * expr) list
   | Tuple of loc * expr list
-  | Record_update of loc * expr * (string * expr) list
+  | Record_update of loc * expr * (ident * expr) list
   | Field of loc * expr * string
   | Set of loc * (loc * expr) * expr
   | Do_block of block

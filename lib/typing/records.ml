@@ -15,7 +15,7 @@ module type S = sig
     Env.t ->
     Ast.loc ->
     Types.typ option ->
-    (string * Ast.expr) list ->
+    (Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_record_update :
@@ -23,7 +23,7 @@ module type S = sig
     Ast.loc ->
     Types.typ option ->
     Ast.expr ->
-    (string * Ast.expr) list ->
+    (Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_field :
@@ -83,14 +83,14 @@ module Make (C : Core) = struct
       raise (Error (loc, msg))
     in
 
-    let labelset = List.map fst labels in
+    let labelset = List.map (fun (id, _) -> snd id) labels in
     let t = get_record_type env loc labelset annot in
 
     let (param, name, labels), labels_expr =
       match t with
       | Trecord (param, Some name, ls)
       | Talias (_, Trecord (param, Some name, ls)) ->
-          let f (lname, expr) =
+          let f ((loc, lname), expr) =
             let typ, expr =
               match array_assoc_opt lname ls with
               | None ->
@@ -143,11 +143,16 @@ module Make (C : Core) = struct
     let typ = Trecord (param, Some name, labels) |> generalize in
     { typ; expr = Record sorted_labels; attr = { no_attr with const }; loc }
 
-  and convert_record_update env loc annot record_arg items =
+  and convert_record_update env loc annot record_arg
+      (items : (Ast.ident * Ast.expr) list) =
     (* Implemented in terms of [convert_record] *)
     let record = convert env record_arg in
 
-    let updated = List.to_seq items |> Hashtbl.of_seq in
+    let updated =
+      List.to_seq items
+      |> Seq.map (fun ((loc, key), value) -> (key, (loc, value)))
+      |> Hashtbl.of_seq
+    in
 
     let all_new = ref true in
     let name = ref (Path.Pid "") in
@@ -156,14 +161,14 @@ module Make (C : Core) = struct
       Array.map
         (fun field ->
           match Hashtbl.find_opt updated field.fname with
-          | Some expr ->
+          | Some (loc, expr) ->
               Hashtbl.remove updated field.fname;
-              (field.fname, expr)
+              ((loc, field.fname), expr)
           | None ->
               (* There are some old fields. *)
               all_new := false;
               let expr = Ast.Field (loc, record_arg, field.fname) in
-              (field.fname, expr))
+              ((loc, field.fname), expr))
         fields
     in
 
@@ -172,7 +177,7 @@ module Make (C : Core) = struct
       | Trecord (_, Some n, fields) -> get_fields n fields
       | Qvar _ | Tvar { contents = Unbound _ } -> (
           (* Take first updated field to figure out the correct record type *)
-          let label = List.hd items |> fst in
+          let loc, label = List.hd items |> fst in
           match Env.find_label_opt label env with
           | Some t -> (
               match Env.query_type ~instantiate loc t.typename env with

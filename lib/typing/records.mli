@@ -10,7 +10,7 @@ module type S = sig
     Env.t ->
     Ast.loc ->
     Types.typ option ->
-    (string * Ast.expr) list ->
+    (Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_record_update :
@@ -18,7 +18,7 @@ module type S = sig
     Ast.loc ->
     Types.typ option ->
     Ast.expr ->
-    (string * Ast.expr) list ->
+    (Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_field :

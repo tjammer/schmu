@@ -1024,7 +1024,7 @@ end = struct
     (* For now, we don't support const functions *)
     { typ; expr = App { callee; args = targs }; attr; loc }
 
-  and convert_bop_impl env loc bop e1 e2 =
+  and convert_bop env loc bop e1 e2 =
     let check typ =
       let t1 = convert env e1 in
       let t2 = convert env e2 in
@@ -1045,8 +1045,6 @@ end = struct
       | And | Or -> (Tbool, check Tbool)
     in
     { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const }; loc }
-
-  and convert_bop env loc bop a b = convert_bop_impl env loc bop a b
 
   and convert_unop env loc unop expr =
     match unop with
