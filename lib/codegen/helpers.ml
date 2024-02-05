@@ -254,7 +254,7 @@ struct
         ("%s", ptr.value)
     | Tu8 -> ("%c", v.value)
     | Ti32 -> ("%i", v.value)
-    | Tf32 -> (".9gf", v.value)
+    | Tf32 -> ("%.9gf", v.value)
     | _ ->
         print_endline (show_typ value.typ);
         failwith "Internal Error: Impossible string format"
