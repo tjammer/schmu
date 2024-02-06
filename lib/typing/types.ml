@@ -270,3 +270,11 @@ let add_closure_copy clsd id =
       false clsd
   in
   if changed then Some clsd else None
+
+let is_clike_variant t =
+  match clean t with
+  | Tvariant (_, _, ctors) ->
+      Array.fold_left
+        (fun clike ctor -> if Option.is_some ctor.ctyp then false else clike)
+        true ctors
+  | _ -> false

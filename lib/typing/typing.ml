@@ -477,8 +477,7 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
     match Hashtbl.find_opt indices !next with
     | Some (name, pl) when has_payload || pl ->
         let msg =
-          Printf.sprintf "Tag %i already used for constructor %s" !next
-            (String.uppercase_ascii name)
+          Printf.sprintf "Tag %i already used for constructor #%s" !next name
         in
         raise (Error (loc, msg))
     | Some _ | None ->

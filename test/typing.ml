@@ -480,6 +480,16 @@ fun map(p, f, buf, view):
     #err(view): #err(view)
 |}
 
+let test_lor_clike_variant () = test "int" "type clike = #a | #b\n#b.lor(#a)"
+
+let test_lor_other_variant () =
+  test_exn "Expecting int, not a variant type"
+    "type clike = #a(int) | #b\n#b.lor(#a)"
+
+let test_plus_clike_variant () =
+  test_exn "Binary + expecting [int] but found [clike]"
+    "type clike = #a | #b\n#a + #b"
+
 let test_match_all () =
   test "int"
     "type option('a) = #none | #some('a)\n\
@@ -1357,6 +1367,9 @@ let () =
           case "option_none_arg" test_variants_option_none_arg;
           case "option_some_arg" test_variants_option_some_arg;
           case "correct inference" test_variants_correct_inference;
+          case "lor clike variant" test_lor_clike_variant;
+          case "lor other variant" test_lor_other_variant;
+          case "plus clike variant" test_plus_clike_variant;
         ] );
       ( "match",
         [

@@ -64,6 +64,38 @@ let array_assoc_opt name arr =
 
 let rec follow_alias = function Talias (_, t) -> follow_alias t | t -> t
 
+let get_ctor env loc name =
+  match Env.find_ctor_opt name env with
+  | Some { index; typename } ->
+      (* We get the ctor type from the variant *)
+      let ctor, variant =
+        match Env.query_type ~instantiate loc typename env |> follow_alias with
+        | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
+        | _ -> failwith "Internal Error: Not a variant"
+      in
+      Some (typename, ctor, variant)
+  | None -> None
+
+let lor_clike_hack env loc name annot =
+  (* We allow clike variants in [lor] for the C flags use case *)
+  match annot with
+  | Some variant -> (
+      match clean variant with
+      | Tint -> (
+          match get_ctor env loc name with
+          | Some (_, ctor, variant) ->
+              if is_clike_variant variant then
+                let attr = { no_attr with const = true } in
+                (* TODO the type should be Tint. This will be changed later in
+                   [builtins_hack]. We keep the type here to verify that variant
+                   types don't mix in this use case, which would be possible if
+                   we throw the type away (to Tint) *)
+                Some { typ = Tint; expr = Const (Int ctor.index); attr; loc }
+              else None
+          | None -> None)
+      | _ -> None)
+  | None -> None
+
 let get_variant env loc (_, name) annot =
   (* Don't use clean directly, to keep integrity of link *)
   match annot with
@@ -83,22 +115,13 @@ let get_variant env loc (_, name) annot =
           (typename, ctor, variant)
       | t ->
           let msg =
-            Printf.sprintf "Expecting a variant type, not %s"
+            Printf.sprintf "Expecting %s, not a variant type"
               (string_of_type (Env.modpath env) t)
           in
           raise (Error (loc, msg)))
   | None -> (
-      match Env.find_ctor_opt name env with
-      | Some { index; typename } ->
-          (* We get the ctor type from the variant *)
-          let ctor, variant =
-            match
-              Env.query_type ~instantiate loc typename env |> follow_alias
-            with
-            | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
-            | _ -> failwith "Internal Error: Not a variant"
-          in
-
+      match get_ctor env loc name with
+      | Some (typename, ctor, variant) ->
           (match annot with
           | Some t -> unify (loc, "In constructor " ^ name ^ ":") t variant env
           | None -> ());
@@ -561,27 +584,30 @@ module Make (C : Core) (R : Recs) = struct
     | _ -> failwith "Internal Error: Not a mismatch"
 
   let convert_ctor env loc name arg annot =
-    let typename, ctor, variant = get_variant env loc name annot in
-    match (ctor.ctyp, arg) with
-    | Some typ, Some expr ->
-        let texpr = convert env expr in
-        unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ env;
-        let expr = Ctor (Path.get_hd typename, ctor.index, Some texpr)
-        and const =
-          (* There's a special case for string literals.
-             They will get copied here which makes them not const.
-             NOTE copy in convert_tuple *)
-          match texpr.expr with
-          | Const (String _) -> false
-          | _ -> texpr.attr.const
-        in
-        let attr = { no_attr with const } in
-        { typ = variant; expr; attr; loc }
-    | None, None ->
-        let expr = Ctor (Path.get_hd typename, ctor.index, None)
-        and attr = { no_attr with const = true } in
-        { typ = variant; expr; attr; loc }
-    | _ -> mismatch_err (fst name) (snd name) ctor.ctyp arg
+    match lor_clike_hack env loc (snd name) annot with
+    | Some expr -> expr
+    | None -> (
+        let typename, ctor, variant = get_variant env loc name annot in
+        match (ctor.ctyp, arg) with
+        | Some typ, Some expr ->
+            let texpr = convert env expr in
+            unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ env;
+            let expr = Ctor (Path.get_hd typename, ctor.index, Some texpr)
+            and const =
+              (* There's a special case for string literals.
+                 They will get copied here which makes them not const.
+                 NOTE copy in convert_tuple *)
+              match texpr.expr with
+              | Const (String _) -> false
+              | _ -> texpr.attr.const
+            in
+            let attr = { no_attr with const } in
+            { typ = variant; expr; attr; loc }
+        | None, None ->
+            let expr = Ctor (Path.get_hd typename, ctor.index, None)
+            and attr = { no_attr with const = true } in
+            { typ = variant; expr; attr; loc }
+        | _ -> mismatch_err (fst name) (snd name) ctor.ctyp arg)
 
   (* We want to be able to reference the exprs in the pattern match without
      regenerating it, so we use a magic identifier *)
