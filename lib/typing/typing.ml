@@ -953,6 +953,8 @@ end = struct
     | Tfun (tparams, ret, kind) ->
         (* Add the generalized type to the env to keep the closure there *)
         let env = Env.change_type name typ env in
+        (* Discard usage of internal recursive calls *)
+        Env.mark_unused name env;
 
         let ret = match ret_annot with Some ret -> ret | None -> ret in
         let qtyp = Tfun (qparams, ret, kind) |> generalize in

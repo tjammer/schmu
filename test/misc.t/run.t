@@ -1322,6 +1322,11 @@ We can have if without else
 
 Tailcall loops
   $ schmu --dump-llvm stub.o regression_issue_26.smu && ./regression_issue_26
+  regression_issue_26.smu:27.5-11: warning: Unused binding nested.
+  
+  27 | fun nested(a, b, c):
+           ^^^^^^
+  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"

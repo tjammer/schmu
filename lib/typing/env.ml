@@ -245,6 +245,21 @@ let change_type key typ env =
           { env with values = { scope with valmap } :: tl }
       | None -> "Internal Error: Missing key for changing " ^ key |> failwith)
 
+let mark_unused key env =
+  match env.values with
+  | [] -> failwith "Internal Error: Env empty"
+  | scope :: _ -> (
+      match scope.kind with
+      | Stoplevel tbl | Sfunc tbl | Scont tbl -> (
+          match Hashtbl.find_opt tbl (Path.Pid key) with
+          | Some usage -> usage.used := false
+          | None ->
+              "Internal Error: Missing key for unmarking used " ^ key
+              |> failwith)
+      | Smodule _ ->
+          failwith "Internal Error: Should not be module for unmarking function"
+      )
+
 let add_labels typename labelset labels scope =
   let labelsets = Lmap.add labelset typename scope.labelsets in
 
