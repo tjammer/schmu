@@ -340,11 +340,11 @@ let test_pipe_tail_mult_wrong_type () =
     "fun add1(a): a + 1\n10 |> add1(12)"
 
 let test_alias_simple () =
-  test "(foo = int) -> unit" "type foo = int\nexternal f : (foo) -> unit\nf"
+  test "(foo = int) -> unit" "type foo = int\nexternal f : foo -> unit\nf"
 
 let test_alias_param_concrete () =
   test "(foo = raw_ptr(u8)) -> unit"
-    "type foo = raw_ptr(u8)\nexternal f : (foo) -> unit\nf"
+    "type foo = raw_ptr(u8)\nexternal f : foo -> unit\nf"
 
 let test_alias_param_quant () =
   test "(foo = raw_ptr('a)) -> unit"

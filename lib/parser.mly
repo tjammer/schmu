@@ -474,16 +474,21 @@ type_path_cont:
 let parens(x) :=
   | Lpar; items = separated_list(Comma, x); Rpar; { items }
 
-type_spec:
+single_type_spec:
   | id = Ident { Ty_id id }
   | id = poly_id { Ty_var id }
   | id = Sized_ident { Ty_id id }
   | id = Unknown_sized_ident { Ty_id id }
   | path = type_path { Ty_use_id ($loc, path) }
+
+type_spec:
+  | spec = single_type_spec { spec }
   | head = type_spec; Lpar; tail = separated_nonempty_list(Comma, type_spec); Rpar
     { Ty_applied (head :: tail) }
   | Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
     { Ty_func ([Ty_id "unit", Dnorm; ret, Dnorm]) }
+  | spec = single_type_spec; Right_arrow; ret = type_spec
+    { Ty_func ([spec, Dnorm; ret, Dnorm]) }
   | Lpar; spec = tup_or_fun { spec }
 
 tup_or_fun:
