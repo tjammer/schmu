@@ -17,7 +17,8 @@
 (defconst schmu-keywords-regexp
   (rx symbol-start
       (or "fun" "type" "if" "then" "else" "elseif" "and" "or" "external" "let"
-          "match" "with" "module" "module_type" "signature" "val" "functor" "do")
+          "match" "with" "module" "module_type" "signature" "val" "functor" "do"
+          "use")
       symbol-end)
   "Schmu language keywords.")
 
@@ -41,7 +42,7 @@
       (* space) "("))
 
 (defconst schmu-module-pattern
-  (rx symbol-start (or "module" "module type" "functor") (1+ space)
+  (rx symbol-start (or "module" "module type" "functor" "use") (1+ space)
       (group (seq (any word ?_) (* (any word ?_))))))
 
 (defconst schmu-path-pattern

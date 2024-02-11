@@ -780,7 +780,7 @@ let fix_scope_loc scope loc =
   in
   { scope with kind }
 
-let import_module env loc name =
+let use_module env loc name =
   let scope =
     find_general
       ~find:(fun key scope -> Map.find_opt key scope.modules)

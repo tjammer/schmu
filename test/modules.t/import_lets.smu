@@ -1,10 +1,10 @@
-import lets
+use lets
 
 printf(string/data("%i\n"), a)
 printf(string/data("%i\n"), b)
 
 fun inside_fn():
-  import lets
+  use lets
   fun second():
     printf(string/data("%i\n"), a)
     printf(string/data("%i\n"), b)

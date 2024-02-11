@@ -646,10 +646,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
 Allocate and clean init code with refcounting
   $ schmu init.smu -m
   $ schmu use_init.smu
-  use_init.smu:1.8-12: warning: Unused module import init.
+  use_init.smu:1.5-9: warning: Unused module 'use' declaration init.
   
-  1 | import init
-             ^^^^
+  1 | use init
+          ^^^^
   
   $ ./use_init
   hello from init
@@ -657,10 +657,10 @@ Allocate and clean init code with refcounting
 Use module name prefix for function names to prevent linker dups
   $ schmu nameclash_mod.smu -m
   $ schmu nameclash_use.smu
-  nameclash_use.smu:1.8-21: warning: Unused module import nameclash_mod.
+  nameclash_use.smu:1.5-18: warning: Unused module 'use' declaration nameclash_mod.
   
-  1 | import nameclash_mod
-             ^^^^^^^^^^^^^
+  1 | use nameclash_mod
+          ^^^^^^^^^^^^^
   
   nameclash_use.smu:2.5-18: warning: Unused binding specific_name.
   

@@ -137,7 +137,7 @@ rule read =
   | "let"    { Let }
   | "match"  { Match }
   | "do"     { Do }
-  | "import" { Import }
+  | "use" { Use }
   | "type"   { Type }
   | "external"{ External }
   | "signature" { Signature }

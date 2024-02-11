@@ -35,7 +35,7 @@
 %token <string> Ctor
 %token <string> Path_id
 %token Dot
-%token Import
+%token Use
 %token If
 %token Elseif
 %token Else
@@ -142,7 +142,7 @@ stmt:
   | Fun; Rec; func = func; And; tail = separated_nonempty_list(And, func)
     { Rec($loc, func :: tail) }
   | expr = expr { Expr ($loc, expr) }
-  | Import; path = import_path { Import ($loc(path), path) }
+  | Use; path = use_path { Use ($loc(path), path) }
 
 func:
   | name = ident; params = parens(param_decl); attr = loption(capture_copies);
@@ -176,7 +176,7 @@ module_application:
   | path = path_with_loc; args = parens(path_with_loc) { path, args }
 
 path_with_loc:
-  | path = import_path { $loc, path }
+  | path = use_path { $loc, path }
 
 functor_:
   | Functor; name = module_decl; Lpar; params = separated_nonempty_list(Comma, functor_param); Rpar; Colon;
@@ -184,7 +184,7 @@ functor_:
     { Functor (name, params, sgn, items) }
 
 functor_param:
-  | name = ident; Colon; path = import_path { let loc, name = name in loc, name, path }
+  | name = ident; Colon; path = use_path { let loc, name = name in loc, name, path }
 
 ctor:
   | name = ctor_ident { {name; typ_annot = None; index = None} }
@@ -201,7 +201,7 @@ decl_typename:
 
 %inline module_decl:
   | name = ident { let loc, name = name in loc, name, None }
-  | name = ident; Colon; path = import_path { let loc, name = name in loc, name, Some path }
+  | name = ident; Colon; path = use_path { let loc, name = name in loc, name, Some path }
 
 signature:
   | Signature; Colon; Begin; items = sig_items ; End; option(Newline) { items }
@@ -346,10 +346,10 @@ expr:
     { Match ($loc, expr.pattr, expr.pexpr, clauses) }
   | Ampersand; expr = expr; Left_arrow; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
-  | id = Path_id; expr = expr; %prec Path { Local_import ($loc, id, expr) }
+  | id = Path_id; expr = expr; %prec Path { Local_use ($loc, id, expr) }
 
 path_ident:
-  | paths = nonempty_list(Path_id); callee = ident { List.fold_right (fun path expr -> Local_import ($loc, path, expr)) paths (Var callee) }
+  | paths = nonempty_list(Path_id); callee = ident { List.fold_right (fun path expr -> Local_use ($loc, path, expr)) paths (Var callee) }
 
 clauses:
   | clause = clause; %prec Below_hbar { clause :: [] }
@@ -434,9 +434,9 @@ elif:
 else_:
   | Else; Colon; item = block; { item }
 
-import_path:
+use_path:
   | id = Ident { Path.Pid (id) }
-  | id = Path_id; path = import_path { Path.Pmod (id, path)  }
+  | id = Path_id; path = use_path { Path.Pmod (id, path)  }
 
 type_path:
   | id = Path_id; path = type_path_cont { Path.Pmod (id, path)  }
@@ -479,7 +479,7 @@ type_spec:
   | id = poly_id { Ty_var id }
   | id = Sized_ident { Ty_id id }
   | id = Unknown_sized_ident { Ty_id id }
-  | path = type_path { Ty_import_id ($loc, path) }
+  | path = type_path { Ty_use_id ($loc, path) }
   | head = type_spec; Lpar; tail = separated_nonempty_list(Comma, type_spec); Rpar
     { Ty_applied (head :: tail) }
   | Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application

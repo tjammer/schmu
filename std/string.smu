@@ -67,8 +67,8 @@ fun make_skips(pattern):
   skips
 
 fun boyer_moore_horspool(pattern, str):
-  import prelude
-  import option
+  use prelude
+  use option
   let patlen1 = len(pattern) - 1
   let strptr = array/data(str)
   let last_patchar = pattern.[patlen1]

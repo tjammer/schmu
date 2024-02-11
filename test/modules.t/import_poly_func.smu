@@ -1,4 +1,4 @@
-import poly_func
+use poly_func
 
 external printf : (string/cstr, int) -> unit
 

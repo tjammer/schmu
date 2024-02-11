@@ -1,4 +1,4 @@
-import modd
+use modd
 
 print(a)
 print(b)

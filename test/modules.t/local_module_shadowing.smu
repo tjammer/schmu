@@ -13,7 +13,7 @@ module a:
 
 print(fmt(a))
 
-import a
+use a
 
 print(fmt(a))
 print(fmt(a/a))

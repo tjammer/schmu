@@ -25,7 +25,7 @@ external fread : (cstr, int, int, file) -> int
 external fopen : (cstr, cstr) -> file
 external fclose : (cstr) -> int
 
-import option
+use option
 
 let bufsize = 4096
 

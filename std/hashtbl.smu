@@ -15,7 +15,7 @@ module type sig:
   val to_array : (t('value)) -> array((key, 'value))
 
 functor make : sig(m : key):
-  import option
+  use option
 
   type key = m/t
   type item('a) = {key : m/t, value : 'a, pathlen& : int}

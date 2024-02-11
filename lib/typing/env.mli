@@ -73,7 +73,7 @@ val close_function : t -> t * closed list * touched list * unused
 val close_toplevel : t -> t * closed list * touched list * unused
 (** Returns the variables captured in the closed function scope, and first unused var  *)
 
-val import_module : t -> Ast.loc -> Path.t -> t
+val use_module : t -> Ast.loc -> Path.t -> t
 (** Like OCaml open *)
 
 val find_val : Ast.loc -> Path.t -> t -> value

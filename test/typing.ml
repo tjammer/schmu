@@ -295,16 +295,16 @@ let test_para_multiple () =
 let test_para_instance_func () =
   test "(foo(int)) -> int"
     "type foo('a) = {gen : 'a}\n\
-     fun use(foo): foo.gen + 17\n\
+     fun apply(foo): foo.gen + 17\n\
      let foo = {gen = 17}\n\
-     use"
+     apply"
 
 let test_para_instance_wrong_func () =
   test_exn "In record expression expecting [int] but found [bool]"
     "type foo('a) = {gen : 'a}\n\
-     fun use(foo): foo.gen + 17\n\
+     fun apply(foo): foo.gen + 17\n\
      let foo = {gen = 17}\n\
-     use({gen = true})"
+     apply({gen = true})"
 
 let test_pipe_head_single () = test "int" "fun add1(a): a + 1\n10 -> add1"
 
@@ -965,8 +965,8 @@ let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int\ntype t = float"
 
-let test_type_decl_import_before () =
-  test "unit" "module m:\n  type t = int\nimport m\ntype t = float"
+let test_type_decl_use_before () =
+  test "unit" "module m:\n  type t = int\nuse m\ntype t = float"
 
 let test_mtype_define () =
   test "unit" {|module type tt:
@@ -1618,7 +1618,7 @@ do:
       ( "type decl",
         [
           case "not unique" test_type_decl_not_unique;
-          case "import before" test_type_decl_import_before;
+          case "use before" test_type_decl_use_before;
         ] );
       ( "module type",
         [

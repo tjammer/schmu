@@ -3,14 +3,14 @@ fun bind(res, f):
     #some(r): f(r)
     #none: #none
 
-fun use(param, thing):
+fun apply(param, thing):
   match param:
     (bar, foo): bind(bar(thing), fun r:
       bind(foo(r), fun r:
         print(fmt(r))
         #some(copy(r))))
 
-ignore(use((fun i: #some(i + 1),
+ignore(apply((fun i: #some(i + 1),
             fun i: #some(i + 2)),
            0))
 

@@ -81,7 +81,7 @@ let check_unused env unused unmutated =
       match kind with
       | Env.Unused -> "Unused binding "
       | Unmutated -> "Unmutated mutable binding "
-      | Unused_mod -> "Unused module import "
+      | Unused_mod -> "Unused module 'use' declaration "
     in
 
     (* We need to use the location to match the errors because the two systems
@@ -250,7 +250,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         Qvar id
     | Ty_func l -> handle_func env l
     | Ty_applied l -> type_list env l
-    | Ty_import_id (_, path) -> find env path ""
+    | Ty_use_id (_, path) -> find env path ""
     | Ty_tuple ts ->
         let fields =
           List.mapi
@@ -666,8 +666,8 @@ end = struct
     | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, pass, expr, cases) -> convert_match env loc pass expr cases
-    | Local_import (loc, name, expr) ->
-        disambiguate_imports env loc (Path.Pid name) expr
+    | Local_use (loc, name, expr) ->
+        disambiguate_uses env loc (Path.Pid name) expr
     | Fmt (loc, exprs) -> convert_fmt env loc exprs
 
   and convert_var env loc id =
@@ -1218,7 +1218,7 @@ end = struct
           ( Ast.Let (loc, _, _)
           | Function (loc, _)
           | Rec (loc, _)
-          | Import (loc, _) );
+          | Use (loc, _) );
         ]
         when ret ->
           raise (Error (loc, "Block must end with an expression"))
@@ -1277,8 +1277,8 @@ end = struct
           let cont, env = to_expr env (l1, expr.typ) tl in
           let expr = Sequence (expr, cont) in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
-      | Import (loc, mname) :: tl ->
-          let env = Env.import_module env loc mname in
+      | Use (loc, mname) :: tl ->
+          let env = Env.use_module env loc mname in
           let cont, env = to_expr env old_type tl in
           (cont, env)
     in
@@ -1287,12 +1287,12 @@ end = struct
   and convert_block ?(ret = true) env stmts =
     convert_block_annot ~ret env None stmts
 
-  and disambiguate_imports env loc path = function
-    | Ast.Local_import (_, id, tl) ->
-        disambiguate_imports env loc (Path.append id path) tl
+  and disambiguate_uses env loc path = function
+    | Ast.Local_use (_, id, tl) ->
+        disambiguate_uses env loc (Path.append id path) tl
     | Var (_, id) -> convert_var env loc (Path.append id path)
     | expr ->
-        let env = Env.import_module env loc path in
+        let env = Env.use_module env loc path in
         convert env expr
 end
 
@@ -1480,7 +1480,7 @@ let let_fn_alias env loc expr =
   | _ -> Not
 
 let rec convert_module env mname sign prog check_ret =
-  (* We create a new scope so we don't warn on unused imports *)
+  (* We create a new scope so we don't warn on unused uses *)
   let env = Env.open_toplevel mname env in
 
   (* Add types from signature for two reasons:
@@ -1831,8 +1831,8 @@ and convert_prog env items modul =
           (fst old, "Left expression in sequence must be of type unit,")
           Tunit (snd old) env;
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
-    | Import (loc, mname) ->
-        let env = Env.import_module env loc mname in
+    | Use (loc, mname) ->
+        let env = Env.use_module env loc mname in
         (old, env, items, m)
   in
 
@@ -1862,12 +1862,12 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
       (Env.empty ~find_module ~scope_of_located mname)
   in
 
-  (* Import prelude *)
-  let env = if std then Env.import_module env loc (Path.Pid "std") else env in
+  (* Use prelude *)
+  let env = if std then Env.use_module env loc (Path.Pid "std") else env in
 
   let externals, items, m = convert_module env mname sign prog check_ret in
 
-  (* Add polymorphic functions from imported modules *)
+  (* Add polymorphic functions from useed modules *)
   let items = List.map (fun item -> (mname, item)) items in
   let items = List.rev !Module.poly_funcs @ items in
 

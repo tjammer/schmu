@@ -1,4 +1,4 @@
-import sign
+use sign
 
 -- Use type t
 let use_t : t = 20
