@@ -781,6 +781,12 @@ let fix_scope_loc scope loc =
   { scope with kind }
 
 let use_module env loc name =
+  let tbl =
+    let scope, _ = decap_exn env in
+    match scope.kind with
+    | Stoplevel tbl | Sfunc tbl | Scont tbl -> tbl
+    | Smodule _ -> failwith "Unexpected module"
+  in
   let scope =
     find_general
       ~find:(fun key scope -> Map.find_opt key scope.modules)
@@ -794,7 +800,7 @@ let use_module env loc name =
     |> fun scope -> fix_scope_loc scope loc
   in
 
-  let cont = empty_scope (Scont (Hashtbl.create 64)) in
+  let cont = empty_scope (Scont tbl) in
   { env with values = cont :: scope :: env.values }
 
 let add_callname ~key cname env =
