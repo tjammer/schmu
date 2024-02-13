@@ -50,7 +50,7 @@ prog: External Ident Colon Lpar Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Rpar Right_arrow Ident Lpar Ident Rpar With
+prog: External Ident Colon Lpar Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -66,18 +66,6 @@ prog: External Ident Colon Ident Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Ident Right_arrow With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Ident Right_arrow Ident Lpar Ident Rpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: External Ident Colon Lpar Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -90,7 +78,7 @@ prog: External Ident Colon Lpar Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Rpar Right_arrow Ident Lpar Ident Rpar With
+prog: External Ident Colon Lpar Ident Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -106,7 +94,7 @@ prog: External Ident Colon Lpar Ident Ampersand Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Ampersand Rpar Right_arrow Ident Lpar Ident Rpar With
+prog: External Ident Colon Lpar Ident Ampersand Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -138,7 +126,7 @@ prog: External Ident Colon Lpar Ident Comma Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Rpar Right_arrow Ident Lpar Ident Rpar With
+prog: External Ident Colon Lpar Ident Comma Ident Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
