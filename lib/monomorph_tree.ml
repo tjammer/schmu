@@ -1320,7 +1320,7 @@ let monomorphize ~mname { Typed_tree.externals; items; _ } =
 
   let vars =
     Builtin.(
-      fold (fun vars (kind, _, str) ->
+      fold (fun str (kind, _) vars ->
           Vars.add str (Normal { no_var with fn = Builtin kind }) vars))
       Vars.empty
   in

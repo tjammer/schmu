@@ -1851,7 +1851,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
 
   let env =
     Builtin.(
-      fold (fun env (_, typ, str) ->
+      fold (fun str (_, typ) env ->
           enter_level ();
           let typ = instantiate typ in
           leave_level ();
