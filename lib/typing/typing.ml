@@ -1215,10 +1215,7 @@ end = struct
 
     let rec to_expr env old_type = function
       | [
-          ( Ast.Let (loc, _, _)
-          | Function (loc, _)
-          | Rec (loc, _)
-          | Use (loc, _) );
+          (Ast.Let (loc, _, _) | Function (loc, _) | Rec (loc, _) | Use (loc, _));
         ]
         when ret ->
           raise (Error (loc, "Block must end with an expression"))
@@ -1457,9 +1454,17 @@ let let_fn_alias env loc expr =
   match expr.typ with
   | Tfun (_, _, Simple) -> (
       match Typed_tree.follow_expr expr.expr with
-      | Some (Var (id, Some md)) ->
+      | Some (Var (id, Some md)) -> (
           if is_polymorphic expr.typ then Alias
-          else Callname (Env.find_callname loc (Path.append id md) env, false)
+          else
+            match Env.find_callname loc (Path.append id md) env with
+            | Some callname -> Callname (callname, false)
+            | None ->
+                (* No callname here means it's an alias (of an alias). We
+                   continue the alias chain. These aliases are binds to
+                   the expression of the last alias, which eventually
+                   resolve to the real thing (in monomorph_tree). *)
+                Alias)
       | Some (Var (id, None)) ->
           (* Treat builtins as aliases *)
           if Builtin.of_string id |> Option.is_some then Alias else Not
@@ -1473,8 +1478,9 @@ let let_fn_alias env loc expr =
       | Some (Var (id, Some md)) ->
           if (not (is_polymorphic expr.typ)) && not (Path.share_base md mname)
           then
-            let callname = Env.find_callname loc (Path.append id md) env in
-            Callname (callname, true)
+            match Env.find_callname loc (Path.append id md) env with
+            | Some callname -> Callname (callname, true)
+            | None -> Not
           else Not
       | _ -> Not)
   | _ -> Not

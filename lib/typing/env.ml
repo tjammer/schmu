@@ -393,8 +393,8 @@ let close_thing is_same modpath env =
         let closed_touched =
           !(scope.closed) |> Closed_set.to_seq |> List.of_seq
           |> List.map
-               (fun
-                 (clname, { typ; param; const; global; mname; mut = clmut }) ->
+               (fun (clname, { typ; param; const; global; mname; mut = clmut })
+               ->
                  (* We only add functions to the closure if they are params
                     Or: if they are closures *)
                  (* Const values (and imported ones) are not closed over, they exist module-wide *)
@@ -813,6 +813,5 @@ let find_callname loc path env =
     ~find:(fun key scope -> Map.find_opt key scope.cnames)
     ~found:(fun _ cname -> cname)
     loc path env
-  |> function
-  | None -> failwith "Internal Error: Could not find callname"
-  | Some cname -> cname
+(* NOTE, the None branch used to be an internal error, but can happen
+   with nested aliases. *)
