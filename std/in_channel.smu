@@ -26,6 +26,7 @@ external fopen : (cstr, cstr) -> file
 external fclose : (cstr) -> int
 
 use option
+use prelude
 
 let bufsize = 4096
 

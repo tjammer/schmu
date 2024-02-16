@@ -1,0 +1,10 @@
+let + = __addf
+let - = __subf
+let * = __mulf
+let / = __divf
+
+let < = __lessf
+let > = __greaterf
+let <= = __lesseqf
+let >= = __greatereqf
+let == = __equalf

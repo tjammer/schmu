@@ -109,6 +109,15 @@ let sized_id = lowercase_alpha+ hashnum
 let hashquest = '#' '?'
 let unknown_sized_id = lowercase_alpha+ hashquest
 
+let plus_ops = '+' | '-'
+let mult_ops = '*' | '/'
+let cmp_ops = '<' | '>'
+let binops = '=' | cmp_ops | plus_ops | mult_ops | '.' | '|' | '&' | '?'
+let eq_op = '=' binops+
+let cmp_op = cmp_ops binops*
+let plus_op = plus_ops binops*
+let mult_op = mult_ops binops*
+
 rule read =
   parse
   | white    { read lexbuf }
@@ -127,8 +136,6 @@ rule read =
   | ':'      { Colon }
   | ','      { Comma }
   | '.'      { Dot }
-  | "=="     { Equal_binop }
-  | "==."     { Bin_equal_f }
   | "'"      { Quote }
   | "if"     { If }
   | "else"   { Else }
@@ -169,22 +176,6 @@ rule read =
        { U8 (char_for_hexadecimal_code d u) }
   | '&'      { Ampersand }
   | '!'      { Exclamation }
-  | '+'      { Plus_i }
-  | min      { Minus_i }
-  | '*'      { Mult_i }
-  | '/'      { Div_i }
-  | "+."     { Plus_f }
-  | "-."     { Minus_f }
-  | "*."     { Mult_f }
-  | "/."     { Div_f }
-  | '<'      { Less_i }
-  | "<."     { Less_f }
-  | '>'      { Greater_i }
-  | ">."     { Greater_f }
-  | "<="     { Less_eq_i }
-  | "<=."    { Less_eq_f }
-  | ">="     { Greater_eq_i }
-  | ">=."    { Greater_eq_f }
   | '('      { Lpar }
   | ')'      { Rpar }
   | '{'      { Lbrac }
@@ -199,6 +190,10 @@ rule read =
   | "->"     { Right_arrow }
   | "|>"     { Pipe_tail }
   | "--"      { line_comment lexbuf }
+  | eq_op    { Eq_op (Lexing.lexeme lexbuf) }
+  | cmp_op   { Cmp_op (Lexing.lexeme lexbuf) }
+  | plus_op  { Plus_op (Lexing.lexeme lexbuf) }
+  | mult_op  { Mult_op (Lexing.lexeme lexbuf) }
   | eof      { Eof }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 

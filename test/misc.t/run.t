@@ -892,24 +892,24 @@ Regression test for issue #19
   entry:
     %x3 = bitcast %"3d_"* %0 to double*
     %1 = bitcast %"3d_"* %lhs to double*
-    %2 = load double, double* %1, align 8
-    %3 = bitcast %"3d_"* %rhs to double*
-    %4 = load double, double* %3, align 8
-    %add = fadd double %2, %4
+    %2 = bitcast %"3d_"* %rhs to double*
+    %3 = load double, double* %2, align 8
+    %4 = load double, double* %1, align 8
+    %add = fadd double %4, %3
     store double %add, double* %x3, align 8
     %y = getelementptr inbounds %"3d_", %"3d_"* %0, i32 0, i32 1
     %5 = getelementptr inbounds %"3d_", %"3d_"* %lhs, i32 0, i32 1
-    %6 = load double, double* %5, align 8
-    %7 = getelementptr inbounds %"3d_", %"3d_"* %rhs, i32 0, i32 1
-    %8 = load double, double* %7, align 8
-    %add1 = fadd double %6, %8
+    %6 = getelementptr inbounds %"3d_", %"3d_"* %rhs, i32 0, i32 1
+    %7 = load double, double* %6, align 8
+    %8 = load double, double* %5, align 8
+    %add1 = fadd double %8, %7
     store double %add1, double* %y, align 8
     %z = getelementptr inbounds %"3d_", %"3d_"* %0, i32 0, i32 2
     %9 = getelementptr inbounds %"3d_", %"3d_"* %lhs, i32 0, i32 2
-    %10 = load double, double* %9, align 8
-    %11 = getelementptr inbounds %"3d_", %"3d_"* %rhs, i32 0, i32 2
-    %12 = load double, double* %11, align 8
-    %add2 = fadd double %10, %12
+    %10 = getelementptr inbounds %"3d_", %"3d_"* %rhs, i32 0, i32 2
+    %11 = load double, double* %10, align 8
+    %12 = load double, double* %9, align 8
+    %add2 = fadd double %12, %11
     store double %add2, double* %z, align 8
     ret void
   }

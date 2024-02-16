@@ -2,7 +2,19 @@ open Alcotest
 open Schmulang
 open Error
 
+let prelude = {|let + = __addi
+let - = __subi
+let < = __lessi
+let +. = __addf
+|}
+
+let prelude_linenum = 4
+let ln fmt i = Printf.sprintf fmt (i + prelude_linenum)
+
 let get_type src =
+  let src =
+    if String.starts_with ~prefix:"signature:" src then src else prelude ^ src
+  in
   let open Lexing in
   let lexbuf = from_string src in
   Indent.reset ();
@@ -486,10 +498,6 @@ let test_lor_other_variant () =
   test_exn "Expecting int, not a variant type"
     "type clike = #a(int) | #b\n#b.lor(#a)"
 
-let test_plus_clike_variant () =
-  test_exn "Binary + expecting [int] but found [clike]"
-    "type clike = #a | #b\n#a + #b"
-
 let test_match_all () =
   test "int"
     "type option('a) = #none | #some('a)\n\
@@ -790,7 +798,8 @@ let test_excl_borrow () =
   wrap_fn ~tl test "unit" [ own; "let y = x"; "ignore(x)"; "ignore(y)" ]
 
 let test_excl_borrow_use_early () =
-  wrap_fn ~tl test_exn "x was borrowed in line 3, cannot mutate"
+  wrap_fn ~tl test_exn
+    (ln "x was borrowed in line %i, cannot mutate" 3)
     [ own; "let y = x"; "ignore(x)"; "&x <- 11"; "ignore(y)" ]
 
 let tl = Some "Cannot move top level binding"
@@ -799,18 +808,21 @@ let test_excl_move_mut () =
   wrap_fn ~tl test "unit" [ own; "let y& = !x"; "&y <- 11"; "ignore(y)" ]
 
 let test_excl_move_mut_use_after () =
-  wrap_fn test_exn "x was moved in line 2, cannot use"
+  wrap_fn test_exn
+    (ln "x was moved in line %i, cannot use" 2)
     [ own; "let y& = !x"; "ignore(x)" ]
 
 let test_excl_move_record () =
   wrap_fn test "unit" [ own; "let y = (x, 0)"; "ignore(y)" ]
 
 let test_excl_move_record_use_after () =
-  wrap_fn test_exn "x was moved in line 2, cannot use"
+  wrap_fn test_exn
+    (ln "x was moved in line %i, cannot use" 2)
     [ "let x& =[10]"; "let y = (x, 0)"; "ignore(x)" ]
 
 let test_excl_borrow_then_move () =
-  wrap_fn test_exn "x was moved in line 3, cannot use"
+  wrap_fn test_exn
+    (ln "x was moved in line %i, cannot use" 3)
     [ "let x = [10]"; "let y = x"; "ignore((y, 0))"; "x" ]
 
 let test_excl_if_move_lit () =
@@ -837,22 +849,22 @@ let test_excl_proj_immutable () =
 
 let test_excl_proj_use_orig () =
   wrap_fn ~tl:proj_msg test_exn
-    "x was mutably borrowed in line 3, cannot borrow"
+    (ln "x was mutably borrowed in line %i, cannot borrow" 3)
     [ own; "let y& = &x"; "ignore(x)"; "ignore(y)"; "x" ]
 
 let test_excl_proj_move_after () =
   wrap_fn ~tl:proj_msg test_exn
-    "x was mutably borrowed in line 3, cannot borrow"
+    (ln "x was mutably borrowed in line %i, cannot borrow" 3)
     [ own; "let y& = &x"; "ignore(x)"; "(y, 0)" ]
 
 let test_excl_proj_nest () =
   wrap_fn ~tl:proj_msg test_exn
-    "x was mutably borrowed as y in line 4, cannot borrow"
+    (ln "x was mutably borrowed as y in line %i, cannot borrow" 4)
     [ own; "let y& = &x"; "let z& = &y"; "ignore(y)"; "z" ]
 
 let test_excl_proj_nest_orig () =
   wrap_fn ~tl:proj_msg test_exn
-    "x was mutably borrowed in line 4, cannot borrow"
+    (ln "x was mutably borrowed in line %i, cannot borrow" 4)
     [ own; "let y& = &x"; "let z& = &y"; "ignore(x)"; "z" ]
 
 let test_excl_proj_nest_closed () =
@@ -888,7 +900,8 @@ let test_excl_parts_return_part () =
   test "unit" (typ ^ "fun meh(a!):\n let c& = !a.a\n a.b")
 
 let test_excl_parts_return_whole () =
-  test_exn "a.a was moved in line 4, cannot use"
+  test_exn
+    (ln "a.a was moved in line %i, cannot use" 4)
     (typ ^ "fun meh(a!):\n let c& = !a.a\n a")
 
 let test_excl_lambda_copy_capture () =
@@ -1369,7 +1382,6 @@ let () =
           case "correct inference" test_variants_correct_inference;
           case "lor clike variant" test_lor_clike_variant;
           case "lor other variant" test_lor_other_variant;
-          case "plus clike variant" test_plus_clike_variant;
         ] );
       ( "match",
         [
@@ -1461,7 +1473,8 @@ let () =
           case "parts update" test_excl_parts_success;
           case "parts return part" test_excl_parts_return_part;
           case "parts return whole after part move" test_excl_parts_return_whole;
-          tase_exn "func mut borrow" "a was borrowed in line 5, cannot mutate"
+          tase_exn "func mut borrow"
+            (ln "a was borrowed in line %i, cannot mutate" 5)
             {|let a& = 10
 fun set_a():
   &a <- 11
@@ -1477,7 +1490,7 @@ do:
   ignore(move_a)
   ignore(a)|};
           tase_exn "closure mut borrow"
-            "a was mutably borrowed in line 3, cannot borrow"
+            (ln "a was mutably borrowed in line %i, cannot borrow" 3)
             {|fun hmm():
   let a& = 10
   let set_a = fun (): &a <- 11
@@ -1485,7 +1498,7 @@ do:
   set_a()
   &a <- 11|};
           tase_exn "closure carry set"
-            "a was mutably borrowed in line 3, cannot borrow"
+            (ln "a was mutably borrowed in line %i, cannot borrow" 3)
             (* If the 'set' attribute isn't carried, (set-a) cannot be called
                and a different error occurs *)
             {|fun hmm():
@@ -1494,28 +1507,34 @@ do:
   &a <- [11]
   let x& = !a
   set_a()|};
-          tase_exn "excl 1" "a was mutably borrowed in line 4, cannot borrow"
+          tase_exn "excl 1"
+            (ln "a was mutably borrowed in line %i, cannot borrow" 4)
             "let a& = [10]\nfun f(a&, b):\n &a <- [11]\nf(&a, a)";
           tase "excl 1 nonalloc" "unit"
             "let a& = 10\nfun f(a&, b): &a <- 11\nf(&a, a)";
-          tase_exn "excl 2" "a was borrowed in line 4, cannot mutate"
+          tase_exn "excl 2"
+            (ln "a was borrowed in line %i, cannot mutate" 4)
             "let a& = [10]\n\
              fun f(a&, b): &a <- [11]\n\
              do:\n\
             \ let b = a\n\
             \ f(&a, b)";
-          tase_exn "excl 3" "a was borrowed in line 3, cannot mutate"
+          tase_exn "excl 3"
+            (ln "a was borrowed in line %i, cannot mutate" 3)
             "let a& = [10]\nfun f(a, b&): &b <- [11]\nf(a, &a)";
-          tase_exn "excl 4" "a was borrowed in line 5, cannot mutate"
+          tase_exn "excl 4"
+            (ln "a was borrowed in line %i, cannot mutate" 5)
             "let a& = [10]\n\
              fun f(a, b&): &b <- [11]\n\
              do:\n\
             \ let b = a\n\
             \ f(b, &a)";
           tase "excl 5" "unit" "let a& = [10]\nfun f(a, b): ()\nf(a, a)";
-          tase_exn "excl 6" "a was mutably borrowed in line 3, cannot borrow"
+          tase_exn "excl 6"
+            (ln "a was mutably borrowed in line %i, cannot borrow" 3)
             "let a& = [10]\nfun f(a&, b&): ()\nf(&a, &a)";
-          tase_exn "excl env" "a was mutably borrowed in line 3, cannot borrow"
+          tase_exn "excl env"
+            (ln "a was mutably borrowed in line %i, cannot borrow" 3)
             {|let a& = [10]
 fun set_a(b&): &a <- [11]
 set_a(&a)|};
@@ -1546,7 +1565,7 @@ let c = do:
              mutably '&'"
             "let a& = [10]\nlet b& = a";
           tase_exn "partially set moved"
-            "a was moved in line 2, cannot set a.[0]"
+            (ln "a was moved in line %i, cannot set a.[0]" 2)
             "let a& = [10]\nlet b = (a, 0)\n&a.[0] <- 10";
           tase_exn "track moved multi-borrow param"
             "Borrowed parameter s is moved"
@@ -1555,7 +1574,7 @@ let c = do:
   let c = a
   ignore((c, 0))|};
           tase_exn "move binds individual"
-            "thing.value was moved in line 6, cannot use"
+            (ln "thing.value was moved in line %i, cannot use" 6)
             {|type data = {key : array(u8), value : array(u8)}
 type data_container = #empty | #item(data)
 fun hmm(thing&): match thing:
@@ -1572,7 +1591,8 @@ fun hmm(thing&): match thing:
     ignore((key, 0))
     ignore((value, 0))
   #empty: ()|};
-          tase_exn "let pattern name" "key was moved in line 4, cannot use"
+          tase_exn "let pattern name"
+            (ln "key was moved in line %i, cannot use" 4)
             {|type data = {key : array(u8), value : array(u8)}
 fun hmm():
   let {key, value} = !{key = ['k', 'e', 'y'], value = ['v', 'a', 'l', 'u', 'e']}
@@ -1584,10 +1604,10 @@ fun hmm():
             "Cannot move top level binding"
             "module fst:\n let a = [20]\nignore([fst/a])";
           tase_exn "track vars from inner module use after move"
-            "fst/a was moved in line 3, cannot use"
+            (ln "fst/a was moved in line %i, cannot use" 3)
             "module fst:\n let a = [20]\nignore([fst/a])\nignore(fst/a.[0])";
           tase_exn "always borrow field"
-            "sm.free_hd was borrowed in line 7, cannot mutate"
+            (ln "sm.free_hd was borrowed in line %i, cannot mutate" 7)
             {|type key = {idx : int, gen : int}
 type t = {slots& : array(key), data& : array(int), free_hd& : int, erase& : array(int)}
 

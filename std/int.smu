@@ -2,6 +2,27 @@ signature:
   type t = int
   val hash : (t) -> int
   val equal : (t, t) -> bool
+  -- operators
+  val + : (t, t) -> t
+  val - : (t, t) -> t
+  val * : (t, t) -> t
+  val / : (t, t) -> t
+  val < : (t, t) -> bool
+  val > : (t, t) -> bool
+  val <= : (t, t) -> bool
+  val >= : (t, t) -> bool
+  val == : (t, t) -> bool
+
+let + = __addi
+let - = __subi
+let * = __multi
+let / = __divi
+
+let < = __lessi
+let > = __greateri
+let <= = __lesseqi
+let >= = __greatereqi
+let == = __equali
 
 fun hash(i):
   -- basically murmurhash
@@ -21,4 +42,4 @@ fun hash(i):
   &h <- lxor(h, lshr(h, r))
   h
 
-fun equal(a, b): a == b
+let equal = ==

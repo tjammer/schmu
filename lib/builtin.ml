@@ -45,6 +45,24 @@ type t =
   | Lshl
   | Lshr
   | Ashr
+  | Addi
+  | Subi
+  | Multi
+  | Divi
+  | Addf
+  | Subf
+  | Mulf
+  | Divf
+  | Lessi
+  | Greateri
+  | Lesseqi
+  | Greatereqi
+  | Equali
+  | Lessf
+  | Greaterf
+  | Lesseqf
+  | Greatereqf
+  | Equalf
 [@@deriving show]
 
 let tbl =
@@ -196,6 +214,65 @@ let tbl =
     (Lshr, Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple));
   Hashtbl.add tbl "ashr"
     (Ashr, Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple));
+  Hashtbl.add tbl "__addi"
+    (Addi, Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple));
+  Hashtbl.add tbl "__subi"
+    (Subi, Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple));
+  Hashtbl.add tbl "__multi"
+    (Multi, Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple));
+  Hashtbl.add tbl "__divi"
+    (Divi, Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tint, Simple));
+  Hashtbl.add tbl "__addf"
+    ( Addf,
+      Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tfloat, Simple)
+    );
+  Hashtbl.add tbl "__subf"
+    ( Subf,
+      Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tfloat, Simple)
+    );
+  Hashtbl.add tbl "__mulf"
+    ( Mulf,
+      Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tfloat, Simple)
+    );
+  Hashtbl.add tbl "__divf"
+    ( Divf,
+      Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tfloat, Simple)
+    );
+  Hashtbl.add tbl "__lessi"
+    (Lessi, Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tbool, Simple));
+  Hashtbl.add tbl "__greateri"
+    ( Greateri,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tbool, Simple) );
+  Hashtbl.add tbl "__lesseqi"
+    ( Lesseqi,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tbool, Simple) );
+  Hashtbl.add tbl "__greatereqi"
+    ( Greatereqi,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tbool, Simple) );
+  Hashtbl.add tbl "__equali"
+    ( Equali,
+      Tfun ([ { p with pt = Tint }; { p with pt = Tint } ], Tbool, Simple) );
+  Hashtbl.add tbl "__lessf"
+    ( Lessf,
+      Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tbool, Simple)
+    );
+  Hashtbl.add tbl "__greaterf"
+    ( Greaterf,
+      Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tbool, Simple)
+    );
+  Hashtbl.add tbl "__lesseqf"
+    ( Lesseqf,
+      Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tbool, Simple)
+    );
+  Hashtbl.add tbl "__greatereqf"
+    ( Greatereqf,
+      Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tbool, Simple)
+    );
+  Hashtbl.add tbl "__equalf"
+    ( Equalf,
+      Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tbool, Simple)
+    );
+
   tbl
 
 let of_string key =

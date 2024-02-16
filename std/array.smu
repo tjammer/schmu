@@ -2,6 +2,8 @@ let data = __array_data
 let drop_back = __array_drop_back
 let length = __array_length
 
+use prelude
+
 fun create(len):
   let ret& = __unsafe_array_create(len)
   &__unsafe_array_length(ret) <- 0

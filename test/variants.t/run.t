@@ -395,12 +395,12 @@ Match multiple columns
   then9:                                            ; preds = %then
     %11 = bitcast %vl_vl2_* %5 to %vl_*
     %data10 = getelementptr inbounds %vl_, %vl_* %11, i32 0, i32 1
-    %12 = load i64, i64* %data10, align 8
-    %13 = bitcast %vl_vl2_* %5 to i8*
-    %sunkaddr = getelementptr inbounds i8, i8* %13, i64 24
-    %14 = bitcast i8* %sunkaddr to i64*
-    %15 = load i64, i64* %14, align 8
-    %add = add i64 %12, %15
+    %12 = bitcast %vl_vl2_* %5 to i8*
+    %sunkaddr = getelementptr inbounds i8, i8* %12, i64 24
+    %13 = bitcast i8* %sunkaddr to i64*
+    %14 = load i64, i64* %13, align 8
+    %15 = load i64, i64* %data10, align 8
+    %add = add i64 %15, %14
     br label %ifcont20
   
   else:                                             ; preds = %then

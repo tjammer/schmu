@@ -72,30 +72,17 @@
 %token <string> Builtin_id
 %token Val
 %token Rec
-
-/* ops  */
-%token Equal_binop
-%token Plus_i
-%token Minus_i
-%token Mult_i
-%token Div_i
-%token Plus_f
-%token Minus_f
-%token Mult_f
-%token Div_f
-%token Less_i
-%token Less_f
-%token Greater_i
-%token Greater_f
-%token Less_eq_i
-%token Less_eq_f
-%token Greater_eq_i
-%token Greater_eq_f
-%token Bin_equal_f
-%token And
-%token Or
 %token <string> Sized_ident
 %token <string> Unknown_sized_ident
+
+/* ops  */
+
+%token <string> Eq_op
+%token <string> Cmp_op
+%token <string> Plus_op
+%token <string> Mult_op
+%token And
+%token Or
 
 %nonassoc Below_Ampersand
 
@@ -111,10 +98,10 @@
 %nonassoc Else
 %left Right_arrow Pipe_tail
 %left And Or
-%left Equal_binop Bin_equal_f
-%nonassoc Less_i Less_f Greater_i Greater_f Less_eq_i Greater_eq_i Greater_eq_f Less_eq_f
-%left Plus_i Plus_f Minus_i Minus_f
-%left Mult_i Mult_f Div_i Div_f
+%left Eq_op
+%nonassoc Cmp_op
+%left Plus_op
+%left Mult_op
 %left Dot Ampersand Exclamation
 %left Lpar
 %left Path Hashtag_brack
@@ -145,9 +132,13 @@ stmt:
   | Use; path = use_path { Use ($loc(path), path) }
 
 func:
-  | name = ident; params = parens(param_decl); attr = loption(capture_copies);
+  | name = func_name; params = parens(param_decl); attr = loption(capture_copies);
       return_annot = option(return_annot); Colon; body = block
     { ($loc, { name; params; return_annot; body; attr }) }
+
+func_name:
+  | name = ident { name }
+  | infix = infix_no_inline { $loc(infix), infix }
 
 typedef:
   | Type; name = decl_typename; Equal; Lbrac; labels = separated_nonempty_list(Comma, record_item_decl); Rbrac
@@ -213,6 +204,8 @@ sig_item:
   | typedef = typedef { Stypedef ($loc, typedef) }
   | Type; name = decl_typename { Stypedef ($loc, Tabstract name) }
   | Val; id = ident; Colon; spec = type_spec { Svalue ($loc, (id, spec)) }
+  | Val; id = infix_no_inline; Colon; spec = type_spec
+    { Svalue ($loc, (($loc(id), id), spec)) }
 
 block:
   | expr = expr; %prec If_no_else { [Expr ($loc, expr)] }
@@ -261,6 +254,7 @@ match_pattern:
 
 let_pattern:
   | basic = basic_pattern { basic }
+  | infix = infix_no_inline { Pvar (($loc(infix), infix), Dnorm) }
   | tup = tup_pattern(basic_pattern) { tup }
   | rec_ = record_pattern(basic_pattern) { rec_ }
 
@@ -297,9 +291,14 @@ ctor_ident:
 
 expr:
   | ident = ident { Var ident }
+  | ident = infix { Var ($loc(ident), ident) }
   | lit = lit { Lit ($loc, lit) }
   | a = expr; bop = binop; b = expr { Bop ($loc, bop, a, b) }
-  | unop = unop; expr = expr { Unop ($loc, unop, expr) }
+  | a = expr; infix = infix; b = expr
+    { let a = {apass = Dnorm; aloc = $loc(a); aexpr = a} in
+      let b = {apass = Dnorm; aloc = $loc(b); aexpr = b} in
+      App ($loc, Var($loc(infix), infix), [a; b]) }
+  | op = Plus_op; expr = expr { Unop ($loc, ($loc(op), op), expr) }
   | If; cond = expr; Colon; then_ = then_
     { let then_, elifs, else_ = then_ in parse_elseifs $loc cond then_ elifs else_ }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
@@ -445,29 +444,19 @@ type_path_cont:
   | id = Path_id; path = type_path_cont { Path.Pmod (id, path)  }
   | id = Ident { Path.Pid (id) }
 
-%inline unop:
-  | Minus_i { Uminus_i }
-  | Minus_f { Uminus_f }
+%inline infix:
+  | id = Eq_op { id }
+  | id = Cmp_op { id }
+  | id = Plus_op { id }
+  | id = Mult_op { id }
+
+infix_no_inline:
+  | id = Eq_op { id }
+  | id = Cmp_op { id }
+  | id = Plus_op { id }
+  | id = Mult_op { id }
 
 %inline binop:
-  | Equal_binop { Equal_i }
-  | Plus_i  { Plus_i }
-  | Minus_i { Minus_i }
-  | Mult_i  { Mult_i }
-  | Div_i   { Div_i }
-  | Less_i  { Less_i }
-  | Greater_i { Greater_i }
-  | Less_eq_i  { Less_eq_i }
-  | Greater_eq_i { Greater_eq_i }
-  | Plus_f  { Plus_f }
-  | Minus_f { Minus_f }
-  | Mult_f  { Mult_f }
-  | Div_f   { Div_f }
-  | Less_f  { Less_f }
-  | Greater_f { Greater_f }
-  | Less_eq_f  { Less_eq_f }
-  | Greater_eq_f { Greater_eq_f }
-  | Bin_equal_f { Equal_f }
   | And     { And }
   | Or      { Or }
 

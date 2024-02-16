@@ -1,4 +1,14 @@
 -- common functionality used by the stdlib
+let + = __addi
+let - = __subi
+let * = __multi
+let /. = __divf
+let < = __lessi
+let <= = __lesseqi
+let > = __greateri
+let >= = __greatereqi
+let == = __equali
+let >. = __lesseqf
 
 fun iter_range(from, to, f):
   fun inner(i):
@@ -8,3 +18,4 @@ fun iter_range(from, to, f):
   inner(from)
 
 fun char_equal(a, b): u8_to_int(a) == u8_to_int(b)
+

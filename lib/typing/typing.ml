@@ -1048,15 +1048,15 @@ end = struct
     { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const }; loc }
 
   and convert_unop env loc unop expr =
-    match unop with
-    | Uminus_f ->
+    match snd unop with
+    | "-." ->
         let e = convert env expr in
         unify (loc, "In unary -.") Tfloat e.typ env;
-        { typ = Tfloat; expr = Unop (unop, e); attr = e.attr; loc }
-    | Uminus_i -> (
+        { typ = Tfloat; expr = Unop (Uminus_f, e); attr = e.attr; loc }
+    | "-" -> (
         let e = convert env expr in
         let msg = "In unary -" in
-        let expr = Unop (unop, e) in
+        let expr = Unop (Uminus_i, e) in
 
         try
           (* We allow '-' to also work on float expressions *)
@@ -1071,6 +1071,7 @@ end = struct
               (Tabstract ([], Path.Pid "int or float", Tunit))
               e.typ env;
             failwith "unreachable"))
+    | _ -> raise (Error (fst unop, "Custom unary operators are not supported"))
 
   and convert_if env loc cond e1 e2 =
     (* We can assume pred evaluates to bool and both branches need to evaluate

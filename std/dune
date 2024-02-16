@@ -7,7 +7,7 @@
 
 (rule
  (targets array.o array.smi)
- (deps %{bin:schmu} array.smu)
+ (deps %{bin:schmu} array.smu prelude.smi)
  (action
   (progn
    (run schmu -m --no-std array.smu))))
@@ -18,6 +18,13 @@
  (action
   (progn
    (run schmu -m --no-std int.smu))))
+
+(rule
+ (targets float.o float.smi)
+ (deps %{bin:schmu} float.smu)
+ (action
+  (progn
+   (run schmu -m --no-std float.smu))))
 
 (rule
  (targets prelude.o prelude.smi)
@@ -64,6 +71,7 @@
   hashtbl.smi
   prelude.smi
   int.smi
+  float.smi
   in_channel.smi)
  (action
   (progn
@@ -95,6 +103,9 @@
   in_channel.smu
   (in_channel.smi as std/in_channel.smi)
   (in_channel.o as std/in_channel.o)
+  float.smu
+  (float.smi as std/float.smi)
+  (float.o as std/float.o)
   int.smu
   (int.smi as std/int.smi)
   (int.o as std/int.o)))

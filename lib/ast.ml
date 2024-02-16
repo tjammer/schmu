@@ -54,7 +54,7 @@ and expr =
   | Var of ident
   | Lit of loc * literal
   | Bop of loc * bop * expr * expr
-  | Unop of loc * unop * expr
+  | Unop of loc * ident * expr
   | If of loc * expr * expr * expr option
   | Let_e of loc * decl * passed_expr * expr
   | Lambda of loc * decl list * func_attr list * type_spec option * block

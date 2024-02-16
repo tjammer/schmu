@@ -8,7 +8,6 @@ type option('a) = option/t('a)
 -- prelude re-exports
 let char_equal = prelude/char_equal
 let iter_range = prelude/iter_range
--- TODO this does not yet work for polymorphic functions (def swap prelude/swap)
 
 module array = array
 module hashtbl = hashtbl
@@ -16,3 +15,26 @@ module in_channel = in_channel
 module int = int
 module option = option
 module string = string
+
+-- common operators
+let + = int/(+)
+let - = int/(-)
+let * = int/(*)
+let / = int/(/)
+
+let < = int/(<)
+let > = int/(>)
+let <= = int/(<=)
+let >= = int/(>=)
+let == = int/(==)
+
+let +. = float/(+)
+let -. = float/(-)
+let *. = float/(*)
+let /. = float/(/)
+
+let <. = float/(<)
+let >. = float/(>)
+let <=. = float/(<=)
+let >=. = float/(>=)
+let ==. = float/(==)

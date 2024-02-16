@@ -594,6 +594,11 @@ end = struct
           func_to_closure param arg
     in
     let args = List.map handle_arg args in
+    let binary () =
+      match args with
+      | [ a; b ] -> (bring_default a, bring_default b)
+      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    in
 
     let cast f lltyp typ =
       match args with
@@ -800,53 +805,101 @@ end = struct
         { dummy_fn_value with lltyp = unit_t }
     | Copy -> Auto.copy param allocref (List.hd args)
     | Land ->
-        let a, b =
-          match args with
-          | [ a; b ] -> (bring_default a, bring_default b)
-          | _ -> failwith "Internal Error: Arity mismatch in builtin"
-        in
+        let a, b = binary () in
         let value = Llvm.build_and a b "land" builder in
         { value; lltyp = int_t; typ = Tint; kind = Imm }
     | Lor ->
-        let a, b =
-          match args with
-          | [ a; b ] -> (bring_default a, bring_default b)
-          | _ -> failwith "Internal Error: Arity mismatch in builtin"
-        in
+        let a, b = binary () in
         let value = Llvm.build_or a b "lor" builder in
         { value; lltyp = int_t; typ = Tint; kind = Imm }
     | Lxor ->
-        let a, b =
-          match args with
-          | [ a; b ] -> (bring_default a, bring_default b)
-          | _ -> failwith "Internal Error: Arity mismatch in builtin"
-        in
+        let a, b = binary () in
         let value = Llvm.build_xor a b "lor" builder in
         { value; lltyp = int_t; typ = Tint; kind = Imm }
     | Lshl ->
-        let a, b =
-          match args with
-          | [ a; b ] -> (bring_default a, bring_default b)
-          | _ -> failwith "Internal Error: Arity mismatch in builtin"
-        in
+        let a, b = binary () in
         let value = Llvm.build_shl a b "lshl" builder in
         { value; lltyp = int_t; typ = Tint; kind = Imm }
     | Lshr ->
-        let a, b =
-          match args with
-          | [ a; b ] -> (bring_default a, bring_default b)
-          | _ -> failwith "Internal Error: Arity mismatch in builtin"
-        in
+        let a, b = binary () in
         let value = Llvm.build_lshr a b "lshr" builder in
         { value; lltyp = int_t; typ = Tint; kind = Imm }
     | Ashr ->
-        let a, b =
-          match args with
-          | [ a; b ] -> (bring_default a, bring_default b)
-          | _ -> failwith "Internal Error: Arity mismatch in builtin"
-        in
+        let a, b = binary () in
         let value = Llvm.build_ashr a b "ashr" builder in
         { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Addi ->
+        let a, b = binary () in
+        let value = Llvm.build_add a b "add" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Subi ->
+        let a, b = binary () in
+        let value = Llvm.build_sub a b "sub" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Multi ->
+        let a, b = binary () in
+        let value = Llvm.build_mul a b "mul" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Divi ->
+        let a, b = binary () in
+        let value = Llvm.build_sdiv a b "div" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Addf ->
+        let a, b = binary () in
+        let value = Llvm.build_fadd a b "add" builder in
+        { value; lltyp = float_t; typ = Tfloat; kind = Imm }
+    | Subf ->
+        let a, b = binary () in
+        let value = Llvm.build_fsub a b "sub" builder in
+        { value; lltyp = float_t; typ = Tfloat; kind = Imm }
+    | Mulf ->
+        let a, b = binary () in
+        let value = Llvm.build_fmul a b "mul" builder in
+        { value; lltyp = float_t; typ = Tfloat; kind = Imm }
+    | Divf ->
+        let a, b = binary () in
+        let value = Llvm.build_fdiv a b "div" builder in
+        { value; lltyp = float_t; typ = Tfloat; kind = Imm }
+    | Lessi ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Slt) a b "lt" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Greateri ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Sgt) a b "gt" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Lesseqi ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Sle) a b "le" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Greatereqi ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Sge) a b "ge" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Equali ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Eq) a b "eq" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Lessf ->
+        let a, b = binary () in
+        let value = Llvm.(build_fcmp Fcmp.Olt) a b "lt" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Greaterf ->
+        let a, b = binary () in
+        let value = Llvm.(build_fcmp Fcmp.Ogt) a b "gt" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Lesseqf ->
+        let a, b = binary () in
+        let value = Llvm.(build_fcmp Fcmp.Ole) a b "le" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Greatereqf ->
+        let a, b = binary () in
+        let value = Llvm.(build_fcmp Fcmp.Oge) a b "ge" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Equalf ->
+        let a, b = binary () in
+        let value = Llvm.(build_fcmp Fcmp.Oeq) a b "eq" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)

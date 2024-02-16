@@ -25,6 +25,8 @@ fun len(str : t): array/length(str)
 fun data(str : t): array/data(str)
 fun get(str : t, i): str.[i]
 
+use prelude
+
 fun hash(str):
   -- unsigned long
   -- hash(unsigned char *str)
