@@ -7,6 +7,8 @@ let link outname objects cargs =
       outname (String.concat " " cargs)
   in
   let ret = Sys.command cmd in
-  if ret = 0 then (* Remove temp object file *)
-    Sys.remove (outname ^ ".o")
-  else Printf.printf "cc returned %i: %s\n" ret cmd
+  if ret = 0 then (
+    (* Remove temp object file *)
+    Sys.remove (outname ^ ".o");
+    Ok ())
+  else Error (Printf.sprintf "cc returned %i: %s\n" ret cmd)

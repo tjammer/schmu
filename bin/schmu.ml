@@ -65,23 +65,23 @@ let run file
   let open Schmulang in
   try
     Parse.parse file >>= fun prog ->
-    Ok
-      (let mname = if modul then Path.Pid outname else Typing.main_path in
-       let ttree, m = Typing.to_typed ~mname ~std fmt_msg_fn prog in
+    let mname = if modul then Path.Pid outname else Typing.main_path in
+    let ttree, m = Typing.to_typed ~mname ~std fmt_msg_fn prog in
 
-       if check_only then ()
-       else (
-         (* TODO if a module has only forward decls, we don't need to codegen anything *)
-         Monomorph_tree.monomorphize ~mname ttree
-         |> Codegen.generate ~target ~outname ~release ~modul
-         |> ignore;
-         if dump_llvm then Llvm.dump_module Codegen.the_module;
-         if modul then (
-           let modfile = open_out (outname ^ ".smi") in
-           Module.to_channel modfile ~outname m;
-           close_out modfile)
-         else if compile_only then ()
-         else Link.link outname objects cargs))
+    if check_only then Ok ()
+    else (
+      (* TODO if a module has only forward decls, we don't need to codegen anything *)
+      Monomorph_tree.monomorphize ~mname ttree
+      |> Codegen.generate ~target ~outname ~release ~modul
+      |> ignore;
+      if dump_llvm then Llvm.dump_module Codegen.the_module;
+      if modul then (
+        let modfile = open_out (outname ^ ".smi") in
+        Module.to_channel modfile ~outname m;
+        close_out modfile;
+        Ok ())
+      else if compile_only then Ok ()
+      else Link.link outname objects cargs)
   with Error.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
