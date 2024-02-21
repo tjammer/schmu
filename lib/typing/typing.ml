@@ -667,7 +667,7 @@ end = struct
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, pass, expr, cases) -> convert_match env loc pass expr cases
     | Local_use (loc, name, expr) ->
-        disambiguate_uses env loc (Path.Pid name) expr
+        disambiguate_uses env loc annot (Path.Pid name) expr
     | Fmt (loc, exprs) -> convert_fmt env loc exprs
 
   and convert_var env loc id =
@@ -1285,13 +1285,13 @@ end = struct
   and convert_block ?(ret = true) env stmts =
     convert_block_annot ~ret env None stmts
 
-  and disambiguate_uses env loc path = function
+  and disambiguate_uses env loc annot path = function
     | Ast.Local_use (_, id, tl) ->
-        disambiguate_uses env loc (Path.append id path) tl
+        disambiguate_uses env loc annot (Path.append id path) tl
     | Var (_, id) -> convert_var env loc (Path.append id path)
     | expr ->
         let env = Env.use_module env loc path in
-        convert env expr
+        convert_annot env annot expr
 end
 
 and Records : Recs.S = Recs.Make (Core)

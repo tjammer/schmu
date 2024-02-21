@@ -86,10 +86,6 @@ let lor_clike_hack env loc name annot =
           | Some (_, ctor, variant) ->
               if is_clike_variant variant then
                 let attr = { no_attr with const = true } in
-                (* TODO the type should be Tint. This will be changed later in
-                   [builtins_hack]. We keep the type here to verify that variant
-                   types don't mix in this use case, which would be possible if
-                   we throw the type away (to Tint) *)
                 Some { typ = Tint; expr = Const (Int ctor.index); attr; loc }
               else None
           | None -> None)
