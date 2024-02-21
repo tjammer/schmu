@@ -804,13 +804,15 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   
   declare { i32, i64 } @load_shader(i8* %0, i8* %1)
   
+  declare void @set_shader_value(i32 %0, i64 %1, i32 %2, %"4d_"* byval(%"4d_") %3)
+  
   define i64 @main(i64 %arg) {
   entry:
     %boxconst = alloca %"2d_", align 8
     store %"2d_" { double 1.000000e+00, double 1.000000e+01 }, %"2d_"* %boxconst, align 8
     %unbox = bitcast %"2d_"* %boxconst to { double, double }*
-    %fst44 = bitcast { double, double }* %unbox to double*
-    %fst1 = load double, double* %fst44, align 8
+    %fst50 = bitcast { double, double }* %unbox to double*
+    %fst1 = load double, double* %fst50, align 8
     %snd = getelementptr inbounds { double, double }, { double, double }* %unbox, i32 0, i32 1
     %snd2 = load double, double* %snd, align 8
     %ret = alloca %"2d_", align 8
@@ -820,8 +822,8 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %boxconst4 = alloca %"2l_", align 8
     store %"2l_" { i64 1, i64 10 }, %"2l_"* %boxconst4, align 8
     %unbox5 = bitcast %"2l_"* %boxconst4 to { i64, i64 }*
-    %fst645 = bitcast { i64, i64 }* %unbox5 to i64*
-    %fst7 = load i64, i64* %fst645, align 8
+    %fst651 = bitcast { i64, i64 }* %unbox5 to i64*
+    %fst7 = load i64, i64* %fst651, align 8
     %snd8 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %unbox5, i32 0, i32 1
     %snd9 = load i64, i64* %snd8, align 8
     %ret10 = alloca %"2l_", align 8
@@ -863,8 +865,8 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %boxconst32 = alloca %"3f_", align 8
     store %"3f_" { float 2.000000e+00, float 3.000000e+00, float 5.000000e+00 }, %"3f_"* %boxconst32, align 4
     %unbox33 = bitcast %"3f_"* %boxconst32 to { <2 x float>, float }*
-    %fst3446 = bitcast { <2 x float>, float }* %unbox33 to <2 x float>*
-    %fst35 = load <2 x float>, <2 x float>* %fst3446, align 8
+    %fst3452 = bitcast { <2 x float>, float }* %unbox33 to <2 x float>*
+    %fst35 = load <2 x float>, <2 x float>* %fst3452, align 8
     %snd36 = getelementptr inbounds { <2 x float>, float }, { <2 x float>, float }* %unbox33, i32 0, i32 1
     %snd37 = load float, float* %snd36, align 4
     %ret38 = alloca %"3f_", align 8
@@ -877,6 +879,16 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %8 = call { i32, i64 } @load_shader(i8* %6, i8* %7)
     %box42 = bitcast %ipi2_* %ret41 to { i32, i64 }*
     store { i32, i64 } %8, { i32, i64 }* %box42, align 8
+    %9 = alloca %ipi2_, align 8
+    %id53 = bitcast %ipi2_* %9 to i32*
+    store i32 0, i32* %id53, align 4
+    %locs = getelementptr inbounds %ipi2_, %ipi2_* %9, i32 0, i32 1
+    store i32* null, i32** %locs, align 8
+    %unbox44 = bitcast %ipi2_* %9 to { i32, i64 }*
+    %snd47 = getelementptr inbounds { i32, i64 }, { i32, i64 }* %unbox44, i32 0, i32 1
+    %boxconst49 = alloca %"4d_", align 8
+    store %"4d_" { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02, double 1.000000e+03 }, %"4d_"* %boxconst49, align 8
+    call void @set_shader_value(i32 0, i64 0, i32 0, %"4d_"* %boxconst49)
     ret i64 0
   }
 

@@ -114,6 +114,8 @@ module Make (A : Abi_intf.S) = struct
               incr i;
               match pkind_of_typ p.pmut typ with
               | Unboxed (Two_params (fst, snd)) ->
+                  (* Two parameters so we have to increase the param count. *)
+                  incr i;
                   (* snd before fst b/c we rev later *)
                   lltype_unbox snd :: lltype_unbox fst :: ps
               | Boxed when is_aggregate typ ->
