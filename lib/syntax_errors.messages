@@ -474,14 +474,6 @@ prog: Ampersand Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Right_arrow With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident Right_arrow Ident Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Ident Plus_op With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -550,11 +542,15 @@ prog: Ident Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Dot Lbrack With
+prog: Ident Dot Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Dot Lbrack Ident With
+prog: Ident Dot Lpar Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Dot Lpar Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -611,6 +607,14 @@ prog: Ident And With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Ident And Ident Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Dot Lbrack With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident Dot Lbrack Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

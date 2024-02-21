@@ -6,4 +6,4 @@ fun alt(a, b):
         some: some
     some: some
 
-alt((fun (): #none), fun (): #none) -> ignore
+alt((fun (): #none), fun (): #none).ignore()

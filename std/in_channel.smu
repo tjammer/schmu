@@ -36,7 +36,7 @@ fun open(name):
     #some({buf = #4096[0u8], head = 0, unseen = 0, file})
 
 fun close(ic):
-  fclose(ic.file) -> ignore
+  fclose(ic.file).ignore()
 
 fun with_open(name, f):
   match open(name):

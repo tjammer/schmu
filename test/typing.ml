@@ -318,23 +318,20 @@ let test_para_instance_wrong_func () =
      let foo = {gen = 17}\n\
      apply({gen = true})"
 
-let test_pipe_head_single () = test "int" "fun add1(a): a + 1\n10 -> add1"
-
-let test_pipe_head_single_call () =
-  test "int" "fun add1(a): a + 1\n10 -> add1()"
+let test_pipe_head_single () = test "int" "fun add1(a): a + 1\n10.add1()"
 
 let test_pipe_head_multi_call () =
-  test "int" "fun add1(a): a + 1\n10 -> add1 -> add1"
+  test "int" "fun add1(a): a + 1\n10.add1().add1()"
 
 let test_pipe_head_single_wrong_type () =
   test_exn "In application expecting [(int) -> 'a] but found [int]"
-    "let add1 = 1\n10 -> add1"
+    "let add1 = 1\n10.add1()"
 
-let test_pipe_head_mult () = test "int" "fun add(a, b): a + b\n10 -> add(12)"
+let test_pipe_head_mult () = test "int" "fun add(a, b): a + b\n10.add(12)"
 
 let test_pipe_head_mult_wrong_type () =
   test_exn "In application expecting ([int, int]) -> _ but found ([int]) -> _"
-    "fun add1(a): a + 1\n10 -> add1(12)"
+    "fun add1(a): a + 1\n10.add1(12)"
 
 let test_pipe_tail_single () = test "int" "fun add1(a): a + 1\n10 |> add1"
 
@@ -517,7 +514,7 @@ let test_match_missing_nested () =
     {|type option('a) = #none | #some('a)
 type test = #float(float) | #int(int) | #non
 match #none:
-  #some(#float(f)): f -> int_of_float
+  #some(#float(f)): f.int_of_float()
   -- #some(#int(i))
   -- #some #non
   #none: 0
@@ -538,7 +535,7 @@ let test_match_redundant_all_cases () =
     {|type option('a) = #none | #some('a)
 type test = #float(float) | #int(int) | #non
 match #none:
-  #some(#float(f)): f -> int_of_float
+  #some(#float(f)): f.int_of_float()
   #some(#int(i)): i
   #some(#non): 1
   #none: 0
@@ -555,7 +552,7 @@ let test_match_wildcard_nested () =
     {|type option('a) = #none | #some('a)
 type test = #float(float) | #int(int) | #non
 match #none:
-  #some(#float(f)): f -> int_of_float
+  #some(#float(f)): f.int_of_float()
   #some(_): -2
   #some(#non): 1
   #none: 0
@@ -1328,7 +1325,6 @@ let () =
       ( "piping",
         [
           case "head_single" test_pipe_head_single;
-          case "head_single_call" test_pipe_head_single_call;
           case "head_multi_call" test_pipe_head_multi_call;
           case "head_single_wrong_type" test_pipe_head_single_wrong_type;
           case "head_mult" test_pipe_head_mult;

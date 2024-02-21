@@ -4,4 +4,4 @@ do:
   match(#some(r)):
     #some(r): {int = r.int, thing = 0}
     #none: {int = 0, thing = 0}
-  -> ignore
+  .ignore()

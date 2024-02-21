@@ -96,7 +96,7 @@
 %nonassoc If_no_else
 %nonassoc Elseif
 %nonassoc Else
-%left Right_arrow Pipe_tail
+%left Pipe_tail
 %left And Or
 %left Eq_op
 %nonassoc Cmp_op
@@ -306,6 +306,9 @@ expr:
   | aexpr = expr; Dot; callee = ident; args = parens(call_arg)
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, Var callee, args)))}
+  | aexpr = expr; Dot; Lpar; callee = expr; Rpar; args = parens(call_arg)
+    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
+      Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
   | aexpr = expr; apass = decl_attr; callee = ident; args = parens(call_arg)
     { let arg = {apass; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, Var callee, args)))}
@@ -333,9 +336,6 @@ expr:
   | Lbrac; record = expr; With; items = separated_nonempty_list(Comma, record_item); Rbrac
     { Record_update ($loc, record, items) }
   | Do; Colon; block = block { Do_block block }
-  | aexpr = expr; Right_arrow; pipeable = expr
-    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
-      Pipe_head ($loc, arg, Pip_expr pipeable) }
   | aexpr = expr; Pipe_tail; pipeable = expr
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_tail ($loc, arg, Pip_expr pipeable) }

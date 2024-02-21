@@ -80,7 +80,7 @@ fun boyer_moore_horspool(pattern, str):
     if (istr + len(pattern)) <= len(str):
       if char_equal(last_patchar, last_windowchar) and
         (memcmp(array/data(pattern), __unsafe_ptr_at(strptr, istr), patlen1)
-          -> int_of_i32) == 0:
+          .int_of_i32()) == 0:
         #some(istr)
       else:
         let skip = skips#[u8_to_int(last_windowchar)]
