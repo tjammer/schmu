@@ -10,7 +10,7 @@ let rec type_name = function
   | Pmod ("schmu", p) ->
       (* Don't prefix everything from the main module with "schmu" *)
       type_name p
-  | Pmod (n, p) -> n ^ "/" ^ type_name p
+  | Pmod (n, p) -> n ^ "." ^ type_name p
 
 open Sexplib0
 

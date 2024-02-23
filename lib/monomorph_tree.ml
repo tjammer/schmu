@@ -128,7 +128,8 @@ open Monomorph_impl.Mallocs_ipml
 
 (* Re-exports from monomorph *)
 let typ_of_abs = typ_of_abs
-let short_name = short_name
+let structural_name = structural_name
+let nominal_name = nominal_name "" ~closure:false ~poly:(Tpoly "-")
 
 let no_var =
   { fn = No_function; alloc = No_value; malloc = No_malloc; tailrec = false }

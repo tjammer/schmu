@@ -230,17 +230,17 @@ Copy records
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %dac_lal3_ = type { %dac_lal2_ }
-  %dac_lal2_ = type { double, i8*, i64, i64* }
+  %contdac_lal2__ = type { %t_ }
+  %t_ = type { double, i8*, i64, i64* }
   
-  @schmu_a = global %dac_lal3_ zeroinitializer, align 8
+  @schmu_a = global %contdac_lal2__ zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"lul\00" }
   
   declare void @string_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    store double 1.000000e+01, double* getelementptr inbounds (%dac_lal3_, %dac_lal3_* @schmu_a, i32 0, i32 0, i32 0), align 8
+    store double 1.000000e+01, double* getelementptr inbounds (%contdac_lal2__, %contdac_lal2__* @schmu_a, i32 0, i32 0, i32 0), align 8
     %0 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, [4 x i8] }* @0 to i8*), i8** %0, align 8
     %1 = alloca i8*, align 8
@@ -249,8 +249,8 @@ Copy records
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     call void @__copy_ac_(i8** %1)
     %4 = load i8*, i8** %1, align 8
-    store i8* %4, i8** getelementptr inbounds (%dac_lal3_, %dac_lal3_* @schmu_a, i32 0, i32 0, i32 1), align 8
-    store i64 10, i64* getelementptr inbounds (%dac_lal3_, %dac_lal3_* @schmu_a, i32 0, i32 0, i32 2), align 8
+    store i8* %4, i8** getelementptr inbounds (%contdac_lal2__, %contdac_lal2__* @schmu_a, i32 0, i32 0, i32 1), align 8
+    store i64 10, i64* getelementptr inbounds (%contdac_lal2__, %contdac_lal2__* @schmu_a, i32 0, i32 0, i32 2), align 8
     %5 = call i8* @malloc(i64 40)
     %6 = bitcast i8* %5 to i64*
     %arr = alloca i64*, align 8
@@ -265,17 +265,17 @@ Copy records
     store i64 20, i64* %"1", align 8
     %"2" = getelementptr i64, i64* %data, i64 2
     store i64 30, i64* %"2", align 8
-    store i64* %6, i64** getelementptr inbounds (%dac_lal3_, %dac_lal3_* @schmu_a, i32 0, i32 0, i32 3), align 8
-    %8 = alloca %dac_lal3_, align 8
-    %9 = bitcast %dac_lal3_* %8 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* bitcast (%dac_lal3_* @schmu_a to i8*), i64 32, i1 false)
-    call void @__copy_dac_lal3_(%dac_lal3_* %8)
-    %10 = bitcast %dac_lal3_* %8 to %dac_lal2_*
-    %11 = getelementptr inbounds %dac_lal2_, %dac_lal2_* %10, i32 0, i32 1
+    store i64* %6, i64** getelementptr inbounds (%contdac_lal2__, %contdac_lal2__* @schmu_a, i32 0, i32 0, i32 3), align 8
+    %8 = alloca %contdac_lal2__, align 8
+    %9 = bitcast %contdac_lal2__* %8 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %9, i8* bitcast (%contdac_lal2__* @schmu_a to i8*), i64 32, i1 false)
+    call void @__copy_dac_lal3_(%contdac_lal2__* %8)
+    %10 = bitcast %contdac_lal2__* %8 to %t_*
+    %11 = getelementptr inbounds %t_, %t_* %10, i32 0, i32 1
     %12 = load i8*, i8** %11, align 8
     call void @string_print(i8* %12)
-    call void @__free_dac_lal3_(%dac_lal3_* %8)
-    call void @__free_dac_lal3_(%dac_lal3_* @schmu_a)
+    call void @__free_dac_lal3_(%contdac_lal2__* %8)
+    call void @__free_dac_lal3_(%contdac_lal2__* @schmu_a)
     ret i64 0
   }
   
@@ -303,11 +303,11 @@ Copy records
   
   declare i8* @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_dac_lal2_(%dac_lal2_* %0) {
+  define linkonce_odr void @__copy_dac_lal2_(%t_* %0) {
   entry:
-    %1 = getelementptr inbounds %dac_lal2_, %dac_lal2_* %0, i32 0, i32 1
+    %1 = getelementptr inbounds %t_, %t_* %0, i32 0, i32 1
     call void @__copy_ac_(i8** %1)
-    %2 = getelementptr inbounds %dac_lal2_, %dac_lal2_* %0, i32 0, i32 3
+    %2 = getelementptr inbounds %t_, %t_* %0, i32 0, i32 3
     call void @__copy_al_(i64** %2)
     ret void
   }
@@ -330,18 +330,18 @@ Copy records
     ret void
   }
   
-  define linkonce_odr void @__copy_dac_lal3_(%dac_lal3_* %0) {
+  define linkonce_odr void @__copy_dac_lal3_(%contdac_lal2__* %0) {
   entry:
-    %1 = bitcast %dac_lal3_* %0 to %dac_lal2_*
-    call void @__copy_dac_lal2_(%dac_lal2_* %1)
+    %1 = bitcast %contdac_lal2__* %0 to %t_*
+    call void @__copy_dac_lal2_(%t_* %1)
     ret void
   }
   
-  define linkonce_odr void @__free_dac_lal2_(%dac_lal2_* %0) {
+  define linkonce_odr void @__free_dac_lal2_(%t_* %0) {
   entry:
-    %1 = getelementptr inbounds %dac_lal2_, %dac_lal2_* %0, i32 0, i32 1
+    %1 = getelementptr inbounds %t_, %t_* %0, i32 0, i32 1
     call void @__free_ac_(i8** %1)
-    %2 = getelementptr inbounds %dac_lal2_, %dac_lal2_* %0, i32 0, i32 3
+    %2 = getelementptr inbounds %t_, %t_* %0, i32 0, i32 3
     call void @__free_al_(i64** %2)
     ret void
   }
@@ -363,10 +363,10 @@ Copy records
     ret void
   }
   
-  define linkonce_odr void @__free_dac_lal3_(%dac_lal3_* %0) {
+  define linkonce_odr void @__free_dac_lal3_(%contdac_lal2__* %0) {
   entry:
-    %1 = bitcast %dac_lal3_* %0 to %dac_lal2_*
-    call void @__free_dac_lal2_(%dac_lal2_* %1)
+    %1 = bitcast %contdac_lal2__* %0 to %t_*
+    call void @__free_dac_lal2_(%t_* %1)
     ret void
   }
   
@@ -381,17 +381,17 @@ Copy variants
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %vac_l2_ = type { i32, %ac_l_ }
+  %option.tac_l__ = type { i32, %ac_l_ }
   %ac_l_ = type { i8*, i64 }
   
-  @schmu_a = global %vac_l2_ zeroinitializer, align 8
+  @schmu_a = global %option.tac_l__ zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
   declare void @string_print(i8* %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    store i32 0, i32* getelementptr inbounds (%vac_l2_, %vac_l2_* @schmu_a, i32 0, i32 0), align 4
+    store i32 0, i32* getelementptr inbounds (%option.tac_l__, %option.tac_l__* @schmu_a, i32 0, i32 0), align 4
     %0 = alloca i8*, align 8
     store i8* bitcast ({ i64, i64, [6 x i8] }* @0 to i8*), i8** %0, align 8
     %1 = alloca i8*, align 8
@@ -400,19 +400,19 @@ Copy variants
     call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
     call void @__copy_ac_(i8** %1)
     %4 = load i8*, i8** %1, align 8
-    store i8* %4, i8** getelementptr inbounds (%vac_l2_, %vac_l2_* @schmu_a, i32 0, i32 1, i32 0), align 8
-    store i64 0, i64* getelementptr inbounds (%vac_l2_, %vac_l2_* @schmu_a, i32 0, i32 1, i32 1), align 8
-    %5 = alloca %vac_l2_, align 8
-    %6 = bitcast %vac_l2_* %5 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* bitcast (%vac_l2_* @schmu_a to i8*), i64 24, i1 false)
-    call void @__copy_vac_l2_(%vac_l2_* %5)
-    %tag1 = bitcast %vac_l2_* %5 to i32*
+    store i8* %4, i8** getelementptr inbounds (%option.tac_l__, %option.tac_l__* @schmu_a, i32 0, i32 1, i32 0), align 8
+    store i64 0, i64* getelementptr inbounds (%option.tac_l__, %option.tac_l__* @schmu_a, i32 0, i32 1, i32 1), align 8
+    %5 = alloca %option.tac_l__, align 8
+    %6 = bitcast %option.tac_l__* %5 to i8*
+    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* bitcast (%option.tac_l__* @schmu_a to i8*), i64 24, i1 false)
+    call void @__copy_vac_l2_(%option.tac_l__* %5)
+    %tag1 = bitcast %option.tac_l__* %5 to i32*
     %index = load i32, i32* %tag1, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %vac_l2_, %vac_l2_* %5, i32 0, i32 1
+    %data = getelementptr inbounds %option.tac_l__, %option.tac_l__* %5, i32 0, i32 1
     %7 = getelementptr inbounds %ac_l_, %ac_l_* %data, i32 0, i32 1
     %8 = bitcast %ac_l_* %data to i8**
     %9 = load i8*, i8** %8, align 8
@@ -420,8 +420,8 @@ Copy variants
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
-    call void @__free_vac_l2_(%vac_l2_* %5)
-    call void @__free_vac_l2_(%vac_l2_* @schmu_a)
+    call void @__free_vac_l2_(%option.tac_l__* %5)
+    call void @__free_vac_l2_(%option.tac_l__* @schmu_a)
     ret i64 0
   }
   
@@ -454,15 +454,15 @@ Copy variants
     ret void
   }
   
-  define linkonce_odr void @__copy_vac_l2_(%vac_l2_* %0) {
+  define linkonce_odr void @__copy_vac_l2_(%option.tac_l__* %0) {
   entry:
-    %tag1 = bitcast %vac_l2_* %0 to i32*
+    %tag1 = bitcast %option.tac_l__* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %vac_l2_, %vac_l2_* %0, i32 0, i32 1
+    %data = getelementptr inbounds %option.tac_l__, %option.tac_l__* %0, i32 0, i32 1
     call void @__copy_ac_l_(%ac_l_* %data)
     br label %cont
   
@@ -486,15 +486,15 @@ Copy variants
     ret void
   }
   
-  define linkonce_odr void @__free_vac_l2_(%vac_l2_* %0) {
+  define linkonce_odr void @__free_vac_l2_(%option.tac_l__* %0) {
   entry:
-    %tag1 = bitcast %vac_l2_* %0 to i32*
+    %tag1 = bitcast %option.tac_l__* %0 to i32*
     %index = load i32, i32* %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %vac_l2_, %vac_l2_* %0, i32 0, i32 1
+    %data = getelementptr inbounds %option.tac_l__, %option.tac_l__* %0, i32 0, i32 1
     call void @__free_ac_l_(%ac_l_* %data)
     br label %cont
   

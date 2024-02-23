@@ -10,7 +10,7 @@ module Make (A : Abi_intf.S) = struct
 
   (* Named structs for typedefs *)
 
-  let struct_name t = Monomorph_tree.short_name ~closure:false t
+  let struct_name t = Monomorph_tree.nominal_name t
 
   (** For functions, when passed as parameter, we convert it to a closure ptr
    to later cast to the correct types. At the application, we need to
