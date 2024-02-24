@@ -15,6 +15,7 @@ module in_channel = in_channel
 module int = int
 module option = option
 module string = string
+module unsafe = unsafe
 
 -- common operators
 let + = int/(+)

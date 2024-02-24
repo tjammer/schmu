@@ -1,0 +1,14 @@
+signature:
+  val nullptr : () -> raw_ptr(u8)
+
+  -- functions on raw pointers
+  val get : (raw_ptr('a), int) -> 'a
+  val +> : (raw_ptr('a), int) -> 'a
+  val at : (raw_ptr('a), int) -> raw_ptr('a)
+  val reinterpret : (raw_ptr('a)) -> raw_ptr('b)
+
+let nullptr = __unsafe_nullptr
+let get = __unsafe_ptr_get
+let +> = __unsafe_ptr_get
+let at = __unsafe_ptr_at
+let reinterpret = __unsafe_ptr_reinterpret

@@ -61,6 +61,13 @@
    (run schmu -m --no-std option.smu))))
 
 (rule
+ (targets unsafe.o unsafe.smi)
+ (deps %{bin:schmu} unsafe.smu)
+ (action
+  (progn
+   (run schmu -m --no-std unsafe.smu))))
+
+(rule
  (alias stdlib)
  (targets std.o std.smi)
  (deps
@@ -72,6 +79,7 @@
   prelude.smi
   int.smi
   float.smi
+  unsafe.smi
   in_channel.smi)
  (action
   (progn
@@ -108,4 +116,7 @@
   (float.o as std/float.o)
   int.smu
   (int.smi as std/int.smi)
-  (int.o as std/int.o)))
+  (int.o as std/int.o)
+  unsafe.smu
+  (unsafe.smi as std/unsafe.smi)
+  (unsafe.o as std/unsafe.o)))
