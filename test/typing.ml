@@ -722,7 +722,7 @@ type t('a) = {x : int}
 fun create_int(x : int): {x}|}
 
 let test_signature_unparam_type () =
-  test_exn "Unparamatrized type in module implementation"
+  test_exn "Primitive type has no type parameter"
     {|signature:
   type t('a)
 type t('a) = int|}

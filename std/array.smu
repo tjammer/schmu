@@ -77,3 +77,5 @@ fun reserve(arr&, size):
   if __array_capacity(arr) < size:
     __unsafe_array_realloc(&arr, size)
 
+module fixed:
+  let data = __fixed_array_data

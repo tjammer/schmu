@@ -542,18 +542,20 @@ and match_type_params ~in_functor params typ =
       try
         let subst = List.fold_left2 buildup_subst Smap.empty params ps in
         Ok (replace_qvar ~in_functor subst typ)
-      with Invalid_argument _ -> Error ())
+      with Invalid_argument _ -> Error "Type arity does not match")
   | Talias (n, t) ->
       let* t = match_type_params ~in_functor params t in
       Ok (Talias (n, t))
   | (Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32) as t -> (
-      match params with [] -> Ok t | _ -> Error ())
+      match params with
+      | [] -> Ok t
+      | _ -> Error "Primitive type has no type parameter")
   | Tvar { contents = Unbound _ } as t ->
       (* failwith "Internal Error: how is this unbound" *) Ok t
   | Qvar _ -> (
       match params with
       | [ Qvar other ] -> Ok (Qvar other)
-      | _ -> failwith "Internal Error: Type param is not qvar")
+      | _ -> Error "Type parameter does not match to signature")
   | Tvar { contents = Link t } ->
       let* t = match_type_params ~in_functor params t in
       Ok t

@@ -16,4 +16,5 @@ val types_match : in_functor:bool -> typ -> typ -> typ * string Smap.t * bool
    This is true for functions where we want to be as general as possible.
        We need to match everything for weak vars though *)
 
-val match_type_params : in_functor:bool -> typ list -> typ -> (typ, unit) result
+val match_type_params :
+  in_functor:bool -> typ list -> typ -> (typ, string) result

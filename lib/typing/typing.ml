@@ -399,11 +399,7 @@ let check_type_unique env loc ~in_sig name typ =
       let typ =
         match match_type_params ~in_functor:false ps typ with
         | Ok typ -> typ
-        | Error _ ->
-            (* This could have multiple reasons, but we throw this error for now
-               to let a test pass and because no other error came up in
-               testing *)
-            raise (Error (loc, "Unparamatrized type in module implementation"))
+        | Error msg -> raise (Error (loc, msg))
       in
 
       t := Link typ;

@@ -578,12 +578,7 @@ let validate_intf env loc ~in_functor (name, _, styp, kind) rhs =
           let typ =
             match Inference.match_type_params ~in_functor ps ityp with
             | Ok typ -> typ
-            | Error _ ->
-                (* This could have multiple reasons, but we throw this error for
-                   now to let a test pass and because no other error came up in
-                   testing *)
-                raise
-                  (Error (loc, "Unparamatrized type in module implementation"))
+            | Error msg -> raise (Error (loc, msg))
           in
           t := Link typ
       | _ -> ());
