@@ -452,6 +452,22 @@ let test_mutable_nonmut_transitive_inv () =
   test_exn "Cannot mutate non-mutable binding"
     "type foo = {x : int}\nlet foo& = {x = 12}\n&foo.x <- 13"
 
+let test_mutable_track_ptr_nonmut () =
+  test_exn "Cannot project immutable binding"
+    "type thing = { ptr : raw_ptr(u8) }\n\
+     do:\n\
+    \  let thing = { ptr = __unsafe_nullptr() }\n\
+    \  let proj& = &(__unsafe_ptr_get(thing.ptr, 0))\n\
+    \  0"
+
+let test_mutable_track_ptr_mut () =
+  test "int"
+    "type thing = { ptr& : raw_ptr(u8) }\n\
+     do:\n\
+    \  let thing& = { ptr = __unsafe_nullptr() }\n\
+    \  let proj& = &(__unsafe_ptr_get(thing.ptr, 0))\n\
+    \  0"
+
 let test_variants_option_none () =
   test_exn "Expression contains weak type variables: option('a)"
     "type option('a) = #none | #some('a)\n#none"
@@ -1366,6 +1382,8 @@ let () =
           case "nonmut value" test_mutable_nonmut_value;
           case "nonmut transitive" test_mutable_nonmut_transitive;
           case "nonmut transitive inversed" test_mutable_nonmut_transitive_inv;
+          case "ptr track mutability" test_mutable_track_ptr_nonmut;
+          case "ptr track mutability correct" test_mutable_track_ptr_mut;
         ] );
       ( "variants",
         [
