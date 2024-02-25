@@ -200,6 +200,9 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         | Some (_, n) when is_polymorphic cleaned -> Some (name, n)
         | Some _ | None -> (* When can alias a concrete type *) None)
     | Tvar { contents = Link t } -> is_quantified t
+    | Tfun _ as t -> (
+        let ts = get_generic_ids t in
+        match ts with [] -> None | ts -> Some (Path.Pid "fun", List.length ts))
     | _ -> None
   in
 
@@ -289,7 +292,9 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
                   (if n > 1 then "s" else "")
               in
               raise (Error (loc, msg)))
-        | None -> failwith "Internal Error: Not sure, this shouldn't happen")
+        | None ->
+            print_endline (show_typ t);
+            failwith "Internal Error: Not sure, this shouldn't happen")
   and handle_func env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ (t, _) ] -> concrete_type false env t
