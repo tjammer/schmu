@@ -27,6 +27,7 @@ module Make (A : Abi_intf.S) = struct
     | Tpoly _ -> generic_t |> Llvm.pointer_type
     | (Trecord _ as t) | (Tvariant _ as t) -> get_struct t
     | Tfun _ -> closure_t
+    | Traw_ptr Tunit | Tarray Tunit -> Llvm.pointer_type u8_t
     | Traw_ptr t | Tarray t -> get_lltype_def t |> Llvm.pointer_type
     | Tfixed_array (i, t) -> Llvm.array_type (get_lltype_def t) i
 

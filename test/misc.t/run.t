@@ -4286,7 +4286,7 @@ Using unit values
   @schmu_b__2 = global %option.tu_ zeroinitializer, align 4
   @schmu_t2 = global %thing_ zeroinitializer, align 1
   @schmu_u2 = global i8 0, align 1
-  @schmu_arr = global void* null, align 8
+  @schmu_arr = global i8* null, align 8
   @schmu_u__2 = global i8 0, align 1
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"some\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
@@ -4295,10 +4295,10 @@ Using unit values
   
   declare void @string_print(i8* %0)
   
-  define linkonce_odr void @__array_push_au_u_(void** noalias %arr) {
+  define linkonce_odr void @__array_push_au_u_(i8** noalias %arr) {
   entry:
-    %0 = load void*, void** %arr, align 8
-    %1 = bitcast void* %0 to i64*
+    %0 = load i8*, i8** %arr, align 8
+    %1 = bitcast i8* %0 to i64*
     %capacity = getelementptr i64, i64* %1, i64 1
     %2 = load i64, i64* %capacity, align 8
     %3 = load i64, i64* %1, align 8
@@ -4310,29 +4310,25 @@ Using unit values
     br i1 %eq1, label %then2, label %else
   
   then2:                                            ; preds = %then
-    %4 = bitcast void* %0 to i8*
-    %5 = tail call i8* @realloc(i8* %4, i64 16)
-    %6 = bitcast i8* %5 to void*
-    store void* %6, void** %arr, align 8
-    %newcap = bitcast void* %6 to i64*
+    %4 = tail call i8* @realloc(i8* %0, i64 16)
+    store i8* %4, i8** %arr, align 8
+    %newcap = bitcast i8* %4 to i64*
     %newcap3 = getelementptr i64, i64* %newcap, i64 1
     store i64 4, i64* %newcap3, align 8
     br label %ifcont7
   
   else:                                             ; preds = %then
     %mul = mul i64 2, %2
-    %7 = bitcast void* %0 to i8*
-    %8 = tail call i8* @realloc(i8* %7, i64 16)
-    %9 = bitcast i8* %8 to void*
-    store void* %9, void** %arr, align 8
-    %newcap4 = bitcast void* %9 to i64*
+    %5 = tail call i8* @realloc(i8* %0, i64 16)
+    store i8* %5, i8** %arr, align 8
+    %newcap4 = bitcast i8* %5 to i64*
     %newcap5 = getelementptr i64, i64* %newcap4, i64 1
     store i64 %mul, i64* %newcap5, align 8
     br label %ifcont7
   
   ifcont7:                                          ; preds = %entry, %then2, %else
     %.pre-phi = phi i64* [ %newcap4, %else ], [ %newcap, %then2 ], [ %1, %entry ]
-    %10 = phi void* [ %9, %else ], [ %6, %then2 ], [ %0, %entry ]
+    %6 = phi i8* [ %5, %else ], [ %4, %then2 ], [ %0, %entry ]
     %add = add i64 %3, 1
     store i64 %add, i64* %.pre-phi, align 8
     ret void
@@ -4358,21 +4354,20 @@ Using unit values
     tail call void @schmu_t__2(%thing_* @schmu_t2)
     tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [6 x i8] }* @2 to i8*), i64 16), double 9.990000e+01)
     %0 = tail call i8* @malloc(i64 16)
-    %1 = bitcast i8* %0 to void*
-    store void* %1, void** @schmu_arr, align 8
-    %2 = bitcast void* %1 to i64*
-    store i64 2, i64* %2, align 8
-    %cap = getelementptr i64, i64* %2, i64 1
+    store i8* %0, i8** @schmu_arr, align 8
+    %1 = bitcast i8* %0 to i64*
+    store i64 2, i64* %1, align 8
+    %cap = getelementptr i64, i64* %1, i64 1
     store i64 2, i64* %cap, align 8
-    %3 = getelementptr i8, i8* %0, i64 16
-    tail call void @__array_push_au_u_(void** @schmu_arr)
-    %4 = load void*, void** @schmu_arr, align 8
-    %5 = bitcast void* %4 to i64*
-    %6 = load i64, i64* %5, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %6)
+    %2 = getelementptr i8, i8* %0, i64 16
+    tail call void @__array_push_au_u_(i8** @schmu_arr)
+    %3 = load i8*, i8** @schmu_arr, align 8
+    %4 = bitcast i8* %3 to i64*
+    %5 = load i64, i64* %4, align 8
+    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @3 to i8*), i64 16), i64 %5)
+    %6 = alloca %thing_, align 8
     %7 = alloca %thing_, align 8
-    %8 = alloca %thing_, align 8
-    tail call void @__free_au_(void** @schmu_arr)
+    tail call void @__free_au_(i8** @schmu_arr)
     ret i64 0
   }
   
@@ -4380,10 +4375,10 @@ Using unit values
   
   declare i8* @malloc(i64 %0)
   
-  define linkonce_odr void @__free_au_(void** %0) {
+  define linkonce_odr void @__free_au_(i8** %0) {
   entry:
-    %1 = load void*, void** %0, align 8
-    %ref = bitcast void* %1 to i64*
+    %1 = load i8*, i8** %0, align 8
+    %ref = bitcast i8* %1 to i64*
     %2 = bitcast i64* %ref to i8*
     call void @free(i8* %2)
     ret void
