@@ -290,7 +290,6 @@ struct
     { value = arr; typ; lltyp; kind = Ptr }
 
   let gen_fixed_array_lit param exprs typ allocref const return =
-    let item_size = sizeof_typ typ in
     let lltyp = get_lltype_def typ in
 
     let value, kind =
@@ -298,7 +297,8 @@ struct
       | Tfixed_array (_, Tunit) ->
           let v = dummy_fn_value in
           (v.value, v.kind)
-      | _ -> (
+      | Tfixed_array (_, t) -> (
+          let item_size = sizeof_typ t in
           match const with
           | Monomorph_tree.Cnot ->
               let arr = get_prealloc !allocref param lltyp "arr" in
@@ -337,6 +337,7 @@ struct
                 ignore (Llvm.build_store value record builder);
                 (record, Const_ptr))
               else (value, Const))
+      | _ -> failwith "Internal Error: Not a fixed array"
     in
 
     { value; typ; lltyp; kind }
