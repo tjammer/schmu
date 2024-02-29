@@ -141,7 +141,7 @@ func_name:
   | infix = infix_no_inline { $loc(infix), infix }
 
 typedef:
-  | Type; name = decl_typename; Equal; Lbrac; labels = separated_nonempty_list(Comma, record_item_decl); Rbrac
+  | Type; name = decl_typename; Equal; Lbrac; labels = separated_nonempty_trailing_list(Comma, record_item_decl, Rbrac)
     { Trecord ({name; labels = Array.of_list labels}) }
   | Type; name = decl_typename; Equal; spec = type_spec { Talias (name, spec) }
   | Type; name = decl_typename; Equal; ctors = separated_nonempty_list(Hbar, ctor)
@@ -265,22 +265,22 @@ param_pattern:
   | Lpar; tups = tup_tups(param_pattern); Rpar; Ampersand { let loc, tups = tups in Ptup (loc, tups, Dmut) }
   | Lpar; tups = tup_tups(param_pattern); Rpar; Exclamation { let loc, tups = tups in Ptup (loc, tups, Dmove) }
 
-let tup_pattern(x) :=
+tup_pattern(x):
   | tups = tup_tups(x); { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
 
-let tup_tups(x) :=
+tup_tups(x):
   | head = with_loc(x); Comma; tail = separated_nonempty_list(Comma, with_loc(x));
     { $loc, head :: tail }
 
-let record_pattern(x) :=
-  | Lbrac; items = separated_nonempty_list(Comma, record_item_pattern(x)); Rbrac;
+record_pattern(x):
+  | Lbrac; items = separated_nonempty_trailing_list(Comma, record_item_pattern(x), Rbrac);
     { Precord ($loc, items, Dnorm) }
 
-let record_item_pattern(x) :=
+record_item_pattern(x):
   | ident = ident; Equal; pat = x; { ident, Some pat }
   | ident = ident; { ident, None }
 
-let with_loc(x) :=
+with_loc(x):
   | pat = x; { $loc, pat }
 
 ident:
@@ -328,12 +328,12 @@ expr:
     { Lambda ($loc, params, attr, return_annot, body) }
   | Fun; param = only_one_param; attr = loption(capture_copies); Colon; body = block
     { Lambda ($loc, [param], attr, None, body) }
-  | Lbrac; items = separated_nonempty_list(Comma, record_item); Rbrac
+  | Lbrac; items = separated_nonempty_trailing_list(Comma, record_item, Rbrac)
     { Record ($loc, items) }
   | Lpar; tuple = tuple; Rpar { Tuple ($loc, tuple) }
   | Lpar; expr = expr; Rpar { expr }
   | upcases = upcases { upcases }
-  | Lbrac; record = expr; With; items = separated_nonempty_list(Comma, record_item); Rbrac
+  | Lbrac; record = expr; With; items = separated_nonempty_trailing_list(Comma, record_item, Rbrac)
     { Record_update ($loc, record, items) }
   | Do; Colon; block = block { Do_block block }
   | aexpr = expr; Pipe_tail; pipeable = expr
@@ -401,10 +401,18 @@ bool:
   | False { false }
 
 array_lit:
-  | Lbrack; exprs = separated_list(Comma, expr); Rbrack { exprs }
+  | Lbrack; exprs = separated_trailing_list(Comma, expr, Rbrack) { exprs }
+
+separated_nonempty_trailing_list(sep, item, terminator):
+  | x = item; option(sep); terminator { [ x ] }
+  | x = item; sep; xs = separated_nonempty_trailing_list(sep, item, terminator) { x :: xs }
+
+separated_trailing_list(sep, item, terminator):
+  | terminator { [] }
+  | lst = separated_nonempty_trailing_list(sep, item, terminator) { lst }
 
 fixed_array_lit:
-  | Hashtag_brack; items = separated_nonempty_list(Comma, expr); Rbrack { Fixed_array items }
+  | Hashtag_brack; items = separated_nonempty_trailing_list(Comma, expr, Rbrack) { Fixed_array items }
   | num = Hashnum_brack; item = expr; Rbrack { Fixed_array_num (num, item) }
 
 call_arg:
@@ -460,7 +468,7 @@ infix_no_inline:
   | And     { And }
   | Or      { Or }
 
-let parens(x) :=
+parens(x):
   | Lpar; items = separated_list(Comma, x); Rpar; { items }
 
 type_spec:

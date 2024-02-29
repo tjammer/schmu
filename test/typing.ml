@@ -116,6 +116,9 @@ let test_record_false () =
   test_exn "Unbound field z on record t"
     "type t = {x : int, y : int}\n{x = 2, z = 2}"
 
+let test_record_trailing () =
+  test "t" "type t = { x : int, y : int }\n{x = 2, y = 2,}"
+
 let test_record_choose () =
   test "t1"
     "type t1 = { x : int, y : int }\n\
@@ -395,6 +398,7 @@ fun get_item(slot):
 get_item|}
 
 let test_array_lit () = test "array(int)" "[0, 1]"
+let test_array_lit_trailing () = test "array(int)" "[0, 1,]"
 
 let test_array_var () = test "array(int)" {|let a = [0, 1]
 a|}
@@ -1219,6 +1223,7 @@ let test_functor_check_concrete () =
      but found (_) -> [make/t('a)]" (check_sig_test "int")
 
 let test_farray_lit () = test "unit" "let arr = #[1, 2, 3]"
+let test_farray_lit_trailing () = test "unit" "let arr = #[1, 2, 3,]"
 
 let test_farray_nested_lit () =
   test "unit" "let arr = #[#[1, 2, 3], #[3, 4, 5]]"
@@ -1281,6 +1286,7 @@ let () =
         [
           case "clear" test_record_clear;
           case "false" test_record_false;
+          case "trailing" test_record_trailing;
           case "choose" test_record_choose;
           case "reorder" test_record_reorder;
           case "create if" test_record_create_if;
@@ -1365,6 +1371,7 @@ let () =
       ( "array",
         [
           case "literal" test_array_lit;
+          case "literal trailing" test_array_lit_trailing;
           case "var" test_array_var;
           case "weak" test_array_weak;
           case "different_types" test_array_different_types;
@@ -1683,6 +1690,7 @@ do:
       ( "fixed-size array",
         [
           case "lit" test_farray_lit;
+          case "lit trailing" test_farray_lit_trailing;
           case "nested lit" test_farray_nested_lit;
           case "generalize / instantiate" test_farray_inference;
         ] );

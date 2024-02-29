@@ -582,10 +582,6 @@ prog: Ctor Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ctor Lpar Ident Comma Ident Rbrack
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Ctor Lpar Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -594,11 +590,11 @@ prog: Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashtag_brack Ident With
+prog: Fmt Lpar Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashtag_brack Ident Comma With
+prog: Fmt Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -814,15 +810,15 @@ prog: Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fmt Lpar Ident Rbrack
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Hashnum_brack Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashtag_brack Ident Rpar
+prog: Hashtag_brack Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Hashtag_brack Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -887,14 +883,6 @@ prog: Lbrac False Rpar
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lbrac Ident With With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lbrack Ident Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Lpar Ident Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
