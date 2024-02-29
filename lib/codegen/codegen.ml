@@ -1441,7 +1441,7 @@ let generate ~target ~outname ~release ~modul
   Llvm_all_backends.initialize ();
 
   let target = Llvm_target.Target.by_triple triple in
-  let reloc_mode = Llvm_target.RelocMode.Default in
+  let reloc_mode = Llvm_target.RelocMode.PIC in
   let machine = TargetMachine.create ~triple target ~reloc_mode in
   let layout = DataLayout.as_string (TargetMachine.data_layout machine) in
 
