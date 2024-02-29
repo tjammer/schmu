@@ -78,4 +78,6 @@ fun reserve(arr&, size):
     __unsafe_array_realloc(&arr, size)
 
 module fixed:
+  let get = __fixed_array_get
+  let length = __fixed_array_length
   let data = __fixed_array_data
