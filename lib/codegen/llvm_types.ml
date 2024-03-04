@@ -49,21 +49,17 @@ let i32_t = Llvm.i32_type context
 let float_t = Llvm.double_type context
 let f32_t = Llvm.float_type context
 let unit_t = Llvm.void_type context
-let voidptr_t = Llvm.(i8_type context |> pointer_type)
+let ptr_t = Llvm.pointer_type context
 
 let closure_t =
   let t = Llvm.named_struct_type context "closure" in
-  let typ = [| voidptr_t; voidptr_t |] in
+  let typ = [| ptr_t; ptr_t |] in
   Llvm.struct_set_body t typ false;
   t
 
 let generic_t = Llvm.named_struct_type context "generic"
-
-let global_t =
-  Llvm.(
-    struct_type context
-      [| i32_t; function_type unit_t [||] |> pointer_type; voidptr_t |])
+let global_t = Llvm.(struct_type context [| i32_t; ptr_t; ptr_t |])
 
 (* For closures. Ctor parameter is nonnull env ptr *)
-let ctor_t = Llvm.(function_type voidptr_t [| voidptr_t |])
-let dtor_t = Llvm.(function_type unit_t [| voidptr_t |])
+let ctor_t = Llvm.(function_type ptr_t [| ptr_t |])
+let dtor_t = Llvm.(function_type unit_t [| ptr_t |])

@@ -119,7 +119,7 @@ struct
       | Const_ptr ->
           assert (Llvm.is_global_constant value.value);
           Llvm.global_initializer value.value |> Option.get
-      | Ptr -> Llvm.build_load value.value "" builder
+      | Ptr -> Llvm.build_load value.lltyp value.value "" builder
       | Const | Imm -> value.value
 
   let bring_default_var v =
@@ -141,54 +141,50 @@ struct
     match src.kind with
     | Const | Imm -> ignore (Llvm.build_store src.value dst builder)
     | Ptr | Const_ptr ->
-        let memcpy_decl =
+        let memcpy =
           lazy
             Llvm.(
-              (* llvm.memcpy.inline.p0i8.p0i8.i64 *)
-              let ft =
-                function_type unit_t [| voidptr_t; voidptr_t; int_t; bool_t |]
-              in
-              declare_function "llvm.memcpy.p0i8.p0i8.i64" ft the_module)
+              (* llvm.memcpy.inline.p0.p0.i64 *)
+              let ft = function_type unit_t [| ptr_t; ptr_t; int_t; bool_t |] in
+              (ft, declare_function "llvm.memcpy.p0.p0.i64" ft the_module))
         in
-        let dstptr = bb dst voidptr_t "" builder in
-        let retptr = bb src.value voidptr_t "" builder in
+        let dstptr = bb dst ptr_t "" builder in
+        let retptr = bb src.value ptr_t "" builder in
         let args = [| dstptr; retptr; size; Llvm.const_int bool_t 0 |] in
-        ignore (Llvm.build_call (Lazy.force memcpy_decl) args "" builder)
+        let ft, decl = Lazy.force memcpy in
+        ignore (Llvm.build_call ft decl args "" builder)
 
   let malloc ~size =
-    let malloc_decl =
+    let malloc =
       lazy
         Llvm.(
-          let ft = function_type voidptr_t [| int_t |] in
-          declare_function "malloc" ft the_module)
+          let ft = function_type ptr_t [| int_t |] in
+          (ft, declare_function "malloc" ft the_module))
     in
-    Llvm.build_call (Lazy.force malloc_decl) [| size |] "" builder
+    let ft, decl = Lazy.force malloc in
+    Llvm.build_call ft decl [| size |] "" builder
 
   let realloc ptr ~size =
-    let realloc_decl =
+    let realloc =
       lazy
         Llvm.(
-          let ft = function_type voidptr_t [| voidptr_t; int_t |] in
-          declare_function "realloc" ft the_module)
+          let ft = function_type ptr_t [| ptr_t; int_t |] in
+          (ft, declare_function "realloc" ft the_module))
     in
-    let voidptr = bb ptr voidptr_t "" builder in
-    let ret =
-      Llvm.build_call (Lazy.force realloc_decl) [| voidptr; size |] "" builder
-    in
+    let ft, decl = Lazy.force realloc in
+    let ret = Llvm.build_call ft decl [| ptr; size |] "" builder in
     bb ret (Llvm.type_of ptr) "" builder
 
   (* Frees a single pointer *)
   let free_var ptr =
-    let free_decl =
+    let free =
       lazy
         Llvm.(
-          let ft = function_type unit_t [| voidptr_t |] in
-          declare_function "free" ft the_module)
+          let ft = function_type unit_t [| ptr_t |] in
+          (ft, declare_function "free" ft the_module))
     in
-
-    let ptr = bb ptr voidptr_t "" builder in
-
-    Llvm.build_call (Lazy.force free_decl) [| ptr |] "" builder
+    let ft, decl = Lazy.force free in
+    Llvm.build_call ft decl [| ptr |] "" builder
 
   let get_const_string s =
     match Strtbl.find_opt string_tbl s with
@@ -261,12 +257,11 @@ struct
 
   (* use [__assert_fail] from libc *)
   let assert_fail ~text ~file ~line ~func =
-    let assert_fail_decl =
+    let assert_fail =
       lazy
         Llvm.(
-          let cptr = u8_t |> pointer_type in
-          let ft = function_type unit_t [| cptr; cptr; i32_t; cptr |] in
-          declare_function "__assert_fail" ft the_module)
+          let ft = function_type unit_t [| ptr_t; ptr_t; i32_t; ptr_t |] in
+          (ft, declare_function "__assert_fail" ft the_module))
     in
 
     let typ = Tarray Tu8 in
@@ -276,7 +271,8 @@ struct
       (Arr.array_data [ { value; kind = Imm; typ; lltyp } ]).value
     in
     let args = [| d text; d file; Llvm.const_int i32_t line; d func |] in
-    ignore (Llvm.build_call (Lazy.force assert_fail_decl) args "" builder);
+    let ft, decl = Lazy.force assert_fail in
+    ignore (Llvm.build_call ft decl args "" builder);
     Llvm.build_unreachable builder
 
   let get_snippet (lbeg, lend) =
@@ -370,17 +366,17 @@ struct
     let value, lltyp =
       if is_struct typ && cl.clmut && not upward then
         (* Mutable records are passed as pointers into the env *)
-        let value = Llvm.build_load item_ptr cl.clname builder in
+        let value = Llvm.build_load ptr_t item_ptr cl.clname builder in
 
-        (value, get_lltype_def typ |> Llvm.pointer_type)
+        (value, ptr_t)
       else if is_struct typ then
         (* For records we want a ptr so that gep and memcpy work *)
-        (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
-      else if cl.clmut && upward then
-        (item_ptr, get_lltype_def typ |> Llvm.pointer_type)
+        (item_ptr, ptr_t)
+      else if cl.clmut && upward then (item_ptr, ptr_t)
       else
-        let value = Llvm.build_load item_ptr cl.clname builder in
-        (value, get_lltype_def typ)
+        let lltyp = get_lltype_def typ in
+        let value = Llvm.build_load lltyp item_ptr cl.clname builder in
+        (value, lltyp)
     in
     let kind = if cl.clmut then Ptr else default_kind typ in
     { value; typ; lltyp; kind }
@@ -391,11 +387,11 @@ struct
     let upward = is_prealloc allocref in
 
     (* Add function ptr *)
-    let fun_ptr = Llvm.build_struct_gep clsr_struct 0 "funptr" builder in
-    let fun_casted = bb func.value voidptr_t "func" builder in
+    let fun_ptr = Llvm.build_struct_gep closure_t clsr_struct 0 "funptr" builder in
+    let fun_casted = bb func.value ptr_t "func" builder in
     ignore (Llvm.build_store fun_casted fun_ptr builder);
 
-    let store_closed_var clsr_ptr i cl =
+    let store_closed_var lltyp clsr_ptr i cl =
       let src =
         match Vars.find_opt cl.clname param.vars with
         | Some v -> v
@@ -404,7 +400,7 @@ struct
             failwith
               ("Internal Error: Cannot find closed variable: " ^ cl.clname)
       in
-      let dst = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
+      let dst = Llvm.build_struct_gep lltyp clsr_ptr i cl.clname builder in
       let src =
         if upward && cl.clcopy then
           Auto.copy { no_param with alloca = Some dst } allocref src
@@ -425,7 +421,7 @@ struct
     (* Add closed over vars. If the environment is empty, we pass nullptr *)
     let clsr_ptr =
       match assoc with
-      | [] -> Llvm.const_pointer_null voidptr_t
+      | [] -> Llvm.const_pointer_null ptr_t
       | assoc ->
           let assoc_type = lltypeof_closure assoc upward in
           let clsr_ptr =
@@ -433,37 +429,36 @@ struct
               let size =
                 sizeof_typ (typeof_closure assoc) |> Llvm.const_int int_t
               in
-              let ptr = malloc ~size in
-              bb ptr (Llvm.pointer_type assoc_type) ("clsr_" ^ name) builder
+              malloc ~size
             else alloca param assoc_type ("clsr_" ^ name)
           in
           (* [2] as starting index, because [0] is ctor, and [1] is dtor *)
-          ignore (List.fold_left (store_closed_var clsr_ptr) 2 assoc);
+          ignore (List.fold_left (store_closed_var assoc_type clsr_ptr) 2 assoc);
 
           (* Add ctor function *)
-          let ctor_ptr = Llvm.build_struct_gep clsr_ptr 0 "ctor" builder in
+          let ctor_ptr = Llvm.build_struct_gep assoc_type clsr_ptr 0 "ctor" builder in
           let ctor =
-            bb (Auto.get_ctor assoc_type assoc upward) voidptr_t "" builder
+            bb (Auto.get_ctor assoc_type assoc upward) ptr_t "" builder
           in
           Llvm.build_store ctor ctor_ptr builder |> ignore;
 
           (* Create dtor function if it does not exist yet *)
           let dtor =
             if assoc_contains_ref assoc && upward then
-              bb (Auto.get_dtor assoc_type assoc) voidptr_t "" builder
-            else Llvm.(const_pointer_null voidptr_t)
+              bb (Auto.get_dtor assoc_type assoc) ptr_t "" builder
+            else Llvm.(const_pointer_null ptr_t)
           in
 
           (* Add dtor *)
-          let dtor_ptr = Llvm.build_struct_gep clsr_ptr 1 "dtor" builder in
+          let dtor_ptr = Llvm.build_struct_gep assoc_type clsr_ptr 1 "dtor" builder in
           ignore (Llvm.(build_store dtor dtor_ptr) builder);
 
-          let clsr_casted = bb clsr_ptr voidptr_t "env" builder in
+          let clsr_casted = bb clsr_ptr ptr_t "env" builder in
           clsr_casted
     in
 
     (* Add closure env to struct *)
-    let env_ptr = Llvm.build_struct_gep clsr_struct 1 "envptr" builder in
+    let env_ptr = Llvm.build_struct_gep closure_t clsr_struct 1 "envptr" builder in
     ignore (Llvm.build_store clsr_ptr env_ptr builder);
 
     (* Turn simple functions into empty closures, so they are handled correctly
@@ -475,11 +470,10 @@ struct
     | Closure assoc ->
         let closure_index = (Llvm.params func.value |> Array.length) - 1 in
         let clsr_param = (Llvm.params func.value).(closure_index) in
-        let clsr_type = lltypeof_closure assoc upward |> Llvm.pointer_type in
-        let clsr_ptr = bb clsr_param clsr_type "clsr" builder in
+        let clsr_type = lltypeof_closure assoc upward  in
 
         let add_closure (env, i) cl =
-          let item_ptr = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
+          let item_ptr = Llvm.build_struct_gep clsr_type clsr_param i cl.clname builder in
           let item = get_closure_item cl item_ptr upward in
           (Vars.add cl.clname item env, i + 1)
         in
@@ -545,7 +539,7 @@ struct
     in
 
     let alloca_copy mut src =
-      let m t = if mut then Llvm.pointer_type t else t in
+      let m t = if mut then ptr_t else t in
       let store dst =
         if mut then tailrec_store ~src ~dst else store_or_copy ~src ~dst
       in
@@ -632,7 +626,7 @@ struct
                   let i = get_index i p.pmut typ in
                   let llvar = Vars.find (name_of_alloc_param i) env in
                   let value =
-                    if p.pmut then Llvm.build_load llvar.value name builder
+                    if p.pmut then Llvm.build_load llvar.lltyp llvar.value name builder
                     else llvar.value
                   in
                   (* let kind = if p.pmut then Ptr else default_kind typ in *)
@@ -693,7 +687,7 @@ struct
     | _ ->
         let value =
           match ret.kind with
-          | Const_ptr | Ptr -> Llvm.build_load ret.value "" builder
+          | Const_ptr | Ptr -> Llvm.build_load ret.lltyp ret.value "" builder
           | _ -> ret.value
         in
         Llvm.build_ret value builder
@@ -702,7 +696,7 @@ struct
     if contains_allocation alloca.typ then (
       (* Set param to new value, deref the old one if the cookie was set *)
       let v = Vars.find (name_of_alloc_cookie i) param.vars in
-      let cookie = Llvm.build_load v.value "" builder in
+      let cookie = Llvm.build_load v.lltyp v.value "" builder in
 
       let start_bb = Llvm.insertion_block builder in
       let parent = Llvm.block_parent start_bb in
@@ -714,7 +708,7 @@ struct
 
       Llvm.position_at_end decr_bb builder;
       let value =
-        if mut then Llvm.build_load alloca.value "" builder else alloca.value
+        if mut then Llvm.build_load alloca.lltyp alloca.value "" builder else alloca.value
       in
       (* let kind = if mut then Ptr else default_kind alloca.typ in *)
       Auto.free param { alloca with value };
@@ -737,16 +731,15 @@ struct
     ignore (List.fold_left f start_index params)
 
   let var_index var =
-    let tagptr = Llvm.build_struct_gep var.value 0 "tag" builder in
-    let value = Llvm.build_load tagptr "index" builder in
+    let tagptr = Llvm.build_struct_gep var.lltyp var.value 0 "tag" builder in
+    let value = Llvm.build_load i32_t tagptr "index" builder in
     { value; typ = Ti32; lltyp = i32_t; kind = Imm }
 
   let var_data var typ =
     match typ with
     | Tunit -> dummy_fn_value
     | _ ->
-        let dataptr = Llvm.build_struct_gep var.value 1 "data" builder in
-        let ptr_t = get_lltype_def typ |> Llvm.pointer_type in
+        let dataptr = Llvm.build_struct_gep var.lltyp var.value 1 "data" builder in
         let value = bb dataptr ptr_t "" builder in
         { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
 
@@ -779,7 +772,7 @@ struct
         let value, kind =
           match value.kind with
           | Const_ptr | Ptr ->
-              let p = Llvm.build_struct_gep value.value index "" builder in
+              let p = Llvm.build_struct_gep value.lltyp value.value index "" builder in
               (* In case we return a record, we don't load, but return the pointer.
                  The idea is that this will be used either as a return value for a function (where it is copied),
                  or for another field, where the pointer is needed.
@@ -787,7 +780,7 @@ struct
               (p, Ptr)
           | Const ->
               (* If the record is const, we use extractvalue and propagate the constness *)
-              let p = Llvm.(const_extractvalue value.value [| index |]) in
+              let p = Llvm.(const_extractelement value.value (const_int i32_t index)) in
               (p, Const)
           | Imm -> failwith "Internal Error: Did not expect Imm in field"
         in

@@ -132,23 +132,18 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
     let intptr =
       match alloc with
       | None -> Llvm.build_alloca (lltype_unboxed size) "box" builder
-      | Some alloc ->
-          Llvm.build_bitcast alloc
-            (Llvm.pointer_type (lltype_unboxed size))
-            "box" builder
+      | Some alloc -> Llvm.build_bitcast alloc ptr_t "box" builder
     in
 
     (match snd_val with
     | None -> ignore (Llvm.build_store value intptr builder)
     | Some v2 ->
-        let ptr = Llvm.build_struct_gep intptr 0 "fst" builder in
+        let t = get_lltype_def typ in
+        let ptr = Llvm.build_struct_gep t intptr 0 "fst" builder in
         ignore (Llvm.build_store value ptr builder);
-        let ptr = Llvm.build_struct_gep intptr 1 "snd" builder in
+        let ptr = Llvm.build_struct_gep t intptr 1 "snd" builder in
         ignore (Llvm.build_store v2 ptr builder));
-
-    Llvm.build_bitcast intptr
-      (get_lltype_def typ |> Llvm.pointer_type)
-      "box" builder
+    intptr
 
   (* Checks the param kind before calling [box_record] *)
   let maybe_box_record mut typ ?(alloc = None) ?(snd_val = None) value =
@@ -174,29 +169,24 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
             | Tvariant _ -> true
             | _ -> failwith "Internal Error: Not a record to unbox"
           in
-          let value = Llvm.const_extractvalue value.value [| 0 |] in
+          let value = Llvm.build_extractvalue value.value 0 "" builder in
           Llvm.const_intcast ~is_signed value target_type
     | One_param (F32 | Float) ->
         let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
         if pieces > 1 then failwith "Float of pieces TODO"
         else
-          let value = Llvm.const_extractvalue value.value [| 0 |] in
+          let value = Llvm.build_extractvalue value.value 0 "" builder in
           Llvm.const_fpcast value target_type
     | One_param F32_vec ->
         let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
         if pieces <> 2 then failwith "F32_vec of pieces TODO"
         else
-          let v1 = Llvm.const_extractvalue value.value [| 0 |] in
-          let v2 = Llvm.const_extractvalue value.value [| 1 |] in
+          let v1 = Llvm.build_extractvalue value.value 0 "" builder in
+          let v2 = Llvm.build_extractvalue value.value 1 "" builder in
           Llvm.const_vector [| v1; v2 |]
 
   let unbox_record ~kind ~ret value =
-    let structptr =
-      lazy
-        (Llvm.build_bitcast value.value
-           (Llvm.pointer_type (lltype_unboxed kind))
-           "unbox" builder)
-    in
+    let struct_t = lazy (lltype_unboxed kind) in
 
     let is_const =
       match value.kind with Const -> true | Ptr | Const_ptr | Imm -> false
@@ -207,16 +197,18 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
     | (true, _ | _, One_param _) when is_const ->
         (unbox_const_record kind value, None)
     | true, _ | _, One_param _ ->
-        (Llvm.build_load (Lazy.force structptr) "unbox" builder, None)
-    | _, Two_params _ ->
+        (Llvm.build_load (Lazy.force struct_t) value.value "unbox" builder, None)
+    | _, Two_params (a, b) ->
         (* We load the two arguments from the struct type *)
         let ptr =
-          Llvm.build_struct_gep (Lazy.force structptr) 0 "fst" builder
+          Llvm.build_struct_gep (Lazy.force struct_t) value.value 0 "fst"
+            builder
         in
-        let v1 = Llvm.build_load ptr "fst" builder in
+        let v1 = Llvm.build_load (lltype_unbox a) ptr "fst" builder in
         let ptr =
-          Llvm.build_struct_gep (Lazy.force structptr) 1 "snd" builder
+          Llvm.build_struct_gep (Lazy.force struct_t) value.value 1 "snd"
+            builder
         in
-        let v2 = Llvm.build_load ptr "snd" builder in
+        let v2 = Llvm.build_load (lltype_unbox b) ptr "snd" builder in
         (v1, Some v2)
 end

@@ -86,10 +86,10 @@ end = struct
         | Rnone | Rnormal -> ());
         ignore (fun_return name.call ret);
 
-        (* if Llvm_analysis.verify_function func.value |> not then ( *)
-        (*   Llvm.dump_module the_module; *)
-        (*   (\* To generate the report *\) *)
-        (*   Llvm_analysis.assert_valid_function func.value); *)
+        if Llvm_analysis.verify_function func.value |> not then (
+          Llvm.dump_module the_module;
+          (* To generate the report *)
+          Llvm_analysis.assert_valid_function func.value);
         let _ = Llvm.PassManager.run_function func.value fpm in
         { vars with vars = Vars.add name.call func vars.vars }
     | _ ->
@@ -473,23 +473,26 @@ end = struct
     in
 
     (* No names here, might be void/unit *)
-    let funcval, envarg =
+    let funcval, ft, envarg =
       match func.kind with
       | Ptr ->
           (* Function to call is a closure (or a function passed into another one).
              We get the funptr from the first field, cast to the correct type,
              then get env ptr (as voidptr) from the second field and pass it as last argument *)
-          let funcp = Llvm.build_struct_gep func.value 0 "funcptr" builder in
-          let funcp = Llvm.build_load funcp "loadtmp" builder in
-          let typ = typeof_funclike func.typ |> Llvm.pointer_type in
-          let funcp = Llvm.build_bitcast funcp typ "casttmp" builder in
+          let funcp =
+            Llvm.build_struct_gep closure_t func.value 0 "funcptr" builder
+          in
+          let funcp = Llvm.build_load ptr_t funcp "loadtmp" builder in
+          let ftyp = typeof_funclike func.typ in
 
-          let env_ptr = Llvm.build_struct_gep func.value 1 "envptr" builder in
-          let env_ptr = Llvm.build_load env_ptr "loadtmp" builder in
-          (funcp, Seq.return env_ptr)
+          let env_ptr =
+            Llvm.build_struct_gep closure_t func.value 1 "envptr" builder
+          in
+          let env_ptr = Llvm.build_load ptr_t env_ptr "loadtmp" builder in
+          (funcp, ftyp, Seq.return env_ptr)
       | _ -> (
           match kind with
-          | Simple -> (func.value, Seq.empty)
+          | Simple -> (func.value, func.lltyp, Seq.empty)
           | Closure _ ->
               (* In this case we are in a recursive closure function.
                  We get the closure env and add it to the arguments we pass *)
@@ -498,7 +501,7 @@ end = struct
               in
 
               let env_ptr = (Llvm.params func.value).(closure_index) in
-              (func.value, Seq.return env_ptr))
+              (func.value, func.lltyp, Seq.return env_ptr))
     in
 
     let value, lltyp =
@@ -510,21 +513,21 @@ end = struct
               let retval = get_prealloc !allocref param lltyp "ret" in
               let ret' = Seq.return retval in
               let args = ret' ++ args ++ envarg |> Array.of_seq in
-              ignore (Llvm.build_call funcval args "" builder);
+              ignore (Llvm.build_call ft funcval args "" builder);
               (retval, lltyp)
           | Unboxed size ->
               (* Boxed representation *)
               let retval = get_prealloc !allocref param lltyp "ret" in
               let args = args ++ envarg |> Array.of_seq in
               (* Unboxed representation *)
-              let tempval = Llvm.build_call funcval args "" builder in
+              let tempval = Llvm.build_call ft funcval args "" builder in
               let ret =
                 box_record ~size ~alloc:(Some retval) ~snd_val:None t tempval
               in
               (ret, lltyp))
       | t ->
           let args = args ++ envarg |> Array.of_seq in
-          let retval = Llvm.build_call funcval args "" builder in
+          let retval = Llvm.build_call ft funcval args "" builder in
           (retval, get_lltype_param false t)
     in
 
@@ -618,19 +621,24 @@ end = struct
               | [ ptr; index ] -> (bring_default ptr, bring_default index)
               | _ -> failwith "Internal Error: Arity mismatch in builtin"
             in
-            let value = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
-            { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Ptr }
-        )
+            let lltyp = get_lltype_def fnc.ret in
+            let value =
+              Llvm.build_in_bounds_gep lltyp ptr [| index |] "" builder
+            in
+            { value; typ = fnc.ret; lltyp; kind = Ptr })
     | Unsafe_ptr_set -> (
         match args with
         | [ ptr; index; value ] -> (
             match value.typ with
             | Tunit -> { dummy_fn_value with lltyp = unit_t }
-            | _ ->
+            | t ->
                 let ptr = bring_default ptr
                 and index = bring_default index
                 and value = bring_default_var value in
-                let ptr = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
+                let lltyp = get_lltype_def t in
+                let ptr =
+                  Llvm.build_in_bounds_gep lltyp ptr [| index |] "" builder
+                in
 
                 set_struct_field value ptr;
                 { dummy_fn_value with lltyp = unit_t })
@@ -641,8 +649,9 @@ end = struct
           | [ ptr; index ] -> (bring_default ptr, bring_default index)
           | _ -> failwith "Internal Error: Arity mismatch in builtin"
         in
-        let value = Llvm.build_in_bounds_gep ptr [| index |] "" builder in
-        { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Imm }
+        let lltyp = get_lltype_def fnc.ret in
+        let value = Llvm.build_in_bounds_gep lltyp ptr [| index |] "" builder in
+        { value; typ = fnc.ret; lltyp; kind = Imm }
     | Unsafe_ptr_reinterpret ->
         let ptr =
           match args with
@@ -673,12 +682,12 @@ end = struct
             match arr.typ with
             | Tfixed_array (_, Tunit) -> dummy_fn_value
             | _ ->
+                let lltyp = get_lltype_def fnc.ret in
                 let value =
-                  Llvm.build_gep arr.value
+                  Llvm.build_gep lltyp arr.value
                     [| Llvm.const_int int_t 0; bring_default idx |]
                     "" builder
                 in
-                let lltyp = get_lltype_def fnc.ret in
                 { value; typ = fnc.ret; lltyp; kind = Ptr })
         | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Fixed_array_length -> (
@@ -696,10 +705,10 @@ end = struct
         | [ arr ] -> (
             match (arr.kind, arr.typ) with
             | _, Tfixed_array (_, Tunit) ->
-                let value = Llvm.const_null voidptr_t in
-                { value; kind = Imm; typ = Traw_ptr Tunit; lltyp = voidptr_t }
+                let value = Llvm.const_null ptr_t in
+                { value; kind = Imm; typ = Traw_ptr Tunit; lltyp = ptr_t }
             | (Ptr | Const_ptr), Tfixed_array (_, t) ->
-                let lltyp = get_lltype_def t |> Llvm.pointer_type in
+                let lltyp = get_lltype_def t in
                 let value = Llvm.build_bitcast arr.value lltyp "" builder in
                 { value; kind = Imm; typ = Traw_ptr t; lltyp }
             | (Ptr | Const_ptr), _ ->
@@ -710,8 +719,8 @@ end = struct
     | Unsafe_array_realloc -> array_realloc args
     | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
     | Unsafe_nullptr ->
-        let value = Llvm.const_null voidptr_t in
-        { value; typ = Traw_ptr Tunit; lltyp = voidptr_t; kind = Const }
+        let value = Llvm.const_null ptr_t in
+        { value; typ = Traw_ptr Tunit; lltyp = ptr_t; kind = Const }
     | Realloc ->
         let ptr, size =
           match args with
@@ -777,7 +786,7 @@ end = struct
           | _ -> failwith "Internal Error: Arity mismatch in builder"
         in
         let value =
-          Llvm.(build_icmp Icmp.Eq) ptr (Llvm.const_null voidptr_t) "" builder
+          Llvm.(build_icmp Icmp.Eq) ptr (Llvm.const_null ptr_t) "" builder
         in
         { value; typ = Tbool; lltyp = bool_t; kind = Imm }
     | Assert ->
@@ -1021,7 +1030,7 @@ end = struct
                   gen_expr param expr |> ignore;
                   i
               | _ ->
-                  let ptr = Llvm.build_struct_gep record i name builder in
+                  let ptr = Llvm.build_struct_gep lltyp record i name builder in
                   let value =
                     gen_expr { param with alloca = Some ptr } expr
                     |> (* Const records will stay const, no allocation done to lift
@@ -1087,7 +1096,7 @@ end = struct
     let var = get_prealloc !allocref param lltyp variant in
 
     (* Set tag *)
-    let tagptr = Llvm.build_struct_gep var 0 "tag" builder in
+    let tagptr = Llvm.build_struct_gep lltyp var 0 "tag" builder in
     let tag =
       {
         value = Llvm.const_int i32_t tag;
@@ -1103,18 +1112,12 @@ end = struct
     | Some expr ->
         if sizeof_typ expr.typ = 0 then ()
         else
-          let dataptr = Llvm.build_struct_gep var 1 "data" builder in
-          let ptr_t = get_lltype_def expr.typ |> Llvm.pointer_type in
-          let ptr = Llvm.build_bitcast dataptr ptr_t "" builder in
+          let dataptr = Llvm.build_struct_gep lltyp var 1 "data" builder in
           let data =
-            gen_expr { param with alloca = Some ptr } expr |> bring_default_var
+            gen_expr { param with alloca = Some dataptr } expr
+            |> bring_default_var
           in
 
-          let dataptr =
-            Llvm.build_bitcast dataptr
-              (data.lltyp |> Llvm.pointer_type)
-              "data" builder
-          in
           set_struct_field data dataptr
     | None -> ());
     let v = { value = var; typ; lltyp; kind = Ptr } in
@@ -1181,13 +1184,11 @@ end = struct
     llvar
 
   and gen_fmt_str param exprs typ allocref id =
-    let snprintf_decl =
+    let snprintf =
       lazy
         Llvm.(
-          let ft =
-            var_arg_function_type i32_t [| voidptr_t; int_t; voidptr_t |]
-          in
-          declare_function "snprintf" ft the_module)
+          let ft = var_arg_function_type i32_t [| ptr_t; int_t; ptr_t |] in
+          (ft, declare_function "snprintf" ft the_module))
     in
     let lltyp = get_lltype_def typ in
 
@@ -1207,13 +1208,12 @@ end = struct
     in
     let itemargs = List.rev args in
     let args =
-      Llvm.const_pointer_null voidptr_t
+      Llvm.const_pointer_null ptr_t
       :: Llvm.const_int int_t 0 :: fmtptr.value :: itemargs
       |> Array.of_list
     in
-    let ssize =
-      Llvm.build_call (Lazy.force snprintf_decl) args "fmtsize" builder
-    in
+    let ft, f = Lazy.force snprintf in
+    let ssize = Llvm.build_call ft f args "fmtsize" builder in
     (* Add null terminator (and rc head) *)
     let _, llitem_typ, head_size, _ = item_type_head_size typ in
     let size =
@@ -1226,24 +1226,18 @@ end = struct
 
     (* Initialize counts *)
     let ci i = Llvm.const_int int_t i in
-    let int_ptr =
-      Llvm.build_bitcast arr_ptr (Llvm.pointer_type int_t) "" builder
-    in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
+    let dst = Llvm.build_gep int_t arr_ptr [| ci 0 |] "size" builder in
     let ssize = Llvm.build_intcast ssize int_t "" builder in
     ignore (Llvm.build_store ssize dst builder);
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
+    let dst = Llvm.build_gep int_t arr_ptr [| ci 1 |] "cap" builder in
     ignore (Llvm.build_store ssize dst builder);
-    let ptr =
-      Llvm.build_gep int_ptr [| ci 2 |] "data" builder |> fun ptr ->
-      Llvm.build_bitcast ptr (Llvm.pointer_type llitem_typ) "" builder
-    in
+    let ptr = Llvm.build_gep llitem_typ arr_ptr [| ci 2 |] "data" builder in
 
     (* Format string *)
     (* [size] argument here is not really correct (head_size is added),
        but we made sure it's enough *)
     let args = ptr :: size :: fmtptr.value :: itemargs |> Array.of_list in
-    ignore (Llvm.build_call (Lazy.force snprintf_decl) args "fmt" builder);
+    ignore (Llvm.build_call ft f args "fmt" builder);
 
     (* Build string record *)
     let string = get_prealloc !allocref param lltyp "str" in
@@ -1254,11 +1248,11 @@ end = struct
     v
 
   and gen_print_str param exprs =
-    let printf_decl =
+    let printf =
       lazy
         Llvm.(
-          let ft = var_arg_function_type unit_t [| voidptr_t |] in
-          declare_function "printf" ft the_module)
+          let ft = var_arg_function_type unit_t [| ptr_t |] in
+          (ft, declare_function "printf" ft the_module))
     in
     let f (fmtstr, args) expr =
       match expr with
@@ -1277,7 +1271,8 @@ end = struct
     in
     let itemargs = List.rev args in
     let args = fmtptr.value :: itemargs |> Array.of_list in
-    Llvm.build_call (Lazy.force printf_decl) args "" builder |> ignore;
+    let ft, f = Lazy.force printf in
+    Llvm.build_call ft f args "" builder |> ignore;
     { dummy_fn_value with lltyp = unit_t }
 
   and gen_free param expr fs =
@@ -1424,7 +1419,7 @@ let add_global_init funcs outname kind body =
   set_section ".text.startup" init.value;
 
   let init =
-    [| const_int i32_t 65535; init.value; const_pointer_null voidptr_t |]
+    [| const_int i32_t 65535; init.value; const_pointer_null ptr_t |]
   in
   let global = const_array global_t [| const_struct context init |] in
   let global = define_global glname global the_module in
@@ -1531,8 +1526,7 @@ let generate ~target ~outname ~release ~modul
     let pm = Llvm.PassManager.create () in
     let bldr = Llvm_passmgr_builder.create () in
     Llvm_passmgr_builder.set_opt_level 2 bldr;
-    Llvm_passmgr_builder.populate_lto_pass_manager ~internalize:true
-      ~run_inliner:true pm bldr;
+    Llvm_passmgr_builder.populate_module_pass_manager pm bldr;
     Llvm.PassManager.run_module the_module pm |> ignore);
 
   TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile

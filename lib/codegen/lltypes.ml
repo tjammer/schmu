@@ -24,24 +24,22 @@ module Make (A : Abi_intf.S) = struct
     | Ti32 -> i32_t
     | Tf32 -> f32_t
     | Tunit -> unit_t
-    | Tpoly _ -> generic_t |> Llvm.pointer_type
+    | Tpoly _ -> ptr_t
     | (Trecord _ as t) | (Tvariant _ as t) -> get_struct t
     | Tfun _ -> closure_t
-    | Traw_ptr Tunit | Tarray Tunit -> Llvm.pointer_type u8_t
-    | Traw_ptr t | Tarray t -> get_lltype_def t |> Llvm.pointer_type
+    | Traw_ptr Tunit | Tarray Tunit -> ptr_t
+    | Traw_ptr _ | Tarray _ -> ptr_t
     | Tfixed_array (i, t) -> Llvm.array_type (get_lltype_def t) i
 
   and get_lltype_param mut = function
     | ( Tint | Tbool | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _
       | Traw_ptr _ | Tarray _ ) as t ->
         let t = get_lltype_def t in
-        if mut then t |> Llvm.pointer_type else t
-    | Tfun _ as t ->
-        let t = get_lltype_def t |> Llvm.pointer_type in
-        if mut then t |> Llvm.pointer_type else t
+        if mut then ptr_t else t
+    | Tfun _ -> ptr_t
     | (Trecord _ | Tvariant _ | Tfixed_array _) as t -> (
         match pkind_of_typ mut t with
-        | Boxed -> get_lltype_def t |> Llvm.pointer_type
+        | Boxed -> ptr_t
         | Unboxed size -> lltype_unboxed size)
 
   (* LLVM type of closure struct and records *)
@@ -59,9 +57,7 @@ module Make (A : Abi_intf.S) = struct
 
   and lltypeof_closure agg upward =
     List.map
-      (fun f ->
-        if f.mut && not upward then get_lltype_def f.ftyp |> Llvm.pointer_type
-        else get_lltype_def f.ftyp)
+      (fun f -> if f.mut && not upward then ptr_t else get_lltype_def f.ftyp)
       (prepend_closure_env agg)
     |> Array.of_list |> Llvm.struct_type context
 
@@ -94,8 +90,8 @@ module Make (A : Abi_intf.S) = struct
     let suffix =
       (* A closure needs an extra parameter for the environment  *)
       if decl then
-        match kind with Closure _ -> Seq.return voidptr_t | _ -> Seq.empty
-      else Seq.return voidptr_t
+        match kind with Closure _ -> Seq.return ptr_t | _ -> Seq.empty
+      else Seq.return ptr_t
     in
 
     (* Index 0 is return type *)

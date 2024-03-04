@@ -46,9 +46,7 @@ struct
 
   let data_ptr ptr arrtyp =
     let _, llitem_typ, head_size, _ = item_type_head_size arrtyp in
-    Llvm.build_bitcast ptr (Llvm.pointer_type u8_t) "" builder |> fun ptr ->
-    Llvm.build_gep ptr [| ci head_size |] "" builder |> fun ptr ->
-    Llvm.build_bitcast ptr (Llvm.pointer_type llitem_typ) "data" builder
+    Llvm.build_gep llitem_typ ptr [| ci head_size |] "" builder
 
   let data_get ptr arrtyp index =
     let item_typ, llitem_typ, _, _ = item_type_head_size arrtyp in
@@ -57,30 +55,25 @@ struct
     | _ ->
         let ptr = data_ptr ptr arrtyp in
         let idx = match index with Iconst i -> ci i | Idyn i -> i in
-        let data = Llvm.build_gep ptr [| idx |] "" builder in
-        Llvm.build_bitcast data (Llvm.pointer_type llitem_typ) "data" builder
+        Llvm.build_gep llitem_typ ptr [| idx |] "" builder
 
   let gen_array_lit param exprs typ allocref =
     let vec_sz = List.length exprs in
 
-    let item_typ, _, head_size, item_size = item_type_head_size typ in
+    let item_typ, item_lltyp, head_size, item_size = item_type_head_size typ in
     let cap_sz = Int.max 1 vec_sz in
     let cap = head_size + (cap_sz * item_size) in
 
     let lltyp = get_lltype_def typ in
-    let ptr =
-      malloc ~size:(Llvm.const_int int_t cap) |> fun ptr ->
-      Llvm.build_bitcast ptr lltyp "" builder
-    in
+    let ptr = malloc ~size:(Llvm.const_int int_t cap) in
 
     let arr = get_prealloc !allocref param lltyp "arr" in
     ignore (Llvm.build_store ptr arr builder);
 
     (* Initialize counts *)
-    let int_ptr = Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "" builder in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
+    let dst = Llvm.build_gep int_t ptr [| ci 0 |] "size" builder in
     ignore (Llvm.build_store (ci vec_sz) dst builder);
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
+    let dst = Llvm.build_gep int_t ptr [| ci 1 |] "cap" builder in
     ignore (Llvm.build_store (ci cap_sz) dst builder);
     let ptr = data_ptr ptr typ in
 
@@ -90,7 +83,9 @@ struct
     | _ ->
         List.iteri
           (fun i expr ->
-            let dst = Llvm.build_gep ptr [| ci i |] (string_of_int i) builder in
+            let dst =
+              Llvm.build_gep item_lltyp ptr [| ci i |] (string_of_int i) builder
+            in
             let src =
               gen_expr { param with alloca = Some dst } expr
               |> func_to_closure param
@@ -121,7 +116,7 @@ struct
     Llvm.position_at_end rec_bb builder;
 
     (* Check if we are done *)
-    let cnt_loaded = Llvm.build_load cnt "" builder in
+    let cnt_loaded = Llvm.build_load int_t cnt "" builder in
     let cmp = Llvm.(build_icmp Icmp.Slt) cnt_loaded size "" builder in
     ignore (Llvm.build_cond_br cmp child_bb cont_bb builder);
 
@@ -159,12 +154,10 @@ struct
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
     let arr = bring_default_var arr in
-    let int_ptr =
-      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
-    in
-    let value = Llvm.build_gep int_ptr [| ci 0 |] "len" builder in
+    let value = Llvm.build_gep int_t arr.value [| ci 0 |] "len" builder in
     let value, kind =
-      if unsafe then (value, Ptr) else (Llvm.build_load value "" builder, Imm)
+      if unsafe then (value, Ptr)
+      else (Llvm.build_load int_t value "" builder, Imm)
     in
 
     { value; typ = Tint; lltyp = int_t; kind }
@@ -176,11 +169,8 @@ struct
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
     let arr = bring_default_var arr in
-    let int_ptr =
-      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
-    in
-    let value = Llvm.build_gep int_ptr [| ci 1 |] "capacity" builder in
-    let value = Llvm.build_load value "" builder in
+    let value = Llvm.build_gep int_t arr.value [| ci 1 |] "capacity" builder in
+    let value = Llvm.build_load int_t value "" builder in
     { value; typ = Tint; lltyp = int_t; kind = Imm }
 
   let array_realloc args =
@@ -197,10 +187,7 @@ struct
     let ptr = realloc (bring_default orig) ~size in
     ignore (Llvm.build_store ptr orig.value builder);
 
-    let new_int_ptr =
-      Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "newcap" builder
-    in
-    let new_dst = Llvm.build_gep new_int_ptr [| ci 1 |] "newcap" builder in
+    let new_dst = Llvm.build_gep int_t ptr [| ci 1 |] "newcap" builder in
     ignore (Llvm.build_store new_cap new_dst builder);
 
     { dummy_fn_value with lltyp = unit_t }
@@ -212,12 +199,9 @@ struct
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
     let arr = bring_default_var arr in
-    let int_ptr =
-      Llvm.build_bitcast arr.value (Llvm.pointer_type int_t) "" builder
-    in
 
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
-    let sz = Llvm.build_load dst "size" builder in
+    let dst = Llvm.build_gep int_t arr.value [| ci 0 |] "size" builder in
+    let sz = Llvm.build_load int_t dst "size" builder in
 
     let start_bb = Llvm.insertion_block builder in
     let parent = Llvm.block_parent start_bb in
@@ -281,10 +265,9 @@ struct
     ignore (Llvm.build_store ptr arr builder);
 
     (* Initialize counts *)
-    let int_ptr = Llvm.build_bitcast ptr (Llvm.pointer_type int_t) "" builder in
-    let dst = Llvm.build_gep int_ptr [| ci 0 |] "size" builder in
+    let dst = Llvm.build_gep int_t ptr [| ci 0 |] "size" builder in
     ignore (Llvm.build_store sz dst builder);
-    let dst = Llvm.build_gep int_ptr [| ci 1 |] "cap" builder in
+    let dst = Llvm.build_gep int_t ptr [| ci 1 |] "cap" builder in
     ignore (Llvm.build_store sz dst builder);
 
     { value = arr; typ; lltyp; kind = Ptr }
@@ -299,13 +282,20 @@ struct
           (v.value, v.kind)
       | Tfixed_array (_, t) -> (
           let item_size = sizeof_typ t in
+          let lltyp =
+            match typ with
+            | Tfixed_array (_, t) -> get_lltype_def t
+            | _ -> failwith "unreachable"
+          in
           match const with
           | Monomorph_tree.Cnot ->
               let arr = get_prealloc !allocref param lltyp "arr" in
 
               List.iteri
                 (fun i expr ->
-                  let dst = Llvm.build_gep arr [| ci 0; ci i |] "" builder in
+                  let dst =
+                    Llvm.build_gep lltyp arr [| ci 0; ci i |] "" builder
+                  in
                   let src =
                     gen_expr { param with alloca = Some dst } expr
                     |> func_to_closure param
@@ -324,11 +314,6 @@ struct
               let values =
                 List.map (fun expr -> (gen_constexpr param expr).value) exprs
                 |> Array.of_list
-              in
-              let lltyp =
-                match typ with
-                | Tfixed_array (_, t) -> get_lltype_def t
-                | _ -> failwith "unreachable"
               in
               let value = Llvm.(const_array lltyp values) in
               (* The value might be returned, thus boxed, so we wrap it in an automatic var *)
@@ -359,14 +344,14 @@ struct
     Llvm.position_at_end rec_bb builder;
 
     (* Check if we are done *)
-    let cnt_loaded = Llvm.build_load cnt "" builder in
+    let cnt_loaded = Llvm.build_load int_t cnt "" builder in
     let cmp = Llvm.(build_icmp Icmp.Slt) cnt_loaded (ci size) "" builder in
     ignore (Llvm.build_cond_br cmp child_bb cont_bb builder);
 
     Llvm.position_at_end child_bb builder;
     (* The ptr has the correct type, no need to multiply size *)
-    let value = Llvm.build_gep arr [| ci 0; cnt_loaded |] "" builder in
     let lltyp = get_lltype_def child_typ in
+    let value = Llvm.build_gep lltyp arr [| ci 0; cnt_loaded |] "" builder in
     let temp = { value; typ = child_typ; lltyp; kind = Ptr } in
     f temp;
 

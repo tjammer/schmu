@@ -49,27 +49,27 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         (* For simplicity, we pass everything as ptr *)
         let lltyp =
           match v.kind with
-          | Const_ptr | Ptr -> get_lltype_def v.typ |> Llvm.pointer_type
+          | Const_ptr | Ptr -> ptr_t
           | Imm | Const -> failwith "TODO nonptr copy fn"
         in
         let ft = Llvm.function_type unit_t [| lltyp |] in
         let f = Llvm.declare_function name ft the_module in
         Llvm.set_linkage Llvm.Linkage.Link_once_odr f;
-        Hashtbl.replace func_tbl name (kind, v, f);
-        f
+        Hashtbl.replace func_tbl name (kind, v, (ft, f));
+        ft, f
 
   let copy_root_call param allocref v =
-    let f = make_fn Copy v in
+    let ft, f = make_fn Copy v in
 
     let value = get_prealloc allocref param (get_lltype_def v.typ) "" in
     (* Copy the inline part here. Recurse for allocations *)
     memcpy ~src:v ~dst:value ~size:(ci (sizeof_typ v.typ));
-    Llvm.build_call f [| value |] "" builder |> ignore;
+    Llvm.build_call ft f [| value |] "" builder |> ignore;
     { v with value; kind = Ptr }
 
   let copy_inner_call v =
-    let f = make_fn Copy v in
-    Llvm.build_call f [| v.value |] "" builder |> ignore
+    let ft, f = make_fn Copy v in
+    Llvm.build_call ft f [| v.value |] "" builder |> ignore
 
   let make_ptr param v =
     let v = func_to_closure no_param v in
@@ -145,6 +145,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     pre ^ Monomorph_tree.structural_name ~closure:false typ
 
   let get_ctor assoc_type assoc upward =
+    ignore upward;
     let name = cls_fn_name `Ctor assoc in
     match Hashtbl.find_opt cls_func_tbl name with
     | Some f -> f
@@ -159,29 +160,20 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
 
         (* Allocate new env ptr *)
         let p0 = Llvm.param func 0 in
-        let env_ptr = (bb p0 (Llvm.pointer_type assoc_type)) "" builder in
         let typ = typeof_closure assoc in
         let size = sizeof_typ typ |> ci in
         let newptr = malloc ~size in
-        let newptr = (bb newptr (Llvm.pointer_type assoc_type)) "" builder in
 
         (* Copy old env to new env *)
-        let src = { value = env_ptr; kind = Ptr; lltyp = assoc_type; typ } in
+        let src = { value = p0; kind = Ptr; lltyp = assoc_type; typ } in
         memcpy ~src ~dst:newptr ~size;
 
         (* Copy inner allocations *)
         (* TODO declare inner copy functions *)
         let f i cl =
           if contains_allocation cl.cltyp then (
-            let value = Llvm.build_struct_gep newptr i cl.clname builder in
+            let value = Llvm.build_struct_gep assoc_type newptr i cl.clname builder in
             let lltyp = get_lltype_def cl.cltyp in
-            let value =
-              if cl.clmut && not upward then
-                (* There's an extra pointer here (ptr to ptr).
-                   Bitcast to silence LLVM warning *)
-                bb value (Llvm.pointer_type lltyp) "" builder
-              else value
-            in
             let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
             decl_children Copy item item.typ;
             copy_inner_call item);
@@ -190,8 +182,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         (* [2] as starting index, because [0] is ctor, and [1] is dtor *)
         List.fold_left f 2 assoc |> ignore;
 
-        let ret_ptr = bb newptr voidptr_t "" builder in
-        Llvm.build_ret ret_ptr builder |> ignore;
+        Llvm.build_ret newptr builder |> ignore;
         Llvm.position_at_end curr_bb builder;
 
         Hashtbl.add cls_func_tbl name func;
@@ -206,9 +197,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     match dst.typ with
     | Tarray t ->
         let v = bring_default_var dst in
-        let int_ptr = bb v.value (Llvm.pointer_type int_t) "ref" builder in
-        let sz = Llvm.build_gep int_ptr [| ci 0 |] "sz" builder in
-        let sz = Llvm.build_load sz "size" builder in
+        let sz = Llvm.build_gep int_t v.value [| ci 0 |] "sz" builder in
+        let sz = Llvm.build_load int_t sz "size" builder in
 
         let item_type, _, head_size, item_size = item_type_head_size dst.typ in
         let is_string = match t with Tu8 -> true | _ -> false in
@@ -236,13 +226,12 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
            memcpy ~src ~dst:ptr ~size);
 
         (* Set new capacity since we only malloced [size] *)
-        let int_ptr = bb ptr (Llvm.pointer_type int_t) "newref" builder in
-        let cap = Llvm.build_gep int_ptr [| ci 1 |] "newcap" builder in
+        let cap = Llvm.build_gep int_t ptr [| ci 1 |] "newcap" builder in
         Llvm.build_store sz cap builder |> ignore;
 
         (if is_string then
            (* Set null terminator *)
-           let last = Llvm.build_gep ptr [| size |] "" builder in
+           let last = Llvm.build_gep u8_t ptr [| size |] "" builder in
            Llvm.(build_store (const_int u8_t 0) last) builder |> ignore);
         (* set orig pointer to new ptr *)
         ignore (Llvm.build_store ptr dst.value builder);
@@ -290,10 +279,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         (* We can assume this is a closure structure. The global function case
            has been filtered in [copy] above. *)
         let v = bring_default_var dst in
-        let ptr = bb v.value (Llvm.pointer_type closure_t) "" builder in
         (* Pointer to environment *)
-        let env = Llvm.build_struct_gep ptr 1 "" builder in
-        let mb_null = Llvm.build_load env "" builder in
+        let env = Llvm.build_struct_gep closure_t v.value 1 "" builder in
+        let mb_null = Llvm.build_load ptr_t env "" builder in
 
         (* Check for nullptr *)
         let start_bb = Llvm.insertion_block builder in
@@ -309,12 +297,10 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
 
         (* We don't have to check if a ctor exists. If the env exists, the ctor must also exist *)
         (* let env = bb mb_null voidptr_t "env" builder in *)
-        let ctor_ptr = Llvm.build_gep mb_null [| ci 0 |] "ctor" builder in
-        let ctor_ptr = bb ctor_ptr (Llvm.pointer_type voidptr_t) "" builder in
-        let ctor_ptr = Llvm.build_load ctor_ptr "ctor" builder in
-        let ctor = (bb ctor_ptr (Llvm.pointer_type ctor_t)) "ctor" builder in
+        let ctor_ptr = Llvm.build_gep ptr_t mb_null [| ci 0 |] "ctor" builder in
+        let ctor = Llvm.build_load ptr_t ctor_ptr "ctor" builder in
 
-        let newenv = Llvm.build_call ctor [| mb_null |] "" builder in
+        let newenv = Llvm.build_call ctor_t ctor [| mb_null |] "" builder in
         Llvm.build_store newenv env builder |> ignore;
 
         Llvm.build_br ret_bb builder |> ignore;
@@ -325,12 +311,12 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     | _ -> failwith "Internal Error: What are we copying?"
 
   let free_call v =
-    let f = make_fn Free v in
-    Llvm.build_call f [| v.value |] "" builder |> ignore
+    let ft, f = make_fn Free v in
+    Llvm.build_call ft f [| v.value |] "" builder |> ignore
 
   let free_except_call pset v =
-    let f = make_fn (Free_except pset) v in
-    Llvm.build_call f [| v.value |] "" builder |> ignore
+    let ft,  f= make_fn (Free_except pset) v in
+    Llvm.build_call ft f [| v.value |] "" builder |> ignore
 
   let free param v =
     if contains_allocation v.typ then
@@ -357,10 +343,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         Llvm.position_at_end bblk builder;
 
         let p0 = Llvm.param func 0 in
-        let clsr_ptr = (bb p0 (Llvm.pointer_type assoc_type)) "" builder in
         let f i cl =
           if contains_allocation cl.cltyp then (
-            let value = Llvm.build_struct_gep clsr_ptr i cl.clname builder in
+            let value = Llvm.build_struct_gep assoc_type p0  i cl.clname builder in
             let lltyp = get_lltype_def cl.cltyp in
             let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
             decl_children Free item item.typ;
@@ -381,16 +366,13 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     match v.typ with
     | Tarray t ->
         let v = bring_default_var v in
-        let int_ptr =
-          Llvm.build_bitcast v.value (Llvm.pointer_type int_t) "ref" builder
-        in
         (if contains_allocation t then
-           let sz = Llvm.build_gep int_ptr [| ci 0 |] "sz" builder in
-           let sz = Llvm.build_load sz "size" builder in
+           let sz = Llvm.build_gep int_t v.value  [| ci 0 |] "sz" builder in
+           let sz = Llvm.build_load int_t sz "size" builder in
 
            iter_array_children v sz t free_call);
 
-        free_var int_ptr |> ignore
+        free_var v.value |> ignore
     | Trecord (_, _, fs) ->
         Array.iteri
           (fun i f ->
@@ -429,10 +411,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         Array.iteri f ctors
     | Tfun _ ->
         let v = bring_default_var v in
-        let ptr = bb v.value (Llvm.pointer_type closure_t) "" builder in
         (* Pointer to environment *)
-        let env = Llvm.build_struct_gep ptr 1 "envptr" builder in
-        let mb_null = Llvm.build_load env "env" builder in
+        let env = Llvm.build_struct_gep closure_t v.value 1 "envptr" builder in
+        let mb_null = Llvm.build_load ptr_t env "env" builder in
 
         (* Check for nullptr *)
         let start_bb = Llvm.insertion_block builder in
@@ -451,16 +432,13 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let just_free_bb = Llvm.append_block context "just_free" parent in
 
         let cls_t = lltypeof_closure [] true in
-        let env = bb mb_null (Llvm.pointer_type cls_t) "" builder in
-        let dtor_ptr = Llvm.build_struct_gep env 1 "" builder in
-        let dtor_ptr = bb dtor_ptr (Llvm.pointer_type voidptr_t) "" builder in
-        let dtor_ptr = Llvm.build_load dtor_ptr "dtor" builder in
+        let dtor_ptr = Llvm.build_struct_gep cls_t mb_null 1 "" builder in
+        let dtor = Llvm.build_load ptr_t dtor_ptr "dtor" builder in
         let cmp = Llvm.(build_icmp Icmp.Eq dtor_ptr nullptr "") builder in
         Llvm.build_cond_br cmp just_free_bb dtor_bb builder |> ignore;
 
         Llvm.position_at_end dtor_bb builder;
-        let dtor = (bb dtor_ptr (Llvm.pointer_type dtor_t)) "dtor" builder in
-        Llvm.build_call dtor [| mb_null |] "" builder |> ignore;
+        Llvm.build_call dtor_t dtor [| mb_null |] "" builder |> ignore;
         Llvm.build_br ret_bb builder |> ignore;
 
         (* The dtor cleans up recursively.
@@ -496,11 +474,11 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
 
   let gen_functions () =
     Hashtbl.iter
-      (fun _ (kind, v, ft) ->
-        let bb = Llvm.append_block context "entry" ft in
+      (fun _ (kind, v, (_, f)) ->
+        let bb = Llvm.append_block context "entry" f in
         Llvm.position_at_end bb builder;
 
-        let v = { v with value = Llvm.param ft 0; kind = Ptr } in
+        let v = { v with value = Llvm.param f 0; kind = Ptr } in
         match kind with
         | Copy ->
             copy_impl v;
