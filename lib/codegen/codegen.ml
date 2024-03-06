@@ -683,10 +683,13 @@ end = struct
             | Tfixed_array (_, Tunit) -> dummy_fn_value
             | _ ->
                 let lltyp = get_lltype_def fnc.ret in
-                let value =
-                  Llvm.build_gep lltyp arr.value
-                    [| Llvm.const_int int_t 0; bring_default idx |]
+                let ptr =
+                  Llvm.build_gep ptr_t arr.value
+                    [| Llvm.const_int int_t 0 |]
                     "" builder
+                in
+                let value =
+                  Llvm.build_gep lltyp ptr [| bring_default idx |] "" builder
                 in
                 { value; typ = fnc.ret; lltyp; kind = Ptr })
         | _ -> failwith "Internal Error: Arity mismatch in builtin")
@@ -708,9 +711,8 @@ end = struct
                 let value = Llvm.const_null ptr_t in
                 { value; kind = Imm; typ = Traw_ptr Tunit; lltyp = ptr_t }
             | (Ptr | Const_ptr), Tfixed_array (_, t) ->
-                let lltyp = get_lltype_def t in
-                let value = Llvm.build_bitcast arr.value lltyp "" builder in
-                { value; kind = Imm; typ = Traw_ptr t; lltyp }
+                let lltyp = ptr_t in
+                { value = arr.value; kind = Imm; typ = Traw_ptr t; lltyp }
             | (Ptr | Const_ptr), _ ->
                 failwith "Internal Error: Not a fixed-size array"
             | (Const | Imm), _ ->
@@ -1215,7 +1217,7 @@ end = struct
     let ft, f = Lazy.force snprintf in
     let ssize = Llvm.build_call ft f args "fmtsize" builder in
     (* Add null terminator (and rc head) *)
-    let _, llitem_typ, head_size, _ = item_type_head_size typ in
+    let _, _, head_size, _ = item_type_head_size typ in
     let size =
       Llvm.build_add ssize (Llvm.const_int i32_t (head_size + 1)) "" builder
     in
@@ -1231,7 +1233,7 @@ end = struct
     ignore (Llvm.build_store ssize dst builder);
     let dst = Llvm.build_gep int_t arr_ptr [| ci 1 |] "cap" builder in
     ignore (Llvm.build_store ssize dst builder);
-    let ptr = Llvm.build_gep llitem_typ arr_ptr [| ci 2 |] "data" builder in
+    let ptr = Llvm.build_gep int_t arr_ptr [| ci 2 |] "data" builder in
 
     (* Format string *)
     (* [size] argument here is not really correct (head_size is added),

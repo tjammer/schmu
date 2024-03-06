@@ -12,7 +12,6 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
   let func_tbl = Hashtbl.create 64
   let cls_func_tbl = Hashtbl.create 64
   let ci i = Llvm.const_int int_t i
-  let bb = Llvm.build_bitcast
 
   let alloc_types ts = function
     | Tarray t -> t :: ts
@@ -56,7 +55,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let f = Llvm.declare_function name ft the_module in
         Llvm.set_linkage Llvm.Linkage.Link_once_odr f;
         Hashtbl.replace func_tbl name (kind, v, (ft, f));
-        ft, f
+        (ft, f)
 
   let copy_root_call param allocref v =
     let ft, f = make_fn Copy v in
@@ -172,7 +171,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         (* TODO declare inner copy functions *)
         let f i cl =
           if contains_allocation cl.cltyp then (
-            let value = Llvm.build_struct_gep assoc_type newptr i cl.clname builder in
+            let value =
+              Llvm.build_struct_gep assoc_type newptr i cl.clname builder
+            in
             let lltyp = get_lltype_def cl.cltyp in
             let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
             decl_children Copy item item.typ;
@@ -214,7 +215,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let size = Llvm.build_add itemscap (ci cap_size) "" builder in
 
         let lltyp = get_lltype_def dst.typ in
-        let ptr = bb (malloc ~size) lltyp "" builder in
+        let ptr = malloc ~size in
 
         (* Don't write to null terminator *)
         let size =
@@ -315,7 +316,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     Llvm.build_call ft f [| v.value |] "" builder |> ignore
 
   let free_except_call pset v =
-    let ft,  f= make_fn (Free_except pset) v in
+    let ft, f = make_fn (Free_except pset) v in
     Llvm.build_call ft f [| v.value |] "" builder |> ignore
 
   let free param v =
@@ -345,7 +346,9 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let p0 = Llvm.param func 0 in
         let f i cl =
           if contains_allocation cl.cltyp then (
-            let value = Llvm.build_struct_gep assoc_type p0  i cl.clname builder in
+            let value =
+              Llvm.build_struct_gep assoc_type p0 i cl.clname builder
+            in
             let lltyp = get_lltype_def cl.cltyp in
             let item = { value; typ = cl.cltyp; kind = Ptr; lltyp } in
             decl_children Free item item.typ;
@@ -367,7 +370,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
     | Tarray t ->
         let v = bring_default_var v in
         (if contains_allocation t then
-           let sz = Llvm.build_gep int_t v.value  [| ci 0 |] "sz" builder in
+           let sz = Llvm.build_gep int_t v.value [| ci 0 |] "sz" builder in
            let sz = Llvm.build_load int_t sz "size" builder in
 
            iter_array_children v sz t free_call);
@@ -434,7 +437,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let cls_t = lltypeof_closure [] true in
         let dtor_ptr = Llvm.build_struct_gep cls_t mb_null 1 "" builder in
         let dtor = Llvm.build_load ptr_t dtor_ptr "dtor" builder in
-        let cmp = Llvm.(build_icmp Icmp.Eq dtor_ptr nullptr "") builder in
+        let cmp = Llvm.(build_icmp Icmp.Eq dtor nullptr "") builder in
         Llvm.build_cond_br cmp just_free_bb dtor_bb builder |> ignore;
 
         Llvm.position_at_end dtor_bb builder;
@@ -478,7 +481,8 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
         let bb = Llvm.append_block context "entry" f in
         Llvm.position_at_end bb builder;
 
-        let v = { v with value = Llvm.param f 0; kind = Ptr } in
+        let lltyp = get_lltype_def v.typ in
+        let v = { v with value = Llvm.param f 0; kind = Ptr; lltyp } in
         match kind with
         | Copy ->
             copy_impl v;

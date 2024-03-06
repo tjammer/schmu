@@ -45,8 +45,8 @@ struct
     (item_typ, llitem_typ, head_sz, item_sz)
 
   let data_ptr ptr arrtyp =
-    let _, llitem_typ, head_size, _ = item_type_head_size arrtyp in
-    Llvm.build_gep llitem_typ ptr [| ci head_size |] "" builder
+    let _, _, head_size, _ = item_type_head_size arrtyp in
+    Llvm.build_gep u8_t ptr [| ci head_size |] "" builder
 
   let data_get ptr arrtyp index =
     let item_typ, llitem_typ, _, _ = item_type_head_size arrtyp in
@@ -282,7 +282,7 @@ struct
           (v.value, v.kind)
       | Tfixed_array (_, t) -> (
           let item_size = sizeof_typ t in
-          let lltyp =
+          let item_lltyp =
             match typ with
             | Tfixed_array (_, t) -> get_lltype_def t
             | _ -> failwith "unreachable"
@@ -290,11 +290,12 @@ struct
           match const with
           | Monomorph_tree.Cnot ->
               let arr = get_prealloc !allocref param lltyp "arr" in
+              let arrptr = Llvm.build_gep ptr_t arr [| ci 0 |] "" builder in
 
               List.iteri
                 (fun i expr ->
                   let dst =
-                    Llvm.build_gep lltyp arr [| ci 0; ci i |] "" builder
+                    Llvm.build_gep item_lltyp arrptr [| ci i |] "" builder
                   in
                   let src =
                     gen_expr { param with alloca = Some dst } expr
@@ -315,10 +316,10 @@ struct
                 List.map (fun expr -> (gen_constexpr param expr).value) exprs
                 |> Array.of_list
               in
-              let value = Llvm.(const_array lltyp values) in
+              let value = Llvm.(const_array item_lltyp values) in
               (* The value might be returned, thus boxed, so we wrap it in an automatic var *)
               if return then (
-                let record = get_prealloc !allocref param lltyp "" in
+                let record = get_prealloc !allocref param item_lltyp "" in
                 ignore (Llvm.build_store value record builder);
                 (record, Const_ptr))
               else (value, Const))
@@ -351,7 +352,8 @@ struct
     Llvm.position_at_end child_bb builder;
     (* The ptr has the correct type, no need to multiply size *)
     let lltyp = get_lltype_def child_typ in
-    let value = Llvm.build_gep lltyp arr [| ci 0; cnt_loaded |] "" builder in
+    let arrptr = Llvm.build_gep ptr_t arr [| ci 0 |] "" builder in
+    let value = Llvm.build_gep lltyp arrptr [| cnt_loaded |] "" builder in
     let temp = { value; typ = child_typ; lltyp; kind = Ptr } in
     f temp;
 

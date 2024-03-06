@@ -102,8 +102,6 @@ struct
        in a monomorphized version *)
     { typ = Tunit; value = Llvm.const_null u8_t; lltyp = unit_t; kind = Imm }
 
-  let bb = Llvm.build_bitcast
-
   let default_kind = function
     | t when is_struct t -> Ptr
     | Tint | Tbool | Tfloat | Tu8 | Tu16 | Ti32 | Tf32 | Tunit | Traw_ptr _
@@ -148,9 +146,7 @@ struct
               let ft = function_type unit_t [| ptr_t; ptr_t; int_t; bool_t |] in
               (ft, declare_function "llvm.memcpy.p0.p0.i64" ft the_module))
         in
-        let dstptr = bb dst ptr_t "" builder in
-        let retptr = bb src.value ptr_t "" builder in
-        let args = [| dstptr; retptr; size; Llvm.const_int bool_t 0 |] in
+        let args = [| dst; src.value; size; Llvm.const_int bool_t 0 |] in
         let ft, decl = Lazy.force memcpy in
         ignore (Llvm.build_call ft decl args "" builder)
 
@@ -172,8 +168,7 @@ struct
           (ft, declare_function "realloc" ft the_module))
     in
     let ft, decl = Lazy.force realloc in
-    let ret = Llvm.build_call ft decl [| ptr; size |] "" builder in
-    bb ret (Llvm.type_of ptr) "" builder
+    Llvm.build_call ft decl [| ptr; size |] "" builder
 
   (* Frees a single pointer *)
   let free_var ptr =
@@ -375,7 +370,8 @@ struct
       else if cl.clmut && upward then (item_ptr, ptr_t)
       else
         let lltyp = get_lltype_def typ in
-        let value = Llvm.build_load lltyp item_ptr cl.clname builder in
+        let load_type = if cl.clmut then ptr_t else lltyp in
+        let value = Llvm.build_load load_type item_ptr cl.clname builder in
         (value, lltyp)
     in
     let kind = if cl.clmut then Ptr else default_kind typ in
@@ -387,9 +383,10 @@ struct
     let upward = is_prealloc allocref in
 
     (* Add function ptr *)
-    let fun_ptr = Llvm.build_struct_gep closure_t clsr_struct 0 "funptr" builder in
-    let fun_casted = bb func.value ptr_t "func" builder in
-    ignore (Llvm.build_store fun_casted fun_ptr builder);
+    let fun_ptr =
+      Llvm.build_struct_gep closure_t clsr_struct 0 "funptr" builder
+    in
+    ignore (Llvm.build_store func.value fun_ptr builder);
 
     let store_closed_var lltyp clsr_ptr i cl =
       let src =
@@ -436,29 +433,32 @@ struct
           ignore (List.fold_left (store_closed_var assoc_type clsr_ptr) 2 assoc);
 
           (* Add ctor function *)
-          let ctor_ptr = Llvm.build_struct_gep assoc_type clsr_ptr 0 "ctor" builder in
-          let ctor =
-            bb (Auto.get_ctor assoc_type assoc upward) ptr_t "" builder
+          let ctor_ptr =
+            Llvm.build_struct_gep assoc_type clsr_ptr 0 "ctor" builder
           in
+          let ctor = Auto.get_ctor assoc_type assoc upward in
           Llvm.build_store ctor ctor_ptr builder |> ignore;
 
           (* Create dtor function if it does not exist yet *)
           let dtor =
             if assoc_contains_ref assoc && upward then
-              bb (Auto.get_dtor assoc_type assoc) ptr_t "" builder
+              Auto.get_dtor assoc_type assoc
             else Llvm.(const_pointer_null ptr_t)
           in
 
           (* Add dtor *)
-          let dtor_ptr = Llvm.build_struct_gep assoc_type clsr_ptr 1 "dtor" builder in
+          let dtor_ptr =
+            Llvm.build_struct_gep assoc_type clsr_ptr 1 "dtor" builder
+          in
           ignore (Llvm.(build_store dtor dtor_ptr) builder);
 
-          let clsr_casted = bb clsr_ptr ptr_t "env" builder in
-          clsr_casted
+          clsr_ptr
     in
 
     (* Add closure env to struct *)
-    let env_ptr = Llvm.build_struct_gep closure_t clsr_struct 1 "envptr" builder in
+    let env_ptr =
+      Llvm.build_struct_gep closure_t clsr_struct 1 "envptr" builder
+    in
     ignore (Llvm.build_store clsr_ptr env_ptr builder);
 
     (* Turn simple functions into empty closures, so they are handled correctly
@@ -470,10 +470,12 @@ struct
     | Closure assoc ->
         let closure_index = (Llvm.params func.value |> Array.length) - 1 in
         let clsr_param = (Llvm.params func.value).(closure_index) in
-        let clsr_type = lltypeof_closure assoc upward  in
+        let clsr_type = lltypeof_closure assoc upward in
 
         let add_closure (env, i) cl =
-          let item_ptr = Llvm.build_struct_gep clsr_type clsr_param i cl.clname builder in
+          let item_ptr =
+            Llvm.build_struct_gep clsr_type clsr_param i cl.clname builder
+          in
           let item = get_closure_item cl item_ptr upward in
           (Vars.add cl.clname item env, i + 1)
         in
@@ -626,10 +628,11 @@ struct
                   let i = get_index i p.pmut typ in
                   let llvar = Vars.find (name_of_alloc_param i) env in
                   let value =
-                    if p.pmut then Llvm.build_load llvar.lltyp llvar.value name builder
+                    if p.pmut then
+                      (* Mutable values point to another pointer *)
+                      Llvm.build_load ptr_t llvar.value name builder
                     else llvar.value
                   in
-                  (* let kind = if p.pmut then Ptr else default_kind typ in *)
                   (Vars.add name { llvar with value } env, i + 1))
             (vars, start_index) names params
         in
@@ -708,7 +711,8 @@ struct
 
       Llvm.position_at_end decr_bb builder;
       let value =
-        if mut then Llvm.build_load alloca.lltyp alloca.value "" builder else alloca.value
+        if mut then Llvm.build_load alloca.lltyp alloca.value "" builder
+        else alloca.value
       in
       (* let kind = if mut then Ptr else default_kind alloca.typ in *)
       Auto.free param { alloca with value };
@@ -739,8 +743,9 @@ struct
     match typ with
     | Tunit -> dummy_fn_value
     | _ ->
-        let dataptr = Llvm.build_struct_gep var.lltyp var.value 1 "data" builder in
-        let value = bb dataptr ptr_t "" builder in
+        let value =
+          Llvm.build_struct_gep var.lltyp var.value 1 "data" builder
+        in
         { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
 
   let set_in_init b = in_init := b
@@ -769,10 +774,13 @@ struct
     match typ with
     | Tunit -> dummy_fn_value
     | typ ->
+        let lltyp = get_lltype_def value.typ in
         let value, kind =
           match value.kind with
           | Const_ptr | Ptr ->
-              let p = Llvm.build_struct_gep value.lltyp value.value index "" builder in
+              let p =
+                Llvm.build_struct_gep lltyp value.value index "" builder
+              in
               (* In case we return a record, we don't load, but return the pointer.
                  The idea is that this will be used either as a return value for a function (where it is copied),
                  or for another field, where the pointer is needed.
@@ -780,7 +788,9 @@ struct
               (p, Ptr)
           | Const ->
               (* If the record is const, we use extractvalue and propagate the constness *)
-              let p = Llvm.(const_extractelement value.value (const_int i32_t index)) in
+              let p =
+                Llvm.(const_extractelement value.value (const_int i32_t index))
+              in
               (p, Const)
           | Imm -> failwith "Internal Error: Did not expect Imm in field"
         in

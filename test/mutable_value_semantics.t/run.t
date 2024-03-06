@@ -5,205 +5,173 @@ Test simple setting of mutable variables
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   @schmu_b = global i64 10, align 8
-  @schmu_a = global i64** null, align 8
-  @schmu_b__3 = global i64** null, align 8
-  @schmu_c = global i64* null, align 8
+  @schmu_a = global ptr null, align 8
+  @schmu_b__3 = global ptr null, align 8
+  @schmu_c = global ptr null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define i64 @schmu_hmm() {
   entry:
     %0 = alloca i64, align 8
-    store i64 10, i64* %0, align 8
-    store i64 15, i64* %0, align 8
+    store i64 10, ptr %0, align 8
+    store i64 15, ptr %0, align 8
     ret i64 15
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    store i64 14, i64* @schmu_b, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 14)
+    store i64 14, ptr @schmu_b, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 14)
     %0 = tail call i64 @schmu_hmm()
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %1 = tail call i8* @malloc(i64 32)
-    %2 = bitcast i8* %1 to i64**
-    store i64** %2, i64*** @schmu_a, align 8
-    %3 = bitcast i64** %2 to i64*
-    store i64 2, i64* %3, align 8
-    %cap = getelementptr i64, i64* %3, i64 1
-    store i64 2, i64* %cap, align 8
-    %4 = getelementptr i8, i8* %1, i64 16
-    %data = bitcast i8* %4 to i64**
-    %5 = tail call i8* @malloc(i64 24)
-    %6 = bitcast i8* %5 to i64*
-    store i64* %6, i64** %data, align 8
-    store i64 1, i64* %6, align 8
-    %cap2 = getelementptr i64, i64* %6, i64 1
-    store i64 1, i64* %cap2, align 8
-    %7 = getelementptr i8, i8* %5, i64 16
-    %data3 = bitcast i8* %7 to i64*
-    store i64 10, i64* %data3, align 8
-    %"1" = getelementptr i64*, i64** %data, i64 1
-    %8 = tail call i8* @malloc(i64 24)
-    %9 = bitcast i8* %8 to i64*
-    store i64* %9, i64** %"1", align 8
-    store i64 1, i64* %9, align 8
-    %cap6 = getelementptr i64, i64* %9, i64 1
-    store i64 1, i64* %cap6, align 8
-    %10 = getelementptr i8, i8* %8, i64 16
-    %data7 = bitcast i8* %10 to i64*
-    store i64 20, i64* %data7, align 8
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (i64*** @schmu_b__3 to i8*), i8* bitcast (i64*** @schmu_a to i8*), i64 8, i1 false)
-    tail call void @__copy_2al2_(i64*** @schmu_b__3)
-    %11 = tail call i8* @malloc(i64 24)
-    %12 = bitcast i8* %11 to i64*
-    store i64* %12, i64** @schmu_c, align 8
-    store i64 1, i64* %12, align 8
-    %cap10 = getelementptr i64, i64* %12, i64 1
-    store i64 1, i64* %cap10, align 8
-    %13 = getelementptr i8, i8* %11, i64 16
-    %data11 = bitcast i8* %13 to i64*
-    store i64 30, i64* %data11, align 8
-    %14 = load i64**, i64*** @schmu_a, align 8
-    %15 = bitcast i64** %14 to i8*
-    %16 = getelementptr i8, i8* %15, i64 16
-    %data13 = bitcast i8* %16 to i64**
-    %17 = alloca i64*, align 8
-    %18 = bitcast i64** %17 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %18, i8* bitcast (i64** @schmu_c to i8*), i64 8, i1 false)
-    call void @__copy_al_(i64** %17)
-    call void @__free_al_(i64** %data13)
-    %19 = load i64*, i64** %17, align 8
-    store i64* %19, i64** %data13, align 8
-    %20 = load i64**, i64*** @schmu_a, align 8
-    %21 = bitcast i64** %20 to i8*
-    %22 = getelementptr i8, i8* %21, i64 16
-    %data14 = bitcast i8* %22 to i64**
-    %23 = call i8* @malloc(i64 24)
-    %24 = bitcast i8* %23 to i64*
-    %arr = alloca i64*, align 8
-    store i64* %24, i64** %arr, align 8
-    store i64 1, i64* %24, align 8
-    %cap16 = getelementptr i64, i64* %24, i64 1
-    store i64 1, i64* %cap16, align 8
-    %25 = getelementptr i8, i8* %23, i64 16
-    %data17 = bitcast i8* %25 to i64*
-    store i64 10, i64* %data17, align 8
-    call void @__free_al_(i64** %data14)
-    store i64* %24, i64** %data14, align 8
-    call void @__free_al_(i64** @schmu_c)
-    call void @__free_2al2_(i64*** @schmu_b__3)
-    call void @__free_2al2_(i64*** @schmu_a)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
+    %1 = tail call ptr @malloc(i64 32)
+    store ptr %1, ptr @schmu_a, align 8
+    store i64 2, ptr %1, align 8
+    %cap = getelementptr i64, ptr %1, i64 1
+    store i64 2, ptr %cap, align 8
+    %2 = getelementptr i8, ptr %1, i64 16
+    %3 = tail call ptr @malloc(i64 24)
+    store ptr %3, ptr %2, align 8
+    store i64 1, ptr %3, align 8
+    %cap2 = getelementptr i64, ptr %3, i64 1
+    store i64 1, ptr %cap2, align 8
+    %4 = getelementptr i8, ptr %3, i64 16
+    store i64 10, ptr %4, align 8
+    %"1" = getelementptr ptr, ptr %2, i64 1
+    %5 = tail call ptr @malloc(i64 24)
+    store ptr %5, ptr %"1", align 8
+    store i64 1, ptr %5, align 8
+    %cap5 = getelementptr i64, ptr %5, i64 1
+    store i64 1, ptr %cap5, align 8
+    %6 = getelementptr i8, ptr %5, i64 16
+    store i64 20, ptr %6, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_b__3, ptr align 8 @schmu_a, i64 8, i1 false)
+    tail call void @__copy_2al2_(ptr @schmu_b__3)
+    %7 = tail call ptr @malloc(i64 24)
+    store ptr %7, ptr @schmu_c, align 8
+    store i64 1, ptr %7, align 8
+    %cap8 = getelementptr i64, ptr %7, i64 1
+    store i64 1, ptr %cap8, align 8
+    %8 = getelementptr i8, ptr %7, i64 16
+    store i64 30, ptr %8, align 8
+    %9 = load ptr, ptr @schmu_a, align 8
+    %10 = getelementptr i8, ptr %9, i64 16
+    %11 = alloca ptr, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %11, ptr align 8 @schmu_c, i64 8, i1 false)
+    call void @__copy_al_(ptr %11)
+    call void @__free_al_(ptr %10)
+    %12 = load ptr, ptr %11, align 8
+    store ptr %12, ptr %10, align 8
+    %13 = load ptr, ptr @schmu_a, align 8
+    %14 = getelementptr i8, ptr %13, i64 16
+    %15 = call ptr @malloc(i64 24)
+    %arr = alloca ptr, align 8
+    store ptr %15, ptr %arr, align 8
+    store i64 1, ptr %15, align 8
+    %cap11 = getelementptr i64, ptr %15, i64 1
+    store i64 1, ptr %cap11, align 8
+    %16 = getelementptr i8, ptr %15, i64 16
+    store i64 10, ptr %16, align 8
+    call void @__free_al_(ptr %14)
+    store ptr %15, ptr %14, align 8
+    call void @__free_al_(ptr @schmu_c)
+    call void @__free_2al2_(ptr @schmu_b__3)
+    call void @__free_2al2_(ptr @schmu_a)
     ret i64 0
   }
   
-  declare void @printf(i8* %0, ...)
+  declare void @printf(ptr %0, ...)
   
-  declare i8* @malloc(i64 %0)
+  declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_al_(i64** %0) {
+  define linkonce_odr void @__copy_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %sz1 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call i8* @malloc(i64 %3)
-    %5 = bitcast i8* %4 to i64*
-    %6 = bitcast i64* %5 to i8*
-    %7 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
-    %newcap = getelementptr i64, i64* %5, i64 1
-    store i64 %size, i64* %newcap, align 8
-    store i64* %5, i64** %0, align 8
+    %4 = call ptr @malloc(i64 %3)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %newcap = getelementptr i64, ptr %4, i64 1
+    store i64 %size, ptr %newcap, align 8
+    store ptr %4, ptr %0, align 8
     ret void
   }
   
-  define linkonce_odr void @__copy_2al2_(i64*** %0) {
+  define linkonce_odr void @__copy_2al2_(ptr %0) {
   entry:
-    %1 = load i64**, i64*** %0, align 8
-    %ref = bitcast i64** %1 to i64*
-    %sz1 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call i8* @malloc(i64 %3)
-    %5 = bitcast i8* %4 to i64**
-    %6 = bitcast i64** %5 to i8*
-    %7 = bitcast i64** %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
-    %newref = bitcast i64** %5 to i64*
-    %newcap = getelementptr i64, i64* %newref, i64 1
-    store i64 %size, i64* %newcap, align 8
-    store i64** %5, i64*** %0, align 8
+    %4 = call ptr @malloc(i64 %3)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %newcap = getelementptr i64, ptr %4, i64 1
+    store i64 %size, ptr %newcap, align 8
+    store ptr %4, ptr %0, align 8
     %cnt = alloca i64, align 8
-    store i64 0, i64* %cnt, align 8
+    store i64 0, ptr %cnt, align 8
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %8 = load i64, i64* %cnt, align 8
-    %9 = icmp slt i64 %8, %size
-    br i1 %9, label %child, label %cont
+    %5 = load i64, ptr %cnt, align 8
+    %6 = icmp slt i64 %5, %size
+    br i1 %6, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %10 = bitcast i64** %1 to i8*
-    %11 = getelementptr i8, i8* %10, i64 16
-    %data = bitcast i8* %11 to i64**
-    %12 = getelementptr i64*, i64** %data, i64 %8
-    call void @__copy_al_(i64** %12)
-    %13 = add i64 %8, 1
-    store i64 %13, i64* %cnt, align 8
+    %7 = getelementptr i8, ptr %1, i64 16
+    %8 = getelementptr ptr, ptr %7, i64 %5
+    call void @__copy_al_(ptr %8)
+    %9 = add i64 %5, 1
+    store i64 %9, ptr %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__free_al_(i64** %0) {
+  define linkonce_odr void @__free_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %2 = bitcast i64* %1 to i8*
-    call void @free(i8* %2)
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_2al2_(i64*** %0) {
+  define linkonce_odr void @__free_2al2_(ptr %0) {
   entry:
-    %1 = load i64**, i64*** %0, align 8
-    %ref = bitcast i64** %1 to i64*
-    %sz1 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %cnt = alloca i64, align 8
-    store i64 0, i64* %cnt, align 8
+    store i64 0, ptr %cnt, align 8
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %2 = load i64, i64* %cnt, align 8
+    %2 = load i64, ptr %cnt, align 8
     %3 = icmp slt i64 %2, %size
     br i1 %3, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %4 = bitcast i64** %1 to i8*
-    %5 = getelementptr i8, i8* %4, i64 16
-    %data = bitcast i8* %5 to i64**
-    %6 = getelementptr i64*, i64** %data, i64 %2
-    call void @__free_al_(i64** %6)
-    %7 = add i64 %2, 1
-    store i64 %7, i64* %cnt, align 8
+    %4 = getelementptr i8, ptr %1, i64 16
+    %5 = getelementptr ptr, ptr %4, i64 %2
+    call void @__free_al_(ptr %5)
+    %6 = add i64 %2, 1
+    store i64 %6, ptr %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    %8 = bitcast i64** %1 to i64*
-    %9 = bitcast i64* %8 to i8*
-    call void @free(i8* %9)
+    call void @free(ptr %1)
     ret void
   }
   
-  declare void @free(i8* %0)
+  declare void @free(ptr %0)
   
-  attributes #0 = { argmemonly nofree nounwind willreturn }
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   14
   15
 
@@ -225,14 +193,14 @@ Use mutable values as ptrs to C code
   @schmu_i = global i64 0, align 8
   @schmu_foo = global %foo_ zeroinitializer, align 8
   
-  declare void @mutate_int(i64* noalias %0)
+  declare void @mutate_int(ptr noalias %0)
   
-  declare void @mutate_foo(%foo_* noalias %0)
+  declare void @mutate_foo(ptr noalias %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @mutate_int(i64* @schmu_i)
-    tail call void @mutate_foo(%foo_* @schmu_foo)
+    tail call void @mutate_int(ptr @schmu_i)
+    tail call void @mutate_foo(ptr @schmu_foo)
     ret i64 0
   }
 
@@ -252,46 +220,40 @@ Check aliasing
   define void @schmu_new_fun() {
   entry:
     %0 = alloca %foo_, align 8
-    %a1 = bitcast %foo_* %0 to i64*
-    store i64 0, i64* %a1, align 8
+    store i64 0, ptr %0, align 8
     %1 = alloca %foo_, align 8
-    %2 = bitcast %foo_* %1 to i8*
-    %3 = bitcast %foo_* %0 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
-    %4 = alloca %foo_, align 8
-    %5 = bitcast %foo_* %4 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %2, i64 8, i1 false)
-    %6 = bitcast %foo_* %1 to i64*
-    store i64 1, i64* %6, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 1)
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 0)
-    %7 = bitcast %foo_* %4 to i64*
-    %8 = load i64, i64* %7, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %8)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 8, i1 false)
+    %2 = alloca %foo_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %2, ptr align 8 %1, i64 8, i1 false)
+    store i64 1, ptr %1, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 1)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 0)
+    %3 = load i64, ptr %2, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %3)
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  declare void @printf(i8* %0, ...)
+  declare void @printf(ptr %0, ...)
   
   define i64 @main(i64 %arg) {
   entry:
-    store i64 0, i64* getelementptr inbounds (%foo_, %foo_* @schmu_f, i32 0, i32 0), align 8
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%foo_* @schmu_fst to i8*), i8* bitcast (%foo_* @schmu_f to i8*), i64 8, i1 false)
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%foo_* @schmu_snd to i8*), i8* bitcast (%foo_* @schmu_fst to i8*), i64 8, i1 false)
-    store i64 1, i64* getelementptr inbounds (%foo_, %foo_* @schmu_fst, i32 0, i32 0), align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 1)
-    %0 = load i64, i64* getelementptr inbounds (%foo_, %foo_* @schmu_f, i32 0, i32 0), align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %1 = load i64, i64* getelementptr inbounds (%foo_, %foo_* @schmu_snd, i32 0, i32 0), align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %1)
+    store i64 0, ptr @schmu_f, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_fst, ptr align 8 @schmu_f, i64 8, i1 false)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_snd, ptr align 8 @schmu_fst, i64 8, i1 false)
+    store i64 1, ptr @schmu_fst, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 1)
+    %0 = load i64, ptr @schmu_f, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
+    %1 = load i64, ptr @schmu_snd, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
     tail call void @schmu_new_fun()
     ret i64 0
   }
   
-  attributes #0 = { argmemonly nofree nounwind willreturn }
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   1
   0
   0
@@ -305,85 +267,72 @@ Const let
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @schmu_v = global i64* null, align 8
+  @schmu_v = global ptr null, align 8
   @schmu_const = global i64 0, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define void @schmu_in_fun() {
   entry:
-    %0 = alloca i64*, align 8
-    %1 = tail call i8* @malloc(i64 24)
-    %2 = bitcast i8* %1 to i64*
-    store i64* %2, i64** %0, align 8
-    store i64 1, i64* %2, align 8
-    %cap = getelementptr i64, i64* %2, i64 1
-    store i64 1, i64* %cap, align 8
-    %3 = getelementptr i8, i8* %1, i64 16
-    %data = bitcast i8* %3 to i64*
-    store i64 0, i64* %data, align 8
-    %4 = load i64*, i64** %0, align 8
-    %5 = bitcast i64* %4 to i8*
-    %6 = getelementptr i8, i8* %5, i64 16
-    %data1 = bitcast i8* %6 to i64*
-    %7 = alloca i64, align 8
-    %8 = load i64, i64* %data1, align 8
-    store i64 %8, i64* %7, align 8
-    store i64 1, i64* %data1, align 8
-    %9 = load i64*, i64** %0, align 8
-    %10 = bitcast i64* %9 to i8*
-    %11 = getelementptr i8, i8* %10, i64 16
-    %data3 = bitcast i8* %11 to i64*
-    %12 = load i64, i64* %data3, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %12)
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %8)
-    call void @__free_al_(i64** %0)
+    %0 = alloca ptr, align 8
+    %1 = tail call ptr @malloc(i64 24)
+    store ptr %1, ptr %0, align 8
+    store i64 1, ptr %1, align 8
+    %cap = getelementptr i64, ptr %1, i64 1
+    store i64 1, ptr %cap, align 8
+    %2 = getelementptr i8, ptr %1, i64 16
+    store i64 0, ptr %2, align 8
+    %3 = load ptr, ptr %0, align 8
+    %4 = getelementptr i8, ptr %3, i64 16
+    %5 = alloca i64, align 8
+    %6 = load i64, ptr %4, align 8
+    store i64 %6, ptr %5, align 8
+    store i64 1, ptr %4, align 8
+    %7 = load ptr, ptr %0, align 8
+    %8 = getelementptr i8, ptr %7, i64 16
+    %9 = load i64, ptr %8, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %9)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %6)
+    call void @__free_al_(ptr %0)
     ret void
   }
   
-  declare i8* @malloc(i64 %0)
+  declare ptr @malloc(i64 %0)
   
-  declare void @printf(i8* %0, ...)
+  declare void @printf(ptr %0, ...)
   
-  define linkonce_odr void @__free_al_(i64** %0) {
+  define linkonce_odr void @__free_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %2 = bitcast i64* %1 to i8*
-    call void @free(i8* %2)
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
     ret void
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i8* @malloc(i64 24)
-    %1 = bitcast i8* %0 to i64*
-    store i64* %1, i64** @schmu_v, align 8
-    store i64 1, i64* %1, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    store i64 1, i64* %cap, align 8
-    %2 = getelementptr i8, i8* %0, i64 16
-    %data = bitcast i8* %2 to i64*
-    store i64 0, i64* %data, align 8
-    %3 = load i64*, i64** @schmu_v, align 8
-    %4 = bitcast i64* %3 to i8*
-    %5 = getelementptr i8, i8* %4, i64 16
-    %data1 = bitcast i8* %5 to i64*
-    %6 = load i64, i64* %data1, align 8
-    store i64 %6, i64* @schmu_const, align 8
-    store i64 1, i64* %data1, align 8
-    %7 = load i64*, i64** @schmu_v, align 8
-    %8 = bitcast i64* %7 to i8*
-    %9 = getelementptr i8, i8* %8, i64 16
-    %data3 = bitcast i8* %9 to i64*
-    %10 = load i64, i64* %data3, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %10)
-    %11 = load i64, i64* @schmu_const, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %11)
+    %0 = tail call ptr @malloc(i64 24)
+    store ptr %0, ptr @schmu_v, align 8
+    store i64 1, ptr %0, align 8
+    %cap = getelementptr i64, ptr %0, i64 1
+    store i64 1, ptr %cap, align 8
+    %1 = getelementptr i8, ptr %0, i64 16
+    store i64 0, ptr %1, align 8
+    %2 = load ptr, ptr @schmu_v, align 8
+    %3 = getelementptr i8, ptr %2, i64 16
+    %4 = load i64, ptr %3, align 8
+    store i64 %4, ptr @schmu_const, align 8
+    store i64 1, ptr %3, align 8
+    %5 = load ptr, ptr @schmu_v, align 8
+    %6 = getelementptr i8, ptr %5, i64 16
+    %7 = load i64, ptr %6, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %7)
+    %8 = load i64, ptr @schmu_const, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %8)
     tail call void @schmu_in_fun()
-    tail call void @__free_al_(i64** @schmu_v)
+    tail call void @__free_al_(ptr @schmu_v)
     ret i64 0
   }
   
-  declare void @free(i8* %0)
+  declare void @free(ptr %0)
   1
   0
   1
@@ -396,153 +345,132 @@ Copies, but with ref-counted arrays
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @schmu_a = global i64* null, align 8
-  @schmu_b = global i64* null, align 8
-  @schmu_c = global i64* null, align 8
-  @schmu_d = global i64* null, align 8
+  @schmu_a = global ptr null, align 8
+  @schmu_b = global ptr null, align 8
+  @schmu_c = global ptr null, align 8
+  @schmu_d = global ptr null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [7 x i8] } { i64 6, i64 6, [7 x i8] c"in fun\00" }
   
-  declare void @string_print(i8* %0)
+  declare void @string_print(ptr %0)
   
-  define linkonce_odr void @__schmu_print_0th_al__(i64* %a) {
+  define linkonce_odr void @__schmu_print_0th_al__(ptr %a) {
   entry:
-    %0 = bitcast i64* %a to i8*
-    %1 = getelementptr i8, i8* %0, i64 16
-    %data = bitcast i8* %1 to i64*
-    %2 = load i64, i64* %data, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %2)
+    %0 = getelementptr i8, ptr %a, i64 16
+    %1 = load i64, ptr %0, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
     ret void
   }
   
   define void @schmu_in_fun() {
   entry:
-    tail call void @string_print(i8* bitcast ({ i64, i64, [7 x i8] }* @1 to i8*))
-    %0 = alloca i64*, align 8
-    %1 = tail call i8* @malloc(i64 24)
-    %2 = bitcast i8* %1 to i64*
-    store i64* %2, i64** %0, align 8
-    store i64 1, i64* %2, align 8
-    %cap = getelementptr i64, i64* %2, i64 1
-    store i64 1, i64* %cap, align 8
-    %3 = getelementptr i8, i8* %1, i64 16
-    %data = bitcast i8* %3 to i64*
-    store i64 10, i64* %data, align 8
-    %4 = alloca i64*, align 8
-    %5 = bitcast i64** %4 to i8*
-    %6 = bitcast i64** %0 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 8, i1 false)
-    call void @__copy_al_(i64** %4)
-    %7 = alloca i64*, align 8
-    %8 = bitcast i64** %7 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %8, i8* %6, i64 8, i1 false)
-    call void @__copy_al_(i64** %7)
-    %9 = load i64*, i64** %0, align 8
-    %10 = bitcast i64* %9 to i8*
-    %11 = getelementptr i8, i8* %10, i64 16
-    %data1 = bitcast i8* %11 to i64*
-    store i64 12, i64* %data1, align 8
-    %12 = load i64*, i64** %0, align 8
-    call void @__schmu_print_0th_al__(i64* %12)
-    %13 = load i64*, i64** %7, align 8
-    %14 = bitcast i64* %13 to i8*
-    %15 = getelementptr i8, i8* %14, i64 16
-    %data2 = bitcast i8* %15 to i64*
-    store i64 15, i64* %data2, align 8
-    %16 = load i64*, i64** %0, align 8
-    call void @__schmu_print_0th_al__(i64* %16)
-    %17 = load i64*, i64** %4, align 8
-    call void @__schmu_print_0th_al__(i64* %17)
-    %18 = load i64*, i64** %7, align 8
-    call void @__schmu_print_0th_al__(i64* %18)
-    %19 = load i64*, i64** %4, align 8
-    call void @__schmu_print_0th_al__(i64* %19)
-    call void @__free_al_(i64** %7)
-    call void @__free_al_(i64** %4)
-    call void @__free_al_(i64** %0)
+    tail call void @string_print(ptr @1)
+    %0 = alloca ptr, align 8
+    %1 = tail call ptr @malloc(i64 24)
+    store ptr %1, ptr %0, align 8
+    store i64 1, ptr %1, align 8
+    %cap = getelementptr i64, ptr %1, i64 1
+    store i64 1, ptr %cap, align 8
+    %2 = getelementptr i8, ptr %1, i64 16
+    store i64 10, ptr %2, align 8
+    %3 = alloca ptr, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %3, ptr align 8 %0, i64 8, i1 false)
+    call void @__copy_al_(ptr %3)
+    %4 = alloca ptr, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 %0, i64 8, i1 false)
+    call void @__copy_al_(ptr %4)
+    %5 = load ptr, ptr %0, align 8
+    %6 = getelementptr i8, ptr %5, i64 16
+    store i64 12, ptr %6, align 8
+    %7 = load ptr, ptr %0, align 8
+    call void @__schmu_print_0th_al__(ptr %7)
+    %8 = load ptr, ptr %4, align 8
+    %9 = getelementptr i8, ptr %8, i64 16
+    store i64 15, ptr %9, align 8
+    %10 = load ptr, ptr %0, align 8
+    call void @__schmu_print_0th_al__(ptr %10)
+    %11 = load ptr, ptr %3, align 8
+    call void @__schmu_print_0th_al__(ptr %11)
+    %12 = load ptr, ptr %4, align 8
+    call void @__schmu_print_0th_al__(ptr %12)
+    %13 = load ptr, ptr %3, align 8
+    call void @__schmu_print_0th_al__(ptr %13)
+    call void @__free_al_(ptr %4)
+    call void @__free_al_(ptr %3)
+    call void @__free_al_(ptr %0)
     ret void
   }
   
-  declare void @printf(i8* %0, ...)
+  declare void @printf(ptr %0, ...)
   
-  declare i8* @malloc(i64 %0)
+  declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_al_(i64** %0) {
+  define linkonce_odr void @__copy_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %sz1 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call i8* @malloc(i64 %3)
-    %5 = bitcast i8* %4 to i64*
-    %6 = bitcast i64* %5 to i8*
-    %7 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
-    %newcap = getelementptr i64, i64* %5, i64 1
-    store i64 %size, i64* %newcap, align 8
-    store i64* %5, i64** %0, align 8
+    %4 = call ptr @malloc(i64 %3)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %newcap = getelementptr i64, ptr %4, i64 1
+    store i64 %size, ptr %newcap, align 8
+    store ptr %4, ptr %0, align 8
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__free_al_(i64** %0) {
+  define linkonce_odr void @__free_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %2 = bitcast i64* %1 to i8*
-    call void @free(i8* %2)
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
     ret void
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i8* @malloc(i64 24)
-    %1 = bitcast i8* %0 to i64*
-    store i64* %1, i64** @schmu_a, align 8
-    store i64 1, i64* %1, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    store i64 1, i64* %cap, align 8
-    %2 = getelementptr i8, i8* %0, i64 16
-    %data = bitcast i8* %2 to i64*
-    store i64 10, i64* %data, align 8
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (i64** @schmu_b to i8*), i8* bitcast (i64** @schmu_a to i8*), i64 8, i1 false)
-    tail call void @__copy_al_(i64** @schmu_b)
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (i64** @schmu_c to i8*), i8* bitcast (i64** @schmu_a to i8*), i64 8, i1 false)
-    tail call void @__copy_al_(i64** @schmu_c)
-    %3 = load i64*, i64** @schmu_b, align 8
-    store i64* %3, i64** @schmu_d, align 8
-    %4 = load i64*, i64** @schmu_a, align 8
-    %5 = bitcast i64* %4 to i8*
-    %6 = getelementptr i8, i8* %5, i64 16
-    %data1 = bitcast i8* %6 to i64*
-    store i64 12, i64* %data1, align 8
-    %7 = load i64*, i64** @schmu_a, align 8
-    tail call void @__schmu_print_0th_al__(i64* %7)
-    %8 = load i64*, i64** @schmu_c, align 8
-    %9 = bitcast i64* %8 to i8*
-    %10 = getelementptr i8, i8* %9, i64 16
-    %data2 = bitcast i8* %10 to i64*
-    store i64 15, i64* %data2, align 8
-    %11 = load i64*, i64** @schmu_a, align 8
-    tail call void @__schmu_print_0th_al__(i64* %11)
-    %12 = load i64*, i64** @schmu_b, align 8
-    tail call void @__schmu_print_0th_al__(i64* %12)
-    %13 = load i64*, i64** @schmu_c, align 8
-    tail call void @__schmu_print_0th_al__(i64* %13)
-    %14 = load i64*, i64** @schmu_d, align 8
-    tail call void @__schmu_print_0th_al__(i64* %14)
+    %0 = tail call ptr @malloc(i64 24)
+    store ptr %0, ptr @schmu_a, align 8
+    store i64 1, ptr %0, align 8
+    %cap = getelementptr i64, ptr %0, i64 1
+    store i64 1, ptr %cap, align 8
+    %1 = getelementptr i8, ptr %0, i64 16
+    store i64 10, ptr %1, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_b, ptr align 8 @schmu_a, i64 8, i1 false)
+    tail call void @__copy_al_(ptr @schmu_b)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_c, ptr align 8 @schmu_a, i64 8, i1 false)
+    tail call void @__copy_al_(ptr @schmu_c)
+    %2 = load ptr, ptr @schmu_b, align 8
+    store ptr %2, ptr @schmu_d, align 8
+    %3 = load ptr, ptr @schmu_a, align 8
+    %4 = getelementptr i8, ptr %3, i64 16
+    store i64 12, ptr %4, align 8
+    %5 = load ptr, ptr @schmu_a, align 8
+    tail call void @__schmu_print_0th_al__(ptr %5)
+    %6 = load ptr, ptr @schmu_c, align 8
+    %7 = getelementptr i8, ptr %6, i64 16
+    store i64 15, ptr %7, align 8
+    %8 = load ptr, ptr @schmu_a, align 8
+    tail call void @__schmu_print_0th_al__(ptr %8)
+    %9 = load ptr, ptr @schmu_b, align 8
+    tail call void @__schmu_print_0th_al__(ptr %9)
+    %10 = load ptr, ptr @schmu_c, align 8
+    tail call void @__schmu_print_0th_al__(ptr %10)
+    %11 = load ptr, ptr @schmu_d, align 8
+    tail call void @__schmu_print_0th_al__(ptr %11)
     tail call void @schmu_in_fun()
-    tail call void @__free_al_(i64** @schmu_c)
-    tail call void @__free_al_(i64** @schmu_b)
-    tail call void @__free_al_(i64** @schmu_a)
+    tail call void @__free_al_(ptr @schmu_c)
+    tail call void @__free_al_(ptr @schmu_b)
+    tail call void @__free_al_(ptr @schmu_a)
     ret i64 0
   }
   
-  declare void @free(i8* %0)
+  declare void @free(ptr %0)
   
-  attributes #0 = { argmemonly nofree nounwind willreturn }
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   12
   12
   10
@@ -561,141 +489,124 @@ Arrays in records
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %arrec_ = type { i64* }
+  %arrec_ = type { ptr }
   
   @schmu_a = global %arrec_ zeroinitializer, align 8
   @schmu_b = global %arrec_ zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [7 x i8] } { i64 6, i64 6, [7 x i8] c"in fun\00" }
   
-  declare void @string_print(i8* %0)
+  declare void @string_print(ptr %0)
   
   define void @schmu_in_fun() {
   entry:
     %0 = alloca %arrec_, align 8
-    %a5 = bitcast %arrec_* %0 to i64**
-    %1 = tail call i8* @malloc(i64 24)
-    %2 = bitcast i8* %1 to i64*
-    %arr = alloca i64*, align 8
-    store i64* %2, i64** %arr, align 8
-    store i64 1, i64* %2, align 8
-    %cap = getelementptr i64, i64* %2, i64 1
-    store i64 1, i64* %cap, align 8
-    %3 = getelementptr i8, i8* %1, i64 16
-    %data = bitcast i8* %3 to i64*
-    store i64 10, i64* %data, align 8
-    store i64* %2, i64** %a5, align 8
-    %4 = alloca %arrec_, align 8
-    %5 = bitcast %arrec_* %4 to i8*
-    %6 = bitcast %arrec_* %0 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %5, i8* %6, i64 8, i1 false)
-    call void @__copy_al2_(%arrec_* %4)
-    store i64 12, i64* %data, align 8
-    %unbox = bitcast %arrec_* %0 to i64*
-    %unbox2 = load i64, i64* %unbox, align 8
-    call void @schmu_print_thing(i64 %unbox2)
-    %unbox3 = bitcast %arrec_* %4 to i64*
-    %unbox4 = load i64, i64* %unbox3, align 8
-    call void @schmu_print_thing(i64 %unbox4)
-    call void @__free_al2_(%arrec_* %4)
-    call void @__free_al2_(%arrec_* %0)
+    %1 = tail call ptr @malloc(i64 24)
+    %arr = alloca ptr, align 8
+    store ptr %1, ptr %arr, align 8
+    store i64 1, ptr %1, align 8
+    %cap = getelementptr i64, ptr %1, i64 1
+    store i64 1, ptr %cap, align 8
+    %2 = getelementptr i8, ptr %1, i64 16
+    store i64 10, ptr %2, align 8
+    store ptr %1, ptr %0, align 8
+    %3 = alloca %arrec_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %3, ptr align 8 %0, i64 8, i1 false)
+    call void @__copy_al2_(ptr %3)
+    store i64 12, ptr %2, align 8
+    %unbox = load i64, ptr %0, align 8
+    call void @schmu_print_thing(i64 %unbox)
+    %unbox1 = load i64, ptr %3, align 8
+    call void @schmu_print_thing(i64 %unbox1)
+    call void @__free_al2_(ptr %3)
+    call void @__free_al2_(ptr %0)
     ret void
   }
   
   define void @schmu_print_thing(i64 %0) {
   entry:
-    %box = alloca i64, align 8
-    store i64 %0, i64* %box, align 8
-    %1 = inttoptr i64 %0 to i64*
-    %2 = bitcast i64* %1 to i8*
-    %3 = getelementptr i8, i8* %2, i64 16
-    %data = bitcast i8* %3 to i64*
-    %4 = load i64, i64* %data, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %4)
+    %a = alloca i64, align 8
+    store i64 %0, ptr %a, align 8
+    %1 = inttoptr i64 %0 to ptr
+    %2 = getelementptr i8, ptr %1, i64 16
+    %3 = load i64, ptr %2, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %3)
     ret void
   }
   
-  declare i8* @malloc(i64 %0)
+  declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_al_(i64** %0) {
+  define linkonce_odr void @__copy_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %sz1 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call i8* @malloc(i64 %3)
-    %5 = bitcast i8* %4 to i64*
-    %6 = bitcast i64* %5 to i8*
-    %7 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
-    %newcap = getelementptr i64, i64* %5, i64 1
-    store i64 %size, i64* %newcap, align 8
-    store i64* %5, i64** %0, align 8
+    %4 = call ptr @malloc(i64 %3)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %newcap = getelementptr i64, ptr %4, i64 1
+    store i64 %size, ptr %newcap, align 8
+    store ptr %4, ptr %0, align 8
     ret void
   }
   
-  define linkonce_odr void @__copy_al2_(%arrec_* %0) {
+  define linkonce_odr void @__copy_al2_(ptr %0) {
   entry:
-    %1 = bitcast %arrec_* %0 to i64**
-    call void @__copy_al_(i64** %1)
+    %1 = bitcast ptr %0 to ptr
+    call void @__copy_al_(ptr %1)
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__free_al_(i64** %0) {
+  define linkonce_odr void @__free_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %2 = bitcast i64* %1 to i8*
-    call void @free(i8* %2)
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_al2_(%arrec_* %0) {
+  define linkonce_odr void @__free_al2_(ptr %0) {
   entry:
-    %1 = bitcast %arrec_* %0 to i64**
-    call void @__free_al_(i64** %1)
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_al_(ptr %1)
     ret void
   }
   
-  declare void @printf(i8* %0, ...)
+  declare void @printf(ptr %0, ...)
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i8* @malloc(i64 24)
-    %1 = bitcast i8* %0 to i64*
-    %arr = alloca i64*, align 8
-    store i64* %1, i64** %arr, align 8
-    store i64 1, i64* %1, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    store i64 1, i64* %cap, align 8
-    %2 = getelementptr i8, i8* %0, i64 16
-    %data = bitcast i8* %2 to i64*
-    store i64 10, i64* %data, align 8
-    store i64* %1, i64** getelementptr inbounds (%arrec_, %arrec_* @schmu_a, i32 0, i32 0), align 8
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (%arrec_* @schmu_b to i8*), i8* bitcast (%arrec_* @schmu_a to i8*), i64 8, i1 false)
-    tail call void @__copy_al2_(%arrec_* @schmu_b)
-    %3 = load i64*, i64** getelementptr inbounds (%arrec_, %arrec_* @schmu_a, i32 0, i32 0), align 8
-    %4 = bitcast i64* %3 to i8*
-    %5 = getelementptr i8, i8* %4, i64 16
-    %data1 = bitcast i8* %5 to i64*
-    store i64 12, i64* %data1, align 8
-    %unbox = load i64, i64* bitcast (%arrec_* @schmu_a to i64*), align 8
+    %0 = tail call ptr @malloc(i64 24)
+    %arr = alloca ptr, align 8
+    store ptr %0, ptr %arr, align 8
+    store i64 1, ptr %0, align 8
+    %cap = getelementptr i64, ptr %0, i64 1
+    store i64 1, ptr %cap, align 8
+    %1 = getelementptr i8, ptr %0, i64 16
+    store i64 10, ptr %1, align 8
+    store ptr %0, ptr @schmu_a, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_b, ptr align 8 @schmu_a, i64 8, i1 false)
+    tail call void @__copy_al2_(ptr @schmu_b)
+    %2 = load ptr, ptr @schmu_a, align 8
+    %3 = getelementptr i8, ptr %2, i64 16
+    store i64 12, ptr %3, align 8
+    %unbox = load i64, ptr @schmu_a, align 8
     tail call void @schmu_print_thing(i64 %unbox)
-    %unbox2 = load i64, i64* bitcast (%arrec_* @schmu_b to i64*), align 8
-    tail call void @schmu_print_thing(i64 %unbox2)
-    tail call void @string_print(i8* bitcast ({ i64, i64, [7 x i8] }* @1 to i8*))
+    %unbox1 = load i64, ptr @schmu_b, align 8
+    tail call void @schmu_print_thing(i64 %unbox1)
+    tail call void @string_print(ptr @1)
     tail call void @schmu_in_fun()
-    tail call void @__free_al2_(%arrec_* @schmu_b)
-    tail call void @__free_al2_(%arrec_* @schmu_a)
+    tail call void @__free_al2_(ptr @schmu_b)
+    tail call void @__free_al2_(ptr @schmu_a)
     ret i64 0
   }
   
-  declare void @free(i8* %0)
+  declare void @free(ptr %0)
   
-  attributes #0 = { argmemonly nofree nounwind willreturn }
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   12
   10
   in fun
@@ -708,188 +619,155 @@ Nested arrays
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @schmu_a = global i64** null, align 8
-  @schmu_b = global i64** null, align 8
+  @schmu_a = global ptr null, align 8
+  @schmu_b = global ptr null, align 8
   @0 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"%li, %li\0A\00" }
   
-  define linkonce_odr void @__schmu_prnt_2al2__(i64** %a) {
+  define linkonce_odr void @__schmu_prnt_2al2__(ptr %a) {
   entry:
-    %0 = bitcast i64** %a to i8*
-    %1 = getelementptr i8, i8* %0, i64 16
-    %data = bitcast i8* %1 to i64**
-    %2 = load i64*, i64** %data, align 8
-    %3 = bitcast i64* %2 to i8*
-    %4 = getelementptr i8, i8* %3, i64 16
-    %data1 = bitcast i8* %4 to i64*
-    %5 = load i64, i64* %data1, align 8
-    %6 = getelementptr i64*, i64** %data, i64 1
-    %7 = load i64*, i64** %6, align 8
-    %8 = bitcast i64* %7 to i8*
-    %9 = getelementptr i8, i8* %8, i64 16
-    %data3 = bitcast i8* %9 to i64*
-    %10 = load i64, i64* %data3, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [10 x i8] }* @0 to i8*), i64 16), i64 %5, i64 %10)
+    %0 = getelementptr i8, ptr %a, i64 16
+    %1 = load ptr, ptr %0, align 8
+    %2 = getelementptr i8, ptr %1, i64 16
+    %3 = load i64, ptr %2, align 8
+    %4 = getelementptr ptr, ptr %0, i64 1
+    %5 = load ptr, ptr %4, align 8
+    %6 = getelementptr i8, ptr %5, i64 16
+    %7 = load i64, ptr %6, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %3, i64 %7)
     ret void
   }
   
-  declare void @printf(i8* %0, ...)
+  declare void @printf(ptr %0, ...)
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i8* @malloc(i64 32)
-    %1 = bitcast i8* %0 to i64**
-    store i64** %1, i64*** @schmu_a, align 8
-    %2 = bitcast i64** %1 to i64*
-    store i64 2, i64* %2, align 8
-    %cap = getelementptr i64, i64* %2, i64 1
-    store i64 2, i64* %cap, align 8
-    %3 = getelementptr i8, i8* %0, i64 16
-    %data = bitcast i8* %3 to i64**
-    %4 = tail call i8* @malloc(i64 24)
-    %5 = bitcast i8* %4 to i64*
-    store i64* %5, i64** %data, align 8
-    store i64 1, i64* %5, align 8
-    %cap2 = getelementptr i64, i64* %5, i64 1
-    store i64 1, i64* %cap2, align 8
-    %6 = getelementptr i8, i8* %4, i64 16
-    %data3 = bitcast i8* %6 to i64*
-    store i64 10, i64* %data3, align 8
-    %"1" = getelementptr i64*, i64** %data, i64 1
-    %7 = tail call i8* @malloc(i64 24)
-    %8 = bitcast i8* %7 to i64*
-    store i64* %8, i64** %"1", align 8
-    store i64 1, i64* %8, align 8
-    %cap6 = getelementptr i64, i64* %8, i64 1
-    store i64 1, i64* %cap6, align 8
-    %9 = getelementptr i8, i8* %7, i64 16
-    %data7 = bitcast i8* %9 to i64*
-    store i64 20, i64* %data7, align 8
-    tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* bitcast (i64*** @schmu_b to i8*), i8* bitcast (i64*** @schmu_a to i8*), i64 8, i1 false)
-    tail call void @__copy_2al2_(i64*** @schmu_b)
-    %10 = load i64**, i64*** @schmu_a, align 8
-    %11 = bitcast i64** %10 to i8*
-    %12 = getelementptr i8, i8* %11, i64 16
-    %data9 = bitcast i8* %12 to i64**
-    %13 = load i64*, i64** %data9, align 8
-    %14 = bitcast i64* %13 to i8*
-    %15 = getelementptr i8, i8* %14, i64 16
-    %data10 = bitcast i8* %15 to i64*
-    store i64 15, i64* %data10, align 8
-    %16 = load i64**, i64*** @schmu_a, align 8
-    tail call void @__schmu_prnt_2al2__(i64** %16)
-    %17 = load i64**, i64*** @schmu_b, align 8
-    tail call void @__schmu_prnt_2al2__(i64** %17)
-    tail call void @__free_2al2_(i64*** @schmu_b)
-    tail call void @__free_2al2_(i64*** @schmu_a)
+    %0 = tail call ptr @malloc(i64 32)
+    store ptr %0, ptr @schmu_a, align 8
+    store i64 2, ptr %0, align 8
+    %cap = getelementptr i64, ptr %0, i64 1
+    store i64 2, ptr %cap, align 8
+    %1 = getelementptr i8, ptr %0, i64 16
+    %2 = tail call ptr @malloc(i64 24)
+    store ptr %2, ptr %1, align 8
+    store i64 1, ptr %2, align 8
+    %cap2 = getelementptr i64, ptr %2, i64 1
+    store i64 1, ptr %cap2, align 8
+    %3 = getelementptr i8, ptr %2, i64 16
+    store i64 10, ptr %3, align 8
+    %"1" = getelementptr ptr, ptr %1, i64 1
+    %4 = tail call ptr @malloc(i64 24)
+    store ptr %4, ptr %"1", align 8
+    store i64 1, ptr %4, align 8
+    %cap5 = getelementptr i64, ptr %4, i64 1
+    store i64 1, ptr %cap5, align 8
+    %5 = getelementptr i8, ptr %4, i64 16
+    store i64 20, ptr %5, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_b, ptr align 8 @schmu_a, i64 8, i1 false)
+    tail call void @__copy_2al2_(ptr @schmu_b)
+    %6 = load ptr, ptr @schmu_a, align 8
+    %7 = getelementptr i8, ptr %6, i64 16
+    %8 = load ptr, ptr %7, align 8
+    %9 = getelementptr i8, ptr %8, i64 16
+    store i64 15, ptr %9, align 8
+    %10 = load ptr, ptr @schmu_a, align 8
+    tail call void @__schmu_prnt_2al2__(ptr %10)
+    %11 = load ptr, ptr @schmu_b, align 8
+    tail call void @__schmu_prnt_2al2__(ptr %11)
+    tail call void @__free_2al2_(ptr @schmu_b)
+    tail call void @__free_2al2_(ptr @schmu_a)
     ret i64 0
   }
   
-  declare i8* @malloc(i64 %0)
+  declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_al_(i64** %0) {
+  define linkonce_odr void @__copy_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %sz1 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call i8* @malloc(i64 %3)
-    %5 = bitcast i8* %4 to i64*
-    %6 = bitcast i64* %5 to i8*
-    %7 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
-    %newcap = getelementptr i64, i64* %5, i64 1
-    store i64 %size, i64* %newcap, align 8
-    store i64* %5, i64** %0, align 8
+    %4 = call ptr @malloc(i64 %3)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %newcap = getelementptr i64, ptr %4, i64 1
+    store i64 %size, ptr %newcap, align 8
+    store ptr %4, ptr %0, align 8
     ret void
   }
   
-  define linkonce_odr void @__copy_2al2_(i64*** %0) {
+  define linkonce_odr void @__copy_2al2_(ptr %0) {
   entry:
-    %1 = load i64**, i64*** %0, align 8
-    %ref = bitcast i64** %1 to i64*
-    %sz1 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call i8* @malloc(i64 %3)
-    %5 = bitcast i8* %4 to i64**
-    %6 = bitcast i64** %5 to i8*
-    %7 = bitcast i64** %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
-    %newref = bitcast i64** %5 to i64*
-    %newcap = getelementptr i64, i64* %newref, i64 1
-    store i64 %size, i64* %newcap, align 8
-    store i64** %5, i64*** %0, align 8
+    %4 = call ptr @malloc(i64 %3)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %newcap = getelementptr i64, ptr %4, i64 1
+    store i64 %size, ptr %newcap, align 8
+    store ptr %4, ptr %0, align 8
     %cnt = alloca i64, align 8
-    store i64 0, i64* %cnt, align 8
+    store i64 0, ptr %cnt, align 8
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %8 = load i64, i64* %cnt, align 8
-    %9 = icmp slt i64 %8, %size
-    br i1 %9, label %child, label %cont
+    %5 = load i64, ptr %cnt, align 8
+    %6 = icmp slt i64 %5, %size
+    br i1 %6, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %10 = bitcast i64** %1 to i8*
-    %11 = getelementptr i8, i8* %10, i64 16
-    %data = bitcast i8* %11 to i64**
-    %12 = getelementptr i64*, i64** %data, i64 %8
-    call void @__copy_al_(i64** %12)
-    %13 = add i64 %8, 1
-    store i64 %13, i64* %cnt, align 8
+    %7 = getelementptr i8, ptr %1, i64 16
+    %8 = getelementptr ptr, ptr %7, i64 %5
+    call void @__copy_al_(ptr %8)
+    %9 = add i64 %5, 1
+    store i64 %9, ptr %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__free_al_(i64** %0) {
+  define linkonce_odr void @__free_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %2 = bitcast i64* %1 to i8*
-    call void @free(i8* %2)
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_2al2_(i64*** %0) {
+  define linkonce_odr void @__free_2al2_(ptr %0) {
   entry:
-    %1 = load i64**, i64*** %0, align 8
-    %ref = bitcast i64** %1 to i64*
-    %sz1 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %cnt = alloca i64, align 8
-    store i64 0, i64* %cnt, align 8
+    store i64 0, ptr %cnt, align 8
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %2 = load i64, i64* %cnt, align 8
+    %2 = load i64, ptr %cnt, align 8
     %3 = icmp slt i64 %2, %size
     br i1 %3, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %4 = bitcast i64** %1 to i8*
-    %5 = getelementptr i8, i8* %4, i64 16
-    %data = bitcast i8* %5 to i64**
-    %6 = getelementptr i64*, i64** %data, i64 %2
-    call void @__free_al_(i64** %6)
-    %7 = add i64 %2, 1
-    store i64 %7, i64* %cnt, align 8
+    %4 = getelementptr i8, ptr %1, i64 16
+    %5 = getelementptr ptr, ptr %4, i64 %2
+    call void @__free_al_(ptr %5)
+    %6 = add i64 %2, 1
+    store i64 %6, ptr %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    %8 = bitcast i64** %1 to i64*
-    %9 = bitcast i64* %8 to i8*
-    call void @free(i8* %9)
+    call void @free(ptr %1)
     ret void
   }
   
-  declare void @free(i8* %0)
+  declare void @free(ptr %0)
   
-  attributes #0 = { argmemonly nofree nounwind willreturn }
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   15, 20
   10, 20
 
@@ -903,15 +781,15 @@ Modify in function
   %f_ = type { i64 }
   
   @schmu_a = global %f_ zeroinitializer, align 8
-  @schmu_b = global i64* null, align 8
+  @schmu_b = global ptr null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define linkonce_odr void @__array_push_al_l_(i64** noalias %arr, i64 %value) {
+  define linkonce_odr void @__array_push_al_l_(ptr noalias %arr, i64 %value) {
   entry:
-    %0 = load i64*, i64** %arr, align 8
-    %capacity = getelementptr i64, i64* %0, i64 1
-    %1 = load i64, i64* %capacity, align 8
-    %2 = load i64, i64* %0, align 8
+    %0 = load ptr, ptr %arr, align 8
+    %capacity = getelementptr i64, ptr %0, i64 1
+    %1 = load i64, ptr %capacity, align 8
+    %2 = load i64, ptr %0, align 8
     %eq = icmp eq i64 %1, %2
     br i1 %eq, label %then, label %ifcont5
   
@@ -920,89 +798,80 @@ Modify in function
     br i1 %eq1, label %then2, label %else
   
   then2:                                            ; preds = %then
-    %3 = bitcast i64* %0 to i8*
-    %4 = tail call i8* @realloc(i8* %3, i64 48)
-    %5 = bitcast i8* %4 to i64*
-    store i64* %5, i64** %arr, align 8
-    %newcap = getelementptr i64, i64* %5, i64 1
-    store i64 4, i64* %newcap, align 8
+    %3 = tail call ptr @realloc(ptr %0, i64 48)
+    store ptr %3, ptr %arr, align 8
+    %newcap = getelementptr i64, ptr %3, i64 1
+    store i64 4, ptr %newcap, align 8
     br label %ifcont5
   
   else:                                             ; preds = %then
     %mul = mul i64 2, %1
-    %6 = mul i64 %mul, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %0 to i8*
-    %9 = tail call i8* @realloc(i8* %8, i64 %7)
-    %10 = bitcast i8* %9 to i64*
-    store i64* %10, i64** %arr, align 8
-    %newcap3 = getelementptr i64, i64* %10, i64 1
-    store i64 %mul, i64* %newcap3, align 8
+    %4 = mul i64 %mul, 8
+    %5 = add i64 %4, 16
+    %6 = tail call ptr @realloc(ptr %0, i64 %5)
+    store ptr %6, ptr %arr, align 8
+    %newcap3 = getelementptr i64, ptr %6, i64 1
+    store i64 %mul, ptr %newcap3, align 8
     br label %ifcont5
   
   ifcont5:                                          ; preds = %entry, %then2, %else
-    %11 = phi i64* [ %10, %else ], [ %5, %then2 ], [ %0, %entry ]
-    %12 = bitcast i64* %11 to i8*
-    %13 = getelementptr i8, i8* %12, i64 16
-    %data = bitcast i8* %13 to i64*
-    %14 = getelementptr inbounds i64, i64* %data, i64 %2
-    store i64 %value, i64* %14, align 8
+    %7 = phi ptr [ %6, %else ], [ %3, %then2 ], [ %0, %entry ]
+    %8 = getelementptr i8, ptr %7, i64 16
+    %9 = getelementptr inbounds i64, ptr %8, i64 %2
+    store i64 %value, ptr %9, align 8
+    %10 = load ptr, ptr %arr, align 8
     %add = add i64 %2, 1
-    store i64 %add, i64* %11, align 8
+    store i64 %add, ptr %10, align 8
     ret void
   }
   
-  define void @schmu_mod2(i64** noalias %a) {
+  define void @schmu_mod2(ptr noalias %a) {
   entry:
-    tail call void @__array_push_al_l_(i64** %a, i64 20)
+    tail call void @__array_push_al_l_(ptr %a, i64 20)
     ret void
   }
   
-  define void @schmu_modify(%f_* noalias %r) {
+  define void @schmu_modify(ptr noalias %r) {
   entry:
-    %0 = bitcast %f_* %r to i64*
-    store i64 30, i64* %0, align 8
+    store i64 30, ptr %r, align 8
     ret void
   }
   
-  declare i8* @realloc(i8* %0, i64 %1)
+  declare ptr @realloc(ptr %0, i64 %1)
   
   define i64 @main(i64 %arg) {
   entry:
-    store i64 20, i64* getelementptr inbounds (%f_, %f_* @schmu_a, i32 0, i32 0), align 8
-    tail call void @schmu_modify(%f_* @schmu_a)
-    %0 = load i64, i64* getelementptr inbounds (%f_, %f_* @schmu_a, i32 0, i32 0), align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %0)
-    %1 = tail call i8* @malloc(i64 24)
-    %2 = bitcast i8* %1 to i64*
-    store i64* %2, i64** @schmu_b, align 8
-    store i64 1, i64* %2, align 8
-    %cap = getelementptr i64, i64* %2, i64 1
-    store i64 1, i64* %cap, align 8
-    %3 = getelementptr i8, i8* %1, i64 16
-    %data = bitcast i8* %3 to i64*
-    store i64 10, i64* %data, align 8
-    tail call void @schmu_mod2(i64** @schmu_b)
-    %4 = load i64*, i64** @schmu_b, align 8
-    %5 = load i64, i64* %4, align 8
-    tail call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %5)
-    tail call void @__free_al_(i64** @schmu_b)
+    store i64 20, ptr @schmu_a, align 8
+    tail call void @schmu_modify(ptr @schmu_a)
+    %0 = load i64, ptr @schmu_a, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
+    %1 = tail call ptr @malloc(i64 24)
+    store ptr %1, ptr @schmu_b, align 8
+    store i64 1, ptr %1, align 8
+    %cap = getelementptr i64, ptr %1, i64 1
+    store i64 1, ptr %cap, align 8
+    %2 = getelementptr i8, ptr %1, i64 16
+    store i64 10, ptr %2, align 8
+    tail call void @schmu_mod2(ptr @schmu_b)
+    %3 = load ptr, ptr @schmu_b, align 8
+    %4 = load i64, ptr %3, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %4)
+    tail call void @__free_al_(ptr @schmu_b)
     ret i64 0
   }
   
-  declare void @printf(i8* %0, ...)
+  declare void @printf(ptr %0, ...)
   
-  declare i8* @malloc(i64 %0)
+  declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__free_al_(i64** %0) {
+  define linkonce_odr void @__free_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %2 = bitcast i64* %1 to i8*
-    call void @free(i8* %2)
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
     ret void
   }
   
-  declare void @free(i8* %0)
+  declare void @free(ptr %0)
   30
   2
 
@@ -1012,12 +881,12 @@ Make sure variable ids are correctly propagated
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  define linkonce_odr void @__array_push_al_l_(i64** noalias %arr, i64 %value) {
+  define linkonce_odr void @__array_push_al_l_(ptr noalias %arr, i64 %value) {
   entry:
-    %0 = load i64*, i64** %arr, align 8
-    %capacity = getelementptr i64, i64* %0, i64 1
-    %1 = load i64, i64* %capacity, align 8
-    %2 = load i64, i64* %0, align 8
+    %0 = load ptr, ptr %arr, align 8
+    %capacity = getelementptr i64, ptr %0, i64 1
+    %1 = load i64, ptr %capacity, align 8
+    %2 = load i64, ptr %0, align 8
     %eq = icmp eq i64 %1, %2
     br i1 %eq, label %then, label %ifcont5
   
@@ -1026,109 +895,96 @@ Make sure variable ids are correctly propagated
     br i1 %eq1, label %then2, label %else
   
   then2:                                            ; preds = %then
-    %3 = bitcast i64* %0 to i8*
-    %4 = tail call i8* @realloc(i8* %3, i64 48)
-    %5 = bitcast i8* %4 to i64*
-    store i64* %5, i64** %arr, align 8
-    %newcap = getelementptr i64, i64* %5, i64 1
-    store i64 4, i64* %newcap, align 8
+    %3 = tail call ptr @realloc(ptr %0, i64 48)
+    store ptr %3, ptr %arr, align 8
+    %newcap = getelementptr i64, ptr %3, i64 1
+    store i64 4, ptr %newcap, align 8
     br label %ifcont5
   
   else:                                             ; preds = %then
     %mul = mul i64 2, %1
-    %6 = mul i64 %mul, 8
-    %7 = add i64 %6, 16
-    %8 = bitcast i64* %0 to i8*
-    %9 = tail call i8* @realloc(i8* %8, i64 %7)
-    %10 = bitcast i8* %9 to i64*
-    store i64* %10, i64** %arr, align 8
-    %newcap3 = getelementptr i64, i64* %10, i64 1
-    store i64 %mul, i64* %newcap3, align 8
+    %4 = mul i64 %mul, 8
+    %5 = add i64 %4, 16
+    %6 = tail call ptr @realloc(ptr %0, i64 %5)
+    store ptr %6, ptr %arr, align 8
+    %newcap3 = getelementptr i64, ptr %6, i64 1
+    store i64 %mul, ptr %newcap3, align 8
     br label %ifcont5
   
   ifcont5:                                          ; preds = %entry, %then2, %else
-    %11 = phi i64* [ %10, %else ], [ %5, %then2 ], [ %0, %entry ]
-    %12 = bitcast i64* %11 to i8*
-    %13 = getelementptr i8, i8* %12, i64 16
-    %data = bitcast i8* %13 to i64*
-    %14 = getelementptr inbounds i64, i64* %data, i64 %2
-    store i64 %value, i64* %14, align 8
+    %7 = phi ptr [ %6, %else ], [ %3, %then2 ], [ %0, %entry ]
+    %8 = getelementptr i8, ptr %7, i64 16
+    %9 = getelementptr inbounds i64, ptr %8, i64 %2
+    store i64 %value, ptr %9, align 8
+    %10 = load ptr, ptr %arr, align 8
     %add = add i64 %2, 1
-    store i64 %add, i64* %11, align 8
+    store i64 %add, ptr %10, align 8
     ret void
   }
   
-  define linkonce_odr i64* @__schmu_f1_al_lral__(i64* %acc, i64 %v) {
+  define linkonce_odr ptr @__schmu_f1_al_lral__(ptr %acc, i64 %v) {
   entry:
-    %0 = alloca i64*, align 8
-    %1 = alloca i64*, align 8
-    store i64* %acc, i64** %1, align 8
-    %2 = bitcast i64** %0 to i8*
-    %3 = bitcast i64** %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* %3, i64 8, i1 false)
-    call void @__copy_al_(i64** %0)
-    call void @__array_push_al_l_(i64** %0, i64 %v)
-    %4 = load i64*, i64** %0, align 8
-    ret i64* %4
+    %0 = alloca ptr, align 8
+    %1 = alloca ptr, align 8
+    store ptr %acc, ptr %1, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %0, ptr align 8 %1, i64 8, i1 false)
+    call void @__copy_al_(ptr %0)
+    call void @__array_push_al_l_(ptr %0, i64 %v)
+    %2 = load ptr, ptr %0, align 8
+    ret ptr %2
   }
   
-  declare i8* @realloc(i8* %0, i64 %1)
+  declare ptr @realloc(ptr %0, i64 %1)
   
-  define linkonce_odr void @__copy_al_(i64** %0) {
+  define linkonce_odr void @__copy_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %sz1 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call i8* @malloc(i64 %3)
-    %5 = bitcast i8* %4 to i64*
-    %6 = bitcast i64* %5 to i8*
-    %7 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
-    %newcap = getelementptr i64, i64* %5, i64 1
-    store i64 %size, i64* %newcap, align 8
-    store i64* %5, i64** %0, align 8
+    %4 = call ptr @malloc(i64 %3)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %newcap = getelementptr i64, ptr %4, i64 1
+    store i64 %size, ptr %newcap, align 8
+    store ptr %4, ptr %0, align 8
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i8* @malloc(i64 24)
-    %1 = bitcast i8* %0 to i64*
-    %arr = alloca i64*, align 8
-    store i64* %1, i64** %arr, align 8
-    store i64 1, i64* %1, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    store i64 1, i64* %cap, align 8
-    %2 = getelementptr i8, i8* %0, i64 16
-    %data = bitcast i8* %2 to i64*
-    store i64 0, i64* %data, align 8
-    %3 = load i64*, i64** %arr, align 8
-    %4 = tail call i64* @__schmu_f1_al_lral__(i64* %3, i64 0)
-    %5 = alloca i64*, align 8
-    store i64* %4, i64** %5, align 8
-    call void @__free_al_(i64** %5)
-    call void @__free_al_(i64** %arr)
+    %0 = tail call ptr @malloc(i64 24)
+    %arr = alloca ptr, align 8
+    store ptr %0, ptr %arr, align 8
+    store i64 1, ptr %0, align 8
+    %cap = getelementptr i64, ptr %0, i64 1
+    store i64 1, ptr %cap, align 8
+    %1 = getelementptr i8, ptr %0, i64 16
+    store i64 0, ptr %1, align 8
+    %2 = load ptr, ptr %arr, align 8
+    %3 = tail call ptr @__schmu_f1_al_lral__(ptr %2, i64 0)
+    %4 = alloca ptr, align 8
+    store ptr %3, ptr %4, align 8
+    call void @__free_al_(ptr %4)
+    call void @__free_al_(ptr %arr)
     ret i64 0
   }
   
-  declare i8* @malloc(i64 %0)
+  declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__free_al_(i64** %0) {
+  define linkonce_odr void @__free_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %2 = bitcast i64* %1 to i8*
-    call void @free(i8* %2)
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
     ret void
   }
   
-  declare void @free(i8* %0)
+  declare void @free(ptr %0)
   
-  attributes #0 = { argmemonly nofree nounwind willreturn }
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 
 Free array params correctly if they are returned
   $ schmu --dump-llvm pass_array_param.smu && valgrind -q --leak-check=yes --show-reachable=yes ./pass_array_param
@@ -1136,47 +992,44 @@ Free array params correctly if they are returned
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  define linkonce_odr i64* @__schmu_pass_al_ral__(i64* %x) {
+  define linkonce_odr ptr @__schmu_pass_al_ral__(ptr %x) {
   entry:
-    ret i64* %x
+    ret ptr %x
   }
   
-  define i64* @schmu_create() {
+  define ptr @schmu_create() {
   entry:
-    %0 = tail call i8* @malloc(i64 24)
-    %1 = bitcast i8* %0 to i64*
-    %arr = alloca i64*, align 8
-    store i64* %1, i64** %arr, align 8
-    store i64 1, i64* %1, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    store i64 1, i64* %cap, align 8
-    %2 = getelementptr i8, i8* %0, i64 16
-    %data = bitcast i8* %2 to i64*
-    store i64 10, i64* %data, align 8
-    %3 = tail call i64* @__schmu_pass_al_ral__(i64* %1)
-    ret i64* %3
+    %0 = tail call ptr @malloc(i64 24)
+    %arr = alloca ptr, align 8
+    store ptr %0, ptr %arr, align 8
+    store i64 1, ptr %0, align 8
+    %cap = getelementptr i64, ptr %0, i64 1
+    store i64 1, ptr %cap, align 8
+    %1 = getelementptr i8, ptr %0, i64 16
+    store i64 10, ptr %1, align 8
+    %2 = tail call ptr @__schmu_pass_al_ral__(ptr %0)
+    ret ptr %2
   }
   
-  declare i8* @malloc(i64 %0)
+  declare ptr @malloc(i64 %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i64* @schmu_create()
-    %1 = alloca i64*, align 8
-    store i64* %0, i64** %1, align 8
-    call void @__free_al_(i64** %1)
+    %0 = tail call ptr @schmu_create()
+    %1 = alloca ptr, align 8
+    store ptr %0, ptr %1, align 8
+    call void @__free_al_(ptr %1)
     ret i64 0
   }
   
-  define linkonce_odr void @__free_al_(i64** %0) {
+  define linkonce_odr void @__free_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %2 = bitcast i64* %1 to i8*
-    call void @free(i8* %2)
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
     ret void
   }
   
-  declare void @free(i8* %0)
+  declare void @free(ptr %0)
 
 Refcounts for members in arrays, records and variants
   $ schmu --dump-llvm member_refcounts.smu
@@ -1184,200 +1037,170 @@ Refcounts for members in arrays, records and variants
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %r_ = type { i64* }
-  %option.tal__ = type { i32, i64* }
+  %r_ = type { ptr }
+  %option.tal__ = type { i32, ptr }
   
-  @schmu_a = global i64* null, align 8
+  @schmu_a = global ptr null, align 8
   @schmu_r = global %r_ zeroinitializer, align 8
-  @schmu_r__2 = global i64** null, align 8
+  @schmu_r__2 = global ptr null, align 8
   @schmu_r__3 = global %option.tal__ zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
   
-  declare void @string_print(i8* %0)
+  declare void @string_print(ptr %0)
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call i8* @malloc(i64 24)
-    %1 = bitcast i8* %0 to i64*
-    store i64* %1, i64** @schmu_a, align 8
-    store i64 1, i64* %1, align 8
-    %cap = getelementptr i64, i64* %1, i64 1
-    store i64 1, i64* %cap, align 8
-    %2 = getelementptr i8, i8* %0, i64 16
-    %data = bitcast i8* %2 to i64*
-    store i64 10, i64* %data, align 8
-    %3 = alloca i64*, align 8
-    %4 = bitcast i64** %3 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %4, i8* bitcast (i64** @schmu_a to i8*), i64 8, i1 false)
-    call void @__copy_al_(i64** %3)
-    %5 = load i64*, i64** %3, align 8
-    store i64* %5, i64** getelementptr inbounds (%r_, %r_* @schmu_r, i32 0, i32 0), align 8
-    %6 = load i64*, i64** @schmu_a, align 8
-    %7 = bitcast i64* %6 to i8*
-    %8 = getelementptr i8, i8* %7, i64 16
-    %data1 = bitcast i8* %8 to i64*
-    store i64 20, i64* %data1, align 8
-    %9 = load i64*, i64** getelementptr inbounds (%r_, %r_* @schmu_r, i32 0, i32 0), align 8
-    %10 = bitcast i64* %9 to i8*
-    %11 = getelementptr i8, i8* %10, i64 16
-    %data2 = bitcast i8* %11 to i64*
-    %12 = load i64, i64* %data2, align 8
-    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %12)
-    %13 = call i8* @malloc(i64 24)
-    %14 = bitcast i8* %13 to i64**
-    store i64** %14, i64*** @schmu_r__2, align 8
-    %15 = bitcast i64** %14 to i64*
-    store i64 1, i64* %15, align 8
-    %cap4 = getelementptr i64, i64* %15, i64 1
-    store i64 1, i64* %cap4, align 8
-    %16 = getelementptr i8, i8* %13, i64 16
-    %data5 = bitcast i8* %16 to i64**
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %16, i8* bitcast (i64** @schmu_a to i8*), i64 8, i1 false)
-    call void @__copy_al_(i64** %data5)
-    %17 = load i64*, i64** @schmu_a, align 8
-    %18 = bitcast i64* %17 to i8*
-    %19 = getelementptr i8, i8* %18, i64 16
-    %data7 = bitcast i8* %19 to i64*
-    store i64 30, i64* %data7, align 8
-    %20 = load i64**, i64*** @schmu_r__2, align 8
-    %21 = bitcast i64** %20 to i8*
-    %22 = getelementptr i8, i8* %21, i64 16
-    %data8 = bitcast i8* %22 to i64**
-    %23 = load i64*, i64** %data8, align 8
-    %24 = bitcast i64* %23 to i8*
-    %25 = getelementptr i8, i8* %24, i64 16
-    %data9 = bitcast i8* %25 to i64*
-    %26 = load i64, i64* %data9, align 8
-    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %26)
-    store i32 0, i32* getelementptr inbounds (%option.tal__, %option.tal__* @schmu_r__3, i32 0, i32 0), align 4
-    %27 = alloca i64*, align 8
-    %28 = bitcast i64** %27 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %28, i8* bitcast (i64** @schmu_a to i8*), i64 8, i1 false)
-    call void @__copy_al_(i64** %27)
-    %29 = load i64*, i64** %27, align 8
-    store i64* %29, i64** getelementptr inbounds (%option.tal__, %option.tal__* @schmu_r__3, i32 0, i32 1), align 8
-    %30 = load i64*, i64** @schmu_a, align 8
-    %31 = bitcast i64* %30 to i8*
-    %32 = getelementptr i8, i8* %31, i64 16
-    %data10 = bitcast i8* %32 to i64*
-    store i64 40, i64* %data10, align 8
-    %index = load i32, i32* getelementptr inbounds (%option.tal__, %option.tal__* @schmu_r__3, i32 0, i32 0), align 4
+    %0 = tail call ptr @malloc(i64 24)
+    store ptr %0, ptr @schmu_a, align 8
+    store i64 1, ptr %0, align 8
+    %cap = getelementptr i64, ptr %0, i64 1
+    store i64 1, ptr %cap, align 8
+    %1 = getelementptr i8, ptr %0, i64 16
+    store i64 10, ptr %1, align 8
+    %2 = alloca ptr, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %2, ptr align 8 @schmu_a, i64 8, i1 false)
+    call void @__copy_al_(ptr %2)
+    %3 = load ptr, ptr %2, align 8
+    store ptr %3, ptr @schmu_r, align 8
+    %4 = load ptr, ptr @schmu_a, align 8
+    %5 = getelementptr i8, ptr %4, i64 16
+    store i64 20, ptr %5, align 8
+    %6 = load ptr, ptr @schmu_r, align 8
+    %7 = getelementptr i8, ptr %6, i64 16
+    %8 = load i64, ptr %7, align 8
+    call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %8)
+    %9 = call ptr @malloc(i64 24)
+    store ptr %9, ptr @schmu_r__2, align 8
+    store i64 1, ptr %9, align 8
+    %cap2 = getelementptr i64, ptr %9, i64 1
+    store i64 1, ptr %cap2, align 8
+    %10 = getelementptr i8, ptr %9, i64 16
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %10, ptr align 8 @schmu_a, i64 8, i1 false)
+    call void @__copy_al_(ptr %10)
+    %11 = load ptr, ptr @schmu_a, align 8
+    %12 = getelementptr i8, ptr %11, i64 16
+    store i64 30, ptr %12, align 8
+    %13 = load ptr, ptr @schmu_r__2, align 8
+    %14 = getelementptr i8, ptr %13, i64 16
+    %15 = load ptr, ptr %14, align 8
+    %16 = getelementptr i8, ptr %15, i64 16
+    %17 = load i64, ptr %16, align 8
+    call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %17)
+    store i32 0, ptr @schmu_r__3, align 4
+    %18 = alloca ptr, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %18, ptr align 8 @schmu_a, i64 8, i1 false)
+    call void @__copy_al_(ptr %18)
+    %19 = load ptr, ptr %18, align 8
+    store ptr %19, ptr getelementptr inbounds (%option.tal__, ptr @schmu_r__3, i32 0, i32 1), align 8
+    %20 = load ptr, ptr @schmu_a, align 8
+    %21 = getelementptr i8, ptr %20, i64 16
+    store i64 40, ptr %21, align 8
+    %index = load i32, ptr @schmu_r__3, align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    %33 = load i64*, i64** getelementptr inbounds (%option.tal__, %option.tal__* @schmu_r__3, i32 0, i32 1), align 8
-    %34 = bitcast i64* %33 to i8*
-    %35 = getelementptr i8, i8* %34, i64 16
-    %data11 = bitcast i8* %35 to i64*
-    %36 = load i64, i64* %data11, align 8
-    call void (i8*, ...) @printf(i8* getelementptr (i8, i8* bitcast ({ i64, i64, [5 x i8] }* @0 to i8*), i64 16), i64 %36)
+    %22 = load ptr, ptr getelementptr inbounds (%option.tal__, ptr @schmu_r__3, i32 0, i32 1), align 8
+    %23 = getelementptr i8, ptr %22, i64 16
+    %24 = load i64, ptr %23, align 8
+    call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %24)
     br label %ifcont
   
   else:                                             ; preds = %entry
-    call void @string_print(i8* bitcast ({ i64, i64, [5 x i8] }* @1 to i8*))
+    call void @string_print(ptr @1)
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
-    call void @__free_val2_(%option.tal__* @schmu_r__3)
-    call void @__free_2al2_(i64*** @schmu_r__2)
-    call void @__free_al2_(%r_* @schmu_r)
-    call void @__free_al_(i64** @schmu_a)
+    call void @__free_val2_(ptr @schmu_r__3)
+    call void @__free_2al2_(ptr @schmu_r__2)
+    call void @__free_al2_(ptr @schmu_r)
+    call void @__free_al_(ptr @schmu_a)
     ret i64 0
   }
   
-  declare i8* @malloc(i64 %0)
+  declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_al_(i64** %0) {
+  define linkonce_odr void @__copy_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %sz1 = bitcast i64* %1 to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call i8* @malloc(i64 %3)
-    %5 = bitcast i8* %4 to i64*
-    %6 = bitcast i64* %5 to i8*
-    %7 = bitcast i64* %1 to i8*
-    call void @llvm.memcpy.p0i8.p0i8.i64(i8* %6, i8* %7, i64 %3, i1 false)
-    %newcap = getelementptr i64, i64* %5, i64 1
-    store i64 %size, i64* %newcap, align 8
-    store i64* %5, i64** %0, align 8
+    %4 = call ptr @malloc(i64 %3)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %newcap = getelementptr i64, ptr %4, i64 1
+    store i64 %size, ptr %newcap, align 8
+    store ptr %4, ptr %0, align 8
     ret void
   }
   
-  ; Function Attrs: argmemonly nofree nounwind willreturn
-  declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly %0, i8* noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  declare void @printf(i8* %0, ...)
+  declare void @printf(ptr %0, ...)
   
-  define linkonce_odr void @__free_al_(i64** %0) {
+  define linkonce_odr void @__free_al_(ptr %0) {
   entry:
-    %1 = load i64*, i64** %0, align 8
-    %2 = bitcast i64* %1 to i8*
-    call void @free(i8* %2)
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_val2_(%option.tal__* %0) {
+  define linkonce_odr void @__free_val2_(ptr %0) {
   entry:
-    %tag1 = bitcast %option.tal__* %0 to i32*
-    %index = load i32, i32* %tag1, align 4
+    %tag1 = bitcast ptr %0 to ptr
+    %index = load i32, ptr %tag1, align 4
     %1 = icmp eq i32 %index, 0
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option.tal__, %option.tal__* %0, i32 0, i32 1
-    call void @__free_al_(i64** %data)
+    %data = getelementptr inbounds %option.tal__, ptr %0, i32 0, i32 1
+    call void @__free_al_(ptr %data)
     br label %cont
   
   cont:                                             ; preds = %match, %entry
     ret void
   }
   
-  define linkonce_odr void @__free_2al2_(i64*** %0) {
+  define linkonce_odr void @__free_2al2_(ptr %0) {
   entry:
-    %1 = load i64**, i64*** %0, align 8
-    %ref = bitcast i64** %1 to i64*
-    %sz1 = bitcast i64* %ref to i64*
-    %size = load i64, i64* %sz1, align 8
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
     %cnt = alloca i64, align 8
-    store i64 0, i64* %cnt, align 8
+    store i64 0, ptr %cnt, align 8
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %2 = load i64, i64* %cnt, align 8
+    %2 = load i64, ptr %cnt, align 8
     %3 = icmp slt i64 %2, %size
     br i1 %3, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %4 = bitcast i64** %1 to i8*
-    %5 = getelementptr i8, i8* %4, i64 16
-    %data = bitcast i8* %5 to i64**
-    %6 = getelementptr i64*, i64** %data, i64 %2
-    call void @__free_al_(i64** %6)
-    %7 = add i64 %2, 1
-    store i64 %7, i64* %cnt, align 8
+    %4 = getelementptr i8, ptr %1, i64 16
+    %5 = getelementptr ptr, ptr %4, i64 %2
+    call void @__free_al_(ptr %5)
+    %6 = add i64 %2, 1
+    store i64 %6, ptr %cnt, align 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    %8 = bitcast i64** %1 to i64*
-    %9 = bitcast i64* %8 to i8*
-    call void @free(i8* %9)
+    call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_al2_(%r_* %0) {
+  define linkonce_odr void @__free_al2_(ptr %0) {
   entry:
-    %1 = bitcast %r_* %0 to i64**
-    call void @__free_al_(i64** %1)
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_al_(ptr %1)
     ret void
   }
   
-  declare void @free(i8* %0)
+  declare void @free(ptr %0)
   
-  attributes #0 = { argmemonly nofree nounwind willreturn }
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   $ valgrind -q --leak-check=yes --show-reachable=yes ./member_refcounts
   10
   20
@@ -1409,8 +1232,8 @@ Fix codegen
   define i64 @schmu_t() {
   entry:
     %0 = alloca i64, align 8
-    store i64 10, i64* %0, align 8
-    store i64 11, i64* %0, align 8
+    store i64 10, ptr %0, align 8
+    store i64 11, ptr %0, align 8
     ret i64 11
   }
   

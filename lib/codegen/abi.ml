@@ -2,7 +2,6 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
   open Cleaned_types
   open Llvm_types
   open Size_align
-  open T
 
   type unboxed_atom = Ints of int | F32 | F32_vec | Float
 
@@ -126,22 +125,23 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
           ([], Some "param_tup", [| anon_field_of_typ a; anon_field_of_typ b |])
 
   let box_record typ ~size ?(alloc = None) ~snd_val value =
+    ignore typ;
     (* From int to record *)
     (* If [snd_val] is present, the value was passed as two params
        and we construct the struct from both *)
+    let box_t = lltype_unboxed size in
     let intptr =
       match alloc with
-      | None -> Llvm.build_alloca (lltype_unboxed size) "box" builder
-      | Some alloc -> Llvm.build_bitcast alloc ptr_t "box" builder
+      | None -> Llvm.build_alloca box_t "box" builder
+      | Some alloc -> alloc
     in
 
     (match snd_val with
     | None -> ignore (Llvm.build_store value intptr builder)
     | Some v2 ->
-        let t = get_lltype_def typ in
-        let ptr = Llvm.build_struct_gep t intptr 0 "fst" builder in
+        let ptr = Llvm.build_struct_gep box_t intptr 0 "fst" builder in
         ignore (Llvm.build_store value ptr builder);
-        let ptr = Llvm.build_struct_gep t intptr 1 "snd" builder in
+        let ptr = Llvm.build_struct_gep box_t intptr 1 "snd" builder in
         ignore (Llvm.build_store v2 ptr builder));
     intptr
 
