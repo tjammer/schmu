@@ -367,7 +367,10 @@ struct
       else if is_struct typ then
         (* For records we want a ptr so that gep and memcpy work *)
         (item_ptr, ptr_t)
-      else if cl.clmut && upward then (item_ptr, ptr_t)
+      else if cl.clmut && upward then
+        (* For upward closures, the mutable value is stored inside the closure
+           directly and does not point to some outer value. *)
+        (item_ptr, get_lltype_def typ)
       else
         let lltyp = get_lltype_def typ in
         let load_type = if cl.clmut then ptr_t else lltyp in
