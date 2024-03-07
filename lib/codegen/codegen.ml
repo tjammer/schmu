@@ -650,7 +650,15 @@ end = struct
           | _ -> failwith "Internal Error: Arity mismatch in builtin"
         in
         let lltyp = get_lltype_def fnc.ret in
-        let value = Llvm.build_in_bounds_gep lltyp ptr [| index |] "" builder in
+        let item_lltyp =
+          match fnc.ret with
+          | Traw_ptr t -> get_lltype_def t
+          | _ -> failwith "unreachable"
+        in
+        (* Use item type to get the correct offset into the ptr *)
+        let value =
+          Llvm.build_in_bounds_gep item_lltyp ptr [| index |] "" builder
+        in
         { value; typ = fnc.ret; lltyp; kind = Imm }
     | Unsafe_ptr_reinterpret ->
         let ptr =
@@ -683,13 +691,10 @@ end = struct
             | Tfixed_array (_, Tunit) -> dummy_fn_value
             | _ ->
                 let lltyp = get_lltype_def fnc.ret in
-                let ptr =
-                  Llvm.build_gep ptr_t arr.value
-                    [| Llvm.const_int int_t 0 |]
-                    "" builder
-                in
                 let value =
-                  Llvm.build_gep lltyp ptr [| bring_default idx |] "" builder
+                  Llvm.build_gep lltyp arr.value
+                    [| bring_default idx |]
+                    "" builder
                 in
                 { value; typ = fnc.ret; lltyp; kind = Ptr })
         | _ -> failwith "Internal Error: Arity mismatch in builtin")

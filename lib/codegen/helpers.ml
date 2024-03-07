@@ -714,7 +714,8 @@ struct
 
       Llvm.position_at_end decr_bb builder;
       let value =
-        if mut then Llvm.build_load alloca.lltyp alloca.value "" builder
+        (* Mutable values are always pointed to *)
+        if mut then Llvm.build_load ptr_t alloca.value "" builder
         else alloca.value
       in
       (* let kind = if mut then Ptr else default_kind alloca.typ in *)
