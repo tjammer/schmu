@@ -22,6 +22,12 @@ jobs:
         with:
           submodules: true
 
+      - run: wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+      - run: echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main" | sudo tee -a /etc/apt/sources.list
+      - run: echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main" | sudo tee -a /etc/apt/sources.list
+      - run: sudo apt update
+      - run: sudo apt install -y llvm-16-dev valgrind
+
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v2
         with:
@@ -32,5 +38,4 @@ jobs:
       - run: opam exec -- dune build
         if: matrix.ocaml-compiler != '4.06.0'
 
-      - run: sudo apt install -y valgrind
       - run: opam exec -- dune runtest -f
