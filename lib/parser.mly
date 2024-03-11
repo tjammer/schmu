@@ -424,11 +424,13 @@ call_arg:
 
 then_:
   | block = block; %prec If_no_else { block, [], None }
-  | block = block; elifs = elifs { let elifs, else_ = elifs in block, elifs, Some else_ }
+  | block = block; else_ = else_ { block, [], Some else_ }
+  | block = block; elifs = elifs; %prec If_no_else { block, elifs, None }
+  | block = block; elifs = elifs; else_ = else_ { block, elifs, Some else_ }
 
 elifs:
-  | elifs = nonempty_list(elif); else_ = else_ { elifs, else_ }
-  | else_ = else_ { [], else_ }
+  | elif = elif; elifs = elifs { elif :: elifs }
+  | elif = elif; %prec If_no_else { [elif] }
 
 passed_expr:
   | pexpr = expr { {pattr = Dnorm; pexpr} }

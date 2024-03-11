@@ -854,7 +854,7 @@ prog: If Ident Colon Ident Else Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If Ident Colon Ident Elseif Ident Colon Ident With
+prog: If Ident Colon Ident Elseif Ident Colon Begin Ident End Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

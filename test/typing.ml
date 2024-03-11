@@ -1235,6 +1235,9 @@ let test_farray_inference () =
      print_snd(#[1, 2, 3])\n\
      print_snd(#[\"hey\", \"hi\"])"
 
+let test_syntax_elseif_no_else () =
+  test "unit" "if false: ()\nelse if false: ()\nelse if true: ()"
+
 let test_partial_move_outer_imm () =
   test_exn "Cannot move string literal. Use `copy`"
     "(def a \"hii\") (defn move-a (_ a!) a) (ignore ((move-a 0) !a))"
@@ -1694,4 +1697,5 @@ do:
           case "nested lit" test_farray_nested_lit;
           case "generalize / instantiate" test_farray_inference;
         ] );
+      ("other syntax", [ case "elseif no else" test_syntax_elseif_no_else ]);
     ]
