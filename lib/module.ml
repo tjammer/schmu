@@ -131,9 +131,13 @@ module Map_canon : Map_module.Map_tree = struct
     | Some m when not (Path.share_base mname m) -> (
         (* Make sure this is eagerly loaded on use *)
         match Hashtbl.find_opt module_cache m with
-        | None | Some (Located _ | Cached (Clocal _, _, _) | Functor _) ->
+        | None | Some (Located _ | Functor _) ->
             failwith "unreachable what is this module's path?"
         | Some (Cached (Cfile (_, true), _, _)) -> ()
+        | Some (Cached (Clocal _, _, _)) ->
+            (* NOTE: This should mark its parent somehow, but does not
+               currently. *)
+            ()
         | Some (Cached (Cfile (name, false), scope, md)) ->
             Hashtbl.replace module_cache m
               (Cached (Cfile (name, true), scope, md)))
