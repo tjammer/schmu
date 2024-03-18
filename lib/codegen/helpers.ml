@@ -245,7 +245,7 @@ struct
         ("%s", ptr.value)
     | Tu8 -> ("%c", v.value)
     | Ti32 -> ("%i", v.value)
-    | Tf32 -> ("%.9gf", v.value)
+    | Tf32 -> ("%.9gf", Llvm.build_fpcast v.value float_t "" builder)
     | _ ->
         print_endline (show_typ value.typ);
         failwith "Internal Error: Impossible string format"
