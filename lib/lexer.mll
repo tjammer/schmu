@@ -95,9 +95,10 @@ let i32 = min? int_lit "i32"
 let f32 = min? float "f32"
 
 let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_'|'?')*
+let ident = (lowercase_alpha|uppercase_alpha) (lowercase_alpha|uppercase_alpha|digit|'_'|'?')*
 let builtin_id = "__" lowercase_id
 let path_id = lowercase_id '/'
-let hash_id = '#' lowercase_id
+let hash_id = '#' ident
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -156,7 +157,7 @@ rule read =
   | "val"    { Val }
   | "rec"    { Rec }
   | '|'      { Hbar }
-  | lowercase_id { Ident (Lexing.lexeme lexbuf) }
+  | ident { Ident (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | path_id  { Path_id (Lexing.lexeme lexbuf |> mut_of_string) }
   | hash_id  { Ctor (Lexing.lexeme lexbuf |> name_of_string) }
