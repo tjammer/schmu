@@ -9,6 +9,10 @@ type state_kind =
   | Newline
 (* We emit [End]s until the indentation matches again. Stores column number *)
 
+type equal_context = Let | Record
+(* An equal sign appears either in a let binding or in a record expression. In a
+   let binding, indenting blocks after the equal sign are allowed *)
+
 type state = {
   kind : state_kind;
   first : bool;
@@ -20,10 +24,18 @@ type state = {
          the closing paren would have to go to another line to the original column.
          The parser takes care that the correct paren is used, we don't have to
          distinguish them. Thus, we only save the column number. *)
+  equal_context : equal_context list;
 }
 
 let default =
-  { kind = Default; first = true; indents = [ 0 ]; cached = None; parens = [] }
+  {
+    kind = Default;
+    first = true;
+    indents = [ 0 ];
+    cached = None;
+    parens = [];
+    equal_context = [];
+  }
 
 let saved_state = ref default
 let mark state pos = { state with kind = Marked Lexing.(pos.pos_lnum) }
@@ -38,6 +50,25 @@ let rec emit state lexbuf (token : Parser.token) =
   | Colon ->
       let state = mark state Lexing.(lexbuf.lex_curr_p) in
       (token, state)
+  | Let -> (token, { state with equal_context = Let :: state.equal_context })
+  | Equal -> (
+      match state.equal_context with
+      | Let :: tl ->
+          let state = mark state Lexing.(lexbuf.lex_curr_p) in
+          (token, { state with equal_context = tl })
+      | Record :: _ | [] -> (token, state))
+  | Lbrac ->
+      ( token,
+        {
+          (push_par_indent state) with
+          equal_context = Record :: state.equal_context;
+        } )
+  | Rbrac -> (
+      match state.equal_context with
+      | Record :: tl ->
+          pop_par_indent { state with equal_context = tl } token lexbuf
+      | Let :: _ | [] ->
+          raise (Error "Internal Error: Could not find matching left brace"))
   | Eof -> (
       (* Insert dedents before Eof if there still is indentation *)
       match state.indents with
@@ -45,19 +76,9 @@ let rec emit state lexbuf (token : Parser.token) =
       | [ _ ] -> (token, state)
       | _ :: _ ->
           dedent { state with kind = Dedent 0; cached = Some token } lexbuf 0)
-  | Lpar | Lbrac | Lbrack | Hashtag_brack | Hashnum_brack _ ->
-      (token, { state with parens = List.hd state.indents :: state.parens })
-  | Rbrac | Rbrack | Rpar -> (
-      match (state.parens, state.indents) with
-      | parcol :: tl, cnum :: _ ->
-          (* Leave the parcol in state until the indent is correct *)
-          if parcol < cnum then
-            dedent
-              { state with kind = Dedent parcol; cached = Some token }
-              lexbuf parcol
-          else (token, { state with parens = tl })
-      | [], _ -> (token, state)
-      | _, _ -> failwith "Internal Error in parens thing")
+  | Lpar | Lbrack | Hashtag_brack | Hashnum_brack _ ->
+      (token, push_par_indent state)
+  | Rbrack | Rpar -> pop_par_indent state token lexbuf
   | token -> (token, state)
 
 and maybe_newline state lexbuf =
@@ -85,6 +106,21 @@ and dedent state lexbuf cnum =
         (* We have missed our column  *)
         raise (Error "Inconsintent indentation")
 
+and push_par_indent state =
+  { state with parens = List.hd state.indents :: state.parens }
+
+and pop_par_indent state token lexbuf =
+  match (state.parens, state.indents) with
+  | parcol :: tl, cnum :: _ ->
+      (* Leave the parcol in state until the indent is correct *)
+      if parcol < cnum then
+        dedent
+          { state with kind = Dedent parcol; cached = Some token }
+          lexbuf parcol
+      else (token, { state with parens = tl })
+  | [], _ -> (token, state)
+  | _, _ -> failwith "Internal Error in parens thing"
+
 let indent state lexbuf =
   (* The indentation happens in [read_marked], we just emit the cached token *)
   match state.cached with
@@ -98,13 +134,6 @@ let read_default state lexbuf =
 
   let indent_cnum = List.hd state.indents in
   let cnum = get_cnum lexbuf in
-  (* let state = *)
-  (*   match token with *)
-  (*   | Lpar | Lbrac | Lbrack | Hashtag_brack | Hashnum_brack _ -> *)
-  (*       Printf.printf "incr parens to %i\n%!" cnum; *)
-  (*       { state with parens = cnum :: state.parens } *)
-  (*   | _ -> state *)
-  (* in *)
   if cnum < indent_cnum then
     (* We are dedenting *)
     dedent { state with cached = Some token; kind = Dedent cnum } lexbuf cnum
@@ -120,10 +149,15 @@ let read_marked state lexbuf lnum =
   let indent_cnum = List.hd state.indents in
   (* If we are on the same line, there is no indent *)
   if lnum = pos.pos_lnum then
-    emit { state with kind = Default } lexbuf next_token
+    (* We allow pass attributes to be kept on the above line *)
+    match next_token with
+    | Ampersand | Exclamation ->
+        (* Keep on searching for indents *)
+        (next_token, state)
+    | _ -> emit { state with kind = Default } lexbuf next_token
   else if cnum > indent_cnum then
     ( (* Save the token to emit on next call and insert [Begin] *)
-      Parser.(Begin),
+      Parser.Begin,
       {
         state with
         indents = cnum :: state.indents;

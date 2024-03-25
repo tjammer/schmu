@@ -1238,6 +1238,13 @@ let test_farray_inference () =
 let test_syntax_elseif_no_else () =
   test "unit" "if false: ()\nelse if false: ()\nelse if true: ()"
 
+let test_syntax_let_block () = test "unit" "let a =\n  let b = 0\n  ()"
+let test_syntax_let_block_move () = test "unit" "let a =!\n  let b = 0\n  ()"
+
+let test_syntax_let_block_other_equal () =
+  test "unit"
+    "type record = {a : int}\nlet {a =\n   b} =\n  let b = 0\n  {a = 10}"
+
 let test_partial_move_outer_imm () =
   test_exn "Cannot move string literal. Use `copy`"
     "(def a \"hii\") (defn move-a (_ a!) a) (ignore ((move-a 0) !a))"
@@ -1697,5 +1704,11 @@ do:
           case "nested lit" test_farray_nested_lit;
           case "generalize / instantiate" test_farray_inference;
         ] );
-      ("other syntax", [ case "elseif no else" test_syntax_elseif_no_else ]);
+      ( "other syntax",
+        [
+          case "elseif no else" test_syntax_elseif_no_else;
+          case "let block" test_syntax_let_block;
+          case "let block move" test_syntax_let_block_move;
+          case "let block other equal" test_syntax_let_block_other_equal;
+        ] );
     ]

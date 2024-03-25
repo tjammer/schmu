@@ -710,11 +710,11 @@ prog: Let Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Exclamation With
+prog: Let Ident Equal Exclamation With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Exclamation Ident With
+prog: Do Colon Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -722,15 +722,11 @@ prog: Let Ident Equal Builtin_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ampersand With
+prog: Let Ident Equal Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ampersand Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Ident With
+prog: Let Ident Equal Ampersand Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -759,10 +755,6 @@ prog: Fun Ident Lpar Rpar Lbrack Ident Rbrack With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Fun Ident Lpar Rpar Colon With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Do Colon Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -890,7 +882,19 @@ prog: Lpar Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Ident Newline
+prog: Match Exclamation With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Exclamation Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ampersand With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ampersand Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -995,6 +999,10 @@ prog: Match Ident Colon Ident Colon Begin Ident End Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match Ident Colon Ident Colon Ident Hbar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

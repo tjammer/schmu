@@ -122,7 +122,8 @@ top_item:
   | modtype = modtype { modtype }
 
 stmt:
-  | Let; decl = let_decl; Equal; pexpr = passed_expr { Let($loc, decl, pexpr)  }
+  | Let; decl = let_decl; Equal; pexpr = passed(block)
+    { let pattr, block = pexpr in Let($loc, decl, {pattr; pexpr = Do_block block})  }
   | Let; decl = let_decl; Equal; id = Builtin_id
     { let expr = {pattr = Dnorm; pexpr = Var($loc(id), id)} in Let($loc, decl, expr) }
   | Fun; func = func { let loc, func = func in Function (loc, func) }
@@ -339,10 +340,10 @@ expr:
   | aexpr = expr; Pipe_tail; pipeable = expr
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_tail ($loc, arg, Pip_expr pipeable) }
-  | Match; expr = passed_expr; Colon; option(Hbar); clauses = clauses
-    { Match ($loc, expr.pattr, expr.pexpr, clauses) }
-  | Match; expr = passed_expr; Colon; clauses = block_clauses
-    { Match ($loc, expr.pattr, expr.pexpr, clauses) }
+  | Match; expr = passed(expr); Colon; option(Hbar); clauses = clauses
+    { Match ($loc, fst expr, snd expr, clauses) }
+  | Match; expr = passed(expr); Colon; clauses = block_clauses
+    { Match ($loc, fst expr, snd expr, clauses) }
   | Ampersand; expr = expr; Left_arrow; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
   | id = Path_id; expr = expr; %prec Path { Local_use ($loc, id, expr) }
@@ -432,10 +433,10 @@ elifs:
   | elif = elif; elifs = elifs { elif :: elifs }
   | elif = elif; %prec If_no_else { [elif] }
 
-passed_expr:
-  | pexpr = expr { {pattr = Dnorm; pexpr} }
-  | Ampersand; pexpr = expr { {pattr = Dmut; pexpr} }
-  | Exclamation; pexpr = expr { {pattr = Dmove; pexpr} }
+passed(x):
+  | pexpr = x { Dnorm, pexpr }
+  | Ampersand; pexpr = x { Dmut, pexpr }
+  | Exclamation; pexpr = x { Dmove, pexpr }
 
 elif:
   | Elseif; cond = expr; Colon; elseblk = block { ($loc, cond, elseblk) }

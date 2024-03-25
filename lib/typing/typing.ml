@@ -664,7 +664,7 @@ end = struct
         convert_record_update env loc annot record items
     | Field (loc, expr, id) -> convert_field env loc expr id
     | Set (loc, expr, value) -> convert_set env loc expr value
-    | Do_block stmts -> convert_block env stmts |> fst
+    | Do_block stmts -> convert_block_annot ~ret:true env annot stmts |> fst
     | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
     | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
