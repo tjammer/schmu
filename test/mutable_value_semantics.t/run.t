@@ -182,6 +182,11 @@ Warn on unneeded mutable bindings
   1 | fun do_nothing(a&): ignore(a)
           ^^^^^^^^^^
   
+  unneeded_mut.smu:5.5-6: warning: Unmutated mutable binding b.
+  
+  5 | let b& = 0
+          ^
+  
 Use mutable values as ptrs to C code
   $ schmu -c --dump-llvm ptr_to_c.smu
   ; ModuleID = 'context'
@@ -1257,6 +1262,11 @@ Track unmutated binding warnings across projections
   9 | fun testfn(a&, b& : int):
                      ^
   
+  projection_warnings.smu:14.7-8: warning: Unmutated mutable binding a.
+  
+  14 |   let a& = 0
+             ^
+  
   projection_warnings.smu:4.7-8: warning: Unused binding z.
   
   4 |   let z& = &y
@@ -1266,6 +1276,16 @@ Track unmutated binding warnings across projections
   
   9 | fun testfn(a&, b& : int):
           ^^^^^^
+  
+  projection_warnings.smu:13.5-18: warning: Unused binding single_binder.
+  
+  13 | fun single_binder():
+           ^^^^^^^^^^^^^
+  
+  projection_warnings.smu:19.5-17: warning: Unused binding mutate_outer.
+  
+  19 | fun mutate_outer():
+           ^^^^^^^^^^^^
   
 Mutable locals must not be globals even if constexpr
   $ schmu mutable_locals.smu

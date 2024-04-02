@@ -499,10 +499,12 @@ let mark_mutated env_item =
 
   match env_item.imm with
   | [] -> ()
-  | [ Borrow_mut (b, _) ] -> mark_mutated b.repr
-  | _ ->
-      print_endline (show_env_item env_item);
-      failwith "Internal Error: What happened here?"
+  | items ->
+      List.iter
+        (function
+          | Borrow_mut (b, _) -> mark_mutated b.repr
+          | Bmove _ | Borrow _ | Bown _ -> ())
+        items
 
 let check_mutated () =
   Map.fold
@@ -662,12 +664,12 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       (* Don't add to hist here. Other expressions where the value is used
          will take care of this *)
       (tree, borrow, hist)
-  | Let { id; rhs; cont; pass; rmut; uniq } ->
+  | Let { id; id_loc; rhs; cont; pass; rmut; uniq } ->
       let rhs, env, b, hs, pass =
-        check_let tree.loc env id rhs rmut pass ~tl:false hist
+        check_let id_loc env id rhs rmut pass ~tl:false hist
       in
       let cont, v, hs = check_tree env mut bdata cont (add_hist b hs) in
-      let expr = Let { id; rhs; cont; pass; rmut; uniq } in
+      let expr = Let { id; id_loc; rhs; cont; pass; rmut; uniq } in
       ({ tree with expr }, v, hs)
   | Const (Array es) ->
       let hs, es =
@@ -747,7 +749,13 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
   | App
       {
         callee =
-          { expr = Var (("__array_get" | "__fixed_array_get"), _); _ } as callee;
+          ( {
+              expr =
+                Var
+                  (("__array_get" | "__fixed_array_get" | "__unsafe_ptr_get"), _);
+              _;
+            }
+          | { expr = Var ("get", Some (Path.Pid "unsafe")); _ } ) as callee;
         args = [ arr; idx ];
       } ->
       (* Special case for __array_get *)
@@ -955,7 +963,6 @@ and check_let ~tl loc env id rhs rmut pass hist =
         (Uread, false, false)
   in
   let rhs, rval, hs = check_tree env nmut no_bdata rhs hist in
-  let loc = loc in
   let neword () =
     incr borrow_state;
     !borrow_state
@@ -1060,6 +1067,8 @@ let check_item (env, bind, mut, part, hist) = function
         match List.rev bindings with
         | [] -> env
         | bs ->
+            (* Mark mutated bindings in function as mutated *)
+            mark_mutated { imm = bs; delayed = [] };
             Map.add (Fst (name, !current_module)) { imm = []; delayed = bs } env
       in
       ((env, bind, mut, part, hist), f)

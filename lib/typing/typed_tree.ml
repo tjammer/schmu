@@ -41,6 +41,7 @@ and fmt = Fstr of string | Fexpr of typed_expr
 
 and let_data = {
   id : string;
+  id_loc : loc;
   uniq : int option;
   rmut : bool; (* is mutable generally *)
   pass : dattr; (* is passed mutably on the rhs (def b& -> &a) *)

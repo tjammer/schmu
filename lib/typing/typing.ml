@@ -69,6 +69,8 @@ let main_path = Path.Pid "schmu"
 let is_module = function Path.Pid "schmu" -> false | Pid _ | Pmod _ -> true
 
 let loc_equal (af, asnd) (bf, bsnd) =
+  (* Exclusivity uses location of the whole expression, because it doesn't have
+     access to the pattern id location. Thus, [a] must include [b] *)
   let open Lexing in
   String.equal af.pos_fname bf.pos_fname
   && Int.equal af.pos_lnum bf.pos_lnum
@@ -610,7 +612,7 @@ module rec Core : sig
     Ast.loc ->
     Ast.decl ->
     Ast.passed_expr ->
-    Env.t * string * typed_expr * bool * (string * typed_expr) list
+    Env.t * string * loc * typed_expr * bool * (string * typed_expr) list
 
   val convert_function :
     Env.t ->
@@ -781,16 +783,16 @@ end = struct
     in
     let env, pat_exprs = convert_decl env [ decl ] in
     let expr = { e1 with attr = { global; const; mut } } in
-    (env, id, expr, e1.attr.mut, pat_exprs)
+    (env, id, idloc, expr, e1.attr.mut, pat_exprs)
 
   and convert_let_e env loc decl expr cont =
-    let env, id, rhs, rmut, pats =
+    let env, id, id_loc, rhs, rmut, pats =
       convert_let ~global:false env loc decl expr
     in
     let cont = convert env cont in
     let cont = List.fold_left fold_decl cont pats in
     let uniq = if rhs.attr.const then uniq_name id else None in
-    let expr = Let { id; uniq; rmut; pass = expr.pattr; rhs; cont } in
+    let expr = Let { id; id_loc; uniq; rmut; pass = expr.pattr; rhs; cont } in
     { typ = cont.typ; expr; attr = cont.attr; loc }
 
   and convert_lambda env loc params attr ret_annot body =
@@ -1226,13 +1228,14 @@ end = struct
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, block) :: tl ->
-          let env, id, rhs, rmut, pats =
+          let env, id, id_loc, rhs, rmut, pats =
             convert_let ~global:false env loc decl block
           in
           let cont, env = to_expr env old_type tl in
           let cont = List.fold_left fold_decl cont pats in
-          let uniq = if rhs.attr.const then uniq_name id else None in
-          let expr = Let { id; uniq; rmut; pass = block.pattr; rhs; cont } in
+          let uniq = if rhs.attr.const then uniq_name id else None
+          and pass = block.pattr in
+          let expr = Let { id; id_loc; uniq; rmut; pass; rhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, abs) = convert_function env loc func false in
@@ -1755,7 +1758,7 @@ and convert_prog env items modul =
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     | Ast.Let (loc, decl, block) ->
-        let env, id, lhs, rmut, pats =
+        let env, id, id_loc, lhs, rmut, pats =
           Core.convert_let ~global:true env loc decl block
         in
         if is_module (Env.modpath env) && lhs.attr.mut then
@@ -1789,7 +1792,8 @@ and convert_prog env items modul =
               let m =
                 Module.add_external loc lhs.typ id uniq_name ~closure:true m
               in
-              (env, Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr }, m)
+              let pass = block.pattr in
+              (env, Tl_let { loc = id_loc; id; uniq; lhs; rmut; pass }, m)
         in
         let expr =
           match pats with

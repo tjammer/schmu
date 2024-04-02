@@ -3763,6 +3763,11 @@ Check allocs in fixed array
   1 | let arr = #[#[1, 2, 3], #[3, 4, 5]]
           ^^^
   
+  fixed_array_allocs.smu:8.5-8: warning: Unmutated mutable binding arr.
+  
+  8 | let arr& = #["hey", "hie"] -- correctly free as mut
+          ^^^
+  
   $ valgrind -q --leak-check=yes --show-reachable=yes ./fixed_array_allocs
   3
   hi

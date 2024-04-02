@@ -9,3 +9,13 @@ do:
 fun testfn(a&, b& : int):
   let c& = &a
   &c <- 123
+
+fun single_binder():
+  let a& = 0
+  ignore(a)
+
+let outer& = 10
+
+fun mutate_outer():
+  let alias& = &outer
+  &alias <- 11
