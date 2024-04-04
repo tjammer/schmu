@@ -63,7 +63,7 @@ fun readbuf(ic&, buf&):
   &ic.unseen <- 0
   #some(upper - lower)
 
-fun readn_impl(ic&, buf&, n, readacc):
+fun rec readn_impl(ic&, buf&, n, readacc):
   if ic.unseen >= n:
     fill(&buf, ic.buf, ic.head, ic.head + n)
     &ic.head <- ic.head + n
@@ -89,7 +89,7 @@ fun readn_impl(ic&, buf&, n, readacc):
 
 fun readn(ic&, buf&, n): readn_impl(&ic, &buf, n, 0)
 
-fun readall_impl(ic&, buf&, acc):
+fun rec readall_impl(ic&, buf&, acc):
   -- assumes ic.unseen = 0
   let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
   if nread == 0:
@@ -110,7 +110,7 @@ fun readrem(ic&, buf&):
   ret
 
 fun readline(ic&, buf&):
-  fun find_newline(acc):
+  fun rec find_newline(acc):
     if ic.unseen > 0:
       if prelude/char_equal('\n', ic.buf#[ic.head]):
         &ic.unseen <- ic.unseen - 1
@@ -139,7 +139,7 @@ fun readall(ic&):
 
 fun lines(ic&, f):
   let buf& = array/create(bufsize)
-  fun aux():
+  fun rec aux():
     match readline(&ic, &buf):
       #some(_):
         let str = string/of_array(!buf)

@@ -1,7 +1,7 @@
 let s = "/"
 
 fun times(limit, f):
-  fun inner(i):
+  fun rec inner(i):
     if i == limit: ()
     else:
       f(s)

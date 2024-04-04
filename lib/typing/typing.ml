@@ -589,7 +589,7 @@ let rec wrap_in_lambda texpr = function
       let body =
         { texpr with expr = App { callee = texpr; args }; typ = ret }
       in
-      let abs = { nparams; body; func; inline = false } in
+      let abs = { nparams; body; func; inline = false; is_rec = false } in
       { texpr with expr = Lambda (lambda_id (), abs) }
   | Tvar { contents = Link t } -> wrap_in_lambda texpr t
   | _ -> failwith "Internal Error: Not a function for wrapping"
@@ -856,22 +856,24 @@ end = struct
         let typ = check_annot env loc typ qtyp in
 
         let func = { tparams; ret; kind; touched } in
+        let inline = false and is_rec = false in
         let abs =
-          { nparams; body = { body with typ = ret }; func; inline = false }
+          { nparams; body = { body with typ = ret }; func; inline; is_rec }
         in
         let expr = Lambda (lambda_id (), abs) in
         { typ; expr; attr = no_attr; loc }
     | _ -> failwith "Internal Error: generalize produces a new type?"
 
   and convert_function env loc
-      Ast.{ name = nameloc, name; params; return_annot; body; attr } inrec =
+      Ast.{ name = nameloc, name; params; return_annot; body; attr; is_rec }
+      inrec =
     (* Create a fresh type var for the function name
        and use it in the function body *)
     let unique = uniq_name name in
 
     enter_level ();
     let env, nparams =
-      if inrec then
+      if inrec || not is_rec then
         (* Function is already part of env with a fresh variable *)
         ( env,
           List.mapi
@@ -947,7 +949,8 @@ end = struct
     let typ = Tfun (params_t, body.typ, kind) in
 
     (* Make sure the types match *)
-    unify (loc, "Function") (Env.find_val loc (Path.Pid name) env).typ typ env;
+    if inrec || is_rec then
+      unify (loc, "Function") (Env.find_val loc (Path.Pid name) env).typ typ env;
 
     (* For mutually recursive functions, we generalize at the end of the rec
        block. Otherwise calls to the not-last function in the set will not
@@ -957,7 +960,14 @@ end = struct
     match typ with
     | Tfun (tparams, ret, kind) ->
         (* Add the generalized type to the env to keep the closure there *)
-        let env = Env.change_type name typ env in
+        let env =
+          if inrec || is_rec then Env.change_type name typ env
+          else
+            Env.(
+              add_value name { (def_value env) with typ } nameloc env
+              |> add_callname ~key:name
+                   (Module_common.unique_name ~mname:(modpath env) name unique))
+        in
         (* Discard usage of internal recursive calls *)
         Env.mark_unused name env;
 
@@ -967,7 +977,7 @@ end = struct
 
         let func = { tparams; ret; kind; touched } in
         let lambda =
-          { nparams; body = { body with typ = ret }; func; inline }
+          { nparams; body = { body with typ = ret }; func; inline; is_rec }
         in
 
         (env, (name, unique, lambda))

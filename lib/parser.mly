@@ -126,16 +126,17 @@ stmt:
     { let pattr, block = pexpr in Let($loc, decl, {pattr; pexpr = Do_block block})  }
   | Let; decl = let_decl; Equal; id = Builtin_id
     { let expr = {pattr = Dnorm; pexpr = Var($loc(id), id)} in Let($loc, decl, expr) }
-  | Fun; func = func { let loc, func = func in Function (loc, func) }
+  | Fun; func = func { let loc, func = func false in Function (loc, func) }
+  | Fun; Rec; func = func { let loc, func = func true in Function (loc, func) }
   | Fun; Rec; func = func; And; tail = separated_nonempty_list(And, func)
-    { Rec($loc, func :: tail) }
+    { Rec($loc, (func true) :: (List.map (fun f -> f true) tail)) }
   | expr = expr { Expr ($loc, expr) }
   | Use; path = use_path { Use ($loc(path), path) }
 
 func:
   | name = func_name; params = parens(param_decl); attr = loption(capture_copies);
       return_annot = option(return_annot); Colon; body = block
-    { ($loc, { name; params; return_annot; body; attr }) }
+    { fun is_rec -> ($loc, { name; params; return_annot; body; attr; is_rec }) }
 
 func_name:
   | name = ident { name }

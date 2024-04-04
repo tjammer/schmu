@@ -3,7 +3,7 @@ type state = {cnt : int, next : (int) -> int}
 fun advance(state!):
   {cnt = (state.next)(state.cnt), next = state.next}
 
-fun ten_times(state!):
+fun rec ten_times(state!):
   if state.cnt < 10:
     print(fmt(state.cnt))
     ten_times(!advance(!state))

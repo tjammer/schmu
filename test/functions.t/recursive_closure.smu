@@ -2,7 +2,7 @@ external printi : (int) -> unit
 
 let outer = 10
 
-fun loop(i):
+fun rec loop(i):
   -- we capture outer here
   if i < outer:
     printi(i)

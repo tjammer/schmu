@@ -11,7 +11,7 @@ fun char(c):
 
 fun alt(alts!):
   fun(buf, view):
-    fun aux(i):
+    fun rec aux(i):
       if array/length(alts) == i: #err(view)
       else: match alts.[i](buf, view):
         #ok(r): #ok(r)
@@ -21,7 +21,7 @@ fun alt(alts!):
 -- same thing with a named function
 fun alt_named(alts!):
   fun named3(buf, view):
-    fun aux(i):
+    fun rec aux(i):
       if array/length(alts) == i: #err(view)
       else: match alts.[i](buf, view):
         #ok(r): #ok(r)

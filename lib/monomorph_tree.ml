@@ -844,7 +844,7 @@ and prep_func p (usrname, uniq, abs) =
     Hashtbl.add deferredfunc_tbl call fn;
     ({ p with vars }, (call, kind, ftyp, alloca)))
   else
-    let recursive = Rnormal in
+    let recursive = if abs.is_rec then Rnormal else Rnone in
     let inline = abs.inline in
 
     let func =

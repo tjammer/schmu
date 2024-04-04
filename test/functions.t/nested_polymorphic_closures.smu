@@ -1,19 +1,19 @@
 external printi : (int) -> unit
 
 fun array_iter(arr, f):
-  fun inner_cls_both(i):
+  fun rec inner_cls_both(i):
     if array/length(arr) == i: ()
     else:
       f(arr.[i])
       inner_cls_both(i + 1)
 
-  fun inner_cls_arr(i, f):
+  fun rec inner_cls_arr(i, f):
     if array/length(arr) == i: ()
     else:
       f(arr.[i])
       inner_cls_arr(i + 1, f)
 
-  fun inner_cls_f(i, arr):
+  fun rec inner_cls_f(i, arr):
     if array/length(arr) == i: ()
     else:
       f(arr.[i])

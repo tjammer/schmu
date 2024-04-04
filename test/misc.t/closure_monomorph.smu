@@ -16,7 +16,7 @@ fun sort(arr&, cmp):
   -- Instead, quicksort now closes over the already monomorphized partition.
   -- Functions in closures are now mention the monomorphized name instead
   -- of the lexical one
-  fun quicksort(arr&, lo, hi):
+  fun rec quicksort(arr&, lo, hi):
     if not(lo < hi) or (lo < 0): ()
     else:
       let p = partition(&arr, lo, hi)
@@ -49,7 +49,7 @@ fun sort(arr&, cmp):
   -- Instead, quicksort now closes over the already monomorphized partition.
   -- Functions in closures are now mention the monomorphized name instead
   -- of the lexical one
-  fun quicksort(arr&, lo, hi):
+  fun rec quicksort(arr&, lo, hi):
     if not(lo < hi) or (lo < 0): ()
     else:
       let p = partition(&arr, lo, hi)

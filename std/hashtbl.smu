@@ -23,7 +23,7 @@ functor make : sig(m : key):
   type slot('a) = option/t(item('a))
   type t('a) = {data& : array(slot('a)), nitems& : int}
 
-  fun power_2_above(x, n):
+  fun rec power_2_above(x, n):
     if x >= n: x else:
       if (x * 2) < 0: x else:
         power_2_above(x * 2, n)
@@ -42,7 +42,7 @@ functor make : sig(m : key):
   fun next_wrapped(curr, size):
     if (curr + 1) == size: 0 else: curr + 1
 
-  fun redist(tbl&, item!, curr, pathlen):
+  fun rec redist(tbl&, item!, curr, pathlen):
     let size = array/length(tbl.data)
     match tbl.data.[curr]:
       #none:
@@ -67,7 +67,7 @@ functor make : sig(m : key):
     float_of_int(tbl.nitems) /. float_of_int(array/length(tbl.data))
 
   fun iter_data_move(data&, f):
-    fun inner(i):
+    fun rec inner(i):
       if i == array/length(data):
         &__unsafe_array_length(data) <- 0
         match __unsafe_ptr_get(array/data(data), i):
@@ -93,7 +93,7 @@ functor make : sig(m : key):
     let hash = idx(tbl, key)
     let size = array/length(tbl.data)
 
-    fun insert(i, pathlen, key!, value!):
+    fun rec insert(i, pathlen, key!, value!):
       match tbl.data.[i]:
         #none:
           &tbl.data.[i] <- #some({key, value, pathlen})
@@ -116,7 +116,7 @@ functor make : sig(m : key):
 
     insert(hash, 0, !key, !value)
 
-  fun find_index(i, tbl, key, pathlen):
+  fun rec find_index(i, tbl, key, pathlen):
     match tbl.data.[i]:
       #some(item):
         if m/equal(key, item.key): #some(i)
@@ -135,7 +135,7 @@ functor make : sig(m : key):
         #none: #none
       #none: #none
 
-  fun fixup(data&, old):
+  fun rec fixup(data&, old):
     let next = next_wrapped(old, array/length(data))
     match &data.[next]:
       #some(item&):
@@ -158,7 +158,7 @@ functor make : sig(m : key):
       #none: ()
 
   fun fold(tbl, init!, f):
-    fun inner(i, acc!):
+    fun rec inner(i, acc!):
       if array/length(tbl.data) == i: acc
       else: match tbl.data.[i]:
         #none: inner(i + 1, !acc)
@@ -167,7 +167,7 @@ functor make : sig(m : key):
     inner(0, !init)
 
   fun iter_data(data, f):
-    fun inner(i):
+    fun rec inner(i):
       if array/length(data) == i: ()
       else: match data.[i]:
         #none: inner(i + 1)

@@ -3,7 +3,7 @@ external printf : (string/cstr, int, int, int) -> unit
 let limit = 3
 
 -- this works
-fun nested(a, b):
+fun rec nested(a, b):
   if b == limit: nested(a + 1, 0)
   else if a == limit: ()
   else:
@@ -14,7 +14,7 @@ nested(0, 0)
 
 printf(string/data("\n"), 0, 0, 0)
 
-fun nested(a, b, c):
+fun rec nested(a, b, c):
   if b == limit: nested(a + 1, 0, c)
   else if c == limit: nested(a, b + 1, 0)
   else if a == limit: ()
@@ -24,7 +24,7 @@ fun nested(a, b, c):
 
 nested(0, 0, 0)
 
-fun nested(a, b, c):
+fun rec nested(a, b, c):
   if b == limit: nested(a + 1, 0, c)
   else if a == limit: ()
   else if c == limit: nested(a, b + 1, 0)

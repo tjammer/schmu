@@ -102,6 +102,7 @@ and abstraction = {
   body : typed_expr;
   func : func;
   inline : bool;
+  is_rec : bool;
 }
 
 (* TODO function data *)

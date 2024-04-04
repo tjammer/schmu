@@ -1,6 +1,6 @@
 fun test(b):
   let ret : array(int) = []
-  fun inner(i):
+  fun rec inner(i):
     let ai : array(int) = []
     let bi : array(int) = []
     if i == b: ai

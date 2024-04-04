@@ -41,6 +41,7 @@ and func_attr = Fa_single of ident | Fa_param of ident * ident list
 
 and func = {
   name : ident;
+  is_rec : bool;
   params : decl list;
   return_annot : type_spec option;
   body : block;

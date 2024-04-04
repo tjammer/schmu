@@ -23,28 +23,28 @@ fun push(arr&, value!):
   &__unsafe_array_length(arr) <- length + 1
 
 fun iter(arr, f):
-  fun inner(i):
+  fun rec inner(i):
     if i == length(arr): () else:
       f(arr.[i])
       inner(i + 1)
   inner(0)
 
 fun iteri(arr, f):
-  fun inner(i):
+  fun rec inner(i):
     if i == length(arr): () else:
       f(i, arr.[i])
       inner(i + 1)
   inner(0)
 
 fun fold(arr, init!, f):
-  fun inner(i, acc!):
+  fun rec inner(i, acc!):
     if i == length(arr): acc else:
       let acc = f(!acc, arr.[i])
       inner(i + 1, !acc)
   inner(0, !init)
 
 fun foldi(arr, init!, f):
-  fun inner(i, acc!):
+  fun rec inner(i, acc!):
     if i == length(arr): acc else:
       let acc = f(i, !acc, arr.[i])
       inner(i + 1, !acc)
@@ -52,7 +52,7 @@ fun foldi(arr, init!, f):
 
 fun map(arr, f):
   let ret = create(length(arr))
-  fun inner(ret!, i):
+  fun rec inner(ret!, i):
     let ret& = !ret
     if i == length(arr): ret else:
       push(&ret, !f(arr.[i]))
@@ -67,7 +67,7 @@ fun swap_items(arr&, i, j):
 
 
 fun clear(arr&):
-  fun inner():
+  fun rec inner():
     if 0 == length(arr): () else:
       drop_back(&arr)
       inner()

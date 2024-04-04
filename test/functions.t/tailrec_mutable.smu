@@ -1,9 +1,9 @@
 type bref = {a& : bool}
 
-fun mut_bref(i, rf&):
+fun rec mut_bref(i, rf&):
   if i > 0: &rf.a <- true else: mut_bref(i + 1, &rf)
 
-fun dontmut_bref(i, rf&):
+fun rec dontmut_bref(i, rf&):
   if i > 0: &rf.a <- false
   else:
     -- introduce a new object, so the old one won't get mutated
@@ -25,7 +25,7 @@ print(fmt(rf.a))
 -- some for int record type
 type r = {a& : int}
 
-fun mod_rec(r&, i):
+fun rec mod_rec(r&, i):
   if i == 2: &r.a <- i
   else: mod_rec(&r, i + 1)
 
@@ -35,7 +35,7 @@ do:
   print(fmt(ar.a))
 
 -- array
-fun push_twice(a&, i):
+fun rec push_twice(a&, i):
   if i == 2: ()
   else:
     array/push(&a, !20)
@@ -47,7 +47,7 @@ do:
   print(fmt(array/length(a)))
 
 -- int
-fun change_int(i&, j):
+fun rec change_int(i&, j):
   if j == 100: &i <- j else: change_int(&i, j + 1)
 
 do:
@@ -56,7 +56,7 @@ do:
   print(fmt(i))
 
 -- create bogus objects to tidy up
-fun test(a&, i):
+fun rec test(a&, i):
   if i == 2:
     let b& = [10]
     test(&b, i + 1)

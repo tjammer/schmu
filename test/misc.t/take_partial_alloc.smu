@@ -13,7 +13,7 @@ fun ch(buf):
     #err(copy(buf))
 
 fun many_count(buf):
-  fun aux(rem, cnt):
+  fun rec aux(rem, cnt):
     match ch(rem):
       #ok(r):
         -- r.rem is moved out of the result.

@@ -11,7 +11,7 @@ let == = __equali
 let >. = __lesseqf
 
 fun iter_range(from, to, f):
-  fun inner(i):
+  fun rec inner(i):
     if i == to: () else:
       f(i)
       inner(i + 1)

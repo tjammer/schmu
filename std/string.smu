@@ -75,7 +75,7 @@ fun boyer_moore_horspool(pattern, str):
   let strptr = array/data(str)
   let last_patchar = pattern.[patlen1]
 
-  fun find(skips, istr):
+  fun rec find(skips, istr):
     let last_windowchar = str.[istr + patlen1]
     if (istr + len(pattern)) <= len(str):
       if char_equal(last_patchar, last_windowchar) and

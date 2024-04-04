@@ -92,7 +92,7 @@ let test_func_1st_stay_general () =
 let test_func_recursive_if () =
   test "(int) -> unit"
     "external ext : () -> unit\n\
-     fun foo(i): if i < 2: ext() else: foo(i - 1)\n\
+     fun rec foo(i): if i < 2: ext() else: foo(i - 1)\n\
      foo"
 
 let test_func_generic_return () =

@@ -1,6 +1,6 @@
 external printi : (int) -> unit
 
-fun fib(n):
+fun rec fib(n):
   if n < 2: n
   else:
     -- local function

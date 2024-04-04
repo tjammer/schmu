@@ -1208,10 +1208,10 @@ We can have if without else
 
 Tailcall loops
   $ schmu --dump-llvm stub.o regression_issue_26.smu && ./regression_issue_26
-  regression_issue_26.smu:27.5-11: warning: Unused binding nested.
+  regression_issue_26.smu:27.9-15: warning: Unused binding nested.
   
-  27 | fun nested(a, b, c):
-           ^^^^^^
+  27 | fun rec nested(a, b, c):
+               ^^^^^^
   
   ; ModuleID = 'context'
   source_filename = "context"

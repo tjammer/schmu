@@ -1,6 +1,6 @@
 external printi : (int) -> unit
 
-fun foo(i):
+fun rec foo(i):
   if i < 2: printi(i - 1)
   else:
     if i < 400: printi(i)
