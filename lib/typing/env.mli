@@ -59,8 +59,8 @@ val add_external : key -> cname:string option -> typ -> Ast.loc -> t -> t
 val change_type : key -> typ -> t -> t
 (** To give the generalized type with closure for functions *)
 
-val mark_unused : key -> t -> unit
-(** To not mark internal recursive calls as used *)
+val mark_unused : key -> t -> bool
+(** Returns if the value was used. To not mark internal recursive calls as used *)
 
 val add_type : string -> in_sig:bool -> typ -> t -> t
 val add_module : key:string -> cached_module -> t -> t

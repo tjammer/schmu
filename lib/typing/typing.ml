@@ -969,7 +969,9 @@ end = struct
                    (Module_common.unique_name ~mname:(modpath env) name unique))
         in
         (* Discard usage of internal recursive calls *)
-        Env.mark_unused name env;
+        let used = Env.mark_unused name env in
+        if (not used) && is_rec && not inrec then
+          raise (Error (nameloc, "Unused rec flag"));
 
         let ret = match ret_annot with Some ret -> ret | None -> ret in
         let qtyp = Tfun (qparams, ret, kind) |> generalize in

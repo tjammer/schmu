@@ -252,7 +252,10 @@ let mark_unused key env =
       match scope.kind with
       | Stoplevel tbl | Sfunc tbl | Scont tbl -> (
           match Hashtbl.find_opt tbl (Path.Pid key) with
-          | Some usage -> usage.used := false
+          | Some usage ->
+              let used = !(usage.used) in
+              usage.used := false;
+              used
           | None ->
               "Internal Error: Missing key for unmarking used " ^ key
               |> failwith)

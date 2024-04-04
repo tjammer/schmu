@@ -109,6 +109,8 @@ let test_func_capture_annot () =
 let test_func_capture_annot_wrong () =
   test_exn "Value a is not captured, cannot copy" "fun somefn () [a]: ()"
 
+let test_func_unused_rec () = test_exn "Unused rec flag" "fun rec add(a): a + 1"
+
 let test_record_clear () =
   test "t" "type t = { x : int, y : int }\n{x = 2, y = 2}"
 
@@ -1291,6 +1293,7 @@ let () =
           case "generic return" test_func_generic_return;
           case "capture annot" test_func_capture_annot;
           case "capture annot wrong" test_func_capture_annot_wrong;
+          case "unused rec" test_func_unused_rec;
         ] );
       ( "records",
         [
