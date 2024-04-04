@@ -55,8 +55,8 @@ end = struct
 
         (* Add parameters to env *)
         let tvars, rec_block =
-          add_params tvars func name abs.pnames tparams start_index recursive
-            free_tbl
+          add_params { vars with vars = tvars } func name abs.pnames tparams
+            start_index recursive free_tbl
         in
 
         let fun_finalize ret =

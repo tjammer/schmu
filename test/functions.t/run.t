@@ -2249,3 +2249,8 @@ Check that binops with multiple argument works
   $ ./binop
   1
   19
+
+Knuth's man or boy test
+  $ schmu man_or_boy.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./man_or_boy
+  -67

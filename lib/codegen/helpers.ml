@@ -7,7 +7,7 @@ module type S = sig
   val add_closure : llvar Vars.t -> llvar -> bool -> fun_kind -> llvar Vars.t
 
   val add_params :
-    llvar Vars.t ->
+    Llvm_types.param ->
     llvar ->
     Monomorph_tree.func_name ->
     (string * int) list ->
@@ -513,7 +513,8 @@ struct
      In case the function is tailrecursive, it allocas each parameter in
      the entry block and creates a recursion block which starts off by loading
      each parameter. *)
-  let add_params vars f fname names params start_index recursive free_tbl =
+  let add_params param f fname names params start_index recursive free_tbl =
+    let vars = param.vars in
     (* We specially treat the case where a record is passed as two params *)
     let get_value i mut typ =
       match pkind_of_typ mut typ with
@@ -567,6 +568,26 @@ struct
     match recursive with
     | Monomorph_tree.Rnone -> (add_simple vars, None)
     | Rnormal ->
+        (* If the recursive function is an env, we construct the closure for
+           potential recursive calls. *)
+        let f =
+          match f.typ with
+          | Tfun (_, _, Closure _) ->
+              let clsr_struct = alloca param closure_t "reccls" in
+              let fun_ptr =
+                Llvm.build_struct_gep closure_t clsr_struct 0 "funptr" builder
+              in
+              ignore (Llvm.build_store f.value fun_ptr builder);
+              let closure_index = (Llvm.params f.value |> Array.length) - 1 in
+              let clsr_param = (Llvm.params f.value).(closure_index) in
+              let env_ptr =
+                Llvm.build_struct_gep closure_t clsr_struct 1 "envptr" builder
+              in
+              ignore (Llvm.build_store clsr_param env_ptr builder);
+
+              { f with value = clsr_struct }
+          | _ -> f
+        in
         ( Vars.add Monomorph_tree.(fname.call) f vars
           |> (* We also add the user name. This is needed for polymorphic nested functions.
                 At the monomorphization stage, the codegen isn't rewritten to it's call name.
