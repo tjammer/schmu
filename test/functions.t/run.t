@@ -1192,31 +1192,6 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret ptr %1
   }
   
-  define linkonce_odr void @__free_lru_(ptr %0) {
-  entry:
-    %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
-    %env = load ptr, ptr %envptr, align 8
-    %1 = icmp eq ptr %env, null
-    br i1 %1, label %ret, label %notnull
-  
-  notnull:                                          ; preds = %entry
-    %2 = getelementptr inbounds { ptr, ptr }, ptr %env, i32 0, i32 1
-    %dtor1 = load ptr, ptr %2, align 8
-    %3 = icmp eq ptr %dtor1, null
-    br i1 %3, label %just_free, label %dtor
-  
-  ret:                                              ; preds = %just_free, %dtor, %entry
-    ret void
-  
-  dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
-  
-  just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
-  }
-  
   define linkonce_odr void @__free_al_(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
@@ -2254,3 +2229,7 @@ Knuth's man or boy test
   $ schmu man_or_boy.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./man_or_boy
   -67
+
+Local environments must not be freed in self-recursive functions
+  $ schmu selfrec_fun_param.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./selfrec_fun_param

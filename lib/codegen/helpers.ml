@@ -740,7 +740,13 @@ struct
         else alloca.value
       in
       (* let kind = if mut then Ptr else default_kind alloca.typ in *)
-      Auto.free param { alloca with value };
+      (match alloca.typ with
+      | Tfun _ ->
+          (* Function parameters which originate from the function cannot be
+             'upward' and thus have their env allocated on the stack. We must not
+             try to free them. *)
+          ()
+      | _ -> Auto.free param { alloca with value });
       ignore (Llvm.build_br cont_bb builder);
 
       Llvm.position_at_end cookie_bb builder;

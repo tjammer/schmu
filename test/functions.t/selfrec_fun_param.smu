@@ -1,0 +1,8 @@
+fun rec a(_, cnt):
+  if cnt == 2: ()
+  else:
+    let b = [0]
+    a(fun (): ignore(b), cnt + 1)
+
+do:
+  a(fun (): (), 0)
