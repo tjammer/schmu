@@ -13,3 +13,4 @@ steps:
     secrets: [ release ]
     when:
       - branch: main
+        event: push
