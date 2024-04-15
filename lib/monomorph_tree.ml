@@ -691,6 +691,7 @@ and prep_let p id uniq e pass toplvl =
      the level must not be increased, otherwise this borrowed value will be
      preallocated at its creation. *)
   let p = match pass with Dmove -> enter_level p | Dset | Dmut | Dnorm -> p in
+  let vars = p.vars in
   let p, e1, func = morph_expr { p with ret = false } e in
   let ms, malloc, mallocs =
     match pass with
@@ -701,7 +702,7 @@ and prep_let p id uniq e pass toplvl =
     | Dset | Dmut | Dnorm -> ([], func.malloc, p.mallocs)
   in
 
-  let p, func = ({ p with mallocs }, { func with malloc }) in
+  let p, func = ({ p with mallocs; vars }, { func with malloc }) in
 
   let p, gn =
     match e.attr with
