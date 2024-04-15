@@ -132,6 +132,9 @@ module Make (C : Map_tree) = struct
     | Const (Array a) ->
         let sub, a = List.fold_left_map (map_body mname nsub) sub a in
         (sub, Const (Array a))
+    | Const (Fixed_array a) ->
+        let sub, a = List.fold_left_map (map_body mname nsub) sub a in
+        (sub, Const (Fixed_array a))
     | Const c -> (sub, Const c)
     | Bop (op, e1, e2) ->
         let sub, e1 = (map_body mname nsub) sub e1 in
