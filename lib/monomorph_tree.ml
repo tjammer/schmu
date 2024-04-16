@@ -390,7 +390,15 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
         reconstr_module_username ~mname:param.mname ~mainmod:param.mainmodule id
       in
       let p, lhs, func = morph_expr { param with ret = false } lhs in
-      let vars = Vars.add id (Normal func) p.vars in
+      (* top level function aliases *)
+      let var =
+        match lhs.expr with
+        | Mvar (id, Vglobal _) ->
+            (* It's already used, we don't care about the actual value *)
+            Global (id, func, ref false)
+        | _ -> Normal func
+      in
+      let vars = Vars.add id var p.vars in
       let p, cont, func = morph_expr { p with ret = param.ret; vars } ocont in
       ( p,
         {
@@ -1282,9 +1290,15 @@ let rec morph_toplvl param items =
             id
         in
         let p, e1, func = morph_expr { param with ret = false } expr in
-        let p, e2, func =
-          aux { p with vars = Vars.add id (Normal func) p.vars } tl
+        (* top level function aliases *)
+        let var =
+          match e1.expr with
+          | Mvar (id, Vglobal _) ->
+              (* It's already used, we don't care about the actual value *)
+              Global (id, func, ref false)
+          | _ -> Normal func
         in
+        let p, e2, func = aux { p with vars = Vars.add id var p.vars } tl in
         (p, { e2 with expr = Mbind (id, e1, e2) }, func)
     | Tl_mutual_rec_decls decls ->
         let p = List.fold_left rec_fs_to_env param decls in
