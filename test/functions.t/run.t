@@ -2233,3 +2233,7 @@ Knuth's man or boy test
 Local environments must not be freed in self-recursive functions
   $ schmu selfrec_fun_param.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./selfrec_fun_param
+
+Shadowing of names in monomorph pass
+  $ schmu shadowing2.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./shadowing2

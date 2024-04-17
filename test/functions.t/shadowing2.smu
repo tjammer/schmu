@@ -1,0 +1,9 @@
+fun diff(x, y): x - y
+
+-- TODO this should be marked as used
+ignore(diff)
+let _ =
+  let diff = 12
+  diff
+
+diff(10, 12).ignore()
