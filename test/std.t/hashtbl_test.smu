@@ -15,3 +15,27 @@ fun string():
 
 print("# hashtbl")
 string()
+
+module key:
+  type t = #a1 | #a2 | #b1 | #b2
+
+  fun hash(k : t): match k:
+    #a1: 0
+    #a2: 1
+    #b1: 2
+    #b2: 3
+
+  fun equal(a, b): hash(a) == hash(b)
+
+module keytbl = hashtbl/make(key)
+
+fun key():
+  print("## key")
+  let tbl& = keytbl/create(512)
+  keytbl/insert(&tbl, !#a1, !10)
+  keytbl/insert(&tbl, !#a2, !20)
+  match keytbl/find(tbl, #a1):
+    #some(v): print(fmt("some v: ", v))
+    #none: print("none")
+
+key()

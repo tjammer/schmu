@@ -70,6 +70,7 @@ functor make : sig(m : key):
     fun rec inner(i):
       if i == array/length(data):
         &__unsafe_array_length(data) <- 0
+      else:
         match __unsafe_ptr_get(array/data(data), i):
           #none: inner(i + 1)
           #some({key, value, pathlen = _}):

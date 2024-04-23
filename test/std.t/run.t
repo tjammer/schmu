@@ -6,6 +6,8 @@ Test hashtbl
   1.1
   none
   none
+  ## key
+  some v: 10
 
 String module test
   $ schmu string.smu

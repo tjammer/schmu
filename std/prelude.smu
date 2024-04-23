@@ -8,7 +8,7 @@ let <= = __lesseqi
 let > = __greateri
 let >= = __greatereqi
 let == = __equali
-let >. = __lesseqf
+let >. = __greatereqf
 
 fun iter_range(from, to, f):
   fun rec inner(i):
