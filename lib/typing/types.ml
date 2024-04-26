@@ -278,3 +278,8 @@ let is_clike_variant t =
         (fun clike ctor -> if Option.is_some ctor.ctyp then false else clike)
         true ctors
   | _ -> false
+
+let is_unbound t =
+  match clean t with
+  | Tvar { contents = Unbound (sym, l) } -> Some (sym, l)
+  | _ -> None

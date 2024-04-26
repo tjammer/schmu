@@ -66,3 +66,4 @@ val contains_allocation : typ -> bool
 val mut_of_pattr : Ast.decl_attr -> bool
 val add_closure_copy : closed list -> string -> closed list option
 val is_clike_variant : typ -> bool
+val is_unbound : typ -> (string * int) option

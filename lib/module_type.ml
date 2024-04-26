@@ -27,11 +27,13 @@ let subst_name ~mname pathsub p inner =
 let apply_subs (psub, tsub) typ =
   let subst p = match Pmap.find_opt p psub with Some p -> p | None -> p in
   let rec aux = function
-    | Tabstract (_, _, Tvar { contents = Unbound (sym, _) }) -> (
-        match Smap.find_opt sym tsub with
-        | Some t -> t
-        | None -> failwith "unreachable")
-    | Tabstract (ps, p, t) -> Tabstract (List.map aux ps, subst p, aux t)
+    | Tabstract (ps, p, t) -> (
+        match is_unbound t with
+        | Some (sym, _) -> (
+            match Smap.find_opt sym tsub with
+            | Some t -> t
+            | None -> failwith "unreachable")
+        | None -> Tabstract (List.map aux ps, subst p, aux t))
     | Talias (p, t) -> Talias (subst p, aux t)
     | Trecord (ps, p, fs) ->
         let ps = List.map aux ps in
@@ -65,20 +67,22 @@ let apply_subs (psub, tsub) typ =
 
 let adjust_type ~mname ~newvar pathsub ubsub inner typ =
   let rec aux pathsub ubsub inner = function
-    | Tabstract (ps, p, Tvar { contents = Unbound (sym, l) }) ->
-        let ubsub, t =
-          match Smap.find_opt sym ubsub with
-          | Some t -> (ubsub, t)
-          | None ->
-              (* Generate a new type *)
-              let t = Tvar (ref (Unbound (gensym newvar, l))) in
-              (Smap.add sym t ubsub, t)
-        in
-        (* [ps] will be matched later in [match_type_params] *)
-        (* NOTE I'm note sure if we should apply name substitutions to [ps] also *)
-        let pathsub, newp = subst_name ~mname pathsub p inner in
-        (pathsub, ubsub, Tabstract (ps, newp, t))
-    | Tabstract _ -> failwith "What is this?"
+    | Tabstract (ps, p, ub) -> (
+        match is_unbound ub with
+        | Some (sym, l) ->
+            let ubsub, t =
+              match Smap.find_opt sym ubsub with
+              | Some t -> (ubsub, t)
+              | None ->
+                  (* Generate a new type *)
+                  let t = Tvar (ref (Unbound (gensym newvar, l))) in
+                  (Smap.add sym t ubsub, t)
+            in
+            (* [ps] will be matched later in [match_type_params] *)
+            (* NOTE I'm note sure if we should apply name substitutions to [ps] also *)
+            let pathsub, newp = subst_name ~mname pathsub p inner in
+            (pathsub, ubsub, Tabstract (ps, newp, t))
+        | None -> failwith "What is this?")
     | Talias (p, t) ->
         let pathsub, newp = subst_name ~mname pathsub p inner in
         let pathsub, ubsub, t = aux pathsub ubsub true t in
