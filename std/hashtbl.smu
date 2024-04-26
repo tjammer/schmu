@@ -11,6 +11,7 @@ module type sig:
   val insert : (t('value)&, key!, 'value!) -> unit
   val remove : (t('value)&, key) -> unit
   val find : (t('value), key) -> option/t('value)
+  val mem : (t('value), key) -> bool
   val fold : (t('value), 'b!, ('b!, key, 'value) -> 'c) -> 'c
   val to_array : (t('value)) -> array((key, 'value))
 
@@ -135,6 +136,12 @@ functor make : sig(m : key):
         #some(item): #some(copy(item.value))
         #none: #none
       #none: #none
+
+  fun mem(tbl, key):
+    let hash = idx(tbl, key)
+    match find_index(hash, tbl, key, 0):
+      #some(_): true
+      #none: false
 
   fun rec fixup(data&, old):
     let next = next_wrapped(old, array/length(data))
