@@ -79,7 +79,9 @@ struct
 
     (* Initialize *)
     (match item_typ with
-    | Tunit -> ()
+    | Tunit ->
+        (* Generate expressions for side effects *)
+        List.iter (fun expr -> gen_expr param expr |> ignore) exprs
     | _ ->
         List.iteri
           (fun i expr ->
@@ -278,6 +280,8 @@ struct
     let value, kind =
       match typ with
       | Tfixed_array (_, Tunit) ->
+          (* Generate the expressions for side effects *)
+          List.iter (fun expr -> gen_expr param expr |> ignore) exprs;
           let v = dummy_fn_value in
           (v.value, v.kind)
       | Tfixed_array (_, t) -> (

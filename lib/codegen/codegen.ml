@@ -1117,7 +1117,9 @@ end = struct
     (* Set data *)
     (match expr with
     | Some expr ->
-        if sizeof_typ expr.typ = 0 then ()
+        if sizeof_typ expr.typ = 0 then
+          (* Generate the expression for side effects *)
+          gen_expr param expr |> ignore
         else
           let dataptr = Llvm.build_struct_gep lltyp var 1 "data" builder in
           let data =

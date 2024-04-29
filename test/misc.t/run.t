@@ -3899,7 +3899,20 @@ Using unit values
   define i64 @main(i64 %arg) {
   entry:
     store i32 0, ptr @schmu_b__2, align 4
+    tail call void @schmu_a__2()
+    %index = load i32, ptr @schmu_b__2, align 4
+    %eq = icmp eq i32 %index, 0
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %entry
     tail call void @string_print(ptr @0)
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    tail call void @string_print(ptr @1)
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
     tail call void @schmu_t__2(ptr @schmu_t2)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @2, i64 16), double 9.990000e+01)
     %0 = tail call ptr @malloc(i64 16)
