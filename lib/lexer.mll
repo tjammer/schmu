@@ -95,7 +95,7 @@ let i32 = min? int_lit "i32"
 let f32 = min? float "f32"
 
 let lowercase_id = lowercase_alpha (lowercase_alpha|uppercase_alpha|digit|'_'|'?')*
-let ident = (lowercase_alpha|uppercase_alpha) (lowercase_alpha|uppercase_alpha|digit|'_'|'?')*
+let ident = '_'? (lowercase_alpha|uppercase_alpha) (lowercase_alpha|uppercase_alpha|digit|'_'|'?')*
 let builtin_id = "__" lowercase_id
 let path_id = lowercase_id '/'
 let hash_id = '#' ident

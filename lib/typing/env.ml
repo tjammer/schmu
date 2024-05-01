@@ -181,13 +181,17 @@ let add_value key value loc env =
       (match scope.kind with
       | Stoplevel tbl | Sfunc tbl | Scont tbl ->
           let mutated = if value.mut then ref false else ref true in
-          Hashtbl.add tbl (Path.Pid key)
-            {
-              loc;
-              used = ref false;
-              imported = is_imported env.modpath value.mname;
-              mutated;
-            }
+          let used =
+            if
+              String.length key > 1
+              && Char.equal (String.get key 0) '_'
+              && not (Char.equal (String.get key 1) '_')
+            then
+              (* Allow identifiers starting with '_' to suppress unused warnings, like wildcards *)
+              ref true
+            else ref false
+          and imported = is_imported env.modpath value.mname in
+          Hashtbl.add tbl (Path.Pid key) { loc; used; imported; mutated }
       | Smodule _ -> assert (Option.is_some value.mname));
 
       { env with values = { scope with valmap } :: tl }
