@@ -20,8 +20,10 @@ let reset () =
   gensym_state := 0;
   reset_level ()
 
+exception Occurs
+
 let rec occurs tvr = function
-  | Tvar tvr' when tvr == tvr' -> failwith "Internal error: Occurs check failed"
+  | Tvar tvr' when tvr == tvr' -> raise Occurs
   | Tvar ({ contents = Unbound (id, lvl') } as tv) ->
       let min_lvl =
         match !tvr with Unbound (_, lvl) -> min lvl lvl' | _ -> lvl'
@@ -142,10 +144,13 @@ let rec unify t1 t2 =
 let unify info t1 t2 env =
   let mn = Env.modpath env in
   let loc, pre = info in
-  try unify t1 t2
-  with Unify ->
-    let msg = Error.format_type_err pre mn t1 t2 in
-    raise (Error (loc, msg))
+  try unify t1 t2 with
+  | Unify ->
+      let msg = Error.format_type_err pre mn t1 t2 in
+      raise (Error (loc, msg))
+  | Occurs ->
+      let msg = "Recursive types are not supported right now" in
+      raise (Error (loc, msg))
 
 let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
