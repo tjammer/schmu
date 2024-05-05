@@ -16,6 +16,9 @@ signature:
   val readline : (t&, buf&) -> option/t(int)
   val readrem : (t&, buf&) -> option/t(int)
 
+  type file
+  val of_file : (file) -> t
+
 type file = raw_ptr(u8)
 
 type t = {buf& : array#4096(u8), head& : int, unseen& : int, file : file}
@@ -149,3 +152,8 @@ fun lines(ic&, f):
         aux()
       #none: ()
   aux()
+
+external rewind : (file) -> unit
+fun of_file(file):
+  rewind(file)
+  {buf = #4096[0u8], head = 0, unseen = 0, file}
