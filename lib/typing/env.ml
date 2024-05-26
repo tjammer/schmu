@@ -39,8 +39,26 @@ type value = {
   mname : Path.t option;
 }
 
+type usage = {
+  loc : Ast.loc;
+  used : bool ref;
+  imported : bool;
+  mutated : bool ref;
+}
+
+type value_internal = {
+  typ : typ;
+  param : bool;
+  (* More like force-capture *)
+  const : bool;
+  global : bool;
+  mut : bool;
+  mname : Path.t option;
+  usage : usage;
+}
+
 module Used_value = struct
-  type t = key * value
+  type t = key * value_internal
 
   let compare (ak, av) (bk, bv) =
     let p s = match s with Some p -> Path.show p | None -> "" in
@@ -50,13 +68,6 @@ end
 module Closed_set = Set.Make (Used_value)
 module Set = Set.Make (String)
 
-type usage = {
-  loc : Ast.loc;
-  used : bool ref;
-  imported : bool;
-  mutated : bool ref;
-}
-
 type ext = {
   ext_name : string;
   ext_typ : typ;
@@ -65,8 +76,6 @@ type ext = {
   used : bool ref;
   closure : bool;
 }
-
-type usage_tbl = (Path.t, usage) Hashtbl.t
 
 type module_usage = { name : Path.t; loc : Ast.loc; used : bool ref }
 
@@ -78,15 +87,17 @@ and touched = {
   tmname : Path.t option;
 }
 
+type usage_list = (Path.t * usage) list ref
+
 type scope_kind =
-  | Stoplevel of usage_tbl
-  | Sfunc of usage_tbl
+  | Stoplevel of usage_list
+  | Sfunc of usage_list
   | Smodule of module_usage
-  | Scont of usage_tbl
+  | Scont of usage_list
 
 (* function scope *)
 type scope = {
-  valmap : value Map.t;
+  valmap : value_internal Map.t;
   closed : Closed_set.t ref;
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : Path.t Lmap.t; (* For finding the type of a record expression *)
@@ -153,7 +164,7 @@ let empty_scope kind =
 
 let empty ~find_module ~scope_of_located modpath =
   {
-    values = [ empty_scope (Sfunc (Hashtbl.create 64)) ];
+    values = [ empty_scope (Sfunc (ref [])) ];
     externals = Etbl.create 64;
     in_mut = ref 0;
     modpath;
@@ -170,29 +181,47 @@ let is_imported modpath = function
   | None -> false
   | Some mname -> Path.share_base mname modpath |> not
 
-let add_value key value loc env =
+let add_value key (value : value) loc env =
   match env.values with
   | [] -> failwith "Internal Error: Env empty"
   | scope :: tl ->
-      let valmap = Map.add key value scope.valmap in
-
       (* Shadowed bindings stay in the Hashtbl, but are not reachable.
          Thus, warning for unused shadowed bindings works *)
-      (match scope.kind with
-      | Stoplevel tbl | Sfunc tbl | Scont tbl ->
-          let mutated = if value.mut then ref false else ref true in
-          let used =
-            if
-              String.length key > 1
-              && Char.equal (String.get key 0) '_'
-              && not (Char.equal (String.get key 1) '_')
-            then
-              (* Allow identifiers starting with '_' to suppress unused warnings, like wildcards *)
-              ref true
-            else ref false
-          and imported = is_imported env.modpath value.mname in
-          Hashtbl.add tbl (Path.Pid key) { loc; used; imported; mutated }
-      | Smodule _ -> assert (Option.is_some value.mname));
+      let usage =
+        match scope.kind with
+        | Stoplevel usages | Sfunc usages | Scont usages ->
+            let mutated = if value.mut then ref false else ref true in
+            let used =
+              if
+                String.length key > 1
+                && Char.equal (String.get key 0) '_'
+                && not (Char.equal (String.get key 1) '_')
+              then
+                (* Allow identifiers starting with '_' to suppress unused warnings, like wildcards *)
+                ref true
+              else ref false
+            and imported = is_imported env.modpath value.mname in
+            let usage = { loc; used; imported; mutated } in
+            usages := (Path.Pid key, usage) :: !usages;
+            usage
+        | Smodule _ ->
+            assert (Option.is_some value.mname);
+            (* Don't track usage for imported values *)
+            { loc; used = ref true; imported = true; mutated = ref true }
+      in
+
+      let value =
+        {
+          typ = value.typ;
+          param = value.param;
+          const = value.const;
+          global = value.global;
+          mut = value.mut;
+          mname = value.mname;
+          usage;
+        }
+      in
+      let valmap = Map.add key value scope.valmap in
 
       { env with values = { scope with valmap } :: tl }
 
@@ -201,6 +230,9 @@ let add_external ext_name ~cname typ loc env =
     match env.values with
     | [] -> failwith "Internal Error: Env empty"
     | scope :: tl ->
+        (* external things cannot be mutated right now *)
+        let used = ref false and mutated = ref true in
+        let usage = { loc; used; mutated; imported = false } in
         let value =
           {
             typ;
@@ -210,18 +242,15 @@ let add_external ext_name ~cname typ loc env =
             const = false;
             mut = false;
             param = false;
+            usage;
           }
         in
-        let valmap = Map.add ext_name value scope.valmap in
-
-        let used = ref false in
         (match scope.kind with
-        | Stoplevel tbl | Sfunc tbl | Scont tbl ->
-            (* external things cannot be mutated right now *)
-            let mutated = ref true in
-            Hashtbl.add tbl (Path.Pid ext_name)
-              { loc; used; imported = false; mutated }
+        | Stoplevel usages | Sfunc usages | Scont usages ->
+            usages := (Path.Pid ext_name, usage) :: !usages
         | Smodule _ -> failwith "Internal Error: add_external on Smodule");
+
+        let valmap = Map.add ext_name value scope.valmap in
 
         ({ env with values = { scope with valmap } :: tl }, used)
   in
@@ -253,19 +282,13 @@ let mark_unused key env =
   match env.values with
   | [] -> failwith "Internal Error: Env empty"
   | scope :: _ -> (
-      match scope.kind with
-      | Stoplevel tbl | Sfunc tbl | Scont tbl -> (
-          match Hashtbl.find_opt tbl (Path.Pid key) with
-          | Some usage ->
-              let used = !(usage.used) in
-              usage.used := false;
-              used
-          | None ->
-              "Internal Error: Missing key for unmarking used " ^ key
-              |> failwith)
-      | Smodule _ ->
-          failwith "Internal Error: Should not be module for unmarking function"
-      )
+      match Map.find_opt key scope.valmap with
+      | Some value ->
+          let used = !(value.usage.used) in
+          value.usage.used := false;
+          used
+      | None ->
+          "Internal Error: Missing key for unmarking used " ^ key |> failwith)
 
 let add_labels typename labelset labels scope =
   let labelsets = Lmap.add labelset typename scope.labelsets in
@@ -356,19 +379,17 @@ let open_thing thing modpath env =
   | _ -> failwith "Internal Error: Module not finished in env (function)");
   { env with values = empty_scope thing :: env.values; modpath }
 
-let open_function env = open_thing (Sfunc (Hashtbl.create 64)) env.modpath env
+let open_function env = open_thing (Sfunc (ref [])) env.modpath env
+let open_toplevel modpath env = open_thing (Stoplevel (ref [])) modpath env
 
-let open_toplevel modpath env =
-  open_thing (Stoplevel (Hashtbl.create 64)) modpath env
-
-let find_unused ret tbl =
-  Hashtbl.fold
-    (fun name (used : usage) acc ->
+let find_unused ret usages =
+  List.fold_left
+    (fun acc (name, (used : usage)) ->
       if used.imported then acc
       else if not !(used.used) then (name, Unused, used.loc) :: acc
       else if not !(used.mutated) then (name, Unmutated, used.loc) :: acc
       else acc)
-    tbl ret
+    ret usages
 
 let rec is_module_used modules =
   Map.fold
@@ -401,7 +422,10 @@ let close_thing is_same modpath env =
           !(scope.closed) |> Closed_set.to_seq |> List.of_seq
           |> List.map
                (fun
-                 (clname, { typ; param; const; global; mname; mut = clmut }) ->
+                 ( clname,
+                   { typ; param; const; global; mname; mut = clmut; usage = _ }
+                 )
+               ->
                  (* We only add functions to the closure if they are params
                     Or: if they are closures *)
                  (* Const values (and imported ones) are not closed over, they exist module-wide *)
@@ -447,7 +471,7 @@ let close_thing is_same modpath env =
 
         match scope.kind with
         | (Stoplevel usage | Sfunc usage) when is_same scope.kind ->
-            let unused = find_unused unused usage in
+            let unused = find_unused unused !usage in
             ( { env with values = tl; modpath },
               closed @ old_closed,
               touched @ old_touched,
@@ -455,7 +479,7 @@ let close_thing is_same modpath env =
         | Stoplevel _ | Sfunc _ ->
             failwith "Internal Error: Unexpected scope type"
         | Scont usage ->
-            let unused = find_unused unused usage in
+            let unused = find_unused unused !usage in
             aux (closed @ old_closed) (touched @ old_touched) unused tl
         | Smodule { name; loc; used } ->
             let unused =
@@ -540,14 +564,11 @@ let find_val_opt loc key env =
 let find_val loc key env =
   match find_val_opt loc key env with Some vl -> vl | None -> raise Not_found
 
-let mark_used name kind mut =
+let mark_used usage kind mut =
   match kind with
-  | Stoplevel tbl | Sfunc tbl | Scont tbl -> (
-      match Hashtbl.find_opt tbl name with
-      | Some (used : usage) ->
-          if !mut > 0 then used.mutated := true;
-          used.used := true
-      | None -> ())
+  | Stoplevel _ | Sfunc _ | Scont _ ->
+      if !mut > 0 then usage.mutated := true;
+      usage.used := true
   | Smodule usage -> usage.used := true
 
 let query_val_opt loc pkey env =
@@ -566,7 +587,8 @@ let query_val_opt loc pkey env =
     | _ -> ()
   in
 
-  let found key lvl kind ({ typ; const; mname; global; mut; param } as v) =
+  let found key lvl kind ({ typ; const; mname; global; mut; param; usage } as v)
+      =
     let in_module =
       match kind with
       | Smodule _ -> true
@@ -576,7 +598,7 @@ let query_val_opt loc pkey env =
     else if (* Add values in modules to scope list *)
             in_module then add 1 (key, v) env.values;
     (* Mark value used, if it's not imported *)
-    mark_used (Path.Pid key) kind env.in_mut;
+    mark_used usage kind env.in_mut;
     Some { typ; const; global; mut; mname; param }
   in
 
