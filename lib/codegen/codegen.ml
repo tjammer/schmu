@@ -591,7 +591,7 @@ end = struct
       (* For [ignore], we don't really need to generate the closure objects here *)
       match b with
       | Ignore -> arg'
-      | Copy -> get_mono_func arg' param arg.monomorph
+      | Copy | Unsafe_funptr -> get_mono_func arg' param arg.monomorph
       | _ ->
           let arg = get_mono_func arg' param arg.monomorph in
           func_to_closure param arg
@@ -669,6 +669,33 @@ end = struct
         let lltyp = get_lltype_def fnc.ret in
         let value = Llvm.build_bitcast ptr lltyp "" builder in
         { value; lltyp; typ = fnc.ret; kind = Imm }
+    | Unsafe_funptr -> (
+        let fn =
+          match args with
+          | [ fn ] -> bring_default_var fn
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        match fn.typ with
+        | Tfun (_, _, kind) ->
+            (* See [gen_app] *)
+            let value =
+              match fn.kind with
+              | Ptr ->
+                  let funcp =
+                    Llvm.build_struct_gep closure_t fn.value 0 "funcptr" builder
+                  in
+                  Llvm.build_load ptr_t funcp "loadtmp" builder
+              | _ -> (
+                  match kind with
+                  | Simple -> fn.value
+                  | Closure _ ->
+                      failwith
+                        "Internal Error: Recursive function case, see [gen_app]"
+                  )
+            in
+            let lltyp = get_lltype_def fnc.ret in
+            { value; lltyp; typ = fnc.ret; kind = Imm }
+        | _ -> failwith "Internal Error: Not a function for funptr")
     | Mod -> (
         match args with
         | [ value; md ] ->
