@@ -37,6 +37,7 @@ type t =
   | Unsafe_array_length
   | Unsafe_nullptr
   | Unsafe_funptr
+  | Unsafe_clsptr
   | Is_nullptr
   | Assert
   | Copy
@@ -199,6 +200,8 @@ let tbl =
     (Unsafe_nullptr, Tfun ([], Traw_ptr Tu8, Simple));
   Hashtbl.add tbl "__unsafe_funptr"
     (Unsafe_funptr, Tfun ([ { p with pt = Qvar "0" } ], Traw_ptr Tunit, Simple));
+  Hashtbl.add tbl "__unsafe_clsptr"
+    (Unsafe_clsptr, Tfun ([ { p with pt = Qvar "0" } ], Traw_ptr Tunit, Simple));
   Hashtbl.add tbl "nullptr?"
     (Is_nullptr, Tfun ([ { p with pt = Traw_ptr (Qvar "0") } ], Tbool, Simple));
   Hashtbl.add tbl "assert"

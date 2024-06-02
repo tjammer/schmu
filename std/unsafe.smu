@@ -7,6 +7,7 @@ signature:
   val at : (raw_ptr('a), int) -> raw_ptr('a)
   val reinterpret : (raw_ptr('a)) -> raw_ptr('b)
   val funptr : ('a) -> raw_ptr(unit)
+  val clsptr : ('a) -> raw_ptr(unit)
 
 let nullptr = __unsafe_nullptr
 let get = __unsafe_ptr_get
@@ -14,3 +15,4 @@ let +> = __unsafe_ptr_get
 let at = __unsafe_ptr_at
 let reinterpret = __unsafe_ptr_reinterpret
 let funptr = __unsafe_funptr
+let clsptr = __unsafe_clsptr

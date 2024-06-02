@@ -696,6 +696,33 @@ end = struct
             let lltyp = get_lltype_def fnc.ret in
             { value; lltyp; typ = fnc.ret; kind = Imm }
         | _ -> failwith "Internal Error: Not a function for funptr")
+    | Unsafe_clsptr -> (
+        let fn =
+          match args with
+          | [ fn ] -> bring_default_var fn
+          | _ -> failwith "Internal Error: Arity mismatch in builtin"
+        in
+        match fn.typ with
+        | Tfun (_, _, kind) ->
+            (* See [gen_app] *)
+            let value =
+              match fn.kind with
+              | Ptr ->
+                  let funcp =
+                    Llvm.build_struct_gep closure_t fn.value 1 "clsptr" builder
+                  in
+                  Llvm.build_load ptr_t funcp "loadtmp" builder
+              | _ -> (
+                  match kind with
+                  | Simple -> Llvm.const_null ptr_t
+                  | Closure _ ->
+                      failwith
+                        "Internal Error: Recursive function case, see [gen_app]"
+                  )
+            in
+            let lltyp = get_lltype_def fnc.ret in
+            { value; lltyp; typ = fnc.ret; kind = Imm }
+        | _ -> failwith "Internal Error: Not a function for funptr")
     | Mod -> (
         match args with
         | [ value; md ] ->
