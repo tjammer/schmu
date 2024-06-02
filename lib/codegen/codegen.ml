@@ -591,7 +591,8 @@ end = struct
       (* For [ignore], we don't really need to generate the closure objects here *)
       match b with
       | Ignore -> arg'
-      | Copy | Unsafe_funptr -> get_mono_func arg' param arg.monomorph
+      | Copy | Unsafe_funptr | Unsafe_clsptr ->
+          get_mono_func arg' param arg.monomorph
       | _ ->
           let arg = get_mono_func arg' param arg.monomorph in
           func_to_closure param arg
@@ -695,7 +696,9 @@ end = struct
             in
             let lltyp = get_lltype_def fnc.ret in
             { value; lltyp; typ = fnc.ret; kind = Imm }
-        | _ -> failwith "Internal Error: Not a function for funptr")
+        | t ->
+          print_endline (show_typ t);
+          failwith "Internal Error: Not a function for funptr")
     | Unsafe_clsptr -> (
         let fn =
           match args with
@@ -722,7 +725,9 @@ end = struct
             in
             let lltyp = get_lltype_def fnc.ret in
             { value; lltyp; typ = fnc.ret; kind = Imm }
-        | _ -> failwith "Internal Error: Not a function for funptr")
+        | t ->
+          print_endline (show_typ t);
+          failwith "Internal Error: Not a function for clsptr")
     | Mod -> (
         match args with
         | [ value; md ] ->

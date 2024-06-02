@@ -1416,6 +1416,20 @@ and catch_weak_expr env sub e =
       catch_weak_expr env sub rhs;
       catch_weak_expr env sub cont
   | App { callee; args } ->
+      (* Check that argument to [funptr] or [clsptr] is a function type. We
+         cannot test this in [convert_app], because typechecking isn't done
+         there yet. An unbound type var might be a function later. *)
+      (match Typed_tree.follow_expr callee.expr with
+      | Some
+          ( Var (("__unsafe_funptr" | "__unsafe_clsptr"), None)
+          | Var (("funptr" | "clsptr"), Some (Path.Pid "unsafe")) ) -> (
+          let fst_arg = List.hd args |> fst in
+          match clean fst_arg.typ with
+          | Tfun _ -> ()
+          | t ->
+            print_endline ("t: " ^ show_typ t);
+            raise (Error (fst_arg.loc, "Expecting a function type")))
+      | _ -> ());
       catch_weak_expr env sub callee;
       List.iter (fun a -> catch_weak_expr env sub (fst a)) args
   | Record fs -> List.iter (fun f -> catch_weak_expr env sub (snd f)) fs
