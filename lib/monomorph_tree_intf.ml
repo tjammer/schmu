@@ -13,8 +13,8 @@ module type S = sig
     | Mlet of
         string * monod_tree * let_kind * global_name * malloc_list * monod_tree
     | Mbind of string * monod_tree * monod_tree
-    | Mlambda of string * fun_kind * typ * alloca
-    | Mfunction of string * fun_kind * typ * monod_tree * alloca
+    | Mlambda of string * fun_kind * typ * alloca * bool ref
+    | Mfunction of string * fun_kind * typ * monod_tree * alloca * bool ref
     | Mapp of {
         callee : monod_expr;
         args : (monod_expr * bool) list;
@@ -57,7 +57,7 @@ module type S = sig
   }
 
   and call_name =
-    | Mono of string (* Monomorphized fun call *)
+    | Mono of string * bool ref (* Monomorphized fun call *)
     | Concrete of string (* Normal function call with unique name *)
     | Default (* std *)
     | Recursive of { nonmono : string; call : string }
@@ -108,7 +108,7 @@ module type S = sig
     abs : abstraction;
     name : func_name;
     recursive : recurs;
-    upward : unit -> bool;
+    upward : bool ref;
     monomorphized : bool;
   }
 

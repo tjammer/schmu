@@ -2237,3 +2237,17 @@ Local environments must not be freed in self-recursive functions
 Shadowing of names in monomorph pass
   $ schmu shadowing2.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./shadowing2
+
+Upward closures are moved closures
+  $ schmu closure_move_upward.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./closure_move_upward
+  on iteration: 0
+  on iteration: 1
+  on iteration: 2
+  on iteration: 3
+  on iteration: 4
+  on iteration: 5
+  on iteration: 6
+  on iteration: 7
+  on iteration: 8
+  on iteration: 9

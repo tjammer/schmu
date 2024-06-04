@@ -1427,8 +1427,8 @@ and catch_weak_expr env sub e =
           match clean fst_arg.typ with
           | Tfun _ -> ()
           | t ->
-            print_endline ("t: " ^ show_typ t);
-            raise (Error (fst_arg.loc, "Expecting a function type")))
+              print_endline ("t: " ^ show_typ t);
+              raise (Error (fst_arg.loc, "Expecting a function type")))
       | _ -> ());
       catch_weak_expr env sub callee;
       List.iter (fun a -> catch_weak_expr env sub (fst a)) args

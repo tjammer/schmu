@@ -16,12 +16,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   module Fset = Set.Make (To_gen_func)
   module Sset = Set.Make (String)
 
+  type upward = bool ref
+
   type to_gen_func_kind =
     (* TODO use a prefix *)
-    | Concrete of To_gen_func.t * string
-    | Polymorphic of string (* call name *)
-    | Forward_decl of string * typ
-    | Mutual_rec of string * typ
+    | Concrete of To_gen_func.t * string * upward
+    | Polymorphic of string * upward (* call name *)
+    | Forward_decl of string * typ * upward
+    | Mutual_rec of string * typ * upward
     | Builtin of Builtin.t
     | Inline of (string * int) list * typ * monod_tree
     | No_function
@@ -97,7 +99,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         (* We are not allowing to return functions in ifs, b/c we cannot codegen
            anyway *)
         No_function
-    | Mlambda (name, _, _, _) -> (
+    | Mlambda (name, _, _, _, _) -> (
         match Vars.find_opt name vars with
         | Some (Normal thing) -> thing.fn
         | _ -> No_function)
@@ -441,15 +443,15 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let lhs = sub lhs in
           let cont = sub cont in
           { tree with typ = cont.typ; expr = Mbind (id, lhs, cont) }
-      | Mlambda (name, kind, typ, alloca) ->
+      | Mlambda (name, kind, typ, alloca, upward) ->
           let styp = subst typ and kind = subst_kind subst kind in
 
           (* We may have to monomorphize. For instance if the lambda returned from
              a polymorphic function *)
           let name = mono_callable name styp tree in
 
-          { tree with typ; expr = Mlambda (name, kind, styp, alloca) }
-      | Mfunction (name, kind, typ, cont, alloca) ->
+          { tree with typ; expr = Mlambda (name, kind, styp, alloca, upward) }
+      | Mfunction (name, kind, typ, cont, alloca, upward) ->
           let styp = subst typ and kind = subst_kind subst kind in
           (* We may have to monomorphize. For instance if the lambda returned from
              a polymorphic function *)
@@ -458,7 +460,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           {
             tree with
             typ = cont.typ;
-            expr = Mfunction (name, kind, styp, cont, alloca);
+            expr = Mfunction (name, kind, styp, cont, alloca, upward);
           }
       | Mapp { callee; args; alloca; id; ms } ->
           let ex = sub callee.ex in
@@ -546,7 +548,9 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             let p2, monomorph =
               monomorphize_call old { tree with typ } (Some subst)
             in
-            let name = match monomorph with Mono name -> name | _ -> name in
+            let name =
+              match monomorph with Mono (name, _) -> name | _ -> name
+            in
             p :=
               {
                 !p with
@@ -561,13 +565,11 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               let p2, monomorph =
                 let p, func = get_poly_func !p name in
                 monomorphize p tree.typ typ func (Some subst)
-                (* match Hashtbl.find_opt poly_funcs_tbl name with *)
-                (* | Some func -> monomorphize !p tree.typ typ func (Some subst) *)
-                (* | None -> *)
-                (*     failwith "Internal Error: Poly function not registered yet" *)
               in
 
-              let name = match monomorph with Mono name -> name | _ -> name in
+              let name =
+                match monomorph with Mono (name, _) -> name | _ -> name
+              in
               p :=
                 {
                   !p with
@@ -595,7 +597,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         else let p, tree = subst_body p subst tree in
 
              (p, Inline (ps, tree))
-    | Forward_decl (name, typ) ->
+    | Forward_decl (name, typ, _) ->
         (* Generate the correct call name. If its mono, we have to recalculate it.
            Closures are tricky, as the arguments are generally not closures, but
            the typ might. We try to subst the (potential) closure by using the
@@ -615,23 +617,23 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           (p, Recursive { nonmono = name; call })
           (* Make the name concrete so the correct call name is used *)
         else (p, Recursive { nonmono = name; call = name })
-    | Mutual_rec (name, typ) ->
+    | Mutual_rec (name, typ, upward) ->
         if is_type_polymorphic typ then (
           let call = get_mono_name name ~closure:true ~poly:typ expr.typ in
           if not (Sset.mem call p.monomorphized) then
             (* The function doesn't exist yet, will it ever exist? *)
             if not (Hashtbl.mem missing_polys_tbl call) then
               Hashtbl.add missing_polys_tbl name (p, expr.typ, parent_sub);
-          (p, Mono call)
+          (p, Mono (call, upward))
           (* Make the name concrete so the correct call name is used *))
         else (p, Concrete name)
     | _ when is_type_polymorphic expr.typ -> (p, Default)
-    | Concrete (func, username) ->
+    | Concrete (func, username, _) ->
         (* If a named function gets a generated name, the call site has to be made aware *)
         if not (String.equal func.name.call username) then
           (p, Concrete func.name.call)
         else (p, Default)
-    | Polymorphic call ->
+    | Polymorphic (call, _) ->
         let p, func = get_poly_func p call in
         let typ = typ_of_abs func.abs in
         monomorphize p typ expr.typ func parent_sub
@@ -658,7 +660,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
 
     if Sset.mem call p.monomorphized then
       (* The function exists, we don't do anything right now *)
-      (p, Mono call)
+      (p, Mono (call, func.upward))
     else
       (* We generate the function *)
       (* The parent substitution is threaded through to its children. This deals
@@ -677,5 +679,5 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         let monomorphized = true in
         let funcs = Fset.add { func with abs; name; monomorphized } p.funcs in
         let monomorphized = Sset.add call p.monomorphized in
-        ({ p with funcs; monomorphized }, Mono call)
+        ({ p with funcs; monomorphized }, Mono (call, func.upward))
 end

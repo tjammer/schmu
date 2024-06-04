@@ -51,7 +51,7 @@ end = struct
 
         (* Add params from closure *)
         (* We generate both the code for extracting the closure and add the vars to the environment *)
-        let tvars = add_closure vars.vars func (upward ()) kind in
+        let tvars = add_closure vars.vars func !upward kind in
 
         (* Add parameters to env *)
         let tvars, rec_block =
@@ -131,15 +131,16 @@ end = struct
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
     | Mvar (id, kind) -> gen_var param.vars typed_expr.typ id kind |> fin
-    | Mfunction (name, kind, _, cont, allocref) -> (
+    | Mfunction (name, kind, _, cont, allocref, upward) -> (
         (* The functions are already generated *)
         match Vars.find_opt name param.vars with
         | Some func ->
             let func =
               match kind with
-              | Closure assoc -> gen_closure_obj param assoc func name allocref
+              | Closure assoc ->
+                  gen_closure_obj param assoc func name allocref !upward
               | Simple when is_prealloc allocref ->
-                  gen_closure_obj param [] func name allocref
+                  gen_closure_obj param [] func name allocref false
               | Simple -> func
             in
             gen_expr { param with vars = Vars.add name func param.vars } cont
@@ -150,14 +151,15 @@ end = struct
             gen_expr param cont)
     | Mlet (id, rhs, proj, gn, ms, cont) -> gen_let param id rhs proj gn ms cont
     | Mbind (id, equals, cont) -> gen_bind param id equals cont
-    | Mlambda (name, kind, _, allocref) ->
+    | Mlambda (name, kind, _, allocref, upward) ->
         let func =
           match Vars.find_opt name param.vars with
           | Some func -> (
               match kind with
-              | Closure assoc -> gen_closure_obj param assoc func name allocref
+              | Closure assoc ->
+                  gen_closure_obj param assoc func name allocref !upward
               | Simple when is_prealloc allocref ->
-                  gen_closure_obj param [] func name allocref
+                  gen_closure_obj param [] func name allocref false
               | Simple -> func)
           | None ->
               (* The function is polymorphic and monomorphized versions are generated. *)
@@ -697,8 +699,8 @@ end = struct
             let lltyp = get_lltype_def fnc.ret in
             { value; lltyp; typ = fnc.ret; kind = Imm }
         | t ->
-          print_endline (show_typ t);
-          failwith "Internal Error: Not a function for funptr")
+            print_endline (show_typ t);
+            failwith "Internal Error: Not a function for funptr")
     | Unsafe_clsptr -> (
         let fn =
           match args with
@@ -726,8 +728,8 @@ end = struct
             let lltyp = get_lltype_def fnc.ret in
             { value; lltyp; typ = fnc.ret; kind = Imm }
         | t ->
-          print_endline (show_typ t);
-          failwith "Internal Error: Not a function for clsptr")
+            print_endline (show_typ t);
+            failwith "Internal Error: Not a function for clsptr")
     | Mod -> (
         match args with
         | [ value; md ] ->
@@ -1454,7 +1456,7 @@ let has_init_code tree =
                 aux cont.expr
             | Ptr | Imm -> ( match e.const with Cnot -> true | Const -> false))
         | None -> failwith "Internal Error: global value not found")
-    | Mfunction (_, _, _, cont, _) -> aux cont.expr
+    | Mfunction (_, _, _, cont, _, _) -> aux cont.expr
     | Mconst Unit -> false
     | Mbind (_, _, cont) ->
         (* Bind itself does not need init *)
@@ -1470,7 +1472,7 @@ let add_global_init funcs outname kind body =
     | `Dtor -> ("__" ^ outname ^ "_deinit", "llvm.global_dtors")
   in
   let p =
-    let upward () = false in
+    let upward = ref false in
     let func = Monomorph_tree.{ params = []; ret = Tunit; kind = Simple } in
     Core.gen_function funcs
       {
@@ -1549,7 +1551,7 @@ let generate ~target ~outname ~release ~modul
   if not modul then
     (* Add main *)
     let tree = free_mallocs tree frees in
-    let upward () = false in
+    let upward = ref false in
     Core.gen_function funcs
       {
         name = { Monomorph_tree.user = "main"; call = "main" };

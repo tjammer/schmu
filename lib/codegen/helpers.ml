@@ -27,6 +27,7 @@ module type S = sig
     llvar ->
     string ->
     Monomorph_tree.alloca ->
+    bool ->
     llvar
 
   val bring_default : llvar -> Llvm.llvalue
@@ -380,10 +381,8 @@ struct
     let kind = if cl.clmut then Ptr else default_kind typ in
     { value; typ; lltyp; kind }
 
-  let gen_closure_obj param assoc func name allocref =
+  let gen_closure_obj param assoc func name allocref upward =
     let clsr_struct = get_prealloc !allocref param closure_t name in
-
-    let upward = is_prealloc allocref in
 
     (* Add function ptr *)
     let fun_ptr =
@@ -670,7 +669,7 @@ struct
     | Simple ->
         (* If a function is passed into [func] we convert it to a closure
            and pass nullptr to env*)
-        gen_closure_obj param [] llvar "clstmp" no_prealloc
+        gen_closure_obj param [] llvar "clstmp" no_prealloc false
     | Closure _ ->
         (* This closure is a struct and has an env *)
         llvar
@@ -682,12 +681,12 @@ struct
 
   (* Get monomorphized function *)
   let get_mono_func func param = function
-    | Monomorph_tree.Mono name -> (
+    | Monomorph_tree.Mono (name, upward) -> (
         let func = Vars.find name param.vars in
         (* Monomorphized functions are not yet converted to closures *)
         match (func.kind, func.typ) with
         | Imm, Tfun (_, _, Closure assoc) ->
-            gen_closure_obj param assoc func "monoclstmp" no_prealloc
+            gen_closure_obj param assoc func "monoclstmp" no_prealloc !upward
         | _ -> func)
     | Concrete name -> Vars.find name param.vars
     | Recursive name -> Vars.find name.call param.vars
