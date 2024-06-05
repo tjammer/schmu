@@ -337,6 +337,11 @@ let rec_fs_to_env p (username, uniq, typ) =
   let vars = Vars.add username (Normal { no_var with fn }) p.vars in
   { p with vars }
 
+let get_mutual_rec_upward vars username =
+  match Vars.find_opt username vars with
+  | Some (Normal { fn = Mutual_rec (_, _, upward); _ }) -> Some upward
+  | Some _ | None -> None
+
 let let_kind pass =
   match pass with
   | Ast.Dmut | Dnorm -> Lborrow
@@ -454,6 +459,10 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Fmt exprs -> morph_fmt make param exprs
   | Move e ->
       let p, e, func = morph_expr param e in
+      (* Whenever a function is moved, we mark it as upward. Upward closures
+         will allocate their environment on the heap, and copy all of their
+         closed variables. This includes returning a function from another
+         function, or putting a function into a container. *)
       set_upward func.fn;
       let mallocs =
         if contains_allocation e.typ then Mallocs.remove func.malloc p.mallocs
@@ -851,7 +860,11 @@ and prep_func p (usrname, uniq, abs) =
 
   let alloca = ref (request p) in
   let alloc = Value alloca in
-  let upward = ref false in
+  let upward =
+    match get_mutual_rec_upward p.vars username with
+    | Some upward -> upward
+    | None -> ref false
+  in
 
   let kind = cln_kind p abs.func.kind in
   if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
