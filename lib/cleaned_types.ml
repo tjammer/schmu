@@ -14,6 +14,7 @@ type typ =
   | Traw_ptr of typ
   | Tarray of typ
   | Tfixed_array of int * typ
+  | Trc of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of closed list
@@ -46,7 +47,7 @@ let is_type_polymorphic typ =
         inner acc ret
     | Tbool | Tunit | Tint | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 -> acc
     | Tfixed_array (i, _) when i < 0 -> true
-    | Traw_ptr t | Tarray t | Tfixed_array (_, t) -> inner acc t
+    | Traw_ptr t | Tarray t | Tfixed_array (_, t) | Trc t -> inner acc t
   in
   inner false typ
 
@@ -80,17 +81,18 @@ let rec string_of_type = function
   | Traw_ptr t -> Printf.sprintf "(raw_ptr %s)" (string_of_type t)
   | Tarray t -> Printf.sprintf "(array %s)" (string_of_type t)
   | Tfixed_array (i, t) -> Printf.sprintf "(array#%i %s)" i (string_of_type t)
+  | Trc t -> Printf.sprintf "(rc %s)" (string_of_type t)
 
 let is_struct = function
   | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ -> true
   | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Traw_ptr _
-  | Tarray _ ->
+  | Tarray _ | Trc _ ->
       false
 
 let is_aggregate = function
   | Trecord _ | Tvariant _ | Tfixed_array _ -> true
   | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Traw_ptr _
-  | Tfun _ | Tpoly _ | Tarray _ ->
+  | Tfun _ | Tpoly _ | Tarray _ | Trc _ ->
       false
 
 let rec contains_allocation = function
@@ -104,5 +106,5 @@ let rec contains_allocation = function
           match c.ctyp with Some t -> ca || contains_allocation t | None -> ca)
         false ctors
   | Traw_ptr _ -> false
-  | Tarray _ -> true
+  | Tarray _ | Trc _ -> true
   | Tfixed_array (_, t) -> contains_allocation t

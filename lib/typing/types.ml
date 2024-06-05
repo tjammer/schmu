@@ -29,6 +29,7 @@ type typ =
   | Tarray of typ
   | Tabstract of typ list * Path.t * typ
   | Tfixed_array of iv ref * typ
+  | Trc of typ
 [@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of closed list
@@ -85,6 +86,7 @@ let rec clean = function
   | Tabstract (ps, n, t) -> Tabstract (List.map clean ps, n, clean t)
   | Tarray t -> Tarray (clean t)
   | Tfixed_array (n, t) -> Tfixed_array (n, clean t)
+  | Trc t -> Trc (clean t)
   | (Tvar _ | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Qvar _)
     as t ->
       t
@@ -144,6 +146,7 @@ let string_of_type_raw get_name typ mname =
           | Linked iv -> size !iv
         in
         sprintf "array#%s(%s)" (size sz) (string_of_type t)
+    | Trc t -> Printf.sprintf "rc(%s)" (string_of_type t)
     | Tabstract (ps, name, _) -> (
         match ps with
         | [] -> Path.(rm_name mname name |> show)
@@ -202,7 +205,7 @@ let is_polymorphic typ =
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
         inner acc ret
     | Tbool | Tunit | Tint | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 -> acc
-    | Traw_ptr t | Tarray t -> inner acc t
+    | Traw_ptr t | Tarray t | Trc t -> inner acc t
     | Tfixed_array ({ contents = Unknown _ | Generalized _ }, _) -> true
     | Tfixed_array ({ contents = Known _ }, t) -> inner acc t
     | Tfixed_array ({ contents = Linked iv }, t) ->
@@ -212,7 +215,8 @@ let is_polymorphic typ =
 
 let rec is_weak ~sub = function
   | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Qvar _ -> false
-  | Tvar { contents = Link t } | Talias (_, t) | Tarray t | Traw_ptr t ->
+  | Tvar { contents = Link t } | Talias (_, t) | Tarray t | Traw_ptr t | Trc t
+    ->
       is_weak ~sub t
   | Tvar { contents = Unbound (id, _) } ->
       if Sset.mem id sub then false else true
@@ -242,7 +246,7 @@ let rec contains_allocation = function
   | Tvar { contents = Link t } | Traw_ptr t | Talias (_, t) | Tabstract (_, _, t)
     ->
       contains_allocation t
-  | Tarray _ -> true
+  | Tarray _ | Trc _ -> true
   | Trecord (_, _, fs) ->
       Array.fold_left (fun ca f -> ca || contains_allocation f.ftyp) false fs
   | Tvariant (_, _, ctors) ->

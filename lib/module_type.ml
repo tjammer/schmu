@@ -59,6 +59,7 @@ let apply_subs (psub, tsub) typ =
         Tfun (ps, aux r, kind)
     | Tarray t -> Tarray (aux t)
     | Traw_ptr t -> Traw_ptr (aux t)
+    | Trc t -> Trc (aux t)
     | Tfixed_array (iv, t) -> Tfixed_array (iv, aux t)
     | Tvar { contents = Link t } -> aux t
     | t -> t
@@ -140,6 +141,9 @@ let adjust_type ~mname ~newvar pathsub ubsub inner typ =
     | Traw_ptr t ->
         let pathsub, ubsub, t = aux pathsub ubsub true t in
         (pathsub, ubsub, Traw_ptr t)
+    | Trc t ->
+        let pathsub, ubsub, t = aux pathsub ubsub true t in
+        (pathsub, ubsub, Trc t)
     | Tfixed_array (iv, t) ->
         let pathsub, ubsub, t = aux pathsub ubsub true t in
         (pathsub, ubsub, Tfixed_array (iv, t))

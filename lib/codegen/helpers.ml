@@ -106,7 +106,7 @@ struct
   let default_kind = function
     | t when is_struct t -> Ptr
     | Tint | Tbool | Tfloat | Tu8 | Tu16 | Ti32 | Tf32 | Tunit | Traw_ptr _
-    | Tarray _ ->
+    | Tarray _ | Trc _ ->
         Imm
     | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ ->
         failwith "unreachable"

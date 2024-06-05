@@ -48,7 +48,7 @@ let rec size_align_impl size_pr typ =
   | Tpoly _ ->
       (* Llvm.dump_module the_module; *)
       failwith "too generic for a size"
-  | Traw_ptr _ | Tarray _ ->
+  | Traw_ptr _ | Tarray _ | Trc _ ->
       (* TODO pass in triple. Until then, assume 64bit *)
       add_size_align ~upto:8 ~sz:8 size_pr
   | Tfixed_array (i, t) ->

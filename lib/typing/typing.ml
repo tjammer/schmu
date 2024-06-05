@@ -156,6 +156,7 @@ let rec subst_generic ~id typ = function
       Tabstract (ps, name, t)
   | Traw_ptr t -> Traw_ptr (subst_generic ~id typ t)
   | Tarray t -> Tarray (subst_generic ~id typ t)
+  | Trc t -> Trc (subst_generic ~id typ t)
   | Tfixed_array (i, t) -> Tfixed_array (i, subst_generic ~id typ t)
   | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
   | t -> t
@@ -165,7 +166,7 @@ and get_generic_ids = function
   | Tvar { contents = Link t } | Talias (_, t) -> get_generic_ids t
   | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
       List.map get_generic_ids ps |> List.concat
-  | Tarray t | Traw_ptr t | Tfixed_array (_, t) -> get_generic_ids t
+  | Tarray t | Traw_ptr t | Trc t | Tfixed_array (_, t) -> get_generic_ids t
   | Tfun (ps, ret, _) ->
       List.fold_left
         (fun l p -> get_generic_ids p.pt @ l)
@@ -195,6 +196,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         Some (name, List.length ts)
     | Traw_ptr _ -> Some (Path.Pid "raw_ptr", 1)
     | Tarray _ -> Some (Path.Pid "array", 1)
+    | Trc _ -> Some (Path.Pid "rc", 1)
     | Tfixed_array _ -> Some (Path.Pid "array#?", 1)
     | Talias (name, t) -> (
         let cleaned = clean t in
@@ -226,6 +228,10 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         if not in_list then
           raise (Error (loc, "Type raw_ptr expects 1 type parameter"));
         Traw_ptr (Qvar "o")
+    | Ty_id "rc" ->
+        if not in_list then
+          raise (Error (loc, "Type rc expects 1 type parameter"));
+        Trc (Qvar "o")
     | Ty_id "array#?" ->
         if not in_list then
           raise (Error (loc, "Type array#? expects 1 type parameter"));

@@ -15,6 +15,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
 
   let alloc_types ts = function
     | Tarray t -> t :: ts
+    | Trc t -> t :: ts
     | Trecord (_, _, fields) ->
         Array.fold_left
           (fun ts f -> if contains_allocation f.ftyp then f.ftyp :: ts else ts)
@@ -239,6 +240,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
 
         assert (item_type = t);
         if contains_allocation t then iter_array_children v sz t copy_inner_call
+    | Trc _ -> failwith "TODO copy rc"
     | Trecord (_, _, fs) ->
         Array.iteri
           (fun i f ->
@@ -376,6 +378,7 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
            iter_array_children v sz t free_call);
 
         free_var v.value |> ignore
+    | Trc _ -> failwith "TODO free rc"
     | Trecord (_, _, fs) ->
         Array.iteri
           (fun i f ->

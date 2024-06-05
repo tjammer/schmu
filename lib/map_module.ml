@@ -99,6 +99,9 @@ module Canonize = struct
     | Tfixed_array (iv, t) ->
         let sub, t = canonize sub t in
         (sub, Tfixed_array (iv, t))
+    | Trc t ->
+        let sub, t = canonize sub t in
+        (sub, Trc t)
     | Tabstract (ps, n, t) ->
         let sub, ps = List.fold_left_map (fun sub t -> canonize sub t) sub ps in
         let sub, t =

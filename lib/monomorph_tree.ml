@@ -191,6 +191,7 @@ let rec cln p = function
       Tvariant (ps, Path.type_name name, ctors)
   | Traw_ptr t -> Traw_ptr (cln p t)
   | Tarray t -> Tarray (cln p t)
+  | Trc t -> Trc (cln p t)
   | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
       (* That's a hack. We know the unknown number is a string of an int. This is
          due to an implementation detail in [gen_var] in inference. We need a

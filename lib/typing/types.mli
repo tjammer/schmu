@@ -21,6 +21,7 @@ type typ =
   | Tarray of typ
   | Tabstract of typ list * Path.t * typ
   | Tfixed_array of iv ref * typ
+  | Trc of typ
 [@@deriving show { with_path = false }, sexp]
 
 and fun_kind = Simple | Closure of closed list

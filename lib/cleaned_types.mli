@@ -14,6 +14,7 @@ type typ =
   | Traw_ptr of typ
   | Tarray of typ
   | Tfixed_array of int * typ
+  | Trc of typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of closed list

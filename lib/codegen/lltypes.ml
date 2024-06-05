@@ -28,7 +28,7 @@ module Make (A : Abi_intf.S) = struct
     | (Trecord _ as t) | (Tvariant _ as t) -> get_struct t
     | Tfun _ -> closure_t
     | Traw_ptr Tunit | Tarray Tunit -> ptr_t
-    | Traw_ptr _ | Tarray _ -> ptr_t
+    | Traw_ptr _ | Tarray _ | Trc _ -> ptr_t
     | Tfixed_array (i, t) -> Llvm.array_type (get_lltype_def t) i
 
   and get_lltype_param mut = function
@@ -37,7 +37,7 @@ module Make (A : Abi_intf.S) = struct
         let t = get_lltype_def t in
         if mut then ptr_t else t
     | Tfun _ -> ptr_t
-    | (Trecord _ | Tvariant _ | Tfixed_array _) as t -> (
+    | (Trecord _ | Tvariant _ | Tfixed_array _ | Trc _) as t -> (
         match pkind_of_typ mut t with
         | Boxed -> ptr_t
         | Unboxed size -> lltype_unboxed size)

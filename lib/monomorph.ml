@@ -151,6 +151,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       | Tpoly _ -> "g"
       | Traw_ptr t -> sprintf "p%s_" (aux t)
       | Tarray t -> sprintf "a%s_" (aux t)
+      | Trc t -> sprintf "R%s_" (aux t)
       | Tfixed_array (i, t) -> sprintf "A%i%s_" i (aux t)
     in
     let name = aux t in
@@ -234,6 +235,11 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           sprintf "a%s_"
             (match poly with
             | Tarray poly -> aux ~poly t
+            | _ -> structural_name ~closure t)
+      | Trc t ->
+          sprintf "R%s_"
+            (match poly with
+            | Trc poly -> aux ~poly t
             | _ -> structural_name ~closure t)
       | Tfixed_array (i, t) ->
           sprintf "A%i%s_" i
@@ -334,6 +340,9 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       | Tarray l, Tarray r ->
           let subst, t = inner subst (l, r) in
           (subst, Tarray t)
+      | Trc l, Trc r ->
+          let subst, t = inner subst (l, r) in
+          (subst, Trc t)
       | Tfixed_array (i, l), Tfixed_array (j, r) ->
           let i, subst =
             if i < 0 then
@@ -373,6 +382,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           Tvariant (ps, variant, ctors)
       | Traw_ptr t -> Traw_ptr (subst t)
       | Tarray t -> Tarray (subst t)
+      | Trc t -> Trc (subst t)
       | Tfixed_array (i, t) ->
           let i =
             match Vars.find_opt ("fa" ^ string_of_int i) vars with
