@@ -577,8 +577,8 @@ and match_type_params ~in_functor params typ =
       let* t = match_type_params ~in_functor params t in
       Ok (Tarray t)
   | Trc t ->
-    let* t = match_type_params ~in_functor params t in
-    Ok (Trc t)
+      let* t = match_type_params ~in_functor params t in
+      Ok (Trc t)
   | Traw_ptr t ->
       let* t = match_type_params ~in_functor params t in
       Ok (Traw_ptr t)

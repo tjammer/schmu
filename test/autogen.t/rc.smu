@@ -1,0 +1,2 @@
+let thing = __rc(![0, 1])
+let _ = copy(thing)

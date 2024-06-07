@@ -1,4 +1,5 @@
-module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
+module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) (Rc : Rc.S) =
+struct
   open Cleaned_types
   open Llvm_types
   open Size_align
@@ -240,7 +241,17 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
 
         assert (item_type = t);
         if contains_allocation t then iter_array_children v sz t copy_inner_call
-    | Trc _ -> failwith "TODO copy rc"
+    | Trc _ ->
+        let v = bring_default_var dst in
+
+        let rf = Llvm.build_gep int_t v.value [| ci 0 |] "ref" builder in
+        (* Increase refcount *)
+        (* TODO make this atomic *)
+        let added =
+          let rc = Llvm.build_load int_t rf "refc" builder in
+          Llvm.build_add rc (ci 1) "" builder
+        in
+        ignore (Llvm.(build_store added rf) builder)
     | Trecord (_, _, fs) ->
         Array.iteri
           (fun i f ->
@@ -378,7 +389,41 @@ module Make (T : Lltypes_intf.S) (H : Helpers.S) (Arr : Arr_intf.S) = struct
            iter_array_children v sz t free_call);
 
         free_var v.value |> ignore
-    | Trc _ -> failwith "TODO free rc"
+    | Trc item_typ ->
+        let v = bring_default_var v in
+
+        let rf = Llvm.build_gep int_t v.value [| ci 0 |] "ref" builder in
+
+        let rc = Llvm.build_load int_t rf "refc" builder in
+
+        (* Get current block *)
+        let start_bb = Llvm.insertion_block builder in
+        let parent = Llvm.block_parent start_bb in
+
+        let decr_bb = Llvm.append_block context "decr" parent in
+        let free_bb = Llvm.append_block context "free" parent in
+        let merge_bb = Llvm.append_block context "merge" parent in
+
+        let cmp =
+          Llvm.(build_icmp Icmp.Eq) rc (Llvm.const_int int_t 1) "" builder
+        in
+        ignore (Llvm.build_cond_br cmp free_bb decr_bb builder);
+
+        (* decr *)
+        Llvm.position_at_end decr_bb builder;
+        let added = Llvm.build_sub rc (Llvm.const_int int_t 1) "" builder in
+        ignore (Llvm.build_store added rf builder);
+        ignore (Llvm.build_br merge_bb builder);
+
+        (* free *)
+        Llvm.position_at_end free_bb builder;
+        let value = Llvm.build_gep int_t v.value [| ci 1 |] "vl" builder in
+        free_call
+          { value; typ = item_typ; lltyp = get_lltype_def item_typ; kind = Ptr };
+        free_var v.value |> ignore;
+        ignore (Llvm.build_br merge_bb builder);
+
+        Llvm.position_at_end merge_bb builder
     | Trecord (_, _, fs) ->
         Array.iteri
           (fun i f ->

@@ -216,6 +216,9 @@ ignore(update)|}
 
 let test_annot_concrete () = test "(int) -> bool" "fun foo(x): x < 3\nfoo"
 
+let test_annot_rc () =
+  test "(rc(array(int))) -> unit" "fun foo(x : rc(array(int))): ()\nfoo"
+
 let test_annot_concrete_fail () =
   test_exn
     "Var annotation expecting ([bool]) -> [int] but found ([int]) -> [bool]"
@@ -1325,6 +1328,7 @@ let () =
       ( "annotations",
         [
           case "concrete" test_annot_concrete;
+          case "rc" test_annot_rc;
           case "concrete_fail" test_annot_concrete_fail;
           case "mix" test_annot_mix;
           case "mix_fail" test_annot_mix_fail;

@@ -586,7 +586,7 @@ end = struct
     let value = Llvm.build_br rec_block.rec_ builder in
     { value; typ = Tpoly "tail"; lltyp; kind = default_kind ret }
 
-  and gen_app_builtin param (b, fnc) args allocref loc =
+  and gen_app_builtin param (b, fnc) oargs allocref loc =
     let handle_arg (arg, _) =
       let arg' = gen_expr param Monomorph_tree.(arg.ex) in
 
@@ -599,7 +599,13 @@ end = struct
           let arg = get_mono_func arg' param arg.monomorph in
           func_to_closure param arg
     in
-    let args = List.map handle_arg args in
+    let args =
+      match b with
+      | Rc ->
+          (* Handle [gen_expr] in rc function for pre-allocation *)
+          []
+      | _ -> List.map handle_arg oargs
+    in
     let binary () =
       match args with
       | [ a; b ] -> (bring_default a, bring_default b)
@@ -977,6 +983,13 @@ end = struct
         let a, b = binary () in
         let value = Llvm.(build_fcmp Fcmp.Oeq) a b "eq" builder in
         { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Rc ->
+        let e =
+          match oargs with
+          | [ e ] -> fst e
+          | _ -> failwith "Internal Error: Arity mismatch in builder"
+        in
+        R.gen_rc param e fnc.ret allocref
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)
@@ -1385,7 +1398,8 @@ and T : Lltypes_intf.S = Lltypes.Make (A)
 and A : Abi_intf.S = Abi.Make (T)
 and H : Helpers.S = Helpers.Make (T) (A) (Ar) (Auto)
 and Ar : Arr_intf.S = Arr.Make (T) (H) (Core) (Auto)
-and Auto : Autogen_intf.S = Autogen.Make (T) (H) (Ar)
+and Auto : Autogen_intf.S = Autogen.Make (T) (H) (Ar) (R)
+and R : Rc.S = Rc.Make (Core) (T) (H)
 
 let fill_constants constants =
   let f (name, tree, toplvl) =

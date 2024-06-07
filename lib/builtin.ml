@@ -65,6 +65,7 @@ type t =
   | Lesseqf
   | Greatereqf
   | Equalf
+  | Rc
 [@@deriving show]
 
 let tbl =
@@ -278,6 +279,8 @@ let tbl =
     ( Equalf,
       Tfun ([ { p with pt = Tfloat }; { p with pt = Tfloat } ], Tbool, Simple)
     );
+  Hashtbl.add tbl "__rc"
+    (Rc, Tfun ([ { pt = Qvar "0"; pattr = Dmove } ], Trc (Qvar "0"), Simple));
 
   tbl
 

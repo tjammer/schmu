@@ -933,3 +933,7 @@ Copy string literal on move
 Correctly copy array
   $ schmu copy_array.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./copy_array
+
+Correctly copy rc
+  $ schmu rc.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./rc
