@@ -9,9 +9,6 @@ module type S = sig
   open Cleaned_types
   open Llvm_types
 
-  val item_type_size : typ -> typ * Llvm.lltype * int
-  val data : llvar -> llvar
-
   val gen_rc :
     param ->
     Monomorph_tree.monod_expr ->
@@ -44,17 +41,17 @@ module Make (C : Core) (T : Lltypes_intf.S) (H : Helpers.S) = struct
       let size = sizeof_typ typ in
       alignup ~size ~upto:item_align
     in
-    (item_typ, get_lltype_def item_typ, head_size + item_size)
+    (item_typ, item_size, head_size + item_size)
 
-  let data v =
-    let typ = item_type v.typ in
-    let lltyp = get_lltype_def typ in
+  (* let data v = *)
+  (*   let typ = item_type v.typ in *)
+  (*   let lltyp = get_lltype_def typ in *)
 
-    let value = Llvm.build_gep int_t v.value [| ci 1 |] "data" builder in
-    { value; typ; lltyp; kind = Ptr }
+  (*   let value = Llvm.build_gep int_t v.value [| ci 1 |] "data" builder in *)
+  (*   { value; typ; lltyp; kind = Ptr } *)
 
   let gen_rc param expr typ allocref =
-    let item_typ, item_lltyp, size = item_type_size typ in
+    let item_typ, item_size, size = item_type_size typ in
 
     let lltyp = get_lltype_def typ in
 
@@ -73,7 +70,7 @@ module Make (C : Core) (T : Lltypes_intf.S) (H : Helpers.S) = struct
         gen_expr param Monomorph_tree.(expr.ex) |> ignore
     (* TODO specialize for array *)
     | _ -> (
-        let dst = Llvm.build_gep item_lltyp ptr [| ci 1 |] "item" builder in
+        let dst = Llvm.build_gep int_t ptr [| ci 1 |] "item" builder in
 
         let src =
           let arg = gen_expr { param with alloca = Some dst } expr.ex in
@@ -84,7 +81,7 @@ module Make (C : Core) (T : Lltypes_intf.S) (H : Helpers.S) = struct
         match src.kind with
         | Ptr | Const_ptr ->
             if dst <> src.value then
-              memcpy ~dst ~src ~size:(Llvm.const_int int_t size)
+              memcpy ~dst ~src ~size:(Llvm.const_int int_t item_size)
             else (* The record was constructed inplace *) ()
         | Imm | Const -> ignore (Llvm.build_store src.value dst builder)));
 
