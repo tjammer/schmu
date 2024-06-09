@@ -1,9 +1,10 @@
-let thing = __rc(![0, 1])
+let thing = rc/create(![0, 1])
 let _ = copy(thing)
 
-let variant = __rc(!#some("string"))
+let variant = rc/create(!#some("string"))
 copy(variant).ignore()
 
 type thing = { a : option(array(int)) }
-let record = __rc(!{a = #some([1])})
-copy(record).ignore()
+let record& = rc/create(!{a = #some([1])})
+
+&rc/get(record) <- { a = #none }

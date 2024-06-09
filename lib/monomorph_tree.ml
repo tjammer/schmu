@@ -1167,7 +1167,7 @@ and morph_app mk p callee args ret_typ =
     (* array-get does not return a temporary. If its value is returned in a
        function, increase value's refcount so that it's really a temporary *)
     match callee.monomorph with
-    | Builtin ((Array_get | Fixed_array_get | Unsafe_ptr_get), _) ->
+    | Builtin ((Array_get | Fixed_array_get | Unsafe_ptr_get | Rc_get), _) ->
         (Malloc.No_malloc, p.mallocs)
     | _ ->
         let _, malloc, mallocs = mb_malloc None p.mallocs ret_typ in

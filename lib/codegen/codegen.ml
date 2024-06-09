@@ -601,7 +601,7 @@ end = struct
     in
     let args =
       match b with
-      | Rc ->
+      | Rc_create ->
           (* Handle [gen_expr] in rc function for pre-allocation *)
           []
       | _ -> List.map handle_arg oargs
@@ -983,13 +983,14 @@ end = struct
         let a, b = binary () in
         let value = Llvm.(build_fcmp Fcmp.Oeq) a b "eq" builder in
         { value; lltyp = bool_t; typ = Tbool; kind = Imm }
-    | Rc ->
+    | Rc_create ->
         let e =
           match oargs with
           | [ e ] -> fst e
           | _ -> failwith "Internal Error: Arity mismatch in builder"
         in
         R.gen_rc param e fnc.ret allocref
+    | Rc_get -> List.hd args |> bring_default_var |> R.get
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)

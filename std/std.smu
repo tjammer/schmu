@@ -17,6 +17,10 @@ module option = option
 module string = string
 module unsafe = unsafe
 
+module rc:
+  let create = __rc_create
+  let get = __rc_get
+
 -- common operators
 let + = int/(+)
 let - = int/(-)

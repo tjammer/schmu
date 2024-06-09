@@ -15,6 +15,8 @@ module type S = sig
     typ ->
     Monomorph_tree.allocas ref ->
     llvar
+
+  val get : llvar -> llvar
 end
 
 module Make (C : Core) (T : Lltypes_intf.S) (H : Helpers.S) = struct
@@ -43,12 +45,12 @@ module Make (C : Core) (T : Lltypes_intf.S) (H : Helpers.S) = struct
     in
     (item_typ, item_size, head_size + item_size)
 
-  (* let data v = *)
-  (*   let typ = item_type v.typ in *)
-  (*   let lltyp = get_lltype_def typ in *)
+  let get v =
+    let typ = item_type v.typ in
+    let lltyp = get_lltype_def typ in
 
-  (*   let value = Llvm.build_gep int_t v.value [| ci 1 |] "data" builder in *)
-  (*   { value; typ; lltyp; kind = Ptr } *)
+    let value = Llvm.build_gep int_t v.value [| ci 1 |] "data" builder in
+    { value; typ; lltyp; kind = Ptr }
 
   let gen_rc param expr typ allocref =
     let item_typ, item_size, size = item_type_size typ in
