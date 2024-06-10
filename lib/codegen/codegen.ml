@@ -736,6 +736,7 @@ end = struct
         | t ->
             print_endline (show_typ t);
             failwith "Internal Error: Not a function for clsptr")
+    | Unsafe_addr -> { (List.hd args) with kind = Imm }
     | Mod -> (
         match args with
         | [ value; md ] ->

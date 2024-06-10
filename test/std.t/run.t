@@ -189,3 +189,8 @@ In channel module test
       in_channel/lines(&ic, fun line: print(line))
       in_channel/close(ic)
     #none: ()
+
+Test unsafe/addr
+  $ schmu unsafe_addr.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./unsafe_addr
+  2

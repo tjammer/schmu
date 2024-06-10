@@ -545,12 +545,12 @@ let builtins_hack callee args =
       match id with
       | "__unsafe_ptr_get" -> { no_attr with mut }
       | "__array_get" | "__fixed_array_get" | "__array_data"
-      | "__unsafe_array_length" | "__rc_get" ->
+      | "__unsafe_array_length" | "__unsafe_addr" | "__rc_get" ->
           { no_attr with mut }
       | _ -> no_attr (* stdlib re-exports *))
   | Some (Var (id, Some (Path.Pid "array"))) -> (
       match id with "data" -> { no_attr with mut } | _ -> no_attr)
-  | Some (Var (("get" | "+>"), Some (Path.Pid "unsafe"))) ->
+  | Some (Var (("get" | "+>" | "addr"), Some (Path.Pid "unsafe"))) ->
       { no_attr with mut }
   | Some (Var ("get", Some Path.(Pmod ("std", Pid "rc")))) ->
       { no_attr with mut }

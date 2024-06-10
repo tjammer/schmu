@@ -3,6 +3,7 @@ type t =
   | Unsafe_ptr_set
   | Unsafe_ptr_at
   | Unsafe_ptr_reinterpret
+  | Unsafe_addr
   | Realloc
   | Malloc
   | Ignore
@@ -99,6 +100,9 @@ let tbl =
     ( Unsafe_ptr_reinterpret,
       Tfun ([ { p with pt = Traw_ptr (Qvar "0") } ], Traw_ptr (Qvar "1"), Simple)
     );
+  Hashtbl.add tbl "__unsafe_addr"
+    ( Unsafe_addr,
+      Tfun ([ { pt = Qvar "0"; pattr = Dmut } ], Traw_ptr (Qvar "0"), Simple) );
   Hashtbl.add tbl "__realloc"
     ( Realloc,
       Tfun
