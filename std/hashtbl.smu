@@ -53,8 +53,8 @@ functor make : sig(m : key):
       #some(other):
         let next = next_wrapped(curr, size)
         if pathlen > other.pathlen:
-          let new_item = !other
           let other_pathlen = copy(other.pathlen)
+          let new_item = !other
           let item& = !item
           &item.pathlen <- pathlen
           &tbl.data.[curr] <- #some(item)

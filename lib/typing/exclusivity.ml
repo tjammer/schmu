@@ -105,7 +105,7 @@ and binding =
   | Bmove of borrow * Ast.loc option
 
 and part_access = (access_kind * string) list
-and access_kind = Aconst of int | Avar of Id.t | Adyn
+and access_kind = Aconst of int | Avar of Id.t | Adyn of int
 and special_case = Sp_no | Sp_string | Sp_array_get [@@deriving show]
 
 let imm imm = { imm; delayed = [] }
@@ -114,6 +114,7 @@ let part_equal a b =
   match (a, b) with
   | Aconst a, Aconst b -> Int.equal a b
   | Avar a, Avar b -> Id.equal a b
+  | Adyn a, Adyn b -> Int.equal a b
   | _ -> false
 
 let parts_match a wth =
@@ -125,7 +126,9 @@ let parts_match a wth =
     | _, [] -> (* Borrows are not mutually exclusive *) true
   in
   assert (Id.equal a.id wth.id);
-  parts_match (a.bpart, wth.bpart)
+  (* New parts are added via List cons, thus new items are at the front of the
+     list. We want to compare matching parts, so we need to reverse. *)
+  parts_match (List.rev a.bpart, List.rev wth.bpart)
 
 let is_relevant a wth = a.repr_ord >= wth.repr_ord && a.ord < wth.ord
 
@@ -779,9 +782,11 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
             let usage = Usage.of_attr (snd idx) in
             let arg, v, hs = check_tree env usage no_bdata (fst idx) hs in
             (part, (arg, snd idx), add_hist v hs, true)
-        | _ ->
+        | e ->
             (* Depending on hashes here is bound to break sometime *)
-            let part = (Adyn, Printf.sprintf "[<expr>]") :: bpart in
+            let part =
+              (Adyn (Hashtbl.hash e), Printf.sprintf "[<expr>]") :: bpart
+            in
             let usage = Usage.of_attr (snd idx) in
             let arg, v, hs = check_tree env usage no_bdata (fst idx) hs in
             (part, (arg, snd idx), add_hist v hs, false)

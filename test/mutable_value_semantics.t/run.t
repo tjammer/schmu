@@ -1289,7 +1289,11 @@ Track unmutated binding warnings across projections
   
 Mutable locals must not be globals even if constexpr
   $ schmu mutable_locals.smu
-  $ ./mutable_locals
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./mutable_locals
   false
   false
   false
+
+Partial moves out of variants with in arrays with dynamic indices
+  $ schmu dyn_partial_move.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./dyn_partial_move
