@@ -780,7 +780,8 @@ end = struct
     let mut = mut_of_pattr attr in
     let projected = mut && mut_of_pattr pattr in
     let const =
-      if has_exprname then false else e1.attr.const && not projected
+      if has_exprname then false
+      else e1.attr.const && (not projected) && not e1.attr.mut
     in
     let global = if has_exprname then false else global in
     let mname = Some (Env.modpath env) in

@@ -733,6 +733,7 @@ and prep_let p id uniq e pass toplvl =
 
   let p, func = ({ p with mallocs; vars }, { func with malloc }) in
 
+  let const = if not e.attr.const then Cnot else Const in
   let p, gn =
     match e.attr with
     | { const = true; mut = false; _ } ->
@@ -746,7 +747,7 @@ and prep_let p id uniq e pass toplvl =
         set_alloca p func.alloc;
         let uniq = Module.unique_name ~mname:p.mname id uniq in
         let cnt = new_id constant_uniq_state in
-        Hashtbl.add global_tbl uniq (cnt, e1, toplvl);
+        Hashtbl.add global_tbl uniq (cnt, { e1 with const }, toplvl);
         let used = ref false in
         let vars = Vars.add un (Global (uniq, func, used)) p.vars in
         (* Add global values to env with global id. That's how they might be
@@ -761,7 +762,7 @@ and prep_let p id uniq e pass toplvl =
         ({ p with vars = Vars.add un (Normal func) p.vars }, None)
   in
   let p = match pass with Dmove -> leave_level p | Dset | Dmut | Dnorm -> p in
-  (un, p, e1, gn, ms)
+  (un, p, { e1 with const }, gn, ms)
 
 and morph_record mk p labels typ =
   let ret = p.ret in

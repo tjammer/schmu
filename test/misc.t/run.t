@@ -3946,3 +3946,7 @@ Using unit values
   some
   99.9
   3
+
+`inner` here should not make `tmp` a const, otherwise could gen would fail
+  $ schmu mutable_inner_let.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./mutable_inner_let
