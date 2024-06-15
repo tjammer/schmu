@@ -564,7 +564,7 @@ let extract_name_type env = function
   | Malias (l, n, tree) -> Some (n, l, tree.typ, Mvalue None)
   | Mlocal_module (l, n, _) ->
       (* Do we have to deal with this? *)
-      Some (n, l, Tunit, Mvalue None)
+      Some (n, l, tunit, Mvalue None)
   | Mmodule_alias _ | Mmodule_type _ | Mfunctor _ | Mapplied_functor _ -> None
 
 let find_item name kind (n, _, _, tkind) =

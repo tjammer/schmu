@@ -3,14 +3,7 @@ module Smap : Map.S with type key = string
 module Sset : Set.S with type elt = string
 
 type typ =
-  | Tint
-  | Tbool
-  | Tunit
-  | Tu8
-  | Tu16
-  | Tfloat
-  | Ti32
-  | Tf32
+  | Tprim of primitive
   | Tvar of tv ref
   | Qvar of string
   | Tfun of param list * typ * fun_kind
@@ -24,6 +17,7 @@ type typ =
   | Trc of typ
 [@@deriving show { with_path = false }, sexp]
 
+and primitive = Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : Ast.decl_attr }
@@ -44,6 +38,15 @@ and closed = {
   clmname : Path.t option;
   clcopy : bool; (* otherwise move *)
 }
+
+val tunit : typ
+val tint : typ
+val tfloat : typ
+val ti32 : typ
+val tf32 : typ
+val tbool : typ
+val tu8 : typ
+val tu16 : typ
 
 val clean : typ -> typ
 (** Follows links and aliases *)

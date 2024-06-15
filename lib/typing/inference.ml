@@ -148,6 +148,7 @@ let rec unify t1 t2 =
         unify l r;
         if not (Int.equal li ri) then raise Unify
     | Tfixed_array (li, l), Tfixed_array (ri, r) when li == ri -> unify l r
+    | Tprim l, Tprim r when l == r -> ()
     | l, r when l == r -> ()
     | _ -> raise Unify
 
@@ -336,8 +337,7 @@ module Nameset = Set.Make (Path)
    We need to match everything for weak vars though *)
 let rec types_match ~in_functor l r =
   let rec collect_names acc = function
-    | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Qvar _ | Tfun _
-    | Traw_ptr _ | Tarray _ | Trc _
+    | Tprim _ | Qvar _ | Tfun _ | Traw_ptr _ | Tarray _ | Trc _
     | Tvar { contents = Unbound _ }
     | Trecord (_, None, _)
     | Tfixed_array _ ->
@@ -357,6 +357,7 @@ let rec types_match ~in_functor l r =
     if l == r then (r, qsubst, true)
     else
       match (l, r) with
+      | Tprim l, Tprim r' when l == r' -> (r, qsubst, true)
       | Tvar { contents = Unbound (l, _) }, Tvar { contents = Unbound (rid, _) }
       | Qvar l, Tvar { contents = Unbound (rid, _) }
         when in_functor -> (
@@ -569,7 +570,7 @@ and match_type_params ~in_functor params typ =
   | Talias (n, t) ->
       let* t = match_type_params ~in_functor params t in
       Ok (Talias (n, t))
-  | (Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32) as t -> (
+  | Tprim _ as t -> (
       match params with
       | [] -> Ok t
       | _ -> Error "Primitive type has no type parameter")
@@ -597,7 +598,7 @@ and match_type_params ~in_functor params typ =
   | Tfun _ -> failwith "TODO abstract function types"
 
 and replace_qvar ~in_functor subst = function
-  | (Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32) as t -> t
+  | Tprim _ as t -> t
   | Qvar s -> (
       match Smap.find_opt s subst with
       | None -> Qvar s

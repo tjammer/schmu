@@ -130,7 +130,7 @@ type unused = (Path.t * warn_kind * Ast.loc) list
 
 let def_value env =
   {
-    typ = Tunit;
+    typ = Tprim Tunit;
     param = false;
     const = false;
     global = false;
@@ -140,7 +140,7 @@ let def_value env =
 
 let def_mname mname =
   {
-    typ = Tunit;
+    typ = Tprim Tunit;
     param = false;
     const = false;
     global = false;

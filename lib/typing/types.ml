@@ -11,14 +11,7 @@ module Sset = Set.Make (String)
 open Sexplib0.Sexp_conv
 
 type typ =
-  | Tint
-  | Tbool
-  | Tunit
-  | Tu8
-  | Tu16
-  | Tfloat
-  | Ti32
-  | Tf32
+  | Tprim of primitive
   | Tvar of tv ref
   | Qvar of string
   | Tfun of param list * typ * fun_kind
@@ -32,6 +25,7 @@ type typ =
   | Trc of typ
 [@@deriving show { with_path = false }, sexp]
 
+and primitive = Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : dattr }
@@ -54,6 +48,15 @@ and closed = {
 }
 
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
+
+let tunit = Tprim Tunit
+and tint = Tprim Tint
+and tfloat = Tprim Tfloat
+and ti32 = Tprim Ti32
+and tf32 = Tprim Tf32
+and tbool = Tprim Tbool
+and tu8 = Tprim Tu8
+and tu16 = Tprim Tu16
 
 let rec clean = function
   | Tvar { contents = Link t } -> clean t
@@ -87,23 +90,21 @@ let rec clean = function
   | Tarray t -> Tarray (clean t)
   | Tfixed_array (n, t) -> Tfixed_array (n, clean t)
   | Trc t -> Trc (clean t)
-  | (Tvar _ | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Qvar _)
-    as t ->
-      t
+  | (Tvar _ | Tprim _ | Qvar _) as t -> t
 
 let pp_to_name name = "'" ^ name
 
 let string_of_type_raw get_name typ mname =
   let open Printf in
   let rec string_of_type = function
-    | Tint -> "int"
-    | Tbool -> "bool"
-    | Tunit -> "unit"
-    | Tfloat -> "float"
-    | Tu8 -> "u8"
-    | Tu16 -> "u16"
-    | Ti32 -> "i32"
-    | Tf32 -> "f32"
+    | Tprim Tint -> "int"
+    | Tprim Tbool -> "bool"
+    | Tprim Tunit -> "unit"
+    | Tprim Tfloat -> "float"
+    | Tprim Tu8 -> "u8"
+    | Tprim Tu16 -> "u16"
+    | Tprim Ti32 -> "i32"
+    | Tprim Tf32 -> "f32"
     | Tfun (ts, t, _) ->
         let pattr = function
           | Dnorm -> ""
@@ -204,7 +205,7 @@ let is_polymorphic typ =
     | Tfun (params, ret, _) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
         inner acc ret
-    | Tbool | Tunit | Tint | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 -> acc
+    | Tprim _ -> acc
     | Traw_ptr t | Tarray t | Trc t -> inner acc t
     | Tfixed_array ({ contents = Unknown _ | Generalized _ }, _) -> true
     | Tfixed_array ({ contents = Known _ }, t) -> inner acc t
@@ -214,7 +215,7 @@ let is_polymorphic typ =
   inner false typ
 
 let rec is_weak ~sub = function
-  | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Qvar _ -> false
+  | Tprim _ | Qvar _ -> false
   | Tvar { contents = Link t } | Talias (_, t) | Tarray t | Traw_ptr t | Trc t
     ->
       is_weak ~sub t
@@ -254,7 +255,7 @@ let rec contains_allocation = function
         (fun ca c ->
           match c.ctyp with Some t -> ca || contains_allocation t | None -> ca)
         false ctors
-  | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 -> false
+  | Tprim _ -> false
   | Qvar _ | Tvar { contents = Unbound _ } ->
       (* We don't know yet *)
       true

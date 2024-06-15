@@ -36,7 +36,7 @@ module Canonize = struct
             let ns = string_of_int !c in
             incr c;
             (Smap.add id ns sub, Qvar ns))
-    | (Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32) as t -> (sub, t)
+    | Tprim _ as t -> (sub, t)
     | Tvar { contents = Link t } -> canonize sub t
     | Tfun (ps, r, k) ->
         let sub, ps =

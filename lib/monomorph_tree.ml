@@ -156,14 +156,14 @@ let reconstr_module_username ~mname ~mainmod username =
 
 let rec cln p = function
   | Types.Tvar { contents = Link t } | Talias (_, t) -> cln p t
-  | Tint -> Tint
-  | Tbool -> Tbool
-  | Tunit -> Tunit
-  | Tu8 -> Tu8
-  | Tu16 -> Tu16
-  | Tfloat -> Tfloat
-  | Ti32 -> Ti32
-  | Tf32 -> Tf32
+  | Tprim Tint -> Tint
+  | Tprim Tbool -> Tbool
+  | Tprim Tunit -> Tunit
+  | Tprim Tu8 -> Tu8
+  | Tprim Tu16 -> Tu16
+  | Tprim Tfloat -> Tfloat
+  | Tprim Ti32 -> Ti32
+  | Tprim Tf32 -> Tf32
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
       Tfun (List.map (cln_param p) params, cln p ret, cln_kind p kind)

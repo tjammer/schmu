@@ -81,12 +81,12 @@ let lor_clike_hack env loc name annot =
   match annot with
   | Some variant -> (
       match clean variant with
-      | Tint -> (
+      | Tprim Tint -> (
           match get_ctor env loc name with
           | Some (_, ctor, variant) ->
               if is_clike_variant variant then
                 let attr = { no_attr with const = true } in
-                Some { typ = Tint; expr = Const (Int ctor.index); attr; loc }
+                Some { typ = tint; expr = Const (Int ctor.index); attr; loc }
               else None
           | None -> None)
       | _ -> None)
@@ -198,7 +198,7 @@ module Tup = struct
     (* TODO special handling for record pattern. This needs to be destructored
        and the wildcards and vars counted *)
     let dummy_loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
-    let dummy_pattern = { ptyp = Tunit; pat = Tp_wildcard dummy_loc } in
+    let dummy_pattern = { ptyp = tunit; pat = Tp_wildcard dummy_loc } in
     let m =
       List.fold_left
         (fun acc (l, _) ->
@@ -559,7 +559,7 @@ module Make (C : Core) (R : Recs) = struct
 
   let gen_cmp loc index cind =
     let cmpexpr = Bop (Ast.Equal_i, index, cind) in
-    { typ = Tbool; expr = cmpexpr; attr = no_attr; loc }
+    { typ = tbool; expr = cmpexpr; attr = no_attr; loc }
 
   let mismatch_err loc name ctor arg =
     match (ctor, arg) with
@@ -834,13 +834,13 @@ module Make (C : Core) (R : Recs) = struct
     | Plit_int (loc, i) ->
         unify
           (loc, "Int pattern has unexpected type:")
-          (path_typ loc env path) Tint env;
-        [ (path, { ptyp = Tint; pat = Tp_int (loc, i) }) ]
+          (path_typ loc env path) tint env;
+        [ (path, { ptyp = tint; pat = Tp_int (loc, i) }) ]
     | Plit_char (loc, c) ->
         unify
           (loc, "Char pattern has unexpected type:")
-          (path_typ loc env path) Tu8 env;
-        [ (path, { ptyp = Tu8; pat = Tp_char (loc, c) }) ]
+          (path_typ loc env path) (Tprim Tu8) env;
+        [ (path, { ptyp = Tprim Tu8; pat = Tp_char (loc, c) }) ]
     | Por (_, pats) ->
         (* Don't add to pattern *)
         let pats = List.map (fun p -> type_pattern env (path, p)) pats in
@@ -989,11 +989,11 @@ module Make (C : Core) (R : Recs) = struct
               | b ->
                   let index =
                     let expr = Variant_index (expr path) in
-                    { typ = Ti32; expr; attr = no_attr; loc }
+                    { typ = ti32; expr; attr = no_attr; loc }
                   in
                   let cind =
                     let attr = { no_attr with const = true } in
-                    { typ = Ti32; expr = Const (I32 param.cindex); attr; loc }
+                    { typ = ti32; expr = Const (I32 param.cindex); attr; loc }
                   in
                   let cmp = gen_cmp loc index cind in
                   let if_ = { cont with expr = ifexpr } in
@@ -1017,7 +1017,7 @@ module Make (C : Core) (R : Recs) = struct
               | b ->
                   let cind =
                     let attr = { no_attr with const = true } in
-                    { typ = Tint; expr = Const (Int i); attr; loc }
+                    { typ = tint; expr = Const (Int i); attr; loc }
                   in
                   let cmp = gen_cmp loc (expr path) cind in
                   let else_ =
@@ -1039,7 +1039,7 @@ module Make (C : Core) (R : Recs) = struct
               | b ->
                   let cind =
                     let attr = { no_attr with const = true } in
-                    { typ = Tu8; expr = Const (U8 c); attr; loc }
+                    { typ = Tprim Tu8; expr = Const (U8 c); attr; loc }
                   in
                   (* i64 and u8 equal compare call the same llvm functions *)
                   let cmp = gen_cmp loc (expr path) cind in

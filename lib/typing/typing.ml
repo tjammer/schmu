@@ -211,14 +211,14 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
 
   let rec concrete_type in_list env = function
-    | Ast.Ty_id "int" -> Tint
-    | Ty_id "bool" -> Tbool
-    | Ty_id "unit" -> Tunit
-    | Ty_id "u8" -> Tu8
-    | Ty_id "u16" -> Tu16
-    | Ty_id "float" -> Tfloat
-    | Ty_id "i32" -> Ti32
-    | Ty_id "f32" -> Tf32
+    | Ast.Ty_id "int" -> tint
+    | Ty_id "bool" -> tbool
+    | Ty_id "unit" -> tunit
+    | Ty_id "u8" -> Tprim Tu8
+    | Ty_id "u16" -> Tprim Tu16
+    | Ty_id "float" -> tfloat
+    | Ty_id "i32" -> ti32
+    | Ty_id "f32" -> tf32
     | Ty_id "array" ->
         if not in_list then
           raise (Error (loc, "Type array expects 1 type parameter"));
@@ -464,7 +464,7 @@ let type_abstract env loc { Ast.poly_param; name } =
   let tname = Path.append name (Env.modpath env) in
   (* Make sure that each type name only appears once per module *)
   (* Abstract types are only allowed in signatures *)
-  ignore (check_type_unique ~in_sig:true env loc name Tunit);
+  ignore (check_type_unique ~in_sig:true env loc name tunit);
   (* Tunit because we need to pass some type *)
   (* Temporarily add polymorphic type name to env *)
   let params = List.map (fun _ -> make_type_param ()) poly_param in
@@ -637,19 +637,19 @@ end = struct
     Tabstract
       ( [],
         Path.Pmod ("string", Path.Pid "t"),
-        Talias (Path.Pmod ("string", Path.Pid "t"), Tarray Tu8) )
+        Talias (Path.Pmod ("string", Path.Pid "t"), Tarray (Tprim Tu8)) )
 
   let rec convert env expr = convert_annot env None expr
 
   and convert_annot env annot = function
     | Ast.Var (loc, id) -> convert_var env loc (Path.Pid id)
-    | Lit (loc, Int i) -> convert_simple_lit loc Tint (Int i)
-    | Lit (loc, Bool b) -> convert_simple_lit loc Tbool (Bool b)
-    | Lit (loc, U8 c) -> convert_simple_lit loc Tu8 (U8 c)
-    | Lit (loc, U16 s) -> convert_simple_lit loc Tu16 (U16 s)
-    | Lit (loc, Float f) -> convert_simple_lit loc Tfloat (Float f)
-    | Lit (loc, I32 i) -> convert_simple_lit loc Ti32 (I32 i)
-    | Lit (loc, F32 i) -> convert_simple_lit loc Tf32 (F32 i)
+    | Lit (loc, Int i) -> convert_simple_lit loc tint (Int i)
+    | Lit (loc, Bool b) -> convert_simple_lit loc tbool (Bool b)
+    | Lit (loc, U8 c) -> convert_simple_lit loc (Tprim Tu8) (U8 c)
+    | Lit (loc, U16 s) -> convert_simple_lit loc (Tprim Tu16) (U16 s)
+    | Lit (loc, Float f) -> convert_simple_lit loc tfloat (Float f)
+    | Lit (loc, I32 i) -> convert_simple_lit loc ti32 (I32 i)
+    | Lit (loc, F32 i) -> convert_simple_lit loc tf32 (F32 i)
     | Lit (loc, String s) ->
         let typ = string_typ in
         (* The string literal itself is const, not handled within the const table *)
@@ -661,7 +661,7 @@ end = struct
         convert_fixed_array_num_lit env loc num item
     | Lit (loc, Unit) ->
         let attr = { no_attr with const = true } in
-        { typ = Tunit; expr = Const Unit; attr; loc }
+        { typ = tunit; expr = Const Unit; attr; loc }
     | Lambda (loc, id, attr, ret, e) -> convert_lambda env loc id attr ret e
     | Let_e (loc, decl, expr, cont) -> convert_let_e env loc decl expr cont
     | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
@@ -1063,13 +1063,13 @@ end = struct
 
     let typ, (t1, t2, const) =
       match bop with
-      | Ast.Plus_i | Mult_i | Minus_i | Div_i -> (Tint, check Tint)
+      | Ast.Plus_i | Mult_i | Minus_i | Div_i -> (tint, check tint)
       | Less_i | Equal_i | Greater_i | Less_eq_i | Greater_eq_i ->
-          (Tbool, check Tint)
-      | Plus_f | Mult_f | Minus_f | Div_f -> (Tfloat, check Tfloat)
+          (tbool, check tint)
+      | Plus_f | Mult_f | Minus_f | Div_f -> (tfloat, check tfloat)
       | Less_f | Equal_f | Greater_f | Less_eq_f | Greater_eq_f ->
-          (Tbool, check Tfloat)
-      | And | Or -> (Tbool, check Tbool)
+          (tbool, check tfloat)
+      | And | Or -> (tbool, check tbool)
     in
     { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const }; loc }
 
@@ -1077,8 +1077,8 @@ end = struct
     match snd unop with
     | "-." ->
         let e = convert env expr in
-        unify (loc, "In unary -.") Tfloat e.typ env;
-        { typ = Tfloat; expr = Unop (Uminus_f, e); attr = e.attr; loc }
+        unify (loc, "In unary -.") tfloat e.typ env;
+        { typ = tfloat; expr = Unop (Uminus_f, e); attr = e.attr; loc }
     | "-" -> (
         let e = convert env expr in
         let msg = "In unary -" in
@@ -1086,15 +1086,15 @@ end = struct
 
         try
           (* We allow '-' to also work on float expressions *)
-          unify (loc, msg) Tfloat e.typ env;
-          { typ = Tfloat; expr; attr = e.attr; loc }
+          unify (loc, msg) tfloat e.typ env;
+          { typ = tfloat; expr; attr = e.attr; loc }
         with Error _ -> (
           try
-            unify (loc, msg) Tint e.typ env;
-            { typ = Tint; expr; attr = e.attr; loc }
+            unify (loc, msg) tint e.typ env;
+            { typ = tint; expr; attr = e.attr; loc }
           with Error _ ->
             unify (loc, msg)
-              (Tabstract ([], Path.Pid "int or float", Tunit))
+              (Tabstract ([], Path.Pid "int or float", tunit))
               e.typ env;
             failwith "unreachable"))
     | _ -> raise (Error (fst unop, "Custom unary operators are not supported"))
@@ -1103,7 +1103,7 @@ end = struct
     (* We can assume pred evaluates to bool and both branches need to evaluate
        to the some type *)
     let type_cond = convert env cond in
-    unify (loc, "In condition") type_cond.typ Tbool env;
+    unify (loc, "In condition") type_cond.typ tbool env;
     let type_e1 = convert env e1 in
     let type_e2 =
       (* We unify in the pattern match to have different messages and unification order *)
@@ -1119,7 +1119,7 @@ end = struct
           in
           let e2 =
             let attr = { no_attr with const = true } in
-            { typ = Tunit; expr = Const Unit; attr; loc }
+            { typ = tunit; expr = Const Unit; attr; loc }
           in
           unify (loc, msg) e2.typ type_e1.typ env;
           e2
@@ -1156,7 +1156,7 @@ end = struct
        raise (Error (eloc, msg)));
     unify (loc, "In mutation") toset.typ valexpr.typ env;
     let moved = Snot_moved (* will be set in excl pass *) in
-    { typ = Tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
+    { typ = tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
   and convert_pipe_head env loc e1 e2 =
     let switch_uni = true in
@@ -1214,8 +1214,9 @@ end = struct
       let e = convert env expr in
       match (e.expr, clean e.typ) with
       | Const (String s), _ -> Fstr s
-      | _, (Tarray Tu8 | Tabstract ([], _, Tarray Tu8)) -> Fexpr e
-      | _, (Tint | Tfloat | Tbool | Tu8 | Ti32 | Tf32) -> Fexpr e
+      | _, (Tarray (Tprim Tu8) | Tabstract ([], _, Tarray (Tprim Tu8))) ->
+          Fexpr e
+      | _, Tprim (Tint | Tfloat | Tbool | Tu8 | Ti32 | Tf32) -> Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)
       | _, Tarray (Tvar { contents = Unbound _ }) ->
@@ -1237,7 +1238,7 @@ end = struct
     let check env (loc, typ) =
       unify
         (loc, "Left expression in sequence must be of type unit,")
-        Tunit typ env
+        tunit typ env
     in
 
     let rec to_expr env old_type = function
@@ -1247,7 +1248,7 @@ end = struct
         when ret ->
           raise (Error (loc, "Block must end with an expression"))
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
-      | [] -> ({ typ = Tunit; expr = Const Unit; attr = no_attr; loc }, env)
+      | [] -> ({ typ = tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, block) :: tl ->
           let env, id, id_loc, rhs, rmut, pats =
             convert_let ~global:false env loc decl block
@@ -1307,7 +1308,7 @@ end = struct
           let cont, env = to_expr env old_type tl in
           (cont, env)
     in
-    to_expr env (loc, Tunit) stmts
+    to_expr env (loc, tunit) stmts
 
   and convert_block ?(ret = true) env stmts =
     convert_block_annot ~ret env None stmts
@@ -1560,7 +1561,7 @@ let rec convert_module env mname sign prog check_ret =
   (* Program must evaluate to either int or unit *)
   (if check_ret then
      match clean last_type with
-     | Tunit | Tint -> ()
+     | Tprim (Tunit | Tint) -> ()
      | _ ->
          let msg =
            "Module must return type int or unit, not "
@@ -1570,7 +1571,7 @@ let rec convert_module env mname sign prog check_ret =
   (externals, items, m)
 
 and convert_prog env items modul =
-  let old = ref (Lexing.(dummy_pos, dummy_pos), Tunit) in
+  let old = ref (Lexing.(dummy_pos, dummy_pos), tunit) in
 
   let rec aux (env, items, m) = function
     | Ast.Stmt stmt ->
@@ -1878,7 +1879,7 @@ and convert_prog env items modul =
         (* Only the last expression is allowed to return something *)
         unify
           (fst old, "Left expression in sequence must be of type unit,")
-          Tunit (snd old) env;
+          tunit (snd old) env;
         ((loc, expr.typ), env, Tl_expr expr :: items, m)
     | Use (loc, mname) ->
         let env = Env.use_module env loc mname in
@@ -1930,7 +1931,7 @@ let typecheck (prog : Ast.prog) =
         | Tl_module_alias _ | Tl_module _ ) )
       :: tl ->
         get_last_type tl
-    | [] -> Tunit
+    | [] -> tunit
   in
 
   (* Ignore unused binding warnings *)
