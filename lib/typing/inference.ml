@@ -55,15 +55,23 @@ let rec occurs tvr = function
 
 exception Unify
 
+let rec repr = function
+  (* Do path compression *)
+  | Tvar ({ contents = Link t } as tvr) ->
+      let t = repr t in
+      tvr := Link t;
+      t
+  | t -> t
+
 let rec unify t1 t2 =
   if t1 == t2 then ()
   else
-    match (t1, t2) with
-    | Tvar { contents = Link t1 }, t2
-    | t1, Tvar { contents = Link t2 }
-    | Talias (_, t1), t2
-    | t1, Talias (_, t2) ->
-        unify t1 t2
+    match (repr t1, repr t2) with
+    | Talias (_, t1), t2 | t1, Talias (_, t2) -> unify t1 t2
+    | ( Tvar ({ contents = Unbound _ } as tv1),
+        Tvar ({ contents = Unbound _ } as tv2) )
+      when tv1 == tv2 ->
+        ()
     | Tvar ({ contents = Unbound _ } as tv), t
     | t, Tvar ({ contents = Unbound _ } as tv) ->
         occurs tv t;
@@ -140,6 +148,7 @@ let rec unify t1 t2 =
         unify l r;
         if not (Int.equal li ri) then raise Unify
     | Tfixed_array (li, l), Tfixed_array (ri, r) when li == ri -> unify l r
+    | l, r when l == r -> ()
     | _ -> raise Unify
 
 let unify info t1 t2 env =
