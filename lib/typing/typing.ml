@@ -143,13 +143,14 @@ let rec subst_generic ~id typ = function
       let f f = Types.{ f with ftyp = subst_generic ~id typ f.ftyp } in
       let labels = Array.map f labels in
       Trecord (ps, name, labels)
-  | Tvariant (ps, name, ctors) ->
+  | Tvariant (ps, recurs, name, ctors) ->
       let ps = List.map (subst_generic ~id typ) ps in
+      let recurs = Option.map (subst_generic ~id typ) recurs in
       let f c =
         Types.{ c with ctyp = Option.map (subst_generic ~id typ) c.ctyp }
       in
       let ctors = Array.map f ctors in
-      Tvariant (ps, name, ctors)
+      Tvariant (ps, recurs, name, ctors)
   | Tabstract (ps, name, t) ->
       let ps = List.map (subst_generic ~id typ) ps in
       let t = subst_generic ~id typ t in
@@ -164,7 +165,7 @@ let rec subst_generic ~id typ = function
 and get_generic_ids = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
   | Tvar { contents = Link t } | Talias (_, t) -> get_generic_ids t
-  | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
+  | Trecord (ps, _, _) | Tvariant (ps, _, _, _) | Tabstract (ps, _, _) ->
       List.map get_generic_ids ps |> List.concat
   | Tarray t | Traw_ptr t | Trc t | Tfixed_array (_, t) -> get_generic_ids t
   | Tfun (ps, ret, _) ->
@@ -189,9 +190,9 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
 
   let rec is_quantified = function
-    | Trecord ([], _, _) | Tvariant ([], _, _) | Tabstract ([], _, _) -> None
+    | Trecord ([], _, _) | Tvariant ([], _, _, _) | Tabstract ([], _, _) -> None
     | Trecord (ts, Some name, _)
-    | Tvariant (ts, name, _)
+    | Tvariant (ts, _, name, _)
     | Tabstract (ts, name, _) ->
         Some (name, List.length ts)
     | Traw_ptr _ -> Some (Path.Pid "raw_ptr", 1)
@@ -523,7 +524,7 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
     |> Array.of_list
   in
 
-  let typ = Tvariant (params, variant, ctors) in
+  let typ = Tvariant (params, None, variant, ctors) in
   (* Make sure that each type name only appears once per module *)
   let typ = check_type_unique ~in_sig env loc name typ in
   (Env.add_type name ~in_sig typ env, typ)

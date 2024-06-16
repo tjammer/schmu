@@ -265,7 +265,7 @@ let rec add_to_env env foreign (mname, m) =
           | Mtype
               ( _,
                 (( Trecord (_, Some name, _)
-                 | Tvariant (_, name, _)
+                 | Tvariant (_, _,name, _)
                  | Talias (name, _) ) as t) ) ->
               Env.add_type (Path.get_hd name) ~in_sig:false t env
           | Mtype (_, t) ->
@@ -553,7 +553,7 @@ let to_channel c ~outname m =
 let extract_name_type env = function
   | Mtype (l, t) -> (
       match t with
-      | Trecord (_, Some n, _) | Tvariant (_, n, _) | Talias (n, _) ->
+      | Trecord (_, Some n, _) | Tvariant (_, _, n, _) | Talias (n, _) ->
           Some (Path.get_hd n, l, t, Mtypedef)
       | t ->
           print_endline (string_of_type (Env.modpath env) t);

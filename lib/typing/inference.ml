@@ -36,7 +36,7 @@ let rec occurs tvr = function
   | Trecord (ps, _, fs) ->
       List.iter (occurs tvr) ps;
       Array.iter (fun f -> occurs tvr f.ftyp) fs
-  | Tvariant (ps, _, cs) ->
+  | Tvariant (ps, _, _, cs) ->
       List.iter (occurs tvr) ps;
       Array.iter
         (fun c -> match c.ctyp with None -> () | Some t -> occurs tvr t)
@@ -63,11 +63,19 @@ let rec repr = function
       t
   | t -> t
 
-let rec unify t1 t2 =
+let extract_name t =
+  match repr t with
+  | Tvar { contents = Unbound (s, _) } -> s
+  | Qvar s ->
+      print_endline "qvar is a case";
+      s
+  | _ -> failwith "Internal Error: what is this rec"
+
+let rec unify recurs t1 t2 =
   if t1 == t2 then ()
   else
     match (repr t1, repr t2) with
-    | Talias (_, t1), t2 | t1, Talias (_, t2) -> unify t1 t2
+    | Talias (_, t1), t2 | t1, Talias (_, t2) -> unify recurs t1 t2
     | ( Tvar ({ contents = Unbound _ } as tv1),
         Tvar ({ contents = Unbound _ } as tv2) )
       when tv1 == tv2 ->
@@ -79,36 +87,51 @@ let rec unify t1 t2 =
     | Tfun (params_l, l, _), Tfun (params_r, r, _) -> (
         try
           let attr_mismatch = ref false in
-          unify l r;
+          unify recurs l r;
           List.iter2
             (fun left right ->
               (* Continue with unification to generate better type errors *)
               if not (left.pattr = right.pattr) then attr_mismatch := true;
-              unify left.pt right.pt)
+              unify recurs left.pt right.pt)
             params_l params_r;
           if !attr_mismatch then raise Unify
         with Invalid_argument _ -> raise Unify)
     | Trecord (_, None, labels1), Trecord (_, None, labels2) -> (
-        try Array.iter2 (fun a b -> Types.(unify a.ftyp b.ftyp)) labels1 labels2
+        try
+          Array.iter2
+            (fun a b -> Types.(unify recurs a.ftyp b.ftyp))
+            labels1 labels2
         with Invalid_argument _ -> raise Unify)
     | Trecord (ps1, Some n1, labels1), Trecord (ps2, Some n2, labels2) ->
         if Path.equal n1 n2 then
           try
-            List.iter2 unify ps1 ps2;
+            List.iter2 (unify recurs) ps1 ps2;
             (* We ignore the label names for now *)
-            Array.iter2 (fun a b -> Types.(unify a.ftyp b.ftyp)) labels1 labels2
+            Array.iter2
+              (fun a b -> Types.(unify recurs a.ftyp b.ftyp))
+              labels1 labels2
           with Invalid_argument _ -> raise Unify
         else raise Unify
-    | Tvariant (ps1, n1, ctors1), Tvariant (ps2, n2, ctors2) ->
+    | Tvariant (ps1, rec1, n1, ctors1), Tvariant (ps2, rec2, n2, ctors2) ->
         if Path.equal n1 n2 then
           try
             let err = ref false in
-            List.iter2 unify ps1 ps2;
+            let recurs =
+              match (rec1, rec2) with
+              | Some rec1, Some rec2 ->
+                  Sset.add (extract_name rec1) recurs
+                  |> Sset.add (extract_name rec2)
+              | None, None -> recurs
+              | Some _, None | None, Some _ ->
+                  err := true;
+                  recurs
+            in
+            List.iter2 (unify recurs) ps1 ps2;
             (* We ignore the ctor names for now *)
             Array.iter2
               (fun a b ->
                 match (a.ctyp, b.ctyp) with
-                | Some a, Some b -> unify a b
+                | Some a, Some b -> unify recurs a b
                 | None, None -> ()
                 | Some _, None | None, Some _ ->
                     (* Continue with unification to generate better type errors *)
@@ -120,17 +143,17 @@ let rec unify t1 t2 =
     | Tabstract (psl, nl, l), Tabstract (psr, nr, r) ->
         if Path.equal nl nr then
           try
-            List.iter2 unify psl psr;
-            unify l r
+            List.iter2 (unify recurs) psl psr;
+            unify recurs l r
           with Invalid_argument _ -> raise Unify
         else raise Unify
-    | Traw_ptr l, Traw_ptr r -> unify l r
-    | Tarray l, Tarray r -> unify l r
-    | Trc l, Trc r -> unify l r
+    | Traw_ptr l, Traw_ptr r -> unify recurs l r
+    | Tarray l, Tarray r -> unify recurs l r
+    | Trc l, Trc r -> unify recurs l r
     | Tfixed_array ({ contents = Linked l }, lt), (Tfixed_array _ as r) ->
-        unify (Tfixed_array (l, lt)) r
+        unify recurs (Tfixed_array (l, lt)) r
     | (Tfixed_array _ as l), Tfixed_array ({ contents = Linked r }, rt) ->
-        unify l (Tfixed_array (r, rt))
+        unify recurs l (Tfixed_array (r, rt))
     | ( Tfixed_array (({ contents = Unknown (id, li) } as tv), l),
         Tfixed_array (other, r) )
     | ( Tfixed_array (other, l),
@@ -142,12 +165,13 @@ let rec unify t1 t2 =
            | _ ->
                ();
                tv := Linked other);
-        unify l r
+        unify recurs l r
     | ( Tfixed_array ({ contents = Known li }, l),
         Tfixed_array ({ contents = Known ri }, r) ) ->
-        unify l r;
+        unify recurs l r;
         if not (Int.equal li ri) then raise Unify
-    | Tfixed_array (li, l), Tfixed_array (ri, r) when li == ri -> unify l r
+    | Tfixed_array (li, l), Tfixed_array (ri, r) when li == ri ->
+        unify recurs l r
     | Tprim l, Tprim r when l == r -> ()
     | l, r when l == r -> ()
     | _ -> raise Unify
@@ -155,7 +179,7 @@ let rec unify t1 t2 =
 let unify info t1 t2 env =
   let mn = Env.modpath env in
   let loc, pre = info in
-  try unify t1 t2 with
+  try unify Sset.empty t1 t2 with
   | Unify ->
       let msg = Error.format_type_err pre mn t1 t2 in
       raise (Error (loc, msg))
@@ -176,12 +200,13 @@ let rec generalize = function
       let f f = Types.{ f with ftyp = generalize f.ftyp } in
       let labels = Array.map f labels in
       Trecord (ps, name, labels)
-  | Tvariant (ps, name, ctors) ->
+  | Tvariant (ps, recurs, name, ctors) ->
       (* Hopefully the param type is the same reference throughout the variant *)
       let ps = List.map generalize ps in
+      let recurs = Option.map generalize recurs in
       let f c = Types.{ c with ctyp = Option.map generalize c.ctyp } in
       let ctors = Array.map f ctors in
-      Tvariant (ps, name, ctors)
+      Tvariant (ps, recurs, name, ctors)
   | Tabstract (ps, name, t) ->
       let ps = List.map generalize ps in
       Tabstract (ps, name, generalize t)
@@ -257,8 +282,16 @@ let instantiate t =
             labels
         in
         (Trecord (ps, name, labels), !subst)
-    | Tvariant (ps, name, ctors) ->
+    | Tvariant (ps, recurs, name, ctors) ->
         let subst = ref subst in
+        let recurs =
+          match recurs with
+          | None -> None
+          | Some t ->
+              let t, subst' = aux !subst t in
+              subst := subst';
+              Some t
+        in
         let ps =
           List.map
             (fun t ->
@@ -281,7 +314,7 @@ let instantiate t =
               { ctor with ctyp })
             ctors
         in
-        (Tvariant (ps, name, ctors), !subst)
+        (Tvariant (ps, recurs, name, ctors), !subst)
     | Tabstract (ps, name, t) ->
         let subst = ref subst in
         let ps =
@@ -343,7 +376,7 @@ let rec types_match ~in_functor l r =
     | Tfixed_array _ ->
         acc
     | Talias (p, t) | Tabstract (_, p, t) -> collect_names (Nameset.add p acc) t
-    | Trecord (_, Some p, _) | Tvariant (_, p, _) -> Nameset.add p acc
+    | Trecord (_, Some p, _) | Tvariant (_, _, p, _) -> Nameset.add p acc
     | Tvar { contents = Link t } -> collect_names acc t
   in
 
@@ -444,7 +477,7 @@ let rec types_match ~in_functor l r =
             in
             (Trecord (List.rev ps, Some name, fs), qs, b)
           else (r, qsubst, false)
-      | Tvariant (pl, name, cl), Tvariant (pr, _, cr) ->
+      | Tvariant (pl, rl, name, cl), Tvariant (pr, rr, _, cr) ->
           (* It should be enough to compare the name (rather, the name's repr)
              and the param type *)
           if not (Nameset.disjoint lns rns) then
@@ -455,6 +488,15 @@ let rec types_match ~in_functor l r =
                   let t, qsubst, b = aux ~strict s l r in
                   (t :: ps, qsubst, acc && b))
                 ([], qsubst, true) pl pr
+            in
+            let recurs, qs, b =
+              match (rl, rr) with
+              | Some l, Some r ->
+                  let l, r = nss_of_types l r in
+                  let typ, qsubst, bb = aux ~strict qs l r in
+                  (Some typ, qsubst, b && bb)
+              | None, None -> (None, qsubst, b)
+              | Some _, None | None, Some _ -> (None, qsubst, false)
             in
             let cs = Array.copy cr in
             let _, qs, b =
@@ -474,7 +516,7 @@ let rec types_match ~in_functor l r =
                   (i + 1, qsubst, acc && b))
                 (0, qs, b) cl
             in
-            (Tvariant (ps, name, cs), qs, b)
+            (Tvariant (ps, recurs, name, cs), qs, b)
           else (r, qsubst, false)
       | Traw_ptr l, Traw_ptr r ->
           let l, r = nss_of_types l r in
@@ -562,7 +604,7 @@ and match_type_params ~in_functor params typ =
 
   let ( let* ) = Result.bind in
   match typ with
-  | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) -> (
+  | Trecord (ps, _, _) | Tvariant (ps, _, _, _) | Tabstract (ps, _, _) -> (
       try
         let subst = List.fold_left2 buildup_subst Smap.empty params ps in
         Ok (replace_qvar ~in_functor subst typ)
@@ -619,8 +661,9 @@ and replace_qvar ~in_functor subst = function
           fs
       in
       Trecord (ps, n, fs)
-  | Tvariant (ps, n, cs) ->
+  | Tvariant (ps, recurs, n, cs) ->
       let ps = List.map (replace_qvar ~in_functor subst) ps in
+      let recurs = Option.map (replace_qvar ~in_functor subst) recurs in
       let cs =
         Array.map
           (fun c ->
@@ -628,7 +671,7 @@ and replace_qvar ~in_functor subst = function
             { c with ctyp })
           cs
       in
-      Tvariant (ps, n, cs)
+      Tvariant (ps, recurs, n, cs)
   | Talias (n, t) -> Talias (n, replace_qvar ~in_functor subst t)
   | Traw_ptr t -> Traw_ptr (replace_qvar ~in_functor subst t)
   | Tarray t -> Tarray (replace_qvar ~in_functor subst t)

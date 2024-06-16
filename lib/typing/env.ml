@@ -324,9 +324,9 @@ let add_record name record in_sig ~params ~labels env =
   let types = Map.add name (typ, in_sig) scope.types in
   { env with values = { scope with labels; types; labelsets } :: tl }
 
-let add_variant name variant in_sig ~params ~ctors env =
+let add_variant name variant in_sig ~recurs ~params ~ctors env =
   let scope, tl = decap_exn env in
-  let typ = Tvariant (params, variant, ctors) in
+  let typ = Tvariant (params, recurs, variant, ctors) in
 
   let ctors = add_ctors variant ctors scope in
   let types = Map.add name (typ, in_sig) scope.types in
@@ -754,7 +754,8 @@ let rec make_alias_usable scope = function
       in
       let labelsets, labels = add_labels name labelset labels scope in
       { scope with labelsets; labels }
-  | Tvariant (_, name, ctors) ->
+  | Tvariant (_, _, name, ctors) ->
+      (* TODO unfold? *)
       let ctors = add_ctors name ctors scope in
       { scope with ctors }
   | Talias (_, typ) -> make_alias_usable scope typ
@@ -772,7 +773,8 @@ let add_type name ~in_sig typ env =
   match typ with
   | Trecord (params, Some n, labels) ->
       add_record name n in_sig ~params ~labels env
-  | Tvariant (params, n, ctors) -> add_variant name n in_sig ~params ~ctors env
+  | Tvariant (params, recurs, n, ctors) ->
+      add_variant name n in_sig ~recurs ~params ~ctors env
   | Talias (n, typ) -> add_alias name n in_sig typ env
   | t ->
       let scope, tl = decap_exn env in

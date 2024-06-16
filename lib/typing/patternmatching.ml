@@ -70,7 +70,7 @@ let get_ctor env loc name =
       (* We get the ctor type from the variant *)
       let ctor, variant =
         match Env.query_type ~instantiate loc typename env |> follow_alias with
-        | Tvariant (_, _, ctors) as typ -> (ctors.(index), typ)
+        | Tvariant (_, _, _, ctors) as typ -> (ctors.(index), typ)
         | _ -> failwith "Internal Error: Not a variant"
       in
       Some (typename, ctor, variant)
@@ -97,7 +97,8 @@ let get_variant env loc (_, name) annot =
   match annot with
   | Some variant -> (
       match clean variant with
-      | Tvariant (_, typename, ctors) ->
+      | Tvariant (_, _, typename, ctors) ->
+          (* TODO unfold *)
           let ctor =
             match array_assoc_opt name ctors with
             | Some ctor -> ctor
@@ -295,7 +296,7 @@ module Exhaustiveness = struct
   type ctorset = Ctors of ctor list | Inf | Record of field list
 
   let ctorset_of_variant = function
-    | Tvariant (_, _, ctors) -> Ctors (Array.to_list ctors)
+    | Tvariant (_, _, _, ctors) -> Ctors (Array.to_list ctors)
     | Trecord (_, _, fields) -> Record (Array.to_list fields)
     | _ -> Inf
 

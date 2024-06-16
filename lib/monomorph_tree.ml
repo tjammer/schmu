@@ -176,7 +176,8 @@ let rec cln p = function
       in
       let name = Option.map Path.type_name name in
       Trecord (ps, name, fields)
-  | Tvariant (ps, name, ctors) ->
+  | Tvariant (ps, _, name, ctors) ->
+      (* TODO deal with recursive types *)
       let ps = List.map (cln p) ps in
       let ctors =
         Array.map

@@ -17,7 +17,7 @@ type typ =
   | Tfun of param list * typ * fun_kind
   | Talias of Path.t * typ
   | Trecord of typ list * Path.t option * field array
-  | Tvariant of typ list * Path.t * ctor array
+  | Tvariant of typ list * typ option * Path.t * ctor array
   | Traw_ptr of typ
   | Tarray of typ
   | Tabstract of typ list * Path.t * typ
@@ -76,10 +76,11 @@ let rec clean = function
           name,
           Array.map (fun field -> { field with ftyp = clean field.ftyp }) fields
         )
-  | Tvariant (params, name, ctors) ->
+  | Tvariant (params, recurs, name, ctors) ->
       let params = List.map clean params in
       Tvariant
         ( params,
+          recurs,
           name,
           Array.map
             (fun ctor -> { ctor with ctyp = Option.map clean ctor.ctyp })
@@ -131,7 +132,7 @@ let string_of_type_raw get_name typ mname =
           Array.to_list fs |> List.map (fun f -> string_of_type f.ftyp)
         in
         Printf.sprintf "(%s)" (String.concat ", " lst)
-    | Trecord (ps, Some str, _) | Tvariant (ps, str, _) -> (
+    | Trecord (ps, Some str, _) | Tvariant (ps, _, str, _) -> (
         match ps with
         | [] -> Path.(rm_name mname str |> show)
         | l ->
@@ -200,7 +201,7 @@ let is_polymorphic typ =
     | Tvar { contents = Link t } | Talias (_, t) -> inner acc t
     | Trecord (_, None, fs) ->
         Array.fold_left (fun acc f -> inner acc f.ftyp) acc fs
-    | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
+    | Trecord (ps, _, _) | Tvariant (ps, _, _, _) | Tabstract (ps, _, _) ->
         List.fold_left inner acc ps
     | Tfun (params, ret, _) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
@@ -221,7 +222,7 @@ let rec is_weak ~sub = function
       is_weak ~sub t
   | Tvar { contents = Unbound (id, _) } ->
       if Sset.mem id sub then false else true
-  | Trecord (ps, _, _) | Tvariant (ps, _, _) | Tabstract (ps, _, _) ->
+  | Trecord (ps, _, _) | Tvariant (ps, _, _, _) | Tabstract (ps, _, _) ->
       List.fold_left (fun b t -> is_weak ~sub t || b) false ps
   | Tfixed_array ({ contents = Unknown _ }, _) -> true
   | Tfixed_array ({ contents = Linked l }, t) ->
@@ -236,33 +237,51 @@ let rec is_weak ~sub = function
 
 let rec extract_name_path = function
   | Trecord (_, Some n, _)
-  | Tvariant (_, n, _)
+  | Tvariant (_, _, n, _)
   | Talias (n, _)
   | Tabstract (_, n, _) ->
       Some n
   | Tvar { contents = Link t } -> extract_name_path t
   | _ -> None
 
-let rec contains_allocation = function
-  | Tvar { contents = Link t } | Traw_ptr t | Talias (_, t) | Tabstract (_, _, t)
-    ->
-      contains_allocation t
-  | Tarray _ | Trc _ -> true
-  | Trecord (_, _, fs) ->
-      Array.fold_left (fun ca f -> ca || contains_allocation f.ftyp) false fs
-  | Tvariant (_, _, ctors) ->
-      Array.fold_left
-        (fun ca c ->
-          match c.ctyp with Some t -> ca || contains_allocation t | None -> ca)
-        false ctors
-  | Tprim _ -> false
-  | Qvar _ | Tvar { contents = Unbound _ } ->
-      (* We don't know yet *)
-      true
-  | Tfixed_array (_, t) -> contains_allocation t
-  | Tfun _ ->
-      (* TODO *)
-      true
+let extract_var t =
+  match clean t with
+  | Tvar { contents = Unbound (s, _) } -> s
+  | Qvar s ->
+      print_endline "qvar is a case";
+      s
+  | _ -> failwith "Internal Error: what is this rec"
+
+let contains_allocation t =
+  let rec aux recset = function
+    | Tvar { contents = Link t }
+    | Traw_ptr t
+    | Talias (_, t)
+    | Tabstract (_, _, t) ->
+        aux recset t
+    | Tarray _ | Trc _ -> true
+    | Trecord (_, _, fs) ->
+        Array.fold_left (fun ca f -> ca || aux recset f.ftyp) false fs
+    | Tvariant (_, recurs, _, ctors) ->
+        let recset =
+          match recurs with
+          | None -> recset
+          | Some t -> Sset.add (extract_var t) recset
+        in
+        Array.fold_left
+          (fun ca c ->
+            match c.ctyp with Some t -> ca || aux recset t | None -> ca)
+          false ctors
+    | Tprim _ -> false
+    | Qvar _ | Tvar { contents = Unbound _ } ->
+        (* We don't know yet *)
+        true
+    | Tfixed_array (_, t) -> aux recset t
+    | Tfun _ ->
+        (* TODO *)
+        true
+  in
+  aux Sset.empty t
 
 let mut_of_pattr = function Dmut | Dset -> true | Dnorm | Dmove -> false
 
@@ -278,7 +297,7 @@ let add_closure_copy clsd id =
 
 let is_clike_variant t =
   match clean t with
-  | Tvariant (_, _, ctors) ->
+  | Tvariant (_, _, _, ctors) ->
       Array.fold_left
         (fun clike ctor -> if Option.is_some ctor.ctyp then false else clike)
         true ctors

@@ -9,7 +9,7 @@ type typ =
   | Tfun of param list * typ * fun_kind
   | Talias of Path.t * typ
   | Trecord of typ list * Path.t option * field array
-  | Tvariant of typ list * Path.t * ctor array
+  | Tvariant of typ list * typ option * Path.t * ctor array
   | Traw_ptr of typ
   | Tarray of typ
   | Tabstract of typ list * Path.t * typ

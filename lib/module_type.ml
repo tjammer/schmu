@@ -39,12 +39,13 @@ let apply_subs (psub, tsub) typ =
         let ps = List.map aux ps in
         let fs = Array.map (fun f -> { f with ftyp = aux f.ftyp }) fs in
         Trecord (ps, Option.map subst p, fs)
-    | Tvariant (ps, p, cts) ->
+    | Tvariant (ps, recurs, p, cts) ->
         let ps = List.map aux ps in
+        let recurs = Option.map aux recurs in
         let cts =
           Array.map (fun c -> { c with ctyp = Option.map aux c.ctyp }) cts
         in
-        Tvariant (ps, subst p, cts)
+        Tvariant (ps, recurs, subst p, cts)
     | Tfun (ps, r, kind) ->
         let ps = List.map (fun p -> { p with pt = aux p.pt }) ps in
         let kind =
@@ -104,7 +105,7 @@ let adjust_type ~mname ~newvar pathsub ubsub inner typ =
             (pathsub, ubsub) fs
         in
         (pathsub, ubsub, Trecord (ps, newp, fs))
-    | Tvariant (ps, p, cts) ->
+    | Tvariant (ps, recurs, p, cts) ->
         let pathsub, newp = subst_name ~mname pathsub p inner in
         let (pathsub, ubsub), cts =
           Array.fold_left_map
@@ -119,7 +120,7 @@ let adjust_type ~mname ~newvar pathsub ubsub inner typ =
               ((pathsub, ubsub), { c with ctyp }))
             (pathsub, ubsub) cts
         in
-        (pathsub, ubsub, Tvariant (ps, newp, cts))
+        (pathsub, ubsub, Tvariant (ps, recurs, newp, cts))
     | Tfun (ps, r, kind) ->
         (match kind with
         | Simple -> ()

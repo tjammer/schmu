@@ -74,8 +74,15 @@ module Canonize = struct
             sub fs
         in
         (sub, Trecord (ts, n, fs))
-    | Tvariant (ts, n, cs) ->
+    | Tvariant (ts, recurs, n, cs) ->
         let sub, ts = List.fold_left_map (fun sub t -> canonize sub t) sub ts in
+        let sub, recurs =
+          match recurs with
+          | None -> (sub, None)
+          | Some t ->
+              let sub, t = canonize sub t in
+              (sub, Some t)
+        in
         let sub, cs =
           Array.fold_left_map
             (fun sub c ->
@@ -89,7 +96,7 @@ module Canonize = struct
               (sub, { c with ctyp }))
             sub cs
         in
-        (sub, Tvariant (ts, n, cs))
+        (sub, Tvariant (ts, recurs, n, cs))
     | Traw_ptr t ->
         let sub, t = canonize sub t in
         (sub, Traw_ptr t)
