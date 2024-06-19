@@ -307,3 +307,94 @@ let is_unbound t =
   match clean t with
   | Tvar { contents = Unbound (sym, l) } -> Some (sym, l)
   | _ -> None
+
+let rec subst_generic ~id typ = function
+  (* Substitute generic var [id] with [typ] *)
+  | Tvar { contents = Link t } -> subst_generic ~id typ t
+  | (Qvar id' | Tvar { contents = Unbound (id', _) }) when String.equal id id'
+    ->
+      typ
+  | Tfun (ps, ret, kind) ->
+      let ps =
+        List.map
+          (fun p ->
+            let pt = subst_generic ~id typ p.pt in
+            { p with pt })
+          ps
+      in
+      let ret = subst_generic ~id typ ret in
+      Tfun (ps, ret, kind)
+  | Trecord (ps, name, labels) ->
+      let ps = List.map (subst_generic ~id typ) ps in
+      let f f = { f with ftyp = subst_generic ~id typ f.ftyp } in
+      let labels = Array.map f labels in
+      Trecord (ps, name, labels)
+  | Tvariant (ps, recurs, name, ctors) ->
+      let ps = List.map (subst_generic ~id typ) ps in
+      let f c = { c with ctyp = Option.map (subst_generic ~id typ) c.ctyp } in
+      let ctors = Array.map f ctors in
+      Tvariant (ps, recurs, name, ctors)
+  | Tabstract (ps, name, t) ->
+      let ps = List.map (subst_generic ~id typ) ps in
+      let t = subst_generic ~id typ t in
+      Tabstract (ps, name, t)
+  | Traw_ptr t -> Traw_ptr (subst_generic ~id typ t)
+  | Tarray t -> Tarray (subst_generic ~id typ t)
+  | Trc t -> Trc (subst_generic ~id typ t)
+  | Tfixed_array (i, t) -> Tfixed_array (i, subst_generic ~id typ t)
+  | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
+  | t -> t
+
+and get_generic_ids = function
+  | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
+  | Tvar { contents = Link t } | Talias (_, t) -> get_generic_ids t
+  | Trecord (ps, _, _) | Tvariant (ps, _, _, _) | Tabstract (ps, _, _) ->
+      List.map get_generic_ids ps |> List.concat
+  | Tarray t | Traw_ptr t | Trc t | Tfixed_array (_, t) -> get_generic_ids t
+  | Tfun (ps, ret, _) ->
+      List.fold_left
+        (fun l p -> get_generic_ids p.pt @ l)
+        (get_generic_ids ret) ps
+  | _ -> []
+
+let unfold = function
+  | Tvariant (_, Some typ, _, _) as t ->
+      let id = get_generic_ids typ |> List.hd in
+      subst_generic ~id t t
+  | Tvariant _ as t -> t
+  | Tprim Tint as t ->
+      (* Special case for clike ctors which are treated as ints. *)
+      t
+  | t ->
+      print_endline (show_typ t);
+      failwith "Internal Error: Unfolding what?"
+
+let allowed_recursion ~recurs typ =
+  let recid = get_generic_ids recurs |> List.hd in
+  let ( >>= ) = Result.bind in
+  let rec aux behind_ptr res = function
+    (* This is similar to [get_generic_ids] above, but we look into the actual
+       types, not just the parameterization. *)
+    | Qvar id | Tvar { contents = Unbound (id, _) } ->
+        res >>= fun _ ->
+        if String.equal recid id then
+          if behind_ptr then Ok true else Error "Infinite type"
+        else res
+    | Tvar { contents = Link t } | Talias (_, t) | Tabstract (_, _, t) ->
+        aux behind_ptr res t
+    | Tvariant (_, _, _, ctors) ->
+        Array.fold_left
+          (fun res ctor ->
+            match ctor.ctyp with Some t -> aux behind_ptr res t | None -> res)
+          res ctors
+    | Trecord (_, _, fields) ->
+        Array.fold_left
+          (fun res field -> aux behind_ptr res field.ftyp)
+          res fields
+    | Traw_ptr t | Tfixed_array (_, t) -> aux behind_ptr res t
+    | Tarray t | Trc t -> aux true res t
+    | Tfun (ps, ret, _) ->
+        List.fold_left (fun res p -> aux true res p.pt) (aux true res ret) ps
+    | Tprim _ -> res
+  in
+  aux false (Ok false) typ

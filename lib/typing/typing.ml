@@ -122,58 +122,6 @@ let string_of_bop = function
   | And -> "and"
   | Or -> "or"
 
-let rec subst_generic ~id typ = function
-  (* Substitute generic var [id] with [typ] *)
-  | Tvar { contents = Link t } -> subst_generic ~id typ t
-  | (Qvar id' | Tvar { contents = Unbound (id', _) }) when String.equal id id'
-    ->
-      typ
-  | Tfun (ps, ret, kind) ->
-      let ps =
-        List.map
-          (fun p ->
-            let pt = subst_generic ~id typ p.pt in
-            { p with pt })
-          ps
-      in
-      let ret = subst_generic ~id typ ret in
-      Tfun (ps, ret, kind)
-  | Trecord (ps, name, labels) ->
-      let ps = List.map (subst_generic ~id typ) ps in
-      let f f = Types.{ f with ftyp = subst_generic ~id typ f.ftyp } in
-      let labels = Array.map f labels in
-      Trecord (ps, name, labels)
-  | Tvariant (ps, recurs, name, ctors) ->
-      let ps = List.map (subst_generic ~id typ) ps in
-      let recurs = Option.map (subst_generic ~id typ) recurs in
-      let f c =
-        Types.{ c with ctyp = Option.map (subst_generic ~id typ) c.ctyp }
-      in
-      let ctors = Array.map f ctors in
-      Tvariant (ps, recurs, name, ctors)
-  | Tabstract (ps, name, t) ->
-      let ps = List.map (subst_generic ~id typ) ps in
-      let t = subst_generic ~id typ t in
-      Tabstract (ps, name, t)
-  | Traw_ptr t -> Traw_ptr (subst_generic ~id typ t)
-  | Tarray t -> Tarray (subst_generic ~id typ t)
-  | Trc t -> Trc (subst_generic ~id typ t)
-  | Tfixed_array (i, t) -> Tfixed_array (i, subst_generic ~id typ t)
-  | Talias (name, t) -> Talias (name, subst_generic ~id typ t)
-  | t -> t
-
-and get_generic_ids = function
-  | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
-  | Tvar { contents = Link t } | Talias (_, t) -> get_generic_ids t
-  | Trecord (ps, _, _) | Tvariant (ps, _, _, _) | Tabstract (ps, _, _) ->
-      List.map get_generic_ids ps |> List.concat
-  | Tarray t | Traw_ptr t | Trc t | Tfixed_array (_, t) -> get_generic_ids t
-  | Tfun (ps, ret, _) ->
-      List.fold_left
-        (fun l p -> get_generic_ids p.pt @ l)
-        (get_generic_ids ret) ps
-  | _ -> []
-
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let fn_kind = if param then Closure [] else Simple in
 
@@ -476,7 +424,10 @@ let type_abstract env loc { Ast.poly_param; name } =
 let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
   let variant = Path.append name (Env.modpath env) in
   (* Temporarily add polymorphic type name to env *)
-  let temp_env, params = add_type_param env poly_param in
+  let (temp_env, params), recurs =
+    let tmp, recurs = add_type_param env [ name ] in
+    (add_type_param tmp poly_param, List.hd recurs)
+  in
 
   (* We follow the C way for C-style enums. At the same time, we forbid
      tag clashes for constructors with payload *)
@@ -502,12 +453,15 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
     | None -> nexti ~has_payload loc name
   in
 
+  let recurs_item = ref None in
+  let has_base = ref false in
   let ctors =
     List.map
       (fun { Ast.name = loc, cname; typ_annot; index } ->
         match typ_annot with
         | None ->
             (* Just a ctor, without data *)
+            has_base := true;
             {
               cname;
               ctyp = None;
@@ -515,6 +469,10 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
             }
         | Some annot ->
             let typ = typeof_annot ~typedef:true temp_env loc annot in
+            (match allowed_recursion ~recurs typ with
+            | Ok is ->
+                if is then recurs_item := Some recurs else has_base := true
+            | Error msg -> raise (Error (loc, msg)));
             {
               cname;
               ctyp = Some typ;
@@ -523,8 +481,10 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
       ctors
     |> Array.of_list
   in
+  if Option.is_some !recurs_item && not !has_base then
+    raise (Error (loc, "Recursive type has no base case"));
 
-  let typ = Tvariant (params, None, variant, ctors) in
+  let typ = Tvariant (params, !recurs_item, variant, ctors) in
   (* Make sure that each type name only appears once per module *)
   let typ = check_type_unique ~in_sig env loc name typ in
   (Env.add_type name ~in_sig typ env, typ)

@@ -71,3 +71,7 @@ val mut_of_pattr : Ast.decl_attr -> bool
 val add_closure_copy : closed list -> string -> closed list option
 val is_clike_variant : typ -> bool
 val is_unbound : typ -> (string * int) option
+val subst_generic : id:string -> typ -> typ -> typ
+val get_generic_ids : typ -> string list
+val unfold : typ -> typ
+val allowed_recursion : recurs:typ -> typ -> (bool, string) result

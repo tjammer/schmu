@@ -69,8 +69,13 @@ let get_ctor env loc name =
   | Some { index; typename } ->
       (* We get the ctor type from the variant *)
       let ctor, variant =
-        match Env.query_type ~instantiate loc typename env |> follow_alias with
-        | Tvariant (_, _, _, ctors) as typ -> (ctors.(index), typ)
+        match
+          let variant =
+            Env.query_type ~instantiate loc typename env |> follow_alias
+          in
+          (unfold variant, variant)
+        with
+        | Tvariant (_, _, _, ctors), typ -> (ctors.(index), typ)
         | _ -> failwith "Internal Error: Not a variant"
       in
       Some (typename, ctor, variant)
@@ -96,9 +101,8 @@ let get_variant env loc (_, name) annot =
   (* Don't use clean directly, to keep integrity of link *)
   match annot with
   | Some variant -> (
-      match clean variant with
+      match clean variant |> unfold with
       | Tvariant (_, _, typename, ctors) ->
-          (* TODO unfold *)
           let ctor =
             match array_assoc_opt name ctors with
             | Some ctor -> ctor

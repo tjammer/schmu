@@ -1250,13 +1250,14 @@ let test_syntax_let_block_other_equal () =
   test "unit"
     "type record = {a : int}\nlet {a =\n   b} =\n  let b = 0\n  {a = 10}"
 
-let test_partial_move_outer_imm () =
-  test_exn "Cannot move string literal. Use `copy`"
-    "(def a \"hii\") (defn move-a (_ a!) a) (ignore ((move-a 0) !a))"
+let test_rec_type_pos () =
+  test "unit" "type list('a) = #nil | #cons('a, rc(list))"
 
-let test_partial_move_outer_delayed () =
-  test_exn "Cannot move string literal. Use `copy`"
-    "(def a \"hii\") (defn move-a (a! _) a) (ignore ((move-a !a) 0))"
+let test_rec_type_noptr () =
+  test_exn "Infinite type" "type list('a) = #cons('a, list)"
+
+let test_rec_type_nobase () =
+  test_exn "Recursive type has no base case" "type list('a) = #cons('a, rc(list))"
 
 let case str test = test_case str `Quick test
 
@@ -1718,4 +1719,8 @@ do:
           case "let block move" test_syntax_let_block_move;
           case "let block other equal" test_syntax_let_block_other_equal;
         ] );
+      ("recursive types", [ case "type pos" test_rec_type_pos;
+                            case "type noptr" test_rec_type_noptr;
+                            case "type nobase" test_rec_type_nobase
+                          ]);
     ]

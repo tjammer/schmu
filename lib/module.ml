@@ -265,7 +265,7 @@ let rec add_to_env env foreign (mname, m) =
           | Mtype
               ( _,
                 (( Trecord (_, Some name, _)
-                 | Tvariant (_, _,name, _)
+                 | Tvariant (_, _, name, _)
                  | Talias (name, _) ) as t) ) ->
               Env.add_type (Path.get_hd name) ~in_sig:false t env
           | Mtype (_, t) ->
