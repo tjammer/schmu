@@ -1257,7 +1257,8 @@ let test_rec_type_noptr () =
   test_exn "Infinite type" "type list('a) = #cons('a, list)"
 
 let test_rec_type_nobase () =
-  test_exn "Recursive type has no base case" "type list('a) = #cons('a, rc(list))"
+  test_exn "Recursive type has no base case"
+    "type list('a) = #cons('a, rc(list))"
 
 let case str test = test_case str `Quick test
 
@@ -1719,8 +1720,10 @@ do:
           case "let block move" test_syntax_let_block_move;
           case "let block other equal" test_syntax_let_block_other_equal;
         ] );
-      ("recursive types", [ case "type pos" test_rec_type_pos;
-                            case "type noptr" test_rec_type_noptr;
-                            case "type nobase" test_rec_type_nobase
-                          ]);
+      ( "recursive types",
+        [
+          case "type pos" test_rec_type_pos;
+          case "type noptr" test_rec_type_noptr;
+          case "type nobase" test_rec_type_nobase;
+        ] );
     ]
