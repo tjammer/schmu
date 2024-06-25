@@ -10,7 +10,7 @@ type typ =
   | Tpoly of string
   | Tfun of param list * typ * fun_kind
   | Trecord of typ list * string option * field array
-  | Tvariant of typ list * string * ctor array
+  | Tvariant of typ list * typ option * string * ctor array
   | Traw_ptr of typ
   | Tarray of typ
   | Tfixed_array of int * typ
@@ -38,3 +38,5 @@ val is_struct : typ -> bool
 
 val is_aggregate : typ -> bool
 val contains_allocation : typ -> bool
+val folded : typ -> typ
+val unfolded : typ -> typ

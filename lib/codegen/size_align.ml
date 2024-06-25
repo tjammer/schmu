@@ -33,7 +33,7 @@ let rec size_align_impl size_pr typ =
       in
       let sz = alignup ~size ~upto in
       add_size_align ~upto ~sz size_pr
-  | Tvariant (_, _, ctors) ->
+  | Tvariant (_, _, _, ctors) ->
       (* For simplicity, we use i32 for the tag. If the variant contains no data
          i.e. is a C enum, we want to use i32 anyway, since that's what C uses.
          And then we don't have to worry about the size *)

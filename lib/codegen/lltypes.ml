@@ -137,7 +137,7 @@ module Make (A : Abi_intf.S) = struct
         Llvm.struct_set_body t lltyp false;
         Strtbl.replace struct_tbl name t;
         t
-    | Tvariant (_, _, ctors) -> (
+    | Tvariant (_, _, _, ctors) -> (
         (* We loop throug each ctor and then we use the largest one as a
            typedef for the whole type *)
         let tag = i32_t in

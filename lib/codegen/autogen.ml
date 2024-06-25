@@ -21,7 +21,7 @@ struct
         Array.fold_left
           (fun ts f -> if contains_allocation f.ftyp then f.ftyp :: ts else ts)
           ts fields
-    | Tvariant (_, _, ctors) ->
+    | Tvariant (_, _, _, ctors) ->
         Array.fold_left
           (fun ts c ->
             match c.ctyp with
@@ -260,7 +260,7 @@ struct
               let v = follow_field dst i in
               copy_inner_call v)
           fs
-    | Tvariant (_, _, ctors) ->
+    | Tvariant (_, _, _, ctors) ->
         let index = var_index dst in
         let f i c =
           match c.ctyp with
@@ -431,7 +431,7 @@ struct
               let v = follow_field v i in
               free_call v)
           fs
-    | Tvariant (_, _, ctors) ->
+    | Tvariant (_, _, _, ctors) ->
         let index = var_index v in
         let f i c =
           match c.ctyp with
