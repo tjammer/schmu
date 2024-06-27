@@ -7,6 +7,7 @@ struct
   open H
   open Arr
   open Malloc_types
+  module Sset = Set.Make (String)
 
   type func = Copy | Free | Free_except of Pset.t
 
@@ -14,22 +15,31 @@ struct
   let cls_func_tbl = Hashtbl.create 64
   let ci i = Llvm.const_int int_t i
 
-  let alloc_types ts = function
-    | Tarray t -> t :: ts
-    | Trc t -> t :: ts
+  let alloc_types recurs ts = function
+    | Tarray t -> (t :: ts, recurs)
+    | Trc t -> (t :: ts, recurs)
     | Trecord (_, _, fields) ->
-        Array.fold_left
-          (fun ts f -> if contains_allocation f.ftyp then f.ftyp :: ts else ts)
-          ts fields
-    | Tvariant (_, _, _, ctors) ->
-        Array.fold_left
-          (fun ts c ->
-            match c.ctyp with
-            | Some t -> if contains_allocation t then t :: ts else ts
-            | None -> ts)
-          ts ctors
-    | Tfixed_array (_, t) -> if contains_allocation t then t :: ts else ts
-    | _ -> ts
+        ( Array.fold_left
+            (fun ts f ->
+              if contains_allocation f.ftyp then f.ftyp :: ts else ts)
+            ts fields,
+          recurs )
+    | Tvariant (_, rc, _, ctors) ->
+        let recurs =
+          match rc with
+          | Some (Tpoly id) -> Sset.add id recurs
+          | None | Some _ -> recurs
+        in
+        ( Array.fold_left
+            (fun ts c ->
+              match c.ctyp with
+              | Some t -> if contains_allocation t then t :: ts else ts
+              | None -> ts)
+            ts ctors,
+          recurs )
+    | Tfixed_array (_, t) ->
+        if contains_allocation t then (t :: ts, recurs) else (ts, recurs)
+    | _ -> (ts, recurs)
 
   let path_name pset =
     let show_path path = String.concat "-" (List.map string_of_int path) in
@@ -81,16 +91,20 @@ struct
         Llvm.build_store v.value value builder |> ignore;
         { v with value; kind = Ptr }
 
-  let rec decl_children kind pseudovar t =
+  let is_recurs recurs = function
+    | Tpoly id when Sset.mem id recurs -> true
+    | _ -> false
+
+  let rec decl_children ?(recurs = Sset.empty) kind pseudovar t =
     (* The copy function navigates to allocated children, but we
        have to make sure the function for each type is available *)
-    let ts = alloc_types [] t in
+    let ts, recurs = alloc_types recurs [] t in
     let f typ =
       (* Value will be set correctly at [gen_functions].
          Make sure other fields are correct *)
-      if contains_allocation typ then (
+      if contains_allocation typ && not (is_recurs recurs typ) then (
         make_fn kind { pseudovar with typ; kind = Ptr } |> ignore;
-        decl_children kind pseudovar typ)
+        decl_children ~recurs kind pseudovar typ)
     in
     List.iter f ts
 
@@ -328,6 +342,13 @@ struct
     let ft, f = make_fn Free v in
     Llvm.build_call ft f [| v.value |] "" builder |> ignore
 
+  let free_call_only v =
+    let name = name v.typ Free in
+    match Hashtbl.find_opt func_tbl name with
+    | Some (_, _, (ft, f)) ->
+        Llvm.build_call ft f [| v.value |] "" builder |> ignore
+    | None -> ()
+
   let free_except_call pset v =
     let ft, f = make_fn (Free_except pset) v in
     Llvm.build_call ft f [| v.value |] "" builder |> ignore
@@ -386,7 +407,7 @@ struct
            let sz = Llvm.build_gep int_t v.value [| ci 0 |] "sz" builder in
            let sz = Llvm.build_load int_t sz "size" builder in
 
-           iter_array_children v sz t free_call);
+           iter_array_children v sz t free_call_only);
 
         free_var v.value |> ignore
     | Trc item_typ ->
@@ -418,7 +439,7 @@ struct
         (* free *)
         Llvm.position_at_end free_bb builder;
         let value = Llvm.build_gep int_t v.value [| ci 1 |] "vl" builder in
-        free_call
+        free_call_only
           { value; typ = item_typ; lltyp = get_lltype_def item_typ; kind = Ptr };
         free_var v.value |> ignore;
         ignore (Llvm.build_br merge_bb builder);
@@ -429,7 +450,7 @@ struct
           (fun i f ->
             if contains_allocation f.ftyp then
               let v = follow_field v i in
-              free_call v)
+              free_call_only v)
           fs
     | Tvariant (_, _, _, ctors) ->
         let index = var_index v in
@@ -454,7 +475,7 @@ struct
                 (* Get data and apply [fn] *)
                 Llvm.position_at_end match_bb builder;
                 let data = var_data v t in
-                free_call data;
+                free_call_only data;
                 ignore (Llvm.build_br cont_bb builder);
 
                 Llvm.position_at_end cont_bb builder)
@@ -500,7 +521,8 @@ struct
 
         Llvm.position_at_end ret_bb builder
     | Tfixed_array (i, t) ->
-        if contains_allocation t then iter_fixed_array_children v i t free_call
+        if contains_allocation t then
+          iter_fixed_array_children v i t free_call_only
     | _ ->
         print_endline (show_typ v.typ);
         failwith "Internal Error: What are we freeing?"
@@ -515,7 +537,7 @@ struct
               | Not_excl ->
                   (* Copy from [free_impl] *)
                   let v = follow_field v i in
-                  free_call v
+                  free_call_only v
               | Excl -> (* field is excluded, do nothing *) ()
               | Followup pset ->
                   let v = follow_field v i in
@@ -529,8 +551,8 @@ struct
         let bb = Llvm.append_block context "entry" f in
         Llvm.position_at_end bb builder;
 
-        let lltyp = get_lltype_def v.typ in
-        let v = { v with value = Llvm.param f 0; kind = Ptr; lltyp } in
+        let lltyp = get_lltype_def v.typ and typ = unfolded v.typ in
+        let v = { typ; value = Llvm.param f 0; kind = Ptr; lltyp } in
         match kind with
         | Copy ->
             copy_impl v;

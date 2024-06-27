@@ -503,3 +503,7 @@ Mutate in pattern matches
 Don't free catchall let pattern in other branch
   $ schmu dont_free_catchall_let_pattern.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./dont_free_catchall_let_pattern
+
+Basic recursive types
+  $ schmu recursive.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./recursive

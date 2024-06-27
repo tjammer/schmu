@@ -1,0 +1,11 @@
+type list0('a) = #nil | #cons('a, rc(list0))
+
+let list = #cons(0, rc/create(!#cons(1, rc/create(!#cons(1, rc/create(!#cons(1, rc/create(!#cons(1, rc/create(!#nil))))))))))
+
+let _ = copy(list)
+
+type list('a) = #nil | #cons('a, option(rc(list)))
+
+let _ = rc/create(!#cons(1, #none))
+let fst = rc/create(!#cons(1, #some(rc/create(!#nil))))
+let _ = #cons(0, #some(fst.copy()))
