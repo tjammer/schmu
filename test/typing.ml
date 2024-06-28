@@ -1253,8 +1253,14 @@ let test_syntax_let_block_other_equal () =
 let test_rec_type_pos () =
   test "unit" "type list('a) = #nil | #cons('a, rc(list))"
 
+let test_rec_type_pos_array () =
+  test "unit" "type list('a) = #nil | #cons('a, array(list))"
+
 let test_rec_type_noptr () =
   test_exn "Infinite type" "type list('a) = #cons('a, list)"
+
+let test_rec_type_noptr_array () =
+  test_exn "Infinite type" "type list('a) = #cons('a, array#1(list))"
 
 let test_rec_type_nobase () =
   test_exn "Recursive type has no base case"
@@ -1723,7 +1729,9 @@ do:
       ( "recursive types",
         [
           case "type pos" test_rec_type_pos;
+          case "type pos array" test_rec_type_pos_array;
           case "type noptr" test_rec_type_noptr;
+          case "type noptr fixed array" test_rec_type_noptr_array;
           case "type nobase" test_rec_type_nobase;
         ] );
     ]
