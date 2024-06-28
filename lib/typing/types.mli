@@ -51,6 +51,9 @@ val tu16 : typ
 val clean : typ -> typ
 (** Follows links and aliases *)
 
+val repr : typ -> typ
+(** Extract real type (follow links) and do path compression *)
+
 val string_of_type : Path.t -> typ -> string
 (** Normal version, will name type vars starting from 'a *)
 

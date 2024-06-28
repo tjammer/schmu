@@ -93,6 +93,14 @@ let rec clean = function
   | Trc t -> Trc (clean t)
   | (Tvar _ | Tprim _ | Qvar _) as t -> t
 
+let rec repr = function
+  (* Do path compression *)
+  | Tvar ({ contents = Link t } as tvr) ->
+      let t = repr t in
+      tvr := Link t;
+      t
+  | t -> t
+
 let pp_to_name name = "'" ^ name
 
 let string_of_type_raw get_name typ mname =

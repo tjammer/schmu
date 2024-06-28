@@ -55,14 +55,6 @@ let rec occurs tvr = function
 
 exception Unify
 
-let rec repr = function
-  (* Do path compression *)
-  | Tvar ({ contents = Link t } as tvr) ->
-      let t = repr t in
-      tvr := Link t;
-      t
-  | t -> t
-
 let extract_name t =
   match repr t with
   | Tvar { contents = Unbound (s, _) } -> s

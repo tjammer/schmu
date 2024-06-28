@@ -446,7 +446,7 @@ let get_closed_make_usage usage tree (use : touched) =
   match usage with
   | Usage.Uread -> (tree, Usage.of_attr use.tattr)
   | Umove -> (
-      match clean tree.typ with
+      match repr tree.typ with
       | Tfun (_, _, Closure cls) -> (
           match
             List.find_opt (fun c -> String.equal c.clname use.tname) cls
@@ -463,7 +463,7 @@ let get_closed_make_usage usage tree (use : touched) =
 
 let get_closed_make_usage_delayed tree b =
   (* Compared to above, we are implicitly in the [Umove] usage *)
-  match clean tree.typ with
+  match repr tree.typ with
   | Tfun (_, _, Closure cls) -> (
       let id = Id.only_id b.borrowed.id in
       match List.find_opt (fun c -> String.equal c.clname id) cls with

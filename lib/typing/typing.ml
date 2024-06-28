@@ -148,7 +148,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Trc _ -> Some (Path.Pid "rc", 1)
     | Tfixed_array _ -> Some (Path.Pid "array#?", 1)
     | Talias (name, t) -> (
-        let cleaned = clean t in
+        let cleaned = repr t in
         match is_quantified cleaned with
         | Some (_, n) when is_polymorphic cleaned -> Some (name, n)
         | Some _ | None -> (* When can alias a concrete type *) None)
@@ -277,7 +277,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
 
 let rec param_annots t =
   let annot t =
-    match clean t with
+    match repr t with
     | Qvar _ | Tvar { contents = Unbound _ } -> None
     | _ -> Some t
   in
@@ -525,7 +525,7 @@ let rec is_poly_call texpr =
   | Set _ | Ctor _ | Variant_index _ | Variant_data _ | Fmt _ ->
       false
   | App _ when is_polymorphic texpr.typ -> (
-      match clean texpr.typ with Tfun _ -> true | _ -> false)
+      match repr texpr.typ with Tfun _ -> true | _ -> false)
   | App _ -> false
   | Let d -> is_poly_call d.cont
   | Bind (_, _, cont)
@@ -714,7 +714,7 @@ end = struct
           leave_level ();
           (* We generalize functions, but allow weak variables for value types *)
           let typ =
-            match clean t.typ with Tfun _ -> generalize t.typ | _ -> t.typ
+            match repr t.typ with Tfun _ -> generalize t.typ | _ -> t.typ
           in
           { t with typ }
       | Some annot ->
@@ -723,7 +723,7 @@ end = struct
           leave_level ();
 
           let typ =
-            match clean t.typ with
+            match repr t.typ with
             | Tfun _ -> check_annot env loc t.typ t_annot
             | _ ->
                 unify (loc, "In let binding") t.typ t_annot env;
@@ -1395,7 +1395,7 @@ and catch_weak_expr env sub e =
           ( Var (("__unsafe_funptr" | "__unsafe_clsptr"), None)
           | Var (("funptr" | "clsptr"), Some (Path.Pid "unsafe")) ) -> (
           let fst_arg = List.hd args |> fst in
-          match clean fst_arg.typ with
+          match repr fst_arg.typ with
           | Tfun _ -> ()
           | t ->
               print_endline ("t: " ^ show_typ t);
