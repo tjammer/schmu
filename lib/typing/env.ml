@@ -664,17 +664,14 @@ let find_type_same_module key env =
      anything,we return None. This only works because the toplevel has Sfunc
      instead of Smodule, and type declarations are only allowed at toplevel so no
      function scope can be introduced*)
-  let full_name = Path.append key env.modpath in
   let rec aux = function
     | [] -> None
+    | { kind = Smodule _; _ } :: tl -> aux tl
     | scope :: tl -> (
         match (Map.find_opt key scope.types, scope.kind) with
-        | None, Sfunc _ -> None
+        | None, Stoplevel _ -> None
         | None, _ -> aux tl
-        | Some t, _ ->
-            (* Only named types are in the env. Extracting names of named types should never fail *)
-            let path = extract_name_path (fst t) |> Option.get in
-            if Path.equal full_name path then Some t else aux tl)
+        | Some t, _ -> Some t)
   in
   aux env.values
 
