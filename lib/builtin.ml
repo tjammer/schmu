@@ -139,13 +139,13 @@ let tbl =
   Hashtbl.add tbl "f32_of_i32"
     (F32_of_i32, Tfun ([ { p with pt = ti32 } ], tf32, Simple));
   Hashtbl.add tbl "u8_of_int"
-    (U8_of_int, Tfun ([ { p with pt = tint } ], Tprim Tu8, Simple));
+    (U8_of_int, Tfun ([ { p with pt = tint } ], tu8, Simple));
   Hashtbl.add tbl "u8_to_int"
-    (U8_to_int, Tfun ([ { p with pt = Tprim Tu8 } ], tint, Simple));
+    (U8_to_int, Tfun ([ { p with pt = tu8 } ], tint, Simple));
   Hashtbl.add tbl "u16_of_int"
-    (U16_of_int, Tfun ([ { p with pt = tint } ], Tprim Tu16, Simple));
+    (U16_of_int, Tfun ([ { p with pt = tint } ], tu16, Simple));
   Hashtbl.add tbl "u16_to_int"
-    (U16_to_int, Tfun ([ { p with pt = Tprim Tu16 } ], tint, Simple));
+    (U16_to_int, Tfun ([ { p with pt = tu16 } ], tint, Simple));
   Hashtbl.add tbl "not" (Not, Tfun ([ { p with pt = tbool } ], tbool, Simple));
   Hashtbl.add tbl "mod"
     (Mod, Tfun ([ { p with pt = tint }; { p with pt = tint } ], tint, Simple));
@@ -204,7 +204,7 @@ let tbl =
     ( Unsafe_array_length,
       Tfun ([ { p with pt = Tarray (Qvar "0") } ], tint, Simple) );
   Hashtbl.add tbl "__unsafe_nullptr"
-    (Unsafe_nullptr, Tfun ([], Traw_ptr (Tprim Tu8), Simple));
+    (Unsafe_nullptr, Tfun ([], Traw_ptr tu8, Simple));
   Hashtbl.add tbl "__unsafe_funptr"
     (Unsafe_funptr, Tfun ([ { p with pt = Qvar "0" } ], Traw_ptr tunit, Simple));
   Hashtbl.add tbl "__unsafe_clsptr"

@@ -57,18 +57,8 @@ val repr : typ -> typ
 val string_of_type : Path.t -> typ -> string
 (** Normal version, will name type vars starting from 'a *)
 
-val string_of_type_lit : Path.t -> typ -> string
-(** Version with literal type vars (for annotations) *)
-
-val string_of_type_subst : string Smap.t -> Path.t -> typ -> string
-(** Version using the subst table created during comparison with annot *)
-
-val create_string_of_type : Path.t -> typ -> string
-(** Used for creating the subst function, for printing error messages *)
-
 val is_polymorphic : typ -> bool
 val is_weak : sub:Sset.t -> typ -> bool
-val extract_name_path : typ -> Path.t option
 val contains_allocation : typ -> bool
 val mut_of_pattr : Ast.decl_attr -> bool
 val add_closure_copy : closed list -> string -> closed list option

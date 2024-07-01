@@ -669,6 +669,3 @@ let to_module_type { s; i; _ } =
   | [], _ -> failwith "Internal Error: Module type is empty"
   | items, [] -> items
   | _ -> failwith "Internal Error: Module type has an implementation"
-
-let int_of_hexnum s = String.sub s 1 (String.length s - 2) |> int_of_string
-let () = assert (1234 = int_of_hexnum "#1234[")

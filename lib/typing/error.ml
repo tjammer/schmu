@@ -8,8 +8,8 @@ let format_type_err pre mname t1 t2 =
      highlight the differences with [<type>]. We can afford to write this in a
      naive way like using string comparisons etc. It will only be called if an
      error has been raised *)
-  let sotl = create_string_of_type mname in
-  let sotr = create_string_of_type mname in
+  let sotl = string_of_type mname in
+  let sotr = string_of_type mname in
   let rec aux t1 t2 =
     let plist sot ps = String.concat ", " (List.map (fun p -> sot p.pt) ps) in
     let flist sot fs =

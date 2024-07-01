@@ -191,16 +191,10 @@ let string_of_type_get_name subst =
         Strtbl.add tbl name s;
         pp_to_name s
 
-let string_of_type mname typ =
-  string_of_type_raw (string_of_type_get_name Smap.empty) typ mname
-
-let string_of_type_lit mname typ = string_of_type_raw pp_to_name typ mname
-
-let string_of_type_subst subst mname typ =
-  string_of_type_raw (string_of_type_get_name subst) typ mname
-
-let create_string_of_type mname =
+let string_of_type mname =
   let subst = string_of_type_get_name Smap.empty in
+  (* Returning a closure makes it possible to create the substitution and use it
+     multiple times for different types. This is used in [format_type_err] *)
   fun typ -> string_of_type_raw subst typ mname
 
 let is_polymorphic typ =
@@ -242,15 +236,6 @@ let rec is_weak ~sub = function
          I'm not sure if this leaves some weak variables undetected, but
          at least some are caught *)
       false
-
-let rec extract_name_path = function
-  | Trecord (_, Some n, _)
-  | Tvariant (_, _, n, _)
-  | Talias (n, _)
-  | Tabstract (_, n, _) ->
-      Some n
-  | Tvar { contents = Link t } -> extract_name_path t
-  | _ -> None
 
 let extract_var t =
   match clean t with
