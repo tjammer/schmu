@@ -61,42 +61,12 @@ module Canonize = struct
               (sub, Closure cl)
         in
         (sub, Tfun (ps, r, k))
-    | Talias (n, t) ->
-        let sub, t = canonize sub t in
-        (sub, Talias (n, t))
-    | Trecord (ts, n, fs) ->
-        let sub, ts = List.fold_left_map (fun sub t -> canonize sub t) sub ts in
-        let sub, fs =
-          Array.fold_left_map
-            (fun sub f ->
-              let sub, ftyp = canonize sub f.ftyp in
-              (sub, { f with ftyp }))
-            sub fs
-        in
-        (sub, Trecord (ts, n, fs))
-    | Tvariant (ts, recurs, n, cs) ->
-        let sub, ts = List.fold_left_map (fun sub t -> canonize sub t) sub ts in
-        let sub, recurs =
-          match recurs with
-          | None -> (sub, None)
-          | Some t ->
-              let sub, t = canonize sub t in
-              (sub, Some t)
-        in
-        let sub, cs =
-          Array.fold_left_map
-            (fun sub c ->
-              let sub, ctyp =
-                match c.ctyp with
-                | Some t ->
-                    let sub, t = canonize sub t in
-                    (sub, Some t)
-                | None -> (sub, None)
-              in
-              (sub, { c with ctyp }))
-            sub cs
-        in
-        (sub, Tvariant (ts, recurs, n, cs))
+    | Ttuple ts ->
+        let sub, ts = List.fold_left_map canonize sub ts in
+        (sub, Ttuple ts)
+    | Tconstr (p, ps) ->
+        let sub, ps = List.fold_left_map canonize sub ps in
+        (sub, Tconstr (p, ps))
     | Traw_ptr t ->
         let sub, t = canonize sub t in
         (sub, Traw_ptr t)
@@ -109,24 +79,6 @@ module Canonize = struct
     | Trc t ->
         let sub, t = canonize sub t in
         (sub, Trc t)
-    | Tabstract (ps, n, t) ->
-        let sub, ps = List.fold_left_map (fun sub t -> canonize sub t) sub ps in
-        let sub, t =
-          match t with
-          | Tvar { contents = Unbound (sym, l) } -> (
-              (* If it's still unbound, then it belongs to a module-type.
-                 Use the same mechanism as for Qvar ids to create something sensible *)
-              match Smap.find_opt sym sub with
-              | Some s -> (sub, Tvar (ref (Unbound (s, l))))
-              | None ->
-                  let ns = string_of_int !c in
-                  incr c;
-                  (Smap.add sym ns sub, Tvar (ref (Unbound (ns, l)))))
-          | t ->
-              let sub, t = canonize sub t in
-              (sub, t)
-        in
-        (sub, Tabstract (ps, n, t))
 end
 
 module Make (C : Map_tree) = struct
@@ -319,9 +271,7 @@ module Make (C : Map_tree) = struct
   open Module_common
 
   let rec fold_map_type_item mname (sub, nsub) = function
-    | Mtype (l, t) ->
-        let a, t = C.map_type sub t in
-        ((a, nsub), Mtype (l, t))
+    | Mtype (l, n, decl) -> ((sub, nsub), Mtype (l, n, decl))
     | Mfun (l, t, n) ->
         let a, t = C.map_type sub t in
         ((a, nsub), Mfun (l, t, n))
@@ -378,9 +328,6 @@ module Make (C : Map_tree) = struct
     (sub, { m with s; i })
 
   and map_intf sub intf =
-    List.fold_left_map
-      (fun sub (key, l, t, k) ->
-        let sub, t = C.map_type sub t in
-        (sub, (key, l, t, k)))
-      sub intf
+    (* TODO map decl *)
+    List.fold_left_map (fun sub (key, l, k) -> (sub, (key, l, k))) sub intf
 end

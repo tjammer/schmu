@@ -62,7 +62,7 @@ val change_type : key -> typ -> t -> t
 val mark_unused : key -> t -> bool
 (** Returns if the value was used. To not mark internal recursive calls as used *)
 
-val add_type : string -> in_sig:bool -> typ -> t -> t
+val add_type : string -> type_decl -> t -> t
 val add_module : key:string -> cached_module -> t -> t
 val add_module_alias : Ast.loc -> key:string -> mname:Path.t -> t -> t
 val add_module_type : string -> Module_type.t -> t -> t
@@ -85,15 +85,9 @@ val query_val_opt : Ast.loc -> Path.t -> t -> value option
 
 val open_mutation : t -> unit
 val close_mutation : t -> unit
-
-(* bool: in signature *)
-val find_type_opt : Ast.loc -> Path.t -> t -> (typ * bool) option
-val find_type : Ast.loc -> Path.t -> t -> typ * bool
-val find_type_same_module : string -> t -> (typ * bool) option
-
-val query_type : instantiate:(typ -> typ) -> Ast.loc -> Path.t -> t -> typ
-(** [query_type name env] is like [find_type], but instantiates new types for parametrized types*)
-
+val find_type_opt : Ast.loc -> Path.t -> t -> type_decl option
+val find_type : Ast.loc -> Path.t -> t -> type_decl
+val find_type_same_module : string -> t -> type_decl option
 val find_module_opt : ?query:bool -> Ast.loc -> Path.t -> t -> Path.t option
 val find_module_type_opt : Ast.loc -> Path.t -> t -> Module_type.t option
 

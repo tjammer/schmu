@@ -11,10 +11,8 @@ let format_type_err pre mname t1 t2 =
   let sotl = string_of_type mname in
   let sotr = string_of_type mname in
   let rec aux t1 t2 =
+    let tlist sot ps = String.concat ", " (List.map sot ps) in
     let plist sot ps = String.concat ", " (List.map (fun p -> sot p.pt) ps) in
-    let flist sot fs =
-      String.concat ", " (Array.map (fun f -> sot f.ftyp) fs |> Array.to_list)
-    in
     (* TODO parameter version with passing *)
     let difflist l r =
       let _, found, l, r =
@@ -83,14 +81,12 @@ let format_type_err pre mname t1 t2 =
           (* This could be an inner function. If the strings are the same, we only
              return a placeholder *)
           if String.equal l r then (found, "_", "_") else (found, l, r)
-    | Trecord (_, None, ls), Trecord (_, None, rs) ->
-        if Array.length ls <> Array.length rs then
-          let ls = "[(" ^ flist sotl ls ^ ")]"
-          and rs = "[(" ^ flist sotr rs ^ ")]" in
+    | Ttuple ls, Ttuple rs ->
+        if List.length ls <> List.length rs then
+          let ls = "[(" ^ tlist sotl ls ^ ")]"
+          and rs = "[(" ^ tlist sotr rs ^ ")]" in
           (true, ls, rs)
         else
-          let ls = Array.to_list ls |> List.map (fun f -> f.ftyp)
-          and rs = Array.to_list rs |> List.map (fun f -> f.ftyp) in
           let found, l, r = difflist ls rs in
           if String.equal l r then (found, "_", "_")
           else (found, "(" ^ l ^ ")", "(" ^ r ^ ")")

@@ -9,9 +9,9 @@ val unique_name : mname:Path.t -> string -> int option -> string
 val lambda_name : mname:Path.t -> int -> string
 val absolute_module_name : mname:Path.t -> string -> string
 val functor_param_name : mname:Path.t -> string -> Path.t
-val add_type_sig : loc -> string -> typ -> t -> t
+val add_type_sig : loc -> string -> type_decl -> t -> t
 val add_value_sig : loc -> string -> typ -> t -> t
-val add_type : loc -> typ -> t -> t
+val add_type : loc -> string -> type_decl -> t -> t
 
 val add_fun :
   loc ->

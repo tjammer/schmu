@@ -30,6 +30,9 @@ module type S = sig
 
   val get_record_type :
     Env.t -> Ast.loc -> string list -> Types.typ option -> Types.typ
+
+  val fields_of_record :
+    Ast.loc -> Path.t -> Env.t -> (Types.field array, unit) result
 end
 
 module Make (C : Core) : S

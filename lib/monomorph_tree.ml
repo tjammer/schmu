@@ -155,7 +155,7 @@ let reconstr_module_username ~mname ~mainmod username =
   if imported then Module.absolute_module_name ~mname username else username
 
 let rec cln p = function
-  | Types.Tvar { contents = Link t } | Talias (_, t) -> cln p t
+  | Types.Tvar { contents = Link t } -> cln p t
   | Tprim Tint -> Tint
   | Tprim Tbool -> Tbool
   | Tprim Tunit -> Tunit
@@ -167,29 +167,6 @@ let rec cln p = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
       Tfun (List.map (cln_param p) params, cln p ret, cln_kind p kind)
-  | Trecord (ps, name, fields) ->
-      let ps = List.map (cln p) ps in
-      let fields =
-        Array.map
-          (fun field -> { ftyp = cln p Types.(field.ftyp); mut = field.mut })
-          fields
-      in
-      let name = Option.map Path.type_name name in
-      Trecord (ps, name, fields)
-  | Tvariant (ps, recurs, name, ctors) ->
-      let ps = List.map (cln p) ps in
-      let ctors =
-        Array.map
-          (fun ctor ->
-            {
-              cname = Types.(ctor.cname);
-              ctyp = Option.map (cln p) ctor.ctyp;
-              index = ctor.index;
-            })
-          ctors
-      in
-      let recurs = Option.map (cln p) recurs in
-      Tvariant (ps, recurs, Path.type_name name, ctors) |> unfolded
   | Traw_ptr t -> Traw_ptr (cln p t)
   | Tarray t -> Tarray (cln p t)
   | Trc t -> Trc (cln p t)
@@ -205,13 +182,9 @@ let rec cln p = function
       Tfixed_array (-int_of_string i, cln p t)
   | Tfixed_array ({ contents = Known i }, t) -> Tfixed_array (i, cln p t)
   | Tfixed_array ({ contents = Linked iv }, t) ->
-      cln p Types.(Tfixed_array (iv, t))
-  | Tabstract (_, _, Tvar { contents = Unbound _ }) as t ->
-      print_endline (Types.show_typ t);
-      failwith "Internal Error: How did this come through?"
-  | Tabstract (_, _, t) ->
-      (* Turn abstract type into its real representation for codegen *)
-      cln p t
+      cln p Types.(Tfixed_array (iv, t)) (* TODO *)
+  | Ttuple _ -> Tunit
+  | Tconstr _ -> Tunit
 
 and cln_kind p = function
   | Simple -> Simple

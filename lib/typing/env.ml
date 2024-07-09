@@ -18,7 +18,6 @@ end
 
 module Labelset = Set.Make (String)
 module Lmap = Map.Make (Labelset)
-module Tmap = Map.Make (Path)
 module Etbl = Hashtbl.Make (Type_key)
 module Map = Map.Make (String)
 
@@ -102,7 +101,7 @@ type scope = {
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : Path.t Lmap.t; (* For finding the type of a record expression *)
   ctors : label Map.t; (* Variant constructors *)
-  types : (typ * bool) Map.t;
+  types : type_decl Map.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
   modules : cached_module Map.t; (* Locally declared modules *)
   module_types : Module_type.t Map.t;
@@ -311,25 +310,27 @@ let add_ctors typename ctors scope =
   in
   ctors
 
-let add_record name record in_sig ~params ~labels env =
+let add_record record in_sgn ~params ~labels env =
   let scope, tl = decap_exn env in
-  let typ = Trecord (params, Some record, labels) in
+  let decl = { params; kind = Drecord labels; in_sgn } in
 
   let labelset =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
   in
 
-  let labelsets, labels = add_labels record labelset labels scope in
+  let abs_name = Path.append record env.modpath in
+  let labelsets, labels = add_labels abs_name labelset labels scope in
 
-  let types = Map.add name (typ, in_sig) scope.types in
+  let types = Map.add record decl scope.types in
   { env with values = { scope with labels; types; labelsets } :: tl }
 
-let add_variant name variant in_sig ~recurs ~params ~ctors env =
+let add_variant variant in_sgn ~recurs ~params ~ctors env =
   let scope, tl = decap_exn env in
-  let typ = Tvariant (params, recurs, variant, ctors) in
+  let decl = { params; kind = Dvariant (recurs, ctors); in_sgn } in
 
-  let ctors = add_ctors variant ctors scope in
-  let types = Map.add name (typ, in_sig) scope.types in
+  let abs_name = Path.append variant env.modpath in
+  let ctors = add_ctors abs_name ctors scope in
+  let types = Map.add variant decl scope.types in
   { env with values = { scope with ctors; types } :: tl }
 
 let add_module ~key cached_module env =
@@ -430,7 +431,7 @@ let close_thing is_same modpath env =
                     Or: if they are closures *)
                  (* Const values (and imported ones) are not closed over, they exist module-wide *)
                  let is_imported = is_imported env.modpath mname in
-                 let cleantyp = clean typ in
+                 let cleantyp = repr typ in
                  let cl =
                    if (const && not clmut) || global || is_imported then None
                    else
@@ -677,21 +678,6 @@ let find_type_same_module key env =
 
 let mark_module_used = function Smodule usage -> usage.used := true | _ -> ()
 
-let query_type ~instantiate loc key env =
-  find_general
-    ~find:(fun key scope ->
-      match (Map.find_opt key scope.types, scope.kind) with
-      | Some t, Smodule { used; _ } ->
-          used := true;
-          Some (fst t)
-      | Some t, (Stoplevel _ | Sfunc _ | Scont _) -> Some (fst t)
-      | None, _ -> None)
-    ~found:(fun kind f ->
-      mark_module_used kind;
-      f)
-    loc key env
-  |> Option.get |> instantiate
-
 let find_module_opt ?(query = false) loc name env =
   find_general
     ~find:(fun key scope -> Map.find_opt key scope.modules)
@@ -727,7 +713,10 @@ let find_labelset_opt loc labels env =
         match Lmap.find_opt (Labelset.of_list labels) scope.labelsets with
         | Some name ->
             mark_module_used scope.kind;
-            Some (find_type loc name env |> fst)
+            let decl = find_type loc name env in
+            (* Construct a new type. If it has labels, it's a type
+               constructor. *)
+            Some (Tconstr (name, decl.params))
         | None -> aux tl)
   in
   aux env.values
@@ -744,38 +733,43 @@ let find_ctor_opt name env =
   in
   aux env.values
 
-let rec make_alias_usable scope = function
-  | Trecord (_, Some name, labels) ->
-      let labelset =
-        Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
-      in
-      let labelsets, labels = add_labels name labelset labels scope in
-      { scope with labelsets; labels }
-  | Tvariant (_, _, name, ctors) ->
-      (* TODO unfold? *)
-      let ctors = add_ctors name ctors scope in
-      { scope with ctors }
-  | Talias (_, typ) -> make_alias_usable scope typ
+let rec make_alias_usable scope env = function
+  | Tconstr (path, _) -> (
+      let dummy_loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
+      let decl = find_type dummy_loc path env in
+      match Types.(decl.kind) with
+      | Drecord labels ->
+          let labelset =
+            Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
+          in
+          let labelsets, labels = add_labels path labelset labels scope in
+          { scope with labelsets; labels }
+      | Dvariant (_, ctors) ->
+          (* TODO unfold? *)
+          let ctors = add_ctors path ctors scope in
+          { scope with ctors }
+      | Dalias typ -> make_alias_usable scope env typ
+      | _ -> scope)
   | _ -> scope
 
-let add_alias name alias in_sig typ env =
+let add_alias alias in_sgn ~params typ env =
   let scope, tl = decap_exn env in
+  let decl = { params; kind = Dalias typ; in_sgn } in
 
-  let scope = make_alias_usable scope typ in
-  let typ = Talias (alias, typ) in
-  let types = Map.add name (typ, in_sig) scope.types in
+  let scope = make_alias_usable scope env typ in
+  let types = Map.add alias decl scope.types in
   { env with values = { scope with types } :: tl }
 
-let add_type name ~in_sig typ env =
-  match typ with
-  | Trecord (params, Some n, labels) ->
-      add_record name n in_sig ~params ~labels env
-  | Tvariant (params, recurs, n, ctors) ->
-      add_variant name n in_sig ~recurs ~params ~ctors env
-  | Talias (n, typ) -> add_alias name n in_sig typ env
-  | t ->
+let add_type name decl env =
+  match Types.(decl.kind) with
+  | Drecord labels ->
+      add_record name decl.in_sgn ~params:decl.params ~labels env
+  | Dvariant (recurs, ctors) ->
+      add_variant name decl.in_sgn ~recurs ~params:decl.params ~ctors env
+  | Dalias typ -> add_alias name decl.in_sgn ~params:decl.params typ env
+  | Dabstract _ ->
       let scope, tl = decap_exn env in
-      let types = Map.add name (t, in_sig) scope.types in
+      let types = Map.add name decl scope.types in
       { env with values = { scope with types } :: tl }
 
 let externals env =

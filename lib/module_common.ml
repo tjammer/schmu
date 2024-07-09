@@ -7,7 +7,7 @@ type loc = Typed_tree.loc [@@deriving sexp]
 type name = { user : string; call : string option }
 
 and item =
-  | Mtype of loc * typ
+  | Mtype of loc * string * type_decl
   | Mfun of loc * typ * name
   | Mext of loc * typ * name * bool (* is closure *)
   | Mpoly_fun of loc * Typed_tree.abstraction * string * int option
@@ -24,10 +24,10 @@ and item =
   | Mmodule_type of loc * string * intf
 
 and sg_kind = Module_type.item_kind =
-  | Mtypedef
-  | Mvalue of string option (* call name *)
+  | Mtypedef of type_decl
+  | Mvalue of typ * string option (* call name *)
 
-and sig_item = string * loc * typ * sg_kind [@@deriving sexp]
+and sig_item = string * loc * sg_kind [@@deriving sexp]
 and intf = sig_item list
 and impl = item list
 

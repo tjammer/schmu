@@ -25,6 +25,9 @@ end
 module type Recs = sig
   val get_record_type :
     Env.t -> Ast.loc -> string list -> Types.typ option -> Types.typ
+
+  val fields_of_record :
+    Ast.loc -> Path.t -> Env.t -> (Types.field array, unit) result
 end
 
 module type S = sig
@@ -62,34 +65,35 @@ let array_assoc_opt name arr =
   in
   inner 0
 
-let rec follow_alias = function Talias (_, t) -> follow_alias t | t -> t
+let ctors_of_variant loc path env =
+  (* TODO map params *)
+  let decl = Env.find_type loc path env in
+  match decl.kind with Dvariant (_, ctors) -> Ok ctors | _ -> Error ()
 
 let get_ctor env loc name =
   match Env.find_ctor_opt name env with
   | Some { index; typename } ->
       (* We get the ctor type from the variant *)
-      let ctor, variant =
-        match
-          let variant =
-            Env.query_type ~instantiate loc typename env |> follow_alias
-          in
-          (unfold variant, variant)
-        with
-        | Tvariant (_, _, _, ctors), typ -> (ctors.(index), typ)
-        | _ -> failwith "Internal Error: Not a variant"
+      let clike, ctor =
+        match ctors_of_variant loc typename env with
+        | Ok ctors ->
+            let ctor = ctors.(index) in
+            ( is_clike_variant ctors,
+              { ctor with ctyp = Option.map instantiate ctor.ctyp } )
+        | Error () -> failwith "Internal Error: Not a variant"
       in
-      Some (typename, ctor, variant)
+      Some (typename, clike, ctor)
   | None -> None
 
 let lor_clike_hack env loc name annot =
   (* We allow clike variants in [lor] for the C flags use case *)
   match annot with
   | Some variant -> (
-      match clean variant with
+      match repr variant with
       | Tprim Tint -> (
           match get_ctor env loc name with
-          | Some (_, ctor, variant) ->
-              if is_clike_variant variant then
+          | Some (_, clike, ctor) ->
+              if clike then
                 let attr = { no_attr with const = true } in
                 Some { typ = tint; expr = Const (Int ctor.index); attr; loc }
               else None
@@ -101,19 +105,20 @@ let get_variant env loc (_, name) annot =
   (* Don't use clean directly, to keep integrity of link *)
   match annot with
   | Some variant -> (
-      match clean variant |> unfold with
-      | Tvariant (_, _, typename, ctors) ->
+      match repr variant with
+      | Tconstr (path, _) ->
+          let ctors = ctors_of_variant loc path env |> Result.get_ok in
           let ctor =
             match array_assoc_opt name ctors with
             | Some ctor -> ctor
             | None ->
                 let msg =
                   Printf.sprintf "Unbound constructor %s on variant %s" name
-                    Path.(rm_name (Env.modpath env) typename |> show)
+                    Path.(rm_name (Env.modpath env) path |> show)
                 in
                 raise (Error (loc, msg))
           in
-          (typename, ctor, variant)
+          (path, ctor, variant)
       | t ->
           let msg =
             Printf.sprintf "Expecting %s, not a variant type"
@@ -121,12 +126,20 @@ let get_variant env loc (_, name) annot =
           in
           raise (Error (loc, msg)))
   | None -> (
-      match get_ctor env loc name with
-      | Some (typename, ctor, variant) ->
-          (match annot with
-          | Some t -> unify (loc, "In constructor " ^ name ^ ":") t variant env
-          | None -> ());
-          (typename, ctor, variant)
+      (* There is some overlap with [get_ctor] *)
+      match Env.find_ctor_opt name env with
+      | Some { index; typename } ->
+          let decl = Env.find_type loc typename env in
+          let ctors =
+            match decl.kind with
+            | Dvariant (_, ctors) -> ctors
+            | _ -> failwith "Internal Error: Not a variant"
+          in
+          let ctor = ctors.(index) in
+          (* TODO map params *)
+          ( typename,
+            { ctor with ctyp = Option.map instantiate ctor.ctyp },
+            Tconstr (typename, decl.params) )
       | None ->
           let msg = "Unbound constructor " ^ name in
           raise (Error (loc, msg)))
@@ -299,9 +312,17 @@ module Exhaustiveness = struct
   type exhaustive = Exh | Wip of wip_kind * typed_pattern list list
   type ctorset = Ctors of ctor list | Inf | Record of field list
 
-  let ctorset_of_variant = function
-    | Tvariant (_, _, _, ctors) -> Ctors (Array.to_list ctors)
-    | Trecord (_, _, fields) -> Record (Array.to_list fields)
+  let ctorset_of_variant loc env typ =
+    match repr typ with
+    | Tconstr (path, _) -> (
+        match Env.find_type_opt loc path env with
+        (* TODO map params? *)
+        | Some decl -> (
+            match decl.kind with
+            | Drecord fields -> Record (Array.to_list fields)
+            | Dvariant (_, ctors) -> Ctors (Array.to_list ctors)
+            | Dabstract _ | Dalias _ -> Inf)
+        | None -> Inf)
     | _ -> Inf
 
   (* [pattern] has a complete signature on first column *)
@@ -314,12 +335,12 @@ module Exhaustiveness = struct
     | Empty
 
   (** Check if ctorset is complete or some ctor is missing. Might also be infinite *)
-  let sig_complete fstcl patterns =
+  let sig_complete env fstcl patterns =
     match List.(hd patterns) with
     | [] -> Empty
     | p :: _ -> (
-        let typ = p.ptyp in
-        match ctorset_of_variant (clean typ) with
+        let typ = p.ptyp and loc = loc_of_pat p.pat in
+        match ctorset_of_variant loc env typ with
         | Ctors ctors ->
             let set =
               ctors |> List.map (fun ctor -> ctor.cname) |> Set.of_list
@@ -432,32 +453,33 @@ module Exhaustiveness = struct
     | Specialization, Specialization -> (Specialization, str)
 
   (* We add an extra redundancy check for first column *)
-  let rec is_exhaustive fstcl patterns : (unit, wip_kind * string list) result =
+  let rec is_exhaustive env fstcl patterns :
+      (unit, wip_kind * string list) result =
     match patterns with
     | [] -> Error (Specialization, [])
     | patterns -> (
-        match sig_complete fstcl patterns with
+        match sig_complete env fstcl patterns with
         | Empty -> Ok ()
-        | Maybe_red (loc, ctors) -> maybe_red loc patterns ctors
-        | Complete ctors -> complete_sig fstcl patterns ctors
+        | Maybe_red (loc, ctors) -> maybe_red env loc patterns ctors
+        | Complete ctors -> complete_sig env fstcl patterns ctors
         | Missing ctors -> (
             match default patterns with
             | Exh -> Ok ()
             | Wip (kind, patterns) -> (
                 (* The default matrix only removes ctors and does not add
                    temporary ones. So we can continue with exprstl *)
-                match is_exhaustive false patterns with
+                match is_exhaustive env false patterns with
                 | Ok () -> Ok ()
                 | Error _ -> Error (kind, List.map (fun s -> "#" ^ s) ctors)))
-        | Expand_record fields -> expand_record fields patterns
+        | Expand_record fields -> expand_record env fields patterns
         | Infi -> (
             match default patterns with
             | Exh -> Ok ()
             | Wip (kind, patterns) ->
-                is_exhaustive false patterns
+                is_exhaustive env false patterns
                 |> Result.map_error (keep_new_col kind)))
 
-  and complete_sig fstcl patterns ctors =
+  and complete_sig env fstcl patterns ctors =
     let exhs =
       List.map
         (fun { cname; ctyp; index = _ } ->
@@ -469,8 +491,8 @@ module Exhaustiveness = struct
                 (* In case specializion adds a ctor, we elimate these first *)
                 (* Right now, the argument arity is 1 at most *)
                 let ret =
-                  if num = 1 then is_exhaustive fstcl patterns
-                  else is_exhaustive false patterns
+                  if num = 1 then is_exhaustive env fstcl patterns
+                  else is_exhaustive env false patterns
                 in
                 ret |> Result.map_error (keep_new_col kind) ))
         ctors
@@ -490,16 +512,16 @@ module Exhaustiveness = struct
 
       Error (kind, strs)
 
-  and maybe_red loc patterns ctors =
+  and maybe_red env loc patterns ctors =
     (* String last entry (a wildcard) from patterns and see if all is exhaustive
        If so, the wildcard is useless *)
     (* We have to do better here in the future. This works, but is wasteful *)
     let stripped = List.rev patterns |> List.tl |> List.rev in
-    match complete_sig true stripped ctors with
+    match complete_sig env true stripped ctors with
     | Ok () -> raise (Error (loc, "Pattern match case is redundant"))
-    | Error _ -> complete_sig true patterns ctors
+    | Error _ -> complete_sig env true patterns ctors
 
-  and expand_record fields patterns =
+  and expand_record env fields patterns =
     (* The pattern in the first column is a record pattern. We replace it by
        the expanded record pattern instead. If there is an actual record pattern
        we can use it as is. Otherwise we fill the fields with wildcards *)
@@ -526,7 +548,7 @@ module Exhaustiveness = struct
           in
           fields @ tl
     in
-    is_exhaustive false (List.map f patterns)
+    is_exhaustive env false (List.map f patterns)
 end
 
 module Make (C : Core) (R : Recs) = struct
@@ -544,7 +566,7 @@ module Make (C : Core) (R : Recs) = struct
   module Row_set = Set.Make (Row)
 
   let make_annot t =
-    match clean t with
+    match repr t with
     | Qvar _ | Tvar { contents = Unbound _ } -> None
     | _ -> Some t
 
@@ -622,17 +644,15 @@ module Make (C : Core) (R : Recs) = struct
     let module Set = Set.Make (String) in
     let mn = Env.modpath env in
     let rfields =
-      let rec inner = function
-        | Trecord (_, _, rfields) -> rfields
-        | Talias (_, t) | Tvar { contents = Link t } -> inner t
-        | t ->
-            raise
-              (Error
-                 ( loc,
-                   "Record pattern has unexpected type " ^ string_of_type mn t
-                 ))
-      in
-      inner t
+      (match repr t with
+      | Tconstr (path, _) -> fields_of_record loc path env
+      | _ -> Result.Error ())
+      |> function
+      | Ok fields -> fields
+      | Error () ->
+          raise
+            (Error
+               (loc, "Record pattern has unexpected type " ^ string_of_type mn t))
     in
 
     let fset =
@@ -774,25 +794,14 @@ module Make (C : Core) (R : Recs) = struct
               fields)
             pats
         in
-        let fields =
+        let ts =
           List.map
             (fun p ->
               let p = List.hd p in
-              let ftyp = p.ttyp in
-              { fname = string_of_int p.tindex; ftyp; mut = false })
+              p.ttyp)
             pats
-          |> Array.of_list
         in
-        let ps =
-          Array.to_list fields
-          |> List.filter_map (fun f ->
-                 if is_polymorphic f.ftyp then Some f.ftyp else None)
-        in
-        unify
-          (loc, "Tuple pattern has unexpected type:")
-          typ
-          (Trecord (ps, None, fields))
-          env;
+        unify (loc, "Tuple pattern has unexpected type:") typ (Ttuple ts) env;
         cartesian_product pats
         |> List.map (fun pats ->
                let pat = Tp_tuple (loc, pats, dattr) in
@@ -887,7 +896,7 @@ module Make (C : Core) (R : Recs) = struct
     (let patterns =
        List.map (fun p -> List.map (fun p -> snd p) (fst p)) typed_cases
      in
-     match Exhaustiveness.is_exhaustive true patterns with
+     match Exhaustiveness.is_exhaustive env true patterns with
      | Ok () -> ()
      | Error (_, cases) ->
          let msg =
@@ -1269,7 +1278,7 @@ module Make (C : Core) (R : Recs) = struct
   let bind_pattern env loc i p =
     let typed = type_pattern env ([ i ], p) in
     let pts = List.map snd typed in
-    (match Exhaustiveness.is_exhaustive true [ pts ] with
+    (match Exhaustiveness.is_exhaustive env true [ pts ] with
     | Ok () -> ()
     | Error (_, cases) ->
         let msg =

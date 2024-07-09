@@ -7,12 +7,10 @@ type typ =
   | Tvar of tv ref
   | Qvar of string
   | Tfun of param list * typ * fun_kind
-  | Talias of Path.t * typ
-  | Trecord of typ list * Path.t option * field array
-  | Tvariant of typ list * typ option * Path.t * ctor array
+  | Ttuple of typ list
+  | Tconstr of Path.t * typ list
   | Traw_ptr of typ
   | Tarray of typ
-  | Tabstract of typ list * Path.t * typ
   | Tfixed_array of iv ref * typ
   | Trc of typ
 [@@deriving show { with_path = false }, sexp]
@@ -39,6 +37,18 @@ and closed = {
   clcopy : bool; (* otherwise move *)
 }
 
+type type_decl = {
+  params : typ list;
+  kind : decl_kind;
+  in_sgn : bool;
+}
+
+and decl_kind =
+  | Drecord of field array
+  | Dvariant of typ option * ctor array
+  | Dabstract of typ option
+  | Dalias of typ [@@deriving sexp]
+
 val tunit : typ
 val tint : typ
 val tfloat : typ
@@ -47,9 +57,6 @@ val tf32 : typ
 val tbool : typ
 val tu8 : typ
 val tu16 : typ
-
-val clean : typ -> typ
-(** Follows links and aliases *)
 
 val repr : typ -> typ
 (** Extract real type (follow links) and do path compression *)
@@ -62,9 +69,7 @@ val is_weak : sub:Sset.t -> typ -> bool
 val contains_allocation : typ -> bool
 val mut_of_pattr : Ast.decl_attr -> bool
 val add_closure_copy : closed list -> string -> closed list option
-val is_clike_variant : typ -> bool
+val is_clike_variant : ctor array -> bool
 val is_unbound : typ -> (string * int) option
 val subst_generic : id:string -> typ -> typ -> typ
 val get_generic_ids : typ -> string list
-val unfold : typ -> typ
-val allowed_recursion : recurs:typ -> typ -> (bool, string) result

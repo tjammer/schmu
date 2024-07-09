@@ -29,21 +29,11 @@ let rec occurs tvr = function
         match !tvr with Unbound (_, lvl) -> min lvl lvl' | _ -> lvl'
       in
       tv := Unbound (id, min_lvl)
-  | Tvar { contents = Link ty } | Talias (_, ty) -> occurs tvr ty
+  | Tvar { contents = Link ty } -> occurs tvr ty
   | Tfun (param_ts, t, _) ->
       List.iter (fun p -> occurs tvr p.pt) param_ts;
       occurs tvr t
-  | Trecord (ps, _, fs) ->
-      List.iter (occurs tvr) ps;
-      Array.iter (fun f -> occurs tvr f.ftyp) fs
-  | Tvariant (ps, _, _, cs) ->
-      List.iter (occurs tvr) ps;
-      Array.iter
-        (fun c -> match c.ctyp with None -> () | Some t -> occurs tvr t)
-        cs
-  | Tabstract (ps, _, t) ->
-      List.iter (occurs tvr) ps;
-      occurs tvr t
+  | Tconstr (_, ts) | Ttuple ts -> List.iter (occurs tvr) ts
   | Traw_ptr t | Tarray t | Trc t -> occurs tvr t
   | Tfixed_array (({ contents = Unknown (id, lvl) } as tv), t) ->
       (* Also adjust level of array size *)
@@ -55,19 +45,10 @@ let rec occurs tvr = function
 
 exception Unify
 
-let extract_name t =
-  match repr t with
-  | Tvar { contents = Unbound (s, _) } -> s
-  | Qvar s ->
-      print_endline "qvar is a case";
-      s
-  | _ -> failwith "Internal Error: what is this rec"
-
 let rec unify recurs t1 t2 =
   if t1 == t2 then ()
   else
     match (repr t1, repr t2) with
-    | Talias (_, t1), t2 | t1, Talias (_, t2) -> unify recurs t1 t2
     | ( Tvar ({ contents = Unbound _ } as tv1),
         Tvar ({ contents = Unbound _ } as tv2) )
       when tv1 == tv2 ->
@@ -88,55 +69,12 @@ let rec unify recurs t1 t2 =
             params_l params_r;
           if !attr_mismatch then raise Unify
         with Invalid_argument _ -> raise Unify)
-    | Trecord (_, None, labels1), Trecord (_, None, labels2) -> (
-        try
-          Array.iter2
-            (fun a b -> Types.(unify recurs a.ftyp b.ftyp))
-            labels1 labels2
+    | Ttuple ls, Ttuple rs -> (
+        try List.iter2 (unify recurs) ls rs
         with Invalid_argument _ -> raise Unify)
-    | Trecord (ps1, Some n1, labels1), Trecord (ps2, Some n2, labels2) ->
-        if Path.equal n1 n2 then
-          try
-            List.iter2 (unify recurs) ps1 ps2;
-            (* We ignore the label names for now *)
-            Array.iter2
-              (fun a b -> Types.(unify recurs a.ftyp b.ftyp))
-              labels1 labels2
-          with Invalid_argument _ -> raise Unify
-        else raise Unify
-    | Tvariant (ps1, rec1, n1, ctors1), Tvariant (ps2, rec2, n2, ctors2) ->
-        if Path.equal n1 n2 then
-          try
-            let err = ref false in
-            let recurs =
-              match (rec1, rec2) with
-              | Some rec1, Some rec2 ->
-                  Sset.add (extract_name rec1) recurs
-                  |> Sset.add (extract_name rec2)
-              | None, None -> recurs
-              | Some _, None | None, Some _ ->
-                  err := true;
-                  recurs
-            in
-            List.iter2 (unify recurs) ps1 ps2;
-            (* We ignore the ctor names for now *)
-            Array.iter2
-              (fun a b ->
-                match (a.ctyp, b.ctyp) with
-                | Some a, Some b -> unify recurs a b
-                | None, None -> ()
-                | Some _, None | None, Some _ ->
-                    (* Continue with unification to generate better type errors *)
-                    err := true)
-              ctors1 ctors2;
-            if !err then raise Unify
-          with Invalid_argument _ -> raise Unify
-        else raise Unify
-    | Tabstract (psl, nl, l), Tabstract (psr, nr, r) ->
-        if Path.equal nl nr then
-          try
-            List.iter2 (unify recurs) psl psr;
-            unify recurs l r
+    | Tconstr (ln, ls), Tconstr (rn, rs) ->
+        if Path.equal ln rn then
+          try List.iter2 (unify recurs) ls rs
           with Invalid_argument _ -> raise Unify
         else raise Unify
     | Traw_ptr l, Traw_ptr r -> unify recurs l r
@@ -182,26 +120,11 @@ let unify info t1 t2 env =
 let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
   | Tvar { contents = Link t } -> generalize t
-  | Talias (n, t) -> Talias (n, generalize t)
   | Tfun (t1, t2, k) ->
       let gen p = { p with pt = generalize p.pt } in
       Tfun (List.map gen t1, generalize t2, generalize_closure k)
-  | Trecord (ps, name, labels) ->
-      (* Hopefully the param type is the same reference throughout the record *)
-      let ps = List.map generalize ps in
-      let f f = Types.{ f with ftyp = generalize f.ftyp } in
-      let labels = Array.map f labels in
-      Trecord (ps, name, labels)
-  | Tvariant (ps, recurs, name, ctors) ->
-      (* Hopefully the param type is the same reference throughout the variant *)
-      let ps = List.map generalize ps in
-      let recurs = Option.map generalize recurs in
-      let f c = Types.{ c with ctyp = Option.map generalize c.ctyp } in
-      let ctors = Array.map f ctors in
-      Tvariant (ps, recurs, name, ctors)
-  | Tabstract (ps, name, t) ->
-      let ps = List.map generalize ps in
-      Tabstract (ps, name, generalize t)
+  | Ttuple ts -> Ttuple (List.map generalize ts)
+  | Tconstr (p, ps) -> Tconstr (p, List.map generalize ps)
   | Traw_ptr t -> Traw_ptr (generalize t)
   | Tarray t -> Tarray (generalize t)
   | Trc t -> Trc (generalize t)
@@ -224,129 +147,68 @@ let instantiate t =
   let rec aux subst = function
     | Qvar id -> (
         match Smap.find_opt id subst with
-        | Some t -> (t, subst)
+        | Some t -> (subst, t)
         | None ->
             let tv = newvar () in
-            (tv, Smap.add id tv subst))
+            (Smap.add id tv subst, tv))
     | Tvar { contents = Link t } -> aux subst t
-    | Talias (name, t) ->
-        let t, subst = aux subst t in
-        (Talias (name, t), subst)
+    | Ttuple ts ->
+        let subst, ts = List.fold_left_map aux subst ts in
+        (subst, Ttuple ts)
+    | Tconstr (p, ps) ->
+        let subst, ps = List.fold_left_map aux subst ps in
+        (subst, Tconstr (p, ps))
     | Tfun (params_t, t, k) ->
         let subst, params_t =
           List.fold_left_map
             (fun subst param ->
-              let pt, subst = aux subst param.pt in
+              let subst, pt = aux subst param.pt in
               (subst, { param with pt }))
             subst params_t
         in
-        let t, subst = aux subst t in
-        let k, subst =
+        let subst, t = aux subst t in
+        let subst, k =
           match k with
-          | Simple -> (k, subst)
+          | Simple -> (subst, k)
           | Closure cls ->
               let subst, cls =
                 List.fold_left_map
                   (fun s c ->
-                    let cltyp, subst = aux s c.cltyp in
+                    let subst, cltyp = aux s c.cltyp in
                     (subst, { c with cltyp }))
                   subst cls
               in
-              (Closure cls, subst)
+              (subst, Closure cls)
         in
-        (Tfun (params_t, t, k), subst)
-    | Trecord (ps, name, labels) ->
-        let subst = ref subst in
-        let ps =
-          List.map
-            (fun t ->
-              let t, subst' = aux !subst t in
-              subst := subst';
-              t)
-            ps
-        in
-        let labels =
-          Array.map
-            (fun f ->
-              let t, subst' = aux !subst Types.(f.ftyp) in
-              subst := subst';
-              { f with ftyp = t })
-            labels
-        in
-        (Trecord (ps, name, labels), !subst)
-    | Tvariant (ps, recurs, name, ctors) ->
-        let subst = ref subst in
-        let recurs =
-          match recurs with
-          | None -> None
-          | Some t ->
-              let t, subst' = aux !subst t in
-              subst := subst';
-              Some t
-        in
-        let ps =
-          List.map
-            (fun t ->
-              let t, subst' = aux !subst t in
-              subst := subst';
-              t)
-            ps
-        in
-        let ctors =
-          Array.map
-            (fun ctor ->
-              let ctyp =
-                Option.map
-                  (fun typ ->
-                    let t, subst' = aux !subst typ in
-                    subst := subst';
-                    t)
-                  ctor.ctyp
-              in
-              { ctor with ctyp })
-            ctors
-        in
-        (Tvariant (ps, recurs, name, ctors), !subst)
-    | Tabstract (ps, name, t) ->
-        let subst = ref subst in
-        let ps =
-          List.map
-            (fun t ->
-              let t, subst' = aux !subst t in
-              subst := subst';
-              t)
-            ps
-        in
-        let t, subst = aux !subst t in
-        (Tabstract (ps, name, t), subst)
+        (subst, Tfun (params_t, t, k))
     | Traw_ptr t ->
-        let t, subst = aux subst t in
-        (Traw_ptr t, subst)
+        let subst, t = aux subst t in
+        (subst, Traw_ptr t)
     | Tarray t ->
-        let t, subst = aux subst t in
-        (Tarray t, subst)
+        let subst, t = aux subst t in
+        (subst, Tarray t)
     | Trc t ->
-        let t, subst = aux subst t in
-        (Trc t, subst)
+        let subst, t = aux subst t in
+        (subst, Trc t)
     | Tfixed_array ({ contents = Generalized id }, t) -> (
-        let t, subst = aux subst t in
+        let subst, t = aux subst t in
         match Smap.find_opt ("fa" ^ id) subst with
-        | Some (Tfixed_array (i, _)) -> (Tfixed_array (i, t), subst)
+        | Some (Tfixed_array (i, _)) -> (subst, Tfixed_array (i, t))
         | Some _ -> failwith "Internal Error: What else?"
         | None ->
             let t =
               Tfixed_array (ref (Unknown (gensym (), !current_level)), t)
             in
-            (t, Smap.add ("fa" ^ id) t subst))
+            (Smap.add ("fa" ^ id) t subst, t))
     | Tfixed_array ({ contents = Linked l }, t) ->
         aux subst (Tfixed_array (l, t))
     | Tfixed_array (i, t) ->
-        let t, subst = aux subst t in
-        (Tfixed_array (i, t), subst)
-    | t -> (t, subst)
+        let subst, t = aux subst t in
+        (subst, Tfixed_array (i, t))
+    | t -> (subst, t)
   in
 
-  aux Smap.empty t |> fst
+  aux Smap.empty t |> snd
 
 let regeneralize typ =
   enter_level ();
@@ -360,338 +222,13 @@ module Nameset = Set.Make (Path)
 (* Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
    We need to match everything for weak vars though *)
-let rec types_match ~in_functor l r =
-  let rec collect_names acc = function
-    | Tprim _ | Qvar _ | Tfun _ | Traw_ptr _ | Tarray _ | Trc _
-    | Tvar { contents = Unbound _ }
-    | Trecord (_, None, _)
-    | Tfixed_array _ ->
-        acc
-    | Talias (p, t) | Tabstract (_, p, t) -> collect_names (Nameset.add p acc) t
-    | Trecord (_, Some p, _) | Tvariant (_, _, p, _) -> Nameset.add p acc
-    | Tvar { contents = Link t } -> collect_names acc t
-  in
-
-  let nss_of_types l r =
-    let lns = collect_names Nameset.empty l
-    and rns = collect_names Nameset.empty r in
-    ((lns, l), (rns, r))
-  in
-
-  let rec aux ~strict qsubst (lns, l) (rns, r) =
-    if l == r then (r, qsubst, true)
-    else
-      match (l, r) with
-      | Tprim l, Tprim r' when l == r' -> (r, qsubst, true)
-      | Tvar { contents = Unbound (l, _) }, Tvar { contents = Unbound (rid, _) }
-      | Qvar l, Tvar { contents = Unbound (rid, _) }
-        when in_functor -> (
-          (* We always map from left to right *)
-          match Smap.find_opt l qsubst with
-          | Some id when String.equal rid id -> (r, qsubst, true)
-          | Some _ -> (r, qsubst, false)
-          | None ->
-              (* We 'connect' left to right *)
-              (r, Smap.add l rid qsubst, true))
-      | Qvar l, Qvar rid | Tvar { contents = Unbound (l, _) }, Qvar rid -> (
-          (* We always map from left to right *)
-          match Smap.find_opt l qsubst with
-          | Some id when String.equal rid id -> (r, qsubst, true)
-          | Some _ -> (r, qsubst, false)
-          | None ->
-              (* We 'connect' left to right *)
-              (r, Smap.add l rid qsubst, true))
-      | Tvar { contents = Unbound _ }, _ when not strict ->
-          (* Unbound vars match every type *) (r, qsubst, true)
-      | Tvar { contents = Link l }, r
-      | l, Tvar { contents = Link r }
-      | l, Talias (_, r) ->
-          aux ~strict qsubst (lns, l) (rns, r)
-      | Talias (n, l), r ->
-          let t, s, b = aux ~strict qsubst (lns, l) (rns, r) in
-          (Talias (n, t), s, b)
-      | _, Tvar { contents = Unbound _ } when not in_functor ->
-          (r, qsubst, false)
-      | Tfun (ps_l, l, _), Tfun (ps_r, r, kind) -> (
-          try
-            let ps, qsubst, acc =
-              List.fold_left2
-                (fun (ts, s, acc) pl pr ->
-                  let l, r = nss_of_types pl.pt pr.pt in
-                  let pt, qsubst, b = aux ~strict:true s l r in
-                  let b = b && pl.pattr = pr.pattr in
-                  ({ pr with pt } :: ts, qsubst, acc && b))
-                ([], qsubst, true) ps_l ps_r
-            in
-            let ps = List.rev ps in
-            (* We don't shortcut here to match the annotations for the error message *)
-            let l, r = nss_of_types l r in
-            let ret, qsubst, b = aux ~strict:true qsubst l r in
-            (Tfun (ps, ret, kind), qsubst, acc && b)
-          with Invalid_argument _ -> (r, qsubst, false))
-      | Trecord (_, None, l), (Trecord (ps, None, r) as r') -> (
-          let fs = Array.copy r in
-          try
-            let _, s, acc =
-              Array.fold_left
-                (fun (i, s, acc) l ->
-                  let rf = Array.get r i in
-                  let l, r = nss_of_types l.ftyp rf.ftyp in
-                  let ftyp, qsubst, b = aux ~strict s l r in
-                  Array.set fs i { rf with ftyp };
-                  (i + 1, qsubst, acc && b))
-                (0, qsubst, true) l
-            in
-            (Trecord (ps, None, fs), s, acc)
-          with Invalid_argument _ -> (r', qsubst, false))
-      | Trecord (pl, Some name, fl), Trecord (pr, Some _, fr) ->
-          (* It should be enough to compare the name (rather, the name's repr)
-             and the param type *)
-          if not (Nameset.disjoint lns rns) then
-            let ps, qs, b =
-              List.fold_left2
-                (fun (ps, s, acc) l r ->
-                  let l, r = nss_of_types l r in
-                  let t, qsubst, b = aux ~strict s l r in
-                  (t :: ps, qsubst, acc && b))
-                ([], qsubst, true) pl pr
-            in
-            let fs = Array.copy fr in
-            let _, qs, b =
-              Array.fold_left
-                (fun (i, s, acc) l ->
-                  let rf = Array.get fr i in
-                  let l, r = nss_of_types l.ftyp rf.ftyp in
-                  let ftyp, qsubst, b = aux ~strict s l r in
-                  Array.set fs i { rf with ftyp };
-                  (i + 1, qsubst, acc && b))
-                (0, qs, b) fl
-            in
-            (Trecord (List.rev ps, Some name, fs), qs, b)
-          else (r, qsubst, false)
-      | Tvariant (pl, rl, name, cl), Tvariant (pr, rr, _, cr) ->
-          (* It should be enough to compare the name (rather, the name's repr)
-             and the param type *)
-          if not (Nameset.disjoint lns rns) then
-            let ps, qs, b =
-              List.fold_left2
-                (fun (ps, s, acc) l r ->
-                  let l, r = nss_of_types l r in
-                  let t, qsubst, b = aux ~strict s l r in
-                  (t :: ps, qsubst, acc && b))
-                ([], qsubst, true) pl pr
-            in
-            let recurs, qs, b =
-              match (rl, rr) with
-              | Some l, Some r ->
-                  let l, r = nss_of_types l r in
-                  let typ, qsubst, bb = aux ~strict qs l r in
-                  (Some typ, qsubst, b && bb)
-              | None, None -> (None, qsubst, b)
-              | Some _, None | None, Some _ -> (None, qsubst, false)
-            in
-            let cs = Array.copy cr in
-            let _, qs, b =
-              Array.fold_left
-                (fun (i, s, acc) l ->
-                  let r = Array.get cr i in
-                  let ctyp, qsubst, b =
-                    match (l.ctyp, r.ctyp) with
-                    | Some l, Some r ->
-                        let l, r = nss_of_types l r in
-                        let typ, qsubst, b = aux ~strict s l r in
-                        (Some typ, qsubst, b)
-                    | None, None -> (None, qsubst, acc)
-                    | _ -> (None, qsubst, false)
-                  in
-                  Array.set cs i { r with ctyp };
-                  (i + 1, qsubst, acc && b))
-                (0, qs, b) cl
-            in
-            (Tvariant (ps, recurs, name, cs), qs, b)
-          else (r, qsubst, false)
-      | Traw_ptr l, Traw_ptr r ->
-          let l, r = nss_of_types l r in
-          let t, s, b = aux ~strict qsubst l r in
-          (Traw_ptr t, s, b)
-      | Tarray l, Tarray r ->
-          let l, r = nss_of_types l r in
-          let t, s, b = aux ~strict qsubst l r in
-          (Tarray t, s, b)
-      | Trc l, Trc r ->
-          let l, r = nss_of_types l r in
-          let t, s, b = aux ~strict qsubst l r in
-          (Trc t, s, b)
-      | ( Tfixed_array (({ contents = Generalized l } as rl), lt),
-          Tfixed_array (({ contents = Generalized ri } as rr), rt) )
-      | ( Tfixed_array (({ contents = Unknown (l, _) } as rl), lt),
-          Tfixed_array (({ contents = Generalized ri } as rr), rt) ) ->
-          (* TODO check for same generalized things. Would be nice if something could be generalized *)
-          (* Prepend with fa for fixed array so not clash with Qvar strings *)
-          let i, subst, pre = aux_sizes qsubst rl rr l ri in
-          if pre then
-            let l, r = nss_of_types lt rt in
-            let t, s, b = aux ~strict subst l r in
-            (Tfixed_array (i, t), s, b)
-          else (r, subst, false)
-      | Tfixed_array ({ contents = Linked l }, lt), r ->
-          aux ~strict qsubst (lns, Tfixed_array (l, lt)) (rns, r)
-      | l, Tfixed_array ({ contents = Linked r }, rt) ->
-          aux ~strict qsubst (lns, l) (rns, Tfixed_array (r, rt))
-      | ( Tfixed_array ({ contents = Known ls }, lt),
-          Tfixed_array (({ contents = Known rs } as i), rt) ) ->
-          let l, r = nss_of_types lt rt in
-          let t, subst, b = aux ~strict qsubst l r in
-          (Tfixed_array (i, t), subst, b && Int.equal ls rs)
-      | Tabstract (_, _, lt), Tabstract (ps, n, rt) ->
-          if not (Nameset.disjoint lns rns) then
-            let t, s, b = aux ~strict:true qsubst (lns, lt) (rns, rt) in
-            (Tabstract (ps, n, t), s, b)
-          else (r, qsubst, false)
-      | Tabstract (ps, n, l), r -> (
-          match match_type_params ~in_functor ps l with
-          | Ok l ->
-              let t, s, b = aux ~strict qsubst (lns, l) (rns, r) in
-              let t =
-                match ps with
-                | [] -> Tabstract (ps, n, t)
-                | _ -> replace_qvar ~in_functor s (Tabstract (ps, n, t))
-              in
-              (t, s, b)
-          | Error _ -> (r, qsubst, false))
-      | l, Tabstract (_, _, r) -> aux ~strict qsubst (lns, l) (rns, r)
-      | _ -> (r, qsubst, false)
-  and aux_sizes subst refl refr l r =
-    if refl == refr then (refr, subst, true)
-    else
-      let subst, pre =
-        match Smap.find_opt ("fa" ^ l) subst with
-        | Some id when String.equal ("fa" ^ r) id -> (subst, true)
-        | Some _ -> (subst, false)
-        | None -> (Smap.add ("fa" ^ l) ("fa" ^ r) subst, true)
-      in
-      (refr, subst, pre)
-  in
-  let l, r = nss_of_types l r in
-  aux ~strict:false Smap.empty l r
+let types_match ~in_functor l r =
+  ignore in_functor;
+  ignore r;
+  (l, Smap.empty, true)
 
 and match_type_params ~in_functor params typ =
-  (* Take qvars from [params] and match them to the one found in [typ].
-     Assume they appear in the same order. E.g. If params = [A, B] and typ [C, B]
-     it probably won't work *)
-  let buildup_subst subst l r =
-    let _, smap, mtch = types_match ~in_functor:false r l in
-    if mtch then
-      Smap.merge
-        (fun _ a b ->
-          match (a, b) with
-          | Some a, None -> Some a
-          | None, None -> None
-          | None, Some b -> Some b
-          | Some a, Some b when String.equal a b -> Some a
-          | Some a, Some b -> failwith (a ^ " vs " ^ b))
-        subst smap
-    else raise (Invalid_argument "")
-  in
-
-  let ( let* ) = Result.bind in
-  match typ with
-  | Trecord (ps, _, _) | Tvariant (ps, _, _, _) | Tabstract (ps, _, _) -> (
-      try
-        let subst = List.fold_left2 buildup_subst Smap.empty params ps in
-        Ok (replace_qvar ~in_functor subst typ)
-      with Invalid_argument _ -> Error "Type arity does not match")
-  | Talias (n, t) ->
-      let* t = match_type_params ~in_functor params t in
-      Ok (Talias (n, t))
-  | Tprim _ as t -> (
-      match params with
-      | [] -> Ok t
-      | _ -> Error "Primitive type has no type parameter")
-  | Tvar { contents = Unbound _ } as t ->
-      (* failwith "Internal Error: how is this unbound" *) Ok t
-  | Qvar _ -> (
-      match params with
-      | [ Qvar other ] -> Ok (Qvar other)
-      | _ -> Error "Type parameter does not match to signature")
-  | Tvar { contents = Link t } ->
-      let* t = match_type_params ~in_functor params t in
-      Ok t
-  | Tarray t ->
-      let* t = match_type_params ~in_functor params t in
-      Ok (Tarray t)
-  | Trc t ->
-      let* t = match_type_params ~in_functor params t in
-      Ok (Trc t)
-  | Traw_ptr t ->
-      let* t = match_type_params ~in_functor params t in
-      Ok (Traw_ptr t)
-  | Tfixed_array (iv, t) ->
-      let* t = match_type_params ~in_functor params t in
-      Ok (Tfixed_array (iv, t))
-  | Tfun _ -> failwith "TODO abstract function types"
-
-and replace_qvar ~in_functor subst = function
-  | Tprim _ as t -> t
-  | Qvar s -> (
-      match Smap.find_opt s subst with
-      | None -> Qvar s
-      (*   print_endline ("search for: " ^ s); *)
-      (* failwith "Internal Error: Expected a substitution" *)
-      | Some str -> Qvar str)
-  | Tvar { contents = Link t } -> replace_qvar ~in_functor subst t
-  | Tvar { contents = Unbound _ } when not in_functor ->
-      failwith "Internal Error: Type is unbound in impl"
-  | Tvar { contents = Unbound _ } as t -> t
-  | Trecord (ps, n, fs) ->
-      let ps = List.map (replace_qvar ~in_functor subst) ps in
-      let fs =
-        Array.map
-          (fun f ->
-            let ftyp = (replace_qvar ~in_functor subst) f.ftyp in
-            { f with ftyp })
-          fs
-      in
-      Trecord (ps, n, fs)
-  | Tvariant (ps, recurs, n, cs) ->
-      let ps = List.map (replace_qvar ~in_functor subst) ps in
-      let recurs = Option.map (replace_qvar ~in_functor subst) recurs in
-      let cs =
-        Array.map
-          (fun c ->
-            let ctyp = Option.map (replace_qvar ~in_functor subst) c.ctyp in
-            { c with ctyp })
-          cs
-      in
-      Tvariant (ps, recurs, n, cs)
-  | Talias (n, t) -> Talias (n, replace_qvar ~in_functor subst t)
-  | Traw_ptr t -> Traw_ptr (replace_qvar ~in_functor subst t)
-  | Tarray t -> Tarray (replace_qvar ~in_functor subst t)
-  | Trc t -> Trc (replace_qvar ~in_functor subst t)
-  | Tfixed_array (iv, t) -> Tfixed_array (iv, replace_qvar ~in_functor subst t)
-  | Tabstract (ps, n, t) ->
-      let ps = List.map (replace_qvar ~in_functor subst) ps in
-      Tabstract (ps, n, replace_qvar ~in_functor subst t)
-  | Tfun (ps, r, kind) ->
-      let ps =
-        List.map
-          (fun p ->
-            let pt = replace_qvar ~in_functor subst p.pt in
-            { p with pt })
-          ps
-      in
-      let r = replace_qvar ~in_functor subst r in
-      let kind =
-        match kind with
-        | Simple -> Simple
-        | Closure cls ->
-            let cls =
-              List.map
-                (fun c ->
-                  let cltyp = (replace_qvar ~in_functor subst) c.cltyp in
-                  { c with cltyp })
-                cls
-            in
-            Closure cls
-      in
-      Tfun (ps, r, kind)
+  ignore in_functor;
+  ignore params;
+  ignore typ;
+  Result.Error "TODO"

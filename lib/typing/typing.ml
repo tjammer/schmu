@@ -127,7 +127,10 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
 
   let find env t tick =
     match Env.find_type_opt loc t env with
-    | Some t -> fst t
+    | Some decl -> (
+        match decl.kind with
+        | Dalias typ -> typ
+        | Dabstract _ | Drecord _ | Dvariant _ -> Tconstr (t, decl.params))
     | None ->
         raise
           (Error
@@ -138,20 +141,12 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
 
   let rec is_quantified = function
-    | Trecord ([], _, _) | Tvariant ([], _, _, _) | Tabstract ([], _, _) -> None
-    | Trecord (ts, Some name, _)
-    | Tvariant (ts, _, name, _)
-    | Tabstract (ts, name, _) ->
-        Some (name, List.length ts)
+    | Tconstr (_, []) -> None
+    | Tconstr (name, params) -> Some (name, List.length params)
     | Traw_ptr _ -> Some (Path.Pid "raw_ptr", 1)
     | Tarray _ -> Some (Path.Pid "array", 1)
     | Trc _ -> Some (Path.Pid "rc", 1)
     | Tfixed_array _ -> Some (Path.Pid "array#?", 1)
-    | Talias (name, t) -> (
-        let cleaned = repr t in
-        match is_quantified cleaned with
-        | Some (_, n) when is_polymorphic cleaned -> Some (name, n)
-        | Some _ | None -> (* When can alias a concrete type *) None)
     | Tvar { contents = Link t } -> is_quantified t
     | Tfun _ as t -> (
         let ts = get_generic_ids t in
@@ -212,15 +207,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ty_applied l -> type_list env l
     | Ty_use_id (_, path) -> find env path ""
     | Ty_tuple ts ->
-        let fields =
-          List.mapi
-            (fun i t ->
-              let fname = string_of_int i in
-              let ftyp = concrete_type false env t in
-              { fname; ftyp; mut = false })
-            ts
-        in
-        Trecord ([], None, Array.of_list fields)
+        let ts = List.map (fun t -> concrete_type false env t) ts in
+        Ttuple ts
   and type_list env = function
     | [] -> failwith "Internal Error: Type param list should not be empty"
     | t :: tl -> (
@@ -283,7 +271,7 @@ let rec param_annots t =
   in
   (* We don't clean here, because it might mess with links *)
   match t with
-  | Talias (_, t) | Tvar { contents = Link t } -> param_annots t
+  | Tvar { contents = Link t } -> param_annots t
   | Qvar _ | Tvar { contents = Unbound _ } -> [||]
   | Tfun (typs, _, _) -> List.map (fun p -> annot p.pt) typs |> Array.of_list
   | _ -> [||]
@@ -340,28 +328,16 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
   let ret = Option.map (fun t -> typeof_annot env loc t) ret in
   (env, ids, qparams, ret)
 
-let check_type_unique env loc ~in_sig name typ =
+let check_type_unique env loc ~in_sgn name =
   match Env.find_type_same_module name env with
   (* It's ok to have a type both in signature and impl *)
-  | Some (_, insig) when Bool.equal in_sig insig ->
+  | Some decl when Bool.equal in_sgn decl.in_sgn ->
       let msg =
         Printf.sprintf
           "Type names in a module must be unique. %s exists already" name
       in
       raise (Error (loc, msg))
-  | Some (Tabstract (ps, _, Tvar ({ contents = Unbound _ } as t)), _) ->
-      assert (not in_sig);
-      (* We have a concrete implemantion of an abstract type. Change the abstract one to carry its impl *)
-      (* Also adjust type params to match between abstract type and carried type *)
-      let typ =
-        match match_type_params ~in_functor:false ps typ with
-        | Ok typ -> typ
-        | Error msg -> raise (Error (loc, msg))
-      in
-
-      t := Link typ;
-      typ
-  | Some _ | None -> typ
+  | Some _ | None -> ()
 
 let make_type_param () =
   enter_level ();
@@ -374,12 +350,12 @@ let add_type_param env ts =
     (fun env name ->
       (* Create general type *)
       let t = make_type_param () in
+      let decl = { params = []; kind = Dalias t; in_sgn = false } in
 
-      (Env.add_type name ~in_sig:false t env, t))
+      (Env.add_type name decl env, t))
     env ts
 
-let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
-  let record = Path.append name (Env.modpath env) in
+let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
   let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let env, param = add_type_param env poly_param in
@@ -393,38 +369,35 @@ let type_record env loc ~in_sig Ast.{ name = { poly_param; name }; labels } =
     (labels, param)
   in
 
-  let typ = Trecord (params, Some record, labels) in
+  let decl = { params; kind = Drecord labels; in_sgn } in
   (* Make sure that each type name only appears once per module *)
-  let typ = check_type_unique ~in_sig env loc name typ in
-  (Env.add_type name ~in_sig typ env, typ)
+  check_type_unique ~in_sgn env loc name;
+  (Env.add_type name decl env, decl)
 
-let type_alias env loc ~in_sig { Ast.poly_param; name } type_spec =
-  let alias = Path.append name (Env.modpath env) in
+let type_alias env loc ~in_sgn { Ast.poly_param; name } type_spec =
   (* Temporarily add polymorphic type name to env *)
-  let temp_env, _ = add_type_param env poly_param in
+  let temp_env, params = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
 
-  let alias = Talias (alias, typ) in
+  let decl = { params; kind = Dalias typ; in_sgn } in
   (* Make sure that each type name only appears once per module *)
-  let typ = check_type_unique ~in_sig env loc name alias in
-  (Env.add_type name ~in_sig typ env, alias)
+  check_type_unique ~in_sgn env loc name;
+  (Env.add_type name decl env, decl)
 
 let type_abstract env loc { Ast.poly_param; name } =
-  let tname = Path.append name (Env.modpath env) in
   (* Make sure that each type name only appears once per module *)
   (* Abstract types are only allowed in signatures *)
-  ignore (check_type_unique ~in_sig:true env loc name tunit);
+  check_type_unique ~in_sgn:true env loc name;
   (* Tunit because we need to pass some type *)
   (* Temporarily add polymorphic type name to env *)
   let params = List.map (fun _ -> make_type_param ()) poly_param in
-  let typ = Tabstract (params, tname, newvar ()) in
 
-  (Env.add_type name ~in_sig:true typ env, typ)
+  let decl = { params; kind = Dabstract None; in_sgn = true } in
+  (Env.add_type name decl env, decl)
 
-let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
-  let variant = Path.append name (Env.modpath env) in
+let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
   (* Temporarily add polymorphic type name to env *)
-  let (temp_env, params), recurs =
+  let (temp_env, params), _ (* recurs *) =
     let tmp, recurs = add_type_param env [ name ] in
     (add_type_param tmp poly_param, List.hd recurs)
   in
@@ -469,10 +442,10 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
             }
         | Some annot ->
             let typ = typeof_annot ~typedef:true temp_env loc annot in
-            (match allowed_recursion ~recurs typ with
-            | Ok is ->
-                if is then recurs_item := Some recurs else has_base := true
-            | Error msg -> raise (Error (loc, msg)));
+            (* (match allowed_recursion ~recurs typ with *)
+            (* | Ok is -> *)
+            (*     if is then recurs_item := Some recurs else has_base := true *)
+            (* | Error msg -> raise (Error (loc, msg))); *)
             {
               cname;
               ctyp = Some typ;
@@ -484,10 +457,10 @@ let type_variant env loc ~in_sig { Ast.name = { poly_param; name }; ctors } =
   if Option.is_some !recurs_item && not !has_base then
     raise (Error (loc, "Recursive type has no base case"));
 
-  let typ = Tvariant (params, !recurs_item, variant, ctors) in
+  let decl = { params; kind = Dvariant (!recurs_item, ctors); in_sgn } in
   (* Make sure that each type name only appears once per module *)
-  let typ = check_type_unique ~in_sig env loc name typ in
-  (Env.add_type name ~in_sig typ env, typ)
+  check_type_unique ~in_sgn env loc name;
+  (Env.add_type name decl env, decl)
 
 let convert_simple_lit loc typ expr =
   { typ; expr = Const expr; attr = { no_attr with const = true }; loc }
@@ -593,12 +566,7 @@ end = struct
   open Records
   open Patternmatch
 
-  let string_typ =
-    (* Talias (Path.Pid "string", Tarray Tu8) *)
-    Tabstract
-      ( [],
-        Path.Pmod ("string", Path.Pid "t"),
-        Talias (Path.Pmod ("string", Path.Pid "t"), Tarray (Tprim Tu8)) )
+  let string_typ = Tconstr (Path.Pmod ("string", Path.Pid "t"), [])
 
   let rec convert env expr = convert_annot env None expr
 
@@ -1003,7 +971,7 @@ end = struct
        generalized and we can easily catch weak type variables *)
     let rec extract_typ = function
       | Tfun (_, t, _) -> t
-      | Talias (_, t) | Tvar { contents = Link t } -> extract_typ t
+      | Tvar { contents = Link t } -> extract_typ t
       | t -> t
     in
     let typ = extract_typ callee.typ in
@@ -1054,9 +1022,7 @@ end = struct
             unify (loc, msg) tint e.typ env;
             { typ = tint; expr; attr = e.attr; loc }
           with Error _ ->
-            unify (loc, msg)
-              (Tabstract ([], Path.Pid "int or float", tunit))
-              e.typ env;
+            unify (loc, msg) (Tconstr (Path.Pid "int or float", [])) e.typ env;
             failwith "unreachable"))
     | _ -> raise (Error (fst unop, "Custom unary operators are not supported"))
 
@@ -1163,19 +1129,19 @@ end = struct
           ((i + 1, const), (string_of_int i, expr)))
         (0, true) exprs
     in
-    let fields =
-      List.map (fun (fname, e) -> { fname; ftyp = e.typ; mut = false }) exprs
-    in
-    let typ = Trecord ([], None, Array.of_list fields) in
+    let ts = List.map (fun (_, e) -> e.typ) exprs in
+    let typ = Ttuple ts in
     let attr = { const; global = false; mut = false } in
     { typ; expr = Record exprs; attr; loc }
 
   and convert_fmt env loc exprs =
     let f expr =
       let e = convert env expr in
-      match (e.expr, clean e.typ) with
+      match (e.expr, repr e.typ) with
       | Const (String s), _ -> Fstr s
-      | _, (Tarray (Tprim Tu8) | Tabstract ([], _, Tarray (Tprim Tu8))) ->
+      | _, Tarray (Tprim Tu8) -> Fexpr e
+      | _, Tconstr (p, [])
+        when Path.equal p (Path.Pmod ("string", Path.Pid "t")) ->
           Fexpr e
       | _, Tprim (Tint | Tfloat | Tbool | Tu8 | Ti32 | Tf32) -> Fexpr e
       | _, Tvar { contents = Unbound _ } ->
@@ -1308,15 +1274,15 @@ let block_external_name loc ~cname id =
 
 let add_signature_types (env, m) = function
   | Ast.Stypedef (loc, Trecord t) ->
-      let env, typ = type_record ~in_sig:true env loc t in
+      let env, typ = type_record ~in_sgn:true env loc t in
       let m = Module.add_type_sig loc t.name.name typ m in
       (env, m)
   | Stypedef (loc, Talias (name, type_spec)) ->
-      let env, typ = type_alias ~in_sig:true env loc name type_spec in
+      let env, typ = type_alias ~in_sgn:true env loc name type_spec in
       let m = Module.add_type_sig loc name.name typ m in
       (env, m)
   | Stypedef (loc, Tvariant v) ->
-      let env, typ = type_variant ~in_sig:true env loc v in
+      let env, typ = type_variant ~in_sgn:true env loc v in
       let m = Module.add_type_sig loc v.name.name typ m in
       (env, m)
   | Stypedef (loc, Tabstract a) ->
@@ -1415,7 +1381,7 @@ let check_module_annot env loc ~in_functor ~mname m annot =
   | Some path -> (
       match Env.find_module_type_opt loc path env with
       | Some mtype ->
-          let _, mtype = Module_type.adjust_for_checking ~mname ~newvar mtype in
+          let _, mtype = Module_type.adjust_for_checking ~mname mtype in
           Module.validate_intf env loc ~in_functor mtype m
       | None -> raise (Error (loc, "Cannot find module type " ^ Path.show path))
       )
@@ -1521,7 +1487,7 @@ let rec convert_module env mname sign prog check_ret =
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
-     match clean last_type with
+     match repr last_type with
      | Tprim (Tunit | Tint) -> ()
      | _ ->
          let msg =
@@ -1551,16 +1517,16 @@ and convert_prog env items modul =
         in
         (env, items, m)
     | Typedef (loc, Trecord t) ->
-        let env, typ = type_record ~in_sig:false env loc t in
-        let m = Module.add_type loc typ m in
+        let env, typ = type_record ~in_sgn:false env loc t in
+        let m = Module.add_type loc t.name.name typ m in
         (env, items, m)
     | Typedef (loc, Talias (name, type_spec)) ->
-        let env, typ = type_alias ~in_sig:false env loc name type_spec in
-        let m = Module.add_type loc typ m in
+        let env, typ = type_alias ~in_sgn:false env loc name type_spec in
+        let m = Module.add_type loc name.name typ m in
         (env, items, m)
     | Typedef (loc, Tvariant v) ->
-        let env, typ = type_variant ~in_sig:false env loc v in
-        let m = Module.add_type loc typ m in
+        let env, typ = type_variant ~in_sgn:false env loc v in
+        let m = Module.add_type loc v.name.name typ m in
         (env, items, m)
     | Typedef (loc, Tabstract _) ->
         raise (Error (loc, "Abstract types need a concrete implementation"))
@@ -1672,7 +1638,7 @@ and convert_prog env items modul =
                             param_arg_map :=
                               Module_type.Pmap.add key mname !param_arg_map;
                             let subs, mtype =
-                              Module_type.adjust_for_checking ~mname ~newvar
+                              Module_type.adjust_for_checking ~mname
                                 (snd param)
                             in
                             Module.validate_intf env loc ~in_functor:false mtype
