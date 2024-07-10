@@ -9,6 +9,7 @@ val leave_level : unit -> unit
 val unify : err -> typ -> typ -> Env.t -> unit
 val generalize : typ -> typ
 val instantiate : typ -> typ
+val instantiate_sub : typ Smap.t -> typ -> typ Smap.t * typ
 val regeneralize : typ -> typ
 
 val types_match : in_functor:bool -> typ -> typ -> typ * string Smap.t * bool

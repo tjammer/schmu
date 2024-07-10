@@ -27,7 +27,7 @@ module type Recs = sig
     Env.t -> Ast.loc -> string list -> Types.typ option -> Types.typ
 
   val fields_of_record :
-    Ast.loc -> Path.t -> Env.t -> (Types.field array, unit) result
+    Ast.loc -> Path.t -> typ list option -> Env.t -> (field array, unit) result
 end
 
 module type S = sig
@@ -645,7 +645,7 @@ module Make (C : Core) (R : Recs) = struct
     let mn = Env.modpath env in
     let rfields =
       (match repr t with
-      | Tconstr (path, _) -> fields_of_record loc path env
+      | Tconstr (path, ps) -> fields_of_record loc path (Some ps) env
       | _ -> Result.Error ())
       |> function
       | Ok fields -> fields

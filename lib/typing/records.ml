@@ -37,7 +37,7 @@ module type S = sig
     Env.t -> Ast.loc -> string list -> Types.typ option -> Types.typ
 
   val fields_of_record :
-    Ast.loc -> Path.t -> Env.t -> (Types.field array, unit) result
+    Ast.loc -> Path.t -> typ list option -> Env.t -> (field array, unit) result
 end
 
 let array_assoc_opt name arr =
@@ -85,10 +85,37 @@ module Make (C : Core) = struct
                 in
                 raise (Error (loc, msg))))
 
-  let fields_of_record loc path env =
-    (* TODO map params *)
-    match (Env.find_type loc path env).kind with
-    | Drecord fields -> Ok fields
+  let fields_of_record loc path params env =
+    let decl = Env.find_type loc path env in
+    let sub =
+      match params with
+      | Some params -> (
+          try
+            List.fold_left2
+              (fun sub inst q ->
+                let str =
+                  match q with
+                  | Qvar s -> s
+                  | t ->
+                      print_endline (show_typ t);
+                      failwith "Internal Error: Not a qvara"
+                in
+                Smap.add str inst sub)
+              Smap.empty params decl.params
+          with Invalid_argument _ ->
+            failwith "Internal Error: Params don't match")
+      | None -> Smap.empty
+    in
+    match decl.kind with
+    | Drecord fields ->
+        let _, fields =
+          Array.fold_left_map
+            (fun sub f ->
+              let sub, ftyp = instantiate_sub sub f.ftyp in
+              (sub, { f with ftyp }))
+            sub fields
+        in
+        Ok fields
     | _ -> Error ()
 
   let rec convert_record env loc annot labels =
@@ -103,14 +130,27 @@ module Make (C : Core) = struct
     let (params, name, labels), labels_expr =
       match repr t with
       | Tconstr (path, ps) ->
-          let ls = fields_of_record loc path env |> Result.get_ok in
+          let ls =
+            fields_of_record loc path (Some ps) env
+            |> Result.get_ok
+            |> Array.map (fun f -> { f with ftyp = instantiate f.ftyp })
+          in
           let labels_expr =
             let f ((loc, label), expr) =
-              let typ = array_assoc_opt label ls |> Option.get in
-              (* I think we can never run into this being
-                 None, because we check the labelset
-                 earlier. *)
-              let expr = convert_annot env (Some typ) expr in
+              let typ =
+                match array_assoc_opt label ls with
+                | None ->
+                    raise_ "Unbound" label
+                      Path.(rm_name (Env.modpath env) path |> show)
+                | Some typ -> typ
+              in
+              let annot =
+                match typ with
+                | Tvar { contents = Unbound _ } -> None
+                | Qvar _ -> failwith "unreachable"
+                | _ -> Some typ
+              in
+              let expr = convert_annot env annot expr in
               unify (loc, "In record expression") typ expr.typ env;
               (label, expr)
             in
@@ -163,9 +203,9 @@ module Make (C : Core) = struct
 
     let all_new = ref true in
     let name = ref (Path.Pid "") in
-    let get_fields loc path env =
+    let get_fields loc path ps env =
       name := path;
-      let fields = fields_of_record loc path env |> Result.get_ok in
+      let fields = fields_of_record loc path ps env |> Result.get_ok in
       Array.map
         (fun field ->
           match Hashtbl.find_opt updated field.fname with
@@ -182,12 +222,12 @@ module Make (C : Core) = struct
 
     let fields =
       match repr record.typ with
-      | Tconstr (path, _) -> get_fields loc path env
+      | Tconstr (path, ps) -> get_fields loc path (Some ps) env
       | Qvar _ | Tvar { contents = Unbound _ } -> (
           (* Take first updated field to figure out the correct record type *)
           let loc, label = List.hd items |> fst in
           match Env.find_label_opt label env with
-          | Some t -> get_fields loc t.typename env
+          | Some t -> get_fields loc t.typename None env
           | None ->
               raise (Error (loc, "Cannot not find record for label " ^ label)))
       | t ->
@@ -216,9 +256,9 @@ module Make (C : Core) = struct
   and get_field env loc expr id =
     let expr = convert env expr in
     match repr expr.typ with
-    | Tconstr (path, _) as t -> (
+    | Tconstr (path, ps) as t -> (
         let labels =
-          match fields_of_record loc path env with
+          match fields_of_record loc path (Some ps) env with
           | Ok labels -> labels
           | Error () ->
               raise
@@ -241,7 +281,9 @@ module Make (C : Core) = struct
                 "Field access of record "
                 ^ string_of_type (Env.modpath env) record_t )
               record_t expr.typ env;
-            let labels = fields_of_record loc typename env |> Result.get_ok in
+            let labels =
+              fields_of_record loc typename None env |> Result.get_ok
+            in
             (labels.(index), expr, index)
         | None -> raise (Error (loc, "Unbound field " ^ id)))
 

@@ -142,73 +142,70 @@ and generalize_closure = function
   | Closure cls ->
       Closure (List.map (fun c -> { c with cltyp = generalize c.cltyp }) cls)
 
-(* TODO sibling functions *)
-let instantiate t =
-  let rec aux subst = function
-    | Qvar id -> (
-        match Smap.find_opt id subst with
-        | Some t -> (subst, t)
-        | None ->
-            let tv = newvar () in
-            (Smap.add id tv subst, tv))
-    | Tvar { contents = Link t } -> aux subst t
-    | Ttuple ts ->
-        let subst, ts = List.fold_left_map aux subst ts in
-        (subst, Ttuple ts)
-    | Tconstr (p, ps) ->
-        let subst, ps = List.fold_left_map aux subst ps in
-        (subst, Tconstr (p, ps))
-    | Tfun (params_t, t, k) ->
-        let subst, params_t =
-          List.fold_left_map
-            (fun subst param ->
-              let subst, pt = aux subst param.pt in
-              (subst, { param with pt }))
-            subst params_t
-        in
-        let subst, t = aux subst t in
-        let subst, k =
-          match k with
-          | Simple -> (subst, k)
-          | Closure cls ->
-              let subst, cls =
-                List.fold_left_map
-                  (fun s c ->
-                    let subst, cltyp = aux s c.cltyp in
-                    (subst, { c with cltyp }))
-                  subst cls
-              in
-              (subst, Closure cls)
-        in
-        (subst, Tfun (params_t, t, k))
-    | Traw_ptr t ->
-        let subst, t = aux subst t in
-        (subst, Traw_ptr t)
-    | Tarray t ->
-        let subst, t = aux subst t in
-        (subst, Tarray t)
-    | Trc t ->
-        let subst, t = aux subst t in
-        (subst, Trc t)
-    | Tfixed_array ({ contents = Generalized id }, t) -> (
-        let subst, t = aux subst t in
-        match Smap.find_opt ("fa" ^ id) subst with
-        | Some (Tfixed_array (i, _)) -> (subst, Tfixed_array (i, t))
-        | Some _ -> failwith "Internal Error: What else?"
-        | None ->
-            let t =
-              Tfixed_array (ref (Unknown (gensym (), !current_level)), t)
+let rec inst_impl subst = function
+  | Qvar id -> (
+      match Smap.find_opt id subst with
+      | Some t -> (subst, t)
+      | None ->
+          let tv = newvar () in
+          (Smap.add id tv subst, tv))
+  | Tvar { contents = Link t } -> inst_impl subst t
+  | Ttuple ts ->
+      let subst, ts = List.fold_left_map inst_impl subst ts in
+      (subst, Ttuple ts)
+  | Tconstr (p, ps) ->
+      let subst, ps = List.fold_left_map inst_impl subst ps in
+      (subst, Tconstr (p, ps))
+  | Tfun (params_t, t, k) ->
+      let subst, params_t =
+        List.fold_left_map
+          (fun subst param ->
+            let subst, pt = inst_impl subst param.pt in
+            (subst, { param with pt }))
+          subst params_t
+      in
+      let subst, t = inst_impl subst t in
+      let subst, k =
+        match k with
+        | Simple -> (subst, k)
+        | Closure cls ->
+            let subst, cls =
+              List.fold_left_map
+                (fun s c ->
+                  let subst, cltyp = inst_impl s c.cltyp in
+                  (subst, { c with cltyp }))
+                subst cls
             in
-            (Smap.add ("fa" ^ id) t subst, t))
-    | Tfixed_array ({ contents = Linked l }, t) ->
-        aux subst (Tfixed_array (l, t))
-    | Tfixed_array (i, t) ->
-        let subst, t = aux subst t in
-        (subst, Tfixed_array (i, t))
-    | t -> (subst, t)
-  in
+            (subst, Closure cls)
+      in
+      (subst, Tfun (params_t, t, k))
+  | Traw_ptr t ->
+      let subst, t = inst_impl subst t in
+      (subst, Traw_ptr t)
+  | Tarray t ->
+      let subst, t = inst_impl subst t in
+      (subst, Tarray t)
+  | Trc t ->
+      let subst, t = inst_impl subst t in
+      (subst, Trc t)
+  | Tfixed_array ({ contents = Generalized id }, t) -> (
+      let subst, t = inst_impl subst t in
+      match Smap.find_opt ("fa" ^ id) subst with
+      | Some (Tfixed_array (i, _)) -> (subst, Tfixed_array (i, t))
+      | Some _ -> failwith "Internal Error: What else?"
+      | None ->
+          let t = Tfixed_array (ref (Unknown (gensym (), !current_level)), t) in
+          (Smap.add ("fa" ^ id) t subst, t))
+  | Tfixed_array ({ contents = Linked l }, t) ->
+      inst_impl subst (Tfixed_array (l, t))
+  | Tfixed_array (i, t) ->
+      let subst, t = inst_impl subst t in
+      (subst, Tfixed_array (i, t))
+  | t -> (subst, t)
 
-  aux Smap.empty t |> snd
+let instantiate t = inst_impl Smap.empty t |> snd
+
+let instantiate_sub sub t = inst_impl sub t
 
 let regeneralize typ =
   enter_level ();
