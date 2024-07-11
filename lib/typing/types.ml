@@ -53,7 +53,8 @@ and decl_kind =
   | Drecord of field array
   | Dvariant of typ option * ctor array
   | Dabstract of typ option
-  | Dalias of typ [@@deriving sexp]
+  | Dalias of typ
+[@@deriving sexp]
 
 let tunit = Tprim Tunit
 and tint = Tprim Tint
@@ -256,7 +257,7 @@ let rec subst_generic ~id typ = function
 
 let rec get_generic_ids = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
-  | Tconstr (_, ps) -> List.map get_generic_ids ps |> List.concat
+  | Tconstr (_, ts) | Ttuple ts -> List.map get_generic_ids ts |> List.concat
   | Tvar { contents = Link t } -> get_generic_ids t
   | Tarray t | Traw_ptr t | Trc t | Tfixed_array (_, t) -> get_generic_ids t
   | Tfun (ps, ret, _) ->

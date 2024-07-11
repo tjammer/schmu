@@ -219,9 +219,112 @@ module Nameset = Set.Make (Path)
    This is true for functions where we want to be as general as possible.
    We need to match everything for weak vars though *)
 let types_match ~in_functor l r =
-  ignore in_functor;
-  ignore r;
-  (l, Smap.empty, true)
+  let rec aux ~strict sub l r =
+    if l == r then (r, sub, true)
+    else
+      match (l, r) with
+      | Tprim l, Tprim r' when l == r' -> (r, sub, true)
+      | Tvar { contents = Unbound (l, _) }, Tvar { contents = Unbound (rid, _) }
+      | Qvar l, Tvar { contents = Unbound (rid, _) }
+        when in_functor -> (
+          (* We always map from left to right *)
+          match Smap.find_opt l sub with
+          | Some id when String.equal rid id -> (r, sub, true)
+          | Some _ -> (r, sub, false)
+          | None ->
+              (* We 'connect' left to right *)
+              (r, Smap.add l rid sub, true))
+      | Qvar l, Qvar rid | Tvar { contents = Unbound (l, _) }, Qvar rid -> (
+          (* We always map from left to right *)
+          match Smap.find_opt l sub with
+          | Some id when String.equal rid id -> (r, sub, true)
+          | Some _ -> (r, sub, false)
+          | None ->
+              (* We 'connect' left to right *)
+              (r, Smap.add l rid sub, true))
+      | Tvar { contents = Unbound _ }, _ when not strict ->
+          (* Unbound vars match every type *) (r, sub, true)
+      | Tconstr (pl, psl), Tconstr (pr, psr) ->
+          if Path.equal pl pr then
+            let sub, mtch =
+              try
+                List.fold_left2
+                  (fun (sub, mtch) l r ->
+                    let _, sub, do_match = aux ~strict sub l r in
+                    (sub, do_match && mtch))
+                  (sub, true) psl psr
+              with Invalid_argument _ -> (sub, false)
+            in
+            (r, sub, mtch)
+          else (r, sub, false)
+      | Traw_ptr l, Traw_ptr r ->
+          let t, s, b = aux ~strict sub l r in
+          (Traw_ptr t, s, b)
+      | Tarray l, Tarray r ->
+          let t, s, b = aux ~strict sub l r in
+          (Tarray t, s, b)
+      | Trc l, Trc r ->
+          let t, s, b = aux ~strict sub l r in
+          (Trc t, s, b)
+      | ( Tfixed_array (({ contents = Generalized lg } as rl), lt),
+          Tfixed_array (({ contents = Generalized ri } as rr), rt) )
+      | ( Tfixed_array (({ contents = Unknown (lg, _) } as rl), lt),
+          Tfixed_array (({ contents = Generalized ri } as rr), rt) ) ->
+          (* TODO check for same generalized things. Would be nice if something
+             could be generalized. Prepend with fa for fixed array so not clash
+             with Qvar strings *)
+          let i, sub, pre = aux_sizes sub rl rr lg ri in
+          if pre then
+            let t, s, b = aux ~strict sub lt rt in
+            (Tfixed_array (i, t), s, b)
+          else (r, sub, false)
+      | Tfixed_array ({ contents = Linked l }, lt), r ->
+          aux ~strict sub (Tfixed_array (l, lt)) r
+      | l, Tfixed_array ({ contents = Linked r }, rt) ->
+          aux ~strict sub l (Tfixed_array (r, rt))
+      | ( Tfixed_array ({ contents = Known ls }, lt),
+          Tfixed_array (({ contents = Known rs } as i), rt) ) ->
+          let t, sub, b = aux ~strict sub lt rt in
+          (Tfixed_array (i, t), sub, b && Int.equal ls rs)
+      | Ttuple ls, Ttuple rs ->
+          let ts, sub, mtch =
+            try
+              List.fold_left2
+                (fun (ts, sub, mtch) l r ->
+                  let t, sub, b = aux ~strict sub l r in
+                  (t :: ts, sub, mtch && b))
+                ([], sub, true) ls rs
+            with Invalid_argument _ -> (List.rev rs, sub, false)
+          in
+          (Ttuple (List.rev ts), sub, mtch)
+      | Tfun (ps_l, l, _), Tfun (ps_r, r, kind) -> (
+          try
+            let ps, sub, acc =
+              List.fold_left2
+                (fun (ts, s, acc) pl pr ->
+                  let pt, sub, b = aux ~strict:true s pl.pt pr.pt in
+                  let b = b && pl.pattr = pr.pattr in
+                  ({ pr with pt } :: ts, sub, acc && b))
+                ([], sub, true) ps_l ps_r
+            in
+            let ps = List.rev ps in
+            (* We don't shortcut here to match the annotations for the error message *)
+            let ret, sub, b = aux ~strict:true sub l r in
+            (Tfun (ps, ret, kind), sub, acc && b)
+          with Invalid_argument _ -> (r, sub, false))
+      | _, _ -> (r, sub, false)
+  and aux_sizes sub refl refr l r =
+    if refl == refr then (refr, sub, true)
+    else
+      let sub, pre =
+        match Smap.find_opt ("fa" ^ l) sub with
+        | Some id when String.equal ("fa" ^ r) id -> (sub, true)
+        | Some _ -> (sub, false)
+        | None -> (Smap.add ("fa" ^ l) ("fa" ^ r) sub, true)
+      in
+      (refr, sub, pre)
+  in
+  aux Smap.empty ~strict:false l r
 
 and match_type_params ~in_functor params typ =
   ignore in_functor;
