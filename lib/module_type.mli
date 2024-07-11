@@ -1,4 +1,7 @@
-type item_kind = Mtypedef of Types.type_decl | Mvalue of Types.typ * string option
+type item_kind =
+  | Mtypedef of Types.type_decl
+  | Mvalue of Types.typ * string option
+
 type item = string * Ast.loc * item_kind
 type t = item list
 

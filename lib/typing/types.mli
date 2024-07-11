@@ -37,17 +37,14 @@ and closed = {
   clcopy : bool; (* otherwise move *)
 }
 
-type type_decl = {
-  params : typ list;
-  kind : decl_kind;
-  in_sgn : bool;
-}
+type type_decl = { params : typ list; kind : decl_kind; in_sgn : bool }
 
 and decl_kind =
   | Drecord of field array
   | Dvariant of typ option * ctor array
   | Dabstract of typ option
-  | Dalias of typ [@@deriving sexp]
+  | Dalias of typ
+[@@deriving sexp]
 
 val tunit : typ
 val tint : typ

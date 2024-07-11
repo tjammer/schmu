@@ -204,7 +204,6 @@ let rec inst_impl subst = function
   | t -> (subst, t)
 
 let instantiate t = inst_impl Smap.empty t |> snd
-
 let instantiate_sub sub t = inst_impl sub t
 
 let regeneralize typ =

@@ -58,10 +58,10 @@ let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 *)
 
 let check_annot env loc l r =
-  let mn = Env.modpath env in
   let typ, _, b = Inference.types_match ~in_functor:false l r in
   if b then typ
   else
+    let mn = Env.modpath env in
     let msg = Error.format_type_err "Var annotation" mn r l in
     raise (Error (loc, msg))
 
@@ -1638,8 +1638,7 @@ and convert_prog env items modul =
                             param_arg_map :=
                               Module_type.Pmap.add key mname !param_arg_map;
                             let subs, mtype =
-                              Module_type.adjust_for_checking ~mname
-                                (snd param)
+                              Module_type.adjust_for_checking ~mname (snd param)
                             in
                             Module.validate_intf env loc ~in_functor:false mtype
                               m;

@@ -19,7 +19,7 @@ let subst_name ~mname pathsub p inner =
     let pathsub = Pmap.add p newp pathsub in
     (pathsub, newp)
 
-let apply_subs (psub,_) typ =
+let apply_subs (psub, _) typ =
   let subst p = match Pmap.find_opt p psub with Some p -> p | None -> p in
   let rec aux = function
     | Tconstr (p, ps) -> Tconstr (subst p, List.map aux ps)
