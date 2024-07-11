@@ -282,7 +282,10 @@ module Make (C : Core) = struct
                 ^ string_of_type (Env.modpath env) record_t )
               record_t expr.typ env;
             let labels =
-              fields_of_record loc typename None env |> Result.get_ok
+              (match repr record_t with
+              | Tconstr (_, ps) -> fields_of_record loc typename (Some ps) env
+              | _ -> failwith "Internal Error: Does this happen?")
+              |> Result.get_ok
             in
             (labels.(index), expr, index)
         | None -> raise (Error (loc, "Unbound field " ^ id)))
