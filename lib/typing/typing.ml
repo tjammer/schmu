@@ -140,13 +140,22 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
                ^ "." ))
   in
 
+  let is_generic t =
+    match repr t with
+    | Qvar _ | Tvar { contents = Unbound _ } -> true
+    | _ -> false
+  in
+
   let rec is_quantified = function
     | Tconstr (_, []) -> None
-    | Tconstr (name, params) -> Some (name, List.length params)
-    | Traw_ptr _ -> Some (Path.Pid "raw_ptr", 1)
-    | Tarray _ -> Some (Path.Pid "array", 1)
-    | Trc _ -> Some (Path.Pid "rc", 1)
-    | Tfixed_array _ -> Some (Path.Pid "array#?", 1)
+    | Tconstr (name, params) ->
+        let len = List.filter is_generic params |> List.length in
+        if len == 0 then None else Some (name, len)
+    | Traw_ptr t -> if is_generic t then Some (Path.Pid "raw_ptr", 1) else None
+    | Tarray t -> if is_generic t then Some (Path.Pid "array", 1) else None
+    | Trc t -> if is_generic t then Some (Path.Pid "rc", 1) else None
+    | Tfixed_array (_, t) ->
+        if is_generic t then Some (Path.Pid "array#?", 1) else None
     | Tvar { contents = Link t } -> is_quantified t
     | Tfun _ as t -> (
         let ts = get_generic_ids t in

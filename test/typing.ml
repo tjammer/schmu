@@ -357,22 +357,22 @@ let test_pipe_tail_mult_wrong_type () =
     "fun add1(a): a + 1\n10 |> add1(12)"
 
 let test_alias_simple () =
-  test "(foo = int) -> unit" "type foo = int\nexternal f : (foo) -> unit\nf"
+  test "(int) -> unit" "type foo = int\nexternal f : (foo) -> unit\nf"
 
 let test_alias_param_concrete () =
-  test "(foo = raw_ptr(u8)) -> unit"
+  test "(raw_ptr(u8)) -> unit"
     "type foo = raw_ptr(u8)\nexternal f : (foo) -> unit\nf"
 
 let test_alias_param_quant () =
-  test "(foo = raw_ptr('a)) -> unit"
+  test "(raw_ptr('a)) -> unit"
     "type foo('a) = raw_ptr('a)\nexternal f : (foo('a)) -> unit\nf"
 
 let test_alias_param_missing () =
-  test_exn "Type foo expects 1 type parameter"
+  test_exn "Type raw_ptr expects 1 type parameter"
     "type foo('a) = raw_ptr('a)\nexternal f : (foo) -> unit\nf"
 
 let test_alias_of_alias () =
-  test "(bar = int) -> foo = int"
+  test "(int) -> int"
     "type foo = int\ntype bar = foo\nexternal f : (bar) -> foo\nf"
 
 let test_alias_labels () =
@@ -702,7 +702,7 @@ let test_pattern_decl_tuple_missing () =
   test_exn
     "Tuple pattern has unexpected type:\n\
      expecting [(int, float, int)]\n\
-     but found [('a, 'b)]" "let x, f = (12, 5.0, 20)\nf"
+     but found [(int, float)]" "let x, f = (12, 5.0, 20)\nf"
 
 let test_pattern_decl_wildcard_move () =
   test "('a, 'b!) -> unit" "fun func(_, _!): ()\nfunc"
