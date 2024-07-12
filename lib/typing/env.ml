@@ -101,7 +101,7 @@ type scope = {
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : Path.t Lmap.t; (* For finding the type of a record expression *)
   ctors : label Map.t; (* Variant constructors *)
-  types : type_decl Map.t;
+  types : (type_decl * Path.t) Map.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
   modules : cached_module Map.t; (* Locally declared modules *)
   module_types : Module_type.t Map.t;
@@ -321,7 +321,7 @@ let add_record record in_sgn ~params ~labels env =
   let abs_name = Path.append record env.modpath in
   let labelsets, labels = add_labels abs_name labelset labels scope in
 
-  let types = Map.add record decl scope.types in
+  let types = Map.add record (decl, abs_name) scope.types in
   { env with values = { scope with labels; types; labelsets } :: tl }
 
 let add_variant variant in_sgn ~recurs ~params ~ctors env =
@@ -330,7 +330,7 @@ let add_variant variant in_sgn ~recurs ~params ~ctors env =
 
   let abs_name = Path.append variant env.modpath in
   let ctors = add_ctors abs_name ctors scope in
-  let types = Map.add variant decl scope.types in
+  let types = Map.add variant (decl, abs_name) scope.types in
   { env with values = { scope with ctors; types } :: tl }
 
 let add_module ~key cached_module env =
@@ -713,9 +713,10 @@ let find_labelset_opt loc labels env =
         match Lmap.find_opt (Labelset.of_list labels) scope.labelsets with
         | Some name ->
             mark_module_used scope.kind;
-            let decl = find_type loc name env in
+            let decl, name = find_type loc name env in
             (* Construct a new type. If it has labels, it's a type
                constructor. *)
+            print_endline ("labelset: " ^ Path.show name);
             Some (Tconstr (name, decl.params))
         | None -> aux tl)
   in
@@ -736,7 +737,7 @@ let find_ctor_opt name env =
 let rec make_alias_usable scope env = function
   | Tconstr (path, _) -> (
       let dummy_loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
-      let decl = find_type dummy_loc path env in
+      let decl, _ = find_type dummy_loc path env in
       match Types.(decl.kind) with
       | Drecord labels ->
           let labelset =
@@ -757,7 +758,8 @@ let add_alias alias in_sgn ~params typ env =
   let decl = { params; kind = Dalias typ; in_sgn } in
 
   let scope = make_alias_usable scope env typ in
-  let types = Map.add alias decl scope.types in
+  let abs_name = Path.append alias env.modpath in
+  let types = Map.add alias (decl, abs_name) scope.types in
   { env with values = { scope with types } :: tl }
 
 let add_type name decl env =
@@ -769,7 +771,8 @@ let add_type name decl env =
   | Dalias typ -> add_alias name decl.in_sgn ~params:decl.params typ env
   | Dabstract _ ->
       let scope, tl = decap_exn env in
-      let types = Map.add name decl scope.types in
+      let abs_name = Path.append name env.modpath in
+      let types = Map.add name (decl, abs_name) scope.types in
       { env with values = { scope with types } :: tl }
 
 let externals env =

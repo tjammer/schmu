@@ -127,10 +127,10 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
 
   let find env t tick =
     match Env.find_type_opt loc t env with
-    | Some decl -> (
+    | Some (decl, path) -> (
         match decl.kind with
         | Dalias typ -> typ
-        | Dabstract _ | Drecord _ | Dvariant _ -> Tconstr (t, decl.params))
+        | Dabstract _ | Drecord _ | Dvariant _ -> Tconstr (path, decl.params))
     | None ->
         raise
           (Error
@@ -331,7 +331,7 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
 let check_type_unique env loc ~in_sgn name =
   match Env.find_type_same_module name env with
   (* It's ok to have a type both in signature and impl *)
-  | Some decl when Bool.equal in_sgn decl.in_sgn ->
+  | Some (decl, _) when Bool.equal in_sgn decl.in_sgn ->
       let msg =
         Printf.sprintf
           "Type names in a module must be unique. %s exists already" name

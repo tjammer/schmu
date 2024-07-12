@@ -265,3 +265,18 @@ let rec get_generic_ids = function
         (fun l p -> get_generic_ids p.pt @ l)
         (get_generic_ids ret) ps
   | _ -> []
+
+let map_params ~inst ~params =
+  try
+    List.fold_left2
+      (fun sub inst q ->
+        let str =
+          match q with
+          | Qvar s -> s
+          | t ->
+              print_endline (show_typ t);
+              failwith "Internal Error: Not a qvara"
+        in
+        Smap.add str inst sub)
+      Smap.empty inst params
+  with Invalid_argument _ -> failwith "Internal Error: Params don't match"

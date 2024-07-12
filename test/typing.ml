@@ -587,7 +587,7 @@ let test_match_column_arity () =
   test_exn
     "Tuple pattern has unexpected type:\n\
      expecting [(int, int)]\n\
-     but found [('a, 'b, 'c)]"
+     but found [(int, int, 'a)]"
     {|type option('a) = #none | #some('a)
 match (1, 2):
   (a, b, c): a

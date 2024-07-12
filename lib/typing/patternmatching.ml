@@ -65,17 +65,37 @@ let array_assoc_opt name arr =
   in
   inner 0
 
-let ctors_of_variant loc path env =
-  (* TODO map params *)
-  let decl = Env.find_type loc path env in
-  match decl.kind with Dvariant (_, ctors) -> Ok ctors | _ -> Error ()
+let ctors_of_variant loc path params env =
+  let decl, _ = Env.find_type loc path env in
+  match decl.kind with
+  | Dvariant (_, ctors) ->
+      let sub =
+        match params with
+        | Some inst -> map_params ~inst ~params:decl.params
+        | None -> Smap.empty
+      in
+      let _, ctors =
+        Array.fold_left_map
+          (fun sub ct ->
+            let sub, ctyp =
+              match ct.ctyp with
+              | Some typ ->
+                  let sub, typ = instantiate_sub sub typ in
+                  (sub, Some typ)
+              | None -> (sub, None)
+            in
+            (sub, { ct with ctyp }))
+          sub ctors
+      in
+      Ok ctors
+  | _ -> Error ()
 
 let get_ctor env loc name =
   match Env.find_ctor_opt name env with
   | Some { index; typename } ->
       (* We get the ctor type from the variant *)
       let clike, ctor =
-        match ctors_of_variant loc typename env with
+        match ctors_of_variant loc typename None env with
         | Ok ctors ->
             let ctor = ctors.(index) in
             ( is_clike_variant ctors,
@@ -106,8 +126,10 @@ let get_variant env loc (_, name) annot =
   match annot with
   | Some variant -> (
       match repr variant with
-      | Tconstr (path, _) ->
-          let ctors = ctors_of_variant loc path env |> Result.get_ok in
+      | Tconstr (path, params) ->
+          let ctors =
+            ctors_of_variant loc path (Some params) env |> Result.get_ok
+          in
           let ctor =
             match array_assoc_opt name ctors with
             | Some ctor -> ctor
@@ -129,17 +151,23 @@ let get_variant env loc (_, name) annot =
       (* There is some overlap with [get_ctor] *)
       match Env.find_ctor_opt name env with
       | Some { index; typename } ->
-          let decl = Env.find_type loc typename env in
+          let decl, path = Env.find_type loc typename env in
           let ctors =
             match decl.kind with
             | Dvariant (_, ctors) -> ctors
             | _ -> failwith "Internal Error: Not a variant"
           in
           let ctor = ctors.(index) in
-          (* TODO map params *)
-          ( typename,
-            { ctor with ctyp = Option.map instantiate ctor.ctyp },
-            Tconstr (typename, decl.params) )
+          let typ, ctyp =
+            let sub, typ =
+              instantiate_sub Smap.empty (Tconstr (path, decl.params))
+            in
+            let ctyp =
+              Option.map (fun t -> instantiate_sub sub t |> snd) ctor.ctyp
+            in
+            (typ, ctyp)
+          in
+          (typename, { ctor with ctyp }, typ)
       | None ->
           let msg = "Unbound constructor " ^ name in
           raise (Error (loc, msg)))
@@ -314,13 +342,27 @@ module Exhaustiveness = struct
 
   let ctorset_of_variant loc env typ =
     match repr typ with
-    | Tconstr (path, _) -> (
+    | Tconstr (path, inst) -> (
         match Env.find_type_opt loc path env with
-        (* TODO map params? *)
-        | Some decl -> (
+        | Some (decl, _) -> (
+            let sub = map_params ~inst ~params:decl.params in
             match decl.kind with
-            | Drecord fields -> Record (Array.to_list fields)
-            | Dvariant (_, ctors) -> Ctors (Array.to_list ctors)
+            | Drecord fields ->
+                Record
+                  (Array.to_list fields
+                  |> List.map (fun f ->
+                         let _, ftyp = instantiate_sub sub f.ftyp in
+                         { f with ftyp }))
+            | Dvariant (_, ctors) ->
+                Ctors
+                  (Array.to_list ctors
+                  |> List.map (fun ct ->
+                         let ctyp =
+                           match ct.ctyp with
+                           | Some typ -> Some (instantiate_sub sub typ |> snd)
+                           | None -> None
+                         in
+                         { ct with ctyp }))
             | Dabstract _ | Dalias _ -> Inf)
         | None -> Inf)
     | _ -> Inf

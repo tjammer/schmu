@@ -62,7 +62,7 @@ module Make (C : Core) = struct
   open C
 
   let instantiate_record loc path env =
-    let decl = Env.find_type loc path env in
+    let decl, path = Env.find_type loc path env in
     let params = List.map instantiate decl.params in
     Tconstr (path, params)
 
@@ -86,24 +86,10 @@ module Make (C : Core) = struct
                 raise (Error (loc, msg))))
 
   let fields_of_record loc path params env =
-    let decl = Env.find_type loc path env in
+    let decl, _ = Env.find_type loc path env in
     let sub =
       match params with
-      | Some params -> (
-          try
-            List.fold_left2
-              (fun sub inst q ->
-                let str =
-                  match q with
-                  | Qvar s -> s
-                  | t ->
-                      print_endline (show_typ t);
-                      failwith "Internal Error: Not a qvara"
-                in
-                Smap.add str inst sub)
-              Smap.empty params decl.params
-          with Invalid_argument _ ->
-            failwith "Internal Error: Params don't match")
+      | Some params -> map_params ~inst:params ~params:decl.params
       | None -> Smap.empty
     in
     match decl.kind with
