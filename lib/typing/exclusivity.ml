@@ -6,6 +6,62 @@ open Error
    and using post processing, assume each binding is correct and unify
    binding-kind after the fact.*)
 
+module Contains_allocation = struct
+  let rec contains_allocation (get_decl : Path.t -> type_decl * Path.t) =
+    function
+    | Tvar { contents = Link t } | Traw_ptr t -> contains_allocation get_decl t
+    | Tarray _ | Trc _ -> true
+    | Ttuple ts ->
+        List.fold_left
+          (fun ca t -> ca || contains_allocation get_decl t)
+          false ts
+    | Tconstr (name, ts) ->
+        if
+          not
+            (List.fold_left
+               (fun ca t -> ca || contains_allocation get_decl t)
+               false ts)
+        then
+          (* Unparameterized types can also contain allocations *)
+          let decl = get_decl name |> fst in
+          let sub = map_params ~inst:ts ~params:decl.params in
+          match decl.kind with
+          | Drecord fs ->
+              Array.fold_left
+                (fun (ca, sub) f ->
+                  let sub, typ = Inference.instantiate_sub sub f.ftyp in
+                  (ca || contains_allocation get_decl typ, sub))
+                (false, sub) fs
+              |> fst
+          | Dvariant (_, cts) ->
+              Array.fold_left
+                (fun (ca, sub) ct ->
+                  match ct.ctyp with
+                  | Some typ ->
+                      let sub, typ = Inference.instantiate_sub sub typ in
+                      (ca || contains_allocation get_decl typ, sub)
+                  | None -> (ca, sub))
+                (false, sub) cts
+              |> fst
+          | Dalias typ | Dabstract (Some typ) ->
+              let _, typ = Inference.instantiate_sub sub typ in
+              contains_allocation get_decl typ
+          | Dabstract None ->
+              (* We already checked the params *)
+              false
+        else true
+    | Tprim _ -> false
+    | Qvar _ | Tvar { contents = Unbound _ } ->
+        (* We don't know yet *)
+        true
+    | Tfixed_array (_, t) -> contains_allocation get_decl t
+    | Tfun _ ->
+        (* TODO *)
+        true
+end
+
+open Contains_allocation
+
 module Usage = struct
   type t = Uread | Umut | Umove | Uset [@@deriving show]
   type set = Set | Dont_set [@@deriving show]
@@ -165,6 +221,12 @@ let param_pass = ref false
 let shadowmap = ref Smap.empty
 let array_bindings = ref Idset.empty
 let mutables = ref Map.empty
+let global_get_decl = ref None
+
+let gg_decl () =
+  (* get_get_decl *)
+  Option.get !global_get_decl
+
 let is_string = function Sp_string -> true | Sp_no | Sp_array_get -> false
 
 let new_id str mname =
@@ -182,12 +244,13 @@ let get_id str =
   | None | Some 1 -> Id.Fst str
   | Some i -> Id.Shadowed (str, i - 1)
 
-let reset () =
+let reset get_decl =
   borrow_state := 0;
   param_pass := false;
   shadowmap := Smap.empty;
   array_bindings := Idset.empty;
-  mutables := Map.empty
+  mutables := Map.empty;
+  global_get_decl := Some get_decl
 
 let forbid_conditional_borrow loc imm mut =
   let msg =
@@ -479,7 +542,11 @@ let get_closed_make_usage_delayed tree b =
 let make_usage tree (use : touched) = (tree, Usage.of_attr use.tattr)
 
 let cond_usage typ then_ else_ =
-  if contains_allocation typ then then_ else else_
+  if contains_allocation (gg_decl ()) typ then (
+    let () = print_endline ("this type is moved: " ^ show_typ typ) in
+    print_endline (string_of_bool (contains_allocation (gg_decl ()) typ));
+    then_)
+  else else_
 
 let get_repr_ord ~borrows repr =
   match Hashtbl.find_opt borrows repr with
@@ -867,11 +934,11 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
         (* Owning *)
         | [], [] -> []
         | [], b when are_borrow b ->
-            if contains_allocation be.typ then
+            if contains_allocation (gg_decl ()) be.typ then
               _raise "Branches have different ownership: owned vs borrowed"
             else []
         | b, [] when are_borrow b ->
-            if contains_allocation ae.typ then
+            if contains_allocation (gg_decl ()) ae.typ then
               _raise "Branches have different ownership: borrowed vs owned"
             else []
         | [], a | a, [] -> a
@@ -889,6 +956,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       match e with
       | Some e ->
           let usage = cond_usage e.typ Usage.Umove Uread in
+          print_endline (Usage.show usage);
           let e, v, hs = check_tree env usage no_bdata e hist in
           let e = { e with expr = Move e } in
           let expr = Ctor (name, i, Some e) in
@@ -1126,8 +1194,8 @@ let check_array_moves hist =
       | Dset | Dmut | Dnorm -> ())
     !array_bindings
 
-let check_tree ~mname pts pns touched body =
-  reset ();
+let check_tree ~mname get_decl pts pns touched body =
+  reset get_decl;
   current_module := Some mname;
 
   (* Add parameters to initial environment *)
@@ -1188,7 +1256,7 @@ let check_tree ~mname pts pns touched body =
     (fun p (n, loc) ->
       let n = (n, None) in
       (* If there's no allocation, we copying and moving are the same thing *)
-      if contains_allocation p.pt then
+      if contains_allocation (gg_decl ()) p.pt then
         let borrows = List.nth param_borrows !i in
         let borrow = borrow_of_param (Fst n) loc borrows in
         match p.pattr with
@@ -1213,8 +1281,8 @@ let check_tree ~mname pts pns touched body =
   in
   (check_mutated (), touched, body)
 
-let check_items ~mname touched items =
-  reset ();
+let check_items ~mname get_decl touched items =
+  reset get_decl;
   current_module := Some mname;
 
   (* touched variables *)
@@ -1248,7 +1316,7 @@ let check_items ~mname touched items =
           | Dset | Dmut | Dnorm -> ()))
     env;
 
-  reset ();
+  reset get_decl;
   List.iter
     (fun t ->
       let tattr, tattr_loc = find_usage (Fst (t.tname, t.tmname)) hist in

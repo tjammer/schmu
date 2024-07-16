@@ -63,7 +63,6 @@ val string_of_type : Path.t -> typ -> string
 
 val is_polymorphic : typ -> bool
 val is_weak : sub:Sset.t -> typ -> bool
-val contains_allocation : typ -> bool
 val mut_of_pattr : Ast.decl_attr -> bool
 val add_closure_copy : closed list -> string -> closed list option
 val is_clike_variant : ctor array -> bool

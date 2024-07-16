@@ -765,7 +765,9 @@ end = struct
     let _, closed_vars, touched, unused = Env.close_function env in
 
     let unmutated, touched, body =
-      Exclusivity.check_tree params_t ~mname:(Env.modpath env)
+      Exclusivity.check_tree
+        (fun path -> Env.find_type loc path env)
+        params_t ~mname:(Env.modpath env)
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
     in
@@ -862,7 +864,9 @@ end = struct
     let env, closed_vars, touched, unused = Env.close_function env in
 
     let unmutated, touched, body =
-      Exclusivity.check_tree params_t ~mname:(Env.modpath env)
+      Exclusivity.check_tree
+        (fun path -> Env.find_type loc path env)
+        params_t ~mname:(Env.modpath env)
         (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params)
         touched body
     in
@@ -1464,7 +1468,7 @@ let let_fn_alias env loc expr =
       | _ -> Not)
   | _ -> Not
 
-let rec convert_module env mname sign prog check_ret =
+let rec convert_module env loc mname sign prog check_ret =
   (* We create a new scope so we don't warn on unused uses *)
   let env = Env.open_toplevel mname env in
 
@@ -1488,7 +1492,11 @@ let rec convert_module env mname sign prog check_ret =
 
   let _, _, touched, unused = Env.close_toplevel env in
 
-  let unmutated, items = Exclusivity.check_items ~mname touched items in
+  let unmutated, items =
+    Exclusivity.check_items ~mname
+      (fun path -> Env.find_type loc path env)
+      touched items
+  in
 
   let has_sign = match sign with [] -> false | _ -> true in
   if (not (is_module (Env.modpath env))) || has_sign then
@@ -1550,7 +1558,7 @@ and convert_prog env items modul =
         let lambda_id_state_bk = !lambda_id_state in
         reset lambda_id_state;
 
-        let _, moditems, newm = convert_module env mname sign prog true in
+        let _, moditems, newm = convert_module env loc mname sign prog true in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
@@ -1600,7 +1608,7 @@ and convert_prog env items modul =
             env params
         in
         let _, functor_items, newm =
-          convert_module tmpenv mname sign prog true
+          convert_module tmpenv loc mname sign prog true
         in
 
         uniq_tbl := uniq_tbl_bk;
@@ -1850,7 +1858,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   (* Use prelude *)
   let env = if std then Env.use_module env loc (Path.Pid "std") else env in
 
-  let externals, items, m = convert_module env mname sign prog check_ret in
+  let externals, items, m = convert_module env loc mname sign prog check_ret in
 
   (* Add polymorphic functions from useed modules *)
   let items = List.map (fun item -> (mname, item)) items in

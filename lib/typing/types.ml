@@ -193,19 +193,20 @@ let rec is_weak ~sub = function
          at least some are caught *)
       false
 
-let rec contains_allocation = function
-  | Tvar { contents = Link t } | Traw_ptr t -> contains_allocation t
-  | Tarray _ | Trc _ -> true
-  | Ttuple ts | Tconstr (_, ts) ->
-      List.fold_left (fun ca t -> ca || contains_allocation t) false ts
-  | Tprim _ -> false
-  | Qvar _ | Tvar { contents = Unbound _ } ->
-      (* We don't know yet *)
-      true
-  | Tfixed_array (_, t) -> contains_allocation t
-  | Tfun _ ->
-      (* TODO *)
-      true
+let map_params ~inst ~params =
+  try
+    List.fold_left2
+      (fun sub inst q ->
+        let str =
+          match q with
+          | Qvar s -> s
+          | t ->
+              print_endline (show_typ t);
+              failwith "Internal Error: Not a qvara"
+        in
+        Smap.add str inst sub)
+      Smap.empty inst params
+  with Invalid_argument _ -> failwith "Internal Error: Params don't match"
 
 let mut_of_pattr = function Dmut | Dset -> true | Dnorm | Dmove -> false
 
@@ -265,18 +266,3 @@ let rec get_generic_ids = function
         (fun l p -> get_generic_ids p.pt @ l)
         (get_generic_ids ret) ps
   | _ -> []
-
-let map_params ~inst ~params =
-  try
-    List.fold_left2
-      (fun sub inst q ->
-        let str =
-          match q with
-          | Qvar s -> s
-          | t ->
-              print_endline (show_typ t);
-              failwith "Internal Error: Not a qvara"
-        in
-        Smap.add str inst sub)
-      Smap.empty inst params
-  with Invalid_argument _ -> failwith "Internal Error: Params don't match"
