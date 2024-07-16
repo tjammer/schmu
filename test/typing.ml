@@ -716,10 +716,8 @@ let test_signature_simple () =
   test "unit" "signature:\n  type t = int\ntype t = int"
 
 let test_signature_wrong_typedef () =
-  test_exn
-    "Mismatch between implementation and signature\n\
-     expecting [int]\n\
-     but found [float]" {|signature:
+  test_exn "Signatures don't match: expecting [int] but found [float]"
+    {|signature:
   type t = int
 type t = float|}
 
@@ -737,7 +735,7 @@ fun create_int(x : int): {x}|}
 
 let test_signature_param_mismatch () =
   test_exn
-    "Mismatch between implementation and signature\n\
+    "Signatures don't match:\n\
      expecting (_) -> [t(int)]\n\
      but found (_) -> [t('a)]"
     {|signature:
@@ -1008,7 +1006,7 @@ let test_mtype_define () =
   val random : () -> int|}
 
 let test_mtype_no_match () =
-  test_exn "Signatures don't match: Type test/t is missing"
+  test_exn "Signatures don't match: Type t is missing"
     {|
 module type tt:
   type t
@@ -1018,7 +1016,7 @@ module test : tt:
 |}
 
 let test_mtype_no_match_alias () =
-  test_exn "Signatures don't match: Type test/t is missing"
+  test_exn "Signatures don't match: Type t is missing"
     {|module type tt:
   type t
 
@@ -1029,7 +1027,7 @@ module other : tt = test
 |}
 
 let test_mtype_no_match_sign () =
-  test_exn "Signatures don't match: Type test/t is missing"
+  test_exn "Signatures don't match: Type t is missing"
     {|module type tt:
   type t
 module test : tt:
