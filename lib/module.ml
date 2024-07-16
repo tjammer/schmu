@@ -553,112 +553,126 @@ let to_channel c ~outname m =
   in
   { m with objects } |> sexp_of_t |> Sexp.to_channel c
 
-(* let extract_name_type env = function *)
-(*   | Mtype (l, n, decl) -> *)
-(*       (\* TODO abstract info *\) *)
-(*       Some *)
-(*         ( n, *)
-(*           l, *)
-(*           Tconstr (Path.append n (Env.modpath env), decl.params), *)
-(*           Mtypedef decl ) *)
-(*   | Mfun (l, t, n) | Mext (l, t, n, _) -> Some (n.user, l, t, Mvalue (t, n.call)) *)
-(*   | Mpoly_fun (l, abs, n, _) -> *)
-(*       let t = type_of_func abs.func in *)
-(*       Some (n, l, t, Mvalue (t, None)) *)
-(*   | Mmutual_rec _ -> None *)
-(*   | Malias (l, n, tree) -> Some (n, l, tree.typ, Mvalue (tree.typ, None)) *)
-(*   | Mlocal_module (l, n, _) -> *)
-(*       (\* Do we have to deal with this? *\) *)
-(*       Some (n, l, tunit, Mvalue (tunit, None)) *)
-(*   | Mmodule_alias _ | Mmodule_type _ | Mfunctor _ | Mapplied_functor _ -> None *)
+let find_item name = function
+  | Mtype (_, n, decl) ->
+      if String.equal name n then Some (Mtypedef decl) else None
+  | Mpoly_fun (_, abs, n, _) ->
+      if String.equal name n then
+        let typ = type_of_func abs.func in
+        Some (Mvalue (typ, None))
+      else None
+  | Malias (_, n, expr) ->
+      if String.equal name n then Some (Mvalue (expr.typ, None)) else None
+  | Mfun (_, typ, n) | Mext (_, typ, n, _) ->
+      if String.equal name n.user then Some (Mvalue (typ, None)) else None
+  | Mmutual_rec _ | Mlocal_module _ | Mfunctor _ | Mapplied_functor _
+  | Mmodule_alias _ | Mmodule_type _ ->
+      None
 
-(* let find_item name kind (n, _, _, tkind) = *)
-(*   match (kind, tkind) with *)
-(*   | (Mvalue _, Mvalue _ | Mtypedef _, Mtypedef _) when String.equal name n -> *)
-(*       true *)
-(*   | _ -> false *)
-
-(* let validate_intf env loc ~in_functor (name, _, kind) rhs = *)
-(*   let mn = Env.modpath env in *)
-(*   match (List.find_opt (find_item name kind) rhs, kind) with *)
-(*   | Some (_, _, ityp, _), _ -> *)
-(*       (match styp with *)
-(*       | Tabstract (ps, _, Tvar ({ contents = Unbound _ } as t)) -> *)
-(*           (\* Match abstract type *\) *)
-(*           let typ = *)
-(*             match Inference.match_type_params ~in_functor ps ityp with *)
-(*             | Ok typ -> typ *)
-(*             | Error msg -> raise (Error (loc, msg)) *)
-(*           in *)
-(*           t := Link typ *)
-(*       | _ -> ()); *)
-(*       let _, _, b = Inference.types_match ~in_functor styp ityp in *)
-(*       if b then () *)
-(*       else *)
-(*         let msg = *)
-(*           Error.format_type_err *)
-(*             ("Signatures don't match for " ^ name) *)
-(*             mn styp ityp *)
-(*         in *)
-(*         raise (Error (loc, msg)) *)
-(*   | None, kind -> *)
-(*       let msg = *)
-(*         Printf.sprintf "Signatures don't match: %s %s is missing" *)
-(*           (match kind with Mtypedef -> "Type" | Mvalue _ -> "Value " ^ name) *)
-(*           (string_of_type mn styp) *)
-(*       in *)
-(*       raise (Error (loc, msg)) *)
+let decls_match ~sgn impl =
+  match (sgn.kind, impl.kind) with
+  | Drecord s, Drecord i -> (
+      try
+        Array.iter2
+          (fun s i ->
+            let _, _, b =
+              Inference.types_match ~in_functor:false s.ftyp i.ftyp
+            in
+            if not b then raise (Invalid_argument ""))
+          s i;
+        Ok ()
+      with Invalid_argument _ ->
+        let to_tup fs =
+          let ts = Array.map (fun f -> f.ftyp) fs |> Array.to_list in
+          Ttuple ts
+        in
+        Error (Some (to_tup s, to_tup i)))
+  | Dvariant (_, s), Dvariant (_, i) -> (
+      try
+        Array.iter2
+          (fun s i ->
+            let b =
+              match (s.ctyp, i.ctyp) with
+              | Some s, Some i ->
+                  let _, _, b = Inference.types_match ~in_functor:false s i in
+                  b
+              | None, None -> true
+              | _ -> false
+            in
+            if not b then raise (Invalid_argument ""))
+          s i;
+        Ok ()
+      with Invalid_argument _ -> Error None)
+  | Dalias s, Dalias i ->
+      let _, _, b = Inference.types_match ~in_functor:false s i in
+      if b then Ok () else Error (Some (s, i))
+  | Dabstract (Some _), _ ->
+      failwith "Internal Error: Abstract type is not abstract"
+  | Dabstract None, _ -> Ok ()
+  | _ -> Error None
 
 let validate_signature env m =
-  ignore env;
-  m
-(* Go through signature and check that the implemented types match.
-   Implementation is appended to a list, so the most current bindings are the ones we pick.
-   That's exactly what we want. Also, set correct unique name to signature binding. *)
-(* let mn = Env.modpath env in *)
-(* match m.s with *)
-(* | [] -> m *)
-(* | _ -> *)
-(*     let impl = List.filter_map (extract_name_type env) m.i in *)
-(*     let f (name, loc, styp, kind) = *)
-(*       match (List.find_opt (find_item name kind) impl, kind) with *)
-(*       | Some (n, iloc, ityp, ikind), _ -> *)
-(*           let typ, _, b = Inference.types_match ~in_functor:false styp ityp in *)
-(*           if b then ( *)
-(*             (\* Query value to mark it as used in the env *\) *)
-(*             (match ikind with *)
-(*             | Mvalue _ -> ignore (Env.query_val_opt iloc (Path.Pid n) env) *)
-(*             | Mtypedef _ -> ()); *)
-(*             (\* [typ] maintains abstract types, but uses the implementation *)
-(*                types otherwise. This is needed for closures *\) *)
-(*             (name, loc, typ, ikind)) *)
-(*           else *)
-(*             let msg = *)
-(*               Error.format_type_err *)
-(*                 "Mismatch between implementation and signature" mn styp ityp *)
-(*             in *)
-(*             raise (Error (loc, msg)) *)
-(*       | None, Mtypedef -> ( *)
-(*           (\* Typedefs don't have to be given a second time. Except: When the initial type is abstract *\) *)
-(*           match clean styp with *)
-(*           | Tabstract _ -> *)
-(*               raise *)
-(*                 (Error *)
-(*                    ( loc, *)
-(*                      "Abstract type " ^ string_of_type mn styp *)
-(*                      ^ " not implemented" )) *)
-(*           | _ -> (name, loc, styp, kind)) *)
-(*       | None, Mvalue _ -> *)
-(*           let msg = *)
-(*             Printf.sprintf *)
-(* "Mismatch between implementation and signature: Missing \ *)
-   (*                implementation of %s %s" *)
-(*               (string_of_type mn styp) name *)
-(*           in *)
-(*           raise (Error (loc, msg)) *)
-(*     in *)
-(*     let s = List.rev_map f (List.rev m.s) in *)
-(*     { m with s } *)
+  (* Go through signature and check that the implemented types match.
+     Implementation is appended to a list, so the most current bindings are the ones we pick.
+     That's exactly what we want. Also, set correct unique name to signature binding. *)
+  let mn = Env.modpath env in
+  match m.s with
+  | [] -> m
+  | _ ->
+      let f (name, loc, kind) =
+        match (List.find_map (find_item name) m.i, kind) with
+        | Some (Mvalue _), Mtypedef _ ->
+            let msg =
+              "Mismatch between implementation and signature for type " ^ name
+            in
+            raise (Error (loc, msg))
+        | Some (Mtypedef idecl), Mtypedef sdecl ->
+            (match decls_match ~sgn:sdecl idecl with
+            | Ok () -> ()
+            | Error None ->
+                let msg =
+                  "Mismatch between implementation and signature for type "
+                  ^ name
+                in
+                raise (Error (loc, msg))
+            | Error (Some (s, i)) ->
+                let msg =
+                  Error.format_type_err
+                    "Mismatch between implementation and signature" mn s i
+                in
+                raise (Error (loc, msg)));
+            (* TODO map abstract type impl *)
+            (name, loc, kind)
+        | Some (Mvalue (ityp, _)), Mvalue (styp, callname) ->
+            let typ, _, b = Inference.types_match ~in_functor:false styp ityp in
+            if b then (
+              (* Query value to mark it as used in the env *)
+              ignore (Env.query_val_opt loc (Path.Pid name) env);
+              (name, loc, Mvalue (typ, callname)))
+            else
+              let msg =
+                Error.format_type_err
+                  "Mismatch between implementation and signature" mn styp ityp
+              in
+              raise (Error (loc, msg))
+        | None, Mtypedef decl -> (
+            (* Typedefs don't have to be given a second time. Except: When the initial type is abstract *)
+            match decl.kind with
+            | Dabstract _ ->
+                raise
+                  (Error (loc, "Abstract type " ^ name ^ " not implemented"))
+            | _ -> (name, loc, kind))
+        | (None | Some (Mtypedef _)), Mvalue (typ, _) ->
+            let msg =
+              Printf.sprintf
+                "Mismatch between implementation and signature: Missing \
+                 implementation of %s %s"
+                (string_of_type mn typ) name
+            in
+            raise (Error (loc, msg))
+      in
+      let s = List.rev_map f (List.rev m.s) in
+      { m with s }
 
 let validate_intf env loc ~in_functor intf m =
   ignore env;

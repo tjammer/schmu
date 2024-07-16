@@ -718,8 +718,8 @@ let test_signature_simple () =
 let test_signature_wrong_typedef () =
   test_exn
     "Mismatch between implementation and signature\n\
-     expecting [t = int]\n\
-     but found [t = float]" {|signature:
+     expecting [int]\n\
+     but found [float]" {|signature:
   type t = int
 type t = float|}
 
@@ -747,8 +747,7 @@ type t('a) = {x : int}
 fun create_int(x : int): {x}|}
 
 let test_signature_unparam_type () =
-  test_exn "Primitive type has no type parameter"
-    {|signature:
+  test "unit" {|signature:
   type t('a)
 type t('a) = int|}
 
@@ -773,7 +772,7 @@ let test_local_modules_miss_local () =
     (local_module ^ "let test : nosig/t = 10.0")
 
 let test_local_modules_miss_nested () =
-  test_exn "Expected a record type, not nosig/nested/t = u8"
+  test_exn "Expected a record type, not u8"
     (local_module ^ "let test : nosig/nested/t = {a = 10}")
 
 let test_local_modules_miss_local_dont_find_global () =
