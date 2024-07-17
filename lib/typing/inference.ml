@@ -325,9 +325,3 @@ let types_match ~in_functor l r =
       (refr, sub, pre)
   in
   aux Smap.empty ~strict:false l r
-
-and match_type_params ~in_functor params typ =
-  ignore in_functor;
-  ignore params;
-  ignore typ;
-  Result.Error "TODO"

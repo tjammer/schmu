@@ -542,11 +542,7 @@ let get_closed_make_usage_delayed tree b =
 let make_usage tree (use : touched) = (tree, Usage.of_attr use.tattr)
 
 let cond_usage typ then_ else_ =
-  if contains_allocation (gg_decl ()) typ then (
-    let () = print_endline ("this type is moved: " ^ show_typ typ) in
-    print_endline (string_of_bool (contains_allocation (gg_decl ()) typ));
-    then_)
-  else else_
+  if contains_allocation (gg_decl ()) typ then then_ else else_
 
 let get_repr_ord ~borrows repr =
   match Hashtbl.find_opt borrows repr with
@@ -956,7 +952,6 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       match e with
       | Some e ->
           let usage = cond_usage e.typ Usage.Umove Uread in
-          print_endline (Usage.show usage);
           let e, v, hs = check_tree env usage no_bdata e hist in
           let e = { e with expr = Move e } in
           let expr = Ctor (name, i, Some e) in
