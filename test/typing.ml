@@ -749,6 +749,16 @@ let test_signature_unparam_type () =
   type t('a)
 type t('a) = int|}
 
+let test_signature_abstract () =
+  test "unit"
+    {|signature:
+  type t
+  val len : (t) -> int
+
+type t = array(u8)
+fun len(str : t): __unsafe_array_length(str)
+|}
+
 let local_module =
   {|type t = float
 type global = int
@@ -1477,6 +1487,7 @@ let () =
           case "generic" test_signature_generic;
           case "param mismatch" test_signature_param_mismatch;
           case "unparam type" test_signature_unparam_type;
+          case "abstract" test_signature_abstract;
         ] );
       ( "local modules",
         [

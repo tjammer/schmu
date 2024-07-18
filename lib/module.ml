@@ -2,6 +2,7 @@ open Types
 open Error
 module S = Set.Make (Path)
 module M = Map.Make (Path)
+module Pmap = Inference.Pmap
 module Sset = Set.Make (String)
 
 type loc = Module_common.loc
@@ -569,7 +570,7 @@ let find_item name = function
   | Mmodule_alias _ | Mmodule_type _ ->
       None
 
-let decls_match ~sgn impl =
+let decls_match name ~sgn impl =
   match (sgn.kind, impl.kind) with
   | Drecord s, Drecord i -> (
       try
@@ -580,7 +581,7 @@ let decls_match ~sgn impl =
             in
             if not b then raise (Invalid_argument ""))
           s i;
-        Ok ()
+        Ok None
       with Invalid_argument _ ->
         let to_tup fs =
           let ts = Array.map (fun f -> f.ftyp) fs |> Array.to_list in
@@ -601,14 +602,14 @@ let decls_match ~sgn impl =
             in
             if not b then raise (Invalid_argument ""))
           s i;
-        Ok ()
+        Ok None
       with Invalid_argument _ -> Error None)
   | Dalias s, Dalias i ->
       let _, _, b = Inference.types_match ~in_functor:false s i in
-      if b then Ok () else Error (Some (s, i))
+      if b then Ok None else Error (Some (s, i))
   | Dabstract (Some _), _ ->
       failwith "Internal Error: Abstract type is not abstract"
-  | Dabstract None, _ -> Ok ()
+  | Dabstract None, _ -> Ok (Some (typ_of_decl impl name))
   | _ -> Error None
 
 let validate_module_type env find mtype =
@@ -617,28 +618,37 @@ let validate_module_type env find mtype =
      That's exactly what we want. Also, set correct unique name to signature binding. *)
   let mn = Env.modpath env in
   let com = "Signatures don't match" in
-  let f (name, loc, kind) =
+  let f (name, loc, kind) (sub, acc) =
     match (find name, kind) with
     | Some (Mvalue _), Mtypedef _ ->
         let msg = com ^ "for type " ^ name in
         raise (Error (loc, msg))
     | Some (Mtypedef idecl), Mtypedef sdecl ->
-        (match decls_match ~sgn:sdecl idecl with
-        | Ok () -> ()
-        | Error None ->
-            let msg = com ^ " for type " ^ name in
-            raise (Error (loc, msg))
-        | Error (Some (s, i)) ->
-            let msg = Error.format_type_err (com ^ ":") mn s i in
-            raise (Error (loc, msg)));
-        (* TODO map abstract type impl *)
-        (name, loc, kind)
+        let path = Path.append name mn in
+        let sub =
+          match decls_match path ~sgn:sdecl idecl with
+          | Ok None -> sub
+          | Ok (Some typ) -> Pmap.add path typ sub
+          | Error None ->
+              let msg = com ^ " for type " ^ name in
+              raise (Error (loc, msg))
+          | Error (Some (s, i)) ->
+              let msg = Error.format_type_err (com ^ ":") mn s i in
+              raise (Error (loc, msg))
+        in
+        (sub, (name, loc, kind) :: acc)
     | Some (Mvalue (ityp, _)), Mvalue (styp, callname) ->
-        let typ, _, b = Inference.types_match ~in_functor:false styp ityp in
-        if b then (
-          (* Query value to mark it as used in the env *)
-          ignore (Env.query_val_opt loc (Path.Pid name) env);
-          (name, loc, Mvalue (typ, callname)))
+        let typ, _, b =
+          Inference.types_match ~abstracts_map:sub ~in_functor:false styp ityp
+        in
+        if b then
+          let acc =
+            ((* Query value to mark it as used in the env *)
+             ignore (Env.query_val_opt loc (Path.Pid name) env);
+             (name, loc, Mvalue (typ, callname)))
+            :: acc
+          in
+          (sub, acc)
         else
           let msg = Error.format_type_err (com ^ ":") mn styp ityp in
           raise (Error (loc, msg))
@@ -647,7 +657,7 @@ let validate_module_type env find mtype =
         match decl.kind with
         | Dabstract _ ->
             raise (Error (loc, com ^ ": Type " ^ name ^ " is missing"))
-        | _ -> (name, loc, kind))
+        | _ -> (sub, (name, loc, kind) :: acc))
     | (None | Some (Mtypedef _)), Mvalue (typ, _) ->
         let msg =
           Printf.sprintf
@@ -657,7 +667,8 @@ let validate_module_type env find mtype =
         in
         raise (Error (loc, msg))
   in
-  List.rev_map f (List.rev mtype)
+  let _, mtype = List.fold_right f mtype (Pmap.empty, []) in
+  mtype
 
 let validate_signature env m =
   match m.s with

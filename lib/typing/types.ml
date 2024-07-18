@@ -266,3 +266,8 @@ let rec get_generic_ids = function
         (fun l p -> get_generic_ids p.pt @ l)
         (get_generic_ids ret) ps
   | _ -> []
+
+let typ_of_decl decl name =
+  match decl.kind with
+  | Drecord _ | Dvariant _ | Dabstract _ -> Tconstr (name, decl.params)
+  | Dalias typ -> typ

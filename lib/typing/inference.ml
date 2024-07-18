@@ -213,12 +213,12 @@ let regeneralize typ =
   let typ = generalize typ in
   typ
 
-module Nameset = Set.Make (Path)
+module Pmap = Map.Make (Path)
 
 (* Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
    We need to match everything for weak vars though *)
-let types_match ~in_functor l r =
+let types_match ~in_functor ?(abstracts_map = Pmap.empty) l r =
   let rec aux ~strict sub l r =
     if l == r then (r, sub, true)
     else
@@ -312,6 +312,15 @@ let types_match ~in_functor l r =
             let ret, sub, b = aux ~strict:true sub l r in
             (Tfun (ps, ret, kind), sub, acc && b)
           with Invalid_argument _ -> (r, sub, false))
+      | Tconstr (name, _), r -> (
+          match Pmap.find_opt name abstracts_map with
+          | Some typ ->
+              let _, _, b = aux ~strict sub typ r in
+              if b then
+                (* Use the abstract type here for interfaces *)
+                (l, sub, b)
+              else (r, sub, false)
+          | None -> (r, sub, false))
       | _, _ -> (r, sub, false)
   and aux_sizes sub refl refr l r =
     if refl == refr then (refr, sub, true)

@@ -12,7 +12,14 @@ val instantiate : typ -> typ
 val instantiate_sub : typ Smap.t -> typ -> typ Smap.t * typ
 val regeneralize : typ -> typ
 
-val types_match : in_functor:bool -> typ -> typ -> typ * string Smap.t * bool
+module Pmap : Map.S with type key = Path.t
+
+val types_match :
+  in_functor:bool ->
+  ?abstracts_map:typ Pmap.t ->
+  typ ->
+  typ ->
+  typ * string Smap.t * bool
 (** Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
        We need to match everything for weak vars though *)

@@ -47,8 +47,9 @@ module Contains_allocation = struct
               let _, typ = Inference.instantiate_sub sub typ in
               contains_allocation get_decl typ
           | Dabstract None ->
-              (* We already checked the params *)
-              false
+              (* We already checked the params, but the type is still abstract
+                 and could contain an allocation. *)
+              true
         else true
     | Tprim _ -> false
     | Qvar _ | Tvar { contents = Unbound _ } ->
