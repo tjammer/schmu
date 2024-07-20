@@ -2,7 +2,7 @@ open Types
 module Sexp = Csexp.Make (Sexplib0.Sexp)
 open Sexplib0.Sexp_conv
 
-type loc = Typed_tree.loc [@@deriving sexp]
+type loc = Typed_tree.loc [@@deriving sexp, show]
 
 type name = { user : string; call : string option }
 
@@ -27,7 +27,7 @@ and sg_kind = Module_type.item_kind =
   | Mtypedef of type_decl
   | Mvalue of typ * string option (* call name *)
 
-and sig_item = string * loc * sg_kind [@@deriving sexp]
+and sig_item = string * loc * sg_kind [@@deriving sexp, show]
 and intf = sig_item list
 and impl = item list
 

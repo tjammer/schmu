@@ -44,7 +44,7 @@ and decl_kind =
   | Dvariant of typ option * ctor array
   | Dabstract of typ option
   | Dalias of typ
-[@@deriving sexp]
+[@@deriving sexp, show]
 
 val tunit : typ
 val tint : typ

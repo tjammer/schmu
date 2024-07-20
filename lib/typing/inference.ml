@@ -244,19 +244,17 @@ let types_match ~in_functor ?(abstracts_map = Pmap.empty) l r =
               (r, Smap.add l rid sub, true))
       | Tvar { contents = Unbound _ }, _ when not strict ->
           (* Unbound vars match every type *) (r, sub, true)
-      | Tconstr (pl, psl), Tconstr (pr, psr) ->
-          if Path.equal pl pr then
-            let sub, mtch =
-              try
-                List.fold_left2
-                  (fun (sub, mtch) l r ->
-                    let _, sub, do_match = aux ~strict sub l r in
-                    (sub, do_match && mtch))
-                  (sub, true) psl psr
-              with Invalid_argument _ -> (sub, false)
-            in
-            (r, sub, mtch)
-          else (r, sub, false)
+      | Tconstr (pl, psl), Tconstr (pr, psr) when Path.equal pl pr ->
+          let sub, mtch =
+            try
+              List.fold_left2
+                (fun (sub, mtch) l r ->
+                  let _, sub, do_match = aux ~strict sub l r in
+                  (sub, do_match && mtch))
+                (sub, true) psl psr
+            with Invalid_argument _ -> (sub, false)
+          in
+          (r, sub, mtch)
       | Traw_ptr l, Traw_ptr r ->
           let t, s, b = aux ~strict sub l r in
           (Traw_ptr t, s, b)

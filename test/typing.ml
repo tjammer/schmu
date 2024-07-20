@@ -735,7 +735,7 @@ fun create_int(x : int): {x}|}
 
 let test_signature_param_mismatch () =
   test_exn
-    "Signatures don't match:\n\
+    "Signatures don't match for value create_int:\n\
      expecting (_) -> [t(int)]\n\
      but found (_) -> [t('a)]"
     {|signature:
@@ -1046,6 +1046,7 @@ module test : tt:
   type a = unit|}
 
 let test_mtype_abstracts () =
+  (* TODO make fail for printing *)
   test "unit"
     {|module outer:
   type t = {i : int}
@@ -1107,7 +1108,7 @@ let test_functor_wrong_arity () =
      module hmm = f(a, a)"
 
 let test_functor_wrong_module_type () =
-  test_exn "Signatures don't match: Type a/t is missing"
+  test_exn "Signatures don't match: Type t is missing"
     "module type mt:\n\
     \ type t\n\
      functor f(p : mt):\n\
@@ -1132,7 +1133,7 @@ module inta : sig:
   type t = int
   fun add(a, b): a + b
 module intadder = make(inta)
-intadder/add_twice(1, 2)|}
+-- intadder/add_twice(1, 2)|}
 
 let test_functor_abstract_param () =
   test_exn

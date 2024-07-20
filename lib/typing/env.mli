@@ -89,7 +89,7 @@ val find_type_opt : Ast.loc -> Path.t -> t -> (type_decl * Path.t) option
 val find_type : Ast.loc -> Path.t -> t -> type_decl * Path.t
 val find_type_same_module : string -> t -> (type_decl * Path.t) option
 val find_module_opt : ?query:bool -> Ast.loc -> Path.t -> t -> Path.t option
-val find_module_type_opt : Ast.loc -> Path.t -> t -> Module_type.t option
+val find_module_type_opt : Ast.loc -> Path.t -> t -> (Path.t * Module_type.t) option
 
 val find_label_opt : key -> t -> label option
 (** [find_label_opt labelname env] returns the name of first record with a matching label *)

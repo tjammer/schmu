@@ -1393,9 +1393,13 @@ let check_module_annot env loc ~in_functor ~mname m annot =
   match annot with
   | Some path -> (
       match Env.find_module_type_opt loc path env with
-      | Some mtype ->
-          let _, mtype = Module_type.adjust_for_checking ~mname mtype in
-          Module.validate_intf env loc ~in_functor mtype m
+      | Some (base, mtype) ->
+          print_endline
+            ("in check: map " ^ Path.show base ^ " to " ^ Path.show mname);
+          let mtype =
+            Module_type.adjust_for_checking ~base ~with_:mname mtype
+          in
+          Module.validate_intf env ~mname ~in_functor mtype m
       | None -> raise (Error (loc, "Cannot find module type " ^ Path.show path))
       )
   | None -> ()
@@ -1573,6 +1577,7 @@ and convert_prog env items modul =
               in
               raise (Error (loc, msg))
         in
+        print_endline ("module: " ^ Path.show mname);
         check_module_annot env loc ~in_functor:false ~mname newm annot;
         let m = add_local_module loc id newm ~into:m in
 
@@ -1593,7 +1598,7 @@ and convert_prog env items modul =
           List.map
             (fun (loc, id, path) ->
               match Env.find_module_type_opt loc path env with
-              | Some mtype -> (id, mtype)
+              | Some (path, mtype) -> (id, mtype, path)
               | None ->
                   raise
                     (Error (loc, "Cannot find module type " ^ Path.show path)))
@@ -1601,12 +1606,15 @@ and convert_prog env items modul =
         in
         let tmpenv =
           List.fold_left
-            (fun env (key, mt) ->
-              let param = (functor_param_name ~mname key, mt) in
-              let cm = scope_of_functor_param env loc param in
+            (fun env (key, mt, mtyp) ->
+              print_endline ("key : " ^ Path.show mname);
+              let param = Path.append key mname in
+              let cm = scope_of_functor_param env loc ~param ~mtyp mt in
               Env.add_module ~key cm env)
             env params
         in
+        (* Drop mtyp from params for further processing *)
+        let params = List.map (fun (key, mt, _) -> (key, mt)) params in
         let _, functor_items, newm =
           convert_module tmpenv loc mname sign prog true
         in
@@ -1614,6 +1622,7 @@ and convert_prog env items modul =
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
 
+        print_endline ("functor:\n" ^ Module_common.show newm);
         let env =
           match register_functor env loc mname params functor_items newm with
           | Ok env -> env
@@ -1643,23 +1652,32 @@ and convert_prog env items modul =
         match Module.functor_data env floc ftor with
         | Ok (mname, params, body, modul) ->
             let param_arg_map = ref Module_type.Pmap.empty in
+            print_endline "in app";
             let names =
               try
                 List.map2
                   (fun (aloc, arg) param ->
-                    let key = Module.functor_param_name ~mname (fst param) in
+                    let key = Path.append (fst param) mname in
+                    print_endline ("find module: " ^ Path.show arg);
                     match Env.find_module_opt aloc arg env with
                     | Some mname -> (
                         match Module.of_located env mname with
                         | Ok m ->
+                            print_endline
+                              ("map " ^ Path.show key ^ " to " ^ Path.show mname);
                             param_arg_map :=
                               Module_type.Pmap.add key mname !param_arg_map;
-                            let subs, mtype =
-                              Module_type.adjust_for_checking ~mname (snd param)
+                            print_endline
+                              ("mtyp:\n" ^ Module_type.show (snd param));
+                            let mtype =
+                              Module_type.adjust_for_checking ~base:key
+                                ~with_:mname (snd param)
                             in
-                            Module.validate_intf env loc ~in_functor:false mtype
-                              m;
-                            (mname, subs)
+                            print_endline ("mtyp:\n" ^ Module_type.show mtype);
+                            print_endline ("m:\n" ^ Module_common.show m);
+                            Module.validate_intf env ~mname ~in_functor:false
+                              mtype m;
+                            (mname, Module_type.(Pmap.empty, Smap.empty))
                         | Error s -> raise (Error (loc, s)))
                     | None ->
                         raise

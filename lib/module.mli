@@ -8,7 +8,6 @@ val empty : t
 val unique_name : mname:Path.t -> string -> int option -> string
 val lambda_name : mname:Path.t -> int -> string
 val absolute_module_name : mname:Path.t -> string -> string
-val functor_param_name : mname:Path.t -> string -> Path.t
 val add_type_sig : loc -> string -> type_decl -> t -> t
 val add_value_sig : loc -> string -> typ -> t -> t
 val add_type : loc -> string -> type_decl -> t -> t
@@ -70,7 +69,12 @@ val find_module :
   Env.t -> Ast.loc -> regeneralize:(typ -> typ) -> string -> Env.cached_module
 
 val scope_of_functor_param :
-  Env.t -> loc -> Path.t * Module_type.t -> Env.cached_module
+  Env.t ->
+  loc ->
+  param:Path.t ->
+  mtyp:Path.t ->
+  Module_type.t ->
+  Env.cached_module
 (** Make scopes out of a functor param to add it to the env *)
 
 val scope_of_located : Env.t -> Path.t -> (Env.scope, string) Result.t
@@ -84,7 +88,7 @@ val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
 
 val validate_intf :
-  Env.t -> loc -> in_functor:bool -> Module_type.t -> t -> unit
+  Env.t -> mname:Path.t -> in_functor:bool -> Module_type.t -> t -> unit
 
 val validate_signature : Env.t -> t -> t
 

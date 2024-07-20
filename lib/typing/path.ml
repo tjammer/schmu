@@ -62,10 +62,6 @@ let rm_path modpath to_rm =
 
 let rec mod_name = function Pid s -> s | Pmod (n, p) -> n ^ "_" ^ mod_name p
 
-let rec add_left p = function
-  | Pid n -> Pmod (n, p)
-  | Pmod (n, tl) -> Pmod (n, add_left p tl)
-
 let rec append_path p = function
   | Pid n -> Pmod (n, p)
   | Pmod (n, tl) -> Pmod (n, append_path p tl)
@@ -79,6 +75,23 @@ let share_base l r =
   | Pmod (l, _), Pmod (r, _)
   | Pid l, Pmod (r, _) ->
       String.equal l r
+
+let subst_base ~base ~with_ orig =
+  let rec aux = function
+    | Pid l, Pmod (r, tl) ->
+        if String.equal l r then
+          (* base matches completly, apply the substitution *)
+          append_path tl with_
+        else orig
+    | Pid l, Pid r -> if String.equal l r then with_ else orig
+    | Pmod _, Pid _ ->
+        (* Base is longer than the path we want to substitute, return path
+           unchanged *)
+        orig
+    | Pmod (l, ltl), Pmod (r, rtl) ->
+        if String.equal l r then aux (ltl, rtl) else orig
+  in
+  aux (base, orig)
 
 let rec pop = function
   | Pid _ as p -> p

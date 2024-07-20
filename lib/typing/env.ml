@@ -104,7 +104,7 @@ type scope = {
   types : (type_decl * Path.t) Map.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
   modules : cached_module Map.t; (* Locally declared modules *)
-  module_types : Module_type.t Map.t;
+  module_types : (Path.t * Module_type.t) Map.t;
   cnames : string Map.t; (* callnames for functions *)
 }
 
@@ -334,6 +334,7 @@ let add_variant variant in_sgn ~recurs ~params ~ctors env =
   { env with values = { scope with ctors; types } :: tl }
 
 let add_module ~key cached_module env =
+  print_endline ("add module " ^ key ^ " to " ^ Path.show env.modpath);
   let scope, tl = decap_exn env in
   let modules = Map.add key cached_module scope.modules in
   { env with values = { scope with modules } :: tl }
@@ -370,7 +371,8 @@ let add_module_alias loc ~key ~mname env =
 
 let add_module_type key mtype env =
   let scope, tl = decap_exn env in
-  let module_types = Map.add key mtype scope.module_types in
+  let path = Path.append key env.modpath in
+  let module_types = Map.add key (path, mtype) scope.module_types in
   { env with values = { scope with module_types } :: tl }
 
 let open_thing thing modpath env =
@@ -716,7 +718,6 @@ let find_labelset_opt loc labels env =
             let decl, name = find_type loc name env in
             (* Construct a new type. If it has labels, it's a type
                constructor. *)
-            print_endline ("labelset: " ^ Path.show name);
             Some (Tconstr (name, decl.params))
         | None -> aux tl)
   in

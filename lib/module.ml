@@ -41,9 +41,6 @@ let absolute_module_name = absolute_module_name
 let lambda_name ~mname id =
   "__fun" ^ "_" ^ Path.mod_name mname ^ string_of_int id
 
-let functor_param_name ~mname name =
-  Path.append_path (Pmod ("fparam", Pid name)) mname
-
 let add_type_sig loc name decl m =
   { m with s = (name, loc, Mtypedef decl) :: m.s }
 
@@ -477,21 +474,28 @@ let scope_of_located env path =
   | Located (filename, loc, regeneralize) ->
       read_module env filename loc ~regeneralize path
 
-let scope_of_functor_param env loc (path, mt) =
+let scope_of_functor_param env loc ~param ~mtyp mt =
   (* A part of add_to_env for intf is copied here *)
-  let env = Env.open_module_scope env loc path in
+  let env = Env.open_module_scope env loc param in
+  print_endline ("mapping " ^ Path.show mtyp ^ " to " ^ Path.show param);
   let env =
     List.fold_left
       (fun env (name, loc, kind) ->
+        print_endline ("adding: " ^ name);
         match kind with
         (* Not in the signature of the module we add it to *)
-        | Mtypedef decl -> Env.add_type name decl env
+        | Mtypedef decl ->
+            print_endline ("add type: " ^ name ^ " in scope " ^ Path.show param);
+            Env.add_type name decl env
         | Mvalue (typ, _) ->
-            Env.(add_value name { (def_mname path) with typ } loc env))
-      env mt
+            print_endline ("value: " ^ show_typ typ);
+            let typ = Module_type.apply_pathsub ~base:mtyp ~with_:param typ in
+            print_endline ("after: " ^ show_typ typ);
+            Env.(add_value name { (def_mname param) with typ } loc env))
+      env (List.rev mt)
   in
   let scope = Env.pop_scope env in
-  Env.Cm_cached (path, scope)
+  Env.Cm_cached (param, scope)
 
 let rec of_located env path =
   match Hashtbl.find module_cache path with
@@ -609,14 +613,18 @@ let decls_match name ~sgn impl =
       if b then Ok None else Error (Some (s, i))
   | Dabstract (Some _), _ ->
       failwith "Internal Error: Abstract type is not abstract"
-  | Dabstract None, _ -> Ok (Some (typ_of_decl impl name))
+  | Dabstract None, _ ->
+      print_endline
+        ("converting " ^ Path.show name ^ " to "
+        ^ show_typ (typ_of_decl impl name));
+      Ok (Some (typ_of_decl impl name))
   | _ -> Error None
 
-let validate_module_type env find mtype =
+let validate_module_type env ~mname find mtype =
   (* Go through signature and check that the implemented types match.
      Implementation is appended to a list, so the most current bindings are the ones we pick.
      That's exactly what we want. Also, set correct unique name to signature binding. *)
-  let mn = Env.modpath env in
+  let mn = mname in
   let com = "Signatures don't match" in
   let f (name, loc, kind) (sub, acc) =
     match (find name, kind) with
@@ -625,10 +633,14 @@ let validate_module_type env find mtype =
         raise (Error (loc, msg))
     | Some (Mtypedef idecl), Mtypedef sdecl ->
         let path = Path.append name mn in
+        print_endline ("type check: " ^ Path.show path);
         let sub =
           match decls_match path ~sgn:sdecl idecl with
           | Ok None -> sub
-          | Ok (Some typ) -> Pmap.add path typ sub
+          | Ok (Some typ) ->
+              print_endline
+                ("mapping thing: " ^ Path.show path ^ " vs " ^ show_typ typ);
+              Pmap.add path typ sub
           | Error None ->
               let msg = com ^ " for type " ^ name in
               raise (Error (loc, msg))
@@ -638,9 +650,11 @@ let validate_module_type env find mtype =
         in
         (sub, (name, loc, kind) :: acc)
     | Some (Mvalue (ityp, _)), Mvalue (styp, callname) ->
+        print_endline ("val check: " ^ name ^ ": sign: " ^ show_typ styp ^ " vs impl " ^ show_typ ityp);
         let typ, _, b =
           Inference.types_match ~abstracts_map:sub ~in_functor:false styp ityp
         in
+        print_endline ("val checked: " ^ show_typ typ);
         if b then
           let acc =
             ((* Query value to mark it as used in the env *)
@@ -650,7 +664,9 @@ let validate_module_type env find mtype =
           in
           (sub, acc)
         else
-          let msg = Error.format_type_err (com ^ ":") mn styp ityp in
+          let msg =
+            Error.format_type_err (com ^ " for value " ^ name ^ ":") mn styp ityp
+          in
           raise (Error (loc, msg))
     | None, Mtypedef decl -> (
         (* Typedefs don't have to be given a second time. Except: When the initial type is abstract *)
@@ -675,22 +691,22 @@ let validate_signature env m =
   | [] -> m
   | s ->
       let find name = List.find_map (find_item name) m.i in
-      { m with s = validate_module_type env find s }
+      let mname = Env.modpath env in
+      { m with s = validate_module_type ~mname env find s }
 
-let validate_intf env loc ~in_functor intf m =
-  ignore loc;
+let validate_intf env ~mname ~in_functor intf m =
   ignore in_functor;
   match m.s with
   | [] ->
       let find name = List.find_map (find_item name) m.i in
-      ignore (validate_module_type env find intf)
+      ignore (validate_module_type ~mname env find intf)
   | s ->
       let find name =
         List.find_map
           (fun (n, _, kind) -> if String.equal name n then Some kind else None)
           s
       in
-      ignore (validate_module_type env find intf)
+      ignore (validate_module_type ~mname env find intf)
 
 let to_module_type { s; i; _ } =
   match (s, i) with
