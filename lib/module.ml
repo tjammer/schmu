@@ -123,9 +123,9 @@ let find_file ~name ~suffix =
 module Map_canon : Map_module.Map_tree = struct
   type sub = string Smap.t
 
-  let empty_sub = Smap.empty
+  let empty_sub () = Smap.empty
 
-  let change_var ~mname id m _ _ =
+  let change_var ~mname id m _ =
     (match m with
     | Some m when not (Path.share_base mname m) -> (
         (* Make sure this is eagerly loaded on use *)
@@ -474,23 +474,16 @@ let scope_of_located env path =
   | Located (filename, loc, regeneralize) ->
       read_module env filename loc ~regeneralize path
 
-let scope_of_functor_param env loc ~param ~mtyp mt =
+let scope_of_functor_param env loc ~param mt =
   (* A part of add_to_env for intf is copied here *)
   let env = Env.open_module_scope env loc param in
-  print_endline ("mapping " ^ Path.show mtyp ^ " to " ^ Path.show param);
   let env =
     List.fold_left
       (fun env (name, loc, kind) ->
-        print_endline ("adding: " ^ name);
         match kind with
         (* Not in the signature of the module we add it to *)
-        | Mtypedef decl ->
-            print_endline ("add type: " ^ name ^ " in scope " ^ Path.show param);
-            Env.add_type name decl env
+        | Mtypedef decl -> Env.add_type name decl env
         | Mvalue (typ, _) ->
-            print_endline ("value: " ^ show_typ typ);
-            let typ = Module_type.apply_pathsub ~base:mtyp ~with_:param typ in
-            print_endline ("after: " ^ show_typ typ);
             Env.(add_value name { (def_mname param) with typ } loc env))
       env (List.rev mt)
   in
@@ -543,7 +536,9 @@ let rec rev { s; i; objects } =
 
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in
-  let _, m = rev m |> Canon.map_module (Path.Pid outname) Map_canon.empty_sub in
+  let _, m =
+    rev m |> Canon.map_module (Path.Pid outname) (Map_canon.empty_sub ())
+  in
   (* Correct objects only exist after [canonize_t] *)
   let objects =
     Hashtbl.fold
@@ -580,9 +575,7 @@ let decls_match name ~sgn impl =
       try
         Array.iter2
           (fun s i ->
-            let _, _, b =
-              Inference.types_match ~in_functor:false s.ftyp i.ftyp
-            in
+            let _, _, b = Inference.types_match s.ftyp i.ftyp in
             if not b then raise (Invalid_argument ""))
           s i;
         Ok None
@@ -599,7 +592,7 @@ let decls_match name ~sgn impl =
             let b =
               match (s.ctyp, i.ctyp) with
               | Some s, Some i ->
-                  let _, _, b = Inference.types_match ~in_functor:false s i in
+                  let _, _, b = Inference.types_match s i in
                   b
               | None, None -> true
               | _ -> false
@@ -609,15 +602,11 @@ let decls_match name ~sgn impl =
         Ok None
       with Invalid_argument _ -> Error None)
   | Dalias s, Dalias i ->
-      let _, _, b = Inference.types_match ~in_functor:false s i in
+      let _, _, b = Inference.types_match s i in
       if b then Ok None else Error (Some (s, i))
   | Dabstract (Some _), _ ->
       failwith "Internal Error: Abstract type is not abstract"
-  | Dabstract None, _ ->
-      print_endline
-        ("converting " ^ Path.show name ^ " to "
-        ^ show_typ (typ_of_decl impl name));
-      Ok (Some (typ_of_decl impl name))
+  | Dabstract None, _ -> Ok (Some (typ_of_decl impl name))
   | _ -> Error None
 
 let validate_module_type env ~mname find mtype =
@@ -633,14 +622,10 @@ let validate_module_type env ~mname find mtype =
         raise (Error (loc, msg))
     | Some (Mtypedef idecl), Mtypedef sdecl ->
         let path = Path.append name mn in
-        print_endline ("type check: " ^ Path.show path);
         let sub =
           match decls_match path ~sgn:sdecl idecl with
           | Ok None -> sub
-          | Ok (Some typ) ->
-              print_endline
-                ("mapping thing: " ^ Path.show path ^ " vs " ^ show_typ typ);
-              Pmap.add path typ sub
+          | Ok (Some typ) -> Pmap.add path typ sub
           | Error None ->
               let msg = com ^ " for type " ^ name in
               raise (Error (loc, msg))
@@ -650,11 +635,7 @@ let validate_module_type env ~mname find mtype =
         in
         (sub, (name, loc, kind) :: acc)
     | Some (Mvalue (ityp, _)), Mvalue (styp, callname) ->
-        print_endline ("val check: " ^ name ^ ": sign: " ^ show_typ styp ^ " vs impl " ^ show_typ ityp);
-        let typ, _, b =
-          Inference.types_match ~abstracts_map:sub ~in_functor:false styp ityp
-        in
-        print_endline ("val checked: " ^ show_typ typ);
+        let typ, _, b = Inference.types_match ~abstracts_map:sub styp ityp in
         if b then
           let acc =
             ((* Query value to mark it as used in the env *)
@@ -665,7 +646,9 @@ let validate_module_type env ~mname find mtype =
           (sub, acc)
         else
           let msg =
-            Error.format_type_err (com ^ " for value " ^ name ^ ":") mn styp ityp
+            Error.format_type_err
+              (com ^ " for value " ^ name ^ ":")
+              mn styp ityp
           in
           raise (Error (loc, msg))
     | None, Mtypedef decl -> (
@@ -694,8 +677,7 @@ let validate_signature env m =
       let mname = Env.modpath env in
       { m with s = validate_module_type ~mname env find s }
 
-let validate_intf env ~mname ~in_functor intf m =
-  ignore in_functor;
+let validate_intf env ~mname intf m =
   match m.s with
   | [] ->
       let find name = List.find_map (find_item name) m.i in

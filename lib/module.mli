@@ -69,12 +69,7 @@ val find_module :
   Env.t -> Ast.loc -> regeneralize:(typ -> typ) -> string -> Env.cached_module
 
 val scope_of_functor_param :
-  Env.t ->
-  loc ->
-  param:Path.t ->
-  mtyp:Path.t ->
-  Module_type.t ->
-  Env.cached_module
+  Env.t -> loc -> param:Path.t -> Module_type.t -> Env.cached_module
 (** Make scopes out of a functor param to add it to the env *)
 
 val scope_of_located : Env.t -> Path.t -> (Env.scope, string) Result.t
@@ -86,10 +81,7 @@ type functor_data =
 val functor_data : Env.t -> loc -> Path.t -> (functor_data, string) result
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
-
-val validate_intf :
-  Env.t -> mname:Path.t -> in_functor:bool -> Module_type.t -> t -> unit
-
+val validate_intf : Env.t -> mname:Path.t -> Module_type.t -> t -> unit
 val validate_signature : Env.t -> t -> t
 
 val to_module_type : t -> Module_type.t

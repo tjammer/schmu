@@ -58,7 +58,7 @@ let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 *)
 
 let check_annot env loc l r =
-  let typ, _, b = Inference.types_match ~in_functor:false l r in
+  let typ, _, b = Inference.types_match l r in
   if b then typ
   else
     let mn = Env.modpath env in
@@ -1389,43 +1389,53 @@ and catch_weak_expr env sub e =
         (function Fstr _ -> () | Fexpr e -> catch_weak_expr env sub e)
         fmt
 
-let check_module_annot env loc ~in_functor ~mname m annot =
+let check_module_annot env loc ~mname m annot =
   match annot with
   | Some path -> (
       match Env.find_module_type_opt loc path env with
       | Some (base, mtype) ->
-          print_endline
-            ("in check: map " ^ Path.show base ^ " to " ^ Path.show mname);
           let mtype =
             Module_type.adjust_for_checking ~base ~with_:mname mtype
           in
-          Module.validate_intf env ~mname ~in_functor mtype m
+          Module.validate_intf env ~mname mtype m
       | None -> raise (Error (loc, "Cannot find module type " ^ Path.show path))
       )
   | None -> ()
 
-module Subst_functor = struct
+module Subst_functor (* : Map_module.Map_tree *) = struct
   open Module_type
 
-  type sub = Path.t Pmap.t * Types.typ Smap.t
+  type mapping = { base : Path.t; with_ : Path.t }
+  type sub = (Path.t -> (type_decl * Path.t) option) * mapping list
 
-  let empty_sub = (Pmap.empty, Smap.empty)
+  let empty_sub () =
+    (* Make sure the empty env is never used. We want to pass the actual env to
+       look up declarations. *)
+    failwith "unreachable"
 
-  let change_var ~mname id m nsub (psub, _) =
+  let change_var ~mname id m (_, subs) =
     ignore mname;
-    ignore nsub;
     match m with
-    | Some m' -> (
-        match Pmap.find_opt m' psub with
-        | Some mname ->
-            (* It's wrong to rename every var. Only the ones which come from the
-               origin functor should be renamed. Replace the module part in id *)
-            (id, Some mname)
-        | None -> (id, m))
+    | Some m ->
+        let p =
+          List.fold_left
+            (fun p { base; with_ } -> Path.subst_base ~base ~with_ p)
+            m subs
+        in
+        (id, Some p)
     | None -> (id, m)
 
   let absolute_module_name = Module.absolute_module_name
-  let map_type subs typ = (subs, apply_subs subs typ)
+
+  let map_type (find_type, subs) typ =
+    let typ =
+      List.fold_left
+        (fun typ { base; with_ } -> apply_pathsub ~base ~with_ typ)
+        typ subs
+    in
+    (* Use aliases if they are available *)
+    let typ = resolve_alias find_type typ in
+    ((find_type, subs), typ)
 end
 
 module Subst = Map_module.Make (Subst_functor)
@@ -1577,8 +1587,7 @@ and convert_prog env items modul =
               in
               raise (Error (loc, msg))
         in
-        print_endline ("module: " ^ Path.show mname);
-        check_module_annot env loc ~in_functor:false ~mname newm annot;
+        check_module_annot env loc ~mname newm annot;
         let m = add_local_module loc id newm ~into:m in
 
         let moditems = List.map (fun item -> (mname, item)) moditems in
@@ -1604,17 +1613,17 @@ and convert_prog env items modul =
                     (Error (loc, "Cannot find module type " ^ Path.show path)))
             params
         in
-        let tmpenv =
-          List.fold_left
+        let tmpenv, params =
+          List.fold_left_map
             (fun env (key, mt, mtyp) ->
-              print_endline ("key : " ^ Path.show mname);
               let param = Path.append key mname in
-              let cm = scope_of_functor_param env loc ~param ~mtyp mt in
-              Env.add_module ~key cm env)
+              let mt =
+                Module_type.adjust_for_checking ~base:mtyp ~with_:param mt
+              in
+              let cm = scope_of_functor_param env loc ~param mt in
+              (Env.add_module ~key cm env, (key, mt)))
             env params
         in
-        (* Drop mtyp from params for further processing *)
-        let params = List.map (fun (key, mt, _) -> (key, mt)) params in
         let _, functor_items, newm =
           convert_module tmpenv loc mname sign prog true
         in
@@ -1622,7 +1631,6 @@ and convert_prog env items modul =
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
 
-        print_endline ("functor:\n" ^ Module_common.show newm);
         let env =
           match register_functor env loc mname params functor_items newm with
           | Ok env -> env
@@ -1633,7 +1641,7 @@ and convert_prog env items modul =
               in
               raise (Error (loc, msg))
         in
-        check_module_annot env loc ~in_functor:true ~mname newm annot;
+        check_module_annot env loc ~mname newm annot;
         let m = add_functor loc id params functor_items newm ~into:m in
 
         (* Don't add moditems to items here. We add items of the applied functor *)
@@ -1643,8 +1651,7 @@ and convert_prog env items modul =
         let mname = Env.find_module_opt loc (Path.Pid key) env |> Option.get in
         (if Option.is_some annot then
            match Module.of_located env mname with
-           | Ok m ->
-               check_module_annot env aloc ~in_functor:false ~mname m annot
+           | Ok m -> check_module_annot env aloc ~mname m annot
            | Error s -> raise (Error (loc, s)));
         let m = Module.add_module_alias loc key mname ~into:m in
         (env, items, m)
@@ -1652,32 +1659,23 @@ and convert_prog env items modul =
         match Module.functor_data env floc ftor with
         | Ok (mname, params, body, modul) ->
             let param_arg_map = ref Module_type.Pmap.empty in
-            print_endline "in app";
             let names =
               try
                 List.map2
                   (fun (aloc, arg) param ->
                     let key = Path.append (fst param) mname in
-                    print_endline ("find module: " ^ Path.show arg);
                     match Env.find_module_opt aloc arg env with
                     | Some mname -> (
                         match Module.of_located env mname with
                         | Ok m ->
-                            print_endline
-                              ("map " ^ Path.show key ^ " to " ^ Path.show mname);
                             param_arg_map :=
                               Module_type.Pmap.add key mname !param_arg_map;
-                            print_endline
-                              ("mtyp:\n" ^ Module_type.show (snd param));
                             let mtype =
                               Module_type.adjust_for_checking ~base:key
                                 ~with_:mname (snd param)
                             in
-                            print_endline ("mtyp:\n" ^ Module_type.show mtype);
-                            print_endline ("m:\n" ^ Module_common.show m);
-                            Module.validate_intf env ~mname ~in_functor:false
-                              mtype m;
-                            (mname, Module_type.(Pmap.empty, Smap.empty))
+                            Module.validate_intf env ~mname mtype m;
+                            mname
                         | Error s -> raise (Error (loc, s)))
                     | None ->
                         raise
@@ -1691,46 +1689,41 @@ and convert_prog env items modul =
                 in
                 raise (Error (loc, msg))
             in
-            let names, subs = List.split names in
-            let merged_subs =
-              List.fold_left
-                (fun acc sub ->
-                  match Module_type.merge_subs sub acc with
-                  | Ok sub -> sub
-                  | Error s ->
-                      let msg =
-                        Printf.sprintf
-                          "Path %s appears in multiple functor params" s
-                      in
-                      raise (Error (loc, msg)))
-                Subst_functor.empty_sub subs
-            in
-            let mfst, msnd =
-              Module_type.Pmap.fold
-                (fun key value (psub, tsub) ->
-                  (Module_type.Pmap.add key value psub, tsub))
-                !param_arg_map merged_subs
-            in
             let applied_name =
               List.fold_left (fun acc p -> Path.append_path p acc) mname names
             in
+            (* There are two substitutions we need to make: From the functor
+               parameter(s) to the actual implementation modules, e.g. from
+               [make/m] to [int]. And from the functor name to the applied
+               functor name, e.g. [make] to [make/int]. The two paths overlap
+               (make is contained in make/m), so order is important. We first
+               want to apply the paramater sub, then the functor name sub. To
+               make this explicit, we are using a list. *)
             (* Add functor -> applied functor mapping *)
-            let merged_subs =
-              (Module_type.Pmap.add mname applied_name mfst, msnd)
+            let subs =
+              { Subst_functor.base = mname; with_ = applied_name } :: []
             in
 
+            let subs =
+              Module_type.Pmap.fold
+                (fun key value acc ->
+                  Subst_functor.{ base = key; with_ = value } :: acc)
+                !param_arg_map subs
+            in
+            let find path = Env.find_type_opt loc path env in
+            let subs = (find, subs) in
+
             let body =
-              Subst.map_tl_items applied_name Smap.empty merged_subs body |> snd
+              Subst.map_tl_items applied_name Smap.empty subs body |> snd
             in
             let moditems = List.map (fun item -> (applied_name, item)) body in
             let items = Tl_module moditems :: items in
-            let _, modul = Subst.map_module applied_name merged_subs modul in
+            let _, modul = Subst.map_module applied_name subs modul in
             let env =
               Module.register_applied_functor env loc id applied_name modul
             in
 
-            check_module_annot env loc ~in_functor:false ~mname:applied_name
-              modul annot;
+            check_module_annot env loc ~mname:applied_name modul annot;
             let m =
               Module.add_applied_functor loc id applied_name modul ~into:m
             in

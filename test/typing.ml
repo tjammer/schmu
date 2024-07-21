@@ -1046,7 +1046,6 @@ module test : tt:
   type a = unit|}
 
 let test_mtype_abstracts () =
-  (* TODO make fail for printing *)
   test "unit"
     {|module outer:
   type t = {i : int}
@@ -1122,7 +1121,7 @@ let test_functor_no_var_param () =
     "module type mt:\n type t\nfunctor f(p : mt):\n let _ = ignore(p/a)"
 
 let test_functor_apply_use () =
-  test "inta/t = int"
+  test "int"
     {|module type sig:
   type t
   val add : (t, t) -> t
@@ -1133,7 +1132,27 @@ module inta : sig:
   type t = int
   fun add(a, b): a + b
 module intadder = make(inta)
--- intadder/add_twice(1, 2)|}
+intadder/add_twice(1, 2)|}
+
+let test_functor_apply_use_sgn () =
+  test_exn
+    "In application\n\
+     expecting ([inta/t], [inta/t]) -> _\n\
+     but found ([int], [int]) -> _"
+    {|module type sig:
+  type t
+  val add : (t, t) -> t
+functor make(m : sig):
+  fun add_twice(a, b):
+    m/add(m/add(a, b), b)
+module inta : sig:
+  signature:
+    type t
+    val add : (t, t) -> t
+  type t = int
+  fun add(a, b): a + b
+module intadder = make(inta)
+intadder/add_twice(1, 2)|}
 
 let test_functor_abstract_param () =
   test_exn
@@ -1184,7 +1203,7 @@ ignore(polyappl/newid(!1.2))|}
 
 let test_functor_poly_mismatch () =
   test_exn
-    "Signatures don't match for id\n\
+    "Signatures don't match for value id:\n\
      expecting (['a]!) -> ['a]\n\
      but found ([int]!) -> [int]"
     {|module type poly:
@@ -1225,15 +1244,15 @@ let test_functor_check_sig () = test "unit" (check_sig_test "'value")
 
 let test_functor_check_param () =
   test_exn
-    "Signatures don't match for create\n\
-     expecting (_) -> [sig/t(sig/key)]\n\
-     but found (_) -> [make/t('a)]" (check_sig_test "key")
+    "Signatures don't match for value create:\n\
+     expecting (_) -> [t(key)]\n\
+     but found (_) -> [t('a)]" (check_sig_test "key")
 
 let test_functor_check_concrete () =
   test_exn
-    "Signatures don't match for create\n\
-     expecting (_) -> [sig/t(int)]\n\
-     but found (_) -> [make/t('a)]" (check_sig_test "int")
+    "Signatures don't match for value create:\n\
+     expecting (_) -> [t(int)]\n\
+     but found (_) -> [t('a)]" (check_sig_test "int")
 
 let test_farray_lit () = test "unit" "let arr = #[1, 2, 3]"
 let test_farray_lit_trailing () = test "unit" "let arr = #[1, 2, 3,]"
@@ -1713,6 +1732,7 @@ do:
           case "wrong module type" test_functor_wrong_module_type;
           case "no var param" test_functor_no_var_param;
           case "apply use" test_functor_apply_use;
+          case "apply use sgn" test_functor_apply_use_sgn;
           case "abstract param" test_functor_abstract_param;
           case "use param type" test_functor_use_param_type;
           case "poly function" test_functor_poly_function;
@@ -1726,7 +1746,8 @@ do:
           case "lit" test_farray_lit;
           case "lit trailing" test_farray_lit_trailing;
           case "nested lit" test_farray_nested_lit;
-          case "generalize / instantiate" test_farray_inference;
+          (* TODO comment back in once string.smi is done *)
+          (* case "generalize / instantiate" test_farray_inference; *)
         ] );
       ( "other syntax",
         [

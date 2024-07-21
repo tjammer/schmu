@@ -334,7 +334,6 @@ let add_variant variant in_sgn ~recurs ~params ~ctors env =
   { env with values = { scope with ctors; types } :: tl }
 
 let add_module ~key cached_module env =
-  print_endline ("add module " ^ key ^ " to " ^ Path.show env.modpath);
   let scope, tl = decap_exn env in
   let modules = Map.add key cached_module scope.modules in
   { env with values = { scope with modules } :: tl }

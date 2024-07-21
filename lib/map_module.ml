@@ -3,15 +3,10 @@ open Types
 module type Map_tree = sig
   type sub
 
-  val empty_sub : sub
+  val empty_sub : unit -> sub
 
   val change_var :
-    mname:Path.t ->
-    string ->
-    Path.t option ->
-    string Smap.t ->
-    sub ->
-    string * Path.t option
+    mname:Path.t -> string -> Path.t option -> sub -> string * Path.t option
 
   val absolute_module_name : mname:Path.t -> string -> string
   val map_type : sub -> typ -> sub * typ
@@ -89,7 +84,7 @@ module Make (C : Map_tree) = struct
 
   and map_expr mname nsub sub = function
     | Typed_tree.Var (id, m) ->
-        let id, m = C.change_var ~mname id m nsub sub in
+        let id, m = C.change_var ~mname id m sub in
         (sub, Var (id, m))
     | Const (Array a) ->
         let sub, a = List.fold_left_map (map_body mname nsub) sub a in
@@ -216,7 +211,7 @@ module Make (C : Map_tree) = struct
               (fun sub c ->
                 let sub, cltyp = C.map_type sub c.cltyp in
                 let clname, clmname =
-                  C.change_var ~mname c.clname c.clmname nsub sub
+                  C.change_var ~mname c.clname c.clmname sub
                 in
                 (sub, { c with cltyp; clname; clmname }))
               sub l

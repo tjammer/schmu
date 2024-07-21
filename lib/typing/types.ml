@@ -271,3 +271,36 @@ let typ_of_decl decl name =
   match decl.kind with
   | Drecord _ | Dvariant _ | Dabstract _ -> Tconstr (name, decl.params)
   | Dalias typ -> typ
+
+let resolve_alias find_decl typ =
+  let rec aux = function
+    | (Tprim _ | Tvar { contents = Unbound _ } | Qvar _) as t -> t
+    | Ttuple ts -> Ttuple (List.map aux ts)
+    | Tfun (ps, ret, kind) ->
+        let ps = List.map (fun p -> { p with pt = aux p.pt }) ps in
+        let ret = aux ret in
+        let kind =
+          match kind with
+          | Simple -> kind
+          | Closure cls ->
+              Closure (List.map (fun c -> { c with cltyp = aux c.cltyp }) cls)
+        in
+        Tfun (ps, ret, kind)
+    | Tconstr (name, ps) -> (
+        match find_decl name with
+        | Some ({ kind = Dalias typ; _ }, _) ->
+            (* We still have to deal with params *)
+            typ
+        | _ ->
+            let ps = List.map aux ps in
+            Tconstr (name, ps))
+    | Traw_ptr t -> Traw_ptr (aux t)
+    | Tarray t -> Tarray (aux t)
+    | Tfixed_array (s, t) -> Tfixed_array (s, aux t)
+    | Trc t -> Trc (aux t)
+    | Tvar ({ contents = Link typ } as tv) as t ->
+        let typ = aux typ in
+        tv := Link typ;
+        t
+  in
+  aux typ

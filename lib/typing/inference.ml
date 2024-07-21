@@ -218,23 +218,15 @@ module Pmap = Map.Make (Path)
 (* Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
    We need to match everything for weak vars though *)
-let types_match ~in_functor ?(abstracts_map = Pmap.empty) l r =
+let types_match ?(abstracts_map = Pmap.empty) l r =
   let rec aux ~strict sub l r =
     if l == r then (r, sub, true)
     else
       match (l, r) with
       | Tprim l, Tprim r' when l == r' -> (r, sub, true)
       | Tvar { contents = Unbound (l, _) }, Tvar { contents = Unbound (rid, _) }
-      | Qvar l, Tvar { contents = Unbound (rid, _) }
-        when in_functor -> (
-          (* We always map from left to right *)
-          match Smap.find_opt l sub with
-          | Some id when String.equal rid id -> (r, sub, true)
-          | Some _ -> (r, sub, false)
-          | None ->
-              (* We 'connect' left to right *)
-              (r, Smap.add l rid sub, true))
-      | Qvar l, Qvar rid | Tvar { contents = Unbound (l, _) }, Qvar rid -> (
+      | Qvar l, Qvar rid
+      | Tvar { contents = Unbound (l, _) }, Qvar rid -> (
           (* We always map from left to right *)
           match Smap.find_opt l sub with
           | Some id when String.equal rid id -> (r, sub, true)
