@@ -364,6 +364,10 @@ let add_type_param env ts =
       (Env.add_type name decl env, t))
     env ts
 
+let add_self_recursion env name =
+  let decl = { params = []; kind = Dabstract None; in_sgn = false } in
+  Env.add_type name decl env
+
 let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
   let labels, params =
     (* Temporarily add polymorphic type name to env *)
@@ -406,9 +410,9 @@ let type_abstract env loc { Ast.poly_param; name } =
 
 let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
   (* Temporarily add polymorphic type name to env *)
-  let (temp_env, params), _ (* recurs *) =
-    let tmp, recurs = add_type_param env [ name ] in
-    (add_type_param tmp poly_param, List.hd recurs)
+  let temp_env, params =
+    let tmp = add_self_recursion env name in
+    add_type_param tmp poly_param
   in
 
   (* We follow the C way for C-style enums. At the same time, we forbid
@@ -435,8 +439,9 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
     | None -> nexti ~has_payload loc name
   in
 
-  let recurs_item = ref None in
+  let recurs = ref false in
   let has_base = ref false in
+  let absolute_path = Path.append name (Env.modpath env) in
   let ctors =
     List.map
       (fun { Ast.name = loc, cname; typ_annot; index } ->
@@ -451,10 +456,9 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
             }
         | Some annot ->
             let typ = typeof_annot ~typedef:true temp_env loc annot in
-            (* (match allowed_recursion ~recurs typ with *)
-            (* | Ok is -> *)
-            (*     if is then recurs_item := Some recurs else has_base := true *)
-            (* | Error msg -> raise (Error (loc, msg))); *)
+            (match recursion_allowed absolute_path typ with
+            | Ok is -> if is then recurs := true else has_base := true
+            | Error msg -> raise (Error (loc, msg)));
             {
               cname;
               ctyp = Some typ;
@@ -463,10 +467,10 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
       ctors
     |> Array.of_list
   in
-  if Option.is_some !recurs_item && not !has_base then
+  if !recurs && not !has_base then
     raise (Error (loc, "Recursive type has no base case"));
 
-  let decl = { params; kind = Dvariant (!recurs_item, ctors); in_sgn } in
+  let decl = { params; kind = Dvariant (!recurs, ctors); in_sgn } in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
   (Env.add_type name decl env, decl)

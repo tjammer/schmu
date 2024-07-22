@@ -1262,10 +1262,12 @@ let test_farray_nested_lit () =
 
 let test_farray_inference () =
   test "unit"
+    (* We cannot use string here, otherwise we would try to import the string
+       module in type checking. *)
     "fun print_snd(arr):\n\
-    \ ignore(fmt(arr#[1]))\n\
+    \ ignore(arr#[1])\n\
      print_snd(#[1, 2, 3])\n\
-     print_snd(#[\"hey\", \"hi\"])"
+     print_snd(#[['h', 'e', 'y'], ['h', 'i']])"
 
 let test_syntax_elseif_no_else () =
   test "unit" "if false: ()\nelse if false: ()\nelse if true: ()"
@@ -1746,8 +1748,7 @@ do:
           case "lit" test_farray_lit;
           case "lit trailing" test_farray_lit_trailing;
           case "nested lit" test_farray_nested_lit;
-          (* TODO comment back in once string.smi is done *)
-          (* case "generalize / instantiate" test_farray_inference; *)
+          case "generalize / instantiate" test_farray_inference;
         ] );
       ( "other syntax",
         [

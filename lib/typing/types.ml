@@ -51,7 +51,7 @@ type type_decl = { params : typ list; kind : decl_kind; in_sgn : bool }
 
 and decl_kind =
   | Drecord of field array
-  | Dvariant of typ option * ctor array
+  | Dvariant of bool * ctor array
   | Dabstract of typ option
   | Dalias of typ
 [@@deriving sexp, show]
@@ -304,3 +304,18 @@ let resolve_alias find_decl typ =
         t
   in
   aux typ
+
+let recursion_allowed name typ =
+  let rec aux behind_ptr res = function
+    | Traw_ptr t | Tarray t | Trc t -> aux true res t
+    | Ttuple ts -> List.fold_left (fun res t -> aux behind_ptr res t) res ts
+    | Tfun (ps, ret, _) ->
+        List.fold_left (fun res p -> aux true res p.pt) (aux true res ret) ps
+    | Tprim _ | Qvar _ | Tvar { contents = Unbound _ } -> res
+    | Tvar { contents = Link t } | Tfixed_array (_, t) -> aux behind_ptr res t
+    | Tconstr (n, _) ->
+        if Path.equal n name then
+          if behind_ptr then Ok true else Error "Infinite type"
+        else res
+  in
+  aux false (Ok false) typ

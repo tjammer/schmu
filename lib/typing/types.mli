@@ -41,7 +41,7 @@ type type_decl = { params : typ list; kind : decl_kind; in_sgn : bool }
 
 and decl_kind =
   | Drecord of field array
-  | Dvariant of typ option * ctor array
+  | Dvariant of bool * ctor array
   | Dabstract of typ option
   | Dalias of typ
 [@@deriving sexp, show]
@@ -72,3 +72,4 @@ val get_generic_ids : typ -> string list
 val map_params : inst:typ list -> params:typ list -> typ Smap.t
 val typ_of_decl : type_decl -> Path.t -> typ
 val resolve_alias : (Path.t -> (type_decl * Path.t) option) -> typ -> typ
+val recursion_allowed : Path.t -> typ -> (bool, string) result
