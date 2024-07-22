@@ -1879,7 +1879,9 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   let items = List.map (fun item -> (mname, item)) items in
   let items = List.rev !Module.poly_funcs @ items in
 
-  ({ externals; items }, m)
+  let decls = Env.decl_tbl env in
+
+  ({ externals; items; decls }, m)
 
 let typecheck (prog : Ast.prog) =
   let rec get_last_type = function

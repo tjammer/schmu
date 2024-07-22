@@ -116,3 +116,5 @@ val add_callname : key:string -> string -> t -> t
 
 val find_callname : Ast.loc -> Path.t -> t -> string option
 (** Don't return option because if a callname isn't found it's an internal error *)
+
+val decl_tbl : t -> (Path.t, type_decl) Hashtbl.t

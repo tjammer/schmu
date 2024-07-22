@@ -154,6 +154,14 @@ let reconstr_module_username ~mname ~mainmod username =
   let imported = Path.equal mname mainmod |> not in
   if imported then Module.absolute_module_name ~mname username else username
 
+let decl_tbl = ref None
+let decls () = Option.get !decl_tbl
+
+module Pmap = Map.Make (Path)
+
+let recurs_map = ref Pmap.empty
+let recurs_cnt = ref 0
+
 let rec cln p = function
   | Types.Tvar { contents = Link t } -> cln p t
   | Tprim Tint -> Tint
@@ -183,8 +191,74 @@ let rec cln p = function
   | Tfixed_array ({ contents = Known i }, t) -> Tfixed_array (i, cln p t)
   | Tfixed_array ({ contents = Linked iv }, t) ->
       cln p Types.(Tfixed_array (iv, t)) (* TODO *)
-  | Ttuple _ -> Tunit
-  | Tconstr _ -> Tunit
+  | Ttuple ts ->
+      Trecord
+        ( [],
+          None,
+          List.map (fun t -> { ftyp = cln p t; mut = false }) ts
+          |> Array.of_list )
+  | Tconstr (name, ps) -> (
+      let open Types in
+      (* Map params to and insert correct types *)
+      match Hashtbl.find_opt (decls ()) name with
+      | Some decl -> (
+          let sub = map_params ~inst:ps ~params:decl.params in
+          let ps = List.map (cln p) ps in
+          let nname = Path.type_name name in
+
+          match decl.kind with
+          | Drecord fields ->
+              let _, fields =
+                Array.fold_left_map
+                  (fun sub f ->
+                    let sub, typ = Inference.instantiate_sub sub f.ftyp in
+                    (sub, Cleaned_types.{ ftyp = cln p typ; mut = f.mut }))
+                  sub fields
+              in
+              Trecord (ps, Some nname, fields)
+          | Dvariant (recurs, cts) ->
+              let with_ =
+                if recurs then (
+                  match Pmap.find_opt name !recurs_map with
+                  | Some typ -> Some typ
+                  | None ->
+                      let cnt =
+                        incr recurs_cnt;
+                        !recurs_cnt
+                      in
+                      let typ = Qvar (string_of_int cnt) in
+                      recurs_map := Pmap.add name typ !recurs_map;
+                      Some typ)
+                else None
+              in
+              let _, cts =
+                Array.fold_left_map
+                  (fun sub ct ->
+                    match ct.ctyp with
+                    | Some typ ->
+                        let sub, typ = Inference.instantiate_sub sub typ in
+                        let typ =
+                          if recurs then
+                            let with_ = Option.get with_ in
+                            subst_name name ~with_ typ
+                          else typ
+                        in
+                        ( sub,
+                          {
+                            Cleaned_types.cname = ct.cname;
+                            ctyp = Some (cln p typ);
+                            index = ct.index;
+                          } )
+                    | None ->
+                        ( sub,
+                          { cname = ct.cname; ctyp = None; index = ct.index } ))
+                  sub cts
+              in
+              let recurs = Option.map (cln p) with_ in
+              Tvariant (ps, recurs, nname, cts)
+          | Dabstract None -> failwith "Internal Error: Too abstract type"
+          | Dabstract (Some typ) | Dalias typ -> cln p typ)
+      | None -> failwith "Internal Error: Tconstr not available")
 
 and cln_kind p = function
   | Simple -> Simple
@@ -242,7 +316,10 @@ let request p = Request { id = new_id alloc_id; lvl = p.alloc_lvl }
 
 let reset () =
   alloc_id := 1;
-  malloc_id := 1
+  malloc_id := 1;
+  decl_tbl := None;
+  recurs_map := Pmap.empty;
+  recurs_cnt := 0
 
 let rec set_alloca p = function
   | Value ({ contents = Request req } as a) when req.lvl >= p.alloc_lvl ->
@@ -1335,8 +1412,9 @@ let rec morph_toplvl param items =
   in
   aux param items
 
-let monomorphize ~mname { Typed_tree.externals; items; _ } =
+let monomorphize ~mname { Typed_tree.externals; items; decls } =
   reset ();
+  decl_tbl := Some decls;
 
   let vars =
     Builtin.(

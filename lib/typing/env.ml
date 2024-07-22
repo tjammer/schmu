@@ -122,6 +122,7 @@ type t = {
   modpath : Path.t;
   find_module : t -> Ast.loc -> string -> cached_module;
   scope_of_located : t -> Path.t -> (scope, string) result;
+  decl_tbl : (Path.t, type_decl) Hashtbl.t;
 }
 
 type warn_kind = Unused | Unmutated | Unused_mod
@@ -169,6 +170,7 @@ let empty ~find_module ~scope_of_located modpath =
     modpath;
     find_module;
     scope_of_located;
+    decl_tbl = Hashtbl.create 512;
   }
 
 let decap_exn env =
@@ -322,6 +324,7 @@ let add_record record in_sgn ~params ~labels env =
   let labelsets, labels = add_labels abs_name labelset labels scope in
 
   let types = Map.add record (decl, abs_name) scope.types in
+  Hashtbl.add env.decl_tbl abs_name decl;
   { env with values = { scope with labels; types; labelsets } :: tl }
 
 let add_variant variant in_sgn ~recurs ~params ~ctors env =
@@ -331,6 +334,7 @@ let add_variant variant in_sgn ~recurs ~params ~ctors env =
   let abs_name = Path.append variant env.modpath in
   let ctors = add_ctors abs_name ctors scope in
   let types = Map.add variant (decl, abs_name) scope.types in
+  Hashtbl.add env.decl_tbl abs_name decl;
   { env with values = { scope with ctors; types } :: tl }
 
 let add_module ~key cached_module env =
@@ -760,6 +764,7 @@ let add_alias alias in_sgn ~params typ env =
   let scope = make_alias_usable scope env typ in
   let abs_name = Path.append alias env.modpath in
   let types = Map.add alias (decl, abs_name) scope.types in
+  Hashtbl.add env.decl_tbl abs_name decl;
   { env with values = { scope with types } :: tl }
 
 let add_type name decl env =
@@ -773,6 +778,7 @@ let add_type name decl env =
       let scope, tl = decap_exn env in
       let abs_name = Path.append name env.modpath in
       let types = Map.add name (decl, abs_name) scope.types in
+      Hashtbl.add env.decl_tbl abs_name decl;
       { env with values = { scope with types } :: tl }
 
 let externals env =
@@ -840,3 +846,5 @@ let find_callname loc path env =
     loc path env
 (* NOTE, the None branch used to be an internal error, but can happen
    with nested aliases. *)
+
+let decl_tbl env = env.decl_tbl

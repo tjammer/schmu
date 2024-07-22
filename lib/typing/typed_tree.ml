@@ -112,7 +112,11 @@ and set_move_kind = Snot_moved | Spartially_moved | Smoved
 
 let no_attr = { const = false; global = false; mut = false }
 
-type t = { externals : Env.ext list; items : (Path.t * toplevel_item) list }
+type t = {
+  externals : Env.ext list;
+  items : (Path.t * toplevel_item) list;
+  decls : (Path.t, type_decl) Hashtbl.t;
+}
 
 let rec follow_expr = function
   | ( Var _ | Const _ | Bop _ | Unop _ | Lambda _ | App _ | Record _ | Field _

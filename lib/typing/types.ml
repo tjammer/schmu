@@ -256,6 +256,35 @@ let rec subst_generic ~id typ = function
   | Tfixed_array (i, t) -> Tfixed_array (i, subst_generic ~id typ t)
   | t -> t
 
+let subst_name name ~with_ typ =
+  let rec aux = function
+    | Tconstr (n, ps) ->
+        if Path.equal n name then with_
+        else
+          let ps = List.map aux ps in
+          Tconstr (n, ps)
+    | (Tprim _ | Qvar _ | Tvar { contents = Unbound _ }) as t -> t
+    | Tfun (ps, ret, kind) ->
+        let ps = List.map (fun p -> { p with pt = aux p.pt }) ps in
+        let kind =
+          match kind with
+          | Simple -> kind
+          | Closure cls ->
+              Closure (List.map (fun c -> { c with cltyp = aux c.cltyp }) cls)
+        in
+        Tfun (ps, aux ret, kind)
+    | Ttuple ts -> Ttuple (List.map aux ts)
+    | Traw_ptr t -> Traw_ptr (aux t)
+    | Tarray t -> Tarray (aux t)
+    | Tfixed_array (s, t) -> Tfixed_array (s, aux t)
+    | Trc t -> Trc (aux t)
+    | Tvar ({ contents = Link typ } as tv) as t ->
+        let typ = aux typ in
+        tv := Link typ;
+        t
+  in
+  aux typ
+
 let rec get_generic_ids = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
   | Tconstr (_, ts) | Ttuple ts -> List.map get_generic_ids ts |> List.concat
