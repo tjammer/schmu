@@ -622,10 +622,19 @@ let validate_module_type env ~mname find mtype =
         raise (Error (loc, msg))
     | Some (Mtypedef idecl), Mtypedef sdecl ->
         let path = Path.append name mn in
-        let sub =
+        let sub, kind =
           match decls_match path ~sgn:sdecl idecl with
-          | Ok None -> sub
-          | Ok (Some typ) -> Pmap.add path typ sub
+          | Ok None -> (sub, kind)
+          | Ok (Some typ) ->
+              (* If the decl was an abstract type, we have to add the
+                 implementation of the abstract type to the signature. *)
+              let kind =
+                match sdecl.kind with
+                | Dabstract None ->
+                    Mtypedef { sdecl with kind = Dabstract (Some typ) }
+                | _ -> kind
+              in
+              (Pmap.add path typ sub, kind)
           | Error None ->
               let msg = com ^ " for type " ^ name in
               raise (Error (loc, msg))

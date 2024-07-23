@@ -140,22 +140,17 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
                ^ "." ))
   in
 
-  let is_generic t =
-    match repr t with
-    | Qvar _ | Tvar { contents = Unbound _ } -> true
-    | _ -> false
-  in
-
   let rec is_quantified = function
     | Tconstr (_, []) -> None
     | Tconstr (name, params) ->
-        let len = List.filter is_generic params |> List.length in
+        let len = List.filter is_polymorphic params |> List.length in
         if len == 0 then None else Some (name, len)
-    | Traw_ptr t -> if is_generic t then Some (Path.Pid "raw_ptr", 1) else None
-    | Tarray t -> if is_generic t then Some (Path.Pid "array", 1) else None
-    | Trc t -> if is_generic t then Some (Path.Pid "rc", 1) else None
+    | Traw_ptr t ->
+        if is_polymorphic t then Some (Path.Pid "raw_ptr", 1) else None
+    | Tarray t -> if is_polymorphic t then Some (Path.Pid "array", 1) else None
+    | Trc t -> if is_polymorphic t then Some (Path.Pid "rc", 1) else None
     | Tfixed_array (_, t) ->
-        if is_generic t then Some (Path.Pid "array#?", 1) else None
+        if is_polymorphic t then Some (Path.Pid "array#?", 1) else None
     | Tvar { contents = Link t } -> is_quantified t
     | Tfun _ as t -> (
         let ts = get_generic_ids t in
@@ -1823,13 +1818,24 @@ and convert_prog env items modul =
               (* Generalize the functions *)
               let typ = generalize t.typ in
               let env = Env.change_type n typ env in
+              let func =
+                match typ with
+                | Tfun (tparams, ret, kind) ->
+                    (* Use the generalized types for the abstraction *)
+                    { abs.func with tparams; ret; kind }
+                | _ -> failwith "Internal Error: Is this not a function?"
+              in
+              let abs = { abs with func } in
 
               let decls, fitems, env = aux env tl in
-              ((n, u, t.typ) :: decls, Tl_function (l, n, u, abs) :: fitems, env)
+              ((n, u, t.typ) :: decls, (l, n, u, abs) :: fitems, env)
           | [] -> ([], [], env)
         in
         let decls, fitems, env = aux env (List.rev funcs) in
-        let m = Module.add_rec_block ~mname:(Env.modpath env) loc funcs m in
+        let m = Module.add_rec_block ~mname:(Env.modpath env) loc fitems m in
+        let fitems =
+          List.map (fun (l, n, u, abs) -> Tl_function (l, n, u, abs)) fitems
+        in
         (old, env, fitems @ (Tl_mutual_rec_decls decls :: items), m)
     | Expr (loc, expr) ->
         last_loc := loc;

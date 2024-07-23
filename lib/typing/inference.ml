@@ -236,6 +236,8 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
               (r, Smap.add l rid sub, true))
       | Tvar { contents = Unbound _ }, _ when not strict ->
           (* Unbound vars match every type *) (r, sub, true)
+      | Tvar { contents = Link l }, r | l, Tvar { contents = Link r } ->
+          aux ~strict sub l r
       | Tconstr (pl, psl), Tconstr (pr, psr) when Path.equal pl pr ->
           let sub, mtch =
             try
