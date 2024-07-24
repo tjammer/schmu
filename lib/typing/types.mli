@@ -42,7 +42,7 @@ type type_decl = { params : typ list; kind : decl_kind; in_sgn : bool }
 and decl_kind =
   | Drecord of field array
   | Dvariant of bool * ctor array
-  | Dabstract of typ option
+  | Dabstract of decl_kind option
   | Dalias of typ
 [@@deriving sexp, show]
 

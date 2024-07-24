@@ -201,63 +201,67 @@ let rec cln p = function
       let open Types in
       (* Map params to and insert correct types *)
       match Hashtbl.find_opt (decls ()) name with
-      | Some decl -> (
+      | Some decl ->
           let sub = map_params ~inst:ps ~params:decl.params in
           let ps = List.map (cln p) ps in
           let nname = Path.type_name name in
 
-          match decl.kind with
-          | Drecord fields ->
-              let _, fields =
-                Array.fold_left_map
-                  (fun sub f ->
-                    let sub, typ = Inference.instantiate_sub sub f.ftyp in
-                    (sub, Cleaned_types.{ ftyp = cln p typ; mut = f.mut }))
-                  sub fields
-              in
-              Trecord (ps, Some nname, fields)
-          | Dvariant (recurs, cts) ->
-              let with_ =
-                if recurs then (
-                  match Pmap.find_opt name !recurs_map with
-                  | Some typ -> Some typ
-                  | None ->
-                      let cnt =
-                        incr recurs_cnt;
-                        !recurs_cnt
-                      in
-                      let typ = Qvar (string_of_int cnt) in
-                      recurs_map := Pmap.add name typ !recurs_map;
-                      Some typ)
-                else None
-              in
-              let _, cts =
-                Array.fold_left_map
-                  (fun sub ct ->
-                    match ct.ctyp with
-                    | Some typ ->
-                        let sub, typ = Inference.instantiate_sub sub typ in
-                        let typ =
-                          if recurs then
-                            let with_ = Option.get with_ in
-                            subst_name name ~with_ typ
-                          else typ
-                        in
-                        ( sub,
-                          {
-                            Cleaned_types.cname = ct.cname;
-                            ctyp = Some (cln p typ);
-                            index = ct.index;
-                          } )
+          let rec cln_dkind = function
+            | Drecord fields ->
+                let _, fields =
+                  Array.fold_left_map
+                    (fun sub f ->
+                      let sub, typ = Inference.instantiate_sub sub f.ftyp in
+                      (sub, Cleaned_types.{ ftyp = cln p typ; mut = f.mut }))
+                    sub fields
+                in
+                Trecord (ps, Some nname, fields)
+            | Dvariant (recurs, cts) ->
+                let with_ =
+                  if recurs then (
+                    match Pmap.find_opt name !recurs_map with
+                    | Some typ -> Some typ
                     | None ->
-                        ( sub,
-                          { cname = ct.cname; ctyp = None; index = ct.index } ))
-                  sub cts
-              in
-              let recurs = Option.map (cln p) with_ in
-              Tvariant (ps, recurs, nname, cts)
-          | Dabstract None -> failwith "Internal Error: Too abstract type"
-          | Dabstract (Some typ) | Dalias typ -> cln p typ)
+                        let cnt =
+                          incr recurs_cnt;
+                          !recurs_cnt
+                        in
+                        let typ = Qvar (string_of_int cnt) in
+                        recurs_map := Pmap.add name typ !recurs_map;
+                        Some typ)
+                  else None
+                in
+                let _, cts =
+                  Array.fold_left_map
+                    (fun sub ct ->
+                      match ct.ctyp with
+                      | Some typ ->
+                          let sub, typ = Inference.instantiate_sub sub typ in
+                          let typ =
+                            if recurs then
+                              let with_ = Option.get with_ in
+                              subst_name name ~with_ typ
+                            else typ
+                          in
+                          ( sub,
+                            {
+                              Cleaned_types.cname = ct.cname;
+                              ctyp = Some (cln p typ);
+                              index = ct.index;
+                            } )
+                      | None ->
+                          ( sub,
+                            { cname = ct.cname; ctyp = None; index = ct.index }
+                          ))
+                    sub cts
+                in
+                let recurs = Option.map (cln p) with_ in
+                Tvariant (ps, recurs, nname, cts)
+            | Dabstract None -> failwith "Internal Error: Too abstract type"
+            | Dalias typ -> cln p typ
+            | Dabstract (Some dkind) -> cln_dkind dkind
+          in
+          cln_dkind decl.kind
       | None -> failwith "Internal Error: Tconstr not available")
 
 and cln_kind p = function

@@ -615,7 +615,7 @@ let decls_match name ~sgn impl =
       if b then Ok None else Error (Some (s, i))
   | Dabstract (Some _), _ ->
       failwith "Internal Error: Abstract type is not abstract"
-  | Dabstract None, _ -> Ok (Some (typ_of_decl impl name))
+  | Dabstract None, kind -> Ok (Some (kind, typ_of_decl impl name))
   | _ -> Error None
 
 let validate_module_type env ~mname find mtype =
@@ -634,13 +634,13 @@ let validate_module_type env ~mname find mtype =
         let sub, kind =
           match decls_match path ~sgn:sdecl idecl with
           | Ok None -> (sub, kind)
-          | Ok (Some typ) ->
+          | Ok (Some (dkind, typ)) ->
               (* If the decl was an abstract type, we have to add the
                  implementation of the abstract type to the signature. *)
               let kind =
                 match sdecl.kind with
                 | Dabstract None ->
-                    Mtypedef { sdecl with kind = Dabstract (Some typ) }
+                    Mtypedef { sdecl with kind = Dabstract (Some dkind) }
                 | _ -> kind
               in
               (Pmap.add path typ sub, kind)

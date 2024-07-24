@@ -25,31 +25,35 @@ module Contains_allocation = struct
           (* Unparameterized types can also contain allocations *)
           let decl = get_decl name |> fst in
           let sub = map_params ~inst:ts ~params:decl.params in
-          match decl.kind with
-          | Drecord fs ->
-              Array.fold_left
-                (fun (ca, sub) f ->
-                  let sub, typ = Inference.instantiate_sub sub f.ftyp in
-                  (ca || contains_allocation get_decl typ, sub))
-                (false, sub) fs
-              |> fst
-          | Dvariant (_, cts) ->
-              Array.fold_left
-                (fun (ca, sub) ct ->
-                  match ct.ctyp with
-                  | Some typ ->
-                      let sub, typ = Inference.instantiate_sub sub typ in
-                      (ca || contains_allocation get_decl typ, sub)
-                  | None -> (ca, sub))
-                (false, sub) cts
-              |> fst
-          | Dalias typ | Dabstract (Some typ) ->
-              let _, typ = Inference.instantiate_sub sub typ in
-              contains_allocation get_decl typ
-          | Dabstract None ->
-              (* We already checked the params, but the type is still abstract
-                 and could contain an allocation. *)
-              true
+          let rec check_decl decl_kind =
+            match decl_kind with
+            | Drecord fs ->
+                Array.fold_left
+                  (fun (ca, sub) f ->
+                    let sub, typ = Inference.instantiate_sub sub f.ftyp in
+                    (ca || contains_allocation get_decl typ, sub))
+                  (false, sub) fs
+                |> fst
+            | Dvariant (_, cts) ->
+                Array.fold_left
+                  (fun (ca, sub) ct ->
+                    match ct.ctyp with
+                    | Some typ ->
+                        let sub, typ = Inference.instantiate_sub sub typ in
+                        (ca || contains_allocation get_decl typ, sub)
+                    | None -> (ca, sub))
+                  (false, sub) cts
+                |> fst
+            | Dalias typ ->
+                let _, typ = Inference.instantiate_sub sub typ in
+                contains_allocation get_decl typ
+            | Dabstract None ->
+                (* We already checked the params, but the type is still abstract
+                   and could contain an allocation. *)
+                true
+            | Dabstract (Some kind) -> check_decl kind
+          in
+          check_decl decl.kind
         else true
     | Tprim _ -> false
     | Qvar _ | Tvar { contents = Unbound _ } ->
