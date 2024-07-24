@@ -564,7 +564,7 @@ let find_item name = function
   | Malias (_, n, expr) ->
       if String.equal name n then Some (Mvalue (expr.typ, None)) else None
   | Mfun (_, typ, n) | Mext (_, typ, n, _) ->
-      if String.equal name n.user then Some (Mvalue (typ, None)) else None
+      if String.equal name n.user then Some (Mvalue (typ, n.call)) else None
   | Mmutual_rec _ | Mlocal_module _ | Mfunctor _ | Mapplied_functor _
   | Mmodule_alias _ | Mmodule_type _ ->
       None
@@ -643,7 +643,7 @@ let validate_module_type env ~mname find mtype =
               raise (Error (loc, msg))
         in
         (sub, (name, loc, kind) :: acc)
-    | Some (Mvalue (ityp, _)), Mvalue (styp, callname) ->
+    | Some (Mvalue (ityp, callname)), Mvalue (styp, _) ->
         let typ, _, b = Inference.types_match ~abstracts_map:sub styp ityp in
         if b then
           let acc =
