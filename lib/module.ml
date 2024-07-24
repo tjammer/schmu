@@ -125,23 +125,32 @@ module Map_canon : Map_module.Map_tree = struct
 
   let empty_sub () = Smap.empty
 
+  let eagerly_load m =
+    match Hashtbl.find_opt module_cache m with
+    | None | Some (Located _ | Functor _) ->
+        failwith "unreachable what is this module's path?"
+    | Some (Cached (Cfile (_, true), _, _)) -> ()
+    | Some (Cached (Clocal _, _, _)) ->
+        (* NOTE: This should mark its parent somehow, but does not
+           currently. *)
+        ()
+    | Some (Cached (Cfile (name, false), scope, md)) ->
+        Hashtbl.replace module_cache m (Cached (Cfile (name, true), scope, md))
+
   let change_var ~mname id m _ =
     (match m with
-    | Some m when not (Path.share_base mname m) -> (
+    | Some m when not (Path.share_base mname m) ->
         (* Make sure this is eagerly loaded on use *)
-        match Hashtbl.find_opt module_cache m with
-        | None | Some (Located _ | Functor _) ->
-            failwith "unreachable what is this module's path?"
-        | Some (Cached (Cfile (_, true), _, _)) -> ()
-        | Some (Cached (Clocal _, _, _)) ->
-            (* NOTE: This should mark its parent somehow, but does not
-               currently. *)
-            ()
-        | Some (Cached (Cfile (name, false), scope, md)) ->
-            Hashtbl.replace module_cache m
-              (Cached (Cfile (name, true), scope, md)))
+        eagerly_load m
     | None | Some _ -> ());
     (id, m)
+
+  let mark_alias_load ~mname = function
+    | Dalias (Tconstr (name, _)) -> (
+        match Path.rm_head name with
+        | Some m when not (Path.share_base mname m) -> eagerly_load m
+        | None | Some _ -> ())
+    | _ -> ()
 
   let absolute_module_name = absolute_module_name
   let map_type = Map_module.Canonize.canonize

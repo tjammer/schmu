@@ -334,17 +334,52 @@ let resolve_alias find_decl typ =
   in
   aux typ
 
-let recursion_allowed name typ =
+let recursion_allowed ~params name typ =
   let rec aux behind_ptr res = function
-    | Traw_ptr t | Tarray t | Trc t -> aux true res t
-    | Ttuple ts -> List.fold_left (fun res t -> aux behind_ptr res t) res ts
-    | Tfun (ps, ret, _) ->
-        List.fold_left (fun res p -> aux true res p.pt) (aux true res ret) ps
-    | Tprim _ | Qvar _ | Tvar { contents = Unbound _ } -> res
-    | Tvar { contents = Link t } | Tfixed_array (_, t) -> aux behind_ptr res t
-    | Tconstr (n, _) ->
+    | Traw_ptr t ->
+        let res, t = aux true res t in
+        (res, Traw_ptr t)
+    | Tarray t ->
+        let res, t = aux true res t in
+        (res, Tarray t)
+    | Trc t ->
+        let res, t = aux true res t in
+        (res, Trc t)
+    | Ttuple ts ->
+        let res, ts =
+          List.fold_left_map (fun res t -> aux behind_ptr res t) res ts
+        in
+        (res, Ttuple ts)
+    | Tfun (ps, ret, kind) ->
+        let res, ps =
+          List.fold_left_map
+            (fun res p ->
+              let res, pt = aux true res p.pt in
+              (res, { p with pt }))
+            res ps
+        in
+        let res, ret = aux true res ret in
+        (res, Tfun (ps, ret, kind))
+    | (Tprim _ | Qvar _ | Tvar { contents = Unbound _ }) as t -> (res, t)
+    | Tvar ({ contents = Link t } as rf) as tvr ->
+        let res, t = aux behind_ptr res t in
+        rf := Link t;
+        (res, tvr)
+    | Tfixed_array (sz, t) ->
+        let res, t = aux behind_ptr res t in
+        (res, Tfixed_array (sz, t))
+    | Tconstr (n, ps) as t ->
         if Path.equal n name then
-          if behind_ptr then Ok true else Error "Infinite type"
-        else res
+          if behind_ptr then (Ok true, Tconstr (n, params))
+          else (Error "Infinite type", t)
+        else
+          let res, ps =
+            List.fold_left_map (fun res t -> aux behind_ptr res t) res ps
+          in
+          (res, Tconstr (n, ps))
   in
-  aux false (Ok false) typ
+  let res, typ = aux false (Ok false) typ in
+  match res with
+  | Ok true -> Ok (Some typ)
+  | Ok false -> Ok None
+  | Error _ as err -> err

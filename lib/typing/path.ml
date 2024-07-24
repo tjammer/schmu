@@ -35,8 +35,6 @@ let rec equal l r =
   | Pid _, Pmod _ | Pmod _, Pid _ -> false
 
 let compare l r = Stdlib.compare l r
-let imported = function Pid _ -> false | Pmod _ -> true
-let is_local = function Pid _ -> true | Pmod _ -> false
 
 let only_hd = function
   | Pid s -> s
@@ -97,6 +95,14 @@ let rec pop = function
   | Pid _ as p -> p
   | Pmod (n, Pid _) -> Pid n
   | Pmod (n, p) -> Pmod (n, pop p)
+
+let rm_head p =
+  let rec aux = function
+    | Pid _ as p -> p
+    | Pmod (n, Pid _) -> Pid n
+    | Pmod (n, p) -> Pmod (n, aux p)
+  in
+  match p with Pid _ -> None | Pmod _ as p -> Some (aux p)
 
 let rec match_until_pid l r =
   match (l, r) with

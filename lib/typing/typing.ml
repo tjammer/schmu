@@ -1435,6 +1435,8 @@ module Subst_functor (* : Map_module.Map_tree *) = struct
     (* Use aliases if they are available *)
     let typ = resolve_alias find_type typ in
     ((find_type, subs), typ)
+
+  let mark_alias_load ~mname:_ = failwith "unreachable"
 end
 
 module Subst = Map_module.Make (Subst_functor)
