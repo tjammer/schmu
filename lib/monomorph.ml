@@ -135,18 +135,17 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           sprintf "%sr%s%s_"
             (String.concat "" (List.map (fun p -> aux p.pt) ps))
             (aux r) k
-      | Tvariant _ as t -> begin
-          match folded t with
-          | Tvariant (_, _, _, ctors) -> (
-              let ctors =
-                Array.to_list ctors
-                |> List.filter_map (fun ct -> Option.map aux ct.ctyp)
-              in
-              match ctors with
-              | [] -> (* C-like enum, which is represented as int32 *) aux Ti32
-              | l -> sprintf "v%s_" (String.concat "" l))
-          | _ -> failwith "unreachable"
-        end
+      | Tvariant (ps, (Rec_folded | Rec_top _), name) ->
+          (* Treating recursive types nominally makes them easier to handle *)
+          sprintf "%s%s_" name (String.concat "" (List.map aux ps))
+      | Tvariant (_, Rec_not ctors, _) -> (
+          let ctors =
+            Array.to_list ctors
+            |> List.filter_map (fun ct -> Option.map aux ct.ctyp)
+          in
+          match ctors with
+          | [] -> (* C-like enum, which is represented as int32 *) aux Ti32
+          | l -> sprintf "v%s_" (String.concat "" l))
       | Trecord (_, _, fs) ->
           (Array.to_list fs
           |> List.map (fun f -> aux f.ftyp)
@@ -226,14 +225,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               with Invalid_argument _ ->
                 failwith "Internal Error: param count does not match")
           | _ -> name ^ "_")
-      | Tvariant _ as t -> begin
-          match folded t with
-          | Tvariant (ps, _, n, _) ->
-              sprintf "%s%s_" n
-                (String.concat "" (List.map (structural_name ~closure) ps))
-          | _ -> failwith "unreachable"
-        end
-      | Trecord (ps, Some n, _) ->
+      | Trecord (ps, Some n, _) | Tvariant (ps, _, n) ->
           sprintf "%s%s_" n
             (String.concat "" (List.map (structural_name ~closure) ps))
       | Trecord (_, None, _) as t -> structural_name ~closure t
@@ -324,7 +316,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               subst (List.combine i j)
           in
           (subst, Trecord (ps, record, labels))
-      | (Tvariant (i, recurs, variant, l1) as l), Tvariant (j, _, _, l2)
+      | ( (Tvariant (i, ((Rec_not l1 | Rec_top l1) as kind), variant) as l),
+          Tvariant (j, (Rec_not l2 | Rec_top l2), _) )
         when is_type_polymorphic l ->
           let ctors = Array.copy l1 in
           let f (subst, i) (ctor : Cleaned_types.ctor) =
@@ -344,7 +337,13 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               (fun subst (l, r) -> inner subst (l, r))
               subst (List.combine i j)
           in
-          (subst, Tvariant (ps, recurs, variant, ctors))
+          let kind =
+            match kind with
+            | Rec_not _ -> Rec_not ctors
+            | Rec_top _ -> Rec_top ctors
+            | Rec_folded -> failwith "unreachable"
+          in
+          (subst, Tvariant (ps, kind, variant))
       | Traw_ptr l, Traw_ptr r ->
           let subst, t = inner subst (l, r) in
           (subst, Traw_ptr t)
@@ -384,13 +383,23 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let f field = Cleaned_types.{ field with ftyp = subst field.ftyp } in
           let labels = Array.map f labels in
           Trecord (ps, record, labels)
-      | Tvariant (ps, recurs, variant, ctors) as t when is_type_polymorphic t ->
+      | Tvariant (ps, Rec_folded, variant) as t when is_type_polymorphic t ->
+          let ps = List.map subst ps in
+          Tvariant (ps, Rec_folded, variant)
+      | Tvariant (ps, ((Rec_not ctors | Rec_top ctors) as recurs), variant) as t
+        when is_type_polymorphic t ->
           let ps = List.map subst ps in
           let f ctor =
             Cleaned_types.{ ctor with ctyp = Option.map subst ctor.ctyp }
           in
           let ctors = Array.map f ctors in
-          Tvariant (ps, recurs, variant, ctors)
+          let recurs =
+            match recurs with
+            | Rec_top _ -> Rec_top ctors
+            | Rec_not _ -> Rec_not ctors
+            | _ -> failwith "unreachable"
+          in
+          Tvariant (ps, recurs, variant)
       | Traw_ptr t -> Traw_ptr (subst t)
       | Tarray t -> Tarray (subst t)
       | Trc t -> Trc (subst t)

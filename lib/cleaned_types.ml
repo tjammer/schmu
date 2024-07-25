@@ -10,7 +10,7 @@ type typ =
   | Tpoly of string
   | Tfun of param list * typ * fun_kind
   | Trecord of typ list * string option * field array
-  | Tvariant of typ list * typ option * string * ctor array
+  | Tvariant of typ list * recurs_kind * string
   | Traw_ptr of typ
   | Tarray of typ
   | Tfixed_array of int * typ
@@ -21,6 +21,7 @@ and fun_kind = Simple | Closure of closed list
 and param = { pt : typ; pmut : bool; pmoved : bool }
 and field = { ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
+and recurs_kind = Rec_not of ctor array | Rec_top of ctor array | Rec_folded
 
 and closed = {
   clname : string;
@@ -35,7 +36,7 @@ let is_type_polymorphic typ =
     | Tpoly _ -> true
     | Trecord (_, None, fs) ->
         Array.fold_left (fun acc f -> inner acc f.ftyp) acc fs
-    | Trecord (ps, _, _) | Tvariant (ps, _, _, _) -> List.fold_left inner acc ps
+    | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
     | Tfun (params, ret, kind) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
         let acc =
@@ -72,7 +73,7 @@ let rec string_of_type = function
   | Trecord (_, None, fs) ->
       let lst = Array.to_list fs |> List.map (fun f -> string_of_type f.ftyp) in
       Printf.sprintf "{%s}" (String.concat " " lst)
-  | Trecord (ps, Some str, _) | Tvariant (ps, _, str, _) -> (
+  | Trecord (ps, Some str, _) | Tvariant (ps, _, str) -> (
       match ps with
       | [] -> str
       | l ->
@@ -100,7 +101,10 @@ let rec contains_allocation = function
   | Tpoly _ | Tfun _ -> true
   | Trecord (_, _, fs) ->
       Array.fold_left (fun ca f -> ca || contains_allocation f.ftyp) false fs
-  | Tvariant (_, _, _, ctors) ->
+  | Tvariant (_, (Rec_folded | Rec_top _), _) ->
+      (* If the type is recursive there must be pointers involved, thus allocations *)
+      true
+  | Tvariant (_, Rec_not ctors, _) ->
       Array.fold_left
         (fun ca c ->
           match c.ctyp with Some t -> ca || contains_allocation t | None -> ca)
@@ -109,102 +113,4 @@ let rec contains_allocation = function
   | Tarray _ | Trc _ -> true
   | Tfixed_array (_, t) -> contains_allocation t
 
-let folded typ =
-  let rec aux isoid = function
-    | Tvariant (_, Some (Tpoly id), _, _) when String.equal isoid id -> Tpoly id
-    | Tvariant (ps, poly, name, ctors) ->
-        let ps = List.map (aux isoid) ps in
-        let ctors =
-          Array.map
-            (fun ct -> { ct with ctyp = Option.map (aux isoid) ct.ctyp })
-            ctors
-        in
-        Tvariant (ps, poly, name, ctors)
-    | Tfun (ps, r, kind) ->
-        let ps = List.map (fun p -> { p with pt = aux isoid p.pt }) ps in
-        let kind =
-          match kind with
-          | Simple -> Simple
-          | Closure cls ->
-              let cls =
-                List.map
-                  (fun cl -> { cl with cltyp = (aux isoid) cl.cltyp })
-                  cls
-              in
-              Closure cls
-        in
-        Tfun (ps, aux isoid r, kind)
-    | Trecord (ps, name, fields) ->
-        let ps = List.map (aux isoid) ps in
-        let fields =
-          Array.map (fun f -> { f with ftyp = aux isoid f.ftyp }) fields
-        in
-        Trecord (ps, name, fields)
-    | Traw_ptr t -> Traw_ptr ((aux isoid) t)
-    | Tarray t -> Tarray (aux isoid t)
-    | Trc t -> Trc (aux isoid t)
-    | Tfixed_array (i, t) -> Tfixed_array (i, aux isoid t)
-    | (Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Tpoly _) as t
-      ->
-        t
-  in
-  match typ with
-  | Tvariant (ps, (Some (Tpoly id) as poly), name, ctors) ->
-      let ps = List.map (aux id) ps in
-      let ctors =
-        Array.map
-          (fun ct -> { ct with ctyp = Option.map (aux id) ct.ctyp })
-          ctors
-      in
-      Tvariant (ps, poly, name, ctors)
-  | t -> t
-
-let unfolded typ =
-  let rec unfold typ isoid = function
-    | Tvariant (ps, poly, name, ctors) ->
-        let ps = List.map (unfold typ isoid) ps in
-        let ctors =
-          Array.map
-            (fun ct -> { ct with ctyp = Option.map (unfold typ isoid) ct.ctyp })
-            ctors
-        in
-        Tvariant (ps, poly, name, ctors)
-    | Tfun (ps, r, kind) ->
-        let ps = List.map (fun p -> { p with pt = unfold typ isoid p.pt }) ps in
-        let kind =
-          match kind with
-          | Simple -> Simple
-          | Closure cls ->
-              let cls =
-                List.map
-                  (fun cl -> { cl with cltyp = (unfold typ isoid) cl.cltyp })
-                  cls
-              in
-              Closure cls
-        in
-        Tfun (ps, unfold typ isoid r, kind)
-    | Trecord (ps, name, fields) ->
-        let ps = List.map (unfold typ isoid) ps in
-        let fields =
-          Array.map (fun f -> { f with ftyp = unfold typ isoid f.ftyp }) fields
-        in
-        Trecord (ps, name, fields)
-    | Traw_ptr t -> Traw_ptr ((unfold typ isoid) t)
-    | Tarray t -> Tarray (unfold typ isoid t)
-    | Trc t -> Trc (unfold typ isoid t)
-    | Tfixed_array (i, t) -> Tfixed_array (i, unfold typ isoid t)
-    | Tpoly id when String.equal id isoid -> typ
-    | (Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Tpoly _) as t
-      ->
-        t
-  in
-  match folded typ with
-  | Tvariant (ps, Some (Tpoly id), name, ctors) as t ->
-      let ps = List.map (unfold t id) ps in
-      let ctors =
-        Array.map
-          (fun ct -> { ct with ctyp = Option.map (unfold t id) ct.ctyp })
-          ctors
-      in
-      Tvariant (ps, Some (Tpoly id), name, ctors)
-  | t -> t
+let is_folded = function Tvariant (_, Rec_folded, _) -> true | _ -> false

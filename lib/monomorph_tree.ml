@@ -157,13 +157,8 @@ let reconstr_module_username ~mname ~mainmod username =
 let decl_tbl = ref None
 let decls () = Option.get !decl_tbl
 
-module Pmap = Map.Make (Path)
-
-let recurs_map = ref Pmap.empty
-let recurs_cnt = ref 0
-
-let rec cln p = function
-  | Types.Tvar { contents = Link t } -> cln p t
+let rec cln behind_ptr p = function
+  | Types.Tvar { contents = Link t } -> cln behind_ptr p t
   | Tprim Tint -> Tint
   | Tprim Tbool -> Tbool
   | Tprim Tunit -> Tunit
@@ -174,10 +169,10 @@ let rec cln p = function
   | Tprim Tf32 -> Tf32
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
-      Tfun (List.map (cln_param p) params, cln p ret, cln_kind p kind)
-  | Traw_ptr t -> Traw_ptr (cln p t)
-  | Tarray t -> Tarray (cln p t)
-  | Trc t -> Trc (cln p t)
+      Tfun (List.map (cln_param p) params, cln true p ret, cln_kind p kind)
+  | Traw_ptr t -> Traw_ptr (cln true p t)
+  | Tarray t -> Tarray (cln true p t)
+  | Trc t -> Trc (cln true p t)
   | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
       (* That's a hack. We know the unknown number is a string of an int. This is
          due to an implementation detail in [gen_var] in inference. We need a
@@ -187,15 +182,16 @@ let rec cln p = function
          even segfault in codegen. If we don't substitute, it won't go unnoticed.
          Furthermore, fixed-size arrays with negative indices must recognized as
          polymorphic*)
-      Tfixed_array (-int_of_string i, cln p t)
-  | Tfixed_array ({ contents = Known i }, t) -> Tfixed_array (i, cln p t)
+      Tfixed_array (-int_of_string i, cln behind_ptr p t)
+  | Tfixed_array ({ contents = Known i }, t) ->
+      Tfixed_array (i, cln behind_ptr p t)
   | Tfixed_array ({ contents = Linked iv }, t) ->
-      cln p Types.(Tfixed_array (iv, t)) (* TODO *)
+      cln behind_ptr p Types.(Tfixed_array (iv, t)) (* TODO *)
   | Ttuple ts ->
       Trecord
         ( [],
           None,
-          List.map (fun t -> { ftyp = cln p t; mut = false }) ts
+          List.map (fun t -> { ftyp = cln behind_ptr p t; mut = false }) ts
           |> Array.of_list )
   | Tconstr (name, ps) -> (
       let open Types in
@@ -203,7 +199,7 @@ let rec cln p = function
       match Hashtbl.find_opt (decls ()) name with
       | Some decl ->
           let sub = map_params ~inst:ps ~params:decl.params in
-          let ps = List.map (cln p) ps in
+          let ps = List.map (cln behind_ptr p) ps in
           let nname = Path.type_name name in
 
           let rec cln_dkind = function
@@ -212,53 +208,47 @@ let rec cln p = function
                   Array.fold_left_map
                     (fun sub f ->
                       let sub, typ = Inference.instantiate_sub sub f.ftyp in
-                      (sub, Cleaned_types.{ ftyp = cln p typ; mut = f.mut }))
+                      ( sub,
+                        Cleaned_types.
+                          { ftyp = cln behind_ptr p typ; mut = f.mut } ))
                     sub fields
                 in
                 Trecord (ps, Some nname, fields)
-            | Dvariant (recurs, cts) ->
-                let with_ =
-                  if recurs then (
-                    match Pmap.find_opt name !recurs_map with
-                    | Some typ -> Some typ
-                    | None ->
-                        let cnt =
-                          incr recurs_cnt;
-                          !recurs_cnt
-                        in
-                        let typ = Qvar (string_of_int cnt) in
-                        recurs_map := Pmap.add name typ !recurs_map;
-                        Some typ)
+            | Dvariant (recurs, cts) -> (
+                (* If the variant is behind a ptr, we fold it *)
+                let skip =
+                  if recurs then
+                    if behind_ptr then Some (Tvariant (ps, Rec_folded, nname))
+                    else None
                   else None
                 in
-                let _, cts =
-                  Array.fold_left_map
-                    (fun sub ct ->
-                      match ct.ctyp with
-                      | Some typ ->
-                          let sub, typ = Inference.instantiate_sub sub typ in
-                          let typ =
-                            if recurs then
-                              let with_ = Option.get with_ in
-                              subst_name name ~with_ typ
-                            else typ
-                          in
-                          ( sub,
-                            {
-                              Cleaned_types.cname = ct.cname;
-                              ctyp = Some (cln p typ);
-                              index = ct.index;
-                            } )
-                      | None ->
-                          ( sub,
-                            { cname = ct.cname; ctyp = None; index = ct.index }
-                          ))
-                    sub cts
-                in
-                let recurs = Option.map (cln p) with_ in
-                Tvariant (ps, recurs, nname, cts)
+                match skip with
+                | Some typ -> typ
+                | None ->
+                    let _, cts =
+                      Array.fold_left_map
+                        (fun sub ct ->
+                          match ct.ctyp with
+                          | Some typ ->
+                              let sub, typ =
+                                Inference.instantiate_sub sub typ
+                              in
+                              let ctyp = Some (cln behind_ptr p typ)
+                              and index = ct.index in
+                              ( sub,
+                                { Cleaned_types.cname = ct.cname; ctyp; index }
+                              )
+                          | None ->
+                              let cname = ct.cname and ctyp = None in
+                              (sub, { cname; ctyp; index = ct.index }))
+                        sub cts
+                    in
+                    let recurs_kind =
+                      if recurs then Rec_top cts else Rec_not cts
+                    in
+                    Tvariant (ps, recurs_kind, nname))
             | Dabstract None -> failwith "Internal Error: Too abstract type"
-            | Dalias typ -> cln p typ
+            | Dalias typ -> cln behind_ptr p typ
             | Dabstract (Some dkind) -> cln_dkind dkind
           in
           cln_dkind decl.kind
@@ -270,7 +260,7 @@ and cln_kind p = function
       let vals =
         List.map
           (fun (cl : Types.closed) ->
-            let typ = cln p cl.cltyp in
+            let typ = cln true p cl.cltyp in
             let modded_name =
               match cl.clmname with
               | Some mname ->
@@ -295,7 +285,7 @@ and cln_kind p = function
       Closure vals
 
 and cln_param param p =
-  let pt = cln param Types.(p.pt) in
+  let pt = cln true param Types.(p.pt) in
   let pmut, pmoved =
     match p.pattr with
     | Dset | Dmut -> (true, false)
@@ -303,6 +293,8 @@ and cln_param param p =
     | Dnorm -> (false, false)
   in
   { pt; pmut; pmoved }
+
+let cln p typ = cln false p typ
 
 (* State *)
 
@@ -321,9 +313,7 @@ let request p = Request { id = new_id alloc_id; lvl = p.alloc_lvl }
 let reset () =
   alloc_id := 1;
   malloc_id := 1;
-  decl_tbl := None;
-  recurs_map := Pmap.empty;
-  recurs_cnt := 0
+  decl_tbl := None
 
 let rec set_alloca p = function
   | Value ({ contents = Request req } as a) when req.lvl >= p.alloc_lvl ->

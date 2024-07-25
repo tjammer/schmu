@@ -35,8 +35,7 @@ module Make (C : Core) (T : Lltypes_intf.S) (H : Helpers.S) = struct
         print_endline (show_typ t);
         failwith "Internal Error: No rc type"
 
-  let item_type_size typ =
-    let item_typ = item_type typ in
+  let item_type_size typ item_typ =
     let item_size, item_align = size_alignof_typ item_typ in
 
     let head_size =
@@ -53,7 +52,9 @@ module Make (C : Core) (T : Lltypes_intf.S) (H : Helpers.S) = struct
     { value; typ; lltyp; kind = Ptr }
 
   let gen_rc param expr typ allocref =
-    let item_typ, item_size, size = item_type_size typ in
+    let item_typ, item_size, size =
+      item_type_size typ Monomorph_tree.(expr.ex.typ)
+    in
 
     let lltyp = get_lltype_def typ in
 

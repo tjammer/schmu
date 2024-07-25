@@ -10,7 +10,7 @@ type typ =
   | Tpoly of string
   | Tfun of param list * typ * fun_kind
   | Trecord of typ list * string option * field array
-  | Tvariant of typ list * typ option * string * ctor array
+  | Tvariant of typ list * recurs_kind * string
   | Traw_ptr of typ
   | Tarray of typ
   | Tfixed_array of int * typ
@@ -21,6 +21,7 @@ and fun_kind = Simple | Closure of closed list
 and param = { pt : typ; pmut : bool; pmoved : bool }
 and field = { ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
+and recurs_kind = Rec_not of ctor array | Rec_top of ctor array | Rec_folded
 
 and closed = {
   clname : string;
@@ -38,5 +39,4 @@ val is_struct : typ -> bool
 
 val is_aggregate : typ -> bool
 val contains_allocation : typ -> bool
-val folded : typ -> typ
-val unfolded : typ -> typ
+val is_folded : typ -> bool

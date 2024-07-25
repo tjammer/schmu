@@ -451,9 +451,16 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
             }
         | Some annot ->
             let typ = typeof_annot ~typedef:true temp_env loc annot in
-            (match recursion_allowed absolute_path typ with
-            | Ok is -> if is then recurs := true else has_base := true
-            | Error msg -> raise (Error (loc, msg)));
+            let typ =
+              match recursion_allowed ~params absolute_path typ with
+              | Ok (Some typ) ->
+                  recurs := true;
+                  typ
+              | Ok None ->
+                  has_base := true;
+                  typ
+              | Error msg -> raise (Error (loc, msg))
+            in
             {
               cname;
               ctyp = Some typ;
@@ -1690,8 +1697,10 @@ and convert_prog env items modul =
                 in
                 raise (Error (loc, msg))
             in
+            ignore names;
             let applied_name =
-              List.fold_left (fun acc p -> Path.append_path p acc) mname names
+              Path.append id (Env.modpath env)
+              (* List.fold_left (fun acc p -> Path.append_path p acc) mname names *)
             in
             (* There are two substitutions we need to make: From the functor
                parameter(s) to the actual implementation modules, e.g. from
@@ -1701,6 +1710,9 @@ and convert_prog env items modul =
                want to apply the paramater sub, then the functor name sub. To
                make this explicit, we are using a list. *)
             (* Add functor -> applied functor mapping *)
+            print_endline
+              ("map functor " ^ Path.show mname ^ " to "
+             ^ Path.show applied_name);
             let subs =
               { Subst_functor.base = mname; with_ = applied_name } :: []
             in
@@ -1708,10 +1720,17 @@ and convert_prog env items modul =
             let subs =
               Module_type.Pmap.fold
                 (fun key value acc ->
+                  print_endline
+                    ("sub " ^ Path.show key ^ " to " ^ Path.show value);
                   Subst_functor.{ base = key; with_ = value } :: acc)
                 !param_arg_map subs
             in
             let find path = Env.find_type_opt loc path env in
+            (* Type declarations which are defined in this functor won't be
+               accessible to the [find] function. For these, we send an extra
+               data structure to the mapping function to sub in the correct
+               type. *)
+            (* TODO *)
             let subs = (find, subs) in
 
             let body =

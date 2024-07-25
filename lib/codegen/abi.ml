@@ -76,7 +76,8 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
           |> Array.to_list
         in
         aux typ types
-    | Tvariant (_, _, _, ctors) when not mut ->
+    | Tvariant (_, Rec_folded, _) when not mut -> failwith "unreachable"
+    | Tvariant (_, (Rec_not ctors | Rec_top ctors), _) when not mut ->
         let types =
           match variant_get_largest ctors with
           | Some typ -> [ Ti32; typ ]

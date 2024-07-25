@@ -1221,7 +1221,8 @@ end = struct
              accordingly *)
           let largestsize =
             match typ with
-            | Tvariant (_, _, _, ctors) -> (
+            | Tvariant (_, Rec_folded, _) -> failwith "unreachable"
+            | Tvariant (_, (Rec_not ctors | Rec_top ctors), _) -> (
                 match variant_get_largest ctors with
                 | Some typ -> sizeof_typ typ
                 | None -> 0)

@@ -137,8 +137,9 @@ module Make (A : Abi_intf.S) = struct
         Llvm.struct_set_body t lltyp false;
         Strtbl.replace struct_tbl name t;
         t
-    | Tvariant (_, _, _, ctors) -> (
-        (* We loop throug each ctor and then we use the largest one as a
+    | Tvariant (_, Rec_folded, _) -> failwith "unreachable"
+    | Tvariant (_, (Rec_not ctors | Rec_top ctors), _) -> (
+        (* We loop through each ctor and then we use the largest one as a
            typedef for the whole type *)
         let tag = i32_t in
         let largest = variant_get_largest ctors |> Option.map get_lltype_def in

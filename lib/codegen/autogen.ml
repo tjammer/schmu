@@ -7,7 +7,6 @@ struct
   open H
   open Arr
   open Malloc_types
-  module Sset = Set.Make (String)
 
   type func = Copy | Free | Free_except of Pset.t
 
@@ -15,31 +14,23 @@ struct
   let cls_func_tbl = Hashtbl.create 64
   let ci i = Llvm.const_int int_t i
 
-  let alloc_types recurs ts = function
-    | Tarray t -> (t :: ts, recurs)
-    | Trc t -> (t :: ts, recurs)
+  let alloc_types ts = function
+    | Tarray t -> t :: ts
+    | Trc t -> t :: ts
     | Trecord (_, _, fields) ->
-        ( Array.fold_left
-            (fun ts f ->
-              if contains_allocation f.ftyp then f.ftyp :: ts else ts)
-            ts fields,
-          recurs )
-    | Tvariant (_, rc, _, ctors) ->
-        let recurs =
-          match rc with
-          | Some (Tpoly id) -> Sset.add id recurs
-          | None | Some _ -> recurs
-        in
-        ( Array.fold_left
-            (fun ts c ->
-              match c.ctyp with
-              | Some t -> if contains_allocation t then t :: ts else ts
-              | None -> ts)
-            ts ctors,
-          recurs )
-    | Tfixed_array (_, t) ->
-        if contains_allocation t then (t :: ts, recurs) else (ts, recurs)
-    | _ -> (ts, recurs)
+        Array.fold_left
+          (fun ts f -> if contains_allocation f.ftyp then f.ftyp :: ts else ts)
+          ts fields
+    | Tvariant (_, (Rec_not ctors | Rec_top ctors), _) ->
+        Array.fold_left
+          (fun ts c ->
+            match c.ctyp with
+            | Some t -> if contains_allocation t then t :: ts else ts
+            | None -> ts)
+          ts ctors
+    | Tvariant (_, Rec_folded, _) -> ts
+    | Tfixed_array (_, t) -> if contains_allocation t then t :: ts else ts
+    | _ -> ts
 
   let path_name pset =
     let show_path path = String.concat "-" (List.map string_of_int path) in
@@ -91,20 +82,16 @@ struct
         Llvm.build_store v.value value builder |> ignore;
         { v with value; kind = Ptr }
 
-  let is_recurs recurs = function
-    | Tpoly id when Sset.mem id recurs -> true
-    | _ -> false
-
-  let rec decl_children ?(recurs = Sset.empty) kind pseudovar t =
+  let rec decl_children kind pseudovar t =
     (* The copy function navigates to allocated children, but we
        have to make sure the function for each type is available *)
-    let ts, recurs = alloc_types recurs [] t in
+    let ts = alloc_types [] t in
     let f typ =
       (* Value will be set correctly at [gen_functions].
          Make sure other fields are correct *)
-      if contains_allocation typ && not (is_recurs recurs typ) then (
+      if contains_allocation typ && not (is_folded typ) then (
         make_fn kind { pseudovar with typ; kind = Ptr } |> ignore;
-        decl_children ~recurs kind pseudovar typ)
+        decl_children kind pseudovar typ)
     in
     List.iter f ts
 
@@ -274,7 +261,8 @@ struct
               let v = follow_field dst i in
               copy_inner_call v)
           fs
-    | Tvariant (_, _, _, ctors) ->
+    | Tvariant (_, Rec_folded, _) -> failwith "unreachable"
+    | Tvariant (_, (Rec_not ctors | Rec_top ctors), _) ->
         let index = var_index dst in
         let f i c =
           match c.ctyp with
@@ -452,7 +440,8 @@ struct
               let v = follow_field v i in
               free_call_only v)
           fs
-    | Tvariant (_, _, _, ctors) ->
+    | Tvariant (_, Rec_folded, _) -> failwith "unreachable"
+    | Tvariant (_, (Rec_not ctors | Rec_top ctors), _) ->
         let index = var_index v in
         let f i c =
           match c.ctyp with
@@ -551,7 +540,7 @@ struct
         let bb = Llvm.append_block context "entry" f in
         Llvm.position_at_end bb builder;
 
-        let lltyp = get_lltype_def v.typ and typ = unfolded v.typ in
+        let lltyp = get_lltype_def v.typ and typ = v.typ in
         let v = { typ; value = Llvm.param f 0; kind = Ptr; lltyp } in
         match kind with
         | Copy ->
