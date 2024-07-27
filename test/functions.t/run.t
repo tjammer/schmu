@@ -1661,11 +1661,11 @@ The lamba passed as array-iter argument is polymorphic
   @1 = private unnamed_addr constant { i64, i64, [1 x [1 x i8]] } { i64 0, i64 1, [1 x [1 x i8]] zeroinitializer }
   @2 = private unnamed_addr constant { i64, i64, [3 x i8] } { i64 2, i64 2, [3 x i8] c", \00" }
   
-  declare void @string_print(ptr %0)
-  
   declare void @string_append(ptr noalias %0, ptr %1)
   
   declare void @string_modify_buf(ptr noalias %0, ptr %1)
+  
+  declare void @string_print(ptr %0)
   
   define linkonce_odr void @__array_inner__2_Cal_2lru__(i64 %i, ptr %0) {
   entry:

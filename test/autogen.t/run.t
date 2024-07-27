@@ -821,9 +821,9 @@ Copy string literal on move
   @schmu_b = global ptr null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"aoeu\00" }
   
-  declare void @string_print(ptr %0)
-  
   declare void @string_modify_buf(ptr noalias %0, ptr %1)
+  
+  declare void @string_print(ptr %0)
   
   define void @__fun_schmu0(ptr noalias %arr) {
   entry:

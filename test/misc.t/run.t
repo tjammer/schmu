@@ -1505,11 +1505,11 @@ Piping for ctors and field accessors
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @2 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%c\0A\00" }
   
-  declare void @string_print(ptr %0)
-  
   declare i8 @string_get(ptr %0, i64 %1)
   
   declare ptr @string_of_array(ptr %0)
+  
+  declare void @string_print(ptr %0)
   
   declare void @Printi(i64 %0)
   
@@ -2555,11 +2555,11 @@ Take/use not all allocations of a record in tailrec calls
   @schmu_inp = global %view_ zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c" \00" }
   
-  declare i1 @prelude_char_equal(i8 %0, i8 %1)
-  
   declare i64 @string_len(ptr %0)
   
   declare i8 @string_get(ptr %0, i64 %1)
+  
+  declare i1 @prelude_char_equal(i8 %0, i8 %1)
   
   define void @schmu_aux(ptr noalias %0, ptr %rem, i64 %cnt) {
   entry:
