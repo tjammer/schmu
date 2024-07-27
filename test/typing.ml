@@ -759,6 +759,14 @@ type t = array(u8)
 fun len(str : t): __unsafe_array_length(str)
 |}
 
+let test_signature_namespaces () =
+  test "unit" {|signature:
+  type t
+
+type t = int
+
+let t = 200|}
+
 let local_module =
   {|type t = float
 type global = int
@@ -1510,6 +1518,7 @@ let () =
           case "param mismatch" test_signature_param_mismatch;
           case "unparam type" test_signature_unparam_type;
           case "abstract" test_signature_abstract;
+          case "namespaces" test_signature_namespaces;
         ] );
       ( "local modules",
         [

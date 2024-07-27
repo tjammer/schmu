@@ -565,18 +565,24 @@ let to_channel c ~outname m =
   in
   { m with objects } |> sexp_of_t |> Sexp.to_channel c
 
-let find_item name = function
+let is_type = function Mtypedef _ -> true | _ -> false
+
+let find_item name kind = function
   | Mtype (_, n, decl) ->
-      if String.equal name n then Some (Mtypedef decl) else None
+      if is_type kind && String.equal name n then Some (Mtypedef decl) else None
   | Mpoly_fun (_, abs, n, _) ->
-      if String.equal name n then
+      if (not (is_type kind)) && String.equal name n then
         let typ = type_of_func abs.func in
         Some (Mvalue (typ, None))
       else None
   | Malias (_, n, expr) ->
-      if String.equal name n then Some (Mvalue (expr.typ, None)) else None
+      if (not (is_type kind)) && String.equal name n then
+        Some (Mvalue (expr.typ, None))
+      else None
   | Mfun (_, typ, n) | Mext (_, typ, n, _) ->
-      if String.equal name n.user then Some (Mvalue (typ, n.call)) else None
+      if (not (is_type kind)) && String.equal name n.user then
+        Some (Mvalue (typ, n.call))
+      else None
   | Mmutual_rec _ | Mlocal_module _ | Mfunctor _ | Mapplied_functor _
   | Mmodule_alias _ | Mmodule_type _ ->
       None
@@ -628,10 +634,7 @@ let validate_module_type env ~mname find mtype =
   let mn = mname in
   let com = "Signatures don't match" in
   let f (name, loc, kind) (sub, acc) =
-    match (find name, kind) with
-    | Some (Mvalue _), Mtypedef _ ->
-        let msg = com ^ "for type " ^ name in
-        raise (Error (loc, msg))
+    match (find name kind, kind) with
     | Some (Mtypedef idecl), Mtypedef sdecl ->
         let path = Path.append name mn in
         let sub, kind =
@@ -672,7 +675,7 @@ let validate_module_type env ~mname find mtype =
               mn styp ityp
           in
           raise (Error (loc, msg))
-    | None, Mtypedef decl -> (
+    | (None | Some (Mvalue _)), Mtypedef decl -> (
         (* Typedefs don't have to be given a second time. Except: When the initial type is abstract *)
         match decl.kind with
         | Dabstract _ ->
@@ -694,19 +697,25 @@ let validate_signature env m =
   match m.s with
   | [] -> m
   | s ->
-      let find name = List.find_map (find_item name) m.i in
+      let find name kind = List.find_map (find_item name kind) m.i in
       let mname = Env.modpath env in
       { m with s = validate_module_type ~mname env find s }
 
 let validate_intf env ~mname intf m =
   match m.s with
   | [] ->
-      let find name = List.find_map (find_item name) m.i in
+      let find name kind = List.find_map (find_item name kind) m.i in
       ignore (validate_module_type ~mname env find intf)
   | s ->
-      let find name =
+      let find name kind =
         List.find_map
-          (fun (n, _, kind) -> if String.equal name n then Some kind else None)
+          (fun (n, _, k) ->
+            match k with
+            | Mtypedef _ ->
+                if is_type kind && String.equal name n then Some k else None
+            | Mvalue _ ->
+                if (not (is_type kind)) && String.equal name n then Some k
+                else None)
           s
       in
       ignore (validate_module_type ~mname env find intf)
