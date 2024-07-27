@@ -145,12 +145,15 @@ module Map_canon : Map_module.Map_tree = struct
     | None | Some _ -> ());
     (id, m)
 
-  let mark_alias_load ~mname = function
+  let map_decl ~mname _ sub decl =
+    match decl.kind with
     | Dalias (Tconstr (name, _)) -> (
         match Path.rm_head name with
-        | Some m when not (Path.share_base mname m) -> eagerly_load m
-        | None | Some _ -> ())
-    | _ -> ()
+        | Some m when not (Path.share_base mname m) ->
+            eagerly_load m;
+            (sub, decl)
+        | None | Some _ -> (sub, decl))
+    | _ -> (sub, decl)
 
   let absolute_module_name = absolute_module_name
   let map_type = Map_module.Canonize.canonize
@@ -417,12 +420,22 @@ and register_module env loc mname modul =
     let env = Env.add_module ~key (envmodule_of_cached mname cached) env in
     Ok env
 
+and rev { s; i; objects } =
+  let i =
+    List.rev_map
+      (function
+        | Mlocal_module (loc, s, t) -> Mlocal_module (loc, s, rev t)
+        | item -> item)
+      i
+  in
+  { s = List.rev s; i; objects }
+
 and register_functor env loc mname params body modul : (Env.t, unit) Result.t =
   if Hashtbl.mem module_cache mname then Error ()
   else
     (* Make an empty scope *)
     let scope = Env.open_module_scope env loc mname |> Env.pop_scope in
-    let cached = Functor (scope, mname, params, body, modul) in
+    let cached = Functor (scope, mname, params, body, rev modul) in
     Hashtbl.add module_cache mname cached;
     let key = Path.get_hd mname in
     (* Use located here, so the scope isn't accessed in env *)
@@ -532,16 +545,6 @@ let object_names () =
       module_cache Sset.empty
   in
   Sset.union ours !object_cache |> Sset.to_seq |> List.of_seq
-
-let rec rev { s; i; objects } =
-  let i =
-    List.rev_map
-      (function
-        | Mlocal_module (loc, s, t) -> Mlocal_module (loc, s, rev t)
-        | item -> item)
-      i
-  in
-  { s = List.rev s; i; objects }
 
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in

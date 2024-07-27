@@ -8,7 +8,7 @@ module type Map_tree = sig
   val change_var :
     mname:Path.t -> string -> Path.t option -> sub -> string * Path.t option
 
-  val mark_alias_load : mname:Path.t -> decl_kind -> unit
+  val map_decl : mname:Path.t -> string -> sub -> type_decl -> sub * type_decl
   val absolute_module_name : mname:Path.t -> string -> string
   val map_type : sub -> typ -> sub * typ
 end
@@ -268,7 +268,7 @@ module Make (C : Map_tree) = struct
 
   let rec fold_map_type_item mname (sub, nsub) = function
     | Mtype (l, n, decl) ->
-        C.mark_alias_load ~mname decl.kind;
+        let sub, decl = C.map_decl ~mname n sub decl in
         ((sub, nsub), Mtype (l, n, decl))
     | Mfun (l, t, n) ->
         let a, t = C.map_type sub t in

@@ -1412,14 +1412,19 @@ module Subst_functor (* : Map_module.Map_tree *) = struct
   open Module_type
 
   type mapping = { base : Path.t; with_ : Path.t }
-  type sub = (Path.t -> (type_decl * Path.t) option) * mapping list
+  type decl_map = (type_decl * Path.t) Pmap.t
+
+  type sub =
+    (decl_map -> Path.t -> (type_decl * Path.t) option)
+    * mapping list
+    * decl_map
 
   let empty_sub () =
     (* Make sure the empty env is never used. We want to pass the actual env to
        look up declarations. *)
     failwith "unreachable"
 
-  let change_var ~mname id m (_, subs) =
+  let change_var ~mname id m (_, subs, _) =
     ignore mname;
     match m with
     | Some m ->
@@ -1433,17 +1438,61 @@ module Subst_functor (* : Map_module.Map_tree *) = struct
 
   let absolute_module_name = Module.absolute_module_name
 
-  let map_type (find_type, subs) typ =
+  let map_type (find_type, subs, decls) typ =
     let typ =
       List.fold_left
         (fun typ { base; with_ } -> apply_pathsub ~base ~with_ typ)
         typ subs
     in
     (* Use aliases if they are available *)
-    let typ = resolve_alias find_type typ in
-    ((find_type, subs), typ)
+    let typ = resolve_alias (find_type decls) typ in
+    ((find_type, subs, decls), typ)
 
-  let mark_alias_load ~mname:_ = failwith "unreachable"
+  let rec map_decl ~mname id sub decl =
+    let (find, subs, dmap), kind =
+      match Types.(decl.kind) with
+      | Drecord fields ->
+          let sub, fields =
+            Array.fold_left_map
+              (fun sub f ->
+                let sub, ftyp = map_type sub f.ftyp in
+                (sub, { f with ftyp }))
+              sub fields
+          in
+          (sub, Drecord fields)
+      | Dvariant (recurs, ctors) ->
+          let sub, ctors =
+            Array.fold_left_map
+              (fun sub ct ->
+                match ct.ctyp with
+                | Some typ ->
+                    let sub, ctyp = map_type sub typ in
+                    (sub, { ct with ctyp = Some ctyp })
+                | None -> (sub, ct))
+              sub ctors
+          in
+          (sub, Dvariant (recurs, ctors))
+      | Dabstract (Some kind) ->
+          let sub, decl =
+            map_decl ~mname id sub
+              (* Fill a dummy decl *)
+              { params = []; in_sgn = true; kind }
+          in
+          (sub, Dabstract (Some Types.(decl.kind)))
+      | Dalias typ ->
+          let sub, typ = map_type sub typ in
+          (sub, Dalias typ)
+      | Dabstract None -> (sub, Dabstract None)
+    in
+    let decl = { decl with kind } in
+    let path = Path.append id mname in
+    let dmap = Pmap.add path (decl, path) dmap in
+    ((find, subs, dmap), decl)
+
+  let find_function find_type declsub path =
+    match Pmap.find_opt path declsub with
+    | Some decl -> Some decl
+    | None -> find_type path
 end
 
 module Subst = Map_module.Make (Subst_functor)
@@ -1667,9 +1716,9 @@ and convert_prog env items modul =
         match Module.functor_data env floc ftor with
         | Ok (mname, params, body, modul) ->
             let param_arg_map = ref Module_type.Pmap.empty in
-            let names =
+            begin
               try
-                List.map2
+                List.iter2
                   (fun (aloc, arg) param ->
                     let key = Path.append (fst param) mname in
                     match Env.find_module_opt aloc arg env with
@@ -1682,8 +1731,7 @@ and convert_prog env items modul =
                               Module_type.adjust_for_checking ~base:key
                                 ~with_:mname (snd param)
                             in
-                            Module.validate_intf env ~mname mtype m;
-                            mname
+                            Module.validate_intf env ~mname mtype m
                         | Error s -> raise (Error (loc, s)))
                     | None ->
                         raise
@@ -1696,12 +1744,9 @@ and convert_prog env items modul =
                     (Path.show ftor) (List.length params) (List.length args)
                 in
                 raise (Error (loc, msg))
-            in
-            ignore names;
-            let applied_name =
-              Path.append id (Env.modpath env)
-              (* List.fold_left (fun acc p -> Path.append_path p acc) mname names *)
-            in
+            end;
+
+            let applied_name = Path.append id (Env.modpath env) in
             (* There are two substitutions we need to make: From the functor
                parameter(s) to the actual implementation modules, e.g. from
                [make/m] to [int]. And from the functor name to the applied
@@ -1710,9 +1755,6 @@ and convert_prog env items modul =
                want to apply the paramater sub, then the functor name sub. To
                make this explicit, we are using a list. *)
             (* Add functor -> applied functor mapping *)
-            print_endline
-              ("map functor " ^ Path.show mname ^ " to "
-             ^ Path.show applied_name);
             let subs =
               { Subst_functor.base = mname; with_ = applied_name } :: []
             in
@@ -1720,25 +1762,25 @@ and convert_prog env items modul =
             let subs =
               Module_type.Pmap.fold
                 (fun key value acc ->
-                  print_endline
-                    ("sub " ^ Path.show key ^ " to " ^ Path.show value);
                   Subst_functor.{ base = key; with_ = value } :: acc)
                 !param_arg_map subs
             in
-            let find path = Env.find_type_opt loc path env in
             (* Type declarations which are defined in this functor won't be
                accessible to the [find] function. For these, we send an extra
                data structure to the mapping function to sub in the correct
                type. *)
-            (* TODO *)
-            let subs = (find, subs) in
+            let find =
+              let find path = Env.find_type_opt loc path env in
+              Subst_functor.find_function find
+            in
+            let subs = (find, subs, Module_type.Pmap.empty) in
 
+            let subs, modul = Subst.map_module applied_name subs modul in
             let body =
               Subst.map_tl_items applied_name Smap.empty subs body |> snd
             in
             let moditems = List.map (fun item -> (applied_name, item)) body in
             let items = Tl_module moditems :: items in
-            let _, modul = Subst.map_module applied_name subs modul in
             let env =
               Module.register_applied_functor env loc id applied_name modul
             in
