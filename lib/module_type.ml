@@ -7,7 +7,7 @@ type tsub = Types.typ Smap.t
 
 type item_kind = Mtypedef of type_decl | Mvalue of typ * string option
 and item = string * Ast.loc * item_kind
-and t = item list [@@deriving show]
+and t = item list
 
 let apply_pathsub ~base ~with_ typ =
   let subst p = Path.subst_base ~base ~with_ p in
