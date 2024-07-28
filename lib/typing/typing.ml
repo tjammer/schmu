@@ -145,10 +145,6 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Tconstr (name, params) ->
         let len = List.filter is_polymorphic params |> List.length in
         if len == 0 then None else Some (name, len)
-    | Traw_ptr t ->
-        if is_polymorphic t then Some (Path.Pid "raw_ptr", 1) else None
-    | Tarray t -> if is_polymorphic t then Some (Path.Pid "array", 1) else None
-    | Trc t -> if is_polymorphic t then Some (Path.Pid "rc", 1) else None
     | Tfixed_array (_, t) ->
         if is_polymorphic t then Some (Path.Pid "array#?", 1) else None
     | Tvar { contents = Link t } -> is_quantified t
@@ -159,28 +155,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
 
   let rec concrete_type in_list env = function
-    (* | Ast.Ty_id "int" -> tint *)
-    (* | Ty_id "bool" -> tbool *)
-    (* | Ty_id "unit" -> tunit *)
-    (* | Ty_id "u8" -> Tprim Tu8 *)
-    (* | Ast.Ty_id "u16" -> Tprim Tu16 *)
-    (* | Ty_id "float" -> tfloat *)
-    (* | Ast.Ty_id "i32" -> ti32 *)
-    | Ast.Ty_id "f32" -> tf32
-    | Ast.Ty_id "array" ->
-        if not in_list then
-          raise (Error (loc, "Type array expects 1 type parameter"));
-        Tarray (Qvar "o")
-        (* Use a letter care so we don't clash with a real value *)
-    | Ty_id "raw_ptr" ->
-        if not in_list then
-          raise (Error (loc, "Type raw_ptr expects 1 type parameter"));
-        Traw_ptr (Qvar "o")
-    | Ty_id "rc" ->
-        if not in_list then
-          raise (Error (loc, "Type rc expects 1 type parameter"));
-        Trc (Qvar "o")
-    | Ty_id "array#?" ->
+    | Ast.Ty_id "array#?" ->
         if not in_list then
           raise (Error (loc, "Type array#? expects 1 type parameter"));
         Tfixed_array (ref (Generalized "u"), Qvar "o")
@@ -657,7 +632,7 @@ end = struct
     in
     let typ, exprs = List.fold_left_map f (newvar ()) arr in
 
-    let typ = Tarray typ in
+    let typ = tarray typ in
     { typ; expr = Const (Array exprs); attr = no_attr; loc }
 
   and convert_fixed_array_lit env loc arr =
@@ -1158,7 +1133,15 @@ end = struct
       let e = convert env expr in
       match (e.expr, repr e.typ) with
       | Const (String s), _ -> Fstr s
-      | _, Tarray (Tconstr (Pid "u8", _)) -> Fexpr e
+      | ( _,
+          Tconstr
+            ( Pid "array",
+              [
+                ( Tconstr (Pid "u8", _)
+                (* Might be a string later *)
+                | Tvar { contents = Unbound _ } );
+              ] ) ) ->
+          Fexpr e
       | _, Tconstr (p, [])
         when Path.equal p (Path.Pmod ("string", Path.Pid "t")) ->
           Fexpr e
@@ -1166,8 +1149,6 @@ end = struct
           Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)
-      | _, Tarray (Tvar { contents = Unbound _ }) ->
-          Fexpr e (* Might be string later *)
       | _, _ ->
           raise
             (Error
@@ -1929,19 +1910,18 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
 
   let env =
     fold_builtins
-      (fun env name decl -> Env.add_type ~append_module:false name decl env)
+      (fun env name decl ->
+        let params = List.map regeneralize decl.params in
+        Env.add_type ~append_module:false name { decl with params } env)
       (Env.empty ~find_module ~scope_of_located mname)
   in
 
   let env =
     Builtin.(
       fold (fun str (_, typ) env ->
-          enter_level ();
-          let typ = instantiate typ in
-          leave_level ();
           Env.(
             add_value str
-              { (def_value env) with typ = generalize typ; mname = None }
+              { (def_value env) with typ = regeneralize typ; mname = None }
               loc env)))
       env
   in

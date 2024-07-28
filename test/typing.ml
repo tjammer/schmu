@@ -419,7 +419,7 @@ let test_array_different_types () =
   test_exn "In array literal expecting [int] but found [bool]" "[0, true]"
 
 let test_array_different_annot () =
-  test_exn "In let binding expecting array([int]) but found array([bool])"
+  test_exn "In let binding expecting [array(int)] but found [array(bool)]"
     "let a : array(bool) = [0, 1]\na"
 
 let test_array_different_annot_weak () =

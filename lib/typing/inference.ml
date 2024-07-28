@@ -34,7 +34,6 @@ let rec occurs tvr = function
       List.iter (fun p -> occurs tvr p.pt) param_ts;
       occurs tvr t
   | Tconstr (_, ts) | Ttuple ts -> List.iter (occurs tvr) ts
-  | Traw_ptr t | Tarray t | Trc t -> occurs tvr t
   | Tfixed_array (({ contents = Unknown (id, lvl) } as tv), t) ->
       (* Also adjust level of array size *)
       let min_lvl = match !tvr with Unbound (_, l) -> min lvl l | _ -> lvl in
@@ -77,9 +76,6 @@ let rec unify recurs t1 t2 =
           try List.iter2 (unify recurs) ls rs
           with Invalid_argument _ -> raise Unify
         else raise Unify
-    | Traw_ptr l, Traw_ptr r -> unify recurs l r
-    | Tarray l, Tarray r -> unify recurs l r
-    | Trc l, Trc r -> unify recurs l r
     | Tfixed_array ({ contents = Linked l }, lt), (Tfixed_array _ as r) ->
         unify recurs (Tfixed_array (l, lt)) r
     | (Tfixed_array _ as l), Tfixed_array ({ contents = Linked r }, rt) ->
@@ -124,9 +120,6 @@ let rec generalize = function
       Tfun (List.map gen t1, generalize t2, generalize_closure k)
   | Ttuple ts -> Ttuple (List.map generalize ts)
   | Tconstr (p, ps) -> Tconstr (p, List.map generalize ps)
-  | Traw_ptr t -> Traw_ptr (generalize t)
-  | Tarray t -> Tarray (generalize t)
-  | Trc t -> Trc (generalize t)
   | Tfixed_array (({ contents = Unknown (id, li) } as tv), l)
     when li > !current_level ->
       tv := Generalized id;
@@ -178,15 +171,6 @@ let rec inst_impl subst = function
             (subst, Closure cls)
       in
       (subst, Tfun (params_t, t, k))
-  | Traw_ptr t ->
-      let subst, t = inst_impl subst t in
-      (subst, Traw_ptr t)
-  | Tarray t ->
-      let subst, t = inst_impl subst t in
-      (subst, Tarray t)
-  | Trc t ->
-      let subst, t = inst_impl subst t in
-      (subst, Trc t)
   | Tfixed_array ({ contents = Generalized id }, t) -> (
       let subst, t = inst_impl subst t in
       match Smap.find_opt ("fa" ^ id) subst with
@@ -237,25 +221,16 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
       | Tvar { contents = Link l }, r | l, Tvar { contents = Link r } ->
           aux ~strict sub l r
       | Tconstr (pl, psl), Tconstr (pr, psr) when Path.equal pl pr ->
-          let sub, mtch =
+          let sub, mtch, revps =
             try
               List.fold_left2
-                (fun (sub, mtch) l r ->
-                  let _, sub, do_match = aux ~strict sub l r in
-                  (sub, do_match && mtch))
-                (sub, true) psl psr
-            with Invalid_argument _ -> (sub, false)
+                (fun (sub, mtch, ps) l r ->
+                  let typ, sub, do_match = aux ~strict sub l r in
+                  (sub, do_match && mtch, typ :: ps))
+                (sub, true, []) psl psr
+            with Invalid_argument _ -> (sub, false, List.rev psr)
           in
-          (r, sub, mtch)
-      | Traw_ptr l, Traw_ptr r ->
-          let t, s, b = aux ~strict sub l r in
-          (Traw_ptr t, s, b)
-      | Tarray l, Tarray r ->
-          let t, s, b = aux ~strict sub l r in
-          (Tarray t, s, b)
-      | Trc l, Trc r ->
-          let t, s, b = aux ~strict sub l r in
-          (Trc t, s, b)
+          (Tconstr (pl, List.rev revps), sub, mtch)
       | ( Tfixed_array (({ contents = Generalized lg } as rl), lt),
           Tfixed_array (({ contents = Generalized ri } as rr), rt) )
       | ( Tfixed_array (({ contents = Unknown (lg, _) } as rl), lt),

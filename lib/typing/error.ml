@@ -90,16 +90,6 @@ let format_type_err pre mname t1 t2 =
           let found, l, r = difflist ls rs in
           if String.equal l r then (found, "_", "_")
           else (found, "(" ^ l ^ ")", "(" ^ r ^ ")")
-    | Tarray l, Tarray r ->
-        let found, l, r = aux l r in
-        if String.equal l r then (found, "_", "_")
-        else if found then (found, "array(" ^ l ^ ")", "array(" ^ r ^ ")")
-        else (found, "array([" ^ l ^ "])", "array([" ^ r ^ "])")
-    | Trc l, Trc r ->
-        let found, l, r = aux l r in
-        if String.equal l r then (found, "_", "_")
-        else if found then (found, "rc(" ^ l ^ ")", "rc(" ^ r ^ ")")
-        else (found, "rc([" ^ l ^ "])", "rc([" ^ r ^ "])")
     | l, r ->
         let l = sotl l and r = sotr r in
         if String.equal l r then (false, l, r)

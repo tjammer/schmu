@@ -78,14 +78,14 @@ let tbl =
   Hashtbl.add tbl "__unsafe_ptr_get"
     ( Unsafe_ptr_get,
       Types.Tfun
-        ( [ { p with pt = Traw_ptr (Qvar "0") }; { p with pt = tint } ],
+        ( [ { p with pt = traw_ptr (Qvar "0") }; { p with pt = tint } ],
           Qvar "0",
           Simple ) );
   Hashtbl.add tbl "__unsafe_ptr_set"
     ( Unsafe_ptr_set,
       Tfun
         ( [
-            { pt = Traw_ptr (Qvar "0"); pattr = Dmut };
+            { pt = traw_ptr (Qvar "0"); pattr = Dmut };
             { p with pt = tint };
             { pt = Qvar "0"; pattr = Dmove };
           ],
@@ -94,24 +94,24 @@ let tbl =
   Hashtbl.add tbl "__unsafe_ptr_at"
     ( Unsafe_ptr_at,
       Tfun
-        ( [ { p with pt = Traw_ptr (Qvar "0") }; { p with pt = tint } ],
-          Traw_ptr (Qvar "0"),
+        ( [ { p with pt = traw_ptr (Qvar "0") }; { p with pt = tint } ],
+          traw_ptr (Qvar "0"),
           Simple ) );
   Hashtbl.add tbl "__unsafe_ptr_reinterpret"
     ( Unsafe_ptr_reinterpret,
-      Tfun ([ { p with pt = Traw_ptr (Qvar "0") } ], Traw_ptr (Qvar "1"), Simple)
+      Tfun ([ { p with pt = traw_ptr (Qvar "0") } ], traw_ptr (Qvar "1"), Simple)
     );
   Hashtbl.add tbl "__unsafe_addr"
     ( Unsafe_addr,
-      Tfun ([ { pt = Qvar "0"; pattr = Dmut } ], Traw_ptr (Qvar "0"), Simple) );
+      Tfun ([ { pt = Qvar "0"; pattr = Dmut } ], traw_ptr (Qvar "0"), Simple) );
   Hashtbl.add tbl "__realloc"
     ( Realloc,
       Tfun
-        ( [ { pt = Traw_ptr (Qvar "0"); pattr = Dmut }; { p with pt = tint } ],
+        ( [ { pt = traw_ptr (Qvar "0"); pattr = Dmut }; { p with pt = tint } ],
           tunit,
           Simple ) );
   Hashtbl.add tbl "__malloc"
-    (Malloc, Tfun ([ { p with pt = tint } ], Traw_ptr (Qvar "0"), Simple));
+    (Malloc, Tfun ([ { p with pt = tint } ], traw_ptr (Qvar "0"), Simple));
   Hashtbl.add tbl "ignore"
     (Ignore, Tfun ([ { p with pt = Qvar "0" } ], tunit, Simple));
   Hashtbl.add tbl "int_of_float"
@@ -152,20 +152,20 @@ let tbl =
   Hashtbl.add tbl "__array_get"
     ( Array_get,
       Tfun
-        ( [ { p with pt = Tarray (Qvar "0") }; { p with pt = tint } ],
+        ( [ { p with pt = tarray (Qvar "0") }; { p with pt = tint } ],
           Qvar "0",
           Simple ) );
   Hashtbl.add tbl "__array_length"
-    (Array_length, Tfun ([ { p with pt = Tarray (Qvar "0") } ], tint, Simple));
+    (Array_length, Tfun ([ { p with pt = tarray (Qvar "0") } ], tint, Simple));
   Hashtbl.add tbl "__array_drop_back"
     ( Array_drop_back,
-      Tfun ([ { pt = Tarray (Qvar "0"); pattr = Dmut } ], tunit, Simple) );
+      Tfun ([ { pt = tarray (Qvar "0"); pattr = Dmut } ], tunit, Simple) );
   Hashtbl.add tbl "__array_data"
     ( Array_data,
-      Tfun ([ { p with pt = Tarray (Qvar "0") } ], Traw_ptr (Qvar "0"), Simple)
+      Tfun ([ { p with pt = tarray (Qvar "0") } ], traw_ptr (Qvar "0"), Simple)
     );
   Hashtbl.add tbl "__array_capacity"
-    (Array_capacity, Tfun ([ { p with pt = Tarray (Qvar "0") } ], tint, Simple));
+    (Array_capacity, Tfun ([ { p with pt = tarray (Qvar "0") } ], tint, Simple));
   Hashtbl.add tbl "__fixed_array_get"
     ( Fixed_array_get,
       Tfun
@@ -189,28 +189,28 @@ let tbl =
         ( [
             { p with pt = Tfixed_array (ref (Types.Generalized "0"), Qvar "0") };
           ],
-          Traw_ptr (Qvar "0"),
+          traw_ptr (Qvar "0"),
           Simple ) );
   Hashtbl.add tbl "__unsafe_array_realloc"
     ( Unsafe_array_realloc,
       Tfun
-        ( [ { pt = Tarray (Qvar "0"); pattr = Dmut }; { p with pt = tint } ],
+        ( [ { pt = tarray (Qvar "0"); pattr = Dmut }; { p with pt = tint } ],
           tunit,
           Simple ) );
   Hashtbl.add tbl "__unsafe_array_create"
     ( Unsafe_array_create,
-      Tfun ([ { p with pt = tint } ], Tarray (Qvar "0"), Simple) );
+      Tfun ([ { p with pt = tint } ], tarray (Qvar "0"), Simple) );
   Hashtbl.add tbl "__unsafe_array_length"
     ( Unsafe_array_length,
-      Tfun ([ { p with pt = Tarray (Qvar "0") } ], tint, Simple) );
+      Tfun ([ { p with pt = tarray (Qvar "0") } ], tint, Simple) );
   Hashtbl.add tbl "__unsafe_nullptr"
-    (Unsafe_nullptr, Tfun ([], Traw_ptr tu8, Simple));
+    (Unsafe_nullptr, Tfun ([], traw_ptr tu8, Simple));
   Hashtbl.add tbl "__unsafe_funptr"
-    (Unsafe_funptr, Tfun ([ { p with pt = Qvar "0" } ], Traw_ptr tunit, Simple));
+    (Unsafe_funptr, Tfun ([ { p with pt = Qvar "0" } ], traw_ptr tunit, Simple));
   Hashtbl.add tbl "__unsafe_clsptr"
-    (Unsafe_clsptr, Tfun ([ { p with pt = Qvar "0" } ], Traw_ptr tunit, Simple));
+    (Unsafe_clsptr, Tfun ([ { p with pt = Qvar "0" } ], traw_ptr tunit, Simple));
   Hashtbl.add tbl "nullptr?"
-    (Is_nullptr, Tfun ([ { p with pt = Traw_ptr (Qvar "0") } ], tbool, Simple));
+    (Is_nullptr, Tfun ([ { p with pt = traw_ptr (Qvar "0") } ], tbool, Simple));
   Hashtbl.add tbl "assert"
     (Assert, Tfun ([ { p with pt = tbool } ], tunit, Simple));
   Hashtbl.add tbl "copy"
@@ -287,9 +287,9 @@ let tbl =
     );
   Hashtbl.add tbl "__rc_create"
     ( Rc_create,
-      Tfun ([ { pt = Qvar "0"; pattr = Dmove } ], Trc (Qvar "0"), Simple) );
+      Tfun ([ { pt = Qvar "0"; pattr = Dmove } ], trc (Qvar "0"), Simple) );
   Hashtbl.add tbl "__rc_get"
-    (Rc_get, Tfun ([ { p with pt = Trc (Qvar "0") } ], Qvar "0", Simple));
+    (Rc_get, Tfun ([ { p with pt = trc (Qvar "0") } ], Qvar "0", Simple));
 
   tbl
 

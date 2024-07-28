@@ -170,9 +170,9 @@ let rec cln behind_ptr p = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
       Tfun (List.map (cln_param p) params, cln true p ret, cln_kind p kind)
-  | Traw_ptr t -> Traw_ptr (cln true p t)
-  | Tarray t -> Tarray (cln true p t)
-  | Trc t -> Trc (cln true p t)
+  | Tconstr (Pid "raw_ptr", [ t ]) -> Traw_ptr (cln true p t)
+  | Tconstr (Pid "array", [ t ]) -> Tarray (cln true p t)
+  | Tconstr (Pid "rc", [ t ]) -> Trc (cln true p t)
   | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
       (* That's a hack. We know the unknown number is a string of an int. This is
          due to an implementation detail in [gen_var] in inference. We need a

@@ -26,9 +26,6 @@ let apply_pathsub ~base ~with_ typ =
               Closure cls
         in
         Tfun (ps, aux r, kind)
-    | Tarray t -> Tarray (aux t)
-    | Traw_ptr t -> Traw_ptr (aux t)
-    | Trc t -> Trc (aux t)
     | Tfixed_array (iv, t) -> Tfixed_array (iv, aux t)
     | Tvar { contents = Link t } -> aux t
     | (Tvar { contents = Unbound _ } | Qvar _) as t -> t

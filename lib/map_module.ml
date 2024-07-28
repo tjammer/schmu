@@ -62,18 +62,9 @@ module Canonize = struct
     | Tconstr (p, ps) ->
         let sub, ps = List.fold_left_map canonize sub ps in
         (sub, Tconstr (p, ps))
-    | Traw_ptr t ->
-        let sub, t = canonize sub t in
-        (sub, Traw_ptr t)
-    | Tarray t ->
-        let sub, t = canonize sub t in
-        (sub, Tarray t)
     | Tfixed_array (iv, t) ->
         let sub, t = canonize sub t in
         (sub, Tfixed_array (iv, t))
-    | Trc t ->
-        let sub, t = canonize sub t in
-        (sub, Trc t)
 end
 
 module Make (C : Map_tree) = struct

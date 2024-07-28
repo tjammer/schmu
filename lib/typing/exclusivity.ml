@@ -9,13 +9,13 @@ open Error
 module Contains_allocation = struct
   let rec contains_allocation (get_decl : Path.t -> type_decl * Path.t) =
     function
-    | Tvar { contents = Link t } | Traw_ptr t -> contains_allocation get_decl t
-    | Tarray _ | Trc _ -> true
+    | Tvar { contents = Link t } -> contains_allocation get_decl t
     | Ttuple ts ->
         List.fold_left
           (fun ca t -> ca || contains_allocation get_decl t)
           false ts
-    | t when is_builtin t -> false
+    | Tconstr (Pid name, _) as t when is_builtin t -> (
+        match name with "array" | "rc" -> true | _ -> false)
     | Tconstr (name, ts) ->
         if
           not
