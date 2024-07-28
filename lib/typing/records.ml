@@ -115,7 +115,7 @@ module Make (C : Core) = struct
 
     let (params, name, labels), labels_expr =
       match repr t with
-      | Tconstr (path, ps) ->
+      | Tconstr (path, ps) as t when not (is_builtin t) ->
           let ls =
             fields_of_record loc path (Some ps) env
             |> Result.get_ok
@@ -242,7 +242,8 @@ module Make (C : Core) = struct
   and get_field env loc expr id =
     let expr = convert env expr in
     match repr expr.typ with
-    | Tconstr (path, ps) as t -> (
+    (* Builtins are also constructors, but are not records *)
+    | Tconstr (path, ps) as t when not (is_builtin t) -> (
         let labels =
           match fields_of_record loc path (Some ps) env with
           | Ok labels -> labels

@@ -159,14 +159,14 @@ let decls () = Option.get !decl_tbl
 
 let rec cln behind_ptr p = function
   | Types.Tvar { contents = Link t } -> cln behind_ptr p t
-  | Tprim Tint -> Tint
-  | Tprim Tbool -> Tbool
-  | Tprim Tunit -> Tunit
-  | Tprim Tu8 -> Tu8
-  | Tprim Tu16 -> Tu16
-  | Tprim Tfloat -> Tfloat
-  | Tprim Ti32 -> Ti32
-  | Tprim Tf32 -> Tf32
+  | Tconstr (Pid "int", _) -> Tint
+  | Tconstr (Pid "bool", _) -> Tbool
+  | Tconstr (Pid "unit", _) -> Tunit
+  | Tconstr (Pid "float", _) -> Tfloat
+  | Tconstr (Pid "u8", _) -> Tu8
+  | Tconstr (Pid "u16", _) -> Tu16
+  | Tconstr (Pid "i32", _) -> Ti32
+  | Tconstr (Pid "f32", _) -> Tf32
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
       Tfun (List.map (cln_param p) params, cln true p ret, cln_kind p kind)

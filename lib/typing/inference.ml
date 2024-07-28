@@ -102,7 +102,6 @@ let rec unify recurs t1 t2 =
         if not (Int.equal li ri) then raise Unify
     | Tfixed_array (li, l), Tfixed_array (ri, r) when li == ri ->
         unify recurs l r
-    | Tprim l, Tprim r when l == r -> ()
     | l, r when l == r -> ()
     | _ -> raise Unify
 
@@ -223,7 +222,6 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
     if l == r then (r, sub, true)
     else
       match (l, r) with
-      | Tprim l, Tprim r' when l == r' -> (r, sub, true)
       | Tvar { contents = Unbound (l, _) }, Tvar { contents = Unbound (rid, _) }
       | Qvar l, Qvar rid
       | Tvar { contents = Unbound (l, _) }, Qvar rid -> (

@@ -11,7 +11,6 @@ module Sset = Set.Make (String)
 open Sexplib0.Sexp_conv
 
 type typ =
-  | Tprim of primitive
   | Tvar of tv ref
   | Qvar of string
   | Tfun of param list * typ * fun_kind
@@ -23,7 +22,6 @@ type typ =
   | Trc of typ
 [@@deriving show { with_path = false }, sexp]
 
-and primitive = Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : dattr }
@@ -56,14 +54,14 @@ and decl_kind =
   | Dalias of typ
 [@@deriving sexp, show]
 
-let tunit = Tprim Tunit
-and tint = Tprim Tint
-and tfloat = Tprim Tfloat
-and ti32 = Tprim Ti32
-and tf32 = Tprim Tf32
-and tbool = Tprim Tbool
-and tu8 = Tprim Tu8
-and tu16 = Tprim Tu16
+let tunit = Tconstr (Path.Pid "unit", [])
+and tint = Tconstr (Path.Pid "int", [])
+and tfloat = Tconstr (Path.Pid "float", [])
+and ti32 = Tconstr (Path.Pid "i32", [])
+and tf32 = Tconstr (Path.Pid "f32", [])
+and tbool = Tconstr (Pid "bool", [])
+and tu8 = Tconstr (Path.Pid "u8", [])
+and tu16 = Tconstr (Path.Pid "u16", [])
 
 let rec repr = function
   (* Do path compression *)
@@ -78,14 +76,6 @@ let pp_to_name name = "'" ^ name
 let string_of_type_raw get_name typ mname =
   let open Printf in
   let rec string_of_type = function
-    | Tprim Tint -> "int"
-    | Tprim Tbool -> "bool"
-    | Tprim Tunit -> "unit"
-    | Tprim Tfloat -> "float"
-    | Tprim Tu8 -> "u8"
-    | Tprim Tu16 -> "u16"
-    | Tprim Ti32 -> "i32"
-    | Tprim Tf32 -> "f32"
     | Tfun (ts, t, _) ->
         let pattr = function
           | Dnorm -> ""
@@ -158,6 +148,22 @@ let string_of_type mname =
      multiple times for different types. This is used in [format_type_err] *)
   fun typ -> string_of_type_raw subst typ mname
 
+let fold_builtins f init =
+  List.fold_left
+    (fun acc -> function
+      | Tconstr (Pid name, params) ->
+          f acc name { params; in_sgn = false; kind = Dabstract None }
+      | _ -> failwith "unreachable")
+    init
+    [ tint; tbool; tunit; tfloat; tu8; tu16; ti32; tf32 ]
+
+let is_builtin = function
+  | Tconstr
+      (Pid ("int" | "bool" | "unit" | "float" | "u8" | "u16" | "i32" | "f32"), _)
+    ->
+      true
+  | _ -> false
+
 let is_polymorphic typ =
   let rec inner acc = function
     | Qvar _ | Tvar { contents = Unbound _ } -> true
@@ -166,7 +172,6 @@ let is_polymorphic typ =
     | Tfun (params, ret, _) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
         inner acc ret
-    | Tprim _ -> acc
     | Traw_ptr t | Tarray t | Trc t -> inner acc t
     | Tfixed_array ({ contents = Unknown _ | Generalized _ }, _) -> true
     | Tfixed_array ({ contents = Known _ }, t) -> inner acc t
@@ -176,7 +181,7 @@ let is_polymorphic typ =
   inner false typ
 
 let rec is_weak ~sub = function
-  | Tprim _ | Qvar _ -> false
+  | Qvar _ -> false
   | Tvar { contents = Link t } | Tarray t | Traw_ptr t | Trc t -> is_weak ~sub t
   | Tvar { contents = Unbound (id, _) } ->
       if Sset.mem id sub then false else true
@@ -263,7 +268,7 @@ let subst_name name ~with_ typ =
         else
           let ps = List.map aux ps in
           Tconstr (n, ps)
-    | (Tprim _ | Qvar _ | Tvar { contents = Unbound _ }) as t -> t
+    | (Qvar _ | Tvar { contents = Unbound _ }) as t -> t
     | Tfun (ps, ret, kind) ->
         let ps = List.map (fun p -> { p with pt = aux p.pt }) ps in
         let kind =
@@ -294,7 +299,6 @@ let rec get_generic_ids = function
       List.fold_left
         (fun l p -> get_generic_ids p.pt @ l)
         (get_generic_ids ret) ps
-  | _ -> []
 
 let typ_of_decl decl name =
   match decl.kind with
@@ -303,7 +307,7 @@ let typ_of_decl decl name =
 
 let resolve_alias find_decl typ =
   let rec aux = function
-    | (Tprim _ | Tvar { contents = Unbound _ } | Qvar _) as t -> t
+    | (Tvar { contents = Unbound _ } | Qvar _) as t -> t
     | Ttuple ts -> Ttuple (List.map aux ts)
     | Tfun (ps, ret, kind) ->
         let ps = List.map (fun p -> { p with pt = aux p.pt }) ps in
@@ -360,7 +364,7 @@ let recursion_allowed ~params name typ =
         in
         let res, ret = aux true res ret in
         (res, Tfun (ps, ret, kind))
-    | (Tprim _ | Qvar _ | Tvar { contents = Unbound _ }) as t -> (res, t)
+    | (Qvar _ | Tvar { contents = Unbound _ }) as t -> (res, t)
     | Tvar ({ contents = Link t } as rf) as tvr ->
         let res, t = aux behind_ptr res t in
         rf := Link t;

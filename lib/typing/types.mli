@@ -3,7 +3,6 @@ module Smap : Map.S with type key = string
 module Sset : Set.S with type elt = string
 
 type typ =
-  | Tprim of primitive
   | Tvar of tv ref
   | Qvar of string
   | Tfun of param list * typ * fun_kind
@@ -15,7 +14,6 @@ type typ =
   | Trc of typ
 [@@deriving show { with_path = false }, sexp]
 
-and primitive = Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : Ast.decl_attr }
@@ -61,6 +59,10 @@ val repr : typ -> typ
 val string_of_type : Path.t -> typ -> string
 (** Normal version, will name type vars starting from 'a *)
 
+val fold_builtins : ('a -> string -> type_decl -> 'a) -> 'a -> 'a
+(** Fold over all special builtin types to add them to the typing env *)
+
+val is_builtin : typ -> bool
 val is_polymorphic : typ -> bool
 val is_weak : sub:Sset.t -> typ -> bool
 val mut_of_pattr : Ast.decl_attr -> bool

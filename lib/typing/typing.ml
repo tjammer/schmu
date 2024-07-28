@@ -159,15 +159,15 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
 
   let rec concrete_type in_list env = function
-    | Ast.Ty_id "int" -> tint
-    | Ty_id "bool" -> tbool
-    | Ty_id "unit" -> tunit
-    | Ty_id "u8" -> Tprim Tu8
-    | Ty_id "u16" -> Tprim Tu16
-    | Ty_id "float" -> tfloat
-    | Ty_id "i32" -> ti32
-    | Ty_id "f32" -> tf32
-    | Ty_id "array" ->
+    (* | Ast.Ty_id "int" -> tint *)
+    (* | Ty_id "bool" -> tbool *)
+    (* | Ty_id "unit" -> tunit *)
+    (* | Ty_id "u8" -> Tprim Tu8 *)
+    (* | Ast.Ty_id "u16" -> Tprim Tu16 *)
+    (* | Ty_id "float" -> tfloat *)
+    (* | Ast.Ty_id "i32" -> ti32 *)
+    | Ast.Ty_id "f32" -> tf32
+    | Ast.Ty_id "array" ->
         if not in_list then
           raise (Error (loc, "Type array expects 1 type parameter"));
         Tarray (Qvar "o")
@@ -589,8 +589,8 @@ end = struct
     | Ast.Var (loc, id) -> convert_var env loc (Path.Pid id)
     | Lit (loc, Int i) -> convert_simple_lit loc tint (Int i)
     | Lit (loc, Bool b) -> convert_simple_lit loc tbool (Bool b)
-    | Lit (loc, U8 c) -> convert_simple_lit loc (Tprim Tu8) (U8 c)
-    | Lit (loc, U16 s) -> convert_simple_lit loc (Tprim Tu16) (U16 s)
+    | Lit (loc, U8 c) -> convert_simple_lit loc tu8 (U8 c)
+    | Lit (loc, U16 s) -> convert_simple_lit loc tu16 (U16 s)
     | Lit (loc, Float f) -> convert_simple_lit loc tfloat (Float f)
     | Lit (loc, I32 i) -> convert_simple_lit loc ti32 (I32 i)
     | Lit (loc, F32 i) -> convert_simple_lit loc tf32 (F32 i)
@@ -1158,11 +1158,12 @@ end = struct
       let e = convert env expr in
       match (e.expr, repr e.typ) with
       | Const (String s), _ -> Fstr s
-      | _, Tarray (Tprim Tu8) -> Fexpr e
+      | _, Tarray (Tconstr (Pid "u8", _)) -> Fexpr e
       | _, Tconstr (p, [])
         when Path.equal p (Path.Pmod ("string", Path.Pid "t")) ->
           Fexpr e
-      | _, Tprim (Tint | Tfloat | Tbool | Tu8 | Ti32 | Tf32) -> Fexpr e
+      | _, Tconstr (Pid ("int" | "bool" | "float" | "u8" | "i32" | "f32"), _) ->
+          Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)
       | _, Tarray (Tvar { contents = Unbound _ }) ->
@@ -1576,7 +1577,7 @@ let rec convert_module env loc mname sign prog check_ret =
   (* Program must evaluate to either int or unit *)
   (if check_ret then
      match repr last_type with
-     | Tprim (Tunit | Tint) -> ()
+     | Tconstr (Pid ("int" | "unit"), _) -> ()
      | _ ->
          let msg =
            "Module must return type int or unit, not "
@@ -1927,6 +1928,12 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   let scope_of_located = Module.scope_of_located in
 
   let env =
+    fold_builtins
+      (fun env name decl -> Env.add_type ~append_module:false name decl env)
+      (Env.empty ~find_module ~scope_of_located mname)
+  in
+
+  let env =
     Builtin.(
       fold (fun str (_, typ) env ->
           enter_level ();
@@ -1936,7 +1943,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
             add_value str
               { (def_value env) with typ = generalize typ; mname = None }
               loc env)))
-      (Env.empty ~find_module ~scope_of_located mname)
+      env
   in
 
   (* Use prelude *)

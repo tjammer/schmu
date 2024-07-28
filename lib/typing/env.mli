@@ -62,7 +62,7 @@ val change_type : key -> typ -> t -> t
 val mark_unused : key -> t -> bool
 (** Returns if the value was used. To not mark internal recursive calls as used *)
 
-val add_type : string -> type_decl -> t -> t
+val add_type : ?append_module:bool -> string -> type_decl -> t -> t
 val add_module : key:string -> cached_module -> t -> t
 val add_module_alias : Ast.loc -> key:string -> mname:Path.t -> t -> t
 val add_module_type : string -> Module_type.t -> t -> t

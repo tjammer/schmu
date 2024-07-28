@@ -41,6 +41,7 @@ let only_hd = function
   | Pmod _ -> raise (Invalid_argument "not a local binding")
 
 let rec get_hd = function Pid s -> s | Pmod (_, p) -> get_hd p
+let is_head_only = function Pid _ -> true | Pmod _ -> false
 
 let rec rm_name modpath to_rm =
   match (modpath, to_rm) with

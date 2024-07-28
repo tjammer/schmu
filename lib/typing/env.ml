@@ -130,7 +130,7 @@ type unused = (Path.t * warn_kind * Ast.loc) list
 
 let def_value env =
   {
-    typ = Tprim Tunit;
+    typ = tunit;
     param = false;
     const = false;
     global = false;
@@ -140,7 +140,7 @@ let def_value env =
 
 let def_mname mname =
   {
-    typ = Tprim Tunit;
+    typ = tunit;
     param = false;
     const = false;
     global = false;
@@ -767,7 +767,7 @@ let add_alias alias in_sgn ~params typ env =
   Hashtbl.add env.decl_tbl abs_name decl;
   { env with values = { scope with types } :: tl }
 
-let add_type name decl env =
+let add_type ?(append_module = true) name decl env =
   match Types.(decl.kind) with
   | Drecord labels ->
       add_record name decl.in_sgn ~params:decl.params ~labels env
@@ -776,7 +776,9 @@ let add_type name decl env =
   | Dalias typ -> add_alias name decl.in_sgn ~params:decl.params typ env
   | Dabstract _ ->
       let scope, tl = decap_exn env in
-      let abs_name = Path.append name env.modpath in
+      let abs_name =
+        if append_module then Path.append name env.modpath else Path.Pid name
+      in
       let types = Map.add name (decl, abs_name) scope.types in
       Hashtbl.add env.decl_tbl abs_name decl;
       { env with values = { scope with types } :: tl }

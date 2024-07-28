@@ -15,6 +15,7 @@ module Contains_allocation = struct
         List.fold_left
           (fun ca t -> ca || contains_allocation get_decl t)
           false ts
+    | t when is_builtin t -> false
     | Tconstr (name, ts) ->
         if
           not
@@ -55,7 +56,6 @@ module Contains_allocation = struct
           in
           check_decl decl.kind
         else true
-    | Tprim _ -> false
     | Qvar _ | Tvar { contents = Unbound _ } ->
         (* We don't know yet *)
         true

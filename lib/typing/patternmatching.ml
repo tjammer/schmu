@@ -110,7 +110,7 @@ let lor_clike_hack env loc name annot =
   match annot with
   | Some variant -> (
       match repr variant with
-      | Tprim Tint -> (
+      | Tconstr (Path.Pid "int", _) -> (
           match get_ctor env loc name with
           | Some (_, clike, ctor) ->
               if clike then
@@ -126,7 +126,8 @@ let get_variant env loc (_, name) annot =
   match annot with
   | Some variant -> (
       match repr variant with
-      | Tconstr (path, params) ->
+      (* Builtins are also constructors, but are not variants *)
+      | Tconstr (path, params) as t when not (is_builtin t) ->
           let ctors =
             ctors_of_variant loc path (Some params) env |> Result.get_ok
           in
@@ -895,8 +896,8 @@ module Make (C : Core) (R : Recs) = struct
     | Plit_char (loc, c) ->
         unify
           (loc, "Char pattern has unexpected type:")
-          (path_typ loc env path) (Tprim Tu8) env;
-        [ (path, { ptyp = Tprim Tu8; pat = Tp_char (loc, c) }) ]
+          (path_typ loc env path) tu8 env;
+        [ (path, { ptyp = tu8; pat = Tp_char (loc, c) }) ]
     | Por (_, pats) ->
         (* Don't add to pattern *)
         let pats = List.map (fun p -> type_pattern env (path, p)) pats in
@@ -1095,7 +1096,7 @@ module Make (C : Core) (R : Recs) = struct
               | b ->
                   let cind =
                     let attr = { no_attr with const = true } in
-                    { typ = Tprim Tu8; expr = Const (U8 c); attr; loc }
+                    { typ = tu8; expr = Const (U8 c); attr; loc }
                   in
                   (* i64 and u8 equal compare call the same llvm functions *)
                   let cmp = gen_cmp loc (expr path) cind in

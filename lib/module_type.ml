@@ -31,7 +31,7 @@ let apply_pathsub ~base ~with_ typ =
     | Trc t -> Trc (aux t)
     | Tfixed_array (iv, t) -> Tfixed_array (iv, aux t)
     | Tvar { contents = Link t } -> aux t
-    | (Tvar { contents = Unbound _ } | Qvar _ | Tprim _) as t -> t
+    | (Tvar { contents = Unbound _ } | Qvar _) as t -> t
   in
   aux typ
 
