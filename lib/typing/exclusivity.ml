@@ -7,8 +7,7 @@ open Error
    binding-kind after the fact.*)
 
 module Contains_allocation = struct
-  let rec contains_allocation (get_decl : Path.t -> type_decl * Path.t) =
-    function
+  let rec contains_allocation (get_decl : Path.t -> type_decl) = function
     | Tvar { contents = Link t } -> contains_allocation get_decl t
     | Ttuple ts ->
         List.fold_left
@@ -24,7 +23,7 @@ module Contains_allocation = struct
                false ts)
         then
           (* Unparameterized types can also contain allocations *)
-          let decl = get_decl name |> fst in
+          let decl = get_decl name in
           let sub = map_params ~inst:ts ~params:decl.params in
           let rec check_decl decl_kind =
             match decl_kind with
