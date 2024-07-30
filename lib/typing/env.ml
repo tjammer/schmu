@@ -663,7 +663,12 @@ let find_type_opt loc key env =
     ~found:(fun _ f -> f)
     loc key env
 
-let find_type loc key env = find_type_opt loc key env |> Option.get
+let find_type loc key env =
+  match find_type_opt loc key env with
+  | Some decl -> decl
+  | None ->
+      print_endline (Path.show key);
+      failwith "Internal Error: Could not find decl"
 
 let find_type_same_module key env =
   (* Similar to [find_type_opt] but when we reach a Sfunc scope and haven't found

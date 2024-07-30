@@ -1,11 +1,13 @@
 signature:
   type t = int
+  type use_hidden_type
   type abstr
 
   val t : int
   val ext : (string/cstr, int) -> unit
   val int : (int) -> unit
   val poly_int : ('a) -> 'a
+  val create_use_hidden : () -> use_hidden_type
 
 external ext : (string/cstr, int) -> unit = "printf"
 
@@ -22,3 +24,8 @@ fun hidden(a):
 
 type hidden_type = int
 type abstr = int
+
+type another_hidden_type = { a : int }
+type use_hidden_type = { hidden : another_hidden_type }
+
+fun create_use_hidden (): { hidden = { a = 12 } }

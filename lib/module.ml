@@ -336,17 +336,30 @@ let rec add_to_env env foreign (mname, m) =
           | Mmodule_type (_, name, intf) -> Env.add_module_type name intf env)
         env m.i
   | l ->
-      List.fold_left
-        (fun env (name, loc, kind) ->
-          match kind with
-          (* Not in the signature of the module we add it to *)
-          | Mtypedef decl -> Env.add_type name decl env
-          | Mvalue (typ, cn) -> (
-              Env.(add_value name { def_val with typ } loc env) |> fun env ->
-              match cn with
-              | None -> env
-              | Some cn -> Env.add_callname ~key:name cn env))
-        env l
+      let env =
+        List.fold_left
+          (fun env (name, loc, kind) ->
+            match kind with
+            (* Not in the signature of the module we add it to *)
+            | Mtypedef decl -> Env.add_type name decl env
+            | Mvalue (typ, cn) -> (
+                Env.(add_value name { def_val with typ } loc env) |> fun env ->
+                match cn with
+                | None -> env
+                | Some cn -> Env.add_callname ~key:name cn env))
+          env l
+      in
+      List.iter
+        (function
+          (* Add hidden types to the env so they are readable later on *)
+          | Mtype (_, name, decl) ->
+              let tbl = Env.decl_tbl env and name = Path.append name mname in
+              if not (Hashtbl.mem tbl name) then
+                (* Add decl to table *)
+                Hashtbl.add tbl name decl
+          | _ -> ())
+        m.i;
+      env
 
 and make_scope env loc foreign mname m =
   let env = Env.open_module_scope env loc mname in
