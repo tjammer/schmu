@@ -632,12 +632,22 @@ Distinguish closures and functions
 
 Test signature
   $ schmu -m sign.smu
-  sign.smu:20.5-11: warning: Unused binding hidden.
+  sign.smu:22.5-11: warning: Unused binding hidden.
   
-  20 | fun hidden(a):
+  22 | fun hidden(a):
            ^^^^^^
   
   $ schmu use-sign.smu
+  use-sign.smu:19.5-15: warning: Unused binding use_hidden.
+  
+  19 | fun use_hidden ():
+           ^^^^^^^^^^
+  
+  use-sign.smu:19.5-15: warning: Unused binding use_hidden.
+  
+  19 | fun use_hidden ():
+           ^^^^^^^^^^
+  
   $ ./use-sign
   hello 20
   200
