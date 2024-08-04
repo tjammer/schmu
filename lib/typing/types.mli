@@ -77,4 +77,7 @@ val typ_of_decl : type_decl -> Path.t -> typ
 val resolve_alias : (Path.t -> (type_decl * Path.t) option) -> typ -> typ
 
 val recursion_allowed :
-  params:typ list -> Path.t -> typ -> (typ option, string) result
+  params:typ list ->
+  Path.t ->
+  typ ->
+  ((typ * bool (* includes base case *)) option, string) result

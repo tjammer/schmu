@@ -356,7 +356,9 @@ let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
           let typ = typeof_annot ~typedef:true temp_env loc type_expr in
           let ftyp =
             match recursion_allowed ~params absolute_path typ with
-            | Ok (Some typ) ->
+            | Ok (Some (typ, has_base)) ->
+                if not has_base then
+                  raise (Error (loc, "Recursive type has no base case"));
                 recurs := true;
                 typ
             | Ok None -> typ
@@ -445,7 +447,8 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
             let typ = typeof_annot ~typedef:true temp_env loc annot in
             let typ =
               match recursion_allowed ~params absolute_path typ with
-              | Ok (Some typ) ->
+              | Ok (Some (typ, hasbase)) ->
+                  if hasbase then has_base := true;
                   recurs := true;
                   typ
               | Ok None ->

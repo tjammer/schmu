@@ -314,37 +314,67 @@ let resolve_alias find_decl typ =
   in
   aux typ
 
+type recurs_state = { recurs : bool; has_base : bool }
+
+let combine a b =
+  (* Something is recursive if one branch is recursive. If both branches are
+     recursive, both must have a base for the whole recursion to have a base. *)
+  match (a, b) with
+  | Ok a, Ok b ->
+      Ok
+        (match (a, b) with
+        | { recurs = true; _ }, { recurs = false; _ } -> a
+        | { recurs = false; _ }, { recurs = true; _ } -> b
+        | { recurs = true; has_base = ab }, { recurs = true; has_base = bb } ->
+            { recurs = true; has_base = ab && bb }
+        | { recurs = false; _ }, { recurs = false; _ } ->
+            { recurs = false; has_base = false })
+  | Error _, _ -> a
+  | _, Error _ -> b
+
 let recursion_allowed ~params name typ =
   let rec aux behind_ptr res = function
     | Ttuple ts ->
-        let res, ts =
+        let nres, ts =
           List.fold_left_map (fun res t -> aux behind_ptr res t) res ts
         in
-        (res, Ttuple ts)
+        (combine nres res, Ttuple ts)
     | Tfun (ps, ret, kind) ->
-        let res, ps =
+        let nres, ps =
           List.fold_left_map
             (fun res p ->
-              let res, pt = aux true res p.pt in
-              (res, { p with pt }))
+              let res =
+                Result.map (fun st -> { st with has_base = true }) res
+              in
+              let nres, pt = aux true res p.pt in
+              (combine nres res, { p with pt }))
             res ps
         in
-        let res, ret = aux true res ret in
-        (res, Tfun (ps, ret, kind))
+        let mres, ret = aux true res ret in
+        (combine nres res |> combine mres, Tfun (ps, ret, kind))
     | (Qvar _ | Tvar { contents = Unbound _ }) as t -> (res, t)
     | Tvar ({ contents = Link t } as rf) as tvr ->
-        let res, t = aux behind_ptr res t in
+        let nres, t = aux behind_ptr res t in
         rf := Link t;
-        (res, tvr)
+        (combine nres res, tvr)
     | Tfixed_array (sz, t) ->
-        let res, t = aux behind_ptr res t in
-        (res, Tfixed_array (sz, t))
-    | Tconstr ((Pid ("array" | "raw_ptr" | "rc") as name), [ t ]) ->
-        let res, t = aux true res t in
-        (res, Tconstr (name, [ t ]))
+        let nres, t = aux behind_ptr res t in
+        (combine nres res, Tfixed_array (sz, t))
+    | Tconstr ((Pid ("array" | "raw_ptr") as name), [ t ]) ->
+        let nres, t =
+          aux true (Result.map (fun st -> { st with has_base = true }) res) t
+        in
+        (combine nres res, Tconstr (name, [ t ]))
+    | Tconstr ((Pid "rc" as name), [ t ]) ->
+        let nres, t = aux true res t in
+        (combine nres res, Tconstr (name, [ t ]))
     | Tconstr (n, ps) as t ->
         if Path.equal n name then
-          if behind_ptr then (Ok true, Tconstr (n, params))
+          if behind_ptr then
+            ( (match res with
+              | Ok { has_base; _ } -> Ok { has_base; recurs = true }
+              | Error _ as err -> err),
+              Tconstr (n, params) )
           else (Error "Infinite type", t)
         else
           let res, ps =
@@ -352,8 +382,8 @@ let recursion_allowed ~params name typ =
           in
           (res, Tconstr (n, ps))
   in
-  let res, typ = aux false (Ok false) typ in
+  let res, typ = aux false (Ok { recurs = false; has_base = false }) typ in
   match res with
-  | Ok true -> Ok (Some typ)
-  | Ok false -> Ok None
+  | Ok { recurs = true; has_base } -> Ok (Some (typ, has_base))
+  | Ok { recurs = false; _ } -> Ok None
   | Error _ as err -> err
