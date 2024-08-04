@@ -1303,6 +1303,13 @@ let test_rec_type_nobase () =
   test_exn "Recursive type has no base case"
     "type list('a) = #cons('a, rc(list))"
 
+let test_rec_type_record_param () =
+  test "unit"
+    {|type container('a) = { a : 'a }
+type option('a) = #none | #some('a)
+type data('a) = { cb : 'a }
+type state = { data : container(data(option((state&) -> unit))) }|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1768,10 +1775,11 @@ do:
         ] );
       ( "recursive types",
         [
-          case "type pos" test_rec_type_pos;
-          case "type pos array" test_rec_type_pos_array;
-          case "type noptr" test_rec_type_noptr;
-          case "type noptr fixed array" test_rec_type_noptr_array;
-          case "type nobase" test_rec_type_nobase;
+          case "pos" test_rec_type_pos;
+          case "pos array" test_rec_type_pos_array;
+          case "noptr" test_rec_type_noptr;
+          case "noptr fixed array" test_rec_type_noptr_array;
+          case "nobase" test_rec_type_nobase;
+          case "record param" test_rec_type_record_param;
         ] );
     ]

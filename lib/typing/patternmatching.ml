@@ -348,7 +348,7 @@ module Exhaustiveness = struct
         | Some (decl, _) -> (
             let sub = map_params ~inst ~params:decl.params in
             match decl.kind with
-            | Drecord fields ->
+            | Drecord (_, fields) ->
                 Record
                   (Array.to_list fields
                   |> List.map (fun f ->

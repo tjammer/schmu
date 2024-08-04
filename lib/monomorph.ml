@@ -135,7 +135,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           sprintf "%sr%s%s_"
             (String.concat "" (List.map (fun p -> aux p.pt) ps))
             (aux r) k
-      | Tvariant (ps, (Rec_folded | Rec_top _), name) ->
+      | Tvariant (ps, (Rec_folded | Rec_top _), name)
+      | Trecord (ps, (Rec_folded | Rec_top _), Some name) ->
           (* Treating recursive types nominally makes them easier to handle *)
           sprintf "%s%s_" name (String.concat "" (List.map aux ps))
       | Tvariant (_, Rec_not ctors, _) -> (
@@ -146,7 +147,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           match ctors with
           | [] -> (* C-like enum, which is represented as int32 *) aux Ti32
           | l -> sprintf "v%s_" (String.concat "" l))
-      | Trecord (_, _, fs) ->
+      | Trecord (_, (Rec_folded | Rec_top _), None) -> failwith "unreachable"
+      | Trecord (_, Rec_not fs, _) ->
           (Array.to_list fs
           |> List.map (fun f -> aux f.ftyp)
           |> String.concat "")
@@ -225,10 +227,10 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               with Invalid_argument _ ->
                 failwith "Internal Error: param count does not match")
           | _ -> name ^ "_")
-      | Trecord (ps, Some n, _) | Tvariant (ps, _, n) ->
+      | Trecord (ps, _, Some n) | Tvariant (ps, _, n) ->
           sprintf "%s%s_" n
             (String.concat "" (List.map (structural_name ~closure) ps))
-      | Trecord (_, None, _) as t -> structural_name ~closure t
+      | Trecord (_, _, None) as t -> structural_name ~closure t
       | Traw_ptr t ->
           sprintf "p%s_"
             (match poly with
@@ -301,7 +303,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                 failwith "Internal Error: Unexpected Simple-Closure combination"
           in
           (subst, Tfun (ps, r, kind))
-      | (Trecord (i, record, l1) as l), Trecord (j, _, l2)
+      | ( (Trecord (i, ((Rec_not l1 | Rec_top l1) as kind), record) as l),
+          Trecord (j, (Rec_not l2 | Rec_top l2), _) )
         when is_type_polymorphic l ->
           let labels = Array.copy l1 in
           let f (subst, i) (label : Cleaned_types.field) =
@@ -315,7 +318,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               (fun subst (l, r) -> inner subst (l, r))
               subst (List.combine i j)
           in
-          (subst, Trecord (ps, record, labels))
+          let kind =
+            match kind with
+            | Rec_not _ -> Rec_not labels
+            | Rec_top _ -> Rec_top labels
+            | Rec_folded -> failwith "unreachable"
+          in
+
+          (subst, Trecord (ps, kind, record))
       | ( (Tvariant (i, ((Rec_not l1 | Rec_top l1) as kind), variant) as l),
           Tvariant (j, (Rec_not l2 | Rec_top l2), _) )
         when is_type_polymorphic l ->
@@ -378,11 +388,21 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let ps = List.map (fun p -> { p with pt = subst p.pt }) ps in
           let kind = subst_kind subst kind in
           Tfun (ps, subst r, kind)
-      | Trecord (ps, record, labels) as t when is_type_polymorphic t ->
+      | Trecord (ps, Rec_folded, record) as t when is_type_polymorphic t ->
+          let ps = List.map subst ps in
+          Trecord (ps, Rec_folded, record)
+      | Trecord (ps, ((Rec_not fields | Rec_top fields) as recurs), record) as t
+        when is_type_polymorphic t ->
           let ps = List.map subst ps in
           let f field = Cleaned_types.{ field with ftyp = subst field.ftyp } in
-          let labels = Array.map f labels in
-          Trecord (ps, record, labels)
+          let fields = Array.map f fields in
+          let recurs =
+            match recurs with
+            | Rec_top _ -> Rec_top fields
+            | Rec_not _ -> Rec_not fields
+            | _ -> failwith "unreachable"
+          in
+          Trecord (ps, recurs, record)
       | Tvariant (ps, Rec_folded, variant) as t when is_type_polymorphic t ->
           let ps = List.map subst ps in
           Tvariant (ps, Rec_folded, variant)

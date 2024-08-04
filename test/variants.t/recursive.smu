@@ -9,3 +9,11 @@ type list('a) = #nil | #cons('a, option(rc(list)))
 let _ = rc/create(!#cons(1, #none))
 let fst = rc/create(!#cons(1, #some(rc/create(!#nil))))
 let _ = #cons(0, #some(fst.copy()))
+
+-- recursive record
+type container('a) = { a : 'a }
+type data('a) = { cb : 'a }
+type state = { data : container(data(option((state&) -> unit)))}
+
+-- this stack overflows
+let _ = { data = {a = {cb = #some(fun(state&): ignore(state))}} }

@@ -43,10 +43,11 @@ and closed = {
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
 
 type type_decl = { params : typ list; kind : decl_kind; in_sgn : bool }
+and recursive = bool
 
 and decl_kind =
-  | Drecord of field array
-  | Dvariant of bool * ctor array
+  | Drecord of recursive * field array
+  | Dvariant of recursive * ctor array
   | Dabstract of decl_kind option
   | Dalias of typ
 [@@deriving sexp, show]

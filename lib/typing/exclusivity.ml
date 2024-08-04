@@ -27,7 +27,7 @@ module Contains_allocation = struct
           let sub = map_params ~inst:ts ~params:decl.params in
           let rec check_decl decl_kind =
             match decl_kind with
-            | Drecord fs ->
+            | Drecord (_, fs) ->
                 Array.fold_left
                   (fun (ca, sub) f ->
                     let sub, typ = Inference.instantiate_sub sub f.ftyp in

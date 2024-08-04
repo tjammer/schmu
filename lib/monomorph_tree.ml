@@ -169,7 +169,7 @@ let rec cln behind_ptr p = function
   | Tconstr (Pid "f32", _) -> Tf32
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
-      Tfun (List.map (cln_param p) params, cln true p ret, cln_kind p kind)
+      Tfun (List.map (cln_param true p) params, cln true p ret, cln_kind p kind)
   | Tconstr (Pid "raw_ptr", [ t ]) -> Traw_ptr (cln true p t)
   | Tconstr (Pid "array", [ t ]) -> Tarray (cln true p t)
   | Tconstr (Pid "rc", [ t ]) -> Trc (cln true p t)
@@ -190,9 +190,10 @@ let rec cln behind_ptr p = function
   | Ttuple ts ->
       Trecord
         ( [],
-          None,
-          List.map (fun t -> { ftyp = cln behind_ptr p t; mut = false }) ts
-          |> Array.of_list )
+          Rec_not
+            (List.map (fun t -> { ftyp = cln behind_ptr p t; mut = false }) ts
+            |> Array.of_list),
+          None )
   | Tconstr (name, ps) -> (
       let open Types in
       (* Map params to and insert correct types *)
@@ -203,23 +204,30 @@ let rec cln behind_ptr p = function
           let nname = Path.type_name name in
 
           let rec cln_dkind = function
-            | Drecord fields ->
-                let _, fields =
-                  Array.fold_left_map
-                    (fun sub f ->
-                      let sub, typ = Inference.instantiate_sub sub f.ftyp in
-                      ( sub,
-                        Cleaned_types.
-                          { ftyp = cln behind_ptr p typ; mut = f.mut } ))
-                    sub fields
+            | Drecord (recurs, fields) -> (
+                let skip =
+                  if recurs && behind_ptr then
+                    Some (Trecord (ps, Rec_folded, Some nname))
+                  else None
                 in
-                Trecord (ps, Some nname, fields)
+                match skip with
+                | Some typ -> typ
+                | None ->
+                    let _, fields =
+                      Array.fold_left_map
+                        (fun sub f ->
+                          let sub, typ = Inference.instantiate_sub sub f.ftyp in
+                          ( sub,
+                            Cleaned_types.
+                              { ftyp = cln behind_ptr p typ; mut = f.mut } ))
+                        sub fields
+                    in
+                    Trecord (ps, Rec_not fields, Some nname))
             | Dvariant (recurs, cts) -> (
                 (* If the variant is behind a ptr, we fold it *)
                 let skip =
-                  if recurs then
-                    if behind_ptr then Some (Tvariant (ps, Rec_folded, nname))
-                    else None
+                  if recurs && behind_ptr then
+                    Some (Tvariant (ps, Rec_folded, nname))
                   else None
                 in
                 match skip with
@@ -284,8 +292,8 @@ and cln_kind p = function
       in
       Closure vals
 
-and cln_param param p =
-  let pt = cln true param Types.(p.pt) in
+and cln_param behind_ptr param p =
+  let pt = cln behind_ptr param Types.(p.pt) in
   let pmut, pmoved =
     match p.pattr with
     | Dset | Dmut -> (true, false)
@@ -294,7 +302,16 @@ and cln_param param p =
   in
   { pt; pmut; pmoved }
 
-let cln p typ = cln false p typ
+let rec cln_fun param = function
+  | Types.Tvar { contents = Link t } -> cln_fun param t
+  | Types.(Tfun (ps, ret, kind)) ->
+      let ps = List.map (fun p -> cln_param false param p) ps in
+      let ret = cln false param ret in
+      let kind = cln_kind param kind in
+      Tfun (ps, ret, kind)
+  | typ -> cln false param typ
+
+let cln p typ = cln_fun p typ
 
 (* State *)
 
@@ -930,7 +947,7 @@ and prep_func p (usrname, uniq, abs) =
 
     let func =
       {
-        params = List.map (cln_param p) abs.func.tparams;
+        params = List.map (cln_param false p) abs.func.tparams;
         ret = cln p abs.func.ret;
         kind;
       }
@@ -1051,7 +1068,7 @@ and morph_lambda mk typ p id abs =
     let recursive = Rnone in
     let func =
       {
-        params = List.map (cln_param p) abs.func.tparams;
+        params = List.map (cln_param false p) abs.func.tparams;
         ret = cln p abs.func.ret;
         kind;
       }

@@ -63,7 +63,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       if Pset.is_empty frees then (false, frees)
       else
         match typ with
-        | Trecord (_, _, fs) ->
+        | Trecord (_, (Rec_not fs | Rec_top fs), _) ->
             let _, excluded, pset =
               Array.fold_left
                 (fun (i, exh, pset) f ->

@@ -62,7 +62,7 @@ module Make (A : Abi_intf.S) = struct
     |> Array.of_list |> Llvm.struct_type context
 
   and typeof_closure agg =
-    Trecord ([], None, prepend_closure_env agg |> Array.of_list)
+    Trecord ([], Rec_not (prepend_closure_env agg |> Array.of_list), None)
 
   and typeof_funclike = function
     (* Returns a LLVM function type to use far calling a closure *)
@@ -127,10 +127,11 @@ module Make (A : Abi_intf.S) = struct
     (ft, !byvals, !noaliases)
 
   and to_named_typedefs name = function
-    | Trecord (_, _, labels) ->
+    | Trecord (_, Rec_folded, _) -> failwith "unreachable"
+    | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
         let t = Llvm.named_struct_type context name in
         let lltyp =
-          Array.to_list labels
+          Array.to_list fields
           |> List.map (fun (f : field) -> f.ftyp)
           |> typeof_aggregate |> Llvm.struct_element_types
         in

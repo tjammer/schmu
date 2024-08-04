@@ -445,6 +445,7 @@ end = struct
       List.fold_left
         (fun args (oarg, _) ->
           let arg' = gen_expr param Monomorph_tree.(oarg.ex) in
+          let arg' = { arg' with typ = Monomorph_tree.(oarg.ex.typ) } in
 
           (* In case the record passed is constant, we allocate it here to pass
              a pointer. This isn't pretty, but will do for now. For the single
@@ -1155,7 +1156,9 @@ end = struct
 
   and gen_field param expr index =
     let value = gen_expr param expr in
-    follow_field value index
+    (* This expression has the correct, unfolded type. This is somehow lost when
+       we generate the expression. *)
+    follow_field { value with typ = expr.typ } index
 
   and gen_set param expr valexpr moved =
     let ptr = gen_expr param expr in

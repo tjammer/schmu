@@ -9,8 +9,8 @@ type typ =
   | Tf32
   | Tpoly of string
   | Tfun of param list * typ * fun_kind
-  | Trecord of typ list * string option * field array
-  | Tvariant of typ list * recurs_kind * string
+  | Trecord of typ list * field recurs_kind * string option
+  | Tvariant of typ list * ctor recurs_kind * string
   | Traw_ptr of typ
   | Tarray of typ
   | Tfixed_array of int * typ
@@ -21,7 +21,7 @@ and fun_kind = Simple | Closure of closed list
 and param = { pt : typ; pmut : bool; pmoved : bool }
 and field = { ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
-and recurs_kind = Rec_not of ctor array | Rec_top of ctor array | Rec_folded
+and 'a recurs_kind = Rec_not of 'a array | Rec_top of 'a array | Rec_folded
 
 and closed = {
   clname : string;

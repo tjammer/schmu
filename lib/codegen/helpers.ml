@@ -795,7 +795,9 @@ struct
 
     let typ, index =
       match value.typ with
-      | Trecord (_, _, fields) -> (fields.(index).ftyp, find_real_index fields)
+      | Trecord (_, Rec_folded, _) -> failwith "unreachable"
+      | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
+          (fields.(index).ftyp, find_real_index fields)
       | _ ->
           print_endline (show_typ value.typ);
           failwith "Internal Error: No record in fields"

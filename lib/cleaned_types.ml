@@ -9,8 +9,8 @@ type typ =
   | Tf32
   | Tpoly of string
   | Tfun of param list * typ * fun_kind
-  | Trecord of typ list * string option * field array
-  | Tvariant of typ list * recurs_kind * string
+  | Trecord of typ list * field recurs_kind * string option
+  | Tvariant of typ list * ctor recurs_kind * string
   | Traw_ptr of typ
   | Tarray of typ
   | Tfixed_array of int * typ
@@ -21,7 +21,7 @@ and fun_kind = Simple | Closure of closed list
 and param = { pt : typ; pmut : bool; pmoved : bool }
 and field = { ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
-and recurs_kind = Rec_not of ctor array | Rec_top of ctor array | Rec_folded
+and 'a recurs_kind = Rec_not of 'a array | Rec_top of 'a array | Rec_folded
 
 and closed = {
   clname : string;
@@ -34,7 +34,7 @@ and closed = {
 let is_type_polymorphic typ =
   let rec inner acc = function
     | Tpoly _ -> true
-    | Trecord (_, None, fs) ->
+    | Trecord (_, Rec_not fs, None) ->
         Array.fold_left (fun acc f -> inner acc f.ftyp) acc fs
     | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
     | Tfun (params, ret, kind) ->
@@ -70,10 +70,11 @@ let rec string_of_type = function
       in
       Printf.sprintf "(fun %s %s)" ps (string_of_type t)
   | Tpoly str -> str
-  | Trecord (_, None, fs) ->
+  | Trecord (_, Rec_not fs, None) ->
       let lst = Array.to_list fs |> List.map (fun f -> string_of_type f.ftyp) in
       Printf.sprintf "{%s}" (String.concat " " lst)
-  | Trecord (ps, Some str, _) | Tvariant (ps, _, str) -> (
+  | Trecord (_, _, None) -> failwith "unreachable"
+  | Trecord (ps, _, Some str) | Tvariant (ps, _, str) -> (
       match ps with
       | [] -> str
       | l ->
@@ -99,9 +100,10 @@ let is_aggregate = function
 let rec contains_allocation = function
   | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 -> false
   | Tpoly _ | Tfun _ -> true
-  | Trecord (_, _, fs) ->
+  | Trecord (_, Rec_not fs, _) ->
       Array.fold_left (fun ca f -> ca || contains_allocation f.ftyp) false fs
-  | Tvariant (_, (Rec_folded | Rec_top _), _) ->
+  | Tvariant (_, (Rec_folded | Rec_top _), _)
+  | Trecord (_, (Rec_folded | Rec_top _), _) ->
       (* If the type is recursive there must be pointers involved, thus allocations *)
       true
   | Tvariant (_, Rec_not ctors, _) ->
@@ -113,4 +115,6 @@ let rec contains_allocation = function
   | Tarray _ | Trc _ -> true
   | Tfixed_array (_, t) -> contains_allocation t
 
-let is_folded = function Tvariant (_, Rec_folded, _) -> true | _ -> false
+let is_folded = function
+  | Tvariant (_, Rec_folded, _) | Trecord (_, Rec_folded, _) -> true
+  | _ -> false

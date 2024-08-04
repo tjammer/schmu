@@ -70,7 +70,8 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
         | None, _ -> Boxed
     in
     match typ with
-    | Trecord (_, _, fields) when not mut ->
+    | Trecord (_, Rec_folded, _) when not mut -> failwith "unreachable"
+    | Trecord (_, (Rec_not fields | Rec_top fields), _) when not mut ->
         let types =
           Array.map (fun (field : Cleaned_types.field) -> field.ftyp) fields
           |> Array.to_list
@@ -123,7 +124,9 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
     | Two_params (a, b) ->
         (* We need a tuple here *)
         Trecord
-          ([], Some "param_tup", [| anon_field_of_typ a; anon_field_of_typ b |])
+          ( [],
+            Rec_not [| anon_field_of_typ a; anon_field_of_typ b |],
+            Some "param_tup" )
 
   let box_record typ ~size ?(alloc = None) ~snd_val value =
     ignore typ;
@@ -165,7 +168,8 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
         else
           let is_signed =
             match value.typ with
-            | Trecord (_, _, fields) -> (
+            | Trecord (_, Rec_folded, _) -> failwith "unreachable"
+            | Trecord (_, (Rec_not fields | Rec_top fields), _) -> (
                 match fields.(0).ftyp with Tbool -> false | _ -> true)
             | Tvariant _ -> true
             | _ -> failwith "Internal Error: Not a record to unbox"

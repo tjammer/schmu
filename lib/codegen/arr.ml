@@ -37,7 +37,8 @@ struct
     let mut = false in
     let head_sz =
       sizeof_typ
-        (Trecord ([], None, [| { ftyp = Tint; mut }; { ftyp = Tint; mut } |]))
+        (Trecord
+           ([], Rec_not [| { ftyp = Tint; mut }; { ftyp = Tint; mut } |], None))
     in
     assert (Int.equal head_sz 16);
     let head_sz = alignup ~size:head_sz ~upto:item_align in

@@ -339,20 +339,37 @@ let add_self_recursion env name =
   Env.add_type name decl env
 
 let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
-  let labels, params =
+  let labels, params, recurs =
     (* Temporarily add polymorphic type name to env *)
-    let env, param = add_type_param env poly_param in
+    let temp_env, params =
+      let tmp = add_self_recursion env name in
+      add_type_param tmp poly_param
+    in
+    let recurs = ref false in
+    let absolute_path = Path.append name (Env.modpath env) in
     let labels =
       Array.map
         (fun (mut, fname, type_expr) ->
-          let ftyp = typeof_annot ~typedef:true env loc type_expr in
+          (* The base case handling here does not make sense. Whenever a
+             recursive occurence is behind a type with a base case (like
+             option), then the recursion is bound, i.e. we allow it. *)
+          let typ = typeof_annot ~typedef:true temp_env loc type_expr in
+          let ftyp =
+            match recursion_allowed ~params absolute_path typ with
+            | Ok (Some typ) ->
+                recurs := true;
+                typ
+            | Ok None -> typ
+            | Error msg -> raise (Error (loc, msg))
+          in
           { fname; ftyp; mut })
         labels
     in
-    (labels, param)
+
+    (labels, params, !recurs)
   in
 
-  let decl = { params; kind = Drecord labels; in_sgn } in
+  let decl = { params; kind = Drecord (recurs, labels); in_sgn } in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
   (Env.add_type name decl env, decl)
@@ -1431,7 +1448,7 @@ module Subst_functor (* : Map_module.Map_tree *) = struct
   let rec map_decl ~mname id sub decl =
     let (find, subs, dmap), kind =
       match Types.(decl.kind) with
-      | Drecord fields ->
+      | Drecord (recurs, fields) ->
           let sub, fields =
             Array.fold_left_map
               (fun sub f ->
@@ -1439,7 +1456,7 @@ module Subst_functor (* : Map_module.Map_tree *) = struct
                 (sub, { f with ftyp }))
               sub fields
           in
-          (sub, Drecord fields)
+          (sub, Drecord (recurs, fields))
       | Dvariant (recurs, ctors) ->
           let sub, ctors =
             Array.fold_left_map

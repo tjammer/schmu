@@ -25,14 +25,15 @@ let rec size_align_impl size_pr typ =
   | Tfun _ ->
       (* A closure, 2 ptrs. Assume 64bit *)
       add_size_align ~upto:8 ~sz:16 size_pr
-  | Trecord (_, _, labels) ->
+  | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
       let { size; align = upto } =
         Array.fold_left
           (fun pr (f : field) -> size_align_impl pr f.ftyp)
-          { size = 0; align = 1 } labels
+          { size = 0; align = 1 } fields
       in
       let sz = alignup ~size ~upto in
       add_size_align ~upto ~sz size_pr
+  | Trecord (_, Rec_folded, _) -> failwith "unreachable"
   | Tvariant (_, Rec_folded, _) -> failwith "unreachable"
   | Tvariant (_, (Rec_not ctors | Rec_top ctors), _) ->
       (* For simplicity, we use i32 for the tag. If the variant contains no data

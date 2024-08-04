@@ -17,7 +17,8 @@ struct
   let alloc_types ts = function
     | Tarray t -> t :: ts
     | Trc t -> t :: ts
-    | Trecord (_, _, fields) ->
+    | Trecord (_, Rec_folded, _) -> ts
+    | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
         Array.fold_left
           (fun ts f -> if contains_allocation f.ftyp then f.ftyp :: ts else ts)
           ts fields
@@ -97,7 +98,8 @@ struct
 
   let rec decl_children_exc pset pseudovar typ =
     match typ with
-    | Trecord (_, _, fs) ->
+    | Trecord (_, Rec_folded, _) -> failwith "unreachable"
+    | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
         Array.iteri
           (fun i f ->
             if contains_allocation f.ftyp then
@@ -112,7 +114,7 @@ struct
                     { pseudovar with typ = f.ftyp; kind = Ptr }
                   |> ignore;
                   decl_children_exc pset pseudovar f.ftyp)
-          fs
+          fields
     | _ -> failwith "TODO decl free or not supported"
 
   let copy param allocref v =
@@ -143,7 +145,7 @@ struct
   let cls_fn_name kind assoc =
     let pre = match kind with `Dtor -> "__dtor_" | `Ctor -> "__ctor_" in
     let fs = List.map (fun cl -> { ftyp = cl.cltyp; mut = cl.clmut }) assoc in
-    let typ = Trecord ([], None, fs |> Array.of_list) in
+    let typ = Trecord ([], Rec_not (fs |> Array.of_list), None) in
     pre ^ Monomorph_tree.structural_name ~closure:false typ
 
   let get_ctor assoc_type assoc upward =
@@ -253,14 +255,15 @@ struct
           Llvm.build_add rc (ci 1) "" builder
         in
         ignore (Llvm.(build_store added rf) builder)
-    | Trecord (_, _, fs) ->
+    | Trecord (_, Rec_folded, _) -> failwith "unreachable"
+    | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
         Array.iteri
           (fun i f ->
             if contains_allocation f.ftyp then
               (* Copy allocation part *)
               let v = follow_field dst i in
               copy_inner_call v)
-          fs
+          fields
     | Tvariant (_, Rec_folded, _) -> failwith "unreachable"
     | Tvariant (_, (Rec_not ctors | Rec_top ctors), _) ->
         let index = var_index dst in
@@ -433,13 +436,14 @@ struct
         ignore (Llvm.build_br merge_bb builder);
 
         Llvm.position_at_end merge_bb builder
-    | Trecord (_, _, fs) ->
+    | Trecord (_, Rec_folded, _) -> failwith "unreachable"
+    | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
         Array.iteri
           (fun i f ->
             if contains_allocation f.ftyp then
               let v = follow_field v i in
               free_call_only v)
-          fs
+          fields
     | Tvariant (_, Rec_folded, _) -> failwith "unreachable"
     | Tvariant (_, (Rec_not ctors | Rec_top ctors), _) ->
         let index = var_index v in
@@ -518,7 +522,8 @@ struct
 
   let free_impl_except pset v =
     match v.typ with
-    | Trecord (_, _, fs) ->
+    | Trecord (_, Rec_folded, _) -> failwith "unreachable"
+    | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
         Array.iteri
           (fun i f ->
             if contains_allocation f.ftyp then
@@ -531,7 +536,7 @@ struct
               | Followup pset ->
                   let v = follow_field v i in
                   free_except_call pset v)
-          fs
+          fields
     | _ -> failwith "TODO free or not supported"
 
   let gen_functions () =

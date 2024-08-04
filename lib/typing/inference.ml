@@ -279,6 +279,9 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
           with Invalid_argument _ -> (r, sub, false))
       | Tconstr (name, _), r -> (
           match Pmap.find_opt name abstracts_map with
+          | Some (Tconstr (n, _)) when Path.equal name n ->
+              (* Guard for recursion *)
+              (r, sub, false)
           | Some typ ->
               let _, _, b = aux ~strict sub typ r in
               if b then

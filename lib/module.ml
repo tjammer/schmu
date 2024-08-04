@@ -602,7 +602,7 @@ let find_item name kind = function
 
 let decls_match name ~sgn impl =
   match (sgn.kind, impl.kind) with
-  | Drecord s, Drecord i -> (
+  | Drecord (_, s), Drecord (_, i) -> (
       try
         Array.iter2
           (fun s i ->

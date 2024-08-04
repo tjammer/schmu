@@ -93,7 +93,7 @@ module Make (C : Core) = struct
       | None -> Smap.empty
     in
     match decl.kind with
-    | Drecord fields ->
+    | Drecord (_, fields) ->
         let _, fields =
           Array.fold_left_map
             (fun sub f ->
