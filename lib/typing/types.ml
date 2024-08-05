@@ -350,7 +350,10 @@ let recursion_allowed ~params name typ =
               (combine nres res, { p with pt }))
             res ps
         in
-        let mres, ret = aux true res ret in
+        let mres, ret =
+          let res = Result.map (fun st -> { st with has_base = true }) res in
+          aux true res ret
+        in
         (combine nres res |> combine mres, Tfun (ps, ret, kind))
     | (Qvar _ | Tvar { contents = Unbound _ }) as t -> (res, t)
     | Tvar ({ contents = Link t } as rf) as tvr ->

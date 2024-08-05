@@ -1315,6 +1315,15 @@ let test_rec_type_record_param_nobase () =
 type data('a) = { cb : 'a }
 type state = { data : container(data(rc(state))) }|}
 
+let test_rec_type_record_fnreturn () =
+  test "unit" "type t = { works : () -> t }"
+
+let test_rec_type_record_fnboth () = test "unit" "type t = { works : (t) -> t }"
+
+let test_rec_type_record_some_nobase () =
+  test_exn "Recursive type has no base case"
+    "type t = { works : () -> t, doesnt : rc(t)}"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1787,5 +1796,8 @@ do:
           case "nobase" test_rec_type_nobase;
           case "record param" test_rec_type_record_param;
           case "record param nobase" test_rec_type_record_param_nobase;
+          case "record fn return" test_rec_type_record_fnreturn;
+          case "record fn both" test_rec_type_record_fnboth;
+          case "record some nobase" test_rec_type_record_some_nobase;
         ] );
     ]
