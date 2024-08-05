@@ -157,8 +157,10 @@ let reconstr_module_username ~mname ~mainmod username =
 let decl_tbl = ref None
 let decls () = Option.get !decl_tbl
 
-let rec cln behind_ptr p = function
-  | Types.Tvar { contents = Link t } -> cln behind_ptr p t
+module Ss = Set.Make (String)
+
+let rec cln ss p = function
+  | Types.Tvar { contents = Link t } -> cln ss p t
   | Tconstr (Pid "int", _) -> Tint
   | Tconstr (Pid "bool", _) -> Tbool
   | Tconstr (Pid "unit", _) -> Tunit
@@ -169,10 +171,10 @@ let rec cln behind_ptr p = function
   | Tconstr (Pid "f32", _) -> Tf32
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->
-      Tfun (List.map (cln_param true p) params, cln true p ret, cln_kind p kind)
-  | Tconstr (Pid "raw_ptr", [ t ]) -> Traw_ptr (cln true p t)
-  | Tconstr (Pid "array", [ t ]) -> Tarray (cln true p t)
-  | Tconstr (Pid "rc", [ t ]) -> Trc (cln true p t)
+      Tfun (List.map (cln_param ss p) params, cln ss p ret, cln_kind ss p kind)
+  | Tconstr (Pid "raw_ptr", [ t ]) -> Traw_ptr (cln ss p t)
+  | Tconstr (Pid "array", [ t ]) -> Tarray (cln ss p t)
+  | Tconstr (Pid "rc", [ t ]) -> Trc (cln ss p t)
   | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
       (* That's a hack. We know the unknown number is a string of an int. This is
          due to an implementation detail in [gen_var] in inference. We need a
@@ -182,31 +184,41 @@ let rec cln behind_ptr p = function
          even segfault in codegen. If we don't substitute, it won't go unnoticed.
          Furthermore, fixed-size arrays with negative indices must recognized as
          polymorphic*)
-      Tfixed_array (-int_of_string i, cln behind_ptr p t)
-  | Tfixed_array ({ contents = Known i }, t) ->
-      Tfixed_array (i, cln behind_ptr p t)
+      Tfixed_array (-int_of_string i, cln ss p t)
+  | Tfixed_array ({ contents = Known i }, t) -> Tfixed_array (i, cln ss p t)
   | Tfixed_array ({ contents = Linked iv }, t) ->
-      cln behind_ptr p Types.(Tfixed_array (iv, t)) (* TODO *)
+      cln ss p Types.(Tfixed_array (iv, t)) (* TODO *)
   | Ttuple ts ->
       Trecord
         ( [],
           Rec_not
-            (List.map (fun t -> { ftyp = cln behind_ptr p t; mut = false }) ts
+            (List.map (fun t -> { ftyp = cln ss p t; mut = false }) ts
             |> Array.of_list),
           None )
-  | Tconstr (name, ps) -> (
+  | Tconstr (name, ops) -> (
       let open Types in
       (* Map params to and insert correct types *)
       match Hashtbl.find_opt (decls ()) name with
       | Some decl ->
-          let sub = map_params ~inst:ps ~params:decl.params in
-          let ps = List.map (cln behind_ptr p) ps in
+          let sub = map_params ~inst:ops ~params:decl.params in
+          let ps = List.map (cln ss p) ops in
           let nname = Path.type_name name in
+          let psname =
+            structural_name ~closure:false
+              (Trecord
+                 ( [],
+                   Rec_not
+                     (List.map (fun ftyp -> { ftyp; mut = false }) ps
+                     |> Array.of_list),
+                   None ))
+            ^ nname
+          in
+          let downss = Ss.add psname ss in
 
           let rec cln_dkind = function
             | Drecord (recurs, fields) -> (
                 let skip =
-                  if recurs && behind_ptr then
+                  if recurs && Ss.mem psname ss then
                     Some (Trecord (ps, Rec_folded, Some nname))
                   else None
                 in
@@ -219,14 +231,14 @@ let rec cln behind_ptr p = function
                           let sub, typ = Inference.instantiate_sub sub f.ftyp in
                           ( sub,
                             Cleaned_types.
-                              { ftyp = cln behind_ptr p typ; mut = f.mut } ))
+                              { ftyp = cln downss p typ; mut = f.mut } ))
                         sub fields
                     in
                     Trecord (ps, Rec_not fields, Some nname))
             | Dvariant (recurs, cts) -> (
                 (* If the variant is behind a ptr, we fold it *)
                 let skip =
-                  if recurs && behind_ptr then
+                  if recurs && Ss.mem psname ss then
                     Some (Tvariant (ps, Rec_folded, nname))
                   else None
                 in
@@ -241,7 +253,7 @@ let rec cln behind_ptr p = function
                               let sub, typ =
                                 Inference.instantiate_sub sub typ
                               in
-                              let ctyp = Some (cln behind_ptr p typ)
+                              let ctyp = Some (cln downss p typ)
                               and index = ct.index in
                               ( sub,
                                 { Cleaned_types.cname = ct.cname; ctyp; index }
@@ -256,19 +268,19 @@ let rec cln behind_ptr p = function
                     in
                     Tvariant (ps, recurs_kind, nname))
             | Dabstract None -> failwith "Internal Error: Too abstract type"
-            | Dalias typ -> cln behind_ptr p typ
+            | Dalias typ -> cln downss p typ
             | Dabstract (Some dkind) -> cln_dkind dkind
           in
           cln_dkind decl.kind
       | None -> failwith "Internal Error: Tconstr not available")
 
-and cln_kind p = function
+and cln_kind ss p = function
   | Simple -> Simple
   | Closure vals ->
       let vals =
         List.map
           (fun (cl : Types.closed) ->
-            let typ = cln true p cl.cltyp in
+            let typ = cln ss p cl.cltyp in
             let modded_name =
               match cl.clmname with
               | Some mname ->
@@ -292,8 +304,8 @@ and cln_kind p = function
       in
       Closure vals
 
-and cln_param behind_ptr param p =
-  let pt = cln behind_ptr param Types.(p.pt) in
+and cln_param ss param p =
+  let pt = cln ss param Types.(p.pt) in
   let pmut, pmoved =
     match p.pattr with
     | Dset | Dmut -> (true, false)
@@ -302,16 +314,9 @@ and cln_param behind_ptr param p =
   in
   { pt; pmut; pmoved }
 
-let rec cln_fun param = function
-  | Types.Tvar { contents = Link t } -> cln_fun param t
-  | Types.(Tfun (ps, ret, kind)) ->
-      let ps = List.map (fun p -> cln_param false param p) ps in
-      let ret = cln false param ret in
-      let kind = cln_kind param kind in
-      Tfun (ps, ret, kind)
-  | typ -> cln false param typ
-
-let cln p typ = cln_fun p typ
+let cln p typ = cln Ss.empty p typ
+let cln_kind p typ = cln_kind Ss.empty p typ
+let cln_param param p = cln_param Ss.empty param p
 
 (* State *)
 
@@ -947,7 +952,7 @@ and prep_func p (usrname, uniq, abs) =
 
     let func =
       {
-        params = List.map (cln_param false p) abs.func.tparams;
+        params = List.map (cln_param p) abs.func.tparams;
         ret = cln p abs.func.ret;
         kind;
       }
@@ -1068,7 +1073,7 @@ and morph_lambda mk typ p id abs =
     let recursive = Rnone in
     let func =
       {
-        params = List.map (cln_param false p) abs.func.tparams;
+        params = List.map (cln_param p) abs.func.tparams;
         ret = cln p abs.func.ret;
         kind;
       }

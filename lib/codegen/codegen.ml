@@ -992,7 +992,8 @@ end = struct
           | _ -> failwith "Internal Error: Arity mismatch in builder"
         in
         R.gen_rc param e fnc.ret allocref
-    | Rc_get -> List.hd args |> bring_default_var |> R.get
+    | Rc_get ->
+        List.hd args |> bring_default_var |> fun llvar -> R.get llvar fnc.ret
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)
