@@ -332,7 +332,9 @@ let combine a b =
   | Error _, _ -> a
   | _, Error _ -> b
 
-let recursion_allowed ~params name typ =
+let set_base res = Result.map (fun st -> { st with has_base = true }) res
+
+let recursion_allowed (get_decl : Path.t -> type_decl) ~params name typ =
   let rec aux behind_ptr res = function
     | Ttuple ts ->
         let nres, ts =
@@ -343,15 +345,13 @@ let recursion_allowed ~params name typ =
         let nres, ps =
           List.fold_left_map
             (fun res p ->
-              let res =
-                Result.map (fun st -> { st with has_base = true }) res
-              in
+              let res = set_base res in
               let nres, pt = aux true res p.pt in
               (combine nres res, { p with pt }))
             res ps
         in
         let mres, ret =
-          let res = Result.map (fun st -> { st with has_base = true }) res in
+          let res = set_base res in
           aux true res ret
         in
         (combine nres res |> combine mres, Tfun (ps, ret, kind))
@@ -364,9 +364,7 @@ let recursion_allowed ~params name typ =
         let nres, t = aux behind_ptr res t in
         (combine nres res, Tfixed_array (sz, t))
     | Tconstr ((Pid ("array" | "raw_ptr") as name), [ t ]) ->
-        let nres, t =
-          aux true (Result.map (fun st -> { st with has_base = true }) res) t
-        in
+        let nres, t = aux true (set_base res) t in
         (combine nres res, Tconstr (name, [ t ]))
     | Tconstr ((Pid "rc" as name), [ t ]) ->
         let nres, t = aux true res t in
@@ -380,11 +378,33 @@ let recursion_allowed ~params name typ =
               Tconstr (n, params) )
           else (Error "Infinite type", t)
         else
+          let res =
+            let decl = get_decl n in
+            decl_allowed behind_ptr res decl.kind
+          in
           let res, ps =
             List.fold_left_map (fun res t -> aux behind_ptr res t) res ps
           in
           (res, Tconstr (n, ps))
+  and decl_allowed behind_ptr res = function
+    | Dalias typ -> aux behind_ptr res typ |> fst
+    | Dabstract None -> res
+    | Dabstract (Some kind) -> decl_allowed behind_ptr res kind
+    | Drecord (recurs, _) ->
+        if recurs then set_base res
+        else (* We'd have to check the params to see which one is ours *)
+          res
+    | Dvariant (recurs, ctors) ->
+        if recurs then set_base res
+        else
+          let has_base =
+            Array.fold_left
+              (fun has ct -> has || Option.is_none ct.ctyp)
+              false ctors
+          in
+          if has_base then set_base res else res
   in
+
   let res, typ = aux false (Ok { recurs = false; has_base = false }) typ in
   match res with
   | Ok { recurs = true; has_base } -> Ok (Some (typ, has_base))

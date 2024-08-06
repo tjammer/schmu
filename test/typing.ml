@@ -1324,6 +1324,11 @@ let test_rec_type_record_some_nobase () =
   test_exn "Recursive type has no base case"
     "type t = { works : () -> t, doesnt : rc(t)}"
 
+let test_rec_type_record_variant_base () =
+  test "unit"
+    {|type option('a) = #none | #some('a)
+type t = { a : rc(option(t)) }|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -1799,5 +1804,6 @@ do:
           case "record fn return" test_rec_type_record_fnreturn;
           case "record fn both" test_rec_type_record_fnboth;
           case "record some nobase" test_rec_type_record_some_nobase;
+          case "record variant base" test_rec_type_record_variant_base;
         ] );
     ]
