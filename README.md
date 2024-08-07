@@ -54,4 +54,3 @@ Some low-level access necessary to interface with C code, but that's not what sc
 ## Current focus
 + Escape analsyis for closures
 + Backtraces
-+ Generics, towards implicits
