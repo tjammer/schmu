@@ -78,6 +78,7 @@ val resolve_alias : (Path.t -> (type_decl * Path.t) option) -> typ -> typ
 
 val recursion_allowed :
   (Path.t -> type_decl) ->
+  (typ Smap.t -> typ -> typ Smap.t * typ) ->
   params:typ list ->
   Path.t ->
   typ ->

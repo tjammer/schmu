@@ -356,7 +356,10 @@ let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
           let typ = typeof_annot ~typedef:true temp_env loc type_expr in
           let ftyp =
             let get_decl = Hashtbl.find (Env.decl_tbl env) in
-            match recursion_allowed get_decl ~params absolute_path typ with
+            match
+              recursion_allowed get_decl instantiate_sub ~params absolute_path
+                typ
+            with
             | Ok (Some (typ, has_base)) ->
                 if not has_base then
                   raise (Error (loc, "Recursive type has no base case"));
@@ -448,7 +451,10 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
             let typ = typeof_annot ~typedef:true temp_env loc annot in
             let typ =
               let get_decl = Hashtbl.find (Env.decl_tbl env) in
-              match recursion_allowed get_decl ~params absolute_path typ with
+              match
+                recursion_allowed get_decl instantiate_sub ~params absolute_path
+                  typ
+              with
               | Ok (Some (typ, hasbase)) ->
                   if hasbase then has_base := true;
                   recurs := true;

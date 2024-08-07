@@ -334,7 +334,8 @@ let combine a b =
 
 let set_base res = Result.map (fun st -> { st with has_base = true }) res
 
-let recursion_allowed (get_decl : Path.t -> type_decl) ~params name typ =
+let recursion_allowed (get_decl : Path.t -> type_decl) inst_sub ~params name typ
+    =
   let rec aux behind_ptr res = function
     | Ttuple ts ->
         let nres, ts =
@@ -380,20 +381,28 @@ let recursion_allowed (get_decl : Path.t -> type_decl) ~params name typ =
         else
           let res =
             let decl = get_decl n in
-            decl_allowed behind_ptr res decl.kind
+            let sub = map_params ~inst:ps ~params:decl.params in
+            decl_allowed ~sub behind_ptr res decl.kind
           in
           let res, ps =
             List.fold_left_map (fun res t -> aux behind_ptr res t) res ps
           in
           (res, Tconstr (n, ps))
-  and decl_allowed behind_ptr res = function
+  and decl_allowed ~sub behind_ptr res = function
     | Dalias typ -> aux behind_ptr res typ |> fst
     | Dabstract None -> res
-    | Dabstract (Some kind) -> decl_allowed behind_ptr res kind
-    | Drecord (recurs, _) ->
+    | Dabstract (Some kind) -> decl_allowed ~sub behind_ptr res kind
+    | Drecord (recurs, fields) ->
         if recurs then set_base res
-        else (* We'd have to check the params to see which one is ours *)
-          res
+        else
+          (* We have to check the params to see which one is ours *)
+          Array.fold_left
+            (fun (res, sub) f ->
+              let sub, typ = inst_sub sub f.ftyp in
+              let nres, _ = aux behind_ptr res typ in
+              (combine nres res, sub))
+            (res, sub) fields
+          |> fst
     | Dvariant (recurs, ctors) ->
         if recurs then set_base res
         else
