@@ -777,6 +777,19 @@ module nosig:
     type t = u8
 |}
 
+let test_signature_after_statement () =
+  test_exn "Module signature must be declared at the top"
+    {|let _ = 12
+signature:
+  type t|}
+
+let test_signature_not_unique () =
+  test_exn "Module signature must be unique"
+    {|signature:
+  type t
+signature:
+  type t|}
+
 let test_local_modules_find_local () =
   test "unit" (local_module ^ "let test : nosig/t = { a = 10 }")
 
@@ -1557,6 +1570,8 @@ let () =
           case "unparam type" test_signature_unparam_type;
           case "abstract" test_signature_abstract;
           case "namespaces" test_signature_namespaces;
+          case "after statement" test_signature_after_statement;
+          case "not unique" test_signature_not_unique;
         ] );
       ( "local modules",
         [

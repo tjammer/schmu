@@ -5,6 +5,15 @@ open Error
 
 type msg_fn = string -> Ast.loc -> string -> string
 
+type converted_prog = {
+  last_type : typ;
+  env : Env.t;
+  items : toplevel_item list;
+  m : Module_common.t;
+  sgn_env : Env.t;
+  sgn : Ast.signature list;
+}
+
 module Strset = Set.Make (String)
 
 module Str = struct
@@ -1547,7 +1556,7 @@ let let_fn_alias env loc expr =
       | _ -> Not)
   | _ -> Not
 
-let rec convert_module env mname sign prog check_ret =
+let rec convert_module env mname prog check_ret =
   (* We create a new scope so we don't warn on unused uses *)
   let env = Env.open_toplevel mname env in
 
@@ -1558,45 +1567,47 @@ let rec convert_module env mname sign prog check_ret =
      known at this point. Since we substitute generics naively in annots (which
      val decls essentially are), we have to make sure the complete
      implementation is available before. *)
-  let sigenv, m = List.fold_left add_signature_types (env, Module.empty) sign in
-  let last_type, env, items, m = convert_prog sigenv prog m in
-  let externals = Module.append_externals (Env.externals env) in
+  let prog = convert_prog env prog Module.empty in
+  let externals = Module.append_externals (Env.externals prog.env) in
   (* Make sure to chose the signature env, not the impl one. Abstract types are
      magically made complete by references. *)
-  let m = List.fold_left (add_signature_vals sigenv) m sign in
-  let m = Module.validate_signature env m in
+  let m = List.fold_left (add_signature_vals prog.sgn_env) prog.m prog.sgn in
+  let m = Module.validate_signature prog.env m in
 
   (* Catch weak type variables *)
-  List.iter (catch_weak_vars env) items;
+  List.iter (catch_weak_vars prog.env) prog.items;
 
-  let _, _, touched, unused = Env.close_toplevel env in
+  let _, _, touched, unused = Env.close_toplevel prog.env in
 
   let unmutated, items =
-    let get_decl = Hashtbl.find (Env.decl_tbl env) in
-    Exclusivity.check_items ~mname get_decl touched items
+    let get_decl = Hashtbl.find (Env.decl_tbl prog.env) in
+    Exclusivity.check_items ~mname get_decl touched prog.items
   in
 
-  let has_sign = match sign with [] -> false | _ -> true in
-  if (not (is_module (Env.modpath env))) || has_sign then
-    check_unused env unused unmutated;
+  let has_sign = match prog.sgn with [] -> false | _ -> true in
+  if (not (is_module (Env.modpath prog.env))) || has_sign then
+    check_unused prog.env unused unmutated;
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
-     match repr last_type with
+     match repr prog.last_type with
      | Tconstr (Pid ("int" | "unit"), _) -> ()
      | _ ->
          let msg =
            "Module must return type int or unit, not "
-           ^ string_of_type (Env.modpath env) last_type
+           ^ string_of_type (Env.modpath prog.env) prog.last_type
          in
          raise (Error (!last_loc, msg)));
   (externals, items, m)
 
 and convert_prog env items modul =
   let old = ref (Lexing.(dummy_pos, dummy_pos), tunit) in
+  let before_stmt = ref true in
+  let sgnrf = ref ([], env) in
 
   let rec aux (env, items, m) = function
     | Ast.Stmt stmt ->
+        before_stmt := false;
         let old', env, items, m = aux_stmt (!old, env, items, m) stmt in
         old := old';
         (env, items, m)
@@ -1625,7 +1636,7 @@ and convert_prog env items modul =
         (env, items, m)
     | Typedef (loc, Tabstract _) ->
         raise (Error (loc, "Abstract types need a concrete implementation"))
-    | Module ((loc, id, annot), sign, prog) ->
+    | Module ((loc, id, annot), prog) ->
         (* External function are added as side-effects, can be discarded here *)
         let open Module in
         let mname = Path.append id (Env.modpath env) in
@@ -1636,7 +1647,7 @@ and convert_prog env items modul =
         let lambda_id_state_bk = !lambda_id_state in
         reset lambda_id_state;
 
-        let _, moditems, newm = convert_module env mname sign prog true in
+        let _, moditems, newm = convert_module env mname prog true in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
@@ -1657,7 +1668,7 @@ and convert_prog env items modul =
         let moditems = List.map (fun item -> (mname, item)) moditems in
         let items = Tl_module moditems :: items in
         (env, items, m)
-    | Functor ((loc, id, annot), params, sign, prog) ->
+    | Functor ((loc, id, annot), params, prog) ->
         let open Module in
         let mname = Path.append id (Env.modpath env) in
 
@@ -1688,9 +1699,7 @@ and convert_prog env items modul =
               (Env.add_module ~key cm env, (key, mt)))
             env params
         in
-        let _, functor_items, newm =
-          convert_module tmpenv mname sign prog true
-        in
+        let _, functor_items, newm = convert_module tmpenv mname prog true in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
@@ -1815,6 +1824,16 @@ and convert_prog env items modul =
         let m = Module.add_module_type loc id mt m in
         let env = Env.add_module_type id mt env in
         (env, items, m)
+    | Signature (loc, sgn) ->
+        if not !before_stmt then
+          raise (Error (loc, "Module signature must be declared at the top"));
+        (match !sgnrf |> fst with
+        | [] -> ()
+        | _ -> raise (Error (loc, "Module signature must be unique")));
+
+        let env, m = List.fold_left add_signature_types (env, m) sgn in
+        sgnrf := (sgn, env);
+        (env, items, m)
   and aux_stmt (old, env, items, m) = function
     | Ast.Let (loc, decl, block) ->
         let env, id, id_loc, lhs, rmut, pats =
@@ -1921,10 +1940,11 @@ and convert_prog env items modul =
   in
 
   let env, items, m = List.fold_left aux (env, [], modul) items in
-  (snd !old, env, List.rev items, m)
+  let sgn, sgn_env = !sgnrf in
+  { last_type = snd !old; env; items = List.rev items; m; sgn; sgn_env }
 
 (* Conversion to Typing.exr below *)
-let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
+let to_typed ?(check_ret = true) ~mname msg_fn ~std prog =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 
@@ -1954,7 +1974,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std (sign, prog) =
   (* Use prelude *)
   let env = if std then Env.use_module env loc (Path.Pid "std") else env in
 
-  let externals, items, m = convert_module env mname sign prog check_ret in
+  let externals, items, m = convert_module env mname prog check_ret in
 
   (* Add polymorphic functions from useed modules *)
   let items = List.map (fun item -> (mname, item)) items in

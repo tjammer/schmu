@@ -111,7 +111,7 @@
 %%
 
 prog:
-  | sgn = loption(signature); prog = separated_list(Newline, top_item); Eof { sgn, prog }
+  | prog = separated_list(Newline, top_item); Eof { prog }
 
 top_item:
   | stmt = stmt { Stmt stmt }
@@ -120,6 +120,7 @@ top_item:
   | modul = modul { modul }
   | functor_ = functor_ { functor_ }
   | modtype = modtype { modtype }
+  | sgn = signature { Signature ($loc(sgn), sgn) }
 
 stmt:
   | Let; decl = let_decl; Equal; pexpr = passed(block)
@@ -159,8 +160,8 @@ modtype:
   | Module_type; name = ident; Colon; Begin; sgn = sig_items; End { Module_type (name, sgn) }
 
 modul:
-  | Module; name = module_decl; Colon; Begin; sgn = loption(signature); items = separated_nonempty_list(Newline, top_item); End
-    { Module (name, sgn, items) }
+  | Module; name = module_decl; Colon; Begin; items = separated_nonempty_list(Newline, top_item); End
+    { Module (name, items) }
   | Module; name = module_decl; Equal; path = path_with_loc { Module_alias (name, Amodule path) }
   | Module; name = module_decl; Equal; app = module_application
     { let p, args = app in Module_alias (name, Afunctor_app (p, args)) }
@@ -173,8 +174,8 @@ path_with_loc:
 
 functor_:
   | Functor; name = module_decl; Lpar; params = separated_nonempty_list(Comma, functor_param); Rpar; Colon;
-    Begin; sgn = loption(signature); items = separated_nonempty_list(Newline, top_item); End
-    { Functor (name, params, sgn, items) }
+    Begin; items = separated_nonempty_list(Newline, top_item); End
+    { Functor (name, params, items) }
 
 functor_param:
   | name = ident; Colon; path = use_path { let loc, name = name in loc, name, path }
@@ -197,7 +198,7 @@ decl_typename:
   | name = ident; Colon; path = use_path { let loc, name = name in loc, name, Some path }
 
 signature:
-  | Signature; Colon; Begin; items = sig_items ; End; option(Newline) { items }
+  | Signature; Colon; Begin; items = sig_items ; End { items }
 
 sig_items:
   | items = separated_nonempty_list(Newline, sig_item) { items }

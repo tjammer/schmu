@@ -124,10 +124,11 @@ type top_item =
   | Stmt of stmt
   | Ext_decl of external_decl
   | Typedef of loc * typedef
-  | Module of module_decl * signature list * top_item list
-  | Functor of module_decl * functor_param list * signature list * top_item list
+  | Module of module_decl * top_item list
+  | Functor of module_decl * functor_param list * top_item list
   | Module_alias of module_decl * alias_kind
   | Module_type of ident * signature list
+  | Signature of loc * signature list
 
 and module_decl = loc * string * Path.t option
 and functor_param = loc * string * Path.t
@@ -138,4 +139,4 @@ and signature =
   | Stypedef of loc * typedef
   | Svalue of loc * (ident * type_spec)
 
-and prog = signature list * top_item list
+and prog = top_item list

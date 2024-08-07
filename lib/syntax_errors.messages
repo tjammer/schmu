@@ -2,31 +2,43 @@ prog: With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Signature With
+prog: Use With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Signature Colon With
+prog: Use Path_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Signature Colon Begin With
+prog: Type With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Signature Colon Begin Val With
+prog: Type Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Signature Colon Begin Val Cmp_op With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Signature Colon Begin Val Cmp_op Colon With
+prog: Type Ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: External Ident Colon Quote With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Ident Lpar Quote Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Ident Lpar Quote Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Ident Newline
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -158,50 +170,6 @@ prog: External Ident Colon Lpar Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Signature Colon Begin Val Cmp_op Colon Ident Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Signature Colon Begin Val Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Signature Colon Begin Val Ident Colon With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Signature Colon Begin Val Ident Colon Ident Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Signature Colon Begin Type With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Type Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Type Ident Lpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Type Ident Lpar Quote Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Type Ident Lpar Quote Ident Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Signature Colon Begin Type Ident Lpar Quote Ident Rpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Type Ident Equal With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Type Ident Equal Lbrac With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -262,7 +230,51 @@ prog: Type Ident Equal Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Signature Colon Begin Type Ident End With
+prog: Signature With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin Val With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin Val Cmp_op With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin Val Cmp_op Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin Val Cmp_op Colon Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin Val Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin Val Ident Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin Val Ident Colon Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin Type With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Colon Begin Type Ident Lpar Quote Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -271,26 +283,6 @@ prog: Signature Colon Begin Type Ident Equal Ctor Eof
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Signature Colon Begin Type Ident Newline With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Signature Colon Begin Type Ident End Newline With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Use With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Use Path_id With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Type With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Type Ident Newline
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1062,10 +1054,6 @@ prog: Module Ident Colon Begin With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Module Ident Colon Begin Signature Colon Begin Type Ident End Eof
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Functor With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -1087,10 +1075,6 @@ prog: Functor Ident Lpar Ident Colon Ident Rpar Colon With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Functor Ident Lpar Ident Colon Ident Rpar Colon Begin With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Functor Ident Lpar Ident Colon Ident Rpar Colon Begin Signature Colon Begin Type Ident End Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1166,10 +1150,6 @@ prog: Functor Ident Colon Ident Lpar Ident Colon Ident Rpar Colon Begin With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Functor Ident Colon Ident Lpar Ident Colon Ident Rpar Colon Begin Signature Colon Begin Type Ident End Eof
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Functor Ident Colon Ident Lpar Ident Colon Ident Rpar Colon Begin Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -1195,10 +1175,6 @@ prog: Module Ident Colon Ident Colon With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Module Ident Colon Ident Colon Begin With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Module Ident Colon Ident Colon Begin Signature Colon Begin Type Ident End Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
