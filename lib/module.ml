@@ -146,14 +146,26 @@ module Map_canon : Map_module.Map_tree = struct
     (id, m)
 
   let map_decl ~mname _ sub decl =
-    match decl.kind with
-    | Dalias (Tconstr (name, _)) -> (
-        match Path.rm_head name with
-        | Some m when not (Path.share_base mname m) ->
-            eagerly_load m;
-            (sub, decl)
-        | None | Some _ -> (sub, decl))
-    | _ -> (sub, decl)
+    let rec load_type = function
+      | Tconstr (name, _) -> (
+          match Path.rm_head name with
+          | Some m when not (Path.share_base mname m) -> eagerly_load m
+          | None | Some _ -> ())
+      | Tvar { contents = Link t } | Tfixed_array (_, t) -> load_type t
+      | Qvar _ | Tvar { contents = Unbound _ } -> ()
+      | Tfun (ps, ret, _) ->
+          List.iter (fun p -> load_type p.pt) ps;
+          load_type ret
+      | Ttuple ts -> List.iter load_type ts
+    in
+
+    (match decl.kind with
+    | Dalias typ -> load_type typ
+    | Drecord (_, fields) -> Array.iter (fun f -> load_type f.ftyp) fields
+    | Dvariant (_, ctors) ->
+        Array.iter (fun ct -> Option.map load_type ct.ctyp |> ignore) ctors
+    | Dabstract _ -> ());
+    (sub, decl)
 
   let absolute_module_name = absolute_module_name
   let map_type = Map_module.Canonize.canonize
