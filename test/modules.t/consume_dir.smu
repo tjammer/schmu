@@ -1,3 +1,4 @@
+import modd
 use modd
 
 print(a)

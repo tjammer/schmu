@@ -445,9 +445,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
   (()((5:Mtype(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:31)))6:either((6:params())(4:kind(8:Dvariant5:false(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(6:in_sgn5:false)))(4:Mfun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:33)(8:pos_cnum2:37))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:33)(8:pos_cnum2:58)))(4:Tfun(((2:pt(7:Tconstr3:int()))(5:pattr5:Dnorm))((2:pt(7:Tconstr3:int()))(5:pattr5:Dnorm)))(7:Tconstr3:int())6:Simple)((4:user8:add_ints)(4:call(20:malloc_some_add_ints))))(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:60)(8:pos_cnum2:60))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:60)(8:pos_cnum2:70)))(7:Tconstr3:int())((4:user1:a)(4:call(13:malloc_some_a)))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:72)(8:pos_cnum2:72))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:72)(8:pos_cnum2:94)))(7:Tconstr3:int())((4:user1:b)(4:call(13:malloc_some_b)))5:false)(9:Mpoly_fun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:100))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:114)))((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(4:Move((3:typ(4:Qvar1:1))(4:expr(3:App(6:callee((3:typ(4:Tfun(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm)))(4:Qvar1:1)6:Simple))(4:expr(3:Var4:copy()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:107))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:111))))))(4:args((((3:typ(4:Qvar1:1))(4:expr(3:Var1:x()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:112))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:113)))))5:Dnorm)))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:107))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:114)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:107))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:96)(8:pos_cnum3:114))))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm))))(3:ret(4:Qvar1:1))(4:kind6:Simple)(7:touched())))(6:inline5:false)(6:is_rec5:false))2:id())(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:116)(8:pos_cnum3:116))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:116)(8:pos_cnum3:134)))(7:Tconstr5:array((7:Tconstr3:int())))((4:user5:vtest)(4:call(17:malloc_some_vtest)))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:135)(8:pos_cnum3:135))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:135)(8:pos_cnum3:151)))(7:Tconstr5:array((7:Tconstr3:int())))((4:user6:vtest2)(4:call(18:malloc_some_vtest2)))5:false))((/std/string5:false)))
 
   $ schmu use_malloc_some.smu --dump-llvm
-  use_malloc_some.smu:3.5-17: warning: Unused binding do_something.
+  use_malloc_some.smu:5.5-17: warning: Unused binding do_something.
   
-  3 | fun do_something(big):
+  5 | fun do_something(big):
           ^^^^^^^^^^^^
   
   ; ModuleID = 'context'
@@ -598,9 +598,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
 Allocate and clean init code with refcounting
   $ schmu init.smu -m
   $ schmu use_init.smu
-  use_init.smu:1.5-9: warning: Unused module 'use' declaration init.
+  use_init.smu:3.5-9: warning: Unused module 'use' declaration init.
   
-  1 | use init
+  3 | use init
           ^^^^
   
   $ ./use_init
@@ -609,19 +609,19 @@ Allocate and clean init code with refcounting
 Use module name prefix for function names to prevent linker dups
   $ schmu nameclash_mod.smu -m
   $ schmu nameclash_use.smu
-  nameclash_use.smu:1.5-18: warning: Unused module 'use' declaration nameclash_mod.
+  nameclash_use.smu:3.5-18: warning: Unused module 'use' declaration nameclash_mod.
   
-  1 | use nameclash_mod
+  3 | use nameclash_mod
           ^^^^^^^^^^^^^
   
-  nameclash_use.smu:2.5-18: warning: Unused binding specific_name.
+  nameclash_use.smu:4.5-18: warning: Unused binding specific_name.
   
-  2 | fun specific_name(): ()
+  4 | fun specific_name(): ()
           ^^^^^^^^^^^^^
   
-  nameclash_use.smu:2.5-18: warning: Unused binding specific_name.
+  nameclash_use.smu:4.5-18: warning: Unused binding specific_name.
   
-  2 | fun specific_name(): ()
+  4 | fun specific_name(): ()
           ^^^^^^^^^^^^^
   
 Distinguish closures and functions
@@ -638,14 +638,14 @@ Test signature
            ^^^^^^
   
   $ schmu use-sign.smu
-  use-sign.smu:19.5-15: warning: Unused binding use_hidden.
+  use-sign.smu:21.5-15: warning: Unused binding use_hidden.
   
-  19 | fun use_hidden ():
+  21 | fun use_hidden ():
            ^^^^^^^^^^
   
-  use-sign.smu:19.5-15: warning: Unused binding use_hidden.
+  use-sign.smu:21.5-15: warning: Unused binding use_hidden.
   
-  19 | fun use_hidden ():
+  21 | fun use_hidden ():
            ^^^^^^^^^^
   
   $ ./use-sign
@@ -653,16 +653,16 @@ Test signature
   200
   20.2
   $ schmu use-sign-hidden.smu
-  use-sign-hidden.smu:4.1-6: error: No var named hidde.
+  use-sign-hidden.smu:6.1-7: error: No var named hidden.
   
-  4 | hidde(10)
-      ^^^^^
+  6 | hidden(10)
+      ^^^^^^
   
   [1]
   $ schmu use-sign-hidden-type.smu
-  use-sign-hidden-type.smu:4.1-25: error: Unbound type hidden_type..
+  use-sign-hidden-type.smu:5.1-25: error: Unbound type hidden_type..
   
-  4 | let i : hidden_type = 10
+  5 | let i : hidden_type = 10
       ^^^^^^^^^^^^^^^^^^^^^^^^
   
   [1]
@@ -786,9 +786,9 @@ Local modules can shadow types. Use unique type names in codegen
 
 Search for modules when variables cannot be found
   $ schmu err_local_otherfile.smu
-  err_local_otherfile.smu:1.1-24: error: No var named local_otherfile/aliased, but a module with the name exists.
+  err_local_otherfile.smu:3.1-24: error: No var named local_otherfile/aliased, but a module with the name exists.
   
-  1 | local_otherfile/aliased
+  3 | local_otherfile/aliased
       ^^^^^^^^^^^^^^^^^^^^^^^
   
   [1]
@@ -809,13 +809,13 @@ Use directory as module
   lol
   hello
   world
-  $ echo "print(indirect/a)" > err.smu
+
+  $ printf "import indirect\nprint(indirect/a)" > err.smu
   $ schmu err.smu
-  indirect.smi
-  err.smu:1.7-17: error: Module indirect: Cannot find module: indirect.
+  err.smu:1.8-16: error: Cannot find module: indirect.
   
-  1 | print(indirect/a)
-            ^^^^^^^^^^
+  1 | import indirect
+             ^^^^^^^^
   
   [1]
 
@@ -1076,5 +1076,23 @@ No mutable global state in submodules
   
   2 |   let _& = 0
         ^^^^^^^^^^
+  
+  [1]
+
+Ensure prelude is not reachable
+  $ schmu use_prelude.smu
+  use_prelude.smu:1.8-26: error: Module prelude has not been imported.
+  
+  1 | ignore(prelude/iter_range)
+             ^^^^^^^^^^^^^^^^^^
+  
+  [1]
+
+Ensure prelude is not importable
+  $ schmu import_prelude.smu
+  import_prelude.smu:1.8-15: error: Cannot find module: prelude.
+  
+  1 | import prelude
+             ^^^^^^^
   
   [1]

@@ -18,7 +18,7 @@
   (rx symbol-start
       (or "fun" "type" "if" "then" "else" "elseif" "and" "or" "external" "let"
           "match" "with" "module" "module_type" "signature" "val" "functor" "do"
-          "use")
+          "use" "import")
       symbol-end)
   "Schmu language keywords.")
 

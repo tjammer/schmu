@@ -1,3 +1,5 @@
+import nonpoly_func
+
 external printf : (string/cstr, int) -> unit
 
 fun doo(a):

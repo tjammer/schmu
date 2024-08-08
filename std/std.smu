@@ -1,3 +1,13 @@
+import array
+import float
+import hashtbl
+import in_channel
+import int
+import option
+import prelude
+import string
+import unsafe
+
 type string = string/t
 
 let print = string/print
@@ -10,6 +20,7 @@ let char_equal = prelude/char_equal
 let iter_range = prelude/iter_range
 
 module array = array
+module float = float
 module hashtbl = hashtbl
 module in_channel = in_channel
 module int = int

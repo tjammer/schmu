@@ -64,13 +64,14 @@ val register_applied_functor :
 
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
 val paths : string list ref
-
-val find_module :
-  Env.t -> Ast.loc -> regeneralize:(typ -> typ) -> string -> Env.cached_module
+val find_module : Env.t -> Ast.loc -> string -> Env.cached_module
 
 val scope_of_functor_param :
   Env.t -> loc -> param:Path.t -> Module_type.t -> Env.cached_module
 (** Make scopes out of a functor param to add it to the env *)
+
+val import_module :
+  Env.t -> Ast.loc -> regeneralize:(typ -> typ) -> string -> Env.t
 
 val scope_of_located : Env.t -> Path.t -> (Env.scope, string) Result.t
 val of_located : Env.t -> Path.t -> (t, string) Result.t

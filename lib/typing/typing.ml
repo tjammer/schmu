@@ -1834,6 +1834,9 @@ and convert_prog env items modul =
         let env, m = List.fold_left add_signature_types (env, m) sgn in
         sgnrf := (sgn, env);
         (env, items, m)
+    | Import (loc, name) ->
+        let env = Module.import_module env loc ~regeneralize name in
+        (env, items, m)
   and aux_stmt (old, env, items, m) = function
     | Ast.Let (loc, decl, block) ->
         let env, id, id_loc, lhs, rmut, pats =
@@ -1950,7 +1953,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std prog =
 
   let loc = Lexing.(dummy_pos, dummy_pos) in
   (* Add builtins to env *)
-  let find_module = Module.find_module ~regeneralize in
+  let find_module = Module.find_module in
   let scope_of_located = Module.scope_of_located in
 
   let env =
@@ -1972,7 +1975,12 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~std prog =
   in
 
   (* Use prelude *)
-  let env = if std then Env.use_module env loc (Path.Pid "std") else env in
+  let env =
+    if std then
+      let env = Module.import_module env loc ~regeneralize "std" in
+      Env.use_module env loc (Path.Pid "std")
+    else env
+  in
 
   let externals, items, m = convert_module env mname prog check_ret in
 

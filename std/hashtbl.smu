@@ -1,3 +1,7 @@
+import array
+import option
+import prelude
+
 module type key:
   type t
   val hash : (t) -> int

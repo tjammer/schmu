@@ -1,3 +1,6 @@
+import indirect
+import public
+
 let a = "modd"
 
 let b = indirect/a

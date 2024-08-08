@@ -97,6 +97,7 @@ let poly_funcs = ref []
 let ext_funcs = ref []
 let paths = ref [ "." ]
 let append_externals l = List.rev_append !ext_funcs l
+let allow_transitive_deps = ref false
 
 let find_file ~name ~suffix =
   let fname = String.lowercase_ascii (name ^ suffix) in
@@ -105,15 +106,14 @@ let find_file ~name ~suffix =
     | p :: tl ->
         let file = p // fname in
         let dir = p // name in
-        if Sys.file_exists file then file
+        (* Trim prefix "./" *)
+        if Sys.file_exists file then if String.equal p "." then fname else file
         else if
           Sys.file_exists dir && Sys.is_directory dir
           && Sys.file_exists (dir // fname)
         then dir // fname
         else path tl
-    | [] ->
-        print_endline fname;
-        raise Not_found
+    | [] -> raise Not_found
   in
   let file = path !paths in
   file
@@ -275,108 +275,122 @@ let load_foreign loc foreign fname mname =
   | _ -> failwith "Internal Error: Cannot read foreign module"
 
 let rec add_to_env env foreign (mname, m) =
+  allow_transitive_deps := true;
   let def_val = Env.def_mname mname in
   let cname name = function Some cname -> cname | None -> name in
-  match m.s with
-  | [] ->
-      List.fold_left
-        (fun env item ->
-          match item with
-          | Mtype (_, name, decl) -> Env.add_type name decl env
-          | Mfun (l, typ, n) ->
-              Env.(
-                add_value n.user { def_val with typ; global = true } l env
-                |> add_callname ~key:n.user (cname n.user n.call))
-          | Mpoly_fun (l, abs, n, _) ->
-              Env.(
-                add_value n { def_val with typ = type_of_func abs.func } l env)
-          | Mext (l, typ, n, _) ->
-              let const =
-                match repr typ with Tfun (_, _, Simple) -> true | _ -> false
-              in
-              Env.(
-                add_value n.user
-                  { def_val with typ; global = true; const }
-                  l env
-                |> add_callname ~key:n.user (cname n.user n.call))
-          | Mmutual_rec (_, ds) ->
-              List.fold_left
-                (fun env (l, name, _, typ) ->
-                  Env.(add_value name { def_val with typ } l env))
-                env ds
-          | Malias (loc, n, tree) ->
-              Env.(
-                add_value n
-                  { def_val with typ = tree.typ; global = true }
-                  loc env)
-          | Mlocal_module (loc, key, m) -> (
-              let mname = Path.append key mname in
-              match Hashtbl.find_opt module_cache mname with
-              | None -> (
-                  (* Add to cache *)
-                  match register_module env loc mname m with
-                  | Ok env -> env
-                  | Error () -> raise (Error (loc, "Cannot add module")))
-              | Some cached ->
-                  Env.add_module ~key (envmodule_of_cached mname cached) env)
-          | Mapplied_functor (loc, key, p, m) ->
-              register_applied_functor env loc key p m
-          | Mfunctor (loc, key, ps, items, m) -> (
-              let mname = Path.append key mname in
-              match register_functor env loc mname ps items m with
-              | Ok env -> env
-              | Error () -> raise (Error (loc, "Cannot add functor")))
-          | Mmodule_alias (loc, key, mname, fname) -> (
-              match Hashtbl.find_opt module_cache mname with
-              | None ->
-                  load_foreign loc foreign fname mname;
-                  Env.add_module ~key (Env.Cm_located mname) env
-              | Some cached ->
-                  Env.add_module ~key (envmodule_of_cached mname cached) env)
-          | Mmodule_type (_, name, intf) -> Env.add_module_type name intf env)
-        env m.i
-  | l ->
-      let env =
+  let env =
+    match m.s with
+    | [] ->
         List.fold_left
-          (fun env (name, loc, kind) ->
-            match kind with
-            (* Not in the signature of the module we add it to *)
-            | Mtypedef decl -> Env.add_type name decl env
-            | Mvalue (typ, cn) -> (
-                Env.(add_value name { def_val with typ } loc env) |> fun env ->
-                match cn with
-                | None -> env
-                | Some cn -> Env.add_callname ~key:name cn env))
-          env l
-      in
-      List.iter
-        (function
-          (* Add hidden types to the env so they are readable later on *)
-          | Mtype (_, name, decl) ->
-              let tbl = Env.decl_tbl env and name = Path.append name mname in
-              if not (Hashtbl.mem tbl name) then
-                (* Add decl to table *)
-                Hashtbl.add tbl name decl
-          | _ -> ())
-        m.i;
-      env
+          (fun env item ->
+            match item with
+            | Mtype (_, name, decl) -> Env.add_type name decl env
+            | Mfun (l, typ, n) ->
+                Env.(
+                  add_value n.user { def_val with typ; global = true } l env
+                  |> add_callname ~key:n.user (cname n.user n.call))
+            | Mpoly_fun (l, abs, n, _) ->
+                Env.(
+                  add_value n { def_val with typ = type_of_func abs.func } l env)
+            | Mext (l, typ, n, _) ->
+                let const =
+                  match repr typ with Tfun (_, _, Simple) -> true | _ -> false
+                in
+                Env.(
+                  add_value n.user
+                    { def_val with typ; global = true; const }
+                    l env
+                  |> add_callname ~key:n.user (cname n.user n.call))
+            | Mmutual_rec (_, ds) ->
+                List.fold_left
+                  (fun env (l, name, _, typ) ->
+                    Env.(add_value name { def_val with typ } l env))
+                  env ds
+            | Malias (loc, n, tree) ->
+                Env.(
+                  add_value n
+                    { def_val with typ = tree.typ; global = true }
+                    loc env)
+            | Mlocal_module (loc, key, m) -> (
+                let mname = Path.append key mname in
+                match Hashtbl.find_opt module_cache mname with
+                | None -> (
+                    (* Add to cache *)
+                    match register_module env loc mname m with
+                    | Ok env -> env
+                    | Error () -> raise (Error (loc, "Cannot add module")))
+                | Some cached ->
+                    Env.add_module ~key (envmodule_of_cached mname cached) env)
+            | Mapplied_functor (loc, key, p, m) ->
+                register_applied_functor env loc key p m
+            | Mfunctor (loc, key, ps, items, m) -> (
+                let mname = Path.append key mname in
+                match register_functor env loc mname ps items m with
+                | Ok env -> env
+                | Error () -> raise (Error (loc, "Cannot add functor")))
+            | Mmodule_alias (loc, key, mname, fname) -> (
+                match Hashtbl.find_opt module_cache mname with
+                | None ->
+                    load_foreign loc foreign fname mname;
+                    Env.add_module ~key (Env.Cm_located mname) env
+                | Some cached ->
+                    Env.add_module ~key (envmodule_of_cached mname cached) env)
+            | Mmodule_type (_, name, intf) -> Env.add_module_type name intf env)
+          env m.i
+    | l ->
+        let env =
+          List.fold_left
+            (fun env (name, loc, kind) ->
+              match kind with
+              (* Not in the signature of the module we add it to *)
+              | Mtypedef decl -> Env.add_type name decl env
+              | Mvalue (typ, cn) -> (
+                  Env.(add_value name { def_val with typ } loc env)
+                  |> fun env ->
+                  match cn with
+                  | None -> env
+                  | Some cn -> Env.add_callname ~key:name cn env))
+            env l
+        in
+        List.iter
+          (function
+            (* Add hidden types to the env so they are readable later on *)
+            | Mtype (_, name, decl) ->
+                let tbl = Env.decl_tbl env and name = Path.append name mname in
+                if not (Hashtbl.mem tbl name) then
+                  (* Add decl to table *)
+                  Hashtbl.add tbl name decl
+            | _ -> ())
+          m.i;
+        env
+  in
+  allow_transitive_deps := false;
+  env
 
 and make_scope env loc foreign mname m =
   let env = Env.open_module_scope env loc mname in
   let env = add_to_env env foreign (mname, m) in
   Env.pop_scope env
 
-and locate_module loc ~regeneralize name =
+and import_module env loc ~regeneralize name =
   let mname = Path.Pid name in
+  (* Find file first to ensure importing the file is even allowed. It could be
+     in the [module_cache] as a transitive dependency and not be accessible to
+     the current scope. *)
+  let _raise () = raise (Error (loc, "Cannot find module: " ^ name)) in
+  let filename =
+    try find_file ~name ~suffix:".smi" with Not_found -> _raise ()
+  in
   match Hashtbl.find_opt module_cache mname with
-  | Some r -> Ok (envmodule_of_cached mname r)
+  | Some cached ->
+      Env.add_module ~key:name (envmodule_of_cached mname cached) env
   | None -> (
       try
-        let filename = find_file ~name ~suffix:".smi" in
         let filename = Filename.remove_extension filename in
-        Hashtbl.add module_cache mname (Located (filename, loc, regeneralize));
-        Ok (Env.Cm_located mname)
-      with Not_found -> Error ("Cannot find module: " ^ name))
+        let cached = Located (filename, loc, regeneralize) in
+        Hashtbl.add module_cache mname cached;
+        Env.add_module ~key:name (envmodule_of_cached mname cached) env
+      with Not_found -> _raise ())
 
 and module_name_of_path p =
   match String.split_on_char sep p with [] -> p | l -> List.rev l |> List.hd
@@ -472,7 +486,7 @@ and register_applied_functor env loc key mname modul =
   in
   Env.add_module ~key cached env
 
-let find_module env loc ~regeneralize name =
+let find_module env loc name =
   (* We first search the env for local modules. Then we try read the module the normal way *)
   let r =
     match Env.find_module_opt ~query:true loc (Path.Pid name) env with
@@ -490,8 +504,23 @@ let find_module env loc ~regeneralize name =
                 (Path.show name)
             in
             raise (Error (loc, msg)))
-    | None -> locate_module loc ~regeneralize name
+    | None -> (
+        (* Check if we have imported the module before *)
+        let m =
+          if !allow_transitive_deps then
+            let mname = Path.Pid name in
+            match Hashtbl.find_opt module_cache mname with
+            | Some r -> Ok (envmodule_of_cached mname r)
+            | None -> Error ()
+          else Error ()
+        in
+        match m with
+        | Ok m -> Ok m
+        | Error () ->
+            let msg = Printf.sprintf "Module %s has not been imported" name in
+            raise (Error (loc, msg)))
   in
+
   match r with
   | Ok m -> m
   | Error s ->

@@ -129,6 +129,7 @@ type top_item =
   | Module_alias of module_decl * alias_kind
   | Module_type of ident * signature list
   | Signature of loc * signature list
+  | Import of ident
 
 and module_decl = loc * string * Path.t option
 and functor_param = loc * string * Path.t

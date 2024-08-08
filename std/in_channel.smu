@@ -1,3 +1,8 @@
+import array
+import option
+import prelude
+import string
+
 signature:
   type t
 

@@ -550,7 +550,7 @@ prog: Ident Cmp_op With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Cmp_op Ident Wildcard
+prog: Ident Cmp_op Ident Cmp_op
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1051,6 +1051,10 @@ prog: Module Ident Colon With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Module Ident Colon Begin With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Import With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

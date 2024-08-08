@@ -133,6 +133,7 @@ rule read =
   | "false"  { False }
   | "and"    { And }
   | "or"     { Or }
+  | "import" { Import }
   | '='      { Equal }
   | ':'      { Colon }
   | ','      { Comma }

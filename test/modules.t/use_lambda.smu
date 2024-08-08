@@ -1,1 +1,3 @@
+import decl_lambda
+
 decl_lambda/lambda(-1)

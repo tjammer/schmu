@@ -1,3 +1,5 @@
+import simple_functor
+
 module s = simple_functor/make(string)
 
 ignore(s/create(!"this", !"other"))

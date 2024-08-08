@@ -1,3 +1,7 @@
+import array
+import option
+import prelude
+
 signature:
   type cstr = raw_ptr(u8)
   type t

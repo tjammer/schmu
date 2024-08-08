@@ -36,6 +36,7 @@
 %token <string> Path_id
 %token Dot
 %token Use
+%token Import
 %token If
 %token Elseif
 %token Else
@@ -121,6 +122,7 @@ top_item:
   | functor_ = functor_ { functor_ }
   | modtype = modtype { modtype }
   | sgn = signature { Signature ($loc(sgn), sgn) }
+  | Import; id = Ident { Import ($loc(id), id) }
 
 stmt:
   | Let; decl = let_decl; Equal; pexpr = passed(block)
