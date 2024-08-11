@@ -295,7 +295,7 @@ module Make (C : Map_tree) = struct
     | Mfunctor (loc, n, ps, t, m) ->
         let mname = Path.append n mname in
         let f sub (n, intf) =
-          let sub, intf = map_intf sub intf in
+          let sub, intf = map_intf mname sub intf in
           (sub, (n, intf))
         in
         let osub = sub in
@@ -305,17 +305,31 @@ module Make (C : Map_tree) = struct
         ((osub, nsub), Mfunctor (loc, n, ps, t, m))
     | Mmodule_alias _ as m -> ((sub, nsub), m)
     | Mmodule_type (loc, n, intf) ->
-        let _, intf = map_intf sub intf in
+        let _, intf = map_intf mname sub intf in
         ((sub, nsub), Mmodule_type (loc, n, intf))
 
   and map_module mname sub m =
+    (* Map impl first. because abstract types in the signature might link to
+       impl types and we need this impl decl to be in the sub for the signature
+       processing to succeed. *)
     let (sub, _), i =
       List.fold_left_map (fold_map_type_item mname) (sub, Smap.empty) m.i
     in
-    let sub, s = map_intf sub m.s in
+    let sub, s = map_intf mname sub m.s in
     (sub, { m with s; i })
 
-  and map_intf sub intf =
-    (* TODO map decl *)
-    List.fold_left_map (fun sub (key, l, k) -> (sub, (key, l, k))) sub intf
+  and map_sg_kind mname n sub = function
+    | Mtypedef decl ->
+        let sub, decl = C.map_decl ~mname n sub decl in
+        (sub, Mtypedef decl)
+    | Mvalue (typ, cn) ->
+        let sub, typ = C.map_type sub typ in
+        (sub, Mvalue (typ, cn))
+
+  and map_intf mname sub intf =
+    List.fold_left_map
+      (fun sub (key, l, k) ->
+        let sub, kind = map_sg_kind mname key sub k in
+        (sub, (key, l, kind)))
+      sub intf
 end
