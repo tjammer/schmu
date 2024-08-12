@@ -87,3 +87,5 @@ val validate_signature : Env.t -> t -> t
 
 val to_module_type : t -> Module_type.t
 (** Throws if [t] isn't a pure module type *)
+
+val with_transitive_deps : (unit -> 'a) -> 'a

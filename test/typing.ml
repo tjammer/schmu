@@ -1275,6 +1275,26 @@ let test_functor_check_concrete () =
      expecting (_) -> [t(int)]\n\
      but found (_) -> [t('a)]" (check_sig_test "int")
 
+let test_functor_sgn_only_type () =
+  test "unit"
+    {|
+module type any:
+  type t
+
+functor use_types(m : any):
+  signature:
+    type result = { code : int }
+    type other_sgn = result
+
+  type other = int
+  type using_result = { res : result }
+
+module whatev:
+  type t = int
+
+module applied = use_types(whatev)
+|}
+
 let test_farray_lit () = test "unit" "let arr = #[1, 2, 3]"
 let test_farray_lit_trailing () = test "unit" "let arr = #[1, 2, 3,]"
 
@@ -1804,6 +1824,7 @@ do:
           case "check sig" test_functor_check_sig;
           case "check sig param" test_functor_check_param;
           case "check sig concrete" test_functor_check_concrete;
+          case "sgn-only type" test_functor_sgn_only_type;
         ] );
       ( "fixed-size array",
         [

@@ -530,7 +530,12 @@ let find_general ~(find : key -> scope -> 'a option)
             (* If the value comes from base module, we must not find it in a
                module type scope *)
             match scope.kind with
-            | Smodule _ when of_base -> find_value ~of_base key tl
+            | Smodule m when of_base ->
+                (* When adding a module, we set the base path to the modules path
+                   directly. In these cases, it's allowed to take the value from
+                   the module. *)
+                if Path.equal m.name env.modpath then Some (found scope.kind t)
+                else find_value ~of_base key tl
             | _ -> Some (found scope.kind t))
         | None -> find_value ~of_base key tl)
   and find_module key = function

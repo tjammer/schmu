@@ -1791,9 +1791,13 @@ and convert_prog env items modul =
             in
             let subs = (find, subs, Module_type.Pmap.empty) in
 
-            let subs, modul = Subst.map_module applied_name subs modul in
-            let body =
-              Subst.map_tl_items applied_name Smap.empty subs body |> snd
+            let modul, body =
+              Module.with_transitive_deps (fun () ->
+                  let subs, modul = Subst.map_module applied_name subs modul in
+                  let body =
+                    Subst.map_tl_items applied_name Smap.empty subs body |> snd
+                  in
+                  (modul, body))
             in
             let moditems = List.map (fun item -> (applied_name, item)) body in
             let items = Tl_module moditems :: items in

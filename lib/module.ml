@@ -159,12 +159,16 @@ module Map_canon : Map_module.Map_tree = struct
       | Ttuple ts -> List.iter load_type ts
     in
 
-    (match decl.kind with
-    | Dalias typ -> load_type typ
-    | Drecord (_, fields) -> Array.iter (fun f -> load_type f.ftyp) fields
-    | Dvariant (_, ctors) ->
-        Array.iter (fun ct -> Option.map load_type ct.ctyp |> ignore) ctors
-    | Dabstract _ -> ());
+    let rec map_kind = function
+      | Dalias typ -> load_type typ
+      | Drecord (_, fields) -> Array.iter (fun f -> load_type f.ftyp) fields
+      | Dvariant (_, ctors) ->
+          Array.iter (fun ct -> Option.map load_type ct.ctyp |> ignore) ctors
+      | Dabstract (Some kind) -> map_kind kind
+      | Dabstract _ -> ()
+    in
+
+    map_kind decl.kind;
     (sub, decl)
 
   let absolute_module_name = absolute_module_name
@@ -619,6 +623,14 @@ let to_channel c ~outname m =
   in
   { m with objects } |> sexp_of_t |> Sexp.to_channel c
 
+let with_transitive_deps f =
+  if !allow_transitive_deps then f ()
+  else (
+    allow_transitive_deps := true;
+    let ret = f () in
+    allow_transitive_deps := false;
+    ret)
+
 let is_type = function Mtypedef _ -> true | _ -> false
 
 let find_item name kind = function
@@ -685,6 +697,8 @@ let validate_module_type env ~mname find mtype =
   (* Go through signature and check that the implemented types match.
      Implementation is appended to a list, so the most current bindings are the ones we pick.
      That's exactly what we want. Also, set correct unique name to signature binding. *)
+  let sgn_decls = ref [] in
+  let prev_sgn_decl = ref None in
   let mn = mname in
   let com = "Signatures don't match" in
   let f (name, loc, kind) (sub, acc) =
@@ -711,6 +725,7 @@ let validate_module_type env ~mname find mtype =
               let msg = Error.format_type_err (com ^ ":") mn s i in
               raise (Error (loc, msg))
         in
+        prev_sgn_decl := Some name;
         (sub, (name, loc, kind) :: acc)
     | Some (Mvalue (ityp, callname)), Mvalue (styp, _) ->
         let typ, _, b = Inference.types_match ~abstracts_map:sub styp ityp in
@@ -730,11 +745,19 @@ let validate_module_type env ~mname find mtype =
           in
           raise (Error (loc, msg))
     | (None | Some (Mvalue _)), Mtypedef decl -> (
-        (* Typedefs don't have to be given a second time. Except: When the initial type is abstract *)
+        (* Typedefs don't have to be given a second time. Except: When the
+           initial type is abstract *)
         match decl.kind with
         | Dabstract _ ->
             raise (Error (loc, com ^ ": Type " ^ name ^ " is missing"))
-        | _ -> (sub, (name, loc, kind) :: acc))
+        | _ ->
+            (* These types are only present in the signature. For applying
+               functors, we need to check each type for aliases. A type defined
+               in the impl might refer to this signature type. Thus, the
+               signature types need to be manually placed into the decl map
+               which keeps track of in-module type declarations. *)
+            sgn_decls := (name, loc, decl, !prev_sgn_decl) :: !sgn_decls;
+            (sub, (name, loc, kind) :: acc))
     | (None | Some (Mtypedef _)), Mvalue (typ, _) ->
         let msg =
           Printf.sprintf
@@ -745,7 +768,32 @@ let validate_module_type env ~mname find mtype =
         raise (Error (loc, msg))
   in
   let _, mtype = List.fold_right f mtype (Pmap.empty, []) in
-  mtype
+  (mtype, !sgn_decls |> List.rev)
+
+let insert_into_impl sgn_decls impl =
+  (* The decls to insert are ordered because we go through the signature in
+     order. *)
+  let rec add_after acc ((name, loc, decl) as sgn) ~typename impl =
+    match impl with
+    | (Mtype (_, implname, _) as item) :: tl when String.equal typename implname
+      ->
+        (Mtype (loc, name, decl) :: item :: acc, tl)
+    | item :: tl -> add_after (item :: acc) sgn ~typename tl
+    | [] -> failwith "Internal Error: Could not find typename to add after"
+  in
+
+  let rec aux acc sgn_decls impl =
+    match sgn_decls with
+    | (name, loc, decl, None) :: stl ->
+        aux (Mtype (loc, name, decl) :: acc) stl impl
+    | (name, loc, decl, Some typename) :: stl ->
+        let acc, impl = add_after acc (name, loc, decl) ~typename impl in
+        aux acc stl impl
+    | [] -> (
+        (* Add the remaining impl *)
+        match impl with item :: tl -> aux (item :: acc) [] tl | [] -> acc)
+  in
+  aux [] sgn_decls (List.rev impl)
 
 let validate_signature env m =
   match m.s with
@@ -753,7 +801,12 @@ let validate_signature env m =
   | s ->
       let find name kind = List.find_map (find_item name kind) m.i in
       let mname = Env.modpath env in
-      { m with s = validate_module_type ~mname env find s }
+      let s, sgn_decls = validate_module_type ~mname env find s in
+      let i = insert_into_impl sgn_decls m.i in
+      (* Add sgn decls to the impl. The difficulty lies in adding them to
+         the correct place. Each sgn decl remembers the previous type decl. We
+         use this information to insert the decl. *)
+      { m with s; i }
 
 let validate_intf env ~mname intf m =
   match m.s with
