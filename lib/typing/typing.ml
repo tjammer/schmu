@@ -1425,7 +1425,15 @@ let check_module_annot env loc ~mname m annot =
       )
   | None -> ()
 
-module Subst_functor (* : Map_module.Map_tree *) = struct
+(* These different functors exist to factor out the [map_decl] function, which
+   is used by both modules. The reason for having two (very similar) modules is
+   that for [resolve_alias], we need all declarations to be present. The
+   declarations are collected in the first module, and are not guarenteed to
+   arrive in the order they are used. For instance, a type in a signature might
+   be the first type declared, but in the module the last type defined. Hence,
+   there are two split modules. One for renaming and the other one for resolving
+   alisases. *)
+module Sub_def = struct
   open Module_type
 
   type mapping = { base : Path.t; with_ : Path.t }
@@ -1436,34 +1444,16 @@ module Subst_functor (* : Map_module.Map_tree *) = struct
     * mapping list
     * decl_map
 
-  let empty_sub () =
-    (* Make sure the empty env is never used. We want to pass the actual env to
-       look up declarations. *)
-    failwith "unreachable"
+  let find_function find_type declsub path =
+    match Pmap.find_opt path declsub with
+    | Some decl -> Some decl
+    | None -> find_type path
+end
 
-  let change_var ~mname id m (_, subs, _) =
-    ignore mname;
-    match m with
-    | Some m ->
-        let p =
-          List.fold_left
-            (fun p { base; with_ } -> Path.subst_base ~base ~with_ p)
-            m subs
-        in
-        (id, Some p)
-    | None -> (id, m)
-
-  let absolute_module_name = Module.absolute_module_name
-
-  let map_type (find_type, subs, decls) typ =
-    let typ =
-      List.fold_left
-        (fun typ { base; with_ } -> apply_pathsub ~base ~with_ typ)
-        typ subs
-    in
-    (* Use aliases if they are available *)
-    let typ = resolve_alias (find_type decls) typ in
-    ((find_type, subs, decls), typ)
+module Map_decl (Subst : Map_module.Map_tree with type sub = Sub_def.sub) =
+struct
+  open Module_type
+  include Subst
 
   let rec map_decl ~mname id sub decl =
     let (find, subs, dmap), kind =
@@ -1505,14 +1495,80 @@ module Subst_functor (* : Map_module.Map_tree *) = struct
     let path = Path.append id mname in
     let dmap = Pmap.add path (decl, path) dmap in
     ((find, subs, dmap), decl)
-
-  let find_function find_type declsub path =
-    match Pmap.find_opt path declsub with
-    | Some decl -> Some decl
-    | None -> find_type path
 end
 
+module Subst_functor_impl (* : Map_module.Map_tree *) = struct
+  open Module_type
+  open Sub_def
+
+  type sub = Sub_def.sub
+
+  let empty_sub () =
+    (* Make sure the empty env is never used. We want to pass the actual env to
+       look up declarations. *)
+    failwith "unreachable"
+
+  let change_var ~mname id m (_, subs, _) =
+    ignore mname;
+    match m with
+    | Some m ->
+        let p =
+          List.fold_left
+            (fun p { base; with_ } -> Path.subst_base ~base ~with_ p)
+            m subs
+        in
+        (id, Some p)
+    | None -> (id, m)
+
+  let absolute_module_name = Module.absolute_module_name
+
+  let map_type (find_type, subs, decls) typ =
+    let typ =
+      List.fold_left
+        (fun typ { base; with_ } -> apply_pathsub ~base ~with_ typ)
+        typ subs
+    in
+    ((find_type, subs, decls), typ)
+
+  let map_decl ~mname id sub decl =
+    ignore mname;
+    ignore id;
+    ignore sub;
+    ignore decl;
+    failwith "unreachable"
+end
+
+module Resolve_aliases_impl (* : Map_module.Map_tree *) = struct
+  type sub = Sub_def.sub
+
+  let empty_sub () =
+    (* Make sure the empty env is never used. We want to pass the actual env to
+       look up declarations. *)
+    failwith "unreachable"
+
+  let change_var ~mname id m _ =
+    ignore mname;
+    (id, m)
+
+  let absolute_module_name = Module.absolute_module_name
+
+  let map_type (find_type, subs, decls) typ =
+    (* Use aliases if they are available *)
+    let typ = resolve_alias (find_type decls) typ in
+    ((find_type, subs, decls), typ)
+
+  let map_decl ~mname id sub decl =
+    ignore mname;
+    ignore id;
+    ignore sub;
+    ignore decl;
+    failwith "unreachable"
+end
+
+module Subst_functor = Map_decl (Subst_functor_impl)
 module Subst = Map_module.Make (Subst_functor)
+module Resolve_aliases = Map_decl (Resolve_aliases_impl)
+module Aliases = Map_module.Make (Resolve_aliases)
 
 type fn_let_kind =
   | Callname of string * bool
@@ -1771,14 +1827,12 @@ and convert_prog env items modul =
                want to apply the paramater sub, then the functor name sub. To
                make this explicit, we are using a list. *)
             (* Add functor -> applied functor mapping *)
-            let subs =
-              { Subst_functor.base = mname; with_ = applied_name } :: []
-            in
+            let subs = { Sub_def.base = mname; with_ = applied_name } :: [] in
 
             let subs =
               Module_type.Pmap.fold
                 (fun key value acc ->
-                  Subst_functor.{ base = key; with_ = value } :: acc)
+                  Sub_def.{ base = key; with_ = value } :: acc)
                 !param_arg_map subs
             in
             (* Type declarations which are defined in this functor won't be
@@ -1787,15 +1841,22 @@ and convert_prog env items modul =
                type. *)
             let find =
               let find path = Env.find_type_opt loc path env in
-              Subst_functor.find_function find
+              Sub_def.find_function find
             in
             let subs = (find, subs, Module_type.Pmap.empty) in
 
             let modul, body =
               Module.with_transitive_deps (fun () ->
+                  (* Split name substitution and alias resolving into separate
+                     passes, because not all decls are available in order. *)
                   let subs, modul = Subst.map_module applied_name subs modul in
+                  let _, modul = Aliases.map_module applied_name subs modul in
                   let body =
                     Subst.map_tl_items applied_name Smap.empty subs body |> snd
+                  in
+                  let body =
+                    Aliases.map_tl_items applied_name Smap.empty subs body
+                    |> snd
                   in
                   (modul, body))
             in
