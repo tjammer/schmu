@@ -4,7 +4,7 @@ fun sort(arr&, cmp):
     let i& = lo - 1
     iter_range(lo, hi, fun j:
       if cmp(arr.[j], pivot) < 0:
-        &i <- i + 1
+        &i = i + 1
         array/swap_items(&arr, i, j))
     let i = i + 1
     array/swap_items(&arr, i, hi)
@@ -37,7 +37,7 @@ fun sort(arr&, cmp):
     let i& = lo - 1
     iter_range(lo, hi, fun j:
       if cmp(arr.[j], pivot) < 0:
-        &i <- i + 1
+        &i = i + 1
         array/swap_items(&arr, i, j))
     let i = i + 1
     array/swap_items(&arr, i, hi)

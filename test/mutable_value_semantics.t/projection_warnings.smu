@@ -4,11 +4,11 @@ do:
   let z& = &y
   let w& = &y
   let ii& = &w
-  &ii <- [2]
+  &ii = [2]
 
 fun testfn(a&, b& : int):
   let c& = &a
-  &c <- 123
+  &c = 123
 
 fun single_binder():
   let a& = 0
@@ -18,4 +18,4 @@ let outer& = 10
 
 fun mutate_outer():
   let alias& = &outer
-  &alias <- 11
+  &alias = 11

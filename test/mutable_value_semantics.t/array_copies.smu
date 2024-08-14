@@ -5,9 +5,9 @@ let b = copy(a)
 let c& = copy(a)
 let d = b
 
-&a.[0] <- 12
+&a.[0] = 12
 print_0th(a)
-&c.[0] <- 15
+&c.[0] = 15
 print_0th(a)
 print_0th(b)
 print_0th(c)
@@ -20,9 +20,9 @@ fun in_fun():
   let c& = copy(a)
   let d = b
 
-  &a.[0] <- 12
+  &a.[0] = 12
   print_0th(a)
-  &c.[0] <- 15
+  &c.[0] = 15
   print_0th(a)
   print_0th(b)
   print_0th(c)

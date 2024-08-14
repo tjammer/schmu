@@ -20,8 +20,8 @@ in_fun()
 let nested& = [[0, 1], [2, 3]]
 let a = [4, 5]
 array/push(&nested, !copy(a))
-&nested.[1] <- copy(a)
-&nested.[1] <- copy(a)
+&nested.[1] = copy(a)
+&nested.[1] = copy(a)
 array/push(&nested, ![4, 5])
-&nested.[1] <- [4, 5]
-&nested.[1] <- [4, 5]
+&nested.[1] = [4, 5]
+&nested.[1] = [4, 5]

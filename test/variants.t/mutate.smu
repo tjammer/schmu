@@ -1,12 +1,12 @@
 let a& = 10
 match &a:
-  b&: &b <- 11
+  b&: &b = 11
 print(fmt(a))
 
 type record = {a& : int, b : float}
 let a& = #some(10)
 match &a:
-  #some(b&): &b <- 12
+  #some(b&): &b = 12
   #none: ()
 match a:
   #some(a): print(fmt(a))

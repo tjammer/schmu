@@ -3,7 +3,7 @@ type c = {c& : int}
 fun counter():
   let cnt& = 0
   fun ():
-    &cnt <- cnt + 1
+    &cnt = cnt + 1
     cnt
 
 let c = counter()
@@ -15,7 +15,7 @@ print(fmt(c()))
 fun counter():
   let cnt& = {c = 0}
   fun ():
-    &cnt <- {c = cnt.c + 1}
+    &cnt = {c = cnt.c + 1}
     cnt
 
 let c = counter()

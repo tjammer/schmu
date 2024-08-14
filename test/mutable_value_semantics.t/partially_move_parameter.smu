@@ -1,5 +1,5 @@
 type rr = {a& : array(int), b : array(int)}
-fun test(p&): &p.a <- [10]
+fun test(p&): &p.a = [10]
 do:
   let a& = {a = [], b = []}
   test(&a)

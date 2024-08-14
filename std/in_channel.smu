@@ -67,15 +67,15 @@ fun readbuf(ic&, buf&):
       (0, fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file))
   -- copy content to buf
   fill(&buf, ic.buf, lower, upper)
-  &ic.head <- 0
-  &ic.unseen <- 0
+  &ic.head = 0
+  &ic.unseen = 0
   #some(upper - lower)
 
 fun rec readn_impl(ic&, buf&, n, readacc):
   if ic.unseen >= n:
     fill(&buf, ic.buf, ic.head, ic.head + n)
-    &ic.head <- ic.head + n
-    &ic.unseen <- ic.unseen - n
+    &ic.head = ic.head + n
+    &ic.unseen = ic.unseen - n
     #some(readacc + n)
   else if ic.unseen > 0:
     match readbuf(&ic, &buf):
@@ -87,8 +87,8 @@ fun rec readn_impl(ic&, buf&, n, readacc):
         #none
   else:
     let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
-    &ic.head <- 0
-    &ic.unseen <- copy(nread)
+    &ic.head = 0
+    &ic.unseen = copy(nread)
     if nread == 0:
       if readacc == 0: #none else: #some(readacc)
     else:
@@ -113,27 +113,27 @@ fun readrem(ic&, buf&):
       readall_impl(&ic, &buf, nread)
     #none: #none
   -- make other (read) calls fail after this
-  &ic.unseen <- 0
-  &ic.head <- 0
+  &ic.unseen = 0
+  &ic.head = 0
   ret
 
 fun readline(ic&, buf&):
   fun rec find_newline(acc):
     if ic.unseen > 0:
       if prelude/char_equal('\n', ic.buf#[ic.head]):
-        &ic.unseen <- ic.unseen - 1
-        &ic.head <- ic.head + 1
+        &ic.unseen = ic.unseen - 1
+        &ic.head = ic.head + 1
         #some(acc)
       else:
         array/push(&buf, !copy(ic.buf#[ic.head]))
-        &ic.unseen <- ic.unseen - 1
-        &ic.head <- ic.head + 1
+        &ic.unseen = ic.unseen - 1
+        &ic.head = ic.head + 1
         find_newline(acc + 1)
     else:
       -- re-read file, then recurse, copied from readn_impl
       let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
-      &ic.head <- 0
-      &ic.unseen <- copy(nread)
+      &ic.head = 0
+      &ic.unseen = copy(nread)
       if nread == 0:
         if acc == 0: #none else: #some(acc)
       else: find_newline(acc)
@@ -152,7 +152,7 @@ fun lines(ic&, f):
       #some(_):
         let str = string/of_array(!buf)
         f(str)
-        &buf <- string/to_array(!str)
+        &buf = string/to_array(!str)
         array/clear(&buf)
         aux()
       #none: ()

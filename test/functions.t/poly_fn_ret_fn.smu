@@ -2,7 +2,7 @@ let once& = true
 
 fun black_box(f, g):
   if once:
-    &once <- false
+    &once = false
     copy(f)
   else: copy(g)
 

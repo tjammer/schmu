@@ -2,5 +2,5 @@ fun t():
   let x& = 10
   let y& = &x
   let z& = &y
-  &y <- 11
+  &y = 11
   y

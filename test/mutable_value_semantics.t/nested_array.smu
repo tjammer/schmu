@@ -7,6 +7,6 @@ fun prnt(a):
 let a& = [[10], [20]]
 let b = copy(a)
 
-&a.[0].[0] <- 15
+&a.[0].[0] = 15
 prnt(a)
 prnt(b)

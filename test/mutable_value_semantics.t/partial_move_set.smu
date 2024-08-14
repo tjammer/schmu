@@ -2,11 +2,11 @@ type rr = {a : array(int), b : array(int)}
 
 let a& = {a = [], b = []}
 ignore((a.a, 0))
-&a <- {a = [], b = []}
+&a = {a = [], b = []}
 
 
 fun hmm(a&):
   ignore((a.b, 0))
-  &a <- {a = [], b = []}
+  &a = {a = [], b = []}
 
 hmm(&a)

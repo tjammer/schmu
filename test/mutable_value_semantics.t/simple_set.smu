@@ -1,10 +1,10 @@
 let b& = 10
-&b <- 14
+&b = 14
 print(fmt(b))
 
 fun hmm():
   let b& = 10
-  &b <- 15
+  &b = 15
   b
 print(fmt(hmm()))
 
@@ -13,5 +13,5 @@ let b = copy(a)
 ignore(b)
 
 let c = [30]
-&a.[0] <- copy(c)
-&a.[0] <- [10]
+&a.[0] = copy(c)
+&a.[0] = [10]

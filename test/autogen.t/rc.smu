@@ -7,4 +7,4 @@ copy(variant).ignore()
 type thing = { a : option(array(int)) }
 let record& = rc/create(!{a = #some([1])})
 
-&rc/get(record) <- { a = #none }
+&rc/get(record) = { a = #none }

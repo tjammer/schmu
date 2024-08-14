@@ -1,6 +1,6 @@
 type f = {a& : int}
 
-fun modify(r&): &r.a <- 30
+fun modify(r&): &r.a = 30
 
 fun mod2(a&): array/push(&a, !20)
 

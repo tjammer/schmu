@@ -1,10 +1,10 @@
 type bref = {a& : bool}
 
 fun rec mut_bref(i, rf&):
-  if i > 0: &rf.a <- true else: mut_bref(i + 1, &rf)
+  if i > 0: &rf.a = true else: mut_bref(i + 1, &rf)
 
 fun rec dontmut_bref(i, rf&):
-  if i > 0: &rf.a <- false
+  if i > 0: &rf.a = false
   else:
     -- introduce a new object, so the old one won't get mutated
     let rf2& = {a = true}
@@ -26,7 +26,7 @@ print(fmt(rf.a))
 type r = {a& : int}
 
 fun rec mod_rec(r&, i):
-  if i == 2: &r.a <- i
+  if i == 2: &r.a = i
   else: mod_rec(&r, i + 1)
 
 do:
@@ -48,7 +48,7 @@ do:
 
 -- int
 fun rec change_int(i&, j):
-  if j == 100: &i <- j else: change_int(&i, j + 1)
+  if j == 100: &i = j else: change_int(&i, j + 1)
 
 do:
   let i& = 0

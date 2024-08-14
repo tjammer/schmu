@@ -8,7 +8,7 @@ use prelude
 
 fun create(len):
   let ret& = __unsafe_array_create(len)
-  &__unsafe_array_length(ret) <- 0
+  &__unsafe_array_length(ret) = 0
   ret
 
 fun push(arr&, value!):
@@ -22,7 +22,7 @@ fun push(arr&, value!):
       __unsafe_array_realloc(&arr, 2 * capacity)
 
   __unsafe_ptr_set(&data(arr), length, !value)
-  &__unsafe_array_length(arr) <- length + 1
+  &__unsafe_array_length(arr) = length + 1
 
 fun iter(arr, f):
   fun rec inner(i):
@@ -64,8 +64,8 @@ fun map(arr, f):
 fun swap_items(arr&, i, j):
   if not (i == j):
     let itmp = !arr.[i]
-    &arr.[i] <- arr.[j]
-    &arr.[j] <- itmp
+    &arr.[i] = arr.[j]
+    &arr.[j] = itmp
 
 
 fun clear(arr&):

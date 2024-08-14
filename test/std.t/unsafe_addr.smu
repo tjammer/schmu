@@ -1,7 +1,7 @@
 fun in():
   let arr& = [0, 1]
   let thing& = &unsafe/addr(&arr.[1]).unsafe/get(0)
-  &thing <- 2
+  &thing = 2
   let thing = unsafe/addr(&arr.[1])
 
   unsafe/(assert((array/data(arr).reinterpret() +> 0) == (addr(&arr.[0]) +> 0)))

@@ -1,6 +1,6 @@
 fun dont_be_global(_):
   let localmut & = false
   print(fmt(localmut))
-  if not(localmut): &localmut <- true
+  if not(localmut): &localmut = true
 
 iter_range(0, 3, dont_be_global)

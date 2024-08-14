@@ -55,7 +55,6 @@
 %token Hashtag_brack
 %token <int> Hashnum_brack
 %token Newline
-%token Left_arrow
 %token Right_arrow
 %token Pipe_tail
 %token With
@@ -348,7 +347,7 @@ expr:
     { Match ($loc, fst expr, snd expr, clauses) }
   | Match; expr = passed(expr); Colon; clauses = block_clauses
     { Match ($loc, fst expr, snd expr, clauses) }
-  | Ampersand; expr = expr; Left_arrow; newval = expr; %prec Below_Ampersand
+  | Ampersand; expr = expr; Equal; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
   | id = Path_id; expr = expr; %prec Path { Local_use ($loc, id, expr) }
 

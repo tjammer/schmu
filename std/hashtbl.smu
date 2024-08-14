@@ -17,6 +17,7 @@ module type sig:
   val find : (t('value), key) -> option/t('value)
   val mem : (t('value), key) -> bool
   val fold : (t('value), 'b!, ('b!, key, 'value) -> 'c) -> 'c
+  val clear : (t('value)&) -> unit
   val to_array : (t('value)) -> array((key, 'value))
 
 functor make : sig(m : key):
@@ -52,16 +53,16 @@ functor make : sig(m : key):
     match tbl.data.[curr]:
       #none:
         let item& = !item
-        &item.pathlen <- pathlen
-        &tbl.data.[curr] <- #some(item)
+        &item.pathlen = pathlen
+        &tbl.data.[curr] = #some(item)
       #some(other):
         let next = next_wrapped(curr, size)
         if pathlen > other.pathlen:
           let other_pathlen = copy(other.pathlen)
           let new_item = !other
           let item& = !item
-          &item.pathlen <- pathlen
-          &tbl.data.[curr] <- #some(item)
+          &item.pathlen = pathlen
+          &tbl.data.[curr] = #some(item)
           redist(&tbl, !new_item, next, other_pathlen + 1)
         else:
           redist(&tbl, !item, next, pathlen + 1)
@@ -74,7 +75,7 @@ functor make : sig(m : key):
   fun iter_data_move(data&, f):
     fun rec inner(i):
       if i == array/length(data):
-        &__unsafe_array_length(data) <- 0
+        &__unsafe_array_length(data) = 0
       else:
         match __unsafe_ptr_get(array/data(data), i):
           #none: inner(i + 1)
@@ -89,8 +90,8 @@ functor make : sig(m : key):
     prelude/iter_range(0, size, fun i:
       __unsafe_ptr_set(&array/data(data), i, !#none))
     let old_data& = !tbl.data
-    &tbl.data <- data
-    &tbl.nitems <- 0
+    &tbl.data = data
+    &tbl.nitems = 0
     iter_data_move(&old_data, fun(key!, value!):
       insert(&tbl, !key, !value))
 
@@ -102,20 +103,20 @@ functor make : sig(m : key):
     fun rec insert(i, pathlen, key!, value!):
       match tbl.data.[i]:
         #none:
-          &tbl.data.[i] <- #some({key, value, pathlen})
-          &tbl.nitems <- tbl.nitems + 1
+          &tbl.data.[i] = #some({key, value, pathlen})
+          &tbl.nitems = tbl.nitems + 1
         #some(other):
           if m/equal(key, other.key):
             -- overwrite
-            &tbl.data.[i] <- #some({key, value, pathlen})
+            &tbl.data.[i] = #some({key, value, pathlen})
           else:
             let next = next_wrapped(i, size)
             if pathlen > other.pathlen:
               let other_pathlen = copy(other.pathlen)
               -- probe sequence length of new value is larger. robin hood
               let other_item = !other
-              &tbl.data.[i] <- #some({key, value, pathlen})
-              &tbl.nitems <- tbl.nitems + 1
+              &tbl.data.[i] = #some({key, value, pathlen})
+              &tbl.nitems = tbl.nitems + 1
               redist(&tbl, !other_item, next, other_pathlen + 1)
             else:
               insert(next, pathlen + 1, !key, !value)
@@ -152,11 +153,11 @@ functor make : sig(m : key):
     match &data.[next]:
       #some(item&):
         if not(item.pathlen == 0):
-          &item.pathlen <- item.pathlen - 1
+          &item.pathlen = item.pathlen - 1
           -- swap with old slot, inline
           let oldtmp = !data.[old]
-          &data.[old] <- data.[next]
-          &data.[next] <- oldtmp
+          &data.[old] = data.[next]
+          &data.[next] = oldtmp
           fixup(&data, next)
       #none: ()
 
@@ -164,8 +165,8 @@ functor make : sig(m : key):
     let hash = idx(tbl, key)
     match find_index(hash, tbl, key, 0):
       #some(i):
-        &tbl.data.[i] <- #none
-        &tbl.nitems <- tbl.nitems - 1
+        &tbl.data.[i] = #none
+        &tbl.nitems = tbl.nitems - 1
         fixup(&tbl.data, i)
       #none: ()
 
@@ -177,6 +178,10 @@ functor make : sig(m : key):
         #some({key, value, pathlen = _}):
           inner(i + 1, !f(!acc, key, value))
     inner(0, !init)
+
+  fun clear(tbl&):
+    array/clear(&tbl.data)
+    &tbl.nitems = 0
 
   fun iter_data(data, f):
     fun rec inner(i):

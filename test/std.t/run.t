@@ -25,39 +25,39 @@ In channel module test
     let ic& = !ic
   read 33 bytes
       let buf& = array/create(4096)
-  read 1286 bytes
+  read 1278 bytes
       in_channel/readn(&ic, &buf, 50).ignore()
       let str& = !string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       in_channel/readn(&ic, &buf, 6).ignore()
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
         #some(n): print(fmt("read ", n, " bytes"))
         #none: print("read nothing")
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
         #some(n): print(fmt("read ", n, " bytes"))
         #none: print("read nothing")
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf):
         #some(n): print(fmt("read ", n, " bytes"))
         #none: print("read nothing")
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
       in_channel/close(ic)
@@ -86,34 +86,34 @@ In channel module test
       let str& = !string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       in_channel/readn(&ic, &buf, 6).ignore()
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
         #some(n): print(fmt("read ", n, " bytes"))
         #none: print("read nothing")
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
         #some(n): print(fmt("read ", n, " bytes"))
         #none: print("read nothing")
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf):
         #some(n): print(fmt("read ", n, " bytes"))
         #none: print("read nothing")
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
       in_channel/close(ic)
@@ -142,34 +142,34 @@ In channel module test
       let str& = !string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       in_channel/readn(&ic, &buf, 6).ignore()
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
         #some(n): print(fmt("read ", n, " bytes"))
         #none: print("read nothing")
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
         #some(n): print(fmt("read ", n, " bytes"))
         #none: print("read nothing")
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
-      &buf <- string/to_array(!str)
+      &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf):
         #some(n): print(fmt("read ", n, " bytes"))
         #none: print("read nothing")
-      &str <- string/of_array(!buf)
+      &str = string/of_array(!buf)
       print(str)
   
       in_channel/close(ic)

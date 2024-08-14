@@ -438,28 +438,28 @@ setf(a, true)|}
 let test_mutable_declare () = test "int" "type foo = { x& : int }\n0"
 
 let test_mutable_set () =
-  test "unit" "type foo = { x& : int }\nlet foo& = {x = 12}\n&foo.x <- 13"
+  test "unit" "type foo = { x& : int }\nlet foo& = {x = 12}\n&foo.x = 13"
 
 let test_mutable_set_wrong_type () =
   test_exn "In mutation expecting [int] but found [bool]"
-    "type foo = {x& : int}\nlet foo& = {x = 12}\n&foo.x <- true"
+    "type foo = {x& : int}\nlet foo& = {x = 12}\n&foo.x = true"
 
 let test_mutable_set_non_mut () =
   test_exn "Cannot mutate non-mutable binding"
-    "type foo = {x : int}\nlet foo = {x = 12}\n&foo.x <- 13"
+    "type foo = {x : int}\nlet foo = {x = 12}\n&foo.x = 13"
 
-let test_mutable_value () = test "int" "let b& = 10\n&b <- 14\nb"
+let test_mutable_value () = test "int" "let b& = 10\n&b = 14\nb"
 
 let test_mutable_nonmut_value () =
-  test_exn "Cannot mutate non-mutable binding" "let b = 10\n&b <- 14\nb"
+  test_exn "Cannot mutate non-mutable binding" "let b = 10\n&b = 14\nb"
 
 let test_mutable_nonmut_transitive () =
   test_exn "Cannot mutate non-mutable binding"
-    "type foo = { x& : int }\nlet foo = {x = 12}\n&foo.x <- 13"
+    "type foo = { x& : int }\nlet foo = {x = 12}\n&foo.x = 13"
 
 let test_mutable_nonmut_transitive_inv () =
   test_exn "Cannot mutate non-mutable binding"
-    "type foo = {x : int}\nlet foo& = {x = 12}\n&foo.x <- 13"
+    "type foo = {x : int}\nlet foo& = {x = 12}\n&foo.x = 13"
 
 let test_mutable_track_ptr_nonmut () =
   test_exn "Cannot project immutable binding"
@@ -850,12 +850,12 @@ let test_excl_borrow () =
 let test_excl_borrow_use_early () =
   wrap_fn ~tl test_exn
     (ln "x was borrowed in line %i, cannot mutate" 3)
-    [ own; "let y = x"; "ignore(x)"; "&x <- 11"; "ignore(y)" ]
+    [ own; "let y = x"; "ignore(x)"; "&x = 11"; "ignore(y)" ]
 
 let tl = Some "Cannot move top level binding"
 
 let test_excl_move_mut () =
-  wrap_fn ~tl test "unit" [ own; "let y& = !x"; "&y <- 11"; "ignore(y)" ]
+  wrap_fn ~tl test "unit" [ own; "let y& = !x"; "&y = 11"; "ignore(y)" ]
 
 let test_excl_move_mut_use_after () =
   wrap_fn test_exn
@@ -891,7 +891,7 @@ let proj_msg = Some "Cannot project at top level"
 
 let test_excl_proj () =
   wrap_fn ~tl:proj_msg test "unit"
-    [ own; "let y& = &x"; "&y <- 11"; "ignore(x)" ]
+    [ own; "let y& = &x"; "&y = 11"; "ignore(x)" ]
 
 let test_excl_proj_immutable () =
   wrap_fn ~tl:proj_msg test_exn "Cannot project immutable binding"
@@ -925,7 +925,7 @@ let test_excl_moved_param () =
   test_exn "Borrowed parameter x is moved" "fun meh(x): x"
 
 let test_excl_set_moved () =
-  test "unit" "fun meh(a&):\n  ignore((a, 0))\n  &a <- 10"
+  test "unit" "fun meh(a&):\n  ignore((a, 0))\n  &a = 10"
 
 let test_excl_binds () =
   test "unit"
@@ -977,7 +977,7 @@ let test_excl_partial_move_reset () =
 let a& = {a = [], b = []}
 let _ = !a.a
 let _ = !a.b
-&a.b <- []|}
+&a.b = []|}
 
 let test_excl_projections_partial_moves () =
   test "array(int)"
@@ -987,42 +987,42 @@ do:
   let a& = &a
   let tmp = !a.a
   let tmp2 = !a.b
-  &a.a <- tmp2
-  &a.b <- tmp
+  &a.a = tmp2
+  &a.b = tmp
   ignore(a.a)
   a.a|}
 
 let test_excl_array_move_const () =
   test "unit" {|let a& = [0]
 let _ = !a.[1]
-&a.[1] <- 1|}
+&a.[1] = 1|}
 
 let test_excl_array_move_var () =
   test "unit" {|let a& = [0]
 let index = 1
 let _ = !a.[index]
-&a.[index] <- 1|}
+&a.[index] = 1|}
 
 let test_excl_array_move_mixed () =
   test_exn "Cannot move out of array without re-setting"
     {|let a& = [0]
 let index = 1
 let _ = !a.[1]
-&a.[index] <- 1|}
+&a.[index] = 1|}
 
 let test_excl_array_move_wrong_index () =
   test_exn "Cannot move out of array with this index"
     {|let a& = [0]
 fun index(): 1
 let _ = !a.[index()]
-&a.[index()] <- 1|}
+&a.[index()] = 1|}
 
 let test_excl_array_move_dyn_index () =
   test_exn "Cannot move out of array without re-setting"
     {|let a& = [0]
 do:
   let tmp = !a.[0]
-  &a.[0 + 0] <- 0|}
+  &a.[0 + 0] = 0|}
 
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
@@ -1654,7 +1654,7 @@ let () =
             (ln "a was borrowed in line %i, cannot mutate" 5)
             {|let a& = 10
 fun set_a():
-  &a <- 11
+  &a = 11
 do:
   let b = a
   set_a()
@@ -1670,42 +1670,34 @@ do:
             (ln "a was mutably borrowed in line %i, cannot borrow" 3)
             {|fun hmm():
   let a& = 10
-  let set_a = fun (): &a <- 11
-  &a <- 11
+  let set_a = fun (): &a = 11
+  &a = 11
   set_a()
-  &a <- 11|};
+  &a = 11|};
           tase_exn "closure carry set"
             (ln "a was mutably borrowed in line %i, cannot borrow" 3)
             (* If the 'set' attribute isn't carried, (set-a) cannot be called
                and a different error occurs *)
             {|fun hmm():
   let a& = [10]
-  let set_a = fun (): &a <- [11]
-  &a <- [11]
+  let set_a = fun (): &a = [11]
+  &a = [11]
   let x& = !a
   set_a()|};
           tase_exn "excl 1"
             (ln "a was mutably borrowed in line %i, cannot borrow" 4)
-            "let a& = [10]\nfun f(a&, b):\n &a <- [11]\nf(&a, a)";
+            "let a& = [10]\nfun f(a&, b):\n &a = [11]\nf(&a, a)";
           tase "excl 1 nonalloc" "unit"
-            "let a& = 10\nfun f(a&, b): &a <- 11\nf(&a, a)";
+            "let a& = 10\nfun f(a&, b): &a = 11\nf(&a, a)";
           tase_exn "excl 2"
             (ln "a was borrowed in line %i, cannot mutate" 4)
-            "let a& = [10]\n\
-             fun f(a&, b): &a <- [11]\n\
-             do:\n\
-            \ let b = a\n\
-            \ f(&a, b)";
+            "let a& = [10]\nfun f(a&, b): &a = [11]\ndo:\n let b = a\n f(&a, b)";
           tase_exn "excl 3"
             (ln "a was borrowed in line %i, cannot mutate" 3)
-            "let a& = [10]\nfun f(a, b&): &b <- [11]\nf(a, &a)";
+            "let a& = [10]\nfun f(a, b&): &b = [11]\nf(a, &a)";
           tase_exn "excl 4"
             (ln "a was borrowed in line %i, cannot mutate" 5)
-            "let a& = [10]\n\
-             fun f(a, b&): &b <- [11]\n\
-             do:\n\
-            \ let b = a\n\
-            \ f(b, &a)";
+            "let a& = [10]\nfun f(a, b&): &b = [11]\ndo:\n let b = a\n f(b, &a)";
           tase "excl 5" "unit" "let a& = [10]\nfun f(a, b): ()\nf(a, a)";
           tase_exn "excl 6"
             (ln "a was mutably borrowed in line %i, cannot borrow" 3)
@@ -1713,7 +1705,7 @@ do:
           tase_exn "excl env"
             (ln "a was mutably borrowed in line %i, cannot borrow" 3)
             {|let a& = [10]
-fun set_a(b&): &a <- [11]
+fun set_a(b&): &a = [11]
 set_a(&a)|};
           tase_exn "follow string literal"
             "Cannot move string literal. Use `copy`"
@@ -1743,7 +1735,7 @@ let c = do:
             "let a& = [10]\nlet b& = a";
           tase_exn "partially set moved"
             (ln "a was moved in line %i, cannot set a.[0]" 2)
-            "let a& = [10]\nlet b = (a, 0)\n&a.[0] <- 10";
+            "let a& = [10]\nlet b = (a, 0)\n&a.[0] = 10";
           tase_exn "track moved multi-borrow param"
             "Borrowed parameter s is moved"
             {|fun test(s&):
@@ -1795,8 +1787,8 @@ do:
   let free_key = sm.slots.[slot_idx]
   let free_hd = copy(free_key.idx)
   let nextgen = free_key.gen + 1
-  &sm.slots.[slot_idx] <- {idx, gen = nextgen}
-  &sm.free_hd <- free_hd
+  &sm.slots.[slot_idx] = {idx, gen = nextgen}
+  &sm.free_hd = free_hd
   ignore({gen = nextgen, idx = slot_idx})|};
           case "lambda copy capture" test_excl_lambda_copy_capture;
           case "lambda copy capture nonalloc"

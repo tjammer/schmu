@@ -5,7 +5,7 @@ fun remove(optarr&, index):
   match opt:
     #some(thing):
       let value = !thing.a
-      &opt <- #none
+      &opt = #none
       #some(value)
     #none: #none
 

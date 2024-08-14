@@ -69,7 +69,7 @@ fun make_skips(pattern):
   let skips& = #256[len]
   array/iteri(pattern, fun(i, c):
     if not(i == len - 1): -- ignore last char
-      &skips#[u8_to_int(c)] <- len - 1 - i)
+      &skips#[u8_to_int(c)] = len - 1 - i)
   skips
 
 fun boyer_moore_horspool(pattern, str):

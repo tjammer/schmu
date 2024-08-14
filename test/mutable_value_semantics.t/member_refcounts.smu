@@ -1,14 +1,14 @@
 type r = {a : array(int)}
 let a& = [10]
 let r = {a = copy(a)}
-&a.[0] <- 20
+&a.[0] = 20
 print(fmt(r.a.[0]))
 
 
 let r = [copy(a)]
-&a.[0] <- 30
+&a.[0] = 30
 print(fmt(r.[0].[0]))
 
 let r = #some(copy(a))
-&a.[0] <- 40
+&a.[0] = 40
 match r: #some(a): print(fmt(a.[0])) | #none: print("none")

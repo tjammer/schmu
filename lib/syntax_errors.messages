@@ -550,7 +550,7 @@ prog: Ident Cmp_op With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ident Cmp_op Ident Cmp_op
+prog: Ident Cmp_op Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -618,11 +618,11 @@ prog: Ident Dot Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ampersand Ident Left_arrow With
+prog: Ampersand Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ampersand Ident Left_arrow Ident Wildcard
+prog: Ampersand Ident Equal Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

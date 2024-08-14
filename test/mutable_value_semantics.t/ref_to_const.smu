@@ -3,6 +3,6 @@
 fun infunc():
   let base_length = 2.0
   let length& = !base_length
-  &length <- length +. 3.0
+  &length = length +. 3.0
 
 ignore(infunc)

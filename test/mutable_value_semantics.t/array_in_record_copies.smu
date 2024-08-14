@@ -2,7 +2,7 @@ type arrec = {a& : array(int)}
 
 let a& = {a = [10]}
 let b = copy(a)
-&a.a.[0] <- 12
+&a.a.[0] = 12
 
 fun print_thing(a): print(fmt(a.a.[0]))
 
@@ -15,7 +15,7 @@ print("in fun")
 fun in_fun():
   let a& = {a = [10]}
   let b = copy(a)
-  &a.a.[0] <- 12
+  &a.a.[0] = 12
 
   print_thing(a)
   print_thing(b)

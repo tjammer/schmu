@@ -14,7 +14,7 @@ fun test_thing_mut():
     let test& = {wrapped = {dat = 2, b = 0, c = 0}}
     fun rec vector_loop(i):
         if i == 10: () else:
-            &test.wrapped <- {dat = test.wrapped.dat + 1, b = 0, c = 0}
+            &test.wrapped = {dat = test.wrapped.dat + 1, b = 0, c = 0}
             vector_loop(i + 1)
     vector_loop(0)
     test.wrapped

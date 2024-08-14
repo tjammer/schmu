@@ -4,7 +4,7 @@ fun rec a(k, x1, x2, x3, x4, x5):
   else:
     let m& = !k
     fun rec b():
-      &m <- m - 1
+      &m = m - 1
       a(m, b, x1, x2, x3, x4)
     b ()
 
