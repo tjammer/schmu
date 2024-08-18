@@ -8,6 +8,7 @@ Test hashtbl
   none
   ## key
   some v: 10
+  ## mut array
 
 String module test
   $ schmu string.smu

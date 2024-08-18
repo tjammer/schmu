@@ -15,6 +15,8 @@ module type sig:
   val insert : (t('value)&, key!, 'value!) -> unit
   val remove : (t('value)&, key) -> unit
   val find : (t('value), key) -> option/t('value)
+  val find_map : (t('value), key, ('value) -> 'a) -> option/t('a)
+  val find_mut : (t('value)&, key, ('value&) -> unit) -> bool
   val mem : (t('value), key) -> bool
   val fold : (t('value), 'b!, ('b!, key, 'value) -> 'c) -> 'c
   val clear : (t('value)&) -> unit
@@ -25,7 +27,7 @@ functor make : sig(m : key):
   use prelude
 
   type key = m/t
-  type item('a) = {key : m/t, value : 'a, pathlen& : int}
+  type item('a) = {key : m/t, value& : 'a, pathlen& : int}
   type slot('a) = option/t(item('a))
   type t('a) = {data& : array(slot('a)), nitems& : int}
 
@@ -141,6 +143,24 @@ functor make : sig(m : key):
         #some(item): #some(copy(item.value))
         #none: #none
       #none: #none
+
+  fun find_map(tbl, key, f):
+    let hash = idx(tbl, key)
+    match find_index(hash, tbl, key, 0):
+      #some(i): match tbl.data.[i]:
+        #some(item): #some(f(item.value))
+        #none: #none
+      #none: #none
+
+  fun find_mut(tbl&, key, f):
+    let hash = idx(tbl, key)
+    match find_index(hash, tbl, key, 0):
+      #some(i): match &tbl.data.[i]:
+        #some(item&):
+          f(&item.value)
+          true
+        #none: false
+      #none: false
 
   fun mem(tbl, key):
     let hash = idx(tbl, key)

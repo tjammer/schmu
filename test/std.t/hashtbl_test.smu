@@ -39,3 +39,17 @@ fun key():
     #none: print("none")
 
 key()
+
+
+fun mut_array():
+  print("## mut array")
+  let tbl& = keytbl/create(512)
+  keytbl/insert(&tbl, !#a1, ![])
+  assert(keytbl/find_mut(&tbl, #a2, fun (arr&): array/push(&arr, !1))
+    .not())
+  assert(keytbl/find_mut(&tbl, #a1, fun (arr&): array/push(&arr, !1)))
+  match keytbl/find_map(tbl, #a1, fun arr: array/length(arr)):
+    #some(v): assert(v == 1)
+    #none: assert(false)
+
+mut_array()
