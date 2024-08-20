@@ -12,6 +12,7 @@ module type sig:
   type t('value)
 
   val create : (int) -> t('value)
+  val length : (t('value)) -> int
   val insert : (t('value)&, key!, 'value!) -> unit
   val remove : (t('value)&, key) -> unit
   val find : (t('value), key) -> option/t('value)
@@ -42,6 +43,8 @@ functor make : sig(m : key):
     prelude/iter_range(0, size, fun i:
       __unsafe_ptr_set(&array/data(data), i, !#none))
     {data, nitems = 0}
+
+  fun length(tbl): tbl.nitems
 
   fun idx(tbl, key):
     let hash = m/hash(key)
