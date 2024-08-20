@@ -1024,6 +1024,17 @@ do:
   let tmp = !a.[0]
   &a.[0 + 0] = 0|}
 
+let test_excl_track_rc_get () =
+  test_exn "state was mutably borrowed in line 10, cannot borrow"
+    {|type state('a, 'b) = { fst& : 'a, snd : 'b }
+
+fun higher_lvl(thing&, f): ()
+
+fun process_state(state&):
+  let fst& = &__rc_get(state).fst
+  higher_lvl(&state, fun i: &fst = copy(i))
+|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int\ntype t = float"
@@ -1803,6 +1814,7 @@ do:
           case "array move mixed" test_excl_array_move_mixed;
           case "array move wrong index" test_excl_array_move_wrong_index;
           case "array move dyn index" test_excl_array_move_dyn_index;
+          case "track rc get" test_excl_track_rc_get;
         ] );
       ( "type decl",
         [

@@ -781,7 +781,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       in
       let expr = Record fs in
       ({ tree with expr }, imm [], hs)
-  | Field (t, i, name) -> (
+  | Field (t, i, name) ->
       (match mut with
       | Umove when t.attr.const ->
           raise (Error (tree.loc, "Cannot move out of constant"))
@@ -790,16 +790,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
         check_tree env mut ((Aconst i, name) :: bpart, special) t hist
       in
       let tree = { tree with expr = Field (t, i, name) } in
-      match mut with
-      | Umut | Uset ->
-          (* On mutation, make sure that the borrow is tracked. In other instances, like
-             reading, it's fine to just return the value. But for in the mutation case
-             this can introduce aliasing bugs *)
-          (tree, b, hs)
-      | Uread | Umove ->
-          (* Always borrow correctly here, otherwise we might introduce
-             aliasing. Even for non-alloc types *)
-          (tree, b, hs))
+      (tree, b, hs)
   | Set (thing, value, _) ->
       let usage = cond_usage value.typ Usage.Umove Uread in
       let value, v, hs = check_tree env usage no_bdata value hist in
@@ -816,6 +807,18 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let snd, v, hs = check_tree env mut bdata snd hs in
       let expr = Sequence (fst, snd) in
       ({ tree with expr }, v, hs)
+  | App
+      {
+        callee =
+          ( { expr = Var ("__rc_get", _); _ }
+          | { expr = Var ("get", Some (Pmod ("std", Pid "rc"))); _ } ) as callee;
+        args = [ arg ];
+      } ->
+    (* Special case for rc_get. It effectively returns the same allocation as
+       its first argument and thus needs special handling. *)
+      let t, b, hs = check_tree env mut bdata (fst arg) hist in
+      let tree = { tree with expr = App { callee; args = [ (t, snd arg) ] } } in
+      (tree, b, hs)
   | App
       {
         callee =
