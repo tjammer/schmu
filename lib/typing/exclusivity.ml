@@ -814,8 +814,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
           | { expr = Var ("get", Some (Pmod ("std", Pid "rc"))); _ } ) as callee;
         args = [ arg ];
       } ->
-    (* Special case for rc_get. It effectively returns the same allocation as
-       its first argument and thus needs special handling. *)
+      (* Special case for rc_get. It effectively returns the same allocation as
+         its first argument and thus needs special handling. *)
       let t, b, hs = check_tree env mut bdata (fst arg) hist in
       let tree = { tree with expr = App { callee; args = [ (t, snd arg) ] } } in
       (tree, b, hs)
