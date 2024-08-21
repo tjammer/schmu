@@ -1096,3 +1096,8 @@ Ensure prelude is not importable
              ^^^^^^^
   
   [1]
+
+Fix handling of parameterized abstract types
+  $ schmu -m nullvec.smu
+  $ schmu use_nullvec.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./use_nullvec

@@ -268,7 +268,15 @@ let rec cln ss p = function
                     in
                     Tvariant (ps, recurs_kind, nname))
             | Dabstract None -> failwith "Internal Error: Too abstract type"
-            | Dalias typ -> cln downss p typ
+            | Dalias typ ->
+                let sub =
+                  Types.map_lazy ~inst:ops Types.Smap.empty typ |> snd
+                in
+                let typ =
+                  if Smap.is_empty sub then typ
+                  else Inference.instantiate_sub sub typ |> snd
+                in
+                cln downss p typ
             | Dabstract (Some dkind) -> cln_dkind dkind
           in
           cln_dkind decl.kind

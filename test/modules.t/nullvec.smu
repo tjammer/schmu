@@ -1,0 +1,28 @@
+signature:
+  type t('a)
+
+  val create : () -> t('a)
+  val singleton : ('a!) -> t('a)
+  val length : (t('a)) -> int
+  val push : (t('a)&, 'a!) -> unit
+  val iter : (t('a), ('a) -> unit) -> unit
+
+
+type t('a) = option(array('a))
+
+fun create(): #none
+
+fun singleton(value!): #some([value])
+
+fun length(arr): match arr:
+  #none: 0
+  #some(arr): array/length(arr)
+
+fun push(arr&, value!): match &arr:
+  #none: &arr = #some([value])
+  #some(arr&): array/push(&arr, !value)
+
+fun iter(arr, f):
+  match arr:
+    #none: ()
+    #some(arr): array/iter(arr, f)

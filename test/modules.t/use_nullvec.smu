@@ -1,0 +1,4 @@
+import nullvec
+
+let thing& = nullvec/create()
+nullvec/push(&thing, !1)

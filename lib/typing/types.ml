@@ -224,6 +224,22 @@ let map_params ~inst ~params =
       Smap.empty inst params
   with Invalid_argument _ -> failwith "Internal Error: Params don't match"
 
+let rec map_lazy ~inst sub typ =
+  let rec map ~inst sub ps =
+    match (inst, ps) with
+    | [], _ -> ([], sub)
+    | inst, Tvar { contents = Link t } :: tl -> map ~inst sub (t :: tl)
+    | t :: inst, (Tvar { contents = Unbound (id, _) } | Qvar id) :: tl ->
+        map ~inst (Smap.add id t sub) tl
+    | inst, (Tconstr _ as t) :: tl ->
+        let inst, sub = map_lazy ~inst sub t in
+        map ~inst sub tl
+    | inst, [] -> (inst, sub)
+    | inst, _ :: tl -> map ~inst sub tl
+  in
+
+  match repr typ with Tconstr (_, ps) -> map ~inst sub ps | _ -> (inst, sub)
+
 let mut_of_pattr = function Dmut | Dset -> true | Dnorm | Dmove -> false
 
 let add_closure_copy clsd id =

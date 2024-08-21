@@ -202,30 +202,35 @@ module Pmap = Map.Make (Path)
    This is true for functions where we want to be as general as possible.
    We need to match everything for weak vars though *)
 let types_match ?(abstracts_map = Pmap.empty) l r =
-  let rec aux ~strict sub l r =
+  let rec aux ~strict ~in_ps sub l r =
     if l == r then (r, sub, true)
     else
       match (l, r) with
-      | Tvar { contents = Unbound (l, _) }, Tvar { contents = Unbound (rid, _) }
-      | Qvar l, Qvar rid
-      | Tvar { contents = Unbound (l, _) }, Qvar rid -> (
+      | ( Tvar { contents = Unbound (lid, _) },
+          Tvar { contents = Unbound (rid, _) } )
+      | Qvar lid, Qvar rid
+      | Tvar { contents = Unbound (lid, _) }, Qvar rid -> (
           (* We always map from left to right *)
-          match Smap.find_opt l sub with
-          | Some id when String.equal rid id -> (r, sub, true)
-          | Some _ -> (r, sub, false)
+          match Smap.find_opt lid sub with
+          | Some id when String.equal rid id -> (l, sub, true)
+          | Some _ -> (l, sub, false)
           | None ->
               (* We 'connect' left to right *)
-              (r, Smap.add l rid sub, true))
+              (l, Smap.add lid rid sub, true))
       | Tvar { contents = Unbound _ }, _ when not strict ->
           (* Unbound vars match every type *) (r, sub, true)
       | Tvar { contents = Link l }, r | l, Tvar { contents = Link r } ->
-          aux ~strict sub l r
+          aux ~strict ~in_ps sub l r
+      | (Qvar _ as q), Tconstr (_, [ t ]) when in_ps ->
+          aux ~strict ~in_ps sub q t
+      | Tconstr (_, [ t ]), (Qvar _ as q) when in_ps ->
+          aux ~strict ~in_ps sub t q
       | Tconstr (pl, psl), Tconstr (pr, psr) when Path.equal pl pr ->
           let sub, mtch, revps =
             try
               List.fold_left2
                 (fun (sub, mtch, ps) l r ->
-                  let typ, sub, do_match = aux ~strict sub l r in
+                  let typ, sub, do_match = aux ~strict ~in_ps:true sub l r in
                   (sub, do_match && mtch, typ :: ps))
                 (sub, true, []) psl psr
             with Invalid_argument _ -> (sub, false, List.rev psr)
@@ -240,23 +245,23 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
              with Qvar strings *)
           let i, sub, pre = aux_sizes sub rl rr lg ri in
           if pre then
-            let t, s, b = aux ~strict sub lt rt in
+            let t, s, b = aux ~strict ~in_ps sub lt rt in
             (Tfixed_array (i, t), s, b)
           else (r, sub, false)
       | Tfixed_array ({ contents = Linked l }, lt), r ->
-          aux ~strict sub (Tfixed_array (l, lt)) r
+          aux ~strict ~in_ps sub (Tfixed_array (l, lt)) r
       | l, Tfixed_array ({ contents = Linked r }, rt) ->
-          aux ~strict sub l (Tfixed_array (r, rt))
+          aux ~strict ~in_ps sub l (Tfixed_array (r, rt))
       | ( Tfixed_array ({ contents = Known ls }, lt),
           Tfixed_array (({ contents = Known rs } as i), rt) ) ->
-          let t, sub, b = aux ~strict sub lt rt in
+          let t, sub, b = aux ~strict ~in_ps sub lt rt in
           (Tfixed_array (i, t), sub, b && Int.equal ls rs)
       | Ttuple ls, Ttuple rs ->
           let ts, sub, mtch =
             try
               List.fold_left2
                 (fun (ts, sub, mtch) l r ->
-                  let t, sub, b = aux ~strict sub l r in
+                  let t, sub, b = aux ~strict ~in_ps sub l r in
                   (t :: ts, sub, mtch && b))
                 ([], sub, true) ls rs
             with Invalid_argument _ -> (List.rev rs, sub, false)
@@ -267,14 +272,14 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
             let ps, sub, acc =
               List.fold_left2
                 (fun (ts, s, acc) pl pr ->
-                  let pt, sub, b = aux ~strict:true s pl.pt pr.pt in
+                  let pt, sub, b = aux ~strict:true ~in_ps s pl.pt pr.pt in
                   let b = b && pl.pattr = pr.pattr in
                   ({ pr with pt } :: ts, sub, acc && b))
                 ([], sub, true) ps_l ps_r
             in
             let ps = List.rev ps in
             (* We don't shortcut here to match the annotations for the error message *)
-            let ret, sub, b = aux ~strict:true sub l r in
+            let ret, sub, b = aux ~strict:true ~in_ps sub l r in
             (Tfun (ps, ret, kind), sub, acc && b)
           with Invalid_argument _ -> (r, sub, false))
       | Tconstr (name, _), r -> (
@@ -283,7 +288,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
               (* Guard for recursion *)
               (r, sub, false)
           | Some typ ->
-              let _, _, b = aux ~strict sub typ r in
+              let _, _, b = aux ~strict ~in_ps sub typ r in
               if b then
                 (* Use the abstract type here for interfaces *)
                 (l, sub, b)
@@ -301,4 +306,4 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
       in
       (refr, sub, pre)
   in
-  aux Smap.empty ~strict:false l r
+  aux Smap.empty ~strict:false ~in_ps:true l r
