@@ -279,15 +279,24 @@ let change_type key typ env =
           { env with values = { scope with valmap } :: tl }
       | None -> "Internal Error: Missing key for changing " ^ key |> failwith)
 
-let mark_unused key env =
+let get_used key env =
+  match env.values with
+  | [] -> failwith "Internal Error: Env empty"
+  | scope :: _ -> (
+      match Map.find_opt key scope.valmap with
+      | Some value -> !(value.usage.used)
+      | None ->
+          "Internal Error: Missing key for unmarking used " ^ key |> failwith)
+
+let set_used key env in_used =
   match env.values with
   | [] -> failwith "Internal Error: Env empty"
   | scope :: _ -> (
       match Map.find_opt key scope.valmap with
       | Some value ->
           let used = !(value.usage.used) in
-          value.usage.used := false;
-          used
+          value.usage.used := in_used;
+          used <> in_used
       | None ->
           "Internal Error: Missing key for unmarking used " ^ key |> failwith)
 

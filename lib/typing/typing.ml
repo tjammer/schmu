@@ -837,6 +837,7 @@ end = struct
        and use it in the function body *)
     let unique = uniq_name name in
 
+    let used = if inrec then Env.get_used name env else false in
     enter_level ();
     let env, nparams =
       if inrec || not is_rec then
@@ -936,7 +937,7 @@ end = struct
                    (Module_common.unique_name ~mname:(modpath env) name unique))
         in
         (* Discard usage of internal recursive calls *)
-        let used = Env.mark_unused name env in
+        let used = Env.set_used name env used in
         if (not used) && is_rec && not inrec then
           raise (Error (nameloc, "Unused rec flag"));
 
