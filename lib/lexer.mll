@@ -170,7 +170,7 @@ rule read =
     { let v = decimal_code c d u in
       if v > 255 then
         raise (SyntaxError
-          (Printf.sprintf "illegal escape sequence \\%c%c%c" c d u))
+          (Printf.sprintf "Illegal escape sequence \\%c%c%c" c d u))
       else
         U8 (Char.chr v) }
   | "'" '\\' 'x'
@@ -216,6 +216,14 @@ and read_string buf =
   | '\\' 'r'  { Buffer.add_char buf '\r'; read_string buf lexbuf }
   | '\\' 't'  { Buffer.add_char buf '\t'; read_string buf lexbuf }
   | '\\' '"'  { Buffer.add_char buf '"'; read_string buf lexbuf }
+  | '\\' (['0'-'9'] as c) (['0'-'9'] as d) (['0'-'9']  as u)
+    { let v = decimal_code c d u in
+        if v > 255 then
+          raise (SyntaxError (Printf.sprintf
+              "Illegal backslash escape in string: '\\%c%c%c'" c d u))
+        else
+          Buffer.add_char buf (Char.chr v);
+          read_string buf lexbuf }
   | [^ '"' '\\' '\n' '\r']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       read_string buf lexbuf

@@ -65,6 +65,10 @@ let test_const_i32 () = test "i32" "let a = 123i32\na"
 let test_const_neg_i32 () = test "i32" "let a = -123i32\na"
 let test_const_f32 () = test "f32" "let a = 1.0f32\na"
 let test_const_neg_f32 () = test "f32" "let a = -1.0f32\na"
+
+let test_const_string_ansi () =
+  test "string/t" "let s = \"\\027[2K\ram idling: \"\ns"
+
 let test_hint_int () = test "int" "let a : int = 1\na"
 let test_func_id () = test "('a) -> 'a" "fun (a): copy(a)"
 let test_func_id_hint () = test "(int) -> int" "fun (a : int): a"
@@ -1426,6 +1430,7 @@ let () =
           case "-i32" test_const_neg_i32;
           case "f32" test_const_f32;
           case "-f32" test_const_neg_f32;
+          case "string ansi" test_const_string_ansi;
         ] );
       ("hints", [ case "int" test_hint_int ]);
       ( "funcs",
