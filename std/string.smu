@@ -3,7 +3,7 @@ import option
 import prelude
 
 signature:
-  type cstr = raw_ptr(u8)
+  type cstr = raw_ptr[u8]
   type t
 
   val len : (t) -> int
@@ -12,18 +12,18 @@ signature:
   val hash : (t) -> int
   val equal: (t, t) -> bool
   val append : (t&, t) -> unit
-  val concat : (t, array(t)) -> t
-  val boyer_moore_horspool : (t, t) -> option/t(int)
+  val concat : (t, array[t]) -> t
+  val boyer_moore_horspool : (t, t) -> option/t[int]
 
-  val modify_buf : (t&, (array(u8)&) -> unit) -> unit
-  val of_array : (array(u8)!) -> t
-  val to_array : (t!) -> array(u8)
-  val of_fixed_array : (array#?(u8)) -> t
+  val modify_buf : (t&, (array[u8]&) -> unit) -> unit
+  val of_array : (array[u8]!) -> t
+  val to_array : (t!) -> array[u8]
+  val of_fixed_array : (array#?[u8]) -> t
 
   val println : (t) -> unit
   val print : (t) -> unit
 
-type t = array(u8)
+type t = array[u8]
 
 -- TODO use aliases
 fun len(str : t): array/length(str)
@@ -45,7 +45,7 @@ fun hash(str):
   array/fold(str, !5381, fun (hash!, c):
     (hash * 33) + u8_to_int(c))
 
-external memcmp : (raw_ptr(u8), raw_ptr(u8), int) -> i32
+external memcmp : (raw_ptr[u8], raw_ptr[u8], int) -> i32
 
 fun equal(l, r):
   if len(l) == len(r):
@@ -103,17 +103,17 @@ fun modify_buf(str& : t, f):
   -- return type needs to be inferred as unit
   ()
 
-fun of_array(arr! : array(u8)): arr
+fun of_array(arr! : array[u8]): arr
 fun to_array(str! : t): str
 
-external memcpy : (raw_ptr(u8), raw_ptr(u8), int) -> unit
+external memcpy : (raw_ptr[u8], raw_ptr[u8], int) -> unit
 
-fun of_fixed_array(arr : array#?(u8)):
+fun of_fixed_array(arr : array#?[u8]):
   let ret = array/create(__fixed_array_length(arr))
   memcpy(array/data(ret), __fixed_array_data(arr), __fixed_array_length(arr))
   ret
 
-type file = raw_ptr(u8)
+type file = raw_ptr[u8]
 external stdout : file
 external fwrite : (cstr, int, int, file) -> unit
 

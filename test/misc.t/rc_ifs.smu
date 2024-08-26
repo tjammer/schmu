@@ -1,8 +1,8 @@
 fun test(b):
-  let ret : array(int) = []
+  let ret : array[int] = []
   fun rec inner(i):
-    let ai : array(int) = []
-    let bi : array(int) = []
+    let ai : array[int] = []
+    let bi : array[int] = []
     if i == b: ai
     else:
       if i == 30: bi

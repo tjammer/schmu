@@ -1,4 +1,4 @@
-type arrec = {a& : array(int)}
+type arrec = {a& : array[int]}
 
 let a& = {a = [10]}
 let b = copy(a)

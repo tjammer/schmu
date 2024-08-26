@@ -1,4 +1,4 @@
-type record('a) = {int : int, thing : 'a}
+type record['a] = {int : int, thing : 'a}
 do:
   let r = {int = 0, thing = ([0, 1, 2], 0)}
   match(#some(r)):

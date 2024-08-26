@@ -1,4 +1,4 @@
-type rr = {a : array(int), b : array(int)}
+type rr = {a : array[int], b : array[int]}
 
 let a& = {a = [], b = []}
 ignore((a.a, 0))

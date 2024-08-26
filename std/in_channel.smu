@@ -6,29 +6,29 @@ import string
 signature:
   type t
 
-  val open : (string/t) -> option/t(t)
+  val open : (string/t) -> option/t[t]
   val close : (t) -> unit
 
   -- high level interface
-  val with_open : (string/t, (t&) -> 'a) -> option/t('a)
+  val with_open : (string/t, (t&) -> 'a) -> option/t['a]
   val readall : (t&) -> string/t
   val lines : (t&, (string/t) -> unit) -> unit
 
   -- low level interface
-  type buf = array(u8)
-  val readbuf : (t&, buf&) -> option/t(int)
-  val readn : (t&, buf&, int) -> option/t(int)
-  val readline : (t&, buf&) -> option/t(int)
-  val readrem : (t&, buf&) -> option/t(int)
+  type buf = array[u8]
+  val readbuf : (t&, buf&) -> option/t[int]
+  val readn : (t&, buf&, int) -> option/t[int]
+  val readline : (t&, buf&) -> option/t[int]
+  val readrem : (t&, buf&) -> option/t[int]
 
   type file
   val of_file : (file) -> t
 
-type file = raw_ptr(u8)
+type file = raw_ptr[u8]
 
-type t = {buf& : array#4096(u8), head& : int, unseen& : int, file : file}
+type t = {buf& : array#4096[u8], head& : int, unseen& : int, file : file}
 
-type cstr = raw_ptr(u8)
+type cstr = raw_ptr[u8]
 external fread : (cstr, int, int, file) -> int
 external fopen : (cstr, cstr) -> file
 external fclose : (cstr) -> int

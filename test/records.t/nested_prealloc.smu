@@ -1,8 +1,8 @@
 external printi : (int) -> unit
 
 type int_wrap = {dat : int, b : int, c : int}
-type test('a) = {int_wrap : 'a}
-type mut('a) = {wrapped& : 'a}
+type test['a] = {int_wrap : 'a}
+type mut['a] = {wrapped& : 'a}
 
 fun test_thing():
     let test = {int_wrap = {dat = 2, b = 0, c = 0}}

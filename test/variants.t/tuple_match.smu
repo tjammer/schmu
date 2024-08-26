@@ -8,7 +8,7 @@ fun doo(a, b):
     (_, #none): 0
   |> printf(string/data("%i\n"))
 
-let none_int : option(int) = #none
+let none_int : option[int] = #none
 
 doo(#some(1), #some(2))
 doo(none_int, #some(2))

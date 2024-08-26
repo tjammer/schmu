@@ -16,9 +16,9 @@ prog: Type With
 
 prog: Type Ident With
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting square brackets for parameterized type
 
-prog: Type Ident Lpar With
+prog: Type Ident Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -26,11 +26,11 @@ prog: External Ident Colon Quote With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Type Ident Lpar Quote Ident With
+prog: Type Ident Lbrack Quote Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Type Ident Lpar Quote Ident Comma With
+prog: Type Ident Lbrack Quote Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -66,19 +66,23 @@ prog: External Ident Colon Lpar Rpar Right_arrow Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Ident Lpar With
+prog: External Ident Colon Ident Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Ident Lpar Ident Rbrac
+prog: External Ident Colon Ident Lbrack Ident Rbrac
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Ident Lpar Ident Comma With
+prog: External Ident Colon Ident Lbrack Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Rbrac
+prog: External Ident Colon Ident Lbrack Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Lpar Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -114,7 +118,7 @@ prog: External Ident Colon Lpar Ident Ampersand Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Ampersand Comma Ident Rbrac
+prog: External Ident Colon Lpar Ident Ampersand Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -126,7 +130,7 @@ prog: External Ident Colon Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Rbrac
+prog: External Ident Colon Lpar Ident Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -150,7 +154,7 @@ prog: External Ident Colon Lpar Ident Comma Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Comma Ident Rbrac
+prog: External Ident Colon Lpar Ident Comma Ident Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -188,7 +192,7 @@ prog: Type Ident Equal Lbrac Ident Colon With
 
 prog: Type Ident Equal Lbrac Ident Colon Ident Rpar
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting square brackets for parameterized type
 
 prog: Type Ident Equal Lbrac Ident Colon Ident Comma With
 
@@ -210,11 +214,15 @@ prog: Type Ident Equal Ctor Lpar Int With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Type Ident Equal Ctor Lpar Ident Rbrac
+prog: Type Ident Equal Ctor Lpar Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Type Ident Equal Ctor Lpar Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Ident Equal Ctor Lpar Ident Comma Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -228,7 +236,7 @@ prog: Type Ident Equal Ctor Hbar With
 
 prog: Type Ident Equal Ident Rpar
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting square brackets for parameterized type
 
 prog: Signature With
 
@@ -274,7 +282,7 @@ prog: Signature Colon Begin Type With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Signature Colon Begin Type Ident Lpar Quote Ident Rpar With
+prog: Signature Colon Begin Type Ident Lbrack Quote Ident Rbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -390,7 +398,7 @@ prog: Fun Lpar Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Ident Colon Ident Rbrac
+prog: Fun Lpar Ident Colon Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

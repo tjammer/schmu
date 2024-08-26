@@ -1,6 +1,6 @@
 type view = {buf : string, start : int, len : int}
-type success('a) = {rem : view, mtch : 'a}
-type parse_result('a) = #ok(success('a)) | #err(view)
+type success['a] = {rem : view, mtch : 'a}
+type parse_result['a] = #ok(success['a]) | #err(view)
 
 fun view_of_string(str):
   {buf = copy(str), start = 0, len = string/len(str)}

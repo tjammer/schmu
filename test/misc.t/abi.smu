@@ -9,7 +9,7 @@ type mixed4 = {x : float, y : float, z : float, k : int}
 type trailv2 = {a : int, b : int, c : float, d : float}
 type f2s = {fx : f32, fy : f32}
 type f3s = {fx : f32, fy : f32, fz : f32}
-type shader = {id : i32, locs : raw_ptr(i32)}
+type shader = {id : i32, locs : raw_ptr[i32]}
 
 external subv2 : (v2) ->  v2
 external subi2 : (i2) ->  i2

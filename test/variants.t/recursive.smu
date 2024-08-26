@@ -1,18 +1,18 @@
-type list0('a) = #nil | #cons('a, rc(list0))
+type list0['a] = #nil | #cons('a, rc[list0])
 
 let list = #cons(0, rc/create(!#cons(1, rc/create(!#cons(1, rc/create(!#cons(1, rc/create(!#cons(1, rc/create(!#nil))))))))))
 
 let _ = copy(list)
 
-type list('a) = #nil | #cons('a, option(rc(list)))
+type list['a] = #nil | #cons('a, option[rc[list]])
 
 let _ = rc/create(!#cons(1, #none))
 let fst = rc/create(!#cons(1, #some(rc/create(!#nil))))
 let _ = #cons(0, #some(fst.copy()))
 
 -- recursive record
-type container('a) = { a : 'a }
-type state = { data : container((state&) -> unit)}
+type container['a] = { a : 'a }
+type state = { data : container[(state&) -> unit]}
 
 -- this stack overflowed
 let _ = { data = {a = fun(state&): ignore(state)} }

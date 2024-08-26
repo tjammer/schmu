@@ -9,28 +9,28 @@ module type key:
 
 module type sig:
   type key
-  type t('value)
+  type t['value]
 
-  val create : (int) -> t('value)
-  val length : (t('value)) -> int
-  val insert : (t('value)&, key!, 'value!) -> unit
-  val remove : (t('value)&, key) -> unit
-  val find : (t('value), key) -> option/t('value)
-  val find_map : (t('value), key, ('value) -> 'a) -> option/t('a)
-  val find_mut : (t('value)&, key, ('value&) -> unit) -> bool
-  val mem : (t('value), key) -> bool
-  val fold : (t('value), 'b!, ('b!, key, 'value) -> 'c) -> 'c
-  val clear : (t('value)&) -> unit
-  val to_array : (t('value)) -> array((key, 'value))
+  val create : (int) -> t['value]
+  val length : (t['value]) -> int
+  val insert : (t['value]&, key!, 'value!) -> unit
+  val remove : (t['value]&, key) -> unit
+  val find : (t['value], key) -> option/t['value]
+  val find_map : (t['value], key, ('value) -> 'a) -> option/t['a]
+  val find_mut : (t['value]&, key, ('value&) -> unit) -> bool
+  val mem : (t['value], key) -> bool
+  val fold : (t['value], 'b!, ('b!, key, 'value) -> 'c) -> 'c
+  val clear : (t['value]&) -> unit
+  val to_array : (t['value]) -> array[(key, 'value)]
 
 functor make : sig(m : key):
   use option
   use prelude
 
   type key = m/t
-  type item('a) = {key : m/t, value& : 'a, pathlen& : int}
-  type slot('a) = option/t(item('a))
-  type t('a) = {data& : array(slot('a)), nitems& : int}
+  type item['a] = {key : m/t, value& : 'a, pathlen& : int}
+  type slot['a] = option/t[item['a]]
+  type t['a] = {data& : array[slot['a]], nitems& : int}
 
   fun rec power_2_above(x, n):
     if x >= n: x else:

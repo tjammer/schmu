@@ -1,5 +1,5 @@
 fun test():
-  let ret : array(int) = []
+  let ret : array[int] = []
   fun inner(i):
     ignore(i)
     copy(ret)

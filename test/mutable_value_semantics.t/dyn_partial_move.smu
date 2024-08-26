@@ -1,4 +1,4 @@
-type wrap('a) = { a : 'a }
+type wrap['a] = { a : 'a }
 
 fun remove(optarr&, index):
   let opt& = &optarr.[index.a]

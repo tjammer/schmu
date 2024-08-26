@@ -1,6 +1,6 @@
 type view = {start : int, len : int}
-type success('a) = {rem : view, mtch : 'a}
-type parse_result('a) = #ok(success('a)) | #err(view)
+type success['a] = {rem : view, mtch : 'a}
+type parse_result['a] = #ok(success['a]) | #err(view)
 
 fun char(c):
   fun (buf, view):

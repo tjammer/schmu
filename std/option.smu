@@ -1,1 +1,1 @@
-type t('a) = #some('a) | #none
+type t['a] = #some('a) | #none

@@ -1,10 +1,10 @@
 fun ret_none():
-  let a : option(array(int)) = #none
+  let a : option[array[int]] = #none
   a
 let b = !match ret_none(): #some(a): a | #none: [1, 2]
 ignore(b)
 
-type r('a) = {a : 'a}
+type r['a] = {a : 'a}
 fun ret_rec(): {a = [10, 20, 30]}
 let c = do:
   let a = ret_rec()

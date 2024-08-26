@@ -1,5 +1,5 @@
-external stdout : raw_ptr(u8)
-external fflush : (raw_ptr(u8)) -> unit
+external stdout : raw_ptr[u8]
+external fflush : (raw_ptr[u8]) -> unit
 
 assert(true)
 

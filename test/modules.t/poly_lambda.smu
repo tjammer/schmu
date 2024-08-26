@@ -1,4 +1,4 @@
-type t('a) = {a : 'a}
+type t['a] = {a : 'a}
 
 fun create(a):
   -- Create a polymorphic lambda and use it in this function.

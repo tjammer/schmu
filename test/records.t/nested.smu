@@ -1,9 +1,9 @@
 external printi : (int) -> unit
 
-type innerst('b) = { a : 'b }
-type p_inner('a) = { a : 'a }
-type alias('a) = p_inner('a)
-type t('a) = { x : int, inner : alias(innerst('a)) }
+type innerst['b] = { a : 'b }
+type p_inner['a] = { a : 'a }
+type alias['a] = p_inner['a]
+type t['a] = { x : int, inner : alias[innerst['a]] }
 
 type inner = { a : int }
 

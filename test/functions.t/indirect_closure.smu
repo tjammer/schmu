@@ -1,6 +1,6 @@
 external printi : (int) -> unit
 
-type t('a) = {x : 'a}
+type t['a] = {x : 'a}
 
 fun apply(x, f, env): f(x, env)
 

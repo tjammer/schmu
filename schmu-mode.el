@@ -41,6 +41,10 @@
   (rx symbol-start (group (seq (any lower ?_) (* (any word ?_))))
       (* space) "("))
 
+(defconst schmu-type-param-pattern
+  (rx symbol-start (group (seq (any lower ?_) (* (any word ?_))))
+      (* space) "["))
+
 (defconst schmu-module-pattern
   (rx symbol-start (or "module" "module type" "functor" "use") (1+ space)
       (group (seq (any word ?_) (* (any word ?_))))))
@@ -72,6 +76,7 @@
     (,schmu-types-regexp . font-lock-type-face)
     (,schmu-variable-pattern 1 font-lock-variable-name-face)
     (, schmu-call-pattern 1 font-lock-function-name-face)
+    (, schmu-type-param-pattern 1 font-lock-type-face)
     (,schmu-upcase-pattern 1 font-lock-type-face)
     (,schmu-path-pattern 1 font-lock-type-face))
   "Schmu keywords highlighting.")

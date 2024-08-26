@@ -103,6 +103,7 @@
 %left Plus_op
 %left Mult_op
 %left Dot Ampersand Exclamation
+%left Lbrack
 %left Lpar
 %left Path Hashtag_brack
 
@@ -192,7 +193,7 @@ record_item_decl:
 
 decl_typename:
   | name = Ident { { name; poly_param = [] } }
-  | name = Ident; Lpar; poly_param = separated_nonempty_list(Comma, poly_id); Rpar { { name; poly_param } }
+  | name = Ident; Lbrack; poly_param = separated_nonempty_list(Comma, poly_id); Rbrack { { name; poly_param } }
 
 %inline module_decl:
   | name = ident { let loc, name = name in loc, name, None }
@@ -483,7 +484,7 @@ type_spec:
   | id = Sized_ident { Ty_id id }
   | id = Unknown_sized_ident { Ty_id id }
   | path = type_path { Ty_use_id ($loc, path) }
-  | head = type_spec; Lpar; tail = separated_nonempty_list(Comma, type_spec); Rpar
+  | head = type_spec; Lbrack; tail = separated_nonempty_list(Comma, type_spec); Rbrack
     { Ty_applied (head :: tail) }
   | Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
     { Ty_func ([Ty_id "unit", Dnorm; ret, Dnorm]) }

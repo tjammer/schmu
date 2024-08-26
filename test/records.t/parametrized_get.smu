@@ -1,7 +1,7 @@
 external printi : (int) -> unit
 
-type t('a) = {null : int, first : int, gen : 'a, third : bool}
-type gen_first('a) = {only : 'a, is : bool}
+type t['a] = {null : int, first : int, gen : 'a, third : bool}
+type gen_first['a] = {only : 'a, is : bool}
 
 fun print_bool(b):
   if b: printi(1) else: printi(0)

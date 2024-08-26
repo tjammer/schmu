@@ -1,4 +1,4 @@
-type foo('a) = {a : 'a, b : float}
+type foo['a] = {a : 'a, b : float}
 
 fun test_record_in_variant(inner):
   let a = match(#some({a = inner, b = 53.0})):

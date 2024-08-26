@@ -1,4 +1,4 @@
-type r = {a : array(int)}
+type r = {a : array[int]}
 let a& = [10]
 let r = {a = copy(a)}
 &a.[0] = 20

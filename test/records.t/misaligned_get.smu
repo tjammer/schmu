@@ -1,7 +1,7 @@
 external printi : (int) -> unit
 
 type inner = {fst : int, snd : int}
-type misaligned('a) = {fst : inner, gen : 'a}
+type misaligned['a] = {fst : inner, gen : 'a}
 
 fun gen(any): copy(any.gen)
 

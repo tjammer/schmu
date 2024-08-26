@@ -101,7 +101,7 @@ let string_of_type_raw get_name typ mname =
         | [] -> Path.(rm_name mname name |> show)
         | l ->
             let arg = String.concat ", " (List.map string_of_type l) in
-            Printf.sprintf "%s(%s)" Path.(rm_name mname name |> show) arg
+            Printf.sprintf "%s[%s]" Path.(rm_name mname name |> show) arg
       end
     | Qvar str | Tvar { contents = Unbound (str, _) } -> get_name str
     | Tfixed_array ({ contents = sz }, t) ->
@@ -111,7 +111,7 @@ let string_of_type_raw get_name typ mname =
           | Known i -> string_of_int i
           | Linked iv -> size !iv
         in
-        sprintf "array#%s(%s)" (size sz) (string_of_type t)
+        sprintf "array#%s[%s]" (size sz) (string_of_type t)
   in
 
   string_of_type typ

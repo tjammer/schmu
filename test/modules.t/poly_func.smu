@@ -1,5 +1,5 @@
 -- don't use option because it will show up in the smi and make diffs difficult
-type option('a) = #some('a) | #none
+type option['a] = #some('a) | #none
 
 fun classify(thing):
   match thing:

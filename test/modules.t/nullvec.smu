@@ -1,14 +1,14 @@
 signature:
-  type t('a)
+  type t['a]
 
-  val create : () -> t('a)
-  val singleton : ('a!) -> t('a)
-  val length : (t('a)) -> int
-  val push : (t('a)&, 'a!) -> unit
-  val iter : (t('a), ('a) -> unit) -> unit
+  val create : () -> t['a]
+  val singleton : ('a!) -> t['a]
+  val length : (t['a]) -> int
+  val push : (t['a]&, 'a!) -> unit
+  val iter : (t['a], ('a) -> unit) -> unit
 
 
-type t('a) = option(array('a))
+type t['a] = option[array['a]]
 
 fun create(): #none
 

@@ -14,7 +14,7 @@ let println = string/println
 let print = string/print
 let cstr = string/data
 
-type option('a) = option/t('a)
+type option['a] = option/t['a]
 
 -- prelude re-exports
 let char_equal = prelude/char_equal

@@ -1,5 +1,5 @@
 type foo = {x : int}
-type container = {index : int, arr : array(int)}
+type container = {index : int, arr : array[int]}
 
 let x = {x = 1}
 
