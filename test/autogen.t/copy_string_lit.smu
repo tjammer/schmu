@@ -2,6 +2,6 @@ let a = ["aoeu"]
 let b& = "aoeu"
 string/modify_buf(&b, fun(arr&):
   __unsafe_ptr_set(&array/data(arr), 1, !'i'))
-print(b)
-print("aoeu")
-print(a.[0])
+println(b)
+println("aoeu")
+println(a.[0])

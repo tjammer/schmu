@@ -10,6 +10,6 @@ and odd(i):
     1: true
     n: even(n - 1)
 
-print(fmt(odd(1)))
-print(fmt(odd(100)))
-print(fmt(even(100)))
+println(fmt(odd(1)))
+println(fmt(odd(100)))
+println(fmt(even(100)))

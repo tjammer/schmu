@@ -5,10 +5,10 @@ fun advance(state!):
 
 fun rec ten_times(state!):
   if state.cnt < 10:
-    print(fmt(state.cnt))
+    println(fmt(state.cnt))
     ten_times(!advance(!state))
   else:
-    print(fmt(100))
+    println(fmt(100))
 
 do:
   let state = {cnt = 0, next = fun x: x + 1}

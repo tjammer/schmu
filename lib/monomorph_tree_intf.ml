@@ -30,7 +30,7 @@ module type S = sig
     | Mvar_index of monod_tree
     | Mvar_data of monod_tree * int option
     | Mfmt of fmt list * alloca * int
-    | Mprint_str of fmt list
+    | Mprint_str of fmt list * bool (* add newline *)
     | Mfree_after of monod_tree * free_list
   [@@deriving show]
 

@@ -1,14 +1,14 @@
 import modd
 use modd
 
-print(a)
-print(b)
+println(a)
+println(b)
 
-print(modd/public/a)
+println(modd/public/a)
 
 modd/func()
-print(modd/lambda())
-print(modd/closure())
+println(modd/lambda())
+println(modd/closure())
 
 -- use polymoorphic aliased function from another module
 fun swapped(a!, i, j):
@@ -16,4 +16,4 @@ fun swapped(a!, i, j):
   swap(&a, i, j)
   a
 
-array/iter(swapped(!["world", "hello"], 0, 1), fun s: print(s))
+array/iter(swapped(!["world", "hello"], 0, 1), fun s: println(s))

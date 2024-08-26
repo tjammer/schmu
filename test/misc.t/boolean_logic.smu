@@ -1,63 +1,63 @@
 fun true_():
-  print("true")
+  println("true")
   true
 
 fun false_():
-  print("false")
+  println("false")
   false
 
-print("test 'and':")
+println("test 'and':")
 
 if true_() and true_():
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")
 
 if true_() and false_():
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")
 
 if false_() and true_():
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")
 
 if false_() and false_():
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")
 
-print ("test 'or':")
+println("test 'or':")
 
 if true_() or true_():
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")
 
 if true_() or false_():
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")
 
 if false_() or true_():
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")
 
 if false_() or false_():
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")
 
-print("test 'not':")
+println("test 'not':")
 
 if not(true_()):
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")
 
 if not(false_()):
-  print("yes")
+  println("yes")
 else:
-  print("no")
+  println("no")

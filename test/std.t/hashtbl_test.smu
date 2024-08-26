@@ -1,19 +1,19 @@
 module stbl = hashtbl/make(string)
 
 fun string():
-    print("## string")
+    println("## string")
     let tbl& = stbl/create(2)
     stbl/insert(&tbl, !"key", !1.1)
-    fun find_print(key):
+    fun find_println(key):
         match stbl/find(tbl, key):
-            #some(v): print(fmt(v))
-            #none: print("none")
-    find_print("key")
-    find_print("otherkey")
+            #some(v): println(fmt(v))
+            #none: println("none")
+    find_println("key")
+    find_println("otherkey")
     stbl/remove(&tbl, "key")
-    find_print("key")
+    find_println("key")
 
-print("# hashtbl")
+println("# hashtbl")
 string()
 
 module key:
@@ -30,19 +30,19 @@ module key:
 module keytbl = hashtbl/make(key)
 
 fun key():
-  print("## key")
+  println("## key")
   let tbl& = keytbl/create(512)
   keytbl/insert(&tbl, !#a1, !10)
   keytbl/insert(&tbl, !#a2, !20)
   match keytbl/find(tbl, #a1):
-    #some(v): print(fmt("some v: ", v))
-    #none: print("none")
+    #some(v): println(fmt("some v: ", v))
+    #none: println("none")
 
 key()
 
 
 fun mut_array():
-  print("## mut array")
+  println("## mut array")
   let tbl& = keytbl/create(512)
   keytbl/insert(&tbl, !#a1, ![])
   assert(keytbl/find_mut(&tbl, #a2, fun (arr&): array/push(&arr, !1))

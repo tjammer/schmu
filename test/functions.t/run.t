@@ -1665,7 +1665,7 @@ The lamba passed as array-iter argument is polymorphic
   
   declare void @string_modify_buf(ptr noalias %0, ptr %1)
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define linkonce_odr void @__array_inner__2_Cal_2lru__(i64 %i, ptr %0) {
   entry:
@@ -1962,7 +1962,7 @@ The lamba passed as array-iter argument is polymorphic
     store i64 10, ptr %"9", align 8
     %2 = load ptr, ptr @schmu_arr, align 8
     %3 = tail call ptr @__schmu_string_concat_al__(ptr %2, ptr @2)
-    tail call void @string_print(ptr %3)
+    tail call void @string_println(ptr %3)
     %4 = alloca ptr, align 8
     store ptr %3, ptr %4, align 8
     call void @__free_ac_(ptr %4)

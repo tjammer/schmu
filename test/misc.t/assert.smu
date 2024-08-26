@@ -3,9 +3,9 @@ external fflush : (raw_ptr(u8)) -> unit
 
 assert(true)
 
-print("hmm")
+println("hmm")
 fflush(stdout) -- flush to see it in testing
 
 assert(false)
 
-print("lol")
+println("lol")

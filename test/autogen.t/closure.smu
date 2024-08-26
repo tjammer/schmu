@@ -15,7 +15,7 @@ let _, _ = (copy(hmm_move), 0)
 
 fun test():
   let a = ["hello"]
-  fun () [a]: print(a.[0])
+  fun () [a]: println(a.[0])
 
 let c = test()
 copy(c)()

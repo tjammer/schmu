@@ -7,8 +7,8 @@ fun ret_lambda(b):
 
 let f = ret_fn(13)
 let f2 = ret_fn(35)
-print(fmt(f(12)))
-print(fmt(f2(12)))
+println(fmt(f(12)))
+println(fmt(f2(12)))
 
 let f = ret_lambda(134)
-print(fmt(f(12)))
+println(fmt(f(12)))

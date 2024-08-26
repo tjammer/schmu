@@ -7,10 +7,10 @@ fun counter():
     cnt
 
 let c = counter()
-print(fmt(c()))
-print(fmt(c()))
-print(fmt(c()))
-print(fmt(c()))
+println(fmt(c()))
+println(fmt(c()))
+println(fmt(c()))
+println(fmt(c()))
 
 fun counter():
   let cnt& = {c = 0}
@@ -19,7 +19,7 @@ fun counter():
     cnt
 
 let c = counter()
-print(fmt(c().c))
-print(fmt(c().c))
-print(fmt(c().c))
-print(fmt(c().c))
+println(fmt(c().c))
+println(fmt(c().c))
+println(fmt(c().c))
+println(fmt(c().c))

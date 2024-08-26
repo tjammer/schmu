@@ -1,5 +1,5 @@
 fun prnt(a):
-  print(fmt(
+  println(fmt(
     a.[0].[0],
     ", ",
     a.[1].[0]))

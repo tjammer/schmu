@@ -357,7 +357,7 @@ Copies, but with ref-counted arrays
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [7 x i8] } { i64 6, i64 6, [7 x i8] c"in fun\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define linkonce_odr void @__schmu_print_0th_al__(ptr %a) {
   entry:
@@ -369,7 +369,7 @@ Copies, but with ref-counted arrays
   
   define void @schmu_in_fun() {
   entry:
-    tail call void @string_print(ptr @1)
+    tail call void @string_println(ptr @1)
     %0 = alloca ptr, align 8
     %1 = tail call ptr @malloc(i64 24)
     store ptr %1, ptr %0, align 8
@@ -501,7 +501,7 @@ Arrays in records
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [7 x i8] } { i64 6, i64 6, [7 x i8] c"in fun\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define void @schmu_in_fun() {
   entry:
@@ -602,7 +602,7 @@ Arrays in records
     tail call void @schmu_print_thing(i64 %unbox)
     %unbox1 = load i64, ptr @schmu_b, align 8
     tail call void @schmu_print_thing(i64 %unbox1)
-    tail call void @string_print(ptr @1)
+    tail call void @string_println(ptr @1)
     tail call void @schmu_in_fun()
     tail call void @__free_al2_(ptr @schmu_b)
     tail call void @__free_al2_(ptr @schmu_a)
@@ -1052,7 +1052,7 @@ Refcounts for members in arrays, records and variants
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -1113,7 +1113,7 @@ Refcounts for members in arrays, records and variants
     br label %ifcont
   
   else:                                             ; preds = %entry
-    call void @string_print(ptr @1)
+    call void @string_println(ptr @1)
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then

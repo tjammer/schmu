@@ -5,8 +5,8 @@ let b = #some(a)
 fun a(): ()
 let b = #some(a())
 match b:
-  #some(a): print("some")
-  #none: print("none")
+  #some(a): println("some")
+  #none: println("none")
 
 -- records
 type thing = {u : unit}
@@ -20,12 +20,12 @@ let u2 = t2.u
 type inrec = {i : int, u : unit, f : float}
 let t = {i = 10, u = (), f = 99.9}
 ignore(t.u)
-print(fmt(t.f))
+println(fmt(t.f))
 
 -- arrays
 let arr& = [(), ()]
 array/push(&arr, !())
-print(fmt(array/length(arr)))
+println(fmt(array/length(arr)))
 ignore({u = arr.[2]})
 
 -- fixed arrays

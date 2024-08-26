@@ -10,6 +10,6 @@ external printi : (int) -> unit = "Printi"
 -- pipe field accessor (this isn't supported anymore, but works naturally with .x)
 type foo = {x : int}
 {x = 1}.x.printi()
-print("")
-10.fmt().print()
-['a', 'b', 'c']!string/of_array().string/get(1).fmt().print()
+println("")
+10.fmt().println()
+['a', 'b', 'c']!string/of_array().string/get(1).fmt().println()

@@ -12,7 +12,7 @@ signature:
 external ext : (string/cstr, int) -> unit = "printf"
 
 fun int(i : int):
-  print(fmt(i))
+  println(fmt(i))
 
 fun poly_int(a): copy(a)
 
@@ -20,7 +20,7 @@ fun poly_int(a): copy(a)
 let t : t = 200
 
 fun hidden(a):
-  print(fmt(a + 2))
+  println(fmt(a + 2))
 
 type hidden_type = int
 type abstr = int

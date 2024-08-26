@@ -43,4 +43,4 @@ type cont('a) = {a : 'a}
 
 let a = {a = {a = "lul", b = 10, c = 10.0, d = [10, 20, 30]}}
 
-print(copy(a).a.a)
+println(copy(a).a.a)

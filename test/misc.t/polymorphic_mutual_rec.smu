@@ -1,18 +1,18 @@
 import m2
 
 m2/do:
-  print(fmt(odd(1)))
-  print(fmt(odd(100)))
-  print(fmt(even(100)))
+  println(fmt(odd(1)))
+  println(fmt(odd(100)))
+  println(fmt(even(100)))
 
   let arr& = [0, 1, 2, 3]
   pop(&arr)
   let arr& = [0, 1, 2, 3]
   pop_all(&arr)
-  print(fmt(array/length(arr)))
+  println(fmt(array/length(arr)))
 
 fun rec pop(arr&):
-  print("pop")
+  println("pop")
   array/drop_back(&arr)
   pop_all(&arr)
 
@@ -25,6 +25,6 @@ let arr& = [0, 1, 2, 3]
 pop(&arr)
 let arr& = [0, 1, 2, 3]
 pop_all(&arr)
-print(fmt(array/length(arr)))
+println(fmt(array/length(arr)))
 
 ignore(m2/test(1))

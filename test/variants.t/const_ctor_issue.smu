@@ -3,12 +3,12 @@ type var = #float(float) | #thing(thing)
 
 let var = #float(10.0)
 match var:
-  #float(_): print("float")
-  #thing(_): print("thing")
+  #float(_): println("float")
+  #thing(_): println("thing")
 
 fun dynamic(var):
   match var:
-    #float(_): print("float")
-    #thing(_): print("thing")
+    #float(_): println("float")
+    #thing(_): println("thing")
 
 dynamic(var)

@@ -10,6 +10,7 @@ import unsafe
 
 type string = string/t
 
+let println = string/println
 let print = string/print
 let cstr = string/data
 

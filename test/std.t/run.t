@@ -26,40 +26,40 @@ In channel module test
     let ic& = !ic
   read 33 bytes
       let buf& = array/create(4096)
-  read 1278 bytes
+  read 1304 bytes
       in_channel/readn(&ic, &buf, 50).ignore()
       let str& = !string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       in_channel/readn(&ic, &buf, 6).ignore()
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        #some(n): print(fmt("read ", n, " bytes"))
-        #none: print("read nothing")
+        #some(n): println(fmt("read ", n, " bytes"))
+        #none: println("read nothing")
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        #some(n): print(fmt("read ", n, " bytes"))
-        #none: print("read nothing")
+        #some(n): println(fmt("read ", n, " bytes"))
+        #none: println("read nothing")
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf):
-        #some(n): print(fmt("read ", n, " bytes"))
-        #none: print("read nothing")
+        #some(n): println(fmt("read ", n, " bytes"))
+        #none: println("read nothing")
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       in_channel/close(ic)
     #none: ()
@@ -67,7 +67,7 @@ In channel module test
   match in_channel/open("in_channel.smu"):
     #some(ic):
       let ic& = !ic
-      print(in_channel/readall(&ic))
+      println(in_channel/readall(&ic))
       in_channel/close(ic)
     #none: ()
   
@@ -75,7 +75,7 @@ In channel module test
   match in_channel/open("in_channel.smu"):
     #some(ic):
       let ic& = !ic
-      in_channel/lines(&ic, fun line: print(line))
+      in_channel/lines(&ic, fun line: println(line))
       in_channel/close(ic)
     #none: ()
   
@@ -85,37 +85,37 @@ In channel module test
       let buf& = array/create(4096)
       in_channel/readn(&ic, &buf, 50).ignore()
       let str& = !string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       in_channel/readn(&ic, &buf, 6).ignore()
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        #some(n): print(fmt("read ", n, " bytes"))
-        #none: print("read nothing")
+        #some(n): println(fmt("read ", n, " bytes"))
+        #none: println("read nothing")
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        #some(n): print(fmt("read ", n, " bytes"))
-        #none: print("read nothing")
+        #some(n): println(fmt("read ", n, " bytes"))
+        #none: println("read nothing")
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf):
-        #some(n): print(fmt("read ", n, " bytes"))
-        #none: print("read nothing")
+        #some(n): println(fmt("read ", n, " bytes"))
+        #none: println("read nothing")
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       in_channel/close(ic)
     #none: ()
@@ -123,7 +123,7 @@ In channel module test
   match in_channel/open("in_channel.smu"):
     #some(ic):
       let ic& = !ic
-      print(in_channel/readall(&ic))
+      println(in_channel/readall(&ic))
       in_channel/close(ic)
     #none: ()
   
@@ -131,7 +131,7 @@ In channel module test
   match in_channel/open("in_channel.smu"):
     #some(ic):
       let ic& = !ic
-      in_channel/lines(&ic, fun line: print(line))
+      in_channel/lines(&ic, fun line: println(line))
       in_channel/close(ic)
     #none: ()
   
@@ -141,37 +141,37 @@ In channel module test
       let buf& = array/create(4096)
       in_channel/readn(&ic, &buf, 50).ignore()
       let str& = !string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       in_channel/readn(&ic, &buf, 6).ignore()
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        #some(n): print(fmt("read ", n, " bytes"))
-        #none: print("read nothing")
+        #some(n): println(fmt("read ", n, " bytes"))
+        #none: println("read nothing")
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf):
-        #some(n): print(fmt("read ", n, " bytes"))
-        #none: print("read nothing")
+        #some(n): println(fmt("read ", n, " bytes"))
+        #none: println("read nothing")
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf):
-        #some(n): print(fmt("read ", n, " bytes"))
-        #none: print("read nothing")
+        #some(n): println(fmt("read ", n, " bytes"))
+        #none: println("read nothing")
       &str = string/of_array(!buf)
-      print(str)
+      println(str)
   
       in_channel/close(ic)
     #none: ()
@@ -179,7 +179,7 @@ In channel module test
   match in_channel/open("in_channel.smu"):
     #some(ic):
       let ic& = !ic
-      print(in_channel/readall(&ic))
+      println(in_channel/readall(&ic))
       in_channel/close(ic)
     #none: ()
   
@@ -187,7 +187,7 @@ In channel module test
   match in_channel/open("in_channel.smu"):
     #some(ic):
       let ic& = !ic
-      in_channel/lines(&ic, fun line: print(line))
+      in_channel/lines(&ic, fun line: println(line))
       in_channel/close(ic)
     #none: ()
 

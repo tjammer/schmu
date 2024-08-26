@@ -1,6 +1,6 @@
 let data& = array/create(16)
 
 iter_range(0, 10, fun i:
-  array/push(&data, !fun () [i]: print(fmt("on iteration: ", i))))
+  array/push(&data, !fun () [i]: println(fmt("on iteration: ", i))))
 
 array/iter(data, fun f: f())

@@ -2,18 +2,18 @@ let a = 'a'
 
 module a:
   type t = int
-  print("i'm in a module")
+  println("i'm in a module")
   module a:
     type t = float
-    print(fmt(a))
+    println(fmt(a))
     assert(u8_to_int(a) == u8_to_int('a'))
     let a = 10
-    print(fmt(a))
+    println(fmt(a))
     assert(a == 10)
 
-print(fmt(a))
+println(fmt(a))
 
 use a
 
-print(fmt(a))
-print(fmt(a/a))
+println(fmt(a))
+println(fmt(a/a))

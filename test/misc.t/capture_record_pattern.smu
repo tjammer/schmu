@@ -7,7 +7,7 @@ fun apply(param, thing):
   match param:
     (bar, foo): bind(bar(thing), fun r:
       bind(foo(r), fun r:
-        print(fmt(r))
+        println(fmt(r))
         #some(copy(r))))
 
 ignore(apply((fun i: #some(i + 1),
@@ -17,7 +17,7 @@ ignore(apply((fun i: #some(i + 1),
 -- This here is just a test to make sure that we can alias normal, monomorphized
 -- functions
 fun f(i):
-  print(fmt("printing ", i))
+  println(fmt("printing ", i))
 
 fun print_poly(to_print):
   match f:

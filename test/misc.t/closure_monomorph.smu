@@ -28,7 +28,7 @@ fun sort(arr&, cmp):
 
 let arr& = [9, 30, 0, 50, 2030, 34]
 sort(&arr, fun(a, b): a - b)
-array/iter(arr, fun i: print(fmt(i)))
+array/iter(arr, fun i: println(fmt(i)))
 
 -- These functions have different call names. Make sure this works as well
 fun sort(arr&, cmp):
@@ -61,4 +61,4 @@ fun sort(arr&, cmp):
 
 let arr& = [9, 30, 0, 50, 2030, 34]
 sort(&arr, fun(a, b): a - b)
-array/iter(arr, fun i: print(fmt(i)))
+array/iter(arr, fun i: println(fmt(i)))

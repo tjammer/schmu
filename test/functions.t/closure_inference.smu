@@ -29,7 +29,7 @@ fun print_result(res):
         string_of_view(mtch), "\")")
     #err(lexbuf):
       fmt("\"", string_of_view(view_of_lexbuf(lexbuf)), "\", \"")
-  .print()
+  .println()
 
 fun alt(a, b):
   fun (buf) [a, b]: -- [buf] is polymorphic

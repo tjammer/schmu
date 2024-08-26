@@ -6,7 +6,7 @@ fun ret_named():
   named
 
 let f = ret_fn()
-print(fmt(f(12)))
+println(fmt(f(12)))
 
 let f = ret_named()
-print(fmt(f(12)))
+println(fmt(f(12)))

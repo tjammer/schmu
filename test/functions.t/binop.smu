@@ -1,2 +1,2 @@
-print(fmt(10 - 2 - 3 - 4))
-print(fmt(10 + 2 + 3 + 4))
+println(fmt(10 - 2 - 3 - 4))
+println(fmt(10 + 2 + 3 + 4))

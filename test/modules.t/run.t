@@ -688,7 +688,7 @@ Local modules
   @3 = private unnamed_addr constant { i64, i64, [11 x i8] } { i64 10, i64 10, [11 x i8] c"i'm nested\00" }
   @4 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"hey test\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define linkonce_odr void @__schmu_local_poly_test_ac__(ptr %a) {
   entry:
@@ -699,19 +699,19 @@ Local modules
   
   define void @schmu_local_test() {
   entry:
-    tail call void @string_print(ptr @2)
+    tail call void @string_println(ptr @2)
     ret void
   }
   
   define void @schmu_nosig_nested_nested() {
   entry:
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     ret void
   }
   
   define void @schmu_test() {
   entry:
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     ret void
   }
   
@@ -810,7 +810,7 @@ Use directory as module
   hello
   world
 
-  $ printf "import indirect\nprint(indirect/a)" > err.smu
+  $ printf "import indirect\nprintln(indirect/a)" > err.smu
   $ schmu err.smu
   err.smu:1.8-16: error: Cannot find module: indirect.
   

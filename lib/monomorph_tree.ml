@@ -29,7 +29,7 @@ module Mtree = struct
     | Mvar_index of monod_tree
     | Mvar_data of monod_tree * int option
     | Mfmt of fmt list * alloca * int
-    | Mprint_str of fmt list
+    | Mprint_str of fmt list * bool (* add newline *)
     | Mfree_after of monod_tree * free_list
   [@@deriving show]
 
@@ -522,10 +522,15 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Lambda (id, abs) -> morph_lambda make texpr.typ param id abs
   | App
       {
-        callee = { expr = Var ("print", Some (Path.Pid "std")); _ };
+        callee =
+          {
+            expr = Var ((("print" | "println") as str), Some (Path.Pid "std"));
+            _;
+          };
         args = [ ({ expr = Fmt es; _ }, _) ];
       } ->
-      morph_print_str make param es
+      let add_newline = match str with "print" -> false | _ -> true in
+      morph_print_str make param es add_newline
   | App { callee; args } ->
       morph_app make param callee args (cln param texpr.typ)
   | Ctor (variant, index, dataexpr) ->
@@ -1340,7 +1345,7 @@ and morph_fmt mk p exprs =
     mk (Mfmt (es, alloca, mid)) ret,
     { no_var with alloc = Value alloca; malloc } )
 
-and morph_print_str mk p exprs =
+and morph_print_str mk p exprs ln =
   let ret = p.ret in
   let p = { p with ret = false } in
 
@@ -1354,7 +1359,7 @@ and morph_print_str mk p exprs =
   let p, es = List.fold_left_map f p exprs in
   let p = leave_level p in
 
-  ({ p with ret }, mk (Mprint_str es) ret, no_var)
+  ({ p with ret }, mk (Mprint_str (es, ln)) ret, no_var)
 
 let rec morph_toplvl param items =
   let rec aux param = function

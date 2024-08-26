@@ -67,7 +67,7 @@ Copy array of strings
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"test\00" }
   @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"toast\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -93,7 +93,7 @@ Copy array of strings
     %6 = getelementptr i8, ptr %5, i64 16
     %7 = getelementptr ptr, ptr %6, i64 1
     %8 = load ptr, ptr %7, align 8
-    call void @string_print(ptr %8)
+    call void @string_println(ptr %8)
     call void @__free_2ac2_(ptr %4)
     call void @__free_2ac2_(ptr @schmu_a)
     ret i64 0
@@ -205,7 +205,7 @@ Copy records
   @schmu_a = global %contdac_lal2__ zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"lul\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -236,7 +236,7 @@ Copy records
     call void @__copy_dac_lal3_(ptr %5)
     %6 = getelementptr inbounds %t_, ptr %5, i32 0, i32 1
     %7 = load ptr, ptr %6, align 8
-    call void @string_print(ptr %7)
+    call void @string_println(ptr %7)
     call void @__free_dac_lal3_(ptr %5)
     call void @__free_dac_lal3_(ptr @schmu_a)
     ret i64 0
@@ -342,7 +342,7 @@ Copy variants
   @schmu_a = global %option.tac_l__ zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define i64 @main(i64 %arg) {
   entry:
@@ -366,7 +366,7 @@ Copy variants
     %data = getelementptr inbounds %option.tac_l__, ptr %3, i32 0, i32 1
     %4 = getelementptr inbounds %ac_l_, ptr %data, i32 0, i32 1
     %5 = load ptr, ptr %data, align 8
-    call void @string_print(ptr %5)
+    call void @string_println(ptr %5)
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -468,7 +468,7 @@ Copy closures
   @schmu_c = global %closure zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define void @__fun_schmu0(ptr %0) {
   entry:
@@ -476,7 +476,7 @@ Copy closures
     %a1 = load ptr, ptr %a, align 8
     %1 = getelementptr i8, ptr %a1, i64 16
     %2 = load ptr, ptr %1, align 8
-    tail call void @string_print(ptr %2)
+    tail call void @string_println(ptr %2)
     ret void
   }
   
@@ -823,7 +823,7 @@ Copy string literal on move
   
   declare void @string_modify_buf(ptr noalias %0, ptr %1)
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define void @__fun_schmu0(ptr noalias %arr) {
   entry:
@@ -856,12 +856,12 @@ Copy string literal on move
     store ptr null, ptr %envptr, align 8
     call void @string_modify_buf(ptr @schmu_b, ptr %clstmp)
     %4 = load ptr, ptr @schmu_b, align 8
-    call void @string_print(ptr %4)
-    call void @string_print(ptr @0)
+    call void @string_println(ptr %4)
+    call void @string_println(ptr @0)
     %5 = load ptr, ptr @schmu_a, align 8
     %6 = getelementptr i8, ptr %5, i64 16
     %7 = load ptr, ptr %6, align 8
-    call void @string_print(ptr %7)
+    call void @string_println(ptr %7)
     call void @__free_ac_(ptr @schmu_b)
     call void @__free_2ac2_(ptr @schmu_a)
     ret i64 0

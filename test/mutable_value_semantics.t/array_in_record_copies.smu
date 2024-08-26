@@ -4,12 +4,12 @@ let a& = {a = [10]}
 let b = copy(a)
 &a.a.[0] = 12
 
-fun print_thing(a): print(fmt(a.a.[0]))
+fun print_thing(a): println(fmt(a.a.[0]))
 
 print_thing(a)
 print_thing(b)
 
-print("in fun")
+println("in fun")
 
 
 fun in_fun():

@@ -1,17 +1,17 @@
-fun hmm((_, (x, _))): print(x)
+fun hmm((_, (x, _))): println(x)
 
 hmm((10, ("hello", 20.0)))
 
 let i, _ = (20, 30.0)
-print(fmt(i))
+println(fmt(i))
 
 do:
   let f, _ = (30.0, 20)
-  print(fmt(f))
+  println(fmt(f))
 
 -- pattern matched thing as a closure
 fun hmm((x, _)):
   fun ()[x]:  x()
 
 -- this case is strange. The tuple needs to be moved right now
-hmm((fun (): print("lol"), 10))()
+hmm((fun (): println("lol"), 10))()

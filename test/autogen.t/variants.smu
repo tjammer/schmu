@@ -1,5 +1,5 @@
 let a = #some(("thing", 0))
 
 match copy(a):
-  #some((t, _)): print(t)
+  #some((t, _)): println(t)
   #none: ()

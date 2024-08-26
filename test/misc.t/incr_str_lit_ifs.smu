@@ -4,8 +4,8 @@ fun ret_non():
 
 fun try():
   match ret_non():
-    #some(j): print(fmt(j))
-    #none: print("none")
+    #some(j): println(fmt(j))
+    #none: println("none")
 
 try()
 try()

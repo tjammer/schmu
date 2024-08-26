@@ -9,4 +9,4 @@ fun hidden_reference(): match op:
   #none: -1
 
 -- Should print 1 here, not 2
-print(fmt(hidden_reference()))
+println(fmt(hidden_reference()))

@@ -1,5 +1,5 @@
 let arr = ["hello", "world", ":)"]
-print(string/concat(", ", arr))
+println(string/concat(", ", arr))
 
 let haystack = "this haystack contains a needle"
 assert(

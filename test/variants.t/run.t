@@ -465,7 +465,7 @@ Const ctors
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"float\00" }
   @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define void @schmu_dynamic(ptr %var) {
   entry:
@@ -475,18 +475,18 @@ Const ctors
   
   then:                                             ; preds = %entry
     %data = getelementptr inbounds %var_, ptr %var, i32 0, i32 1
-    tail call void @string_print(ptr @0)
+    tail call void @string_println(ptr @0)
     ret void
   
   else:                                             ; preds = %entry
     %data1 = getelementptr inbounds %var_, ptr %var, i32 0, i32 1
-    tail call void @string_print(ptr @1)
+    tail call void @string_println(ptr @1)
     ret void
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @string_print(ptr @0)
+    tail call void @string_println(ptr @0)
     tail call void @schmu_dynamic(ptr @schmu_var)
     ret i64 0
   }

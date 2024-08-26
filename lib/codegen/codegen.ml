@@ -198,7 +198,7 @@ end = struct
     | Mvar_data (expr, mid) -> gen_var_data param expr mid typed_expr.typ |> fin
     | Mfmt (fmts, allocref, id) ->
         gen_fmt_str param fmts typed_expr.typ allocref id |> fin
-    | Mprint_str fmts -> gen_print_str param fmts |> fin
+    | Mprint_str (fmts, ln) -> gen_print_str param fmts ln |> fin
     | Mfree_after (expr, fs) -> gen_free param expr fs
 
   and gen_let param id rhs kind gn ms cont =
@@ -1337,7 +1337,7 @@ end = struct
     Hashtbl.replace free_tbl id v;
     v
 
-  and gen_print_str param exprs =
+  and gen_print_str param exprs ln =
     let printf =
       lazy
         Llvm.(
@@ -1356,7 +1356,8 @@ end = struct
     let fmtptr =
       let typ = Tarray Tu8 in
       let lltyp = get_lltype_def typ in
-      get_const_string (fmt ^ "\n") |> fun value ->
+      let nl = if ln then "\n" else "" in
+      get_const_string (fmt ^ nl) |> fun value ->
       array_data [ { value; kind = Imm; typ; lltyp } ]
     in
     let itemargs = List.rev args in

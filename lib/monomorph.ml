@@ -578,13 +578,13 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               fmts
           in
           { tree with expr = Mfmt (fmts, alloca, id) }
-      | Mprint_str fmts ->
+      | Mprint_str (fmts, ln) ->
           let fmts =
             List.map
               (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s)
               fmts
           in
-          { tree with expr = Mprint_str fmts }
+          { tree with expr = Mprint_str (fmts, ln) }
       | Mfree_after (e, fs) ->
           let e = sub e in
           { tree with expr = Mfree_after (e, fs) }

@@ -1,4 +1,4 @@
-fun print_0th(a): print(fmt(a.[0]))
+fun print_0th(a): println(fmt(a.[0]))
 
 let a& = [10]
 let b = copy(a)
@@ -14,7 +14,7 @@ print_0th(c)
 print_0th(d)
 
 fun in_fun():
-  print("in fun")
+  println("in fun")
   let a& = [10]
   let b = copy(a)
   let c& = copy(a)

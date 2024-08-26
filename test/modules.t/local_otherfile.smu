@@ -1,5 +1,5 @@
 fun test():
-  print("hey test")
+  println("hey test")
 
 module local:
   signature:
@@ -11,9 +11,9 @@ module local:
     type t = unit
   type t = int
   fun test():
-    print("hey thing")
+    println("hey thing")
   fun poly_test(a):
-    print(fmt("hey poly ", a))
+    println(fmt("hey poly ", a))
   let value = "test"
 
 test()
@@ -26,7 +26,7 @@ module nosig:
   type other = int
   module nested:
     fun nested():
-      print("i'm nested")
+      println("i'm nested")
     type t = float
   let c : nested/t = 10.0
 

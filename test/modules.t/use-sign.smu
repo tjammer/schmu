@@ -16,7 +16,7 @@ assert(t == 200)
 int(t)
 
 -- Use poly_int
-print(fmt(poly_int(20.2)))
+println(fmt(poly_int(20.2)))
 
 fun use_hidden ():
   ignore(create_use_hidden())

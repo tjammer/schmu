@@ -20,6 +20,7 @@ signature:
   val to_array : (t!) -> array(u8)
   val of_fixed_array : (array#?(u8)) -> t
 
+  val println : (t) -> unit
   val print : (t) -> unit
 
 type t = array(u8)
@@ -118,7 +119,9 @@ external fwrite : (cstr, int, int, file) -> unit
 
 let newline = #['\n']
 
-fun print(str : t):
-  -- TODO should be named println, but (print (fmt-str ...)) also adds newline
+fun println(str : t):
   fwrite(array/data(str), 1, array/length(str), stdout)
   fwrite(__fixed_array_data(newline), 1, 1, stdout)
+
+fun print(str : t):
+  fwrite(array/data(str), 1, array/length(str), stdout)

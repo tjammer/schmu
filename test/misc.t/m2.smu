@@ -13,7 +13,7 @@ and odd(i):
     n: even(n - 1)
 
 fun rec pop(arr&):
-  print("pop")
+  println("pop")
   array/drop_back(&arr)
   pop_all(&arr)
 
@@ -22,9 +22,9 @@ and pop_all(arr&):
   else: pop(&arr)
 
 fun test(i):
-  print("wrong")
+  println("wrong")
   copy(i)
 
 fun test(i):
-  print("right")
+  println("right")
   copy(i)

@@ -855,23 +855,23 @@ Test 'and', 'or' and 'not'
   @5 = private unnamed_addr constant { i64, i64, [11 x i8] } { i64 10, i64 10, [11 x i8] c"test 'or':\00" }
   @6 = private unnamed_addr constant { i64, i64, [12 x i8] } { i64 11, i64 11, [12 x i8] c"test 'not':\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define i1 @schmu_false_() {
   entry:
-    tail call void @string_print(ptr @0)
+    tail call void @string_println(ptr @0)
     ret i1 false
   }
   
   define i1 @schmu_true_() {
   entry:
-    tail call void @string_print(ptr @1)
+    tail call void @string_println(ptr @1)
     ret i1 true
   }
   
   define i64 @main(i64 %arg) {
   entry:
-    tail call void @string_print(ptr @2)
+    tail call void @string_println(ptr @2)
     %0 = tail call i1 @schmu_true_()
     br i1 %0, label %true1, label %cont
   
@@ -887,11 +887,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp, label %then, label %else
   
   then:                                             ; preds = %cont
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont
   
   else:                                             ; preds = %cont
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
@@ -910,11 +910,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp4, label %then5, label %else6
   
   then5:                                            ; preds = %cont3
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont7
   
   else6:                                            ; preds = %cont3
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont7
   
   ifcont7:                                          ; preds = %else6, %then5
@@ -933,11 +933,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp11, label %then12, label %else13
   
   then12:                                           ; preds = %cont10
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont14
   
   else13:                                           ; preds = %cont10
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont14
   
   ifcont14:                                         ; preds = %else13, %then12
@@ -956,15 +956,15 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp18, label %then19, label %else20
   
   then19:                                           ; preds = %cont17
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont21
   
   else20:                                           ; preds = %cont17
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont21
   
   ifcont21:                                         ; preds = %else20, %then19
-    tail call void @string_print(ptr @5)
+    tail call void @string_println(ptr @5)
     %8 = tail call i1 @schmu_true_()
     br i1 %8, label %cont22, label %false1
   
@@ -980,11 +980,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp23, label %then24, label %else25
   
   then24:                                           ; preds = %cont22
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont26
   
   else25:                                           ; preds = %cont22
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont26
   
   ifcont26:                                         ; preds = %else25, %then24
@@ -1003,11 +1003,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp30, label %then31, label %else32
   
   then31:                                           ; preds = %cont29
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont33
   
   else32:                                           ; preds = %cont29
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont33
   
   ifcont33:                                         ; preds = %else32, %then31
@@ -1026,11 +1026,11 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp37, label %then38, label %else39
   
   then38:                                           ; preds = %cont36
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont40
   
   else39:                                           ; preds = %cont36
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont40
   
   ifcont40:                                         ; preds = %else39, %then38
@@ -1049,25 +1049,25 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp44, label %then45, label %else46
   
   then45:                                           ; preds = %cont43
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont47
   
   else46:                                           ; preds = %cont43
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont47
   
   ifcont47:                                         ; preds = %else46, %then45
-    tail call void @string_print(ptr @6)
+    tail call void @string_println(ptr @6)
     %16 = tail call i1 @schmu_true_()
     %17 = xor i1 %16, true
     br i1 %17, label %then48, label %else49
   
   then48:                                           ; preds = %ifcont47
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont50
   
   else49:                                           ; preds = %ifcont47
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont50
   
   ifcont50:                                         ; preds = %else49, %then48
@@ -1076,11 +1076,11 @@ Test 'and', 'or' and 'not'
     br i1 %19, label %then51, label %else52
   
   then51:                                           ; preds = %ifcont50
-    tail call void @string_print(ptr @3)
+    tail call void @string_println(ptr @3)
     br label %ifcont53
   
   else52:                                           ; preds = %ifcont50
-    tail call void @string_print(ptr @4)
+    tail call void @string_println(ptr @4)
     br label %ifcont53
   
   ifcont53:                                         ; preds = %else52, %then51
@@ -1509,7 +1509,7 @@ Piping for ctors and field accessors
   
   declare ptr @string_of_array(ptr %0)
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   declare void @Printi(i64 %0)
   
@@ -1548,7 +1548,7 @@ Piping for ctors and field accessors
     %1 = tail call i64 @__fun_schmu1(i32 %fst1, i64 %snd2)
     tail call void @Printi(i64 %1)
     tail call void @Printi(i64 1)
-    tail call void @string_print(ptr @0)
+    tail call void @string_println(ptr @0)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @1, i64 16), i64 10)
     %2 = tail call ptr @malloc(i64 19)
     %arr = alloca ptr, align 8
@@ -3809,7 +3809,7 @@ Using unit values
   
   unit_values.smu:8.9-10: warning: Unused binding a.
   
-  8 |   #some(a): print("some")
+  8 |   #some(a): println("some")
               ^
   
   unit_values.smu:14.5-6: warning: Unused binding u.
@@ -3846,7 +3846,7 @@ Using unit values
   @2 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"%.9g\0A\00" }
   @3 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  declare void @string_print(ptr %0)
+  declare void @string_println(ptr %0)
   
   define linkonce_odr void @__array_push_au_u_(ptr noalias %arr) {
   entry:
@@ -3905,11 +3905,11 @@ Using unit values
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
-    tail call void @string_print(ptr @0)
+    tail call void @string_println(ptr @0)
     br label %ifcont
   
   else:                                             ; preds = %entry
-    tail call void @string_print(ptr @1)
+    tail call void @string_println(ptr @1)
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then

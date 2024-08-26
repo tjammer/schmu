@@ -1,7 +1,7 @@
 import local_otherfile
 
 fun test():
-  print("hey test")
+  println("hey test")
 
 test()
 
@@ -13,7 +13,7 @@ module nosig:
   type other = int
   module nested:
     fun nested():
-      print("i'm nested")
+      println("i'm nested")
 
 let test : local_otherfile/nosig/t = {a = 10}
 ignore(test)

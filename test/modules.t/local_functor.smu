@@ -33,5 +33,5 @@ module floatadder = make(floata)
 module recadder = make(somerec)
 module outeradder = make(outa)
 
-print(fmt(intadder/add_twice(1, 2)))
-print(fmt(floatadder/add_twice(1.0, 2.0)))
+println(fmt(intadder/add_twice(1, 2)))
+println(fmt(floatadder/add_twice(1.0, 2.0)))
