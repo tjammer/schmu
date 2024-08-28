@@ -24,14 +24,12 @@
 %token Equal
 %token Colon
 %token Comma
-%token Begin
-%token End
 %token Rpar
 %token Lpar
 %token Lbrack
 %token Rbrack
-%token Lbrac
-%token Rbrac
+%token Lcurly
+%token Rcurly
 %token <string> Ctor
 %token <string> Path_id
 %token Dot
@@ -54,11 +52,10 @@
 %token False
 %token Hashtag_brack
 %token <int> Hashnum_brack
-%token Newline
+%token Semicolon
 %token Right_arrow
 %token Pipe_tail
 %token With
-%token Do
 %token Fmt
 %token Hbar
 %token Match
@@ -84,18 +81,16 @@
 %token And
 %token Or
 
+/* The expression to be matched has higher prio then opening of the match body */
+%nonassoc Lcurly
+%nonassoc Above_lcurly
+
 %nonassoc Below_Ampersand
 
 %nonassoc Type_application
 
-%nonassoc Below_hbar
-%nonassoc Hbar
-
 %nonassoc Ctor
 
-%nonassoc If_no_else
-%nonassoc Elseif
-%nonassoc Else
 %left Pipe_tail
 %left And Or
 %left Eq_op
@@ -112,7 +107,7 @@
 %%
 
 prog:
-  | prog = separated_list(Newline, top_item); Eof { prog }
+  | prog = separated_list(Semicolon, top_item); Eof { prog }
 
 top_item:
   | stmt = stmt { Stmt stmt }
@@ -124,7 +119,8 @@ top_item:
   | sgn = signature { Signature ($loc(sgn), sgn) }
   | Import; id = Ident { Import ($loc(id), id) }
 
-stmt:
+stmt_no_ident:
+/* Needed to disambiguate block expression from record expression */
   | Let; decl = let_decl; Equal; pexpr = passed(block)
     { let pattr, block = pexpr in Let($loc, decl, {pattr; pexpr = Do_block block})  }
   | Let; decl = let_decl; Equal; id = Builtin_id
@@ -133,12 +129,16 @@ stmt:
   | Fun; Rec; func = func { let loc, func = func true in Function (loc, func) }
   | Fun; Rec; func = func; And; tail = separated_nonempty_list(And, func)
     { Rec($loc, (func true) :: (List.map (fun f -> f true) tail)) }
-  | expr = expr { Expr ($loc, expr) }
+  | expr = expr_no_ident { Expr ($loc, expr) }
   | Use; path = use_path { Use ($loc(path), path) }
+
+stmt:
+  | stmt = stmt_no_ident { stmt }
+  | ident = ident { Expr ($loc, (Var ident)) }
 
 func:
   | name = func_name; params = parens(param_decl); attr = loption(capture_copies);
-      return_annot = option(return_annot); Colon; body = block
+      return_annot = option(return_annot); body = block
     { fun is_rec -> ($loc, { name; params; return_annot; body; attr; is_rec }) }
 
 func_name:
@@ -146,7 +146,7 @@ func_name:
   | infix = infix_no_inline { $loc(infix), infix }
 
 typedef:
-  | Type; name = decl_typename; Equal; Lbrac; labels = separated_nonempty_trailing_list(Comma, record_item_decl, Rbrac)
+  | Type; name = decl_typename; Equal; Lcurly; labels = separated_nonempty_trailing_list(Comma, record_item_decl, Rcurly)
     { Trecord ({name; labels = Array.of_list labels}) }
   | Type; name = decl_typename; Equal; spec = type_spec { Talias (name, spec) }
   | Type; name = decl_typename; Equal; ctors = separated_nonempty_list(Hbar, ctor)
@@ -159,10 +159,10 @@ ext:
   | External; id = ident; Colon; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
 
 modtype:
-  | Module_type; name = ident; Colon; Begin; sgn = sig_items; End { Module_type (name, sgn) }
+  | Module_type; name = ident; Lcurly; sgn = sig_items; Rcurly { Module_type (name, sgn) }
 
 modul:
-  | Module; name = module_decl; Colon; Begin; items = separated_nonempty_list(Newline, top_item); End
+  | Module; name = module_decl; Lcurly; items = separated_nonempty_list(Semicolon, top_item); Rcurly
     { Module (name, items) }
   | Module; name = module_decl; Equal; path = path_with_loc { Module_alias (name, Amodule path) }
   | Module; name = module_decl; Equal; app = module_application
@@ -175,8 +175,8 @@ path_with_loc:
   | path = use_path { $loc, path }
 
 functor_:
-  | Functor; name = module_decl; Lpar; params = separated_nonempty_list(Comma, functor_param); Rpar; Colon;
-    Begin; items = separated_nonempty_list(Newline, top_item); End
+  | Functor; name = module_decl; Lpar; params = separated_nonempty_list(Comma, functor_param); Rpar;
+    Lcurly; items = separated_nonempty_list(Semicolon, top_item); Rcurly
     { Functor (name, params, items) }
 
 functor_param:
@@ -200,10 +200,10 @@ decl_typename:
   | name = ident; Colon; path = use_path { let loc, name = name in loc, name, Some path }
 
 signature:
-  | Signature; Colon; Begin; items = sig_items ; End { items }
+  | Signature; Lcurly; items = sig_items ; Rcurly { items }
 
 sig_items:
-  | items = separated_nonempty_list(Newline, sig_item) { items }
+  | items = separated_nonempty_list(Semicolon, sig_item) { items }
 
 sig_item:
   | typedef = typedef { Stypedef ($loc, typedef) }
@@ -213,8 +213,7 @@ sig_item:
     { Svalue ($loc, (($loc(id), id), spec)) }
 
 block:
-  | expr = expr; %prec If_no_else { [Expr ($loc, expr)] }
-  | Begin; stmts = separated_nonempty_list(Newline, stmt); End { stmts }
+  | Lcurly; stmts = separated_nonempty_list(Semicolon, stmt); Rcurly { stmts }
 
 let_decl:
   | pattern = let_pattern { {loc = $loc; pattern; annot = None } }
@@ -278,7 +277,7 @@ tup_tups(x):
     { $loc, head :: tail }
 
 record_pattern(x):
-  | Lbrac; items = separated_nonempty_trailing_list(Comma, record_item_pattern(x), Rbrac);
+  | Lcurly; items = separated_nonempty_trailing_list(Comma, record_item_pattern(x), Rcurly);
     { Precord ($loc, items, Dnorm) }
 
 record_item_pattern(x):
@@ -294,17 +293,16 @@ ident:
 ctor_ident:
   | id = Ctor { $loc, id }
 
-expr:
-  | ident = ident { Var ident }
+expr_no_ident:
   | ident = infix { Var ($loc(ident), ident) }
   | lit = lit { Lit ($loc, lit) }
   | a = expr; bop = binop; b = expr { Bop ($loc, bop, a, b) }
-  | a = expr; infix = infix; b = expr
+  | a = expr; infix = infix; b = expr; %prec Above_lcurly
     { let a = {apass = Dnorm; aloc = $loc(a); aexpr = a} in
       let b = {apass = Dnorm; aloc = $loc(b); aexpr = b} in
       App ($loc, Var($loc(infix), infix), [a; b]) }
   | op = Plus_op; expr = expr { Unop ($loc, ($loc(op), op), expr) }
-  | If; cond = expr; Colon; then_ = then_
+  | If; cond = expr; then_ = then_
     { let then_, elifs, else_ = then_ in parse_elseifs $loc cond then_ elifs else_ }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
   | callee = Builtin_id; args = parens(call_arg) { App ($loc, Var($loc(callee), callee), args) }
@@ -329,38 +327,39 @@ expr:
   | Fmt; args = parens(expr) { Fmt ($loc, args) }
   | special = special_builtins { special }
   | Fun; params = parens(param_decl); attr = loption(capture_copies);
-      return_annot = option(return_annot); Colon; body = block
+      return_annot = option(return_annot); body = block
     { Lambda ($loc, params, attr, return_annot, body) }
-  | Fun; param = only_one_param; attr = loption(capture_copies); Colon; body = block
+  | Fun; param = only_one_param; attr = loption(capture_copies); body = block
     { Lambda ($loc, [param], attr, None, body) }
-  | Lbrac; items = separated_nonempty_trailing_list(Comma, record_item, Rbrac)
+  | Lcurly; items = separated_nonempty_trailing_list(Comma, record_item, Rcurly)
     { Record ($loc, items) }
+  | Lcurly; fst = stmt_no_ident; cont = block_cont
+    /* A block expression needs to have at least two items */
+    { Do_block (fst :: cont) }
   | Lpar; tuple = tuple; Rpar { Tuple ($loc, tuple) }
   | Lpar; expr = expr; Rpar { expr }
   | upcases = upcases { upcases }
-  | Lbrac; record = expr; With; items = separated_nonempty_trailing_list(Comma, record_item, Rbrac)
+  | Lcurly; record = expr; With; items = separated_nonempty_trailing_list(Comma, record_item, Rcurly)
     { Record_update ($loc, record, items) }
-  | Do; Colon; block = block { Do_block block }
   | aexpr = expr; Pipe_tail; pipeable = expr
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_tail ($loc, arg, Pip_expr pipeable) }
-  | Match; expr = passed(expr); Colon; option(Hbar); clauses = clauses
-    { Match ($loc, fst expr, snd expr, clauses) }
-  | Match; expr = passed(expr); Colon; clauses = block_clauses
+  | Match; expr = passed(expr); Lcurly; option(Hbar); clauses = separated_nonempty_list(Hbar, clause); Rcurly
     { Match ($loc, fst expr, snd expr, clauses) }
   | Ampersand; expr = expr; Equal; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
   | id = Path_id; expr = expr; %prec Path { Local_use ($loc, id, expr) }
 
+expr:
+  | ident = ident { Var ident }
+  | expr = expr_no_ident { expr }
+
+block_cont:
+  | Rbrack { [] }
+  | Semicolon; block = separated_nonempty_list(Semicolon, stmt); Rcurly { block }
+
 path_ident:
   | paths = nonempty_list(Path_id); callee = ident { List.fold_right (fun path expr -> Local_use ($loc, path, expr)) paths (Var callee) }
-
-clauses:
-  | clause = clause; %prec Below_hbar { clause :: [] }
-  | clause = clause; Hbar; tail = clauses { clause :: tail }
-
-block_clauses:
-  | Begin; clauses = separated_nonempty_list(Newline, clause); End { clauses }
 
 clause:
   | pattern = match_pattern; Colon; block = block { $loc, pattern, Do_block block }
@@ -428,14 +427,14 @@ call_arg:
   | Ampersand { Dmut } | Exclamation { Dmove }
 
 then_:
-  | block = block; %prec If_no_else { block, [], None }
+  | block = block { block, [], None }
   | block = block; else_ = else_ { block, [], Some else_ }
-  | block = block; elifs = elifs; %prec If_no_else { block, elifs, None }
+  | block = block; elifs = elifs { block, elifs, None }
   | block = block; elifs = elifs; else_ = else_ { block, elifs, Some else_ }
 
 elifs:
   | elif = elif; elifs = elifs { elif :: elifs }
-  | elif = elif; %prec If_no_else { [elif] }
+  | elif = elif { [elif] }
 
 passed(x):
   | pexpr = x { Dnorm, pexpr }
@@ -443,10 +442,10 @@ passed(x):
   | Exclamation; pexpr = x { Dmove, pexpr }
 
 elif:
-  | Elseif; cond = expr; Colon; elseblk = block { ($loc, cond, elseblk) }
+  | Elseif; cond = expr; elseblk = block { ($loc, cond, elseblk) }
 
 else_:
-  | Else; Colon; item = block; { item }
+  | Else; item = block; { item }
 
 use_path:
   | id = Ident { Path.Pid (id) }

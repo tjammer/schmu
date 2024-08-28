@@ -57,13 +57,13 @@ let rec emit state lexbuf (token : Parser.token) =
           let state = mark state Lexing.(lexbuf.lex_curr_p) in
           (token, { state with equal_context = tl })
       | Record :: _ | [] -> (token, state))
-  | Lbrac ->
+  | Lcurly ->
       ( token,
         {
           (push_par_indent state) with
           equal_context = Record :: state.equal_context;
         } )
-  | Rbrac -> (
+  | Rcurly -> (
       match state.equal_context with
       | Record :: tl ->
           pop_par_indent { state with equal_context = tl } token lexbuf
@@ -84,12 +84,12 @@ let rec emit state lexbuf (token : Parser.token) =
 and maybe_newline state lexbuf =
   match state.cached with
   | Some
-      (( Parser.Rbrac | Rbrack | Rpar | Right_arrow | Pipe_tail | Else | Elseif
+      (( Parser.Rcurly | Rbrack | Rpar | Right_arrow | Pipe_tail | Else | Elseif
        | And | Eof | Comma | Dot | Exclamation ) as token) ->
       (* These tokes should be able to be placed on the outer indent without
          starting a new line. *)
       emit { state with kind = Default } lexbuf token
-  | _ -> (Newline, { state with kind = Newline })
+  | _ -> (Semicolon, { state with kind = Newline })
 
 and dedent state lexbuf cnum =
   (* We emit [End] until we found the matching indentation *)
@@ -98,7 +98,7 @@ and dedent state lexbuf cnum =
   | column :: tl ->
       if cnum < column then
         ((* Still dedenting *)
-         Parser.(End), { state with indents = tl })
+         Parser.(Rcurly), { state with indents = tl })
       else if cnum = column then
         (* We have reached the correct indent *)
         maybe_newline state lexbuf
@@ -157,7 +157,7 @@ let read_marked state lexbuf lnum =
     | _ -> emit { state with kind = Default } lexbuf next_token
   else if cnum > indent_cnum then
     ( (* Save the token to emit on next call and insert [Begin] *)
-      Parser.Begin,
+      Parser.Lcurly,
       {
         state with
         indents = cnum :: state.indents;

@@ -145,7 +145,6 @@ rule read =
   | "fun"    { Fun }
   | "let"    { Let }
   | "match"  { Match }
-  | "do"     { Do }
   | "use" { Use }
   | "type"   { Type }
   | "external"{ External }
@@ -158,7 +157,8 @@ rule read =
   | "val"    { Val }
   | "rec"    { Rec }
   | '|'      { Hbar }
-  | ident { Ident (Lexing.lexeme lexbuf) }
+  | ';'      { Semicolon }
+  | ident    { Ident (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | path_id  { Path_id (Lexing.lexeme lexbuf |> mut_of_string) }
   | hash_id  { Ctor (Lexing.lexeme lexbuf |> name_of_string) }
@@ -180,8 +180,8 @@ rule read =
   | '!'      { Exclamation }
   | '('      { Lpar }
   | ')'      { Rpar }
-  | '{'      { Lbrac }
-  | '}'      { Rbrac }
+  | '{'      { Lcurly }
+  | '}'      { Rcurly }
   | '['      { Lbrack }
   | ']'      { Rbrack }
   | "#["     { Hashtag_brack }
