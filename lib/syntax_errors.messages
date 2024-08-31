@@ -370,10 +370,6 @@ prog: Let Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If False Lcurly With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -486,11 +482,55 @@ prog: Fun Lpar Rpar Right_arrow Ident Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: If False Lcurly With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Cmp_op With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Lpar Rpar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Lpar Rpar Lbrack Ident Rbrack With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec Ident Lpar Rpar Lcurly Ident Rcurly With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec Ident Lpar Rpar Lcurly Ident Rcurly And With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec Ident Lpar Rpar Lcurly Ident Rcurly And Ident Lpar Rpar Lcurly Ident Rcurly With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec Ident Lpar Rpar Lcurly Ident Rcurly And Ident Lpar Rpar Lcurly Ident Rcurly And With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Fun Wildcard Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Fun Ident Lbrack Ident Rbrack With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -702,6 +742,26 @@ prog: False Lpar False Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: If False Lcurly Ident Eof
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: If False Lcurly Ident Semicolon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Hashnum_brack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -738,71 +798,27 @@ prog: If False Lcurly Ident Rcurly Elseif False Lcurly Ident Rcurly Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun With
+prog: Match Exclamation With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Rec With
+prog: Match Exclamation False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Cmp_op With
+prog: Let Ident Equal Builtin_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Ident Lpar Rpar With
+prog: Match Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Ident Lpar Rpar Lbrack Ident Rbrack With
+prog: Match Ampersand False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Rec Ident Lpar Rpar Lcurly Ident Rcurly With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Rec Ident Lpar Rpar Lcurly Ident Rcurly And With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Rec Ident Lpar Rpar Lcurly Ident Rcurly And Ident Lpar Rpar Lcurly Ident Rcurly With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Rec Ident Lpar Rpar Lcurly Ident Rcurly And Ident Lpar Rpar Lcurly Ident Rcurly And With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: If False Lcurly Ident Eof
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: If False Lcurly Ident Semicolon With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Let Ident Equal Exclamation With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Let Ident Equal Ampersand With
+prog: Match False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -846,19 +862,7 @@ prog: Lpar False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Exclamation With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Exclamation False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Ampersand With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Ampersand False Wildcard
+prog: Match False Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -951,10 +955,6 @@ prog: Match False Lcurly Ident Colon Lcurly Ident Rcurly With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match False Lcurly Ident Colon Lcurly Ident Rcurly Hbar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

@@ -18,8 +18,8 @@ let loc_of_lexing lexbuf =
 let parse_fast file =
   let src, lexbuf = L.read file in
 
-  try Ok (Parser.prog Indent.insert_ends lexbuf) with
-  | Lexer.SyntaxError msg | Indent.Error msg ->
+  try Ok (Parser.prog Semicolons.read lexbuf) with
+  | Lexer.SyntaxError msg | Semicolons.Error msg ->
       let loc = loc_of_lexing lexbuf in
       let pp, pos = pp_position lexbuf file in
       Error
@@ -81,11 +81,11 @@ let generate_error file src =
   let lexbuf = L.init file (Lexing.from_string src) in
 
   (* We reset the indent state so it runs smoothly again *)
-  Indent.reset ();
+  Semicolons.reset ();
 
   (* Wrap the lexer and lexbuf together into a supplier, that is, a
      function of type [unit -> token * position * position]. *)
-  let supplier = I.lexer_lexbuf_to_supplier Indent.insert_ends lexbuf in
+  let supplier = I.lexer_lexbuf_to_supplier Semicolons.read lexbuf in
 
   let checkpoint = UnitActionsParser.Incremental.prog lexbuf.lex_curr_p in
   (* Run the parser. *)

@@ -6,80 +6,124 @@ let length = __array_length
 
 use prelude
 
-fun create(len):
+fun create(len) {
   let ret& = __unsafe_array_create(len)
   &__unsafe_array_length(ret) = 0
   ret
+}
 
-fun push(arr&, value!):
+fun push(arr&, value!) {
   let capacity = __array_capacity(arr)
   let length = length(arr)
 
-  if capacity == length:
-    if capacity == 0:
+  if capacity == length {
+    if capacity == 0 {
       __unsafe_array_realloc(&arr, 4)
-    else:
+    } else {
       __unsafe_array_realloc(&arr, 2 * capacity)
+    }
+  }
 
   __unsafe_ptr_set(&data(arr), length, !value)
   &__unsafe_array_length(arr) = length + 1
+}
 
-fun iter(arr, f):
-  fun rec inner(i):
-    if i == length(arr): () else:
+fun iter(arr, f) {
+  fun rec inner(i) {
+    if i == length(arr) {
+      ()
+    } else {
       f(arr.[i])
       inner(i + 1)
-  inner(0)
+    }
+  }
 
-fun iteri(arr, f):
-  fun rec inner(i):
-    if i == length(arr): () else:
+  inner(0)
+}
+
+fun iteri(arr, f) {
+  fun rec inner(i) {
+    if i == length(arr) {
+      ()
+    } else {
       f(i, arr.[i])
       inner(i + 1)
-  inner(0)
+    }
+  }
 
-fun fold(arr, init!, f):
-  fun rec inner(i, acc!):
-    if i == length(arr): acc else:
+  inner(0)
+}
+
+fun fold(arr, init!, f) {
+  fun rec inner(i, acc!) {
+    if i == length(arr) {
+      acc
+    } else {
       let acc = f(!acc, arr.[i])
       inner(i + 1, !acc)
-  inner(0, !init)
+    }
+  }
 
-fun foldi(arr, init!, f):
-  fun rec inner(i, acc!):
-    if i == length(arr): acc else:
+  inner(0, !init)
+}
+
+fun foldi(arr, init!, f) {
+  fun rec inner(i, acc!) {
+    if i == length(arr) {
+      acc
+    } else {
       let acc = f(i, !acc, arr.[i])
       inner(i + 1, !acc)
-  inner(0, !init)
+    }
+  }
 
-fun map(arr, f):
+  inner(0, !init)
+}
+
+fun map(arr, f) {
   let ret = create(length(arr))
-  fun rec inner(ret!, i):
+  fun rec inner(ret!, i) {
     let ret& = !ret
-    if i == length(arr): ret else:
+    if i == length(arr) {
+      ret
+    } else {
       push(&ret, !f(arr.[i]))
       inner(!ret, i + 1)
-  inner(!ret, 0)
+    }
+  }
 
-fun swap_items(arr&, i, j):
-  if not (i == j):
+  inner(!ret, 0)
+}
+
+fun swap_items(arr&, i, j) {
+  if not (i == j) {
     let itmp = !arr.[i]
     &arr.[i] = arr.[j]
     &arr.[j] = itmp
+  }
+}
 
-
-fun clear(arr&):
-  fun rec inner():
-    if 0 == length(arr): () else:
+fun clear(arr&) {
+  fun rec inner() {
+    if 0 == length(arr) {
+      ()
+    } else {
       drop_back(&arr)
       inner()
+    }
+  }
+
   inner()
+}
 
-fun reserve(arr&, size):
-  if __array_capacity(arr) < size:
+fun reserve(arr&, size) {
+  if __array_capacity(arr) < size {
     __unsafe_array_realloc(&arr, size)
+  }
+}
 
-module fixed:
+module fixed {
   let get = __fixed_array_get
   let length = __fixed_array_length
   let data = __fixed_array_data
+}

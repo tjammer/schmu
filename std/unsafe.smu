@@ -1,4 +1,4 @@
-signature:
+signature {
   val nullptr : () -> raw_ptr[u8]
 
   -- functions on raw pointers
@@ -9,6 +9,7 @@ signature:
   val addr : ('a&) -> raw_ptr['a]
   val funptr : ('a) -> raw_ptr[unit]
   val clsptr : ('a) -> raw_ptr[unit]
+}
 
 let nullptr = __unsafe_nullptr
 let get = __unsafe_ptr_get

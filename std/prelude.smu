@@ -10,12 +10,14 @@ let >= = __greatereqi
 let == = __equali
 let >. = __greatereqf
 
-fun iter_range(from, to, f):
-  fun rec inner(i):
-    if i == to: () else:
+fun iter_range(from, to, f) {
+  fun rec inner(i) {
+    if i == to { () } else {
       f(i)
       inner(i + 1)
+    }
+  }
   inner(from)
+}
 
-fun char_equal(a, b): u8_to_int(a) == u8_to_int(b)
-
+fun char_equal(a, b) { u8_to_int(a) == u8_to_int(b) }

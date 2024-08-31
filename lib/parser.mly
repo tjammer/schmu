@@ -121,8 +121,8 @@ top_item:
 
 stmt_no_ident:
 /* Needed to disambiguate block expression from record expression */
-  | Let; decl = let_decl; Equal; pexpr = passed(block)
-    { let pattr, block = pexpr in Let($loc, decl, {pattr; pexpr = Do_block block})  }
+  | Let; decl = let_decl; Equal; pexpr = passed(expr)
+    { let pattr, pexpr = pexpr in Let($loc, decl, { pattr; pexpr })  }
   | Let; decl = let_decl; Equal; id = Builtin_id
     { let expr = {pattr = Dnorm; pexpr = Var($loc(id), id)} in Let($loc, decl, expr) }
   | Fun; func = func { let loc, func = func false in Function (loc, func) }
