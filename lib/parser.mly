@@ -344,7 +344,7 @@ expr_no_ident:
   | aexpr = expr; Pipe_tail; pipeable = expr
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_tail ($loc, arg, Pip_expr pipeable) }
-  | Match; expr = passed(expr); Lcurly; option(Hbar); clauses = separated_nonempty_list(Hbar, clause); Rcurly
+  | Match; expr = passed(expr); Lcurly; option(Hbar); clauses = clauses; Rcurly
     { Match ($loc, fst expr, snd expr, clauses) }
   | Ampersand; expr = expr; Equal; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
@@ -355,14 +355,21 @@ expr:
   | expr = expr_no_ident { expr }
 
 block_cont:
-  | Rbrack { [] }
+  | Rcurly { [] }
   | Semicolon; block = separated_nonempty_list(Semicolon, stmt); Rcurly { block }
 
 path_ident:
   | paths = nonempty_list(Path_id); callee = ident { List.fold_right (fun path expr -> Local_use ($loc, path, expr)) paths (Var callee) }
 
 clause:
-  | pattern = match_pattern; Colon; block = block { $loc, pattern, Do_block block }
+  | pattern = match_pattern; Colon; expr = expr { $loc, pattern, expr }
+
+clauses:
+  | clause = clause { [ clause ] }
+  | clause = clause; Hbar; clauses = separated_nonempty_list(Hbar, clause)
+    { clause :: clauses }
+  | clause = clause; Semicolon; clauses = separated_nonempty_list(Semicolon, clause)
+    { clause :: clauses }
 
 special_builtins:
   | e = expr; Dot; Lbrack; i = expr; Rbrack

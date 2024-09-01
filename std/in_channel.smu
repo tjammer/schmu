@@ -3,7 +3,7 @@ import option
 import prelude
 import string
 
-signature:
+signature {
   type t
 
   val open : (string/t) -> option/t[t]
@@ -23,6 +23,7 @@ signature:
 
   type file
   val of_file : (file) -> t
+}
 
 type file = raw_ptr[u8]
 
@@ -38,127 +39,167 @@ use prelude
 
 let bufsize = 4096
 
-fun open(name):
+fun open(name) {
   let file = fopen(string/data(name), string/data("r"))
-  if nullptr?(file): #none else:
+  if nullptr?(file) {
+    #none
+  } else {
     #some({buf = #4096[0u8], head = 0, unseen = 0, file})
+  }
+}
 
-fun close(ic):
+fun close(ic) {
   fclose(ic.file).ignore()
+}
 
-fun with_open(name, f):
-  match open(name):
-    #some(ic):
+fun with_open(name, f) {
+  match open(name) {
+    #some(ic): {
       let ic& = !ic
       let ret = f(&ic)
       close(ic)
       #some(ret)
+    }
     #none: #none
+  }
+}
 
-fun fill(buf&, icbuf, lower, upper):
-  prelude/iter_range(lower, upper, fun i:
-    array/push(&buf, !copy(icbuf#[i])))
+fun fill(buf&, icbuf, lower, upper) {
+  prelude/iter_range(lower, upper, fun i {
+    array/push(&buf, !copy(icbuf#[i]))
+  })
+}
 
-fun readbuf(ic&, buf&):
-  let lower, upper = do:
-    if ic.unseen > 0:
+fun readbuf(ic&, buf&) {
+  let lower, upper = {
+    if ic.unseen > 0 {
       (ic.head, ic.head + ic.unseen)
-    else:
+    } else {
       (0, fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file))
+    }
+  }
   -- copy content to buf
   fill(&buf, ic.buf, lower, upper)
   &ic.head = 0
   &ic.unseen = 0
   #some(upper - lower)
+}
 
-fun rec readn_impl(ic&, buf&, n, readacc):
-  if ic.unseen >= n:
+fun rec readn_impl(ic&, buf&, n, readacc) {
+  if ic.unseen >= n {
     fill(&buf, ic.buf, ic.head, ic.head + n)
     &ic.head = ic.head + n
     &ic.unseen = ic.unseen - n
     #some(readacc + n)
-  else if ic.unseen > 0:
-    match readbuf(&ic, &buf):
-      #some(nread):
+  } else if ic.unseen > 0 {
+    match readbuf(&ic, &buf) {
+      #some(nread): {
         assert((n - nread) < 0)
         readn_impl(&ic, &buf, n - nread, nread + readacc)
-      #none:
+      }
+      #none: {
         assert(false)
         #none
-  else:
+      }
+    }
+  } else {
     let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
     &ic.head = 0
     &ic.unseen = copy(nread)
-    if nread == 0:
-      if readacc == 0: #none else: #some(readacc)
-    else:
+    if nread == 0 {
+      if readacc == 0 { #none } else { #some(readacc) }
+    } else {
       readn_impl(&ic, &buf, n, readacc)
+    }
+  }
+}
 
+fun readn(ic&, buf&, n) { readn_impl(&ic, &buf, n, 0) }
 
-fun readn(ic&, buf&, n): readn_impl(&ic, &buf, n, 0)
-
-fun rec readall_impl(ic&, buf&, acc):
+fun rec readall_impl(ic&, buf&, acc) {
   -- assumes ic.unseen = 0
   let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
-  if nread == 0:
-    if acc == 0: #none else: #some(acc)
-  else:
+  if nread == 0  {
+    if acc == 0 { #none } else { #some(acc) }
+  } else {
     fill(&buf, ic.buf, 0, nread)
     readall_impl(&ic, &buf, nread + acc)
+  }
+}
 
-fun readrem(ic&, buf&):
-  let ret = match readbuf(&ic, &buf):
-    #some(nread):
+fun readrem(ic&, buf&) {
+  let ret = match readbuf(&ic, &buf) {
+    #some(nread): {
       fill(&buf, ic.buf, ic.head, ic.head + ic.unseen)
       readall_impl(&ic, &buf, nread)
+    }
     #none: #none
+  }
   -- make other (read) calls fail after this
   &ic.unseen = 0
   &ic.head = 0
   ret
+}
 
-fun readline(ic&, buf&):
-  fun rec find_newline(acc):
-    if ic.unseen > 0:
-      if prelude/char_equal('\n', ic.buf#[ic.head]):
+fun readline(ic&, buf&) {
+  fun rec find_newline(acc) {
+    if ic.unseen > 0 {
+      if prelude/char_equal('\n', ic.buf#[ic.head]) {
         &ic.unseen = ic.unseen - 1
         &ic.head = ic.head + 1
         #some(acc)
-      else:
+      } else {
         array/push(&buf, !copy(ic.buf#[ic.head]))
         &ic.unseen = ic.unseen - 1
         &ic.head = ic.head + 1
         find_newline(acc + 1)
-    else:
+      }
+    } else {
       -- re-read file, then recurse, copied from readn_impl
       let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
       &ic.head = 0
       &ic.unseen = copy(nread)
-      if nread == 0:
-        if acc == 0: #none else: #some(acc)
-      else: find_newline(acc)
-  find_newline(0)
+      if nread == 0 {
+        if acc == 0 {
+          #none
+        } else {
+          #some(acc)
+        }
+      } else { find_newline(acc) }
+    }
+  }
 
-fun readall(ic&):
+  find_newline(0)
+}
+
+fun readall(ic&) {
   let buf& = array/create(bufsize)
-  match readrem(&ic, &buf):
+  match readrem(&ic, &buf) {
     #some(_): string/of_array(!buf)
     #none: ""
+  }
+}
 
-fun lines(ic&, f):
+fun lines(ic&, f) {
   let buf& = array/create(bufsize)
-  fun rec aux():
-    match readline(&ic, &buf):
-      #some(_):
+  fun rec aux() {
+    match readline(&ic, &buf) {
+      #some(_): {
         let str = string/of_array(!buf)
         f(str)
         &buf = string/to_array(!str)
         array/clear(&buf)
         aux()
+      }
       #none: ()
+    }
+  }
+
   aux()
+}
 
 external rewind : (file) -> unit
-fun of_file(file):
+fun of_file(file) {
   rewind(file)
   {buf = #4096[0u8], head = 0, unseen = 0, file}
+}

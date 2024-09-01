@@ -2,7 +2,7 @@ import array
 import option
 import prelude
 
-signature:
+signature {
   type cstr = raw_ptr[u8]
   type t
 
@@ -22,17 +22,18 @@ signature:
 
   val println : (t) -> unit
   val print : (t) -> unit
+}
 
 type t = array[u8]
 
 -- TODO use aliases
-fun len(str : t): array/length(str)
-fun data(str : t): array/data(str)
-fun get(str : t, i): str.[i]
+fun len(str : t) { array/length(str) }
+fun data(str : t) { array/data(str) }
+fun get(str : t, i) { str.[i] }
 
 use prelude
 
-fun hash(str):
+fun hash(str) {
   -- unsigned long
   -- hash(unsigned char *str)
   -- {
@@ -42,76 +43,93 @@ fun hash(str):
   --         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
   --     return hash;
   -- }
-  array/fold(str, !5381, fun (hash!, c):
-    (hash * 33) + u8_to_int(c))
+  array/fold(str, !5381, fun (hash!, c) {
+    (hash * 33) + u8_to_int(c)})
+}
 
 external memcmp : (raw_ptr[u8], raw_ptr[u8], int) -> i32
 
-fun equal(l, r):
-  if len(l) == len(r):
+fun equal(l, r) {
+  if len(l) == len(r) {
     int_of_i32(memcmp(array/data(l), array/data(r), array/length(l))) == 0
-  else:
+  } else {
     false
+  }
+}
 
-fun append(str&, other):
-  array/iter(other, fun(c : u8): array/push(&str, !c))
+fun append(str&, other) {
+  array/iter(other, fun(c : u8) { array/push(&str, !c) })
+}
 
-fun concat(delim, strings):
+fun concat(delim, strings) {
   let ret& = array/create(32)
-  array/iteri(strings, fun(i, str):
-    if not(i == 0): append(&ret, delim)
-    append(&ret, str))
+  array/iteri(strings, fun(i, str) {
+    if not(i == 0) { append(&ret, delim) }
+    append(&ret, str)
+  })
   array/push(&ret, !'\000')
   array/drop_back(&ret)
   ret
+}
 
-fun make_skips(pattern):
+fun make_skips(pattern) {
   let len = array/length(pattern)
   let skips& = #256[len]
-  array/iteri(pattern, fun(i, c):
-    if not(i == len - 1): -- ignore last char
-      &skips#[u8_to_int(c)] = len - 1 - i)
+  array/iteri(pattern, fun(i, c) {
+    if not(i == len - 1) { -- ignore last char
+      &skips#[u8_to_int(c)] = len - 1 - i
+    }
+  })
   skips
+}
 
-fun boyer_moore_horspool(pattern, str):
+fun boyer_moore_horspool(pattern, str) {
   use prelude
   use option
   let patlen1 = len(pattern) - 1
   let strptr = array/data(str)
   let last_patchar = pattern.[patlen1]
 
-  fun rec find(skips, istr):
+  fun rec find(skips, istr) {
     let last_windowchar = str.[istr + patlen1]
-    if (istr + len(pattern)) <= len(str):
-      if char_equal(last_patchar, last_windowchar) and
-        (memcmp(array/data(pattern), __unsafe_ptr_at(strptr, istr), patlen1)
-          .int_of_i32()) == 0:
+    if (istr + len(pattern)) <= len(str) {
+      if char_equal(last_patchar, last_windowchar)
+         and (memcmp(array/data(pattern),
+           __unsafe_ptr_at(strptr, istr), patlen1)
+          .int_of_i32()) == 0 {
         #some(istr)
-      else:
+      } else {
         let skip = skips#[u8_to_int(last_windowchar)]
         find(skips, istr + skip)
-    else:
-      #none
+      }
+    } else { #none }
+  }
 
   -- what's going on here?
-  if len(pattern) < len(pattern): #none else:
+  if len(pattern) < len(pattern) {
+    #none
+  } else {
     let skips = make_skips(pattern)
     find(skips, 0)
+  }
+}
 
-fun modify_buf(str& : t, f):
+fun modify_buf(str& : t, f) {
   f(&str)
   -- return type needs to be inferred as unit
   ()
+}
 
-fun of_array(arr! : array[u8]): arr
-fun to_array(str! : t): str
+fun of_array(arr! : array[u8]) { arr }
+fun to_array(str! : t) { str }
 
 external memcpy : (raw_ptr[u8], raw_ptr[u8], int) -> unit
 
-fun of_fixed_array(arr : array#?[u8]):
+fun of_fixed_array(arr : array#?[u8]) {
   let ret = array/create(__fixed_array_length(arr))
   memcpy(array/data(ret), __fixed_array_data(arr), __fixed_array_length(arr))
   ret
+}
 
 type file = raw_ptr[u8]
 external stdout : file
@@ -119,9 +137,11 @@ external fwrite : (cstr, int, int, file) -> unit
 
 let newline = #['\n']
 
-fun println(str : t):
+fun println(str : t) {
   fwrite(array/data(str), 1, array/length(str), stdout)
   fwrite(__fixed_array_data(newline), 1, 1, stdout)
+}
 
-fun print(str : t):
+fun print(str : t) {
   fwrite(array/data(str), 1, array/length(str), stdout)
+}

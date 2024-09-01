@@ -826,7 +826,7 @@ prog: Let Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Lcurly False Rcurly
+prog: Lcurly False Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -950,11 +950,31 @@ prog: Match False Lcurly Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match False Lcurly Ident Colon Lcurly Ident Rcurly With
+prog: Match False Lcurly Ident Colon False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match False Lcurly Ident Colon Lcurly Ident Rcurly Hbar With
+prog: Match False Lcurly Ident Colon False Semicolon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match False Lcurly Ident Colon False Semicolon Ident Colon False Hbar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match False Lcurly Ident Colon False Semicolon Ident Colon False Semicolon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match False Lcurly Ident Colon False Hbar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match False Lcurly Ident Colon False Hbar Ident Colon False Semicolon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match False Lcurly Ident Colon False Hbar Ident Colon False Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1030,7 +1050,7 @@ prog: External Ident Colon Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Rbrack
+prog: Use Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
