@@ -261,7 +261,7 @@ let add_external ext_name ~cname typ loc env =
       ext_name;
       ext_typ = typ;
       ext_cname = cname;
-      imported = None;
+      imported = Some (env.modpath, `C);
       used;
       closure = false;
     }

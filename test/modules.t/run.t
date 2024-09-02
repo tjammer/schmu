@@ -1101,3 +1101,6 @@ Fix handling of parameterized abstract types
   $ schmu -m nullvec.smu
   $ schmu use_nullvec.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./use_nullvec
+
+Fix external declarations in inner modules
+  $ schmu inner_module_externals.smu
