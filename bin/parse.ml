@@ -19,7 +19,7 @@ let parse_fast file =
   let src, lexbuf = L.read file in
 
   try Ok (Parser.prog Semicolons.read lexbuf) with
-  | Lexer.SyntaxError msg | Semicolons.Error msg ->
+  | Lexer.SyntaxError msg ->
       let loc = loc_of_lexing lexbuf in
       let pp, pos = pp_position lexbuf file in
       Error

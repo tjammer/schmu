@@ -1,5 +1,3 @@
-exception Error of string
-
 (* Add semicolons. The grammar is written with semicolons separating statements
    / unit expressions in blocks. After certain newlines, we add Semicolons here
    between lexer and parser. How it works: Newlines are ignored for most tokens,
@@ -18,7 +16,9 @@ let default next state =
 
 let rec newline ~lnum lexbuf next state =
   match (state.last, next) with
-  | _, (Parser.Dot | Eof | Rcurly | Else | Or | And) ->
+  | ( _,
+      ( Parser.Dot | Eof | Rcurly | Else | Elseif | Or | And | Pipe_tail | Hbar
+      | Rbrack | Rpar ) ) ->
       (* These tokens continue expressions on the new line. Rcurly closes
          the block; in that case we do not want to insert a semicolon. Some
          with Eof *)

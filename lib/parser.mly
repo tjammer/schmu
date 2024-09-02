@@ -81,10 +81,7 @@
 %token And
 %token Or
 
-/* The expression to be matched has higher prio then opening of the match body */
-%nonassoc Lcurly
-%nonassoc Above_lcurly
-
+%nonassoc Below_expr
 %nonassoc Below_Ampersand
 
 %nonassoc Type_application
@@ -98,6 +95,7 @@
 %left Plus_op
 %left Mult_op
 %left Dot Ampersand Exclamation
+%left Lcurly
 %left Lbrack
 %left Lpar
 %left Path Hashtag_brack
@@ -126,6 +124,7 @@ stmt_no_ident:
   | Let; decl = let_decl; Equal; id = Builtin_id
     { let expr = {pattr = Dnorm; pexpr = Var($loc(id), id)} in Let($loc, decl, expr) }
   | Fun; func = func { let loc, func = func false in Function (loc, func) }
+  | Fun; func = func_colon { let loc, func = func false in Function (loc, func) }
   | Fun; Rec; func = func { let loc, func = func true in Function (loc, func) }
   | Fun; Rec; func = func; And; tail = separated_nonempty_list(And, func)
     { Rec($loc, (func true) :: (List.map (fun f -> f true) tail)) }
@@ -141,9 +140,16 @@ func:
       return_annot = option(return_annot); body = block
     { fun is_rec -> ($loc, { name; params; return_annot; body; attr; is_rec }) }
 
+func_colon:
+  | name = func_name; params = parens(param_decl); attr = loption(capture_copies);
+      return_annot = option(return_annot); Colon; body = expr
+    { fun is_rec ->
+      let body = [Expr ($loc(body), body)] in
+      ($loc, { name; params; return_annot; body; attr; is_rec }) }
+
 func_name:
   | name = ident { name }
-  | infix = infix_no_inline { $loc(infix), infix }
+  | infix = infix { $loc(infix), infix }
 
 typedef:
   | Type; name = decl_typename; Equal; Lcurly; labels = separated_nonempty_trailing_list(Comma, record_item_decl, Rcurly)
@@ -195,7 +201,7 @@ decl_typename:
   | name = Ident { { name; poly_param = [] } }
   | name = Ident; Lbrack; poly_param = separated_nonempty_list(Comma, poly_id); Rbrack { { name; poly_param } }
 
-%inline module_decl:
+module_decl:
   | name = ident { let loc, name = name in loc, name, None }
   | name = ident; Colon; path = use_path { let loc, name = name in loc, name, Some path }
 
@@ -209,7 +215,7 @@ sig_item:
   | typedef = typedef { Stypedef ($loc, typedef) }
   | Type; name = decl_typename { Stypedef ($loc, Tabstract name) }
   | Val; id = ident; Colon; spec = type_spec { Svalue ($loc, (id, spec)) }
-  | Val; id = infix_no_inline; Colon; spec = type_spec
+  | Val; id = infix; Colon; spec = type_spec
     { Svalue ($loc, (($loc(id), id), spec)) }
 
 block:
@@ -258,7 +264,7 @@ match_pattern:
 
 let_pattern:
   | basic = basic_pattern { basic }
-  | infix = infix_no_inline { Pvar (($loc(infix), infix), Dnorm) }
+  | infix = infix { Pvar (($loc(infix), infix), Dnorm) }
   | tup = tup_pattern(basic_pattern) { tup }
   | rec_ = record_pattern(basic_pattern) { rec_ }
 
@@ -297,7 +303,7 @@ expr_no_ident:
   | ident = infix { Var ($loc(ident), ident) }
   | lit = lit { Lit ($loc, lit) }
   | a = expr; bop = binop; b = expr { Bop ($loc, bop, a, b) }
-  | a = expr; infix = infix; b = expr; %prec Above_lcurly
+  | a = expr; infix = infix; b = expr
     { let a = {apass = Dnorm; aloc = $loc(a); aexpr = a} in
       let b = {apass = Dnorm; aloc = $loc(b); aexpr = b} in
       App ($loc, Var($loc(infix), infix), [a; b]) }
@@ -325,12 +331,8 @@ expr_no_ident:
     { Fmt ($loc, expr :: args) }
   | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
   | Fmt; args = parens(expr) { Fmt ($loc, args) }
+  | lambda = lambda { lambda }
   | special = special_builtins { special }
-  | Fun; params = parens(param_decl); attr = loption(capture_copies);
-      return_annot = option(return_annot); body = block
-    { Lambda ($loc, params, attr, return_annot, body) }
-  | Fun; param = only_one_param; attr = loption(capture_copies); body = block
-    { Lambda ($loc, [param], attr, None, body) }
   | Lcurly; items = separated_nonempty_trailing_list(Comma, record_item, Rcurly)
     { Record ($loc, items) }
   | Lcurly; fst = stmt_no_ident; cont = block_cont
@@ -358,8 +360,23 @@ block_cont:
   | Rcurly { [] }
   | Semicolon; block = separated_nonempty_list(Semicolon, stmt); Rcurly { block }
 
+lambda:
+  | Fun; params = parens(param_decl); attr = loption(capture_copies);
+      return_annot = option(return_annot); body = block
+    { Lambda ($loc, params, attr, return_annot, body) }
+  | Fun; param = only_one_param; attr = loption(capture_copies); body = block
+    { Lambda ($loc, [param], attr, None, body) }
+  | Fun; params = parens(param_decl); attr = loption(capture_copies);
+      return_annot = option(return_annot); Colon; body = expr; %prec Below_expr
+    { let body = [Expr ($loc(body), body)] in
+      Lambda ($loc, params, attr, return_annot, body) }
+  | Fun; param = only_one_param; attr = loption(capture_copies); Colon; body = expr; %prec Below_expr
+    { let body = [Expr ($loc(body), body)] in
+      Lambda ($loc, [param], attr, None, body) }
+
 path_ident:
-  | paths = nonempty_list(Path_id); callee = ident { List.fold_right (fun path expr -> Local_use ($loc, path, expr)) paths (Var callee) }
+  | paths = nonempty_list(Path_id); callee = ident
+    { List.fold_right (fun path expr -> Local_use ($loc, path, expr)) paths (Var callee) }
 
 clause:
   | pattern = match_pattern; Colon; expr = expr { $loc, pattern, expr }
@@ -452,7 +469,7 @@ elif:
   | Elseif; cond = expr; elseblk = block { ($loc, cond, elseblk) }
 
 else_:
-  | Else; item = block; { item }
+  | Else; item = block { item }
 
 use_path:
   | id = Ident { Path.Pid (id) }
@@ -466,12 +483,6 @@ type_path_cont:
   | id = Ident { Path.Pid (id) }
 
 %inline infix:
-  | id = Eq_op { id }
-  | id = Cmp_op { id }
-  | id = Plus_op { id }
-  | id = Mult_op { id }
-
-infix_no_inline:
   | id = Eq_op { id }
   | id = Cmp_op { id }
   | id = Plus_op { id }

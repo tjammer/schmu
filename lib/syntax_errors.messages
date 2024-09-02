@@ -250,6 +250,42 @@ prog: Signature Lcurly Val With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Signature Lcurly Val Plus_op With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Val Plus_op Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Val Plus_op Colon Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Val Mult_op With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Val Mult_op Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Val Mult_op Colon Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Val Eq_op With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Val Eq_op Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Val Eq_op Colon Ident Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Signature Lcurly Val Cmp_op With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -494,15 +530,19 @@ prog: Fun Rec With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Cmp_op With
+prog: Fun Rec Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Ident Lpar Rpar With
+prog: Fun Rec Ident Lpar Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Ident Lpar Rpar Lbrack Ident Rbrack With
+prog: Fun Rec Ident Lpar Rpar Lbrack Ident Rbrack With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Rec Ident Lpar Rpar Right_arrow Ident Colon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -530,7 +570,7 @@ prog: Fun Ident Lbrack Ident Rbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Ident With
+prog: Fun Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -570,22 +610,6 @@ prog: False Plus_op False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Pipe_tail With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Pipe_tail False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Or With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Or False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: False Mult_op With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -599,6 +623,22 @@ prog: False Hashtag_brack With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Hashtag_brack False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Pipe_tail With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Pipe_tail False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Or With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Or False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -650,14 +690,6 @@ prog: False Cmp_op False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False And With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False And False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: False Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -691,6 +723,14 @@ prog: Fmt Lpar False Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Fmt Lpar False Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False And With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False And False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -742,6 +782,34 @@ prog: False Lpar False Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Fun Ident Colon False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Cmp_op With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Lpar Rpar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Lpar Rpar Lbrack Ident Rbrack With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Lpar Rpar Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Ident Lpar Rpar Colon False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: If False Lcurly Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -759,6 +827,14 @@ prog: False Rpar
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Lpar Rpar Colon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Lpar Rpar Colon False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -998,7 +1074,7 @@ prog: Module With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Module Ident With
+prog: Module Ident Lpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1014,7 +1090,7 @@ prog: Functor With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Functor Ident With
+prog: Functor Ident Lcurly
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1078,27 +1154,11 @@ prog: Functor Ident Lpar Ident Colon Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Functor Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Functor Ident Colon With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Functor Ident Colon Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Functor Ident Colon Ident Lpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Functor Ident Colon Ident Lpar Ident Colon Ident Rpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Functor Ident Colon Ident Lpar Ident Colon Ident Rpar Lcurly With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Functor Ident Colon Ident Lpar Ident Colon Ident Rpar Lcurly Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1123,30 +1183,6 @@ prog: Module Ident Equal Ident Lpar Ident With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Module Ident Equal Ident Lpar Ident Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Module Ident Colon With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Module Ident Colon Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Module Ident Colon Ident Lcurly With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Module Ident Colon Ident Lcurly Ident Eof
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Module Ident Colon Ident Equal With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Module Ident Colon Ident Equal Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
