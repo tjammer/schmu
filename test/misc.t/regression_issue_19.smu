@@ -1,13 +1,16 @@
 type v3 = {x : float, y : float, z : float}
 
-fun v3_add(lhs, rhs):
+fun v3_add(lhs, rhs) {
   {x = lhs.x +. rhs.x, y = lhs.y +. rhs.y, z = lhs.z +. rhs.z}
+}
 
-fun v3_scale(v3, factor):
+fun v3_scale(v3, factor) {
   {x = v3.x *. factor, y = v3.y *. factor, z = v3.z *. factor}
+}
 
-fun wrap():
+fun wrap() {
   v3_scale({x = 1.0, y = 10.0, z = 100.0}, 1.5)
   .v3_add(v3_scale({x = 1.0, y = 2.0, z = 3.0}, 1.5))
+}
 
 ignore(wrap())

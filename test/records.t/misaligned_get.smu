@@ -3,7 +3,7 @@ external printi : (int) -> unit
 type inner = {fst : int, snd : int}
 type misaligned['a] = {fst : inner, gen : 'a}
 
-fun gen(any): copy(any.gen)
+fun gen(any) {copy(any.gen)}
 
 let m = {fst = {fst = 50, snd = 40}, gen = 30}
 printi(gen(m))

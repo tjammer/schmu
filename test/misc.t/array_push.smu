@@ -6,7 +6,7 @@ array/push(&a, !30)
 println(fmt(array/length(a)))
 println(fmt(array/length(b)))
 
-fun in_fun():
+fun in_fun() {
   let a& = [10, 20]
   let b = copy(a)
 
@@ -14,6 +14,7 @@ fun in_fun():
 
   println(fmt(array/length(a)))
   println(fmt(array/length(b)))
+}
 
 in_fun()
 

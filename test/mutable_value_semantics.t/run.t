@@ -1227,7 +1227,7 @@ Fix codegen
   
   codegen_nested_projections.smu:1.5-6: warning: Unused binding t.
   
-  1 | fun t():
+  1 | fun t() {
           ^
   
   ; ModuleID = 'context'
@@ -1259,7 +1259,7 @@ Track unmutated binding warnings across projections
   $ schmu projection_warnings.smu
   projection_warnings.smu:9.16-17: warning: Unused binding b.
   
-  9 | fun testfn(a&, b& : int):
+  9 | fun testfn(a&, b& : int) {
                      ^
   
   projection_warnings.smu:14.7-8: warning: Unmutated mutable binding a.
@@ -1274,17 +1274,17 @@ Track unmutated binding warnings across projections
   
   projection_warnings.smu:9.5-11: warning: Unused binding testfn.
   
-  9 | fun testfn(a&, b& : int):
+  9 | fun testfn(a&, b& : int) {
           ^^^^^^
   
   projection_warnings.smu:13.5-18: warning: Unused binding single_binder.
   
-  13 | fun single_binder():
+  13 | fun single_binder() {
            ^^^^^^^^^^^^^
   
   projection_warnings.smu:19.5-17: warning: Unused binding mutate_outer.
   
-  19 | fun mutate_outer():
+  19 | fun mutate_outer() {
            ^^^^^^^^^^^^
   
 Mutable locals must not be globals even if constexpr

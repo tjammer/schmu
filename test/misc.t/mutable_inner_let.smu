@@ -1,7 +1,8 @@
-let tmp = !
+let tmp = !{
   let inner& = #16[0]
   -- use inner
   unsafe/addr(&inner).ignore()
   inner
+}
 
 ignore(tmp)

@@ -1,12 +1,14 @@
-fun ret_none():
+fun ret_none() {
   let a : option[array[int]] = #none
   a
-let b = !match ret_none(): #some(a): a | #none: [1, 2]
+}
+let b = !match ret_none() {#some(a): a | #none: [1, 2]}
 ignore(b)
 
 type r['a] = {a : 'a}
-fun ret_rec(): {a = [10, 20, 30]}
-let c = do:
+fun ret_rec() {{a = [10, 20, 30]}}
+let c = {
   let a = ret_rec()
   a.a.[1]
+}
 ignore(c)

@@ -1,13 +1,14 @@
 external printi : (int) -> unit
 
-fun rec fib(n):
-  if n < 2: n
-  else:
+fun rec fib(n) {
+  if n < 2 {n}
+  else {
     -- local function
-    fun fibn2(n): fib(n - 2)
+    fun fibn2(n) {fib(n - 2)}
     -- anonymous function
     -- shadow fib. Since the function is anonymous, the inner fib call still calls out the outer fib
-    let fib = fun n: fib(n - 1)
+    let fib = fun n {fib(n - 1)}
     fibn2(n) + fib(n)
-
+  }
+}
 printi(fib(30))

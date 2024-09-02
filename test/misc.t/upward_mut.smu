@@ -1,10 +1,12 @@
 type c = {c& : int}
 
-fun counter():
+fun counter() {
   let cnt& = 0
-  fun ():
+  fun () {
     &cnt = cnt + 1
     cnt
+  }
+}
 
 let c = counter()
 println(fmt(c()))
@@ -12,11 +14,13 @@ println(fmt(c()))
 println(fmt(c()))
 println(fmt(c()))
 
-fun counter():
+fun counter() {
   let cnt& = {c = 0}
-  fun ():
+  fun () {
     &cnt = {c = cnt.c + 1}
     cnt
+  }
+}
 
 let c = counter()
 println(fmt(c().c))

@@ -2,6 +2,6 @@ import lets
 
 lets/printf(string/data("%i\n"), lets/a)
 lets/(printf(string/data("%i\n"), b))
-lets/(do:
+lets/({
   printf(string/data("%i\n"), a)
-  printf(string/data("%i\n"), b))
+  printf(string/data("%i\n"), b)})

@@ -3,39 +3,48 @@ type view = {pbuf : string, start : int, len : int}
 type ok = {rem : lexbuf, mtch : view}
 type parse_result = #ok(ok) | #err(lexbuf)
 
-fun char(c):
-  fun buf:
-    if char_equal(string/get(buf.buf, buf.curr), c):
+fun char(c) {
+  fun buf {
+    if char_equal(string/get(buf.buf, buf.curr), c) {
       #ok({mtch = {pbuf = copy(buf.buf), start = buf.curr, len = 1},
           rem = {copy(buf) with curr = buf.curr + 1}})
-    else:
+    } else {
       #err(copy(buf))
+    }
+  }
+}
 
-fun string_of_view(view):
+fun string_of_view(view) {
   let ret& = array/create(view.len + 1)
-  iter_range(view.start, view.start + view.len, fun c:
-    array/push(&ret, !string/get(view.pbuf, c)))
+  iter_range(view.start, view.start + view.len, fun c {
+    array/push(&ret, !string/get(view.pbuf, c))
+  })
   array/push(&ret, !'\000')
   array/drop_back(&ret)
   ret
+}
 
-fun view_of_lexbuf(lb):
+fun view_of_lexbuf(lb) {
   {pbuf = copy(lb.buf), start = lb.curr, len = string/len(lb.buf) - lb.curr}
+}
 
-fun print_result(res):
-  match res:
+fun print_result(res) {
+  match res {
     #ok({rem, mtch}):
       fmt("(\"", string_of_view(view_of_lexbuf(rem)), "\", \"",
         string_of_view(mtch), "\")")
     #err(lexbuf):
       fmt("\"", string_of_view(view_of_lexbuf(lexbuf)), "\", \"")
-  .println()
+  }.println()
+}
 
-fun alt(a, b):
-  fun (buf) [a, b]: -- [buf] is polymorphic
-    match a(buf):
+fun alt(a, b) {
+  fun (buf) [a, b] { -- [buf] is polymorphic
+    match a(buf) {
       #ok(r): #ok(r)
       #err(_): b(buf)
+  }}
+}
 
 let lx = {buf = "x", curr = 0}
 let li = {buf = "ix", curr = 0}

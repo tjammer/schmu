@@ -2,12 +2,12 @@ import malloc_some
 
 type big = {a : int, b : float, c : int, d : int}
 
-fun do_something(big):
+fun do_something(big) {
   big.a + 1
-
+}
 external printf : (string/cstr, int) -> unit
 
-fun printi(i):
+fun printi(i) {
   printf(string/data("%i\n"), i)
-
+}
 array/iter(malloc_some/vtest, printi)

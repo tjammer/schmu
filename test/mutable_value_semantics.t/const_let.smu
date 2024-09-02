@@ -4,11 +4,11 @@ let const = copy(v.[0])
 println(fmt(v.[0]))
 println(fmt(const))
 
-fun in_fun():
+fun in_fun() {
   let v& = [0]
   let const = copy(v.[0])
   &v.[0] = 1
   println(fmt(v.[0]))
   println(fmt(const))
-
+}
 in_fun()

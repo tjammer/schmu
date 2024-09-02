@@ -1,9 +1,9 @@
-fun prnt(a):
+fun prnt(a) {
   println(fmt(
     a.[0].[0],
     ", ",
     a.[1].[0]))
-
+}
 let a& = [[10], [20]]
 let b = copy(a)
 

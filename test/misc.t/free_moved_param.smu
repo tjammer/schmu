@@ -1,5 +1,6 @@
-fun hm(a!):
+fun hm(a!) {
   ignore(a)
   ()
+}
 
 hm(!["aoeu"])

@@ -2,10 +2,11 @@ let b& = 10
 &b = 14
 println(fmt(b))
 
-fun hmm():
+fun hmm() {
   let b& = 10
   &b = 15
   b
+}
 println(fmt(hmm()))
 
 let a& = [[10], [20]]

@@ -1,27 +1,36 @@
-fun bind(res, f):
-  match res:
+fun bind(res, f) {
+  match res {
     #some(r): f(r)
     #none: #none
+  }
+}
 
-fun apply(param, thing):
-  match param:
-    (bar, foo): bind(bar(thing), fun r:
-      bind(foo(r), fun r:
+fun apply(param, thing) {
+  match param {
+    (bar, foo): bind(bar(thing), fun r {
+      bind(foo(r), fun r {
         println(fmt(r))
-        #some(copy(r))))
+        #some(copy(r))
+      })
+    })
+  }
+}
 
-ignore(apply((fun i: #some(i + 1),
-            fun i: #some(i + 2)),
+ignore(apply((fun i {#some(i + 1)},
+            fun i  {#some(i + 2)}),
            0))
 
 -- This here is just a test to make sure that we can alias normal, monomorphized
 -- functions
-fun f(i):
+fun f(i) {
   println(fmt("printing ", i))
+}
 
-fun print_poly(to_print):
-  match f:
+fun print_poly(to_print) {
+  match f {
     foo: foo(to_print)
+  }
+}
 
 print_poly(0)
 print_poly(1.1)

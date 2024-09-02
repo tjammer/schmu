@@ -9,9 +9,9 @@ type inner = { a : int }
 
 type foo = { a : int, b : inner }
 
-fun inner(): { a = 3 }
+fun inner() {{ a = 3 }}
 
-let f = fun(x!): x
+let f = fun(x!) {x}
 
 let a = { a = 0, b = inner() }
 printi(a.b.a)

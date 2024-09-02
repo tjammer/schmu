@@ -1,27 +1,34 @@
 external printi : (int) -> unit
 
-fun array_iter(arr, f):
-  fun rec inner_cls_both(i):
-    if array/length(arr) == i: ()
-    else:
+fun array_iter(arr, f) {
+  fun rec inner_cls_both(i) {
+    if array/length(arr) == i {()}
+    else {
       f(arr.[i])
       inner_cls_both(i + 1)
+    }
+  }
 
-  fun rec inner_cls_arr(i, f):
-    if array/length(arr) == i: ()
-    else:
+  fun rec inner_cls_arr(i, f) {
+    if array/length(arr) == i {()}
+    else {
       f(arr.[i])
       inner_cls_arr(i + 1, f)
+    }
+  }
 
-  fun rec inner_cls_f(i, arr):
-    if array/length(arr) == i: ()
-    else:
+  fun rec inner_cls_f(i, arr) {
+    if array/length(arr) == i {()}
+    else {
       f(arr.[i])
       inner_cls_f(i + 1, arr)
+    }
+  }
 
   inner_cls_both(0)
   inner_cls_arr(0, f)
   inner_cls_f(0, arr)
+}
 
 let arr& = []
 array/push(&arr, !1)
@@ -30,4 +37,4 @@ array/push(&arr, !3)
 array/push(&arr, !4)
 array/push(&arr, !5)
 
-array_iter(arr, fun x: printi(x * 2))
+array_iter(arr, fun x {printi(x * 2)})

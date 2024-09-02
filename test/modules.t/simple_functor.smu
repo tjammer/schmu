@@ -1,10 +1,12 @@
-module type sig:
+module type sig {
   type t
   val hash : (t) -> int
-
-functor make(m : sig):
+}
+functor make(m : sig) {
   type other['a] = {this : m/t, other : 'a}
 
-  fun create(this!, other!):
+  fun create(this!, other!) {
     println(fmt("create: ", this, " ", other))
     {this, other}
+  }
+}

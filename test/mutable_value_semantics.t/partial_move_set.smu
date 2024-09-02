@@ -5,8 +5,8 @@ ignore((a.a, 0))
 &a = {a = [], b = []}
 
 
-fun hmm(a&):
+fun hmm(a&) {
   ignore((a.b, 0))
   &a = {a = [], b = []}
-
+}
 hmm(&a)

@@ -1,30 +1,36 @@
 -- (mod/extr-a {:b 10})
 
-fun rec even(i):
-  match i:
+fun rec even(i) {
+  match i {
     0: true
     1: false
     n: odd(n - 1)
-
-and odd(i):
-  match i:
+  }
+}
+and odd(i) {
+  match i {
     0: true
     1: true
     n: even(n - 1)
+  }
+}
 
-fun rec pop(arr&):
+fun rec pop(arr&) {
   println("pop")
   array/drop_back(&arr)
   pop_all(&arr)
+}
+and pop_all(arr&) {
+  if array/length(arr) == 0 { ()
+  } else {pop(&arr)}
+}
 
-and pop_all(arr&):
-  if array/length(arr) == 0: ()
-  else: pop(&arr)
-
-fun test(i):
+fun test(i) {
   println("wrong")
   copy(i)
+}
 
-fun test(i):
+fun test(i) {
   println("right")
   copy(i)
+}

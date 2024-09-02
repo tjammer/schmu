@@ -3,8 +3,10 @@ use nonpoly_func
 
 external printf : (string/cstr, int) -> unit
 
-fun doo(a): match a:
-  #left: add_ints(0, 5)
-  #right: add_ints(0, -5)
-
+fun doo(a) {
+  match a {
+   #left: add_ints(0, 5)
+   #right: add_ints(0, -5)
+  }
+}
 doo(#left) |> printf(string/data("%i\n"))

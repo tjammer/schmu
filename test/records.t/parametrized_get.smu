@@ -3,19 +3,19 @@ external printi : (int) -> unit
 type t['a] = {null : int, first : int, gen : 'a, third : bool}
 type gen_first['a] = {only : 'a, is : bool}
 
-fun print_bool(b):
-  if b: printi(1) else: printi(0)
-
-fun first(any):
+fun print_bool(b) {
+  if b {printi(1)} else {printi(0)}
+}
+fun first(any) {
   printi(any.first)
+}
+fun gen(any) {copy(any.gen)}
 
-fun gen(any): copy(any.gen)
+fun third(any) {print_bool(any.third)}
 
-fun third(any): print_bool(any.third)
+fun only(any) {copy(any.only)}
 
-fun only(any): copy(any.only)
-
-fun is(any): print_bool(any.is)
+fun is(any) {print_bool(any.is)}
 
 let int_t = {null = 0, first = 700, gen = 20, third = true}
 let f = {only = 420, is = false}

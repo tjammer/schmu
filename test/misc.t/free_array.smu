@@ -8,42 +8,42 @@ let arr = ["hey", "young", "world"]
 let arr = [copy(x), {x = 2}, {x = 3}]
 
 -- Arr is only alive inside the function and should be freed there
-fun arr_inside():
+fun arr_inside() {
   let arr& = [copy(x), {x = 2}, {x = 3}]
   -- Make sure we can call realloc
   array/push(&arr, !{x = 12})
-
+}
 -- Arr is returned and should be freed in its parent scope
-fun make_arr():
+fun make_arr() {
   let x = {x = 23}
   [x, {x = 2}, {x = 3}]
-
-fun inner_parent_scope():
+}
+fun inner_parent_scope() {
   ignore(make_arr())
-
+}
 -- Arr can be propagated out through multiple function calls
-fun nest_fns(): make_arr()
+fun nest_fns() {make_arr()}
 
-fun make_nested_arr():
+fun make_nested_arr() {
   let nested = [[0, 1], [2, 3]]
   nested
-
-fun nest_allocs():
+}
+fun nest_allocs() {
   make_nested_arr()
-
+}
 -- Should be freed locall
-fun nest_local():
+fun nest_local() {
   ignore([[0, 1], [2, 3]])
-
+}
 -- Records of arrtors
-fun record_of_arrs():
+fun record_of_arrs() {
   let arr = [1, 2]
   {index = 1, arr}
-
+}
 -- Arrtors of records (of arrtors)
-fun arr_of_records():
+fun arr_of_records() {
   [record_of_arrs(), record_of_arrs()]
-
+}
 let arr = make_arr()
 arr_inside()
 inner_parent_scope()

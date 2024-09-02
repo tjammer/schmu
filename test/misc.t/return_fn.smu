@@ -1,9 +1,11 @@
-fun ret_fn():
-  fun a: a + 12
+fun ret_fn() {
+  fun a {a + 12}
+}
 
-fun ret_named():
-  fun named(a): a + 13
+fun ret_named() {
+  fun named(a) {a + 13}
   named
+}
 
 let f = ret_fn()
 println(fmt(f(12)))

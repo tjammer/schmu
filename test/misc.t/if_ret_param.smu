@@ -1,13 +1,18 @@
 let s = "/"
 
-fun times(limit, f):
-  fun rec inner(i):
-    if i == limit: ()
-    else:
+fun times(limit, f) {
+  fun rec inner(i) {
+    if i == limit {()}
+    else {
       f(s)
       inner(i + 1)
+    }
+  }
   inner(0)
+}
 
-fun test(value):
-  ignore(if true: copy(value) else: fmt("/", value))
+fun test(value) {
+  ignore(if true {copy(value)} else {fmt("/", value)})
+}
+
 times(2, test)

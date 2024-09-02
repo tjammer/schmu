@@ -2,14 +2,14 @@ external printi : (int) -> unit
 
 type t['a] = {first : int, gen : 'a, third : bool}
 
-fun apply(f : ('b) -> 'a, x : 'b): f(x)
+fun apply(f : ('b) -> 'a, x : 'b) {f(x)}
 
-fun pass(x):
+fun pass(x) {
   -- We have to use the record somehow, otherwise it's passed
   -- as a generic variable and then copied trivially
   let x = copy(x)
   {first = x.first, gen = x.gen, third = x.third}
-
+}
 let int_t = {first = 700, gen = 20, third = false}
 
 printi(apply(pass, int_t).first)

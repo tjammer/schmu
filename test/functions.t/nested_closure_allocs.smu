@@ -2,34 +2,43 @@ type view = {start : int, len : int}
 type success['a] = {rem : view, mtch : 'a}
 type parse_result['a] = #ok(success['a]) | #err(view)
 
-fun char(c):
-  fun (buf, view):
-    if char_equal(string/get(buf, view.start), c):
+fun char(c) {
+  fun (buf, view) {
+    if char_equal(string/get(buf, view.start), c) {
       #ok({mtch = {view with len = 1}, rem = {start = view.start + 1, len = view.len - 1}})
-    else:
+    } else {
       #err(view)
+    }
+  }
+}
 
-fun alt(alts!):
-  fun(buf, view):
-    fun rec aux(i):
-      if array/length(alts) == i: #err(view)
-      else: match alts.[i](buf, view):
+fun alt(alts!) {
+  fun(buf, view) {
+    fun rec aux(i) {
+      if array/length(alts) == i {#err(view)}
+      else {match alts.[i](buf, view) {
         #ok(r): #ok(r)
         #err(_): aux(i + 1)
+    }}}
     aux(0)
+  }
+}
 
 -- same thing with a named function
-fun alt_named(alts!):
-  fun named3(buf, view):
-    fun rec aux(i):
-      if array/length(alts) == i: #err(view)
-      else: match alts.[i](buf, view):
+fun alt_named(alts!) {
+  fun named3(buf, view) {
+    fun rec aux(i) {
+      if array/length(alts) == i {#err(view)}
+      else {match alts.[i](buf, view) {
         #ok(r): #ok(r)
         #err(_): aux(i + 1)
+    }}}
     aux(0)
+  }
   named3
+}
 
-fun view_of_string(str): {start = 0, len = string/len(str)}
+fun view_of_string(str) {{start = 0, len = string/len(str)}}
 
 let x = "x"
 let lx = view_of_string(x)

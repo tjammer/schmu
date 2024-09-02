@@ -1,8 +1,9 @@
-fun one(): 1
+fun one() {1}
 
-fun add(a : int, b : int): a + b
+fun add(a : int, b : int) {a + b}
 
-fun doiflesselse(a : int, b : int, greater : int, less : int):
-  if a < b: less else: greater
+fun doiflesselse(a : int, b : int, greater : int, less : int) {
+  if a < b {less} else {greater}
+}
 
 doiflesselse(add(one(), 1), 0, 1, 2)

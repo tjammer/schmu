@@ -1,15 +1,15 @@
 let a = "indirect"
 
-fun hmm():
-  array/iter([], fun(i : int): ignore(i))
-
-let some_lambda = do:
+fun hmm() {
+  array/iter([], fun(i : int) {ignore(i)})
+}
+let some_lambda = {
   let a = "lol"
-  fun (): copy(a)
-
-let some_closure = do:
+  fun () {copy(a)}
+}
+let some_closure = {
   let a = fmt("lol")
-  fun (): copy(a)
-
+  fun () {copy(a)}
+}
 -- polymorphic alias
 let swap = array/swap_items

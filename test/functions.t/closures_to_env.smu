@@ -2,9 +2,10 @@ external printf : (string/cstr, int) -> unit
 
 let a = 20
 
-fun close_over_a(): a
+fun close_over_a() {a}
 
-fun use_above():
+fun use_above() {
   printf(string/data("%i\n"), close_over_a())
+}
 
 use_above()

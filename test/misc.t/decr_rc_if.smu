@@ -1,6 +1,6 @@
-fun ret_true(): true
+fun ret_true() {true}
 
-(if ret_true():
+(if ret_true() {
   let _ = [10]
-  [10]
-else: [0]).ignore()
+  [10]}
+else {[0]}).ignore()

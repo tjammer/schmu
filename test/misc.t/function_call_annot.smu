@@ -3,10 +3,10 @@ type b = {field : int}
 type c = #ctor
 type d = #ctor
 
-fun take_a(a : a): ignore(a)
-fun take_b(b : b): ignore(b)
-fun take_c(c : c): ignore(c)
-fun take_d(d : d): ignore(d)
+fun take_a(a : a) {ignore(a)}
+fun take_b(b : b) {ignore(b)}
+fun take_c(c : c) {ignore(c)}
+fun take_d(d : d) {ignore(d)}
 
 take_a({field = 0})
 take_b({field = 0})

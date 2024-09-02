@@ -1,20 +1,21 @@
 import local_otherfile
 
-fun test():
+fun test() {
   println("hey test")
-
+}
 test()
 
 local_otherfile/local/test()
 local_otherfile/local/poly_test("test")
 
-module nosig:
+module nosig {
   type t = {a : int}
   type other = int
-  module nested:
-    fun nested():
+  module nested {
+    fun nested() {
       println("i'm nested")
-
+  }}
+}
 let test : local_otherfile/nosig/t = {a = 10}
 ignore(test)
 

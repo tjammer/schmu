@@ -2,8 +2,8 @@ external printi : (int) -> unit
 
 type foo = {x : int, y : int}
 let foo = {x = 12, y = 14}
-fun print_foo():
+fun print_foo() {
   printi(foo.x)
   printi(foo.y)
-
+}
 print_foo()

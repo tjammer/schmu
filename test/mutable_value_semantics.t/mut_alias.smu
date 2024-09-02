@@ -8,7 +8,7 @@ println(fmt(fst.a))
 println(fmt(f.a))
 println(fmt(snd.a))
 
-fun new_fun():
+fun new_fun() {
   let f = {a = 0}
   let fst& = copy(f)
   let snd = copy(fst)
@@ -16,5 +16,5 @@ fun new_fun():
   println(fmt(fst.a))
   println(fmt(f.a))
   println(fmt(snd.a))
-
+}
 new_fun()

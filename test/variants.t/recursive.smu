@@ -15,4 +15,4 @@ type container['a] = { a : 'a }
 type state = { data : container[(state&) -> unit]}
 
 -- this stack overflowed
-let _ = { data = {a = fun(state&): ignore(state)} }
+let _ = { data = {a = fun(state&) {ignore(state)}} }

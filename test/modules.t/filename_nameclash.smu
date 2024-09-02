@@ -1,5 +1,6 @@
-module filename_nameclash:
-  fun greet():
+module filename_nameclash {
+  fun greet() {
     println("hi from nameclash")
-
+  }
+}
 filename_nameclash/greet()

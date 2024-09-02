@@ -1,9 +1,11 @@
-fun ret_fn(b):
-  fun bla(a): a + b
+fun ret_fn(b) {
+  fun bla(a) {a + b}
   bla
+}
 
-fun ret_lambda(b):
-  fun a: a + b
+fun ret_lambda(b) {
+  fun a {a + b}
+}
 
 let f = ret_fn(13)
 let f2 = ret_fn(35)

@@ -11,9 +11,9 @@ println(modd/lambda())
 println(modd/closure())
 
 -- use polymoorphic aliased function from another module
-fun swapped(a!, i, j):
+fun swapped(a!, i, j) {
   let a& = !a
   swap(&a, i, j)
   a
-
-array/iter(swapped(!["world", "hello"], 0, 1), fun s: println(s))
+}
+array/iter(swapped(!["world", "hello"], 0, 1), fun s {println(s)})

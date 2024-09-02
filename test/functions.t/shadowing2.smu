@@ -1,7 +1,8 @@
-fun diff(x, y): x - y
+fun diff(x, y) {x - y}
 
-let _ =
+let _ = {
   let diff = 12
   diff
+}
 
 diff(10, 12).ignore()

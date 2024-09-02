@@ -1,6 +1,7 @@
 type t['a] = {a : 'a}
 
-fun create(a):
+fun create(a) {
   -- Create a polymorphic lambda and use it in this function.
   -- This will get processes in the user's monomorph_tree
-  (fun (): {a = copy(a)})()
+  (fun () {{a = copy(a)}})()
+}

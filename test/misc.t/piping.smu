@@ -1,11 +1,13 @@
 external printi : (int) -> unit = "Printi"
 
 -- pipe into normal function
-1.(fun x: x + 1)().printi()
+1.(fun x {x + 1})().printi()
 
-#some(1).(fun x: match x:
+#some(1)
+.(fun x {match x {
   #some(a): a
-  #none: 0)().printi()
+  #none: 0
+}})().printi()
 
 -- pipe field accessor (this isn't supported anymore, but works naturally with .x)
 type foo = {x : int}

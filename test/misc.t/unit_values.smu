@@ -2,18 +2,18 @@
 let a = ()
 let b = #some(a)
 
-fun a(): ()
+fun a() {()}
 let b = #some(a())
-match b:
+match b {
   #some(a): println("some")
   #none: println("none")
-
+}
 -- records
 type thing = {u : unit}
 let t = { u = () }
 let u = t.u
 
-fun t(): {u = ()}
+fun t() {{u = ()}}
 let t2 = t()
 let u2 = t2.u
 

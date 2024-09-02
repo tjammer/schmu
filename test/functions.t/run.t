@@ -821,10 +821,10 @@ Closures can recurse too
 
 Print error when returning a polymorphic lambda in an if expression
   $ schmu --dump-llvm stub.o no_lambda_let_poly_monomorph.smu
-  no_lambda_let_poly_monomorph.smu:5.9-55: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though..
+  no_lambda_let_poly_monomorph.smu:5.9-59: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though..
   
-  5 | let f = if true: fun(x): copy(x) else: fun(x): copy(x)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 | let f = if true {fun(x) {copy(x)}} else {fun(x) {copy(x)}}
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
   [1]
 Allow mixing of typedefs and external decls in the preface

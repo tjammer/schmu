@@ -1,7 +1,9 @@
 type thing['a] = #empty | #item('a)
 
-fun classify(thing):
-  fun inner(thing): match thing:
+fun classify(thing) {
+  fun inner(thing){ match thing {
     #item(_): 0
     #empty: 1
+  }}
   inner(thing)
+}

@@ -1,5 +1,5 @@
 let a = 1
 
-fun capture(): a + 1
+fun capture() {a + 1}
 
 let _ = (copy(capture), 0)

@@ -2,7 +2,7 @@ let a = 12
 
 external printf : (string/cstr, int) -> unit
 
-fun generate_b(): 21
+fun generate_b() {21}
 
 let b = generate_b()
 

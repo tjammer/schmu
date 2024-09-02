@@ -1,1 +1,1 @@
-let lambda = fun x: x + 1
+let lambda = fun x {x + 1}

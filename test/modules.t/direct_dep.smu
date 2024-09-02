@@ -1,3 +1,3 @@
 import transitive
 
-fun id(a!): transitive/id(!a)
+fun id(a!) {transitive/id(!a)}

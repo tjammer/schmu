@@ -1,5 +1,6 @@
 type either = #left | #right
 
-fun add_ints(a, b):
+fun add_ints(a, b) {
   let c = 10
   a + b
+}

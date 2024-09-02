@@ -1,16 +1,20 @@
 let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-fun string_add_null(str&):
-  string/modify_buf(&str, fun(arr&):
+fun string_add_null(str&) {
+  string/modify_buf(&str, fun(arr&) {
     array/push(&arr, !0u8)
-    array/drop_back(&arr))
+    array/drop_back(&arr)
+  })
+}
 
-fun string_concat(arr, delim):
+fun string_concat(arr, delim) {
   let acc& = ""
-  array/iteri(arr, fun(i, v):
-    if i > 0: string/append(&acc, delim)
-    string/append(&acc, fmt(v)))
+  array/iteri(arr, fun(i, v) {
+    if i > 0 {string/append(&acc, delim)}
+    string/append(&acc, fmt(v))
+  })
   string_add_null(&acc)
   acc
+}
 
 println(string_concat(arr, ", "))

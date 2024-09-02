@@ -1,25 +1,26 @@
 external printi : (int) -> unit
 
-fun apply(x, f): f(x)
+fun apply(x, f) {f(x)}
 
-fun add1(x): x + 1
+fun add1(x) {x + 1}
 
 -- We also pass polymorphic functions
-fun pass(x): copy(x)
+fun pass(x) {copy(x)}
 
 -- ..and a lambda
-let pass2 = fun x: copy(x)
+let pass2 = fun x {copy(x)}
 
-fun makefalse(b):
-  if b: false else: b
+fun makefalse(b) {
+  if b {false} else {b}
+}
 
-fun int_of_bool(b): if b: 1 else: 0
+fun int_of_bool(b) {if b {1} else {0}}
 
 -- TODO polymorphic recursion example
 
 apply(0, add1).printi()
-apply(1, fun x: x + 1).printi()
+apply(1, fun x {x + 1}).printi()
 true.apply(makefalse).int_of_bool().printi()
-printi(apply(3, fun x: copy(x)))
+printi(apply(3, fun x {copy(x)}))
 printi(apply(4, pass))
 printi(apply(5, pass2))

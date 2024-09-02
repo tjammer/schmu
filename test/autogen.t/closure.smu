@@ -1,21 +1,24 @@
-fun hmm():
+fun hmm() {
   let a, _ = (1, 0)
-  fun capture(): a + 1
+  fun capture() {a + 1}
   capture
+}
 
 let _, _ = (copy(hmm), 0)
 
-fun hmm_move():
+fun hmm_move() {
   let a, _ = (1, 0)
   -- a is not explicitly copied, thus moved
-  fun capture(): a + 1
+  fun capture() {a + 1}
   capture
+}
 
 let _, _ = (copy(hmm_move), 0)
 
-fun test():
+fun test() {
   let a = ["hello"]
-  fun () [a]: println(a.[0])
+  fun () [a] {println(a.[0])}
+}
 
 let c = test()
 copy(c)()

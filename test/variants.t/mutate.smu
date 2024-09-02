@@ -1,13 +1,16 @@
 let a& = 10
-match &a:
+match &a {
   b&: &b = 11
+}
 println(fmt(a))
 
 type record = {a& : int, b : float}
 let a& = #some(10)
-match &a:
+match &a {
   #some(b&): &b = 12
   #none: ()
-match a:
+}
+match a {
   #some(a): println(fmt(a))
   #none: println("none")
+}

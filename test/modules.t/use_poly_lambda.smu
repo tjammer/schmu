@@ -1,5 +1,5 @@
 import poly_lambda
 use poly_lambda
 -- Create lambda with different arity
-ignore(fun (_, _, _): ())
+ignore(fun (_, _, _) {()})
 println(fmt(create(10).a))

@@ -1,6 +1,6 @@
 import m2
 
-m2/do:
+m2/{
   println(fmt(odd(1)))
   println(fmt(odd(100)))
   println(fmt(even(100)))
@@ -10,16 +10,17 @@ m2/do:
   let arr& = [0, 1, 2, 3]
   pop_all(&arr)
   println(fmt(array/length(arr)))
+}
 
-fun rec pop(arr&):
+fun rec pop(arr&) {
   println("pop")
   array/drop_back(&arr)
   pop_all(&arr)
-
-and pop_all(arr&):
-  if array/length(arr) == 0: ()
-  else: pop(&arr)
-
+}
+and pop_all(arr&) {
+  if array/length(arr) == 0 {()}
+  else {pop(&arr)}
+}
 
 let arr& = [0, 1, 2, 3]
 pop(&arr)

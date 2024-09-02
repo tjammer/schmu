@@ -1,4 +1,4 @@
-signature:
+signature {
   type t = int
   type use_hidden_type
   type abstr
@@ -8,24 +8,26 @@ signature:
   val int : (int) -> unit
   val poly_int : ('a) -> 'a
   val create_use_hidden : () -> use_hidden_type
-
+}
 external ext : (string/cstr, int) -> unit = "printf"
 
-fun int(i : int):
+fun int(i : int) {
   println(fmt(i))
-
-fun poly_int(a): copy(a)
+}
+fun poly_int(a) {copy(a)}
 
 -- type t is usable here
 let t : t = 200
 
-fun hidden(a):
+fun hidden(a) {
   println(fmt(a + 2))
-
+}
 type hidden_type = int
 type abstr = int
 
 type another_hidden_type = { a : int }
 type use_hidden_type = { hidden : another_hidden_type }
 
-fun create_use_hidden (): { hidden = { a = 12 } }
+fun create_use_hidden () {
+  { hidden = { a = 12 } }
+}

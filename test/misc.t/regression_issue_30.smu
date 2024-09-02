@@ -5,15 +5,16 @@ external norm: (v) -> v
 external scale : (v, float) -> v
 external maybe: () -> bool
 
-fun calc_acc(vel):
-  let vunit = do:
-    if dot(vel, vel) >. 0.1:
+fun calc_acc(vel) {
+  let vunit = {
+    if dot(vel, vel) >. 0.1 {
       norm(vel)
-    else: {x = 1.0, y = 0.0, z = 0.0}
+    } else {{x = 1.0, y = 0.0, z = 0.0}}
+  }
   let acc_force = 100.0
-  let acc = if maybe(): scale(vunit, acc_force)
-    else if maybe(): scale(vunit, -(acc_force *. 3.0))
-    else: scale(vunit, 0.1)
+  let acc = if maybe() {scale(vunit, acc_force)}
+    else if maybe() {scale(vunit, -(acc_force *. 3.0))}
+    else {scale(vunit, 0.1)}
   acc
-
+}
 ignore(calc_acc)

@@ -1,38 +1,41 @@
-fun test(b):
+fun test(b) {
   let ret : array[int] = []
-  fun rec inner(i):
+  fun rec inner(i) {
     let ai : array[int] = []
     let bi : array[int] = []
-    if i == b: ai
-    else:
-      if i == 30: bi
-      else: inner(i + 1)
+    if i == b {ai}
+    else {
+      if i == 30 {bi}
+      else {inner(i + 1)}
+    }}
   let io = inner(10)
   ignore(io)
   ret
-
+}
 let a = test(2)
 ignore(a)
 
 -- For these to pass, the moved bindings from other branches need to
 -- be freed correctly
-fun test(a!):
+fun test(a!) {
   let ai = [10]
   let bi = [11]
-  let _ = !(if false: [12]
-    else:
-      if true: bi
-      else:
-        if true:
+  let _ = !(if false {[12]}
+    else {
+      if true {bi}
+      else {
+        if true {
           ignore((a, 0))
           ai
-        else: [10])
+        } else {[10]}
+    }})
   ()
-
+}
 ignore(test(![10]))
 
-fun test(a!):
-  if true: ignore((a, 0))
-  else: ()
+fun test(a!) {
+  if true {ignore((a, 0))}
+  else {()}
+}
 
 test(![10])

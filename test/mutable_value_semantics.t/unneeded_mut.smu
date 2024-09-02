@@ -1,6 +1,6 @@
 fun do_nothing(a&): ignore(a)
 
-fun do_mut(a&, b): &a = copy(b)
+fun do_mut(a&, b) {&a = copy(b)}
 
 let b& = 0
 ignore(b)

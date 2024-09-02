@@ -1,35 +1,41 @@
-fun test():
+fun test() {
   println("hey test")
-
-module local:
-  signature:
+}
+module local {
+  signature {
     type t
     val test : () -> unit
     val poly_test : ('a) -> unit
     val value : string
-  module nested:
+  }
+  module nested {
     type t = unit
+  }
   type t = int
-  fun test():
+  fun test() {
     println("hey thing")
-  fun poly_test(a):
+  }
+  fun poly_test(a) {
     println(fmt("hey poly ", a))
+  }
   let value = "test"
-
+}
 test()
 
 local/test()
 local/poly_test("test")
 
-module nosig:
+module nosig {
   type t = {a : int}
   type other = int
-  module nested:
-    fun nested():
+  module nested {
+    fun nested() {
       println("i'm nested")
+    }
     type t = float
+  }
   let c : nested/t = 10.0
-
+}
 module aliased = nosig/nested
 
 let test : nosig/t = {a = 10}

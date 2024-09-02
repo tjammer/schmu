@@ -1,16 +1,17 @@
 let a = 'a'
 
-module a:
+module a {
   type t = int
   println("i'm in a module")
-  module a:
+  module a {
     type t = float
     println(fmt(a))
     assert(u8_to_int(a) == u8_to_int('a'))
     let a = 10
     println(fmt(a))
     assert(a == 10)
-
+  }
+}
 println(fmt(a))
 
 use a

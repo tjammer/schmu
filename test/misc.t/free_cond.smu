@@ -1,9 +1,14 @@
-fun test():
+fun test() {
   let ai = [10]
   let bi = [11]
-  if false: [12]
-  else: if false: bi
-    else: if true: ai
-      else: [10]
+  if false {[12]}
+  else {
+    if false {bi}
+    else {
+      if true {ai}
+      else {[10]}
+    }
+  }
+}
 
 ignore(test)

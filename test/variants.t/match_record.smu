@@ -1,27 +1,29 @@
 type foo['a] = {a : 'a, b : float}
 
-fun test_record_in_variant(inner):
-  let a = match(#some({a = inner, b = 53.0})):
+fun test_record_in_variant(inner) {
+  let a = match(#some({a = inner, b = 53.0})) {
     #some({a = #some(a), b}): a
     #some({a = #none, b}): -1
     #none: 0
+  }
   println(fmt(a))
-
+}
 test_record_in_variant(#some(10))
 test_record_in_variant(#none)
-
-fun test_nested_records(inner!):
-  let a = match {a = inner, b = 45.0}:
+fun test_nested_records(inner!) {
+  let a = match {a = inner, b = 45.0} {
     {a = {a = c, b}, b = _}: c
+  }
   println(fmt(a))
-
+}
 test_nested_records(!{a = 20, b = 30.0})
 
-fun test_record_wildcard(inner):
-  let a = match(#some({a = inner, b = 53.0})):
+fun test_record_wildcard(inner) {
+  let a = match(#some({a = inner, b = 53.0})) {
     #some({a = #some(a), b = _}): a
     #some(_): -2
     #none: 0
+  }
   println(fmt(a))
-
+}
 test_record_wildcard(#none)

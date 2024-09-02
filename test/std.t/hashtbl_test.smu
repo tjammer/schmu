@@ -1,55 +1,59 @@
 module stbl = hashtbl/make(string)
 
-fun string():
+fun string() {
     println("## string")
     let tbl& = stbl/create(2)
     stbl/insert(&tbl, !"key", !1.1)
-    fun find_println(key):
-        match stbl/find(tbl, key):
+    fun find_println(key) {
+        match stbl/find(tbl, key) {
             #some(v): println(fmt(v))
             #none: println("none")
+        }
+    }
     find_println("key")
     find_println("otherkey")
     stbl/remove(&tbl, "key")
     find_println("key")
-
+}
 println("# hashtbl")
 string()
 
-module key:
+module key {
   type t = #a1 | #a2 | #b1 | #b2
 
-  fun hash(k : t): match k:
+  fun hash(k : t){ match k {
     #a1: 0
     #a2: 1
     #b1: 2
     #b2: 3
-
-  fun equal(a, b): hash(a) == hash(b)
-
+  }}
+  fun equal(a, b) {hash(a) == hash(b)}
+}
 module keytbl = hashtbl/make(key)
 
-fun key():
+fun key() {
   println("## key")
   let tbl& = keytbl/create(512)
   keytbl/insert(&tbl, !#a1, !10)
   keytbl/insert(&tbl, !#a2, !20)
-  match keytbl/find(tbl, #a1):
+  match keytbl/find(tbl, #a1) {
     #some(v): println(fmt("some v: ", v))
     #none: println("none")
-
+  }
+}
 key()
 
 
-fun mut_array():
+fun mut_array() {
   println("## mut array")
   let tbl& = keytbl/create(512)
   keytbl/insert(&tbl, !#a1, ![])
-  assert(keytbl/find_mut(&tbl, #a2, fun (arr&): array/push(&arr, !1))
+  assert(keytbl/find_mut(&tbl, #a2, fun (arr&) {array/push(&arr, !1)})
     .not())
-  assert(keytbl/find_mut(&tbl, #a1, fun (arr&): array/push(&arr, !1)))
-  match keytbl/find_map(tbl, #a1, fun arr: array/length(arr)):
+  assert(keytbl/find_mut(&tbl, #a1, fun (arr&) {array/push(&arr, !1)}))
+  match keytbl/find_map(tbl, #a1, fun arr {array/length(arr)}) {
     #some(v): assert(v == 1)
     #none: assert(false)
-
+  }
+}
 mut_array()

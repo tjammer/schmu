@@ -1,11 +1,14 @@
-fun rec a(k, x1, x2, x3, x4, x5):
-  if k <= 0:
+fun rec a(k, x1, x2, x3, x4, x5) {
+  if k <= 0 {
     x4() + x5()
-  else:
+  } else {
     let m& = !k
-    fun rec b():
+    fun rec b() {
       &m = m - 1
       a(m, b, x1, x2, x3, x4)
+    }
     b ()
+  }
+}
 
-a(10, fun (): 1, fun (): -1, fun (): -1, fun (): 1, fun (): 0).fmt().println()
+a(10, fun () {1}, fun () {-1}, fun () {-1}, fun () {1}, fun () {0}).fmt().println()

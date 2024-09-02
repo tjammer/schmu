@@ -1,21 +1,22 @@
-do:
+{
   let x& = [0]
   let y& = &x
   let z& = &y
   let w& = &y
   let ii& = &w
   &ii = [2]
-
-fun testfn(a&, b& : int):
+}
+fun testfn(a&, b& : int) {
   let c& = &a
   &c = 123
-
-fun single_binder():
+}
+fun single_binder() {
   let a& = 0
   ignore(a)
-
+}
 let outer& = 10
 
-fun mutate_outer():
+fun mutate_outer() {
   let alias& = &outer
   &alias = 11
+}

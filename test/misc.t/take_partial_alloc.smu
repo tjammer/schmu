@@ -2,26 +2,30 @@ type view = {buf : string, start : int, len : int}
 type success['a] = {rem : view, mtch : 'a}
 type parse_result['a] = #ok(success['a]) | #err(view)
 
-fun view_of_string(str):
+fun view_of_string(str) {
   {buf = copy(str), start = 0, len = string/len(str)}
+}
 
-fun ch(buf):
-  if char_equal(string/get(buf.buf, buf.start), ' '):
+fun ch(buf) {
+  if char_equal(string/get(buf.buf, buf.start), ' ') {
     #ok({mtch = {buf with buf = copy(buf.buf), len = 1},
         rem = {buf = copy(buf.buf), start = buf.start + 1, len = buf.len - 1}})
-  else:
+  } else {
     #err(copy(buf))
+  }
+}
 
-fun many_count(buf):
-  fun rec aux(rem, cnt):
-    match ch(rem):
+fun many_count(buf) {
+  fun rec aux(rem, cnt) {
+    match ch(rem) {
       #ok(r):
         -- r.rem is moved out of the result.
         -- The mtch part is still alive and needs to be freed
         aux(r.rem, cnt + 1)
       #err(_): #ok({rem = copy(rem), mtch = cnt})
+  }}
   aux(buf, 0)
-
+}
 let s = fmt(" ")
 
 let inp = view_of_string(s)

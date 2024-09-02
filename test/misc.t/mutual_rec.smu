@@ -1,14 +1,17 @@
-fun rec even(i):
-  match i:
+fun rec even(i) {
+  match i {
     0: true
     1: false
     n: odd(n - 1)
-
-and odd(i):
-  match i:
+  }
+}
+and odd(i) {
+  match i {
     0: false
     1: true
     n: even(n - 1)
+  }
+}
 
 println(fmt(odd(1)))
 println(fmt(odd(100)))

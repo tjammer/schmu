@@ -1,19 +1,21 @@
 type f['a] = {a : 'a, b : 'a, c : 'a}
 
-fun inf():
+fun inf() {
   let a = {a = [10], b = [10], c = [10]}
-  let _ = !do:
-    if true:
-      if false: a.c else: a.a
-    else: a.c
+  let _ = !{
+    if true {
+      if false {a.c} else {a.a}
+    } else {a.c}
+  }
   a.b
-
+}
 ignore(inf())
 
 type t['a] = {a& : 'a, b : 'a}
-fun set_moved():
+fun set_moved() {
   let a& = {a = [10], b = [20]}
   ignore((a.a, 0))
   &a.a = [20]
+}
 
 set_moved()

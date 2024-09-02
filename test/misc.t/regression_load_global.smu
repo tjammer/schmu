@@ -13,9 +13,9 @@ let world = {
   y = float_of_int(height) *. 0.75,
   thick = 5.0f32}
 
-fun get_seg(bar): ignore(bar)
+fun get_seg(bar) {ignore(bar)}
 
-fun wrap_seg(): get_seg(world)
+fun wrap_seg() {get_seg(world)}
 
 wrap_seg()
 

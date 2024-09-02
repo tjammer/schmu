@@ -1167,7 +1167,7 @@ Test unused binding warning
   
   unused.smu:12.5-16: warning: Unused binding use_unused3.
   
-  12 | fun use_unused3():
+  12 | fun use_unused3() {
            ^^^^^^^^^^^
   
   unused.smu:17.9-16: warning: Unused binding unused4.
@@ -1201,7 +1201,7 @@ We can have if without else
   expecting [unit]
   but found [int].
   
-  2 | if true: 2
+  2 | if true{2}
       ^^^^^^^^^^
   
   [1]
@@ -1210,7 +1210,7 @@ Tailcall loops
   $ schmu --dump-llvm stub.o regression_issue_26.smu && ./regression_issue_26
   regression_issue_26.smu:27.9-15: warning: Unused binding nested.
   
-  27 | fun rec nested(a, b, c):
+  27 | fun rec nested(a, b, c) {
                ^^^^^^
   
   ; ModuleID = 'context'
