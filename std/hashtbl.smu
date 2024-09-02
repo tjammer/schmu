@@ -38,8 +38,7 @@ functor make : sig(m : key) {
     if x >= n { x } else {
       if (x * 2) < 0 { x } else {
         power_2_above(x * 2, n)
-      }
-    }
+      }}
   }
 
   fun create(size) {
@@ -62,7 +61,7 @@ functor make : sig(m : key) {
     if (curr + 1) == size { 0 } else { curr + 1 }
   }
 
-  fun rec redist(tbl&, item!, curr, pathlen){
+  fun rec redist(tbl&, item!, curr, pathlen) {
     let size = array/length(tbl.data)
     match tbl.data.[curr] {
       #none: {
@@ -81,9 +80,7 @@ functor make : sig(m : key) {
           redist(&tbl, !new_item, next, other_pathlen + 1)
         } else {
           redist(&tbl, !item, next, pathlen + 1)
-        }
-      }
-    }
+        }}}
   }
 
   let load_limit = 0.75
@@ -102,10 +99,7 @@ functor make : sig(m : key) {
           #some({key, value, pathlen = _}): {
             f(!key, !value)
             inner(i + 1)
-          }
-        }
-      }
-    }
+          }}}}
     inner(0)
   }
 
@@ -149,11 +143,7 @@ functor make : sig(m : key) {
               redist(&tbl, !other_item, next, other_pathlen + 1)
             } else {
               insert(next, pathlen + 1, !key, !value)
-            }
-          }
-        }
-      }
-    }
+            }}}}}
     insert(hash, 0, !key, !value)
   }
 
@@ -252,9 +242,7 @@ functor make : sig(m : key) {
         #none: inner(i + 1, !acc)
         #some({key, value, pathlen = _}):
           inner(i + 1, !f(!acc, key, value))
-        }
-      }
-    }
+        }}}
     inner(0, !init)
   }
 
@@ -272,10 +260,7 @@ functor make : sig(m : key) {
           #some({key, value, pathlen = _}): {
             f(key, value)
             inner(i + 1)
-          }
-        }
-      }
-    }
+          }}}}
     inner(0)
   }
 
@@ -286,4 +271,5 @@ functor make : sig(m : key) {
     })
     arr
   }
+
 }

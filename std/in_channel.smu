@@ -76,8 +76,7 @@ fun readbuf(ic&, buf&) {
       (ic.head, ic.head + ic.unseen)
     } else {
       (0, fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file))
-    }
-  }
+    }}
   -- copy content to buf
   fill(&buf, ic.buf, lower, upper)
   &ic.head = 0
@@ -110,8 +109,7 @@ fun rec readn_impl(ic&, buf&, n, readacc) {
       if readacc == 0 { #none } else { #some(readacc) }
     } else {
       readn_impl(&ic, &buf, n, readacc)
-    }
-  }
+    }}
 }
 
 fun readn(ic&, buf&, n) { readn_impl(&ic, &buf, n, 0) }
@@ -166,9 +164,7 @@ fun readline(ic&, buf&) {
           #some(acc)
         }
       } else { find_newline(acc) }
-    }
-  }
-
+    }}
   find_newline(0)
 }
 
@@ -192,9 +188,7 @@ fun lines(ic&, f) {
         aux()
       }
       #none: ()
-    }
-  }
-
+    }}
   aux()
 }
 
