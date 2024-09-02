@@ -16,10 +16,12 @@ Fibonacci example
 let number = 35
 
 -- calculate fibonacci number
-fun rec fib(n):
-  match n:
+fun rec fib(n) {
+  match n {
     0 | 1: n
     _: fib(n - 1) + fib(n - 2)
+  }
+}
 
 -- and print it
 fib(number).fmt().print()
