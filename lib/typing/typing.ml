@@ -1416,7 +1416,7 @@ struct
           let sub, fields =
             Array.fold_left_map
               (fun sub f ->
-                let sub, ftyp = map_type sub f.ftyp in
+                let sub, ftyp = map_type ~mname sub f.ftyp in
                 (sub, { f with ftyp }))
               sub fields
           in
@@ -1427,7 +1427,7 @@ struct
               (fun sub ct ->
                 match ct.ctyp with
                 | Some typ ->
-                    let sub, ctyp = map_type sub typ in
+                    let sub, ctyp = map_type ~mname sub typ in
                     (sub, { ct with ctyp = Some ctyp })
                 | None -> (sub, ct))
               sub ctors
@@ -1441,7 +1441,7 @@ struct
           in
           (sub, Dabstract (Some Types.(decl.kind)))
       | Dalias typ ->
-          let sub, typ = map_type sub typ in
+          let sub, typ = map_type ~mname sub typ in
           (sub, Dalias typ)
       | Dabstract None -> (sub, Dabstract None)
     in
@@ -1476,7 +1476,7 @@ module Subst_functor_impl (* : Map_module.Map_tree *) = struct
 
   let absolute_module_name = Module.absolute_module_name
 
-  let map_type (find_type, subs, decls) typ =
+  let map_type ~mname:_ (find_type, subs, decls) typ =
     let typ =
       List.fold_left
         (fun typ { base; with_ } -> apply_pathsub ~base ~with_ typ)
@@ -1506,7 +1506,7 @@ module Resolve_aliases_impl (* : Map_module.Map_tree *) = struct
 
   let absolute_module_name = Module.absolute_module_name
 
-  let map_type (find_type, subs, decls) typ =
+  let map_type ~mname:_ (find_type, subs, decls) typ =
     (* Use aliases if they are available *)
     let typ = resolve_alias (find_type decls) typ in
     ((find_type, subs, decls), typ)

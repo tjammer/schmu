@@ -10,7 +10,7 @@ module type Map_tree = sig
 
   val map_decl : mname:Path.t -> string -> sub -> type_decl -> sub * type_decl
   val absolute_module_name : mname:Path.t -> string -> string
-  val map_type : sub -> typ -> sub * typ
+  val map_type : mname:Path.t -> sub -> typ -> sub * typ
 end
 
 module Canonize = struct
@@ -69,7 +69,7 @@ end
 
 module Make (C : Map_tree) = struct
   let rec map_body mname nsub sub (e : Typed_tree.typed_expr) =
-    let sub, typ = C.map_type sub e.typ in
+    let sub, typ = C.map_type ~mname sub e.typ in
     let sub, expr = map_expr mname nsub sub e.expr in
     (sub, Typed_tree.{ e with typ; expr })
 
@@ -116,7 +116,7 @@ module Make (C : Map_tree) = struct
         let sub, fs =
           List.fold_left_map
             (fun sub (n, u, t) ->
-              let sub, t = C.map_type sub t in
+              let sub, t = C.map_type ~mname sub t in
               (sub, (n, u, t)))
             sub fs
         in
@@ -188,11 +188,11 @@ module Make (C : Map_tree) = struct
     let sub, tparams =
       List.fold_left_map
         (fun sub p ->
-          let sub, pt = C.map_type sub p.pt in
+          let sub, pt = C.map_type ~mname sub p.pt in
           (sub, { p with pt }))
         sub abs.func.tparams
     in
-    let sub, ret = C.map_type sub abs.func.ret in
+    let sub, ret = C.map_type ~mname sub abs.func.ret in
     let sub, kind =
       match abs.func.kind with
       | Simple -> (sub, Simple)
@@ -200,7 +200,7 @@ module Make (C : Map_tree) = struct
           let sub, l =
             List.fold_left_map
               (fun sub c ->
-                let sub, cltyp = C.map_type sub c.cltyp in
+                let sub, cltyp = C.map_type ~mname sub c.cltyp in
                 let clname, clmname =
                   C.change_var ~mname c.clname c.clmname sub
                 in
@@ -212,7 +212,7 @@ module Make (C : Map_tree) = struct
     let sub, touched =
       List.fold_left_map
         (fun sub t ->
-          let sub, ttyp = C.map_type sub Typed_tree.(t.ttyp) in
+          let sub, ttyp = C.map_type ~mname sub Typed_tree.(t.ttyp) in
           (sub, { t with ttyp }))
         sub abs.func.touched
     in
@@ -247,7 +247,7 @@ module Make (C : Map_tree) = struct
         let sub, decls =
           List.fold_left_map
             (fun sub (n, u, t) ->
-              let sub, t = C.map_type sub t in
+              let sub, t = C.map_type ~mname sub t in
               (sub, (n, u, t)))
             sub decls
         in
@@ -261,10 +261,10 @@ module Make (C : Map_tree) = struct
         let sub, decl = C.map_decl ~mname n sub decl in
         ((sub, nsub), Mtype (l, n, decl))
     | Mfun (l, t, n) ->
-        let a, t = C.map_type sub t in
+        let a, t = C.map_type ~mname sub t in
         ((a, nsub), Mfun (l, t, n))
     | Mext (l, t, n, c) ->
-        let a, t = C.map_type sub t in
+        let a, t = C.map_type ~mname sub t in
         ((a, nsub), Mext (l, t, n, c))
     | Mpoly_fun (l, abs, n, u) ->
         (* Change Var-nodes in body here *)
@@ -277,7 +277,7 @@ module Make (C : Map_tree) = struct
         let (a, nsub), decls =
           List.fold_left_map
             (fun (sub, nsub) (l, n, u, t) ->
-              let a, t = C.map_type sub t in
+              let a, t = C.map_type ~mname sub t in
               ((a, nsub), (l, n, u, t)))
             (sub, nsub) decls
         in
@@ -323,7 +323,7 @@ module Make (C : Map_tree) = struct
         let sub, decl = C.map_decl ~mname n sub decl in
         (sub, Mtypedef decl)
     | Mvalue (typ, cn) ->
-        let sub, typ = C.map_type sub typ in
+        let sub, typ = C.map_type ~mname sub typ in
         (sub, Mvalue (typ, cn))
 
   and map_intf mname sub intf =

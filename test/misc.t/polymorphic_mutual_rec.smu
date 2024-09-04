@@ -14,7 +14,7 @@ m2/{
 
 fun rec pop(arr&) {
   println("pop")
-  array/drop_back(&arr)
+  array/pop_back(&arr).ignore()
   pop_all(&arr)
 }
 and pop_all(arr&) {

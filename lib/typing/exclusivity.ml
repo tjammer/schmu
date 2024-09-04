@@ -23,7 +23,12 @@ module Contains_allocation = struct
                false ts)
         then
           (* Unparameterized types can also contain allocations *)
-          let decl = get_decl name in
+          let decl =
+            try get_decl name
+            with Not_found ->
+              print_endline (Path.show name);
+              failwith "med"
+          in
           let sub = map_params ~inst:ts ~params:decl.params in
           let rec check_decl decl_kind =
             match decl_kind with

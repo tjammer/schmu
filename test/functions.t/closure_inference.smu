@@ -20,7 +20,7 @@ fun string_of_view(view) {
     array/push(&ret, !string/get(view.pbuf, c))
   })
   array/push(&ret, !'\000')
-  array/drop_back(&ret)
+  array/pop_back(&ret).ignore()
   ret
 }
 

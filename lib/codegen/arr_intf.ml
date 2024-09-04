@@ -22,7 +22,10 @@ module type S = sig
   val array_length : unsafe:bool -> llvar list -> llvar
   val array_capacity : llvar list -> llvar
   val array_realloc : llvar list -> llvar
-  val array_drop_back : param -> llvar list -> llvar
+
+  val unsafe_array_pop_back :
+    param -> llvar list -> Monomorph_tree.alloca -> llvar
+
   val array_data : llvar list -> llvar
 
   val unsafe_array_create :

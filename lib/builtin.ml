@@ -27,7 +27,7 @@ type t =
   | Mod
   | Array_get
   | Array_length
-  | Array_drop_back
+  | Unsafe_array_pop_back
   | Array_data
   | Array_capacity
   | Fixed_array_get
@@ -157,9 +157,9 @@ let tbl =
           Simple ) );
   Hashtbl.add tbl "__array_length"
     (Array_length, Tfun ([ { p with pt = tarray (Qvar "0") } ], tint, Simple));
-  Hashtbl.add tbl "__array_drop_back"
-    ( Array_drop_back,
-      Tfun ([ { pt = tarray (Qvar "0"); pattr = Dmut } ], tunit, Simple) );
+  Hashtbl.add tbl "__unsafe_array_pop_back"
+    ( Unsafe_array_pop_back,
+      Tfun ([ { pt = tarray (Qvar "0"); pattr = Dmut } ], Qvar "0", Simple) );
   Hashtbl.add tbl "__array_data"
     ( Array_data,
       Tfun ([ { p with pt = tarray (Qvar "0") } ], traw_ptr (Qvar "0"), Simple)

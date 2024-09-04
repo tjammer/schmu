@@ -1,7 +1,7 @@
+import option
 import prelude
 
 let data = __array_data
-let drop_back = __array_drop_back
 let length = __array_length
 
 use prelude
@@ -95,6 +95,16 @@ fun map(arr, f) {
   inner(!ret, 0)
 }
 
+fun pop_back(arr&) {
+  use option
+  if length(arr) == 0 {
+    #none
+  }
+  else {
+    #some(__unsafe_array_pop_back(&arr))
+  }
+}
+
 fun swap_items(arr&, i, j) {
   if not (i == j) {
     let itmp = !arr.[i]
@@ -108,7 +118,7 @@ fun clear(arr&) {
     if 0 == length(arr) {
       ()
     } else {
-      drop_back(&arr)
+      pop_back(&arr).ignore()
       inner()
     }
   }

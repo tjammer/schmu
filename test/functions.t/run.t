@@ -1655,6 +1655,7 @@ The lamba passed as array-iter argument is polymorphic
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %closure = type { ptr, ptr }
+  %option.tc_ = type { i32, i8 }
   
   @schmu_arr = global ptr null, align 8
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%li\00" }
@@ -1719,6 +1720,37 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
+  define linkonce_odr i64 @__array_pop_back_ac_rvc__(ptr noalias %arr) {
+  entry:
+    %0 = load ptr, ptr %arr, align 8
+    %1 = load i64, ptr %0, align 8
+    %eq = icmp eq i64 %1, 0
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %t = alloca %option.tc_, align 8
+    store %option.tc_ { i32 1, i8 undef }, ptr %t, align 4
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    %t1 = alloca %option.tc_, align 8
+    store i32 0, ptr %t1, align 4
+    %data = getelementptr inbounds %option.tc_, ptr %t1, i32 0, i32 1
+    %2 = sub i64 %1, 1
+    store i64 %2, ptr %0, align 8
+    %3 = getelementptr i8, ptr %0, i64 16
+    %4 = getelementptr i8, ptr %3, i64 %2
+    %5 = load i8, ptr %4, align 1
+    store i8 %5, ptr %data, align 1
+    store i8 %5, ptr %data, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    %iftmp = phi ptr [ %t, %then ], [ %t1, %else ]
+    %unbox = load i64, ptr %iftmp, align 8
+    ret i64 %unbox
+  }
+  
   define linkonce_odr void @__array_push_ac_c_(ptr noalias %arr, i8 %value) {
   entry:
     %0 = load ptr, ptr %arr, align 8
@@ -1762,19 +1794,9 @@ The lamba passed as array-iter argument is polymorphic
   define void @__fun_schmu0(ptr noalias %arr) {
   entry:
     tail call void @__array_push_ac_c_(ptr %arr, i8 0)
-    %0 = load ptr, ptr %arr, align 8
-    %size1 = load i64, ptr %0, align 8
-    %1 = icmp sgt i64 %size1, 0
-    br i1 %1, label %drop_last, label %cont
-  
-  drop_last:                                        ; preds = %entry
-    %2 = sub i64 %size1, 1
-    %3 = getelementptr i8, ptr %0, i64 16
-    %4 = getelementptr i8, ptr %3, i64 %2
-    store i64 %2, ptr %0, align 8
-    br label %cont
-  
-  cont:                                             ; preds = %drop_last, %entry
+    %ret = alloca %option.tc_, align 8
+    %0 = tail call i64 @__array_pop_back_ac_rvc__(ptr %arr)
+    store i64 %0, ptr %ret, align 8
     ret void
   }
   

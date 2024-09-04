@@ -750,7 +750,7 @@ end = struct
     | Array_get -> array_get args fnc.ret
     | Array_length -> array_length ~unsafe:false args
     | Unsafe_array_length -> array_length ~unsafe:true args
-    | Array_drop_back -> array_drop_back param args
+    | Unsafe_array_pop_back -> unsafe_array_pop_back param args allocref
     | Array_data -> array_data args
     | Array_capacity -> array_capacity args
     | Fixed_array_get -> (

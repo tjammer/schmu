@@ -195,7 +195,9 @@ struct
 
     { dummy_fn_value with lltyp = unit_t }
 
-  let array_drop_back param args =
+  let unsafe_array_pop_back param args allocref =
+    (* We assume there is at least one item, and don't actually check the size.
+       But we do decrease the size of the array by one. *)
     let arr =
       match args with
       | [ arr ] -> arr
@@ -206,31 +208,21 @@ struct
     let dst = Llvm.build_gep int_t arr.value [| ci 0 |] "size" builder in
     let sz = Llvm.build_load int_t dst "size" builder in
 
-    let start_bb = Llvm.insertion_block builder in
-    let parent = Llvm.block_parent start_bb in
-
-    let drop_last_bb = Llvm.append_block context "drop_last" parent in
-    let cont_bb = Llvm.append_block context "cont" parent in
-
-    let cmp = Llvm.(build_icmp Icmp.Sgt) sz (ci 0) "" builder in
-    ignore (Llvm.build_cond_br cmp drop_last_bb cont_bb builder);
-
-    Llvm.position_at_end drop_last_bb builder;
     let index = Llvm.build_sub sz (ci 1) "" builder in
+    ignore (Llvm.build_store index dst builder);
+
     let ptr = data_get arr.value arr.typ (Idyn index) in
 
     let item_typ = item_type arr.typ in
     let llitem_typ = get_lltype_def item_typ in
 
-    Auto.free param
-      { value = ptr; kind = Ptr; typ = item_typ; lltyp = llitem_typ };
+    let v = { value = ptr; kind = Ptr; lltyp = llitem_typ; typ = item_typ } in
+    let src = bring_default_var v in
 
-    ignore (Llvm.build_store index dst builder);
-    ignore (Llvm.build_br cont_bb builder);
+    let dst = get_prealloc !allocref param llitem_typ "" in
 
-    Llvm.position_at_end cont_bb builder;
-
-    { dummy_fn_value with lltyp = unit_t }
+    store_or_copy ~src ~dst;
+    { v with value = dst; kind = Ptr }
 
   let array_data args =
     let arr =

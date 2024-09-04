@@ -1,8 +1,8 @@
 let nested& = [[0, 1], [2, 3]]
 println(fmt(array/length(nested)))
-array/drop_back(&nested)
+match array/pop_back(&nested) { #some(_): println("some") | #none: () }
 println(fmt(array/length(nested)))
-array/drop_back(&nested)
+array/pop_back(&nested).ignore()
 println(fmt(array/length(nested)))
-array/drop_back(&nested)
+match array/pop_back(&nested){ #some(_): () | #none: println("none") }
 println(fmt(array/length(nested)))

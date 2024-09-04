@@ -145,7 +145,7 @@ module Map_canon : Map_module.Map_tree = struct
     | None | Some _ -> ());
     (id, m)
 
-  let map_decl ~mname _ sub decl =
+  let load_type ~mname typ =
     let rec load_type = function
       | Tconstr (name, _) -> (
           match Path.rm_head name with
@@ -158,6 +158,10 @@ module Map_canon : Map_module.Map_tree = struct
           load_type ret
       | Ttuple ts -> List.iter load_type ts
     in
+    load_type typ
+
+  let map_decl ~mname _ sub decl =
+    let load_type = load_type ~mname in
 
     let rec map_kind = function
       | Dalias typ -> load_type typ
@@ -172,7 +176,10 @@ module Map_canon : Map_module.Map_tree = struct
     (sub, decl)
 
   let absolute_module_name = absolute_module_name
-  let map_type = Map_module.Canonize.canonize
+
+  let map_type ~mname sub typ =
+    load_type ~mname typ;
+    Map_module.Canonize.canonize sub typ
 end
 
 module Canon = Map_module.Make (Map_canon)

@@ -7,7 +7,7 @@
 
 (rule
  (targets array.o array.smi)
- (deps %{bin:schmu} array.smu prelude.smi)
+ (deps %{bin:schmu} array.smu prelude.smi option.smi)
  (action
   (progn
    (run schmu -m --no-std array.smu))))

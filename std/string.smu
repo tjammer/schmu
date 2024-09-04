@@ -68,7 +68,7 @@ fun concat(delim, strings) {
     append(&ret, str)
   })
   array/push(&ret, !'\000')
-  array/drop_back(&ret)
+  array/pop_back(&ret).ignore()
   ret
 }
 

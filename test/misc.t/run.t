@@ -2012,8 +2012,45 @@ Drop last element
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %option.tal__ = type { i32, ptr }
+  
   @schmu_nested = global ptr null, align 8
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
+  @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"some\00" }
+  @2 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
+  
+  declare void @string_println(ptr %0)
+  
+  define linkonce_odr { i32, i64 } @__array_pop_back_2al2_rval2__(ptr noalias %arr) {
+  entry:
+    %0 = load ptr, ptr %arr, align 8
+    %1 = load i64, ptr %0, align 8
+    %eq = icmp eq i64 %1, 0
+    br i1 %eq, label %then, label %else
+  
+  then:                                             ; preds = %entry
+    %t = alloca %option.tal__, align 8
+    store %option.tal__ { i32 1, ptr undef }, ptr %t, align 8
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    %t1 = alloca %option.tal__, align 8
+    store i32 0, ptr %t1, align 4
+    %data = getelementptr inbounds %option.tal__, ptr %t1, i32 0, i32 1
+    %2 = sub i64 %1, 1
+    store i64 %2, ptr %0, align 8
+    %3 = getelementptr i8, ptr %0, i64 16
+    %4 = getelementptr ptr, ptr %3, i64 %2
+    %5 = load ptr, ptr %4, align 8
+    store ptr %5, ptr %data, align 8
+    store ptr %5, ptr %data, align 8
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    %iftmp = phi ptr [ %t, %then ], [ %t1, %else ]
+    %unbox = load { i32, i64 }, ptr %iftmp, align 8
+    ret { i32, i64 } %unbox
+  }
   
   define i64 @main(i64 %arg) {
   entry:
@@ -2045,64 +2082,51 @@ Drop last element
     %6 = load ptr, ptr @schmu_nested, align 8
     %7 = load i64, ptr %6, align 8
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %7)
-    %8 = load ptr, ptr @schmu_nested, align 8
-    %size10 = load i64, ptr %8, align 8
-    %9 = icmp sgt i64 %size10, 0
-    br i1 %9, label %drop_last, label %cont
+    %ret = alloca %option.tal__, align 8
+    %8 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested)
+    store { i32, i64 } %8, ptr %ret, align 8
+    %index = load i32, ptr %ret, align 4
+    %eq = icmp eq i32 %index, 0
+    br i1 %eq, label %then, label %ifcont
   
-  drop_last:                                        ; preds = %entry
-    %10 = sub i64 %size10, 1
-    %11 = getelementptr i8, ptr %8, i64 16
-    %12 = getelementptr ptr, ptr %11, i64 %10
-    tail call void @__free_al_(ptr %12)
-    store i64 %10, ptr %8, align 8
-    %.pre = load ptr, ptr @schmu_nested, align 8
-    %.pre22 = load i64, ptr %.pre, align 8
-    br label %cont
+  then:                                             ; preds = %entry
+    %data = getelementptr inbounds %option.tal__, ptr %ret, i32 0, i32 1
+    tail call void @string_println(ptr @1)
+    br label %ifcont
   
-  cont:                                             ; preds = %drop_last, %entry
-    %13 = phi i64 [ %.pre22, %drop_last ], [ %size10, %entry ]
-    %14 = phi ptr [ %.pre, %drop_last ], [ %8, %entry ]
+  ifcont:                                           ; preds = %entry, %then
+    %9 = load ptr, ptr @schmu_nested, align 8
+    %10 = load i64, ptr %9, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %10)
+    %ret10 = alloca %option.tal__, align 8
+    %11 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested)
+    store { i32, i64 } %11, ptr %ret10, align 8
+    %12 = load ptr, ptr @schmu_nested, align 8
+    %13 = load i64, ptr %12, align 8
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %13)
+    %ret12 = alloca %option.tal__, align 8
+    %14 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested)
+    store { i32, i64 } %14, ptr %ret12, align 8
+    %index14 = load i32, ptr %ret12, align 4
+    %eq15 = icmp eq i32 %index14, 0
+    br i1 %eq15, label %then16, label %else18
+  
+  then16:                                           ; preds = %ifcont
+    %data17 = getelementptr inbounds %option.tal__, ptr %ret12, i32 0, i32 1
+    br label %ifcont19
+  
+  else18:                                           ; preds = %ifcont
+    tail call void @string_println(ptr @2)
+    br label %ifcont19
+  
+  ifcont19:                                         ; preds = %else18, %then16
     %15 = load ptr, ptr @schmu_nested, align 8
-    %size13 = load i64, ptr %15, align 8
-    %16 = icmp sgt i64 %size13, 0
-    br i1 %16, label %drop_last14, label %cont15
-  
-  drop_last14:                                      ; preds = %cont
-    %17 = sub i64 %size13, 1
-    %18 = getelementptr i8, ptr %15, i64 16
-    %19 = getelementptr ptr, ptr %18, i64 %17
-    tail call void @__free_al_(ptr %19)
-    store i64 %17, ptr %15, align 8
-    %.pre23 = load ptr, ptr @schmu_nested, align 8
-    %.pre24 = load i64, ptr %.pre23, align 8
-    br label %cont15
-  
-  cont15:                                           ; preds = %drop_last14, %cont
-    %20 = phi i64 [ %.pre24, %drop_last14 ], [ %size13, %cont ]
-    %21 = phi ptr [ %.pre23, %drop_last14 ], [ %15, %cont ]
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %20)
-    %22 = load ptr, ptr @schmu_nested, align 8
-    %size18 = load i64, ptr %22, align 8
-    %23 = icmp sgt i64 %size18, 0
-    br i1 %23, label %drop_last19, label %cont20
-  
-  drop_last19:                                      ; preds = %cont15
-    %24 = sub i64 %size18, 1
-    %25 = getelementptr i8, ptr %22, i64 16
-    %26 = getelementptr ptr, ptr %25, i64 %24
-    tail call void @__free_al_(ptr %26)
-    store i64 %24, ptr %22, align 8
-    %.pre25 = load ptr, ptr @schmu_nested, align 8
-    %.pre26 = load i64, ptr %.pre25, align 8
-    br label %cont20
-  
-  cont20:                                           ; preds = %drop_last19, %cont15
-    %27 = phi i64 [ %.pre26, %drop_last19 ], [ %size18, %cont15 ]
-    %28 = phi ptr [ %.pre25, %drop_last19 ], [ %22, %cont15 ]
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %27)
-    tail call void @__free_2al2_(ptr @schmu_nested)
+    %16 = load i64, ptr %15, align 8
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %16)
+    call void @__free_val2_(ptr %ret12)
+    call void @__free_val2_(ptr %ret10)
+    call void @__free_val2_(ptr %ret)
+    call void @__free_2al2_(ptr @schmu_nested)
     ret i64 0
   }
   
@@ -2114,6 +2138,22 @@ Drop last element
   entry:
     %1 = load ptr, ptr %0, align 8
     call void @free(ptr %1)
+    ret void
+  }
+  
+  define linkonce_odr void @__free_val2_(ptr %0) {
+  entry:
+    %tag1 = bitcast ptr %0 to ptr
+    %index = load i32, ptr %tag1, align 4
+    %1 = icmp eq i32 %index, 0
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %option.tal__, ptr %0, i32 0, i32 1
+    call void @__free_al_(ptr %data)
+    br label %cont
+  
+  cont:                                             ; preds = %match, %entry
     ret void
   }
   
@@ -2146,8 +2186,10 @@ Drop last element
   
   declare void @free(ptr %0)
   2
+  some
   1
   0
+  none
   0
 
 Global lets with expressions

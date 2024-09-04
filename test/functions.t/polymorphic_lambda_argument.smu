@@ -3,7 +3,7 @@ let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 fun string_add_null(str&) {
   string/modify_buf(&str, fun(arr&) {
     array/push(&arr, !0u8)
-    array/drop_back(&arr)
+    array/pop_back(&arr).ignore()
   })
 }
 
