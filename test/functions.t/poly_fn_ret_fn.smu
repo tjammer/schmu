@@ -1,3 +1,5 @@
+type wrap['a] = { item : 'a }
+
 let once& = true
 
 fun black_box(f, g) {
@@ -10,7 +12,9 @@ let foo = fun a {println(fmt(a, " foo"))}
 fun bar(a) {println(fmt(a, " bar"))}
 
 -- function call returns a polymorphic function
-let result = black_box(foo, bar)
+-- move it, without moving, this will error
+let result = { item = black_box(foo, bar) }
 
-result("a")
-result(10)
+(result.item)("a")
+-- won't work because the type is fixed
+-- (result.item)(10)

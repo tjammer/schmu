@@ -1998,14 +1998,14 @@ Function call returning a polymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %wrapac_ru__ = type { %closure }
   %closure = type { ptr, ptr }
   
   @schmu_once = global i1 true, align 1
+  @schmu_result = global %wrapac_ru__ zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [8 x i8] } { i64 7, i64 7, [8 x i8] c"%s foo\0A\00" }
-  @1 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"%li foo\0A\00" }
-  @2 = private unnamed_addr constant { i64, i64, [8 x i8] } { i64 7, i64 7, [8 x i8] c"%s bar\0A\00" }
-  @3 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"%li bar\0A\00" }
-  @4 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c"a\00" }
+  @1 = private unnamed_addr constant { i64, i64, [8 x i8] } { i64 7, i64 7, [8 x i8] c"%s bar\0A\00" }
+  @2 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c"a\00" }
   
   define linkonce_odr void @__fun_schmu0_ac__(ptr %a) {
   entry:
@@ -2014,62 +2014,10 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define linkonce_odr void @__fun_schmu0_l_(i64 %a) {
-  entry:
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @1, i64 16), i64 %a)
-    ret void
-  }
-  
-  define linkonce_odr void @__fun_schmu1_ac__(ptr %_0) {
-  entry:
-    %clstmp = alloca %closure, align 8
-    store ptr @__fun_schmu0_ac__, ptr %clstmp, align 8
-    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
-    store ptr null, ptr %envptr, align 8
-    %clstmp1 = alloca %closure, align 8
-    store ptr @__schmu_bar_ac__, ptr %clstmp1, align 8
-    %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
-    store ptr null, ptr %envptr3, align 8
-    %ret = alloca %closure, align 8
-    call void @__schmu_black_box_ac_ru_ac_ru_rac_ru__(ptr %ret, ptr %clstmp, ptr %clstmp1)
-    %loadtmp = load ptr, ptr %ret, align 8
-    %envptr4 = getelementptr inbounds %closure, ptr %ret, i32 0, i32 1
-    %loadtmp5 = load ptr, ptr %envptr4, align 8
-    call void %loadtmp(ptr %_0, ptr %loadtmp5)
-    call void @__free_ac_ru_(ptr %ret)
-    ret void
-  }
-  
-  define linkonce_odr void @__fun_schmu1_l_(i64 %_0) {
-  entry:
-    %clstmp = alloca %closure, align 8
-    store ptr @__fun_schmu0_l_, ptr %clstmp, align 8
-    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
-    store ptr null, ptr %envptr, align 8
-    %clstmp1 = alloca %closure, align 8
-    store ptr @__schmu_bar_l_, ptr %clstmp1, align 8
-    %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
-    store ptr null, ptr %envptr3, align 8
-    %ret = alloca %closure, align 8
-    call void @__schmu_black_box_lru_lru_rlru__(ptr %ret, ptr %clstmp, ptr %clstmp1)
-    %loadtmp = load ptr, ptr %ret, align 8
-    %envptr4 = getelementptr inbounds %closure, ptr %ret, i32 0, i32 1
-    %loadtmp5 = load ptr, ptr %envptr4, align 8
-    call void %loadtmp(i64 %_0, ptr %loadtmp5)
-    call void @__free_lru_(ptr %ret)
-    ret void
-  }
-  
   define linkonce_odr void @__schmu_bar_ac__(ptr %a) {
   entry:
     %0 = getelementptr i8, ptr %a, i64 16
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @2, i64 16), ptr %0)
-    ret void
-  }
-  
-  define linkonce_odr void @__schmu_bar_l_(i64 %a) {
-  entry:
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @3, i64 16), i64 %a)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @1, i64 16), ptr %0)
     ret void
   }
   
@@ -2090,24 +2038,47 @@ Function call returning a polymorphic function
     ret void
   }
   
-  define linkonce_odr void @__schmu_black_box_lru_lru_rlru__(ptr noalias %0, ptr %f, ptr %g) {
+  declare void @printf(ptr %0, ...)
+  
+  define linkonce_odr void @__copy_ac_ru_(ptr %0) {
   entry:
-    %1 = load i1, ptr @schmu_once, align 1
-    br i1 %1, label %then, label %else
+    %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %2 = load ptr, ptr %1, align 8
+    %3 = icmp eq ptr %2, null
+    br i1 %3, label %ret, label %notnull
   
-  then:                                             ; preds = %entry
-    store i1 false, ptr @schmu_once, align 1
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 1 %f, i64 16, i1 false)
-    tail call void @__copy_lru_(ptr %0)
-    ret void
+  notnull:                                          ; preds = %entry
+    %ctor2 = bitcast ptr %2 to ptr
+    %ctor1 = load ptr, ptr %ctor2, align 8
+    %4 = call ptr %ctor1(ptr %2)
+    %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
+    store ptr %4, ptr %sunkaddr, align 8
+    br label %ret
   
-  else:                                             ; preds = %entry
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 1 %g, i64 16, i1 false)
-    tail call void @__copy_lru_(ptr %0)
+  ret:                                              ; preds = %notnull, %entry
     ret void
   }
   
-  declare void @printf(ptr %0, ...)
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define i64 @main(i64 %arg) {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fun_schmu0_ac__, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    %clstmp1 = alloca %closure, align 8
+    store ptr @__schmu_bar_ac__, ptr %clstmp1, align 8
+    %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
+    store ptr null, ptr %envptr3, align 8
+    call void @__schmu_black_box_ac_ru_ac_ru_rac_ru__(ptr @schmu_result, ptr %clstmp, ptr %clstmp1)
+    %loadtmp = load ptr, ptr @schmu_result, align 8
+    %loadtmp4 = load ptr, ptr getelementptr inbounds (%closure, ptr @schmu_result, i32 0, i32 1), align 8
+    call void %loadtmp(ptr @2, ptr %loadtmp4)
+    call void @__free_ac_ru2_(ptr @schmu_result)
+    ret i64 0
+  }
   
   define linkonce_odr void @__free_ac_ru_(ptr %0) {
   entry:
@@ -2134,84 +2105,17 @@ Function call returning a polymorphic function
     br label %ret
   }
   
-  define linkonce_odr void @__free_lru_(ptr %0) {
+  define linkonce_odr void @__free_ac_ru2_(ptr %0) {
   entry:
-    %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
-    %env = load ptr, ptr %envptr, align 8
-    %1 = icmp eq ptr %env, null
-    br i1 %1, label %ret, label %notnull
-  
-  notnull:                                          ; preds = %entry
-    %2 = getelementptr inbounds { ptr, ptr }, ptr %env, i32 0, i32 1
-    %dtor1 = load ptr, ptr %2, align 8
-    %3 = icmp eq ptr %dtor1, null
-    br i1 %3, label %just_free, label %dtor
-  
-  ret:                                              ; preds = %just_free, %dtor, %entry
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_ac_ru_(ptr %1)
     ret void
-  
-  dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
-  
-  just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
-  }
-  
-  define linkonce_odr void @__copy_ac_ru_(ptr %0) {
-  entry:
-    %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
-    %2 = load ptr, ptr %1, align 8
-    %3 = icmp eq ptr %2, null
-    br i1 %3, label %ret, label %notnull
-  
-  notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
-    %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
-    store ptr %4, ptr %sunkaddr, align 8
-    br label %ret
-  
-  ret:                                              ; preds = %notnull, %entry
-    ret void
-  }
-  
-  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
-  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
-  define linkonce_odr void @__copy_lru_(ptr %0) {
-  entry:
-    %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
-    %2 = load ptr, ptr %1, align 8
-    %3 = icmp eq ptr %2, null
-    br i1 %3, label %ret, label %notnull
-  
-  notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
-    %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
-    store ptr %4, ptr %sunkaddr, align 8
-    br label %ret
-  
-  ret:                                              ; preds = %notnull, %entry
-    ret void
-  }
-  
-  define i64 @main(i64 %arg) {
-  entry:
-    tail call void @__fun_schmu1_ac__(ptr @4)
-    tail call void @__fun_schmu1_l_(i64 10)
-    ret i64 0
   }
   
   declare void @free(ptr %0)
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   a foo
-  10 bar
 
 Check allocations of nested closures
   $ schmu nested_closure_allocs.smu

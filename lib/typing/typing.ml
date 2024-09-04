@@ -519,50 +519,6 @@ let builtins_hack callee args =
 
 let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }
 
-let rec is_poly_call texpr =
-  match texpr.expr with
-  | Var _ | Const _ | Bop _ | Unop _ | If _ | Lambda _ | Record _ | Field _
-  | Set _ | Ctor _ | Variant_index _ | Variant_data _ | Fmt _ ->
-      false
-  | App _ when is_polymorphic texpr.typ -> (
-      match repr texpr.typ with Tfun _ -> true | _ -> false)
-  | App _ -> false
-  | Let d -> is_poly_call d.cont
-  | Bind (_, _, cont)
-  | Function (_, _, _, cont)
-  | Sequence (_, cont)
-  | Mutual_rec_decls (_, cont)
-  | Move cont ->
-      is_poly_call cont
-
-let rec wrap_in_lambda texpr = function
-  | Tfun (tparams, ret, kind) ->
-      let func = { tparams; ret; kind; touched = [] } in
-      let pn i _ = "_" ^ string_of_int i in
-      let nparams = List.mapi pn tparams in
-      let args =
-        List.mapi
-          (fun i p ->
-            let mut = mut_of_pattr p.pattr in
-            let texpr =
-              {
-                typ = p.pt;
-                expr = Var (pn i 0, None);
-                attr = { no_attr with mut };
-                loc = texpr.loc;
-              }
-            in
-            (texpr, p.pattr))
-          tparams
-      in
-      let body =
-        { texpr with expr = App { callee = texpr; args }; typ = ret }
-      in
-      let abs = { nparams; body; func; inline = false; is_rec = false } in
-      { texpr with expr = Lambda (lambda_id (), abs) }
-  | Tvar { contents = Link t } -> wrap_in_lambda texpr t
-  | _ -> failwith "Internal Error: Not a function for wrapping"
-
 module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
 
@@ -702,32 +658,29 @@ end = struct
 
   and typeof_annot_decl env loc annot block =
     enter_level ();
-    let expr =
-      match annot with
-      | None ->
-          let t = convert env block in
-          leave_level ();
-          (* We generalize functions, but allow weak variables for value types *)
-          let typ =
-            match repr t.typ with Tfun _ -> generalize t.typ | _ -> t.typ
-          in
-          { t with typ }
-      | Some annot ->
-          let t_annot = typeof_annot env loc annot in
-          let t = convert_annot env (Some t_annot) block in
-          leave_level ();
+    match annot with
+    | None ->
+        let t = convert env block in
+        leave_level ();
+        (* We generalize functions, but allow weak variables for value types *)
+        let typ =
+          match repr t.typ with Tfun _ -> generalize t.typ | _ -> t.typ
+        in
+        { t with typ }
+    | Some annot ->
+        let t_annot = typeof_annot env loc annot in
+        let t = convert_annot env (Some t_annot) block in
+        leave_level ();
 
-          let typ =
-            match repr t.typ with
-            | Tfun _ -> check_annot env loc t.typ t_annot
-            | _ ->
-                unify (loc, "In let binding") t.typ t_annot env;
-                t_annot
-          in
+        let typ =
+          match repr t.typ with
+          | Tfun _ -> check_annot env loc t.typ t_annot
+          | _ ->
+              unify (loc, "In let binding") t.typ t_annot env;
+              t_annot
+        in
 
-          { t with typ }
-    in
-    if is_poly_call expr then wrap_in_lambda expr expr.typ else expr
+        { t with typ }
 
   and convert_let ~global env loc (decl : Ast.decl) { Ast.pattr; pexpr = block }
       =
