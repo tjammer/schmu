@@ -233,7 +233,7 @@ param_decl:
   | pattern = param_pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
 
 return_annot:
-   | Right_arrow; annot = type_spec { annot }
+   | Right_arrow; annot = type_spec { annot, $loc(annot) }
 
 capture_copies:
   | Lbrack; copies = separated_nonempty_list(Comma, ident); Rbrack

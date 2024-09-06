@@ -267,7 +267,7 @@ let rec param_annots t =
 let param_annot annots i =
   if Array.length annots > i then Array.get annots i else None
 
-let handle_params env loc (params : Ast.decl list) pattern_id ret =
+let handle_params env (params : Ast.decl list) pattern_id ret =
   (* return updated env with bindings for parameters and types of parameters *)
   let rec handle = function
     | Qvar _ as t -> (newvar (), t)
@@ -313,7 +313,7 @@ let handle_params env loc (params : Ast.decl list) pattern_id ret =
     (env, 0) params
   |> fun ((env, _), lst) ->
   let ids, qparams = List.split lst in
-  let ret = Option.map (fun t -> typeof_annot env loc t) ret in
+  let ret = Option.map (fun (t, loc) -> (typeof_annot env loc t, loc)) ret in
   (env, ids, qparams, ret)
 
 let check_type_unique env loc ~in_sgn name =
@@ -717,7 +717,7 @@ end = struct
     let env = Env.open_function env in
     enter_level ();
     let env, params_t, qparams, ret_annot =
-      handle_params env loc params pattern_id ret_annot
+      handle_params env params pattern_id ret_annot
     in
     let nparams =
       List.mapi
@@ -770,9 +770,15 @@ end = struct
     let typ = Tfun (params_t, body.typ, kind) in
     match typ with
     | Tfun (tparams, ret, kind) ->
-        let ret = match ret_annot with Some ret -> ret | None -> ret in
-        let qtyp = Tfun (qparams, ret, kind) in
-        let typ = check_annot env loc typ qtyp in
+        let typ =
+          match ret_annot with
+          | Some (ret, loc) ->
+              let qtyp = Tfun (qparams, ret, kind) in
+              check_annot env loc typ qtyp
+          | None ->
+              let qtyp = Tfun (qparams, ret, kind) in
+              check_annot env loc typ qtyp
+        in
 
         let func = { tparams; ret; kind; touched } in
         let inline = false and is_rec = false in
@@ -822,7 +828,7 @@ end = struct
     (* We duplicate some lambda code due to naming *)
     let env = Env.open_function env in
     let body_env, params_t, qparams, ret_annot =
-      handle_params env loc params pattern_id return_annot
+      handle_params env params pattern_id return_annot
     in
 
     let body_env, param_exprs = convert_decl body_env params in
@@ -894,9 +900,14 @@ end = struct
         if (not used) && is_rec && not inrec then
           raise (Error (nameloc, "Unused rec flag"));
 
-        let ret = match ret_annot with Some ret -> ret | None -> ret in
-        let qtyp = Tfun (qparams, ret, kind) |> generalize in
-        check_annot env loc typ qtyp |> ignore;
+        (match ret_annot with
+        | Some (ret, loc) ->
+            let qtyp = Tfun (qparams, ret, kind) |> generalize in
+            check_annot env loc typ qtyp
+        | None ->
+            let qtyp = Tfun (qparams, ret, kind) |> generalize in
+            check_annot env loc typ qtyp)
+        |> ignore;
 
         let func = { tparams; ret; kind; touched } in
         let lambda =

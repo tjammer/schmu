@@ -43,7 +43,7 @@ and func = {
   name : ident;
   is_rec : bool;
   params : decl list;
-  return_annot : type_spec option;
+  return_annot : (type_spec * loc) option;
   body : block;
   attr : func_attr list;
 }
@@ -58,7 +58,8 @@ and expr =
   | Unop of loc * ident * expr
   | If of loc * expr * expr * expr option
   | Let_e of loc * decl * passed_expr * expr
-  | Lambda of loc * decl list * func_attr list * type_spec option * block
+  | Lambda of
+      loc * decl list * func_attr list * (type_spec * loc) option * block
   | App of loc * expr * argument list
   | Record of loc * (ident * expr) list
   | Tuple of loc * expr list
