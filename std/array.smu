@@ -132,6 +132,13 @@ fun reserve(arr&, size) {
   }
 }
 
+fun reverse(arr&) {
+  let length = length(arr)
+  iter_range(0, length / 2, fun i {
+    swap_items(&arr, i, length - i - 1)
+  })
+}
+
 module fixed {
   let get = __fixed_array_get
   let length = __fixed_array_length

@@ -2,6 +2,7 @@
 let + = __addi
 let - = __subi
 let * = __multi
+let / = __divi
 let /. = __divf
 let < = __lessi
 let <= = __lesseqi
