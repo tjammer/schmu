@@ -1,16 +1,6 @@
 %{
     open Ast
 
-    let parse_elseifs loc cond then_ elseifs else_ =
-      let rec aux = function
-        | [ (loc, cond, blk) ] ->
-            let else_ = Option.map (fun b -> Do_block b) else_ in
-            Some (If (loc, cond, Do_block blk, else_))
-        | (loc, cond, blk) :: tl -> Some (If (loc, cond, Do_block blk, aux tl))
-        | [] -> Option.map (fun b -> Do_block b) else_
-      in
-      If (loc, cond, Do_block then_, aux elseifs)
-
     let pass_attr_of_opt = function
       | Some (Ast.Dmut | Dset) -> Ast.Dmut
       | Some Dmove -> Dmove
@@ -36,7 +26,6 @@
 %token Use
 %token Import
 %token If
-%token Elseif
 %token Else
 %token Ampersand
 %token Exclamation
@@ -296,7 +285,7 @@ with_loc(x):
 ident:
   | id = Ident { $loc, id }
 
-ctor_ident:
+%inline ctor_ident:
   | id = Ctor { $loc, id }
 
 expr_no_ident:
@@ -308,23 +297,17 @@ expr_no_ident:
       let b = {apass = Dnorm; aloc = $loc(b); aexpr = b} in
       App ($loc, Var($loc(infix), infix), [a; b]) }
   | op = Plus_op; expr = expr { Unop ($loc, ($loc(op), op), expr) }
-  | If; cond = expr; then_ = then_
-    { let then_, elifs, else_ = then_ in parse_elseifs $loc cond then_ elifs else_ }
+  | If; cond = expr; block = block; ifcont = ifcont
+    { If($loc, cond, Do_block block, ifcont) }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
   | callee = Builtin_id; args = parens(call_arg) { App ($loc, Var($loc(callee), callee), args) }
-  | aexpr = expr; Dot; callee = ident; args = parens(call_arg)
+  | aexpr = expr; Dot; callee = dot_callee; args = parens(call_arg)
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
-      Pipe_head ($loc, arg, Pip_expr (App ($loc, Var callee, args)))}
+      Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
   | aexpr = expr; Dot; Lpar; callee = expr; Rpar; args = parens(call_arg)
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
-  | aexpr = expr; apass = decl_attr; callee = ident; args = parens(call_arg)
-    { let arg = {apass; aexpr; aloc = $loc(aexpr)} in
-      Pipe_head ($loc, arg, Pip_expr (App ($loc, Var callee, args)))}
-  | aexpr = expr; Dot; callee = path_ident; args = parens(call_arg)
-    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
-      Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
-  | aexpr = expr; apass = decl_attr; callee = path_ident; args = parens(call_arg)
+  | aexpr = expr; apass = decl_attr; callee = dot_callee; args = parens(call_arg)
     { let arg = {apass; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
   | expr = expr; Dot; Fmt; args = parens(expr)
@@ -355,6 +338,10 @@ expr_no_ident:
 expr:
   | ident = ident { Var ident }
   | expr = expr_no_ident { expr }
+
+%inline dot_callee:
+  | callee = ident { Var callee }
+  | callee = path_ident { callee }
 
 block_cont:
   | Rcurly { [] }
@@ -399,7 +386,7 @@ special_builtins:
            {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
 
 upcases:
-  | id = ctor_ident; %prec Ctor { Ctor ($loc, id, None) }
+  | id = ctor_ident { Ctor ($loc, id, None) }
   | id = ctor_ident; Lpar; expr = expr; Rpar { Ctor ($loc, id, Some expr) }
   | id = ctor_ident; Lpar; tup = tuple; Rpar {Ctor ($loc, id, Some (Tuple ($loc(tup), tup)))}
 
@@ -450,26 +437,16 @@ call_arg:
 %inline decl_attr:
   | Ampersand { Dmut } | Exclamation { Dmove }
 
-then_:
-  | block = block { block, [], None }
-  | block = block; else_ = else_ { block, [], Some else_ }
-  | block = block; elifs = elifs { block, elifs, None }
-  | block = block; elifs = elifs; else_ = else_ { block, elifs, Some else_ }
-
-elifs:
-  | elif = elif; elifs = elifs { elif :: elifs }
-  | elif = elif { [elif] }
+ifcont:
+  | { None}
+  | Else; block = block { Some (Do_block block) }
+  | Else If cond = expr; block = block; ifcont = ifcont
+    { Some (If($loc, cond, Do_block block, ifcont)) }
 
 passed(x):
   | pexpr = x { Dnorm, pexpr }
   | Ampersand; pexpr = x { Dmut, pexpr }
   | Exclamation; pexpr = x { Dmove, pexpr }
-
-elif:
-  | Elseif; cond = expr; elseblk = block { ($loc, cond, elseblk) }
-
-else_:
-  | Else; item = block { item }
 
 use_path:
   | id = Ident { Path.Pid (id) }

@@ -17,8 +17,8 @@ let default next state =
 let rec newline ~lnum lexbuf next state =
   match (state.last, next) with
   | ( _,
-      ( Parser.Dot | Eof | Rcurly | Else | Elseif | Or | And | Pipe_tail | Hbar
-      | Rbrack | Rpar ) ) ->
+      ( Parser.Dot | Eof | Rcurly | Else | Or | And | Pipe_tail | Hbar | Rbrack
+      | Rpar ) ) ->
       (* These tokens continue expressions on the new line. Rcurly closes
          the block; in that case we do not want to insert a semicolon. Some
          with Eof *)

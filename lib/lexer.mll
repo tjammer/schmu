@@ -141,7 +141,6 @@ rule read =
   | "'"      { Quote }
   | "if"     { If }
   | "else"   { Else }
-  | "else if" { Elseif }
   | "fun"    { Fun }
   | "let"    { Let }
   | "match"  { Match }
