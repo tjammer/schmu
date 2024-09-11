@@ -330,7 +330,7 @@ expr_no_ident:
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_tail ($loc, arg, Pip_expr pipeable) }
   | Match; expr = passed(expr); Lcurly; option(Hbar); clauses = clauses; Rcurly
-    { Match ($loc, fst expr, snd expr, clauses) }
+    { Match (($startpos, $endpos(expr)), fst expr, snd expr, clauses) }
   | Ampersand; expr = expr; Equal; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
   | id = Path_id; expr = expr; %prec Path { Local_use ($loc, id, expr) }
