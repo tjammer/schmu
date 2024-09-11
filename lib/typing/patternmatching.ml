@@ -123,13 +123,23 @@ let lor_clike_hack env loc name annot =
 
 let get_variant env loc (_, name) annot =
   (* Don't use clean directly, to keep integrity of link *)
+  let raise_ t =
+    let msg =
+      Printf.sprintf "Expecting %s, not a variant type"
+        (string_of_type (Env.modpath env) t)
+    in
+    raise (Error (loc, msg))
+  in
   match annot with
   | Some variant -> (
-      match repr variant with
+      let find path = Env.find_type_opt loc path env in
+      match resolve_alias find variant |> repr with
       (* Builtins are also constructors, but are not variants *)
       | Tconstr (path, params) as t when not (is_builtin t) ->
           let ctors =
-            ctors_of_variant loc path (Some params) env |> Result.get_ok
+            match ctors_of_variant loc path (Some params) env with
+            | Ok ctors -> ctors
+            | Error () -> raise_ t
           in
           let ctor =
             match array_assoc_opt name ctors with
@@ -142,12 +152,7 @@ let get_variant env loc (_, name) annot =
                 raise (Error (loc, msg))
           in
           (path, ctor, variant)
-      | t ->
-          let msg =
-            Printf.sprintf "Expecting %s, not a variant type"
-              (string_of_type (Env.modpath env) t)
-          in
-          raise (Error (loc, msg)))
+      | t -> raise_ t)
   | None -> (
       (* There is some overlap with [get_ctor] *)
       match Env.find_ctor_opt name env with
