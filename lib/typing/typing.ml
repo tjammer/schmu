@@ -575,7 +575,6 @@ end = struct
         let attr = { no_attr with const = true } in
         { typ = tunit; expr = Const Unit; attr; loc }
     | Lambda (loc, id, attr, ret, e) -> convert_lambda env loc id attr ret e
-    | Let_e (loc, decl, expr, cont) -> convert_let_e env loc decl expr cont
     | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
     | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
@@ -702,16 +701,6 @@ end = struct
     let env, pat_exprs = convert_decl env [ decl ] in
     let expr = { e1 with attr = { global; const; mut } } in
     (env, id, idloc, expr, e1.attr.mut, pat_exprs)
-
-  and convert_let_e env loc decl expr cont =
-    let env, id, id_loc, rhs, rmut, pats =
-      convert_let ~global:false env loc decl expr
-    in
-    let cont = convert env cont in
-    let cont = List.fold_left fold_decl cont pats in
-    let uniq = if rhs.attr.const then uniq_name id else None in
-    let expr = Let { id; id_loc; uniq; rmut; pass = expr.pattr; rhs; cont } in
-    { typ = cont.typ; expr; attr = cont.attr; loc }
 
   and convert_lambda env loc params attr ret_annot body =
     let env = Env.open_function env in
