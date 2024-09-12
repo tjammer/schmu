@@ -2177,3 +2177,9 @@ Upward closures are moved closures
   on iteration: 7
   on iteration: 8
   on iteration: 9
+
+Only direct recursive calls count as recursive
+  $ schmu nested_recursive.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./nested_recursive
+  heya
+  none

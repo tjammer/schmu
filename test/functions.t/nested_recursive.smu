@@ -1,0 +1,15 @@
+let arr = [("heya", 1)]
+
+fun rec consume(storage, opt) {
+  match storage.[opt] {
+    #none: println("none")
+    #some(arr): {
+      array/iter(arr, fun ((str, expr)) {
+        println(str)
+        consume(storage, expr)
+      })
+    }
+  }
+}
+
+consume([#some(copy(arr)), #none], 0)

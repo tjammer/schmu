@@ -390,8 +390,8 @@ let set_tailrec p name =
   (* We have to check the name (of the function) here, because a nested function
      could call recursively its parent *)
   | (nm, _) :: tl when String.equal name nm ->
-      { p with recursion_stack = (nm, Rtail) :: tl }
-  | _ :: _ -> p
+      (true, { p with recursion_stack = (nm, Rtail) :: tl })
+  | _ :: _ -> (false, p)
   | [] -> failwith "Internal Error: Recursion stack empty (set)"
 
 let set_upward = function
@@ -1172,9 +1172,7 @@ and morph_app mk p callee args ret_typ =
   let tailrec, p =
     if ret then
       match callee.monomorph with
-      | Recursive name ->
-          let p = set_tailrec p name.nonmono in
-          (true, p)
+      | Recursive name -> set_tailrec p name.nonmono
       | _ -> (false, p)
     else (false, p)
   in
