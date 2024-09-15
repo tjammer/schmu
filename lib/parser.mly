@@ -123,6 +123,7 @@ stmt_no_ident:
 stmt:
   | stmt = stmt_no_ident { stmt }
   | ident = ident { Expr ($loc, (Var ident)) }
+  | tuple = tuple { Expr ($loc, Tuple ($loc, tuple)) }
 
 func:
   | name = func_name; params = parens(param_decl); attr = loption(capture_copies);
@@ -218,8 +219,8 @@ only_one_param:
   | pattern = basic_pattern { {loc = $loc; pattern; annot = None} }
 
 param_decl:
-  | pattern = param_pattern { {loc = $loc; pattern; annot = None} }
-  | pattern = param_pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
+  | pattern = pattern { {loc = $loc; pattern; annot = None} }
+  | pattern = pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
 
 return_annot:
    | Right_arrow; annot = type_spec { annot, $loc(annot) }
@@ -235,36 +236,34 @@ basic_pattern:
   | Wildcard; { Pwildcard ($loc, Dnorm) }
   | Wildcard; Exclamation { Pwildcard ($loc, Dmove) }
   | Wildcard; Ampersand { Pwildcard ($loc, Dmut) }
-
-non_or_match_pattern:
-  | basic = basic_pattern { basic }
-  | id = ctor_ident { Pctor (id, None) }
-  | id = ctor_ident; Lpar; pattern = match_pattern; Rpar { Pctor (id, Some pattern)  }
-  | id = ctor_ident; Lpar; pattern = tup_pattern(match_pattern); Rpar { Pctor (id, Some pattern)  }
-  | Lpar; tup = tup_pattern(match_pattern); Rpar { tup }
-  | rec_ = record_pattern(match_pattern) { rec_ }
+  | infix = infix { Pvar (($loc(infix), infix), Dnorm) }
+  | rec_ = record_pattern(pattern) { rec_ }
   | i = Int { Plit_int($loc, i) }
   | c = U8 { Plit_char($loc, c) }
+  | id = ctor_ident { Pctor (id, None) }
+  | id = ctor_ident; Lpar; pattern = pattern; Rpar { Pctor (id, Some pattern)  }
+  | id = ctor_ident; Lpar; pattern = inner_tup_pattern(pattern); Rpar { Pctor (id, Some pattern)  }
+
+pattern:
+  | basic = basic_pattern { basic }
+  | tup = tup_patterns { tup }
+  | Lpar; pat = pattern; Hbar; pats = separated_nonempty_list(Hbar, pattern); Rpar
+    { Por ($loc, pat :: pats) }
 
 match_pattern:
-  | pat = non_or_match_pattern { pat }
-  | head = non_or_match_pattern; Hbar; tail = separated_nonempty_list(Hbar, non_or_match_pattern)
-    { Por ($loc, head :: tail) }
+  | pat = pattern { pat }
+  | pat = pattern; Hbar; pats = separated_nonempty_list(Hbar, pattern) { Por ($loc, pat :: pats) }
 
 let_pattern:
-  | basic = basic_pattern { basic }
-  | infix = infix { Pvar (($loc(infix), infix), Dnorm) }
-  | tup = tup_pattern(basic_pattern) { tup }
-  | rec_ = record_pattern(basic_pattern) { rec_ }
+  | pat = pattern { pat }
+  | tups = tup_tups(pattern); { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
 
-param_pattern:
-  | basic = basic_pattern { basic }
-  | rec_ = record_pattern(param_pattern) { rec_ }
-  | Lpar; tups = tup_tups(param_pattern); Rpar { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
-  | Lpar; tups = tup_tups(param_pattern); Rpar; Ampersand { let loc, tups = tups in Ptup (loc, tups, Dmut) }
-  | Lpar; tups = tup_tups(param_pattern); Rpar; Exclamation { let loc, tups = tups in Ptup (loc, tups, Dmove) }
+tup_patterns:
+  | Lpar; tups = tup_tups(pattern); Rpar { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
+  | Lpar; tups = tup_tups(pattern); Rpar; Ampersand { let loc, tups = tups in Ptup (loc, tups, Dmut) }
+  | Lpar; tups = tup_tups(pattern); Rpar; Exclamation { let loc, tups = tups in Ptup (loc, tups, Dmove) }
 
-tup_pattern(x):
+inner_tup_pattern(x):
   | tups = tup_tups(x); { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
 
 tup_tups(x):

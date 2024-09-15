@@ -1328,6 +1328,8 @@ type t =
 #a
 |}
 
+let test_syntax_noparens_tuple () = test "(float, int)" "1.0, 1"
+
 let test_rec_type_pos () =
   test "unit" "type list['a] = #nil | #cons('a, rc[list])"
 
@@ -1854,6 +1856,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "multiline variant" test_syntax_multiline_variant;
           case "multiline variant ctor after"
             test_syntax_multiline_variant_ctor_after;
+          case "noparens tuple" test_syntax_noparens_tuple;
         ] );
       ( "recursive types",
         [
