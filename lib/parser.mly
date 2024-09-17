@@ -54,7 +54,6 @@
 %token Module
 %token Signature
 %token Functor
-%token Module_type
 %token <string> Builtin_id
 %token Val
 %token Rec
@@ -155,7 +154,7 @@ ext:
   | External; id = ident; Colon; spec = type_spec; Equal; name = String_lit { $loc, id, spec, Some name }
 
 modtype:
-  | Module_type; name = ident; Lcurly; sgn = sig_items; Rcurly { Module_type (name, sgn) }
+  | Module; Type; name = ident; Lcurly; sgn = sig_items; Rcurly { Module_type (name, sgn) }
 
 modul:
   | Module; name = module_decl; Lcurly; items = separated_nonempty_list(Semicolon, top_item); Rcurly

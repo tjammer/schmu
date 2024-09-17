@@ -149,7 +149,6 @@ rule read =
   | "external"{ External }
   | "signature" { Signature }
   | "module" { Module }
-  | "module type" { Module_type }
   | "functor" { Functor }
   | "fmt"    { Fmt }
   | "with"   { With }

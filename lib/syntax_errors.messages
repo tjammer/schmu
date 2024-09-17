@@ -1030,19 +1030,19 @@ prog: Plus_op False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Module_type With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Module_type Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Module_type Ident Lcurly With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Module With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Module Type With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Module Type Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Module Type Ident Lcurly With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
