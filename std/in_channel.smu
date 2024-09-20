@@ -41,7 +41,7 @@ let bufsize = 4096
 
 fun open(name) {
   let file = fopen(string/data(name), string/data("r"))
-  if nullptr?(file) {
+  if is_nullptr(file) {
     #none
   } else {
     #some({buf = #4096[0u8], head = 0, unseen = 0, file})
