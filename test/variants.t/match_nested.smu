@@ -1,5 +1,3 @@
-external printf : (string/cstr, int) -> unit
-
 type test = #float(float) | #int(int) | #none
 
 fun doo(m) { match m {
@@ -8,7 +6,7 @@ fun doo(m) { match m {
   #some(#none): 1
   #none: 0
 }}
-doo(#some(#float(3.0))) |> printf(string/data("%i\n"))
-doo(#some(#int(2))) |> printf(string/data("%i\n"))
-doo(#some(#none)) |> printf(string/data("%i\n"))
-doo(#none) |> printf(string/data("%i\n"))
+doo(#some(#float(3.0))).fmt().println()
+doo(#some(#int(2))).fmt().println()
+doo(#some(#none)).fmt().println()
+doo(#none).fmt().println()

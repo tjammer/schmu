@@ -1,7 +1,5 @@
 import nonpoly_func
 
-external printf : (string/cstr, int) -> unit
-
 fun doo(a) {
   -- TODO use modules for patterns
   nonpoly_func/(match a {
@@ -16,5 +14,5 @@ fun do2(a) {
     #right: add_ints(0, -5)
   }
 }
-doo(nonpoly_func/#left) |> printf(string/data("%i\n"))
-do2(nonpoly_func/#left) |> printf(string/data("%i\n"))
+doo(nonpoly_func/#left).fmt().println()
+do2(nonpoly_func/#left).fmt().println()

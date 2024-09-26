@@ -1,5 +1,3 @@
-external printf : (string/cstr, int) -> unit
-
 fun doo(a, b) {
   match(a, b) {
     (#some(a), #some(b)): a + b
@@ -7,7 +5,8 @@ fun doo(a, b) {
     (#some(a), #none): a
     (_, #none): 0
   }
-  |> printf(string/data("%i\n"))
+  .fmt()
+  .println()
 }
 let none_int : option[int] = #none
 

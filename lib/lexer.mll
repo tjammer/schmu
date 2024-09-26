@@ -187,7 +187,6 @@ rule read =
   | sized_id  { Sized_ident (Lexing.lexeme lexbuf) }
   | unknown_sized_id { Unknown_sized_ident (Lexing.lexeme lexbuf) }
   | "->"     { Right_arrow }
-  | "|>"     { Pipe_tail }
   | "--"      { line_comment lexbuf }
   | eq_op    { Eq_op (Lexing.lexeme lexbuf) }
   | cmp_op   { Cmp_op (Lexing.lexeme lexbuf) }

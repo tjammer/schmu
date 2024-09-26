@@ -658,14 +658,6 @@ prog: False Hashtag_brack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Pipe_tail With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Pipe_tail False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: False Or With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>

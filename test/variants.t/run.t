@@ -81,11 +81,7 @@ Match option
   %option.tl_ = type { i32, i64 }
   
   @schmu_none_int = constant %option.tl_ { i32 1, i64 undef }
-  @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
-  
-  declare ptr @string_data(ptr %0)
-  
-  declare void @printf(ptr %0, i64 %1)
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define linkonce_odr i64 @__schmu_none_all_vl__(i32 %0, i64 %1) {
   entry:
@@ -157,67 +153,61 @@ Match option
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
     %boxconst = alloca %option.tl_, align 8
     store %option.tl_ { i32 0, i64 1 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %1 = tail call i64 @schmu_match_opt(i32 %fst1, i64 %snd2)
-    tail call void @printf(ptr %0, i64 %1)
-    %2 = tail call ptr @string_data(ptr @0)
+    %0 = tail call i64 @schmu_match_opt(i32 %fst1, i64 %snd2)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     %boxconst3 = alloca %option.tl_, align 8
     store %option.tl_ { i32 1, i64 undef }, ptr %boxconst3, align 8
     %fst5 = load i32, ptr %boxconst3, align 4
     %snd6 = getelementptr inbounds { i32, i64 }, ptr %boxconst3, i32 0, i32 1
     %snd7 = load i64, ptr %snd6, align 8
-    %3 = tail call i64 @schmu_match_opt(i32 %fst5, i64 %snd7)
-    tail call void @printf(ptr %2, i64 %3)
-    %4 = tail call ptr @string_data(ptr @0)
+    %1 = tail call i64 @schmu_match_opt(i32 %fst5, i64 %snd7)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
     %boxconst8 = alloca %option.tl_, align 8
     store %option.tl_ { i32 0, i64 1 }, ptr %boxconst8, align 8
     %fst10 = load i32, ptr %boxconst8, align 4
     %snd11 = getelementptr inbounds { i32, i64 }, ptr %boxconst8, i32 0, i32 1
     %snd12 = load i64, ptr %snd11, align 8
-    %5 = tail call i64 @schmu_opt_match(i32 %fst10, i64 %snd12)
-    tail call void @printf(ptr %4, i64 %5)
-    %6 = tail call ptr @string_data(ptr @0)
+    %2 = tail call i64 @schmu_opt_match(i32 %fst10, i64 %snd12)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
     %boxconst13 = alloca %option.tl_, align 8
     store %option.tl_ { i32 1, i64 undef }, ptr %boxconst13, align 8
     %fst15 = load i32, ptr %boxconst13, align 4
     %snd16 = getelementptr inbounds { i32, i64 }, ptr %boxconst13, i32 0, i32 1
     %snd17 = load i64, ptr %snd16, align 8
-    %7 = tail call i64 @schmu_opt_match(i32 %fst15, i64 %snd17)
-    tail call void @printf(ptr %6, i64 %7)
-    %8 = tail call ptr @string_data(ptr @0)
+    %3 = tail call i64 @schmu_opt_match(i32 %fst15, i64 %snd17)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %3)
     %boxconst18 = alloca %option.tl_, align 8
     store %option.tl_ { i32 0, i64 1 }, ptr %boxconst18, align 8
     %fst20 = load i32, ptr %boxconst18, align 4
     %snd21 = getelementptr inbounds { i32, i64 }, ptr %boxconst18, i32 0, i32 1
     %snd22 = load i64, ptr %snd21, align 8
-    %9 = tail call i64 @schmu_some_all(i32 %fst20, i64 %snd22)
-    tail call void @printf(ptr %8, i64 %9)
-    %10 = tail call ptr @string_data(ptr @0)
+    %4 = tail call i64 @schmu_some_all(i32 %fst20, i64 %snd22)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %4)
     %boxconst23 = alloca %option.tl_, align 8
     store %option.tl_ { i32 1, i64 undef }, ptr %boxconst23, align 8
     %fst25 = load i32, ptr %boxconst23, align 4
     %snd26 = getelementptr inbounds { i32, i64 }, ptr %boxconst23, i32 0, i32 1
     %snd27 = load i64, ptr %snd26, align 8
-    %11 = tail call i64 @schmu_some_all(i32 %fst25, i64 %snd27)
-    tail call void @printf(ptr %10, i64 %11)
-    %12 = tail call ptr @string_data(ptr @0)
+    %5 = tail call i64 @schmu_some_all(i32 %fst25, i64 %snd27)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %5)
     %boxconst28 = alloca %option.tl_, align 8
     store %option.tl_ { i32 0, i64 1 }, ptr %boxconst28, align 8
     %fst30 = load i32, ptr %boxconst28, align 4
     %snd31 = getelementptr inbounds { i32, i64 }, ptr %boxconst28, i32 0, i32 1
     %snd32 = load i64, ptr %snd31, align 8
-    %13 = tail call i64 @__schmu_none_all_vl__(i32 %fst30, i64 %snd32)
-    tail call void @printf(ptr %12, i64 %13)
-    %14 = tail call ptr @string_data(ptr @0)
-    %15 = tail call i64 @__schmu_none_all_vl__(i32 1, i64 undef)
-    tail call void @printf(ptr %14, i64 %15)
+    %6 = tail call i64 @__schmu_none_all_vl__(i32 %fst30, i64 %snd32)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %6)
+    %7 = tail call i64 @__schmu_none_all_vl__(i32 1, i64 undef)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %7)
     ret i64 0
   }
+  
+  declare void @printf(ptr %0, ...)
   1
   0
   1
@@ -236,11 +226,7 @@ Nested pattern matching
   %option.tvdl__ = type { i32, %test_ }
   %test_ = type { i32, double }
   
-  @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
-  
-  declare ptr @string_data(ptr %0)
-  
-  declare void @printf(ptr %0, i64 %1)
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define i64 @schmu_doo(ptr %m) {
   entry:
@@ -276,28 +262,26 @@ Nested pattern matching
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
     %boxconst = alloca %option.tvdl__, align 8
     store %option.tvdl__ { i32 0, %test_ { i32 0, double 3.000000e+00 } }, ptr %boxconst, align 8
-    %1 = call i64 @schmu_doo(ptr %boxconst)
-    call void @printf(ptr %0, i64 %1)
-    %2 = call ptr @string_data(ptr @0)
+    %0 = call i64 @schmu_doo(ptr %boxconst)
+    call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     %boxconst1 = alloca %option.tvdl__, align 8
     store %option.tvdl__ { i32 0, %test_ { i32 1, double 9.881310e-324 } }, ptr %boxconst1, align 8
-    %3 = call i64 @schmu_doo(ptr %boxconst1)
-    call void @printf(ptr %2, i64 %3)
-    %4 = call ptr @string_data(ptr @0)
+    %1 = call i64 @schmu_doo(ptr %boxconst1)
+    call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
     %boxconst2 = alloca %option.tvdl__, align 8
     store %option.tvdl__ { i32 0, %test_ { i32 2, double undef } }, ptr %boxconst2, align 8
-    %5 = call i64 @schmu_doo(ptr %boxconst2)
-    call void @printf(ptr %4, i64 %5)
-    %6 = call ptr @string_data(ptr @0)
+    %2 = call i64 @schmu_doo(ptr %boxconst2)
+    call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
     %boxconst3 = alloca %option.tvdl__, align 8
     store %option.tvdl__ { i32 1, %test_ undef }, ptr %boxconst3, align 8
-    %7 = call i64 @schmu_doo(ptr %boxconst3)
-    call void @printf(ptr %6, i64 %7)
+    %3 = call i64 @schmu_doo(ptr %boxconst3)
+    call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %3)
     ret i64 0
   }
+  
+  declare void @printf(ptr %0, ...)
   3
   2
   1
@@ -313,11 +297,7 @@ Match multiple columns
   %vl_vl2_ = type { %option.tl_, %option.tl_ }
   
   @schmu_none_int = constant %option.tl_ { i32 1, i64 undef }
-  @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
-  
-  declare ptr @string_data(ptr %0)
-  
-  declare void @printf(ptr %0, i64 %1)
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define void @schmu_doo(i32 %0, i64 %1, i32 %2, i64 %3) {
   entry:
@@ -329,51 +309,52 @@ Match multiple columns
     store i32 %2, ptr %b, align 4
     %snd2 = getelementptr inbounds { i32, i64 }, ptr %b, i32 0, i32 1
     store i64 %3, ptr %snd2, align 8
-    %4 = tail call ptr @string_data(ptr @0)
-    %5 = alloca %vl_vl2_, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %5, ptr align 8 %a, i64 16, i1 false)
-    %"1" = getelementptr inbounds %vl_vl2_, ptr %5, i32 0, i32 1
+    %4 = alloca %vl_vl2_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 %a, i64 16, i1 false)
+    %"1" = getelementptr inbounds %vl_vl2_, ptr %4, i32 0, i32 1
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %"1", ptr align 8 %b, i64 16, i1 false)
     %index = load i32, ptr %"1", align 4
     %eq = icmp eq i32 %index, 0
     br i1 %eq, label %then, label %else8
   
   then:                                             ; preds = %entry
-    %index4 = load i32, ptr %5, align 4
+    %index4 = load i32, ptr %4, align 4
     %eq5 = icmp eq i32 %index4, 0
     br i1 %eq5, label %then6, label %else
   
   then6:                                            ; preds = %then
-    %data7 = getelementptr inbounds %option.tl_, ptr %5, i32 0, i32 1
-    %sunkaddr = getelementptr inbounds i8, ptr %5, i64 24
-    %6 = load i64, ptr %sunkaddr, align 8
-    %7 = load i64, ptr %data7, align 8
-    %add = add i64 %7, %6
+    %data7 = getelementptr inbounds %option.tl_, ptr %4, i32 0, i32 1
+    %sunkaddr = getelementptr inbounds i8, ptr %4, i64 24
+    %5 = load i64, ptr %sunkaddr, align 8
+    %6 = load i64, ptr %data7, align 8
+    %add = add i64 %6, %5
     br label %ifcont17
   
   else:                                             ; preds = %then
-    %sunkaddr19 = getelementptr inbounds i8, ptr %5, i64 24
-    %8 = load i64, ptr %sunkaddr19, align 8
+    %sunkaddr19 = getelementptr inbounds i8, ptr %4, i64 24
+    %7 = load i64, ptr %sunkaddr19, align 8
     br label %ifcont17
   
   else8:                                            ; preds = %entry
-    %index10 = load i32, ptr %5, align 4
+    %index10 = load i32, ptr %4, align 4
     %eq11 = icmp eq i32 %index10, 0
     br i1 %eq11, label %then12, label %ifcont17
   
   then12:                                           ; preds = %else8
-    %data13 = getelementptr inbounds %option.tl_, ptr %5, i32 0, i32 1
-    %9 = load i64, ptr %data13, align 8
+    %data13 = getelementptr inbounds %option.tl_, ptr %4, i32 0, i32 1
+    %8 = load i64, ptr %data13, align 8
     br label %ifcont17
   
   ifcont17:                                         ; preds = %then12, %else8, %then6, %else
-    %iftmp18 = phi i64 [ %add, %then6 ], [ %8, %else ], [ %9, %then12 ], [ 0, %else8 ]
-    tail call void @printf(ptr %4, i64 %iftmp18)
+    %iftmp18 = phi i64 [ %add, %then6 ], [ %7, %else ], [ %8, %then12 ], [ 0, %else8 ]
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %iftmp18)
     ret void
   }
   
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  declare void @printf(ptr %0, ...)
   
   define i64 @main(i64 %arg) {
   entry:

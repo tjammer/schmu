@@ -24,13 +24,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
-  
-  declare ptr @string_data(ptr %0)
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
-  
-  declare void @printf(ptr %0, i64 %1)
   
   define i64 @schmu_doo(i32 %0) {
   entry:
@@ -50,11 +46,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
-    %1 = tail call i64 @schmu_doo(i32 0)
-    tail call void @printf(ptr %0, i64 %1)
+    %0 = tail call i64 @schmu_doo(i32 0)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     ret i64 0
   }
+  
+  declare void @printf(ptr %0, ...)
   $ ./import_nonpoly_func
   5
 
@@ -63,13 +60,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
-  
-  declare ptr @string_data(ptr %0)
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
-  
-  declare void @printf(ptr %0, i64 %1)
   
   define i64 @schmu_do2(i32 %0) {
   entry:
@@ -105,14 +98,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
-    %1 = tail call i64 @schmu_doo(i32 0)
-    tail call void @printf(ptr %0, i64 %1)
-    %2 = tail call ptr @string_data(ptr @0)
-    %3 = tail call i64 @schmu_do2(i32 0)
-    tail call void @printf(ptr %2, i64 %3)
+    %0 = tail call i64 @schmu_doo(i32 0)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
+    %1 = tail call i64 @schmu_do2(i32 0)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
     ret i64 0
   }
+  
+  declare void @printf(ptr %0, ...)
   $ ./local_import_nonpoly_func
   5
   5
@@ -237,11 +230,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   %poly_func.optionl_ = type { i32, i64 }
   
   @schmu_none = constant %poly_func.optiond_ { i32 1, double undef }
-  @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
-  
-  declare ptr @string_data(ptr %0)
-  
-  declare void @printf(ptr %0, i64 %1)
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) {
   entry:
@@ -279,27 +268,26 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
     %boxconst = alloca %poly_func.optionl_, align 8
     store %poly_func.optionl_ { i32 0, i64 3 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %1 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2)
-    tail call void @printf(ptr %0, i64 %1)
-    %2 = tail call ptr @string_data(ptr @0)
+    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     %boxconst3 = alloca %poly_func.optiond_, align 8
     store %poly_func.optiond_ { i32 0, double 3.000000e+00 }, ptr %boxconst3, align 8
     %fst5 = load i32, ptr %boxconst3, align 4
     %snd6 = getelementptr inbounds { i32, double }, ptr %boxconst3, i32 0, i32 1
     %snd7 = load double, ptr %snd6, align 8
-    %3 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7)
-    tail call void @printf(ptr %2, i64 %3)
-    %4 = tail call ptr @string_data(ptr @0)
-    %5 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef)
-    tail call void @printf(ptr %4, i64 %5)
+    %1 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
+    %2 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
     ret i64 0
   }
+  
+  declare void @printf(ptr %0, ...)
   $ ./import_poly_func
   0
   0
@@ -314,11 +302,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   %poly_func.optionl_ = type { i32, i64 }
   
   @schmu_none = constant %poly_func.optiond_ { i32 1, double undef }
-  @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
-  
-  declare ptr @string_data(ptr %0)
-  
-  declare void @printf(ptr %0, i64 %1)
+  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) {
   entry:
@@ -356,27 +340,26 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define i64 @main(i64 %arg) {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
     %boxconst = alloca %poly_func.optionl_, align 8
     store %poly_func.optionl_ { i32 0, i64 3 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %1 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2)
-    tail call void @printf(ptr %0, i64 %1)
-    %2 = tail call ptr @string_data(ptr @0)
+    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     %boxconst3 = alloca %poly_func.optiond_, align 8
     store %poly_func.optiond_ { i32 0, double 3.000000e+00 }, ptr %boxconst3, align 8
     %fst5 = load i32, ptr %boxconst3, align 4
     %snd6 = getelementptr inbounds { i32, double }, ptr %boxconst3, i32 0, i32 1
     %snd7 = load double, ptr %snd6, align 8
-    %3 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7)
-    tail call void @printf(ptr %2, i64 %3)
-    %4 = tail call ptr @string_data(ptr @0)
-    %5 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef)
-    tail call void @printf(ptr %4, i64 %5)
+    %1 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
+    %2 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef)
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
     ret i64 0
   }
+  
+  declare void @printf(ptr %0, ...)
   $ ./local_import_poly_func
   0
   0

@@ -6,4 +6,4 @@ fun pass(x) {copy(x)}
 fun apply(f, x) {f(x)}
 
 printi(apply(pass, 20))
-({i = 700, b = false} |> apply(pass)).i.printi()
+(apply(pass, {i = 700, b = false})).i.printi()

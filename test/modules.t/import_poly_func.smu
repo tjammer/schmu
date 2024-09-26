@@ -2,9 +2,7 @@ import poly_func
 
 use poly_func
 
-external printf : (string/cstr, int) -> unit
-
-classify(#some(3)) |> printf(string/data("%i\n"))
-classify(#some(3.0)) |> printf(string/data("%i\n"))
+classify(#some(3)).fmt().println()
+classify(#some(3.0)).fmt().println()
 let none : option[float] = #none
-classify(none) |> printf(string/data("%i\n"))
+classify(none).fmt().println()

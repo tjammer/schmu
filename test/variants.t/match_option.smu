@@ -1,5 +1,3 @@
-external printf : (string/cstr, int) -> unit
-
 -- standard case
 fun match_opt(p) {
   match p {
@@ -7,14 +5,14 @@ fun match_opt(p) {
     #none: 0
   }
 }
-match_opt(#some(1)) |> printf(cstr("%i\n"))
-match_opt(#none) |> printf(cstr("%i\n"))
+match_opt(#some(1)).fmt().println()
+match_opt(#none).fmt().println()
 
 -- switch ctors
 fun opt_match(p) {match p { #none: 0 | #some(thing): thing}}
 
-opt_match(#some(1)) |> printf(cstr("%i\n"))
-opt_match(#none) |> printf(cstr("%i\n"))
+opt_match(#some(1)).fmt().println()
+opt_match(#none).fmt().println()
 
 -- some, catchall
 fun some_all( p){
@@ -23,11 +21,11 @@ fun some_all( p){
     _: 0
   }
 }
-some_all(#some(1)) |> printf(cstr("%i\n"))
-some_all(#none) |> printf(cstr("%i\n"))
+some_all(#some(1)).fmt().println()
+some_all(#none).fmt().println()
 
 fun none_all(p) {match p {#none: 0 | _: 1}}
 
-none_all(#some(1)) |> printf(cstr("%i\n"))
+none_all(#some(1)).fmt().println()
 let none_int : option[int] = #none
-none_all(none_int) |> printf(cstr("%i\n"))
+none_all(none_int).fmt().println()

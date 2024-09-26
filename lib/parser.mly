@@ -43,7 +43,6 @@
 %token <int> Hashnum_brack
 %token Semicolon
 %token Right_arrow
-%token Pipe_tail
 %token With
 %token Fmt
 %token Hbar
@@ -76,7 +75,6 @@
 
 %nonassoc Ctor
 
-%left Pipe_tail
 %left And Or
 %left Eq_op
 %nonassoc Cmp_op
@@ -324,9 +322,6 @@ expr_no_ident:
   | upcases = upcases { upcases }
   | Lcurly; record = expr; With; items = separated_nonempty_trailing_list(Comma, record_item, Rcurly)
     { Record_update ($loc, record, items) }
-  | aexpr = expr; Pipe_tail; pipeable = expr
-    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
-      Pipe_tail ($loc, arg, Pip_expr pipeable) }
   | Match; expr = passed(expr); Lcurly; option(Hbar); clauses = clauses; Rcurly
     { Match (($startpos, $endpos(expr)), fst expr, snd expr, clauses) }
   | Ampersand; expr = expr; Equal; newval = expr; %prec Below_Ampersand

@@ -318,21 +318,6 @@ let test_pipe_head_mult_wrong_type () =
   test_exn "In application expecting ([int, int]) -> _ but found ([int]) -> _"
     "fun add1(a) {a + 1}; 10.add1(12)"
 
-let test_pipe_tail_single () = test "int" "fun add1(a) {a + 1}; 10 |> add1"
-
-let test_pipe_tail_single_call () =
-  test "int" "fun add1(a) {a + 1}; 10 |> add1()"
-
-let test_pipe_tail_single_wrong_type () =
-  test_exn "In application expecting [(int) -> 'a] but found [int]"
-    "let add1 = 1; 10 |> add1"
-
-let test_pipe_tail_mult () = test "int" "fun add(a, b) {a + b}; 10 |> add(12)"
-
-let test_pipe_tail_mult_wrong_type () =
-  test_exn "In application expecting ([int, int]) -> _ but found ([int]) -> _"
-    "fun add1(a) {a + 1}; 10 |> add1(12)"
-
 let test_alias_simple () =
   test "(int) -> unit" "type foo = int; external f : (foo) -> unit; f"
 
@@ -1495,11 +1480,6 @@ let () =
           case "head_single_wrong_type" test_pipe_head_single_wrong_type;
           case "head_mult" test_pipe_head_mult;
           case "head_mult_wrong_type" test_pipe_head_mult_wrong_type;
-          case "tail_single" test_pipe_tail_single;
-          case "tail_single_call" test_pipe_tail_single_call;
-          case "tail_single_wrong_type" test_pipe_tail_single_wrong_type;
-          case "tail_mult" test_pipe_tail_mult;
-          case "tail_mult_wrong_type" test_pipe_tail_mult_wrong_type;
         ] );
       ( "aliasing",
         [
