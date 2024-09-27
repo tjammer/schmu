@@ -9,3 +9,9 @@ _opam
 script.smu
 todo.org
 working.org
+/*.smu
+shell.nix
+/*.smi
+script
+/*.org
+literature/
