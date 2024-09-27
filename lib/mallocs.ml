@@ -18,10 +18,24 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
 
   type pmap = Pset.t Imap.t
 
+  let rec is_arg = function
+    | Malloc.No_malloc -> true
+    | Param _ -> true
+    | Single mid -> is_arg_mid mid
+    | Path (m, _) -> is_arg m
+
+  and is_arg_mid (mid : Mid.t) =
+    match mid.parent with Some m -> is_arg m | None -> false
+
   let mlist_of_pmap m =
     Imap.to_rev_seq m
-    |> Seq.map (fun ((id : Mid.t), paths) ->
-           { id = id.mid; mtyp = id.typ; paths })
+    |> Seq.filter_map (fun ((id : Mid.t), paths) ->
+           (* If the malloc comes from a borrowed parameter, we don't add it to the
+              list of mallocs. This list is later on used for freeing allocs. Since
+              there are paths and parent relationsships, we need to recursively
+              check if something is an argument. *)
+           if is_arg_mid id then None
+           else Some { id = id.mid; mtyp = id.typ; paths })
     |> List.of_seq
 
   let show_pmap m =

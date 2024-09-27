@@ -1,0 +1,47 @@
+module typekey {
+  signature {
+  type t
+}
+type t = int
+}
+
+type named = { thing : string, idx : int }
+
+fun rec consume(storage, opt) {
+  match storage.[opt] {
+    #none: println("none")
+    #some(thing, idx): {
+      println(thing)
+      -- passing idx in a tail call caused the string 'thing' to be freed. The
+      -- solution is to explicitly mark it as (child of a) parameter, and not
+      -- adding parameters to free lists.
+      consume(storage, idx)
+    }
+  }
+}
+
+consume([#some("thing", 1), #none], 0)
+
+-- simpler examples without the array/get
+fun rec simpler(arg, _) {
+  match arg {
+    #some(thing, idx): {
+      ignore(thing)
+      simpler(#none, idx)}
+    #none: ()
+  }
+}
+
+simpler(#some("thing", 0), 0)
+
+-- moved version
+fun rec simpler(arg!, _!) {
+  match !arg {
+    #some(thing, idx!): {
+      ignore(thing)
+      simpler(!#none, !idx)}
+    #none: ()
+  }
+}
+
+simpler(!#some("thing", 0), !0)

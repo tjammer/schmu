@@ -3992,3 +3992,10 @@ Using unit values
 `inner` here should not make `tmp` a const, otherwise could gen would fail
   $ schmu mutable_inner_let.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./mutable_inner_let
+
+
+Don't free params if parts are passed in tail calls
+  $ schmu free_param_parts.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./free_param_parts
+  thing
+  none

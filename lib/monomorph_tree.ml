@@ -1178,12 +1178,6 @@ and morph_app mk p callee args ret_typ =
   in
 
   let f p (arg, attr) =
-    let is_arg = function
-      | Malloc.No_malloc -> false
-      | Param _ -> true
-      | Single _ -> false
-      | Path _ -> (* A path cannot be a passed argument *) false
-    in
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
     let is_moved =
@@ -1199,7 +1193,7 @@ and morph_app mk p callee args ret_typ =
       monomorph,
       (* If an argument is passed by move this means the parameter is also owned
          and will be freed in a tailrec call *)
-      is_arg var.malloc || is_moved )
+      Monomorph_impl.Mallocs_ipml.is_arg var.malloc || is_moved )
   in
 
   let rec fold_decr_last p args = function
