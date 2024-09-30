@@ -1817,7 +1817,16 @@ and convert_prog env items modul =
             let moditems = List.map (fun item -> (applied_name, item)) body in
             let items = Tl_module moditems :: items in
             let env =
-              Module.register_applied_functor env loc id applied_name modul
+              match
+                Module.register_applied_functor env loc id applied_name modul
+              with
+              | Ok env -> env
+              | Error () ->
+                  let msg =
+                    Printf.sprintf
+                      "Module names must be unique. %s exists already" id
+                  in
+                  raise (Error (loc, msg))
             in
 
             check_module_annot env loc ~mname:applied_name modul annot;

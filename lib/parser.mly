@@ -168,7 +168,7 @@ path_with_loc:
   | path = use_path { $loc, path }
 
 functor_:
-  | Functor; name = module_decl; Lpar; params = separated_nonempty_list(Comma, functor_param); Rpar;
+  | Functor; name = module_decl; Lpar; params = separated_list(Comma, functor_param); Rpar;
     Lcurly; items = separated_nonempty_list(Semicolon, top_item); Rcurly
     { Functor (name, params, items) }
 

@@ -344,8 +344,10 @@ let rec add_to_env env foreign (mname, m) =
                     | Error () -> raise (Error (loc, "Cannot add module")))
                 | Some cached ->
                     Env.add_module ~key (envmodule_of_cached mname cached) env)
-            | Mapplied_functor (loc, key, p, m) ->
-                register_applied_functor env loc key p m
+            | Mapplied_functor (loc, key, p, m) -> (
+                match register_applied_functor env loc key p m with
+                | Ok env -> env
+                | Error () -> raise (Error (loc, "Cannot apply functor")))
             | Mfunctor (loc, key, ps, items, m) -> (
                 let mname = Path.append key mname in
                 match register_functor env loc mname ps items m with
@@ -493,21 +495,20 @@ and register_functor env loc mname params body modul : (Env.t, unit) Result.t =
     Ok env
 
 and register_applied_functor env loc key mname modul =
-  (* It's okay to apply a functor multiple times *)
-  let cached =
-    match Hashtbl.find_opt module_cache mname with
-    | Some cached -> envmodule_of_cached mname cached
-    | None ->
-        let scope = make_scope env loc None mname modul in
-        (* Externals need to be added again with the correct user name *)
-        List.iter
-          (function Mext (_, t, n, c) -> add_ext_item ~mname t n c | _ -> ())
-          modul.i;
-        let cached = Cached (Clocal mname, scope, modul) in
-        Hashtbl.add module_cache mname cached;
-        envmodule_of_cached mname cached
-  in
-  Env.add_module ~key cached env
+  (* Modules must be unique *)
+  if Hashtbl.mem module_cache mname then Error ()
+  else
+    let cached =
+      let scope = make_scope env loc None mname modul in
+      (* Externals need to be added again with the correct user name *)
+      List.iter
+        (function Mext (_, t, n, c) -> add_ext_item ~mname t n c | _ -> ())
+        modul.i;
+      let cached = Cached (Clocal mname, scope, modul) in
+      Hashtbl.add module_cache mname cached;
+      envmodule_of_cached mname cached
+    in
+    Ok (Env.add_module ~key cached env)
 
 let find_module env loc name =
   (* We first search the env for local modules. Then we try read the module the normal way *)

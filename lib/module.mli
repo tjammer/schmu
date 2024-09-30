@@ -60,7 +60,7 @@ val register_functor :
   (Env.t, unit) result
 
 val register_applied_functor :
-  Env.t -> Ast.loc -> string -> Path.t -> t -> Env.t
+  Env.t -> Ast.loc -> string -> Path.t -> t -> (Env.t, unit) result
 
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
 val paths : string list ref
