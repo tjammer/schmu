@@ -67,10 +67,12 @@ end
 module Closed_set = Set.Make (Used_value)
 module Set = Set.Make (String)
 
+type callname = string * Path.t option * int option
+
 type ext = {
   ext_name : string;
   ext_typ : typ;
-  ext_cname : string option;
+  ext_cname : callname option;
   imported : (Path.t * [ `C | `Schmu ]) option;
   used : bool ref;
   closure : bool;
@@ -105,7 +107,7 @@ type scope = {
   kind : scope_kind; (* Another list for local scopes (like in if) *)
   modules : cached_module Map.t; (* Locally declared modules *)
   module_types : (Path.t * Module_type.t) Map.t;
-  cnames : string Map.t; (* callnames for functions *)
+  cnames : callname Map.t; (* callnames for functions *)
 }
 
 and cached_module = Cm_located of Path.t | Cm_cached of Path.t * scope

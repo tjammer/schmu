@@ -1,4 +1,5 @@
 Test hashtbl
+  $ schmu -m stbl.smu
   $ schmu hashtbl_test.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./hashtbl_test
   # hashtbl

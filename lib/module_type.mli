@@ -1,6 +1,8 @@
+type callname = string * Path.t option * int option
+
 type item_kind =
   | Mtypedef of Types.type_decl
-  | Mvalue of Types.typ * string option
+  | Mvalue of Types.typ * callname option
 
 type item = string * Ast.loc * item_kind
 type t = item list

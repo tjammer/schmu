@@ -809,8 +809,7 @@ end = struct
         let typ = Tfun (ps, newvar (), Simple) in
         ( Env.(
             add_value name { (def_value env) with typ } nameloc env
-            |> add_callname ~key:name
-                 (Module_common.unique_name ~mname:(modpath env) name unique)),
+            |> add_callname ~key:name (name, Some (modpath env), unique)),
           nparams )
     in
 
@@ -881,8 +880,7 @@ end = struct
           else
             Env.(
               add_value name { (def_value env) with typ } nameloc env
-              |> add_callname ~key:name
-                   (Module_common.unique_name ~mname:(modpath env) name unique))
+              |> add_callname ~key:name (name, Some (modpath env), unique))
         in
         (* Discard usage of internal recursive calls *)
         let used = Env.set_used name env used in
@@ -1490,6 +1488,18 @@ module Subst_functor_impl (* : Map_module.Map_tree *) = struct
     ignore sub;
     ignore decl;
     failwith "unreachable"
+
+  let map_callname (name, mname, uniq) (_, subs, _) =
+    let mname =
+      Option.map
+        (fun mname ->
+          List.fold_left
+            (fun mname { base; with_ } -> Path.subst_base ~base ~with_ mname)
+            mname subs)
+        mname
+    in
+
+    (name, mname, uniq)
 end
 
 module Resolve_aliases_impl (* : Map_module.Map_tree *) = struct
@@ -1517,6 +1527,8 @@ module Resolve_aliases_impl (* : Map_module.Map_tree *) = struct
     ignore sub;
     ignore decl;
     failwith "unreachable"
+
+  let map_callname name _ = name
 end
 
 module Subst_functor = Map_decl (Subst_functor_impl)
@@ -1525,7 +1537,7 @@ module Resolve_aliases = Map_decl (Resolve_aliases_impl)
 module Aliases = Map_module.Make (Resolve_aliases)
 
 type fn_let_kind =
-  | Callname of string * bool
+  | Callname of Env.callname * bool
   (* is closure *)
   | Alias
   | Not
@@ -1550,7 +1562,7 @@ let let_fn_alias env loc expr =
           (* Treat builtins as aliases *)
           if Builtin.of_string id |> Option.is_some then Alias else Not
       | Some (Lambda (uniq, _)) ->
-          Callname (Module.lambda_name ~mname uniq, false)
+          Callname ((Module.lambda_name ~mname uniq, None, None), false)
       | _ -> Not)
   | Tfun (_, _, Closure _) -> (
       (* Maybe alias could also be used here. Check with other special case *)
@@ -1625,7 +1637,10 @@ and convert_prog env items modul =
         let typ = typeof_annot env loc typ in
         (* Make cname explicit to link the correct name even if schmu identifier
            has the module name prepended *)
-        let cname = block_external_name loc ~cname id in
+        let cname =
+          block_external_name loc ~cname id
+          |> Option.map (fun s -> (s, None, None))
+        in
         let m = Module.add_external loc typ id cname ~closure:false m in
         let env =
           Env.add_external id ~cname typ idloc env
@@ -1895,11 +1910,10 @@ and convert_prog env items modul =
               let m = Module.add_alias loc id lhs m in
               (env, Tl_bind (id, lhs), m)
           | Not ->
-              let uniq_name =
-                Some (Module.unique_name ~mname:(Env.modpath env) id uniq)
-              in
               let m =
-                Module.add_external loc lhs.typ id uniq_name ~closure:true m
+                Module.add_external loc lhs.typ id
+                  (Some (id, Some (Env.modpath env), uniq))
+                  ~closure:true m
               in
               let pass = block.pattr in
               (env, Tl_let { loc = id_loc; id; uniq; lhs; rmut; pass }, m)

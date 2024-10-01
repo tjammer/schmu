@@ -180,6 +180,8 @@ module Map_canon : Map_module.Map_tree = struct
   let map_type ~mname sub typ =
     load_type ~mname typ;
     Map_module.Canonize.canonize sub typ
+
+  let map_callname name _ = name
 end
 
 module Canon = Map_module.Make (Map_canon)
@@ -300,7 +302,10 @@ let load_foreign loc foreign fname mname =
 let rec add_to_env env foreign (mname, m) =
   allow_transitive_deps := true;
   let def_val = Env.def_mname mname in
-  let cname name = function Some cname -> cname | None -> name in
+  let cname name = function
+    | Some cname -> cname
+    | None -> (name, None, None)
+  in
   let env =
     match m.s with
     | [] ->

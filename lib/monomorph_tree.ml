@@ -1450,7 +1450,9 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
     List.fold_left
       (fun vars { Env.ext_cname; ext_name; used; imported; _ } ->
         let cname =
-          match ext_cname with None -> ext_name | Some cname -> cname
+          match Module_common.callname ext_cname with
+          | None -> ext_name
+          | Some cname -> cname
         in
         let ext_name =
           match imported with
@@ -1488,13 +1490,9 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
           { p with funcs = realp.funcs; monomorphized = realp.monomorphized }
         in
         let p, _ =
-          match Hashtbl.find_opt poly_funcs_tbl call with
-          | Some func ->
-              let typ = typ_of_abs func.abs in
-              monomorphize p typ concrete func parent_sub
-          | None ->
-              failwith
-                ("Internal Error: Poly function not registered yet: " ^ call)
+          let func = get_poly_func p call |> snd in
+          let typ = typ_of_abs func.abs in
+          monomorphize p typ concrete func parent_sub
         in
         {
           realp with
@@ -1516,7 +1514,9 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
         if not !used then None
         else
           let cname =
-            match ext_cname with None -> ext_name | Some cname -> cname
+            match Module_common.callname ext_cname with
+            | None -> ext_name
+            | Some cname -> cname
           in
           let c_linkage =
             match imported with

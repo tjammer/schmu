@@ -4,7 +4,8 @@ open Sexplib0.Sexp_conv
 
 type loc = Typed_tree.loc [@@deriving sexp, show]
 
-type name = { user : string; call : string option }
+type name = { user : string; call : callname option }
+and callname = string * Path.t option * int option
 
 and item =
   | Mtype of loc * string * type_decl
@@ -25,7 +26,7 @@ and item =
 
 and sg_kind = Module_type.item_kind =
   | Mtypedef of type_decl
-  | Mvalue of typ * string option (* call name *)
+  | Mvalue of typ * callname option
 
 and sig_item = string * loc * sg_kind [@@deriving sexp, show]
 and intf = sig_item list
@@ -59,6 +60,16 @@ let unique_name ~mname name uniq =
   | None -> Path.mod_name mname ^ "_" ^ name
   | Some n -> Path.mod_name mname ^ "_" ^ name ^ "__" ^ string_of_int n
 
+let callname call =
+  Option.map
+    (fun (name, mname, uniq) ->
+      match mname with
+      | Some mname -> unique_name ~mname name uniq
+      | None ->
+          assert (Option.is_none uniq);
+          name)
+    call
+
 let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
 
@@ -68,6 +79,5 @@ let type_of_func (func : Typed_tree.func) =
 let make_fun loc ~mname name uniq (abs : Typed_tree.abstraction) =
   if is_polymorphic_func abs.func then Mpoly_fun (loc, abs, name, uniq)
   else
-    let call = unique_name ~mname name uniq in
-    let name = { user = name; call = Some call } in
+    let name = { user = name; call = Some (name, Some mname, uniq) } in
     Mfun (loc, type_of_func abs.func, name)

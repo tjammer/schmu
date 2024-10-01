@@ -1,4 +1,5 @@
-module stbl = hashtbl/make(string)
+import stbl
+use stbl
 
 fun string() {
     println("## string")

@@ -11,6 +11,7 @@ module type Map_tree = sig
   val map_decl : mname:Path.t -> string -> sub -> type_decl -> sub * type_decl
   val absolute_module_name : mname:Path.t -> string -> string
   val map_type : mname:Path.t -> sub -> typ -> sub * typ
+  val map_callname : Module_common.callname -> sub -> Module_common.callname
 end
 
 module Canonize = struct
@@ -262,10 +263,12 @@ module Make (C : Map_tree) = struct
         ((sub, nsub), Mtype (l, n, decl))
     | Mfun (l, t, n) ->
         let a, t = C.map_type ~mname sub t in
-        ((a, nsub), Mfun (l, t, n))
+        let call = Option.map (fun call -> C.map_callname call sub) n.call in
+        ((a, nsub), Mfun (l, t, { n with call }))
     | Mext (l, t, n, c) ->
         let a, t = C.map_type ~mname sub t in
-        ((a, nsub), Mext (l, t, n, c))
+        let call = Option.map (fun call -> C.map_callname call sub) n.call in
+        ((a, nsub), Mext (l, t, { n with call }, c))
     | Mpoly_fun (l, abs, n, u) ->
         (* Change Var-nodes in body here *)
         let a, abs = map_abs mname sub nsub abs in

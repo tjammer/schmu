@@ -35,10 +35,11 @@ functor make : sig(m : key) {
   type t['a] = {data& : array[slot['a]], nitems& : int}
 
   fun rec power_2_above(x, n) {
-    if x >= n { x } else {
-      if (x * 2) < 0 { x } else {
-        power_2_above(x * 2, n)
-      }}
+    if x >= n { x }
+    else {
+      if (x * 2) < 0 { x }
+      else { power_2_above(x * 2, n) }
+    }
   }
 
   fun create(size) {

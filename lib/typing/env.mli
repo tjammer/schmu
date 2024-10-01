@@ -25,10 +25,12 @@ and touched = {
   tmname : Path.t option;
 }
 
+type callname = string * Path.t option * int option
+
 type ext = {
   ext_name : string;
   ext_typ : typ;
-  ext_cname : string option;
+  ext_cname : callname option;
   imported : (Path.t * [ `C | `Schmu ]) option;
   used : bool ref;
   closure : bool;
@@ -53,7 +55,7 @@ val empty :
 val add_value : key -> value -> Ast.loc -> t -> t
 (** [add_value key value loc] add value [key] defined at [loc] with type [typ] to env *)
 
-val add_external : key -> cname:string option -> typ -> Ast.loc -> t -> t
+val add_external : key -> cname:callname option -> typ -> Ast.loc -> t -> t
 (** like [add_value], but keeps track of external declarations *)
 
 val change_type : key -> typ -> t -> t
@@ -114,9 +116,9 @@ val pop_scope : t -> scope
 val fix_scope_loc : scope -> Ast.loc -> scope
 
 (* Call names*)
-val add_callname : key:string -> string -> t -> t
+val add_callname : key:string -> callname -> t -> t
 
-val find_callname : Ast.loc -> Path.t -> t -> string option
+val find_callname : Ast.loc -> Path.t -> t -> callname option
 (** Don't return option because if a callname isn't found it's an internal error *)
 
 val decl_tbl : t -> (Path.t, type_decl) Hashtbl.t
