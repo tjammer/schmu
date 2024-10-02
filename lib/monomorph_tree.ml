@@ -1251,7 +1251,11 @@ and morph_app mk p callee args ret_typ =
 
   let app = Mapp { callee; args; alloca = alloc_ref; id; ms } in
 
-  ({ p with ret; mallocs }, mk app ret, { no_var with alloc; malloc; tailrec })
+  (* We use tailrec here because the return state is only use for tailrec
+     detection in codegen. Ideally, we would set this more explicitly. *)
+  ( { p with ret; mallocs },
+    mk app tailrec,
+    { no_var with alloc; malloc; tailrec } )
 
 and morph_ctor mk p variant index expr typ =
   let ret = p.ret in
