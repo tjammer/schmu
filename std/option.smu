@@ -1,1 +1,8 @@
 type t['a] = #none | #some('a)
+
+fun map(opt, f) {
+  match opt {
+    #some(thing): #some(f(thing))
+    #none: #none
+  }
+}
