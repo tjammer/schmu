@@ -346,7 +346,7 @@ Copy variants
   
   define i64 @main(i64 %arg) {
   entry:
-    store i32 0, ptr @schmu_a, align 4
+    store i32 1, ptr @schmu_a, align 4
     %0 = alloca ptr, align 8
     store ptr @0, ptr %0, align 8
     %1 = alloca ptr, align 8
@@ -359,7 +359,7 @@ Copy variants
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %3, ptr align 8 @schmu_a, i64 24, i1 false)
     call void @__copy_vac_l2_(ptr %3)
     %index = load i32, ptr %3, align 4
-    %eq = icmp eq i32 %index, 0
+    %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
@@ -406,7 +406,7 @@ Copy variants
   entry:
     %tag1 = bitcast ptr %0 to ptr
     %index = load i32, ptr %tag1, align 4
-    %1 = icmp eq i32 %index, 0
+    %1 = icmp eq i32 %index, 1
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
@@ -436,7 +436,7 @@ Copy variants
   entry:
     %tag1 = bitcast ptr %0 to ptr
     %index = load i32, ptr %tag1, align 4
-    %1 = icmp eq i32 %index, 0
+    %1 = icmp eq i32 %index, 1
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry

@@ -1729,12 +1729,12 @@ The lamba passed as array-iter argument is polymorphic
   
   then:                                             ; preds = %entry
     %t = alloca %option.tc_, align 8
-    store %option.tc_ { i32 1, i8 undef }, ptr %t, align 4
+    store %option.tc_ { i32 0, i8 undef }, ptr %t, align 4
     br label %ifcont
   
   else:                                             ; preds = %entry
     %t1 = alloca %option.tc_, align 8
-    store i32 0, ptr %t1, align 4
+    store i32 1, ptr %t1, align 4
     %data = getelementptr inbounds %option.tc_, ptr %t1, i32 0, i32 1
     %2 = sub i64 %1, 1
     store i64 %2, ptr %0, align 8

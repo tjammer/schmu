@@ -30,7 +30,7 @@ Basic variant ctors
   define { i32, i64 } @schmu_wrap_option() {
   entry:
     %t = alloca %option.tac__, align 8
-    store i32 0, ptr %t, align 4
+    store i32 1, ptr %t, align 4
     %data = getelementptr inbounds %option.tac__, ptr %t, i32 0, i32 1
     %0 = alloca ptr, align 8
     store ptr @0, ptr %0, align 8
@@ -80,7 +80,7 @@ Match option
   
   %option.tl_ = type { i32, i64 }
   
-  @schmu_none_int = constant %option.tl_ { i32 1, i64 undef }
+  @schmu_none_int = constant %option.tl_ { i32 0, i64 undef }
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define linkonce_odr i64 @__schmu_none_all_vl__(i32 %0, i64 %1) {
@@ -89,7 +89,7 @@ Match option
     store i32 %0, ptr %p, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %p, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
-    %eq = icmp eq i32 %0, 1
+    %eq = icmp eq i32 %0, 0
     br i1 %eq, label %ifcont, label %else
   
   else:                                             ; preds = %entry
@@ -106,7 +106,7 @@ Match option
     store i32 %0, ptr %p, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %p, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
-    %eq = icmp eq i32 %0, 0
+    %eq = icmp eq i32 %0, 1
     br i1 %eq, label %ifcont, label %else
   
   else:                                             ; preds = %entry
@@ -123,7 +123,7 @@ Match option
     store i32 %0, ptr %p, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %p, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
-    %eq = icmp eq i32 %0, 1
+    %eq = icmp eq i32 %0, 0
     br i1 %eq, label %ifcont, label %else
   
   else:                                             ; preds = %entry
@@ -140,7 +140,7 @@ Match option
     store i32 %0, ptr %p, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %p, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
-    %eq = icmp eq i32 %0, 0
+    %eq = icmp eq i32 %0, 1
     br i1 %eq, label %ifcont, label %else
   
   else:                                             ; preds = %entry
@@ -154,55 +154,55 @@ Match option
   define i64 @main(i64 %arg) {
   entry:
     %boxconst = alloca %option.tl_, align 8
-    store %option.tl_ { i32 0, i64 1 }, ptr %boxconst, align 8
+    store %option.tl_ { i32 1, i64 1 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
     %0 = tail call i64 @schmu_match_opt(i32 %fst1, i64 %snd2)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     %boxconst3 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 1, i64 undef }, ptr %boxconst3, align 8
+    store %option.tl_ { i32 0, i64 undef }, ptr %boxconst3, align 8
     %fst5 = load i32, ptr %boxconst3, align 4
     %snd6 = getelementptr inbounds { i32, i64 }, ptr %boxconst3, i32 0, i32 1
     %snd7 = load i64, ptr %snd6, align 8
     %1 = tail call i64 @schmu_match_opt(i32 %fst5, i64 %snd7)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
     %boxconst8 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 0, i64 1 }, ptr %boxconst8, align 8
+    store %option.tl_ { i32 1, i64 1 }, ptr %boxconst8, align 8
     %fst10 = load i32, ptr %boxconst8, align 4
     %snd11 = getelementptr inbounds { i32, i64 }, ptr %boxconst8, i32 0, i32 1
     %snd12 = load i64, ptr %snd11, align 8
     %2 = tail call i64 @schmu_opt_match(i32 %fst10, i64 %snd12)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
     %boxconst13 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 1, i64 undef }, ptr %boxconst13, align 8
+    store %option.tl_ { i32 0, i64 undef }, ptr %boxconst13, align 8
     %fst15 = load i32, ptr %boxconst13, align 4
     %snd16 = getelementptr inbounds { i32, i64 }, ptr %boxconst13, i32 0, i32 1
     %snd17 = load i64, ptr %snd16, align 8
     %3 = tail call i64 @schmu_opt_match(i32 %fst15, i64 %snd17)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %3)
     %boxconst18 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 0, i64 1 }, ptr %boxconst18, align 8
+    store %option.tl_ { i32 1, i64 1 }, ptr %boxconst18, align 8
     %fst20 = load i32, ptr %boxconst18, align 4
     %snd21 = getelementptr inbounds { i32, i64 }, ptr %boxconst18, i32 0, i32 1
     %snd22 = load i64, ptr %snd21, align 8
     %4 = tail call i64 @schmu_some_all(i32 %fst20, i64 %snd22)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %4)
     %boxconst23 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 1, i64 undef }, ptr %boxconst23, align 8
+    store %option.tl_ { i32 0, i64 undef }, ptr %boxconst23, align 8
     %fst25 = load i32, ptr %boxconst23, align 4
     %snd26 = getelementptr inbounds { i32, i64 }, ptr %boxconst23, i32 0, i32 1
     %snd27 = load i64, ptr %snd26, align 8
     %5 = tail call i64 @schmu_some_all(i32 %fst25, i64 %snd27)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %5)
     %boxconst28 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 0, i64 1 }, ptr %boxconst28, align 8
+    store %option.tl_ { i32 1, i64 1 }, ptr %boxconst28, align 8
     %fst30 = load i32, ptr %boxconst28, align 4
     %snd31 = getelementptr inbounds { i32, i64 }, ptr %boxconst28, i32 0, i32 1
     %snd32 = load i64, ptr %snd31, align 8
     %6 = tail call i64 @__schmu_none_all_vl__(i32 %fst30, i64 %snd32)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %6)
-    %7 = tail call i64 @__schmu_none_all_vl__(i32 1, i64 undef)
+    %7 = tail call i64 @__schmu_none_all_vl__(i32 0, i64 undef)
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %7)
     ret i64 0
   }
@@ -231,7 +231,7 @@ Nested pattern matching
   define i64 @schmu_doo(ptr %m) {
   entry:
     %index = load i32, ptr %m, align 4
-    %eq = icmp eq i32 %index, 0
+    %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %ifcont15
   
   then:                                             ; preds = %entry
@@ -263,19 +263,19 @@ Nested pattern matching
   define i64 @main(i64 %arg) {
   entry:
     %boxconst = alloca %option.tvdl__, align 8
-    store %option.tvdl__ { i32 0, %test_ { i32 0, double 3.000000e+00 } }, ptr %boxconst, align 8
+    store %option.tvdl__ { i32 1, %test_ { i32 0, double 3.000000e+00 } }, ptr %boxconst, align 8
     %0 = call i64 @schmu_doo(ptr %boxconst)
     call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     %boxconst1 = alloca %option.tvdl__, align 8
-    store %option.tvdl__ { i32 0, %test_ { i32 1, double 9.881310e-324 } }, ptr %boxconst1, align 8
+    store %option.tvdl__ { i32 1, %test_ { i32 1, double 9.881310e-324 } }, ptr %boxconst1, align 8
     %1 = call i64 @schmu_doo(ptr %boxconst1)
     call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
     %boxconst2 = alloca %option.tvdl__, align 8
-    store %option.tvdl__ { i32 0, %test_ { i32 2, double undef } }, ptr %boxconst2, align 8
+    store %option.tvdl__ { i32 1, %test_ { i32 2, double undef } }, ptr %boxconst2, align 8
     %2 = call i64 @schmu_doo(ptr %boxconst2)
     call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
     %boxconst3 = alloca %option.tvdl__, align 8
-    store %option.tvdl__ { i32 1, %test_ undef }, ptr %boxconst3, align 8
+    store %option.tvdl__ { i32 0, %test_ undef }, ptr %boxconst3, align 8
     %3 = call i64 @schmu_doo(ptr %boxconst3)
     call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %3)
     ret i64 0
@@ -296,7 +296,7 @@ Match multiple columns
   %option.tl_ = type { i32, i64 }
   %vl_vl2_ = type { %option.tl_, %option.tl_ }
   
-  @schmu_none_int = constant %option.tl_ { i32 1, i64 undef }
+  @schmu_none_int = constant %option.tl_ { i32 0, i64 undef }
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
   define void @schmu_doo(i32 %0, i64 %1, i32 %2, i64 %3) {
@@ -314,12 +314,12 @@ Match multiple columns
     %"1" = getelementptr inbounds %vl_vl2_, ptr %4, i32 0, i32 1
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %"1", ptr align 8 %b, i64 16, i1 false)
     %index = load i32, ptr %"1", align 4
-    %eq = icmp eq i32 %index, 0
+    %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %else8
   
   then:                                             ; preds = %entry
     %index4 = load i32, ptr %4, align 4
-    %eq5 = icmp eq i32 %index4, 0
+    %eq5 = icmp eq i32 %index4, 1
     br i1 %eq5, label %then6, label %else
   
   then6:                                            ; preds = %then
@@ -337,7 +337,7 @@ Match multiple columns
   
   else8:                                            ; preds = %entry
     %index10 = load i32, ptr %4, align 4
-    %eq11 = icmp eq i32 %index10, 0
+    %eq11 = icmp eq i32 %index10, 1
     br i1 %eq11, label %then12, label %ifcont17
   
   then12:                                           ; preds = %else8
@@ -359,39 +359,39 @@ Match multiple columns
   define i64 @main(i64 %arg) {
   entry:
     %boxconst = alloca %option.tl_, align 8
-    store %option.tl_ { i32 0, i64 1 }, ptr %boxconst, align 8
+    store %option.tl_ { i32 1, i64 1 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
     %boxconst3 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 0, i64 2 }, ptr %boxconst3, align 8
+    store %option.tl_ { i32 1, i64 2 }, ptr %boxconst3, align 8
     %fst5 = load i32, ptr %boxconst3, align 4
     %snd6 = getelementptr inbounds { i32, i64 }, ptr %boxconst3, i32 0, i32 1
     %snd7 = load i64, ptr %snd6, align 8
     tail call void @schmu_doo(i32 %fst1, i64 %snd2, i32 %fst5, i64 %snd7)
     %boxconst10 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 0, i64 2 }, ptr %boxconst10, align 8
+    store %option.tl_ { i32 1, i64 2 }, ptr %boxconst10, align 8
     %fst12 = load i32, ptr %boxconst10, align 4
     %snd13 = getelementptr inbounds { i32, i64 }, ptr %boxconst10, i32 0, i32 1
     %snd14 = load i64, ptr %snd13, align 8
-    tail call void @schmu_doo(i32 1, i64 undef, i32 %fst12, i64 %snd14)
+    tail call void @schmu_doo(i32 0, i64 undef, i32 %fst12, i64 %snd14)
     %boxconst15 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 0, i64 1 }, ptr %boxconst15, align 8
+    store %option.tl_ { i32 1, i64 1 }, ptr %boxconst15, align 8
     %fst17 = load i32, ptr %boxconst15, align 4
     %snd18 = getelementptr inbounds { i32, i64 }, ptr %boxconst15, i32 0, i32 1
     %snd19 = load i64, ptr %snd18, align 8
     %boxconst20 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 1, i64 undef }, ptr %boxconst20, align 8
+    store %option.tl_ { i32 0, i64 undef }, ptr %boxconst20, align 8
     %fst22 = load i32, ptr %boxconst20, align 4
     %snd23 = getelementptr inbounds { i32, i64 }, ptr %boxconst20, i32 0, i32 1
     %snd24 = load i64, ptr %snd23, align 8
     tail call void @schmu_doo(i32 %fst17, i64 %snd19, i32 %fst22, i64 %snd24)
     %boxconst27 = alloca %option.tl_, align 8
-    store %option.tl_ { i32 1, i64 undef }, ptr %boxconst27, align 8
+    store %option.tl_ { i32 0, i64 undef }, ptr %boxconst27, align 8
     %fst29 = load i32, ptr %boxconst27, align 4
     %snd30 = getelementptr inbounds { i32, i64 }, ptr %boxconst27, i32 0, i32 1
     %snd31 = load i64, ptr %snd30, align 8
-    tail call void @schmu_doo(i32 1, i64 undef, i32 %fst29, i64 %snd31)
+    tail call void @schmu_doo(i32 0, i64 undef, i32 %fst29, i64 %snd31)
     ret i64 0
   }
   

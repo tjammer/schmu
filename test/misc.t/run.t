@@ -1525,7 +1525,7 @@ Piping for ctors and field accessors
     store i32 %0, ptr %x, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %x, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
-    %eq = icmp eq i32 %0, 0
+    %eq = icmp eq i32 %0, 1
     br i1 %eq, label %ifcont, label %else
   
   else:                                             ; preds = %entry
@@ -1541,7 +1541,7 @@ Piping for ctors and field accessors
     %0 = tail call i64 @__fun_schmu0(i64 1)
     tail call void @Printi(i64 %0)
     %boxconst = alloca %option.tl_, align 8
-    store %option.tl_ { i32 0, i64 1 }, ptr %boxconst, align 8
+    store %option.tl_ { i32 1, i64 1 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
@@ -2030,12 +2030,12 @@ Drop last element
   
   then:                                             ; preds = %entry
     %t = alloca %option.tal__, align 8
-    store %option.tal__ { i32 1, ptr undef }, ptr %t, align 8
+    store %option.tal__ { i32 0, ptr undef }, ptr %t, align 8
     br label %ifcont
   
   else:                                             ; preds = %entry
     %t1 = alloca %option.tal__, align 8
-    store i32 0, ptr %t1, align 4
+    store i32 1, ptr %t1, align 4
     %data = getelementptr inbounds %option.tal__, ptr %t1, i32 0, i32 1
     %2 = sub i64 %1, 1
     store i64 %2, ptr %0, align 8
@@ -2086,7 +2086,7 @@ Drop last element
     %8 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested)
     store { i32, i64 } %8, ptr %ret, align 8
     %index = load i32, ptr %ret, align 4
-    %eq = icmp eq i32 %index, 0
+    %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %ifcont
   
   then:                                             ; preds = %entry
@@ -2108,7 +2108,7 @@ Drop last element
     %14 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested)
     store { i32, i64 } %14, ptr %ret12, align 8
     %index14 = load i32, ptr %ret12, align 4
-    %eq15 = icmp eq i32 %index14, 0
+    %eq15 = icmp eq i32 %index14, 1
     br i1 %eq15, label %then16, label %else18
   
   then16:                                           ; preds = %ifcont
@@ -2145,7 +2145,7 @@ Drop last element
   entry:
     %tag1 = bitcast ptr %0 to ptr
     %index = load i32, ptr %tag1, align 4
-    %1 = icmp eq i32 %index, 0
+    %1 = icmp eq i32 %index, 1
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
@@ -2201,7 +2201,7 @@ Global lets with expressions
   %option.tal__ = type { i32, ptr }
   %ral__ = type { ptr }
   
-  @schmu_a = internal constant %option.tal__ { i32 1, ptr undef }
+  @schmu_a = internal constant %option.tal__ { i32 0, ptr undef }
   @schmu_b = global ptr null, align 8
   @schmu_c = global i64 0, align 8
   
@@ -2239,7 +2239,7 @@ Global lets with expressions
     %0 = tail call { i32, i64 } @schmu_ret_none()
     store { i32, i64 } %0, ptr %ret, align 8
     %index = load i32, ptr %ret, align 4
-    %eq = icmp eq i32 %index, 0
+    %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
@@ -2287,7 +2287,7 @@ Global lets with expressions
   entry:
     %tag1 = bitcast ptr %0 to ptr
     %index = load i32, ptr %tag1, align 4
-    %1 = icmp eq i32 %index, 0
+    %1 = icmp eq i32 %index, 1
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
@@ -3873,7 +3873,7 @@ Using unit values
   %inrec_ = type { i64, double }
   
   @schmu_a = constant i8 0
-  @schmu_b = constant %option.tu_ zeroinitializer
+  @schmu_b = constant %option.tu_ { i32 1 }
   @schmu_t = constant %thing_ zeroinitializer
   @schmu_u = constant i8 0
   @schmu_t__3 = constant %inrec_ { i64 10, double 9.990000e+01 }
@@ -3940,10 +3940,10 @@ Using unit values
   
   define i64 @main(i64 %arg) {
   entry:
-    store i32 0, ptr @schmu_b__2, align 4
+    store i32 1, ptr @schmu_b__2, align 4
     tail call void @schmu_a__2()
     %index = load i32, ptr @schmu_b__2, align 4
-    %eq = icmp eq i32 %index, 0
+    %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry

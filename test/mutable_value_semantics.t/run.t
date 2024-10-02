@@ -1092,7 +1092,7 @@ Refcounts for members in arrays, records and variants
     %16 = getelementptr i8, ptr %15, i64 16
     %17 = load i64, ptr %16, align 8
     call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %17)
-    store i32 0, ptr @schmu_r__3, align 4
+    store i32 1, ptr @schmu_r__3, align 4
     %18 = alloca ptr, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %18, ptr align 8 @schmu_a, i64 8, i1 false)
     call void @__copy_al_(ptr %18)
@@ -1102,7 +1102,7 @@ Refcounts for members in arrays, records and variants
     %21 = getelementptr i8, ptr %20, i64 16
     store i64 40, ptr %21, align 8
     %index = load i32, ptr @schmu_r__3, align 4
-    %eq = icmp eq i32 %index, 0
+    %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %else
   
   then:                                             ; preds = %entry
@@ -1157,7 +1157,7 @@ Refcounts for members in arrays, records and variants
   entry:
     %tag1 = bitcast ptr %0 to ptr
     %index = load i32, ptr %tag1, align 4
-    %1 = icmp eq i32 %index, 0
+    %1 = icmp eq i32 %index, 1
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
