@@ -471,6 +471,9 @@ fun map(p, f, buf, view){
   }
 }|}
 
+let test_variants_nameclash () =
+  test_exn "Two constructors are named none" "type t = #none | #some | #none"
+
 let test_lor_clike_variant () = test "int" "type clike = #a | #b; #b.lor(#a)"
 
 let test_lor_other_variant () =
@@ -1525,6 +1528,7 @@ let () =
           case "option_none_arg" test_variants_option_none_arg;
           case "option_some_arg" test_variants_option_some_arg;
           case "correct inference" test_variants_correct_inference;
+          case "nameclash" test_variants_nameclash;
           case "lor clike variant" test_lor_clike_variant;
           case "lor other variant" test_lor_other_variant;
         ] );

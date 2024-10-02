@@ -421,6 +421,7 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
      tag clashes for constructors with payload *)
   let next = ref (-1) in
   let indices = Hashtbl.create 32 in
+  let names = Hashtbl.create 32 in
   let nexti ~has_payload loc name =
     incr next;
     match Hashtbl.find_opt indices !next with
@@ -447,6 +448,9 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
   let ctors =
     List.map
       (fun { Ast.name = loc, cname; typ_annot; index } ->
+        if Hashtbl.mem names cname then
+          raise (Error (loc, "Two constructors are named " ^ cname))
+        else Hashtbl.add names cname ();
         match typ_annot with
         | None ->
             (* Just a ctor, without data *)
