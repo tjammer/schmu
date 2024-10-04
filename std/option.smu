@@ -6,3 +6,13 @@ fun map(opt, f) {
     #none: #none
   }
 }
+
+fun iter(opt, f) {
+  match opt {
+    #some(thing): {
+      f(thing)
+      ()
+    }
+    #none: ()
+  }
+}

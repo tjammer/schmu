@@ -139,6 +139,8 @@ fun reverse(arr&) {
   })
 }
 
+fun empty(arr): length(arr) == 0
+
 module fixed {
   let get = __fixed_array_get
   let length = __fixed_array_length
