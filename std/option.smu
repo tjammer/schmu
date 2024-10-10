@@ -16,3 +16,10 @@ fun iter(opt, f) {
     #none: ()
   }
 }
+
+fun bind(opt, f) {
+  match opt {
+    #some(thing): f(thing)
+    #none: #none
+  }
+}

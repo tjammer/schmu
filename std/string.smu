@@ -13,6 +13,7 @@ signature {
   val equal: (t, t) -> bool
   val append : (t&, t) -> unit
   val concat : (t, array[t]) -> t
+  val substr : (t, int, int) -> t
   val boyer_moore_horspool : (t, t) -> option/t[int]
 
   val modify_buf : (t&, (array[u8]&) -> unit) -> unit
@@ -72,6 +73,22 @@ fun concat(delim, strings) {
   ret
 }
 
+external memcpy : (raw_ptr[u8], raw_ptr[u8], int) -> unit
+
+fun substr(str : t, start, end) {
+  assert(start >= 0)
+  assert(end < len(str))
+
+  let size = end - start
+  assert(size >= 0)
+
+  let arr& = array/create(size + 1)
+  memcpy(array/data(arr), __unsafe_ptr_at(data(str), start), size)
+  &arr.[size] = '\000'
+  &__unsafe_array_length(arr) = size
+  arr
+}
+
 fun make_skips(pattern) {
   let len = array/length(pattern)
   let skips& = #256[len]
@@ -122,8 +139,6 @@ fun modify_buf(str& : t, f) {
 
 fun of_array(arr! : array[u8]) { arr }
 fun to_array(str! : t) { str }
-
-external memcpy : (raw_ptr[u8], raw_ptr[u8], int) -> unit
 
 fun of_fixed_array(arr : array#?[u8]) {
   let ret = array/create(__fixed_array_length(arr))
