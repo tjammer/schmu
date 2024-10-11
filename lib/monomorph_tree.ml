@@ -280,7 +280,9 @@ let rec cln ss p = function
             | Dabstract (Some dkind) -> cln_dkind dkind
           in
           cln_dkind decl.kind
-      | None -> failwith "Internal Error: Tconstr not available")
+      | None ->
+          failwith
+            ("Internal Error: Tconstr " ^ Path.show name ^ " not available"))
 
 and cln_kind ss p = function
   | Simple -> Simple

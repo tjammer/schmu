@@ -1,0 +1,3 @@
+import hidden_functor_app
+
+hidden_functor_app/do()

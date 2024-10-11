@@ -1,0 +1,10 @@
+signature {
+  val do : () -> unit
+}
+
+module stbl = hashtbl/make(string)
+
+fun do() {
+  let _ : stbl/t[int] = stbl/create(16)
+  ()
+}

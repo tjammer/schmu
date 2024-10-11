@@ -390,6 +390,12 @@ let rec add_to_env env foreign (mname, m) =
                 if not (Hashtbl.mem tbl name) then
                   (* Add decl to table *)
                   Hashtbl.add tbl name decl
+            | Mapplied_functor (loc, key, p, m) -> (
+                (* [register_applied_functor] adds the types to the decl table
+                   so they are readable later on *)
+                match register_applied_functor env loc key p m with
+                | Ok _ -> ()
+                | Error () -> raise (Error (loc, "Cannot apply functor")))
             | _ -> ())
           m.i;
         env
